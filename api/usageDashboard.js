@@ -1767,6 +1767,28 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "perftrimregress", total: rows.length, flaggedCount: rows.filter(r => r.flagged).length, rows });
   }
 
+  // task=yearrecovery: read-only. Sizes the year-less live listing fix (Oct 2026): counts today's
+  // live rows with no year, then checks how many of those WOULD now resolve one via a decodable VIN
+  // (position-10/7, lib/vehicle.js vinModelYear - a real fact, never a guess) or an existing non-null
+  // year already on file for the same (source, source_listing_id). Never writes.
+  if (task === "yearrecovery") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { vinModelYear } = await import("../lib/vehicle.js");
+    const { supabaseSelect } = await import("../lib/_supabase.js");
+    const blank = (await supabaseSelect(env, `live_listings?select=id,source,source_listing_id,vin_norm,status&year=is.null&limit=4000`)) || [];
+    let vinRecoverable = 0, priorRecoverable = 0, bothRecoverable = 0, unrecoverable = 0;
+    const bySource = new Map();
+    for (const r of blank) { if (!bySource.has(r.source)) bySource.set(r.source, []); bySource.get(r.source).push(r.source_listing_id); }
+    // Prior-appearance leg is moot for CURRENT rows (they ARE the latest row - there is no newer poll
+    // to carry a year forward from), so this sizes only the leg that matters today: the VIN decode.
+    // (The prior-appearance leg protects a FUTURE poll from regressing a year this fix already set.)
+    for (const r of blank) {
+      const vinYear = r.vin_norm && r.vin_norm.length === 17 ? vinModelYear(r.vin_norm) : null;
+      if (vinYear) vinRecoverable++; else unrecoverable++;
+    }
+    return res.status(200).json({ task: "yearrecovery", liveRowsWithNoYear: blank.length, recoverableViaVinDecode: vinRecoverable, stillUnrecoverable: unrecoverable, note: "prior-appearance leg protects future polls from regressing an already-known year; it has no effect on today's already-blank rows, which is why this count is VIN-decode only." });
+  }
+
   // task=platformpickaudit: the 40-car dropped-gates audit (flag off, read only - never writes, never
   // touches SELL_PICK_SHARED). Runs the SAME old-ladder-vs-shared-function comparison
   // platformpickreport does, sequentially (never parallel - this is metered OCD spend; sequential
@@ -4377,7 +4399,18 @@ async function handleOps(req, res) {
     });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts|vindist|typemodelunk|descfacts|ingestlog|item3probe|unktriage|vinidxcount." });
+  // task=mcexamplerefresh: force-rebuilds the Market Check landing's cached "An example" band
+  // (lib/live/marketCheckExample.js, spec_market_cache key "market-check|landing-example|v1") via the
+  // SAME engine call scripts/buildMarketCheckExample.js makes nightly - a one-off web trigger for
+  // refreshing the row before the nightly job is wired in, or after a reduce() shape change. ZERO OCD
+  // spend unless the live engine itself needs a fresh fetch (same as any normal search).
+  if (task === "mcexamplerefresh") {
+    const { marketCheckExample } = await import("../lib/live/marketCheckExample.js");
+    const d = await marketCheckExample(0, { fresh: true });
+    return res.status(200).json({ task: "mcexamplerefresh", qualified: !!d, example: d });
+  }
+
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts|vindist|typemodelunk|descfacts|ingestlog|item3probe|unktriage|vinidxcount|mcexamplerefresh." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================
