@@ -69,7 +69,9 @@ ${railFinal}
   // for every anonymous visitor, so it is safely cacheable at the shared edge with no Vary at all -
   // a prior `Vary: Cookie` made the cache key the raw cookie string, which differs per visitor and
   // was an effectively permanent MISS.
-  res.setHeader("Cache-Control", crew ? "private, no-store" : "public, s-maxage=600, stale-while-revalidate=3600");
+  // A cold instance that rendered before the example search finished (band undefined) is cached only
+  // briefly, so the landing's example band and chips are never held out of the shared cache for long.
+  res.setHeader("Cache-Control", crew ? "private, no-store" : band === undefined ? "public, s-maxage=30" : "public, s-maxage=600, stale-while-revalidate=3600");
   res.status(200).send(html);
 }
 export { BUY_CSS };
