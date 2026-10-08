@@ -51,7 +51,7 @@ export default async function handler(req, res) {
   // The landing's "An example" band (lib/live/marketCheckExample.js): cached daily, rebuilt nightly
   // (scripts/buildMarketCheckExample.js). A short wait so a cold cache never stalls the page; past it
   // the band is simply hidden for this one request while the build finishes in the background.
-  const example = await marketCheckExample(3000).catch(() => null);
+  const example = await marketCheckExample(9000).catch((e) => { console.error("marketCheck example fetch threw:", e && e.message); return null; });
   // Rule 2: ANY query string is a variant (?q=, ?tester=, ?crew=) and stays noindex with the bare
   // /market-check as canonical - never its own indexed URL.
   const hasQuery = /\?./.test(String(req.url || ""));
