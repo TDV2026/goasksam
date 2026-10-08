@@ -31,7 +31,8 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;",
 
 // Strips the pre-launch crew/tester access-gate <script> block AND its preceding explainer comment.
 // Public launch: no gate, no stale comment describing one, ships.
-function stripLaunchGate(html) {
+// Exported for api/sellNext.js (Lane C), which serves the same onebox.html for the new Sell.
+export function stripLaunchGate(html) {
   return html
     .replace(/<!-- Internal review surface[\s\S]*?noindex at launch\. -->\n/, "")
     .replace(/<script>\n\(function\(\)\{try\{[\s\S]*?\}catch\(e\)\{location\.replace\("\/"\);\}\}\)\(\);\n<\/script>\n/, "");

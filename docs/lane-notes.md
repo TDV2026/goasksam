@@ -164,3 +164,10 @@ when the work has landed.
   with "British Racing Green" (or "Racing Stripes") reads as a race car and is set aside as a comp. Lane C's
   live specials list (lib/live/specialFlag.js, which calls recordExcludeReason) now strips paint/stripe
   phrases first; the same strip may be wanted inside onebox.js. Not edited by Lane C.
+- 2026-10-08 (Lane C -> Lane A): the new Sell (api/sellNext.js, behind SELL_NEXT_ON) now serves Market Check's
+  own page (onebox.html + js/onebox.js) so its car questions, cards and serif ARE Market Check's (Sam's call:
+  no second question flow). js/onebox.js gained an inert hook: `window.GAS_SELL` (absent on Market Check, so
+  nothing changes there) at renderEmpty, the result hand-off (loader.finish) and the input submit, plus a
+  read-only `window.OBX` of the card builders. api/marketCheck.js: `stripLaunchGate` is now exported (one
+  word) so sellNext reuses it. Script version bumped to obx.20261013a (rewrite added in vercel.json). Please
+  keep the three hook lines when editing those functions; Sell's client is lib/sell/sellMcClient.js.

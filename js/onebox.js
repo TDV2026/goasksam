@@ -7,6 +7,11 @@
   "use strict";
   var API_ORIGIN = (location.hostname === "localhost" || location.protocol === "file:") ? "https://goasksam.com" : "";
   var root = document.getElementById("ob");
+  // SELL MODE (Lane C, Oct 2026): the one-direction Sell runs on THIS page and THIS question flow, so
+  // its questions, cards and type are Market Check's own. api/sellNext.js sets window.GAS_SELL; when it
+  // is absent (Market Check itself) every hook below is inert. GAS_SELL.homeHtml: the front page words;
+  // .onCar(d, query): One Box has named one car, Sell continues; .onSubmit(text): Sell's own answers.
+  var SELL = window.GAS_SELL || null;
   var lastQuery = "";
   var proofPool = [];
   var obSnapshotId = null; // stable id of the last result, for the shareable /o/<id> URL
@@ -160,6 +165,7 @@
     return '<div class="chips">' + (options || []).map(function (o) { return '<button class="chip" data-' + kind + '="' + esc(o) + '">' + esc(o) + "</button>"; }).join("") + "</div>";
   }
   function renderEmpty() {
+    if (SELL && SELL.homeHtml) { root.innerHTML = SELL.homeHtml(inboxHtml); wire(); syncRailResults(); return; }
     // Screen 1 (empty state), full stack and nothing else: wordmark, tagline, serif headline,
     // serif subline, the input (vertically centred in the viewport), and the cue. No JUST SOLD
     // block, no script kicker, no BETA badge, no manifesto line. Past searches live in the rail.
@@ -1234,7 +1240,7 @@
       var finalSteps = [];
       if (resultIsHousePool(d)) finalSteps.push("Backing out the buyer’s premiums");
       finalSteps.push("Picking the ones that matter");
-      loader.finish(finalSteps, function () { renderResults(d); });
+      loader.finish(finalSteps, function () { if (SELL && SELL.onCar && SELL.onCar(d, text)) return; renderResults(d); });
     }).catch(function () { renderError(OB_CALM); });
   }
   // VIN path: decode + confirm (reuses /api/vehicleIdentity). VINs travel in the request
@@ -1464,8 +1470,9 @@
   function wire() {
     var input = document.getElementById("ob-input");
     var go = document.getElementById("ob-go");
-    if (go) go.addEventListener("click", function () { run(input && input.value); });
-    if (input) input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); run(input.value); } });
+    var submitText = function (v) { if (SELL && SELL.onSubmit && SELL.onSubmit(v)) return; run(v); };
+    if (go) go.addEventListener("click", function () { submitText(input && input.value); });
+    if (input) input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); submitText(input.value); } });
     var edit = document.getElementById("ob-edit"); if (edit) edit.addEventListener("click", function () { renderEmpty(); if (input && lastQuery) { var i2 = document.getElementById("ob-input"); if (i2) { i2.value = lastQuery; i2.focus(); } } });
     var sell = document.getElementById("ob-sell"); if (sell) sell.addEventListener("click", toSell);
     // Long-list cap (Oct 2026, Sam's live review): "See all N" reveals the already server-rendered
@@ -1597,5 +1604,8 @@
     var q = /[?&]q=([^&]*)/.exec(location.search || "");
     if (q) { try { run(decodeURIComponent(q[1])); } catch (e) {} }
   }
+  // The card builders, for Sell mode (same cards, same type): read-only use, nothing here changes.
+  window.OBX = { qscreenHtml: qscreenHtml, askCopy: askCopy, esc: esc, inboxHtml: inboxHtml, footHtml: footHtml, saleCardHtml: saleCardHtml,
+    samMsgHtml: samMsgHtml, setRootHtmlLifted: setRootHtmlLifted, wire: wire, root: root, run: run, renderError: renderError, renderEmpty: renderEmpty };
   boot();
 })();

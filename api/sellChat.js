@@ -14,12 +14,11 @@ export default async function handler(req, res) {
   const env = supabaseEnv();
   if (!env) return res.status(503).json({ error: "unavailable" });
   const b = req.body || {};
-  // The one-direction Sell (lib/sell/sellFlow.js): {action:"flow", step:"car", car, picks} -> the car or
-  // the one missing question; {action:"flow", step:"result", car, state, how} -> one direction.
+  // The one-direction Sell (lib/sell/sellFlow.js). The car questions are Market Check's own (api/sellNext.js
+  // serves its page); {action:"flow", step:"result", car, state, how} -> the result; step:"ask" -> follow-up.
   if (b.action === "flow") {
-    const { identify, buildResult, stateOf } = await import("../lib/sell/sellFlow.js");
+    const { buildResult, stateOf } = await import("../lib/sell/sellFlow.js");
     try {
-      if (b.step === "car") return res.status(200).json(await identify(env, { car: String(b.car || "").slice(0, 300), picks: (Array.isArray(b.picks) ? b.picks : []).map(x => String(x).slice(0, 80)).slice(0, 4) }));
       if (b.step === "state") return res.status(200).json({ state: stateOf(b.text) });
       // A follow-up question after the result: Claude on the shared chat core, the engine's facts in words.
       if (b.step === "ask") {
