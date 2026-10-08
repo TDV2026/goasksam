@@ -89,6 +89,11 @@ jobs:
         id: specmarket
         continue-on-error: true
         run: node scripts/buildSpecMarketCache.js
+      # NEW STEP 1 of 2: builds the Market Check landing example once a night
+      - name: Build Market Check landing example (what the example car sold for)
+        id: marketcheckexample
+        continue-on-error: true
+        run: node scripts/buildMarketCheckExample.js
       - name: Build spec_pages (Porsche 911 spec/hub pages, serve-from-table)
         run: node scripts/buildSpecPagesCache.js
       - name: Precompute VIN rollout cache (sitemap-vins/motorcycles/other)
@@ -109,6 +114,12 @@ jobs:
         if: steps.specmarket.outcome == 'failure'
         run: |
           echo "::error::Spec market cache refresh failed (see the Refresh spec market cache step above). Later steps still ran, but the job must end red."
+          exit 1
+      # NEW STEP 2 of 2: turns the job red if the example build failed
+      - name: Fail the job if the Market Check example step failed
+        if: steps.marketcheckexample.outcome == 'failure'
+        run: |
+          echo "::error::Market Check landing example build failed (see the Build Market Check landing example step above). Later steps still ran, but the job must end red. The landing still serves correctly off its own live fallback meanwhile. This is a cache freshness regression, not a correctness outage."
           exit 1
       - name: Fail the job if the VIN rollout cache step failed
         if: steps.vinrollout.outcome == 'failure'
