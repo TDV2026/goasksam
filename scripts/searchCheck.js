@@ -58,7 +58,7 @@ async function main() {
     vins = (rows || []).map(r => r.vin_norm).filter(Boolean);
   }
   if (!vins.length) vins = ["WBSDE93483CF93837"];
-  const urls = [`${BASE}/`, `${BASE}/buy`, `${BASE}/sell`, `${BASE}/mcp`, `${BASE}/market-check`, ...vins.map(v => `${BASE}/vin/${v}`)];
+  const urls = [`${BASE}/`, `${BASE}/buy`, `${BASE}/sell`, `${BASE}/mcp`, `${BASE}/market-check`, `${BASE}/cars/porsche/911`, `${BASE}/cars/porsche/911/993/carrera/coupe-manual`, ...vins.map(v => `${BASE}/vin/${v}`)];
 
   const inSitemap = await sitemapUrls();
   const results = [];
