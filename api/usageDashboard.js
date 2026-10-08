@@ -3507,13 +3507,15 @@ async function handleOps(req, res) {
   if (task === "leadcount") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
-    const cnt = async (table, filter) => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${table}?${filter}&select=id&limit=1`, { headers: H }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
+    // auction_attempts has no id column (composite PK source_slug+source_record_id); select a real
+    // column on each table so the count=exact header actually comes back instead of a silent null.
+    const cnt = async (table, filter, col) => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${table}?${filter}&select=${col}&limit=1`, { headers: H }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
     const since365 = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
     const [archiveAll, archive365, archiveNullDate, attemptsAll] = await Promise.all([
-      cnt("sales_archive", "id=not.is.null"),
-      cnt("sales_archive", `sale_date=gte.${since365}`),
-      cnt("sales_archive", "sale_date=is.null"),
-      cnt("auction_attempts", "source_slug=not.is.null")
+      cnt("sales_archive", "id=not.is.null", "id"),
+      cnt("sales_archive", `sale_date=gte.${since365}`, "id"),
+      cnt("sales_archive", "sale_date=is.null", "id"),
+      cnt("auction_attempts", "source_slug=not.is.null", "source_slug")
     ]);
     return res.status(200).json({
       task: "leadcount", since365,
