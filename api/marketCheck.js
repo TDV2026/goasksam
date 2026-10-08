@@ -39,6 +39,25 @@ export function stripLaunchGate(html) {
 }
 
 export default async function handler(req, res) {
+  // TEMPORARY diagnostic (Oct 2026, remove once the example-band build is confirmed working):
+  // bypasses the HTML page and reports exactly where lib/live/marketCheckExample.js's build is
+  // failing, since Vercel's log stream has not reliably shown it. No write, no sensitive data.
+  if (req.query && req.query.__mcdebug === "1") {
+    const env0 = supabaseEnv();
+    const out = { hasEnv: !!env0 };
+    try {
+      const { resolveVehicle, sanitizeResolvedVehicle } = await import("../lib/vehicle.js");
+      const r = await resolveVehicle("2008 Porsche 997 Carrera S coupe", {});
+      out.resolveOk = !!(r && r.vehicle);
+      out.vehicle = r && r.vehicle ? (sanitizeResolvedVehicle(r.vehicle) || r.vehicle) : null;
+    } catch (e) { out.resolveError = String((e && e.stack) || e); }
+    try {
+      const { marketCheckExample } = await import("../lib/live/marketCheckExample.js");
+      out.example = await marketCheckExample(12000, { fresh: true });
+    } catch (e) { out.exampleError = String((e && e.stack) || e); }
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(200).json(out);
+  }
   if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "onebox.html"), "utf8");
   const env = supabaseEnv();
   // Date only, no count (Oct 2026, Sam): the real last-ingest date (lib/asOf.js lastUpdatedDate()),
