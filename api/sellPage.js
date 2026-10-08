@@ -16,6 +16,22 @@ const HERO = `<div class="hero" id="hero"><div class="hp-hero">
 let shell = null;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+// Public nav lockdown (Oct 2026, urgent, Sam): for the public, the /sell rail shows ONLY "Where to
+// sell" - Buy, PowerSellers and How Sam decides are removed from the HTML entirely (never CSS-hidden).
+// Crew (gas_crew=ok cookie, the same mechanism the One Box crew gate used) see the rail unchanged.
+// RESTORED Oct 2026: this function was dropped (call site kept, body lost) in a later edit to this
+// file, which threw "stripPublicNav is not defined" on every public (crew=false) request - a live
+// FUNCTION_INVOCATION_FAILED 500 for every signed-out visitor. If this file is edited again, keep this
+// function attached to its call site below.
+const CREW_ONLY_HREFS = ["/buy", "/powersellers", "/how-sam-decides"];
+function stripPublicNav(html) {
+  let out = html;
+  for (const href of CREW_ONLY_HREFS) {
+    out = out.replace(new RegExp(`\\s*<a class="hp-navitem" href="${href.replace(/\//g, "\\/")}"[^>]*>[^<]*<\\/a>`, "g"), "");
+  }
+  return out;
+}
+
 export default async function handler(req, res) {
   if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "index.html"), "utf8");
   const crew = isCrewRequest(req);
