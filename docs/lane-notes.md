@@ -98,3 +98,12 @@ when the work has landed.
   joins a short code around a hyphen (XJ-S -> XJS, GT-350 -> GT350); E-Type/F-Type/T-Bird/Rolls-Royce,
   number ranges and AMG-GT untouched. Numbers check: the XJ-S coupe query's 11 counted sales were all
   XJS coupes (XJR-S and XJ220 set aside), so only the name was wrong. No lib/tools or lib/onebox edits.
+- 2026-10-08 (Lane C, at Sam's direct request, edits lib/onebox.js): hyphen/space-neutral trim codes in
+  the SALES pools. trimTitleRe is now a superset (a separator is optional where letters meet digits:
+  ZR1/ZR-1/ZR 1, Z28/Z-28/Z/28, SS396/SS 396, GT350/GT-350, plus XJS/XJ-S via LETTER_CODE_SPLITS); the
+  titleContains DB pre-filter uses trimIlike ("*zr*1*"), and qualifyReason re-checks it: a row the old
+  literal ILIKE matched always passes, any other must match the code with real boundaries (XJR-S, XJ220,
+  XJ6, E-Type, F-Type, Rolls-Royce stay out). lint:cards: the same 12 pre-existing /sell speed-pick
+  failures before and after. Live pools (lib/live/search.js) already compare squashed titles. Separately
+  seen, not changed: "1966 Ford Mustang GT-350" (trim "Shelby GT350") reads 235 plain Mustangs at
+  $17,500-$33,500 - the trim is not scoping that pool. Lane A to look.
