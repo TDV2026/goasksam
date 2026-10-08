@@ -173,23 +173,19 @@
   }
   function renderEmpty() {
     if (SELL && SELL.homeHtml) { root.innerHTML = SELL.homeHtml(inboxHtml); wire(); syncRailResults(); return; }
-    // Screen 1 (empty state), full stack and nothing else: wordmark, tagline, serif headline,
-    // serif subline, the input (vertically centred in the viewport), and the cue. No JUST SOLD
-    // block, no script kicker, no BETA badge, no manifesto line. Past searches live in the rail.
-    // Headline (Oct 2026, Market Check public launch): "What could mine bring?" replaces the old
-    // "worth" hook - public copy rule bans worth/valuation/estimate/appraisal outright, even as a
-    // marketing hook. Rendered as a literal, not passed through lint() (matches the prior comment's
-    // intent: this is fixed UI copy, not an engine-derived sentence).
+    // Screen 1 (empty state): reached on boot only when the server did NOT already render the rich
+    // landing (lib/live/marketCheckLanding.js - see boot()'s early exit below), and on "Change" from
+    // an active result. Fixed copy (Oct 2026 landing redesign, Sam): the same headline/sub/placeholder
+    // as the landing's hero, literal and exact - no rotation, no added words. The landing's proof row,
+    // "What you get" and example band are landing-only (server-rendered, removed once a search runs,
+    // same as /buy's #lead); this simple fallback never tries to reproduce them.
     root.innerHTML =
       '<div class="ob-home">' +
-        '<p class="ob-tag">Real sales, updated every night.</p>' +
-        '<h1 class="ob-head">What could mine bring?</h1>' +
-        '<p class="ob-sub">See what cars like it actually sold for.</p>' +
-        inboxHtml("", PLACEHOLDER_BEATS[0]) +
-        '<div class="ob-cue">' + esc(cueText()) + "</div>" +
+        '<h1 class="ob-head">What’s your car going for?</h1>' +
+        '<p class="ob-sub">Not what it should sell for. What cars like yours actually did, with the receipts.</p>' +
+        inboxHtml("", "Your car, for example 2008 Porsche 997 Carrera S") +
       "</div>";
     wire();
-    startPlaceholderRotation();
     syncRailResults();
   }
   // ---------------------------------------------------------------- round-3 result render
@@ -1588,6 +1584,37 @@
         else if (b.parentNode) b.parentNode.removeChild(b);
       });
     });
+    // Market Check landing example band (item 3, Oct 2026): answering the miles/gearbox chip
+    // REORDERS the already server-rendered sales (closest to the answer first) - it never changes
+    // the pool or refetches anything, since this is a fixed illustrative example, not a real search.
+    (function () {
+      var qcard = document.getElementById("mc-ex-qcard"); if (!qcard) return;
+      var grid = document.getElementById("mc-ex-sales"); if (!grid) return;
+      var heading = document.getElementById("mc-ex-sales-h2");
+      function cardOf(child) { return child.classList.contains("mc-ex-card") ? child : child.querySelector(".mc-ex-card"); }
+      function reorder(keyFn) {
+        var kids = Array.prototype.slice.call(grid.children);
+        var withKeys = kids.map(function (k, i) { var c = cardOf(k); return { el: k, key: c ? keyFn(c) : Infinity, i: i }; });
+        withKeys.sort(function (a, b) { return a.key - b.key || a.i - b.i; });
+        withKeys.forEach(function (w) { grid.appendChild(w.el); });
+        if (heading) heading.textContent = "The closest to yours";
+      }
+      Array.prototype.forEach.call(qcard.querySelectorAll(".qchip[data-mc-ex-milemin]"), function (b) {
+        b.addEventListener("click", function () {
+          var lo = Number(b.getAttribute("data-mc-ex-milemin")), hi = b.getAttribute("data-mc-ex-milemax");
+          var target = hi ? (lo + Number(hi)) / 2 : lo;
+          reorder(function (c) { var mi = Number(c.getAttribute("data-mi")); return mi > 0 ? Math.abs(mi - target) : Infinity; });
+          Array.prototype.forEach.call(qcard.querySelectorAll(".qchip"), function (x) { x.classList.toggle("sel", x === b); });
+        });
+      });
+      Array.prototype.forEach.call(qcard.querySelectorAll(".qchip[data-mc-ex-tx]"), function (b) {
+        b.addEventListener("click", function () {
+          var tx = b.getAttribute("data-mc-ex-tx");
+          reorder(function (c) { return /manual/i.test(c.getAttribute("data-tx") || "") === (tx === "manual") ? 0 : 1; });
+          Array.prototype.forEach.call(qcard.querySelectorAll(".qchip"), function (x) { x.classList.toggle("sel", x === b); });
+        });
+      });
+    })();
     // Thin widening box: run the sibling family the engine named.
     Array.prototype.forEach.call(root.querySelectorAll("[data-sibling]"), function (b) { b.addEventListener("click", function () { obEvent("onebox_sibling_clicked", lastQuery); run(b.getAttribute("data-sibling")); }); });
     var share = root.querySelector("[data-share]"); if (share) share.addEventListener("click", shareResult);
@@ -1699,6 +1726,17 @@
     obAvatarInit();
     // JUST SOLD proof block removed from the empty state, so no fetchProof() on boot.
     if (renderSnapshot()) { syncRailResults(); return; }
+    // The server already rendered the rich landing (lib/live/marketCheckLanding.js: hero, proof row,
+    // "What you get", the example band) straight into #ob - mirrors renderSnapshot()'s early exit so
+    // that content is never wiped and rebuilt as the plain empty state. wire() attaches the real
+    // search box (#ob-input/#ob-go, same ids renderEmpty() uses) and the example band's own
+    // handlers (capCardsHtml's existing [data-capshow], plus the reorder-on-answer below).
+    if (document.getElementById("mc-landing")) {
+      wire(); syncRailResults();
+      var lq = /[?&]q=([^&]*)/.exec(location.search || "");
+      if (lq) { try { run(decodeURIComponent(lq[1])); } catch (e) {} }
+      return;
+    }
     renderEmpty();
     syncRailResults();
     var q = /[?&]q=([^&]*)/.exec(location.search || "");

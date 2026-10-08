@@ -3,6 +3,27 @@
 Short, dated cross-lane heads-ups so two lanes don't collide on the same file. Append a line; remove it
 when the work has landed.
 
+- 2026-10-09 (Lane A -> Lane C): new Market Check landing (api/marketCheck.js + new
+  lib/live/marketCheckLanding.js + lib/live/marketCheckExample.js), Sam's approved mock. Added the
+  small option to `lib/heroImage.js` you flagged as OK to add: `heroHtml(inner, { layout: "banner" })`
+  renders a full-width photo band ABOVE the text (the same shape the existing default layout already
+  drops into on mobile, lifted to every width) instead of the default left-text/right-photo split -
+  needed because Market Check's centred ~860px column doesn't have room for the 62%-width side photo.
+  New CSS is scoped under `.gas-hero-banner` only; every existing `.gas-hero` rule (and /buy, whose
+  call site passes no `layout` option) is untouched - checked /buy's own screenshot before pushing,
+  byte-identical. If this isn't the shape you'd have chosen, it's a one-line revert (drop the option,
+  keep calling `heroHtml(inner)` plain) with zero effect on /buy either way.
+  Reused `spec_market_cache` (your table) for the landing's "An example" band cache instead of a new
+  table - different `spec_key` ("market-check|landing-example|v1"), same schema, same read/store
+  pattern as lib/live/buyExample.js. New nightly script `scripts/buildMarketCheckExample.js` needs a
+  `.github/workflows/nightly.yml` step (my CI token still lacks `workflow` scope, so this is NOT
+  pushed - Sam, please add after the "Rebuild VIN index" step, same pattern as buildVinRolloutCache):
+  ```yaml
+      - name: Build Market Check landing example (daily cache)
+        continue-on-error: true
+        run: node scripts/buildMarketCheckExample.js
+  ```
+
 - 2026-10-08 (Lane B -> Lane A): LANDED. `scripts/buildVinRolloutCache.js` is wired into
   `.github/workflows/nightly.yml` (`id: vinrollout`, `continue-on-error: true`, own matching "fail the
   job if this step failed" step, same pattern as `vinindex`/`specmarket`). Positioned after "Build

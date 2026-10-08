@@ -19,11 +19,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { lastUpdatedDate } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
+import { landingHtml, LANDING_CSS } from "../lib/live/marketCheckLanding.js";
+import { marketCheckExample } from "../lib/live/marketCheckExample.js";
 
 const TITLE = "Market Check: what could your car bring?";
 const H1 = "What could mine bring?";
-const SUB = "See what cars like it actually sold for.";
-const TAG = "Real sales, updated every night.";
 const SITE = "https://goasksam.com";
 
 let shell = null;
@@ -40,11 +40,18 @@ export function stripLaunchGate(html) {
 
 export default async function handler(req, res) {
   if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "onebox.html"), "utf8");
+  const env = supabaseEnv();
   // Date only, no count (Oct 2026, Sam): the real last-ingest date (lib/asOf.js lastUpdatedDate()),
   // the same shared helper /sell uses. Null-safe: no date clause when it cannot be read, never a
-  // made-up one.
-  const updated = await lastUpdatedDate(supabaseEnv()).catch(() => null);
-  const lead = updated ? `GoAskSam reads real auction sales every night, as of ${updated}.` : `GoAskSam reads real auction sales every night.`;
+  // made-up one. Used for the <meta name="description"> (unchanged logic); the new landing's own
+  // on-page "Market Check. Updated ..." line (search rule 1's lead sentence) is built inside
+  // landingHtml() from this same date.
+  const updated = await lastUpdatedDate(env).catch(() => null);
+  const metaDesc = updated ? `GoAskSam reads real auction sales every night, as of ${updated}.` : `GoAskSam reads real auction sales every night.`;
+  // The landing's "An example" band (lib/live/marketCheckExample.js): cached daily, rebuilt nightly
+  // (scripts/buildMarketCheckExample.js). A short wait so a cold cache never stalls the page; past it
+  // the band is simply hidden for this one request while the build finishes in the background.
+  const example = await marketCheckExample(3000).catch(() => null);
   // Rule 2: ANY query string is a variant (?q=, ?tester=, ?crew=) and stays noindex with the bare
   // /market-check as canonical - never its own indexed URL.
   const hasQuery = /\?./.test(String(req.url || ""));
@@ -53,9 +60,9 @@ export default async function handler(req, res) {
   let html = stripLaunchGate(shell)
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${TITLE}</title>`)
     .replace(/<meta name="robots" content="[^"]*"\s*\/?>/, `<meta name="robots" content="${robots}" />`)
-    .replace("</head>", `<link rel="canonical" href="${SITE}/market-check" />\n<meta name="description" content="${esc(lead)}" />\n<meta property="og:title" content="${TITLE}" />\n<meta property="og:description" content="${esc(lead)}" />\n<meta property="og:type" content="website" />\n<meta property="og:url" content="${SITE}/market-check" />\n</head>`)
+    .replace("</head>", `<link rel="canonical" href="${SITE}/market-check" />\n<meta name="description" content="${esc(metaDesc)}" />\n<meta property="og:title" content="${TITLE}" />\n<meta property="og:description" content="${esc(metaDesc)}" />\n<meta property="og:type" content="website" />\n<meta property="og:url" content="${SITE}/market-check" />\n<style>${LANDING_CSS}</style>\n</head>`)
     .replace('<main class="wrap"><div id="ob"></div></main>',
-      `<p class="ob-leadbar" data-lead-sentence>${esc(lead)}</p><main class="wrap"><div id="ob"><div class="ob-home"><p class="ob-tag">${esc(TAG)}</p><h1 class="ob-head">${esc(H1)}</h1><p class="ob-sub">${esc(SUB)}</p></div></div></main>`);
+      `<main class="wrap"><div id="ob">${landingHtml({ updated, example, h1Text: H1 })}</div></main>`);
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", robots);
