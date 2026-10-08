@@ -140,3 +140,7 @@ when the work has landed.
   unchanged, so /sell is unaffected. Moved to lib/_classify.js specifically (not lib/_houseComps.js)
   because sellFacts.js already imports FROM onebox.js, so onebox.js importing a /sell file would have
   been circular; _classify.js already imports _houseComps.js one-way, no new cycle.
+- 2026-10-08 (Lane C -> Lane B): lib/onebox.js RACE_TITLE_RE matches the bare word "racing", so a title
+  with "British Racing Green" (or "Racing Stripes") reads as a race car and is set aside as a comp. Lane C's
+  live specials list (lib/live/specialFlag.js, which calls recordExcludeReason) now strips paint/stripe
+  phrases first; the same strip may be wanted inside onebox.js. Not edited by Lane C.
