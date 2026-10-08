@@ -6,7 +6,7 @@
 // fake number"). TASKS_PITCH and exampleUpdate() are exported so a homepage section can reuse them.
 // Search: a conversation or a task is never a URL; any query-string variant is noindex, canonical /tasks.
 import { BUY_CSS } from "./buy.js";
-import { PAGE_CSS, FONT_LINKS, railHtml } from "./_chrome.js";
+import { PAGE_CSS, FONT_LINKS, railHtml, isCrewRequest } from "./_chrome.js";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
 
 export const TASKS_PITCH = { lead: "A free AI buying agent for collector cars.", sub: "Tell Sam what you're looking for. Sam keeps checking the market and lets you know when something matches." };
@@ -115,7 +115,12 @@ export default async function handler(req, res) {
     { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: FAQ.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
     { "@context": "https://schema.org", "@type": "WebPage", name: "Sam Tasks", url: "https://goasksam.com/tasks", description: desc }
   ];
-  const rail = railHtml("tasks").replace(/<nav class="mnav"[\s\S]*?<\/nav>/, '<nav class="mnav" aria-label="Sections"><a class="n" href="/buy">Buy</a><span class="bar">|</span><a class="n" href="/sell">Sell</a><span class="bar">|</span><a class="n on" aria-current="page" href="/tasks">Tasks</a></nav>');
+  // Public nav lockdown (Oct 2026, urgent, Sam): the public rail/mnav show only "Where to sell"; the
+  // Buy/Sell/Tasks mobile-tab override below is crew-only. Crew unchanged (gas_crew=ok cookie, the One
+  // Box crew gate's mechanism).
+  const crew = isCrewRequest(req);
+  const railBase = railHtml("tasks", undefined, crew);
+  const rail = crew ? railBase.replace(/<nav class="mnav"[\s\S]*?<\/nav>/, '<nav class="mnav" aria-label="Sections"><a class="n" href="/buy">Buy</a><span class="bar">|</span><a class="n" href="/sell">Sell</a><span class="bar">|</span><a class="n on" aria-current="page" href="/tasks">Tasks</a></nav>') : railBase;
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>${title}</title><meta name="description" content="${esc(desc)}"><meta name="robots" content="${robots}"><link rel="canonical" href="https://goasksam.com/tasks">
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:url" content="https://goasksam.com/tasks"><meta property="og:type" content="website"><meta property="og:image" content="https://goasksam.com/og-card.png">
@@ -136,6 +141,8 @@ ${ex ? `<section class="sec"><h2>A real update</h2><p class="example"><span clas
 <script>${EXPLAINER_JS}</script></body></html>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", robots);
+  // The response now varies by the gas_crew cookie, so the shared edge cache must partition on it.
+  res.setHeader("Vary", "Cookie");
   res.setHeader("Cache-Control", "public, max-age=0, s-maxage=600, stale-while-revalidate=3600");
   res.status(200).send(html);
 }
@@ -165,7 +172,9 @@ const EXPLAINER_JS = String.raw`(function(){
 })();`;
 
 function appPage(req, res) {
-  const rail = railHtml("tasks").replace(/<nav class="mnav"[\s\S]*?<\/nav>/, '<nav class="mnav" aria-label="Sections"><a class="n" href="/buy">Buy</a><span class="bar">|</span><a class="n" href="/sell">Sell</a><span class="bar">|</span><a class="n on" aria-current="page" href="/tasks/mine">Tasks</a></nav>');
+  const crew = isCrewRequest(req);
+  const railBase = railHtml("tasks", undefined, crew);
+  const rail = crew ? railBase.replace(/<nav class="mnav"[\s\S]*?<\/nav>/, '<nav class="mnav" aria-label="Sections"><a class="n" href="/buy">Buy</a><span class="bar">|</span><a class="n" href="/sell">Sell</a><span class="bar">|</span><a class="n on" aria-current="page" href="/tasks/mine">Tasks</a></nav>') : railBase;
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Your tasks | GoAskSam</title><meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#FAF8F4">

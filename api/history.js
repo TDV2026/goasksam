@@ -9,7 +9,7 @@
 import { vinsForUrls } from "./_historyData.js";
 import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor, parseHubSlug, hubVins, liveListing, addWatch, carSlug, familyOf, slugify, listingSaid, familySales, SITEMAP_PAGE, resolveText, cleanTitle, canonicalHub } from "./_historyData.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
-import { PAGE_CSS as CSS, FONT_LINKS, railHtml, WHY_RESULT_HTML } from "./_chrome.js";
+import { PAGE_CSS as CSS, FONT_LINKS, railHtml, whyResultHtml, isCrewRequest } from "./_chrome.js";
 import { recordUsageEvent } from "./_usage.js";
 import { logPageView } from "../lib/_pageview.js";
 import { classifyRoad } from "../lib/_roadType.js";
@@ -128,7 +128,9 @@ function utm(url) { return url ? url + (url.includes("?") ? "&" : "?") + "utm_so
 function jsonLd(o) { return '<script type="application/ld+json">' + JSON.stringify(o).replace(/</g, "\\u003c") + "</script>"; }
 
 // ---------------------------------------------------------------- shared page chrome
-function page({ title, description, canonical, body, ld, index }) {
+// crew (Oct 2026, urgent, Sam): the public rail shows only "Where to sell"; crew (gas_crew=ok cookie,
+// the One Box crew gate's mechanism) see the full rail unchanged.
+function page({ title, description, canonical, body, ld, index, crew }) {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${esc(title)}</title>
 ${description ? `<meta name="description" content="${esc(description)}">` : ""}
@@ -137,19 +139,24 @@ ${canonical ? `<link rel="canonical" href="${esc(canonical)}">` : ""}
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#FAF8F4">
 ${FONT_LINKS}
 <style>${CSS}${STYLE}</style>${(ld || []).map(jsonLd).join("")}</head><body>
-${railHtml("history")}
+${railHtml("history", undefined, crew)}
 <main><div class="col">${body}</div></main></body></html>`;
 }
 function send(res, status, html, extra = {}, index = false) {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   if (!index) res.setHeader("X-Robots-Tag", "noindex, follow");
+  // The page now varies by the gas_crew cookie, so the shared edge cache must partition on it.
+  res.setHeader("Vary", "Cookie");
   res.setHeader("Cache-Control", status === 200 ? "public, s-maxage=3600, stale-while-revalidate=86400" : "no-store");
   for (const k of Object.keys(extra)) res.setHeader(k, extra[k]);
   res.status(status).send(html);
 }
-function notFound(res, what) {
-  send(res, 404, page({ title: "No auction history found | GoAskSam", body:
-    `<section class="card notfound"><h1>No auction history for ${esc(what)}</h1><p class="muted">GoAskSam has no auction appearance of a car under this identifier. Real auction results only, so there is nothing to show.</p><p><a class="full" href="/market-check">Look up another car &#8594;</a></p></section>` }));
+function notFound(req, res, what) {
+  const crew = isCrewRequest(req);
+  // "Look up another car" points to Market Check, which is removed from the public HTML entirely.
+  const cta = crew ? `<p><a class="full" href="/market-check">Look up another car &#8594;</a></p>` : "";
+  send(res, 404, page({ title: "No auction history found | GoAskSam", crew, body:
+    `<section class="card notfound"><h1>No auction history for ${esc(what)}</h1><p class="muted">GoAskSam has no auction appearance of a car under this identifier. Real auction results only, so there is nothing to show.</p>${cta}</section>` }));
 }
 // A listing photo the house has since taken down (a 403 from its CDN) must never leave an empty
 // tile: the hero tries the car's other photos, then removes the whole figure.
@@ -212,11 +219,12 @@ function sellHref(id) {
   return "/sell?" + Object.keys(p).filter(k => p[k] != null && p[k] !== "").map(k => encodeURIComponent(k) + "=" + encodeURIComponent(p[k])).join("&");
 }
 async function carPage(req, res, env, slug, vin) {
+  const crew = isCrewRequest(req);
   const { appearances, vinNorm, ok, source: dataSource } = await vinAppearances(env, vin);
-  if (!ok) return send(res, 503, page({ title: "GoAskSam", body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }));
-  if (!appearances.length) return notFound(res, "VIN " + vinNorm);
+  if (!ok) return send(res, 503, page({ title: "GoAskSam", crew: isCrewRequest(req), body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }));
+  if (!appearances.length) return notFound(req, res, "VIN " + vinNorm);
   const id = await carIdentity(appearances, vinNorm);
-  if (!id) return notFound(res, "VIN " + vinNorm);
+  if (!id) return notFound(req, res, "VIN " + vinNorm);
   if (slug !== id.slug || vin !== vinNorm) { res.setHeader("Location", `/history/${id.slug}/${vinNorm}`); return res.status(301).end(); }
 
   const name = [id.year, id.make, id.family].filter(Boolean).join(" ");
@@ -319,9 +327,9 @@ ${live ? liveCardHtml(live, name, noun) : ""}
 ${saidHtml(said)}
 ${groupListsHtml(d, id, vinNorm, poolCards, urlVins, others, noun)}
 <section class="sec"><h2>Questions</h2><dl class="faq">${faq.map(([q, a]) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join("")}</dl></section>
-<nav class="vlinks" aria-label="More"><a href="${esc(modelHub)}">All ${esc(id.make + " " + id.family)} auction results</a><a href="${esc(hubHref)}">Every ${esc(id.year + " " + id.make + " " + id.family)} by VIN</a><a class="red" href="${esc(sellHref(id))}">Where to sell it</a><a class="red" data-task-entry href="/tasks/mine?seed=vin&vin=${encodeURIComponent(vinNorm)}&car=${encodeURIComponent(name)}">Have Sam keep looking</a></nav>
+<nav class="vlinks" aria-label="More"><a href="${esc(modelHub)}">All ${esc(id.make + " " + id.family)} auction results</a><a href="${esc(hubHref)}">Every ${esc(id.year + " " + id.make + " " + id.family)} by VIN</a><a class="red" href="${esc(sellHref(id))}">Where to sell it</a>${crew ? `<a class="red" data-task-entry href="/tasks/mine?seed=vin&vin=${encodeURIComponent(vinNorm)}&car=${encodeURIComponent(name)}">Have Sam keep looking</a>` : ""}</nav>
 
-${WHY_RESULT_HTML}
+${whyResultHtml(crew)}
 <p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>
 `;
   const canonical = `${SITE}/history/${id.slug}/${vinNorm}`;
@@ -344,7 +352,7 @@ ${WHY_RESULT_HTML}
   const pricedCount = appearances.filter(a => a.priceUsd || a.bidUsd || a.nativeBid).length;
   const index = roadBucket !== "nonroad" && pricedCount >= 2 && realVin(vinNorm) && !!(id.family && id.make) && !(await deadPhotos(env)).vins.has(vinNorm);
   await logPageView(env, { path: canonical.replace(SITE, ""), referer: req.headers["referer"] || req.headers["referrer"], userAgent: req.headers["user-agent"] });
-  send(res, 200, page({ title: `${name}, VIN ${vinNorm}: auction history`, description: story, canonical, body: body2, ld, index }), {}, index);
+  send(res, 200, page({ title: `${name}, VIN ${vinNorm}: auction history`, description: story, canonical, body: body2, ld, index, crew }), {}, index);
 }
 // The specific word for an "other" self-propelled vehicle, else a neutral "vehicle".
 function otherNoun(title) {
@@ -485,15 +493,16 @@ function liveNowHtml(l) {
 
 // ---------------------------------------------------------------- hub page
 async function hubPage(req, res, env, slug) {
+  const crew = isCrewRequest(req);
   const hub = parseHubSlug(slug);
-  if (!hub) return notFound(res, slug);
+  if (!hub) return notFound(req, res, slug);
   // An alias hub ("ford-shelby-gt500") is the same page as its canonical one ("shelby-gt500").
   { const c = canonicalHub(hub.makeSlug.replace(/-/g, " "), hub.modelSlug.replace(/-/g, " "));
     const canon = [hub.year, slugify(c.make), slugify(c.family)].filter(Boolean).join("-");
     if (canon !== slug && slugify(c.make) !== hub.makeSlug) { res.setHeader("Location", `/history/${canon}`); res.setHeader("Cache-Control", "public, s-maxage=3600"); return res.status(301).end(); } }
   const list = await hubVins(env, hub);
-  if (list == null) return send(res, 503, page({ title: "GoAskSam", body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }));
-  if (!list.length) return notFound(res, slug.replace(/-/g, " "));
+  if (list == null) return send(res, 503, page({ title: "GoAskSam", crew: isCrewRequest(req), body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }));
+  if (!list.length) return notFound(req, res, slug.replace(/-/g, " "));
   // Name + One Box family from the resolver on the slug text (same resolver One Box uses).
   let v = null;
   try { const r = await resolveVehicle([hub.year, hub.makeSlug.replace(/-/g, " "), hub.modelSlug.replace(/-/g, " ")].filter(Boolean).join(" "), {}); v = r && r.vehicle ? (sanitizeResolvedVehicle(r.vehicle) || r.vehicle) : null; } catch {}
@@ -520,18 +529,18 @@ ${oneBoxBlock(d, id, `/market-check?q=${encodeURIComponent(name)}`, "")}
 <p class="answer" style="margin:0">${esc(ctx)}</p>
 <section class="card"><div class="sh"><h2>Every ${esc(name)} by VIN</h2><span class="muted">Newest sale first</span></div>
 <table class="stack"><thead><tr><th><span style="position:absolute;left:-9999px">Photo</span></th><th>VIN</th><th class="r">Appearances</th><th>Last result</th><th>Date</th><th class="r">Miles</th></tr></thead><tbody>${rows}</tbody></table></section>
-${WHY_RESULT_HTML}
+${whyResultHtml(crew)}
 <p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>`;
   const ld = [{ "@context": "https://schema.org", "@type": "ItemList", name: `${name} auction results`, url: canonical,
     itemListElement: list.slice(0, 200).map((g, i) => ({ "@type": "ListItem", position: i + 1, url: hub.year ? `${SITE}/history/${slug}/${g.vin}` : `${SITE}/vin/${g.vin}`, name: `${name}, VIN ${g.vin}` })) }];
   const hubIndex = !hub.year && list.some(g => g.apps.some(a => a.image)) && (!!id.vehicle || (!!fbMake && salesN >= 5 && !!id.family && !GENERIC_MODEL.test(id.family))) && !(await deadPhotos(env)).hubs.has(slug);
-  send(res, 200, page({ title: `${name} auction results and sale prices`, description: ctx, canonical, body, ld, index: hubIndex }), {}, hubIndex);
+  send(res, 200, page({ title: `${name} auction results and sale prices`, description: ctx, canonical, body, ld, index: hubIndex, crew }), {}, hubIndex);
 }
 
 // ---------------------------------------------------------------- handler
 export default async function handler(req, res) {
   const env = historyEnv();
-  if (!env) return send(res, 503, page({ title: "GoAskSam", body: "<p>Unavailable.</p>" }));
+  if (!env) return send(res, 503, page({ title: "GoAskSam", crew: isCrewRequest(req), body: "<p>Unavailable.</p>" }));
   if (req.method === "POST") {
     const b = req.body || {};
     if (b.action !== "watch") return res.status(400).json({ ok: false });
@@ -550,19 +559,19 @@ export default async function handler(req, res) {
     if (q.go && vin) {
       // /vin/{VIN}: 301 to the canonical car URL (404 when the VIN has no appearance or is not a car).
       const { appearances, ok } = await vinAppearances(env, vin);
-      if (!ok) return send(res, 503, page({ title: "GoAskSam", body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }));
+      if (!ok) return send(res, 503, page({ title: "GoAskSam", crew: isCrewRequest(req), body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }));
       const id = appearances.length ? await carIdentity(appearances, vin) : null;
-      if (!id) return notFound(res, "VIN " + vin);
+      if (!id) return notFound(req, res, "VIN " + vin);
       res.setHeader("Location", `/history/${id.slug}/${vin}`);
       res.setHeader("Cache-Control", "public, s-maxage=3600");
       return res.status(301).end();
     }
     if (slug && vin) return await carPage(req, res, env, slug, vin);
     if (slug) return await hubPage(req, res, env, slug);
-    return notFound(res, "that page");
+    return notFound(req, res, "that page");
   } catch (e) {
     console.error("history page failed:", (e && e.stack) || e);
-    return send(res, 500, page({ title: "GoAskSam", body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }));
+    return send(res, 500, page({ title: "GoAskSam", crew: isCrewRequest(req), body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }));
   }
 }
 

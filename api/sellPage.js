@@ -6,6 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { supabaseEnv } from "../lib/_supabase.js";
+import { isCrewRequest } from "./_chrome.js";
 
 const TITLE = "Where to sell your collector car";
 const HERO = `<div class="hero" id="hero"><div class="hp-hero">
@@ -27,13 +28,26 @@ async function soldLastYear() {
   return sold.n;
 }
 
+// Public nav lockdown (Oct 2026, urgent, Sam): for the public, the /sell rail shows ONLY "Where to
+// sell" - Buy, PowerSellers and How Sam decides are removed from the HTML entirely (never CSS-hidden).
+// Crew (gas_crew=ok cookie, the same mechanism the One Box crew gate used) see the rail unchanged.
+const CREW_ONLY_HREFS = ["/buy", "/powersellers", "/how-sam-decides"];
+function stripPublicNav(html) {
+  let out = html;
+  for (const href of CREW_ONLY_HREFS) {
+    out = out.replace(new RegExp(`\\s*<a class="hp-navitem" href="${href.replace(/\//g, "\\/")}"[^>]*>[^<]*<\\/a>`, "g"), "");
+  }
+  return out;
+}
+
 export default async function handler(req, res) {
   if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "index.html"), "utf8");
+  const crew = isCrewRequest(req);
   const n = await soldLastYear();
   const asOf = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" });
   const lead = n ? `Sam reads ${n.toLocaleString("en-US")} collector car auction sales from the last 12 months, as of ${asOf}, to tell you where to sell your car and why.`
     : `Sam reads the collector car auction sales from the last 12 months, as of ${asOf}, to tell you where to sell your car and why.`;
-  let html = shell
+  let html = (crew ? shell : stripPublicNav(shell))
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${TITLE}</title>`)
     .replace(/(<meta name="description" content=")[^"]*(")/, `$1${esc(lead)}$2`)
     .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${TITLE}$2`)
@@ -43,6 +57,9 @@ export default async function handler(req, res) {
     .replace('<div id="msgs"></div>', `<div id="msgs">${HERO}</div>`)
     .replace('<div id="input-area">', `<div id="input-area">\n    <p class="hp-supporting hp-home-only hp-lead" data-lead-sentence>${esc(lead)}</p>`);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
+  // The response now varies by the gas_crew cookie, so the shared edge cache must partition on it -
+  // otherwise one visitor's crew/public nav could get served to the other from cache.
+  res.setHeader("Vary", "Cookie");
   res.setHeader("Cache-Control", "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400");
   res.status(200).send(html);
 }

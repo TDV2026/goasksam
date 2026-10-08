@@ -3,6 +3,30 @@
 Short, dated cross-lane heads-ups so two lanes don't collide on the same file. Append a line; remove it
 when the work has landed.
 
+- 2026-10-08 (Lane A, URGENT, Sam): public nav lockdown. For the public, only "Where to sell" is
+  visible anywhere in the nav - Ask Sam, Buy, Tasks (+ badge), Market Check, How Sam decides and For
+  business are removed from the HTML entirely (never CSS-hidden). Crew (the existing gas_crew=ok
+  cookie, same mechanism as the One Box crew gate) see everything exactly as before.
+  `api/_chrome.js`: new `isCrewRequest(req)`; `railHtml(active, extra, crew)` takes a 3rd arg (public
+  rail = Sell only); `WHY_RESULT_HTML` is now `whyResultHtml(crew)` (drops "How Sam decides" for
+  public) - BREAKING rename, no file still imports the old constant (checked). Every caller updated:
+  `api/sellPage.js` (strips Buy/PowerSellers/How Sam decides from index.html's OWN rail - a SEPARATE
+  nav system from railHtml, since /sell reads index.html directly), `api/buy.js` (rail + the Buy/Sell/
+  Tasks/For business mobile-tab override now crew-only; the CLIENT-side "Have Sam keep looking" CTA
+  gated on `window.GAS_CREW`, a flag railHtml() now emits inline), `api/tasksPage.js` (both pages),
+  `api/history.js` (rail + the VIN-page "Have Sam keep looking" button + the 404 page's "Look up
+  another car" link, both server-side removed for public), `api/specPage.js` (rail + the "Go further"
+  Market Check/Buy links, my own extension beyond Sam's explicit list, flagged in the report).
+  `api/sellNext.js` NOT touched - it 404s to the public since the recent /sell rollback (6ddbabd), so
+  there is nothing live to fix there; it still imports `railHtml` (unaffected) and never imported the
+  renamed `WHY_RESULT_HTML`. `onebox.html`'s OWN internal rail (used by /market-check itself) also NOT
+  touched - out of Sam's stated scope (hiding links TO Market Check, not editing Market Check's own
+  page). Every touched handler's response now varies by the gas_crew cookie, so each got a `Vary:
+  Cookie` header so the shared edge cache can never serve one audience's nav to the other. No change
+  to any page's indexing/canonical/sitemap/robots - verified via searchCheck.js. Engine, lib/onebox.js,
+  the One Box crew gate and the homepage (index.html's app logic, only its static rail markup touched)
+  are all untouched.
+
 - 2026-10-08 (Lane A, taking over the 911 spec/hub page BUILD from Lane C per Sam): new `api/specPage.js`
   serves `/cars/porsche/911/...` (all 4 levels) + `/sitemap-specs.xml`. Reads the nightly `spec_pages`
   table (rule 11) first; falls back to calling `specPage()` LIVE (lib/specPages.js, unedited) when a

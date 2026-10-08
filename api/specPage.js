@@ -12,7 +12,7 @@
 // shows the sales themselves (or the honest reason) - never a number without evidence.
 import { specPage, parseSlug, allSpecSlugs911 } from "../lib/specPages.js";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
-import { PAGE_CSS, FONT_LINKS, railHtml, WHY_RESULT_HTML } from "./_chrome.js";
+import { PAGE_CSS, FONT_LINKS, railHtml, whyResultHtml, isCrewRequest } from "./_chrome.js";
 
 const SITE = "https://goasksam.com";
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -89,12 +89,13 @@ async function sitemapSpecs(req, res, env) {
 }
 
 export default async function handler(req, res) {
+  const crew = isCrewRequest(req);
   const env = supabaseEnv();
   if (req.query && req.query.sitemap) return sitemapSpecs(req, res, env);
   const rawSlug = String((req.query && req.query.slug) || "").replace(/^\/+/, "/");
   const slug = rawSlug.startsWith("/") ? rawSlug.replace(/\/$/, "") : "/" + rawSlug.replace(/\/$/, "");
   const parsed = parseSlug(slug);
-  if (!parsed) return notFound(res, slug);
+  if (!parsed) return notFound(res, slug, crew);
 
   // Serve-from-table first (rule 11); fall back to the live engine call until the nightly build has
   // written this slug (or the table/DDL has not landed yet). Both paths return the exact same shape.
@@ -104,7 +105,7 @@ export default async function handler(req, res) {
     if (rows && rows[0] && rows[0].data) data = rows[0].data;
   }
   if (!data) { try { data = await specPage(slug, env, {}); } catch { data = null; } }
-  if (!data) return notFound(res, slug);
+  if (!data) return notFound(res, slug, crew);
 
   const label = labelFor(parsed);
   const breadcrumb = breadcrumbChain(slug, parsed);
@@ -136,11 +137,11 @@ ${rowsTableHtml(data.recentSales)}
 ${repeatVinsHtml(data.repeatVins)}
 ${childrenTableHtml(data.children, childLabel)}
 ${data.level === "leaf" ? siblingsHtml(data.siblings) : ""}
-<section class="card"><div class="sh"><h2>Go further</h2></div>
+${crew ? `<section class="card"><div class="sh"><h2>Go further</h2></div>
 <nav class="links"><a href="${esc(marketCheckLink)}">Check a specific ${esc(label)} on Market Check &#8594;</a>
-${data.liveListings ? `<a href="${esc(buyLink)}">${data.liveListings} live right now on Buy &#8594;</a>` : `<a href="${esc(buyLink)}">See live listings on Buy &#8594;</a>`}</nav></section>
+${data.liveListings ? `<a href="${esc(buyLink)}">${data.liveListings} live right now on Buy &#8594;</a>` : `<a href="${esc(buyLink)}">See live listings on Buy &#8594;</a>`}</nav></section>` : ""}
 ${faq.length ? `<section class="card"><h2 style="margin-bottom:12px">Questions</h2><dl class="faq">${faq.map(([q, a]) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join("")}</dl></section>` : ""}
-${WHY_RESULT_HTML}
+${whyResultHtml(crew)}
 <p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>`;
 
   const canonical = `${SITE}${slug === "/cars/porsche/911" ? slug : data.slug}`;
@@ -157,18 +158,20 @@ ${index ? '<meta name="robots" content="index, follow">' : '<meta name="robots" 
 <link rel="canonical" href="${esc(canonical)}">
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(data.lead)}"><meta property="og:type" content="website"><meta property="og:url" content="${esc(canonical)}">
 ${FONT_LINKS}<style>${PAGE_CSS}</style>${ld.map(o => `<script type="application/ld+json">${JSON.stringify(o)}</script>`).join("")}</head><body>
-${railHtml("history")}
+${railHtml("history", undefined, crew)}
 <main><div class="col">${body}</div></main></body></html>`;
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   if (!index) res.setHeader("X-Robots-Tag", "noindex, follow");
+  // The page now varies by the gas_crew cookie, so the shared edge cache must partition on it.
+  res.setHeader("Vary", "Cookie");
   res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
   res.status(200).send(html);
 }
 
-function notFound(res, slug) {
+function notFound(res, slug, crew) {
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>No spec found | GoAskSam</title><meta name="robots" content="noindex, follow"></head><body>
-${railHtml("history")}
+${railHtml("history", undefined, crew)}
 <main><div class="col"><section class="card notfound"><h1>No spec found</h1><p class="muted">That Porsche 911 spec (${esc(slug)}) does not exist - either it was never offered with that body/gearbox, or the slug is malformed.</p><p><a class="full" href="/cars/porsche/911">Back to the Porsche 911 &#8594;</a></p></section></div></main></body></html>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", "noindex, follow");

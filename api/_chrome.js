@@ -1,5 +1,15 @@
 // Shared page chrome for the server-rendered public pages (history, /buy): One Box tokens + fonts,
 // the left rail (with Buy) and the phone header. Lane C.
+//
+// PUBLIC NAV LOCKDOWN (Oct 2026, urgent, Sam): for the public, only "Where to sell" is visible
+// anywhere in this chrome - Ask Sam, Buy, Tasks, Market Check, How Sam decides and For business are
+// removed from the HTML entirely (never CSS-hidden). Crew (the existing gas_crew=ok cookie, the same
+// mechanism the One Box crew gate used) see the full rail exactly as before. isCrewRequest(req) is the
+// single check every caller of railHtml()/whyResultHtml() must pass through.
+export function isCrewRequest(req) {
+  const c = String((req && req.headers && req.headers.cookie) || "");
+  return c.indexOf("gas_crew=ok") !== -1;
+}
 export const PAGE_CSS = `
 :root{--page:#F6F3EC;--card:#FFFFFF;--border:#DCD8CC;--ink:#15201A;--green:#1E4D38;--green-dk:#15372A;--sec:#5E6B63;--div:#E2DED3;--take:#F1F5F1;--live:#2E8B57;--ph:#E6E2D8;--soft:#3C4942;--tint:#EDF3EE;--tint-line:#D5E2D8;--serif:"Newsreader",Georgia,"Times New Roman",serif;--sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:light}
 *{box-sizing:border-box}html,body{margin:0}
@@ -115,13 +125,25 @@ export const FONT_LINKS = "<link rel=\"preload\" href=\"/fonts/newsreader-normal
 // Tasks in the rail: the badge, the app link when signed in, and the one-task rule at every entry point
 // ([data-task-entry]: /buy "Have Sam keep looking", the VIN page button, the /tasks buttons).
 const TASKS_BADGE = "<style>.tbadge{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:9px;background:#1A1A1A;color:#fff;font:600 11px/1.3 var(--sans,sans-serif);vertical-align:1px}.tbadge.nu{background:#D7262C}p.tkblocked,.msg.sam p.tkblocked{margin:10px 0;padding:10px 14px;border-left:3px solid #D7262C;background:#fff;font:400 15px/1.5 var(--sans,sans-serif)!important;color:#1A1A1A;flex-basis:100%;max-width:640px}p.tkblocked a{color:#D7262C;font-weight:600;font-size:15px}</style><script>(function(){var s=null;try{s=JSON.parse(localStorage.getItem(\"gas_auth_session\")||\"null\");}catch(e){}var on=!!(s&&s.access_token),sum=null;function get(){if(!sum)sum=fetch(\"/api/tasks?summary=1\",{cache:\"no-store\",headers:{Authorization:\"Bearer \"+s.access_token}}).then(function(r){return r.json();}).catch(function(){return null;});return sum;}function go(el){var h=el.getAttribute(\"data-href\")||el.getAttribute(\"href\");if(h)location.href=h;}document.addEventListener(\"click\",function(e){var el=e.target.closest&&e.target.closest(\"[data-task-entry]\");if(!el||!on)return;e.preventDefault();get().then(function(j){var a=j&&j.signedIn&&j.active;if(!a)return go(el);var box=el.closest(\"p,nav,header,li\")||el,old=box.parentNode&&box.parentNode.querySelector(\".tkblocked\");if(old)old.remove();var m=document.createElement(\"p\");m.className=\"tkblocked\";m.setAttribute(\"role\",\"status\");m.innerHTML=(a.state===\"paused\"?\"Your task is paused. Resume or stop it to start another.\":\"You have one task running. Stop it to start another.\")+' <a href=\"/tasks/mine?task='+encodeURIComponent(a.id)+'#task-'+encodeURIComponent(a.id)+'\">Open your task</a>';box.insertAdjacentElement(\"afterend\",m);});});if(!on)return;document.querySelectorAll('.rail a[href=\"/tasks\"],.mnav a[href=\"/tasks\"],.mhead a[href=\"/tasks\"]').forEach(function(a){a.setAttribute(\"href\",\"/tasks/mine\");});get().then(function(j){if(!j||!j.signedIn)return;var t=j.active&&j.active.state===\"needs_you\"?\"Needs you\":(j.unread?String(j.unread):\"\");if(!t)return;document.querySelectorAll(\"[data-tasks-badge]\").forEach(function(b){b.textContent=t;b.hidden=false;if(t===\"Needs you\")b.classList.add(\"nu\");});});})();</script>";
-export function railHtml(active, extra) {
+export function railHtml(active, extra, crew) {
   const item = (key, href, label) => '<a class="n' + (active === key ? ' on" aria-current="page' : '') + '" href="' + href + '">' + label + '</a>';
-  return '<nav class="rail" aria-label="Main navigation"><a class="logo" href="/market-check">GoAskSam</a>' +
+  // A tiny inline flag so any client script loaded LATER on the same page (e.g. api/buy.js's CLIENT,
+  // which builds some CTAs at runtime) can gate itself without a second cookie read.
+  const flag = '<script>window.GAS_CREW=' + (crew ? 'true' : 'false') + ';</script>';
+  if (!crew) {
+    return flag +
+      '<nav class="rail" aria-label="Main navigation"><a class="logo" href="/sell">GoAskSam</a>' +
+      item('sell', '/sell', 'Where to sell') + (extra || '') + '</nav>' +
+      '<header class="mhead"><a href="/sell">GoAskSam</a><nav class="mnav" aria-label="Sections">' + item('sell', '/sell', 'Sell') + '</nav></header>';
+  }
+  return flag +
+    '<nav class="rail" aria-label="Main navigation"><a class="logo" href="/market-check">GoAskSam</a>' +
     item('ask', '/market-check', 'Ask Sam') + item('buy', '/buy', 'Buy') + item('sell', '/sell', 'Where to sell') + item('tasks', '/tasks', 'Tasks<span class="tbadge" data-tasks-badge hidden></span>') +
     (active === 'history' ? item('history', '#', 'Car histories') : '') +
     item('how', '/how-sam-decides', 'How Sam decides') + item('business', '/business', 'For business') + (extra || '') + '</nav>' +
     '<header class="mhead"><a href="/market-check">GoAskSam</a><nav class="mnav" aria-label="Sections">' + item('ask', '/market-check', 'Ask Sam') + item('buy', '/buy', 'Buy') + item('sell', '/sell', 'Sell') + item('tasks', '/tasks', 'Tasks<span class="tbadge" data-tasks-badge hidden></span>') + '</nav></header>' + TASKS_BADGE;
 }
 
-export const WHY_RESULT_HTML = '<section class="whynote"><span class="eyebrow">Why it looks like this</span><p>No chart and no score. Every figure on this page is a hammer price from a real auction, matched to the car&#8217;s trim, body and gearbox, converted at the rate on the day it sold, with the replicas, projects and odd sales set aside. The range is where most of those sales landed. Where there aren&#8217;t enough sales to say something, the page says so instead.</p><a href="/how-sam-decides">How Sam decides &#8594;</a></section>';
+export function whyResultHtml(crew) {
+  return '<section class="whynote"><span class="eyebrow">Why it looks like this</span><p>No chart and no score. Every figure on this page is a hammer price from a real auction, matched to the car&#8217;s trim, body and gearbox, converted at the rate on the day it sold, with the replicas, projects and odd sales set aside. The range is where most of those sales landed. Where there aren&#8217;t enough sales to say something, the page says so instead.</p>' + (crew ? '<a href="/how-sam-decides">How Sam decides &#8594;</a>' : '') + '</section>';
+}
