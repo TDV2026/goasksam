@@ -359,5 +359,5 @@ function sauce(n) { const w = WORDS[n] || String(n); return n === 1 ? "One has b
 // comes back "pending" and the page fetches that card's line before drawing it).
 function buyChat(res, env, b) {
   return chatOut(res, env, b, { surface: "buy", run: runTurn,
-    shape: async out => ({ cards: await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; })), noun: out.noun }) });
+    shape: async out => ({ cards: await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; })), noun: out.noun, meta: out.meta || null, searchNote: out.searchNote }) });
 }
