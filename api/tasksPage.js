@@ -244,7 +244,7 @@ const APP_JS = String.raw`(function(){
     else h += '<section class="tcard">' + box("Tell Sam what to look for", "tkq", seedWords(), "e.g. find me a black manual 997 under $70k") + (reply ? '<p class="samreply">' + esc(reply) + "</p>" : "") + "</section>";
     if (past.length) h += '<details class="past"><summary>Past tasks (' + past.length + ")</summary>" + past.map(function(t){ var st = status(t); return '<details><summary><span class="pill ' + st[0] + '">' + st[1] + "</span>" + esc(t.summary) + "</summary>" + feed(t) + "</details>"; }).join("") + "</details>";
     app.innerHTML = h;
-    if (scrollTo) { var el = document.getElementById("task-" + scrollTo); scrollTo = null; if (el) el.scrollIntoView({ block: "start" }); }
+    if (scrollTo) { var el = app.querySelector(".blocked") || document.getElementById("task-" + scrollTo); scrollTo = null; if (el) el.scrollIntoView({ block: "start" }); }
     var q = $("tkq"); if (q && !cur && (params.get("start") || params.get("seed") || editing)) { q.focus(); }
   }
   // Pressed: disabled at once, the label says what is happening, and the other buttons in the card wait.
