@@ -79,6 +79,20 @@ export default async function handler(req, res) {
       const all = await (await fetch(`${env.supabaseUrl}/rest/v1/tasks?email=eq.${encodeURIComponent(String(q.email).toLowerCase())}&select=id,state,kind,summary,created_at`, { headers: H })).json();
       return res.status(200).json({ orphans: rows, deleted, account_rows_now: all });
     }
+    // Probe: a trim's sales pool under the old literal title filter vs the separator-neutral one (One Box
+    // trimIlike + its code re-check), for one make/model, all years in the archive, with sample titles.
+    if (req.method === "GET" && q.titlecount && q.make && q.trim && probeOk(req)) {
+      const { trimIlike, trimCodePattern } = await import("../lib/onebox.js");
+      const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+      const base = `sales_archive?make=ilike.${encodeURIComponent(String(q.make))}${q.model ? `&model=ilike.${encodeURIComponent("*" + q.model + "*")}` : ""}&sale_price=not.is.null&select=listing_title&limit=2000`;
+      const get = async pat => { const r = await fetch(`${env.supabaseUrl}/rest/v1/${base}&listing_title=ilike.${encodeURIComponent("*" + pat + "*")}`, { headers: H }); return r.ok ? (await r.json()).map(x => x.listing_title) : `error ${r.status}`; };
+      const lit = await get(String(q.trim)), wide = await get(trimIlike(String(q.trim)));
+      const re = new RegExp(`(^|[^a-z0-9])${trimCodePattern(String(q.trim))}([^a-z0-9]|$)`, "i");
+      const after = Array.isArray(wide) ? wide.filter(t => String(t).toLowerCase().includes(String(q.trim).toLowerCase()) || re.test(t)) : wide;
+      const forms = {}; if (Array.isArray(after)) for (const t of after) { const m = new RegExp(trimCodePattern(String(q.trim)), "i").exec(t); const k = m ? m[0] : "?"; forms[k] = (forms[k] || 0) + 1; }
+      const rejected = Array.isArray(wide) && Array.isArray(after) ? wide.filter(t => !after.includes(t)).slice(0, 8) : [];
+      return res.status(200).json({ before_literal: Array.isArray(lit) ? lit.length : lit, after: Array.isArray(after) ? after.length : after, forms_after: forms, db_wider_but_rejected_in_code: rejected });
+    }
     // Probe: counts of the old watch_requests rows (reported, never emailed).
     if (req.method === "GET" && q.watchcounts && probeOk(req)) {
       const count = async f => { const r = await fetch(`${env.supabaseUrl}/rest/v1/watch_requests?select=id${f}`, { method: "HEAD", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact", Range: "0-0" } }); return r.ok || r.status === 206 ? Number(((r.headers.get("content-range") || "").split("/")[1]) || 0) : `error ${r.status}`; };
