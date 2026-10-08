@@ -7,9 +7,6 @@
   "use strict";
   var API_ORIGIN = (location.hostname === "localhost" || location.protocol === "file:") ? "https://goasksam.com" : "";
   var root = document.getElementById("ob");
-  // Range bar (Oct 2026, prepared not shipped): behind ?bar=1 only, until Lane B lands Market
-  // Check/Buy range agreement. See rangeBarHtml.
-  var obBarFlag = /[?&]bar=1\b/.test(location.search || "");
   // SELL MODE (Lane C, Oct 2026): the one-direction Sell runs on THIS page and THIS question flow, so
   // its questions, cards and type are Market Check's own. api/sellNext.js sets window.GAS_SELL; when it
   // is absent (Market Check itself) every hook below is inert. GAS_SELL.homeHtml: the front page words;
@@ -392,16 +389,17 @@
   // Buy rail (api/buy.js railHtml). Reads ONLY d.span (the full min-to-max) and d.cluster (the
   // SAME typical band the headline figures above it already show) - nothing computed in the page.
   function rangeBarHtml(d) {
-    if (!obBarFlag) return "";
     var span = d.span, band = d.cluster;
     if (!Array.isArray(span) || span.length !== 2 || !Array.isArray(band) || band.length !== 2) return "";
     var lo = span[0], hi = span[1];
     if (!(Number(hi) > Number(lo))) return "";
     var pc = function (x) { return Math.max(0, Math.min(100, (x - lo) / (hi - lo) * 100)); };
     var a = pc(band[0]), b = pc(band[1]);
-    return '<div class="rangebar" data-stage="answer"><div class="rb-row"><span class="rb-end">' + esc(usd(lo)) +
-      '</span><span class="rb-track"><i class="rb-band" style="left:' + a.toFixed(1) + "%;width:" + Math.max(1.5, b - a).toFixed(1) + '%"></i></span><span class="rb-end">' + esc(usd(hi)) + "</span></div>" +
-      '<p class="rb-most">' + lint(esc("Most sold between " + usd(band[0]) + " and " + usd(band[1])), "rb.most") + "</p></div>";
+    // Labelled ends (Oct 2026, phone review): "Lowest sale $X" / "Highest sale $Y" - bare numbers
+    // read as a second, contradicting range next to the headline. No caption under the bar: the
+    // headline and "Most sales landed here." already say it.
+    return '<div class="rangebar" data-stage="answer"><div class="rb-row"><span class="rb-end rb-lo">' + lint(esc("Lowest sale " + usd(lo)), "rb.lo") +
+      '</span><span class="rb-track"><i class="rb-band" style="left:' + a.toFixed(1) + "%;width:" + Math.max(1.5, b - a).toFixed(1) + '%"></i></span><span class="rb-end rb-hi">' + lint(esc("Highest sale " + usd(hi)), "rb.hi") + "</span></div></div>";
   }
   // ANSWER CARD: left 7 of 10 columns carry eyebrow, ONE range (the cluster), "Most sales landed
   // here." and the freshness line; the right 3 carry Sam's Take ONLY when the engine returns one

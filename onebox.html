@@ -112,13 +112,14 @@ button{font:inherit}
 .range{margin:0;font:600 40px/1.1 var(--serif);color:var(--green);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 .range .to{font-weight:400;font-size:26px;color:var(--sec)}
 .landed{margin:0;font:400 20px/1.4 var(--serif);color:var(--ink)}
-/* ---- range bar (Oct 2026, prepared behind ?bar=1 - full spread, typical band highlighted) ---- */
-.rangebar{display:flex;flex-direction:column;gap:6px;margin-top:2px}
-.rb-row{display:flex;align-items:center;gap:10px}
+/* ---- range bar (Oct 2026): full spread, typical band highlighted, labelled ends ---- */
+.rangebar{margin-top:2px}
+.rb-row{display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"lo track hi";align-items:center;gap:10px}
 .rb-end{font:400 13px/1 var(--sans);color:var(--sec);font-variant-numeric:tabular-nums;white-space:nowrap}
-.rb-track{position:relative;flex:1;height:4px;background:var(--border);border-radius:2px}
+.rb-lo{grid-area:lo}
+.rb-hi{grid-area:hi;text-align:right}
+.rb-track{grid-area:track;position:relative;height:4px;background:var(--border);border-radius:2px}
 .rb-band{position:absolute;top:0;height:4px;background:var(--green);border-radius:2px}
-.rb-most{margin:0;font:400 14px/1.4 var(--sans);color:var(--ink)}
 .ans-lead{margin:0;font:400 24px/1.38 var(--serif);color:var(--ink);text-wrap:pretty}
 .fresh{display:flex;gap:10px;align-items:center;font:400 14px/1.4 var(--sans);color:var(--sec);margin-top:4px}
 .fresh .dot{width:8px;height:8px;border-radius:50%;background:var(--live);flex:none}
@@ -371,6 +372,6 @@ a.card:hover .ctitle{text-decoration:underline;text-underline-offset:3px}
 function obToggleRail(open){var r=document.getElementById("ob-rail"),s=document.getElementById("ob-scrim"),b=document.getElementById("ob-hamburger");if(!r)return;var on=(open===undefined)?!r.classList.contains("open"):!!open;r.classList.toggle("open",on);if(s)s.classList.toggle("open",on);if(b)b.setAttribute("aria-expanded",on?"true":"false");}
 function obToggleResults(e){if(e)e.preventDefault();var m=document.getElementById("ob-results-menu");if(m)m.classList.toggle("open");return false;}
 </script>
-<script src="/obx.20261014b/onebox.js"></script>
+<script src="/obx.20261014c/onebox.js"></script>
 </body>
 </html>
