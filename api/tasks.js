@@ -110,6 +110,7 @@ export default async function handler(req, res) {
         const t0 = Date.now(); let out;
         if (st.say != null && (st.new || !taskId)) { const r = await draftTurn(envT, user, { draft: st.new ? null : draft, text: st.say, seed: st.seed || null, apiKey, model: CHAT_MODEL }); draft = r.draft || null; if (r.task) taskId = r.task.id; out = { reply: r.reply, blocked: r.blocked || null, draft: draft && { kind: draft.kind, summary: draft.summary, question: draft.question, filters: draft.filters }, started: r.task ? r.task.state : null, rows: mem.tasks.length }; }
         else if (st.say != null) { const r = await taskTurn(envT, user, { taskId, text: st.say, apiKey, model: CHAT_MODEL }); out = { reply: r.reply, state: r.task && r.task.state, pending: r.pending || null, blocked: r.blocked || null }; }
+        else if (st.apply) { const r = await applyEdit(envT, user, taskId, st.apply, { apiKey, model: CHAT_MODEL, rows: st.rows }); out = { state: r.task && r.task.state, summary: r.task && r.task.summary, error: r.error || null }; }
         else if (st.control === "start") { const r = await startDraft(envT, user, draft || {}, { apiKey, model: CHAT_MODEL, rows: st.rows, testDrafts: st.testDrafts || null }); if (r.task) { taskId = r.task.id; draft = null; } out = { state: r.task && r.task.state, blocked: r.blocked || null, error: r.error || null, rows: mem.tasks.length }; }
         else if (st.control) { const r = await controlTask(envT, user, st.task_id || taskId, st.control, { apiKey, model: CHAT_MODEL, rows: st.rows }); out = { state: r.task && r.task.state, blocked: r.blocked || null, error: r.error }; }
         else if (st.run) { const r = await runTasks(envT, { taskId: st.task_id || taskId, rows: st.run.rows, now: st.run.now, testBad: !!st.run.testBad, testDrafts: st.run.testDrafts || null, test: true, apiKey, model: CHAT_MODEL }); out = r.report[0] || r; }
@@ -144,7 +145,7 @@ export default async function handler(req, res) {
       return res.status(200).json(await draftTurn(env, user, { draft: b.draft || null, text, seed: b.seed || null, apiKey, model: CHAT_MODEL }));
     }
     if (b.action === "start") return res.status(200).json(await startDraft(env, user, b.draft || {}, { apiKey, model: CHAT_MODEL }));
-    if (b.action === "apply") return res.status(200).json(await applyEdit(env, user, String(b.task_id || ""), b.pending || null));
+    if (b.action === "apply") return res.status(200).json(await applyEdit(env, user, String(b.task_id || ""), b.pending || null, { apiKey, model: CHAT_MODEL }));
     if (b.action === "control") {
       return res.status(200).json(await controlTask(env, user, String(b.task_id || ""), String(b.act || ""), { apiKey, model: CHAT_MODEL }));
     }
