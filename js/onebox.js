@@ -608,8 +608,13 @@
     return headHtml + row + moreHtml;
   }
   // "Shown separately" (Part 1 Rule 7): tagged variants and aside cars stay visible, out of the range.
-  function shownSeparatelyHtml(d) {
-    var list = d.asideCards || [];
+  function shownSeparatelyHtml(d, m) {
+    // The subject's OWN sale (the "This car" hero, on a VIN match) is a genuine price outlier
+    // against its typical-range pool for the SAME reason any outlier gets set aside - that part is
+    // correct. But nothing stopped it from ALSO being listed a second time down here as if it were
+    // a third-party "kept out" comp, right under its own hero card. Matched by URL, same dedup
+    // pattern the comparable-sales section already uses against the hero (line ~601 above).
+    var list = (d.asideCards || []).filter(function (c) { return !(m && m.url && c.url === m.url); });
     if (!list.length) return "";
     return '<div class="sec-head" data-stage="cards"><div><h2>' + lint("Shown separately", "sep.lab") + '</h2><span class="scope">' + lint("Kept out of the range above.", "sep.scope") + "</span></div></div>" +
       capCardsHtml("grid3", list.map(function (c) { return poolCardHtml(c, true); }), 4);
@@ -656,7 +661,7 @@
     body += observeHtml(d);
     body += salesSectionHtml(d, m);
     body += livePanelSlot();
-    body += shownSeparatelyHtml(d);
+    body += shownSeparatelyHtml(d, m);
     body += sellHtml();
     body += whyNoteHtml(d);
     return body;
