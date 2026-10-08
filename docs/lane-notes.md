@@ -261,3 +261,23 @@ when the work has landed.
   drops the "in the past N months" qualifier in that case (the real window isn't plumbed into this
   function; an omitted window beats a wrong one). `js.20261009a` bumped to `js.20261009b` (index.html +
   vercel.json rewrite) since this touches the /sell bundle.
+- 2026-10-08 (Lane B, follow-up): `lib/platformPick.js` after a 40-car audit (Sam's request) comparing
+  it against the live old ladder, flag off throughout. Three real gates were MISSING and got ported
+  (same thresholds as the real code, see the file's header): an exact-year rung tried before the
+  generation-bound pool (a named trim + multi-year generation only); the asymmetric market-dominance
+  gate (75%+ share, 10+ combined sample); and the volume-aware sample/margin check on the premium
+  branch (a non-depth-leader's premium only leads if its sample is comparable to the leader's, or
+  beats the leader's own premium by 8+ points). Also added (separate asks): a third ALL-TIME widen
+  step only when the pool is genuinely empty at 730/1825 days, marked `thin:true` + top-level
+  `evidenceSales`, never to fake a number past true zero; a literal-model-year scope when there is no
+  named trim and no curated generation (was pooling +/-2 years); and `SELL_PICK_SHARED`'s override now
+  also handles the shared function's house-mode pick (sets recommendedPath + a new
+  `decision.houseComparison`, no frontend renderer yet for that path - flagged, not built). Two
+  disagreement classes remain UNRESOLVED, neither a dropped ladder gate: (1) the old ladder's live,
+  metered OldCarsData fetch lands on a 1-2-sale total for a few common queries (1995 Mazda Miata, 2016
+  Mustang GT350, 1993 Supra Turbo, 2008 Audi RS4) while the archive clearly has far more - looks like a
+  live-fetch/model-alias limitation in sellerDecision.js's own fetch strategy, not something
+  platformPick.js's ladder can fix; (2) 1969 Camaro Z/28 and 1990 Corvette ZR-1 read almost empty in
+  the shared pool despite real matching Bring a Trailer sales confirmed in the archive by title scan -
+  cause not yet isolated (title slash-variant and generation/year-window are both still suspects).
+  SELL_PICK_SHARED is still off. No change needed in your files for this follow-up.
