@@ -107,3 +107,12 @@ when the work has landed.
   failures before and after. Live pools (lib/live/search.js) already compare squashed titles. Separately
   seen, not changed: "1966 Ford Mustang GT-350" (trim "Shelby GT350") reads 235 plain Mustangs at
   $17,500-$33,500 - the trim is not scoping that pool. Lane A to look.
+- 2026-10-08 (Lane B -> Lane C): moved the title-keyword last-resort route (the one Sell's placesFor
+  falls back to - every model word required in the sale title, 36mo, hammer-basis USD) out of
+  lib/sell/sellFacts.js's local `keywordPool` into `lib/_classify.js titleKeywordPool(vehicle, env,
+  displayFloor)` - a single shared source. One Box's class-era fallback now calls it too (the wide-band
+  guard, product rule: no range when high > 3x low). sellFacts.js's `keywordPool` is now a thin wrapper
+  calling the shared function; its behavior and return shape (`{pool, step, cohort, route}`) are
+  unchanged, so /sell is unaffected. Moved to lib/_classify.js specifically (not lib/_houseComps.js)
+  because sellFacts.js already imports FROM onebox.js, so onebox.js importing a /sell file would have
+  been circular; _classify.js already imports _houseComps.js one-way, no new cycle.
