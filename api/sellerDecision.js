@@ -3534,6 +3534,9 @@ export default async function handler(req, res) {
         // Nearest-sales fallback (Part 3): the band center, so a too-thin band shows the closest sales.
         miTarget: Number.isFinite(Number(rawRefine.miTarget)) ? Number(rawRefine.miTarget) : null,
         tx: rawRefine.tx === "manual" ? "manual" : rawRefine.tx === "auto" ? "auto" : null,
+        // Body style refine (Oct 2026, Market Check): same small, known vocabulary lib/onebox.js's
+        // detectBodyStyle()/BODY_LABEL use - anything else is dropped, never passed through raw.
+        body: ["targa", "coupe", "cabriolet", "convertible", "roadster", "wagon", "sedan"].includes(rawRefine.body) ? rawRefine.body : null,
         // Competition-variant refine (Part 1 change 1): Competition Package vs standard.
         variant: rawRefine.variant === "competition" ? "competition" : rawRefine.variant === "standard" ? "standard" : null,
         // Item 7/8 dictionary-driver refine + item 9 observable-fact refine (both re-scope the pool).

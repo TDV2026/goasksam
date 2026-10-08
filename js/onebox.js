@@ -1291,7 +1291,12 @@
   // vin=<VIN> on a VIN/chassis match) plus miles=<lo>-<hi|-> and body=/tx= once answered. A reload
   // or a pasted link runs the SAME query through the SAME engine call (run/runPool below) - never a
   // frozen snapshot - so it reads whatever is true right now, same as a fresh search would.
-  function mcUrlActive() { return location.pathname === "/market-check"; }
+  // SELL (window.GAS_SELL, set by lib/sell/sellMcClient.js) is this file's own existing flag for
+  // "this page is New Sell, not Market Check" - checked FIRST, same as the runPool success hook
+  // above already does. location.pathname is the belt-and-suspenders second check. New Sell runs
+  // its own address handling (lib/sell/sellMcClient.js) - this must never also push there, or the
+  // two would fight over the history stack and break Back on both pages.
+  function mcUrlActive() { return !SELL && location.pathname === "/market-check"; }
   function slugifyQuery(s) { return String(s || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); }
   function deslugifyQuery(s) { return String(s || "").replace(/-+/g, " ").trim(); }
   function mcCurrentParams() {
