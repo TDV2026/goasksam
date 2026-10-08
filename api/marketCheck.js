@@ -39,25 +39,6 @@ export function stripLaunchGate(html) {
 }
 
 export default async function handler(req, res) {
-  // TEMPORARY diagnostic (Oct 2026, remove once the example-band build is confirmed working):
-  // bypasses the HTML page and reports exactly where lib/live/marketCheckExample.js's build is
-  // failing, since Vercel's log stream has not reliably shown it. No write, no sensitive data.
-  if (req.query && req.query.__mcdebug === "1") {
-    const env0 = supabaseEnv();
-    const out = { hasEnv: !!env0 };
-    try {
-      const { resolveVehicle, sanitizeResolvedVehicle } = await import("../lib/vehicle.js");
-      const r = await resolveVehicle("2008 Porsche 997 Carrera S coupe", {});
-      out.resolveOk = !!(r && r.vehicle);
-      out.vehicle = r && r.vehicle ? (sanitizeResolvedVehicle(r.vehicle) || r.vehicle) : null;
-    } catch (e) { out.resolveError = String((e && e.stack) || e); }
-    try {
-      const { marketCheckExample } = await import("../lib/live/marketCheckExample.js");
-      out.example = await marketCheckExample(12000, { fresh: true });
-    } catch (e) { out.exampleError = String((e && e.stack) || e); }
-    res.setHeader("Cache-Control", "no-store");
-    return res.status(200).json(out);
-  }
   if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "onebox.html"), "utf8");
   const env = supabaseEnv();
   // Date only, no count (Oct 2026, Sam): the real last-ingest date (lib/asOf.js lastUpdatedDate()),
@@ -70,7 +51,12 @@ export default async function handler(req, res) {
   // The landing's "An example" band (lib/live/marketCheckExample.js): cached daily, rebuilt nightly
   // (scripts/buildMarketCheckExample.js). A short wait so a cold cache never stalls the page; past it
   // the band is simply hidden for this one request while the build finishes in the background.
-  const example = await marketCheckExample(9000).catch((e) => { console.error("marketCheck example fetch threw:", e && e.message); return null; });
+  // 8s: generous enough that a cold cache (e.g. the row expires before scripts/
+  // buildMarketCheckExample.js is wired into the nightly) still reliably gets a real example
+  // rather than relying on serverless "finish in the background" (unreliable - confirmed live:
+  // a request past its wait budget does not guarantee the build completes before this instance
+  // is frozen). Once a row exists, every request is a cheap table read regardless of this number.
+  const example = await marketCheckExample(8000).catch((e) => { console.error("marketCheck example fetch threw:", e && e.message); return null; });
   // Rule 2: ANY query string is a variant (?q=, ?tester=, ?crew=) and stays noindex with the bare
   // /market-check as canonical - never its own indexed URL.
   const hasQuery = /\?./.test(String(req.url || ""));
