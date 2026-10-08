@@ -1666,6 +1666,82 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "platformpickproof", rows });
   }
 
+  // task=perftrimregress: READ-ONLY regression check for the PERF_TRIMS fix (commit 16eeb27). Fetches
+  // the pool ONCE per spec with perfInclude/perfExclude stripped (every other qualifyReason gate -
+  // body, year, halo, race, modified, memorabilia - still applies unchanged; archiveScope/the DB query
+  // never depended on perfInclude), then reclassifies that SAME candidate set in memory two ways: the
+  // CURRENT PERF_TRIMS (imported live) and a hand-reconstructed pre-fix PERF_TRIMS (the exact literal-
+  // match regexes from before 16eeb27, verified against `git show 16eeb27^:lib/onebox.js`). No code
+  // path is reverted or redeployed - this is pure arithmetic over one real fetch.
+  if (task === "perftrimregress") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { buildSpec, fetchQualifying } = await import("../lib/onebox.js");
+    const { hammerUsd } = await import("../lib/_houseComps.js");
+    const escRe = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // Pre-16eeb27 PERF_TRIMS, verbatim (git show 16eeb27^:lib/onebox.js).
+    const OLD_PERF_TRIMS = [
+      { make: /^bmw$/i, activate: /^m( competition)?$/i, include: (m) => new RegExp(`\\b${escRe(m)}\\s*m\\b|\\bm\\s*competition\\b`, "i"), baseExclude: (m) => /^m\d/i.test(m) ? null : new RegExp(`\\b${escRe(m)}\\s*m\\b`, "i") },
+      { make: /porsche/i, activate: /gt3|gt2|turbo\s*s|\bgts\b|\bgt4\b/i, include: (m, tr) => new RegExp(escRe(tr).replace(/\s+/g, "\\s*"), "i"), baseExclude: () => null },
+      { make: /chevrolet/i, activate: /z06|zr1|zl1|\bz28\b/i, include: (m, tr) => new RegExp(`\\b${escRe(tr)}\\b`, "i"), baseExclude: () => /\bz06\b|\bzr1\b|\bzl1\b|\bz28\b/i },
+      { make: /ford/i, activate: /shelby|gt500|gt350|\bboss\b|svt|mach\s*1/i, include: (m, tr) => new RegExp(escRe(tr).replace(/\s+/g, "\\s*"), "i"), baseExclude: () => /shelby|gt500|gt350|\bboss\b|svt/i },
+      { make: /mercedes|benz/i, activate: /amg|\b\d?63\b|\b55\b|\b65\b|black series/i, include: () => /\bamg\b|\b63\b|\b65\b|\b55\b|black series/i, baseExclude: () => /\bamg\b|\b63\b|\b65\b|black series/i }
+    ];
+    const oldPerfFns = (make, model, trim) => {
+      const perf = OLD_PERF_TRIMS.find(p => p.make.test(make));
+      if (!perf) return { include: null, exclude: null };
+      if (!perf.activate.test(trim || "")) {
+        const bx = perf.baseExclude(model);
+        return { include: null, exclude: (bx && !bx.test(model || "")) ? (t => bx.test(t)) : null };
+      }
+      return { include: t => perf.include(model, trim || "").test(t), exclude: null };
+    };
+    const percentileOf = (arr, p) => { const s = arr.slice().sort((a, b) => a - b); if (!s.length) return null; const idx = Math.max(0, Math.min(s.length - 1, Math.round(p * (s.length - 1)))); return s[idx]; };
+    const REGRESS_CARS = String(req.query?.cars || [
+      "2018 Porsche 911 GT3", "2011 Porsche 911 GT2 RS", "2016 Porsche 911 GT3 RS", "2017 Porsche 911 Turbo S",
+      "1987 Porsche 911 Turbo", "1996 Porsche 911 Turbo", "2001 Porsche 911 Turbo", "2008 Porsche 911 Turbo",
+      "2015 Porsche 911 Carrera", "2015 Chevrolet Corvette Z06", "1990 Chevrolet Corvette ZR-1",
+      "2017 Chevrolet Corvette Grand Sport", "2015 Chevrolet Corvette Stingray", "1969 Chevrolet Camaro Z28",
+      "2012 Chevrolet Camaro ZL1", "1969 Chevrolet Camaro", "1969 Chevrolet Camaro SS", "1969 Ford Mustang Boss 302",
+      "2016 Ford Mustang GT350", "2020 Ford Mustang GT500", "1967 Ford Mustang Shelby GT500", "2005 Ford GT",
+      "1965 Ford Mustang", "2008 Porsche 911 Carrera S Coupe", "1965 Chevrolet Corvette", "1955 Mercedes-Benz 300SL Gullwing",
+      "2012 Audi R8", "1993 BMW M3", "2001 BMW M5", "2006 Mercedes-Benz CLK DTM AMG Cabriolet"
+    ].join("|")).split("|");
+    const offset = Number(req.query?.offset) > 0 ? Number(req.query.offset) : 0;
+    const limit = Number(req.query?.limit) > 0 ? Number(req.query.limit) : REGRESS_CARS.length;
+    const rows = [];
+    for (const q of REGRESS_CARS.slice(offset, offset + limit)) {
+      const row = { q };
+      try {
+        const rv = await resolveVehicle(q, {}); const vehicle = rv && rv.vehicle;
+        if (!vehicle || !vehicle.make) { row.error = "unresolved"; rows.push(row); continue; }
+        row.resolved = `${vehicle.year || ""} ${vehicle.make} ${vehicle.model || ""}${vehicle.trim ? " " + vehicle.trim : ""}`.trim();
+        const generation = await findGeneration(vehicle, env);
+        const searchText = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(" ");
+        const spec = buildSpec(vehicle, generation, searchText);
+        const broadSpec = { ...spec, perfInclude: null, perfExclude: null };
+        const sinceIso = new Date(Date.now() - 1825 * 864e5).toISOString();
+        const raw = await fetchQualifying(broadSpec, sinceIso, env, {});
+        const titleOf = r => String(r.raw_title || r.rtitle || "");
+        const passNew = r => { const t = titleOf(r); return (!spec.perfInclude || spec.perfInclude(t)) && !(spec.perfExclude && spec.perfExclude(t)); };
+        const old = oldPerfFns(vehicle.make, spec.model, spec.trim);
+        const passOld = r => { const t = titleOf(r); return (!old.include || old.include(t)) && !(old.exclude && old.exclude(t)); };
+        const afterRows = raw.filter(passNew), beforeRows = raw.filter(passOld);
+        const priceRange = rows2 => { const vals = rows2.map(r => hammerUsd(r)).filter(v => Number.isFinite(v) && v > 0); if (vals.length < 3) return { count: vals.length, low: null, high: null }; return { count: vals.length, low: Math.round(percentileOf(vals, 0.1)), high: Math.round(percentileOf(vals, 0.9)) }; };
+        row.before = priceRange(beforeRows);
+        row.after = priceRange(afterRows);
+        const pctMove = (a, b) => (a == null || b == null || a === 0) ? null : Math.round(Math.abs(b - a) / a * 1000) / 10;
+        row.salesMovePct = pctMove(row.before.count, row.after.count);
+        row.lowMovePct = pctMove(row.before.low, row.after.low);
+        row.highMovePct = pctMove(row.before.high, row.after.high);
+        row.flagged = [row.salesMovePct, row.lowMovePct, row.highMovePct].some(v => v != null && v > 5);
+      } catch (e) { row.error = String((e && e.message) || e); }
+      rows.push(row);
+    }
+    return res.status(200).json({ task: "perftrimregress", total: rows.length, flaggedCount: rows.filter(r => r.flagged).length, rows });
+  }
+
   // task=platformpickaudit: the 40-car dropped-gates audit (flag off, read only - never writes, never
   // touches SELL_PICK_SHARED). Runs the SAME old-ladder-vs-shared-function comparison
   // platformpickreport does, sequentially (never parallel - this is metered OCD spend; sequential
