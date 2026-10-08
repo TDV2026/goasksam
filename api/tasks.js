@@ -105,7 +105,8 @@ export default async function handler(req, res) {
       }
       const c = { live_rows: rows.length, by_source: {}, currency_not_usd: 0, currency_not_usd_unconverted: 0, foreign_signal_but_usd: 0, km_signal: 0, km_signal_with_mileage: 0, mileage_unit_unknown: 0, bid_zero: 0, bid_null: 0, special: 0 };
       const ex = { currency_not_usd: [], foreign_signal_but_usd: [], km_signal_with_mileage: [], mileage_unit_unknown: [], bid_zero: [], special: [] };
-      const push = (k, r, extra) => { if (ex[k].length < 6) ex[k].push({ id: r.id, title: r.listing_title, ...extra }); };
+      const exMax = Math.min(500, Number(q.exmax) || 6);
+      const push = (k, r, extra) => { if (ex[k].length < exMax) ex[k].push({ id: r.id, title: r.listing_title, ...extra }); };
       for (const r of rows) {
         c.by_source[r.source] = (c.by_source[r.source] || 0) + 1;
         const t = liveTrust(r);
