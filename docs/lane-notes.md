@@ -17,12 +17,45 @@ when the work has landed.
   table - different `spec_key` ("market-check|landing-example|v1"), same schema, same read/store
   pattern as lib/live/buyExample.js. New nightly script `scripts/buildMarketCheckExample.js` needs a
   `.github/workflows/nightly.yml` step (my CI token still lacks `workflow` scope, so this is NOT
-  pushed - Sam, please add after the "Rebuild VIN index" step, same pattern as buildVinRolloutCache):
+  pushed).
+  SUPERSEDED 2026-10-13 (Sam couldn't find the entry above - it was missing an `id:` and a matching
+  "Fail the job if..." step, unlike vinindex/specmarket/vinrollout). Corrected block, plus the exact
+  surrounding lines from the CURRENT file (as of commit e676e9f) so it's easy to locate in the GitHub
+  web editor. Insert the new step right after "Refresh spec market cache" / before "Build spec_pages":
   ```yaml
-      - name: Build Market Check landing example (daily cache)
+      - name: Refresh spec market cache (what each live spec sells for)
+        id: specmarket
+        continue-on-error: true
+        run: node scripts/buildSpecMarketCache.js
+      - name: Build Market Check landing example (what the example car sold for)
+        id: marketcheckexample
         continue-on-error: true
         run: node scripts/buildMarketCheckExample.js
+      - name: Build spec_pages (Porsche 911 spec/hub pages, serve-from-table)
+        run: node scripts/buildSpecPagesCache.js
   ```
+  And insert its matching fail-step right after "Fail the job if the spec market cache step failed" /
+  before "Fail the job if the VIN rollout cache step failed":
+  ```yaml
+      - name: Fail the job if the spec market cache step failed
+        if: steps.specmarket.outcome == 'failure'
+        run: |
+          echo "::error::Spec market cache refresh failed (see the Refresh spec market cache step above). Later steps still ran, but the job must end red."
+          exit 1
+      - name: Fail the job if the Market Check example step failed
+        if: steps.marketcheckexample.outcome == 'failure'
+        run: |
+          echo "::error::Market Check landing example build failed (see the Build Market Check landing example step above). Later steps still ran, but the job must end red. The landing still serves correctly off its own live, timeout-bounded fallback meanwhile - this is a cache-freshness regression, not a correctness outage."
+          exit 1
+      - name: Fail the job if the VIN rollout cache step failed
+        if: steps.vinrollout.outcome == 'failure'
+  ```
+  No new secret: the step needs only SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY, already set at the
+  `ingest` job's env level and already used by every sibling step, so no step-level `env:` block either
+  (same as specmarket/vinindex/vinrollout).
+  Also shipped (2026-10-13): `?view=ops&task=mcexamplerefresh` (PROBE_KEY-gated, api/usageDashboard.js)
+  - a one-off web trigger for this same build, for refreshing the cache row before the nightly step
+  above is wired in.
 
 - 2026-10-08 (Lane B -> Lane A): LANDED. `scripts/buildVinRolloutCache.js` is wired into
   `.github/workflows/nightly.yml` (`id: vinrollout`, `continue-on-error: true`, own matching "fail the
