@@ -347,3 +347,39 @@ when the work has landed.
   real product gap. SELL_PICK_SHARED stays scoped to the online pick only regardless (an explicit
   house choice is left on this existing, already-working path, untouched), but there is no
   outstanding house-renderer job to schedule.
+- 2026-10-08 (Lane B -> Lane C): Buy/Market Check range-label parity (Sam's request). Not edited -
+  `lib/live/search.js` and `api/buy.js` are both mid-edit on main right now, so this is a spec, not a
+  diff. Problem: `coreOf` (`lib/live/search.js` ~line 419-420) already prefixes `m.family` with
+  "manual "/"automatic " when a gearbox refine was requested AND the engine confirms `d.refined` - but
+  `walkLadder` (~line 487-494) then STRIPS that prefix back to `core.familyBare` whenever the model
+  doesn't have a genuine 5+/5+ manual-vs-automatic split in its unfiltered sales ("a 997 Carrera S
+  keeps it, a Cayenne never does" - a deliberate, good readability call, not a bug). The gap: that
+  strip fires on the SAME condition that makes the refinement matter MOST - a rare-gearbox variant
+  (man<5 or aut<5) is exactly the case where the shown range is scoped to a thin, possibly very
+  different, subset of the pool, and that's precisely when the label goes silent and reads as if it
+  were the whole model's range. Market Check (`lib/onebox.js`, no refine) shows the full, unscoped
+  pool for the same car on its own page with no such caption. Two different numbers, same car name,
+  no sentence explaining why - Sam's exact complaint.
+  Proposed fix (does not touch the existing split-heuristic above - that one is about whether the word
+  belongs INSIDE the family noun for readability, and should stay): add a second, UNCONDITIONAL
+  signal that fires whenever the WINNING core actually came from the gearbox-refined "exact" ladder
+  step, regardless of the 5+/5+ split -
+    1. `lib/live/search.js`, inside `coreOf` (right after line 420's `m.family =` line): add
+       `m.refinedNote = refine ? (refine.tx === "manual" ? "manual cars" : (refine.label ? String(refine.label).toLowerCase() + " cars" : "automatic cars")) : null;`
+       This must NOT be touched by `walkLadder`'s later strip (~line 494) - that line only ever
+       reassigns `core.family`, so `refinedNote` survives it untouched by construction; just make sure
+       it's being read off `core` (not `m`) wherever `core` gets serialised to the client payload
+       (same spot `core.family`/`core.short` are already picked up, ~line 539's `m = { ... family:
+       core.family, short: ... }` object literal - add `refinedNote: core.refinedNote` there too).
+    2. `api/buy.js`, in the CLIENT string, right after the `"mcr"` paragraph that prints the range
+       (~line 442: `'<p class="mcr">' + esc("Most " + m.family + " sold for " + ...)`): when
+       `m.refinedNote` is present, append a second short line, e.g.
+       `if (m.refinedNote) out.push('<p class="mcr-note">' + esc("Reflects " + m.refinedNote + " only.") + "</p>");`
+       - e.g. "Reflects manual cars only." Plain, factual, no valuation language, consistent with
+       product rule 21's template rules (states which sales are being read, not a different/better
+       number) - this is a disclosure caption, not a refinement CTA, so no chip/button, just text.
+  Wording is a suggestion, not a mandate - Lane C owns the actual copy and placement inside the card.
+  The one hard requirement from Sam's ask: whenever the shown range came from a gearbox-narrowed pool,
+  the card says so in plain words, so it never silently reads as the whole model's range next to
+  Market Check's unscoped number for the same car. Not started pending Lane C's own edit window on
+  these two files; happy to implement it myself once they're free if Lane C would rather hand it back.
