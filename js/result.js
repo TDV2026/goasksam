@@ -456,7 +456,12 @@ function renderDecision(decisionData,renderOpts){
     // is UNKNOWN. The old unknown-spread SPEED promotion (branch 4) is DELETED
     // (Aug 2026): speed is now v2Composition's job, so this ladder never re-ranks
     // for speed. sellOptions stays pure price/evidence order.
-    const measured=routable.some(r=>{const p=r&&r.marketEvidence&&r.marketEvidence.pricePremium;return p&&p.platformSales>=5&&p.othersSales>=5;});
+    // "Measured" also counts a cleared asymmetric dominance share (>=75%), matching decide()'s own
+    // pickRecommendedRoute (api/sellerDecision.js) - kept in lockstep so the card order and the
+    // recommendedPath text can never disagree (an obvious depth leader with too few "others" sales to
+    // clear 5v5 symmetrically must not lose to a precomputed, cross-car specialist cell).
+    const measured=routable.some(r=>{const p=r&&r.marketEvidence&&r.marketEvidence.pricePremium;return p&&p.platformSales>=5&&p.othersSales>=5;})
+      ||routable.some(r=>{const p=r&&r.marketEvidence&&r.marketEvidence.pricePremium;return p&&p.gateType==="asymmetric"&&Number.isFinite(p.marketShare)&&p.marketShare>=75;});
     // Branch 5 specialist crown: UNKNOWN spread. A platform OTHER than the depth
     // leader holding a specialization cell for the landed scope (lift >= 3x AND
     // 5+ scope comps) leads with the specialization headline. No longer gated on

@@ -602,7 +602,20 @@ function pickRecommendedRoute(routes) {
     const marginOK = deepPremium >= 10 && pct >= deepPremium + 8;
     if (r === deep || sampleOK || marginOK) return r;
   }
-  const measured = routable.some(r => { const p = r && r.marketEvidence && r.marketEvidence.pricePremium; return p && p.platformSales >= 5 && p.othersSales >= 5; });
+  // "Measured" also counts a cleared ASYMMETRIC dominance share (>=75%, same gate pricePremiumFor's
+  // own market_dominance branch applies) - not only a symmetric 5v5 comparison. Without this, a
+  // platform with an overwhelming share but too few "others" sales to compare symmetrically (<5)
+  // read as UNMEASURED, so a precomputed, cross-car specialist cell (lift>=3x on a platform's ENTIRE
+  // tracked history, nothing to do with THIS car) could outrank an obvious depth leader. Surfaced by
+  // the SELL_PICK_SHARED audit: "1967 Ford Mustang Fastback" - Bring a Trailer had 25 sales to
+  // everyone else's 3 combined (89% share, asymmetric - too few others to clear 5v5), and a Hagerty
+  // specialist cell (classic-Mustang lift, nothing to do with this exact car) won the pick on 1 sale.
+  // Mirrors lib/platformPick.js's own anyMeasured/dominancePick gate (DOMINANCE_SHARE_PCT 75), ported
+  // here so decide()'s real pick logic has the same fix the shared engine's mirror already carried -
+  // this is a real pre-existing gap in decide() itself, not something introduced by feeding it a
+  // different analysis; it was simply never triggered by the old capped fetch's own sampling.
+  const measured = routable.some(r => { const p = r && r.marketEvidence && r.marketEvidence.pricePremium; return p && p.platformSales >= 5 && p.othersSales >= 5; })
+    || routable.some(r => { const p = r && r.marketEvidence && r.marketEvidence.pricePremium; return p && p.gateType === "asymmetric" && Number.isFinite(p.marketShare) && p.marketShare >= 75; });
   if (!measured) {
     const specCell = r => { const c = r && r.marketEvidence && r.marketEvidence.specializationCell; return (c && Number(c.lift_rounded) >= 3 && Number(c.platform_count) >= 5) ? c : null; };
     const specialist = routable.find(r => r !== deep && specCell(r));
