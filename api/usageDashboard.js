@@ -3501,6 +3501,29 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "nonroadpreview", distinctVins: per.size, totalWouldExclude: excluded.length, byReason, sample30: excluded.slice(0, 30) });
   }
 
+  // task=leadcount: READ-ONLY. Breaks down the /market-check lead's number (sales_archive rows with
+  // sale_date >= 365 days ago) against the full archive, so the gap to ~321k total rows is explained
+  // by exact counts, not estimated.
+  if (task === "leadcount") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
+    const cnt = async (table, filter) => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${table}?${filter}&select=id&limit=1`, { headers: H }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
+    const since365 = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
+    const [archiveAll, archive365, archiveNullDate, attemptsAll] = await Promise.all([
+      cnt("sales_archive", "id=not.is.null"),
+      cnt("sales_archive", `sale_date=gte.${since365}`),
+      cnt("sales_archive", "sale_date=is.null"),
+      cnt("auction_attempts", "source_slug=not.is.null")
+    ]);
+    return res.status(200).json({
+      task: "leadcount", since365,
+      marketCheckLeadCounts: "sales_archive WHERE sale_date >= 365 days ago",
+      archive_total: archiveAll, archive_last365d: archive365, archive_null_sale_date: archiveNullDate,
+      auction_attempts_total: attemptsAll,
+      note: "The lead counts ONLY sales_archive rows from the last 365 days (sold auctions). auction_attempts (unsold bids) are never counted as sales. archive_total minus archive_last365d is the pre-window history; archive_null_sale_date is archive rows with no usable date."
+    });
+  }
+
   // task=vintypeaudit: READ-ONLY. What is in the VIN index by vehicle type. Groups vin_index by VIN
   // (newest appearance's title + stored vehicle_type), then classifies each: the stored type wins, and
   // null/"car" rows are refined from the title via classifyUnknown (catches null-typed motorcycles and
