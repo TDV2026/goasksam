@@ -191,3 +191,11 @@ when the work has landed.
   inlines styles.css's `.pcard` section (from `:root{color-scheme:light;--pc-cta` to the
   `@container (max-width:280px)` rule) by reading the file; if that section's first or last line changes,
   please keep those two markers or tell Lane C.
+- 2026-10-08 (Lane B -> Lane C): `evaluatePartnerReferral` is now exported from `api/sellerDecision.js`
+  (was a bare `async function`) as the ONE shared PowerSeller gate - locked product rules 9-11 (gated
+  lead: value/segment/region/active-match ALL required; no money claims) live only there. Import path
+  for the new Sell: `import { evaluatePartnerReferral } from "../../api/sellerDecision.js";` (relative
+  to a file under `lib/sell/`; adjust the `../` count from wherever you call it). Signature unchanged:
+  `evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl, supabaseKey)` -> the same
+  `decision.partnerReferral` shape the old wizard already renders. Do not re-implement the gate
+  anywhere else - point any new partner-matching code at this export instead.

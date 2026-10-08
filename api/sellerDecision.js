@@ -2352,7 +2352,12 @@ export function powerSellerValueMet(estimatedValue, askingPrice, minValueUsd, to
   return gateValue > 0 && gateValue >= floor;
 }
 
-async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl, supabaseKey) {
+// Exported (Oct 2026, Sam's direct instruction) as the ONE shared PowerSeller gate: the locked
+// product rules 9-11 (gated lead, value/segment/region/active-match ALL required, no money claims)
+// live here and must never be re-implemented anywhere else that evaluates a partner match - the new
+// Sell (lib/sell/) imports this directly instead of writing its own gate. See docs/lane-notes.md for
+// the import path handed to Lane C.
+export async function evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl, supabaseKey) {
   const partners = await loadActivePartners(supabaseUrl, supabaseKey);
   const priorities = inferSellerPriorities(vehicle, criteria);
   // Value must come from actual comps at a met rung, never thin or policy data.
