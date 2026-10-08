@@ -92,6 +92,8 @@ export default async function handler(req, res) {
   const env = historyEnv();
   if (!env) return res.status(500).json({ status: "error" });
   res.setHeader("Cache-Control", "no-store");
+  // Search results are private and endless: no result response is ever indexable (the landing /buy is).
+  res.setHeader("X-Robots-Tag", "noindex, nofollow");
   try {
     if (req.method === "GET" && req.query && req.query.panel) {
       const q = req.query;
