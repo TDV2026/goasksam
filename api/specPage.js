@@ -137,9 +137,9 @@ ${rowsTableHtml(data.recentSales)}
 ${repeatVinsHtml(data.repeatVins)}
 ${childrenTableHtml(data.children, childLabel)}
 ${data.level === "leaf" ? siblingsHtml(data.siblings) : ""}
-${crew ? `<section class="card"><div class="sh"><h2>Go further</h2></div>
+<section class="card"><div class="sh"><h2>Go further</h2></div>
 <nav class="links"><a href="${esc(marketCheckLink)}">Check a specific ${esc(label)} on Market Check &#8594;</a>
-${data.liveListings ? `<a href="${esc(buyLink)}">${data.liveListings} live right now on Buy &#8594;</a>` : `<a href="${esc(buyLink)}">See live listings on Buy &#8594;</a>`}</nav></section>` : ""}
+${data.liveListings ? `<a href="${esc(buyLink)}">${data.liveListings} live right now on Buy &#8594;</a>` : `<a href="${esc(buyLink)}">See live listings on Buy &#8594;</a>`}</nav></section>
 ${faq.length ? `<section class="card"><h2 style="margin-bottom:12px">Questions</h2><dl class="faq">${faq.map(([q, a]) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join("")}</dl></section>` : ""}
 ${whyResultHtml(crew)}
 <p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>`;
