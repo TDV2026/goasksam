@@ -55,7 +55,10 @@ export async function nameOf(env, x) {
   const v = sp && sp.v; if (!v || !v.make || !v.model) return null;
   const body = BODY_WORD[String(v.bodyStyle || x.facts.body || "").toLowerCase()] || "";
   const parts = [x.r.year || v.year, v.make, v.model, v.trim, body].filter(Boolean).map(String);
-  const out = []; for (const w of parts) if (!out.some(o => o.toLowerCase().includes(w.toLowerCase()))) out.push(w);
+  // A part already said in full is not repeated, compared by whole words: the trim "S" is not inside
+  // "Porsche" (a letter-inside-a-word test dropped it, so a Boxster S read as a Boxster).
+  const out = [], said = () => new Set(out.join(" ").toLowerCase().split(/[\s-]+/));
+  for (const w of parts) { const have = said(); if (!w.toLowerCase().split(/[\s-]+/).every(t => have.has(t))) out.push(w); }
   return out.join(" ");
 }
 async function enrich(env, x) {
