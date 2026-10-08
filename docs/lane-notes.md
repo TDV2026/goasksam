@@ -3,6 +3,44 @@
 Short, dated cross-lane heads-ups so two lanes don't collide on the same file. Append a line; remove it
 when the work has landed.
 
+- 2026-10-09 (Lane A -> Lane C): item 9 (shared "Sign in" top bar) done. Moved your Buy design (791b6ce)
+  into one shared file, `lib/authBar.js` - exports `AUTH_SIGNBAR_HTML`/`AUTH_SIGNBAR_CSS`/
+  `AUTH_SIGNBAR_MIRROR_JS`, the EXACT same values/markup you shipped (`.buytop` positioning renamed
+  `.gas-signbar`, same `rgba(246,243,236,.94)` pill, same hp-signin/hp-account-email/hp-signout rules,
+  same `#signin-area`/`#signin-area-m` + MutationObserver mirror, same `.hp-dialog`/`.auth-*` modal CSS) -
+  zero visual change from what's already live. Wired onto Market Check (api/marketCheck.js), the Sell
+  landing (api/sellNext.js, New Sell, same onebox.html), and Tasks (api/tasksPage.js, which now imports
+  AUTH_SIGNBAR_CSS directly instead of regex-filtering lines out of your BUY_CSS - that filter still
+  works today but would silently go stale the day BUY_CSS's auth rules change, so tasksPage.js no longer
+  depends on it). Every one of these sets `window.GAS_AUTH_MODE="topbar"` before loading `/js/auth.js`,
+  which runs a new, smaller `authBootTopbarOnly()` (js/auth.js) instead of the full wizard `authBoot()` -
+  same session/config/sign-in/sign-out code, but skips the /sell-only upfront search-limit wall
+  (`gateCheckUpfront`, reads `#msgs`/`hideHero`/`enterChatState`, none of which exist outside the
+  wizard) and the "homepage_view" funnel stamp (which would otherwise mislabel every page's first load).
+  Tasks already had a hand-rolled workaround for that exact funnel mislabel (pre-seeding the
+  `gas_fe_homepage_view` sessionStorage dedup key before loading auth.js) - removed, no longer needed.
+  NOT changed: Buy itself (api/buy.js) still has its own inline copy of this exact CSS/HTML/mirror
+  script - Sam's instruction listed Market Check/Sell landing/Tasks/homepage as the pages to wire up,
+  not Buy (which already has it), so I left your active file alone rather than risk a collision. Whenever
+  convenient, the DRY swap is: delete `.buytop`'s CSS block, the `.mtop`/`#signin-area-m` CSS, the mirror
+  IIFE (search "signin-area-m"), the inline `.hp-dialog*`/`.auth-*` CSS, and the `<div class="buytop">...`
+  markup + the `#signin-area-m` span inside `.mtop`; import `AUTH_SIGNBAR_HTML/CSS/MIRROR_JS` from
+  `../lib/authBar.js` instead and splice them in the same spots (desktop div before `<main class="buymain">`,
+  CSS into `</head>`, mirror script where the old IIFE was); keep `.mnew` (your phone New-search button) -
+  it is unrelated and untouched either way. Buy's own `<script src="/js/auth.js" defer>` currently has NO
+  `GAS_AUTH_MODE` flag, so it is still running the FULL wizard `authBoot()` today (works, since Buy's own
+  `#msgs`-reading calls simply no-op there, but it is very likely firing a stray "homepage_view" funnel
+  event on every Buy pageview right now - add `<script>window.GAS_AUTH_MODE="topbar";</script>` right
+  before that script tag to pick up the lighter boot and fix that, independent of the CSS/HTML swap above.
+  NOT changed: the homepage (index.html) - it already renders "Sign in" top right correctly via its own,
+  pre-existing, already-working implementation (styles.css's own `#signin-area`/`.hp-signin` rules,
+  `position:static` inside `#hp-topbar`, not `lib/authBar.js`'s floating `position:fixed` pattern) - this
+  is in fact the ORIGINAL version both Buy's and this shared file's design are modeled on. Given it is a
+  live page with real signed-in users, I did not force a mechanical swap to the fixed-position shared
+  markup purely for file-level consolidation; the visible result (a working "Sign in" top right) already
+  matches the requirement. Say the word if you want it swapped too and I will do it carefully, screenshot
+  before/after.
+
 - 2026-10-09 (Lane A -> Lane C): new Market Check landing (api/marketCheck.js + new
   lib/live/marketCheckLanding.js + lib/live/marketCheckExample.js), Sam's approved mock. Added the
   small option to `lib/heroImage.js` you flagged as OK to add: `heroHtml(inner, { layout: "banner" })`
@@ -428,3 +466,8 @@ when the work has landed.
   MutationObserver in the CLIENT; CSS `.buytop`, `.mtop`, `#signin-area,#signin-area-m` in BUY_CSS. To swap in
   the shared bar: remove the `.buytop` div, the `.mtop` span `#signin-area-m` and the mirror IIFE (search
   "signin-area-m"); keep `.mnew` (Buy's phone New search) in the phone top bar.
+- 2026-10-08 (Lane B, standing note, ALL LANES): canonical_sales is NOT a live source. Nothing public
+  reads it and it is not rebuilt nightly (scripts/buildCanonical.js only runs via a workflow_dispatch-only
+  GitHub Action, last run ~Sep 22-23; every source is uniformly stale, confirmed not a per-source bug).
+  Do not wire anything new to it. Live pages read sales_archive and auction_attempts. Decision: no
+  schedule added, no rebuild run, no reader changed - reported to Sam with options, his call.

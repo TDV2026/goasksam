@@ -5,9 +5,9 @@
 // (app_config "tasks_example_update"); with none yet, the slot is left out ("better nothing than a
 // fake number"). TASKS_PITCH and exampleUpdate() are exported so a homepage section can reuse them.
 // Search: a conversation or a task is never a URL; any query-string variant is noindex, canonical /tasks.
-import { BUY_CSS } from "./buy.js";
 import { PAGE_CSS, FONT_LINKS, railHtml, isCrewRequest } from "./_chrome.js";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
+import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 
 export const TASKS_PITCH = { lead: "A free collector car finder.", sub: "Tell Sam what you want and he keeps searching, then notifies you when one fits." };
 const HOW = "The cars Sam shows you come from our rules-based matching algorithm. AI helps understand the question and explain the results, but it does not invent the cars, the matches or the numbers. Every number comes from real market evidence.";
@@ -29,10 +29,10 @@ export async function exampleUpdate() {
   return o && o.text ? o : null;
 }
 
-// The sign-in card is the shared one (js/auth.js openSignInCard), styled by the same rules /buy and
-// /sell use: taken from BUY_CSS so there is one source. On desktop the card centres in the content
-// column, clear of the 240px rail.
-const AUTH_CSS = BUY_CSS.split("\n").filter(l => /^\.(hp-dialog|auth-)/.test(l)).join("\n") + "\n@media (min-width:861px){#auth-modal{padding-left:256px}}\n";
+// The sign-in card is the shared one (js/auth.js openSignInCard), styled by the one shared file
+// (item 9, Oct 2026: lib/authBar.js) Market Check, Buy and Sell all use now - never a per-page
+// copy. On desktop the card centres in the content column, clear of the 240px rail.
+const AUTH_CSS = AUTH_SIGNBAR_CSS + "\n@media (min-width:861px){#auth-modal{padding-left:256px}}\n";
 const CSS = `:root{--page:#FAF8F4;--ink:#1A1A1A;--sec:#5F5A53;--div:#E4DFD6;--red:#D7262C}
 body{background:var(--page);color:var(--ink)}.rail{background:var(--page)}
 .col{max-width:880px}
@@ -126,6 +126,8 @@ export default async function handler(req, res) {
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:url" content="https://goasksam.com/tasks"><meta property="og:type" content="website"><meta property="og:image" content="https://goasksam.com/og-card.png">
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#FAF8F4">
 ${FONT_LINKS}<style>${PAGE_CSS}${CSS}${AUTH_CSS}</style>${ld.map(o => '<script type="application/ld+json">' + JSON.stringify(o).replace(/</g, "\\u003c") + "</script>").join("")}</head><body>
+${AUTH_SIGNBAR_HTML}
+<script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 ${rail}
 <main><div class="col">
 <header class="tkhero"><p class="pos">Car alerts, much smarter, and free</p><h1>${esc(TASKS_PITCH.lead)}</h1><p class="lead" data-lead-sentence>${esc(TASKS_PITCH.sub)}</p>
@@ -136,8 +138,8 @@ ${ex ? `<section class="sec"><h2>A real update</h2><p class="example"><span clas
 <section class="sec"><h2>Questions</h2><dl class="faq">${FAQ.map(([q, a]) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join("")}</dl></section>
 <p style="margin-top:30px"><button type="button" class="cta" id="tkcta2" data-task-entry data-href="/tasks/mine?start=1">Give Sam a task</button></p>
 </div></main>
-<script>try{sessionStorage.setItem("gas_fe_homepage_view","1")}catch(e){}window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};</script>
-<script src="/js/auth.js"></script>
+<script>window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};window.GAS_AUTH_MODE="topbar";</script>
+<script src="/js/auth.js" defer></script>
 <script>${EXPLAINER_JS}</script></body></html>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", robots);
@@ -181,13 +183,15 @@ function appPage(req, res) {
 <title>Your tasks | GoAskSam</title><meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#FAF8F4">
 ${FONT_LINKS}<style>${PAGE_CSS}${CSS}${APP_CSS}${AUTH_CSS}</style></head><body>
+${AUTH_SIGNBAR_HTML}
+<script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 ${rail}
 <main><div class="col">
 <div class="apph"><h1>Your tasks</h1><a href="/tasks">How it works</a></div>
 <div id="tkapp"></div>
 </div></main>
-<script>try{sessionStorage.setItem("gas_fe_homepage_view","1")}catch(e){}window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};</script>
-<script src="/js/auth.js"></script>
+<script>window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};window.GAS_AUTH_MODE="topbar";</script>
+<script src="/js/auth.js" defer></script>
 <script>${APP_JS}</script></body></html>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", "noindex, nofollow");

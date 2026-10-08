@@ -659,7 +659,24 @@ function gateResumePendingSearch() {
   } catch (e) {}
   return false;
 }
+// Shared top bar, public pages other than the /sell wizard (Oct 2026, item 9: "one shared
+// file, do not copy it per page"). Market Check, Buy, Tasks and the Sell landing set
+// window.GAS_AUTH_MODE = "topbar" before this script loads, so the SAME session/config/
+// sign-in/sign-out code renders the SAME #signin-area control everywhere - but none of the
+// wizard-only boot work runs on a page that doesn't have that wizard's DOM: no
+// gateCheckUpfront (the old upfront search-limit wall, reads #msgs/hideHero/enterChatState,
+// none of which exist outside the wizard), no gateAfterSignup, and no "homepage_view" funnel
+// event (which would otherwise mislabel every page's first load as a homepage view). The
+// wizard's own boot (index.html, unset GAS_AUTH_MODE) is completely unchanged.
+async function authBootTopbarOnly() {
+  authScrubPrefill();
+  const returned = authHandleCallback();
+  authRenderTopbar();
+  if (authIsSignedIn()) { await authEnsureAccount(returned ? { forceRecheck: true } : undefined); authRenderTopbar(); }
+  if (returned) authCloseModal();
+}
 if (typeof document !== "undefined" && document.addEventListener) {
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", authBoot);
-  else authBoot();
+  const __authEntry = (typeof window !== "undefined" && window.GAS_AUTH_MODE === "topbar") ? authBootTopbarOnly : authBoot;
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", __authEntry);
+  else __authEntry();
 }
