@@ -73,6 +73,9 @@
     "api/sellPage.js": {
       "includeFiles": "index.html"
     },
+    "api/sellNext.js": {
+      "includeFiles": "index.html"
+    },
     "api/sellerDecision.js": {
       "maxDuration": 60
     },

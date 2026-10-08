@@ -33,12 +33,14 @@ function stripPublicNav(html) {
   return out;
 }
 
-export default async function handler(req, res) {
+// The /sell page shell (index.html with the server-rendered title, hero, public nav lockdown and the
+// "Updated [date]" line), shared with the new one-direction Sell (api/sellNext.js) so both are ONE design.
+export async function sellShellHtml(req) {
   if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "index.html"), "utf8");
   const crew = isCrewRequest(req);
   // The real last-updated date, shared with Market Check (lib/asOf.js lastUpdatedDate). No count.
   const updated = await lastUpdatedDate(supabaseEnv()).catch(() => null);
-  let html = (crew ? shell : stripPublicNav(shell))
+  return (crew ? shell : stripPublicNav(shell))
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${TITLE}</title>`)
     .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${TITLE}$2`)
     .replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${TITLE}$2`)
@@ -46,6 +48,10 @@ export default async function handler(req, res) {
     .replace('<div class="hp-value-preview hp-home-only">Built for enthusiast, specialty and collector vehicles</div>',
       '<div class="hp-value-preview hp-home-only">Built for enthusiast, specialty and collector vehicles</div>' +
       (updated ? `\n    <div class="hp-value-preview hp-home-only hp-updated" style="margin-top:6px;font-size:12px;color:var(--faint,#8C877C)">Updated ${esc(updated)}</div>` : ""));
+}
+
+export default async function handler(req, res) {
+  const html = await sellShellHtml(req);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   // The response now varies by the gas_crew cookie, so the shared edge cache must partition on it -
   // otherwise one visitor's crew/public nav could get served to the other from cache.
