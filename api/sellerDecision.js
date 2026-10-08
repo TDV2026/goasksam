@@ -4029,12 +4029,19 @@ export default async function handler(req, res) {
     decision.partnerReferral = await evaluatePartnerReferral(analysis, sellerCriteria, vehicle, supabaseUrl, supabaseKey);
 
     // SELL_PICK_SHARED (off by default - Sam must approve before this changes what live /sell shows):
-    // re-decide the ONLINE platform pick with the shared function (lib/platformPick.js) that also
-    // backs the new Sell, so one car gets one pick on both pages. Scoped to the ROUTABLE/online pick
-    // only - the house-comparison path elsewhere in this handler (thin/class-era/rare-car) is
-    // untouched, and a non-routable route is never forced into recommendedPath here either, matching
-    // the existing "only routable routes can be the pick" invariant. Reorders routeFit.routes the
-    // same way applyThinWindowPriceOverride does, so the card and recommendedPath stay in lockstep.
+    // re-decide the platform pick with the shared function (lib/platformPick.js) that also backs the
+    // new Sell, so one car gets one pick on both pages. ONLINE: a non-routable route is never forced
+    // into recommendedPath - matches the existing "only routable routes can be the pick" invariant -
+    // and routeFit.routes is reordered the same way applyThinWindowPriceOverride does, so the card
+    // and recommendedPath stay in lockstep. HOUSE (item 3, follow-up): an explicit "through an
+    // auction house" choice used to only reach a house via the separate thin/class-era path elsewhere
+    // in this handler - a well-evidenced car (the 300SL case) fell through to the normal online
+    // ladder regardless of what the seller chose. Behind the flag only, honor the choice: set
+    // recommendedPath to the house and attach decision.houseComparison (a new top-level field) with
+    // the shared function's buildHouseComparison output. Does NOT reorder routeFit.routes (houses are
+    // routable:false there by design; forcing one to the front would violate that invariant for other
+    // readers of routeFit) - the frontend has no renderer for a dense-car house pick yet, so this is
+    // the decision-object half only. Flagged plainly in the report; do not assume the page draws it.
     if (process.env.SELL_PICK_SHARED === "1" && decision.routeFit && Array.isArray(decision.routeFit.routes)) {
       try {
         const shared = await pickPlatform(vehicle, generation, { supabaseUrl, supabaseKey }, sellerCriteria);
@@ -4043,10 +4050,14 @@ export default async function handler(req, res) {
             && (normSourceSlug(r.policyKey) === shared.platform || normSourceSlug(r.platform) === shared.platform));
           if (route) {
             decision.recommendedPath = route.platform;
-            route.sharedPick = { reasonCode: shared.reasonCode, figures: shared.figures };
+            route.sharedPick = { reasonCode: shared.reasonCode, figures: shared.figures, thin: shared.thin };
             const idx = decision.routeFit.routes.indexOf(route);
             if (idx > 0) { decision.routeFit.routes.splice(idx, 1); decision.routeFit.routes.unshift(route); }
           }
+        } else if (shared && shared.mode === "house" && shared.platform) {
+          decision.recommendedPath = shared.platformDisplay || shared.platform;
+          decision.houseComparison = shared.houseComparison;
+          decision.sharedPick = { reasonCode: shared.reasonCode, figures: shared.figures };
         }
       } catch (e) { console.error("SELL_PICK_SHARED override failed (keeping the current pick):", e && e.message); }
     }
