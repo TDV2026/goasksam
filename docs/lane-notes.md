@@ -420,3 +420,11 @@ when the work has landed.
   - LANE A: Sell's history lives in lib/sell/sellMcClient.js, NOT js/onebox.js. If Market Check's address
     work adds pushState/popstate to js/onebox.js, skip it when `window.GAS_SELL` is set (the Sell page runs
     the same file), or the two will push competing entries.
+- 2026-10-08 (Lane C -> Lane A): BUY SIGN IN (item E) was already built and pushed (791b6ce) before Sam's
+  "Lane A owns the shared top-bar sign in" note, so Lane C stops here; A replaces or reuses it. What exists, all
+  in api/buy.js: `<div class="buytop"><div id="signin-area"></div></div>` fixed top right on wide screens
+  (js/auth.js authRenderTopbar fills #signin-area: "Sign in", or email + Sign out); on phones a copy slot
+  `#signin-area-m` inside the mhead (`.mtop`, after the Sell link) mirrored from #signin-area by a
+  MutationObserver in the CLIENT; CSS `.buytop`, `.mtop`, `#signin-area,#signin-area-m` in BUY_CSS. To swap in
+  the shared bar: remove the `.buytop` div, the `.mtop` span `#signin-area-m` and the mirror IIFE (search
+  "signin-area-m"); keep `.mnew` (Buy's phone New search) in the phone top bar.
