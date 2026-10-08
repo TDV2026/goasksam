@@ -286,8 +286,27 @@ export async function buildVinIndex(env, { reportOnly = false } = {}) {
   // process before the RPC call returns either never triggered the swap (live tables untouched) or hit
   // a server-side transaction Postgres commits wholly or rolls back wholly - vin_index/vin_summary are
   // never observed mid-truncate by any reader.
+  // swap_vin_index() is SECURITY DEFINER, so it runs with the function owner's privileges (not the
+  // caller's role) - the per-role statement_timeout Supabase applies to anon/authenticated by default
+  // does not bind it, and node's fetch() here sets no client-side timeout either, so a slow swap is
+  // never aborted early by this script. The genuine unknown is whatever ceiling Supabase's own
+  // infrastructure enforces on a single request; Sam, if you want this measured directly, run once in
+  // the SQL editor: EXPLAIN (ANALYZE, BUFFERS) SELECT swap_vin_index();
   const swapRes = await fetch(`${env.supabaseUrl}/rest/v1/rpc/swap_vin_index`, { method: "POST", headers: { ...H, "Content-Type": "application/json", Prefer: "return=minimal" }, body: "{}" });
   if (!swapRes.ok) { const body = await swapRes.text().catch(() => ""); throw new Error(`swap_vin_index RPC failed (${swapRes.status}): ${body.slice(0, 200)} - staging is complete but NOT promoted; live tables untouched.`); }
+  // VERIFY rather than trust the HTTP status alone (Prefer: return=minimal means a 2xx carries no
+  // body) - this is what makes the call robust against an ambiguous/ slow response rather than a
+  // client-side timeout value, which would only race the real question (did the server-side
+  // transaction finish?) without answering it. A count mismatch here is loud and exits non-zero even
+  // though the HTTP call itself returned 2xx.
+  let liveCount = null;
+  try {
+    const cr = await fetch(`${env.supabaseUrl}/rest/v1/vin_index?select=id&limit=1`, { headers: { ...H, Prefer: "count=exact" } });
+    const m = /\/(\d+)$/.exec(cr.headers.get("content-range") || ""); liveCount = m ? Number(m[1]) : null;
+  } catch { liveCount = null; }
+  if (liveCount == null) console.error("::warning::could not verify the post-swap vin_index count (read failed) - the swap itself reported success.");
+  else if (liveCount !== idxRows.length) throw new Error(`swap_vin_index reported success but live vin_index has ${liveCount} rows, staged ${idxRows.length} - promotion did not land as expected.`);
+  else console.log(`swap_vin_index verified: live vin_index now has ${liveCount} rows, matching staging.`);
 
   // Record the build stats to app_usage_events so shortChassisSplit / polluted / counts are queryable
   // from the DB (not only the Actions stdout log). Best-effort; never fails the build.
