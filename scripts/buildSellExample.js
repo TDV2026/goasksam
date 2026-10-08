@@ -25,3 +25,4 @@ if (!d || !d.example) {
 }
 const ex = d.example;
 console.log(`Sell landing example built in ${secs}s: ${ex.car} -> ${ex.platform.name}, ${ex.tiles.length} reasons, ${ex.recent.length} recent sales, band photo ${ex.bandPhoto ? "yes" : "no"}. Tried: ${tried}. DONE.`);
+process.exit(0);
