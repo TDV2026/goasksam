@@ -95,7 +95,7 @@ export default async function handler(req, res) {
     }
     // Probe: live_listings data defects that could touch Tasks matching (currency, km, $0 bids, specials).
     if (req.method === "GET" && q.livecheck && probeOk(req)) {
-      const { liveTrust } = await import("../lib/tasks/liveTrust.js");
+      const { liveTrust } = await import("../lib/live/liveTrust.js");
       const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
       const rows = [];
       for (let from = 0; from < 20000; from += 1000) {
@@ -115,6 +115,8 @@ export default async function handler(req, res) {
         if (r.mileage && t.unit === "unknown") { c.unknown_by = c.unknown_by || {}; const k = `${r.source}${r.description ? "" : " (no description)"}`; c.unknown_by[k] = (c.unknown_by[k] || 0) + 1; c.mileage_unit_unknown++; push("mileage_unit_unknown", r, { stored: r.mileage }); }
         if (r.current_bid != null && Number(r.current_bid) === 0) { c.bid_zero++; push("bid_zero", r, { bid_at: r.bid_at }); }
         if (r.current_bid == null) { c.bid_null++; c.bid_null_by = c.bid_null_by || {}; c.bid_null_by[r.source] = (c.bid_null_by[r.source] || 0) + 1; }
+        if (t.milesAssumed) { c.miles_assumed_us = (c.miles_assumed_us || 0) + 1; }
+        if (t.unit === "miles" && !t.milesAssumed && r.mileage) c.miles_stated = (c.miles_stated || 0) + 1;
         if (t.special) { c.special_by = c.special_by || {}; c.special_by[t.special] = (c.special_by[t.special] || 0) + 1; c.special++; push("special", r, { why: t.special }); }
       }
       return res.status(200).json({ counts: c, examples: ex });

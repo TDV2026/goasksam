@@ -25,9 +25,12 @@ const titleCaseIfShouting = s => String(s || "").split(",").map(p => { const t =
 function cardOf(x) {
   const r = x.r, facts = x.facts, cc = String(r.country || "").toUpperCase();
   return { id: r.id, source: houseName(r.source), sourceSlug: r.source, title: r.listing_title, url: r.url, photo_url: r.photo_url,
-    current_bid_usd: r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, current_bid: r.current_bid != null ? Math.round(Number(r.current_bid)) : null, currency: r.currency || "USD",
+    // Bids through liveTrust: a dollar figure only when it is dollars; a "USD" price on a lot priced
+    // abroad, or a bid the feed reports without an amount, shows nothing (never "No bids yet").
+    current_bid_usd: facts.priceUsd || null, current_bid: (facts.priceState === "usd" || facts.priceState === "converted") && r.current_bid != null ? Math.round(Number(r.current_bid)) : null, currency: r.currency || "USD",
+    bid_unknown: facts.priceState === "suspect" || facts.priceState === "unconverted" || (!facts.priceUsd && Number(r.bid_count) > 0),
     bid_at: r.bid_at || r.last_seen || null, end_time: r.end_time, year: r.year,
-    miles: facts.miles, colour: facts.colour, colourSrc: facts.colourSrc || null, body: facts.body, gearbox: facts.gearboxLabel,
+    miles: facts.km ? null : facts.miles, km: facts.km || null, colour: facts.colour, colourSrc: facts.colourSrc || null, body: facts.body, gearbox: facts.gearboxLabel,
     location: titleCaseIfShouting(r.location) || null, country: cc || null, countryName: COUNTRY_NAME[cc] || cc || null, abroad: !!cc && cc !== "US",
     vin_norm: r.vin_norm || null, generation: x.gen ? x.gen.code : null, unknown: x.unknown, flag: cardFlag(r),
     reserve: r.has_reserve === true ? "reserve" : r.has_reserve === false ? "none" : null, says: listingSays(r), sam_facts: listingSamFacts(r, facts) };
