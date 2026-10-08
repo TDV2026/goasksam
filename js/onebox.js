@@ -7,6 +7,9 @@
   "use strict";
   var API_ORIGIN = (location.hostname === "localhost" || location.protocol === "file:") ? "https://goasksam.com" : "";
   var root = document.getElementById("ob");
+  // Range bar (Oct 2026, prepared not shipped): behind ?bar=1 only, until Lane B lands Market
+  // Check/Buy range agreement. See rangeBarHtml.
+  var obBarFlag = /[?&]bar=1\b/.test(location.search || "");
   // SELL MODE (Lane C, Oct 2026): the one-direction Sell runs on THIS page and THIS question flow, so
   // its questions, cards and type are Market Check's own. api/sellNext.js sets window.GAS_SELL; when it
   // is absent (Market Check itself) every hook below is inert. GAS_SELL.homeHtml: the front page words;
@@ -18,11 +21,18 @@
   var obAsOf = null;       // when THIS analysis ran (product rule 4: run date, not freshness)
   var obResolvedCar = null; // the resolved vehicle of the current result, for the /sell handoff
   var obSourceVin = null;   // the 17-char VIN when this result was VIN-sourced (travels to /sell)
-  var obRefinePhrase = null; // the earned-question lead ("In the 100k to 160k miles band") on a refined view
   var obLastVehicle = null;  // the resolved vehicle of the current pool, reused for an inline refine
   var obAsked = 0;
   var obLastD = null;        // the decision currently rendered (for the /sell handoff parameters)
-  var obLastRefine = null;   // the answered refinement behind the current view (gearbox, mileage band, variant, driver, observe)           // running question count (Part 3 cap: max two before a result); threaded to the engine
+  // The answered refinement(s) behind the current view. ACCUMULATES (Oct 2026, phone review bug):
+  // each earned-question chip used to REPLACE this whole object, so answering a second question
+  // (e.g. gearbox, after mileage) silently dropped the first answer and the engine, seeing no
+  // miMin anymore, offered the mileage question again - a loop. The engine's own refine filter
+  // already stacks every key it is given in one pass (lib/onebox.js, the refined block); mergeRefine
+  // below is the client-side fix: every chip merges INTO the existing answers instead of replacing
+  // them. Per-dimension label keys (miLabel/txLabel/variantLabel/driverLabel) so the eyebrow can
+  // name every answered question, not just the newest one.
+  var obLastRefine = null;
   // Rotating placeholder (Screen 1): real, concrete examples, one at a time - a typed car, a
   // trim, and a VIN - so the input teaches what it accepts. Rotation in startPlaceholderRotation().
   var PLACEHOLDER_BEATS = ["1994 Porsche 911", "2019 BMW M4 Competition", "WBS4Y9C55KAG67564"];
@@ -111,7 +121,7 @@
     setTimeout(function () { root.style.transition = ""; root.style.transform = ""; root.style.willChange = ""; }, 440);
   }
   function footHtml() {
-    return '<div class="trustline foot"><span class="dot" aria-hidden="true"></span><span>Real sales only. No estimates. No valuations.</span></div>';
+    return '<div class="trustline foot"><span class="dot" aria-hidden="true"></span><span>Real sales only. Nothing estimated.</span></div>';
   }
   // samTakeHtml removed: the "Got it, I'm looking at comparable sales for your ..." interstitial is
   // gone (replaced by the narrated loader, item 3) and carried ownership language (item 6).
@@ -328,7 +338,7 @@
   }
   // Item 5b: the band is mileage-scoped only when a real mileage refine narrowed the pool (the
   // engine flag, or the refine phrase names miles). Otherwise the band is the whole market.
-  function bandMileageScoped(d) { return !!(d && (d.mileageScoped || /mile/i.test(obRefinePhrase || ""))); }
+  function bandMileageScoped(d) { return !!(d && (d.mileageScoped || (obLastRefine && obLastRefine.miMin != null))); }
   // Resolved car line: the car Sam is reading, plus a real "Change" button. On an exact VIN/chassis
   // match a pill leads it and the car is named from its own record.
   function carLineHtml(d, m) {
@@ -355,7 +365,16 @@
     var tmp = document.createElement("div"); tmp.innerHTML = noun; noun = tmp.textContent || "";
     var parts = [noun || "Cars like it"];
     var rf = obLastRefine;
-    if (rf && rf.label && !rf.observe) parts.push((rf.miMin != null || rf.miTarget != null) ? rf.label + " miles" : rf.label);
+    // Names EVERY answered question, not just the newest one (observe is deliberately excluded:
+    // the main band stays "cars that didn't", the aside sentence carries that context instead).
+    if (rf) {
+      var bits = [];
+      if (rf.miLabel) bits.push(rf.miLabel + " miles");
+      if (rf.txLabel) bits.push(rf.txLabel);
+      if (rf.variantLabel) bits.push(rf.variantLabel);
+      if (rf.driverLabel) bits.push(rf.driverLabel);
+      if (bits.length) parts.push(bits.join(", "));
+    }
     parts.push("sold in " + windowText(d));
     return parts.join(" · ");
   }
@@ -367,6 +386,22 @@
     var ys = (o.years || []).filter(Boolean).map(String);
     var yp = ys.length <= 1 ? (ys[0] || "") : ys.slice(0, -1).join(", ") + " and " + ys[ys.length - 1];
     return Number(o.n) + " more sold" + (yp ? " in " + yp : " earlier") + ".";
+  }
+  // RANGE BAR (Oct 2026, prepared behind ?bar=1 - not shipped until Lane B makes Market Check and
+  // Buy agree on the range): the full spread with the typical band highlighted, same shape as the
+  // Buy rail (api/buy.js railHtml). Reads ONLY d.span (the full min-to-max) and d.cluster (the
+  // SAME typical band the headline figures above it already show) - nothing computed in the page.
+  function rangeBarHtml(d) {
+    if (!obBarFlag) return "";
+    var span = d.span, band = d.cluster;
+    if (!Array.isArray(span) || span.length !== 2 || !Array.isArray(band) || band.length !== 2) return "";
+    var lo = span[0], hi = span[1];
+    if (!(Number(hi) > Number(lo))) return "";
+    var pc = function (x) { return Math.max(0, Math.min(100, (x - lo) / (hi - lo) * 100)); };
+    var a = pc(band[0]), b = pc(band[1]);
+    return '<div class="rangebar" data-stage="answer"><div class="rb-row"><span class="rb-end">' + esc(usd(lo)) +
+      '</span><span class="rb-track"><i class="rb-band" style="left:' + a.toFixed(1) + "%;width:" + Math.max(1.5, b - a).toFixed(1) + '%"></i></span><span class="rb-end">' + esc(usd(hi)) + "</span></div>" +
+      '<p class="rb-most">' + lint(esc("Most sold between " + usd(band[0]) + " and " + usd(band[1])), "rb.most") + "</p></div>";
   }
   // ANSWER CARD: left 7 of 10 columns carry eyebrow, ONE range (the cluster), "Most sales landed
   // here." and the freshness line; the right 3 carry Sam's Take ONLY when the engine returns one
@@ -381,7 +416,8 @@
       var band = d.cluster;
       var miCtx = (mi && bandMileageScoped(d)) ? (m ? " around this mileage" : " around " + mi.toLocaleString("en-US") + " miles") : "";
       main += '<h1 class="range band">' + esc(usd(band[0])) + ' <span class="to">to</span> ' + esc(usd(band[1])) + "</h1>" +
-        '<p class="landed lead">' + lint("Most sales" + miCtx + " landed here.", "ans.landed") + "</p>";
+        '<p class="landed lead">' + lint("Most sales" + miCtx + " landed here.", "ans.landed") + "</p>" +
+        rangeBarHtml(d);
     } else {
       var noun = carNoun(d), subj = noun || "cars like it";
       var line = (d.poolN && d.poolN < 8)
@@ -1229,7 +1265,7 @@
     // A brand-new search resets the question count; a chip answer (keepAsk) carries it forward so
     // the engine can enforce the two-question cap across generation/body re-queries (Part 3).
     if (!keepAsk) obAsked = 0;
-    lastQuery = text; obLastRefine = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obRefinePhrase = null; obLastVehicle = null; htChoice = null; vinQueryNoSale = false;
+    lastQuery = text; obLastRefine = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; htChoice = null; vinQueryNoSale = false;
     // Identifier-shaped input (VIN or chassis) routes through the shared resolver (decode +
     // confirm + exact-match + the honest VIN-invalid / chassis lines); everything else goes
     // straight to the archive pool.
@@ -1248,6 +1284,20 @@
       return fetch(url, o).then(function (r) { clearTimeout(timer); return r; }, function (e) { clearTimeout(timer); throw e; });
     }
     return fetch(url, o);
+  }
+  // Merges a newly-answered earned question INTO the refinements already answered this session
+  // (see obLastRefine above), instead of replacing them, so a second question narrows alongside
+  // the first rather than silently un-asking it. The engine filters every key it is given in one
+  // pass, so one combined object (all answered dimensions) is all it needs.
+  function mergeRefine(partial) {
+    var base = obLastRefine ? Object.assign({}, obLastRefine) : {};
+    Object.keys(partial).forEach(function (k) { if (k !== "label") base[k] = partial[k]; });
+    if ("miMin" in partial) base.miLabel = partial.label;
+    if ("tx" in partial) base.txLabel = partial.label;
+    if ("variant" in partial) base.variantLabel = partial.label;
+    if ("driver" in partial) base.driverLabel = partial.label;
+    if ("observe" in partial) base.observeLabel = partial.label;
+    return base;
   }
   function runPool(text, vehicle, refine) {
     obLastVehicle = vehicle || obLastVehicle;
@@ -1491,9 +1541,9 @@
     put("year", rc.year); put("make", rc.make); put("model", rc.model);
     put("family", rc.trim || d.poolTrim); put("gen", rc.genCode); put("body", rc.bodyStyle);
     var mi = obLastD ? subjMileageOf(d, vinAnchor) : null;
-    if (!mi && /^around/i.test(rf.label || "") && Number(rf.miTarget) > 0) mi = rf.miTarget;   // a typed mileage
+    if (!mi && /^around/i.test(rf.miLabel || "") && Number(rf.miTarget) > 0) mi = rf.miTarget;   // a typed mileage
     put("mileage", mi);
-    if (rf.tx) { put("tx", rf.tx); put("tx_label", rf.label); }
+    if (rf.tx) { put("tx", rf.tx); put("tx_label", rf.txLabel); }
     put("variant", rf.variant);
     if (rf.miMin != null) { put("mi_min", rf.miMin); put("mi_max", rf.miMax); }
     if (rf.driver) { put("driver", rf.driver); put("driver_val", rf.driverVal); }
@@ -1560,26 +1610,25 @@
     Array.prototype.forEach.call(root.querySelectorAll("[data-thinsplit]"), function (b) { b.addEventListener("click", function () { htChoice = b.getAttribute("data-thinsplit"); obEvent("onebox_ht_intake", lastQuery + ":" + htChoice); if (htLastD) { renderResults(htLastD); } }); });
     Array.prototype.forEach.call(root.querySelectorAll("[data-htskip]"), function (b) { b.addEventListener("click", function () { htChoice = "__skip__"; obEvent("onebox_ht_skip", lastQuery); if (htLastD) { renderResults(htLastD); } }); });
     // The earned question: a mileage band or transmission chip narrows the SAME pool inline
-    // (re-request with a refine), and Sam's take + the sales re-render to match.
+    // (re-request with a refine), and Sam's take + the sales re-render to match. Each answer
+    // MERGES into whatever was already answered (mergeRefine), so a second question narrows
+    // alongside the first instead of un-asking it.
     Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-milemin]"), function (b) {
       b.addEventListener("click", function () {
         var lo = b.getAttribute("data-milemin"), hi = b.getAttribute("data-milemax"), label = b.getAttribute("data-mlabel");
-        obRefinePhrase = "In the " + label + " miles band";
-        runPool(lastQuery, obLastVehicle, { miMin: Number(lo), miMax: hi ? Number(hi) : null, miTarget: hi ? Math.round((Number(lo) + Number(hi)) / 2) : Number(lo), label: label });
+        runPool(lastQuery, obLastVehicle, mergeRefine({ miMin: Number(lo), miMax: hi ? Number(hi) : null, miTarget: hi ? Math.round((Number(lo) + Number(hi)) / 2) : Number(lo), label: label }));
       });
     });
     Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-tx]"), function (b) {
       b.addEventListener("click", function () {
         var tx = b.getAttribute("data-tx"), label = b.getAttribute("data-mlabel");
-        obRefinePhrase = tx === "manual" ? "As a manual" : "As " + (/^[aeiou]/i.test(label) ? "an " : "a ") + label;
-        runPool(lastQuery, obLastVehicle, { tx: tx, label: label });
+        runPool(lastQuery, obLastVehicle, mergeRefine({ tx: tx, label: label }));
       });
     });
     Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-variant]"), function (b) {
       b.addEventListener("click", function () {
         var v = b.getAttribute("data-variant"), label = b.getAttribute("data-mlabel");
-        obRefinePhrase = v === "competition" ? "Competition Package" : "Standard";
-        runPool(lastQuery, obLastVehicle, { variant: v, label: label });
+        runPool(lastQuery, obLastVehicle, mergeRefine({ variant: v, label: label }));
       });
     });
     // Dictionary driver chip (item 7/8): narrows the pool to the listings that carry (or do not
@@ -1587,9 +1636,8 @@
     Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-driver]"), function (b) {
       b.addEventListener("click", function () {
         var key = b.getAttribute("data-driver"), val = b.getAttribute("data-drvval"), label = b.getAttribute("data-mlabel");
-        obRefinePhrase = "Among the ones listed as " + String(label || "").toLowerCase();
         obEvent("onebox_driver_refine", lastQuery + ":" + key + ":" + val);
-        runPool(lastQuery, obLastVehicle, { driver: key, driverVal: val, label: label });
+        runPool(lastQuery, obLastVehicle, mergeRefine({ driver: key, driverVal: val, label: label }));
       });
     });
     // Item 9: observable-fact refinement. "Nothing major" just dismisses; a flag re-scopes the pool
@@ -1598,9 +1646,8 @@
       b.addEventListener("click", function () {
         var key = b.getAttribute("data-observe"), label = b.getAttribute("data-olabel");
         if (key === "none") { var blk = b.parentNode && b.parentNode.parentNode; if (blk && blk.parentNode) blk.parentNode.removeChild(blk); return; }
-        obRefinePhrase = null;   // the main band stays "cars that didn't"; the aside carries the context
         obEvent("onebox_observe_refine", lastQuery + ":" + key);
-        runPool(lastQuery, obLastVehicle, { observe: key, label: label });
+        runPool(lastQuery, obLastVehicle, mergeRefine({ observe: key, label: label }));
       });
     });
     // "type it": reveal a small inline mileage input; Enter narrows to a band around that number.
@@ -1609,7 +1656,7 @@
         var wrap = b.parentNode;
         b.outerHTML = '<span class="typemiles"><input id="ob-miles" type="number" inputmode="numeric" placeholder="miles" /><button type="button" class="qchip" id="ob-miles-go">Go</button></span>';
         var inp = document.getElementById("ob-miles"); if (inp) inp.focus();
-        function submit() { var v = Number((document.getElementById("ob-miles") || {}).value); if (!(v > 0)) return; var band = v >= 60000 ? 25000 : 15000; obRefinePhrase = "Around " + v.toLocaleString() + " miles"; runPool(lastQuery, obLastVehicle, { miMin: Math.max(0, v - band), miMax: v + band, miTarget: v, label: "around " + Math.round(v / 1000) + "k" }); }
+        function submit() { var v = Number((document.getElementById("ob-miles") || {}).value); if (!(v > 0)) return; var band = v >= 60000 ? 25000 : 15000; runPool(lastQuery, obLastVehicle, mergeRefine({ miMin: Math.max(0, v - band), miMax: v + band, miTarget: v, label: "around " + Math.round(v / 1000) + "k" })); }
         var go = document.getElementById("ob-miles-go"); if (go) go.addEventListener("click", submit);
         if (inp) inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); submit(); } });
       });
