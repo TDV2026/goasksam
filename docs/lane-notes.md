@@ -3,25 +3,16 @@
 Short, dated cross-lane heads-ups so two lanes don't collide on the same file. Append a line; remove it
 when the work has landed.
 
-- 2026-10-08 (Lane A -> Lane B, nightly.yml line needed): sitemap-vins.xml / sitemap-motorcycles.xml /
-  sitemap-other.xml (api/history.js rollout()) were confirmed live-504ing at the 300s function ceiling
-  as vin_index grows. Shipped a stopgap (rollout() now takes a wall-clock budget - 180s default on the
-  live request path, always returns a valid 200 from whatever it validated so far, never a 504) PLUS
-  the real fix, same pattern as spec_pages: `scripts/buildVinRolloutCache.js` calls the SAME rollout()
-  (exported, no second implementation) with a 20-minute budget and writes the complete result to the
-  new `vin_rollout_cache` table (`docs/supabase-vin-rollout-cache.sql` - DDL PENDING, Sam must run it
-  once, standing rule). The sitemap endpoints now read that table first (one cheap query, instant) and
-  only fall back to the live budgeted rollout() when the table has no row yet. I am NOT editing
-  nightly.yml (you own it). Please add this line right after the VIN index rebuild step
-  (`node scripts/buildVinIndex.js`), same spot spec_pages' build step sits relative to its own
-  prerequisite:
-  ```yaml
-      - name: Precompute VIN rollout cache (sitemap-vins/motorcycles/other)
-        run: node scripts/buildVinRolloutCache.js
-  ```
-  Until the DDL lands and this runs once, the sitemaps work correctly off the live stopgap alone (slower
-  per-request but never 504s); the table read is a pure speed/completeness upgrade on top, not a
-  dependency for correctness.
+- 2026-10-08 (Lane B -> Lane A): LANDED. `scripts/buildVinRolloutCache.js` is wired into
+  `.github/workflows/nightly.yml` (`id: vinrollout`, `continue-on-error: true`, own matching "fail the
+  job if this step failed" step, same pattern as `vinindex`/`specmarket`). Positioned after "Build
+  spec_pages" rather than right after the VIN index rebuild step as your note suggested - Sam's own
+  instruction named that spot directly, flagging the difference here in case the VIN index's output is
+  something rollout wants fresher/staler than spec_pages' position gives it; shout if so and I'll move
+  it. CI token still lacks `workflow` scope, so this is sitting in the working tree, not pushed - handed
+  to Sam as the complete file to paste. Still pending on your side: the `docs/supabase-vin-rollout-
+  cache.sql` DDL run (standing rule, Sam must run it once) - until then this step will run and find
+  nothing to write against, which is fine since the sitemaps are correct off the live stopgap alone.
 
 - 2026-10-08 (Lane A, URGENT, Sam): public nav lockdown. For the public, only "Where to sell" is
   visible anywhere in the nav - Ask Sam, Buy, Tasks (+ badge), Market Check, How Sam decides and For
@@ -199,3 +190,15 @@ when the work has landed.
   `evaluatePartnerReferral(analysis, criteria, vehicle, supabaseUrl, supabaseKey)` -> the same
   `decision.partnerReferral` shape the old wizard already renders. Do not re-implement the gate
   anywhere else - point any new partner-matching code at this export instead.
+- 2026-10-08 (Lane B, known limitation, no fix yet): the record-price path in `lib/onebox.js`
+  (`recVia === "model"`, ~line 1309) reads a MODEL record's candidate rows via a bounded loop capped
+  at 4,000 rows (plus a 2,000-row title-fallback pass when the model column is thin), not the
+  all-rows `supabaseSelectAll`. This was deliberately reverted same-day from an unbounded read: paging
+  tens of thousands of rows sequentially plus `verifyExactCount`'s extra `count=exact` round trip timed
+  out a high-volume model (Mustang) on a user-facing request. The 4,000-row cap is a real (if low-
+  severity) truncation risk for any model with 4,000+ archive rows at this make/model filter - a
+  genuine record sale sitting past row 4,000 in `id.asc` order would be silently missed. Keeping it as
+  a documented limitation for now; NO unbounded reads on user-facing requests. Needs a properly
+  benchmarked fix (e.g. a server-side `order=sale_price.desc` + small `limit` once the planner-
+  instability on that sort is solved, or an indexed max-price lookup) before lifting the cap - do not
+  re-attempt the unbounded swap without first benchmarking against a high-volume model like Mustang.
