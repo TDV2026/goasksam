@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     // ?usage=1: ZERO OCD. Metered requests this job recorded today (UTC), from app_usage_events.
     if (req.query && req.query.usage) {
       const since = new Date(); since.setUTCHours(0, 0, 0, 0);
-      const rr = await fetch(`${env.supabaseUrl}/rest/v1/app_usage_events?created_at=gte.${since.toISOString()}&route=eq.pull_live&select=created_at,oldcarsdata_metered_requests,status&order=created_at.asc&limit=500`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } });
+      const rr = await fetch(`${env.supabaseUrl}/rest/v1/app_usage_events?created_at=gte.${since.toISOString()}&route=eq.pull_live&select=created_at,event_type,oldcarsdata_metered_requests,status,metadata&order=created_at.asc&limit=500`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } });
       const rows = rr.ok ? await rr.json() : [];
       return res.status(200).json({ usage: true, ocdRequests: 0, todayPullLiveMetered: rows.reduce((k, r) => k + (Number(r.oldcarsdata_metered_requests) || 0), 0), rows });
     }
@@ -74,6 +74,7 @@ export default async function handler(req, res) {
     }
     // 1. Walk every page of the live feed, bounded by --max-requests.
     const seenAt = new Date().toISOString();
+    const tRun = Date.now(), stepMs = {};
     const rows = [], perSource = {};
     let page = 1, total = null, truncated = false, stoppedForReserve = null;
     while (true) {
@@ -95,15 +96,23 @@ export default async function handler(req, res) {
       if (!data.length || data.length < limit || (pages && page >= pages) || (total != null && page * limit >= total)) break;
       page++;
     }
+    stepMs.walk = Date.now() - tRun;
     // 2. Upsert. 3. Vanished -> ended (only when the walk was COMPLETE, so a truncated run never
-    // ends live cars it simply did not reach). 4. Final prices from the archive.
-    const up = await upsertLive(env, rows);
-    const ended = truncated ? { skipped: "walk truncated by max-requests" } : await markVanished(env, seenAt);
-    const finals = await fillFinalPrices(env);
-    const stats = await liveStats(env, rows);
+    // ends live cars it simply did not reach). 4. Final prices from the archive. 5. VIN stats.
+    // Steps 4 and 5 run on wall-clock budgets (120s / 60s) so the run always returns this summary and
+    // never hits the 300s function limit; a budget stop reports what was handled and what is left.
+    let t = Date.now();
+    const up = await upsertLive(env, rows); stepMs.upsert = Date.now() - t; t = Date.now();
+    const ended = truncated ? { skipped: "walk truncated by max-requests" } : await markVanished(env, seenAt); stepMs.markEnded = Date.now() - t; t = Date.now();
+    const finals = await fillFinalPrices(env, { budgetMs: 120000 }); stepMs.finalPrices = Date.now() - t; t = Date.now();
+    const stats = await liveStats(env, rows, { budgetMs: 60000 }); stepMs.stats = Date.now() - t;
+    stepMs.total = Date.now() - tRun;
     await flushOcdUsage();
     if (stoppedForReserve != null) await recordUsageEvent({ event_type: "pull_live_skipped", route: "pull_live", status: "stopped", oldcarsdata_metered_requests: 0, metadata: { remaining: stoppedForReserve, reserve } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
-    return res.status(200).json({ ok: true, ocdRequests: used(), maxRequests: maxReq, truncated, stoppedForReserve, feedTotal: total, fetched: rows.length, perSource, upserted: up, ended, finals, ...stats });
+    // The run's summary also lands in app_usage_events (pull_live_summary), so a cron run's timings and
+    // backlog are readable afterwards (the cron's own HTTP response is not kept anywhere).
+    await recordUsageEvent({ event_type: "pull_live_summary", route: "pull_live", status: "ok", oldcarsdata_metered_requests: 0, metadata: { stepMs, fetched: rows.length, upserted: up, ended, finals, stats: { withVin: stats.withVin, vinsChecked: stats.vinsChecked, vinsLeft: stats.vinsLeft, budgetHit: stats.budgetHit } } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
+    return res.status(200).json({ ok: true, ocdRequests: used(), maxRequests: maxReq, truncated, stoppedForReserve, feedTotal: total, fetched: rows.length, perSource, upserted: up, ended, finals, stepMs, ...stats });
   } catch (e) {
     await flushOcdUsage().catch(() => {});
     return res.status(500).json({ ok: false, ocdRequests: used(), error: String((e && e.message) || e).slice(0, 300) });
