@@ -1653,9 +1653,10 @@ async function handleOps(req, res) {
       "1990 Lamborghini Countach 25th Anniversary", "1989 Porsche 911 Speedster", "1955 Jaguar D-Type",
       "1967 Ferrari 275 GTB/4", "2014 McLaren P1"
     ];
+    const offset = Number(req.query?.offset) > 0 ? Number(req.query.offset) : 0;
     const limit = Number(req.query?.limit) > 0 ? Number(req.query.limit) : AUDIT_CARS.length;
     const rows = [];
-    for (const q of AUDIT_CARS.slice(0, limit)) {
+    for (const q of AUDIT_CARS.slice(offset, offset + limit)) {
       const row = { q };
       try {
         const rv = await resolveVehicle(q, {}); const vehicle = rv && rv.vehicle;
