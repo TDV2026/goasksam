@@ -33,10 +33,10 @@ permissions:
 jobs:
   ingest:
     runs-on: ubuntu-latest
-    # A normal delta finishes in minutes; 40 min is a hard ceiling (raised from 20 so the first
-    # full, correctly paged VIN index rebuild can finish) so a runaway (e.g. a blind DB
+    # A normal delta finishes in minutes; 55 min is a hard ceiling (raised from 40 so the VIN index
+    # rebuild plus the VIN rollout cache can both finish) so a runaway (e.g. a blind DB
     # defeating the delta stop) can never walk for 80 minutes again.
-    timeout-minutes: 40
+    timeout-minutes: 55
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -86,16 +86,34 @@ jobs:
           test -f scripts/buildVinIndex.js || { echo "::error::scripts/buildVinIndex.js not found in checkout"; exit 1; }
           node scripts/buildVinIndex.js
       - name: Refresh spec market cache (what each live spec sells for)
+        id: specmarket
+        continue-on-error: true
         run: node scripts/buildSpecMarketCache.js
       - name: Build spec_pages (Porsche 911 spec/hub pages, serve-from-table)
         run: node scripts/buildSpecPagesCache.js
+      - name: Precompute VIN rollout cache (sitemap-vins/motorcycles/other)
+        id: vinrollout
+        continue-on-error: true
+        run: node scripts/buildVinRolloutCache.js
       - name: Search rules check (public pages)
+        env:
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: node scripts/searchCheck.js
         continue-on-error: true
       - name: Fail the job if the VIN index step failed
         if: steps.vinindex.outcome == 'failure'
         run: |
           echo "::error::VIN index rebuild failed (see the Rebuild VIN index step above). Later steps still ran, but the job must end red."
+          exit 1
+      - name: Fail the job if the spec market cache step failed
+        if: steps.specmarket.outcome == 'failure'
+        run: |
+          echo "::error::Spec market cache refresh failed (see the Refresh spec market cache step above). Later steps still ran, but the job must end red."
+          exit 1
+      - name: Fail the job if the VIN rollout cache step failed
+        if: steps.vinrollout.outcome == 'failure'
+        run: |
+          echo "::error::VIN rollout cache precompute failed (see the Precompute VIN rollout cache step above). Later steps still ran, but the job must end red. The sitemaps still serve correctly off the live budgeted fallback meanwhile - this is a speed/completeness regression, not a correctness outage."
           exit 1
   warm:
     runs-on: ubuntu-latest
