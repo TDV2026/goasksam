@@ -202,3 +202,10 @@ when the work has landed.
   benchmarked fix (e.g. a server-side `order=sale_price.desc` + small `limit` once the planner-
   instability on that sort is solved, or an indexed max-price lookup) before lifting the cap - do not
   re-attempt the unbounded swap without first benchmarking against a high-volume model like Mustang.
+- 2026-10-08 (Lane C, ALL LANES, standing rule): any NEW query that filters on a JSON field (e.g.
+  `raw_record->>'x'`) or uses `ilike` on a table over 100,000 rows (sales_archive, auction_attempts,
+  vehicle_market_records, app_usage_events, canonical_sales, vin_index, ...) must ship its index in the SAME
+  push, as a `create index if not exists` line in a docs/*.sql file for Sam to run (and the code must not
+  depend on it before he confirms). Why: the live pull's unindexed `sales_archive raw_record->>'url'`
+  lookup took 117 seconds and every scheduled pull ended in a 504 for a day. The Oct 8 indexes Sam applied
+  are recorded in docs/supabase-indexes-oct8.sql.
