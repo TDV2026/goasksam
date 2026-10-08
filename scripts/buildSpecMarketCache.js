@@ -24,7 +24,7 @@ import { supabaseSelectAll } from "../lib/_supabase.js";
 // whatever happens to be live right now (today's actual culprit listing has almost certainly ended).
 const DRY_ROWS = [
   { id: -1, listing_title: "Chevrolet Corvette Roadster 4-Speed", year: null },
-  { id: -2, listing_title: "2008 Porsche 911 Carrera S Coupe", year: 2008 }
+  { id: -2, listing_title: "2011 Porsche Cayman R", year: 2011 }
 ];
 
 export async function buildSpecMarketCache(env, opts = {}) {
