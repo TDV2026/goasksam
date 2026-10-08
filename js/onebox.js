@@ -279,6 +279,23 @@
     if (Number(d.subjectMileage) > 0) return Number(d.subjectMileage);
     return null;
   }
+  // Shared plural helper (Oct 2026, phone review): a bare "s" on a name ending in S, a digit, or
+  // any other capital letter reads as a typo, not a plural - "997 Carrera S" -> "997 Carrera Ss",
+  // "911 GT3" -> "911 GT3s", "Boss 429" -> "Boss 429s". Those get " models" instead; a name that
+  // ends lowercase just takes "s" as normal ("Mustang" -> "Mustangs").
+  function carNamePlural(name) {
+    var n = String(name == null ? "" : name).trim();
+    if (!n) return "";
+    // Also guards a name already ending in a (lowercase) "s" ("Lotus" -> "Lotuss" is the same typo.
+    return (/[A-Z0-9]$/.test(n) || /s$/i.test(n)) ? n + " models" : n + "s";
+  }
+  // The engine's own prose (d.widening / d.resolvedSpec) can carry the exact same artifact from its
+  // own template (a bare "s" appended to a name that already ends in S/digit/capital - flagged to
+  // Lane B for a source-side fix in lib/onebox.js). Narrow, text-level correction of that one known
+  // pattern only - never touches any other word - so engine copy reads right until that lands.
+  function fixPluralArtifact(text) {
+    return String(text == null ? "" : text).replace(/\b(\S*[A-Z0-9])s\b/g, "$1");
+  }
   var BODY_PLURAL = { coupe: "coupes", cabriolet: "Cabriolets", convertible: "convertibles", roadster: "roadsters", targa: "Targas", sedan: "sedans", saloon: "saloons", wagon: "wagons", spider: "Spiders", spyder: "Spyders", hardtop: "hardtops" };
   // The noun for the lead: trim (or generation code, or model) + pluralized body. "Competition
   // Package coupes", "964 Cabriolets", "M4s". Empty -> the lead falls back to "Cars like it".
@@ -300,7 +317,7 @@
     // ("S65 sedans"), so a badge head pluralizes alone ("Most S65s").
     var isBadge = v.badge && obNorm(head) === obNorm(v.badge);
     if (head && bw && !isBadge) return esc(head) + " " + bw;
-    if (head) return esc(head) + "s";
+    if (head) return esc(carNamePlural(head));
     return "";
   }
   // Item 5b: the band is mileage-scoped only when a real mileage refine narrowed the pool (the
@@ -519,25 +536,31 @@
       title: cleanReceiptTitle(shortCarName(rc.title)), meta: segs.filter(Boolean).join(" · "), extra: marks });
   }
   // Engine d.cards shape (refusal / shown-separately): price, mileageText, platform, month, title.
-  function poolCardHtml(c, tagAside) {
+  // tagLabel is an optional small pill ("Above range") - never invented, only ever a label the
+  // caller derived from data the engine already returned (see shownSeparatelyHtml).
+  function poolCardHtml(c, tagLabel) {
     var venue = (c.platform && c.platform !== "others") ? c.platform : "";
-    return saleCardHtml({ cls: "t", pill: (tagAside && c.hollow) ? "Set aside" : "", href: utmUrl(c.url), slug: c.platformSlug, image: c.image,
+    return saleCardHtml({ cls: "t", pill: tagLabel || "", href: utmUrl(c.url), slug: c.platformSlug, image: c.image,
       priceHtml: esc(usd(c.price)), title: cleanReceiptTitle(c.title),
       meta: [c.mileageText && c.mileageText !== "TMU" ? c.mileageText : "", venue, c.month || monShort(c.date)].filter(Boolean).join(" · ") });
   }
-  // Shared "cap at N, See all N expands in place" list pattern (Oct 2026, Sam's live review): every
-  // long card list (thin receipts, comparable sales, shown-separately) server-renders EVERY card so
-  // search engines see them all; past the cap the extras just sit hidden until the one click.
+  // Shared "cap at N, reveal 10 more per click" list pattern (Oct 2026): every long card list (thin
+  // receipts, comparable sales, shown-separately) server-renders EVERY card so search engines see
+  // them all; past the cap the extras just sit hidden until revealed a batch at a time.
   var obCapSeq = 0;
+  var OB_CAP_BATCH = 10;
   function capCardsHtml(gridClass, cardsHtml, cap) {
     cardsHtml = cardsHtml.filter(Boolean);
     if (!cardsHtml.length) return "";
     if (cardsHtml.length <= cap) return '<div class="' + gridClass + '" data-stage="cards">' + cardsHtml.join("") + "</div>";
     var id = "ob-cap" + (++obCapSeq);
     var shown = cardsHtml.slice(0, cap).join("");
+    // Every extra card still server-renders here (hidden, not omitted); the button reveals them
+    // OB_CAP_BATCH at a time rather than all at once (Oct 2026, phone review).
     var extra = cardsHtml.slice(cap).map(function (h) { return '<div class="cap-extra" hidden>' + h + "</div>"; }).join("");
+    var firstBatch = Math.min(OB_CAP_BATCH, cardsHtml.length - cap);
     return '<div class="' + gridClass + '" data-stage="cards" id="' + id + '">' + shown + extra + "</div>" +
-      '<button type="button" class="linkbtn capshow" data-capshow="' + id + '" aria-expanded="false">See all ' + cardsHtml.length + " &#8594;</button>";
+      '<button type="button" class="linkbtn capshow" data-capshow="' + id + '" aria-expanded="false">Show ' + firstBatch + " more &#8594;</button>";
   }
   // Receipt-row title cleanup (Sep 2026): the raw OCD title leads with the listing's mileage hook
   // ("21k-Mile ...", "4,800-Mile ...") and trails a gearbox tag ("... 6-Speed") - both redundant on
@@ -594,7 +617,7 @@
     sides = sides.slice(0, 2);
     var scope;
     if (m) scope = sides.length ? "This car, plus " + (sides.length === 2 ? "two" : "one") + " recent comparable sale" + (sides.length === 2 ? "s" : "") + ". Tap any to open the listing." : "This car’s last recorded sale.";
-    else scope = (d.widening || d.resolvedSpec || "") + (d.widening || d.resolvedSpec ? " " : "") + "Tap any to open the listing.";
+    else scope = fixPluralArtifact(d.widening || d.resolvedSpec || "") + (d.widening || d.resolvedSpec ? " " : "") + "Tap any to open the listing.";
     var headHtml = '<div class="sec-head" data-stage="cards"><div><h2>Recent comparable sales</h2><span class="scope">' + lint(esc(scope), "sec.scope") + "</span></div></div>";
     var row = '<div class="cards5' + (sides.length ? "" : " single") + '" data-stage="cards">' + hero +
       (sides.length ? '<div class="stack">' + sides.map(smallCardHtml).join("") + "</div>" : "") + "</div>";
@@ -608,16 +631,33 @@
     return headHtml + row + moreHtml;
   }
   // "Shown separately" (Part 1 Rule 7): tagged variants and aside cars stay visible, out of the range.
+  // The subject's OWN sale (the "This car" hero, on a VIN match) is a genuine price outlier against
+  // its typical-range pool for the SAME reason any outlier gets set aside - that part is correct.
+  // But nothing should list it a SECOND time down here as if it were a third-party "kept out" comp,
+  // right under its own hero card. Matched by URL, same dedup pattern the comparable-sales section
+  // already uses against the hero (line ~601 above).
+  // Per-card tag (Oct 2026, phone review): "Above/Below the range" is derived from data already on
+  // the page (the card's own price vs. the displayed band) - never a reason the engine does not
+  // supply. The engine does not yet expose a per-card reason for non-price exclusions (replica,
+  // project, provenance...); those cards render with no tag rather than a guessed one.
   function shownSeparatelyHtml(d, m) {
-    // The subject's OWN sale (the "This car" hero, on a VIN match) is a genuine price outlier
-    // against its typical-range pool for the SAME reason any outlier gets set aside - that part is
-    // correct. But nothing stopped it from ALSO being listed a second time down here as if it were
-    // a third-party "kept out" comp, right under its own hero card. Matched by URL, same dedup
-    // pattern the comparable-sales section already uses against the hero (line ~601 above).
     var list = (d.asideCards || []).filter(function (c) { return !(m && m.url && c.url === m.url); });
     if (!list.length) return "";
-    return '<div class="sec-head" data-stage="cards"><div><h2>' + lint("Shown separately", "sep.lab") + '</h2><span class="scope">' + lint("Kept out of the range above.", "sep.scope") + "</span></div></div>" +
-      capCardsHtml("grid3", list.map(function (c) { return poolCardHtml(c, true); }), 4);
+    var band = Array.isArray(d.cluster) ? d.cluster : (Array.isArray(d.span) ? d.span : null);
+    var dirN = 0;
+    var dirs = list.map(function (c) {
+      if (!band || !(Number(c.price) > 0)) return "";
+      if (c.price > band[1]) { dirN++; return "Above range"; }
+      if (c.price < band[0]) { dirN++; return "Below range"; }
+      return "";
+    });
+    var sentence = (dirN === list.length)
+      ? "Real sales of the same car that sat well above or below the range, so they are not used to set it. Still useful to know about."
+      : "Real sales of the same car, kept out of the range above. Still useful to know about.";
+    var cardsHtml = list.map(function (c, i) { return poolCardHtml(c, dirs[i]); });
+    return '<div class="sec-head" data-stage="cards"><div><h2>' + lint("Shown separately", "sep.lab") + "</h2></div></div>" +
+      '<p class="sep-note" data-stage="cards">' + lint(sentence, "sep.note") + "</p>" +
+      capCardsHtml("grid3", cardsHtml, 4);
   }
   // Item 4: the mileage reconfirm / earned question renders AFTER the evidence (answer, proof, then
   // the refinement). On a divergent car it is the "still around X miles?" reconfirm; otherwise the
@@ -850,7 +890,7 @@
     // only sale is a 1904 reads "a 1904").
     var whoNoYear = String(who).replace(/^\s*(18|19|20)\d\d\s+/, "");
     var win = thinWindowText(ht), n = scope.length;
-    var plural = /s$/i.test(whoNoYear) ? whoNoYear : whoNoYear + "s";
+    var plural = carNamePlural(whoNoYear);
     if (n === 1) {
       var yr = scope[0] && scope[0].year ? scope[0].year : null;
       return '<h1 class="thin-head lead">' + lint("Only <span class=\"ct\">one " + esc(whoNoYear) + "</span> has sold in " + win + (yr ? ", a " + yr : "") + ". Here’s what it went for.", "ht.hero1") + "</h1>";
@@ -1480,14 +1520,18 @@
     if (input) input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); submitText(input.value); } });
     var edit = document.getElementById("ob-edit"); if (edit) edit.addEventListener("click", function () { renderEmpty(); if (input && lastQuery) { var i2 = document.getElementById("ob-input"); if (i2) { i2.value = lastQuery; i2.focus(); } } });
     var sell = document.getElementById("ob-sell"); if (sell) sell.addEventListener("click", toSell);
-    // Long-list cap (Oct 2026, Sam's live review): "See all N" reveals the already server-rendered
-    // extra cards in place. One-way (nothing to re-hide), so the button removes itself after.
+    // Long-list cap (Oct 2026, phone review): "Show 10 more" reveals one batch of the already
+    // server-rendered extra cards per click, not the whole tail at once. The button updates its
+    // count each click and only removes itself once the last batch is shown.
     Array.prototype.forEach.call(root.querySelectorAll("[data-capshow]"), function (b) {
       b.addEventListener("click", function () {
         var grid = document.getElementById(b.getAttribute("data-capshow")); if (!grid) return;
-        Array.prototype.forEach.call(grid.querySelectorAll(".cap-extra[hidden]"), function (x) { x.removeAttribute("hidden"); });
+        var hidden = Array.prototype.slice.call(grid.querySelectorAll(".cap-extra[hidden]"));
+        hidden.slice(0, OB_CAP_BATCH).forEach(function (x) { x.removeAttribute("hidden"); });
+        var remaining = hidden.length - Math.min(OB_CAP_BATCH, hidden.length);
         b.setAttribute("aria-expanded", "true");
-        if (b.parentNode) b.parentNode.removeChild(b);
+        if (remaining > 0) b.textContent = "Show " + Math.min(OB_CAP_BATCH, remaining) + " more →";
+        else if (b.parentNode) b.parentNode.removeChild(b);
       });
     });
     // Thin widening box: run the sibling family the engine named.
