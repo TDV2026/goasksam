@@ -1611,10 +1611,19 @@ function renderClassEraSell(msgs,ce,decisionData){
   const recs=(ce.receipts||[]).slice().filter(r=>Number(r.hammer)>0);
   if(!recs.length){return false;}
   const sorted=recs.slice().sort((a,b)=>a.hammer-b.hammer);
-  const lo=(ce.lowHammer!=null?ce.lowHammer:sorted[0].hammer),hi=(ce.highHammer!=null?ce.highHammer:sorted[sorted.length-1].hammer);
-  // Item 1b: the pool is filtered to a body class, so NAME it ("1980s Dodge trucks", not "market").
+  // rangeSuppressed (engine wide-band guard): the class-era band was too wide to be an honest "typical"
+  // range (high > 3x low) and no narrower pool was found - NEVER backfill a range from the raw receipts
+  // in that case, or the suppression is silently defeated. Show the plain statement + the ask instead.
   const classPlural=bodyClassPlural(v);
-  const line=`No ${esc(carName)} has sold in the last three years, so this is the wider ${esc(ce.era)} ${esc(ce.make)} ${esc(classPlural)} market, not your exact car. ${ce.totalN} sold; most landed between ${money(lo)} and ${money(hi)}, the middle around ${money(ce.medianHammer)}.`;
+  let line;
+  if(ce.rangeSuppressed){
+    const ask=ce.askNarrow&&ce.askNarrow.question?" "+ce.askNarrow.question:"";
+    line=`No ${esc(carName)} has sold in the last three years, and the wider ${esc(ce.era)} ${esc(ce.make)} ${esc(classPlural)} market is too spread out to mark a typical range. ${esc(ce.suppressReason||"")}${esc(ask)}`;
+  } else {
+    const lo=(ce.lowHammer!=null?ce.lowHammer:sorted[0].hammer),hi=(ce.highHammer!=null?ce.highHammer:sorted[sorted.length-1].hammer);
+    // Item 1b: the pool is filtered to a body class, so NAME it ("1980s Dodge trucks", not "market").
+    line=`No ${esc(carName)} has sold in the last three years, so this is the wider ${esc(ce.era)} ${esc(ce.make)} ${esc(classPlural)} market, not your exact car. ${ce.totalN} sold; most landed between ${money(lo)} and ${money(hi)}, the middle around ${money(ce.medianHammer)}.`;
+  }
   // Item 4: state the fact only, never call the exact car "rare". Item 5: the "none sold" fact is
   // already in `line` above, so it is NOT repeated here.
   const read=`Treat these as the neighborhood it sits in, not a figure for it. The moment one like yours sells, I can read it directly.`;

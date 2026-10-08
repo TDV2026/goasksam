@@ -914,7 +914,12 @@
     if (m && m.price) saleBits.push(esc(usd(m.price)));
     if (m && m.source) saleBits.push(esc(obPlat(m.source)));
     if (m && m.soldDate) saleBits.push(esc(monShort(m.soldDate)));
-    var leadTxt = exactSold
+    // rangeSuppressed (engine wide-band guard): the band was too wide to be an honest "typical" range
+    // (high > 3x low) and no narrower pool was found - NEVER render the <h1 class="range band"> headline
+    // in that case (rule 24: no dollar headline without a real band), just the plain statement + ask.
+    var leadTxt = ce.rangeSuppressed
+      ? "No " + esc(carName) + " has sold in " + HT_WINDOW_TEXT + ", and the wider " + era + " " + make + " market is too spread out to mark a typical range." + (ce.suppressReason ? " " + esc(ce.suppressReason) : "") + (ce.askNarrow && ce.askNarrow.question ? " " + esc(ce.askNarrow.question) : "")
+      : exactSold
       ? "The only recent " + esc(carName) + " sale on record is this car" + (saleBits.length ? " (" + saleBits.join(", ") + ")" : "") + ". Beyond it, " + era + " " + make + "s have sold for"
       : "No " + esc(carName) + " has sold in " + HT_WINDOW_TEXT + ". " + era + " " + make + "s have sold for";
     var shown = ce.receipts.slice(0, 8);
@@ -936,8 +941,8 @@
     var out = '<section class="anscard solo livetake blk" data-stage="answer"><div class="ans-main">' +
       '<div class="eyebrow">' + esc(ce.era + " " + ce.make + " sales · the wider market") + "</div>" +
       '<p class="landed lead">' + lint(leadTxt, "ce.lead") + "</p>" +
-      '<h1 class="range band">' + esc(usd(ce.lowHammer)) + ' <span class="to">to</span> ' + esc(usd(ce.highHammer)) + "</h1>" +
-      '<p class="ans-line tail">' + lint(tailTxt, "ce.tail") + "</p>" +
+      (ce.rangeSuppressed ? "" : '<h1 class="range band">' + esc(usd(ce.lowHammer)) + ' <span class="to">to</span> ' + esc(usd(ce.highHammer)) + "</h1>") +
+      (ce.rangeSuppressed ? "" : '<p class="ans-line tail">' + lint(tailTxt, "ce.tail") + "</p>") +
       (outSentence ? '<p class="ans-line ce-outlier">' + lint(outSentence, "ce.outlier") + "</p>" : "") +
       freshLine(d) + "</div></section>";
     if (m) out += '<div class="cards5 single" data-stage="cards">' + vinHeroCardHtml(m, d.resolvedCar) + "</div>";
