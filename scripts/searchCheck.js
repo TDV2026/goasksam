@@ -37,7 +37,7 @@ function parsePage(html) {
 // uses) clears it. Browsers are unaffected. Absent -> the nightly may see 429s, which is a loud fail.
 const BYPASS = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || "";
 async function getText(url) {
-  const headers = { "user-agent": "GoAskSam-searchCheck", ...(BYPASS ? { "x-vercel-protection-bypass": BYPASS } : {}) };
+  const headers = { "user-agent": "GoAskSam-searchCheck", ...(BYPASS ? { "x-vercel-protection-bypass": BYPASS, "x-vercel-set-bypass-cookie": "samesitenone" } : {}) };
   try { const r = await fetch(url, { redirect: "follow", headers, signal: AbortSignal.timeout(25000) }); return { ok: r.ok, status: r.status, finalUrl: r.url, body: await r.text() }; }
   catch (e) { return { ok: false, status: 0, finalUrl: url, body: "", err: String(e && e.message || e) }; }
 }
