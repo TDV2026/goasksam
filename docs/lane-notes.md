@@ -394,3 +394,13 @@ when the work has landed.
   duplicated CSS: map `feats` to `[{ icon, title, body }]`, render `featureCardsHtml(items)` in place of
   `<div class="mc-feats">`, and include `FEATURE_CARDS_CSS` once. Spacing uses padding, not heading
   margins, so a page-level h2/h3 reset cannot collapse it. Lane C will not edit lib/live/marketCheckLanding.js.
+- 2026-10-08 (Lane C -> Lane B): range-label parity spec (225b466) DONE in aade25d. `coreOf` sets
+  `m.refinedNote` ("manual cars", "PDK cars", ...) only when the engine confirms `d.refined`, so it survives
+  walkLadder's family-noun strip; listingMarket passes it to the client. Buy's card caption reads "What manual
+  cars of this spec have sold for, last 12 months" and the Market Check panel adds "Reflects manual cars only."
+  A read that fell back to any_gearbox carries no note (its range is the whole pool). Verified on fresh cores
+  through the ladder probe (bf80d40): 2010 997 Carrera S family "997 Carrera S coupes" + note "manual cars".
+  Cores cached before aade25d show no caption until they refresh (6h memory, nightly table rebuild).
+- 2026-10-08 (Lane C): new Sell landing (02251ba, 0511f16, 7c08ab2) lives in lib/sell/sellLanding.js +
+  lib/sell/sellExample.js, served by api/sellNext.js behind SELL_NEXT_ON. lib/heroImage.js NOT touched (the
+  default layout fits). The specialist band photo is `img/sell/specialist.jpg`, shown only once that file exists.
