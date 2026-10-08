@@ -23,8 +23,7 @@
     }
   ],
   "rewrites": [
-    { "source": "/sell", "destination": "/api/sellNext" },
-    { "source": "/sell-next", "destination": "/api/sellNext" },
+    { "source": "/sell", "destination": "/api/sellPage" },
     { "source": "/tasks", "destination": "/api/tasksPage" },
     { "source": "/tasks/mine", "destination": "/api/tasksPage?app=1" },
     { "source": "/market-check", "destination": "/api/marketCheck" },

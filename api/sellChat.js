@@ -6,6 +6,10 @@ import { chatOut } from "../lib/live/chatHttp.js";
 import { runSellTurn } from "../lib/sell/sellChat.js";
 
 export default async function handler(req, res) {
+  // SWITCHED OFF (Oct 8 2026, Sam): /sell is back on the previous front page and wizard (api/sellPage.js).
+  // The new Sell stays in the repo (lib/sell/ facts engine) but is not reachable by the public: 404 unless
+  // SELL_NEXT_ON=1 or the probe key is presented (internal testing only).
+  if (process.env.SELL_NEXT_ON !== "1" && !(process.env.PROBE_KEY && (req.headers["x-probe-key"] === process.env.PROBE_KEY || (req.query && req.query.key === process.env.PROBE_KEY)))) return res.status(404).json({ error: "Not found." });
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
   const env = supabaseEnv();
   if (!env) return res.status(503).json({ error: "unavailable" });

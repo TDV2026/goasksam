@@ -27,6 +27,10 @@ async function soldLastYear() {
 }
 
 export default async function handler(req, res) {
+  // SWITCHED OFF (Oct 8 2026, Sam): /sell is back on the previous front page and wizard (api/sellPage.js).
+  // The new Sell stays in the repo (lib/sell/ facts engine) but is not reachable by the public: 404 unless
+  // SELL_NEXT_ON=1 or the probe key is presented (internal testing only).
+  if (process.env.SELL_NEXT_ON !== "1" && !(process.env.PROBE_KEY && (req.headers["x-probe-key"] === process.env.PROBE_KEY || (req.query && req.query.key === process.env.PROBE_KEY)))) return res.status(404).json({ error: "Not found." });
   const n = await soldLastYear();
   const asOf = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" });
   const lead = n ? `Sam reads ${n.toLocaleString("en-US")} collector car auction sales from the last 12 months, as of ${asOf}, to show where cars like yours sell and how they sold.`
