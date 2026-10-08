@@ -4517,7 +4517,17 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "mcexamplerefresh", qualified: !!d, example: d });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts|vindist|typemodelunk|descfacts|ingestlog|item3probe|unktriage|vinidxcount|mcexamplerefresh." });
+  // task=sellexamplerefresh (Lane C, Oct 2026): force-rebuilds the new Sell landing's stored "An example"
+  // band (lib/sell/sellExample.js, spec_market_cache key "sell|landing-example|v2") through the SAME call
+  // scripts/buildSellExample.js makes nightly - a one-off web trigger to run it by hand. Archive only.
+  if (task === "sellexamplerefresh") {
+    const { sellExample } = await import("../lib/sell/sellExample.js");
+    const t0 = Date.now();
+    const d = await sellExample(env, 0, { fresh: true });
+    return res.status(200).json({ task: "sellexamplerefresh", ms: Date.now() - t0, qualified: !!(d && d.example), example: d && d.example, tried: d && d.tried });
+  }
+
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts|vindist|typemodelunk|descfacts|ingestlog|item3probe|unktriage|vinidxcount|mcexamplerefresh|sellexamplerefresh." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================
