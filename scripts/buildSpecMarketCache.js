@@ -24,12 +24,12 @@ import { supabaseSelectAll } from "../lib/_supabase.js";
 // whatever happens to be live right now (today's actual culprit listing has almost certainly ended).
 const DRY_ROWS = [
   { id: -1, listing_title: "Chevrolet Corvette Roadster 4-Speed", year: null },
-  { id: -2, listing_title: "1974 Datsun 260Z", year: 1974 }
+  { id: -2, listing_title: "2008 Porsche 911 Carrera S Coupe", year: 2008 }
 ];
 
 export async function buildSpecMarketCache(env, opts = {}) {
   const LIMIT = Number(opts.limit) > 0 ? Number(opts.limit) : Infinity;
-  const STALE_DAYS = Number(opts.staleDays) > 0 ? Number(opts.staleDays) : 7;
+  const STALE_DAYS = opts.staleDays != null && Number.isFinite(Number(opts.staleDays)) ? Number(opts.staleDays) : 7;
   const CONCURRENCY = Math.max(1, Number(opts.concurrency) || 5);
   const BUDGET_MS = (Number(opts.budgetMin) > 0 ? Number(opts.budgetMin) : 15) * 60000;
   const dry = !!opts.dry;

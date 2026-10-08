@@ -4015,7 +4015,7 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { buildSpecMarketCache } = await import("../scripts/buildSpecMarketCache.js");
     const dry = req.query?.dry !== "0";
-    const r = await buildSpecMarketCache(env, { dry, budgetMin: Number(req.query?.budgetMin) || 2, concurrency: Number(req.query?.concurrency) || 2 });
+    const r = await buildSpecMarketCache(env, { dry, budgetMin: Number(req.query?.budgetMin) || 2, concurrency: Number(req.query?.concurrency) || 2, staleDays: req.query?.staleDays != null ? Number(req.query.staleDays) : undefined });
     return res.status(200).json({ task: "specmarkettest", dry, ...r });
   }
 
