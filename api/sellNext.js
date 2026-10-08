@@ -43,6 +43,11 @@ export default async function handler(req, res) {
   const html = stripLaunchGate(shell)
     .replace(/<title>[\s\S]*?<\/title>/, () => "<title>Sell your car | GoAskSam</title>")
     .replace(/<meta name="robots" content="[^"]*"\s*\/?>/, () => "")
+    // The public menu stays Sell only (Sam, Oct 2026): Market Check's shell lists every section, so this page
+    // keeps "Where to sell" (current) and the visitor's own "Your results", and its logo goes to /sell.
+    .replace(/<a class="ob-navitem active" href="\/onebox" aria-current="page">Ask Sam<\/a>\s*<a class="ob-navitem" href="\/buy">Buy<\/a>\s*<a class="ob-navitem" href="\/sell">Where to sell<\/a>/, () => '<a class="ob-navitem active" href="/sell" aria-current="page">Where to sell</a>')
+    .replace(/\s*<a class="ob-navitem" href="\/how-sam-decides"[^>]*>How Sam decides<\/a>\s*<a class="ob-navitem" href="\/business">For business<\/a>/, () => "")
+    .replace(/<a class="(ob-logo|brand)" href="\/onebox">/g, (m, c) => `<a class="${c}" href="/sell">`)
     .replace("</head>", () => `<meta name="robots" content="noindex, nofollow">\n<style>${cardCss}\n${SELL_MC_CSS}\n${SELL_LANDING_CSS}</style>\n</head>`)
     // The Sell hook must exist before js/onebox.js boots, so the client goes in ahead of it.
     .replace(/<script src="\/obx\.[^"]+\/onebox\.js"><\/script>/, m => `<script>window.GAS_SELL_CFG=${cfg};</script>\n<script>${SELL_MC_CLIENT}</script>\n${m}`);
