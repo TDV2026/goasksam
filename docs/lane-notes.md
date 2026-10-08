@@ -383,3 +383,14 @@ when the work has landed.
   the card says so in plain words, so it never silently reads as the whole model's range next to
   Market Check's unscoped number for the same car. Not started pending Lane C's own edit window on
   these two files; happy to implement it myself once they're free if Lane C would rather hand it back.
+
+## Lane C, Oct 8 2026: shared feature cards (lib/featureCards.js), for Lane A's "What you get."
+- Buy's "More than a list of cars." now renders through `featureCardsHtml(items, { headingTag })` +
+  `FEATURE_CARDS_CSS` (lib/featureCards.js): white rounded card with a soft shadow, 40px dark-green icon in a
+  64px pale-green circle, serif title, sans body one shade darker than --sec; 4 across, 2x2 under 980px,
+  one column under 560px. The new Sell landing uses the same module.
+- When Lane A was checked (commit 0359ac7) Market Check's `.mc-feats/.mc-feat` were still the flat bordered
+  columns, so there was nothing shared to reuse. To give "What you get." the same treatment with no
+  duplicated CSS: map `feats` to `[{ icon, title, body }]`, render `featureCardsHtml(items)` in place of
+  `<div class="mc-feats">`, and include `FEATURE_CARDS_CSS` once. Spacing uses padding, not heading
+  margins, so a page-level h2/h3 reset cannot collapse it. Lane C will not edit lib/live/marketCheckLanding.js.

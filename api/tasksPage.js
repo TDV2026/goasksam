@@ -109,7 +109,7 @@ export default async function handler(req, res) {
   const ex = await exampleUpdate().catch(() => null);
   const hasQuery = /\?./.test(String(req.url || ""));
   const robots = hasQuery ? "noindex, follow" : "index, follow";
-  const title = "Free AI car finder and collector car alerts | GoAskSam";
+  const title = "Free collector car finder and alerts | GoAskSam";
   const desc = `${TASKS_PITCH.lead} ${TASKS_PITCH.sub}`;
   const ld = [
     { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: FAQ.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
