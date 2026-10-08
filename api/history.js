@@ -640,23 +640,35 @@ async function rollout(env) {
     const h = hubs.get(hk) || { vins: 0, sales: 0, make: c.make, photos: [] }; h.vins++; h.sales += g.sold; if (h.photos.length < 3 && g.photos[0]) h.photos.push(g.photos[0]); hubs.set(hk, h);
     if (g.n >= 2) { counts.multi_candidates++; multi.push({ vin, g }); } else counts.single_noindex++;
   }
-  const vins = [];
-  for (let i = 0; i < multi.length; i += 40) {
+  // Cars + motorcycles + other self-propelled share ONE batched validation pass (perf, Oct 2026): they
+  // were previously three separate sequential loop-groups (car loop, then moto, then other), which
+  // pushed this already-heavy rollout() past the 300s function ceiling (504). Tagging each candidate
+  // with its kind and running them through the SAME batches adds only the ~40 extra moto/other
+  // candidates to the existing round count, instead of two whole extra sequential rounds.
+  const vins = [], motos = [], others = [];
+  const allCands = [...multi.map(x => ({ ...x, kind: "car" })), ...motoMulti.map(x => ({ ...x, kind: "moto" })), ...otherMulti.map(x => ({ ...x, kind: "other" }))];
+  for (let i = 0; i < allCands.length; i += 40) {
     // The page's OWN identity check and canonical slug, so the sitemap never lists a page that 404s
     // or redirects: same appearances, same carIdentity, same index rule as carPage.
-    const part = await Promise.all(multi.slice(i, i + 40).map(async ({ vin, g }) => {
+    const part = await Promise.all(allCands.slice(i, i + 40).map(async ({ vin, g, kind }) => {
       try {
         const { appearances, ok } = await vinAppearances(env, vin);
         // Same gate as carPage: 2+ appearances each carrying a price (sold or bid); photo not required.
         if (!ok || appearances.filter(a => a.priceUsd || a.bidUsd || a.nativeBid).length < 2) return null;
         const id = await carIdentity(appearances, vin);
-        // Photos in the order the page tries them: the page's own hero first, then the others.
-        const photos = [...new Set(appearances.map(a => a.image).filter(Boolean).concat(g.photos))].slice(0, 4);
-        return id && id.family && id.make ? { vin, loc: `${SITE}/history/${id.slug}/${vin}`, lastmod: g.date.slice(0, 10), photos } : null;
+        if (!(id && id.family && id.make)) return null;
+        // Photos in the order the page tries them: the page's own hero first, then the others. Only
+        // cars carry photos into the sitemap (motorcycles/other never needed them downstream).
+        const photos = kind === "car" ? [...new Set(appearances.map(a => a.image).filter(Boolean).concat(g.photos))].slice(0, 4) : undefined;
+        return { kind, vin, loc: `${SITE}/history/${id.slug}/${vin}`, lastmod: (g.date || "").slice(0, 10), photos };
       } catch { return null; }
     }));
-    for (const u of part) if (u) vins.push(u); else counts.no_proper_title++;
+    for (const u of part) {
+      if (!u) { continue; }
+      (u.kind === "car" ? vins : u.kind === "moto" ? motos : others).push(u);
+    }
   }
+  counts.no_proper_title += multi.length - vins.length;   // cars that failed the identity/price gate (original semantics)
   // Hubs pass the hub page's own rule: the resolver names the make and model, or (fallback) the make
   // is known and the hub has 5+ sales, named from the archive's model, cleaned.
   const hubKeys = [...hubs.keys()], okHubs = [], fallback = [];
@@ -670,25 +682,6 @@ async function rollout(env) {
     }));
     for (const x of part) if (x) { okHubs.push(x.k); if (x.fb) fallback.push({ url: `/history/${x.k}`, name: x.fb, sales: hubs.get(x.k).sales }); }
   }
-  // Motorcycles + other self-propelled (tractor/golf cart/ATV/UTV/RV/military): same 2+-priced gate and
-  // canonical slug as cars, but no hub, and listed in their own sitemap. A VIN whose page would 404
-  // (carIdentity null) is dropped, so neither sitemap ever lists a dead page.
-  const validateList = async cands => {
-    const out = [];
-    for (let i = 0; i < cands.length; i += 40) {
-      const part = await Promise.all(cands.slice(i, i + 40).map(async ({ vin, g }) => {
-        try {
-          const { appearances, ok } = await vinAppearances(env, vin);
-          if (!ok || appearances.filter(a => a.priceUsd || a.bidUsd || a.nativeBid).length < 2) return null;
-          const id = await carIdentity(appearances, vin);
-          return id && id.family && id.make ? { vin, loc: `${SITE}/history/${id.slug}/${vin}`, lastmod: (g.date || "").slice(0, 10) } : null;
-        } catch { return null; }
-      }));
-      for (const u of part) if (u) out.push(u);
-    }
-    return out;
-  };
-  const motos = await validateList(motoMulti), others = await validateList(otherMulti);
   counts.multi_indexable = vins.length; counts.motorcycles_indexable = motos.length; counts.other_indexable = others.length;
   counts.hubs_candidates = hubs.size; counts.hubs_indexable = okHubs.length; counts.hubs_fallback_named = fallback.length;
   counts.hubs_alias_merged = merged.size;
