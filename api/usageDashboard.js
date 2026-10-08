@@ -1789,6 +1789,21 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "yearrecovery", liveRowsWithNoYear: blank.length, recoverableViaVinDecode: vinRecoverable, stillUnrecoverable: unrecoverable, note: "prior-appearance leg protects future polls from regressing an already-known year; it has no effect on today's already-blank rows, which is why this count is VIN-decode only." });
   }
 
+  // task=shadowreport: READ-ONLY. Summarizes sell_pick_shadow rows logged by SELL_PICK_SHADOW (off by
+  // default) - count, agree vs disagree, and the disagreeing cars' old pick vs shared pick. Never writes.
+  if (task === "shadowreport") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const rows = (await supabaseSelect(env, `app_usage_events?event_type=eq.sell_pick_shadow&select=created_at,search_text,vehicle,metadata&order=created_at.desc&limit=2000`)) || [];
+    const agree = rows.filter(r => r.metadata && r.metadata.agree === true).length;
+    const disagree = rows.filter(r => r.metadata && r.metadata.agree === false).length;
+    const noPick = rows.length - agree - disagree;
+    const disagreeing = rows.filter(r => r.metadata && r.metadata.agree === false).map(r => ({
+      at: r.created_at, car: r.search_text || (r.vehicle && [r.vehicle.year, r.vehicle.make, r.vehicle.model, r.vehicle.trim].filter(Boolean).join(" ")) || null,
+      oldPick: r.metadata.oldPick, sharedPlatform: r.metadata.sharedPlatform, sharedMode: r.metadata.sharedMode, reasonCode: r.metadata.reasonCode
+    }));
+    return res.status(200).json({ task: "shadowreport", total: rows.length, agree, disagree, noPickOnOneSide: noPick, disagreeing });
+  }
+
   // task=platformpickaudit: the 40-car dropped-gates audit (flag off, read only - never writes, never
   // touches SELL_PICK_SHARED). Runs the SAME old-ladder-vs-shared-function comparison
   // platformpickreport does, sequentially (never parallel - this is metered OCD spend; sequential
