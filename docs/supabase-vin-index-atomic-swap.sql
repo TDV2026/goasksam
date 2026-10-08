@@ -29,6 +29,10 @@ create table if not exists vin_index_staging (
   created_at      timestamptz default now()
 );
 
+create index if not exists vin_index_staging_vin_norm_idx on vin_index_staging (vin_norm);
+create index if not exists vin_index_staging_appearance_date_idx on vin_index_staging (appearance_date);
+create index if not exists vin_index_staging_src_idx on vin_index_staging (src_table, src_row_id);
+
 create table if not exists vin_summary_staging (
   vin_norm                    text primary key,
   appearances                 integer not null default 0,
@@ -83,3 +87,10 @@ revoke all on vin_index_staging   from anon, authenticated;
 revoke all on vin_summary_staging from anon, authenticated;
 revoke execute on function swap_vin_index() from public, anon, authenticated;
 grant execute on function swap_vin_index() to service_role;
+
+-- PostgREST (the Supabase REST API the script's fetch() calls hit) caches the schema and does not
+-- always pick up tables/functions created directly in the SQL editor (vs. through a tracked
+-- migration) without being told to reload - this is what produced the "Could not find the table
+-- 'public.vin_index_staging'" 404 (PGRST205) even though the table now exists. Run this LAST, after
+-- the statements above, every time this file is (re-)run.
+NOTIFY pgrst, 'reload schema';
