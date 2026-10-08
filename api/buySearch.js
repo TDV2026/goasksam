@@ -159,7 +159,7 @@ export default async function handler(req, res) {
       const steps = [];
       for (const st of ladderSteps(spec)) { const t = []; await walkLadder(env, { ...spec, v: st.v, title: st.title, refine: st.refine }, t); steps.push({ ...(t[0] || {}), step: st.step }); }
       const chosen = await walkLadder(env, spec, trace);
-      return res.status(200).json({ title: r.listing_title, key: spec.key, steps, chosen: chosen && { step: chosen.step, family: chosen.family, kind: chosen.kind, count: chosen.count, low: chosen.low, high: chosen.high, span: chosen.span } });
+      return res.status(200).json({ title: r.listing_title, key: spec.key, steps, refine: spec.refine || null, chosen: chosen && { step: chosen.step, family: chosen.family, refinedNote: chosen.refinedNote || null, kind: chosen.kind, count: chosen.count, low: chosen.low, high: chosen.high, span: chosen.span } });
     }
     if (b.action === "geocoverage") return res.status(200).json(await geoCoverage(env));
     if (b.action === "converse") return res.status(200).json(await converseOut(env, b));
