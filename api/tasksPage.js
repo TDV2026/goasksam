@@ -55,7 +55,7 @@ const APP_CSS = `
 .apph{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:8px 0 18px}
 .apph h1{margin:0;font:500 34px/1.15 var(--serif)}
 .apph a{font:400 15px var(--sans);color:var(--sec);text-decoration:underline;text-underline-offset:4px}
-.blocked{margin:0 0 18px;padding:12px 16px;border:1px solid var(--div);border-left:3px solid var(--red);background:#fff;font:400 16px/1.5 var(--sans)}
+.blocked{margin:0 0 18px;padding:12px 16px;border:1px solid var(--div);border-left:3px solid var(--red);background:#fff;font:400 16px/1.5 var(--sans)}.noteinfo{margin:0 0 14px;padding:10px 14px;border:1px solid var(--div);border-radius:10px;background:var(--card);font-size:15px;color:var(--soft)}
 .blocked a{color:var(--red);font-weight:600}
 .tcard{border:1px solid var(--div);border-radius:8px;background:#fff;padding:18px 20px 20px}
 .thead{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
@@ -266,7 +266,7 @@ const APP_JS = String.raw`(function(){
     var h = "";
     if (cur && arrived) { note = blockedNote(cur.state); scrollTo = cur.id; }
     if (arrived) { arrived = false; dropEntryParams(); }
-    if (note && cur) h += '<p class="blocked" role="status">' + esc(note) + "</p>";
+    if (note && cur) h += '<p class="' + (/junk folder/.test(note) ? "noteinfo" : "blocked") + '" role="status">' + esc(note) + "</p>";
     if (cur) h += taskCard(cur) + notifyLine();
     else if (draft) h += draftCard();
     else h += '<section class="tcard">' + box("Tell Sam what to look for", "tkq", seedWords(), "e.g. find me a black manual 997 under $70k") + (reply ? '<p class="samreply">' + esc(reply) + "</p>" : "") + "</section>";
@@ -303,7 +303,7 @@ const APP_JS = String.raw`(function(){
     if (t.hasAttribute("data-change")) { editing = true; render(); return; }
     if (t.hasAttribute("data-unpending")) { pending = null; reply = ""; render(); return; }
     if (t.disabled) return;
-    if (t.hasAttribute("data-start")) { working(t, "Starting..."); api({ action: "start", draft: draft }).then(function(j){ if (j.blocked) { note = blockedNote(j.blocked.state); saveDraft(null); return load(); } if (j.task) { saveDraft(null); reply = ""; note = ""; } return load(); }).catch(function(){ load(); }); return; }
+    if (t.hasAttribute("data-start")) { working(t, "Starting..."); api({ action: "start", draft: draft }).then(function(j){ if (j.blocked) { note = blockedNote(j.blocked.state); saveDraft(null); return load(); } if (j.task) { saveDraft(null); reply = ""; note = (data && data.notify && data.notify.on === false) ? "" : "If this isn't in your inbox, check your junk folder, and mark it as not junk so the next one lands."; } return load(); }).catch(function(){ load(); }); return; }
     if (t.hasAttribute("data-apply")) { working(t, "Saving..."); api({ action: "apply", task_id: t.getAttribute("data-apply"), pending: pending }).then(function(){ pending = null; reply = ""; note = ""; return load(); }).catch(function(){ load(); }); return; }
     if (t.hasAttribute("data-act")) { working(t, { pause: "Pausing...", resume: "Resuming...", stop: "Stopping..." }[t.getAttribute("data-act")] || "..."); api({ action: "control", task_id: t.getAttribute("data-id"), act: t.getAttribute("data-act") }).then(function(j){ note = j.blocked ? blockedNote(j.blocked.state) : ""; pending = null; reply = ""; return load(); }).catch(function(){ load(); }); }
   });

@@ -10,18 +10,30 @@
 //   POST {action:"control", task_id, act}        -> pause | resume | stop | keep_looking
 // One task per account holds the slot (running, needs you, or paused): a new task while it is held
 // returns { blocked: { task_id, state, summary } } and creates nothing, wherever the request came from.
-//   GET  ?a=pause|stop|keep_looking&t=<signed token>  -> the one-tap links in task emails
+//   GET  ?a=pause|stop|keep_looking|resume&t=<signed token> -> the confirm page for an email link (changes
+//                                          nothing: email scanners open every link); HEAD likewise
+//   POST ?a=...&t=<signed token>        -> the confirm page's button, or a mail provider's one-click
+//                                          unsubscribe (RFC 8058, List-Unsubscribe-Post): the only way a link acts
 //   GET  ?run=1                         -> the matching run after each live pull (Vercel cron, CRON_SECRET)
 // Probe-keyed tests (PROBE_KEY): act as a test user, seed listing rows instead of the live table, mock
 // the clock; test runs never send email (email_status "test").
 import { supabaseEnv } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
-import { notifyPrefs, setNotifyPrefs, taskTurn, draftTurn, startDraft, applyEdit, slotTask, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore, notify } from "../lib/tasks/tasks.js";
+import { notifyPrefs, setNotifyPrefs, taskTurn, draftTurn, startDraft, applyEdit, slotTask, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore, notify, oneTap, sendStartEmail } from "../lib/tasks/tasks.js";
 import crypto from "node:crypto";
 import { CHAT_MODEL } from "../lib/live/chatHttp.js";
 import { recordUsageEvent } from "./_usage.js";
 
 const TEST_USER = /^00000000-0000-4000-8000-[0-9a-f]{12}$/;
+// The email links' confirm and result pages: plain words, one button, never an action on a click alone.
+const TAP_WORDS = {
+  pause: { title: "Pause this search?", ask: "Sam stops searching for it until you start it again.", button: "Pause it", done: "Paused." },
+  stop: { title: "Stop this search?", ask: "Sam stops searching for it for good.", button: "Stop it", done: "Stopped." },
+  resume: { title: "Start this search again?", ask: "Sam keeps searching in the background, day and night, and you get notified when a car fits.", button: "Start it again", done: "Searching again." },
+  keep_looking: { title: "Keep looking?", ask: "Sam keeps searching in the background, day and night, and you get notified when a car fits.", button: "Keep looking", done: "Sam keeps looking." }
+};
+const tapEsc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const TAP_CSS = "body{margin:0;background:#F6F3EC;color:#15201A;font:400 17px/1.55 system-ui,-apple-system,'Segoe UI',sans-serif}main{max-width:520px;margin:0 auto;padding:48px 20px}.brand{font:600 20px/1 Georgia,serif;margin:0 0 32px}h1{font:500 30px/1.15 Georgia,serif;margin:0 0 14px}.task{background:#fff;border:1px solid #E2DED3;border-radius:10px;padding:12px 14px}button{margin:10px 0 6px;min-height:48px;padding:0 22px;border:0;border-radius:10px;background:#1E4D38;color:#fff;font:600 16px/1 system-ui,sans-serif;cursor:pointer}a{color:#1E4D38}.quiet{font-size:14px;color:#5E6B63}";
 const TEST_EMAIL = "feedback+taskstest@goasksam.com";   // the one real test account (sign-in checks)
 const probeOk = req => process.env.PROBE_KEY && (req.headers["x-probe-key"] === process.env.PROBE_KEY || (req.query && req.query.key === process.env.PROBE_KEY));
 async function who(req) {
@@ -37,16 +49,32 @@ export default async function handler(req, res) {
   const q = req.query || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
   try {
-    // One-tap from an email: a signed token, no sign-in needed. Counts as an interaction.
-    if (req.method === "GET" && q.a) {
+    // An email link (a signed token, no sign-in needed). GET and HEAD only show the confirm page: email
+    // security scanners open every link in a message, so a click alone must never change a task. The
+    // page's button POSTs back to the same link, and a mail provider's one-click unsubscribe POSTs there
+    // too (RFC 8058); only a POST acts. Both pages are noindex and never cached.
+    if (q.a && (req.method === "GET" || req.method === "HEAD" || req.method === "POST")) {
       const act = String(q.a);
-      if (!["pause", "stop", "keep_looking", "resume"].includes(act)) return res.status(400).send("Unknown action.");
+      const page = (status, title, body) => {
+        res.setHeader("Content-Type", "text/html; charset=utf-8"); res.setHeader("X-Robots-Tag", "noindex, nofollow"); res.setHeader("Cache-Control", "private, no-store");
+        const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${tapEsc(title)} | GoAskSam</title><style>${TAP_CSS}</style></head><body><main><p class="brand">GoAskSam</p>${body}</main></body></html>`;
+        return req.method === "HEAD" ? res.status(status).end() : res.status(status).send(html);
+      };
+      if (!TAP_WORDS[act]) return page(400, "Unknown link", `<h1>That link doesn't do anything.</h1>`);
       const id = verifyTap(q.t, act);
-      if (!id) return res.status(400).send("That link has expired.");
+      if (!id) return page(400, "Link expired", `<h1>That link has expired.</h1><p><a href="/tasks/mine">Open your tasks</a></p>`);
       const task = await getTask(env, id);
-      if (!task) return res.status(404).send("That task is gone.");
-      await controlTask(env, { userId: task.user_id }, id, act, {});
-      res.setHeader("Location", `/tasks/mine?task=${id}&done=${act}`); return res.status(302).end();
+      if (!task) return page(404, "Task gone", `<h1>That task is gone.</h1><p><a href="/buy">Start a new search</a></p>`);
+      const w = TAP_WORDS[act];
+      if (req.method !== "POST") {
+        return page(200, w.title, `<h1>${tapEsc(w.title)}</h1><p class="task">${tapEsc(task.summary || "This task")}</p><p>${tapEsc(w.ask)}</p>
+          <form method="post" action="/api/tasks?a=${encodeURIComponent(act)}&t=${encodeURIComponent(String(q.t))}"><button type="submit">${tapEsc(w.button)}</button></form>
+          <p class="quiet"><a href="/tasks/mine?task=${encodeURIComponent(id)}">Open the task instead</a></p>`);
+      }
+      const out = await controlTask(env, { userId: task.user_id }, id, act, {});
+      const after = (out && out.task) || task;
+      const restart = act === "pause" && after.state === "paused" ? oneTap(id, "resume") : null;
+      return page(200, w.done, `<h1>${tapEsc(w.done)}</h1><p class="task">${tapEsc(task.summary || "")}</p>${restart ? `<p>You can start it again <a href="${restart}">here</a>.</p>` : act === "stop" ? `<p>You can start a new search <a href="/buy">here</a>.</p>` : ""}<p class="quiet"><a href="/tasks/mine?task=${encodeURIComponent(id)}">Open the task</a></p>`);
     }
     // The run after each live pull: Vercel cron (CRON_SECRET) or the probe key.
     if (req.method === "GET" && q.run) {
@@ -216,14 +244,17 @@ export default async function handler(req, res) {
       const left = await (await fetch(`${env.supabaseUrl}/rest/v1/tasks?user_id=eq.${user.userId}&select=id`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } })).json();
       return res.status(200).json({ deleted_tasks: gone, tasks_left: Array.isArray(left) ? left.length : left });
     }
-    // Probe: send one real email of a test task's latest Sam update, to Sam's own address only.
+    // Probe: send one real email of a TEST task, to Sam's own address or a disposable test inbox (b.to),
+    // never a real user's: the latest Sam update, or with kind "start" the first email. Test user only.
     if (b.action === "test_email" && probeOk(req) && user.test) {
       const task = await getTask(env, String(b.task_id), user.userId);
       if (!task) return res.status(404).json({ error: "no such test task" });
+      const to = typeof b.to === "string" && /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(b.to) ? b.to : "feedback@goasksam.com";
+      if (b.kind === "start") return res.status(200).json({ ...(await sendStartEmail(env, task, null, { to })), to });
       const up = (await taskUpdates(env, task.id)).filter(u => u.role === "sam").pop();
       if (!up) return res.status(400).json({ error: "no Sam update to send" });
-      const out = await notify(env, { ...task, email: "feedback@goasksam.com" }, up, "A car matching your task just came up", {});
-      return res.status(200).json({ ...out, update_id: up.id, text: up.text });
+      const out = await notify(env, { ...task, email: to }, up, "A car matching your task just came up", { to });
+      return res.status(200).json({ ...out, update_id: up.id, text: up.text, to });
     }
     if (b.action === "test_set" && probeOk(req)) {   // mock time: move a task's interaction / still-looking stamps
       const patch = {}; for (const k of ["last_interaction_at", "still_looking_sent_at", "checkpoint", "state"]) if (k in b) patch[k] = b[k];
