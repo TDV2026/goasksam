@@ -1,11 +1,12 @@
 // /sell (Oct 2026, search rules 1/3/5): index.html served with the parts a crawler must see in the raw
 // HTML. The registry title, the hero H1 (the same markup js/result-copy.js homeHeroHTML draws, so the
-// page reads the same before and after its scripts run), and one dated lead sentence with a real
-// date (lib/asOf.js shared "as of"), no count. The lead sits
-// at the top of #input-area as a home-only line (the scripts never redraw it). Edge-cached 1 hour.
+// page reads the same before and after its scripts run), and one quiet "Updated [date]" line under
+// "Built for enthusiast, specialty and collector vehicles" (the real last-updated date, lib/asOf.js
+// lastUpdatedDate; no count, omitted when the date cannot be read). Edge-cached 1 hour.
 import fs from "node:fs";
 import path from "node:path";
-import { asOfDate } from "../lib/asOf.js";
+import { lastUpdatedDate } from "../lib/asOf.js";
+import { supabaseEnv } from "../lib/_supabase.js";
 import { isCrewRequest } from "./_chrome.js";
 
 const TITLE = "Where to sell your collector car";
@@ -35,17 +36,16 @@ function stripPublicNav(html) {
 export default async function handler(req, res) {
   if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "index.html"), "utf8");
   const crew = isCrewRequest(req);
-  // Date only, no count (Oct 2026): the shared "as of" date (lib/asOf.js).
-  const lead = `Sam reads real collector car auction sales every night, as of ${asOfDate()}, to tell you where to sell your car and why.`;
+  // The real last-updated date, shared with Market Check (lib/asOf.js lastUpdatedDate). No count.
+  const updated = await lastUpdatedDate(supabaseEnv()).catch(() => null);
   let html = (crew ? shell : stripPublicNav(shell))
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${TITLE}</title>`)
-    .replace(/(<meta name="description" content=")[^"]*(")/, `$1${esc(lead)}$2`)
     .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${TITLE}$2`)
-    .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${esc(lead)}$2`)
     .replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${TITLE}$2`)
-    .replace(/(<meta name="twitter:description" content=")[^"]*(")/, `$1${esc(lead)}$2`)
     .replace('<div id="msgs"></div>', `<div id="msgs">${HERO}</div>`)
-    .replace('<div id="input-area">', `<div id="input-area">\n    <p class="hp-supporting hp-home-only hp-lead" data-lead-sentence>${esc(lead)}</p>`);
+    .replace('<div class="hp-value-preview hp-home-only">Built for enthusiast, specialty and collector vehicles</div>',
+      '<div class="hp-value-preview hp-home-only">Built for enthusiast, specialty and collector vehicles</div>' +
+      (updated ? `\n    <div class="hp-value-preview hp-home-only hp-updated" style="margin-top:6px;font-size:12px;color:var(--faint,#8C877C)">Updated ${esc(updated)}</div>` : ""));
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   // The response now varies by the gas_crew cookie, so the shared edge cache must partition on it -
   // otherwise one visitor's crew/public nav could get served to the other from cache.
