@@ -213,7 +213,7 @@ const APP_JS = String.raw`(function(){
     var cs = (u.data && u.data.cards) || []; if (!cs.length) return "";
     var more = u.data.total > cs.length ? '<li class="more">' + (u.data.total - cs.length) + " more match.</li>" : "";
     return '<ul class="cars">' + cs.map(function(c){
-      var fx = [c.bid_usd ? "Bid " + money(c.bid_usd) : null, c.house, c.distance_miles != null ? c.distance_miles.toLocaleString("en-US") + " miles away" : c.location, c.miles ? Number(c.miles).toLocaleString("en-US") + " mi" : null].filter(Boolean).join(" · ");
+      var fx = [c.bid_usd ? "Bid " + money(c.bid_usd) : null, c.house, c.distance_miles != null ? c.distance_miles.toLocaleString("en-US") + " miles away" : c.location, c.miles ? Number(c.miles).toLocaleString("en-US") + " mi" : c.km ? Number(c.km).toLocaleString("en-US") + " km" : null].filter(Boolean).join(" · ");
       return '<li><a href="' + esc(c.url || "#") + '" target="_blank" rel="noopener">' + esc(c.title || "Listing") + "</a>" + (fx ? '<span class="fx">' + esc(fx) + "</span>" : "") + "</li>";
     }).join("") + more + "</ul>";
   }

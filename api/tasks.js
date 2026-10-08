@@ -110,12 +110,12 @@ export default async function handler(req, res) {
         c.by_source[r.source] = (c.by_source[r.source] || 0) + 1;
         const t = liveTrust(r);
         if (String(r.currency || "USD").toUpperCase() !== "USD") { c.currency_not_usd++; if (r.current_bid_usd == null && Number(r.current_bid) > 0) c.currency_not_usd_unconverted++; push("currency_not_usd", r, { currency: r.currency, bid: r.current_bid, usd: r.current_bid_usd }); }
-        if (t.foreignSignal && String(r.currency || "USD").toUpperCase() === "USD") { c.foreign_signal_but_usd++; push("foreign_signal_but_usd", r, { signal: t.foreignSignal, bid: r.current_bid, country: r.country, location: r.location }); }
+        if (t.foreignSignal && String(r.currency || "USD").toUpperCase() === "USD") { const k = `${r.source} | ${t.foreignSignal.replace(/^location .*,\s*/, "location ")}`; c.foreign_by = c.foreign_by || {}; c.foreign_by[k] = (c.foreign_by[k] || 0) + 1; c.foreign_signal_but_usd++; push("foreign_signal_but_usd", r, { signal: t.foreignSignal, bid: r.current_bid, country: r.country, location: r.location }); }
         if (t.unit === "km") { c.km_signal++; if (r.mileage) { c.km_signal_with_mileage++; push("km_signal_with_mileage", r, { stored: r.mileage }); } }
-        if (r.mileage && t.unit === "unknown") { c.mileage_unit_unknown++; push("mileage_unit_unknown", r, { stored: r.mileage }); }
+        if (r.mileage && t.unit === "unknown") { c.unknown_by = c.unknown_by || {}; const k = `${r.source}${r.description ? "" : " (no description)"}`; c.unknown_by[k] = (c.unknown_by[k] || 0) + 1; c.mileage_unit_unknown++; push("mileage_unit_unknown", r, { stored: r.mileage }); }
         if (r.current_bid != null && Number(r.current_bid) === 0) { c.bid_zero++; push("bid_zero", r, { bid_at: r.bid_at }); }
-        if (r.current_bid == null) c.bid_null++;
-        if (t.special) { c.special++; push("special", r, { why: t.special }); }
+        if (r.current_bid == null) { c.bid_null++; c.bid_null_by = c.bid_null_by || {}; c.bid_null_by[r.source] = (c.bid_null_by[r.source] || 0) + 1; }
+        if (t.special) { c.special_by = c.special_by || {}; c.special_by[t.special] = (c.special_by[t.special] || 0) + 1; c.special++; push("special", r, { why: t.special }); }
       }
       return res.status(200).json({ counts: c, examples: ex });
     }
