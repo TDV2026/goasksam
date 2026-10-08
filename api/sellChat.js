@@ -25,9 +25,9 @@ export default async function handler(req, res) {
         const { followUp } = await import("../lib/sell/sellFollow.js");
         const { CHAT_MODEL } = await import("../lib/live/chatHttp.js");
         if (!process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: "Sam is unavailable right now." });
-        return res.status(200).json(await followUp(env, { carText: String(b.car || "").slice(0, 300), state: stateOf(b.state) || null, how: ["self", "handled", "house", "unsure"].includes(b.how) ? b.how : "unsure", question: String(b.question || "").slice(0, 600), history: b.history, apiKey: process.env.ANTHROPIC_API_KEY, model: CHAT_MODEL }));
+        return res.status(200).json(await followUp(env, { carText: String(b.car || "").slice(0, 300), state: stateOf(b.state) || null, how: ["self", "handled", "house", "unsure"].includes(b.how) ? b.how : "unsure", rush: ["fast", "month", "none"].includes(b.rush) ? b.rush : null, question: String(b.question || "").slice(0, 600), history: b.history, apiKey: process.env.ANTHROPIC_API_KEY, model: CHAT_MODEL }));
       }
-      if (b.step === "result") return res.status(200).json(await buildResult(env, { carText: String(b.car || "").slice(0, 300), state: stateOf(b.state) || null, how: ["self", "handled", "house", "unsure"].includes(b.how) ? b.how : "unsure" }));
+      if (b.step === "result") return res.status(200).json(await buildResult(env, { carText: String(b.car || "").slice(0, 300), state: stateOf(b.state) || null, how: ["self", "handled", "house", "unsure"].includes(b.how) ? b.how : "unsure", rush: ["fast", "month", "none"].includes(b.rush) ? b.rush : null }));
       return res.status(400).json({ error: "unknown step" });
     } catch (e) { console.error("sell flow failed:", (e && e.stack) || e); return res.status(500).json({ error: "Sam couldn't read that just now." }); }
   }

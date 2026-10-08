@@ -46,6 +46,7 @@
     { "source": "/obx.20261012b/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261013a/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261013b/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261014a/(.*)", "destination": "/js/$1" },
     { "source": "/desk", "destination": "/desk.html" },
     { "source": "/history/:slug/:vin", "destination": "/api/history?slug=:slug&vin=:vin" },
     { "source": "/history/:slug", "destination": "/api/history?slug=:slug" },
@@ -77,7 +78,7 @@
       "includeFiles": "index.html"
     },
     "api/sellNext.js": {
-      "includeFiles": "onebox.html"
+      "includeFiles": "{onebox.html,styles.css}"
     },
     "api/sellerDecision.js": {
       "maxDuration": 60

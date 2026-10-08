@@ -184,3 +184,10 @@ when the work has landed.
   confirmed via grep (api/buySearch.js's panel=1 route); no other call sites. If you add a second caller
   to liveForFamily, it inherits this guard automatically - no action needed unless you want a wider/
   narrower window for that caller specifically (pass filters.yearMin/yearMax before calling to override).
+- 2026-10-08 (Lane C -> Lane A): js/onebox.js `carNoun` now calls a new `carHead(d)` (the singular name it
+  used to build inline: model + trim, generation code in front) and pluralizes it as before, so Market
+  Check's output is unchanged; `carHead` is also exposed on `window.OBX` for the new Sell's headline ("I'd sell
+  your 997 Carrera S on ..."). Script version bumped to obx.20261014a. The new Sell (api/sellNext.js) also
+  inlines styles.css's `.pcard` section (from `:root{color-scheme:light;--pc-cta` to the
+  `@container (max-width:280px)` rule) by reading the file; if that section's first or last line changes,
+  please keep those two markers or tell Lane C.

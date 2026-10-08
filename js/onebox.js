@@ -299,20 +299,26 @@
   var BODY_PLURAL = { coupe: "coupes", cabriolet: "Cabriolets", convertible: "convertibles", roadster: "roadsters", targa: "Targas", sedan: "sedans", saloon: "saloons", wagon: "wagons", spider: "Spiders", spyder: "Spyders", hardtop: "hardtops" };
   // The noun for the lead: trim (or generation code, or model) + pluralized body. "Competition
   // Package coupes", "964 Cabriolets", "M4s". Empty -> the lead falls back to "Cars like it".
-  function carNoun(d) {
+  // The car's name, singular ("997 Carrera S", "E30 M3"): the head carNoun pluralizes. Also used by the
+  // new Sell's headline ("I'd sell your 997 Carrera S on ...") through window.OBX.
+  function carHead(d) {
     var v = d.resolvedCar || d.vehicle || {};
     var model = (v.model && String(v.model).trim()) || "";
     var trim = (v.trim && String(v.trim).trim()) || "";
     var poolTrim = (d.poolTrim && String(d.poolTrim).trim()) || "";
-    var bw = v.bodyStyle ? BODY_PLURAL[String(v.bodyStyle).toLowerCase()] : "";
-    // Item 5a: name the MODEL in the lead. With a real trim distinct from the model, lead with
-    // "model trim" ("M4 Competition"); otherwise the trim / generation code / model alone ("964",
-    // "M4"), so a generation code is never doubled with the model ("911 964").
     var head;
     if (model && trim && !obSameIdentity(model, trim) && obNorm(model).indexOf(obNorm(trim)) < 0 && obNorm(trim).indexOf(obNorm(model)) < 0)
       head = model + " " + trim;
     else head = trim || poolTrim || model || "";
-    head = withGen(head, v);   // "Most E30 M3s" - name the generation, not just the model
+    return withGen(head, v);   // "Most E30 M3s" - name the generation, not just the model
+  }
+  function carNoun(d) {
+    var v = d.resolvedCar || d.vehicle || {};
+    var bw = v.bodyStyle ? BODY_PLURAL[String(v.bodyStyle).toLowerCase()] : "";
+    // Item 5a: name the MODEL in the lead. With a real trim distinct from the model, lead with
+    // "model trim" ("M4 Competition"); otherwise the trim / generation code / model alone ("964",
+    // "M4"), so a generation code is never doubled with the model ("911 964").
+    var head = carHead(d);
     // A performance badge (S65, M4) already names the car; appending the body reads loose
     // ("S65 sedans"), so a badge head pluralizes alone ("Most S65s").
     var isBadge = v.badge && obNorm(head) === obNorm(v.badge);
@@ -1654,7 +1660,7 @@
     if (q) { try { run(decodeURIComponent(q[1])); } catch (e) {} }
   }
   // The card builders, for Sell mode (same cards, same type): read-only use, nothing here changes.
-  window.OBX = { qscreenHtml: qscreenHtml, askCopy: askCopy, esc: esc, inboxHtml: inboxHtml, footHtml: footHtml, saleCardHtml: saleCardHtml,
+  window.OBX = { carHead: carHead, qscreenHtml: qscreenHtml, askCopy: askCopy, esc: esc, inboxHtml: inboxHtml, footHtml: footHtml, saleCardHtml: saleCardHtml,
     samMsgHtml: samMsgHtml, setRootHtmlLifted: setRootHtmlLifted, wire: wire, root: root, run: run, renderError: renderError, renderEmpty: renderEmpty };
   boot();
 })();
