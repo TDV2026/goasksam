@@ -4006,6 +4006,19 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "buildvinindex", ...stats });
   }
 
+  // task=specmarkettest: run scripts/buildSpecMarketCache.js's SAME exported function (no second
+  // copy), the only way to exercise it against real Supabase from outside a GitHub Actions run
+  // (Supabase credentials are not pullable locally - standing limitation). ?dry=0 runs it against
+  // real live listings instead of the built-in no-year + normal fixture pair; ?budgetMin/?concurrency
+  // override the tiny defaults used here so a manual test never eats the real nightly's budget.
+  if (task === "specmarkettest") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { buildSpecMarketCache } = await import("../scripts/buildSpecMarketCache.js");
+    const dry = req.query?.dry !== "0";
+    const r = await buildSpecMarketCache(env, { dry, budgetMin: Number(req.query?.budgetMin) || 2, concurrency: Number(req.query?.concurrency) || 2 });
+    return res.status(200).json({ task: "specmarkettest", dry, ...r });
+  }
+
   // task=vinidxcount: READ-ONLY. vin_index / vin_summary readiness for Lane C: row counts, distinct VINs,
   // multi-appearance VIN count, and 5 sample multi-appearance VINs with their appearance history.
   if (task === "vinidxcount") {
