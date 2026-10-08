@@ -1688,6 +1688,9 @@ async function handleOps(req, res) {
       { make: /ford/i, activate: /shelby|gt500|gt350|\bboss\b|svt|mach\s*1/i, include: (m, tr) => new RegExp(escRe(tr).replace(/\s+/g, "\\s*"), "i"), baseExclude: () => /shelby|gt500|gt350|\bboss\b|svt/i },
       { make: /mercedes|benz/i, activate: /amg|\b\d?63\b|\b55\b|\b65\b|black series/i, include: () => /\bamg\b|\b63\b|\b65\b|\b55\b|black series/i, baseExclude: () => /\bamg\b|\b63\b|\b65\b|black series/i }
     ];
+    // Same COSMETIC_TRIM/rsGuard wrapper buildSpec applies around perf.include's regex (lib/onebox.js
+    // ~line 1034) - unchanged by the fix, but needed here for a faithful old-vs-new simulation.
+    const COSMETIC_TRIM = /m[\s-]?sport|m[\s-]?package|m[\s-]?pkg|m[\s-]?performance|amg[\s-]?line|s[\s-]?line|r[\s-]?line|sport\s?line|shadow\s?line/i;
     const oldPerfFns = (make, model, trim) => {
       const perf = OLD_PERF_TRIMS.find(p => p.make.test(make));
       if (!perf) return { include: null, exclude: null };
@@ -1695,7 +1698,9 @@ async function handleOps(req, res) {
         const bx = perf.baseExclude(model);
         return { include: null, exclude: (bx && !bx.test(model || "")) ? (t => bx.test(t)) : null };
       }
-      return { include: t => perf.include(model, trim || "").test(t), exclude: null };
+      const re = perf.include(model, trim || "");
+      const rsGuard = /\brs\b/i.test(trim || "") ? null : /\brs\b/i;
+      return { include: t => re.test(t) && !COSMETIC_TRIM.test(t) && !(rsGuard && rsGuard.test(t)), exclude: null };
     };
     const percentileOf = (arr, p) => { const s = arr.slice().sort((a, b) => a - b); if (!s.length) return null; const idx = Math.max(0, Math.min(s.length - 1, Math.round(p * (s.length - 1)))); return s[idx]; };
     const REGRESS_CARS = String(req.query?.cars || [
@@ -1720,13 +1725,33 @@ async function handleOps(req, res) {
         const generation = await findGeneration(vehicle, env);
         const searchText = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(" ");
         const spec = buildSpec(vehicle, generation, searchText);
-        const broadSpec = { ...spec, perfInclude: null, perfExclude: null };
+        // Matches runOneBox's own famSpec pattern (lib/onebox.js ~line 2402): clearing perfInclude
+        // alone is not enough - qualifyReason's excludeVariants check only runs in the ELSE branch
+        // when perfInclude is falsy, and excludeVariants contains literal "gt3"/"gt2" tokens that
+        // would otherwise wipe out the very rows this diagnostic needs to reclassify.
+        const broadSpec = { ...spec, perfInclude: null, perfExclude: null, excludeVariants: [] };
         const sinceIso = new Date(Date.now() - 1825 * 864e5).toISOString();
         const raw = await fetchQualifying(broadSpec, sinceIso, env, {});
-        const titleOf = r => String(r.raw_title || r.rtitle || "");
-        const passNew = r => { const t = titleOf(r); return (!spec.perfInclude || spec.perfInclude(t)) && !(spec.perfExclude && spec.perfExclude(t)); };
+        // Exact match to qualifyReason's own title construction (lib/onebox.js line 512) and its
+        // perfInclude/else-branch order: perfInclude alone governs when set; otherwise perfExclude
+        // AND excludeVariants both apply (a base-model query's halo exclusion, untouched by this fix,
+        // must still be simulated here or a control spec would wrongly show every halo included).
+        const titleOf = r => String(r.rtitle || r.raw_title || "").toLowerCase();
+        const passNew = r => {
+          const t = titleOf(r);
+          if (spec.perfInclude) return spec.perfInclude(t);
+          if (spec.perfExclude && spec.perfExclude(t)) return false;
+          if (spec.excludeVariants && spec.excludeVariants.some(w => t.includes(w))) return false;
+          return true;
+        };
         const old = oldPerfFns(vehicle.make, spec.model, spec.trim);
-        const passOld = r => { const t = titleOf(r); return (!old.include || old.include(t)) && !(old.exclude && old.exclude(t)); };
+        const passOld = r => {
+          const t = titleOf(r);
+          if (old.include) return old.include(t);
+          if (old.exclude && old.exclude(t)) return false;
+          if (spec.excludeVariants && spec.excludeVariants.some(w => t.includes(w))) return false;
+          return true;
+        };
         const afterRows = raw.filter(passNew), beforeRows = raw.filter(passOld);
         const priceRange = rows2 => { const vals = rows2.map(r => hammerUsd(r)).filter(v => Number.isFinite(v) && v > 0); if (vals.length < 3) return { count: vals.length, low: null, high: null }; return { count: vals.length, low: Math.round(percentileOf(vals, 0.1)), high: Math.round(percentileOf(vals, 0.9)) }; };
         row.before = priceRange(beforeRows);
