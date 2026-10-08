@@ -184,7 +184,7 @@ export async function carIdentity(apps, vin) {
 // The One Box answer for the car's family, computed by the engine exactly as One Box does
 // (resolved vehicle -> findGeneration -> runOneBox). A first call that comes back as a question
 // is re-run at the engine's own two-question cap, which answers across the variants and says so.
-export async function oneBoxFor(env, id, exactSale) {
+export async function oneBoxFor(env, id, exactSale, opts) {
   try {
     const vehicle = { ...id.vehicle };
     if (id.bodyStyle && !vehicle.bodyStyle) vehicle.bodyStyle = id.bodyStyle;
@@ -196,6 +196,15 @@ export async function oneBoxFor(env, id, exactSale) {
       new Promise((_, rej) => setTimeout(() => rej(new Error("deadline")), 15000))
     ]);
     let d = await run(0);
+    // BARE MULTI-GENERATION NAMEPLATE (Oct 2026, history hub timing): a year-less query that lands
+    // on generation_choice (or the model-family-ambiguous choice, same tier shape) has no year to
+    // disambiguate with, so the capped retry (asked:2) answers on the whole unscoped nameplate -
+    // a fetch that, for any genuinely multi-generation model, always loses the race to the 15s
+    // deadline (measured live on "Porsche 911": onebox;dur=15001/15002ms, twice, never a card).
+    // The retry never returns a card in this case, so skipping it loses nothing and saves ~15s.
+    // Opt-in via opts.skipBareRetry so every other caller (Market Check, the VIN exact-car page,
+    // any year-given hub) is byte-identical.
+    if (opts && opts.skipBareRetry && d && d.tier === "generation_choice" && !vehicle.year) return null;
     if (d && /_choice$/.test(String(d.tier || ""))) d = await run(2);
     return d && d.tier ? d : null;
   } catch (e) { console.error("history oneBoxFor failed:", (e && e.message) || e); return null; }

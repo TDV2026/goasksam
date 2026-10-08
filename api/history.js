@@ -523,7 +523,7 @@ async function hubPage(req, res, env, slug) {
   const id = v && v.make && v.model ? { year: hub.year, make: v.make, model: v.model, trim: v.trim || null, family: familyOf(v), genCode: v.genCode || null, bodyStyle: v.bodyStyle || null, vehicle: { ...v, year: hub.year } }
     : { year: hub.year, make: fbMake || hub.makeSlug.replace(/(^|-)\w/g, s => s.toUpperCase()), model: cleanModelName(hub.modelSlug), family: cleanModelName(hub.modelSlug), vehicle: null };
   const name = [id.year, id.make, id.family].filter(Boolean).join(" ");
-  const d = id.vehicle ? await oneBoxFor(env, id, null) : null;
+  const d = id.vehicle ? await oneBoxFor(env, id, null, { skipBareRetry: true }) : null;
   profMark("oneBoxDone");
   const n = poolCount(d);
   const salesN = list.reduce((k, g) => k + g.apps.filter(a => a.kind === "sale").length, 0);
