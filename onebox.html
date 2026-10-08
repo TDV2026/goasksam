@@ -133,12 +133,10 @@ button{font:inherit}
 .sec-head h2{margin:0;font:500 22px/1.25 var(--serif)}
 .sec-head .scope{display:block;font:400 14px/1.45 var(--sans);color:var(--sec);margin-top:2px}
 .sec-head .linkbtn{white-space:nowrap}
-.seeall-bottom{display:none}
-.seeall-panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px 22px}
-.seeall-panel .lab{font:600 13px/1.4 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--sec);margin:0 0 10px}
-.plat-strip{display:flex;flex-wrap:wrap;gap:8px}
-.plat-pill{display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border:1px solid var(--border);border-radius:999px;font:500 15px var(--sans);color:var(--ink);background:var(--card)}
-.plat-note{margin:10px 0 0;font:400 15px/1.5 var(--sans);color:var(--sec)}
+/* ---- long-list cap (Oct 2026): extra cards server-render, just hidden until "See all N" ---- */
+.cap-extra[hidden]{display:none}
+.cap-extra:not([hidden]){display:contents}
+.capshow{margin-top:14px}
 
 /* ---- cards ---- */
 .cards5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:20px;align-items:stretch}
@@ -302,8 +300,7 @@ a.card:hover .ctitle{text-decoration:underline;text-underline-offset:3px}
   .take-tag{font-size:12px}
   .sec-head{display:block;padding-top:14px;margin-top:4px}
   .sec-head h2{font-size:20px}
-  .seeall-top{display:none}
-  .seeall-bottom{display:inline-flex;align-self:flex-start;margin-top:-8px}
+  .capshow{margin-top:10px}
   .cards5{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
   .card{border-radius:14px}
   .card.hero{grid-column:1 / -1}
@@ -366,6 +363,6 @@ a.card:hover .ctitle{text-decoration:underline;text-underline-offset:3px}
 function obToggleRail(open){var r=document.getElementById("ob-rail"),s=document.getElementById("ob-scrim"),b=document.getElementById("ob-hamburger");if(!r)return;var on=(open===undefined)?!r.classList.contains("open"):!!open;r.classList.toggle("open",on);if(s)s.classList.toggle("open",on);if(b)b.setAttribute("aria-expanded",on?"true":"false");}
 function obToggleResults(e){if(e)e.preventDefault();var m=document.getElementById("ob-results-menu");if(m)m.classList.toggle("open");return false;}
 </script>
-<script src="/obx.20261012a/onebox.js"></script>
+<script src="/obx.20261012b/onebox.js"></script>
 </body>
 </html>

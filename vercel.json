@@ -43,6 +43,7 @@
     { "source": "/styles.20260907a.css", "destination": "/styles.css" },
     { "source": "/js.20261009a/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261012a/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261012b/(.*)", "destination": "/js/$1" },
     { "source": "/desk", "destination": "/desk.html" },
     { "source": "/history/:slug/:vin", "destination": "/api/history?slug=:slug&vin=:vin" },
     { "source": "/history/:slug", "destination": "/api/history?slug=:slug" },

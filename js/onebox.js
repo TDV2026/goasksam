@@ -116,7 +116,7 @@
     var thin = d.tier === "thin" || (d.tier === "result" && !d.cluster && Number(d.poolN) > 0 && Number(d.poolN) < 8);
     var label = thin ? "Why so little" : "Why it looks like this";
     var text = thin
-      ? "Because that’s all that sold. We’d rather show you three real sales than a number we made up from them."
+      ? "Because that’s all that sold. We’d rather show you every real sale than a number we made up from them."
       : "No chart, no estimate, no score. Every figure on this page is a hammer price from a real auction, matched to the car’s trim, body and gearbox, converted at the rate on the day it sold, with the replicas, projects and odd sales set aside. The range is where most of those sales landed. Where there aren’t enough sales to say something, we say that instead.";
     return '<section class="whynote" data-stage="note"><span class="eyebrow">' + esc(label) + '</span><p>' + esc(text) + '</p><a href="/how-sam-decides">How Sam decides &#8594;</a></section>';
   }
@@ -519,6 +519,20 @@
       priceHtml: esc(usd(c.price)), title: cleanReceiptTitle(c.title),
       meta: [c.mileageText && c.mileageText !== "TMU" ? c.mileageText : "", venue, c.month || monShort(c.date)].filter(Boolean).join(" · ") });
   }
+  // Shared "cap at N, See all N expands in place" list pattern (Oct 2026, Sam's live review): every
+  // long card list (thin receipts, comparable sales, shown-separately) server-renders EVERY card so
+  // search engines see them all; past the cap the extras just sit hidden until the one click.
+  var obCapSeq = 0;
+  function capCardsHtml(gridClass, cardsHtml, cap) {
+    cardsHtml = cardsHtml.filter(Boolean);
+    if (!cardsHtml.length) return "";
+    if (cardsHtml.length <= cap) return '<div class="' + gridClass + '" data-stage="cards">' + cardsHtml.join("") + "</div>";
+    var id = "ob-cap" + (++obCapSeq);
+    var shown = cardsHtml.slice(0, cap).join("");
+    var extra = cardsHtml.slice(cap).map(function (h) { return '<div class="cap-extra" hidden>' + h + "</div>"; }).join("");
+    return '<div class="' + gridClass + '" data-stage="cards" id="' + id + '">' + shown + extra + "</div>" +
+      '<button type="button" class="linkbtn capshow" data-capshow="' + id + '" aria-expanded="false">See all ' + cardsHtml.length + " &#8594;</button>";
+  }
   // Receipt-row title cleanup (Sep 2026): the raw OCD title leads with the listing's mileage hook
   // ("21k-Mile ...", "4,800-Mile ...") and trails a gearbox tag ("... 6-Speed") - both redundant on
   // a receipt row where the mileage + gearbox already sit in the meta line. Strip them to the clean
@@ -556,24 +570,9 @@
     t = titleCaseSaleTitle(t);                   // item 6: never shout a sale title
     return t || String(title == null ? "" : title);
   }
-  // "See all recent sales": a real toggle (top on desktop, under the cards on phone) for the
-  // existing where-they-sold panel. Renders only when the engine returns platforms.
-  function seeAllParts(d, m) {
-    var plats = d.platforms || [];
-    if (!plats.length) return null;
-    var pills = plats.map(function (nm) { return '<span class="plat-pill">' + esc(nm) + "</span>"; }).join("");
-    var note = "";
-    if (d.singlePlatform && d.topPlatform) note = '<p class="plat-note">' + lint("Almost all on " + esc(d.topPlatform) + ", so there is no cross-platform split to read here.", "platnote") + "</p>";
-    else if (d.topPlatform) note = '<p class="plat-note">' + lint("Most change hands on " + esc(d.topPlatform) + ".", "platnote") + "</p>";
-    var label = (d.poolTrim || bareNameOf(d, m)) + " sales, " + windowMeta(d).toLowerCase();
-    var btn = function (cls) { return '<button type="button" class="linkbtn ' + cls + '" data-seeall aria-expanded="false" aria-controls="ob-seeall">See all recent sales &#8594;</button>'; };
-    return {
-      top: btn("seeall-top"), bottom: btn("seeall-bottom"),
-      panel: '<div class="seeall-panel" id="ob-seeall" hidden><p class="lab">' + esc(label) + '</p><p class="lab">Where they sold</p><div class="plat-strip">' + pills + "</div>" + note + "</div>"
-    };
-  }
-  // RECENT COMPARABLE SALES: divider head (title, scope line, See all), then the 5-column card row:
-  // hero spans 3 (CLOSEST SALE, or THIS CAR on an exact match), two stacked cards span 2.
+  // RECENT COMPARABLE SALES: divider head (title, scope line), the 5-column card row (hero spans 3 -
+  // CLOSEST SALE, or THIS CAR on an exact match - two stacked cards span 2), then the rest of the
+  // engine's qualifying pool (d.cards), capped at 4 with "See all N" (Oct 2026, Sam's live review).
   function salesSectionHtml(d, m) {
     var rep = d.representative;
     var hero = "", sides = [];
@@ -590,18 +589,24 @@
     var scope;
     if (m) scope = sides.length ? "This car, plus " + (sides.length === 2 ? "two" : "one") + " recent comparable sale" + (sides.length === 2 ? "s" : "") + ". Tap any to open the listing." : "This car’s last recorded sale.";
     else scope = (d.widening || d.resolvedSpec || "") + (d.widening || d.resolvedSpec ? " " : "") + "Tap any to open the listing.";
-    var sa = seeAllParts(d, m);
-    var headHtml = '<div class="sec-head" data-stage="cards"><div><h2>Recent comparable sales</h2><span class="scope">' + lint(esc(scope), "sec.scope") + "</span></div>" + (sa ? sa.top : "") + "</div>";
+    var headHtml = '<div class="sec-head" data-stage="cards"><div><h2>Recent comparable sales</h2><span class="scope">' + lint(esc(scope), "sec.scope") + "</span></div></div>";
     var row = '<div class="cards5' + (sides.length ? "" : " single") + '" data-stage="cards">' + hero +
       (sides.length ? '<div class="stack">' + sides.map(smallCardHtml).join("") + "</div>" : "") + "</div>";
-    return headHtml + row + (sa ? sa.bottom + sa.panel : "");
+    // Everything else the engine already qualified into this pool, minus whatever the row above
+    // already shows (matched by listing URL), so the same sale never appears twice.
+    var shownUrls = {};
+    if (m && m.url) shownUrls[m.url] = true;
+    [rep && rep.closest, rep && rep.high, rep && rep.low].forEach(function (c) { if (c && c.url) shownUrls[c.url] = true; });
+    var more = (d.cards || []).filter(function (c) { return !(c.url && shownUrls[c.url]); });
+    var moreHtml = capCardsHtml("grid3", more.map(function (c) { return poolCardHtml(c, false); }), 4);
+    return headHtml + row + moreHtml;
   }
   // "Shown separately" (Part 1 Rule 7): tagged variants and aside cars stay visible, out of the range.
   function shownSeparatelyHtml(d) {
     var list = d.asideCards || [];
     if (!list.length) return "";
     return '<div class="sec-head" data-stage="cards"><div><h2>' + lint("Shown separately", "sep.lab") + '</h2><span class="scope">' + lint("Kept out of the range above.", "sep.scope") + "</span></div></div>" +
-      '<div class="grid3" data-stage="cards">' + list.slice(0, 8).map(function (c) { return poolCardHtml(c, true); }).join("") + "</div>";
+      capCardsHtml("grid3", list.map(function (c) { return poolCardHtml(c, true); }), 4);
   }
   // Item 4: the mileage reconfirm / earned question renders AFTER the evidence (answer, proof, then
   // the refinement). On a divergent car it is the "still around X miles?" reconfirm; otherwise the
@@ -634,17 +639,18 @@
     return '<p class="mifallback" data-stage="answer">' + lint(esc("Too few sold right at that mileage, so these are the " + d.mileageFallback.n + " closest sales by mileage."), "mifb") + "</p>";
   }
   function resultHtml(d, m) {
-    // Order (Oct 2026 design of record): answer card -> engine-gated note lines -> Recent comparable
-    // sales (divider head + card row) -> shown-separately -> optional question card -> Ready to sell.
-    // ONE range only (the cluster in the answer card); no second "everything from" span anywhere.
+    // Order (Oct 2026, Sam's live review): range -> the earned question(s) directly under it ->
+    // Recent comparable sales -> live listings -> Shown separately -> Ready to sell -> Why it looks
+    // like this. ONE range only (the cluster in the answer card); no second "everything from" span.
     var notes = mileageFallbackHtml(d) + contradictionLine(d) + observeAsideHtml(d) + inlineSplitsHtml(d);
     if (d.driverSentence && !(d.earned) && !(d.divergence && d.divergence.kase === "a")) notes += '<p class="varynote">' + lint(esc(d.driverSentence), "varynote") + "</p>";
-    var body = answerCardHtml(d, m) + livePanelSlot();
+    var body = answerCardHtml(d, m);
     if (notes) body += '<div class="notes" data-stage="answer">' + notes + "</div>";
-    body += salesSectionHtml(d, m);
-    body += shownSeparatelyHtml(d);
     body += reconfirmHtml(d, m);
     body += observeHtml(d);
+    body += salesSectionHtml(d, m);
+    body += livePanelSlot();
+    body += shownSeparatelyHtml(d);
     body += sellHtml();
     body += whyNoteHtml(d);
     return body;
@@ -880,8 +886,9 @@
       lines.map(function (p) { return '<p class="ans-line">' + lint(esc(p), "ht.line") + "</p>"; }).join("") + "</div>";
     if (m) body += '<div class="cards5 single" data-stage="cards">' + vinHeroCardHtml(m, d.resolvedCar) + "</div>";
     // Newest first (the honest evidence order); the engine's hammer-desc order is for its own math.
-    var shownRecs = scope.slice().sort(function (a, b) { return String(b.date || "").localeCompare(String(a.date || "")); }).slice(0, 8);
-    body += '<div class="grid2" data-stage="cards">' + shownRecs.map(receiptCardHtml).join("") + "</div>";
+    // Every sale renders (capped display only, Oct 2026): "every real sale", not a curated slice.
+    var shownRecs = scope.slice().sort(function (a, b) { return String(b.date || "").localeCompare(String(a.date || "")); });
+    body += capCardsHtml("grid2", shownRecs.map(receiptCardHtml), 4);
     if (scope === ht.receipts) body += htPairsHtml(ht);
     body += siblingHtml(ht);
     // One Box NEVER recommends a house or platform; "Ready to sell?" is the only bridge to /sell.
@@ -1461,9 +1468,16 @@
     if (input) input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); run(input.value); } });
     var edit = document.getElementById("ob-edit"); if (edit) edit.addEventListener("click", function () { renderEmpty(); if (input && lastQuery) { var i2 = document.getElementById("ob-input"); if (i2) { i2.value = lastQuery; i2.focus(); } } });
     var sell = document.getElementById("ob-sell"); if (sell) sell.addEventListener("click", toSell);
-    // See all recent sales: both buttons (desktop head / phone foot) toggle the one panel.
-    var seeBtns = root.querySelectorAll("[data-seeall]");
-    Array.prototype.forEach.call(seeBtns, function (b) { b.addEventListener("click", function () { var pnl = document.getElementById("ob-seeall"); if (!pnl) return; var open = pnl.hidden; pnl.hidden = !open; Array.prototype.forEach.call(seeBtns, function (x) { x.setAttribute("aria-expanded", open ? "true" : "false"); }); }); });
+    // Long-list cap (Oct 2026, Sam's live review): "See all N" reveals the already server-rendered
+    // extra cards in place. One-way (nothing to re-hide), so the button removes itself after.
+    Array.prototype.forEach.call(root.querySelectorAll("[data-capshow]"), function (b) {
+      b.addEventListener("click", function () {
+        var grid = document.getElementById(b.getAttribute("data-capshow")); if (!grid) return;
+        Array.prototype.forEach.call(grid.querySelectorAll(".cap-extra[hidden]"), function (x) { x.removeAttribute("hidden"); });
+        b.setAttribute("aria-expanded", "true");
+        if (b.parentNode) b.parentNode.removeChild(b);
+      });
+    });
     // Thin widening box: run the sibling family the engine named.
     Array.prototype.forEach.call(root.querySelectorAll("[data-sibling]"), function (b) { b.addEventListener("click", function () { obEvent("onebox_sibling_clicked", lastQuery); run(b.getAttribute("data-sibling")); }); });
     var share = root.querySelector("[data-share]"); if (share) share.addEventListener("click", shareResult);
