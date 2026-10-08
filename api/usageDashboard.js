@@ -1870,6 +1870,97 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "platformpickaudit", total: rows.length, agreeCount, disagreeCount, rows });
   }
 
+  // task=sellcutoverdiff: READ-ONLY, NEVER touches SELL_PICK_SHARED (the real env var stays whatever
+  // it is - this calls buildSharedAnalysis() and decide() directly, the exact functions the flag
+  // would wire in, without flipping anything live). For each of the same 40 audit cars, builds BOTH
+  // decisions - OLD: analyze(capped fetchRecentRecords records) -> decide(); NEW: buildSharedAnalysis
+  // (shared archive pool) -> decide(), the SAME decide() function both times - and diffs every field
+  // named in Sam's round: recommendedPath, confidence, evidenceBasis, evidenceSales, medianSalePrice,
+  // pricePremium, matchedPremium, dayAdvantage, momentum, strongerNonRoutable, the by-venue breakdown,
+  // and the PowerSeller value check (evaluatePartnerReferral on each analysis). ?limit=N/?offset=N for
+  // paging within the function's time budget; ?cars=a|b|c overrides the built-in list.
+  if (task === "sellcutoverdiff") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const apiKey = process.env.OLDCARSDATA_API_KEY; if (!apiKey) return res.status(500).json({ error: "OLDCARSDATA_API_KEY not set." });
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { fetchRecentRecords, analyze, buildLadder, decide, evaluatePartnerReferral } = await import("./sellerDecision.js");
+    const { classifyRecord } = await import("../lib/_classify.js");
+    const { buildSharedAnalysis } = await import("../lib/platformPick.js");
+    const DEFAULT_CARS = [
+      "2008 Porsche 911 Carrera S Coupe", "1967 Ford Mustang Fastback", "1955 Mercedes-Benz 300SL Gullwing",
+      "2006 Mercedes-Benz CLK DTM AMG Cabriolet", "1930 Ford Model A", "1999 Nissan Skyline GT-R", "2015 Chevrolet Corvette Z06",
+      "1965 Chevrolet Corvette", "1970 Plymouth Barracuda", "1969 Chevrolet Camaro Z28", "1973 Porsche 911 Carrera RS",
+      "1987 BMW M3", "1995 Mazda Miata", "2003 Ferrari 360 Modena", "1985 Ferrari 308 GTS", "2016 Ford Mustang GT350",
+      "1978 Porsche 911 SC", "2001 BMW M5", "1993 Toyota Supra Turbo", "2012 Audi R8", "2005 Ford GT",
+      "1967 Chevrolet Camaro SS", "1972 Datsun 240Z", "2014 Chevrolet Corvette Stingray", "1999 BMW M3",
+      "2008 Audi RS4", "1976 Porsche 930 Turbo", "1965 Ford Mustang", "2009 Nissan GT-R", "1988 Porsche 911 Carrera",
+      "2000 Honda S2000", "1963 Jaguar E-Type", "2017 Porsche 911 GT3", "1990 Chevrolet Corvette ZR-1", "1980 Datsun 280ZX",
+      "1990 Lamborghini Countach 25th Anniversary", "1989 Porsche 911 Speedster", "1955 Jaguar D-Type",
+      "1967 Ferrari 275 GTB/4", "2014 McLaren P1"
+    ];
+    const CARS = req.query?.cars ? String(req.query.cars).split("|") : DEFAULT_CARS;
+    const offset = Number(req.query?.offset) > 0 ? Number(req.query.offset) : 0;
+    const limit = Number(req.query?.limit) > 0 ? Number(req.query.limit) : CARS.length;
+    const criteriaFor = () => ({ region: { country: "US", regionLabel: "the US" }, state: "CA", timeline: "No rush", involvement: "I'll sell it myself", sellerPreference: "diy", notes: "", targetPrice: null });
+    const shapeDecision = (dec, partnerRef) => {
+      const bestRoute = (dec.routeFit && dec.routeFit.routes || []).find(r => r.platform === dec.recommendedPath);
+      const ev = bestRoute && bestRoute.marketEvidence;
+      const byVenue = ((dec.routeFit && dec.routeFit.routes) || []).filter(r => r.routable && r.marketEvidence).map(r => ({
+        platform: r.platform, evidenceSales: r.marketEvidence.evidenceSales, medianSalePrice: r.marketEvidence.medianSalePrice,
+        pricePremium: r.marketEvidence.pricePremium || null
+      }));
+      return {
+        recommendedPath: dec.recommendedPath || null, confidence: dec.confidence || null, evidenceBasis: dec.evidenceBasis || null,
+        evidenceSales: (ev && ev.evidenceSales) || 0, medianSalePrice: (ev && ev.medianSalePrice) || null,
+        pricePremium: (ev && ev.pricePremium) || null, matchedPremium: (ev && ev.matchedPremium) || null,
+        dayAdvantage: (ev && ev.dayAdvantage) || null, momentum: (ev && ev.momentum) || null,
+        strongerNonRoutable: dec.strongerNonRoutable || null, byVenue,
+        why: dec.why || [],
+        partnerShouldEvaluate: !!(partnerRef && partnerRef.shouldEvaluate), partnerEligible: !!(partnerRef && partnerRef.eligible)
+      };
+    };
+    const rows = [];
+    for (const q of CARS.slice(offset, offset + limit)) {
+      const row = { q };
+      try {
+        const rv = await resolveVehicle(q, {}); const vehicle = rv && rv.vehicle;
+        if (!vehicle || !vehicle.make) { row.error = "unresolved"; rows.push(row); continue; }
+        row.resolved = `${vehicle.year || ""} ${vehicle.make} ${vehicle.model || ""}${vehicle.trim ? " " + vehicle.trim : ""}`.trim();
+        const generation = await findGeneration(vehicle, env);
+        const criteria = criteriaFor();
+        const fetched = await fetchRecentRecords(vehicle, apiKey, generation);
+        const recs = (fetched && fetched.records) || [];
+        const cls = recs.map(r => classifyRecord(r, vehicle));
+        const oldAnalysis = analyze(recs, cls, buildLadder(vehicle, generation), vehicle, false);
+        const oldDecision = decide(oldAnalysis, criteria, vehicle);
+        const oldPartner = await evaluatePartnerReferral(oldAnalysis, criteria, vehicle, env.supabaseUrl, env.supabaseKey).catch(() => null);
+        row.before = shapeDecision(oldDecision, oldPartner);
+        let newAnalysis = await buildSharedAnalysis(vehicle, generation, env, criteria).catch(() => null);
+        if (!newAnalysis) {
+          newAnalysis = { evidenceSales: 0, estimatedValue: null, thinMarket: true, ladder: { landed: null, rungs: [], policyFloorRung: 1 },
+            platformPerformance: [], sellerActivity: null, historicalWeekday: null, transmissionSplit: null, windowDays: null, evidenceLabel: "no comparable sales in tracked auction data" };
+        }
+        const newDecision = decide(newAnalysis, criteria, vehicle);
+        const newPartner = await evaluatePartnerReferral(newAnalysis, criteria, vehicle, env.supabaseUrl, env.supabaseKey).catch(() => null);
+        row.after = shapeDecision(newDecision, newPartner);
+        const numDiff = (a, b) => (a == null || b == null) ? (a !== b) : Math.abs(a - b) > Math.max(1, Math.abs(a) * 0.05);
+        row.diff = {
+          recommendedPath: row.before.recommendedPath !== row.after.recommendedPath,
+          confidence: row.before.confidence !== row.after.confidence,
+          evidenceBasis: row.before.evidenceBasis !== row.after.evidenceBasis,
+          evidenceSales: numDiff(row.before.evidenceSales, row.after.evidenceSales),
+          medianSalePrice: numDiff(row.before.medianSalePrice, row.after.medianSalePrice),
+          pricePremiumPresence: !!row.before.pricePremium !== !!row.after.pricePremium,
+          strongerNonRoutable: !!row.before.strongerNonRoutable !== !!row.after.strongerNonRoutable
+        };
+        row.anyDiff = Object.values(row.diff).some(Boolean);
+      } catch (e) { row.error = String((e && e.message) || e); }
+      rows.push(row);
+    }
+    return res.status(200).json({ task: "sellcutoverdiff", total: rows.length, diffCount: rows.filter(r => r.anyDiff).length, rows });
+  }
+
   // task=taxprobe: READ-ONLY (archive; ZERO OCD). Grounding data for the class-taxonomy design +
   // the two resolver fixes: what the resolver returns for the flagged cars, the Viper body tags,
   // and title/body tokens actually present in the archive for rare/coachbuilt/era-reuse cars.

@@ -38,7 +38,7 @@ import {
   textHasTerm
 } from "../lib/_classify.js";
 import { hammerUsd, ensureFxReady } from "../lib/_houseComps.js";
-import { pickPlatform } from "../lib/platformPick.js";
+import { pickPlatform, buildSharedAnalysis } from "../lib/platformPick.js";
 
 // Powerseller referrals are gated (locked product rule): estimated value from
 // actual comps must clear this threshold before a partner can lead.
@@ -4018,7 +4018,39 @@ export default async function handler(req, res) {
         }
       } catch { /* keep the fresh pool as-is */ }
     }
-    const analysis = analyze(analysisRecords, analysisClassifications, fetchResult.ladder, vehicle, req.body?.debug === true, activeTxRefine);
+    // SELL_PICK_SHARED, FULL CUTOVER (off by default - Sam must approve before this changes what live
+    // /sell shows): with the flag on, the `analysis` object feeding decide() below is built ENTIRELY
+    // from the shared archive pool (lib/platformPick.js buildSharedAnalysis) instead of this capped
+    // fetch's records/classifications - decide() itself is untouched, so every gate it already runs
+    // (route policy/region/evidenceCapable, win-conditions, thin-window-price override, premium/
+    // specialist/depth) behaves identically, just fed different numbers. Scoped to the online pick
+    // ONLY (item 4): an explicit "through an auction house" choice is left completely alone - the old
+    // house-comparison path elsewhere in this handler (thin/class-era/rare-car) keeps deciding it,
+    // unchanged, and buildSharedAnalysis is not even called in that case (no wasted fetch).
+    // NEVER MIX: when the flag is on and the shared pool has nothing at all (a car the shared engine
+    // has not seen sell), this feeds decide() the same honest "zero evidence" shape it already
+    // renders cleanly (the regional-policy floor / "has not seen this car sell yet" wording, item 3) -
+    // it does NOT fall back to the capped-fetch analysis, which would silently mix a capped number
+    // into an otherwise shared-pool page. A genuine error building the shared analysis degrades the
+    // same honest way (logged loudly, never a half-filled page).
+    const sellerChoseHouse = sellerCriteria.sellerPreference === "auction_house" || /auction house/i.test(String(sellerCriteria.involvement || ""));
+    const sellPickSharedOn = process.env.SELL_PICK_SHARED === "1" && !sellerChoseHouse;
+    let analysis = null;
+    if (sellPickSharedOn) {
+      try {
+        analysis = await buildSharedAnalysis(vehicle, generation, { supabaseUrl, supabaseKey }, sellerCriteria);
+      } catch (e) { console.error("SELL_PICK_SHARED buildSharedAnalysis failed (rendering the honest zero-evidence state, never the capped fetch):", e && e.message); }
+      if (!analysis) {
+        analysis = {
+          evidenceSales: 0, estimatedValue: null, thinMarket: true,
+          ladder: { landed: null, rungs: [], policyFloorRung: 1 },
+          platformPerformance: [], sellerActivity: null, historicalWeekday: null, transmissionSplit: null,
+          windowDays: null, evidenceLabel: "no comparable sales in tracked auction data", sourcedFromSharedPool: true
+        };
+      }
+    } else {
+      analysis = analyze(analysisRecords, analysisClassifications, fetchResult.ladder, vehicle, req.body?.debug === true, activeTxRefine);
+    }
 
     // Sell-through removed (1b): our search-path records are sold-only, so a
     // sold/listed rate cannot be computed. The old segmentSellThrough was the
@@ -4027,34 +4059,6 @@ export default async function handler(req, res) {
 
     const decision = decide(analysis, sellerCriteria, vehicle);
     decision.partnerReferral = await evaluatePartnerReferral(analysis, sellerCriteria, vehicle, supabaseUrl, supabaseKey);
-
-    // SELL_PICK_SHARED (off by default - Sam must approve before this changes what live /sell shows):
-    // re-decide the ONLINE platform pick with the shared function (lib/platformPick.js) that also
-    // backs the new Sell, so one car gets one pick on both pages. Scoped to the online/routable pick
-    // ONLY (item 3, follow-up): an explicit "through an auction house" choice is left completely
-    // alone - the old house-comparison path elsewhere in this handler (thin/class-era/rare-car) keeps
-    // deciding it, unchanged, and pickPlatform is not even called in that case (no wasted fetch). The
-    // shared function's house branch exists (new Sell uses it) but this file does not wire it - no
-    // half-built house path here; see docs/lane-notes.md for the 300SL mismatch as its own later job.
-    // A non-routable route is never forced into recommendedPath - matches the existing "only routable
-    // routes can be the pick" invariant - and routeFit.routes is reordered the same way
-    // applyThinWindowPriceOverride does, so the card and recommendedPath stay in lockstep.
-    const sellerChoseHouse = sellerCriteria.sellerPreference === "auction_house" || /auction house/i.test(String(sellerCriteria.involvement || ""));
-    if (process.env.SELL_PICK_SHARED === "1" && !sellerChoseHouse && decision.routeFit && Array.isArray(decision.routeFit.routes)) {
-      try {
-        const shared = await pickPlatform(vehicle, generation, { supabaseUrl, supabaseKey }, sellerCriteria);
-        if (shared && shared.mode === "online" && shared.platform) {
-          const route = decision.routeFit.routes.find(r => r.routable !== false
-            && (normSourceSlug(r.policyKey) === shared.platform || normSourceSlug(r.platform) === shared.platform));
-          if (route) {
-            decision.recommendedPath = route.platform;
-            route.sharedPick = { reasonCode: shared.reasonCode, figures: shared.figures, thin: shared.thin };
-            const idx = decision.routeFit.routes.indexOf(route);
-            if (idx > 0) { decision.routeFit.routes.splice(idx, 1); decision.routeFit.routes.unshift(route); }
-          }
-        }
-      } catch (e) { console.error("SELL_PICK_SHARED override failed (keeping the current pick):", e && e.message); }
-    }
 
     // Reserve INSIGHT (item 2b): a fair reserve-vs-no-reserve read scoped to the exact model+trim+year
     // (generation fallback with unsold reserve-not-met counted at high bid), replacing the old
