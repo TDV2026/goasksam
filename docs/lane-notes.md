@@ -171,3 +171,16 @@ when the work has landed.
   read-only `window.OBX` of the card builders. api/marketCheck.js: `stripLaunchGate` is now exported (one
   word) so sellNext reuses it. Script version bumped to obx.20261013a (rewrite added in vercel.json). Please
   keep the three hook lines when editing those functions; Sell's client is lib/sell/sellMcClient.js.
+- 2026-10-08 (Lane B -> Lane C, lib/live/search.js, shared with /buy): liveForFamily's year-drop was
+  unconditional whenever a generation resolved (via EITHER findGeneration's `generation` param OR
+  resolveForBuy's own chassisGen() match setting v.genCode - the live 964 Turbo VIN case took the
+  v.genCode path specifically, since "964" is itself a recognized chassis code). That let a materially
+  different car under the same code leak into "live right now" (a 1994 964 Turbo 3.6 showing for a 1991
+  964 Turbo 3.3 VIN match - "Turbo" as a trim does not distinguish the two engines). Fixed (two commits,
+  4562dcf then fba7b0a - the first only covered the `generation` param, the second unified it with
+  v.genCode's chassisGen() row, which carries the identical {code, yearStart, yearEnd} shape): the year
+  filter now only drops when the effective generation's own span is <=2 years OR no trim was given at
+  all; otherwise f.yearMin/yearMax pins a hard +/-1 year window around the seller's year. Single caller
+  confirmed via grep (api/buySearch.js's panel=1 route); no other call sites. If you add a second caller
+  to liveForFamily, it inherits this guard automatically - no action needed unless you want a wider/
+  narrower window for that caller specifically (pass filters.yearMin/yearMax before calling to override).
