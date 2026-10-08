@@ -33,9 +33,10 @@ permissions:
 jobs:
   ingest:
     runs-on: ubuntu-latest
-    # A normal delta finishes in minutes; 20 min is a hard ceiling so a runaway (e.g. a blind DB
+    # A normal delta finishes in minutes; 40 min is a hard ceiling (raised from 20 so the first
+    # full, correctly paged VIN index rebuild can finish) so a runaway (e.g. a blind DB
     # defeating the delta stop) can never walk for 80 minutes again.
-    timeout-minutes: 20
+    timeout-minutes: 40
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -78,6 +79,8 @@ jobs:
             node scripts/ingest.js --delta
           fi
       - name: Rebuild VIN index (vin_index + vin_summary)
+        id: vinindex
+        continue-on-error: true
         run: |
           set -euo pipefail
           test -f scripts/buildVinIndex.js || { echo "::error::scripts/buildVinIndex.js not found in checkout"; exit 1; }
@@ -89,6 +92,11 @@ jobs:
       - name: Search rules check (public pages)
         run: node scripts/searchCheck.js
         continue-on-error: true
+      - name: Fail the job if the VIN index step failed
+        if: steps.vinindex.outcome == 'failure'
+        run: |
+          echo "::error::VIN index rebuild failed (see the Rebuild VIN index step above). Later steps still ran, but the job must end red."
+          exit 1
   warm:
     runs-on: ubuntu-latest
     needs: ingest
