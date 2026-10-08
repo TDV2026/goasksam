@@ -153,7 +153,7 @@
       if (!j || !(j.count > 0) || !j.rows || !j.rows.length || !document.body.contains(slot)) return;
       var rows = j.rows.map(function (l) {
         var bid = l.current_bid_usd ? usd(l.current_bid_usd) : (l.current_bid ? Math.round(l.current_bid).toLocaleString("en-US") + " " + l.currency : "No bids");
-        return '<a class="lp-row" href="' + esc(utmUrl(l.url)) + '" target="_blank" rel="noopener"><span class="lp-house">' + esc(l.source) + '</span><span class="lp-t">' + esc(cleanReceiptTitle(l.title)) + '</span><span class="lp-r"><b>' + esc(bid) + '</b>' + esc(endsShort(l.end_time)) + '</span></a>';
+        return '<a class="lp-row" href="' + esc(utmUrl(l.url)) + '" target="_blank" rel="noopener noreferrer"><span class="lp-house">' + esc(l.source) + '</span><span class="lp-t">' + esc(cleanReceiptTitle(l.title)) + '</span><span class="lp-r"><b>' + esc(bid) + '</b>' + esc(endsShort(l.end_time)) + '</span></a>';
       }).join("");
       var q = (m && m.displayName) || carLabel(rc);
       slot.className = "livepanel";
@@ -273,7 +273,7 @@
       '<div class="rmeta"><span class="num">' + esc(c.mileageText) + '</span><span class="dot">&middot;</span>' + esc(c.platform) + "</div>" +
       '<div class="rdate">' + esc(c.month) + "</div><div class=\"rtitle\">" + esc(titleCaseSaleTitle(c.title)) + "</div></div>";
     var href = utmUrl(c.url);
-    return href ? '<a class="rcard" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="rcard">' + inner + "</div>";
+    return href ? '<a class="rcard" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="rcard">' + inner + "</div>";
   }
   // ============ RENDER PORT (round 7): cluster hero, quiet span, freshness slot, Sam's Read
   // (driver + divergence), three representative cards, See-all -> platforms. Replaces the
@@ -350,7 +350,10 @@
   function carLineHtml(d, m) {
     var pill = m ? '<span class="vinpill">' + (obSourceVin ? "VIN match" : "Exact match") + "</span>" : "";
     var name = m ? (m.displayName || carLabel(d.resolvedCar)) : carLabel(d.resolvedCar);
-    return '<div class="carline" data-stage="resolved">' + pill + "<span>" + esc(name) + '</span><button type="button" class="linkbtn ch" data-change>Change</button></div>';
+    // "Copy link" (Oct 2026): Market Check only - the address bar now carries this exact result
+    // (mcPushUrl), so there is a real link worth copying the moment the result renders.
+    var copyLink = mcUrlActive() ? '<button type="button" class="linkbtn copylink" data-share>Copy link</button>' : "";
+    return '<div class="carline" data-stage="resolved">' + pill + "<span>" + esc(name) + '</span><button type="button" class="linkbtn ch" data-change>Change</button>' + copyLink + "</div>";
   }
   // Eyebrow over the range: what the pool is (noun from the resolved car), any answered refinement,
   // and the window. Text stays mixed-case; CSS sets the caps.
@@ -500,11 +503,11 @@
     if (o.article) {
       // A card that carries its own inner link (the VIN history link) cannot itself be a link;
       // the photo opens the listing instead.
-      var ph = o.href ? '<a href="' + esc(o.href) + '" target="_blank" rel="noopener" aria-label="Open the listing" data-cardclick="' + esc(o.slug || "") + '">' + photo + "</a>" : photo;
+      var ph = o.href ? '<a href="' + esc(o.href) + '" target="_blank" rel="noopener noreferrer" aria-label="Open the listing" data-cardclick="' + esc(o.slug || "") + '">' + photo + "</a>" : photo;
       return '<article class="' + cls + '">' + ph + body + "</article>";
     }
     return o.href
-      ? '<a class="' + cls + '" href="' + esc(o.href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(o.slug || "") + '">' + photo + body + "</a>"
+      ? '<a class="' + cls + '" href="' + esc(o.href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(o.slug || "") + '">' + photo + body + "</a>"
       : '<div class="' + cls + '">' + photo + body + "</div>";
   }
   // "Automatic (7-speed)" -> "Automatic, 7-speed".
@@ -1280,6 +1283,66 @@
     if (obIdentifierShaped(text)) { vinResolve(text); return; }
     runPool(text, null);
   }
+  // ---------------------------------------------------------------- Market Check result address
+  // (Oct 2026, Sam: "Market Check results need their own address"). Scoped to /market-check only
+  // (location.pathname check) - every other consumer of this shared engine (the New Sell surface
+  // behind SELL_NEXT_ON) is completely unaffected. The address is REBUILT from the engine's own
+  // query + refine state, never a second source of truth: car=<slugified free text> (or
+  // vin=<VIN> on a VIN/chassis match) plus miles=<lo>-<hi|-> and body=/tx= once answered. A reload
+  // or a pasted link runs the SAME query through the SAME engine call (run/runPool below) - never a
+  // frozen snapshot - so it reads whatever is true right now, same as a fresh search would.
+  function mcUrlActive() { return location.pathname === "/market-check"; }
+  function slugifyQuery(s) { return String(s || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); }
+  function deslugifyQuery(s) { return String(s || "").replace(/-+/g, " ").trim(); }
+  function mcCurrentParams() {
+    var p = new URLSearchParams();
+    if (vinAnchor && (obSourceVin || lastQuery)) p.set("vin", String(obSourceVin || lastQuery).toUpperCase());
+    else if (lastQuery) p.set("car", slugifyQuery(lastQuery));
+    else return null;
+    var rf = obLastRefine;
+    if (rf) {
+      if (rf.miMin != null) p.set("miles", Math.round(rf.miMin / 1000) + "-" + (rf.miMax != null ? Math.round(rf.miMax / 1000) : ""));
+      if (rf.body) p.set("body", rf.body);
+      if (rf.tx) p.set("tx", rf.tx);
+    }
+    return p;
+  }
+  // A render that came FROM popstate (the browser already changed the address bar) must never push
+  // again - that would corrupt the back/forward stack. One-shot: set true right before the
+  // reconstruction call, consumed (and cleared) by the next mcPushUrl() regardless of how long the
+  // engine fetch in between takes.
+  var mcSuppressPush = false;
+  function mcPushUrl() {
+    if (!mcUrlActive()) return;
+    if (mcSuppressPush) { mcSuppressPush = false; return; }
+    var p = mcCurrentParams(); if (!p) return;
+    var qs = p.toString();
+    var url = location.pathname + (qs ? "?" + qs : "");
+    if (url !== location.pathname + location.search) { try { history.pushState({ mc: true }, "", url); } catch (e) {} }
+  }
+  function mcRefineFromParams(sp) {
+    var refine = {};
+    var miles = sp.get("miles");
+    if (miles) {
+      var m = /^(\d+)-(\d+)?$/.exec(miles);
+      if (m) { refine.miMin = Number(m[1]) * 1000; refine.miMax = m[2] ? Number(m[2]) * 1000 : null; refine.miTarget = refine.miMax ? Math.round((refine.miMin + refine.miMax) / 2) : refine.miMin; refine.label = m[2] ? (m[1] + "k to " + m[2] + "k") : ("over " + m[1] + "k"); }
+    }
+    var body = sp.get("body"); if (body) refine.body = body;
+    var tx = sp.get("tx"); if (tx === "manual" || tx === "auto") refine.tx = tx;
+    return Object.keys(refine).length ? refine : null;
+  }
+  // Rebuilds a result straight from the address bar (cold load, reload, a pasted link, or Back/
+  // Forward) - the SAME run()/runPool() path a fresh search uses, with any answered miles/body/tx
+  // threaded straight into the first fetch instead of a second round-trip.
+  function mcApplyFromUrl() {
+    var sp = new URLSearchParams(location.search);
+    var vin = sp.get("vin"), car = sp.get("car");
+    if (!vin && !car) { renderEmpty(); syncRailResults(); return; }
+    var refine = mcRefineFromParams(sp);
+    obAsked = 0; lastQuery = vin || deslugifyQuery(car); obLastRefine = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; htChoice = null; vinQueryNoSale = false;
+    if (vin) { vinResolve(vin); return; }   // VIN re-decode is the full, tested path - refine on a VIN result is a rare combo and not threaded through it.
+    runPool(lastQuery, null, refine);
+  }
   // Graceful failure copy + a fetch that never hangs the spinner: if the server is slow/down and the
   // request stalls, the abort fires and the catch renders one calm line.
   var OB_CALM = "Sam’s catching his breath, try again in a minute.";
@@ -1350,7 +1413,7 @@
       var finalSteps = [];
       if (resultIsHousePool(d)) finalSteps.push("Backing out the buyer’s premiums");
       finalSteps.push("Picking the ones that matter");
-      loader.finish(finalSteps, function () { if (SELL && SELL.onCar && SELL.onCar(d, text)) return; renderResults(d); });
+      loader.finish(finalSteps, function () { mcPushUrl(); if (SELL && SELL.onCar && SELL.onCar(d, text)) return; renderResults(d); });
     }).catch(function () { renderError(OB_CALM); });
   }
   // VIN path: decode + confirm (reuses /api/vehicleIdentity). VINs travel in the request
@@ -1566,14 +1629,15 @@
   }
   function shareResult() {
     obEvent("onebox_share_clicked");
-    // Prefer the stable snapshot URL (/o/<id>): it re-opens the EXACT same answer cold and
-    // carries the OG answer line. Falls back to a re-run URL only if the snapshot didn't
-    // persist (e.g. a transient store error), so Share is never dead.
-    var url = obSnapshotId
-      ? location.origin + "/o/" + encodeURIComponent(obSnapshotId)
-      : location.origin + "/onebox?q=" + encodeURIComponent(lastQuery);
+    // Market Check: the address bar already carries this exact result (mcPushUrl), so the real,
+    // readable URL in the bar IS the link - copy it directly, never a second ID-based scheme.
+    // Everywhere else this engine renders (today: nothing live still points at /onebox), fall back
+    // to the older stable snapshot URL so Share is never dead.
+    var url = mcUrlActive()
+      ? location.href
+      : (obSnapshotId ? location.origin + "/o/" + encodeURIComponent(obSnapshotId) : location.origin + "/market-check?q=" + encodeURIComponent(lastQuery));
     if (navigator.clipboard) navigator.clipboard.writeText(url).catch(function () {});
-    var btn = root.querySelector("[data-share]"); if (btn) { var old = btn.innerHTML; btn.innerHTML = "Copied"; setTimeout(function () { btn.innerHTML = old; }, 1400); }
+    var btn = root.querySelector("[data-share]"); if (btn) { var old = btn.innerHTML; btn.innerHTML = "Link copied."; setTimeout(function () { btn.innerHTML = old; }, 1400); }
   }
 
   // ---------------------------------------------------------------- wiring
@@ -1793,8 +1857,11 @@
     // that content is never wiped and rebuilt as the plain empty state. wire() attaches the real
     // search box (#ob-input/#ob-go, same ids renderEmpty() uses) and the example band's own
     // handlers (capCardsHtml's existing [data-capshow], plus the reorder-on-answer below).
+    if (mcUrlActive()) window.addEventListener("popstate", function () { mcSuppressPush = true; mcApplyFromUrl(); });
     if (document.getElementById("mc-landing")) {
       wire(); syncRailResults();
+      var sp = new URLSearchParams(location.search || "");
+      if (sp.get("car") || sp.get("vin")) { try { mcSuppressPush = true; mcApplyFromUrl(); } catch (e) {} return; }
       var lq = /[?&]q=([^&]*)/.exec(location.search || "");
       if (lq) { try { run(decodeURIComponent(lq[1])); } catch (e) {} }
       return;
