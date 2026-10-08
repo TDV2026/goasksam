@@ -4137,12 +4137,14 @@ export default async function handler(req, res) {
         && vehicle && vehicle.make && vehicle.model) {
       try {
         const hr = await houseReceiptsForVehicle(vehicle, generation, thinEnv);
-        if (req.body && req.body.debug === true) decision._houseDbg = { pref: car && car.sellerPreference, hr: hr ? { houseN: hr.houseN, onlineN: hr.onlineN, totalN: hr.totalN } : null };
+        if (req.body && req.body.debug === true) decision._houseDbg = { pref: car && car.sellerPreference, hr: hr ? { houseN: hr.houseN, onlineN: hr.onlineN, onlineReceiptsN: hr.onlineReceiptsN, totalN: hr.totalN } : null };
         if (hr && hr.houseN >= 1) {
           const _tl = String((car && car.timeline) || ""); const asap = /\b(asap|rush|hurry|urgent|fast|quick|soon)\b|right away|this week/i.test(_tl) && !/\bno\s+(rush|hurry)\b/i.test(_tl);
           const hc = buildHouseComparison(hr.houseReceipts, { todayISO: new Date().toISOString().slice(0, 10), asap });
           if (req.body && req.body.debug === true && decision._houseDbg) decision._houseDbg.built = !!(hc && hc.houses && hc.houses.length);
-          if (hc && hc.houses && hc.houses.length) { hc.noOnline = hr.onlineN === 0; hc.onlineN = hr.onlineN; decision.houseComparison = hc; }
+          // Use onlineReceiptsN (the true count), not the photo-gated onlineN, or a BaT sale missing
+          // an image gets silently dropped from the by-venue total (houseN + onlineN < totalN).
+          if (hc && hc.houses && hc.houses.length) { hc.noOnline = hr.onlineReceiptsN === 0; hc.onlineN = hr.onlineReceiptsN; decision.houseComparison = hc; }
         }
       } catch (e) { if (req.body && req.body.debug === true) decision._houseDbg = { err: String((e && e.message) || e).slice(0, 120) }; }
     }
