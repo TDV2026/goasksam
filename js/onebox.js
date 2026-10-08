@@ -164,8 +164,8 @@
   // READY TO SELL: a real link into /sell carrying the resolved car + every answered question as URL
   // parameters (sellHref). Ownership-neutral (rule 20): an offer, not an assertion.
   function sellHtml() {
-    return '<section class="sellbox" data-stage="note"><div class="st"><h3>Ready to sell?</h3><p>I can tell you the best place to sell this car right now, and why.</p></div>' +
-      '<a id="ob-sell" href="' + esc(sellHref()) + '">See where I’d sell it &#8594;</a></section>';
+    return '<section class="sellbox" data-stage="note"><div class="st"><h3>Ready to sell?</h3><p>Sam can tell you the best place to sell this car right now, and why.</p></div>' +
+      '<a id="ob-sell" href="' + esc(sellHref()) + '">See where Sam would sell it &#8594;</a></section>';
   }
   // ---------------------------------------------------------------- state renderers
   function chipsHtml(options, kind) {
@@ -216,6 +216,15 @@
   function windowMeta(d) { return /12 months|twelve/.test(d.windowLabel || "") ? "Past twelve months" : "Past two years"; }
   function priceRange(a) { return r3money(a[0]) + " to " + r3money(a[1]); }
   function monthOnly(dstr) { var p = String(dstr || "").slice(0, 10).split("-"); var M = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]; return p.length >= 2 ? (M[+p[1]] || "") : ""; }
+  // BODY STYLE QUESTION (Oct 2026): independent of the earned mileage/transmission/driver slot below -
+  // a seller can answer both, either order. d.bodyOptions is null once the pool reads single-body (the
+  // query already pinned one, or refine.body already answered it). Narrows the SAME pool, same as the
+  // mileage chips (a re-request with refine.body), never a second implementation.
+  function bodyOptionsHtml(d) {
+    var opts = d && d.bodyOptions; if (!opts || !opts.length) return "";
+    var chips = opts.map(function (o) { return '<button type="button" class="qchip" data-bodyopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + "</button>"; }).join("");
+    return '<div class="qcard earned" data-stage="answer"><p class="q">Coupe, cabriolet or something else?</p><div class="qchips">' + chips + "</div></div>";
+  }
   // THE EARNED QUESTION: mileage (pool-relative buckets) or transmission; answered inline.
   function earnedHtml(d, m) {
     var e = d.earned; if (!e) return "";
@@ -248,7 +257,7 @@
     var offer = (d && d.observeOffer) || []; if (!offer.length) return "";
     var chips = offer.map(function (o) { return '<button type="button" class="qchip" data-observe="' + esc(o.key) + '" data-olabel="' + esc(o.label) + '">' + esc(OBS_CHIP[o.key] || o.key) + "</button>"; }).join("");
     chips += '<button type="button" class="qchip" data-observe="none">Nothing major</button>';
-    return '<div class="qcard earned observe" data-stage="answer"><p class="q">' + lint("Anything I should know about it?", "obs.q") + '</p><div class="qchips">' + chips + "</div></div>";
+    return '<div class="qcard earned observe" data-stage="answer"><p class="q">' + lint("Anything to know about it?", "obs.q") + '</p><div class="qchips">' + chips + "</div></div>";
   }
   function observeAsideHtml(d) {
     var a = d && d.observeAside; if (!a || !(a.lo > 0)) return "";
@@ -317,7 +326,11 @@
   }
   function carNoun(d) {
     var v = d.resolvedCar || d.vehicle || {};
-    var bw = v.bodyStyle ? BODY_PLURAL[String(v.bodyStyle).toLowerCase()] : "";
+    // Body style question (Oct 2026): once answered this session (obLastRefine.body), the chosen
+    // body drives the noun exactly as a query-given bodyStyle already does ("997 Carrera S
+    // Coupes"); until then the label stays the plain plural ("997 Carrera S models").
+    var chosenBody = (obLastRefine && obLastRefine.body) || v.bodyStyle;
+    var bw = chosenBody ? BODY_PLURAL[String(chosenBody).toLowerCase()] : "";
     // Item 5a: name the MODEL in the lead. With a real trim distinct from the model, lead with
     // "model trim" ("M4 Competition"); otherwise the trim / generation code / model alone ("964",
     // "M4"), so a generation code is never doubled with the model ("911 964").
@@ -704,7 +717,7 @@
       // Refinement copy pattern (locked, CLAUDE.md): reruns the EVIDENCE around the current
       // mileage, never promises a different number/range. "which real sales are used", not a result.
       return '<div class="qcard earned reconfirm" data-stage="answer"><p class="q">' + lint("Still around " + Number(dv.mileage).toLocaleString("en-US") + " miles?", "rc.q") +
-        '</p><p class="rc-sub">' + lint("If not, update it and I’ll rerun the market around the current mileage.", "rc.sub") +
+        '</p><p class="rc-sub">' + lint("If not, update it and Sam reruns the market around the current mileage.", "rc.sub") +
         '</p><div class="qchips"><button type="button" class="qchip g" data-refyes>Yes</button><button type="button" class="qchip typeit" data-typemiles>Update mileage</button></div></div>';
     }
     return earnedHtml(d, m);
@@ -733,6 +746,7 @@
     if (d.driverSentence && !(d.earned) && !(d.divergence && d.divergence.kase === "a")) notes += '<p class="varynote">' + lint(esc(d.driverSentence), "varynote") + "</p>";
     var body = answerCardHtml(d, m);
     if (notes) body += '<div class="notes" data-stage="answer">' + notes + "</div>";
+    body += bodyOptionsHtml(d);
     body += reconfirmHtml(d, m);
     body += observeHtml(d);
     body += salesSectionHtml(d, m);
@@ -753,7 +767,7 @@
   // Two distinct refusal states, one template set each, so they can never mix:
   //  - THIN: its own copy, shows the sales that exist (or says none), no "guess" headline,
   //    and on a MATCHED car no "give me a different car" (they gave a VIN; the ladder widened).
-  //  - VARIED: the "I won't give you a range... a guess" headline + the templated reason + chips.
+  //  - VARIED: the "No range... a guess" headline + the templated reason + chips.
   function refusalHtml(d, m) {
     var rf = d.refusal || {};
     // Name from the exact-car displayName when matched, else the clean resolved subject - never
@@ -763,8 +777,8 @@
     if (rf.kind === "thin") {
       var lead = cards.length
         ? "Too few recent " + esc(model) + " sales to show an honest spread. Here’s what there is."
-        : "There are no recent " + esc(model) + " sales in the window I’d trust for a spread.";
-      var follow = m ? "" : "Give me a bit more, or a different car, and I’ll pull what actually sold.";
+        : "There are no recent " + esc(model) + " sales in the window needed for a spread.";
+      var follow = m ? "" : "A bit more detail, or a different car, and Sam pulls what actually sold.";
       var paras = [lint(esc(lead), "thin")]; if (follow) paras.push(lint(esc(follow), "thin.follow"));
       return '<div class="refusal">' + samMsgHtml(paras, "Sam’s read") + "</div>" + poolGridHtml(cards, "What has sold") + sellHtml();
     }
@@ -774,11 +788,11 @@
     var reason = (rf.variants && rf.variants.length >= 2)
       ? "The " + esc(model) + "s that have sold span the " + esc(listJoin(rf.variants)) + yspan + ". Cars this different do not trade as one market, so a single range would invent a pattern that is not there."
       : "The " + esc(model) + "s that have sold range too widely in spec and condition to trade as one market" + yspan + ". A single range would invent a pattern that is not there.";
-    var follow2 = "Tell me which " + esc(model) + " it is and I’ll compare it to the ones that match.";
+    var follow2 = "Say which " + esc(model) + " it is and Sam compares it to the ones that match.";
     var chips = (rf.variants && rf.variants.length)
-      ? '<div class="wayfwd">' + rf.variants.map(function (v) { return '<button type="button" class="chip" data-model="' + esc(v) + '">' + esc(v) + "</button>"; }).join("") + '<button type="button" class="linkbtn" data-change>Or tell me the year and engine &#8594;</button></div>'
+      ? '<div class="wayfwd">' + rf.variants.map(function (v) { return '<button type="button" class="chip" data-model="' + esc(v) + '">' + esc(v) + "</button>"; }).join("") + '<button type="button" class="linkbtn" data-change>Or add the year and engine &#8594;</button></div>'
       : "";
-    var head = '<div class="refusal" data-stage="answer"><p class="ans">' + lint(esc("I won’t give you a range on this one. It would be a guess."), "refuse") + "</p>" +
+    var head = '<div class="refusal" data-stage="answer"><p class="ans">' + lint(esc("No range on this one. It would be a guess."), "refuse") + "</p>" +
       samMsgHtml([lint(reason, "refuse.reason"), lint(esc(follow2), "refuse.follow")], "Sam’s read") + chips + "</div>";
     return head + poolGridHtml(cards, "What has sold") + sellHtml();
   }
@@ -890,10 +904,10 @@
   function thinIntakeHtml(d, ht, name) {
     var c = thinIntakeCopy(ht.intake);
     if (!c) return null;
-    var lead = "Before I show you numbers, one thing about the " + esc(name) + ". " + esc(c.q);
+    var lead = "Before the numbers, one thing about the " + esc(name) + ". " + esc(c.q);
     var chips = '<div class="chips htintake">' +
       c.chips.map(function (ch) { return '<button type="button" class="chip" data-thinsplit="' + esc(ch.v) + '">' + esc(ch.label) + "</button>"; }).join("") +
-      '<button type="button" class="chip ghost" data-htskip>Just show me what sold</button></div>';
+      '<button type="button" class="chip ghost" data-htskip>Just show what sold</button></div>';
     return qscreenHtml(lint(esc(lead), "ht.intake"), chips, "One question first", "");
   }
   // Scope the receipts by the intake answer (client-side; the engine returned them all).
@@ -1066,7 +1080,7 @@
     else if (d.tier === "not_tracked") { body = samMsgHtml([lint(esc(d.samLine || "We haven’t tracked a sale of this car yet."), "nt")], "Sam’s read", "big") + sellHtml(); foot = true; }
     else if (d.tier === "non_road") { body = samMsgHtml([lint(esc(d.samLine || "Market Check covers cars, trucks and motorcycles."), "nr")], "Sam’s read", "big"); foot = true; }
     else if (d.tier === "result") body = resultHtml(d, m);
-    else { body = samMsgHtml([lint(esc("I don’t have enough real " + carLabel(d.resolvedCar) + " sales to show you an honest read, and I won’t make one up. Try another car and I’ll pull what actually sold."), "zero")], "Sam’s read", "big") + sellHtml(); foot = true; }
+    else { body = samMsgHtml([lint(esc("Not enough real " + carLabel(d.resolvedCar) + " sales for an honest read, and nothing here is made up. Try another car and Sam pulls what actually sold."), "zero")], "Sam’s read", "big") + sellHtml(); foot = true; }
     root.innerHTML = inboxHtml(lastQuery) + head + body + (foot ? footHtml() : "");
     wire();
     streamReveal();
@@ -1245,7 +1259,7 @@
   // Chassis exact match: the matched car as a THIS CAR card (its own record, evidence only), then an
   // honest ask for the car. No decoding, no marque guess.
   function renderChassisMatch(match) {
-    var ask = "I know this exact car. Tell me the year, make and model and I’ll pull what similar ones have done.";
+    var ask = "This exact car is known. Share the year, make and model and Sam pulls what similar ones have done.";
     vinAnchor = null;
     root.innerHTML = inboxHtml(lastQuery) + '<div class="cards5 single" data-stage="anchor">' + vinHeroCardHtml(match, null) + "</div>" +
       samMsgHtml([lint(esc(ask), "chassisMatchAsk")], "", "big") + footHtml();
@@ -1291,6 +1305,7 @@
     if ("variant" in partial) base.variantLabel = partial.label;
     if ("driver" in partial) base.driverLabel = partial.label;
     if ("observe" in partial) base.observeLabel = partial.label;
+    if ("body" in partial) base.bodyLabel = partial.label;
     return base;
   }
   function runPool(text, vehicle, refine) {
@@ -1314,16 +1329,16 @@
       pushRecent(text, d);
       if (d && d.status === "needs_clarification") {
         // Multi-token chassis ("1E 31588"): an exact archive match came back -> lead with the
-        // "I know this exact car" callout, then the ask (same as the single-token path).
+        // "This exact car is known" callout, then the ask (same as the single-token path).
         if (d.vinArchiveMatch) { obEvent("onebox_vin_anchor_shown"); renderChassisMatch(d.vinArchiveMatch); return; }
         // Otherwise surface the resolver's OWN honest question (the VIN-invalid reword, the
         // chassis-number line, or a specific clarification) rather than a generic fallback.
-        renderError((d.clarification && d.clarification.question) || "I couldn’t pin that exact car down. Try the year, make and model together, like 1972 Porsche 911 or 1969 Ford Mustang.");
+        renderError((d.clarification && d.clarification.question) || "That exact car couldn’t be pinned down. Try the year, make and model together, like 1972 Porsche 911 or 1969 Ford Mustang.");
         return;
       }
       if (!d || d.status !== "one_box") { renderError(OB_CALM); return; }
       if (d.tier === "unavailable") { renderError(d.samLine || OB_CALM); return; }
-      if (d.tier === "rate_limited") { renderError(d.samLine || "That’s a lot of lookups for one day. Come back tomorrow and I’ll keep pulling real sales."); return; }
+      if (d.tier === "rate_limited") { renderError(d.samLine || "That’s a lot of lookups for one day. Come back tomorrow and Sam keeps pulling real sales."); return; }
       if (d.tier === "model_choice" || d.tier === "body_choice" || d.tier === "generation_choice") { if (d.askIndex) obAsked = d.askIndex; renderChoice(d); return; }
       if (d.tier === "gearbox_choice" || d.tier === "variant_choice") { if (d.askIndex) obAsked = d.askIndex; renderRefineChoice(d); return; }
       if (vinAnchor) obEvent("onebox_vin_anchor_shown");
@@ -1419,7 +1434,7 @@
   }
   function renderVinConfirm(question, vehicle) {
     renderQuestion(qscreenHtml(lint(esc(question || "Is this the car?"), "vinconfirm"),
-      '<div class="chips"><button type="button" class="chip" id="ob-vin-yes">Yes, that’s it</button><button type="button" class="chip ghost" id="ob-vin-no">No, let me type it</button></div>', "One question first", ""));
+      '<div class="chips"><button type="button" class="chip" id="ob-vin-yes">Yes, that’s it</button><button type="button" class="chip ghost" id="ob-vin-no">No, type it instead</button></div>', "One question first", ""));
     var yes = document.getElementById("ob-vin-yes"), no = document.getElementById("ob-vin-no");
     if (yes) yes.addEventListener("click", function () { runPool(lastQuery, pendingVin); });
     if (no) no.addEventListener("click", function () { vinAnchor = null; pendingVin = null; renderEmpty(); });
@@ -1520,7 +1535,7 @@
   // VIN-sourced result -> hand the VIN itself, so /sell runs its full VIN flow (decode +
   // confirm + exact archive match) and the lead enrichment (VIN row + prior-sale link)
   // fires. Otherwise hand the resolved car label (falls back to the raw query).
-  // Sell handoff: "See where I'd sell it" is a real link into /sell carrying the resolved car and
+  // Sell handoff: "See where Sam would sell it" is a real link into /sell carrying the resolved car and
   // every answered question as URL parameters (only the ones we actually have):
   //   src=onebox, car (display label), year, make, model, family (trim family), gen (generation code),
   //   body, mileage (the subject's miles when known), tx (manual|auto) + tx_label, variant,
@@ -1607,6 +1622,23 @@
         withKeys.forEach(function (w) { grid.appendChild(w.el); });
         if (heading) heading.textContent = "The closest to yours";
       }
+      // Body style chip (item 2, Oct 2026): reorders matching-body cards first and relabels the pool
+      // noun from the plain plural ("997 Carrera S models") to the body-specific one ("997 Carrera S
+      // Coupes"), the same BODY_PLURAL map carNoun() uses on the real results page.
+      Array.prototype.forEach.call(qcard.querySelectorAll(".qchip[data-mc-ex-body]"), function (b) {
+        b.addEventListener("click", function () {
+          var body = b.getAttribute("data-mc-ex-body");
+          reorder(function (c) { return c.getAttribute("data-body") === body ? 0 : 1; });
+          Array.prototype.forEach.call(qcard.querySelectorAll(".qchip[data-mc-ex-body]"), function (x) { x.classList.toggle("sel", x === b); });
+          var plabel = document.getElementById("mc-ex-plabel");
+          if (plabel) {
+            var shortLabel = plabel.getAttribute("data-shortlabel") || "";
+            var bw = BODY_PLURAL[body] || "";
+            var noun = bw ? (shortLabel + " " + bw) : shortLabel;
+            plabel.textContent = plabel.textContent.replace(/^.*?\./, noun + ".");
+          }
+        });
+      });
       Array.prototype.forEach.call(qcard.querySelectorAll(".qchip[data-mc-ex-milemin]"), function (b) {
         b.addEventListener("click", function () {
           var lo = Number(b.getAttribute("data-mc-ex-milemin")), hi = b.getAttribute("data-mc-ex-milemax");
@@ -1656,6 +1688,14 @@
     // decision scoped to the answer (no re-fetch; the engine returned every receipt).
     Array.prototype.forEach.call(root.querySelectorAll("[data-thinsplit]"), function (b) { b.addEventListener("click", function () { htChoice = b.getAttribute("data-thinsplit"); obEvent("onebox_ht_intake", lastQuery + ":" + htChoice); if (htLastD) { renderResults(htLastD); } }); });
     Array.prototype.forEach.call(root.querySelectorAll("[data-htskip]"), function (b) { b.addEventListener("click", function () { htChoice = "__skip__"; obEvent("onebox_ht_skip", lastQuery); if (htLastD) { renderResults(htLastD); } }); });
+    // Body style chip: narrows the SAME pool inline (re-request with refine.body), same merge
+    // pattern as mileage/transmission below - answering body never un-asks miles, or vice versa.
+    Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-bodyopt]"), function (b) {
+      b.addEventListener("click", function () {
+        var body = b.getAttribute("data-bodyopt"), label = b.getAttribute("data-mlabel");
+        runPool(lastQuery, obLastVehicle, mergeRefine({ body: body, label: label }));
+      });
+    });
     // The earned question: a mileage band or transmission chip narrows the SAME pool inline
     // (re-request with a refine), and Sam's take + the sales re-render to match. Each answer
     // MERGES into whatever was already answered (mergeRefine), so a second question narrows
