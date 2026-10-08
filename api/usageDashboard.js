@@ -1624,6 +1624,71 @@ async function handleOps(req, res) {
     });
   }
 
+  // task=platformpickaudit: the 40-car dropped-gates audit (flag off, read only - never writes, never
+  // touches SELL_PICK_SHARED). Runs the SAME old-ladder-vs-shared-function comparison
+  // platformpickreport does, sequentially (never parallel - this is metered OCD spend; sequential
+  // keeps it inside the daily budget guard's normal pacing), over a built-in 40-car list (28 common
+  // models across eras/platforms + 5 deliberately thin/rare + the 7 from the original table).
+  // ?limit=N runs only the first N (test before spending the full run's metered budget).
+  if (task === "platformpickaudit") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const apiKey = process.env.OLDCARSDATA_API_KEY; if (!apiKey) return res.status(500).json({ error: "OLDCARSDATA_API_KEY not set." });
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { fetchRecentRecords, analyze, buildLadder, decide } = await import("./sellerDecision.js");
+    const { classifyRecord } = await import("../lib/_classify.js");
+    const { pickPlatform } = await import("../lib/platformPick.js");
+    const AUDIT_CARS = [
+      // the original 7
+      "2008 Porsche 911 Carrera S Coupe", "1967 Ford Mustang Fastback", "1955 Mercedes-Benz 300SL Gullwing",
+      "2006 Mercedes-Benz CLK DTM AMG Cabriolet", "1930 Ford Model A", "1999 Nissan Skyline GT-R", "2015 Chevrolet Corvette Z06",
+      // common models, spread of years/platforms (28)
+      "1965 Chevrolet Corvette", "1970 Plymouth Barracuda", "1969 Chevrolet Camaro Z28", "1973 Porsche 911 Carrera RS",
+      "1987 BMW M3", "1995 Mazda Miata", "2003 Ferrari 360 Modena", "1985 Ferrari 308 GTS", "2016 Ford Mustang GT350",
+      "1978 Porsche 911 SC", "2001 BMW M5", "1993 Toyota Supra Turbo", "2012 Audi R8", "2005 Ford GT",
+      "1967 Chevrolet Camaro SS", "1972 Datsun 240Z", "2014 Chevrolet Corvette Stingray", "1999 BMW M3",
+      "2008 Audi RS4", "1976 Porsche 930 Turbo", "1965 Ford Mustang", "2009 Nissan GT-R", "1988 Porsche 911 Carrera",
+      "2000 Honda S2000", "1963 Jaguar E-Type", "2017 Porsche 911 GT3", "1990 Chevrolet Corvette ZR-1", "1980 Datsun 280ZX",
+      // deliberately thin/rare (5)
+      "1990 Lamborghini Countach 25th Anniversary", "1989 Porsche 911 Speedster", "1955 Jaguar D-Type",
+      "1967 Ferrari 275 GTB/4", "2014 McLaren P1"
+    ];
+    const limit = Number(req.query?.limit) > 0 ? Number(req.query.limit) : AUDIT_CARS.length;
+    const rows = [];
+    for (const q of AUDIT_CARS.slice(0, limit)) {
+      const row = { q };
+      try {
+        const rv = await resolveVehicle(q, {}); const vehicle = rv && rv.vehicle;
+        if (!vehicle || !vehicle.make) { row.error = "unresolved"; rows.push(row); continue; }
+        row.resolved = `${vehicle.year || ""} ${vehicle.make} ${vehicle.model || ""}${vehicle.trim ? " " + vehicle.trim : ""}`.trim();
+        const generation = await findGeneration(vehicle, env);
+        const criteria = { region: { country: "US", regionLabel: "the US" }, state: "CA", timeline: "No rush", involvement: "I'll sell it myself", sellerPreference: "diy", notes: "", targetPrice: null };
+        const fetched = await fetchRecentRecords(vehicle, apiKey, generation);
+        const recs = (fetched && fetched.records) || [];
+        const cls = recs.map(r => classifyRecord(r, vehicle));
+        const analysis = analyze(recs, cls, buildLadder(vehicle, generation), vehicle, false);
+        const dec = decide(analysis, criteria, vehicle);
+        const bestRoute = (dec.routeFit && dec.routeFit.routes || []).find(r => r.platform === dec.recommendedPath);
+        const ev = bestRoute && bestRoute.marketEvidence;
+        const premiumCleared = ev && ev.pricePremium && ev.pricePremium.gateType === "symmetric" && Number(ev.pricePremium.percent) >= 10;
+        row.oldPick = dec.recommendedPath || null;
+        row.oldReason = premiumCleared ? "premium" : (dec.evidenceBasis === "regional_policy" ? "policy" : "evidence");
+        row.oldEvidenceSales = (ev && ev.evidenceSales) || 0;
+        const shared = await pickPlatform(vehicle, generation, env, criteria).catch(e => ({ error: String((e && e.message) || e) }));
+        row.sharedPick = (shared && shared.platform) || null;
+        row.sharedReason = (shared && shared.reasonCode) || null;
+        row.sharedEvidenceSales = (shared && shared.evidenceSales) || 0;
+        row.sharedThin = !!(shared && shared.thin);
+        const normP = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        row.agree = !!(row.oldPick && row.sharedPick) && normP(row.oldPick) === normP(row.sharedPick);
+      } catch (e) { row.error = String((e && e.message) || e); }
+      rows.push(row);
+    }
+    const agreeCount = rows.filter(r => r.agree).length;
+    const disagreeCount = rows.filter(r => r.oldPick && r.sharedPick && !r.agree).length;
+    return res.status(200).json({ task: "platformpickaudit", total: rows.length, agreeCount, disagreeCount, rows });
+  }
+
   // task=taxprobe: READ-ONLY (archive; ZERO OCD). Grounding data for the class-taxonomy design +
   // the two resolver fixes: what the resolver returns for the flagged cars, the Viper body tags,
   // and title/body tokens actually present in the archive for rare/coachbuilt/era-reuse cars.
