@@ -760,12 +760,15 @@ async function rolloutCached(env) {
   if (ROLL && Date.now() - ROLL_AT < 6 * 3600e3) return ROLL;
   if (env) {
     const rows = await supabaseSelectSafe(env, `vin_rollout_cache?key=eq.current&select=data,computed_at&limit=1`);
-    if (Array.isArray(rows) && rows[0] && rows[0].data) { ROLL = rows[0].data; ROLL_AT = Date.now(); return ROLL; }
+    // _source/_computedAt are diagnostic-only (sitemap=stats), never read by the XML builders below -
+    // so this stays a one-line addition, not a second copy of anything.
+    if (Array.isArray(rows) && rows[0] && rows[0].data) { ROLL = { ...rows[0].data, _source: "table", _computedAt: rows[0].computed_at || null }; ROLL_AT = Date.now(); return ROLL; }
   }
-  return rollout(env);
+  const live = await rollout(env);
+  return live ? { ...live, _source: "live", _computedAt: null } : live;
 }
 async function sitemap(res, env, which) {
-  if (which === "stats") { const r = await rolloutCached(env); res.setHeader("Content-Type", "application/json"); res.setHeader("Cache-Control", "no-store"); return res.status(200).send(JSON.stringify({ ...r.counts, fallback_examples: r.fallback.slice().sort((a, b) => b.sales - a.sales).slice(0, 20), alias_merged: r.merged }, null, 1)); }
+  if (which === "stats") { const r = await rolloutCached(env); res.setHeader("Content-Type", "application/json"); res.setHeader("Cache-Control", "no-store"); return res.status(200).send(JSON.stringify({ source: r._source, computed_at: r._computedAt, ...r.counts, fallback_examples: r.fallback.slice().sort((a, b) => b.sales - a.sales).slice(0, 20), alias_merged: r.merged }, null, 1)); }
   res.setHeader("Content-Type", "application/xml; charset=utf-8");
   res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=86400");
   const r = await rolloutCached(env);
