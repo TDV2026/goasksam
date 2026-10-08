@@ -68,6 +68,7 @@ const APP_CSS = `
 .readback{margin:14px 0 0;font:400 20px/1.4 var(--serif)}
 .go{display:flex;gap:16px;align-items:center;margin-top:14px}
 .pbtn{border:0;background:var(--ink);color:#fff;border-radius:6px;min-height:44px;padding:0 22px;font:600 16px var(--sans);cursor:pointer}
+.pbtn[disabled],.sbtn[disabled],.plink[disabled]{opacity:.65;cursor:default}
 .plink{background:none;border:0;padding:0;color:var(--ink);font:500 15px var(--sans);text-decoration:underline;text-underline-offset:4px;cursor:pointer;min-height:44px}
 .boxlab{display:block;margin:18px 0 6px;font:500 14px var(--sans);color:var(--sec)}
 .tkbox{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #D9D3C8;border-radius:6px;padding:4px 6px 4px 14px}
@@ -182,7 +183,7 @@ const APP_JS = String.raw`(function(){
   function signedIn(){ try { var s = JSON.parse(localStorage.getItem("gas_auth_session") || "null"); return !!(s && s.access_token); } catch(e){ return false; } }
   if (!signedIn()) { location.replace("/tasks?signin=1&next=" + encodeURIComponent(location.pathname + location.search)); return; }
   var params = new URLSearchParams(location.search);
-  var data = null, busy = false, reply = "", pending = null, blocked = null, editing = false;
+  var data = null, busy = false, reply = "", pending = null, note = "", editing = false, arrived = !!(params.get("start") || params.get("seed")), scrollTo = null;
   var draft = null; try { draft = JSON.parse(sessionStorage.getItem("gas_task_draft") || "null"); } catch(e){}
   function saveDraft(d){ draft = d; try { if (d) sessionStorage.setItem("gas_task_draft", JSON.stringify(d)); else sessionStorage.removeItem("gas_task_draft"); } catch(e){} }
   function seedWords(){
@@ -193,7 +194,9 @@ const APP_JS = String.raw`(function(){
   function token(){ if (typeof authValidToken === "function") return authValidToken(); try { return Promise.resolve((JSON.parse(localStorage.getItem("gas_auth_session") || "null") || {}).access_token || null); } catch(e){ return Promise.resolve(null); } }
   function api(body){ return token().then(function(tk){ return fetch("/api/tasks", { method: "POST", headers: tk ? { "Content-Type": "application/json", Authorization: "Bearer " + tk } : { "Content-Type": "application/json" }, body: JSON.stringify(body) }); }).then(function(r){ if (r.status === 401) { location.replace("/tasks?signin=1&next=" + encodeURIComponent(location.pathname + location.search)); throw new Error("auth"); } return r.json(); }); }
   function status(t){ if (t.state === "running" || t.state === "needs_you") return ["running", "Running"]; if (t.state === "paused") return ["paused", "Paused"]; if (t.state === "done") return t.kind === "research" ? ["done", "Done"] : ["stopped", "Stopped"]; return ["draft", "Not started"]; }
-  function blockedMsg(b){ return '<p class="blocked">' + (b.state === "paused" ? "Your task is paused. Resume or stop it to start another." : "You have one task running. Stop it to start another.") + ' <a href="#task-' + esc(b.task_id) + '" data-goto="' + esc(b.task_id) + '">Open your task</a></p>'; }
+  // A new task was blocked by the one-task rule while the task is on screen: a short note above it, no link.
+  function blockedNote(state){ return state === "paused" ? "Your task is paused below. Resume or stop it to start another." : "Your task is already running below. Stop it to start another."; }
+  function dropEntryParams(){ var u = new URL(location.href); ["start", "seed", "words", "filters", "vin", "car"].forEach(function(k){ u.searchParams.delete(k); }); try { history.replaceState(null, "", u.pathname + (u.search || "") + u.hash); } catch(e){} }
   function when(iso){ try { var d = new Date(iso), now = new Date(); var o = { month: "short", day: "numeric" }; if (Math.abs(now - d) > 80 * 864e5) o.year = "numeric"; return d.toLocaleDateString("en-US", o) + ", " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }); } catch(e){ return ""; } }
   function money(n){ return "$" + Number(n).toLocaleString("en-US"); }
   function cars(u){
@@ -233,28 +236,33 @@ const APP_JS = String.raw`(function(){
     var cur = tasks.filter(function(t){ return ["running", "needs_you", "paused"].indexOf(t.state) >= 0; })[0] || null;
     var past = tasks.filter(function(t){ return t !== cur && t.state === "done"; });
     var h = "";
-    if (blocked) h += blockedMsg(blocked);
-    else if (cur && (params.get("seed") || params.get("start"))) h += blockedMsg({ task_id: cur.id, state: cur.state });
+    if (cur && arrived) { note = blockedNote(cur.state); scrollTo = cur.id; }
+    if (arrived) { arrived = false; dropEntryParams(); }
+    if (note && cur) h += '<p class="blocked" role="status">' + esc(note) + "</p>";
     if (cur) h += taskCard(cur);
     else if (draft) h += draftCard();
     else h += '<section class="tcard">' + box("Tell Sam what to look for", "tkq", seedWords(), "e.g. find me a black manual 997 under $70k") + (reply ? '<p class="samreply">' + esc(reply) + "</p>" : "") + "</section>";
     if (past.length) h += '<details class="past"><summary>Past tasks (' + past.length + ")</summary>" + past.map(function(t){ var st = status(t); return '<details><summary><span class="pill ' + st[0] + '">' + st[1] + "</span>" + esc(t.summary) + "</summary>" + feed(t) + "</details>"; }).join("") + "</details>";
     app.innerHTML = h;
-    var q = $("tkq"); if (q && (params.get("start") || params.get("seed") || editing)) { q.focus(); }
+    if (scrollTo) { var el = document.getElementById("task-" + scrollTo); scrollTo = null; if (el) el.scrollIntoView({ block: "start" }); }
+    var q = $("tkq"); if (q && !cur && (params.get("start") || params.get("seed") || editing)) { q.focus(); }
   }
+  // Pressed: disabled at once, the label says what is happening, and the other buttons in the card wait.
+  function working(btn, label){ btn.disabled = true; btn.textContent = label; var card = btn.closest(".tcard"); if (card) card.querySelectorAll("button").forEach(function(b){ b.disabled = true; }); }
   function load(){ return api({ action: "list", open: (data && data.open) || params.get("task") || null }).then(function(j){ data = j; render(); }).catch(function(){}); }
   function send(text){
-    if (busy) return; busy = true; render(); var q = $("tkq"); if (q) q.value = text;
+    if (busy) return; busy = true;
+    var sb = document.querySelector("[data-send]"); if (sb) { sb.disabled = true; sb.textContent = "Sam is reading..."; } var qi = $("tkq"); if (qi) qi.readOnly = true;
     var tasks = (data && data.tasks) || [], cur = tasks.filter(function(t){ return ["running", "needs_you", "paused"].indexOf(t.state) >= 0; })[0];
     var body = cur ? { action: "say", task_id: cur.id, text: text, pending: pending } : { action: "say", text: text, draft: draft, seed: draft ? null : seedObj() };
     api(body).then(function(j){
-      busy = false; editing = false; reply = j.reply || ""; blocked = j.blocked || null;
+      busy = false; editing = false; reply = j.reply || ""; note = j.blocked ? blockedNote(j.blocked.state) : "";
       if (cur) { pending = j.pending || null; return load(); }
       if (j.task) { saveDraft(null); reply = ""; return load(); }
       if (j.discarded) { saveDraft(null); return load(); }
       if (j.draft) saveDraft(j.draft);
       render();
-    }).catch(function(){ busy = false; render(); });
+    }).catch(function(){ busy = false; render(); var q = $("tkq"); if (q) q.value = text; });
   }
   document.addEventListener("click", function(e){
     var t = e.target.closest("[data-send],[data-act],[data-start],[data-change],[data-apply],[data-unpending],[data-goto]"); if (!t) return;
@@ -263,9 +271,10 @@ const APP_JS = String.raw`(function(){
     if (t.hasAttribute("data-send")) { var q = $(t.getAttribute("data-send")); if (q && q.value.trim()) send(q.value.trim()); return; }
     if (t.hasAttribute("data-change")) { editing = true; render(); return; }
     if (t.hasAttribute("data-unpending")) { pending = null; reply = ""; render(); return; }
-    if (t.hasAttribute("data-start")) { t.disabled = true; api({ action: "start", draft: draft }).then(function(j){ if (j.blocked) { blocked = j.blocked; render(); return; } if (j.task) { saveDraft(null); reply = ""; } return load(); }); return; }
-    if (t.hasAttribute("data-apply")) { api({ action: "apply", task_id: t.getAttribute("data-apply"), pending: pending }).then(function(){ pending = null; reply = ""; return load(); }); return; }
-    if (t.hasAttribute("data-act")) { t.disabled = true; api({ action: "control", task_id: t.getAttribute("data-id"), act: t.getAttribute("data-act") }).then(function(j){ blocked = j.blocked || null; pending = null; reply = ""; return load(); }); }
+    if (t.disabled) return;
+    if (t.hasAttribute("data-start")) { working(t, "Starting..."); api({ action: "start", draft: draft }).then(function(j){ if (j.blocked) { note = blockedNote(j.blocked.state); saveDraft(null); return load(); } if (j.task) { saveDraft(null); reply = ""; note = ""; } return load(); }).catch(function(){ load(); }); return; }
+    if (t.hasAttribute("data-apply")) { working(t, "Saving..."); api({ action: "apply", task_id: t.getAttribute("data-apply"), pending: pending }).then(function(){ pending = null; reply = ""; note = ""; return load(); }).catch(function(){ load(); }); return; }
+    if (t.hasAttribute("data-act")) { working(t, { pause: "Pausing...", resume: "Resuming...", stop: "Stopping..." }[t.getAttribute("data-act")] || "..."); api({ action: "control", task_id: t.getAttribute("data-id"), act: t.getAttribute("data-act") }).then(function(j){ note = j.blocked ? blockedNote(j.blocked.state) : ""; pending = null; reply = ""; return load(); }).catch(function(){ load(); }); }
   });
   document.addEventListener("keydown", function(e){ if (e.key === "Enter" && e.target && e.target.id === "tkq" && e.target.value.trim()) { e.preventDefault(); send(e.target.value.trim()); } });
   load();
