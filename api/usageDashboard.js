@@ -614,6 +614,28 @@ async function handleOps(req, res) {
 
   // task=canonstats: READ-ONLY per-source aggregates from the LIVE canonical tables:
   // aliases (rows), primary canonicals, default-classified geography. For the cert table.
+  // task=canonday: READ-ONLY. canonical_sales daily counts per source (mirrors task=daycount's
+  // sales_archive read), so a sources zero-streak can be checked against BOTH tables - canonical_sales
+  // is a SEPARATE, later build step (scripts/buildCanonical.js) off sales_archive, so a gap could be
+  // archive-side (ingest) or canonical-side (the dedup/match build), and this tells which.
+  if (task === "canonday") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const sources = req.query?.sources ? String(req.query.sources).split(",").map(s => s.trim()).filter(Boolean) : ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "themarket", "pistonheads"];
+    const today = new Date().toISOString().slice(0, 10), dayMs = 86400000;
+    const to = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.to || "")) ? String(req.query.to) : today;
+    const from = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.from || "")) ? String(req.query.from) : new Date(Date.parse(to) - 13 * dayMs).toISOString().slice(0, 10);
+    const rangeDays = []; for (let t = Date.parse(from); t <= Date.parse(to); t += dayMs) rangeDays.push(new Date(t).toISOString().slice(0, 10));
+    const out = [];
+    for (const src of sources) {
+      const inRange = await supabaseSelectAll(env, `canonical_sales?primary_source=eq.${encodeURIComponent(src)}&sale_date=gte.${from}&sale_date=lte.${to}&select=sale_date&order=sale_date.desc`);
+      const counts = {};
+      if (inRange) for (const r of inRange) { const d = String(r.sale_date || "").slice(0, 10); if (d) counts[d] = (counts[d] || 0) + 1; }
+      const recent = await supabaseSelect(env, `canonical_sales?primary_source=eq.${encodeURIComponent(src)}&sale_date=not.is.null&select=sale_date&order=sale_date.desc&limit=1`);
+      out.push({ source: src, recentSaleDate: recent && recent[0] ? String(recent[0].sale_date).slice(0, 10) : null, totalInRange: Object.values(counts).reduce((s, n) => s + n, 0), daily: rangeDays.map(d => ({ day: d, count: counts[d] || 0 })) });
+    }
+    return res.status(200).json({ task: "canonday", from, to, sources: out });
+  }
+
   if (task === "canonstats") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
