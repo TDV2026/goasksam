@@ -2764,3 +2764,54 @@ when the work has landed.
   confirmed 200 + correct content via Puppeteer on all of them). crossProductCheck.js needs Supabase
   env not present locally - could not run it this round, same standing limitation as every prior
   round (Vercel secrets not pullable); it runs in CI post-deploy regardless.
+
+- 2026-10-09 (Lane A): SAM DESK LEAD NOTIFICATION FIX (commits bd2f96c, 1e3b605, 79d05f4, 1c6f378).
+  ROOT CAUSE, confirmed: api/businessLead.js called sendTaskEmail(...).catch(()=>{}) with NO await,
+  then immediately returned res.status(200).json(...) - the serverless function could (and evidently
+  did) return and freeze before the fetch to Resend ever completed, so the notification silently
+  never sent even though RESEND_API_KEY is set correctly in prod (proven below) and the lead itself
+  always saved (the insert WAS awaited). SECOND LATENT BUG found and fixed in the same file: the old
+  code never checked supabaseInsert's return value for .error - that helper does NOT throw on a
+  non-2xx PostgREST response, it returns {error:...} - so a failed insert would have fallen through to
+  the same "ok:true" response as a real success. This plausibly explains Sam's own report exactly (a
+  row consistent with an earlier insert attempt is missing from the id sequence - 1, then 3, 4, never
+  2 - consistent with an attempt that consumed an identity value without committing a row).
+  FIX: the send is awaited; its outcome is recorded on the row (notify_ok/notify_error/notified_at,
+  additive columns in docs/supabase-business-leads.sql - RUN ONCE, PENDING, same standing limitation
+  as every other manual-SQL step this project). Destination is LEADS_NOTIFY_EMAIL env var, falls back
+  to feedback@goasksam.com unchanged - NOT currently set, so no action needed unless Sam wants to
+  change the address. Subject "New Sam Desk request" exactly. Body: Name/Company/Work email/One line,
+  then a link to the Supabase table editor plus the row's own bigint id (a row-specific Supabase
+  dashboard deep link needs the table's internal numeric id, which this code has no way to know - the
+  id text is the reliable alternative).
+  PROVEN LIVE: task=bizleadtest (ops, PROBE_KEY via Keychain, same pattern as the Sam Desk warm-up)
+  submitted two real test rows through the ACTUAL api/businessLead.js path end to end - both got a
+  real Resend message id back (ok:true), e.g. id 01a122db-3225-7835-880b-efcc620915d1, confirming
+  RESEND_API_KEY is live and feedback@goasksam.com is accepted as a destination. FOR SAM: please
+  confirm the email itself landed (I have no way to check that inbox) - if it did not, the provider
+  genuinely accepted it (two real send ids above), so the next thing to check would be spam filtering
+  or Resend's own delivery log for those ids, not the code path.
+  CLEANUP: task=bizleadtest&delete=1 removed all 3 QA-marked test rows (the original one from the
+  Sam Desk follow-ups round plus these two). task=bizleadlist (new, read-only) confirmed business_leads
+  is now EMPTY - I could not find or report on Sam's own test submission specifically, because no row
+  matching it (or anything else) remains in the table; the id-gap above is the only trace of it.
+  CONFIRMATION COPY (api/business.js): success is now "Thanks, your request is in. We'll be in touch
+  by email." and REPLACES the form (all fields + button hidden, message shown alone) instead of just
+  resetting the fields next to a small note. Failure is "That did not go through. Please try again in
+  a moment.", button re-enables, typed values are kept (already was). A disabled-button guard now
+  blocks a double-submit (the button was already disabled while sending; this additionally ignores a
+  second click that lands before the state updates).
+  BUG CAUGHT LIVE (own round): the first version hid the form fields via el.hidden=true, which had
+  NO visible effect - .biz-btn's own `display:inline-flex` is an AUTHOR stylesheet rule, which always
+  wins over the UA stylesheet's [hidden]{display:none} regardless of selector specificity. Fixed to
+  set style.display="none" directly. ALSO CAUGHT: /business is edge-cached (s-maxage=3600) - every
+  verification attempt against the plain URL kept showing the pre-fix behaviour for several minutes
+  after a real, confirmed-live deploy; a `?_cb=<timestamp>` cache-buster on the GET request was needed
+  to actually see the fresh HTML. Worth remembering for any future same-page round: a "still broken"
+  result right after a push may be the CDN, not the code - add the cache-buster before concluding a fix
+  didn't land.
+  Baseline: /sell /buy /tasks /market-check /business all 200 signed out. searchCheck.js: same known
+  429 pattern (not a regression; /business is not one of its 9 checked pages, and nothing touched this
+  round changed /business's title/H1/lead in any case - only the lead form's own JS/CSS and the
+  notification backend).
+  Search check: no public page's title/H1/lead/canonical changed this round.
