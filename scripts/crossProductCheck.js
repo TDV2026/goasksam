@@ -75,8 +75,11 @@ export const DEFAULT_SPECS = [
   "1989 Porsche 911 Turbo Targa", "2017 Porsche 911 Turbo S Cabriolet",
   "1986 Porsche 911 Carrera Speedster", "1991 Porsche 911 Carrera 4 Targa",
   "2015 Porsche 911 Carrera GTS Cabriolet", "1993 Porsche 911 Carrera RS Targa",
-  "2001 Porsche 911 Carrera 4S Cabriolet", "1988 Porsche 911 Carrera T Coupe",
-  "2019 Porsche 911 Carrera T Cabriolet"
+  "2001 Porsche 911 Carrera 4S Cabriolet",
+  // "Carrera T Coupe"/"Carrera T Cabriolet" were dropped (Oct 2026): Carrera T did not exist until
+  // 2018 and has never been sold as a Cabriolet, so those two tested a car that never existed, not a
+  // resolver case. Replaced with two genuine compounds in generations the list did not cover yet.
+  "2018 Porsche 911 Carrera T Coupe", "2013 Porsche 911 Carrera 4S Cabriolet"
 ];
 
 const round = n => (Number.isFinite(n) ? Math.round(n) : null);
