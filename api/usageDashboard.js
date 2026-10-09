@@ -618,6 +618,20 @@ async function handleOps(req, res) {
   // sales_archive read), so a sources zero-streak can be checked against BOTH tables - canonical_sales
   // is a SEPARATE, later build step (scripts/buildCanonical.js) off sales_archive, so a gap could be
   // archive-side (ingest) or canonical-side (the dedup/match build), and this tells which.
+  // task=enginecheck: READ-ONLY, zero writes, zero OCD. Runs scripts/crossProductCheck.js's own
+  // runEngineCheck() - the SAME function the nightly job and the standalone CLI call - over the
+  // built-in 20-spec list (or ?specs=a|b|c) and returns its table as JSON. See the script's header
+  // for what each of the four lanes actually calls. (Filename is crossProductCheck.js, not
+  // engineCheck.js - that path already held a different, still-live Oct 6 tool; see the script's
+  // own header note. The ?task=enginecheck name itself is unchanged, per the ask.)
+  if (task === "enginecheck") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { runEngineCheck, DEFAULT_SPECS } = await import("../scripts/crossProductCheck.js");
+    const specs = req.query?.specs ? String(req.query.specs).split("|").filter(Boolean) : DEFAULT_SPECS;
+    const result = await runEngineCheck(env, specs);
+    return res.status(200).json(result);
+  }
+
   if (task === "canonday") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const sources = req.query?.sources ? String(req.query.sources).split(",").map(s => s.trim()).filter(Boolean) : ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "themarket", "pistonheads"];
