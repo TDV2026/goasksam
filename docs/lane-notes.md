@@ -1271,3 +1271,32 @@ when the work has landed.
   &scope=all). The List-Unsubscribe header keeps the account-wide link (no item), so a mail client's one-click
   POST stops everything. (3) "Free. No card, no plan." shows in the drawer of the account's first watch only,
   and goes once a later watch is armed. API FOR LANE A: no reply shape changed (arm/list/stop as above).
+- 2026-10-09 (Lane A): Market Check landing hierarchy. Commit 545f644 (lib/live/marketCheckLanding.js only -
+  no H1/title/canonical/address/search-bar/chips/VIN-line change).
+  1. Removed the three-icon trust strip (.mc-proof) entirely.
+  2. One quiet centred line in its place: "Real sales · Matched like with like · Receipts behind every
+     number" (.mc-quiet, 14px Instrument Sans, no icons).
+  3. The example (exampleBandHtml) moved to render directly after that line - now the first major section,
+     before "How Sam gets there." Unchanged itself (same car, same engine call, "An example" label and Sam's
+     take all intact).
+  4. "What you get." (.mc-gets, 4 icon cards) replaced with "How Sam gets there." (.mc-how): one row of three
+     quiet text items (bold short lead-in + one line), no icons at all (read "no icons larger than the text"
+     as no icons, matching "quieter section"), stacking at 640px and under. Exact copy as given.
+  5. GAP, FLAGGED RATHER THAN GUESSED: the instruction says to keep a "Put Sam on it" band and a closing call
+     to action on the landing, in order after How Sam gets there. Neither exists on the landing today - Put
+     Sam on it is a RESULTS-page-only feature (added last round, js/onebox.js samOnItHtml, only renders once
+     a search has returned a resolved car/VIN match; the landing has no resolved car yet) - and there has never
+     been a separate "call to action" card here, just the existing one-line .mc-foot ("Real sales only.
+     Nothing estimated."), which I left in place at the end. Did not invent a landing-specific Put Sam on it
+     band or a new CTA card since no copy was given for either and the landing has no car to watch yet - say
+     the word and I'll build whichever one you want (e.g. a generic "Any car that sells, Sam can tell you"
+     band wired through the same /api/watch arm-by-spec call once a car is searched, or a plain /sell-style
+     CTA card) once you confirm the copy and behavior.
+  Verified live at 1440 and 390 (screenshots this session, not committed): order confirmed via DOM children of
+  #mc-landing (gas-hero, mc-quiet, mc-ex, mc-how, mc-foot) on the real deployed page with the real cached
+  example rendering (locally the example is null - Supabase isn't reachable from a bare script run, a known
+  limitation noted elsewhere in this file - so the reordering itself was proven structurally locally and the
+  example's actual position was confirmed live).
+  Baseline: /sell /buy /tasks /market-check /business all 200 signed out.
+  Search check: no title/H1/canonical/address change; rule 3's dated lead sentence (mc-upd, "Market Check.
+  Updated Oct 9, 2026.") is untouched and still renders before any client JS runs.
