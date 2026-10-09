@@ -1175,6 +1175,60 @@ when the work has landed.
   Search check: rule 1 (soldCount/quarters/direction are dated-window market facts, re-derived every render,
   never cached stale), rule 3 (no change to title/H1/canonical/lead), rule 7 (no new indexable surface - these
   additions are on the existing /market-check results view only).
+- 2026-10-09 (Lane A): Market Check search bar width fix + connected Put Sam on it to Lane C's watch API.
+  Commits 465c860, cef1701.
+  WIDTH FIX: the hero bar (lib/live/marketCheckLanding.js) and the empty-state/results bar (js/onebox.js
+  inboxHtml) both ran too wide past 640px, overlapping the hero car photo on the landing. Capped at 600px via
+  a new .mc-bar class, scoped so New Sell (the SAME shared .inbox markup, window.GAS_SELL truthy there) is
+  never touched - inboxHtml() only adds mc-bar when !SELL. Chips row and the VIN line on the landing match the
+  bar's width. Verified live at 1440/1024/768/390: desktop ends well before the car, the 640px mobile banner
+  layout (car above text) is unaffected, no wrap/overlap at 768 or 1024. Could not verify New Sell's OWN bar
+  live (today /sell?car=... still serves the OLD /sell page, not sellNext - unrelated to this change, the
+  .inbox class isn't reached there either way) - zero risk either way since the scoping is via the existing
+  SELL flag this file already uses for the same purpose elsewhere.
+  WATCH CONNECTION: item 2i ("Put Sam on it") now arms a real watch through Lane C's documented contract
+  (their 2026-10-09 lane-notes entry below) - POST /api/watch {action:"arm", kind:"spec", car:{year, make,
+  model, trim, body}} for a plain search, or {action:"arm", kind:"vin", vin} for a VIN/chassis match, same
+  endpoint and wording Buy's own control uses (never a second one). Gated on {action:"ready"} (checked once at
+  boot into OB_WATCH_READY) - no control renders while the tables aren't set up. Signed-out click opens the
+  shared sign-in card only (mirrors Buy's armWatch(): no post-signin auto-resume there either, so none was
+  added here - sign in, click again, same two-step on both pages). Signed-in click arms and swaps the band to
+  "Watching for the next sale of {label}." / "Watching for this exact car to come up again.", plus "Free. No
+  card, no plan." on this account's first ever watch (j.first). State (obWatchArmed/obWatchFirst) resets on a
+  new search (run()/mcApplyFromUrl()), not on a refine - the identity being watched doesn't change when
+  miles/gearbox narrow the same pool.
+  SHARED WATCHING RAIL: added to lib/appShell.js rather than Market Check's own page, so Tasks and /business
+  get it from the same place with zero duplication, per the instruction. railOpenHtml() now always renders an
+  empty `<div id="gas-watching-rail" hidden>` container (data-active/data-full attributes on #gas-rail tell
+  the script whether to run) and SHELL_JS gained gasWatchRail(): fetches POST /api/watch {action:"list"} when
+  signed in and the rail is "full" (not the reduced pre-launch set), renders a "Watching" section with each
+  watch's label/last_event and a stop (x) control wired to {action:"stop", id}. SKIPS when data-active="buy" -
+  Buy already renders its own Watching section (its own page-specific script, predates this shared one) and
+  showing both would duplicate the list; this is the one deliberate exception to "every page shows it" and is
+  explained in a comment at both ends (railOpenHtml's note, gasWatchRail's note). Verified via local fixture
+  (fake session + mocked /api/watch list/stop): the shared container renders correctly on Market Check
+  (data-active="market-check", market-check/tasks/business all confirmed server-rendering the container via a
+  local smoke render of each handler), stop removes the row and re-hides the box when empty, and the gate
+  correctly no-ops on the reduced (pre-launch) rail and on Buy's own page in both the local test and a live
+  check of Buy's current (pre-this-change) markup.
+  NOT independently live-tested end to end (no real test account in this session, unlike Lane C's own "test
+  account, disposable inbox" pass noted below): the actual arm-and-confirm round trip and the rail populating
+  from a REAL signed-in session. What IS verified live: /api/watch {action:"ready"} returns true in production
+  (the band renders at all), the sign-in card opens with the exact copy ("Sign in to keep a watch. Free. No
+  card, no plan."), and the arm payload shape/Authorization header/response handling were checked against a
+  mocked server matching Lane C's documented contract exactly (confirmed via a captured request body:
+  {"action":"arm","kind":"spec","car":{"year":2001,"make":"BMW","model":"M3","trim":null,"body":"coupe"}}).
+  A real-account click-through would be good belt-and-suspenders if anyone wants it before calling this done.
+  TRANSIENT 500 OBSERVED AND SELF-RESOLVED: right after this round's push, all five pages (/sell /buy /tasks
+  /market-check /business) returned a genuine Vercel 500 (not the Attack Challenge page - confirmed via a real
+  Puppeteer browser hitting the actual error body) for a brief window on the deployment carrying commit
+  d037166 (a concurrent Lane C push that landed between my two commits). A follow-up deployment (triggered by
+  an unrelated "Update nightly.yml" push, 6026317) with no app-code difference served 200 again, and every page
+  plus a full Market Check search has been clean since. Could not pull a stack trace (vercel logs had already
+  rolled past the bad window by the time I checked). Flagging the timestamp in case Sam wants to check Vercel's
+  own deployment history for that commit; nothing currently reproduces.
+  Baseline (post-fix): /sell /buy /tasks /market-check /business all 200 signed out, titles/H1s intact.
+  Search check: no title/H1/canonical/address change on any page this round.
 - 2026-10-09 (Lane C -> Lane A): WATCH API for Market Check (and any page). ONE endpoint, api/watch.js; do not
   add a second. All POST, JSON. arm/list/stop need the signed-in token: `Authorization: Bearer <access_token>`
   (the same gas_auth_session token Buy and Tasks send). Missing/expired token -> 401 {ok:false, needSignIn:true}.
