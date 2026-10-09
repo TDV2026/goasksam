@@ -108,21 +108,23 @@ async function buyLane(env, v, f) {
 
 // ---- Lane 3: Sell (fetchOnlinePool, the shared pool buildSharedAnalysis aggregates from) ----
 async function sellLane(vehicle, generation, env) {
-  const { spec, pool } = await fetchOnlinePool(vehicle, generation, env);
+  const { spec, pool, cluster } = await fetchOnlinePool(vehicle, generation, env);
   if (!spec) return { ok: false, reason: "no spec (vehicle did not resolve to a buildable spec)" };
   if (!pool.length) return { ok: false, reason: "empty pool (genuinely zero online sales on record)" };
-  const priced = pool.map(r => ({ ...r, _usd: hammerUsd(r) })).filter(r => Number.isFinite(r._usd) && r._usd > 0);
+  const priced = pool.map(r => ({ ...r, _usd: Number.isFinite(r._usd) ? r._usd : hammerUsd(r) })).filter(r => Number.isFinite(r._usd) && r._usd > 0);
   if (!priced.length) return { ok: false, reason: "pool had rows but none priced" };
   const prices = priced.map(r => r._usd);
   const label = [generation?.code, vehicle.model, spec.trim].filter(Boolean).join(" ") || vehicle.model || null;
   const sorted = priced.slice().sort((a, b) => String(b.auction_end_date || "").localeCompare(String(a.auction_end_date || "")));
   const recent = normRecent(sorted, "pool");
-  // fetchOnlinePool has no cluster/typical-band concept (no r4Cluster equivalent) - low/high here
-  // is an UNCLIPPED min/max over whatever window the pool landed on, the same statistic as
-  // Market Check's d.span, not its d.cluster. Reported as span too so a reader can tell these two
-  // numbers are the same KIND of statistic even when the underlying pool sizes differ.
-  const low = round(Math.min(...prices)), high = round(Math.max(...prices));
-  return { ok: true, label, low, high, span: [low, high], count: priced.length, latest: (sorted[0]?.auction_end_date || "").slice(0, 10) || null, recent };
+  // fetchOnlinePool now reads runOneBox's own ladder (Oct 2026 "one engine ladder" fix), so it
+  // carries the SAME cluster band Market Check/Buy/Tasks use for low/high - prefer it here too, same
+  // gate as marketOf() (lib/live/search.js): a real cluster only exists at 8+ solid sales. The
+  // unclipped span is still carried (as `span`) for diagnostic context, never compared.
+  const span = [round(Math.min(...prices)), round(Math.max(...prices))];
+  const hasCluster = Array.isArray(cluster);
+  const low = hasCluster ? round(cluster[0]) : null, high = hasCluster ? round(cluster[1]) : null;
+  return { ok: true, label, low, high, span, count: priced.length, latest: (sorted[0]?.auction_end_date || "").slice(0, 10) || null, recent };
 }
 
 // ---- comparison ----
@@ -188,22 +190,26 @@ function diagnoseReasons(row, { marketCheck, buy, sell, tasks }) {
       "separate resolver implementations for the same raw text, not a shared one.");
   }
 
-  // Sell's pool is consistently the outlier: different window scheme than the shared ladder.
+  // Sell diverging on count/latest (rare after the Oct 2026 "one engine ladder" fix - fetchOnlinePool
+  // now reads runOneBox's own rawPool, same rung as Market Check/Buy/Tasks): look to the resolver
+  // first, since a resolved-car difference is the remaining live cause (e.g. a chassis-code genCode
+  // mismatch), not a window difference - fetchOnlinePool no longer runs its own window at all.
   if (sell.ok && (marketCheck.ok || buy.ok) && (countMismatch || latestMismatch)) {
-    out.push("Sell (lib/platformPick.js fetchOnlinePool) reads ONE window (exact-year rung if " +
-      "available, else 730 days, widened to 1825 only if thin, all-time only if still empty) - a " +
-      "deliberately simpler scheme than Market Check/Buy/Tasks' shared ladder " +
-      "(lib/onebox.js runOneBox / lib/live/search.js walkLadder), which widens rung-by-rung with no " +
-      "fixed day cap. Different count/latest here is the documented window difference, not a bug.");
+    out.push("Sell (lib/platformPick.js fetchOnlinePool) now reads lib/onebox.js runOneBox's own " +
+      "rawPool directly (Oct 2026 one engine ladder fix) - a remaining count/latest mismatch here " +
+      "means the RESOLVED CAR differed between calls (a generation/trim binding difference), not a " +
+      "window difference. Compare each lane's resolved label/genCode by hand.");
   }
 
-  // low/high mismatch with Sell present and no count/latest explanation already filed: Sell has no
-  // cluster concept (r4Cluster only exists in lib/onebox.js), so its low/high is an unclipped span.
+  // low/high mismatch with Sell present and no count/latest explanation already filed: Sell's
+  // low/high now prefers runOneBox's own cluster (same gate as marketOf()'s d.cluster check) - a
+  // mismatch here with count/latest MATCHING means the pool landed below the 8-sale cluster floor on
+  // one lane's read but not another's, or this script's own cluster extraction is stale.
   if (lowHighMismatch && sell.ok && !out.some(r => r.startsWith("Sell"))) {
-    out.push("Sell's low/high (lib/platformPick.js, Math.min/max over its own pool) has no cluster/" +
-      "typical-band computation (lib/onebox.js r4Cluster has no Sell-side equivalent) - it is always " +
-      "an unclipped span, a different KIND of statistic from Market Check/Buy/Tasks' cluster-sourced " +
-      "range, even on a spec where all four see comparable sale counts.");
+    out.push("Sell's low/high (lib/platformPick.js, now sourced from runOneBox's own cluster) " +
+      "mismatched while count/latest agreed - check whether the landed tier actually carried a " +
+      "cluster (8+ solid sales, lib/onebox.js rangeTierForCount) on every lane; a tier below that " +
+      "floor has no cluster and should read null on all four, not a guessed span.");
   }
 
   if (!out.length && (lowHighMismatch || countMismatch)) {
