@@ -1,7 +1,8 @@
 import puppeteer from "puppeteer-core";
+import { withProbeKey } from "./_probeKey.mjs";
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
-const p = await b.newPage();
+const p = await b.newPage(); await withProbeKey(p);
 await p.setCookie({ name: "gas_crew", value: "ok", domain: "goasksam.com", path: "/" });
 await p.goto("https://goasksam.com/sell", { waitUntil: "networkidle2" });
 // pull larger sample per house, bucket URL slugs

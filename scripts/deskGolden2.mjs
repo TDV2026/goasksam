@@ -1,7 +1,8 @@
 import puppeteer from "puppeteer-core";
+import { withProbeKey } from "./_probeKey.mjs";
 const BASE=(process.argv.find(a=>a.startsWith("http"))||"https://goasksam.com").replace(/\/$/,"");
 const b=await puppeteer.launch({executablePath:"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",headless:"new",args:["--no-sandbox"]});
-const p=await b.newPage(); await p.setCookie({name:"gas_crew",value:"ok",domain:new URL(BASE).hostname,path:"/"});
+const p=await b.newPage(); await withProbeKey(p); await p.setCookie({name:"gas_crew",value:"ok",domain:new URL(BASE).hostname,path:"/"});
 await p.goto(BASE+"/sell",{waitUntil:"networkidle2"});
 const post=(body)=>p.evaluate(async(body,BASE)=>{const r=await fetch(BASE+"/api/desk",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(Object.assign({desk:true,action:"run"},body))});const t=await r.text();try{return JSON.parse(t)}catch(e){return{parseError:t.slice(0,80)}}},body,BASE);
 let fails=0; const ck=(n,ok,d="")=>{console.log((ok?"PASS":"FAIL")+"  "+n+(ok?"":"  -> "+d));if(!ok)fails++;};

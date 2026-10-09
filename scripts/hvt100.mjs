@@ -18,6 +18,7 @@ import fs from "node:fs";
 import path from "node:path";
 import puppeteer from "puppeteer-core";
 
+import { withProbeKey } from "./_probeKey.mjs";
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const BASE = process.env.HVT_BASE || "https://goasksam.com";
 const TODAY = new Date().toISOString().slice(0, 10);
@@ -165,7 +166,7 @@ const post = (page, body) => page.evaluate(async b => {
 (async () => {
   fs.mkdirSync(path.join(OUT,"receipts"), { recursive:true });
   const browser = await puppeteer.launch({ executablePath:CHROME, headless:"new", args:["--no-sandbox"] });
-  const page = await browser.newPage();
+  const page = await browser.newPage(); await withProbeKey(page);
   await page.setCookie({ name:"gas_crew", value:"ok", domain:new URL(BASE).hostname, path:"/" });
   await page.goto(BASE+"/sell", { waitUntil:"networkidle2" });
 

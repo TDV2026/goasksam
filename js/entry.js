@@ -191,7 +191,8 @@ async function send(){
   // in-flight flag lets the load watchdog tell a normal pending request from a dead control.
   window.__sendInFlight=true;
   try{
-  addMsg("user",q);
+  // A held question (flushHeldSellQuestion) is already on screen as the visitor typed it.
+  if(window.__sendNoEcho)window.__sendNoEcho=false; else addMsg("user",q);
 
   // Walled guard: once a hard daily/limit/account wall is up, a genuine question still
   // reaches chat (no quota cost), but anything else - a new/continued search OR a plain
@@ -238,6 +239,11 @@ async function send(){
       if(await maybeRerunOnCarCorrection(q)){document.getElementById("btn").disabled=false;return;}
     }
     const handled=await handleSellStep(q);
+    if(!handled&&sellState.step===12&&(sellState.resultPending||!sellState.sellDecision)){
+      if(sellState.resultPending)holdSellQuestion(q); else addMsg("sam",SELL_HOLD_FAILED);
+      document.getElementById("btn").disabled=false;
+      return;
+    }
     if(!handled){
       showTyping();
       const stateStr=JSON.stringify({car:sellState.carName,region:sellState.region,state:sellState.state,mileage:sellState.mileage,condition:sellState.condition,records:sellState.records,title:sellState.title,price:sellState.price,timeline:sellState.timeline,involvement:sellState.involvement,step:sellState.step});
@@ -364,7 +370,7 @@ async function send(){
           sellState.pendingFollowup=q;
           try{sessionStorage.setItem("gas_pending_followup",q);}catch(e){}
           addMsg("sam",data.text,'<div class="sell-rec-actions"><button class="primary" onclick="openSignInCard(\'Sign in free so Sam can remember this car.\')">Sign in free</button></div>');
-        }else if(data&&data.limited){
+        }else if(data&&(data.limited||data.held)){
           addMsg("sam",data.text);
         }else if(!res.ok||data.error||!data.text){
           // No silent fallbacks: the server logged the error to app_usage_events.
@@ -515,6 +521,23 @@ document.getElementById("inp").addEventListener("input",function(){this.style.he
   var inp=document.getElementById("inp");
   if(inp&&typeof send==="function"){inp.value=pref;send();}
 }catch(e){}})();
+
+// A question asked while the result is still loading waits for it (the chat context only carries the sales
+// once the result has rendered). One question is kept; a newer one replaces it.
+const SELL_HOLD_LINE="Got it. That question goes in as soon as the result for this car is on screen.";
+const SELL_HOLD_FAILED="Ask that again once the result for this car is on screen.";
+function holdSellQuestion(q){
+  const first=!sellState.heldQuestion;
+  sellState.heldQuestion=q;
+  if(first)addMsg("sam",SELL_HOLD_LINE);
+}
+function flushHeldSellQuestion(){
+  const q=sellState.heldQuestion; if(!q)return;
+  sellState.heldQuestion=null;
+  if(!sellState.sellDecision||sellState.step!==12){ addMsg("sam",SELL_HOLD_FAILED); return; }
+  // Let the result finish drawing (the context reads what rendered), then send it as typed.
+  setTimeout(()=>{ const inp=document.getElementById("inp"); if(!inp||typeof send!=="function")return; inp.value=q; window.__sendNoEcho=true; send(); },700);
+}
 
 // After a sign in (the code card, which keeps this page), the follow-up question that asked for it is sent
 // again as it was, so the visitor never retypes it. Called from js/auth.js gateAfterSignup.

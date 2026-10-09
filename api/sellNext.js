@@ -15,6 +15,7 @@ import sellPage from "./sellPage.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 import { SHELL_CSS, SHELL_JS, railOpenHtml } from "../lib/appShell.js";
 import { isCrewRequest } from "./_chrome.js";
+import { hasServerCredential } from "../lib/_credential.js";
 
 const YOUR_RESULTS_RAIL = '<a class="gas-navitem" id="gas-nav-results" href="#" style="display:none" onclick="return obToggleResults(event)">Your results</a><div class="gas-submenu" id="gas-results-menu"></div>';
 
@@ -30,8 +31,10 @@ function pcardCss() {
 }
 
 export default async function handler(req, res) {
-  // SWITCHED OFF for the public (Oct 8 2026, Sam): 404 unless SELL_NEXT_ON=1 or the probe key is presented.
-  const keyed = !!(process.env.PROBE_KEY && (req.headers["x-probe-key"] === process.env.PROBE_KEY || (req.query && req.query.key === process.env.PROBE_KEY)));
+  // SWITCHED OFF for the public (Oct 8 2026, Sam): 404 unless SELL_NEXT_ON=1, our header credential
+  // (lib/_credential.js, never a key in the address), or crew opening the preview landing itself
+  // (/api/sellNext). A crew visit to a result address (/sell?car=) still gets the live /sell.
+  const keyed = hasServerCredential(req) || (isCrewRequest(req) && !/[?&]car=/.test(String(req.url || "")));
   // A result address (/sell?car=..., routed here by vercel.json) while the new Sell is off: the live /sell
   // page, exactly as /sell serves it, so the public never sees the new Sell before the cutover.
   if (process.env.SELL_NEXT_ON !== "1" && !keyed) return /[?&]car=/.test(String(req.url || "")) ? (res.setHeader("X-Robots-Tag", "noindex, follow"), sellPage(req, res)) : res.status(404).json({ error: "Not found." });

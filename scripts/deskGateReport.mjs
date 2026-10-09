@@ -7,26 +7,20 @@
 //   node scripts/deskGateReport.mjs            # the 30-question set
 //   node scripts/deskGateReport.mjs five       # just the five that failed on Sep 24
 //   BASE=https://goasksam.com PROBE_KEY=... node scripts/deskGateReport.mjs
-import { readFileSync, existsSync } from "node:fs";
 
 const BASE = (process.env.BASE || "https://goasksam.com").replace(/\/$/, "");
 const set = process.argv.includes("five") ? "five" : "thirty";
 
+// The key comes from the environment only (it is rotated; never kept in a file). Sent as a header.
 function probeKey() {
-  if (process.env.PROBE_KEY) return process.env.PROBE_KEY.replace(/^["']|["']$/g, "");
-  for (const f of [".env.local", ".env.check"]) {
-    if (!existsSync(f)) continue;
-    const m = readFileSync(f, "utf8").match(/^PROBE_KEY=(.*)$/m);
-    if (m) return m[1].trim().replace(/^["']|["']$/g, "");
-  }
-  return "";
+  return (process.env.PROBE_KEY || "").replace(/^["']|["']$/g, "");
 }
 
 const key = probeKey();
-if (!key) { console.error("No PROBE_KEY (env or .env.local)."); process.exit(1); }
+if (!key) { console.error("No PROBE_KEY in the environment."); process.exit(1); }
 
-const url = `${BASE}/api/usageDashboard?view=ops&task=deskgate&set=${set}&key=${encodeURIComponent(key)}`;
-const res = await fetch(url);
+const url = `${BASE}/api/usageDashboard?view=ops&task=deskgate&set=${set}`;
+const res = await fetch(url, { headers: { "x-ops-key": key } });
 if (!res.ok) { console.error(`HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`); process.exit(1); }
 const j = await res.json();
 if (j.error) { console.error("ERROR:", j.error); process.exit(1); }

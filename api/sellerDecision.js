@@ -3622,10 +3622,11 @@ export default async function handler(req, res) {
     // A measurement run (bypassCache, credential only) is the one caller exempt from the daily circuit
     // breaker below; a transmission refinement is not (it was, and could spend past the day's budget).
     const measuring = req.body?.bypassCache === true;
-    // SIGNED OUT NEVER METERS (open-search policy): only our own jobs (credential), crew and a verified
-    // signed-in session may trigger a metered OldCarsData fetch. Everyone else is answered from the cache
-    // and the permanent store/archive through this same engine (the archiveOnly path below).
-    const meterAllowed = credentialed || crewBypass || !!searchAccountId;
+    // CACHE FIRST, ONE RULE FOR EVERYONE (open-search policy, Sam Oct 9 2026): a cache hit is served from
+    // the store; on a miss anyone, signed in or not, may trigger the one metered fetch while the global
+    // daily budget lasts (the breaker below), then everyone is served stored records. Sign in never
+    // changes the answer. Only a credentialed measurement sits outside the daily budget; crew stays inside
+    // it (the crew cookie is a plain value anyone could set, so it must never unlock spend).
     if (!bypassCache && await readMarketFetchCache(vehicle, supabaseUrl, supabaseKey)) {
       fetchResult = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation);
       cacheStatus = fetchResult ? "hit" : "hit_store_empty_refetched";
@@ -3634,16 +3635,15 @@ export default async function handler(req, res) {
     // other zero-OCD proof sets archiveOnly:true so the real /sell engine runs end-to-end on the
     // permanent store/archive instead of a live OCD fetch, guaranteeing zero metered requests. It
     // short-circuits BEFORE the budget guard and the live fetch below, so no OCD call is ever made.
-    const archiveOnly = req.body?.archiveOnly === true || !meterAllowed;
+    const archiveOnly = req.body?.archiveOnly === true;
     if (!fetchResult && archiveOnly) {
-      const publicOnly = !meterAllowed && req.body?.archiveOnly !== true;
       fetchResult = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation);
       if (fetchResult) {
-        fetchResult.stopReason = publicOnly ? "public_store_only" : "archive_only";
-        cacheStatus = publicOnly ? "public_store" : "archive_only_store";
+        fetchResult.stopReason = "archive_only";
+        cacheStatus = "archive_only_store";
       } else {
-        fetchResult = { records: [], passSummary: [], stoppedEarly: true, stopReason: publicOnly ? "public_store_empty" : "archive_only_empty", elapsedMs: 0, timeBudgetMs: FETCH_TIME_BUDGET_MS, meteredRequests: 0, ladder: buildLadder(vehicle, generation), fromCache: true };
-        cacheStatus = publicOnly ? "public_store_empty" : "archive_only";
+        fetchResult = { records: [], passSummary: [], stoppedEarly: true, stopReason: "archive_only_empty", elapsedMs: 0, timeBudgetMs: FETCH_TIME_BUDGET_MS, meteredRequests: 0, ladder: buildLadder(vehicle, generation), fromCache: true };
+        cacheStatus = "archive_only";
       }
     }
     // Budget guards (7A): daily pace + monthly cap, read from app_usage_events.

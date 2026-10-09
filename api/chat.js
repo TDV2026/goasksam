@@ -81,11 +81,18 @@ export default async function handler(req, res) {
   // Decided here from what the request carries, never from a client flag: a Sell chat that brings the result's
   // facts (what the page rendered) is the follow-up and needs a session. A question asked DURING the wizard,
   // before any result (product rule 12: answer it, then re-ask), carries no result facts and stays open.
+  const HOLD_LINE = "Ask that again once the result for this car is on screen.";
   const RESULT_FACTS = /The recommendation the seller is looking at|Decision facts \(|WHAT IS ON THE SELLER'S SCREEN|Rendered destinations \(/;
   // The sell state names the wizard step: 12 (the result), 13 (a destination chosen) and 14 (sent) all come
   // after the result, so a question there is a follow-up even when no result block rode along.
   const step = Number((/"step":\s*(\d+)/.exec(context || "") || [])[1]);
   const gated = mode === "followup" && (RESULT_FACTS.test(context || "") || step === 12 || step === 13 || step === 14);
+  // Never a follow-up without the evidence: after the result (steps 12 to 14) the question must arrive with
+  // that car's rendered facts. Without them (asked while the result was loading) the model is not called;
+  // the page holds the question and sends it again once the result is on screen (js/entry.js).
+  if (mode === "followup" && (step === 12 || step === 13 || step === 14) && !RESULT_FACTS.test(context || "")) {
+    return res.status(200).json({ text: HOLD_LINE, reply: HOLD_LINE, held: true });
+  }
   const g = gated ? await followupGuard(env, req) : await assistGuard(env, req);
   if (!g.ok) return res.status(200).json(g.body);
   const systemBlocks = [];

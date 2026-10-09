@@ -2506,3 +2506,38 @@ when the work has landed.
   reusing it or guessing.
   Already deleted: the two throwaway probe scripts used for the GT-R live check (never committed, never
   held a key value - PROBE_KEY was not needed for either, both called the public oneBox endpoint).
+
+- 2026-10-09 (Lane C): OPEN SEARCH FOLLOW UP (cache first, held questions, header-only keys, Buy search event).
+  * CACHE FIRST, ONE RULE (Sam approved): api/sellerDecision.js handler. The signed-out store-only branch
+    (meterAllowed / public_store) is gone. A cache hit serves the store; on a miss anyone, signed in or out,
+    may trigger the one metered fetch while the global daily budget lasts (OCD_DAILY_REQUEST_BUDGET, the
+    existing breaker), then everyone is served stored records (budget_degraded_store). Only a credentialed
+    measurement (bypassCache, header credential) is outside the daily budget. CREW STAYS INSIDE IT: the
+    crew cookie is the plain value gas_crew=ok, which anyone can set, so it must never unlock spend. FOR
+    SAM: the same cookie also skips the invisible ceilings (lib/_ceilings.js isCrew) and the Desk gate; a
+    signed crew cookie would close that. Not changed this round.
+  * HELD QUESTIONS (live /sell): js/result.js showSellRecommendation wraps the run (sellState.resultPending);
+    js/entry.js holdSellQuestion / flushHeldSellQuestion hold a question typed while the result loads and
+    send it once the result has rendered. api/chat.js refuses a follow-up at steps 12 to 14 that carries
+    none of the result's facts (the model is never called; reply held:true).
+  * KEYS IN HEADERS ONLY: api/usageDashboard.js handleOps (view=ops), api/watch.js and api/sellChat.js (and
+    the preview page api/sellNext.js) now use lib/_credential.js hasServerCredential: x-ops-key or
+    x-probe-key header, or Authorization: Bearer CRON_SECRET. A key in the address or body is ignored.
+    FOR LANE A AND LANE B: any script or bookmark calling `?view=ops&task=...&key=` must send the key as
+    `-H "x-ops-key: $PROBE_KEY"` (curl) or `headers: { "x-ops-key": process.env.PROBE_KEY }` (fetch).
+    Lane A's task=deskexample hook above: `curl -H "x-ops-key: $PROBE_KEY" "https://goasksam.com/api/usageDashboard?view=ops&task=deskexample"`.
+    Callers updated: scripts/deskGateReport.mjs (header, env only, the .env.local fallback removed). Already
+    header: scripts/warm.js, smokeProd.js, engineCheck.js, tasksAuthCheck.mjs, tasksScenarios.mjs, the
+    nightly premium step (.github and docs copies; Sam's edit verified), Vercel crons (CRON_SECRET bearer).
+    ops/nightly-workflow.yml is being deleted in the shared tree by another lane, so it was not edited.
+    The new Sell preview: crew opens /api/sellNext (no key in the address any more); a result address
+    (/sell?car=) for crew still serves the live /sell.
+  * DEV PROBE SCRIPTS: scripts/_probeKey.mjs withProbeKey(page) adds x-probe-key from PROBE_KEY (env only) to
+    the page's own same-origin fetches, never to font or script hosts. Wired into deskGolden2, probeBatQuarters,
+    hvt100, probeR, probePoolDiag, probeDeskPool, probeYearCounts, probeSample, probeCountRetry, probeChecks,
+    probeOnline. None holds a key value.
+  * BUY SEARCH EVENT (Lane B's recipe): api/buySearch.js passes readVisitorId(req) to buyChat -> chatOut
+    (lib/live/chatHttp.js opts.visitorId) -> runTurn -> ctx; lib/live/samChat.js toolSearchLive logs
+    EVENTS.SEARCH tool "buy" with props.key make|model once per new car (state.searchKey dedups refinements).
+  * COPY: tester and lost-session lines in js/auth.js are third person now.
+  * PROBE_KEY rotated: every scratch file holding the old value was deleted (none in the repo).

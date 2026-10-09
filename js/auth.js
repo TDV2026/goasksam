@@ -490,7 +490,7 @@ function gasIsGuestLink() { return gasCookie("gas_guest") === "ok"; }
 function gateDailyWallHtml(tier) { return `<div class="sam-text">${authEsc("That didn't go through just now. Try again in a moment.")}</div>`; }
 function gateWalledReack(status) {
   status = status || gasWalledStatus;
-  if (status === "tester_daily_limit_reached") gateAppendCard(`<div class="sam-text">That's your test searches for today. They reset tomorrow, so I'll be here then.</div>`);
+  if (status === "tester_daily_limit_reached") gateAppendCard(`<div class="sam-text">That's the test searches for today. They reset tomorrow.</div>`);
   else gateAppendCard(gateDailyWallHtml());
 }
 // Guest allowance exhausted (30 lifetime). Honest stop with the subscribe upgrade path.
@@ -506,11 +506,11 @@ function gateRenderStatus(data) {
   // session. Any other status from an old cached page gets the calm line.
   if (status === "tester_daily_limit_reached") {
     const tn = Number(data && data.dailyCap) || 10;
-    gateAppendCard(`<div class="sam-text">That's your ${authEsc(String(tn))} test searches for today. They reset tomorrow. Thanks for helping put me through my paces.</div>`);
+    gateAppendCard(`<div class="sam-text">That's the ${authEsc(String(tn))} test searches for today. They reset tomorrow. Thanks for helping test Sam.</div>`);
   } else if (status === "ip_rate_limited") {
     gateAppendCard(`<div class="sam-text">${authEsc((data && data.message) || "Lots of searches from here just now. Give it a minute and try again.")}</div>`);
   } else if (status === "auth_required") {
-    gateAppendCard(`<div class="sam-text">I lost your session. Sign in again and we'll pick up where we left off.</div><div class="sell-rec-actions"><button class="primary" onclick="openSignInCard()">Sign in</button></div>`);
+    gateAppendCard(`<div class="sam-text">That sign in has ended. Sign in again and Sam picks up where you left off.</div><div class="sell-rec-actions"><button class="primary" onclick="openSignInCard()">Sign in</button></div>`);
   } else {
     gateAppendCard(gateDailyWallHtml());
   }

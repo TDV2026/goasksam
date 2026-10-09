@@ -268,7 +268,7 @@ export default async function handler(req, res) {
         if (!ce.ok) return res.status(200).json(b.action === "chat" || b.action === "rerun" || b.action === "converse" ? { reply: CALM.search, cards: [], limited: true, turns: Number(b.turns) || 0 } : { status: "unresolved", message: CALM.search, limited: true });
       }
     }
-    if (b.action === "chat") return await buyChat(res, env, b);
+    if (b.action === "chat") return await buyChat(res, env, b, readVisitorId(req));
     // The searching state's "what has been understood so far": the words parsed and the car resolved (the
     // same parser and resolver the search uses, no model call), as short chips. Never a count.
     if (b.action === "parse") {
@@ -551,7 +551,7 @@ function sauce(n) { const w = WORDS[n] || String(n); return n === 1 ? "One has b
 // plain line. SAM_MODEL and the same key as api/chat.js.
 // Buy's turn through the shared chat endpoint: cards never wait for the engine (a spec not cached yet
 // comes back "pending" and the page fetches that card's line before drawing it).
-function buyChat(res, env, b) {
-  return chatOut(res, env, b, { surface: "buy", run: runTurn,
+function buyChat(res, env, b, visitorId) {
+  return chatOut(res, env, b, { surface: "buy", run: runTurn, visitorId,
     shape: async out => ({ cards: await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; })), noun: out.noun, meta: out.meta || null, searchNote: out.searchNote }) });
 }

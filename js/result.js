@@ -1,4 +1,12 @@
+// A question typed while the result is loading is held until the result has rendered and its facts are in
+// the chat context, then sent (js/entry.js holdSellQuestion). The model never gets a question about this car
+// without the sales behind it.
 async function showSellRecommendation(opts){
+  sellState.resultPending=true;
+  try{ return await showSellRecommendationRun(opts); }
+  finally{ sellState.resultPending=false; if(typeof flushHeldSellQuestion==="function")flushHeldSellQuestion(); }
+}
+async function showSellRecommendationRun(opts){
   // rerun: a same-session re-run after a scoped Location/Price/Preference edit -
   // it must not consume a new search credit (item 3).
   var sellRerun=!!(opts&&opts.rerun);

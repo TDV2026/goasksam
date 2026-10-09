@@ -4,14 +4,15 @@
 import { supabaseEnv } from "../lib/_supabase.js";
 import { chatOut } from "../lib/live/chatHttp.js";
 import { runSellTurn } from "../lib/sell/sellChat.js";
-import { checkCeiling, followupGuard, testLimits, CALM } from "../lib/_ceilings.js";
+import { checkCeiling, followupGuard, testLimits, isCrew, CALM } from "../lib/_ceilings.js";
 import { hasServerCredential } from "../lib/_credential.js";
 
 export default async function handler(req, res) {
   // SWITCHED OFF (Oct 8 2026, Sam): /sell is back on the previous front page and wizard (api/sellPage.js).
   // The new Sell stays in the repo (lib/sell/ facts engine) but is not reachable by the public: 404 unless
-  // SELL_NEXT_ON=1 or the probe key is presented (internal testing only).
-  if (process.env.SELL_NEXT_ON !== "1" && !(process.env.PROBE_KEY && (req.headers["x-probe-key"] === process.env.PROBE_KEY || (req.query && req.query.key === process.env.PROBE_KEY)))) return res.status(404).json({ error: "Not found." });
+  // SELL_NEXT_ON=1, our header credential (lib/_credential.js; never a key in the address or body) or crew
+  // (the preview page, api/sellNext.js) - internal testing only.
+  if (process.env.SELL_NEXT_ON !== "1" && !(hasServerCredential(req) || isCrew(req))) return res.status(404).json({ error: "Not found." });
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
   const env = supabaseEnv();
   if (!env) return res.status(503).json({ error: "unavailable" });
@@ -38,8 +39,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "unknown step" });
     } catch (e) { console.error("sell flow failed:", (e && e.stack) || e); return res.status(500).json({ error: "Sam couldn't read that just now." }); }
   }
-  // Probe (PROBE_KEY): how a car resolves and what each pool step holds.
-  if (b.action === "probe" && process.env.PROBE_KEY && b.key === process.env.PROBE_KEY) {
+  // Probe (header credential): how a car resolves and what each pool step holds.
+  if (b.action === "probe" && hasServerCredential(req)) {
     const { resolveSellCar, specPool } = await import("../lib/sell/sellFacts.js");
     const { houseReceiptsForVehicle } = await import("../lib/onebox.js");
     const { car, said } = await resolveSellCar(String(b.car || ""), env);

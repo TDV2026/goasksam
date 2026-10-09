@@ -4,19 +4,21 @@
 //   POST { action:"stop", id } (signed in)           -> { ok }
 //   POST { action:"list" } (signed in)               -> { watches:[{ id, kind, label, last_event, ... }] }
 //   GET  ?run=1                                      -> the send run (Vercel cron, CRON_SECRET; or the probe key)
-//   POST { action:"test", key, kind, listing_id|vin, since, to } (probe) -> the real message for real events
+//   POST { action:"test", kind, listing_id|vin, since, to } (probe) -> the real message for real events
 //        since a past day, sent to `to` only, recorded nowhere
 // Stopping from a message is the before-it-ends signed stop link (/api/buySearch?alert=stop), which stops
 // every notice on the account, watches included (lib/live/buyAlerts.js stopAll).
 import { supabaseEnv } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { readVisitorId } from "../lib/_visitor.js";
+import { hasServerCredential } from "../lib/_credential.js";
 import { ready, arm, stop, list, run, testSend, isMissingTable, probeBackdate, probeInspect } from "../lib/live/watches.js";
 
 export default async function handler(req, res) {
   const env = supabaseEnv();
   if (!env) return res.status(500).json({ error: "not configured" });
-  const probe = !!(process.env.PROBE_KEY && ((req.query && req.query.key) === process.env.PROBE_KEY || (req.body && req.body.key) === process.env.PROBE_KEY));
+  // Our own tests: the header credential only (lib/_credential.js), never a key in the address or body.
+  const probe = hasServerCredential(req);
   res.setHeader("Cache-Control", "private, no-store");
   try {
     if (req.method === "GET" && req.query && req.query.run) {
