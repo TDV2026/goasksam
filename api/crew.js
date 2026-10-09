@@ -6,7 +6,6 @@
 // changing the env var (existing unlocked devices keep their cookie).
 import { TESTER_CODE, testerCodeExpired, testerCookieMaxAge } from "../lib/_tester.js";
 import { beehiivBySubscriberId } from "../lib/_beehiiv.js";
-import { verifyOnce } from "../lib/_onepass.js";
 
 // Mint a real Supabase session for a (Beehiiv-verified) email WITHOUT sending an email:
 // admin generate_link (creates the user if new) -> server-side verify of the returned
@@ -98,39 +97,10 @@ export default async function handler(req, res) {
     res.status(302).end();
     return;
   }
-  // GUEST tier redemption: ?guest=<CODE>. Validated against the GUEST_CODE env var; sets a
-  // JS-readable gas_guest cookie so the frontend can nudge the visitor to sign in and claim
-  // their 30. On the normal email-OTP sign-in, /api/account tiers the account "guest30" (a
-  // FIXED LIFETIME allowance of 30 searches, fully attributed - not anonymous like tester).
-  // Falls through to home on a bad code. Distinct from tester (anonymous/IP, dashboard-excluded).
-  const guest = String(q.guest || "");
-  if (guest) {
-    const expectedGuest = process.env.GUEST_CODE || "";
-    if (expectedGuest && guest === expectedGuest) {
-      res.setHeader("Set-Cookie", `gas_guest=ok; Max-Age=${60 * 60 * 24 * 180}; Path=/; SameSite=Lax; Secure`);
-      res.setHeader("Location", to);
-      res.status(302).end();
-      return;
-    }
-    res.setHeader("Location", "/");
-    res.status(302).end();
-    return;
-  }
-  // ONE-TIME PASS redemption: ?once=<TOKEN>. The token is HMAC-signed (lib/_onepass.js),
-  // so only links minted with the server secret are honored; sets a gas_once cookie
-  // carrying the token. The gate (sellerDecision) grants a small fixed number of TOTAL
-  // searches (once_cap, default 3) counted PER TOKEN, so the whole link is worth 3
-  // searches and then dies. No account, no daily reset. Falls through to home on a bad
-  // or forged token. Distinct from tester (expired) and guest (30 lifetime, per email).
-  const once = String(q.once || "");
-  if (once) {
-    if (verifyOnce(once)) {
-      res.setHeader("Set-Cookie", `gas_once=${encodeURIComponent(once)}; Max-Age=${60 * 60 * 24 * 180}; Path=/; SameSite=Lax; Secure`);
-      res.setHeader("Location", to);
-      res.status(302).end();
-      return;
-    }
-    res.setHeader("Location", "/");
+  // Old guest (?guest=) and one-time pass (?once=) links (Oct 2026, open search): search is open to everyone,
+  // so these links no longer carry any searches. Links already shared still land on the page; nothing is set.
+  if (q.guest || q.once) {
+    res.setHeader("Location", to);
     res.status(302).end();
     return;
   }

@@ -78,7 +78,12 @@ export default async function handler(req, res) {
   const context = body.context ? String(body.context).slice(0, MAX_CONTEXT) : undefined;
   // The one guard (lib/_ceilings.js): the follow-up needs a verified session and has a daily allowance; a
   // question before a search is open. Both sit under the invisible ceiling.
-  const g = mode === "followup" ? await followupGuard(env, req) : await assistGuard(env, req);
+  // Decided here from what the request carries, never from a client flag: a Sell chat that brings the result's
+  // facts (what the page rendered) is the follow-up and needs a session. A question asked DURING the wizard,
+  // before any result (product rule 12: answer it, then re-ask), carries no result facts and stays open.
+  const RESULT_FACTS = /The recommendation the seller is looking at|Decision facts \(|WHAT IS ON THE SELLER'S SCREEN|Rendered destinations \(/;
+  const gated = mode === "followup" && RESULT_FACTS.test(context || "");
+  const g = gated ? await followupGuard(env, req) : await assistGuard(env, req);
   if (!g.ok) return res.status(200).json(g.body);
   const systemBlocks = [];
   if (system) systemBlocks.push({ type: "text", text: String(system), cache_control: { type: "ephemeral" } });

@@ -1935,3 +1935,25 @@ when the work has landed.
     warm job env: add `PROBE_KEY: ${{ secrets.PROBE_KEY }}`; (2) the premium step: replace
     `--data-urlencode "key=${PROBE_KEY}"` with `-H "x-ops-key: ${PROBE_KEY}"`. And .github/workflows/smoke-prod.yml:
     add `PROBE_KEY: ${{ secrets.PROBE_KEY }}` to the env of both smoke steps (the chat checks need the header).
+- 2026-10-09 (Lane C): OPEN-SEARCH POLICY, PART 2 (THE ACCOUNT WALL IS GONE).
+  * api/sellerDecision.js computeSearchGate is now: crew skip, then lib/_ceilings.js checkCeiling (the one guard,
+    shared with Buy and the new Sell), then attribution only (a verified session's account, or the tester label).
+    Removed: the one free search and the gas_free_used cookie, the 20 per address per day signed-out cap, the
+    reserve_search daily quota (and its release/refund), guest30 (30 lifetime), the gas_once pass, the capacity
+    block, the tester 10 a day counter (it sat below the open public path; tester stays as a tier label) and a
+    stale session's auth_required wall (a session that does not verify just searches as signed out).
+    Dead helpers removed after a caller search: ipHitsSince, recordIpHit, kindHitsSince,
+    countAllTimeSearchEvents, coarseMonthKey, clientIp, lib/_onepass.js.
+  * api/account.js reports no daily allowance (dailyQuota returns nulls) and no longer makes guest30 accounts; an
+    old guest30 account becomes free on its next tier check. api/crew.js: old ?guest= and ?once= links just land
+    on the page and set nothing. js/auth.js: gateCheckUpfront never walls (and clears gas_free_used); every
+    "first one's on me" / "a search every day" / "three a day" / "30 searches" line is gone; gateRenderStatus
+    keeps only the tester line, the calm ceiling line and the lost-session line.
+  * Free and Daily Vroom kept as the follow-up allowance (40 and 80 a day, lib/_ceilings.js FOLLOWUP_PER_DAY).
+  * The follow-up gate is decided server side from what the request carries: a Sell chat whose context holds the
+    result's facts (api/chat.js RESULT_FACTS) needs a session; a question asked mid-wizard, before a result, stays
+    open (product rule 12). After sign in the question is sent again on the same car (js/entry.js
+    resumePendingFollowup from gateAfterSignup).
+  * Front doors: Buy keeps "Free · No account needed" and adds "Open to use. Sign in only to save a search or
+    watch a car."; Sell adds "Open to use. Sign in only to ask follow-up questions about a car." (index.html,
+    under "Built for enthusiast..."). Scripts bumped to js.20261009g.

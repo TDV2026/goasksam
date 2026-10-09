@@ -171,10 +171,9 @@ async function showSellRecommendation(opts){
   // ledger stays exact and the NEXT search's upfront gate walls deterministically at
   // 0 remaining, even if a later /api/account refetch fails (mobile).
   if(decisionData.daily&&typeof authApplyDaily==="function")authApplyDaily(decisionData.daily);
-  // 2C: stash the anonymous free result id for claim-on-sign-in (11a), and drop
-  // the subtle "first one's on me" line under the free result (item 2).
-  if(decisionData.resultId&&typeof gasStashResultId==="function")gasStashResultId(decisionData.resultId,!!decisionData.firstFree);
-  if(decisionData.firstFree&&typeof gateAppendFirstFreeLine==="function")setTimeout(()=>{try{gateAppendFirstFreeLine();}catch(e){}},0);
+  // 2C: a signed-out result is stashed so signing in attaches it to the account (11a). Open search: there is
+  // no "first one" line under it any more.
+  if(decisionData.resultId&&typeof gasStashResultId==="function")gasStashResultId(decisionData.resultId,!!(decisionData.anonResult||decisionData.firstFree));
   renderDecision(decisionData,{});
 }
 

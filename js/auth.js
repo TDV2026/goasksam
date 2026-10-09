@@ -249,7 +249,7 @@ function openSignInCard(subtitle) {
   const prefill = authEsc(__authPrefillEmail || "");
   scrim.innerHTML = `<div class="hp-dialog auth-dialog">
     <h3>Sign in to GoAskSam</h3>
-    <p>${authEsc(subtitle || "Create a free account to run more searches.")}</p>
+    <p>${authEsc(subtitle || "Sign in free to keep your cars and pick up where you left off.")}</p>
     <button class="auth-google" onclick="authSignInGoogle()">Continue with Google</button>
     <div class="auth-or"><span>or</span></div>
     <label class="auth-label" for="auth-email">Email me a sign-in code</label>
@@ -291,18 +291,15 @@ function authRenderTopbar() {
   if (savedNav) savedNav.style.display = authIsSignedIn() ? "" : "none";
   gasGuestNudge();
 }
-// Proactive guest nudge: a guest-link visitor who has not signed in sees a one-line
-// prompt under the search box to claim their 30. Only on the home surface; cleared once
-// signed in (they become guest30). Never overrides a real hint set by another flow.
+// The old guest link nudge (30 searches to claim) is gone with open search; this only clears a stale line.
 function gasGuestNudge() {
   try {
     if (!document.body || !document.body.classList.contains("home")) return;
     const hint = document.getElementById("hint");
     if (!hint) return;
     const signedIn = typeof authIsSignedIn === "function" && authIsSignedIn();
-    if (gasIsGuestLink() && !signedIn) {
-      hint.innerHTML = `You've got 30 searches with this link. <button class="gate-inline-link" onclick="openSignInCard('Sign in to claim your 30 searches with this link.')">Sign in to claim them</button>.`;
-    } else if (/claim them/.test(hint.textContent || "")) {
+    // Open search (Oct 2026): a guest link carries nothing extra any more, so there is nothing to claim.
+    if (/claim them/.test(hint.textContent || "")) {
       hint.innerHTML = "";
     }
   } catch (e) {}
@@ -473,95 +470,50 @@ let gasWalledStatus = null, gasWalledTier = null;
 function gasIsWalled() { return gasWalledStatus; }
 function gasSetWalled(status, tier) { gasWalledStatus = status || null; gasWalledTier = tier || null; }
 function gasClearWalled() { gasWalledStatus = null; gasWalledTier = null; }
-// Statuses that mean "no more searches until reset / sign-in" (persistent), vs transient
-// ones (ip_rate_limited, auth_required) that a retry can clear on its own.
-function gasIsWallStatus(s) { return ["daily_limit_reached", "tester_daily_limit_reached", "once_limit_reached", "guest_limit_reached", "limit_reached", "account_required", "capacity"].includes(s); }
+// The one status that still holds searches back until tomorrow: none from the open search (Oct 2026); the
+// tester line is kept only for a page on an older script. ip_rate_limited and auth_required clear on retry.
+function gasIsWallStatus(s) { return ["tester_daily_limit_reached"].includes(s); }
 // Guest link present (server-set cookie from /api/crew?guest=<CODE>): the visitor is
 // entitled to 30 lifetime searches once they sign in with their email.
 function gasIsGuestLink() { return gasCookie("gas_guest") === "ok"; }
 // ONE source of truth for the tier-branched daily-wall copy, used by BOTH the initial hard
 // wall (gateRenderStatus) and the walled-state re-ack (gateWalledReack). No dashes (house
 // rule). Anonymous (account_required) copy is separate and unchanged.
-function gateDailyWallHtml(tier) {
-  if (tier === "tdv") {
-    return `<div class="sam-text">I appreciate you wanting more. Right now at launch we're giving TDV subscribers 3 searches a day, and the clock resets at midnight ET. I'll be ready for the next one then.</div>`;
-  }
-  return `<div class="sam-text">I appreciate you wanting more. Free accounts get 1 search a day right now, resetting at midnight ET. Subscribing to <a class="gate-inline-link" href="https://thedailyvroom.com/subscribe">The Daily Vroom</a> gets you 3 a day instead, with the same email you signed in with.</div><div class="sam-text gate-sub">Already subscribed? <button class="gate-inline-link" onclick="gateRefreshTier()">Refresh your plan</button>.</div>`;
-}
+// Open-search policy (Oct 2026): there is no daily search quota any more, so no daily wall. Kept as a calm
+// fallback for any old status a cached page might still receive.
+function gateDailyWallHtml(tier) { return `<div class="sam-text">${authEsc("That didn't go through just now. Try again in a moment.")}</div>`; }
 function gateWalledReack(status) {
   status = status || gasWalledStatus;
-  if (status === "account_required" || status === "capacity") {
-    gateAppendCard(`<div class="sam-text">You'll need a free account to run another search. <button class="gate-inline-link" onclick="gateCreateAccount()">Create one</button> and I'll pick up right where we left off.</div>`);
-  } else if (status === "tester_daily_limit_reached") {
-    gateAppendCard(`<div class="sam-text">That's your test searches for today. They reset tomorrow, so I'll be here then.</div>`);
-  } else if (status === "guest_limit_reached") {
-    gateAppendCard(gateGuestWallHtml());
-  } else {
-    // daily_limit_reached / limit_reached: same tier-branched copy as the initial wall.
-    gateAppendCard(gateDailyWallHtml(gasWalledTier));
-  }
+  if (status === "tester_daily_limit_reached") gateAppendCard(`<div class="sam-text">That's your test searches for today. They reset tomorrow, so I'll be here then.</div>`);
+  else gateAppendCard(gateDailyWallHtml());
 }
 // Guest allowance exhausted (30 lifetime). Honest stop with the subscribe upgrade path.
-function gateGuestWallHtml() {
-  return `<div class="sam-text">That's all 30 of your guest searches. Subscribing to <a class="gate-inline-link" href="https://thedailyvroom.com/subscribe">The Daily Vroom</a> gets you 3 a day with the same email you signed in with.</div><div class="sam-text gate-sub">Already subscribed? <button class="gate-inline-link" onclick="gateRefreshTier()">Refresh your plan</button>.</div>`;
-}
-// The subtle "first one's on me" line under the free result (amendment item 2).
-function gateAppendFirstFreeLine() {
-  // noScroll: this appends under the fresh result, which has already anchored the
-  // user at the top of the cards. Do not pull them back down to this line.
-  gateAppendCard(`<div class="sam-text gate-firstfree">Your first one's on me. <button class="gate-inline-link" onclick="gateCreateAccount()">Create a free account</button> for a search every day. Daily Vroom readers get three, so if you want more, <a class="gate-inline-link" href="https://thedailyvroom.com/subscribe">subscribe</a> free with the same email.</div>`, { noScroll: true });
-}
+function gateGuestWallHtml() { return gateDailyWallHtml(); }
+// Open-search policy (Oct 2026): searching is open, so there is no "first one" line under a result. Kept as a
+// no-op for its caller (js/result.js).
+function gateAppendFirstFreeLine() { return false; }
 // Render the calm Sam-voiced card for each gate status (2D refines the copy).
 function gateRenderStatus(data) {
   const status = data && data.status;
-  if (status === "account_required" && gasIsGuestLink()) {
-    // Guest-link visitor after their one anonymous search: nudge to claim the 30.
-    gateAppendCard(`<div class="sam-text">You've got 30 searches with this link. Sign in with your email to claim them, and I'll pick up right where we left off.</div><div class="sell-rec-actions"><button class="primary" onclick="gateCreateAccount()">Sign in to claim 30 searches</button></div>`);
-  } else if (status === "account_required") {
-    gateAppendCard(`<div class="sam-text">That first search was on me. Create a free account for a search every day. Daily Vroom readers get three, so if you want more, <a class="gate-inline-link" href="https://thedailyvroom.com/subscribe">subscribe</a> free with the same email.</div><div class="sell-rec-actions"><button class="primary" onclick="gateCreateAccount()">Create a free account</button></div>`);
-  } else if (status === "guest_limit_reached") {
-    gateAppendCard(gateGuestWallHtml());
-  } else if (status === "limit_reached") {
-    // MONTHLY wall - now UNREACHABLE for standard tiers (daily-only policy: free +
-    // tdv have monthly_searches = null, so reserve_search never returns
-    // monthly_limit). Kept only as a defensive handler for any future tier that
-    // explicitly sets a monthly cap; the live wall is daily_limit_reached below.
-    if ((data.tier || "free") === "tdv") {
-      gateAppendCard(`<div class="sam-text">That's this month's searches. I'll have a fresh set for you next month.</div>`);
-    } else {
-      gateAppendCard(`<div class="sam-text">That's your free searches for this month. Daily Vroom readers get more, on the house. <a class="gate-inline-link" href="https://thedailyvroom.com/subscribe">Join free &rarr;</a></div><div class="sam-text gate-sub">Already a reader? <button class="gate-inline-link" onclick="openSignInCard('Sign in with the email you subscribed with and your searches are yours.')">Sign in with the email you subscribed with</button>.</div>`);
-    }
-  } else if (status === "daily_limit_reached") {
-    // Daily wall (the only per-user limit now). Resets at midnight ET; tier-branched copy
-    // (free = TDV pitch + refresh affordance; TDV = no subscribe mention), shared verbatim
-    // with the walled-state re-ack via gateDailyWallHtml.
-    gateAppendCard(gateDailyWallHtml(data && data.tier));
-  } else if (status === "tester_daily_limit_reached") {
-    // Tester cohort daily wall. No account nag (testers are deliberately account
-    // free); resets at midnight ET. Locked copy, no dashes.
+  // Open-search policy (Oct 2026): no free-search counter, no daily quota, no account wall. What is left: the
+  // tester cohort's own allowance, the invisible ceiling (a calm line, never a sign in demand) and a lost
+  // session. Any other status from an old cached page gets the calm line.
+  if (status === "tester_daily_limit_reached") {
     const tn = Number(data && data.dailyCap) || 10;
     gateAppendCard(`<div class="sam-text">That's your ${authEsc(String(tn))} test searches for today. They reset tomorrow. Thanks for helping put me through my paces.</div>`);
-  } else if (status === "once_limit_reached") {
-    // One-time pass wall. No account nag (the pass is deliberately account free); the
-    // link's searches are all used, so point to a free account for more. No dashes.
-    const on = Number(data && data.dailyCap) || 3;
-    gateAppendCard(`<div class="sam-text">That's the ${authEsc(String(on))} searches on your link, all used. Create a free account and I'll keep going with one a day.</div><div class="sell-rec-actions"><button class="primary" onclick="gateCreateAccount()">Create a free account</button></div>`);
   } else if (status === "ip_rate_limited") {
-    // The invisible ceiling (lib/_ceilings.js). Calm, plain, never a sign in demand (open-search policy).
     gateAppendCard(`<div class="sam-text">${authEsc((data && data.message) || "Lots of searches from here just now. Give it a minute and try again.")}</div>`);
   } else if (status === "auth_required") {
     gateAppendCard(`<div class="sam-text">I lost your session. Sign in again and we'll pick up where we left off.</div><div class="sell-rec-actions"><button class="primary" onclick="openSignInCard()">Sign in</button></div>`);
-  } else if (status === "capacity") {
-    gateAppendCard(`<div class="sam-text">I'm flat out right now. Give it a few minutes, or create a free account and I'll get to your search.</div><div class="sell-rec-actions"><button class="primary" onclick="gateCreateAccount()">Create a free account</button></div>`);
+  } else {
+    gateAppendCard(gateDailyWallHtml());
   }
-  // Arm the frontend guard so the next input can't start a phantom search behind the wall.
-  // Capture the tier so the re-ack shows the same tier-branched copy as this wall.
   if (gasIsWallStatus(status)) gasSetWalled(status, data && data.tier);
 }
 function gateCreateAccount() {
   gateStashPendingSearch();
   try { localStorage.setItem("gas_gate_signup", "1"); } catch (e) {}  // #2: mark this as a wall-triggered signup
-  openSignInCard("Create a free account to keep going.");
+  openSignInCard("Sign in free to keep your cars and pick up where you left off.");
 }
 // Read a non-HttpOnly cookie by name (gas_free_used, gas_crew, gas_tester).
 function gasCookie(name) {
@@ -570,33 +522,9 @@ function gasCookie(name) {
     return m ? decodeURIComponent(m[1]) : null;
   } catch (e) { return null; }
 }
-// #1 (gate timing): surface the daily limit BEFORE the wizard, not after a full car
-// entry. On the search surface, if the visitor has no searches left today, show the
-// wall as the first thing. Signed-in users check their real daily remaining (from
-// /api/account); anonymous visitors check the free-used cookie the backend sets after
-// their one free search. Crew and tester devices bypass unconditionally.
+// Open-search policy (Oct 2026): nothing is ever shown before a search. The old free-used marker is cleared.
 function gateCheckUpfront() {
-  try {
-    // Crew/tester devices bypass, matching the backend gate, UNLESS realgate is on
-    // (?realgate=1). realgate makes a crew device run the real gate for testing, so
-    // the upfront wall must appear then too (the backend honors it as forceGate).
-    const realgate = (typeof gasRealGate === "function") && gasRealGate();
-    if (!realgate && (gasCookie("gas_crew") === "ok" || gasCookie("gas_tester") === "ok" || gasCookie("gas_once"))) return false;
-    if (typeof authIsSignedIn === "function" && authIsSignedIn()) {
-      const d = (typeof authAccount === "function") && authAccount() && authAccount().daily;
-      if (d && d.dailyRemaining != null && d.dailyRemaining <= 0) {
-        const tier = authAccount().tier;
-        // guest30's "daily" fields carry the LIFETIME allowance, so 0 remaining is the
-        // 30-search wall, not a daily one.
-        if (tier === "guest30") gateShowUpfrontWall({ status: "guest_limit_reached", tier: "guest30", totalCap: d.dailyLimit });
-        else gateShowUpfrontWall({ status: "daily_limit_reached", dailyCap: d.dailyLimit, tier });
-        return true;
-      }
-    } else if (gasCookie("gas_free_used")) {
-      gateShowUpfrontWall({ status: "account_required" });
-      return true;
-    }
-  } catch (e) {}
+  try { if (gasCookie("gas_free_used")) document.cookie = "gas_free_used=; Max-Age=0; Path=/; SameSite=Lax; Secure"; } catch (e) {}
   return false;
 }
 function gateShowUpfrontWall(data) {
@@ -606,7 +534,7 @@ function gateShowUpfrontWall(data) {
   gateRenderStatus(data);
 }
 // After a wall-triggered signup, land the user on a clean HOME surface with their
-// signed-in state visible (topbar shows their email, quota now active). The saved-
+// signed-in state visible (topbar shows their email). The saved-
 // results surface is hidden for launch, so we no longer route here; the claimed result
 // still saves silently for the post-launch results surface. The pending-search stash is
 // cleared, never re-run: signup returns them to a fresh search they can now run.
@@ -617,30 +545,19 @@ function gateAfterSignup() {
   try { gated = localStorage.getItem("gas_gate_signup") === "1"; } catch (e) {}
   try { localStorage.removeItem("gas_gate_signup"); localStorage.removeItem("gas_pending_search"); } catch (e) {}
   if (!gated) return false;
-  gasClearWalled();   // fresh account has quota; lift the walled guard
+  gasClearWalled();
   if (typeof enterHomeState === "function") enterHomeState();
   if (typeof authRenderTopbar === "function") authRenderTopbar();
   return true;
 }
-// Item 2: a free-tier seller who subscribed to The Daily Vroom mid-wall can refresh
-// their plan here without re-signing-in. Forces a live Beehiiv tier re-check; on an
-// upgrade with searches left today, they can search again straight away.
+// A reader who just subscribed to The Daily Vroom can refresh their account here without signing in again:
+// a live Beehiiv re-check. Daily Vroom readers get the larger follow-up allowance (lib/_ceilings.js).
 async function gateRefreshTier() {
   if (typeof authEnsureAccount !== "function") return;
   const acc = await authEnsureAccount({ forceRecheck: true });
-  const tier = acc && acc.tier;
-  const d = acc && acc.daily;
-  if (tier === "tdv") {
-    if (d && d.dailyRemaining != null && d.dailyRemaining > 0) {
-      gasClearWalled();   // upgraded and has searches left today: lift the walled guard
-      gateAppendCard(`<div class="sam-text">You're all set. The Daily Vroom gives you three a day, so you've got ${authEsc(String(d.dailyRemaining))} more today. Tell me the next car.</div>`);
-    } else {
-      gateAppendCard(`<div class="sam-text">You're all set on The Daily Vroom's three a day. You've used today's, so I'll see you tomorrow.</div>`);
-    }
-    if (typeof authRenderTopbar === "function") authRenderTopbar();
-  } else {
-    gateAppendCard(`<div class="sam-text">I don't see a Daily Vroom subscription on this email yet. Subscribe with the same email you signed in with, then tap refresh again.</div>`);
-  }
+  if (acc && acc.tier === "tdv") gateAppendCard(`<div class="sam-text">You're all set. Daily Vroom readers get more follow-up questions each day.</div>`);
+  else gateAppendCard(`<div class="sam-text">There's no Daily Vroom subscription on this email yet. Subscribe with the same email you signed in with, then tap refresh again.</div>`);
+  if (typeof authRenderTopbar === "function") authRenderTopbar();
 }
 // 11d: stash the search that hit the gate so it resumes after sign-in.
 function gateStashPendingSearch() {

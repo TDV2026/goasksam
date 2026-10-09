@@ -8,7 +8,6 @@ import { hasServerCredential } from "../lib/_credential.js";
 import { checkCeiling, CALM } from "../lib/_ceilings.js";
 import { callOldCarsData } from "../lib/_ocd.js";
 import { testerCodeExpired } from "../lib/_tester.js";
-import { verifyOnce } from "../lib/_onepass.js";
 import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
 import { findGeneration, generationModelToken, generationsForModel } from "../lib/generations.js";
 import { sourceCoverage } from "../lib/desk/coverage.js";
@@ -2701,30 +2700,6 @@ async function appConfigInt(key, fallback, supabaseUrl, supabaseKey) {
   const n = Number(rows && rows[0] && rows[0].value);
   return Number.isFinite(n) ? n : fallback;
 }
-// Spec C: per-IP rate caps. Count-then-record against the ip_rate_hits ledger.
-// Soft (a tiny race is fine for abuse protection) and fail-OPEN: an unreadable
-// ledger never blocks a legitimate search. Crew/internal callers never reach here.
-function clientIp(req) {
-  return req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket?.remoteAddress || null;
-}
-async function ipHitsSince(ip, kind, sinceIso, supabaseUrl, supabaseKey) {
-  if (!ip) return null;
-  const rows = await supabaseSelect({ supabaseUrl, supabaseKey },
-    `ip_rate_hits?ip=eq.${encodeURIComponent(ip)}&kind=eq.${encodeURIComponent(kind)}&created_at=gte.${encodeURIComponent(sinceIso)}&select=id&limit=1000`);
-  return rows ? rows.length : null; // null => unreadable/missing table => fail open
-}
-async function recordIpHit(ip, kind, supabaseUrl, supabaseKey) {
-  if (!ip) return;
-  try { await supabaseInsert("ip_rate_hits", [{ ip, kind }], supabaseUrl, supabaseKey, "return=minimal", ""); } catch (e) {}
-}
-// Count ledger hits by KIND across all IPs (not IP-scoped). Used for the one-time
-// pass, where the allowance is bound to the token (kind once:<nonce>), not a device,
-// so it counts the same regardless of IP recycling / NAT. Fail-open (null) as above.
-async function kindHitsSince(kind, sinceIso, supabaseUrl, supabaseKey) {
-  const rows = await supabaseSelect({ supabaseUrl, supabaseKey },
-    `ip_rate_hits?kind=eq.${encodeURIComponent(kind)}&created_at=gte.${encodeURIComponent(sinceIso)}&select=id&limit=1000`);
-  return rows ? rows.length : null;
-}
 // OCD authoritative rate-limit reconciliation (Aug 2026). We persist OCD's own
 // x-ratelimit-remaining header (read in lib/_ocd.js) after every real fetch so the
 // NEXT search's budget guard can soft-degrade BEFORE a 429, using OCD's real count
@@ -2773,10 +2748,6 @@ async function logFunnel(event, fields, supabaseUrl, supabaseKey) {
     }], supabaseUrl, supabaseKey, "resolution=ignore-duplicates,return=minimal", fields.dedup_key ? "?on_conflict=event,dedup_key" : "");
   } catch {}
 }
-function coarseMonthKey() {
-  const d = new Date(Date.now() - 5 * 3600 * 1000); // rough US-eastern shift; dedup tolerance only
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-}
 function coarseDayKey() {
   const d = new Date(Date.now() - 5 * 3600 * 1000); // rough US-eastern shift; dedup tolerance only
   return d.toISOString().slice(0, 10);
@@ -2788,186 +2759,31 @@ async function persistSavedResult(accountId, payload, supabaseUrl, supabaseKey) 
     return (ins.rows && ins.rows[0] && ins.rows[0].id) || null;
   } catch { return null; }
 }
-// All-time search count for a user (the guest30 lifetime counter). Uses PostgREST's
-// exact-count header (Range 0-0) so it never fetches the rows. Returns null on failure so
-// the caller fails OPEN (a count outage never wrongly walls a guest).
-async function countAllTimeSearchEvents(userId, supabaseUrl, supabaseKey) {
-  try {
-    const res = await fetch(`${supabaseUrl}/rest/v1/search_events?user_id=eq.${encodeURIComponent(userId)}&select=id`, {
-      headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}`, Prefer: "count=exact", Range: "0-0" }
-    });
-    const cr = res.headers.get("content-range"); // "0-0/N" or "*/N"
-    if (cr && cr.includes("/")) { const n = Number(cr.split("/")[1]); return Number.isFinite(n) ? n : null; }
-    return null;
-  } catch { return null; }
-}
 
 // Returns { block } to short-circuit with that JSON, or { ok, reservationEventId,
 // accountId, anonFirstFree, anonSessionId } to proceed. Internal callers skip this.
 async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
+  // OPEN SEARCH (Oct 2026 policy, Lane C): no account is needed to search, there is no free-search counter
+  // and no daily search quota, and signed out and signed in get the same answer. What is left here is the
+  // ONE guard every Sell search path shares, lib/_ceilings.js checkCeiling (the invisible per-device and
+  // per-address ceiling, also used by Buy and the new Sell), plus who ran it for attribution: crew, the
+  // tester cohort (a label only now; its own 10-a-day counter would sit BELOW the open public path, so it
+  // is gone), or a verified account. Removed: the one free search and its gas_free_used wall, the 20 per
+  // address per day signed-out cap, the reserve_search daily quota, the guest30 lifetime 30, the gas_once
+  // pass and the capacity block (signed out never meters, so there is no metered top to protect).
   const anonSessionId = typeof req.body?.anonSessionId === "string" ? req.body.anonSessionId.slice(0, 64) : null;
   const cookies = parseCookies(req.headers.cookie);
-  // Crew-testing bypass: a device holding the pre-launch crew cookie (gas_crew=ok)
-  // skips the free-first gate AND the monthly quota entirely so testing never
-  // burns quota or hits the account wall. The search still runs and still logs
-  // (app_usage_events seller_decision), but consumes nothing (no reservation, no
-  // gas_free_used cookie). The escape hatch: body.forceGate (set by ?realgate=1)
-  // makes a crew device run the REAL gate flows on demand.
-  const forceGate = req.body?.forceGate === true;
-  if (cookies.gas_crew === "ok" && !forceGate) {
-    return { ok: true, crewBypass: true, anonSessionId };
-  }
-  // The invisible ceiling (Oct 2026, open-search policy): lib/_ceilings.js checkCeiling, the ONE guard Buy, the
-  // new Sell and this page share. Device aware (Lane B's visitor id, else a cookieless stand-in) with a far
-  // higher per-address backstop, so an office or a mobile carrier never blocks the people behind it. Replaces
-  // the old 60 per address per hour. Fail open. The page shows the calm line, never a sign in demand.
+  if (cookies.gas_crew === "ok") return { ok: true, crewBypass: true, anonSessionId };
   const ceil = await checkCeiling({ supabaseUrl, supabaseKey }, req, "sell_search", { tool: "sell" });
   if (!ceil.ok) return { block: { status: "ip_rate_limited", message: CALM.search } };
-  const ip = clientIp(req);
-  // Tester cohort (pre-launch): a device holding gas_tester=ok gets its OWN daily
-  // allowance (default 10, app_config tester_cap_day) on a SEPARATE counter (kind
-  // tester_search), never mixed with the free-tier or subscriber buckets. Searches
-  // log with tier "tester" so the dashboard keeps them out of real-user metrics.
-  // HARD-REVOKED at the expiry: testerCodeExpired() true -> the cookie is ignored
-  // and the device falls through to the normal anon/free gate below. No account.
-  // forceGate (?realgate=1) opts a tester into the real gate flows on demand.
-  // SIGNED-IN sessions are NEVER the tester cohort: the Beehiiv sign-in link
-  // (/api/crew?bhs=...) sets gas_tester ONLY to lift the curtain, but those are real
-  // subscriber ACCOUNTS. If a Bearer token is present, skip the tester bypass so the
-  // account is tiered by reserve_search (TDV 3/day) instead of the tester counter
-  // (10/day, IP-based). The anonymous ?tester= cohort has no token and still bypasses.
-  if (cookies.gas_tester === "ok" && !forceGate && !testerCodeExpired() && !req.headers.authorization) {
-    const dayStartIso = new Date(new Date().toISOString().slice(0, 10) + "T00:00:00Z").toISOString();
-    const testerHits = await ipHitsSince(ip, "tester_search", dayStartIso, supabaseUrl, supabaseKey);
-    const testerCap = await appConfigInt("tester_cap_day", 10, supabaseUrl, supabaseKey);
-    if (testerHits !== null && testerHits >= testerCap) {
-      await logFunnel("tester_daily_limit_hit", { anon_session_id: anonSessionId, dedup_key: `tester:${ip}:${coarseDayKey()}` }, supabaseUrl, supabaseKey);
-      return { block: { status: "tester_daily_limit_reached", tier: "tester", dailyCap: testerCap } };
-    }
-    // Attribution only (NOT allowance): if the tester is also signed in, attach the
-    // account id so the journey records WHO ran it and the Journey Explorer email column
-    // fills. The tester day counter above is untouched, tier stays "tester", and no
-    // reserve_search runs, so nothing counts against the account's own daily quota. A
-    // missing or invalid token simply leaves the search anonymous, exactly as before.
-    let testerAccountId = null;
-    if (req.headers.authorization) {
-      try { const a = await validateBearer(req.headers.authorization); if (a) testerAccountId = a.userId; } catch (e) {}
-    }
-    await recordIpHit(ip, "tester_search", supabaseUrl, supabaseKey);
-    return { ok: true, testerBypass: true, anonSessionId, accountId: testerAccountId };
+  // A session that does not verify (expired, signed out elsewhere) simply searches as signed out: an open
+  // search never asks anyone to sign in.
+  let accountId = null;
+  if (req.headers.authorization) {
+    try { const a = await validateBearer(req.headers.authorization); if (a) accountId = a.userId; } catch (e) {}
   }
-  // One-time pass: a device holding a gas_once cookie carrying a VALID signed token
-  // (verifyOnce, lib/_onepass.js) gets a small fixed number of TOTAL searches (default 3,
-  // app_config once_cap), counted PER TOKEN across all IPs (kind once:<nonce>), never
-  // per day and never mixed with the free/subscriber buckets. The whole link is worth 3
-  // searches and then dies for everyone; no account, no reset. A missing/forged token
-  // falls through to the normal gate (never trust the cookie: the signature is checked
-  // here too). Signed-in sessions skip it; forceGate opts back into the real gate. Logs
-  // tier "once" (kept out of real-user metrics).
-  if (cookies.gas_once && !forceGate && !req.headers.authorization) {
-    const nonce = verifyOnce(cookies.gas_once);
-    if (nonce) {
-      const kind = `once:${nonce}`;
-      const onceHits = await kindHitsSince(kind, "1970-01-01T00:00:00Z", supabaseUrl, supabaseKey);
-      const onceCap = await appConfigInt("once_cap", 3, supabaseUrl, supabaseKey);
-      if (onceHits !== null && onceHits >= onceCap) {
-        await logFunnel("once_limit_hit", { anon_session_id: anonSessionId, dedup_key: `once:${nonce}` }, supabaseUrl, supabaseKey);
-        return { block: { status: "once_limit_reached", tier: "once", dailyCap: onceCap } };
-      }
-      await recordIpHit(ip, kind, supabaseUrl, supabaseKey);
-      return { ok: true, onceBypass: true, anonSessionId };
-    }
-  }
-  const authHeader = req.headers.authorization;
-  if (authHeader) {
-    const auth = await validateBearer(authHeader);
-    if (!auth) return { block: { status: "auth_required" } };
-    const r = await supabaseRpc("reserve_search", {
-      p_user_id: auth.userId, p_make: vehicle.make || null, p_model: vehicle.model || null, p_year: vehicle.year || null
-    }, supabaseUrl, supabaseKey);
-    const row = Array.isArray(r) ? r[0] : r;
-    if (!row) {
-      // RPC/infra failure (NOT a real limit): fail OPEN so an outage never blocks
-      // a legitimate search. Runs unmetered (no reservation) and logs loudly.
-      console.error("reserve_search returned no row for", auth.userId, "- allowing search unmetered (RPC/infra issue)");
-      return { ok: true, reservationEventId: null, accountId: auth.userId, anonSessionId };
-    }
-    if (!row.allowed) {
-      // Guest tier: the daily cap equals the lifetime cap (30), so ANY reserve refusal for
-      // a guest means the 30 are spent - show the honest guest wall, never the daily-reset
-      // copy. (Across days the lifetime check below is what fires; same-day-30 lands here.)
-      if (row.tier === "guest30") {
-        await logFunnel("guest_limit_hit", { user_id: auth.userId, dedup_key: `guest:${auth.userId}` }, supabaseUrl, supabaseKey);
-        return { block: { status: "guest_limit_reached", tier: "guest30", totalCap: 30 } };
-      }
-      // Spec A: the daily wall is a distinct block from the monthly one, with its
-      // own funnel event, and carries the tier's daily cap as `dailyCap` so the
-      // frontend picks the singular (n=1) vs plural (n>1) wall copy.
-      if (row.reason === "daily_limit") {
-        await logFunnel("daily_limit_hit", { user_id: auth.userId, dedup_key: `daily:${auth.userId}:${coarseDayKey()}` }, supabaseUrl, supabaseKey);
-        return { block: { status: "daily_limit_reached", tier: row.tier || "free", dailyCap: Number(row.daily_limit) || 1 } };
-      }
-      await logFunnel("limit_hit", { user_id: auth.userId, dedup_key: `limit:${auth.userId}:${coarseMonthKey()}` }, supabaseUrl, supabaseKey);
-      return { block: { status: "limit_reached", tier: row.tier || "free" } };
-    }
-    // GUEST tier (guest30): a FIXED LIFETIME allowance of 30 total searches (not daily),
-    // enforced here against the account's ALL-TIME search_events - its own per-user counter,
-    // fully separate from crew/tester/free/TDV. reserve_search already reserved + attributed
-    // this row (so the search is dashboard-visible); if it pushed the lifetime total past 30,
-    // refund the reservation and wall honestly. guest30's rate_limits daily cap is set high
-    // enough that the daily wall never binds before this lifetime cap.
-    if (row.tier === "guest30") {
-      const GUEST_TOTAL = 30;
-      const used = await countAllTimeSearchEvents(auth.userId, supabaseUrl, supabaseKey);
-      if (used !== null && used > GUEST_TOTAL) {
-        if (row.event_id) { try { await supabaseRpc("release_search", { p_event_id: row.event_id }, supabaseUrl, supabaseKey); } catch (e) {} }
-        await logFunnel("guest_limit_hit", { user_id: auth.userId, dedup_key: `guest:${auth.userId}` }, supabaseUrl, supabaseKey);
-        return { block: { status: "guest_limit_reached", tier: "guest30", totalCap: GUEST_TOTAL } };
-      }
-      // Report the LIFETIME remaining (not daily) so the client's upfront gate walls at 0.
-      const guestDaily = { dailyLimit: GUEST_TOTAL, dailyUsed: used ?? 0, dailyRemaining: Math.max(0, GUEST_TOTAL - (used ?? 0)) };
-      return { ok: true, reservationEventId: row.event_id, accountId: auth.userId, anonSessionId,
-        quota: { used: used ?? 0, limit: GUEST_TOTAL, tier: "guest30" }, daily: guestDaily };
-    }
-    // Authoritative post-reserve DAILY count (same transaction as the insert, so it
-    // can never disagree with the wall). The frontend applies this to its cached
-    // account so the upfront gate on the NEXT search knows the true remaining without
-    // a separate /api/account refetch (which could fail on mobile). null daily_limit
-    // = uncapped tier (crew/unlimited) -> no client cap.
-    const daily = (row.daily_limit != null)
-      ? { dailyLimit: Number(row.daily_limit), dailyUsed: Number(row.daily_used), dailyRemaining: Math.max(0, Number(row.daily_limit) - Number(row.daily_used)) }
-      : null;
-    return { ok: true, reservationEventId: row.event_id, accountId: auth.userId, anonSessionId,
-      quota: { used: row.used, limit: row.limit, tier: row.tier }, daily };
-  }
-  // Spec C (a): anonymous searches per IP per day. Protects the anonymous
-  // endpoint from cookie-clearing abuse (a signed-in user is on the auth path
-  // above and never reaches this). Fail open on an unreadable ledger.
-  const dayStartIso = new Date(new Date().toISOString().slice(0, 10) + "T00:00:00Z").toISOString();
-  const anonDayHits = await ipHitsSince(ip, "anon_search", dayStartIso, supabaseUrl, supabaseKey);
-  const anonDayCap = await appConfigInt("ip_cap_anon_day", 20, supabaseUrl, supabaseKey);
-  if (anonDayHits !== null && anonDayHits >= anonDayCap) {
-    return { block: { status: "ip_rate_limited" } };
-  }
-  await recordIpHit(ip, "anon_search", supabaseUrl, supabaseKey);
-  // Anonymous free-first-search.
-  if (cookies.gas_free_used) {
-    await logFunnel("second_search_attempt", { anon_session_id: anonSessionId }, supabaseUrl, supabaseKey);
-    return { block: { status: "account_required" } };
-  }
-  // FLAG 1: anonymous may not spend the auth-reserved top of the daily OCD
-  // budget. But a cache-hit search costs nothing, so only floor anonymous when a
-  // FRESH metered fetch would actually be needed (cache miss). This keeps the
-  // free-first path open on a busy day for the many cars already in the store.
-  const cacheHit = await readMarketFetchCache(vehicle, supabaseUrl, supabaseKey);
-  if (!cacheHit) {
-    const reserved = await appConfigInt("ocd_auth_reserved_requests", 8, supabaseUrl, supabaseKey);
-    const usedToday = await ocdRequestsToday(supabaseUrl, supabaseKey);
-    if (usedToday !== null && usedToday >= (OCD_DAILY_REQUEST_BUDGET - reserved)) {
-      return { block: { status: "capacity" } };
-    }
-  }
-  return { ok: true, anonFirstFree: true, anonSessionId };
+  const tester = cookies.gas_tester === "ok" && !testerCodeExpired() && !accountId;
+  return { ok: true, testerBypass: tester, accountId, anonSessionId, anonResult: !accountId };
 }
 
 // SPEND PROTECTION (Oct 2026, open-search policy): request flags that skip the search gate, force a fresh
@@ -3757,7 +3573,7 @@ export default async function handler(req, res) {
       if (gate.block) return res.status(200).json(gate.block);
       reservationEventId = gate.reservationEventId || null;
       searchAccountId = gate.accountId || null;
-      anonFirstFree = !!gate.anonFirstFree;
+      anonFirstFree = !!gate.anonResult;
       anonSessionId = gate.anonSessionId || null;
       searchQuota = gate.quota || null;
       searchDaily = gate.daily || null;
@@ -4421,10 +4237,9 @@ export default async function handler(req, res) {
         responsePayload.resultId = savedId;
         await logFunnel("rec_shown", { user_id: searchAccountId, anon_session_id: anonSessionId, dedup_key: `rec:${savedId}` }, supabaseUrl, supabaseKey);
       }
-      if (anonFirstFree) {
-        responsePayload.firstFree = true;
-        res.setHeader("Set-Cookie", "gas_free_used=1; Max-Age=31536000; Path=/; SameSite=Lax; Secure");
-      }
+      // A signed-out result is kept for its visitor: signing in later attaches it to the account (claim on
+      // sign in, js/auth.js gas_free_result). No marker cookie any more (open search).
+      if (anonFirstFree) responsePayload.anonResult = true;
     }
     res.status(200).json(responsePayload);
     // SELL_PICK_SHADOW (item 5, off by default): the seller already has their answer on the line
