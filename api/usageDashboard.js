@@ -5271,12 +5271,13 @@ async function handleOps(req, res) {
     }
     // 4. All 11 admin-analytics.md views, computed in JS from raw pulls (full history, capped generously -
     // real volume today is tiny; a nightly-summarized table is the documented next step once it isn't).
-    const allEvents = await raw("funnel_events?select=event,tool,props,visitor_id,user_id,created_at&order=created_at.asc&limit=50000");
-    const allLinks = await raw("visitor_links?select=visitor_id,user_id,first_seen_at,linked_at&limit=50000");
-    const allTouch = await raw("visitor_first_touch?select=visitor_id,utm_source&limit=50000");
-    const events = allEvents.ok ? allEvents.rows : [];
-    const links = allLinks.ok ? allLinks.rows : [];
-    const touches = allTouch.ok ? allTouch.rows : [];
+    // supabaseSelectAll (not raw/limit=) - PostgREST caps a bare limit= at db-max-rows (1000 on
+    // Supabase) regardless of the number asked for; this walks the Range header to get everything.
+    // A plain limit= here would silently return only the OLDEST 1000 rows (order=created_at.asc),
+    // excluding every row from today's test journey - exactly the bug this replaced.
+    const events = (await supabaseSelectAll(env, "funnel_events?select=event,tool,props,visitor_id,user_id,created_at&order=created_at.asc")) || [];
+    const links = (await supabaseSelectAll(env, "visitor_links?select=visitor_id,user_id,first_seen_at,linked_at")) || [];
+    const touches = (await supabaseSelectAll(env, "visitor_first_touch?select=visitor_id,utm_source")) || [];
     const now = Date.now(), DAY = 86400000;
     const since30 = now - 30 * DAY, since7 = now - 7 * DAY;
     const t = r => new Date(r.created_at).getTime();
