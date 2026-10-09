@@ -605,6 +605,9 @@ when the work has landed.
   - LANE A: Round D's `.gas-signbar-m{position:fixed}` (lib/authBar.js) covered Buy's "Your searches" on a
     phone. Buy already places that bar inside its own top bar, so BUY_CSS sets `.mhead .gas-signbar-m{position:
     static}` (and hides the account email there, Sign out stays). No change to lib/authBar.js.
+    UPDATE Oct 9: Lane A fixed it at the source (fcc17b2), so the position:static override is removed. Kept in
+    BUY_CSS: the phone row-fit rules (account email hidden, "Your searches" on one line, .mright may shrink).
+    Without them, signed in at 390 the email + Sign out (279px) pushed the page to 500px wide.
   - FOR SAM (sign in): a first-time email sign in gets Supabase's "Confirm your signup" LINK, not a code (the
     sign in card says "Email me a code"; seen Oct 9 with a fresh test inbox). The Supabase "Confirm signup"
     email template likely needs {{ .Token }} like the one returning users get, or new users can't finish
