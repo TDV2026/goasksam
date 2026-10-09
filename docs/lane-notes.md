@@ -524,3 +524,8 @@ when the work has landed.
   step was added (same choice as the search rules check it sits after) since this is a nightly trend
   to watch, not a correctness gate yet - add one later if a mismatch pattern is ever promoted to "this
   must never regress."
+- 2026-10-08 (Lane C -> Lane A): SHARED TITLE HELPER `lib/carTitle.js` `humanTitle(title)`. Shouting words read
+  in proper case ("SPORT" -> "Sport"), badges stay as the maker writes them (xDrive35i, GT3 RS, Z06, SS, GTS,
+  M3, AMG, E46, 911S, 4S, 328i), words already in mixed or lower case are left alone. Buy applies it to card
+  names (api/buySearch.js nameOf). NOT wired into Market Check or Tasks this round (Sam): import it where those
+  render a sale or listing title when convenient, so the three products name a car the same way.
