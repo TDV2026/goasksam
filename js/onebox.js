@@ -883,6 +883,63 @@
     keys.forEach(function (k) { delete r[k]; });
     return RMCHIP_ANSWER_KEYS.some(function (k) { return r[k] != null; }) ? r : null;
   }
+  // Sign-in-then-continue for "Put Sam on it" (Oct 2026): module scope, not inside wire(), so both
+  // the click handler AND renderResults() (after a post-sign-in reload) can reach it. Mirrors Buy's
+  // own askSignIn/resumeArm/armWait pattern (api/buy.js) - a pending-arm flag in sessionStorage, a
+  // short poll for authIsSignedIn(), an auto-arm once true. Covers both sign-in doors: email-code
+  // never navigates away (obLastD/vinAnchor are still the current result, so the poll alone resumes
+  // it); Google redirects away and back (js/auth.js keeps location.search on that round trip, so
+  // boot()'s mcApplyFromUrl rebuilds the SAME result fresh - tryResumeWatchArm(), called once after
+  // every renderResults(), is what catches that case; a no-op unless the flag is set).
+  var OB_PENDWATCH_KEY = "gas_ob_pendwatch";
+  function stashPendingWatch() { try { sessionStorage.setItem(OB_PENDWATCH_KEY, JSON.stringify({ at: Date.now() })); } catch (e) {} }
+  function pendingWatch() { try { var p = JSON.parse(sessionStorage.getItem(OB_PENDWATCH_KEY) || "null"); return (p && Date.now() - p.at < 30 * 6e4) ? p : null; } catch (e) { return null; } }
+  function clearPendingWatch() { try { sessionStorage.removeItem(OB_PENDWATCH_KEY); } catch (e) {} }
+  function watchArmPayload() {
+    if (vinAnchor && obSourceVin) return { kind: "vin", vin: obSourceVin };
+    var rc = obLastD && obLastD.resolvedCar;
+    if (!rc || !rc.make || !rc.model) return null;
+    var car = { year: rc.year || null, make: rc.make, model: rc.model, trim: rc.trim || null, body: rc.bodyStyle || null };
+    if (obLastRefine && obLastRefine.tx) car.gearbox = obLastRefine.tx === "manual" ? "manual" : "automatic";
+    return { kind: "spec", car: car };
+  }
+  // Shared success path for both a direct click and a resumed post-sign-in arm: updates the band in
+  // place and redraws the shared rail's Watching section at once, no reload (item 4).
+  function armWatchNow(onFail) {
+    var payload = watchArmPayload(); if (!payload) { if (onFail) onFail(); return; }
+    var sess = (typeof authGetSession === "function") ? authGetSession() : null;
+    var tok = sess && sess.access_token;
+    if (!tok) { if (onFail) onFail(); return; }
+    obFetch(API_ORIGIN + "/api/watch", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok }, body: JSON.stringify(Object.assign({ action: "arm" }, payload)) })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j && j.watch) {
+          obWatchArmed = j.watch; obWatchFirst = !!j.first;
+          var sec = document.querySelector(".samonit");
+          if (sec) sec.outerHTML = samOnItHtml(obLastD, vinAnchor);
+          if (typeof gasWatchRail === "function") gasWatchRail();
+          return;
+        }
+        if (onFail) onFail();
+      })
+      .catch(function () { if (onFail) onFail(); });
+  }
+  var obArmWait = null;
+  // Called once after every render AND right after a sign-in click. A no-op unless a pending watch
+  // is stashed. On the post-Google-redirect path, js/auth.js's deferred script (which processes the
+  // OAuth callback and writes the session) may not have run yet when the first render lands - so a
+  // pending flag with authIsSignedIn() still false gets a short poll here too, not an immediate
+  // give-up, same TTL as the stash itself.
+  function tryResumeWatchArm() {
+    if (!pendingWatch()) return;
+    if (typeof authIsSignedIn === "function" && authIsSignedIn()) { clearPendingWatch(); armWatchNow(null); return; }
+    if (obArmWait) return;
+    var t0 = Date.now();
+    obArmWait = setInterval(function () {
+      if (typeof authIsSignedIn === "function" && authIsSignedIn()) { clearInterval(obArmWait); obArmWait = null; clearPendingWatch(); armWatchNow(null); return; }
+      if (!pendingWatch() || Date.now() - t0 > 6000) { clearInterval(obArmWait); obArmWait = null; clearPendingWatch(); }
+    }, 400);
+  }
   // Item 9 ("Put Sam on it"), connected (Oct 2026) to Lane C's /api/watch - arm by spec (car object,
   // no listing_id) or arm by VIN, the same endpoint and wording Buy's own watch control uses (see
   // docs/lane-notes.md). Gated on OB_WATCH_READY (no control while the tables aren't set up). Once
@@ -1250,6 +1307,9 @@
     wire();
     streamReveal();
     if (d.tier === "result" || d.tier === "thin") loadLivePanel(d, m);
+    // Sign-in-then-continue (item 3): a no-op unless a watch arm is pending from before a Google
+    // sign-in redirect (boot()'s mcApplyFromUrl just rebuilt this same result fresh).
+    if (d.tier === "result") tryResumeWatchArm();
   }
   // QUESTION screen (Question.html): one card, SAM roundel, eyebrow, the question in Newsreader,
   // 44px+ chips, and the honest cap line. A question never renders inside a Sam's Take panel.
@@ -2022,47 +2082,28 @@
     // Item 9 ("Put Sam on it"), connected (Oct 2026): Lane C's arm-by-spec/arm-by-vin addition to
     // /api/watch (docs/lane-notes.md) takes a resolved car or a bare VIN directly, no listing_id
     // needed - the SAME endpoint and wording Buy's own watch control uses, never a second one.
-    // Signed-out click opens the shared sign-in card only (mirrors Buy's own armWatch(): no post-
-    // signin auto-resume there either, so none is added here - sign in, then click again, same
-    // two-step either page). Signed-in click arms straight away.
+    // Sign-in-then-continue (helpers at module scope, see above wire()): a pending-arm flag in
+    // sessionStorage, a short poll for authIsSignedIn(), and an auto-arm once true; closing the
+    // sign-in card without completing leaves nothing armed.
     (function () {
       var soi = document.getElementById("ob-samonit"); if (!soi) return;
       soi.addEventListener("click", function () {
         if (!(typeof authIsSignedIn === "function" && authIsSignedIn())) {
+          stashPendingWatch();
           if (typeof openSignInCard === "function") openSignInCard("Sign in to keep a watch. Free. No card, no plan.");
+          clearInterval(obArmWait); obArmWait = null; var t0 = Date.now();
+          obArmWait = setInterval(function () {
+            if (typeof authIsSignedIn === "function" && authIsSignedIn()) { clearInterval(obArmWait); obArmWait = null; tryResumeWatchArm(); return; }
+            if (!document.getElementById("auth-modal") && Date.now() - t0 > 1500) { clearInterval(obArmWait); obArmWait = null; clearPendingWatch(); }
+          }, 600);
           return;
         }
-        var payload;
-        if (vinAnchor && obSourceVin) {
-          payload = { kind: "vin", vin: obSourceVin };
-        } else {
-          var rc = obLastD && obLastD.resolvedCar;
-          if (!rc || !rc.make || !rc.model) return;
-          var car = { year: rc.year || null, make: rc.make, model: rc.model, trim: rc.trim || null, body: rc.bodyStyle || null };
-          if (obLastRefine && obLastRefine.tx) car.gearbox = obLastRefine.tx === "manual" ? "manual" : "automatic";
-          payload = { kind: "spec", car: car };
-        }
         var msg = document.getElementById("ob-samonit-msg");
-        var sess = (typeof authGetSession === "function") ? authGetSession() : null;
-        var tok = sess && sess.access_token;
-        if (!tok) return;
         soi.disabled = true; soi.textContent = "One moment...";
-        obFetch(API_ORIGIN + "/api/watch", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok }, body: JSON.stringify(Object.assign({ action: "arm" }, payload)) })
-          .then(function (r) { return r.json(); })
-          .then(function (j) {
-            if (j && j.watch) {
-              obWatchArmed = j.watch; obWatchFirst = !!j.first;
-              var sec = soi.closest(".samonit");
-              if (sec) sec.outerHTML = samOnItHtml(obLastD, vinAnchor);
-              return;
-            }
-            soi.disabled = false; soi.textContent = "Put Sam on it →";
-            if (msg) { msg.hidden = false; msg.textContent = "That didn’t work just now. Try again in a moment."; }
-          })
-          .catch(function () {
-            soi.disabled = false; soi.textContent = "Put Sam on it →";
-            if (msg) { msg.hidden = false; msg.textContent = "That didn’t work just now. Try again in a moment."; }
-          });
+        armWatchNow(function () {
+          soi.disabled = false; soi.textContent = "Put Sam on it →";
+          if (msg) { msg.hidden = false; msg.textContent = "That didn’t work just now. Try again in a moment."; }
+        });
       });
     })();
   }

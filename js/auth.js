@@ -60,7 +60,10 @@ function authPopConsent() { try { const v = localStorage.getItem(AUTH_CONSENT_KE
 async function authSignInGoogle() {
   const cfg = await authConfig(); if (!cfg) return authCardError("Sign-in isn't configured yet. Try again shortly.");
   authStashConsent(authReadConsentCheckbox());
-  const redirect = encodeURIComponent(location.origin + location.pathname);
+  // Oct 2026, Market Check sign-in-then-continue: the redirect used to drop location.search,
+  // so a visitor mid-result (car/VIN in the query string) lost their place on the Google round
+  // trip. Preserving the full URL is strictly more correct for every caller of this function.
+  const redirect = encodeURIComponent(location.origin + location.pathname + location.search);
   // Route the visible OAuth authorize through the custom auth domain when configured, so
   // Google's consent screen reads "GoAskSam" / auth.goasksam.com instead of the raw
   // <ref>.supabase.co. Falls back to supabaseUrl when SUPABASE_AUTH_URL is unset (today).
