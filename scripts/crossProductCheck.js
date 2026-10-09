@@ -137,7 +137,7 @@ async function buyLane(env, v, f) {
 
 // ---- Lane 3: Sell (fetchOnlinePool, the shared pool buildSharedAnalysis aggregates from) ----
 async function sellLane(vehicle, generation, env) {
-  const { spec, pool, cluster, referenceFigure } = await fetchOnlinePool(vehicle, generation, env);
+  const { spec, pool, cluster, referenceFigure, recent3 } = await fetchOnlinePool(vehicle, generation, env);
   if (!spec) return { ok: false, reason: "no spec (vehicle did not resolve to a buildable spec)" };
   if (!pool.length) return { ok: false, reason: "empty pool (genuinely zero online sales on record)" };
   const priced = pool.map(r => ({ ...r, _usd: Number.isFinite(r._usd) ? r._usd : hammerUsd(r) })).filter(r => Number.isFinite(r._usd) && r._usd > 0);
@@ -145,7 +145,10 @@ async function sellLane(vehicle, generation, env) {
   const prices = priced.map(r => r._usd);
   const label = [generation?.code, vehicle.model, spec.trim].filter(Boolean).join(" ") || vehicle.model || null;
   const sorted = priced.slice().sort((a, b) => String(b.auction_end_date || "").localeCompare(String(a.auction_end_date || "")));
-  const recent = normRecent(sorted, "pool");
+  // recent: read the engine's OWN deduped recent3 (lib/onebox.js lastThreeDistinct, passed through by
+  // fetchOnlinePool) rather than re-sorting `pool` here - a second "most recent 3" implementation
+  // disagreed with the engine's on a re-listed title (same car, two listings), see lib/platformPick.js.
+  const recent = normRecent(Array.isArray(recent3) ? recent3 : sorted, Array.isArray(recent3) ? "cards" : "pool");
   // fetchOnlinePool now reads runOneBox's own ladder (Oct 2026 "one engine ladder" fix), so it
   // carries the SAME cluster band Market Check/Buy/Tasks use for low/high - prefer it here too, same
   // gate as marketOf() (lib/live/search.js): a real cluster only exists at 8+ solid sales. The
