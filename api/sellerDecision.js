@@ -5,7 +5,7 @@ import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, 
 import { supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { hasServerCredential } from "../lib/_credential.js";
-import { checkCeiling, CALM } from "../lib/_ceilings.js";
+import { checkCeiling, testLimits, CALM } from "../lib/_ceilings.js";
 import { logEvent, EVENTS } from "../lib/events.js";
 import { readVisitorId } from "../lib/_visitor.js";
 import { callOldCarsData } from "../lib/_ocd.js";
@@ -2776,8 +2776,12 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
   const anonSessionId = typeof req.body?.anonSessionId === "string" ? req.body.anonSessionId.slice(0, 64) : null;
   const cookies = parseCookies(req.headers.cookie);
   if (cookies.gas_crew === "ok") return { ok: true, crewBypass: true, anonSessionId };
-  const ceil = await checkCeiling({ supabaseUrl, supabaseKey }, req, "sell_search", { tool: "sell" });
-  if (!ceil.ok) return { block: { status: "ip_rate_limited", message: CALM.search } };
+  // Our own jobs (header credential) are not counted, unless they send the test ceiling (x-ceiling-test).
+  const cred = hasServerCredential(req), lim = testLimits(req, cred);
+  if (!cred || lim) {
+    const ceil = await checkCeiling({ supabaseUrl, supabaseKey }, req, "sell_search", { tool: "sell", limits: lim });
+    if (!ceil.ok) return { block: { status: "ip_rate_limited", message: CALM.search } };
+  }
   // A session that does not verify (expired, signed out elsewhere) simply searches as signed out: an open
   // search never asks anyone to sign in.
   let accountId = null;
