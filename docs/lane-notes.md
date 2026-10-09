@@ -1093,3 +1093,85 @@ when the work has landed.
      running_task_id, running_task, attempted_job, mode, button). Probe reader: /api/tasks test_limit_events.
   4. Tasks cards use lib/carTitle.js humanTitle; the Buy landing example reads "within 300 miles of New York"
      (the search still uses ZIP 10282; cache key v10).
+- 2026-10-09 (Lane A): Market Check results page additions, Lane B's engine fields rendered client-side, plus
+  the one-line api/buy.js crew fix. Commits bd10226.. engine side (Lane B, already shipped); frontend/API this
+  round landed as 4205019 (Fix sellshadow venue comparison... - a commit race bundled this round's
+  api/buySearch.js + js/onebox.js + onebox.html + vercel.json changes under Lane C's unrelated sellshadow
+  commit message; content verified correct via diff, not re-done), then 7934e5a and 15a44d5 (two small
+  follow-up fixes, clean commits). Script version js.20261014l (onebox.html + vercel.json rewrite).
+  1. api/buy.js: `crew` now passed into railOpenHtml() (was missing). Verified live both cookie states.
+  2a. Eyebrow: "{N} sold in {window}" using soldCount (already word-under-ten) + windowLabel. No "based on".
+  2b. Four quarters: rendered as plain lines (period, band, count), newest first, ONLY when 2+ quarters have
+      a real band (quarterlyBandsHtml, js/onebox.js). FLAGGING A SPEC CONTRADICTION: the brief asked each line
+      to "open that quarter's sales" via quarterlyBands[i].sales, but the engine (quarterlyBandsFor,
+      lib/onebox.js) only populates .sales for a quarter WITHOUT a band - the thin ones this view does not
+      show. There is nothing honest to open for the quarters that actually render here, so NOT wired as a
+      click target. If an open-on-click interaction is wanted, the engine needs to also carry .sales (or a
+      per-quarter card list) for BANDED quarters, which it deliberately does not today (keeping banded-quarter
+      payload small). Verified live (M3, 997, Targa: 3 banded lines each; Countach: 0, correctly nothing).
+  2c. Direction: yoyDirection.sentence rendered verbatim plus two small lines for recentBand/priorBand. Null
+      -> nothing. Verified live on all 4 non-VIN cars and the VIN case.
+  2d. "N set aside" / "N didn't sell" quiet lines, collapsed by default, each expanding its own list
+      (setAsideLineHtml/didNotSellLineHtml). Set aside buckets by reason (modified/project/replica/odd sale)
+      from setAsideReasons, rows from setAsideRows (poolCardHtml, so soldBefore still shows if present).
+      Didn't sell lists date/high bid/platform/link from didNotSellRows. NOTE FOR SAM: d.asideCards (the
+      existing "Shown separately" section) and d.setAsideRows are THE SAME underlying array (both
+      shapeCards(aside) in lib/onebox.js buildResult) - on a result with any aside rows, a reader now sees
+      the same cars twice: once in the open "Shown separately" grid (with Above/Below range tags) and again
+      collapsed under the new "N set aside" line (with reason tags). Built exactly as specified rather than
+      unilaterally removing/merging the older section; flagging in case you want "Shown separately" retired
+      once this ships. Caught and fixed live: setAsideCount word-ifies under ten (countWord), so the singular
+      check needed n === "one" alongside n === 1 ("one sale set aside", not "one sales" - fixed in 15a44d5).
+  2e. Placing: wherever a live bid is shown (the "N like this are live right now" panel), the word now appends
+      ("Current bid $59,000 · above the range"). Required a small server change: js/onebox.js's loadLivePanel
+      now passes the headline's own cluster band as lo/hi on the ?panel=1 call; api/buySearch.js's panel
+      handler imports placingFor from lib/onebox.js and computes it per row against that band (never a second
+      band, never guessed - null when there is no cluster or no usable dollar figure). Verified live: M3 shows
+      "above the range", 997 shows "below the range".
+  2f. Sold before: poolCardHtml now appends a "Sold before on {date} for {price}" line (linked when the
+      engine gives a link) when cards[i].soldBefore is set. Scoped to d.cards-shaped cards only (attachSoldBefore
+      mutates result.cards, never result.representative.closest/high/low, so the hero/side cards never carry
+      it - this matches where the engine itself writes the field). Verified live: 9-10 lines on the three
+      Porsche/BMW cars, 2 on the VIN match's comparable pool, 0 on the thin Countach case (no history there).
+  2g. Removable current-answer chips: currentAnswersChipsHtml() reads obLastRefine (miles/body/tx/trim/
+      variant/driver/observe, whichever are answered) at the top of the result. Removing one calls
+      refineWithout(dim) (clears just that dimension's keys, null if nothing else is answered) and reruns via
+      the existing runPool, which already updates the address (mcPushUrl). Verified locally end to end
+      (fixture test): answering a mileage chip shows "under 60k ×", clicking it clears back to no chips.
+  2h. Copy link: untouched, confirmed still present (data-share button, mcUrlActive-gated).
+  2i. "Put Sam on it" band: built (samOnItHtml) with the two exact lines Sam gave (spec vs VIN). NOT wired to
+      a watch creation call. First pass reused the OLD api/buySearch action:"watch" -> watch_requests (the
+      only call visible before Lane C's note above landed) - caught and removed before anything shipped once
+      Lane C's same-day note said those rows are "never sent, no sender reads them." Lane C's REAL call
+      (api/watch action:"arm", see their note above) is gated on a live_listings listing_id: arm() looks up
+      the live row and reads the spec/VIN off IT (lib/live/watches.js line ~148-166), never off a typed spec.
+      Market Check has no listing_id on either path (a plain spec search has none at all; a VIN match is an
+      archive row, not necessarily a live one), so there is no honest call today on EITHER the spec or the VIN
+      branch. Current behavior: signed-out click opens the shared sign-in card (openSignInCard, confirmed
+      working - js/auth.js loads deferred but the button only calls it at click time); signed-in click does
+      nothing further (no network call, no confirmation message) rather than claim something that doesn't
+      happen. FOR LANE C: an arm-by-spec/arm-by-vin path that accepts a resolved vehicle (make/model/trim/
+      body/year) or a bare VIN directly, with no listing_id requirement, is what would let this reconnect -
+      the baseline-date logic in arm()'s spec branch (cohortAnswer against the newest sale already in the
+      pool) looks directly reusable once there's an entry point that doesn't require a live row first.
+  2j. Copy audit: grepped the new functions for worth/valuation/estimate/appraisal/undervalued/overvalued/
+      median/scatter/dashes/first-person - none found.
+  3. Tested live (real deploy, not local): 2001 BMW M3 Coupe, 2009 Porsche 911 Carrera S Coupe, 1988 Porsche
+     911 Carrera Targa (all dense results, all additions shown except placing - no live listing happened to be
+     up for the Targa at test time, so nothing rendered there, correctly), 1990 Lamborghini Countach (thin:
+     quarters/direction absent - correctly, pool never clears the 2-quarter-banded or 8-sale useRecent floor;
+     set-aside+didn't-sell quiet lines present), and a VIN (WBS4Y9C55KAG67564, an exact match): direction
+     present, quarters absent (13 sold, under the floor), soldBefore on 2 comparable cards, samonit using the
+     VIN-specific line. Screenshots at 1440 saved this session (not committed, local only).
+  LOCAL TESTING NOTE for future Lane A rounds: a browser page served off localhost cannot reach
+  https://goasksam.com/api/* directly (credentials:"include" + the API's wildcard CORS reject a non-wildcard-
+  origin preflight; a raw curl/node fetch to the live API also gets Vercel's Attack Challenge Mode 429, not a
+  real failure - see [[smoke-429-attack-challenge]]). Worked around this round by building a fixture JSON
+  matching the engine's documented return shape and intercepting the page's fetch via Puppeteer
+  setRequestInterception, which is honest for testing RENDER logic (the engine's own correctness is Lane B's
+  shipped responsibility) but cannot stand in for testing against real data - final verification was a second
+  pass against the live deployed page with a real headless Chrome (which the Attack Challenge does let
+  through, confirmed again this round).
+  Search check: rule 1 (soldCount/quarters/direction are dated-window market facts, re-derived every render,
+  never cached stale), rule 3 (no change to title/H1/canonical/lead), rule 7 (no new indexable surface - these
+  additions are on the existing /market-check results view only).
