@@ -6,7 +6,7 @@
 import { supabaseEnv, supabaseInsert } from "../lib/_supabase.js";
 import { recordJourneyEvent, journeyVehicle, CLIENT_JOURNEY_EVENTS } from "../lib/_journey.js";
 import { ensureVisitorId } from "../lib/_visitor.js";
-import { EVENTS } from "../lib/events.js";
+import { EVENTS, storeFirstTouchOnce } from "../lib/events.js";
 
 const ALLOWED = new Set(["homepage_view", "wizard_start", "wizard_complete", "signup_shown", "non_us_attempt", "out_of_scope",
   // One Box (T1.7): aggregate-only client events. No raw VIN/chassis ever - only the
@@ -82,7 +82,7 @@ export default async function handler(req, res) {
         // place nearly every page already calls on its first interaction. res may already
         // have ended (204) from an earlier branch above, but we're still inside the try
         // before this function's own res.status(204).end() below, so a Set-Cookie here lands.
-        const visitorId = ensureVisitorId(req, res);
+        const { id: visitorId, minted } = ensureVisitorId(req, res);
         // page_view (Oct 2026, open-search policy Part 1.1): the one event every shell page sends on
         // load (lib/appShell.js SHELL_JS). Its whole purpose is per-visitor counting, so skip the write
         // entirely when there is no visitor id (crew or an EEA/UK/Switzerland visitor) rather than log
@@ -95,6 +95,15 @@ export default async function handler(req, res) {
         if (event === EVENTS.PAGE_VIEW && props && typeof props.path === "string") {
           const bare = props.path.split("?")[0].split("#")[0].slice(0, 200);
           props = { path: /^\/[a-z0-9/_-]*$/i.test(bare) ? bare : "/" };
+        }
+        // First touch (Oct 2026, open-search policy Part 1.4): stored ONCE, only at the exact moment
+        // this visitor id is freshly minted (never on a later page_view for the same, already-existing
+        // id) - lib/appShell.js's gasPageView() sends the raw utm_*/referrer it reads off this same
+        // first page, since localStorage's own gas_first_touch (js/auth.js gasCaptureTouch) can lag a
+        // deferred script on a visitor's very first page load. Carried to the account later via a plain
+        // JOIN on visitor_id through visitor_links - no copy onto the account row needed.
+        if (event === EVENTS.PAGE_VIEW && minted && visitorId && body.touch && typeof body.touch === "object") {
+          storeFirstTouchOnce({ supabaseUrl: env.supabaseUrl, supabaseKey: env.supabaseKey }, visitorId, body.touch).catch(() => {});
         }
         await supabaseInsert("funnel_events", [{
           event,

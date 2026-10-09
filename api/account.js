@@ -138,7 +138,11 @@ export default async function handler(req, res) {
   const visitorId = readVisitorId(req);
   if (visitorId) stitchVisitorToAccount(env, visitorId, auth.userId);
   if (req.body && req.body.freshSignIn === true) {
-    logEvent(env, { event: EVENTS.SIGN_IN_COMPLETED, userId: auth.userId, visitorId });
+    // Part 1.5 (open-search policy): props.source, so "best acquisition sources" reads real rows.
+    // Sanitized to a short known-shape string (the client's own classifier only ever emits one of a
+    // handful of plain words - Direct/Organic/Social/Referral/a named source), never trusted as free text.
+    const src = typeof req.body.attributionSource === "string" ? req.body.attributionSource.slice(0, 40) : null;
+    logEvent(env, { event: EVENTS.SIGN_IN_COMPLETED, userId: auth.userId, visitorId, props: src ? { source: src } : null });
   }
 
   // Spec E: "Your results" read. Returns the signed-in user's saved results with

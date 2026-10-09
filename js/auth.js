@@ -144,7 +144,10 @@ async function authEnsureAccount(opts) {
   // Oct 2026, open-search policy (Lane B Step 2): set ONLY by a real fresh sign-in (never
   // a routine boot re-check), so /api/account logs sign_in_completed exactly once per
   // actual sign-in instead of on every page load that happens to call ensure.
-  if (opts && opts.freshSignIn) body.freshSignIn = true;
+  // Part 1.5 (open-search policy): on the same fresh-sign-in call, the classified source
+  // (gasAttribution()'s first touch) rides along so sign_in_completed can carry props.source -
+  // the "best acquisition sources" admin view reads this.
+  if (opts && opts.freshSignIn) { body.freshSignIn = true; const a = gasAttribution(); if (a && a.first) body.attributionSource = a.first.source || null; }
   try {
     const res = await fetch(authApiPath("/api/account"), {
       method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },

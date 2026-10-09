@@ -33,3 +33,15 @@ revoke all on public.visitor_links from anon, authenticated;
 -- docs/supabase-phase3-2c.sql; re-stating here is a harmless no-op if already applied.
 alter table public.funnel_events enable row level security;
 revoke all on public.funnel_events from anon, authenticated;
+
+-- Part 1.4 (open-search policy, UTM/referrer capture): one row per visitor id, written ONCE at the
+-- exact moment that id is minted (lib/_visitor.js ensureVisitorId's minted:true), never overwritten
+-- by a later campaign link on a return visit. Carried to an account by joining visitor_links on
+-- visitor_id - no copy onto the account row.
+create table if not exists public.visitor_first_touch (
+  visitor_id text primary key,
+  utm_source text, utm_medium text, utm_campaign text, referrer text,
+  created_at timestamptz not null default now()
+);
+alter table public.visitor_first_touch enable row level security;
+revoke all on public.visitor_first_touch from anon, authenticated;

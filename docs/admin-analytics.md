@@ -10,86 +10,83 @@ build and is flagged as the next step, not done here. Scoping this round to the 
 deliberate call so each piece could be verified on its own; say the word if the UI should
 be next instead of continuing Part 1/2/3.
 
-## What exists after this round
+## What exists after this round (updated through Part 1.1-1.5)
 
 - **Visitor id**: `lib/_visitor.js`. A random, first-party `gas_vid` cookie, ~2 years,
-  minted on a visitor's first in-house event (via `/api/funnel`, see below), never for
-  crew (`gas_crew=ok`) and never for the EEA/UK/Switzerland for now (see Consent below).
-  No email, no typed text, no personal data in it - just an opaque id.
+  minted on EVERY page that includes the shared shell (lib/appShell.js's `page_view` beacon,
+  Part 1.1 - not just a sign-in interaction anymore), never for crew (`gas_crew=ok`) and
+  never for the EEA/UK/Switzerland for now (see Consent below). No email, no typed text, no
+  personal data in it - just an opaque id. `ensureVisitorId` returns `{id, minted}` -
+  `minted:true` only on the exact request that generated a brand new id, the one moment
+  `visitor_first_touch` (below) may be written.
 - **Canonical events**: `lib/events.js` `EVENTS` + `logEvent(env, {...})`. One place names
-  every event; writes to `funnel_events`, which gained `visitor_id`, `tool`, `props`
-  columns additively (`docs/supabase-visitor-tracking.sql`, run once by Sam) - every
-  existing caller (sellerDecision.js `logFunnel`, api/account.js `funnel()`, the old
-  `/api/funnel` insert) keeps working unchanged, just leaving the new columns null on old
-  rows.
+  every event; writes to `funnel_events`, which carries `visitor_id`, `tool`, `props`
+  columns (`docs/supabase-visitor-tracking.sql`, run once by Sam).
+- **First touch**: `lib/events.js` `storeFirstTouchOnce(env, visitorId, touch)`, called from
+  `api/funnel.js`'s `page_view` handler only when `minted:true`. Writes ONCE (on_conflict
+  ignore-duplicates) to the new `visitor_first_touch` table - raw `utm_source`/`utm_medium`/
+  `utm_campaign`/`referrer`, read directly off the page by `lib/appShell.js`'s
+  `gasFirstTouch()` (NOT via `js/auth.js`'s `localStorage.gas_first_touch` - that capture is
+  a deferred script and can lag a visitor's genuinely first page load, exactly the moment
+  that matters here). Carried to an account later by a plain join through `visitor_links` on
+  `visitor_id` - never copied onto the account row.
 - **Sign-in stitch**: `lib/events.js` `stitchVisitorToAccount(env, visitorId, userId)`,
-  called from `api/account.js` on every `/api/account` ensure (idempotent upsert into the
-  new `visitor_links` table: many visitor ids -> one account, so history from every device
-  a person searched anonymously on before signing in stays attached once they sign in on
-  any one of them).
-- **Wired so far** (additive, zero behavior change to existing responses):
-  - `api/funnel.js`: mints/reads the visitor id, stamps it (+ `tool`/`props` when the
-    client sends them) onto every existing and new client-emittable event. Widened
-    `ALLOWED` with the client-emittable canonical events: `cross_product_move`,
-    `market_check_open`, `receipt_click`, `auction_clickout`, `task_created`,
-    `watch_created`, `sell_followup_gated`, `sign_in_started`.
-  - `api/account.js`: stitches the visitor id to the account on every ensure; logs
-    `sign_in_completed` only when the client sends `freshSignIn:true` (so a routine page
-    load that happens to call ensure never over-counts a sign-in).
-  - `js/auth.js`: `gasFunnel(event, dedupKey, extra)` gained an optional 3rd arg for
-    `tool`/`props` (backward compatible - every existing 2-arg call site is untouched).
-    `authSignInGoogle`/`authSignInEmail` now fire `sign_in_started` (method google/email).
-    The three `authEnsureAccount` call sites that represent an ACTUAL fresh sign-in
-    (email-code verify; both OAuth/magic-link "returned" boot paths, wizard and
-    topbar-only) now pass `freshSignIn:true`; the one that is a mid-wall tier *refresh*
-    (`gateRefreshTier`, not a sign-in) correctly does not.
-  - First-touch/last-touch attribution was NOT duplicated: `js/auth.js`
-    `gasCaptureTouch()`/`gasClassifySource()` already captures UTM + referrer into
-    `localStorage.gas_first_touch`/`gas_last_touch` on every page load (via the authBar
-    work, now running on Market Check/Sell-landing/Tasks/homepage too) - it is reusable
-    as-is for any event that wants to carry `gasAttribution()`'s `{first, last}` in its
-    `props`; not forced into every event this round to keep the diff additive and small.
+  called from `api/account.js` on every `/api/account` ensure (idempotent upsert into
+  `visitor_links`: many visitor ids -> one account).
+- **Wired, all products** (Part 1.2): `search` fires once per completed search - Market
+  Check and Sell from `api/sellerDecision.js` (skipped on a refine/transmission-rerun), Buy
+  from `api/buySearch.js` - tagged by product, `props.key` = the resolved `make|model`
+  only, never the typed query or a VIN.
+- **Wired, click events** (Part 1.3): `lib/appShell.js`'s ONE delegated click listener
+  (`data-gas-event="market_check_open"|"receipt_click"|"auction_clickout"` +
+  `data-gas-source`/`data-gas-listing-id`) - the listener exists and is loaded on every
+  shell page; the DATA ATTRIBUTES themselves are not yet on any card/link template (see
+  docs/lane-notes.md for the exact splice points, left to Lane A/C since js/onebox.js and
+  api/buy.js were both mid-edit when this was written).
+- **Wired, server actions** (Part 1.3): `task_created` (`lib/tasks/tasks.js startDraft`,
+  after the task row exists) and `watch_created` (`lib/live/watches.js arm`/`armVin`, after
+  each successful upsert - re-arming a stopped watch also counts, a known minor
+  imprecision).
+- **`cross_product_move`**: NOT a dedicated event (Sam's "pick one, not both" - the
+  derived-from-sequence approach was chosen). See the SQL below - two adjacent `page_view`
+  rows for the same `visitor_id` with a different `tool` IS the signal.
+- **`sign_in_started`/`sign_in_completed`**: wired, `js/auth.js`/`api/account.js`.
+  `sign_in_completed` now carries `props.source` (Part 1.5 - `js/auth.js` sends
+  `attributionSource` from `gasAttribution()` on the same fresh-sign-in call), so "best
+  acquisition sources" below returns real rows for every sign-in from this point forward.
 
 ## Not done this round (proposed to the owning lane, not edited)
 
-- **`search` event** at the moment each product actually runs a search (Buy/Market
-  Check/Sell), and **`rate_limit_hit`** at the moment any of the caps in the Step 1 report
-  fire - both live in api/buySearch.js / api/sellerDecision.js, Lane A/C's files. Exact
-  call pattern for whoever wires it in:
+- **`rate_limit_hit`** at the moment any cap fires - lives in api/buySearch.js/
+  api/sellerDecision.js/lib/_ceilings.js, Lane A/C's files. Call pattern:
   ```js
   import { logEvent, EVENTS } from "../lib/events.js";
-  import { readVisitorId } from "../lib/_visitor.js"; // ensureVisitorId if the handler never goes through /api/funnel
-  logEvent({ supabaseUrl, supabaseKey }, { event: EVENTS.SEARCH, tool: "sell", visitorId: readVisitorId(req), userId: accountId || null });
-  // on any rate-limit block:
+  import { readVisitorId } from "../lib/_visitor.js";
   logEvent({ supabaseUrl, supabaseKey }, { event: EVENTS.RATE_LIMIT_HIT, tool: "sell", visitorId: readVisitorId(req), props: { kind: "ip_hour" } });
   ```
   Never shown to the visitor beyond the calm message already in place (unchanged).
-- **`market_check_open`** fired from the client the moment a result actually renders
-  (js/onebox.js) - proposed for Lane A, same `gasFunnel("market_check_open", null, {tool:"market_check"})` pattern.
-- **`cross_product_move`** fired wherever a page links to another product (e.g. Market
-  Check's "sell handoff", Buy's "ask more" link) - proposed for whichever lane owns each
-  link, `props:{from,to}`.
-- **`receipt_click`/`auction_clickout`** on each comp-card/outbound-link click - proposed
-  for Lane A/C wherever those links already render.
-- **`task_created`/`watch_created`** at Tasks' creation point and `/api/watch`'s `arm` -
-  proposed for Lane A/C.
+- **`data-gas-event` attributes** on the actual card/link markup (js/onebox.js's receipt
+  cards and outbound auction link, the Market Check search/go button, api/buy.js's own
+  cards) - the listener is ready, the attributes are not yet added (see Part 1.3 above).
 - Admin dashboard pages themselves (next step, this doc's data layer is ready for them).
 
 ## Canonical event vocabulary (`lib/events.js`)
 
 | Event | tool | props | Fired from |
 |---|---|---|---|
-| `search` | buy / market_check / sell | `{query_kind?}` | proposed, not yet wired (see above) |
-| `cross_product_move` | - | `{from,to}` | proposed |
-| `market_check_open` | - | - | proposed |
-| `receipt_click` | - | `{source}` | proposed |
-| `auction_clickout` | - | `{source, listing_id?}` | proposed |
-| `task_created` | - | - | proposed |
-| `watch_created` | - | `{kind:"spec"\|"vin"}` | proposed |
-| `sell_followup_gated` | - | - | client-allowed in api/funnel.js; fire point (the Sell chat gate) is Lane C's |
+| `page_view` | buy/market_check/sell/tasks/null | `{path}` | **wired**, every shell page, lib/appShell.js |
+| `search` | buy / market_check / sell | `{key: "make\|model"}` | **wired**, api/buySearch.js + api/sellerDecision.js |
+| `market_check_open` | - | - | listener wired, attribute not yet placed |
+| `receipt_click` | - | `{source}` | listener wired, attribute not yet placed |
+| `auction_clickout` | - | `{source, listing_id?}` | listener wired, attribute not yet placed |
+| `task_created` | tasks | - | **wired**, lib/tasks/tasks.js startDraft |
+| `watch_created` | - | `{kind:"spec"\|"vin"}` | **wired**, lib/live/watches.js arm/armVin |
+| `sell_followup_gated` | - | - | client-allowed in api/funnel.js; fire point is Lane C's |
 | `sign_in_started` | - | `{method:"google"\|"email"}` | **wired**, js/auth.js |
-| `sign_in_completed` | - | - | **wired**, api/account.js, `freshSignIn` only |
+| `sign_in_completed` | - | `{source}` | **wired**, api/account.js, `freshSignIn` only |
 | `rate_limit_hit` | buy / market_check / sell | `{kind}` | proposed, not yet wired |
+
+`cross_product_move` is not in this table - derived from `page_view` sequence, see above.
 
 ## SQL for the admin dashboard's Overview + Journeys views (Stage 1)
 
@@ -124,6 +121,19 @@ select count(*) as multi_tool_visitors from (
   where event = 'search' and visitor_id is not null and created_at >= now() - interval '30 days'
   group by visitor_id having count(distinct tool) >= 2
 ) m;
+
+-- Cross-product MOVES (Part 1.3, the derived approach - no dedicated event): consecutive
+-- page_view rows for the same visitor whose tool actually changed, pairing each with the one
+-- immediately before it in time.
+select prev_tool as "from", tool as "to", count(*) as moves
+from (
+  select visitor_id, tool, created_at,
+         lag(tool) over (partition by visitor_id order by created_at) as prev_tool
+  from funnel_events
+  where event = 'page_view' and visitor_id is not null and created_at >= now() - interval '30 days'
+) seq
+where prev_tool is not null and tool is not null and tool <> prev_tool
+group by 1, 2 order by 3 desc;
 
 -- 7-day and 30-day repeat rate: visitors whose first-ever event was >N days ago and who
 -- also have an event in the trailing window
@@ -161,11 +171,18 @@ where exists (
   select 1 from funnel_events fe where fe.visitor_id = vl.visitor_id and fe.created_at < vl.linked_at
 );
 
--- Best acquisition sources: requires a touch to be attached to events' props (not yet
--- wired server-side - js/auth.js already computes gasAttribution() client-side; once an
--- event attaches it as props.source, this is: )
+-- Best acquisition sources: FIXED Part 1.5 - js/auth.js now sends attributionSource (from
+-- gasAttribution()) on the same fresh-sign-in call, api/account.js's sign_in_completed log
+-- carries it as props.source. Real rows from here on; rows logged before this fix have no source.
 select props->>'source' as source, count(*) from funnel_events
 where event = 'sign_in_completed' and created_at >= now() - interval '30 days'
+group by 1 order by 2 desc;
+
+-- Alternative / more complete acquisition view (Part 1.4): visitor_first_touch, joined through
+-- visitor_links, for every signed-in account regardless of whether they ever triggered a fresh
+-- sign-in event with props attached (covers accounts created before this fix too).
+select coalesce(vft.utm_source, 'none') as utm_source, count(distinct vl.user_id) as accounts
+from visitor_links vl join visitor_first_touch vft on vft.visitor_id = vl.visitor_id
 group by 1 order by 2 desc;
 
 -- "Created an account after using Sam 3+ times": visitors with 3+ pre-link search events
