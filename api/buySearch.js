@@ -282,8 +282,23 @@ function cleanState(s) {
     asked: Math.max(0, Math.min(4, Number(s.asked) || 0)),
     zip: /^\d{5}$/.test(String(s.zip || "")) ? String(s.zip) : null,
     place: typeof s.place === "string" && /^[A-Za-z .,'-]{3,60}$/.test(s.place) ? s.place.trim() : null,
-    showNow: !!s.showNow
+    showNow: !!s.showNow,
+    // The chat's filters (what the page's address is built from), so a saved search reopens at its own
+    // address rather than its typed words: plain short values only.
+    chatState: s.chatState && typeof s.chatState === "object" ? { filters: cleanChatFilters(s.chatState.filters) } : null
   };
+}
+function cleanChatFilters(f) {
+  if (!f || typeof f !== "object" || Array.isArray(f)) return null;
+  const out = {};
+  for (const [k, v] of Object.entries(f).slice(0, 40)) {
+    if (!/^[A-Za-z_]{1,24}$/.test(k)) continue;
+    if (typeof v === "number" && Number.isFinite(v)) out[k] = v;
+    else if (typeof v === "boolean") out[k] = v;
+    else if (typeof v === "string" && v.length <= 120) out[k] = v;
+    else if (Array.isArray(v)) { const a = v.filter(x => typeof x === "string" && x.length <= 40).slice(0, 10); if (a.length) out[k] = a; }
+  }
+  return Object.keys(out).length ? out : null;
 }
 async function converseOut(env, b) {
   const st = cleanState(b.state);

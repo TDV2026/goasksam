@@ -781,6 +781,15 @@ when the work has landed.
   Buy's example (hourly on page render, cached in spec_market_cache, key bumped to v9); Buy has no separate
   nightly example step (Market Check and Sell do). Probe: POST /api/buySearch {action:"landing",key,fresh}
   returns task.candidate / task.count and every candidate's counts in tried[].
+- 2026-10-09 (Lane C): BUY SAVED SEARCHES, checked on the shared rail with a real saved search (BMW M3).
+  Found and fixed: the server's cleanState (api/buySearch.js) kept only the old wizard fields and DROPPED
+  chatState, which is where Buy's search filters live, so every saved Buy search came back as its title
+  and reopened at /buy?q=<title> (Sam re-reading the words) instead of its own address. cleanState now
+  keeps chatState.filters through cleanChatFilters (plain short values only: numbers, booleans, strings
+  up to 120, arrays of up to 10 short strings, at most 40 keys). Searches saved before the fix still open
+  by their words. NOTE FOR SAM: there is no "Save this search" control on Buy (removed on purpose in
+  0b5215e), so the rail's Saved searches section only shows searches saved through the API (the old link's
+  request, or earlier saves). Whether Buy should have a Save control again is a product call, not changed.
 - 2026-10-09 (Lane A): desktop sign-in pill fix (Sam's round, reported by Lane C on Buy). Root cause:
   .gas-signbar's background was rgba(246,243,236,.94) - 94% opaque, so scrolled content showed
   through wherever it passed under the fixed pill, reading as a glitch rather than a deliberate
