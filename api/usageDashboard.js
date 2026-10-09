@@ -4800,6 +4800,43 @@ async function handleOps(req, res) {
   // task=ocdmeter: READ-ONLY. The authoritative OCD-request totals: sum of oldcarsdata_metered_requests
   // across ALL event_types for today and this month, plus a per-event_type breakdown, so we can see
   // whether small runs / pullLive are actually being recorded. ZERO OCD.
+  // task=opensearchbudget (Lane C, Oct 2026, cache-first rule): READ-ONLY, zero OCD. The last N days (default
+  // 30, UTC) of the counter the daily breaker reads (seller_decision rows' metered requests), per day, by tier
+  // and by cache status, the busiest day, the breaker trips per day, and the account-wide ocd_call total per
+  // day for comparison. &cars=a|b|c also returns how many Sell searches named each car this month (search_text
+  // ilike, never shown to anyone), to pick cars nobody has searched.
+  if (task === "opensearchbudget") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const days = Math.min(60, Math.max(1, Number(req.query?.days) || 30));
+    const since = new Date(Date.now() - days * 864e5); since.setUTCHours(0, 0, 0, 0);
+    const iso = since.toISOString();
+    const sd = await supabaseSelectAll(env, `app_usage_events?event_type=eq.seller_decision&created_at=gte.${iso}&select=created_at,oldcarsdata_metered_requests,tier:metadata->>tier,cache:metadata->>marketFetchCache&order=created_at.asc`).catch(() => null) || [];
+    const oc = await supabaseSelectAll(env, `app_usage_events?event_type=eq.ocd_call&oldcarsdata_metered_requests=gt.0&created_at=gte.${iso}&select=created_at,oldcarsdata_metered_requests&order=created_at.asc`).catch(() => null) || [];
+    const gd = await supabaseSelectAll(env, `app_usage_events?event_type=eq.ocd_budget_guard&created_at=gte.${iso}&select=created_at,status&order=created_at.asc`).catch(() => null) || [];
+    const byDay = {};
+    const day = d => String(d).slice(0, 10);
+    const D = k => byDay[k] || (byDay[k] = { searches: 0, metered: 0, meteredByTier: {}, searchesByCache: {}, missSearches: 0, ocdCallAll: 0, breakerTrips: 0 });
+    for (const r of sd) { const o = D(day(r.created_at)), n = Number(r.oldcarsdata_metered_requests) || 0, t = r.tier || "(none)", c = r.cache || "(none)"; o.searches++; o.metered += n; o.meteredByTier[t] = (o.meteredByTier[t] || 0) + n; o.searchesByCache[c] = (o.searchesByCache[c] || 0) + 1; if (n > 0) o.missSearches++; }
+    for (const r of oc) D(day(r.created_at)).ocdCallAll += Number(r.oldcarsdata_metered_requests) || 0;
+    for (const r of gd) D(day(r.created_at)).breakerTrips++;
+    const rows = Object.entries(byDay).sort((a, b) => a[0].localeCompare(b[0])).map(([d, o]) => ({ day: d, ...o }));
+    const vals = rows.map(r => r.metered).sort((a, b) => a - b);
+    const q = p => vals.length ? vals[Math.min(vals.length - 1, Math.floor(p * vals.length))] : 0;
+    const perMiss = rows.reduce((a, r) => a + r.metered, 0) / Math.max(1, rows.reduce((a, r) => a + r.missSearches, 0));
+    let cars = null;
+    if (req.query?.cars) {
+      const monthStart = new Date().toISOString().slice(0, 7) + "-01T00:00:00Z";
+      cars = {};
+      for (const c of String(req.query.cars).split("|").map(x => x.trim()).filter(Boolean).slice(0, 12)) {
+        const hit = await supabaseSelect(env, `app_usage_events?event_type=eq.seller_decision&created_at=gte.${monthStart}&search_text=ilike.${encodeURIComponent("*" + c.replace(/[*,()]/g, " ") + "*")}&select=created_at&limit=50`).catch(() => null);
+        cars[c] = hit ? hit.length : null;
+      }
+    }
+    return res.status(200).json({ task: "opensearchbudget", days, dailyBudget: Number(process.env.OCD_DAILY_REQUEST_BUDGET || 33), monthlyBudget: Number(process.env.OCD_MONTHLY_BUDGET || 1000),
+      summary: { daysWithData: rows.length, meteredTotal: vals.reduce((a, b) => a + b, 0), busiestDay: rows.reduce((m, r) => (!m || r.metered > m.metered ? r : m), null), typicalDay: q(0.5), p90Day: q(0.9), meteredPerMissSearch: Math.round(perMiss * 10) / 10, breakerTripsTotal: gd.length },
+      rows, cars });
+  }
+
   if (task === "ocdmeter") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const monthStart = new Date().toISOString().slice(0, 7) + "-01T00:00:00Z";
