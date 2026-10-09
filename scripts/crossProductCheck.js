@@ -52,7 +52,20 @@ export const DEFAULT_SPECS = [
   "2000 Porsche Boxster S", "2012 BMW M3 Competition Coupe", "2022 BMW M3 Competition",
   "1973 Porsche 911 Carrera RS", "1989 Porsche 911 Speedster", "2024 Porsche 911 GT3",
   "2019 Porsche 911 Turbo S", "1965 Shelby Cobra", "1970 Datsun 240Z", "1991 Acura NSX",
-  "2005 Ford GT"
+  "2005 Ford GT",
+  // Grown from 20 to 42 (Oct 2026 follow-up, item 5) - every car named in that round's report
+  // (the Targa/M3/Speedster drawer-vs-card cases, and the curated-trim-list audit's Targa/
+  // Roadster/Spider cross-make checks) plus a broader, deliberately mixed common/thin/trim-
+  // sensitive set, per the item's own instruction. continue-on-error stays on (not turning the
+  // nightly step red yet, per the ask) - a bigger list means more surface for a genuine, worth-
+  // triaging mismatch to surface, not a new gate.
+  "1988 Porsche 911 Carrera Targa", "1973 Porsche 911 Targa", "1990 Porsche 911 Targa 4",
+  "1963 Chevrolet Corvette Roadster", "1957 BMW 507 Roadster", "1989 Mazda Miata Roadster",
+  "1967 Shelby Cobra Roadster", "1961 Jaguar E-Type Roadster", "1955 Mercedes-Benz 300SL Roadster",
+  "1985 Ferrari 308 GTS Spider", "1964 Porsche 356 Speedster", "1996 Porsche Boxster Spyder",
+  "1963 Jaguar E-Type Series 1", "2015 Porsche Cayman GT4", "1970 Plymouth Barracuda",
+  "1969 Dodge Charger R/T", "1972 Datsun 240Z", "2017 Ford GT", "1993 Mazda RX-7",
+  "2021 Chevrolet Corvette Z06", "1988 BMW M3", "2023 Porsche 911 GT3 RS"
 ];
 
 const round = n => (Number.isFinite(n) ? Math.round(n) : null);
