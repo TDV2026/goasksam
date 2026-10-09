@@ -1300,3 +1300,18 @@ when the work has landed.
   Baseline: /sell /buy /tasks /market-check /business all 200 signed out.
   Search check: no title/H1/canonical/address change; rule 3's dated lead sentence (mc-upd, "Market Check.
   Updated Oct 9, 2026.") is untouched and still renders before any client JS runs.
+- 2026-10-09 (Lane B -> Lane A): quarterlyBandsFor (lib/onebox.js) had sales/band INVERTED - a
+  quarter that cleared RANGE_THRESHOLD got `band: <real cluster>, sales: null`; a thin quarter got
+  `band: null, sales: <its cards>`. Fixed: a banded quarter now carries `sales` (the cards that set
+  that band), a thin quarter carries nothing but `count`. Verified live (task=obcheck):
+  "2001 BMW M3 Coupe" - 3 of 4 quarters banded (Jul-Sep $23,000-$35,500/21 cards, Apr-Jun $22,500-
+  $43,500/23 cards, Jan-Mar $29,000-$41,000/15 cards), each `sales.length` matching its own count;
+  the one thin quarter (Oct-Dec, "three") carries band:null, sales:null. "1969 Chevrolet Camaro Z28"
+  - all 4 quarters thin (1/2/6/3, each under the 8-sale floor) - band:null, sales:null on every one,
+  as expected. crossProductCheck.js never references quarterlyBands (confirmed by grep), so this
+  fix cannot change anything that script compares - no rerun needed to confirm "unchanged".
+  TRANSIENT 500 (Sam's follow-up ask): tried to pull Vercel's own logs for the commit d037166-era
+  deployment (`vercel inspect <url> --logs`, `vercel ls --meta gitCommitSha=...`) - could not isolate
+  that specific deployment or retrieve runtime logs from several hours back; the CLI's deployment
+  list doesn't expose git SHA directly and runtime log retention had already rolled past, same
+  conclusion Lane A already reached. Nothing new to add - Lane A's self-resolved finding stands.
