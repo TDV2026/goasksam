@@ -3334,6 +3334,17 @@ async function handleOps(req, res) {
   // EXCLUDING every partner seller. Ladder tightest-first (generation -> model ->
   // make/segment) to the first rung with pool>=5; per-sale delta vs pool median; per
   // partner the MEDIAN of deltas, gated at n>=10, rounded to whole percent.
+  // task=partnerread (Oct 2026, Lane B report-only): the CURRENTLY STORED partners.specialties.premium
+  // for every partner, read-only, no computation. For comparing against a live task=premium rerun.
+  if (task === "partnerread") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const rows = await supabaseSelect(env, "partners?select=name,slug,active,specialties,updated_at&order=name.asc") || [];
+    return res.status(200).json({
+      task: "partnerread",
+      rows: rows.map(r => ({ name: r.name, slug: r.slug, active: r.active, updatedAt: r.updated_at, premium: (r.specialties && r.specialties.premium) || null }))
+    });
+  }
+
   if (task === "premium") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const windowDays = Math.max(30, Math.min(365, Number(req.query?.window || 183)));
