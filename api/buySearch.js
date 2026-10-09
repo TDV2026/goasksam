@@ -23,7 +23,7 @@ import { runTurn, runFilters, runSearch } from "../lib/live/samChat.js";
 import { humanTitle } from "../lib/carTitle.js";
 import { supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { chatOut } from "../lib/live/chatHttp.js";
-import { armAlert, cancelAlert, listAlerts, runAlerts, stopAll, verifyStop, testSend, isMissingTable, alertsReady } from "../lib/live/buyAlerts.js";
+import { armAlert, cancelAlert, listAlerts, runAlerts, stopAll, verifyStop, testSend, isMissingTable, alertsReady, useNamer } from "../lib/live/buyAlerts.js";
 
 const FIRST = 10, MAX = 200;
 const titleCaseIfShouting = s => String(s || "").split(",").map(p => { const t = p.trim(); return t && t === t.toUpperCase() && /[A-Z]{3}/.test(t) ? t.toLowerCase().replace(/\b([a-z])/g, c => c.toUpperCase()) : t; }).filter(Boolean).join(", ");
@@ -67,6 +67,7 @@ export async function nameOf(env, x) {
   // The case a person would write it (lib/carTitle.js, shared): "X3 xDrive35i M Sport", never "XDRIVE35I".
   return humanTitle(out.join(" "));
 }
+useNamer(nameOf);   // Before it ends names a car the way its card does
 async function enrich(env, x) {
   let [market, seen, timeline] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts), seenBefore(env, x.r.vin_norm), timelineOf(env, x)]);
   if (market && market.kind === "pending") market = await listingMarket(env, x.r, x.facts);   // one more go, warm now
