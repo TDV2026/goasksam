@@ -796,6 +796,42 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "resolvediff", ...out });
   }
 
+  // task=referencefiguretable: READ-ONLY, zero writes. Runs runOneBox over a fixed 12-car list
+  // spanning price levels (or ?specs=a|b|c) and reports referenceFigure/referenceFigureReason plus
+  // tier/label/count/windowLabel, for the business-tooling-only reference figure item. Never wired
+  // to any consumer page; this is a QA/reporting table only.
+  if (task === "referencefiguretable") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const DEFAULT_RF_SPECS = [
+      "1965 Shelby Cobra Roadster", "1991 Acura NSX", "2000 Porsche Boxster S",
+      "2008 Porsche 911 Carrera", "1990 Chevrolet Corvette ZR-1", "2016 Ford Mustang Shelby GT350",
+      "2012 BMW M3 Competition Coupe", "1973 Porsche 911 Carrera RS", "2024 Porsche 911 GT3",
+      "2019 Porsche 911 Turbo S", "1955 Mercedes-Benz 300SL Roadster", "2005 Ford GT"
+    ];
+    const specs = req.query?.specs ? String(req.query.specs).split("|").filter(Boolean) : DEFAULT_RF_SPECS;
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { runOneBox } = await import("../lib/onebox.js");
+    const rows = [];
+    for (const q of specs) {
+      try {
+        const rv = await resolveVehicle(q, {});
+        const vehicle = rv && rv.vehicle;
+        if (!vehicle || !vehicle.make) { rows.push({ q, error: "unresolved" }); continue; }
+        const generation = await findGeneration(vehicle, env).catch(() => null);
+        const searchText = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(" ");
+        const d = await runOneBox(vehicle, generation, searchText, { ...env, asked: 2 }, null);
+        rows.push({
+          q, tier: d.tier, label: d.resolvedCar && [d.resolvedCar.genCode, d.resolvedCar.model, d.resolvedCar.trim].filter(Boolean).join(" "),
+          windowLabel: d.windowLabel, referenceFigure: d.referenceFigure || null, referenceFigureReason: d.referenceFigureReason || null
+        });
+      } catch (e) {
+        rows.push({ q, error: String(e && e.message || e) });
+      }
+    }
+    return res.status(200).json({ task: "referencefiguretable", rows });
+  }
+
   // task=obcheck: READ-ONLY, zero writes. Runs lib/onebox.js runOneBox() directly over a fixed list
   // (or ?specs=a|b|c) and returns the Oct 2026 "Market Check engine additions" fields (soldCount,
   // windowLabel, quarterlyBands, yoyDirection, setAsideCount/Reasons, didNotSellCount, a sample

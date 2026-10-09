@@ -102,7 +102,7 @@ async function marketCheckLane(vehicle, generation, searchText, env) {
   const latest = cards.map(c => (c.date || "").slice(0, 10)).filter(Boolean).sort().at(-1) || null;
   const recent = normRecent(Array.isArray(d.recent3) ? d.recent3 : cards, "cards");
   const span = Array.isArray(d.span) ? [round(d.span[0]), round(d.span[1])] : null;
-  return { ok: true, tier, label, low, high, count, latest, recent, span };
+  return { ok: true, tier, label, low, high, count, latest, recent, span, referenceFigure: d.referenceFigure || null };
 }
 
 // ---- Lane 2 & 4: Buy / Tasks (familyMarket -> listingMarket -> walkLadder, the real empty-state read) ----
@@ -116,12 +116,12 @@ async function buyLane(env, v, f) {
   const count = m.count ?? null;
   const recent = normRecent(m.recent, "cards");
   const latest = datesOf(recent).sort().at(-1) || null;
-  return { ok: true, kind: m.kind, label, low, high, count, latest, recent };
+  return { ok: true, kind: m.kind, label, low, high, count, latest, recent, referenceFigure: m.referenceFigure || null };
 }
 
 // ---- Lane 3: Sell (fetchOnlinePool, the shared pool buildSharedAnalysis aggregates from) ----
 async function sellLane(vehicle, generation, env) {
-  const { spec, pool, cluster } = await fetchOnlinePool(vehicle, generation, env);
+  const { spec, pool, cluster, referenceFigure } = await fetchOnlinePool(vehicle, generation, env);
   if (!spec) return { ok: false, reason: "no spec (vehicle did not resolve to a buildable spec)" };
   if (!pool.length) return { ok: false, reason: "empty pool (genuinely zero online sales on record)" };
   const priced = pool.map(r => ({ ...r, _usd: Number.isFinite(r._usd) ? r._usd : hammerUsd(r) })).filter(r => Number.isFinite(r._usd) && r._usd > 0);
@@ -137,7 +137,7 @@ async function sellLane(vehicle, generation, env) {
   const span = [round(Math.min(...prices)), round(Math.max(...prices))];
   const hasCluster = Array.isArray(cluster);
   const low = hasCluster ? round(cluster[0]) : null, high = hasCluster ? round(cluster[1]) : null;
-  return { ok: true, label, low, high, span, count: priced.length, latest: (sorted[0]?.auction_end_date || "").slice(0, 10) || null, recent };
+  return { ok: true, label, low, high, span, count: priced.length, latest: (sorted[0]?.auction_end_date || "").slice(0, 10) || null, recent, referenceFigure: referenceFigure || null };
 }
 
 // ---- comparison ----
@@ -174,6 +174,15 @@ function compareField(name, values) {
     const sets = present.map(([, v]) => norm(v));
     const mismatch = sets.some(s => ![...s].some(w => sets[0].has(w)));
     return { field: name, status: mismatch ? "MISMATCH" : "MATCH", detail: present.map(([k, v]) => `${k}="${v}"`).join(" ") };
+  }
+  if (name === "referenceFigure") {
+    // Business-figure item (Oct 2026): passed through unchanged from the SAME runOneBox computation
+    // in every lane (lib/live/search.js coreOf, lib/platformPick.js fetchOnlinePool), never
+    // recomputed per lane - comparing the amount alone is enough to prove "the same figure wherever
+    // it is read", since confidence/rangeLow/rangeHigh/salesCount are derived from that same object.
+    const nums = present.map(([, v]) => v && v.amount);
+    const mismatch = nums.some(n => n !== nums[0]);
+    return { field: name, status: mismatch ? "MISMATCH" : "MATCH", detail: present.map(([k, v]) => `${k}=${v && v.amount}(${v && v.confidence})`).join(" ") };
   }
   return { field: name, status: "N/A", detail: "" };
 }
@@ -253,7 +262,7 @@ export async function checkOneSpec(q, env) {
   const tasks = await buyLane(env, vehicle, f).catch(e => ({ ok: false, reason: String(e && e.message || e) }));
 
   row.lanes = { marketCheck, buy, sell, tasks };
-  const fields = ["label", "low", "high", "count", "latest", "recent"];
+  const fields = ["label", "low", "high", "count", "latest", "recent", "referenceFigure"];
   row.compare = fields.map(fld => compareField(fld, {
     marketCheck: marketCheck.ok ? marketCheck[fld] : null,
     buy: buy.ok ? buy[fld] : null,
