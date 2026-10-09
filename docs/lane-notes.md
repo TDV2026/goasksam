@@ -1958,3 +1958,98 @@ when the work has landed.
   * Front doors: Buy keeps "Free · No account needed" and adds "Open to use. Sign in only to save a search or
     watch a car."; Sell adds "Open to use. Sign in only to ask follow-up questions about a car." (index.html,
     under "Built for enthusiast..."). Scripts bumped to js.20261009g.
+- 2026-10-09 (Lane A): POLICY FOLLOW-UP, Market Check. Commits (content landed, some folded into Lane B/C
+  commits via the same-repo race - see note at the end): the daily-cap replacement, the rail/sign-in fixes.
+
+  1. DAILY CAP - FINDINGS THEN ACTION.
+     a. VISIBLE: yes. A hit returned `{tier:"rate_limited", samLine:"That's a lot of lookups for one day..."}`
+        and js/onebox.js's renderError() REPLACED THE ENTIRE RESULT with that line - no range, no comps, no
+        Sam's take, nothing. A real visitor landing on this would see a full dead end (api/sellerDecision.js,
+        the old oneBox branch; renderError, js/onebox.js).
+     b. NUMBER/TRAFFIC: default 40/day (app_config onebox_daily_cap), counted against a client-supplied,
+        resettable anonId (not a real visitor id - js/onebox.js localStorage key gas_ob_anon). Could NOT pull
+        real hit-rate logs from my environment: no local Supabase credentials (confirmed blank, same standing
+        limitation other lanes have hit this session), and I don't have PROBE_KEY (and was told not to touch
+        its handling). Did not fabricate a number - said so instead.
+     c. PROTECTS: nothing that costs money. The oneBox path makes zero OldCarsData calls on any path, cached
+        or not (see my earlier Step 1 report above) - confirmed again reading the current code. It protected
+        against nothing but its own visible dead end. REMOVED, per "if it protects nothing that costs money,
+        remove it."
+     ACTION: replaced with Lane C's shared ceiling (lib/_ceilings.js checkCeiling, built for the same policy
+     round - found it already imported in api/sellerDecision.js by the time I got here, so used it rather than
+     building a second implementation). Added a new CEILINGS scope, market_check_search: device [100/hour,
+     500/day], address [700/hour, 3000/day]. No Market Check-specific traffic sample existed for this (unlike
+     Lane C's buy_search/sell_search numbers, pulled from 30 real days) - set as a reasoned midpoint between
+     those two (Market Check's usage shape sits between Buy's browsing and Sell's one-shot decision), same
+     ten-times-busiest-real-use spirit, flagged in a code comment to replace once real market_check_open/
+     search traffic is logged. A hit now shows CALM.search ("Lots of searches from here just now...") with no
+     sign-in demand, logs rate_limit_hit itself (Lane C's checkCeiling already does this, through lib/events.js
+     - never invented a second event name). Fail-open, same as before. api/sellerDecision.js, the oneBox
+     branch, function unchanged (checkCeiling from lib/_ceilings.js).
+     VERIFIED LIVE: 5 different Market Check searches (Camaro Z28, M3 Coupe, 911 Carrera S, Countach, Shelby
+     GT350) each returned a full result (range, Market read card, comps) with no rate-limit message and no
+     account prompt.
+
+  2. WATCHING ON THE REDUCED RAIL. lib/appShell.js gasWatchRail(): removed the `data-full !== "1"` check (kept
+     only the Buy skip). A signed-in visitor's own watches are personalization, not the PUBLIC_LAUNCH discovery
+     surface, so they now show regardless of full/reduced rail state - gated only on being signed in and having
+     an active watch. Verified via local fixture (fake session + mocked /api/watch list): the Watching box
+     populates on a rail rendered with data-full="0".
+
+  3. SIGN-IN-THEN-CONTINUE. js/onebox.js: a pending-arm flag in sessionStorage (gas_ob_pendwatch, 30-min TTL),
+     mirroring Buy's own askSignIn/resumeArm/armWait pattern (api/buy.js) rather than inventing a different
+     one. Covers both sign-in doors:
+     - Email code: never navigates away, so obLastD/vinAnchor are still the current result - a short poll
+       (same interval pattern Buy uses) notices authIsSignedIn() turn true and arms directly, no second click.
+     - Google OAuth: js/auth.js's redirect used to drop location.search, so a visitor mid-result lost their
+       place on the round trip - fixed (now preserves the full URL, strictly more correct for every caller,
+       not Market-Check-specific). boot()'s existing mcApplyFromUrl rebuilds the SAME result fresh from the
+       preserved car=/vin= param; tryResumeWatchArm() (called once after every renderResults(), a no-op unless
+       the flag is set) picks up the pending flag and arms once the just-rebuilt result confirms signed in,
+       with a short retry poll covering the case where js/auth.js's own deferred callback processing hasn't
+       finished yet.
+     Closing the sign-in card without completing leaves nothing armed (the stash is cleared on abandon, same
+     1.5-second/no-modal check Buy uses).
+     VERIFIED LOCALLY (fixture + mocked /api/watch, both doors): email-code path - click signed out, stash
+     set, modal opens; simulated session write + modal close; poll detects it, arms with NO second click,
+     section swaps to the confirmation line, stash clears. Google-redirect path - pre-seeded sessionStorage
+     pending flag + signed-in session before navigating to ?car=2001-bmw-m3-coupe (simulating the post-redirect
+     return): mcApplyFromUrl rebuilt the M3 result, tryResumeWatchArm fired from renderResults, armed with NO
+     click at all. Exact arm payload captured both times, matches Lane C's documented contract exactly.
+     NOT verified with a real account (no disposable test inbox available in this session, unlike Lane C's
+     own "disposable inbox accounts" - same honesty standard as other unverified-live items this session): the
+     actual Google/email round trip against production auth. The code paths are the same mechanism Buy already
+     ships live; flagging this gap plainly rather than claiming more than was checked.
+
+  4. RAIL REDRAW. armWatchNow()'s success handler now calls `gasWatchRail()` (if defined) right after a
+     successful arm. Verified locally: arming a second watch (911) while the rail already showed one (M3)
+     updated the rail in place to show BOTH, no reload - confirmed the mock's /api/watch list call was hit
+     again (not cached), new content rendered.
+
+  5. BUY CREW LINE. Already done (commit f898bd2, an earlier round this session) - api/buy.js:52 already
+     passes crew into railOpenHtml(). Verified again live this round: reduced rail with no cookie, full rail
+     with gas_crew=ok (the first check showed reduced even with the cookie set - a stale edge-cache response
+     from rapid back-to-back requests with no Vary:Cookie, the same known quirk documented earlier this
+     session; a cache-busted request confirmed the full rail renders correctly with the cookie - x-vercel-
+     cache: MISS, cache-control: private, no-store).
+
+  SAME-REPO RACE NOTE: by the time I went to commit, lib/appShell.js, lib/_ceilings.js and api/sellerDecision.js
+  already showed zero diff against origin/main - Lane B/C had independently touched the same files for their
+  own Step 2 work (lib/_ceilings.js is in fact Lane C's own shared-ceiling build) and my uncommitted content
+  landed inside their commits during a concurrent push/rebase cycle (same pattern as earlier this session,
+  e.g. cef1701/d037166). Verified by reading the current file content line-by-line against what I wrote (all
+  present, correct, no corruption) rather than re-doing the work. Only js/onebox.js and js/auth.js needed an
+  explicit commit from me this round.
+
+  ONE ENGINE CONFIRMATION: no second implementation added anywhere. The ceiling reuses lib/_ceilings.js
+  checkCeiling (Lane C's), the rail reuses the existing shared gasWatchRail/railOpenHtml (lib/appShell.js),
+  the watch arm reuses Lane C's existing /api/watch action:arm (no new endpoint), and the oneBox search path
+  itself (lib/onebox.js runOneBox) is untouched - Market Check, Buy and Sell still read the same sales pool,
+  fences and results through the same shared functions.
+
+  crossProductCheck.js: could not run locally (SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set - standing
+  local limitation, same as every other lane hits). No engine/pool/resolver code touched this round, so no
+  reason to expect a change in its mismatches either way.
+  Baseline: /sell /buy /tasks /market-check /business all 200 signed out.
+  Search check: no title/H1/canonical/address change; this round is server-side guard logic + client sign-in
+  plumbing only.
