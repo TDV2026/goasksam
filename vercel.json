@@ -36,7 +36,7 @@
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/about", "destination": "/about.html" },
     { "source": "/how-sam-decides", "destination": "/api/howSamDecides" },
-    { "source": "/business", "destination": "/business.html" },
+    { "source": "/business", "destination": "/api/business" },
     { "source": "/powersellers", "destination": "/powersellers.html" },
     { "source": "/mcp", "destination": "/mcp.html" },
     { "source": "/(google[A-Za-z0-9_-]+\\.html)", "destination": "/api/gsc?file=$1" },
