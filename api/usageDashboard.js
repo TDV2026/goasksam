@@ -717,17 +717,24 @@ async function handleOps(req, res) {
     const decision = decide(analysis, criteria, vehicle);
     const pickedRoute = decision.routeFit && decision.routeFit.routes && decision.routeFit.routes.find(r => r.platform === decision.recommendedPath);
     const pb = pickedRoute && pickedRoute.marketEvidence && pickedRoute.marketEvidence.priceBand;
-    // decision.priceBand (rule 23, item 4b in sellerDecision.js): the SEPARATE, archive-only,
-    // UNCONDITIONAL comp band (priceBandForVehicle, lib/onebox.js - the SAME engine Market Check
-    // uses) that drives the "Your $X ask sits within the $Y to $Z these sold for" sentence
-    // (js/result-v2.js v2AskingLine, dec.priceBand). This is almost certainly what Sam actually saw
-    // on the page - NOT the venue pick's own priceBand above, which is a different field entirely.
+    // decision.priceBand (rule 23, item 4b in sellerDecision.js): the field that ACTUALLY drives
+    // the live page's "Your $X ask sits within the $Y to $Z these sold for" sentence
+    // (js/result-v2.js v2AskingLine, dec.priceBand) - confirmed live (Sam's Camaro Z28 catch). This
+    // is NOT the same engine as Market Check: priceBandForVehicle (lib/onebox.js) is a SEPARATE
+    // implementation from runOneBox's own cluster - 10th/90th percentile here vs 25th/75th
+    // (r4Cluster) there, and a fixed HT_WINDOW_DAYS window here vs the evidence ladder's own landed
+    // window there. Added marketCheckCluster below (runOneBox's own cluster, same car) so the two
+    // can be read side by side in one call.
     const archiveBand = await priceBandForVehicle(vehicle, generation, { supabaseUrl: env.supabaseUrl, supabaseKey: env.supabaseKey }).catch(() => null);
+    const { runOneBox } = await import("../lib/onebox.js");
+    const searchText = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(" ");
+    const mc = await runOneBox(vehicle, generation, searchText, { ...env, asked: 2 }, null).catch(() => null);
     return res.status(200).json({
       task: "sellreal", q, pathTaken, meteredRequests: fetchResult.meteredRequests || 0, stopReason: fetchResult.stopReason || null,
       recommendedPath: decision.recommendedPath, evidenceSales: analysis.evidenceSales,
       venuePickPriceBand: pb ? { low: pb.low, high: pb.high, sample: pb.sample } : null,
-      decisionPriceBandArchiveOnly: archiveBand && archiveBand.ok ? { low: archiveBand.low, high: archiveBand.high, count: archiveBand.count } : { ok: false, reason: archiveBand && archiveBand.reason },
+      liveSellAskingLineBand: archiveBand && archiveBand.ok ? { low: archiveBand.low, high: archiveBand.high, count: archiveBand.count, windowMonths: archiveBand.windowMonths } : { ok: false, reason: archiveBand && archiveBand.reason },
+      marketCheckCluster: mc && Array.isArray(mc.cluster) ? { low: mc.cluster[0], high: mc.cluster[1], poolN: mc.poolN, windowLabel: mc.windowLabel, tier: mc.tier } : { tier: mc && mc.tier, cluster: null },
       ladderLanded: analysis.ladder && analysis.ladder.landed ? analysis.ladder.landed.key : null
     });
   }
