@@ -913,3 +913,11 @@ when the work has landed.
   at most 8. Remove and Clear all HIDE rows (state.hidden; actions "hide"/"hideall"; the old "remove" now
   hides too): no buy_conversations row is ever deleted, and a hidden row's watch (Tasks seeds from
   watch=true rows) is untouched. "list" leaves hidden rows out. Signed out: unchanged. No new table, no SQL.
+- 2026-10-09 (Lane A): Market Check hero placeholder shortened to "Your car or its VIN" (was "...,
+  for example 2008 Porsche 997 Carrera S") in every place it's set: lib/live/marketCheckLanding.js
+  (server landing), js/onebox.js renderEmpty() (client empty state, previously slightly different
+  wording - "Your car, for example..." - now matches exactly), and the four result-tier
+  inboxHtml(lastQuery) call sites (result/refusal/not-tracked/VIN-anchor) - these pass value=lastQuery
+  in practice so the placeholder never actually shows, but now has an explicit, consistent fallback
+  instead of defaulting to the unrelated rotating PLACEHOLDER_BEATS examples if value were ever empty.
+  Button/chips/VIN line unchanged, confirmed via live DOM read.

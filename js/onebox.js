@@ -187,7 +187,7 @@
       '<div class="ob-home">' +
         '<h1 class="ob-head">What do cars like yours sell for?</h1>' +
         '<p class="ob-sub">Real sales, matched to your car, with the range most landed in and the cars behind it.</p>' +
-        inboxHtml("", "Your car, for example 2008 Porsche 997 Carrera S") +
+        inboxHtml("", "Your car or its VIN") +
       "</div>";
     wire();
     syncRailResults();
@@ -1120,7 +1120,7 @@
     else if (d.tier === "non_road") { body = samMsgHtml([lint(esc(d.samLine || "Market Check covers cars, trucks and motorcycles."), "nr")], "Sam’s read", "big"); foot = true; }
     else if (d.tier === "result") body = resultHtml(d, m);
     else { body = samMsgHtml([lint(esc("Not enough real " + carLabel(d.resolvedCar) + " sales for an honest read, and nothing here is made up. Try another car and Sam pulls what actually sold."), "zero")], "Sam’s read", "big") + sellHtml(); foot = true; }
-    root.innerHTML = inboxHtml(lastQuery) + head + body + (foot ? footHtml() : "");
+    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + head + body + (foot ? footHtml() : "");
     wire();
     streamReveal();
     if (d.tier === "result" || d.tier === "thin") loadLivePanel(d, m);
@@ -1139,7 +1139,7 @@
       : { eyebrow: "One question first", sub: "One more at most, then what actually sold." };
   }
   function renderQuestion(html) {
-    root.innerHTML = inboxHtml(lastQuery) + html + footHtml();
+    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + html + footHtml();
     wire();
   }
   // Gearbox / Competition question (Part 1 Rule 2 + change 1): a REFINE choice - the chip re-scopes
@@ -1170,7 +1170,7 @@
     renderQuestion(qscreenHtml(lint(esc(d.prompt || "Which one is it?"), "choice"), chipsHtml(opts, kind), ac.eyebrow, ac.sub));
   }
   function renderError(msg) {
-    root.innerHTML = inboxHtml(lastQuery) + samMsgHtml([esc(msg)], "", "big") + footHtml();
+    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + samMsgHtml([esc(msg)], "", "big") + footHtml();
     wire();
   }
 
@@ -1300,7 +1300,7 @@
   function renderChassisMatch(match) {
     var ask = "This exact car is known. Share the year, make and model and Sam pulls what similar ones have done.";
     vinAnchor = null;
-    root.innerHTML = inboxHtml(lastQuery) + '<div class="cards5 single" data-stage="anchor">' + vinHeroCardHtml(match, null) + "</div>" +
+    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + '<div class="cards5 single" data-stage="anchor">' + vinHeroCardHtml(match, null) + "</div>" +
       samMsgHtml([lint(esc(ask), "chassisMatchAsk")], "", "big") + footHtml();
     wire();
   }
