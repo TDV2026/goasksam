@@ -103,7 +103,7 @@
     // is scoped to this one extra class rather than touching .inbox itself (which would also narrow
     // New Sell's bar).
     return '<div class="inbox' + (SELL ? '' : ' mc-bar') + '" role="search"><label class="sr" for="ob-input">Search a car</label><input id="ob-input" autocomplete="off" ' + (value ? 'value="' + esc(value) + '"' : 'placeholder="' + esc(placeholder || PLACEHOLDER_BEATS[0]) + '"') + '>' +
-      '<button type="button" class="go" id="ob-go" aria-label="Search">&#8594;</button></div>';
+      '<button type="button" class="go" id="ob-go" aria-label="Search"' + (SELL ? '' : ' data-gas-event="market_check_open"') + '>&#8594;</button></div>';
   }
   // Layout fix (item 3): the empty state centres the input in the viewport; the loading/result
   // render re-anchors it to the top of the page. Swapping innerHTML would SNAP it up. This does a
@@ -129,7 +129,7 @@
     setTimeout(function () { root.style.transition = ""; root.style.transform = ""; root.style.willChange = ""; }, 440);
   }
   function footHtml() {
-    return '<div class="trustline foot"><span class="dot" aria-hidden="true"></span><span>Real sales only. Nothing estimated.</span></div>';
+    return '<div class="trustline foot"><span class="dot" aria-hidden="true"></span><span>Real sales only.</span></div>';
   }
   // samTakeHtml removed: the "Got it, I'm looking at comparable sales for your ..." interstitial is
   // gone (replaced by the narrated loader, item 3) and carried ownership language (item 6).
@@ -530,8 +530,8 @@
     }
     var txt = "";
     if (f.mode === "house") { if (f.through) txt = "Auction results through " + monthOnly(f.through) + "."; }
-    else if (f.lastNight) txt = "Real sales through last night. Nothing estimated.";
-    else if (f.through) txt = "Real sales through " + monthDayYear(f.through) + ". Nothing estimated.";
+    else if (f.lastNight) txt = "Real sales through last night.";
+    else if (f.through) txt = "Real sales through " + monthDayYear(f.through) + ".";
     if (!txt) return "";
     return '<div class="fresh"><span class="dot"></span>' + esc(txt) + "</div>";
   }
@@ -558,11 +558,11 @@
     if (o.article) {
       // A card that carries its own inner link (the VIN history link) cannot itself be a link;
       // the photo opens the listing instead.
-      var ph = o.href ? '<a href="' + esc(o.href) + '" target="_blank" rel="noopener noreferrer" aria-label="Open the listing" data-cardclick="' + esc(o.slug || "") + '">' + photo + "</a>" : photo;
+      var ph = o.href ? '<a href="' + esc(o.href) + '" target="_blank" rel="noopener noreferrer" aria-label="Open the listing" data-cardclick="' + esc(o.slug || "") + '" data-gas-event="receipt_click" data-gas-source="' + esc(o.slug || "") + '">' + photo + "</a>" : photo;
       return '<article class="' + cls + '">' + ph + body + "</article>";
     }
     return o.href
-      ? '<a class="' + cls + '" href="' + esc(o.href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(o.slug || "") + '">' + photo + body + "</a>"
+      ? '<a class="' + cls + '" href="' + esc(o.href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(o.slug || "") + '" data-gas-event="receipt_click" data-gas-source="' + esc(o.slug || "") + '">' + photo + body + "</a>"
       : '<div class="' + cls + '">' + photo + body + "</div>";
   }
   // "Automatic (7-speed)" -> "Automatic, 7-speed".
@@ -953,7 +953,10 @@
       return '<section class="samonit" data-stage="note"><p class="samonit-on">' + lint(onLine, "samonit.on") + "</p>" + (obWatchFirst ? '<p class="samonit-free">Free. No card, no plan.</p>' : "") + "</section>";
     }
     var line = m ? "If this exact car comes up again, Sam tells you." : ("The next " + esc(carLabel(d.resolvedCar)) + " that sells, Sam tells you, with the sale attached.");
-    return '<section class="samonit" data-stage="note"><p>' + lint(line, "samonit") + '</p><button type="button" class="linkbtn" id="ob-samonit">Put Sam on it &#8594;</button><p class="samonit-msg" id="ob-samonit-msg" hidden></p></section>';
+    // "Open to use" (Oct 2026, Market Check landing job): moved here, beside the watch control
+    // itself, from the landing hero (lib/live/marketCheckLanding.js) - the line only matters once
+    // there is something to watch, so it reads right where signing in is actually asked for.
+    return '<section class="samonit" data-stage="note"><p>' + lint(line, "samonit") + '</p><button type="button" class="linkbtn" id="ob-samonit">Put Sam on it &#8594;</button><p class="samonit-free">Open to use. Sign in only to watch a car for its next sale.</p><p class="samonit-msg" id="ob-samonit-msg" hidden></p></section>';
   }
   // "Keep looking" card (Oct 2026): lib/appShell.js's shared component. Server pages (history/spec)
   // call its Node export directly; this page renders client-side and cannot import that module, so
@@ -966,20 +969,22 @@
     return gasKeepLookingHtml({ context: "spec", subject: subject, href: href });
   }
   function resultHtml(d, m) {
-    // Order (Oct 2026, Sam's live review): range -> the earned question(s) directly under it ->
-    // Recent comparable sales -> live listings -> Shown separately -> Ready to sell -> Why it looks
-    // like this. ONE range only (the cluster in the answer card); no second "everything from" span.
+    // Answer hierarchy (Oct 2026, Market Check answer hierarchy job): lead with the answer - the
+    // range (the typical band) and the sold count, nothing decorative above it - then the sales
+    // themselves, then everything else (the refinement chips for that range, the market-read trend
+    // card, earned questions, live listings, Shown separately, Ready to sell, Why it looks like
+    // this). ONE range only (the cluster in the answer card); no second "everything from" span.
     var notes = mileageFallbackHtml(d) + contradictionLine(d) + observeAsideHtml(d) + inlineSplitsHtml(d);
     if (d.driverSentence && !(d.earned) && !(d.divergence && d.divergence.kase === "a")) notes += '<p class="varynote">' + lint(esc(d.driverSentence), "varynote") + "</p>";
-    var body = currentAnswersChipsHtml();
-    body += answerCardHtml(d, m);
+    var body = answerCardHtml(d, m);
+    body += salesSectionHtml(d, m);
+    body += currentAnswersChipsHtml();
     body += marketReadHtml(d, m);
     if (notes) body += '<div class="notes" data-stage="answer">' + notes + "</div>";
     body += trimQuestionHtml(d);
     body += bodyOptionsHtml(d);
     body += reconfirmHtml(d, m);
     body += observeHtml(d);
-    body += salesSectionHtml(d, m);
     body += otherTrimsHtml(d);
     body += livePanelSlot();
     body += shownSeparatelyHtml(d, m);
@@ -1370,6 +1375,17 @@
     root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + samMsgHtml([esc(msg)], "", "big") + footHtml();
     wire();
   }
+  // The daily distinct-car limit's own card (Oct 2026, Market Check daily limit job): a calm line
+  // plus a real link to Sam Desk (/business), never a sign-in demand, never the search box hidden -
+  // the visitor can still type a different car (a fresh distinct car just won't resolve until
+  // tomorrow; the server enforces that, not this render).
+  function renderBusinessLimit(line) {
+    var msg = line || "That’s today’s limit for individual lookups. Sam Desk is built for ongoing or business use.";
+    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") +
+      '<section class="samonit" data-stage="note"><p>' + lint(esc(msg), "businesslimit") + '</p><a class="linkbtn" href="/business">Open Sam Desk &#8594;</a></section>' +
+      footHtml();
+    wire();
+  }
 
   // ---------------------------------------------------------------- streaming (T1.4)
   function streamReveal() {
@@ -1643,6 +1659,7 @@
       if (!d || d.status !== "one_box") { renderError(OB_CALM); return; }
       if (d.tier === "unavailable") { renderError(d.samLine || OB_CALM); return; }
       if (d.tier === "rate_limited") { renderError(d.samLine || "That’s a lot of lookups for one day. Come back tomorrow and Sam keeps pulling real sales."); return; }
+      if (d.tier === "business_limit") { renderBusinessLimit(d.samLine); return; }
       if (d.tier === "model_choice" || d.tier === "body_choice" || d.tier === "generation_choice") { if (d.askIndex) obAsked = d.askIndex; renderChoice(d); return; }
       if (d.tier === "gearbox_choice" || d.tier === "variant_choice") { if (d.askIndex) obAsked = d.askIndex; renderRefineChoice(d); return; }
       if (vinAnchor) obEvent("onebox_vin_anchor_shown");
