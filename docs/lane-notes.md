@@ -648,3 +648,71 @@ when the work has landed.
   rule5PoolGuard's own replica bucket (covered models only) is not retrieved either; didNotSellCount
   cannot be trim-scoped (auction_attempts carries no title); soldBefore only attaches to the main
   `cards` array, not the separately-shaped `recent3`.
+- 2026-10-09 (Lane B, follow-up round, commits c59e5c4, acc1eef, bafd0e9, 91489a2 + this entry):
+  closed both findings from the previous round's disclosure, plus the drawer vs card split Lane C
+  found. All four turned out to be TWO root causes, not four:
+  1. SPEC_MARKET_CACHE NEVER RE-VISITED (items 1 and 2). scripts/buildSpecMarketCache.js's nightly
+     sweep only re-queues a spec_key when a CURRENTLY LIVE listing still resolves to it - once the
+     listing that first created a cache row sells or expires, nothing ever looks at that row again,
+     so it can go stale indefinitely even while fresh matching sales keep landing in sales_archive.
+     Confirmed live on "2012 BMW M3 Competition Coupe": the cached row had widened to "any_body"
+     (coupes AND sedans, 8 sales through Sep 11) because the coupe-only pool was too thin when it
+     was computed; a fresh read the same day found 37 coupe-only sales through Oct 6, wide enough on
+     its own. The 1988 Porsche 911 Carrera Targa drawer-vs-card split Lane C found is the SAME
+     mechanism (confirmed via the new drawervscard ops task). FIX: scripts/ingest.js now deletes
+     every spec_market_cache row whose own make + (model OR generation code) matches a make/model
+     that run's upsert actually touched, right after the upsert completes - the next Buy/Tasks read
+     is then a clean cache miss, which the EXISTING specCore/refreshSpec path already recomputes
+     live and writes back fresh (that read-time logic is untouched). New lib/_supabase.js
+     supabaseDelete() helper (same pattern as supabasePatch). New api/usageDashboard.js
+     task=specinvalidate (?make=&model=) for clearing a spec stuck stale right now by hand, used to
+     clear the already-stale BMW M3 and Porsche 911 entries live today. This also resolves item 1:
+     the drawer (a fresh /api/sellerDecision{oneBox:true} call) and the card (spec_market_cache) both
+     already call the SAME engine (runOneBox) through the SAME resolver for a given car - verified
+     via the new resolvediff ops task, which found the card/drawer RESOLUTION paths identical for
+     every spec checked - so once the cache is kept current they can no longer disagree. No separate
+     code change was needed to force them onto "one function" because they already were; the cache
+     was the only thing standing between them.
+  2. RESOLVEFORBUY VS RESOLVEVEHICLE ON "SPEEDSTER" (item 3). Confirmed via resolvediff:
+     resolveVehicle (Market Check/Sell) resolved "1989 Porsche 911 Speedster" to trim="Speedster"
+     from curated data; lib/live/search.js resolveForBuy's generic "a body word the resolver filed
+     as the trim is a body, not a trim" correction (added to fix a real "Targa Targas" doubling bug)
+     then rewrote that to bodyStyle="speedster", trim=null - pooling every 911 (count 100) instead of
+     the real Speedster trim. FIX: excluded "speedster" from that correction's word list only; Targa
+     and the rest are unchanged (they are pure body descriptors with no price tier of their own;
+     Speedster is a genuinely rare, distinct, much pricier factory trim on several classics). No
+     public URL changed.
+  Item 4: yoyDirection's sentence now names the actual rolling windows ("the past 12 months" / "the
+  12 months before that") instead of "this year" / "the year before", which read as calendar years.
+  Whole-percent figure, no dashes, no median, no valuation words - unchanged otherwise.
+  CHECK TABLE: before this round, scripts/crossProductCheck.js (20 specs) showed 2 mismatches (the
+  BMW M3 and Speedster cases above, carried over from the previous round's disclosure). After every
+  fix and after invalidating the two already-stale cache entries: 20/20 MATCH, zero mismatches.
+  DRAWER VS CARD (11 specs, api/usageDashboard.js task=drawervscard): the Targa, the BMW M3
+  Competition Coupe/Competition, the Speedster, and "2008 Porsche 911 Carrera" (caught by the same
+  blanket Porsche 911 cache invalidation) all read as a clean cache MISS right after the fix landed
+  (the expected, correct state post-invalidation - a brief "pending" that self-heals on the next real
+  read, never a wrong value); the other 7 of the 11 (Mustang Fastback, Corvette ZR-1, Camaro Z28,
+  GT350, Boxster S, NSX, Ford GT), whose cache happened to already be current, matched the drawer
+  exactly even before any fix - direct evidence the two paths were never structurally different, only
+  ever as current as their cache.
+- 2026-10-09 (Lane A -> Lane C): rail nav-item pill polish (Sam's round). Active rail item is now a
+  filled pill (`--rail-active-bg:#D7E6DA`, 10px radius, label in the page's own dark green + 600
+  weight) instead of the old thin green left border; inactive text darkened one step
+  (`--rail-text:#46524B`); hover/focus-visible get a lighter pill (`--rail-hover-bg:#E3EFE6`). All
+  three tokens are in `lib/appShell.js` `SHELL_TOKENS_CSS`, so they're already on every page that
+  injects it (Market Check, Sell/homepage, Tasks, How Sam decides). Applied to `.gas-navitem`
+  (appShell.js) and, as a companion change, `styles.css` `.hp-navitem` (Sell's own rail system,
+  which doesn't consume `.gas-navitem` at all - it was still using the old cream `--paper-shade` for
+  its hover/active pill even though its rail background has been sage since the Round D surface pass).
+  BUY NOT TOUCHED (not mine - `api/buy.js`'s own `.rail a.n` / `.n.on` CSS, a third, separate rail
+  system from both of the above). To match: swap whatever colour `.rail a.n:hover` / `.rail a.n.on`
+  currently use for `var(--rail-hover-bg,#E3EFE6)` / `var(--rail-active-bg,#D7E6DA)` respectively,
+  set the active label colour to Buy's own dark green token (keep it, don't adopt Market Check's
+  `#1E4D38` - same pattern as Sell above, every page keeps its own green), make active/hover weight
+  600, and make sure inactive/active share identical padding and min-height (the point of the change
+  is nothing shifts when the current page changes - check this specifically, it was the actual bug
+  in the old border-left version before this round). `--rail-active-bg`/`--rail-hover-bg` are on
+  Buy's page already if it loads `lib/authBar.js`'s CSS (it does, per the mobile sign-in fix) - but
+  NOT `SHELL_TOKENS_CSS` unless Buy separately imports it; cheapest path is probably just hardcoding
+  the two hex values in Buy's own CSS rather than wiring a new import for two colours.

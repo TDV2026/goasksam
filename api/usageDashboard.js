@@ -687,11 +687,12 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "drawervscard", total: rows.length, diverged: rows.filter(r => r.verdict === "DIVERGE").length, rows });
   }
 
-  // task=resolvediff: READ-ONLY, zero writes. Investigative only (not kept): compares resolveForBuy
-  // (lib/live/search.js, Buy/Tasks' own resolver + generation binder) against resolveVehicle +
-  // findGeneration (the shared resolver Market Check/Sell use) for the same text, plus a fresh
-  // walkLadder trace and the live spec_market_cache row for whatever spec_key resolveForBuy lands
-  // on, to find exactly where the two paths diverge.
+  // task=resolvediff: READ-ONLY, zero writes. Compares resolveForBuy (lib/live/search.js, Buy/Tasks'
+  // own resolver + generation binder) against resolveVehicle + findGeneration (the shared resolver
+  // Market Check/Sell use) for the same text, plus a fresh walkLadder trace and the live
+  // spec_market_cache row for whatever spec_key resolveForBuy lands on - kept as a reusable
+  // diagnostic for the next time the two resolvers disagree (found the Speedster trim/body-style
+  // bug this way, Oct 2026).
   if (task === "resolvediff") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const q = String(req.query?.q || "2012 BMW M3 Competition Coupe");
