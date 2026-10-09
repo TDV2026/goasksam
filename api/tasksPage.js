@@ -123,7 +123,7 @@ export default async function handler(req, res) {
 ${FONT_LINKS}<style>${PAGE_CSS}${CSS}${AUTH_CSS}${SHELL_CSS}</style>${ld.map(o => '<script type="application/ld+json">' + JSON.stringify(o).replace(/</g, "\\u003c") + "</script>").join("")}</head><body>
 ${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
-${railOpenHtml({ active: "tasks" })}
+${railOpenHtml({ active: "tasks", crew })}
 <main><div class="col">
 <header class="tkhero"><p class="pos">Car alerts, much smarter, and free</p><h1>${esc(TASKS_PITCH.lead)}</h1><p class="lead" data-lead-sentence>${esc(TASKS_PITCH.sub)}</p>
 <button type="button" class="cta" id="tkcta" data-task-entry data-href="/tasks/mine?start=1">Give Sam a task</button></header>
@@ -172,13 +172,14 @@ const EXPLAINER_JS = String.raw`(function(){
 })();`;
 
 function appPage(req, res) {
+  const crew = isCrewRequest(req);
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Your tasks | GoAskSam</title><meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#F6F3EC">
 ${FONT_LINKS}<style>${PAGE_CSS}${CSS}${APP_CSS}${AUTH_CSS}${SHELL_CSS}</style></head><body>
 ${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
-${railOpenHtml({ active: "tasks" })}
+${railOpenHtml({ active: "tasks", crew })}
 <main><div class="col">
 <div class="apph"><h1>Your tasks</h1><a href="/tasks">How it works</a></div>
 <div id="tkapp"></div>

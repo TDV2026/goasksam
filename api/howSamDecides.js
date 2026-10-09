@@ -68,7 +68,7 @@ function page(req) {
 ${FONT_LINKS}<style>:root{--ink:#15201A;--sec:#5E6B63;--soft:#3C4942;--green:#1E4D38;--sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--serif:"Newsreader",Georgia,"Times New Roman",serif}*{box-sizing:border-box}html,body{margin:0}body{background:var(--main-bg,#F6F3EC);color:var(--ink);font:400 17px/1.5 var(--sans)}a{color:var(--green)}:focus-visible{outline:2px solid var(--green);outline-offset:2px}${CSS}${AUTH_SIGNBAR_CSS}${SHELL_CSS}</style></head><body>
 ${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
-${railOpenHtml({ active: "how" })}
+${railOpenHtml({ active: "how", crew })}
 <main><div class="hd-col">
 <h1 class="hd-h1">How Sam decides.</h1>
 <p class="hd-intro" data-lead-sentence>${esc(INTRO)}</p>

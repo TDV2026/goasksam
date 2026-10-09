@@ -14,6 +14,7 @@ import { sellExample } from "../lib/sell/sellExample.js";
 import sellPage from "./sellPage.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 import { SHELL_CSS, SHELL_JS, railOpenHtml } from "../lib/appShell.js";
+import { isCrewRequest } from "./_chrome.js";
 
 const YOUR_RESULTS_RAIL = '<a class="gas-navitem" id="gas-nav-results" href="#" style="display:none" onclick="return obToggleResults(event)">Your results</a><div class="gas-submenu" id="gas-results-menu"></div>';
 
@@ -36,6 +37,7 @@ export default async function handler(req, res) {
   if (process.env.SELL_NEXT_ON !== "1" && !keyed) return /[?&]car=/.test(String(req.url || "")) ? (res.setHeader("X-Robots-Tag", "noindex, follow"), sellPage(req, res)) : res.status(404).json({ error: "Not found." });
   if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "onebox.html"), "utf8");
   if (cardCss == null) cardCss = pcardCss();
+  const crew = isCrewRequest(req);
   const env = supabaseEnv();
   // The landing's one live example (lib/sell/sellExample.js, the same result a visitor gets): memory, the
   // stored row, or a build waited on for up to 8 seconds (never left to finish after the response is sent).
@@ -54,7 +56,7 @@ export default async function handler(req, res) {
     .replace("</head>", () => `<meta name="robots" content="noindex, nofollow">\n<link rel="canonical" href="https://goasksam.com/sell">\n<style>${cardCss}\n${SELL_MC_CSS}\n${SELL_LANDING_CSS}\n${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}</style>\n</head>`)
     // Round D (app shell, Oct 2026): the same shared rail as every other product - the full page
     // list, current page ("sell") marked - replacing the old Sell-only stripped-down rail.
-    .replace("<!--SHELL_RAIL-->", () => railOpenHtml({ active: "sell", pageExtra: YOUR_RESULTS_RAIL, logoHref: "/sell" }))
+    .replace("<!--SHELL_RAIL-->", () => railOpenHtml({ active: "sell", pageExtra: YOUR_RESULTS_RAIL, logoHref: "/sell", crew }))
     .replace("<script>\nfunction obToggleResults", () => `<script>${SHELL_JS}</script>\n<script>\nfunction obToggleResults`)
     // The Sell hook must exist before js/onebox.js boots, so the client goes in ahead of it.
     .replace(/<script src="\/obx\.[^"]+\/onebox\.js"><\/script>/, m => `<script>window.GAS_SELL_CFG=${cfg};</script>\n<script>${SELL_MC_CLIENT}</script>\n${m}`)
@@ -65,7 +67,8 @@ export default async function handler(req, res) {
     .replace("<body>", () => `<body>\n${AUTH_SIGNBAR_HTML}\n<script>${AUTH_SIGNBAR_MIRROR_JS}</script>\n<script>window.GAS_AUTH_MODE="topbar";</script>\n<script src="/js/auth.js" defer></script>`);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
-  // A probe-key preview stays private; once SELL_NEXT_ON serves it to everyone it is a public page (no Vary).
-  res.setHeader("Cache-Control", keyed ? "private, no-store" : "public, max-age=0, s-maxage=600, stale-while-revalidate=3600");
+  // A probe-key preview, or crew (whose rail differs from the public's, PUBLIC_LAUNCH switch), stays
+  // private; once SELL_NEXT_ON serves it to everyone it is a public page (no Vary on the cookie).
+  res.setHeader("Cache-Control", (keyed || crew) ? "private, no-store" : "public, max-age=0, s-maxage=600, stale-while-revalidate=3600");
   res.status(200).send(html);
 }

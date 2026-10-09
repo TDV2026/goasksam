@@ -23,6 +23,7 @@ import { landingHtml, LANDING_CSS } from "../lib/live/marketCheckLanding.js";
 import { marketCheckExample } from "../lib/live/marketCheckExample.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 import { SHELL_CSS, SHELL_JS, railOpenHtml } from "../lib/appShell.js";
+import { isCrewRequest } from "./_chrome.js";
 
 // "Your results" (the rail's page-specific section on Market Check/Sell, same mechanism as Buy's
 // "Your searches"): the nav item + its dropdown are hidden by default and filled by js/onebox.js's
@@ -47,6 +48,7 @@ export function stripLaunchGate(html) {
 
 export default async function handler(req, res) {
   if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "onebox.html"), "utf8");
+  const crew = isCrewRequest(req);
   const env = supabaseEnv();
   // Date only, no count (Oct 2026, Sam): the real last-ingest date (lib/asOf.js lastUpdatedDate()),
   // the same shared helper /sell uses. Null-safe: no date clause when it cannot be read, never a
@@ -76,7 +78,7 @@ export default async function handler(req, res) {
     .replace('<main class="wrap"><div id="ob"></div></main>',
       `<main class="wrap"><div id="ob">${landingHtml({ updated, example, h1Text: H1 })}</div></main>`)
     // Round D (app shell, Oct 2026): one shared rail/main/mobile-header, lib/appShell.js.
-    .replace("<!--SHELL_RAIL-->", railOpenHtml({ active: "market-check", pageExtra: YOUR_RESULTS_RAIL }))
+    .replace("<!--SHELL_RAIL-->", railOpenHtml({ active: "market-check", pageExtra: YOUR_RESULTS_RAIL, crew }))
     .replace("<script>\nfunction obToggleResults", `<script>${SHELL_JS}</script>\n<script>\nfunction obToggleResults`)
     // Item 9 (shared top bar, Oct 2026): "Sign in" / the account control, one shared file
     // (lib/authBar.js) - the same markup/CSS Buy now uses, GAS_AUTH_MODE="topbar" so js/auth.js
@@ -85,6 +87,9 @@ export default async function handler(req, res) {
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", robots);
-  res.setHeader("Cache-Control", "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400");
+  // Crew's rail differs from the public's (PUBLIC_LAUNCH switch, Oct 2026) - never share an edge
+  // cache slot between them (the public response has no Vary on the cookie, so a crew hit would
+  // otherwise either leak the full rail to the next public visitor or vice versa).
+  res.setHeader("Cache-Control", crew ? "private, no-store" : "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400");
   res.status(200).send(html);
 }

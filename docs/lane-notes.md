@@ -846,3 +846,36 @@ when the work has landed.
   "{curated trim} {body word}" phrasing, not just Targa. Not fixed this round (new, deeper gap than
   the audit above; found while verifying the grown 42-spec check, after this round's other fixes
   were already pushed).
+- 2026-10-09 (Lane A, FOR SAM + Lane C): PUBLIC_LAUNCH switch. Until the env var PUBLIC_LAUNCH=1, a
+  visitor without the gas_crew=ok cookie sees a reduced rail/footer everywhere - Where to sell,
+  PowerSellers, Your results (when the page passes one), Send feedback, Privacy, About - nothing
+  naming or linking to Buy, Market Check, Tasks, For business or How Sam decides. Crew always sees
+  the full rail; everyone does once PUBLIC_LAUNCH=1. lib/appShell.js: new `isFullAccess(crew)`
+  export (single source of truth), `railOpenHtml()` now takes a `crew` param and branches its nav +
+  footer on it. api/sellPage.js (Sell's own rail system, not lib/appShell.js) mirrors the same
+  isFullAccess check with its own stripHiddenNav() by href, matching the reduced set exactly - "so
+  every page agrees" per Sam's instruction. Every railOpenHtml() CALLER updated to pass crew:
+  api/marketCheck.js, api/sellNext.js, api/publicConfig.js (the /o/:id share route, previously had
+  no crew check at all), api/howSamDecides.js, api/business.js, api/tasksPage.js (both /tasks and
+  /tasks/mine). CACHING FIX (load-bearing, read this before touching any of these files again): any
+  page whose rail now depends on the cookie MUST vary its Cache-Control by crew (private, no-store
+  for crew; public/cacheable only for non-crew) or a shared edge cache slot leaks the wrong rail to
+  the next visitor in either direction - api/marketCheck.js and api/publicConfig.js had NO crew-
+  aware caching before this round (their rail was previously identical for everyone) and both are
+  fixed now; api/sellNext.js's existing probe-key check is now OR'd with crew for the same reason.
+  BUY: api/buy.js already calls lib/appShell.js railOpenHtml() directly (not mine to edit) and
+  already computes `const crew = isCrewRequest(req);` at its call site (line ~45) - it is NOT yet
+  passing crew into the call (line ~52), so until you add `crew` to that object literal, Buy shows
+  the REDUCED rail to everyone, crew included (the safe-by-default failure direction, not a leak -
+  but worth the one-line fix). AUDIT (part 2 of Sam's ask): grepped index.html, js/homepage.js, js/
+  result-copy.js, js/auth.js, lib/authBar.js, lib/sell/sellLanding.js, lib/_email.js and index.html's
+  JSON-LD for any mention of or link to Buy/Market Check/Tasks/For business/Sam Desk outside the rail
+  itself - all clean (one code-comment-only hit in each of index.html and sellLanding.js, never user-
+  visible copy). "Put Sam on it" is real copy but lives entirely inside Buy's own page (lib/live/
+  buyLanding.js) - Buy is itself one of the hidden products, so this is not a separate leak, just
+  content on an already-gated page. No llms.txt file exists in the repo. WHAT A STRANGER CAN STILL
+  DISCOVER (Sam's rule 3, stated plainly): every hidden page stays live and indexable at its own
+  address - /buy, /market-check, /tasks, /business, /how-sam-decides are not blocked, not noindexed,
+  not removed from any sitemap, and anyone with the direct link (a search result, a shared URL, a
+  guess) reaches the real page in full. This switch hides the DISCOVERY surface (nav, footer) only,
+  exactly as instructed - it is not a secrecy or access control measure and was never asked to be one.
