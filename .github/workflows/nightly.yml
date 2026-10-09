@@ -11,6 +11,17 @@ name: Nightly ingest and warm
 # Vercel env vars. Add them under: repo Settings > Secrets and variables > Actions.
 # If they are missing, the "Verify required secrets" step fails loudly and names
 # exactly which one is empty.
+#
+# JOB SHAPE (Oct 2026, nightly-timing follow-up - run #105, Oct 9, cancelled at the
+# 55-minute ceiling mid crossProductCheck, taking warm/attempts/premium/cube down
+# with it since all four `needs: ingest`): "ingest" is now LEAN - archive freshness
+# only, nothing else - so warm/attempts/premium/cube (all archive-freshness
+# consumers, nothing more) start the moment it finishes, typically under a minute.
+# Every slower, non-essential step (VIN index, spec cache refresh + its deferred
+# recompute, the Market Check/Sell example builds, spec_pages, VIN rollout cache,
+# the search rules check, crossProductCheck) moved to a NEW "caches" job that runs
+# AFTER ingest but IN PARALLEL with warm/attempts/premium/cube, with its own
+# generous timeout - a slow night in "caches" can no longer block anything else.
 on:
   schedule:
     - cron: "11 7 * * *"   # 07:11 UTC nightly (off-peak minute; :30/:00 top-of-hour slots see the worst GitHub scheduler delay)
@@ -34,10 +45,12 @@ jobs:
   ingest:
     # Pinned to 24.04 so the ubuntu-latest migration to Ubuntu 26 (from Oct 19) cannot change the runner under us.
     runs-on: ubuntu-24.04
-    # A normal delta finishes in minutes; 55 min is a hard ceiling (raised from 40 so the VIN index
-    # rebuild plus the VIN rollout cache can both finish) so a runaway (e.g. a blind DB
-    # defeating the delta stop) can never walk for 80 minutes again.
-    timeout-minutes: 55
+    # LEAN now (Oct 2026 follow-up): this job is archive ingest ONLY - every other step that used to
+    # live here moved to the "caches" job below. A normal delta finishes in well under a minute; 25
+    # min is a hard ceiling (generous headroom over a large backfill dispatch) so a runaway can never
+    # walk for an hour again, and - just as importantly - can never hold warm/attempts/premium/cube
+    # hostage, since none of those depend on anything slower than this.
+    timeout-minutes: 25
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -46,8 +59,8 @@ jobs:
       BACKFILL_TO: ${{ github.event.inputs.backfill_to }}
       SOURCES: ${{ github.event.inputs.sources }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - name: Verify required secrets are present
@@ -79,6 +92,39 @@ jobs:
             echo "Nightly delta ingest"
             node scripts/ingest.js --delta
           fi
+      # ingest.js writes this file (repo root) only when this run invalidated spec_market_cache
+      # rows; absent = nothing to recompute. Uploaded so the "caches" job (a separate runner) can
+      # pick it up - the recompute itself never runs in THIS job, per the Oct 2026 fix above.
+      - name: Upload invalidated specs list (if any) for the deferred recompute
+        uses: actions/upload-artifact@v4
+        with:
+          name: invalidated-specs
+          path: invalidated-specs.json
+          if-no-files-found: ignore
+          retention-days: 1
+
+  caches:
+    runs-on: ubuntu-24.04
+    needs: ingest
+    # Every step here is a cache/freshness nice-to-have, never archive correctness - a failure or a
+    # slow night here must never read as an ingest outage, and (the whole point of this split) must
+    # never delay warm/attempts/premium/cube, none of which need anything in this job. 55 min keeps
+    # today's effective ceiling for this slower tail (VIN index + VIN rollout cache are the two
+    # genuinely multi-minute steps; crossProductCheck at 53 specs is the newest and least bounded).
+    timeout-minutes: 55
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Download invalidated specs list (if any)
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: invalidated-specs
       - name: Rebuild VIN index (vin_index + vin_summary)
         id: vinindex
         continue-on-error: true
@@ -90,6 +136,13 @@ jobs:
         id: specmarket
         continue-on-error: true
         run: node scripts/buildSpecMarketCache.js
+      # Deferred, capped recompute of whatever ingest invalidated this run (Oct 2026 follow-up) -
+      # ranked by real search volume, top RECOMPUTE_CAP (default 60) recomputed, the rest left for
+      # the ordinary cold-read-on-next-visit path. Clean no-op when nothing was invalidated.
+      - name: Recompute invalidated spec cache rows (capped, ranked by search volume)
+        id: recomputespec
+        continue-on-error: true
+        run: node scripts/recomputeSpecCache.js --cap=60
       # Builds the Market Check landing example once a night
       - name: Build Market Check landing example (what the example car sold for)
         id: marketcheckexample
@@ -111,8 +164,8 @@ jobs:
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: node scripts/searchCheck.js
         continue-on-error: true
-      # NEW: proves Buy, Sell, Market Check and Tasks read the same pool for 20 specs.
-      # Records the table nightly; does not turn the job red yet.
+      # Proves Buy, Sell, Market Check and Tasks read the same pool. Records the table nightly;
+      # does not turn the job red yet.
       - name: Cross-product engine check (Buy/Sell/Market Check/Tasks agree)
         id: crossproductcheck
         continue-on-error: true
@@ -126,6 +179,11 @@ jobs:
         if: steps.specmarket.outcome == 'failure'
         run: |
           echo "::error::Spec market cache refresh failed (see the Refresh spec market cache step above). Later steps still ran, but the job must end red."
+          exit 1
+      - name: Fail the job if the recompute step failed
+        if: steps.recomputespec.outcome == 'failure'
+        run: |
+          echo "::error::Deferred spec cache recompute failed (see the Recompute invalidated spec cache rows step above). Later steps still ran, but the job must end red. The ordinary cold-read-on-next-visit path still covers every affected spec meanwhile - this is a speed regression, not a correctness outage."
           exit 1
       - name: Fail the job if the Market Check example step failed
         if: steps.marketcheckexample.outcome == 'failure'
@@ -142,6 +200,7 @@ jobs:
         run: |
           echo "::error::VIN rollout cache precompute failed (see the Precompute VIN rollout cache step above). Later steps still ran, but the job must end red. The sitemaps still serve correctly off the live budgeted fallback meanwhile - this is a speed/completeness regression, not a correctness outage."
           exit 1
+
   warm:
     runs-on: ubuntu-24.04
     needs: ingest
@@ -158,8 +217,8 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - name: Rolling warm (~30 nameplates, budget-reserved so search outranks it)
@@ -186,8 +245,8 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       OLDCARSDATA_API_KEY: ${{ secrets.OLDCARSDATA_API_KEY }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - name: Verify required secrets are present
@@ -266,8 +325,8 @@ jobs:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - name: Verify required secrets are present
