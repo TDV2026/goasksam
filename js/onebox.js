@@ -129,7 +129,7 @@
     var label = thin ? "Why so little" : "Why it looks like this";
     var text = thin
       ? "Because that’s all that sold. We’d rather show you every real sale than a number we made up from them."
-      : "No chart, no estimate, no score. Every figure on this page is a hammer price from a real auction, matched to the car’s trim, body and gearbox, converted at the rate on the day it sold, with the replicas, projects and odd sales set aside. The range is where most of those sales landed. Where there aren’t enough sales to say something, we say that instead.";
+      : "No chart, no guess, no score. Every figure on this page is a hammer price from a real auction, matched to the car’s trim, body and gearbox, converted at the rate on the day it sold, with the replicas, projects and odd sales set aside. The range is where most of those sales landed. Where there aren’t enough sales to say something, we say that instead.";
     return '<section class="whynote" data-stage="note"><span class="eyebrow">' + esc(label) + '</span><p>' + esc(text) + '</p><a href="/how-sam-decides">How Sam decides &#8594;</a></section>';
   }
   // LIVE PANEL: when live_listings holds cars of this family, "{N} like this are live right now" with
@@ -152,8 +152,12 @@
     fetch(API_ORIGIN + "/api/buySearch?" + qs).then(function (r) { return r.json(); }).then(function (j) {
       if (!j || !(j.count > 0) || !j.rows || !j.rows.length || !document.body.contains(slot)) return;
       var rows = j.rows.map(function (l) {
-        var bid = l.current_bid_usd ? usd(l.current_bid_usd) : (l.current_bid ? Math.round(l.current_bid).toLocaleString("en-US") + " " + l.currency : "No bids");
-        return '<a class="lp-row" href="' + esc(utmUrl(l.url)) + '" target="_blank" rel="noopener noreferrer"><span class="lp-house">' + esc(l.source) + '</span><span class="lp-t">' + esc(cleanReceiptTitle(l.title)) + '</span><span class="lp-r"><b>' + esc(bid) + '</b>' + esc(endsShort(l.end_time)) + '</span></a>';
+        // Item 11 (Oct 2026): never a bare figure that reads as a price - "Current bid $X" (or
+        // "Asking $X" the day a fixed-price field exists in the feed; none does today, so that
+        // branch is structural only, never guessed) or "No bids yet" when there truly is none.
+        var amt = l.current_bid_usd ? usd(l.current_bid_usd) : (l.current_bid ? Math.round(l.current_bid).toLocaleString("en-US") + " " + l.currency : "");
+        var priceText = l.fixedPriceUsd ? "Asking " + usd(l.fixedPriceUsd) : (amt ? "Current bid " + amt : "No bids yet");
+        return '<a class="lp-row" href="' + esc(utmUrl(l.url)) + '" target="_blank" rel="noopener noreferrer"><span class="lp-house">' + esc(l.source) + '</span><span class="lp-t">' + esc(cleanReceiptTitle(l.title)) + '</span><span class="lp-r"><b>' + esc(priceText) + '</b>' + esc(endsShort(l.end_time)) + '</span></a>';
       }).join("");
       var q = (m && m.displayName) || carLabel(rc);
       slot.className = "livepanel";
@@ -459,6 +463,15 @@
   }
   // Pool-aware freshness line (S2-2). NOT passed through lint(): "estimated" is a deliberate
   // negation here (as in the trust line), not a valuation claim. No dashes.
+  // Item 12 (Oct 2026): the day, not the month - "Oct 6" this year, "Oct 6, 2025" once it isn't.
+  var FRESH_MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function freshDay(dstr) {
+    var p = String(dstr || "").slice(0, 10).split("-");
+    var y = Number(p[0]), mo = Number(p[1]), dd = Number(p[2]);
+    if (!y || !mo || !dd) return "";
+    var s = (FRESH_MONTHS_SHORT[mo - 1] || "") + " " + dd;
+    return y === new Date().getFullYear() ? s : s + ", " + y;
+  }
   function freshLine(d) {
     var f = d && d.freshness; if (!f) return "";
     // Item 7c: when the newest IN-SCOPE sale is older than the archive's newest sale, state TWO facts
@@ -469,8 +482,7 @@
       var now = Date.now();
       var archRecent = (now - Date.parse(arch + "T00:00:00Z")) <= 2 * 864e5;
       var fact1 = archRecent ? "Sales through last night." : ("Sales through " + monthDayYear(arch) + ".");
-      var modelW = (d.resolvedCar && (d.resolvedCar.familyLabel || d.resolvedCar.model)) ? titleCaseSaleTitle(d.resolvedCar.familyLabel || d.resolvedCar.model) : "this car";
-      var fact2 = "Latest " + modelW + " sale: " + monthYear(through) + ".";
+      var fact2 = "Latest sale: " + freshDay(through) + ".";
       return '<div class="fresh"><span class="dot"></span>' + esc(fact1 + " " + fact2) + "</div>";
     }
     var txt = "";
@@ -679,7 +691,7 @@
     if (m && m.url) shownUrls[m.url] = true;
     [rep && rep.closest, rep && rep.high, rep && rep.low].forEach(function (c) { if (c && c.url) shownUrls[c.url] = true; });
     var more = (d.cards || []).filter(function (c) { return !(c.url && shownUrls[c.url]); });
-    var moreHtml = capCardsHtml("grid3", more.map(function (c) { return poolCardHtml(c, false); }), 4);
+    var moreHtml = capCardsHtml("grid3", more.map(function (c) { return poolCardHtml(c, false); }), 3);
     return headHtml + row + moreHtml;
   }
   // "Shown separately" (Part 1 Rule 7): tagged variants and aside cars stay visible, out of the range.
@@ -709,7 +721,7 @@
     var cardsHtml = list.map(function (c, i) { return poolCardHtml(c, dirs[i]); });
     return '<div class="sec-head" data-stage="cards"><div><h2>' + lint("Shown separately", "sep.lab") + "</h2></div></div>" +
       '<p class="sep-note" data-stage="cards">' + lint(sentence, "sep.note") + "</p>" +
-      capCardsHtml("grid3", cardsHtml, 4);
+      capCardsHtml("grid3", cardsHtml, 3);
   }
   // Item 4: the mileage reconfirm / earned question renders AFTER the evidence (answer, proof, then
   // the refinement). On a divergent car it is the "still around X miles?" reconfirm; otherwise the
