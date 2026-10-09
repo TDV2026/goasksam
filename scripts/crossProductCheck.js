@@ -141,7 +141,10 @@ function compareField(name, values) {
     return { field: name, status: mismatch ? "MISMATCH" : "MATCH", detail: present.map(([k, v]) => `${k}=${v}`).join(" ") };
   }
   if (name === "recent") {
-    const lists = present.map(([, v]) => datesOf(v).join(","));
+    // Market Check's d.recent3 is ascending (oldest of the three first); Buy/Tasks' core.recent is
+    // descending (most recent first) - a presentation-order difference, not a different set of
+    // sales. Compare the SORTED date set so "same three sales, different order" reads as a match.
+    const lists = present.map(([, v]) => datesOf(v).slice().sort().join(","));
     const mismatch = lists.some(s => s !== lists[0]);
     return { field: name, status: mismatch ? "MISMATCH" : "MATCH", detail: present.map(([k, v]) => `${k}=[${datesOf(v).join(",")}]`).join(" ") };
   }
