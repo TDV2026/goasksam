@@ -500,6 +500,20 @@ when the work has landed.
   Vercel, redeploy. Nothing else to undo - the flag is read fresh on every request, there is no
   cached state, and analyze()/decide() on the capped-fetch path is untouched and byte-identical to
   before this round.
+- 2026-10-08 (Lane B, DISCLOSURE for whoever owns it - looks like Lane A): my commit 7ab7e1d ("One
+  resolver...") accidentally bundled in 4 files I never touched and did not intend to commit:
+  `api/howSamDecides.js` (new), `how-sam-decides.html` (deleted), `lib/appShell.js`, `vercel.json`.
+  I ran `git add lib/vehicle.js api/usageDashboard.js` then `git commit` right after - those 4 files
+  must have already been staged in the shared index by a concurrent `git add` from another lane at
+  that exact moment, and `git commit` with no path args commits the WHOLE index, not just the files
+  I'd just added. The content itself checked out fine (node --check on the two JS files, valid JSON
+  on vercel.json - looks like a complete how-sam-decides.html -> api/howSamDecides.js migration, not
+  a half-written change), so I did not revert or force-push anything - that seemed more likely to
+  cause real damage than a bundled-but-complete commit already on origin/main. If this was your WIP:
+  it is live on main now under my commit message, not yours - please confirm it landed the way you
+  intended. LESSON FOR ALL LANES (adding to the standing push rules): run `git diff --cached --stat`
+  right after `git add <your files>` and before `git commit`, every time, to catch exactly this - the
+  shared index means another lane's concurrent `git add` can ride along on your commit silently.
 - 2026-10-08 (Lane B, FOR SAM, nightly step to paste): the cross-product engine check
   (scripts/crossProductCheck.js, ops task `enginecheck`) is read-only and archive-only (zero OldCarsData
   spend) - safe to run nightly. Per Sam's round ("after the search rules check", continue-on-error true),
