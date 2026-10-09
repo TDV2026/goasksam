@@ -39,6 +39,7 @@ import {
 } from "../lib/_classify.js";
 import { hammerUsd, ensureFxReady } from "../lib/_houseComps.js";
 import { pickPlatform, buildSharedAnalysis } from "../lib/platformPick.js";
+import { specKeyFor, coreOf, persistCore } from "../lib/live/search.js";
 
 // Powerseller referrals are gated (locked product rule): estimated value from
 // actual comps must clear this threshold before a partner can lead.
@@ -3568,6 +3569,22 @@ export default async function handler(req, res) {
       } catch (e) {
         console.error(`One Box unavailable (${(e && e.message) || e}).`);
         return res.status(200).json({ status: "one_box", tier: "unavailable", samLine: OB_CALM });
+      }
+      // OPPORTUNISTIC CARD-CACHE REFRESH (Oct 2026 follow-up, item 1: "drawer vs card,
+      // structurally"). Market Check and the Buy drawer both land here, and both just ran the
+      // SAME live engine call Buy's card cache (spec_market_cache) is built from. Writing that
+      // answer back under the identical key (specKeyFor, shared with lib/live/search.js specOf) on
+      // every clean result means ordinary traffic keeps a popular spec's card fresh well inside the
+      // ingest-tied invalidation and 1-day ceiling (items 1 and 2) - on top of those, never instead
+      // of them, and never slowing or failing this response (fire-and-forget). Skipped on a refine
+      // answer (obRefine) - a refined pool is narrower than the base spec the cache key names, and
+      // would otherwise overwrite the card's base-spec row with a mileage/gearbox-filtered one.
+      if (oneBox && oneBox.tier === "result" && !obRefine && vehicle && vehicle.make && vehicle.model) {
+        try {
+          const cacheKey = specKeyFor(vehicle, generation, null);
+          const core = coreOf(oneBox, { v: vehicle, generation, refine: null });
+          if (core) persistCore({ supabaseUrl, supabaseKey }, cacheKey, core).catch(() => {});
+        } catch { /* best-effort only, never blocks the response */ }
       }
       // Addressable result (Task 4): persist a stable, shareable snapshot of THIS result so
       // /o/<id> re-opens the exact same answer cold and its OG tags carry the answer line.
