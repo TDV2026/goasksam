@@ -654,6 +654,22 @@ async function handleOps(req, res) {
   // spec_market_cache via the EXACT same coreOf/persistCore/specKeyFor path api/sellerDecision.js's
   // oneBox branch now uses - for verifying that opportunistic-refresh mechanism works without
   // fighting Vercel's bot challenge on a raw POST to /api/sellerDecision (curl gets 429there).
+  // task=venuecheck (Oct 2026, Lane B follow-up item 3): calls pickPlatform live and prints the
+  // new picked-venue-only fields (pickedVenueSalesPerMonth, pickedVenueTypicalRange). READ-ONLY.
+  if (task === "venuecheck") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const q = String(req.query?.q || "2008 Porsche 911 Carrera");
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { pickPlatform } = await import("../lib/platformPick.js");
+    const rv = await resolveVehicle(q, {});
+    const vehicle = rv && rv.vehicle;
+    if (!vehicle || !vehicle.make) return res.status(200).json({ task: "venuecheck", q, error: "unresolved" });
+    const generation = await findGeneration(vehicle, env).catch(() => null);
+    const pick = await pickPlatform(vehicle, generation, env, {});
+    return res.status(200).json({ task: "venuecheck", q, platform: pick.platform, evidenceSales: pick.evidenceSales, pickedVenueSalesPerMonth: pick.pickedVenueSalesPerMonth, pickedVenueTypicalRange: pick.pickedVenueTypicalRange });
+  }
+
   if (task === "simulatedrawer") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const q = String(req.query?.q || "1988 Porsche 911 Carrera Targa");
