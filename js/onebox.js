@@ -955,6 +955,16 @@
     var line = m ? "If this exact car comes up again, Sam tells you." : ("The next " + esc(carLabel(d.resolvedCar)) + " that sells, Sam tells you, with the sale attached.");
     return '<section class="samonit" data-stage="note"><p>' + lint(line, "samonit") + '</p><button type="button" class="linkbtn" id="ob-samonit">Put Sam on it &#8594;</button><p class="samonit-msg" id="ob-samonit-msg" hidden></p></section>';
   }
+  // "Keep looking" card (Oct 2026): lib/appShell.js's shared component. Server pages (history/spec)
+  // call its Node export directly; this page renders client-side and cannot import that module, so
+  // KEEPLOOK_JS (spliced into SHELL_JS, already loaded before this script runs) carries the same
+  // markup/href logic as gasKeepLookingHtml/gasKeepLookingHref globals - called here, not rebuilt.
+  function keepLookingCardHtml(d, m) {
+    if (typeof gasKeepLookingHtml !== "function" || typeof gasKeepLookingHref !== "function") return "";
+    var subject = carLabel(d.resolvedCar);
+    var href = gasKeepLookingHref({ subject: subject, vin: m ? obSourceVin : null });
+    return gasKeepLookingHtml({ context: "spec", subject: subject, href: href });
+  }
   function resultHtml(d, m) {
     // Order (Oct 2026, Sam's live review): range -> the earned question(s) directly under it ->
     // Recent comparable sales -> live listings -> Shown separately -> Ready to sell -> Why it looks
@@ -975,6 +985,7 @@
     body += shownSeparatelyHtml(d, m);
     body += sellHtml();
     body += samOnItHtml(d, m);
+    body += keepLookingCardHtml(d, m);
     body += whyNoteHtml(d);
     return body;
   }

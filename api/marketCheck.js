@@ -22,7 +22,7 @@ import { supabaseEnv } from "../lib/_supabase.js";
 import { landingHtml, LANDING_CSS } from "../lib/live/marketCheckLanding.js";
 import { marketCheckExample } from "../lib/live/marketCheckExample.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
-import { SHELL_CSS, SHELL_JS, railOpenHtml } from "../lib/appShell.js";
+import { SHELL_CSS, SHELL_JS, KEEPLOOK_CSS, railOpenHtml } from "../lib/appShell.js";
 import { isCrewRequest } from "./_chrome.js";
 
 // "Your results" (the rail's page-specific section on Market Check/Sell, same mechanism as Buy's
@@ -74,7 +74,7 @@ export default async function handler(req, res) {
   let html = stripLaunchGate(shell)
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${TITLE}</title>`)
     .replace(/<meta name="robots" content="[^"]*"\s*\/?>/, `<meta name="robots" content="${robots}" />`)
-    .replace("</head>", `<link rel="canonical" href="${SITE}/market-check" />\n<meta name="description" content="${esc(metaDesc)}" />\n<meta property="og:title" content="${TITLE}" />\n<meta property="og:description" content="${esc(metaDesc)}" />\n<meta property="og:type" content="website" />\n<meta property="og:url" content="${SITE}/market-check" />\n<style>${LANDING_CSS}\n${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}</style>\n</head>`)
+    .replace("</head>", `<link rel="canonical" href="${SITE}/market-check" />\n<meta name="description" content="${esc(metaDesc)}" />\n<meta property="og:title" content="${TITLE}" />\n<meta property="og:description" content="${esc(metaDesc)}" />\n<meta property="og:type" content="website" />\n<meta property="og:url" content="${SITE}/market-check" />\n<style>${LANDING_CSS}\n${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}\n${KEEPLOOK_CSS}</style>\n</head>`)
     .replace('<main class="wrap"><div id="ob"></div></main>',
       `<main class="wrap"><div id="ob">${landingHtml({ updated, example, h1Text: H1 })}</div></main>`)
     // Round D (app shell, Oct 2026): one shared rail/main/mobile-header, lib/appShell.js.

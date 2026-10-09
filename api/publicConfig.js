@@ -11,7 +11,7 @@ import path from "node:path";
 import { appConfigFlag } from "../lib/_flags.js";
 import { supabaseSelect } from "../lib/_supabase.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
-import { SHELL_CSS, SHELL_JS, railOpenHtml } from "../lib/appShell.js";
+import { SHELL_CSS, SHELL_JS, KEEPLOOK_CSS, railOpenHtml } from "../lib/appShell.js";
 import { isCrewRequest } from "./_chrome.js";
 
 const YOUR_RESULTS_RAIL = '<a class="gas-navitem" id="gas-nav-results" href="#" style="display:none" onclick="return obToggleResults(event)">Your results</a><div class="gas-submenu" id="gas-results-menu"></div>';
@@ -67,7 +67,7 @@ async function handleOneboxShare(req, res, id) {
     '<meta name="twitter:card" content="summary" />';
   const finish = (ogTags, injectScript) => {
     const page = html
-      .replace("</head>", ogTags + (injectScript || "") + `\n<style>${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}</style>\n</head>`)
+      .replace("</head>", ogTags + (injectScript || "") + `\n<style>${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}\n${KEEPLOOK_CSS}</style>\n</head>`)
       .replace("<!--SHELL_RAIL-->", railOpenHtml({ active: "market-check", pageExtra: YOUR_RESULTS_RAIL, crew }))
       .replace("<script>\nfunction obToggleResults", `<script>${SHELL_JS}</script>\n<script>\nfunction obToggleResults`)
       .replace("<body>", `<body>\n${AUTH_SIGNBAR_HTML}\n<script>${AUTH_SIGNBAR_MIRROR_JS}</script>\n<script>window.GAS_AUTH_MODE="topbar";</script>\n<script src="/js/auth.js" defer></script>`);
