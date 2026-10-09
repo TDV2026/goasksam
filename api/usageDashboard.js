@@ -1142,6 +1142,18 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "obcheck", rows });
   }
 
+  // task=deskexample: forces a fresh build of the Sam Desk (/business) worked example
+  // (lib/live/deskExample.js, three year-pinned Porsche 911 generations through the shared engine) and
+  // writes it to spec_market_cache, so the page shows it immediately instead of waiting for the nightly
+  // run (ops/nightly-workflow.yml). Zero writes beyond that one cache row.
+  if (task === "deskexample") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { deskExample } = await import("../lib/live/deskExample.js");
+    const t0 = Date.now();
+    const d = await deskExample(0, { fresh: true });
+    return res.status(200).json({ task: "deskexample", ms: Date.now() - t0, ok: !!d, data: d });
+  }
+
   // task=resolvecheck: READ-ONLY, zero writes, zero OCD. Runs lib/vehicle.js resolveVehicle() over a
   // fixed list (the crossProductCheck 20 specs + the hyphen/joined-code "Buy regression strings"
   // already documented in docs/lane-notes.md - XJ-S, GT-350, 240-Z, Z-28, ZR-1, CJ-5, MR-2) or
@@ -5171,6 +5183,154 @@ async function handleOps(req, res) {
       c_bonhams_may2025_usd: { count: bMay.length, rows: bMay },
       d_weekly_sep27_oct3: { window: "2026-09-27..2026-10-03", totalSold, totalUsd: Math.round(totalUsd), bySource, top10, repeatSaleVins: repeats }
     });
+  }
+
+  // task=trackingproof (Oct 2026, open-search policy Part 1 proof): READ-ONLY, zero writes, zero OCD.
+  // Proves the visitor-tracking tables (docs/supabase-visitor-tracking.sql) exist and reads real rows
+  // back, in plain REST pulls (no RPC, no server-side SQL beyond simple filters - the standing "no
+  // arbitrary-SQL functions" rule). All 11 admin-analytics.md views are computed here in JS from the
+  // same raw rows, since PostgREST alone can't run the window-function/join queries those views use.
+  // ?since=<ISO> narrows the "recent rows" readback (default: last 30 minutes, for a just-run test
+  // journey); ?checkUser=<uuid> adds that account's visitor_links rows (sign-in stitch proof).
+  if (task === "trackingproof") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const raw = async (pathAndQuery) => {
+      try {
+        const r = await fetch(`${env.supabaseUrl}/rest/v1/${pathAndQuery}`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } });
+        const body = await r.json().catch(() => null);
+        if (!r.ok) return { ok: false, status: r.status, error: (body && (body.message || body.hint || body.code)) || body || "unknown error" };
+        return { ok: true, rows: Array.isArray(body) ? body : [] };
+      } catch (e) { return { ok: false, status: null, error: String((e && e.message) || e) }; }
+    };
+    // 1. Table/column existence - a missing relation/column surfaces PostgREST's own error text verbatim.
+    const [fe, vl, vft] = await Promise.all([
+      raw("funnel_events?select=visitor_id,tool,props&limit=1"),
+      raw("visitor_links?select=visitor_id,user_id,first_seen_at,linked_at&limit=1"),
+      raw("visitor_first_touch?select=visitor_id,utm_source,utm_medium,utm_campaign,referrer&limit=1"),
+    ]);
+    const tables = {
+      "funnel_events (visitor_id/tool/props columns)": fe.ok ? "exists" : { missing: true, error: fe.error },
+      visitor_links: vl.ok ? "exists" : { missing: true, error: vl.error },
+      visitor_first_touch: vft.ok ? "exists" : { missing: true, error: vft.error },
+    };
+    const anyMissing = !fe.ok || !vl.ok || !vft.ok;
+    if (anyMissing) {
+      return res.status(200).json({ task: "trackingproof", tables, note: "Run docs/supabase-visitor-tracking.sql in the Supabase SQL editor before anything below can be proven - every write degrades to a silent no-op until these exist." });
+    }
+    // 2. Recent rows readback (the test-journey proof) - shortened visitor/user ids, no raw cookie values logged.
+    const sinceIso = req.query?.since ? String(req.query.since) : new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const recent = await raw(`funnel_events?created_at=gte.${encodeURIComponent(sinceIso)}&select=event,tool,props,visitor_id,user_id,created_at&order=created_at.asc&limit=500`);
+    const shortId = v => (v ? String(v).slice(0, 8) + "…" : null);
+    const recentRows = (recent.ok ? recent.rows : []).map(r => ({ event: r.event, tool: r.tool, props: r.props, visitor_id: shortId(r.visitor_id), user_id: shortId(r.user_id), created_at: r.created_at }));
+    // 3. Sign-in stitch proof for one account, if asked.
+    let stitchForUser = null;
+    if (req.query?.checkUser) {
+      const uid = String(req.query.checkUser);
+      const links = await raw(`visitor_links?user_id=eq.${encodeURIComponent(uid)}&select=visitor_id,first_seen_at,linked_at`);
+      stitchForUser = (links.ok ? links.rows : []).map(l => ({ visitor_id: shortId(l.visitor_id), first_seen_at: l.first_seen_at, linked_at: l.linked_at }));
+    }
+    // 4. All 11 admin-analytics.md views, computed in JS from raw pulls (full history, capped generously -
+    // real volume today is tiny; a nightly-summarized table is the documented next step once it isn't).
+    const allEvents = await raw("funnel_events?select=event,tool,props,visitor_id,user_id,created_at&order=created_at.asc&limit=50000");
+    const allLinks = await raw("visitor_links?select=visitor_id,user_id,first_seen_at,linked_at&limit=50000");
+    const allTouch = await raw("visitor_first_touch?select=visitor_id,utm_source&limit=50000");
+    const events = allEvents.ok ? allEvents.rows : [];
+    const links = allLinks.ok ? allLinks.rows : [];
+    const touches = allTouch.ok ? allTouch.rows : [];
+    const now = Date.now(), DAY = 86400000;
+    const since30 = now - 30 * DAY, since7 = now - 7 * DAY;
+    const t = r => new Date(r.created_at).getTime();
+    const views = {};
+    // v1: unique/returning visitors, 30d
+    {
+      const byVisitor = new Map();
+      for (const e of events) { if (!e.visitor_id || t(e) < since30) continue; const d = e.created_at.slice(0, 10); if (!byVisitor.has(e.visitor_id)) byVisitor.set(e.visitor_id, new Set()); byVisitor.get(e.visitor_id).add(d); }
+      let returning = 0; for (const days of byVisitor.values()) if (days.size >= 2) returning++;
+      views.unique_and_returning_visitors_30d = { unique_visitors: byVisitor.size, returning_visitors: returning };
+    }
+    // v2: searches per visitor, by tool, 30d
+    {
+      const byTool = new Map();
+      for (const e of events) { if (e.event !== "search" || t(e) < since30) continue; const k = e.tool || "null"; if (!byTool.has(k)) byTool.set(k, { searches: 0, visitors: new Set() }); const g = byTool.get(k); g.searches++; if (e.visitor_id) g.visitors.add(e.visitor_id); }
+      views.searches_per_visitor_by_tool_30d = [...byTool.entries()].map(([tool, g]) => ({ tool, searches: g.searches, visitors: g.visitors.size, searches_per_visitor: g.visitors.size ? Math.round((g.searches / g.visitors.size) * 100) / 100 : null }));
+    }
+    // v3: cross-product usage, 30d
+    {
+      const byVisitor = new Map();
+      for (const e of events) { if (e.event !== "search" || !e.visitor_id || t(e) < since30) continue; if (!byVisitor.has(e.visitor_id)) byVisitor.set(e.visitor_id, new Set()); byVisitor.get(e.visitor_id).add(e.tool); }
+      let multi = 0; for (const tools of byVisitor.values()) if (tools.size >= 2) multi++;
+      views.cross_product_usage_search_30d = { multi_tool_visitors: multi };
+    }
+    // v4: cross-product moves (derived from page_view sequence), 30d
+    {
+      const byVisitor = new Map();
+      for (const e of events) { if (e.event !== "page_view" || !e.visitor_id || t(e) < since30) continue; if (!byVisitor.has(e.visitor_id)) byVisitor.set(e.visitor_id, []); byVisitor.get(e.visitor_id).push(e); }
+      const moves = new Map();
+      for (const rows of byVisitor.values()) { rows.sort((a, b) => t(a) - t(b)); for (let i = 1; i < rows.length; i++) { const from = rows[i - 1].tool, to = rows[i].tool; if (from && to && from !== to) { const k = from + "->" + to; moves.set(k, (moves.get(k) || 0) + 1); } } }
+      views.cross_product_moves_30d = [...moves.entries()].map(([k, n]) => { const [from, to] = k.split("->"); return { from, to, moves: n }; }).sort((a, b) => b.moves - a.moves);
+    }
+    // v5: 7-day and 30-day repeat rate
+    {
+      const firstAt = new Map();
+      for (const e of events) { if (!e.visitor_id) continue; const ts = t(e); if (!firstAt.has(e.visitor_id) || ts < firstAt.get(e.visitor_id)) firstAt.set(e.visitor_id, ts); }
+      const lastByVisitor = new Map();
+      for (const e of events) { if (!e.visitor_id) continue; const ts = t(e); if (!lastByVisitor.has(e.visitor_id) || ts > lastByVisitor.get(e.visitor_id)) lastByVisitor.set(e.visitor_id, ts); }
+      let eligible7 = 0, repeated7 = 0, eligible30 = 0, repeated30 = 0;
+      for (const [vid, first] of firstAt) {
+        const last = lastByVisitor.get(vid);
+        if (first <= since7) { eligible7++; if (last >= since7) repeated7++; }
+        if (first <= since30) { eligible30++; if (last >= since30) repeated30++; }
+      }
+      views.repeat_rate_7d_30d = { eligible_7d: eligible7, repeated_7d: repeated7, eligible_30d: eligible30, repeated_30d: repeated30 };
+    }
+    // v6: Market Check opens + receipt clicks, 30d
+    {
+      let opens = 0, clicks = 0;
+      for (const e of events) { if (t(e) < since30) continue; if (e.event === "market_check_open") opens++; if (e.event === "receipt_click") clicks++; }
+      views.market_check_opens_and_receipt_clicks_30d = { opens, receipt_clicks: clicks };
+    }
+    // v7: auction clickouts by source, 30d
+    {
+      const bySource = new Map();
+      for (const e of events) { if (e.event !== "auction_clickout" || t(e) < since30) continue; const s = (e.props && e.props.source) || "none"; bySource.set(s, (bySource.get(s) || 0) + 1); }
+      views.auction_clickouts_by_source_30d = [...bySource.entries()].map(([source, count]) => ({ source, count })).sort((a, b) => b.count - a.count);
+    }
+    // v8: tasks created, 30d
+    { views.tasks_created_30d = events.filter(e => e.event === "task_created" && t(e) >= since30).length; }
+    // v9: anonymous -> registered conversion (all-time)
+    {
+      let conv = 0;
+      const eventsByVisitor = new Map();
+      for (const e of events) { if (!e.visitor_id) continue; if (!eventsByVisitor.has(e.visitor_id)) eventsByVisitor.set(e.visitor_id, []); eventsByVisitor.get(e.visitor_id).push(t(e)); }
+      for (const l of links) { const arr = eventsByVisitor.get(l.visitor_id); if (arr && arr.some(ts => ts < new Date(l.linked_at).getTime())) conv++; }
+      views.anonymous_to_registered_conversion = { count: conv };
+    }
+    // v10: best acquisition sources (sign_in_completed props.source), 30d
+    {
+      const bySource = new Map();
+      for (const e of events) { if (e.event !== "sign_in_completed" || t(e) < since30) continue; const s = (e.props && e.props.source) || "none"; bySource.set(s, (bySource.get(s) || 0) + 1); }
+      views.best_acquisition_sources_sign_in_completed_30d = [...bySource.entries()].map(([source, count]) => ({ source, count })).sort((a, b) => b.count - a.count);
+    }
+    // v10b: alternative acquisition view via visitor_first_touch join visitor_links (all-time, more complete)
+    {
+      const touchByVisitor = new Map(touches.map(x => [x.visitor_id, x.utm_source || "none"]));
+      const bySource = new Map();
+      const seenUser = new Set();
+      for (const l of links) { if (seenUser.has(l.user_id)) continue; const src = touchByVisitor.get(l.visitor_id); if (!src) continue; seenUser.add(l.user_id); bySource.set(src, (bySource.get(src) || 0) + 1); }
+      views.acquisition_via_visitor_first_touch_join = [...bySource.entries()].map(([utm_source, accounts]) => ({ utm_source, accounts })).sort((a, b) => b.accounts - a.accounts);
+    }
+    // v11: created an account after using Sam 3+ times (pre-link search events)
+    {
+      const searchesByVisitorBeforeLink = new Map();
+      for (const l of links) {
+        const linkedTs = new Date(l.linked_at).getTime();
+        const n = events.filter(e => e.visitor_id === l.visitor_id && e.event === "search" && t(e) < linkedTs).length;
+        searchesByVisitorBeforeLink.set(l.user_id, n);
+      }
+      let count3plus = 0; for (const n of searchesByVisitorBeforeLink.values()) if (n >= 3) count3plus++;
+      views.accounts_created_after_3plus_searches = { count: count3plus };
+    }
+    return res.status(200).json({ task: "trackingproof", tables, recentRowsSince: sinceIso, recentRows, stitchForUser, totalEventsAllTime: events.length, totalLinks: links.length, views });
   }
 
   // task=mcexamplerefresh: force-rebuilds the Market Check landing's cached "An example" band
