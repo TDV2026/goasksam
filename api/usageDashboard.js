@@ -688,7 +688,8 @@ async function handleOps(req, res) {
         if (key.length < 3) continue;
         counts.set(key, (counts.get(key) || 0) + 1);
       }
-      specs = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, topN).map(([k]) => k);
+      const skip = Math.max(0, Number(req.query?.skip) || 0);
+      specs = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(skip, skip + topN).map(([k]) => k);
     }
     const pickedRoute = d => d && d.routeFit && d.routeFit.routes && d.routeFit.routes.find(r => r.platform === d.recommendedPath);
     const pickedRange = d => { const r = pickedRoute(d); const pb = r && r.marketEvidence && r.marketEvidence.priceBand; return pb ? { low: pb.low, high: pb.high, sample: pb.sample } : null; };
