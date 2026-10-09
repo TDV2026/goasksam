@@ -3537,6 +3537,10 @@ export default async function handler(req, res) {
         // Body style refine (Oct 2026, Market Check): same small, known vocabulary lib/onebox.js's
         // detectBodyStyle()/BODY_LABEL use - anything else is dropped, never passed through raw.
         body: ["targa", "coupe", "cabriolet", "convertible", "roadster", "wagon", "sedan"].includes(rawRefine.body) ? rawRefine.body : null,
+        // Trim question refine (item 2, Oct 2026, Market Check): a slug lib/onebox.js's own
+        // trimSlug() produced (e.g. "carrera-s", "turbo-s") - shape-checked only, the engine itself
+        // looks it up against the family's real fence names and ignores anything that doesn't match.
+        trim: typeof rawRefine.trim === "string" && /^[a-z0-9-]{1,30}$/.test(rawRefine.trim) ? rawRefine.trim : null,
         // Competition-variant refine (Part 1 change 1): Competition Package vs standard.
         variant: rawRefine.variant === "competition" ? "competition" : rawRefine.variant === "standard" ? "standard" : null,
         // Item 7/8 dictionary-driver refine + item 9 observable-fact refine (both re-scope the pool).

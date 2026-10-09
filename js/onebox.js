@@ -229,6 +229,26 @@
     var chips = opts.map(function (o) { return '<button type="button" class="qchip" data-bodyopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + "</button>"; }).join("");
     return '<div class="qcard earned" data-stage="answer"><p class="q">Coupe, cabriolet or something else?</p><div class="qchips">' + chips + "</div></div>";
   }
+  // TRIM QUESTION (Oct 2026, item 2): independent of the earned/body slots - a visitor can answer
+  // any combination, any order. d.trimQuestion is null once the pool reads single-trim (the query
+  // already named one, or refine.trim already answered it). Chips carry their own count, same
+  // style as the body question; answering reruns the SAME pool scoped to that trim (refine.trim),
+  // never a client-side guess.
+  function trimQuestionHtml(d) {
+    var q = d && d.trimQuestion; if (!q || !q.options || !q.options.length) return "";
+    var chips = q.options.map(function (o) { return '<button type="button" class="qchip" data-trimopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + ' (' + esc(o.n) + ')</button>'; }).join("");
+    return '<div class="qcard earned" data-stage="answer"><p class="q">Which ' + esc(q.model) + '?</p><div class="qchips">' + chips + "</div></div>";
+  }
+  // "Other trims" (item 2c): same-model sales OUTSIDE the trim question's base pool, grouped by
+  // trim with a count and the latest sale - never tagged Above/Below range (that tag belongs only
+  // to a SAME-trim outlier within the chosen pool, in "Shown separately" below).
+  function otherTrimsHtml(d) {
+    var q = d && d.trimQuestion; if (!q || !q.otherTrims || !q.otherTrims.length) return "";
+    var rows = q.otherTrims.map(function (o) {
+      return '<button type="button" class="othertrim" data-trimopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '"><span class="ot-name">' + esc(o.label) + "</span><span class=\"ot-n\">" + esc(o.n) + (o.n === 1 ? " sale" : " sales") + (o.latest ? ", latest " + esc(monthYear(o.latest)) : "") + "</span></button>";
+    }).join("");
+    return '<div class="sec-head" data-stage="cards"><div><h2>Other trims</h2></div></div><div class="othertrims">' + rows + "</div>";
+  }
   // THE EARNED QUESTION: mileage (pool-relative buckets) or transmission; answered inline.
   function earnedHtml(d, m) {
     var e = d.earned; if (!e) return "";
@@ -761,10 +781,12 @@
     if (d.driverSentence && !(d.earned) && !(d.divergence && d.divergence.kase === "a")) notes += '<p class="varynote">' + lint(esc(d.driverSentence), "varynote") + "</p>";
     var body = answerCardHtml(d, m);
     if (notes) body += '<div class="notes" data-stage="answer">' + notes + "</div>";
+    body += trimQuestionHtml(d);
     body += bodyOptionsHtml(d);
     body += reconfirmHtml(d, m);
     body += observeHtml(d);
     body += salesSectionHtml(d, m);
+    body += otherTrimsHtml(d);
     body += livePanelSlot();
     body += shownSeparatelyHtml(d, m);
     body += sellHtml();
@@ -1321,6 +1343,7 @@
       if (rf.miMin != null) p.set("miles", Math.round(rf.miMin / 1000) + "-" + (rf.miMax != null ? Math.round(rf.miMax / 1000) : ""));
       if (rf.body) p.set("body", rf.body);
       if (rf.tx) p.set("tx", rf.tx);
+      if (rf.trim) p.set("trim", rf.trim);
     }
     return p;
   }
@@ -1346,6 +1369,7 @@
     }
     var body = sp.get("body"); if (body) refine.body = body;
     var tx = sp.get("tx"); if (tx === "manual" || tx === "auto") refine.tx = tx;
+    var trim = sp.get("trim"); if (trim) refine.trim = trim;
     return Object.keys(refine).length ? refine : null;
   }
   // Rebuilds a result straight from the address bar (cold load, reload, a pasted link, or Back/
@@ -1386,6 +1410,7 @@
     if ("driver" in partial) base.driverLabel = partial.label;
     if ("observe" in partial) base.observeLabel = partial.label;
     if ("body" in partial) base.bodyLabel = partial.label;
+    if ("trim" in partial) base.trimLabel = partial.label;
     return base;
   }
   function runPool(text, vehicle, refine) {
@@ -1769,6 +1794,15 @@
     // decision scoped to the answer (no re-fetch; the engine returned every receipt).
     Array.prototype.forEach.call(root.querySelectorAll("[data-thinsplit]"), function (b) { b.addEventListener("click", function () { htChoice = b.getAttribute("data-thinsplit"); obEvent("onebox_ht_intake", lastQuery + ":" + htChoice); if (htLastD) { renderResults(htLastD); } }); });
     Array.prototype.forEach.call(root.querySelectorAll("[data-htskip]"), function (b) { b.addEventListener("click", function () { htChoice = "__skip__"; obEvent("onebox_ht_skip", lastQuery); if (htLastD) { renderResults(htLastD); } }); });
+    // Trim chip (item 2, Oct 2026) - from the question OR an "Other trims" row, same handler:
+    // narrows the SAME pool inline (re-request with refine.trim), same merge pattern as body/
+    // mileage/transmission - answering trim never un-asks the others, or vice versa.
+    Array.prototype.forEach.call(root.querySelectorAll("[data-trimopt]"), function (b) {
+      b.addEventListener("click", function () {
+        var trim = b.getAttribute("data-trimopt"), label = b.getAttribute("data-mlabel");
+        runPool(lastQuery, obLastVehicle, mergeRefine({ trim: trim, label: label }));
+      });
+    });
     // Body style chip: narrows the SAME pool inline (re-request with refine.body), same merge
     // pattern as mileage/transmission below - answering body never un-asks miles, or vice versa.
     Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-bodyopt]"), function (b) {
