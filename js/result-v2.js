@@ -544,7 +544,12 @@ function psvPron(p){ var pr=(p&&p.specialties&&p.specialties.pronoun)||{}; retur
 // DISPLAY GATE (Sep 2026, reverted): the tile renders ONLY when the computed premium is POSITIVE.
 // The underlying delta is still computed + persisted for EVERY partner regardless of sign (engine
 // side, symmetric) - a negative/zero value stays stored for internal reference but is not shown.
-function psvPremium(p){ try{ var pr=p&&p.specialties&&p.specialties.premium; var pct=pr?Number(pr.pct):NaN; return (Number.isFinite(pct)&&pct>0)?Math.round(pct):null; }catch(e){} return null; }
+// OFF (Sam, Oct 9 2026), the same flag logic as the new Sell (lib/sell/sellPartner.js): the stored +15% for
+// Ingo and Spencer does not match a read-only rerun of the computation (21% and 20%) and Lane B is looking.
+// Until it is settled no premium tile shows, so the next tiles take its place. When turned back on, only
+// a figure with the nightly compute's stamp shows (source "data_verified", n>=10, computedAt within 3 days).
+var PSV_PREMIUM_TILE_ON=false;
+function psvPremium(p){ try{ if(!PSV_PREMIUM_TILE_ON)return null; var pr=p&&p.specialties&&p.specialties.premium; var pct=pr?Number(pr.pct):NaN; if(!(Number.isFinite(pct)&&pct>0))return null; var at=Date.parse(pr.computedAt||""); if(pr.source!=="data_verified"||!(Number(pr.n)>=10)||!Number.isFinite(at)||Date.now()-at>3*864e5)return null; return Math.round(pct); }catch(e){} return null; }
 // "he's" / "she's" / "they've" for "cars {subj} represented" (pronoun respected).
 function psvSubjHas(p){ var s=(psvPron(p).subj)||"he"; return s==="they"?"they've":s+"'s"; }
 // CLAIM SOURCE is the partner's CURATED wheelhouse (true specialty), NEVER the
