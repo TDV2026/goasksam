@@ -437,6 +437,46 @@ if (inserted > 0) {
           await supabaseDelete(env, `spec_market_cache?spec_key=in.(${encodeURIComponent(batch)})`);
         }
         console.log(`spec_market_cache: invalidated ${toDelete.length} row(s) touched by ${touched.size} make/model pair(s) from this run`);
+
+        // RECOMPUTE AT THE END OF THIS SAME RUN (item 3, Oct 2026 follow-up): a deleted row is a
+        // clean cache miss, which Buy/Tasks already recompute live on the NEXT real visitor's read
+        // - but that visitor would otherwise pay the cold-read cost (seconds, not milliseconds; see
+        // the simulatedrawer ops task timing for the 1988 Porsche 911 Carrera Targa/2012 BMW M3
+        // Competition Coupe cases). Recomputing every invalidated spec HERE means the first real
+        // visitor after an ingest run never hits a cold read for a spec this run just touched.
+        // Parses each spec_key back into {make,model,trim,genCode-or-year,bodyStyle,gearbox},
+        // resolves the generation by CODE (CURATED_GENERATIONS) when one exists, calls runOneBox
+        // live, and writes the SAME reduction api/sellerDecision.js's opportunistic refresh uses
+        // (coreOf/persistCore) - one engine, one write path, same as every other refresh. Best-
+        // effort per spec: one failure never blocks the rest or fails the ingest run.
+        try {
+          const { runOneBox } = await import("../lib/onebox.js");
+          const { CURATED_GENERATIONS } = await import("../lib/generations.js");
+          const { coreOf, persistCore } = await import("../lib/live/search.js");
+          let recomputed = 0, failed = 0;
+          for (const key of toDelete) {
+            try {
+              const parsed = JSON.parse(key);
+              const [make, model, trim, genCode, bodyStyle, gearbox] = Array.isArray(parsed) ? parsed : [];
+              if (!make || !model) { failed++; continue; }
+              const yearMatch = /^y(\d{4})$/.exec(String(genCode || ""));
+              const year = yearMatch ? Number(yearMatch[1]) : null;
+              const generation = (!yearMatch && genCode)
+                ? CURATED_GENERATIONS.find(g => String(g.make).toLowerCase() === String(make).toLowerCase() && String(g.code).toLowerCase() === String(genCode).toLowerCase()) || null
+                : null;
+              const vehicle = { make, model, trim: trim || null, bodyStyle: bodyStyle || null, year: year || (generation ? Math.round((generation.yearStart + generation.yearEnd) / 2) : null) };
+              const refine = gearbox ? { tx: gearbox, label: gearbox } : null;
+              const searchText = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(" ");
+              const d = await runOneBox(vehicle, generation, searchText, env, refine);
+              if (d && d.tier === "result") {
+                const core = coreOf(d, { v: vehicle, generation, refine });
+                if (core) { await persistCore(env, key, core); recomputed++; continue; }
+              }
+              failed++;   // not an error - a genuinely thin/no-range spec; next real read handles it the same as today
+            } catch { failed++; }
+          }
+          console.log(`spec_market_cache: recomputed ${recomputed}/${toDelete.length} invalidated spec(s) before this run ended (${failed} thin/no-range or failed, left for the next real read)`);
+        } catch (e) { console.error("spec_market_cache recompute-at-end-of-run failed (non-fatal, next real read still recomputes):", e && e.message); }
       }
     }
   } catch (e) { console.error("spec_market_cache invalidation failed (non-fatal):", e && e.message); }
