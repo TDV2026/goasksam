@@ -109,6 +109,9 @@ export default async function handler(req, res) {
   if (!data) return notFound(res, slug, crew);
 
   const label = labelFor(parsed);
+  // labelFor already returns "Porsche 911" at the model level (the only level that names the
+  // make); every other level omits it ("997 Carrera GTS Coupe, manual"). Never double it.
+  const porscheLabel = label.startsWith("Porsche ") ? label : "Porsche " + label;
   const breadcrumb = breadcrumbChain(slug, parsed);
   const title = `${label}: what it's sold for`;
   const marketCheckLink = `${SITE}/market-check?q=${encodeURIComponent("Porsche " + label)}`;
@@ -142,7 +145,7 @@ ${data.level === "leaf" ? siblingsHtml(data.siblings) : ""}
 <nav class="links"><a href="${esc(marketCheckLink)}">Check a specific ${esc(label)} on Market Check &#8594;</a>
 ${data.liveListings ? `<a href="${esc(buyLink)}">${data.liveListings} live right now on Buy &#8594;</a>` : `<a href="${esc(buyLink)}">See live listings on Buy &#8594;</a>`}</nav></section>
 ${faq.length ? `<section class="card"><h2 style="margin-bottom:12px">Questions</h2><dl class="faq">${faq.map(([q, a]) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join("")}</dl></section>` : ""}
-${keepLookingHtml({ context: "spec", subject: "Porsche " + label, href: keepLookingHref({ subject: "Porsche " + label }) })}
+${keepLookingHtml({ context: "spec", subject: porscheLabel, href: keepLookingHref({ subject: porscheLabel }) })}
 ${whyResultHtml(crew)}
 <p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>`;
 
