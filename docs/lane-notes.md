@@ -2290,3 +2290,175 @@ when the work has landed.
   see above).
   Search check: title/H1/canonical/description all set and confirmed live; indexable (robots: index,
   follow); no public page outside /business touched.
+- 2026-10-09 (Lane B): OPEN-SEARCH POLICY, PROVE THE DATA + SELL VENUE PICK AUDIT. Commits b2a6df0,
+  96229f6, eaa69be, 55229c8 (new `?view=ops&task=trackingproof` ops task + a bugfix), 8ef647e (test
+  stitch), 471c7aa (Privacy paragraph). No files owned by Lane A (Market Check/Buy templates) or Lane C
+  (Sell, Buy limits, api/chat.js) touched.
+
+  PART 1, PROVE THE TRACKING DATA.
+  1. TABLES: confirmed live via `task=trackingproof` - `funnel_events` carries `visitor_id`/`tool`/
+     `props`, `visitor_links` and `visitor_first_touch` both exist. RLS/revoke PROVEN, not assumed: the
+     service-role reads above bypass RLS, so a second check re-read both new tables with
+     `SUPABASE_ANON_KEY` - both correctly returned 401. Nothing missing; no DDL left to run.
+  2. TEST JOURNEY rerun (real Chrome against the live site): Buy landing -> Buy search ("1988 BMW M3")
+     -> Market Check landing -> Market Check search ("1969 Chevrolet Camaro Z28") -> Sell landing. Rows
+     read back in order (visitor id shortened, no emails):
+       page_view  tool=buy           path=/buy             (mints gas_vid)
+       page_view  tool=market_check  path=/market-check
+       homepage_view tool=null       (the LIVE /sell wizard's own legacy event - the old /sell page is
+                                      index.html, not the shared shell, so it never fires page_view;
+                                      expected, not a bug - "the Sell landing" in Part 1.1 meant the NEW
+                                      Sell, api/sellNext.js, behind SELL_NEXT_ON)
+       search     tool=market_check  props.key="Chevrolet|Camaro"
+     REAL FINDING, not fixed this round: the Buy SEARCH event never fired. Traced why - Buy's hero box
+     (`#hgo` in api/buy.js) calls `send()` -> `chatAsk()`, which POSTs `{action:"chat"}`, not the plain
+     `{q:...}` shape - so it runs `buyChat()` -> `lib/live/chatHttp.js chatOut()` -> `lib/live/samChat.js
+     runTurn()` -> the `search_live` tool (`toolSearchLive`, line 243), NEVER the plain-search branch in
+     api/buySearch.js I instrumented in the last round. That plain branch is dead for Buy's real,
+     primary search UI. Fixing it needs `visitorId` threaded through 4 layers (api/buySearch.js's
+     dispatcher -> `buyChat` -> `chatOut`'s `opts.run(...)` call -> `runTurn`'s `ctx`) and
+     `lib/live/chatHttp.js` carries Lane C's own header attribution ("Lane C, Oct 2026") - not edited
+     this round rather than risk a collision on a file that reads as theirs even though not on Sam's
+     explicit do-not-edit list. FOR LANE C (or hand back to me if you'd rather not): add `visitorId` to
+     `runTurn`'s params, include it in the `ctx` object (line 523), pass it through `chatOut`'s
+     `opts.run({...})` call (chatHttp.js line 28) from `b.visitorId` (set by api/buySearch.js's
+     dispatcher via `readVisitorId(req)` before calling `buyChat`), then inside `toolSearchLive`
+     (samChat.js, right after `const { v, f, ... } = sr;` at line 275) call `logEvent(env, {event:
+     EVENTS.SEARCH, tool:"buy", visitorId: ctx.visitorId, props:{key: v.make+"|"+(v.model||"")}})` when
+     `v && v.make` and it's a genuinely new search (not a within-conversation refinement - `ctx.newCar`
+     is already computed at line 522 for exactly this distinction).
+  3. SIGN-IN STITCH: no real email/OTP access this session (same disclosed limitation as before), so
+     used the codebase's OWN existing test-account convention instead of fabricating a fake flow -
+     `api/tasks.js`'s `TEST_USER` pattern (`00000000-0000-4000-8000-xxxxxxxxxxxx`, PROBE_KEY-gated
+     there). New `?testStitch=<visitorId>` on `trackingproof` calls the REAL `stitchVisitorToAccount`/
+     `logEvent(SIGN_IN_COMPLETED)` functions `api/account.js` calls on a real sign-in - not a second
+     implementation, the same one. Ran it for the test journey's own visitor id; read back via
+     `?checkUser=00000000-0000-4000-8000-000000000001`:
+       visitor_id 320d9185...  first_seen_at 2026-10-09T20:22:32Z  linked_at 2026-10-09T20:22:32Z
+     Confirms the stitch: that visitor's EARLIER page_view/search rows (from before the stitch) are now
+     joinable to this account - proven directly by view 9 below (anonymous_to_registered_conversion:
+     count 1, exactly this visitor).
+  4. ELEVEN VIEWS: CAUGHT AND FIXED A REAL BUG before reporting - the first run returned every view as
+     an honest-looking but WRONG zero. Root cause: `supabaseSelect`/a bare `limit=50000` is capped by
+     PostgREST at db-max-rows (1000 on Supabase) regardless of the number asked for, and the query was
+     ordered `created_at.asc`, so it silently returned only the OLDEST 1000 rows in the whole table -
+     every row from today's test journey (all newer) was excluded before any view ran. Fixed by using
+     `supabaseSelectAll` (Range-header pagination, the same documented fix already used elsewhere in
+     this file for this exact gotcha) instead of a bare `limit=`. After the fix, all 11 run and every
+     number is explained by something real that happened today:
+       unique_and_returning_visitors_30d: {unique: 6, returning: 0} (correct - every visitor is hours
+         old, none has a 2nd distinct day yet)
+       searches_per_visitor_by_tool_30d: [{tool:"market_check", searches:1, visitors:1,
+         searches_per_visitor:1}] (Buy's search is the known gap above, correctly absent, not a zero
+         that should worry anyone)
+       cross_product_usage_search_30d: {multi_tool_visitors: 0} (needs 2+ TOOLS' worth of search
+         events for one visitor; only market_check has any yet - correct)
+       cross_product_moves_30d (derived, Part 1.3's decision): [{buy->tasks: 2}, {tasks->market_check:
+         2}, {buy->market_check: 1}] - real moves from this session's own earlier multi-page browser
+         checks, proving the derived-sequence logic works
+       repeat_rate_7d_30d: all zero (correct - the feature shipped today, no visitor's first event is
+         7 days old yet)
+       market_check_opens_and_receipt_clicks_30d / auction_clickouts_by_source_30d: {0}/[] (correct -
+         the click attributes are not on any template yet, see Part 3)
+       tasks_created_30d: 0 (correct - no task was created in any test this round)
+       anonymous_to_registered_conversion: {count: 1} - exactly the one test stitch above
+       best_acquisition_sources_sign_in_completed_30d: [{source:"test", count:1}] - the test stitch's
+         own labeled props.source, correctly NOT mixed in with a real acquisition source
+       acquisition_via_visitor_first_touch_join: [] (correct - the test visitor had no UTM/referrer at
+         all on a direct headless-Chrome navigation, so `storeFirstTouchOnce` correctly stored nothing;
+         that function's own empty-guard is working as designed, not silently broken)
+       accounts_created_after_3plus_searches: {count: 0} (correct - the test account had only 1
+         pre-link search, not 3+)
+     Every number traces to a real, explainable cause. `task=trackingproof` is now the permanent,
+     reusable read path for this (and the eventual admin dashboard pages) - PROBE_KEY-gated, read-only,
+     zero writes beyond the explicit `?testStitch=` test action.
+  5. PRIVACY PARAGRAPH: both wording fixes applied (`docs/privacy-paragraph.md`, printed in full to
+     Sam below). Removed the stale duplicate draft from docs/admin-analytics.md in favor of the one file.
+  6. MARKET CHECK CEILING NUMBERS: not replaced. The feature shipped TODAY - there is no 7 days of
+     `page_view`/`search` volume yet (today's own numbers above are the entire history). Lane A's
+     placeholder figures (500/day/device, 3000/day/address) are left exactly as they are; this is a
+     "come back in a week" item, not a "not done."
+
+  PART 2, SELL VENUE PICK AUDIT - full 40-car run (4 metered batches of 10, `?task=platformpickaudit`,
+  extended this round to also report each side's price RANGE and Market Check's own cluster, not just
+  counts and picks - a car can "agree" on platform and still be dangerously wrong on the number shown).
+  40/40 resolved, 0 errors. Platform-pick agreement: 30/40 (unchanged in SHAPE from the original 40-car
+  audit, though which cars disagree has shifted - see below).
+  CAMARO Z/28 AND CORVETTE ZR-1 (the two originally-flagged disagreements): both now AGREE on platform
+  (Bring a Trailer, both sides) - but this is NOT the fix it looks like. The underlying RANGE problem is
+  just as severe as before, now hiding behind a matching platform name:
+    1969 Camaro Z28:  OLD n=8  range $15,001-$22,500   SHARED n=12 range $67,500-$85,000
+                       Market Check cluster: $68,000-$84,500 (n=15) - agrees with SHARED almost exactly.
+                       The legacy ladder's number is roughly 4x TOO LOW.
+    1990 Corvette ZR-1: OLD n=37 range $9,700-$22,750  SHARED n=46 range $26,500-$44,000
+                       Market Check cluster: $26,500-$44,000 (n=49) - identical to SHARED.
+                       The legacy ladder's number is roughly 2.5-3x TOO LOW.
+  WHAT CHANGED: the legacy ladder now finds SOME sales for both cars (vs. "almost empty" when this was
+  first logged) - but it's still reading a wrong-scoped slice (likely base-trim or wrong-year Camaros/
+  Corvettes bleeding into a trim-specific search), not the real Z/28 or ZR-1 market. The platform-pick
+  agreement masks this; a seller reading the live page's dollar figure today for either car would still
+  be told a price several times too low.
+  THIS PATTERN IS NOT LIMITED TO THOSE TWO CARS. Scanning all 30 "agree" rows for range divergence (not
+  asked for by name, but the more consequential number for a seller than which platform is cited) found
+  the same severity on at least two more, in BOTH directions:
+    1987 BMW M3:     OLD range $28,000-$52,000   SHARED $62,000-$86,500  MC cluster $61,000-$86,500 (n=30)
+                      - legacy is ~2x too LOW.
+    2001 BMW M5:      OLD range $73,500-$91,500   SHARED $24,500-$41,500  MC cluster $23,500-$41,500 (n=58)
+                      - legacy is ~2.5x too HIGH (the dangerous direction: a seller could set an asking
+                      price nearly triple the real market based on the legacy ladder's number).
+  1965 Corvette, 2000 Honda S2000 and 1955 Jaguar D-Type also show the legacy ladder's band missing a
+  real, confirmed (by both SHARED and Market Check) upper or lower tail entirely, at smaller severity.
+  PLATFORM DISAGREEMENTS, all 10, with Market Check's own cluster as the tiebreaker where one exists:
+    2006 Mercedes CLK DTM AMG Cabriolet: OLD=bringatrailer(n=1) SHARED=rmsothebys(n=5,thin) MC=none
+      (genuinely rare car, no tiebreaker available)
+    1930 Ford Model A: OLD=hagerty(n=4,$10k-$24k) SHARED=bringatrailer(n=55,$11.5k-$21k)
+      MC=$11k-$22k(n=79) - MC agrees with SHARED, both on platform and range.
+    1973 Porsche 911 Carrera RS: OLD=bringatrailer(n=18) SHARED=rmsothebys(n=9,thin) MC=none
+      (rare car, no tiebreaker)
+    2016 Ford Mustang GT350: OLD=carsandbids(n=2,$38.25k-$50k) SHARED=bringatrailer(n=30,$52k-$64.5k)
+      MC=$49.5k-$62.5k(n=44) - MC agrees with SHARED.
+    1993 Toyota Supra Turbo: OLD=carsandbids(n=2,$92k-$123k) SHARED=bringatrailer(n=12,$65k-$112k)
+      MC=$69.5k-$112k(n=19) - MC agrees with SHARED.
+    2008 Audi RS4: OLD=pcarmarket(n=1) SHARED=bringatrailer(n=13,$22k-$35k) MC=$21k-$31k(n=18) - MC
+      agrees with SHARED.
+    2009 Nissan GT-R: OLD=bringatrailer(n=21,$56.5k-$70k) SHARED=carsandbids(n=4, no usable range)
+      MC=$61k-$80.5k(n=8) - THE ONE EXCEPTION. Market Check's own cluster sits closer to the LEGACY
+      ladder's range than to the shared ladder's pick (which lands on a 4-sale platform with no usable
+      band at all). Worth a specific look before a full flip - not a reason to hold the rest.
+    1990 Lamborghini Countach 25th Anniversary: OLD=bringatrailer(n=3) SHARED=rmsothebys(n=10,thin)
+      MC=none (already documented as a genuinely thin car in the ONE RANGE round)
+    1967 Ferrari 275 GTB/4: OLD=Hemmings(n=0 - zero evidence sales, a degenerate pick) SHARED=
+      broadarrow(n=3,thin) MC=none (neither side has real evidence; the legacy pick is worse - it has
+      literally zero sales behind it)
+    2014 McLaren P1: OLD=bringatrailer(n=1) SHARED=rmsothebys(n=6,thin) MC=none (rare car)
+  SELL_PICK_SHARED: FLIP YES. Everywhere Market Check's own cluster exists as a tiebreaker (6 of 10
+  platform disagreements, and essentially every one of the 30 "agree" rows), it matches the shared
+  ladder's range almost exactly and the legacy ladder is routinely off by 2 to 4x in EITHER direction -
+  not a rounding difference, a number a seller would act on wrongly. The one platform disagreement
+  where Market Check sides with the LEGACY pick instead (2009 Nissan GT-R) is a real, specific exception
+  worth checking before a full flip, not a reason to hold the rest. NOT FLIPPED (Sam decides).
+
+  PART 3, HANDOFFS.
+  FOR LANE A (js/onebox.js) - `auction_clickout`: `saleCardHtml(o)` (line 546) is the ONE shared builder
+  every card variant (hero/small/VIN-hero/receipt/pool) already funnels through, and it ALREADY emits
+  `data-cardclick="<platform slug>"` on both the `<a>` wrapper (line 565) and the `<article>` photo link
+  (line 561) for every card with an `href`. Add `data-gas-event="auction_clickout"
+  data-gas-source="'+esc(o.slug||"")+'"` right alongside that existing attribute, both places - one
+  function, two lines, covers every card in the file. `market_check_open`: put
+  `data-gas-event="market_check_open"` on the search/go button (`#ob-go`). `receipt_click` does not
+  apply inside Market Check's own result page (every card there is an `auction_clickout` - an outbound
+  link, never an internal one); it is Buy's own internal card-open action (api/buy.js's detail-panel
+  click handler) - same `data-gas-event` attribute, same listener (already loaded via SHELL_JS), just a
+  different event name there.
+  FOR LANE C: `rate_limit_hit` is ALREADY DONE - `lib/_ceilings.js` line 79 already calls `logEvent(env,
+  {event: EVENTS.RATE_LIMIT_HIT, ...})` (and `sell_followup_gated` at line 119). Nothing outstanding here.
+  The one open item from this round is the Buy-chat `search` event gap in Part 1.2 above (same file
+  area, your call whether to take it or hand it back).
+
+  CHECKS: `searchCheck.js` shows the same known curl-only Attack-Challenge 429 pattern; a real browser
+  confirms /sell /buy /tasks /market-check /business all 200, zero console errors. `enginecheck` (5-spec
+  batch incl. Camaro Z28, Corvette ZR-1, both Fastback/M3 cases): 0/5 mismatches.
+  One engine, confirmed throughout: `runOneBox` is the source of every Market Check cluster used as a
+  tiebreaker above; `lib/platformPick.js pickPlatform` (the shared ladder) reads that same archive pool;
+  `stitchVisitorToAccount`/`logEvent` are the same functions both the real sign-in path and this round's
+  test stitch call; no second implementation of anything was added.
