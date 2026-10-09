@@ -2690,3 +2690,77 @@ when the work has landed.
     task=shadowreport went out in 19b106e). The legacy venue-pick ladder (analyzeRouteFit /
     pickRecommendedRoute) is KEPT: Lane B's 40-car rerun is not reported complete yet and the
     platformpickaudit harness still compares the two.
+
+- 2026-10-09 (Lane A): KEEP LOOKING CARD + TASKS IN THE RAIL (commits ee18251, 11a1a3e, 182d827,
+  dbce859, 7fcc831, f39f2a5).
+  SHARED COMPONENT: lib/appShell.js gains keepLookingHtml/keepLookingHref (Node, for server-rendered
+  callers) plus a byte-matched client-side mirror gasKeepLookingHtml/gasKeepLookingHref inside the
+  new KEEPLOOK_JS export (for js/onebox.js, which renders client-side and cannot import a Node
+  module) - two literal strings, one intent, flagged in the file's own comment so they're kept in
+  sync if the copy/href shape ever changes. KEEPLOOK_CSS is exported separately from SHELL_CSS since
+  api/_chrome.js's older chrome (still serving History/VIN/Spec pages) has no --rail-* tokens at all;
+  every var() in KEEPLOOK_CSS carries a literal fallback for that reason.
+  WHERE IT RENDERS: Market Check results (js/onebox.js resultHtml, after "Put Sam on it", before "Why
+  it looks like this"), the Porsche 911 spec pages (api/specPage.js, every level), and the VIN car
+  page + hub page (api/history.js carPage/hubPage) - the car page's old CREW-ONLY text link
+  ("Have Sam keep looking", gated on isCrewRequest) is replaced by the public card. LEFT OUT (per
+  Sam's instruction to list unclear page types rather than guess): /vin/* 301s straight to the car
+  page, so nothing separate was needed there; no other sales/live-car page type exists today in
+  api/history.js or api/specPage.js. Buy's own card is Lane C's file, not touched - see below.
+  OWNERSHIP NOTE: api/history.js and api/specPage.js both carry an old file-header comment crediting
+  them to "Lane C" from an earlier round. This round's explicit boundary list is "Lane C owns Sell,
+  Buy, Tasks and the watch API" with no mention of History/VIN/Spec pages, and the task explicitly
+  asked for the card on "every spec page, hub page and car page" - so I edited both, additively only
+  (new imports, new script tags, the one line replacing the old crew-only link). Flagging in case
+  that ownership has since moved and this round should have gone through Lane C instead.
+  TASKS IN THE RAIL: SHELL_PAGES and the (previously un-exported, still module-local) REDUCED_PAGES
+  both now lead with Tasks, suppressed only when active==="sell" (pagesForActive, the one caller that
+  still needs it is api/sellNext.js/new Sell - live /sell never calls railOpenHtml at all, confirmed
+  by grep, so it needed no code change and is confirmed unchanged live, screenshot taken). A small
+  "1" badge shows next to Tasks when signed in with an active task (api/tasks.js summary - the
+  product is one-task-at-a-time, so the count is always 0 or 1, never higher).
+  BEHAVIOUR: signed out, the button is intercepted (capture-phase, [data-kl-btn]), the destination is
+  stashed in sessionStorage (not a cookie), and js/auth.js's EXISTING openSignInCard() opens in place
+  with the exact reason text given ("Sign in and Sam will keep watching this for you."). Signed in,
+  the anchor's own target=_blank/rel=noopener does the job with no JS at all - the page never
+  navigates either way, verified live both ways. No new event was added for the click itself (none of
+  lib/events.js's existing TASK_* names fit a mere click, and the new tab's own /tasks page_view
+  already attributes the visit once it lands - adding a second event felt like exactly the "parallel
+  event" the brief said not to add; flag if a dedicated click event was actually wanted).
+  THREE BUGS CAUGHT LIVE POST-DEPLOY, all fixed same round:
+  1. gasKlResume() only ran once at script init (before anything was ever stashed), so the in-place
+     email-code sign-in path (no page reload) never got noticed - only the Google-redirect-return
+     case (which does reload) worked. Fixed: the click handler now starts the same poll itself
+     (gasKlPoll), matching the pattern Buy's own [data-keep] control already uses.
+  2. window.open() from inside a setInterval tick (not the original synchronous click) can get
+     popup-blocked silently. Added the same fallback Buy's own control already ships: a one-line note
+     near the button ("Signed in. Tap the button to open it in a new tab.") when the browser ate it.
+  3. The Porsche 911 MODEL-level spec page (/cars/porsche/911 itself) read "Porsche Porsche 911" -
+     labelFor() already returns "Porsche 911" at that one level; I was unconditionally prefixing
+     "Porsche " on top of it. Fixed with a starts-with guard. NOTE for whoever owns api/specPage.js:
+     the pre-existing marketCheckLink on the same line (`"Porsche " + label`) has the identical risk
+     and was not touched (not mine, not part of this round's diff) - and the FAQ's "Most sold between
+     null and null..." (same page, pre-existing, unrelated to this round) is a real bug worth a look.
+  4. Missing AUTH_SIGNBAR_CSS on both api/history.js and api/specPage.js: openSignInCard() renders
+     .hp-dialog-scrim/.hp-dialog/.auth-dialog, all defined in lib/authBar.js's AUTH_SIGNBAR_CSS, which
+     I'd only pulled in for the topbar pill (which these two pages don't carry) and wrongly assumed
+     was optional - the modal rendered unstyled and clipped at the page bottom instead of centered.
+     Caught via a live screenshot, fixed by importing the one CSS export regardless of the pill.
+  COPY DIVERGENCE (not a bug, just flagging): Buy's own card (api/buy.js keepHtml, Lane C's file,
+  updated concurrently this same round to the new-tab + sign-in-in-place behaviour) uses "Nothing
+  else right now." / "Nothing live right now." for its two headings, not the "Keep looking." heading
+  my brief's copy table names for the "buy_live" case. Not changed here (Lane C's file) - worth a
+  one-line sync if Sam wants the headings to literally match across pages.
+  VERIFIED LIVE (Puppeteer, real Chrome - raw curl 429s on every page, Attack Challenge Mode, the
+  known pattern, not a regression): card renders correctly on Market Check (1440 + 390), the Porsche
+  911 model spec page (1440 + 390), a BMW M3 Market Check result; Buy's own card confirmed visually
+  consistent (bell/eyebrow/heading/button/note all matching styles). Signed-out click: modal opens in
+  place with the exact subtitle, page URL never changes, href correctly stashed. Signed-in (simulated
+  session): anchor href/target correct, page URL never changes. Rail badge (simulated signed-in +
+  mocked /api/tasks?summary=1): shows "1", not hidden. Live /sell: screenshot confirms byte-visual
+  parity with its existing rail (only "Where to sell"/PowerSellers/Send feedback/Privacy/About, no
+  Tasks item, no card) - unchanged. Baseline: /sell /buy /tasks /market-check /business all 200,
+  titles/H1s intact. searchCheck.js: same known 429 pattern on 7 of 9 pages (not a regression,
+  confirmed 200 + correct content via Puppeteer on all of them). crossProductCheck.js needs Supabase
+  env not present locally - could not run it this round, same standing limitation as every prior
+  round (Vercel secrets not pullable); it runs in CI post-deploy regardless.
