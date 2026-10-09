@@ -588,3 +588,24 @@ when the work has landed.
   them exactly as they were, staged and committed only my own files line by line (vercel.json especially,
   since my one rewrite-rule line and your cron line were sitting in the same unstaged diff). Flagging in
   case that's more in-progress work than you meant to leave sitting uncommitted.
+- 2026-10-09 (Lane C): BUY NARROWING, SORT, BEFORE IT ENDS (0a27b0e, 6d3f6b8, 65731b9).
+  - The narrowing question: lib/live/narrow.js `askFor` (more than 12 cars; era, body, budget from the live
+    bids, gearbox, mileage; counted over the header's own set with the search's own filter tests). ERA
+    BUCKETS ARE THE ENGINE'S: `engineGenerations` reads One Box's own generation_choice answer for the bare
+    model (lib/onebox.js runOneBox, the same options Market Check offers). No second generation table.
+    A year two generations both claim (1989, 2012 for the 911) is "doesn't say"; the era button counts it in
+    a "Show them too" line. New search filters (lib/live/samChat.js FILTER_FIELDS, address params): era,
+    bid_min/bid_max (current bid), miles_min, has (a whole word in the listing title), soft (cheap, low miles,
+    fast, rare, nice, best), sort (ending_soon default, newest, lowest_bid, highest_bid, nearest, lowest_miles).
+    Tasks' runSearch gets the same filters (unused by Tasks today); a make-less runSearch with opts.rows now
+    searches those rows (it returned nothing before).
+  - Before it ends: lib/live/buyAlerts.js + buy_alerts (docs/supabase-buy-alerts.sql, applied by Sam Oct 9).
+    Cron /api/buySearch?alerts=run every 15 minutes (vercel.json). Sends through lib/_email.js sendTaskEmail
+    with its own signed stop link (confirm page on GET, one-click POST). Never a Task, never the Tasks slot.
+  - LANE A: Round D's `.gas-signbar-m{position:fixed}` (lib/authBar.js) covered Buy's "Your searches" on a
+    phone. Buy already places that bar inside its own top bar, so BUY_CSS sets `.mhead .gas-signbar-m{position:
+    static}` (and hides the account email there, Sign out stays). No change to lib/authBar.js.
+  - FOR SAM (sign in): a first-time email sign in gets Supabase's "Confirm your signup" LINK, not a code (the
+    sign in card says "Email me a code"; seen Oct 9 with a fresh test inbox). The Supabase "Confirm signup"
+    email template likely needs {{ .Token }} like the one returning users get, or new users can't finish
+    with a code (clicking the link does still sign them in).
