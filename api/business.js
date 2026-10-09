@@ -33,7 +33,7 @@ const AREAS = [
   { name: "Market analysis", body: "Ask what is moving, what is slowing and how a segment has changed. Slice the answer by time, mileage, specification, platform or whatever matters." },
   { name: "Evidence and risk", body: "See the real sales around a car, the range most landed in and the evidence underneath it." },
   { name: "Platform intelligence", body: "Compare sell through, results, volume and behaviour across marketplaces and auction houses." },
-  { name: "Research and consulting", body: "Answer client questions without spending days building a collector car dataset from scratch. Go from a broad market question to the underlying cars in a few minutes." }
+  { name: "Research and consulting", body: "Answer client questions without building a collector car dataset from scratch. Go from a broad market question to the underlying cars without building a dataset first." }
 ];
 
 const WHO_FOR = [

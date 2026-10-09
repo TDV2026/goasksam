@@ -153,6 +153,11 @@ jobs:
         id: sellexample
         continue-on-error: true
         run: node scripts/buildSellExample.js
+      # Builds the Sam Desk (/business) worked example once a night
+      - name: Build Sam Desk worked example (three Porsche 911 generations)
+        id: deskexample
+        continue-on-error: true
+        run: node scripts/buildDeskExample.js
       - name: Build spec_pages (Porsche 911 spec/hub pages, serve-from-table)
         run: node scripts/buildSpecPagesCache.js
       - name: Precompute VIN rollout cache (sitemap-vins/motorcycles/other)
@@ -194,6 +199,11 @@ jobs:
         if: steps.sellexample.outcome == 'failure'
         run: |
           echo "::error::Sell landing example build failed (see the Build Sell landing example step above). Later steps still ran, but the job must end red. The landing still builds its example within its own wait meanwhile. This is a cache freshness regression, not a correctness outage."
+          exit 1
+      - name: Fail the job if the Sam Desk example step failed
+        if: steps.deskexample.outcome == 'failure'
+        run: |
+          echo "::error::Sam Desk worked example build failed (see the Build Sam Desk worked example step above). Later steps still ran, but the job must end red. The /business page still serves correctly with its worked example section hidden meanwhile. This is a cache freshness regression, not a correctness outage."
           exit 1
       - name: Fail the job if the VIN rollout cache step failed
         if: steps.vinrollout.outcome == 'failure'

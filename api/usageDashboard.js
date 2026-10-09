@@ -2,6 +2,7 @@
 // (?view=usage default, accounts, outbound) so the app stays under the 12-function
 // deploy cap; all three share USAGE_DASHBOARD_KEY. (Merged from api/adminAccounts.js
 // and api/outboundClicks.js, July 2026.)
+import { hasServerCredential } from "../lib/_credential.js";
 import fs from "node:fs";
 import { supabaseEnv, supabaseSelect, supabaseSelectAll, supabaseInsert, supabaseDelete } from "../lib/_supabase.js";
 import { callOldCarsData } from "../lib/_ocd.js";
@@ -409,18 +410,14 @@ function renderHtml({ summary, events, days, key }) {
 // BOUNDED, resumable slice so it fits the serverless timeout; the shared cores live
 // in lib/ops/. This is the standing pattern for any future metered script.
 async function handleOps(req, res) {
-  // Two auth paths, neither committed to the repo: Sam's manual PROBE_KEY (in the
-  // URL), OR Vercel's built-in cron auth (the platform sends Authorization: Bearer
-  // ${CRON_SECRET} on scheduled requests; CRON_SECRET is a Vercel env var). vercel.json
-  // only names the path, never a secret.
+  // One credential check (lib/_credential.js), HEADER ONLY (Oct 2026): the probe key (PROBE_KEY or
+  // OPS_KEY) as x-ops-key or x-probe-key, or Vercel's cron auth (Authorization: Bearer ${CRON_SECRET}).
+  // A key in the address is ignored: addresses end up in logs and histories. Keys from env only.
   const opsKey = process.env.PROBE_KEY || process.env.OPS_KEY;
-  const cronSecret = process.env.CRON_SECRET;
-  const provided = req.headers["x-ops-key"] || req.query?.opskey || req.query?.key;
-  const authHeader = String(req.headers["authorization"] || "");
-  const isCron = !!cronSecret && authHeader === `Bearer ${cronSecret}`;
-  if (!isCron) {
-    if (!opsKey) return res.status(500).json({ error: "Set PROBE_KEY in Vercel to enable the ops endpoint." });
-    if (provided !== opsKey) return res.status(401).json({ error: "Unauthorized (ops)." });
+  const isCron = !!process.env.CRON_SECRET && String(req.headers["authorization"] || "") === `Bearer ${process.env.CRON_SECRET}`;
+  if (!hasServerCredential(req)) {
+    if (!opsKey && !process.env.CRON_SECRET) return res.status(500).json({ error: "Set PROBE_KEY in Vercel to enable the ops endpoint." });
+    return res.status(401).json({ error: "Unauthorized (ops). Send the key in the x-ops-key header." });
   }
 
   const apiKey = process.env.OLDCARSDATA_API_KEY;
@@ -1145,7 +1142,7 @@ async function handleOps(req, res) {
   // task=deskexample: forces a fresh build of the Sam Desk (/business) worked example
   // (lib/live/deskExample.js, three year-pinned Porsche 911 generations through the shared engine) and
   // writes it to spec_market_cache, so the page shows it immediately instead of waiting for the nightly
-  // run (ops/nightly-workflow.yml). Zero writes beyond that one cache row.
+  // run (docs/nightly-workflow.yml). Zero writes beyond that one cache row.
   if (task === "deskexample") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { deskExample } = await import("../lib/live/deskExample.js");
