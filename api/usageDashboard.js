@@ -649,6 +649,35 @@ async function handleOps(req, res) {
   // other curated model (Targa/Speedster-style risk: a body-style word resolveVehicle resolves as a
   // genuine trim, that resolveForBuy's generic body-word-as-trim correction then strips to
   // bodyStyle). Reports make/model/trim/bodyStyle/genCode from both resolvers and flags any mismatch.
+  // task=simulatedrawer: WRITES (opportunistic cache refresh only - same as a real drawer/Market
+  // Check call). Resolves q via resolveVehicle, calls runOneBox live, then writes the result to
+  // spec_market_cache via the EXACT same coreOf/persistCore/specKeyFor path api/sellerDecision.js's
+  // oneBox branch now uses - for verifying that opportunistic-refresh mechanism works without
+  // fighting Vercel's bot challenge on a raw POST to /api/sellerDecision (curl gets 429there).
+  if (task === "simulatedrawer") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const q = String(req.query?.q || "1988 Porsche 911 Carrera Targa");
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { runOneBox } = await import("../lib/onebox.js");
+    const { specKeyFor, coreOf, persistCore } = await import("../lib/live/search.js");
+    const rv = await resolveVehicle(q, {});
+    const vehicle = rv && rv.vehicle;
+    if (!vehicle || !vehicle.make) return res.status(200).json({ task: "simulatedrawer", q, error: "unresolved" });
+    const generation = await findGeneration(vehicle, env).catch(() => null);
+    const searchText = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(" ");
+    const t0 = Date.now();
+    const d = await runOneBox(vehicle, generation, searchText, env, null);
+    const ms = Date.now() - t0;
+    let wrote = false;
+    if (d && d.tier === "result") {
+      const key = specKeyFor(vehicle, generation, null);
+      const core = coreOf(d, { v: vehicle, generation, refine: null });
+      if (core) { await persistCore(env, key, core); wrote = true; }
+    }
+    return res.status(200).json({ task: "simulatedrawer", q, tier: d && d.tier, ms, wrote });
+  }
+
   if (task === "trimresolvediff") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { PORSCHE_911_TRIMS } = await import("../lib/vehicleData.js");
