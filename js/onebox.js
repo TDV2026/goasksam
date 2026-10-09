@@ -767,7 +767,9 @@
       ? "Real sales of the same car that sat well above or below the range, so they are not used to set it. Still useful to know about."
       : "Real sales of the same car, kept out of the range above. Still useful to know about.";
     var cardsHtml = list.map(function (c, i) { return poolCardHtml(c, dirs[i]); });
-    return '<div class="sec-head" data-stage="cards"><div><h2>' + lint("Shown separately", "sep.lab") + "</h2></div></div>" +
+    // id="shown-separately": the Market read card's "set aside" pill scrolls here rather than
+    // opening a second list - one list, shown once (Sam, Oct 2026).
+    return '<div class="sec-head" id="shown-separately" data-stage="cards"><div><h2>' + lint("Shown separately", "sep.lab") + "</h2></div></div>" +
       '<p class="sep-note" data-stage="cards">' + lint(sentence, "sep.note") + "</p>" +
       capCardsHtml("grid3", cardsHtml, 3);
   }
@@ -803,55 +805,64 @@
     if (!d.mileageFallback) return "";
     return '<p class="mifallback" data-stage="answer">' + lint(esc("Too few sold right at that mileage, so these are the " + d.mileageFallback.n + " closest sales by mileage."), "mifb") + "</p>";
   }
-  // Market Check engine additions (Oct 2026), item 2: four calendar quarters of the twelve-month
-  // pool, newest first, as plain lines under the headline range. Shown only when 2+ quarters cleared
-  // the range threshold and so carry a real band - a single banded quarter beside three too-thin
-  // ones would read as a false comparison. NOT wired to open a sales list: the engine only returns
-  // quarterlyBands[i].sales for a quarter WITHOUT a band (the thin ones this view does not show), so
-  // there is nothing honest to open for the quarters that do render here. Flagged to Sam rather than
-  // building a click target that would silently do nothing.
-  function quarterlyBandsHtml(d) {
-    var qb = d && d.quarterlyBands;
+  // "Digits not words" (Oct 2026, Market read pills): the engine word-ifies a count under ten
+  // (countWord, lib/onebox.js) for prose; this card's pills want the raw digit instead. Same fact,
+  // different print - not a recompute. Reverses the exact ST_NUMWORD list the engine uses.
+  var NUMWORD_REV = { zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9 };
+  function digitOf(v) { if (typeof v === "number") return v; var n = NUMWORD_REV[String(v == null ? "" : v).toLowerCase()]; return n != null ? n : (Number(v) || 0); }
+  var CHEV_SVG = '<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>';
+  // Market read card (Oct 2026): one paper card directly under the range card - the engine's
+  // direction sentence, four quarter rows (bars on the SAME price scale as the range card's own
+  // rangebar, d.span), and two quiet count pills. Lane B's fix (lib/onebox.js quarterlyBandsFor,
+  // "sales belong to the quarter WITH a band") landed Oct 9 (docs/lane-notes.md), so a banded row's
+  // own sales now open inline; a thin row has no sales to open and is plain text, never a button.
+  function marketReadQuarterRows(d) {
+    var qb = d && d.quarterlyBands, span = d && d.span;
     if (!Array.isArray(qb)) return "";
     var banded = qb.filter(function (q) { return Array.isArray(q.band) && q.band.length === 2; });
     if (banded.length < 2) return "";
-    var rows = banded.map(function (q) {
-      return '<div class="qtr-row"><span class="qtr-period">' + esc(q.period) + '</span><span class="qtr-band num">' + esc(usd(q.band[0])) + ' to ' + esc(usd(q.band[1])) + '</span><span class="qtr-count">' + esc(q.count) + ' sold</span></div>';
+    var lo = Array.isArray(span) ? Number(span[0]) : NaN, hi = Array.isArray(span) ? Number(span[1]) : NaN;
+    var haveScale = hi > lo;
+    var pc = function (x) { return Math.max(0, Math.min(100, (x - lo) / (hi - lo) * 100)); };
+    var rows = qb.map(function (q, i) {
+      var period = '<span class="mktread-qperiod">' + esc(q.period) + '</span>';
+      if (!Array.isArray(q.band) || q.band.length !== 2) {
+        return '<div class="mktread-qrow mktread-qrow-none"><button type="button" class="mktread-qrowbtn" disabled>' + period +
+          '<span class="mktread-qtrack"></span><span class="mktread-qtext mktread-qnone">Not enough sales</span><span class="mktread-qcount"></span></button></div>';
+      }
+      var track = "";
+      if (haveScale) {
+        var a = pc(q.band[0]), b = pc(q.band[1]);
+        track = '<i class="mktread-qband' + (i === 0 ? " latest" : "") + '" style="left:' + a.toFixed(1) + '%;width:' + Math.max(1.5, b - a).toFixed(1) + '%"></i>';
+      }
+      var hasOpen = Array.isArray(q.sales) && q.sales.length > 0;
+      var id = hasOpen ? "ob-q" + (++obCapSeq) : null;
+      var btnAttrs = hasOpen ? ' data-qtoggle="' + id + '" aria-expanded="false"' : ' disabled';
+      var row = '<div class="mktread-qrow"><button type="button" class="mktread-qrowbtn"' + btnAttrs + '>' + period +
+        '<span class="mktread-qtrack">' + track + '</span><span class="mktread-qtext num">' + esc(usd(q.band[0])) + ' to ' + esc(usd(q.band[1])) + '</span><span class="mktread-qcount">' + esc(q.count) + ' sold</span></button></div>';
+      if (hasOpen) {
+        var cards = q.sales.map(function (c) { return poolCardHtml(c, false); }).join("");
+        row += '<div class="mktread-qexpand grid3" id="' + id + '" hidden>' + cards + '</div>';
+      }
+      return row;
     }).join("");
-    return '<div class="qtrblock" data-stage="answer">' + rows + '</div>';
+    return '<div class="mktread-qrows">' + rows + '</div>';
   }
-  // Item 3: year-over-year direction, the engine's own sentence verbatim, with the two bands it
-  // names as two small lines underneath. Null on any gate failure (including a pool widened past
-  // twelve months) renders nothing at all - never approximated here.
-  function yoyDirectionHtml(d) {
-    var y = d && d.yoyDirection;
-    if (!y || !y.sentence) return "";
-    var bands = "";
-    if (Array.isArray(y.recentBand) && y.recentBand.length === 2) bands += '<p class="yoy-band">' + esc(y.recentWindow || "") + ": " + esc(usd(y.recentBand[0])) + ' to ' + esc(usd(y.recentBand[1])) + '</p>';
-    if (Array.isArray(y.priorBand) && y.priorBand.length === 2) bands += '<p class="yoy-band">' + esc(y.priorWindow || "") + ": " + esc(usd(y.priorBand[0])) + ' to ' + esc(usd(y.priorBand[1])) + '</p>';
-    return '<div class="yoyblock" data-stage="answer"><p class="yoy-sentence">' + lint(esc(y.sentence), "yoy.sentence") + '</p>' + bands + '</div>';
-  }
-  // Item 4: two quiet lines under the sales list, each expanding its own short list. Never added to
-  // soldCount. A zero/empty count renders no line at all.
-  function setAsideLineHtml(d) {
-    var n = d && d.setAsideCount, rows = d && d.setAsideRows;
-    if (!n || !rows || !rows.length) return "";
-    var reasons = d.setAsideReasons || {};
-    var bits = ["modified", "project", "replica", "odd sale"].map(function (k) { return reasons[k] ? reasons[k] + " " + k : null; }).filter(Boolean).join(", ");
-    var id = "ob-aside" + (++obCapSeq);
-    var cards = rows.map(function (c) { return poolCardHtml(c, false); }).join("");
-    var singular = n === 1 || n === "one";
-    return '<div class="quietline" data-stage="cards"><button type="button" class="quietbtn" data-qtoggle="' + id + '" aria-expanded="false">' + esc(n) + (singular ? ' sale set aside' : ' sales set aside') + (bits ? ' (' + esc(bits) + ')' : '') + '. Show them.</button><div class="quietrows grid3" id="' + id + '" hidden>' + cards + '</div></div>';
-  }
-  function didNotSellLineHtml(d) {
-    var n = d && d.didNotSellCount, rows = d && d.didNotSellRows;
-    if (!n || !rows || !rows.length) return "";
-    var id = "ob-dns" + (++obCapSeq);
-    var lines = rows.map(function (r) {
-      var bits = [r.highBid ? "High bid " + usd(r.highBid) : "", r.platform || "", r.date ? monthYear(r.date) : ""].filter(Boolean).join(" · ");
-      return r.url ? '<a class="dns-row" href="' + esc(utmUrl(r.url)) + '" target="_blank" rel="noopener noreferrer">' + esc(bits) + '</a>' : '<div class="dns-row">' + esc(bits) + '</div>';
-    }).join("");
-    return '<div class="quietline" data-stage="cards"><button type="button" class="quietbtn" data-qtoggle="' + id + '" aria-expanded="false">' + esc(n) + " didn’t sell. Show them.</button><div class=\"quietrows\" id=\"" + id + '" hidden>' + lines + '</div></div>';
+  function marketReadHtml(d, m) {
+    var lead = (d && d.yoyDirection && d.yoyDirection.sentence) ? ('<p class="mktread-lead">' + lint(esc(d.yoyDirection.sentence), "mktread.lead") + '</p>') : "";
+    var qrows = marketReadQuarterRows(d);
+    // Set aside pill (Sam's direction, Oct 2026): never a second list - scrolls to the existing
+    // "Shown separately" section and counts THAT section's own list (the same m.url dedup it uses),
+    // so the pill and the section it opens can never disagree.
+    var asideList = ((d && d.asideCards) || []).filter(function (c) { return !(m && m.url && c.url === m.url); });
+    var asidePill = asideList.length ? ('<button type="button" class="mktread-pill" data-scrollto="shown-separately">' + asideList.length + (asideList.length === 1 ? ' sale set aside' : ' sales set aside') + CHEV_SVG + '</button>') : "";
+    // Didn't-sell pill: HELD BACK until the field carries its own window (see docs/lane-notes.md) -
+    // the current response has no window for didNotSellCount at all (not even an inferable one worth
+    // trusting), and a count with a scope the visitor can't tell is worse than no count.
+    var dnsPill = "";
+    var foot = (asidePill || dnsPill) ? ('<div class="mktread-foot">' + asidePill + dnsPill + '</div>') : "";
+    if (!lead && !qrows && !foot) return "";
+    return '<section class="mktread" data-stage="answer">' + lead + qrows + foot + '</section>';
   }
   // Item 7: the answered questions this view is already scoped to, as removable chips. Removing one
   // reruns the SAME search without that answer (mergeRefine's inverse) and updates the address
@@ -895,8 +906,7 @@
     if (d.driverSentence && !(d.earned) && !(d.divergence && d.divergence.kase === "a")) notes += '<p class="varynote">' + lint(esc(d.driverSentence), "varynote") + "</p>";
     var body = currentAnswersChipsHtml();
     body += answerCardHtml(d, m);
-    body += quarterlyBandsHtml(d);
-    body += yoyDirectionHtml(d);
+    body += marketReadHtml(d, m);
     if (notes) body += '<div class="notes" data-stage="answer">' + notes + "</div>";
     body += trimQuestionHtml(d);
     body += bodyOptionsHtml(d);
@@ -904,8 +914,6 @@
     body += observeHtml(d);
     body += salesSectionHtml(d, m);
     body += otherTrimsHtml(d);
-    body += setAsideLineHtml(d);
-    body += didNotSellLineHtml(d);
     body += livePanelSlot();
     body += shownSeparatelyHtml(d, m);
     body += sellHtml();
@@ -1988,14 +1996,21 @@
     Array.prototype.forEach.call(root.querySelectorAll("a[data-cardclick]"), function (a) {
       a.addEventListener("click", function () { try { obEvent("onebox_comp_click", a.getAttribute("data-cardclick") + ":" + lastQuery); } catch (e) {} });
     });
-    // Market Check engine additions, item 4: the two quiet lines ("N set aside" / "N didn't sell")
-    // reveal their already server-rendered list in place.
+    // Market read card: a banded quarter row reveals its own already server-rendered sales in place.
     Array.prototype.forEach.call(root.querySelectorAll("[data-qtoggle]"), function (b) {
       b.addEventListener("click", function () {
         var list = document.getElementById(b.getAttribute("data-qtoggle")); if (!list) return;
         var open = list.hasAttribute("hidden");
         if (open) list.removeAttribute("hidden"); else list.setAttribute("hidden", "");
         b.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    });
+    // Market read card: the "set aside" pill is never a second list - it scrolls to the existing
+    // Shown separately section (Sam, Oct 2026).
+    Array.prototype.forEach.call(root.querySelectorAll("[data-scrollto]"), function (b) {
+      b.addEventListener("click", function () {
+        var t = document.getElementById(b.getAttribute("data-scrollto"));
+        if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     });
     // Item 7: a removable current-answer chip reruns the SAME search without that one answer.
