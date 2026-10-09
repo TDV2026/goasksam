@@ -49,7 +49,7 @@ export default async function handler(req, res) {
   // The phone header row carries the logo, Buy's "Your searches" pill, the menu and the docked sign in.
   const MVIS = '<button type="button" class="mvis" data-mvisits aria-expanded="false" aria-controls="mvlist">Your searches</button>';
   const MENU = '<button type="button" class="gas-menu"';
-  let shell = railOpenHtml({ active: "buy", logoHref: "/buy", pageExtra: '<div class="rh">Your searches</div><div id="searches"></div><button type="button" class="newbtn" id="newsearch">+ New search</button>' });
+  let shell = railOpenHtml({ active: "buy", logoHref: "/buy", pageExtra: '<div class="rh">Your searches</div><div id="searches"></div><button type="button" class="newbtn" id="newsearch">+ New search</button>', crew });
   shell = shell.includes(MENU) ? shell.replace(MENU, MVIS + MENU) : shell.replace("</header>", MVIS + "</header>");
   const railFinal = '<script>window.GAS_CREW=' + (crew ? "true" : "false") + ';</script>' + shell +
     '<div class="mvlist" id="mvlist" hidden><div class="vlist"></div><button type="button" class="mvnew" data-newsearch>+ New search</button></div>';
