@@ -15,6 +15,8 @@ const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&a
 
 const INTRO = "Every answer on GoAskSam starts with a real sale: a car that actually sold, at auction, on a date, for a price. Sam matches your car to those sales, shows you the ones that matter, and tells you what they add up to. When there is not enough to say something, Sam says that instead.";
 
+const BUILT_INHOUSE = { headline: "Built in house.", body: "Every answer on GoAskSam comes from one engine we built ourselves, with our own rules and algorithms for which sales count as cars like yours and which get set aside. Buy, Sell, Market Check and Tasks all use it, so the same car gets the same answer wherever you ask. If the sales aren't there, Sam says so instead of guessing." };
+
 const SECTIONS = [
   { name: "Market Check", headline: "What cars like yours are bringing.", body: "Sam matches like with like: same model, same generation, same body, same gearbox, and the same trim when it changes the price. A GT3 is not a Carrera. From those sales Sam shows the range where most of them landed, the count behind it, and the closest sales with the photo, date and venue attached. Sales that sat far outside the range are shown separately and never used to set it. If your car is a different trim from the one Sam assumed, you can switch with one tap and the whole answer reruns. A VIN tells Sam whether that exact car has sold before." },
   { name: "Buy", headline: "What is live, and what it means.", body: "Sam searches the live collector car auctions and shows only the cars that fit what you asked. Nothing is added to fill the page. When a search is wide, Sam asks one question at a time, with the count behind each answer. Every live car carries what similar cars sold for, so the bid is never just a number, and when the same car has been to auction before, Sam says so. A car that does not state its colour, gearbox or mileage is never counted as a match; Sam tells you how many of those there are and lets you see them." },
@@ -37,6 +39,9 @@ const CSS = `
 .hd-col{max-width:1080px;margin:0 auto;padding:56px 48px 80px;display:flex;flex-direction:column;gap:0}
 .hd-h1{margin:0 0 18px;font:600 44px/1.12 var(--serif,Georgia,serif);letter-spacing:-.01em;color:var(--ink,#15201A);text-wrap:balance}
 .hd-intro{margin:0 0 40px;font:400 19px/1.55 var(--sans,sans-serif);color:var(--sec,#5E6B63);max-width:70ch}
+.hd-inhouse{margin:0 0 34px}
+.hd-inhouse .hd-headline{margin:0 0 12px}
+.hd-inhouse .hd-body{max-width:74ch}
 .hd-sec{padding:34px 0;border-top:1px solid var(--shell-div,#E2DED3)}
 .hd-sec:first-of-type{border-top:1px solid var(--shell-div,#E2DED3)}
 .hd-eyebrow{margin:0 0 8px;font:600 13px/1.4 var(--sans,sans-serif);letter-spacing:.1em;text-transform:uppercase;color:var(--green,#1E4D38)}
@@ -66,7 +71,8 @@ ${AUTH_SIGNBAR_HTML}
 ${railOpenHtml({ active: "how" })}
 <main><div class="hd-col">
 <h1 class="hd-h1">How Sam decides.</h1>
-<p class="hd-intro">${esc(INTRO)}</p>
+<p class="hd-intro" data-lead-sentence>${esc(INTRO)}</p>
+<div class="hd-inhouse"><h2 class="hd-headline">${esc(BUILT_INHOUSE.headline)}</h2><p class="hd-body">${esc(BUILT_INHOUSE.body)}</p></div>
 ${sections}
 ${rules}
 <p class="hd-close">${esc(CLOSING)}</p>
