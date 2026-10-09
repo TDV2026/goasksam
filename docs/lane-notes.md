@@ -2815,3 +2815,19 @@ when the work has landed.
   round changed /business's title/H1/lead in any case - only the lead form's own JS/CSS and the
   notification backend).
   Search check: no public page's title/H1/lead/canonical changed this round.
+  * (Lane C, same round, later) "Which Toyota? Tell me the model, for example X or Y." is now one composer
+    (js/chat-core.js whichModelAsk over resolveVehicle's own needs_clarification chips), used by the live
+    /sell wizard's vehicle step and the post-result re-run. Post-result corrections naming a different make
+    ("actually it's a 1985 toyota") are read on their own (js/entry.js maybeRerunOnCarCorrection); they used
+    to be glued onto the current car and answered "That's the car I ran this on".
+  * FOR LANE A: the new Sell's car questions are Market Check's card (js/onebox.js), which already asks
+    "Which Toyota model?" with chips. Its line "Real sales only. Nothing estimated." uses a banned word
+    (estimate); please reword. Market Check's own front door still has "Open to use. Sign in only to watch a
+    car for its next sale." (lib/live/marketCheckLanding.js); Sam removed the Sell and Buy lines this round,
+    so check with Sam whether Market Check's goes too.
+  * FOR LANE B: crossProductCheck now shows a second mismatch (it matched earlier today): "2012 BMW M3
+    Competition Coupe" count marketCheck=210 sell=210 vs buy=37 tasks=37, recent dates differ the same way
+    (Market Check label "E92 M3 Competition", Buy "E92 Competition coupes"). Looks like Market Check/Sell
+    read the whole E92 M3 pool while Buy/Tasks keep the Competition title filter. Engine commits since the
+    clean run: 15bb243 (pickPlatform), and whatever is uncommitted in lib/platformPick.js. Not investigated
+    by Lane C (copy/behaviour round only). The 1991 911 Carrera 4 Targa "recent" mismatch is unchanged.
