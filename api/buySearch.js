@@ -24,7 +24,7 @@ const FIRST = 10, MAX = 200;
 const titleCaseIfShouting = s => String(s || "").split(",").map(p => { const t = p.trim(); return t && t === t.toUpperCase() && /[A-Z]{3}/.test(t) ? t.toLowerCase().replace(/\b([a-z])/g, c => c.toUpperCase()) : t; }).filter(Boolean).join(", ");
 export function cardOf(x) {
   const r = x.r, facts = x.facts, cc = String(r.country || "").toUpperCase();
-  return { id: r.id, source: houseName(r.source), sourceSlug: r.source, title: r.listing_title, url: r.url, photo_url: r.photo_url,
+  return { id: r.id, source: houseName(r.source), sourceSlug: r.source, title: r.listing_title, url: r.url, photo_url: r.photo_url, swap: !!x.swap,
     // Bids through liveTrust: a dollar figure only when it is dollars; a "USD" price on a lot priced
     // abroad, or a bid the feed reports without an amount, shows nothing (never "No bids yet").
     current_bid_usd: facts.priceUsd || null, current_bid: (facts.priceState === "usd" || facts.priceState === "converted") && r.current_bid != null ? Math.round(Number(r.current_bid)) : null, currency: r.currency || "USD",
@@ -44,7 +44,7 @@ async function timelineOf(env, x) {
   if (!data || !data.ok) return null;
   const today = new Date().toISOString().slice(0, 10), norm = u => String(u || "").replace(/^https?:\/\/(www\.)?/, "").replace(/\/+$/, "");
   return data.appearances.filter(a => a.date && a.date < today && norm(a.url) !== norm(x.r.url))
-    .map(a => ({ date: a.date, house: a.house, result: a.kind === "sale" ? "sold" : (/withdraw/i.test(String(a.status || a.result || "")) ? "withdrawn" : "not_sold"), price: a.kind === "sale" ? (a.priceUsd || null) : (a.bidUsd || null), url: /^https?:\/\//.test(String(a.url || "")) ? String(a.url) : null }))
+    .map(a => ({ date: a.date, house: a.house, result: a.kind === "sale" ? "sold" : (/withdraw/i.test(String(a.status || a.result || "")) ? "withdrawn" : "not_sold"), price: a.kind === "sale" ? (a.priceUsd || null) : (a.bidUsd || null), url: /^https?:\/\//.test(String(a.url || "")) ? String(a.url) : null, miles: a.mileage || null, photo: a.image || null }))
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 // The card's name from the resolved spec: year, make, model, trim, body. Never the seller's copy
@@ -64,11 +64,11 @@ export async function nameOf(env, x) {
 async function enrich(env, x) {
   let [market, seen, timeline] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts), seenBefore(env, x.r.vin_norm), timelineOf(env, x)]);
   if (market && market.kind === "pending") market = await listingMarket(env, x.r, x.facts);   // one more go, warm now
-  return { ...cardOf(x), market, seen_before: seen, timeline, name: await nameOf(env, x) };
+  return { ...cardOf(x), market, seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name: await nameOf(env, x) };
 }
 async function enrichFast(env, x) {
   const [market, seen, timeline, name] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts, { noBlock: true }), seenBefore(env, x.r.vin_norm), timelineOf(env, x), nameOf(env, x)]);
-  return { ...cardOf(x), market, seen_before: seen, timeline, name };
+  return { ...cardOf(x), market, seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name };
 }
 async function logSearch(env, v, anonId) {
   try {
