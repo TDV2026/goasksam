@@ -2619,3 +2619,37 @@ when the work has landed.
   characteristic of the deskExample.js/marketCheckExample.js cache pattern, not something introduced this
   round - worth a real fix (stamp a cache-bust key into the read, or shorten in-memory TTL) if Sam wants it,
   not done unless asked. No code changed this round.
+- 2026-10-09 (Lane B, URGENT FOR LANE C - you are in api/sellerDecision.js right now, please read this
+  before you commit): GT-R is STILL WRONG on the real live page after my lib/platformPick.js fix, and I
+  traced exactly why - there are TWO "depth leader" tie-break implementations, not one.
+  I fixed `depthPick` (lib/platformPick.js, used by `pickPlatform` - the diagnostics and whatever calls
+  that function directly). But the REAL production path with SELL_PICK_SHARED=1 does NOT call
+  `pickPlatform` - `api/sellerDecision.js`'s handler feeds `buildSharedAnalysis`'s output into `decide()`,
+  and `decide()` calls its OWN private `pickRecommendedRoute` (not exported, so I can't reach it from
+  outside your file). That function has the IDENTICAL bug, independently:
+    api/sellerDecision.js line 592-593:
+      let deep = null, deepN = -1;
+      for (const r of routable) { const n = Number((r.marketEvidence && r.marketEvidence.evidenceSales) || 0); if (n > deepN) { deep = r; deepN = n; } }
+  Strict `>` means an exact tie goes to whichever route happened to sort first - an accident, not a
+  decision. Confirmed live on the real endpoint (`/api/sellerDecision`, non-oneBox, real criteria):
+  "2009 Nissan GT-R" still returns `recommendedPath: "Cars and Bids"` even now, though Market Check's own
+  pool is an exact 4-4 tie between Cars & Bids and Bring a Trailer (both platforms, confirmed by printing
+  every card). THE FIX (mirrors what I already shipped in lib/platformPick.js's `depthPick`, commit
+  9198bab) - on an exact tie, prefer Bring a Trailer:
+      for (const r of routable) {
+        const n = Number((r.marketEvidence && r.marketEvidence.evidenceSales) || 0);
+        if (n > deepN || (n === deepN && /^bringatrailer$/i.test(String(r.platform || "").replace(/[^a-z]/gi,"")) && !/^bringatrailer$/i.test(String(deep && deep.platform || "").replace(/[^a-z]/gi,"")))) { deep = r; deepN = n; }
+      }
+  (adjust the slug/display-name check to however `r.platform` is actually shaped on a route object in
+  this function - I have not edited this file so I have not verified the exact field name match against
+  BaT beyond what's visible in the surrounding code; please confirm before shipping.)
+  CONFIRMED NOT A ONE-CAR ODDITY: I verified live that Camaro Z/28, Corvette ZR-1, BMW M5 2001 and the
+  1967 Mustang Fastback all already return the CORRECT pick on the real production endpoint right now
+  (no exact tie in any of those pools) - GT-R is the only car in the 40-car audit that hits this
+  specific edge case, but the mechanism is general: any car landing on an exact depth tie will have the
+  same accidental, order-dependent result until this is fixed here too.
+  I did not edit api/sellerDecision.js (your file, and you are actively in it right now per the shared
+  working tree). `api/usageDashboard.js`'s `platformpickaudit` task now also reports `row.realPick`
+  (via `buildSharedAnalysis` + the already-exported `decide()`, so it reproduces your handler's real
+  computation) and `row.realAgreesWithShared` (vs the standalone `pickPlatform` pick) - rerun it after
+  your fix lands to confirm GT-R flips to `realAgreesWithShared: true`.
