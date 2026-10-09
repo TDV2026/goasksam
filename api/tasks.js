@@ -171,6 +171,11 @@ export default async function handler(req, res) {
       const r = await fetch(`${env.supabaseUrl}/rest/v1/tasks?user_id=eq.${u.userId}`, { method: "DELETE", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "return=representation" } });
       return res.status(200).json({ deleted_tasks: r.ok ? (await r.json()).length : `error ${r.status}` });
     }
+    // Probe: the latest task_limit_hit events (indexed: idx_app_usage_events_type_created).
+    if (req.method === "POST" && req.body && req.body.action === "test_limit_events" && probeOk(req)) {
+      const r = await fetch(`${env.supabaseUrl}/rest/v1/app_usage_events?event_type=eq.task_limit_hit&select=created_at,status,metadata&order=created_at.desc&limit=20`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } });
+      return res.status(200).json({ events: r.ok ? await r.json() : `error ${r.status}` });
+    }
     // Probe-keyed test scenario: the whole flow for a fresh test user against an in-memory store (no
     // table rows, no email), one request so the store holds. Steps: {say}, {control}, {run:{rows,now}},
     // {set:{...}}. Returns every step's result and the thread.
@@ -227,6 +232,21 @@ export default async function handler(req, res) {
       return res.status(200).json({ email: em && { id: em.id, to: em.to, from: em.from, subject: em.subject, last_event: em.last_event, created_at: em.created_at }, domains: detail, domains_error: doms && doms.message || null });
     }
     if (b.action === "start") return res.status(200).json(await startDraft(env, user, b.draft || {}, { apiKey, model: CHAT_MODEL }));
+    // One task at a time (beta): the page shows the choice when a second task is attempted. Every showing
+    // and every button is logged as task_limit_hit (the user, the running task, the attempted job, the
+    // button). "swap" pauses the running task, then resumes the paused one asked for, or starts the
+    // draft; a seeded attempt is drafted by the page once the slot is free. "keep" changes nothing.
+    if (b.action === "limit") {
+      const ev = ["seen", "swap", "keep"].includes(b.event) ? b.event : null;
+      if (!ev) return res.status(400).json({ error: "bad event" });
+      const running = /^[0-9a-f-]{36}$/.test(String(b.task_id || "")) ? await getTask(env, b.task_id, user.userId).catch(() => null) : null;
+      await recordUsageEvent({ event_type: "task_limit_hit", route: "tasks", status: ev, metadata: { user_id: user.userId, running_task_id: running ? running.id : null, running_task: running ? running.summary : null, attempted_job: String(b.attempted || "").slice(0, 300) || null, mode: ["seed", "draft", "resume"].includes(b.mode) ? b.mode : null, button: ev === "seen" ? null : ev } }, env.supabaseUrl, env.supabaseKey).catch(e => console.error("task_limit_hit log:", e && e.message));
+      if (ev !== "swap") return res.status(200).json({ ok: true });
+      if (running && ["running", "needs_you"].includes(running.state)) await controlTask(env, user, running.id, "pause", { apiKey, model: CHAT_MODEL });
+      if (b.mode === "resume" && /^[0-9a-f-]{36}$/.test(String(b.resume_id || ""))) return res.status(200).json({ ok: true, ...(await controlTask(env, user, String(b.resume_id), "resume", { apiKey, model: CHAT_MODEL })) });
+      if (b.mode === "draft" && b.draft) return res.status(200).json({ ok: true, ...(await startDraft(env, user, b.draft, { apiKey, model: CHAT_MODEL })) });
+      return res.status(200).json({ ok: true, paused: running ? running.id : null });
+    }
     if (b.action === "apply") return res.status(200).json(await applyEdit(env, user, String(b.task_id || ""), b.pending || null, { apiKey, model: CHAT_MODEL }));
     if (b.action === "control") {
       return res.status(200).json(await controlTask(env, user, String(b.task_id || ""), String(b.act || ""), { apiKey, model: CHAT_MODEL }));

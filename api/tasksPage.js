@@ -57,6 +57,11 @@ const APP_CSS = `
 .apph a{font:400 15px var(--sans);color:var(--sec);text-decoration:underline;text-underline-offset:4px}
 .blocked{margin:0 0 18px;padding:12px 16px;border:1px solid var(--div);border-left:3px solid var(--red);background:#fff;font:400 16px/1.5 var(--sans)}.noteinfo{margin:0 0 14px;padding:10px 14px;border:1px solid var(--div);border-radius:10px;background:var(--card);font-size:15px;color:var(--soft)}
 .blocked a{color:var(--red);font-weight:600}
+.limitbox{margin:0 0 18px;padding:16px 18px;border:1px solid var(--div);border-left:3px solid var(--green);border-radius:8px;background:#fff}
+.limitbox p{margin:0 0 14px;font:400 17px/1.5 var(--sans);color:var(--ink)}
+.limitbox .go{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.pausedh{margin:22px 0 10px;font:600 12px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--sec)}
+.tcard + .pausedh{margin-top:26px}
 .tcard{border:1px solid var(--div);border-radius:8px;background:#fff;padding:18px 20px 20px}
 .thead{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
 .thead .tline{flex:1;min-width:220px;margin:0;font:400 21px/1.35 var(--serif)}
@@ -204,6 +209,12 @@ const APP_JS = String.raw`(function(){
   if (!signedIn()) { location.replace("/tasks?signin=1&next=" + encodeURIComponent(location.pathname + location.search)); return; }
   var params = new URLSearchParams(location.search);
   var editEmail = false, data = null, busy = false, reply = "", pending = null, note = "", editing = false, arrived = !!(params.get("start") || params.get("seed")), scrollTo = null;
+  // One task at a time (beta): the choice shown when a second task is attempted. { mode: "seed" | "draft" |
+  // "resume", task_id (the running task), current (its words), attempted (the new job's words), resume_id }.
+  var limit = null;
+  var LIMIT_TEXT = function(cur){ return "Sam takes one job at a time during the beta. You already have Sam looking for " + cur + ". Swap it for this one, or keep it running and come back to this later."; };
+  function phraseOf(t){ return String((t && t.summary) || "").replace(/^Sam is (?:looking for|researching)\s+/i, "").replace(/:.*$/, "").replace(/[.]+$/, ""); }
+  function showLimit(l){ limit = l; api({ action: "limit", event: "seen", mode: l.mode, task_id: l.task_id, attempted: l.attempted }).catch(function(){}); }
   var draft = null; try { draft = JSON.parse(sessionStorage.getItem("gas_task_draft") || "null"); } catch(e){}
   function saveDraft(d){ draft = d; try { if (d) sessionStorage.setItem("gas_task_draft", JSON.stringify(d)); else sessionStorage.removeItem("gas_task_draft"); } catch(e){} }
   function seedWords(){
@@ -233,9 +244,9 @@ const APP_JS = String.raw`(function(){
     return '<ul class="feed">' + ups.map(function(u){ return '<li><span class="when">' + esc(when(u.created_at)) + '</span><p class="ut' + (u.kind === "system" ? " sys" : "") + '">' + esc(u.text) + "</p>" + cars(u) + "</li>"; }).join("") + "</ul>";
   }
   function box(label, id, value, ph){ return '<label class="boxlab" for="' + id + '">' + esc(label) + '</label><div class="tkbox"><input id="' + id + '" autocomplete="off" value="' + esc(value || "") + '" placeholder="' + esc(ph || "") + '"><button type="button" data-send="' + id + '"' + (busy ? " disabled" : "") + ">" + (busy ? "Sam is reading..." : "Send") + "</button></div>"; }
-  function taskCard(t){
-    var st = status(t), live = t.state !== "done";
-    var btns = live ? '<div class="tbtns">' + (t.state === "paused" ? '<button class="sbtn" data-act="resume" data-id="' + t.id + '">Resume</button>' : '<button class="sbtn" data-act="pause" data-id="' + t.id + '">Pause</button>') + '<button class="sbtn" data-act="stop" data-id="' + t.id + '">Stop</button></div>' : "";
+  function taskCard(t, compact){
+    var st = status(t), live = t.state !== "done" && !compact;
+    var btns = t.state !== "done" ? '<div class="tbtns">' + (t.state === "paused" ? '<button class="sbtn" data-act="resume" data-id="' + t.id + '">Resume</button>' : '<button class="sbtn" data-act="pause" data-id="' + t.id + '">Pause</button>') + '<button class="sbtn" data-act="stop" data-id="' + t.id + '">Stop</button></div>' : "";
     var h = '<section class="tcard" id="task-' + t.id + '"><div class="thead"><span class="pill ' + st[0] + '">' + st[1] + '</span><p class="tline">' + esc(t.summary) + "</p>" + btns + "</div>";
     if (live) {
       if (pending) h += '<p class="readback">' + esc(pending.summary.replace(/^Sam is looking for/, "Sam will look for").replace(/^Sam is researching/, "Sam will research")) + '</p><div class="go"><button class="pbtn" data-apply="' + t.id + '">Use this change</button><button class="plink" data-unpending>Keep the task as it is</button></div>';
@@ -260,15 +271,21 @@ const APP_JS = String.raw`(function(){
   }
   function render(){
     var tasks = (data && data.tasks) || [];
-    var cur = tasks.filter(function(t){ return ["running", "needs_you", "paused"].indexOf(t.state) >= 0; })[0] || null;
+    // The working task (running or needing the buyer) holds the slot; paused tasks wait below it.
+    var cur = tasks.filter(function(t){ return ["running", "needs_you"].indexOf(t.state) >= 0; })[0] || null;
+    var paused = tasks.filter(function(t){ return t.state === "paused"; });
     var past = tasks.filter(function(t){ return t !== cur && t.state === "done"; });
     var h = "";
-    if (cur && arrived) { note = blockedNote(cur.state); scrollTo = cur.id; }
-    if (arrived) { arrived = false; dropEntryParams(); }
-    if (note && cur) h += '<p class="' + (/junk folder/.test(note) ? "noteinfo" : "blocked") + '" role="status">' + esc(note) + "</p>";
+    // Arriving with a new job (a seed) while a task works: the one-at-a-time choice.
+    if (cur && arrived && params.get("seed") && !limit) showLimit({ mode: "seed", task_id: cur.id, current: phraseOf(cur), attempted: seedWords() });
+    else if (cur && arrived) { note = blockedNote(cur.state); scrollTo = cur.id; }
+    if (arrived) { arrived = false; if (!limit) dropEntryParams(); }
+    if (limit) h += '<div class="limitbox" role="status"><p>' + esc(LIMIT_TEXT(limit.current)) + '</p><div class="go"><button class="pbtn" data-limit-swap>Swap it for this one</button><button class="plink" data-limit-keep>Keep the current one</button></div></div>';
+    else if (note && cur) h += '<p class="' + (/junk folder/.test(note) ? "noteinfo" : "blocked") + '" role="status">' + esc(note) + "</p>";
     if (cur) h += taskCard(cur) + notifyLine();
     else if (draft) h += draftCard();
     else h += '<section class="tcard">' + box("Tell Sam what to look for", "tkq", seedWords(), "e.g. find me a black manual 997 under $70k") + (reply ? '<p class="samreply">' + esc(reply) + "</p>" : "") + "</section>";
+    if (paused.length) h += '<p class="pausedh">Paused</p>' + paused.map(function(t){ return taskCard(t, true); }).join("");
     if (past.length) h += '<details class="past"><summary>Past tasks (' + past.length + ")</summary>" + past.map(function(t){ var st = status(t); return '<details><summary><span class="pill ' + st[0] + '">' + st[1] + "</span>" + esc(t.summary) + "</summary>" + feed(t) + "</details>"; }).join("") + "</details>";
     app.innerHTML = h;
     if (scrollTo) { var el = app.querySelector(".blocked") || document.getElementById("task-" + scrollTo); scrollTo = null; if (el) el.scrollIntoView({ block: "start" }); }
@@ -292,7 +309,16 @@ const APP_JS = String.raw`(function(){
     }).catch(function(){ busy = false; render(); var q = $("tkq"); if (q) q.value = text; });
   }
   document.addEventListener("click", function(e){
-    var t = e.target.closest("[data-send],[data-act],[data-start],[data-change],[data-apply],[data-unpending],[data-goto],[data-edit-email],[data-cancel-email],[data-save-email]"); if (!t) return;
+    var t = e.target.closest("[data-send],[data-act],[data-start],[data-change],[data-apply],[data-unpending],[data-goto],[data-edit-email],[data-cancel-email],[data-save-email],[data-limit-swap],[data-limit-keep]"); if (!t) return;
+    if (t.hasAttribute("data-limit-keep")) { e.preventDefault(); var lk = limit; limit = null; note = ""; if (lk) api({ action: "limit", event: "keep", mode: lk.mode, task_id: lk.task_id, attempted: lk.attempted }).catch(function(){}); dropEntryParams(); render(); return; }
+    if (t.hasAttribute("data-limit-swap")) { e.preventDefault(); if (t.disabled) return; var ls = limit; working(t, "Swapping...");
+      api({ action: "limit", event: "swap", mode: ls.mode, task_id: ls.task_id, attempted: ls.attempted, resume_id: ls.resume_id || null, draft: ls.mode === "draft" ? draft : null }).then(function(j){
+        limit = null; note = ""; reply = "";
+        if (ls.mode === "draft" && j && j.task) saveDraft(null);
+        // A seeded job: the slot is free now, so Sam drafts it at once (the read-back, then Start).
+        if (ls.mode === "seed") { var w = seedWords(); dropEntryParams(); return load().then(function(){ if (w) send(w); }); }
+        return load();
+      }).catch(function(){ limit = null; load(); }); return; }
     if (t.hasAttribute("data-edit-email")) { e.preventDefault(); editEmail = true; render(); var f = $("tkemail"); if (f) f.focus(); return; }
     if (t.hasAttribute("data-cancel-email")) { e.preventDefault(); editEmail = false; render(); return; }
     if (t.hasAttribute("data-save-email")) { e.preventDefault(); var v = ($("tkemail") || {}).value || ""; working(t, "Saving..."); api({ action: "notify", email: v.trim() }).then(function(j){ if (j && j.error) { editEmail = true; note = j.error; } else { editEmail = false; if (data) data.notify = j; } render(); }); return; }
@@ -302,9 +328,11 @@ const APP_JS = String.raw`(function(){
     if (t.hasAttribute("data-change")) { editing = true; render(); return; }
     if (t.hasAttribute("data-unpending")) { pending = null; reply = ""; render(); return; }
     if (t.disabled) return;
-    if (t.hasAttribute("data-start")) { working(t, "Starting..."); api({ action: "start", draft: draft }).then(function(j){ if (j.blocked) { note = blockedNote(j.blocked.state); saveDraft(null); return load(); } if (j.task) { saveDraft(null); reply = ""; note = (data && data.notify && data.notify.on === false) ? "" : "If this isn't in your inbox, check your junk folder, and mark it as not junk so the next one lands."; } return load(); }).catch(function(){ load(); }); return; }
+    if (t.hasAttribute("data-start")) { working(t, "Starting..."); api({ action: "start", draft: draft }).then(function(j){ if (j.blocked) { showLimit({ mode: "draft", task_id: j.blocked.task_id, current: j.blocked.current || phraseOf(j.blocked), attempted: (draft && (draft.summary || draft.words)) || "" }); return load(); } if (j.task) { saveDraft(null); reply = ""; note = (data && data.notify && data.notify.on === false) ? "" : "If this isn't in your inbox, check your junk folder, and mark it as not junk so the next one lands."; } return load(); }).catch(function(){ load(); }); return; }
     if (t.hasAttribute("data-apply")) { working(t, "Saving..."); api({ action: "apply", task_id: t.getAttribute("data-apply"), pending: pending }).then(function(){ pending = null; reply = ""; note = ""; return load(); }).catch(function(){ load(); }); return; }
-    if (t.hasAttribute("data-act")) { working(t, { pause: "Pausing...", resume: "Resuming...", stop: "Stopping..." }[t.getAttribute("data-act")] || "..."); api({ action: "control", task_id: t.getAttribute("data-id"), act: t.getAttribute("data-act") }).then(function(j){ note = j.blocked ? blockedNote(j.blocked.state) : ""; pending = null; reply = ""; return load(); }).catch(function(){ load(); }); }
+    if (t.hasAttribute("data-act")) { working(t, { pause: "Pausing...", resume: "Resuming...", stop: "Stopping..." }[t.getAttribute("data-act")] || "..."); api({ action: "control", task_id: t.getAttribute("data-id"), act: t.getAttribute("data-act") }).then(function(j){ note = ""; pending = null; reply = "";
+      if (j.blocked) { var rt = ((data && data.tasks) || []).filter(function(x){ return x.id === t.getAttribute("data-id"); })[0]; showLimit({ mode: "resume", task_id: j.blocked.task_id, current: j.blocked.current || phraseOf(j.blocked), attempted: rt ? phraseOf(rt) : "", resume_id: t.getAttribute("data-id") }); }
+      return load(); }).catch(function(){ load(); }); }
   });
   document.addEventListener("change", function(e){
     if (!e.target || !e.target.hasAttribute || !e.target.hasAttribute("data-notify-on")) return;
