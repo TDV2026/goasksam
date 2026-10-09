@@ -23,7 +23,7 @@ import { runTurn, runFilters, runSearch } from "../lib/live/samChat.js";
 import { humanTitle } from "../lib/carTitle.js";
 import { supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { chatOut } from "../lib/live/chatHttp.js";
-import { armAlert, cancelAlert, listAlerts, runAlerts, stopAll, verifyStop, testSend, isMissingTable } from "../lib/live/buyAlerts.js";
+import { armAlert, cancelAlert, listAlerts, runAlerts, stopAll, verifyStop, testSend, isMissingTable, alertsReady } from "../lib/live/buyAlerts.js";
 
 const FIRST = 10, MAX = 200;
 const titleCaseIfShouting = s => String(s || "").split(",").map(p => { const t = p.trim(); return t && t === t.toUpperCase() && /[A-Z]{3}/.test(t) ? t.toLowerCase().replace(/\b([a-z])/g, c => c.toUpperCase()) : t; }).filter(Boolean).join(", ");
@@ -229,6 +229,7 @@ export default async function handler(req, res) {
     }
     if (b.action === "detail") return res.status(200).json(await detailOut(env, b));
     if (b.action === "save" || b.action === "list" || b.action === "watchsearch" || b.action === "remove") return await savedSearches(env, req, res, b);
+    if (b.action === "alerts_ready") return res.status(200).json({ ready: await alertsReady(env) });
     if (b.action === "arm" || b.action === "disarm" || b.action === "alerts" || b.action === "alert_test") {
       const user = await validateBearer(req.headers.authorization || "").catch(() => null);
       if (!user || !user.userId) return res.status(401).json({ ok: false, needSignIn: true });
