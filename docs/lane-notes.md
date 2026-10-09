@@ -967,3 +967,103 @@ when the work has landed.
   null even though the engine itself has supported it for a while - check the actual cached row's
   computed_at / market.referenceFigure via the spec_market_cache table before assuming it's live for
   a given spec).
+- 2026-10-09 (Lane B, referenceFigure job, commits db37eca, 61f7f4d, ab73b9b, 112801b, 1325949):
+  a single business-use figure, archive-only, computed from the SAME pool and cluster that sets the
+  range - never a second query, never shown on any consumer page.
+  METHOD (the one sentence an auditor gets): the figure is the middle point of the typical price
+  band - the same cluster (p25 to p75 of the pool, the 8+-sale gate that also sets the shown range,
+  rule 24) - that sets this result's own range; `amount = round((cluster[0]+cluster[1])/2)`. It moves
+  with the pool's mileage mix the same way the range does, since it is built from the identical
+  cluster, not a separate computation.
+  SHAPE: `{ amount, rangeLow, rangeHigh, salesCount, windowLabel, confidence, basis }` plus a sibling
+  `referenceFigureReason` (string) on every tier, populated together, never both null on a real
+  answer. GATE (rule 1): only set when `cluster` exists - the same 8-sale floor as the headline range
+  (rule 24) - else `referenceFigure: null` with a tier-specific reason string (thin/refusal/class_era/
+  not_tracked/body_unavailable all carry their own). CONFIDENCE: reuses two EXISTING engine numbers,
+  no new threshold invented - the 16-sale cluster floor and the 40% width-to-amount ratio (r4Driver-
+  Search's own "wide band" threshold): high = 16+ sales AND tight; medium = (16+ AND wide) OR (8-15
+  AND tight); low = 8-15 AND wide. No valuation words, no "median", no dashes in any string (checked
+  by grep before every push).
+  WIRING: lib/onebox.js's buildResult sets it on the main "result" tier; the six other early-return
+  tiers (refusal x2, thin x2, class_era, not_tracked, body_unavailable) each got their own
+  `referenceFigure: null, referenceFigureReason: "<reason>"` added after a live 12-car test caught 3
+  of 12 printing `None` instead of a real string (those tiers never reach buildResult at all).
+  lib/live/search.js's coreOf passes both fields through unchanged from the engine's own `d` -
+  Buy/Tasks' own read of this reduction (via familyMarket/listingMarket) was STILL null after that,
+  traced to a second bug: listingMarket() rebuilds its own narrower `m` object field by field and
+  never copied referenceFigure/referenceFigureReason over - fixed (1325949). A SPEC_V bump (6->7,
+  ab73b9b's follow-up) was tried first and was harmless but NOT the actual fix; left in place since a
+  cache-shape version bump is cheap and correct on its own terms, just not what closed this gap.
+  crossProductCheck's referenceFigure field comparison only compares lanes with a non-null value
+  (compareField filters out null before comparing), so Buy/Tasks serving a stale null never shows as
+  a MISMATCH - it just silently drops out of the comparison. Confirmed via a live 42-spec enginecheck
+  BEFORE the listingMarket fix: 30 of 42 specs had Market Check/Sell carrying a real figure while
+  Buy/Tasks read null - AFTER the fix, re-ran the same 42 specs: zero stale nulls remain.
+  LIVE 12-CAR TABLE (task=referencefiguretable, api/usageDashboard.js, read-only): NSX $80,500
+  (65,000-96,000, n=29, high); 986 Boxster S $16,000 (13,000-19,000, n=98, high); 997 Carrera
+  $45,000 (36,000-54,000, n=66, high); C4 ZR1 $35,250 (26,500-44,000, n=49, medium); S550 GT350
+  $56,000 (49,500-62,500, n=44, high); E92 M3 Competition $54,250 (38,000-70,500, n=37, medium); 992
+  GT3 $258,000 (244,000-272,000, n=25, high); 991 Turbo S $150,000 (127,000-173,000, n=30, high);
+  Ford GT $539,500 (472,000-607,000, n=35, high); Cobra Roadster/901 Carrera RS/300SL Roadster all
+  null (thin tier, too few online sales, each with a real reason string).
+  NEVER PUBLIC: grepped for the field name outside lib/onebox.js, lib/live/search.js,
+  lib/platformPick.js, scripts/crossProductCheck.js, api/usageDashboard.js and lib/live/
+  marketCheckExample.js (/business, Lane A's own wiring, same gate pattern, see the entry above this
+  one) - no consumer-facing render path (js/onebox.js, js/result*.js, lib/sell/*) reads it.
+- 2026-10-09 (Lane B, "one parser only" follow-up round, commits d36d03b, 5bc8ca9, 83c3a02): fixed
+  NEW FINDING 7 from the entry above (the Carrera+Targa resolver drop) at the source, per Sam's ask.
+  ITEM 1 ROOT FIX: refine911 (lib/vehicle.js) scanned PORSCHE_911_TRIMS for the FIRST match and
+  stopped, so "Carrera Targa" resolved trim Carrera only and silently dropped Targa. Split the
+  grammar into drivetrain entries and body-hint entries (Targa/Targa 4/Targa 4S/Targa 4 GTS,
+  Speedster - the two words that double as both a genuine trim AND a body) and match each
+  independently: a body hint found ALONGSIDE a drivetrain trim sets bodyStyle, never a second trim
+  word; a body hint found ALONE still resolves as the trim itself, unchanged from today ("1973 911
+  Targa" still trim "Targa"). Strips the body hint's own matched text before the drivetrain scan, so
+  a compound entry whose tail word doubles as a generic catch-all ("Targa 4 GTS" ends in the bare
+  "GTS" entry) is never mistaken for an independently-named trim next to it - caught by a 244-case
+  local sweep (every PORSCHE_911_TRIMS entry x Targa/Cabriolet/Coupe/Speedster/Roadster/Spyder)
+  before it shipped; without the strip, 6 of the 70 genuinely-changed cases regressed (lost the "4").
+  Zero regressions in the final 244-case sweep (70 changed, all additive - gained a bodyStyle, never
+  lost a trim word); the 6 named cross-make cases (Corvette Z06 Convertible, BMW M3 Convertible,
+  Mustang GT Fastback, Mercedes SL Roadster x2, Ferrari 308 GTS Spider) are untouched, as expected -
+  refine911 is Porsche-911-only. Added api/usageDashboard.js task=bodytrimsweep to re-run this sweep
+  live.
+  ONE PARSER: buildSpec (lib/onebox.js) no longer independently rescans the raw search text via
+  detectBodyStyle(searchText) - that rescan is EXACTLY how Market Check "survived" the Carrera+Targa
+  bug while Buy/Sell/Tasks did not (it found Targa in the raw text even after the shared resolver had
+  already lost it). spec.bodyStyle now reads vehicle.bodyStyle directly, no re-filtering through
+  detectBodyStyle's narrower vocabulary either (which was ALSO silently dropping resolver-only values
+  like hardtop/sportbrake that detectBodyStyle's own list never carried - a second, smaller bug this
+  same line fixed as a side effect). Verified end to end locally: resolveVehicle("1988 Porsche 911
+  Carrera Targa") -> trim "Carrera", bodyStyle "targa" -> buildSpec carries both into genCode "3.2
+  Carrera" + subject "911 Carrera Targa". Verified LIVE via drawervscard: card and drawer both read
+  low=63500 high=81500 count=54, MATCH.
+  ITEM 2 CACHE WRITE SAFETY: already safe by construction, not key-based - api/sellerDecision.js's
+  opportunistic write-back only runs `if (oneBox.tier === "result" && !obRefine && ...)`. ANY refine
+  object at all (mileage, gearbox, the trim-chip slug, body, variant, driver/observe) skips the write
+  entirely, so a filtered read is never even a candidate to overwrite the plain spec's row - there is
+  no key-matching subtlety to get wrong. Added api/usageDashboard.js task=cachewritesafety to prove it
+  live (mirrors the real gate, does not reimplement it): seeds the plain row, runs a trim-filtered
+  ("?trim=turbo" shape) and a mileage-filtered read of the SAME spec, re-reads the plain row.
+  Confirmed live on "2008 Porsche 911 Carrera": computed_at identical bit-for-bit before and after
+  both filtered reads (`unchanged: true`).
+  ITEM 3: grew crossProductCheck's DEFAULT_SPECS by 11 more compound trim+body phrases (53 total),
+  continue-on-error unchanged. Swapped out two I'd picked badly before pushing ("Carrera T Coupe" at
+  a year before Carrera T existed, "Carrera T Cabriolet" when Carrera T has never been sold as a
+  Cabriolet) for two real combinations once the live run flagged them as a car that never existed,
+  not a resolver bug.
+  NEW FINDING 8 (not fixed, flagging for a follow-up round): once resolveVehicle correctly carries a
+  body style for a Targa compound, two of the new specs ("1989 Porsche 911 Turbo Targa", "1991
+  Porsche 911 Carrera 4 Targa") exposed a genuine, separate Buy/Tasks-vs-Market-Check/Sell divergence
+  that the OLD bug had been hiding (bodyStyle was always null everywhere, so this path never ran):
+  lib/live/search.js's walkLadder has a documented "any_body" widening step that DROPS the body
+  filter when the body-scoped cohort is too thin for a range, landing on the whole model/trim pool
+  instead (930 Turbo Targa: Market Check/Sell correctly stay thin at 6 Targa-only sales; Buy/Tasks
+  widen to 41, the whole 930 Turbo family). Market Check/Sell's own evidence ladder (lib/onebox.js)
+  does not widen past body style the same way. This is a pre-existing, INTENTIONAL design difference
+  in Buy/Tasks' ladder (not something this round introduced), only now exercised for these cases for
+  the first time because bodyStyle used to always be null going in. Left both specs in
+  crossProductCheck (continue-on-error) as live signal rather than removing them.
+  SELL POOL STATUS (unchanged from the prior round's answer, re-confirmed): Sell reads the same
+  ladder via runOneBox/resolveVehicle, never resolveForBuy, so finding 8 above does not touch Sell -
+  only Buy/Tasks' separate walkLadder has the any_body widening step.
