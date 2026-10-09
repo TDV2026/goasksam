@@ -5301,6 +5301,17 @@ async function handleOps(req, res) {
     if (anyMissing) {
       return res.status(200).json({ task: "trackingproof", tables, note: "Run docs/supabase-visitor-tracking.sql in the Supabase SQL editor before anything below can be proven - every write degrades to a silent no-op until these exist." });
     }
+    // business_leads (Oct 2026, unrelated to visitor tracking but same read-only existence/RLS
+    // pattern - docs/supabase-business-leads.sql, Sam ran it) - checked separately, never blocks
+    // the visitor-tracking views below either way.
+    const bl = await raw("business_leads?select=id&limit=1");
+    const blAnon = process.env.SUPABASE_ANON_KEY ? await (async () => {
+      try {
+        const r = await fetch(`${env.supabaseUrl}/rest/v1/business_leads?select=id&limit=1`, { headers: { apikey: process.env.SUPABASE_ANON_KEY, Authorization: `Bearer ${process.env.SUPABASE_ANON_KEY}` } });
+        return { status: r.status, blocked: r.status === 401 || r.status === 403 };
+      } catch (e) { return { status: null, blocked: null, error: String((e && e.message) || e) }; }
+    })() : { note: "SUPABASE_ANON_KEY not set" };
+    const businessLeads = { exists: bl.ok ? true : { missing: true, error: bl.error }, anonRead: blAnon };
     // RLS/revoke proof: the service-role reads above bypass RLS entirely, so passing them proves
     // existence, not lockdown. Re-read the same two NEW tables with the anon key - the standing DB
     // security rule (revoke all on <t> from anon, authenticated) means this MUST fail; if it
@@ -5445,7 +5456,7 @@ async function handleOps(req, res) {
       let count3plus = 0; for (const n of searchesByVisitorBeforeLink.values()) if (n >= 3) count3plus++;
       views.accounts_created_after_3plus_searches = { count: count3plus };
     }
-    return res.status(200).json({ task: "trackingproof", tables, rls, stitchTest, recentRowsSince: sinceIso, recentRows, stitchForUser, totalEventsAllTime: events.length, totalLinks: links.length, views });
+    return res.status(200).json({ task: "trackingproof", tables, rls, businessLeads, stitchTest, recentRowsSince: sinceIso, recentRows, stitchForUser, totalEventsAllTime: events.length, totalLinks: links.length, views });
   }
 
   // task=mcexamplerefresh: force-rebuilds the Market Check landing's cached "An example" band
