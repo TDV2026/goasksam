@@ -65,6 +65,7 @@ async function authSignInGoogle() {
   // Google's consent screen reads "GoAskSam" / auth.goasksam.com instead of the raw
   // <ref>.supabase.co. Falls back to supabaseUrl when SUPABASE_AUTH_URL is unset (today).
   const authBase = cfg.authUrl || cfg.supabaseUrl;
+  if (typeof gasFunnel === "function") gasFunnel("sign_in_started", null, { props: { method: "google" } });
   location.href = `${authBase}/auth/v1/authorize?provider=google&redirect_to=${redirect}`;
 }
 async function authSignInEmail() {
@@ -88,6 +89,7 @@ async function authSignInEmail() {
     });
     if (!res.ok) { authCardError("I couldn't send the code just now. Try again in a moment."); return; }
     authRenderCheckEmail(email);
+    if (typeof gasFunnel === "function") gasFunnel("sign_in_started", null, { props: { method: "email" } });
   } catch (e) { authCardError("I couldn't send the code just now. Try again in a moment."); }
 }
 // Verify the code and finalize the session (mirrors authBoot's post-login steps).
@@ -110,7 +112,7 @@ async function authVerifyCode() {
     const now = Math.floor(Date.now() / 1000);
     authSetSession({ access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || (now + (j.expires_in || 3600)), email: (j.user && j.user.email) || email });
     authRenderTopbar();
-    await authEnsureAccount({ forceRecheck: true });   // fresh sign-in: pick up a just-made TDV subscription now
+    await authEnsureAccount({ forceRecheck: true, freshSignIn: true });   // fresh sign-in: pick up a just-made TDV subscription now
     authRenderTopbar();
     authCloseModal();
     if (typeof gateAfterSignup === "function") gateAfterSignup();
@@ -136,6 +138,10 @@ async function authEnsureAccount(opts) {
   // "Refresh your plan" tap) so a just-subscribed reader is upgraded to TDV now,
   // not up to 7 days later when the cached tier goes stale.
   if (opts && opts.forceRecheck) body.recheckTier = true;
+  // Oct 2026, open-search policy (Lane B Step 2): set ONLY by a real fresh sign-in (never
+  // a routine boot re-check), so /api/account logs sign_in_completed exactly once per
+  // actual sign-in instead of on every page load that happens to call ensure.
+  if (opts && opts.freshSignIn) body.freshSignIn = true;
   try {
     const res = await fetch(authApiPath("/api/account"), {
       method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -310,7 +316,7 @@ async function authBoot() {
   if (authIsSignedIn()) {
     // Fresh sign-in (returned via Google/magic-link callback) forces a live tier
     // re-check so a just-subscribed reader is TDV immediately; a normal load does not.
-    await authEnsureAccount(returned ? { forceRecheck: true } : undefined);
+    await authEnsureAccount(returned ? { forceRecheck: true, freshSignIn: true } : undefined);
     authRenderTopbar();              // repaint with the resolved email/tier
   }
   if (returned) { authCloseModal(); gateAfterSignup(); }  // #2: land on the claimed result after a wall signup
@@ -428,9 +434,10 @@ function gasJourneyEventOnce(eventType, opts) {
 }
 // 2F: fire-and-forget funnel beacon for client-only steps. Idempotent per-session
 // via a stable dedupKey (11e) so a refresh doesn't double-count.
-function gasFunnel(event, dedupKey) {
+function gasFunnel(event, dedupKey, extra) {
   try {
-    const body = JSON.stringify({ event, anonSessionId: gasAnonId(), dedupKey: dedupKey || null });
+    const body = JSON.stringify({ event, anonSessionId: gasAnonId(), dedupKey: dedupKey || null,
+      tool: (extra && extra.tool) || undefined, props: (extra && extra.props) || undefined });
     const url = authApiPath("/api/funnel");
     if (navigator && navigator.sendBeacon) { navigator.sendBeacon(url, new Blob([body], { type: "application/json" })); return; }
     fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true }).catch(() => {});
@@ -672,7 +679,7 @@ async function authBootTopbarOnly() {
   authScrubPrefill();
   const returned = authHandleCallback();
   authRenderTopbar();
-  if (authIsSignedIn()) { await authEnsureAccount(returned ? { forceRecheck: true } : undefined); authRenderTopbar(); }
+  if (authIsSignedIn()) { await authEnsureAccount(returned ? { forceRecheck: true, freshSignIn: true } : undefined); authRenderTopbar(); }
   if (returned) authCloseModal();
 }
 if (typeof document !== "undefined" && document.addEventListener) {

@@ -6,6 +6,8 @@
 import { validateBearer } from "../lib/_auth.js";
 import { supabaseEnv, supabaseSelect, supabaseInsert } from "../lib/_supabase.js";
 import { beehiivTier } from "../lib/_beehiiv.js";
+import { readVisitorId } from "../lib/_visitor.js";
+import { logEvent, stitchVisitorToAccount, EVENTS } from "../lib/events.js";
 
 // How stale a tier check may be before we re-check on ensure. Moves into
 // app_config with the other operational dials in 2C; a constant for now.
@@ -177,6 +179,20 @@ export default async function handler(req, res) {
 
   const env = supabaseEnv();
   if (!env) { res.status(500).json({ error: "storage not configured" }); return; }
+
+  // Visitor-id stitch (Oct 2026, open-search policy, Lane B Step 2): every ensure call
+  // (not just a fresh sign-in) re-upserts the link so a shared device's most recent
+  // account always wins, and a visitor who switches accounts relinks cleanly. Read-only
+  // cookie check (never mints here - minting happens on the beacon/search paths); a
+  // crew device or an EEA/UK/CH visitor (no visitor id at all, see lib/_visitor.js) is a
+  // silent no-op. freshSignIn (set by js/auth.js right after a real sign-in, never on a
+  // routine boot re-check) is the ONLY path that logs sign_in_completed, so this endpoint
+  // being called on every page load doesn't over-count sign-ins.
+  const visitorId = readVisitorId(req);
+  if (visitorId) stitchVisitorToAccount(env, visitorId, auth.userId);
+  if (req.body && req.body.freshSignIn === true) {
+    logEvent(env, { event: EVENTS.SIGN_IN_COMPLETED, userId: auth.userId, visitorId });
+  }
 
   // Spec E: "Your results" read. Returns the signed-in user's saved results with
   // a per-result stale flag (age > saved_result_stale_days, default 14).

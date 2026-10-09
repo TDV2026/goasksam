@@ -5,13 +5,20 @@
 // never blocks the UI. Idempotent where a dedup_key is supplied (11e).
 import { supabaseEnv, supabaseInsert } from "../lib/_supabase.js";
 import { recordJourneyEvent, journeyVehicle, CLIENT_JOURNEY_EVENTS } from "../lib/_journey.js";
+import { ensureVisitorId } from "../lib/_visitor.js";
+import { EVENTS } from "../lib/events.js";
 
 const ALLOWED = new Set(["homepage_view", "wizard_start", "wizard_complete", "signup_shown", "non_us_attempt", "out_of_scope",
   // One Box (T1.7): aggregate-only client events. No raw VIN/chassis ever - only the
   // event name + anon id + a hashed dedup key. onebox_search is logged SERVER-side
   // (authoritative count for the cap); the client sends the outcome/interaction events.
   "onebox_search", "onebox_answer_shown", "onebox_refusal_shown", "onebox_thin_two", "onebox_thin_one",
-  "onebox_zero", "onebox_vin_anchor_shown", "onebox_share_clicked", "onebox_sell_handoff_clicked"]);
+  "onebox_zero", "onebox_vin_anchor_shown", "onebox_share_clicked", "onebox_sell_handoff_clicked",
+  // Canonical cross-product events (Oct 2026, open-search policy, lib/events.js EVENTS) -
+  // client-emittable ones only; SEARCH/RATE_LIMIT_HIT/SIGN_IN_COMPLETED are logged
+  // server-side where the search/gate/account logic already runs, never through here.
+  EVENTS.CROSS_PRODUCT_MOVE, EVENTS.MARKET_CHECK_OPEN, EVENTS.RECEIPT_CLICK, EVENTS.AUCTION_CLICKOUT,
+  EVENTS.TASK_CREATED, EVENTS.WATCH_CREATED, EVENTS.SELL_FOLLOWUP_GATED, EVENTS.SIGN_IN_STARTED]);
 
 // HARD RULE (VIN feature): a raw 17-char VIN must NEVER be stored in a journey event.
 // The client only ever sends booleans/enums in journey metadata, but scrub defensively
@@ -70,9 +77,20 @@ export default async function handler(req, res) {
     if (ALLOWED.has(event)) {
       const env = supabaseEnv();
       if (env) {
+        // Pseudonymous visitor id (Oct 2026): minted/read here so every in-house event gets
+        // it without each page needing its own Set-Cookie logic - this beacon is the one
+        // place nearly every page already calls on its first interaction. res may already
+        // have ended (204) from an earlier branch above, but we're still inside the try
+        // before this function's own res.status(204).end() below, so a Set-Cookie here lands.
+        const visitorId = ensureVisitorId(req, res);
+        const tool = body.tool && ["buy", "market_check", "sell", "tasks"].includes(body.tool) ? body.tool : null;
+        const props = (body.props && typeof body.props === "object") ? scrubMetaVins(body.props) : null;
         await supabaseInsert("funnel_events", [{
           event,
           anon_session_id: body.anonSessionId ? String(body.anonSessionId).slice(0, 64) : null,
+          visitor_id: visitorId,
+          tool,
+          props,
           user_id: null,
           dedup_key: body.dedupKey ? String(body.dedupKey).slice(0, 128) : null
         }], env.supabaseUrl, env.supabaseKey, "resolution=ignore-duplicates,return=minimal",
