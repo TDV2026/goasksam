@@ -1337,3 +1337,42 @@ when the work has landed.
   3. The rail does not redraw after arming on the page; call gasWatchRail() after a successful arm.
   API side: nothing to change; the "first" flag is correct (proven on Buy with two new accounts). The Market
   Check first-watch screenshot waits on Supabase's per-connection sign-up limit (new accounts refused for now).
+- 2026-10-09 (Lane B): ONE RANGE decision (decision.priceBand), commit dfb1c24, done per Sam's 5-item spec.
+  1. `api/sellerDecision.js`: `decision.priceBand` is now set by a fresh `runOneBox(vehicle, generation,
+     searchText, {supabaseUrl, supabaseKey, asked:2}, null)` call right after `decide()` returns, reading
+     `.cluster`/`.poolN` - the SAME call shape Market Check makes for the same car (same resolver output,
+     fences, gates, evidence-ladder window). No cluster -> `decision.priceBand` is simply never set (was
+     previously always set via the separate `priceBandForVehicle`).
+  2. `js/result-v2.js`'s `v2AskingLine()` already returns `""` before building any HTML when `dec.priceBand`
+     is missing/zero, and its result string-concatenates straight into the page with no wrapper div - traced
+     the exact call site, confirmed no code change needed, no empty frame, no "$0 to $0" possible.
+  3. Searched every real caller of `priceBandForVehicle` (lib/onebox.js) before touching anything: exactly
+     two, both in api/sellerDecision.js. (a) The item-1 assignment above - now points at runOneBox's cluster
+     instead. (b) The `priceProbe` branch (`req.body?.priceProbe`, ~line 3612) - product rule 23's deferred-
+     ask feature ("you tell me" asking price) - KEPT UNCHANGED, deliberately not moved: rule 23 requires that
+     band to NEVER widen past the seller's own trim to manufacture a spread, which is exactly what runOneBox's
+     evidence ladder does at wider rungs - moving this caller would violate a separate locked rule, not fix
+     one. `priceBandForVehicle` itself is therefore NOT removed (it still has this one real, intentional
+     caller) - flagging this as a deliberate deviation from "move every caller," not an oversight. No chat/
+     Desk/exports/script caller found anywhere else (grepped repo-wide).
+  4. `scripts/crossProductCheck.js`: `sellLane()` now makes its own independent fresh `runOneBox` call for
+     `askingLineLow`/`askingLineHigh`; `checkOneSpec()` adds a dedicated `row.askingLineCompare` field
+     (MATCH/MISMATCH/N/A) comparing it against `marketCheck.low/high` - a reintroduced second implementation
+     of this band would be caught here even if it never touches the venue-pick cluster this script already
+     checks.
+  5. Verified live via the corrected `?task=sellreal` harness (two INDEPENDENT runOneBox calls, not one
+     value read twice) for all five named cars:
+     - 1969 Camaro Z28: before $60,000-$155,000/83 sales -> after $68,000-$84,500/15 sales, exact match to
+       Market Check's own cluster ($68,000-$84,500/15, "last twelve months"). sameAsMarketCheck:true.
+     - 1988 BMW M3: after $61,000-$86,500/30 sales, exact match to Market Check. sameAsMarketCheck:true.
+     - 1985 Toyota Land Cruiser: after $21,500-$35,500/54 sales, exact match to Market Check.
+       sameAsMarketCheck:true.
+     - 1964 Shelby Cobra: before $72,500-$84,500 (priceBandForVehicle's own fabricated spread) -> after NO
+       range at all (liveSellAskingLineBand:null), matching Market Check's own "thin" tier (cluster:null).
+     - 1961 Jaguar E-Type Roadster: before $30,000-$118,500 -> after NO range at all, matching Market
+       Check's "thin" tier.
+  Pushed, pulled/rebased clean before push, searchCheck.js shows the same known Attack-Challenge-Mode 429
+  pattern on /buy /tasks /market-check /business (curl-only false positive, browsers get 200 - see
+  [[smoke-429-attack-challenge]]), /sell confirmed 200 three times post-push.
+  Search check: no public page title/H1/canonical/address touched; this changes a number inside an existing
+  /sell result sentence only.
