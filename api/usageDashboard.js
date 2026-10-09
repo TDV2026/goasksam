@@ -4003,11 +4003,12 @@ async function handleOps(req, res) {
   //   ?view=ops&task=obdiag&qs=458 Speciale coupe|JTHMPAAY3TA113218|911|718 Cayman S coupe
   if (task === "obdiag") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { resolveVehicle, sanitizeResolvedVehicle } = await import("../lib/vehicle.js");
+    const { resolveVehicle, sanitizeResolvedVehicle, modelChipsForMakeYear } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
     const { runOneBox, reserveInsightForVehicle, reserveDayInsightForVehicle } = await import("../lib/onebox.js");
     const qs = String(req.query?.qs || "458 Speciale coupe").split("|").map(s => s.trim()).filter(Boolean);
     const wantReserve = req.query?.reserve === "1";
+    const wantChips = req.query?.chips === "1";
     const out = [];
     for (const q of qs) {
       try {
@@ -4023,6 +4024,8 @@ async function handleOps(req, res) {
           ri: await reserveInsightForVehicle(v, g, env).catch(e => ({ ok: false, reason: String(e && e.message || e) })),
           rd: await reserveDayInsightForVehicle(v, g, env).catch(e => ({ ok: false, reason: String(e && e.message || e) }))
         } : null;
+        // chips=1 (Oct 2026, Job 4 verify): the shared model-chip builder for this make+year, read-only.
+        const chips = wantChips ? await modelChipsForMakeYear(env, v.make, v.year).catch(e => ({ error: String(e && e.message || e) })) : null;
         out.push({
           q, resolved: `${v.year || ""} ${v.make} ${v.model || ""}${v.trim ? " " + v.trim : ""}`.trim(), bodyStyle: v.bodyStyle || null,
           tier: ob.tier, prompt: ob.prompt || null,
@@ -4037,7 +4040,7 @@ async function handleOps(req, res) {
           recent3: Array.isArray(ob.recent3) ? ob.recent3.map(c => ({ title: c.title, mi: c.mi, date: c.date, again: !!c.again })) : null,
           exactSale: ob.exactSale ? { price: ob.exactSale.price, date: ob.exactSale.soldDate || ob.exactSale.date || null, mileage: ob.exactSale.mileage } : null,
           r4: d.r4 || null, dedup: { fetchedRaw: d.fetchedRaw, fetchedDeduped: d.fetchedDeduped, rule5: d.rule5 || null },
-          reserve
+          reserve, chips
         });
       } catch (e) { out.push({ q, error: String((e && e.message) || e).slice(0, 220) }); }
     }
