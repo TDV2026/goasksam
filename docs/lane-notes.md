@@ -935,9 +935,12 @@ when the work has landed.
   Howard 14% (n=184 of 517), Ingo 21% (n=138 of 237), Dan 1% (n=49 of 72), Chris -3% (n=34 of 73), Spencer
   20% (n=23 of 36). The cards showed +15% for BOTH Ingo and Spencer, which is not what the computation gives
   today: the stored rows are stale or were written by something else (no read-only ops task shows the stored
-  row; the nightly log's "premium=" line or the row itself will say). Until settled, the NEW SELL shows the
-  tile only for a stored figure with source "data_verified", n>=10 and computedAt within 3 days
-  (lib/sell/sellPartner.js premium()); live /sell's js/result-v2.js psvPremium is unchanged.
+  row; the nightly log's "premium=" line or the row itself will say). The only writer is task=premium
+  persist (usageDashboard.js), and the stored 15 passes a stamp check (data_verified, n>=10, computedAt
+  within 3 days), so a run of this computation wrote it, yet a rerun today gives 21 and 20. Until the
+  stored rows and a rerun agree, the NEW SELL shows NO premium tile for any partner
+  (lib/sell/sellPartner.js PREMIUM_TILE_ON=false; the stamp checks stay for when it is turned back on);
+  live /sell's js/result-v2.js psvPremium is unchanged.
 - 2026-10-09 (Lane C): THIN POOLS in the Sell reason (lib/sell/sellFlow.js pickFacts, the one builder every
   Sell surface uses; the brief named sellFacts.js, but the sentence is built here): under 3 sales it never
   says "most": "The one sale in the last 12 months was on X." / "Both sales in the last 12 months were on X."
