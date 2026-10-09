@@ -10,6 +10,7 @@ import { vinsForUrls } from "./_historyData.js";
 import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor, parseHubSlug, hubVins, liveListing, addWatch, carSlug, familyOf, slugify, listingSaid, familySales, SITEMAP_PAGE, resolveText, cleanTitle, canonicalHub } from "./_historyData.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { PAGE_CSS as CSS, FONT_LINKS, railHtml, whyResultHtml, isCrewRequest } from "./_chrome.js";
+import { KEEPLOOK_CSS, KEEPLOOK_JS, keepLookingHtml, keepLookingHref } from "../lib/appShell.js";
 import { recordUsageEvent } from "./_usage.js";
 import { logPageView } from "../lib/_pageview.js";
 import { classifyRoad } from "../lib/_roadType.js";
@@ -138,9 +139,13 @@ ${index ? '<meta name="robots" content="index, follow">' : '<meta name="robots" 
 ${canonical ? `<link rel="canonical" href="${esc(canonical)}">` : ""}
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#FAF8F4">
 ${FONT_LINKS}
-<style>${CSS}${STYLE}</style>${(ld || []).map(jsonLd).join("")}</head><body>
+<style>${CSS}${STYLE}${KEEPLOOK_CSS}</style>${(ld || []).map(jsonLd).join("")}</head><body>
 ${railHtml("history", undefined, crew)}
-<main><div class="col">${body}</div></main></body></html>`;
+<main><div class="col">${body}</div></main>
+<script>${KEEPLOOK_JS}</script>
+<script>window.GAS_AUTH_MODE="topbar";</script>
+<script src="/js/auth.js" defer></script>
+</body></html>`;
 }
 function send(res, status, html, extra = {}, index = false, crew = false) {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -331,8 +336,9 @@ ${live ? liveCardHtml(live, name, noun) : ""}
 ${saidHtml(said)}
 ${groupListsHtml(d, id, vinNorm, poolCards, urlVins, others, noun)}
 <section class="sec"><h2>Questions</h2><dl class="faq">${faq.map(([q, a]) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join("")}</dl></section>
-<nav class="vlinks" aria-label="More"><a href="${esc(modelHub)}">All ${esc(id.make + " " + id.family)} auction results</a><a href="${esc(hubHref)}">Every ${esc(id.year + " " + id.make + " " + id.family)} by VIN</a><a class="red" href="${esc(sellHref(id))}">Where to sell it</a>${crew ? `<a class="red" data-task-entry href="/tasks/mine?seed=vin&vin=${encodeURIComponent(vinNorm)}&car=${encodeURIComponent(name)}">Have Sam keep looking</a>` : ""}</nav>
+<nav class="vlinks" aria-label="More"><a href="${esc(modelHub)}">All ${esc(id.make + " " + id.family)} auction results</a><a href="${esc(hubHref)}">Every ${esc(id.year + " " + id.make + " " + id.family)} by VIN</a><a class="red" href="${esc(sellHref(id))}">Where to sell it</a></nav>
 
+${keepLookingHtml({ context: "spec", subject: name, href: keepLookingHref({ subject: name, vin: vinNorm }) })}
 ${whyResultHtml(crew)}
 <p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>
 `;
@@ -543,6 +549,7 @@ ${oneBoxBlock(d, id, `/market-check?q=${encodeURIComponent(name)}`, "")}
 <p class="answer" style="margin:0">${esc(ctx)}</p>
 <section class="card"><div class="sh"><h2>Every ${esc(name)} by VIN</h2><span class="muted">Newest sale first</span></div>
 <table class="stack"><thead><tr><th><span style="position:absolute;left:-9999px">Photo</span></th><th>VIN</th><th class="r">Appearances</th><th>Last result</th><th>Date</th><th class="r">Miles</th></tr></thead><tbody>${rows}</tbody></table></section>
+${keepLookingHtml({ context: "spec", subject: name, href: keepLookingHref({ subject: name }) })}
 ${whyResultHtml(crew)}
 <p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>`;
   const ld = [{ "@context": "https://schema.org", "@type": "ItemList", name: `${name} auction results`, url: canonical,
