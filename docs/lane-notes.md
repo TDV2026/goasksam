@@ -879,3 +879,28 @@ when the work has landed.
   not removed from any sitemap, and anyone with the direct link (a search result, a shared URL, a
   guess) reaches the real page in full. This switch hides the DISCOVERY surface (nav, footer) only,
   exactly as instructed - it is not a secrecy or access control measure and was never asked to be one.
+- 2026-10-09 (Lane C): NEW SELL RESULTS, four fixes (5ba396d + this commit), all on lib/sell/:
+  1. Above the cards: the search bar (One Box's own #ob-input, the car as typed or the address's car), one
+     line naming the car ("For the 2001 BMW M3, E46 generation.", carLine from buildResult: humanTitle of
+     the resolved label + the engine's generation code when the title does not carry it) and "New search"
+     (back to the landing). A new car typed in the bar goes through One Box's own resolution (its questions
+     if it needs any), then reruns the result in place with the same state/how/rush and a new address.
+     The follow-up box is now its own input (#sell-askq). "Your results" in the rail is Sell's own list
+     (localStorage gas_sell_recent, each entry its Sell address), drawn after One Box's rail sync.
+  2. The pick card's empty right column was the live /sell card's .pcard-meta rows (car + place, Analysis
+     scope, Analysis window) that the new Sell never rendered. Restored from the same placesFor read the
+     WHY counts come from (cohort_name, window_months), only alongside a counted WHY; no rows and no tiles
+     means no right column at all.
+  3. The PowerSeller card: sellFlow kept only name/regions/notes from evaluatePartnerReferral's partner
+     record and dropped specialties/serviceClaims. lib/sell/sellPartner.js ports the live card's display
+     rules (js/result-v2.js renderPowerSellerCardV2 + psv* helpers) and keep both in step: tiles in its
+     priority order under its height budget (premium 2, others 1, 4 in all): Track record premium
+     (positive only), auctions represented, Specialises in (wheelhouse match or curated identity, never
+     the broad makes), Based in + coverage, Preparation, one trust line when no premium; Known online as;
+     the intro by match type (wheelhouse, locality with intro_hook, nationwide). Voice: "Sam would trust
+     him" (no first person). No tiles = no card.
+  FOR LANE B (engine, not worked around on the page): the pick has no per-venue time spread or per-venue
+  price range for the picked venue. placesFor/pickPlatform return the venue's sale COUNT in the window
+  (place.sales, pl.total, pl.window_months, pl.cohort_name) and the reserve/day reads over the whole pool,
+  but nothing like {venue, months:[{month, n}]} or {venue, low, high, n}. If the panel should carry the
+  venue's own spread or range, that field needs to come from the shared engine.
