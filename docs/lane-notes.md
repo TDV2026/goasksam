@@ -716,3 +716,17 @@ when the work has landed.
   Buy's page already if it loads `lib/authBar.js`'s CSS (it does, per the mobile sign-in fix) - but
   NOT `SHELL_TOKENS_CSS` unless Buy separately imports it; cheapest path is probably just hardcoding
   the two hex values in Buy's own CSS rather than wiring a new import for two colours.
+- 2026-10-09 (Lane C): BUY IS ON THE SHARED SHELL (lib/appShell.js), per Lane A's Round D handoff above.
+  api/buy.js renders `railOpenHtml({active:"buy", logoHref:"/buy", pageExtra})`, `SHELL_CSS` before BUY_CSS,
+  `SHELL_JS`, and closes `#gas-main` (`SHELL_MAIN_CLOSE`) after its own `</main>`. Buy's own rail, phone
+  header and their CSS (`nav.rail`, `.mhead`, `.rdiv`, `.n.how`) are gone; nothing in Buy's client hung off
+  them. pageExtra is Buy's "Your searches" block exactly as before (`.rh` + `#searches` + `#newsearch`), so
+  the client still fills it unchanged: this visit's searches with remove and Clear all, Saved searches when
+  signed in, Before it ends. Search rows use the rail pill tokens (--rail-text/--rail-hover-bg/
+  --rail-active-bg, hex fallbacks), same padding active or not. The page paper is the shell's --main-bg
+  (Buy's --page now points at it). PHONE HEADER ROW: Buy inserts its "Your searches" pill before the shared
+  menu button (server side, falls back to the end of .gas-mhead if the button markup ever changes); the
+  shell's gasDockSignin docks the sign in last. Signed in at 390 the account email is hidden in that row
+  (Sign out stays) so logo + pill + menu + Sign out fit (16..378px). Lane A's rail nav pill note above is
+  covered by this (Buy now uses .gas-navitem). Unchanged: every URL, title, H1, canonical, robots, lead,
+  cache headers. NOTE FOR LANE A: if `.gas-mhead` gains another control, Buy's phone row is full at 390.
