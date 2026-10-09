@@ -7,6 +7,7 @@
 import { TESTER_CODE, testerCodeExpired, testerCookieMaxAge } from "../lib/_tester.js";
 import { beehiivBySubscriberId } from "../lib/_beehiiv.js";
 
+import { mintCrewCookieValue, CREW_COOKIE, CREW_MAX_AGE_S } from "../lib/_crew.js";
 // Mint a real Supabase session for a (Beehiiv-verified) email WITHOUT sending an email:
 // admin generate_link (creates the user if new) -> server-side verify of the returned
 // token -> access/refresh tokens. Returns null on any failure. The email is authoritative
@@ -107,8 +108,11 @@ export default async function handler(req, res) {
   const code = String(q.code || "");
   const expected = process.env.CURTAIN_CREW_CODE || "";
   if (expected && code === expected) {
-    // 1-year, path-wide, JS-readable (the inline curtain script reads it), Secure.
-    res.setHeader("Set-Cookie", "gas_crew=ok; Max-Age=31536000; Path=/; SameSite=Lax; Secure");
+    // 1-year, path-wide, Secure. A SIGNED value (lib/_crew.js) the server verifies; the plain "ok" is gone.
+    // JS-readable so browser chrome can see its shape, which never unlocks anything server side.
+    const v = mintCrewCookieValue();
+    if (!v) { res.setHeader("Location", "/"); res.status(302).end(); return; }
+    res.setHeader("Set-Cookie", `${CREW_COOKIE}=${v}; Max-Age=${CREW_MAX_AGE_S}; Path=/; SameSite=Lax; Secure`);
     res.setHeader("Location", to);
     res.status(302).end();
     return;

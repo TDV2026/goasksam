@@ -139,7 +139,7 @@ async function resolverChecks() {
   let fails = 0;
   const check = (name, ok, detail = "") => { console.log(`  ${ok ? "PASS" : "FAIL"}  ${name}${ok ? "" : "  ->  " + String(detail).slice(0, 120)}`); if (!ok) fails++; };
   const rx = m => new RegExp(m.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&"), "i");
-  const resolve = async text => { try { const r = await fetch(`${BASE}/api/vehicleIdentity`, { method: "POST", headers: { "Content-Type": "application/json", Cookie: "gas_crew=ok" }, body: JSON.stringify({ text }) }); return await r.json(); } catch (e) { return { status: `(fetch ${e.message})` }; } };
+  const resolve = async text => { try { const r = await fetch(`${BASE}/api/vehicleIdentity`, { method: "POST", headers: { "Content-Type": "application/json", Cookie: "gas_crew=" + (process.env.GAS_CREW_COOKIE || "") }, body: JSON.stringify({ text }) }); return await r.json(); } catch (e) { return { status: `(fetch ${e.message})` }; } };
   console.log(`\n### Resolver checks (B8 make-typo confirmation + B9 VIN decode)`);
   // Misspelled + concatenated-multi-word makes (a missing space reads as a near-miss)
   // CONFIRM "Did you mean the X?" - curated or edit-distance, never silent (rule 6).
@@ -380,7 +380,7 @@ if (runUi) {
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new" });
   const page = await browser.newPage();
   await page.setViewport({ width: 1000, height: 1300, deviceScaleFactor: 1 });
-  await page.setCookie({ name: "gas_crew", value: "ok", domain: "goasksam.com", path: "/" });
+  await page.setCookie({ name: "gas_crew", value: process.env.GAS_CREW_COOKIE || "", domain: "goasksam.com", path: "/" });
   for (const key of uiKeys) {
     const scn = ALL[key];
     process.stdout.write(`\n### Scenario ${key}: ${scn.veh} / ${scn.state} / $${scn.price} / ${scn.pref} / ${scn.timing}\n`);

@@ -2,7 +2,7 @@ import puppeteer from "puppeteer-core";
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
 const p = await b.newPage();
-await p.setCookie({ name: "gas_crew", value: "ok", domain: "goasksam.com", path: "/" });
+await p.setCookie({ name: "gas_crew", value: process.env.GAS_CREW_COOKIE || "", domain: "goasksam.com", path: "/" });
 await p.goto("https://goasksam.com/sell", { waitUntil: "networkidle2" });
 // Desk Q8
 const d = await p.evaluate(async () => (await fetch("/api/sellerDecision",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({desk:true,action:"run",question:"1929 Duesenberg Model J, every house sale, rooms stated or inferred."})})).json());

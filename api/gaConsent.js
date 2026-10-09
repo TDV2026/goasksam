@@ -5,6 +5,7 @@
 // Cache-Control: private, no-store - this response is never cached, never varies a public page.
 import { GA_BLOCKED_COUNTRIES } from "../lib/analytics.js";
 
+import { isCrewRequest } from "../lib/_crew.js";
 function parseCookies(header) {
   const out = {};
   String(header || "").split(";").forEach(part => {
@@ -18,7 +19,7 @@ export default function handler(req, res) {
   res.setHeader("Cache-Control", "private, no-store");
   if (req.method !== "GET" && req.method !== "OPTIONS") return res.status(405).json({ load: false });
   const cookies = parseCookies(req.headers.cookie);
-  const isCrew = cookies.gas_crew === "ok";
+  const isCrew = isCrewRequest(req);   // signed crew cookie (lib/_crew.js)
   const country = String(req.headers["x-vercel-ip-country"] || "").toUpperCase();
   const blocked = GA_BLOCKED_COUNTRIES.has(country);
   return res.status(200).json({ load: !isCrew && !blocked });

@@ -25,7 +25,7 @@ const QS = [
 ];
 const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
 const p = await b.newPage();
-await p.setCookie({ name: "gas_crew", value: "ok", domain: new URL(BASE).hostname, path: "/" });
+await p.setCookie({ name: "gas_crew", value: process.env.GAS_CREW_COOKIE || "", domain: new URL(BASE).hostname, path: "/" });
 await p.goto(BASE + "/desk", { waitUntil: "domcontentloaded" });
 const ask = (q, extra) => p.evaluate(async (q, extra) => {
   const r = await fetch("/api/desk", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify(Object.assign({ desk: true, action: "interpret", question: q, run: true }, extra || {})) });

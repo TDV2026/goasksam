@@ -21,7 +21,7 @@ const host = new URL(BASE).hostname;
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
 try {
   const page = await browser.newPage();
-  await page.setCookie({ name: "gas_crew", value: "ok", domain: host, path: "/" });
+  await page.setCookie({ name: "gas_crew", value: process.env.GAS_CREW_COOKIE || "", domain: host, path: "/" });
 
   await page.goto(BASE + "/onebox", { waitUntil: "networkidle2" });
   ok(page.url().endsWith("/onebox"), "gate: crew device stays on /onebox");

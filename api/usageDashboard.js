@@ -4877,6 +4877,15 @@ async function handleOps(req, res) {
       rows, cars });
   }
 
+  // task=crewcookie (Lane C, Oct 2026): a signed crew cookie value (lib/_crew.js), for our own browser tests
+  // only. Behind the header credential like every ops task; the caller sets it as gas_crew and never prints it.
+  if (task === "crewcookie") {
+    const { mintCrewCookieValue } = await import("../lib/_crew.js");
+    const value = mintCrewCookieValue();
+    res.setHeader("Cache-Control", "no-store");
+    return value ? res.status(200).json({ task: "crewcookie", value }) : res.status(500).json({ error: "CURTAIN_CREW_CODE not set." });
+  }
+
   if (task === "ocdmeter") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const monthStart = new Date().toISOString().slice(0, 7) + "-01T00:00:00Z";

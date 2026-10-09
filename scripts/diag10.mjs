@@ -1,7 +1,7 @@
 import puppeteer from "puppeteer-core";
 const b = await puppeteer.launch({ executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", headless: "new", args: ["--no-sandbox"] });
 const p = await b.newPage();
-await p.setCookie({ name: "gas_crew", value: "ok", domain: "goasksam.com", path: "/" });
+await p.setCookie({ name: "gas_crew", value: process.env.GAS_CREW_COOKIE || "", domain: "goasksam.com", path: "/" });
 await p.goto("https://goasksam.com/sell", { waitUntil: "networkidle2" });
 const run = (f) => p.evaluate(async (ff) => { const r = await fetch("/api/sellerDecision", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ desk: true, action: "run", dsl: { filters: { ...ff, window: "36mo" }, groupBy: [], measures: ["count"] } }) }); const j = await r.json(); return j.status === "ok" ? (j.answer.total + " | " + (j.receipts || []).slice(0,2).map(x=>(x.title||"").slice(0,38)).join(" ; ")) : ("[" + j.status + "]"); }, f);
 const T = [

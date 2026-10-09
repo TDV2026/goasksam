@@ -3,7 +3,7 @@ import { withProbeKey } from "./_probeKey.mjs";
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
 const p = await b.newPage(); await withProbeKey(p);
-await p.setCookie({ name: "gas_crew", value: "ok", domain: "goasksam.com", path: "/" });
+await p.setCookie({ name: "gas_crew", value: process.env.GAS_CREW_COOKIE || "", domain: "goasksam.com", path: "/" });
 await p.goto("https://goasksam.com/sell", { waitUntil: "networkidle2" });
 for (const t of ["E30 M3","BMW M3","993 Turbo","Porsche 993 Turbo"]) {
   const vi = await p.evaluate(async (x) => (await fetch("/api/vehicleIdentity",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text:x})})).json(), t);

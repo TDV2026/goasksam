@@ -144,7 +144,7 @@ const within500 = (a, b) => { if (!a || !b) return null; const lo = Math.max(a[0
 async function main() {
   const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"], protocolTimeout: 180000 });
   const p = await b.newPage();
-  await p.setCookie({ name: "gas_crew", value: "ok", domain: new URL(BASE).hostname, path: "/" });
+  await p.setCookie({ name: "gas_crew", value: process.env.GAS_CREW_COOKIE || "", domain: new URL(BASE).hostname, path: "/" });
   if (BYPASS) await p.setExtraHTTPHeaders({ "x-vercel-protection-bypass": BYPASS, "x-vercel-set-bypass-cookie": "samesitenone" });
   await p.goto(BASE, { waitUntil: "domcontentloaded", timeout: 90000 });
 

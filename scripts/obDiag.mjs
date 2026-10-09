@@ -11,7 +11,7 @@ const CARS = [
 ];
 const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
 const p = await b.newPage();
-await p.setCookie({ name: "gas_crew", value: "ok", domain: new URL(BASE).hostname, path: "/" });
+await p.setCookie({ name: "gas_crew", value: process.env.GAS_CREW_COOKIE || "", domain: new URL(BASE).hostname, path: "/" });
 await p.goto(BASE, { waitUntil: "domcontentloaded" });
 for (const car of CARS) {
   const d = await p.evaluate(async (base, anon, car) => {

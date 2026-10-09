@@ -19,7 +19,7 @@
 (function(){try{
   var c=document.cookie||"";
   // Crew/tester device: in immediately, no flag fetch.
-  if(c.indexOf("gas_tester=ok")!==-1||c.indexOf("gas_crew=ok")!==-1)return;
+  if(c.indexOf("gas_tester=ok")!==-1||c.indexOf("gas_crew=v1.")!==-1)return;
   // Invite code in the URL: exchange it (existing behavior), preserving query + hash.
   var m=/[?&](tester|crew)=([^&]*)/.exec(location.search||"");
   if(m){var q=m[1]==="tester"?"tcode":"code";location.replace("/api/crew?"+q+"="+encodeURIComponent(m[2])+"&to="+encodeURIComponent((location.pathname||"/onebox")+(location.search||"")+(location.hash||"")));return;}

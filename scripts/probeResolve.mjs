@@ -4,7 +4,7 @@ const BASE = process.env.HVT_BASE || "https://goasksam.com";
 const inputs = process.argv.slice(2);
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
 const page = await browser.newPage();
-await page.setCookie({ name: "gas_crew", value: "ok", domain: new URL(BASE).hostname, path: "/" });
+await page.setCookie({ name: "gas_crew", value: process.env.GAS_CREW_COOKIE || "", domain: new URL(BASE).hostname, path: "/" });
 await page.goto(BASE + "/sell", { waitUntil: "networkidle2" });
 for (const raw of inputs) {
   const r = await page.evaluate(async text => {

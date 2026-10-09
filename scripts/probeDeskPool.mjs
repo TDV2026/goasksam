@@ -3,7 +3,7 @@ import { withProbeKey } from "./_probeKey.mjs";
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
 const p = await b.newPage(); await withProbeKey(p);
-await p.setCookie({ name: "gas_crew", value: "ok", domain: "goasksam.com", path: "/" });
+await p.setCookie({ name: "gas_crew", value: process.env.GAS_CREW_COOKIE || "", domain: "goasksam.com", path: "/" });
 await p.goto("https://goasksam.com/sell", { waitUntil: "networkidle2" });
 // Raw pool for air-cooled 911 at houses via the pool probe across the 4 gens, with URLs
 const gens = [[1964,1973],[1974,1988],[1990,1994],[1994,1998]];

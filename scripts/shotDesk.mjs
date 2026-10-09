@@ -5,7 +5,7 @@ const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args
 async function shot(w, file) {
   const p = await b.newPage();
   await p.setViewport({ width: w, height: 1200, deviceScaleFactor: 2 });
-  await p.setCookie({ name: "gas_crew", value: "ok", domain: "goasksam.com", path: "/" });
+  await p.setCookie({ name: "gas_crew", value: process.env.GAS_CREW_COOKIE || "", domain: "goasksam.com", path: "/" });
   await p.goto("https://goasksam.com/desk", { waitUntil: "networkidle2" });
   await p.waitForSelector("#q", { timeout: 15000 });
   await p.evaluate((qq) => { document.getElementById("q").value = qq; document.getElementById("go").click(); }, q);

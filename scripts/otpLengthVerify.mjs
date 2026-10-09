@@ -11,7 +11,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? "PASS  " : "FAIL  ") + m)
 
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
 const page = await browser.newPage();
-await page.setCookie({ name: "gas_crew", value: "ok", domain: "goasksam.com", path: "/" });
+await page.setCookie({ name: "gas_crew", value: process.env.GAS_CREW_COOKIE || "", domain: "goasksam.com", path: "/" });
 await page.goto("https://goasksam.com/", { waitUntil: "networkidle2", timeout: 60000 });
 await page.waitForSelector("#inp", { timeout: 30000 });
 

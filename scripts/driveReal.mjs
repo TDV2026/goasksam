@@ -9,7 +9,7 @@ const OUT=process.env.SHOT_DIR||process.cwd();
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const browser=await puppeteer.launch({executablePath:CHROME,headless:"new",args:["--window-size=1200,1100"],defaultViewport:{width:1120,height:1050}});
 const page=await browser.newPage();
-await page.setCookie({name:"gas_crew",value:"ok",domain:"goasksam.com",path:"/"});
+await page.setCookie({name:"gas_crew",value:process.env.GAS_CREW_COOKIE || "",domain:"goasksam.com",path:"/"});
 await page.goto("https://goasksam.com/",{waitUntil:"networkidle2",timeout:60000});
 await page.waitForSelector("#inp",{timeout:30000});
 const lastSam=()=>page.evaluate(()=>{const r=[...document.querySelectorAll('.row.sam')];const e=r[r.length-1];return e?e.textContent.replace(/\s+/g," ").trim().slice(0,120):"";});

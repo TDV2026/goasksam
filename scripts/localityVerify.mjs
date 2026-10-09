@@ -10,7 +10,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? "PASS  " : "FAIL  ") + m)
 
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
 const page = await browser.newPage();
-await page.setCookie({ name: "gas_crew", value: "ok", domain: "goasksam.com", path: "/" });
+await page.setCookie({ name: "gas_crew", value: process.env.GAS_CREW_COOKIE || "", domain: "goasksam.com", path: "/" });
 const lastSam = () => page.evaluate(() => { const r = [...document.querySelectorAll(".row.sam")]; const e = r[r.length - 1]; return e ? e.textContent.replace(/\s+/g, " ").trim() : ""; });
 const activeChips = () => page.evaluate(() => [...document.querySelectorAll(".chip")].filter(c => !c.classList.contains("chip-spent")).map(c => c.textContent.trim()));
 async function type(t) { await page.evaluate(x => { document.getElementById("inp").value = x; }, t); await page.click("#btn"); await sleep(2200); }

@@ -102,7 +102,7 @@ async function fetchScoped(page, m, yMin, yMax) {
   fs.mkdirSync(path.join(OUT, "receipts"), { recursive: true });
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
   const page = await browser.newPage();
-  await page.setCookie({ name: "gas_crew", value: "ok", domain: new URL(BASE).hostname, path: "/" });
+  await page.setCookie({ name: "gas_crew", value: process.env.GAS_CREW_COOKIE || "", domain: new URL(BASE).hostname, path: "/" });
   await page.goto(BASE + "/sell", { waitUntil: "networkidle2" });
 
   const csv = [["car_id","year","make","model_trim","status","year_scope_used","window","basis","n","thin","median","p25","p75","min","max"]];

@@ -1,3 +1,4 @@
+import { isCrewRequest as isSignedCrew } from "../lib/_crew.js";
 // Shared page chrome for the server-rendered public pages (history, /buy): One Box tokens + fonts,
 // the left rail (with Buy) and the phone header. Lane C.
 //
@@ -6,10 +7,8 @@
 // removed from the HTML entirely (never CSS-hidden). Crew (the existing gas_crew=ok cookie, the same
 // mechanism the One Box crew gate used) see the full rail exactly as before. isCrewRequest(req) is the
 // single check every caller of railHtml()/whyResultHtml() must pass through.
-export function isCrewRequest(req) {
-  const c = String((req && req.headers && req.headers.cookie) || "");
-  return c.indexOf("gas_crew=ok") !== -1;
-}
+// The signed crew cookie (lib/_crew.js): the one shared check, re-exported here for existing callers.
+export function isCrewRequest(req) { return isSignedCrew(req); }
 export const PAGE_CSS = `
 :root{--page:#F6F3EC;--card:#FFFFFF;--border:#DCD8CC;--ink:#15201A;--green:#1E4D38;--green-dk:#15372A;--sec:#5E6B63;--div:#E2DED3;--take:#F1F5F1;--live:#2E8B57;--ph:#E6E2D8;--soft:#3C4942;--tint:#EDF3EE;--tint-line:#D5E2D8;--serif:"Newsreader",Georgia,"Times New Roman",serif;--sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:light}
 *{box-sizing:border-box}html,body{margin:0}

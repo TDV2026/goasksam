@@ -5,7 +5,7 @@ const p = await b.newPage();
 p.on("console", m => console.log("PAGE:", m.type(), m.text().slice(0,200)));
 p.on("pageerror", e => console.log("PAGEERR:", e.message));
 await p.setViewport({ width: 1200, height: 1200, deviceScaleFactor: 1 });
-await p.setCookie({ name: "gas_crew", value: "ok", domain: "goasksam.com", path: "/" });
+await p.setCookie({ name: "gas_crew", value: process.env.GAS_CREW_COOKIE || "", domain: "goasksam.com", path: "/" });
 await p.goto("https://goasksam.com/desk", { waitUntil: "networkidle2" });
 console.log("URL after load:", p.url());
 console.log("has #q:", await p.evaluate(()=>!!document.getElementById("q")));

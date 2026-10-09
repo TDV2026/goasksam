@@ -13,6 +13,7 @@ import { recordUsageEvent, anthropicCost } from "./_usage.js";
 import { testerCodeExpired } from "../lib/_tester.js";
 import { vinFeatureActive, findVinArchiveMatch } from "../lib/_flags.js";
 
+import { isCrewRequest } from "../lib/_crew.js";
 // Privacy (VIN feature): a raw 17-char VIN must never land in a funnel/analytics
 // event or a log line. Replace any VIN run with a short truncated marker so the
 // event stays useful for debugging without storing the full identifier.
@@ -118,7 +119,7 @@ export default async function handler(req, res) {
   if (process.env.CURTAIN_SEALED === "1") {
     const cookie = req.headers.cookie || "";
     const testerOk = cookie.indexOf("gas_tester=ok") !== -1 && !testerCodeExpired();
-    if (cookie.indexOf("gas_crew=ok") === -1 && !testerOk) {
+    if (!isCrewRequest(cookie) && !testerOk) {
       return res.status(403).json({ status: "sealed", error: "Not open yet." });
     }
   }

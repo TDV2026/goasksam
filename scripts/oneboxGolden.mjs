@@ -130,7 +130,7 @@ try {
   for (const input of INPUTS) {
     const page = await browser.newPage();
     if (BYPASS) await page.setExtraHTTPHeaders({ "x-vercel-protection-bypass": BYPASS, "x-vercel-set-bypass-cookie": "samesitenone" });
-    await page.setCookie({ name: "gas_crew", value: "ok", domain: host, path: "/" });
+    await page.setCookie({ name: "gas_crew", value: process.env.GAS_CREW_COOKIE || "", domain: host, path: "/" });
     await page.goto(BASE + "/onebox", { waitUntil: "networkidle2" });
     const raw = await capture(page, input);
     // mask volatile fields

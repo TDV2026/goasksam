@@ -13,7 +13,7 @@
 <script>
 (function(){try{
   var c=document.cookie||"";
-  if(c.indexOf("gas_tester=ok")!==-1||c.indexOf("gas_crew=ok")!==-1)return;
+  if(c.indexOf("gas_tester=ok")!==-1||c.indexOf("gas_crew=v1.")!==-1)return;
   var m=/[?&](tester|crew)=([^&]*)/.exec(location.search||"");
   if(m){var q=m[1]==="tester"?"tcode":"code";location.replace("/api/crew?"+q+"="+encodeURIComponent(m[2])+"&to="+encodeURIComponent((location.pathname||"/desk")+(location.search||"")+(location.hash||"")));return;}
   location.replace("/");

@@ -4,7 +4,7 @@ const BASE = "https://goasksam.com";
 const q = process.argv[2] || "Which house has sold the most air-cooled 911s in the last two years, and what did they bring?";
 const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
 const p = await b.newPage();
-await p.setCookie({ name: "gas_crew", value: "ok", domain: "goasksam.com", path: "/" });
+await p.setCookie({ name: "gas_crew", value: process.env.GAS_CREW_COOKIE || "", domain: "goasksam.com", path: "/" });
 await p.goto(BASE + "/sell", { waitUntil: "networkidle2" });
 const r = await p.evaluate(async (question) => {
   const res = await fetch("/api/sellerDecision", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ desk: true, action: "run", question }) });

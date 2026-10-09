@@ -15,7 +15,7 @@ const QS = [
 ];
 const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
 const p = await b.newPage();
-await p.setCookie({ name: "gas_crew", value: "ok", domain: "goasksam.com", path: "/" });
+await p.setCookie({ name: "gas_crew", value: process.env.GAS_CREW_COOKIE || "", domain: "goasksam.com", path: "/" });
 await p.goto(BASE + "/desk", { waitUntil: "domcontentloaded" });
 const ask = (q, extra) => p.evaluate(async (q, extra) => {
   const t0 = performance.now();

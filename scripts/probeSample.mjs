@@ -3,7 +3,7 @@ import { withProbeKey } from "./_probeKey.mjs";
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
 const p = await b.newPage(); await withProbeKey(p);
-await p.setCookie({ name: "gas_crew", value: "ok", domain: "goasksam.com", path: "/" });
+await p.setCookie({ name: "gas_crew", value: process.env.GAS_CREW_COOKIE || "", domain: "goasksam.com", path: "/" });
 await p.goto("https://goasksam.com/sell", { waitUntil: "networkidle2" });
 for (const plat of ["RM Sotheby's","Gooding & Co","Bonhams","Broad Arrow"]) {
   const r = await p.evaluate(async (pl) => (await fetch("/api/sellerDecision",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({archiveQuery:"sample",platform:pl,limit:3})})).json(), plat);

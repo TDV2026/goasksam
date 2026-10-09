@@ -3,7 +3,7 @@ import puppeteer from "puppeteer-core";
 const CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const BASE=(process.argv.find(a=>a.startsWith("http"))||"https://goasksam.com").replace(/\/$/,"");
 const b=await puppeteer.launch({executablePath:CHROME,headless:"new",args:["--no-sandbox"]});
-const p=await b.newPage(); await p.setCookie({name:"gas_crew",value:"ok",domain:new URL(BASE).hostname,path:"/"});
+const p=await b.newPage(); await p.setCookie({name:"gas_crew",value:process.env.GAS_CREW_COOKIE || "",domain:new URL(BASE).hostname,path:"/"});
 await p.goto(BASE+"/sell",{waitUntil:"networkidle2"});
 const run=(dsl,vehicle)=>p.evaluate(async(dsl,vehicle,BASE)=>{const r=await fetch(BASE+"/api/desk",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({desk:true,action:"run",dsl,vehicle})});const t=await r.text();let j;try{j=JSON.parse(t)}catch(e){return{parseError:t.slice(0,60)}}return{status:j.status,total:j.answer&&j.answer.total,ids:(j.receipts||[]).filter(x=>!x.excluded).map(x=>x.title+"|"+x.hammer_usd).sort()};},dsl,vehicle,BASE);
 let fails=0; const ck=(n,ok,d="")=>{console.log((ok?"PASS":"FAIL")+"  "+n+(ok?"":"  -> "+d));if(!ok)fails++;};

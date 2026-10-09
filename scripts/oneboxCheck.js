@@ -180,7 +180,7 @@ function runChecks(s, d, ms) {
 async function main() {
   const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"], protocolTimeout: 120000 });
   const p = await b.newPage();
-  await p.setCookie({ name: "gas_crew", value: "ok", domain: new URL(BASE).hostname, path: "/" });
+  await p.setCookie({ name: "gas_crew", value: process.env.GAS_CREW_COOKIE || "", domain: new URL(BASE).hostname, path: "/" });
   await p.goto(BASE + "/onebox.html", { waitUntil: "networkidle2" });
   await new Promise(r => setTimeout(r, 1500));
 

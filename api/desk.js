@@ -12,6 +12,7 @@ import { handleDeskRequest } from "../lib/desk/handler.js";
 import { testerCodeExpired } from "../lib/_tester.js";
 import { supabaseSelect } from "../lib/_supabase.js";
 
+import { isCrewRequest } from "../lib/_crew.js";
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -35,7 +36,7 @@ export default async function handler(req, res) {
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
   const cookies = parseCookies(req.headers.cookie);
-  const crew = cookies.gas_crew === "ok";
+  const crew = isCrewRequest(req);   // the signed crew cookie (lib/_crew.js)
   const tester = cookies.gas_tester === "ok" && !testerCodeExpired();
   // Desk is crew-only ALWAYS (never public, unlike the storefront).
   if (!crew && !tester) return res.status(403).json({ status: "sealed", error: "Desk is crew-only." });
