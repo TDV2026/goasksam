@@ -1159,7 +1159,7 @@ async function handleOps(req, res) {
   // bare/unfiltered delete.
   if (task === "bizleadtest") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    if (q.delete === "1") {
+    if (req.query?.delete === "1") {
       const rows = await supabaseSelect(env, `business_leads?name=like.${encodeURIComponent("QA TEST ROW*")}&select=id,name,email,created_at`).catch(() => null);
       if (!rows || !rows.length) return res.status(200).json({ task: "bizleadtest", deleted: 0, rows: [] });
       const del = await supabaseDelete(env, `business_leads?id=in.(${rows.map(r => r.id).join(",")})`);
