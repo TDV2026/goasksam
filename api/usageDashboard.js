@@ -670,6 +670,60 @@ async function handleOps(req, res) {
   // task=sellshadowdetail (Oct 2026, evidence for Sam's follow-up): raw per-sale rows (platform,
   // date, price, title) behind the picked-route priceBand on BOTH paths for ONE spec, so the
   // "shared path has more sales" claim can be checked sale-by-sale, not just by count. READ-ONLY.
+  // task=sellreal (Oct 2026, correction): the EARLIER sellshadow/sellshadowdetail tasks called
+  // buildAnalysisFromStore - a convenience wrapper written for evaluatePartnerReferral, NOT what
+  // the live /sell page actually calls. The real handler (api/sellerDecision.js ~line 3786-3920)
+  // picks the fetch path itself: (1) a market_fetch_cache HIT -> fetchRecordsFromStore (archive-
+  // only, zero OCD); (2) a MISS, budget permitting -> fetchRecentRecords (a LIVE, metered OCD
+  // multi-pass fetch - THIS is very likely what produced the $60,000-$155,000 / 83-sale answer
+  // Sam saw on the real page, which the store-only harness could never reproduce). This task
+  // replicates that exact branch (not the budget-guard degrade logic, which only matters when the
+  // day's spend is already near its cap) so the comparison calls the SAME path the page calls.
+  // seller criteria do not affect analyze()'s range/evidenceSales at all (analyze() takes no
+  // criteria param) - they only affect decide()'s venue/why text - so passing them matters for
+  // recommendedPath parity, not for the range number itself.
+  if (task === "sellreal") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const q = String(req.query?.q || "");
+    if (!q) return res.status(400).json({ error: "?q= required" });
+    const apiKey = process.env.OLDCARSDATA_API_KEY;
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { readMarketFetchCache, fetchRecordsFromStore, fetchRecentRecords, analyze, decide, buildLadder } = await import("./sellerDecision.js");
+    const { classifyRecord } = await import("../lib/_classify.js");
+    const rv = await resolveVehicle(q, {}).catch(() => null);
+    const vehicle = rv && rv.vehicle;
+    if (!vehicle || !vehicle.make) return res.status(200).json({ task: "sellreal", q, error: "unresolved" });
+    const generation = await findGeneration(vehicle, env).catch(() => null);
+    const criteria = {
+      region: req.query.region || "Florida", targetPrice: req.query.targetPrice || "88000",
+      timeline: req.query.timeline || "no rush", condition: req.query.condition || null
+    };
+    const cacheHit = await readMarketFetchCache(vehicle, env.supabaseUrl, env.supabaseKey).catch(() => false);
+    let fetchResult, pathTaken;
+    if (cacheHit) {
+      fetchResult = await fetchRecordsFromStore(vehicle, env.supabaseUrl, env.supabaseKey, generation);
+      pathTaken = "market_fetch_cache_hit -> fetchRecordsFromStore (archive, zero OCD)";
+    } else {
+      fetchResult = await fetchRecentRecords(vehicle, apiKey, generation, Infinity);
+      pathTaken = "market_fetch_cache MISS -> fetchRecentRecords (LIVE OCD multi-pass fetch, metered)";
+    }
+    if (!fetchResult || !fetchResult.records) {
+      return res.status(200).json({ task: "sellreal", q, pathTaken, error: "no fetchResult/records" });
+    }
+    const classifications = fetchResult.records.map(r => classifyRecord(r, vehicle));
+    const analysis = analyze(fetchResult.records, classifications, fetchResult.ladder || buildLadder(vehicle, generation), vehicle, false, null);
+    const decision = decide(analysis, criteria, vehicle);
+    const pickedRoute = decision.routeFit && decision.routeFit.routes && decision.routeFit.routes.find(r => r.platform === decision.recommendedPath);
+    const pb = pickedRoute && pickedRoute.marketEvidence && pickedRoute.marketEvidence.priceBand;
+    return res.status(200).json({
+      task: "sellreal", q, pathTaken, meteredRequests: fetchResult.meteredRequests || 0, stopReason: fetchResult.stopReason || null,
+      recommendedPath: decision.recommendedPath, evidenceSales: analysis.evidenceSales,
+      priceBand: pb ? { low: pb.low, high: pb.high, sample: pb.sample } : null,
+      ladderLanded: analysis.ladder && analysis.ladder.landed ? analysis.ladder.landed.key : null
+    });
+  }
+
   if (task === "sellshadowdetail") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const q = String(req.query?.q || "");

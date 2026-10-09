@@ -1219,7 +1219,7 @@ function marketFetchCacheKey(vehicle) {
   return `${ENGINE_VERSION}|${asText(vehicle.make).toLowerCase()}|${family.toLowerCase()}`;
 }
 
-async function readMarketFetchCache(vehicle, supabaseUrl, supabaseKey) {
+export async function readMarketFetchCache(vehicle, supabaseUrl, supabaseKey) {
   if (!supabaseUrl || !supabaseKey || !asText(vehicle.make)) return null;
   const key = marketFetchCacheKey(vehicle);
   const rows = await supabaseSelect(
