@@ -547,8 +547,8 @@ function gateRenderStatus(data) {
     const on = Number(data && data.dailyCap) || 3;
     gateAppendCard(`<div class="sam-text">That's the ${authEsc(String(on))} searches on your link, all used. Create a free account and I'll keep going with one a day.</div><div class="sell-rec-actions"><button class="primary" onclick="gateCreateAccount()">Create a free account</button></div>`);
   } else if (status === "ip_rate_limited") {
-    // Spec C: per-IP cap tripped. Honest, no blame, offers the two real outs.
-    gateAppendCard(`<div class="sam-text">A lot of searches are coming from your connection. Sign in, or try again in a bit.</div>`);
+    // The invisible ceiling (lib/_ceilings.js). Calm, plain, never a sign in demand (open-search policy).
+    gateAppendCard(`<div class="sam-text">${authEsc((data && data.message) || "Lots of searches from here just now. Give it a minute and try again.")}</div>`);
   } else if (status === "auth_required") {
     gateAppendCard(`<div class="sam-text">I lost your session. Sign in again and we'll pick up where we left off.</div><div class="sell-rec-actions"><button class="primary" onclick="openSignInCard()">Sign in</button></div>`);
   } else if (status === "capacity") {
@@ -611,6 +611,8 @@ function gateShowUpfrontWall(data) {
 // still saves silently for the post-launch results surface. The pending-search stash is
 // cleared, never re-run: signup returns them to a fresh search they can now run.
 function gateAfterSignup() {
+  // A follow-up question that asked for the sign in goes again, on the same car (js/entry.js).
+  if (typeof resumePendingFollowup === "function" && resumePendingFollowup()) return true;
   let gated = false;
   try { gated = localStorage.getItem("gas_gate_signup") === "1"; } catch (e) {}
   try { localStorage.removeItem("gas_gate_signup"); localStorage.removeItem("gas_pending_search"); } catch (e) {}

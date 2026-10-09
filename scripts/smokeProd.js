@@ -30,7 +30,10 @@ async function post(path, body) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(BYPASS ? { "x-vercel-protection-bypass": BYPASS, "x-vercel-set-bypass-cookie": "samesitenone" } : {})
+      ...(BYPASS ? { "x-vercel-protection-bypass": BYPASS, "x-vercel-set-bypass-cookie": "samesitenone" } : {}),
+      // Our own credential (header only, read from the environment): the chat checks send their own test
+      // prompts and bypassCache, which api/chat.js and api/sellerDecision.js honour only with it.
+      ...(process.env.PROBE_KEY ? { "x-probe-key": process.env.PROBE_KEY } : {})
     },
     body: JSON.stringify(body)
   });

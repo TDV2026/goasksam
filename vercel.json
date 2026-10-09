@@ -47,6 +47,7 @@
     { "source": "/js.20261009c/(.*)", "destination": "/js/$1" },
     { "source": "/js.20261009d/(.*)", "destination": "/js/$1" },
     { "source": "/js.20261009e/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20261009f/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261012a/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261012b/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261013a/(.*)", "destination": "/js/$1" },
@@ -95,6 +96,9 @@
     },
     "api/sellNext.js": {
       "includeFiles": "{onebox.html,styles.css}"
+    },
+    "api/chat.js": {
+      "includeFiles": "js/{chat-core,wizard}.js"
     },
     "api/sellerDecision.js": {
       "maxDuration": 60

@@ -4790,7 +4790,11 @@ async function handleOps(req, res) {
     const rows = await supabaseSelectAll(env, `app_usage_events?event_type=eq.ocd_call&oldcarsdata_metered_requests=gt.0&created_at=gte.${monthStart}&select=oldcarsdata_metered_requests,created_at,job:metadata->>job&order=created_at.desc`) || [];
     let monthTotal = 0, dayTotal = 0; const byJobMonth = {}, byJobDay = {};
     for (const r of rows) { const n = Number(r.oldcarsdata_metered_requests) || 0; const j = r.job || "(none)"; monthTotal += n; byJobMonth[j] = (byJobMonth[j] || 0) + n; if (r.created_at >= dayStart) { dayTotal += n; byJobDay[j] = (byJobDay[j] || 0) + n; } }
-    return res.status(200).json({ task: "ocdmeter", source: "ocd_call events only (single source of truth; starts at the meter-fix deploy)", today: { total: dayTotal, byJob: byJobDay }, month: { total: monthTotal, byJob: byJobMonth }, ocdCallRowsThisMonth: rows.length });
+    // The daily circuit breaker (Lane C, open-search policy): each time a search reached the metered budget and
+    // was served from the cache and archive instead (api/sellerDecision.js ocd_budget_guard), today, by scope.
+    const trips = await supabaseSelectAll(env, `app_usage_events?event_type=eq.ocd_budget_guard&created_at=gte.${dayStart}&select=status,created_at&order=created_at.desc`).catch(() => null) || [];
+    const breaker = { tripsToday: trips.length, byScope: trips.reduce((o, t) => { o[t.status] = (o[t.status] || 0) + 1; return o; }, {}), lastTrip: trips[0] ? trips[0].created_at : null, dailyBudget: Number(process.env.OCD_DAILY_REQUEST_BUDGET || 33) };
+    return res.status(200).json({ task: "ocdmeter", source: "ocd_call events only (single source of truth; starts at the meter-fix deploy)", today: { total: dayTotal, byJob: byJobDay }, month: { total: monthTotal, byJob: byJobMonth }, ocdCallRowsThisMonth: rows.length, breaker });
   }
 
   // task=milesaudit: READ-ONLY. Mileage-data audit: MB Market rows under 1,000 mi with their RAW

@@ -353,10 +353,20 @@ async function send(){
         }
       }
       try{
-        const res=await fetch(apiPath("/api/chat"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[...chatHistory,{role:"user",content:q}],system:SELL_SYS,context:sellContext})});
+        // The follow-up chat is the one signed-in action (open-search policy): the server holds the prompt
+        // (mode "followup") and checks the session itself; signed out it answers with the sign in line.
+        const tok=(typeof authValidToken==="function")?await authValidToken():null;
+        const res=await fetch(apiPath("/api/chat"),{method:"POST",headers:Object.assign({"Content-Type":"application/json"},tok?{Authorization:"Bearer "+tok}:{}),body:JSON.stringify({mode:"followup",messages:[...chatHistory,{role:"user",content:q}],context:sellContext})});
         const data=await res.json();
         hideTyping();
-        if(!res.ok||data.error||!data.text){
+        if(data&&data.needSignIn){
+          // Kept, so signing in brings the visitor straight back to this car and this question.
+          sellState.pendingFollowup=q;
+          try{sessionStorage.setItem("gas_pending_followup",q);}catch(e){}
+          addMsg("sam",data.text,'<div class="sell-rec-actions"><button class="primary" onclick="openSignInCard(\'Sign in free so Sam can remember this car.\')">Sign in free</button></div>');
+        }else if(data&&data.limited){
+          addMsg("sam",data.text);
+        }else if(!res.ok||data.error||!data.text){
           // No silent fallbacks: the server logged the error to app_usage_events.
           console.error("chat layer failed",res.status,data.error||"empty text");
           addMsg("sam","Good question. I'm having trouble answering it right now, so ask me again in a moment if it matters to you. It doesn't affect the market check itself.");
@@ -466,8 +476,9 @@ async function send(){
   chatHistory.push({role:"user",content:q});
   showTyping();
   try{
-    const res=await fetchWithTimeout(apiPath("/api/chat"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:chatHistory,system:SYS})},20000);
+    const res=await fetchWithTimeout(apiPath("/api/chat"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mode:"assist",messages:chatHistory})},20000);
     const data=await res.json();
+    if(data&&data.limited){ hideTyping(); addMsg("sam",data.text); document.getElementById("btn").disabled=false; return; }
     if(!res.ok||data.error||!data.text){
       console.error("chat layer failed",res.status,data.error||"empty text");
       hideTyping();
@@ -504,3 +515,14 @@ document.getElementById("inp").addEventListener("input",function(){this.style.he
   var inp=document.getElementById("inp");
   if(inp&&typeof send==="function"){inp.value=pref;send();}
 }catch(e){}})();
+
+// After a sign in (the code card, which keeps this page), the follow-up question that asked for it is sent
+// again as it was, so the visitor never retypes it. Called from js/auth.js gateAfterSignup.
+function resumePendingFollowup(){
+  let q=sellState.pendingFollowup||null;
+  try{ if(!q) q=sessionStorage.getItem("gas_pending_followup"); sessionStorage.removeItem("gas_pending_followup"); }catch(e){}
+  sellState.pendingFollowup=null;
+  if(!q||!(typeof authIsSignedIn==="function"&&authIsSignedIn())) return false;
+  const inp=document.getElementById("inp"); if(!inp||typeof send!=="function") return false;
+  inp.value=q; send(); return true;
+}

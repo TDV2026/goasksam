@@ -216,6 +216,8 @@ jobs:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      # warm:true is honoured only with our credential in a header (api/sellerDecision.js, Oct 2026).
+      PROBE_KEY: ${{ secrets.PROBE_KEY }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -298,7 +300,7 @@ jobs:
           echo "Recomputing partner premiums (archive-only, zero OCD)..."
           if ! body="$(curl -fsS --max-time 280 --get "https://goasksam.com/api/usageDashboard" \
               --data-urlencode "view=ops" --data-urlencode "task=premium" \
-              --data-urlencode "persist=1" --data-urlencode "key=${PROBE_KEY}")"; then
+              --data-urlencode "persist=1" -H "x-ops-key: ${PROBE_KEY}")"; then
             echo "::error::Premium recompute request FAILED (network/HTTP/auth). Numbers may be stale until the next successful run."
             exit 1
           fi

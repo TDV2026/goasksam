@@ -4,6 +4,8 @@ import { nonRoadReason } from "../lib/_roadType.js";
 import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle, listSalesForVehicle, rawTitleSearch, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
 import { supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
+import { hasServerCredential } from "../lib/_credential.js";
+import { checkCeiling, CALM } from "../lib/_ceilings.js";
 import { callOldCarsData } from "../lib/_ocd.js";
 import { testerCodeExpired } from "../lib/_tester.js";
 import { verifyOnce } from "../lib/_onepass.js";
@@ -2815,18 +2817,13 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
   if (cookies.gas_crew === "ok" && !forceGate) {
     return { ok: true, crewBypass: true, anonSessionId };
   }
-  // Spec C (b): total searches per IP per hour, for every non-crew search (auth
-  // and anon alike). Set high (default 60/hr) so signed-in users - already daily-
-  // capped by A - effectively never hit it; it only catches scripted abuse. Fail
-  // open on an unreadable ledger.
+  // The invisible ceiling (Oct 2026, open-search policy): lib/_ceilings.js checkCeiling, the ONE guard Buy, the
+  // new Sell and this page share. Device aware (Lane B's visitor id, else a cookieless stand-in) with a far
+  // higher per-address backstop, so an office or a mobile carrier never blocks the people behind it. Replaces
+  // the old 60 per address per hour. Fail open. The page shows the calm line, never a sign in demand.
+  const ceil = await checkCeiling({ supabaseUrl, supabaseKey }, req, "sell_search", { tool: "sell" });
+  if (!ceil.ok) return { block: { status: "ip_rate_limited", message: CALM.search } };
   const ip = clientIp(req);
-  const hourAgo = new Date(Date.now() - 3600 * 1000).toISOString();
-  const hourHits = await ipHitsSince(ip, "search", hourAgo, supabaseUrl, supabaseKey);
-  const hourCap = await appConfigInt("ip_cap_all_hour", 60, supabaseUrl, supabaseKey);
-  if (hourHits !== null && hourHits >= hourCap) {
-    return { block: { status: "ip_rate_limited" } };
-  }
-  await recordIpHit(ip, "search", supabaseUrl, supabaseKey);
   // Tester cohort (pre-launch): a device holding gas_tester=ok gets its OWN daily
   // allowance (default 10, app_config tester_cap_day) on a SEPARATE counter (kind
   // tester_search), never mixed with the free-tier or subscriber buckets. Searches
@@ -2973,10 +2970,18 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
   return { ok: true, anonFirstFree: true, anonSessionId };
 }
 
+// SPEND PROTECTION (Oct 2026, open-search policy): request flags that skip the search gate, force a fresh
+// metered fetch or run a diagnostic are honoured ONLY with our own credential in a header (lib/_credential.js:
+// x-probe-key / x-ops-key, or the cron secret). Without it they are removed before anything reads them, so a
+// public request runs as an ordinary search. archiveOnly, ladderPreview, priceProbe and oneBox stay public:
+// each only ever reduces spend (archive or fetch-free).
+const SERVER_ONLY_FLAGS = ["warm", "bypassCache", "rerun", "poolDiag", "backfillCount", "archiveQuery", "oneBoxProof", "titleSearch", "cacheStats", "reserveSim", "debug"];
 export default async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  const credentialed = hasServerCredential(req);
+  if (!credentialed && req.body && typeof req.body === "object") for (const k of SERVER_ONLY_FLAGS) if (k in req.body) delete req.body[k];
 
   // Spec D: server-side curtain seal. Pre-launch, non-crew requests to the
   // decision API are refused HERE, not merely hidden by CSS. Crew devices and
@@ -3500,30 +3505,18 @@ export default async function handler(req, res) {
         console.error("One Box unavailable: Supabase health probe failed (slow/down).");
         return res.status(200).json({ status: "one_box", tier: "unavailable", samLine: OB_CALM });
       }
-      // Metering (T1.6): One Box is ARCHIVE-ONLY (zero OldCarsData cost), so it must NOT
-      // consume the seller's /sell daily reserve_search allowance - a free archive lookup
-      // should never burn a metered search. Hence a SEPARATE, lightweight per-anon daily
-      // cap (app_config onebox_daily_cap, default 40), counted from server-logged
-      // onebox_search funnel events. Soft-degrades with an honest line; never a hard error,
-      // never touches the /sell counters. The server logs onebox_search (authoritative
-      // count source + analytics); the client logs only the outcome/interaction events.
-      const obAnon = (typeof req.body?.anonId === "string" && req.body.anonId) ? req.body.anonId.slice(0, 64)
-        : (typeof req.body?.anonSessionId === "string" && req.body.anonSessionId) ? req.body.anonSessionId.slice(0, 64) : null;
-      // A refine tap (mileage / gearbox / dictionary-driver / observable-fact) re-scopes the SAME
-      // car - it is a continuation of an already-counted lookup, not a new one. Exempt it from the
-      // onebox_daily_cap count AND check (same spirit as the shareable-snapshot !obRefine gate below).
-      const _rr = req.body?.refine || (car && car.refine) || null;
-      const obIsRefine = !!(_rr && (_rr.miMin != null || _rr.tx || _rr.variant || _rr.driver || _rr.observe));
-      if (obAnon && !obIsRefine) {
-        try {
-          const cap = await appConfigInt("onebox_daily_cap", 40, supabaseUrl, supabaseKey);
-          const since = coarseDayKey();
-          const seen = await supabaseSelect({ supabaseUrl, supabaseKey }, `funnel_events?event=eq.onebox_search&anon_session_id=eq.${encodeURIComponent(obAnon)}&created_at=gte.${since}&select=id&limit=${cap + 1}`);
-          if (Array.isArray(seen) && seen.length >= cap) {
-            return res.status(200).json({ status: "one_box", tier: "rate_limited", resolvedCar: null, samLine: "That's a lot of lookups for one day. Come back tomorrow and I'll keep pulling real sales for you." });
-          }
-        } catch (e) { /* cap is best-effort; never block a real lookup on a count error */ }
-        logFunnel("onebox_search", { anon_session_id: obAnon }, supabaseUrl, supabaseKey);
+      // Invisible per-address/per-device ceiling (Oct 2026, open-search policy). REPLACES the old
+      // onebox_daily_cap: that cap was counted against a client-chosen, resettable anonId (not a real
+      // visitor limit) and, worse, was VISIBLE in normal use - a genuine visitor could land on a full
+      // "That's a lot of lookups for one day" dead end, which contradicts "Market Check: unlimited
+      // public checks... nothing is held back." One Box is still archive-only (zero OldCarsData cost,
+      // see above), so this protects against automated floods only, never spend - uses Lane C's shared
+      // ceiling (lib/_ceilings.js checkCeiling), the SAME mechanism Buy and Sell search already call,
+      // never a second implementation. Fail open (an unreadable ledger never blocks a real search); a
+      // genuine hit logs rate_limit_hit itself and shows one calm line, no sign-in demand, no number.
+      const obCeiling = await checkCeiling({ supabaseUrl, supabaseKey }, req, "market_check_search", { tool: "market_check" });
+      if (!obCeiling.ok) {
+        return res.status(200).json({ status: "one_box", tier: "rate_limited", resolvedCar: null, samLine: CALM.search });
       }
       const oneBoxText = typeof rawSearch === "string" ? rawSearch : (vehicle?.raw || vehicle?.canonicalLabel || "");
       // Round-4 earned question: an inline refinement (mileage band / transmission) narrows the
@@ -3794,6 +3787,13 @@ export default async function handler(req, res) {
     // rerun-class (no new search credit), user-gated behind a genuine 5+/5+ split,
     // and still bounded by the daily/monthly OCD budget guards below.
     const bypassCache = req.body?.bypassCache === true || !!activeTxRefine;
+    // A measurement run (bypassCache, credential only) is the one caller exempt from the daily circuit
+    // breaker below; a transmission refinement is not (it was, and could spend past the day's budget).
+    const measuring = req.body?.bypassCache === true;
+    // SIGNED OUT NEVER METERS (open-search policy): only our own jobs (credential), crew and a verified
+    // signed-in session may trigger a metered OldCarsData fetch. Everyone else is answered from the cache
+    // and the permanent store/archive through this same engine (the archiveOnly path below).
+    const meterAllowed = credentialed || crewBypass || !!searchAccountId;
     if (!bypassCache && await readMarketFetchCache(vehicle, supabaseUrl, supabaseKey)) {
       fetchResult = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation);
       cacheStatus = fetchResult ? "hit" : "hit_store_empty_refetched";
@@ -3802,15 +3802,16 @@ export default async function handler(req, res) {
     // other zero-OCD proof sets archiveOnly:true so the real /sell engine runs end-to-end on the
     // permanent store/archive instead of a live OCD fetch, guaranteeing zero metered requests. It
     // short-circuits BEFORE the budget guard and the live fetch below, so no OCD call is ever made.
-    const archiveOnly = req.body?.archiveOnly === true;
+    const archiveOnly = req.body?.archiveOnly === true || !meterAllowed;
     if (!fetchResult && archiveOnly) {
+      const publicOnly = !meterAllowed && req.body?.archiveOnly !== true;
       fetchResult = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation);
       if (fetchResult) {
-        fetchResult.stopReason = "archive_only";
-        cacheStatus = "archive_only_store";
+        fetchResult.stopReason = publicOnly ? "public_store_only" : "archive_only";
+        cacheStatus = publicOnly ? "public_store" : "archive_only_store";
       } else {
-        fetchResult = { records: [], passSummary: [], stoppedEarly: true, stopReason: "archive_only_empty", elapsedMs: 0, timeBudgetMs: FETCH_TIME_BUDGET_MS, meteredRequests: 0, ladder: buildLadder(vehicle, generation), fromCache: true };
-        cacheStatus = "archive_only";
+        fetchResult = { records: [], passSummary: [], stoppedEarly: true, stopReason: publicOnly ? "public_store_empty" : "archive_only_empty", elapsedMs: 0, timeBudgetMs: FETCH_TIME_BUDGET_MS, meteredRequests: 0, ladder: buildLadder(vehicle, generation), fromCache: true };
+        cacheStatus = publicOnly ? "public_store_empty" : "archive_only";
       }
     }
     // Budget guards (7A): daily pace + monthly cap, read from app_usage_events.
@@ -3852,7 +3853,7 @@ export default async function handler(req, res) {
       // Item 2: cap this search's live spend to whatever remains of the daily budget. bypassCache
       // (measurement) is exempt and keeps spending freely; the degrade branch below already serves the
       // store once usedToday has reached the cap, so a search that still proceeds has at least 1 left.
-      if (!bypassCache && usedToday !== null) perSearchMeteredCap = Math.max(0, dailyCap - usedToday);
+      if (!measuring && usedToday !== null) perSearchMeteredCap = Math.max(0, dailyCap - usedToday);
       // OCD's OWN remaining-quota header (persisted by the previous fetch) is the AUTHORITATIVE
       // monthly meter. Read it FIRST so both the monthly cap and the warm reserve reconcile against
       // OCD's real account usage, NOT the internal app_usage_events sum (which conflates one-time
@@ -3886,7 +3887,7 @@ export default async function handler(req, res) {
       // spends and logs real metered calls, but skips the soft-degrade so a
       // cold-fetch measurement is not silently served from the store when the
       // day's organic budget is already spent. Organic traffic stays fully guarded.
-      if (!bypassCache && (overDaily || overMonthly || overOcdRemaining || overSellReserve)) {
+      if (!measuring && (overDaily || overMonthly || overOcdRemaining || overSellReserve)) {
         // Loud log, soft degrade: no metered spend past the reached cap.
         const scope = overOcdRemaining ? "ocd_remaining" : overSellReserve ? "sell_monthly_reserve" : overMonthly ? "monthly" : "daily";
         console.error(`OCD budget guard [${scope}] (day ${usedToday}/${OCD_DAILY_REQUEST_BUDGET}, month ${monthlyUsedEffective}/${OCD_MONTHLY_BUDGET} via ${monthlySource}, ocd_remaining ${ocdRemaining}): soft degrading, no metered spend.`);

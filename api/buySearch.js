@@ -18,6 +18,8 @@ import { converse } from "../lib/live/converse.js";
 import { listingDetail, facetsOf, cardFlag, seenCount, listingSays, listingSamFacts, specOf, ladderSteps, walkLadder } from "../lib/live/search.js";
 import { vinAppearances } from "./_historyData.js";
 import { validateBearer } from "../lib/_auth.js";
+import { hasServerCredential } from "../lib/_credential.js";
+import { checkCeiling, testLimits, CALM } from "../lib/_ceilings.js";
 import { freshnessOn, underReserve, ocdWithRetry } from "../lib/live/ocdGuard.js";
 import { callOldCarsData, configureOcdUsage, flushOcdUsage } from "../lib/_ocd.js";
 import { mapLiveRecord, upsertLive } from "../lib/live/feed.js";
@@ -253,6 +255,17 @@ export default async function handler(req, res) {
     }
     if (b.action === "geocoverage") return res.status(200).json(await geoCoverage(env));
     if (b.action === "converse") return res.status(200).json(await converseOut(env, b));
+    // The invisible ceiling on every search path (lib/_ceilings.js, the one guard Buy and Sell share): a
+    // calm reply when hit, never a sign in demand. Our own jobs (credential) skip it unless a test ceiling
+    // is sent with them (x-ceiling-test), which is how the ceiling is tested without touching real numbers.
+    const searching = b.action === "chat" || b.action === "rerun" || b.action === "converse" || (!b.action && b.q);
+    if (searching) {
+      const cred = hasServerCredential(req), lim = testLimits(req, cred);
+      if (!cred || lim) {
+        const ce = await checkCeiling(env, req, b.action === "chat" ? "buy_chat" : "buy_search", { tool: "buy", limits: lim });
+        if (!ce.ok) return res.status(200).json(b.action === "chat" || b.action === "rerun" || b.action === "converse" ? { reply: CALM.search, cards: [], limited: true, turns: Number(b.turns) || 0 } : { status: "unresolved", message: CALM.search, limited: true });
+      }
+    }
     if (b.action === "chat") return await buyChat(res, env, b);
     // The searching state's "what has been understood so far": the words parsed and the car resolved (the
     // same parser and resolver the search uses, no model call), as short chips. Never a count.
@@ -277,7 +290,9 @@ export default async function handler(req, res) {
       const cards = await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; }));
       return res.status(200).json({ reply: out.reply, searchNote: null, cards, noun: out.noun, meta: out.meta, state: out.state, turns: (Number(b.turns) || 0) + 1 });
     }
-    if (b.action === "detail") return res.status(200).json(await detailOut(env, b));
+    // The detail's live bid refresh can meter one upstream call: only our own jobs may trigger it, never a
+    // public visitor (open-search policy: public answers come from the cache and the archive only).
+    if (b.action === "detail") return res.status(200).json(await detailOut(env, b, { fresh: hasServerCredential(req) }));
     if (b.action === "save" || b.action === "list" || b.action === "watchsearch" || b.action === "remove" || b.action === "visit" || b.action === "hide" || b.action === "hideall") return await savedSearches(env, req, res, b);
     if (b.action === "alerts_ready") return res.status(200).json({ ready: await alertsReady(env) });
     if (b.action === "arm" || b.action === "disarm" || b.action === "alerts" || b.action === "alert_test") {
@@ -403,11 +418,11 @@ async function setAsideOf(env, aside) {
     return { id: c.id, title: c.title, url: c.url, photo_url: c.photo_url, colour: c.colour, year: c.year, why: ASIDE_KINDS[c.flag.kind], query: m && m.query ? m.query : null };
   }));
 }
-async function detailOut(env, b) {
+async function detailOut(env, b, opts = {}) {
   const id = Number(b.id); if (!Number.isFinite(id)) return { ok: false };
   const rows = await liveRows(env, `id=eq.${id}`);
   let row = rows && rows[0]; if (!row) return { ok: false };
-  row = await freshBid(env, row);
+  if (opts.fresh) row = await freshBid(env, row);
   const facts = listingFacts(row);
   const [detail, hist] = await Promise.all([listingDetail(env, row), row.vin_norm ? vinAppearances(env, row.vin_norm) : Promise.resolve(null)]);
   const history = hist && hist.appearances ? hist.appearances.map(a => ({ kind: a.kind, date: a.date, house: a.house, price: a.kind === "sale" ? a.priceUsd : a.bidUsd, miles: a.mileage, url: a.url })) : [];

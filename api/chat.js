@@ -1,4 +1,8 @@
 import { createHash } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { hasServerCredential } from "../lib/_credential.js";
+import { followupGuard, assistGuard } from "../lib/_ceilings.js";
 import { anthropicCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 
@@ -27,10 +31,25 @@ function narrationCacheKey(system, context, messages) {
     .digest("hex");
 }
 
+// SERVER-HELD PROMPTS (Oct 2026, open-search policy, spend protection). The page no longer sends a system
+// prompt: it names a mode, and the prompt is read here from the SAME files the page uses (js/chat-core.js
+// SYS, js/wizard.js SELL_SYS; vercel.json includeFiles), so there is one copy and no open model proxy.
+//   mode "assist":   a question before a search (the entry chat). Open, under the invisible ceiling.
+//   mode "followup": a question about a result (the Sell follow-up chat). The ONE gated action: a verified
+//                    signed-in session (checked here, never a client flag), a daily allowance per account,
+//                    and the ceiling. Signed out gets the sign in line.
+// Our own jobs (lib/_credential.js header credential) may still send their own prompt, for the smoke tests.
+function promptFrom(file, name) {
+  try { const s = fs.readFileSync(path.join(process.cwd(), file), "utf8"); const i = s.indexOf("const " + name + "=`"), j = s.indexOf("`;", i); return i < 0 || j < 0 ? null : s.slice(i + name.length + 8, j); } catch { return null; }
+}
+let PROMPTS = null;
+const prompts = () => PROMPTS || (PROMPTS = { assist: promptFrom("js/chat-core.js", "SYS"), followup: promptFrom("js/wizard.js", "SELL_SYS") });
+const MAX_MSG = 2000, MAX_TOTAL = 12000, MAX_TURNS = 12, MAX_CONTEXT = 20000, MAX_OUT = 700;
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
@@ -42,7 +61,25 @@ export default async function handler(req, res) {
 
   // `system` is the static prompt (cached as a prefix by Anthropic); `context`
   // carries per-turn state (wizard step, sell state) so it never breaks the cache.
-  const { messages, system, context } = req.body;
+  const body = req.body || {}, P = prompts(), cred = hasServerCredential(req), env = { supabaseUrl, supabaseKey };
+  // The mode, and its server-held prompt. A page still on an older script sends the prompt itself: it is
+  // accepted only when it is exactly one of the two held here (so it can never be a different prompt).
+  let mode = body.mode === "followup" || body.mode === "assist" ? body.mode
+    : (body.system && body.system === P.followup ? "followup" : body.system && body.system === P.assist ? "assist" : null);
+  let system = mode ? P[mode] : null;
+  if (cred && body.system && !mode) { system = String(body.system); mode = "followup"; }   // our smoke tests only
+  if (!system) return res.status(400).json({ error: "Unknown chat." });
+  // Size caps: the last 12 turns, 2,000 characters each, 12,000 in all; the result facts up to 20,000.
+  let messages = (Array.isArray(body.messages) ? body.messages : []).filter(m => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+    .slice(-MAX_TURNS).map(m => ({ role: m.role, content: m.content.slice(0, MAX_MSG) }));
+  while (messages.length > 1 && messages.reduce((n, m) => n + m.content.length, 0) > MAX_TOTAL) messages.shift();
+  while (messages.length && messages[0].role !== "user") messages.shift();
+  if (!messages.length || messages[messages.length - 1].role !== "user") return res.status(400).json({ error: "Nothing to answer." });
+  const context = body.context ? String(body.context).slice(0, MAX_CONTEXT) : undefined;
+  // The one guard (lib/_ceilings.js): the follow-up needs a verified session and has a daily allowance; a
+  // question before a search is open. Both sit under the invisible ceiling.
+  const g = mode === "followup" ? await followupGuard(env, req) : await assistGuard(env, req);
+  if (!g.ok) return res.status(200).json(g.body);
   const systemBlocks = [];
   if (system) systemBlocks.push({ type: "text", text: String(system), cache_control: { type: "ephemeral" } });
   if (context) systemBlocks.push({ type: "text", text: String(context) });
@@ -74,7 +111,7 @@ export default async function handler(req, res) {
   // live chat layer: a dead Anthropic key must fail loudly, never be masked
   // by a year-old cached answer.
   const cacheKey = narrationCacheKey(system, context, messages);
-  if (!req.body?.bypassCache) {
+  if (!(cred && body.bypassCache)) {
     const cachedRows = await supabaseSelect({ supabaseUrl, supabaseKey }, `narration_cache?cache_key=eq.${cacheKey}&select=response_text&limit=1`);
     const cachedText = cachedRows?.[0]?.response_text;
     if (cachedText) {
@@ -107,7 +144,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: CHAT_MODEL,
-        max_tokens: 1000,
+        max_tokens: MAX_OUT,
         system: systemBlocks.length ? systemBlocks : undefined,
         messages: messages
       })

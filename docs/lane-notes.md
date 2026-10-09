@@ -1713,3 +1713,225 @@ when the work has landed.
   either way; next nightly run will show it either way.
   Search check: no public page title/H1/canonical/lead/address touched - this round is cookie + event-
   logging plumbing only, zero visible copy change anywhere.
+- 2026-10-09 (Lane B, REPORT ONLY, for Sam/Claude to check against the plan - read-only, nothing changed,
+  everything below re-verified against the actual code and one live engine call just now, not from memory).
+
+  1. VISITOR ID. `lib/_visitor.js` `ensureVisitorId(req, res)` mints it; `readVisitorId(req)` reads it without
+     minting. Stored as a first-party cookie, name `gas_vid`, `Max-Age` ~730 days (2 years), `Path=/;
+     SameSite=Lax; Secure`, not HttpOnly (matches every other `gas_*` cookie in this codebase). Value is
+     `crypto.randomUUID()` (fallback: timestamp + `Math.random()` string if `randomUUID` is unavailable) -
+     opaque, no email, no typed text, no personal data of any kind. Confirmed skipped for crew: line 41,
+     `if (cookies.gas_crew === "ok") return null` - a crew cookie means no `gas_vid` is ever minted or read.
+     Also skipped for the EEA/UK/Switzerland (same list `lib/analytics.js GA_BLOCKED_COUNTRIES` already
+     uses for the GA tag, read via the free `x-vercel-ip-country` header) - no cookie, no cost, same honest
+     non-coverage as the GA numbers already have for that traffic.
+     ONE THING TO FLAG, verified just now rather than assumed: `ensureVisitorId` (the only function that can
+     actually MINT the cookie) is called from exactly one place, `api/funnel.js` line 85, inside its
+     client-event beacon handler. `api/account.js` only ever calls `readVisitorId` (read-only, never mints).
+     The only automatic page-load beacon, `gasFunnelOnce("homepage_view")`, fires inside `authBoot()`
+     (`js/auth.js` line 324) - the FULL wizard boot, used only by the old `/sell` page. Market Check, Buy,
+     Tasks and the Sell landing all boot through `authBootTopbarOnly()` (added by Lane A's shared top-bar
+     work) which explicitly skips that beacon (comment at line ~675: "no homepage_view funnel event, which
+     would otherwise mislabel every page's first load"). So on those four pages, `gas_vid` is NOT minted on
+     page load - only once some other beacon fires. In practice the first beacon that fires on nearly every
+     page is `gasFunnel("signup_shown")` inside `openSignInCard()` (`js/auth.js` line 244, the shared
+     sign-in card, used everywhere), so a visitor who never opens the sign-in card and never does anything
+     else that beacons today (Market Check's own `js/onebox.js` never calls `gasFunnel` at all - confirmed
+     by grep, zero matches) gets no visitor id at all yet. Not a bug in what I built; a direct consequence
+     of `market_check_open`/`search` not being wired into any page yet (see point 3).
+
+  2. STITCHING. `api/account.js` line 191-194: on every `/api/account` ensure (not just a fresh sign-in),
+     `readVisitorId(req)` reads the cookie and `stitchVisitorToAccount(env, visitorId, auth.userId)`
+     (`lib/events.js`) upserts it into a NEW table, `visitor_links` (`visitor_id` primary key, `user_id`,
+     `first_seen_at`, `linked_at`; `docs/supabase-visitor-tracking.sql`, Sam runs this once, standing rule -
+     not yet applied, so every write degrades to a silent no-op until then). RLS: `alter table
+     visitor_links enable row level security; revoke all on visitor_links from anon, authenticated;` - locked
+     down from creation per the standing DB security rule, confirmed in the SQL file itself. The upsert is
+     `on_conflict=visitor_id` with `resolution=merge-duplicates` - last-write-wins if the same cookie later
+     links to a different account (a shared device), which also means admin reads (a join against this
+     table's CURRENT state) attribute all of that visitor_id's history to whichever account it points to
+     NOW, not at query time historically - flagged as a Stage-1 simplification in the file's own comment,
+     not a bug.
+     Does earlier anonymous history stay attached? Mechanically yes - any `funnel_events` row carrying that
+     same `visitor_id` is picked up by every admin query that joins on it (point 5's SQL), regardless of
+     when it was written relative to `linked_at`. HONEST CAVEAT: today almost nothing populates `visitor_id`
+     except the handful of events already wired (point 3), so there is very little real "anonymous history"
+     to actually demonstrate yet - the plumbing is correct and would carry forward any future event the
+     moment it starts carrying a visitor_id, but it is not yet proven end to end with a real account (no
+     disposable test account was available this session, noted honestly in the prior round's report too).
+
+  3. EVENTS. Full list in `lib/events.js` `EVENTS`: `search`, `cross_product_move`, `market_check_open`,
+     `receipt_click`, `auction_clickout`, `task_created`, `watch_created`, `sell_followup_gated`,
+     `sign_in_started`, `sign_in_completed`, `rate_limit_hit` - all 11 of the ones Sam named exist by name.
+     Which actually fire today, checked by grep for real call sites (not just being in the client-allowed
+     list):
+       - `sign_in_started`: WIRED, `js/auth.js` (`authSignInGoogle`, `authSignInEmail`), fires on both doors.
+       - `sign_in_completed`: WIRED, `api/account.js`, only when the client sends `freshSignIn:true` (set by
+         `js/auth.js` on the three real fresh-sign-in call sites, never on a routine tier-refresh boot).
+       - `search`: NOT WIRED anywhere (zero call sites in api/buySearch.js, api/sellerDecision.js, or
+         anywhere else) - every search-volume view in point 5 that depends on it reads zero today, honestly.
+       - `market_check_open`, `cross_product_move`, `receipt_click`, `auction_clickout`, `task_created`,
+         `watch_created`: NOT WIRED - these are in `api/funnel.js`'s client-ALLOWED set (so a page COULD
+         send them) but no page actually calls `gasFunnel` with any of these names yet (confirmed by grep
+         across js/). Proposed call patterns and owning lane are in `docs/admin-analytics.md`.
+       - `sell_followup_gated`: NOT wired as of my last commit, but IS being wired right now in Lane C's
+         in-progress, UNCOMMITTED work I can see sitting in the shared working tree as of this report
+         (`api/chat.js` line 92, `lib/_ceilings.js` new file) - correctly importing `logEvent`/`EVENTS` from
+         my file. Flagging as "in progress elsewhere, uncommitted" rather than claiming it as shipped; I did
+         not touch or read further into those files, since they are not mine and still mid-edit.
+       - `rate_limit_hit`: same situation - `lib/_ceilings.js` (uncommitted, Lane C's file) already imports
+         `logEvent`/`EVENTS.RATE_LIMIT_HIT` from `lib/events.js` with `props:{kind, scope}`. Not committed
+         as of this report, so not counted as wired in the summary above.
+     Nothing is missing by NAME; the gap is entirely in which lanes have wired their own fire points, which
+     was always proposed-to-the-owning-lane, not mine to do (api/buySearch.js, api/sellerDecision.js,
+     js/onebox.js, api/tasksPage.js, api/watch.js are not my files).
+
+  4. FIRST TOUCH. `js/auth.js` `gasCaptureTouch()`/`gasClassifySource()` (lines 364-389) read `utm_source`/
+     `utm_medium`/`utm_campaign` + `document.referrer` and write `localStorage.gas_first_touch` /
+     `gas_last_touch`, classified (Direct/Organic/Social/Referral/named-source/"The Daily Vroom"). This runs
+     UNCONDITIONALLY at script parse time (line 400, top-level, not inside either boot function) - so it
+     fires on every page that loads `js/auth.js`, topbar-only pages included. Confirmed this is REAL, broad
+     capture, not just a doc claim.
+     HONEST GAP: `gasAttribution()` (the function that reads those two localStorage keys back out) is only
+     ever called from ONE place in the whole codebase - `gasJourneyEvent` (line 411), Sell's own per-vehicle
+     "business journey" beacon (a different payload shape, `kind:"journey"`, writing to the separate
+     `journeys` table, not `funnel_events`). First touch is captured broadly but attached to NOTHING in the
+     canonical pipeline today - not to `visitor_id`, not to `visitor_links`, not to any `logEvent` call, not
+     to the account. It is real and reusable (the data is sitting in localStorage on most pages right now),
+     but "attached to the visitor and later the account" is a proposal in `docs/admin-analytics.md`, not a
+     shipped fact - correcting my own earlier phrasing if it read as more finished than it is.
+
+  5. VIEWS. All the SQL lives in `docs/admin-analytics.md`, reading `funnel_events` (+ `visitor_links` for
+     the anon->account join) - none of it is wired into an actual admin PAGE yet (that UI is explicitly the
+     next step, not built this round). What each would return RIGHT NOW if run, checked against point 3's
+     wiring, not assumed:
+       - Unique/returning visitors: SOME real rows (any event with a non-null `visitor_id` counts, and
+         `sign_in_started`/`sign_in_completed` do carry one) - a real but heavily undercounted number, since
+         most visits never trigger any wired event yet.
+       - Searches per visitor, searches by tool, cross-product usage, "3+ searches before signing in": all
+         filter on `event='search'` - zero rows, honestly, until that event is wired.
+       - 7-day/30-day repeat rate: partially real (uses `first_seen`/any later event on the same visitor_id,
+         not search-specific) but same undercounting as unique visitors.
+       - Market Check opens, receipt clicks, auction clickouts, tasks created: zero - none of those events
+         fire yet.
+       - Anonymous -> registered conversion: CAN be real today - it only needs a `visitor_links` row plus
+         any earlier `funnel_events` row on that visitor_id (e.g. `signup_shown`/`sign_in_started` logged
+         before the account existed), both of which already happen on a real sign-in.
+       - Best acquisition sources: the query is written but reads `props->>'source'` off `sign_in_completed`
+         - and `api/account.js`'s actual `logEvent` call for `sign_in_completed` does NOT pass `props` at
+         all today (checked the call site directly: `{event: EVENTS.SIGN_IN_COMPLETED, userId, visitorId}`,
+         no `props`). This view returns zero/null-grouped rows until that gap is closed - flagging
+         precisely rather than leaving it to be discovered later. Small fix (pass `props:{source:
+         gasAttribution().first?.source}` at that call site) but not made this round - report only.
+     In short: the SCHEMA and SQL are ready for all eleven; the DATA exists today only for sign-in-adjacent
+     activity and the anon->account bridge, because `search` (the one event nearly every other view depends
+     on) is still unwired, by design - it was proposed to Lane A/C, not built here.
+
+  6. CONSENT. The in-house visitor id sits in the same EU ePrivacy/UK PECR gray area as any persistent
+     first-party identifier used for analytics - some readings treat a strictly-necessary/security use as
+     exempt, others treat any non-essential persistent id as needing consent regardless of whether the data
+     itself is personal. GoAskSam's GA4 tag resolves the equivalent question today by simply never loading
+     for the EEA, UK or Switzerland: `api/gaConsent.js` returns `{load:false}` for crew and for those
+     countries (checked via the free `x-vercel-ip-country` header), and `lib/analytics.js` `gaBootstrapHtml()`
+     never even creates the `<script src=".../gtag/js">` tag unless that check says `load:true` - there is
+     no consent-mode fallback, no reduced tag, nothing loads at all for that traffic today. The new visitor
+     id applies the exact same default (`ensureVisitorId` returns `null`, mints no cookie, for the same
+     country list) - a technical default matching the existing GA behavior, not a policy decision Sam has
+     made. Needs a real decision before EEA/UK/CH traffic is ever counted: either a consent banner, or a
+     legitimate-interest/strictly-necessary case Sam is comfortable standing behind. Not shipped either way.
+
+     Draft Privacy page paragraph (for approval, not on any live page, no dashes, no other tool named):
+
+     > How we measure usage. GoAskSam sets a random, anonymous identifier in your browser, not tied to your
+     > name or email, so we can tell how many people use the site and which features are useful, and to
+     > keep search fair for everyone. It never leaves our systems, is never sold or shared, and never
+     > follows you to other websites. If you create an account, this identifier is linked to it so your
+     > search history carries over between devices. You can ask us to delete it at any time. We do not set
+     > this identifier for visitors in the EU, UK or Switzerland at this time.
+
+  7. THE FASTBACK MISMATCH. Tested live just now rather than relying on the comment in `samChat.js`, because
+     static reading of `lib/vehicle.js` did not match what the engine actually does - worth stating plainly
+     since it corrects the premise in how this was described to me.
+     VERIFIED (via the read-only `?task=obdiag` probe against the live engine): for "1967 Ford Mustang
+     Fastback", `resolveVehicle` (`lib/vehicle.js`) does NOT set `bodyStyle` to "coupe". It sets neither a
+     body style nor a trim - the word "fastback" is in `BODY_STYLE_ENUM_WORDS` (line 58), which is consulted
+     only to EXCLUDE "fastback" from being captured as a generic leftover trim token (lines 489, 2190); it
+     is NOT in `BODY_STYLE_WORDS` (line 113), the shorter list `extractBodyStyle` actually uses to set
+     `bodyStyle`. So resolveVehicle hands back `{bodyStyle: null, trim: null}` for this query, confirmed by
+     the probe's own output. The literal "fastback" -> "coupe" mapping that DOES exist in `lib/vehicle.js`
+     (line 686, inside `bodyStyleFromVpic`) only fires when decoding a VIN's vPIC BodyClass string - a
+     completely different code path from a typed query, never reached here.
+     What actually happens in each product, confirmed live:
+       - MARKET CHECK (`lib/onebox.js` `runOneBox`): does its own INDEPENDENT rescan of the raw search text
+         (separate from resolveVehicle's output - the same mechanism already noted in the file at line 1041
+         for "Targa"), and sets its internal `poolTrim` to "Fastback" directly. Live result: 41 matching
+         sales, generation-bound 1965-1971, cluster $41,000-$66,500, every sampled title containing the
+         literal word "Fastback" - correctly fastback-only, no hardtops mixed in.
+       - BUY (`lib/live/samChat.js` line 248): intercepts the word "fastback" in the chat text BEFORE the
+         search runs, explicitly sets `filters.trim = "Fastback"` and drops any `body` filter the upstream
+         parser had set - reaching the same semantic scope as Market Check by its own, separate, hand-written
+         regex rather than by calling into the same mechanism Market Check uses.
+       - SELL, the part that actually drives the live page's venue pick and evidence-count tile (`analyze()`/
+         `decide()` in `api/sellerDecision.js`, NOT `runOneBox` - this round's ONE RANGE fix only moved the
+         asking-line SENTENCE to `runOneBox`, not the venue pick): tested live via `?task=sellreal` for the
+         same exact query. It lands on `ladderLanded: "exact_year_trim"` with only 3 total evidence sales
+         (priced sample of 2, band $47,000-$76,067) - a radically thinner, differently-priced pool than
+         Market Check's 41. This is the real disagreement: not a body-style miscategorization, but Sell's
+         legacy venue-pick ladder reading a far smaller pool for the identical car than the shared engine
+         does, because it has no equivalent of either Market Check's rescan or Buy's regex carve-out of its
+         own - its own classifier (`lib/_classify.js`) is matching "Fastback" some narrower way that neither
+         of the other two paths uses. (This number itself has moved before: an earlier `sellerDecision.js`
+         comment, line 613, records a prior state of this same car at 25+3=28 total sales under a different
+         venue-pick audit - the legacy ladder's count for this car has not been stable across rounds, which
+         is itself evidence it is not reading the same thing runOneBox reads.)
+     PROPOSED FIX (not implemented, per the instruction) - and adjusted from how the question named it,
+     since resolveVehicle is not actually where the three disagree: the one change that would make all three
+     agree, placed in `resolveVehicle` as asked, is to stop EXCLUDING "fastback" from the trim-token
+     extractor and instead let it become `vehicle.trim = "Fastback"` directly in the shared resolver (a
+     small, explicit exception alongside the existing `isBodyStyleWord` exclusion, scoped to this one word
+     per the ask - not a general reopening of body-style-as-trim). That would give every downstream
+     consumer - Market Check's `runOneBox`, Buy's `samChat.js` (whose own regex carve-out could then be
+     deleted as redundant), and Sell's `analyze()`/`decide()` ladder (which has no carve-out of its own
+     today and is the one actually disagreeing) - the SAME resolved `vehicle.trim` to match against, instead
+     of three independent, differently-scoped guesses at the same word. Not implemented this round.
+- 2026-10-09 (Lane C): OPEN-SEARCH POLICY, PART 1 (SPEND PROTECTION).
+  * lib/_credential.js hasServerCredential(req): the ONE "this is us" check. x-probe-key / x-ops-key header
+    (PROBE_KEY, OPS_KEY) or Authorization: Bearer CRON_SECRET. Never the address or the body. Keys from env only.
+  * api/sellerDecision.js: SERVER_ONLY_FLAGS (warm, bypassCache, rerun, poolDiag, backfillCount, archiveQuery,
+    oneBoxProof, titleSearch, cacheStats, reserveSim, debug) are deleted from the body at the top of the handler
+    unless credentialed; a public request then runs as an ordinary search. Public on purpose (each only reduces
+    spend): archiveOnly, ladderPreview, priceProbe, oneBox. CALLERS: scripts/warm.js (nightly warm; WARM_OCD is
+    off) and scripts/smokeProd.js and scripts/engineCheck.js now send x-probe-key from PROBE_KEY. The dev probe
+    scripts using archiveQuery (probeBatQuarters, probePoolDiag, probeDeskPool, probeR, probeYearCounts,
+    probeChecks, probeCountRetry, probeOnline, probeSample, hvt100) need the header too when next run.
+    crossProductCheck and the ops tasks import the engine directly (unaffected).
+  * SIGNED OUT NEVER METERS: meterAllowed = credential or crew or a verified signed-in session; anyone else is
+    answered by the existing archiveOnly path (fetchRecordsFromStore, cacheStatus "public_store"), transmission
+    refinements included. The daily circuit breaker (OCD_DAILY_REQUEST_BUDGET, monthly, OCD header, sell
+    reserve) now applies to every metered fetch except a credentialed measurement (refinements were exempt);
+    trips log ocd_budget_guard and show in /api/usageDashboard?view=ops&task=ocdmeter "breaker". Buy's one
+    metered call (detail freshBid) is credential only.
+  * api/chat.js: prompts held server side (read from js/chat-core.js SYS and js/wizard.js SELL_SYS, vercel.json
+    includeFiles); the page sends mode "assist" (open) or "followup" (gated). A made-up prompt is refused; our own
+    jobs may send one with the credential (smoke). Caps: 12 turns, 2,000 characters a message, 12,000 in all,
+    20,000 of result facts, 700 tokens out. lib/_ceilings.js followupGuard is the ONE gate for live /sell's
+    follow-up AND the new Sell's ask/chat (api/sellChat.js): verified session, ceiling, daily allowance per
+    account (free 40, Daily Vroom 80), logs sell_followup_gated.
+  * lib/_ceilings.js checkCeiling: the ONE invisible ceiling for Buy (search, chat, rerun, converse) and both Sells
+    (sellerDecision's gate replaces the old 60 per address per hour; api/sellChat result). Device aware: Lane B's
+    gas_vid, else a cookieless address+browser stand-in; a far higher address backstop. Numbers from the last 30
+    days: busiest real Buy browser 12 searches a day (p99 10); busiest non-crew Sell address about 30 a day;
+    typical chatting address 7 a day. Ceilings (device hour/day, address hour/day): buy_search 150/600,
+    900/4000; buy_chat 60/200, 400/1500; sell_search 60/300, 400/2000; sell_chat 40/150, 300/1200; sell_assist
+    20/60, 200/800. Hits log rate_limit_hit and show a calm line, never a sign in demand. Test with a credentialed
+    request plus x-ceiling-test: n (and x-allowance-test: n) only; production numbers are untouched.
+  * CACHE QUESTION (for Sam): last 7 days of /sell searches: 88 cache hits, 30 misses, 12 served from the store
+    after a rate limit; organic miss rate 23%; the misses spent 125 metered calls (74 of them for signed-out
+    visitors). A miss for a car never searched before has little or nothing in the store, so a signed-in visitor
+    can still get a fresher read than a signed-out one on that 23%. PROPOSAL (waiting for Sam): one cache-first
+    rule for everyone (signed in or not) with a single global daily metered budget, so the answer never depends
+    on sign in.
+  * FOR SAM, two workflow edits (docs/nightly-workflow.yml already matches): (1) .github/workflows/nightly.yml,
+    warm job env: add `PROBE_KEY: ${{ secrets.PROBE_KEY }}`; (2) the premium step: replace
+    `--data-urlencode "key=${PROBE_KEY}"` with `-H "x-ops-key: ${PROBE_KEY}"`. And .github/workflows/smoke-prod.yml:
+    add `PROBE_KEY: ${{ secrets.PROBE_KEY }}` to the env of both smoke steps (the chat checks need the header).

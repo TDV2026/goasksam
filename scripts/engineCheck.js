@@ -149,7 +149,7 @@ async function main() {
   await p.goto(BASE, { waitUntil: "domcontentloaded", timeout: 90000 });
 
   const call = (body) => p.evaluate(async (base, body) => {
-    const r = await fetch(base + "/api/sellerDecision", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const r = await fetch(base + "/api/sellerDecision", { method: "POST", credentials: "include", headers: { "content-type": "application/json", ...(process.env.PROBE_KEY ? { "x-probe-key": process.env.PROBE_KEY } : {}) }, body: JSON.stringify(body) });
     try { return await r.json(); } catch (e) { return { status: "parse_error" }; }
   }, BASE, body);
   // The One Box VIN exact-car match is computed by /api/vehicleIdentity (vinResolve), so a VIN row

@@ -4,6 +4,8 @@
 import { supabaseEnv } from "../lib/_supabase.js";
 import { chatOut } from "../lib/live/chatHttp.js";
 import { runSellTurn } from "../lib/sell/sellChat.js";
+import { checkCeiling, followupGuard, testLimits, CALM } from "../lib/_ceilings.js";
+import { hasServerCredential } from "../lib/_credential.js";
 
 export default async function handler(req, res) {
   // SWITCHED OFF (Oct 8 2026, Sam): /sell is back on the previous front page and wizard (api/sellPage.js).
@@ -21,12 +23,17 @@ export default async function handler(req, res) {
     try {
       if (b.step === "state") return res.status(200).json({ state: stateOf(b.text) });
       // A follow-up question after the result: Claude on the shared chat core, the engine's facts in words.
+      // The follow-up calls the model: the ONE gated action, through the same guard as live /sell's chat.
       if (b.step === "ask") {
+        const g = await followupGuard(env, req);
+        if (!g.ok) return res.status(200).json(g.body);
         const { followUp } = await import("../lib/sell/sellFollow.js");
         const { CHAT_MODEL } = await import("../lib/live/chatHttp.js");
         if (!process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: "Sam is unavailable right now." });
         return res.status(200).json(await followUp(env, { carText: String(b.car || "").slice(0, 300), state: stateOf(b.state) || null, how: ["self", "handled", "house", "unsure"].includes(b.how) ? b.how : "unsure", rush: ["fast", "month", "none"].includes(b.rush) ? b.rush : null, question: String(b.question || "").slice(0, 600), history: b.history, apiKey: process.env.ANTHROPIC_API_KEY, model: CHAT_MODEL }));
       }
+      // The result: open to everyone, under the same invisible ceiling as live /sell's search (one guard).
+      if (b.step === "result") { const cred = hasServerCredential(req), lim = testLimits(req, cred); if (!cred || lim) { const ce = await checkCeiling(env, req, "sell_search", { tool: "sell", limits: lim }); if (!ce.ok) return res.status(200).json({ empty: CALM.search, limited: true }); } }
       if (b.step === "result") return res.status(200).json(await buildResult(env, { carText: String(b.car || "").slice(0, 300), state: stateOf(b.state) || null, how: ["self", "handled", "house", "unsure"].includes(b.how) ? b.how : "unsure", rush: ["fast", "month", "none"].includes(b.rush) ? b.rush : null }));
       return res.status(400).json({ error: "unknown step" });
     } catch (e) { console.error("sell flow failed:", (e && e.stack) || e); return res.status(500).json({ error: "Sam couldn't read that just now." }); }
@@ -56,5 +63,7 @@ export default async function handler(req, res) {
     return res.status(200).json(out);
   }
   if (b.action !== "chat") return res.status(400).json({ error: "unknown action" });
+  // The conversational Sell calls the model on every turn: the same gate as the follow-up (one guard).
+  { const g = await followupGuard(env, req); if (!g.ok) return res.status(200).json(g.body); }
   return chatOut(res, env, b, { surface: "sell", run: runSellTurn, shape: async out => ({ page: out.page || null, cards: [] }) });
 }

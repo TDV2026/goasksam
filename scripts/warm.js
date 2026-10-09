@@ -63,7 +63,11 @@ saveCursor((cursor + batch.length) % list.length);
 // call will fail the res.ok check below (loud), instead of the old phantom-"warmed" success.
 const BYPASS = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || "";
 if (!BYPASS) console.error("::warning::VERCEL_AUTOMATION_BYPASS_SECRET is not set; warm calls will be blocked by the Vercel Security Checkpoint (429).");
-const reqHeaders = { "Content-Type": "application/json", ...(BYPASS ? { "x-vercel-protection-bypass": BYPASS } : {}) };
+// warm:true is honoured only with our own credential in a header (api/sellerDecision.js, lib/_credential.js):
+// the nightly job passes PROBE_KEY from its secrets. Never in the address.
+const PROBE = process.env.PROBE_KEY || "";
+if (!PROBE) console.error("::warning::PROBE_KEY is not set; warm:true will be ignored and each warm runs as an ordinary public search (archive only).");
+const reqHeaders = { "Content-Type": "application/json", ...(BYPASS ? { "x-vercel-protection-bypass": BYPASS } : {}), ...(PROBE ? { "x-probe-key": PROBE } : {}) };
 
 // OCD-spend gate (Oct 2026). The nightly warm's only job - pre-populating the /sell market-fetch
 // cache so a first search is fast - re-fetches the SAME ~30 nameplates from OldCarsData every night,
