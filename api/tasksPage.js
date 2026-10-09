@@ -297,7 +297,8 @@ const APP_JS = String.raw`(function(){
   function send(text){
     if (busy) return; busy = true;
     var sb = document.querySelector("[data-send]"); if (sb) { sb.disabled = true; sb.textContent = "Sam is reading..."; } var qi = $("tkq"); if (qi) qi.readOnly = true;
-    var tasks = (data && data.tasks) || [], cur = tasks.filter(function(t){ return ["running", "needs_you", "paused"].indexOf(t.state) >= 0; })[0];
+    // The box speaks to the WORKING task when there is one (the same task render() shows); with none, a new draft.
+    var tasks = (data && data.tasks) || [], cur = tasks.filter(function(t){ return ["running", "needs_you"].indexOf(t.state) >= 0; })[0];
     var body = cur ? { action: "say", task_id: cur.id, text: text, pending: pending } : { action: "say", text: text, draft: draft, seed: draft ? null : seedObj() };
     api(body).then(function(j){
       busy = false; editing = false; reply = j.reply || ""; note = j.blocked ? blockedNote(j.blocked.state) : "";
