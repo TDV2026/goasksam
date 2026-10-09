@@ -18,7 +18,7 @@ const ALLOWED = new Set(["homepage_view", "wizard_start", "wizard_complete", "si
   // client-emittable ones only; SEARCH/RATE_LIMIT_HIT/SIGN_IN_COMPLETED are logged
   // server-side where the search/gate/account logic already runs, never through here.
   EVENTS.CROSS_PRODUCT_MOVE, EVENTS.MARKET_CHECK_OPEN, EVENTS.RECEIPT_CLICK, EVENTS.AUCTION_CLICKOUT,
-  EVENTS.TASK_CREATED, EVENTS.WATCH_CREATED, EVENTS.SELL_FOLLOWUP_GATED, EVENTS.SIGN_IN_STARTED]);
+  EVENTS.TASK_CREATED, EVENTS.WATCH_CREATED, EVENTS.SELL_FOLLOWUP_GATED, EVENTS.SIGN_IN_STARTED, EVENTS.PAGE_VIEW]);
 
 // HARD RULE (VIN feature): a raw 17-char VIN must NEVER be stored in a journey event.
 // The client only ever sends booleans/enums in journey metadata, but scrub defensively
@@ -83,8 +83,19 @@ export default async function handler(req, res) {
         // have ended (204) from an earlier branch above, but we're still inside the try
         // before this function's own res.status(204).end() below, so a Set-Cookie here lands.
         const visitorId = ensureVisitorId(req, res);
+        // page_view (Oct 2026, open-search policy Part 1.1): the one event every shell page sends on
+        // load (lib/appShell.js SHELL_JS). Its whole purpose is per-visitor counting, so skip the write
+        // entirely when there is no visitor id (crew or an EEA/UK/Switzerland visitor) rather than log
+        // an untagged row - same "no tracking at all" behavior those jurisdictions already get from GA.
+        if (event === EVENTS.PAGE_VIEW && !visitorId) { res.status(204).end(); return; }
         const tool = body.tool && ["buy", "market_check", "sell", "tasks"].includes(body.tool) ? body.tool : null;
-        const props = (body.props && typeof body.props === "object") ? scrubMetaVins(body.props) : null;
+        let props = (body.props && typeof body.props === "object") ? scrubMetaVins(body.props) : null;
+        // Defensive server-side trim for page_view's path (never trust the client's own promise not to
+        // send a query string or typed text): strip any query/hash and re-check it's a bare path.
+        if (event === EVENTS.PAGE_VIEW && props && typeof props.path === "string") {
+          const bare = props.path.split("?")[0].split("#")[0].slice(0, 200);
+          props = { path: /^\/[a-z0-9/_-]*$/i.test(bare) ? bare : "/" };
+        }
         await supabaseInsert("funnel_events", [{
           event,
           anon_session_id: body.anonSessionId ? String(body.anonSessionId).slice(0, 64) : null,
