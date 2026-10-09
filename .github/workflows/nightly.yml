@@ -32,7 +32,8 @@ permissions:
 
 jobs:
   ingest:
-    runs-on: ubuntu-latest
+    # Pinned to 24.04 so the ubuntu-latest migration to Ubuntu 26 (from Oct 19) cannot change the runner under us.
+    runs-on: ubuntu-24.04
     # A normal delta finishes in minutes; 55 min is a hard ceiling (raised from 40 so the VIN index
     # rebuild plus the VIN rollout cache can both finish) so a runaway (e.g. a blind DB
     # defeating the delta stop) can never walk for 80 minutes again.
@@ -94,7 +95,7 @@ jobs:
         id: marketcheckexample
         continue-on-error: true
         run: node scripts/buildMarketCheckExample.js
-      # NEW: builds the Sell landing example once a night
+      # Builds the Sell landing example once a night
       - name: Build Sell landing example (where the example car sells)
         id: sellexample
         continue-on-error: true
@@ -110,6 +111,12 @@ jobs:
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: node scripts/searchCheck.js
         continue-on-error: true
+      # NEW: proves Buy, Sell, Market Check and Tasks read the same pool for 20 specs.
+      # Records the table nightly; does not turn the job red yet.
+      - name: Cross-product engine check (Buy/Sell/Market Check/Tasks agree)
+        id: crossproductcheck
+        continue-on-error: true
+        run: node scripts/crossProductCheck.js
       - name: Fail the job if the VIN index step failed
         if: steps.vinindex.outcome == 'failure'
         run: |
@@ -125,7 +132,6 @@ jobs:
         run: |
           echo "::error::Market Check landing example build failed (see the Build Market Check landing example step above). Later steps still ran, but the job must end red. The landing still serves correctly off its own live fallback meanwhile. This is a cache freshness regression, not a correctness outage."
           exit 1
-      # NEW: turns the job red if the Sell example build failed
       - name: Fail the job if the Sell example step failed
         if: steps.sellexample.outcome == 'failure'
         run: |
@@ -137,7 +143,7 @@ jobs:
           echo "::error::VIN rollout cache precompute failed (see the Precompute VIN rollout cache step above). Later steps still ran, but the job must end red. The sitemaps still serve correctly off the live budgeted fallback meanwhile - this is a speed/completeness regression, not a correctness outage."
           exit 1
   warm:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: ingest
     timeout-minutes: 15
     # Only the nightly schedule warms; a manual backfill dispatch runs ingest only,
@@ -163,7 +169,7 @@ jobs:
           node scripts/warm.js --count=30
 
   attempts:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: ingest
     timeout-minutes: 30
     # Nightly non-sold refresh (reserve-not-met + withdrawn) via the filtered status=unsold
@@ -205,7 +211,7 @@ jobs:
           node scripts/ingestAttempts.js --months=1
 
   premium:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Depends on INGEST only (archive freshness), NOT warm: warm is now conditionally skipped
     # (OCD_SKIP_WARM), and a skipped dependency would otherwise skip this archive-only job too.
     needs: ingest
@@ -246,7 +252,7 @@ jobs:
           echo "Premium recompute OK: all partners persisted."
 
   cube:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: ingest
     timeout-minutes: 20
     # Sam Desk aggregates cube (Stage C, spec s15). Runs AFTER the sold delta so the
