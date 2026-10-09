@@ -2831,3 +2831,71 @@ when the work has landed.
     read the whole E92 M3 pool while Buy/Tasks keep the Competition title filter. Engine commits since the
     clean run: 15bb243 (pickPlatform), and whatever is uncommitted in lib/platformPick.js. Not investigated
     by Lane C (copy/behaviour round only). The 1991 911 Carrera 4 Targa "recent" mismatch is unchanged.
+- 2026-10-09 (Lane B): FLIP ROUND COMPLETE - Parts 3 to 5. PROBE_KEY read from macOS Keychain per
+  command (`security find-generic-password -s goasksam-probe -w`), sent only as `x-ops-key` header -
+  confirmed consistent with Lane C's own "keys in headers only" hardening landed this same round.
+  Commits this stretch: 9198bab (depthPick tie-break), 19b106e (platformpickaudit realPick field),
+  15bb243 (pickPlatform routable filter), 726ec18 (business_leads check). Thank you Lane C for already
+  landing the Buy search event fix (your recipe, exactly as handed off) and removing SELL_PICK_SHADOW -
+  both confirmed below.
+
+  PART 3, PROVE IT - rerun 40-car audit + 300(54)-car comparison, post-flip.
+  40-CAR AUDIT, FINAL STATE: `realPick` (the field this round added - buildSharedAnalysis fed into the
+  SAME `decide()` the real handler calls, reproducing production exactly without editing
+  api/sellerDecision.js) now agrees with `sharedPick` on 39 of 40 - up from 34/40 right after my first
+  fix, because of a SECOND bug I found and fixed in `lib/platformPick.js` itself: `platformTallies` had
+  no routable filter at all, so a thin pool's depth leader could be a non-routable evidence-only house
+  (RM Sotheby's, Broad Arrow) - a locked-rule violation. Fixed (commit 15bb243), confirmed live: CLK DTM,
+  Carrera RS, Countach and McLaren P1 all now agree. THE ONE REMAINING MISMATCH IS GT-R, and it is a REAL,
+  STILL-LIVE BUG ON THE PRODUCTION PAGE - see the urgent note above; not fixed by me (api/sellerDecision.js
+  is Lane C's file) and not yet fixed by Lane C either (checked the live function just now, unchanged).
+  CAMARO Z/28, CORVETTE ZR-1, BMW M5 2001 (the three named cars) - confirmed on the REAL
+  `/api/sellerDecision` endpoint (a loaded /sell page's own fetch, not a diagnostic):
+    1969 Camaro Z28:   recommendedPath "Bring a Trailer", priceBand $73,500-$93,500 (n=19)
+    1990 Corvette ZR-1: recommendedPath "Bring a Trailer", priceBand $26,500-$44,000 (n=49)
+    2001 BMW M5:        recommendedPath "Bring a Trailer", priceBand $23,500-$41,500 (n=58)
+    1967 Mustang Fastback: recommendedPath "Bring a Trailer", priceBand $41,000-$66,500 (n=41)
+  All four match Market Check's own cluster for the same car (checked separately, same session). THE
+  DOLLAR FIGURE A SELLER SEES IS CORRECT IN ALL 40 CASES INCLUDING GT-R (the ONE RANGE mechanism -
+  decision.priceBand via a fresh runOneBox call - is completely separate from the venue-pick logic this
+  round touched) - only the VENUE NAME is wrong for GT-R, never the number.
+  OLD (pre-flip, legacy capped fetch) vs REAL (post-flip) on the full 40: 35/40 agree. The 5
+  disagreements are the GOOD kind - Model A, Mustang GT350, Supra Turbo and Audi RS4 all go from a
+  1-4 sale legacy read to a 12-56 sale shared-pool read, matching Market Check's cluster closely in
+  every case; the 5th is GT-R, the known bug.
+  300-CAR COMPARISON: no literal 300-car list exists in this codebase (checked - scripts/warm.js's
+  SEED is 16 pairs/36 entries, a nightly-warm fallback only, not a comparison set; the real "top 300 by
+  volume" needs real search history this product does not have yet). Ran the actual maintained
+  cross-product set instead - `scripts/crossProductCheck.js` DEFAULT_SPECS, 55 real specs (57 extracted
+  minus 2 that turned out to be quoted text INSIDE a comment, not real entries - caught before running,
+  not reported as fake rows). 54 of 55 checked clean (one could not be isolated from a batch and was
+  folded into the next - not a failure, a batching accident); 53 of 54 ran with zero mismatch. The one
+  mismatch, "1991 Porsche 911 Carrera 4 Targa" -> resolves to "...Carrera 4" (loses Targa), is the
+  SAME, ALREADY-DOCUMENTED Targa body-style divergence from earlier this session (new finding 8) - a
+  pre-existing, already-tracked issue, not a regression from the flip, and not touched this round.
+
+  PART 4, LEGACY LADDER - a nuanced answer, not a clean yes/no. `pickRecommendedRoute`/
+  `analyzeRouteFit` (api/sellerDecision.js) are NOT removable: `decide()` calls them UNCONDITIONALLY,
+  with or without SELL_PICK_SHARED - the flag only changes which `analysis` object feeds them (the old
+  capped fetch, or `buildSharedAnalysis`'s shared-pool data). This IS the production pick logic now,
+  flag or no flag, and it still has the one live bug above. What the flip actually retired is the
+  SELL_PICK_SHADOW comparison code (Lane C: already removed, confirmed) - not the pick function itself.
+  Whether the OLD capped-OldCarsData-fetch path (`fetchRecentRecords`/`analyze`) is still needed for
+  anything else (platform-performance card details, reserve tiles) when the flag is on is a question
+  I can't answer without tracing further into api/sellerDecision.js, which I have not edited and am
+  not the owner of - FOR LANE C: if that fetch is now unconditionally skipped for the online pick
+  specifically when `sellPickSharedOn`, say so and it may be removable; if any other render path still
+  calls it, list it here for completeness. Not guessed at.
+
+  PART 5, BUSINESS LEADS - confirmed live via `trackingproof`: `business_leads` exists, anon read
+  correctly blocked (401). RLS + anon revoke working as designed; Lane A's /business form can save.
+
+  CHECKS: real browser confirms /sell /buy /tasks /market-check /business all 200, zero console errors,
+  both before and after every commit this round. `searchCheck.js` shows the same known curl-only
+  Attack-Challenge 429 pattern (unrelated to anything this round touched).
+
+  STILL OPEN for Lane C: the GT-R tie-break fix (urgent note above, exact line and fix given) - the
+  40-car rerun is now reported complete, so your note "not reported complete yet" is resolved; please
+  revisit the legacy-ladder removal question with that in mind. The rest of this round's findings (the
+  routable-house filter, the realPick diagnostic field) are in lib/platformPick.js and
+  api/usageDashboard.js, both pushed, no action needed from you on those.
