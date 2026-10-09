@@ -20,6 +20,8 @@ import { vinAppearances } from "./_historyData.js";
 import { validateBearer } from "../lib/_auth.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { checkCeiling, testLimits, CALM } from "../lib/_ceilings.js";
+import { logEvent, EVENTS } from "../lib/events.js";
+import { readVisitorId } from "../lib/_visitor.js";
 import { freshnessOn, underReserve, ocdWithRetry } from "../lib/live/ocdGuard.js";
 import { callOldCarsData, configureOcdUsage, flushOcdUsage } from "../lib/_ocd.js";
 import { mapLiveRecord, upsertLive } from "../lib/live/feed.js";
@@ -323,6 +325,10 @@ export default async function handler(req, res) {
     const emptyMarket = rows.length ? null : await familyMarket(env, v, f);
     const rest = capped.slice(FIRST).map(cardOf);
     logSearch(env, v, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
+    // search event (Oct 2026, open-search policy Part 1.2): the canonical vocabulary's own record of
+    // this search, alongside (not replacing) the existing search_events log above - that table has no
+    // visitor_id/admin-dashboard join, this one does. Resolved make|model key only, never the typed q.
+    if (v && v.make) logEvent(env, { event: EVENTS.SEARCH, tool: "buy", visitorId: readVisitorId(req), props: { key: `${v.make}|${v.model || ""}` } }).catch(() => {});
     const familyKey = ["family", v.make, v.parentModel || v.model, v.trim, (f.gens || []).join("-"), (f.bodies || []).join("-")].filter(Boolean).join(":").toLowerCase().replace(/[^a-z0-9:-]+/g, "-");
     return res.status(200).json({
       status: "ok",

@@ -6,6 +6,8 @@ import { supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supab
 import { validateBearer } from "../lib/_auth.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { checkCeiling, CALM } from "../lib/_ceilings.js";
+import { logEvent, EVENTS } from "../lib/events.js";
+import { readVisitorId } from "../lib/_visitor.js";
 import { callOldCarsData } from "../lib/_ocd.js";
 import { testerCodeExpired } from "../lib/_tester.js";
 import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
@@ -3379,6 +3381,16 @@ export default async function handler(req, res) {
         console.error(`One Box unavailable (${(e && e.message) || e}).`);
         return res.status(200).json({ status: "one_box", tier: "unavailable", samLine: OB_CALM });
       }
+      // search event (Oct 2026, open-search policy Part 1.2): once per completed search, never on a
+      // refine tap (obRefine - a continuation of the same lookup, same exemption the old onebox_search
+      // cap already used). Resolved make|model key only, never the typed text or a VIN. tagged
+      // "market_check" - this branch is also reached by Buy's own live-listing drawer (see the comment
+      // just below), which this does not separately distinguish; a known, minor imprecision, not fixed
+      // here (would need a flag threaded from the drawer's own caller). No userId: this branch returns
+      // before any bearer/account check runs, so only the visitor id is available.
+      if (oneBox && !obRefine && vehicle && vehicle.make) {
+        logEvent({ supabaseUrl, supabaseKey }, { event: EVENTS.SEARCH, tool: "market_check", visitorId: readVisitorId(req), props: { key: `${vehicle.make}|${vehicle.model || ""}` } }).catch(() => {});
+      }
       // OPPORTUNISTIC CARD-CACHE REFRESH (Oct 2026 follow-up, item 1: "drawer vs card,
       // structurally"). Market Check and the Buy drawer both land here, and both just ran the
       // SAME live engine call Buy's card cache (spec_market_cache) is built from. Writing that
@@ -4173,6 +4185,15 @@ export default async function handler(req, res) {
         { vin: exactId, make: vehicle.make, model: vehicle.model, year: vehicle.year });
     }
 
+    // search event (Oct 2026, open-search policy Part 1.2): once per completed Sell decision, never
+    // on a transmission-refinement rerun (activeTxRefine - a continuation of the same result, not a
+    // new search). Resolved make|model key only, never the typed text or a VIN. No userId here either:
+    // a signed-in account id isn't resolved in this branch (auth.userId, where it exists, belongs to
+    // the follow-up chat gate, a different code path) - the visitor id alone is enough for the admin
+    // join via visitor_links.
+    if (vehicle && vehicle.make && !activeTxRefine) {
+      logEvent({ supabaseUrl, supabaseKey }, { event: EVENTS.SEARCH, tool: "sell", visitorId: readVisitorId(req), props: { key: `${vehicle.make}|${vehicle.model || ""}` } }).catch(() => {});
+    }
     const responsePayload = {
       status: "decision_ready",
       vehicle,
