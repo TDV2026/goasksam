@@ -904,3 +904,12 @@ when the work has landed.
   (place.sales, pl.total, pl.window_months, pl.cohort_name) and the reserve/day reads over the whole pool,
   but nothing like {venue, months:[{month, n}]} or {venue, low, high, n}. If the panel should carry the
   venue's own spread or range, that field needs to come from the shared engine.
+- 2026-10-09 (Lane C): BUY "YOUR SEARCHES" IS ONE LIST, on the account when signed in (Sam). Before: it was
+  sessionStorage only (gas_buy_visit: one tab, never the account, no sync), with saved searches as a second
+  "Saved searches" section. Now, signed in, every search is recorded on the account (api/buySearch
+  action "visit": one buy_conversations row per address, state.url, de-duplicated there), and the rail
+  shows ONE list: this tab's searches first, then the account's rows (each address searched plus the
+  searches saved before, which are named and opened by their filters), de-duplicated by address and label,
+  at most 8. Remove and Clear all HIDE rows (state.hidden; actions "hide"/"hideall"; the old "remove" now
+  hides too): no buy_conversations row is ever deleted, and a hidden row's watch (Tasks seeds from
+  watch=true rows) is untouched. "list" leaves hidden rows out. Signed out: unchanged. No new table, no SQL.

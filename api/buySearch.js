@@ -229,7 +229,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ reply: out.reply, searchNote: null, cards, noun: out.noun, meta: out.meta, state: out.state, turns: (Number(b.turns) || 0) + 1 });
     }
     if (b.action === "detail") return res.status(200).json(await detailOut(env, b));
-    if (b.action === "save" || b.action === "list" || b.action === "watchsearch" || b.action === "remove") return await savedSearches(env, req, res, b);
+    if (b.action === "save" || b.action === "list" || b.action === "watchsearch" || b.action === "remove" || b.action === "visit" || b.action === "hide" || b.action === "hideall") return await savedSearches(env, req, res, b);
     if (b.action === "alerts_ready") return res.status(200).json({ ready: await alertsReady(env) });
     if (b.action === "arm" || b.action === "disarm" || b.action === "alerts" || b.action === "alert_test") {
       const user = await validateBearer(req.headers.authorization || "").catch(() => null);
@@ -370,9 +370,42 @@ async function savedSearches(env, req, res, b) {
   if (!user || !user.userId) return res.status(401).json({ ok: false, needSignIn: true });
   const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json" };
   const base = `${env.supabaseUrl}/rest/v1/buy_conversations`;
+  // ONE LIST (Sam, Oct 9 2026): "Your searches" is the account's list when signed in, these rows: each search
+  // the visitor runs (action "visit", one row per address) and the searches saved before (rows without an
+  // address; the page names them by their filters). Remove and Clear all HIDE rows (state.hidden), they never
+  // delete one, so no saved search is ever lost; a hidden row's watch, if any, is untouched.
+  const isHidden = s => !!(s && s.state && s.state.hidden === true);
+  const hideRows = async ids => {
+    ids = [...new Set((ids || []).map(String).filter(id => /^[0-9a-f-]{36}$/.test(id)))].slice(0, 100);
+    if (!ids.length) return true;
+    const rr = await fetch(`${base}?user_id=eq.${user.userId}&id=in.(${ids.join(",")})&select=id,state`, { headers: H });
+    if (!rr.ok) return false;
+    const rows = await rr.json();
+    const out = await Promise.all(rows.filter(x => !isHidden(x)).map(x => fetch(`${base}?id=eq.${x.id}&user_id=eq.${user.userId}`, { method: "PATCH", headers: H, body: JSON.stringify({ state: { ...(x.state || {}), hidden: true } }) }).then(r => r.ok)));
+    return out.every(Boolean);
+  };
   if (b.action === "list") {
-    const r = await fetch(`${base}?user_id=eq.${user.userId}&select=id,title,messages,filters,state,watch,updated_at&order=updated_at.desc&limit=50`, { headers: H });
-    return res.status(r.ok ? 200 : 500).json({ ok: r.ok, items: r.ok ? await r.json() : [] });
+    const r = await fetch(`${base}?user_id=eq.${user.userId}&select=id,title,messages,filters,state,watch,updated_at&order=updated_at.desc&limit=100`, { headers: H });
+    return res.status(r.ok ? 200 : 500).json({ ok: r.ok, items: r.ok ? (await r.json()).filter(s => !isHidden(s)).slice(0, 50) : [] });
+  }
+  if (b.action === "visit") {
+    const url = String(b.url || "");
+    if (!/^\/buy\?[^\s<>"]{1,400}$/.test(url)) return res.status(400).json({ ok: false });
+    const title = String(b.title || "Search").replace(/\s+/g, " ").trim().slice(0, 120) || "Search";
+    const now = new Date().toISOString();
+    const rr = await fetch(`${base}?user_id=eq.${user.userId}&select=id,state&order=updated_at.desc&limit=200`, { headers: H });
+    const hit = rr.ok ? (await rr.json()).find(x => x.state && x.state.url === url) : null;
+    const st = { ...cleanState(b.state), url, hidden: false };
+    const r = hit
+      ? await fetch(`${base}?id=eq.${hit.id}&user_id=eq.${user.userId}`, { method: "PATCH", headers: { ...H, Prefer: "return=representation" }, body: JSON.stringify({ title, state: { ...(hit.state || {}), ...st }, updated_at: now }) })
+      : await fetch(base, { method: "POST", headers: { ...H, Prefer: "return=representation" }, body: JSON.stringify([{ user_id: user.userId, title, messages: [title], filters: {}, state: st, updated_at: now }]) });
+    const out = r.ok ? await r.json() : null;
+    return res.status(r.ok ? 200 : 500).json({ ok: r.ok, id: out && out[0] && out[0].id });
+  }
+  if (b.action === "hide") return res.status(200).json({ ok: await hideRows(Array.isArray(b.ids) ? b.ids : []) });
+  if (b.action === "hideall") {
+    const rr = await fetch(`${base}?user_id=eq.${user.userId}&select=id,state&limit=500`, { headers: H });
+    return res.status(200).json({ ok: rr.ok && await hideRows((await rr.json()).filter(x => !isHidden(x)).map(x => x.id)) });
   }
   if (b.action === "save") {
     const st = cleanState(b.state);
@@ -385,10 +418,8 @@ async function savedSearches(env, req, res, b) {
     if (!r.ok) console.error("buy_conversations save failed", r.status);
     return res.status(r.ok ? 200 : 500).json({ ok: r.ok, id: out && out[0] && out[0].id });
   }
-  if (b.action === "remove" && /^[0-9a-f-]{36}$/.test(String(b.id))) {
-    const r = await fetch(`${base}?id=eq.${b.id}&user_id=eq.${user.userId}`, { method: "DELETE", headers: H });
-    return res.status(r.ok ? 200 : 500).json({ ok: r.ok });
-  }
+  // Remove hides the row (never a delete; see ONE LIST above).
+  if (b.action === "remove" && /^[0-9a-f-]{36}$/.test(String(b.id))) return res.status(200).json({ ok: await hideRows([b.id]) });
   if (b.action === "watchsearch" && /^[0-9a-f-]{36}$/.test(String(b.id))) {
     const email = user.email || String(b.email || "").toLowerCase();
     if (!email) return res.status(400).json({ ok: false });
