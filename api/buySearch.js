@@ -4,7 +4,10 @@
 //                                          /buy never asks: filters (from the words or the chips) narrow.
 //   POST { action:"enrich", ids:[...] } -> market line + seen-before for more cards ("Show all").
 //   POST { action:"watch", key, email } -> watch_requests (key = VIN, family:..., live:...)
-//   GET  ?panel=1&make&model&trim&year&body -> { count, rows[<=3] } for the One Box live panel.
+//   GET  ?panel=1&make&model&trim&year&body(&lo&hi) -> { count, rows[<=3] } for the One Box live panel.
+//                                          lo/hi (optional): Market Check's own headline band (d.cluster),
+//                                          so each row's placing is read against the SAME range shown on
+//                                          the page - never a second one (see lib/onebox.js placingFor).
 //   POST { action:"arm"|"disarm", listing_id } / { action:"alerts" } (signed in) -> Before it ends (lib/live/buyAlerts.js)
 //   GET  ?alerts=run                    -> the Before it ends send run (Vercel cron, CRON_SECRET; or the probe key)
 //   GET|POST ?alert=stop&t=<signed>     -> the message's stop link: GET shows a confirm page, only a POST acts
@@ -22,6 +25,7 @@ import { listingCoord } from "../lib/live/geo.js";
 import { runTurn, runFilters, runSearch } from "../lib/live/samChat.js";
 import { humanTitle } from "../lib/carTitle.js";
 import { supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
+import { placingFor } from "../lib/onebox.js";
 import { chatOut } from "../lib/live/chatHttp.js";
 import { armAlert, cancelAlert, listAlerts, runAlerts, stopAll, verifyStop, testSend, isMissingTable, alertsReady, useNamer } from "../lib/live/buyAlerts.js";
 
@@ -131,8 +135,12 @@ export default async function handler(req, res) {
       if (!vehicle.make || !vehicle.model) return res.status(200).json({ count: 0, rows: [] });
       const generation = await findGeneration(vehicle, env);
       const live = await liveForFamily(env, vehicle, generation, null, 3);
+      // Item 5: a band only when the caller passed one (Market Check's own headline cluster) - never
+      // guessed here. A row with no usable USD figure gets no placing either (placingFor is null-safe).
+      const lo = Number(q.lo), hi = Number(q.hi);
+      const band = Number.isFinite(lo) && Number.isFinite(hi) ? [lo, hi] : null;
       res.setHeader("Cache-Control", "public, s-maxage=300");
-      return res.status(200).json({ count: live.total, rows: live.rows.map(r => ({ source: houseName(r.source), title: r.listing_title, url: r.url, current_bid_usd: r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, current_bid: r.current_bid, currency: r.currency, end_time: r.end_time, bid_at: r.bid_at || r.last_seen || null })) });
+      return res.status(200).json({ count: live.total, rows: live.rows.map(r => ({ source: houseName(r.source), title: r.listing_title, url: r.url, current_bid_usd: r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, current_bid: r.current_bid, currency: r.currency, end_time: r.end_time, bid_at: r.bid_at || r.last_seen || null, placing: band ? placingFor(r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, band) : null })) });
     }
     if (req.method !== "POST") return res.status(405).json({ status: "error" });
     const b = req.body || {};

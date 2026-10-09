@@ -91,6 +91,13 @@ button{font:inherit}
 .vinpill,.pill{display:inline-block;border-radius:999px;font:600 12px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase}
 .vinpill{padding:6px 10px;background:var(--green);color:#fff}
 
+/* ---- current answers, removable (item 7, Oct 2026) ---- */
+.anschips{display:flex;flex-wrap:wrap;gap:8px}
+.anschip{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 8px 0 14px;border-radius:999px;border:1px solid var(--chip);background:var(--card);color:var(--soft);font:500 14px/1 var(--sans);cursor:pointer}
+.anschip:hover{border-color:var(--green);color:var(--green)}
+.anschip span{font-size:15px;line-height:1;color:var(--sec)}
+.anschip:hover span{color:var(--green)}
+
 /* ---- answer card ---- */
 .anscard{background:var(--card);border:1px solid var(--border);border-radius:16px;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));overflow:hidden}
 .ans-main{grid-column:span 7;padding:26px 28px 24px;display:flex;flex-direction:column;gap:10px;border-right:1px solid var(--div)}
@@ -123,12 +130,30 @@ button{font:inherit}
 .notes p{margin:0;font:400 17px/1.5 var(--serif);color:var(--soft)}
 .notes .num{font-weight:600;color:var(--ink)}
 
+/* ---- four quarters (item 2) + year-over-year direction (item 3), Oct 2026: plain lines under
+   the headline range, no chart, no median ---- */
+.qtrblock,.yoyblock{display:flex;flex-direction:column;gap:2px}
+.qtr-row{display:flex;align-items:baseline;gap:10px;font:400 15px/1.6 var(--sans);color:var(--soft);flex-wrap:wrap}
+.qtr-period{min-width:15ch;color:var(--sec)}
+.qtr-band{font-weight:600;color:var(--ink)}
+.qtr-count{color:var(--sec)}
+.yoy-sentence{margin:0;font:400 17px/1.5 var(--serif);color:var(--soft)}
+.yoy-band{margin:0;font:400 14px/1.5 var(--sans);color:var(--sec)}
+
 /* ---- section head ---- */
 .sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding-top:14px;margin-top:6px;border-top:1px solid var(--border)}
 .sec-head h2{margin:0;font:500 22px/1.25 var(--serif)}
 .sec-head .scope{display:block;font:400 14px/1.45 var(--sans);color:var(--sec);margin-top:2px}
 .sec-head .linkbtn{white-space:nowrap}
 .sep-note{margin:0;font:400 15px/1.5 var(--sans);color:var(--sec);max-width:68ch}
+/* ---- set aside / didn't sell quiet lines (item 4, Oct 2026): collapsed by default ---- */
+.quietline{display:flex;flex-direction:column;gap:12px}
+.quietbtn{background:none;border:0;padding:0;text-align:left;color:var(--sec);font:500 15px/1.4 var(--sans);text-decoration:underline;text-underline-offset:3px;cursor:pointer;min-height:36px}
+.quietbtn:hover{color:var(--green)}
+.quietrows[hidden]{display:none}
+.dns-row{display:block;padding:10px 0;border-top:1px solid var(--div);font:400 15px/1.4 var(--sans);color:var(--soft);text-decoration:none}
+.dns-row:first-child{border-top:0}
+a.dns-row:hover{color:var(--green);text-decoration:underline;text-underline-offset:3px}
 /* ---- Other trims (item 2c, Oct 2026): a named trim held out of the base pool, summarised - never a
    price-range claim, never Above/Below range (that tag is reserved for a same-trim outlier). ---- */
 .othertrims{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden}
@@ -174,6 +199,8 @@ a.card:hover .ctitle{text-decoration:underline;text-underline-offset:3px}
 .callin{font:400 14px/1.4 var(--sans);color:var(--sec)}
 .cwhy{margin:4px 0 0;font:italic 400 16px/1.45 var(--serif);color:var(--soft)}
 .histlink{margin-top:4px;font:600 15px/1.4 var(--sans);text-decoration:underline;text-underline-offset:3px;min-height:44px;display:inline-flex;align-items:center;align-self:flex-start}
+.sb-line{margin-top:2px;font:400 14px/1.4 var(--sans);color:var(--sec);text-decoration:underline;text-underline-offset:3px}
+a.sb-line:hover{color:var(--green)}
 .mk{display:inline-block;font:600 12px/1 var(--sans);letter-spacing:.04em;color:var(--green);background:var(--tint);border:1px solid var(--tint-line);border-radius:999px;padding:5px 9px;margin:4px 6px 0 0}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
 .grid2 .ph{height:200px}
@@ -257,6 +284,12 @@ a.card:hover .ctitle{text-decoration:underline;text-underline-offset:3px}
 .sellbox a{display:inline-flex;align-items:center;min-height:48px;padding:0 20px;border-radius:10px;background:#fff;color:var(--green);font:600 16px var(--sans);text-decoration:none}
 .sellbox a:hover{background:var(--tint);color:var(--green-dk)}
 
+/* ---- put Sam on it (item 9, Oct 2026): small, quiet, under the results ---- */
+.samonit{background:var(--tint);border:1px solid var(--tint-line);border-radius:14px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.samonit p{margin:0;font:400 15px/1.4 var(--sans);color:var(--soft)}
+.samonit-msg{margin:0;font:400 14px/1.4 var(--sans);color:var(--sec)}
+.samonit-msg[hidden]{display:none}
+
 /* ---- loader ---- */
 .loader{display:flex;align-items:baseline;gap:4px;font:500 15px/1.5 var(--sans);color:var(--sec)}
 .loader .ldots{display:inline-flex;gap:3px;margin-left:2px}
@@ -325,6 +358,8 @@ a.card:hover .ctitle{text-decoration:underline;text-underline-offset:3px}
   .sellbox{flex-direction:column;align-items:flex-start;gap:14px;padding:20px 18px}
   .sellbox h3{font-size:22px}
   .sellbox p{font-size:15px}
+  .samonit{flex-direction:column;align-items:flex-start;gap:10px;padding:14px 16px}
+  .qtr-period{min-width:0}
 }
 </style>
 </head>
@@ -335,6 +370,6 @@ a.card:hover .ctitle{text-decoration:underline;text-underline-offset:3px}
 <script>
 function obToggleResults(e){if(e)e.preventDefault();var m=document.getElementById("gas-results-menu");if(m)m.classList.toggle("open");return false;}
 </script>
-<script src="/obx.20261014k/onebox.js"></script>
+<script src="/obx.20261014l/onebox.js"></script>
 </body>
 </html>

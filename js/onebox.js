@@ -147,8 +147,13 @@
   function loadLivePanel(d, m) {
     var slot = document.getElementById("ob-live"); var rc = d && d.resolvedCar;
     if (!slot || !rc || !rc.make || !rc.model) return;
+    // Item 5 (placing, Oct 2026): the headline's own typical band (d.cluster), when this result has
+    // one, so the server can judge each live figure against the SAME range shown on the page - never
+    // a second band. No cluster (thin/span-only tiers) -> no lo/hi -> the server returns no placing.
+    var band = Array.isArray(d.cluster) && d.cluster.length === 2 ? d.cluster : null;
     var qs = "panel=1&make=" + encodeURIComponent(rc.make) + "&model=" + encodeURIComponent(rc.model) +
-      (rc.trim ? "&trim=" + encodeURIComponent(rc.trim) : "") + (rc.year ? "&year=" + encodeURIComponent(rc.year) : "") + (rc.bodyStyle ? "&body=" + encodeURIComponent(rc.bodyStyle) : "");
+      (rc.trim ? "&trim=" + encodeURIComponent(rc.trim) : "") + (rc.year ? "&year=" + encodeURIComponent(rc.year) : "") + (rc.bodyStyle ? "&body=" + encodeURIComponent(rc.bodyStyle) : "") +
+      (band ? "&lo=" + Math.round(band[0]) + "&hi=" + Math.round(band[1]) : "");
     fetch(API_ORIGIN + "/api/buySearch?" + qs).then(function (r) { return r.json(); }).then(function (j) {
       if (!j || !(j.count > 0) || !j.rows || !j.rows.length || !document.body.contains(slot)) return;
       var rows = j.rows.map(function (l) {
@@ -157,6 +162,10 @@
         // branch is structural only, never guessed) or "No bids yet" when there truly is none.
         var amt = l.current_bid_usd ? usd(l.current_bid_usd) : (l.current_bid ? Math.round(l.current_bid).toLocaleString("en-US") + " " + l.currency : "");
         var priceText = l.fixedPriceUsd ? "Asking " + usd(l.fixedPriceUsd) : (amt ? "Current bid " + amt : "No bids yet");
+        // Market Check engine additions, item 5: the server's own placingFor judged this row against
+        // the band passed above; null (no band, or the figure isn't a judgeable dollar amount) shows
+        // nothing extra.
+        if (l.placing) priceText += " · " + l.placing;
         return '<a class="lp-row" href="' + esc(utmUrl(l.url)) + '" target="_blank" rel="noopener noreferrer"><span class="lp-house">' + esc(l.source) + '</span><span class="lp-t">' + esc(cleanReceiptTitle(l.title)) + '</span><span class="lp-r"><b>' + esc(priceText) + '</b>' + esc(endsShort(l.end_time)) + '</span></a>';
       }).join("");
       var q = (m && m.displayName) || carLabel(rc);
@@ -408,7 +417,10 @@
       if (rf.driverLabel) bits.push(rf.driverLabel);
       if (bits.length) parts.push(bits.join(", "));
     }
-    parts.push("sold in " + windowText(d));
+    // Market Check engine additions, item 1 (Oct 2026): the sold count as a market fact, phrased as
+    // the market, not us - "42 sold in the last twelve months", never "based on". d.soldCount is the
+    // engine's own word-or-number (countWord); printed exactly as it comes back, no reformatting.
+    parts.push((d.soldCount != null ? d.soldCount + " " : "") + "sold in " + windowText(d));
     return parts.join(" · ");
   }
   // Older-sales count (engine d.olderOutside = { n, years, recentN }): "14 more sold in 2023 and 2024."
@@ -624,9 +636,14 @@
   // caller derived from data the engine already returned (see shownSeparatelyHtml).
   function poolCardHtml(c, tagLabel) {
     var venue = (c.platform && c.platform !== "others") ? c.platform : "";
+    // Item 6 (Oct 2026): the same car's earlier sale, when the engine found one (attachSoldBefore,
+    // d.cards only - asideCards/setAsideRows are a separate shapeCards call never mutated with it,
+    // so this is a no-op there, same function either way).
+    var sbText = "Sold before on " + monthYear((c.soldBefore && c.soldBefore.date) || "") + ((c.soldBefore && c.soldBefore.price) ? " for " + usd(c.soldBefore.price) : "");
+    var sb = (c.soldBefore && c.soldBefore.date) ? (c.soldBefore.link ? ('<a class="sb-line" href="' + esc(utmUrl(c.soldBefore.link)) + '" target="_blank" rel="noopener noreferrer">' + esc(sbText) + '</a>') : ('<div class="sb-line">' + esc(sbText) + '</div>')) : "";
     return saleCardHtml({ cls: "t", pill: tagLabel || "", href: utmUrl(c.url), slug: c.platformSlug, image: c.image,
       priceHtml: esc(usd(c.price)), title: cleanReceiptTitle(c.title),
-      meta: [c.mileageText && c.mileageText !== "TMU" ? c.mileageText : "", venue, c.month || monShort(c.date)].filter(Boolean).join(" · ") });
+      meta: [c.mileageText && c.mileageText !== "TMU" ? c.mileageText : "", venue, c.month || monShort(c.date)].filter(Boolean).join(" · "), after: sb });
   }
   // Shared "cap at N, reveal 10 more per click" list pattern (Oct 2026): every long card list (thin
   // receipts, comparable sales, shown-separately) server-renders EVERY card so search engines see
@@ -775,13 +792,100 @@
     if (!d.mileageFallback) return "";
     return '<p class="mifallback" data-stage="answer">' + lint(esc("Too few sold right at that mileage, so these are the " + d.mileageFallback.n + " closest sales by mileage."), "mifb") + "</p>";
   }
+  // Market Check engine additions (Oct 2026), item 2: four calendar quarters of the twelve-month
+  // pool, newest first, as plain lines under the headline range. Shown only when 2+ quarters cleared
+  // the range threshold and so carry a real band - a single banded quarter beside three too-thin
+  // ones would read as a false comparison. NOT wired to open a sales list: the engine only returns
+  // quarterlyBands[i].sales for a quarter WITHOUT a band (the thin ones this view does not show), so
+  // there is nothing honest to open for the quarters that do render here. Flagged to Sam rather than
+  // building a click target that would silently do nothing.
+  function quarterlyBandsHtml(d) {
+    var qb = d && d.quarterlyBands;
+    if (!Array.isArray(qb)) return "";
+    var banded = qb.filter(function (q) { return Array.isArray(q.band) && q.band.length === 2; });
+    if (banded.length < 2) return "";
+    var rows = banded.map(function (q) {
+      return '<div class="qtr-row"><span class="qtr-period">' + esc(q.period) + '</span><span class="qtr-band num">' + esc(usd(q.band[0])) + ' to ' + esc(usd(q.band[1])) + '</span><span class="qtr-count">' + esc(q.count) + ' sold</span></div>';
+    }).join("");
+    return '<div class="qtrblock" data-stage="answer">' + rows + '</div>';
+  }
+  // Item 3: year-over-year direction, the engine's own sentence verbatim, with the two bands it
+  // names as two small lines underneath. Null on any gate failure (including a pool widened past
+  // twelve months) renders nothing at all - never approximated here.
+  function yoyDirectionHtml(d) {
+    var y = d && d.yoyDirection;
+    if (!y || !y.sentence) return "";
+    var bands = "";
+    if (Array.isArray(y.recentBand) && y.recentBand.length === 2) bands += '<p class="yoy-band">' + esc(y.recentWindow || "") + ": " + esc(usd(y.recentBand[0])) + ' to ' + esc(usd(y.recentBand[1])) + '</p>';
+    if (Array.isArray(y.priorBand) && y.priorBand.length === 2) bands += '<p class="yoy-band">' + esc(y.priorWindow || "") + ": " + esc(usd(y.priorBand[0])) + ' to ' + esc(usd(y.priorBand[1])) + '</p>';
+    return '<div class="yoyblock" data-stage="answer"><p class="yoy-sentence">' + lint(esc(y.sentence), "yoy.sentence") + '</p>' + bands + '</div>';
+  }
+  // Item 4: two quiet lines under the sales list, each expanding its own short list. Never added to
+  // soldCount. A zero/empty count renders no line at all.
+  function setAsideLineHtml(d) {
+    var n = d && d.setAsideCount, rows = d && d.setAsideRows;
+    if (!n || !rows || !rows.length) return "";
+    var reasons = d.setAsideReasons || {};
+    var bits = ["modified", "project", "replica", "odd sale"].map(function (k) { return reasons[k] ? reasons[k] + " " + k : null; }).filter(Boolean).join(", ");
+    var id = "ob-aside" + (++obCapSeq);
+    var cards = rows.map(function (c) { return poolCardHtml(c, false); }).join("");
+    return '<div class="quietline" data-stage="cards"><button type="button" class="quietbtn" data-qtoggle="' + id + '" aria-expanded="false">' + esc(n) + (n === 1 ? ' sale set aside' : ' sales set aside') + (bits ? ' (' + esc(bits) + ')' : '') + '. Show them.</button><div class="quietrows grid3" id="' + id + '" hidden>' + cards + '</div></div>';
+  }
+  function didNotSellLineHtml(d) {
+    var n = d && d.didNotSellCount, rows = d && d.didNotSellRows;
+    if (!n || !rows || !rows.length) return "";
+    var id = "ob-dns" + (++obCapSeq);
+    var lines = rows.map(function (r) {
+      var bits = [r.highBid ? "High bid " + usd(r.highBid) : "", r.platform || "", r.date ? monthYear(r.date) : ""].filter(Boolean).join(" · ");
+      return r.url ? '<a class="dns-row" href="' + esc(utmUrl(r.url)) + '" target="_blank" rel="noopener noreferrer">' + esc(bits) + '</a>' : '<div class="dns-row">' + esc(bits) + '</div>';
+    }).join("");
+    return '<div class="quietline" data-stage="cards"><button type="button" class="quietbtn" data-qtoggle="' + id + '" aria-expanded="false">' + esc(n) + " didn’t sell. Show them.</button><div class=\"quietrows\" id=\"" + id + '" hidden>' + lines + '</div></div>';
+  }
+  // Item 7: the answered questions this view is already scoped to, as removable chips. Removing one
+  // reruns the SAME search without that answer (mergeRefine's inverse) and updates the address
+  // (mcPushUrl, already called inside runPool's success path) - never a second source of truth.
+  var RMCHIP_KEYS = { mi: ["miMin", "miMax", "miTarget", "miLabel"], body: ["body", "bodyLabel"], tx: ["tx", "txLabel"], trim: ["trim", "trimLabel"], variant: ["variant", "variantLabel"], driver: ["driver", "driverVal", "driverLabel"], observe: ["observe", "observeLabel"] };
+  var RMCHIP_ANSWER_KEYS = ["miMin", "body", "tx", "trim", "variant", "driver", "observe"];
+  function currentAnswersChipsHtml() {
+    var rf = obLastRefine; if (!rf) return "";
+    var defs = [["mi", rf.miLabel], ["body", rf.bodyLabel], ["tx", rf.txLabel], ["trim", rf.trimLabel], ["variant", rf.variantLabel], ["driver", rf.driverLabel], ["observe", rf.observeLabel]];
+    var chips = defs.filter(function (p) { return p[1]; }).map(function (p) {
+      return '<button type="button" class="anschip" data-rmchip="' + p[0] + '">' + esc(p[1]) + ' <span aria-hidden="true">&times;</span></button>';
+    }).join("");
+    return chips ? '<div class="anschips" data-stage="answer">' + chips + '</div>' : "";
+  }
+  function refineWithout(dim) {
+    var keys = RMCHIP_KEYS[dim]; if (!keys || !obLastRefine) return null;
+    var r = Object.assign({}, obLastRefine);
+    keys.forEach(function (k) { delete r[k]; });
+    return RMCHIP_ANSWER_KEYS.some(function (k) { return r[k] != null; }) ? r : null;
+  }
+  // Item 9 ("Put Sam on it"): reuses the existing watch creation call (api/buySearch action:"watch"),
+  // never a second endpoint. A VIN/chassis match watches the exact car (the same VIN key the
+  // /history page already uses); a plain spec search watches the family - a key format Lane C has
+  // not confirmed yet (no consumer reads a "family:" key today - see docs/lane-notes.md).
+  function watchKeyFor(d, m) {
+    if (m && obSourceVin) return obSourceVin.toUpperCase();
+    var rc = d && d.resolvedCar; if (!rc || !rc.make || !rc.model) return null;
+    var sl = function (x) { return String(x || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); };
+    var model = String(rc.model || ""), trim = String(rc.trim || "");
+    var fam = !trim || sl(model).indexOf(sl(trim)) >= 0 ? model : (sl(trim).indexOf(sl(model)) >= 0 ? trim : model + " " + trim);
+    return "family:" + sl(rc.make) + ":" + sl(fam) + (rc.bodyStyle ? ":" + sl(rc.bodyStyle) : "");
+  }
+  function samOnItHtml(d, m) {
+    var line = m ? "If this exact car comes up again, Sam tells you." : ("The next " + esc(carLabel(d.resolvedCar)) + " that sells, Sam tells you, with the sale attached.");
+    return '<section class="samonit" data-stage="note"><p>' + lint(line, "samonit") + '</p><button type="button" class="linkbtn" id="ob-samonit">Put Sam on it &#8594;</button><p class="samonit-msg" id="ob-samonit-msg" hidden></p></section>';
+  }
   function resultHtml(d, m) {
     // Order (Oct 2026, Sam's live review): range -> the earned question(s) directly under it ->
     // Recent comparable sales -> live listings -> Shown separately -> Ready to sell -> Why it looks
     // like this. ONE range only (the cluster in the answer card); no second "everything from" span.
     var notes = mileageFallbackHtml(d) + contradictionLine(d) + observeAsideHtml(d) + inlineSplitsHtml(d);
     if (d.driverSentence && !(d.earned) && !(d.divergence && d.divergence.kase === "a")) notes += '<p class="varynote">' + lint(esc(d.driverSentence), "varynote") + "</p>";
-    var body = answerCardHtml(d, m);
+    var body = currentAnswersChipsHtml();
+    body += answerCardHtml(d, m);
+    body += quarterlyBandsHtml(d);
+    body += yoyDirectionHtml(d);
     if (notes) body += '<div class="notes" data-stage="answer">' + notes + "</div>";
     body += trimQuestionHtml(d);
     body += bodyOptionsHtml(d);
@@ -789,9 +893,12 @@
     body += observeHtml(d);
     body += salesSectionHtml(d, m);
     body += otherTrimsHtml(d);
+    body += setAsideLineHtml(d);
+    body += didNotSellLineHtml(d);
     body += livePanelSlot();
     body += shownSeparatelyHtml(d, m);
     body += sellHtml();
+    body += samOnItHtml(d, m);
     body += whyNoteHtml(d);
     return body;
   }
@@ -1870,6 +1977,45 @@
     Array.prototype.forEach.call(root.querySelectorAll("a[data-cardclick]"), function (a) {
       a.addEventListener("click", function () { try { obEvent("onebox_comp_click", a.getAttribute("data-cardclick") + ":" + lastQuery); } catch (e) {} });
     });
+    // Market Check engine additions, item 4: the two quiet lines ("N set aside" / "N didn't sell")
+    // reveal their already server-rendered list in place.
+    Array.prototype.forEach.call(root.querySelectorAll("[data-qtoggle]"), function (b) {
+      b.addEventListener("click", function () {
+        var list = document.getElementById(b.getAttribute("data-qtoggle")); if (!list) return;
+        var open = list.hasAttribute("hidden");
+        if (open) list.removeAttribute("hidden"); else list.setAttribute("hidden", "");
+        b.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    });
+    // Item 7: a removable current-answer chip reruns the SAME search without that one answer.
+    Array.prototype.forEach.call(root.querySelectorAll("[data-rmchip]"), function (b) {
+      b.addEventListener("click", function () {
+        runPool(lastQuery, obLastVehicle, refineWithout(b.getAttribute("data-rmchip")));
+      });
+    });
+    // Item 9 ("Put Sam on it"): signed-out click opens the shared sign-in card and stops there (the
+    // watch is created on the NEXT click, once signed in - no post-signin auto-resume, same as the
+    // guest-link nudge pattern this mirrors). Signed-in click creates the watch straight away using
+    // the session's own email, no second form.
+    (function () {
+      var soi = document.getElementById("ob-samonit"); if (!soi) return;
+      soi.addEventListener("click", function () {
+        var msg = document.getElementById("ob-samonit-msg");
+        if (!(typeof authIsSignedIn === "function" && authIsSignedIn())) {
+          if (typeof openSignInCard === "function") openSignInCard("Sign in so Sam can tell you when this sells.");
+          return;
+        }
+        var key = watchKeyFor(obLastD, vinAnchor);
+        var sess = (typeof authGetSession === "function") ? authGetSession() : null;
+        var email = sess && sess.email;
+        if (!key || !email) return;
+        soi.disabled = true;
+        obFetch(API_ORIGIN + "/api/buySearch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "watch", key: key, email: email }) })
+          .then(function (r) { return r.json(); })
+          .then(function (j) { soi.disabled = false; if (msg) { msg.hidden = false; msg.textContent = (j && j.ok) ? "Sam's on it. You'll hear from him at " + email + "." : OB_CALM; } })
+          .catch(function () { soi.disabled = false; if (msg) { msg.hidden = false; msg.textContent = OB_CALM; } });
+      });
+    })();
   }
 
   // ---------------------------------------------------------------- boot

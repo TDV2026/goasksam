@@ -708,7 +708,11 @@ async function handleOps(req, res) {
         if (!oldD) return { q, cause: "old_path_no_evidence", newVenue: newD.recommendedPath, newRange: pickedRange(newD) };
         if (!newD) return { q, cause: "shared_path_no_evidence", oldVenue: oldD.recommendedPath, oldRange: pickedRange(oldD) };
         const oldVenue = oldD.recommendedPath, newVenue = newD.recommendedPath;
-        const sameVenue = String(oldVenue || "").toLowerCase() === String(newVenue || "").toLowerCase();
+        // recommendedPath is a raw slug on the old path ("bringatrailer") and a display name on the
+        // shared path ("Bring a Trailer") - normalize both to bare-alnum before comparing, or every
+        // real match false-positives as "different_venue" on string format alone, not substance.
+        const slugNorm = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        const sameVenue = slugNorm(oldVenue) === slugNorm(newVenue);
         const oldRange = pickedRange(oldD), newRange = pickedRange(newD);
         let sameRange = null, rangeDeltaPct = null;
         if (oldRange && newRange && oldRange.low > 0) {
