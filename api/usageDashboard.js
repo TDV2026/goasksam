@@ -1278,6 +1278,28 @@ async function handleOps(req, res) {
   // task=fieldcov: READ-ONLY (archive; ZERO OCD). Fill rate of the four enrichment fields
   // (description, known_flaws, recent_service_history, modifications) among SOLD rows, per
   // source_slug (all-time) and, when PostgREST aggregates are enabled, a source x model-year cross.
+  // task=specialscount (Oct 2026, Lane B status check): how many live_listings rows carry a
+  // special_flag (Singer/RUF/RWB, race car, replica/clone - lib/live/specialFlag.js), a quick health
+  // read for the shipped specials classification. READ-ONLY, planner-estimate count (fast).
+  if (task === "specialscount") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const countOf = async (filter) => {
+      try {
+        const r = await fetch(`${env.supabaseUrl}/rest/v1/live_listings?${filter}&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=estimated", Range: "0-0", "Range-Unit": "items" } });
+        const cr = r.headers.get("content-range") || ""; const m = cr.match(/\/(\d+)$/); return m ? Number(m[1]) : (r.ok ? 0 : null);
+      } catch { return null; }
+    };
+    const total = await countOf("select=id");
+    const withFlag = await countOf("select=id&special_flag=not.is.null");
+    // special_flag is free-text (Singer/RUF/RWB/clone/tribute/replica/recreation/kit car/race car/
+    // restomod/period tuner, see lib/live/specialFlag.js) - no fixed enum to query by value, so tally
+    // a sample client-side instead of guessing at values.
+    const sample = await supabaseSelect(env, "live_listings?select=special_flag&special_flag=not.is.null&limit=2000").catch(() => []);
+    const byFlag = {};
+    for (const r of sample || []) { const v = r.special_flag; if (v) byFlag[v] = (byFlag[v] || 0) + 1; }
+    return res.status(200).json({ task: "specialscount", total, withFlag, pctFlagged: total > 0 ? Math.round((withFlag / total) * 1000) / 10 : null, byFlagSample: byFlag, sampleSize: (sample || []).length });
+  }
+
   if (task === "fieldcov") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const FIELDS = ["description", "known_flaws", "recent_service_history", "modifications"];
