@@ -695,8 +695,15 @@ async function handleOps(req, res) {
     const newD = newA ? decide(newA, {}, vehicle) : null;
     const pickedVenue = (oldD && oldD.recommendedPath) || (newD && newD.recommendedPath) || null;
     const pickedSlug = slugNorm(pickedVenue);
+    // Filtered to NOT-EXCLUDED comparison_tier (the same base filter analyze()'s own inWindowEvidence
+    // applies, api/sellerDecision.js ~line 1417) - fetchRecordsFromStore's own SQL read is broad
+    // (make + every model/chassis-code token, no classifier pass), so comparing it unfiltered against
+    // the already-fenced shared pool is apples to oranges (caught live: "1964 Shelby Cobra" unfiltered
+    // old count was 441 for one platform alone, because the broad read pulls every Cobra-adjacent
+    // record - continuations, replicas, unrelated years - that the classifier would exclude).
     const oldRows = ((stored && stored.records) || []).filter(r => slugNorm(recordPlatform(r)) === pickedSlug)
-      .map(r => ({ date: r.auction_end_date || null, price: Number(classifyRecord(r, vehicle).price) || null, title: r.listing_title || r.title || null, id: sourceRecordId(r) }));
+      .map(r => ({ r, c: classifyRecord(r, vehicle) })).filter(x => x.c && x.c.comparison_tier !== "excluded")
+      .map(({ r, c }) => ({ date: r.auction_end_date || null, price: Number(c.price) || null, title: r.listing_title || r.title || null, id: sourceRecordId(r), tier: c.comparison_tier }));
     const newRows = ((newPool && newPool.pool) || []).filter(r => slugNorm(sourceSlugOf(r.source) || r.source) === pickedSlug)
       .map(r => ({ date: r.auction_end_date || null, price: Number.isFinite(r._usd) ? Math.round(r._usd) : Math.round(hammerUsd(r) || 0), title: r.listing_title || r.title || null, id: r.source_record_id || null }));
     const oldKeys = new Set(oldRows.map(r => `${r.date}|${r.title}`));
