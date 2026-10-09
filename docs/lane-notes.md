@@ -1605,3 +1605,44 @@ when the work has landed.
      api/chat.js: server-held prompts only plus an invisible per address and per device limit; Buy chat: a server
      side per address and per device turn ceiling with the calm message; replace per-address-only limits with
      address plus device (first-party id) ceilings sized for shared addresses.
+- 2026-10-09 (Lane A): POLICY "SEARCH IS OPEN, PERSONALISATION IS SIGNED IN", STEP 1 FACTS, Market Check.
+  2. MARKET CHECK: a separate, lightweight cap exists - never shares Sell's limiter. api/sellerDecision.js's
+     oneBox branch (req.body?.oneBox, line ~3485) counts funnel_events rows (event=onebox_search) by a
+     CLIENT-SUPPLIED anonId/anonSessionId (js/onebox.js persists one in localStorage, key gas_ob_anon - not a
+     server-issued or signed token), against app_config key onebox_daily_cap (default 40/day, read via
+     appConfigInt). If anonId is omitted, or the Supabase count read errors, the check is skipped entirely
+     (fail-open, "never block a real lookup on a count error") and the search runs uncapped; sending a fresh
+     string (or clearing localStorage) resets it trivially - this is not a real per-visitor limit, same
+     character as Buy's chat turn cap Lane C flagged. Separate from /sell's limiter in every respect: different
+     table (funnel_events vs ip_rate_hits/reserve_search/gas_free_used), different config, computeSearchGate
+     (sell's gate function) is never reached on a oneBox request (the branch returns before it).
+     COST: the oneBox branch makes ZERO OldCarsData calls on any path, cached or not - it is archive-only
+     (Supabase sales_archive/auction_attempts only; confirmed no import of lib/_ocd.js's callOldCarsData
+     anywhere in lib/onebox.js). The one upstream fallback in the chain - lib/vehicle.js resolveVehicle's
+     taxonomy loader, used to parse the typed car name before oneBox runs - CAN call OldCarsData's /makes and
+     /models endpoints when Supabase's taxonomy tables come back empty, but those two endpoints are explicitly
+     UNMETERED (lib/_ocd.js: "const metered = path.startsWith('/auctions')... /makes, /models are free and
+     uncapped") and are 10-minute in-process cached regardless. VIN decode (api/vehicleIdentity.js) uses only
+     vPIC (free, government) and the Supabase archive match - no OldCarsData reference anywhere in that file
+     or in lib/_flags.js's findVinArchiveMatch. POINT 6 CONCLUSION FOR MARKET CHECK: no spend risk on any
+     Market Check path, cached or uncached - safe to proceed straight to Step 2 for this lane without waiting,
+     per the "unless point 6 found a spend risk" clause. (Lane C found real spend risk in /sell and stopped
+     there - that finding does not implicate Market Check, a structurally separate, archive-only path.)
+  4. SIGN IN BEFORE A RESULT: none on Market Check. No auth check anywhere in api/marketCheck.js (the page
+     shell), the oneBox branch of api/sellerDecision.js, or api/buySearch.js's ?panel=1 live-listing handler
+     (the only auth check in that file gates "Your searches"/watch actions, not result display). The only
+     sign-in prompt anywhere in js/onebox.js is the watch control ("Sign in to keep a watch. Free. No card, no
+     plan.", js/onebox.js:2032) - a feature gate, not a result gate.
+  6 (copy audit): no proactive limit/quota/sign-in/counter copy exists on the Market Check landing
+    (lib/live/marketCheckLanding.js - zero matches for limit/quota/free search/sign in/counter) or in
+    js/onebox.js outside the rate_limited error line itself (shown only AFTER the cap is hit, reactive, never
+    proactive): "That's a lot of lookups for one day. Come back tomorrow and I'll keep pulling real sales for
+    you." (api/sellerDecision.js:3523, with a client-side fallback copy of the same line in js/onebox.js).
+  STEP 2 (this round, commit pending): nothing to REMOVE on Market Check (no sign-in/quota language exists to
+  strip - confirmed above); the watch control's sign-in line already explains its reason correctly and needed
+  no change. Added: open-to-use/sign-in-to-keep framing is now explicit on the Market Check landing (see
+  below). FOR LANE C: Sam's instruction places "make the Buy and Sell front doors say the same thing in the
+  same style" under Lane A's heading, but Buy's and Sell's front-door templates are Lane C's files
+  (lib/live/buyLanding.js, index.html/api/sellPage.js) - rather than edit them directly, the exact line added
+  to Market Check's own hero (below) is handed off here for Lane C to match verbatim or adapt to each page's
+  existing voice, your call on exact placement.
