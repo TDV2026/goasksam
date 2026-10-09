@@ -691,6 +691,7 @@ async function handleOps(req, res) {
     const { findGeneration } = await import("../lib/generations.js");
     const { readMarketFetchCache, fetchRecordsFromStore, fetchRecentRecords, analyze, decide, buildLadder } = await import("./sellerDecision.js");
     const { classifyRecord } = await import("../lib/_classify.js");
+    const { priceBandForVehicle } = await import("../lib/onebox.js");
     const rv = await resolveVehicle(q, {}).catch(() => null);
     const vehicle = rv && rv.vehicle;
     if (!vehicle || !vehicle.make) return res.status(200).json({ task: "sellreal", q, error: "unresolved" });
@@ -716,10 +717,17 @@ async function handleOps(req, res) {
     const decision = decide(analysis, criteria, vehicle);
     const pickedRoute = decision.routeFit && decision.routeFit.routes && decision.routeFit.routes.find(r => r.platform === decision.recommendedPath);
     const pb = pickedRoute && pickedRoute.marketEvidence && pickedRoute.marketEvidence.priceBand;
+    // decision.priceBand (rule 23, item 4b in sellerDecision.js): the SEPARATE, archive-only,
+    // UNCONDITIONAL comp band (priceBandForVehicle, lib/onebox.js - the SAME engine Market Check
+    // uses) that drives the "Your $X ask sits within the $Y to $Z these sold for" sentence
+    // (js/result-v2.js v2AskingLine, dec.priceBand). This is almost certainly what Sam actually saw
+    // on the page - NOT the venue pick's own priceBand above, which is a different field entirely.
+    const archiveBand = await priceBandForVehicle(vehicle, generation, { supabaseUrl: env.supabaseUrl, supabaseKey: env.supabaseKey }).catch(() => null);
     return res.status(200).json({
       task: "sellreal", q, pathTaken, meteredRequests: fetchResult.meteredRequests || 0, stopReason: fetchResult.stopReason || null,
       recommendedPath: decision.recommendedPath, evidenceSales: analysis.evidenceSales,
-      priceBand: pb ? { low: pb.low, high: pb.high, sample: pb.sample } : null,
+      venuePickPriceBand: pb ? { low: pb.low, high: pb.high, sample: pb.sample } : null,
+      decisionPriceBandArchiveOnly: archiveBand && archiveBand.ok ? { low: archiveBand.low, high: archiveBand.high, count: archiveBand.count } : { ok: false, reason: archiveBand && archiveBand.reason },
       ladderLanded: analysis.ladder && analysis.ladder.landed ? analysis.ladder.landed.key : null
     });
   }
