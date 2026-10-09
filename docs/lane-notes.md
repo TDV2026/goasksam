@@ -609,3 +609,39 @@ when the work has landed.
     sign in card says "Email me a code"; seen Oct 9 with a fresh test inbox). The Supabase "Confirm signup"
     email template likely needs {{ .Token }} like the one returning users get, or new users can't finish
     with a code (clicking the link does still sign them in).
+- 2026-10-09 (Lane B, two findings from this round's crossProductCheck run, neither caused by this
+  round's lib/onebox.js engine additions - reported, not fixed, since both trace to other files):
+  1. CACHE STALENESS (Lane C, lib/live/search.js specOf/spec_market_cache): "2012 BMW M3 Competition
+     Coupe" showed Buy/Tasks stuck at count=8/latest=2026-09-11 while Market Check/Sell (both read
+     runOneBox live, no cache) showed count=37/latest=2026-10-06 - confirmed STABLE across repeat
+     calls (not a flaky bug), consistent with a spec_market_cache row written before this session's
+     mid-run ingest and still inside its TTL. Expected caching behavior, not a regression; flagging
+     only because it is the kind of thing that can look alarming in a crossProductCheck diff.
+  2. GENERATION-BINDING GAP (bare year-less/trim-less, multi-generation nameplate): "1989 Porsche 911
+     Speedster" now shows Sell (fetchOnlinePool, since the one-engine-ladder fix) landing on a
+     narrow, high-value pool (count=19, $203k-$235k - a specific rare Speedster generation) while
+     Buy/Tasks pool EVERY 911 Speedster generation together (count=100, $68k-$101k). Both are real,
+     live reads; they differ because Sell passes the SAME `generation` object Market Check resolves
+     (year-pinned to one generation) into runOneBox, while Buy/Tasks' own resolveForBuy/
+     listingGeneration path does not bind the same way for this bare query and pools broader. This
+     is the SAME underlying gap already named in CLAUDE.md's resolver backlog (Market Check's
+     generation_choice gate vs Buy/Tasks having none) - not new, but now visible on Sell too since
+     Sell reads the real ladder. Not fixed this round (out of scope - resolver/generation-binding
+     work, not an engine addition); worth a dedicated round if Sam wants it closed.
+- 2026-10-09 (Lane B, Market Check engine additions, lib/onebox.js, commit bd10226 + 5f4b283):
+  soldCount/windowLabel, quarterlyBands, yoyDirection, setAsideCount/setAsideReasons/
+  didNotSellCount, placingFor (exported), soldBefore per card - all additive fields on runOneBox's
+  own return, so Buy's panel, Sell and the landing example inherit them automatically through the
+  same call; no frontend wiring done this round (that is presentation work, a separate round).
+  PERFORMANCE NOTE for whoever wires these into a page next: didNotSellCount and soldBefore each
+  add one extra query, run in parallel (Promise.all), attached once after the result settles - the
+  crossProductCheck 20-spec run went from ~90s to ~180-185s (it calls runOneBox 3-4x per spec across
+  the four lanes), but a single real page load only pays for ONE runOneBox call, so the per-request
+  cost is much smaller; no latency budget was formally re-measured against the One Box latency gate
+  (see [[onebox-latency-gate]] memory) - worth a real p50/p95 check before/after if this becomes a
+  concern. Known, documented scope limits (not silently claimed complete): "project" in
+  setAsideReasons reads zero on most pools (a project/incomplete car is dropped at the fetch's own
+  qualifyReason gate before it ever reaches this pool); a true replica caught specifically by
+  rule5PoolGuard's own replica bucket (covered models only) is not retrieved either; didNotSellCount
+  cannot be trim-scoped (auction_attempts carries no title); soldBefore only attaches to the main
+  `cards` array, not the separately-shaped `recent3`.
