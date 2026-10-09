@@ -531,9 +531,13 @@ a.hp-logo:hover{opacity:.72;}
 .hp-navitem{display:flex;align-items:center;gap:9px;width:100%;border:0;background:transparent;text-align:left;
   font-family:var(--font-sans);font-size:14px;font-weight:400;color:var(--ink);padding:9px 12px;border-radius:9px;cursor:pointer;line-height:1.5;text-decoration:none;}
 .hp-navitem{transition:background .12s ease;}
-.hp-navitem:hover{background:var(--paper-shade);}
+/* Rail-item pill colours (Oct 2026, shell polish): reuse the shared appShell tokens
+   (lib/appShell.js SHELL_TOKENS_CSS, injected into this page's <head> by api/sellPage.js) so the
+   hover/active pill is the same deeper sage tint as Market Check/Tasks, not the old cream
+   --paper-shade - this rail has been sage since the Round D surface-colour pass. */
+.hp-navitem:hover{background:var(--rail-hover-bg,#E3EFE6);}
 /* The current section keeps a persistent version of the hover tint. */
-.hp-navitem.active{background:var(--paper-shade);color:var(--ink);font-weight:500;}
+.hp-navitem.active{background:var(--rail-active-bg,#D7E6DA);color:var(--green,#1E4D38);font-weight:600;}
 .hp-navitem.stub{color:var(--slate);cursor:default;}
 .hp-navitem.stub:hover{background:transparent;}
 .hp-rail-scroll{flex:1;overflow-y:auto;min-height:0;}
