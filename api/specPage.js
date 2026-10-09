@@ -14,6 +14,7 @@ import { specPage, parseSlug, allSpecSlugs911 } from "../lib/specPages.js";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
 import { PAGE_CSS, FONT_LINKS, railHtml, whyResultHtml, isCrewRequest } from "./_chrome.js";
 import { KEEPLOOK_CSS, KEEPLOOK_JS, keepLookingHtml, keepLookingHref } from "../lib/appShell.js";
+import { AUTH_SIGNBAR_CSS } from "../lib/authBar.js";
 
 const SITE = "https://goasksam.com";
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -162,7 +163,7 @@ ${whyResultHtml(crew)}
 ${index ? '<meta name="robots" content="index, follow">' : '<meta name="robots" content="noindex, follow">'}
 <link rel="canonical" href="${esc(canonical)}">
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(data.lead)}"><meta property="og:type" content="website"><meta property="og:url" content="${esc(canonical)}">
-${FONT_LINKS}<style>${PAGE_CSS}${KEEPLOOK_CSS}</style>${ld.map(o => `<script type="application/ld+json">${JSON.stringify(o)}</script>`).join("")}</head><body>
+${FONT_LINKS}<style>${PAGE_CSS}${KEEPLOOK_CSS}${AUTH_SIGNBAR_CSS}</style>${ld.map(o => `<script type="application/ld+json">${JSON.stringify(o)}</script>`).join("")}</head><body>
 ${railHtml("history", undefined, crew)}
 <main><div class="col">${body}</div></main>
 <script>${KEEPLOOK_JS}</script>
