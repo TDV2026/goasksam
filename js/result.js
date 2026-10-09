@@ -1486,7 +1486,7 @@ function _askingVsSalesLine(hammers,familyCount,familyLabel){
   if(n>hs[hs.length-1]) fact=`${lead1} below your ${ask} ask.`;
   else if(n<hs[0]) fact=`${lead1} above your ${ask} ask.`;
   else { const below=hs.filter(x=>x<n).length; fact=`Your ${ask} ask sits within the sales shown; ${below} of ${hs.length} sold below it.`; }
-  return `<p style="font-size:13.5px;line-height:1.55;color:#171717;margin:14px 0 0"><span style="font-weight:600">${esc(fact)}</span> A fact about the sales, not a valuation.</p>`;
+  return `<p style="font-size:13.5px;line-height:1.55;color:#171717;margin:14px 0 0"><span style="font-weight:600">${esc(fact)}</span> A fact about the sales, not a price for this car.</p>`;
 }
 function _hcHouseBlock(h,ctx){
   const esc=escapeHtml, money=moneyShort;

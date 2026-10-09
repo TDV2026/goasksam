@@ -2653,3 +2653,40 @@ when the work has landed.
   (via `buildSharedAnalysis` + the already-exported `decide()`, so it reproduces your handler's real
   computation) and `row.realAgreesWithShared` (vs the standalone `pickPlatform` pick) - rerun it after
   your fix lands to confirm GT-R flips to `realAgreesWithShared: true`.
+
+- 2026-10-09 (Lane C): FRONT DOORS, KEEP LOOKING IN A NEW TAB, WHICH TOYOTA, FIRST GENERATION, SHADOW REMOVED.
+  * Front doors: "Open to use..." lines removed from live /sell (index.html) and Buy (lib/live/buyLanding.js).
+    Market Check's own "Open to use. Sign in only to watch a car for its next sale." (lib/live/marketCheckLanding.js)
+    is Lane A's and was not touched.
+  * Buy "Have Sam keep looking" (api/buy.js CLIENT keepHtml): a real link with target _blank rel noopener to
+    /tasks/mine?seed=buy&words=...&filters=..., no longer data-task-entry (the shared api/_chrome.js handler
+    navigated the current tab). Signed out: openSignInCard in place, then the task opens in a new tab once
+    signed in. FOR LANE A: the VIN page's "Have Sam keep looking" (api/history.js, data-task-entry,
+    /tasks/mine?seed=vin...) still navigates the current tab through api/_chrome.js TASKS_BADGE's go(); give it
+    target="_blank" rel="noopener", drop data-task-entry, and open the sign in card in place when signed out
+    (Buy's handler in api/buy.js CLIENT, "KEEP LOOKING IN A NEW TAB", is the pattern). Market Check has no
+    control that goes to Tasks today (its watch uses /api/watch), so nothing there.
+  * Shared rail (lib/appShell.js SHELL_JS gasKeepSearchesLine): signed out, under a rail section headed
+    "Your searches" holding a real row (.srow / [data-visit]), one line "Sign in free to keep these searches."
+    whose link opens the sign in card. Only Buy has that heading today; Market Check and Sell use "Your results".
+  * Live /sell re-run (js/result.js offerReRun): a half-understood car ("1985 toyota") asks "Which Toyota? Tell
+    me the model, for example Tacoma or 4Runner." with the resolver's own chips; the answer completes the car
+    (js/entry.js pendingRerunBase). FOR LANE B: the chips come from resolveVehicle's needs_clarification
+    (lib/vehicle.js modelChipsForMakeYear) and are not year-scoped for Toyota: 1985 offers "Tacoma" (from
+    1995) and "Land Cruiser 80 Series" (from 1990). Please scope them to the year (same rule as
+    clarification-chip year scoping) so the example models are real for that year.
+  * Generation labels on Sell results (js/result-v2.js v2GenWord / v2GenPhrase, also js/result.js and
+    js/result-copy.js composerScopePhrase): "First generation" in the panel, "first generation Ford Mustangs"
+    mid-sentence, capital at a sentence start (v2Fill). Codes keep capitals (E30, 991.2, SN95).
+    FOR LANE B, engine labels that still uppercase the word: lib/onebox.js reserveDayInsightForVehicle
+    (scopeLabel = `${String(generation.code).toUpperCase()} ${vehicle.model}` -> "FIRST Mustang", shown on
+    the Best day tile as "FIRST Mustangs with a reserve sold ...") and reserveInsightForVehicle (genLabel =
+    `${String(generation.code).toUpperCase()}-generation ${vehicle.model}`). Suggested: an ordinal code
+    (first..tenth) reads "First generation Mustang"; a chassis code stays uppercase ("E30 M3"). The tile
+    template already reads "{label}s with a reserve sold 81% of the time when the auction ended on a
+    weekend, and 76% midweek (747 auctions)." Also: the reserve label is singular ("E30-generation M3 with a
+    reserve sold ...", "Mustang Fastback with a reserve ..."); a plural form would read better.
+  * SELL_PICK_SHADOW removed (api/sellerDecision.js block, its env read, the unused pickPlatform import;
+    task=shadowreport went out in 19b106e). The legacy venue-pick ladder (analyzeRouteFit /
+    pickRecommendedRoute) is KEPT: Lane B's 40-car rerun is not reported complete yet and the
+    platformpickaudit harness still compares the two.

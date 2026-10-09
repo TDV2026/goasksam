@@ -25,7 +25,8 @@ function gasRealGate(){ try{ return localStorage.getItem("gas_realgate")==="1"; 
 // ---------- deterministic selection (reuse the site's textSeed/pickCopy) ----------
 function v2Seed(){ try{ return String(sellState.sellDecision&&sellState.sellDecision.resultId||sellState.carName||"car"); }catch(e){ return "car"; } }
 function v2Pick(arr,tag){ if(!arr||!arr.length)return ""; return arr[textSeed(v2Seed(),tag)%arr.length]; }
-function v2Fill(t,slots){ return String(t).replace(/\{(\w+)\}/g,function(_,k){ return slots[k]!=null?slots[k]:""; }); }
+// A sentence that opens with a slot starts with a capital ("First generation Ford Mustangs have ...").
+function v2Fill(t,slots){ var out=String(t).replace(/\{(\w+)\}/g,function(_,k){ return slots[k]!=null?slots[k]:""; }); return /^\{/.test(String(t))?out.charAt(0).toUpperCase()+out.slice(1):out; }
 
 // ---------- rung-bound scope ----------
 function v2Landed(){ try{ return (sellState.sellDecision&&sellState.sellDecision.evidence&&sellState.sellDecision.evidence.ladder&&sellState.sellDecision.evidence.ladder.landed)||{}; }catch(e){ return {}; } }
@@ -61,7 +62,7 @@ function v2SpecSuffix(v){
 // "First generation Mustangs", "Fox-body Mustangs").
 var V2_ORDINAL=/^(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)$/i;
 function v2GenWord(gen){ var g=String(gen||""); if(V2_ORDINAL.test(g)||/-body$/i.test(g))return g.charAt(0).toUpperCase()+g.slice(1).toLowerCase(); return g.toUpperCase(); }
-function v2GenPhrase(gen){ var g=String(gen||""); return /-body$/i.test(g)?v2GenWord(g):V2_ORDINAL.test(g)?v2GenWord(g)+" generation":v2GenWord(g)+"-generation"; }
+function v2GenPhrase(gen){ var g=String(gen||""); return /-body$/i.test(g)?v2GenWord(g):V2_ORDINAL.test(g)?g.toLowerCase()+" generation":v2GenWord(g)+"-generation"; }
 function v2ScopePlural(v){
   var kind=v2RungKind(), model=String(v&&v.model||"car"), gen=v2GenCode(), year=v&&v.year, sfx=v2SpecSuffix(v), make=v&&v.make;
   var mw=sfx?model:v2PlModel(model); // keep singular when a spec suffix is present
@@ -430,7 +431,7 @@ function renderPickCardV2(option,over){
       var mp=ev&&ev.matchedPremium;
       if(mp){
         var mMonths=Math.round((Number(mp.windowDays)||730)/30.44);
-        winLbl="Last "+mMonths+" Months";
+        winLbl="Last "+mMonths+" months";
         var gc=v2GenCode();
         // Item 2: a trim-scoped count names the trim+year in the scope tile ("2008 911 Carrera S"), so
         // the tile states its own scope and never reads the ambiguous "This exact year" over a trim count.
@@ -461,7 +462,7 @@ function renderPickCardV2(option,over){
     var rv=v2Reserve(ev);
     if(rv){
       if(rv.N<3){ tiles.push({l:"Reserve position",v:"About even",s:rv.body,sc:rv.scope+" closed within a few points with or without a reserve ("+rv.n+" sales)."}); }
-      else { tiles.push({l:"Reserve position",v:rv.headline,s:rv.body,sc:rv.scope+" with a reserve sold "+rv.N+"% "+rv.dir+" ("+rv.n+" sales)."}); }
+      else { tiles.push({l:"Reserve position",v:rv.headline,s:rv.body,sc:rv.scope+" with a reserve sold "+rv.N+"% "+rv.dir+" than those without ("+rv.n+" sales)."}); }
     }
     if(tiles.length<2){ var au=v2Audience(ev); if(au)tiles.push({l:"Audience",v:au.headline,s:au.body}); }
     tiles=tiles.slice(0,2);
@@ -1284,7 +1285,7 @@ function v2AskingLine(){
     if(n>pb.high)fact="Your "+money(n)+" ask is above the "+range+" these sold for.";
     else if(n<pb.low)fact="Your "+money(n)+" ask is below the "+range+" these sold for.";
     else fact="Your "+money(n)+" ask sits within the "+range+" these sold for.";
-    return '<div class="pv2-askline" style="margin:14px 2px 0;font:400 14px/1.5 var(--pv2-serif,Georgia,serif)"><span style="font-weight:600">'+esc(fact)+'</span> A fact about the sales, not a valuation.</div>';
+    return '<div class="pv2-askline" style="margin:14px 2px 0;font:400 14px/1.5 var(--pv2-serif,Georgia,serif)"><span style="font-weight:600">'+esc(fact)+'</span> A fact about the sales, not a price for this car.</div>';
   }catch(e){return "";}
 }
 function renderResultV2Page(){
