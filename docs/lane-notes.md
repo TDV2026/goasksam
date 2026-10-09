@@ -926,3 +926,21 @@ when the work has landed.
   the visitor's intent. Do not change them to ownership-neutral wording, and do not flag them in
   future checks. Everywhere else product rule 20 (ownership is never assumed) still applies unless
   Sam says otherwise. Mirrored in CLAUDE.md as an exception appended to rule 20.
+- 2026-10-09 (Lane C): PARTNER TRACK RECORD (+N%) AUDIT, report only, the computation untouched. Computed by
+  api/usageDashboard.js task=premium (nightly.yml, persist=1) into partners.specialties.premium
+  {pct, n, source:"data_verified", computedAt}: each partner's SOLD sales in vehicle_market_records (by
+  seller_usernames) vs the median of same-model sales on 8 US platforms within +/-183 days, partners
+  excluded, year-scoped (mapped generation, else +/-2 years, 5+ comps or the sale is unmatched); premium =
+  median of the per-sale % deltas when 10+ match. No cap, floor or default anywhere. Run read-only on Oct 9:
+  Howard 14% (n=184 of 517), Ingo 21% (n=138 of 237), Dan 1% (n=49 of 72), Chris -3% (n=34 of 73), Spencer
+  20% (n=23 of 36). The cards showed +15% for BOTH Ingo and Spencer, which is not what the computation gives
+  today: the stored rows are stale or were written by something else (no read-only ops task shows the stored
+  row; the nightly log's "premium=" line or the row itself will say). Until settled, the NEW SELL shows the
+  tile only for a stored figure with source "data_verified", n>=10 and computedAt within 3 days
+  (lib/sell/sellPartner.js premium()); live /sell's js/result-v2.js psvPremium is unchanged.
+- 2026-10-09 (Lane C): THIN POOLS in the Sell reason (lib/sell/sellFlow.js pickFacts, the one builder every
+  Sell surface uses; the brief named sellFacts.js, but the sentence is built here): under 3 sales it never
+  says "most": "The one sale in the last 12 months was on X." / "Both sales in the last 12 months were on X."
+  / "One of the two sales in the last 12 months was on X." ("at" for a house). The Reserve tile (8+ each
+  side) and the chat's sold range (midHalf, 8+) cannot reach fewer than 3. Sell results drawn in a visit are
+  kept by address, so Back after New search redraws at once.
