@@ -12,7 +12,7 @@
 // Needs SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OLDCARSDATA_API_KEY (GitHub
 // Actions provides them as secrets; secrets are not pullable to a laptop).
 import { callOldCarsData, configureOcdUsage, flushOcdUsage, getOcdRunMetered } from "../lib/_ocd.js";
-import { supabaseEnv, supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
+import { supabaseEnv, supabaseInsert, supabaseSelect, supabaseSelectAll, supabaseDelete } from "../lib/_supabase.js";
 import { isPartsListing, projectFlagReason } from "../lib/_classify.js";
 import { deltaShouldStop, earliestGapDay, typicalByWeekday, recentDayList, zeroStreakFlag, requestCapReached, isFutureSale } from "../lib/_ingestHealth.js";
 import { resolveIngestIdentity } from "../lib/_unknownClassify.js";
@@ -402,6 +402,44 @@ if (skipped.length) {
   console.error(`insert: ${skipped.length} row(s) SKIPPED across ${Math.ceil(skipped.length / MIN_CHUNK)} floor-failed chunk(s); last error: ${insertError}`);
   console.error(`SKIPPED source_ids (first 50): ${skipped.slice(0, 50).join(",")}`);
   failedSources.push(`insert: ${skipped.length} row(s) skipped (statement timeout at floor chunk); re-run to recover`);
+}
+
+// SPEC_MARKET_CACHE INVALIDATION (Oct 2026 follow-up): a cached spec is only ever revisited by
+// scripts/buildSpecMarketCache.js's nightly sweep when a CURRENTLY LIVE listing still resolves to
+// that exact spec_key - once the listing that originated a spec_key sells or expires, nothing ever
+// re-queues it, so a cached range/cohort can go stale indefinitely even while fresh sales keep
+// landing in sales_archive for that same car (confirmed live: a cached "2012 BMW M3 Competition
+// Coupe" entry had widened to "any_body" - coupes AND sedans mixed, 8 sales, dated through Sep 11 -
+// because at compute time the coupe-only pool was too thin, while a fresh read the SAME day found
+// 37 coupe-only sales, dated through Oct 6, wide enough on its own; Buy/Tasks kept serving the old,
+// sedan-polluted cohort because nothing had ever told the cache to look again). Fix: after this
+// run's upsert, delete every spec_market_cache row whose own make + (model OR generation code)
+// matches a make/model this run actually touched - the next Buy/Tasks read for that spec is then a
+// clean cache miss, which already recomputes live and writes a fresh row (lib/live/search.js
+// specCore/refreshSpec, unchanged). Archive-only, no extra OldCarsData spend; best-effort (never
+// blocks or fails the ingest run on a cache-layer problem).
+if (inserted > 0) {
+  try {
+    const touched = new Set(uniq.map(r => `${String(r.make || "").toLowerCase()}|${String(r.model || "").toLowerCase()}`).filter(k => k !== "|"));
+    if (touched.size) {
+      const cacheRows = (await supabaseSelectAll(env, "spec_market_cache?select=spec_key")) || [];
+      const toDelete = [];
+      for (const row of cacheRows) {
+        let parsed; try { parsed = JSON.parse(row.spec_key); } catch { continue; }
+        const [mk, md, , gc] = Array.isArray(parsed) ? parsed : [];
+        const mkL = String(mk || "").toLowerCase();
+        if (!mkL) continue;
+        if (touched.has(`${mkL}|${String(md || "").toLowerCase()}`) || (gc && touched.has(`${mkL}|${String(gc).toLowerCase()}`))) toDelete.push(row.spec_key);
+      }
+      if (toDelete.length) {
+        for (let k = 0; k < toDelete.length; k += 100) {
+          const batch = toDelete.slice(k, k + 100).map(s => `"${s.replace(/"/g, '\\"')}"`).join(",");
+          await supabaseDelete(env, `spec_market_cache?spec_key=in.(${encodeURIComponent(batch)})`);
+        }
+        console.log(`spec_market_cache: invalidated ${toDelete.length} row(s) touched by ${touched.size} make/model pair(s) from this run`);
+      }
+    }
+  } catch (e) { console.error("spec_market_cache invalidation failed (non-fatal):", e && e.message); }
 }
 
 // Per-day YIELD of this run (what it added per day), informational only. Pipeline HEALTH is NOT

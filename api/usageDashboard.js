@@ -3,7 +3,7 @@
 // deploy cap; all three share USAGE_DASHBOARD_KEY. (Merged from api/adminAccounts.js
 // and api/outboundClicks.js, July 2026.)
 import fs from "node:fs";
-import { supabaseEnv, supabaseSelect, supabaseSelectAll, supabaseInsert } from "../lib/_supabase.js";
+import { supabaseEnv, supabaseSelect, supabaseSelectAll, supabaseInsert, supabaseDelete } from "../lib/_supabase.js";
 import { callOldCarsData } from "../lib/_ocd.js";
 import { persistableMakeModel, recordPlatform, stableRecordId, PROJECT_PATTERNS, projectFlagReason } from "../lib/_classify.js";
 import { CURATED_GENERATIONS } from "../lib/generations.js";
@@ -618,6 +618,31 @@ async function handleOps(req, res) {
   // sales_archive read), so a sources zero-streak can be checked against BOTH tables - canonical_sales
   // is a SEPARATE, later build step (scripts/buildCanonical.js) off sales_archive, so a gap could be
   // archive-side (ingest) or canonical-side (the dedup/match build), and this tells which.
+  // task=specinvalidate: WRITES (delete only, never a recompute itself - the next Buy/Tasks read
+  // recomputes live via the existing specCore/refreshSpec cache-miss path). Same logic the ingest
+  // invalidation step uses (scripts/ingest.js), callable by hand for a spec stuck stale right now:
+  // ?make=X&model=Y deletes every spec_market_cache row whose own make + (model OR generation code)
+  // matches, case-insensitively. Reports what it deleted.
+  if (task === "specinvalidate") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const make = String(req.query?.make || "").toLowerCase().trim();
+    const model = String(req.query?.model || "").toLowerCase().trim();
+    if (!make || !model) return res.status(400).json({ error: "make and model query params are required." });
+    const cacheRows = (await supabaseSelectAll(env, "spec_market_cache?select=spec_key")) || [];
+    const toDelete = [];
+    for (const row of cacheRows) {
+      let parsed; try { parsed = JSON.parse(row.spec_key); } catch { continue; }
+      const [mk, md, , gc] = Array.isArray(parsed) ? parsed : [];
+      if (String(mk || "").toLowerCase() !== make) continue;
+      if (String(md || "").toLowerCase() === model || (gc && String(gc).toLowerCase() === model)) toDelete.push(row.spec_key);
+    }
+    for (let k = 0; k < toDelete.length; k += 100) {
+      const batch = toDelete.slice(k, k + 100).map(s => `"${s.replace(/"/g, '\\"')}"`).join(",");
+      await supabaseDelete(env, `spec_market_cache?spec_key=in.(${encodeURIComponent(batch)})`);
+    }
+    return res.status(200).json({ task: "specinvalidate", make, model, deleted: toDelete });
+  }
+
   // task=resolvediff: READ-ONLY, zero writes. Investigative only (not kept): compares resolveForBuy
   // (lib/live/search.js, Buy/Tasks' own resolver + generation binder) against resolveVehicle +
   // findGeneration (the shared resolver Market Check/Sell use) for the same text, plus a fresh
