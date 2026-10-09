@@ -5247,6 +5247,21 @@ async function handleOps(req, res) {
     const recent = await raw(`funnel_events?created_at=gte.${encodeURIComponent(sinceIso)}&select=event,tool,props,visitor_id,user_id,created_at&order=created_at.asc&limit=500`);
     const shortId = v => (v ? String(v).slice(0, 8) + "…" : null);
     const recentRows = (recent.ok ? recent.rows : []).map(r => ({ event: r.event, tool: r.tool, props: r.props, visitor_id: shortId(r.visitor_id), user_id: shortId(r.user_id), created_at: r.created_at }));
+    // 2b. Sign-in stitch TEST (Part 1.3): ?testStitch=<visitorId> runs the REAL stitchVisitorToAccount
+    // function - the exact one api/account.js calls on a real sign-in - against the codebase's own
+    // existing test-account convention (api/tasks.js TEST_USER, 00000000-0000-4000-8000-xxxxxxxxxxxx,
+    // PROBE_KEY-gated there too). This is a controlled test of the real function with a labeled test
+    // account, NOT a real OAuth/email sign-in (no disposable inbox access this session, same honest
+    // limitation already on record). ?testStitchUser= overrides the default test uuid.
+    let stitchTest = null;
+    if (req.query?.testStitch) {
+      const vid = String(req.query.testStitch);
+      const uid = /^00000000-0000-4000-8000-[0-9a-f]{12}$/.test(String(req.query?.testStitchUser || "")) ? String(req.query.testStitchUser) : "00000000-0000-4000-8000-000000000001";
+      const { stitchVisitorToAccount, logEvent, EVENTS: EV } = await import("../lib/events.js");
+      await stitchVisitorToAccount({ supabaseUrl: env.supabaseUrl, supabaseKey: env.supabaseKey }, vid, uid);
+      await logEvent({ supabaseUrl: env.supabaseUrl, supabaseKey: env.supabaseKey }, { event: EV.SIGN_IN_COMPLETED, userId: uid, visitorId: vid, props: { source: "test" } });
+      stitchTest = { visitor_id: shortId(vid), user_id: shortId(uid), ranStitch: true };
+    }
     // 3. Sign-in stitch proof for one account, if asked.
     let stitchForUser = null;
     if (req.query?.checkUser) {
@@ -5355,7 +5370,7 @@ async function handleOps(req, res) {
       let count3plus = 0; for (const n of searchesByVisitorBeforeLink.values()) if (n >= 3) count3plus++;
       views.accounts_created_after_3plus_searches = { count: count3plus };
     }
-    return res.status(200).json({ task: "trackingproof", tables, rls, recentRowsSince: sinceIso, recentRows, stitchForUser, totalEventsAllTime: events.length, totalLinks: links.length, views });
+    return res.status(200).json({ task: "trackingproof", tables, rls, stitchTest, recentRowsSince: sinceIso, recentRows, stitchForUser, totalEventsAllTime: events.length, totalLinks: links.length, views });
   }
 
   // task=mcexamplerefresh: force-rebuilds the Market Check landing's cached "An example" band
