@@ -618,6 +618,40 @@ async function handleOps(req, res) {
   // sales_archive read), so a sources zero-streak can be checked against BOTH tables - canonical_sales
   // is a SEPARATE, later build step (scripts/buildCanonical.js) off sales_archive, so a gap could be
   // archive-side (ingest) or canonical-side (the dedup/match build), and this tells which.
+  // task=resolvecheck: READ-ONLY, zero writes, zero OCD. Runs lib/vehicle.js resolveVehicle() over a
+  // fixed list (the crossProductCheck 20 specs + the hyphen/joined-code "Buy regression strings"
+  // already documented in docs/lane-notes.md - XJ-S, GT-350, 240-Z, Z-28, ZR-1, CJ-5, MR-2) or
+  // ?specs=a|b|c, and reports {make, model, trim, status} per spec, for one-off QA of resolver
+  // changes (the Oct 2026 "one resolver" item: resolveVehicle absorbing resolveForBuy's
+  // archiveResolveToken fallback). No downstream engine call - resolver output only.
+  if (task === "resolvecheck") {
+    const DEFAULT_RESOLVE_SPECS = [
+      "2008 Porsche 911 Carrera", "2009 Porsche 911 Carrera S Coupe", "1995 Porsche 993 Carrera",
+      "1967 Ford Mustang Fastback", "1990 Chevrolet Corvette ZR-1", "1969 Chevrolet Camaro Z28",
+      "2016 Ford Mustang Shelby GT350", "2006 Mercedes-Benz CLK DTM", "1990 Lamborghini Countach",
+      "2000 Porsche Boxster S", "2012 BMW M3 Competition Coupe", "2022 BMW M3 Competition",
+      "1973 Porsche 911 Carrera RS", "1989 Porsche 911 Speedster", "2024 Porsche 911 GT3",
+      "2019 Porsche 911 Turbo S", "1965 Shelby Cobra", "1970 Datsun 240Z", "1991 Acura NSX",
+      "2005 Ford GT",
+      "1992 Jaguar XJ-S V12 coupe", "1992 Jaguar XJS V12", "1966 Ford Mustang GT-350",
+      "1970 Datsun 240-Z", "1969 Chevrolet Camaro Z-28", "1990 Chevrolet Corvette ZR1",
+      "1980 Jeep CJ-5", "1991 Mazda MR-2"
+    ];
+    const specs = req.query?.specs ? String(req.query.specs).split("|").filter(Boolean) : DEFAULT_RESOLVE_SPECS;
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const rows = [];
+    for (const q of specs) {
+      try {
+        const r = await resolveVehicle(q, {});
+        const v = r && r.vehicle;
+        rows.push({ q, status: r && r.status, make: v && v.make, model: v && v.model, trim: v && v.trim, year: v && v.year });
+      } catch (e) {
+        rows.push({ q, error: String(e && e.message || e) });
+      }
+    }
+    return res.status(200).json({ task: "resolvecheck", rows });
+  }
+
   // task=enginecheck: READ-ONLY, zero writes, zero OCD. Runs scripts/crossProductCheck.js's own
   // runEngineCheck() - the SAME function the nightly job and the standalone CLI call - over the
   // built-in 20-spec list (or ?specs=a|b|c) and returns its table as JSON. See the script's header
