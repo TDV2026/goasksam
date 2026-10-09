@@ -1067,3 +1067,29 @@ when the work has landed.
   SELL POOL STATUS (unchanged from the prior round's answer, re-confirmed): Sell reads the same
   ladder via runOneBox/resolveVehicle, never resolveForBuy, so finding 8 above does not touch Sell -
   only Buy/Tasks' separate walkLadder has the any_body widening step.
+- 2026-10-09 (Lane C): ROUND (Sam): track record off on live /sell, watches, one task at a time, morning list.
+  1. LIVE /SELL: js/result-v2.js psvPremium behind PSV_PREMIUM_TILE_ON=false (same logic as the new Sell; when
+     turned on, only a figure stamped data_verified, n>=10, computedAt within 3 days). Script version
+     js.20261009e (index.html + vercel.json rewrite). Stored rows seen through /api/sellerDecision: Ingo
+     {pct 15, n 151, computedAt 2026-10-08T14:56:57Z}, Spencer {pct 15, n 24, same run}; a read-only rerun on
+     Oct 9 gives Ingo 21% (n 138), Spencer 20% (n 23). FOR LANE B.
+  2. WATCHES (new): lib/live/watches.js + api/watch.js + docs/supabase-watches.sql (RUN ONCE: tables watches
+     and watch_sends, RLS on, anon/authenticated revoked). Until run, /api/watch "ready" is false and Buy shows
+     no watch control. Spec watch = the same spec key and engine answer as Buy's cards (search.js engineAnswer,
+     now exported): qualifying sales dated after the baseline (the newest sale the engine held when armed).
+     VIN watch = vinAppearances after the watch began, plus live_listings first seen after it began
+     (vin_norm indexed). watch_sends (unique watch_id, event_key) = the sent log; within 7 days of a message new
+     events wait and go as one digest. Delivery = buyAlerts' stop link (stopAll now also stops watches),
+     List-Unsubscribe one-click, junk line on the account's first watch message. Cron /api/watch?run=1 every
+     4 hours at :50. Buy: drawer controls (next sale of the card's family; this exact car when it has a VIN),
+     rail "Watching" with each watch's last event and a stop control, "Free. No card, no plan." after the
+     first watch. The old watch_requests rows are untouched (never sent; no sender reads them).
+     FOR LANE A: Market Check can arm a spec watch through the same /api/watch once it has a live listing id,
+     or ask Lane C for an arm-by-spec action.
+  3. TASKS ONE AT A TIME: the slot is now running/needs_you only (matches the DB unique index); a paused task
+     waits without it. A second task (a seeded arrival, Start on a draft, Resume of a paused task while
+     another works) shows Sam's exact choice with "Swap it for this one" / "Keep the current one"; every
+     showing and press is logged as app_usage_events task_limit_hit (status seen|swap|keep; metadata user_id,
+     running_task_id, running_task, attempted_job, mode, button). Probe reader: /api/tasks test_limit_events.
+  4. Tasks cards use lib/carTitle.js humanTitle; the Buy landing example reads "within 300 miles of New York"
+     (the search still uses ZIP 10282; cache key v10).

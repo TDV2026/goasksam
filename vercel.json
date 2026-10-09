@@ -112,6 +112,7 @@
     { "path": "/api/refreshSpecLiveCounts", "schedule": "35 */4 * * *" },
     { "path": "/api/tasks?run=1", "schedule": "35 */4 * * *" },
     { "path": "/api/buySearch?alerts=run", "schedule": "*/15 * * * *" },
+    { "path": "/api/watch?run=1", "schedule": "50 */4 * * *" },
     { "path": "/api/history?photocheck=vins", "schedule": "40 9 * * *" },
     { "path": "/api/history?photocheck=hubs", "schedule": "50 9 * * *" }
   ]
