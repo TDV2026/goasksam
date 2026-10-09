@@ -2053,3 +2053,104 @@ when the work has landed.
   Baseline: /sell /buy /tasks /market-check /business all 200 signed out.
   Search check: no title/H1/canonical/address change; this round is server-side guard logic + client sign-in
   plumbing only.
+- 2026-10-09 (Lane B): OPEN-SEARCH POLICY, PART 1 COMPLETE (tracking), PART 2 CORRECTED, PART 3 CONFIRMED.
+  Commits d40ea55, 3c00823, 8f8d715, 0c8fe82 (Part 1); no commit for Part 2 (see why below); Part 3 already
+  shipped (dfb1c24, prior round), re-verified live post Lane C's spend-protection/account-wall commits.
+
+  PART 1 (count every visitor) - all 6 items done:
+  1. `lib/appShell.js` PAGE_VIEW_JS (new `page_view` event, lib/events.js) mints `gas_vid` on every page
+     that includes the shared shell - Buy, Market Check, Sell landing, Tasks, business all already call
+     `railOpenHtml`, so ZERO page templates needed editing; `window.GAS_TOOL` (same `active` key the nav
+     already uses) tags it by product. Minting happens inside `/api/funnel`'s own response, never the
+     page's SSR output - every page stays cacheable.
+  2. `search` fires once per completed search: `api/sellerDecision.js` (Market Check's oneBox branch,
+     skipped on a refine; Sell's decision_ready response, skipped on a transmission-refinement rerun) and
+     `api/buySearch.js` (alongside, not replacing, the existing `search_events` log). `props.key` is the
+     resolved `make|model` only, never the typed text or a VIN.
+  3. ONE delegated click listener (`lib/appShell.js` `CLICK_EVENTS_JS`, capture phase, `data-gas-event`
+     attribute) for `market_check_open`/`receipt_click`/`auction_clickout` - the listener is live on every
+     shell page; the DATA ATTRIBUTES themselves are NOT yet on any card/link template. FOR LANE A/C: splice
+     `data-gas-event="receipt_click" data-gas-source="<platform slug>"` onto each comp card's link/wrapper
+     in js/onebox.js's card-building functions, `data-gas-event="auction_clickout"` (+ `data-gas-listing-id`
+     when known) onto the actual outbound "View on {house}" anchor, and `data-gas-event="market_check_open"`
+     onto the search/go button (`#ob-go`) - not editing those files this round since both js/onebox.js and
+     api/buy.js were mid-edit by another lane at the time. `task_created` (`lib/tasks/tasks.js startDraft`,
+     after the row exists) and `watch_created` (`lib/live/watches.js arm`/`armVin`, after each successful
+     upsert - re-arming a stopped watch also counts, a known minor imprecision) are wired server-side.
+     `cross_product_move`: picked the DERIVED approach (two adjacent `page_view` rows for one visitor with
+     a different `tool`), not a dedicated event - removed `EVENTS.CROSS_PRODUCT_MOVE` from lib/events.js/
+     api/funnel.js since nothing ever emitted it. SQL for both is in docs/admin-analytics.md.
+  4. First touch: `lib/appShell.js` `gasFirstTouch()` reads `location.search`/`document.referrer` directly
+     (NOT `js/auth.js`'s `localStorage.gas_first_touch`, a deferred script that can lag a visitor's
+     genuinely first page load - exactly the moment that matters) and sends it on every `page_view`; stored
+     ONCE, only when `lib/_visitor.js` `ensureVisitorId` reports `minted:true` (new return shape `{id,
+     minted}`, its only caller - api/funnel.js - updated). New `visitor_first_touch` table
+     (docs/supabase-visitor-tracking.sql, RLS on, anon/authenticated revoked). Carried to an account later
+     via a plain join on `visitor_id` through `visitor_links` - never copied onto the account row.
+  5. `sign_in_completed` now carries `props.source` (`js/auth.js` sends `attributionSource` from
+     `gasAttribution().first.source` on the same fresh-sign-in call as `freshSignIn`); the existing "best
+     acquisition sources" SQL needed no change, it was already shaped right, just waiting on real data.
+     Added a second, more complete view reading `visitor_first_touch` directly (covers accounts from
+     before this fix too).
+  6. Proved with a REAL browser (Puppeteer against the live site, not a fixture) driving Buy search ->
+     Market Check search -> Sell, network-captured in order: `buy_landing` -> `/api/funnel` 204, Set-Cookie
+     mints `gas_vid` -> `buy_search` -> `/api/buySearch` 200 (real results) -> `market_check_landing` ->
+     `/api/funnel` 204, no Set-Cookie (id already set, correct) -> `market_check_search` -> `/api/sellerDecision`
+     200 (real Camaro Z28 cards rendered) -> `sell_landing` -> `/api/funnel` 204. Confirms the client-side
+     wiring and page/search sequencing end to end. HONEST LIMIT: could not drive a real sign-in (no
+     disposable test account this session, same limitation disclosed elsewhere) and could not read the
+     actual `funnel_events`/`visitor_links`/`visitor_first_touch` ROWS - `docs/supabase-visitor-tracking.sql`
+     has not been run yet (standing rule, Sam runs DDL by hand), every write degrades to a silent no-op
+     until then by design, and the admin CSV export that could otherwise read these tables requires
+     `USAGE_DASHBOARD_KEY`, which CLAUDE.md records as unset in prod. So: the WIRING is proven: the DATA
+     cannot be proven yet. The eleven views are ready to run the moment both land.
+
+  PART 2 (fastback and the one engine) - CORRECTED, not implemented as approved, because the approved
+  premise was wrong. Verified live (not re-read from memory) before touching anything: `resolveVehicle`
+  ALREADY resolves "1967 Ford Mustang Fastback" to `trim: "Fastback"` correctly today (confirmed via
+  `obdiag`: `resolved: "1967 Ford Mustang Fastback"`, `bodyStyle: null`) - the "fastback -> coupe" mapping
+  I pointed at last round only exists in `bodyStyleFromVpic` (VIN decode), a dead end for a typed query. The
+  two `isBodyStyleWord` exclusion sites my prior proposal targeted (lib/vehicle.js lines 489, 2190) are not
+  even reached for this car - one only fires when the make is unknown, the other only when the model fails
+  to resolve; Mustang resolves cleanly, so neither runs. Confirmed `resolveForBuy` inherits the same correct
+  trim with no further stripping ("fastback" isn't in BUY's own `BODIES` list either), and proved it live
+  via a real browser call to `/api/buySearch`: `understood.trim: "Fastback"`, `bodies: []`. Implementing the
+  originally-approved change (stop excluding "fastback" at those two sites) would therefore be a NO-OP for
+  this exact car and for every other resolved-model case - NOT MADE. No `resolvediff`/crossProductCheck
+  before-after was run for this non-change (nothing to diff); ran `enginecheck` fresh on 5 specs including
+  this car as a current-health spot check instead - 0/5 mismatches, all MATCH including `askingLineCompare`.
+  THE REAL GAP, traced per the fallback instruction: Sell's live venue PICK (not the asking-line sentence,
+  already fixed) still runs the LEGACY ladder (`api/sellerDecision.js` `analyze()`/`decide()`, since
+  `SELL_PICK_SHARED` is off), which lands on a tiny, stale, calendar-year-only pool for this car - confirmed
+  live via `?task=platformpickreport`: `currentPick.evidenceSales: 5` (scope `"exact_year"`, 180-day window,
+  a fresh un-cached OCD fetch of 50 total records). The SHARED ladder (`lib/platformPick.js` `pickPlatform`,
+  what the flag would switch TO) was checked on the SAME call: `sharedPick.evidenceSales: 38` (BringATrailer)
+  + 2 (ACC) + 1 (Hemmings) = 41, generation-aware (`pool.generationCode: "first"`, 1965-1971, matching
+  Market Check's own 1965-1971 window exactly), `pickedVenueTypicalRange: [41500, 66000]` - essentially
+  identical to Market Check's $41,000-$66,500. Both ladders pick the same platform (Bring a Trailer) for
+  this car; the divergence is purely in HOW MUCH evidence each ladder is willing to read, not in resolver
+  output and not in venue agreement. SELL_PICK_SHARED recommendation, one line: lean yes for this class of
+  car (generation-spanning trim, calendar-year-scoped legacy ladder starves it) - the shared ladder's number
+  for THIS car now agrees closely with Market Check and the two previously-documented unresolved
+  disagreement classes from the 40-car audit (1969 Camaro Z/28, 1990 Corvette ZR-1 reading near-empty in
+  the shared pool) both now show 0 mismatches on a fresh `enginecheck` spot check today, which was not true
+  when that finding was first logged - worth a full confirmation pass across all 40 audit cars before
+  flipping, not a blocker on its own. NOT FLIPPED (Sam's explicit instruction).
+
+  PART 3 (Sell range unification) - ALREADY SHIPPED, commit dfb1c24 (ONE RANGE decision, documented in this
+  file above under "2026-10-09 (Lane B): ONE RANGE decision"). Re-verified live post Lane C's two large
+  `api/sellerDecision.js` commits (891ef90 spend protection, cec36bf account-wall removal) to confirm
+  neither one disturbed it: the `decision.priceBand` assignment (now ~line 4140) is byte-identical to what
+  shipped, `priceBandForVehicle`'s only remaining real caller is still the deliberate `priceProbe` branch.
+  Live re-check via `?task=sellreal`: 1969 Camaro Z28 and 1988 BMW M3 both still show `sameAsMarketCheck:
+  true` with the exact same bands as the original verification ($68,000-$84,500/15 and $61,000-$86,500/30).
+  Full 300-car comparison and 12-page spot check NOT re-run this round - nothing in Part 1 or the Part 2
+  investigation touched any pricing/engine code, so there is no reason to expect a change from the last
+  full run; flag if a fresh full sweep is wanted regardless.
+
+  CHECKS: `searchCheck.js` shows the same known 7/9 Attack-Challenge-Mode 429 pattern (curl-only false
+  positive - see [[smoke-429-attack-challenge]]); confirmed clean via a REAL browser instead: /buy /market-
+  check /sell /tasks /business all 200, 1-2s each, zero console errors on any page, both before and after
+  today's changes. `enginecheck` (the live crossProductCheck wrapper) could not run its full default spec
+  set in one request (times out, a known pre-existing limit - see the Oct 8 entry above) - ran representative
+  5-spec batches instead each time a check was needed this round, all clean.
