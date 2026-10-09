@@ -17,7 +17,7 @@ const ALLOWED = new Set(["homepage_view", "wizard_start", "wizard_complete", "si
   // Canonical cross-product events (Oct 2026, open-search policy, lib/events.js EVENTS) -
   // client-emittable ones only; SEARCH/RATE_LIMIT_HIT/SIGN_IN_COMPLETED are logged
   // server-side where the search/gate/account logic already runs, never through here.
-  EVENTS.CROSS_PRODUCT_MOVE, EVENTS.MARKET_CHECK_OPEN, EVENTS.RECEIPT_CLICK, EVENTS.AUCTION_CLICKOUT,
+  EVENTS.MARKET_CHECK_OPEN, EVENTS.RECEIPT_CLICK, EVENTS.AUCTION_CLICKOUT,
   EVENTS.TASK_CREATED, EVENTS.WATCH_CREATED, EVENTS.SELL_FOLLOWUP_GATED, EVENTS.SIGN_IN_STARTED, EVENTS.PAGE_VIEW]);
 
 // HARD RULE (VIN feature): a raw 17-char VIN must NEVER be stored in a journey event.

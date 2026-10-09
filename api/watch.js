@@ -10,6 +10,7 @@
 // every notice on the account, watches included (lib/live/buyAlerts.js stopAll).
 import { supabaseEnv } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
+import { readVisitorId } from "../lib/_visitor.js";
 import { ready, arm, stop, list, run, testSend, isMissingTable, probeBackdate, probeInspect } from "../lib/live/watches.js";
 
 export default async function handler(req, res) {
@@ -39,7 +40,7 @@ export default async function handler(req, res) {
     }
     const user = await validateBearer(req.headers.authorization || "").catch(() => null);
     if (!user || !user.userId) return res.status(401).json({ ok: false, needSignIn: true });
-    if (b.action === "arm") return res.status(200).json(await arm(env, user, { kind: b.kind, listing_id: b.listing_id, vin: b.vin, car: b.car }));
+    if (b.action === "arm") return res.status(200).json(await arm(env, user, { kind: b.kind, listing_id: b.listing_id, vin: b.vin, car: b.car, visitorId: readVisitorId(req) }));
     if (b.action === "stop") return res.status(200).json(await stop(env, user, b.id));
     if (b.action === "list") return res.status(200).json(await list(env, user));
     return res.status(400).json({ error: "unknown action" });

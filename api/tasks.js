@@ -19,6 +19,7 @@
 // the clock; test runs never send email (email_status "test").
 import { supabaseEnv } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
+import { readVisitorId } from "../lib/_visitor.js";
 import { notifyPrefs, setNotifyPrefs, taskTurn, draftTurn, startDraft, applyEdit, slotTask, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore, notify, oneTap, sendStartEmail } from "../lib/tasks/tasks.js";
 import crypto from "node:crypto";
 import { CHAT_MODEL } from "../lib/live/chatHttp.js";
@@ -231,7 +232,7 @@ export default async function handler(req, res) {
       for (const d of list) { const one = await (await fetch(`https://api.resend.com/domains/${d.id}`, { headers: H })).json().catch(() => null); detail.push({ name: d.name, status: d.status, region: d.region, records: one && one.records ? one.records.map(r => ({ record: r.record, type: r.type, name: r.name, status: r.status })) : null }); }
       return res.status(200).json({ email: em && { id: em.id, to: em.to, from: em.from, subject: em.subject, last_event: em.last_event, created_at: em.created_at }, domains: detail, domains_error: doms && doms.message || null });
     }
-    if (b.action === "start") return res.status(200).json(await startDraft(env, user, b.draft || {}, { apiKey, model: CHAT_MODEL }));
+    if (b.action === "start") return res.status(200).json(await startDraft(env, user, b.draft || {}, { apiKey, model: CHAT_MODEL, visitorId: readVisitorId(req) }));
     // One task at a time (beta): the page shows the choice when a second task is attempted. Every showing
     // and every button is logged as task_limit_hit (the user, the running task, the attempted job, the
     // button). "swap" pauses the running task, then resumes the paused one asked for, or starts the
