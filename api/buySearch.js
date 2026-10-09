@@ -44,7 +44,7 @@ async function timelineOf(env, x) {
   if (!data || !data.ok) return null;
   const today = new Date().toISOString().slice(0, 10), norm = u => String(u || "").replace(/^https?:\/\/(www\.)?/, "").replace(/\/+$/, "");
   return data.appearances.filter(a => a.date && a.date < today && norm(a.url) !== norm(x.r.url))
-    .map(a => ({ date: a.date, house: a.house, result: a.kind === "sale" ? "sold" : (/withdraw/i.test(String(a.status || a.result || "")) ? "withdrawn" : "not_sold"), price: a.kind === "sale" ? (a.priceUsd || null) : (a.bidUsd || null) }))
+    .map(a => ({ date: a.date, house: a.house, result: a.kind === "sale" ? "sold" : (/withdraw/i.test(String(a.status || a.result || "")) ? "withdrawn" : "not_sold"), price: a.kind === "sale" ? (a.priceUsd || null) : (a.bidUsd || null), url: /^https?:\/\//.test(String(a.url || "")) ? String(a.url) : null }))
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 // The card's name from the resolved spec: year, make, model, trim, body. Never the seller's copy
