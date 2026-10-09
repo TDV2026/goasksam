@@ -1126,7 +1126,7 @@ function composerScopePhrase(vehicle,scope,generationCode,segmentLabel,singular)
   const modelWord=(sfx?model:(singular?model:composerPlural(model)))+sfxTail;
   if(scope==="generation"){
     if(!generationCode){composerScopeMiss("generation-without-code");return null;}
-    return `${String(generationCode).toUpperCase()}-generation ${make} ${modelWord}`.trim();
+    return `${typeof v2GenPhrase==="function"?v2GenPhrase(generationCode):String(generationCode).toUpperCase()+"-generation"} ${make} ${modelWord}`.trim();
   }
   if(scope==="segment")return segmentLabel?String(segmentLabel):(composerScopeMiss("segment-without-label"),null);
   // Exact year (or a caller's intentional "model" scope) may name the year.

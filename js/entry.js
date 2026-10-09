@@ -234,6 +234,12 @@ async function send(){
       if(canadaReply){addMsg("sam",canadaReply);document.getElementById("btn").disabled=false;return;}
       const moneyReply=moneyQuestionReply(q);
       if(moneyReply){addMsg("sam",moneyReply);document.getElementById("btn").disabled=false;return;}
+      // The answer to "Which Toyota?" (offerReRun): the model completes the car that was half understood.
+      if(sellState.pendingRerunBase&&!(typeof isQuestionInput==="function"&&isQuestionInput(q))){
+        const base=sellState.pendingRerunBase; sellState.pendingRerunBase=null;
+        await offerReRun([base.year,base.make,q].filter(Boolean).join(" "));
+        document.getElementById("btn").disabled=false;return;
+      }
       // Item 6: a car CORRECTION re-resolves and re-runs the analysis in place (never the LLM saying
       // it will). Only fires when the correction resolves to a DIFFERENT valid car; else falls through.
       if(await maybeRerunOnCarCorrection(q)){document.getElementById("btn").disabled=false;return;}

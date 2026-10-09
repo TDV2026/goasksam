@@ -55,13 +55,20 @@ function v2SpecSuffix(v){
   var s=[wb,ms].filter(Boolean).join(" ");
   return s?(" "+s):"";
 }
+// Generation names for display (Oct 2026): a chassis code keeps its capitals ("E46", "991.2", "SN95"); an
+// ordinal generation reads as words ("First generation", never "FIRST Generation"); a body name keeps its own
+// case ("Fox-body"). v2GenPhrase is the attributive form before a model ("E46-generation M3s",
+// "First generation Mustangs", "Fox-body Mustangs").
+var V2_ORDINAL=/^(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)$/i;
+function v2GenWord(gen){ var g=String(gen||""); if(V2_ORDINAL.test(g)||/-body$/i.test(g))return g.charAt(0).toUpperCase()+g.slice(1).toLowerCase(); return g.toUpperCase(); }
+function v2GenPhrase(gen){ var g=String(gen||""); return /-body$/i.test(g)?v2GenWord(g):V2_ORDINAL.test(g)?v2GenWord(g)+" generation":v2GenWord(g)+"-generation"; }
 function v2ScopePlural(v){
   var kind=v2RungKind(), model=String(v&&v.model||"car"), gen=v2GenCode(), year=v&&v.year, sfx=v2SpecSuffix(v), make=v&&v.make;
   var mw=sfx?model:v2PlModel(model); // keep singular when a spec suffix is present
   // Never a count directly before a model year (item 2): "Ferrari 550 Maranellos from 2000", never
   // "2000 550 Maranellos" (which reads "11 2000 550..." when a count leads).
   if(kind==="exact"&&year)return (make?make+" ":"")+mw+sfx+" from "+year;
-  if(kind==="generation"&&gen)return String(gen).toUpperCase()+"-generation "+(make?make+" ":"")+mw+sfx;
+  if(kind==="generation"&&gen)return v2GenPhrase(gen)+" "+(make?make+" ":"")+mw+sfx;
   if(kind==="make")return v2Pl(make||"these cars");
   return mw+sfx;
 }
@@ -71,7 +78,7 @@ function v2ScopePlural(v){
 function v2ScopeAttr(v){
   var kind=v2RungKind(), model=String(v&&v.model||"car"), gen=v2GenCode(), year=v&&v.year, sfx=v2SpecSuffix(v);
   if(kind==="exact"&&year)return year+" "+model+sfx;
-  if(kind==="generation"&&gen)return String(gen).toUpperCase()+"-generation "+model+sfx;
+  if(kind==="generation"&&gen)return v2GenPhrase(gen)+" "+model+sfx;
   if(kind==="make")return String(v&&v.make||"these cars");
   return model+sfx;
 }
@@ -82,7 +89,7 @@ function v2CarDisplay(v){ v=v||{}; return [v.year,v.make,v.model,v.wheelbase,v.t
 function v2RungRef(v){
   var kind=v2RungKind(), gen=v2GenCode();
   if(kind==="exact")return "this exact car";
-  if(kind==="generation"&&gen)return "the "+String(gen).toUpperCase()+" generation";
+  if(kind==="generation"&&gen)return "the "+(V2_ORDINAL.test(String(gen))?String(gen).toLowerCase():v2GenWord(gen))+" generation";
   if(kind==="make")return "this make";
   var base=[v&&v.make,v&&v.model].filter(Boolean).join(" ");
   return base?("the "+base+v2SpecSuffix(v)):"the model";
@@ -108,7 +115,7 @@ function v2FailedRungRef(v){
 function v2RungLabel(v){
   var kind=v2RungKind(), gen=v2GenCode(), model=(v&&v.model)||"", make=(v&&v.make)||"";
   if(kind==="exact")return "This exact year";
-  if(kind==="generation"&&gen)return String(gen).toUpperCase()+" Generation";
+  if(kind==="generation"&&gen)return v2GenWord(gen)+" generation";
   if(kind==="make")return make?make+"-wide":"Make-wide";
   return model?"All "+v2PlModel(model):"All models";
 }
@@ -145,7 +152,7 @@ function v2MatchedWhy(ev,v,name){
   var _trim=(mp.trimScoped&&v&&v.trim)?(" "+String(v.trim)):"";
   var _mw=(_sfx||_trim)?_m:v2PlModel(_m);
   var scope=(mp.yearMatched&&_yr)?((_mk?_mk+" ":"")+_mw+_sfx+_trim+" from "+_yr)
-          :(_gen?(String(_gen).toUpperCase()+"-generation "+(_mk?_mk+" ":"")+_mw+_sfx+_trim)
+          :(_gen?(v2GenPhrase(_gen)+" "+(_mk?_mk+" ":"")+_mw+_sfx+_trim)
           :(_mw+_sfx+_trim));
   var months=Math.round((Number(mp.windowDays)||730)/30.44);
   var matchOn=mp.yearMatched?"year and mileage":"mileage";
@@ -340,8 +347,8 @@ function v2ReserveDay(ev){
   if(!isFinite(we)||!isFinite(wd))return null;
   var weekendWins=(rd.winner!=="weekday");
   var body=weekendWins
-    ? "Reserve "+scope+" sold "+we+"% of the time ending at the weekend, "+wd+"% midweek ("+n+" auctions)."
-    : "Reserve "+scope+" sold "+wd+"% of the time midweek, "+we+"% at the weekend ("+n+" auctions).";
+    ? scope+" with a reserve sold "+we+"% of the time when the auction ended on a weekend, and "+wd+"% midweek ("+n+" auctions)."
+    : scope+" with a reserve sold "+wd+"% of the time when the auction ended midweek, and "+we+"% on a weekend ("+n+" auctions).";
   return { headline:weekendWins?"Weekends":"Midweek", n:n, body:body, compact:body };
 }
 
@@ -428,7 +435,7 @@ function renderPickCardV2(option,over){
         // Item 2: a trim-scoped count names the trim+year in the scope tile ("2008 911 Carrera S"), so
         // the tile states its own scope and never reads the ambiguous "This exact year" over a trim count.
         genLabel=(mp.trimScoped&&v.trim)?[v.year,v.model,v.trim].filter(Boolean).join(" ")
-               :(mp.yearMatched&&v.year)?"This exact year":(gc?String(gc).toUpperCase()+" Generation":genLabel);
+               :(mp.yearMatched&&v.year)?"This exact year":(gc?v2GenWord(gc)+" generation":genLabel);
       }
     } }
     // Layout (Aug 2026, item 2b): the concrete evidence clause leads the MAIN

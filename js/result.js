@@ -623,7 +623,7 @@ function renderDecision(decisionData,renderOpts){
     const win=p&&Number.isFinite(p.windowDays)?p.windowDays:(ev.dayAdvantage&&ev.dayAdvantage.window)||null;
     if(!win)return null;
     const label=win<=45?"Last 45 days":win<=90?"Last 90 days":"Last 180 days";
-    const scope=p&&p.scope==="segment"?p.segmentLabel:(p&&p.scope==="generation"?`${String(p.generationCode||"").toUpperCase()} generation`:null);
+    const scope=p&&p.scope==="segment"?p.segmentLabel:(p&&p.scope==="generation"?`${typeof v2GenWord==="function"?v2GenWord(p.generationCode||""):String(p.generationCode||"").toUpperCase()} generation`:null);
     return scope?`${scope} · ${label}`:label;
   };
   const verdictPlate=(option,windowLabel)=>`<div class="verdict-plate">
@@ -992,7 +992,22 @@ async function offerReRun(rawText){
       addMsg("sam",`Want me to re-run the analysis as ${label}?${tag}`,"",chipsHTML([`Yes, re-run as ${label}`,"No, keep current"]));
       return;
     }
-    addMsg("sam","I couldn't read that as a car. Tell me the year, make and model and I'll re-run.");
+    // Part of the car was understood (the resolver's own needs_clarification, lib/vehicle.js): ask for what is
+    // missing, with real models from the resolver's own list for that make, and keep what was understood so
+    // the next answer completes the car (js/entry.js pendingRerunBase).
+    const pv=data&&data.vehicle||{};
+    if(res.ok&&data.status==="needs_clarification"&&(pv.make||pv.year)&&!pv.model){
+      sellState.pendingRerunBase={year:pv.year||null,make:pv.make||null};
+      if(pv.make){
+        const models=((data.clarification&&data.clarification.chips)||[]).filter(c=>!/^(not sure|change car|other)$/i.test(String(c))).slice(0,3);
+        const eg=models.length>=2?`, for example ${models[0]} or ${models[1]}`:models.length?`, for example ${models[0]}`:"";
+        addMsg("sam",`Which ${pv.make}? Tell me the model${eg}.`,"",models.length?chipsHTML(models):"");
+      }else{
+        addMsg("sam",`Which car from ${pv.year}? Tell me the make and model.`);
+      }
+      return;
+    }
+    addMsg("sam","I couldn't read that as a car. Year, make and model?");
   }catch(e){
     if(typeof hideVehicleLookup==="function")hideVehicleLookup();
     addMsg("sam","I had trouble reading that model just now. Give me the year, make and model and I'll re-run.");

@@ -41,7 +41,7 @@ import {
   textHasTerm
 } from "../lib/_classify.js";
 import { hammerUsd, ensureFxReady } from "../lib/_houseComps.js";
-import { pickPlatform, buildSharedAnalysis } from "../lib/platformPick.js";
+import { buildSharedAnalysis } from "../lib/platformPick.js";
 import { specKeyFor, coreOf, persistCore } from "../lib/live/search.js";
 
 // Powerseller referrals are gated (locked product rule): estimated value from
@@ -4267,25 +4267,6 @@ export default async function handler(req, res) {
       if (anonFirstFree) responsePayload.anonResult = true;
     }
     res.status(200).json(responsePayload);
-    // SELL_PICK_SHADOW (item 5, off by default): the seller already has their answer on the line
-    // above - everything from here runs AFTER the response is sent, so it adds no delay and never
-    // changes what the seller sees. Computes the shared pick (lib/platformPick.js, archive-only,
-    // zero OldCarsData - no search metering) and logs old pick vs shared pick, reason code and
-    // agreement to app_usage_events for comparison. A failure here is swallowed, never surfaced.
-    if (process.env.SELL_PICK_SHADOW === "1" && !internalCall) {
-      try {
-        const shared = await pickPlatform(vehicle, generation, { supabaseUrl, supabaseKey }, sellerCriteria);
-        const normShadow = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-        const oldPick = decision.recommendedPath || null;
-        const sharedPlatform = (shared && shared.platform) || null;
-        const agree = !!(oldPick && sharedPlatform) && normShadow(oldPick) === normShadow(sharedPlatform);
-        await recordUsageEvent({
-          event_type: "sell_pick_shadow", route: "/api/sellerDecision", status: "shadow_compare",
-          search_text: rawSearch, vehicle,
-          metadata: { oldPick, sharedPlatform, sharedMode: (shared && shared.mode) || null, reasonCode: (shared && shared.reasonCode) || null, agree }
-        }, supabaseUrl, supabaseKey);
-      } catch (e) { console.error("SELL_PICK_SHADOW failed (no effect on the response already sent):", e && e.message); }
-    }
     return;
   } catch (err) {
     // 2C: a server-side failure consumes nothing - refund the reservation (11b).
