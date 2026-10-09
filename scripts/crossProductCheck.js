@@ -65,7 +65,18 @@ export const DEFAULT_SPECS = [
   "1985 Ferrari 308 GTS Spider", "1964 Porsche 356 Speedster", "1996 Porsche Boxster Spyder",
   "1963 Jaguar E-Type Series 1", "2015 Porsche Cayman GT4", "1970 Plymouth Barracuda",
   "1969 Dodge Charger R/T", "1972 Datsun 240Z", "2017 Ford GT", "1993 Mazda RX-7",
-  "2021 Chevrolet Corvette Z06", "1988 BMW M3", "2023 Porsche 911 GT3 RS"
+  "2021 Chevrolet Corvette Z06", "1988 BMW M3", "2023 Porsche 911 GT3 RS",
+  // Grown again (Oct 2026, "one parser" follow-up item 3) - compound trim+body phrases from the
+  // refine911 fix's own sweep ("1988 Porsche 911 Carrera Targa" above was the named regression;
+  // these extend the same drivetrain-trim + body-hint pattern across more generations and body
+  // words, so a future regression on this exact class surfaces here first). continue-on-error
+  // stays on, per the ask - not a new gate yet.
+  "1987 Porsche 911 Carrera Cabriolet", "2008 Porsche 911 Carrera S Cabriolet",
+  "1989 Porsche 911 Turbo Targa", "2017 Porsche 911 Turbo S Cabriolet",
+  "1986 Porsche 911 Carrera Speedster", "1991 Porsche 911 Carrera 4 Targa",
+  "2015 Porsche 911 Carrera GTS Cabriolet", "1993 Porsche 911 Carrera RS Targa",
+  "2001 Porsche 911 Carrera 4S Cabriolet", "1988 Porsche 911 Carrera T Coupe",
+  "2019 Porsche 911 Carrera T Cabriolet"
 ];
 
 const round = n => (Number.isFinite(n) ? Math.round(n) : null);

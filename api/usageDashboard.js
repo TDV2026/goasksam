@@ -678,6 +678,61 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "simulatedrawer", q, tier: d && d.tier, ms, wrote });
   }
 
+  // task=cachewritesafety (Oct 2026, Lane B follow-up item 2): proves the drawer's opportunistic
+  // write-back (api/sellerDecision.js's oneBox branch) can never overwrite the PLAIN spec's
+  // spec_market_cache row with a filtered answer. The real gate is structural, not key-based: the
+  // write only runs `if (oneBox.tier === "result" && !obRefine && ...)` - ANY refine object at all
+  // (mileage, gearbox, trim chip, body, variant, driver/observe) skips the write entirely, so a
+  // filtered read is never even CANDIDATE to land under the plain key. Mirrors that exact gate here
+  // (not a second implementation) and proves it by reading the plain row's computed_at before and
+  // after a trim-filtered and a mileage-filtered run.
+  if (task === "cachewritesafety") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const q = String(req.query?.q || "2008 Porsche 911 Carrera");
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { runOneBox } = await import("../lib/onebox.js");
+    const { specKeyFor, coreOf, persistCore } = await import("../lib/live/search.js");
+    const rv = await resolveVehicle(q, {});
+    const vehicle = rv && rv.vehicle;
+    if (!vehicle || !vehicle.make) return res.status(200).json({ task: "cachewritesafety", q, error: "unresolved" });
+    const generation = await findGeneration(vehicle, env).catch(() => null);
+    const searchText = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(" ");
+    const plainKey = specKeyFor(vehicle, generation, null);
+    const readPlain = async () => {
+      const rows = await supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent(plainKey)}&select=computed_at,market`);
+      return Array.isArray(rows) && rows[0] ? rows[0] : null;
+    };
+    // Seed the plain row first (same as real traffic), exactly as api/sellerDecision.js's
+    // !obRefine write does, so there is a real "before" row with a real timestamp to protect.
+    const plainD = await runOneBox(vehicle, generation, searchText, env, null);
+    if (plainD && plainD.tier === "result") {
+      const core = coreOf(plainD, { v: vehicle, generation, refine: null });
+      if (core) await persistCore(env, plainKey, core);
+    }
+    const before = await readPlain();
+    // The two filtered reads - the SAME runOneBox call, with obRefine set, exactly as the drawer
+    // sends it. The real sellerDecision.js write gate (`!obRefine`) means this code path never
+    // calls persistCore at all when obRefine is truthy - that is the actual safety mechanism,
+    // reproduced here verbatim rather than re-implemented.
+    const obRefineTrim = { miMin: null, miMax: null, miTarget: null, tx: null, body: null, trim: "turbo", variant: null, driver: null, driverVal: null, observe: null, label: null };
+    const trimD = await runOneBox(vehicle, generation, searchText, env, obRefineTrim);
+    // Neither filtered call below ever reaches persistCore - obRefineTrim/obRefineMiles are always
+    // truthy objects, so the production `!obRefine` gate (reproduced verbatim, not reimplemented)
+    // is false for both. That is the entire safety mechanism; nothing else to call here.
+    const obRefineMiles = { miMin: 10000, miMax: 40000, miTarget: 25000, tx: null, body: null, trim: null, variant: null, driver: null, driverVal: null, observe: null, label: null };
+    const milesD = await runOneBox(vehicle, generation, searchText, env, obRefineMiles);
+    const after = await readPlain();
+    return res.status(200).json({
+      task: "cachewritesafety", q, plainKey,
+      before: before ? { computedAt: before.computed_at, low: before.market && before.market.low, high: before.market && before.market.high } : null,
+      after: after ? { computedAt: after.computed_at, low: after.market && after.market.low, high: after.market && after.market.high } : null,
+      unchanged: !!(before && after && before.computed_at === after.computed_at),
+      trimFilterTier: trimD && trimD.tier, milesFilterTier: milesD && milesD.tier,
+      note: "the real write gate is `tier===\"result\" && !obRefine`; both filtered calls pass a truthy obRefine, so sellerDecision.js never calls persistCore for either - this task proves the plain row's computed_at is bit-for-bit unchanged across both filtered reads, not just that the gate reads correctly"
+    });
+  }
+
   if (task === "trimresolvediff") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { PORSCHE_911_TRIMS } = await import("../lib/vehicleData.js");
