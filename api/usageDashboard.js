@@ -643,6 +643,50 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "specinvalidate", make, model, deleted: toDelete });
   }
 
+  // task=drawervscard: READ-ONLY, zero writes. For each spec in ?specs=a|b|c (or the default 11:
+  // the 1988 Porsche 911 Carrera Targa Lane C named plus 10 more popular Buy specs), compares the
+  // CARD'S value (whatever spec_market_cache currently holds, read the same way listingMarket/
+  // specCore does - a stale or missing row reads as the card would see it) against the DRAWER's
+  // value (a fresh walkLadder call, the same engine call /api/sellerDecision{oneBox:true} makes).
+  // MATCH/DIVERGE per spec, so a "not enough sales" vs "shows a range" split is visible at a glance.
+  if (task === "drawervscard") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const DEFAULT_DVC_SPECS = [
+      "1988 Porsche 911 Carrera Targa", "2012 BMW M3 Competition Coupe", "1989 Porsche 911 Speedster",
+      "2008 Porsche 911 Carrera", "1967 Ford Mustang Fastback", "1990 Chevrolet Corvette ZR-1",
+      "1969 Chevrolet Camaro Z28", "2016 Ford Mustang Shelby GT350", "2000 Porsche Boxster S",
+      "2022 BMW M3 Competition", "1991 Acura NSX", "2005 Ford GT"
+    ];
+    const specs = req.query?.specs ? String(req.query.specs).split("|").filter(Boolean) : DEFAULT_DVC_SPECS;
+    const { resolveForBuy, specOf, walkLadder } = await import("../lib/live/search.js");
+    const rows = [];
+    for (const q of specs) {
+      try {
+        const buyV = await resolveForBuy(q, env);
+        if (!buyV || !buyV.model) { rows.push({ q, error: "resolveForBuy: no model" }); continue; }
+        const row = { listing_title: q, year: buyV.year };
+        const spec = await specOf(env, row, {});
+        if (!spec) { rows.push({ q, error: "specOf: no spec" }); continue; }
+        const cached = await supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent(spec.key)}&select=market,computed_at`).catch(() => null);
+        const cardMarket = cached && cached[0] ? cached[0].market : undefined;
+        const card = cardMarket === undefined ? { kind: "pending (cache miss)" } : (cardMarket || { kind: "none" });
+        const trace = [];
+        const fresh = await walkLadder(env, spec, trace).catch(() => undefined);
+        const drawer = fresh === undefined ? { kind: "pending (engine did not come back)" } : (fresh || { kind: "none" });
+        const same = card.kind === drawer.kind && (card.kind !== "range" || (card.low === drawer.low && card.high === drawer.high && card.count === drawer.count));
+        rows.push({
+          q, specKey: spec.key,
+          card: { kind: card.kind, low: card.low, high: card.high, count: card.count, computedAt: cached && cached[0] ? cached[0].computed_at : null },
+          drawer: { kind: drawer.kind, low: drawer.low, high: drawer.high, count: drawer.count },
+          verdict: same ? "MATCH" : "DIVERGE"
+        });
+      } catch (e) {
+        rows.push({ q, error: String(e && e.message || e) });
+      }
+    }
+    return res.status(200).json({ task: "drawervscard", total: rows.length, diverged: rows.filter(r => r.verdict === "DIVERGE").length, rows });
+  }
+
   // task=resolvediff: READ-ONLY, zero writes. Investigative only (not kept): compares resolveForBuy
   // (lib/live/search.js, Buy/Tasks' own resolver + generation binder) against resolveVehicle +
   // findGeneration (the shared resolver Market Check/Sell use) for the same text, plus a fresh
