@@ -42,10 +42,29 @@ function whichModelAsk(partialVehicle,chips){
   const models=(chips||[]).filter(c=>!/^(not sure|change car|other|skip)$/i.test(String(c))).slice(0,2);
   return `Which ${make}? Tell me the model${models.length===2?`, for example ${models[0]} or ${models[1]}`:models.length?`, for example ${models[0]}`:""}.`;
 }
+// Rejected models (Oct 2026): when the resolver says a model did not exist that year (invalid_vehicle), that
+// model, and the chip the visitor picked for it, never come back as a chip for the same year and make in this
+// conversation. The resolver's own chips are only filtered here, never added to (Lane B scopes them by year).
+function rejectedKey(v){ return [v&&v.year||"",String(v&&v.make||"").toLowerCase()].join("|"); }
+function chipNorm(c){ return String(c||"").toLowerCase().replace(/[^a-z0-9]/g,""); }
+function noteRejectedModel(partialVehicle,prevChips){
+  if(!partialVehicle||!partialVehicle.make||!partialVehicle.model)return;
+  const k=rejectedKey(partialVehicle), list=(sellState.rejectedModels=sellState.rejectedModels||{})[k]=(sellState.rejectedModels[k]||[]);
+  const add=x=>{ const n=chipNorm(x); if(n&&list.indexOf(n)<0)list.push(n); };
+  add(partialVehicle.model);
+  const raw=String(partialVehicle.raw||"").toLowerCase();
+  (prevChips||[]).forEach(c=>{ if(c&&raw.indexOf(String(c).toLowerCase())>=0)add(c); });
+}
+function dropRejectedChips(partialVehicle,chips){
+  const list=(sellState.rejectedModels||{})[rejectedKey(partialVehicle)]||[];
+  return (chips||[]).filter(c=>list.indexOf(chipNorm(c))<0);
+}
 function askVehicleIdentityClarification(clarification,status,partialVehicle){
   sellState.vehicleIdentityValidated=false;
-  let ask=(status==="needs_clarification"&&whichModelAsk(partialVehicle,clarification.chips))||clarification.question;
-  let chips=clarification.chips||["Change car","Not sure"];
+  if(status==="invalid_vehicle")noteRejectedModel(partialVehicle,sellState.pendingVehicleIdentity&&sellState.pendingVehicleIdentity.chips);
+  const keptChips=clarification.chips?dropRejectedChips(partialVehicle,clarification.chips):null;
+  let ask=(status==="needs_clarification"&&whichModelAsk(partialVehicle,keptChips))||clarification.question;
+  let chips=keptChips||["Change car","Not sure"];
   // Never show the same clarification twice in a row: switch to what was
   // understood plus exactly what is missing, or lead with a best guess.
   if(sellState.lastVehicleAsk===clarification.question){

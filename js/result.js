@@ -996,10 +996,21 @@ async function offerReRun(rawText){
     // missing, with real models from the resolver's own list for that make, and keep what was understood so
     // the next answer completes the car (js/entry.js pendingRerunBase).
     const pv=data&&data.vehicle||{};
+    // The model did not exist that year: say so (the resolver's own line), keep what was understood, and
+    // never offer the rejected model again (js/chat-core.js noteRejectedModel / dropRejectedChips).
+    if(res.ok&&data.status==="invalid_vehicle"&&pv.make&&pv.model&&data.clarification&&data.clarification.question){
+      noteRejectedModel(pv,sellState.lastRerunChips);
+      sellState.pendingRerunBase={year:pv.year||null,make:pv.make};
+      const models=dropRejectedChips(pv,data.clarification.chips||[]).filter(c=>!/^(not sure|change car|other)$/i.test(String(c))).slice(0,3);
+      sellState.lastRerunChips=models;
+      addMsg("sam",data.clarification.question,"",models.length?chipsHTML(models):"");
+      return;
+    }
     if(res.ok&&data.status==="needs_clarification"&&(pv.make||pv.year)&&!pv.model){
       sellState.pendingRerunBase={year:pv.year||null,make:pv.make||null};
       if(pv.make){
-        const models=((data.clarification&&data.clarification.chips)||[]).filter(c=>!/^(not sure|change car|other)$/i.test(String(c))).slice(0,3);
+        const models=dropRejectedChips(pv,(data.clarification&&data.clarification.chips)||[]).filter(c=>!/^(not sure|change car|other)$/i.test(String(c))).slice(0,3);
+        sellState.lastRerunChips=models;
         addMsg("sam",whichModelAsk(pv,models),"",models.length?chipsHTML(models):"");
       }else{
         addMsg("sam",`Which car from ${pv.year}? Tell me the make and model.`);

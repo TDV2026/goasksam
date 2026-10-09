@@ -2899,3 +2899,22 @@ when the work has landed.
   revisit the legacy-ladder removal question with that in mind. The rest of this round's findings (the
   routable-house filter, the realPick diagnostic field) are in lib/platformPick.js and
   api/usageDashboard.js, both pushed, no action needed from you on those.
+
+- 2026-10-09 (Lane C): BUY LANDING BUTTON, NO CLEAR ALL, REJECTED MODEL CHIPS, THE "NEAR" RADIUS.
+  * Buy landing band ("Close the tabs. Sam keeps working.", lib/live/buyLanding.js): the results card's red
+    .kl-btn "Have Sam keep looking" (data-keep-landing, /tasks/mine?start=1) with "You'll be notified when a
+    matching car goes live." under it; full width at 390. Signed out, api/buy.js CLIENT opens the sign in
+    card ("Sign in so Sam can keep looking. Free. No card, no plan.") and goes to Tasks in the same tab after.
+  * "Clear all" removed at its only source, Buy's drawRail (api/buy.js CLIENT) with its handler and clearAll();
+    the shared rail (lib/appShell.js) never drew it, so no edit there. Each row keeps its own x.
+  * Rejected model chips (live /sell): js/chat-core.js noteRejectedModel / dropRejectedChips. When
+    resolveVehicle answers invalid_vehicle ("I don't think there was a 1985 Toyota Tacoma"), that model and
+    the chip picked for it are never offered again for the same year and make in the conversation (wizard
+    and the post-result re-run, js/result.js offerReRun). Filter only; the resolver's chips are not added to.
+    FOR LANE A: the new Sell's car questions are Market Check's card (js/onebox.js); after an invalid_vehicle
+    for a picked model chip, please drop that chip from the next set the same way (keep a per-conversation
+    list keyed by year and make; compare chip text case and punctuation insensitive).
+  * "Near" on Buy: runSearch (lib/live/samChat.js) uses 500 miles around the named place unless the buyer
+    names a distance (radius_miles). The results sentence and the Keep looking line now say it: searchLabel
+    (api/buy.js CLIENT) takes the search's own radius (meta.radius) and reads "within 500 miles of New York";
+    two caps read "under $100,000 with under 50,000 miles". Radius itself unchanged (Sam to decide).
