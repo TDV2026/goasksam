@@ -5227,6 +5227,21 @@ async function handleOps(req, res) {
     if (anyMissing) {
       return res.status(200).json({ task: "trackingproof", tables, note: "Run docs/supabase-visitor-tracking.sql in the Supabase SQL editor before anything below can be proven - every write degrades to a silent no-op until these exist." });
     }
+    // RLS/revoke proof: the service-role reads above bypass RLS entirely, so passing them proves
+    // existence, not lockdown. Re-read the same two NEW tables with the anon key - the standing DB
+    // security rule (revoke all on <t> from anon, authenticated) means this MUST fail; if it
+    // succeeds, that is a real finding, not a pass.
+    const anonKey = process.env.SUPABASE_ANON_KEY;
+    const rawAs = async (pathAndQuery, key) => {
+      try {
+        const r = await fetch(`${env.supabaseUrl}/rest/v1/${pathAndQuery}`, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
+        return { status: r.status, blocked: r.status === 401 || r.status === 403 };
+      } catch (e) { return { status: null, blocked: null, error: String((e && e.message) || e) }; }
+    };
+    const rls = anonKey ? {
+      visitor_links_anon_read: await rawAs("visitor_links?select=visitor_id&limit=1", anonKey),
+      visitor_first_touch_anon_read: await rawAs("visitor_first_touch?select=visitor_id&limit=1", anonKey),
+    } : { note: "SUPABASE_ANON_KEY not set, could not run the negative test" };
     // 2. Recent rows readback (the test-journey proof) - shortened visitor/user ids, no raw cookie values logged.
     const sinceIso = req.query?.since ? String(req.query.since) : new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const recent = await raw(`funnel_events?created_at=gte.${encodeURIComponent(sinceIso)}&select=event,tool,props,visitor_id,user_id,created_at&order=created_at.asc&limit=500`);
@@ -5340,7 +5355,7 @@ async function handleOps(req, res) {
       let count3plus = 0; for (const n of searchesByVisitorBeforeLink.values()) if (n >= 3) count3plus++;
       views.accounts_created_after_3plus_searches = { count: count3plus };
     }
-    return res.status(200).json({ task: "trackingproof", tables, recentRowsSince: sinceIso, recentRows, stitchForUser, totalEventsAllTime: events.length, totalLinks: links.length, views });
+    return res.status(200).json({ task: "trackingproof", tables, rls, recentRowsSince: sinceIso, recentRows, stitchForUser, totalEventsAllTime: events.length, totalLinks: links.length, views });
   }
 
   // task=mcexamplerefresh: force-rebuilds the Market Check landing's cached "An example" band
