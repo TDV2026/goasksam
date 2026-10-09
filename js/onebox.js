@@ -829,7 +829,8 @@
     var bits = ["modified", "project", "replica", "odd sale"].map(function (k) { return reasons[k] ? reasons[k] + " " + k : null; }).filter(Boolean).join(", ");
     var id = "ob-aside" + (++obCapSeq);
     var cards = rows.map(function (c) { return poolCardHtml(c, false); }).join("");
-    return '<div class="quietline" data-stage="cards"><button type="button" class="quietbtn" data-qtoggle="' + id + '" aria-expanded="false">' + esc(n) + (n === 1 ? ' sale set aside' : ' sales set aside') + (bits ? ' (' + esc(bits) + ')' : '') + '. Show them.</button><div class="quietrows grid3" id="' + id + '" hidden>' + cards + '</div></div>';
+    var singular = n === 1 || n === "one";
+    return '<div class="quietline" data-stage="cards"><button type="button" class="quietbtn" data-qtoggle="' + id + '" aria-expanded="false">' + esc(n) + (singular ? ' sale set aside' : ' sales set aside') + (bits ? ' (' + esc(bits) + ')' : '') + '. Show them.</button><div class="quietrows grid3" id="' + id + '" hidden>' + cards + '</div></div>';
   }
   function didNotSellLineHtml(d) {
     var n = d && d.didNotSellCount, rows = d && d.didNotSellRows;
