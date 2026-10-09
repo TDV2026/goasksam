@@ -2519,11 +2519,21 @@ async function handleOps(req, res) {
         row.oldPick = dec.recommendedPath || null;
         row.oldReason = premiumCleared ? "premium" : (dec.evidenceBasis === "regional_policy" ? "policy" : "evidence");
         row.oldEvidenceSales = (ev && ev.evidenceSales) || 0;
+        // Oct 2026, Part 2 of the venue-pick audit round: the range each ladder lands on, not just the
+        // count - ev.priceBand is the old ladder's own band at its landed rung (same field sellreal reads).
+        row.oldRange = (ev && ev.priceBand && Number.isFinite(ev.priceBand.low) && Number.isFinite(ev.priceBand.high)) ? [ev.priceBand.low, ev.priceBand.high] : null;
         const shared = await pickPlatform(vehicle, generation, env, criteria).catch(e => ({ error: String((e && e.message) || e) }));
         row.sharedPick = (shared && shared.platform) || null;
         row.sharedReason = (shared && shared.reasonCode) || null;
         row.sharedEvidenceSales = (shared && shared.evidenceSales) || 0;
         row.sharedThin = !!(shared && shared.thin);
+        row.sharedRange = (shared && Array.isArray(shared.pickedVenueTypicalRange)) ? shared.pickedVenueTypicalRange : null;
+        // Market Check's own cluster for this car, zero OCD (runOneBox is archive-only) - which ladder's
+        // pick/range it agrees with is the tiebreaker on a divergent-platform car.
+        const { runOneBox: runOneBoxMC } = await import("../lib/onebox.js");
+        const mcSearchText = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(" ");
+        const mc = await runOneBoxMC(vehicle, generation, mcSearchText, { ...env, asked: 2 }, null).catch(() => null);
+        row.marketCheckCluster = (mc && Array.isArray(mc.cluster)) ? { low: mc.cluster[0], high: mc.cluster[1], poolN: mc.poolN ?? null } : null;
         const normP = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
         row.agree = !!(row.oldPick && row.sharedPick) && normP(row.oldPick) === normP(row.sharedPick);
       } catch (e) { row.error = String((e && e.message) || e); }
