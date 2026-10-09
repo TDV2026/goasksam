@@ -65,9 +65,16 @@ async function main() {
     vins = (rows || []).map(r => r.vin_norm).filter(Boolean);
   }
   if (!vins.length) vins = ["WBSDE93483CF93837"];
-  const urls = [`${BASE}/`, `${BASE}/buy`, `${BASE}/sell`, `${BASE}/mcp`, `${BASE}/market-check`, `${BASE}/cars/porsche/911`, `${BASE}/cars/porsche/911/993/carrera/coupe-manual`, ...vins.map(v => `${BASE}/vin/${v}`)];
 
   const inSitemap = await sitemapUrls();
+  // Dynamic spec/hub fixtures (Oct 2026, pending-round item f): one of each pulled live from the
+  // sitemaps already fetched above, same self-maintaining pattern as the VIN pages - never a
+  // hardcoded slug that can silently go stale once the real page moves or is retired. Falls back
+  // to the one known-good slug only when a sitemap is briefly empty/unreachable.
+  const pick = (re, fallback) => [...inSitemap].find(u => re.test(u)) || fallback;
+  const specUrl = pick(/\/cars\/[^/]+\/[^/]+\/[^/]+/, `${BASE}/cars/porsche/911/993/carrera/coupe-manual`);
+  const hubUrl = pick(/\/cars\/[^/]+\/[^/]+$/, `${BASE}/cars/porsche/911`);
+  const urls = [`${BASE}/`, `${BASE}/buy`, `${BASE}/sell`, `${BASE}/mcp`, `${BASE}/market-check`, `${BASE}/tasks`, `${BASE}/how-sam-decides`, hubUrl, specUrl, ...vins.map(v => `${BASE}/vin/${v}`)];
   const results = [];
   const seenFinal = new Set();
   for (const u of urls) {
