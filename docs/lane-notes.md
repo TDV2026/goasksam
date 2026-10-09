@@ -1376,3 +1376,52 @@ when the work has landed.
   [[smoke-429-attack-challenge]]), /sell confirmed 200 three times post-push.
   Search check: no public page title/H1/canonical/address touched; this changes a number inside an existing
   /sell result sentence only.
+- 2026-10-09 (Lane A): Market read card (commit e837961, js/onebox.js + onebox.html).
+  Built the card exactly as specified: paper surface/radius/padding matching the range card above it,
+  yoyDirection.sentence as the lead (no repeated band lines - those were on the old standalone block,
+  removed), four quarter rows with bars on the SAME price scale as the range card's rangebar (d.span lo/hi),
+  sage (--chip) bars with the newest quarter in dark green (--green) when it has one, a thin quarter reads
+  "Not enough sales" in grey with no bar and is not a button. Verified live on all three named cars
+  (screenshots this session, not committed) at 1440 and 390 with a quarter row opened.
+  CLICK TO OPEN NOW WORKS: Lane B's fix (ab02006, "sales belong to the quarter WITH a band") landed and is
+  confirmed live - every banded quarter on all three cars carries its own sales (M3: 21/23/15 cards on its
+  three banded quarters; 911: 16/20/11; Camaro has zero banded quarters so nothing to open there). Wired per
+  Sam's direction 3.
+  SET ASIDE PILL (Sam's direction 2): no longer a second list - scrolls to the existing "Shown separately"
+  section (now carries id="shown-separately") and its digit count is that section's own filtered list length
+  (asideCards minus the exact-car's own url, the same filter shownSeparatelyHtml already applies), so the
+  pill and the section can never disagree. "Digits not words": setAsideCount/didNotSellCount word-ify counts
+  under ten for prose (countWord, lib/onebox.js); the pill reverses that (digitOf()) since this UI explicitly
+  wants "4" not "four" - same fact, no recompute, just a different print.
+  DIDN'T SELL PILL - HELD BACK, QUESTION FOR LANE B: the response carries no window for didNotSellCount at
+  all (no sinceForExtras or equivalent field is returned), so per Sam's fallback rule ("hide it if the window
+  cannot be determined") it does not render. Raw numbers for the three test cars, soldCount (the engine's
+  stated "last twelve months" window) vs didNotSellCount and the OBSERVED date range of didNotSellRows itself
+  (computed client-side from the rows returned, NOT an engine-stated window - included only as supporting
+  evidence, not trusted as the true scope):
+    Camaro: soldCount 15 (last twelve months) vs didNotSellCount 111, rows span 2025-11-05 to 2026-09-25
+    M3:     soldCount 89 (last twelve months) vs didNotSellCount 53,  rows span 2025-10-13 to 2026-09-27
+    911:    soldCount 72 (last twelve months) vs didNotSellCount 135, rows span 2025-10-12 to 2026-09-28
+  All three row-date-ranges land close to ~11-12 months, i.e. roughly comparable in LENGTH to soldCount's own
+  window - so this may not be a wider-window bug at all. The Camaro's 111-vs-15 ratio (88% of attempts never
+  sold) and the 911's 135-vs-72 (65%) still read as surprisingly high reserve-not-met rates for these models;
+  worth Lane B confirming whether didNotSellForSpec's spec/fence scoping genuinely matches soldCount's (same
+  trim/body/generation filters) or is coarser (e.g. make+model only, pulling in a wider trim set of
+  attempts than the sold side's trim-scoped pool). FOR LANE B: if didNotSellCount's window matches soldCount
+  exactly, the cleanest fix is returning that window's actual start date (or just windowLabel) on the
+  didNotSellCount field's sibling so this pill can show "N didn't sell" plainly instead of staying hidden.
+  TRANSIENT 500 - EXACT TIMESTAMP (Sam's follow-up ask, precise version): the broken deployment built from
+  commit d0371668b374ab9ea128fa00fc774a2e30bc42e1 ("Messages from GoAskSam..."), pushed 2026-10-09 10:11:33
+  -0700 (17:11:33 UTC). My own concurrent push, cef1701da083c6c1502033d614be750776de8ba8, landed 4 seconds
+  earlier (10:11:29 -0700 / 17:11:29 UTC) - both are in that deployment per `vercel inspect <url> --logs`
+  ("Commit: d037166"). All five pages (/sell /buy /tasks /market-check /business) returned a genuine Vercel
+  500 (confirmed via the actual error page body in a real Puppeteer browser, not the Attack Challenge) for
+  roughly one to two minutes starting shortly after that deploy finished (~17:12:00-17:12:30 UTC, based on
+  the build log's ~15-20s deploy duration). The next deployment, built from commit
+  602631716c3e2b1e838b98d0df44e46f600874b9 ("Update nightly.yml", pushed 10:13:08 -0700 / 17:13:08 UTC - a
+  workflow-file-only change with zero app-code diff from d037166), served 200 again by the time I re-checked
+  (~17:13:30-17:14:00 UTC) and every page has been clean since. Lane B already tried to pull Vercel's own
+  runtime logs for this window and could not retrieve them (retention had rolled past) - noted here in case
+  the more precise window above helps a second look, but nothing currently reproduces.
+  Baseline: /sell /buy /tasks /market-check /business all 200 signed out.
+  Search check: no title/H1/canonical/address change; card is inside the existing results view only.
