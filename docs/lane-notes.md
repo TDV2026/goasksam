@@ -2462,3 +2462,47 @@ when the work has landed.
   tiebreaker above; `lib/platformPick.js pickPlatform` (the shared ladder) reads that same archive pool;
   `stitchVisitorToAccount`/`logEvent` are the same functions both the real sign-in path and this round's
   test stitch call; no second implementation of anything was added.
+- 2026-10-09 (Lane B): FLIP SELL_PICK_SHARED round - GT-R fixed, flip BLOCKED on two things outside my
+  reach, reporting what's confirmed so far. Commit 9198bab (lib/platformPick.js only).
+
+  GT-R: REAL SHARED-LADDER DEFECT, not a one-car oddity - fixed. Verified live via the now-public Market
+  Check API (no PROBE_KEY needed - `oneBox` search is unauthenticated since the open-search policy): for
+  "2009 Nissan GT-R", Market Check's own 8-car pool is an EXACT 4-4 TIE between carsandbids and
+  bringatrailer (confirmed by printing every card's platform). `depthPick` (lib/platformPick.js,
+  Branch 3, "most sold comps") used a strict `>` comparison, so on an exact tie the platform whose rows
+  happened to sort first in the pool's own row order won by accident - carsandbids, only because its
+  rows came first. Fixed: an exact tie now favors Bring a Trailer, the platform every other branch in
+  this file already treats as the default/most-trusted venue (`isBaTSlug`, already used by the speed
+  branch). This is a GENERAL fix (any car landing on an exact tie gets the same deterministic result
+  going forward), not GT-R-specific patching.
+
+  FLIP: checked `vercel env ls production` directly - `SELL_PICK_SHARED` is NOT a Vercel env var today
+  (only `SELL_PICK_SHADOW` exists, added 1 day ago). Per Sam's own instruction ("if it is a Vercel
+  environment variable rather than code, do not touch Vercel... stop until he confirms") - STOPPING HERE.
+  FOR SAM: in Vercel, Project Settings -> Environment Variables -> Production, add `SELL_PICK_SHARED`
+  with the value `1` (the literal string "1", not `true`), then redeploy (an env var change alone does
+  not apply to already-built serverless functions - `npm run deploy` or redeploy the current commit from
+  the dashboard). Not touched by me either way.
+
+  SELL_PICK_SHADOW caller search (done, read-only): exactly one real caller,
+  `api/sellerDecision.js` lines ~4270-4287 (the main handler, gated on
+  `process.env.SELL_PICK_SHADOW === "1" && !internalCall`) plus its own read-only reporting task
+  (`api/usageDashboard.js` `task=shadowreport`). That file is Lane C's (Sam: "Lane C owns Sell, Buy and
+  api/chat.js. Do not edit their files") - FOR LANE C: once SELL_PICK_SHARED is live and confirmed
+  working (item 3 below), this block and its `sell_pick_shadow` logging are safe to delete; `shadowreport`
+  would then have nothing left to read and can go too. Not removed by me.
+
+  LEGACY LADDER: cannot be evaluated yet - `SELL_PICK_SHARED` isn't set anywhere, so the legacy ladder
+  (`analyzeRouteFit`/`pickRecommendedRoute`, also in api/sellerDecision.js, also Lane C's file) is still
+  the ONLY live path today. Nothing to remove until the flip is live.
+
+  BLOCKED, need from Sam: (1) the flip itself (above). (2) PROBE_KEY was rotated (per Sam's own notice)
+  and I cannot read the new value through anything available to me - `.env.local` is stale (confirmed by
+  a live 401 from an ops call) and `vercel env pull` cannot retrieve it (PROBE_KEY is marked sensitive in
+  Vercel, pulls empty - the same standing limitation already on record for SUPABASE_SERVICE_ROLE_KEY
+  etc.). Everything needing a PROBE_KEY-gated ops call - the 40-car rerun, the 300-car comparison, the
+  business_leads table/RLS check - is paused until either a refreshed local env file is available or
+  another read path exists. Confirmed the OLD rotated-out key no longer works (401) rather than silently
+  reusing it or guessing.
+  Already deleted: the two throwaway probe scripts used for the GT-R live check (never committed, never
+  held a key value - PROBE_KEY was not needed for either, both called the public oneBox endpoint).
