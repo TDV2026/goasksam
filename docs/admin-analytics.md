@@ -219,18 +219,11 @@ traffic up. If Sam wants EEA/UK/CH visitors counted too, a consent banner (or a 
 interest assessment that a pseudonymous id is plausibly a "strictly necessary" case for
 basic analytics) would need to happen first - flagging, not deciding, per the brief.
 
-### Draft Privacy page paragraph (for Sam's approval, not shipped to the live page)
+### Privacy page paragraph
 
-> **How we measure usage.** GoAskSam sets a random, anonymous identifier in your browser
-> (not tied to your name or email) so we can tell how many people use the site and which
-> features are useful, and to keep search fair for everyone. It never leaves our systems,
-> is never sold or shared, and never follows you to other websites. If you create an
-> account, this identifier is linked to it so your search history carries over between
-> devices; you can ask us to delete it at any time by contacting [support email]. We do
-> not set this identifier for visitors in the EU, UK, or Switzerland at this time.
-
-Not added to any live page this round - handing to Sam to approve or edit before it goes
-anywhere public.
+Final, approved text (wording fixed Oct 2026: "stop automated misuse", a real contact
+address) is in `docs/privacy-paragraph.md` - that file is now the single copy, read it
+before placing anything on the Privacy page. Not added to any live page yet - for Lane A.
 
 ## Open question for Sam, not resolved here
 
