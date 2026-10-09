@@ -1199,3 +1199,10 @@ when the work has landed.
 - 2026-10-09 (Lane C): watch and before-it-ends messages (and Tasks emails) now end with the stop link and
   the single word "GoAskSam"; nothing is signed "Sam". NOTE: the sender display name is still
   "Sam <sam@mail.goasksam.com>" (lib/_email.js TASK_FROM), left for Sam to decide.
+- 2026-10-09 (Lane C): WATCHES LIVE TEST after the SQL ran (test account, disposable inbox). Armed by spec from
+  a car ({kind:"spec", car:{1987 Porsche 911 Carrera Targa}} -> label "3.2 Carrera Targas", the card's own group
+  name) and by VIN (1998 SL500). One real run (/api/watch?run=1, probe held to the account) sent 2 messages
+  (a 2-sale digest; a back-at-auction with its earlier sale) and wrote 4 watch_sends rows; a second run sent
+  nothing ("quiet": the sent log, not the digest hold). Drawer arming on Buy and the Watching rail checked at
+  1440 and 390; the message's stop link (confirm page, then POST) stopped every watch and the rail section went.
+  The stop pages now say they stop before-it-ends notices and watches, in GoAskSam's name.

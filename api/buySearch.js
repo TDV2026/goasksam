@@ -118,9 +118,9 @@ export default async function handler(req, res) {
       const page = (status, body) => { const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Stop these messages? | GoAskSam</title><style>${STOP_CSS}</style></head><body><main><p class="brand">GoAskSam</p>${body}</main></body></html>`; return req.method === "HEAD" ? res.status(status).end() : res.status(status).send(html); };
       const uid = verifyStop(q0.t);
       if (!uid) return page(400, `<h1>That link has expired.</h1><p><a href="/buy">Back to Buy</a></p>`);
-      if (req.method !== "POST") return page(200, `<h1>Stop these messages?</h1><p>Sam stops telling you before the cars you picked end. You can turn it on again from Market Check on any car.</p><form method="post" action="/api/buySearch?alert=stop&t=${encodeURIComponent(String(q0.t))}"><button type="submit">Stop them</button></form><p class="quiet"><a href="/buy">Back to Buy instead</a></p>`);
+      if (req.method !== "POST") return page(200, `<h1>Stop these messages?</h1><p>This stops every message GoAskSam sends about the cars you picked: the before-it-ends notices and every watch. You can turn them on again from any car.</p><form method="post" action="/api/buySearch?alert=stop&t=${encodeURIComponent(String(q0.t))}"><button type="submit">Stop them</button></form><p class="quiet"><a href="/buy">Back to Buy instead</a></p>`);
       await stopAll(env, uid).catch(e => console.error("buy alert stop:", e.message));
-      return page(200, `<h1>Stopped.</h1><p>Sam won't send these for the cars you picked.</p><p class="quiet"><a href="/buy">Back to Buy</a></p>`);
+      return page(200, `<h1>Stopped.</h1><p>GoAskSam won't send any more messages about the cars you picked.</p><p class="quiet"><a href="/buy">Back to Buy</a></p>`);
     }
     if (req.method === "GET" && q0.alerts === "run") {
       const isCron = process.env.CRON_SECRET && req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
