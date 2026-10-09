@@ -618,6 +618,41 @@ async function handleOps(req, res) {
   // sales_archive read), so a sources zero-streak can be checked against BOTH tables - canonical_sales
   // is a SEPARATE, later build step (scripts/buildCanonical.js) off sales_archive, so a gap could be
   // archive-side (ingest) or canonical-side (the dedup/match build), and this tells which.
+  // task=obcheck: READ-ONLY, zero writes. Runs lib/onebox.js runOneBox() directly over a fixed list
+  // (or ?specs=a|b|c) and returns the Oct 2026 "Market Check engine additions" fields (soldCount,
+  // windowLabel, quarterlyBands, yoyDirection, setAsideCount/Reasons, didNotSellCount, a sample
+  // card's soldBefore) plus tier/label/count/latest for context, for one-off QA.
+  if (task === "obcheck") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const DEFAULT_OB_SPECS = ["2001 BMW M3 Coupe", "2009 Porsche 911 Carrera S Coupe", "1990 Lamborghini Countach"];
+    const specs = req.query?.specs ? String(req.query.specs).split("|").filter(Boolean) : DEFAULT_OB_SPECS;
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { runOneBox } = await import("../lib/onebox.js");
+    const rows = [];
+    for (const q of specs) {
+      try {
+        const rv = await resolveVehicle(q, {});
+        const vehicle = rv && rv.vehicle;
+        if (!vehicle || !vehicle.make) { rows.push({ q, error: "unresolved" }); continue; }
+        const generation = await findGeneration(vehicle, env).catch(() => null);
+        const searchText = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(" ");
+        const d = await runOneBox(vehicle, generation, searchText, { ...env, asked: 2 }, null);
+        rows.push({
+          q, tier: d.tier, label: d.resolvedCar && [d.resolvedCar.genCode, d.resolvedCar.model, d.resolvedCar.trim].filter(Boolean).join(" "),
+          poolN: d.poolN, soldCount: d.soldCount, windowLabel: d.windowLabel, rangeTier: d.rangeTier,
+          quarterlyBands: d.quarterlyBands, yoyDirection: d.yoyDirection,
+          setAsideCount: d.setAsideCount, setAsideReasons: d.setAsideReasons,
+          didNotSellCount: d.didNotSellCount,
+          sampleCardSoldBefore: (d.cards || []).map(c => c.soldBefore).find(Boolean) || null
+        });
+      } catch (e) {
+        rows.push({ q, error: String(e && e.message || e) });
+      }
+    }
+    return res.status(200).json({ task: "obcheck", rows });
+  }
+
   // task=resolvecheck: READ-ONLY, zero writes, zero OCD. Runs lib/vehicle.js resolveVehicle() over a
   // fixed list (the crossProductCheck 20 specs + the hyphen/joined-code "Buy regression strings"
   // already documented in docs/lane-notes.md - XJ-S, GT-350, 240-Z, Z-28, ZR-1, CJ-5, MR-2) or
