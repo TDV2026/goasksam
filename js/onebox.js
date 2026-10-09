@@ -744,16 +744,18 @@
       capCardsHtml("grid3", cardsHtml, 3);
   }
   // Item 4: the mileage reconfirm / earned question renders AFTER the evidence (answer, proof, then
-  // the refinement). On a divergent car it is the "still around X miles?" reconfirm; otherwise the
-  // normal earned question. One ask, never two.
+  // the refinement). On an exact VIN/chassis match (own known mileage + date) it is the mileage-
+  // staleness reconfirm: real time has passed since that listing, so the figure may be out of date.
+  // Otherwise the normal earned question. One ask, never two.
   function reconfirmHtml(d, m) {
-    var dv = d.divergence;
-    if (dv && dv.kase === "a" && dv.mileage > 0) {
+    var mi = m && Number(String(m.mileage == null ? "" : m.mileage).replace(/[^\d]/g, ""));
+    if (mi > 0 && m.soldDate) {
+      var asOf = monthYear(m.soldDate);
       // Refinement copy pattern (locked, CLAUDE.md): reruns the EVIDENCE around the current
       // mileage, never promises a different number/range. "which real sales are used", not a result.
-      return '<div class="qcard earned reconfirm" data-stage="answer"><p class="q">' + lint("Still around " + Number(dv.mileage).toLocaleString("en-US") + " miles?", "rc.q") +
-        '</p><p class="rc-sub">' + lint("If not, update it and Sam reruns the market around the current mileage.", "rc.sub") +
-        '</p><div class="qchips"><button type="button" class="qchip g" data-refyes>Yes</button><button type="button" class="qchip typeit" data-typemiles>Update mileage</button></div></div>';
+      return '<div class="qcard earned reconfirm" data-stage="answer"><p class="q">' + lint("Has the mileage changed? Last reported " + mi.toLocaleString("en-US") + " miles" + (asOf ? " in " + asOf : "") + ".", "rc.q") +
+        '</p><p class="rc-sub">' + lint("If it’s different now, update it and Sam reruns the market around the current mileage.", "rc.sub") +
+        '</p><div class="qchips"><button type="button" class="qchip g" data-refyes>No change</button><button type="button" class="qchip typeit" data-typemiles>Update mileage</button></div></div>';
     }
     return earnedHtml(d, m);
   }
