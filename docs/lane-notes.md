@@ -768,3 +768,16 @@ when the work has landed.
   header comment). Search placeholder/button/chips/VIN line untouched, confirmed via live DOM read.
   Page title/canonical/URL untouched (Sam's own instruction - the rules check did not ask for a title
   change). grep confirmed no other "going for" / "should sell for" anywhere in the codebase.
+- 2026-10-09 (Lane C): BUY LANDING "PUT SAM ON IT" PANEL, Sam's complete spec (replaces every earlier
+  instruction for it). lib/live/buyLanding.js: new eyebrow/headline/two-line sub, step labels "You give Sam
+  the task" / "Sam keeps working" / "A match appears" + small "An example"; nothing clickable anywhere in
+  the panel (the match card's "See the car" link is gone); the "Before any auction ends..." line is removed
+  from the panel (the drawer's before-it-ends switch is untouched). lib/live/buyExample.js TASK_CANDIDATES
+  a to d, tried in order through the same runSearch as the chat and Tasks; the first with at least one
+  CONFIRMED live car (every filter stated in the listing, not set aside, end_time in the future) is the
+  example and that car (the one ending last) is the match card, with its own miles, gearbox and, only when
+  the listing carried one, its bid. None: step 1 shows candidate a's sentence and the match card is left
+  out. The page also drops the match card at render time once its auction has ended. Built with the rest of
+  Buy's example (hourly on page render, cached in spec_market_cache, key bumped to v9); Buy has no separate
+  nightly example step (Market Check and Sell do). Probe: POST /api/buySearch {action:"landing",key,fresh}
+  returns task.candidate / task.count and every candidate's counts in tried[].
