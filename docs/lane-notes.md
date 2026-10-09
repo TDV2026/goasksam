@@ -781,3 +781,18 @@ when the work has landed.
   Buy's example (hourly on page render, cached in spec_market_cache, key bumped to v9); Buy has no separate
   nightly example step (Market Check and Sell do). Probe: POST /api/buySearch {action:"landing",key,fresh}
   returns task.candidate / task.count and every candidate's counts in tried[].
+- 2026-10-09 (Lane A): desktop sign-in pill fix (Sam's round, reported by Lane C on Buy). Root cause:
+  .gas-signbar's background was rgba(246,243,236,.94) - 94% opaque, so scrolled content showed
+  through wherever it passed under the fixed pill, reading as a glitch rather than a deliberate
+  floating control. Fixed in lib/authBar.js only (the pill option Sam offered, not the header-strip
+  option - a strip needs matching top-padding added to EVERY consuming page's own content container,
+  which I cannot do for Buy's, not my file): solid background (var(--main-bg,#F6F3EC)), a real
+  box-shadow for separation, z-index raised 30->40 (still under the rail's 50 and its mobile scrim's
+  45). No markup change, no page-specific padding needed - every page using AUTH_SIGNBAR_CSS (Market
+  Check, Sell, Tasks, How Sam decides, business, and Buy via its own import of the same file) gets it
+  from this one change. Verified solid (no more rgba) and shadowed on Market Check/Tasks/business/How
+  Sam decides at 1440, signed out and signed in (fake session), scrolled past the hero. Could not
+  reproduce Buy's specific "Market Check drawer" element locally (the in-chat drawer did not open via
+  a scripted click - it may need a live card's own entry point) - the fix itself is structural
+  (opaque + shadow + z-index), not drawer-specific, so it should resolve regardless; please confirm
+  on the actual drawer on your end and flag me back if it still collides.
