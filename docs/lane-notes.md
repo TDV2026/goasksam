@@ -529,3 +529,48 @@ when the work has landed.
   M3, AMG, E46, 911S, 4S, 328i), words already in mixed or lower case are left alone. Buy applies it to card
   names (api/buySearch.js nameOf). NOT wired into Market Check or Tasks this round (Sam): import it where those
   render a sale or listing title when convenient, so the three products name a car the same way.
+- 2026-10-08 (Lane A -> Lane C): Round D, the shared app shell. Built `lib/appShell.js` - one function,
+  `railOpenHtml({active, pageExtra, logoHref})`, that renders the scrim + left rail + mobile header
+  (logo, hamburger) for any page, plus `SHELL_CSS` (the rail/main/mobile CSS, one copy) and `SHELL_JS`
+  (`gasToggleRail`). Wired it onto Market Check, the new Sell (both via onebox.html, which now carries a
+  `<!--SHELL_RAIL-->` placeholder each server splices its own `railOpenHtml()` into - api/marketCheck.js,
+  api/sellNext.js, api/publicConfig.js's /o/:id share route), Tasks (api/tasksPage.js, both /tasks and
+  /tasks/mine) and the homepage (index.html via api/sellPage.js - see below, lighter touch there).
+  SURFACES (Sam's spec): the rail is `--rail-bg:#EDF3EE` (the same pale-sage token Market Check's
+  .mk/.widen pills and your `.mcdrawer` already use for "search and context boxes" - var(--tint) there),
+  the main area is `--main-bg:#F6F3EC` (the existing cream), defined once in `SHELL_TOKENS_CSS`. PAGE
+  LIST: one shared array (`SHELL_PAGES` in lib/appShell.js) - Buy, Sell, Market Check, Tasks, For
+  business, current page marked `active`. LOCKDOWN LIFTED (confirmed with Sam this round): the "public
+  nav lockdown, Oct 7" commits (45d7548 on api/_chrome.js, the matching one on api/sellPage.js) that
+  stripped everything but "Where to sell" for signed-out visitors are SUPERSEDED - every page now shows
+  the full list to everyone, signed out included. api/_chrome.js's own `railHtml()`/`isCrewRequest`
+  export is UNCHANGED and still used by History/VIN/Spec pages (out of this round's named list) - if you
+  want those on the shared shell too, same `railOpenHtml()` call, not a new file.
+  BUY: NOT wired by me - your js files, per Sam's "do not edit Buy's js". To adopt: swap api/buy.js's own
+  `.rail{background:var(--page)}` + rail markup for `railOpenHtml({active:"buy", pageExtra: <your Your
+  searches HTML>})`, add `${SHELL_CSS}` to your `<style>` block and `${SHELL_JS}` as a script tag, and
+  close the `<div id="gas-main">` `railOpenHtml()` opens (`SHELL_MAIN_CLOSE`, just `</div>`) after your
+  own `</main>`. Your "Your searches" remove/Clear all/Saved searches JS (`.srow`/`.srm`/`.sclear`/
+  `.vlist` etc) is untouched by this - pass that markup as `pageExtra` exactly as it renders today and it
+  keeps working unchanged; only the outer rail/main wrapper ids change (`#rail`/`.rail` -> `#gas-rail`/
+  `#gas-main`). Whenever convenient, not urgent.
+  HOMEPAGE (index.html, LIGHTER TOUCH, deliberately not a full rewrite - this page runs the live /sell
+  wizard, `toggleRail()`/`setActiveNav()`/`toggleSavedSubmenu()`/the settings gear are all wired to its
+  own `#rail`/`.hp-navitem` ids): did NOT replace its DOM with `railOpenHtml()` - too much live wizard
+  behaviour hangs off the existing ids to risk it this round. Instead: restyled the EXISTING `#rail`/
+  `#main` to the same two shared tokens (styles.css, `var(--rail-bg,#EDF3EE)` / `var(--main-bg,#F6F3EC)`,
+  injected via `SHELL_TOKENS_CSS` in api/sellPage.js), and ADDED Market Check / Tasks / For business as
+  new `.hp-navitem` links alongside the existing Buy/PowerSellers/How Sam decides (additive, nothing
+  removed - flagging PowerSellers stayed rather than being swapped for the exact shared list, in case
+  it's still a page you want reachable from here). Also removed `api/sellPage.js`'s `stripPublicNav()` /
+  `CREW_ONLY_HREFS` (the Oct 7 lockdown mechanism for this page) per the same "lift the lockdown"
+  decision above.
+  REMOVED AS DEAD CODE: js/onebox.js's old `obAvatarInit()` (the corner-avatar-initials control) - it
+  read `#ob-account`, which no longer exists now that the shared sign-in bar (item 9) is the one account
+  control; it was already superseded, this just deletes the now-pointless DOM read.
+  NOTE (not touched, not mine): found several of your files uncommitted in the working tree mid-session
+  (lib/live/converse.js, lib/live/samChat.js, lib/platformPick.js, lib/live/buyAlerts.js, lib/live/
+  narrow.js, api/buySearch.js, plus a vercel.json cron line for buySearch?alerts=run) - left every one of
+  them exactly as they were, staged and committed only my own files line by line (vercel.json especially,
+  since my one rewrite-rule line and your cron line were sitting in the same unstaged diff). Flagging in
+  case that's more in-progress work than you meant to leave sitting uncommitted.

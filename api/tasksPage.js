@@ -5,9 +5,10 @@
 // (app_config "tasks_example_update"); with none yet, the slot is left out ("better nothing than a
 // fake number"). TASKS_PITCH and exampleUpdate() are exported so a homepage section can reuse them.
 // Search: a conversation or a task is never a URL; any query-string variant is noindex, canonical /tasks.
-import { PAGE_CSS, FONT_LINKS, railHtml, isCrewRequest } from "./_chrome.js";
+import { PAGE_CSS, FONT_LINKS, isCrewRequest } from "./_chrome.js";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
+import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE } from "../lib/appShell.js";
 
 export const TASKS_PITCH = { lead: "A free collector car finder.", sub: "Tell Sam what you want and he keeps searching, then notifies you when one fits." };
 const HOW = "The cars Sam shows you come from our rules-based matching algorithm. AI helps understand the question and explain the results, but it does not invent the cars, the matches or the numbers. Every number comes from real market evidence.";
@@ -33,8 +34,7 @@ export async function exampleUpdate() {
 // (item 9, Oct 2026: lib/authBar.js) Market Check, Buy and Sell all use now - never a per-page
 // copy. On desktop the card centres in the content column, clear of the 240px rail.
 const AUTH_CSS = AUTH_SIGNBAR_CSS + "\n@media (min-width:861px){#auth-modal{padding-left:256px}}\n";
-const CSS = `:root{--page:#FAF8F4;--ink:#1A1A1A;--sec:#5F5A53;--div:#E4DFD6;--red:#D7262C}
-body{background:var(--page);color:var(--ink)}.rail{background:var(--page)}
+const CSS = `:root{--red:#D7262C}
 .col{max-width:880px}
 .tkhero h1{margin:8px 0 10px;font:500 46px/1.08 var(--serif);letter-spacing:-.015em}
 .tkhero .lead{margin:0;font:400 23px/1.45 var(--serif)}
@@ -115,20 +115,15 @@ export default async function handler(req, res) {
     { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: FAQ.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
     { "@context": "https://schema.org", "@type": "WebPage", name: "Sam Tasks", url: "https://goasksam.com/tasks", description: desc }
   ];
-  // Public nav lockdown (Oct 2026, urgent, Sam): the public rail/mnav show only "Where to sell"; the
-  // Buy/Sell/Tasks mobile-tab override below is crew-only. Crew unchanged (gas_crew=ok cookie, the One
-  // Box crew gate's mechanism).
   const crew = isCrewRequest(req);
-  const railBase = railHtml("tasks", undefined, crew);
-  const rail = crew ? railBase.replace(/<nav class="mnav"[\s\S]*?<\/nav>/, '<nav class="mnav" aria-label="Sections"><a class="n" href="/buy">Buy</a><span class="bar">|</span><a class="n" href="/sell">Sell</a><span class="bar">|</span><a class="n on" aria-current="page" href="/tasks">Tasks</a></nav>') : railBase;
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>${title}</title><meta name="description" content="${esc(desc)}"><meta name="robots" content="${robots}"><link rel="canonical" href="https://goasksam.com/tasks">
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:url" content="https://goasksam.com/tasks"><meta property="og:type" content="website"><meta property="og:image" content="https://goasksam.com/og-card.png">
-<link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#FAF8F4">
-${FONT_LINKS}<style>${PAGE_CSS}${CSS}${AUTH_CSS}</style>${ld.map(o => '<script type="application/ld+json">' + JSON.stringify(o).replace(/</g, "\\u003c") + "</script>").join("")}</head><body>
+<link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#F6F3EC">
+${FONT_LINKS}<style>${PAGE_CSS}${CSS}${AUTH_CSS}${SHELL_CSS}</style>${ld.map(o => '<script type="application/ld+json">' + JSON.stringify(o).replace(/</g, "\\u003c") + "</script>").join("")}</head><body>
 ${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
-${rail}
+${railOpenHtml({ active: "tasks" })}
 <main><div class="col">
 <header class="tkhero"><p class="pos">Car alerts, much smarter, and free</p><h1>${esc(TASKS_PITCH.lead)}</h1><p class="lead" data-lead-sentence>${esc(TASKS_PITCH.sub)}</p>
 <button type="button" class="cta" id="tkcta" data-task-entry data-href="/tasks/mine?start=1">Give Sam a task</button></header>
@@ -137,7 +132,8 @@ ${rail}
 ${ex ? `<section class="sec"><h2>A real update</h2><p class="example"><span class="who">Sam</span>${esc(ex.text)}</p></section>` : ""}
 <section class="sec"><h2>Questions</h2><dl class="faq">${FAQ.map(([q, a]) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join("")}</dl></section>
 <p style="margin-top:30px"><button type="button" class="cta" id="tkcta2" data-task-entry data-href="/tasks/mine?start=1">Give Sam a task</button></p>
-</div></main>
+</div></main>${SHELL_MAIN_CLOSE}
+<script>${SHELL_JS}</script>
 <script>window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};window.GAS_AUTH_MODE="topbar";</script>
 <script src="/js/auth.js" defer></script>
 <script>${EXPLAINER_JS}</script></body></html>`;
@@ -176,20 +172,18 @@ const EXPLAINER_JS = String.raw`(function(){
 })();`;
 
 function appPage(req, res) {
-  const crew = isCrewRequest(req);
-  const railBase = railHtml("tasks", undefined, crew);
-  const rail = crew ? railBase.replace(/<nav class="mnav"[\s\S]*?<\/nav>/, '<nav class="mnav" aria-label="Sections"><a class="n" href="/buy">Buy</a><span class="bar">|</span><a class="n" href="/sell">Sell</a><span class="bar">|</span><a class="n on" aria-current="page" href="/tasks/mine">Tasks</a></nav>') : railBase;
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Your tasks | GoAskSam</title><meta name="robots" content="noindex, nofollow">
-<link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#FAF8F4">
-${FONT_LINKS}<style>${PAGE_CSS}${CSS}${APP_CSS}${AUTH_CSS}</style></head><body>
+<link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#F6F3EC">
+${FONT_LINKS}<style>${PAGE_CSS}${CSS}${APP_CSS}${AUTH_CSS}${SHELL_CSS}</style></head><body>
 ${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
-${rail}
+${railOpenHtml({ active: "tasks" })}
 <main><div class="col">
 <div class="apph"><h1>Your tasks</h1><a href="/tasks">How it works</a></div>
 <div id="tkapp"></div>
-</div></main>
+</div></main>${SHELL_MAIN_CLOSE}
+<script>${SHELL_JS}</script>
 <script>window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};window.GAS_AUTH_MODE="topbar";</script>
 <script src="/js/auth.js" defer></script>
 <script>${APP_JS}</script></body></html>`;

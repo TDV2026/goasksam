@@ -62,26 +62,13 @@ button{font:inherit}
 .linkbtn{background:none;border:0;padding:0;color:var(--green);font:600 15px/1.4 var(--sans);text-decoration:underline;text-underline-offset:3px;cursor:pointer;min-height:44px;display:inline-flex;align-items:center}
 .linkbtn:hover{color:var(--green-dk)}
 
-/* ---- shell: left rail + main column ---- */
-#ob-rail{position:fixed;left:0;top:0;bottom:0;width:240px;background:var(--page);border-right:1px solid var(--div);display:flex;flex-direction:column;padding:28px 24px 20px;z-index:50}
-.ob-logo{text-decoration:none;display:block;margin:0 0 22px;font:600 26px/1.1 var(--serif);letter-spacing:-.01em;color:var(--ink)}
-.ob-rail-nav{display:flex;flex-direction:column;gap:2px;flex:1;min-height:0;overflow:auto}
-.ob-navitem{display:flex;align-items:center;min-height:44px;text-decoration:none;color:var(--sec);font:400 15px/1.3 var(--sans);padding:0 14px;border-left:2px solid transparent;cursor:pointer}
-.ob-navitem:hover{color:var(--ink)}
-.ob-navitem.active{color:var(--green);font-weight:600;border-left-color:var(--green);padding-left:12px}
-.ob-rail-foot{display:flex;flex-direction:column;border-top:1px solid var(--div);padding-top:10px;margin-top:12px}
-.ob-rail-foot .ob-navitem{font-size:14px}
-.ob-submenu{display:none;flex-direction:column;margin:0 0 4px 14px;border-left:1px solid var(--div)}
-.ob-submenu.open{display:flex}
-.ob-submenu a{display:flex;align-items:center;min-height:40px;font:400 14px/1.3 var(--sans);color:var(--sec);text-decoration:none;padding:0 12px;cursor:pointer}
-.ob-submenu a:hover{color:var(--ink)}
-#ob-main{margin-left:240px}
-.ob-mhead{display:none}
-#ob-scrim{display:none;position:fixed;inset:0;background:rgba(21,32,26,.36);z-index:45}
-#ob-scrim.open{display:block}
-.ob-topbar{display:flex;justify-content:flex-end;padding:18px 48px 0;min-height:18px}
+/* ---- shell: left rail + main column (lib/appShell.js SHELL_CSS is spliced in server-side above;
+   .gas-submenu here is the "Your results" page-specific rail section's own dropdown) ---- */
+.gas-submenu{display:none;flex-direction:column;margin:0 0 4px 14px;border-left:1px solid var(--rail-line,var(--div))}
+.gas-submenu.open{display:flex}
+.gas-submenu a{display:flex;align-items:center;min-height:40px;font:400 14px/1.3 var(--sans);color:var(--sec);text-decoration:none;padding:0 12px;cursor:pointer}
+.gas-submenu a:hover{color:var(--ink)}
 .ob-leadbar{margin:0;padding:6px 48px 0;font:400 13px/1.4 var(--sans);color:var(--sec);text-align:center}
-.avatar{width:34px;height:34px;border-radius:50%;background:var(--div);display:grid;place-items:center;font:600 13px var(--sans);color:var(--sec)}
 .wrap{padding:10px 48px 56px;display:flex;justify-content:center}
 #ob{width:100%;max-width:860px;display:flex;flex-direction:column;gap:28px}
 
@@ -286,18 +273,9 @@ a.card:hover .ctitle{text-decoration:underline;text-underline-offset:3px}
 
 /* ---- tablet / phone ---- */
 @media (max-width:860px){
-  #ob-rail{width:260px;transform:translateX(-100%);transition:transform .22s ease;box-shadow:0 22px 56px rgba(21,32,26,.18);background:var(--card)}
-  #ob-rail.open{transform:none}
-  #ob-main{margin-left:0}
-  .ob-mhead{display:flex;justify-content:space-between;align-items:center;padding:20px 16px 0}
-  .ob-mhead .brand{font:600 22px/1 var(--serif);color:var(--ink);text-decoration:none}
-  .ob-mhead .menu{width:44px;height:44px;border:1px solid var(--border);border-radius:10px;background:var(--card);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;cursor:pointer}
-  .ob-mhead .menu span{width:18px;height:2px;background:var(--ink);display:block}
-  .ob-topbar{display:none}
   .wrap{padding:20px 16px 40px}
   #ob{gap:20px}
 }
-@media (prefers-reduced-motion:reduce){#ob-rail{transition:none}}
 @media (max-width:640px){
   .ob-home{min-height:calc(100dvh - 140px)}
   .ob-head{font-size:33px}
@@ -351,36 +329,12 @@ a.card:hover .ctitle{text-decoration:underline;text-underline-offset:3px}
 </style>
 </head>
 <body>
-<div id="ob-scrim" onclick="obToggleRail(false)"></div>
-<aside id="ob-rail" aria-label="Main navigation">
-  <a class="ob-logo" href="/onebox">GoAskSam</a>
-  <nav class="ob-rail-nav">
-    <a class="ob-navitem active" href="/onebox" aria-current="page">Ask Sam</a>
-    <a class="ob-navitem" href="/buy">Buy</a>
-    <a class="ob-navitem" href="/sell">Where to sell</a>
-    <a class="ob-navitem" id="ob-nav-results" href="#" style="display:none" onclick="return obToggleResults(event)">Your results</a>
-    <div class="ob-submenu" id="ob-results-menu"></div>
-    <a class="ob-navitem" href="/how-sam-decides" target="_blank" rel="noopener">How Sam decides</a>
-    <a class="ob-navitem" href="/business">For business</a>
-  </nav>
-  <div class="ob-rail-foot">
-    <a class="ob-navitem" href="mailto:feedback@goasksam.com?subject=GoAskSam%20feedback">Send feedback</a>
-    <a class="ob-navitem" href="/privacy">Privacy</a>
-    <a class="ob-navitem" href="/about">About</a>
-  </div>
-</aside>
-<div id="ob-main">
-  <header class="ob-mhead">
-    <a class="brand" href="/onebox">GoAskSam</a>
-    <button type="button" class="menu" id="ob-hamburger" aria-label="Menu" aria-controls="ob-rail" onclick="obToggleRail()"><span></span><span></span><span></span></button>
-  </header>
-  <header class="ob-topbar"><span class="avatar" id="ob-account" title="Account" style="display:none"></span></header>
+<!--SHELL_RAIL-->
   <main class="wrap"><div id="ob"></div></main>
 </div>
 <script>
-function obToggleRail(open){var r=document.getElementById("ob-rail"),s=document.getElementById("ob-scrim"),b=document.getElementById("ob-hamburger");if(!r)return;var on=(open===undefined)?!r.classList.contains("open"):!!open;r.classList.toggle("open",on);if(s)s.classList.toggle("open",on);if(b)b.setAttribute("aria-expanded",on?"true":"false");}
-function obToggleResults(e){if(e)e.preventDefault();var m=document.getElementById("ob-results-menu");if(m)m.classList.toggle("open");return false;}
+function obToggleResults(e){if(e)e.preventDefault();var m=document.getElementById("gas-results-menu");if(m)m.classList.toggle("open");return false;}
 </script>
-<script src="/obx.20261014j/onebox.js"></script>
+<script src="/obx.20261014k/onebox.js"></script>
 </body>
 </html>

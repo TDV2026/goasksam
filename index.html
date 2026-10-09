@@ -119,8 +119,11 @@
     <span>Selling strategy</span>
   </div>
   <div class="hp-rail-scroll">
-    <button class="hp-navitem" onclick="setActiveNav(this);startSellFlow()">Where to sell</button>
+    <button class="hp-navitem active" aria-current="page" onclick="setActiveNav(this);startSellFlow()">Where to sell</button>
     <a class="hp-navitem" href="/buy" target="_blank" rel="noopener" onclick="toggleRail(false)">Buy</a>
+    <a class="hp-navitem" href="/market-check" target="_blank" rel="noopener" onclick="toggleRail(false)">Market Check</a>
+    <a class="hp-navitem" href="/tasks" target="_blank" rel="noopener" onclick="toggleRail(false)">Tasks</a>
+    <a class="hp-navitem" href="/business" target="_blank" rel="noopener" onclick="toggleRail(false)">For business</a>
     <!-- Real crawlable URLs, opened in a NEW TAB so a mid-wizard seller never loses
          their place (the /sell tab is untouched). Content is single-sourced from these
          static pages; the old JS-injected views are removed. -->

@@ -8,6 +8,7 @@ import path from "node:path";
 import { lastUpdatedDate } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { isCrewRequest } from "./_chrome.js";
+import { SHELL_TOKENS_CSS } from "../lib/appShell.js";
 
 const TITLE = "Where to sell your collector car";
 const HERO = `<div class="hero" id="hero"><div class="hp-hero">
@@ -17,33 +18,18 @@ const HERO = `<div class="hero" id="hero"><div class="hp-hero">
 let shell = null;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-// Public nav lockdown (Oct 2026, urgent, Sam): for the public, the /sell rail shows ONLY "Where to
-// sell" - Buy, PowerSellers and How Sam decides are removed from the HTML entirely (never CSS-hidden).
-// Crew (gas_crew=ok cookie, the same mechanism the One Box crew gate used) see the rail unchanged.
-// RESTORED Oct 2026: this function was dropped (call site kept, body lost) in a later edit to this
-// file, which threw "stripPublicNav is not defined" on every public (crew=false) request - a live
-// FUNCTION_INVOCATION_FAILED 500 for every signed-out visitor. If this file is edited again, keep this
-// function attached to its call site below.
-const CREW_ONLY_HREFS = ["/buy", "/powersellers", "/how-sam-decides"];
-function stripPublicNav(html) {
-  let out = html;
-  for (const href of CREW_ONLY_HREFS) {
-    out = out.replace(new RegExp(`\\s*<a class="hp-navitem" href="${href.replace(/\//g, "\\/")}"[^>]*>[^<]*<\\/a>`, "g"), "");
-  }
-  return out;
-}
-
-// The /sell page shell (index.html with the server-rendered title, hero, public nav lockdown and the
-// "Updated [date]" line), shared with the new one-direction Sell (api/sellNext.js) so both are ONE design.
+// Round D (app shell, Oct 2026, Sam: lift the public nav lockdown): the rail shows the full shared
+// page list (Buy, Sell, Market Check, Tasks, For business) for every visitor, signed out included -
+// superseding the earlier "Where to sell only" public lockdown. Crew and public now get the same rail.
 export async function sellShellHtml(req) {
   if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "index.html"), "utf8");
-  const crew = isCrewRequest(req);
   // The real last-updated date, shared with Market Check (lib/asOf.js lastUpdatedDate). No count.
   const updated = await lastUpdatedDate(supabaseEnv()).catch(() => null);
-  return (crew ? shell : stripPublicNav(shell))
+  return shell
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${TITLE}</title>`)
     .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${TITLE}$2`)
     .replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${TITLE}$2`)
+    .replace("</head>", `<style>${SHELL_TOKENS_CSS}</style>\n</head>`)
     .replace('<div id="msgs"></div>', `<div id="msgs">${HERO}</div>`)
     .replace('<div class="hp-value-preview hp-home-only">Built for enthusiast, specialty and collector vehicles</div>',
       '<div class="hp-value-preview hp-home-only">Built for enthusiast, specialty and collector vehicles</div>' +

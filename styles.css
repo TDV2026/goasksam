@@ -759,6 +759,14 @@ body.home #msgs .hero-inner{max-width:none;}
 body{background:#FBFAF6;}
 #rail{background:#FFFFFF;border-right:1px solid var(--line);width:296px;padding:26px 24px;}
 
+/* Round D (app shell, Oct 2026): the two shared surface colours, defined once in lib/appShell.js
+   SHELL_CSS and mirrored here (--rail-bg/--main-bg) since this page's own CSS namespace predates
+   that file - the rail is the pale sage surface (the same token Market Check/Buy's search and
+   context boxes use), the main area the existing cream. #rail/#main exist only on this page
+   (index.html), so this override is safely scoped in practice despite the unprefixed selector. */
+#rail{background:var(--rail-bg,#EDF3EE);}
+body,#main,body.home #main{background:var(--main-bg,#F6F3EC);}
+
 /* ---- PART 2: HOMEPAGE ---- */
 /* 5 + 12: vertically centred (not top-anchored), nudged right of centre so the
    stack optically balances the sidebar. */

@@ -13,6 +13,9 @@ import { sellLandingHtml, SELL_LANDING_CSS } from "../lib/sell/sellLanding.js";
 import { sellExample } from "../lib/sell/sellExample.js";
 import sellPage from "./sellPage.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
+import { SHELL_CSS, SHELL_JS, railOpenHtml } from "../lib/appShell.js";
+
+const YOUR_RESULTS_RAIL = '<a class="gas-navitem" id="gas-nav-results" href="#" style="display:none" onclick="return obToggleResults(event)">Your results</a><div class="gas-submenu" id="gas-results-menu"></div>';
 
 let shell = null, cardCss = null;
 // The old /sell result cards' own CSS (the .pcard family, styles.css: from its --pc-* tokens to its closing
@@ -47,13 +50,12 @@ export default async function handler(req, res) {
   const html = stripLaunchGate(shell)
     .replace(/<title>[\s\S]*?<\/title>/, () => "<title>Sell your car | GoAskSam</title>")
     .replace(/<meta name="robots" content="[^"]*"\s*\/?>/, () => "")
-    // The public menu stays Sell only (Sam, Oct 2026): Market Check's shell lists every section, so this page
-    // keeps "Where to sell" (current) and the visitor's own "Your results", and its logo goes to /sell.
-    .replace(/<a class="ob-navitem active" href="\/onebox" aria-current="page">Ask Sam<\/a>\s*<a class="ob-navitem" href="\/buy">Buy<\/a>\s*<a class="ob-navitem" href="\/sell">Where to sell<\/a>/, () => '<a class="ob-navitem active" href="/sell" aria-current="page">Where to sell</a>')
-    .replace(/\s*<a class="ob-navitem" href="\/how-sam-decides"[^>]*>How Sam decides<\/a>\s*<a class="ob-navitem" href="\/business">For business<\/a>/, () => "")
-    .replace(/<a class="(ob-logo|brand)" href="\/onebox">/g, (m, c) => `<a class="${c}" href="/sell">`)
     // Every new Sell address is noindex with the Sell landing as its canonical (result addresses included).
-    .replace("</head>", () => `<meta name="robots" content="noindex, nofollow">\n<link rel="canonical" href="https://goasksam.com/sell">\n<style>${cardCss}\n${SELL_MC_CSS}\n${SELL_LANDING_CSS}\n${AUTH_SIGNBAR_CSS}</style>\n</head>`)
+    .replace("</head>", () => `<meta name="robots" content="noindex, nofollow">\n<link rel="canonical" href="https://goasksam.com/sell">\n<style>${cardCss}\n${SELL_MC_CSS}\n${SELL_LANDING_CSS}\n${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}</style>\n</head>`)
+    // Round D (app shell, Oct 2026): the same shared rail as every other product - the full page
+    // list, current page ("sell") marked - replacing the old Sell-only stripped-down rail.
+    .replace("<!--SHELL_RAIL-->", () => railOpenHtml({ active: "sell", pageExtra: YOUR_RESULTS_RAIL, logoHref: "/sell" }))
+    .replace("<script>\nfunction obToggleResults", () => `<script>${SHELL_JS}</script>\n<script>\nfunction obToggleResults`)
     // The Sell hook must exist before js/onebox.js boots, so the client goes in ahead of it.
     .replace(/<script src="\/obx\.[^"]+\/onebox\.js"><\/script>/, m => `<script>window.GAS_SELL_CFG=${cfg};</script>\n<script>${SELL_MC_CLIENT}</script>\n${m}`)
     // Item 9 (shared top bar): same control as Market Check/Buy, one file (lib/authBar.js).

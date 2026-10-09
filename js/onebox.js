@@ -1624,14 +1624,14 @@
   // expandable Your results). Hidden when there are none. Re-running a search from here
   // reuses run() - no new behavior, just a rail entry point for the existing recent list.
   function syncRailResults() {
-    var nav = document.getElementById("ob-nav-results"), menu = document.getElementById("ob-results-menu");
+    var nav = document.getElementById("gas-nav-results"), menu = document.getElementById("gas-results-menu");
     if (!nav || !menu) return;
     var items = recentSearches();
     if (!items.length) { nav.style.display = "none"; menu.innerHTML = ""; return; }
     nav.style.display = "";
     menu.innerHTML = items.slice(0, 8).map(function (it) { return '<a data-recent="' + esc(it.q) + '">' + esc(it.label) + "</a>"; }).join("");
     Array.prototype.forEach.call(menu.querySelectorAll("[data-recent]"), function (a) {
-      a.addEventListener("click", function () { if (typeof obToggleRail === "function") obToggleRail(false); run(a.getAttribute("data-recent")); });
+      a.addEventListener("click", function () { if (typeof gasToggleRail === "function") gasToggleRail(false); run(a.getAttribute("data-recent")); });
     });
   }
 
@@ -1886,21 +1886,9 @@
     renderResults(snap);
     return true;
   }
-  // Item 10: the corner avatar is the signed-in TDV subscriber state (magic-link / Beehiiv auto
-  // sign-in). Render initials ONLY when a real session exists; render nothing for a guest - who
-  // still gets the full two-question-to-answer flow with no prompt (the answer is never gated on
-  // sign-in). Reads the session localStorage key auth.js writes; no dependency on auth.js loading.
-  function obAvatarInit() {
-    var el = document.getElementById("ob-account"); if (!el) return;
-    var email = null;
-    try { var s = JSON.parse(localStorage.getItem("gas_auth_session") || "null"); if (s && s.access_token) email = s.email || "signed-in"; } catch (e) {}
-    if (!email) { el.style.display = "none"; el.textContent = ""; return; }   // guest: no avatar, no prompt
-    var lp = String(email).split("@")[0].split(/[\s._-]+/).filter(Boolean);
-    var initials = (((lp[0] || "")[0] || "") + ((lp[1] || "")[0] || (lp[0] || "")[1] || "")).toUpperCase() || "•";
-    el.textContent = initials; el.title = email; el.style.display = "";
-  }
   function boot() {
-    obAvatarInit();
+    // Account state renders via the shared sign-in bar (lib/authBar.js), not this page - nothing to
+    // do here (the old corner-avatar initials control was removed with the shared app shell).
     // JUST SOLD proof block removed from the empty state, so no fetchProof() on boot.
     if (renderSnapshot()) { syncRailResults(); return; }
     // The server already rendered the rich landing (lib/live/marketCheckLanding.js: hero, proof row,
