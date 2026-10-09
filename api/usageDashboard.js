@@ -656,6 +656,87 @@ async function handleOps(req, res) {
   // fighting Vercel's bot challenge on a raw POST to /api/sellerDecision (curl gets 429there).
   // task=venuecheck (Oct 2026, Lane B follow-up item 3): calls pickPlatform live and prints the
   // new picked-venue-only fields (pickedVenueSalesPerMonth, pickedVenueTypicalRange). READ-ONLY.
+  // task=sellshadow (Oct 2026, Lane B item 2): read-only, zero writes, zero OldCarsData spend.
+  // Compares the pick live Sell gives TODAY (SELL_PICK_SHARED off - buildAnalysisFromStore, archive-
+  // only read of vehicle_market_records, zero OCD) against the pick the shared engine would give
+  // (buildSharedAnalysis, lib/platformPick.js - the SAME function SELL_PICK_SHARED=1 would route to),
+  // over a caller-supplied spec list (chunked across calls; the full 300-most-searched + 53
+  // crossProductCheck set does not fit one 300s request). ?specs=a|b|c overrides; default is the
+  // top-N most-searched Sell vehicles in the last 30 days (event_type=seller_decision, the REAL
+  // event every finished /sell search logs - NOT "seller_search", which nothing in this codebase
+  // ever writes; scripts/warm.js's own ranking read is dead code reading an event type no writer
+  // produces, and has likely always silently fallen back to its curated SEED list - a side finding,
+  // not fixed here). Never flips SELL_PICK_SHARED.
+  if (task === "sellshadow") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { buildSharedAnalysis } = await import("../lib/platformPick.js");
+    const { buildAnalysisFromStore, decide } = await import("./sellerDecision.js");
+    const CONCURRENCY = Math.max(1, Math.min(10, Number(req.query?.concurrency) || 6));
+    let specs;
+    if (req.query?.specs) {
+      specs = String(req.query.specs).split("|").filter(Boolean);
+    } else {
+      const topN = Math.max(1, Math.min(300, Number(req.query?.topN) || 50));
+      const since = new Date(Date.now() - 30 * 864e5).toISOString();
+      const rows = await supabaseSelect(env, `app_usage_events?event_type=eq.seller_decision&created_at=gte.${encodeURIComponent(since)}&select=search_text,vehicle&order=created_at.desc&limit=5000`).catch(() => null);
+      const counts = new Map();
+      for (const r of rows || []) {
+        const v = r.vehicle;
+        const key = (v && v.make && v.model) ? [v.year, v.make, v.model, v.trim].filter(Boolean).join(" ") : String(r.search_text || "").trim();
+        if (key.length < 3) continue;
+        counts.set(key, (counts.get(key) || 0) + 1);
+      }
+      specs = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, topN).map(([k]) => k);
+    }
+    const pickedRoute = d => d && d.routeFit && d.routeFit.routes && d.routeFit.routes.find(r => r.platform === d.recommendedPath);
+    const pickedRange = d => { const r = pickedRoute(d); const pb = r && r.marketEvidence && r.marketEvidence.priceBand; return pb ? { low: pb.low, high: pb.high, sample: pb.sample } : null; };
+    async function compareOne(q) {
+      try {
+        const rv = await resolveVehicle(q, {}).catch(() => null);
+        const vehicle = rv && rv.vehicle;
+        if (!vehicle || !vehicle.make) return { q, cause: "unresolved" };
+        const generation = await findGeneration(vehicle, env).catch(() => null);
+        const [oldA, newA] = await Promise.all([
+          buildAnalysisFromStore(vehicle, generation, env.supabaseUrl, env.supabaseKey).catch(() => null),
+          buildSharedAnalysis(vehicle, generation, env, {}).catch(() => null)
+        ]);
+        const oldD = oldA ? decide(oldA, {}, vehicle) : null;
+        const newD = newA ? decide(newA, {}, vehicle) : null;
+        if (!oldD && !newD) return { q, cause: "no_evidence_either_side" };
+        if (!oldD) return { q, cause: "old_path_no_evidence", newVenue: newD.recommendedPath, newRange: pickedRange(newD) };
+        if (!newD) return { q, cause: "shared_path_no_evidence", oldVenue: oldD.recommendedPath, oldRange: pickedRange(oldD) };
+        const oldVenue = oldD.recommendedPath, newVenue = newD.recommendedPath;
+        const sameVenue = String(oldVenue || "").toLowerCase() === String(newVenue || "").toLowerCase();
+        const oldRange = pickedRange(oldD), newRange = pickedRange(newD);
+        let sameRange = null, rangeDeltaPct = null;
+        if (oldRange && newRange && oldRange.low > 0) {
+          const lowD = Math.abs(newRange.low - oldRange.low) / oldRange.low;
+          const highD = oldRange.high > 0 ? Math.abs(newRange.high - oldRange.high) / oldRange.high : 1;
+          rangeDeltaPct = Math.round(Math.max(lowD, highD) * 1000) / 10;
+          sameRange = rangeDeltaPct <= 15;   // 15% tolerance - documented, not Sam's number
+        }
+        const oldEv = oldA.evidenceSales || 0, newEv = newA.evidenceSales || 0;
+        let cause;
+        if (sameVenue && sameRange !== false) cause = "match";
+        else if (!sameVenue) cause = "different_venue";
+        else cause = "different_range";
+        return { q, cause, oldVenue, newVenue, sameVenue, oldRange, newRange, sameRange, rangeDeltaPct, oldEvidenceSales: oldEv, newEvidenceSales: newEv };
+      } catch (e) { return { q, cause: "error", error: String(e && e.message || e) }; }
+    }
+    const rows = [];
+    for (let i = 0; i < specs.length; i += CONCURRENCY) {
+      const batch = specs.slice(i, i + CONCURRENCY);
+      const out = await Promise.all(batch.map(compareOne));
+      rows.push(...out);
+    }
+    const matches = rows.filter(r => r.cause === "match").length;
+    const byCause = {};
+    for (const r of rows) byCause[r.cause] = (byCause[r.cause] || 0) + 1;
+    return res.status(200).json({ task: "sellshadow", total: rows.length, matches, pctIdentical: rows.length ? Math.round((matches / rows.length) * 1000) / 10 : null, byCause, rows });
+  }
+
   if (task === "venuecheck") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const q = String(req.query?.q || "2008 Porsche 911 Carrera");

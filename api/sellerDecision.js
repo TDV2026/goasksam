@@ -1247,7 +1247,7 @@ async function writeMarketFetchCache(vehicle, meteredRequests, supabaseUrl, supa
 // Cache-hit path: replay the stored records for this make within the widest
 // analysis window. A superset of what a fresh fetch would return; the
 // classifier and ladder narrow it exactly as they would live records.
-async function fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation = null) {
+export async function fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation = null) {
   const startedAt = Date.now();
   const ladder = buildLadder(vehicle, generation);
   const maxWindow = Math.max(...ANALYSIS_WINDOWS_DAYS, ...SELLER_ACTIVITY_WINDOWS_DAYS);
