@@ -11,6 +11,7 @@
 //
 // Needs SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OLDCARSDATA_API_KEY (GitHub
 // Actions provides them as secrets; secrets are not pullable to a laptop).
+import fs from "node:fs";
 import { callOldCarsData, configureOcdUsage, flushOcdUsage, getOcdRunMetered } from "../lib/_ocd.js";
 import { supabaseEnv, supabaseInsert, supabaseSelect, supabaseSelectAll, supabaseDelete } from "../lib/_supabase.js";
 import { isPartsListing, projectFlagReason } from "../lib/_classify.js";
@@ -438,45 +439,35 @@ if (inserted > 0) {
         }
         console.log(`spec_market_cache: invalidated ${toDelete.length} row(s) touched by ${touched.size} make/model pair(s) from this run`);
 
-        // RECOMPUTE AT THE END OF THIS SAME RUN (item 3, Oct 2026 follow-up): a deleted row is a
-        // clean cache miss, which Buy/Tasks already recompute live on the NEXT real visitor's read
-        // - but that visitor would otherwise pay the cold-read cost (seconds, not milliseconds; see
-        // the simulatedrawer ops task timing for the 1988 Porsche 911 Carrera Targa/2012 BMW M3
-        // Competition Coupe cases). Recomputing every invalidated spec HERE means the first real
-        // visitor after an ingest run never hits a cold read for a spec this run just touched.
-        // Parses each spec_key back into {make,model,trim,genCode-or-year,bodyStyle,gearbox},
-        // resolves the generation by CODE (CURATED_GENERATIONS) when one exists, calls runOneBox
-        // live, and writes the SAME reduction api/sellerDecision.js's opportunistic refresh uses
-        // (coreOf/persistCore) - one engine, one write path, same as every other refresh. Best-
-        // effort per spec: one failure never blocks the rest or fails the ingest run.
-        try {
-          const { runOneBox } = await import("../lib/onebox.js");
-          const { CURATED_GENERATIONS } = await import("../lib/generations.js");
-          const { coreOf, persistCore } = await import("../lib/live/search.js");
+        // RECOMPUTE (item 3, Oct 2026 follow-up; CAPPED and moved OUT of this run, Oct 2026 nightly-
+        // timing follow-up). A deleted row is a clean cache miss, which Buy/Tasks already recompute
+        // live on the next real visitor's read - this just saves that visitor the cold-read cost. An
+        // EARLIER version recomputed every invalidated spec inline, right here, with no cap: on a
+        // night that touched many make/model pairs this turned a normally-20-second ingest step into
+        // a 21-MINUTE one (run #105, Oct 9 2026 - the ingest JOB then hit its 55-minute ceiling mid-
+        // crossProductCheck and was cancelled, taking warm/attempts/premium/cube down with it since
+        // all four `needs: ingest`). Fixed two ways: (1) this step no longer recomputes inline at
+        // all by default - it writes the invalidated key list to disk and a SEPARATE script
+        // (scripts/recomputeSpecCache.js), run from its OWN job in nightly.yml with its own
+        // timeout, picks it up afterward, so a slow recompute night can never block the archive-
+        // freshness-only jobs again; (2) that separate script is itself capped (RECOMPUTE_CAP,
+        // default 60) and ranks the deferred list by real search volume first (one ranking source,
+        // the same app_usage_events signal scripts/warm.js already uses), so the specs most likely
+        // to be read again soon are the ones that get recomputed first - the remainder is left for
+        // the ordinary cold-read-on-next-visit path, same as today, never silently dropped.
+        // --recompute-inline (CLI mode, kept for local/manual runs only) restores the OLD inline,
+        // uncapped behavior exactly - never used by the nightly workflow.
+        if (args.includes("--recompute-inline")) {
+          const { recomputeOneSpecKey } = await import("../lib/_specRecompute.js");
           let recomputed = 0, failed = 0;
-          for (const key of toDelete) {
-            try {
-              const parsed = JSON.parse(key);
-              const [make, model, trim, genCode, bodyStyle, gearbox] = Array.isArray(parsed) ? parsed : [];
-              if (!make || !model) { failed++; continue; }
-              const yearMatch = /^y(\d{4})$/.exec(String(genCode || ""));
-              const year = yearMatch ? Number(yearMatch[1]) : null;
-              const generation = (!yearMatch && genCode)
-                ? CURATED_GENERATIONS.find(g => String(g.make).toLowerCase() === String(make).toLowerCase() && String(g.code).toLowerCase() === String(genCode).toLowerCase()) || null
-                : null;
-              const vehicle = { make, model, trim: trim || null, bodyStyle: bodyStyle || null, year: year || (generation ? Math.round((generation.yearStart + generation.yearEnd) / 2) : null) };
-              const refine = gearbox ? { tx: gearbox, label: gearbox } : null;
-              const searchText = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(" ");
-              const d = await runOneBox(vehicle, generation, searchText, env, refine);
-              if (d && d.tier === "result") {
-                const core = coreOf(d, { v: vehicle, generation, refine });
-                if (core) { await persistCore(env, key, core); recomputed++; continue; }
-              }
-              failed++;   // not an error - a genuinely thin/no-range spec; next real read handles it the same as today
-            } catch { failed++; }
-          }
-          console.log(`spec_market_cache: recomputed ${recomputed}/${toDelete.length} invalidated spec(s) before this run ended (${failed} thin/no-range or failed, left for the next real read)`);
-        } catch (e) { console.error("spec_market_cache recompute-at-end-of-run failed (non-fatal, next real read still recomputes):", e && e.message); }
+          for (const key of toDelete) { (await recomputeOneSpecKey(env, key)) === "recomputed" ? recomputed++ : failed++; }
+          console.log(`spec_market_cache: recomputed ${recomputed}/${toDelete.length} invalidated spec(s) inline (${failed} thin/no-range or failed, left for the next real read)`);
+        } else {
+          try {
+            fs.writeFileSync(new URL("../invalidated-specs.json", import.meta.url), JSON.stringify(toDelete));
+            console.log(`spec_market_cache: ${toDelete.length} invalidated spec(s) written to invalidated-specs.json for the deferred recompute step (never blocks this run)`);
+          } catch (e) { console.error("spec_market_cache: failed to write invalidated-specs.json (non-fatal, next real read still recomputes):", e && e.message); }
+        }
       }
     }
   } catch (e) { console.error("spec_market_cache invalidation failed (non-fatal):", e && e.message); }
