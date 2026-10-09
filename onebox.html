@@ -85,6 +85,11 @@ button{font:inherit}
 .inbox input::placeholder{color:var(--sec)}
 .inbox .go{width:48px;height:48px;flex:none;border:0;border-radius:10px;background:var(--green);color:#fff;font-size:22px;cursor:pointer}
 .inbox .go:hover{background:var(--green-dk)}
+/* Market Check desktop width fix (Oct 2026): capped so the bar ends well before this page's own
+   search-example chips/VIN line would otherwise run under 840px+ #ob widths. 600 has no effect at
+   or under 600px wide (the bar already reads "full width" there, unchanged). New Sell (same shared
+   .inbox markup) never gets this class - see inboxHtml() in js/onebox.js. */
+.inbox.mc-bar{max-width:600px}
 
 /* ---- resolved car line ---- */
 .carline{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font:400 15px/1.4 var(--sans);color:var(--sec);margin:-4px 0 -8px}

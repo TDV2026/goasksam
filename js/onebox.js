@@ -91,7 +91,11 @@
   function inboxHtml(value, placeholder) {
     // Single control: text input + green submit arrow. The square photo affordance is
     // removed (photo input is not a built capability).
-    return '<div class="inbox" role="search"><label class="sr" for="ob-input">Search a car</label><input id="ob-input" autocomplete="off" ' + (value ? 'value="' + esc(value) + '"' : 'placeholder="' + esc(placeholder || PLACEHOLDER_BEATS[0]) + '"') + '>' +
+    // mc-bar (Oct 2026, desktop width fix): Market Check only, never New Sell (SELL is truthy there) -
+    // this is the SAME .inbox/js/onebox.js markup both surfaces share, so the narrower desktop width
+    // is scoped to this one extra class rather than touching .inbox itself (which would also narrow
+    // New Sell's bar).
+    return '<div class="inbox' + (SELL ? '' : ' mc-bar') + '" role="search"><label class="sr" for="ob-input">Search a car</label><input id="ob-input" autocomplete="off" ' + (value ? 'value="' + esc(value) + '"' : 'placeholder="' + esc(placeholder || PLACEHOLDER_BEATS[0]) + '"') + '>' +
       '<button type="button" class="go" id="ob-go" aria-label="Search">&#8594;</button></div>';
   }
   // Layout fix (item 3): the empty state centres the input in the viewport; the loading/result
