@@ -82,7 +82,10 @@ export default async function handler(req, res) {
   // facts (what the page rendered) is the follow-up and needs a session. A question asked DURING the wizard,
   // before any result (product rule 12: answer it, then re-ask), carries no result facts and stays open.
   const RESULT_FACTS = /The recommendation the seller is looking at|Decision facts \(|WHAT IS ON THE SELLER'S SCREEN|Rendered destinations \(/;
-  const gated = mode === "followup" && RESULT_FACTS.test(context || "");
+  // The sell state names the wizard step: 12 (the result), 13 (a destination chosen) and 14 (sent) all come
+  // after the result, so a question there is a follow-up even when no result block rode along.
+  const step = Number((/"step":\s*(\d+)/.exec(context || "") || [])[1]);
+  const gated = mode === "followup" && (RESULT_FACTS.test(context || "") || step === 12 || step === 13 || step === 14);
   const g = gated ? await followupGuard(env, req) : await assistGuard(env, req);
   if (!g.ok) return res.status(200).json(g.body);
   const systemBlocks = [];

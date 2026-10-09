@@ -1951,8 +1951,9 @@ when the work has landed.
     keeps only the tester line, the calm ceiling line and the lost-session line.
   * Free and Daily Vroom kept as the follow-up allowance (40 and 80 a day, lib/_ceilings.js FOLLOWUP_PER_DAY).
   * The follow-up gate is decided server side from what the request carries: a Sell chat whose context holds the
-    result's facts (api/chat.js RESULT_FACTS) needs a session; a question asked mid-wizard, before a result, stays
-    open (product rule 12). After sign in the question is sent again on the same car (js/entry.js
+    result's facts (api/chat.js RESULT_FACTS) or whose sell state is at step 12, 13 or 14 (the result, a chosen
+    destination, sent) needs a session; a question asked mid-wizard, before a result, stays open (product rule 12).
+    Live check found a post-result call carrying ONLY the state (no result blocks), hence the step rule. After sign in the question is sent again on the same car (js/entry.js
     resumePendingFollowup from gateAfterSignup).
   * Front doors: Buy keeps "Free · No account needed" and adds "Open to use. Sign in only to save a search or
     watch a car."; Sell adds "Open to use. Sign in only to ask follow-up questions about a car." (index.html,
