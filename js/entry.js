@@ -151,13 +151,22 @@ async function maybeRerunOnCarCorrection(q){
   if(sellState.step!==12||!sellState.resolvedVehicle) return false;
   var cand=extractCarCorrection(q);
   if(!cand) return false;
-  var full=buildCorrectionText(cand);
-  if(!full||!/[a-z]/i.test(full)) return false;
-  var data;
+  var idOf=async function(t){ var r=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:t})}); return r.ok?await r.json():null; };
+  var normMk=function(x){ return String(x||"").toLowerCase().replace(/[^a-z0-9]/g,""); };
+  var full, data;
   try{
-    var res=await fetch(apiPath("/api/vehicleIdentity"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:full})});
-    data=await res.json();
-    if(!res.ok||!data||data.status!=="valid"||!data.vehicle) return false;
+    // A correction that names a DIFFERENT make is a new car, read on its own ("1985 toyota" must never be
+    // glued onto the current 1988 BMW M3). Half understood, it goes to offerReRun, which asks for the rest.
+    var own=await idOf(cand);
+    if(own&&own.vehicle&&own.vehicle.make&&normMk(own.vehicle.make)!==normMk(sellState.resolvedVehicle.make)){
+      if(own.status!=="valid") return false;
+      full=cand; data=own;
+    }else{
+      full=buildCorrectionText(cand);
+      if(!full||!/[a-z]/i.test(full)) return false;
+      data=await idOf(full);
+      if(!data||data.status!=="valid"||!data.vehicle) return false;
+    }
   }catch(e){ return false; }
   var nv=data.vehicle, cur=sellState.resolvedVehicle;
   var sig=v=>[v.year,v.make,v.model,v.trim].map(x=>String(x==null?"":x).toLowerCase().trim()).join("|");
