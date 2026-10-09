@@ -643,6 +643,48 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "specinvalidate", make, model, deleted: toDelete });
   }
 
+  // task=trimresolvediff: READ-ONLY, zero writes. Runs every PORSCHE_911_TRIMS entry (the one
+  // explicitly curated trim LIST in lib/vehicleData.js) as "YEAR Porsche 911 {trim}", plus a cross-
+  // make check for every BODIES word (lib/live/search.js) that ALSO appears as a real trim on some
+  // other curated model (Targa/Speedster-style risk: a body-style word resolveVehicle resolves as a
+  // genuine trim, that resolveForBuy's generic body-word-as-trim correction then strips to
+  // bodyStyle). Reports make/model/trim/bodyStyle/genCode from both resolvers and flags any mismatch.
+  if (task === "trimresolvediff") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { PORSCHE_911_TRIMS } = await import("../lib/vehicleData.js");
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { resolveForBuy } = await import("../lib/live/search.js");
+    // One representative year per trim era so a year-gated trim (e.g. GT3 RSR, pre-1999) still
+    // resolves instead of landing outside every curated generation. 1973 covers the air-cooled RS
+    // trims; 2019 covers the modern GT2/GT3/GT4/Speedster/Sport Classic family; both are tried for
+    // every trim and either hit counts.
+    const YEARS = [1973, 1989, 2019];
+    const CROSS_MAKE = [
+      "1963 Chevrolet Corvette Roadster", "1957 BMW 507 Roadster", "1989 Mazda Miata Roadster",
+      "1967 Shelby Cobra Roadster", "1961 Jaguar E-Type Roadster", "1955 Mercedes-Benz 300SL Roadster",
+      "1970 Datsun 240Z Spyder", "1985 Ferrari 308 GTS Spider", "1996 Porsche Boxster Spyder",
+      "1964 Porsche 356 Speedster", "1989 Porsche 911 Targa", "1990 Porsche 911 Targa 4"
+    ];
+    const queries = [];
+    for (const trim of PORSCHE_911_TRIMS) for (const y of YEARS) queries.push(`${y} Porsche 911 ${trim}`);
+    for (const q of CROSS_MAKE) queries.push(q);
+    const specs = req.query?.specs ? String(req.query.specs).split("|").filter(Boolean) : queries;
+    const rows = [];
+    for (const q of specs) {
+      try {
+        const mc = await resolveVehicle(q, {});
+        const mcV = mc && mc.vehicle;
+        const buyV = await resolveForBuy(q, env);
+        if (!mcV && !buyV) continue;   // neither resolved: not a real divergence case
+        const a = mcV ? { make: mcV.make, model: mcV.model, trim: mcV.trim, bodyStyle: mcV.bodyStyle, genCode: mcV.genCode || null } : null;
+        const b = buyV ? { make: buyV.make, model: buyV.model, trim: buyV.trim, bodyStyle: buyV.bodyStyle, genCode: buyV.genCode || null } : null;
+        const same = a && b && a.make === b.make && a.model === b.model && a.trim === b.trim && a.bodyStyle === b.bodyStyle;
+        if (!same) rows.push({ q, marketCheck: a, buy: b });
+      } catch (e) { rows.push({ q, error: String(e && e.message || e) }); }
+    }
+    return res.status(200).json({ task: "trimresolvediff", totalChecked: specs.length, diverged: rows.length, rows });
+  }
+
   // task=drawervscard: READ-ONLY, zero writes. For each spec in ?specs=a|b|c (or the default 11:
   // the 1988 Porsche 911 Carrera Targa Lane C named plus 10 more popular Buy specs), compares the
   // CARD'S value (whatever spec_market_cache currently holds, read the same way listingMarket/
