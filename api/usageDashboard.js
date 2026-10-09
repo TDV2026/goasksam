@@ -901,6 +901,42 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "resolvecheck", rows });
   }
 
+  // task=bodytrimsweep (Oct 2026, Lane B follow-up): proves the resolveVehicle fix for compound
+  // trim+body phrases ("1988 Porsche 911 Carrera Targa" dropping Targa entirely). Sweeps every
+  // PORSCHE_911_TRIMS entry against Targa/Cabriolet/Coupe/Speedster/Roadster/Spyder, plus the named
+  // cross-make cases (Corvette Z06 Convertible, BMW M3 Convertible, Mustang GT Fastback, Mercedes SL
+  // Roadster, Ferrari Spider). READ-ONLY, zero writes, zero OCD - resolveVehicle alone.
+  if (task === "bodytrimsweep") {
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { PORSCHE_911_TRIMS } = await import("../lib/vehicleData.js");
+    const norm = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "");
+    const BODY_WORDS = ["Targa", "Cabriolet", "Coupe", "Speedster", "Roadster", "Spyder"];
+    const specs = [];
+    for (const trim of PORSCHE_911_TRIMS) {
+      for (const body of BODY_WORDS) {
+        if (norm(trim) === norm(body)) continue;
+        specs.push({ text: `1988 Porsche 911 ${trim} ${body}`, kind: "911-compound" });
+      }
+    }
+    const crossMake = [
+      "2015 Chevrolet Corvette Z06 Convertible", "2016 BMW M3 Convertible",
+      "1966 Ford Mustang GT Fastback", "1963 Mercedes-Benz 300SL Roadster",
+      "1972 Mercedes-Benz 280SL Roadster", "1985 Ferrari 308 GTS Spider"
+    ];
+    for (const text of crossMake) specs.push({ text, kind: "cross-make" });
+    const rows = [];
+    for (const s of specs) {
+      try {
+        const r = await resolveVehicle(s.text, {});
+        const v = r && r.vehicle;
+        rows.push({ text: s.text, kind: s.kind, status: r && r.status, model: v && v.model, trim: v && v.trim, bodyStyle: v && v.bodyStyle });
+      } catch (e) {
+        rows.push({ text: s.text, kind: s.kind, error: String(e && e.message || e) });
+      }
+    }
+    return res.status(200).json({ task: "bodytrimsweep", total: rows.length, rows });
+  }
+
   // task=enginecheck: READ-ONLY, zero writes, zero OCD. Runs scripts/crossProductCheck.js's own
   // runEngineCheck() - the SAME function the nightly job and the standalone CLI call - over the
   // built-in 20-spec list (or ?specs=a|b|c) and returns its table as JSON. See the script's header
