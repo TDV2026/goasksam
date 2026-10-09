@@ -17,6 +17,7 @@ import { callOldCarsData, configureOcdUsage, flushOcdUsage } from "../lib/_ocd.j
 import { mapLiveRecord, upsertLive } from "../lib/live/feed.js";
 import { listingCoord } from "../lib/live/geo.js";
 import { runTurn, runFilters, runSearch } from "../lib/live/samChat.js";
+import { humanTitle } from "../lib/carTitle.js";
 import { supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { chatOut } from "../lib/live/chatHttp.js";
 
@@ -59,7 +60,8 @@ export async function nameOf(env, x) {
   // "Porsche" (a letter-inside-a-word test dropped it, so a Boxster S read as a Boxster).
   const out = [], said = () => new Set(out.join(" ").toLowerCase().split(/[\s-]+/));
   for (const w of parts) { const have = said(); if (!w.toLowerCase().split(/[\s-]+/).every(t => have.has(t))) out.push(w); }
-  return out.join(" ");
+  // The case a person would write it (lib/carTitle.js, shared): "X3 xDrive35i M Sport", never "XDRIVE35I".
+  return humanTitle(out.join(" "));
 }
 async function enrich(env, x) {
   let [market, seen, timeline] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts), seenBefore(env, x.r.vin_norm), timelineOf(env, x)]);
@@ -178,6 +180,23 @@ export default async function handler(req, res) {
     if (b.action === "geocoverage") return res.status(200).json(await geoCoverage(env));
     if (b.action === "converse") return res.status(200).json(await converseOut(env, b));
     if (b.action === "chat") return await buyChat(res, env, b);
+    // The searching state's "what has been understood so far": the words parsed and the car resolved (the
+    // same parser and resolver the search uses, no model call), as short chips. Never a count.
+    if (b.action === "parse") {
+      const text = String(b.text || "").slice(0, 200), pq = parseQuery(text), f = pq.filters || {};
+      const v = await Promise.race([resolveForBuy(pq.text || text, env).catch(() => null), new Promise(r => setTimeout(() => r(null), 1500))]);
+      const chips = [];
+      if (f.yearMin && f.yearMax) chips.push(f.yearMin === f.yearMax ? String(f.yearMin) : `${f.yearMin} to ${f.yearMax}`);
+      for (const c of f.colours || []) chips.push(c);
+      if (v && v.make) chips.push(v.make);
+      if (v && v.model) chips.push(v.model);
+      if (v && v.trim) chips.push(v.trim);
+      if (f.gearbox) chips.push(f.gearbox === "auto" ? "automatic" : f.gearbox);
+      for (const bd of f.bodies || []) chips.push(bd);
+      if (f.priceMax) chips.push("under $" + Number(f.priceMax).toLocaleString("en-US"));
+      if (f.miMax) chips.push("under " + Number(f.miMax).toLocaleString("en-US") + " miles");
+      return res.status(200).json({ chips: [...new Set(chips.map(String))].slice(0, 8) });
+    }
     // A result address reloaded or pasted (/buy?q=...&make=...): the same search from its filters, no model call.
     if (b.action === "rerun") {
       const out = await runFilters(env, b.filters || {});
