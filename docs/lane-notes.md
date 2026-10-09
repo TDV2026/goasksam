@@ -1646,3 +1646,70 @@ when the work has landed.
   (lib/live/buyLanding.js, index.html/api/sellPage.js) - rather than edit them directly, the exact line added
   to Market Check's own hero (below) is handed off here for Lane C to match verbatim or adapt to each page's
   existing voice, your call on exact placement.
+
+- 2026-10-09 (Lane B -> Lane A): ANSWER to the didNotSellForSpec question above. Confirmed the cause:
+  `didNotSellForSpec` (lib/onebox.js:3569) filters `auction_attempts` on make (ilike), model (ilike,
+  OR'd with genCode when present) and year range ONLY - no trim, no body style, no specials/project/
+  race-car fence. The sold side (`spec`/`isQualifying`/`qualifyReason`, used to build the pool
+  `soldCount` describes) applies all of those. So for a spec with a named trim (the Camaro Z28 case),
+  didNotSellCount is counting EVERY Camaro attempt in the year window, not just Z28 attempts - not
+  apples-to-apples with soldCount, exactly as suspected. The 88%/65% ratios are real but mean "how many
+  Camaros/911s of any trim didn't sell vs. how many Z28s/this-spec sold," not a same-car reserve-not-met
+  rate. Holding the pill back was the right call; showing it next to soldCount as-is would be a real
+  rule-25-style mismatched-pool problem even with a window label added. PROPOSED FIX (not implemented
+  this round - flagging direction, not claiming done): add the same trim/body/fence filters `spec`
+  already carries to `didNotSellForSpec`'s query (title ilike on spec.trim when present, the same
+  specials/race fence lib/_classify.js already centralizes, a body filter when spec.bodyStyle is set) so
+  both sides are scoped identically, THEN surface the window (sinceForExtras, already computed at
+  line 4142, just not returned - add it to the response alongside didNotSellCount) so the pill can render
+  safely. Picking this up after the current open-search-policy round; shout if you'd rather take it since
+  it's entirely inside lib/onebox.js which Lane B already owns edits to this session.
+
+- 2026-10-09 (Lane B): STEP 2 done (commit 6607571) - pseudonymous visitor id + canonical events. Full
+  writeup is in `docs/admin-analytics.md` (vocabulary table, SQL for every Stage-1 metric Sam named,
+  consent-banner flag, draft Privacy paragraph) - summary here:
+  - `lib/_visitor.js` `ensureVisitorId`/`readVisitorId`: random `gas_vid` cookie, ~2yr, excluded for
+    crew AND for EEA/UK/Switzerland (reuses `lib/analytics.js` `GA_BLOCKED_COUNTRIES` + the same free
+    `x-vercel-ip-country` header the existing GA consent check already reads - same jurisdictions, same
+    mechanism, no new geo lookup). This is a technical default (no banner needed because no cookie is set
+    there), not a policy decision - flagged for Sam in admin-analytics.md if he wants those visitors
+    counted too (would need a banner first).
+  - `lib/events.js`: `EVENTS` vocabulary + `logEvent()`/`stitchVisitorToAccount()`, writing to
+    `funnel_events` (extended additively - `visitor_id`/`tool`/`props` columns, plus a new `visitor_links`
+    table for the many-visitor-ids-to-one-account stitch - `docs/supabase-visitor-tracking.sql`, PENDING,
+    Sam runs it once, standing rule). Every PRE-EXISTING funnel_events caller (sellerDecision.js
+    `logFunnel`, account.js's old `funnel()`, the old `/api/funnel` insert) is untouched and keeps working
+    - they just don't set the new columns, which default to null.
+  - Wired: `api/funnel.js` (mints/stamps the visitor id on every client beacon, widened `ALLOWED` with
+    the client-emittable canonical events), `api/account.js` (stitches on every ensure; logs
+    `sign_in_completed` ONLY when the client sends `freshSignIn:true`), `js/auth.js` (`sign_in_started`
+    beacons on both doors; `freshSignIn:true` threaded through the three real fresh-sign-in call sites -
+    email-code verify, both OAuth "returned" boot paths - but NOT `gateRefreshTier`'s mid-wall tier
+    refresh, which is not a sign-in).
+  - NOT wired (proposed to Lane A/C in admin-analytics.md with the exact import/call pattern, their
+    files): the `search` event itself and `rate_limit_hit` (api/sellerDecision.js, api/buySearch.js),
+    `market_check_open`/`receipt_click`/`auction_clickout` (wherever those render/link today),
+    `task_created`/`watch_created` (Tasks, /api/watch). Every SQL view in admin-analytics.md honestly
+    returns 0/empty against `search` rows until one of these lands - not wrong numbers, just not real
+    traffic yet.
+  - Admin dashboard PAGES (Supabase-auth + admin_users allowlist, dark-rail shell, Overview/Journeys/
+    Settings UI) are NOT built this round - scoped this round to the data layer (visitor id + events +
+    the SQL that answers every metric) so each piece could be verified before building UI on top of it.
+    Flagging this as a deliberate scope cut, not an oversight - say the word if the UI should be next.
+  VERIFIED LIVE (real Chrome via puppeteer-core, not curl - curl hits the same documented Attack
+  Challenge Mode 429 on these paths, confirmed again this round): `/market-check` `/buy` `/sell` all 200,
+  zero console errors from the js/auth.js edit. A client `POST /api/funnel` with a canonical event
+  (`cross_product_move`) returned 204 and minted `gas_vid` correctly in the response cookie. NOT verified
+  end-to-end: the sign-in stitch and `sign_in_completed` logging (no disposable test account available
+  this session) - same honesty standard as other unverified-live items this session, not claiming more
+  than was actually checked. Both are also no-ops until Sam runs `docs/supabase-visitor-tracking.sql`
+  (every new-column write is wrapped in try/catch, so this degrades to silent no-op, never an error, same
+  standing pattern as every other pending-DDL feature in this codebase).
+  Pulled/rebased clean before push (no collisions this round - `git status --short` showed exactly my 7
+  intended files both before staging and after commit). `searchCheck.js` shows the same known 7/9
+  Attack-Challenge 429 pattern (not a regression - confirmed via the real-Chrome check above instead).
+  `crossProductCheck.js` could not run locally (Supabase secrets don't pull locally, standing limitation)
+  - no engine/pool/resolver code touched this round, so no reason to expect any change in its mismatches
+  either way; next nightly run will show it either way.
+  Search check: no public page title/H1/canonical/lead/address touched - this round is cookie + event-
+  logging plumbing only, zero visible copy change anywhere.
