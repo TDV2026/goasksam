@@ -201,6 +201,33 @@ export default async function handler(req, res) {
         noreserve: us.filter(r => r.has_reserve === false).slice(0, 10).map(pick),
         longest: us.slice().sort((a, b) => String(b.listing_title || "").length - String(a.listing_title || "").length).slice(0, 8).map(pick) });
     }
+    // Probe (PROBE_KEY, header only): real traffic for choosing the invisible ceilings and for the cache
+    // question. Read-only: per address (sell searches, chat, Buy chat; app_usage_events ip_address) and per
+    // browser (Buy searches; search_events anon_id), the busiest hour and day, with percentiles; and the last
+    // 7 days of sell searches by cache status, tier and metered calls.
+    if (b.action === "traffic" && process.env.PROBE_KEY && req.headers["x-probe-key"] === process.env.PROBE_KEY) {
+      const days = Math.min(60, Number(b.days) || 30), since = new Date(Date.now() - days * 864e5).toISOString(), since7 = new Date(Date.now() - 7 * 864e5).toISOString();
+      const pct = (arr, q) => { if (!arr.length) return null; const s = arr.slice().sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(q * (s.length - 1)))]; };
+      const dist = (rows, keyOf) => {
+        const hour = {}, day = {};
+        for (const r of rows) { const k = keyOf(r); if (!k) continue; const t = String(r.created_at); hour[k + "|" + t.slice(0, 13)] = (hour[k + "|" + t.slice(0, 13)] || 0) + 1; day[k + "|" + t.slice(0, 10)] = (day[k + "|" + t.slice(0, 10)] || 0) + 1; }
+        const hv = Object.values(hour), dv = Object.values(day);
+        const topDay = Object.entries(day).sort((x, y) => y[1] - x[1]).slice(0, 8).map(([k, n]) => ({ key: k.replace(/^[^|]+/, m => m.length > 6 ? m.slice(0, 4) + "…" : m), n }));
+        return { rows: rows.length, keys: new Set(rows.map(keyOf).filter(Boolean)).size, perHour: { p50: pct(hv, 0.5), p90: pct(hv, 0.9), p99: pct(hv, 0.99), max: pct(hv, 1) }, perDay: { p50: pct(dv, 0.5), p90: pct(dv, 0.9), p99: pct(dv, 0.99), max: pct(dv, 1) }, busiestDays: topDay };
+      };
+      const ev = t => supabaseSelectAll(env, `app_usage_events?event_type=eq.${t}&created_at=gte.${since}&select=created_at,status,metadata,oldcarsdata_metered_requests&order=created_at.asc`).catch(() => []);
+      const [sd, chat, bchat, se] = await Promise.all([ev("seller_decision"), ev("chat"), ev("buy_chat_turn"), supabaseSelectAll(env, `search_events?surface=eq.buy&created_at=gte.${since}&select=created_at,anon_id,user_id&order=created_at.asc`).catch(() => [])]);
+      const ipOf = r => (r.metadata && r.metadata.ip_address) || null;
+      const recent = (sd || []).filter(r => r.created_at >= since7);
+      const by = (rows, f) => rows.reduce((o, r) => { const k = f(r) || "none"; o[k] = (o[k] || 0) + 1; return o; }, {});
+      const sum = rows => rows.reduce((n, r) => n + (Number(r.oldcarsdata_metered_requests) || 0), 0);
+      return res.status(200).json({ days,
+        sellSearchesPerAddress: dist(sd || [], ipOf), chatPerAddress: dist(chat || [], ipOf), buyChatPerAddress: dist(bchat || [], ipOf),
+        buySearchesPerBrowser: dist(se || [], r => r.anon_id || (r.user_id ? "u" + r.user_id : null)),
+        sell7d: { searches: recent.length, byCache: by(recent, r => r.metadata && r.metadata.marketFetchCache), byTier: by(recent, r => r.metadata && r.metadata.tier),
+          metered: sum(recent), meteredSearches: recent.filter(r => Number(r.oldcarsdata_metered_requests) > 0).length,
+          meteredByTier: recent.filter(r => Number(r.oldcarsdata_metered_requests) > 0).reduce((o, r) => { const k = (r.metadata && r.metadata.tier) || "none"; o[k] = (o[k] || 0) + Number(r.oldcarsdata_metered_requests); return o; }, {}) } });
+    }
     // Probe (PROBE_KEY): which live listings a search shows, and for every live listing whose title carries
     // `like` (any make field), why it is or is not shown (the search's own stage that left it out).
     if (b.action === "explain" && process.env.PROBE_KEY && b.key === process.env.PROBE_KEY) {
