@@ -245,7 +245,7 @@ async function page(req) {
         .then(function(r){return r.json();}).then(function(j){
           msg.hidden=false;
           if(j&&j.ok){
-            Array.prototype.forEach.call(f.children, function(el){ if(el!==msg) el.hidden=true; });
+            Array.prototype.forEach.call(f.children, function(el){ if(el!==msg) el.style.display="none"; });
             msg.className="biz-lead-msg ok"; msg.textContent="Thanks, your request is in. We’ll be in touch by email.";
           } else {
             btn.disabled=false; btn.textContent="Request a walkthrough";
