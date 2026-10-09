@@ -667,6 +667,46 @@ async function handleOps(req, res) {
   // ever writes; scripts/warm.js's own ranking read is dead code reading an event type no writer
   // produces, and has likely always silently fallen back to its curated SEED list - a side finding,
   // not fixed here). Never flips SELL_PICK_SHARED.
+  // task=sellshadowdetail (Oct 2026, evidence for Sam's follow-up): raw per-sale rows (platform,
+  // date, price, title) behind the picked-route priceBand on BOTH paths for ONE spec, so the
+  // "shared path has more sales" claim can be checked sale-by-sale, not just by count. READ-ONLY.
+  if (task === "sellshadowdetail") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const q = String(req.query?.q || "");
+    if (!q) return res.status(400).json({ error: "?q= required" });
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { buildSharedAnalysis, fetchOnlinePool } = await import("../lib/platformPick.js");
+    const { buildAnalysisFromStore, fetchRecordsFromStore, decide } = await import("./sellerDecision.js");
+    const { classifyRecord, sourceRecordId, recordPlatform } = await import("../lib/_classify.js");
+    const { hammerUsd, sourceSlugOf } = await import("../lib/_houseComps.js");
+    const rv = await resolveVehicle(q, {}).catch(() => null);
+    const vehicle = rv && rv.vehicle;
+    if (!vehicle || !vehicle.make) return res.status(200).json({ task: "sellshadowdetail", q, error: "unresolved" });
+    const generation = await findGeneration(vehicle, env).catch(() => null);
+    const slugNorm = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const [oldA, newA, stored, newPool] = await Promise.all([
+      buildAnalysisFromStore(vehicle, generation, env.supabaseUrl, env.supabaseKey).catch(() => null),
+      buildSharedAnalysis(vehicle, generation, env, {}).catch(() => null),
+      fetchRecordsFromStore(vehicle, env.supabaseUrl, env.supabaseKey, generation).catch(() => null),
+      fetchOnlinePool(vehicle, generation, env).catch(() => null)
+    ]);
+    const oldD = oldA ? decide(oldA, {}, vehicle) : null;
+    const newD = newA ? decide(newA, {}, vehicle) : null;
+    const pickedVenue = (oldD && oldD.recommendedPath) || (newD && newD.recommendedPath) || null;
+    const pickedSlug = slugNorm(pickedVenue);
+    const oldRows = ((stored && stored.records) || []).filter(r => slugNorm(recordPlatform(r)) === pickedSlug)
+      .map(r => ({ date: r.auction_end_date || null, price: Number(classifyRecord(r, vehicle).price) || null, title: r.listing_title || r.title || null, id: sourceRecordId(r) }));
+    const newRows = ((newPool && newPool.pool) || []).filter(r => slugNorm(sourceSlugOf(r.source) || r.source) === pickedSlug)
+      .map(r => ({ date: r.auction_end_date || null, price: Number.isFinite(r._usd) ? Math.round(r._usd) : Math.round(hammerUsd(r) || 0), title: r.listing_title || r.title || null, id: r.source_record_id || null }));
+    const oldKeys = new Set(oldRows.map(r => `${r.date}|${r.title}`));
+    const onlyInNew = newRows.filter(r => !oldKeys.has(`${r.date}|${r.title}`)).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    return res.status(200).json({
+      task: "sellshadowdetail", q, pickedVenue, oldCount: oldRows.length, newCount: newRows.length,
+      onlyInNewCount: onlyInNew.length, onlyInNewSample: onlyInNew.slice(0, 20)
+    });
+  }
+
   if (task === "sellshadow") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle } = await import("../lib/vehicle.js");
