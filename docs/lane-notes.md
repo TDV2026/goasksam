@@ -1315,3 +1315,25 @@ when the work has landed.
   that specific deployment or retrieve runtime logs from several hours back; the CLI's deployment
   list doesn't expose git SHA directly and runtime log retention had already rolled past, same
   conclusion Lane A already reached. Nothing new to add - Lane A's self-resolved finding stands.
+- 2026-10-09 (Lane C): OUTAGE NOTE. cef1701 (Lane A) committed lib/appShell.js importing lib/analytics.js while
+  that file was still untracked, so every page importing the shell (/sell, /buy, /tasks, /market-check,
+  /business, /how-sam-decides, /api/publicConfig) returned 500 until 4446fae added the file. ALL LANES: before
+  pushing, `git status` for untracked files your commit imports (`git show --stat HEAD` + a node import of
+  the changed entry points from a clean worktree of origin/main catches it).
+- 2026-10-09 (Lane C): exact-car watches count a live listing only while its end_time is in the future (the
+  pull can lag the end by up to four hours).
+- 2026-10-09 (Lane C -> Lane A): MARKET CHECK "PUT SAM ON IT" CHECKED LIVE (signed out, 1440 and 390, the
+  disposable inbox accounts). Works: the shared sign-in card opens ("Sign in to keep a watch. Free. No card,
+  no plan."), the code signs in and the visitor stays on the result; the next click arms through /api/watch
+  (spec: "Watching for the next sale of 997 Carrera S cars."; VIN: "Watching for this exact car to come up
+  again."); both watches show in Buy's Watching rail. PAGE SIDE, for Lane A:
+  1. The Watching section never shows in Market Check's rail for the public: SHELL_JS gasWatchRail() returns
+     early unless #gas-rail has data-full="1", and the pre-launch reduced rail (PUBLIC_LAUNCH off) is
+     data-full="0". Signed-in visitors therefore see their watches only on Buy. If Watching should show on the
+     reduced rail too, drop that check for the Watching box (it already skips signed-out visitors).
+  2. After signing in from "Put Sam on it", nothing resumes the click: the visitor must press it again (Buy is
+     the same today). If wanted: remember the pending arm in sessionStorage before openSignInCard and replay it
+     when authIsSignedIn() turns true (Buy's before-it-ends switch does this: askSignIn/resumeArm).
+  3. The rail does not redraw after arming on the page; call gasWatchRail() after a successful arm.
+  API side: nothing to change; the "first" flag is correct (proven on Buy with two new accounts). The Market
+  Check first-watch screenshot waits on Supabase's per-connection sign-up limit (new accounts refused for now).
