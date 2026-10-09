@@ -2154,3 +2154,28 @@ when the work has landed.
   today's changes. `enginecheck` (the live crossProductCheck wrapper) could not run its full default spec
   set in one request (times out, a known pre-existing limit - see the Oct 8 entry above) - ran representative
   5-spec batches instead each time a check was needed this round, all clean.
+- 2026-10-09 (Lane C): OPEN-SEARCH POLICY, PART 3 (CHECKS, all live on goasksam.com, signed out unless said).
+  * /sell in a real browser: 2001 BMW M3, 1967 Mustang Fastback, 2008 911 Carrera S, 1995 Land Cruiser, 1972 240Z
+    all reached a full result, no account prompt, one after another from one address. API: six more cars, all
+    decision_ready, no wall, served from the cache or the store ("hit" / "public_store"). /buy: five searches, all
+    answered, nothing asked. Metered counter (ops ocdmeter, today): 500 before, 500 after every search, flag
+    test and chat test. Breaker: dailyBudget reads 900 (prod OCD_DAILY_REQUEST_BUDGET), 0 trips today.
+  * Flags with no credential: archiveQuery is refused (400), warm / bypassCache / poolDiag run as an ordinary
+    public search (public_store). With the header: archiveQuery 200, warm 200, ops ocdmeter 200 (401 without).
+  * Chat: signed out gets the exact sign in line; a real email-code sign in sends the same question again on the
+    same car and it is answered; the allowance stops at the test number (x-allowance-test); a mid-wizard question
+    is answered signed out (rule 12); a made-up prompt is refused; a 50,000 character message is capped.
+  * Ceilings under the test setting (x-ceiling-test, credential only): Buy search, live /sell, the new Sell and
+    the Sell entry chat all return the calm line at the test number. Production numbers untouched.
+  * Search rules check: 9 pages PASS. crossProductCheck (ops enginecheck, 14 batches of 4): 53 specs, 52 match;
+    the one is 1991 911 Carrera 4 Targa "recent" (Sell shows a 2025-12-08 sale, the others 2025-05-19), inside
+    the known Targa body-style divergence (NEW FINDING 8 above). No engine code changed in this step.
+  * OPEN for Lane C: a question typed while the Sell result is still loading (step 12, no decision yet) reaches
+    the model with only the wizard state, and one such answer cited "stronger recent sales data" it was not
+    given. It is now behind the sign in, but a signed-in visitor can still hit it. Fix next: hold the question
+    until the result renders.
+  * FOR LANE B: signed-in Sell searches no longer write search_events (that was the reserve_search quota ledger).
+    Anything counting Sell searches from search_events should read your canonical search event instead.
+  * FOR SAM (urgent): add `PROBE_KEY: ${{ secrets.PROBE_KEY }}` to both smoke steps in
+    .github/workflows/smoke-prod.yml. Until then the smoke chat checks (their own test prompts) get 400 or the
+    sign in line and the smoke run stays red.
