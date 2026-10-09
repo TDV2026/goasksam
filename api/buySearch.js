@@ -5,6 +5,9 @@
 //   POST { action:"enrich", ids:[...] } -> market line + seen-before for more cards ("Show all").
 //   POST { action:"watch", key, email } -> watch_requests (key = VIN, family:..., live:...)
 //   GET  ?panel=1&make&model&trim&year&body -> { count, rows[<=3] } for the One Box live panel.
+//   POST { action:"arm"|"disarm", listing_id } / { action:"alerts" } (signed in) -> Before it ends (lib/live/buyAlerts.js)
+//   GET  ?alerts=run                    -> the Before it ends send run (Vercel cron, CRON_SECRET; or the probe key)
+//   GET|POST ?alert=stop&t=<signed>     -> the message's stop link: GET shows a confirm page, only a POST acts
 import { historyEnv, houseName, normVin } from "./_historyData.js";
 import { parseQuery, emptyFilters, gensNamed, resolveForBuy, searchLive, listingFacts, listingMarket, seenBefore, nounFor, liveForFamily, liveRows, familyMarket, COUNTRY_NAME } from "../lib/live/search.js";
 import { findGeneration } from "../lib/generations.js";
@@ -20,6 +23,7 @@ import { runTurn, runFilters, runSearch } from "../lib/live/samChat.js";
 import { humanTitle } from "../lib/carTitle.js";
 import { supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { chatOut } from "../lib/live/chatHttp.js";
+import { armAlert, cancelAlert, listAlerts, runAlerts, stopAll, verifyStop, testSend, isMissingTable } from "../lib/live/buyAlerts.js";
 
 const FIRST = 10, MAX = 200;
 const titleCaseIfShouting = s => String(s || "").split(",").map(p => { const t = p.trim(); return t && t === t.toUpperCase() && /[A-Z]{3}/.test(t) ? t.toLowerCase().replace(/\b([a-z])/g, c => c.toUpperCase()) : t; }).filter(Boolean).join(", ");
@@ -100,6 +104,26 @@ export default async function handler(req, res) {
   // Search results are private and endless: no result response is ever indexable (the landing /buy is).
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
   try {
+    const q0 = req.query || {};
+    // BEFORE IT ENDS: the stop link in the message (and the one-click unsubscribe). A GET or HEAD only shows
+    // the confirm page (mail scanners open every link); the page's button, or the mail provider's one-click
+    // POST, is the only thing that acts. Private and noindex.
+    if (q0.alert === "stop") {
+      res.setHeader("Content-Type", "text/html; charset=utf-8"); res.setHeader("Cache-Control", "private, no-store");
+      const page = (status, body) => { const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Stop these messages? | GoAskSam</title><style>${STOP_CSS}</style></head><body><main><p class="brand">GoAskSam</p>${body}</main></body></html>`; return req.method === "HEAD" ? res.status(status).end() : res.status(status).send(html); };
+      const uid = verifyStop(q0.t);
+      if (!uid) return page(400, `<h1>That link has expired.</h1><p><a href="/buy">Back to Buy</a></p>`);
+      if (req.method !== "POST") return page(200, `<h1>Stop these messages?</h1><p>Sam stops telling you before the cars you picked end. You can turn it on again from Market Check on any car.</p><form method="post" action="/api/buySearch?alert=stop&t=${encodeURIComponent(String(q0.t))}"><button type="submit">Stop them</button></form><p class="quiet"><a href="/buy">Back to Buy instead</a></p>`);
+      await stopAll(env, uid).catch(e => console.error("buy alert stop:", e.message));
+      return page(200, `<h1>Stopped.</h1><p>Sam won't send these for the cars you picked.</p><p class="quiet"><a href="/buy">Back to Buy</a></p>`);
+    }
+    if (req.method === "GET" && q0.alerts === "run") {
+      const isCron = process.env.CRON_SECRET && req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
+      const isProbe = process.env.PROBE_KEY && (req.headers["x-probe-key"] === process.env.PROBE_KEY || q0.key === process.env.PROBE_KEY);
+      if (!isCron && !isProbe) return res.status(401).json({ error: "Unauthorized." });
+      try { return res.status(200).json(await runAlerts(env, { freshBid })); }
+      catch (e) { if (isMissingTable(e)) return res.status(200).json({ checked: 0, sent: 0, setup: "run docs/supabase-buy-alerts.sql" }); throw e; }
+    }
     if (req.method === "GET" && req.query && req.query.panel) {
       const q = req.query;
       const vehicle = { make: String(q.make || ""), model: String(q.model || ""), trim: q.trim ? String(q.trim) : null, year: Number(q.year) || null, bodyStyle: q.body ? String(q.body) : null };
@@ -205,6 +229,18 @@ export default async function handler(req, res) {
     }
     if (b.action === "detail") return res.status(200).json(await detailOut(env, b));
     if (b.action === "save" || b.action === "list" || b.action === "watchsearch" || b.action === "remove") return await savedSearches(env, req, res, b);
+    if (b.action === "arm" || b.action === "disarm" || b.action === "alerts" || b.action === "alert_test") {
+      const user = await validateBearer(req.headers.authorization || "").catch(() => null);
+      if (!user || !user.userId) return res.status(401).json({ ok: false, needSignIn: true });
+      try {
+        if (b.action === "alerts") return res.status(200).json(await listAlerts(env, user));
+        if (b.action === "arm") return res.status(200).json(await armAlert(env, user, b.listing_id));
+        if (b.action === "disarm") return res.status(200).json(await cancelAlert(env, user, b.listing_id));
+        // Probe only: this signed-in buyer's armed car, its message now, to a disposable test inbox.
+        if (process.env.PROBE_KEY && b.key === process.env.PROBE_KEY && /^[^@\s]+@[^@\s]+$/.test(String(b.to || ""))) return res.status(200).json(await testSend(env, user.userId, b.listing_id, String(b.to), { freshBid, noMark: !!b.noMark }));
+        return res.status(400).json({ ok: false });
+      } catch (e) { if (isMissingTable(e)) return res.status(200).json({ ok: false, setup: true, items: [] }); throw e; }
+    }
     const q = String(b.q || "").slice(0, 200).trim();
     if (!q) return res.status(400).json({ status: "error" });
     const parsed = parseQuery(q);
@@ -346,6 +382,7 @@ async function savedSearches(env, req, res, b) {
   return res.status(400).json({ ok: false });
 }
 
+const STOP_CSS = "body{margin:0;background:#F6F3EC;color:#15201A;font:400 17px/1.55 system-ui,-apple-system,'Segoe UI',sans-serif}main{max-width:520px;margin:0 auto;padding:48px 20px}.brand{font:600 20px/1 Georgia,serif;margin:0 0 32px}h1{font:500 30px/1.15 Georgia,serif;margin:0 0 14px}button{margin:10px 0 6px;min-height:48px;padding:0 22px;border:0;border-radius:10px;background:#1E4D38;color:#fff;font:600 16px/1 system-ui,sans-serif;cursor:pointer}a{color:#1E4D38}.quiet{font-size:14px;color:#5E6B63}";
 // On-demand current bid for one auction when its detail view opens, cached 5 minutes. OFF unless
 // LIVE_FRESHNESS=1, and never under the monthly reserve. One metered request at most (2 retries on 5xx).
 const bidCache = new Map();
