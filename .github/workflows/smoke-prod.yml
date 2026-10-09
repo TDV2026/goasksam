@@ -21,6 +21,7 @@ jobs:
         id: smoke
         env:
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          PROBE_KEY: ${{ secrets.PROBE_KEY }}
         run: |
           set -o pipefail
           npm run smoke:prod 2>&1 | tee smoke-output.txt
@@ -76,6 +77,7 @@ jobs:
         env:
           CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          PROBE_KEY: ${{ secrets.PROBE_KEY }}
         run: |
           set -o pipefail
           npm run test:golden 2>&1 | tee golden-output.txt
