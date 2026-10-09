@@ -2606,3 +2606,16 @@ when the work has landed.
   Baseline: /sell /buy /tasks /market-check /business all 200 signed out, confirmed again after this round's
   push. searchCheck.js shows the same known Attack-Challenge 429 pattern (not a regression).
   Search check: no title/H1/canonical change on /business or /privacy.
+
+- 2026-10-09 (Lane A): Sam Desk section 4 warmed via the rotated PROBE_KEY, read per-command from macOS
+  Keychain (`security find-generic-password -s goasksam-probe -w`) straight into the process env, sent only
+  as the `x-ops-key` header to `task=deskexample`, never written to a file/note/log/screenshot. Result:
+  ok:true, 997=156 sold, 991=71 sold, 992=47 sold, total 274, window "last twelve months". Confirmed live
+  render at 1440 and 390 (screenshots this session) - full Ask/Refine/Compare/Verify section with real data
+  and 3 receipt cards. NOTE (not a bug, flagging only): the first post-warm check showed the section absent
+  - a specific Vercel serverless instance had an in-memory `cache` var poisoned with the pre-table null,
+  independent of the Supabase row's actual state, and would've kept serving it for up to its 24h TTL on that
+  one instance. A retry (different instance) showed it correct immediately. This is a pre-existing shared
+  characteristic of the deskExample.js/marketCheckExample.js cache pattern, not something introduced this
+  round - worth a real fix (stamp a cache-bust key into the read, or shorten in-memory TTL) if Sam wants it,
+  not done unless asked. No code changed this round.
