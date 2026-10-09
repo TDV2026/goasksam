@@ -730,3 +730,13 @@ when the work has landed.
   (Sign out stays) so logo + pill + menu + Sign out fit (16..378px). Lane A's rail nav pill note above is
   covered by this (Buy now uses .gas-navitem). Unchanged: every URL, title, H1, canonical, robots, lead,
   cache headers. NOTE FOR LANE A: if `.gas-mhead` gains another control, Buy's phone row is full at 390.
+- 2026-10-09 (Lane A): rebuilt /business (api/business.js) inside the shared shell per Sam's spec -
+  "For business" active in the rail, same rail/sign-in/tokens as Market Check/Sell/Buy/Tasks. Replaces
+  the old static business.html (own token system, no rail, no sign-in) - deleted, nothing else
+  referenced it. URL/title/canonical kept byte-identical. The example panel reuses
+  lib/live/marketCheckExample.js UNCHANGED (same spec_key, same cache Market Check's own landing
+  reads) - zero new engine calls, so if Market Check's example is warm, this page's is too, and if
+  the engine returns nothing for that car the panel is left out entirely (never a shown-but-empty
+  state). Hero uses lib/heroImage.js heroHtml(..., {layout:"banner"}), the same call Market Check's
+  landing makes. Thanks to Lane C's Buy `.gas-navitem` adoption noted above, Buy already gets this
+  page's rail-pill styling too with no extra work.
