@@ -1006,8 +1006,9 @@ function v2PickFacts(option){
     if(wk){ var dA=ev.dayAdvantage||{}; var hasPct=/%/.test(wk.body);
       facts.weekday={ day:wk.headline, pct:hasPct?Math.round(Math.abs(Number(dA.liftPercent))/5)*5:null, scope:facts.scope }; }
     var rv=v2Reserve(ev);
-    if(rv){ var rc=ev.reserveContext||{}; var rp=Number(rc.delta_pct);
-      facts.reserve=Math.abs(rp)<3?{even:true}:{ pct:Math.round(Math.abs(rp)), direction:(rp>=0?"higher":"lower") }; }
+    // The chat gets the tile's own sentence (v2Reserve), so the two can never differ (it read a field the
+    // tile does not use and sent "NaN%").
+    if(rv){ facts.reserve=rv.dir?{ pct:rv.N, direction:rv.dir, body:rv.body }:{ even:true, body:rv.body }; }
     return facts;
   }catch(e){ return null; }
 }
