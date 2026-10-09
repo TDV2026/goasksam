@@ -38,7 +38,7 @@ export function cardOf(x) {
 // The car's own past appearances, oldest first, for the card's timeline: vin_index, falling back to the
 // archive exactly as the Sam line's history does (vinAppearances), so the two never disagree. This
 // live listing itself is never one of them (it is the "Now" dot).
-async function timelineOf(env, x) {
+export async function timelineOf(env, x) {
   const vin = x.r.vin_norm; if (!vin || String(vin).length < 6) return null;
   const data = await vinAppearances(env, vin).catch(() => null);
   if (!data || !data.ok) return null;
