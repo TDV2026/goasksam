@@ -796,3 +796,44 @@ when the work has landed.
   a scripted click - it may need a live card's own entry point) - the fix itself is structural
   (opaque + shadow + z-index), not drawer-specific, so it should resolve regardless; please confirm
   on the actual drawer on your end and flag me back if it still collides.
+- 2026-10-09 (Lane B, second follow-up round, commits df6a4e7 and earlier in this run, ea6fd80):
+  items 1 to 6 from Sam's "drawer vs card, structurally" round.
+  1/2 DRAWER VS CARD + TIME FRESHNESS: exported coreOf/persistCore/specKeyFor from
+  lib/live/search.js; api/sellerDecision.js's oneBox branch (Market Check and the drawer both call
+  it) now writes its live answer back to spec_market_cache under the identical key after every
+  clean, unrefined result - ordinary traffic now self-heals a popular spec's card cache, on top of
+  the ingest-tied invalidation and an explicit DAY_TTL=24h ceiling (Math.min with the existing 6h
+  SPEC_TTL, so today's behavior is unchanged, the 1-day contract is just explicit in code now).
+  3 RECOMPUTE AT END OF INGEST: scripts/ingest.js now recomputes every spec it just invalidated
+  before the run ends (parses the spec_key back into a vehicle, resolves the generation by code,
+  calls runOneBox, writes via the same coreOf/persistCore path) - best-effort, never blocks the run.
+  4 TRIM-LIST AUDIT: ran trimresolvediff over all 132 (PORSCHE_911_TRIMS x 3 years) + cross-make
+  cases; found the Speedster bug class also hit Targa (911 Targa/Targa 4/Targa 4S/Targa 4 GTS),
+  Roadster (Corvette/Cobra/E-Type/300SL/Miata) and Spider/Spyder (Ferrari 308 GTS Spider) - excluded
+  all from resolveForBuy's body-word-as-trim correction, same pattern as Speedster. 20 of 21 fixed;
+  one flagged not fixed (wrong direction): resolveVehicle itself fails "1970 Datsun 240Z Spyder" (not
+  a real trim, likely a non-real test case).
+  5 CROSSPRODUCTCHECK GROWN to 42 specs (every car named this round + a mixed common/thin/trim-
+  sensitive set); continue-on-error stays on.
+  6 SELL STATUS: yes, Sell (lib/platformPick.js fetchOnlinePool, since an earlier round) reads the
+  same ladder via lib/onebox.js runOneBox using resolveVehicle - never resolveForBuy, so none of this
+  round's Buy-side resolver bugs ever touched it. crossProductCheck's Sell lane matched on 41 of 42
+  specs this round (the one miss is new finding 7 below, a Buy/Tasks-only gap). The EXISTING
+  SELL_PICK_SHADOW log (?task=shadowreport) is STALE - 21 comparisons from Oct 8, 18 agree/3
+  disagree, and 2 of those 3 were the since-fixed Speedster bug. Have not re-run a fresh shadow pass
+  post-fixes. RECOMMENDATION before flipping SELL_PICK_SHARED: set SELL_PICK_SHADOW=1 for a day to
+  get a current comparison rather than trusting the stale log.
+  NEW FINDING 7 (not fixed, flagging for a follow-up round): "1988 Porsche 911 Carrera Targa" is the
+  one crossProductCheck mismatch at 42 specs (count 54 Market Check/Sell vs 140 Buy/Tasks). Root
+  cause is DIFFERENT from findings 1 to 6: resolveVehicle itself resolves "Carrera Targa" (both words
+  present) to trim="Carrera" ONLY, bodyStyle=null - "Targa" is dropped entirely, by BOTH resolvers
+  equally (confirmed via resolvediff: marketCheckResolve and buyResolve agree, both wrong). Market
+  Check still gets the right, Targa-scoped pool anyway because runOneBox's own buildSpec re-scans
+  the FULL raw search text for body words independently of v.bodyStyle. Buy/Tasks do not get this
+  safety net: lib/live/search.js familyMarket builds its synthetic row's listing_title from
+  STRUCTURED VEHICLE FIELDS only ([year,make,model,trim].join(" ")) - since trim lost "Targa", the
+  reconstructed title never had it to begin with, and resolveForBuy (run again on that incomplete
+  title) correctly, but wrongly, resolves the whole 3.2 Carrera family. Likely affects any compound
+  "{curated trim} {body word}" phrasing, not just Targa. Not fixed this round (new, deeper gap than
+  the audit above; found while verifying the grown 42-spec check, after this round's other fixes
+  were already pushed).
