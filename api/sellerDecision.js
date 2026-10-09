@@ -1171,8 +1171,9 @@ const MARKET_FETCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 // whatever the store holds and log loudly, never spend past pace and never
 // dead-end (the ladder and policy floor handle a thin or empty set honestly).
 const OCD_DAILY_REQUEST_BUDGET = Number(process.env.OCD_DAILY_REQUEST_BUDGET || 33);
-// How many of the closest sales ride along to the follow-up chat (decision.closestSales).
-const FOLLOWUP_SALES = 5;
+// How many of the closest sales ride along to the follow-up chat (decision.closestSales). Three, not five:
+// five raised the cost per follow-up by about 60% (measured Oct 9 2026), three keeps the answer grounded.
+const FOLLOWUP_SALES = 3;
 // 7A.2: monthly plan cap, env-driven so the 1K->10K upgrade is a config change.
 const OCD_MONTHLY_BUDGET = Number(process.env.OCD_MONTHLY_BUDGET || 1000);
 // Ingest-priority reserve (until the monthly quota reset): when OCD's monthly remaining falls below
