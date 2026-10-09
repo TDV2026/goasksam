@@ -5,6 +5,18 @@ import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 // Wording layer only. Must never invent market performance (product rule 1).
 const CHAT_MODEL = process.env.SAM_MODEL || "claude-sonnet-4-6";
 
+// BANNED WORD BACKSTOP (locked, mirrors lib/live/samChat.js cleanSearchReply's sentence-level
+// filter for Buy): this is the only caller of /api/chat (the Sell wizard's SELL_SYS prompt already
+// bans these words), but a model reply is never fully trustworthy on its own - any sentence
+// carrying one of these words is dropped whole rather than surgically edited, which would risk a
+// grammatically broken half-sentence ("a fair value" -> "a fair"). Checked on word boundaries so
+// "valuable" or "worthwhile" are not caught.
+const SELL_BANNED_WORD_RE = /\b(estimate[sd]?|appraisal|appraise[sd]?|worth|valuation|median)\b|\bvalue\b/i;
+function cleanSellReply(text) {
+  const parts = String(text || "").replace(/\s+/g, " ").trim().match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [];
+  return parts.map(x => x.trim()).filter(x => x && !SELL_BANNED_WORD_RE.test(x)).join(" ").trim();
+}
+
 // Narration cache: identical request payloads (model + prompts + facts +
 // conversation) reuse the stored wording at zero Anthropic cost. Any change
 // to the facts changes the hash, so invalidation is inherent. Degrades
@@ -107,11 +119,15 @@ export default async function handler(req, res) {
       await logError(errorMessage, response.status);
       return res.status(response.status).json({ error: errorMessage });
     }
-    const text = data.content?.[0]?.text || "";
-    if (!text) {
+    const rawText = data.content?.[0]?.text || "";
+    if (!rawText) {
       await logError("empty_completion", response.status);
       return res.status(502).json({ error: "Empty completion from model" });
     }
+    // Backstop (never the primary defense - SELL_SYS already bans these words): a sentence that
+    // still carries one slips out whole, not surgically edited, so the reply never breaks mid-
+    // sentence. Applied before caching, so a cached reply is clean too.
+    const text = cleanSellReply(rawText);
     const usage = data.usage || {};
     const cost = anthropicCost(usage);
     // Best-effort cache write; a failed insert never blocks the reply.

@@ -53,13 +53,13 @@ async function showSellRecommendation(opts){
   // (fetch comps -> compare platforms -> check specialists -> write rec). Each
   // ticks over briskly; the REVEAL is gated on the real response, so a cache-warm
   // result flashes through and a data_unavailable response never lets the final
-  // "Writing my recommendation" stage complete.
+  // "Writing the recommendation" stage complete.
   const thinkRow=document.createElement("div");thinkRow.className="row sam";thinkRow.id="sellThinking";
   const stages=[
     "Finding comparable sales",
     "Comparing auction platform performance",
     "Checking for specialist representation",
-    "Writing my recommendation"
+    "Writing the recommendation"
   ];
   thinkRow.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>
     <div class="analysis-stages" id="analysisStages" role="status" aria-live="polite">
@@ -658,7 +658,7 @@ function renderDecision(decisionData,renderOpts){
           // renders (no reason voice line, momentum, stat, or evidence line).
           const c=option.composed;
           if(!c)return "";
-          const label=option.key==="specialist"?"Why I’d call them":(!isPrimary?"Why I’d also consider it":"Why I picked this");
+          const label=option.key==="specialist"?"Why Sam would call them":(!isPrimary?"Why Sam would also consider it":"Why Sam picked this");
           // Fix 5: card copy passes through the same shared count gate as chat.
           const gate=t=>typeof samForbiddenScrub==="function"?samForbiddenScrub(t):t;
           const head=c.headline&&c.headline.text?`<div class="sell-rec-samline voice">${numify(gate(c.headline.text))}</div>`:"";
@@ -675,7 +675,7 @@ function renderDecision(decisionData,renderOpts){
             <span class="observed-seller-name">${escapeHtml(seller.name)}</span>
             <span class="observed-seller-meta">${escapeHtml([seller.region,platformDisplayName(seller.platform)].filter(Boolean).join(" · "))}</span>
             <div class="observed-seller-tags">${(seller.specialties||[]).map(tag=>`<span class="observed-seller-tag">${escapeHtml(tag)}</span>`).join("")}</div>
-            <span class="observed-seller-why">Why I’d call them</span>
+            <span class="observed-seller-why">Why Sam would call them</span>
             <ul>${powerSellerWhyBullets(seller,sellerIndex).map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>
             <button class="ghost" onclick="event.stopPropagation();chooseSellOption('${escapeHtml(option.key)}')">Talk to them</button>
           </div>`).join("")}
@@ -1243,7 +1243,7 @@ function _thinPickCardHtml(o){
       <span class="pcard-badge">${esc(badge)}</span>
       <div class="pcard-script">${script}</div>
       <h1 class="pcard-name">${esc(name)}</h1>
-      <div class="pcard-whyl pcard-whyl-main">Why I picked this</div>
+      <div class="pcard-whyl pcard-whyl-main">Why Sam picked this</div>
       <p class="pcard-lead">${why}</p>
       <button class="pcard-cta" onclick="event.stopPropagation();${cta}">${ctaLabel}${svg("arrow","cta-arrow")}</button>
       <div class="pcard-reassure">${svg("shield")}<span>${reassure}</span></div>
@@ -1796,7 +1796,7 @@ function renderNoEvidenceFallbackLegacy(fallback){
           </div>
           <div class="platform-logo ${escapeHtml(logo.cls)}">${escapeHtml(logo.text)}</div>
         </div>
-        <div class="sell-rec-reason-label">Why I’d start here</div>
+        <div class="sell-rec-reason-label">Why Sam would start here</div>
         <div class="sell-rec-reason">${escapeHtml(fallback.primaryReason)}</div>
         ${fallback.stat?`<div class="sell-rec-reason">${escapeHtml(fallback.stat)}</div>`:""}
         <ul class="sell-rec-bullets">${(fallback.bullets||[]).map(item=>`<li>${escapeHtml(item)}</li>`).join("")}</ul>
@@ -2212,7 +2212,7 @@ function openLeadDetailsModal(){
 function closeLeadDetailsModal(){const m=document.getElementById("lead-details-modal");if(m&&m.remove)m.remove();}
 
 // Methodology explainer modal (static, identical for every car, no per-search
-// numbers). Opened from the result card's "Why I Picked This" info affordance and
+// numbers). Opened from the result card's "Why Sam Picked This" info affordance and
 // from the How Sam decides page. Same hp-dialog scrim/card pattern as the VIN
 // modal; dismissible by the X, scrim click, or Escape. Fires the lightweight
 // unranked methodology_viewed journey event (allowlisted in lib/_journey.js).

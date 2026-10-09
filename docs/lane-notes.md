@@ -471,3 +471,32 @@ when the work has landed.
   GitHub Action, last run ~Sep 22-23; every source is uniformly stale, confirmed not a per-source bug).
   Do not wire anything new to it. Live pages read sales_archive and auction_attempts. Decision: no
   schedule added, no rebuild run, no reader changed - reported to Sam with options, his call.
+- 2026-10-08 (Lane B, FOR SAM, flip steps): turning SELL_PICK_SHARED on tomorrow.
+  FLIP: in Vercel, Project Settings -> Environment Variables -> Production, set `SELL_PICK_SHARED`
+  to the string `1` (not `true`, not `yes` - the code checks `=== "1"`). Save, then REDEPLOY - an
+  env var change alone does not apply to the already-built serverless functions; use `npm run
+  deploy` or redeploy the current commit from the Vercel dashboard. Confirm it took by checking any
+  live `/sell` result for the new behaviour (a car's by-venue breakdown counts will differ from the
+  capped-fetch numbers you are used to seeing, since the whole analysis now comes from the shared
+  archive pool, not fetchRecentRecords - this is the intended change, not a bug).
+  WATCH, first hour, in app_usage_events (event_type=eq.seller_decision, created_at after the flip):
+    - `status` should stay `decision_ready` on every row. Any other status is a crash the code did
+      not expect (buildSharedAnalysis failures are caught and degrade to the honest zero-evidence
+      state, which still logs `decision_ready` with `metadata.evidenceBasis = "regional_policy"` -
+      that is NOT an error, it means the shared pool genuinely found nothing for that car).
+    - `metadata.evidenceBasis` - watch the SHARE of `regional_policy` rows. A few is expected and
+      correct (genuinely thin/rare cars - see the three real examples from the audit: 1990
+      Lamborghini Countach 25th Anniversary, 1989 Porsche 911 Speedster, 1967 Ferrari 275 GTB/4). A
+      sudden majority of rows landing there would mean the shared pool is failing broadly, not that
+      cars got rarer.
+    - `metadata.pickPlatform` - watch the distribution. A skew toward one platform across many
+      different cars (not just Bring a Trailer's usual volume lead) would signal a bug in
+      buildSharedAnalysis, not a real market pattern.
+    - Vercel's function logs (NOT app_usage_events) for the line "SELL_PICK_SHARED buildSharedAnalysis
+      failed" - this is a console.error, not a DB row, so it only shows in the Vercel dashboard's
+      Logs tab for api/sellerDecision.js. Any occurrence is non-fatal (the request still returns the
+      honest zero-evidence state, never a half-filled page) but should not repeat for the same car.
+  ROLLBACK (one line): set `SELL_PICK_SHARED` back to empty (unset) or any value other than `1` in
+  Vercel, redeploy. Nothing else to undo - the flag is read fresh on every request, there is no
+  cached state, and analyze()/decide() on the capped-fetch path is untouched and byte-identical to
+  before this round.

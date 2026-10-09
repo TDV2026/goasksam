@@ -1,3 +1,6 @@
+// canonical_sales is NOT a live source. Nothing public reads it and it is not rebuilt nightly (this
+// script only runs via a workflow_dispatch-only GitHub Action). Do not wire anything new to it. Live
+// pages read sales_archive and auction_attempts.
 // Build canonical_sales + sale_aliases from the full sales_archive (amendments 9.4/9.8).
 // One canonical row per real-world transaction; every source row is an alias. Reads are
 // free (Supabase), zero OCD spend. Heavy writes -> run in GitHub Actions, not locally.

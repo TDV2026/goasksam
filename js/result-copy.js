@@ -758,7 +758,7 @@ function renderPowerSellerProfile(profile){
     <div class="sell-rec-badge specialist">${escapeHtml(profile.confidenceLabel||"Worth speaking to")}</div>
     <span class="observed-seller-name">${escapeHtml(profile.displayName||profile.name)}</span>
     <span class="observed-seller-meta">${escapeHtml(region)}</span>
-    <span class="observed-seller-why">Why I’d call them</span>
+    <span class="observed-seller-why">Why Sam would call them</span>
     <div class="sell-rec-reason">${escapeHtml(profile.note||`They should be able to explain how they would improve the sale for ${cleanCarForCopy()} versus a private listing.`)}</div>
     <div class="observed-seller-tags">${strengths.map(tag=>`<span class="observed-seller-tag">${escapeHtml(tag)}</span>`).join("")}</div>
     ${platforms?`<div class="power-seller-platforms"><strong>Lists on (per ${escapeHtml(profile.name||"the partner")}):</strong> ${escapeHtml(platforms)}</div>`:""}
@@ -1560,7 +1560,7 @@ function composeCard(vehicle,route,opts={}){
   return { headline, bullets: core };
 }
 
-// "Why I picked this" is ONE list of three concrete reasons, never prose.
+// "Why Sam picked this" is ONE list of three concrete reasons, never prose.
 // Bullet 1 IS the share claim (validated 10+ cross-platform denominator,
 // rendered green); below the gate it falls back to the honest existence
 // line, neutral. Items are {text, validated} so the renderer can style
