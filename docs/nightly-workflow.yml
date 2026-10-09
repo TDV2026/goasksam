@@ -18,9 +18,9 @@ name: Nightly ingest and warm
 # only, nothing else - so warm/attempts/premium/cube (all archive-freshness
 # consumers, nothing more) start the moment it finishes, typically under a minute.
 # Every slower, non-essential step (VIN index, spec cache refresh + its deferred
-# recompute, the Market Check/Sell example builds, spec_pages, VIN rollout cache,
-# the search rules check, crossProductCheck) moved to a NEW "caches" job that runs
-# AFTER ingest but IN PARALLEL with warm/attempts/premium/cube, with its own
+# recompute, the Market Check/Sell/Sam Desk example builds, spec_pages, VIN rollout
+# cache, the search rules check, crossProductCheck) moved to a NEW "caches" job that
+# runs AFTER ingest but IN PARALLEL with warm/attempts/premium/cube, with its own
 # generous timeout - a slow night in "caches" can no longer block anything else.
 on:
   schedule:
@@ -226,7 +226,6 @@ jobs:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-      # warm:true is honoured only with our credential in a header (api/sellerDecision.js, Oct 2026).
       PROBE_KEY: ${{ secrets.PROBE_KEY }}
     steps:
       - uses: actions/checkout@v5
