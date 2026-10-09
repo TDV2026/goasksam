@@ -185,8 +185,8 @@
     // same as /buy's #lead); this simple fallback never tries to reproduce them.
     root.innerHTML =
       '<div class="ob-home">' +
-        '<h1 class="ob-head">What’s your car going for?</h1>' +
-        '<p class="ob-sub">Not what it should sell for. What cars like yours actually did, with the receipts.</p>' +
+        '<h1 class="ob-head">What do cars like yours sell for?</h1>' +
+        '<p class="ob-sub">Real sales, matched to your car, with the range most landed in and the cars behind it.</p>' +
         inboxHtml("", "Your car, for example 2008 Porsche 997 Carrera S") +
       "</div>";
     wire();

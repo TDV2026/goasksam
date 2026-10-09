@@ -756,3 +756,15 @@ when the work has landed.
   enough by itself - I ran it this time and still missed it. The actual fix is to READ every line of
   that output before typing the commit command, every time, especially when it names a file you do
   not recognize as your own edit.
+- 2026-10-09 (Lane A): Market Check landing headline change (Sam's round). H1 "What do cars like
+  yours sell for?" / sub "Real sales, matched to your car, with the range most landed in and the
+  cars behind it." - replaces "What's your car going for? / Not what it should sell for..." in all
+  THREE places it had to change together (they were already out of lockstep before this round, worth
+  knowing for next time): api/marketCheck.js's `H1` constant (fed into the sr-only hidden `<h1>` for
+  crawlers, which had drifted to "What could mine bring?" - a different string from the visible
+  headline even before this change), lib/live/marketCheckLanding.js's `.mc-display`/`.mc-sub` (the
+  server-rendered landing), and js/onebox.js's `renderEmpty()` `<h1 class="ob-head">`/`.ob-sub` (the
+  client-only empty-state fallback reached via "Change" - same copy, kept in lockstep per its own
+  header comment). Search placeholder/button/chips/VIN line untouched, confirmed via live DOM read.
+  Page title/canonical/URL untouched (Sam's own instruction - the rules check did not ask for a title
+  change). grep confirmed no other "going for" / "should sell for" anywhere in the codebase.

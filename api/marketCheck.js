@@ -30,7 +30,7 @@ import { SHELL_CSS, SHELL_JS, railOpenHtml } from "../lib/appShell.js";
 const YOUR_RESULTS_RAIL = '<a class="gas-navitem" id="gas-nav-results" href="#" style="display:none" onclick="return obToggleResults(event)">Your results</a><div class="gas-submenu" id="gas-results-menu"></div>';
 
 const TITLE = "Market Check: what could your car bring?";
-const H1 = "What could mine bring?";
+const H1 = "What do cars like yours sell for?";
 const SITE = "https://goasksam.com";
 
 let shell = null;
