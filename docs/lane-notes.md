@@ -1425,3 +1425,56 @@ when the work has landed.
   the more precise window above helps a second look, but nothing currently reproduces.
   Baseline: /sell /buy /tasks /market-check /business all 200 signed out.
   Search check: no title/H1/canonical/address change; card is inside the existing results view only.
+- 2026-10-09 (Lane C): BUY HERO PLACEHOLDER (bf53c04). lib/live/buyLanding.js PLACEHOLDERS, Sam's eight lines in his
+  order; the box opens on the first and rotates every 3.2s until focused (never under reduced motion). Each run
+  through the live search before shipping (live count Oct 9): Porsche 911 under $100,000: 55; manual Ferrari
+  575M: 1; black BMW M3 under 50,000 miles: 1; cars under $40,000 near Chicago: 213 (asks "What sort of car?");
+  1967 Ford Mustang Fastback: 1; Corvette Z06 2015 to 2019 ending this week: 3; air-cooled Porsche 911 targa: 4;
+  cheap Mazda Miata: 7. FIXED to get there (lib/live/search.js, lib/live/samChat.js, Buy client): a tool range
+  with one bound stays open ("up to 1998" was read as 1998 only); a hyphenated model matches its squashed title
+  ("MX-5": every live Miata was being dropped as "model word not in title"); "Fastback" is read as the title
+  word (trim) so it is never a notchback coupe; "ending this week/today/in N days" is a filter (ends_within_days,
+  address key ends). FOR LANE B: lib/vehicle.js (and onebox.js body families) file "fastback" under coupe; for a
+  1965 to 1968 Mustang that pools fastbacks with hardtop coupes. Buy reads the word as a title word instead; the
+  engine's own body family is unchanged.
+- 2026-10-09 (Lane C): POLICY "SEARCH IS OPEN, PERSONALISATION IS SIGNED IN", STEP 1 FACTS (Buy and Sell; Lane A
+  reports Market Check, Lane B tracking). Nothing changed. STOPPED AFTER STEP 1: point 6 found spend risks.
+  1. BUY: no rate limit or quota on Buy search today (api/buySearch.js plain search, rerun, parse: no IP ledger,
+     no 429; the 60/hour per address is OLD /sell's, not Buy's). Only limit: chat TURN_CAP 30 (lib/live/chatHttp.js),
+     counted from the client's own `turns`, so not a real per-visitor limit. No limit message exists on Buy.
+     "Free · No account needed" (lib/live/buyLanding.js) is accurate: no Buy result needs an account. Sign-in is
+     asked only for: Before it ends ("Sign in and Sam will tell you before this auction ends."), watches ("Sign in
+     to keep a watch. Free. No card, no plan."), saved searches ("Sign in to save your searches.").
+  3. SELL (live /sell = index.html + api/sellerDecision.js computeSearchGate): crew bypass; 60 per address per
+     hour for everyone (ip_cap_all_hour); tester 10/day; once-pass 3; signed in: reserve_search RPC with
+     rate_limits.daily_searches free 1, tdv 3 (Daily Vroom tier from Beehiiv, api/account.js + lib/_beehiiv.js,
+     rechecked every 7 days); guest30 30 lifetime; signed out: 20 per address per UTC day, the first search free
+     then cookie gas_free_used -> "account_required" wall. Copy: js/auth.js:505 "Your first one's on me. Create a
+     free account for a search every day. Daily Vroom readers get three, so if you want more, subscribe free with
+     the same email." and :514 "That first search was on me. Create a free account for a search every day. Daily
+     Vroom readers get three...", plus walls :480 :482 :487 :544 :548 and the upfront gate gateCheckUpfront.
+     Model calls: api/chat.js (old /sell narration and free text), api/vehicleIdentity.js llmExtractVehicle (only
+     when the resolver fails; cached), new Sell follow-up (sellChat step ask, action chat). Engine-only:
+     sellerDecision decision, new Sell result (buildResult, archive/store only). The new Sell (api/sellNext.js,
+     sellChat) has no gate at all and is switched off for the public (SELL_NEXT_ON).
+  4. SIGN IN BEFORE A RESULT: only old /sell (the second signed-out search: account_required wall, or upfront).
+     Not Buy, not Tasks results, not Market Check (its oneBox branch returns before the gate).
+  5. SHARED ADDRESSES: per address only (first x-forwarded-for entry), table ip_rate_hits, fail-open. 20 signed-out
+     searches per address per UTC day and 60 per hour for everyone are SHARED by an office NAT or a mobile carrier
+     (CGNAT): normal people will hit them. Market Check's 40/day is per client-sent anonId (resettable).
+  6. COST, every public path: Buy search/rerun/parse/enrich: archive and live_listings only, zero metered calls.
+     Buy chat: a model call every turn, no server limit. Buy detail freshBid: can meter one upstream call, OFF
+     unless LIVE_FRESHNESS=1. Market Check / Buy drawer (oneBox): archive only. New Sell result: archive/store only.
+     OLD /sell sellerDecision: CAN METER the paid source on a cache miss (cache first; guards: daily 33, monthly
+     1000, sell reserve 450, ocd header floor, blind-meter fail-closed, signed-out capacity floor). SPEND RISKS:
+     (a) unauthenticated request flags in sellerDecision skip the gate and can meter: bypassCache (also skips the
+     per-search cap), warm, rerun, poolDiag, backfillCount; only lib/_ocd.js's 2500/day and monthly reserve stop
+     them. (b) api/chat.js is an open model endpoint: no limit, any client-sent system prompt. (c) Buy chat: model
+     per turn, client-held turn cap only. (d) Opening old /sell to unlimited signed-out searches multiplies its
+     cache misses. PROPOSAL (for Sam, nothing done): lock bypassCache/warm/rerun/poolDiag/backfillCount behind the
+     probe key or cron secret (Lane B, sellerDecision); public Sell answers cache/store first with NO metered fetch
+     for signed-out visitors (the new Sell result path is already archive only), metered fetch only signed in and
+     under a lower live ceiling (e.g. a global daily signed-out live cap of 0, signed-in cap within the existing 33);
+     api/chat.js: server-held prompts only plus an invisible per address and per device limit; Buy chat: a server
+     side per address and per device turn ceiling with the calm message; replace per-address-only limits with
+     address plus device (first-party id) ceilings sized for shared addresses.
