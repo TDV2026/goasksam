@@ -1151,6 +1151,33 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "deskexample", ms: Date.now() - t0, ok: !!d, data: d });
   }
 
+  // task=bizleadtest: submits one clearly-marked test row through the SAME path a real visitor uses
+  // (api/businessLead.js, not a second insert implementation) so the notification fix can be proven
+  // end to end, then reports the row's saved notify_ok/notify_error (if the migration has run) so the
+  // provider's real outcome is visible without a second Resend call. ?delete=1 instead deletes every
+  // row whose name starts with "QA TEST ROW" (this task's own marker) - used for cleanup, never a
+  // bare/unfiltered delete.
+  if (task === "bizleadtest") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    if (q.delete === "1") {
+      const rows = await supabaseSelect(env, `business_leads?name=like.${encodeURIComponent("QA TEST ROW*")}&select=id,name,email,created_at`).catch(() => null);
+      if (!rows || !rows.length) return res.status(200).json({ task: "bizleadtest", deleted: 0, rows: [] });
+      const del = await supabaseDelete(env, `business_leads?id=in.(${rows.map(r => r.id).join(",")})`);
+      return res.status(200).json({ task: "bizleadtest", deleted: del.ok ? rows.length : 0, error: del.error || null, rows });
+    }
+    const { supabaseInsert: insertRow, supabasePatch } = await import("../lib/_supabase.js");
+    const { sendTaskEmail } = await import("../lib/_email.js");
+    const stamp = new Date().toISOString();
+    const row = { name: `QA TEST ROW - delete me (${stamp})`, company: "QA Test (Lane A verification)", email: "qa-test-delete-me@example.com", message: "Ops probe test row, safe to delete." };
+    const ins = await insertRow("business_leads", [row], env.supabaseUrl, env.supabaseKey, "return=representation", "");
+    if (ins.error) return res.status(500).json({ task: "bizleadtest", error: ins.error });
+    const leadId = ins.rows && ins.rows[0] && ins.rows[0].id;
+    const to = String(process.env.LEADS_NOTIFY_EMAIL || "").trim() || "feedback@goasksam.com";
+    const sent = await sendTaskEmail({ to, subject: "New Sam Desk request", text: `Name: ${row.name}\nCompany: ${row.company}\nWork email: ${row.email}\nOne line: ${row.message}\n\nLead id: ${leadId} (ops probe, task=bizleadtest)` }).catch(e => ({ ok: false, error: e && e.message }));
+    if (leadId) await supabasePatch(env, `business_leads?id=eq.${leadId}`, { notify_ok: !!sent.ok, notify_error: sent.ok ? null : String(sent.error || sent.reason || "unknown").slice(0, 300), notified_at: new Date().toISOString() }).catch(() => {});
+    return res.status(200).json({ task: "bizleadtest", leadId, to, sent });
+  }
+
   // task=resolvecheck: READ-ONLY, zero writes, zero OCD. Runs lib/vehicle.js resolveVehicle() over a
   // fixed list (the crossProductCheck 20 specs + the hyphen/joined-code "Buy regression strings"
   // already documented in docs/lane-notes.md - XJ-S, GT-350, 240-Z, Z-28, ZR-1, CJ-5, MR-2) or

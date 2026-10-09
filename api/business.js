@@ -138,7 +138,7 @@ a{color:var(--green)}a:hover{color:var(--green-dk)}
 .biz-lead textarea{resize:vertical;min-height:70px}
 .biz-lead-msg{margin:0;font:400 14px/1.4 var(--sans);color:var(--sec)}
 .biz-lead-msg[hidden]{display:none}
-.biz-lead-msg.ok{color:var(--green)}
+.biz-lead-msg.ok{color:var(--green);font:500 17px/1.5 var(--serif);padding:8px 0}
 
 @media (max-width:860px){
   .biz-areas{grid-template-columns:1fr}
@@ -239,13 +239,19 @@ async function page(req) {
       e.preventDefault();
       var msg=document.getElementById("biz-lead-msg"), btn=document.getElementById("biz-lead-submit");
       var name=document.getElementById("biz-name").value.trim(), company=document.getElementById("biz-company").value.trim(), email=document.getElementById("biz-email").value.trim(), message=document.getElementById("biz-message").value.trim();
+      if(btn.disabled) return;
       btn.disabled=true; btn.textContent="Sending...";
       fetch("/api/businessLead",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name,company:company,email:email,message:message})})
         .then(function(r){return r.json();}).then(function(j){
-          btn.disabled=false; btn.textContent="Request a walkthrough"; msg.hidden=false;
-          if(j&&j.ok){ msg.className="biz-lead-msg ok"; msg.textContent="Sent. Sam will be in touch."; f.reset(); }
-          else { msg.className="biz-lead-msg"; msg.textContent=(j&&j.error)||"That did not send. Try again in a moment."; }
-        }).catch(function(){ btn.disabled=false; btn.textContent="Request a walkthrough"; msg.hidden=false; msg.className="biz-lead-msg"; msg.textContent="That did not send. Try again in a moment."; });
+          msg.hidden=false;
+          if(j&&j.ok){
+            Array.prototype.forEach.call(f.children, function(el){ if(el!==msg) el.hidden=true; });
+            msg.className="biz-lead-msg ok"; msg.textContent="Thanks, your request is in. We’ll be in touch by email.";
+          } else {
+            btn.disabled=false; btn.textContent="Request a walkthrough";
+            msg.className="biz-lead-msg"; msg.textContent="That did not go through. Please try again in a moment.";
+          }
+        }).catch(function(){ btn.disabled=false; btn.textContent="Request a walkthrough"; msg.hidden=false; msg.className="biz-lead-msg"; msg.textContent="That did not go through. Please try again in a moment."; });
     });
     // Section 2's demo box: Sam Desk itself (/desk) is crew-only, never public, so pressing go
     // scrolls to the walkthrough request rather than running a live query. Placeholder rotates
