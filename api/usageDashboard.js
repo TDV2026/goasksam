@@ -467,6 +467,58 @@ async function handleOps(req, res) {
     });
   }
 
+  // task=ocdplan (Oct 2026, Lane B Job 5): 14-day metered-call breakdown by caller, READ-ONLY, ZERO
+  // OCD spend (reads app_usage_events only). The SINGLE SOURCE OF TRUTH for true metered spend is the
+  // event_type="ocd_call" row lib/_ocd.js writes on every real request (see its own comment: "EVERY
+  // metered call writes one ocd_call row... the DB SUM of ocd_call rows equals the true request count
+  // for EVERY caller"). Per-job summary events (job_warm, seller_decision, partner_fetch, ...) record
+  // the SAME physical spend a second time under a different event_type - summing those ALONGSIDE
+  // ocd_call double-counts (task=status's own comment names this: "that conflation read ~4.6x OCD's
+  // real usage"), so this task deliberately reads ocd_call ALONE, never the summary events, and never
+  // sums across event_types. Attribution is by metadata.job, which only 5 callers currently set via
+  // configureOcdUsage (lib/_ocd.js): ingest_delta, ingest_backfill, ingest_attempts, pull_live,
+  // pull_live_bid. Every other caller (warm, the partner-premium recompute, live Market Check/Buy/
+  // Sell/Tasks engine fetches, and this dashboard's own ops probes) never calls configureOcdUsage, so
+  // their ocd_call rows all land under the untagged default job "ocd" - genuinely indistinguishable
+  // from each other without a code change (reported honestly below as one combined bucket, not split
+  // by guesswork). The nightly Desk cube (scripts/deskCube.js) reads sales_archive only - zero OCD
+  // calls, never appears here at all.
+  if (task === "ocdplan") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const days = Math.min(60, Math.max(1, Number(req.query?.days) || 14));
+    const since = new Date(Date.now() - days * 864e5);
+    const sinceIso = since.toISOString();
+    const rows = (await supabaseSelectAll(env, `app_usage_events?select=created_at,oldcarsdata_metered_requests,metadata&event_type=eq.ocd_call&created_at=gte.${encodeURIComponent(sinceIso)}&order=created_at.asc`)) || [];
+    const TAGGED = { ingest_delta: "nightly ingest (delta)", ingest_backfill: "nightly ingest (backfill/range)", ingest_attempts: "nightly attempts (auction_attempts)", pull_live: "live-auction poll (pullLive)", pull_live_bid: "live-auction poll (buySearch bid)" };
+    const byDay = new Map();   // day -> { [label]: n }
+    const totalsByJob = new Map();
+    let grandTotal = 0;
+    for (const r of rows) {
+      const n = Number(r.oldcarsdata_metered_requests) || 0;
+      if (n <= 0) continue;
+      const day = String(r.created_at || "").slice(0, 10);
+      const job = (r.metadata && r.metadata.job) ? String(r.metadata.job) : "ocd";
+      const label = TAGGED[job] || "untagged (warm + premium recompute + live Market Check/Buy/Sell/Tasks fetches + ops probes - not separately taggable today)";
+      if (!byDay.has(day)) byDay.set(day, {});
+      const d = byDay.get(day);
+      d[label] = (d[label] || 0) + n;
+      totalsByJob.set(label, (totalsByJob.get(label) || 0) + n);
+      grandTotal += n;
+    }
+    const dayRows = [...byDay.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([day, byLabel]) => ({ day, byLabel, dayTotal: Object.values(byLabel).reduce((s, v) => s + v, 0) }));
+    const monthlyBudget = Number(process.env.OCD_MONTHLY_BUDGET || 1000);
+    const dailyBreakerDefault = 900;   // api/usageDashboard.js task=status's own dailyBudget fallback
+    return res.status(200).json({
+      task: "ocdplan", windowDays: days, since: sinceIso,
+      grandTotal, avgPerDay: dayRows.length ? Math.round(grandTotal / dayRows.length) : 0,
+      totalsByCaller: Object.fromEntries([...totalsByJob.entries()].sort((a, b) => b[1] - a[1])),
+      byDay: dayRows,
+      cube: { metered: 0, note: "scripts/deskCube.js reads sales_archive only; zero OldCarsData calls, confirmed by source read, not by query." },
+      caches: { note: "market_fetch_cache / spec_market_cache HITS cost 0; a MISS's resulting fetch is already counted above under whichever caller triggered it (seller_decision for Sell, 'untagged' for Market Check/Buy/Tasks). Caches are a savings line, not a separate caller." },
+      budgets: { monthlyBudgetEnv: Number.isFinite(Number(process.env.OCD_MONTHLY_BUDGET)) ? Number(process.env.OCD_MONTHLY_BUDGET) : null, monthlyBudgetFallback: monthlyBudget, dailyBreakerEnv: Number.isFinite(Number(process.env.OCD_DAILY_REQUEST_BUDGET)) ? Number(process.env.OCD_DAILY_REQUEST_BUDGET) : null, dailyBreakerFallbackHere: dailyBreakerDefault, dailyBreakerFallbackInSellerDecision: 33, note: "api/usageDashboard.js task=status and api/sellerDecision.js fall back to DIFFERENT defaults (900 vs 33) for the SAME env var name when it is unset in Vercel; only matters if OCD_DAILY_REQUEST_BUDGET is ever unset." }
+    });
+  }
+
   // task=modscan: READ-ONLY. Pull a pool (make + up to two title fragments, optional year floor)
   // and return each row's listing_title, price, date, source, listing url and the RAW
   // raw_record->>modifications field. Used to audit what Sam's Take counts as "modified" against the
