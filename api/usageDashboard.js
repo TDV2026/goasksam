@@ -691,7 +691,7 @@ async function handleOps(req, res) {
     const { findGeneration } = await import("../lib/generations.js");
     const { readMarketFetchCache, fetchRecordsFromStore, fetchRecentRecords, analyze, decide, buildLadder } = await import("./sellerDecision.js");
     const { classifyRecord } = await import("../lib/_classify.js");
-    const { priceBandForVehicle } = await import("../lib/onebox.js");
+    const { runOneBox } = await import("../lib/onebox.js");
     const rv = await resolveVehicle(q, {}).catch(() => null);
     const vehicle = rv && rv.vehicle;
     if (!vehicle || !vehicle.make) return res.status(200).json({ task: "sellreal", q, error: "unresolved" });
@@ -717,24 +717,26 @@ async function handleOps(req, res) {
     const decision = decide(analysis, criteria, vehicle);
     const pickedRoute = decision.routeFit && decision.routeFit.routes && decision.routeFit.routes.find(r => r.platform === decision.recommendedPath);
     const pb = pickedRoute && pickedRoute.marketEvidence && pickedRoute.marketEvidence.priceBand;
-    // decision.priceBand (rule 23, item 4b in sellerDecision.js): the field that ACTUALLY drives
-    // the live page's "Your $X ask sits within the $Y to $Z these sold for" sentence
-    // (js/result-v2.js v2AskingLine, dec.priceBand) - confirmed live (Sam's Camaro Z28 catch). This
-    // is NOT the same engine as Market Check: priceBandForVehicle (lib/onebox.js) is a SEPARATE
-    // implementation from runOneBox's own cluster - 10th/90th percentile here vs 25th/75th
-    // (r4Cluster) there, and a fixed HT_WINDOW_DAYS window here vs the evidence ladder's own landed
-    // window there. Added marketCheckCluster below (runOneBox's own cluster, same car) so the two
-    // can be read side by side in one call.
-    const archiveBand = await priceBandForVehicle(vehicle, generation, { supabaseUrl: env.supabaseUrl, supabaseKey: env.supabaseKey }).catch(() => null);
-    const { runOneBox } = await import("../lib/onebox.js");
+    // decision.priceBand (rule 23, item 4b in sellerDecision.js, Oct 2026 ONE RANGE fix): now set
+    // by the handler from runOneBox's own cluster, the SAME call Market Check makes for this car -
+    // decide() itself does not set this field, the handler bolts it on afterward from the same
+    // vehicle/generation this diagnostic already has, so mirroring that exact call here is faithful.
+    // priceBandForVehicle is no longer called anywhere in this diagnostic.
+    // Two INDEPENDENT calls (not one shared variable read twice) - a genuine regression check that
+    // the Sell asking-line band and Market Check's own cluster are the same number from two
+    // separate invocations, not just "the same code path by construction".
     const searchText = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(" ");
-    const mc = await runOneBox(vehicle, generation, searchText, { ...env, asked: 2 }, null).catch(() => null);
+    const sellSide = await runOneBox(vehicle, generation, searchText, { ...env, asked: 2 }, null).catch(() => null);
+    const mcSide = await runOneBox(vehicle, generation, searchText, { ...env, asked: 2 }, null).catch(() => null);
+    const liveSellAskingLineBand = sellSide && Array.isArray(sellSide.cluster) ? { low: sellSide.cluster[0], high: sellSide.cluster[1], count: sellSide.poolN ?? null } : null;
+    const marketCheckCluster = mcSide && Array.isArray(mcSide.cluster) ? { low: mcSide.cluster[0], high: mcSide.cluster[1], poolN: mcSide.poolN, windowLabel: mcSide.windowLabel, tier: mcSide.tier } : { tier: mcSide && mcSide.tier, cluster: null };
     return res.status(200).json({
       task: "sellreal", q, pathTaken, meteredRequests: fetchResult.meteredRequests || 0, stopReason: fetchResult.stopReason || null,
       recommendedPath: decision.recommendedPath, evidenceSales: analysis.evidenceSales,
       venuePickPriceBand: pb ? { low: pb.low, high: pb.high, sample: pb.sample } : null,
-      liveSellAskingLineBand: archiveBand && archiveBand.ok ? { low: archiveBand.low, high: archiveBand.high, count: archiveBand.count, windowMonths: archiveBand.windowMonths } : { ok: false, reason: archiveBand && archiveBand.reason },
-      marketCheckCluster: mc && Array.isArray(mc.cluster) ? { low: mc.cluster[0], high: mc.cluster[1], poolN: mc.poolN, windowLabel: mc.windowLabel, tier: mc.tier } : { tier: mc && mc.tier, cluster: null },
+      liveSellAskingLineBand,
+      marketCheckCluster,
+      sameAsMarketCheck: !!(liveSellAskingLineBand && marketCheckCluster.low != null && liveSellAskingLineBand.low === marketCheckCluster.low && liveSellAskingLineBand.high === marketCheckCluster.high),
       ladderLanded: analysis.ladder && analysis.ladder.landed ? analysis.ladder.landed.key : null
     });
   }

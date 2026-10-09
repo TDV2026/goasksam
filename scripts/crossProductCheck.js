@@ -151,7 +151,16 @@ async function sellLane(vehicle, generation, env) {
   const span = [round(Math.min(...prices)), round(Math.max(...prices))];
   const hasCluster = Array.isArray(cluster);
   const low = hasCluster ? round(cluster[0]) : null, high = hasCluster ? round(cluster[1]) : null;
-  return { ok: true, label, low, high, span, count: priced.length, latest: (sorted[0]?.auction_end_date || "").slice(0, 10) || null, recent, referenceFigure: referenceFigure || null };
+  // Sell asking-line band (Oct 2026, ONE RANGE decision - item 4): api/sellerDecision.js's
+  // decision.priceBand is now set from a FRESH, independent runOneBox call (not fetchOnlinePool's
+  // own cluster above), mirrored here exactly so a future second implementation of "the asking-
+  // line band" (a reintroduced priceBandForVehicle, or any other separately-scoped archive read)
+  // is caught by this check even if it never touches fetchOnlinePool at all.
+  const askingSearchText = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(" ");
+  const askingResult = await runOneBox(vehicle, generation, askingSearchText, { ...env, asked: 2 }, null).catch(() => null);
+  const askingLineLow = askingResult && Array.isArray(askingResult.cluster) ? round(askingResult.cluster[0]) : null;
+  const askingLineHigh = askingResult && Array.isArray(askingResult.cluster) ? round(askingResult.cluster[1]) : null;
+  return { ok: true, label, low, high, span, count: priced.length, latest: (sorted[0]?.auction_end_date || "").slice(0, 10) || null, recent, referenceFigure: referenceFigure || null, askingLineLow, askingLineHigh };
 }
 
 // ---- comparison ----
@@ -283,7 +292,21 @@ export async function checkOneSpec(q, env) {
     sell: sell.ok ? sell[fld] : null,
     tasks: tasks.ok ? tasks[fld] : null
   }));
-  row.anyMismatch = row.compare.some(c => c.status === "MISMATCH");
+  // Sell asking-line band vs Market Check's own cluster (Oct 2026, ONE RANGE decision, item 4) -
+  // a DEDICATED cross-field check (sell.askingLineLow/High against marketCheck.low/high), not the
+  // same-field-name dispatcher above, because the asking line is a SEPARATE runOneBox call from
+  // either lane's own low/high - if someone ever reintroduces a second archive-reading
+  // implementation for it, this is what catches it even if fetchOnlinePool's own cluster still
+  // agrees. "fewer than 2 lanes answered" when either side has no band (both honestly thin).
+  if (sell.ok && marketCheck.ok) {
+    const sLow = sell.askingLineLow, sHigh = sell.askingLineHigh, mLow = marketCheck.low, mHigh = marketCheck.high;
+    const present = [sLow, sHigh, mLow, mHigh].every(v => v != null);
+    row.askingLineCompare = present
+      ? { status: (sLow === mLow && sHigh === mHigh) ? "MATCH" : "MISMATCH", detail: `sell=${sLow}-${sHigh} marketCheck=${mLow}-${mHigh}` }
+      : { status: "N/A", detail: `fewer than 2 lanes answered (sell=${sLow}-${sHigh} marketCheck=${mLow}-${mHigh})` };
+    if (row.askingLineCompare.status === "MISMATCH") row.anyMismatch = true;
+  }
+  row.anyMismatch = row.compare.some(c => c.status === "MISMATCH") || row.anyMismatch;
   row.lanesOk = { marketCheck: marketCheck.ok, buy: buy.ok, sell: sell.ok, tasks: tasks.ok };
   row.reasons = diagnoseReasons(row, { vehicle, marketCheck, buy, sell, tasks });
 

@@ -4136,13 +4136,21 @@ export default async function handler(req, res) {
         }
       }
     } catch (e) { /* reserve insights are additive; never block the decision */ }
-    // Comp price band (item 4b): the real range cars like this sold for, so the result can state the
-    // asking-price fact ("your $122,000 ask is above every sale shown") wherever the v2 card shows a
-    // premium but no absolute prices. Archive-only, zero OldCarsData.
+    // Comp price band (item 4b, Oct 2026 - ONE RANGE decision: pointed at runOneBox's own cluster,
+    // not the separate priceBandForVehicle implementation). The result can state the asking-price
+    // fact ("your $122,000 ask is above every sale shown") wherever the v2 card shows a premium but
+    // no absolute prices - but that fact must be THE SAME range Market Check shows for this exact
+    // car, from the SAME call (same resolver output, fences, gates, window), never a second,
+    // separately-scoped archive read. No cluster (thin) -> no priceBand at all, never a fabricated
+    // or widened number - js/result-v2.js's v2AskingLine already goes quiet on a missing band.
+    // Archive-only, zero OldCarsData (runOneBox never calls OCD).
     try {
       if (vehicle && vehicle.make && vehicle.model) {
-        const pb = await priceBandForVehicle(vehicle, generation, { supabaseUrl, supabaseKey });
-        if (pb && pb.ok) decision.priceBand = { low: pb.low, high: pb.high, count: pb.count };
+        const pbSearchText = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(" ");
+        const pbResult = await runOneBox(vehicle, generation, pbSearchText, { supabaseUrl, supabaseKey, asked: 2 }, null).catch(() => null);
+        if (pbResult && Array.isArray(pbResult.cluster)) {
+          decision.priceBand = { low: pbResult.cluster[0], high: pbResult.cluster[1], count: pbResult.poolN ?? null };
+        }
       }
     } catch (e) { /* additive */ }
 
