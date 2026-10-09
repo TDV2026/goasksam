@@ -1337,6 +1337,133 @@ when the work has landed.
   3. The rail does not redraw after arming on the page; call gasWatchRail() after a successful arm.
   API side: nothing to change; the "first" flag is correct (proven on Buy with two new accounts). The Market
   Check first-watch screenshot waits on Supabase's per-connection sign-up limit (new accounts refused for now).
+
+- 2026-10-09 (Lane B, Step 1 FACTS REPORT, open-search policy, Sam's directive): tracking/rate-limit state,
+  read-only, nothing changed. For Lane C's Buy/Sell report and Lane A's Market Check report.
+
+  **Rate limits / quota today, by product:**
+  - Sell (api/sellerDecision.js `computeSearchGate`, the ONLY caller - line 3763, reached only on the
+    non-oneBox branch): this is where "60 per hour per address" actually lives, but it is bundled with
+    FOUR separate things in one function, two of which Sam wants removed and two of which must survive:
+    (1) `ip_cap_all_hour` (app_config, default 60/hr per IP, `clientIp(req)`) - general abuse cap, every
+    non-crew search. KEEP (item 5's "invisible per-address/device limit").
+    (2) `ip_cap_anon_day` (app_config, default 20/day per IP, anon searches only) - KEEP, same reason.
+    (3) THE ACCOUNT WALL Sam wants gone: `gas_free_used` cookie -> one anonymous search ever, then
+    `account_required`; signed-in `reserve_search` RPC -> monthly/daily tiers (free=1/day, tdv=3/day via
+    Beehiiv subscription check); `guest30` tier (30 lifetime via a `?guest=CODE` link, separate code path,
+    see [[guest30-tier]]); `gas_tester`/`gas_once` cohorts (pre-launch invite tiers, lib/_tester.js +
+    api/crew.js, 10/day and 3-total respectively) - these three sit OUTSIDE the free/account wall entirely
+    (own counters) and are pre-launch-specific; worth a product call on whether they still make sense once
+    search is unconditionally open, but they are not part of "the first one's on me" copy.
+    EXACT COPY LOCATIONS for "Your first one's on me...": `js/auth.js` lines 482, 505, 514, 525
+    (`gateWalledReack`/`gateAppendFirstFreeLine`/`gateRenderStatus`), plus the TDV-tier variants at 480/523/
+    627/629/633 and the guest-wall copy at 499. `js/result.js` lines 172-177 read `decisionData.daily` /
+    `decisionData.firstFree` / `decisionData.resultId` off the SAME response `computeSearchGate` + the
+    handler produce (api/sellerDecision.js ~4316-4424, `responsePayload.resultId`/`firstFree`).
+    (4) THE SPEND FLOOR THAT MUST SURVIVE, already built, item 6's exact ask ("a cache-first rule plus a
+    lower live ceiling"): lines 2961-2972, UNCONDITIONAL on tier/account - before ANY anonymous search
+    proceeds, it checks `readMarketFetchCache` first (zero-cost path); only on a cache MISS does it check
+    whether today's OCD spend is already within `ocd_auth_reserved_requests` (default 8) of
+    `OCD_DAILY_REQUEST_BUDGET`, and if so returns `{status:"capacity"}` rather than let an anonymous
+    request burn the budget signed-in users need. **This is a different mechanism from the account wall
+    and lives in the same function - removing "the free-first/daily-quota wall" must NOT touch this block.**
+    Signed-in requests go through `reserve_search` instead (ties to the account, not this floor).
+  - Buy (api/buySearch.js, lib/live/search.js): **no rate limit of any kind today.** Confirmed by grep -
+    `computeSearchGate`/`ipHitsSince`/`clientIp` are never imported or called from buySearch.js or buy.js.
+    Sam's belief ("I believe 60 per hour per address") is actually Sell's `ip_cap_all_hour` - Buy has
+    nothing today, not even that. Hero copy: `lib/live/buyLanding.js:112`, exact string `"Free · No account
+    needed"` (+ ` · Updated {date}` when present) - accurate today (zero gates of any kind), but would need
+    a real per-address/device cap added before Lane C can honestly call it "protected" per item 5's spirit
+    if volume ever becomes a concern. Not urgent today (Buy's search path is 100% archive-only, see below).
+  - Market Check (api/sellerDecision.js, `req.body.oneBox` branch, returns BEFORE reaching
+    `computeSearchGate` at line 3763 - confirmed by tracing every early-return in the oneBox block,
+    lines 3372-3604): **shares NO quota or counter with Sell.** Has its OWN lightweight invisible cap
+    already, which already matches item 5's spec almost exactly: `onebox_daily_cap` (app_config, default
+    40/day) counted server-side from `funnel_events` where `event=onebox_search`, keyed by the CLIENT-sent
+    `anonId`/`obAnonId()` (localStorage `gas_ob_anon`, see below - NOT a cookie, not IP-based). On the cap:
+    a plain, calm line, no sign-in demand (`"That's a lot of lookups for one day. Come back tomorrow..."`,
+    line 3523) - exactly item 5's requirement, already shipped. A refine tap (mileage/gearbox/etc.) is
+    exempt from the count (continuation of the same lookup, not a new one). Lane A: this already satisfies
+    most of item 5 for Market Check; the only gap is it's per-localStorage-id not per-IP/device, so a
+    cleared localStorage resets it (low-stakes since Market Check is archive-only - see cost section).
+  - Tasks: not yet traced this round (ran out of scope) - Lane A/C, flag if Tasks has its own gate; I did
+    not find one in this pass.
+
+  **Tracking/analytics infrastructure that exists today (fragmented, no shared visitor id):**
+  THREE separate, non-communicating anonymous-id schemes, none of them cookies (all `localStorage`, so
+  none are readable server-side before JS runs, none survive a cleared browser, none work across
+  subdomains/devices), and NONE stitched to the account on sign-in anywhere in the codebase (grepped
+  "stitch"/account-linking patterns around watch_requests/saved_results/journeys - found none):
+    1. `gas_anon` (js/auth.js:324-326, `gasAnonId()`) - Sell's id, sent as `anonSessionId` to
+       `computeSearchGate`'s funnel logs and the decision save.
+    2. `gas_ob_anon` (js/onebox.js:1680-1683, `obAnonId()`) - Market Check's id. Confirmed Buy's own
+       inline client script (api/buy.js CLIENT string) reuses this SAME key name/generator by coincidence
+       (copy-pasted, not shared code) - so Buy and Market Check happen to already collide into the same
+       localStorage slot when both are visited in one browser, but this is accidental, not designed.
+    3. `gas_jid:<make|model|year>` (js/auth.js `gasJourneyId`) - a DIFFERENT id per vehicle the visitor is
+       trying to sell (Sell's own "business journey" concept, `lib/_journey.js`/`journeys` table,
+       docs/supabase-journeys-schema.sql), deliberately NOT a single visitor id - this is "one id per car
+       someone's selling," which should stay separate from the new cross-product visitor id (different
+       purpose: tracking a sale attempt, not a person).
+  Three storage tables, also non-unified:
+    - `funnel_events` (docs/supabase-phase3-2c.sql:46-61): `event, anon_session_id, user_id, dedup_key,
+      created_at` - closest thing to a canonical event log today, but only 8 event names are ever logged
+      to it (`tester_daily_limit_hit, once_limit_hit, guest_limit_hit, daily_limit_hit, limit_hit,
+      second_search_attempt, onebox_search, rec_shown`, all from sellerDecision.js) plus whatever
+      api/funnel.js's `ALLOWED` set adds client-side (`homepage_view, wizard_start, wizard_complete,
+      signup_shown, non_us_attempt, out_of_scope`, the `onebox_*` interaction events). No `props`/metadata
+      JSON column - can't carry a UTM, a tool name, or anything beyond the fixed row shape.
+    - `app_usage_events` (CLAUDE.md: cost/usage logging) - has a `metadata` JSON column and is used for
+      cost accounting (OCD/Anthropic metering) plus one ad-hoc `entry_diag` client-error path
+      (api/funnel.js) - not a product-analytics table by design, has no visitor id column.
+    - `journeys`/`journey_events` (docs/supabase-journeys-schema.sql) - Sell-only, per-vehicle, no UTM/
+      referrer column on the schema itself.
+  First-touch/last-touch attribution DOES already exist, but narrowly: `js/auth.js` `gasCaptureTouch()`/
+  `gasClassifySource()` (lines 352-384) read `utm_source/medium/campaign` + `document.referrer` on every
+  page load into `localStorage.gas_first_touch`/`gas_last_touch`, classified into Direct/Organic/Social/
+  Referral/named-source/"The Daily Vroom". It is loaded via js/auth.js, which per Lane A's authBar work
+  now runs on Market Check/Sell-landing/Tasks/homepage too - so the CAPTURE already fires broadly - but
+  it is only ever READ/ATTACHED by `gasJourneyEvent` (Sell's journey beacon), so Market Check/Buy/Tasks
+  visits capture it into localStorage and then do nothing with it. This is directly reusable for the new
+  visitor id's first-touch requirement (same classification logic, same localStorage keys already warm on
+  most pages) rather than building a second one.
+  GA4 (lib/analytics.js/api/gaConsent.js, this session's earlier round): EEA/UK/CH country-gated consent
+  check already exists (`GA_BLOCKED_COUNTRIES`) - directly reusable as the geography test for whether the
+  new first-party visitor id needs a consent banner (see flag below), though GA's gate is about a
+  THIRD-PARTY id (Google's), a stricter case than a first-party pseudonymous id with no ad use - still the
+  right starting precedent to apply the same jurisdictions to.
+  Admin Stage 1 (lib/events.js, docs/admin-analytics.md, admin_users/admin_daily/admin_audit tables):
+  confirmed via grep - **none of this exists yet.** It is still only a plan (CLAUDE.md "Later (parked)" /
+  this file's own prior round notes referencing it) - this round is the first real step toward it.
+
+  **Cost/spend facts (item 6), traced end to end per product:**
+  - Buy search (lib/live/search.js via api/buySearch.js): **100% archive-only (sales_archive via
+    runOneBox/archiveResolveToken), zero OldCarsData spend**, confirmed by import graph (search.js never
+    imports lib/_ocd.js). The ONE place Buy calls OCD at all: `freshBid()` (api/buySearch.js ~456-470),
+    a single on-demand current-bid refresh when a listing detail view opens - gated behind `LIVE_FRESHNESS`
+    env flag (off unless set), 5-minute cache per listing, and an `underReserve(env)` check that refuses
+    to spend once the monthly OCD reserve is tight. This is already exactly the shape item 6 asks for
+    (bounded, cached, reserve-aware) and is NOT tied to search volume at all (one listing view = at most
+    one call, ever 5 min) - no change needed here.
+  - Market Check (lib/onebox.js `runOneBox`): **100% archive-only, zero OldCarsData spend**, per the
+    code's own comment at api/sellerDecision.js:3503 ("One Box is ARCHIVE-ONLY... must NOT consume the
+    seller's /sell daily reserve"). No metered call exists anywhere on this path. Opening Market Check to
+    unlimited signed-out search costs nothing beyond Supabase read load (already handled by the existing
+    `onebox_daily_cap` soft ceiling above).
+  - Sell (api/sellerDecision.js, non-oneBox branch): **the one real spend path.** `readMarketFetchCache`
+    checked first (zero cost on a hit); on a MISS, `fetchRecentRecords` runs the live multi-pass OldCarsData
+    fetch (metered - confirmed this session at 2-9 requests per uncached car during the ONE RANGE
+    verification run). This is exactly why the lines-2961-2972 floor above exists and must be preserved
+    when the account-wall copy is removed. PROPOSAL (item 6): keep that floor exactly as-is, AND fold the
+    two general IP caps (`ip_cap_all_hour`/`ip_cap_anon_day`) forward unchanged - removing the "one free
+    search" wall does not require touching either protection; they are orthogonal to the account tier and
+    already enforce calmly (no sign-in demand, just the capacity-floor path's existing degrade). No new
+    limit is needed beyond what's already there; the risk is Lane C deleting the WRONG lines while removing
+    the right ones, since all four mechanisms share one function (`computeSearchGate`) - flagging precisely
+    which lines are which above so that doesn't happen.
+
+  Lane B is not touching api/sellerDecision.js, api/buySearch.js, or js/auth.js's quota code this round
+  (Lane C/A's files) - proceeding to Lane B's own Step 2 (visitor id, lib/events.js, admin views).
 - 2026-10-09 (Lane B): ONE RANGE decision (decision.priceBand), commit dfb1c24, done per Sam's 5-item spec.
   1. `api/sellerDecision.js`: `decision.priceBand` is now set by a fresh `runOneBox(vehicle, generation,
      searchText, {supabaseUrl, supabaseKey, asked:2}, null)` call right after `decide()` returns, reading
