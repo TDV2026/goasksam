@@ -500,3 +500,27 @@ when the work has landed.
   Vercel, redeploy. Nothing else to undo - the flag is read fresh on every request, there is no
   cached state, and analyze()/decide() on the capped-fetch path is untouched and byte-identical to
   before this round.
+- 2026-10-08 (Lane B, FOR SAM, nightly step to paste): the cross-product engine check
+  (scripts/crossProductCheck.js, ops task `enginecheck`) is read-only and archive-only (zero OldCarsData
+  spend) - safe to run nightly. Per Sam's round ("after the search rules check", continue-on-error true),
+  paste this step into .github/workflows/nightly.yml's `ingest` job, directly after the existing
+  "Search rules check (public pages)" step (ends at the `continue-on-error: true` line just above "Fail
+  the job if the VIN index step failed"). It reuses that job's existing SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY
+  env (already set at the job level, lines 41-42) - no new secret needed. continue-on-error: true, same as
+  the search rules check it follows: a cross-product drift is worth seeing every morning, never worth
+  reddening the whole nightly job over (that stays a human-assigned fix, not a blocker).
+
+  ```yaml
+      - name: Cross-product engine check (Buy/Sell/Market Check/Tasks agree)
+        id: crossproductcheck
+        continue-on-error: true
+        run: node scripts/crossProductCheck.js
+  ```
+
+  Exit code: the script exits 1 when any of the 20 built-in specs has a field mismatch (see the
+  Oct 2026 report below for the current baseline - 16/20 mismatch, all but one explained and none a
+  pool-membership bug). continue-on-error swallows that exit so the job stays green; the step's own
+  log (visible in the Actions run) carries the full table either way. No paired "Fail the job if..."
+  step was added (same choice as the search rules check it sits after) since this is a nightly trend
+  to watch, not a correctness gate yet - add one later if a mismatch pattern is ever promoted to "this
+  must never regress."
