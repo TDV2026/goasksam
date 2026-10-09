@@ -2541,3 +2541,68 @@ when the work has landed.
     EVENTS.SEARCH tool "buy" with props.key make|model once per new car (state.searchKey dedups refinements).
   * COPY: tester and lost-session lines in js/auth.js are third person now.
   * PROBE_KEY rotated: every scratch file holding the old value was deleted (none in the repo).
+- 2026-10-09 (Lane A): Sam Desk follow-ups (commits fbef0d1 + whatever this round's items land as).
+
+  1. WARM SECTION 4 - BLOCKED, NOT DONE. Tried: .env.local's PROBE_KEY line (read via `node --env-file`, the
+     value never printed or logged) against `https://goasksam.com/api/usageDashboard?view=ops&task=deskexample`
+     with the x-ops-key HEADER (never a query param) - got 401. My local .env.local copy is stale (it is not
+     updated by me, per the standing "Vercel secrets not pullable" limitation - Sam manages that file's
+     content) and plainly does not match the just-rotated Vercel value. Checked OPS_KEY as a fallback env var
+     name too - not present either. I do not have a way to obtain the new value through any channel available
+     to me, and will not guess, brute force, or ask for it in chat. Section 4 is therefore STILL not warmed -
+     confirmed still absent live just now. FOR SAM: either run `GET /api/usageDashboard?view=ops&
+     task=deskexample` yourself with the new key (header x-ops-key, never the URL), or update whatever secure
+     channel normally refreshes this environment's credential store, and I will run it next round. Tonight's
+     nightly run (once the workflow file is updated, see item 2) will also warm it either way.
+  2. NIGHTLY STEP MOVED. docs/nightly-workflow.yml is now the one copy (ops/nightly-workflow.yml deleted;
+     CLAUDE.md's reference and one code comment in api/usageDashboard.js updated to point at the new path).
+     Added "Build Sam Desk worked example" (id: deskexample, continue-on-error: true, after the Sell landing
+     example step) + its own "Fail the job if..." check (if: steps.deskexample.outcome == 'failure'), same
+     pattern as every sibling example-build step in that file. No new job-level env needed - the caches job
+     already carries SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY, the only two scripts/buildDeskExample.js reads.
+     EXACT LINES FOR SAM TO PASTE into .github/workflows/nightly.yml (web editor), in the `caches:` job,
+     immediately after the existing "Build Sell landing example" step and before "Build spec_pages":
+     ```
+           # Builds the Sam Desk (/business) worked example once a night
+           - name: Build Sam Desk worked example (three Porsche 911 generations)
+             id: deskexample
+             continue-on-error: true
+             run: node scripts/buildDeskExample.js
+     ```
+     And, immediately after the existing "Fail the job if the Sell example step failed" step and before
+     "Fail the job if the VIN rollout cache step failed":
+     ```
+           - name: Fail the job if the Sam Desk example step failed
+             if: steps.deskexample.outcome == 'failure'
+             run: |
+               echo "::error::Sam Desk worked example build failed (see the Build Sam Desk worked example step above). Later steps still ran, but the job must end red. The /business page still serves correctly with its worked example section hidden meanwhile. This is a cache freshness regression, not a correctness outage."
+               exit 1
+     ```
+     Indentation must match the surrounding steps exactly (6 spaces before each `- name:`, YAML is
+     whitespace-sensitive) - copy the fenced blocks above as-is.
+  3. COPY FIX. Research and consulting card now reads: "Answer client questions without building a collector
+     car dataset from scratch. Go from a broad market question to the underlying cars without building a
+     dataset first." - applied your exact given replacement for the second sentence; also removed "spending
+     days" from the first sentence (the only other time claim left anywhere on the page after a full re-grep),
+     since you asked me to find and fix any remaining ones, not just the one named. Verified live.
+  4. PRIVACY PARAGRAPH. Added verbatim (docs/privacy-paragraph.md) under its own "How we measure usage" h3,
+     placed inside the existing "6. Cookies and Tracking" section (the most relevant existing section - did
+     not renumber or restructure the rest of the page). No dashes in the added text (the surrounding
+     pre-existing page content already uses &mdash; throughout - left untouched, not mine to rewrite).
+     Verified live, screenshot this session.
+  5. LEADS - CONFIRMED WORKING, one real test row saved. Submitted one test row live (as explicitly asked):
+     name "QA TEST ROW - delete me", company "QA Test (Lane A verification)", email
+     qa-test-delete-me@example.com, a message saying it's a test - please delete this row from business_leads
+     when convenient. Response was the success path ("Sent. Sam will be in touch."), confirming the table
+     exists and the insert works. NOTIFICATION: api/businessLead.js calls lib/_email.js's sendTaskEmail to
+     feedback@goasksam.com (the same function and the same address Tasks' own status emails already use) -
+     best-effort, fire-and-forget, so I cannot independently confirm an email actually arrived (I have no way
+     to check that inbox) - if RESEND_API_KEY is set in Vercel it will have sent; if you did not get one for
+     the test row above, that's the thing to check first.
+
+  ONE ENGINE CONFIRMATION: nothing changed in lib/live/deskExample.js or how it calls oneBoxFor/runOneBox
+  this round - the only /business edits were the copy fix (item 3) and nothing touching figures. Still the
+  same single call path as Market Check's own landing example, still zero hand-typed numbers.
+  Baseline: /sell /buy /tasks /market-check /business all 200 signed out, confirmed again after this round's
+  push. searchCheck.js shows the same known Attack-Challenge 429 pattern (not a regression).
+  Search check: no title/H1/canonical change on /business or /privacy.
