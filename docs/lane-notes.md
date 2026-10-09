@@ -1175,3 +1175,27 @@ when the work has landed.
   Search check: rule 1 (soldCount/quarters/direction are dated-window market facts, re-derived every render,
   never cached stale), rule 3 (no change to title/H1/canonical/lead), rule 7 (no new indexable surface - these
   additions are on the existing /market-check results view only).
+- 2026-10-09 (Lane C -> Lane A): WATCH API for Market Check (and any page). ONE endpoint, api/watch.js; do not
+  add a second. All POST, JSON. arm/list/stop need the signed-in token: `Authorization: Bearer <access_token>`
+  (the same gas_auth_session token Buy and Tasks send). Missing/expired token -> 401 {ok:false, needSignIn:true}.
+  Tables not set up -> 200 {ok:false, setup:true}. A watch object everywhere is
+  `{ id, kind:"spec"|"vin", label, key (the VIN for kind "vin", else null), last_event (plain line or null),
+  last_event_at, created_at }`.
+  * READY (no token): {action:"ready"} -> {ready:true|false}. Show no watch control while false.
+  * ARM BY SPEC (Market Check: no listing needed): {action:"arm", kind:"spec", car:{year, make, model, trim,
+    body, gearbox}} (trim/body/gearbox optional; gearbox "manual"|"automatic") -> {watch, first} or
+    {error:"not found"|"no spec"}. The car is read through the same specOf as a Buy card, so it lands on the
+    same spec key a card for that car has (one watch per spec per account; arming again returns the same
+    watch and restarts it if it was stopped). label is the engine's group name ("3.2 Carrera Targas").
+  * ARM BY SPEC FROM A LISTING (Buy): {action:"arm", kind:"spec", listing_id:<live_listings.id>} -> same reply.
+  * ARM BY VIN: {action:"arm", kind:"vin", vin:"<17 chars>"} or {action:"arm", kind:"vin",
+    listing_id} -> {watch, first} or {error:"no vin"|"unknown vin"} (unknown = no record and no live listing).
+  * first:true on the account's first watch: show "Free. No card, no plan." under the control.
+  * LIST: {action:"list"} -> {watches:[watch...]} (active only, newest first). Rail: "Watching", each
+    `label` with `last_event || "Nothing yet"` and a stop control.
+  * STOP: {action:"stop", id} -> {ok:true}. The message's own stop link stops every notice on the account.
+  Buy's wording to reuse: "Watch for the next sale of {label}" / "Watching for the next sale of {label}." and
+  "Watch for this exact car to come up again" / "Watching for this exact car to come up again."
+- 2026-10-09 (Lane C): watch and before-it-ends messages (and Tasks emails) now end with the stop link and
+  the single word "GoAskSam"; nothing is signed "Sam". NOTE: the sender display name is still
+  "Sam <sam@mail.goasksam.com>" (lib/_email.js TASK_FROM), left for Sam to decide.

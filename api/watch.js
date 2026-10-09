@@ -10,7 +10,7 @@
 // every notice on the account, watches included (lib/live/buyAlerts.js stopAll).
 import { supabaseEnv } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
-import { ready, arm, stop, list, run, testSend, isMissingTable } from "../lib/live/watches.js";
+import { ready, arm, stop, list, run, testSend, isMissingTable, probeBackdate, probeInspect } from "../lib/live/watches.js";
 
 export default async function handler(req, res) {
   const env = supabaseEnv();
@@ -22,7 +22,8 @@ export default async function handler(req, res) {
       const cron = process.env.CRON_SECRET && String(req.headers.authorization || "") === `Bearer ${process.env.CRON_SECRET}`;
       if (!cron && !probe) return res.status(401).json({ error: "Unauthorized." });
       if (!(await ready(env))) return res.status(200).json({ ok: true, setup: true });
-      return res.status(200).json(await run(env, { dry: probe && req.query.dry === "1" }));
+      // A probe run can be held to one account (?user=<id>), so a test never sends to anyone else.
+      return res.status(200).json(await run(env, { dry: probe && req.query.dry === "1", userId: probe && /^[0-9a-f-]{36}$/.test(String(req.query.user || "")) ? String(req.query.user) : null }));
     }
     if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
     const b = req.body || {};
@@ -31,9 +32,14 @@ export default async function handler(req, res) {
       if (!probe) return res.status(401).json({ error: "Unauthorized." });
       return res.status(200).json(await testSend(env, { kind: b.kind, listing_id: b.listing_id, vin: b.vin, since: b.since, to: b.to || null, first: b.first !== false, userId: b.user_id || null }));
     }
+    if (b.action === "probe_backdate" || b.action === "probe_inspect") {
+      if (!probe) return res.status(401).json({ error: "Unauthorized." });
+      if (b.action === "probe_inspect") return res.status(200).json(await probeInspect(env, String(b.user_id || "")));
+      return res.status(200).json({ rows: await probeBackdate(env, String(b.id || ""), { baseline_date: b.baseline_date, created_at: b.created_at }) });
+    }
     const user = await validateBearer(req.headers.authorization || "").catch(() => null);
     if (!user || !user.userId) return res.status(401).json({ ok: false, needSignIn: true });
-    if (b.action === "arm") return res.status(200).json(await arm(env, user, { kind: b.kind, listing_id: b.listing_id }));
+    if (b.action === "arm") return res.status(200).json(await arm(env, user, { kind: b.kind, listing_id: b.listing_id, vin: b.vin, car: b.car }));
     if (b.action === "stop") return res.status(200).json(await stop(env, user, b.id));
     if (b.action === "list") return res.status(200).json(await list(env, user));
     return res.status(400).json({ error: "unknown action" });
