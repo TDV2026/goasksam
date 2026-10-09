@@ -41,7 +41,7 @@ import {
   textHasTerm
 } from "../lib/_classify.js";
 import { hammerUsd, ensureFxReady } from "../lib/_houseComps.js";
-import { buildSharedAnalysis } from "../lib/platformPick.js";
+import { buildSharedAnalysis, isRoutableVenue, depthWins, ROUTABLE_VENUES } from "../lib/platformPick.js";
 import { specKeyFor, coreOf, persistCore } from "../lib/live/search.js";
 
 // Powerseller referrals are gated (locked product rule): estimated value from
@@ -185,6 +185,10 @@ const ROUTE_POLICIES = {
     strongSegments: ["high_value", "premium_collectors", "international", "specialist", "modern_classic", "collector"]
   }
 };
+// ROUTE_POLICIES carries each venue's attributes; WHICH venues a seller can be sent to is the shared list
+// (lib/platformPick.js ROUTABLE_VENUES). The two must name the same venues.
+{ const k = Object.keys(ROUTE_POLICIES).sort().join(","), v = [...ROUTABLE_VENUES].sort().join(",");
+  if (k !== v) console.error(`CRITICAL: ROUTE_POLICIES (${k}) and the shared routable venues (${v}) differ.`); }
 
 // US launch (Aug 2026): a US seller is only ever routed to platforms that actually
 // serve US sellers. This is an EXPLICIT ALLOWLIST, not a UK denylist: a new non-US
@@ -548,9 +552,9 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
       // False for routes with no covered data source (Hemmings, Car & Classic,
       // Collecting Cars): they can only ever be policy recommendations.
       evidenceCapable: policy.evidenceCapable !== false,
-      // Evidence-only sources (consignment auction houses) have no route
-      // policy: we cannot send a seller there, so they can never be the pick.
-      routable: !!ROUTE_POLICIES[key],
+      // Evidence-only sources (consignment auction houses) can never be the pick: the ONE shared
+      // routable-venue test (lib/platformPick.js isRoutableVenue), the same one the shared pick uses.
+      routable: isRoutableVenue(key),
       about: policy.about || null,
       hasMarketEvidence: !!evidence,
       marketEvidence: evidence
@@ -575,22 +579,28 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
 //     a specialization cell (lift >= 3x AND 5+ scope comps) leads.
 //   Branch 3: the depth leader (most sold comps at the landed scope) leads.
 // Only routable routes can be the pick; consignment-only sources never lead.
+// Returns the picked route and stamps WHY on it (route.pickReason: "thin_window_price" | "price" |
+// "specialist" | "depth"), which decide() hands to the page as decision.routingReason so the page never
+// re-derives the pick (js/result.js routesForCards reads recommendedPath and this reason).
 function pickRecommendedRoute(routes) {
-  const routable = (routes || []).filter(r => r.routable !== false);
+  const tag = (r, why) => { if (r) r.pickReason = why; return r; };
+  const routable = (routes || []).filter(r => r.routable !== false && isRoutableVenue(r.policyKey));
   if (!routable.length) return (routes || []).find(r => r.routable) || (routes || [])[0] || null;
   // Thin-window price-signal override (set in analyzeRouteFit): a flagged strong-price
   // venue with materially deeper comps leads over a thin-window recency leader. Honored
   // first so recommendedPath (saved-list) and the reordered card stay in lockstep.
   const forced = routable.find(r => r.thinWindowPriceLead);
-  if (forced) return forced;
+  if (forced) return tag(forced, "thin_window_price");
   const clearedPct = r => {
     const p = r && r.marketEvidence && r.marketEvidence.pricePremium;
     return (p && p.gateType === "symmetric" && Number.isFinite(p.percent) && p.percent >= 10) ? p.percent : -1;
   };
   // Depth leader: most sold comps at the landed scope (computed before Branch 1 so the
   // volume-aware premium gate can reference it).
+  // The ONE depth tie-break (lib/platformPick.js depthWins): an exact tie goes to Bring a Trailer, never to
+  // whichever route happened to sort first (2009 Nissan GT-R, a 4-4 tie, Oct 2026).
   let deep = null, deepN = -1;
-  for (const r of routable) { const n = Number((r.marketEvidence && r.marketEvidence.evidenceSales) || 0); if (n > deepN) { deep = r; deepN = n; } }
+  for (const r of routable) { const n = Number((r.marketEvidence && r.marketEvidence.evidenceSales) || 0); if (depthWins(n, r.policyKey, deepN, deep && deep.policyKey)) { deep = r; deepN = n; } }
   const deepPremium = deep ? clearedPct(deep) : -1;
   // Branch 1 (Mode A), VOLUME-AWARE (kept in lockstep with routesForCards in
   // js/result.js): among cleared symmetric premiums the highest leads, but a platform
@@ -604,7 +614,7 @@ function pickRecommendedRoute(routes) {
     const ps = Number((r.marketEvidence && r.marketEvidence.pricePremium && r.marketEvidence.pricePremium.platformSales) || 0);
     const sampleOK = ps >= Math.max(5, deepN * 0.5);
     const marginOK = deepPremium >= 10 && pct >= deepPremium + 8;
-    if (r === deep || sampleOK || marginOK) return r;
+    if (r === deep || sampleOK || marginOK) return tag(r, "price");
   }
   // "Measured" also counts a cleared ASYMMETRIC dominance share (>=75%, same gate pricePremiumFor's
   // own market_dominance branch applies) - not only a symmetric 5v5 comparison. Without this, a
@@ -623,9 +633,9 @@ function pickRecommendedRoute(routes) {
   if (!measured) {
     const specCell = r => { const c = r && r.marketEvidence && r.marketEvidence.specializationCell; return (c && Number(c.lift_rounded) >= 3 && Number(c.platform_count) >= 5) ? c : null; };
     const specialist = routable.find(r => r !== deep && specCell(r));
-    if (specialist) return specialist;
+    if (specialist) return tag(specialist, "specialist");
   }
-  if (deep && deepN > 0) return deep;
+  if (deep && deepN > 0) return tag(deep, "depth");
   return routable[0] || (routes || [])[0] || null;
 }
 
@@ -1353,7 +1363,7 @@ export async function buildAnalysisFromStore(vehicle, generation, supabaseUrl, s
   return analyze(stored.records, classifications, stored.ladder, vehicle, false, null);
 }
 
-function getSellerCriteria(car = {}) {
+export function getSellerCriteria(car = {}) {
   return {
     region: asText(car.region) || null,
     state: asText(car.state) || null,
@@ -2153,6 +2163,7 @@ export function decide(analysis, criteria, vehicle) {
 
   return {
     recommendedPath: bestRoute.platform,
+    routingReason: bestRoute.pickReason || null,
     confidence: ladderConfidence(analysis),
     evidenceBasis: "market_evidence",
     strongerNonRoutable: strongerNonRoutable ? {
@@ -3635,15 +3646,23 @@ export default async function handler(req, res) {
     // other zero-OCD proof sets archiveOnly:true so the real /sell engine runs end-to-end on the
     // permanent store/archive instead of a live OCD fetch, guaranteeing zero metered requests. It
     // short-circuits BEFORE the budget guard and the live fetch below, so no OCD call is ever made.
-    const archiveOnly = req.body?.archiveOnly === true;
+    // The shared pick (SELL_PICK_SHARED, lib/platformPick.js buildSharedAnalysis over runOneBox's pool)
+    // builds the whole online analysis from the archive, so the old OldCarsData ladder fetch feeds
+    // nothing it uses: read the store instead (zero metered requests), keeping every downstream field.
+    // A seller who chose "through an auction house" keeps the old path, which still reads the fetch.
+    const sellerChoseHouse = sellerCriteria.sellerPreference === "auction_house" || /auction house/i.test(String(sellerCriteria.involvement || ""));
+    const sellPickSharedOn = process.env.SELL_PICK_SHARED === "1" && !sellerChoseHouse;
+    const sharedStoreOnly = sellPickSharedOn && !measuring;
+    const archiveOnly = req.body?.archiveOnly === true || sharedStoreOnly;
     if (!fetchResult && archiveOnly) {
+      const tag = req.body?.archiveOnly === true ? "archive_only" : "shared_pick";
       fetchResult = await fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, generation);
       if (fetchResult) {
-        fetchResult.stopReason = "archive_only";
-        cacheStatus = "archive_only_store";
+        fetchResult.stopReason = tag;
+        cacheStatus = tag + "_store";
       } else {
-        fetchResult = { records: [], passSummary: [], stoppedEarly: true, stopReason: "archive_only_empty", elapsedMs: 0, timeBudgetMs: FETCH_TIME_BUDGET_MS, meteredRequests: 0, ladder: buildLadder(vehicle, generation), fromCache: true };
-        cacheStatus = "archive_only";
+        fetchResult = { records: [], passSummary: [], stoppedEarly: true, stopReason: tag + "_empty", elapsedMs: 0, timeBudgetMs: FETCH_TIME_BUDGET_MS, meteredRequests: 0, ladder: buildLadder(vehicle, generation), fromCache: true };
+        cacheStatus = tag === "archive_only" ? "archive_only" : "shared_pick_empty";
       }
     }
     // Budget guards (7A): daily pace + monthly cap, read from app_usage_events.
@@ -3903,8 +3922,7 @@ export default async function handler(req, res) {
     // it does NOT fall back to the capped-fetch analysis, which would silently mix a capped number
     // into an otherwise shared-pool page. A genuine error building the shared analysis degrades the
     // same honest way (logged loudly, never a half-filled page).
-    const sellerChoseHouse = sellerCriteria.sellerPreference === "auction_house" || /auction house/i.test(String(sellerCriteria.involvement || ""));
-    const sellPickSharedOn = process.env.SELL_PICK_SHARED === "1" && !sellerChoseHouse;
+    // sellerChoseHouse / sellPickSharedOn are set above, before the fetch (the shared pick reads the store).
     let analysis = null;
     if (sellPickSharedOn) {
       try {

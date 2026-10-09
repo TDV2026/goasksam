@@ -366,38 +366,10 @@ function renderDecision(decisionData,renderOpts){
   // 2. Speed routes only when no verified 10%+ premium protects the pick:
   //    fast timeline + curated-fast alternative with real evidence.
   // Runs ONCE, before the opener and any card.
-  sellState.routingReason=null;
-  {
-    const verifiedPremium=route=>{
-      const p=route?.marketEvidence?.pricePremium;
-      return (p&&p.platformSales>=5&&p.othersSales>=5)?Number(p.percent):null;
-    };
-    const first=routeOptions[0],second=routeOptions[1];
-    if(first&&second){
-      const pFirst=verifiedPremium(first),pSecond=verifiedPremium(second);
-      // Volume-aware (same gate as routesForCards / pickRecommendedRoute): the second
-      // route only overtakes the incumbent leader on a cleared premium when its premium
-      // sample is comparable to the leader's evidence (platformSales >= half, floor 5)
-      // OR it beats the leader's own premium by 8+ points. A thin high-mix premium
-      // (SOMO +27% on 8) no longer swaps ahead of the volume leader (BaT +26% on 20).
-      const psSecond=Number(second?.marketEvidence?.pricePremium?.platformSales||0);
-      const firstEvidence=Number(first?.marketEvidence?.evidenceSales||0);
-      const swapSampleOK=psSecond>=Math.max(5,firstEvidence*0.5);
-      const swapMarginOK=pFirst!=null&&pFirst>=10&&pSecond>=pFirst+8;
-      if(pSecond!=null&&pSecond>=10&&(pFirst==null||pSecond>pFirst)&&(swapSampleOK||swapMarginOK)&&routeHasTrueComparableEvidence(second)){
-        routeOptions[0]=second;routeOptions[1]=first;
-        delete routeOptions[0].speedArgument;
-        sellState.routingReason="price";
-      }
-    }
-    // SPEED RE-RANK DELETED (Aug 2026): the Mode-B / unknown-spread speedToList
-    // promotion that used to swap Card 1 for a faster-to-list platform is GONE.
-    // sellOptions now stays in pure PRICE/EVIDENCE order out of this ladder, and
-    // ALL speed behaviour (the Bring a Trailer exclusion, the speed pick, the
-    // speed-vs-price composition) lives in v2Composition - the single source of
-    // truth for composition. The old promotion was guarded by sellerWantsSpeed(),
-    // so removing it is byte-identical for every non-ASAP path.
-  }
+  // ONE PICK (Oct 2026, GT-R): the page never re-derives the pick. decide() in api/sellerDecision.js
+  // (pickRecommendedRoute, with the shared tie-break lib/platformPick.js depthWins) names the pick and why;
+  // the page shows that route first, in the server's own order otherwise.
+  sellState.routingReason=decision.routingReason||null;
   // No redundant chat opener (locked): the card is self-contained, and its
   // own transparency line carries the scope/window story. The old opener
   // duplicated the plate window and the lookback line.
@@ -431,61 +403,10 @@ function renderDecision(decisionData,renderOpts){
   //    leader holds a specialization cell (lift >= 3x AND 5+ scope comps).
   //  3 otherwise: deepest recent market leads.
   const routesForCards=(()=>{
-    const routable=routeOptions.filter(r=>r.routable!==false);
-    // Thin-window price-signal override (backend-set marker, api/sellerDecision.js): a
-    // flagged strong-price venue with materially deeper comps leads over a thin-window
-    // recency leader. Honored FIRST so the card, the backend recommendedPath, and this
-    // mirror stay in lockstep (the backend already reordered routes; this pins it).
-    const forced=routable.find(r=>r.thinWindowPriceLead);
-    if(forced){sellState.routingReason="thin_window_price";return routeOptions[0]===forced?routeOptions:[forced,...routeOptions.filter(x=>x!==forced)];}
-    const cleared=r=>{const p=r&&r.marketEvidence&&r.marketEvidence.pricePremium;return p&&p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10?p.percent:-1;};
-    // Depth leader: most sold comps at the landed scope (needed by the volume-aware
-    // premium gate below, so it is computed BEFORE Branch 1).
-    let deep=null,deepN=-1;
-    for(const r of routable){const n=Number(r.marketEvidence&&r.marketEvidence.evidenceSales||0);if(n>deepN){deep=r;deepN=n;}}
-    const deepPremium=deep?cleared(deep):-1;
-    // Branch 1 (Mode A), VOLUME-AWARE (kept in lockstep with pickRecommendedRoute in
-    // api/sellerDecision.js): among cleared symmetric premiums (>=10%, 5+/5+) the
-    // highest leads, but a platform that is NOT the depth leader may lead only when its
-    // premium rests on a sample comparable to the leader's (platformSales >= half the
-    // leader's evidence, floor 5) OR it beats the leader's OWN cleared premium by a
-    // meaningful margin (8+ points). Stops a boutique's high-mix median on a thin sample
-    // (2020 992 Sport Classic: SOMO +27% on 8 sales) from out-leading the venue where
-    // most of these cars actually sell (BaT +26% on 20). A razor-thin edge no longer wins.
-    const clearedRoutes=routable.map(r=>({r,pct:cleared(r)})).filter(x=>x.pct>=10).sort((a,b)=>b.pct-a.pct);
-    for(const {r,pct} of clearedRoutes){
-      const ps=Number(r.marketEvidence&&r.marketEvidence.pricePremium&&r.marketEvidence.pricePremium.platformSales||0);
-      const sampleOK=ps>=Math.max(5,deepN*0.5);
-      const marginOK=deepPremium>=10&&pct>=deepPremium+8;
-      if(r===deep||sampleOK||marginOK)return routeOptions[0]===r?routeOptions:[r,...routeOptions.filter(x=>x!==r)];
-    }
-    // Is the spread MEASURED? (any 5+/5+ symmetric premium exists). If not, it
-    // is UNKNOWN. The old unknown-spread SPEED promotion (branch 4) is DELETED
-    // (Aug 2026): speed is now v2Composition's job, so this ladder never re-ranks
-    // for speed. sellOptions stays pure price/evidence order.
-    // "Measured" also counts a cleared asymmetric dominance share (>=75%), matching decide()'s own
-    // pickRecommendedRoute (api/sellerDecision.js) - kept in lockstep so the card order and the
-    // recommendedPath text can never disagree (an obvious depth leader with too few "others" sales to
-    // clear 5v5 symmetrically must not lose to a precomputed, cross-car specialist cell).
-    const measured=routable.some(r=>{const p=r&&r.marketEvidence&&r.marketEvidence.pricePremium;return p&&p.platformSales>=5&&p.othersSales>=5;})
-      ||routable.some(r=>{const p=r&&r.marketEvidence&&r.marketEvidence.pricePremium;return p&&p.gateType==="asymmetric"&&Number.isFinite(p.marketShare)&&p.marketShare>=75;});
-    // Branch 5 specialist crown: UNKNOWN spread. A platform OTHER than the depth
-    // leader holding a specialization cell for the landed scope (lift >= 3x AND
-    // 5+ scope comps) leads with the specialization headline. No longer gated on
-    // speed preference (the speed branch that preceded it is gone), so for every
-    // non-ASAP path - where sellerWantsSpeed() was already false - this is the
-    // exact same condition as before.
-    if(!measured){
-      const specialistCell=r=>{const c=r&&r.marketEvidence&&r.marketEvidence.specializationCell;return c&&Number(c.lift_rounded)>=3&&Number(c.platform_count)>=5?c:null;};
-      const specialist=routable.find(r=>r!==deep&&specialistCell(r));
-      if(specialist){
-        sellState.routingReason="specialist";
-        return routeOptions[0]===specialist?routeOptions:[specialist,...routeOptions.filter(r=>r!==specialist)];
-      }
-    }
-    // Branch 3 / 5 fallback: deepest recent market leads.
-    if(deep&&deepN>0&&routeOptions[0]!==deep)return [deep,...routeOptions.filter(r=>r!==deep)];
-    return routeOptions;
+    const key=x=>String(x||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+    const rp=key(decision.recommendedPath);
+    const pick=rp?routeOptions.find(r=>r.routable!==false&&(key(r.platform)===rp||key(r.label)===rp||key(r.policyKey)===rp)):null;
+    return pick&&routeOptions[0]!==pick?[pick,...routeOptions.filter(r=>r!==pick)]:routeOptions;
   })();
   // Pin the FINAL displayed pick (after every frontend swap: hagerty, price,
   // speed) so any post-result follow-up ("why this one") references the platform
@@ -509,13 +430,6 @@ function renderDecision(decisionData,renderOpts){
   // "closed strongest" claim (only the volume leader at the landed scope).
   const maxRoutableEvidence=routesForCards.filter(r=>r.routable!==false)
     .reduce((m,r)=>Math.max(m,Number(r.marketEvidence&&r.marketEvidence.evidenceSales||0)),0);
-  // Depth leader among the cards (most sold comps at the landed scope). Named on
-  // the branch-4 pick card's REQUIRED depth-honesty bullet, so a speed-led pick
-  // never hides that a deeper market exists.
-  const depthLeaderRoute=routesForCards.filter(r=>r.routable!==false)
-    .reduce((leader,r)=>(Number(r.marketEvidence&&r.marketEvidence.evidenceSales||0)>Number(leader&&leader.marketEvidence&&leader.marketEvidence.evidenceSales||0)?r:leader),null);
-  const depthLeaderName=(depthLeaderRoute&&depthLeaderRoute!==routesForCards[0])
-    ?platformDisplayName(depthLeaderRoute.label||depthLeaderRoute.platform):null;
   // RANKING-LADDER-END
   const routeSellOptions=routesForCards.map((route,index)=>{
     const platform=route.marketEvidence||{};
@@ -556,8 +470,7 @@ function renderDecision(decisionData,renderOpts){
         sellerWantsSpeed:sellerWantsSpeed(),
         routingReason:sellState.routingReason,
         landedScope:composerLandedScope(),
-        landedGenerationCode:composerLandedGenerationCode(),
-        depthLeaderName:index===0?depthLeaderName:null
+        landedGenerationCode:composerLandedGenerationCode()
       }),
       bestFor:index===0
         ? speedFit?"Works when timing matters and the market read still backs it":"Works when the priority is the strongest sale outcome"
