@@ -947,3 +947,23 @@ when the work has landed.
   / "One of the two sales in the last 12 months was on X." ("at" for a house). The Reserve tile (8+ each
   side) and the chat's sold range (midHalf, 8+) cannot reach fewer than 3. Sell results drawn in a visit are
   kept by address, so Back after New search redraws at once.
+- 2026-10-09 (Lane A): /business reworked again, insurer/lender/finance audience, per Sam's round.
+  Replaced "Three ways in" with "The problems it solves" (6 pain-first cards) + a slim "How you use
+  it" row (3 items); removed "Agents with one job each" (its idea folded into card c, "A book that
+  moves", using Sam's own card text verbatim, nothing added); "Who it is for" renamed to the 4 exact
+  items (Insurers / Lenders and finance / Auction platforms and houses / Dealers, advisers and
+  funds); "Why it holds up" trimmed to the 4 exact lines; the example panel drops the three car cards
+  and now shows only the car name, the range (or the figure, large, when present), the count and
+  window, and "Every figure opens to the sales behind it." (no link).
+  referenceFigure WIRING: lib/onebox.js already had this field (Lane B, confirmed in this file before
+  I started) but lib/live/marketCheckExample.js's reduce() was NOT passing it through to the cached
+  example object - added `referenceFigure: d.referenceFigure || null` there (one line, benefits
+  Market Check's own landing too if it ever wants the figure, not just /business). Sub line and card
+  b's body both branch on `!!(ex && ex.referenceFigure)` - SUB_WITH_FIGURE/SUB_FALLBACK and card b's
+  bodyFigure/bodyFallback, exactly Sam's two copy options, computed from the SAME example read the
+  panel uses (zero extra engine calls). SWAP MARKER FOR LANE A (next time this page is touched): this
+  can be simplified to always use the figure text once confirmed every live spec_market_cache row for
+  the example key has been rebuilt since referenceFigure shipped (cold rows from before still read
+  null even though the engine itself has supported it for a while - check the actual cached row's
+  computed_at / market.referenceFigure via the spec_market_cache table before assuming it's live for
+  a given spec).

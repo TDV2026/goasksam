@@ -20,43 +20,50 @@ const mailHref = subject => `mailto:feedback@goasksam.com?subject=${encodeURICom
 
 const YOUR_RESULTS_RAIL = '<a class="gas-navitem" id="gas-nav-results" href="#" style="display:none">Your results</a><div class="gas-submenu" id="gas-results-menu"></div>';
 
-const SUB = "The market record for enthusiast and collector cars. Every number traces back to a real sale, with the receipt attached.";
+// Sub copy (item 1): the referenceFigure-aware line when the engine returns one, the archive-only
+// fallback otherwise. Computed per request from the SAME example read as the panel below (zero
+// extra engine calls) - never a second guess at whether the field exists.
+const SUB_WITH_FIGURE = "One reference figure for any enthusiast or collector car, with the range and the sales behind it. For the people who have to stand behind a number.";
+const SUB_FALLBACK = "A reference you can stand behind for any enthusiast or collector car, with the range and the sales that back it.";
 
-const WAYS_IN = [
-  { icon: "desk", name: "Sam Desk", body: "Ask anything about the market in plain words and get the answer with the sales behind it. Slice by model, era, venue and sale type. Open any number to see which sales are in it and which were set aside, and why. Export the answer with its receipts." },
-  { icon: "inbox", name: "Leads and inbound", body: "Send in the cars that cross your desk. Each one comes back with the closest sales and the range most sales landed in, so your team can sort a pile of submissions fast and answer each one properly." },
-  { icon: "plug", name: "In your own system", body: "One car at a time, straight into your quote, loan or consignment flow. The range, the number of sales behind it, the dates and the receipts. Built to sit inside your own quote, loan or consignment flow." }
+const PROBLEMS = [
+  { icon: "shield", name: "Cover that holds up in a claim.", body: "Set the sum insured from sales that actually closed, with the receipts to show the customer why." },
+  { icon: "scale", name: "Lending on a car with no obvious price.", bodyFigure: "A reference figure and the range around it for any enthusiast car, before you set the loan.", bodyFallback: "The range most sales landed in and the sales behind it, for any enthusiast car, before you set the loan." },
+  { icon: "book", name: "A book that moves.", body: "Run every car you cover or hold against last night's sales and see which ones moved, so renewals and loan reviews start from what changed." },
+  { icon: "check", name: "A number your auditor will accept.", body: "Every figure opens to the sales behind it. Cars that do not belong are set aside and the reason is shown." },
+  { icon: "slash", name: "No guess in your file.", body: "Where there are not enough sales to say, you get a plain answer that there is not enough, never a made-up figure." },
+  { icon: "plug", name: "Fits how you work.", body: "Inside your quote or loan flow, or for your team to use directly." }
 ];
 
-const AGENTS = [
-  { icon: "sort", text: "Sort my inbound. Every submission checked against recent sales and ranked for your team." },
-  { icon: "doc", text: "Build a consignment pitch. The record for the car, ready to put in front of the owner." },
-  { icon: "check", text: "Check my book. A list of vehicles read against recent sales, with the ones that moved flagged." }
+const HOW_YOU_USE = [
+  { icon: "chat", text: "Ask it in plain words" },
+  { icon: "list", text: "Send it a list of cars" },
+  { icon: "plug", text: "Build it into your own system" }
 ];
 
 const WHO_FOR = [
+  { name: "Insurers", body: "a sum insured you can defend, with the sales behind it." },
+  { name: "Lenders and finance", body: "a reference figure and the range around it before you set the loan." },
   { name: "Auction platforms and houses", body: "sort inbound, prepare consignments, see where you stand." },
-  { name: "Insurers and lenders", body: "a defensible reference on every vehicle, with the evidence to show customers and auditors." },
-  { name: "Dealers and consignors", body: "the recent sales record behind a number, not a guess." },
-  { name: "Advisers, funds and manufacturers", body: "the market record for enthusiast cars, ready to build on." }
+  { name: "Dealers, advisers and funds", body: "the recent sales record behind a number, not a guess." }
 ];
 
 const WHY = [
   "Built entirely from completed sales.",
-  "Open any number to see its sales.",
-  "Cars that do not belong are set aside, and the reason is shown.",
-  "Every venue read on the same basis.",
+  "Updated every night.",
   "Where sales are thin, Sam says so instead of guessing.",
   "Built in house, on the same engine as Buy, Sell, Market Check and Tasks, so the answers always agree."
 ];
 
 const ICON = {
-  desk: '<svg viewBox="0 0 24 24"><path d="M4 18V7a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v11M2 18h20M9 11l2 2 4-4"/></svg>',
-  inbox: '<svg viewBox="0 0 24 24"><path d="M4 4h16l-1.5 13a2 2 0 0 1-2 1.8H7.5a2 2 0 0 1-2-1.8L4 4Z"/><path d="M4 12h5l1 2h4l1-2h5"/></svg>',
+  shield: '<svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z"/><path d="M9 12l2 2 4-4"/></svg>',
+  scale: '<svg viewBox="0 0 24 24"><path d="M12 3v18M7 7h10M4 7l3-4 3 4-3 5-3-5Zm10 0l3-4 3 4-3 5-3-5Z"/></svg>',
+  book: '<svg viewBox="0 0 24 24"><path d="M4 5c2-1 5-1 7 0v14c-2-1-5-1-7 0V5Z"/><path d="M20 5c-2-1-5-1-7 0v14c2-1 5-1 7 0V5Z"/></svg>',
+  check: '<svg viewBox="0 0 24 24"><path d="M7 3h10l4 4v14H7V3Z"/><path d="M11 3v5h5M8 13l2.5 2.5L16 10"/></svg>',
+  slash: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/></svg>',
   plug: '<svg viewBox="0 0 24 24"><path d="M8 3v5M16 3v5M6 8h12v4a6 6 0 0 1-12 0V8Z"/><path d="M12 18v3"/></svg>',
-  sort: '<svg viewBox="0 0 24 24"><path d="M6 8h12M6 12h8M6 16h4"/></svg>',
-  doc: '<svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7V3Z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>',
-  check: '<svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/><path d="M19 15l2 2 3-3" transform="translate(-4 2)"/></svg>'
+  chat: '<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4V5Z"/></svg>',
+  list: '<svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>'
 };
 
 const CSS = `
@@ -75,17 +82,17 @@ a{color:var(--green)}a:hover{color:var(--green-dk)}
 .biz-quiet{font:600 15px/1 var(--sans);color:var(--green);text-decoration:underline;text-underline-offset:3px}
 .biz-sec{padding:44px 0;border-top:1px solid var(--div)}
 .biz-sec h2{margin:0 0 22px;font:600 26px/1.3 var(--serif);color:var(--ink)}
-.biz-ways{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.biz-problems{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 .biz-card{background:var(--card);border:1px solid var(--div);border-radius:16px;padding:26px 22px;box-shadow:0 10px 24px -18px rgba(21,32,26,.35)}
 .biz-ic{display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:var(--tint);margin-bottom:16px}
 .biz-ic svg{width:30px;height:30px;fill:none;stroke:var(--green);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
 .biz-card h3{margin:0 0 8px;font:500 19px/1.3 var(--serif);color:var(--ink)}
 .biz-card p{margin:0;font:400 15px/1.55 var(--sans);color:var(--soft)}
-.biz-agents{display:flex;flex-direction:column;gap:16px}
-.biz-agent{display:flex;align-items:flex-start;gap:16px}
-.biz-agent .biz-ic{flex:none;width:44px;height:44px;margin-bottom:0}
-.biz-agent .biz-ic svg{width:22px;height:22px}
-.biz-agent p{margin:0;padding-top:8px;font:400 17px/1.5 var(--sans);color:var(--ink)}
+.biz-howuse-lab{margin:36px 0 14px;font:600 13px/1.4 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--sec)}
+.biz-howuse{display:flex;gap:28px;flex-wrap:wrap;padding:20px 0;border-top:1px solid var(--div)}
+.biz-howuse-item{display:flex;align-items:center;gap:12px;font:500 15px/1.4 var(--sans);color:var(--ink)}
+.biz-howuse-item .biz-ic{width:36px;height:36px;margin-bottom:0;flex:none}
+.biz-howuse-item .biz-ic svg{width:18px;height:18px}
 .biz-who{display:grid;grid-template-columns:1fr 1fr;gap:18px 32px}
 .biz-who-item{padding:4px 0}
 .biz-who-item b{display:block;margin:0 0 4px;font:600 16px/1.4 var(--sans);color:var(--ink)}
@@ -94,24 +101,19 @@ a{color:var(--green)}a:hover{color:var(--green-dk)}
 .biz-ex{margin-top:28px;background:var(--tint);border:1px solid var(--tint-line);border-radius:16px;padding:26px 28px}
 .biz-ex-lab{margin:0 0 6px;font:600 13px/1.4 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--green)}
 .biz-ex-name{margin:0 0 4px;font:400 16px/1.4 var(--sans);color:var(--soft)}
+.biz-ex-figlab{margin:0 0 2px;font:600 12px/1.4 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--sec)}
 .biz-ex-range{margin:0 0 4px;font:600 36px/1.1 var(--serif);color:var(--green)}
 .biz-ex-range .to{font-weight:400;font-size:24px;color:var(--sec)}
-.biz-ex-count{margin:0 0 20px;font:400 15px/1.4 var(--sans);color:var(--sec)}
-.biz-ex-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.biz-ex-card{background:var(--card);border:1px solid var(--div);border-radius:12px;overflow:hidden;text-decoration:none;display:block}
-.biz-ex-ph{display:block;width:100%;aspect-ratio:16/10;background:var(--border);object-fit:cover}
-.biz-ex-body{padding:12px 14px}
-.biz-ex-price{font:600 17px/1.2 var(--serif);color:var(--ink)}
-.biz-ex-title{margin:4px 0 0;font:400 13px/1.4 var(--sans);color:var(--soft)}
+.biz-ex-count{margin:0 0 10px;font:400 15px/1.4 var(--sans);color:var(--sec)}
+.biz-ex-opens{margin:0;font:400 15px/1.4 var(--sans);color:var(--soft)}
 .biz-close{margin-top:28px;padding:30px 32px;background:var(--card);border:1px solid var(--div);border-radius:16px}
 .biz-close h2{margin:0 0 10px;font:600 24px/1.3 var(--serif);color:var(--ink)}
 .biz-close p{margin:0 0 18px;font:400 16px/1.55 var(--sans);color:var(--soft);max-width:60ch}
 .biz-close-row{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
 .biz-close-mail{font:500 15px var(--sans);color:var(--green)}
 @media (max-width:860px){
-  .biz-ways{grid-template-columns:1fr}
+  .biz-problems{grid-template-columns:1fr 1fr}
   .biz-who{grid-template-columns:1fr}
-  .biz-ex-cards{grid-template-columns:1fr 1fr}
 }
 @media (max-width:640px){
   .biz-col{padding:0 20px 56px}
@@ -119,15 +121,19 @@ a{color:var(--green)}a:hover{color:var(--green-dk)}
   .biz-sub{font-size:17px}
   .biz-sec{padding:34px 0}
   .biz-sec h2{font-size:22px}
-  .biz-ex-cards{grid-template-columns:1fr}
+  .biz-problems{grid-template-columns:1fr}
+  .biz-howuse{gap:16px;flex-direction:column}
 }
 ${HERO_CSS}`;
 
-function wayCardsHtml() {
-  return WAYS_IN.map(w => `<div class="biz-card"><div class="biz-ic">${ICON[w.icon]}</div><h3>${esc(w.name)}</h3><p>${esc(w.body)}</p></div>`).join("");
+function problemCardsHtml(hasFigure) {
+  return PROBLEMS.map(p => {
+    const body = p.bodyFigure ? (hasFigure ? p.bodyFigure : p.bodyFallback) : p.body;
+    return `<div class="biz-card"><div class="biz-ic">${ICON[p.icon]}</div><h3>${esc(p.name)}</h3><p>${esc(body)}</p></div>`;
+  }).join("");
 }
-function agentLinesHtml() {
-  return AGENTS.map(a => `<div class="biz-agent"><div class="biz-ic">${ICON[a.icon]}</div><p>${esc(a.text)}</p></div>`).join("");
+function howUseHtml() {
+  return `<p class="biz-howuse-lab">How you use it</p><div class="biz-howuse">${HOW_YOU_USE.map(h => `<div class="biz-howuse-item"><div class="biz-ic">${ICON[h.icon]}</div><span>${esc(h.text)}</span></div>`).join("")}</div>`;
 }
 function whoHtml() {
   return WHO_FOR.map(w => `<div class="biz-who-item"><b>${esc(w.name)}</b><span>${esc(w.body)}</span></div>`).join("");
@@ -137,20 +143,20 @@ function whyHtml() {
 }
 
 // The example panel: the SAME reduced object Market Check's own landing example reads (same spec_key,
-// same cache, same engine). A static summary only (range, sale count, the closest few receipts) - no
-// interactive chips here, this page never asks a question. Left out entirely when the engine has
-// nothing to show, rather than ever inventing a figure.
+// same cache, same engine). A customer-facing summary only (the car, the range or figure, the sale
+// count and window, one line about how every figure works) - no car cards, no link, this page shows
+// what a customer sees, not the evidence browser. Left out entirely when the engine has nothing to
+// show, rather than ever inventing a figure.
 function examplePanelHtml(ex) {
   if (!ex || !Array.isArray(ex.cluster) || ex.cluster.length !== 2 || !Array.isArray(ex.cards) || !ex.cards.length) return "";
-  const cards = ex.cards.slice(0, 3).map(c => {
-    const img = c.image ? `<img class="biz-ex-ph" src="${esc(c.image)}" alt="" loading="lazy">` : '<span class="biz-ex-ph"></span>';
-    const meta = [c.mileageText, c.platform, c.month].filter(Boolean).join(" · ");
-    return `<a class="biz-ex-card" href="${esc(c.url || "#")}" target="_blank" rel="noopener noreferrer">${img}<div class="biz-ex-body"><div class="biz-ex-price">${esc(usd(c.price))}</div><div class="biz-ex-title">${esc(c.title || "")}</div><div class="biz-ex-title">${esc(meta)}</div></div></a>`;
-  }).join("");
+  const rf = ex.referenceFigure;
+  const rangeHtml = rf
+    ? `<p class="biz-ex-figlab">Reference figure</p><p class="biz-ex-range">${esc(usd(rf.amount))}</p><p class="biz-ex-count">Range ${esc(usd(ex.cluster[0]))} to ${esc(usd(ex.cluster[1]))}</p>`
+    : `<p class="biz-ex-range">${esc(usd(ex.cluster[0]))} <span class="to">to</span> ${esc(usd(ex.cluster[1]))}</p>`;
   return `<div class="biz-ex"><p class="biz-ex-lab">An example</p><p class="biz-ex-name">${esc(ex.name)}</p>` +
-    `<p class="biz-ex-range">${esc(usd(ex.cluster[0]))} <span class="to">to</span> ${esc(usd(ex.cluster[1]))}</p>` +
+    rangeHtml +
     `<p class="biz-ex-count">${esc(ex.cards.length)} sale${ex.cards.length === 1 ? "" : "s"}${ex.windowLabel ? " in " + esc(ex.windowLabel) : ""}.</p>` +
-    `<div class="biz-ex-cards">${cards}</div></div>`;
+    `<p class="biz-ex-opens">Every figure opens to the sales behind it.</p></div>`;
 }
 
 async function page(req) {
@@ -160,13 +166,14 @@ async function page(req) {
     lastUpdatedDate(env).catch(() => null),
     marketCheckExample(4000).catch(() => null)
   ]);
+  const hasFigure = !!(ex && ex.referenceFigure);
+  const sub = hasFigure ? SUB_WITH_FIGURE : SUB_FALLBACK;
   const heroInner = `<p class="biz-eyebrow">For business${updated ? ". Updated " + esc(updated) : ""}</p>` +
-    `<h1 class="biz-h1">GoAskSam for business</h1><p class="biz-sub">${esc(SUB)}</p>` +
+    `<h1 class="biz-h1">GoAskSam for business</h1><p class="biz-sub">${esc(sub)}</p>` +
     `<div class="biz-ctas"><a class="biz-btn" href="${mailHref("GoAskSam for business")}">Request a walkthrough</a><a class="biz-quiet" href="/how-sam-decides">How Sam decides</a></div>`;
   const body = `<main><div class="biz-col">` +
     heroHtml(heroInner, { alt: "A collector car", layout: "banner" }) +
-    `<section class="biz-sec"><h2>Three ways in.</h2><div class="biz-ways">${wayCardsHtml()}</div></section>` +
-    `<section class="biz-sec"><h2>Agents with one job each.</h2><div class="biz-agents">${agentLinesHtml()}</div></section>` +
+    `<section class="biz-sec"><h2>The problems it solves.</h2><div class="biz-problems">${problemCardsHtml(hasFigure)}</div>${howUseHtml()}</section>` +
     `<section class="biz-sec"><h2>Who it is for.</h2><div class="biz-who">${whoHtml()}</div></section>` +
     `<section class="biz-sec"><h2>Why it holds up.</h2>${whyHtml()}${examplePanelHtml(ex)}</section>` +
     `<div class="biz-close"><h2>Talk to us.</h2><p>Tell us the volume and the kinds of cars you cover and we will show you what the record looks like for your cars.</p>` +
