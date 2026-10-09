@@ -921,3 +921,8 @@ when the work has landed.
   in practice so the placeholder never actually shows, but now has an explicit, consistent fallback
   instead of defaulting to the unrelated rotating PLACEHOLDER_BEATS examples if value were ever empty.
   Button/chips/VIN line unchanged, confirmed via live DOM read.
+- DECISION, Oct 9, 2026, Sam: the Market Check landing headline and sub, the Market Check feature
+  tile and the Market Check search page empty state may say "cars like yours" because it speaks to
+  the visitor's intent. Do not change them to ownership-neutral wording, and do not flag them in
+  future checks. Everywhere else product rule 20 (ownership is never assumed) still applies unless
+  Sam says otherwise. Mirrored in CLAUDE.md as an exception appended to rule 20.
