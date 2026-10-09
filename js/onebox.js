@@ -21,6 +21,13 @@
   var obLastVehicle = null;  // the resolved vehicle of the current pool, reused for an inline refine
   var obAsked = 0;
   var obLastD = null;        // the decision currently rendered (for the /sell handoff parameters)
+  // Item 9 ("Put Sam on it"), Oct 2026: whether /api/watch is set up at all (no watch control while
+  // false, same gate Buy's own page uses); checked once at boot, read by samOnItHtml at render time.
+  var OB_WATCH_READY = false;
+  obFetch(API_ORIGIN + "/api/watch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "ready" }) })
+    .then(function (r) { return r.json(); }).then(function (j) { OB_WATCH_READY = !!(j && j.ready); }).catch(function () {});
+  var obWatchArmed = null;   // the current result's own watch, once armed this session: {id, kind, label, ...}
+  var obWatchFirst = false;  // this account's very first watch (show "Free. No card, no plan.")
   // The answered refinement(s) behind the current view. ACCUMULATES (Oct 2026, phone review bug):
   // each earned-question chip used to REPLACE this whole object, so answering a second question
   // (e.g. gearbox, after mileage) silently dropped the first answer and the engine, seeing no
@@ -865,10 +872,18 @@
     keys.forEach(function (k) { delete r[k]; });
     return RMCHIP_ANSWER_KEYS.some(function (k) { return r[k] != null; }) ? r : null;
   }
-  // Item 9 ("Put Sam on it"): the band's copy only - NOT wired to a watch creation call yet. See the
-  // wire() handler below and docs/lane-notes.md for why (Lane C's /api/watch action:"arm" needs a
-  // live_listings listing_id Market Check does not have).
+  // Item 9 ("Put Sam on it"), connected (Oct 2026) to Lane C's /api/watch - arm by spec (car object,
+  // no listing_id) or arm by VIN, the same endpoint and wording Buy's own watch control uses (see
+  // docs/lane-notes.md). Gated on OB_WATCH_READY (no control while the tables aren't set up). Once
+  // THIS session has armed a watch for the current result, shows the confirmation line instead of
+  // the ask - reset on every new search (run()/mcApplyFromUrl()), not on a refine (the identity being
+  // watched does not change when miles/gearbox narrow the same pool).
   function samOnItHtml(d, m) {
+    if (!OB_WATCH_READY) return "";
+    if (obWatchArmed) {
+      var onLine = m ? "Watching for this exact car to come up again." : ("Watching for the next sale of " + esc(obWatchArmed.label || carLabel(d.resolvedCar)) + ".");
+      return '<section class="samonit" data-stage="note"><p class="samonit-on">' + lint(onLine, "samonit.on") + "</p>" + (obWatchFirst ? '<p class="samonit-free">Free. No card, no plan.</p>' : "") + "</section>";
+    }
     var line = m ? "If this exact car comes up again, Sam tells you." : ("The next " + esc(carLabel(d.resolvedCar)) + " that sells, Sam tells you, with the sale attached.");
     return '<section class="samonit" data-stage="note"><p>' + lint(line, "samonit") + '</p><button type="button" class="linkbtn" id="ob-samonit">Put Sam on it &#8594;</button><p class="samonit-msg" id="ob-samonit-msg" hidden></p></section>';
   }
@@ -1415,7 +1430,7 @@
     // A brand-new search resets the question count; a chip answer (keepAsk) carries it forward so
     // the engine can enforce the two-question cap across generation/body re-queries (Part 3).
     if (!keepAsk) obAsked = 0;
-    lastQuery = text; obLastRefine = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; htChoice = null; vinQueryNoSale = false;
+    lastQuery = text; obLastRefine = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; htChoice = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false;
     // Identifier-shaped input (VIN or chassis) routes through the shared resolver (decode +
     // confirm + exact-match + the honest VIN-invalid / chassis lines); everything else goes
     // straight to the archive pool.
@@ -1485,7 +1500,7 @@
     var vin = sp.get("vin"), car = sp.get("car");
     if (!vin && !car) { renderEmpty(); syncRailResults(); return; }
     var refine = mcRefineFromParams(sp);
-    obAsked = 0; lastQuery = vin || deslugifyQuery(car); obLastRefine = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; htChoice = null; vinQueryNoSale = false;
+    obAsked = 0; lastQuery = vin || deslugifyQuery(car); obLastRefine = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; htChoice = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false;
     if (vin) { vinResolve(vin); return; }   // VIN re-decode is the full, tested path - refine on a VIN result is a rare combo and not threaded through it.
     runPool(lastQuery, null, refine);
   }
@@ -1989,21 +2004,50 @@
         runPool(lastQuery, obLastVehicle, refineWithout(b.getAttribute("data-rmchip")));
       });
     });
-    // Item 9 ("Put Sam on it"): signed-out click opens the shared sign-in card. NOT wired past that
-    // (Oct 2026): Lane C's real watch creation call is /api/watch action:"arm", but arm() is hard-
-    // gated on a live_listings listing_id (lib/live/watches.js) - it looks the live row up and reads
-    // the spec/VIN off IT, never off a typed spec. Market Check has no listing_id (it runs from
-    // d.resolvedCar/a VIN archive match, not a live listing), so there is no honest call to make yet
-    // on EITHER branch (spec or VIN). Per the standing rule against showing a confirmation for
-    // something that does not really happen, a signed-in click does nothing further right now - see
-    // docs/lane-notes.md for exactly what Lane C needs to add (an arm-by-spec/vin path with no
-    // listing_id requirement) before this reconnects.
+    // Item 9 ("Put Sam on it"), connected (Oct 2026): Lane C's arm-by-spec/arm-by-vin addition to
+    // /api/watch (docs/lane-notes.md) takes a resolved car or a bare VIN directly, no listing_id
+    // needed - the SAME endpoint and wording Buy's own watch control uses, never a second one.
+    // Signed-out click opens the shared sign-in card only (mirrors Buy's own armWatch(): no post-
+    // signin auto-resume there either, so none is added here - sign in, then click again, same
+    // two-step either page). Signed-in click arms straight away.
     (function () {
       var soi = document.getElementById("ob-samonit"); if (!soi) return;
       soi.addEventListener("click", function () {
         if (!(typeof authIsSignedIn === "function" && authIsSignedIn())) {
-          if (typeof openSignInCard === "function") openSignInCard("Sign in so Sam can tell you when this sells.");
+          if (typeof openSignInCard === "function") openSignInCard("Sign in to keep a watch. Free. No card, no plan.");
+          return;
         }
+        var payload;
+        if (vinAnchor && obSourceVin) {
+          payload = { kind: "vin", vin: obSourceVin };
+        } else {
+          var rc = obLastD && obLastD.resolvedCar;
+          if (!rc || !rc.make || !rc.model) return;
+          var car = { year: rc.year || null, make: rc.make, model: rc.model, trim: rc.trim || null, body: rc.bodyStyle || null };
+          if (obLastRefine && obLastRefine.tx) car.gearbox = obLastRefine.tx === "manual" ? "manual" : "automatic";
+          payload = { kind: "spec", car: car };
+        }
+        var msg = document.getElementById("ob-samonit-msg");
+        var sess = (typeof authGetSession === "function") ? authGetSession() : null;
+        var tok = sess && sess.access_token;
+        if (!tok) return;
+        soi.disabled = true; soi.textContent = "One moment...";
+        obFetch(API_ORIGIN + "/api/watch", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok }, body: JSON.stringify(Object.assign({ action: "arm" }, payload)) })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (j && j.watch) {
+              obWatchArmed = j.watch; obWatchFirst = !!j.first;
+              var sec = soi.closest(".samonit");
+              if (sec) sec.outerHTML = samOnItHtml(obLastD, vinAnchor);
+              return;
+            }
+            soi.disabled = false; soi.textContent = "Put Sam on it →";
+            if (msg) { msg.hidden = false; msg.textContent = "That didn’t work just now. Try again in a moment."; }
+          })
+          .catch(function () {
+            soi.disabled = false; soi.textContent = "Put Sam on it →";
+            if (msg) { msg.hidden = false; msg.textContent = "That didn’t work just now. Try again in a moment."; }
+          });
       });
     })();
   }
