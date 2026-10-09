@@ -34,9 +34,17 @@ function exampleCarText(partialVehicle){
   if(make&&model)return `${partialVehicle?.year||"1985"} ${make} ${model}`;
   return "2018 Porsche 911 Carrera GTS";
 }
+// The make is known and the model is not ("1985 toyota"): ask for the model in the wizard's own voice, with
+// real models from the resolver's own chips (lib/vehicle.js, never invented). Null when it does not apply.
+function whichModelAsk(partialVehicle,chips){
+  const make=partialVehicle&&partialVehicle.make;
+  if(!make||partialVehicle.model)return null;
+  const models=(chips||[]).filter(c=>!/^(not sure|change car|other|skip)$/i.test(String(c))).slice(0,2);
+  return `Which ${make}? Tell me the model${models.length===2?`, for example ${models[0]} or ${models[1]}`:models.length?`, for example ${models[0]}`:""}.`;
+}
 function askVehicleIdentityClarification(clarification,status,partialVehicle){
   sellState.vehicleIdentityValidated=false;
-  let ask=clarification.question;
+  let ask=(status==="needs_clarification"&&whichModelAsk(partialVehicle,clarification.chips))||clarification.question;
   let chips=clarification.chips||["Change car","Not sure"];
   // Never show the same clarification twice in a row: switch to what was
   // understood plus exactly what is missing, or lead with a best guess.

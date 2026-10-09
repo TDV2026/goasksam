@@ -1000,8 +1000,7 @@ async function offerReRun(rawText){
       sellState.pendingRerunBase={year:pv.year||null,make:pv.make||null};
       if(pv.make){
         const models=((data.clarification&&data.clarification.chips)||[]).filter(c=>!/^(not sure|change car|other)$/i.test(String(c))).slice(0,3);
-        const eg=models.length>=2?`, for example ${models[0]} or ${models[1]}`:models.length?`, for example ${models[0]}`:"";
-        addMsg("sam",`Which ${pv.make}? Tell me the model${eg}.`,"",models.length?chipsHTML(models):"");
+        addMsg("sam",whichModelAsk(pv,models),"",models.length?chipsHTML(models):"");
       }else{
         addMsg("sam",`Which car from ${pv.year}? Tell me the make and model.`);
       }
