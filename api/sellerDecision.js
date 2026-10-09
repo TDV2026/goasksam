@@ -5,7 +5,7 @@ import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, 
 import { supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { hasServerCredential } from "../lib/_credential.js";
-import { checkCeiling, testLimits, CALM } from "../lib/_ceilings.js";
+import { checkCeiling, testLimits, CALM, checkMarketCheckCarLimit } from "../lib/_ceilings.js";
 import { logEvent, EVENTS } from "../lib/events.js";
 import { readVisitorId } from "../lib/_visitor.js";
 import { callOldCarsData } from "../lib/_ocd.js";
@@ -44,6 +44,7 @@ import { hammerUsd, ensureFxReady } from "../lib/_houseComps.js";
 import { buildSharedAnalysis, isRoutableVenue, depthWins, ROUTABLE_VENUES } from "../lib/platformPick.js";
 import { specKeyFor, coreOf, persistCore } from "../lib/live/search.js";
 
+import { isCrewRequest } from "../lib/_crew.js";
 // Powerseller referrals are gated (locked product rule): estimated value from
 // actual comps must clear this threshold before a partner can lead.
 // PowerSeller eligibility floor (business decision, Aug 2026): lowered 75000 -> 40000.
@@ -1170,6 +1171,8 @@ const MARKET_FETCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 // whatever the store holds and log loudly, never spend past pace and never
 // dead-end (the ladder and policy floor handle a thin or empty set honestly).
 const OCD_DAILY_REQUEST_BUDGET = Number(process.env.OCD_DAILY_REQUEST_BUDGET || 33);
+// How many of the closest sales ride along to the follow-up chat (decision.closestSales).
+const FOLLOWUP_SALES = 5;
 // 7A.2: monthly plan cap, env-driven so the 1K->10K upgrade is a config change.
 const OCD_MONTHLY_BUDGET = Number(process.env.OCD_MONTHLY_BUDGET || 1000);
 // Ingest-priority reserve (until the monthly quota reset): when OCD's monthly remaining falls below
@@ -2786,7 +2789,7 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
   // pass and the capacity block (signed out never meters, so there is no metered top to protect).
   const anonSessionId = typeof req.body?.anonSessionId === "string" ? req.body.anonSessionId.slice(0, 64) : null;
   const cookies = parseCookies(req.headers.cookie);
-  if (cookies.gas_crew === "ok") return { ok: true, crewBypass: true, anonSessionId };
+  if (isCrewRequest(req)) return { ok: true, crewBypass: true, anonSessionId };   // signed crew cookie (lib/_crew.js)
   // Our own jobs (header credential) are not counted, unless they send the test ceiling (x-ceiling-test).
   const cred = hasServerCredential(req), lim = testLimits(req, cred);
   if (!cred || lim) {
@@ -2825,7 +2828,7 @@ export default async function handler(req, res) {
     const sealCookies = parseCookies(req.headers.cookie);
     const internalSeal = req.body?.warm === true || req.body?.bypassCache === true;
     const testerSeal = sealCookies.gas_tester === "ok" && !testerCodeExpired(); // expired testers are re-sealed
-    if (sealCookies.gas_crew !== "ok" && !testerSeal && !internalSeal) {
+    if (!isCrewRequest(req) && !testerSeal && !internalSeal) {
       return res.status(403).json({ status: "sealed", error: "Not open yet." });
     }
   }
@@ -3384,6 +3387,22 @@ export default async function handler(req, res) {
         mileage: Number.isFinite(Number(rawES.mileage)) && Number(rawES.mileage) > 0 ? Number(rawES.mileage) : null,
         soldDate: typeof rawES.soldDate === "string" ? rawES.soldDate.slice(0, 10) : null
       } : null;
+      // Daily distinct-car limit (Oct 2026, Market Check daily limit job): 10 distinct cars per
+      // device per day; a refinement of the car already on screen (obRefine truthy) is exempt the
+      // same way it already skips the SEARCH event just below - it is not a new lookup. The car
+      // identity key reuses lib/live/search.js specKeyFor, the SAME key the spec cache already
+      // builds from this vehicle/generation pair, so a device that looks up the identical car twice
+      // today (even via two separate fresh searches, not a UI refine) never spends a second slot.
+      if (vehicle && vehicle.make && !obRefine) {
+        const carKey = specKeyFor(vehicle, generation, null);
+        const carLimit = await checkMarketCheckCarLimit({ supabaseUrl, supabaseKey }, req, carKey);
+        if (!carLimit.ok) {
+          return res.status(200).json({
+            status: "one_box", tier: "business_limit", resolvedCar: null,
+            samLine: "That’s today’s limit for individual lookups. Sam Desk is built for ongoing or business use."
+          });
+        }
+      }
       // Deadline: a slow query must fail fast to the calm line, never hang the spinner. Race the
       // whole compute against a server deadline; any timeout OR throw returns the unavailable line.
       let oneBox;
@@ -4001,6 +4020,11 @@ export default async function handler(req, res) {
         const pbResult = await runOneBox(vehicle, generation, pbSearchText, { supabaseUrl, supabaseKey, asked: 2 }, null).catch(() => null);
         if (pbResult && Array.isArray(pbResult.cluster)) {
           decision.priceBand = { low: pbResult.cluster[0], high: pbResult.cluster[1], count: pbResult.poolN ?? null };
+        }
+        // The closest sales (Oct 2026, follow-up chat): Market Check's own sale cards from this SAME runOneBox
+        // call (closest first), never a new query. The follow-up chat may name only these.
+        if (pbResult && Array.isArray(pbResult.cards) && pbResult.cards.length) {
+          decision.closestSales = pbResult.cards.slice(0, FOLLOWUP_SALES).map(c => ({ date: c.date || null, price: Number(c.price) || null, platform: c.platform || null, miles: Number.isFinite(Number(c.mi)) ? Number(c.mi) : null, title: c.title || null })).filter(c => c.price && c.date);
         }
       }
     } catch (e) { /* additive */ }

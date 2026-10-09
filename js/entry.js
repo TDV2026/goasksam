@@ -373,6 +373,14 @@ async function send(){
           }
         }
       }
+      // The closest sales on record (decision.closestSales: Market Check's own cards from the same runOneBox
+      // call that sets the range). The ONLY individual sales the chat may name.
+      const _cs=sellState.sellDecision&&sellState.sellDecision.decision&&sellState.sellDecision.decision.closestSales;
+      if(Array.isArray(_cs)&&_cs.length){
+        const _d=x=>{ const t=Date.parse(String(x||"")+"T12:00:00Z"); return isFinite(t)?new Date(t).toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric",timeZone:"UTC"}):String(x||""); };
+        const _rows=_cs.map(c=>`- ${_d(c.date)}, ${c.platform||"venue not recorded"}, $${Number(c.price).toLocaleString("en-US")}, ${c.miles!=null?Number(c.miles).toLocaleString("en-US")+" miles":"miles not stated"}, "${String(c.title||"").replace(/"/g,"'")}"`).join("\n");
+        sellContext+=`\nClosest sales on record for this car (real sales; the ONLY individual sales you may name. Quote the date, venue, price, miles and title exactly as listed. Never invent, round or change a sale, never name one that is not listed, and describe any condition only as reported in that listing at the time):\n${_rows}`;
+      }
       try{
         // The follow-up chat is the one signed-in action (open-search policy): the server holds the prompt
         // (mode "followup") and checks the session itself; signed out it answers with the sign in line.
