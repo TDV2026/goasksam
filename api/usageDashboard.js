@@ -618,6 +618,43 @@ async function handleOps(req, res) {
   // sales_archive read), so a sources zero-streak can be checked against BOTH tables - canonical_sales
   // is a SEPARATE, later build step (scripts/buildCanonical.js) off sales_archive, so a gap could be
   // archive-side (ingest) or canonical-side (the dedup/match build), and this tells which.
+  // task=resolvediff: READ-ONLY, zero writes. Investigative only (not kept): compares resolveForBuy
+  // (lib/live/search.js, Buy/Tasks' own resolver + generation binder) against resolveVehicle +
+  // findGeneration (the shared resolver Market Check/Sell use) for the same text, plus a fresh
+  // walkLadder trace and the live spec_market_cache row for whatever spec_key resolveForBuy lands
+  // on, to find exactly where the two paths diverge.
+  if (task === "resolvediff") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const q = String(req.query?.q || "2012 BMW M3 Competition Coupe");
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { resolveForBuy, specOf, walkLadder } = await import("../lib/live/search.js");
+    const out = { q };
+    const mc = await resolveVehicle(q, {}).catch(e => ({ error: String(e && e.message || e) }));
+    out.marketCheckResolve = mc && mc.vehicle ? { make: mc.vehicle.make, model: mc.vehicle.model, trim: mc.vehicle.trim, year: mc.vehicle.year, bodyStyle: mc.vehicle.bodyStyle } : mc;
+    const mcGen = mc && mc.vehicle ? await findGeneration(mc.vehicle, env).catch(() => null) : null;
+    out.marketCheckGeneration = mcGen ? { code: mcGen.code, yearStart: mcGen.yearStart, yearEnd: mcGen.yearEnd } : null;
+    const buyV = await resolveForBuy(q, env).catch(e => ({ error: String(e && e.message || e) }));
+    out.buyResolve = buyV ? { make: buyV.make, model: buyV.model, trim: buyV.trim, year: buyV.year, bodyStyle: buyV.bodyStyle, genCode: buyV.genCode, fetchTrim: buyV.fetchTrim } : null;
+    if (buyV && buyV.model) {
+      const row = { listing_title: q, year: buyV.year };
+      const spec = await specOf(env, row, {}).catch(e => ({ error: String(e && e.message || e) }));
+      out.buySpecKey = spec && spec.key;
+      out.buyGeneration = spec && spec.generation ? { code: spec.generation.code, yearStart: spec.generation.yearStart, yearEnd: spec.generation.yearEnd } : null;
+      if (spec && spec.key) {
+        const cached = await supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent(spec.key)}&select=spec_key,market,computed_at`).catch(() => null);
+        out.cachedRow = cached && cached[0] ? { computed_at: cached[0].computed_at, market: cached[0].market } : null;
+      }
+      if (spec) {
+        const trace = [];
+        const fresh = await walkLadder(env, spec, trace).catch(e => ({ error: String(e && e.message || e) }));
+        out.freshWalkLadderTrace = trace;
+        out.freshWalkLadderResult = fresh;
+      }
+    }
+    return res.status(200).json({ task: "resolvediff", ...out });
+  }
+
   // task=obcheck: READ-ONLY, zero writes. Runs lib/onebox.js runOneBox() directly over a fixed list
   // (or ?specs=a|b|c) and returns the Oct 2026 "Market Check engine additions" fields (soldCount,
   // windowLabel, quarterlyBands, yoyDirection, setAsideCount/Reasons, didNotSellCount, a sample
