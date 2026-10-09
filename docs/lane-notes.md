@@ -740,3 +740,19 @@ when the work has landed.
   state). Hero uses lib/heroImage.js heroHtml(..., {layout:"banner"}), the same call Market Check's
   landing makes. Thanks to Lane C's Buy `.gas-navitem` adoption noted above, Buy already gets this
   page's rail-pill styling too with no extra work.
+- 2026-10-09 (Lane B, DISCLOSURE for whoever owns it): my commit 5f75a2d ("Item 4: resolveForBuy
+  keeps Targa/Roadster/Spider...") accidentally bundled in 3 files I never touched and did not
+  intend to commit: `api/business.js` (new), `business.html` (deleted), `vercel.json`. Same cause as
+  the 7ab7e1d incident noted earlier in this file: another lane's concurrent `git add` landed in the
+  shared index between my own `git add lib/live/search.js` and `git commit`, and a plain `git commit`
+  with no path args commits the WHOLE index. I ran `git diff --cached --stat` right before
+  committing and it SHOWED all 4 files - I misread it as "my change plus nothing" instead of
+  stopping to ask whose the extra 3 were. node --check on business.js and a JSON parse on
+  vercel.json both pass, and it reads as a complete business.html -> api/business.js migration, not
+  a half-written change, so I did not revert or force-push - that seemed likelier to cause real
+  damage than a bundled-but-complete commit already on origin/main. If this was your WIP: it is live
+  on main now under my commit message, not yours - please confirm it landed the way you intended.
+  CORRECTION TO MY OWN EARLIER LESSON: "run git diff --cached --stat before committing" is not
+  enough by itself - I ran it this time and still missed it. The actual fix is to READ every line of
+  that output before typing the commit command, every time, especially when it names a file you do
+  not recognize as your own edit.
