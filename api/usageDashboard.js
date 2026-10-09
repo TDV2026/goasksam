@@ -1157,6 +1157,15 @@ async function handleOps(req, res) {
   // provider's real outcome is visible without a second Resend call. ?delete=1 instead deletes every
   // row whose name starts with "QA TEST ROW" (this task's own marker) - used for cleanup, never a
   // bare/unfiltered delete.
+  // task=bizleadlist: READ-ONLY, lists every business_leads row (most recent first) so a real
+  // (non-QA-marked) test submission - e.g. Sam's own - can be identified and reported back, without
+  // guessing at or deleting anything.
+  if (task === "bizleadlist") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const rows = await supabaseSelect(env, `business_leads?select=id,name,company,email,message,notify_ok,notify_error,created_at&order=created_at.desc&limit=50`);
+    return res.status(200).json({ task: "bizleadlist", rows: rows || [] });
+  }
+
   if (task === "bizleadtest") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     if (req.query?.delete === "1") {
