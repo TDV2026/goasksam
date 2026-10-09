@@ -2179,3 +2179,114 @@ when the work has landed.
   * FOR SAM (urgent): add `PROBE_KEY: ${{ secrets.PROBE_KEY }}` to both smoke steps in
     .github/workflows/smoke-prod.yml. Until then the smoke chat checks (their own test prompts) get 400 or the
     sign in line and the smoke run stays red.
+- 2026-10-09 (Lane A): /business rebuilt as Sam Desk, version five (commits 5eb5217/f76e0a3, replaces every
+  earlier /business build - version four never happened, see STATUS below).
+
+  STATUS OF VERSION FOUR (asked for first, in my reply before I started): NEVER STARTED. The last commit to
+  api/business.js before this round was 43844d9 ("/business rework: insurer/lender/finance audience, pain-
+  first problems, trimmed why list") - the insurer/lender v2/v3 build, not the Sam Desk v4 spec. The v4
+  request arrived mid-task on an unrelated job and was queued but never reached before v5 superseded it.
+  Confirmed by reading git log for api/business.js directly, not from memory.
+
+  SECTIONS BUILT, each against the spec:
+  1. Hero - label SAM DESK (+ Updated date), H1 "Ask the whole collector car market.", the exact sub given,
+     "Request a walkthrough" (anchors to the new form, #walkthrough) and "See how it works" (anchors to
+     #how-it-works). Old reference-figure hero/sub fully removed.
+  2. "Start with a question. Keep digging." - a Sam Desk input box (own CSS, .biz-desk-search, same pill
+     shape as Buy's own hero box, not imported directly) with the four example questions rotating as the
+     placeholder (client JS, stops on focus, respects prefers-reduced-motion) and labelled "Example
+     questions" in small text. PRESSING GO: /desk (the actual Sam Desk tool) is crew-only always
+     (api/desk.js: "crew-only ALWAYS... deliberately NO public-flag fallback") - so go scrolls to the
+     walkthrough form and focuses the name field, never a live query. Verified live (Puppeteer): click ->
+     scrollY 0 to 1679, name field received focus. Three answer-format columns and the three follow-up
+     chips (visual only, as specified) below it.
+  3. "One market. Whatever question you have." - the four area cards, exact copy, 2x2 at 1440/stacked at 390.
+  4. "Don't stop at the first answer." - REAL engine data, built as described below. Renders nothing at all
+     (the whole section, heading included) when the cache has nothing yet - confirmed live right now: cold
+     cache, section absent, rest of the page unaffected. See CACHE WARM-UP below for how to get it showing.
+  5. "Who it is for." - the four items, exact copy.
+  6. "Every answer can be challenged." - the four trust items, exact copy, plus a link to /how-sam-decides
+     (never duplicating its text, per the instruction).
+  7. Close - the GoAskSam/Sam Desk line pair, then the new lead form (see LEADS below), not a second
+     "Request a walkthrough" mailto button - the form itself IS the request now.
+
+  ENGINE FUNCTION FOR EVERY FIGURE ON THE PAGE (one-engine confirmation): the ONLY figures anywhere on this
+  page are in section 4, and every one of them comes from api/_historyData.js's `oneBoxFor`, which wraps
+  lib/onebox.js's `runOneBox` - the exact same call Market Check's own landing example
+  (lib/live/marketCheckExample.js) already uses. No second implementation, no hand-typed number anywhere on
+  the page (confirmed by re-reading the final file for any literal dollar figure or count - none exist
+  outside the deskExample-sourced ones).
+  - ASK (the total count): the sum of three real `d.poolN` values (lib/onebox.js: `poolN: solid.length`,
+    the engine's own raw integer, read directly rather than reversing the word-ified `soldCount` prose
+    field - same fact, cleaner path).
+  - REFINE (the per-generation table): three SEPARATE `oneBoxFor` calls, one per generation, each reading
+    its own real `d.poolN`. Not a single batched call - none exists. A confirmed research pass (forked
+    this round) established there is no existing `[{label, query, n}]`-shaped count-by-generation function
+    anywhere in lib/onebox.js, lib/vehicle.js or lib/live/search.js (`runOneBoxModelChoice` is a different
+    axis - ambiguous MAKE, not generation - and its returned `modelOptions` are plain strings with no
+    count; the generation_choice tier's own `generationOptions` are `{label, query}` only, no count
+    either) - so three real per-generation calls, composed client-side into one table, is the only way to
+    get this without inventing a new counting method.
+  - COMPARE (typical price, two windows): the newest generation's own real `d.yoyDirection` field
+    (`recentBand`/`priorBand`/`recentWindow`/`priorWindow`) - the engine's OWN twelve-month-vs-twelve-month
+    comparison, confirmed by the same research pass, attached to every tier:"result" response
+    (lib/onebox.js:3480-3491, `yearOverYearDirectionFor`).
+  - VERIFY (three receipt cards): that same generation's own real `d.cards`, first three.
+  COPY DEVIATION FLAGGED: the task's example ASK text says "in the last three months"; the engine's native
+  window (confirmed again by the research pass) is twelve-months-vs-twelve-months, with no existing
+  three-month windowing capability anywhere in the three allowed files - and I was told not to edit
+  lib/onebox.js (Lane B's file) to add one. The page's rendered copy therefore says "in {the engine's real
+  windowLabel}" (today that reads "the last twelve months"), never a hand-typed "three months" the number
+  would not actually match. FOR LANE B: if a true rolling-three-month window is wanted for this or future
+  Market Check/Sell/Buy features, it does not exist today in quarterlyBandsFor/yearOverYearDirectionFor
+  (both are hardcoded to calendar quarters / twelve-month windows) - flagging the gap, not building it.
+  WHY THREE GENERATIONS, NOT A BARE "911": confirmed by the research pass - a bare "Porsche 911" (no year)
+  hits lib/onebox.js's own generation-ask gate (curated 911 rule, 7 generations), and `oneBoxFor`'s own
+  comment documents that its capped whole-nameplate retry for this exact case is "measured live... twice,
+  never a card" past the 15s deadline - a pooled all-generations 911 query is not a viable fast path today.
+  Queried by CHASSIS CODE instead ("2008 Porsche 997", "2015 Porsche 991", "2021 Porsche 992" - OCD files
+  modern 911s under their chassis code as its own model string, so each resolves directly to a normal
+  tier:"result", no ask, confirmed by the same research pass) - three real, fast, single-generation calls.
+
+  CACHE WARM-UP NEEDED (section 4 will not show until one of these happens):
+  - lib/live/deskExample.js (new, same caching pattern as marketCheckExample.js: spec_market_cache,
+    24h TTL, graceful cold-start) + scripts/buildDeskExample.js (new, mirrors buildMarketCheckExample.js).
+  - Added as a nightly step to ops/nightly-workflow.yml (the version-controlled source of truth per
+    CLAUDE.md). COULD NOT push the same step into .github/workflows/nightly.yml directly (my PAT lacks
+    workflow scope, the standing limitation) - AND that live file has ALSO drifted from ops/ this round in
+    an unrelated way (someone changed the probe-key auth header from a query param to `x-ops-key`,
+    confirmed via diff) - FOR SAM: add the 5-line "Build Sam Desk worked example" step (copy it from
+    ops/nightly-workflow.yml) to the REAL .github/workflows/nightly.yml, and it would be worth reconciling
+    the two files generally since they're meant to be kept identical and no longer are.
+  - Until the nightly run (or a manual trigger), added a read-only-except-this-one-cache-row ops hook:
+    `GET /api/usageDashboard?view=ops&task=deskexample&key=<PROBE_KEY>` forces an immediate fresh build
+    (same pattern as the existing task=obcheck). I don't have PROBE_KEY so could not trigger it myself -
+    whoever does can hit that URL once to make section 4 appear right away instead of waiting for tonight.
+
+  LEADS (item 1's fallback, since nothing existed): no contact form or lead-capture path existed anywhere
+  in the codebase for /business before this round - the old "Request a walkthrough" button was a bare
+  mailto: link. Built the fallback the task spec named: api/businessLead.js (POST name/company/work
+  email/message, server-side insert only via supabaseInsert, a best-effort notification email to
+  feedback@goasksam.com via the existing lib/_email.js sendTaskEmail - never blocks the saved row on a
+  missing RESEND_API_KEY) + docs/supabase-business-leads.sql (new table business_leads, RLS on, anon/
+  authenticated revoked, per the standing database security rule - PENDING, Sam runs it once; until then
+  every insert attempt fails gracefully with "That didn't save. Try again in a moment." rather than a crash
+  - confirmed by code review, NOT by a live test submission, since that would write a real row and send a
+  real notification email before the table/intent was confirmed wanted - the auto-mode safety classifier
+  correctly blocked my attempt to do that live, which was the right call).
+
+  COPY RULE TENSION FLAGGED, NOT SILENTLY RESOLVED: the "Research and consulting" area's body text
+  ("...Go from a broad market question to the underlying cars in a few minutes.") is Sam's own verbatim
+  text from the spec, but the standing rule for this page says "no time or effort claims anywhere." Kept
+  verbatim since it was given as exact copy in the brief - flagging the tension rather than either
+  silently cutting Sam's own words or silently keeping a rule violation unmentioned.
+
+  OTHER: "For business" kept as the nav label (lib/appShell.js SHELL_PAGES, unchanged). "Sam Desk" never
+  "Sam's Desk" anywhere (checked). No em/en dashes (checked). No first-person Sam (checked - "Sam says"/
+  "Sam gives you" are third person, matching the brief's own wording). No venue/source counts stated.
+  Baseline: /sell /buy /tasks /market-check /business all 200 signed out, /business title "Sam Desk |
+  GoAskSam for business", H1 "Ask the whole collector car market.", canonical/robots confirmed correct.
+  Screenshots at 1440/390 this session (not committed, local only; section 4 not visible yet, cold cache -
+  see above).
+  Search check: title/H1/canonical/description all set and confirmed live; indexable (robots: index,
+  follow); no public page outside /business touched.
