@@ -2450,21 +2450,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "yearrecovery", liveRowsWithNoYear: blank.length, recoverableViaVinDecode: vinRecoverable, stillUnrecoverable: unrecoverable, note: "prior-appearance leg protects future polls from regressing an already-known year; it has no effect on today's already-blank rows, which is why this count is VIN-decode only." });
   }
 
-  // task=shadowreport: READ-ONLY. Summarizes sell_pick_shadow rows logged by SELL_PICK_SHADOW (off by
-  // default) - count, agree vs disagree, and the disagreeing cars' old pick vs shared pick. Never writes.
-  if (task === "shadowreport") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const rows = (await supabaseSelect(env, `app_usage_events?event_type=eq.sell_pick_shadow&select=created_at,search_text,vehicle,metadata&order=created_at.desc&limit=2000`)) || [];
-    const agree = rows.filter(r => r.metadata && r.metadata.agree === true).length;
-    const disagree = rows.filter(r => r.metadata && r.metadata.agree === false).length;
-    const noPick = rows.length - agree - disagree;
-    const disagreeing = rows.filter(r => r.metadata && r.metadata.agree === false).map(r => ({
-      at: r.created_at, car: r.search_text || (r.vehicle && [r.vehicle.year, r.vehicle.make, r.vehicle.model, r.vehicle.trim].filter(Boolean).join(" ")) || null,
-      oldPick: r.metadata.oldPick, sharedPlatform: r.metadata.sharedPlatform, sharedMode: r.metadata.sharedMode, reasonCode: r.metadata.reasonCode
-    }));
-    return res.status(200).json({ task: "shadowreport", total: rows.length, agree, disagree, noPickOnOneSide: noPick, disagreeing });
-  }
-
   // task=platformpickaudit: the 40-car dropped-gates audit (flag off, read only - never writes, never
   // touches SELL_PICK_SHARED). Runs the SAME old-ladder-vs-shared-function comparison
   // platformpickreport does, sequentially (never parallel - this is metered OCD spend; sequential
@@ -2478,7 +2463,7 @@ async function handleOps(req, res) {
     const { findGeneration } = await import("../lib/generations.js");
     const { fetchRecentRecords, analyze, buildLadder, decide } = await import("./sellerDecision.js");
     const { classifyRecord } = await import("../lib/_classify.js");
-    const { pickPlatform } = await import("../lib/platformPick.js");
+    const { pickPlatform, buildSharedAnalysis } = await import("../lib/platformPick.js");
     const AUDIT_CARS = [
       // the original 7
       "2008 Porsche 911 Carrera S Coupe", "1967 Ford Mustang Fastback", "1955 Mercedes-Benz 300SL Gullwing",
@@ -2525,6 +2510,20 @@ async function handleOps(req, res) {
         row.sharedEvidenceSales = (shared && shared.evidenceSales) || 0;
         row.sharedThin = !!(shared && shared.thin);
         row.sharedRange = (shared && Array.isArray(shared.pickedVenueTypicalRange)) ? shared.pickedVenueTypicalRange : null;
+        // THE REAL PRODUCTION PATH (Oct 2026, post-flip verification): api/sellerDecision.js's own
+        // handler, with SELL_PICK_SHARED=1, feeds buildSharedAnalysis's output into decide() - NOT
+        // pickPlatform directly. decide()'s own pickRecommendedRoute (private, not exported) has an
+        // independent "depth leader" tie-break with the same strict > pattern depthPick had before
+        // the fix - a genuine second implementation, still live. This reproduces exactly what the
+        // real page computes, without editing api/sellerDecision.js (decide/buildSharedAnalysis were
+        // already exported).
+        try {
+          const realAnalysis = await buildSharedAnalysis(vehicle, generation, env, criteria);
+          if (realAnalysis) {
+            const realDec = decide(realAnalysis, criteria, vehicle);
+            row.realPick = realDec.recommendedPath || null;
+          } else { row.realPick = null; }
+        } catch (e) { row.realPick = null; row.realPickError = String((e && e.message) || e); }
         // Market Check's own cluster for this car, zero OCD (runOneBox is archive-only) - which ladder's
         // pick/range it agrees with is the tiebreaker on a divergent-platform car.
         const { runOneBox: runOneBoxMC } = await import("../lib/onebox.js");
@@ -2533,6 +2532,11 @@ async function handleOps(req, res) {
         row.marketCheckCluster = (mc && Array.isArray(mc.cluster)) ? { low: mc.cluster[0], high: mc.cluster[1], poolN: mc.poolN ?? null } : null;
         const normP = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
         row.agree = !!(row.oldPick && row.sharedPick) && normP(row.oldPick) === normP(row.sharedPick);
+        // realPick (the production path, via decide()'s own pickRecommendedRoute) vs sharedPick (the
+        // standalone pickPlatform this task otherwise compares) - a false here, with agree:true above,
+        // is exactly the GT-R class of bug: the diagnostic and the real page disagree with EACH OTHER,
+        // not just with the legacy pre-flip ladder.
+        row.realAgreesWithShared = !!(row.realPick && row.sharedPick) && normP(row.realPick) === normP(row.sharedPick);
       } catch (e) { row.error = String((e && e.message) || e); }
       rows.push(row);
     }
