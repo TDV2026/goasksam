@@ -1206,3 +1206,14 @@ when the work has landed.
   nothing ("quiet": the sent log, not the digest hold). Drawer arming on Buy and the Watching rail checked at
   1440 and 390; the message's stop link (confirm page, then POST) stopped every watch and the rail section went.
   The stop pages now say they stop before-it-ends notices and watches, in GoAskSam's name.
+- 2026-10-09 (Lane C): WATCH FOLLOW-UP. (1) Sender display name is "GoAskSam" on every message sent through
+  lib/_email.js sendTaskEmail (watches, before it ends, Tasks); the address stays sam@mail.goasksam.com
+  (verified domain, DKIM/SPF untouched; a TASK_EMAIL_FROM override keeps its address, shown as GoAskSam). Sign-in
+  emails are Supabase Auth's own: their sender name is set in the Supabase dashboard (Auth > SMTP), not in code.
+  Partner lead emails were already "GoAskSam Leads". (2) STOP GRANULARITY: a message's stop link now also names
+  its one item, signed: `&i=w:<watch id>.<sig>` (a watch) or `&i=a:<buy_alerts id>.<sig>` (a before-it-ends
+  notice) (lib/live/buyAlerts.js stopLink(userId, item) / verifyItem). The confirm page names it ("Stop the
+  watch on 3.2 Carrera Targas") with "Stop this one" (POST &scope=one) and "Stop everything" (POST
+  &scope=all). The List-Unsubscribe header keeps the account-wide link (no item), so a mail client's one-click
+  POST stops everything. (3) "Free. No card, no plan." shows in the drawer of the account's first watch only,
+  and goes once a later watch is armed. API FOR LANE A: no reply shape changed (arm/list/stop as above).

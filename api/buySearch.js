@@ -27,7 +27,7 @@ import { humanTitle } from "../lib/carTitle.js";
 import { supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { placingFor } from "../lib/onebox.js";
 import { chatOut } from "../lib/live/chatHttp.js";
-import { armAlert, cancelAlert, listAlerts, runAlerts, stopAll, verifyStop, testSend, isMissingTable, alertsReady, useNamer } from "../lib/live/buyAlerts.js";
+import { armAlert, cancelAlert, listAlerts, runAlerts, stopAll, verifyStop, verifyItem, stopOne, itemLabel, testSend, isMissingTable, alertsReady, useNamer } from "../lib/live/buyAlerts.js";
 
 const FIRST = 10, MAX = 200;
 const titleCaseIfShouting = s => String(s || "").split(",").map(p => { const t = p.trim(); return t && t === t.toUpperCase() && /[A-Z]{3}/.test(t) ? t.toLowerCase().replace(/\b([a-z])/g, c => c.toUpperCase()) : t; }).filter(Boolean).join(", ");
@@ -118,7 +118,21 @@ export default async function handler(req, res) {
       const page = (status, body) => { const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Stop these messages? | GoAskSam</title><style>${STOP_CSS}</style></head><body><main><p class="brand">GoAskSam</p>${body}</main></body></html>`; return req.method === "HEAD" ? res.status(status).end() : res.status(status).send(html); };
       const uid = verifyStop(q0.t);
       if (!uid) return page(400, `<h1>That link has expired.</h1><p><a href="/buy">Back to Buy</a></p>`);
-      if (req.method !== "POST") return page(200, `<h1>Stop these messages?</h1><p>This stops every message GoAskSam sends about the cars you picked: the before-it-ends notices and every watch. You can turn them on again from any car.</p><form method="post" action="/api/buySearch?alert=stop&t=${encodeURIComponent(String(q0.t))}"><button type="submit">Stop them</button></form><p class="quiet"><a href="/buy">Back to Buy instead</a></p>`);
+      // A message's own link also names its one watch or notice (signed; lib/live/buyAlerts.js stopLink):
+      // the page offers "Stop this one" beside "Stop everything". The mail client's one-click POST goes to
+      // the header link, which names no item, so it always stops everything (as List-Unsubscribe requires).
+      const item = q0.i ? verifyItem(uid, q0.i) : null;
+      const lab = item ? await itemLabel(env, uid, item) : null;
+      const base = `/api/buySearch?alert=stop&t=${encodeURIComponent(String(q0.t))}${item ? `&i=${encodeURIComponent(String(q0.i))}` : ""}`;
+      const esc2 = s => String(s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+      if (req.method !== "POST") {
+        if (lab) return page(200, `<h1>Stop these messages?</h1><p>Stop ${esc2(lab.text)}, or stop everything GoAskSam sends about the cars you picked: the before-it-ends notices and every watch.</p><div class="two"><form method="post" action="${base}&scope=one"><button type="submit">Stop this one</button></form><form method="post" action="${base}&scope=all"><button type="submit" class="alt">Stop everything</button></form></div><p class="quiet"><a href="/buy">Back to Buy instead</a></p>`);
+        return page(200, `<h1>Stop these messages?</h1><p>This stops every message GoAskSam sends about the cars you picked: the before-it-ends notices and every watch. You can turn them on again from any car.</p><form method="post" action="${base}&scope=all"><button type="submit">Stop everything</button></form><p class="quiet"><a href="/buy">Back to Buy instead</a></p>`);
+      }
+      if (item && q0.scope === "one") {
+        await stopOne(env, uid, item).catch(e => console.error("buy stop one:", e.message));
+        return page(200, `<h1>Stopped.</h1><p>GoAskSam won't send any more messages from ${esc2(lab ? lab.text : "that one")}. Everything else stays on.</p><p class="quiet"><a href="/buy">Back to Buy</a></p>`);
+      }
       await stopAll(env, uid).catch(e => console.error("buy alert stop:", e.message));
       return page(200, `<h1>Stopped.</h1><p>GoAskSam won't send any more messages about the cars you picked.</p><p class="quiet"><a href="/buy">Back to Buy</a></p>`);
     }
@@ -438,7 +452,7 @@ async function savedSearches(env, req, res, b) {
   return res.status(400).json({ ok: false });
 }
 
-const STOP_CSS = "body{margin:0;background:#F6F3EC;color:#15201A;font:400 17px/1.55 system-ui,-apple-system,'Segoe UI',sans-serif}main{max-width:520px;margin:0 auto;padding:48px 20px}.brand{font:600 20px/1 Georgia,serif;margin:0 0 32px}h1{font:500 30px/1.15 Georgia,serif;margin:0 0 14px}button{margin:10px 0 6px;min-height:48px;padding:0 22px;border:0;border-radius:10px;background:#1E4D38;color:#fff;font:600 16px/1 system-ui,sans-serif;cursor:pointer}a{color:#1E4D38}.quiet{font-size:14px;color:#5E6B63}";
+const STOP_CSS = "body{margin:0;background:#F6F3EC;color:#15201A;font:400 17px/1.55 system-ui,-apple-system,'Segoe UI',sans-serif}main{max-width:520px;margin:0 auto;padding:48px 20px}.brand{font:600 20px/1 Georgia,serif;margin:0 0 32px}h1{font:500 30px/1.15 Georgia,serif;margin:0 0 14px}button{margin:10px 0 6px;min-height:48px;padding:0 22px;border:0;border-radius:10px;background:#1E4D38;color:#fff;font:600 16px/1 system-ui,sans-serif;cursor:pointer}a{color:#1E4D38}.quiet{font-size:14px;color:#5E6B63}.two{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.two form{margin:0}button.alt{background:#fff;color:#1E4D38;border:1px solid #1E4D38}";
 // On-demand current bid for one auction when its detail view opens, cached 5 minutes. OFF unless
 // LIVE_FRESHNESS=1, and never under the monthly reserve. One metered request at most (2 retries on 5xx).
 const bidCache = new Map();
