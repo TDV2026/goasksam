@@ -860,18 +860,9 @@
     keys.forEach(function (k) { delete r[k]; });
     return RMCHIP_ANSWER_KEYS.some(function (k) { return r[k] != null; }) ? r : null;
   }
-  // Item 9 ("Put Sam on it"): reuses the existing watch creation call (api/buySearch action:"watch"),
-  // never a second endpoint. A VIN/chassis match watches the exact car (the same VIN key the
-  // /history page already uses); a plain spec search watches the family - a key format Lane C has
-  // not confirmed yet (no consumer reads a "family:" key today - see docs/lane-notes.md).
-  function watchKeyFor(d, m) {
-    if (m && obSourceVin) return obSourceVin.toUpperCase();
-    var rc = d && d.resolvedCar; if (!rc || !rc.make || !rc.model) return null;
-    var sl = function (x) { return String(x || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); };
-    var model = String(rc.model || ""), trim = String(rc.trim || "");
-    var fam = !trim || sl(model).indexOf(sl(trim)) >= 0 ? model : (sl(trim).indexOf(sl(model)) >= 0 ? trim : model + " " + trim);
-    return "family:" + sl(rc.make) + ":" + sl(fam) + (rc.bodyStyle ? ":" + sl(rc.bodyStyle) : "");
-  }
+  // Item 9 ("Put Sam on it"): the band's copy only - NOT wired to a watch creation call yet. See the
+  // wire() handler below and docs/lane-notes.md for why (Lane C's /api/watch action:"arm" needs a
+  // live_listings listing_id Market Check does not have).
   function samOnItHtml(d, m) {
     var line = m ? "If this exact car comes up again, Sam tells you." : ("The next " + esc(carLabel(d.resolvedCar)) + " that sells, Sam tells you, with the sale attached.");
     return '<section class="samonit" data-stage="note"><p>' + lint(line, "samonit") + '</p><button type="button" class="linkbtn" id="ob-samonit">Put Sam on it &#8594;</button><p class="samonit-msg" id="ob-samonit-msg" hidden></p></section>';
@@ -1993,27 +1984,21 @@
         runPool(lastQuery, obLastVehicle, refineWithout(b.getAttribute("data-rmchip")));
       });
     });
-    // Item 9 ("Put Sam on it"): signed-out click opens the shared sign-in card and stops there (the
-    // watch is created on the NEXT click, once signed in - no post-signin auto-resume, same as the
-    // guest-link nudge pattern this mirrors). Signed-in click creates the watch straight away using
-    // the session's own email, no second form.
+    // Item 9 ("Put Sam on it"): signed-out click opens the shared sign-in card. NOT wired past that
+    // (Oct 2026): Lane C's real watch creation call is /api/watch action:"arm", but arm() is hard-
+    // gated on a live_listings listing_id (lib/live/watches.js) - it looks the live row up and reads
+    // the spec/VIN off IT, never off a typed spec. Market Check has no listing_id (it runs from
+    // d.resolvedCar/a VIN archive match, not a live listing), so there is no honest call to make yet
+    // on EITHER branch (spec or VIN). Per the standing rule against showing a confirmation for
+    // something that does not really happen, a signed-in click does nothing further right now - see
+    // docs/lane-notes.md for exactly what Lane C needs to add (an arm-by-spec/vin path with no
+    // listing_id requirement) before this reconnects.
     (function () {
       var soi = document.getElementById("ob-samonit"); if (!soi) return;
       soi.addEventListener("click", function () {
-        var msg = document.getElementById("ob-samonit-msg");
         if (!(typeof authIsSignedIn === "function" && authIsSignedIn())) {
           if (typeof openSignInCard === "function") openSignInCard("Sign in so Sam can tell you when this sells.");
-          return;
         }
-        var key = watchKeyFor(obLastD, vinAnchor);
-        var sess = (typeof authGetSession === "function") ? authGetSession() : null;
-        var email = sess && sess.email;
-        if (!key || !email) return;
-        soi.disabled = true;
-        obFetch(API_ORIGIN + "/api/buySearch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "watch", key: key, email: email }) })
-          .then(function (r) { return r.json(); })
-          .then(function (j) { soi.disabled = false; if (msg) { msg.hidden = false; msg.textContent = (j && j.ok) ? "Sam's on it. You'll hear from him at " + email + "." : OB_CALM; } })
-          .catch(function () { soi.disabled = false; if (msg) { msg.hidden = false; msg.textContent = OB_CALM; } });
       });
     })();
   }
