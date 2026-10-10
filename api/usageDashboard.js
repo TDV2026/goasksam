@@ -4128,7 +4128,12 @@ async function handleOps(req, res) {
         // computed from __specEngine.percentile, the exact function r4Cluster itself uses.
         let listSales = null;
         if (wantListSales) {
-          const vv = bodyOverride ? { ...v, bodyStyle: bodyOverride } : v;
+          // buildSpec's own generation re-bind step (lib/onebox.js, ~line 1147) re-derives genCode/
+          // yearMin/yearMax from the REAL curated table whenever vehicle.year is set and matches
+          // exactly one curated generation - it clobbers a passed-in generation override every time
+          // for a car with a year. Dropping year here (only in this diagnostic) is what lets
+          // genOverride actually take effect; trim+bodyStyle still scope the pool precisely.
+          const vv = { ...v, ...(bodyOverride ? { bodyStyle: bodyOverride } : null), ...(genOverride ? { year: null } : null) };
           const useGen = genOverride || g;
           const listing = await listSalesForVehicle(vv, useGen, env, sinceDaysQ).catch(e => ({ ok: false, reason: String(e && e.message || e) }));
           const dbgSpec = buildSpec(vv, useGen, q);
