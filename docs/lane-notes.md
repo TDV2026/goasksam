@@ -3205,3 +3205,50 @@ when the work has landed.
     pull_live_bid activity in this window. Same recommendation as last round stands: tag job via
     configureOcdUsage for warm/engine-fetch/ops-probe callers so the 71% untagged bucket can actually
     be split; not implemented (report-only job).
+
+- 2026-10-10 (Lane B): 997 CARRERA S HALF-GENERATION REPORT (no code changes, as asked).
+  * Report-only job. Pulled real last-12-month data for 997.1 (2005-2008) and 997.2 (2009-2011)
+    Carrera S, coupe and cabriolet, via a TEMPORARY obdiag addition (genOverride/listSales) that
+    called the SAME shared fence pipeline (lib/onebox.js listSalesForVehicle -> buildSpec ->
+    fetchQualifying) with a synthetic generation object, never touching the curated table. Reverted
+    after the pull (commit 38e2af6) - net diff on api/usageDashboard.js is zero.
+  * FOUND IN PASSING (not fixed, not asked to fix, worth a note for whoever next writes a report-only
+    probe): buildSpec's generation re-bind step (~line 1147) re-derives genCode/yearMin/yearMax from
+    the REAL curated table whenever vehicle.year is set and matches exactly one curated generation -
+    it silently overwrites any passed-in generation object. My first pass at this diagnostic got
+    identical numbers for 997.1/997.2/merged because of this; worked around it by dropping
+    vehicle.year in the probe (trim+body still scoped it precisely). Not a product bug - vehicle.year
+    is always real for any genuine search, so this path is unreachable in production; only matters
+    for a report-only probe like this one that wants to override the generation directly.
+  * NUMBERS (last 365 days, archive-only, full fences applied):
+    997.1 coupe n=65, p25 $47,250, median $59,000, p75 $67,500.
+    997.1 cabriolet n=42, p25 $39,250, median $45,500, p75 $54,375.
+    997.2 coupe n=15, p25 $61,750, median $71,000, p75 $87,813 (+20% median vs 997.1 coupe).
+    997.2 cabriolet n=6 (below the engine's own 8-sale cluster floor), p25 $44,500, median $49,750,
+    p75 $61,750 (+9% median vs 997.1 cabriolet).
+    Merged, as served today: coupe n=80, p25 $49,000, median $60,500, p75 $70,625; cabriolet n=48,
+    p25 $39,750, median $45,875, p75 $54,750. (80=65+15, 48=42+6 - counts reconcile exactly.)
+  * Of the 20 coupe sales landing above the merged p75 ($70,625): 8 are 997.2 (2009-2011, incl. the
+    three highest: $125k/31k-mi 2011, $106k 2010, $105k/18k-mi 2011) and 12 are 997.1 (2005-2008,
+    incl. the $100,997/16k-mile 2006 the question named). 997.2 is 19% of the coupe pool but 40% of
+    the above-range sales - overrepresented at the top by >2x its share - but low-mileage 997.1
+    examples land above range just as often in raw count. Trust rules do NOT set any of this aside:
+    every one of the 20 is a fully qualifying sale (fetchQualifying's own fences already applied) -
+    the merge, not an unapplied exclusion, is moving the range.
+  * RECOMMENDATION: keep the merge, but prefer same-half-generation sales for the middle-of-range
+    sale and the three context cards. Reasons: the coupe gap is real (+20% median, both sides >=8
+    sales, a clean split would be defensible) but cabriolet's 997.2 side (n=6) sits BELOW the
+    engine's own 8-sale cluster floor - splitting outright would leave 997.2 cabriolet thin/no-range,
+    a regression from today's merged answer. The user's actual named complaint (a 2010, a 2011, a
+    16k-mile 2006 shown as "the above range cars") is a CONTEXT-CARD selection issue, fixable without
+    touching the cluster width at all.
+  * OTHER MODELS WITH THE SAME QUESTION (single curated generation entry, real counts pulled the
+    same way): 991.1/991.2 is ALREADY split in lib/generations.js (2012-2016 / 2017-2019) - a working
+    counter-example, not a gap. Gaps found:
+    996.1 (1999-2001) n=159 median $27,800 vs 996.2 (2002-2004) n=81 median $29,250 (+5%, modest).
+    987.1 Boxster (2005-2008) n=89 median $23,000 vs 987.2 (2009-2012) n=37 median $37,250 (+62% -
+    the LARGEST gap found, bigger than 997's, both sides well above the cluster floor; worth
+    prioritizing over 997 if Sam only splits one).
+    E46 M3 pre-facelift (2000-2002) n=55 median $23,500 vs post-facelift/LCI (2003-2006) n=134
+    median $27,125 (+15%).
+  * No code changes made or left behind, per the job.
