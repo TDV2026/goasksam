@@ -4993,6 +4993,8 @@ async function handleOps(req, res) {
       try {
         const rv = await resolveVehicle(q, {}); const vehicle = rv && rv.vehicle;
         if (!vehicle || !vehicle.make) { row.error = "unresolved"; rows.push(row); continue; }
+        // Live Sell asks a question first for anything the resolver does not call valid (no pick shown then).
+        row.resolverStatus = rv.status || null;
         const generation = await findGeneration(vehicle, env).catch(() => null);
         for (const [name, timeline] of [["normal", "No rush"], ["rush", "As soon as possible"]]) {
           const criteria = getSellerCriteria({ raw: q, region: "US", state: "California", targetPrice: "", timeline });
@@ -5003,6 +5005,8 @@ async function handleOps(req, res) {
           const newRoute = sharedPickRoute(routes.map(r => ({ ...r })), analysis.sharedPick);
           const out = { oldPick: dec.recommendedPath || null, newPick: (newRoute && newRoute.platform) || null, sharedReason: analysis.sharedPick && analysis.sharedPick.baseline && analysis.sharedPick.baseline.reasonCode || null, basis: dec.evidenceBasis };
           out.pickSame = k(out.oldPick) === k(out.newPick);
+          out.oldReason = (routes.find(r => k(r.platform) === k(dec.recommendedPath)) || {}).pickReason || null;
+          out.venues = (analysis.platformPerformance || []).filter(v => Number(v.evidenceSales) > 0).map(v => `${v.policyKeySlug || v.platform}:${v.evidenceSales}@${v.latestSaleDate || "?"}`).join(" ");
           if (name === "rush") {
             // the page's current rule, card order = the server's pick first, then route order
             const pick = routes.find(r => k(r.platform) === k(dec.recommendedPath));
