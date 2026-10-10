@@ -2918,3 +2918,41 @@ when the work has landed.
     names a distance (radius_miles). The results sentence and the Keep looking line now say it: searchLabel
     (api/buy.js CLIENT) takes the search's own radius (meta.radius) and reads "within 500 miles of New York";
     two caps read "under $100,000 with under 50,000 miles". Radius itself unchanged (Sam to decide).
+
+- 2026-10-09 (Lane C): ONE VENUE PICK (GT-R), SIGNED CREW COOKIE, CLOSEST SALES IN THE FOLLOW-UP CHAT.
+  * ONE PICK (71c4683). lib/platformPick.js now exports depthWins (the one depth tie-break, exact tie to Bring a
+    Trailer) and isRoutableVenue / ROUTABLE_VENUES (the one routable-venue list); depthPick calls depthWins.
+    api/sellerDecision.js pickRecommendedRoute uses depthWins and isRoutableVenue, each route's routable flag is
+    isRoutableVenue(key), and a load-time check logs CRITICAL if ROUTE_POLICIES ever names different venues.
+    decide() returns routingReason. js/result.js no longer re-derives the pick (routesForCards and the price
+    swap were a third copy with the same strict ">"): the server's recommendedPath leads. Dead depth-leader
+    copy (routingReason "speed_unknown", set nowhere) removed.
+    STILL DUPLICATED, not changed (would change picks, Sam/Lane B to decide): decide()'s premium volume gate,
+    dominance and specialist branches mirror lib/platformPick.js runLadder over a different input shape
+    (precomputed marketEvidence vs raw prices), and decide() alone has the thin-window override and the curated
+    win conditions. js/result-v2.js v2Composition keeps its own speed (rush) pick, mirroring pickPlatform's
+    speed branch. Folding decide() into runLadder is the next step if wanted.
+  * OLD FETCH: with SELL_PICK_SHARED on (every seller except "through an auction house") the OldCarsData ladder
+    fetch fed nothing the shared analysis uses. It is now a store read (cacheStatus "shared_pick_store"),
+    zero metered requests. Auction-house sellers keep the old path. Cache-first rule and breaker unchanged.
+  * CHECK: scripts/crossProductCheck.js checkSinglePick (runs inside runEngineCheck, so nightly and
+    task=enginecheck): fails on a second ">"/"===" depth comparison in the pick files, or when 2009 Nissan
+    GT-R gets a different venue from decide() than from pickPlatform. FOR LANE B: crossProductCheck is yours;
+    this is the only addition, and its exit code now also fails on singlePick.
+  * 40-car audit after the fix: realPick == sharedPick on 38 of 40, GT-R included (Bring a Trailer, $61,000 to
+    $80,500 on both Sell and Market Check). The two others (2006 CLK DTM AMG Cabriolet, 1967 Ferrari 275 GTB/4)
+    have NO routable sales in the shared pool: pickPlatform returns no pick, decide() applies the locked policy
+    floor (rule 8, labelled policy). FOR LANE B / SAM: decide whether the audit should count a policy-floor
+    venue against "no pick" as agreement.
+  * SIGNED CREW COOKIE (e614841). lib/_crew.js: gas_crew=v1.<expiry>.<HMAC-SHA256>, key derived from
+    CURTAIN_CREW_CODE (no new env var), one year, fail closed. Every server crew check calls isCrewRequest:
+    api/_chrome.js isCrewRequest (all rail/whyResult callers and lib/appShell.js isFullAccess callers),
+    lib/_ceilings.js isCrew, api/desk.js, api/sellerDecision.js (search gate and seal), api/gaConsent.js,
+    api/vehicleIdentity.js, lib/_flags.js vinTestSession, lib/_visitor.js (both). /api/crew sets the signed
+    value. Browser chrome only tests the "v1." shape (lib/appShell.js PAGE_VIEW_JS, lib/analytics.js,
+    desk.html, onebox.html, onebox-preview.html): cosmetic, never an unlock. FOR LANE A: those three html gates
+    are yours; the one-line change is the cookie shape. Dev scripts read GAS_CREW_COOKIE from env (50 updated);
+    ops task=crewcookie (header credential) mints a value for tests.
+  * FOLLOW-UP SALES (8d3cdba, bfcb640): decision.closestSales = the first 3 of runOneBox's cards from the SAME
+    call that sets decision.priceBand; js/entry.js lists them as the only sales the chat may name, closest first.
+    Cost per follow-up (2001 BMW M3, three questions): before $0.0033, five sales $0.0053, three sales $0.0044.
