@@ -41,7 +41,7 @@ import {
   textHasTerm
 } from "../lib/_classify.js";
 import { hammerUsd, ensureFxReady } from "../lib/_houseComps.js";
-import { buildSharedAnalysis, isRoutableVenue, depthWins, ROUTABLE_VENUES, SHORT_AUCTION_VENUES } from "../lib/platformPick.js";
+import { buildSharedAnalysis, isRoutableVenue, ROUTABLE_VENUES, SHORT_AUCTION_VENUES } from "../lib/platformPick.js";
 import { specKeyFor, coreOf, persistCore } from "../lib/live/search.js";
 
 import { isCrewRequest } from "../lib/_crew.js";
@@ -584,65 +584,10 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
 //     a specialization cell (lift >= 3x AND 5+ scope comps) leads.
 //   Branch 3: the depth leader (most sold comps at the landed scope) leads.
 // Only routable routes can be the pick; consignment-only sources never lead.
-// Returns the picked route and stamps WHY on it (route.pickReason: "thin_window_price" | "price" |
-// "specialist" | "depth"), which decide() hands to the page as decision.routingReason so the page never
-// re-derives the pick (js/result.js routesForCards reads recommendedPath and this reason).
-function pickRecommendedRoute(routes) {
-  const tag = (r, why) => { if (r) r.pickReason = why; return r; };
-  const routable = (routes || []).filter(r => r.routable !== false && isRoutableVenue(r.policyKey));
-  if (!routable.length) return (routes || []).find(r => r.routable) || (routes || [])[0] || null;
-  // Thin-window price-signal override (set in analyzeRouteFit): a flagged strong-price
-  // venue with materially deeper comps leads over a thin-window recency leader. Honored
-  // first so recommendedPath (saved-list) and the reordered card stay in lockstep.
-  const forced = routable.find(r => r.thinWindowPriceLead);
-  if (forced) return tag(forced, "thin_window_price");
-  const clearedPct = r => {
-    const p = r && r.marketEvidence && r.marketEvidence.pricePremium;
-    return (p && p.gateType === "symmetric" && Number.isFinite(p.percent) && p.percent >= 10) ? p.percent : -1;
-  };
-  // Depth leader: most sold comps at the landed scope (computed before Branch 1 so the
-  // volume-aware premium gate can reference it).
-  // The ONE depth tie-break (lib/platformPick.js depthWins): an exact tie goes to Bring a Trailer, never to
-  // whichever route happened to sort first (2009 Nissan GT-R, a 4-4 tie, Oct 2026).
-  let deep = null, deepN = -1;
-  for (const r of routable) { const n = Number((r.marketEvidence && r.marketEvidence.evidenceSales) || 0); if (depthWins(n, r.policyKey, deepN, deep && deep.policyKey)) { deep = r; deepN = n; } }
-  const deepPremium = deep ? clearedPct(deep) : -1;
-  // Branch 1 (Mode A), VOLUME-AWARE (kept in lockstep with routesForCards in
-  // js/result.js): among cleared symmetric premiums the highest leads, but a platform
-  // that is NOT the depth leader may lead only when its premium rests on a sample
-  // comparable to the leader's (platformSales >= half the leader's evidence, floor 5)
-  // OR it beats the leader's OWN cleared premium by 8+ points. A boutique's high-mix
-  // median on a thin sample (SOMO +27% on 8 sales) can no longer edge out the volume
-  // venue (BaT +26% on 20) on a single percentage point.
-  const cleared = routable.map(r => ({ r, pct: clearedPct(r) })).filter(x => x.pct >= 10).sort((a, b) => b.pct - a.pct);
-  for (const { r, pct } of cleared) {
-    const ps = Number((r.marketEvidence && r.marketEvidence.pricePremium && r.marketEvidence.pricePremium.platformSales) || 0);
-    const sampleOK = ps >= Math.max(5, deepN * 0.5);
-    const marginOK = deepPremium >= 10 && pct >= deepPremium + 8;
-    if (r === deep || sampleOK || marginOK) return tag(r, "price");
-  }
-  // "Measured" also counts a cleared ASYMMETRIC dominance share (>=75%, same gate pricePremiumFor's
-  // own market_dominance branch applies) - not only a symmetric 5v5 comparison. Without this, a
-  // platform with an overwhelming share but too few "others" sales to compare symmetrically (<5)
-  // read as UNMEASURED, so a precomputed, cross-car specialist cell (lift>=3x on a platform's ENTIRE
-  // tracked history, nothing to do with THIS car) could outrank an obvious depth leader. Surfaced by
-  // the SELL_PICK_SHARED audit: "1967 Ford Mustang Fastback" - Bring a Trailer had 25 sales to
-  // everyone else's 3 combined (89% share, asymmetric - too few others to clear 5v5), and a Hagerty
-  // specialist cell (classic-Mustang lift, nothing to do with this exact car) won the pick on 1 sale.
-  // Mirrors lib/platformPick.js's own anyMeasured/dominancePick gate (DOMINANCE_SHARE_PCT 75), ported
-  // here so decide()'s real pick logic has the same fix the shared engine's mirror already carried -
-  // this is a real pre-existing gap in decide() itself, not something introduced by feeding it a
-  // different analysis; it was simply never triggered by the old capped fetch's own sampling.
-  const measured = routable.some(r => { const p = r && r.marketEvidence && r.marketEvidence.pricePremium; return p && p.platformSales >= 5 && p.othersSales >= 5; })
-    || routable.some(r => { const p = r && r.marketEvidence && r.marketEvidence.pricePremium; return p && p.gateType === "asymmetric" && Number.isFinite(p.marketShare) && p.marketShare >= 75; });
-  if (!measured) {
-    const specCell = r => { const c = r && r.marketEvidence && r.marketEvidence.specializationCell; return (c && Number(c.lift_rounded) >= 3 && Number(c.platform_count) >= 5) ? c : null; };
-    const specialist = routable.find(r => r !== deep && specCell(r));
-    if (specialist) return tag(specialist, "specialist");
-  }
-  if (deep && deepN > 0) return tag(deep, "depth");
-  return routable[0] || (routes || [])[0] || null;
-}
+// THE PICK for decide(): the shared ladder (lib/platformPick.js onlinePicks, carried in analysis.sharedPick)
+// through sharedPickRoute below, which keeps the Sell-only thin-window override first. No premium, dominance,
+// specialist, depth or tie-break logic lives in this file any more (Oct 2026 fold, rules 1 to 3).
+function pickRecommendedRoute(routes, sharedPick) { return sharedPickRoute(routes, sharedPick); }
 
 // THE ONE PICK over decide()'s routes (Oct 2026): the Sell-only thin-window override first (it is a separate
 // rule, set by analyzeRouteFit), then the shared ladder's own pick (lib/platformPick.js onlinePicks, carried in
@@ -2153,8 +2098,11 @@ export function decide(analysis, criteria, vehicle) {
   // the raw score-sort winner, which let a small-sample, high-median platform
   // (Hemmings on 10 MGB sales vs BaT's 105; SOMO on 1 992 sale vs BaT's 10)
   // become recommendedPath while the card correctly showed the volume leader.
-  const bestRoute = pickRecommendedRoute(routeFit.routes)
+  const bestRoute = pickRecommendedRoute(routeFit.routes, analysis.sharedPick)
     || routeFit.routes.find(route => route.routable) || routeFit.routes[0] || null;
+  // The rush pick (rule 3), shown beside the price pick for a seller in a rush (js/result-v2.js v2Composition).
+  const speedRoute = sharedSpeedRoute(routeFit.routes, analysis.sharedPick);
+  const speedPick = speedRoute ? speedRoute.platform : null;
   // Coherence fact: a non-routable source with a stronger median than the pick
   // must be explained, never silently presented as "stronger but not chosen".
   // Gated on a real sample (5+ sales): a one- or two-sale median is a mix
@@ -2177,6 +2125,7 @@ export function decide(analysis, criteria, vehicle) {
     };
     return {
       recommendedPath: policyRoute.platform,
+      speedPick,
       confidence: "low",
       evidenceBasis: "regional_policy",
       ladder: analysis.ladder,
@@ -2198,6 +2147,7 @@ export function decide(analysis, criteria, vehicle) {
   return {
     recommendedPath: bestRoute.platform,
     routingReason: bestRoute.pickReason || null,
+    speedPick,
     confidence: ladderConfidence(analysis),
     evidenceBasis: "market_evidence",
     strongerNonRoutable: strongerNonRoutable ? {
@@ -3430,13 +3380,16 @@ export default async function handler(req, res) {
       // identity key reuses lib/live/search.js specKeyFor, the SAME key the spec cache already
       // builds from this vehicle/generation pair, so a device that looks up the identical car twice
       // today (even via two separate fresh searches, not a UI refine) never spends a second slot.
+      let _dbgCarLimit = null;
       if (vehicle && vehicle.make && !obRefine) {
         const carKey = specKeyFor(vehicle, generation, null);
         const carLimit = await checkMarketCheckCarLimit({ supabaseUrl, supabaseKey }, req, carKey);
+        _dbgCarLimit = { carKey, ok: carLimit.ok };
         if (!carLimit.ok) {
           return res.status(200).json({
             status: "one_box", tier: "business_limit", resolvedCar: null,
-            samLine: "That’s today’s limit for individual lookups. Sam Desk is built for ongoing or business use."
+            samLine: "That’s today’s limit for individual lookups. Sam Desk is built for ongoing or business use.",
+            _dbgCarLimit
           });
         }
       }
@@ -3493,7 +3446,7 @@ export default async function handler(req, res) {
           }, supabaseUrl, supabaseKey);
         } catch { snapshotId = null; }
       }
-      return res.status(200).json({ status: "one_box", ...oneBox, snapshotId: snapshotId || undefined });
+      return res.status(200).json({ status: "one_box", ...oneBox, snapshotId: snapshotId || undefined, _dbgCarLimit });
     }
 
     // Price-step transparency (#68): a seller who DEFERS the asking price gets THE RECORD
@@ -3994,6 +3947,8 @@ export default async function handler(req, res) {
       }
     } else {
       analysis = analyze(analysisRecords, analysisClassifications, fetchResult.ladder, vehicle, req.body?.debug === true, activeTxRefine);
+      // The pick itself is always the shared ladder, whatever fed the rest of the analysis (archive only).
+      try { const sa = await buildSharedAnalysis(vehicle, generation, { supabaseUrl, supabaseKey }, sellerCriteria); analysis.sharedPick = sa ? sa.sharedPick : null; } catch { analysis.sharedPick = null; }
     }
 
     // Sell-through removed (1b): our search-path records are sold-only, so a
