@@ -4069,21 +4069,12 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle, sanitizeResolvedVehicle, modelChipsForMakeYear } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
-    const { runOneBox, reserveInsightForVehicle, reserveDayInsightForVehicle, ENGINE_VERSION, listSalesForVehicle, buildSpec, __specEngine } = await import("../lib/onebox.js");
+    const { runOneBox, reserveInsightForVehicle, reserveDayInsightForVehicle, ENGINE_VERSION } = await import("../lib/onebox.js");
     const { specKeyFor } = await import("../lib/live/search.js");
     const qs = String(req.query?.qs || "458 Speciale coupe").split("|").map(s => s.trim()).filter(Boolean);
     const wantReserve = req.query?.reserve === "1";
     const wantChips = req.query?.chips === "1";
     const wantCache = req.query?.cachecheck === "1";
-    // TEMPORARY, report-only (997 Carrera S half-generation job): genOverride=code,yearStart,yearEnd
-    // constructs a synthetic generation object so listSalesForVehicle can be scoped narrower than the
-    // curated table currently allows, WITHOUT changing that table. bodyOverride scopes coupe/cabriolet.
-    // Read-only, archive-only (fetchQualifying), zero writes. To be reverted after this job's report.
-    const genOverrideRaw = req.query?.genOverride ? String(req.query.genOverride).split(",") : null;
-    const genOverride = genOverrideRaw ? { code: genOverrideRaw[0], yearStart: Number(genOverrideRaw[1]), yearEnd: Number(genOverrideRaw[2]) } : null;
-    const bodyOverride = req.query?.bodyOverride ? String(req.query.bodyOverride) : null;
-    const sinceDaysQ = Number(req.query?.sinceDays) || undefined;
-    const wantListSales = req.query?.listSales === "1";
     const out = [];
     for (const q of qs) {
       try {
@@ -4120,35 +4111,6 @@ async function handleOps(req, res) {
             marketFetchCache: { key: familyKey, rows: (familyRows || []).map(r => ({ fetched_at: r.fetched_at, ageHours: Number.isFinite(Date.parse(r.fetched_at)) ? Math.round((now - Date.parse(r.fetched_at)) / 36e5 * 10) / 10 : null })) }
           };
         }
-        // listSales=1 (997 Carrera S half-generation job, TEMPORARY): the SAME shared fence pipeline
-        // listSalesForVehicle already uses (buildSpec + fetchQualifying - the identical pool-building
-        // code assessThin/the live engine call), over a genOverride generation when given (so a
-        // half-generation can be read without touching the curated table) or the real resolved
-        // generation otherwise. bodyOverride scopes coupe/cabriolet. Stats (count, p25/p75, median)
-        // computed from __specEngine.percentile, the exact function r4Cluster itself uses.
-        let listSales = null;
-        if (wantListSales) {
-          // buildSpec's own generation re-bind step (lib/onebox.js, ~line 1147) re-derives genCode/
-          // yearMin/yearMax from the REAL curated table whenever vehicle.year is set and matches
-          // exactly one curated generation - it clobbers a passed-in generation override every time
-          // for a car with a year. Dropping year here (only in this diagnostic) is what lets
-          // genOverride actually take effect; trim+bodyStyle still scope the pool precisely.
-          const vv = { ...v, ...(bodyOverride ? { bodyStyle: bodyOverride } : null), ...(genOverride ? { year: null } : null) };
-          const useGen = genOverride || g;
-          const listing = await listSalesForVehicle(vv, useGen, env, sinceDaysQ).catch(e => ({ ok: false, reason: String(e && e.message || e) }));
-          const dbgSpec = buildSpec(vv, useGen, q);
-          const prices = (listing && listing.sales || []).map(s => s.priceUsd).filter(n => Number.isFinite(n) && n > 0);
-          const years = (listing && listing.sales || []).map(s => s.year).filter(Boolean);
-          listSales = {
-            genUsed: useGen, bodyUsed: vv.bodyStyle || null, windowDays: listing && listing.windowDays,
-            dbgSpec: { yearMin: dbgSpec.yearMin, yearMax: dbgSpec.yearMax, genCode: dbgSpec.genCode, model: dbgSpec.model, trim: dbgSpec.trim, bodyStyle: dbgSpec.bodyStyle, titleContains: dbgSpec.titleContains },
-            count: listing && listing.count, p25: prices.length ? Math.round(__specEngine.percentile(prices, 0.25)) : null,
-            median: prices.length ? Math.round(__specEngine.percentile(prices, 0.5)) : null,
-            p75: prices.length ? Math.round(__specEngine.percentile(prices, 0.75)) : null,
-            yearCounts: years.reduce((m, y) => (m[y] = (m[y] || 0) + 1, m), {}),
-            sales: (listing && listing.sales || []).slice(0, 500)
-          };
-        }
         out.push({
           q, resolved: `${v.year || ""} ${v.make} ${v.model || ""}${v.trim ? " " + v.trim : ""}`.trim(), bodyStyle: v.bodyStyle || null,
           tier: ob.tier, prompt: ob.prompt || null,
@@ -4163,7 +4125,7 @@ async function handleOps(req, res) {
           recent3: Array.isArray(ob.recent3) ? ob.recent3.map(c => ({ title: c.title, mi: c.mi, date: c.date, again: !!c.again })) : null,
           exactSale: ob.exactSale ? { price: ob.exactSale.price, date: ob.exactSale.soldDate || ob.exactSale.date || null, mileage: ob.exactSale.mileage } : null,
           r4: d.r4 || null, dedup: { fetchedRaw: d.fetchedRaw, fetchedDeduped: d.fetchedDeduped, rule5: d.rule5 || null },
-          reserve, chips, cacheRows, listSales
+          reserve, chips, cacheRows
         });
       } catch (e) { out.push({ q, error: String((e && e.message) || e).slice(0, 220) }); }
     }
