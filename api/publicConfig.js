@@ -62,7 +62,7 @@ async function handleOneboxShare(req, res, id) {
 
   const defaultOg =
     '<meta property="og:title" content="GoAskSam One Box" />' +
-    '<meta property="og:description" content="What have cars like yours actually sold for? Real auction results, no estimates." />' +
+    '<meta property="og:description" content="What have cars like yours actually sold for? Real auction results only." />' +
     '<meta property="og:type" content="website" /><meta property="og:site_name" content="GoAskSam" />' +
     '<meta name="twitter:card" content="summary" />';
   const finish = (ogTags, injectScript) => {
@@ -72,8 +72,12 @@ async function handleOneboxShare(req, res, id) {
       .replace("<script>\nfunction obToggleResults", `<script>${SHELL_JS}</script>\n<script>\nfunction obToggleResults`)
       .replace("<body>", `<body>\n${AUTH_SIGNBAR_HTML}\n<script>${AUTH_SIGNBAR_MIRROR_JS}</script>\n<script>window.GAS_AUTH_MODE="topbar";</script>\n<script src="/js/auth.js" defer></script>`);
     // Crew's rail differs from the public's (PUBLIC_LAUNCH switch) - never share an edge cache slot
-    // between them (no Vary on the cookie otherwise).
-    res.setHeader("Cache-Control", crew ? "private, no-store" : (injectScript ? "public, max-age=300" : "public, max-age=120"));
+    // between them. crew alone is not enough: an INVALID gas_crew cookie still computes crew=false
+    // and would get the public, cacheable header too, which could later be served to a REAL crew
+    // request for the same bare URL (reproduced live, Oct 2026, on Market Check - same pattern
+    // here). Any gas_crew cookie at all, valid or not, skips the shared cache.
+    const hasCrewCookie = /(?:^|;\s*)gas_crew=/.test(String(req.headers.cookie || ""));
+    res.setHeader("Cache-Control", (crew || hasCrewCookie) ? "private, no-store" : (injectScript ? "public, max-age=300" : "public, max-age=120"));
     res.status(200).send(page);
   };
 

@@ -148,7 +148,7 @@ ${railHtml("history", undefined, crew)}
 <script src="/js/auth.js" defer></script>
 </body></html>`;
 }
-function send(res, status, html, extra = {}, index = false, crew = false) {
+function send(res, status, html, extra = {}, index = false, crew = false, req = null) {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   if (!index) res.setHeader("X-Robots-Tag", "noindex, follow");
   // Crew sees the full rail, so that response is NEVER shared or stored (private, no-store) - it
@@ -157,7 +157,12 @@ function send(res, status, html, extra = {}, index = false, crew = false) {
   // so it is safe to cache at the shared edge and carries no Vary at all (a prior `Vary: Cookie`
   // here made the cache key the raw cookie string, which differs per visitor and is effectively
   // always a MISS - that was the bug, not a real need to vary the public response by cookie).
-  res.setHeader("Cache-Control", crew ? "private, no-store" : (status === 200 ? "public, s-maxage=3600, stale-while-revalidate=86400" : "no-store"));
+  // BUT crew alone missed one case (reproduced live, Oct 2026): an INVALID gas_crew cookie still
+  // computes crew=false and got the public header too, so its response could be cached and later
+  // served to a REAL crew request for the same bare URL - the reduced rail, shown to real crew.
+  // Any gas_crew cookie at all, valid or not, is reason enough to skip the shared cache.
+  const hasCrewCookie = !!(req && /(?:^|;\s*)gas_crew=/.test(String(req.headers.cookie || "")));
+  res.setHeader("Cache-Control", (crew || hasCrewCookie) ? "private, no-store" : (status === 200 ? "public, s-maxage=3600, stale-while-revalidate=86400" : "no-store"));
   for (const k of Object.keys(extra)) res.setHeader(k, extra[k]);
   res.status(status).send(html);
 }
@@ -166,7 +171,7 @@ function notFound(req, res, what) {
   // "Look up another car" points to Market Check, which is removed from the public HTML entirely.
   const cta = crew ? `<p><a class="full" href="/market-check">Look up another car &#8594;</a></p>` : "";
   send(res, 404, page({ title: "No auction history found | GoAskSam", crew, body:
-    `<section class="card notfound"><h1>No auction history for ${esc(what)}</h1><p class="muted">GoAskSam has no auction appearance of a car under this identifier. Real auction results only, so there is nothing to show.</p>${cta}</section>` }), {}, false, crew);
+    `<section class="card notfound"><h1>No auction history for ${esc(what)}</h1><p class="muted">GoAskSam has no auction appearance of a car under this identifier. Real auction results only, so there is nothing to show.</p>${cta}</section>` }), {}, false, crew, req);
 }
 // A listing photo the house has since taken down (a 403 from its CDN) must never leave an empty
 // tile: the hero tries the car's other photos, then removes the whole figure.
@@ -231,7 +236,7 @@ function sellHref(id) {
 async function carPage(req, res, env, slug, vin) {
   const crew = isCrewRequest(req);
   const { appearances, vinNorm, ok, source: dataSource } = await vinAppearances(env, vin);
-  if (!ok) return send(res, 503, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }), {}, false, crew);
+  if (!ok) return send(res, 503, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }), {}, false, crew, req);
   if (!appearances.length) return notFound(req, res, "VIN " + vinNorm);
   const id = await carIdentity(appearances, vinNorm);
   if (!id) return notFound(req, res, "VIN " + vinNorm);
@@ -363,7 +368,7 @@ ${whyResultHtml(crew)}
   const pricedCount = appearances.filter(a => a.priceUsd || a.bidUsd || a.nativeBid).length;
   const index = roadBucket !== "nonroad" && pricedCount >= 2 && realVin(vinNorm) && !!(id.family && id.make) && !(await deadPhotos(env)).vins.has(vinNorm);
   await logPageView(env, { path: canonical.replace(SITE, ""), referer: req.headers["referer"] || req.headers["referrer"], userAgent: req.headers["user-agent"] });
-  send(res, 200, page({ title: `${name}, VIN ${vinNorm}: auction history`, description: story, canonical, body: body2, ld, index, crew }), {}, index, crew);
+  send(res, 200, page({ title: `${name}, VIN ${vinNorm}: auction history`, description: story, canonical, body: body2, ld, index, crew }), {}, index, crew, req);
 }
 // The specific word for an "other" self-propelled vehicle, else a neutral "vehicle".
 function otherNoun(title) {
@@ -518,7 +523,7 @@ async function hubPage(req, res, env, slug) {
   const hubVinsTiming = {};
   const list = await hubVins(env, hub, hubVinsTiming);
   profMark("hubVinsDone");
-  if (list == null) return send(res, 503, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }), {}, false, crew);
+  if (list == null) return send(res, 503, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }), {}, false, crew, req);
   if (!list.length) return notFound(req, res, slug.replace(/-/g, " "));
   // Name + One Box family from the resolver on the slug text (same resolver One Box uses).
   let v = null;
@@ -566,14 +571,14 @@ ${whyResultHtml(crew)}
     ["render", prof.renderDone - prof.oneBoxDone], ["deadphotos", prof.deadPhotosDone - prof.renderDone],
     ["total", prof.deadPhotosDone - prof.t0]
   ].filter(([, v]) => v != null).map(([k, v]) => `${k};dur=${v}`).join(", ");
-  send(res, 200, page({ title: `${name} auction results and sale prices`, description: ctx, canonical, body, ld, index: hubIndex, crew }), { "Server-Timing": serverTiming }, hubIndex, crew);
+  send(res, 200, page({ title: `${name} auction results and sale prices`, description: ctx, canonical, body, ld, index: hubIndex, crew }), { "Server-Timing": serverTiming }, hubIndex, crew, req);
 }
 
 // ---------------------------------------------------------------- handler
 export default async function handler(req, res) {
   const env = historyEnv();
   const crew = isCrewRequest(req);
-  if (!env) return send(res, 503, page({ title: "GoAskSam", crew, body: "<p>Unavailable.</p>" }), {}, false, crew);
+  if (!env) return send(res, 503, page({ title: "GoAskSam", crew, body: "<p>Unavailable.</p>" }), {}, false, crew, req);
   if (req.method === "POST") {
     const b = req.body || {};
     if (b.action !== "watch") return res.status(400).json({ ok: false });
@@ -592,7 +597,7 @@ export default async function handler(req, res) {
     if (q.go && vin) {
       // /vin/{VIN}: 301 to the canonical car URL (404 when the VIN has no appearance or is not a car).
       const { appearances, ok } = await vinAppearances(env, vin);
-      if (!ok) return send(res, 503, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }), {}, false, crew);
+      if (!ok) return send(res, 503, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }), {}, false, crew, req);
       const id = appearances.length ? await carIdentity(appearances, vin) : null;
       if (!id) return notFound(req, res, "VIN " + vin);
       res.setHeader("Location", `/history/${id.slug}/${vin}`);
@@ -604,7 +609,7 @@ export default async function handler(req, res) {
     return notFound(req, res, "that page");
   } catch (e) {
     console.error("history page failed:", (e && e.stack) || e);
-    return send(res, 500, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }), {}, false, crew);
+    return send(res, 500, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>` }), {}, false, crew, req);
   }
 }
 

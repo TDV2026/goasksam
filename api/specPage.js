@@ -177,7 +177,12 @@ ${railHtml("history", undefined, crew)}
   // cookie) is identical for every anonymous visitor, so it is safely cacheable at the shared edge
   // with no Vary at all - a prior `Vary: Cookie` made the cache key the raw cookie string, which
   // differs per visitor and was an effectively permanent MISS.
-  res.setHeader("Cache-Control", crew ? "private, no-store" : "public, s-maxage=3600, stale-while-revalidate=86400");
+  // BUT crew alone missed one case (reproduced live, Oct 2026): an INVALID gas_crew cookie still
+  // computes crew=false and got the public header too, so its response could be cached and later
+  // served to a REAL crew request for the same bare URL - the reduced rail, shown to real crew.
+  // Any gas_crew cookie at all, valid or not, is reason enough to skip the shared cache.
+  const hasCrewCookie = /(?:^|;\s*)gas_crew=/.test(String(req.headers.cookie || ""));
+  res.setHeader("Cache-Control", (crew || hasCrewCookie) ? "private, no-store" : "public, s-maxage=3600, stale-while-revalidate=86400");
   res.status(200).send(html);
 }
 

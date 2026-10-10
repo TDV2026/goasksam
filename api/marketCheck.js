@@ -88,8 +88,15 @@ export default async function handler(req, res) {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", robots);
   // Crew's rail differs from the public's (PUBLIC_LAUNCH switch, Oct 2026) - never share an edge
-  // cache slot between them (the public response has no Vary on the cookie, so a crew hit would
-  // otherwise either leak the full rail to the next public visitor or vice versa).
-  res.setHeader("Cache-Control", crew ? "private, no-store" : "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400");
+  // cache slot between them. crew alone is not enough: an INVALID gas_crew cookie (expired, made
+  // up, or a stale pre-signed-cookie value) still computes crew=false and would still get the
+  // PUBLIC, cacheable header - and the edge has no Vary on Cookie, so that cached entry can later
+  // be served to a REAL crew request for the same bare URL, silently showing the reduced rail to
+  // an actual crew member (reproduced live, Oct 2026: a made-up cookie's cached public response
+  // was served to a request carrying a real, valid signed cookie moments later). Fix: treat ANY
+  // gas_crew cookie presence, valid or not, as reason enough to skip the shared cache - only a
+  // request with NO gas_crew cookie at all is safe to cache publicly.
+  const hasCrewCookie = /(?:^|;\s*)gas_crew=/.test(String(req.headers.cookie || ""));
+  res.setHeader("Cache-Control", (crew || hasCrewCookie) ? "private, no-store" : "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400");
   res.status(200).send(html);
 }

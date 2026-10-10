@@ -290,6 +290,11 @@ export default async function handler(req, res) {
   const { html, crew } = await page(req);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", "index, follow");
-  res.setHeader("Cache-Control", crew ? "private, no-store" : "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400");
+  // Cache-poisoning fix (Oct 2026, reproduced live on Market Check, same pattern here): an INVALID
+  // gas_crew cookie still computes crew=false and would get the public, cacheable header with no
+  // Vary on Cookie - a later REAL crew request to the same bare URL can then hit that stale public
+  // cache entry and see the reduced rail. Any gas_crew cookie at all, valid or not, skips the cache.
+  const hasCrewCookie = /(?:^|;\s*)gas_crew=/.test(String(req.headers.cookie || ""));
+  res.setHeader("Cache-Control", (crew || hasCrewCookie) ? "private, no-store" : "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400");
   res.status(200).send(html);
 }
