@@ -3032,3 +3032,73 @@ when the work has landed.
   an hour, the same gotcha from last round).
   Search check: no public page's title/H1/lead/canonical changed this round (the hierarchy reorder
   only moves content within the body, the landing's h1 stays the hidden search-only one unchanged).
+
+- 2026-10-09 (Lane B): JOBS 1-6, ENGINE AND DATA FIXES.
+  * Job 1, M3 Competition (2012) mismatch: NOT reproducing. Live-verified three independent ways
+    (obdiag direct runOneBox call, the real Market Check public API, a fresh enginecheck run) - all
+    four lanes agree at count=37, poolTrim "Competition", identical labels/range. Lane C's original
+    observation (commit a9715f4: marketCheck=210/sell=210 vs buy=37/tasks=37) traces to buyLane
+    (scripts/crossProductCheck.js) reading through spec_market_cache (lib/live/search.js, SPEC_TTL 6h)
+    while marketCheckLane/sellLane call the engine live every time - the SAME staleness class already
+    named for the 911 Turbo Targa case (SPEC_V comment). The cache row has since naturally refreshed.
+    No code change made (nothing is currently wrong); 37 (the Competition-trim-scoped count) is the
+    correct number by the trim-scoping principle.
+  * Job 2 FIXED (commit 3e535e9): Targa recent-sales mismatch. fetchOnlinePool (lib/platformPick.js)
+    called runOneBox but never surfaced its own deduped recent3 (lib/onebox.js lastThreeDistinct, which
+    skips an apparent re-listing - same title/mileage); crossProductCheck's sellLane re-sorted the raw
+    pool instead, a genuine second "most recent 3" implementation that disagreed on a re-listed 1991
+    Carrera 4 Targa title. fetchOnlinePool now passes recent3 through (additive); sellLane reads it.
+    Before: recent MISMATCH. After: recent MATCH, mismatchSpecs:0. Verified live.
+  * Job 3 FIXED (commit ba77b01, verify probe e26fb05): reserve tile labels. reserveDayInsightForVehicle/
+    reserveInsightForVehicle (lib/onebox.js) unconditionally uppercased generation.code, which is
+    sometimes an ORDINAL WORD (first..tenth, used where no real chassis code exists - Mustang
+    generations) not a chassis code, producing "FIRST Mustangs"/"FIRST-generation Mustang". Added
+    RESERVE_ORDINAL_RE + reserveGenWord, mirroring js/result-v2.js's existing V2_ORDINAL/v2GenWord rule
+    (duplicated across runtimes - flagged in comments, not importable, classic script vs ES module).
+    Before: "FIRST Mustangs" / "FIRST-generation Mustang". After (verified live via obdiag reserve=1):
+    rd.scopeLabel="first Mustang" (template appends "s" -> "first Mustangs"), ri.scopeLabel="first
+    generation Mustang". Chassis-code case unchanged/correct: ri.scopeLabel="E30-generation M3".
+  * Job 4 FIXED (commit 5eeb845, verify probe 6bb52f4): year-scoped model chips. modelSuggestionChips's
+    existing PRODUCTION_RULES year-guard (lib/vehicle.js) only matched a candidate against the BASE
+    nameplate rule; "Land Cruiser 80 Series" (a generation-qualified candidate string) never matched
+    the base "Land Cruiser" rule (exact-model-name check), so it passed through with no year gate, and
+    "Tacoma" had NO rule at all. Added generationRangeForCandidate (matches a candidate against
+    lib/generations.js CURATED_GENERATIONS by code, e.g. "80-series" inside "Land Cruiser 80 Series",
+    gated on THAT generation's own narrower range) ahead of the PRODUCTION_RULES check, wired into all
+    three guard call-sites in modelSuggestionChips; added a Toyota Tacoma PRODUCTION_RULES entry
+    (1995-2026). One shared function (modelChipsForMakeYear/modelSuggestionChips) feeds every caller
+    (Buy, Market Check, Sell's VIN flow, Tasks, One Box model_choice) - confirmed via caller grep, no
+    second chip-building path exists for this function. Before: 1985 Toyota chips included Tacoma and
+    Land Cruiser 80 Series. After (verified live via obdiag chips=1): ['4Runner','Hilux','FJ Cruiser',
+    'Supra','MR2','Not sure'] - no anachronisms.
+  * Job 5, data plan headroom report: added task=ocdplan (api/usageDashboard.js, commit 11effcc),
+    read-only, zero OCD spend, reads event_type="ocd_call" ALONE (lib/_ocd.js's own documented single
+    source of truth) and attributes by metadata.job. FINDING: only 5 callers ever tag their job via
+    configureOcdUsage (ingest_delta, ingest_backfill, ingest_attempts, pull_live, pull_live_bid);
+    everything else (warm, the partner-premium recompute, live Market Check/Buy/Sell/Tasks engine
+    fetches, and this dashboard's own ops probes) lands under one generic "ocd" tag, genuinely
+    unsplittable today without a code change. Deliberately did NOT sum ocd_call alongside the per-job
+    summary events (job_warm, seller_decision, partner_fetch...) - task=status's own comment already
+    names that conflation as a ~4.6x inflation bug; this task avoids repeating it. REAL DATA (only 4
+    days of ocd_call history exist in the 14-day window queried - the event type looks recently
+    introduced): grandTotal 2491 over 4 days (avg 623/day). untagged 1783 (71.6%), live-auction poll
+    406 (16.3%), nightly ingest delta 302 (12.1%). No ingest_backfill/ingest_attempts/pull_live_bid
+    activity in this window. Day totals: 10-06=1, 10-07=547, 10-08=816, 10-09=1127 (partial day,
+    inflated by this session's own obdiag/enginecheck verification calls, which are themselves
+    untagged). RECOMMENDATION (not implemented, report-only per the ask): tag job in configureOcdUsage
+    for scripts/warm.js, the live engine fetch path, and this dashboard's ops-probe tasks, so a future
+    report can actually split the 71.6% untagged bucket; until then, no further cut can be recommended
+    with real numbers behind it. Also flagged: task=status's dailyBudget fallback (900) and
+    api/sellerDecision.js's OCD_DAILY_REQUEST_BUDGET fallback (33) differ for the same unset env var -
+    harmless while the var is set, worth aligning if it is ever unset.
+  * Job 6: full crossProductCheck (53/53 DEFAULT_SPECS, run in 8 batches to stay inside one function's
+    time budget) - mismatchSpecs:0 on every batch. Search-rules check: PASS, verified via a real
+    browser against all 9 canonical pages (home/sell redirect, /buy, /mcp, /market-check, /tasks,
+    /how-sam-decides, a hub, a spec, a VIN page) - title/h1/canonical/lead all present, no noindex-in-
+    sitemap; node's own raw-fetch run showed 429s, confirmed as the known Attack Challenge Mode false
+    positive (browsers get 200), not a real failure. /sell /buy /tasks /market-check /business signed
+    out: all HTTP 200, correct title/H1, "Sign in" cue present (confirms signed-out state), zero
+    console errors.
+  * No Lane A/C files touched this round (lib/platformPick.js, lib/onebox.js, lib/vehicle.js,
+    lib/vehicleData.js, scripts/crossProductCheck.js, api/usageDashboard.js are all Lane B's).
+    api/sellerDecision.js was read for context only, never edited, per the standing handoff.
