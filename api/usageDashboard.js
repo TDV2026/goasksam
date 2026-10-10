@@ -4945,7 +4945,11 @@ async function handleOps(req, res) {
     const { mintCrewCookieValue } = await import("../lib/_crew.js");
     const value = mintCrewCookieValue();
     res.setHeader("Cache-Control", "no-store");
-    return value ? res.status(200).json({ task: "crewcookie", value }) : res.status(500).json({ error: "CURTAIN_CREW_CODE not set." });
+    // codeFormatOk: whether CURTAIN_CREW_CODE has the expected shape (gas-crew- then letters and numbers). A
+    // yes/no only: the code itself is never returned. &check=1 returns just that, with no cookie value.
+    const codeFormatOk = /^gas-crew-[A-Za-z0-9]+$/.test(process.env.CURTAIN_CREW_CODE || "");
+    if (req.query?.check) return res.status(200).json({ task: "crewcookie", codeSet: !!process.env.CURTAIN_CREW_CODE, codeFormatOk });
+    return value ? res.status(200).json({ task: "crewcookie", value, codeFormatOk }) : res.status(500).json({ error: "CURTAIN_CREW_CODE not set." });
   }
 
   // task=pickfold (Lane C, Oct 2026): READ-ONLY, zero writes, zero OCD. Before folding decide()'s own premium/

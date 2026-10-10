@@ -7,6 +7,7 @@
 import { TESTER_CODE, testerCodeExpired, testerCookieMaxAge } from "../lib/_tester.js";
 import { beehiivBySubscriberId } from "../lib/_beehiiv.js";
 
+import crypto from "node:crypto";
 import { mintCrewCookieValue, CREW_COOKIE, CREW_MAX_AGE_S } from "../lib/_crew.js";
 // Mint a real Supabase session for a (Beehiiv-verified) email WITHOUT sending an email:
 // admin generate_link (creates the user if new) -> server-side verify of the returned
@@ -105,18 +106,25 @@ export default async function handler(req, res) {
     res.status(302).end();
     return;
   }
+  // THE CREW LINK (/api/crew?code=<CURTAIN_CREW_CODE>): a right code sets the signed crew cookie (lib/_crew.js) on
+  // goasksam.com and every subdomain, then lands on /buy (or the page a gate passed in `to`). A wrong code, or
+  // no crew secret on the server, gets a plain page and sets nothing: never a silent redirect.
+  res.setHeader("Cache-Control", "private, no-store");
   const code = String(q.code || "");
   const expected = process.env.CURTAIN_CREW_CODE || "";
-  if (expected && code === expected) {
-    // 1-year, path-wide, Secure. A SIGNED value (lib/_crew.js) the server verifies; the plain "ok" is gone.
-    // JS-readable so browser chrome can see its shape, which never unlocks anything server side.
-    const v = mintCrewCookieValue();
-    if (!v) { res.setHeader("Location", "/"); res.status(302).end(); return; }
-    res.setHeader("Set-Cookie", `${CREW_COOKIE}=${v}; Max-Age=${CREW_MAX_AGE_S}; Path=/; SameSite=Lax; Secure`);
-    res.setHeader("Location", to);
+  const same = (a, b) => { const x = Buffer.from(a), y = Buffer.from(b); return x.length > 0 && x.length === y.length && crypto.timingSafeEqual(x, y); };
+  const v = expected && same(code, expected) ? mintCrewCookieValue() : null;
+  if (v) {
+    const host = String(req.headers.host || "").toLowerCase().split(":")[0];
+    const domain = /(^|\.)goasksam\.com$/.test(host) ? "; Domain=goasksam.com" : "";
+    res.setHeader("Set-Cookie", `${CREW_COOKIE}=${v}; Max-Age=${CREW_MAX_AGE_S}; Path=/${domain}; SameSite=Lax; Secure`);
+    res.setHeader("Location", q.to ? to : "/buy");
     res.status(302).end();
     return;
   }
-  res.setHeader("Location", "/");
-  res.status(302).end();
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.status(403).send('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Crew link</title>' +
+    '<body style="font:16px/1.5 -apple-system,system-ui,sans-serif;max-width:560px;margin:80px auto;padding:0 20px;color:#1A1A1A">' +
+    '<h1 style="font-size:22px">That crew link did not work.</h1><p>Nothing was changed on this browser. Check the code in the link and open it again.</p>' +
+    '<p><a href="/sell" style="color:#1E4D38">Go to GoAskSam</a></p></body>');
 }
