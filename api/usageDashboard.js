@@ -4057,10 +4057,12 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle, sanitizeResolvedVehicle, modelChipsForMakeYear } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
-    const { runOneBox, reserveInsightForVehicle, reserveDayInsightForVehicle } = await import("../lib/onebox.js");
+    const { runOneBox, reserveInsightForVehicle, reserveDayInsightForVehicle, ENGINE_VERSION } = await import("../lib/onebox.js");
+    const { specKeyFor } = await import("../lib/live/search.js");
     const qs = String(req.query?.qs || "458 Speciale coupe").split("|").map(s => s.trim()).filter(Boolean);
     const wantReserve = req.query?.reserve === "1";
     const wantChips = req.query?.chips === "1";
+    const wantCache = req.query?.cachecheck === "1";
     const out = [];
     for (const q of qs) {
       try {
@@ -4078,6 +4080,25 @@ async function handleOps(req, res) {
         } : null;
         // chips=1 (Oct 2026, Job 4 verify): the shared model-chip builder for this make+year, read-only.
         const chips = wantChips ? await modelChipsForMakeYear(env, v.make, v.year).catch(e => ({ error: String(e && e.message || e) })) : null;
+        // cachecheck=1 (Oct 2026, M3 Competition evidence job): the REAL stored rows in the two caches
+        // that could serve a stale answer, read-only, no writes. spec_market_cache is keyed exactly
+        // like Buy/Market-Check's own specKeyFor (lib/live/search.js); market_fetch_cache is keyed by
+        // make|model-FAMILY (first word only, so "M3" and "M3 Competition" share one row) with an
+        // ENGINE_VERSION prefix (lib/onebox.js) - neither version stamp is tied to the other.
+        let cacheRows = null;
+        if (wantCache) {
+          const specKey = specKeyFor(v, g, null);
+          const familyKey = `${ENGINE_VERSION}|${String(v.make || "").toLowerCase()}|${String(v.model || "").split(/\s+/)[0].toLowerCase()}`;
+          const [specRows, familyRows] = await Promise.all([
+            supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent(specKey)}&select=spec_key,market,computed_at`).catch(e => ({ error: String(e && e.message || e) })),
+            supabaseSelect(env, `market_fetch_cache?cache_key=eq.${encodeURIComponent(familyKey)}&select=cache_key,fetched_at`).catch(e => ({ error: String(e && e.message || e) }))
+          ]);
+          const now = Date.now();
+          cacheRows = {
+            specMarketCache: { key: specKey, rows: (specRows || []).map(r => ({ computed_at: r.computed_at, ageHours: Number.isFinite(Date.parse(r.computed_at)) ? Math.round((now - Date.parse(r.computed_at)) / 36e5 * 10) / 10 : null, market_v: r.market && r.market.v, count: r.market && r.market.count, low: r.market && r.market.low, high: r.market && r.market.high, kind: r.market && r.market.kind })) },
+            marketFetchCache: { key: familyKey, rows: (familyRows || []).map(r => ({ fetched_at: r.fetched_at, ageHours: Number.isFinite(Date.parse(r.fetched_at)) ? Math.round((now - Date.parse(r.fetched_at)) / 36e5 * 10) / 10 : null })) }
+          };
+        }
         out.push({
           q, resolved: `${v.year || ""} ${v.make} ${v.model || ""}${v.trim ? " " + v.trim : ""}`.trim(), bodyStyle: v.bodyStyle || null,
           tier: ob.tier, prompt: ob.prompt || null,
@@ -4092,7 +4113,7 @@ async function handleOps(req, res) {
           recent3: Array.isArray(ob.recent3) ? ob.recent3.map(c => ({ title: c.title, mi: c.mi, date: c.date, again: !!c.again })) : null,
           exactSale: ob.exactSale ? { price: ob.exactSale.price, date: ob.exactSale.soldDate || ob.exactSale.date || null, mileage: ob.exactSale.mileage } : null,
           r4: d.r4 || null, dedup: { fetchedRaw: d.fetchedRaw, fetchedDeduped: d.fetchedDeduped, rule5: d.rule5 || null },
-          reserve, chips
+          reserve, chips, cacheRows
         });
       } catch (e) { out.push({ q, error: String((e && e.message) || e).slice(0, 220) }); }
     }
