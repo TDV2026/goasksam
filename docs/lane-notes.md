@@ -2956,3 +2956,79 @@ when the work has landed.
   * FOLLOW-UP SALES (8d3cdba, bfcb640): decision.closestSales = the first 3 of runOneBox's cards from the SAME
     call that sets decision.priceBand; js/entry.js lists them as the only sales the chat may name, closest first.
     Cost per follow-up (2001 BMW M3, three questions): before $0.0033, five sales $0.0053, three sales $0.0044.
+
+- 2026-10-09 (Lane A): KEEP LOOKING + DAILY LIMIT + HIERARCHY + LANDING + TRACKING + COPY SWEEP
+  (commits ab01f59, plus checkMarketCheckCarLimit/api/sellerDecision.js wiring folded into another
+  lane's e614841 "Signed crew cookie" commit mid-session - content verified present post-merge,
+  same pattern as prior rounds).
+  JOB 1 (Keep looking + Tasks rail): already shipped last round (lib/appShell.js shared component on
+  Market Check/spec/hub/car pages; api/buy.js carries its own matching implementation, Lane C's,
+  verified in visual/behavioural parity). Re-verified live this round: Tasks leads both rail lists,
+  live /sell carries neither the rail item nor the card (no #gas-rail at all, confirmed), "Sign in
+  free to keep these searches." still renders under Buy's "Your searches" heading.
+  JOB 2 (daily limit): checkMarketCheckCarLimit (lib/_ceilings.js) - 10 distinct cars per device per
+  day, same ip_rate_hits ledger as checkCeiling (a new countLikeSince helper, kind=like.mc_car:*,
+  not a second system). Wired into api/sellerDecision.js's One Box branch right after obRefine is
+  built: a refinement of the car on screen is exempt entirely (same "never on a refine tap" boundary
+  the existing SEARCH event logging already uses); a fresh lookup hashes lib/live/search.js's own
+  specKeyFor key (the same key the spec cache already builds) so the SAME device looking up the SAME
+  car twice today, even as two separate fresh searches, never spends a second slot. At the cap:
+  tier:"business_limit", a calm line with no first person/tool names, a real link to /business
+  (js/onebox.js renderBusinessLimit). NOT LIVE-TESTABLE end to end this round (would need 10 genuine
+  distinct cars from one device inside 24h, and the function has no test-ceiling override the way
+  checkCeiling does) - verified by code review + the crossProductCheck spot run below (engine output
+  unaffected), not by hitting the real cap. FOR SAM/whoever reviews next: if a test override is
+  wanted here (mirroring checkCeiling's x-ceiling-test), it would need its own small addition since
+  checkMarketCheckCarLimit is dimensioned differently (distinct identity, not raw volume) and
+  testLimits()'s shape does not fit it directly.
+  JOB 3 (hierarchy): resultHtml (js/onebox.js) now leads with answerCardHtml (range + sold count,
+  nothing above it but the search bar and the resolved-car line), then salesSectionHtml immediately
+  after, then everything else (refinement chips, Market read, earned questions, live listings, Shown
+  separately, Ready to sell, Keep looking, Why it looks like this). Verified live via DOM order
+  (screenshot: range card first, "Recent comparable sales" with real cards directly below).
+  JOB 4 (landing): "Open to use. Sign in only to watch a car for its next sale." moved from the
+  landing hero (lib/live/marketCheckLanding.js, now removed, dead .mc-open CSS also removed) to
+  samOnItHtml's ask state (js/onebox.js, reused .samonit-free styling, no new CSS) - beside the
+  actual watch control ("Put Sam on it"), the only "watch control" that exists anywhere in Market
+  Check. Verified live: absent from the landing, present beside the button on a result.
+  JOB 5 (tracking): data-gas-event="market_check_open" on #ob-go (Market Check only - the SELL flag
+  gates it off New Sell's shared button, since that event name is Market-Check-specific);
+  "receipt_click" + data-gas-source=o.slug (the platform slug, e.g. "bringatrailer" - never a VIN or
+  typed text) on saleCardHtml's two outbound links; "auction_clickout" + data-gas-source=l.source +
+  data-gas-listing-id=l.id on Buy's title link and "View auction" button (api/buy.js - confirmed
+  l.id is an internal listing id, not l.vin_norm, so no VIN in the attribute). api/buy.js is
+  UNCOMMITTED by me this round: another lane is mid-rewrite on that exact file (a 285KB concurrent
+  diff), my two-line addition is confirmed present and correct in the current working tree (verified
+  by direct string search post-edit), but committing the whole file myself would misattribute a
+  rewrite that is not mine - leaving it for that lane's own commit, which is the established pattern
+  for small adds inside a file another lane is actively rewriting. FOR WHOEVER COMMITS api/buy.js
+  NEXT: please confirm the two auction_clickout attributes (title link + .vauc "View auction" link,
+  both near `function card(l, big, eager)`) ship intact.
+  JOB 6 (copy sweep): found and fixed FOUR live instances of "Nothing estimated." (a banned word) -
+  js/onebox.js freshLine (two branches) + footHtml, and lib/live/marketCheckLanding.js's mirror of
+  both (same text, a separate function serving the landing's own example band). Everything else swept
+  clean across /business, Market Check (js/onebox.js, api/marketCheck.js, marketCheckLanding.js),
+  the VIN page (api/history.js) and the shared shell (lib/appShell.js): no worth/valuation/appraisal/
+  median/"pricing" in business copy, no first-person Sam voice (the one "I'm looking at comparable
+  sales" hit is a COMMENT describing already-removed copy, not live text; the one "me" hit in
+  business.js is inside a demo QUESTION string written from the visitor's perspective, not Sam's), no
+  em/en dashes (none found in any of the 7 files checked), no "AI" as a selling word, no competitor/
+  other-tool mentions. "Sam Desk" (no apostrophe) confirmed consistent everywhere it appears; the nav
+  label is still "For business". The product already carries a client-side lint() guard (js/onebox.js)
+  that throws on these words in dev for every string passed through it - this sweep is a verification
+  pass plus the one gap lint() does not cover (a string built outside lint(), like the two
+  "Nothing estimated." sites above).
+  CHECKS: searchCheck.js shows the same known Attack-Challenge 429 pattern on 7 of 9 pages (confirmed
+  all genuinely 200 with correct titles/H1s via real-Chrome Puppeteer, not a regression).
+  crossProductCheck.js needs Supabase env not present locally; ran the equivalent ops hook instead
+  (task=enginecheck, PROBE_KEY via Keychain) - the FULL 55-spec batch times out past Vercel's request
+  budget (a known, already-documented limit, see the code's own comment), so I ran a 4-spec
+  representative subset (Porsche 911, Camaro Z28, BMW M3, Mustang Shelby GT350):
+  mismatchSpecs: 0, Market Check/Buy/Sell/Tasks all agree exactly on range/count/latest-sale for
+  every spec, confirming today's hierarchy reorder (a render-order-only change) and the daily-limit
+  gate (sits before the engine call, never touches its output) left the shared engine's actual
+  figures untouched. Baseline: /sell /buy /tasks /market-check /business all 200 at 1440 and 390,
+  titles/H1s intact (/business checked with a cache-busting query param - it is edge-cached for about
+  an hour, the same gotcha from last round).
+  Search check: no public page's title/H1/lead/canonical changed this round (the hierarchy reorder
+  only moves content within the body, the landing's h1 stays the hidden search-only one unchanged).
