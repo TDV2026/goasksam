@@ -169,8 +169,11 @@ jobs:
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: node scripts/searchCheck.js
         continue-on-error: true
-      # Proves Buy, Sell, Market Check and Tasks read the same pool. Records the table nightly;
-      # does not turn the job red yet.
+      # Proves Buy, Sell, Market Check and Tasks read the same pool. continue-on-error is set so the
+      # table still prints and later steps still run even on a mismatch; the explicit "Fail the job"
+      # step below is what actually turns the job red (Oct 2026, M3 Competition mismatch job - the
+      # count comparison is now exact-match, not the 10%-tolerance low/high use, so this is a real
+      # gate again, not advisory).
       - name: Cross-product engine check (Buy/Sell/Market Check/Tasks agree)
         id: crossproductcheck
         continue-on-error: true
@@ -199,6 +202,11 @@ jobs:
         if: steps.sellexample.outcome == 'failure'
         run: |
           echo "::error::Sell landing example build failed (see the Build Sell landing example step above). Later steps still ran, but the job must end red. The landing still builds its example within its own wait meanwhile. This is a cache freshness regression, not a correctness outage."
+          exit 1
+      - name: Fail the job if the cross-product engine check found a mismatch
+        if: steps.crossproductcheck.outcome == 'failure'
+        run: |
+          echo "::error::Buy/Sell/Market Check/Tasks disagreed on at least one spec (see the Cross-product engine check step above for which field and which specs). The one-engine rule means the same car must give the same sales count, range and venue in every product - this is a real correctness regression, not advisory."
           exit 1
       - name: Fail the job if the Sam Desk example step failed
         if: steps.deskexample.outcome == 'failure'

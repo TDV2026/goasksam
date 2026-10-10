@@ -173,9 +173,18 @@ const pctDiff = (a, b) => (a == null || b == null || a === 0) ? (a !== b) : Math
 function compareField(name, values) {
   const present = Object.entries(values).filter(([, v]) => v !== undefined && v !== null);
   if (present.length < 2) return { field: name, status: "N/A", detail: "fewer than 2 lanes answered" };
-  if (name === "low" || name === "high" || name === "count") {
+  if (name === "low" || name === "high") {
     const nums = present.map(([, v]) => v);
     const mismatch = nums.some(n => pctDiff(nums[0], n));
+    return { field: name, status: mismatch ? "MISMATCH" : "MATCH", detail: present.map(([k, v]) => `${k}=${v}`).join(" ") };
+  }
+  // count (Oct 2026, M3 Competition mismatch job): EXACT match, not the 10%-relative tolerance low/
+  // high use. The sales count is a discrete pool-membership fact - the same car must give the same
+  // count in every product, not "close enough". Any difference, even by 1, is a real divergence
+  // (a different pool, not a rounding/estimation difference the way a price range can have).
+  if (name === "count") {
+    const nums = present.map(([, v]) => v);
+    const mismatch = nums.some(n => n !== nums[0]);
     return { field: name, status: mismatch ? "MISMATCH" : "MATCH", detail: present.map(([k, v]) => `${k}=${v}`).join(" ") };
   }
   if (name === "latest") {
