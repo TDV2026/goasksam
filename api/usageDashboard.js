@@ -4069,7 +4069,7 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle, sanitizeResolvedVehicle, modelChipsForMakeYear } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
-    const { runOneBox, reserveInsightForVehicle, reserveDayInsightForVehicle, ENGINE_VERSION, listSalesForVehicle, __specEngine } = await import("../lib/onebox.js");
+    const { runOneBox, reserveInsightForVehicle, reserveDayInsightForVehicle, ENGINE_VERSION, listSalesForVehicle, buildSpec, __specEngine } = await import("../lib/onebox.js");
     const { specKeyFor } = await import("../lib/live/search.js");
     const qs = String(req.query?.qs || "458 Speciale coupe").split("|").map(s => s.trim()).filter(Boolean);
     const wantReserve = req.query?.reserve === "1";
@@ -4131,10 +4131,12 @@ async function handleOps(req, res) {
           const vv = bodyOverride ? { ...v, bodyStyle: bodyOverride } : v;
           const useGen = genOverride || g;
           const listing = await listSalesForVehicle(vv, useGen, env, sinceDaysQ).catch(e => ({ ok: false, reason: String(e && e.message || e) }));
+          const dbgSpec = buildSpec(vv, useGen, q);
           const prices = (listing && listing.sales || []).map(s => s.priceUsd).filter(n => Number.isFinite(n) && n > 0);
           const years = (listing && listing.sales || []).map(s => s.year).filter(Boolean);
           listSales = {
             genUsed: useGen, bodyUsed: vv.bodyStyle || null, windowDays: listing && listing.windowDays,
+            dbgSpec: { yearMin: dbgSpec.yearMin, yearMax: dbgSpec.yearMax, genCode: dbgSpec.genCode, model: dbgSpec.model, trim: dbgSpec.trim, bodyStyle: dbgSpec.bodyStyle, titleContains: dbgSpec.titleContains },
             count: listing && listing.count, p25: prices.length ? Math.round(__specEngine.percentile(prices, 0.25)) : null,
             median: prices.length ? Math.round(__specEngine.percentile(prices, 0.5)) : null,
             p75: prices.length ? Math.round(__specEngine.percentile(prices, 0.75)) : null,
