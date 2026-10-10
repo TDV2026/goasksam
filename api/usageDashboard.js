@@ -1218,6 +1218,18 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "bizleadlist", rows: rows || [] });
   }
 
+  // task=ratehits: READ-ONLY debug view of ip_rate_hits (lib/_ceilings.js's shared ledger) for
+  // diagnosing the Market Check daily-car-limit proof (Oct 2026). ?kind=mc_car filters to that
+  // prefix (the distinct-car dimension); default shows the most recent 50 rows of any kind. The
+  // `ip` column here is the device/address KEY lib/_ceilings.js already computes (a hashed gas_vid
+  // or IP+UA fallback), never a raw IP by itself.
+  if (task === "ratehits") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const kindFilter = req.query?.kind === "mc_car" ? `&kind=like.${encodeURIComponent("mc_car:*")}` : "";
+    const rows = await supabaseSelect(env, `ip_rate_hits?select=id,ip,kind,created_at&order=created_at.desc&limit=50${kindFilter}`);
+    return res.status(200).json({ task: "ratehits", rows: rows || [] });
+  }
+
   if (task === "bizleadtest") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     if (req.query?.delete === "1") {
