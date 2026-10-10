@@ -41,7 +41,7 @@ import {
   textHasTerm
 } from "../lib/_classify.js";
 import { hammerUsd, ensureFxReady } from "../lib/_houseComps.js";
-import { buildSharedAnalysis, isRoutableVenue, depthWins, ROUTABLE_VENUES } from "../lib/platformPick.js";
+import { buildSharedAnalysis, isRoutableVenue, depthWins, ROUTABLE_VENUES, SHORT_AUCTION_VENUES } from "../lib/platformPick.js";
 import { specKeyFor, coreOf, persistCore } from "../lib/live/search.js";
 
 import { isCrewRequest } from "../lib/_crew.js";
@@ -190,6 +190,10 @@ const ROUTE_POLICIES = {
 // (lib/platformPick.js ROUTABLE_VENUES). The two must name the same venues.
 { const k = Object.keys(ROUTE_POLICIES).sort().join(","), v = [...ROUTABLE_VENUES].sort().join(",");
   if (k !== v) console.error(`CRITICAL: ROUTE_POLICIES (${k}) and the shared routable venues (${v}) differ.`); }
+// The rush filter's short-auction venues (lib/platformPick.js SHORT_AUCTION_VENUES) must be exactly the venues
+// whose speedToList is "fast" or "medium_fast" here.
+{ const k = Object.keys(ROUTE_POLICIES).filter(x => /^(fast|medium_fast)$/.test(ROUTE_POLICIES[x].speedToList)).sort().join(","), v = [...SHORT_AUCTION_VENUES].sort().join(",");
+  if (k !== v) console.error(`CRITICAL: short-auction venues differ: ROUTE_POLICIES (${k}) vs shared (${v}).`); }
 
 // US launch (Aug 2026): a US seller is only ever routed to platforms that actually
 // serve US sellers. This is an EXPLICIT ALLOWLIST, not a UK denylist: a new non-US
