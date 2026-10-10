@@ -4095,7 +4095,7 @@ async function handleOps(req, res) {
           ]);
           const now = Date.now();
           cacheRows = {
-            specMarketCache: { key: specKey, rows: (specRows || []).map(r => ({ computed_at: r.computed_at, ageHours: Number.isFinite(Date.parse(r.computed_at)) ? Math.round((now - Date.parse(r.computed_at)) / 36e5 * 10) / 10 : null, market_v: r.market && r.market.v, count: r.market && r.market.count, low: r.market && r.market.low, high: r.market && r.market.high, kind: r.market && r.market.kind })) },
+            specMarketCache: { key: specKey, rows: (specRows || []).map(r => ({ computed_at: r.computed_at, ageHours: Number.isFinite(Date.parse(r.computed_at)) ? Math.round((now - Date.parse(r.computed_at)) / 36e5 * 10) / 10 : null, market_v: r.market && r.market.v, engineVersion: r.market && r.market.engineVersion, count: r.market && r.market.count, low: r.market && r.market.low, high: r.market && r.market.high, kind: r.market && r.market.kind })) },
             marketFetchCache: { key: familyKey, rows: (familyRows || []).map(r => ({ fetched_at: r.fetched_at, ageHours: Number.isFinite(Date.parse(r.fetched_at)) ? Math.round((now - Date.parse(r.fetched_at)) / 36e5 * 10) / 10 : null })) }
           };
         }
