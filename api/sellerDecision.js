@@ -3310,7 +3310,11 @@ export default async function handler(req, res) {
           if (mc) return res.status(200).json({ status: "one_box", ...mc });
           return res.status(200).json({
             status: "needs_clarification", vehicle: resolution.vehicle,
-            clarification: resolution.clarification || { question: "What year, make and model are you selling?" }
+            clarification: resolution.clarification || { question: "What year, make and model are you selling?" },
+            // One Box rejected-chip tracking (Oct 2026, mirrors js/chat-core.js noteRejectedModel):
+            // the frontend needs to know the underlying resolver status was invalid_vehicle, not a
+            // generic re-ask, to record that this model never comes back as a chip for this year+make.
+            invalidVehicle: resolution.status === "invalid_vehicle"
           });
         } else {
           const cl = resolution.clarification || { question: "What year, make and model are you selling?" };
@@ -3326,7 +3330,9 @@ export default async function handler(req, res) {
             status: "needs_clarification",
             vehicle: resolution.vehicle,
             clarification: cl,
-            vinArchiveMatch: obChassisMatch || undefined
+            vinArchiveMatch: obChassisMatch || undefined,
+            // One Box rejected-chip tracking (Oct 2026, mirrors js/chat-core.js noteRejectedModel).
+            invalidVehicle: resolution.status === "invalid_vehicle"
           });
         }
       } else {

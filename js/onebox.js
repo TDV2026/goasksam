@@ -28,6 +28,25 @@
     .then(function (r) { return r.json(); }).then(function (j) { OB_WATCH_READY = !!(j && j.ready); }).catch(function () {});
   var obWatchArmed = null;   // the current result's own watch, once armed this session: {id, kind, label, ...}
   var obWatchFirst = false;  // this account's very first watch (show "Free. No card, no plan.")
+  // Rejected model chips (Oct 2026, Market Check card rejected-chip job): the SAME algorithm
+  // js/chat-core.js noteRejectedModel/dropRejectedChips already uses on live /sell - reused here,
+  // not reinvented, because New Sell (api/sellNext.js) only loads this file, never chat-core.js, so
+  // there is no shared sellState to read. When the engine answers invalid_vehicle (a picked model
+  // did not exist for that year/make), that model never comes back as a model_choice chip for the
+  // same year+make in this conversation. Filter only; the engine's own chip list is never added to.
+  var obRejectedModels = {};
+  function obRejKey(year, make) { return [year || "", String(make || "").toLowerCase()].join("|"); }
+  function obChipNorm(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]/g, ""); }
+  function obNoteRejectedModel(vehicle) {
+    if (!vehicle || !vehicle.make || !vehicle.model) return;
+    var k = obRejKey(vehicle.year, vehicle.make), list = obRejectedModels[k] = obRejectedModels[k] || [];
+    var n = obChipNorm(vehicle.model);
+    if (n && list.indexOf(n) < 0) list.push(n);
+  }
+  function obDropRejectedChips(year, make, opts) {
+    var list = obRejectedModels[obRejKey(year, make)] || [];
+    return list.length ? (opts || []).filter(function (o) { return list.indexOf(obChipNorm(o)) < 0; }) : opts;
+  }
   // The answered refinement(s) behind the current view. ACCUMULATES (Oct 2026, phone review bug):
   // each earned-question chip used to REPLACE this whole object, so answering a second question
   // (e.g. gearbox, after mileage) silently dropped the first answer and the engine, seeing no
@@ -1365,6 +1384,7 @@
     }
     var opts = d.modelOptions || d.bodyOptions || [];
     var kind = d.modelOptions ? "model" : "body";
+    if (d.modelOptions && d.resolvedCar) opts = obDropRejectedChips(d.resolvedCar.year, d.resolvedCar.make, opts);
     // Base a chip appends its answer to: a passed baseLabel (year+make on a VIN model ask), else
     // the resolved car (year+make+model+trim on a body ask), so a body answer re-queries the SAME
     // car and a VIN chip never appends to the VIN (which re-decodes and loops).
@@ -1648,6 +1668,10 @@
     }, 25000).then(function (r) { return r.json(); }).then(function (d) {
       pushRecent(text, d);
       if (d && d.status === "needs_clarification") {
+        // Rejected model chip (Oct 2026): the engine said this exact year+make+model combination
+        // does not exist - record it so a later model_choice ask for the same year+make never
+        // offers it again.
+        if (d.invalidVehicle) obNoteRejectedModel(d.vehicle);
         // Multi-token chassis ("1E 31588"): an exact archive match came back -> lead with the
         // "This exact car is known" callout, then the ask (same as the single-token path).
         if (d.vinArchiveMatch) { obEvent("onebox_vin_anchor_shown"); renderChassisMatch(d.vinArchiveMatch); return; }
