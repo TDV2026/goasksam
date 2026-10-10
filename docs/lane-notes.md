@@ -3102,3 +3102,37 @@ when the work has landed.
   * No Lane A/C files touched this round (lib/platformPick.js, lib/onebox.js, lib/vehicle.js,
     lib/vehicleData.js, scripts/crossProductCheck.js, api/usageDashboard.js are all Lane B's).
     api/sellerDecision.js was read for context only, never edited, per the standing handoff.
+
+- 2026-10-09 (Lane C): NEAR 150, BUY TRACKING, PICK FOLD STOPPED, CREW LINK FIXED.
+  * Near (0f56e19, 7302ee5): lib/live/samChat.js runSearch NEAR_MILES = 150 (a named distance wins). Empty
+    state reads "No live {search} within 150 miles of {place} right now." and offers "Within 500 miles (n)" /
+    "Anywhere in the US (n)" only when they add real cars (same rows).
+  * Buy tracking (0f56e19): Lane A's two auction_clickout attributes shipped intact; the card's Market Check
+    button carries market_check_open (source buy) and the drawer's sale rows receipt_click (venue slug).
+    Verified live: one row each in funnel_events for the same visitor.
+  * PICK FOLD (job 3) NOT APPLIED. Stage 1 only (05f4b38, no pick change): lib/platformPick.js onlinePicks
+    (the online and rush ladder, pickPlatform calls it, buildSharedAnalysis returns analysis.sharedPick),
+    api/sellerDecision.js sharedPickRoute / sharedSpeedRoute (unwired), ops task=pickfold. Over 85 cars
+    (53 specs + the 40 audit cars, deduplicated) 6 picks would change, so it stopped there:
+      1993 911 Carrera RS Targa, normal: PCarMarket -> Bring a Trailer (decide() finds a 12x specialist cell
+        at the landed generation scope for a 1-sale venue; the shared ladder looks at model scope, finds none,
+        and picks depth, BaT 4 sales).
+      Rush (page v2Composition: first non-BaT card in score order with 3+ sales; shared: the ladder without
+      BaT): 2019 911 Turbo S Cars and Bids -> Sotheby's Motorsport (3 v 3 tie), 1996 Boxster Spyder Hagerty
+      -> Cars and Bids, 2015 Cayman GT4 Cars and Bids (7) -> PCarMarket (3, specialist cell), 2015 Corvette
+      Z06 Hagerty -> Cars and Bids (3 v 3 tie), 1965 Corvette Hemmings (4) -> Hagerty (12).
+    FOR LANE B / SAM: (a) choose the specialist scope (landed rung vs model); (b) the shared depthWins only
+    prefers Bring a Trailer, so a tie between two other venues falls to pool order: needs a second rule.
+  * CREW LINK (75d7445). Cause: pages with a crew-only rail cache their public copy at the edge and the cache
+    ignores cookies, so a valid signed cookie still got the cached public rail (/buy and /market-check were
+    HITs). vercel.json now routes a signed-shape gas_crew cookie to the same handler with _crew=1 (its own
+    cache key, answered private, no-store): /sell, /tasks, /tasks/mine, /market-check, /how-sam-decides,
+    /business, /buy, the 911 spec pages, /history, /vin. FOR LANE A: any NEW page with a crew rail needs the
+    same has-cookie line in vercel.json. api/crew.js: right code -> Set-Cookie gas_crew (Domain=goasksam.com,
+    Path=/, SameSite=Lax, Secure, Max-Age one year) and lands on /buy (or the gate's to=); wrong code -> plain
+    403 page, nothing set. ops task=crewcookie&check=1: CURTAIN_CREW_CODE set and in the gas-crew- format.
+  * Policy-floor cars (CLK DTM AMG Cabriolet, 275 GTB/4): live Sell does not show them as policy picks; both
+    render the house-led thin read (RM Sotheby's / Broad Arrow, three real house sales each, ranges from those
+    sales), headed "If you'd rather have it handled at a house" even for a seller who said "selling it myself".
+    Not changed (job said do not change); for Sam to decide whether a DIY seller should see that.
+  * "Nothing estimated." removed from the Sell house/thin footers and the new Sell landing (d9ed4a0).
