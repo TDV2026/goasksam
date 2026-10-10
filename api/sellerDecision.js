@@ -640,6 +640,32 @@ function pickRecommendedRoute(routes) {
   return routable[0] || (routes || [])[0] || null;
 }
 
+// THE ONE PICK over decide()'s routes (Oct 2026): the Sell-only thin-window override first (it is a separate
+// rule, set by analyzeRouteFit), then the shared ladder's own pick (lib/platformPick.js onlinePicks, carried in
+// analysis.sharedPick) mapped onto its route. No premium, dominance, specialist or depth logic of its own.
+// With no shared pick (no routable sale in the pool) the route order stands (the policy floor, rule 8).
+export function sharedPickRoute(routes, sharedPick) {
+  const tag = (r, why) => { if (r) r.pickReason = why; return r; };
+  const routable = (routes || []).filter(r => r.routable !== false && isRoutableVenue(r.policyKey));
+  if (!routable.length) return (routes || []).find(r => r.routable) || (routes || [])[0] || null;
+  const forced = routable.find(r => r.thinWindowPriceLead);
+  if (forced) return tag(forced, "thin_window_price");
+  const b = sharedPick && sharedPick.baseline;
+  const k = x => String(x || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (b && b.platform) {
+    const r = routable.find(x => k(x.policyKey) === k(b.platform));
+    if (r) return tag(r, b.reasonCode === "premium" ? "price" : b.reasonCode);
+  }
+  return routable[0] || (routes || [])[0] || null;
+}
+// The rush pick's route (decision.speedPick): the shared ladder with Bring a Trailer left out (onlinePicks
+// speed), or null when there is none. The page shows it beside the price pick for a seller in a rush.
+export function sharedSpeedRoute(routes, sharedPick) {
+  const sp = sharedPick && sharedPick.speed; if (!sp || !sp.platform) return null;
+  const k = x => String(x || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  return (routes || []).find(r => r.routable !== false && isRoutableVenue(r.policyKey) && k(r.policyKey) === k(sp.platform)) || null;
+}
+
 // Thin-window price-signal override (Aug 2026). A high-scoring leader whose landed
 // window sample is THIN must not hold the pick on a same-size recency edge when
 // another routable platform is flagged the STRONG-PRICE-SIGNAL route AND carries a

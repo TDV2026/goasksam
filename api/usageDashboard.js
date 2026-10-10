@@ -4948,6 +4948,55 @@ async function handleOps(req, res) {
     return value ? res.status(200).json({ task: "crewcookie", value }) : res.status(500).json({ error: "CURTAIN_CREW_CODE not set." });
   }
 
+  // task=pickfold (Lane C, Oct 2026): READ-ONLY, zero writes, zero OCD. Before folding decide()'s own premium/
+  // dominance/specialist/depth branches and the page's rush pick into the shared ladder, compare for each car
+  // (&cars=a|b|c): today's decide() pick vs sharedPickRoute (the shared ladder on the same routes), and the
+  // page's current rush pick (js/result-v2.js v2Composition: first non-Bring a Trailer card with 3+ model
+  // sales, in card order) vs the shared rush pick (onlinePicks speed). Both timelines.
+  if (task === "pickfold") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { decide, getSellerCriteria, sharedPickRoute, sharedSpeedRoute } = await import("./sellerDecision.js");
+    const { buildSharedAnalysis } = await import("../lib/platformPick.js");
+    const cars = String(req.query?.cars || "").split("|").map(x => x.trim()).filter(Boolean).slice(0, 8);
+    const k = x => String(x || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const isBaT = r => /bringatrailer/.test(k(r && (r.policyKey || r.platform)));
+    const rows = [];
+    for (const q of cars) {
+      const row = { q };
+      try {
+        const rv = await resolveVehicle(q, {}); const vehicle = rv && rv.vehicle;
+        if (!vehicle || !vehicle.make) { row.error = "unresolved"; rows.push(row); continue; }
+        const generation = await findGeneration(vehicle, env).catch(() => null);
+        for (const [name, timeline] of [["normal", "No rush"], ["rush", "As soon as possible"]]) {
+          const criteria = getSellerCriteria({ raw: q, region: "US", state: "California", targetPrice: "", timeline });
+          const analysis = await buildSharedAnalysis(vehicle, generation, env, criteria);
+          if (!analysis) { row[name] = { noPool: true }; continue; }
+          const dec = decide(analysis, criteria, vehicle);
+          const routes = (dec.routeFit && dec.routeFit.routes) || [];
+          const newRoute = sharedPickRoute(routes.map(r => ({ ...r })), analysis.sharedPick);
+          const out = { oldPick: dec.recommendedPath || null, newPick: (newRoute && newRoute.platform) || null, sharedReason: analysis.sharedPick && analysis.sharedPick.baseline && analysis.sharedPick.baseline.reasonCode || null, basis: dec.evidenceBasis };
+          out.pickSame = k(out.oldPick) === k(out.newPick);
+          if (name === "rush") {
+            // the page's current rule, card order = the server's pick first, then route order
+            const pick = routes.find(r => k(r.platform) === k(dec.recommendedPath));
+            const order = [pick, ...routes.filter(r => r !== pick)].filter(r => r && r.routable !== false);
+            const ev = r => { const m = r.marketEvidence; return !!(m && Number(m.modelSales != null ? m.modelSales : (m.relevantSales || 0)) >= 3); };
+            const oldSpeed = order.find(r => !isBaT(r) && ev(r)) || null;
+            const newSpeed = sharedSpeedRoute(routes, analysis.sharedPick);
+            out.oldSpeed = oldSpeed && oldSpeed !== order[0] ? oldSpeed.platform : null;
+            out.newSpeed = newSpeed && k(newSpeed.platform) !== k(out.newPick) ? newSpeed.platform : null;
+            out.speedSame = k(out.oldSpeed) === k(out.newSpeed);
+          }
+          row[name] = out;
+        }
+      } catch (e) { row.error = String((e && e.message) || e).slice(0, 200); }
+      rows.push(row);
+    }
+    return res.status(200).json({ task: "pickfold", rows });
+  }
+
   if (task === "ocdmeter") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const monthStart = new Date().toISOString().slice(0, 7) + "-01T00:00:00Z";
