@@ -1276,7 +1276,7 @@ function renderThinDecisionSell(msgs,thin,decisionData){
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${body}
     ${askLine}
-    <div class="pcard-note" style="margin-top:14px">Real completed sales from GoAskSam's archive, hammer prices with the buyer premium backed out. Nothing estimated.</div>
+    <div class="pcard-note" style="margin-top:14px">Real completed sales from GoAskSam's archive, hammer prices with the buyer premium backed out.</div>
     <div class="sam-text after-results">Ask me anything about the recommendation, or tell me more about the car.</div>
   </div></div>`;
   msgs.appendChild(row);
@@ -1629,7 +1629,7 @@ function renderClassEraSell(msgs,ce,decisionData){
         <ul style="list-style:none;margin:8px 0 0;padding:0">${list}</ul>
         ${askLine||""}
         ${venueBlock}
-        <p class="pcard-lead" style="opacity:.6;font-size:12px;margin-top:14px">Real completed sales, hammer prices with the buyer premium backed out. Nothing estimated.</p>
+        <p class="pcard-lead" style="opacity:.6;font-size:12px;margin-top:14px">Real completed sales, hammer prices with the buyer premium backed out.</p>
       </div>
     </div>
   </div></div>`;
