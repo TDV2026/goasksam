@@ -3136,3 +3136,72 @@ when the work has landed.
     sales), headed "If you'd rather have it handled at a house" even for a seller who said "selling it myself".
     Not changed (job said do not change); for Sam to decide whether a DIY seller should see that.
   * "Nothing estimated." removed from the Sell house/thin footers and the new Sell landing (d9ed4a0).
+
+- 2026-10-10 (Lane B): M3 COMPETITION CACHE DEFECT, NAMED AND CLOSED.
+  * NAMED: spec_market_cache (lib/live/search.js). Read by Buy's card render and Tasks (same path);
+    written by THREE independent callers that all go through the shared coreOf/persistCore builders -
+    walkLadder/refreshSpec (Buy/Tasks' own live-engine fallback on a cache miss), api/sellerDecision.js's
+    oneBox branch (Market Check and the Buy drawer, opportunistic fire-and-forget refresh after every
+    clean live result), and the nightly deferred recompute (lib/_specRecompute.js, scripts/
+    recomputeSpecCache.js). Market Check/Sell themselves NEVER READ this cache - they call runOneBox
+    live on every request; only Buy/Tasks' card path reads it. Key: specKeyFor([make,model,trim,
+    generationCode-or-year,bodyStyle,gearbox]). TTL: SPEC_TTL 6h, DAY_TTL 24h hard ceiling
+    (EFFECTIVE_TTL = min). Version gate: SPEC_V (bumped manually, currently 8).
+  * SECOND cache named for completeness: market_fetch_cache (api/sellerDecision.js, read-only, not
+    edited). Keyed by ENGINE_VERSION|make|model-FAMILY (first word only - "M3" and "M3 Competition"
+    share one row), 24h TTL. Governs only whether the OLD legacy OldCarsData-fetch gate skips a fresh
+    pull; confirmed (by reading the SELL_PICK_SHARED code path, not editing it) that it is NOT in the
+    path real Sell traffic uses today, so it is not the live mechanism for this specific mismatch -
+    named and evidenced anyway since the job asked for every candidate cache.
+  * EVIDENCE (real stored rows, via a new read-only obdiag cachecheck=1 probe, not a guess): queried
+    the exact spec_market_cache key for "2012 BMW M3 Competition Coupe" live. Before any fix: row
+    computed_at 1h old, market.v=8 (current), count=37 (correct) - the cache was NOT stale at the
+    moment I could observe it; the original 210-vs-37 split had already self-healed by the time I
+    could query it, so I could not recover a stored row proving the exact historical moment (it has
+    since been overwritten by a fresh, correct computation - I was not able to find that evidence and
+    say so plainly, per the ask). What the evidence DID prove: lib/onebox.js's own ENGINE_VERSION
+    comment states intent ("mixed into every persistent... decision cache") that spec_market_cache was
+    NEVER actually honoring - it had its own separately-bumped SPEC_V with no tie to ENGINE_VERSION, so
+    an engine-logic change that bumped neither (or only one) could leave a row "valid" (right SPEC_V,
+    within SPEC_TTL) for up to 6h after its own computed answer was already wrong. That gap is real and
+    reproducible by inspection of the code, independent of whether I could catch a live instance of it.
+  * ALSO FOUND (plain, in scope, fixed in passing): api/sellerDecision.js's opportunistic refresh calls
+    coreOf() directly and persists the result without ever going through walkLadder; coreOf() never
+    stamped v/engineVersion itself, so that persisted row ALWAYS failed prefetchSpecs' own validity
+    check (market.v !== SPEC_V) regardless of freshness. The "ordinary traffic keeps a popular spec's
+    card fresh" comment on that call site was a no-op in practice - walkLadder's own refresh (Buy/
+    Tasks' OWN cache-miss fallback) was the only write that ever produced an acceptable row. Fixed by
+    stamping v/engineVersion inside coreOf itself (the one shared builder), which fixes all three
+    callers (including the nightly recompute job) without touching api/sellerDecision.js.
+  * CLOSED (commit 827b218): coreOf now stamps engineVersion (lib/onebox.js's ENGINE_VERSION, the
+    constant already documented as meant for this) on every row it builds; prefetchSpecs now requires
+    engineVersion to match before accepting a row, in addition to the existing SPEC_V/TTL checks. No
+    new cache, no new read path - the smallest change that makes the ALREADY-DOCUMENTED intent real.
+    ENGINE_VERSION bumped once (e3-20261005-rangeladder -> e4-20261010-sharedspeccacheversion) to force
+    a clean, one-time global invalidation of every existing row under the old, unguarded scheme.
+    Verified live: the M3 Competition row now carries engineVersion exactly matching the current
+    constant.
+  * LIVE 4-PRODUCT CHECK (M3 Competition, 2012), right now: marketCheck/buy/sell/tasks ALL identical -
+    count=37, range $38,000-$70,500, latest 2026-10-06, same 3 recent sales (order differs by design,
+    dates match), referenceFigure 54,250 (medium). mismatchSpecs: 0.
+  * crossProductCheck (commit c096e84): count comparison is now EXACT match, split out of the 10%-
+    relative-tolerance low/high share - a discrete pool-membership fact must never pass at "close
+    enough". "2012 BMW M3 Competition Coupe" was already in DEFAULT_SPECS, no addition needed. Added
+    the nightly workflow's missing "Fail the job if crossProductCheck found a mismatch" step (it had
+    continue-on-error with no follow-up fail gate, so a real mismatch never turned the job red) -
+    mirrors the existing vinindex/specmarket/recomputespec pattern. FOR SAM: .github/workflows/
+    nightly.yml needs this same step added by hand (my CI token lacks `workflow` scope) - the exact,
+    already-pushed content is docs/nightly-workflow.yml (kept byte-identical); copy it over.
+  * FULL crossProductCheck re-run after the fix (53/53 DEFAULT_SPECS, batched): mismatchSpecs: 0 on
+    every batch, including the new exact-count rule. No regression from the cache-version change.
+  * Search-rules check: PASS on all 10 canonical pages (home/sell redirect, buy, mcp, market-check,
+    tasks, how-sam-decides, hub, spec, VIN, business), verified via real browser, zero console errors.
+    /sell /buy /tasks /market-check /business signed out: all 200, correct title/H1, zero console
+    errors.
+  * Data plan (task=ocdplan, restated, no changes): grandTotal 2511 over the 5 days of ocd_call history
+    that exist (the event type looks newly introduced) - 2026-10-06=1, 10-07=547, 10-08=816, 10-09=1127,
+    10-10=20 (just started). untagged (warm+premium+live engine fetches+ops probes) 1783/71%,
+    live-auction poll 426/17%, nightly ingest delta 302/12%. No ingest_backfill/ingest_attempts/
+    pull_live_bid activity in this window. Same recommendation as last round stands: tag job via
+    configureOcdUsage for warm/engine-fetch/ops-probe callers so the 71% untagged bucket can actually
+    be split; not implemented (report-only job).
