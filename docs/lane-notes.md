@@ -3647,3 +3647,97 @@ when the work has landed.
     hours older than a fresh read; the panel now refreshes on that).
   * PROBE (read only, aggregates only, no vendor call): GET /api/tasks?livetiming=1 with x-probe-key.
     lib/ops/liveTiming.js. live_listings only starts 2026-10-05 (5.7 days); pull_live_summary rows from 10-08.
+
+- 2026-10-11 (Lane B): BOXSTER TEXT-VS-FIELD MISMATCH + TASK LABEL FIX + UNCURATED-TRIM FENCE SHIPPED.
+  * Boxster text-vs-field mismatch (job 1): investigated live, found NOT REPRODUCIBLE on deployed code
+    (confirmed via enginecheck: 2006 and 2010 Boxster Convertible both read correctly and distinctly -
+    987.1 61 sales $18.5k-$34k, 987.2 24 sales $29k-$48.5k - across all 4 lanes). Most likely resolved
+    as a side effect of this round's ENGINE_VERSION bumps forcing a clean recompute past a stale cache
+    row your own cache-key fix (ac8b7aa) hadn't yet invalidated. Proof table (job 2): 14 clusters x
+    text-in-title vs body-as-field, all MATCH (same genCode, range, count) - see the full table in the
+    session report. All body/half-gen clusters (987, 997, e46, 991) confirmed.
+  * Task label-vs-sales mismatch (job 3): root cause was TWO separate bugs in lib/onebox.js, not one:
+    (a) the model-widened thin rung kept the ORIGINAL (pre-widen) trim in resolvedCar/familyLabel after
+    dropping it from the pool - fixed, that branch now returns a resolvedCar copy with trim cleared;
+    (b) the REAL cause of the reported "Shelby GT500 Supercharged" case - buildSpec's uncurated-trim
+    fallback (new fence, see below) was wrongly gated on !spec.perfInclude, but runOneBox's own famSpec
+    (`{...spec, perfInclude: null, ...}`, the trim-to-family widening ladder) clears perfInclude before
+    the real fetch ever runs - so any make relying on PERF_TRIMS with no subTrimFence backstop (Ford
+    Shelby/GT350/GT500/Boss/SVT - Porsche survives via subTrimInclude, which famSpec does NOT clear)
+    got zero trim filtering at all. Fixed: the fallback now fires regardless of perfInclude.
+  * NEW: buildSpec uncurated-trim fallback fence (lib/onebox.js, end of buildSpec, before relabel()):
+    any spec.trim that matched NONE of the curated mechanisms (subTrimInclude/badge/familyInclude) now
+    gets set as spec.titleContains verbatim - mirrors the fallback priceBandForVehicle/
+    listSalesForVehicle already used for Sell's price-step, now shared into the general result/thin/
+    refusal path too (one engine rule). Confirmed live: "1966 Ford Mustang Shelby GT500 Supercharged
+    Convertible" now correctly reads 2 genuine GT500/GT500KR sales (was silently reading all 233 plain-
+    Mustang sales under the GT500 label before the fix).
+  * Found + fixed in-memory cache-version gap while verifying: lib/live/search.js's rangeCache
+    (engineAnswer) and specMem (specCore) had NO ENGINE_VERSION check at all (unlike the DB-level
+    spec_market_cache, gated in prefetchSpecs) - a warm serverless instance that had already answered a
+    query kept serving the pre-fix in-memory answer for up to an hour regardless of any version bump.
+    Both now gated on ENGINE_VERSION; a mismatch is a miss, same as an expired entry.
+  * ENGINE_VERSION: e10 (resolvedCar trim-widen fix) -> e11 (uncurated-trim fence) -> e12 (fence no
+    longer gated on perfInclude - the actual fix). Full crossProductCheck after e12: 61/61 specs,
+    mismatchSpecs:0 (run in many small batches - e13's cold cache made single large-batch requests
+    exceed the ops endpoint's response window; batching, not a regression, see session report).
+  * Files: lib/onebox.js, lib/live/search.js, api/usageDashboard.js (listingmarkettest bodyField
+    param, obdiag engineVersion+bodyScoped surfaced, for diagnosis - left in, same pattern as prior
+    rounds). lib/modelRules.js not touched this part.
+
+- 2026-10-11 (Lane B): COMPARABLE FENCES (MODIFIED/RESTOMOD SET-ASIDE) + SAM'S TAKE WORDING SHIPPED.
+  * Modified-car fence (job 1): extended lib/modelRules.js RESTOMOD_TAGS (the ONE shared list,
+    restomodReason) rather than building a second one. Added: bare "<N>L-Powered" (word order
+    protects "Powered by the original 3.2L" - displacement must come BEFORE "Powered"); RUF and
+    "Turbo look", Porsche-scoped; slant-nose CONVERSION only, Porsche-scoped (Porsche's factory 930
+    Flachbau option means bare "Slant-Nose" with no "Conversion" stays in the pool - Sam's explicit
+    call); bare "Modified"/"modded" mirrored from lib/live/search.js's own MODIFIED_RE; widebody/body
+    kit, bagged/air ride, lifted, stroker, built engine, twin-turbo conversion (an ENGINE conversion,
+    never the gearbox conversions rule 27 protects); "custom built" (not bare "custom" - "custom
+    color"/"custom wheels" stay in the pool). Cubic-inch "<N>-Powered" (302/350/383-style) deliberately
+    LEFT UNFLAGGED - Sam's call: several classic Mustangs/Camaros genuinely came from the factory with
+    those displacements, so the phrase can be factory-correct, no reliable way to tell from title text
+    alone, never set aside a car on a guess.
+  * lib/onebox.js: the old local ENGINE_SWAP_RE/isEngineSwap (a narrower, drifting duplicate) is gone;
+    isEngineSwap now delegates to restomodReason everywhere it already ran (buildResult's solid/aside
+    split, assessThin's thin pool, the refusal tier's shown-sales list) - one list, every set-aside
+    path. setAsideReasonFor broadened so any restomodReason tag reads as "modified" (provenance/halo
+    keep their own prior behavior unchanged, still "odd sale").
+  * pickRepresentative (job 2): verified by construction, not a separate fix - it only ever reads the
+    `solid` array, and the modification fence already removes tagged rows from `solid` before
+    pickRepresentative is called later in the same function. Confirmed live: the reported anchor car
+    ("3.6L-Powered 1987 Porsche 911 Carrera Coupe G50" at $89,500) no longer appears as closest/high/
+    low on the 1988 Porsche 911 Carrera Coupe read.
+  * Sam's Take wording (job 3): every "the higher half"/"the lower half" clause (mileage, transmission,
+    service, modifications) now says "Higher-priced sales"/"lower-priced sales" explicitly - confirmed
+    live, word for word matches Sam's requested example ("Higher-priced sales averaged about 69,000
+    miles; lower-priced sales about 115,000."). The known_flaws "reported issue" sentence is REMOVED
+    (sampled live via a temporary ops diagnostic, task=flawsample, before deciding): the field itself
+    IS a clean OCD-provided JSON array (not our own newline-splitting guesswork - e.g. ["Rust on the
+    door sills", "Touched-up chips on the exterior", "Oil leaks"]), but its ITEM COUNT conflates how
+    thoroughly one seller itemized minor notes with how flawed the car actually is - no solid basis to
+    compare two sellers' array lengths as a severity signal, so the sentence is gone, not shown anyway.
+  * Over-time/headline pool parity (job 5's "one pool" requirement): quarterlyBandsFor/
+    yearOverYearDirectionFor (the "Where sales landed over time" trend bars) read `recent`/`prior`,
+    which are sliced from the RAW pool upstream of the modification/provenance/halo set-aside - so an
+    unfenced quarter could show a modified or ex-celebrity car the headline range excludes for the
+    identical window. Fixed: both now read a locally-fenced copy (recentFenced/priorFenced) with the
+    same exclusions, computed just before use - counts.qualifying/solid/aside are UNCHANGED (a set-
+    aside car still counts and shows its reason there; only the over-time reads additionally exclude
+    it from their own local r4Split).
+  * Reconciliation (job 4), 1988 Porsche 911 Carrera Coupe, live after the fix: qualifying 53 = used 49
+    + setAside 4 (aboveRange 1, belowRange 1, all 4 reason "modified", 0 "odd sale"). Before the fence
+    this cluster read qualifying 52/used 51/setAside 1 (the one set-aside row was "odd sale", not
+    "modified" - the 3.6L/3.5L-Powered cars were inside the 51 used, one of them anchoring the range).
+  * ENGINE_VERSION bumped to e13. Full crossProductCheck after e13: 61/61 specs confirmed, 0
+    mismatches (batched small due to e13's cold-cache response time, not a regression - see session
+    report), including every named spec from this job (1988 911 Coupe/Targa/Cabriolet, 997 Carrera S
+    Coupe/Cabriolet, 2001/2005 BMW M3, Boxster S, Cayman S, GT3 RS, Turbo S, all half-gen pairs).
+  * Files: lib/modelRules.js (RESTOMOD_TAGS), lib/onebox.js (isEngineSwap/setAsideReasonFor/
+    stPlainClause/quarterlyBands-yoy pool fix), api/usageDashboard.js (temporary flawsample
+    diagnostic, left in).
+  * NOT YET RUN this session: scripts/searchCheck.js and the 5-page signed-out curl test both hit
+    Vercel Attack Challenge Mode (HTTP 429, x-vercel-mitigated: challenge) from this session's own very
+    high volume of ops-key requests - a known non-issue (real browsers get 200), not a product
+    regression, but genuinely not verified this run. Re-run both once traffic has cooled or with a
+    Protection-Bypass secret.
