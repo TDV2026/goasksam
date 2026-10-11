@@ -204,12 +204,17 @@ export default async function handler(req, res) {
         const sr = await runSearch(env, task.filters, { keep: r => r.status === "live" && !(r.end_time && Date.parse(r.end_time) <= Date.now()) });
         const pool = ((sr && sr.matches) || []).map(x => x.r).filter(r => taskFits(task, r));
         const withBid = pool.find(r => Number(r.current_bid_usd) > 0);
-        const noBid = pool.find(r => r.current_bid_usd == null || Number(r.current_bid_usd) <= 0);
-        for (const [label, r] of [["live, with a bid", withBid], ["live, no bids", noBid]]) {
+        let noBid = pool.find(r => r.current_bid_usd == null || Number(r.current_bid_usd) <= 0), noBidTask = task;
+        if (!noBid) {   // none for the manual task right now: the same search for "Porsche 911s from 1964 to 1998"
+          noBidTask = { id: "00000000-0000-4000-8000-0000000000e3", summary: "Sam is looking for Porsche 911s from 1964 to 1998", filters: { make: "Porsche", model: "911", year_min: 1964, year_max: 1998 } };
+          const sr2 = await runSearch(env, noBidTask.filters, { keep: r => r.status === "live" && !(r.end_time && Date.parse(r.end_time) <= Date.now()) });
+          noBid = ((sr2 && sr2.matches) || []).map(x => x.r).filter(r => taskFits(noBidTask, r)).find(r => r.current_bid_usd == null || Number(r.current_bid_usd) <= 0);
+        }
+        for (const [label, r, tk] of [["live, with a bid", withBid, task], ["live, no bids", noBid, noBidTask]]) {
           if (!r) { out.sent.push({ label, error: "no stored listing of this kind right now" }); continue; }
           const card = cardOfMatch({ r, facts: listingFacts(r) });
           const blocks = (await taskEmailBlocks(env, [r], [card])).map(b => ({ ...b, card }));
-          const msg = taskEmailBody(task, blocks, { first: true });
+          const msg = taskEmailBody(tk, blocks, { first: true });
           const subject = "[Test] " + taskEmailSubject([card]);
           const resp = await sendTaskEmail({ to: TEST_EMAIL, subject, text: msg.text, html: msg.html });
           out.sent.push({ label, listing: r.id, subject, status: resp.ok ? "sent" : (resp.reason || resp.error || resp.status), text: msg.text, html: msg.html });
