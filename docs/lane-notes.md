@@ -3886,3 +3886,16 @@ when the work has landed.
     car, a few years outside the searched window." - ownership-neutral (product rule 20: the task's
     own example phrase "a few years from yours" was adjusted to drop "yours"), no banned word, no em/
     en dash, ends in a period same as otherHalfLabel's sibling copy nearby.
+- 2026-10-11 (Lane C): BUY CEILINGS + STALE BIDS SHIPPED (d890796, 6f9920f, 50414ad, b425107, 3716e64); PULL SORT TESTS (2e2c23e, d347b34).
+  * Ceilings live: 20 model turns per device a day (nuisance guard), $50 a day Buy chat model spend (authoritative),
+    fallback = the no-model search with "Sam's written answers are paused for the moment. Here are the search
+    results on their own." once per page, only when cards are drawn. Tested live with the credential-only headers
+    x-ceiling-test-turns / x-ceiling-test-spend. Heavy use logged as buy_heavy_device (never blocks).
+  * No-model search (lib/live/converse.js): a different car typed after a search now starts a new search (it used
+    to append, so "Jaguar E-Type" then "1967 Chevrolet Corvette" matched nothing). Refinements still join.
+  * Stale bids: live cards show "Bid $X · updated 1h 12m ago" past an hour (browser-computed, data-bidat);
+    Task match and Keep looking live emails add " as of 9:15am PT" (lib/live/buyAlerts.js bidAsOf).
+  * VENDOR SORT on /auctions/live: sort=auction_end_at, sort=created_at and sort=date are all rejected
+    ("400: sort: Invalid option"). The DEFAULT order (no sort) is auction_end_at ascending (100 of 100 in order,
+    all future, consistent with stored end times). The last pages of the default order are long-running house
+    auctions (created median 25 days ago), not newest. Cron unchanged pending Sam's call.
