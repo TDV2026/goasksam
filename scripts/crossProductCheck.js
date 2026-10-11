@@ -81,7 +81,15 @@ export const DEFAULT_SPECS = [
   // "Carrera T Coupe"/"Carrera T Cabriolet" were dropped (Oct 2026): Carrera T did not exist until
   // 2018 and has never been sold as a Cabriolet, so those two tested a car that never existed, not a
   // resolver case. Replaced with two genuine compounds in generations the list did not cover yet.
-  "2018 Porsche 911 Carrera T Coupe", "2013 Porsche 911 Carrera 4S Cabriolet"
+  "2018 Porsche 911 Carrera T Coupe", "2013 Porsche 911 Carrera 4S Cabriolet",
+  // Half-generation job (Oct 2026): one spec per side of each case the owner decided on
+  // (lib/generations.js HALF_GENERATIONS). A SPLIT model (987 Boxster: each half must resolve to
+  // its OWN narrower window, never the merged 2005-2012 span) and two MERGED models whose context
+  // cards now prefer same-half sales but whose range/count must still match across all four lanes
+  // exactly as before (997 Carrera S, E46 M3 pre/post facelift).
+  "2006 Porsche Boxster Convertible", "2010 Porsche Boxster Convertible",
+  "2008 Porsche 997 Carrera S Coupe", "2010 Porsche 997 Carrera S Coupe",
+  "2001 BMW M3 Coupe", "2005 BMW M3 Coupe"
 ];
 
 const round = n => (Number.isFinite(n) ? Math.round(n) : null);
