@@ -234,6 +234,34 @@ export default async function handler(req, res) {
     // question. Read-only: per address (sell searches, chat, Buy chat; app_usage_events ip_address) and per
     // browser (Buy searches; search_events anon_id), the busiest hour and day, with percentiles; and the last
     // 7 days of sell searches by cache status, tier and metered calls.
+    // Probe (PROBE_KEY, header only; read only, aggregates only, never a key, address or user): measured use of
+    // the Sell chat and of Tasks setup and research, for setting their limits. Per device and per address from
+    // the ceilings ledger (ip_rate_hits, crew never recorded), per minute, hour and day; the Sell chat's model
+    // calls and cost from app_usage_events; Tasks per account per day from tasks and task_updates.
+    if (b.action === "limits" && process.env.PROBE_KEY && req.headers["x-probe-key"] === process.env.PROBE_KEY) {
+      const days = Math.min(60, Number(b.days) || 30), since = new Date(Date.now() - days * 864e5).toISOString();
+      const pct = (arr, q) => { if (!arr.length) return null; const s2 = arr.slice().sort((x, y) => x - y); return s2[Math.min(s2.length - 1, Math.floor(q * (s2.length - 1)))]; };
+      const spread = (rows, keyOf, cut) => { const m = {}; for (const r of rows) { const k = keyOf(r); if (!k) continue; const kk = k + "|" + String(r.created_at).slice(0, cut); m[kk] = (m[kk] || 0) + 1; } const v = Object.values(m); return { buckets: v.length, p50: pct(v, 0.5), p90: pct(v, 0.9), p99: pct(v, 0.99), max: pct(v, 1), top: v.sort((x, y) => y - x).slice(0, 5) }; };
+      const three = (rows, keyOf) => ({ keys: new Set(rows.map(keyOf).filter(Boolean)).size, perMinute: spread(rows, keyOf, 16), perHour: spread(rows, keyOf, 13), perDay: spread(rows, keyOf, 10) });
+      const hits = (await supabaseSelectAll(env, `ip_rate_hits?kind=in.(c:sell_assist,c:sell_chat,a:sell_followup)&created_at=gte.${since}&select=ip,kind,created_at&order=id.asc`).catch(() => null)) || [];
+      const dev = r => String(r.ip).startsWith("dev:") ? r.ip : null, adr = r => String(r.ip).startsWith("ip:") ? r.ip : null, acct = r => String(r.ip).startsWith("user:") ? r.ip : null;
+      const sellAll = hits.filter(h => h.kind !== "a:sell_followup");
+      const chat = (await supabaseSelectAll(env, `app_usage_events?event_type=in.(chat,sell_chat_turn,sell_followup_turn)&created_at=gte.${since}&select=created_at,event_type,status,anthropic_cost_usd,anthropic_input_tokens,metadata&order=id.asc`).catch(() => null)) || [];
+      const paid = chat.filter(r => Number(r.anthropic_cost_usd) > 0), ipOf = r => (r.metadata && r.metadata.ip_address) ? "ip:" + r.metadata.ip_address : null;
+      const costs = paid.map(r => Number(r.anthropic_cost_usd));
+      const tasks = (await supabaseSelectAll(env, `tasks?created_at=gte.${since}&select=id,user_id,kind,created_at&order=created_at.asc`).catch(() => null)) || [];
+      const owner = new Map(tasks.map(t => [t.id, t.user_id]));
+      const msgs = (await supabaseSelectAll(env, `task_updates?role=eq.buyer&kind=eq.message&created_at=gte.${since}&select=task_id,created_at&order=id.asc`).catch(() => null)) || [];
+      const tm = (await supabaseSelectAll(env, `app_usage_events?event_type=in.(tasks_model_turn,tasks_model_paused)&created_at=gte.${since}&select=created_at,event_type,anthropic_cost_usd,anthropic_input_tokens,anthropic_output_tokens,metadata&order=id.asc`).catch(() => null)) || [];
+      return res.status(200).json({ days,
+        sellChat: { ledgerRows: hits.length, byKind: hits.reduce((o, h) => (o[h.kind] = (o[h.kind] || 0) + 1, o), {}), perDevice: three(sellAll, dev), perAddress: three(sellAll, adr), followupPerAccount: three(hits.filter(h => h.kind === "a:sell_followup"), acct),
+          modelRows: chat.length, byEvent: chat.reduce((o, r) => (o[r.event_type + ":" + r.status] = (o[r.event_type + ":" + r.status] || 0) + 1, o), {}), paidCalls: paid.length, narrationCacheHits: chat.filter(r => r.metadata && r.metadata.narrationCache === "hit").length,
+          costUsd: { total: Math.round(costs.reduce((a, c) => a + c, 0) * 100) / 100, perCallP50: pct(costs, 0.5), perCallP90: pct(costs, 0.9), max: pct(costs, 1) }, paidPerAddress: three(paid, ipOf) },
+        tasks: { created: tasks.length, byKind: tasks.reduce((o, t) => (o[t.kind] = (o[t.kind] || 0) + 1, o), {}), accounts: new Set(tasks.map(t => t.user_id)).size,
+          setupMessagesPerAccount: three(msgs.map(m => ({ ...m, u: owner.get(m.task_id) || null })), r => r.u), researchPerAccount: three(tasks.filter(t => t.kind === "research"), r => r.user_id), tasksPerAccount: three(tasks, r => r.user_id),
+          modelTurns: { rows: tm.length, byKind: tm.reduce((o, r) => { const k = r.event_type + ":" + ((r.metadata && r.metadata.kind) || "?"); o[k] = (o[k] || 0) + 1; return o; }, {}), costUsd: Math.round(tm.reduce((a, r) => a + (Number(r.anthropic_cost_usd) || 0), 0) * 1000) / 1000,
+            cache: tm.filter(r => r.event_type === "tasks_model_turn").map(r => ({ at: r.created_at, kind: r.metadata && r.metadata.kind, calls: r.metadata && r.metadata.calls, read: r.metadata && r.metadata.cache_read, write: r.metadata && r.metadata.cache_write, input: r.anthropic_input_tokens, output: r.anthropic_output_tokens, usd: r.anthropic_cost_usd })).slice(-20) } } });
+    }
     if (b.action === "traffic" && process.env.PROBE_KEY && req.headers["x-probe-key"] === process.env.PROBE_KEY) {
       const days = Math.min(60, Number(b.days) || 30), since = new Date(Date.now() - days * 864e5).toISOString(), since7 = new Date(Date.now() - 7 * 864e5).toISOString();
       const pct = (arr, q) => { if (!arr.length) return null; const s = arr.slice().sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(q * (s.length - 1)))]; };
