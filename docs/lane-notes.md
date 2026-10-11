@@ -3852,3 +3852,37 @@ when the work has landed.
     distinct cars per device-hour.
   * PENDING SAM'S APPROVAL (built, not committed): Buy chat ceilings (20 model turns per device a day, $50 a day
     global spend) and the stale-bid wording on cards and emails.
+
+- 2026-10-12 (Lane A -> Lane B): OFFWINDOW FLAG (job 1) - Market Check/Sell shipped, Buy BLOCKED on
+  an engine-adjacent file, car page has nothing to attach it to.
+  * SHIPPED (js/onebox.js + onebox.html, the shared saleCardHtml family): a new offWindowLabel(c)
+    function, same family as the existing otherHalfLabel(c, d) right above it - one function, reused
+    by both heroCardHtml and smallCardHtml's `extra` slot, so Market Check and Sell (which render
+    through this exact same shared card builder) both pick it up with zero per-surface code. Renders
+    only when c.offWindow === true and c.year is present; otherwise contributes nothing (empty
+    string), matching the engine's null/false-means-nothing contract. CSS reuses .otherhalf's own
+    rule (same selector, `.otherhalf,.offwindow{...}`) rather than a second copy of the same four
+    properties.
+  * BLOCKED, not touched (lib/live/search.js is on this job's forbidden list): Buy's "Market Check"
+    panel (api/buySearch.js action:"panel" -> lib/live/search.js panelOf()) already calls the real
+    engine (engineAnswer) and already has d.representative in scope - but panelOf's own `slim()`
+    helper (line ~725) whitelists exactly 7 fields per card (date/mi/price/platform/platformSlug/url/
+    image) before returning them to Buy's client, and `year` and `offWindow` are NOT in that list.
+    Buy's own client-side card renderer (api/buy.js, the `md-sale` markup, already a SEPARATE
+    implementation from js/onebox.js's saleCardHtml - that duplication predates this job and is out
+    of its scope to fix) would need those two fields to do anything, and today they never arrive.
+    NEEDED FROM LANE B: add `year` and `offWindow` to panelOf's slim() whitelist (lib/live/search.js
+    ~line 725). Once that field reaches Buy, the Buy-side fix is small (one data-gas-event-style
+    attribute's worth of markup in api/buy.js, reusing the identical wording this entry already
+    proposes) - flagging the DATA gap now rather than guessing at Buy's rendering blind.
+  * NOTHING TO ATTACH IT TO on the car page (api/history.js): checked the actual VIN detail page
+    (carPage handler) - it does not render the representative closest/high/low trio at all. Its
+    "[Model] that sold" section (groupListsHtml, saleRow) is a plain list built from d.cards (the
+    FULL comparable pool), not d.representative, and offWindow is only ever set on the
+    representative trio per Lane B's own entry above ("surfaced on d.representative.closest/.high/
+    .low"). There is no existing context-card surface here for this flag to attach to without
+    building new UI, which is outside "show the flag" - reporting rather than inventing one.
+  * PROPOSED WORDING (held for Sam's sign-off before push, per the job's own instruction): "A {year}
+    car, a few years outside the searched window." - ownership-neutral (product rule 20: the task's
+    own example phrase "a few years from yours" was adjusted to drop "yours"), no banned word, no em/
+    en dash, ends in a period same as otherHalfLabel's sibling copy nearby.
