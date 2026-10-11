@@ -4192,7 +4192,7 @@ async function handleOps(req, res) {
           exactSale: ob.exactSale ? { price: ob.exactSale.price, date: ob.exactSale.soldDate || ob.exactSale.date || null, mileage: ob.exactSale.mileage } : null,
           r4: d.r4 || null, dedup: { fetchedRaw: d.fetchedRaw, fetchedDeduped: d.fetchedDeduped, rule5: d.rule5 || null },
           counts: ob.counts || null, soldCount: ob.soldCount != null ? ob.soldCount : null, setAsideCount: ob.setAsideCount != null ? ob.setAsideCount : null, setAsideReasons: ob.setAsideReasons || null,
-          setAsideRows: Array.isArray(ob.setAsideRows) ? ob.setAsideRows.map(c => ({ title: c.title, price: c.price })) : null,
+          setAsideRows: Array.isArray(ob.setAsideRows) ? ob.setAsideRows.map(c => ({ title: c.title, price: c.price, reason: c.reason })) : null,
           bodyScoped: ob.bodyScoped !== undefined ? ob.bodyScoped : null,
           halfGeneration: ob.halfGeneration || null, representative: ob.representative || null,
           reserve, chips, cacheRows, listSales
