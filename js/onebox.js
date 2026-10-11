@@ -1099,14 +1099,14 @@
   function samOnItHtml(d, m) {
     if (!OB_WATCH_READY) return "";
     if (obWatchArmed) {
-      var onLine = m ? "Watching for this exact car to come up again." : ("Watching for the next sale of " + esc(obWatchArmed.label || carLabel(d.resolvedCar)) + ".");
+      var onLine = m ? "Sam’s looking for this exact car to come up again." : ("Sam’s looking for the next sale of " + esc(obWatchArmed.label || carLabel(d.resolvedCar)) + ".");
       return '<section class="samonit" data-stage="note"><p class="samonit-on">' + lint(onLine, "samonit.on") + "</p>" + (obWatchFirst ? '<p class="samonit-free">Free. No card, no plan.</p>' : "") + "</section>";
     }
     var line = m ? "If this exact car comes up again, Sam tells you." : ("The next " + esc(carLabel(d.resolvedCar)) + " that sells, Sam tells you, with the sale attached.");
-    // "Open to use" (Oct 2026, Market Check landing job): moved here, beside the watch control
+    // "Open to use" (Oct 2026, Market Check landing job): moved here, beside the task control
     // itself, from the landing hero (lib/live/marketCheckLanding.js) - the line only matters once
-    // there is something to watch, so it reads right where signing in is actually asked for.
-    return '<section class="samonit" data-stage="note"><p>' + lint(line, "samonit") + '</p><button type="button" class="linkbtn" id="ob-samonit">Put Sam on it &#8594;</button><p class="samonit-free">Open to use. Sign in only to watch a car for its next sale.</p><p class="samonit-msg" id="ob-samonit-msg" hidden></p></section>';
+    // there is something for Sam to look for, so it reads right where signing in is actually asked for.
+    return '<section class="samonit" data-stage="note"><p>' + lint(line, "samonit") + '</p><button type="button" class="linkbtn" id="ob-samonit">Put Sam on it &#8594;</button><p class="samonit-free">Open to use. Sign in only to put Sam on a car for its next sale.</p><p class="samonit-msg" id="ob-samonit-msg" hidden></p></section>';
   }
   // "Keep looking" card (Oct 2026): lib/appShell.js's shared component. Server pages (history/spec)
   // call its Node export directly; this page renders client-side and cannot import that module, so
@@ -2288,7 +2288,7 @@
       soi.addEventListener("click", function () {
         if (!(typeof authIsSignedIn === "function" && authIsSignedIn())) {
           stashPendingWatch();
-          if (typeof openSignInCard === "function") openSignInCard("Sign in to keep a watch. Free. No card, no plan.");
+          if (typeof openSignInCard === "function") openSignInCard("Sign in so Sam can keep looking. Free. No card, no plan.");
           clearInterval(obArmWait); obArmWait = null; var t0 = Date.now();
           obArmWait = setInterval(function () {
             if (typeof authIsSignedIn === "function" && authIsSignedIn()) { clearInterval(obArmWait); obArmWait = null; tryResumeWatchArm(); return; }
