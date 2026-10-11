@@ -3912,3 +3912,56 @@ when the work has landed.
     search step (samChat searchWithNearest) and the no-model search (converse) both read one year each side and
     say "No 1988 911 Carreras are live right now. These are the nearest, 1987." Tasks never widen.
     crossProductCheck gains buyPaths (5 cars, same cars and same nearest years on both paths): all pass.
+- 2026-10-13 (Lane B): TRIM FENCE SWEEP (jobs 1-12) SHIPPED. ENGINE_VERSION e16-20261013-trimfencesweep.
+  Summary of engine changes: glued-suffix fix for GT350/GT500/Z06/ZR1/ZL1/Z28 (codeGluedSrc, lib/
+  onebox.js); BMW baseExclude now matches the standalone M-badge token so a bare "3 Series" never pools
+  M3/M4/M5; a bare 911/SUBTRIM_FENCES nameplate with no trim defaults to the group's BASE trims only
+  (unmatched rows no longer silently stay - fixes a "911 Spirit 70" riding a Cabriolet pool); a MAKE-
+  LEVEL HALO set-aside now runs on every dense pool with no SUBTRIM_FENCES entry (catches BMW M3/M4
+  CSL/GTR and similar specials that had zero fence before); the trim QUESTION's option counts now read
+  the same today-first, universal-fenced window the headline itself uses (new `poolN` field) instead of
+  the raw multi-year pool; quarterlyBandsFor/yearOverYearDirectionFor now share r._tag with the headline
+  instead of a narrower, separately-derived fence, so the over-time block's row counts always sum to the
+  headline count (this is also the fix for the "recentBand not always identical to the headline's own
+  cluster" FOR LANE B note a few entries up - same root cause, now one pool); pickRepresentative's middle
+  card is now constrained to a sale inside the headline band nearest its midpoint, with no middle card at
+  all when nothing qualifies (new lowestSale/highestSale/belowRangeCount/aboveRangeCount/
+  belowRangeSales/aboveRangeSales fields); titleFenceReason extracted from qualifyReason so the live
+  "comparable right now" panel (lib/live/search.js liveForFamily) applies the identical trim/model-line/
+  modified/replica/conversion/body fence and the same buildSpec year window a sold comp needs (plus a
+  new `position`/`positions` field, computed once in liveForFamily via the shared placingFor, for the
+  intro-sentence counts - api/buySearch.js's panel route renders only what it returns now); BODY_STYLE_
+  WORDS (lib/vehicle.js) gained "sedan"/"wagon" (this is the FOR LANE B body-word-drop note, now fixed
+  at the root - the shared resolver, not a page-specific second parser); humanTitle (lib/carTitle.js)
+  strips any seller text before a title's first year plus leading/trailing punctuation; checkSinglePick
+  (scripts/crossProductCheck.js) is now deterministic (depthWinsFixtures, 9 fixture cases covering the
+  tie branch) and no longer gates on whether today's live archive happens to hold a tie - this answers
+  the two "policy-floor/tie" FOR LANE B notes above. crossProductCheck also gained checkLiveComparable
+  Fences (job 3) and checkRepresentativeInvariants (jobs 4/6), and DEFAULT_SPECS gained the Sedan/Bronco
+  body-word cases (job 9) plus "1991 BMW 3-Series Sedan"/"2022 Ford Bronco". panelOf's slim() whitelist
+  (lib/live/search.js) gained year/offWindow, closing the earlier "NEEDED FROM LANE B" data gap for
+  Buy's own card renderer.
+
+  THIN-POOL MINIMUMS (job 5), one named constant per block type, all in lib/onebox.js:
+  - THIN (headline result floor): 3 solid sales. Below it, the result is a refusal (ladderStep "thin"),
+    never a guessed range.
+  - SPLIT_MIN (any split carrying a range at all - trim question options, gearbox/competition inline
+    splits, the mileage-band refine): 3 sales on a side/option. Below it, that split/option renders
+    nothing (not a thin flag - an absent field, same floor as every other engine gate).
+  - RANGE_THRESHOLD (a real band anywhere outside the headline tier ladder - Sam's Take's per-side
+    minimum, the over-time block's rows INCLUDING the current quarter, year-over-year's each-side
+    minimum, and now also the "thin" flag threshold for a rendered split/trim-question option): 8
+    sales. A row/option below this still renders (it already cleared SPLIT_MIN) but carries a `thin:
+    true` flag so a reader can tell a confident read from a thin one.
+  - The headline's own tier ladder (rangeTierForCount, unchanged by this round): band at 8-15 solid,
+    cluster at 16+. This is a DIFFERENT concept (display style of the headline itself), not a new
+    minimum - noted here so the full set in one place is unambiguous.
+  Lane A: render nothing when a field is null/absent (unchanged rule) - these numbers decide what a
+  visitor sees, not a page-side guess.
+
+  FIELDS DELIVERED FOR LANE A this round: representative.lowestSale, .highestSale, .belowRangeCount,
+  .aboveRangeCount, .belowRangeSales, .aboveRangeSales (job 4); trimQuestion.poolN and
+  trimQuestion.options[].thin (jobs 5/6); inlineSplits sides[].thin (jobs 5/6); result.windowStart (job
+  7); live panel rows[].position and the panel response's top-level positions{inside,below,above,
+  unknown} (job 3); panelOf's slim() cards now carry year/offWindow (closes the earlier NEEDED FROM LANE
+  B note). All null/absent on every gate miss, per the no-guess rule.

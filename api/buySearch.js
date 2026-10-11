@@ -5,10 +5,14 @@
 //   POST { action:"enrich", ids:[...] } -> market line + seen-before for more cards ("Show all").
 //   POST { action:"panel", id } -> { market, representative } for a card's Market Check panel (same spec as its line).
 //   POST { action:"watch", key, email } -> watch_requests (key = VIN, family:..., live:...)
-//   GET  ?panel=1&make&model&trim&year&body(&lo&hi) -> { count, rows[<=3] } for the One Box live panel.
-//                                          lo/hi (optional): Market Check's own headline band (d.cluster),
-//                                          so each row's placing is read against the SAME range shown on
-//                                          the page - never a second one (see lib/onebox.js placingFor).
+//   GET  ?panel=1&make&model&trim&year&body(&lo&hi) -> { count, positions, rows[<=3] } for the One Box
+//                                          live panel. lo/hi (optional): Market Check's own headline
+//                                          band (d.cluster); each row's `placing` and the `positions`
+//                                          tally are computed ONCE in the engine (lib/live/search.js
+//                                          liveForFamily, via lib/onebox.js placingFor) against the
+//                                          SAME range shown on the page, over the full fenced match
+//                                          set, not just the <=3 cards shown - this route renders only
+//                                          what it returns, never a second placingFor call (job 3).
 //   POST { action:"arm"|"disarm", listing_id } / { action:"alerts" } (signed in) -> Before it ends (lib/live/buyAlerts.js)
 //   GET  ?alerts=run                    -> the Before it ends send run (Vercel cron, CRON_SECRET; or the probe key)
 //   GET|POST ?alert=stop&t=<signed>     -> the message's stop link: GET shows a confirm page, only a POST acts
@@ -31,7 +35,6 @@ import { listingCoord } from "../lib/live/geo.js";
 import { runTurn, runFilters, runSearch } from "../lib/live/samChat.js";
 import { humanTitle } from "../lib/carTitle.js";
 import { supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
-import { placingFor } from "../lib/onebox.js";
 import { chatOut } from "../lib/live/chatHttp.js";
 import { armAlert, cancelAlert, listAlerts, runAlerts, stopAll, verifyStop, verifyItem, stopOne, itemLabel, testSend, isMissingTable, alertsReady, useNamer } from "../lib/live/buyAlerts.js";
 
@@ -159,13 +162,16 @@ export default async function handler(req, res) {
       const vehicle = { make: String(q.make || ""), model: String(q.model || ""), trim: q.trim ? String(q.trim) : null, year: Number(q.year) || null, bodyStyle: q.body ? String(q.body) : null };
       if (!vehicle.make || !vehicle.model) return res.status(200).json({ count: 0, rows: [] });
       const generation = await findGeneration(vehicle, env);
-      const live = await liveForFamily(env, vehicle, generation, null, 3);
       // Item 5: a band only when the caller passed one (Market Check's own headline cluster) - never
-      // guessed here. A row with no usable USD figure gets no placing either (placingFor is null-safe).
+      // guessed here. A row with no usable USD figure gets no position either (placingFor is null-safe).
       const lo = Number(q.lo), hi = Number(q.hi);
       const band = Number.isFinite(lo) && Number.isFinite(hi) ? [lo, hi] : null;
+      // position/positions (job 3): computed once in the engine (lib/live/search.js liveForFamily),
+      // over the SAME fenced live-match set the count itself reports - this route only renders what
+      // it returns, never a second placingFor call of its own.
+      const live = await liveForFamily(env, vehicle, generation, null, 3, band);
       res.setHeader("Cache-Control", "public, s-maxage=300");
-      return res.status(200).json({ count: live.total, rows: live.rows.map(r => ({ source: houseName(r.source), title: r.listing_title, url: r.url, photo_url: r.photo_url || null, current_bid_usd: r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, current_bid: r.current_bid, currency: r.currency, end_time: r.end_time, bid_at: r.bid_at || r.last_seen || null, placing: band ? placingFor(r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, band) : null })) });
+      return res.status(200).json({ count: live.total, positions: live.positions, rows: live.rows.map(r => ({ source: houseName(r.source), title: r.listing_title, url: r.url, photo_url: r.photo_url || null, current_bid_usd: r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, current_bid: r.current_bid, currency: r.currency, end_time: r.end_time, bid_at: r.bid_at || r.last_seen || null, placing: r.position })) });
     }
     if (req.method !== "POST") return res.status(405).json({ status: "error" });
     // Everything from here down is Buy's own endpoint (search, chat, saved searches, alerts) - gated

@@ -39,9 +39,9 @@
 
 import { resolveVehicle } from "../lib/vehicle.js";
 import { findGeneration } from "../lib/generations.js";
-import { runOneBox } from "../lib/onebox.js";
+import { runOneBox, buildSpec, titleFenceReason } from "../lib/onebox.js";
 import { familyMarket, liveForFamily, emptyFilters } from "../lib/live/search.js";
-import { fetchOnlinePool, buildSharedAnalysis, pickPlatform } from "../lib/platformPick.js";
+import { fetchOnlinePool, buildSharedAnalysis, pickPlatform, depthWins } from "../lib/platformPick.js";
 import { decide, getSellerCriteria } from "../api/sellerDecision.js";
 import fs from "node:fs";
 import { hammerUsd } from "../lib/_houseComps.js";
@@ -95,7 +95,13 @@ export const DEFAULT_SPECS = [
   // first priority, no guard against a longer compound trim like "Turbo S"/"GTS" also satisfying
   // the match). These two have no dedicated SUBTRIM_FENCES entry (unlike 911), so they are the
   // real regression cases for the generic fallback path, not the fenced one.
-  "2008 Porsche Boxster S", "2009 Porsche Cayman S"
+  "2008 Porsche Boxster S", "2009 Porsche Cayman S",
+  // Job 9 (body words on typed cars, Oct 2026): a typed body word reported dropped between Market
+  // Check and Buy - traced to lib/vehicle.js BODY_STYLE_WORDS missing "sedan"/"wagon" entirely (now
+  // fixed), so a free-text "Sedan"/"Wagon" resolves to vehicle.bodyStyle and every lane scopes the
+  // same way. The Bronco case showed no live mismatch when checked (a prior Buy-panel staleness
+  // artifact, already self-healing on refresh); kept here as a standing regression guard for both.
+  "1991 BMW 3-Series Sedan", "2022 Ford Bronco"
 ];
 
 const round = n => (Number.isFinite(n) ? Math.round(n) : null);
@@ -398,8 +404,38 @@ const PICK_CASES = [
   // rule 3: rush, short-auction venues only, deeper wins (Hagerty 12 over Hemmings 4)
   { q: "1965 Chevrolet Corvette", kind: "rush" }
 ];
+// DEPTH-WINS FIXTURES (job 11, Oct 2026): depthWins is a PURE function (n, slug, bestN, bestSlug,
+// meta) - the real tie-break path. The old check instead relied on LIVE ARCHIVE DATA happening to
+// hold an exact sales tie for one hardcoded car (2009 Nissan GT-R) RIGHT NOW to "exercise" the tie
+// branch, so it failed "exercised" on every run where fresh ingest broke the tie - not a real
+// regression, just the archive moving on. These fixtures call depthWins directly with synthetic
+// counts, so the tie case (and every other branch) is exercised and graded EVERY run, deterministically,
+// with no archive read at all. The live GT-R/specialist/rush cases below still run end to end (real
+// value: do Sell and the shared pick actually agree on a real car) but no longer gate on whether
+// today's data happens to contain a tie.
+const DEPTH_WINS_FIXTURES = [
+  { name: "not a tie, more sales wins", args: [10, "a", 6, "b", new Map()], expect: true },
+  { name: "not a tie, fewer sales loses", args: [4, "a", 6, "b", new Map()], expect: false },
+  { name: "no incumbent yet, anything beats null", args: [1, "a", 0, null, new Map()], expect: true },
+  { name: "exact tie, more recent sale wins", args: [5, "a", 5, "b", new Map([["a", { latest: "2026-09-01" }], ["b", { latest: "2026-01-01" }]])], expect: true },
+  { name: "exact tie, less recent sale loses", args: [5, "a", 5, "b", new Map([["a", { latest: "2026-01-01" }], ["b", { latest: "2026-09-01" }]])], expect: false },
+  { name: "exact tie, same date, higher model-level count wins", args: [5, "a", 5, "b", new Map([["a", { latest: "2026-01-01", modelN: 40 }], ["b", { latest: "2026-01-01", modelN: 12 }]])], expect: true },
+  { name: "exact tie, same date, lower model-level count loses", args: [5, "a", 5, "b", new Map([["a", { latest: "2026-01-01", modelN: 12 }], ["b", { latest: "2026-01-01", modelN: 40 }]])], expect: false },
+  { name: "exact tie, every other factor equal, Bring a Trailer wins", args: [5, "bringatrailer", 5, "carsandbids", new Map([["bringatrailer", { latest: "2026-01-01" }], ["carsandbids", { latest: "2026-01-01" }]])], expect: true },
+  { name: "exact tie, every other factor equal, incumbent keeps it (neither is BaT)", args: [5, "carsandbids", 5, "hagerty", new Map([["carsandbids", { latest: "2026-01-01" }], ["hagerty", { latest: "2026-01-01" }]])], expect: false }
+];
+function checkDepthWinsFixtures() {
+  const cases = DEPTH_WINS_FIXTURES.map(f => {
+    const got = depthWins(...f.args);
+    return { name: f.name, expect: f.expect, got, pass: got === f.expect };
+  });
+  return { ok: cases.every(c => c.pass), cases };
+}
+
 export async function checkSinglePick(env) {
   const out = { ok: true, tieBreakCopies: [], cases: [] };
+  out.depthWinsFixtures = checkDepthWinsFixtures();
+  if (!out.depthWinsFixtures.ok) out.ok = false;
   for (const f of PICK_FILES) {
     if (f === "lib/platformPick.js") continue;   // the one home of these rules
     let src = null;
@@ -429,7 +465,12 @@ export async function checkSinglePick(env) {
       }
       row.agree = !!row.sell && !!row.shared && (k(row.sell) === k(row.shared) || k(row.sell) === k(shared && shared.platform));
     } catch (e) { row.error = String(e && e.message || e); }
-    if (!row.agree || !row.exercised) out.ok = false;
+    // Gate on agree alone (job 11): whether Sell's real decide() and the shared pickPlatform land on
+    // the same venue for a real car is a genuine invariant. Whether today's live archive happens to
+    // still hold the exact tie/specialist/rush shape named for this car (`exercised`) is reported for
+    // visibility but no longer gates ok - the archive moves nightly and a broken tie is not a
+    // regression. The tie-break LOGIC itself is covered deterministically by depthWinsFixtures above.
+    if (!row.agree) out.ok = false;
     out.cases.push(row);
   }
   return out;
@@ -467,13 +508,81 @@ export async function checkBuyPaths(env, cases = BUY_PATH_CASES) {
   return out;
 }
 
+// LIVE COMPARABLE FENCE (job 3, trim-fence sweep, Oct 2026): a live "comparable right now" listing
+// must pass the SAME title/year fence (lib/onebox.js titleFenceReason) the sales pool applies - the
+// shared engine liveForFamily now calls that function itself, so this is a regression guard, not a
+// second implementation. Fails if any row liveForFamily actually returned would be rejected by the
+// identical fence its own spec implies (the exact class of leak that shipped before this round: a
+// Turbo S in a bare Cabriolet search, a non-M3 and a conversion in an M3 Coupe search).
+export const LIVE_FENCE_CASES = ["2025 Porsche 911 Cabriolet", "2005 BMW M3 Coupe", "1969 Chevrolet Camaro Convertible"];
+export async function checkLiveComparableFences(env, cases = LIVE_FENCE_CASES) {
+  const out = { ok: true, cases: [] };
+  for (const q of cases) {
+    const row = { q };
+    try {
+      const rv = await resolveVehicle(q, {}), vehicle = rv && rv.vehicle;
+      if (!vehicle || !vehicle.make) throw new Error("unresolved");
+      const generation = await findGeneration(vehicle, env).catch(() => null);
+      const spec = buildSpec(vehicle, generation, q);
+      const live = await liveForFamily(env, vehicle, generation, null, 50);
+      const failures = [];
+      for (const r of live.rows) {
+        const fenceRow = { raw_title: r.listing_title || r.title || "", rtitle: r.listing_title || r.title || "", year: r.year || null, mods: r.modifications || null };
+        const reason = titleFenceReason(fenceRow, spec);
+        if (reason) failures.push({ title: fenceRow.raw_title, reason });
+      }
+      row.liveCount = live.rows.length;
+      row.failures = failures;
+      if (failures.length) out.ok = false;
+    } catch (e) { row.error = String(e && e.message || e); }
+    out.cases.push(row);
+  }
+  return out;
+}
+
+// PICK-REPRESENTATIVE INVARIANTS (jobs 4 and 6, trim-fence sweep, Oct 2026): (a) the middle/"closest"
+// card (basis "middle", not a real-similarity "subject" match) must sit INSIDE the headline cluster/
+// span, never outside it; (b) the trim QUESTION's option counts must never sum to more than the
+// universal-fenced pool they were drawn from (trimQuestion.poolN). Both read straight off runOneBox's
+// own output fields - no second computation, just the invariant the engine's own comment promises.
+export const REPRESENTATIVE_CASES = ["2025 Porsche 911 Cabriolet", "2025 Porsche 911 Coupe", "2005 BMW M3 Coupe", "2005 BMW M3 Cabriolet"];
+export async function checkRepresentativeInvariants(env, cases = REPRESENTATIVE_CASES) {
+  const out = { ok: true, cases: [] };
+  for (const q of cases) {
+    const row = { q };
+    try {
+      const rv = await resolveVehicle(q, {}), vehicle = rv && rv.vehicle;
+      if (!vehicle || !vehicle.make) throw new Error("unresolved");
+      const generation = await findGeneration(vehicle, env).catch(() => null);
+      const d = await runOneBox(vehicle, generation, q, env, null);
+      const band = Array.isArray(d.cluster) ? d.cluster : (Array.isArray(d.span) ? d.span : null);
+      const rep = d.representative;
+      if (rep && rep.closest && rep.closest.basis !== "subject" && band) {
+        const p = rep.closest.price;
+        row.middleInRange = Number.isFinite(p) && p >= Math.min(band[0], band[1]) && p <= Math.max(band[0], band[1]);
+        if (!row.middleInRange) { row.middlePrice = p; row.band = band; out.ok = false; }
+      } else row.middleInRange = null;
+      const tq = d.trimQuestion;
+      if (tq && Array.isArray(tq.options) && Number.isFinite(tq.poolN)) {
+        const sum = tq.options.reduce((s, o) => s + (Number(o.n) || 0), 0);
+        row.optionsSum = sum; row.poolN = tq.poolN; row.optionsWithinPool = sum <= tq.poolN;
+        if (!row.optionsWithinPool) out.ok = false;
+      } else row.optionsWithinPool = null;
+    } catch (e) { row.error = String(e && e.message || e); }
+    out.cases.push(row);
+  }
+  return out;
+}
+
 export async function runEngineCheck(env, specs = DEFAULT_SPECS, opts = {}) {
   const rows = [];
   for (const q of specs) rows.push(await checkOneSpec(q, env));
   const totalMismatches = rows.filter(r => r.anyMismatch).length;
   const singlePick = opts.singlePick === false ? null : await checkSinglePick(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const buyPaths = opts.buyPaths === false ? null : await checkBuyPaths(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  return { task: "crossproductcheck", total: rows.length, mismatchSpecs: totalMismatches, singlePick, buyPaths, rows };
+  const liveFences = opts.liveFences === false ? null : await checkLiveComparableFences(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  const representative = opts.representative === false ? null : await checkRepresentativeInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  return { task: "crossproductcheck", total: rows.length, mismatchSpecs: totalMismatches, singlePick, buyPaths, liveFences, representative, rows };
 }
 
 // ---- CLI ----
@@ -498,6 +607,8 @@ function printTable(result) {
   console.log(`\nTOTAL: ${result.mismatchSpecs}/${result.total} specs had at least one field mismatch`);
   if (result.singlePick) console.log(`ONE PICK: ${result.singlePick.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.singlePick)}`);
   if (result.buyPaths) console.log(`BUY PATHS: ${result.buyPaths.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.buyPaths)}`);
+  if (result.liveFences) console.log(`LIVE FENCES: ${result.liveFences.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.liveFences)}`);
+  if (result.representative) console.log(`REPRESENTATIVE: ${result.representative.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.representative)}`);
 }
 
 const isMain = import.meta.url === `file://${process.argv[1]}`;
@@ -510,5 +621,5 @@ if (isMain) {
   const result = await runEngineCheck(env, specs);
   if (asJson) console.log(JSON.stringify(result));
   else printTable(result);
-  process.exit(result.mismatchSpecs > 0 || (result.singlePick && !result.singlePick.ok) || (result.buyPaths && !result.buyPaths.ok) ? 1 : 0);
+  process.exit(result.mismatchSpecs > 0 || (result.singlePick && !result.singlePick.ok) || (result.buyPaths && !result.buyPaths.ok) || (result.liveFences && !result.liveFences.ok) || (result.representative && !result.representative.ok) ? 1 : 0);
 }

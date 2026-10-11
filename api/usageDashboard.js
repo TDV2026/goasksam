@@ -1331,8 +1331,9 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { runEngineCheck, DEFAULT_SPECS } = await import("../scripts/crossProductCheck.js");
     const specs = req.query?.specs ? String(req.query.specs).split("|").filter(Boolean) : DEFAULT_SPECS;
-    // &buypaths=0 skips the Buy paths case (a batched caller runs it once, not per batch).
-    const result = await runEngineCheck(env, specs, { buyPaths: req.query?.buypaths !== "0" });
+    // &buypaths=0/&livefences=0/&representative=0 skip those cases (a batched caller runs each once,
+    // not per batch).
+    const result = await runEngineCheck(env, specs, { buyPaths: req.query?.buypaths !== "0", liveFences: req.query?.livefences !== "0", representative: req.query?.representative !== "0" });
     return res.status(200).json(result);
   }
 
@@ -4299,6 +4300,9 @@ async function handleOps(req, res) {
           classEra: ob.classEra ? { label: ob.classEra.label || null, n: (ob.classEra.receipts || []).length } : null,
           thin: ob.thin ? { n: (ob.thin.receipts || []).length, houseSteer: !!ob.thin.houseSteer, span: ob.thin.span || null } : null,
           recLabel: ob.recLabel || null, poolTrim: ob.poolTrim || null, poolYears: ob.poolYears || null, cluster: ob.cluster || null, span: ob.span || null,
+          windowLabel: ob.windowLabel || null, windowStart: ob.windowStart || null,
+          quarterlyBands: ob.quarterlyBands || null,
+          yoyDirection: ob.yoyDirection ? { recentBand: ob.yoyDirection.recentBand, priorBand: ob.yoyDirection.priorBand, percent: ob.yoyDirection.percent, status: ob.yoyDirection.status, n: ob.yoyDirection.n } : null,
           cards: Array.isArray(ob.cards) ? ob.cards.length : null,
           cardTitles: req.query?.titles === "1" && Array.isArray(ob.cards) ? ob.cards.map(c => c.title) : null,
           // detail=1 (trim-fence sweep job, Oct 2026): full per-card fields (price/mi/platform/date/
