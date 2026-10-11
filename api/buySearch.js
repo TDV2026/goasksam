@@ -117,7 +117,7 @@ export default async function handler(req, res) {
     // BEFORE IT ENDS: the stop link in the message (and the one-click unsubscribe). A GET or HEAD only shows
     // the confirm page (mail scanners open every link); the page's button, or the mail provider's one-click
     // POST, is the only thing that acts. Private and noindex.
-    if (q0.alert === "stop") {
+    if (q0.alert === "stop" || q0.stop === "1") {   // ?stop=1 since Oct 2026; ?alert=stop kept for links already sent
       res.setHeader("Content-Type", "text/html; charset=utf-8"); res.setHeader("Cache-Control", "private, no-store");
       const page = (status, body) => { const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Stop these messages? | GoAskSam</title><style>${STOP_CSS}</style></head><body><main><p class="brand">GoAskSam</p>${body}</main></body></html>`; return req.method === "HEAD" ? res.status(status).end() : res.status(status).send(html); };
       const uid = verifyStop(q0.t);
@@ -127,11 +127,11 @@ export default async function handler(req, res) {
       // the header link, which names no item, so it always stops everything (as List-Unsubscribe requires).
       const item = q0.i ? verifyItem(uid, q0.i) : null;
       const lab = item ? await itemLabel(env, uid, item) : null;
-      const base = `/api/buySearch?alert=stop&t=${encodeURIComponent(String(q0.t))}${item ? `&i=${encodeURIComponent(String(q0.i))}` : ""}`;
+      const base = `/api/buySearch?stop=1&t=${encodeURIComponent(String(q0.t))}${item ? `&i=${encodeURIComponent(String(q0.i))}` : ""}`;
       const esc2 = s => String(s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
       if (req.method !== "POST") {
-        if (lab) return page(200, `<h1>Stop these messages?</h1><p>Stop ${esc2(lab.text)}, or stop everything GoAskSam sends about the cars you picked: the before-it-ends notices and every task alert.</p><div class="two"><form method="post" action="${base}&scope=one"><button type="submit">Stop this one</button></form><form method="post" action="${base}&scope=all"><button type="submit" class="alt">Stop everything</button></form></div><p class="quiet"><a href="/buy">Back to Buy instead</a></p>`);
-        return page(200, `<h1>Stop these messages?</h1><p>This stops every message GoAskSam sends about the cars you picked: the before-it-ends notices and every task alert. You can turn them on again from any car.</p><form method="post" action="${base}&scope=all"><button type="submit">Stop everything</button></form><p class="quiet"><a href="/buy">Back to Buy instead</a></p>`);
+        if (lab) return page(200, `<h1>Stop these messages?</h1><p>Stop ${esc2(lab.text)}, or stop everything GoAskSam sends about the cars you picked: the before-it-ends notices and every task email.</p><div class="two"><form method="post" action="${base}&scope=one"><button type="submit">Stop this one</button></form><form method="post" action="${base}&scope=all"><button type="submit" class="alt">Stop everything</button></form></div><p class="quiet"><a href="/buy">Back to Buy instead</a></p>`);
+        return page(200, `<h1>Stop these messages?</h1><p>This stops every message GoAskSam sends about the cars you picked: the before-it-ends notices and every task email. You can turn them on again from any car.</p><form method="post" action="${base}&scope=all"><button type="submit">Stop everything</button></form><p class="quiet"><a href="/buy">Back to Buy instead</a></p>`);
       }
       if (item && q0.scope === "one") {
         await stopOne(env, uid, item).catch(e => console.error("buy stop one:", e.message));

@@ -161,8 +161,8 @@ export default async function handler(req, res) {
     // Probe (Oct 2026, alert emails): the stored records for named lots, and the three real alert emails (a live
     // car with a bid, a live car with no bid, a sold notice) built from stored rows by the real builders and sent
     // ONLY to the fixed test inbox (TEST_EMAIL), subject marked [Test]. Never a real user's address.
-    if (req.method === "POST" && req.body && req.body.action === "alert_tests" && probeOk(req)) {
-      const { alertBlocks, alertEmail, cardOfMatch } = await import("../lib/tasks/tasks.js");
+    if (req.method === "POST" && req.body && req.body.action === "task_email_tests" && probeOk(req)) {
+      const { taskEmailBlocks, taskEmailBody, taskEmailSubject, cardOfMatch } = await import("../lib/tasks/tasks.js");
       const { listingFacts } = await import("../lib/live/search.js");
       const { testSend } = await import("../lib/live/watches.js");
       const { sendTaskEmail } = await import("../lib/_email.js");
@@ -181,15 +181,16 @@ export default async function handler(req, res) {
         for (const [label, r] of [["live, with a bid", withBid], ["live, no bids", noBid]]) {
           if (!r) { out.sent.push({ label, error: "no stored listing of this kind right now" }); continue; }
           const card = cardOfMatch({ r, facts: listingFacts(r) });
-          const blocks = (await alertBlocks(env, [r], [card])).map(b => ({ ...b, card }));
-          const msg = alertEmail(task, blocks, { first: true });
-          const resp = await sendTaskEmail({ to: TEST_EMAIL, subject: "[Test] A car matching your task just came up", text: msg.text, html: msg.html });
-          out.sent.push({ label, listing: r.id, status: resp.ok ? "sent" : (resp.reason || resp.error || resp.status), text: msg.text, html: msg.html });
+          const blocks = (await taskEmailBlocks(env, [r], [card])).map(b => ({ ...b, card }));
+          const msg = taskEmailBody(task, blocks, { first: true });
+          const subject = "[Test] " + taskEmailSubject([card]);
+          const resp = await sendTaskEmail({ to: TEST_EMAIL, subject, text: msg.text, html: msg.html });
+          out.sent.push({ label, listing: r.id, subject, status: resp.ok ? "sent" : (resp.reason || resp.error || resp.status), text: msg.text, html: msg.html });
         }
         const soldFrom = lots.warminster || withBid;
         if (soldFrom) {
-          const since = new Date(Date.now() - 45 * 864e5).toISOString().slice(0, 10);
-          const r = await testSend(env, { kind: "spec", listing_id: soldFrom.id, since, to: TEST_EMAIL, first: true });
+          const since = new Date(Date.now() - (Number(req.body.soldDays) || 3) * 864e5).toISOString().slice(0, 10);
+          const r = await testSend(env, { kind: "spec", listing_id: soldFrom.id, since, to: TEST_EMAIL, first: true, subjectPrefix: "[Test] " });
           out.sent.push({ label: "sold notice", listing: soldFrom.id, status: r.sent || r.error || (r.events === 0 ? "no sale since " + since : null), text: r.text || null, html: r.html || null, subject: r.subject || null });
         }
       }

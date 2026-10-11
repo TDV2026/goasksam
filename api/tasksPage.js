@@ -114,7 +114,7 @@ export default async function handler(req, res) {
   const ex = await exampleUpdate().catch(() => null);
   const hasQuery = /\?./.test(String(req.url || ""));
   const robots = hasQuery ? "noindex, follow" : "index, follow";
-  const title = "Free collector car finder and alerts | GoAskSam";
+  const title = "Free collector car finder that keeps looking | GoAskSam";
   const desc = `${TASKS_PITCH.lead} ${TASKS_PITCH.sub}`;
   const ld = [
     { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: FAQ.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
@@ -130,7 +130,7 @@ ${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 ${railOpenHtml({ active: "tasks", crew })}
 <main><div class="col">
-<header class="tkhero"><p class="pos">Car alerts, much smarter, and free</p><h1>${esc(TASKS_PITCH.lead)}</h1><p class="lead" data-lead-sentence>${esc(TASKS_PITCH.sub)}</p>
+<header class="tkhero"><p class="pos">A car search that keeps looking, and free</p><h1>${esc(TASKS_PITCH.lead)}</h1><p class="lead" data-lead-sentence>${esc(TASKS_PITCH.sub)}</p>
 <button type="button" class="cta" id="tkcta" data-task-entry data-href="/tasks/mine?start=1">Give Sam a task</button></header>
 <section class="sec"><h2>How it works</h2><p>${esc(HOW)}</p>
 <ol class="steps"><li>Tell Sam what you're looking for, in plain words.</li><li>Sam reads the job back to you, and starts when you say so.</li><li>Every time new cars come up for auction, the matching checks them against your task.</li><li>When one matches, Sam tells you what it is, how far away it is and, when the same car has been to auction before, what happened then. Nothing new means no message.</li></ol></section>
