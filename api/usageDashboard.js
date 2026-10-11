@@ -4300,6 +4300,10 @@ async function handleOps(req, res) {
           recLabel: ob.recLabel || null, poolTrim: ob.poolTrim || null, poolYears: ob.poolYears || null, cluster: ob.cluster || null, span: ob.span || null,
           cards: Array.isArray(ob.cards) ? ob.cards.length : null,
           cardTitles: req.query?.titles === "1" && Array.isArray(ob.cards) ? ob.cards.map(c => c.title) : null,
+          // detail=1 (trim-fence sweep job, Oct 2026): full per-card fields (price/mi/platform/date/
+          // year parsed from title), read-only, for inspecting WHICH rows passed a pool without
+          // guessing from the title string alone.
+          cardDetail: req.query?.detail === "1" && Array.isArray(ob.cards) ? ob.cards.map(c => ({ title: c.title, price: c.price, mi: c.mi, platform: c.platform, date: c.date })).sort((a, b) => (b.price || 0) - (a.price || 0)) : null,
           recent3: Array.isArray(ob.recent3) ? ob.recent3.map(c => ({ title: c.title, mi: c.mi, date: c.date, again: !!c.again })) : null,
           exactSale: ob.exactSale ? { price: ob.exactSale.price, date: ob.exactSale.soldDate || ob.exactSale.date || null, mileage: ob.exactSale.mileage } : null,
           r4: d.r4 || null, dedup: { fetchedRaw: d.fetchedRaw, fetchedDeduped: d.fetchedDeduped, rule5: d.rule5 || null },
