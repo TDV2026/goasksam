@@ -3383,16 +3383,13 @@ export default async function handler(req, res) {
       // identity key reuses lib/live/search.js specKeyFor, the SAME key the spec cache already
       // builds from this vehicle/generation pair, so a device that looks up the identical car twice
       // today (even via two separate fresh searches, not a UI refine) never spends a second slot.
-      let _dbgCarLimit = null;
       if (vehicle && vehicle.make && !obRefine) {
         const carKey = specKeyFor(vehicle, generation, null);
         const carLimit = await checkMarketCheckCarLimit({ supabaseUrl, supabaseKey }, req, carKey);
-        _dbgCarLimit = { carKey, ...carLimit };
         if (!carLimit.ok) {
           return res.status(200).json({
             status: "one_box", tier: "business_limit", resolvedCar: null,
-            samLine: "That’s today’s limit for individual lookups. Sam Desk is built for ongoing or business use.",
-            _dbgCarLimit
+            samLine: "That’s today’s limit for individual lookups. Sam Desk is built for ongoing or business use."
           });
         }
       }
@@ -3449,7 +3446,7 @@ export default async function handler(req, res) {
           }, supabaseUrl, supabaseKey);
         } catch { snapshotId = null; }
       }
-      return res.status(200).json({ status: "one_box", ...oneBox, snapshotId: snapshotId || undefined, _dbgCarLimit });
+      return res.status(200).json({ status: "one_box", ...oneBox, snapshotId: snapshotId || undefined });
     }
 
     // Price-step transparency (#68): a seller who DEFERS the asking price gets THE RECORD
