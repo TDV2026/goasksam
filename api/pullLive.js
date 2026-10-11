@@ -71,7 +71,18 @@ export default async function handler(req, res) {
       if (!isCron && req.query.sort != null) params = String(req.query.sort) === "none" ? {} : { sort: String(req.query.sort).slice(0, 40), direction: String(req.query.direction || "asc") === "desc" ? "desc" : "asc" };
       const field = mode === "new" ? "created_at" : "auction_end_at", seq = [];
       let pagesRead = 0;
-      for (let page = 1; page <= cap && used() < maxReq; page++) {
+      // &fromEnd=1 (test): the vendor's default order is soonest-ending first, so its LAST pages are the
+      // latest-ending auctions (for fixed-length auctions, the newest listed). The last page number comes from
+      // the latest full walk's own count (pull_live_summary), with no extra vendor call.
+      let pageList = null;
+      if (req.query.fromEnd) {
+        const last = await fetch(`${env.supabaseUrl}/rest/v1/app_usage_events?event_type=eq.pull_live_summary&select=metadata&order=created_at.desc&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }).then(r => r.ok ? r.json() : []).catch(() => []);
+        const total = Number(last && last[0] && last[0].metadata && last[0].metadata.fetched) || 0;
+        const lastPage = Math.max(1, Math.ceil(total / limit));
+        pageList = []; for (let k = 0; k < cap; k++) if (lastPage - k >= 1) pageList.push(lastPage - k);
+        params = {};
+      }
+      for (let i = 0, page = pageList ? pageList[0] : 1; (pageList ? i < pageList.length : page <= cap) && used() < maxReq; i++, page = pageList ? pageList[i] : page + 1) {
         const r = await ocdWithRetry(() => callOldCarsData("/auctions/live", { page, limit, ...params }, apiKey), used, maxReq);
         await flushOcdUsage();   // record the spend page by page, so a timeout never loses the count
         pagesRead++;
@@ -86,7 +97,9 @@ export default async function handler(req, res) {
         if (mode === "new") { const ids = mapped.map(m => m.source_listing_id); const known = await knownIds(env, ids); if (known >= ids.length) break; }
       }
       const wrong = seq.slice(1).filter((t, i) => mode === "new" ? t > seq[i] : t < seq[i]).length;
-      const order = { field, sent: params.sort ? params.sort + " " + params.direction : "default order", asked: mode === "new" ? "desc" : "asc", values: seq.length, outOfOrder: wrong, honoured: seq.length > 1 && wrong === 0, first: seq.length ? new Date(seq[0]).toISOString() : null, last: seq.length ? new Date(seq[seq.length - 1]).toISOString() : null, futureEnds: mode === "ending" ? seq.filter(t => t > Date.now()).length : undefined };
+      const ages = seq.map(t => (Date.now() - t) / 3600e3).sort((a, b) => a - b);
+      const createdAge = mode === "new" && ages.length ? { pages: pageList, medianHours: Math.round(ages[Math.floor(ages.length / 2)] * 10) / 10, within24h: ages.filter(h => h <= 24).length, within48h: ages.filter(h => h <= 48).length, of: ages.length } : undefined;
+      const order = { field, sent: params.sort ? params.sort + " " + params.direction : "default order", asked: mode === "new" ? "desc" : "asc", values: seq.length, outOfOrder: wrong, honoured: seq.length > 1 && wrong === 0, first: seq.length ? new Date(seq[0]).toISOString() : null, last: seq.length ? new Date(seq[seq.length - 1]).toISOString() : null, futureEnds: mode === "ending" ? seq.filter(t => t > Date.now()).length : undefined, createdAge };
       const fresh = await newCount(env, rows);
       const up = await upsertLive(env, rows);
       await flushOcdUsage();
