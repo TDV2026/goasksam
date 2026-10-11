@@ -3252,3 +3252,80 @@ when the work has landed.
     E46 M3 pre-facelift (2000-2002) n=55 median $23,500 vs post-facelift/LCI (2003-2006) n=134
     median $27,125 (+15%).
   * No code changes made or left behind, per the job.
+
+- 2026-10-09/10 (Lane A): CREW CACHE-POISONING FIX, VIN BUTTON CONFIRMED, REJECTED CHIPS, DAILY LIMIT
+  PROVEN (commits 97c4107, cace3d9, 8104d54, b2fc52c, 5d075b8, 975c504).
+  JOB 1 (crew gates): searched the whole codebase for gas_crew - every page I own (api/marketCheck.js,
+  api/business.js, api/specPage.js, api/history.js, api/publicConfig.js, api/sellPage.js,
+  api/sellNext.js, api/tasksPage.js, api/howSamDecides.js) already imports isCrewRequest from
+  api/_chrome.js, which already delegates to lib/_crew.js's signed check (Lane B's "Signed crew
+  cookie" round, commit e614841, landed concurrently). No raw `gas_crew=ok`/shape-check ACCESS gate
+  remained in code (only stale comments naming the old mechanism). BUT testing the 4 cookie cases
+  live surfaced a REAL bug, not a code-check bug: EDGE CACHE POISONING. Reproduced and fixed - see
+  below. Lane C independently found and fixed the SAME root cause via vercel.json cookie-shape
+  routing (`has: cookie gas_crew v1\..*` -> a separate `_crew=1` cache key) the same round, commit
+  75d7445 (see their "CREW LINK" entry above) - MY fix is a COMPLEMENT, not a duplicate: their
+  routing only checks cookie SHAPE (regex), not cryptographic validity, so a garbage-but-v1-shaped
+  cookie would still get a cacheable response INSIDE their `_crew=1` namespace and could poison a
+  later real crew visitor there. Mine makes Cache-Control private whenever a gas_crew cookie is
+  PRESENT AT ALL (valid or not), closing that residual gap. Fixed in the 5 pages I own:
+  api/marketCheck.js, api/business.js, api/specPage.js, api/publicConfig.js, and api/history.js
+  (whose shared send() helper gained a req parameter so it could check cookie presence - all 8 call
+  sites updated). COOKIE TEST TABLE (non-crew device, verified live post-fix, both mechanisms
+  combined):
+    no cookie                  -> locked (reduced rail), public/cacheable - correct
+    old value gas_crew=ok      -> locked, public/cacheable - correct (never matches v1. shape, is
+                                   legitimately public content anyway)
+    made-up v1.-shaped value   -> locked, PRIVATE/no-store (closes the poisoning gap) - correct
+    real signed value (minted  -> UNLOCKED (full rail, Buy/Sell/Tasks/For business all visible),
+      live via /api/crew)         PRIVATE/no-store - correct
+  Verified on both rail systems: lib/appShell.js's #gas-rail (Market Check) and api/_chrome.js's
+  .rail (the Porsche 911 spec page). Also fixed a banned word ("no estimates") in
+  api/publicConfig.js's default OG description, caught in the same file.
+  JOB 2 (VIN page Keep looking): already correct (shipped two rounds ago) - verified live on a real
+  VIN page (/history/2003-bmw-m5/WBSDE93483CF93837): the shared .gas-keepl card, target="_blank",
+  href seed=vin&vin=...&car=... No fix needed.
+  JOB 3 (rejected model chips): New Sell only loads js/onebox.js, never js/chat-core.js, so there is
+  no shared sellState for the EXISTING noteRejectedModel/dropRejectedChips to read from. Reused the
+  SAME algorithm (year+make key, normalized model text, filter-only) as local module state in
+  js/onebox.js. api/sellerDecision.js's two needs_clarification response points in the One Box
+  branch now carry invalidVehicle (resolution.status === "invalid_vehicle"). PROVEN via a controlled
+  test (intercepted one response to artificially reject "4Runner" for 1985 Toyota, confirmed the
+  REAL next engine call for "1985 Toyota" came back without 4Runner in modelOptions, which it
+  normally includes) - this is a cleaner proof than a real invalid-car search, since the engine's
+  own candidate list already excludes genuinely-impossible combinations, which would have made a
+  real-car test ambiguous about whether MY filter or the engine's own data did the excluding.
+  Confirmed "Nothing estimated." appears nowhere on this card (removed two rounds ago).
+  JOB 4 (daily limit, proven end to end): added MARKET_CHECK_DAILY_CARS env var (test only, never
+  request-trusted, defaults to 10, read fresh every call). CREW ARE EXEMPT from this cap entirely
+  (documented in the code comment) - proving it REQUIRES testing as a non-crew visitor; a crew
+  cookie would never see the limit fire. Set the var to 2 in Vercel, redeployed, tested, removed the
+  var, redeployed again - confirmed live cap is back at 10 (3 distinct cars in one sitting, all
+  allowed). TWO FALSE ALARMS along the way, both my own test-harness bugs, not product bugs, written
+  up in case they help whoever else tests this: (1) DOM-based click+wait tests desynchronized under
+  the narrated multi-stage loader - fixed by reading the actual /api/sellerDecision response instead
+  of DOM state; (2) repeated fresh `?q=` page loads raced the async gas_vid-minting beacon
+  (lib/_visitor.js, fired via a background POST to /api/funnel, not set in the page's own SSR
+  output) - the FIRST request of a brand-new browser session can fire before that cookie exists,
+  landing under a different (IP+UA-hash) device key than every later request, splitting one
+  device's history in two. A REAL visitor typing+clicking normally doesn't race this (natural human
+  pause before the first click dwarfs the mint round trip); it is specifically the `?q=`
+  instant-auto-search pattern - which I used as a test shortcut - that collides with it. Retested
+  with realistic pacing (one page load, explicit wait for gas_vid, then type+click each search) and
+  the proof came back completely clean: car1 allowed, car2 allowed, car3 BLOCKED (business_limit,
+  correct samLine, no sign-in demand), repeat of car1 allowed (already-seen path). FLAGGING, not
+  fixing (shared with every other lib/_ceilings.js caller, not unique to this function): a visitor
+  whose very FIRST action on a cold session is fast enough to race the gas_vid mint (e.g. a
+  prefilled `?q=` deep link that auto-searches) could in principle have their first search land
+  under a throwaway device key - narrow, no user-facing symptom beyond a theoretical one extra slot
+  on day one, not chased further this round. Used a new temporary read-only ops task
+  (task=ratehits, PROBE_KEY-gated, kept as a permanent small debugging tool like the others) to
+  directly inspect the ip_rate_hits ledger when DOM/response evidence disagreed - this is what
+  actually found the device-key split, not guessing.
+  JOB 5 (limit card copy): already compliant - "That's today's limit for individual lookups. Sam
+  Desk is built for ongoing or business use." + "Open Sam Desk" link, no first person, no tool
+  mentions, no banned words, wrapped in lint(). No changes needed.
+  CHECKS: searchCheck.js same known 429 pattern (confirmed 200 live via Chrome). crossProductCheck
+  (ops subset, 4 real specs incl. 997/M3/Camaro/GT350): mismatchSpecs: 0 - the hierarchy/limit/gates
+  work this round touched nothing the engine computes. Baseline: all 5 pages 200 at 1440 and 390,
+  titles/H1s intact.
