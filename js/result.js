@@ -320,6 +320,16 @@ function renderDecision(decisionData,renderOpts){
       &&!routeOptions.includes(route));
     if(policyBackup)routeOptions.push(policyBackup);
   }
+  // ONE PICK (Oct 2026): the two cards always include the server's pick and, for a seller in a rush, the
+  // server's rush pick (decision.recommendedPath / decision.speedPick, lib/platformPick.js onlinePicks), never
+  // just the first two routes in score order (a pick ranked third used to be cut and never shown).
+  {
+    const _k=x=>String(x||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+    const _find=n=>n?[...evidenceBackedRoutes,...allRouteOptions].find(r=>r.routable!==false&&!shouldSuppressRouteForSellerRegion(r)&&(_k(r.platform)===_k(n)||_k(r.label)===_k(n)||_k(r.policyKey)===_k(n))):null;
+    const front=[_find(decision.recommendedPath),(typeof sellerWantsSpeed==="function"&&sellerWantsSpeed())?_find(decision.speedPick):null].filter((r,i,a)=>r&&a.indexOf(r)===i);
+    const rest=routeOptions.filter(r=>!front.includes(r));
+    routeOptions.splice(0,routeOptions.length,...front,...rest);
+  }
   routeOptions.splice(2);
   // (Removed the platform-specific 1960s-Corvette speed hack: the ranking ladder
   // below re-derives the faster-to-list platform from data agnostically, so no
