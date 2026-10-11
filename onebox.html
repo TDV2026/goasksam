@@ -209,8 +209,18 @@ button{font:inherit}
 .card.hero{grid-column:span 3}
 .cards5.single .card.hero{grid-column:1 / -1}
 .card.this{border:1.5px solid var(--green)}
+/* .stack .card used to be flex:1 1 0 - the two context cards split the row's STRETCHED height
+   exactly in half regardless of their own content. The hero (photo + price + title + meta + an
+   italic why-line) is taller than a small card's natural content, so cards5's align-items:stretch
+   forced .stack taller than two small cards actually need - which flex:1 1 0 then DIVIDED evenly
+   between them, squeezing each card's allocated height below its own photo's aspect-ratio height
+   (which does not shrink) plus its price/title/meta body, so the body was pushed outside the
+   card's box and clipped by .card's own overflow:hidden (price/title/meta invisible, photo-only
+   card - reproduced live, 2008 Porsche 997 Carrera S). Fixed: each small card sizes to its own
+   natural content (flex:none) - any leftover stretched height in .stack is just blank space below
+   the two cards, never content pushed out of frame. */
 .stack{grid-column:span 2;display:flex;flex-direction:column;gap:20px}
-.stack .card{flex:1 1 0}
+.stack .card{flex:none}
 /* Fixed aspect ratio (Oct 2026, sale card template job), not a per-context pixel height: the box
    reserves its own space the instant the card renders, before a lazy-loaded image arrives or fails,
    so a missing/broken photo (.noimg, onerror removes the <img>) never changes the card's height and

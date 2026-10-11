@@ -159,7 +159,7 @@
     var label = thin ? "Why so little" : "Why it looks like this";
     var text = thin
       ? "Because that’s all that sold. We’d rather show you every real sale than a number we made up from them."
-      : "No chart, no guess, no score. Every figure on this page is a hammer price from a real auction, matched to the car’s trim, body and gearbox, converted at the rate on the day it sold, with the replicas, projects and odd sales set aside. The range is the middle half of where those sales landed. Where there aren’t enough sales to say something, we say that instead.";
+      : "Every figure on this page is a hammer price from a real auction, matched to the car’s trim, body and gearbox, converted at the rate on the day it sold, with the replicas, projects and odd sales set aside. The range is the middle half of where those sales landed. Where there aren’t enough sales to say something, we say that instead.";
     return '<section class="whynote" data-stage="note"><span class="eyebrow">' + esc(label) + '</span><p>' + esc(text) + '</p><a href="/how-sam-decides">How Sam decides &#8594;</a></section>';
   }
   // LIVE PANEL: when live_listings holds cars of this family, "{N} like this are live right now" with
@@ -876,8 +876,15 @@
     // OB_CAP_BATCH at a time rather than all at once (Oct 2026, phone review).
     var extra = cardsHtml.slice(cap).map(function (h) { return '<div class="cap-extra" hidden>' + h + "</div>"; }).join("");
     var firstBatch = Math.min(OB_CAP_BATCH, cardsHtml.length - cap);
-    return '<div class="' + gridClass + '" data-stage="cards" id="' + id + '">' + shown + extra + "</div>" +
-      '<button type="button" class="linkbtn capshow" data-capshow="' + id + '" aria-expanded="false">Show ' + firstBatch + " more &#8594;</button>";
+    // ONE wrapper around the grid AND the button (Oct 2026, Sam's live review fix): at cap=0
+    // (moreComparableSalesHtml's "collapsed by default" call) every card starts hidden, so the grid
+    // div has zero VISIBLE children and naturally collapses to 0 height - but it was still a
+    // SEPARATE top-level child of #ob's flex column (gap:28px), so that 0-height div still earned
+    // its own 28px gap on each side, doubling the blank space between "More comparable sales" and
+    // the "Show N more" button. Wrapping both in one div makes them a single flex item from #ob's
+    // side regardless of how many cards are visible inside.
+    return '<div class="capwrap" data-stage="cards"><div class="' + gridClass + '" id="' + id + '">' + shown + extra + "</div>" +
+      '<button type="button" class="linkbtn capshow" data-capshow="' + id + '" aria-expanded="false">Show ' + firstBatch + " more &#8594;</button></div>";
   }
   // Receipt-row title cleanup (Sep 2026): the raw OCD title leads with the listing's mileage hook
   // ("21k-Mile ...", "4,800-Mile ...") and trails a gearbox tag ("... 6-Speed") - both redundant on
@@ -1013,8 +1020,24 @@
   // evidence block above already carries its own collapsed "N sales sat outside this range" line
   // right next to the range it describes, so a second pointer to the same content down here was
   // pure duplication (part of the "fourteen cards between the answer and everything else" clutter).
+  // The lead sentence is composed HERE from the engine's structured yoyDirection fields (recentBand/
+  // priorBand/percent/status), never read from its pre-built .sentence string - the engine's own
+  // phrasing said "Most sales landed...", which is wrong for a p25-p75 band (same "middle half, never
+  // most" rule the evidence block above already follows). This is a copy-only fix: the numbers
+  // (recentBand/priorBand) are unchanged, only how they're worded. NOTE (Oct 2026, Sam's live review):
+  // this recentBand is NOT always identical to the headline's own cluster - yearOverYearDirectionFor
+  // (lib/onebox.js) computes it from a pool that has only passed the r4Split price-outlier fence,
+  // while the headline's cluster additionally has provenance/engine-swap/halo cars removed after
+  // that split. Reported, not patched here (engine file, not page code).
   function marketReadHtml(d) {
-    var lead = (d && d.yoyDirection && d.yoyDirection.sentence) ? ('<p class="mktread-lead">' + lint(esc(d.yoyDirection.sentence), "mktread.lead") + '</p>') : "";
+    var yoy = d && d.yoyDirection;
+    var lead = "";
+    if (yoy && Array.isArray(yoy.recentBand) && Array.isArray(yoy.priorBand)) {
+      var txt = yoy.status === "flat"
+        ? "The middle half of sales in the past 12 months landed about where they did in the 12 months before."
+        : ("The middle half of sales in the past 12 months landed about " + yoy.percent + " percent " + yoy.status + " than in the 12 months before: " + usd(yoy.recentBand[0]) + " to " + usd(yoy.recentBand[1]) + " now, " + usd(yoy.priorBand[0]) + " to " + usd(yoy.priorBand[1]) + " then.");
+      lead = '<p class="mktread-lead">' + lint(txt, "mktread.lead") + '</p>';
+    }
     var qrows = marketReadQuarterRows(d);
     if (!lead && !qrows) return "";
     return '<section class="mktread" data-stage="answer"><h2 class="mktread-h2">Where sales landed over time</h2>' + lead + qrows + '</section>';
@@ -1101,27 +1124,22 @@
   // THIS session has armed a watch for the current result, shows the confirmation line instead of
   // the ask - reset on every new search (run()/mcApplyFromUrl()), not on a refine (the identity being
   // watched does not change when miles/gearbox narrow the same pool).
+  // One action, not two (Oct 2026, Sam's live review): this used to be two separate blocks for the
+  // same intent - this button (armed via /api/watch, Lane C's endpoint) AND a second "Keep looking"
+  // card (lib/appShell.js's shared component, a link into /tasks/mine) stacked right below it on
+  // every Market Check result. Merged into one: this block stays (it already confirms in place with
+  // no navigation, the better of the two mechanisms), relabelled "Have Sam keep looking" to match the
+  // wording the shared card used, and keepLookingCardHtml's call is gone from resultHtml below - so
+  // "You'll be notified when another matching car goes live." (that card's fixed trailer line, which
+  // belongs to Buy's live-listing results, not a market-range read) no longer appears here either.
   function samOnItHtml(d, m) {
     if (!OB_WATCH_READY) return "";
     if (obWatchArmed) {
       var onLine = m ? "Sam’s looking for this exact car to come up again." : ("Sam’s looking for the next sale of " + esc(obWatchArmed.label || carLabel(d.resolvedCar)) + ".");
       return '<section class="samonit" data-stage="note"><p class="samonit-on">' + lint(onLine, "samonit.on") + "</p>" + (obWatchFirst ? '<p class="samonit-free">Free. No card, no plan.</p>' : "") + "</section>";
     }
-    var line = m ? "If this exact car comes up again, Sam tells you." : ("The next " + esc(carLabel(d.resolvedCar)) + " that sells, Sam tells you, with the sale attached.");
-    // "Open to use" (Oct 2026, Market Check landing job): moved here, beside the task control
-    // itself, from the landing hero (lib/live/marketCheckLanding.js) - the line only matters once
-    // there is something for Sam to look for, so it reads right where signing in is actually asked for.
-    return '<section class="samonit" data-stage="note"><p>' + lint(line, "samonit") + '</p><button type="button" class="linkbtn" id="ob-samonit">Put Sam on it &#8594;</button><p class="samonit-free">Open to use. Sign in only to put Sam on a car for its next sale.</p><p class="samonit-msg" id="ob-samonit-msg" hidden></p></section>';
-  }
-  // "Keep looking" card (Oct 2026): lib/appShell.js's shared component. Server pages (history/spec)
-  // call its Node export directly; this page renders client-side and cannot import that module, so
-  // KEEPLOOK_JS (spliced into SHELL_JS, already loaded before this script runs) carries the same
-  // markup/href logic as gasKeepLookingHtml/gasKeepLookingHref globals - called here, not rebuilt.
-  function keepLookingCardHtml(d, m) {
-    if (typeof gasKeepLookingHtml !== "function" || typeof gasKeepLookingHref !== "function") return "";
-    var subject = carLabel(d.resolvedCar);
-    var href = gasKeepLookingHref({ subject: subject, vin: m ? obSourceVin : null });
-    return gasKeepLookingHtml({ context: "spec", subject: subject, href: href });
+    var line = m ? "If this exact car comes up again, Sam will email you, with the sale attached." : ("When the next " + esc(carLabel(d.resolvedCar)) + " sells, Sam will email you, with the sale attached.");
+    return '<section class="samonit" data-stage="note"><p>' + lint(line, "samonit") + '</p><button type="button" class="linkbtn" id="ob-samonit">Have Sam keep looking &#8594;</button><p class="samonit-free">Free to use. Sign in only if you want Sam to keep looking.</p><p class="samonit-msg" id="ob-samonit-msg" hidden></p></section>';
   }
   // "Narrow it down" (item 4): the refinement questions (trim, body, mileage/transmission/driver,
   // observe, other trims) and the already-answered chips, under one header - only when there is
@@ -1138,8 +1156,8 @@
   function resultHtml(d, m) {
     // New page order (Oct 2026, evidence-block job): evidence block (range + the real sales behind
     // it, one card), THIS EXACT CAR (VIN/chassis match only), LIVE RIGHT NOW, Narrow it down, More
-    // comparable sales (collapsed), Where sales landed over time (quarter bars), Ready to sell / Put
-    // Sam on it. Keep looking + Why it looks like this stay as the trailing utility footer, unchanged.
+    // comparable sales (collapsed), Where sales landed over time (quarter bars), Ready to sell /
+    // Have Sam keep looking (one block, see samOnItHtml), Why it looks like this.
     var notes = mileageFallbackHtml(d) + contradictionLine(d) + observeAsideHtml(d) + inlineSplitsHtml(d);
     if (d.driverSentence && !(d.earned) && !(d.divergence && d.divergence.kase === "a")) notes += '<p class="varynote">' + lint(esc(d.driverSentence), "varynote") + "</p>";
     var body = evidenceBlockHtml(d, m);
@@ -1150,7 +1168,6 @@
     body += marketReadHtml(d);
     body += sellHtml();
     body += samOnItHtml(d, m);
-    body += keepLookingCardHtml(d, m);
     body += whyNoteHtml(d);
     return body;
   }
@@ -1464,7 +1481,11 @@
     obGbApplies = !!(d && d.gearboxApplies);   // item 4: gate the hero gearbox line
     obLastD = d;
     var m = vinAnchor;
-    var head = (d.resolvedCar || m) ? carLineHtml(d, m) : "";
+    // The duplicate car line (Oct 2026, Sam's live review): the "result" tier's own evidenceBlockHtml
+    // already renders carLineHtml at the top of its one evidence card, so this outer copy (used by
+    // every OTHER tier - thin, refusal, class_era, not_tracked... - which have no car line of their
+    // own) must not render a second time for "result" specifically.
+    var head = (d.tier !== "result" && (d.resolvedCar || m)) ? carLineHtml(d, m) : "";
     // A VIN that resolved a car but has NO recorded sale must SAY SO before the model market, so the
     // market read is never mistaken for this exact car's history.
     if (!m && vinQueryNoSale) {
