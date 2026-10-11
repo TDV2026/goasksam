@@ -1380,6 +1380,32 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "flawsample", make, model, n: out.length, out });
   }
 
+  // task=weeklysales: READ-ONLY (weekly total report job, Oct 2026). Returns every sold sales_archive
+  // row with a sale_date in [from, to] inclusive, across every platform - price (native and USD),
+  // year, make, model, mileage, platform, VIN, listing title, record id. No writes, no free-form SQL
+  // (a bounded PostgREST filter, same shape as every other ops task in this file). All aggregation
+  // (totals, repeat-sale matching, platform moves, same-model pairs) happens in the caller, not here.
+  // Reusable week to week: same task, only ?from=&to= change.
+  //   ?view=ops&task=weeklysales&from=2026-10-04&to=2026-10-10
+  if (task === "weeklysales") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const from = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.from || "")) ? String(req.query.from) : null;
+    const to = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.to || "")) ? String(req.query.to) : null;
+    if (!from || !to) return res.status(400).json({ error: "weeklysales needs ?from=YYYY-MM-DD&to=YYYY-MM-DD." });
+    const sel = "id,source_id,source_slug,platform,make,model,year,sale_date,sale_price,sale_price_usd,vin,vin_norm,listing_title,mi:raw_record->>mileage,curr:raw_record->>currency";
+    const rows = await supabaseSelectAll(env, `sales_archive?sale_date=gte.${from}&sale_date=lte.${to}&sale_price=not.is.null&select=${sel}&order=sale_date.asc`);
+    const out = (rows || []).map(r => ({
+      id: r.id, source: r.source_slug || r.platform || null, make: r.make || null, model: r.model || null, year: r.year || null,
+      date: r.sale_date ? String(r.sale_date).slice(0, 10) : null,
+      price: r.sale_price != null ? Number(r.sale_price) : null,
+      priceUsd: r.sale_price_usd != null ? Math.round(Number(r.sale_price_usd)) : (String(r.curr || "USD").toUpperCase() === "USD" && r.sale_price != null ? Math.round(Number(r.sale_price)) : null),
+      currency: r.curr || "USD",
+      miles: r.mi != null && r.mi !== "" ? Number(String(r.mi).replace(/[^\d]/g, "")) || null : null,
+      vin: r.vin || null, vinNorm: r.vin_norm || null, title: r.listing_title || null
+    }));
+    return res.status(200).json({ task: "weeklysales", from, to, n: out.length, rows: out });
+  }
+
   if (task === "canonday") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const sources = req.query?.sources ? String(req.query.sources).split(",").map(s => s.trim()).filter(Boolean) : ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "themarket", "pistonheads"];
