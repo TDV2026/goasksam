@@ -14,6 +14,7 @@
 // since the lead (the record of truth) saved regardless.
 import { supabaseEnv, supabaseInsert, supabasePatch } from "../lib/_supabase.js";
 import { sendTaskEmail } from "../lib/_email.js";
+import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
 
 const isEmail = s => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(s || ""));
 // Project ref from docs/lane-notes.md's confirmed prod ref - a plain link to the table, not a
@@ -24,6 +25,7 @@ const SUPABASE_EDITOR_LINK = "https://supabase.com/dashboard/project/otkmxyrglik
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ ok: false, error: "POST only" });
+  if (!isReleased("business", req)) return notReleasedJson(res);
   const env = supabaseEnv();
   if (!env) return res.status(500).json({ ok: false, error: "not configured" });
   const b = req.body || {};
