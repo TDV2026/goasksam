@@ -4061,6 +4061,29 @@ async function handleOps(req, res) {
     });
   }
 
+  // task=listingmarkettest (TEMPORARY, body-style scoping job): exercises the Buy/Tasks listing-
+  // judgment path (listingFacts -> specOf -> listingMarket), the SAME path task emails and Buy's
+  // live cards use, for a SYNTHETIC row built from a raw title - so the body-detection + scoping
+  // chain can be inspected independent of a real archive row. Read-only, archive-only.
+  //   ?view=ops&task=listingmarkettest&title=1988 Porsche 911 Carrera Targa
+  if (task === "listingmarkettest") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { listingFacts, listingMarket, specOf } = await import("../lib/live/search.js");
+    const titles = String(req.query?.title || "1988 Porsche 911 Carrera Targa").split("|").map(s => s.trim()).filter(Boolean);
+    const out = [];
+    for (const title of titles) {
+      try {
+        const yr = Number((title.match(/\b(19|20)\d{2}\b/) || [])[0]) || null;
+        const row = { listing_title: title, year: yr };
+        const facts = listingFacts(row);
+        const spec = await specOf(env, row, facts).catch(e => ({ error: String(e && e.message || e) }));
+        const m = await listingMarket(env, row, facts).catch(e => ({ error: String(e && e.message || e) }));
+        out.push({ title, facts: { body: facts.body, gearbox: facts.gearbox }, spec: spec ? { make: spec.v?.make, model: spec.v?.model, trim: spec.v?.trim, bodyStyle: spec.v?.bodyStyle, genCode: spec.generation?.code } : null, market: m });
+      } catch (e) { out.push({ title, error: String((e && e.message) || e).slice(0, 220) }); }
+    }
+    return res.status(200).json({ task: "listingmarkettest", out });
+  }
+
   // task=obdiag: READ-ONLY (archive; ZERO OCD). Runs the LIVE runOneBox for each query and returns
   // the internal pool diagnostics (tier, generation chips, earned question, pool counts, transmission
   // split, driver candidates, widening path) so a question/widening decision can be inspected.
