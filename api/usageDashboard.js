@@ -4147,7 +4147,7 @@ async function handleOps(req, res) {
           recent3: Array.isArray(ob.recent3) ? ob.recent3.map(c => ({ title: c.title, mi: c.mi, date: c.date, again: !!c.again })) : null,
           exactSale: ob.exactSale ? { price: ob.exactSale.price, date: ob.exactSale.soldDate || ob.exactSale.date || null, mileage: ob.exactSale.mileage } : null,
           r4: d.r4 || null, dedup: { fetchedRaw: d.fetchedRaw, fetchedDeduped: d.fetchedDeduped, rule5: d.rule5 || null },
-          halfGeneration: ob.halfGeneration || null, representative: ob.representative || null, _dbgHalfGen: ob._dbgHalfGen || null,
+          halfGeneration: ob.halfGeneration || null, representative: ob.representative || null,
           reserve, chips, cacheRows, listSales
         });
       } catch (e) { out.push({ q, error: String((e && e.message) || e).slice(0, 220) }); }
