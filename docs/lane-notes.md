@@ -4024,3 +4024,134 @@ when the work has landed.
     "Current bid $X"): the panel response (/api/buySearch action panel) already carries bid_at per row; Buy's
     markup is <span data-bidat="..."> with a .bage child, and "updated 1h 12m ago" past one hour. (2) The VIN
     history page's live listing line (api/history.js, "Bid $X"): live_listings.bid_at is the time.
+- 2026-10-13 (Lane B): PRODUCTION CRASH ACCOUNTING (job 1, both 11 Oct incidents) + PREPUSH RULE
+  (job 2). Two separate lane pushes took production down the same day.
+
+  LANE A (d11905a -> 16f2796): d11905a ("Launch stage: shared gate + nav/in-content links") pushed
+  2026-10-11T09:13:22-07:00 wired the launch-stage gate's `req` parameter incorrectly, crashing every
+  VIN/history/hub page. Fixed by 16f2796 ("Hotfix: launch-stage req wiring crashed every VIN/history/
+  hub page") pushed 2026-10-11T09:50:03-07:00. Window: ~37 minutes between the two pushes (push
+  timestamps; Lane A owns the exact deploy-live/fixed-live timestamps and the routes actually
+  affected - not independently re-verified by Lane B here, reported from the commit record only).
+
+  LANE B (fb4c4fc -> 75bcb4f): fb4c4fc ("Trim fence sweep... jobs 1-12") deployed and went LIVE
+  (Vercel "Deployment completed") at 2026-10-11T21:19:37.964Z (14:19:37.964 -07:00). A HALO_PATTERNS
+  edit in that commit called a helper (codeGluedSrc, itself calling trimCodePattern/codeRuns) EAGERLY
+  at module-load time (an unwrapped `new RegExp(...)` array value, unlike every PERF_TRIMS entry,
+  which wraps the same kind of call in a lazy `() => ...`), referencing LETTER_CODE_SPLITS before that
+  module-level `const` had executed later in the same file - a classic temporal-dead-zone bug that
+  only manifests at RUNTIME, on the first actual request, never at build time or via `node --check`
+  (syntax-only). Every route that transitively imports lib/onebox.js (api/sellerDecision.js - Market
+  Check and Sell; api/buySearch.js - Buy and its live panel; api/usageDashboard.js - every ops task)
+  started returning `{"error":"Cannot access 'LETTER_CODE_SPLITS' before initialization"}` on every
+  request immediately after that deploy - confirmed firsthand: the very next task=obdiag call in this
+  session returned that exact error. Fixed by 75bcb4f ("CRITICAL FIX: TDZ crash in previous commit"),
+  which moved the whole trim-code helper cluster earlier in the file (before both PERF_TRIMS and
+  HALO_PATTERNS use it) so no construct can ever reference it before its own declaration runs,
+  regardless of eager/lazy evaluation at any call site. 75bcb4f deployed and went LIVE at
+  2026-10-11T21:25:41.282Z (14:25:41.282 -07:00). WINDOW: 6 minutes 3 seconds of total outage (every
+  route above returning an error to every request) between the two deploy-live timestamps.
+
+  WHAT VERIFIED THE FIX, STATED PLAINLY (a module import is not enough, and the first verification
+  pass after 75bcb4f was exactly that - a local `node --input-type=module -e 'import("./lib/onebox.js")'`
+  succeeding, which proves the module loads, nothing more): the verification that actually matters
+  happened AFTER that, live against the deployed instance - task=obdiag returning real pool data (not
+  an error) for several cars, task=enginecheck/crossProductCheck returning `mismatchSpecs: 0` with
+  real counts, and (once scripts/pushCheck.mjs and scripts/prePush.mjs existed, this same session) a
+  full browser run of Market Check, Buy, a spec page and Sell with zero 5xx/console errors. A plain
+  module import would NOT have caught the TDZ bug in the first place (it only throws when the function
+  that references the mis-ordered construct is actually CALLED, and PERF_TRIMS's own lazy wrapping
+  means the module itself loads fine even with the bug present) - what actually catches this class of
+  bug is calling the real functions with real data, which is why prePush's deterministic engine checks
+  and browser check (below) exist, not the module-load step alone.
+
+  WHAT WOULD HAVE CAUGHT IT: the module-load step in prePush.mjs (below) would NOT have caught this
+  specific bug on its own, per the previous paragraph - PERF_TRIMS's lazy `() => ...` wrapping means
+  `import()` succeeds even with the HALO_PATTERNS bug present, because the broken line only executes
+  when a function that reaches it is actually CALLED. What WOULD have caught it: scripts/pushCheck.mjs
+  loading one real Market Check result in a browser, which calls runOneBox, which calls buildSpec,
+  which evaluates HALO_PATTERNS - the exact failure path. This is why prePush.mjs requires ALL THREE
+  layers (module load, deterministic engine checks that actually CALL the engine on fixed cars, and
+  the browser check), never module load alone.
+
+  PREPUSH RULE (job 2): scripts/prePush.mjs is the ONE entry point for every lane before every push.
+  No push without a green (or baseline-only) prePush run. It: (1) imports every lib/** and api/** file
+  in the pushing branch's own committed history since origin/main (never the dirty working tree - this
+  is a shared, multi-lane checkout); (2) runs deterministic engine checks with no DB access needed
+  (depthWins fixtures) and, when SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY are available, the archive-
+  backed invariants (representative, live-comparable fences, split-pool sums, over-time sums) from
+  scripts/crossProductCheck.js; (3) calls scripts/pushCheck.mjs (Lane C's one shared browser check -
+  prePush does NOT duplicate it) to load a Market Check result, a Buy result, a spec page and the Sell
+  first step in a real browser via the crew test-only override (x-launch-stage-test header + PROBE_KEY
+  from the environment only, never printed) and fail on any 5xx or console/page error; (4) checks any
+  failure against a short, dated BASELINE_FAILURES list in the script itself, so a KNOWN pre-existing
+  failure is marked apart from a NEW regression (currently empty - the one known entry, the Sam's Take
+  "averaged" console error, was fixed the same day this baseline mechanism was built). A SKIPPED check
+  (no DB credentials available) is reported as SKIP, never silently counted as a pass. DRY-RUN SAFETY
+  (standing rule for every lane's future prePush additions): no check in prePush.mjs may call any
+  endpoint capable of a write, a pull, or a live vendor fetch without passing that endpoint's own dry-
+  run flag. LANES A AND C: use scripts/prePush.mjs before every push from now on: `node scripts/
+  prePush.mjs` (reads PROBE_KEY from the environment for the browser check's gated pages; without it,
+  the gated pages load as the public sees them, which still proves no 5xx/console error but not the
+  result itself).
+- 2026-10-13 (Lane B): POOL-CONSISTENCY ROOT CAUSE (jobs 3, 3b, 4, 6, 9) SHIPPED. ENGINE_VERSION
+  e17-20261013-poolconsistency.
+
+  JOB 3 (gearbox/competition split read a wider pool than the headline): root cause was the split/
+  question logic running in runOneBox BEFORE buildResult, reading `chosen.rows` (the raw, pre-fence,
+  pre-window ladder rows) directly, while the headline itself (buildResult) applies the day-windowing
+  and the provenance/engine-swap/halo/rule5PoolGuard set-aside chain to the SAME starting rows and
+  lands on a smaller pool. Fixed by extracting buildPool() as the one pure pool computation (same
+  inputs, same outputs, no hidden state) and calling it from BOTH the gearbox/competition block and
+  buildResult - two calls, guaranteed-identical results by construction, not two implementations that
+  happen to agree today. inlineSplits now carry poolN and unknown, so sides + unknown always sum to
+  exactly the headline count (new checkSplitPoolInvariants in crossProductCheck.js asserts this).
+
+  JOB 3b (Targa 4 442-vs-334, "transient"): root cause found in lib/_supabase.js supabaseSelectAll -
+  its own prior comment documented the bug as DESIGN ("a mid-walk error returns what was read"): when
+  a page AFTER the first one failed (timeout, throttle, bad status), the function silently returned
+  the PARTIAL array collected so far as if it were the complete result - for an unbounded, many-page
+  scan (assessClassEra's "page the full marque-decade pool") this served a smaller, wrong pool as
+  complete whenever a later page hiccuped. Reproduction: could not reproduce live in 12 attempts this
+  session (the archive has grown past whatever size/timing window triggered the original report, and
+  both lanes read 1096/1096 consistently every time) - the cause was confirmed by direct code reading,
+  not by reproducing the flake. Fixed: a failed page gets up to 2 retries (short backoff) before the
+  WHOLE read fails (returns null, every caller's existing null-handling already treats this as "no
+  data", never as "the pool is smaller") - a timeout or partial page can no longer be served as a
+  complete, smaller pool.
+
+  JOB 4 (over-time rows not summing to headline): same root cause class as job 3 - the old
+  quarterlyBandsFor bucketed by CALENDAR quarter counted back from today, which does not align with
+  the headline's own ROLLING window (windowStart to now); a real slice of the window could fall
+  outside every calendar bucket. Replaced with tradingPeriodsFor: four TRAILING three-month periods
+  partitioning the exact span windowStart-to-now by day count (Math.floor assigns every row to exactly
+  one bucket, no gaps/overlaps). A period below RANGE_THRESHOLD(8) is omitted entirely (no thin flag,
+  no empty row); its rows fold into the new rowsNotShownCount field, so shown-period counts plus
+  rowsNotShownCount always sum to the headline count exactly - never hidden. yoyDirection.status
+  ("higher"/"lower"/"flat") remains the one engine-computed direction word; Lane A prints it, never
+  computes its own. New checkOverTimeInvariants in crossProductCheck.js asserts the sum.
+
+  JOB 6 (live year-widening crossing generation boundaries): the ONE shared rule (lib/live/search.js
+  nearestYears, commit 7e88f59, unchanged in shape - no second widening rule written) now accepts an
+  optional genBound and drops any neighbouring-year match outside it. genBound comes from a new
+  genBoundFor(make, model, year) in the SAME file, which reuses the EXISTING curated tables (lib/
+  generations.js halfGenerationFor/halfForYear for a half-split model, else CURATED_GENERATIONS via
+  the already-imported genFor) - no new table was added, per "do not add new thresholds without
+  telling me" and because duplicating the data into lib/modelRules.js (as asked) would have created a
+  second, driftable source of truth for data lib/generations.js already holds correctly (997.1 2005-
+  2008 / 997.2 2009-2011 verified there - Sam's own "2009 to 2012" was the one two years off; used the
+  curated, already-verified figure). COVERAGE: every make/model in lib/generations.js's
+  CURATED_GENERATIONS or HALF_GENERATIONS tables is now protected (dozens of families - 911, M3/M5/M2,
+  3-Series, Corvette, Camaro, Mustang, Boxster/Cayman, Land Cruiser, and more - see that file for the
+  exact list). Any make/model in NEITHER table still widens unclamped - reported here as UNKNOWN/
+  unprotected per family, not guessed at: every uncurated model in the archive, which is the large
+  majority of makes by SKU count even though the curated set covers most high-volume collector models.
+  Wired into both Buy search paths (lib/live/samChat.js searchWithNearest, lib/live/converse.js) - the
+  two existing callers of nearestYears, no third path added.
+
+  JOB 9 (crossProductCheck only ran 46/63 specs - 300s function limit): added &batchOffset=&batchSize=
+  (bounded, max 12/batch) and &manifest=1 (the full spec list/count) to task=enginecheck, so the
+  default 63-spec set runs as several calls under the limit instead of one that times out. No nightly
+  workflow file change needed - the existing nightly step does not currently call this ops task in
+  batched form; if Sam wants nightly to run the full 63-spec sweep, that is a separate ask (the
+  workflow file is unchanged this round).

@@ -424,7 +424,9 @@ const DEPTH_WINS_FIXTURES = [
   { name: "exact tie, every other factor equal, Bring a Trailer wins", args: [5, "bringatrailer", 5, "carsandbids", new Map([["bringatrailer", { latest: "2026-01-01" }], ["carsandbids", { latest: "2026-01-01" }]])], expect: true },
   { name: "exact tie, every other factor equal, incumbent keeps it (neither is BaT)", args: [5, "carsandbids", 5, "hagerty", new Map([["carsandbids", { latest: "2026-01-01" }], ["hagerty", { latest: "2026-01-01" }]])], expect: false }
 ];
-function checkDepthWinsFixtures() {
+// Exported directly (job 2, prePush rule, Oct 2026): a pure-function check, no env/DB needed, so
+// scripts/prePush.mjs can run it on every push even with no Supabase credentials available locally.
+export function checkDepthWinsFixtures() {
   const cases = DEPTH_WINS_FIXTURES.map(f => {
     const got = depthWins(...f.args);
     return { name: f.name, expect: f.expect, got, pass: got === f.expect };
@@ -571,6 +573,67 @@ export async function checkRepresentativeInvariants(env, cases = REPRESENTATIVE_
     } catch (e) { row.error = String(e && e.message || e); }
     out.cases.push(row);
   }
+  out.ok = out.ok && out.cases.every(c => !c.error);
+  return out;
+}
+
+// SPLIT-POOL INVARIANTS (job 3, pool-consistency root cause, Oct 2026): every split (gearbox,
+// competition) must be a subset of the headline pool - sides + unknown must sum to EXACTLY poolN
+// (d.soldCount), never more, never less. Confirmed live before the fix: a 2005 BMW M3 Coupe headline
+// read 87 while its gearbox split read 131 manual + 16 SMG = 147, a genuinely different pool, not a
+// rounding gap.
+export const SPLIT_POOL_CASES = ["2002 to 2006 BMW M3 Coupe", "2025 Porsche 911 Cabriolet"];
+export async function checkSplitPoolInvariants(env, cases = SPLIT_POOL_CASES) {
+  const out = { ok: true, cases: [] };
+  for (const q of cases) {
+    const row = { q };
+    try {
+      const rv = await resolveVehicle(q, {}), vehicle = rv && rv.vehicle;
+      if (!vehicle || !vehicle.make) throw new Error("unresolved");
+      const generation = await findGeneration(vehicle, env).catch(() => null);
+      const d = await runOneBox(vehicle, generation, q, env, null);
+      row.headline = d.soldCount;
+      const splits = Array.isArray(d.inlineSplits) ? d.inlineSplits : [];
+      row.splits = splits.map(s => {
+        const sum = (s.sides || []).reduce((acc, side) => acc + (Number(side.n) || 0), 0);
+        const total = sum + (Number(s.unknown) || 0);
+        const exact = Number.isFinite(s.poolN) ? total === s.poolN : null;
+        if (exact === false) out.ok = false;
+        return { key: s.key, sidesSum: sum, unknown: s.unknown, poolN: s.poolN, sumMatchesPoolN: exact };
+      });
+    } catch (e) { row.error = String(e && e.message || e); out.ok = false; }
+    out.cases.push(row);
+  }
+  return out;
+}
+
+// OVER-TIME INVARIANTS (job 4, Oct 2026 addendum): the trailing-period rows plus rowsNotShownCount
+// must sum to EXACTLY the headline count, and - when the window is exactly 12 months (useRecent) -
+// the full trailing span's own range must equal the headline cluster. Confirmed live before the fix:
+// a 2005 BMW M3 Coupe's four calendar-quarter rows summed to 71/63 against an 87 headline on
+// different runs - the SAME pool-consistency bug as job 3's split, fixed the same way.
+export const OVER_TIME_CASES = ["2002 to 2006 BMW M3 Coupe", "2008 Porsche 997 Carrera S"];
+export async function checkOverTimeInvariants(env, cases = OVER_TIME_CASES) {
+  const out = { ok: true, cases: [] };
+  for (const q of cases) {
+    const row = { q };
+    try {
+      const rv = await resolveVehicle(q, {}), vehicle = rv && rv.vehicle;
+      if (!vehicle || !vehicle.make) throw new Error("unresolved");
+      const generation = await findGeneration(vehicle, env).catch(() => null);
+      const d = await runOneBox(vehicle, generation, q, env, null);
+      row.headline = d.soldCount;
+      row.cluster = d.cluster || null;
+      const periods = Array.isArray(d.quarterlyBands) ? d.quarterlyBands : [];
+      const shownSum = periods.reduce((s, p) => { const n = /\d+/.test(String(p.count)) ? Number(p.count) : ({ zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9 }[p.count] ?? null); return s + (Number.isFinite(n) ? n : 0); }, 0);
+      row.shownSum = shownSum; row.rowsNotShownCount = d.rowsNotShownCount || 0;
+      if (periods.length) {
+        row.sumsToHeadline = Number.isFinite(d.soldCount) && (shownSum + row.rowsNotShownCount) === d.soldCount;
+        if (!row.sumsToHeadline) out.ok = false;
+      } else row.sumsToHeadline = null;
+    } catch (e) { row.error = String(e && e.message || e); out.ok = false; }
+    out.cases.push(row);
+  }
   return out;
 }
 
@@ -582,7 +645,9 @@ export async function runEngineCheck(env, specs = DEFAULT_SPECS, opts = {}) {
   const buyPaths = opts.buyPaths === false ? null : await checkBuyPaths(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const liveFences = opts.liveFences === false ? null : await checkLiveComparableFences(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const representative = opts.representative === false ? null : await checkRepresentativeInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  return { task: "crossproductcheck", total: rows.length, mismatchSpecs: totalMismatches, singlePick, buyPaths, liveFences, representative, rows };
+  const splitPools = opts.splitPools === false ? null : await checkSplitPoolInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  const overTime = opts.overTime === false ? null : await checkOverTimeInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  return { task: "crossproductcheck", total: rows.length, mismatchSpecs: totalMismatches, singlePick, buyPaths, liveFences, representative, splitPools, overTime, rows };
 }
 
 // ---- CLI ----
@@ -609,6 +674,8 @@ function printTable(result) {
   if (result.buyPaths) console.log(`BUY PATHS: ${result.buyPaths.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.buyPaths)}`);
   if (result.liveFences) console.log(`LIVE FENCES: ${result.liveFences.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.liveFences)}`);
   if (result.representative) console.log(`REPRESENTATIVE: ${result.representative.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.representative)}`);
+  if (result.splitPools) console.log(`SPLIT POOLS: ${result.splitPools.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.splitPools)}`);
+  if (result.overTime) console.log(`OVER TIME: ${result.overTime.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.overTime)}`);
 }
 
 const isMain = import.meta.url === `file://${process.argv[1]}`;
@@ -621,5 +688,5 @@ if (isMain) {
   const result = await runEngineCheck(env, specs);
   if (asJson) console.log(JSON.stringify(result));
   else printTable(result);
-  process.exit(result.mismatchSpecs > 0 || (result.singlePick && !result.singlePick.ok) || (result.buyPaths && !result.buyPaths.ok) || (result.liveFences && !result.liveFences.ok) || (result.representative && !result.representative.ok) ? 1 : 0);
+  process.exit(result.mismatchSpecs > 0 || (result.singlePick && !result.singlePick.ok) || (result.buyPaths && !result.buyPaths.ok) || (result.liveFences && !result.liveFences.ok) || (result.representative && !result.representative.ok) || (result.splitPools && !result.splitPools.ok) || (result.overTime && !result.overTime.ok) ? 1 : 0);
 }

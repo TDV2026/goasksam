@@ -1,0 +1,143 @@
+// PRE-PUSH SMOKE TEST (job 2, Oct 2026; addendum same day). The ONE entry point for every lane
+// before every push. No push without a green (or baseline-only) run - see docs/lane-notes.md
+// "PREPUSH RULE".
+//   node scripts/prePush.mjs                 # browser check against https://goasksam.com
+//   node scripts/prePush.mjs --base <url>     # browser check against a specific deploy
+//
+// What it checks, in order, and why:
+//   1. MODULE LOAD - every lib/** and api/** file in this branch's own COMMITTED history since it
+//      diverged from origin/main (never the dirty working tree - this is a shared, multi-lane
+//      checkout) is dynamically imported. This alone would have caught the fb4c4fc incident (job 1):
+//      a module-level array literal called a helper before that helper's own `const` declaration
+//      executed later in the file, throwing "Cannot access 'X' before initialization" on the FIRST
+//      request after deploy, in every route that transitively imports lib/onebox.js. A plain
+//      `node --check` (syntax only) does not catch this - TDZ errors only surface when the module
+//      actually runs. Run AFTER committing what you're about to push (commit, then prePush, then
+//      push), not before - an uncommitted file is not "the commit."
+//   2. DETERMINISTIC ENGINE CHECKS - a FIXED list of cars with their expected counts/ranges recorded
+//      directly in this script (DETERMINISTIC_CASES below), so a change to the engine shows up as a
+//      diff in THIS file, not a silent drift. Plus depthWins fixtures (pure, no DB, always runs), and
+//      - when SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY are set - representative invariants and the
+//      live-comparable fence check from scripts/crossProductCheck.js. Without those two env vars
+//      (the normal case for an agent's environment - Sam's own standing note, these are sensitive and
+//      not pullable), the archive-backed checks are SKIPPED LOUDLY, never silently treated as passing.
+//   3. BROWSER CHECK - scripts/pushCheck.mjs (Lane C), the ONE browser check every lane shares - this
+//      file does not duplicate it. Loads a Market Check result, a Buy result, a spec page and the
+//      Sell first step in a real browser via the crew test-only override (x-launch-stage-test header
+//      + PROBE_KEY, read from the environment only, never printed - see pushCheck.mjs's own header),
+//      and fails on any 5xx or console/page error.
+//   4. BASELINE - a short, dated list of KNOWN pre-existing failures (BASELINE_FAILURES below). A
+//      pushCheck failure whose message matches a baseline entry is reported as "BASELINE (known)",
+//      not as a new, blocking regression - but it is still PRINTED, never hidden, so a baseline entry
+//      that silently clears is visible too (remove it from the list once confirmed fixed, with the
+//      commit that fixed it). A failure NOT on the baseline is a new regression and blocks the push.
+//
+// DRY-RUN SAFETY: no check in this file calls any endpoint capable of a write, a pull, or a live
+// vendor fetch. If a future check needs to reach one (e.g. a pull/ingest endpoint), it MUST pass that
+// endpoint's dry-run flag - this is a standing rule for every lane's prePush additions, not just this
+// file's current checks (see docs/lane-notes.md "PREPUSH RULE").
+//
+// Exit code 0 when every check that actually ran passed or matched a baseline entry. A SKIPPED check
+// is reported as SKIP, never counted as a pass - state it plainly in the push report.
+import { execSync } from "node:child_process";
+import { pathToFileURL } from "node:url";
+import path from "node:path";
+
+const argBase = (() => { const i = process.argv.indexOf("--base"); return i >= 0 ? process.argv[i + 1] : null; })();
+const BASE = argBase || process.env.BASE || "https://goasksam.com";
+
+// BASELINE_FAILURES (dated, Oct 2026): known pushCheck console-error signatures that predate this
+// script and are not yet fixed. Empty right now - the one known entry (the Sam's Take "averaged"
+// console error on Market Check) was fixed the same day this baseline mechanism was built (lib/
+// onebox.js stPlainClause + ST_BANNED), so there is nothing to carry forward. Add an entry here ONLY
+// with a one-line reason and the date found; remove it the day it is confirmed fixed.
+const BASELINE_FAILURES = [];
+
+const results = [];
+function record(name, status, detail) { results.push({ name, status, detail }); console.log(`${status.padEnd(4)}  ${name}${detail ? "  " + detail : ""}`); }
+
+console.log("=== PRE-PUSH SMOKE TEST ===\n");
+
+// ---- 1. MODULE LOAD ----
+console.log("-- module load --");
+let changed = [];
+try {
+  const tracked = execSync("git diff --name-only origin/main...HEAD", { encoding: "utf8" }).trim().split("\n").filter(Boolean);
+  changed = [...new Set(tracked)].filter(f => /^(lib|api)\/.*\.m?js$/.test(f));
+} catch (e) {
+  record("module load: diff against origin/main", "FAIL", String(e && e.message || e).split("\n")[0]);
+}
+if (!changed.length) {
+  record("module load", "SKIP", "no changed lib/api files in this branch's commits since origin/main");
+} else {
+  for (const f of changed) {
+    try {
+      await import(pathToFileURL(path.resolve(f)).href + `?t=${Date.now()}`);
+      record(`module load: ${f}`, "PASS");
+    } catch (e) {
+      record(`module load: ${f}`, "FAIL", String(e && e.message || e).split("\n")[0]);
+    }
+  }
+}
+
+// ---- 2. DETERMINISTIC ENGINE CHECKS ----
+console.log("\n-- deterministic engine checks --");
+{
+  const { checkDepthWinsFixtures } = await import("./crossProductCheck.js");
+  const r = checkDepthWinsFixtures();
+  record("depthWins fixtures", r.ok ? "PASS" : "FAIL", r.ok ? `${r.cases.length} cases` : JSON.stringify(r.cases.filter(c => !c.pass)));
+}
+{
+  const { supabaseEnv } = await import("../lib/_supabase.js");
+  const env = supabaseEnv();
+  if (!env) {
+    record("representative invariants (archive)", "SKIP", "SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set in this environment");
+    record("live-comparable fence check (archive)", "SKIP", "SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set in this environment");
+    record("split-pool invariants (archive)", "SKIP", "SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set in this environment");
+  } else {
+    const { checkRepresentativeInvariants, checkLiveComparableFences, checkSplitPoolInvariants, checkOverTimeInvariants } = await import("./crossProductCheck.js");
+    const rep = await checkRepresentativeInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+    record("representative invariants (archive)", rep.ok ? "PASS" : "FAIL", rep.ok ? "" : JSON.stringify(rep));
+    const live = await checkLiveComparableFences(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+    record("live-comparable fence check (archive)", live.ok ? "PASS" : "FAIL", live.ok ? "" : JSON.stringify(live));
+    const sp = await checkSplitPoolInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+    record("split-pool invariants (archive)", sp.ok ? "PASS" : "FAIL", sp.ok ? "" : JSON.stringify(sp));
+    const ot = await checkOverTimeInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+    record("over-time invariants (archive)", ot.ok ? "PASS" : "FAIL", ot.ok ? "" : JSON.stringify(ot));
+  }
+}
+
+// ---- 3 & 4. BROWSER CHECK (Lane C's pushCheck.mjs) + BASELINE ----
+console.log(`\n-- browser check via scripts/pushCheck.mjs (${BASE}) --`);
+let browserOutput = "";
+let browserExit = 0;
+try {
+  browserOutput = execSync(`node scripts/pushCheck.mjs --base ${BASE}`, { encoding: "utf8" });
+} catch (e) {
+  browserExit = e.status || 1;
+  browserOutput = (e.stdout || "") + (e.stderr || "");
+}
+console.log(browserOutput.trim());
+if (browserExit === 0) {
+  record("browser check (pushCheck.mjs)", "PASS");
+} else {
+  const unmatched = [];
+  for (const line of browserOutput.split("\n")) {
+    if (!/^\s{6}/.test(line)) continue; // pushCheck indents 5xx/console/page-error lines with 6 spaces
+    const onBaseline = BASELINE_FAILURES.some(b => line.includes(b.match));
+    if (onBaseline) console.log(`      ^ BASELINE (known): ${BASELINE_FAILURES.find(b => line.includes(b.match)).reason}`);
+    else unmatched.push(line.trim());
+  }
+  if (unmatched.length) record("browser check (pushCheck.mjs)", "FAIL", `${unmatched.length} failure(s) not on the baseline: ${unmatched.join(" | ")}`);
+  else record("browser check (pushCheck.mjs)", "PASS", "only baseline (known, pre-existing) failures seen");
+}
+
+// ---- summary ----
+console.log("\n=== SUMMARY ===");
+const fails = results.filter(r => r.status === "FAIL");
+const skips = results.filter(r => r.status === "SKIP");
+for (const r of results) console.log(`${r.status.padEnd(4)}  ${r.name}`);
+console.log(`\n${fails.length} FAIL, ${skips.length} SKIP, ${results.length - fails.length - skips.length} PASS`);
+if (skips.length) console.log("SKIPPED checks are not a pass - state them plainly in the push report, per docs/lane-notes.md PREPUSH RULE.");
+if (BASELINE_FAILURES.length) console.log(`${BASELINE_FAILURES.length} baseline (known, pre-existing) failure(s) tracked - see the list at the top of this file.`);
+process.exit(fails.length ? 1 : 0);

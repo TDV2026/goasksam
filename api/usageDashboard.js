@@ -1330,10 +1330,27 @@ async function handleOps(req, res) {
   if (task === "enginecheck") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { runEngineCheck, DEFAULT_SPECS } = await import("../scripts/crossProductCheck.js");
-    const specs = req.query?.specs ? String(req.query.specs).split("|").filter(Boolean) : DEFAULT_SPECS;
-    // &buypaths=0/&livefences=0/&representative=0 skip those cases (a batched caller runs each once,
-    // not per batch).
-    const result = await runEngineCheck(env, specs, { buyPaths: req.query?.buypaths !== "0", liveFences: req.query?.livefences !== "0", representative: req.query?.representative !== "0" });
+    // &manifest=1: just the full spec count/list, read-only, so a batching caller can compute its own
+    // offset/size loop without guessing (job 9, Oct 2026 addendum - the 300s function limit meant only
+    // 46 of 63 default specs ever completed in one call).
+    if (req.query?.manifest === "1") return res.status(200).json({ task: "enginecheck", total: DEFAULT_SPECS.length, specs: DEFAULT_SPECS });
+    let specs = req.query?.specs ? String(req.query.specs).split("|").filter(Boolean) : DEFAULT_SPECS;
+    // &batchOffset=N&batchSize=M (bounded, job 9 addendum): slice the spec list so the full 63-spec
+    // default set runs as several calls, each comfortably under the 300s function limit (empirically
+    // ~20-25s/spec, so a batch of 9 stays well under it; size is capped at 12 regardless of what is
+    // asked for, offset clamped to the list length, so a bad batch request can never run the whole
+    // list in one call or go out of bounds).
+    const batchOffset = Math.max(0, Number(req.query?.batchOffset) || 0);
+    const batchSize = req.query?.batchSize ? Math.min(12, Math.max(1, Number(req.query.batchSize) || 0)) : null;
+    if (batchSize) specs = specs.slice(batchOffset, batchOffset + batchSize);
+    // &buypaths=0/&livefences=0/&representative=0/&splitpools=0/&overtime=0 skip those cases (a
+    // batched caller runs each once, not per batch).
+    const result = await runEngineCheck(env, specs, {
+      buyPaths: req.query?.buypaths !== "0", liveFences: req.query?.livefences !== "0",
+      representative: req.query?.representative !== "0", splitPools: req.query?.splitpools !== "0",
+      overTime: req.query?.overtime !== "0"
+    });
+    if (batchSize) { result.batchOffset = batchOffset; result.batchSize = batchSize; result.batchTotal = (req.query?.specs ? String(req.query.specs).split("|").filter(Boolean) : DEFAULT_SPECS).length; }
     return res.status(200).json(result);
   }
 
