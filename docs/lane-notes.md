@@ -3789,3 +3789,49 @@ when the work has landed.
   Also correcting this round's own wording: the crossProductCheck singlePick.ok:false result was
   described in the prior report as "known flaky, not a regression" - that is not this lane's call to
   make. Left to Lane B to diagnose; not described as acceptable here.
+
+- 2026-10-12 (Lane B -> Lane A): NEW FIELD `offWindow` on every context card (lib/onebox.js
+  pickRepresentative's closest/high/low, surfaced on d.representative.closest/.high/.low same as the
+  existing `sameHalf`/`year` fields already are). Ships alongside the context-cards-prefer-searched-
+  year fix (ENGINE_VERSION e15).
+  WHAT IT MEANS: `true` - this card's own year falls OUTSIDE the searched car's preferred year window
+  (searched year +/-1, clamped to a curated half-generation or generation boundary) AND the window
+  could not be satisfied (fewer than 3 comps fit it, so the full pool stands and this card is a fill-
+  in from outside the window). `false` - either the window was successfully applied (3+ comps fit, so
+  every returned card is inside it by construction) or this specific card happens to sit inside the
+  window anyway even on the full-pool fallback. `null` - no window applies at all: the search had no
+  year (searches without a year are unchanged), or nothing to prefer against.
+  HOW TO USE IT: when `offWindow` is true, print a short, honest label using the card's own `year`
+  field (already present) - e.g. "a 1984 car" - so a fill-in from outside the preferred window reads
+  as what it is, never silently presented as matching the searched year. `d.representative.yearWindowed`
+  (true/false/null) is also exposed at the block level if a page wants to know whether ANY narrowing
+  happened before checking individual cards.
+  NOTHING ELSE CHANGED: the range, count and set-aside numbers are built from the full comparable pool
+  exactly as before - this field only ever affects which THREE cards get shown, never the headline
+  numbers. Confirmed live on 5 specs (1988 and 1985 Porsche 911 Carrera Coupe, 1969 Ford Mustang
+  Convertible, 2001 BMW M3 Coupe, 2008 Porsche 997 Carrera S): counts/ranges identical before and
+  after, cards now drawn from the searched year +/-1 in every case (12-30 comps fit the window each
+  time, no full-pool fallback triggered in this sample, so a live offWindow:true example was not
+  observed - the mechanism is implemented and will fire whenever fewer than 3 comps fit).
+  CURATED BREAKS ACTUALLY USED (contextYearWindow, lib/onebox.js): half-generation bounds via
+  lib/generations.js halfGenerationFor/halfForYear (987.1/987.2, 997.1/997.2, E46 M3 pre/post
+  facelift - the SAME table the existing sameHalf mechanism already reads) when the searched year
+  pins a half; otherwise the resolved generation's own bounds (spec.yearMin/yearMax, set earlier in
+  buildSpec from CURATED_GENERATIONS, e.g. 3.2 Carrera 1984-1988, Mustang first-generation 1967-1969).
+  The 1987 G50 gearbox change for 3.2 Carreras was NOT used as a break - it has no entry anywhere in
+  lib/generations.js, and the job's own instruction was to use only what the engine already curates,
+  never invent one.
+
+- 2026-10-12 (Lane B): TRIM FENCE FIX SHIPPED (titleExclude survives famSpec; Camaro SS/Z11/Pace
+  Car/COPO/Yenko added to PERF_TRIMS + HALO_PATTERNS). ENGINE_VERSION e14. Two residual gaps found,
+  reported, NOT fixed (owner's call, left for a future job): (1) "GT350CR" as one glued word (no
+  space before "CR") still evades the Ford baseExclude pattern's word-boundary requirement - ordinary
+  "GT350"/"Shelby" titles ARE excluded correctly, this is a narrow single-naming-convention gap; (2) a
+  bare "BMW 3 Series" search still pools M3 cars - BMW's own curated baseExclude pattern was never
+  shaped to catch a standalone "M3" token (it looks for "3-Series M" as a phrase, which archive titles
+  never write), a PRE-EXISTING gap unrelated to the famSpec fix. 1969 Chevrolet Camaro Convertible
+  crossed the 10%-edge-move stop-and-check threshold (qualifying 37->23, range $36,500-$54,500 ->
+  $35,500-$49,000, high edge -10.1%) - kept as shipped per the job's own recommended path (the removed
+  cars are genuine SS396/SS-RS/Pace-Car trim leaks, the range move is the correct consequence of
+  removing them). The 1968 Camaro SS/RS "wrong year" report was NOT a bug: Camaro's first generation
+  is curated 1967-1969 (lib/generations.js), so 1968 is the same generation as a 1969 search.
