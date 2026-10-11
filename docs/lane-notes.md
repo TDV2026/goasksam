@@ -3965,3 +3965,22 @@ when the work has landed.
   7); live panel rows[].position and the panel response's top-level positions{inside,below,above,
   unknown} (job 3); panelOf's slim() cards now carry year/offWindow (closes the earlier NEEDED FROM LANE
   B note). All null/absent on every gate miss, per the no-guess rule.
+- 2026-10-11 (Lane C): PULL REPORT ON DEMAND + PUSH CHECK.
+  * The one-day pull report no longer depends on a session: `node scripts/pullReport.mjs [--date YYYY-MM-DD |
+    --from ISO --to ISO] [--json]` (default the last 24 hours). Key from the environment only (PROBE_KEY, read
+    from the Keychain per command), sent only in x-ops-key, never printed. It calls GET /api/pullLive?report=1
+    (lib/live/pullReport.js): read only, stored records only, zero vendor requests. Reports vendor requests
+    used, runs per pull type, new cars first seen per pull type (full walk vs ending soonest), each
+    ending-soonest pull's pages, hours covered and whether the 3-page cap cut it short, Tasks full runs and
+    whether each pull that found a car was followed by a Tasks run within 20 minutes, and the share of
+    final-hour minutes with a stored bid over an hour old against the Oct 11 baseline of 69.3 percent (same
+    measure as the baseline, except an ending-soonest pull now refreshes the cars it returned). --date is a
+    Pacific calendar day, correct across the clock changes.
+  * Push check (every lane, before every push): `node scripts/pushCheck.mjs` loads one Market Check result,
+    one Buy result, the 911 spec page and the Sell first step in a real browser and fails on any 5xx or any
+    console or page error. With PROBE_KEY set, the two stage-gated pages get the test stage header, sent only
+    to goasksam's own address. Market Check starts as a fresh visitor so its 10-cars-a-day limit is not hit.
+  * FOR LANE B: the first push check (Oct 11, production) FAILS on the Market Check result: the page's own copy
+    lint logs a console error, "'averaged' in: Higher-priced sales averaged about 47,000 miles; lower-priced
+    sales about 59,000." The line comes from lib/onebox.js:3364 (Sam's Take mileage), and the figures are
+    medians, so "averaged" is also the wrong word. Not changed by Lane C.

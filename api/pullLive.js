@@ -6,6 +6,7 @@
 //                     quarter hour (full walk, ending soonest, newest) or nothing at all. ZERO OCD when nothing.
 //   ?mode=auto&dryrun=1[&date=YYYY-MM-DD]  ZERO OCD: the plan for every quarter hour of that UTC day.
 //   ?mode=ending / ?mode=new   one pull of that kind (2 pages unless max-requests says less).
+//   ?report=1[&date=YYYY-MM-DD]  ZERO OCD, read only: how the schedule did (scripts/pullReport.mjs).
 // Fetches OCD /auctions/live (every source OCD carries live), upserts live_listings, marks listings
 // that vanished from the feed as ended, and fills final_price from sales_archive once the sale lands.
 // Idempotent: re-running only refreshes last_seen/current_bid and re-checks ended rows. Every metered
@@ -38,6 +39,13 @@ export default async function handler(req, res) {
       const rr = await fetch(`${env.supabaseUrl}/rest/v1/app_usage_events?created_at=gte.${since.toISOString()}&route=eq.pull_live&select=created_at,event_type,oldcarsdata_metered_requests,status,metadata&order=created_at.asc&limit=500`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } });
       const rows = rr.ok ? await rr.json() : [];
       return res.status(200).json({ usage: true, ocdRequests: 0, todayPullLiveMetered: rows.reduce((k, r) => k + (Number(r.oldcarsdata_metered_requests) || 0), 0), rows });
+    }
+    // ?report=1[&date=YYYY-MM-DD Pacific day | &from=ISO&to=ISO]: ZERO OCD, read only. How the pull schedule did
+    // (requests, new cars per pull type, busy-window pages, Tasks runs, stale bids): lib/live/pullReport.js.
+    if (req.query && req.query.report) {
+      const { pullReport, pacificDay } = await import("../lib/live/pullReport.js");
+      const q = req.query, win = q.date ? pacificDay(String(q.date).slice(0, 10)) : [Date.parse(q.from || ""), Date.parse(q.to || "")];
+      return res.status(200).json({ report: true, ocdRequests: 0, ...(await pullReport(env, { from: win[0], to: win[1] })) });
     }
     if (req.query && req.query.probe) {
       const r = await callOldCarsData("/auctions/live", { page: 1, limit: Math.min(1000, Number(req.query.limit) || 25) }, apiKey);
