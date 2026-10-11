@@ -99,6 +99,12 @@ export default async function handler(req, res) {
       const get = async f => { const r = await fetch(`${env.supabaseUrl}/rest/v1/app_usage_events?created_at=gte.${since}&${f}&select=created_at,event_type,route,status,metadata&order=created_at.asc&limit=1000`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }); return r.ok ? r.json() : `error ${r.status}`; };
       return res.status(200).json({ pulls: await get("route=eq.pull_live"), runs: await get("event_type=eq.tasks_run") });
     }
+    // Probe (read only, aggregates only): Buy pull timing, email lag and bid freshness from stored records
+    // (lib/ops/liveTiming.js) for the cost and pull schedule report. No vendor call, no write.
+    if (req.method === "GET" && q.livetiming && probeOk(req)) {
+      const { liveTiming } = await import("../lib/ops/liveTiming.js");
+      return res.status(200).json(await liveTiming(env, { days: Math.min(120, Number(q.days) || 60) }));
+    }
     // Probe: one account's UNCONFIRMED task rows (written by the old flow from raw words before any
     // read-back: no summary, or still a draft). Lists them; &delete=1 removes exactly those, nothing else.
     if (req.method === "GET" && q.orphans && q.email && probeOk(req)) {
