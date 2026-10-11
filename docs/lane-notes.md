@@ -4003,3 +4003,24 @@ when the work has landed.
     Sam. The trim question chips ("Which 911?") are unaffected - poolN already makes those internally
     consistent by design (they intentionally span more than the base-trim headline pool, and say so) - and
     keep rendering as before.
+- 2026-10-11 (Lane C): FULL RUN (schedule check, cost ceilings, stale bids, cards).
+  * Schedule: the live dry run (Oct 12 PDT, Dec 1 PST) matches the approved table exactly. One difference fixed:
+    the exact-car Task run (/api/watch, "Sam found one" for a watched car) ran every 4 hours; it now runs at
+    10, 25, 40 and 55 past every hour with the same rule as Tasks (&ifnew=1: exits at once unless a live
+    listing was first seen since the last run; runs anyway after 4 hours so sold events keep their pace). It
+    logs watch_run rows.
+  * Cost ceilings: the $50 a day model cap now covers Tasks as well as Buy chat. Every Tasks model call (setup
+    chat, the update line on every Task, research) goes through lib/tasks/tasks.js modelTurn: logged as
+    tasks_model_turn with its cost, held to lib/_ceilings.js modelSpendGuard. Over the cap: a Task update's
+    line is written in code (the Task email body was already built in code), the setup chat and research say
+    "Sam's written answers are paused for the moment. Try again later today." Tasks prompts are cached
+    (chatCore surface.cacheSystem). Sell chat is NOT under the $50 cap (not changed).
+  * Stale bids: the Buy landing example and match cards, the Tasks page car list and the Buy chat's car
+    sentence now carry the bid's age or time. Task cards store bid_at.
+  * Cards: no shared sale-card component exists; none built. Buy result cards are now whole-card clickable
+    (title link stretched over the card, real actions above it), the photo chip is no longer underlined.
+    Tasks page cars are one link each with plain text inside.
+  * FOR LANE A: two public surfaces show a live bid with no age. (1) Market Check "Live right now" (js/onebox.js,
+    "Current bid $X"): the panel response (/api/buySearch action panel) already carries bid_at per row; Buy's
+    markup is <span data-bidat="..."> with a .bage child, and "updated 1h 12m ago" past one hour. (2) The VIN
+    history page's live listing line (api/history.js, "Bid $X"): live_listings.bid_at is the time.

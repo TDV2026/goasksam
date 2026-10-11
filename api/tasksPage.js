@@ -89,7 +89,7 @@ const APP_CSS = `
 .feed .ut.sys{font:400 15px/1.45 var(--sans);color:var(--sec)}
 .cars{list-style:none;margin:10px 0 0;padding:0}
 .cars li{padding:7px 0;border-top:1px solid #EFEBE4;font:400 15px/1.45 var(--sans)}
-.cars a{color:var(--ink);font-weight:600}
+.cars a.carlink{display:block;color:var(--ink);text-decoration:none}.cars a.carlink .t{font-weight:600}.cars a.carlink:hover .t{color:var(--green)}
 .cars .fx{display:block;color:var(--sec)}
 .cars .more{color:var(--sec)}
 .empty{margin:14px 0 0;font:400 15px var(--sans);color:var(--sec)}
@@ -238,12 +238,15 @@ const APP_JS = String.raw`(function(){
   function dropEntryParams(){ var u = new URL(location.href); ["start", "seed", "words", "filters", "vin", "car"].forEach(function(k){ u.searchParams.delete(k); }); try { history.replaceState(null, "", u.pathname + (u.search || "") + u.hash); } catch(e){} }
   function when(iso){ try { var d = new Date(iso), now = new Date(); var o = { month: "short", day: "numeric" }; if (Math.abs(now - d) > 80 * 864e5) o.year = "numeric"; return d.toLocaleDateString("en-US", o) + ", " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }); } catch(e){ return ""; } }
   function money(n){ return "$" + Number(n).toLocaleString("en-US"); }
+  // A stored bid more than an hour old carries its age, as on Buy's cards: " · updated 1h 12m ago".
+  function bidAge(at){ var t = Date.parse(at || ""); if (isNaN(t)) return ""; var m = Math.floor((Date.now() - t) / 60000); if (m < 60) return ""; var d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mm = m % 60; return " · updated " + (d ? d + "d" + (h ? " " + h + "h" : "") : h + "h" + (mm ? " " + mm + "m" : "")) + " ago"; }
   function cars(u){
     var cs = (u.data && u.data.cards) || []; if (!cs.length) return "";
     var more = u.data.total > cs.length ? '<li class="more">' + (u.data.total - cs.length) + " more match.</li>" : "";
     return '<ul class="cars">' + cs.map(function(c){
-      var fx = [c.bid_usd ? "Bid " + money(c.bid_usd) : null, c.house, c.distance_miles != null ? c.distance_miles.toLocaleString("en-US") + " miles away" : c.location, c.miles ? Number(c.miles).toLocaleString("en-US") + " mi" : c.km ? Number(c.km).toLocaleString("en-US") + " km" : null].filter(Boolean).join(" · ");
-      return '<li><a href="' + esc(c.url || "#") + '" target="_blank" rel="noopener">' + esc(c.title || "Listing") + "</a>" + (fx ? '<span class="fx">' + esc(fx) + "</span>" : "") + "</li>";
+      var fx = [c.bid_usd ? "Bid " + money(c.bid_usd) + bidAge(c.bid_at) : null, c.house, c.distance_miles != null ? c.distance_miles.toLocaleString("en-US") + " miles away" : c.location, c.miles ? Number(c.miles).toLocaleString("en-US") + " mi" : c.km ? Number(c.km).toLocaleString("en-US") + " km" : null].filter(Boolean).join(" · ");
+      // The whole card opens the listing; title, bid and details are plain text inside it (the card rules).
+      return '<li><a class="carlink" href="' + esc(c.url || "#") + '" target="_blank" rel="noopener"><span class="t">' + esc(c.title || "Listing") + "</span>" + (fx ? '<span class="fx">' + esc(fx) + "</span>" : "") + "</a></li>";
     }).join("") + more + "</ul>";
   }
   function feed(t){

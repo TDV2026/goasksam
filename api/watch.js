@@ -3,12 +3,13 @@
 //   POST { action:"arm", kind:"spec"|"vin", listing_id } (signed in) -> { watch, first }
 //   POST { action:"stop", id } (signed in)           -> { ok }
 //   POST { action:"list" } (signed in)               -> { watches:[{ id, kind, label, last_event, ... }] }
-//   GET  ?run=1                                      -> the send run (Vercel cron, CRON_SECRET; or the probe key)
+//   GET  ?run=1[&ifnew=1]                            -> the send run (Vercel cron, CRON_SECRET; or the probe key)
 //   POST { action:"test", kind, listing_id|vin, since, to } (probe) -> the real message for real events
 //        since a past day, sent to `to` only, recorded nowhere
 // Stopping from a message is the before-it-ends signed stop link (/api/buySearch?alert=stop), which stops
 // every notice on the account, watches included (lib/live/buyAlerts.js stopAll).
-import { supabaseEnv } from "../lib/_supabase.js";
+import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
+import { recordUsageEvent } from "./_usage.js";
 import { validateBearer } from "../lib/_auth.js";
 import { readVisitorId } from "../lib/_visitor.js";
 import { hasServerCredential } from "../lib/_credential.js";
@@ -46,8 +47,22 @@ export default async function handler(req, res) {
       const cron = process.env.CRON_SECRET && String(req.headers.authorization || "") === `Bearer ${process.env.CRON_SECRET}`;
       if (!cron && !probe) return res.status(401).json({ error: "Unauthorized." });
       if (!(await ready(env))) return res.status(200).json({ ok: true, setup: true });
+      // &ifnew=1 (THE cron, every quarter hour, 10 minutes after each pull slot in lib/live/pullSchedule.js): exits
+      // at once unless a live listing was first seen since the last run started, so a watched car found by any
+      // pull reaches its Task email within minutes; it runs anyway when the last run is over 4 hours old, so sold
+      // events (from the nightly sales ingest) keep their pace. Same rule as /api/tasks?run=1&ifnew=1.
+      if (req.query.ifnew) {
+        const last = await supabaseSelect(env, `app_usage_events?event_type=eq.watch_run&status=eq.ok&select=created_at,metadata&order=created_at.desc&limit=1`).catch(() => null);
+        const l = last && last[0], since = l ? new Date(Date.parse(l.created_at) - (Number(l.metadata && l.metadata.ms) || 0) - 60e3).toISOString() : null;
+        const fresh = since ? await supabaseSelect(env, `live_listings?first_seen=gt.${encodeURIComponent(since)}&select=id&limit=1`).catch(() => null) : [1];
+        const stale = !l || Date.now() - Date.parse(l.created_at) > 4 * 3600e3;
+        if (fresh && !fresh.length && !stale) return res.status(200).json({ ran: 0, nothingNew: true, since });
+      }
       // A probe run can be held to one account (?user=<id>), so a test never sends to anyone else.
-      return res.status(200).json(await run(env, { dry: probe && req.query.dry === "1", userId: probe && /^[0-9a-f-]{36}$/.test(String(req.query.user || "")) ? String(req.query.user) : null }));
+      const dry = probe && req.query.dry === "1", userId = probe && /^[0-9a-f-]{36}$/.test(String(req.query.user || "")) ? String(req.query.user) : null, t0 = Date.now();
+      const out = await run(env, { dry, userId });
+      if (!dry && !userId) await recordUsageEvent({ event_type: "watch_run", route: "watch_run", status: "ok", oldcarsdata_metered_requests: 0, metadata: { checked: out.checked, sent: out.sent, held: out.held, ms: Date.now() - t0 } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
+      return res.status(200).json(out);
     }
     if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
     const b = req.body || {};
