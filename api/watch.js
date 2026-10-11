@@ -55,6 +55,12 @@ export default async function handler(req, res) {
       if (!probe) return res.status(401).json({ error: "Unauthorized." });
       return res.status(200).json(await testSend(env, { kind: b.kind, listing_id: b.listing_id, vin: b.vin, since: b.since, to: b.to || null, first: b.first !== false, userId: b.user_id || null }));
     }
+    // Probe: is watches.paused_at there yet? (a no-op PATCH on an id that cannot exist; nothing changes)
+    if (b.action === "paused_ready") {
+      if (!probe) return res.status(401).json({ error: "Unauthorized." });
+      const r = await setWatchState(env, "00000000-0000-4000-8000-00000000ffff", "resume").catch(e => ({ ok: false, error: String(e && e.message).slice(0, 160) }));
+      return res.status(200).json({ ready: !!r.ok, notReady: !!r.notReady, error: r.error || null });
+    }
     if (b.action === "probe_backdate" || b.action === "probe_inspect") {
       if (!probe) return res.status(401).json({ error: "Unauthorized." });
       if (b.action === "probe_inspect") return res.status(200).json(await probeInspect(env, String(b.user_id || "")));

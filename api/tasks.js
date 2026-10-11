@@ -30,8 +30,8 @@ const TEST_USER = /^00000000-0000-4000-8000-[0-9a-f]{12}$/;
 const TAP_WORDS = {
   pause: { title: "Pause the task", ask: "Its emails stop until you start it again. Your other tasks keep running.", button: "Pause this task", done: "Paused." },
   stop: { title: "Stop the task", ask: "This ends this one task. Your other tasks keep running.", button: "Stop this task", done: "Stopped." },
-  resume: { title: "Start this search again?", ask: "Sam keeps searching in the background, day and night, and you get notified when a car fits.", button: "Start it again", done: "Searching again." },
-  keep_looking: { title: "Keep looking?", ask: "Sam keeps searching in the background, day and night, and you get notified when a car fits.", button: "Keep looking", done: "Sam keeps looking." }
+  resume: { title: "Start this search again?", ask: "Sam keeps searching in the background, day and night, and you get an email when a car fits.", button: "Start it again", done: "Searching again." },
+  keep_looking: { title: "Keep looking?", ask: "Sam keeps searching in the background, day and night, and you get an email when a car fits.", button: "Keep looking", done: "Sam keeps looking." }
 };
 const tapEsc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const TAP_CSS = "body{margin:0;background:#F6F3EC;color:#15201A;font:400 17px/1.55 system-ui,-apple-system,'Segoe UI',sans-serif}main{max-width:520px;margin:0 auto;padding:48px 20px}.brand{font:600 20px/1 Georgia,serif;margin:0 0 32px}h1{font:500 30px/1.15 Georgia,serif;margin:0 0 14px}.task{background:#fff;border:1px solid #E2DED3;border-radius:10px;padding:12px 14px}button{margin:10px 0 6px;min-height:48px;padding:0 22px;border:0;border-radius:10px;background:#1E4D38;color:#fff;font:600 16px/1 system-ui,sans-serif;cursor:pointer}a{color:#1E4D38}.quiet{font-size:14px;color:#5E6B63}";
@@ -233,6 +233,24 @@ export default async function handler(req, res) {
           const since = new Date(Date.now() - (Number(req.body.soldDays) || 3) * 864e5).toISOString().slice(0, 10);
           const r = await testSend(env, { kind: "spec", listing_id: soldFrom.id, since, to: TEST_EMAIL, first: true, subjectPrefix: "[Test] " });
           out.sent.push({ label: "sold notice", listing: soldFrom.id, status: r.sent || r.error || (r.events === 0 ? "no sale since " + since : null), text: r.text || null, html: r.html || null, subject: r.subject || null, bands: r.bands || null });
+        }
+        // The sold DIGEST (several sales in one email): the busiest stored spec over the window, so the 10-sale cap
+        // and "And N more are in your task." show when stored records hold a spec with more than ten.
+        if (req.body.digest) {
+          const days = Number(req.body.digestDays) || 30, since = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
+          const cands = (await q(`live_listings?status=eq.live&end_time=gt.${nowIso}&country=eq.US&current_bid_usd=gt.0&make=in.(Porsche,Chevrolet,Ford,BMW,Mercedes-Benz)&select=id,make,model,year&order=current_bid_usd.desc&limit=40`)) || [];
+          let best = null; const seen = new Set();
+          for (const c of cands) {
+            const k = `${c.make}|${c.model}|${Math.floor(Number(c.year) / 5)}`; if (seen.has(k)) continue; seen.add(k);
+            const r = await testSend(env, { kind: "spec", listing_id: c.id, since }).catch(() => null);
+            if (r && r.events > ((best && best.events) || 1)) best = { id: c.id, events: r.events };
+            if (best && best.events > 10) break;
+          }
+          if (!best) out.sent.push({ label: "sold digest", error: `no stored spec with two or more sales in ${days} days` });
+          else {
+            const r = await testSend(env, { kind: "spec", listing_id: best.id, since, to: TEST_EMAIL, first: false, subjectPrefix: "[Test] " });
+            out.sent.push({ label: "sold digest", listing: best.id, events: r.events, status: r.sent || r.error, text: r.text || null, html: r.html || null, subject: r.subject || null, bands: r.bands || null });
+          }
         }
       }
       return res.status(200).json(out);
