@@ -10,6 +10,7 @@ import { vinsForUrls } from "./_historyData.js";
 import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor, parseHubSlug, hubVins, liveListing, addWatch, carSlug, familyOf, slugify, listingSaid, familySales, SITEMAP_PAGE, resolveText, cleanTitle, canonicalHub } from "./_historyData.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { PAGE_CSS as CSS, FONT_LINKS, railHtml, whyResultHtml, isCrewRequest } from "./_chrome.js";
+import { isReleased } from "../lib/_launchStage.js";
 import { KEEPLOOK_CSS, KEEPLOOK_JS, keepLookingHtml, keepLookingHref } from "../lib/appShell.js";
 import { AUTH_SIGNBAR_CSS } from "../lib/authBar.js";
 import { recordUsageEvent } from "./_usage.js";
@@ -141,7 +142,7 @@ ${canonical ? `<link rel="canonical" href="${esc(canonical)}">` : ""}
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#FAF8F4">
 ${FONT_LINKS}
 <style>${CSS}${STYLE}${KEEPLOOK_CSS}${AUTH_SIGNBAR_CSS}</style>${(ld || []).map(jsonLd).join("")}</head><body>
-${railHtml("history", undefined, crew)}
+${railHtml("history", undefined, crew, req)}
 <main><div class="col">${body}</div></main>
 <script>${KEEPLOOK_JS}</script>
 <script>window.GAS_AUTH_MODE="topbar";</script>
@@ -168,8 +169,8 @@ function send(res, status, html, extra = {}, index = false, crew = false, req = 
 }
 function notFound(req, res, what) {
   const crew = isCrewRequest(req);
-  // "Look up another car" points to Market Check, which is removed from the public HTML entirely.
-  const cta = crew ? `<p><a class="full" href="/market-check">Look up another car &#8594;</a></p>` : "";
+  // "Look up another car" points to Market Check - follows the stage (Job 1), not crew alone.
+  const cta = isReleased("market-check", req) ? `<p><a class="full" href="/market-check">Look up another car &#8594;</a></p>` : "";
   send(res, 404, page({ title: "No auction history found | GoAskSam", crew, body:
     `<section class="card notfound"><h1>No auction history for ${esc(what)}</h1><p class="muted">GoAskSam has no auction appearance of a car under this identifier. Real auction results only, so there is nothing to show.</p>${cta}</section>` }), {}, false, crew, req);
 }

@@ -8,7 +8,8 @@ import path from "node:path";
 import { lastUpdatedDate } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { isCrewRequest } from "./_chrome.js";
-import { SHELL_TOKENS_CSS, isFullAccess, brandPaletteCss } from "../lib/appShell.js";
+import { SHELL_TOKENS_CSS, brandPaletteCss } from "../lib/appShell.js";
+import { isReleased } from "../lib/_launchStage.js";
 
 const TITLE = "Where to sell your collector car";
 const HERO = `<div class="hero" id="hero"><div class="hp-hero">
@@ -18,31 +19,28 @@ const HERO = `<div class="hero" id="hero"><div class="hp-hero">
 let shell = null;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-// PUBLIC LAUNCH SWITCH (Oct 2026, Sam), mirroring lib/appShell.js isFullAccess so Sell's own rail
-// system agrees with the shared shell: strips the nav items that name or link to the other
-// products - Buy, Market Check, Tasks, For business, How Sam decides - for a visitor without the
-// gas_crew=ok cookie, until PUBLIC_LAUNCH=1. "Where to sell" (this page), PowerSellers, Your
-// results and the footer (Send feedback/Privacy/About) are never touched. Each item removed by its
-// own href so a copy/markup change elsewhere can never silently stop matching and leak a link.
-const HIDDEN_HREFS = ["/buy", "/market-check", "/tasks", "/business", "/how-sam-decides"];
-function stripHiddenNav(html) {
+// LAUNCH STAGE (Oct 2026, replaces the old binary PUBLIC_LAUNCH switch): strips the nav items for
+// whichever products are not yet released at the current stage (lib/_launchStage.js isReleased,
+// crew- and test-override-aware) - never all-or-nothing. "Where to sell" (this page), PowerSellers,
+// How Sam decides, Your results and the footer (Send feedback/Privacy/About) are stage-0 (always
+// on) and never touched. Each item removed by its own href so a copy/markup change elsewhere can
+// never silently stop matching and leak a link.
+const HIDDEN_FOR = { "/buy": "buy", "/market-check": "market-check", "/tasks": "tasks", "/business": "business" };
+function stripUnreleasedNav(html, req) {
   let out = html;
-  for (const href of HIDDEN_HREFS) {
+  for (const href of Object.keys(HIDDEN_FOR)) {
+    if (isReleased(HIDDEN_FOR[href], req)) continue;
     out = out.replace(new RegExp(`\\s*<a class="hp-navitem" href="${href.replace(/\//g, "\\/")}"[^>]*>[^<]*<\\/a>`, "g"), "");
   }
   return out;
 }
 
-// Round D (app shell, Oct 2026, Sam: lift the public nav lockdown): the rail showed the full shared
-// page list for every visitor, signed out included. SUPERSEDED (Oct 2026, PUBLIC_LAUNCH switch):
-// back to a reduced public rail until launch - see stripHiddenNav above.
 export async function sellShellHtml(req) {
   if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "index.html"), "utf8");
   // The real last-updated date, shared with Market Check (lib/asOf.js lastUpdatedDate). No count.
   const updated = await lastUpdatedDate(supabaseEnv()).catch(() => null);
   const crew = isCrewRequest(req);
-  const full = isFullAccess(crew);
-  return (full ? shell : stripHiddenNav(shell))
+  return stripUnreleasedNav(shell, req)
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${TITLE}</title>`)
     .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${TITLE}$2`)
     .replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${TITLE}$2`)

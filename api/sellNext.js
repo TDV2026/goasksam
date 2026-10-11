@@ -59,7 +59,7 @@ export default async function handler(req, res) {
     .replace("</head>", () => `<meta name="robots" content="noindex, nofollow">\n<link rel="canonical" href="https://goasksam.com/sell">\n<style>${cardCss}\n${SELL_MC_CSS}\n${SELL_LANDING_CSS}\n${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}</style>\n</head>`)
     // Round D (app shell, Oct 2026): the same shared rail as every other product - the full page
     // list, current page ("sell") marked - replacing the old Sell-only stripped-down rail.
-    .replace("<!--SHELL_RAIL-->", () => railOpenHtml({ active: "sell", pageExtra: YOUR_RESULTS_RAIL, logoHref: "/sell", crew }))
+    .replace("<!--SHELL_RAIL-->", () => railOpenHtml({ active: "sell", pageExtra: YOUR_RESULTS_RAIL, logoHref: "/sell", crew, req }))
     .replace("<script>\nfunction obToggleResults", () => `<script>${SHELL_JS}</script>\n<script>\nfunction obToggleResults`)
     // The Sell hook must exist before js/onebox.js boots, so the client goes in ahead of it.
     .replace(/<script src="\/obx\.[^"]+\/onebox\.js"><\/script>/, m => `<script>window.GAS_SELL_CFG=${cfg};</script>\n<script>${SELL_MC_CLIENT}</script>\n${m}`)

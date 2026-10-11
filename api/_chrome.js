@@ -1,4 +1,5 @@
 import { isCrewRequest as isSignedCrew } from "../lib/_crew.js";
+import { isReleased as released } from "../lib/_launchStage.js";
 // Shared page chrome for the server-rendered public pages (history, /buy): One Box tokens + fonts,
 // the left rail (with Buy) and the phone header. Lane C.
 //
@@ -124,23 +125,30 @@ export const FONT_LINKS = "<link rel=\"preload\" href=\"/fonts/newsreader-normal
 // Tasks in the rail: the badge, the app link when signed in, and the one-task rule at every entry point
 // ([data-task-entry]: /buy "Have Sam keep looking", the VIN page button, the /tasks buttons).
 const TASKS_BADGE = "<style>.tbadge{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:9px;background:#1A1A1A;color:#fff;font:600 11px/1.3 var(--sans,sans-serif);vertical-align:1px}.tbadge.nu{background:#D7262C}p.tkblocked,.msg.sam p.tkblocked{margin:10px 0;padding:10px 14px;border-left:3px solid #D7262C;background:#fff;font:400 15px/1.5 var(--sans,sans-serif)!important;color:#1A1A1A;flex-basis:100%;max-width:640px}p.tkblocked a{color:#D7262C;font-weight:600;font-size:15px}</style><script>(function(){var s=null;try{s=JSON.parse(localStorage.getItem(\"gas_auth_session\")||\"null\");}catch(e){}var on=!!(s&&s.access_token),sum=null;function get(){if(!sum)sum=fetch(\"/api/tasks?summary=1\",{cache:\"no-store\",headers:{Authorization:\"Bearer \"+s.access_token}}).then(function(r){return r.json();}).catch(function(){return null;});return sum;}function go(el){var h=el.getAttribute(\"data-href\")||el.getAttribute(\"href\");if(h)location.href=h;}document.addEventListener(\"click\",function(e){var el=e.target.closest&&e.target.closest(\"[data-task-entry]\");if(!el||!on)return;e.preventDefault();get().then(function(j){var a=j&&j.signedIn&&j.active;if(!a)return go(el);var box=el.closest(\"p,nav,header,li\")||el,old=box.parentNode&&box.parentNode.querySelector(\".tkblocked\");if(old)old.remove();var m=document.createElement(\"p\");m.className=\"tkblocked\";m.setAttribute(\"role\",\"status\");m.innerHTML=(a.state===\"paused\"?\"Your task is paused. Resume or stop it to start another.\":\"You have one task running. Stop it to start another.\")+' <a href=\"/tasks/mine?task='+encodeURIComponent(a.id)+'#task-'+encodeURIComponent(a.id)+'\">Open your task</a>';box.insertAdjacentElement(\"afterend\",m);});});if(!on)return;document.querySelectorAll('.rail a[href=\"/tasks\"],.mnav a[href=\"/tasks\"],.mhead a[href=\"/tasks\"]').forEach(function(a){a.setAttribute(\"href\",\"/tasks/mine\");});get().then(function(j){if(!j||!j.signedIn)return;var t=j.active&&j.active.state===\"needs_you\"?\"Needs you\":(j.unread?String(j.unread):\"\");if(!t)return;document.querySelectorAll(\"[data-tasks-badge]\").forEach(function(b){b.textContent=t;b.hidden=false;if(t===\"Needs you\")b.classList.add(\"nu\");});});})();</script>";
-export function railHtml(active, extra, crew) {
+// LAUNCH STAGE (Oct 2026, replaces the old crew-only binary): the public How Sam decides, spec and
+// car pages (this file's own rail/mnav system) now follow lib/_launchStage.js isReleased(product,
+// req) per product, same as the shared shell (lib/appShell.js) - never all-or-nothing. "Where to
+// sell", "Car histories" (when active) and "How Sam decides" are stage-0 (always on). `crew` is kept
+// as a fast-path (a caller that already computed isCrewRequest(req) does not need isReleased to
+// recompute it) - either crew or an open stage unlocks a product; req carries the real stage read
+// (and the test-only override) once a caller passes it.
+export function railHtml(active, extra, crew, req) {
   const item = (key, href, label) => '<a class="n' + (active === key ? ' on" aria-current="page' : '') + '" href="' + href + '">' + label + '</a>';
+  const on = product => !!crew || released(product, req);
   // A tiny inline flag so any client script loaded LATER on the same page (e.g. api/buy.js's CLIENT,
   // which builds some CTAs at runtime) can gate itself without a second cookie read.
   const flag = '<script>window.GAS_CREW=' + (crew ? 'true' : 'false') + ';</script>';
-  if (!crew) {
-    return flag +
-      '<nav class="rail" aria-label="Main navigation"><a class="logo" href="/sell">GoAskSam</a>' +
-      item('sell', '/sell', 'Where to sell') + (extra || '') + '</nav>' +
-      '<header class="mhead"><a href="/sell">GoAskSam</a><nav class="mnav" aria-label="Sections">' + item('sell', '/sell', 'Sell') + '</nav></header>';
-  }
-  return flag +
-    '<nav class="rail" aria-label="Main navigation"><a class="logo" href="/market-check">GoAskSam</a>' +
-    item('ask', '/market-check', 'Ask Sam') + item('buy', '/buy', 'Buy') + item('sell', '/sell', 'Where to sell') + item('tasks', '/tasks', 'Tasks<span class="tbadge" data-tasks-badge hidden></span>') +
+  const mcOn = on("market-check"), buyOn = on("buy"), tasksOn = on("tasks"), bizOn = on("business");
+  const tasksItem = tasksOn ? item('tasks', '/tasks', 'Tasks<span class="tbadge" data-tasks-badge hidden></span>') : '';
+  const railItems = (mcOn ? item('ask', '/market-check', 'Ask Sam') : '') + (buyOn ? item('buy', '/buy', 'Buy') : '') +
+    item('sell', '/sell', 'Where to sell') + tasksItem +
     (active === 'history' ? item('history', '#', 'Car histories') : '') +
-    item('how', '/how-sam-decides', 'How Sam decides') + item('business', '/business', 'For business') + (extra || '') + '</nav>' +
-    '<header class="mhead"><a href="/market-check">GoAskSam</a><nav class="mnav" aria-label="Sections">' + item('ask', '/market-check', 'Ask Sam') + item('buy', '/buy', 'Buy') + item('sell', '/sell', 'Sell') + item('tasks', '/tasks', 'Tasks<span class="tbadge" data-tasks-badge hidden></span>') + '</nav></header>' + TASKS_BADGE;
+    item('how', '/how-sam-decides', 'How Sam decides') + (bizOn ? item('business', '/business', 'For business') : '');
+  const mnavItems = (mcOn ? item('ask', '/market-check', 'Ask Sam') : '') + (buyOn ? item('buy', '/buy', 'Buy') : '') + item('sell', '/sell', 'Sell') + tasksItem;
+  const home = mcOn ? '/market-check' : '/sell';
+  return flag +
+    '<nav class="rail" aria-label="Main navigation"><a class="logo" href="' + home + '">GoAskSam</a>' + railItems + (extra || '') + '</nav>' +
+    '<header class="mhead"><a href="' + home + '">GoAskSam</a><nav class="mnav" aria-label="Sections">' + mnavItems + '</nav></header>' + TASKS_BADGE;
 }
 
 export function whyResultHtml(crew) {
