@@ -193,7 +193,7 @@
     if (above) parts.push({ n: above, full: "bidding above the range", short: "above it" });
     if (!parts.length) return "";
     var out = parts.map(function (p, i) {
-      return i === 0 ? (obNumWord(p.n) + " is " + p.full) : (obNumWordLow(p.n) + " " + p.short);
+      return i === 0 ? (obNumWord(p.n) + " " + (p.n === 1 ? "is" : "are") + " " + p.full) : (obNumWordLow(p.n) + " " + p.short);
     });
     return out.join(", ") + ".";
   }
@@ -232,7 +232,7 @@
         var photo = l.photo_url ? '<img src="' + esc(l.photo_url) + '" alt="" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()">' : "";
         return '<a class="lp-row" href="' + esc(utmUrl(l.url)) + '" target="_blank" rel="noopener noreferrer" data-gas-event="auction_clickout" data-gas-source="' + esc(l.source || "") + '">' +
           '<span class="lp-ph' + (l.photo_url ? "" : " noimg") + '">' + photo + '<span class="none">No photo</span></span>' +
-          '<span class="lp-body"><span class="lp-title">' + esc(cleanReceiptTitle(l.title)) + '</span><span class="lp-sub">' + esc([l.source, "Ends " + endsShort(l.end_time)].filter(Boolean).join(" · ")) + '</span></span>' +
+          '<span class="lp-body"><span class="lp-title">' + esc(cleanReceiptTitle(l.title)) + '</span><span class="lp-sub">' + esc([l.source, endsShort(l.end_time)].filter(Boolean).join(" · ")) + '</span></span>' +
           '<span class="lp-bid"><b>' + esc(bidText) + '</b>' + (pillText ? '<span class="pill lp-pos">' + esc(pillText) + "</span>" : "") + "</span></a>";
       }).join("");
       var q = (m && m.displayName) || carLabel(rc);
