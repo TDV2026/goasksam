@@ -4,7 +4,7 @@
 import { supabaseEnv } from "../lib/_supabase.js";
 import { chatOut } from "../lib/live/chatHttp.js";
 import { runSellTurn } from "../lib/sell/sellChat.js";
-import { checkCeiling, followupGuard, testLimits, isCrew, CALM } from "../lib/_ceilings.js";
+import { checkCeiling, followupGuard, sellModelGuard, testLimits, isCrew, CALM } from "../lib/_ceilings.js";
 import { hasServerCredential } from "../lib/_credential.js";
 
 export default async function handler(req, res) {
@@ -28,6 +28,8 @@ export default async function handler(req, res) {
       if (b.step === "ask") {
         const g = await followupGuard(env, req);
         if (!g.ok) return res.status(200).json(g.body);
+        const mg = await sellModelGuard(env, req);
+        if (!mg.ok) return res.status(200).json(mg.body);
         const { followUp } = await import("../lib/sell/sellFollow.js");
         const { CHAT_MODEL } = await import("../lib/live/chatHttp.js");
         if (!process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: "Sam is unavailable right now." });
@@ -66,5 +68,6 @@ export default async function handler(req, res) {
   if (b.action !== "chat") return res.status(400).json({ error: "unknown action" });
   // The conversational Sell calls the model on every turn: the same gate as the follow-up (one guard).
   { const g = await followupGuard(env, req); if (!g.ok) return res.status(200).json(g.body); }
+  { const mg = await sellModelGuard(env, req); if (!mg.ok) return res.status(200).json(mg.body); }
   return chatOut(res, env, b, { surface: "sell", run: runSellTurn, shape: async out => ({ page: out.page || null, cards: [] }) });
 }

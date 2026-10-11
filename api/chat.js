@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { hasServerCredential } from "../lib/_credential.js";
-import { followupGuard, assistGuard } from "../lib/_ceilings.js";
+import { followupGuard, assistGuard, sellModelGuard } from "../lib/_ceilings.js";
 import { anthropicCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 
@@ -95,6 +95,11 @@ export default async function handler(req, res) {
   }
   const g = gated ? await followupGuard(env, req) : await assistGuard(env, req);
   if (!g.ok) return res.status(200).json(g.body);
+  // Misuse only (Oct 2026): the $50 a day model cap shared with Buy and Tasks, and the per minute and per day
+  // limits on Sell model calls (lib/_ceilings.js sellModelGuard). Past any of them the page shows the paused
+  // sentence in place of an answer and the wizard carries on with its next step.
+  const mg = await sellModelGuard(env, req);
+  if (!mg.ok) return res.status(200).json(mg.body);
   const systemBlocks = [];
   if (system) systemBlocks.push({ type: "text", text: String(system), cache_control: { type: "ephemeral" } });
   if (context) systemBlocks.push({ type: "text", text: String(context) });

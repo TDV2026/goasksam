@@ -4141,3 +4141,23 @@ when the work has landed.
   workflow file change needed - the existing nightly step does not currently call this ops task in
   batched form; if Sam wants nightly to run the full 63-spec sweep, that is a separate ask (the
   workflow file is unchanged this round).
+- 2026-10-11 (Lane C): SELL CHAT MISUSE LIMITS, TASKS PER-ACCOUNT LIMITS (Sam's next run).
+  * The public Sell chat is /api/chat (the live wizard's entry and follow-up chat); /api/sellChat (the new Sell)
+    is switched off but guarded the same way. lib/_ceilings.js sellModelGuard on every Sell call that can reach
+    the model: the $50 a day model cap (now summing buy_chat_turn, tasks_model_turn, chat, sell_chat_turn and
+    sell_followup_turn) and CEILINGS.sell_model (10 a minute and 100 a day per device; 30 a minute and 300 a
+    day per address), crew exempt. Past any of them the page shows MODEL_PAUSED ("Sam's written answers are
+    paused for the moment. Try again later today.") and the wizard carries on (js/entry.js shows any
+    `limited` reply as Sam's message). Basis: the last 30 days, browsers only, 120 calls from 34 addresses,
+    busiest 10 a day and 3 in a minute (1,695 more rows were our own automated callers).
+  * Message length: /api/chat already caps 2,000 characters a message and 12,000 in all; the shared chat endpoint
+    (lib/live/chatHttp.js, Buy and the new Sell) now caps 12,000 in all too (it already cut each message at 2,000).
+  * The new Sell's follow-up now logs its spend (sell_followup_turn); the new Sell's chat and follow-up
+    surfaces ask for prompt caching. Live /sell: the follow-up prompt (about 5,700 tokens) was already cached;
+    the pre-result prompt (about 700 tokens) is too short for the prompt cache.
+  * Tasks per account per day (tasksAllowance, crew exempt): 40 setup chat turns, 10 research Tasks. Past it the
+    reply is MODEL_PAUSED; research still starts and its thread shows the sentence. tasks_model_turn rows now
+    carry user_id, so these limits can be reset from real use.
+  * Tasks prompt cache: measured live (in-memory test scenario) and NOT hit: each Tasks call's prefix is about
+    1,000 to 1,400 tokens, under the model's minimum. $0.012 a setup turn, $0.008 an update turn.
+  * The code-written Task line read "Another, manual 1986 ..." for a third car and "A Arctic Silver"; fixed.
