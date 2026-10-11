@@ -744,22 +744,31 @@
   // OWN anchor pointing at the same href, as siblings inside one <article> - never nested - so any
   // future inner link (o.after) is always safe, and the whole photo+body area stays clickable
   // exactly as before (two anchors covering the same area a single wrapping anchor used to).
+  // SECOND ADDENDUM item 1 (result-page-polish round two): one quiet "View sale" action, not several
+  // underlined links per card. The title anchor's own ::after stretches over the whole article (CSS,
+  // mirrors api/buy.js's CARD_RULES_CSS - the same "whole card opens the listing, title link
+  // stretched, plain text details, only real actions sit above it" rule Lane C already wrote for
+  // Buy, same technique here under this file's own .card/.ctitle names) so the card is clickable
+  // everywhere, but price/title/meta read as plain text - no underline - and only "View sale" (and
+  // any o.after inner link, e.g. "Sold before on...") sit above the stretch as real actions.
   function saleCardHtml(o) {
     var head = o.venueLine ? '<div class="price-row"><span class="cprice num">' + o.priceHtml + '</span><span class="cvenue">' + esc(o.venueLine) + "</span></div>"
       : '<span class="cprice num">' + o.priceHtml + "</span>";
+    var linkAttrs = o.href ? (' href="' + esc(o.href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(o.slug || "") + '" data-gas-event="receipt_click" data-gas-source="' + esc(o.slug || "") + '"') : "";
+    var titleHtml = o.title
+      ? (o.href ? ('<h3 class="ctitle"><a' + linkAttrs + ' aria-label="Open the listing">' + esc(o.title) + "</a></h3>") : ('<h3 class="ctitle">' + esc(o.title) + "</h3>"))
+      : "";
     var bodyInner = head +
       (o.allIn ? '<div class="callin">Buyer paid ' + esc(o.allIn) + " with premium</div>" : "") +
-      (o.title ? '<div class="ctitle">' + esc(o.title) + "</div>" : "") +
+      titleHtml +
       (o.meta ? '<div class="cmeta">' + esc(o.meta) + "</div>" : "") +
       (o.extra || "") +
+      (o.href ? ('<a class="viewsale"' + linkAttrs + ">View sale &#8594;</a>") : "") +
       (o.why ? '<p class="cwhy">' + lint(esc(o.why), "card.why") + "</p>" : "");
     var cls = "card " + (o.cls || "");
     var photo = photoHtml(o.image, o.title, o.pill);
-    var linkAttrs = o.href ? (' href="' + esc(o.href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(o.slug || "") + '" data-gas-event="receipt_click" data-gas-source="' + esc(o.slug || "") + '"') : "";
-    var ph = o.href ? ('<a aria-label="Open the listing"' + linkAttrs + ">" + photo + "</a>") : photo;
-    var bodyLink = o.href ? ('<a' + linkAttrs + ">" + bodyInner + "</a>") : bodyInner;
-    var body = '<div class="cbody">' + bodyLink + (o.after || "") + "</div>";
-    return '<article class="' + cls + '">' + ph + body + "</article>";
+    var body = '<div class="cbody">' + bodyInner + "</div>" + (o.after || "");
+    return '<article class="' + cls + (o.href ? " clickable" : "") + '">' + photo + body + "</article>";
   }
   // "Automatic (7-speed)" -> "Automatic, 7-speed".
   function longMiles(c) { return Number(c.mi) > 0 ? Number(c.mi).toLocaleString("en-US") + " miles" : (c.mileageText && c.mileageText !== "TMU" ? c.mileageText : ""); }

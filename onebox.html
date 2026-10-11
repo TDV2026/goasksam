@@ -227,9 +227,23 @@ button{font:inherit}
 
 /* ---- cards ---- */
 .cards5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:20px;align-items:start}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;color:inherit}
+.card{position:relative;background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;color:inherit}
+.card.clickable{cursor:pointer}
 .card:hover{border-color:var(--green)}
-.card:hover .ctitle{text-decoration:underline;text-underline-offset:3px}
+/* Second addendum item 1 (result-page-polish round two): price, title and the miles/venue/month
+   meta line are plain text, no underline ever - the title's own <a> stretches over the whole card
+   (::after, inset:0) so the card is clickable everywhere without looking like a pile of links. Same
+   technique api/buy.js's CARD_RULES_CSS already uses for Buy's own cards, under this file's own
+   .card/.ctitle names. Real actions (View sale, a sold-before/full-history line) sit above the
+   stretch at z-index 2 and keep their own underline - those are deliberate text actions, not the
+   card's own repeated link. */
+.ctitle{margin:0;font:500 17px/1.35 var(--sans);color:var(--ink)}
+.ctitle a{color:inherit;text-decoration:none}
+.ctitle a::after{content:"";position:absolute;inset:0;z-index:1;border-radius:inherit}
+.ctitle a:focus-visible{outline:none}
+.card:has(.ctitle a:focus-visible){outline:2px solid var(--green);outline-offset:2px}
+.viewsale{position:relative;z-index:2;display:inline-flex;align-items:center;gap:4px;margin-top:2px;font:600 13.5px/1.3 var(--sans);color:var(--sec);text-decoration:none}
+.viewsale:hover{color:var(--green)}
 .card.hero{grid-column:span 3}
 .cards5.single .card.hero{grid-column:1 / -1}
 .card.this{border:1.5px solid var(--green)}
@@ -273,8 +287,8 @@ button{font:inherit}
 .cmeta{font:400 14px/1.45 var(--sans);color:var(--sec)}
 .callin{font:400 14px/1.4 var(--sans);color:var(--sec)}
 .cwhy{margin:4px 0 0;font:italic 400 16px/1.45 var(--serif);color:var(--soft)}
-.histlink{margin-top:4px;font:600 15px/1.4 var(--sans);text-decoration:underline;text-underline-offset:3px;min-height:44px;display:inline-flex;align-items:center;align-self:flex-start}
-.sb-line{margin-top:2px;font:400 14px/1.4 var(--sans);color:var(--sec);text-decoration:underline;text-underline-offset:3px}
+.histlink{position:relative;z-index:2;margin-top:4px;font:600 15px/1.4 var(--sans);text-decoration:underline;text-underline-offset:3px;min-height:44px;display:inline-flex;align-items:center;align-self:flex-start}
+.sb-line{position:relative;z-index:2;margin-top:2px;font:400 14px/1.4 var(--sans);color:var(--sec);text-decoration:underline;text-underline-offset:3px}
 a.sb-line:hover{color:var(--green)}
 .mk{display:inline-block;font:600 12px/1 var(--sans);letter-spacing:.04em;color:var(--green);background:var(--tint);border:1px solid var(--tint-line);border-radius:999px;padding:5px 9px;margin:4px 6px 0 0}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
