@@ -3579,3 +3579,13 @@ when the work has landed.
     Shelby GT500 Supercharged coupes" while its sold cards are plain 289/390 Mustangs (the family noun keeps the
     trim after the ladder widened past it). Also SLS AMG coupes and Roadsters share one range (bodyScoped null:
     no body on the spec), so a Roadster reads "inside" against coupe sales.
+- 2026-10-11 (Lane C -> Lane B): crossProductCheck 61 specs, ONE mismatch: "2010 Porsche Boxster Convertible".
+  Market Check/Sell 987.2, 24 sales, $29,000 to $48,500; Buy/Tasks "987.1 Boxster convertibles", 61 sales,
+  $18,500 to $34,000 (the 2006 answer). Persists after clearing the Boxster spec_market_cache rows
+  (specinvalidate, 13 rows), so it is recomputed wrong, not a stale row.
+  Evidence: ops drawervscard (fresh walkLadder, row title "2010 Porsche Boxster Convertible") reads the
+  CORRECT 24 sales. buyLane goes through familyMarket, whose row title is "2010 Porsche Boxster" with the
+  body passed only as facts.body -> v.bodyStyle "convertible". So the engine appears to pick the 987.1 half
+  when bodyStyle is set but the text carries no body word (likely the new body-style scoping, since your last
+  run had this spec matching). Not patched on the Buy side (one engine). Separately fixed in ac8b7aa: engineAnswer's
+  in-memory cache keyed on the merged "987" code, not specKeyFor's half; it now uses specKeyFor.
