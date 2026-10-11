@@ -1335,6 +1335,37 @@ async function handleOps(req, res) {
     return res.status(200).json(result);
   }
 
+  // task=modmatch: TEMPORARY, READ-ONLY (description-match job, Oct 2026). For each title given, finds
+  // the sales_archive row, re-runs every RESTOMOD_TAGS pattern against title-only vs title+description,
+  // and reports which pattern matched and where (title or description), with ~80 chars of context.
+  // Delete once the job concludes.
+  if (task === "modmatch") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { RESTOMOD_TAGS } = await import("../lib/modelRules.js");
+    const titles = String(req.query?.titles || "").split("|").map(s => s.trim()).filter(Boolean);
+    const out = [];
+    for (const t of titles) {
+      const rows = await supabaseSelect(env, `sales_archive?listing_title=eq.${encodeURIComponent(t)}&select=listing_title,description&limit=1`).catch(() => null);
+      const row = rows && rows[0];
+      if (!row) { out.push({ title: t, error: "not found" }); continue; }
+      const desc = String(row.description || "");
+      const hits = [];
+      for (const spec of RESTOMOD_TAGS) {
+        const reTitle = new RegExp(spec.re.source, spec.re.flags);
+        const reDesc = new RegExp(spec.re.source, spec.re.flags);
+        const mTitle = reTitle.exec(t);
+        const mDesc = !mTitle ? reDesc.exec(desc) : null;
+        if (mTitle) hits.push({ word: spec.word, where: "title", match: mTitle[0] });
+        else if (mDesc) {
+          const i = mDesc.index, ctx = desc.slice(Math.max(0, i - 80), i + mDesc[0].length + 80);
+          hits.push({ word: spec.word, where: "description", match: mDesc[0], context: ctx });
+        }
+      }
+      out.push({ title: t, hits, descLen: desc.length });
+    }
+    return res.status(200).json({ task: "modmatch", out });
+  }
+
   // task=flawsample: TEMPORARY, READ-ONLY (Sam's Take issue-count basis job, Oct 2026). Samples the
   // raw known_flaws field (raw_record->>known_flaws) for a make/model so its actual shape (clean
   // itemized array vs freeform prose split by newline/semicolon) can be inspected before trusting a
