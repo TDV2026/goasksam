@@ -65,7 +65,10 @@ export default async function handler(req, res) {
     // field is checked against the order asked for, so a test shows whether the vendor honoured the sort.
     if (mode === "new" || mode === "ending") {
       const seenAt = new Date().toISOString(), rows = [], cap = Math.min(PAGES[mode], maxReq);
-      const params = mode === "new" ? { sort: "created_at", direction: "desc" } : { sort: "auction_end_at", direction: "asc" };
+      let params = mode === "new" ? { sort: "created_at", direction: "desc" } : { sort: "auction_end_at", direction: "asc" };
+      // A credentialed test may name the sort to try (&sort=<name>&direction=asc|desc, or &sort=none for the
+      // vendor's default order); the order that comes back is checked below. The cron never sends this.
+      if (!isCron && req.query.sort != null) params = String(req.query.sort) === "none" ? {} : { sort: String(req.query.sort).slice(0, 40), direction: String(req.query.direction || "asc") === "desc" ? "desc" : "asc" };
       const field = mode === "new" ? "created_at" : "auction_end_at", seq = [];
       let pagesRead = 0;
       for (let page = 1; page <= cap && used() < maxReq; page++) {
@@ -83,7 +86,7 @@ export default async function handler(req, res) {
         if (mode === "new") { const ids = mapped.map(m => m.source_listing_id); const known = await knownIds(env, ids); if (known >= ids.length) break; }
       }
       const wrong = seq.slice(1).filter((t, i) => mode === "new" ? t > seq[i] : t < seq[i]).length;
-      const order = { field, asked: params.direction, values: seq.length, outOfOrder: wrong, honoured: seq.length > 1 && wrong === 0, first: seq.length ? new Date(seq[0]).toISOString() : null, last: seq.length ? new Date(seq[seq.length - 1]).toISOString() : null, futureEnds: mode === "ending" ? seq.filter(t => t > Date.now()).length : undefined };
+      const order = { field, sent: params.sort ? params.sort + " " + params.direction : "default order", asked: mode === "new" ? "desc" : "asc", values: seq.length, outOfOrder: wrong, honoured: seq.length > 1 && wrong === 0, first: seq.length ? new Date(seq[0]).toISOString() : null, last: seq.length ? new Date(seq[seq.length - 1]).toISOString() : null, futureEnds: mode === "ending" ? seq.filter(t => t > Date.now()).length : undefined };
       const fresh = await newCount(env, rows);
       const up = await upsertLive(env, rows);
       await flushOcdUsage();
