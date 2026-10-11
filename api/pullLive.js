@@ -2,6 +2,10 @@
 //   Auth: Vercel cron (Authorization: Bearer CRON_SECRET) or ?key=PROBE_KEY for a manual run.
 //   ?probe=1          ONE metered request: returns the record keys + 2 samples, writes nothing.
 //   ?max-requests=N   hard guard on metered requests this run (default 30, a full walk is ~19 at 100/page; the cron uses the default).
+//   ?mode=auto        THE CRON (every 15 minutes, UTC): runs whatever lib/live/pullSchedule.js gives this Pacific
+//                     quarter hour (full walk, ending soonest, newest) or nothing at all. ZERO OCD when nothing.
+//   ?mode=auto&dryrun=1[&date=YYYY-MM-DD]  ZERO OCD: the plan for every quarter hour of that UTC day.
+//   ?mode=ending / ?mode=new   one pull of that kind (2 pages unless max-requests says less).
 // Fetches OCD /auctions/live (every source OCD carries live), upserts live_listings, marks listings
 // that vanished from the feed as ended, and fills final_price from sales_archive once the sale lands.
 // Idempotent: re-running only refreshes last_seen/current_bid and re-checks ended rows. Every metered
@@ -9,7 +13,8 @@
 import { callOldCarsData, configureOcdUsage, getOcdRunMetered, flushOcdUsage } from "../lib/_ocd.js";
 import { historyEnv } from "./_historyData.js";
 import { recordUsageEvent } from "./_usage.js";
-import { ocdWithRetry, readRemaining, reserveFloor, freshnessOn } from "../lib/live/ocdGuard.js";
+import { ocdWithRetry, readRemaining, reserveFloor } from "../lib/live/ocdGuard.js";
+import { pullFor, dayPlan, PAGES } from "../lib/live/pullSchedule.js";
 import { mapLiveRecord, upsertLive, markVanished, fillFinalPrices, liveStats } from "../lib/live/feed.js";
 
 export default async function handler(req, res) {
@@ -40,6 +45,14 @@ export default async function handler(req, res) {
       await flushOcdUsage();
       return res.status(200).json({ probe: true, ocdRequests: used(), returned: data.length, meta: r.meta || null, keys: data[0] ? Object.keys(data[0]) : [], samples: data.slice(0, 2) });
     }
+    // The schedule (lib/live/pullSchedule.js): a dry run answers from the clock alone, no vendor call.
+    let mode = String((req.query && req.query.mode) || "");
+    if (mode === "auto") {
+      if (req.query.dryrun) return res.status(200).json({ ok: true, dryrun: true, ocdRequests: 0, now: pullFor(new Date()), plan: dayPlan(String(req.query.date || new Date().toISOString().slice(0, 10)).slice(0, 10)) });
+      const slot = pullFor(new Date());
+      if (!slot.mode) return res.status(200).json({ ok: true, slot, nothing: true, ocdRequests: 0 });
+      mode = slot.mode === "full" ? "" : slot.mode;
+    }
     // 0. Monthly guard: skip the whole run while OCD's own remaining monthly quota (the header /sell
     // persists to app_config ocd_rate_limit) is below OCD_SELL_MONTHLY_RESERVE + 100. Logged when skipped.
     const reserve = reserveFloor();
@@ -48,19 +61,20 @@ export default async function handler(req, res) {
       await recordUsageEvent({ event_type: "pull_live_skipped", route: "pull_live", status: "skipped", oldcarsdata_metered_requests: 0, metadata: { remaining: rl.remaining, reserve, at: rl.at } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
       return res.status(200).json({ ok: true, skipped: "monthly OCD remaining below reserve", remaining: rl.remaining, reserve, ocdRequests: 0 });
     }
-    // 30-minute freshness jobs (OFF unless LIVE_FRESHNESS=1; no cron line until switched on):
-    //   ?mode=new     newest-listed first, stop at the first page whose listings we already hold (cap 3)
-    //   ?mode=ending  soonest-ending first, refresh until listings end beyond 24 hours from now (cap 5)
-    const mode = String((req.query && req.query.mode) || "");
+    // Ending soonest and newest (the schedule's short pulls, or one credentialed test run). Each page's own sort
+    // field is checked against the order asked for, so a test shows whether the vendor honoured the sort.
     if (mode === "new" || mode === "ending") {
-      if (!freshnessOn()) return res.status(200).json({ ok: true, off: "LIVE_FRESHNESS is not on", ocdRequests: 0 });
-      const seenAt = new Date().toISOString(), rows = [], cap = mode === "new" ? 3 : 5;
+      const seenAt = new Date().toISOString(), rows = [], cap = Math.min(PAGES[mode], maxReq);
       const params = mode === "new" ? { sort: "created_at", direction: "desc" } : { sort: "auction_end_at", direction: "asc" };
+      const field = mode === "new" ? "created_at" : "auction_end_at", seq = [];
+      let pagesRead = 0;
       for (let page = 1; page <= cap && used() < maxReq; page++) {
         const r = await ocdWithRetry(() => callOldCarsData("/auctions/live", { page, limit, ...params }, apiKey), used, maxReq);
         await flushOcdUsage();   // record the spend page by page, so a timeout never loses the count
+        pagesRead++;
         const hdr = r.__rateLimit && r.__rateLimit.remaining != null ? Number(r.__rateLimit.remaining) : null;
         const data = r.data || r.results || [];
+        for (const rec of data) { const t = Date.parse(String(rec[field] || "").replace(" ", "T") + (/[zZ]|[+-]\d\d:?\d\d$/.test(String(rec[field] || "")) ? "" : "Z")); if (Number.isFinite(t)) seq.push(t); }
         const mapped = data.map(rec => mapLiveRecord(rec, seenAt)).filter(Boolean);
         rows.push(...mapped);
         if (hdr != null && hdr < reserve) break;
@@ -68,9 +82,14 @@ export default async function handler(req, res) {
         if (mode === "ending") { const lastEnd = Date.parse(mapped.length ? mapped[mapped.length - 1].end_time : ""); if (!(lastEnd < Date.now() + 24 * 3600e3)) break; }
         if (mode === "new") { const ids = mapped.map(m => m.source_listing_id); const known = await knownIds(env, ids); if (known >= ids.length) break; }
       }
+      const wrong = seq.slice(1).filter((t, i) => mode === "new" ? t > seq[i] : t < seq[i]).length;
+      const order = { field, asked: params.direction, values: seq.length, outOfOrder: wrong, honoured: seq.length > 1 && wrong === 0, first: seq.length ? new Date(seq[0]).toISOString() : null, last: seq.length ? new Date(seq[seq.length - 1]).toISOString() : null, futureEnds: mode === "ending" ? seq.filter(t => t > Date.now()).length : undefined };
+      const fresh = await newCount(env, rows);
       const up = await upsertLive(env, rows);
       await flushOcdUsage();
-      return res.status(200).json({ ok: true, mode, ocdRequests: used(), upserted: up });
+      const out = { mode, pages: pagesRead, ocdRequests: used(), fetched: rows.length, newListings: fresh, upserted: up, order };
+      await recordUsageEvent({ event_type: "pull_live_mode", route: "pull_live", status: "ok", oldcarsdata_metered_requests: 0, metadata: out }, env.supabaseUrl, env.supabaseKey).catch(() => {});
+      return res.status(200).json({ ok: true, ...out });
     }
     // 1. Walk every page of the live feed, bounded by --max-requests.
     const seenAt = new Date().toISOString();
@@ -102,6 +121,7 @@ export default async function handler(req, res) {
     // Steps 4 and 5 run on wall-clock budgets (120s / 60s) so the run always returns this summary and
     // never hits the 300s function limit; a budget stop reports what was handled and what is left.
     let t = Date.now();
+    const fresh = await newCount(env, rows); stepMs.newCount = Date.now() - t; t = Date.now();
     const up = await upsertLive(env, rows); stepMs.upsert = Date.now() - t; t = Date.now();
     const ended = truncated ? { skipped: "walk truncated by max-requests" } : await markVanished(env, seenAt); stepMs.markEnded = Date.now() - t; t = Date.now();
     const finals = await fillFinalPrices(env, { budgetMs: 120000 }); stepMs.finalPrices = Date.now() - t; t = Date.now();
@@ -111,8 +131,8 @@ export default async function handler(req, res) {
     if (stoppedForReserve != null) await recordUsageEvent({ event_type: "pull_live_skipped", route: "pull_live", status: "stopped", oldcarsdata_metered_requests: 0, metadata: { remaining: stoppedForReserve, reserve } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
     // The run's summary also lands in app_usage_events (pull_live_summary), so a cron run's timings and
     // backlog are readable afterwards (the cron's own HTTP response is not kept anywhere).
-    await recordUsageEvent({ event_type: "pull_live_summary", route: "pull_live", status: "ok", oldcarsdata_metered_requests: 0, metadata: { stepMs, fetched: rows.length, upserted: up, ended, finals, stats: { withVin: stats.withVin, vinsChecked: stats.vinsChecked, vinsLeft: stats.vinsLeft, budgetHit: stats.budgetHit } } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
-    return res.status(200).json({ ok: true, ocdRequests: used(), maxRequests: maxReq, truncated, stoppedForReserve, feedTotal: total, fetched: rows.length, perSource, upserted: up, ended, finals, stepMs, ...stats });
+    await recordUsageEvent({ event_type: "pull_live_summary", route: "pull_live", status: "ok", oldcarsdata_metered_requests: 0, metadata: { stepMs, fetched: rows.length, newListings: fresh, upserted: up, ended, finals, stats: { withVin: stats.withVin, vinsChecked: stats.vinsChecked, vinsLeft: stats.vinsLeft, budgetHit: stats.budgetHit } } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
+    return res.status(200).json({ ok: true, ocdRequests: used(), maxRequests: maxReq, truncated, stoppedForReserve, feedTotal: total, fetched: rows.length, newListings: fresh, perSource, upserted: up, ended, finals, stepMs, ...stats });
   } catch (e) {
     await flushOcdUsage().catch(() => {});
     return res.status(500).json({ ok: false, ocdRequests: used(), error: String((e && e.message) || e).slice(0, 300) });
@@ -126,4 +146,17 @@ async function knownIds(env, ids) {
   const r = await fetch(`${env.supabaseUrl}/rest/v1/live_listings?source_listing_id=in.(${encodeURIComponent(list)})&select=id&limit=200`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } });
   const rows = r.ok ? await r.json() : [];
   return Array.isArray(rows) ? rows.length : 0;
+}
+// How many of this pull's listings we had never seen (source + id), before the upsert stamps them.
+async function newCount(env, rows) {
+  let seen = 0;
+  const bySource = new Map();
+  for (const r of rows) { if (!bySource.has(r.source)) bySource.set(r.source, []); bySource.get(r.source).push(r.source_listing_id); }
+  for (const [source, ids] of bySource) for (let i = 0; i < ids.length; i += 200) {
+    const list = ids.slice(i, i + 200).map(x => '"' + String(x).replace(/"/g, "") + '"').join(",");
+    const r = await fetch(`${env.supabaseUrl}/rest/v1/live_listings?source=eq.${encodeURIComponent(source)}&source_listing_id=in.(${encodeURIComponent(list)})&select=id&limit=200`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }).catch(() => null);
+    const got = r && r.ok ? await r.json().catch(() => []) : [];
+    seen += Array.isArray(got) ? got.length : 0;
+  }
+  return Math.max(0, rows.length - seen);
 }

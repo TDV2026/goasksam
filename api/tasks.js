@@ -17,7 +17,7 @@
 //   GET  ?run=1                         -> the matching run after each live pull (Vercel cron, CRON_SECRET)
 // Probe-keyed tests (PROBE_KEY): act as a test user, seed listing rows instead of the live table, mock
 // the clock; test runs never send email (email_status "test").
-import { supabaseEnv } from "../lib/_supabase.js";
+import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { readVisitorId } from "../lib/_visitor.js";
 import { jobPhrase, notifyPrefs, setNotifyPrefs, taskTurn, draftTurn, startDraft, applyEdit, slotTask, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore, notify, oneTap, sendStartEmail } from "../lib/tasks/tasks.js";
@@ -85,6 +85,15 @@ export default async function handler(req, res) {
       const isCron = process.env.CRON_SECRET && req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
       if (!isCron && !probeOk(req)) return res.status(401).json({ error: "Unauthorized." });
       const t0 = Date.now();
+      // &ifnew=1 (the cron 5 minutes after every quarter-hour pull slot, lib/live/pullSchedule.js): exits at once
+      // unless a live listing was first seen since the last run started, so a car found by any pull (full walk,
+      // ending soonest or newest) reaches the tasks within minutes and an empty slot costs one query.
+      if (q.ifnew) {
+        const last = await supabaseSelect(env, `app_usage_events?event_type=eq.tasks_run&status=eq.ok&select=created_at,metadata&order=created_at.desc&limit=1`).catch(() => null);
+        const l = last && last[0], since = l ? new Date(Date.parse(l.created_at) - (Number(l.metadata && l.metadata.ms) || 0) - 60e3).toISOString() : null;
+        const fresh = since ? await supabaseSelect(env, `live_listings?first_seen=gt.${encodeURIComponent(since)}&select=id&limit=1`).catch(() => null) : [1];
+        if (fresh && !fresh.length) return res.status(200).json({ ran: 0, nothingNew: true, since });
+      }
       let out;
       try { out = await runTasks(env, { apiKey, model: CHAT_MODEL }); }
       catch (e) {   // a failed run leaves a row too, so a silent cron failure is queryable
