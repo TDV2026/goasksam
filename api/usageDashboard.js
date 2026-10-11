@@ -4147,6 +4147,7 @@ async function handleOps(req, res) {
           recent3: Array.isArray(ob.recent3) ? ob.recent3.map(c => ({ title: c.title, mi: c.mi, date: c.date, again: !!c.again })) : null,
           exactSale: ob.exactSale ? { price: ob.exactSale.price, date: ob.exactSale.soldDate || ob.exactSale.date || null, mileage: ob.exactSale.mileage } : null,
           r4: d.r4 || null, dedup: { fetchedRaw: d.fetchedRaw, fetchedDeduped: d.fetchedDeduped, rule5: d.rule5 || null },
+          counts: ob.counts || null, soldCount: ob.soldCount != null ? ob.soldCount : null, setAsideCount: ob.setAsideCount != null ? ob.setAsideCount : null, setAsideReasons: ob.setAsideReasons || null,
           halfGeneration: ob.halfGeneration || null, representative: ob.representative || null,
           reserve, chips, cacheRows, listSales
         });
