@@ -1015,20 +1015,19 @@
     }
     return earnedHtml(d, m);
   }
-  // Capped third split (Part 3 question cap), now a chip row instead of prose (Job 2, result-page-
+  // Capped third split (Part 3 question cap), a chip row instead of prose (Job 2, result-page-
   // polish round two): the prose ("The middle half of manuals sold between X and Y, from N sales")
   // is gone - picking a chip reruns the result through the engine via the SAME data-tx/data-variant
   // handlers the earned gearbox/competition QUESTION already uses (lines ~2270+), so this is one
   // wiring, not a new one. A side flagged `thin` by the engine (RANGE_THRESHOLD, lib/onebox.js
   // inlineSplitRange) renders disabled with "too few sales" - no number lives in this template.
-  // NO COUNT is printed on any chip here: chosen.rows (what these sides are drawn from) is not yet
-  // fenced/windowed the same way the headline's solid pool is - confirmed live on the 2005 BMW M3
-  // Coupe (87 headline vs 131 manual + 16 SMG) - so a count here would read as contradicting the
-  // headline right above it. Hidden per Sam until Lane B gives inlineSplits the same poolN fix
-  // trimQuestion already has (see docs/lane-notes.md, FOR LANE B, 2026-10-11). The /manual/i and
-  // /competition/i label tests mirror the existing gearboxOptions/variantOptions chip code (~line
-  // 1573) - not a new text transform, the same one already used to turn an engine label into a
-  // refine value.
+  // COUNTS restored (2026-10-13): Lane B's buildPool fix (docs/lane-notes.md, pool-consistency root
+  // cause job) now computes these sides from the SAME pool the headline count comes from - sides[].n
+  // plus sp.unknown sum to exactly the headline count (checkSplitPoolInvariants asserts this), so the
+  // 87-vs-147 contradiction that held this back is gone; "Labels exactly as the engine gives them"
+  // now applies to the count too. The /manual/i and /competition/i label tests mirror the existing
+  // gearboxOptions/variantOptions chip code (~line 1573) - not a new text transform, the same one
+  // already used to turn an engine label into a refine value.
   function inlineSplitsHtml(d) {
     if (!d.inlineSplits || !d.inlineSplits.length) return "";
     var blocks = d.inlineSplits.map(function (sp) {
@@ -1036,7 +1035,7 @@
       var chips = sp.sides.map(function (s) {
         if (s.thin) return '<button type="button" class="qchip" disabled>' + esc(s.label) + " - too few sales</button>";
         var val = sp.key === "gearbox" ? (/manual/i.test(s.label) ? "manual" : "auto") : (/competition/i.test(s.label) ? "competition" : "standard");
-        return '<button type="button" class="qchip" ' + attr + '="' + esc(val) + '" data-mlabel="' + esc(s.label) + '">' + esc(s.label) + "</button>";
+        return '<button type="button" class="qchip" ' + attr + '="' + esc(val) + '" data-mlabel="' + esc(s.label) + '">' + esc(s.label) + ' (' + esc(s.n) + ')</button>';
       }).join("");
       return '<div class="qchips splitchips">' + chips + "</div>";
     }).join("");
