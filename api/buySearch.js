@@ -20,7 +20,7 @@ import { listingDetail, facetsOf, cardFlag, seenCount, listingSays, listingSamFa
 import { vinAppearances } from "./_historyData.js";
 import { validateBearer } from "../lib/_auth.js";
 import { hasServerCredential } from "../lib/_credential.js";
-import { checkCeiling, testLimits, CALM } from "../lib/_ceilings.js";
+import { checkCeiling, testLimits, CALM, buyModelGuard, recordBuyModelTurn, noteBuySearch, BUY_MODEL_PAUSED } from "../lib/_ceilings.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
 import { logEvent, EVENTS } from "../lib/events.js";
 import { readVisitorId } from "../lib/_visitor.js";
@@ -290,7 +290,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ title: r.listing_title, key: spec.key, steps, refine: spec.refine || null, chosen: chosen && { step: chosen.step, family: chosen.family, refinedNote: chosen.refinedNote || null, kind: chosen.kind, count: chosen.count, low: chosen.low, high: chosen.high, span: chosen.span } });
     }
     if (b.action === "geocoverage") return res.status(200).json(await geoCoverage(env));
-    if (b.action === "converse") return res.status(200).json(await converseOut(env, b));
+    if (b.action === "converse") { const cv = await converseOut(env, b); await noteBuySearch(env, req, cv && cv.filters); return res.status(200).json(cv); }
     // The invisible ceiling on every search path (lib/_ceilings.js, the one guard Buy and Sell share): a
     // calm reply when hit, never a sign in demand. Our own jobs (credential) skip it unless a test ceiling
     // is sent with them (x-ceiling-test), which is how the ceiling is tested without touching real numbers.
@@ -302,7 +302,13 @@ export default async function handler(req, res) {
         if (!ce.ok) return res.status(200).json(b.action === "chat" || b.action === "rerun" || b.action === "converse" ? { reply: CALM.search, cards: [], limited: true, turns: Number(b.turns) || 0 } : { status: "unresolved", message: CALM.search, limited: true });
       }
     }
-    if (b.action === "chat") return await buyChat(res, env, b, readVisitorId(req));
+    if (b.action === "chat") {
+      // The model's own ceilings (lib/_ceilings.js buyModelGuard: 20 model turns per device a day, a nuisance
+      // guard; $50 of Buy chat model cost a day, the authoritative one). Past either: the page's no-model search.
+      const mg = await buyModelGuard(env, req);
+      if (!mg.ok) return res.status(200).json({ fallback: true, capped: mg.why, note: BUY_MODEL_PAUSED });
+      return await buyChat(res, env, b, readVisitorId(req), req);
+    }
     // The searching state's "what has been understood so far": the words parsed and the car resolved (the
     // same parser and resolver the search uses, no model call), as short chips. Never a count.
     if (b.action === "parse") {
@@ -585,7 +591,9 @@ function sauce(n) { const w = WORDS[n] || String(n); return n === 1 ? "One has b
 // plain line. SAM_MODEL and the same key as api/chat.js.
 // Buy's turn through the shared chat endpoint: cards never wait for the engine (a spec not cached yet
 // comes back "pending" and the page fetches that card's line before drawing it).
-function buyChat(res, env, b, visitorId) {
+function buyChat(res, env, b, visitorId, req) {
   return chatOut(res, env, b, { surface: "buy", run: runTurn, visitorId,
+    // After the turn: a ledger row when the model was called (the device ceiling), and the heavy-use note.
+    afterTurn: async (usage, out) => { if (usage && usage.calls > 0) await recordBuyModelTurn(env, req); await noteBuySearch(env, req, out && out.state && out.state.filters); },
     shape: async out => ({ cards: await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; })), noun: out.noun, meta: out.meta || null, searchNote: out.searchNote }) });
 }
