@@ -4129,7 +4129,8 @@ async function handleOps(req, res) {
             genUsed: useGen, count: listing && listing.count,
             p25: prices.length ? Math.round(__specEngine.percentile(prices, 0.25)) : null,
             median: prices.length ? Math.round(__specEngine.percentile(prices, 0.5)) : null,
-            p75: prices.length ? Math.round(__specEngine.percentile(prices, 0.75)) : null
+            p75: prices.length ? Math.round(__specEngine.percentile(prices, 0.75)) : null,
+            sampleTitles: (listing && listing.sales || []).slice(0, 6).map(s => s.title)
           };
         }
         out.push({
