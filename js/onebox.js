@@ -562,20 +562,20 @@
   // set aside and why (d.setAsideReasons) - never a count of sources/venues. Everything here is read
   // straight off the engine's own result fields, never hand-written per car. Collapsed by default
   // (data-qtoggle, the same reveal pattern the market-read quarter rows already use).
-  var ASIDE_REASON_LABEL = { modified: "modified", project: "project cars", replica: "replicas or tributes", "odd sale": "odd sales" };
+  var ASIDE_REASON_LABEL = { modified: ["modified", "modified"], project: ["project car", "project cars"], replica: ["replica or tribute", "replicas or tributes"], "odd sale": ["odd sale", "odd sales"] };
   function howSamDecidedHtml(d) {
     var yrs = Array.isArray(d.poolYears) ? d.poolYears : null;
     var yearPhrase = yrs ? (yrs[0] === yrs[1] ? String(yrs[0]) : (yrs[0] + " to " + yrs[1])) : "";
     var fence = [yearPhrase, carHead(d)].filter(Boolean).join(" ") || carLabel(d.resolvedCar);
     var sentence = "This compares " + fence + " sales: completed auctions only, with hammer price and any buyer’s premium reconciled into one figure.";
-    var asideBits = [];
+    var asideBits = [], asideTotal = 0;
     if (d.setAsideReasons) {
       Object.keys(d.setAsideReasons).forEach(function (k) {
         var n = d.setAsideReasons[k];
-        if (n > 0) asideBits.push(n + " " + (ASIDE_REASON_LABEL[k] || k));
+        if (n > 0) { asideTotal += n; var lbl = ASIDE_REASON_LABEL[k] || [k, k]; asideBits.push(n + " " + (n === 1 ? lbl[0] : lbl[1])); }
       });
     }
-    var asideSentence = asideBits.length ? (" " + d.setAsideCount + " set aside: " + asideBits.join(", ") + ".") : "";
+    var asideSentence = asideBits.length ? (" " + asideTotal + (asideTotal === 1 ? " sale set aside: " : " sales set aside: ") + asideBits.join(", ") + ".") : "";
     var id = "ob-why" + (++obCapSeq);
     return '<p class="ev-why-toggle"><button type="button" class="linkbtn" data-qtoggle="' + id + '" aria-expanded="false">How Sam decided</button></p>' +
       '<div class="ev-why-note" id="' + id + '" hidden><p>' + lint(esc(sentence + asideSentence), "ev.why") + "</p></div>";
@@ -1531,14 +1531,17 @@
     root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + samMsgHtml([esc(msg)], "", "big") + footHtml();
     wire();
   }
-  // The daily distinct-car limit's own card (Oct 2026, Market Check daily limit job): a calm line
-  // plus a real link to Sam Desk (/business), never a sign-in demand, never the search box hidden -
-  // the visitor can still type a different car (a fresh distinct car just won't resolve until
-  // tomorrow; the server enforces that, not this render).
+  // The daily distinct-car limit's own card (Oct 2026, evidence-block job: reworded - overrides the
+  // earlier "Sam Desk is built for ongoing or business use." card). This is Market Check's OWN daily
+  // limit (10 distinct cars/device/day, lib/_ceilings.js checkMarketCheckCarLimit) - Buy and Sell are
+  // unaffected by this cap. No product name, no sign-in demand, no prefilled car/search text: just an
+  // email door. The visitor can still type a different car (a fresh distinct car just won't resolve
+  // until tomorrow; the server enforces that, not this render).
   function renderBusinessLimit(line) {
-    var msg = line || "That’s today’s limit for individual lookups. Sam Desk is built for ongoing or business use.";
+    var msg = line || "That is today’s limit of 10 cars on Market Check. If you would like more searches, email feedback@goasksam.com and we will get you set up.";
+    var mailHref = "mailto:feedback@goasksam.com?subject=" + encodeURIComponent("More Market Check searches");
     root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") +
-      '<section class="samonit" data-stage="note"><p>' + lint(esc(msg), "businesslimit") + '</p><a class="linkbtn" href="/business">Open Sam Desk &#8594;</a></section>' +
+      '<section class="samonit" data-stage="note"><p>' + lint(esc(msg), "businesslimit") + '</p><a class="linkbtn" href="' + esc(mailHref) + '">Email feedback@goasksam.com &#8594;</a></section>' +
       footHtml();
     wire();
   }

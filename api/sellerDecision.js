@@ -5,7 +5,7 @@ import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, 
 import { supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { hasServerCredential } from "../lib/_credential.js";
-import { checkCeiling, testLimits, CALM, checkMarketCheckCarLimit } from "../lib/_ceilings.js";
+import { checkCeiling, testLimits, CALM, checkMarketCheckCarLimit, marketCheckDailyCarCap } from "../lib/_ceilings.js";
 import { logEvent, EVENTS } from "../lib/events.js";
 import { readVisitorId } from "../lib/_visitor.js";
 import { callOldCarsData } from "../lib/_ocd.js";
@@ -3387,9 +3387,13 @@ export default async function handler(req, res) {
         const carKey = specKeyFor(vehicle, generation, null);
         const carLimit = await checkMarketCheckCarLimit({ supabaseUrl, supabaseKey }, req, carKey);
         if (!carLimit.ok) {
+          // Reworded (Oct 2026, evidence-block job): this is Market Check's OWN daily limit, not a
+          // pitch for another product - Buy and Sell are unaffected by this cap (it only gates
+          // checkMarketCheckCarLimit's distinct-car counter above, which this branch is the sole
+          // caller of). No product name, no sign-in demand: an email handles it.
           return res.status(200).json({
             status: "one_box", tier: "business_limit", resolvedCar: null,
-            samLine: "That’s today’s limit for individual lookups. Sam Desk is built for ongoing or business use."
+            samLine: "That is today’s limit of " + marketCheckDailyCarCap() + " cars on Market Check. If you would like more searches, email feedback@goasksam.com and we will get you set up."
           });
         }
       }
