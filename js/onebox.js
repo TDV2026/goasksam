@@ -174,28 +174,42 @@
     if (diff < 6.5 * 864e5) return "Ends " + d.toLocaleDateString("en-US", { weekday: "long", timeZone: tz }) + " " + time + " PT";
     return "Ends " + d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: tz });
   }
-  // LIVE RIGHT NOW summary sentence (Oct 2026, evidence-block job): "2 comparable cars are at
-  // auction. One is bidding inside the range, one below it." - counts each live row's own placingFor
-  // judgement (below/inside/above the SAME range the headline shows) into one plain sentence instead
-  // of a bare count heading. First clause names the range; later clauses drop to "it" referring back
-  // to the range just named. Returns "" when no row carries a placing (no band on this result, or an
-  // unjudgeable figure) - the headline sentence alone still renders in that case.
-  function placingSentence(rows) {
-    var inside = 0, below = 0, above = 0;
+  // LIVE RIGHT NOW summary sentence (Job 3 / addendum item 5, result-page-polish round two). Shapes,
+  // built purely from each live row's own placingFor judgement (below/inside/above the SAME range the
+  // headline shows) and the count - never a hardcoded template for a specific count:
+  //   one car:          "One comparable car is live, bidding above the range."
+  //   N cars, one side:  "Two comparable cars are live. Both are bidding inside the range."
+  //                      "Nine comparable cars are live. All nine are bidding inside the range."
+  //   N cars, mixed:     "Three comparable cars are live. Two are bidding inside the range, one below it."
+  // No placing at all (no band to judge against) falls back to the bare count sentence.
+  function placingCounts(rows) {
+    var out = { inside: 0, below: 0, above: 0 };
     (rows || []).forEach(function (r) {
-      if (r.placing === "inside the range") inside++;
-      else if (r.placing === "below the range") below++;
-      else if (r.placing === "above the range") above++;
+      if (r.placing === "inside the range") out.inside++;
+      else if (r.placing === "below the range") out.below++;
+      else if (r.placing === "above the range") out.above++;
     });
-    var parts = [];
-    if (inside) parts.push({ n: inside, full: "bidding inside the range", short: "inside it" });
-    if (below) parts.push({ n: below, full: "bidding below the range", short: "below it" });
-    if (above) parts.push({ n: above, full: "bidding above the range", short: "above it" });
-    if (!parts.length) return "";
-    var out = parts.map(function (p, i) {
-      return i === 0 ? (obNumWord(p.n) + " " + (p.n === 1 ? "is" : "are") + " " + p.full) : (obNumWordLow(p.n) + " " + p.short);
+    return out;
+  }
+  function liveSummarySentence(count, rows) {
+    var p = placingCounts(rows);
+    var sides = [];
+    if (p.inside) sides.push({ n: p.inside, full: "bidding inside the range", short: "inside it" });
+    if (p.below) sides.push({ n: p.below, full: "bidding below the range", short: "below it" });
+    if (p.above) sides.push({ n: p.above, full: "bidding above the range", short: "above it" });
+    if (count === 1) {
+      return "One comparable car is live" + (sides.length ? ", " + sides[0].full : "") + ".";
+    }
+    var headline = obNumWord(count) + " comparable cars are live.";
+    if (!sides.length) return headline;
+    if (sides.length === 1) {
+      var subj = count === 2 ? "Both" : "All " + obNumWordLow(count);
+      return headline + " " + subj + " are " + sides[0].full + ".";
+    }
+    var out = sides.map(function (s, i) {
+      return i === 0 ? (obNumWord(s.n) + " " + (s.n === 1 ? "is" : "are") + " " + s.full) : (obNumWordLow(s.n) + " " + s.short);
     });
-    return out.join(", ") + ".";
+    return headline + " " + out.join(", ") + ".";
   }
   // Status pill text from the engine's own placing field ("inside the range"/"below the range"/
   // "above the range", lib/live/search.js placingFor) - sentence-cased here, CSS (.pill,
@@ -236,9 +250,7 @@
           '<span class="lp-bid"><b>' + esc(bidText) + '</b>' + (pillText ? '<span class="pill lp-pos">' + esc(pillText) + "</span>" : "") + "</span></a>";
       }).join("");
       var q = (m && m.displayName) || carLabel(rc);
-      var headline = obNumWord(j.count) + " comparable " + (j.count === 1 ? "car is" : "cars are") + " at auction.";
-      var placing = placingSentence(j.rows);
-      var summary = headline + (placing ? " " + placing : "");
+      var summary = liveSummarySentence(j.count, j.rows);
       var seeAll = j.count === 1 ? "See it live" : "See all " + obNumWordLow(j.count) + " live";
       slot.className = "livepanel";
       slot.innerHTML = '<div class="lp-h"><span class="eyebrow"><span class="dot" aria-hidden="true"></span>Live right now</span></div>' +
