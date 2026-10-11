@@ -1019,6 +1019,7 @@
   // "sales belong to the quarter WITH a band") landed Oct 9 (docs/lane-notes.md), so a banded row's
   // own sales now open inline; a thin row has no sales to open and is plain text, never a button.
   var MONTHS_FULL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  var obMktreadSeq = 0;
   function marketReadQuarterRows(d) {
     var qb = d && d.quarterlyBands, span = d && d.span;
     if (!Array.isArray(qb)) return "";
@@ -1039,9 +1040,9 @@
         // Current-quarter special case (Oct 2026, evidence-block job): a calendar quarter still in
         // progress is NEVER "not enough sales" (that reads as a dead archive, not a quarter that
         // just hasn't finished yet). With 3+ sales already this quarter it shows "{Month} {Year} so
-        // far" and the real count; under 3 it is OMITTED entirely rather than printed thin. Only the
-        // newest row (i===0) can be the current quarter - a past, completed quarter (i>0) keeps the
-        // honest "Not enough sales" wording exactly as before.
+        // far" and the real count; under 3 it is OMITTED entirely, same as a thin past quarter (item
+        // 6, result-page-polish round two: no empty bar, no "too few" row - omitted before the
+        // template sees it in spirit, since this render has no other source for the row).
         if (i === 0) {
           var cnt = digitOf(q.count);
           if (cnt < 3) return null;
@@ -1049,9 +1050,9 @@
           return '<div class="mktread-qrow mktread-qrow-sofar"><div class="mktread-qrowbtn">' + soFarPeriod +
             '<span class="mktread-qtrack"></span><span class="mktread-qtext num">' + esc(cnt + " sold") + '</span><span class="mktread-qcount"></span></div></div>';
         }
-        var period = '<span class="mktread-qperiod">' + esc(q.period) + '</span>';
-        return '<div class="mktread-qrow mktread-qrow-none"><div class="mktread-qrowbtn">' + period +
-          '<span class="mktread-qtrack"></span><span class="mktread-qtext mktread-qnone">Not enough sales</span><span class="mktread-qcount"></span></div></div>';
+        // A past quarter too thin for a band is omitted entirely, not printed as "Not enough sales" -
+        // same rule as the current-quarter case above, now applied consistently to every row.
+        return null;
       }
       var period = '<span class="mktread-qperiod">' + esc(q.period) + '</span>';
       var track = "";
@@ -1060,11 +1061,23 @@
         var isLatest = !latestAssigned; latestAssigned = true;
         track = '<i class="mktread-qband' + (isLatest ? " latest" : "") + '" style="left:' + a.toFixed(1) + '%;width:' + Math.max(1.5, b - a).toFixed(1) + '%"></i>';
       }
-      // Bars, ranges and counts only (Job 5, result-page-polish round): the click-to-expand sales
-      // cards are gone - the toggle never opened on the current quarter's disabled row and never
-      // reliably closed on the others. Each row is now a plain div, not a button.
-      return '<div class="mktread-qrow"><div class="mktread-qrowbtn">' + period +
-        '<span class="mktread-qtrack">' + track + '</span><span class="mktread-qtext num">' + esc(usd(q.band[0])) + ' to ' + esc(usd(q.band[1])) + '</span><span class="mktread-qcount">' + esc(q.count) + ' sold</span></div></div>';
+      // Item 6 (result-page-polish round two): quarter rows open their own already server-rendered
+      // sales again, via the SAME data-qtoggle open/close mechanism "How Sam decided" and "shown
+      // separately" already use (one mechanism, keyed by a unique id, toggling a single `hidden`
+      // attribute) - not the old per-row click handler that never reliably closed. A chevron + hover
+      // state marks it as a quiet reveal, never a button. Omitted (no sales array) only when the
+      // engine did not attach one - every banded quarter here has q.sales (quarterlyBandsFor always
+      // attaches shapeCards(qSolid) alongside a band), so this only guards a future shape change.
+      var hasSales = Array.isArray(q.sales) && q.sales.length > 0;
+      var rowText = '<span class="mktread-qtext num">' + esc(usd(q.band[0])) + ' to ' + esc(usd(q.band[1])) + '</span><span class="mktread-qcount">' + esc(q.count) + ' sold</span>';
+      if (!hasSales) {
+        return '<div class="mktread-qrow"><div class="mktread-qrowbtn">' + period + '<span class="mktread-qtrack">' + track + '</span>' + rowText + '</div></div>';
+      }
+      var panelId = "mktread-q" + (++obMktreadSeq);
+      var panel = capCardsHtml("grid3", q.sales.map(function (c) { return poolCardHtml(c, false); }), 3);
+      return '<div class="mktread-qrow"><button type="button" class="mktread-qrowbtn mktread-qopen" data-qtoggle="' + panelId + '" aria-expanded="false">' +
+        period + '<span class="mktread-qtrack">' + track + '</span>' + rowText + CHEV_SVG + '</button>' +
+        '<div class="mktread-qpanel" id="' + panelId + '" hidden>' + panel + '</div></div>';
     }).filter(Boolean).join("");
     if (!rows) return "";
     return '<div class="mktread-qrows">' + rows + '</div>';
@@ -1087,10 +1100,15 @@
     var yoy = d && d.yoyDirection;
     var lead = "";
     if (yoy && Array.isArray(yoy.recentBand) && Array.isArray(yoy.priorBand)) {
-      var txt = yoy.status === "flat"
-        ? "The middle half of sales in the past 12 months landed about where they did in the 12 months before."
-        : ("The middle half of sales in the past 12 months landed about " + yoy.percent + " percent " + yoy.status + " than in the 12 months before: " + usd(yoy.recentBand[0]) + " to " + usd(yoy.recentBand[1]) + " now, " + usd(yoy.priorBand[0]) + " to " + usd(yoy.priorBand[1]) + " then.");
-      lead = '<p class="mktread-lead">' + lint(txt, "mktread.lead") + '</p>';
+      // Job 4 / addendum item 6 (result-page-polish round two): no percentage anywhere - the two
+      // ranges stated plainly carry the move. First clause is the engine's own direction word
+      // (yoy.status: "higher"/"lower"/"flat"), never computed here.
+      var dirClause = yoy.status === "flat" ? "Sales have held steady."
+        : yoy.status === "higher" ? "Sales have moved higher."
+        : yoy.status === "lower" ? "Sales have moved lower." : "";
+      var txt = dirClause + " The middle half landed between " + usd(yoy.recentBand[0]) + " and " + usd(yoy.recentBand[1]) +
+        " over the past 12 months, versus " + usd(yoy.priorBand[0]) + " to " + usd(yoy.priorBand[1]) + " in the 12 months before.";
+      if (dirClause) lead = '<p class="mktread-lead">' + lint(txt, "mktread.lead") + '</p>';
     }
     var qrows = marketReadQuarterRows(d);
     if (!lead && !qrows) return "";
