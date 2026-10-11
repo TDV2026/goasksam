@@ -158,6 +158,43 @@ export default async function handler(req, res) {
     }
     // Probe: a real one-time sign-in code for the ONE fixed test address (Supabase admin generate_link),
     // so the browser test can run the normal email-code sign-in end to end without reading an inbox.
+    // Probe (Oct 2026, alert emails): the stored records for named lots, and the three real alert emails (a live
+    // car with a bid, a live car with no bid, a sold notice) built from stored rows by the real builders and sent
+    // ONLY to the fixed test inbox (TEST_EMAIL), subject marked [Test]. Never a real user's address.
+    if (req.method === "POST" && req.body && req.body.action === "alert_tests" && probeOk(req)) {
+      const { alertBlocks, alertEmail, cardOfMatch } = await import("../lib/tasks/tasks.js");
+      const { listingFacts } = await import("../lib/live/search.js");
+      const { testSend } = await import("../lib/live/watches.js");
+      const { sendTaskEmail } = await import("../lib/_email.js");
+      const sel = "id,source,url,listing_title,year,make,model,location,mileage,current_bid,current_bid_usd,currency,end_time,bid_at,status,exterior_color,std_color,description,transmission,vin_norm,first_seen,country";
+      const q = async path => { const r = await fetch(`${env.supabaseUrl}/rest/v1/${path}`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }); return r.ok ? r.json() : []; };
+      const lot = async (t, loc) => (await q(`live_listings?listing_title=ilike.${encodeURIComponent(t)}&location=ilike.${encodeURIComponent(loc)}&select=${sel}&order=first_seen.desc&limit=1`))[0] || null;
+      const lots = { warminster: await lot("*1987*911*Carrera*Targa*", "*Warminster*"), dahlonega: await lot("*1990*911*Carrera 4*Cabriolet*", "*Dahlonega*") };
+      const shape = r => r && { id: r.id, status: r.status, current_bid_usd: r.current_bid_usd, current_bid: r.current_bid, currency: r.currency, bid_at: r.bid_at, end_time: r.end_time, venue: r.source };
+      const out = { lots: { warminster: shape(lots.warminster), dahlonega: shape(lots.dahlonega) }, sent: [] };
+      if (req.body.send) {
+        const nowIso = new Date().toISOString();
+        const task = { id: "00000000-0000-4000-8000-0000000000e1", summary: "Sam is looking for manual Porsche 911s from 1964 to 1998", filters: { make: "Porsche", model: "911", year_min: 1964, year_max: 1998, gearbox: "manual" } };
+        const withBid = (await q(`live_listings?make=eq.Porsche&model=eq.911&status=eq.live&end_time=gt.${nowIso}&current_bid_usd=gt.0&select=${sel}&order=end_time.asc&limit=1`))[0];
+        const noBid = (await q(`live_listings?status=eq.live&end_time=gt.${nowIso}&current_bid_usd=is.null&source=eq.bringatrailer&select=${sel}&order=end_time.asc&limit=1`))[0]
+          || (await q(`live_listings?status=eq.live&end_time=gt.${nowIso}&current_bid_usd=is.null&select=${sel}&order=end_time.asc&limit=1`))[0];
+        for (const [label, r] of [["live, with a bid", withBid], ["live, no bids", noBid]]) {
+          if (!r) { out.sent.push({ label, error: "no stored listing of this kind right now" }); continue; }
+          const card = cardOfMatch({ r, facts: listingFacts(r) });
+          const blocks = (await alertBlocks(env, [r], [card])).map(b => ({ ...b, card }));
+          const msg = alertEmail(task, blocks, { first: true });
+          const resp = await sendTaskEmail({ to: TEST_EMAIL, subject: "[Test] A car matching your task just came up", text: msg.text, html: msg.html });
+          out.sent.push({ label, listing: r.id, status: resp.ok ? "sent" : (resp.reason || resp.error || resp.status), text: msg.text });
+        }
+        const soldFrom = lots.warminster || withBid;
+        if (soldFrom) {
+          const since = new Date(Date.now() - 45 * 864e5).toISOString().slice(0, 10);
+          const r = await testSend(env, { kind: "spec", listing_id: soldFrom.id, since, to: TEST_EMAIL, first: true });
+          out.sent.push({ label: "sold notice", listing: soldFrom.id, status: r.sent || r.error || (r.events === 0 ? "no sale since " + since : null), text: r.text || null, subject: r.subject || null });
+        }
+      }
+      return res.status(200).json(out);
+    }
     if (req.method === "POST" && req.body && req.body.action === "test_otp" && probeOk(req)) {
       const r = await fetch(`${env.supabaseUrl}/auth/v1/admin/generate_link`, { method: "POST", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", email: TEST_EMAIL }) });
       const j = await r.json().catch(() => ({}));
