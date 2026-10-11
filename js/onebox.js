@@ -306,10 +306,15 @@
   // a seller can answer both, either order. d.bodyOptions is null once the pool reads single-body (the
   // query already pinned one, or refine.body already answered it). Narrows the SAME pool, same as the
   // mileage chips (a re-request with refine.body), never a second implementation.
+  // Job 9a (result-page-polish round): "These sold as Coupe, Targa and Cabriolet, and each sells
+  // for a different amount. Which one is it?" - built from the engine's own body options, never a
+  // fixed Coupe/cabriolet pair (a car with a different body mix read wrong before).
   function bodyOptionsHtml(d) {
     var opts = d && d.bodyOptions; if (!opts || !opts.length) return "";
     var chips = opts.map(function (o) { return '<button type="button" class="qchip" data-bodyopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + "</button>"; }).join("");
-    return '<div class="qcard earned" data-stage="answer"><p class="q">Coupe, cabriolet or something else?</p><div class="qchips">' + chips + "</div></div>";
+    var list = obListPhrase(opts.map(function (o) { return o.label; }));
+    var q = "These sold as " + list + ", and each sells for a different amount. Which one is it?";
+    return '<div class="qcard earned" data-stage="answer"><p class="q">' + esc(q) + '</p><div class="qchips">' + chips + "</div></div>";
   }
   // TRIM QUESTION (Oct 2026, item 2): independent of the earned/body slots - a visitor can answer
   // any combination, any order. d.trimQuestion is null once the pool reads single-trim (the query
@@ -923,12 +928,22 @@
     t = t.replace(/\b((?:[A-Za-z0-9][A-Za-z0-9\/.\-]*\s+){0,2}[A-Za-z0-9][A-Za-z0-9\/.\-]*)(?:\s+\1\b)+/ig, "$1");   // collapse doubled token/phrase
     return t.replace(/\s{2,}/g, " ").replace(/\s+[,-]\s*$/, "").trim();
   }
+  // Seller marketing lead-ins (Job 2e, result-page-polish round): "No Reserve:", "Reserve Met:" and
+  // similar auction-listing hype that sits before the real car description - stripping these (not
+  // just the trailing punctuation they leave behind) is what fixed the reported live example,
+  // ", Individual Midnight Blue Slicktop 2004 BMW M3 Coupe" (a stray leading comma from a lead-in
+  // phrase a DIFFERENT, earlier cleaning step had already removed without cleaning up after itself).
+  var SELLER_LEADIN_RE = /^\s*(no\s+reserve|reserve\s+met|bring\s+a\s+trailer\s+certified|bat\s+certified|one[-\s]owner|single[-\s]family\s+owned)\s*[:,-]\s*/i;
   function cleanReceiptTitle(title) {
     var t = String(title == null ? "" : title);
     t = t.replace(/^\s*[\d][\d,.]*\s*k?\s*[-\s]\s*(mile|kilometer|km)s?\b'?s?\s*/i, ""); // "21k-Mile " / "4,800-Mile " / "26k-Kilometer "
     t = t.replace(/\s+\d+[-\s]speed\b/ig, "");   // " 6-Speed"
+    t = t.replace(SELLER_LEADIN_RE, "");
     t = stripIdsFromTitle(t);                    // item 2: no VIN/chassis/lot codes in the title
     t = t.replace(/\s{2,}/g, " ").trim();
+    // Leading/trailing punctuation (Job 2e): whatever stripping above leaves behind (a stray comma,
+    // colon or dash at either end) is cleaned up last, once, regardless of which step caused it.
+    t = t.replace(/^[\s,;:.\-]+/, "").replace(/[\s,;:.\-]+$/, "");
     t = titleCaseSaleTitle(t);                   // item 6: never shout a sale title
     return t || String(title == null ? "" : title);
   }
@@ -994,6 +1009,12 @@
     var haveScale = hi > lo;
     var pc = function (x) { return Math.max(0, Math.min(100, (x - lo) / (hi - lo) * 100)); };
     var now = new Date();
+    // latestAssigned (found while checking the bar's own contrast, Job 5): the ".latest" highlight
+    // used to key off the row's raw array index (i===0), which is wrong whenever the true current
+    // quarter is omitted for having under 3 sales - the first row actually ON SCREEN (i===1 in that
+    // case) never got the highlight. Tag whichever banded row renders first, not whichever has the
+    // lowest original index.
+    var latestAssigned = false;
     var rows = qb.map(function (q, i) {
       if (!Array.isArray(q.band) || q.band.length !== 2) {
         // Current-quarter special case (Oct 2026, evidence-block job): a calendar quarter still in
@@ -1017,7 +1038,8 @@
       var track = "";
       if (haveScale) {
         var a = pc(q.band[0]), b = pc(q.band[1]);
-        track = '<i class="mktread-qband' + (i === 0 ? " latest" : "") + '" style="left:' + a.toFixed(1) + '%;width:' + Math.max(1.5, b - a).toFixed(1) + '%"></i>';
+        var isLatest = !latestAssigned; latestAssigned = true;
+        track = '<i class="mktread-qband' + (isLatest ? " latest" : "") + '" style="left:' + a.toFixed(1) + '%;width:' + Math.max(1.5, b - a).toFixed(1) + '%"></i>';
       }
       // Bars, ranges and counts only (Job 5, result-page-polish round): the click-to-expand sales
       // cards are gone - the toggle never opened on the current quarter's disabled row and never

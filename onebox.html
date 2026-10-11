@@ -70,7 +70,15 @@ button{font:inherit}
 .gas-submenu a:hover{color:var(--ink)}
 .ob-leadbar{margin:0;padding:6px 48px 0;font:400 13px/1.4 var(--sans);color:var(--sec);text-align:center}
 .wrap{padding:10px 48px 56px;display:flex;justify-content:center}
-#ob{width:100%;max-width:860px;display:flex;flex-direction:column;gap:28px}
+/* Density (Job 7, result-page-polish round, desktop only - 390 keeps full width/normal padding,
+   see the max-width:640px block below): Sam's own words were "main working area about 900 to 940
+   pixels" as an ~8-10% reduction, but the width actually rendering on the result page measured
+   860px before this round, already narrower than that range - 900 to 940 would have been an
+   INCREASE. Read the instruction as the intent (make it read smaller) over the literal number:
+   applied an actual ~9% reduction from the measured 860px to 780px, and scaled range type/card
+   padding/section gaps by the same rough proportion below. Flagging the discrepancy plainly rather
+   than silently reconciling it either way. */
+#ob{width:100%;max-width:780px;display:flex;flex-direction:column;gap:25px}
 
 /* ---- empty state ---- */
 .ob-home{min-height:calc(100dvh - 150px);display:flex;flex-direction:column;justify-content:center;gap:0;max-width:640px}
@@ -111,11 +119,11 @@ button{font:inherit}
    leave an unused column system for a future reader to puzzle over. Take now lives INSIDE ans-main's
    own HTML (one more child in its flex column), directly under the range/no-band line. */
 .anscard{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden}
-.ans-main{padding:26px 28px 24px;display:flex;flex-direction:column;gap:10px}
+.ans-main{padding:23px 25px 21px;display:flex;flex-direction:column;gap:9px}
 .eyebrow{font:600 13px/1.4 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--sec)}
-.range{margin:0;font:600 40px/1.1 var(--serif);color:var(--green);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
-.range .to{font-weight:400;font-size:26px;color:var(--sec)}
-.landed{margin:0;font:400 20px/1.4 var(--serif);color:var(--ink)}
+.range{margin:0;font:600 36px/1.1 var(--serif);color:var(--green);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.range .to{font-weight:400;font-size:24px;color:var(--sec)}
+.landed{margin:0;font:400 18px/1.4 var(--serif);color:var(--ink)}
 /* ---- range bar: full spread, typical band highlighted, labelled ends - now only inside the
    collapsed "sales sat outside" note (Job 2c, result-page-polish round; was also always-visible
    under the range, removed from there - a second spread next to the headline range read as a
@@ -153,7 +161,7 @@ button{font:inherit}
    thing reads as one card with no border between parts (CLAUDE.md: a screenshot of the first
    screen alone must still show the range and the real sales it came from). ---- */
 .ev-meta{margin:0;font:400 15px/1.4 var(--sans);color:var(--sec)}
-.ev-sales{padding:8px 28px 22px;display:flex;flex-direction:column;gap:14px}
+.ev-sales{padding:7px 25px 20px;display:flex;flex-direction:column;gap:13px}
 .ev-sales h2{margin:0;font:500 20px/1.25 var(--serif)}
 .otherhalf,.offwindow{margin-top:2px;font:400 12.5px/1.3 var(--sans);color:var(--sec)}
 .ev-why-toggle,.ev-aside-toggle{margin:0;padding:0 28px 18px}
@@ -171,9 +179,9 @@ button{font:inherit}
 .notes .num{font-weight:600;color:var(--ink)}
 
 /* ---- Market read card (Oct 2026): same paper surface/radius/padding as the range card above ---- */
-.mktread{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:26px 28px 24px;display:flex;flex-direction:column;gap:18px}
-.mktread-h2{margin:0;font:500 22px/1.25 var(--serif)}
-.mktread-lead{margin:0;font:400 20px/1.4 var(--serif);color:var(--ink)}
+.mktread{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:23px 25px 21px;display:flex;flex-direction:column;gap:16px}
+.mktread-h2{margin:0;font:500 20px/1.25 var(--serif)}
+.mktread-lead{margin:0;font:400 18px/1.4 var(--serif);color:var(--ink)}
 .mktread-qrows{display:flex;flex-direction:column}
 .mktread-qrow+.mktread-qrow{border-top:1px solid var(--div)}
 /* No longer a button (Job 5, result-page-polish round): bars, ranges and counts only - the click-
@@ -230,9 +238,15 @@ button{font:inherit}
 .ph.noimg .none{display:flex}
 .hero .ph{aspect-ratio:16/9}
 .pill{position:absolute;top:14px;left:14px;padding:6px 12px;background:var(--green);color:#fff}
-.cbody{padding:18px 22px 20px;display:flex;flex-direction:column;gap:6px;flex:1}
+/* Job 8 (result-page-polish round, colour discipline): never green or red for a range position -
+   the "neutral" class the JS already adds to an Above/Below range pill (photoHtml) had no matching
+   rule here, so those pills were silently rendering in the same green fill as every other pill
+   (Closest match, This car...). Plain ink on the card surface, same family as the live panel's
+   .lp-pos position pill. */
+.pill.neutral{position:absolute;top:14px;left:14px;background:var(--card);color:var(--sec);border:1px solid var(--border)}
+.cbody{padding:16px 20px 18px;display:flex;flex-direction:column;gap:6px;flex:1}
 .price-row{display:flex;justify-content:space-between;align-items:baseline;gap:6px 16px;flex-wrap:wrap}
-.cprice{font:600 32px/1 var(--serif);font-variant-numeric:tabular-nums}
+.cprice{font:600 29px/1 var(--serif);font-variant-numeric:tabular-nums}
 .cvenue{font:400 14px/1.4 var(--sans);color:var(--sec)}
 .ctitle{font:500 17px/1.35 var(--sans);color:var(--ink)}
 /* ---- context cards (Job 2e, result-page-polish round): one equal-size card for every slot, 1 to
@@ -247,9 +261,9 @@ button{font:inherit}
 .ctxcards.n1{grid-template-columns:minmax(0,1fr);max-width:360px}
 .card.ctx .ph{aspect-ratio:4/3}
 .card.ctx .pill{top:10px;left:10px;padding:5px 9px;background:var(--card);color:var(--green)}
-.card.ctx .cbody{padding:14px 16px 16px;gap:4px}
-.card.ctx .cprice{font-size:24px}
-.card.ctx .ctitle{font-size:15px;line-height:1.3}
+.card.ctx .cbody{padding:13px 14px 14px;gap:4px}
+.card.ctx .cprice{font-size:22px}
+.card.ctx .ctitle{font-size:14px;line-height:1.3}
 .cmeta{font:400 14px/1.45 var(--sans);color:var(--sec)}
 .callin{font:400 14px/1.4 var(--sans);color:var(--sec)}
 .cwhy{margin:4px 0 0;font:italic 400 16px/1.45 var(--serif);color:var(--soft)}
@@ -344,9 +358,9 @@ a.sb-line:hover{color:var(--green)}
 .whynote a{font:600 15px/1.4 var(--sans);min-height:44px;display:inline-flex;align-items:center;align-self:flex-start}
 @media (max-width:640px){.lp-row{grid-template-columns:36px minmax(0,1fr) auto;gap:10px}.lp-ph{width:36px;height:36px}.livepanel{padding:16px}}
 /* ---- ready to sell ---- */
-.sellbox{background:var(--green);color:#fff;border-radius:14px;padding:22px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.sellbox{background:var(--green);color:#fff;border-radius:14px;padding:20px 22px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
 .sellbox .st{display:flex;flex-direction:column;gap:4px}
-.sellbox h3{margin:0;font:600 24px/1.2 var(--serif)}
+.sellbox h3{margin:0;font:600 22px/1.2 var(--serif)}
 .sellbox p{margin:0;font:400 16px/1.45 var(--sans);color:#D5E2D8}
 .sellbox a{display:inline-flex;align-items:center;min-height:48px;padding:0 20px;border-radius:10px;background:#fff;color:var(--green);font:600 16px var(--sans);text-decoration:none}
 .sellbox a:hover{background:var(--tint);color:var(--green-dk)}
