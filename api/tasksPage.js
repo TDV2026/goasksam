@@ -136,7 +136,7 @@ export default async function handler(req, res) {
 ${FONT_LINKS}<style>${PAGE_CSS}${CSS}${AUTH_CSS}${SHELL_CSS}</style>${ld.map(o => '<script type="application/ld+json">' + JSON.stringify(o).replace(/</g, "\\u003c") + "</script>").join("")}</head><body>
 ${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
-${railOpenHtml({ active: "tasks", crew })}
+${railOpenHtml({ active: "tasks", crew, req })}
 <main><div class="col">
 <header class="tkhero"><p class="pos">A car search that keeps looking, and free</p><h1>${esc(TASKS_PITCH.lead)}</h1><p class="lead" data-lead-sentence>${esc(TASKS_PITCH.sub)}</p>
 <button type="button" class="cta" id="tkcta" data-task-entry data-href="/tasks/mine?start=1">Give Sam a task</button></header>
@@ -192,7 +192,7 @@ function appPage(req, res) {
 ${FONT_LINKS}<style>${PAGE_CSS}${CSS}${APP_CSS}${AUTH_CSS}${SHELL_CSS}</style></head><body>
 ${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
-${railOpenHtml({ active: "tasks", crew })}
+${railOpenHtml({ active: "tasks", crew, req })}
 <main><div class="col">
 <div class="apph"><h1>Your tasks</h1><a href="/tasks">How it works</a></div>
 <div id="tkapp"></div>
