@@ -3442,3 +3442,25 @@ when the work has landed.
   * Files: lib/generations.js, lib/onebox.js, lib/live/search.js, scripts/crossProductCheck.js.
     api/sellerDecision.js and lib/platformPick.js were not touched (both import specKeyFor/
     runOneBox unchanged; the fix in lib/live/search.js propagates to both without editing either).
+
+- 2026-10-10 (Lane C): TASK EMAILS, NO "ALERT", TASK EMAIL FIXES (5fd6bac, 5d7722c, 6c8342c, 6a84812, a795aaa).
+  * Subjects: live "Sam found a {year make model trim}, live now" (several: "Sam found three cars for your task,
+    live now"); sold "A {car} just sold on {venue}"; sold digest "Sam saw N sell: {task}".
+  * Hard gate lib/tasks/tasks.js taskFits (make, model family, year) before every other criterion. Probe
+    task_match_audit: 3 active tasks, 34 matches, 0 mismatches. The GMC in an earlier test email was the TEST
+    action picking any no-bid listing, never a task match; tests now use the real search plus the gate.
+  * Live email: bid once ("Current bid $36,000, below the range of recent sales." or the bid alone, "No bids yet."
+    only with no bid); "Matches your task: manual, 911, 1981."; at most 10 cars plus "And N more are in your task."
+  * Sold email: each sale placed against r4Cluster over the same engine pool, sales in the 12 months BEFORE it.
+    Example 1988 911 Carrera Targa, $97,250 on Oct 9: band before $63,000 to $81,500, band now $63,500 to $82,500,
+    Market Check same car $63,500 to $82,500 (54 sales): same function, same pool. FOR LANE B: the pool is the
+    whole 3.2 Carrera family (label "3.2 Carrera 911 Carrera"), not Targas only, the known Targa body gap
+    (finding 8), which is why most Targa sales read above it.
+  * Pause / Stop: one task each everywhere. Live tasks: api/tasks.js confirm page "Pause the task: {task}" /
+    "Stop the task: {task}". Sold tasks: lib/live/watches.js soldTaskTap + api/watch.js ?a=pause|stop|resume,
+    signed, constant time, confirm page names the task, POST acts; one-click unsubscribe is that task's Stop.
+    FOR SAM: run the one line at the end of docs/supabase-watches.sql (watches.paused_at); until then a sold
+    task's Pause says plainly it is not ready and nothing changes. Before it ends: Stop ends that one notice
+    (no Pause, it fires once). Stopping every task email: the Tasks page "Email updates" switch.
+  * "alert" removed from everything people see: Buy band sentence, /tasks title and eyebrow, the stop page
+    ("every task email"), stop/pause links now ?stop=1 (?alert=stop still answers for mail already sent).
