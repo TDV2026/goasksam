@@ -443,9 +443,6 @@
     if (head) return esc(carNamePlural(head));
     return "";
   }
-  // Item 5b: the band is mileage-scoped only when a real mileage refine narrowed the pool (the
-  // engine flag, or the refine phrase names miles). Otherwise the band is the whole market.
-  function bandMileageScoped(d) { return !!(d && (d.mileageScoped || (obLastRefine && obLastRefine.miMin != null))); }
   // Resolved car line: the car Sam is reading, plus a real "Change" button. On an exact VIN/chassis
   // match a pill leads it and the car is named from its own record.
   function carLineHtml(d, m) {
@@ -526,14 +523,14 @@
   // below them span the full card width (CSS grid-column 1/-1) with no border between them.
   function evidenceBlockHtml(d, m) {
     var take = d.samsTake && d.samsTake.sentence ? String(d.samsTake.sentence) : "";
-    var mi = subjMileageOf(d, m);
     var main = carLineHtml(d, m) + evidenceMetaLine(d);
     if (d.cluster) {
       var band = d.cluster;
-      var miCtx = (mi && bandMileageScoped(d)) ? (m ? " around this mileage" : " around " + mi.toLocaleString("en-US") + " miles") : "";
+      // "The middle half of comparable sales landed here." removed (Job 1, second result-page-
+      // polish round): the eyebrow above the range ("Where the middle half sold") already says it -
+      // top block is now count line, eyebrow, range, Sam's take, straight into the context cards.
       main += '<span class="eyebrow">' + esc("Where the middle half sold") + "</span>" +
-        '<h1 class="range band">' + esc(usd(band[0])) + ' <span class="to">to</span> ' + esc(usd(band[1])) + "</h1>" +
-        '<p class="landed lead">' + lint("The middle half of comparable sales" + miCtx + " landed here.", "ans.landed") + "</p>";
+        '<h1 class="range band">' + esc(usd(band[0])) + ' <span class="to">to</span> ' + esc(usd(band[1])) + "</h1>";
     } else {
       var noun = carNoun(d), subj = noun || "cars like it";
       var line = (d.poolN && d.poolN < 8)
@@ -963,24 +960,32 @@
     }
     return earnedHtml(d, m);
   }
-  // Capped third split (Part 3 question cap): the would-be third question rendered as short lines.
-  // Job 3 (result-page-polish round): sp.sides[].lo/hi are the 25th/75th percentile of that side's
-  // own sales (lib/onebox.js inlineSplitRange's own band() - the SAME middle-half math the headline
-  // range uses, confirmed by reading the function, not guessed) - the old copy ("Manuals sold
-  // between X and Y") read as the full spread of what manuals sold for, when it was already the
-  // middle half. Each side also carries its own n (sample size); a side under 8 (this file's usual
-  // too-few-to-say floor, e.g. evidenceBlockHtml's poolN<8 branch) says so instead of a number.
+  // Capped third split (Part 3 question cap), now a chip row instead of prose (Job 2, result-page-
+  // polish round two): the prose ("The middle half of manuals sold between X and Y, from N sales")
+  // is gone - picking a chip reruns the result through the engine via the SAME data-tx/data-variant
+  // handlers the earned gearbox/competition QUESTION already uses (lines ~2270+), so this is one
+  // wiring, not a new one. A side flagged `thin` by the engine (RANGE_THRESHOLD, lib/onebox.js
+  // inlineSplitRange) renders disabled with "too few sales" - no number lives in this template.
+  // NO COUNT is printed on any chip here: chosen.rows (what these sides are drawn from) is not yet
+  // fenced/windowed the same way the headline's solid pool is - confirmed live on the 2005 BMW M3
+  // Coupe (87 headline vs 131 manual + 16 SMG) - so a count here would read as contradicting the
+  // headline right above it. Hidden per Sam until Lane B gives inlineSplits the same poolN fix
+  // trimQuestion already has (see docs/lane-notes.md, FOR LANE B, 2026-10-11). The /manual/i and
+  // /competition/i label tests mirror the existing gearboxOptions/variantOptions chip code (~line
+  // 1573) - not a new text transform, the same one already used to turn an engine label into a
+  // refine value.
   function inlineSplitsHtml(d) {
     if (!d.inlineSplits || !d.inlineSplits.length) return "";
-    var lines = d.inlineSplits.map(function (sp) {
-      var sides = sp.sides.map(function (s) {
-        return Number(s.n) >= 8
-          ? ("The middle half of " + esc(s.label.toLowerCase()) + " sold between " + r3money(s.lo) + " and " + r3money(s.hi) + ", from " + Number(s.n) + " sales.")
-          : (esc(s.label) + ": too few sales to say.");
-      });
-      return '<p class="splitline">' + lint(sides.join(" "), "split." + sp.key) + "</p>";
+    var blocks = d.inlineSplits.map(function (sp) {
+      var attr = sp.key === "gearbox" ? "data-tx" : "data-variant";
+      var chips = sp.sides.map(function (s) {
+        if (s.thin) return '<button type="button" class="qchip" disabled>' + esc(s.label) + " - too few sales</button>";
+        var val = sp.key === "gearbox" ? (/manual/i.test(s.label) ? "manual" : "auto") : (/competition/i.test(s.label) ? "competition" : "standard");
+        return '<button type="button" class="qchip" ' + attr + '="' + esc(val) + '" data-mlabel="' + esc(s.label) + '">' + esc(s.label) + "</button>";
+      }).join("");
+      return '<div class="qchips splitchips">' + chips + "</div>";
     }).join("");
-    return '<div class="inlinesplits" data-stage="answer">' + lines + "</div>";
+    return '<div class="inlinesplits" data-stage="answer">' + blocks + "</div>";
   }
   // Mileage nearest-sales fallback (Part 3): the band was too thin, so the sales shown are the closest
   // by mileage. Said plainly so the read never looks like an exact-band match it isn't.

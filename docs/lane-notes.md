@@ -3984,3 +3984,22 @@ when the work has landed.
     lint logs a console error, "'averaged' in: Higher-priced sales averaged about 47,000 miles; lower-priced
     sales about 59,000." The line comes from lib/onebox.js:3364 (Sam's Take mileage), and the figures are
     medians, so "averaged" is also the wrong word. Not changed by Lane C.
+- 2026-10-11 (Lane A -> Lane B): FOR LANE B, inlineSplits (gearbox/competition) count mismatch confirmed, the
+  render stays hidden until this lands. 2005 BMW M3 Coupe, checked live:
+  * Headline ("87 comparable sales"): `soldCount = countWord(solid.length)` (onebox.js:3906). `solid` comes from
+    `window` (the last-12-months slice when it clears 8 solid, else the ladder window - lines 3670-3674), run
+    through r4Split/Rule-5-guard (3681-3687), then provenance (3691-3692), engine-swap (3699-3700),
+    model-specific-halo (3703-3704) and make-level-halo (3714-3717) set-asides.
+  * "131 manual sales" / "16 SMG sales": both come from `chosen.rows` inside `inlineSplitRange(chosen.rows, ...)`
+    (lines 4582-4583, 4590) - the pool BEFORE buildResult runs at all. For this trim-less query that is
+    `p24.exHalo`, the past-2-years online pool with only the make-halo/tuner aside applied (lines 4566-4571) -
+    none of the 12-month window, provenance, engine-swap or model-specific-halo set-asides the headline's
+    `solid` gets. 131+16=147 against a headline of 87 is the same pool-mismatch bug trimQuestion already fixed
+    (poolN, job 6, line 3590) - inlineSplits never got the equivalent fix.
+  * Fix would mirror trimQuestion's: give each inlineSplits entry a `poolN` (or recompute sides from `window`/
+    `solid`-equivalent fencing) so sum(sides[].n) is bounded by the same pool the headline count comes from.
+  * Lane A action meanwhile: removed the old two-range prose (it surfaced the same bad numbers) and is NOT
+    rendering a replacement chip row with counts for inlineSplits yet - "hide it until Lane B confirms" per
+    Sam. The trim question chips ("Which 911?") are unaffected - poolN already makes those internally
+    consistent by design (they intentionally span more than the base-trim headline pool, and say so) - and
+    keep rendering as before.
