@@ -4161,3 +4161,11 @@ when the work has landed.
   * Tasks prompt cache: measured live (in-memory test scenario) and NOT hit: each Tasks call's prefix is about
     1,000 to 1,400 tokens, under the model's minimum. $0.012 a setup turn, $0.008 an update turn.
   * The code-written Task line read "Another, manual 1986 ..." for a third car and "A Arctic Silver"; fixed.
+  * FOR LANE B (found Oct 11, ~23:40 UTC, by the push check): Market Check results intermittently show "Sam's
+    catching his breath, try again in a minute." with no console error. Three fresh-visitor loads: 1995 Porsche
+    911 Carrera and 1967 Ford Mustang Fastback showed the line, 2004 BMW M3 drew its body question; a fourth load
+    of the 911 drew the result, with /api/sellerDecision taking 9,826 ms. The calm line comes from the oneBox
+    health probe (api/sellerDecision.js, ONEBOX_PROBE_MS 3,500) or the page's own fetch abort (js/onebox.js
+    obFetch). Seen after 44a75da; Lane B's c774d29 (exactStep ReferenceError in buildPool) is the likely cause,
+    and after it the 911 result drew again (20 prices). The 9.8 s engine time is still worth a look.
+    pushCheck.mjs now fails on that line, so prePush will show it.

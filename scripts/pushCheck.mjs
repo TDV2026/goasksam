@@ -1,6 +1,7 @@
 // PUSH CHECK (Lane C, Oct 2026): before every push, load one Market Check result, one Buy result, one spec page
 // and the Sell first step in a real browser, and fail on any 5xx response (page or API call) or any console
-// error or uncaught page error. Production went down on Oct 11 from two lane pushes; this is the gate.
+// error or uncaught page error, or a page that shows a failure line instead of its result. Production went
+// down on Oct 11 from two lane pushes; this is the gate.
 //
 //   export PROBE_KEY="$(security find-generic-password -s goasksam-probe -w)"   # per command, never printed
 //   node scripts/pushCheck.mjs [--base https://goasksam.com]
@@ -48,6 +49,10 @@ try {
     await page.waitForNetworkIdle({ idleTime: 1500, timeout: 30000 }).catch(() => {});
     const status = resp ? resp.status() : 0, final = page.url().replace(BASE, "");
     const shown = await page.evaluate(() => { const t = s => String(s || "").replace(/\s+/g, " ").trim(); const h = document.querySelector("h1"); return { h1: t(h && h.textContent).slice(0, 70), text: t(document.body && document.body.innerText).length, money: (t(document.body && document.body.innerText).match(/\$\d[\d,]{2,}/g) || []).length }; }).catch(() => ({}));
+    // A page that loads but shows a failure line instead of a result is a failure too (Oct 11: Market Check showed
+    // "Sam's catching his breath" with no console error and passed).
+    const failLine = await page.evaluate(() => { const t = document.body ? document.body.innerText : ""; const m = /catching his breath|having trouble answering|Connection issue|couldn.t finish that one|couldn.t read that just now/i.exec(t); return m ? m[0] : null; }).catch(() => null);
+    if (failLine) errors.push(`shows a failure line instead of a result: "${failLine}"`);
     const ok = status > 0 && status < 500 && !fivexx.length && !errors.length;
     if (!ok) failed++;
     console.log(`${ok ? "PASS" : "FAIL"}  ${pg.name}  HTTP ${status}  ${final}  h1 "${shown.h1 || ""}", ${shown.text || 0} chars, ${shown.money || 0} dollar figures` + (pg.gated && !KEY ? "  (no PROBE_KEY: public view)" : ""));
