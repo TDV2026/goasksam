@@ -14,7 +14,9 @@ const arg = n => { const i = process.argv.indexOf("--" + n); return i > 0 ? proc
 const KEY = process.env.PROBE_KEY;
 if (!KEY) { console.error("PROBE_KEY is not set. Read it from the Keychain for this command (see the top of this file)."); process.exit(2); }
 const BASE = (arg("base") || "https://goasksam.com").replace(/\/$/, "");
-const qs = new URLSearchParams({ report: "1" });
+// mode=auto&dryrun=1 is a safety net: a deployment without the report answers it with the zero-request dry run,
+// never a pull. The report branch is read before the mode, so it never sees it.
+const qs = new URLSearchParams({ report: "1", mode: "auto", dryrun: "1" });
 if (arg("date")) qs.set("date", arg("date")); else { if (arg("from")) qs.set("from", arg("from")); if (arg("to")) qs.set("to", arg("to")); }
 const path = "/api/pullLive?" + qs;
 
@@ -39,6 +41,9 @@ let out = await direct();
 if (!out.body) out = await viaBrowser();
 if (!out.body || out.status !== 200) { console.error(`Report request failed (HTTP ${out.status}).`); process.exit(1); }
 const j = out.body;
+// Only a deployment with the report answers report:true. Anything else is not a report (Oct 11: a call that
+// reached the previous deployment ran an ordinary pull instead), so stop and say so.
+if (j.report !== true) { console.error("This deployment did not answer with a report. Do not retry until the deployment with /api/pullLive?report=1 is live."); process.exit(1); }
 if (process.argv.includes("--json")) { console.log(JSON.stringify(j, null, 2)); process.exit(0); }
 
 const pct = x => x == null ? "n/a" : x + "%";
@@ -50,7 +55,7 @@ L.push(`Runs: ${j.requests.fullWalks} full walks, ${j.requests.endingSoonest} en
 L.push("");
 L.push(`New cars first seen: full walks ${j.newCars.fullWalk}, ending soonest ${j.newCars.endingSoonest}`);
 for (const f of j.full) L.push(`  full walk      ${f.at}  ${f.fetched} read, ${f.newListings} new`);
-for (const e of j.ending) L.push(`  ending soonest ${e.at}  ${e.pages} page${e.pages === 1 ? "" : "s"}, ${e.newListings} new, covers ${e.hoursAhead}h ahead${e.cappedShort ? ", CUT SHORT by the 3-page cap" : ""}`);
+for (const e of j.ending) L.push(`  ending soonest ${e.at}  ${e.pages} page${e.pages === 1 ? "" : "s"}, ${e.newListings} new, ${e.hoursAhead == null ? "hours ahead not recorded" : "covers " + e.hoursAhead + "h ahead"}${e.cappedShort ? ", CUT SHORT by the 3-page cap" : ""}`);
 L.push("");
 const ph = Object.entries(j.busyWindow.pagesNeeded).map(([k, v]) => `${v} needed ${k}`).join(", ");
 L.push(`Busy window: ${j.busyWindow.pulls} ending-soonest pulls; pages: ${ph || "none"}; most ${j.busyWindow.maxPages}; cut short by the cap: ${j.busyWindow.cappedShort}`);
