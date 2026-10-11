@@ -3559,3 +3559,23 @@ when the work has landed.
   bodyScoped check was about to misreport a genuinely-scoped pool as unscoped). specKeyFor
   (lib/live/search.js) already includes v.bodyStyle in its key array from a prior round - no new
   cache-key dimension was needed for this fix.
+
+- 2026-10-11 (Lane C): TASK EMAIL WORDING AND RANGE LINE GATE (7802db5, aaaaadc, f6f9636, a8ccdc2, b2390af).
+  * Range line gate: the inside/above/below sentence prints only when the engine's bodyScoped is true or null
+    (Lane B's field, now in lib/onebox.js; passed through lib/live/search.js listingMarket/coreOf unchanged).
+    Live emails, single sold notices and each sale in a digest decide on their own; without it the email keeps
+    the bid and end time, or the price.
+  * Wording: no notify/notified/notifies or visible watch/watching left in Buy, the Buy landing, the shared Keep
+    looking card and rail (heading "Keep looking"), the Tasks page, start email, resume/keep looking pages, How
+    Sam decides. FOR LANE A (js/onebox.js, Market Check, not edited here): "Watching for this exact car to come
+    up again." / "Watching for the next sale of X." -> "Sam is looking for ...", "Sign in only to watch a car for
+    its next sale." -> "Sign in only to have Sam look for a car's next sale.", "Sign in to keep a watch." ->
+    "Sign in so Sam can keep looking." (Buy's own strings already read that way).
+  * Sold tasks: Pause works end to end (paused_at is live). The shared rail shows a paused task as "Paused" with
+    "Start again" (watches resume action, own task only); the Tasks page shows it there.
+  * Digest: lead counts every sale and dates from the oldest; ten newest shown; "And N more are in your task."
+    is the link; catch-all source "others" never printed as a venue; " - 7,400 Miles" title tails stripped.
+  * FOR LANE B: a spec read from a 1966 Shelby GT500 Supercharged listing is labelled "first-generation Mustang
+    Shelby GT500 Supercharged coupes" while its sold cards are plain 289/390 Mustangs (the family noun keeps the
+    trim after the ladder widened past it). Also SLS AMG coupes and Roadsters share one range (bodyScoped null:
+    no body on the spec), so a Roadster reads "inside" against coupe sales.
