@@ -3835,3 +3835,20 @@ when the work has landed.
   cars are genuine SS396/SS-RS/Pace-Car trim leaks, the range move is the correct consequence of
   removing them). The 1968 Camaro SS/RS "wrong year" report was NOT a bug: Camaro's first generation
   is curated 1967-1969 (lib/generations.js), so 1968 is the same generation as a 1969 search.
+- 2026-10-11 (Lane C): BUY FOLLOW UPS (3fddb7a, 0426c6d, 8ea5695, 53ffa5a, feeb43f, 5c37260, f6a0b0d).
+  * Buy's Market Check and Tasks links follow lib/_launchStage.js isReleased per request (window.GAS_REL), not
+    the crew check. A credentialed request (which may carry the test-only stage override) is never publicly
+    cached on /buy. Proven on production with the override: stage 0 and 1 redirect, stage 2 links both.
+  * Prompt caching on the Buy chat call: the system prompt is two blocks (lib/live/samChat.js systemBlocks), the
+    fixed text cached with the tools, the date and current search after the breakpoint. Same text, same model.
+    Cache read/write tokens and model calls per turn now logged on buy_chat_turn (metadata.cache_read,
+    cache_write, calls); api/_usage.js prices cache writes at 1.25x input and reads at 0.1x.
+  * Pull schedule: lib/live/pullSchedule.js + /api/pullLive?mode=auto (Pacific clock, dry run) and Tasks
+    ?run=1&ifnew=1 are deployed but NOT scheduled: the vendor's /auctions/live rejects sort=auction_end_at and
+    sort=created_at ("400: sort: Invalid option"), so neither ending-soonest nor newest can run. vercel.json crons
+    unchanged (15 */4 full walk). Needs a supported sort before the schedule can switch.
+  * /api/tasks?livetiming=1 removed (lib/ops/liveTiming.js deleted). The Buy traffic probe (POST buySearch
+    action traffic, header credential) now also returns buyModel: turns, completed searches, turn numbers,
+    distinct cars per device-hour.
+  * PENDING SAM'S APPROVAL (built, not committed): Buy chat ceilings (20 model turns per device a day, $50 a day
+    global spend) and the stale-bid wording on cards and emails.
