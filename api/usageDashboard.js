@@ -4070,15 +4070,21 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { listingFacts, listingMarket, specOf } = await import("../lib/live/search.js");
     const titles = String(req.query?.title || "1988 Porsche 911 Carrera Targa").split("|").map(s => s.trim()).filter(Boolean);
+    // bodyField (Oct 2026, Boxster text-vs-field job): forces facts.body to this value AFTER
+    // listingFacts runs on the title, mirroring exactly how lib/live/search.js familyMarket builds
+    // its row (a title with NO body word + body supplied only as a separate facts field, the same
+    // shape Buy/Tasks send). Leave unset to use the title-detected body (Market Check's shape).
+    const bodyFieldOverride = req.query?.bodyField ? String(req.query.bodyField) : null;
     const out = [];
     for (const title of titles) {
       try {
         const yr = Number((title.match(/\b(19|20)\d{2}\b/) || [])[0]) || null;
         const row = { listing_title: title, year: yr };
         const facts = listingFacts(row);
+        if (bodyFieldOverride) facts.body = bodyFieldOverride;
         const spec = await specOf(env, row, facts).catch(e => ({ error: String(e && e.message || e) }));
         const m = await listingMarket(env, row, facts).catch(e => ({ error: String(e && e.message || e) }));
-        out.push({ title, facts: { body: facts.body, gearbox: facts.gearbox }, spec: spec ? { make: spec.v?.make, model: spec.v?.model, trim: spec.v?.trim, bodyStyle: spec.v?.bodyStyle, genCode: spec.generation?.code } : null, market: m });
+        out.push({ title, facts: { body: facts.body, gearbox: facts.gearbox }, spec: spec ? { make: spec.v?.make, model: spec.v?.model, trim: spec.v?.trim, bodyStyle: spec.v?.bodyStyle, genCode: spec.generation?.code, year: spec.v?.year, key: spec.key } : null, market: m });
       } catch (e) { out.push({ title, error: String((e && e.message) || e).slice(0, 220) }); }
     }
     return res.status(200).json({ task: "listingmarkettest", out });
