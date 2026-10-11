@@ -3522,3 +3522,40 @@ when the work has landed.
   * Files: lib/onebox.js, lib/live/search.js, scripts/crossProductCheck.js, api/usageDashboard.js
     (listSales/cachecheck diagnostics, left in - same pattern as prior rounds' ops tasks).
     api/sellerDecision.js and lib/platformPick.js were not touched.
+
+- 2026-10-10 (Lane B -> Lane C): NEW ENGINE FIELD `bodyScoped` (lib/onebox.js, on every result/thin
+  tier the engine returns, also passed through by lib/live/search.js coreOf/listingMarket as
+  `m.bodyScoped`, so Buy/Tasks/task-emails read the identical value Market Check does).
+  WHAT IT MEANS: `true` - the car or listing names a body style (coupe/cabriolet/convertible/targa/
+  speedster/roadster/spyder) AND the pool was restricted to that body style. `false` - a body style
+  is known but the pool was NOT restricted to it (the spec.familyInclude case - title-split families
+  like the 812 Superfast/GTS or Shelby Cobra 289/427/Daytona, where the family token, not body style,
+  decides pool membership). `null` - no body style applies (bare model search, or a model where body
+  style has never been asked/known).
+  TWO WAYS A CAR CAN BE BODY-SCOPED, BOTH COVERED: (1) `spec.bodyStyle` is set directly (normal case -
+  "coupe", "cabriolet", etc. parsed as a body word). (2) `spec.trim` itself IS a body-style word -
+  currently only Targa and Speedster for the Porsche 911, because lib/vehicle.js's
+  PORSCHE_911_BODY_HINT_TRIMS deliberately keeps a bare "911 Targa"/"911 Speedster" query's body word
+  in `trim`, not `bodyStyle` (a pre-existing, documented resolver choice, not something this round
+  changed). bodyScoped's computation checks `/^(targa|speedster)\b/i.test(spec.trim)` as well as
+  `spec.bodyStyle`, so this case is NOT misreported as unscoped. If you add a third body-hint-as-trim
+  case anywhere, extend this same regex check in lib/onebox.js buildResult or bodyScoped will go
+  stale again.
+  HOW TO USE IT (Lane C already wired the read side of this ahead of the fix landing - confirmed in
+  lib/tasks/tasks.js line ~444, `m.bodyScoped !== false`, gating whether placingFor runs on a live
+  listing): treat `false` as "don't trust this range for a body-specific claim" the same way you'd
+  treat a thin pool - it means the range was built from a WIDER population than the car's own body
+  style. `null` means body style isn't a relevant dimension for this car at all (safe either way).
+  `true` is the normal, trustworthy case.
+  SEPARATE FIX, same commit family: the listing-judgment path (lib/live/search.js listingFacts, used
+  by Buy/Tasks/task-emails to read a raw OCD title) only sets body style when the title itself names
+  one; a title with no body word stays unscoped (bodyScoped: null or false depending on whether the
+  model has a known body style default). This is NOT a bug to fix further - a title that doesn't say
+  "Targa" or "Convertible" genuinely doesn't tell you the body style, so leaving it unscoped is the
+  honest behavior, not a gap.
+  ENGINE_VERSION bumped twice this round for this field: e8-20261010-bodyscoped (field added),
+  e9-20261010-bodyscopedtargahint (fixed the Targa/Speedster-as-trim case above, caught mid-sweep
+  when "1972 Porsche 911 Targa" resolved with bodyStyle:null, poolTrim:"Targa" and the narrower
+  bodyScoped check was about to misreport a genuinely-scoped pool as unscoped). specKeyFor
+  (lib/live/search.js) already includes v.bodyStyle in its key array from a prior round - no new
+  cache-key dimension was needed for this fix.
