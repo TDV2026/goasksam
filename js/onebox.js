@@ -757,6 +757,17 @@
     if (!dir) return "";
     return '<div class="otherhalf">' + esc(c.year + ", " + dir) + "</div>";
   }
+  // OFF-WINDOW LABEL (Oct 2026, context-cards job): c.offWindow is true only when this card's own
+  // year sits outside the searched year's preferred window AND the window could not be filled from
+  // the pool (the engine's full-pool fallback, lib/onebox.js pickRepresentative) - false/null means
+  // either the window was satisfied or no window applies, and nothing renders. Same family of note
+  // as otherHalfLabel above (a plain fact-only div under the card, never a second number or a claim
+  // about the range itself - the range/count are unchanged by this field, see docs/lane-notes.md).
+  // ONE function: every surface that can show this card reuses it, never its own copy of the text.
+  function offWindowLabel(c) {
+    if (!c || c.offWindow !== true || !c.year) return "";
+    return '<div class="offwindow">' + esc("A " + c.year + " car, a few years outside the searched window.") + "</div>";
+  }
   // The hero (MIDDLE OF THE RANGE, or CLOSEST MATCH on a real similarity match) for a typed query.
   // c.basis "subject" means pickRepresentative anchored on the subject's own mileage (a real VIN/
   // chassis match or a known subject mileage) - genuine similarity, so the label is CLOSEST MATCH;
@@ -775,7 +786,7 @@
       cls: "hero", pill: isMatch ? "Closest match" : "Middle of the range", href: utmUrl(c.url), slug: c.platformSlug, image: c.image,
       priceHtml: esc(usd(c.price)), venueLine: [venue, monthYear(c.date)].filter(Boolean).join(" · "),
       allIn: (c.isHouse && c.allIn) ? usd(c.allIn) : "", title: cleanReceiptTitle(c.title), meta: meta,
-      extra: otherHalfLabel(c, d),
+      extra: otherHalfLabel(c, d) + offWindowLabel(c),
       why: isMatch ? "The nearest recent sale on mileage and spec." : "The sale nearest the middle of the range."
     });
   }
@@ -786,7 +797,7 @@
     return saleCardHtml({
       cls: "sm", pill: DELTA_LABEL[c.delta] || (c.role === "closest" ? "Closest sale" : "Recent sale"), href: utmUrl(c.url), slug: c.platformSlug, image: c.image,
       priceHtml: esc(usd(c.price)), allIn: (c.isHouse && c.allIn) ? usd(c.allIn) : "", title: cleanReceiptTitle(c.title), meta: meta,
-      extra: otherHalfLabel(c, d)
+      extra: otherHalfLabel(c, d) + offWindowLabel(c)
     });
   }
   // The exact car (VIN or chassis match) as the hero: "THIS CAR", 1.5px green border, its last sale.
