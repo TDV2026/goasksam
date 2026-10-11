@@ -1335,6 +1335,20 @@ async function handleOps(req, res) {
     return res.status(200).json(result);
   }
 
+  // task=flawsample: TEMPORARY, READ-ONLY (Sam's Take issue-count basis job, Oct 2026). Samples the
+  // raw known_flaws field (raw_record->>known_flaws) for a make/model so its actual shape (clean
+  // itemized array vs freeform prose split by newline/semicolon) can be inspected before trusting a
+  // COUNT of it in a headline sentence. Delete once the job concludes.
+  if (task === "flawsample") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const make = String(req.query?.make || "Porsche");
+    const model = String(req.query?.model || "911");
+    const limit = Math.min(Number(req.query?.limit) || 20, 50);
+    const rows = await supabaseSelect(env, `sales_archive?make=ilike.${encodeURIComponent(make)}&model=ilike.*${encodeURIComponent(model)}*&select=listing_title,flaws:raw_record->>known_flaws&order=sale_date.desc&limit=${limit}`);
+    const out = (rows || []).map(r => ({ title: r.listing_title, raw: r.flaws, rawType: r.flaws == null ? "null" : (() => { try { const p = JSON.parse(r.flaws); return Array.isArray(p) ? `json array (n=${p.length})` : "json scalar"; } catch { return "plain string"; } })() }));
+    return res.status(200).json({ task: "flawsample", make, model, n: out.length, out });
+  }
+
   if (task === "canonday") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const sources = req.query?.sources ? String(req.query.sources).split(",").map(s => s.trim()).filter(Boolean) : ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "themarket", "pistonheads"];
