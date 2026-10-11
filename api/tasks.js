@@ -24,6 +24,7 @@ import { jobPhrase, notifyPrefs, setNotifyPrefs, taskTurn, draftTurn, startDraft
 import crypto from "node:crypto";
 import { CHAT_MODEL } from "../lib/live/chatHttp.js";
 import { recordUsageEvent } from "./_usage.js";
+import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
 
 const TEST_USER = /^00000000-0000-4000-8000-[0-9a-f]{12}$/;
 // The email links' confirm and result pages: plain words, one button, never an action on a click alone.
@@ -322,6 +323,9 @@ export default async function handler(req, res) {
       if (!text) return res.status(400).json({ error: "empty" });
       if (!apiKey) return res.status(503).json({ error: "Sam is unavailable right now." });
       if (/^[0-9a-f-]{36}$/.test(String(b.task_id || ""))) return res.status(200).json(await taskTurn(env, user, { taskId: b.task_id, text, pending: b.pending || null, apiKey, model: CHAT_MODEL }));
+      // No task_id: this is the START of a brand-new task's conversation (nothing is written until
+      // "start" below confirms it) - gated the same as "start" itself (Job 3: "Task creation").
+      if (!isReleased("tasks", req)) return notReleasedJson(res);
       return res.status(200).json(await draftTurn(env, user, { draft: b.draft || null, text, seed: b.seed || null, apiKey, model: CHAT_MODEL }));
     }
     if (b.action === "notify") return res.status(200).json(await setNotifyPrefs(env, user, { on: typeof b.on === "boolean" ? b.on : undefined, email: b.email !== undefined ? b.email : undefined }));
@@ -335,7 +339,13 @@ export default async function handler(req, res) {
       for (const d of list) { const one = await (await fetch(`https://api.resend.com/domains/${d.id}`, { headers: H })).json().catch(() => null); detail.push({ name: d.name, status: d.status, region: d.region, records: one && one.records ? one.records.map(r => ({ record: r.record, type: r.type, name: r.name, status: r.status })) : null }); }
       return res.status(200).json({ email: em && { id: em.id, to: em.to, from: em.from, subject: em.subject, last_event: em.last_event, created_at: em.created_at }, domains: detail, domains_error: doms && doms.message || null });
     }
-    if (b.action === "start") return res.status(200).json(await startDraft(env, user, b.draft || {}, { apiKey, model: CHAT_MODEL, visitorId: readVisitorId(req) }));
+    // Task CREATION (Job 3): the only way a task row is written. Managing an EXISTING task (list,
+    // say with a task_id, notify, apply, control) is never gated - same "someone who already has one
+    // must always be able to use it" principle the task-email Pause/Stop/confirm/resume pages follow.
+    if (b.action === "start") {
+      if (!isReleased("tasks", req)) return notReleasedJson(res);
+      return res.status(200).json(await startDraft(env, user, b.draft || {}, { apiKey, model: CHAT_MODEL, visitorId: readVisitorId(req) }));
+    }
     // One task at a time (beta): the page shows the choice when a second task is attempted. Every showing
     // and every button is logged as task_limit_hit (the user, the running task, the attempted job, the
     // button). "swap" pauses the running task, then resumes the paused one asked for, or starts the

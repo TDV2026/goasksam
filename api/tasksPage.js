@@ -9,6 +9,7 @@ import { PAGE_CSS, FONT_LINKS, isCrewRequest } from "./_chrome.js";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE } from "../lib/appShell.js";
+import { isReleased } from "../lib/_launchStage.js";
 
 export const TASKS_PITCH = { lead: "A free collector car finder.", sub: "Tell Sam what you want and he keeps searching, then emails you when one fits." };
 const HOW = "The cars Sam shows you come from our rules-based matching algorithm. AI helps understand the question and explain the results, but it does not invent the cars, the matches or the numbers. Every number comes from real market evidence.";
@@ -111,6 +112,13 @@ const APP_CSS = `
 
 export default async function handler(req, res) {
   if (req.query && req.query.app) return appPage(req, res);
+  // LAUNCH STAGE (Oct 2026, Job 2): a public request to the bare /tasks LANDING page, while Tasks is
+  // not yet released at the current stage, gets a TEMPORARY redirect to /sell. /tasks/mine (the
+  // signed-in app, ?app=1, handled above before this check) is deliberately NOT gated here - someone
+  // who already holds a task (e.g. after a stage rollback) must still be able to open, pause, stop or
+  // resume it, same as every other "manage what you already have" surface in this job. Crew passes
+  // through untouched.
+  if (!isReleased("tasks", req)) { res.setHeader("Cache-Control", "no-store"); res.setHeader("Location", "/sell"); return res.status(302).end(); }
   const ex = await exampleUpdate().catch(() => null);
   const hasQuery = /\?./.test(String(req.url || ""));
   const robots = hasQuery ? "noindex, follow" : "index, follow";

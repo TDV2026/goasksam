@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Sitemap index (docs/search-rules.md rule 7). sitemap-vins.xml is served dynamically by
-     api/history.js and is always current; sitemap-pages.xml is the static public pages;
-     sitemap-specs.xml and sitemap-hubs.xml are placeholders until those page types ship. -->
+     api/history.js and is always current; sitemap-pages.xml (Oct 2026) is served dynamically by
+     api/sitemapPages.js and follows the launch stage - an unreleased product's page is left out
+     until its stage opens; sitemap-specs.xml and sitemap-hubs.xml are placeholders until those
+     page types ship. -->
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap><loc>https://goasksam.com/sitemap-pages.xml</loc></sitemap>
   <sitemap><loc>https://goasksam.com/sitemap-vins.xml</loc></sitemap>

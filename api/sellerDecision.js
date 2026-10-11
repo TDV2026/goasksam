@@ -45,6 +45,7 @@ import { buildSharedAnalysis, isRoutableVenue, ROUTABLE_VENUES, SHORT_AUCTION_VE
 import { specKeyFor, coreOf, persistCore } from "../lib/live/search.js";
 
 import { isCrewRequest } from "../lib/_crew.js";
+import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
 // Powerseller referrals are gated (locked product rule): estimated value from
 // actual comps must clear this threshold before a partner can lead.
 // PowerSeller eligibility floor (business decision, Aug 2026): lowered 75000 -> 40000.
@@ -2815,6 +2816,13 @@ export default async function handler(req, res) {
     if (!isCrewRequest(req) && !testerSeal && !internalSeal) {
       return res.status(403).json({ status: "sealed", error: "Not open yet." });
     }
+  }
+  // LAUNCH STAGE (Oct 2026, Job 3): Market Check's own branch of this shared endpoint - EVERY
+  // oneBox/oneBoxProof request - is refused while Market Check is not yet released. Sell's own
+  // wizard requests never set req.body.oneBox, so this never touches them: Sell keeps working at
+  // every stage. Crew passes through untouched.
+  if ((req.body?.oneBox || req.body?.oneBoxProof) && !isReleased("market-check", req)) {
+    return notReleasedJson(res);
   }
 
   const apiKey = process.env.OLDCARSDATA_API_KEY;

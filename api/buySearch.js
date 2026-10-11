@@ -21,6 +21,7 @@ import { vinAppearances } from "./_historyData.js";
 import { validateBearer } from "../lib/_auth.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { checkCeiling, testLimits, CALM } from "../lib/_ceilings.js";
+import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
 import { logEvent, EVENTS } from "../lib/events.js";
 import { readVisitorId } from "../lib/_visitor.js";
 import { freshnessOn, underReserve, ocdWithRetry } from "../lib/live/ocdGuard.js";
@@ -151,6 +152,9 @@ export default async function handler(req, res) {
       catch (e) { if (isMissingTable(e)) return res.status(200).json({ checked: 0, sent: 0, setup: "run docs/supabase-buy-alerts.sql" }); throw e; }
     }
     if (req.method === "GET" && req.query && req.query.panel) {
+      // This GET branch is Market Check's own "LIVE RIGHT NOW" panel, not Buy's search (Buy's POST
+      // actions below are gated separately, by Buy's own stage) - gate it by Market Check's stage.
+      if (!isReleased("market-check", req)) return notReleasedJson(res);
       const q = req.query;
       const vehicle = { make: String(q.make || ""), model: String(q.model || ""), trim: q.trim ? String(q.trim) : null, year: Number(q.year) || null, bodyStyle: q.body ? String(q.body) : null };
       if (!vehicle.make || !vehicle.model) return res.status(200).json({ count: 0, rows: [] });
@@ -164,6 +168,10 @@ export default async function handler(req, res) {
       return res.status(200).json({ count: live.total, rows: live.rows.map(r => ({ source: houseName(r.source), title: r.listing_title, url: r.url, current_bid_usd: r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, current_bid: r.current_bid, currency: r.currency, end_time: r.end_time, bid_at: r.bid_at || r.last_seen || null, placing: band ? placingFor(r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, band) : null })) });
     }
     if (req.method !== "POST") return res.status(405).json({ status: "error" });
+    // Everything from here down is Buy's own endpoint (search, chat, saved searches, alerts) - gated
+    // by Buy's own stage. The stop-all-alerts tap and the alerts cron above are handled before this
+    // point and never reach here.
+    if (!isReleased("buy", req)) return notReleasedJson(res);
     const b = req.body || {};
     if (b.action === "watch") {
       const raw = String(b.key || "").trim();

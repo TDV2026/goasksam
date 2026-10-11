@@ -24,6 +24,7 @@ import { marketCheckExample } from "../lib/live/marketCheckExample.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 import { SHELL_CSS, SHELL_JS, KEEPLOOK_CSS, railOpenHtml, brandPaletteCss } from "../lib/appShell.js";
 import { isCrewRequest } from "./_chrome.js";
+import { isReleased } from "../lib/_launchStage.js";
 
 // "Your results" (the rail's page-specific section on Market Check/Sell, same mechanism as Buy's
 // "Your searches"): the nav item + its dropdown are hidden by default and filled by js/onebox.js's
@@ -47,6 +48,11 @@ export function stripLaunchGate(html) {
 }
 
 export default async function handler(req, res) {
+  // LAUNCH STAGE (Oct 2026, Job 2): a public request to this address, while Market Check is not yet
+  // released at the current stage, gets a TEMPORARY redirect to /sell - never permanent, so a stage
+  // rollback or a later release does not leave a stale 301 cached anywhere (a browser's own 301
+  // cache, a search engine's index, an edge node). Crew passes through untouched.
+  if (!isReleased("market-check", req)) { res.setHeader("Cache-Control", "no-store"); res.setHeader("Location", "/sell"); return res.status(302).end(); }
   if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "onebox.html"), "utf8");
   const crew = isCrewRequest(req);
   const env = supabaseEnv();

@@ -13,6 +13,7 @@ import { validateBearer } from "../lib/_auth.js";
 import { readVisitorId } from "../lib/_visitor.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { ready, arm, stop, resume, list, run, testSend, isMissingTable, probeBackdate, probeInspect, verifySoldTaskTap, soldTaskTap, soldTaskName, getWatch, setWatchState } from "../lib/live/watches.js";
+import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
 
 export default async function handler(req, res) {
   const env = supabaseEnv();
@@ -74,7 +75,13 @@ export default async function handler(req, res) {
     }
     const user = await validateBearer(req.headers.authorization || "").catch(() => null);
     if (!user || !user.userId) return res.status(401).json({ ok: false, needSignIn: true });
-    if (b.action === "arm") return res.status(200).json(await arm(env, user, { kind: b.kind, listing_id: b.listing_id, vin: b.vin, car: b.car, visitorId: readVisitorId(req) }));
+    // "arm" creates a NEW watch - gated with task creation (Job 3: "Task creation and the watch
+    // API"). Managing an EXISTING watch (stop/resume/list below, and the email-tap pause/stop/resume
+    // above) is never gated - someone who already has one must always be able to use it.
+    if (b.action === "arm") {
+      if (!isReleased("tasks", req)) return notReleasedJson(res);
+      return res.status(200).json(await arm(env, user, { kind: b.kind, listing_id: b.listing_id, vin: b.vin, car: b.car, visitorId: readVisitorId(req) }));
+    }
     if (b.action === "stop") return res.status(200).json(await stop(env, user, b.id));
     if (b.action === "resume") return res.status(200).json(await resume(env, user, b.id));
     if (b.action === "list") return res.status(200).json(await list(env, user));

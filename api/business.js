@@ -12,6 +12,7 @@ import { heroHtml, HERO_CSS } from "../lib/heroImage.js";
 import { lastUpdatedDate } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { deskExample } from "../lib/live/deskExample.js";
+import { isReleased } from "../lib/_launchStage.js";
 
 const TITLE = "Sam Desk | GoAskSam for business";
 const DESC = "Sam Desk: ask the whole collector car market in plain words. Real sales, platform comparisons and market slices, with the cars behind every number.";
@@ -287,6 +288,9 @@ ${body}
 }
 
 export default async function handler(req, res) {
+  // LAUNCH_BUSINESS (Oct 2026, Job 2): a public request to this address, while /business is off,
+  // gets a TEMPORARY redirect to /sell before any of the work below runs. Crew passes through.
+  if (!isReleased("business", req)) { res.setHeader("Cache-Control", "no-store"); res.setHeader("Location", "/sell"); return res.status(302).end(); }
   const { html, crew } = await page(req);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", "index, follow");

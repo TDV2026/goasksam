@@ -33,6 +33,7 @@
     { "source": "/market-check", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/marketCheck?_crew=1" },
     { "source": "/market-check", "destination": "/api/marketCheck" },
     { "source": "/sitemap-specs.xml", "destination": "/api/specPage?sitemap=1" },
+    { "source": "/sitemap-pages.xml", "destination": "/api/sitemapPages" },
     { "source": "/cars/porsche/911", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/specPage?slug=/cars/porsche/911&_crew=1" },
     { "source": "/cars/porsche/911", "destination": "/api/specPage?slug=/cars/porsche/911" },
     { "source": "/cars/porsche/911/:path*", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/specPage?slug=/cars/porsche/911/:path*&_crew=1" },
