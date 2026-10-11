@@ -3765,3 +3765,27 @@ when the work has landed.
     curl/fetch or an incognito browser tab, no extra headers) and confirm it shows the REAL production
     stage (today, stage 0 - Sell only), not whatever you were just testing. The override headers alone,
     without the credential, must have zero effect - verified this round on every gated route.
+
+- 2026-10-11 (Lane A): CORRECTION to the LAUNCH STAGES session report - a saved env var edit alone
+  does NOT take effect; a redeploy is required. The earlier report said otherwise ("no redeploy
+  needed"), reasoning only from the fact that lib/_launchStage.js reads process.env fresh per
+  request - true of the CODE, but wrong about how Vercel binds env vars to an already-built
+  deployment's running functions. This codebase already has two confirmed, tested precedents saying
+  the opposite (SELL_PICK_SHARED note above, line ~2483: "an env var change alone does not apply to
+  already-built serverless functions"; and a separate round, line ~3302: "Set the var to 2 in Vercel,
+  redeployed, tested... redeployed again - confirmed live"). CORRECTED STEPS for Sam to change the
+  launch stage (dashboard only, no terminal):
+  1. vercel.com -> sign in -> the goasksam project -> Settings -> Environment Variables.
+  2. Add or edit `LAUNCH_STAGE`, value `1` or `2` (the literal digit, not a word), scoped to
+     Production -> Save. For the business page: `LAUNCH_BUSINESS`, value `1` to turn on.
+  3. REQUIRED: Deployments -> the newest Production deployment -> the "..." menu -> Redeploy. The
+     stage change does not reach any live traffic until this step. Deleting a variable (returning to
+     the stage-0 default) needs the same redeploy step to take effect.
+  4. After the redeploy finishes, the edge cache on the affected pages (see the caching table in the
+     session report) can still serve a stale pre-change page for a few minutes in practice (up to the
+     documented worst case) before it self-heals - the API refusals and crew path are never cached and
+     reflect the new stage immediately.
+
+  Also correcting this round's own wording: the crossProductCheck singlePick.ok:false result was
+  described in the prior report as "known flaky, not a regression" - that is not this lane's call to
+  make. Left to Lane B to diagnose; not described as acceptable here.
