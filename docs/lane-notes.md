@@ -3899,3 +3899,16 @@ when the work has landed.
     ("400: sort: Invalid option"). The DEFAULT order (no sort) is auction_end_at ascending (100 of 100 in order,
     all future, consistent with stored end times). The last pages of the default order are long-running house
     auctions (created median 25 days ago), not newest. Cron unchanged pending Sam's call.
+- 2026-10-11 (Lane C): PULL SCHEDULE OPTION 1 LIVE (304b330) + NEAREST-YEARS RULE SHARED (7e88f59).
+  * vercel.json: /api/pullLive?mode=auto every 15 min (UTC) reads the Pacific clock (lib/live/pullSchedule.js):
+    full walks 06:15/14:45/22:15, ending soonest every 30 min 09:00-14:30. Ending soonest = the vendor's DEFAULT
+    order (no sort option; all tried were rejected), paging until the last car ends >6h ahead, max 3 pages; each
+    run logs pull_live_mode {pages, newListings, coveredHoursAhead, cappedShort}. Full walks log newListings.
+    Dry run: same 15 Pacific runs, at most 105 requests/day, in PDT and PST. First cron pull 21:00 UTC Oct 11:
+    1 page, 21 hours covered.
+  * Tasks: /api/tasks?run=1&ifnew=1 at 5,20,35,50 past every hour replaces the 4-hourly run; exits at once when
+    no listing was first seen since the last run, and runs anyway when the last full run is over 4 hours old.
+  * Nearest years (lib/live/search.js nearestYears/nearLine): when a stated year has no live cars, the chat's
+    search step (samChat searchWithNearest) and the no-model search (converse) both read one year each side and
+    say "No 1988 911 Carreras are live right now. These are the nearest, 1987." Tasks never widen.
+    crossProductCheck gains buyPaths (5 cars, same cars and same nearest years on both paths): all pass.
