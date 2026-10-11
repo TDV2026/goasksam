@@ -124,7 +124,14 @@ button{font:inherit}
 .fresh .dot{width:8px;height:8px;border-radius:50%;background:var(--live);flex:none}
 .ans-line{margin:0;font:400 15px/1.5 var(--sans);color:var(--soft)}
 .take{grid-column:span 3;padding:24px 22px 22px;background:var(--take);display:flex;flex-direction:column;gap:8px}
-.take-h{display:flex;gap:10px;align-items:center}
+/* margin, not gap (Oct 2026, mid-width job): Sam reported the roundel overlapping the SAM'S TAKE
+   text in a narrower Safari window - not reproducible in Chrome at 390 to 1440 (measured: a real
+   10px gap holds at every width, the only change at 900 is the label wrapping to two lines, which
+   does not overlap the badge). Flexbox gap on a row with a wrapping two-line label is exactly the
+   kind of case that has had real cross-engine quirks; margin-right costs nothing and removes that
+   dependency entirely rather than leaving it unresolved on a hunch. */
+.take-h{display:flex;align-items:center}
+.take-h .roundel{margin-right:10px}
 .roundel{flex:none;width:28px;height:28px;border-radius:50%;border:1.5px solid var(--green);color:var(--green);font:600 10px/1 var(--sans);letter-spacing:.08em;display:flex;align-items:center;justify-content:center}
 .roundel.lg{width:40px;height:40px;font-size:11px}
 .take-tag{font:600 13px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--green)}

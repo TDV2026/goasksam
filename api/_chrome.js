@@ -65,8 +65,10 @@ td a{font-weight:500}
 .ctx{margin:0;font-size:15px;color:var(--soft)}
 .full{font-weight:600;font-size:15px;text-decoration:underline;text-underline-offset:3px;min-height:44px;display:inline-flex;align-items:center;align-self:flex-start}
 .take{grid-column:span 3;padding:24px 22px;background:var(--take);display:flex;flex-direction:column;gap:8px}
-.take .tag{font:600 13px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--green);display:flex;gap:10px;align-items:center}
-.take .tag .roundel{width:28px;height:28px}
+/* margin, not gap - same mid-width hardening as onebox.html's .take-h (Oct 2026), same element
+   shape (a roundel badge beside a short uppercase label), same reasoning. */
+.take .tag{font:600 13px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--green);display:flex;align-items:center}
+.take .tag .roundel{width:28px;height:28px;margin-right:10px}
 .take p{margin:0;font:400 17px/1.45 var(--serif);color:var(--soft)}
 .faq dt{font:600 16px/1.4 var(--sans);margin-top:14px}.faq dt:first-child{margin-top:0}
 .faq dd{margin:4px 0 0;font:400 17px/1.5 var(--serif);color:var(--soft)}
