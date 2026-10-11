@@ -188,7 +188,11 @@ button{font:inherit}
    data-qtoggle open/close mechanism "How Sam decided" already uses (one id, one hidden attribute) -
    not the earlier per-row handler that never reliably closed. A plain, non-interactive div (no
    sales attached) keeps the old layout untouched. */
-.mktread-qrowbtn{width:100%;padding:12px 0;display:grid;grid-template-columns:118px 1fr auto auto auto;grid-template-areas:"period track text count chev";align-items:center;gap:16px;min-height:44px}
+/* period column widened 118px->176px (Oct 2026, pool-consistency follow-up): Lane B's tradingPeriodsFor
+   labels are full date ranges ("2026-07-13 to 2026-10-13", ~25 chars), not the old short calendar-
+   quarter labels ("Q3 2026") this width was sized for - the old width let the label overflow into the
+   track column. */
+.mktread-qrowbtn{width:100%;padding:12px 0;display:grid;grid-template-columns:176px 1fr auto auto auto;grid-template-areas:"period track text count chev";align-items:center;gap:16px;min-height:44px}
 .mktread-qopen{background:none;border:none;font:inherit;text-align:left;color:inherit;cursor:pointer;border-radius:8px}
 .mktread-qopen .chev{grid-area:chev;transition:transform .15s}
 .mktread-qopen[aria-expanded="true"] .chev{transform:rotate(180deg)}
