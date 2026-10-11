@@ -3329,3 +3329,38 @@ when the work has landed.
   (ops subset, 4 real specs incl. 997/M3/Camaro/GT350): mismatchSpecs: 0 - the hierarchy/limit/gates
   work this round touched nothing the engine computes. Baseline: all 5 pages 200 at 1440 and 390,
   titles/H1s intact.
+
+- 2026-10-10 (Lane C): PICK FOLD APPLIED (three rules), HOUSE-ONLY OPENING, ALERT EMAILS.
+  * RULES live in lib/platformPick.js only (0b41ed9, a26597c): rule 1 specialist needs 2+ sales, generation cell
+    only with 3+ sales at that generation else model cell; rule 2 depthWins: more sales, more recent sale, more
+    sales at model level (sales_archive count, read only for venues still tied), Bring a Trailer, list order;
+    rule 3 onlinePicks speed: depth over SHORT_AUCTION_VENUES (speedToList fast/medium_fast), floor 3. A US
+    seller's picks only ever name a US venue (US_ROUTE_VENUES; Collecting Cars had led the RS Targa pool).
+    Load checks in api/sellerDecision.js keep ROUTE_POLICIES / US_ROUTE_ALLOWLIST and the shared sets equal.
+  * WIRE: decide() picks through sharedPickRoute(analysis.sharedPick) (thin-window override first) and returns
+    speedPick; the premium/dominance/specialist/depth branches are gone from api/sellerDecision.js. NOTE: this
+    reached main inside another lane's commits (c9b5a18 / 5d075b8 swept my working-tree edits in), slightly
+    before the comparison list was final; the list below is legacy vs the live result. Page: js/result-v2.js
+    v2Composition uses decision.speedPick; js/result.js always puts the server's pick and rush pick in the two
+    cards (they were cut to the top two by score) (5cdf489, db1f882).
+  * CHANGES (85 cars, legacy -> live): 1993 911 Carrera RS Targa PCarMarket -> Bring a Trailer (rule 1, both
+    timelines); 2009 GT-R Bring a Trailer -> Cars and Bids (rule 2, 4 v 4, C&B sold Sep 23, BaT Jul 30; its rush
+    line disappears, same venue); rush: 2019 911 Turbo S C&B -> Sotheby's Motorsport (rule 2, 3 v 3, Oct 8 vs
+    Aug 26), 2015 Corvette Z06 Hagerty -> C&B (rule 2, 3 v 3, Jun 19 vs Jun 3), 1965 Corvette Hemmings -> Hagerty
+    (rule 3, 12 v 4), 1930 Model A Hemmings -> Hagerty (rule 3, 12 v 8). 1996 Boxster Spyder is a question first
+    (resolver invalid_vehicle), never a pick.
+  * CHECK: scripts/crossProductCheck.js checkSinglePick: fails on any folded piece (depth/tie-break comparisons,
+    clearedPct, specCell, evBacked, .marketShare >= 75, lift >= 3, the premium sample gate, depthWins) outside
+    lib/platformPick.js, and runs RS Targa (rule 1), GT-R (rule 2), 1965 Corvette rush (rule 3) through decide()
+    and pickPlatform. No live car lands on a specialist PICK under rule 1 (28 candidates tried), so case 1 proves
+    the 1-sale specialist is refused.
+  * HOUSE-ONLY (js/result.js renderThinDecisionSell): a DIY seller on a car whose every recorded sale is at a
+    house opens with "Every recorded sale of the {model} was at an auction house. The online record has none, so
+    the route to sell it is a house." and the house card as the recommendation. Auction-house sellers unchanged.
+  * ALERT EMAILS (376933b, c2ddfc7). Task live alert built in code (lib/tasks/tasks.js alertBlocks/alertEmail),
+    send-time recheck stillLive (stored records), findMatches drops ended end_time; sold notice (lib/live/
+    watches.js messageFor) and Before it ends (lib/live/buyAlerts.js) share the footer Open the task / Pause /
+    Stop and the "View on {venue}" button; lib/_email.js firstEmailTo = the junk line only on an address's first
+    email from any alert. placingFor (lib/onebox.js) is the one placing wording everywhere. Watches have no
+    paused state: Pause on a sold notice is the signed "this one" link (stop this one), Stop is every alert.
+    FOR LANE A: Market Check's "Put Sam on it" copy says watch in places; user-visible emails now say task.
