@@ -255,6 +255,9 @@ export default async function handler(req, res) {
       const buyModel = { turns: (turnsRows || []).length, chatSearches: (fs || []).length, fallbackSearches: (se || []).length, costUsd: Math.round(cost * 100) / 100,
         turnsPerChatSearch: fs && fs.length ? Math.round(100 * turnsRows.length / fs.length) / 100 : null,
         callsPerTurnLogged: (turnsRows || []).filter(r => r.metadata && r.metadata.calls).map(r => r.metadata.calls),
+        // Turn 1 of a conversation is its first search; later turns are follow-ups (chat or a refinement).
+        byTurnNumber: (turnsRows || []).reduce((o, r) => { const t = Number(r.metadata && r.metadata.turn) || 0; const k = t >= 5 ? "5+" : String(t); o[k] = (o[k] || 0) + 1; return o; }, {}),
+        firstChatSearchAt: fs && fs.length ? fs[0].created_at : null, turnsSinceFirstChatSearch: fs && fs.length ? (turnsRows || []).filter(r => r.created_at >= fs[0].created_at).length : null,
         distinctCarsPerDeviceHour: { deviceHours: hv.length, p50: pct(hv, 0.5), p90: pct(hv, 0.9), p99: pct(hv, 0.99), max: pct(hv, 1), over10: hv.filter(n => n > 10).length, over30: hv.filter(n => n > 30).length } };
       return res.status(200).json({ days, buyModel,
         sellSearchesPerAddress: dist(sd || [], ipOf), chatPerAddress: dist(chat || [], ipOf), buyChatPerAddress: dist(bchat || [], ipOf),
