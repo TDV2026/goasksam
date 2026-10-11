@@ -202,30 +202,42 @@ button{font:inherit}
 .capshow{margin-top:14px}
 
 /* ---- cards ---- */
-.cards5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:20px;align-items:stretch}
+/* align-items:start (Oct 2026, card-formatting job): a grid row's track height is set by its
+   tallest item's own NATURAL content regardless of align-items, so switching the default off
+   stretch does not shrink anything - it only stops a shorter sibling's CARD BOX from being pulled
+   up to match a taller one. Each card (both the small context cards and, on mobile where .stack
+   collapses to display:contents, the two cards directly) now simply sizes to its own content and
+   sits at the top of its track; any leftover track height is blank grid gutter OUTSIDE the card,
+   never blank space stretched INSIDE one. The hero opts back in below, because the hero is the one
+   card that should visibly grow to match - by growing its PHOTO, never its text block. */
+.cards5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:20px;align-items:start}
 .card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;color:inherit}
 .card:hover{border-color:var(--green)}
 .card:hover .ctitle{text-decoration:underline;text-underline-offset:3px}
 .card.hero{grid-column:span 3}
 .cards5.single .card.hero{grid-column:1 / -1}
 .card.this{border:1.5px solid var(--green)}
-/* .stack .card used to be flex:1 1 0 - the two context cards split the row's STRETCHED height
-   exactly in half regardless of their own content. The hero (photo + price + title + meta + an
-   italic why-line) is taller than a small card's natural content, so cards5's align-items:stretch
-   forced .stack taller than two small cards actually need - which flex:1 1 0 then DIVIDED evenly
-   between them, squeezing each card's allocated height below its own photo's aspect-ratio height
-   (which does not shrink) plus its price/title/meta body, so the body was pushed outside the
-   card's box and clipped by .card's own overflow:hidden (price/title/meta invisible, photo-only
-   card - reproduced live, 2008 Porsche 997 Carrera S). Fixed: each small card sizes to its own
-   natural content (flex:none) - any leftover stretched height in .stack is just blank space below
-   the two cards, never content pushed out of frame. */
 .stack{grid-column:span 2;display:flex;flex-direction:column;gap:20px}
 .stack .card{flex:none}
+/* Hero-beside-stack (Oct 2026, card-formatting job): when the hero has a stack sibling (never in
+   the .single case - a lone hero has no taller neighbour to match), the hero opts back into
+   stretching to the row's full height, then hands every pixel of that extra height to its OWN
+   PHOTO (cropped with object-fit:cover, never stretched) rather than its text block, so the price/
+   venue/title/miles line always sits directly under the photo with no blank band above or below it. */
+.cards5:not(.single) .card.hero{align-self:stretch}
+/* aspect-ratio stays as the seed size (so a standalone/unstretched hero - e.g. on mobile, where
+   the hero reflows to its own full-width row with no stack to match - still looks like a normal
+   16:9 photo); flex-grow only pulls it taller when the card's own box is actually stretched
+   beyond that seed size (desktop, beside a taller stack). min-height:0 lets a flex child in a
+   column container grow past its content size instead of the default auto floor. */
+.cards5:not(.single) .card.hero .ph{flex:1 1 auto;min-height:0}
+.cards5:not(.single) .card.hero .cbody{flex:none}
 /* Fixed aspect ratio (Oct 2026, sale card template job), not a per-context pixel height: the box
    reserves its own space the instant the card renders, before a lazy-loaded image arrives or fails,
    so a missing/broken photo (.noimg, onerror removes the <img>) never changes the card's height and
    never breaks row alignment in a grid - the placeholder fills exactly the same box a real photo
-   would have. 4:3 is the base for every card; the large hero gets a wider 16:9. */
+   would have. 4:3 is the base for every card; the large hero gets a wider 16:9 (the hero-beside-
+   stack rule above overrides that fixed ratio back to a flexible, grown one). */
 .ph{position:relative;background:var(--ph);flex:none;aspect-ratio:4/3;height:auto}
 .ph img{width:100%;height:100%;object-fit:cover;display:block}
 .ph .none{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:600 12px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ph-ink)}

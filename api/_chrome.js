@@ -1,5 +1,5 @@
 import { isCrewRequest as isSignedCrew } from "../lib/_crew.js";
-import { isReleased as released } from "../lib/_launchStage.js";
+import { buildPages } from "../lib/appShell.js";
 // Shared page chrome for the server-rendered public pages (history, /buy): One Box tokens + fonts,
 // the left rail (with Buy) and the phone header. Lane C.
 //
@@ -132,19 +132,26 @@ const TASKS_BADGE = "<style>.tbadge{display:inline-block;margin-left:6px;padding
 // as a fast-path (a caller that already computed isCrewRequest(req) does not need isReleased to
 // recompute it) - either crew or an open stage unlocks a product; req carries the real stage read
 // (and the test-only override) once a caller passes it.
+// ONE NAV ORDER (Oct 2026, card-formatting job): the product order here comes from the exact same
+// lib/appShell.js buildPages(req, active) the shared shell's rail uses (Sell, Market Check, Tasks,
+// Buy, For business - PowerSellers is dropped, this rail never showed it and that set of links is
+// unchanged) - so History/VIN/Spec pages (this file) and the shared-shell pages (Market Check, Buy,
+// Tasks, business, Sell) always list products in the same order, defined in exactly one place.
+// This file keeps its own distinct markup/CSS (.rail/.mhead/.mnav, not the shared shell's .gas-*
+// system) - only the ORDER (and, as a side effect, the Market Check label, now "Market Check"
+// everywhere instead of this rail's old "Ask Sam") is shared, not the rendering.
 export function railHtml(active, extra, crew, req) {
   const item = (key, href, label) => '<a class="n' + (active === key ? ' on" aria-current="page' : '') + '" href="' + href + '">' + label + '</a>';
-  const on = product => !!crew || released(product, req);
   // A tiny inline flag so any client script loaded LATER on the same page (e.g. api/buy.js's CLIENT,
   // which builds some CTAs at runtime) can gate itself without a second cookie read.
   const flag = '<script>window.GAS_CREW=' + (crew ? 'true' : 'false') + ';</script>';
-  const mcOn = on("market-check"), buyOn = on("buy"), tasksOn = on("tasks"), bizOn = on("business");
-  const tasksItem = tasksOn ? item('tasks', '/tasks', 'Tasks<span class="tbadge" data-tasks-badge hidden></span>') : '';
-  const railItems = (mcOn ? item('ask', '/market-check', 'Ask Sam') : '') + (buyOn ? item('buy', '/buy', 'Buy') : '') +
-    item('sell', '/sell', 'Where to sell') + tasksItem +
+  const pages = buildPages(req, active).filter(p => p.key !== "powersellers");
+  const tasksBadgeLabel = 'Tasks<span class="tbadge" data-tasks-badge hidden></span>';
+  const railItems = pages.map(p => item(p.key, p.href, p.key === "tasks" ? tasksBadgeLabel : p.label)).join("") +
     (active === 'history' ? item('history', '#', 'Car histories') : '') +
-    item('how', '/how-sam-decides', 'How Sam decides') + (bizOn ? item('business', '/business', 'For business') : '');
-  const mnavItems = (mcOn ? item('ask', '/market-check', 'Ask Sam') : '') + (buyOn ? item('buy', '/buy', 'Buy') : '') + item('sell', '/sell', 'Sell') + tasksItem;
+    item('how', '/how-sam-decides', 'How Sam decides');
+  const mnavItems = pages.map(p => item(p.key, p.href, p.key === "tasks" ? tasksBadgeLabel : (p.key === "sell" ? "Sell" : p.label))).join("");
+  const mcOn = pages.some(p => p.key === "market-check");
   const home = mcOn ? '/market-check' : '/sell';
   return flag +
     '<nav class="rail" aria-label="Main navigation"><a class="logo" href="' + home + '">GoAskSam</a>' + railItems + (extra || '') + '</nav>' +
