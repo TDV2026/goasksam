@@ -1331,7 +1331,8 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { runEngineCheck, DEFAULT_SPECS } = await import("../scripts/crossProductCheck.js");
     const specs = req.query?.specs ? String(req.query.specs).split("|").filter(Boolean) : DEFAULT_SPECS;
-    const result = await runEngineCheck(env, specs);
+    // &buypaths=0 skips the Buy paths case (a batched caller runs it once, not per batch).
+    const result = await runEngineCheck(env, specs, { buyPaths: req.query?.buypaths !== "0" });
     return res.status(200).json(result);
   }
 

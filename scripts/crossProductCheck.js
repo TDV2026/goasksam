@@ -435,12 +435,45 @@ export async function checkSinglePick(env) {
   return out;
 }
 
+// BUY PATHS (Oct 2026, Sam): the same typed car gives the same live cars on Buy's two search paths, the chat's
+// search step (lib/live/samChat.js searchWithNearest) and the no-model search (lib/live/converse.js converse),
+// including the shared nearest-years rule (lib/live/search.js nearestYears). The chat step is given the car as
+// the resolver reads the typed words (make, model, trim, years); the model's own tool input can phrase it
+// differently, which is outside this engine check. Live rows only, no vendor call.
+export const BUY_PATH_CASES = ["1988 Porsche 911 Carrera", "1967 Chevrolet Corvette", "1966 Ford Bronco", "2009 Porsche 911 Carrera S", "Jaguar E-Type"];
+export async function checkBuyPaths(env, cases = BUY_PATH_CASES) {
+  const { converse } = await import("../lib/live/converse.js");
+  const { searchWithNearest } = await import("../lib/live/samChat.js");
+  const { parseQuery, resolveForBuy } = await import("../lib/live/search.js");
+  const out = { ok: true, cases: [] };
+  for (const q of cases) {
+    const row = { q };
+    try {
+      const pq = parseQuery(q), v = await resolveForBuy(pq.text || q, env);
+      const p = { make: v && v.make, model: v && v.model, trim: v && v.trim || undefined, year_min: pq.filters.yearMin || undefined, year_max: pq.filters.yearMax || undefined };
+      const chat = await searchWithNearest(env, p);
+      const nm = await converse(env, { messages: [q], scripted: true });
+      const ids = list => [...new Set((list || []).map(x => Number(x.r.id)))].sort((a, b) => a - b);
+      row.chat = { n: chat.sr.matches.length, near: chat.near ? chat.near.years : null };
+      row.noModel = nm.type === "results" || nm.type === "groups" ? { n: (nm.matches || []).length, near: nm.near ? nm.near.years : null } : { type: nm.type };
+      const a = ids(chat.sr.matches), b = ids(nm.matches);
+      row.sameCars = nm.type === "results" || nm.type === "groups" ? JSON.stringify(a) === JSON.stringify(b) : null;
+      row.sameNear = JSON.stringify(row.chat.near) === JSON.stringify(nm.near ? nm.near.years : null);
+      if (row.sameCars === false) { row.onlyChat = a.filter(x => !b.includes(x)).slice(0, 8); row.onlyNoModel = b.filter(x => !a.includes(x)).slice(0, 8); }
+      if (row.sameCars === false || !row.sameNear) out.ok = false;
+    } catch (e) { row.error = String(e && e.message || e); out.ok = false; }
+    out.cases.push(row);
+  }
+  return out;
+}
+
 export async function runEngineCheck(env, specs = DEFAULT_SPECS, opts = {}) {
   const rows = [];
   for (const q of specs) rows.push(await checkOneSpec(q, env));
   const totalMismatches = rows.filter(r => r.anyMismatch).length;
   const singlePick = opts.singlePick === false ? null : await checkSinglePick(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  return { task: "crossproductcheck", total: rows.length, mismatchSpecs: totalMismatches, singlePick, rows };
+  const buyPaths = opts.buyPaths === false ? null : await checkBuyPaths(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  return { task: "crossproductcheck", total: rows.length, mismatchSpecs: totalMismatches, singlePick, buyPaths, rows };
 }
 
 // ---- CLI ----
@@ -464,6 +497,7 @@ function printTable(result) {
   }
   console.log(`\nTOTAL: ${result.mismatchSpecs}/${result.total} specs had at least one field mismatch`);
   if (result.singlePick) console.log(`ONE PICK: ${result.singlePick.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.singlePick)}`);
+  if (result.buyPaths) console.log(`BUY PATHS: ${result.buyPaths.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.buyPaths)}`);
 }
 
 const isMain = import.meta.url === `file://${process.argv[1]}`;
@@ -476,5 +510,5 @@ if (isMain) {
   const result = await runEngineCheck(env, specs);
   if (asJson) console.log(JSON.stringify(result));
   else printTable(result);
-  process.exit(result.mismatchSpecs > 0 || (result.singlePick && !result.singlePick.ok) ? 1 : 0);
+  process.exit(result.mismatchSpecs > 0 || (result.singlePick && !result.singlePick.ok) || (result.buyPaths && !result.buyPaths.ok) ? 1 : 0);
 }

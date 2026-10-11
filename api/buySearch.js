@@ -428,7 +428,7 @@ async function converseOut(env, b) {
     })).then(gs => gs.filter(g => g.n || g.setAside.length));
     const [groups, maybeGroups] = await Promise.all([shape(r.groups), shape(r.maybeGroups)]);
     const total = groups.concat(maybeGroups).reduce((k, g) => k + g.n, 0);
-    const say = total && seenN ? `${total} live, grouped by model. ${sauce(seenN)}` : (r.say || null);
+    const say = r.near ? r.say : total && seenN ? `${total} live, grouped by model. ${sauce(seenN)}` : (r.say || null);
     logSearch(env, null, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
     return { type: "groups", say, groups, maybeGroups, maybeKeys: r.maybeKeys || [], filters: r.filters || null, geo: !!r.geo, footnote: !!r.footnote, perCard: !!r.perCard };
   }
@@ -447,9 +447,11 @@ async function converseOut(env, b) {
   // Count only the confirmed matches; the ones whose listing doesn't say are named as such.
   const allM = r.matches || [], unsure = allM.filter(x => (x.unknown || []).length).length, sureN = allM.length - unsure;
   const countLine = (unsure && sureN) ? `${sureN} live, and ${unsure} more whose listing doesn't say.` : `${allM.length} live.`;
-  if (!r.closest && !r.outOfScope && /^There are \d+ live right now\./.test(r.say || "") && (seenN || (unsure && sureN))) say = countLine + (seenN ? " " + sauce(seenN) : "") + (r.geo ? " Closest first." : "");
+  // A nearest-years result keeps the shared sentence (lib/live/search.js nearLine) as its opener.
+  if (r.near) say = r.say;
+  else if (!r.closest && !r.outOfScope && /^There are \d+ live right now\./.test(r.say || "") && (seenN || (unsure && sureN))) say = countLine + (seenN ? " " + sauce(seenN) : "") + (r.geo ? " Closest first." : "");
   else if (seenN && !r.closest && !r.outOfScope) say = allM.length === 1 ? r.say + " It has been through auction before, and Sam has its history." : (r.say || "") + " " + sauce(seenN);
-  return { type: "results", say: say, market: r.market || null, outOfScope: !!r.outOfScope, geo: !!r.geo, closest: !!r.closest, total: cards.length, cards, setAside, facets: r.closest ? null : facetsOf(ordered), filters: r.filters || null };
+  return { type: "results", say: say, near: r.near || null, market: r.market || null, outOfScope: !!r.outOfScope, geo: !!r.geo, closest: !!r.closest, total: cards.length, cards, setAside, facets: r.closest ? null : facetsOf(ordered), filters: r.filters || null };
 }
 // Set-aside cars (modified, engine-swapped, project) are never cards: one quiet line each, with a thumbnail.
 const ASIDE_KINDS = { engine_swap: "engine-swapped", modified: "modified", project: "a project car" };
