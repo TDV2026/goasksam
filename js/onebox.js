@@ -159,7 +159,7 @@
     var label = thin ? "Why so little" : "Why it looks like this";
     var text = thin
       ? "Because that’s all that sold. We’d rather show you every real sale than a number we made up from them."
-      : "Every figure on this page is a hammer price from a real auction, matched to the car’s trim, body and gearbox, converted at the rate on the day it sold, with the replicas, projects and odd sales set aside. The range is the middle half of where those sales landed. Where there aren’t enough sales to say something, we say that instead.";
+      : "Every sale here comes from a real auction, matched to the car’s trim, body and gearbox, with non-comparable sales shown separately.";
     return '<section class="whynote" data-stage="note"><span class="eyebrow">' + esc(label) + '</span><p>' + esc(text) + '</p><a href="/how-sam-decides">How Sam decides &#8594;</a></section>';
   }
   // LIVE PANEL: when live_listings holds cars of this family, "{N} like this are live right now" with
@@ -308,16 +308,6 @@
     var chips = q.options.map(function (o) { return '<button type="button" class="qchip" data-trimopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + ' (' + esc(o.n) + ')</button>'; }).join("");
     return '<div class="qcard earned" data-stage="answer"><p class="q">Which ' + esc(q.model) + '?</p><div class="qchips">' + chips + "</div></div>";
   }
-  // "Other trims" (item 2c): same-model sales OUTSIDE the trim question's base pool, grouped by
-  // trim with a count and the latest sale - never tagged Above/Below range (that tag belongs only
-  // to a SAME-trim outlier within the chosen pool, in "Shown separately" below).
-  function otherTrimsHtml(d) {
-    var q = d && d.trimQuestion; if (!q || !q.otherTrims || !q.otherTrims.length) return "";
-    var rows = q.otherTrims.map(function (o) {
-      return '<button type="button" class="othertrim" data-trimopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '"><span class="ot-name">' + esc(o.label) + "</span><span class=\"ot-n\">" + esc(o.n) + (o.n === 1 ? " sale" : " sales") + (o.latest ? ", latest " + esc(monthYear(o.latest)) : "") + "</span></button>";
-    }).join("");
-    return '<div class="sec-head" data-stage="cards"><div><h2>Other trims</h2></div></div><div class="othertrims">' + rows + "</div>";
-  }
   // THE EARNED QUESTION: mileage (pool-relative buckets) or transmission; answered inline.
   function earnedHtml(d, m) {
     var e = d.earned; if (!e) return "";
@@ -443,10 +433,7 @@
   function carLineHtml(d, m) {
     var pill = m ? '<span class="vinpill">' + (obSourceVin ? "VIN match" : "Exact match") + "</span>" : "";
     var name = m ? (m.displayName || carLabel(d.resolvedCar)) : carLabel(d.resolvedCar);
-    // "Copy link" (Oct 2026): Market Check only - the address bar now carries this exact result
-    // (mcPushUrl), so there is a real link worth copying the moment the result renders.
-    var copyLink = mcUrlActive() ? '<button type="button" class="linkbtn copylink" data-share>Copy link</button>' : "";
-    return '<div class="carline" data-stage="resolved">' + pill + "<span>" + esc(name) + '</span><button type="button" class="linkbtn ch" data-change>Change</button>' + copyLink + "</div>";
+    return '<div class="carline" data-stage="resolved">' + pill + "<span>" + esc(name) + '</span><button type="button" class="linkbtn ch" data-change>Change</button></div>';
   }
   // Eyebrow over the range: what the pool is (noun from the resolved car), any answered refinement,
   // and the window. Text stays mixed-case; CSS sets the caps.
@@ -528,8 +515,7 @@
       var miCtx = (mi && bandMileageScoped(d)) ? (m ? " around this mileage" : " around " + mi.toLocaleString("en-US") + " miles") : "";
       main += '<span class="eyebrow">' + esc("Where the middle half sold") + "</span>" +
         '<h1 class="range band">' + esc(usd(band[0])) + ' <span class="to">to</span> ' + esc(usd(band[1])) + "</h1>" +
-        '<p class="landed lead">' + lint("The middle half of comparable sales" + miCtx + " landed here.", "ans.landed") + "</p>" +
-        rangeBarHtml(d);
+        '<p class="landed lead">' + lint("The middle half of comparable sales" + miCtx + " landed here.", "ans.landed") + "</p>";
     } else {
       var noun = carNoun(d), subj = noun || "cars like it";
       var line = (d.poolN && d.poolN < 8)
@@ -538,24 +524,29 @@
       main += '<p class="ans-lead lead">' + lint(line, "ans.noband") + "</p>";
       var ol = olderOutsideLine(d); if (ol) main += '<p class="ans-line older">' + lint(esc(ol), "ans.older") + "</p>";
     }
-    var panel = take
-      ? '<aside class="take" aria-label="Sam’s Take"><div class="take-h"><span class="roundel" aria-hidden="true">SAM</span><span class="take-tag">' + lint("Sam’s Take", "take.tag") + "</span></div><p>" + lint(esc(take), "take") + "</p></aside>"
-      : "";
-    return '<section class="anscard evidence livetake blk' + (take ? "" : " solo") + '" data-stage="answer"><div class="ans-main">' + main + "</div>" + panel +
-      contextSalesHtml(d) + howSamDecidedHtml(d) + collapsedAsideHtml(d, m) + "</section>";
+    // Sam's Take (result-page-polish round): no right-hand column - full width, directly under the
+    // "landed here"/no-band line, inside ans-main's own flex column, quiet styling. Nothing renders
+    // and nothing is reserved when the engine gives no take.
+    if (take) main += '<aside class="take" aria-label="Sam’s Take"><div class="take-h"><span class="roundel" aria-hidden="true">SAM</span><span class="take-tag">' + lint("Sam’s Take", "take.tag") + "</span></div><p>" + lint(esc(take), "take") + "</p></aside>";
+    // Sub-section order (Job 1, result-page-polish round): context cards, the outside-range line,
+    // then How Sam decided - was How-Sam-decided then outside-range, swapped to match.
+    return '<section class="anscard evidence livetake blk solo" data-stage="answer"><div class="ans-main">' + main + "</div>" +
+      contextSalesHtml(d) + collapsedAsideHtml(d, m) + howSamDecidedHtml(d) + "</section>";
   }
   // "Three sales that put the range in context": the engine's own representative pick (closest/
   // high/low, subject already excluded server-side). Always drawn from d.representative regardless
   // of a VIN/chassis match - the subject's own sale has its own section (THIS EXACT CAR) now, so
   // this trio is always genuine OTHER comparable sales.
+  // Heading built from the count (Job 2e, result-page-polish round): one/two/three sales, never
+  // hardcoded - the engine can return a trio of 1, 2 or 3 depending on what pickRepresentative found.
   function contextSalesHtml(d) {
     var rep = d.representative;
     if (!rep || !rep.closest) return "";
-    var sides = [rep.high, rep.low].filter(Boolean).slice(0, 2);
-    var hero = heroCardHtml(rep.closest, d);
-    var row = '<div class="cards5' + (sides.length ? "" : " single") + '" data-stage="cards">' + hero +
-      (sides.length ? '<div class="stack">' + sides.map(function (c) { return smallCardHtml(c, d); }).join("") + "</div>" : "") + "</div>";
-    return '<div class="ev-sales" data-stage="cards"><h2>Three sales that put the range in context</h2>' + row + "</div>";
+    var cards = [rep.closest, rep.high, rep.low].filter(Boolean);
+    var n = cards.length;
+    var heading = n === 1 ? "One sale that puts the range in context" : n === 2 ? "Two sales that put the range in context" : "Three sales that put the range in context";
+    var html = cards.map(function (c) { return ctxCardHtml(c, d, c === rep.closest); }).join("");
+    return '<div class="ev-sales" data-stage="cards"><h2>' + esc(heading) + '</h2><div class="ctxcards n' + n + '" data-stage="cards">' + html + "</div></div>";
   }
   // "How Sam decided": the comparison fence (poolYears + the car's own name, e.g. "2005 to 2011 997
   // Carrera S"), that only completed sales count (hammer + buyer's premium reconciled), and what was
@@ -599,7 +590,7 @@
       ? "Real sales of the same car that sat well above or below the range, so they are not used to set it. Still useful to know about."
       : "Real sales of the same car, kept out of the range above. Still useful to know about.";
     var cardsHtml = list.map(function (c, i) { return poolCardHtml(c, dirs[i]); });
-    var label = list.length + (list.length === 1 ? " sale sat outside this range" : " sales sat outside this range");
+    var label = list.length + (list.length === 1 ? " sale sat outside where the middle half landed" : " sales sat outside where the middle half landed");
     return '<p class="ev-aside-toggle"><button type="button" class="linkbtn" data-qtoggle="shown-separately" aria-expanded="false">' + esc(label) + " " + CHEV_SVG + "</button></p>" +
       '<div class="ev-aside-note" id="shown-separately" hidden>' + rangeBarHtml(d) + '<p class="sep-note" data-stage="cards">' + lint(sentence, "sep.note") + "</p>" + capCardsHtml("grid3", cardsHtml, 3) + "</div>";
   }
@@ -689,13 +680,18 @@
     if (f.through) return "through " + monthDayYear(f.through) + ".";
     return "";
   }
+  // Header period (Job 2a, result-page-polish round): the sold count folded into the SAME sentence
+  // as the window it covers AND the freshness fact - "15 comparable sales in the last twelve months,
+  // through last night. Latest sale: Oct 3." windowText(d) reads d.windowLabel, the same field the
+  // no-band fallback line below already reads - no new engine field needed.
   function evidenceMetaLine(d) {
     var phrase = freshPhrase(d);
     var count = d && d.soldCount;
     if (count == null) return phrase ? '<p class="ev-meta">' + lint(esc(cap(phrase)), "ev.meta") + "</p>" : "";
     var n = Number(count);
-    var noun = (Number.isFinite(n) && n === 1) ? " comparable sale, " : " comparable sales, ";
-    var text = count + noun + (phrase || "so far.");
+    var noun = (Number.isFinite(n) && n === 1) ? " comparable sale" : " comparable sales";
+    var win = " in " + windowText(d);
+    var text = count + noun + win + ", " + (phrase || "so far.");
     return '<p class="ev-meta">' + lint(esc(text), "ev.meta") + "</p>";
   }
   // ---- Sale cards (Oct 2026 design). One renderer for every card size: photo slot (real photo, or
@@ -739,7 +735,6 @@
     return '<article class="' + cls + '">' + ph + body + "</article>";
   }
   // "Automatic (7-speed)" -> "Automatic, 7-speed".
-  function gearboxText(t) { return cap(String(t || "").replace(/\s*\((\d+)[- ]?speed\)/i, ", $1-speed").trim()); }
   function longMiles(c) { return Number(c.mi) > 0 ? Number(c.mi).toLocaleString("en-US") + " miles" : (c.mileageText && c.mileageText !== "TMU" ? c.mileageText : ""); }
   // OTHER-HALF LABEL (Oct 2026, evidence-block job): a context card drawn from the OTHER half of a
   // split/merged generation (d.halfGeneration, lib/generations.js) reads "2010, later generation" /
@@ -768,34 +763,24 @@
     if (!c || c.offWindow !== true || !c.year) return "";
     return '<div class="offwindow">' + esc("A " + c.year + " car, a few years outside the searched window.") + "</div>";
   }
-  // The hero (MIDDLE OF THE RANGE, or CLOSEST MATCH on a real similarity match) for a typed query.
+  // ONE card builder for every context-card slot (Job 2e, result-page-polish round): used to be two
+  // separate functions (a large "hero" card for the closest/middle sale, smaller "sm" cards for the
+  // other two) with different meta lines and an extra italic "why" sentence on the hero only - now
+  // one equal-size card everywhere, one meta line (miles, platform, month and year), no why line.
+  // isClosest picks which role-label pair applies; the label itself still comes from an engine field
+  // either way (c.basis for the closest card, c.delta/c.role for the other two) - never chosen here.
   // c.basis "subject" means pickRepresentative anchored on the subject's own mileage (a real VIN/
   // chassis match or a known subject mileage) - genuine similarity, so the label is CLOSEST MATCH;
   // "middle" means it anchored on the pool's median price instead, so the honest label is MIDDLE OF
-  // THE RANGE (rule: "Closest match" only when the engine has real similarity to rank by). The
-  // gearbox renders only when a gearbox question applies to this pool (obGbApplies) and the record
-  // carries one.
-  function heroCardHtml(c, d) {
-    var venue = (c.platform && c.platform !== "others") ? c.platform : "";
-    var gb = (c.transmission && obGbApplies) ? gearboxText(c.transmission) : "";
-    var mi = longMiles(c);
-    var meta = [mi, gb].filter(Boolean).join(" · ");
-    if (meta) meta += " · as listed at the time of sale";
-    var isMatch = c.basis === "subject";
-    return saleCardHtml({
-      cls: "hero", pill: isMatch ? "Closest match" : "Middle of the range", href: utmUrl(c.url), slug: c.platformSlug, image: c.image,
-      priceHtml: esc(usd(c.price)), venueLine: [venue, monthYear(c.date)].filter(Boolean).join(" · "),
-      allIn: (c.isHouse && c.allIn) ? usd(c.allIn) : "", title: cleanReceiptTitle(c.title), meta: meta,
-      extra: otherHalfLabel(c, d) + offWindowLabel(c),
-      why: isMatch ? "The nearest recent sale on mileage and spec." : "The sale nearest the middle of the range."
-    });
-  }
-  function smallCardHtml(c, d) {
+  // THE RANGE.
+  function ctxCardHtml(c, d, isClosest) {
     if (!c) return "";
     var venue = (c.platform && c.platform !== "others") ? c.platform : "";
-    var meta = [c.mileageText && c.mileageText !== "TMU" ? c.mileageText : "", venue, c.month || monShort(c.date)].filter(Boolean).join(" · ");
+    var mi = longMiles(c);
+    var meta = [mi, venue, c.month || monShort(c.date)].filter(Boolean).join(" · ");
+    var pill = isClosest ? (c.basis === "subject" ? "Closest match" : "Middle of the range") : (DELTA_LABEL[c.delta] || (c.role === "closest" ? "Closest sale" : "Recent sale"));
     return saleCardHtml({
-      cls: "sm", pill: DELTA_LABEL[c.delta] || (c.role === "closest" ? "Closest sale" : "Recent sale"), href: utmUrl(c.url), slug: c.platformSlug, image: c.image,
+      cls: "ctx", pill: pill, href: utmUrl(c.url), slug: c.platformSlug, image: c.image,
       priceHtml: esc(usd(c.price)), allIn: (c.isHouse && c.allIn) ? usd(c.allIn) : "", title: cleanReceiptTitle(c.title), meta: meta,
       extra: otherHalfLabel(c, d) + offWindowLabel(c)
     });
@@ -1157,24 +1142,29 @@
   // actually something to narrow. Refinement reruns the evidence set, never implies a price change
   // (the copy on each question already says so); a rejected model chip never comes back (the model-
   // choice dropRejectedChips filter this reuses lives in the model_choice render path, not here).
+  // Other trims is gone (Job 1, result-page-polish round): the Which [model]? chips already carry
+  // the same choice, so a second list of the same trims read as a duplicate. otherTrimsHtml had
+  // exactly one caller (here) and is deleted below along with it - not used anywhere else in this
+  // file or by Buy/the car page.
   function narrowItDownHtml(d, m, notes) {
     var chips = currentAnswersChipsHtml();
-    var qs = trimQuestionHtml(d) + bodyOptionsHtml(d) + reconfirmHtml(d, m) + observeHtml(d) + otherTrimsHtml(d);
+    var qs = trimQuestionHtml(d) + bodyOptionsHtml(d) + reconfirmHtml(d, m) + observeHtml(d);
     if (!notes && !chips && !qs) return "";
     return '<div class="sec-head" data-stage="answer"><div><h2>Narrow it down</h2></div></div>' +
       (notes ? '<div class="notes" data-stage="answer">' + notes + "</div>" : "") + chips + qs;
   }
   function resultHtml(d, m) {
-    // New page order (Oct 2026, evidence-block job): evidence block (range + the real sales behind
-    // it, one card), THIS EXACT CAR (VIN/chassis match only), LIVE RIGHT NOW, Narrow it down, More
-    // comparable sales (collapsed), Where sales landed over time (quarter bars), Ready to sell /
-    // Have Sam keep looking (one block, see samOnItHtml), Why it looks like this.
+    // Page order (Job 1, result-page-polish round): A evidence block, B narrow it down, C this
+    // exact car (VIN/chassis match only), D live right now, E more comparable sales (collapsed),
+    // F where sales landed over time, G ready to sell, H have Sam keep looking (one block, see
+    // samOnItHtml), I the trust sentence. Was evidence/exact-car/live/narrow before - narrow moved
+    // up, exact-car and live moved down, to match.
     var notes = mileageFallbackHtml(d) + contradictionLine(d) + observeAsideHtml(d) + inlineSplitsHtml(d);
     if (d.driverSentence && !(d.earned) && !(d.divergence && d.divergence.kase === "a")) notes += '<p class="varynote">' + lint(esc(d.driverSentence), "varynote") + "</p>";
     var body = evidenceBlockHtml(d, m);
+    body += narrowItDownHtml(d, m, notes);
     body += thisExactCarHtml(d, m);
     body += livePanelSlot();
-    body += narrowItDownHtml(d, m, notes);
     body += moreComparableSalesHtml(d, m);
     body += marketReadHtml(d);
     body += sellHtml();

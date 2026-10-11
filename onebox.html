@@ -104,14 +104,22 @@ button{font:inherit}
 .anschip:hover span{color:var(--green)}
 
 /* ---- answer card ---- */
-.anscard{background:var(--card);border:1px solid var(--border);border-radius:16px;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));overflow:hidden}
-.ans-main{grid-column:span 7;padding:26px 28px 24px;display:flex;flex-direction:column;gap:10px;border-right:1px solid var(--div)}
-.anscard.solo .ans-main{grid-column:1 / -1;border-right:0}
+/* Simple block now (result-page-polish round, Job 2d): Sam's Take used to be a separate grid
+   column beside ans-main (a 10-column grid, ans-main spanning 7, take spanning 3). Every caller of
+   .anscard already carried the "solo" full-width override, so that split was already dead for both
+   of this file's two callers before this round touched it - removed the grid entirely rather than
+   leave an unused column system for a future reader to puzzle over. Take now lives INSIDE ans-main's
+   own HTML (one more child in its flex column), directly under the range/no-band line. */
+.anscard{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.ans-main{padding:26px 28px 24px;display:flex;flex-direction:column;gap:10px}
 .eyebrow{font:600 13px/1.4 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--sec)}
 .range{margin:0;font:600 40px/1.1 var(--serif);color:var(--green);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 .range .to{font-weight:400;font-size:26px;color:var(--sec)}
 .landed{margin:0;font:400 20px/1.4 var(--serif);color:var(--ink)}
-/* ---- range bar (Oct 2026): full spread, typical band highlighted, labelled ends ---- */
+/* ---- range bar: full spread, typical band highlighted, labelled ends - now only inside the
+   collapsed "sales sat outside" note (Job 2c, result-page-polish round; was also always-visible
+   under the range, removed from there - a second spread next to the headline range read as a
+   second, competing number). ---- */
 .rangebar{margin-top:2px}
 .rb-row{display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"lo track hi";align-items:center;gap:10px}
 .rb-end{font:400 13px/1 var(--sans);color:var(--sec);font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -123,7 +131,10 @@ button{font:inherit}
 .fresh{display:flex;gap:10px;align-items:center;font:400 14px/1.4 var(--sans);color:var(--sec);margin-top:4px}
 .fresh .dot{width:8px;height:8px;border-radius:50%;background:var(--live);flex:none}
 .ans-line{margin:0;font:400 15px/1.5 var(--sans);color:var(--soft)}
-.take{grid-column:span 3;padding:24px 22px 22px;background:var(--take);display:flex;flex-direction:column;gap:8px}
+/* Quiet, full width (Job 2d): was a 30%-width side panel with heavier padding; now a thin tinted
+   strip directly under the range line, same family as the context-card note classes (otherhalf/
+   offwindow) in restraint, just with its own roundel + one or two sentences. */
+.take{padding:14px 16px;background:var(--take);border-radius:10px;display:flex;flex-direction:column;gap:6px}
 /* margin, not gap (Oct 2026, mid-width job): Sam reported the roundel overlapping the SAM'S TAKE
    text in a narrower Safari window - not reproducible in Chrome at 390 to 1440 (measured: a real
    10px gap holds at every width, the only change at 900 is the label wrapping to two lines, which
@@ -137,13 +148,11 @@ button{font:inherit}
 .take-tag{font:600 13px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--green)}
 .take p{margin:0;font:400 17px/1.45 var(--serif);color:var(--soft)}
 
-/* ---- evidence block (Oct 2026): the range card's sub-sections - the three context sales, "How
-   Sam decided" and the collapsed set-aside line - as direct children of the SAME .anscard grid, so
-   the whole thing reads as one card with no border between parts (CLAUDE.md: a screenshot of the
-   first screen alone must still show the range and the real sales it came from). Each sub-section
-   spans the full 10-column grid under the ans-main/take row above it. ---- */
+/* ---- evidence block: the range card's sub-sections - the three context sales, the collapsed
+   outside-range line and "How Sam decided" - as direct children of the SAME .anscard, so the whole
+   thing reads as one card with no border between parts (CLAUDE.md: a screenshot of the first
+   screen alone must still show the range and the real sales it came from). ---- */
 .ev-meta{margin:0;font:400 15px/1.4 var(--sans);color:var(--sec)}
-.anscard.evidence .ev-sales,.anscard.evidence .ev-why-toggle,.anscard.evidence .ev-why-note,.anscard.evidence .ev-aside-toggle,.anscard.evidence .ev-aside-note{grid-column:1 / -1}
 .ev-sales{padding:8px 28px 22px;display:flex;flex-direction:column;gap:14px}
 .ev-sales h2{margin:0;font:500 20px/1.25 var(--serif)}
 .otherhalf,.offwindow{margin-top:2px;font:400 12.5px/1.3 var(--sans);color:var(--sec)}
@@ -194,29 +203,12 @@ button{font:inherit}
 .sec-head .scope{display:block;font:400 14px/1.45 var(--sans);color:var(--sec);margin-top:2px}
 .sec-head .linkbtn{white-space:nowrap}
 .sep-note{margin:0;font:400 15px/1.5 var(--sans);color:var(--sec);max-width:68ch}
-/* ---- Other trims (item 2c, Oct 2026): a named trim held out of the base pool, summarised - never a
-   price-range claim, never Above/Below range (that tag is reserved for a same-trim outlier). ---- */
-.othertrims{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden}
-.othertrim{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;border:0;border-top:1px solid var(--div);background:none;text-align:left;padding:14px 20px;font:inherit;color:inherit;cursor:pointer;min-height:48px}
-.othertrim:first-child{border-top:0}
-.othertrim:hover{background:var(--tint)}
-.othertrim:hover .ot-name{color:var(--green)}
-.ot-name{font:500 16px/1.3 var(--sans);color:var(--ink)}
-.ot-n{font:400 14px/1.4 var(--sans);color:var(--sec);white-space:nowrap}
 /* ---- long-list cap (Oct 2026): extra cards server-render, just hidden until "Show 10 more" ---- */
 .cap-extra[hidden]{display:none}
 .cap-extra:not([hidden]){display:contents}
 .capshow{margin-top:14px}
 
 /* ---- cards ---- */
-/* align-items:start (Oct 2026, card-formatting job): a grid row's track height is set by its
-   tallest item's own NATURAL content regardless of align-items, so switching the default off
-   stretch does not shrink anything - it only stops a shorter sibling's CARD BOX from being pulled
-   up to match a taller one. Each card (both the small context cards and, on mobile where .stack
-   collapses to display:contents, the two cards directly) now simply sizes to its own content and
-   sits at the top of its track; any leftover track height is blank grid gutter OUTSIDE the card,
-   never blank space stretched INSIDE one. The hero opts back in below, because the hero is the one
-   card that should visibly grow to match - by growing its PHOTO, never its text block. */
 .cards5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:20px;align-items:start}
 .card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;color:inherit}
 .card:hover{border-color:var(--green)}
@@ -224,32 +216,10 @@ button{font:inherit}
 .card.hero{grid-column:span 3}
 .cards5.single .card.hero{grid-column:1 / -1}
 .card.this{border:1.5px solid var(--green)}
-.stack{grid-column:span 2;display:flex;flex-direction:column;gap:20px}
-.stack .card{flex:none}
-/* Hero-beside-stack (Oct 2026, card-formatting job): when the hero has a stack sibling (never in
-   the .single case - a lone hero has no taller neighbour to match), the hero opts back into
-   stretching to the row's full height, then hands every pixel of that extra height to its OWN
-   PHOTO (cropped with object-fit:cover, never stretched) rather than its text block, so the price/
-   venue/title/miles line always sits directly under the photo with no blank band above or below it. */
-.cards5:not(.single) .card.hero{align-self:stretch}
-/* The photo is not a direct flex child of .card - saleCardHtml wraps it in a bare, classless <a>
-   when the sale has a URL (almost always), so flex-grow on .ph itself did nothing (measured live:
-   it stayed pinned near its own aspect-ratio height while the card around it grew - the real flex
-   item is the anchor, one level up). ":first-child" is always that anchor (or, on the rare un-
-   linked card, .ph itself - the same rule still applies correctly either way): it grows to absorb
-   the row's leftover height, then .ph fills 100% of whatever height that wrapper ends up with.
-   aspect-ratio:auto so a fixed ratio never wins over the grown height; on mobile (below) the hero
-   is never stretched - no taller sibling shares its row there - so the ratio is restored to keep
-   it a normal photo instead of collapsing with nothing left to size it. */
-.cards5:not(.single) .card.hero > :first-child{flex:1 1 auto;min-height:0;display:block}
-.cards5:not(.single) .card.hero .ph{aspect-ratio:auto;height:100%}
-.cards5:not(.single) .card.hero .cbody{flex:none}
-/* Fixed aspect ratio (Oct 2026, sale card template job), not a per-context pixel height: the box
-   reserves its own space the instant the card renders, before a lazy-loaded image arrives or fails,
-   so a missing/broken photo (.noimg, onerror removes the <img>) never changes the card's height and
-   never breaks row alignment in a grid - the placeholder fills exactly the same box a real photo
-   would have. 4:3 is the base for every card; the large hero gets a wider 16:9 (the hero-beside-
-   stack rule above overrides that fixed ratio back to a flexible, grown one). */
+/* Fixed aspect ratio, not a per-context pixel height: the box reserves its own space the instant
+   the card renders, before a lazy-loaded image arrives or fails, so a missing/broken photo
+   (.noimg, onerror removes the <img>) never changes the card's height and never breaks row
+   alignment in a grid - the placeholder fills exactly the same box a real photo would have. */
 .ph{position:relative;background:var(--ph);flex:none;aspect-ratio:4/3;height:auto}
 .ph img{width:100%;height:100%;object-fit:cover;display:block}
 .ph .none{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:600 12px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ph-ink)}
@@ -257,15 +227,26 @@ button{font:inherit}
 .ph.noimg .none{display:flex}
 .hero .ph{aspect-ratio:16/9}
 .pill{position:absolute;top:14px;left:14px;padding:6px 12px;background:var(--green);color:#fff}
-.card.sm .pill{top:10px;left:10px;padding:5px 9px;background:var(--card);color:var(--green)}
 .cbody{padding:18px 22px 20px;display:flex;flex-direction:column;gap:6px;flex:1}
-.card.sm .cbody{padding:10px 14px 12px;gap:3px}
 .price-row{display:flex;justify-content:space-between;align-items:baseline;gap:6px 16px;flex-wrap:wrap}
 .cprice{font:600 32px/1 var(--serif);font-variant-numeric:tabular-nums}
-.card.sm .cprice{font-size:22px}
 .cvenue{font:400 14px/1.4 var(--sans);color:var(--sec)}
 .ctitle{font:500 17px/1.35 var(--sans);color:var(--ink)}
-.card.sm .ctitle{font-size:15px;line-height:1.3}
+/* ---- context cards (Job 2e, result-page-polish round): one equal-size card for every slot, 1 to
+   3 of them - replaces the old hero(large)+stack(small) asymmetric pair, which forced whichever
+   card was "closest" to visually outrank the other two even though all three are equally real
+   evidence. Three across at desktop, two across for a 2-card result, one (constrained, not full
+   hero width) for a 1-card result; always one column at 390 (media query below). Same photo
+   aspect-ratio and same type scale on every card regardless of count or role. */
+.ctxcards{display:grid;gap:20px;align-items:start}
+.ctxcards.n3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.ctxcards.n2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.ctxcards.n1{grid-template-columns:minmax(0,1fr);max-width:360px}
+.card.ctx .ph{aspect-ratio:4/3}
+.card.ctx .pill{top:10px;left:10px;padding:5px 9px;background:var(--card);color:var(--green)}
+.card.ctx .cbody{padding:14px 16px 16px;gap:4px}
+.card.ctx .cprice{font-size:24px}
+.card.ctx .ctitle{font-size:15px;line-height:1.3}
 .cmeta{font:400 14px/1.45 var(--sans);color:var(--sec)}
 .callin{font:400 14px/1.4 var(--sans);color:var(--sec)}
 .cwhy{margin:4px 0 0;font:italic 400 16px/1.45 var(--serif);color:var(--soft)}
@@ -390,9 +371,8 @@ a.sb-line:hover{color:var(--green)}
   .inbox input{font-size:17px}
   .inbox .go{width:44px;height:44px;border-radius:9px;font-size:20px}
   .carline{font-size:15px;gap:10px;margin:-2px 0 -6px}
-  .anscard{display:flex;flex-direction:column;border-radius:14px}
-  .ans-main{padding:18px 18px 16px;gap:8px;border-right:0;border-bottom:1px solid var(--div)}
-  .anscard.solo .ans-main{border-bottom:0}
+  .anscard{border-radius:14px}
+  .ans-main{padding:18px 18px 16px;gap:8px}
   .ev-sales{padding:4px 18px 18px}
   .ev-why-toggle,.ev-aside-toggle{padding:0 18px 14px}
   .ev-why-note,.ev-aside-note{padding:0 18px 18px}
@@ -401,7 +381,7 @@ a.sb-line:hover{color:var(--green)}
   .range .to{font-size:20px}
   .landed{font-size:18px}
   .ans-lead{font-size:21px}
-  .take{padding:16px 18px}
+  .take{padding:12px 14px}
   .take-tag{font-size:12px}
   .sec-head{display:block;padding-top:14px;margin-top:4px}
   .sec-head h2{font-size:20px}
@@ -409,15 +389,9 @@ a.sb-line:hover{color:var(--green)}
   .cards5{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
   .card{border-radius:14px}
   .card.hero{grid-column:1 / -1}
-  /* No stack shares the hero's row at this width (it reflows to its own full line, see above) -
-     restore the fixed ratio the desktop rule above drops, so the photo is a normal 16:9 image
-     instead of collapsing with nothing left to size it. */
-  .cards5:not(.single) .card.hero .ph{aspect-ratio:16/9}
   .hero .cprice{font-size:30px}
   .hero .cbody{padding:16px 18px 18px}
-  .stack{display:contents}
-  .card.sm .cbody{padding:12px 12px 14px;gap:4px}
-  .card.sm .pill{top:8px;left:8px}
+  .ctxcards.n3,.ctxcards.n2,.ctxcards.n1{grid-template-columns:minmax(0,1fr);max-width:none;gap:12px}
   .grid2{grid-template-columns:1fr;gap:14px}
   .grid3{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
   .grid3 .cbody{padding:12px}
