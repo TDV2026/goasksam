@@ -4183,7 +4183,7 @@ async function handleOps(req, res) {
         });
       } catch (e) { out.push({ q, error: String((e && e.message) || e).slice(0, 220) }); }
     }
-    return res.status(200).json({ task: "obdiag", cars: out });
+    return res.status(200).json({ task: "obdiag", engineVersion: ENGINE_VERSION, cars: out });
   }
 
   // task=eight12scan: READ-ONLY (archive; ZERO OCD, no writes). Archive ground-truth for the 812
