@@ -193,10 +193,20 @@
     if (above) parts.push({ n: above, full: "bidding above the range", short: "above it" });
     if (!parts.length) return "";
     var out = parts.map(function (p, i) {
-      var numCap = p.n === 1 ? "One" : String(p.n), numLow = p.n === 1 ? "one" : String(p.n);
-      return i === 0 ? (numCap + " is " + p.full) : (numLow + " " + p.short);
+      return i === 0 ? (obNumWord(p.n) + " is " + p.full) : (obNumWordLow(p.n) + " " + p.short);
     });
     return out.join(", ") + ".";
+  }
+  // Status pill text from the engine's own placing field ("inside the range"/"below the range"/
+  // "above the range", lib/live/search.js placingFor) - sentence-cased here, CSS (.pill,
+  // text-transform:uppercase) renders it in caps like every other pill. Never green or red (Job 8,
+  // result-page-polish round): .lp-pos below is the same neutral-ink treatment the context cards'
+  // Above/Below range pill already uses.
+  function placingPillText(placing) {
+    if (placing === "inside the range") return "Inside the range";
+    if (placing === "below the range") return "Below the range";
+    if (placing === "above the range") return "Above the range";
+    return "";
   }
   function loadLivePanel(d, m) {
     var slot = document.getElementById("ob-live"); var rc = d && d.resolvedCar;
@@ -210,27 +220,30 @@
       (band ? "&lo=" + Math.round(band[0]) + "&hi=" + Math.round(band[1]) : "");
     fetch(API_ORIGIN + "/api/buySearch?" + qs).then(function (r) { return r.json(); }).then(function (j) {
       if (!j || !(j.count > 0) || !j.rows || !j.rows.length || !document.body.contains(slot)) return;
+      // Compact rows (Job 4, result-page-polish round): the car leads, not the venue - a small fixed-
+      // box thumbnail (same placeholder-box pattern as .ph elsewhere, so a missing photo never
+      // changes row height), the title as the primary line, "{venue} · Ends {when}" as the secondary
+      // line, the bid visible but modest size, and a neutral-ink position pill from the engine's own
+      // placing field when a range exists to judge it against.
       var rows = j.rows.map(function (l) {
-        // Item 11 (Oct 2026): never a bare figure that reads as a price - "Current bid $X" (or
-        // "Asking $X" the day a fixed-price field exists in the feed; none does today, so that
-        // branch is structural only, never guessed) or "No bids yet" when there truly is none.
         var amt = l.current_bid_usd ? usd(l.current_bid_usd) : (l.current_bid ? Math.round(l.current_bid).toLocaleString("en-US") + " " + l.currency : "");
-        var priceText = l.fixedPriceUsd ? "Asking " + usd(l.fixedPriceUsd) : (amt ? "Current bid " + amt : "No bids yet");
-        // Market Check engine additions, item 5: the server's own placingFor judged this row against
-        // the band passed above; null (no band, or the figure isn't a judgeable dollar amount) shows
-        // nothing extra. Kept on the row too (not just the summary above it) so a reader can tell
-        // exactly WHICH listing the summary sentence is talking about.
-        if (l.placing) priceText += " · " + l.placing;
-        return '<a class="lp-row" href="' + esc(utmUrl(l.url)) + '" target="_blank" rel="noopener noreferrer" data-gas-event="auction_clickout" data-gas-source="' + esc(l.source || "") + '"><span class="lp-house">' + esc(l.source) + '</span><span class="lp-t">' + esc(cleanReceiptTitle(l.title)) + '</span><span class="lp-r"><b>' + esc(priceText) + '</b>' + esc(endsShort(l.end_time)) + '</span></a>';
+        var bidText = l.fixedPriceUsd ? "Asking " + usd(l.fixedPriceUsd) : (amt ? "Current bid " + amt : "No bids yet");
+        var pillText = placingPillText(l.placing);
+        var photo = l.photo_url ? '<img src="' + esc(l.photo_url) + '" alt="" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()">' : "";
+        return '<a class="lp-row" href="' + esc(utmUrl(l.url)) + '" target="_blank" rel="noopener noreferrer" data-gas-event="auction_clickout" data-gas-source="' + esc(l.source || "") + '">' +
+          '<span class="lp-ph' + (l.photo_url ? "" : " noimg") + '">' + photo + '<span class="none">No photo</span></span>' +
+          '<span class="lp-body"><span class="lp-title">' + esc(cleanReceiptTitle(l.title)) + '</span><span class="lp-sub">' + esc([l.source, "Ends " + endsShort(l.end_time)].filter(Boolean).join(" · ")) + '</span></span>' +
+          '<span class="lp-bid"><b>' + esc(bidText) + '</b>' + (pillText ? '<span class="pill lp-pos">' + esc(pillText) + "</span>" : "") + "</span></a>";
       }).join("");
       var q = (m && m.displayName) || carLabel(rc);
-      var headline = j.count + " comparable " + (j.count === 1 ? "car is" : "cars are") + " at auction.";
+      var headline = obNumWord(j.count) + " comparable " + (j.count === 1 ? "car is" : "cars are") + " at auction.";
       var placing = placingSentence(j.rows);
       var summary = headline + (placing ? " " + placing : "");
+      var seeAll = j.count === 1 ? "See it live" : "See all " + obNumWordLow(j.count) + " live";
       slot.className = "livepanel";
       slot.innerHTML = '<div class="lp-h"><span class="eyebrow"><span class="dot" aria-hidden="true"></span>Live right now</span></div>' +
         '<p class="lp-summary">' + lint(esc(summary), "live.summary") + '</p>' + rows +
-        '<a class="linkbtn" href="/buy?q=' + encodeURIComponent(q) + '">See them all &#8594;</a>';
+        '<a class="linkbtn" href="/buy?q=' + encodeURIComponent(q) + '">' + esc(seeAll) + " &#8594;</a>";
       slot.hidden = false;
     }).catch(function () {});
   }
@@ -936,12 +949,21 @@
     return earnedHtml(d, m);
   }
   // Capped third split (Part 3 question cap): the would-be third question rendered as short lines.
-  // "Manuals sold between X and Y. F1s between X and Y." - real ranges, $500-rounded, never a question.
+  // Job 3 (result-page-polish round): sp.sides[].lo/hi are the 25th/75th percentile of that side's
+  // own sales (lib/onebox.js inlineSplitRange's own band() - the SAME middle-half math the headline
+  // range uses, confirmed by reading the function, not guessed) - the old copy ("Manuals sold
+  // between X and Y") read as the full spread of what manuals sold for, when it was already the
+  // middle half. Each side also carries its own n (sample size); a side under 8 (this file's usual
+  // too-few-to-say floor, e.g. evidenceBlockHtml's poolN<8 branch) says so instead of a number.
   function inlineSplitsHtml(d) {
     if (!d.inlineSplits || !d.inlineSplits.length) return "";
     var lines = d.inlineSplits.map(function (sp) {
-      var a = sp.sides[0], b = sp.sides[1];
-      return '<p class="splitline">' + lint(esc(a.label) + " sold between " + r3money(a.lo) + " and " + r3money(a.hi) + ". " + esc(b.label) + " between " + r3money(b.lo) + " and " + r3money(b.hi) + ".", "split." + sp.key) + "</p>";
+      var sides = sp.sides.map(function (s) {
+        return Number(s.n) >= 8
+          ? ("The middle half of " + esc(s.label.toLowerCase()) + " sold between " + r3money(s.lo) + " and " + r3money(s.hi) + ", from " + Number(s.n) + " sales.")
+          : (esc(s.label) + ": too few sales to say.");
+      });
+      return '<p class="splitline">' + lint(sides.join(" "), "split." + sp.key) + "</p>";
     }).join("");
     return '<div class="inlinesplits" data-stage="answer">' + lines + "</div>";
   }
@@ -984,12 +1006,12 @@
           var cnt = digitOf(q.count);
           if (cnt < 3) return null;
           var soFarPeriod = '<span class="mktread-qperiod">' + esc(MONTHS_FULL[now.getMonth()] + " " + now.getFullYear() + " so far") + '</span>';
-          return '<div class="mktread-qrow mktread-qrow-sofar"><button type="button" class="mktread-qrowbtn" disabled>' + soFarPeriod +
-            '<span class="mktread-qtrack"></span><span class="mktread-qtext num">' + esc(cnt + " sold") + '</span><span class="mktread-qcount"></span></button></div>';
+          return '<div class="mktread-qrow mktread-qrow-sofar"><div class="mktread-qrowbtn">' + soFarPeriod +
+            '<span class="mktread-qtrack"></span><span class="mktread-qtext num">' + esc(cnt + " sold") + '</span><span class="mktread-qcount"></span></div></div>';
         }
         var period = '<span class="mktread-qperiod">' + esc(q.period) + '</span>';
-        return '<div class="mktread-qrow mktread-qrow-none"><button type="button" class="mktread-qrowbtn" disabled>' + period +
-          '<span class="mktread-qtrack"></span><span class="mktread-qtext mktread-qnone">Not enough sales</span><span class="mktread-qcount"></span></button></div>';
+        return '<div class="mktread-qrow mktread-qrow-none"><div class="mktread-qrowbtn">' + period +
+          '<span class="mktread-qtrack"></span><span class="mktread-qtext mktread-qnone">Not enough sales</span><span class="mktread-qcount"></span></div></div>';
       }
       var period = '<span class="mktread-qperiod">' + esc(q.period) + '</span>';
       var track = "";
@@ -997,24 +1019,19 @@
         var a = pc(q.band[0]), b = pc(q.band[1]);
         track = '<i class="mktread-qband' + (i === 0 ? " latest" : "") + '" style="left:' + a.toFixed(1) + '%;width:' + Math.max(1.5, b - a).toFixed(1) + '%"></i>';
       }
-      var hasOpen = Array.isArray(q.sales) && q.sales.length > 0;
-      var id = hasOpen ? "ob-q" + (++obCapSeq) : null;
-      var btnAttrs = hasOpen ? ' data-qtoggle="' + id + '" aria-expanded="false"' : ' disabled';
-      var row = '<div class="mktread-qrow"><button type="button" class="mktread-qrowbtn"' + btnAttrs + '>' + period +
-        '<span class="mktread-qtrack">' + track + '</span><span class="mktread-qtext num">' + esc(usd(q.band[0])) + ' to ' + esc(usd(q.band[1])) + '</span><span class="mktread-qcount">' + esc(q.count) + ' sold</span></button></div>';
-      if (hasOpen) {
-        var cards = q.sales.map(function (c) { return poolCardHtml(c, false); }).join("");
-        row += '<div class="mktread-qexpand grid3" id="' + id + '" hidden>' + cards + '</div>';
-      }
-      return row;
+      // Bars, ranges and counts only (Job 5, result-page-polish round): the click-to-expand sales
+      // cards are gone - the toggle never opened on the current quarter's disabled row and never
+      // reliably closed on the others. Each row is now a plain div, not a button.
+      return '<div class="mktread-qrow"><div class="mktread-qrowbtn">' + period +
+        '<span class="mktread-qtrack">' + track + '</span><span class="mktread-qtext num">' + esc(usd(q.band[0])) + ' to ' + esc(usd(q.band[1])) + '</span><span class="mktread-qcount">' + esc(q.count) + ' sold</span></div></div>';
     }).filter(Boolean).join("");
     if (!rows) return "";
     return '<div class="mktread-qrows">' + rows + '</div>';
   }
   // WHERE SALES LANDED OVER TIME (item 6, evidence-block job, last on the page before Ready to
   // sell): the quarter bars only. The "N sales set aside" pill that used to live here is gone - the
-  // evidence block above already carries its own collapsed "N sales sat outside this range" line
-  // right next to the range it describes, so a second pointer to the same content down here was
+  // evidence block above already carries its own collapsed "N sales sat outside where the middle
+  // half landed" line right next to the range it describes, so a second pointer down here was
   // pure duplication (part of the "fourteen cards between the answer and everything else" clutter).
   // The lead sentence is composed HERE from the engine's structured yoyDirection fields (recentBand/
   // priorBand/percent/status), never read from its pre-built .sentence string - the engine's own
@@ -1424,7 +1441,11 @@
     if (a.length <= 1) return a[0] || "";
     return a.slice(0, -1).join(", ") + " and " + a[a.length - 1];
   }
-  function obNumWord(n) { return ["", "One", "Two", "Three", "Four", "Five"][n] || String(n); }
+  // Number words one to ten in sentences (copy rule, result-page-polish round): extended from five
+  // to ten - reused by the live-right-now headline/placing sentence and the "see all N live" footer.
+  var NUMWORD = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"];
+  function obNumWord(n) { return NUMWORD[n] || String(n); }
+  function obNumWordLow(n) { return (NUMWORD[n] || String(n)).toLowerCase(); }
   function classEraHtml(d, m) {
     var ce = d.classEra;
     htLastD = d;   // so gearboxLabel can read the resolved model for the receipt rows

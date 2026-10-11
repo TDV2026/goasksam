@@ -165,7 +165,7 @@ export default async function handler(req, res) {
       const lo = Number(q.lo), hi = Number(q.hi);
       const band = Number.isFinite(lo) && Number.isFinite(hi) ? [lo, hi] : null;
       res.setHeader("Cache-Control", "public, s-maxage=300");
-      return res.status(200).json({ count: live.total, rows: live.rows.map(r => ({ source: houseName(r.source), title: r.listing_title, url: r.url, current_bid_usd: r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, current_bid: r.current_bid, currency: r.currency, end_time: r.end_time, bid_at: r.bid_at || r.last_seen || null, placing: band ? placingFor(r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, band) : null })) });
+      return res.status(200).json({ count: live.total, rows: live.rows.map(r => ({ source: houseName(r.source), title: r.listing_title, url: r.url, photo_url: r.photo_url || null, current_bid_usd: r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, current_bid: r.current_bid, currency: r.currency, end_time: r.end_time, bid_at: r.bid_at || r.last_seen || null, placing: band ? placingFor(r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, band) : null })) });
     }
     if (req.method !== "POST") return res.status(405).json({ status: "error" });
     // Everything from here down is Buy's own endpoint (search, chat, saved searches, alerts) - gated

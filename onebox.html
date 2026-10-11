@@ -176,18 +176,21 @@ button{font:inherit}
 .mktread-lead{margin:0;font:400 20px/1.4 var(--serif);color:var(--ink)}
 .mktread-qrows{display:flex;flex-direction:column}
 .mktread-qrow+.mktread-qrow{border-top:1px solid var(--div)}
-.mktread-qrowbtn{width:100%;background:none;border:0;padding:12px 0;display:grid;grid-template-columns:118px 1fr auto auto;grid-template-areas:"period track text count";align-items:center;gap:16px;font:inherit;color:inherit;text-align:left;cursor:pointer;min-height:44px}
-.mktread-qrowbtn:disabled{cursor:default}
-.mktread-qrowbtn:not(:disabled):hover .mktread-qperiod{color:var(--green)}
+/* No longer a button (Job 5, result-page-polish round): bars, ranges and counts only - the click-
+   to-expand sales cards are gone (the toggle never opened on the current quarter's disabled row
+   and never reliably closed on the others), so each row is now a plain, non-interactive div. */
+.mktread-qrowbtn{width:100%;padding:12px 0;display:grid;grid-template-columns:118px 1fr auto auto;grid-template-areas:"period track text count";align-items:center;gap:16px;min-height:44px}
 .mktread-qperiod{grid-area:period;font:600 12.5px/1.3 var(--sans);letter-spacing:.02em;color:var(--sec);font-variant-numeric:tabular-nums;white-space:nowrap}
 .mktread-qtrack{grid-area:track;position:relative;height:6px;background:var(--div);border-radius:3px}
-.mktread-qband{position:absolute;top:0;height:6px;border-radius:3px;background:var(--chip)}
+/* --chip against --div measured at 1.12:1 (job's own "check at 3:1" instruction, result-page-
+   polish round) - well under the 3:1 non-text contrast floor, hard to see which quarter's band is
+   which. --sec (4.16:1) reads as the muted/past quarter; .latest keeps the full --green (7.19:1)
+   for the most recent one - same meaningful distinction, now actually visible. */
+.mktread-qband{position:absolute;top:0;height:6px;border-radius:3px;background:var(--sec)}
 .mktread-qband.latest{background:var(--green)}
 .mktread-qtext{grid-area:text;font:400 15px/1.3 var(--sans);color:var(--ink);white-space:nowrap}
 .mktread-qnone{color:var(--sec);font-style:italic}
 .mktread-qcount{grid-area:count;font:400 13px/1.3 var(--sans);color:var(--sec);text-align:right;white-space:nowrap}
-.mktread-qexpand{margin-bottom:14px}
-.mktread-qexpand[hidden]{display:none}
 @media (max-width:640px){
   .mktread-qrowbtn{grid-template-columns:1fr auto;grid-template-areas:"period count" "track track" "text text";row-gap:8px}
   .mktread-qcount{text-align:left}
@@ -315,19 +318,31 @@ a.sb-line:hover{color:var(--green)}
 .livepanel .lp-h .eyebrow{display:flex;align-items:center;gap:8px}
 .livepanel .lp-h .dot{width:9px;height:9px;border-radius:50%;background:var(--live);flex:none}
 .lp-summary{margin:0;font:400 18px/1.4 var(--serif);color:var(--ink)}
-.lp-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 14px;align-items:baseline;padding:10px 0;border-top:1px solid var(--div);text-decoration:none;color:inherit}
+/* Compact row (Job 4, result-page-polish round): thumbnail, then the car (title leads, venue/end-
+   time secondary), then the bid - was venue-first with no photo. Fixed thumbnail box so a missing
+   photo never changes row height, same placeholder pattern as .ph elsewhere. */
+.lp-row{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--div);text-decoration:none;color:inherit}
 .lp-row:first-of-type{border-top:0}
-.lp-row:hover .lp-t{text-decoration:underline;text-underline-offset:3px}
-.lp-house{font:600 14px/1.2 var(--sans);color:var(--green)}
-.lp-t{font:500 15px/1.35 var(--sans);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lp-r{text-align:right;font:400 14px/1.4 var(--sans);color:var(--sec);white-space:nowrap}
-.lp-r b{display:block;font:600 17px/1.2 var(--serif);color:var(--ink)}
+.lp-row:hover .lp-title{text-decoration:underline;text-underline-offset:3px}
+.lp-ph{position:relative;width:44px;height:44px;border-radius:8px;overflow:hidden;background:var(--ph);flex:none}
+.lp-ph img{width:100%;height:100%;object-fit:cover;display:block}
+.lp-ph .none{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font:600 8px/1 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--ph-ink);text-align:center}
+.lp-ph.noimg .none{display:flex}
+.lp-body{min-width:0;display:flex;flex-direction:column;gap:2px}
+.lp-title{font:500 15px/1.3 var(--sans);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lp-sub{font:400 13px/1.3 var(--sans);color:var(--sec);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lp-bid{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:4px;white-space:nowrap}
+.lp-bid b{font:600 16px/1.2 var(--serif);color:var(--ink);font-weight:600}
+/* Neutral-ink position pill (Job 8: never green or red for inside/below/above the range) - reuses
+   the shared .pill text treatment (uppercase, letter-spacing) but overrides its absolute photo-
+   corner positioning and green fill, since this pill sits inline next to the bid, not on a photo. */
+.pill.lp-pos{position:static;padding:3px 8px;background:var(--tint);color:var(--sec)}
 /* ---- why it looks like this ---- */
 .whynote{display:flex;flex-direction:column;gap:6px;padding-top:4px}
 .whynote .eyebrow{color:var(--sec)}
 .whynote p{margin:0;font:400 15px/1.55 var(--sans);color:var(--sec);max-width:68ch}
 .whynote a{font:600 15px/1.4 var(--sans);min-height:44px;display:inline-flex;align-items:center;align-self:flex-start}
-@media (max-width:640px){.lp-row{grid-template-columns:minmax(0,1fr) auto}.lp-house{grid-column:1 / -1}.livepanel{padding:16px}}
+@media (max-width:640px){.lp-row{grid-template-columns:36px minmax(0,1fr) auto;gap:10px}.lp-ph{width:36px;height:36px}.livepanel{padding:16px}}
 /* ---- ready to sell ---- */
 .sellbox{background:var(--green);color:#fff;border-radius:14px;padding:22px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
 .sellbox .st{display:flex;flex-direction:column;gap:4px}
