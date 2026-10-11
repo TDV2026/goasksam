@@ -199,7 +199,10 @@ export default async function handler(req, res) {
         const task = { id: "00000000-0000-4000-8000-0000000000e1", summary: "Sam is looking for manual Porsche 911s from 1964 to 1998", filters: { make: "Porsche", model: "911", year_min: 1964, year_max: 1998, gearbox: "manual" } };
         // Both live tests use a car that FITS the test task (the same hard gate a real run uses).
         const { taskFits } = await import("../lib/tasks/tasks.js");
-        const pool = (await q(`live_listings?make=eq.Porsche&status=eq.live&end_time=gt.${nowIso}&year=gte.1964&year=lte.1998&select=${sel}&order=end_time.asc&limit=200`)).filter(r => taskFits(task, r));
+        const { runSearch } = await import("../lib/live/samChat.js");
+        // The real matching path: the same search a task run uses, then the hard gate.
+        const sr = await runSearch(env, task.filters, { keep: r => r.status === "live" && !(r.end_time && Date.parse(r.end_time) <= Date.now()) });
+        const pool = ((sr && sr.matches) || []).map(x => x.r).filter(r => taskFits(task, r));
         const withBid = pool.find(r => Number(r.current_bid_usd) > 0);
         const noBid = pool.find(r => r.current_bid_usd == null || Number(r.current_bid_usd) <= 0);
         for (const [label, r] of [["live, with a bid", withBid], ["live, no bids", noBid]]) {
