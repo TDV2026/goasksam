@@ -238,6 +238,7 @@ export default async function handler(req, res) {
     // the Sell chat and of Tasks setup and research, for setting their limits. Per device and per address from
     // the ceilings ledger (ip_rate_hits, crew never recorded), per minute, hour and day; the Sell chat's model
     // calls and cost from app_usage_events; Tasks per account per day from tasks and task_updates.
+    const BOTUA = /HeadlessChrome|node|undici|curl|python|axios|Go-http|okhttp|bot|spider|crawl|vercel/i;
     if (b.action === "limits" && process.env.PROBE_KEY && req.headers["x-probe-key"] === process.env.PROBE_KEY) {
       const days = Math.min(60, Number(b.days) || 30), since = new Date(Date.now() - days * 864e5).toISOString();
       const pct = (arr, q) => { if (!arr.length) return null; const s2 = arr.slice().sort((x, y) => x - y); return s2[Math.min(s2.length - 1, Math.floor(q * (s2.length - 1)))]; };
@@ -256,7 +257,10 @@ export default async function handler(req, res) {
       return res.status(200).json({ days,
         sellChat: { ledgerRows: hits.length, byKind: hits.reduce((o, h) => (o[h.kind] = (o[h.kind] || 0) + 1, o), {}), perDevice: three(sellAll, dev), perAddress: three(sellAll, adr), followupPerAccount: three(hits.filter(h => h.kind === "a:sell_followup"), acct),
           modelRows: chat.length, byEvent: chat.reduce((o, r) => (o[r.event_type + ":" + r.status] = (o[r.event_type + ":" + r.status] || 0) + 1, o), {}), paidCalls: paid.length, narrationCacheHits: chat.filter(r => r.metadata && r.metadata.narrationCache === "hit").length,
-          costUsd: { total: Math.round(costs.reduce((a, c) => a + c, 0) * 100) / 100, perCallP50: pct(costs, 0.5), perCallP90: pct(costs, 0.9), max: pct(costs, 1) }, paidPerAddress: three(paid, ipOf) },
+          costUsd: { total: Math.round(costs.reduce((a, c) => a + c, 0) * 100) / 100, perCallP50: pct(costs, 0.5), perCallP90: pct(costs, 0.9), max: pct(costs, 1) }, paidPerAddress: three(paid, ipOf),
+          // Real browsers apart from automated callers (our smoke tests, headless checks, scripts), by user agent.
+          browserPerAddress: three(chat.filter(r => !BOTUA.test(String((r.metadata && r.metadata.user_agent) || ""))), ipOf), automatedRows: chat.filter(r => BOTUA.test(String((r.metadata && r.metadata.user_agent) || ""))).length,
+          browserPerAddressDevice: three(chat.filter(r => !BOTUA.test(String((r.metadata && r.metadata.user_agent) || ""))), r => ipOf(r) && ipOf(r) + "|" + String((r.metadata && r.metadata.user_agent) || "")) },
         tasks: { created: tasks.length, byKind: tasks.reduce((o, t) => (o[t.kind] = (o[t.kind] || 0) + 1, o), {}), accounts: new Set(tasks.map(t => t.user_id)).size,
           setupMessagesPerAccount: three(msgs.map(m => ({ ...m, u: owner.get(m.task_id) || null })), r => r.u), researchPerAccount: three(tasks.filter(t => t.kind === "research"), r => r.user_id), tasksPerAccount: three(tasks, r => r.user_id),
           modelTurns: { rows: tm.length, byKind: tm.reduce((o, r) => { const k = r.event_type + ":" + ((r.metadata && r.metadata.kind) || "?"); o[k] = (o[k] || 0) + 1; return o; }, {}), costUsd: Math.round(tm.reduce((a, r) => a + (Number(r.anthropic_cost_usd) || 0), 0) * 1000) / 1000,
