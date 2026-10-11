@@ -184,13 +184,13 @@ export default async function handler(req, res) {
           const blocks = (await alertBlocks(env, [r], [card])).map(b => ({ ...b, card }));
           const msg = alertEmail(task, blocks, { first: true });
           const resp = await sendTaskEmail({ to: TEST_EMAIL, subject: "[Test] A car matching your task just came up", text: msg.text, html: msg.html });
-          out.sent.push({ label, listing: r.id, status: resp.ok ? "sent" : (resp.reason || resp.error || resp.status), text: msg.text });
+          out.sent.push({ label, listing: r.id, status: resp.ok ? "sent" : (resp.reason || resp.error || resp.status), text: msg.text, html: msg.html });
         }
         const soldFrom = lots.warminster || withBid;
         if (soldFrom) {
           const since = new Date(Date.now() - 45 * 864e5).toISOString().slice(0, 10);
           const r = await testSend(env, { kind: "spec", listing_id: soldFrom.id, since, to: TEST_EMAIL, first: true });
-          out.sent.push({ label: "sold notice", listing: soldFrom.id, status: r.sent || r.error || (r.events === 0 ? "no sale since " + since : null), text: r.text || null, subject: r.subject || null });
+          out.sent.push({ label: "sold notice", listing: soldFrom.id, status: r.sent || r.error || (r.events === 0 ? "no sale since " + since : null), text: r.text || null, html: r.html || null, subject: r.subject || null });
         }
       }
       return res.status(200).json(out);
