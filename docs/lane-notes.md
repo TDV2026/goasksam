@@ -3589,3 +3589,39 @@ when the work has landed.
   when bodyStyle is set but the text carries no body word (likely the new body-style scoping, since your last
   run had this spec matching). Not patched on the Buy side (one engine). Separately fixed in ac8b7aa: engineAnswer's
   in-memory cache keyed on the merged "987" code, not specKeyFor's half; it now uses specKeyFor.
+
+- 2026-10-11 (Lane A): MARKET CHECK PAGE FIXES, 52a3dde. Duplicate car line (renderResults' outer
+  carLineHtml suppressed for tier==="result", evidenceBlockHtml already owns it there); FEWER MILES/
+  MORE MILES context cards were photo-only - root cause .stack .card{flex:1 1 0} split the stretched
+  row height evenly regardless of content, squeezing price/title/meta out past the hero's taller
+  natural height and clipping it via .card's own overflow:hidden; fixed to flex:none (each card sizes
+  to its own content). "Put Sam on it" + the shared Keep Looking card merged into one block ("Have Sam
+  keep looking"); "You'll be notified when another matching car goes live." no longer appears on
+  Market Check (that line is Buy's own live-listing wording). "Where sales landed over time" lead
+  sentence now composed client-side from yoyDirection's structured fields (recentBand/priorBand/
+  percent/status), never its pre-built .sentence - copy-only, same numbers. FOR LANE B: that
+  recentBand is not always identical to the headline's own cluster - yearOverYearDirectionFor
+  (lib/onebox.js) only passes r4Split's price-outlier fence, while the headline's cluster additionally
+  has provenance/engine-swap/halo cars removed afterward - a few cars' difference, not a Market Check
+  bug, reported not patched (engine file). "No chart, no guess, no score" (next to an actual bar
+  chart) dropped "No chart" since it's no longer true. Stray badge next to "Tasks" in the rail fixed
+  (.gas-tbadge always set display:inline-block, silently overriding [hidden] - .gas-tbadge[hidden]
+  {display:none} added). Blank gap above "Show 10 more" fixed (capCardsHtml wraps the grid + button in
+  one div, so an empty 0-height grid no longer earns its own flex-gap as a separate #ob child).
+  ICON (Job 7, FOR LANE C): the shared Keep Looking card's bell (read as an alert) is now a plain
+  magnifier - lib/appShell.js KEEPLOOK_BELL, '<svg viewBox="0 0 24 24" aria-hidden="true"><circle
+  cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>', same stroke-only style as before
+  (fill:none, currentColor) so no CSS change needed. Buy's own copy (api/buy.js, not edited here) was
+  the only other instance - already self-syncing by the time this landed (lib/live/buyLanding.js
+  KEEP_ICON extracts the svg straight out of keepLookingHtml()'s own output via regex), so no action
+  needed there, just flagging why Buy's icon changed too.
+  NAV CHECK (Job 1, verification only, no code changed): signed-out sidebar - /sell "Where to sell,
+  PowerSellers, Your results, Send feedback, Privacy, About"; /how-sam-decides "Tasks, Where to sell,
+  PowerSellers" + foot "Send feedback, Privacy, About"; spec/car pages (api/_chrome.js) "GoAskSam,
+  Where to sell" only. Crew sidebar - /sell adds "Buy, Market Check, Tasks, For business, How Sam
+  decides"; /how-sam-decides adds "Buy, Sell, Market Check, For business" + foot "How Sam decides";
+  spec/car pages add "Ask Sam, Buy, Tasks, Car histories, How Sam decides, For business". Identical at
+  1440 and 390 for every page/audience tested - no link desktop shows that mobile hides. /buy,
+  /market-check, /tasks, /business are all directly reachable (200, real content) for a signed-out
+  visitor by plain address even though none are linked from the reduced nav - the existing
+  PUBLIC_LAUNCH switch hides discovery only, never the page itself, confirmed unchanged.
