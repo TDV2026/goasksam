@@ -10,11 +10,18 @@ export function oldCarsDataCost(meteredRequests = 0) {
   };
 }
 
+// Prompt cache (Anthropic's 5-minute cache): a cache write is billed at 1.25 times the input price and a
+// cache read at 0.1 times; input_tokens is then only the uncached part of the prompt.
+const CLAUDE_SONNET_CACHE_WRITE_COST_PER_TOKEN = CLAUDE_SONNET_INPUT_COST_PER_TOKEN * 1.25;
+const CLAUDE_SONNET_CACHE_READ_COST_PER_TOKEN = CLAUDE_SONNET_INPUT_COST_PER_TOKEN * 0.1;
+
 export function anthropicCost(usage = {}) {
   const inputTokens = Number(usage.input_tokens || 0);
   const outputTokens = Number(usage.output_tokens || 0);
   return Number((
     inputTokens * CLAUDE_SONNET_INPUT_COST_PER_TOKEN +
+    Number(usage.cache_creation_input_tokens || 0) * CLAUDE_SONNET_CACHE_WRITE_COST_PER_TOKEN +
+    Number(usage.cache_read_input_tokens || 0) * CLAUDE_SONNET_CACHE_READ_COST_PER_TOKEN +
     outputTokens * CLAUDE_SONNET_OUTPUT_COST_PER_TOKEN
   ).toFixed(6));
 }
