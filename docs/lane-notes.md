@@ -3464,3 +3464,61 @@ when the work has landed.
     (no Pause, it fires once). Stopping every task email: the Tasks page "Email updates" switch.
   * "alert" removed from everything people see: Buy band sentence, /tasks title and eyebrow, the stop page
     ("every task email"), stop/pause links now ?stop=1 (?alert=stop still answers for mail already sent).
+
+- 2026-10-10 (Lane B): TRIM CONTAMINATION FIX + COUNT RECONCILIATION SHIPPED.
+  * Job 1 reconciled exactly for "2008 Porsche 997 Carrera S" (Market Check's own chip, body
+    unspecified, last 12 months): qualifying 94 -> used 89 -> setAside 5 (all 5 aboveRange, 0
+    belowRange, all 5 reason "odd sale" = r4Split's price-outlier fence, p75*1.35). 94 = 89 + 5
+    exactly. The page's "5 sales set aside" (quarterly-section text) and the "Shown separately"
+    cards (3 shown + "Show 2 more" = 5 total) are the SAME number in two places, not two different
+    counts under similar words. CORRECTION to my last report: the 128 I reported then (80 coupe + 48
+    cabriolet, via a synthetic generation-override diagnostic at sinceDays=365) was NOT computed by
+    the same method as this round's engine-exposed `counts.qualifying` (94) - it is not the number
+    to reconcile against; 94 is.
+  * Job 2 SHIPPED: lib/onebox.js buildResult now returns `counts: {qualifying, used, setAside:
+    {total, aboveRange, belowRange, reasons}}` - plain numbers (soldCount/setAsideCount stay word-
+    ified for copy), additive, no change to range/selection logic. lib/live/search.js coreOf/
+    listingMarket pass it through so Buy/Tasks' own read carries the identical figures.
+  * Job 3 root cause FOUND AND FIXED (two parts, both in lib/onebox.js qualifyReason):
+    (a) the titleContains check ran the LENIENT substring match first and only fell back to the
+    STRICT word-boundary regex when the substring was entirely absent - backwards for any trim
+    whose text is a substring of the base model/common words ("S" inside "Boxster"/"Cayman"/
+    "Porsche"/"6-Speed"), present in nearly every title, so the strict check never ran. Flipped:
+    the regex is now authoritative whenever it can be built.
+    (b) even with (a) fixed, a bare "S" still matched inside a longer compound trim the archive
+    titles in full ("Turbo S", "GTS") - added COMPOUND_TRIM_QUALIFIERS (full-pattern exclude list,
+    mirrors SUBTRIM_FENCES' own exclude regexes for 911) so a title naming a compound the search
+    didn't name is excluded, in both directions (a bare "Turbo" search no longer pulls in "Turbo
+    S" either).
+    SWEEP (5+ affected searches, before -> after, archive-fence-qualifying population):
+      Boxster S: before pooled with base Boxster + leaked Cayman S titles (count=88, same as base
+        Boxster) -> after count=36, clean, $22,000-$31,500.
+      Cayman S: before pooled with base Cayman + leaked Boxster titles -> after count=66, clean,
+        $23,500-$31,000.
+      Cayenne S: before included Cayenne Turbo S cars -> after count=71, clean, $13,500-$22,500.
+      Cayenne Turbo: before included Cayenne Turbo S cars (same compound-suffix bug) -> after
+        count=59, clean, $17,000-$28,000.
+      Cayenne Turbo S / Cayenne GTS: unaffected either way (full compound IS the search), confirmed
+        unchanged at $26,000-$44,500 / $20,000-$29,500 - control cases.
+      911 GT3/GT3 RS and 911 Turbo/Turbo S: ALREADY correctly separated via dedicated
+      SUBTRIM_FENCES entries (911-only); confirmed unchanged, not affected by either bug or fix.
+  * Job 4: ENGINE_VERSION bumped twice this round (e6-20261010-trimfix for the qualifyReason fix,
+    e7-20261010-countspassthrough when a cache row written in the narrow window between the e6 bump
+    and the coreOf/listingMarket counts-passthrough fix was caught matching e6 but missing counts -
+    a version bump covers a shape change, not just an answer change). specKeyFor already includes
+    v.trim in the key - no new split dimension, trim was always part of it.
+  * Job 5: before/after for all 6 named specs (2008 997 Carrera S, 2008 Boxster S, 2009 Cayman S,
+    2001 M3, 2005 M3, 1987 911 Carrera) - mismatchSpecs:0 across Market Check/Buy/Sell/Tasks for
+    every one (Market Check's own lane asks a body_choice question for the two bare M3 queries,
+    same as it always has for a year-only E46 M3 search - buy/sell/tasks still agree with each
+    other, so this is not a new gap).
+  * Job 6: crossProductCheck extended - qualifying/used/setAsideTotal/aboveRange/belowRange now
+    compared across all four lanes (exact match). Sell's counts come from its EXISTING second
+    runOneBox call (the asking-line verification already added last round), since fetchOnlinePool
+    (lib/platformPick.js, Lane C's) does not surface counts and was not edited. Two new regression
+    specs added (Boxster S, Cayman S). Full run: 61/61 specs, mismatchSpecs:0 on every batch (one
+    spec showed a transient mismatch mid-deploy during the rapid back-to-back ENGINE_VERSION bumps
+    this round - re-ran clean seconds later, not a real regression).
+  * Files: lib/onebox.js, lib/live/search.js, scripts/crossProductCheck.js, api/usageDashboard.js
+    (listSales/cachecheck diagnostics, left in - same pattern as prior rounds' ops tasks).
+    api/sellerDecision.js and lib/platformPick.js were not touched.
