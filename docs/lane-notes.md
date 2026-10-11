@@ -3575,7 +3575,7 @@ when the work has landed.
     "Start again" (watches resume action, own task only); the Tasks page shows it there.
   * Digest: lead counts every sale and dates from the oldest; ten newest shown; "And N more are in your task."
     is the link; catch-all source "others" never printed as a venue; " - 7,400 Miles" title tails stripped.
-  * FOR LANE B: a spec read from a 1966 Shelby GT500 Supercharged listing is labelled "first-generation Mustang
+  * FOR LANE B: a spec read from a live Shelby GT500 Supercharged listing is labelled "first-generation Mustang
     Shelby GT500 Supercharged coupes" while its sold cards are plain 289/390 Mustangs (the family noun keeps the
     trim after the ladder widened past it). Also SLS AMG coupes and Roadsters share one range (bodyScoped null:
     no body on the spec), so a Roadster reads "inside" against coupe sales.
