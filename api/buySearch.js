@@ -130,6 +130,8 @@ export default async function handler(req, res) {
       const base = `/api/buySearch?stop=1&t=${encodeURIComponent(String(q0.t))}${item ? `&i=${encodeURIComponent(String(q0.i))}` : ""}`;
       const esc2 = s => String(s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
       if (req.method !== "POST") {
+        // From an email: only the one notice it belongs to (only=1); stopping everything is on the Tasks page.
+        if (lab && q0.only === "1") return page(200, `<h1>Stop ${esc2(lab.text)}?</h1><p>This stops ${esc2(lab.text)} only. Everything else keeps running.</p><form method="post" action="${base}&scope=one"><button type="submit">Stop this one</button></form><p class="quiet"><a href="/tasks/mine">Open your tasks instead</a></p>`);
         if (lab) return page(200, `<h1>Stop these messages?</h1><p>Stop ${esc2(lab.text)}, or stop everything GoAskSam sends about the cars you picked: the before-it-ends notices and every task email.</p><div class="two"><form method="post" action="${base}&scope=one"><button type="submit">Stop this one</button></form><form method="post" action="${base}&scope=all"><button type="submit" class="alt">Stop everything</button></form></div><p class="quiet"><a href="/buy">Back to Buy instead</a></p>`);
         return page(200, `<h1>Stop these messages?</h1><p>This stops every message GoAskSam sends about the cars you picked: the before-it-ends notices and every task email. You can turn them on again from any car.</p><form method="post" action="${base}&scope=all"><button type="submit">Stop everything</button></form><p class="quiet"><a href="/buy">Back to Buy instead</a></p>`);
       }

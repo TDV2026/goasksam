@@ -20,7 +20,7 @@
 import { supabaseEnv } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { readVisitorId } from "../lib/_visitor.js";
-import { notifyPrefs, setNotifyPrefs, taskTurn, draftTurn, startDraft, applyEdit, slotTask, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore, notify, oneTap, sendStartEmail } from "../lib/tasks/tasks.js";
+import { jobPhrase, notifyPrefs, setNotifyPrefs, taskTurn, draftTurn, startDraft, applyEdit, slotTask, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore, notify, oneTap, sendStartEmail } from "../lib/tasks/tasks.js";
 import crypto from "node:crypto";
 import { CHAT_MODEL } from "../lib/live/chatHttp.js";
 import { recordUsageEvent } from "./_usage.js";
@@ -28,8 +28,8 @@ import { recordUsageEvent } from "./_usage.js";
 const TEST_USER = /^00000000-0000-4000-8000-[0-9a-f]{12}$/;
 // The email links' confirm and result pages: plain words, one button, never an action on a click alone.
 const TAP_WORDS = {
-  pause: { title: "Pause this search?", ask: "Sam stops searching for it until you start it again.", button: "Pause it", done: "Paused." },
-  stop: { title: "Stop this search?", ask: "Sam stops searching for it for good.", button: "Stop it", done: "Stopped." },
+  pause: { title: "Pause the task", ask: "Its emails stop until you start it again. Your other tasks keep running.", button: "Pause this task", done: "Paused." },
+  stop: { title: "Stop the task", ask: "This ends this one task. Your other tasks keep running.", button: "Stop this task", done: "Stopped." },
   resume: { title: "Start this search again?", ask: "Sam keeps searching in the background, day and night, and you get notified when a car fits.", button: "Start it again", done: "Searching again." },
   keep_looking: { title: "Keep looking?", ask: "Sam keeps searching in the background, day and night, and you get notified when a car fits.", button: "Keep looking", done: "Sam keeps looking." }
 };
@@ -68,7 +68,9 @@ export default async function handler(req, res) {
       if (!task) return page(404, "Task gone", `<h1>That task is gone.</h1><p><a href="/buy">Start a new search</a></p>`);
       const w = TAP_WORDS[act];
       if (req.method !== "POST") {
-        return page(200, w.title, `<h1>${tapEsc(w.title)}</h1><p class="task">${tapEsc(task.summary || "This task")}</p><p>${tapEsc(w.ask)}</p>
+        // The heading names exactly what it acts on: "Stop the task: manual Porsche 911s from 1964 to 1998".
+        const named = (act === "pause" || act === "stop") && task.filters ? `${w.title}: ${jobPhrase(task.filters)}` : w.title;
+        return page(200, w.title, `<h1>${tapEsc(named)}</h1><p class="task">${tapEsc(task.summary || "This task")}</p><p>${tapEsc(w.ask)}</p>
           <form method="post" action="/api/tasks?a=${encodeURIComponent(act)}&t=${encodeURIComponent(String(q.t))}"><button type="submit">${tapEsc(w.button)}</button></form>
           <p class="quiet"><a href="/tasks/mine?task=${encodeURIComponent(id)}">Open the task instead</a></p>`);
       }
@@ -161,6 +163,26 @@ export default async function handler(req, res) {
     // Probe (Oct 2026, alert emails): the stored records for named lots, and the three real alert emails (a live
     // car with a bid, a live car with no bid, a sold notice) built from stored rows by the real builders and sent
     // ONLY to the fixed test inbox (TEST_EMAIL), subject marked [Test]. Never a real user's address.
+    // Probe (Oct 2026): every active task's match on stored live listings, through the real search, listing any
+    // car the search admits whose make, model or year does not fit the task (what the hard gate now removes).
+    // Read-only: no update, no email.
+    if (req.method === "POST" && req.body && req.body.action === "task_match_audit" && probeOk(req)) {
+      const { taskFits } = await import("../lib/tasks/tasks.js");
+      const { runSearch } = await import("../lib/live/samChat.js");
+      const tasks = await (await fetch(`${env.supabaseUrl}/rest/v1/tasks?state=in.(running,needs_you,paused)&kind=eq.hunt&select=id,state,summary,filters&limit=500`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } })).json();
+      const out = { tasks: 0, matches: 0, mismatches: [] };
+      for (const t of tasks || []) {
+        if (!t.filters || t.filters.vin) continue;
+        out.tasks++;
+        const { include_unstated, ...f } = t.filters;
+        const sr = await runSearch(env, f, { keep: r => r.status === "live" && !(r.end_time && Date.parse(r.end_time) <= Date.now()) }).catch(() => null);
+        for (const x of (sr && sr.matches) || []) {
+          out.matches++;
+          if (!taskFits(t, x.r)) out.mismatches.push({ task: t.id.slice(0, 8), summary: t.summary, listing: x.r.id, make: x.r.make, model: x.r.model, year: x.r.year, title: String(x.r.listing_title || "").slice(0, 80) });
+        }
+      }
+      return res.status(200).json(out);
+    }
     if (req.method === "POST" && req.body && req.body.action === "task_email_tests" && probeOk(req)) {
       const { taskEmailBlocks, taskEmailBody, taskEmailSubject, cardOfMatch } = await import("../lib/tasks/tasks.js");
       const { listingFacts } = await import("../lib/live/search.js");
@@ -175,9 +197,11 @@ export default async function handler(req, res) {
       if (req.body.send) {
         const nowIso = new Date().toISOString();
         const task = { id: "00000000-0000-4000-8000-0000000000e1", summary: "Sam is looking for manual Porsche 911s from 1964 to 1998", filters: { make: "Porsche", model: "911", year_min: 1964, year_max: 1998, gearbox: "manual" } };
-        const withBid = (await q(`live_listings?make=eq.Porsche&model=eq.911&status=eq.live&end_time=gt.${nowIso}&current_bid_usd=gt.0&select=${sel}&order=end_time.asc&limit=1`))[0];
-        const noBid = (await q(`live_listings?status=eq.live&end_time=gt.${nowIso}&current_bid_usd=is.null&source=eq.bringatrailer&select=${sel}&order=end_time.asc&limit=1`))[0]
-          || (await q(`live_listings?status=eq.live&end_time=gt.${nowIso}&current_bid_usd=is.null&select=${sel}&order=end_time.asc&limit=1`))[0];
+        // Both live tests use a car that FITS the test task (the same hard gate a real run uses).
+        const { taskFits } = await import("../lib/tasks/tasks.js");
+        const pool = (await q(`live_listings?make=eq.Porsche&status=eq.live&end_time=gt.${nowIso}&year=gte.1964&year=lte.1998&select=${sel}&order=end_time.asc&limit=200`)).filter(r => taskFits(task, r));
+        const withBid = pool.find(r => Number(r.current_bid_usd) > 0);
+        const noBid = pool.find(r => r.current_bid_usd == null || Number(r.current_bid_usd) <= 0);
         for (const [label, r] of [["live, with a bid", withBid], ["live, no bids", noBid]]) {
           if (!r) { out.sent.push({ label, error: "no stored listing of this kind right now" }); continue; }
           const card = cardOfMatch({ r, facts: listingFacts(r) });
@@ -191,7 +215,7 @@ export default async function handler(req, res) {
         if (soldFrom) {
           const since = new Date(Date.now() - (Number(req.body.soldDays) || 3) * 864e5).toISOString().slice(0, 10);
           const r = await testSend(env, { kind: "spec", listing_id: soldFrom.id, since, to: TEST_EMAIL, first: true, subjectPrefix: "[Test] " });
-          out.sent.push({ label: "sold notice", listing: soldFrom.id, status: r.sent || r.error || (r.events === 0 ? "no sale since " + since : null), text: r.text || null, html: r.html || null, subject: r.subject || null });
+          out.sent.push({ label: "sold notice", listing: soldFrom.id, status: r.sent || r.error || (r.events === 0 ? "no sale since " + since : null), text: r.text || null, html: r.html || null, subject: r.subject || null, bands: r.bands || null });
         }
       }
       return res.status(200).json(out);

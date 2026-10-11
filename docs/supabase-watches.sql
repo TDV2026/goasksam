@@ -43,3 +43,7 @@ alter table watches enable row level security;
 revoke all on watches from anon, authenticated;
 alter table watch_sends enable row level security;
 revoke all on watch_sends from anon, authenticated;
+
+-- Oct 2026: Pause on a sold task email (lib/live/watches.js setWatchState). Run once; until then Pause says it
+-- is not ready yet and nothing changes. Existing table, RLS and revokes above still apply.
+alter table watches add column if not exists paused_at timestamptz;
