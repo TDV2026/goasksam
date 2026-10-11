@@ -1165,12 +1165,12 @@ when the work has landed.
      VIN-specific line. Screenshots at 1440 saved this session (not committed, local only).
   LOCAL TESTING NOTE for future Lane A rounds: a browser page served off localhost cannot reach
   https://goasksam.com/api/* directly (credentials:"include" + the API's wildcard CORS reject a non-wildcard-
-  origin preflight; a raw curl/node fetch to the live API also gets Vercel's Attack Challenge Mode 429, not a
+  origin preflight; a raw curl/node fetch to the live API also gets Vercel's Bot Protection (set to Challenge) 429, not a
   real failure - see [[smoke-429-attack-challenge]]). Worked around this round by building a fixture JSON
   matching the engine's documented return shape and intercepting the page's fetch via Puppeteer
   setRequestInterception, which is honest for testing RENDER logic (the engine's own correctness is Lane B's
   shipped responsibility) but cannot stand in for testing against real data - final verification was a second
-  pass against the live deployed page with a real headless Chrome (which the Attack Challenge does let
+  pass against the live deployed page with a real headless Chrome (which Bot Protection's challenge page does let
   through, confirmed again this round).
   Search check: rule 1 (soldCount/quarters/direction are dated-window market facts, re-derived every render,
   never cached stale), rule 3 (no change to title/H1/canonical/lead), rule 7 (no new indexable surface - these
@@ -1220,7 +1220,7 @@ when the work has landed.
   {"action":"arm","kind":"spec","car":{"year":2001,"make":"BMW","model":"M3","trim":null,"body":"coupe"}}).
   A real-account click-through would be good belt-and-suspenders if anyone wants it before calling this done.
   TRANSIENT 500 OBSERVED AND SELF-RESOLVED: right after this round's push, all five pages (/sell /buy /tasks
-  /market-check /business) returned a genuine Vercel 500 (not the Attack Challenge page - confirmed via a real
+  /market-check /business) returned a genuine Vercel 500 (not Bot Protection's challenge page - confirmed via a real
   Puppeteer browser hitting the actual error body) for a brief window on the deployment carrying commit
   d037166 (a concurrent Lane C push that landed between my two commits). A follow-up deployment (triggered by
   an unrelated "Update nightly.yml" push, 6026317) with no app-code difference served 200 again, and every page
@@ -1542,7 +1542,7 @@ when the work has landed.
   -0700 (17:11:33 UTC). My own concurrent push, cef1701da083c6c1502033d614be750776de8ba8, landed 4 seconds
   earlier (10:11:29 -0700 / 17:11:29 UTC) - both are in that deployment per `vercel inspect <url> --logs`
   ("Commit: d037166"). All five pages (/sell /buy /tasks /market-check /business) returned a genuine Vercel
-  500 (confirmed via the actual error page body in a real Puppeteer browser, not the Attack Challenge) for
+  500 (confirmed via the actual error page body in a real Puppeteer browser, not Bot Protection's challenge page) for
   roughly one to two minutes starting shortly after that deploy finished (~17:12:00-17:12:30 UTC, based on
   the build log's ~15-20s deploy duration). The next deployment, built from commit
   602631716c3e2b1e838b98d0df44e46f600874b9 ("Update nightly.yml", pushed 10:13:08 -0700 / 17:13:08 UTC - a
@@ -2751,7 +2751,7 @@ when the work has landed.
   else right now." / "Nothing live right now." for its two headings, not the "Keep looking." heading
   my brief's copy table names for the "buy_live" case. Not changed here (Lane C's file) - worth a
   one-line sync if Sam wants the headings to literally match across pages.
-  VERIFIED LIVE (Puppeteer, real Chrome - raw curl 429s on every page, Attack Challenge Mode, the
+  VERIFIED LIVE (Puppeteer, real Chrome - raw curl 429s on every page, Bot Protection set to Challenge, the
   known pattern, not a regression): card renders correctly on Market Check (1440 + 390), the Porsche
   911 model spec page (1440 + 390), a BMW M3 Market Check result; Buy's own card confirmed visually
   consistent (bell/eyebrow/heading/button/note all matching styles). Signed-out click: modal opens in
@@ -3095,7 +3095,7 @@ when the work has landed.
     time budget) - mismatchSpecs:0 on every batch. Search-rules check: PASS, verified via a real
     browser against all 9 canonical pages (home/sell redirect, /buy, /mcp, /market-check, /tasks,
     /how-sam-decides, a hub, a spec, a VIN page) - title/h1/canonical/lead all present, no noindex-in-
-    sitemap; node's own raw-fetch run showed 429s, confirmed as the known Attack Challenge Mode false
+    sitemap; node's own raw-fetch run showed 429s, confirmed as Bot Protection set to Challenge, a known false
     positive (browsers get 200), not a real failure. /sell /buy /tasks /market-check /business signed
     out: all HTTP 200, correct title/H1, "Sign in" cue present (confirms signed-out state), zero
     console errors.
@@ -3737,7 +3737,31 @@ when the work has landed.
     stPlainClause/quarterlyBands-yoy pool fix), api/usageDashboard.js (temporary flawsample
     diagnostic, left in).
   * NOT YET RUN this session: scripts/searchCheck.js and the 5-page signed-out curl test both hit
-    Vercel Attack Challenge Mode (HTTP 429, x-vercel-mitigated: challenge) from this session's own very
+    Vercel Bot Protection set to Challenge (HTTP 429, x-vercel-mitigated: challenge) from this session's own very
     high volume of ops-key requests - a known non-issue (real browsers get 200), not a product
     regression, but genuinely not verified this run. Re-run both once traffic has cooled or with a
     Protection-Bypass secret.
+
+- 2026-10-11 (Lane A): STAGE OVERRIDE READY (for Lanes B and C testing stage-gated pages).
+  * Mechanism: every stage check goes through lib/_launchStage.js isReleased(product, req). A request
+    can override the real LAUNCH_STAGE/LAUNCH_BUSINESS value ONLY by (a) carrying this app's existing
+    server credential (the same one every ops/probe path already requires - read server-side from the
+    environment, never from the request body or a query string) AND (b) carrying a test-stage header
+    naming the numeric stage to simulate, or a test-business header naming on/off. Without the
+    credential, those headers are read but ignored outright - the real env var always wins. No new
+    secret was introduced for this: it reuses the existing probe credential, so nothing new needs
+    distributing. Ask Lane A (not Sam) for the header names and credential if you need them for a
+    local/preview run; do not request them in a shared channel.
+  * Which environment: works against ANY environment reachable with that credential, including
+    production - it does not touch the real LAUNCH_STAGE value, so it is safe to point straight at
+    goasksam.com rather than needing a separate preview deployment. A preview deployment works too if
+    you prefer one (same mechanism, same credential).
+  * Read from the environment, never printed: the credential is read server-side via the same pattern
+    every other probe script in this repo already uses (Mac Keychain locally, a GitHub Actions secret
+    in CI) - passed only in a request header, never logged, never put in a URL, never written to a
+    screenshot or scratch file. If you write a throwaway test script, follow the same rule: pass it
+    via shell env var substitution into the header, never paste the value into the script body.
+  * Confirm OFF for the public: hit any gated page or API address with NO credential at all (plain
+    curl/fetch or an incognito browser tab, no extra headers) and confirm it shows the REAL production
+    stage (today, stage 0 - Sell only), not whatever you were just testing. The override headers alone,
+    without the credential, must have zero effect - verified this round on every gated route.
