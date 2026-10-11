@@ -3625,3 +3625,25 @@ when the work has landed.
   /market-check, /tasks, /business are all directly reachable (200, real content) for a signed-out
   visitor by plain address even though none are linked from the reduced nav - the existing
   PUBLIC_LAUNCH switch hides discovery only, never the page itself, confirmed unchanged.
+- 2026-10-11 (Lane C): BUY FIXES (6cd0647, 238c9b4) + READ-ONLY PROBE FOR THE COST REPORT (8a1b0da, b27fe00).
+  * Card vs panel contradiction, cause: the Market Check panel under a Buy card sent the listing's RAW title
+    to a fresh free-text Market Check ("3.6L-Powered 1988 Porsche 911 Carrera Cabriolet G50 manual" landed on a
+    class/era band, no range) while the card read the resolved 3.2 Carrera Cabriolet spec. The panel now reads
+    the card's own spec key and engine answer (POST /api/buySearch {action:"panel", id} -> lib/live/search.js
+    panelOf); a stored line that trails a fresh read of that key (range or count) is recomputed first, and the
+    card line is redrawn from the same answer. Market Check text (market.query) is the resolved car, not the
+    raw title.
+  * soldLine (lib/live/search.js) is the one sentence: "The middle half of 3.2 Carrera Cabriolet sales landed at
+    $47,000 to $70,000 in the past year." Used by cards, panel, Sam's notes, the landing example, chat replies
+    (samChat codeReply/specFacts) and task emails. coreOf adds familyOne (the group in its one-car form).
+  * Keep looking icon: Buy's results card and landing feature card take the shared card's own icon, read from
+    lib/appShell.js keepLookingHtml markup (lib/live/buyLanding.js KEEP_ICON), so they follow Lane A's icon.
+  * Public visitors (window.GAS_CREW false): no /market-check links from Buy, and the card button reads "Sold
+    prices" instead of "Market Check". Crew unchanged. Keep looking stays public (as on every page).
+  * FOR LANE B (reported, not patched): Market Check's free-text read drops a body word Buy's resolver keeps.
+    "1991 BMW 3-Series Sedan": Buy card (sedan) $8,000 to $16,000, 10 sales; Market Check bodyStyle null,
+    all E30 bodies, 102 sales (71 with "manual"). "2022 Ford Bronco": Buy $40,500 to $62,500, 24 sales; Market
+    Check $40,000 to $64,000, 34 (body null). Dense specs agree on range with counts 2-3 apart (stored line
+    hours older than a fresh read; the panel now refreshes on that).
+  * PROBE (read only, aggregates only, no vendor call): GET /api/tasks?livetiming=1 with x-probe-key.
+    lib/ops/liveTiming.js. live_listings only starts 2026-10-05 (5.7 days); pull_live_summary rows from 10-08.
