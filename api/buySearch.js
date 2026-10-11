@@ -3,6 +3,7 @@
 //                                          their own family's market line and seen-before), facets, US first.
 //                                          /buy never asks: filters (from the words or the chips) narrow.
 //   POST { action:"enrich", ids:[...] } -> market line + seen-before for more cards ("Show all").
+//   POST { action:"panel", id } -> { market, representative } for a card's Market Check panel (same spec as its line).
 //   POST { action:"watch", key, email } -> watch_requests (key = VIN, family:..., live:...)
 //   GET  ?panel=1&make&model&trim&year&body(&lo&hi) -> { count, rows[<=3] } for the One Box live panel.
 //                                          lo/hi (optional): Market Check's own headline band (d.cluster),
@@ -15,7 +16,7 @@ import { historyEnv, houseName, normVin } from "./_historyData.js";
 import { parseQuery, emptyFilters, gensNamed, resolveForBuy, searchLive, listingFacts, listingMarket, seenBefore, nounFor, liveForFamily, liveRows, familyMarket, COUNTRY_NAME } from "../lib/live/search.js";
 import { findGeneration } from "../lib/generations.js";
 import { converse } from "../lib/live/converse.js";
-import { listingDetail, facetsOf, cardFlag, seenCount, listingSays, listingSamFacts, specOf, ladderSteps, walkLadder } from "../lib/live/search.js";
+import { listingDetail, facetsOf, cardFlag, seenCount, listingSays, listingSamFacts, specOf, ladderSteps, walkLadder, panelOf } from "../lib/live/search.js";
 import { vinAppearances } from "./_historyData.js";
 import { validateBearer } from "../lib/_auth.js";
 import { hasServerCredential } from "../lib/_credential.js";
@@ -181,6 +182,14 @@ export default async function handler(req, res) {
       const rows = await liveRows(env, `id=in.(${ids.join(",")})`);
       const cards = await Promise.all(rows.map(r => { const facts = listingFacts(r); return Promise.all([listingMarket(env, r, facts), seenBefore(env, r.vin_norm), timelineOf(env, { r })]).then(async ([market, seen, timeline]) => { if (market && market.kind === "pending") market = await listingMarket(env, r, facts); return { id: r.id, market, seen_before: seen, timeline }; }); }));
       return res.status(200).json({ cards });
+    }
+    // The Market Check panel under a card: the card's own spec key and engine answer (lib/live/search.js panelOf).
+    if (b.action === "panel") {
+      const id = Number(b.id);
+      if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ ok: false });
+      const rows = await liveRows(env, `id=eq.${id}`);
+      const r = rows && rows[0]; if (!r) return res.status(200).json({ market: null, representative: null });
+      return res.status(200).json((await panelOf(env, r, listingFacts(r))) || { market: null, representative: null });
     }
     // Probe (PROBE_KEY): live listings for the card tests (repeat VINs, no photo, no reserve, long titles).
     // Probe: the landing's example pick (chips, example, and what each candidate search returned).
