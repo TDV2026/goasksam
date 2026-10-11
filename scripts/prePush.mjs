@@ -88,6 +88,19 @@ console.log("\n-- deterministic engine checks --");
   record("depthWins fixtures", r.ok ? "PASS" : "FAIL", r.ok ? `${r.cases.length} cases` : JSON.stringify(r.cases.filter(c => !c.pass)));
 }
 {
+  // buildPoolSmoke (job 3 addendum): no DB, no network - synthetic rows through every real branch of
+  // buildPool/buildResult. This is the check that would have caught the live "exactStep is not
+  // defined" ReferenceError this round's own buildPool extraction shipped with (a destructure gap
+  // `node --check` cannot see, since syntax checking never executes the function body, and a plain
+  // module import cannot see either, since it never CALLS the function).
+  try {
+    execSync("node scripts/buildPoolSmoke.mjs", { encoding: "utf8" });
+    record("buildPool/buildResult smoke (synthetic, no DB)", "PASS");
+  } catch (e) {
+    record("buildPool/buildResult smoke (synthetic, no DB)", "FAIL", String((e.stdout || "") + (e.stderr || "")).split("\n").filter(Boolean).slice(-3).join(" | "));
+  }
+}
+{
   const { supabaseEnv } = await import("../lib/_supabase.js");
   const env = supabaseEnv();
   if (!env) {
