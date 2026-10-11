@@ -68,7 +68,7 @@ async function handleOneboxShare(req, res, id) {
   const finish = (ogTags, injectScript) => {
     const page = html
       .replace("</head>", ogTags + (injectScript || "") + `\n<style>${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}\n${KEEPLOOK_CSS}</style>\n</head>`)
-      .replace("<!--SHELL_RAIL-->", railOpenHtml({ active: "market-check", pageExtra: YOUR_RESULTS_RAIL, crew }))
+      .replace("<!--SHELL_RAIL-->", railOpenHtml({ active: "market-check", pageExtra: YOUR_RESULTS_RAIL, crew, req }))
       .replace("<script>\nfunction obToggleResults", `<script>${SHELL_JS}</script>\n<script>\nfunction obToggleResults`)
       .replace("<body>", `<body>\n${AUTH_SIGNBAR_HTML}\n<script>${AUTH_SIGNBAR_MIRROR_JS}</script>\n<script>window.GAS_AUTH_MODE="topbar";</script>\n<script src="/js/auth.js" defer></script>`);
     // Crew's rail differs from the public's (PUBLIC_LAUNCH switch) - never share an edge cache slot
