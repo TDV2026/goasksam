@@ -222,6 +222,23 @@
     if (placing === "above the range") return "Above the range";
     return "";
   }
+  // Bid age (third addendum, result-page-polish round two): "updated 1h 12m ago" once a stored bid
+  // is over an hour old. Ported verbatim from api/buy.js's bidAge/BIDFMT/stampBids (Lane C) so the
+  // wording is identical everywhere a live bid shows its age - not a second computation. stampBids
+  // only ever writes a changed value, so the interval/observer below never fights its own edits.
+  function bidAge(ms) { var mi = Math.floor(ms / 60000); if (mi < 60) return ""; var d = Math.floor(mi / 1440), h = Math.floor((mi % 1440) / 60), mm = mi % 60; return d ? d + "d" + (h ? " " + h + "h" : "") : h + "h" + (mm ? " " + mm + "m" : ""); }
+  var BIDFMT = { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" };
+  function stampBids() {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-bidat]"), function (el) {
+      var t = Date.parse(el.getAttribute("data-bidat")), w = isNaN(t) ? "" : bidAge(Date.now() - t), box = el.querySelector(".bage");
+      if (!box) return;
+      var txt = w ? "updated " + w + " ago" : "", tt = box.querySelector(".bage-t"), ttl = w ? "Bid as of " + new Date(t).toLocaleString("en-US", BIDFMT) + " PT" : null;
+      if (box.hidden !== !w) box.hidden = !w;
+      if (tt.textContent !== txt) tt.textContent = txt;
+      if (el.getAttribute("title") !== ttl) { if (ttl) el.setAttribute("title", ttl); else el.removeAttribute("title"); }
+    });
+  }
+  var obBidStampTimer = null;
   function loadLivePanel(d, m) {
     var slot = document.getElementById("ob-live"); var rc = d && d.resolvedCar;
     if (!slot || !rc || !rc.make || !rc.model) return;
@@ -242,12 +259,22 @@
       var rows = j.rows.map(function (l) {
         var amt = l.current_bid_usd ? usd(l.current_bid_usd) : (l.current_bid ? Math.round(l.current_bid).toLocaleString("en-US") + " " + l.currency : "");
         var bidText = l.fixedPriceUsd ? "Asking " + usd(l.fixedPriceUsd) : (amt ? "Current bid " + amt : "No bids yet");
+        // data-bidat wraps the bold amount AND the age span together (stampBids needs .bage as a
+        // descendant of whatever carries data-bidat). .bage renders on its OWN line below the bold
+        // bid amount, muted, so it never pushes the status pill sideways - the row stays a simple
+        // top-to-bottom stack (amount, age, pill) exactly like .lp-bid's existing column layout. No
+        // asking price, no live end time already passed (a dead listing's bid age is not meaningful).
+        var live = !l.end_time || Date.parse(l.end_time) > Date.now();
+        var showAge = l.bid_at && amt && !l.fixedPriceUsd && live;
+        var bidB = showAge
+          ? ('<span class="lp-bidwrap" data-bidat="' + esc(l.bid_at) + '"><b>' + esc(bidText) + '</b><span class="bage" hidden><span class="bage-t"></span></span></span>')
+          : ('<b>' + esc(bidText) + "</b>");
         var pillText = placingPillText(l.placing);
         var photo = l.photo_url ? '<img src="' + esc(l.photo_url) + '" alt="" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()">' : "";
         return '<a class="lp-row" href="' + esc(utmUrl(l.url)) + '" target="_blank" rel="noopener noreferrer" data-gas-event="auction_clickout" data-gas-source="' + esc(l.source || "") + '">' +
           '<span class="lp-ph' + (l.photo_url ? "" : " noimg") + '">' + photo + '<span class="none">No photo</span></span>' +
           '<span class="lp-body"><span class="lp-title">' + esc(cleanReceiptTitle(l.title)) + '</span><span class="lp-sub">' + esc([l.source, endsShort(l.end_time)].filter(Boolean).join(" · ")) + '</span></span>' +
-          '<span class="lp-bid"><b>' + esc(bidText) + '</b>' + (pillText ? '<span class="pill lp-pos">' + esc(pillText) + "</span>" : "") + "</span></a>";
+          '<span class="lp-bid">' + bidB + (pillText ? '<span class="pill lp-pos">' + esc(pillText) + "</span>" : "") + "</span></a>";
       }).join("");
       var q = (m && m.displayName) || carLabel(rc);
       var summary = liveSummarySentence(j.count, j.rows);
@@ -257,6 +284,11 @@
         '<p class="lp-summary">' + lint(esc(summary), "live.summary") + '</p>' + rows +
         '<a class="linkbtn" href="/buy?q=' + encodeURIComponent(q) + '">' + esc(seeAll) + " &#8594;</a>";
       slot.hidden = false;
+      // stampBids fills in any .bage rows just rendered, then keeps them current the same way
+      // Buy's own live cards do (a bid that crosses the one-hour mark while this page is open gets
+      // its stamp without a reload).
+      stampBids();
+      if (!obBidStampTimer) obBidStampTimer = setInterval(stampBids, 30000);
     }).catch(function () {});
   }
   // READY TO SELL: a real link into /sell carrying the resolved car + every answered question as URL

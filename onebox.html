@@ -369,6 +369,11 @@ a.sb-line:hover{color:var(--green)}
 .lp-sub{font:400 13px/1.3 var(--sans);color:var(--sec);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lp-bid{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:4px;white-space:nowrap}
 .lp-bid b{font:600 16px/1.2 var(--serif);color:var(--ink);font-weight:600}
+/* Third addendum item 1 (result-page-polish round two): the age stamp ("updated 1h 12m ago") sits on
+   its own muted line under the bold bid amount - never bold, never beside the status pill, so the
+   pill's position in this column never moves. */
+.lp-bidwrap{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.bage-t{font:400 12.5px/1.3 var(--sans);color:var(--sec)}
 /* Neutral-ink position pill (Job 8: never green or red for inside/below/above the range) - reuses
    the shared .pill text treatment (uppercase, letter-spacing) but overrides its absolute photo-
    corner positioning and green fill, since this pill sits inline next to the bid, not on a photo. */

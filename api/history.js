@@ -421,15 +421,40 @@ function timeLeft(iso) {
   if (h < 24) { const hh = Math.floor(h); return hh + (hh === 1 ? " hour left" : " hours left"); }
   const dd = Math.floor(h / 24); return dd + (dd === 1 ? " day left" : " days left");
 }
+// Bid age (third addendum, result-page-polish round two): ported verbatim from api/buy.js's
+// bidAge/BIDFMT/stampBids (Lane C) so the wording ("updated 1h 12m ago") is identical everywhere a
+// live bid shows its age - not a second computation. This page has no shared client bundle, so the
+// same three functions are inlined once, gated on a live card actually rendering.
+const BID_AGE_JS = `(function(){
+  function bidAge(ms){ var m = Math.floor(ms / 60000); if (m < 60) return ""; var d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mm = m % 60; return d ? d + "d" + (h ? " " + h + "h" : "") : h + "h" + (mm ? " " + mm + "m" : ""); }
+  var BIDFMT = { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" };
+  function stampBids(){
+    Array.prototype.forEach.call(document.querySelectorAll("[data-bidat]"), function(el){
+      var t = Date.parse(el.getAttribute("data-bidat")), w = isNaN(t) ? "" : bidAge(Date.now() - t), box = el.querySelector(".bage");
+      if (!box) return;
+      var txt = w ? "updated " + w + " ago" : "", tt = box.querySelector(".bage-t"), ttl = w ? "Bid as of " + new Date(t).toLocaleString("en-US", BIDFMT) + " PT" : null;
+      if (box.hidden !== !w) box.hidden = !w;
+      if (tt.textContent !== txt) tt.textContent = txt;
+      if (el.getAttribute("title") !== ttl) { if (ttl) el.setAttribute("title", ttl); else el.removeAttribute("title"); }
+    });
+  }
+  stampBids();
+  setInterval(stampBids, 30000);
+})();`;
 function liveCardHtml(l, name, noun = "car") {
   const house = houseName(l.source);
   const chips = [[house, timeLeft(l.end_time)].filter(Boolean).join(" · ")].concat(l.has_reserve === false ? ["No reserve"] : []);
-  const bid = l.current_bid_usd ? "Bid " + usd(l.current_bid_usd) : (l.current_bid ? "Bid " + Math.round(l.current_bid).toLocaleString("en-US") + " " + (l.currency || "") : "No bids yet");
-  const meta = [bid, l.location || "", l.mileage ? miles(l.mileage) + " miles" : ""].filter(Boolean);
+  const bidText = l.current_bid_usd ? "Bid " + usd(l.current_bid_usd) : (l.current_bid ? "Bid " + Math.round(l.current_bid).toLocaleString("en-US") + " " + (l.currency || "") : "No bids yet");
+  const live = !l.end_time || Date.parse(l.end_time) > Date.now();
+  const showAge = l.bid_at && (l.current_bid_usd || l.current_bid) && live;
+  const bid = showAge
+    ? `<span data-bidat="${esc(l.bid_at)}">${esc(bidText)}<span class="bage" hidden> <span class="sep">·</span> <span class="bage-t"></span></span></span>`
+    : esc(bidText);
+  const meta = [bid, l.location ? esc(l.location) : "", l.mileage ? esc(miles(l.mileage) + " miles") : ""].filter(Boolean);
   const img = l.photo_url ? `<img src="${esc(l.photo_url)}" alt="${esc(name)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : "";
   return `<section class="sec" aria-label="Back at auction now"><h2>Back at auction now</h2><p class="sub">This ${esc(noun)} is live ${house === "Hemmings" || /^(Mecum|Bonhams|Gooding|RM|Broad|Barrett)/.test(house) ? "at" : "on"} ${esc(house)}.</p>
 <article class="lcard"><a class="lph" href="${esc(utm(l.url))}" target="_blank" rel="noopener">${img}<span class="chips">${chips.map(c => `<span class="chip">${esc(c)}</span>`).join("")}</span></a>
-<div><h3><a href="${esc(utm(l.url))}" target="_blank" rel="noopener">${esc(name)}</a></h3><p class="meta">${meta.map(esc).join(" · ")}</p><a class="go" href="${esc(utm(l.url))}" target="_blank" rel="noopener">See the live auction</a></div></article></section>`;
+<div><h3><a href="${esc(utm(l.url))}" target="_blank" rel="noopener">${esc(name)}</a></h3><p class="meta">${meta.join(" · ")}</p><a class="go" href="${esc(utm(l.url))}" target="_blank" rel="noopener">See the live auction</a></div></article></section>${showAge ? `<script>${BID_AGE_JS}</script>` : ""}`;
 }
 // THE SALES BEHIND THE RAIL: exactly the rail's group (the engine's pool, same window), so the counts
 // agree. Other bodies of the family sold in the same window get their OWN list each ("XJS V12
