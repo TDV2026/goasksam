@@ -210,6 +210,15 @@ export default async function handler(req, res) {
           const sr2 = await runSearch(env, noBidTask.filters, { keep: r => r.status === "live" && !(r.end_time && Date.parse(r.end_time) <= Date.now()) });
           noBid = ((sr2 && sr2.matches) || []).map(x => x.r).filter(r => taskFits(noBidTask, r)).find(r => r.current_bid_usd == null || Number(r.current_bid_usd) <= 0);
         }
+        if (!noBid) {   // still none: a task built from a real US no-bid listing's own make and model (it fits by construction)
+          const cand = (await q(`live_listings?status=eq.live&end_time=gt.${nowIso}&current_bid_usd=is.null&country=eq.US&make=not.is.null&model=not.is.null&select=${sel}&order=end_time.asc&limit=20`)) || [];
+          const { jobPhrase } = await import("../lib/tasks/tasks.js");
+          for (const r of cand) {
+            const t = { id: "00000000-0000-4000-8000-0000000000e4", filters: { make: r.make, model: r.model } };
+            t.summary = "Sam is looking for " + jobPhrase(t.filters);
+            if (taskFits(t, r)) { noBid = r; noBidTask = t; break; }
+          }
+        }
         for (const [label, r, tk] of [["live, with a bid", withBid, task], ["live, no bids", noBid, noBidTask]]) {
           if (!r) { out.sent.push({ label, error: "no stored listing of this kind right now" }); continue; }
           const card = cardOfMatch({ r, facts: listingFacts(r) });
