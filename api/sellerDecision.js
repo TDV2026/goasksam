@@ -41,7 +41,7 @@ import {
   textHasTerm
 } from "../lib/_classify.js";
 import { hammerUsd, ensureFxReady } from "../lib/_houseComps.js";
-import { buildSharedAnalysis, isRoutableVenue, ROUTABLE_VENUES, SHORT_AUCTION_VENUES } from "../lib/platformPick.js";
+import { buildSharedAnalysis, isRoutableVenue, ROUTABLE_VENUES, SHORT_AUCTION_VENUES, US_ROUTE_VENUES } from "../lib/platformPick.js";
 import { specKeyFor, coreOf, persistCore } from "../lib/live/search.js";
 
 import { isCrewRequest } from "../lib/_crew.js";
@@ -205,6 +205,9 @@ export const US_ROUTE_ALLOWLIST = new Set([
   "bringatrailer", "bat", "carsandbids", "pcarmarket", "hemmings",
   "sothebysmotorsport", "mbmarket", "hagerty"   // autohunter removed Aug 2026 (defunct)
 ]);
+// Must name the same venues as the shared ladder's US set (lib/platformPick.js US_ROUTE_VENUES).
+{ const k = [...US_ROUTE_ALLOWLIST].filter(x => x !== "bat").sort().join(","), v = [...US_ROUTE_VENUES].sort().join(",");
+  if (k !== v) console.error(`CRITICAL: US venues differ: US_ROUTE_ALLOWLIST (${k}) vs shared (${v}).`); }
 
 // ===================== EVIDENCE ALLOWLIST (July 2026) =====================
 // The allowlist governs EVIDENCE ONLY: which sources count toward the premium
@@ -3384,7 +3387,7 @@ export default async function handler(req, res) {
       if (vehicle && vehicle.make && !obRefine) {
         const carKey = specKeyFor(vehicle, generation, null);
         const carLimit = await checkMarketCheckCarLimit({ supabaseUrl, supabaseKey }, req, carKey);
-        _dbgCarLimit = { carKey, ok: carLimit.ok };
+        _dbgCarLimit = { carKey, ...carLimit };
         if (!carLimit.ok) {
           return res.status(200).json({
             status: "one_box", tier: "business_limit", resolvedCar: null,
@@ -3935,7 +3938,7 @@ export default async function handler(req, res) {
     let analysis = null;
     if (sellPickSharedOn) {
       try {
-        analysis = await buildSharedAnalysis(vehicle, generation, { supabaseUrl, supabaseKey }, sellerCriteria);
+        analysis = await buildSharedAnalysis(vehicle, generation, { supabaseUrl, supabaseKey }, { ...sellerCriteria, usOnly: inferSellerPriorities(vehicle, sellerCriteria).region === "US" });
       } catch (e) { console.error("SELL_PICK_SHARED buildSharedAnalysis failed (rendering the honest zero-evidence state, never the capped fetch):", e && e.message); }
       if (!analysis) {
         analysis = {
@@ -3948,7 +3951,7 @@ export default async function handler(req, res) {
     } else {
       analysis = analyze(analysisRecords, analysisClassifications, fetchResult.ladder, vehicle, req.body?.debug === true, activeTxRefine);
       // The pick itself is always the shared ladder, whatever fed the rest of the analysis (archive only).
-      try { const sa = await buildSharedAnalysis(vehicle, generation, { supabaseUrl, supabaseKey }, sellerCriteria); analysis.sharedPick = sa ? sa.sharedPick : null; } catch { analysis.sharedPick = null; }
+      try { const sa = await buildSharedAnalysis(vehicle, generation, { supabaseUrl, supabaseKey }, { ...sellerCriteria, usOnly: inferSellerPriorities(vehicle, sellerCriteria).region === "US" }); analysis.sharedPick = sa ? sa.sharedPick : null; } catch { analysis.sharedPick = null; }
     }
 
     // Sell-through removed (1b): our search-path records are sold-only, so a
