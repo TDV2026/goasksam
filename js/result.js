@@ -1259,6 +1259,13 @@ function renderThinDecisionSell(msgs,thin,decisionData){
     // ASAP suppressed the house steer: online leads (Sam's Pick), the house is CITED by the
     // locked line only (no consign CTA), so the house is never the routed recommendation.
     body=onlineCard+rushBridge;
+  } else if(!onlineCard&&hp){
+    // HOUSE-ONLY car, seller selling it themselves (Oct 2026): every recorded sale was at an auction house and
+    // the online record has none, so say that plainly, show those sales, and give the house as the route
+    // (never the "if you'd rather" hint, which read as a hint over nothing). Only sales on screen, no number
+    // without a sale behind it.
+    const houseRoute=_thinPickCardHtml({kind:"house",pick:hp.pick,others:hp.others,receipts:recs,make,modelLabel,carLbl,loc,typedYear,isLead:true});
+    body=`<div class="pv2-bridge">Every recorded sale of the ${esc(modelLabel||carLbl||"car")} was at an auction house. The online record has none, so the route to sell it is a house.</div>`+houseRoute;
   } else {
     body=(onlineCard||"")+(houseCard?bridgeHouse+houseCard:"");
   }

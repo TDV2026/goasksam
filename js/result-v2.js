@@ -951,12 +951,15 @@ function v2Composition(){
   // make/broad rung with 0-2 real model comps no longer elevates a speed pick that
   // could only render a false or absent count (the 1930 Model T: 9 Fords, 1 Model T
   // on the landed make rung -> no speed elevation, standard evidence leader leads).
-  var evBacked=function(o){ var m=o&&o.marketEvidence; return !!(m&&Number(m.modelSales!=null?m.modelSales:(m.relevantSales||0))>=V2_SPEED_EVIDENCE_FLOOR); };
+  // THE rush pick is the server's (decision.speedPick, rule 3: lib/platformPick.js onlinePicks over the venues
+  // whose auctions run short, deeper venue wins, tie-break rule 2). The page only finds that card; it never
+  // chooses one itself.
   var pick, alt, speedMode=false, speedDiverges=false, priceAlt=null, priceCompetesFull=false;
   if(wantsSpeed&&opts.length){
     var priceLeader=opts[0];
-    var speedPick=null;
-    for(var i=0;i<opts.length;i++){ if(!v2IsBaT(opts[i])&&evBacked(opts[i])){ speedPick=opts[i]; break; } }
+    var _sp=(sellState.sellDecision&&sellState.sellDecision.decision&&sellState.sellDecision.decision.speedPick)||null;
+    var _k=function(x){ return String(x||"").toLowerCase().replace(/[^a-z0-9]/g,""); };
+    var speedPick=_sp?(opts.filter(function(o){ return _k(o.name)===_k(_sp)||_k(o.platformSlug)===_k(_sp)||_k(o.label)===_k(_sp); })[0]||null):null;
     if(speedPick){
       speedMode=true;
       pick=speedPick;

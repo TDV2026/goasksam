@@ -337,33 +337,53 @@ export async function checkOneSpec(q, env) {
 // from the shared pickPlatform (lib/platformPick.js) for the same car. The one tie-break is
 // lib/platformPick.js depthWins; every pick path must call it.
 const PICK_FILES = ["lib/platformPick.js", "api/sellerDecision.js", "js/result.js", "js/result-v2.js"];
-const TIE_CARS = ["2009 Nissan GT-R"];
+// Pieces of the pick that live ONLY in lib/platformPick.js (the Oct 2026 fold, rules 1 to 3). Any of them in
+// another pick file is a second implementation: a depth leader or tie-break, a premium gate, a dominance gate,
+// a specialist test, or the page's old rush loop.
+const FOLDED = /(>|===|>=)\s*(deepN|bestN|leaderN|bestCount)\b|\bclearedPct\b|\bspecCell\b|\bevBacked\b|\.marketShare\s*>=\s*75|lift_rounded\)\s*>=\s*3|platformSales\s*>=\s*Math\.max|\bdepthWins\(/;
+// One car per rule, each run through Sell's real decide() and the shared pickPlatform (filled from the
+// pickfold comparison, Oct 2026). kind: "specialist" (rule 1), "tie" (rule 2), "rush" (rule 3).
+const PICK_CASES = [
+  // rule 1: PCarMarket holds a 12x specialist cell but has 1 sale here; one sale never makes a specialist
+  { q: "1993 Porsche 911 Carrera RS Targa", kind: "specialist", notVenue: "pcarmarket" },
+  // rule 2: 4 v 4 between Cars and Bids and Bring a Trailer; the more recent sale wins
+  { q: "2009 Nissan GT-R", kind: "tie" },
+  // rule 3: rush, short-auction venues only, deeper wins (Hagerty 12 over Hemmings 4)
+  { q: "1965 Chevrolet Corvette", kind: "rush" }
+];
 export async function checkSinglePick(env) {
-  const out = { ok: true, tieBreakCopies: [], cars: [] };
-  // (a) source scan: a running "best count" compared with > or === outside depthWins is a second tie-break.
+  const out = { ok: true, tieBreakCopies: [], cases: [] };
   for (const f of PICK_FILES) {
+    if (f === "lib/platformPick.js") continue;   // the one home of these rules
     let src = null;
     try { src = fs.readFileSync(new URL("../" + f, import.meta.url), "utf8"); } catch { out.sourceNote = "pick sources not readable here (serverless bundle); the nightly run checks them"; continue; }
-    src.split("\n").forEach((line, i) => {
-      if (/^\s*\/\//.test(line) || /function depthWins/.test(line)) return;
-      if (/(>|===)\s*(deepN|bestN|leaderN|bestCount)\b/.test(line)) out.tieBreakCopies.push(`${f}:${i + 1}`);
-    });
+    src.split("\n").forEach((line, i) => { if (/^\s*\/\//.test(line)) return; if (FOLDED.test(line)) out.tieBreakCopies.push(`${f}:${i + 1}`); });
   }
   if (out.tieBreakCopies.length) out.ok = false;
-  // (b) live: the same car through both pick paths.
-  for (const q of TIE_CARS) {
-    const rv = await resolveVehicle(q, {}).catch(() => null), vehicle = rv && rv.vehicle;
-    if (!vehicle || !vehicle.make) { out.cars.push({ q, error: "unresolved" }); out.ok = false; continue; }
-    const generation = await findGeneration(vehicle, env).catch(() => null);
-    const criteria = getSellerCriteria({ raw: q, region: "US", state: "California", timeline: "No rush" });
-    const analysis = await buildSharedAnalysis(vehicle, generation, env, criteria).catch(e => ({ error: e.message }));
-    const sell = analysis && !analysis.error ? decide(analysis, criteria, vehicle) : null;
-    const shared = await pickPlatform(vehicle, generation, env, criteria).catch(() => null);
-    const k = x => String(x || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-    const sellVenue = sell && sell.recommendedPath, sharedVenue = shared && (shared.platformDisplay || shared.platform);
-    const agree = !!sellVenue && !!sharedVenue && (k(sellVenue) === k(sharedVenue) || k(sellVenue) === k(shared.platform));
-    out.cars.push({ q, sellVenue, sellReason: sell && sell.routingReason, sharedVenue, sharedReason: shared && shared.reasonCode, agree });
-    if (!agree) out.ok = false;
+  const k = x => String(x || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  for (const c of PICK_CASES) {
+    const row = { q: c.q, kind: c.kind };
+    try {
+      const rv = await resolveVehicle(c.q, {}), vehicle = rv && rv.vehicle;
+      if (!vehicle || !vehicle.make) throw new Error("unresolved");
+      const generation = await findGeneration(vehicle, env).catch(() => null);
+      const criteria = getSellerCriteria({ raw: c.q, region: "US", state: "California", timeline: c.kind === "rush" ? "As soon as possible" : "No rush" });
+      const analysis = await buildSharedAnalysis(vehicle, generation, env, criteria);
+      const dec = analysis ? decide(analysis, criteria, vehicle) : null;
+      const shared = await pickPlatform(vehicle, generation, env, criteria);
+      if (c.kind === "rush") {
+        row.sell = dec && dec.speedPick; row.shared = shared && shared.reasonCode === "speed" ? (shared.platformDisplay || shared.platform) : null;
+        row.exercised = !!row.shared;
+      } else {
+        row.sell = dec && dec.recommendedPath; row.shared = shared && (shared.platformDisplay || shared.platform);
+        const sp = analysis && analysis.sharedPick && analysis.sharedPick.baseline;
+        if (c.kind === "specialist") row.exercised = !!(sp && sp.reasonCode !== "specialist" && k(sp.platform) !== k(c.notVenue));
+        if (c.kind === "tie") { const top = (analysis.platformPerformance || []).filter(v => v.evidenceSales > 0).sort((a, b) => b.evidenceSales - a.evidenceSales); row.exercised = top.length > 1 && top[0].evidenceSales === top[1].evidenceSales; }
+      }
+      row.agree = !!row.sell && !!row.shared && (k(row.sell) === k(row.shared) || k(row.sell) === k(shared && shared.platform));
+    } catch (e) { row.error = String(e && e.message || e); }
+    if (!row.agree || !row.exercised) out.ok = false;
+    out.cases.push(row);
   }
   return out;
 }
