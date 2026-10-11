@@ -617,7 +617,7 @@
       ? "Real sales of the same car that sat well above or below the range, so they are not used to set it. Still useful to know about."
       : "Real sales of the same car, kept out of the range above. Still useful to know about.";
     var cardsHtml = list.map(function (c, i) { return poolCardHtml(c, dirs[i]); });
-    var label = list.length + (list.length === 1 ? " sale sat outside where the middle half landed" : " sales sat outside where the middle half landed");
+    var label = obNumWord(list.length) + (list.length === 1 ? " sale sat outside where the middle half landed" : " sales sat outside where the middle half landed");
     return '<p class="ev-aside-toggle"><button type="button" class="linkbtn" data-qtoggle="shown-separately" aria-expanded="false">' + esc(label) + " " + CHEV_SVG + "</button></p>" +
       '<div class="ev-aside-note" id="shown-separately" hidden>' + rangeBarHtml(d) + '<p class="sep-note" data-stage="cards">' + lint(sentence, "sep.note") + "</p>" + capCardsHtml("grid3", cardsHtml, 3) + "</div>";
   }
@@ -786,9 +786,11 @@
   // as otherHalfLabel above (a plain fact-only div under the card, never a second number or a claim
   // about the range itself - the range/count are unchanged by this field, see docs/lane-notes.md).
   // ONE function: every surface that can show this card reuses it, never its own copy of the text.
-  function offWindowLabel(c) {
+  function offWindowLabel(c, d) {
     if (!c || c.offWindow !== true || !c.year) return "";
-    return '<div class="offwindow">' + esc("A " + c.year + " car, a few years outside the searched window.") + "</div>";
+    var searchedYear = d && d.resolvedCar && Number(d.resolvedCar.year);
+    if (!searchedYear) return "";
+    return '<div class="offwindow">' + esc("A " + c.year + " car, a few years from the " + searchedYear + " searched.") + "</div>";
   }
   // ONE card builder for every context-card slot (Job 2e, result-page-polish round): used to be two
   // separate functions (a large "hero" card for the closest/middle sale, smaller "sm" cards for the
@@ -809,7 +811,7 @@
     return saleCardHtml({
       cls: "ctx", pill: pill, href: utmUrl(c.url), slug: c.platformSlug, image: c.image,
       priceHtml: esc(usd(c.price)), allIn: (c.isHouse && c.allIn) ? usd(c.allIn) : "", title: cleanReceiptTitle(c.title), meta: meta,
-      extra: otherHalfLabel(c, d) + offWindowLabel(c)
+      extra: otherHalfLabel(c, d) + offWindowLabel(c, d)
     });
   }
   // The exact car (VIN or chassis match) as the hero: "THIS CAR", 1.5px green border, its last sale.
