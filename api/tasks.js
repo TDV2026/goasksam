@@ -85,14 +85,16 @@ export default async function handler(req, res) {
       const isCron = process.env.CRON_SECRET && req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
       if (!isCron && !probeOk(req)) return res.status(401).json({ error: "Unauthorized." });
       const t0 = Date.now();
-      // &ifnew=1 (the cron 5 minutes after every quarter-hour pull slot, lib/live/pullSchedule.js): exits at once
-      // unless a live listing was first seen since the last run started, so a car found by any pull (full walk,
-      // ending soonest or newest) reaches the tasks within minutes and an empty slot costs one query.
+      // &ifnew=1 (THE cron, 5 minutes after every quarter-hour pull slot, lib/live/pullSchedule.js): exits at once
+      // unless a live listing was first seen since the last run started, so a car found by any pull (a full walk
+      // or an ending-soonest pull) reaches the tasks within minutes and an empty slot costs one query.
       if (q.ifnew) {
         const last = await supabaseSelect(env, `app_usage_events?event_type=eq.tasks_run&status=eq.ok&select=created_at,metadata&order=created_at.desc&limit=1`).catch(() => null);
         const l = last && last[0], since = l ? new Date(Date.parse(l.created_at) - (Number(l.metadata && l.metadata.ms) || 0) - 60e3).toISOString() : null;
         const fresh = since ? await supabaseSelect(env, `live_listings?first_seen=gt.${encodeURIComponent(since)}&select=id&limit=1`).catch(() => null) : [1];
-        if (fresh && !fresh.length) return res.status(200).json({ ran: 0, nothingNew: true, since });
+        // ...unless the last full run is over 4 hours old: the periodic work (still-looking notes) keeps its pace.
+        const stale = !l || Date.now() - Date.parse(l.created_at) > 4 * 3600e3;
+        if (fresh && !fresh.length && !stale) return res.status(200).json({ ran: 0, nothingNew: true, since });
       }
       let out;
       try { out = await runTasks(env, { apiKey, model: CHAT_MODEL }); }

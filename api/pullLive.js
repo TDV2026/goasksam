@@ -14,7 +14,7 @@ import { callOldCarsData, configureOcdUsage, getOcdRunMetered, flushOcdUsage } f
 import { historyEnv } from "./_historyData.js";
 import { recordUsageEvent } from "./_usage.js";
 import { ocdWithRetry, readRemaining, reserveFloor } from "../lib/live/ocdGuard.js";
-import { pullFor, dayPlan, PAGES } from "../lib/live/pullSchedule.js";
+import { pullFor, dayPlan, PAGES, ENDING_AHEAD_MS } from "../lib/live/pullSchedule.js";
 import { mapLiveRecord, upsertLive, markVanished, fillFinalPrices, liveStats } from "../lib/live/feed.js";
 
 export default async function handler(req, res) {
@@ -64,8 +64,10 @@ export default async function handler(req, res) {
     // Ending soonest and newest (the schedule's short pulls, or one credentialed test run). Each page's own sort
     // field is checked against the order asked for, so a test shows whether the vendor honoured the sort.
     if (mode === "new" || mode === "ending") {
-      const seenAt = new Date().toISOString(), rows = [], cap = Math.min(PAGES[mode], maxReq);
-      let params = mode === "new" ? { sort: "created_at", direction: "desc" } : { sort: "auction_end_at", direction: "asc" };
+      const seenAt = new Date().toISOString(), rows = [], cap = Math.min(PAGES[mode] || 2, maxReq);
+      // Ending soonest is the vendor's DEFAULT order (soonest-ending first; every sort option tried was rejected).
+      // "new" has no working order and is not scheduled; it stays only as a credentialed test.
+      let params = mode === "new" ? { sort: "created_at", direction: "desc" } : {};
       // A credentialed test may name the sort to try (&sort=<name>&direction=asc|desc, or &sort=none for the
       // vendor's default order); the order that comes back is checked below. The cron never sends this.
       if (!isCron && req.query.sort != null) params = String(req.query.sort) === "none" ? {} : { sort: String(req.query.sort).slice(0, 40), direction: String(req.query.direction || "asc") === "desc" ? "desc" : "asc" };
@@ -93,7 +95,9 @@ export default async function handler(req, res) {
         rows.push(...mapped);
         if (hdr != null && hdr < reserve) break;
         if (data.length < limit) break;
-        if (mode === "ending") { const lastEnd = Date.parse(mapped.length ? mapped[mapped.length - 1].end_time : ""); if (!(lastEnd < Date.now() + 24 * 3600e3)) break; }
+        // Page on until the last car returned ends more than 6 hours ahead (capped above at 3 pages), so a busy
+        // window with more than 100 cars ending soon is never cut off.
+        if (mode === "ending") { const lastEnd = Date.parse(mapped.length ? mapped[mapped.length - 1].end_time : ""); if (!(lastEnd < Date.now() + ENDING_AHEAD_MS)) break; }
         if (mode === "new") { const ids = mapped.map(m => m.source_listing_id); const known = await knownIds(env, ids); if (known >= ids.length) break; }
       }
       const wrong = seq.slice(1).filter((t, i) => mode === "new" ? t > seq[i] : t < seq[i]).length;
@@ -103,7 +107,8 @@ export default async function handler(req, res) {
       const fresh = await newCount(env, rows);
       const up = await upsertLive(env, rows);
       await flushOcdUsage();
-      const out = { mode, pages: pagesRead, ocdRequests: used(), fetched: rows.length, newListings: fresh, upserted: up, order };
+      const lastEndAt = rows.length ? Date.parse(rows[rows.length - 1].end_time) : null;
+      const out = { mode, pages: pagesRead, ocdRequests: used(), fetched: rows.length, newListings: fresh, upserted: up, order, coveredHoursAhead: lastEndAt ? Math.round((lastEndAt - Date.now()) / 360e3) / 10 : null, cappedShort: mode === "ending" && pagesRead >= cap && lastEndAt != null && lastEndAt < Date.now() + ENDING_AHEAD_MS };
       await recordUsageEvent({ event_type: "pull_live_mode", route: "pull_live", status: "ok", oldcarsdata_metered_requests: 0, metadata: out }, env.supabaseUrl, env.supabaseKey).catch(() => {});
       return res.status(200).json({ ok: true, ...out });
     }
