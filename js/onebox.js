@@ -702,9 +702,14 @@
   // a clearly marked "No photo" slot), pill, price, venue + month, the record's OWN title (rule 25),
   // a meta line, and an optional italic why-line. Whole card is the listing link when there is one.
   var DELTA_LABEL = { fewer_miles: "Fewer miles", more_miles: "More miles", manual: "Manual", automatic: "Automatic", earlier: "Earlier", more_recent: "More recent", recent: "More recent", higher: "Higher sale", lower: "Lower sale" };
+  // Range-comparison pills (Above/Below range) stay neutral - plain ink, never a status colour or
+  // the brand fill every other pill (Closest match, This car...) uses. The "neutral" class is added
+  // unconditionally; it only takes visual effect once the brand-palette CSS (lib/appShell.js
+  // brandPaletteCss, crew-only for now) is present to define it - a silent no-op otherwise.
   function photoHtml(image, alt, pill) {
     var img = image ? '<img src="' + esc(image) + '" alt="' + esc(alt || "") + '" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()">' : "";
-    return '<div class="ph' + (image ? "" : " noimg") + '">' + img + '<span class="none">No photo</span>' + (pill ? '<span class="pill">' + esc(pill) + "</span>" : "") + "</div>";
+    var neutral = pill === "Above range" || pill === "Below range";
+    return '<div class="ph' + (image ? "" : " noimg") + '">' + img + '<span class="none">No photo</span>' + (pill ? '<span class="pill' + (neutral ? " neutral" : "") + '">' + esc(pill) + "</span>" : "") + "</div>";
   }
   // ONE grid item per card, always (Oct 2026, sale card template job). Previously a card with its
   // own inner link (poolCardHtml's "Sold before..." line, vinHeroCardHtml's history link) wrapped

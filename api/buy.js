@@ -8,7 +8,7 @@ import { logPageView } from "../lib/_pageview.js";
 import { lastUpdatedDate } from "../lib/asOf.js";
 import { exampleBand } from "../lib/live/buyExample.js";
 import { landingHtml, LANDING_CSS } from "../lib/live/buyLanding.js";
-import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE } from "../lib/appShell.js";
+import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE, brandPaletteCss } from "../lib/appShell.js";
 
 // The lead sentence (search rule 1): the real number of cars live right now, dated. Counted with an
 // exact HEAD count, held 10 minutes per instance (the page is also edge-cached 10 minutes).
@@ -57,7 +57,7 @@ export default async function handler(req, res) {
 <title>${TITLE}</title><meta name="description" content="${esc(lead)}">
 <meta name="robots" content="${robots}"><link rel="canonical" href="https://goasksam.com/buy">
 <meta property="og:title" content="${TITLE}"><meta property="og:description" content="${esc(lead)}"><meta property="og:url" content="https://goasksam.com/buy"><meta property="og:type" content="website"><link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#FAF8F4">
-${FONT_LINKS}<style>${PAGE_CSS}${AUTH_SIGNBAR_CSS}${SHELL_CSS}${BUY_CSS}${LANDING_CSS}</style></head><body>
+${FONT_LINKS}<style>${PAGE_CSS}${AUTH_SIGNBAR_CSS}${SHELL_CSS}${BUY_CSS}${LANDING_CSS}${brandPaletteCss(crew)}</style></head><body>
 ${AUTH_SIGNBAR_HTML}
 ${railFinal}
 <main class="buymain">
@@ -78,13 +78,19 @@ ${SHELL_MAIN_CLOSE}
   await logPageView(supabaseEnv(), { path: "/buy", referer: req.headers["referer"] || req.headers["referrer"], userAgent: req.headers["user-agent"] });
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", robots);
-  // Crew's full nav is never shared or stored. The public response (no crew cookie) is identical
-  // for every anonymous visitor, so it is safely cacheable at the shared edge with no Vary at all -
-  // a prior `Vary: Cookie` made the cache key the raw cookie string, which differs per visitor and
-  // was an effectively permanent MISS.
+  // Crew's full nav (and, Oct 2026, the brand palette override) is never shared or stored. The
+  // public response (no crew cookie) is identical for every anonymous visitor, so it is safely
+  // cacheable at the shared edge with no Vary at all - a prior `Vary: Cookie` made the cache key
+  // the raw cookie string, which differs per visitor and was an effectively permanent MISS.
+  // crew alone is not enough: an INVALID gas_crew cookie (expired, made up, or stale) still
+  // computes crew=false and would get the PUBLIC, cacheable header - and the edge has no Vary on
+  // Cookie, so that cached entry could later be served to a REAL crew request for the same bare
+  // URL (the same cache-poisoning gap fixed on Market Check/business/spec/publicConfig/history
+  // this quarter - closing it here too now that this page also varies its palette by crew).
   // A cold instance that rendered before the example search finished (band undefined) is cached only
   // briefly, so the landing's example band and chips are never held out of the shared cache for long.
-  res.setHeader("Cache-Control", crew ? "private, no-store" : band === undefined ? "public, s-maxage=30" : "public, s-maxage=600, stale-while-revalidate=3600");
+  const hasCrewCookie = /(?:^|;\s*)gas_crew=/.test(String(req.headers.cookie || ""));
+  res.setHeader("Cache-Control", (crew || hasCrewCookie) ? "private, no-store" : band === undefined ? "public, s-maxage=30" : "public, s-maxage=600, stale-while-revalidate=3600");
   res.status(200).send(html);
 }
 export { BUY_CSS };

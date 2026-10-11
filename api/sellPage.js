@@ -8,7 +8,7 @@ import path from "node:path";
 import { lastUpdatedDate } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { isCrewRequest } from "./_chrome.js";
-import { SHELL_TOKENS_CSS, isFullAccess } from "../lib/appShell.js";
+import { SHELL_TOKENS_CSS, isFullAccess, brandPaletteCss } from "../lib/appShell.js";
 
 const TITLE = "Where to sell your collector car";
 const HERO = `<div class="hero" id="hero"><div class="hp-hero">
@@ -40,12 +40,13 @@ export async function sellShellHtml(req) {
   if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "index.html"), "utf8");
   // The real last-updated date, shared with Market Check (lib/asOf.js lastUpdatedDate). No count.
   const updated = await lastUpdatedDate(supabaseEnv()).catch(() => null);
-  const full = isFullAccess(isCrewRequest(req));
+  const crew = isCrewRequest(req);
+  const full = isFullAccess(crew);
   return (full ? shell : stripHiddenNav(shell))
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${TITLE}</title>`)
     .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${TITLE}$2`)
     .replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${TITLE}$2`)
-    .replace("</head>", `<style>${SHELL_TOKENS_CSS}</style>\n</head>`)
+    .replace("</head>", `<style>${SHELL_TOKENS_CSS}${brandPaletteCss(crew)}</style>\n</head>`)
     .replace('<div id="msgs"></div>', `<div id="msgs">${HERO}</div>`)
     .replace('<div class="hp-value-preview hp-home-only">Built for enthusiast, specialty and collector vehicles</div>',
       '<div class="hp-value-preview hp-home-only">Built for enthusiast, specialty and collector vehicles</div>' +
@@ -53,13 +54,19 @@ export async function sellShellHtml(req) {
 }
 
 export default async function handler(req, res) {
-  const html = await sellShellHtml(req);
   const crew = isCrewRequest(req);
+  const html = await sellShellHtml(req);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  // Crew's full rail is never shared or stored. The public response (no crew cookie) is identical
-  // for every anonymous visitor, so it is safely cacheable at the shared edge with no Vary at all -
-  // a prior `Vary: Cookie` made the cache key the raw cookie string, which differs per visitor and
-  // was an effectively permanent MISS.
-  res.setHeader("Cache-Control", crew ? "private, no-store" : "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400");
+  // Crew's full rail (and, Oct 2026, the brand palette override) is never shared or stored. The
+  // public response (no crew cookie) is identical for every anonymous visitor, so it is safely
+  // cacheable at the shared edge with no Vary at all - a prior `Vary: Cookie` made the cache key
+  // the raw cookie string, which differs per visitor and was an effectively permanent MISS.
+  // crew alone is not enough: an INVALID gas_crew cookie (expired, made up, or stale) still
+  // computes crew=false and would get the PUBLIC, cacheable header - and the edge has no Vary on
+  // Cookie, so that cached entry could later be served to a REAL crew request for the same bare
+  // URL (the same cache-poisoning gap fixed on Market Check/business/spec/publicConfig/history
+  // this quarter - closing it here too now that this page also varies its palette by crew).
+  const hasCrewCookie = /(?:^|;\s*)gas_crew=/.test(String(req.headers.cookie || ""));
+  res.setHeader("Cache-Control", (crew || hasCrewCookie) ? "private, no-store" : "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400");
   res.status(200).send(html);
 }
