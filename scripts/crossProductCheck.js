@@ -89,7 +89,13 @@ export const DEFAULT_SPECS = [
   // exactly as before (997 Carrera S, E46 M3 pre/post facelift).
   "2006 Porsche Boxster Convertible", "2010 Porsche Boxster Convertible",
   "2008 Porsche 997 Carrera S Coupe", "2010 Porsche 997 Carrera S Coupe",
-  "2001 BMW M3 Coupe", "2005 BMW M3 Coupe"
+  "2001 BMW M3 Coupe", "2005 BMW M3 Coupe",
+  // Trim-isolation job (Oct 2026): a bare suffix-shaped trim ("S") pooled the whole model
+  // regardless of trim until qualifyReason's titleContains check was fixed (backwards substring-
+  // first priority, no guard against a longer compound trim like "Turbo S"/"GTS" also satisfying
+  // the match). These two have no dedicated SUBTRIM_FENCES entry (unlike 911), so they are the
+  // real regression cases for the generic fallback path, not the fenced one.
+  "2008 Porsche Boxster S", "2009 Porsche Cayman S"
 ];
 
 const round = n => (Number.isFinite(n) ? Math.round(n) : null);
@@ -126,7 +132,7 @@ async function marketCheckLane(vehicle, generation, searchText, env) {
   const latest = cards.map(c => (c.date || "").slice(0, 10)).filter(Boolean).sort().at(-1) || null;
   const recent = normRecent(Array.isArray(d.recent3) ? d.recent3 : cards, "cards");
   const span = Array.isArray(d.span) ? [round(d.span[0]), round(d.span[1])] : null;
-  return { ok: true, tier, label, low, high, count, latest, recent, span, referenceFigure: d.referenceFigure || null };
+  return { ok: true, tier, label, low, high, count, latest, recent, span, referenceFigure: d.referenceFigure || null, counts: d.counts || null };
 }
 
 // ---- Lane 2 & 4: Buy / Tasks (familyMarket -> listingMarket -> walkLadder, the real empty-state read) ----
@@ -140,7 +146,7 @@ async function buyLane(env, v, f) {
   const count = m.count ?? null;
   const recent = normRecent(m.recent, "cards");
   const latest = datesOf(recent).sort().at(-1) || null;
-  return { ok: true, kind: m.kind, label, low, high, count, latest, recent, referenceFigure: m.referenceFigure || null };
+  return { ok: true, kind: m.kind, label, low, high, count, latest, recent, referenceFigure: m.referenceFigure || null, counts: m.counts || null };
 }
 
 // ---- Lane 3: Sell (fetchOnlinePool, the shared pool buildSharedAnalysis aggregates from) ----
@@ -173,7 +179,12 @@ async function sellLane(vehicle, generation, env) {
   const askingResult = await runOneBox(vehicle, generation, askingSearchText, { ...env, asked: 2 }, null).catch(() => null);
   const askingLineLow = askingResult && Array.isArray(askingResult.cluster) ? round(askingResult.cluster[0]) : null;
   const askingLineHigh = askingResult && Array.isArray(askingResult.cluster) ? round(askingResult.cluster[1]) : null;
-  return { ok: true, label, low, high, span, count: priced.length, latest: (sorted[0]?.auction_end_date || "").slice(0, 10) || null, recent, referenceFigure: referenceFigure || null, askingLineLow, askingLineHigh };
+  // counts (Oct 2026, count reconciliation job): fetchOnlinePool (lib/platformPick.js, Lane C's
+  // file) does not surface runOneBox's new `counts` field, so this reuses the SAME askingResult
+  // call just above (a second runOneBox invocation that already exists for the asking-line
+  // verification) rather than adding a third call or editing platformPick.js.
+  const counts = (askingResult && askingResult.counts) || null;
+  return { ok: true, label, low, high, span, count: priced.length, latest: (sorted[0]?.auction_end_date || "").slice(0, 10) || null, recent, referenceFigure: referenceFigure || null, askingLineLow, askingLineHigh, counts };
 }
 
 // ---- comparison ----
@@ -328,6 +339,34 @@ export async function checkOneSpec(q, env) {
       : { status: "N/A", detail: `fewer than 2 lanes answered (sell=${sLow}-${sHigh} marketCheck=${mLow}-${mHigh})` };
     if (row.askingLineCompare.status === "MISMATCH") row.anyMismatch = true;
   }
+  // Reconciliation counts (Oct 2026, count reconciliation job): qualifying/used/setAside.total/
+  // aboveRange/belowRange are EXACT-match, like count above - these are discrete pool-membership
+  // facts (lib/onebox.js buildResult `counts`), passed through unchanged by every lane
+  // (lib/live/search.js coreOf/listingMarket for Buy/Tasks, a second runOneBox call for Sell since
+  // fetchOnlinePool does not surface them - see sellLane's own comment). Any lane missing `counts`
+  // entirely (a tier below "result", or a lane that failed) reads as "fewer than 2 lanes answered".
+  const countFields = [
+    ["qualifying", c => c && c.qualifying],
+    ["used", c => c && c.used],
+    ["setAsideTotal", c => c && c.setAside && c.setAside.total],
+    ["aboveRange", c => c && c.setAside && c.setAside.aboveRange],
+    ["belowRange", c => c && c.setAside && c.setAside.belowRange]
+  ];
+  const countsCompare = countFields.map(([name, pick]) => {
+    const values = {
+      marketCheck: marketCheck.ok ? pick(marketCheck.counts) : null,
+      buy: buy.ok ? pick(buy.counts) : null,
+      sell: sell.ok ? pick(sell.counts) : null,
+      tasks: tasks.ok ? pick(tasks.counts) : null
+    };
+    const present = Object.entries(values).filter(([, v]) => v != null);
+    if (present.length < 2) return { field: name, status: "N/A", detail: "fewer than 2 lanes answered" };
+    const nums = present.map(([, v]) => v);
+    const mismatch = nums.some(n => n !== nums[0]);
+    return { field: name, status: mismatch ? "MISMATCH" : "MATCH", detail: present.map(([k, v]) => `${k}=${v}`).join(" ") };
+  });
+  row.countsCompare = countsCompare;
+  if (countsCompare.some(c => c.status === "MISMATCH")) row.anyMismatch = true;
   row.anyMismatch = row.compare.some(c => c.status === "MISMATCH") || row.anyMismatch;
   row.lanesOk = { marketCheck: marketCheck.ok, buy: buy.ok, sell: sell.ok, tasks: tasks.ok };
   row.reasons = diagnoseReasons(row, { vehicle, marketCheck, buy, sell, tasks });
@@ -415,6 +454,10 @@ function printTable(result) {
     for (const c of row.compare) {
       const flag = c.status === "MISMATCH" ? " <<<<" : "";
       console.log(`  ${c.field.padEnd(8)} ${c.status.padEnd(9)} ${c.detail}${flag}`);
+    }
+    for (const c of (row.countsCompare || [])) {
+      const flag = c.status === "MISMATCH" ? " <<<<" : "";
+      console.log(`  ${c.field.padEnd(13)} ${c.status.padEnd(9)} ${c.detail}${flag}`);
     }
     if (row.abroad) console.log(`  abroad   live matches=${row.abroad.liveMatches ?? "?"} (${row.abroad.note || row.abroad.error})`);
     for (const r of (row.reasons || [])) console.log(`  reason:  ${r}`);
