@@ -244,7 +244,19 @@ export default async function handler(req, res) {
       const recent = (sd || []).filter(r => r.created_at >= since7);
       const by = (rows, f) => rows.reduce((o, r) => { const k = f(r) || "none"; o[k] = (o[k] || 0) + 1; return o; }, {});
       const sum = rows => rows.reduce((n, r) => n + (Number(r.oldcarsdata_metered_requests) || 0), 0);
-      return res.status(200).json({ days,
+      // Buy's model use against completed searches (the chat path logs one funnel search per new car; the
+      // no-model paths log search_events), and devices by distinct make|model searched within one hour.
+      const [fs, turnsRows] = await Promise.all([
+        supabaseSelectAll(env, `funnel_events?event=eq.search&tool=eq.buy&created_at=gte.${since}&select=created_at,visitor_id,props&order=created_at.asc`).catch(() => []),
+        supabaseSelectAll(env, `app_usage_events?event_type=eq.buy_chat_turn&created_at=gte.${since}&select=created_at,anthropic_cost_usd,metadata&order=created_at.asc`).catch(() => [])]);
+      const perHour = {}; for (const r of fs || []) { const k = (r.visitor_id || "none") + "|" + String(r.created_at).slice(0, 13); (perHour[k] = perHour[k] || new Set()).add(String((r.props && r.props.key) || "")); }
+      const hv = Object.values(perHour).map(x => x.size);
+      const cost = (turnsRows || []).reduce((n, r) => n + (Number(r.anthropic_cost_usd) || 0), 0);
+      const buyModel = { turns: (turnsRows || []).length, chatSearches: (fs || []).length, fallbackSearches: (se || []).length, costUsd: Math.round(cost * 100) / 100,
+        turnsPerChatSearch: fs && fs.length ? Math.round(100 * turnsRows.length / fs.length) / 100 : null,
+        callsPerTurnLogged: (turnsRows || []).filter(r => r.metadata && r.metadata.calls).map(r => r.metadata.calls),
+        distinctCarsPerDeviceHour: { deviceHours: hv.length, p50: pct(hv, 0.5), p90: pct(hv, 0.9), p99: pct(hv, 0.99), max: pct(hv, 1), over10: hv.filter(n => n > 10).length, over30: hv.filter(n => n > 30).length } };
+      return res.status(200).json({ days, buyModel,
         sellSearchesPerAddress: dist(sd || [], ipOf), chatPerAddress: dist(chat || [], ipOf), buyChatPerAddress: dist(bchat || [], ipOf),
         buySearchesPerBrowser: dist(se || [], r => r.anon_id || (r.user_id ? "u" + r.user_id : null)),
         sell7d: { searches: recent.length, byCache: by(recent, r => r.metadata && r.metadata.marketFetchCache), byTier: by(recent, r => r.metadata && r.metadata.tier),
