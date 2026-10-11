@@ -3364,3 +3364,81 @@ when the work has landed.
     email from any alert. placingFor (lib/onebox.js) is the one placing wording everywhere. Watches have no
     paused state: Pause on a sold notice is the signed "this one" link (stop this one), Stop is every alert.
     FOR LANE A: Market Check's "Put Sam on it" copy says watch in places; user-visible emails now say task.
+
+- 2026-10-10 (Lane B): HALF-GENERATION HANDLING SHIPPED (987 split, same-half cards for 997/E46 M3).
+  * Job 1 (count reconciliation): 89 (Market Check's own headline for "2008 Porsche 997 Carrera S")
+    and 128 (my prior round's table, 80 coupe + 48 cabriolet) cover DIFFERENT stages of the SAME
+    pipeline, not a bug. 89 = soldCount = solid.length after r4Split's statistical aside-step
+    (special-title + price>p75*1.35 outliers removed) over the trailing 12 months, body-unspecified -
+    the population that actually sets the displayed range. ~128ish = the WIDER archive-fence-
+    qualifying population (same make/model/trim/generation/window) BEFORE that statistical trim -
+    includes the "ABOVE RANGE, shown separately" outlier cards the page itself displays (confirmed
+    live: the $106k 2010, $100,997 2006, $125k 2011 cards are explicitly excluded from the 89 and
+    shown separately). A third numbers, 196, is htMeta.totalN - a 36-month ALL-platform count for
+    the thin/house-steer assessment, unrelated to either. No engine bug; my prior report should have
+    labeled 128 as "all qualifying sales" rather than imply parity with the page's own headline.
+  * Job 2 (boundary table + report): built HALF_GENERATIONS in lib/generations.js
+    (HALF_GEN_MIN_SALES=8, HALF_GEN_MIN_GAP_PCT=25, both exported constants). Real last-12-month
+    counts/medians (archive-fence-qualifying population, same methodology Job 2 asked to use):
+      987 Boxster: 987.1 n=88 median $23,000 vs 987.2 n=37 median $37,250 (+62%) -> SPLIT.
+      987 Cayman: 987.1 n=92 median $27,500 vs 987.2 n=50 median $47,375 (+72%) -> SPLIT.
+      997 Carrera S coupe: 997.1 n=65 median $59,000 vs 997.2 n=15 median $71,000 (+20%) -> merge.
+      997 Carrera S cabriolet: 997.1 n=42 median $45,500 vs 997.2 n=6 (below the 8-sale floor)
+        median $49,750 (+9%) -> merge.
+      996 Carrera: 996.1 n=159 median $27,800 vs 996.2 n=81 median $29,250 (+5%) -> left alone
+        entirely (no table entry at all - the owner's explicit call, not even same-half cards).
+      E46 M3: pre-facelift n=55 median $23,500 vs post-facelift n=134 median $27,125 (+15%) ->
+        merge, same-half cards on.
+    CAVEAT found in passing: "Boxster S"/"Cayman S" trim scoping does NOT cleanly isolate the S
+    trim - a "Boxster S" query's sample titles included plain "Boxster" and even "Cayman S" rows,
+    and base "Boxster"/"Cayman" queries cross-contaminate each other at a modest 4-8% rate (both
+    share the chassis-code union token "987" with no model distinction at that fetch). Pre-existing,
+    not fixed this round (out of scope, not material enough to flip any split decision given the
+    gaps are 62-72% vs a handful of percentage points of contamination) - used base-model (no trim)
+    numbers for the actual decision, which the owner's own framing already does too.
+  * Job 3 FIXED (commit 5184d8e): 987 Boxster/Cayman split=true in HALF_GENERATIONS. buildSpec
+    (lib/onebox.js) narrows spec.yearMin/yearMax/genCode to the matched half ONLY when a year pins
+    exactly one half AND split=true; a bare, year-less search is untouched (confirmed live: "Porsche
+    Boxster" with no year still asks the pre-existing 986/987/981/718 generation_choice question,
+    identical to before). halfGenAvailable is returned even when no year pins a half, so the
+    evidence note can say a split exists without guessing one.
+  * Job 4 FIXED (same commit): pickRepresentative (lib/onebox.js) now takes ownHalf + a per-row
+    halfOfFn; when the subject's own half has >=3 qualifying comps, all three context cards (middle-
+    of-range, fewer miles, more miles) are scoped to that half alone; under 3, the full cross-half
+    pool stands exactly as before and each returned card carries a sameHalf flag (plus its own year)
+    for the page to label a fill-in. Applies to EVERY lane through the one shared buildResult/
+    pickRepresentative path (Market Check, Buy's drawer, Sell, Tasks all call runOneBox) - confirmed
+    live for 997 (2008, ownHalf 997.1, all 3 cards same half, years 2006/2008/2008) and both E46 M3
+    halves (2001 -> e46-pre, all cards 2002; 2005 -> e46-post, all cards 2004-2005).
+  * Job 5: ENGINE_VERSION bumped (e5-20261010-halfgeneration). CAUGHT AND FIXED a real cache-key
+    collision before it reached production: specKeyFor (lib/live/search.js, the ONE shared builder
+    Buy/Market-Check-opportunistic-refresh/the nightly recompute job all use) keyed a half-
+    generation model by its MERGED generation.code only ("987" for both halves) - two genuinely
+    different answers would have shared one spec_market_cache row, and whichever cached first would
+    silently serve the other half's window/cards to Buy and Tasks. Fixed by mirroring buildSpec's
+    own half match inside specKeyFor itself (one shared table, one match, now in two call sites that
+    both read the SAME lib/generations.js functions). Verified live: 2006 vs 2010 Boxster now
+    produce genuinely different cache keys ("987.1" vs "987.2").
+  * Job 6 (before/after, all four products): verified via enginecheck, mismatchSpecs:0 on every
+    spec checked.
+      2008 997 Carrera S coupe: low/high/count/latest/recent/referenceFigure MATCH across
+        marketCheck/buy/sell/tasks (49000-67500, n=56, ref 58250 high-confidence).
+      2006 987.1 Boxster convertible: MATCH (18500-34000, n=61, ref 26250 medium). BEFORE (merged,
+        no year pinned - the genuine pre-fix state for any year 2005-2012): 20500-40500, n=88.
+        987.1's own range moved -9.8% on the low end, -16.0% on the high end versus what was served
+        before - a 2005-2008 buyer today sees a materially LOWER, tighter range than the merged
+        figure was showing them.
+      2010 987.2 Boxster convertible: MATCH (29000-48500, n=24, ref 38750 medium). Versus the same
+        20500-40500 merged baseline: +41.5% low, +19.8% high - a 2009-2012 buyer was being shown a
+        range dragged DOWN by the slower, cheaper 987.1 sales mixed in.
+      2001 BMW M3 coupe (e46-pre) and 2005 BMW M3 coupe (e46-post): MATCH across all four for both
+        (24000-44000, n=88, ref 34000 medium, identical for both years - confirms the merge is
+        genuinely unchanged; only the context cards differ by half, not the range).
+  * Job 7: crossProductCheck DEFAULT_SPECS extended with 6 half-generation cases (987.1/987.2
+    Boxster, 997.1-era/997.2-era Carrera S, E46 M3 pre/post) - commit d28f4e9. Full run, 59/59
+    specs, mismatchSpecs:0 on every batch. Search-rules check: PASS on all 10 canonical pages.
+    /sell /buy /tasks /market-check /business signed out: all 200/304, correct title/H1, "Sign in"
+    cue present, zero console errors.
+  * Files: lib/generations.js, lib/onebox.js, lib/live/search.js, scripts/crossProductCheck.js.
+    api/sellerDecision.js and lib/platformPick.js were not touched (both import specKeyFor/
+    runOneBox unchanged; the fix in lib/live/search.js propagates to both without editing either).
