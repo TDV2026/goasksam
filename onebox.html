@@ -225,14 +225,17 @@ button{font:inherit}
    PHOTO (cropped with object-fit:cover, never stretched) rather than its text block, so the price/
    venue/title/miles line always sits directly under the photo with no blank band above or below it. */
 .cards5:not(.single) .card.hero{align-self:stretch}
-/* aspect-ratio:auto, not 16/9 - with a fixed ratio present, Chrome sizes the photo from its own
-   width before applying flex-grow, so the ratio won by itself and the hero kept its old blank
-   band below the text even once stretched (measured live: the .ph stayed pinned to its 16:9
-   height while the card around it grew). Dropping the ratio and relying on flex-grow alone lets
-   the photo take 100% of the row's actual leftover height. On mobile (below) the hero is never
-   stretched - no taller sibling shares its row there - so the ratio is restored to keep it a
-   normal photo instead of collapsing toward zero height with nothing left to size it. */
-.cards5:not(.single) .card.hero .ph{flex:1 1 auto;aspect-ratio:auto;min-height:0}
+/* The photo is not a direct flex child of .card - saleCardHtml wraps it in a bare, classless <a>
+   when the sale has a URL (almost always), so flex-grow on .ph itself did nothing (measured live:
+   it stayed pinned near its own aspect-ratio height while the card around it grew - the real flex
+   item is the anchor, one level up). ":first-child" is always that anchor (or, on the rare un-
+   linked card, .ph itself - the same rule still applies correctly either way): it grows to absorb
+   the row's leftover height, then .ph fills 100% of whatever height that wrapper ends up with.
+   aspect-ratio:auto so a fixed ratio never wins over the grown height; on mobile (below) the hero
+   is never stretched - no taller sibling shares its row there - so the ratio is restored to keep
+   it a normal photo instead of collapsing with nothing left to size it. */
+.cards5:not(.single) .card.hero > :first-child{flex:1 1 auto;min-height:0;display:block}
+.cards5:not(.single) .card.hero .ph{aspect-ratio:auto;height:100%}
 .cards5:not(.single) .card.hero .cbody{flex:none}
 /* Fixed aspect ratio (Oct 2026, sale card template job), not a per-context pixel height: the box
    reserves its own space the instant the card renders, before a lazy-loaded image arrives or fails,
