@@ -11,6 +11,7 @@ import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor,
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { PAGE_CSS as CSS, FONT_LINKS, railHtml, whyResultHtml, isCrewRequest } from "./_chrome.js";
 import { isReleased } from "../lib/_launchStage.js";
+import { gaBootstrapHtml } from "../lib/analytics.js";
 import { KEEPLOOK_CSS, KEEPLOOK_JS, keepLookingHtml, keepLookingHref } from "../lib/appShell.js";
 import { AUTH_SIGNBAR_CSS } from "../lib/authBar.js";
 import { recordUsageEvent } from "./_usage.js";
@@ -147,6 +148,7 @@ ${railHtml("history", undefined, crew, req)}
 <script>${KEEPLOOK_JS}</script>
 <script>window.GAS_AUTH_MODE="topbar";</script>
 <script src="/js/auth.js" defer></script>
+${gaBootstrapHtml()}
 </body></html>`;
 }
 function send(res, status, html, extra = {}, index = false, crew = false, req = null) {

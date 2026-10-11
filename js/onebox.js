@@ -221,7 +221,7 @@
         // nothing extra. Kept on the row too (not just the summary above it) so a reader can tell
         // exactly WHICH listing the summary sentence is talking about.
         if (l.placing) priceText += " · " + l.placing;
-        return '<a class="lp-row" href="' + esc(utmUrl(l.url)) + '" target="_blank" rel="noopener noreferrer"><span class="lp-house">' + esc(l.source) + '</span><span class="lp-t">' + esc(cleanReceiptTitle(l.title)) + '</span><span class="lp-r"><b>' + esc(priceText) + '</b>' + esc(endsShort(l.end_time)) + '</span></a>';
+        return '<a class="lp-row" href="' + esc(utmUrl(l.url)) + '" target="_blank" rel="noopener noreferrer" data-gas-event="auction_clickout" data-gas-source="' + esc(l.source || "") + '"><span class="lp-house">' + esc(l.source) + '</span><span class="lp-t">' + esc(cleanReceiptTitle(l.title)) + '</span><span class="lp-r"><b>' + esc(priceText) + '</b>' + esc(endsShort(l.end_time)) + '</span></a>';
       }).join("");
       var q = (m && m.displayName) || carLabel(rc);
       var headline = j.count + " comparable " + (j.count === 1 ? "car is" : "cars are") + " at auction.";

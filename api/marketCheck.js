@@ -84,7 +84,7 @@ export default async function handler(req, res) {
     .replace('<main class="wrap"><div id="ob"></div></main>',
       `<main class="wrap"><div id="ob">${landingHtml({ updated, example, h1Text: H1 })}</div></main>`)
     // Round D (app shell, Oct 2026): one shared rail/main/mobile-header, lib/appShell.js.
-    .replace("<!--SHELL_RAIL-->", railOpenHtml({ active: "market-check", pageExtra: YOUR_RESULTS_RAIL, crew, req }))
+    .replace("<!--SHELL_RAIL-->", railOpenHtml({ active: "market-check", pageExtra: YOUR_RESULTS_RAIL, crew, req, analytics: true }))
     .replace("<script>\nfunction obToggleResults", `<script>${SHELL_JS}</script>\n<script>\nfunction obToggleResults`)
     // Item 9 (shared top bar, Oct 2026): "Sign in" / the account control, one shared file
     // (lib/authBar.js) - the same markup/CSS Buy now uses, GAS_AUTH_MODE="topbar" so js/auth.js

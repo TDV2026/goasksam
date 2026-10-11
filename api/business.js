@@ -277,7 +277,7 @@ async function page(req) {
 ${FONT_LINKS}<style>${CSS}${AUTH_SIGNBAR_CSS}${SHELL_CSS}</style></head><body>
 ${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
-${railOpenHtml({ active: "business", pageExtra: YOUR_RESULTS_RAIL, crew, req })}
+${railOpenHtml({ active: "business", pageExtra: YOUR_RESULTS_RAIL, crew, req, analytics: true })}
 ${body}
 <script>${SHELL_JS}</script>
 <script>${leadScript}</script>
