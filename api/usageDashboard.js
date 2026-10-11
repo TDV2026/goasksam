@@ -1380,6 +1380,60 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "flawsample", make, model, n: out.length, out });
   }
 
+  // task=vinhistory: READ-ONLY (weekly report job 2, Oct 2026). For every VIN that sold in [from, to]
+  // on a non-live-house platform, returns that VIN's EARLIER records (sold, from sales_archive, and
+  // not-sold, from auction_attempts) - date, platform, price or high bid, result, miles, id. A live-
+  // house earlier record is still returned but tagged live:true so the caller can exclude it. No
+  // writes, no free-form SQL (bounded PostgREST filters only). Row count bound: BOUND_VINS (2000) VINs
+  // looked up per call, BOUND_HISTORY (6000) total history rows returned - both generous for a one-
+  // week window, named explicitly in the response so a caller can tell if either was hit.
+  //   ?view=ops&task=vinhistory&from=2026-10-04&to=2026-10-10
+  if (task === "vinhistory") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const from = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.from || "")) ? String(req.query.from) : null;
+    const to = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.to || "")) ? String(req.query.to) : null;
+    if (!from || !to) return res.status(400).json({ error: "vinhistory needs ?from=YYYY-MM-DD&to=YYYY-MM-DD." });
+    const LIVE_SLUGS = new Set(["rmsothebys", "broadarrow", "gooding", "bonhams", "mecum", "barrettjackson"]);
+    const BOUND_VINS = 2000, BOUND_HISTORY = 6000;
+    // VINs sold this window on a non-live platform (the "current" sale each history entry is prior to).
+    const curSel = "id,source_slug,platform,vin_norm,sale_date,sale_price,sale_price_usd";
+    const current = await supabaseSelectAll(env, `sales_archive?sale_date=gte.${from}&sale_date=lte.${to}&sale_price=not.is.null&vin_norm=not.is.null&vin_norm=neq.&select=${curSel}&order=sale_date.asc&limit=${BOUND_VINS}`);
+    const curByVin = new Map();
+    for (const r of (current || [])) {
+      if (LIVE_SLUGS.has(r.source_slug || r.platform)) continue; // the CURRENT sale itself must be an included platform
+      const v = String(r.vin_norm || "");
+      if (v.length < 8) continue;
+      if (!curByVin.has(v)) curByVin.set(v, { id: r.id, date: String(r.sale_date).slice(0, 10), source: r.source_slug || r.platform, price: r.sale_price_usd != null ? Math.round(Number(r.sale_price_usd)) : Math.round(Number(r.sale_price) || 0) });
+    }
+    const vinBound = curByVin.size >= BOUND_VINS;
+    const vins = [...curByVin.keys()];
+    const hist = [];
+    let historyBound = false;
+    for (let i = 0; i < vins.length && hist.length < BOUND_HISTORY; i += 150) {
+      const chunk = vins.slice(i, i + 150);
+      const inList = chunk.map(v => `"${v}"`).join(",");
+      const soldSel = "id,source_slug,platform,vin_norm,sale_date,sale_price,sale_price_usd,make,model,year,raw_record->>mileage";
+      const sold = await supabaseSelect(env, `sales_archive?vin_norm=in.(${inList})&sale_date=lt.${from}&sale_price=not.is.null&select=${soldSel}&order=sale_date.desc&limit=1000`).catch(() => []);
+      for (const r of (sold || [])) {
+        if (hist.length >= BOUND_HISTORY) { historyBound = true; break; }
+        const v = String(r.vin_norm || "");
+        if (!curByVin.has(v)) continue;
+        hist.push({ vin: v, forId: curByVin.get(v).id, id: r.id, date: String(r.sale_date || "").slice(0, 10), source: r.source_slug || r.platform, live: LIVE_SLUGS.has(r.source_slug || r.platform), result: "sold", price: r.sale_price_usd != null ? Math.round(Number(r.sale_price_usd)) : Math.round(Number(r.sale_price) || 0), miles: r["mileage"] != null ? Number(String(r["mileage"]).replace(/[^\d]/g, "")) || null : null, make: r.make || null, model: r.model || null, year: r.year || null });
+      }
+      const attSel = "chassis_vin_norm,attempt_date,source_slug,high_bid,high_bid_usd,auction_status,make,model,mi:raw_record->>mileage";
+      const unsold = await supabaseSelect(env, `auction_attempts?chassis_vin_norm=in.(${inList})&attempt_date=lt.${from}&select=${attSel}&order=attempt_date.desc&limit=1000`).catch(() => []);
+      for (const r of (unsold || [])) {
+        if (hist.length >= BOUND_HISTORY) { historyBound = true; break; }
+        const v = String(r.chassis_vin_norm || "");
+        if (!curByVin.has(v)) continue;
+        const status = String(r.auction_status || "").toLowerCase();
+        const result = /sold/.test(status) ? "sold" : /reserve/.test(status) ? "reserve not met" : "no sale";
+        hist.push({ vin: v, forId: curByVin.get(v).id, id: null, date: String(r.attempt_date || "").slice(0, 10), source: r.source_slug || null, live: LIVE_SLUGS.has(r.source_slug), result, price: r.high_bid_usd != null ? Math.round(Number(r.high_bid_usd)) : (r.high_bid != null ? Math.round(Number(r.high_bid)) : null), miles: r.mi != null ? Number(String(r.mi).replace(/[^\d]/g, "")) || null : null, make: r.make || null, model: r.model || null, year: null });
+      }
+    }
+    return res.status(200).json({ task: "vinhistory", from, to, vinsLookedUp: vins.length, vinsBound: vinBound, historyRows: hist.length, historyBound, current: [...curByVin.entries()].map(([vin, c]) => ({ vin, ...c })), history: hist });
+  }
+
   // task=weeklysales: READ-ONLY (weekly total report job, Oct 2026). Returns every sold sales_archive
   // row with a sale_date in [from, to] inclusive, across every platform - price (native and USD),
   // year, make, model, mileage, platform, VIN, listing title, record id. No writes, no free-form SQL
