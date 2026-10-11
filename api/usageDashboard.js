@@ -4187,10 +4187,12 @@ async function handleOps(req, res) {
           thin: ob.thin ? { n: (ob.thin.receipts || []).length, houseSteer: !!ob.thin.houseSteer, span: ob.thin.span || null } : null,
           recLabel: ob.recLabel || null, poolTrim: ob.poolTrim || null, poolYears: ob.poolYears || null, cluster: ob.cluster || null, span: ob.span || null,
           cards: Array.isArray(ob.cards) ? ob.cards.length : null,
+          cardTitles: req.query?.titles === "1" && Array.isArray(ob.cards) ? ob.cards.map(c => c.title) : null,
           recent3: Array.isArray(ob.recent3) ? ob.recent3.map(c => ({ title: c.title, mi: c.mi, date: c.date, again: !!c.again })) : null,
           exactSale: ob.exactSale ? { price: ob.exactSale.price, date: ob.exactSale.soldDate || ob.exactSale.date || null, mileage: ob.exactSale.mileage } : null,
           r4: d.r4 || null, dedup: { fetchedRaw: d.fetchedRaw, fetchedDeduped: d.fetchedDeduped, rule5: d.rule5 || null },
           counts: ob.counts || null, soldCount: ob.soldCount != null ? ob.soldCount : null, setAsideCount: ob.setAsideCount != null ? ob.setAsideCount : null, setAsideReasons: ob.setAsideReasons || null,
+          setAsideRows: Array.isArray(ob.setAsideRows) ? ob.setAsideRows.map(c => ({ title: c.title, price: c.price })) : null,
           bodyScoped: ob.bodyScoped !== undefined ? ob.bodyScoped : null,
           halfGeneration: ob.halfGeneration || null, representative: ob.representative || null,
           reserve, chips, cacheRows, listSales
