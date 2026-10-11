@@ -4169,3 +4169,5 @@ when the work has landed.
     obFetch). Seen after 44a75da; Lane B's c774d29 (exactStep ReferenceError in buildPool) is the likely cause,
     and after it the 911 result drew again (20 prices). The 9.8 s engine time is still worth a look.
     pushCheck.mjs now fails on that line, so prePush will show it.
+  * Oct 11, 16:40 PT: the Vercel deployment for fc381a3 ended in Error with no build log (0 ms, GitHub status
+    "Deployment has failed"); production stayed on 7c2cdc4. Retriggered with this note's commit.
