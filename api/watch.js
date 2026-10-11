@@ -12,7 +12,7 @@ import { supabaseEnv } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { readVisitorId } from "../lib/_visitor.js";
 import { hasServerCredential } from "../lib/_credential.js";
-import { ready, arm, stop, list, run, testSend, isMissingTable, probeBackdate, probeInspect, verifySoldTaskTap, soldTaskTap, soldTaskName, getWatch, setWatchState } from "../lib/live/watches.js";
+import { ready, arm, stop, resume, list, run, testSend, isMissingTable, probeBackdate, probeInspect, verifySoldTaskTap, soldTaskTap, soldTaskName, getWatch, setWatchState } from "../lib/live/watches.js";
 
 export default async function handler(req, res) {
   const env = supabaseEnv();
@@ -61,6 +61,12 @@ export default async function handler(req, res) {
       const r = await setWatchState(env, "00000000-0000-4000-8000-00000000ffff", "resume").catch(e => ({ ok: false, error: String(e && e.message).slice(0, 160) }));
       return res.status(200).json({ ready: !!r.ok, notReady: !!r.notReady, error: r.error || null });
     }
+    // Probe: one test task's signed Pause/Stop/Resume links, so the confirm pages can be checked end to end.
+    if (b.action === "probe_tap") {
+      if (!probe) return res.status(401).json({ error: "Unauthorized." });
+      const id = String(b.id || ""); if (!/^[0-9a-f-]{36}$/.test(id)) return res.status(400).json({ error: "id" });
+      return res.status(200).json({ pause: soldTaskTap(id, "pause"), stop: soldTaskTap(id, "stop"), resume: soldTaskTap(id, "resume") });
+    }
     if (b.action === "probe_backdate" || b.action === "probe_inspect") {
       if (!probe) return res.status(401).json({ error: "Unauthorized." });
       if (b.action === "probe_inspect") return res.status(200).json(await probeInspect(env, String(b.user_id || "")));
@@ -70,6 +76,7 @@ export default async function handler(req, res) {
     if (!user || !user.userId) return res.status(401).json({ ok: false, needSignIn: true });
     if (b.action === "arm") return res.status(200).json(await arm(env, user, { kind: b.kind, listing_id: b.listing_id, vin: b.vin, car: b.car, visitorId: readVisitorId(req) }));
     if (b.action === "stop") return res.status(200).json(await stop(env, user, b.id));
+    if (b.action === "resume") return res.status(200).json(await resume(env, user, b.id));
     if (b.action === "list") return res.status(200).json(await list(env, user));
     return res.status(400).json({ error: "unknown action" });
   } catch (e) {
