@@ -185,20 +185,24 @@ button{font:inherit}
 /* ---- cards ---- */
 .cards5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:20px;align-items:stretch}
 .card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;color:inherit}
-a.card:hover{border-color:var(--green)}
-a.card:hover .ctitle{text-decoration:underline;text-underline-offset:3px}
+.card:hover{border-color:var(--green)}
+.card:hover .ctitle{text-decoration:underline;text-underline-offset:3px}
 .card.hero{grid-column:span 3}
 .cards5.single .card.hero{grid-column:1 / -1}
 .card.this{border:1.5px solid var(--green)}
 .stack{grid-column:span 2;display:flex;flex-direction:column;gap:20px}
 .stack .card{flex:1 1 0}
-.ph{position:relative;background:var(--ph);flex:none}
+/* Fixed aspect ratio (Oct 2026, sale card template job), not a per-context pixel height: the box
+   reserves its own space the instant the card renders, before a lazy-loaded image arrives or fails,
+   so a missing/broken photo (.noimg, onerror removes the <img>) never changes the card's height and
+   never breaks row alignment in a grid - the placeholder fills exactly the same box a real photo
+   would have. 4:3 is the base for every card; the large hero gets a wider 16:9. */
+.ph{position:relative;background:var(--ph);flex:none;aspect-ratio:4/3;height:auto}
 .ph img{width:100%;height:100%;object-fit:cover;display:block}
 .ph .none{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:600 12px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ph-ink)}
 .ph img+.none{display:none}
 .ph.noimg .none{display:flex}
-.hero .ph{height:300px}
-.card.sm .ph{height:112px}
+.hero .ph{aspect-ratio:16/9}
 .pill{position:absolute;top:14px;left:14px;padding:6px 12px;background:var(--green);color:#fff}
 .card.sm .pill{top:10px;left:10px;padding:5px 9px;background:var(--card);color:var(--green)}
 .cbody{padding:18px 22px 20px;display:flex;flex-direction:column;gap:6px;flex:1}
@@ -221,7 +225,6 @@ a.sb-line:hover{color:var(--green)}
 .grid2 .cprice{font-size:26px}
 .grid2 .ctitle{font-size:16px}
 .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-.grid3 .ph{height:140px}
 .grid3 .cprice{font-size:22px}
 .grid3 .cbody{padding:12px 16px 14px;gap:4px}
 .grid3 .ctitle{font-size:15px}
@@ -349,16 +352,13 @@ a.sb-line:hover{color:var(--green)}
   .cards5{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
   .card{border-radius:14px}
   .card.hero{grid-column:1 / -1}
-  .hero .ph{height:230px}
   .hero .cprice{font-size:30px}
   .hero .cbody{padding:16px 18px 18px}
   .stack{display:contents}
-  .card.sm .ph{height:110px}
   .card.sm .cbody{padding:12px 12px 14px;gap:4px}
   .card.sm .pill{top:8px;left:8px}
   .grid2{grid-template-columns:1fr;gap:14px}
   .grid3{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-  .grid3 .ph{height:110px}
   .grid3 .cbody{padding:12px}
   .grid2 .ph{height:200px}
   .qcard{flex-direction:column;align-items:flex-start;padding:16px}

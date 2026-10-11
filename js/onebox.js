@@ -562,27 +562,32 @@
     var img = image ? '<img src="' + esc(image) + '" alt="' + esc(alt || "") + '" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()">' : "";
     return '<div class="ph' + (image ? "" : " noimg") + '">' + img + '<span class="none">No photo</span>' + (pill ? '<span class="pill">' + esc(pill) + "</span>" : "") + "</div>";
   }
+  // ONE grid item per card, always (Oct 2026, sale card template job). Previously a card with its
+  // own inner link (poolCardHtml's "Sold before..." line, vinHeroCardHtml's history link) wrapped
+  // that inner <a> INSIDE the card's own outer <a> - illegal HTML (a browser cannot nest an anchor
+  // inside another anchor), so the browser's parser silently auto-closed the outer anchor the
+  // moment the inner one started, splitting one card into orphaned grid cells (a photo with no
+  // price, a price with no photo) - reproduced live, 2008 Porsche 997 Carrera S. Fixed structurally,
+  // not just for the sold-before case: the photo and the body (price/title/meta) are now each their
+  // OWN anchor pointing at the same href, as siblings inside one <article> - never nested - so any
+  // future inner link (o.after) is always safe, and the whole photo+body area stays clickable
+  // exactly as before (two anchors covering the same area a single wrapping anchor used to).
   function saleCardHtml(o) {
     var head = o.venueLine ? '<div class="price-row"><span class="cprice num">' + o.priceHtml + '</span><span class="cvenue">' + esc(o.venueLine) + "</span></div>"
       : '<span class="cprice num">' + o.priceHtml + "</span>";
-    var body = '<div class="cbody">' + head +
+    var bodyInner = head +
       (o.allIn ? '<div class="callin">Buyer paid ' + esc(o.allIn) + " with premium</div>" : "") +
       (o.title ? '<div class="ctitle">' + esc(o.title) + "</div>" : "") +
       (o.meta ? '<div class="cmeta">' + esc(o.meta) + "</div>" : "") +
       (o.extra || "") +
-      (o.why ? '<p class="cwhy">' + lint(esc(o.why), "card.why") + "</p>" : "") +
-      (o.after || "") + "</div>";
+      (o.why ? '<p class="cwhy">' + lint(esc(o.why), "card.why") + "</p>" : "");
     var cls = "card " + (o.cls || "");
     var photo = photoHtml(o.image, o.title, o.pill);
-    if (o.article) {
-      // A card that carries its own inner link (the VIN history link) cannot itself be a link;
-      // the photo opens the listing instead.
-      var ph = o.href ? '<a href="' + esc(o.href) + '" target="_blank" rel="noopener noreferrer" aria-label="Open the listing" data-cardclick="' + esc(o.slug || "") + '" data-gas-event="receipt_click" data-gas-source="' + esc(o.slug || "") + '">' + photo + "</a>" : photo;
-      return '<article class="' + cls + '">' + ph + body + "</article>";
-    }
-    return o.href
-      ? '<a class="' + cls + '" href="' + esc(o.href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(o.slug || "") + '" data-gas-event="receipt_click" data-gas-source="' + esc(o.slug || "") + '">' + photo + body + "</a>"
-      : '<div class="' + cls + '">' + photo + body + "</div>";
+    var linkAttrs = o.href ? (' href="' + esc(o.href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(o.slug || "") + '" data-gas-event="receipt_click" data-gas-source="' + esc(o.slug || "") + '"') : "";
+    var ph = o.href ? ('<a aria-label="Open the listing"' + linkAttrs + ">" + photo + "</a>") : photo;
+    var bodyLink = o.href ? ('<a' + linkAttrs + ">" + bodyInner + "</a>") : bodyInner;
+    var body = '<div class="cbody">' + bodyLink + (o.after || "") + "</div>";
+    return '<article class="' + cls + '">' + ph + body + "</article>";
   }
   // "Automatic (7-speed)" -> "Automatic, 7-speed".
   function gearboxText(t) { return cap(String(t || "").replace(/\s*\((\d+)[- ]?speed\)/i, ", $1-speed").trim()); }
@@ -633,7 +638,7 @@
     var hist = (n >= 1 && obSourceVin)
       ? '<a class="histlink" href="' + esc(historyHref(rc, obSourceVin)) + '">' + esc("Sold " + (n === 1 ? "once" : n === 2 ? "twice" : n + " times") + " before. See its history") + " &#8594;</a>"
       : "";
-    return saleCardHtml({ cls: "hero this exact", article: true, pill: "This car", href: utmUrl(m.url), slug: m.source, image: m.photoUrl,
+    return saleCardHtml({ cls: "hero this exact", pill: "This car", href: utmUrl(m.url), slug: m.source, image: m.photoUrl,
       priceHtml: priceHtml, venueLine: venueLine, title: name, meta: meta, after: hist });
   }
   // Canonical VIN history URL (/history/{year}-{make}-{model-slug}/{VIN}), built the same way as
