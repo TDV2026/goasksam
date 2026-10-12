@@ -5577,6 +5577,65 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "vinidxcount", vin_index_rows: vinIndexRows, vin_summary_rows: vinSummaryRows, distinct_vins: vinSummaryRows, multi_appearance_vins: multi, samples: withHistory });
   }
 
+  // task=matsweep: TEMPORARY (Round 5 Job 2, Oct 2026). One pass over all 72 DEFAULT_SPECS under
+  // EITHER the OLD 40%-ratio materiality predicate (&legacy=1, via the legacy toggle) or the NEW
+  // no-overlap predicate (default) - called twice (legacy=1, then without) to build the before/
+  // after diff client-side, each call its own request so 72 live engine reads never risk the
+  // other pass's time budget. Batched (6 at a time) to stay well inside maxDuration:300.
+  // &q300sl=1 additionally runs the 300SL documented-history quartile probe: fetches the car's
+  // real pool, partitions it the SAME way runOneBox's dochistory block does (desc_facts markers),
+  // and calls the exported splitMaterial directly on both price arrays so the real lowerQ75/
+  // higherQ25/medians are reported, not predicted. Remove once the job's report is filed.
+  if (task === "matsweep") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { checkIdentityQuestions, DEFAULT_SPECS } = await import("../scripts/crossProductCheck.js");
+    const { __setLegacyMaterialityTestForSweepOnly, splitMaterial, runOneBox } = await import("../lib/onebox.js");
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const legacy = String(req.query?.legacy || "") === "1";
+    let rows = [], error = null;
+    try {
+      __setLegacyMaterialityTestForSweepOnly(legacy);
+      const BATCH = 6;
+      for (let i = 0; i < DEFAULT_SPECS.length; i += BATCH) {
+        const chunk = DEFAULT_SPECS.slice(i, i + BATCH);
+        // Concurrent WITHIN a batch (each spec is its own checkIdentityQuestions([q]) call) so the
+        // batch's wall-clock is its slowest single spec, not the sum - sequential ACROSS batches
+        // so the legacy toggle (module-level, shared by every concurrent call) is never read by a
+        // call still running under the OTHER setting.
+        const got = await Promise.all(chunk.map(q => checkIdentityQuestions(env, [q]).then(r => r[0])));
+        rows = rows.concat(got);
+      }
+    } catch (e) { error = String(e && e.message || e); }
+    finally { __setLegacyMaterialityTestForSweepOnly(false); }
+    let threeHundredSl = null;
+    if (String(req.query?.q300sl || "") === "1") {
+      try {
+        const q = "1955 Mercedes-Benz 300SL Coupe";
+        const rv = await resolveVehicle(q, {}), vehicle = rv && rv.vehicle;
+        const generation = vehicle ? await findGeneration(vehicle, env).catch(() => null) : null;
+        const d = vehicle ? await runOneBox(vehicle, generation, q, { ...env, asked: 2 }, null) : null;
+        const pool = Array.isArray(d && d.rawPool) ? d.rawPool : [];
+        const hasMarker = r => { const m = r.desc_facts && Array.isArray(r.desc_facts.markers) ? r.desc_facts.markers : []; return m.includes("documented_history") || m.includes("matching_numbers"); };
+        const docRows = pool.filter(hasMarker), noDocRows = pool.filter(r => !hasMarker(r));
+        const docPrices = docRows.map(r => Number(r._usd)).filter(v => Number.isFinite(v) && v > 0);
+        const noDocPrices = noDocRows.map(r => Number(r._usd)).filter(v => Number.isFinite(v) && v > 0);
+        __setLegacyMaterialityTestForSweepOnly(false);
+        const newResult = splitMaterial(docPrices, noDocPrices);
+        __setLegacyMaterialityTestForSweepOnly(true);
+        const oldResult = splitMaterial(docPrices, noDocPrices);
+        __setLegacyMaterialityTestForSweepOnly(false);
+        threeHundredSl = {
+          tier: d && d.tier, poolSize: pool.length, hasDescFactsField: pool.length ? Object.prototype.hasOwnProperty.call(pool[0], "desc_facts") : null,
+          docN: docPrices.length, noDocN: noDocPrices.length,
+          medianDoc: docPrices.length ? Math.round(docPrices.slice().sort((x, y) => x - y)[Math.floor((docPrices.length - 1) / 2)]) : null,
+          newRule: newResult, oldRule: oldResult
+        };
+      } catch (e) { threeHundredSl = { error: String(e && e.message || e) }; }
+    }
+    return res.status(200).json({ task: "matsweep", legacy, error, specCount: DEFAULT_SPECS.length, rows, threeHundredSl });
+  }
+
   // task=unktriage: triage the make-Unknown rows (vehicle_type IS NULL) with the classifier (title+VIN).
   // Buckets: make_resolvable (classifier found a make), not_a_vehicle (non_vehicle), junk (unclassified).
   // AUTO-APPLY (write=1) ONLY when the VIN WMI and the title agree (classifier basis "title+VIN agree");
@@ -5880,7 +5939,7 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "sellexamplerefresh", ms: Date.now() - t0, qualified: !!(d && d.example), example: d && d.example, tried: d && d.tried });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts|vindist|typemodelunk|descfacts|ingestlog|item3probe|unktriage|vinidxcount|mcexamplerefresh|sellexamplerefresh." });
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts|vindist|typemodelunk|descfacts|ingestlog|item3probe|unktriage|vinidxcount|mcexamplerefresh|sellexamplerefresh|matsweep." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================

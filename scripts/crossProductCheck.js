@@ -751,6 +751,39 @@ export async function checkOverTimeInvariants(env, cases = OVER_TIME_CASES) {
   return out;
 }
 
+// IDENTITY QUESTION CAPTURE (Round 5 Job 2, Oct 2026): reusable, permanent sweep infrastructure -
+// "which identity question fired" was not previously recorded anywhere (checkOneSpec's own
+// marketCheckLane deliberately calls asked:2 to bypass these questions entirely, by design, for
+// the cross-lane consistency check; that is a DIFFERENT question from this one). This calls
+// runOneBox at asked:0 (the real first-visit read every product's identity question actually
+// renders from) and records which of the four splitMaterial-gated blocking tiers (body_choice,
+// gearbox_choice, variant_choice, dochistory_choice) fired, if any - plus its per-side counts, so
+// a materiality-rule change (like this round's ratio -> no-overlap swap) can be diffed spec by
+// spec, dimension by dimension, reproducibly, instead of re-run-and-eyeball. generation_choice is
+// intentionally excluded: it is gated by generation-count ambiguity, not splitMaterial, and is
+// unaffected by any materiality rule change.
+const IDENTITY_TIERS = new Set(["body_choice", "gearbox_choice", "variant_choice", "dochistory_choice"]);
+export async function checkIdentityQuestions(env, specs = DEFAULT_SPECS) {
+  const out = [];
+  for (const q of specs) {
+    const row = { q, tier: null, dimension: null, options: null, counts: null, error: null };
+    try {
+      const rv = await resolveVehicle(q, {}), vehicle = rv && rv.vehicle;
+      if (!vehicle || !vehicle.make) throw new Error("unresolved");
+      const generation = await findGeneration(vehicle, env).catch(() => null);
+      const d = await runOneBox(vehicle, generation, q, { ...env, asked: 0 }, null);
+      row.tier = (d && d.tier) || null;
+      if (row.tier && IDENTITY_TIERS.has(row.tier)) {
+        row.dimension = row.tier.replace(/_choice$/, "");
+        row.options = d.generationOptions || d.gearboxOptions || d.bodyOptions || d.variantOptions || d.docHistoryOptions || null;
+        row.counts = Array.isArray(d.optionCounts) ? d.optionCounts : null;
+      }
+    } catch (e) { row.error = String(e && e.message || e); }
+    out.push(row);
+  }
+  return out;
+}
+
 export async function runEngineCheck(env, specs = DEFAULT_SPECS, opts = {}) {
   const rows = [];
   for (const q of specs) rows.push(await checkOneSpec(q, env));
