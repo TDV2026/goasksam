@@ -2,7 +2,9 @@
 //   POST /api/signup {action:"check", email, turnstile}  -> { ok, ticket } or { ok:false, message }
 //        The page calls this before it asks Supabase for a sign-in code. An existing account always passes.
 //   POST /api/signup?hook=before_user_created           -> Supabase Auth "Before User Created" hook (signed with
-//        SUPABASE_AUTH_HOOK_SECRET). 200 {} lets the user be created; 400 {error:{http_code,message}} refuses.
+//        SUPABASE_AUTH_HOOK_SECRET). 200 {} lets the user be created; 200 {error:{http_code:400,message}} refuses.
+//        The refusal goes out with HTTP 200: Supabase reads any non-2xx reply as a broken hook ("Invalid payload sent
+//        to hook") and drops our sentence; with 200 it passes http_code and message on to the page.
 // Body parsing is off so the hook's signature is checked over the exact bytes Supabase sent.
 import { supabaseEnv } from "../lib/_supabase.js";
 import { clientAddress, isCrew, countSince, record, addressKey, addressKeys } from "../lib/_ceilings.js";
@@ -37,7 +39,7 @@ export default async function handler(req, res) {
     const d = beforeUserCreated(body);
     if (d.allow) return res.status(200).json({});
     if (env) await logEvent(env, { event: EVENTS.RATE_LIMIT_HIT, tool: "signup", props: { kind: "signup_refused_at_creation", scope: "signup" } }).catch(() => {});
-    return res.status(400).json({ error: { http_code: 400, message: d.message } });
+    return res.status(200).json({ error: { http_code: 400, message: d.message } });
   }
 
   // Our own check (header credential): the raw body arrives byte for byte (the hook's signature depends on it).

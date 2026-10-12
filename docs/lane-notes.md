@@ -4396,6 +4396,11 @@ when the work has landed.
     "ended", buy_alerts send_status "ended_before_send") are counted daily in scripts/pullReport.mjs; this should
     become an event in the event layer (lib/events.js), e.g. task_car_ended_before_email {source, count}.
 - 2026-10-12 (Lane C): HOOK OUTAGE FOUND, SIGN-IN REFUSALS, EMAIL COPY.
+  * RESOLVED, same day: Sam undid the switch, "/api/signup" was added to "static-bypass-bot-protection" (firewall
+    config v14; other API paths still challenged; an unsigned hook call now gets our 401), and Sam switched back to the
+    HTTPS hook. Live hookcheck: with ticket, created; without ticket, refused. Supabase showed that refusal as "Invalid
+    payload sent to hook" because the route refused with HTTP 400 (Supabase reads any non-2xx hook reply as broken); the
+    route now refuses with HTTP 200 and {error:{http_code:400,message}} so the sentence reaches the page.
   * URGENT, FOUND Oct 12 18:46 PT: since the switch to the HTTPS "Before User Created" hook, EVERY NEW ACCOUNT FAILS
     ("Service currently unavailable due to hook", from Supabase). Cause: Vercel bot protection (managedRules
     bot_protection = challenge) answers https://goasksam.com/api/signup?hook=before_user_created with a 429
