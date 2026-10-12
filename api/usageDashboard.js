@@ -1792,6 +1792,15 @@ async function handleOps(req, res) {
       const rows = await supabaseSelect(env, `live_listings?listing_title=ilike.*${encodeURIComponent(t)}*&select=*&limit=10`).catch(e => ({ error: String(e && e.message || e) }));
       out.push({ query: t, by: "title", rows });
     }
+    // &recentSource=carsandbids&recentMake=BMW: ingest-health check - the most recently first_seen rows
+    // for that source+make, so a "missing" listing can be told apart from "the pull hasn't run since it
+    // went live" (a pull-timing gap) vs "the pull ran recently and still never saw it" (more likely a
+    // pull-logic or vendor-coverage gap).
+    if (req.query?.recentSource) {
+      const src = String(req.query.recentSource), mk = String(req.query?.recentMake || "");
+      const recent = await supabaseSelect(env, `live_listings?source=eq.${encodeURIComponent(src)}${mk ? `&make=ilike.${encodeURIComponent(mk)}` : ""}&select=listing_title,year,first_seen,last_seen,status,url&order=first_seen.desc&limit=15`).catch(e => ({ error: String(e && e.message || e) }));
+      out.push({ recentSource: src, recentMake: mk || null, recent });
+    }
     return res.status(200).json({ task: "livecheck", out });
   }
 
