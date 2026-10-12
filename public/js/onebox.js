@@ -1477,7 +1477,19 @@
       var yr = scope[0] && scope[0].year ? scope[0].year : null;
       return '<h1 class="thin-head lead">' + lint("Only <span class=\"ct\">one " + esc(whoNoYear) + "</span> has sold in " + win + (yr ? ", a " + yr : "") + ". Here’s what it went for.", "ht.hero1") + "</h1>";
     }
-    return '<h1 class="thin-head lead">' + lint("Only <span class=\"ct\">" + n + " " + esc(plural) + "</span> have sold in " + win + ", not enough for a range. Here’s what they went for.", "ht.hero") + "</h1>";
+    // 300SL copy-bug fix (Round 4 Job 3): this used to say "{n} ... not enough for a range" naming
+    // the FULL total (n, every sale shown below) as the thing that gated this state - but "thin"
+    // only ever fires on a DIFFERENT, smaller number (ht.onlineN, the live-online-marketplace count
+    // over the window; HT_ONLINE_MIN on the server). A 1955 Mercedes-Benz 300SL Coupe with 32 total
+    // sales (n=32, well above the 8-sale range floor) still lands here because only a handful of
+    // those sold through live online marketplaces - the old sentence claimed 32 "wasn't enough,"
+    // which never gated anything. Name the real number instead; n is still stated, honestly, as
+    // what sold in total.
+    var onlineN = Number.isFinite(ht && ht.onlineN) ? ht.onlineN : null;
+    var why = (onlineN != null && onlineN < n)
+      ? "Only " + onlineN + " sold through live online marketplaces in that time, too few to mark a typical band there"
+      : "Too few to mark a typical band";
+    return '<h1 class="thin-head lead">' + lint("<span class=\"ct\">" + n + " " + esc(plural) + "</span> have sold in " + win + ". " + why + ", so here’s what they went for.", "ht.hero") + "</h1>";
   }
   // Paired sales: same chassis at a house AND online. Two receipts side by side, NO percentage
   // until a model clears 3 such pairs (design: the % stays dormant below that).
