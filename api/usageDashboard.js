@@ -5615,34 +5615,6 @@ async function handleOps(req, res) {
     });
   }
 
-  // task=dochistdiag: TEMPORARY, READ-ONLY (Round 4 Job 3, documented-history per-model decision).
-  // For one make+title-contains scope, splits sold rows by desc_facts.markers containing
-  // documented_history/matching_numbers vs neither, reports each side's count and median price -
-  // the exact numbers needed to decide (per model, not the global ~15% fill rate) whether this
-  // split clears SPLIT_MIN + the "clearly apart" materiality bar. Delete once the job concludes.
-  //   ?view=ops&task=dochistdiag&make=Mercedes-Benz&titleContains=300SL|300 SL
-  if (task === "dochistdiag") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const make = String(req.query?.make || "").trim();
-    const terms = String(req.query?.titleContains || "").split("|").map(s => s.trim()).filter(Boolean);
-    if (!make || !terms.length) return res.status(400).json({ error: "dochistdiag needs ?make=&titleContains=a|b" });
-    const orTitle = terms.map(t => `listing_title.ilike.*${encodeURIComponent(t)}*`).join(",");
-    const excludeRe = /\b(replica|clone|tribute|recreation|homage|kit\s?car|-style|roadster|r107|r129|slk|sl-?class|w113)\b/i;   // roadster/r107/r129/slk excluded: "300SL" also bare-matches the UNRELATED 1980s-2000s R107/R129 SL-Class and SLK320 - a totally different car from the 1950s W198 Gullwing/Roadster, confirmed live (first diagnostic run's hasNot side was entirely these, $300-$25k, nothing to do with the real pool)
-    const yearMin = req.query?.yearMin ? Number(req.query.yearMin) : null, yearMax = req.query?.yearMax ? Number(req.query.yearMax) : null;
-    const rows = ((await supabaseSelectAll(env, `sales_archive?make=ilike.${encodeURIComponent(make)}&or=(${orTitle})&sale_price=not.is.null&select=listing_title,sale_date,sale_price,sale_price_usd,desc_facts,year&limit=1000`)) || []).filter(r => !excludeRe.test(String(r.listing_title || "")) && (yearMin == null || Number(r.year) >= yearMin) && (yearMax == null || Number(r.year) <= yearMax));
-    const usd = r => Number.isFinite(Number(r.sale_price_usd)) && Number(r.sale_price_usd) > 0 ? Number(r.sale_price_usd) : Number(r.sale_price);
-    const hasMarker = r => { const m = (r.desc_facts && Array.isArray(r.desc_facts.markers)) ? r.desc_facts.markers : []; return m.includes("documented_history") || m.includes("matching_numbers"); };
-    const has = rows.filter(hasMarker), hasNot = rows.filter(r => !hasMarker(r));
-    const median = arr => { const v = arr.map(usd).filter(Number.isFinite).sort((a, b) => a - b); if (!v.length) return null; const i = Math.floor(v.length / 2); return v.length % 2 ? v[i] : Math.round((v[i - 1] + v[i]) / 2); };
-    return res.status(200).json({
-      task: "dochistdiag", make, terms, totalRows: rows.length,
-      has: { n: has.length, medianUsd: median(has), prices: has.map(usd).filter(Number.isFinite).sort((a, b) => a - b) },
-      hasNot: { n: hasNot.length, medianUsd: median(hasNot), prices: hasNot.map(usd).filter(Number.isFinite).sort((a, b) => a - b).slice(0, 40) },
-      sampleTitlesWithMarker: has.slice(0, 8).map(r => r.listing_title),
-      sampleTitlesWithoutMarker: hasNot.slice(0, 8).map(r => r.listing_title)
-    });
-  }
-
   // task=descfactscov: READ-ONLY. Coverage of the description-derived columns after the backfill.
   // Global desc_facts-set (confirms every row is stamped) + project_flagged + stated_mileage; per-source
   // total + project_flagged (both index-backed: source_slug and the project_flag partial index).

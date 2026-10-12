@@ -4952,3 +4952,236 @@ discrepancy, never applied to the file, in either direction.
   3. task_created now carries the car (vehicle_key, year) for exact-car and sold-car Tasks too (server, nothing for
      you). 4. Retention by person (account across devices): SQL part 6 of docs/supabase-analytics.sql (Sam).
   Under After: a per-session funnel view on /admin, and Task email opens and clicks.
+
+## One generalized split classifier + identity question (Oct 2026, Round 4 Job 3)
+
+### FOR LANE A
+
+The engine returns the identity question as DATA under `oneEngineAnswer`'s `identityQuestion`
+field - you render it. Shape (every field already documented under FOR LANE C for the base
+object; this extends `identityQuestion` specifically, which was a stub before this round):
+
+```
+identityQuestion: null, OR:
+{
+  dimension,      // "generation" | "gearbox" | "body" | "competition" | "model" | "trim" | "documented_history"
+  blocking,       // true: no range exists yet, this IS the answer (generation/gearbox/body/
+                  //       competition/model/documented_history). false: a real range already
+                  //       exists AND this dimension is ALSO material - today only "trim" is
+                  //       non-blocking (chips alongside the result, never gating it - unchanged,
+                  //       deliberately not converted to blocking, see "trim stayed non-blocking"
+                  //       below).
+  questionText,   // the engine's own prompt string, verbatim. MAY contain the literal token
+                  // "{carPlural}" (today: dochistory_choice only) - replace it with the resolved
+                  // car's pluralized name ("1955 Mercedes-Benz 300SL Coupes") before display.
+                  // Every other tier's prompt is already car-agnostic ("Manual or PDK? They
+                  // price differently.") and has no placeholder to replace. null for the
+                  // non-blocking trim case (trimQuestion never had its own prompt string).
+  options: [{ label, count }],   // count is a real integer now (optionCounts wired this round -
+                  // was null before), EXCEPT generation_choice and model_choice, which still
+                  // read null (see "not done" below - out of this job's named 4 dimensions).
+  skipLabel,      // always "Just show what sold"
+}
+```
+
+**Reversible skip (rule 2)**: once a question is past the 2-question cap (`askCapped`, existing
+mechanism, unchanged), a material dimension no longer BLOCKS - it renders as an inline split
+(`base.inlineSplits`, an array of `{key, sides, poolN, unknown}`) alongside the real range, with
+each side's own count from the SAME pool the headline reads. This is the EXISTING
+askCapped/inlineSplits mechanism, reused, not rebuilt - it already generalizes correctly now that
+every dimension (gearbox/competition/documented_history/trim) goes through the same
+`splitMaterial` gate. A skipped question is choosable again the moment the cap is reached, not a
+one-way door.
+
+**Example payload 1 - a THIN car, the fixed 300SL copy bug** (live, verified):
+```
+GET 1955 Mercedes-Benz 300SL Coupe
+{
+  answerType: "not_enough_data",
+  poolSize: 32,
+  low: null, high: null,
+  reasonFlag: "too_few_online_for_a_range",   // was "too_few_in_window" before this round - that
+                                                // flag named the wrong gate (see below)
+  factsBlock: {
+    count: 32, window: null (thin tier carries no windowLabel - see note),
+    lowest: <min of 32>, highest: <max of 32>,
+    latestPrice: <most recent sale>, latestMonth: "YYYY-MM",
+    onlineLiquidityN: <the REAL number that gated this - the live-online-marketplace count over
+                       36 months, assessThin's HT_ONLINE_MIN=8 test, NOT the 32 total>
+  },
+  identityQuestion: null,   // the 4 unified gates never run for a thin-tier car (see below)
+  fallbackRung: "thin"
+}
+```
+The bug: the OLD copy said "32 ... not enough for a range" - 32 clears RANGE_THRESHOLD(8), so
+that sentence named a number that never gated anything. The REAL gate is `onlineLiquidityN <
+HT_ONLINE_MIN(8)`, a different, smaller, previously-unshown number. Fixed at the source
+(`factsBlockFrom`/`mapEngineAnswer` in lib/onebox.js) and at the render
+(`thinHeadHtml` in public/js/onebox.js, now reads `ht.onlineN` and names it).
+
+**Example payload 2 - a clean range, no identity question** (live, verified):
+```
+GET 2017 Porsche 911 Carrera S Coupe
+{
+  answerType: "range",
+  poolSize: 11, low: 95500, high: 113000,
+  reasonFlag: null,
+  yearWidened: false, fallbackRung: "exact_trim" (or whatever ladder step landed),
+  identityQuestion: null,   // no dimension cleared SPLIT_MIN + clearly-apart for this car
+  factsBlock: null
+}
+```
+
+**Example payload 3 - a blocking identity question, WORKED/ILLUSTRATIVE** (the documented-history
+template mechanism, shown for a hypothetical model whose real numbers DO clear the bar - no live
+car among this round's tested specs happens to fire this tier; see the 300SL decision below for
+why the obvious test case does not):
+```
+{
+  answerType: "identity_question",
+  identityQuestion: {
+    dimension: "documented_history", blocking: true,
+    questionText: "One thing separates these {carPlural} on price: whether the car has documented history.",
+    options: [
+      { label: "Has documented history", count: 14 },
+      { label: "No documented history", count: 9 }
+    ],
+    skipLabel: "Just show what sold"
+  }
+}
+```
+Lane A renders `questionText` with `{carPlural}` replaced, then each option as (per Sam's proposed
+copy) `"{label}, {count} sales"` - e.g. "Has documented history, 14 sales" / "No documented
+history, 9 sales" / "Just show what sold". This exact composition rule (`label + ", " + count +
+" sales"`) is general - it works unchanged for gearbox/competition/body options too, should Lane A
+want the count appended to those as well (today they render as bare chips with no count shown).
+
+### The one shared materiality predicate (what replaced what)
+
+`splitMaterial(pricesA, pricesB)` (lib/onebox.js, next to SPLIT_MIN) - both sides need
+SPLIT_MIN(3) solid sales AND their median prices must be clearly apart. "Clearly apart" is
+anchored to `OB_BAND_WIDE` (0.40), the SAME 40%-of-median ratio this file already uses in the
+driver search to judge "is this price spread worth splitting on" - not a new, unrelated number.
+**Independent cross-check, found while verifying this round's work**: `pickThinIntake`
+(lib/onebox.js, a PRE-EXISTING, SEPARATE mechanism for thin-tier intake splits - mileage/
+transmission/description-marker - that Sam did not name among the four ad hoc gates and this
+round did not touch) already gates on `htFork(a,b) = max(a,b)/min(a,b) >= 1.4`, which is
+mathematically IDENTICAL to a 40% gap. Two independent parts of this codebase, built at different
+times, landed on the exact same bar - real confirmation this anchor is sound, not arbitrary.
+`pickThinIntake`'s own count floor is 2 per side, not SPLIT_MIN(3) - a minor, pre-existing
+inconsistency with Sam's stated uniform floor, not fixed this round (see "not done" below).
+
+Wired into, replacing the gate's own prior threshold (not stacked alongside it):
+- **Gearbox** (lib/onebox.js ~4707): was a hardcoded `man>=5 && aut>=5` count-only floor. Now
+  SPLIT_MIN(3) each side + clearly apart.
+- **Competition/variant** (~4740): was `comp>=3 && std>=3 && comp/pool>25%` (count + an unrelated
+  share rule, no price check). Now SPLIT_MIN(3) + clearly apart - the share rule is retired: a
+  3-sale variant priced the same as the rest isn't material regardless of its share of the pool.
+- **Body** (~4498): ADDITIVE on top of the existing per-model coverage/absolute-floor rules
+  (unchanged - those decide which body styles are real enough to NAME). The two largest present
+  styles must ALSO be clearly apart in price, or the question doesn't fire even if both styles
+  exist in volume.
+- **Trim** (~3658): already enforced SPLIT_MIN per option (job 6, an earlier round). Added the
+  price half via the same predicate, checked on the two largest qualifying options.
+- **Documented history** (~4768, NEW dimension): see its own section below.
+
+**`optionCounts`**: a NEW, parallel field added at each tier's creation point (gearbox_choice,
+variant_choice, body_choice, dochistory_choice) - `gearboxOptions`/`bodyOptions`/`variantOptions`
+THEMSELVES are unchanged (any existing frontend consumer of those bare label arrays is
+unaffected); `optionCounts` is read only by `identityQuestionFrom`, the new data-contract layer.
+
+**Trim stayed non-blocking, by design, not an oversight**: rule 1 groups "major trim" with body/
+generation/transmission as "asked first when material," which would mean BLOCKING - but trim's
+existing rendering (a real range PLUS chips alongside it, never withholding the range) is a
+deliberately different, hardened shape (extensive history fixing exactly this - the trim-fence
+sweep), and Sam's own test-case instruction says to prove "the SAME ANSWER the old ad hoc gate
+gave (no regression)" for the trim case. Converting trim to blocking would violate that no-
+regression instruction directly. Kept non-blocking, surfaced through the SAME identityQuestion
+contract (`blocking: false`) so Lane A has one shape to read either way. Flagging the apparent
+tension between rule 1's literal grouping and the no-regression instruction explicitly, in case
+rule 1 was meant literally and Sam wants trim converted in a follow-up.
+
+### Documented history: the per-model decision, with the 300SL's real numbers
+
+Rule 3's test: does documented history (sales_archive.desc_facts.markers, documented_history/
+matching_numbers) separate price on THIS model's own sold records, decided fresh per query, never
+a static per-model list and never the ~15% global fill rate (which says nothing about any one
+model). Checked live for the 1955 Mercedes-Benz 300SL Coupe, properly scoped (year 1954-1963,
+excluding the UNRELATED 1980s-2000s R107/R129 SL-Class "300SL" trim and SLK320 - "300SL" bare-
+matches both, confirmed live when an unscoped first attempt showed a $24,086 "no marker" median,
+absurd for a genuine 1950s 300SL - and excluding replica/clone/tribute titles):
+
+| | n | median |
+|---|---|---|
+| Has a documented-history marker | 28 | $1,682,500 |
+| Does not | 60 | $1,435,000 |
+
+Gap: ~17%. Both sides clear SPLIT_MIN easily - the gate it fails is "clearly apart" (needs 40%).
+Several "no marker" sales in the sample carry a full chassis AND engine number in the title -
+plainly well-documented cars that simply didn't use this mechanism's trigger phrases, confirming
+the marker is a noisy signal for THIS model, not a clean has/doesn't-have split. **Documented
+history correctly does not fire for the 300SL** - not a selection-bias veto, a real, measured
+price-gap failure, with the real numbers above. The mechanism (`dochistory_choice`, same
+`splitMaterial` gate as the other three) is built and live for any model whose real numbers DO
+clear the bar - none of this round's other tested specs happened to be a `result`-tier car where
+it fired either; it remains unobserved live, proven only by code/logic, not a real example.
+
+**Separately, independent of the price-gap finding**: the 300SL Coupe is tier "thin", not
+"result" - none of the four unified gates (gearbox/competition/trim/documented_history) are ever
+reached for a thin-tier car; they only run inside the path that builds a real range. The
+documented-history-sounding question a visitor actually sees on the live 300SL page today
+("One thing separates these on price: whether it is documented history... Documented history /
+Not documented history / Just show what sold") comes entirely from `pickThinIntake` (the
+pre-existing, separate, un-unified 5th mechanism described above), NOT from this round's new
+`dochistory_choice` tier. Checked live (a real browser load, 2026-10-12) to confirm this is the
+actual, current behavior, not assumed.
+
+### 63/69-spec sweep + the 4 test specs - honest results, including a real behavior change found
+
+Could not run the archive-backed sweep in this environment (no local Supabase credentials, same
+constraint as every prior job this round) - relied on live spot-checks via `task=obdiag`/
+`task=enginecheck` against production after each push, same discipline as Job 1/2.
+
+**Gearbox/competition/body - the materiality bar is measurably STRICTER than the old ad hoc
+gates, confirmed on real cars, not assumed**:
+- "2012 Porsche 911 Carrera S" and "2015 Porsche 911" (no body named): body classification
+  computes real counts (33 coupe / 10 cabriolet; 64 coupe / 26 cabriolet) that would have cleared
+  the OLD absolute-floor + 90%-coverage body gate easily - but the car now reads as a clean
+  `result` with NO body question, because coupe/cabriolet medians for the 911 are not clearly
+  apart (consistent with `lib/generations.js`'s own, separately-dated note on 997 Carrera S
+  specifically: "coupe ~20%, cabriolet ~9% median gap... under threshold, keep merged").
+- "2012 BMW M3 Competition Coupe" and "2001 Porsche 911 Carrera": neither shows a gearbox or
+  competition identity question live (checked via `task=obdiag`'s `inlineSplits`/tier fields) -
+  `askCapped` was false for these default-asked calls, so a material split WOULD have returned a
+  blocking tier if the new gate found one; it did not for either car with today's archive.
+- This is the INTENDED, correct consequence of adding a real price-magnitude requirement where
+  none existed - Sam's own rule 1 explicitly asks for exactly this. It is also a REAL, observable
+  behavior change on real cars, not a hypothetical - reporting it prominently rather than letting
+  it pass as an assumed non-event. Could not find a live case this round where the OLD gate and
+  the NEW gate agree closely enough to call it "the same answer, no regression" for body/gearbox/
+  competition specifically - every real car checked moved from "would have asked" to "now
+  doesn't." Trim is the one dimension already compliant with the count half of the new rule before
+  this round (job 6 already used SPLIT_MIN), so its behavior is least likely to have shifted, but
+  was not independently confirmed live either.
+- STOPPING HERE TO FLAG THIS, per the standing rule ("if an edge moves, stop and show before
+  building on it") even though this is a question-fires/doesn't-fire change, not a range-low/high
+  move the literal 10% rule covers - already pushed live (needed real data to even discover this),
+  reporting now rather than silently proceeding as if it were a non-event.
+
+### NOT DONE, and why
+
+1. **`pickThinIntake` not unified with `splitMaterial`** - a 5th, pre-existing gate Sam did not
+   name, discovered only while verifying this round's work (see above). It already uses the
+   mathematically identical 40%/1.4x bar, independently - a real finding, not an urgent gap, but
+   genuinely a second implementation of the same idea. Not touched this round: out of the four
+   named dimensions, and unifying it means touching the whole thin-tier intake flow
+   (mileage/transmission/marker), a materially bigger, separately-risky change.
+2. **generation_choice and model_choice options carry no counts** - `optionCounts` was wired for
+   the four named dimensions (gearbox/competition/body/documented_history) plus trim; these two
+   tiers are model/generation-AMBIGUITY questions ("which generation", "which model"), a different
+   kind of question from a price-materiality split, and were out of this job's named scope.
+3. **The body/gearbox/competition behavior change above is not reverted** - it is the correct,
+   intended consequence of Sam's own rule, but is a real, live change on real cars (confirmed, not
+   assumed) and is flagged here for review rather than treated as a silent non-event.
+4. **The trim-vs-rule-1 tension is not resolved** - flagged above for Sam's call, not decided
+   unilaterally.
