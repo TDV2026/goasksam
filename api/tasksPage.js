@@ -16,7 +16,7 @@ const HOW = "The cars Sam shows you come from our rules-based matching algorithm
 const FAQ = [
   ["Is it free?", "Yes. Every GoAskSam account gets one active Task free. Sign in, tell Sam what you're looking for, and Sam keeps checking."],
   ["How is it different from a saved search?", "You describe the car in plain words, the way you'd tell a friend, and Sam confirms exactly what it will look for before it starts. When a car matches, the update says what came up, how far away it is and, when the same car has been to auction before, what happened then."],
-  ["How will I be told?", "Each update appears in your Task on GoAskSam, with a badge on Tasks. By email, Sam sends one email a day with everything new from all your Tasks. You can choose twice a day, three times a day, or as soon as one comes, up to six emails a day. When nothing new matches, Sam stays quiet."],
+  ["How will I be told?", "Each update appears in your Task on GoAskSam, with a badge on Tasks. By email, Sam sends one email a day with everything new from all your Tasks. You can choose twice a day, three times a day, or as soon as one comes, up to six emails a day. A car you asked to hear about before bidding ends gets its own email two hours before the end. When nothing new matches, Sam stays quiet."],
   ["Does AI choose the cars?", "No. Which live cars match your Task is decided by our rules-based matching algorithm, the same one behind the GoAskSam search. AI helps understand what you asked for and write each update, but it does not invent the cars, the matches or the numbers."],
   ["Can I change or stop a Task?", "Yes, at any time. Type the change in the Task, or use the pause and stop links in any update. A task keeps running after a match until you pause or stop it."],
   ["What can I ask Sam to do?", "Look for a car (\"Find me a black manual 997 under $70k\", \"Keep looking for a 964 within 500 miles of LA\"), or research one car (\"Research this car and tell me if it has sold before\" with its VIN or a listing link)."]
@@ -282,7 +282,7 @@ const APP_JS = String.raw`(function(){
     var opts = [["daily", "Once a day"], ["twice", "Twice a day"], ["thrice", "Three times a day"], ["instant", "As soon as one comes"]];
     var cur = n.every || "daily";
     var often = n.on && n.everyReady ? '<label class="often">How often <select data-notify-every>' + opts.map(function(o){ return '<option value="' + o[0] + '"' + (o[0] === cur ? " selected" : "") + ">" + o[1] + "</option>"; }).join("") + "</select></label>" +
-      '<span class="oftenhelp">' + (cur === "instant" ? "An email each time Sam finds one, up to six a day." : "One email with everything new from all your Tasks.") + "</span>" : "";
+      '<span class="oftenhelp">' + (cur === "instant" ? "An email each time Sam finds one, up to six a day." : "One email with everything new from all your Tasks.") + " A car you asked to hear about before bidding ends gets its own email two hours before the end." + "</span>" : "";
     return '<div class="notify">' + (n.on ? "<span>Updates go to <b>" + esc(n.email || "your account email") + '</b>.</span> <button class="plink" data-edit-email>Change</button>' : "<span>Email is off. Updates show here and on Tasks.</span>") + sw + often + "</div>";
   }
   function render(){

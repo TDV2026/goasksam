@@ -1,0 +1,96 @@
+// Before it ends, over a fixture day (Oct 2026, Lane C). No network, no email, no vendor requests: every quarter-hour
+// send run of one Pacific day (:10, :25, :40, :55, as the cron) against in-memory data, with the real
+// runBeforeItEnds and the real runDigest. Exits 1 if any email is dropped, doubled or early.
+//   node scripts/beforeItEndsCheck.mjs           the checks
+//   node scripts/beforeItEndsCheck.mjs --table   also print the send table
+// Run by scripts/prePush.mjs.
+process.env.TASK_LINK_SECRET = "fixture-only";
+const { runBeforeItEnds, runDigest } = await import("../lib/tasks/digest.js");
+
+const DAY = "2026-10-14";   // a Wednesday, Pacific daylight time (UTC-7)
+const pt = (hh, mm) => new Date(`${DAY}T${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:00-07:00`);
+const fmt = d => d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" }).replace(" AM", "am").replace(" PM", "pm");
+
+// Cars: four end times from the brief, one armed late (inside two hours already), one whose end moves later.
+const cars = {
+  101: { id: 101, end: pt(6, 30), name: "1987 Porsche 911 Carrera Coupe", house: "Bring a Trailer" },
+  102: { id: 102, end: pt(9, 0), name: "1972 Datsun 240Z", house: "Cars & Bids" },
+  103: { id: 103, end: pt(13, 0), name: "1990 BMW M3", house: "Bring a Trailer", extendTo: pt(13, 20) },
+  104: { id: 104, end: pt(23, 0), name: "1979 Ferrari 308 GTS", house: "Bring a Trailer" },
+  105: { id: 105, end: pt(13, 30), name: "1996 Porsche 911 Carrera 4S Coupe", house: "PCARMARKET" },
+};
+const U = { daily: "aaaaaaaa-0000-4000-8000-000000000001", instant: "bbbbbbbb-0000-4000-8000-000000000002", off: "cccccccc-0000-4000-8000-000000000003" };
+const prefs = { [U.daily]: { on: true, email: "feedback+daily@goasksam.com", every: "daily" }, [U.instant]: { on: true, email: "feedback+instant@goasksam.com", every: "instant" }, [U.off]: { on: false, email: "feedback+off@goasksam.com", every: "daily" } };
+let n = 0; const alert = (user, listing, armedAt) => ({ id: `00000000-0000-4000-8000-${String(++n).padStart(12, "0")}`, user_id: user, email: prefs[user].email, listing_id: listing, armed_at: armedAt || pt(0, 0), sent_at: null, send_status: null });
+const alerts = [
+  alert(U.daily, 101), alert(U.daily, 102), alert(U.daily, 103), alert(U.daily, 104),
+  alert(U.instant, 101), alert(U.instant, 103), alert(U.instant, 104),
+  alert(U.off, 102), alert(U.off, 104),
+  alert(U.daily, 105, pt(12, 20)),   // armed at 12:20pm, ending 1:30pm: already inside the two hours
+];
+
+const sends = [], digests = [];
+let clock = null;
+// Extended bidding: from five minutes before its first end, car 103's end time reads as the later one.
+const curEnd = c => c.extendTo && clock >= new Date(c.end.getTime() - 5 * 60e3) ? c.extendTo : c.end;
+const io = {
+  armedAlerts: () => alerts.filter(a => !a.sent_at && Date.parse(a.armed_at) <= clock.getTime()),
+  liveRows: ids => ids.map(id => cars[id]).filter(c => c && curEnd(c) > clock)
+    .map(c => ({ id: c.id, end_time: curEnd(c).toISOString(), url: `https://example.com/listing/${c.id}`, source: "bringatrailer" })),
+  prefs: uid => prefs[uid],
+  claimAlert: id => { const a = alerts.find(x => x.id === id); if (!a || a.sent_at) return false; a.sent_at = clock.toISOString(); a.send_status = "sending"; return true; },
+  finishAlert: (id, status, release) => { const a = alerts.find(x => x.id === id); a.send_status = status; if (release) a.sent_at = null; },
+  markAlert: (id, status) => { const a = alerts.find(x => x.id === id); if (!a.sent_at) { a.sent_at = clock.toISOString(); a.send_status = status; } },
+  alertFacts: row => { const c = cars[row.id]; return { name: c.name, house: c.house, bid: 61500, bidAt: new Date(clock.getTime() - 10 * 60e3).toISOString(), soldLine: c.id === 101 ? "The middle half of 911 Carrera Coupes sold between $74,000 and $98,000 in the past year." : null, placing: null, sameCar: null, url: row.url }; },
+  first: () => false,
+  send: m => { sends.push({ at: clock, to: m.to, subject: m.subject, text: m.text }); return { ok: true }; },
+  // The daily email's data: nothing queued, the instant person already at the six-a-day cap.
+  queuedUpdates: () => [], tasks: () => [], watches: () => [], patchUpdate: () => {}, blocks: () => [], pendingEvents: () => [], markWatch: () => {},
+  sentToday: uid => uid === U.instant ? 6 : 0, lastSent: () => null, recordSent: () => {},
+};
+const digestIo = { ...io, send: m => { digests.push({ at: clock, to: m.to, subject: m.subject }); return { ok: true }; } };
+
+// A late end-time change for car 103 is applied five minutes before its first end (extended bidding).
+for (let h = 0; h < 24; h++) for (const m of [10, 25, 40, 55]) {
+  clock = pt(h, m);
+  await runBeforeItEnds({}, { io, now: clock });
+  await runDigest({}, { io: digestIo, now: clock });
+}
+
+let fails = 0, passes = 0;
+const ok = (c, what) => { if (c) passes++; else { fails++; console.log("FAIL  " + what); } };
+const who = to => Object.keys(prefs).find(u => prefs[u].email === to);
+const label = { [U.daily]: "once a day", [U.instant]: "as soon as one comes", [U.off]: "emails off" };
+const expect = [   // [person, car, expected send time]
+  [U.daily, 101, pt(4, 40)], [U.daily, 102, pt(7, 10)], [U.daily, 103, pt(11, 10)], [U.daily, 104, pt(21, 10)], [U.daily, 105, pt(12, 25)],
+  [U.instant, 101, pt(4, 40)], [U.instant, 103, pt(11, 10)], [U.instant, 104, pt(21, 10)],
+];
+for (const [u, car, at] of expect) {
+  const got = sends.filter(s => who(s.to) === u && s.text.includes(`/listing/${car}`));
+  ok(got.length === 1, `${label[u]}, car ${car}: exactly one email (got ${got.length})`);
+  ok(got[0] && got[0].at.getTime() === at.getTime(), `${label[u]}, car ${car}: sent at ${fmt(at)} (got ${got[0] ? fmt(got[0].at) : "none"})`);
+  const end = cars[car].end;
+  ok(got[0] && end - got[0].at <= 2 * 3600e3 && end - got[0].at > 0, `${label[u]}, car ${car}: inside the two hours and before the end`);
+}
+ok(!sends.some(s => who(s.to) === U.off), "emails off: nothing sent");
+ok(sends.length === expect.length, `no extra emails (${sends.length} sent, ${expect.length} expected)`);
+ok(alerts.filter(a => a.user_id === U.off).every(a => a.send_status === "off"), "emails off: each armed car marked off, never sent later");
+ok(alerts.filter(a => a.user_id !== U.off).every(a => a.send_status === "sent"), "every other armed car marked sent once");
+ok(digests.length === 0, "the daily email carries none of them (nothing else was queued, so it sent nothing)");
+ok(sends.filter(s => s.text.includes("/listing/103")).length === 2, "car 103's end moved later: still one email each, nothing extra");
+const one = sends.find(s => s.text.includes("/listing/101") && who(s.to) === U.daily);
+ok(one && /ends today at 6:30am PT\./.test(one.text) && /as of 4:30am PT\./.test(one.text) && /middle half of 911 Carrera Coupes/.test(one.text), "the email carries the end time in Pacific, the bid as of the pull, and the middle-half line");
+ok(one && /two hours before bidding ends, once for each car/.test(one.text) && /Stop all Task emails: /.test(one.text), "the email says when it comes and carries the stop link");
+
+if (process.argv.includes("--table")) {
+  console.log("\nFIXTURE DAY " + DAY + " (Pacific), every quarter-hour run :10 :25 :40 :55");
+  console.log("Car ends: " + Object.values(cars).map(c => `${c.id} ${fmt(c.end)}${c.extendTo ? " (moves to " + fmt(c.extendTo) + ")" : ""}`).join(", "));
+  for (const s of [...sends].sort((a, b) => a.at - b.at)) {
+    const car = Object.values(cars).find(c => s.text.includes(`/listing/${c.id}`));
+    console.log(`  ${fmt(s.at).padStart(7)}  ${label[who(s.to)].padEnd(21)} car ${car.id} (ends ${fmt(car.end)}, ${Math.round((car.end - s.at) / 60e3)} min left)  "${s.subject}"`);
+  }
+  for (const a of alerts.filter(a => a.user_id === U.off)) console.log(`     none  emails off            car ${a.listing_id}: ${a.send_status}`);
+  console.log(`  Daily email runs that went out: ${digests.length}`);
+}
+console.log(`beforeItEndsCheck: ${passes} passed, ${fails} failed`);
+process.exit(fails ? 1 : 0);

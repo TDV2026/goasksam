@@ -170,6 +170,15 @@ try {
   record("analytics layer (scripts/analyticsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 
+// Before it ends (Oct 12 2026, Lane C): a fixture day of quarter-hour send runs, no network; fails on any email
+// dropped, doubled or sent outside the two hours.
+try {
+  const out = execSync("node scripts/beforeItEndsCheck.mjs", { encoding: "utf8" });
+  record("before it ends fixture day (scripts/beforeItEndsCheck.mjs)", "PASS", (out.match(/beforeItEndsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("before it ends fixture day (scripts/beforeItEndsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+
 // ---- 3 & 4. BROWSER CHECK (Lane C's pushCheck.mjs) + BASELINE ----
 console.log(`\n-- browser check via scripts/pushCheck.mjs (${BASE}) --`);
 let browserOutput = "";

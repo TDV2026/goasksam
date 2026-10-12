@@ -103,12 +103,15 @@ async function handler(req, res) {
     if (req.method === "GET" && q.send) {
       const isCron = process.env.CRON_SECRET && req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
       if (!isCron && !probeOk(req)) return res.status(401).json({ error: "Unauthorized." });
-      const { runDigest } = await import("../lib/tasks/digest.js");
+      const { runDigest, runBeforeItEnds } = await import("../lib/tasks/digest.js");
       // The limits ledger keeps nothing past 24 hours (its address keys are daily salted hashes, lib/_addr.js).
       if (isCron) { const { pruneLedger } = await import("../lib/_ceilings.js"); await pruneLedger(env).catch(() => {}); }
-      const out = await runDigest(env, { dry: !isCron && q.dry === "1" });
-      if (!(!isCron && q.dry === "1")) await recordUsageEvent({ event_type: "task_email_run", route: "tasks_send", status: "ok", oldcarsdata_metered_requests: 0, metadata: { people: out.people, sent: out.sent, capped: out.capped, notDue: out.notDue, emailOff: out.emailOff, matches: out.matches, endedBeforeSend: out.endedBeforeSend, failed: out.failed } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
-      return res.status(200).json(out);
+      // Before it ends first: its own email two hours before the end, never waiting on the daily email.
+      const dry = !isCron && q.dry === "1";
+      const bie = await runBeforeItEnds(env, { dry }).catch(e => ({ error: String(e && e.message || e).slice(0, 120), sent: 0, ended: 0, failed: 0 }));
+      const out = await runDigest(env, { dry });
+      if (!dry) await recordUsageEvent({ event_type: "task_email_run", route: "tasks_send", status: "ok", oldcarsdata_metered_requests: 0, metadata: { people: out.people, sent: out.sent + (bie.sent || 0), capped: out.capped, notDue: out.notDue, emailOff: out.emailOff, matches: out.matches + (bie.sent || 0), endedBeforeSend: bie.ended || 0, failed: out.failed + (bie.failed || 0), beforeItEnds: { sent: bie.sent || 0, off: bie.off || 0, ended: bie.ended || 0, failed: bie.failed || 0, error: bie.error } } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
+      return res.status(200).json({ ...out, beforeItEnds: bie });
     }
     if (req.method === "GET" && q.run) {
       const isCron = process.env.CRON_SECRET && req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;

@@ -5229,3 +5229,22 @@ gates, confirmed on real cars, not assumed**:
     title - delete once no longer needed for similar reports) 1808a60, 7d2f582; lib/live/search.js,
     converse.js, samChat.js (the fix) 4b2f3f2; scripts/crossProductCheck.js + prePush.mjs + usageDashboard.js
     (the regression guard, plus a same-session import-bug fix caught live via the guard itself) 10899c2, f67c418.
+
+- 2026-10-12 (Lane C): BEFORE IT ENDS IS ITS OWN EMAIL, TWO HOURS BEFORE THE END (Sam, Must).
+  * lib/tasks/digest.js runBeforeItEnds, run first by the 15-minute send cron (/api/tasks?send=1): every armed car
+    whose auction ends within two hours goes out in that run, once per car per person (claimed in buy_alerts before
+    the send, so no run sends it twice and an extended end time sends nothing more), whatever the Task email setting,
+    never under the six-a-day cap, never folded into the daily email. Email updates off: marked off, never sent. A car
+    that ended before any run reached it: ended_before_send. A failed send gives the claim back for the next run.
+  * Arming with under two hours left no longer sends at once; the next run sends it (it still checks Email updates).
+  * The middle-half line is back to past-year ranges only (Sam: until Lane B's pool unification lands). FOR LANE B:
+    tell me when the Buy read and the Market Check page can no longer differ for the same car, and I will lift it.
+  * Copy: the Tasks page FAQ and the How often help now add "A car you asked to hear about before bidding ends gets its
+    own email two hours before the end."; the daily email's footer adds "Before it ends emails always come two hours
+    before bidding ends."; the email itself ends with "Sam sends this email two hours before bidding ends, once for
+    each car. Your other Task emails keep their own schedule." and its links are "Open the Task" and "Stop all Task
+    emails" (the same one-click stop as the daily email).
+  * Check: scripts/beforeItEndsCheck.mjs (fixture day, in prePush).
+  * AFTER: a car armed in the last 15 minutes before its end can end before the next run, so it gets no email while the
+    Buy switch says "You'll get an email before it ends." Options: say "two hours before it ends" on the switch, or
+    hide the switch in the last 15 minutes (Lane A's page).
