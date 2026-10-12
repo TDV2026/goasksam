@@ -5585,7 +5585,7 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle, sanitizeResolvedVehicle } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
-    const { buildSpec, archiveScope } = await import("../lib/onebox.js");
+    const { buildSpec, archiveScope, fetchQualifying } = await import("../lib/onebox.js");
     const { familyFor, familyBadgeMatch } = await import("../lib/modelFamilies.js");
     const q = String(req.query?.qs || "2023 Mercedes-Benz SL-Class");
     const rv = await resolveVehicle(q, {});
@@ -5601,14 +5601,22 @@ async function handleOps(req, res) {
       (spec.yearMin ? `&year=gte.${spec.yearMin}` : "") + (spec.yearMax ? `&year=lte.${spec.yearMax}` : "");
     const raw = await supabaseSelectAll(env, base) || [];
     const matched = raw.filter(r => familyBadgeMatch({ make: spec.make, model: spec.model }, { title: r.listing_title, model: r.model }));
+    // REAL call (same as assessThin line ~2607): famSpec + houseTier:true through the actual
+    // exported fetchQualifying, so this is byte-for-byte the production call, not a reconstruction.
+    const famSpec = { ...spec, perfInclude: null, perfExclude: null, excludeVariants: [] };
+    const realDiag = {};
+    const realRows = await fetchQualifying({ ...famSpec, houseTier: true }, sinceIso, env, realDiag);
     return res.status(200).json({
       task: "slfamdiag", q,
-      spec: { make: spec.make, model: spec.model, trim: spec.trim, year: spec.year, yearMin: spec.yearMin, yearMax: spec.yearMax },
+      spec: { make: spec.make, model: spec.model, trim: spec.trim, year: spec.year, yearMin: spec.yearMin, yearMax: spec.yearMax, badge: spec.badge || null, perfExclude: !!spec.perfExclude, excludeVariants: spec.excludeVariants },
+      famSpec: { perfInclude: famSpec.perfInclude, perfExclude: famSpec.perfExclude, excludeVariants: famSpec.excludeVariants, badge: famSpec.badge || null },
       familyForResult: fam ? { head: fam.head, fetchBadges: fam.fetchBadges, badgeRe: String(fam.badgeRe) } : null,
       scope, sinceIso: sinceIso.slice(0, 10), baseQuery: base,
       rawCount: raw.length, matchedCount: matched.length,
+      realFetchQualifyingCount: realRows.length, realDiag,
       sampleRaw: raw.slice(0, 10).map(r => ({ year: r.year, model: r.model, title: r.listing_title })),
-      sampleMatched: matched.slice(0, 10).map(r => ({ year: r.year, model: r.model, title: r.listing_title }))
+      sampleMatched: matched.slice(0, 10).map(r => ({ year: r.year, model: r.model, title: r.listing_title })),
+      sampleRealRows: realRows.slice(0, 10).map(r => ({ year: r.year, title: r.raw_title || r.rtitle }))
     });
   }
 
