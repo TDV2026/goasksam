@@ -112,7 +112,7 @@
   "functions": {
     "api/usageDashboard.js": {
       "maxDuration": 300,
-      "includeFiles": "scripts/{warm-list.json,warmMarketCheck.js}"
+      "includeFiles": "scripts/warm*"
     },
     "api/publicConfig.js": {
       "includeFiles": "public/onebox.html"
