@@ -52,9 +52,13 @@ L.push(`PULL REPORT  ${j.window.fromPT} to ${j.window.toPT} Pacific`);
 L.push("");
 L.push(`Vendor requests used: ${j.requests.total}  (ending soonest ${j.requests.byType.endingSoonest}, full walks and any other ${j.requests.byType.fullWalksAndAnyOther})`);
 L.push(`Runs: ${j.requests.fullWalks} full walks, ${j.requests.endingSoonest} ending soonest` + (j.requests.otherPulls ? `, ${j.requests.otherPulls} other` : "") + (j.requests.skippedForReserve ? `, ${j.requests.skippedForReserve} skipped for the monthly reserve` : ""));
+if (j.startedBy) for (const [who, b] of Object.entries(j.startedBy)) {
+  L.push(`  started by ${who}: ${b.requests} requests, ${b.fullWalks} full walks, ${b.endingSoonest} ending soonest` + (b.otherPulls ? `, ${b.otherPulls} other` : "") + (b.skipped ? `, ${b.skipped} skipped` : ""));
+  if (who !== "scheduled") for (const [d, n] of Object.entries(b.byDetail || {})) L.push(`    ${d}: ${n}`);
+}
 L.push("");
 L.push(`New cars first seen: full walks ${j.newCars.fullWalk}, ending soonest ${j.newCars.endingSoonest}`);
-for (const f of j.full) L.push(`  full walk      ${f.at}  ${f.fetched} read, ${f.newListings} new`);
+for (const f of j.full) L.push(`  full walk      ${f.at}  ${f.fetched} read, ${f.newListings} new` + (f.startedBy && f.startedBy !== "scheduled" ? `  (started by ${f.startedBy})` : ""));
 for (const e of j.ending) L.push(`  ending soonest ${e.at}  ${e.pages} page${e.pages === 1 ? "" : "s"}, ${e.newListings} new, ${e.hoursAhead == null ? "hours ahead not recorded" : "covers " + e.hoursAhead + "h ahead"}${e.cappedShort ? ", CUT SHORT by the 3-page cap" : ""}`);
 L.push("");
 const ph = Object.entries(j.busyWindow.pagesNeeded).map(([k, v]) => `${v} needed ${k}`).join(", ");

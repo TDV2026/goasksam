@@ -191,7 +191,7 @@ async function handler(req, res) {
       const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
       const rows = [];
       for (let from = 0; from < 20000; from += 1000) {
-        const r = await fetch(`${env.supabaseUrl}/rest/v1/live_listings?status=eq.live&select=id,source,listing_title,location,country,currency,current_bid,current_bid_usd,mileage,description,has_reserve,bid_at&order=id.asc`, { headers: { ...H, Range: `${from}-${from + 999}` } });
+        const r = await fetch(`${env.supabaseUrl}/rest/v1/live_listings?status=eq.live&select=id,source,listing_title,location,country,currency,current_bid,current_bid_usd,mileage,description,has_reserve,bid_at,last_seen&order=id.asc`, { headers: { ...H, Range: `${from}-${from + 999}` } });
         if (!r.ok) return res.status(500).json({ error: `read ${r.status}` });
         const page = await r.json(); rows.push(...page); if (page.length < 1000) break;
       }
@@ -212,6 +212,13 @@ async function handler(req, res) {
         if (t.unit === "miles" && !t.milesAssumed && r.mileage) c.miles_stated = (c.miles_stated || 0) + 1;
         if (t.special) { c.special_by = c.special_by || {}; c.special_by[t.special] = (c.special_by[t.special] || 0) + 1; c.special++; push("special", r, { why: t.special }); }
       }
+      // The bid's own time (bid_at, the feed's updated_at): rows with a bid but no bid time, and how far each bid time
+      // sits behind our last read of the row (last_seen), in minutes. Counts and quantiles only, never a listing.
+      const withBid = rows.filter(r => Number(r.current_bid) > 0), lag = [];
+      c.bid_time = { with_bid: withBid.length, no_bid_at: 0, no_bid_at_by: {} };
+      for (const r of withBid) { const b = Date.parse(r.bid_at || ""), s = Date.parse(r.last_seen || ""); if (isNaN(b)) { c.bid_time.no_bid_at++; c.bid_time.no_bid_at_by[r.source] = (c.bid_time.no_bid_at_by[r.source] || 0) + 1; } else if (!isNaN(s)) lag.push((s - b) / 60e3); }
+      lag.sort((a, b) => a - b); const qx = p => lag.length ? Math.round(lag[Math.min(lag.length - 1, Math.floor(p * lag.length))]) : null;
+      c.bid_time.minutes_behind_last_read = { p10: qx(0.1), p50: qx(0.5), p90: qx(0.9), max: lag.length ? Math.round(lag[lag.length - 1]) : null, over60: lag.filter(x => x > 60).length };
       return res.status(200).json({ counts: c, examples: ex });
     }
     // Probe: counts of the old watch_requests rows (reported, never emailed).

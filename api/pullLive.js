@@ -27,7 +27,12 @@ async function handler(req, res) {
   const apiKey = process.env.OLDCARSDATA_API_KEY;
   const env = historyEnv();
   if (!apiKey || !env) return res.status(500).json({ error: "OCD or Supabase env missing." });
-  configureOcdUsage({ ...env, job: "pull_live" });
+  // Who started this run (Oct 2026), on every usage row it writes and every ocd_call row it spends: "scheduled" (the
+  // Vercel scheduler, with its schedule slot), "probe" (a manual call with the probe key, with the endpoint and its
+  // parameters, never the key), or "unknown" (anything else, for example the cron secret sent by something other than
+  // the scheduler). "admin" is part of the vocabulary, but no admin path calls this endpoint today.
+  const starter = startedBy(req, isCron, provided === probeKey);
+  configureOcdUsage({ ...env, job: "pull_live", startedBy: starter.by, startedDetail: starter.detail });
   const start = getOcdRunMetered();
   const used = () => getOcdRunMetered() - start;
   const maxReq = Math.max(1, Math.min(200, Number((req.query && (req.query["max-requests"] || req.query.maxRequests)) || 30)));
@@ -83,13 +88,14 @@ async function handler(req, res) {
       const slot = pullFor(new Date());
       if (!slot.mode) return res.status(200).json({ ok: true, slot, nothing: true, ocdRequests: 0 });
       mode = slot.mode === "full" ? "" : slot.mode;
+      if (starter.by === "scheduled") { starter.detail = `${slot.mode === "full" ? "full walk" : "ending soonest"} ${slot.hhmm} ${slot.zone}`; configureOcdUsage({ job: "pull_live", startedBy: starter.by, startedDetail: starter.detail }); }
     }
     // 0. Monthly guard: skip the whole run while OCD's own remaining monthly quota (the header /sell
     // persists to app_config ocd_rate_limit) is below OCD_SELL_MONTHLY_RESERVE + 100. Logged when skipped.
     const reserve = reserveFloor();
     const rl = await readRemaining(env);
     if (rl && rl.fresh && rl.remaining < reserve) {
-      await recordUsageEvent({ event_type: "pull_live_skipped", route: "pull_live", status: "skipped", oldcarsdata_metered_requests: 0, metadata: { remaining: rl.remaining, reserve, at: rl.at } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
+      await recordUsageEvent({ event_type: "pull_live_skipped", route: "pull_live", status: "skipped", oldcarsdata_metered_requests: 0, metadata: { remaining: rl.remaining, reserve, at: rl.at, started_by: starter.by, started_detail: starter.detail } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
       return res.status(200).json({ ok: true, skipped: "monthly OCD remaining below reserve", remaining: rl.remaining, reserve, ocdRequests: 0 });
     }
     // Ending soonest and newest (the schedule's short pulls, or one credentialed test run). Each page's own sort
@@ -139,7 +145,7 @@ async function handler(req, res) {
       const up = await upsertLive(env, rows);
       await flushOcdUsage();
       const lastEndAt = rows.length ? Date.parse(rows[rows.length - 1].end_time) : null;
-      const out = { mode, pages: pagesRead, ocdRequests: used(), fetched: rows.length, newListings: fresh, upserted: up, order, coveredHoursAhead: lastEndAt ? Math.round((lastEndAt - Date.now()) / 360e3) / 10 : null, cappedShort: mode === "ending" && pagesRead >= cap && lastEndAt != null && lastEndAt < Date.now() + ENDING_AHEAD_MS };
+      const out = { mode, pages: pagesRead, ocdRequests: used(), fetched: rows.length, newListings: fresh, upserted: up, order, coveredHoursAhead: lastEndAt ? Math.round((lastEndAt - Date.now()) / 360e3) / 10 : null, cappedShort: mode === "ending" && pagesRead >= cap && lastEndAt != null && lastEndAt < Date.now() + ENDING_AHEAD_MS, started_by: starter.by, started_detail: starter.detail };
       await recordUsageEvent({ event_type: "pull_live_mode", route: "pull_live", status: "ok", oldcarsdata_metered_requests: 0, metadata: out }, env.supabaseUrl, env.supabaseKey).catch(() => {});
       return res.status(200).json({ ok: true, ...out });
     }
@@ -180,10 +186,10 @@ async function handler(req, res) {
     const stats = await liveStats(env, rows, { budgetMs: 60000 }); stepMs.stats = Date.now() - t;
     stepMs.total = Date.now() - tRun;
     await flushOcdUsage();
-    if (stoppedForReserve != null) await recordUsageEvent({ event_type: "pull_live_skipped", route: "pull_live", status: "stopped", oldcarsdata_metered_requests: 0, metadata: { remaining: stoppedForReserve, reserve } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
+    if (stoppedForReserve != null) await recordUsageEvent({ event_type: "pull_live_skipped", route: "pull_live", status: "stopped", oldcarsdata_metered_requests: 0, metadata: { remaining: stoppedForReserve, reserve, started_by: starter.by, started_detail: starter.detail } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
     // The run's summary also lands in app_usage_events (pull_live_summary), so a cron run's timings and
     // backlog are readable afterwards (the cron's own HTTP response is not kept anywhere).
-    await recordUsageEvent({ event_type: "pull_live_summary", route: "pull_live", status: "ok", oldcarsdata_metered_requests: 0, metadata: { stepMs, fetched: rows.length, ocdRequests: used(), newListings: fresh, upserted: up, ended, finals, stats: { withVin: stats.withVin, vinsChecked: stats.vinsChecked, vinsLeft: stats.vinsLeft, budgetHit: stats.budgetHit } } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
+    await recordUsageEvent({ event_type: "pull_live_summary", route: "pull_live", status: "ok", oldcarsdata_metered_requests: 0, metadata: { started_by: starter.by, started_detail: starter.detail, stepMs, fetched: rows.length, ocdRequests: used(), newListings: fresh, upserted: up, ended, finals, stats: { withVin: stats.withVin, vinsChecked: stats.vinsChecked, vinsLeft: stats.vinsLeft, budgetHit: stats.budgetHit } } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
     return res.status(200).json({ ok: true, ocdRequests: used(), maxRequests: maxReq, truncated, stoppedForReserve, feedTotal: total, fetched: rows.length, newListings: fresh, perSource, upserted: up, ended, finals, stepMs, ...stats });
   } catch (e) {
     await flushOcdUsage().catch(() => {});
@@ -191,6 +197,18 @@ async function handler(req, res) {
   }
 }
 
+
+// The starter of one call (see the handler). The endpoint keeps only the named parameters, so the key never lands in a row.
+const ENDPOINT_PARAMS = ["mode", "max-requests", "maxRequests", "probe", "probePage", "limit", "sort", "direction", "fromEnd", "dryrun", "date"];
+export function startedBy(req, isCron, probeOk) {
+  const q = (req && req.query) || {}, p = new URLSearchParams();
+  for (const k of ENDPOINT_PARAMS) if (q[k] != null && q[k] !== "") p.set(k, String(q[k]).slice(0, 40));
+  const endpoint = "/api/pullLive" + (p.toString() ? "?" + p : "");
+  const scheduler = /^vercel-cron\//i.test(String((req && req.headers && req.headers["user-agent"]) || ""));
+  if (isCron && scheduler) return { by: "scheduled", detail: endpoint };
+  if (!isCron && probeOk) return { by: "probe", detail: endpoint };
+  return { by: "unknown", detail: isCron ? "cron secret, not from the scheduler: " + endpoint : endpoint };
+}
 
 async function knownIds(env, ids) {
   if (!ids.length) return 0;

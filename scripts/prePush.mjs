@@ -187,6 +187,14 @@ try {
 } catch (e) {
   record("fallback rung fixtures (scripts/rungCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Who started each pull (Oct 2026, Lane C): started_by on the pull job's rows and every ocd_call row, and the report's
+// split. No network, no vendor request.
+try {
+  const out = execSync("node scripts/pullStarterCheck.mjs", { encoding: "utf8" });
+  record("pull starter (scripts/pullStarterCheck.mjs)", "PASS", (out.match(/pullStarterCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("pull starter (scripts/pullStarterCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 
 // ---- 3 & 4. BROWSER CHECK (Lane C's pushCheck.mjs) + BASELINE ----
 console.log(`\n-- browser check via scripts/pushCheck.mjs (${BASE}) --`);
