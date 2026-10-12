@@ -109,12 +109,13 @@ try {
   const PERF_CARS = [
     { car: "2008 Porsche 997 Carrera S Coupe", budget: PERF_TIGHT_MS },
     { car: "1995 Porsche 911 Carrera", budget: PERF_TIGHT_MS },
-    { car: "1969 Chevrolet Camaro", budget: PERF_BUDGET_MS }
-    // The warmed-Camaro check (budget PERF_WARM_MS, same nameplate, kept separate from the loose-
-    // budget row above) is added in a FOLLOW-UP commit, after this push deploys and the warm cache
-    // is actually populated (task=warmMC) - adding it in THIS commit would fail prePush's own gate
-    // on this exact push, since the fix it checks for cannot exist until after the push lands. Not
-    // a silent omission: see the Round 5 Job 3 report for the verified-afterward addition.
+    { car: "1969 Chevrolet Camaro", budget: PERF_BUDGET_MS },
+    // Same nameplate as the loose-budget row above - kept SEPARATE, not a replacement: that row is
+    // the never-regress-past-this ceiling (also covers a cache miss, e.g. a missed nightly rewarm);
+    // this row proves the warm path holds now that the cache is actually populated (task=warmMC,
+    // verified live before this check was re-added: server-only cold 9,074-9,261ms -> warm cache
+    // hit 431-535ms for this exact nameplate, tier/poolN/cluster byte-identical both ways).
+    { car: "1969 Chevrolet Camaro", budget: PERF_WARM_MS }
   ];
   for (const { car, budget } of PERF_CARS) {
     // Without PROBE_KEY this page is the public redirect to /sell (same as the gated PAGES entries
