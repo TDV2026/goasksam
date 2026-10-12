@@ -229,7 +229,7 @@ the `logEvent` calls listed in `docs/lane-notes.md`, `funnel_events`' new rows, 
 
 | Event | File |
 |---|---|
-| `search_run` | `api/sellerDecision.js` (Market Check `mcRun`, Sell), `api/buySearch.js` (`buyRun`) |
+| `search_run` | `api/sellerDecision.js` (Market Check `mcRun`, Sell), `api/buySearch.js` (`buyRun`, the plain search) and `lib/live/samChat.js` (the Buy box, once per new car in a conversation) |
 | `sell_answer_shown`, `powerseller_suggested` | `api/sellerDecision.js` |
 | `introduction_requested` | `api/submitSellerLead.js` |
 | `task_created`, `task_paused`, `task_cancelled` | `lib/tasks/tasks.js`, `lib/live/watches.js` (through `trackCurrent`) |
