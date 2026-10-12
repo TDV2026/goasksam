@@ -5622,12 +5622,15 @@ async function handleOps(req, res) {
   if (task === "slclassdiag") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const make = String(req.query?.make || "Mercedes-Benz").trim();
-    const rows = (await supabaseSelectAll(env, `sales_archive?make=ilike.${encodeURIComponent(make)}&sale_price=not.is.null&select=listing_title,sale_date,year&limit=5000`)) || [];
+    // Scoped server-side via listing_title ilike *sl* (cheap, bounded) - NO literal &limit= mixed
+    // with supabaseSelectAll's own Range-based pagination (that combination returned 0 rows, a
+    // bug in this diagnostic itself, not the archive - confirmed by removing it).
+    const rows = (await supabaseSelectAll(env, `sales_archive?make=ilike.${encodeURIComponent(make)}&listing_title=ilike.*sl*&sale_price=not.is.null&select=listing_title,sale_date,year`)) || [];
     const slRe = /\bsl\s?\d{2,3}\b|\bamg\s+sl\s?\d{2,3}\b|\bmercedes-?amg\s+sl\b/i;
     const slRows = rows.filter(r => slRe.test(String(r.listing_title || "")));
     const recent = slRows.filter(r => Number(r.year) >= 2021 && Number(r.year) <= 2025);
     return res.status(200).json({
-      task: "slclassdiag", make, totalArchiveRows: rows.length,
+      task: "slclassdiag", make, titleIlikeSlRows: rows.length,
       slTotal: slRows.length, slRecent2021_2025: recent.length,
       sampleSlTitles: slRows.slice(0, 15).map(r => r.listing_title),
       sampleRecentSlTitles: recent.slice(0, 15).map(r => r.listing_title)
