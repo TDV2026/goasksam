@@ -5627,8 +5627,9 @@ async function handleOps(req, res) {
     const terms = String(req.query?.titleContains || "").split("|").map(s => s.trim()).filter(Boolean);
     if (!make || !terms.length) return res.status(400).json({ error: "dochistdiag needs ?make=&titleContains=a|b" });
     const orTitle = terms.map(t => `listing_title.ilike.*${encodeURIComponent(t)}*`).join(",");
-    const excludeRe = /\b(replica|clone|tribute|recreation|homage|kit\s?car|-style|roadster)\b/i;   // roadster excluded so this scopes to the Coupe/Gullwing body specifically, matching the 300SL Coupe test case
-    const rows = ((await supabaseSelectAll(env, `sales_archive?make=ilike.${encodeURIComponent(make)}&or=(${orTitle})&sale_price=not.is.null&select=listing_title,sale_date,sale_price,sale_price_usd,desc_facts&limit=1000`)) || []).filter(r => !excludeRe.test(String(r.listing_title || "")));
+    const excludeRe = /\b(replica|clone|tribute|recreation|homage|kit\s?car|-style|roadster|r107|r129|slk|sl-?class|w113)\b/i;   // roadster/r107/r129/slk excluded: "300SL" also bare-matches the UNRELATED 1980s-2000s R107/R129 SL-Class and SLK320 - a totally different car from the 1950s W198 Gullwing/Roadster, confirmed live (first diagnostic run's hasNot side was entirely these, $300-$25k, nothing to do with the real pool)
+    const yearMin = req.query?.yearMin ? Number(req.query.yearMin) : null, yearMax = req.query?.yearMax ? Number(req.query.yearMax) : null;
+    const rows = ((await supabaseSelectAll(env, `sales_archive?make=ilike.${encodeURIComponent(make)}&or=(${orTitle})&sale_price=not.is.null&select=listing_title,sale_date,sale_price,sale_price_usd,desc_facts,year&limit=1000`)) || []).filter(r => !excludeRe.test(String(r.listing_title || "")) && (yearMin == null || Number(r.year) >= yearMin) && (yearMax == null || Number(r.year) <= yearMax));
     const usd = r => Number.isFinite(Number(r.sale_price_usd)) && Number(r.sale_price_usd) > 0 ? Number(r.sale_price_usd) : Number(r.sale_price);
     const hasMarker = r => { const m = (r.desc_facts && Array.isArray(r.desc_facts.markers)) ? r.desc_facts.markers : []; return m.includes("documented_history") || m.includes("matching_numbers"); };
     const has = rows.filter(hasMarker), hasNot = rows.filter(r => !hasMarker(r));
