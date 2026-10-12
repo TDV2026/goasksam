@@ -40,7 +40,7 @@
 import { resolveVehicle } from "../lib/vehicle.js";
 import { findGeneration } from "../lib/generations.js";
 import { runOneBox, buildSpec, titleFenceReason } from "../lib/onebox.js";
-import { familyMarket, liveForFamily, emptyFilters } from "../lib/live/search.js";
+import { familyMarket, liveForFamily, emptyFilters, resolveForBuy } from "../lib/live/search.js";
 import { fetchOnlinePool, buildSharedAnalysis, pickPlatform, depthWins } from "../lib/platformPick.js";
 import { decide, getSellerCriteria } from "../api/sellerDecision.js";
 import fs from "node:fs";
@@ -334,15 +334,28 @@ export async function checkOneSpec(q, env) {
   const searchText = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(" ");
   const f = emptyFilters();
   if (vehicle.bodyStyle) f.bodies = [String(vehicle.bodyStyle).toLowerCase()];
+  // buyVehicle (Oct 2026, one-engine-entry-point job): Buy/Tasks' REAL production entry
+  // (api/buySearch.js) resolves via resolveForBuy(text, env), never plain resolveVehicle -
+  // resolveForBuy calls resolveVehicle first but falls back to archiveResolveToken (an
+  // archive-backed phrase match) when that alone finds no model. A bare chassis-style nameplate
+  // that doesn't contain its make name ("240Z" has no "Datsun" in it) is exactly the shape plain
+  // resolveVehicle can miss while the archive fallback catches it - confirmed live via
+  // task=buypathdiag: plain resolveVehicle("1970 Datsun 240Z") returns model:null, while
+  // resolveForBuy returns model:"240Z" correctly. Reusing marketCheck/sell's plain-resolved
+  // `vehicle` for buy/tasks was testing a resolver Buy never actually uses in production - a
+  // test-harness artifact, not a real cross-product inconsistency (same class of issue as
+  // marketCheckLane's asked:2 fix above: comparing lanes at a point one of them can't actually
+  // reach). Falls back to the shared `vehicle` if resolveForBuy itself fails for any reason.
+  const buyVehicle = await resolveForBuy(q, env).catch(() => null) || vehicle;
 
   const [marketCheck, buy, sell] = await Promise.all([
     marketCheckLane(vehicle, generation, searchText, env).catch(e => ({ ok: false, reason: String(e && e.message || e) })),
-    buyLane(env, vehicle, f).catch(e => ({ ok: false, reason: String(e && e.message || e) })),
+    buyLane(env, buyVehicle, f).catch(e => ({ ok: false, reason: String(e && e.message || e) })),
     sellLane(vehicle, generation, env).catch(e => ({ ok: false, reason: String(e && e.message || e) }))
   ]);
   // Tasks: the same empty-state fallback Buy uses (see header note) - a second, independent call
   // (not reusing buy's object) so a future divergence between the two call SITES still shows up.
-  const tasks = await buyLane(env, vehicle, f).catch(e => ({ ok: false, reason: String(e && e.message || e) }));
+  const tasks = await buyLane(env, buyVehicle, f).catch(e => ({ ok: false, reason: String(e && e.message || e) }));
 
   row.lanes = { marketCheck, buy, sell, tasks };
   const fields = ["label", "low", "high", "count", "latest", "recent", "referenceFigure"];
