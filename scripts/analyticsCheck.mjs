@@ -113,6 +113,8 @@ ok(consentResults["open (US, no cookie)"].consent === "not_required" && consentR
   && consentResults["restricted + declined (FR)"].consent === "declined" && consentResults["restricted, no cookie (GB)"].consent === "declined", "consent states: open, granted, declined, missing cookie counts as declined");
 ok(consentResults["restricted + declined (FR)"].cookiesSet.join(",") === "gas_aid (deleted),gas_sid (deleted)", "declined: existing analytics cookies are deleted");
 ok(consentState(mkReq({ country: "US", cookie: "gas_consent=declined" })).consent === "declined", "an explicit decline is honoured in an open region");
+ok(consentState(mkReq({ country: "US", headers: { "x-gas-region": "restricted" } })).consent === "declined", "x-gas-region: restricted makes an open visitor restricted (declined until they accept)");
+ok(consentState(mkReq({ country: "DE", headers: { "x-gas-region": "open" } })).region_class === "restricted", "x-gas-region can never open a restricted visitor");
 {
   const r = mkRes(); identity(mkReq(), r, { mint: true });
   const aid = setCookies(r).find(c => c.startsWith("gas_aid="));
