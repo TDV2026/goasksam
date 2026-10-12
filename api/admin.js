@@ -8,6 +8,7 @@
 //   GET  /api/admin?refresh=night   yesterday's summaries finalized, retention, and the 13-month purge.
 // Every number comes from analytics_events (through the summary tables) except live inventory and the deploy.
 import { validateBearer } from "../lib/_auth.js";
+import { hasServerCredential } from "../lib/_credential.js";
 import { sendDisguisedNotFound } from "../lib/_notFound.js";
 import { supabaseSelectAll } from "../lib/_supabase.js";
 import { trackHealth, withTracking } from "../lib/track/log.js";
@@ -171,6 +172,23 @@ async function reconcile(env, day) {
   };
 }
 
+// Is the store receiving events: the last two hours by name, counts only (no id, no address).
+async function storeCheck(env) {
+  const since = new Date(Date.now() - 2 * 3600e3).toISOString();
+  const ev = await rows(env, `analytics_events?ts=gte.${encodeURIComponent(since)}&select=name,product,consent,internal,is_bot,anon_id,session_id,user_id,vin`);
+  const by = {};
+  for (const e of ev) { const k = `${e.product}:${e.name}${e.internal ? " (internal)" : ""}`; by[k] = (by[k] || 0) + 1; }
+  const fails = await rows(env, `app_usage_events?event_type=eq.analytics_write_failed&created_at=gte.${encodeURIComponent(since)}&select=created_at,status,metadata&order=created_at.desc&limit=5`);
+  const day = ptDay(0);
+  return {
+    events2h: ev.length, byName: by,
+    withAnon: ev.filter(e => e.anon_id).length, declined: ev.filter(e => e.consent === "declined").length,
+    declinedWithId: ev.filter(e => e.consent === "declined" && (e.anon_id || e.session_id || e.user_id)).length, withVin: ev.filter(e => e.vin).length,
+    writeFailures2h: fails.length, lastFailure: fails[0] ? { at: fails[0].created_at, status: fails[0].status } : null,
+    summaryRowsToday: (await rows(env, `analytics_daily_counts?day=eq.${day}&select=name`)).length,
+  };
+}
+
 // ------------------------------------------------------------------------------------------------ cron
 async function refresh(env, which) {
   const out = {};
@@ -271,10 +289,15 @@ async function handler(req, res) {
     } catch { return sendDisguisedNotFound(res); }
   }
 
-  const auth = await validateBearer(req.headers.authorization).catch(() => null);
-  if (!auth || !auth.email || !adminEmails().includes(auth.email)) return sendDisguisedNotFound(res);
+  // Our own server credential (header only, never the address) may read the same parts, plus "check" (is the store
+  // receiving events) and "refresh_now" (today's summaries, as the hourly cron does). Anyone else needs ADMIN_EMAILS.
+  const cred = hasServerCredential(req);
+  const auth = cred ? null : await validateBearer(req.headers.authorization).catch(() => null);
+  if (!cred && (!auth || !auth.email || !adminEmails().includes(auth.email))) return sendDisguisedNotFound(res);
   const env = storeEnv(); if (!env) return res.status(500).json({ error: "store not configured" });
   try {
+    if (b.part === "check" && cred) return res.status(200).json(await storeCheck(env));
+    if (b.part === "refresh_now" && cred) return res.status(200).json(await refresh(env, "hour"));
     if (b.part === "me") return res.status(200).json({ ok: true });
     if (b.part === "overview") return res.status(200).json(await overview(env));
     if (b.part === "reliability") return res.status(200).json(await reliability(env));
