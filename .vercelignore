@@ -1,0 +1,34 @@
+# Security (Lane A, Oct 2026): this project has no "public" output directory, so by default
+# Vercel statically serves every git-tracked file in the repo at its own path - including
+# internal docs, SQL schema, and dev tooling that was never meant to be a public page/asset.
+# Everything listed here is confirmed NOT read by any api/** function or by the build: api/**
+# functions bundle their lib/** and js/** imports at build time (nothing below is in that
+# import graph), and GitHub Actions runs scripts/**, ops/** and .github/workflows/** from its
+# own `actions/checkout` clone of the git repo, never through this deployment.
+#
+# lib/** and js/** are deliberately NOT listed here: lib/** is a build import for api/**, and
+# js/** is real client-side script served to every browser. Their own static-source exposure
+# (lib/**) is a separate, larger architecture fix (moving to a dedicated public/ root) - tracked
+# as Step 3, not fixed by this file.
+
+CLAUDE.md
+_pd.mjs
+
+docs/
+ops/
+test/
+smoke-artifacts/
+.github/
+
+# scripts/** is dev/ops tooling only, with one exception read at request time by
+# api/usageDashboard.js via vercel.json's own includeFiles - keep that one file reachable.
+scripts/**
+!scripts/warm-list.json
+
+# .env.example and .gitignore are not read by the Vercel build in any way (safe to drop from
+# the upload entirely). package.json/package-lock.json/vercel.json are NOT listed here even
+# though they already 404 live - Vercel's build itself needs them (dependency install, function
+# config, rewrites/crons); .vercelignore would strip them from the upload and break the build,
+# not just the HTTP route.
+.env.example
+.gitignore
