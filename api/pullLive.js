@@ -52,7 +52,12 @@ async function handler(req, res) {
       // Cap 100, not 1000 (Oct 2026 fix): OCD's own /auctions/live rejects limit over 100 ("limit:
       // Too big: expected number to be <=100") - confirmed live, the prior 1000 cap let a caller send
       // a value the vendor would just 400 on. No behavior change for any value already under 100.
-      const r = await callOldCarsData("/auctions/live", { page: 1, limit: Math.min(100, Number(req.query.limit) || 25) }, apiKey);
+      // &probePage=N (default 1): walks the vendor's own soonest-ending-first default order one
+      // metered request per page, so a specific-listing presence question that isn't near page 1 can
+      // still be answered without guessing - see &find= below. Named separately from the file's other
+      // `page` variables so this branch can never be confused with a real pull's pagination.
+      const probePage = Math.max(1, Number(req.query.probePage) || 1);
+      const r = await callOldCarsData("/auctions/live", { page: probePage, limit: Math.min(100, Number(req.query.limit) || 25) }, apiKey);
       const data = r.data || r.results || [];
       await flushOcdUsage();
       // &find=<text>: ONE metered request (same as any other ?probe=1 call, still writes nothing -
@@ -61,11 +66,15 @@ async function handler(req, res) {
       // against title/source_listing_id/url-ish fields, so a specific-listing presence question
       // ("is OCD's own live feed carrying X right now") can be answered without a second vendor call
       // or any write. /auctions/live has no source/make filter server-side (confirmed by reading this
-      // file's other branches - only page/limit/sort/direction are ever sent), so this is page 1 of
-      // the vendor's own default order (soonest-ending first) - a car ending soon sits near the front.
+      // file's other branches - only page/limit/sort/direction are ever sent) - this walks the
+      // vendor's own default order (soonest-ending first), one real page per call.
       const find = req.query.find ? String(req.query.find).toLowerCase() : null;
       const match = find ? data.filter(rec => JSON.stringify(rec).toLowerCase().includes(find)) : null;
-      return res.status(200).json({ probe: true, ocdRequests: used(), returned: data.length, meta: r.meta || null, keys: data[0] ? Object.keys(data[0]) : [], samples: data.slice(0, 2), find, matchCount: match ? match.length : null, matches: match ? match.slice(0, 5) : null });
+      // endRange: the page's own min/max auction_end_at (not just 2 samples) - lets a caller triangulate
+      // which page a target end-time sits on without spending an extra request per guess.
+      const ends = data.map(rec => Date.parse(String(rec.auction_end_at || rec.auction_end_date || "").replace(" ", "T") + "Z")).filter(Number.isFinite).sort((a, b) => a - b);
+      const endRange = ends.length ? { firstEndsAt: new Date(ends[0]).toISOString(), lastEndsAt: new Date(ends[ends.length - 1]).toISOString(), hoursFromNowFirst: Math.round((ends[0] - Date.now()) / 36e5 * 10) / 10, hoursFromNowLast: Math.round((ends[ends.length - 1] - Date.now()) / 36e5 * 10) / 10 } : null;
+      return res.status(200).json({ probe: true, probePage, ocdRequests: used(), returned: data.length, meta: r.meta || null, endRange, keys: data[0] ? Object.keys(data[0]) : [], samples: data.slice(0, 2), find, matchCount: match ? match.length : null, matches: match ? match.slice(0, 5) : null });
     }
     // The schedule (lib/live/pullSchedule.js): a dry run answers from the clock alone, no vendor call.
     let mode = String((req.query && req.query.mode) || "");
