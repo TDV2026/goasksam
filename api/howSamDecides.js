@@ -8,6 +8,8 @@
 import { FONT_LINKS, isCrewRequest } from "./_chrome.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE } from "../lib/appShell.js";
+import { fullyLaunched } from "../lib/_launchStage.js";
+import { hasServerCredential } from "../lib/_credential.js";
 
 const TITLE = "How Sam decides | GoAskSam";
 const DESC = "Every answer on GoAskSam starts with a real sale. Here is how Market Check, Buy, Sell and Tasks each use that evidence.";
@@ -90,10 +92,11 @@ export default async function handler(req, res) {
   res.setHeader("X-Robots-Tag", "index, follow");
   // Same no-Vary reasoning as the other shared-shell pages: the public response is identical for
   // every anonymous visitor, so it is safely edge-cacheable with no Vary at all.
+  const hasCrewCookie = /(?:^|;\s*)gas_crew=/.test(String(req.headers.cookie || ""));
   // LAUNCH-STAGE SAFETY (Oct 2026, production incident, api/marketCheck.js has the full writeup):
-  // this page's own rail is filtered by isReleased() - an 86400s stale-while-revalidate tail could
-  // keep serving an OLD, more-open rail for a day after a stage rollback. Short window, no stale
-  // tail, matching api/buy.js's own safe precedent.
-  res.setHeader("Cache-Control", crew ? "private, no-store" : "public, s-maxage=30");
+  // this page's own rail is filtered by isReleased() - public caching at all is only safe once
+  // fullyLaunched() is true and the request carries no server credential (so an ops/probe stage
+  // override never seeds the shared cache with a simulated state).
+  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : "public, s-maxage=30");
   res.status(200).send(html);
 }

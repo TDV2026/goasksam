@@ -13,6 +13,8 @@ import { supabaseSelect } from "../lib/_supabase.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 import { SHELL_CSS, SHELL_JS, KEEPLOOK_CSS, railOpenHtml } from "../lib/appShell.js";
 import { isCrewRequest } from "./_chrome.js";
+import { fullyLaunched } from "../lib/_launchStage.js";
+import { hasServerCredential } from "../lib/_credential.js";
 
 const YOUR_RESULTS_RAIL = '<a class="gas-navitem" id="gas-nav-results" href="#" style="display:none" onclick="return obToggleResults(event)">Your results</a><div class="gas-submenu" id="gas-results-menu"></div>';
 
@@ -77,7 +79,10 @@ async function handleOneboxShare(req, res, id) {
     // request for the same bare URL (reproduced live, Oct 2026, on Market Check - same pattern
     // here). Any gas_crew cookie at all, valid or not, skips the shared cache.
     const hasCrewCookie = /(?:^|;\s*)gas_crew=/.test(String(req.headers.cookie || ""));
-    res.setHeader("Cache-Control", (crew || hasCrewCookie) ? "private, no-store" : (injectScript ? "public, max-age=300" : "public, max-age=120"));
+    // LAUNCH-STAGE SAFETY (Oct 2026, production incident, api/marketCheck.js has the full writeup):
+    // this page's own rail is filtered by isReleased() (via railOpenHtml) - public caching at all
+    // is only safe once fullyLaunched() is true and the request carries no server credential.
+    res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : (injectScript ? "public, max-age=300" : "public, max-age=120"));
     res.status(200).send(page);
   };
 

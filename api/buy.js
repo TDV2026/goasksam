@@ -10,7 +10,7 @@ import { exampleBand } from "../lib/live/buyExample.js";
 import { landingHtml, LANDING_CSS, KEEP_ICON } from "../lib/live/buyLanding.js";
 import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE, brandPaletteCss } from "../lib/appShell.js";
 import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
-import { isReleased } from "../lib/_launchStage.js";
+import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 
 // The lead sentence (search rule 1): the real number of cars live right now, dated. Counted with an
@@ -109,7 +109,12 @@ ${CONSENT_BANNER_HTML}
   const hasCrewCookie = /(?:^|;\s*)gas_crew=/.test(String(req.headers.cookie || ""));
   // A request carrying the server credential may also carry the test-only stage override (lib/_launchStage.js),
   // so its page is never put in the shared cache either: the public must always get the real stage.
-  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req)) ? "private, no-store" : band === undefined ? "public, s-maxage=30" : "public, s-maxage=600, stale-while-revalidate=3600");
+  // LAUNCH-STAGE SAFETY, round 2 (Oct 2026, same production incident, api/marketCheck.js has the
+  // full writeup): the stale-while-revalidate=3600 tail this page's "band" branch used is the same
+  // risk at a smaller scale - removed, and public caching of EITHER branch now also requires
+  // fullyLaunched() (every gated product released for crew and public alike), not just "no server
+  // credential", so a stage rollback can never be outlived by a cached entry here either.
+  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : band === undefined ? "public, s-maxage=30" : "public, s-maxage=600");
   res.status(200).send(html);
 }
 export { BUY_CSS };

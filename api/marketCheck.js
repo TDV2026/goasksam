@@ -25,7 +25,8 @@ import { marketCheckExample } from "../lib/live/marketCheckExample.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 import { SHELL_CSS, SHELL_JS, KEEPLOOK_CSS, railOpenHtml, brandPaletteCss } from "../lib/appShell.js";
 import { isCrewRequest } from "./_chrome.js";
-import { isReleased } from "../lib/_launchStage.js";
+import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
+import { hasServerCredential } from "../lib/_credential.js";
 import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
 
 // "Your results" (the rail's page-specific section on Market Check/Sell, same mechanism as Buy's
@@ -115,7 +116,12 @@ async function handler(req, res) {
   // stale 200). api/buy.js's own gated page already uses this exact short, no-stale-while-revalidate
   // window for the identical reason (see its comment: "the public must always get the real stage") -
   // mirrored here, not a new pattern.
-  res.setHeader("Cache-Control", (crew || hasCrewCookie) ? "private, no-store" : "public, s-maxage=30");
+  // Round 2 (Oct 2026, same incident, Sam's stricter rule): even 30s is a real window while the
+  // product is unreleased - publicly caching AT ALL is only safe once fullyLaunched() is true (every
+  // gated product released for everyone, crew and public alike, nothing left that can differ) - and
+  // only for a request with no server credential, so an ops/probe call carrying a test stage
+  // override can never seed the shared cache with a simulated state nobody else is actually in.
+  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : "public, s-maxage=30");
   res.status(200).send(html);
 }
 

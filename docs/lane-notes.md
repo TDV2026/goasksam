@@ -5424,6 +5424,55 @@ gates, confirmed on real cars, not assumed**:
     10 minutes) and a save that matched no account row reports not saved instead of a silent 200.
   * Commits: 12a29cf, 402f262 (x-gas-region), 89d4a0e (probe), 65363fe (Tasks page), 0f31aac (admin test_events).
   * AFTER: Buy search_run latency_ms is the search tool's time inside the model turn, not the whole answer.
+- 2026-10-12 (Lane A, URGENT, two production incidents, same root cause): STAGE-GATED PAGES WERE PUBLICLY
+  CACHEABLE - A STAGE ROLLBACK COULD BE SERVED STALE FOR UP TO A DAY.
+  * Sam's live report: at launch stage 0, with no crew cookie, the rail showed Market Check/Buy/Tasks and
+    /market-check OPENED for that visitor (Buy correctly bounced). isReleased()/buildPages() (lib/_launchStage.js,
+    lib/appShell.js) were read and confirmed CORRECT - a cache-busted request to the same URL always got the
+    right answer. The bug was every page that renders the shared rail (Sell, Market Check, Tasks, For business,
+    spec pages, history/VIN pages, How Sam decides, the /o/<id> share page) was ALSO publicly cacheable with an
+    86400s stale-while-revalidate tail (api/marketCheck.js's header predates launch-stage gating by 4 days -
+    d41425a, Oct 7, vs the gate itself, d11905a, Oct 11 - the gate was bolted onto a page whose caching strategy
+    never accounted for a flag that can flip). Once cached while a product was open, the gate's own 302 (correctly
+    no-store) could never overwrite that stale 200; the edge kept serving the old page/rail until the ORIGINAL
+    cache entry's own TTL ran out, up to a day later, regardless of the real current stage.
+  * ROUND 1 FIX (commits 4edf493, 41b46b4): shrank every affected page's public branch to `s-maxage=30`, no
+    stale-while-revalidate, matching api/buy.js's own pre-existing safe precedent (its own comment already named
+    this exact risk). Verified live via cache-bust vs bare-URL comparison; residual staleness from cache entries
+    written BEFORE the fix drained out over the following ~10-20 minutes per edge PoP (bounded by the OLD TTL,
+    not the new one - a code fix cannot retroactively shorten an already-cached response's embedded freshness
+    window; there is no Vercel cache-purge API token available to force it instantly).
+  * ROUND 2 FIX (Sam, Must, same session): even a 30s window is non-zero, and a request carrying a server
+    credential (PROBE_KEY/OPS_KEY/CRON_SECRET, lib/_credential.js hasServerCredential) could carry the probe-only
+    test stage override (lib/_launchStage.js launchStage(req)) and seed the shared PUBLIC cache with a simulated
+    state nobody else is actually in. New rule, `fullyLaunched()` (lib/_launchStage.js): reads LAUNCH_STAGE/
+    LAUNCH_BUSINESS directly from process.env, deliberately ignoring the probe override, true only once stage>=2
+    AND business is on (every gated product released for crew and public alike - nothing left that can ever
+    differ). Every page in the list above, PLUS api/buy.js and api/publicConfig.js's /o/<id> share route (both
+    also render the stage-dependent rail and were missed in round 1), now gates its public branch on
+    `!(crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched())`; buy.js's own secondary
+    `stale-while-revalidate=3600` tail (a smaller version of the same risk, flagged but not fixed in round 1) is
+    also removed. Before fullyLaunched(), every one of these pages is unconditionally `private, no-store` - zero
+    public caching, not just a short window.
+  * LAUNCH-DAY SEQUENCE (documented per Sam's ask, so the flip to stage 2 lands within one minute everywhere):
+    1. Change LAUNCH_STAGE (and/or LAUNCH_BUSINESS) in Vercel's project environment variables.
+    2. Trigger a Redeploy (the env var is read fresh via process.env on every request already - no code change
+       needed - but Vercel's own env-var cache for already-warm serverless instances can lag; a Redeploy forces
+       new instances to pick it up immediately rather than waiting for natural instance recycling).
+    3. Within one minute, fullyLaunched() flips true and every page above starts serving its normal, longer
+       public cache again (s-maxage=30 - deliberately still short, so a FUTURE rollback, if one is ever needed,
+       is cheap to reason about again; raising it further is a separate, explicit decision, not a side effect of
+       this fix).
+    4. CHECK (no credentials needed, a real browser, no crew cookie, both 1440 and 390): /market-check, /buy,
+       /tasks, a spec page and a history/VIN page all open directly (no bounce to /sell) and the rail/hamburger
+       menu/footer show every released item. With the crew cookie, everything was already open throughout - no
+       change expected there.
+    5. If instant global propagation is ever needed again before fullyLaunched() naturally applies (e.g. an
+       emergency rollback), a manual cache purge from the Vercel dashboard is the only way to force it immediately
+       - there is no cache-purge API token configured for scripted use, by design (keys are never printed or
+       stored in this repo).
+  * Commits: 4edf493 (gate fix), 41b46b4 (rail fix, round 1), and the commit carrying this entry (round 2:
+    fullyLaunched(), hasServerCredential on every page, api/buy.js and api/publicConfig.js closed too).
 
 - 2026-10-12 (Lane C): LAUNCH HYGIENE, DIAGNOSTIC OPS TASKS. otpselftest, identitycheck and beehiivprobe (and limits,
   savedcheck) were already deleted from api/usageDashboard.js in 5127180 (Aug 25); nothing calls them. But the ops

@@ -11,7 +11,8 @@ import { vinsForUrls } from "./_historyData.js";
 import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor, parseHubSlug, hubVins, liveListing, addWatch, carSlug, familyOf, slugify, listingSaid, familySales, SITEMAP_PAGE, resolveText, cleanTitle, canonicalHub } from "./_historyData.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { PAGE_CSS as CSS, FONT_LINKS, railHtml, whyResultHtml, isCrewRequest } from "./_chrome.js";
-import { isReleased } from "../lib/_launchStage.js";
+import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
+import { hasServerCredential } from "../lib/_credential.js";
 import { gaBootstrapHtml } from "../lib/analytics.js";
 import { KEEPLOOK_CSS, KEEPLOOK_JS, keepLookingHtml, keepLookingHref } from "../lib/appShell.js";
 import { AUTH_SIGNBAR_CSS } from "../lib/authBar.js";
@@ -171,10 +172,10 @@ function send(res, status, html, extra = {}, index = false, crew = false, req = 
   // Any gas_crew cookie at all, valid or not, is reason enough to skip the shared cache.
   const hasCrewCookie = !!(req && /(?:^|;\s*)gas_crew=/.test(String(req.headers.cookie || "")));
   // LAUNCH-STAGE SAFETY (Oct 2026, production incident, api/marketCheck.js has the full writeup):
-  // this page's own rail is filtered by isReleased() - an 86400s stale-while-revalidate tail could
-  // keep serving an OLD, more-open rail for a day after a stage rollback. Short window, no stale
-  // tail, matching api/buy.js's own safe precedent.
-  res.setHeader("Cache-Control", (crew || hasCrewCookie) ? "private, no-store" : (status === 200 ? "public, s-maxage=30" : "no-store"));
+  // this page's own rail is filtered by isReleased() - public caching at all is only safe once
+  // fullyLaunched() is true and the request carries no server credential (so an ops/probe stage
+  // override never seeds the shared cache with a simulated state).
+  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : (status === 200 ? "public, s-maxage=30" : "no-store"));
   for (const k of Object.keys(extra)) res.setHeader(k, extra[k]);
   res.status(status).send(html);
 }

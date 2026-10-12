@@ -15,7 +15,8 @@ import { specPage, parseSlug, allSpecSlugs911 } from "../lib/specPages.js";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
 import { PAGE_CSS, FONT_LINKS, railHtml, whyResultHtml, isCrewRequest } from "./_chrome.js";
 import { KEEPLOOK_CSS, KEEPLOOK_JS, keepLookingHtml, keepLookingHref } from "../lib/appShell.js";
-import { isReleased } from "../lib/_launchStage.js";
+import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
+import { hasServerCredential } from "../lib/_credential.js";
 import { gaBootstrapHtml } from "../lib/analytics.js";
 import { AUTH_SIGNBAR_CSS } from "../lib/authBar.js";
 import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
@@ -194,10 +195,10 @@ ${gaBootstrapHtml()}
   // Any gas_crew cookie at all, valid or not, is reason enough to skip the shared cache.
   const hasCrewCookie = /(?:^|;\s*)gas_crew=/.test(String(req.headers.cookie || ""));
   // LAUNCH-STAGE SAFETY (Oct 2026, production incident, api/marketCheck.js has the full writeup):
-  // this page's own rail is filtered by isReleased() - an 86400s stale-while-revalidate tail could
-  // keep serving an OLD, more-open rail for a day after a stage rollback. Short window, no stale
-  // tail, matching api/buy.js's own safe precedent.
-  res.setHeader("Cache-Control", (crew || hasCrewCookie) ? "private, no-store" : "public, s-maxage=30");
+  // this page's own rail is filtered by isReleased() - public caching at all is only safe once
+  // fullyLaunched() is true and the request carries no server credential (so an ops/probe stage
+  // override never seeds the shared cache with a simulated state).
+  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : "public, s-maxage=30");
   res.status(200).send(html);
 }
 

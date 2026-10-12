@@ -10,7 +10,8 @@ import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE } from "../lib/appShell.js";
 import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
-import { isReleased } from "../lib/_launchStage.js";
+import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
+import { hasServerCredential } from "../lib/_credential.js";
 
 export const TASKS_PITCH = { lead: "A free collector car finder.", sub: "Tell Sam what you want and he keeps searching, then emails you when one fits." };
 const HOW = "The cars Sam shows you come from our rules-based matching algorithm. AI helps understand the question and explain the results, but it does not invent the cars, the matches or the numbers. Every number comes from real market evidence.";
@@ -161,10 +162,11 @@ ${CONSENT_BANNER_HTML}
   // a prior `Vary: Cookie` made the cache key the raw cookie string, which differs per visitor and
   // was an effectively permanent MISS.
   // LAUNCH-STAGE SAFETY (Oct 2026, production incident, api/marketCheck.js has the full writeup):
-  // this page is itself gated by isReleased() above - a stale-while-revalidate tail could keep
-  // serving the full page (and its own more-open rail) past a stage rollback. Short window, no
-  // stale tail, matching api/buy.js's own safe precedent.
-  res.setHeader("Cache-Control", crew ? "private, no-store" : "public, s-maxage=30");
+  // this page is itself gated by isReleased() above - public caching at all is only safe once
+  // fullyLaunched() is true and the request carries no server credential (so an ops/probe stage
+  // override never seeds the shared cache with a simulated state).
+  const hasCrewCookie = /(?:^|;\s*)gas_crew=/.test(String(req.headers.cookie || ""));
+  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : "public, s-maxage=30");
   res.status(200).send(html);
 }
 
