@@ -112,7 +112,16 @@ export const DEFAULT_SPECS = [
   // year-widening (low annual volume, likely to need more than the exact year to clear threshold).
   "2017 Porsche 911 Carrera S Coupe", "2009 Porsche 997 Carrera S Coupe",
   "1973 Ferrari Dino 246 GT", "1991 Nissan 300ZX Turbo", "2001 Acura Integra Type R",
-  "1989 Alfa Romeo Spider"
+  "1989 Alfa Romeo Spider",
+  // URGENT family-name resolver job (Oct 2026): "SL-Class" and other Mercedes family-head queries
+  // defragment real badge-titled sales (SL500/SL63/AMG SL43 etc. - lib/modelFamilies.js) via
+  // familyBadgeMatch/titleModelTokens - a title that says "Mercedes-AMG" instead of "Mercedes-Benz"
+  // (AMG is Mercedes' own performance division, never a separate make) defeated the make-prefix
+  // strip and fell through to class-era, showing unrelated vans/SUVs as "this car's market" (a
+  // Sprinter, a G580). Regression guard for the fixed resolver gap and the tightened class-era
+  // truck/van/SUV fence (TRUCK_CLASS_RE now catches Mercedes SUV badges and Sprinter by name, not
+  // just the literal words "van"/"suv"/"g-wagen").
+  "2023 Mercedes-Benz SL-Class", "2015 Mercedes-Benz E-Class", "2018 Mercedes-Benz G-Class"
 ];
 
 const round = n => (Number.isFinite(n) ? Math.round(n) : null);

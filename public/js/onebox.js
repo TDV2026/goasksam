@@ -1561,36 +1561,30 @@
     if (m && m.price) saleBits.push(esc(usd(m.price)));
     if (m && m.source) saleBits.push(esc(obPlat(m.source)));
     if (m && m.soldDate) saleBits.push(esc(monShort(m.soldDate)));
-    // rangeSuppressed (engine wide-band guard): the band was too wide to be an honest "typical" range
-    // (high > 3x low) and no narrower pool was found - NEVER render the <h1 class="range band"> headline
-    // in that case (rule 24: no dollar headline without a real band), just the plain statement + ask.
+    // URGENT fix (Oct 2026, SL-Class class-era leak + rule 24): class-era is cross-model/cross-car
+    // evidence, never this car's own market, so it never earns a dollar RANGE headline (rule 24:
+    // no headline figure without a real band of THIS car's own comparable sales) - the old <h1
+    // class="range band"> + tail/outlier sentences asserted exactly that, unconditionally, every
+    // time this tier rendered. Replaced with a facts-only count line (count, lowest, highest,
+    // latest month) - same shape as the thin-tier factsBlock, never a range or a middle. No "Only
+    // N" phrasing (banned - a value judgment on a number, and "N" was never what gated this tier:
+    // the exact-model pool being EMPTY is what did, already stated by the lead sentence above).
     var leadTxt = ce.rangeSuppressed
       ? "No " + esc(carName) + " has sold in " + HT_WINDOW_TEXT + ", and the wider " + era + " " + make + " market is too spread out to mark a typical range." + (ce.suppressReason ? " " + esc(ce.suppressReason) : "") + (ce.askNarrow && ce.askNarrow.question ? " " + esc(ce.askNarrow.question) : "")
       : exactSold
-      ? "The only recent " + esc(carName) + " sale on record is this car" + (saleBits.length ? " (" + saleBits.join(", ") + ")" : "") + ". Beyond it, " + era + " " + make + "s have sold for"
-      : "No " + esc(carName) + " has sold in " + HT_WINDOW_TEXT + ". " + era + " " + make + "s have sold for";
+      ? "The only recent " + esc(carName) + " sale on record is this car" + (saleBits.length ? " (" + saleBits.join(", ") + ")" : "") + "."
+      : "No " + esc(carName) + " has sold in " + HT_WINDOW_TEXT + ".";
     var shown = ce.receipts.slice(0, 8);
-    var venues = []; shown.forEach(function (r) { if (r.venue && venues.indexOf(r.venue) < 0) venues.push(r.venue); });
-    var allHouse = shown.length > 0 && shown.every(function (r) { return r.isHouse; });
-    var vlist = venues.length ? obListPhrase(venues) : "the auction houses";
-    var tailTxt = allHouse ? ("at the hammer at " + esc(vlist) + ".") : ("across " + esc(vlist) + ".");
-    // Every shown card must sit inside the stated band, or be called out in words here.
-    var oc = ce.outliers || [];
-    var hi = oc.filter(function (o) { return o.above; }), lo = oc.filter(function (o) { return !o.above; });
-    function callout(list, dir) {
-      if (!list.length) return "";
-      var prices = list.map(function (o) { return esc(usd(o.hammer)); });
-      var ps = prices.length === 1 ? prices[0] : prices.slice(0, -1).join(", ") + " and " + prices[prices.length - 1];
-      var lbl = (list.length === 1 && list[0].label) ? ", " + esc(list[0].label) : "";
-      return obNumWord(list.length) + " sold " + dir + ", at " + ps + lbl + ".";
-    }
-    var outSentence = [callout(hi, "higher"), callout(lo, "lower")].filter(Boolean).join(" ");
+    var allPrices = ce.receipts.map(function (r) { return Number(r.hammer); }).filter(function (n) { return Number.isFinite(n) && n > 0; });
+    var byDateDesc = ce.receipts.slice().sort(function (a, b) { return String(b.date || "").localeCompare(String(a.date || "")); });
+    var latest = byDateDesc[0] || null;
+    var factsTxt = (!ce.rangeSuppressed && allPrices.length)
+      ? (era + " " + make + "s: " + ce.receipts.length + " sold" + (allPrices.length ? ", from " + esc(usd(Math.min.apply(null, allPrices))) + " to " + esc(usd(Math.max.apply(null, allPrices))) : "") + (latest && latest.date ? ", most recently " + esc(monShort(latest.date)) : "") + ".")
+      : "";
     var out = '<section class="anscard solo livetake blk" data-stage="answer"><div class="ans-main">' +
       '<div class="eyebrow">' + esc(ce.era + " " + ce.make + " sales · the wider market") + "</div>" +
       '<p class="landed lead">' + lint(leadTxt, "ce.lead") + "</p>" +
-      (ce.rangeSuppressed ? "" : '<h1 class="range band">' + esc(usd(ce.lowHammer)) + ' <span class="to">to</span> ' + esc(usd(ce.highHammer)) + "</h1>") +
-      (ce.rangeSuppressed ? "" : '<p class="ans-line tail">' + lint(tailTxt, "ce.tail") + "</p>") +
-      (outSentence ? '<p class="ans-line ce-outlier">' + lint(outSentence, "ce.outlier") + "</p>" : "") +
+      (factsTxt ? '<p class="ans-line ce-facts">' + lint(factsTxt, "ce.facts") + "</p>" : "") +
       freshLine(d) + "</div></section>";
     if (m) out += '<div class="cards5 single" data-stage="cards">' + vinHeroCardHtml(m, d.resolvedCar) + "</div>";
     out += '<div class="sec-head" data-stage="cards"><div><h2>' + lint(era + " " + make + " sales, " + spanRange(ce.receipts), "ce.reclab") + "</h2></div></div>";

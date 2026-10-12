@@ -5056,6 +5056,75 @@ history, 9 sales" / "Just show what sold". This exact composition rule (`label +
 " sales"`) is general - it works unchanged for gearbox/competition/body options too, should Lane A
 want the count appended to those as well (today they render as bare chips with no count shown).
 
+**Class-era facts line (URGENT, Oct 2026, SL-Class fix)**: `classEraHtml` (public/js/onebox.js)
+no longer renders a dollar RANGE headline (`<h1 class="range band">`) - class-era is cross-model/
+cross-car evidence, never this car's own market, so rule 24 (no headline figure without a real
+band of THIS car's own sales) applies. Replaced with one facts-only line, same shape as the thin-
+tier factsBlock (count/lowest/highest/latest), built from `ce.receipts` (already sent to the
+browser, no API shape change): `"{era} {make}s: {count} sold, from {lowest} to {highest}, most
+recently {month}."` e.g. "2020s Mercedes-Benzs: 12 sold, from $45,000 to $412,000, most recently
+Sep 2026." Never "Only N sales" (banned - a value judgment on a number that never gated this tier;
+the lead sentence already states the real gate: no sale of the exact car in the window). The card
+grid below it is unchanged in shape, now reading a correctly-fenced pool (see below).
+
+### URGENT: Mercedes family-name resolver gap + class-era enthusiast fence (Oct 2026, SL-Class)
+
+Sam-reported: "2023 Mercedes-Benz SL-Class" said no SL sold in 3 years and fell to class-era,
+showing a Sprinter van as "2020s Mercedes-Benz sales." Live-traced, not guessed.
+
+**Real numbers, before the fix**: 3,706 SL-badged Mercedes-Benz sales total in the archive, 43 of
+them 2021-2025 (the R232 generation this query asked about) - confirmed via a temporary
+diagnostic (task=slclassdiag, removed once confirmed). The model rung was reading ZERO of them.
+
+**Root cause** (`lib/_classify.js` `titleModelTokens`): strips a leading make phrase from a title
+only when it exactly equals the record's own make field, token for token. AMG is Mercedes-Benz's
+own performance division, never a separate manufacturer - every record's `make` field is still
+"Mercedes-Benz" - but many real listings title the make itself as "Mercedes-AMG" ("2022
+Mercedes-AMG SL63", "2023 Mercedes-AMG (R232) SL43"). That string never equalled "Mercedes-Benz"
+token for token, so the strip silently failed, left "mercedes"/"amg" sitting in the LEADING
+position ahead of the real badge token ("sl63"), and `recordMatchesModel`'s `leadingModelMatch`
+then always failed for these titles - the model-scoped rung read zero sales for a car that has
+real ones on record, and the ladder correctly (per its own, unchanged order - see below) fell all
+the way to class-era, which had no fence against SUVs/vans titled by badge rather than by word.
+
+**Fix**: `titleModelTokens` now also strips a leading "mercedes amg" (or bare "amg") phrase when
+the record's real make is Mercedes-Benz - narrowly scoped to this one confirmed sub-brand, not a
+guess at others. Verified directly: `familyBadgeMatch`/`recordMatchesModel` both flipped from
+false to true for all three real title shapes tested against the SL-Class family head.
+
+**Ladder order**: confirmed correct, not changed. `assessThin`'s own model-widening rung (drop
+trim, keep model, set aside halos) already runs BEFORE class-era ("item 2: the exact TRIM pool is
+empty... assess the MODEL... BEFORE ever falling to the make+decade class band" - existing
+comment, lib/onebox.js). The bug was the model rung reading empty, not the order skipping it.
+
+**Class-era enthusiast fence** (`TRUCK_CLASS_RE`/`bodyClassOf`, lib/onebox.js, used ONLY inside
+`assessClassEra` - confirmed no other caller, safe to extend): a fence DID already exist, but only
+matched the literal words "van"/"suv"/"g-wagen" - a vehicle named by BADGE instead (a G580/G550/
+G63 G-Class, any GLA/GLB/GLC/GLE/GLK/GLS/ML-badged SUV, a Sprinter van with no "van" in its title)
+slipped through as "car" and pooled with the SL's class-era read (confirmed live: the G580 and
+Sprinter titles Sam reported both matched "car" before this fix). Added the numeric-badge SUV
+families (the SAME badges `lib/modelFamilies.js` already curates for this marque - reused, not
+duplicated) and sprinter/metris van names. Market Check and Buy/Tasks read the SAME
+`assessClassEra` computation (not two implementations, despite the earlier hypothesis that it
+might be - confirmed by reading `classEraCoreOf`, which reduces runOneBox's own `d.classEra`, it
+does not re-fetch) - this ONE fence fix benefits both; `classEraCoreOf`'s count-only shape
+already hid this fence's gaps rather than fixing them, Market Check's richer card-rendering is
+what made the leak visible.
+**NOT fully closed**: the fence still only separates truck/van/SUV from "car" - a SEDAN (a Maybach
+S680, shown in Sam's own report) still pools with an open-top roadster's class-era read, since
+there is no further body-style granularity (coupe/sedan/convertible) within "car" at this rung.
+Flagging as a known, real, remaining gap - not fixed this pass given the scope already covered;
+`detectBodyStyle` (lib/onebox.js) is the existing, more granular detector that a future pass
+should extend this fence with, the same way the body_choice gate already uses it.
+
+Added to `DEFAULT_SPECS` (72 total): "2023 Mercedes-Benz SL-Class" (the reported case),
+"2015 Mercedes-Benz E-Class", "2018 Mercedes-Benz G-Class" (2 more bare "-Class" family-head
+queries that would hit the identical titleModelTokens gap for any AMG-titled sale in their own
+archive pool).
+
+Commits: `9259248` (titleModelTokens fix), plus the class-era fence/copy fix and sweep additions
+(see commit hashes in the final report).
+
 ### The one shared materiality predicate (what replaced what)
 
 `splitMaterial(pricesA, pricesB)` (lib/onebox.js, next to SPLIT_MIN) - both sides need
