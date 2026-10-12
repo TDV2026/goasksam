@@ -5425,3 +5425,10 @@ gates, confirmed on real cars, not assumed**:
   * Commits: 12a29cf, 402f262 (x-gas-region), 89d4a0e (probe), 65363fe (Tasks page), 0f31aac (admin test_events).
   * AFTER: Buy search_run latency_ms is the search tool's time inside the model turn, not the whole answer.
 
+- 2026-10-12 (Lane C): LAUNCH HYGIENE, DIAGNOSTIC OPS TASKS. otpselftest, identitycheck and beehiivprobe (and limits,
+  savedcheck) were already deleted from api/usageDashboard.js in 5127180 (Aug 25); nothing calls them. But the ops
+  endpoint answered ANY unknown task with a 400 that listed every ops task name. d1ef911: an unknown task now gets the
+  shared disguised 404 (lib/_notFound.js, the same one /admin and /desk use); stale otpselftest comment in
+  scripts/otpLengthVerify.mjs cleared. Live (deploy d1ef911): all three names 404 text/html "This page doesn't exist",
+  no ops words in the body; ingestlog, vinidxcount, daycount answer 200. Real ops tasks and the key-gated dashboard
+  unchanged. AFTER: retire the old dashboard once /admin has a week of live data.
