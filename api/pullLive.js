@@ -52,7 +52,17 @@ async function handler(req, res) {
       const r = await callOldCarsData("/auctions/live", { page: 1, limit: Math.min(1000, Number(req.query.limit) || 25) }, apiKey);
       const data = r.data || r.results || [];
       await flushOcdUsage();
-      return res.status(200).json({ probe: true, ocdRequests: used(), returned: data.length, meta: r.meta || null, keys: data[0] ? Object.keys(data[0]) : [], samples: data.slice(0, 2) });
+      // &find=<text>: ONE metered request (same as any other ?probe=1 call, still writes nothing -
+      // no mapLiveRecord/upsertLive call here, unlike every other branch in this file). Searches the
+      // FULL returned page (not just the 2 samples below) for a case-insensitive substring match
+      // against title/source_listing_id/url-ish fields, so a specific-listing presence question
+      // ("is OCD's own live feed carrying X right now") can be answered without a second vendor call
+      // or any write. /auctions/live has no source/make filter server-side (confirmed by reading this
+      // file's other branches - only page/limit/sort/direction are ever sent), so this is page 1 of
+      // the vendor's own default order (soonest-ending first) - a car ending soon sits near the front.
+      const find = req.query.find ? String(req.query.find).toLowerCase() : null;
+      const match = find ? data.filter(rec => JSON.stringify(rec).toLowerCase().includes(find)) : null;
+      return res.status(200).json({ probe: true, ocdRequests: used(), returned: data.length, meta: r.meta || null, keys: data[0] ? Object.keys(data[0]) : [], samples: data.slice(0, 2), find, matchCount: match ? match.length : null, matches: match ? match.slice(0, 5) : null });
     }
     // The schedule (lib/live/pullSchedule.js): a dry run answers from the clock alone, no vendor call.
     let mode = String((req.query && req.query.mode) || "");
