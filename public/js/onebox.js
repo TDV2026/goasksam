@@ -21,6 +21,13 @@
   var obLastVehicle = null;  // the resolved vehicle of the current pool, reused for an inline refine
   var obAsked = 0;
   var obLastD = null;        // the decision currently rendered (for the /sell handoff parameters)
+  // Identity question (Round 4 Job 3, Lane A render job): the dimension + real per-side counts the
+  // engine gave on a BLOCKING identity question, kept alive after the user picks a side (unlike
+  // obLastD, which the next render overwrites) so Narrow it down can still offer the OTHER side as
+  // a chip - rule 2, nothing is a one-way door. Reset only on a genuinely fresh search (run()/
+  // mcApplyFromUrl()), never on a chip-driven re-query, so it survives exactly as long as the car
+  // being looked at does.
+  var obIdQContext = null;
   // Item 9 ("Put Sam on it"), Oct 2026: whether /api/watch is set up at all (no watch control while
   // false, same gate Buy's own page uses); checked once at boot, read by samOnItHtml at render time.
   var OB_WATCH_READY = false;
@@ -1268,7 +1275,7 @@
     // F where sales landed over time, G ready to sell, H have Sam keep looking (one block, see
     // samOnItHtml), I the trust sentence. Was evidence/exact-car/live/narrow before - narrow moved
     // up, exact-car and live moved down, to match.
-    var notes = mileageFallbackHtml(d) + contradictionLine(d) + observeAsideHtml(d) + inlineSplitsHtml(d);
+    var notes = mileageFallbackHtml(d) + contradictionLine(d) + observeAsideHtml(d) + inlineSplitsHtml(d) + idqSwitchChipHtml();
     if (d.driverSentence && !(d.earned) && !(d.divergence && d.divergence.kase === "a")) notes += '<p class="varynote">' + lint(esc(d.driverSentence), "varynote") + "</p>";
     var body = evidenceBlockHtml(d, m);
     body += narrowItDownHtml(d, m, notes);
@@ -1304,7 +1311,7 @@
         : "There are no recent " + esc(model) + " sales in the window needed for a spread.";
       var follow = m ? "" : "A bit more detail, or a different car, and Sam pulls what actually sold.";
       var paras = [lint(esc(lead), "thin")]; if (follow) paras.push(lint(esc(follow), "thin.follow"));
-      return '<div class="refusal">' + samMsgHtml(paras, "Sam’s read") + "</div>" + poolGridHtml(cards, "What has sold") + sellHtml();
+      return '<div class="refusal">' + samMsgHtml(paras, "Sam’s read") + factsBlockHtml(d, false) + "</div>" + poolGridHtml(cards, "What has sold") + sellHtml();
     }
     var listJoin = function (a) { return a.length <= 1 ? (a[0] || "") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]; };
     // Only claim a YEAR spread when there genuinely is one (>= 2 years, so no "across 1 years").
@@ -1317,7 +1324,7 @@
       ? '<div class="wayfwd">' + rf.variants.map(function (v) { return '<button type="button" class="chip" data-model="' + esc(v) + '">' + esc(v) + "</button>"; }).join("") + '<button type="button" class="linkbtn" data-change>Or add the year and engine &#8594;</button></div>'
       : "";
     var head = '<div class="refusal" data-stage="answer"><p class="ans">' + lint(esc("No range on this one. It would be a guess."), "refuse") + "</p>" +
-      samMsgHtml([lint(reason, "refuse.reason"), lint(esc(follow2), "refuse.follow")], "Sam’s read") + chips + "</div>";
+      samMsgHtml([lint(reason, "refuse.reason"), lint(esc(follow2), "refuse.follow")], "Sam’s read") + factsBlockHtml(d, false) + chips + "</div>";
     return head + poolGridHtml(cards, "What has sold") + sellHtml();
   }
   // ============ THIN MODE render (Sep 2026, revised) ====================================
@@ -1502,6 +1509,36 @@
     var times = Number(sb.count) === 1 ? "once" : Number(sb.count) + " times";
     return '<section class="widen" data-stage="cards"><p>' + lint("Want the wider picture? " + who + " sold " + times + ".", "ht.sibling") + '</p><button type="button" data-sibling="' + esc(sb.query) + '">Show those too &#8594;</button></section>';
   }
+  // Facts block (Round 4 Job 3 engine contract, Lane A render job): every number here is
+  // d.factsBlock, the engine's own mapEngineAnswer() output - count/window/lowest/highest/latest
+  // price+month, never recomputed from the cards in this file. Rule 24 still applies at this rung:
+  // "sold between X and Y" states two individual sale prices as facts, never a computed typical/
+  // middle band (the price-record-deferral precedent, rule 23's "cars like this sold between $X
+  // and $Y"), so it never reads as a range headline. includeReason=false skips the second line
+  // when the caller's own headline already states what was measured (the thin tier's 300SL fix),
+  // so the same sentence is never printed twice.
+  var FACTS_REASON_SENTENCE = {
+    too_few_online_for_a_range: function (fb) { return (fb && fb.onlineLiquidityN != null) ? ("Only " + fb.onlineLiquidityN + " sold through live online marketplaces in that time, too few to mark a typical band.") : "Too few sold through live online marketplaces in that time to mark a typical band."; },
+    too_few_in_window: function () { return "Too few sales in the window to mark a typical band."; },
+    too_spread_unresolved: function () { return "These sales vary too widely in spec and condition to trade as one market."; },
+    body_not_offered_for_this_car: function () { return "That body style was not offered for this car."; }
+  };
+  function factsBlockHtml(d, includeReason) {
+    var fb = d && d.factsBlock; if (!fb || !fb.count) return "";
+    var bits = [fb.count + (fb.count === 1 ? " sale" : " sales")];
+    if (fb.window) bits.push(fb.window);
+    var line1 = cap(bits.join(" "));
+    if (fb.lowest != null && fb.highest != null) line1 += (fb.lowest === fb.highest) ? (", sold at " + usd(fb.lowest)) : (", sold between " + usd(fb.lowest) + " and " + usd(fb.highest));
+    // Skip "most recently" on a single sale - it would just restate the same price a second time.
+    if (fb.count !== 1 && fb.latestPrice != null && fb.latestMonth) {
+      var p = String(fb.latestMonth).split("-"), mn = (p.length === 2 && MONTHS_FULL[Number(p[1]) - 1]) ? (MONTHS_FULL[Number(p[1]) - 1] + " " + p[0]) : fb.latestMonth;
+      line1 += ", most recently " + usd(fb.latestPrice) + " in " + mn;
+    }
+    line1 += ".";
+    var reasonFn = includeReason !== false ? FACTS_REASON_SENTENCE[d.reasonFlag] : null;
+    var line2 = reasonFn ? reasonFn(fb) : "";
+    return '<p class="ans-line facts-block">' + lint(esc(line1), "facts.block") + "</p>" + (line2 ? '<p class="ans-line facts-reason">' + lint(esc(line2), "facts.reason") + "</p>" : "");
+  }
   function thinHtml(d, m) {
     var ht = d.thin;
     htLastD = d;
@@ -1520,7 +1557,7 @@
     else if (ht.houseN && ht.onlineReceiptsN) lines.push("These sell online and at the auction houses. The recorded sales are below.");
     var gpat = gearboxPatternLine(scope); if (gpat) lines.push(gpat);
     var body = livePanelSlot() + '<div class="thinblk livetake" data-stage="answer">' + thinHeadHtml(name, scope, scopedLabel, ht) + freshLine(d) +
-      lines.map(function (p) { return '<p class="ans-line">' + lint(esc(p), "ht.line") + "</p>"; }).join("") + "</div>";
+      lines.map(function (p) { return '<p class="ans-line">' + lint(esc(p), "ht.line") + "</p>"; }).join("") + factsBlockHtml(d, false) + "</div>";
     if (m) body += '<div class="cards5 single" data-stage="cards">' + vinHeroCardHtml(m, d.resolvedCar) + "</div>";
     // Newest first (the honest evidence order); the engine's hammer-desc order is for its own math.
     // Every sale renders (capped display only, Oct 2026): "every real sale", not a curated slice.
@@ -1670,6 +1707,71 @@
     // car and a VIN chip never appends to the VIN (which re-decodes and loops).
     choiceCtx = d.baseLabel || (d.resolvedCar ? [d.resolvedCar.year, d.resolvedCar.make, d.resolvedCar.model, d.resolvedCar.trim].filter(Boolean).join(" ") : null) || null;
     renderQuestion(qscreenHtml(lint(esc(d.prompt || "Which one is it?"), "choice"), chipsHtml(opts, kind), ac.eyebrow, ac.sub));
+  }
+  // Identity question (Round 4 Job 3 engine contract, Lane A render job): dimension/options/
+  // skipLabel are the engine's own identityQuestion payload, nothing computed here. Maps the
+  // engine's real `dimension` value (NOT the lane-notes-documented enum - gearbox_choice ->
+  // "gearbox" and body_choice -> "body" match, but variant_choice -> "variant" (documented as
+  // "competition") and dochistory_choice -> "dochistory" (documented as "documented_history") -
+  // a real mismatch between lib/onebox.js's identityQuestionFrom() and its own doc comment,
+  // confirmed by reading the code; flagged for Lane B, not changed here) to a refine key and a
+  // value-from-label rule, reusing the SAME label-sniffing convention the codebase already applies
+  // to gearbox/variant chips elsewhere (inlineSplitsHtml, renderRefineChoice).
+  var IDQ_DIM_PHRASE = { gearbox: "gearbox", body: "body style", variant: "the competition package", dochistory: "whether the car has documented history", generation: "generation", model: "model", trim: "trim" };
+  var IDQ_REFINE_KEY = { gearbox: "tx", variant: "variant", body: "body", dochistory: "docHistory" };
+  function idqValueFor(dim, label) {
+    if (dim === "gearbox") return /manual/i.test(label) ? "manual" : "auto";
+    if (dim === "variant") return /competition/i.test(label) ? "competition" : "standard";
+    if (dim === "dochistory") return /^has/i.test(label) ? "has" : "nohas";
+    if (dim === "body") return String(label || "").toLowerCase();
+    return null;
+  }
+  function pluralizeWord(w) { return (/[sxz]$/i.test(w) || /[cs]h$/i.test(w)) ? w + "es" : w + "s"; }
+  function carPluralLabel(rc) {
+    var label = carLabel(rc);
+    if (label === "this car") return "these cars";
+    var parts = label.split(" ");
+    parts[parts.length - 1] = pluralizeWord(parts[parts.length - 1]);
+    return "these " + parts.join(" ");
+  }
+  // One sentence shape for every dimension (so the question reads the same regardless of each
+  // tier's own ad hoc prompt string - "Manual or F1? They price differently." stays the engine's
+  // internal prompt but is not what renders), one button per option carrying its real engine
+  // count, and a skip that is never a dead end (rule 2 below).
+  function identityQuestionHtml(d) {
+    var iq = d.identityQuestion; if (!iq) return "";
+    var dim = iq.dimension;
+    var sentence = "One thing separates " + carPluralLabel(d.resolvedCar) + " on price: " + (IDQ_DIM_PHRASE[dim] || dim) + ".";
+    var chips = (iq.options || []).map(function (o) {
+      var val = idqValueFor(dim, o.label);
+      var countTxt = o.count != null ? (", " + o.count + " sales") : "";
+      return '<button type="button" class="qchip idqchip" data-idq-dim="' + esc(dim) + '" data-idq-val="' + esc(val || "") + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + countTxt + "</button>";
+    }).join("");
+    chips += '<button type="button" class="qchip idqskip" data-idq-dim="' + esc(dim) + '">' + esc(iq.skipLabel || "Just show what sold") + "</button>";
+    return qscreenHtml(lint(esc(sentence), "idq"), '<div class="chips">' + chips + "</div>", "One question first", "");
+  }
+  function renderIdentityQuestion(d) {
+    obLastD = d;
+    var iq = d.identityQuestion;
+    obIdQContext = iq ? { dimension: iq.dimension, options: iq.options, refineKey: IDQ_REFINE_KEY[iq.dimension] || null } : null;
+    renderQuestion(identityQuestionHtml(d));
+    if (typeof gasTrack === "function" && iq) gasTrack("identity_question_shown", { dimension: iq.dimension, option_count: (iq.options || []).length });
+  }
+  // Rule 2, nothing is a one-way door: once a side is answered (refine carries the matching key),
+  // the NOT-chosen side stays reachable from Narrow it down with the SAME count the engine gave on
+  // the question screen - never recomputed from the narrower result that followed.
+  function idqSwitchChipHtml() {
+    if (!obIdQContext || !obIdQContext.refineKey) return "";
+    var active = obLastRefine && obLastRefine[obIdQContext.refineKey];
+    if (!active) return "";
+    var other = (obIdQContext.options || []).filter(function (o) { return idqValueFor(obIdQContext.dimension, o.label) !== active; });
+    if (!other.length) return "";
+    var chips = other.map(function (o) {
+      var val = idqValueFor(obIdQContext.dimension, o.label);
+      var countTxt = o.count != null ? (" (" + o.count + ")") : "";
+      return '<button type="button" class="qchip idqchip" data-idq-dim="' + esc(obIdQContext.dimension) + '" data-idq-val="' + esc(val || "") + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + countTxt + "</button>";
+    }).join("");
+    return '<div class="qchips idqswitch" data-stage="answer">' + chips + "</div>";
   }
   function renderError(msg) {
     root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + samMsgHtml([esc(msg)], "", "big") + footHtml();
@@ -1828,7 +1930,7 @@
     // A brand-new search resets the question count; a chip answer (keepAsk) carries it forward so
     // the engine can enforce the two-question cap across generation/body re-queries (Part 3).
     if (!keepAsk) obAsked = 0;
-    lastQuery = text; obLastRefine = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; htChoice = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false;
+    lastQuery = text; obLastRefine = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; htChoice = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
     // Identifier-shaped input (VIN or chassis) routes through the shared resolver (decode +
     // confirm + exact-match + the honest VIN-invalid / chassis lines); everything else goes
     // straight to the archive pool.
@@ -1898,7 +2000,7 @@
     var vin = sp.get("vin"), car = sp.get("car");
     if (!vin && !car) { renderEmpty(); syncRailResults(); return; }
     var refine = mcRefineFromParams(sp);
-    obAsked = 0; lastQuery = vin || deslugifyQuery(car); obLastRefine = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; htChoice = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false;
+    obAsked = 0; lastQuery = vin || deslugifyQuery(car); obLastRefine = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; htChoice = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
     if (vin) { vinResolve(vin); return; }   // VIN re-decode is the full, tested path - refine on a VIN result is a rare combo and not threaded through it.
     runPool(lastQuery, null, refine);
   }
@@ -1929,6 +2031,7 @@
     if ("observe" in partial) base.observeLabel = partial.label;
     if ("body" in partial) base.bodyLabel = partial.label;
     if ("trim" in partial) base.trimLabel = partial.label;
+    if ("docHistory" in partial) base.docHistoryLabel = partial.label;
     return base;
   }
   function runPool(text, vehicle, refine) {
@@ -1968,7 +2071,15 @@
       if (d.tier === "rate_limited") { renderError(d.samLine || "That’s a lot of lookups for one day. Come back tomorrow and Sam keeps pulling real sales."); return; }
       if (d.tier === "business_limit") { renderBusinessLimit(d.samLine); return; }
       if (d.tier === "model_choice" || d.tier === "body_choice" || d.tier === "generation_choice") { if (d.askIndex) obAsked = d.askIndex; renderChoice(d); return; }
-      if (d.tier === "gearbox_choice" || d.tier === "variant_choice") { if (d.askIndex) obAsked = d.askIndex; renderRefineChoice(d); return; }
+      // Identity question (Round 4 Job 3 engine contract): gearbox/competition/documented-history
+      // are the three BLOCKING dimensions the engine gives real per-side counts for today, routed
+      // through the one generic renderer below instead of the bare-chip renderRefineChoice (which
+      // showed no counts and had no skip). dochistory_choice previously had NO branch at all here -
+      // it fell through to the generic "zero sales" render, a real, unobserved-live bug this closes.
+      // body_choice stays on its existing renderChoice/chipAnswer path (appends to the query text
+      // and fully re-resolves, rather than refine.body on the same pool) - not touched here, so no
+      // number or mechanism it already relies on moves; a candidate for the same upgrade later.
+      if (d.tier === "gearbox_choice" || d.tier === "variant_choice" || d.tier === "dochistory_choice") { if (d.askIndex) obAsked = d.askIndex; renderIdentityQuestion(d); return; }
       if (vinAnchor) obEvent("onebox_vin_anchor_shown");
       obSnapshotId = d.snapshotId || null; obAsOf = null; // live result: shareable, no as-of line
       obResolvedCar = d.resolvedCar || null;              // carried into the /sell handoff
@@ -2334,6 +2445,29 @@
         var body = b.getAttribute("data-bodyopt"), label = b.getAttribute("data-mlabel");
         if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "body", value: String(label || body || "").slice(0, 40) });
         runPool(lastQuery, obLastVehicle, mergeRefine({ body: body, label: label }));
+      });
+    });
+    // Identity question answer (either the original blocking screen or the "switch sides" chip
+    // Narrow it down offers afterward - same handler, same event, same re-query): re-scopes the
+    // SAME pool inline via the dimension's refine key.
+    Array.prototype.forEach.call(root.querySelectorAll(".idqchip"), function (b) {
+      b.addEventListener("click", function () {
+        var dim = b.getAttribute("data-idq-dim"), val = b.getAttribute("data-idq-val"), label = b.getAttribute("data-mlabel");
+        if (typeof gasTrack === "function") gasTrack("identity_question_answered", { dimension: dim, choice: label || val || "", skipped: false });
+        var key = IDQ_REFINE_KEY[dim];
+        var patch = { label: label }; if (key) patch[key] = val;
+        runPool(lastQuery, obLastVehicle, mergeRefine(patch));
+      });
+    });
+    // Just show what sold (rule 2, reversible skip): forces askCapped server-side so this same
+    // material split renders as an inline chip alongside a real range instead of asking again -
+    // never a dead end, never re-asked a third time.
+    Array.prototype.forEach.call(root.querySelectorAll(".idqskip"), function (b) {
+      b.addEventListener("click", function () {
+        var dim = b.getAttribute("data-idq-dim");
+        if (typeof gasTrack === "function") gasTrack("identity_question_answered", { dimension: dim, choice: "skip", skipped: true });
+        obAsked = 2;
+        runPool(lastQuery, obLastVehicle, obLastRefine);
       });
     });
     // The earned question: a mileage band or transmission chip narrows the SAME pool inline

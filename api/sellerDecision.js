@@ -3474,6 +3474,15 @@ async function handler(req, res) {
           range_low: a.low ?? undefined, range_high: a.high ?? undefined, year_widened: !!a.yearWidened,
           fallback_rung: a.fallbackRung ? String(a.fallbackRung).slice(0, 60) : undefined, reason_flag: a.reasonFlag ? String(a.reasonFlag).slice(0, 60) : undefined,
           transmission: obRefine && obRefine.tx ? obRefine.tx : undefined }, a.engineVersion);
+        // Lane A render job (Oct 2026): expose Lane B's already-computed standard-shape fields on the
+        // SAME response the Market Check page reads (previously `a` was computed only for the search_run
+        // event above and discarded) - never a second computation, no number changes, just the existing
+        // mapEngineAnswer() output attached to the wire so the page can render identityQuestion/factsBlock/
+        // reasonFlag instead of recomputing anything client-side.
+        oneBox.answerType = a.answerType;
+        oneBox.identityQuestion = a.identityQuestion;
+        oneBox.factsBlock = a.factsBlock;
+        oneBox.reasonFlag = a.reasonFlag;
       }
       if (oneBox && !obRefine && vehicle && vehicle.make) {
         logEvent({ supabaseUrl, supabaseKey }, { event: EVENTS.SEARCH, tool: "market_check", visitorId: readVisitorId(req), props: { key: `${vehicle.make}|${vehicle.model || ""}` } }).catch(() => {});
