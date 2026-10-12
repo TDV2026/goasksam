@@ -4897,3 +4897,44 @@ Double-checked per the coordinator's explicit ask: `lib/generations.js` is untou
 commit in this job (`git diff <before>..<after> -- lib/generations.js` is empty). It still reads
 997.2 as `{yearStart: 2009, yearEnd: 2011}`. Sam's stated 2012 end year was reported as a
 discrepancy, never applied to the file, in either direction.
+
+- 2026-10-12 (Lane B): BARE-NAMEPLATE PAGINATION PERF (Job 2, Round 4).
+  * MEASURED FIRST: 15 bare year+make+model nameplates (no trim), server-only via obdiag, 30 samples
+    cold+warm. Before: p50 2.6s, p95 8.46s, max 8.9s (worst cases: 1991 BMW M3 7.4s, 1969 Chevrolet
+    Camaro 8.9s, 1973 Volkswagen Beetle 6.5s - all large raw pools behind a modest final card count,
+    confirming the cost is in rows PAGED before fencing, not the final qualifying count).
+  * FIX (lib/_supabase.js supabaseSelectAll, commit aa8c15f): the first page now asks for the exact
+    total via `Prefer: count=exact` (one extra response header, zero extra round trip - the same
+    mechanism this file's own verifyExactCount already uses against this project). Every remaining
+    page's offset is then known up front, so they fetch CONCURRENTLY (bounded, PAGE_CONCURRENCY=6)
+    instead of one-at-a-time. Falls back to the exact prior sequential walk when the count header is
+    missing or the first page is already everything - the common, already-fast case is untouched.
+    Same rows, same order-independent concatenation, same null-on-any-failure contract (a page
+    failing all retries still fails the WHOLE read, never a partial result).
+  * PROVEN, not assumed: compared obdiag's tier/cards/cluster/span for all 15 nameplates immediately
+    after deploy against the saved before-baseline - BYTE-IDENTICAL on every one. Re-ran the 63-spec
+    sweep (all 7 batches): 0 of 63 lanesOk:false (one transient Targa-4 flake on first pass, retried
+    3/3 clean - the same pre-existing intermittent pattern this session already documented for that
+    car, not a regression; confirmed by a clean re-run of that batch).
+  * AFTER: p50 2.4s, p95 7.0s, max 8.5s. 1991 BMW M3 dropped 7.4s -> 2.1-2.4s (the clearest win - a
+    round-trip-count-bound case). 1969 Chevrolet Camaro barely moved (8.9s -> 7.0-8.5s) - its cost
+    looks like per-page query/scan time, not round-trip count, and needs its OWN separate measured
+    pass; not chased further here (out of this job's scope: "does not change what the engine
+    decides" was the bar, not "fixes every slow shape").
+  * GUARD (scripts/pushCheck.mjs, commit 4b85b36): kept the existing MC_PERF_BUDGET_MS (18000,
+    unchanged) as the safety ceiling, applied now specifically to "1969 Chevrolet Camaro" (the shape
+    this fix did not fully solve - an honest gate, not a wish). Added MC_PERF_TIGHT_MS (14000,
+    default), applied to the two original fixed cars, with real margin above the 11,788ms just
+    re-observed for "1995 Porsche 911 Carrera" post-fix. Verified live: 997 Carrera S Coupe
+    5438-7217ms, 1995 911 Carrera 9300-10258ms (both under 14000), Camaro 11458-13989ms (under
+    18000).
+  * FOR LANE A (found while measuring, NOT fixed - out of scope, js/html untouched per the public/
+    move freeze): a BARE make+model with NO year at all ("Porsche 911", "Ford Mustang", "Chevrolet
+    Corvette" typed with no year) never fires a backend search request - confirmed via Chrome
+    network-request logging: only the generic gaConsent/funnel beacons fire, zero calls to any
+    /api/ engine endpoint, and the page sits on its static landing-page example content
+    indefinitely. The SAME make+model WITH a year (e.g. "1972 Porsche 911") resolves normally
+    (confirmed live: tier=body_choice in 1.3-3.3s). This looks like a client-side query-recognition
+    gap specific to year-less free text, not a backend issue - the engine never saw a request to be
+    slow about. Not something this job touched or verified further (js/ is frozen for the public/
+    move); flagging precisely so whoever owns query parsing next doesn't have to rediscover it.
