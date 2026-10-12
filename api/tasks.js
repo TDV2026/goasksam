@@ -26,6 +26,7 @@ import { CHAT_MODEL } from "../lib/live/chatHttp.js";
 import { recordUsageEvent } from "./_usage.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
 import { tasksAllowance } from "../lib/_ceilings.js";
+import { signupTicket } from "../lib/_signup.js";
 // The per-account daily limits (Tasks setup chat turns, research started), crew exempt: what -> ok.
 const gateOf = (req, user) => what => tasksAllowance(supabaseEnv(), req, user.userId, what).then(r => r.ok, () => true);
 
@@ -271,7 +272,7 @@ export default async function handler(req, res) {
       return res.status(200).json(out);
     }
     if (req.method === "POST" && req.body && req.body.action === "test_otp" && probeOk(req)) {
-      const r = await fetch(`${env.supabaseUrl}/auth/v1/admin/generate_link`, { method: "POST", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", email: TEST_EMAIL }) });
+      const r = await fetch(`${env.supabaseUrl}/auth/v1/admin/generate_link`, { method: "POST", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json" }, body: JSON.stringify({ type: "magiclink", email: TEST_EMAIL, data: { signup_ticket: signupTicket(TEST_EMAIL) } }) });
       const j = await r.json().catch(() => ({}));
       const otp = j.email_otp || (j.properties && j.properties.email_otp) || null;
       return res.status(r.ok && otp ? 200 : 500).json(r.ok && otp ? { email: TEST_EMAIL, otp } : { error: `generate_link ${r.status}`, detail: String(j.msg || j.message || "").slice(0, 200) });

@@ -9,6 +9,7 @@ import { beehiivBySubscriberId } from "../lib/_beehiiv.js";
 
 import crypto from "node:crypto";
 import { mintCrewCookieValue, CREW_COOKIE, CREW_MAX_AGE_S } from "../lib/_crew.js";
+import { signupTicket } from "../lib/_signup.js";
 // Mint a real Supabase session for a (Beehiiv-verified) email WITHOUT sending an email:
 // admin generate_link (creates the user if new) -> server-side verify of the returned
 // token -> access/refresh tokens. Returns null on any failure. The email is authoritative
@@ -18,7 +19,8 @@ async function mintSessionForEmail(url, serviceKey, anonKey, email) {
     const genRes = await fetch(`${url}/auth/v1/admin/generate_link`, {
       method: "POST",
       headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "magiclink", email })
+      // The sign-up ticket (lib/_signup.js) lets a brand-new crew account past the Before User Created hook.
+      body: JSON.stringify({ type: "magiclink", email, data: { signup_ticket: signupTicket(email) } })
     });
     if (!genRes.ok) return null;
     const gen = await genRes.json().catch(() => ({}));

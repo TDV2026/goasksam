@@ -11,6 +11,9 @@ let __authConfig = null, __authConfigPromise = null;
 let __authAccount = null;      // { email, tier, marketingConsent } once ensured
 let __authPrefillEmail = "";
 let __authOtpEmail = "";        // the email a one-time code was sent to (for verify + resend)
+// Sign-up protection (Oct 2026, lib/_signup.js): the ticket /api/signup gave for this address (reused on Resend),
+// and the Turnstile widget's token when Turnstile is on (publicConfig.turnstile).
+let __authTicket = { email: "", ticket: null }, __authTurnstileToken = null, __authTurnstileId = null;
 
 function authApiPath(p) { return (typeof apiPath === "function") ? apiPath(p) : p; }
 function authEsc(s) { return (typeof escapeHtml === "function") ? escapeHtml(String(s == null ? "" : s)) : String(s == null ? "" : s); }
@@ -86,11 +89,27 @@ async function authSignInEmail() {
   try {
     // Code-only OTP (no magic link): the email template renders {{ .Token }}, a numeric
     // code, so an email-scanner GET can't consume a link before the real user acts.
+    // Asked first (new accounts only are checked; an existing account always passes). If the check itself cannot
+    // be reached, the code request goes ahead: signing in to an existing account must never depend on it.
+    let ticket = __authTicket.email === email.toLowerCase() ? __authTicket.ticket : null;
+    if (!ticket) {
+      try {
+        const cr = await fetch(authApiPath("/api/signup"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "check", email, turnstile: __authTurnstileToken }) });
+        const cj = await cr.json().catch(() => null);
+        if (cj && cj.ok === false) { authCardError(cj.message || "That didn't go through. Try again in a moment."); authResetTurnstile(); return; }
+        if (cj && cj.ticket) { ticket = cj.ticket; __authTicket = { email: email.toLowerCase(), ticket }; }
+      } catch (e) { /* the check is down: go ahead */ }
+    }
     const res = await fetch(`${cfg.supabaseUrl}/auth/v1/otp`, {
       method: "POST", headers: { "Content-Type": "application/json", apikey: cfg.anonKey },
-      body: JSON.stringify({ email })
+      body: JSON.stringify(ticket ? { email, data: { signup_ticket: ticket } } : { email })
     });
-    if (!res.ok) { authCardError("I couldn't send the code just now. Try again in a moment."); return; }
+    if (!res.ok) {
+      // A new account refused at creation (the sign-up hook, lib/_signup.js) carries its own plain sentence.
+      const ej = await res.json().catch(() => ({})), said = String(ej.msg || ej.message || ej.error_description || "");
+      const ours = ["That email address can't be used for a new account. Try another address you use.", "New accounts can't be made from here right now. Try again tomorrow, or sign in with an account you already have.", "That didn't go through. Refresh the page and try again."];
+      authCardError(ours.indexOf(said) >= 0 ? said : "I couldn't send the code just now. Try again in a moment."); return;
+    }
     authRenderCheckEmail(email);
     if (typeof gasFunnel === "function") gasFunnel("sign_in_started", null, { props: { method: "email" } });
   } catch (e) { authCardError("I couldn't send the code just now. Try again in a moment."); }
@@ -260,6 +279,7 @@ function openSignInCard(subtitle) {
     <div class="auth-or"><span>or</span></div>
     <label class="auth-label" for="auth-email">Email me a sign-in code</label>
     <input id="auth-email" class="auth-input" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" value="${prefill}" />
+    <div id="auth-turnstile" class="auth-turnstile"></div>
     <button class="auth-email-btn" onclick="authSignInEmail()">Email me a code</button>
     <label class="auth-consent-row"><input id="auth-consent" type="checkbox" /> <span>Send me Sam's market notes</span></label>
     <div id="auth-error" class="auth-error" style="display:none"></div>
@@ -267,7 +287,20 @@ function openSignInCard(subtitle) {
   </div>`;
   document.body.appendChild(scrim);
   const f = document.getElementById("auth-email"); if (f && !prefill) { try { f.focus(); } catch (e) {} }
+  authMountTurnstile();
 }
+// Cloudflare Turnstile on the email sign-up form, only when switched on (SIGNUP_TURNSTILE, via publicConfig).
+async function authMountTurnstile() {
+  const cfg = await authConfig(); const t = cfg && cfg.turnstile;
+  if (!t || !t.on || !t.siteKey) return;
+  __authTurnstileToken = null;
+  const draw = () => { const box = document.getElementById("auth-turnstile"); if (!box || !window.turnstile) return; box.style.margin = "10px 0";
+    try { __authTurnstileId = window.turnstile.render(box, { sitekey: t.siteKey, size: "flexible", callback: tok => { __authTurnstileToken = tok; }, "expired-callback": () => { __authTurnstileToken = null; } }); } catch (e) {} };
+  if (window.turnstile) return draw();
+  if (!document.getElementById("cf-turnstile-js")) { const sc = document.createElement("script"); sc.id = "cf-turnstile-js"; sc.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"; sc.async = true; sc.onload = draw; document.head.appendChild(sc); }
+  else document.getElementById("cf-turnstile-js").addEventListener("load", draw);
+}
+function authResetTurnstile() { __authTurnstileToken = null; try { if (window.turnstile && __authTurnstileId != null) window.turnstile.reset(__authTurnstileId); } catch (e) {} }
 function authRenderCheckEmail(email) {
   const d = document.querySelector("#auth-modal .auth-dialog");
   if (!d) return;

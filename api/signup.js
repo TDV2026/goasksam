@@ -1,0 +1,49 @@
+// Sign-up protection (Oct 2026, Lane C): lib/_signup.js holds the rules.
+//   POST /api/signup {action:"check", email, turnstile}  -> { ok, ticket } or { ok:false, message }
+//        The page calls this before it asks Supabase for a sign-in code. An existing account always passes.
+//   POST /api/signup?hook=before_user_created           -> Supabase Auth "Before User Created" hook (signed with
+//        SUPABASE_AUTH_HOOK_SECRET). 200 {} lets the user be created; 400 {error:{http_code,message}} refuses.
+// Body parsing is off so the hook's signature is checked over the exact bytes Supabase sent.
+import { supabaseEnv } from "../lib/_supabase.js";
+import { clientAddress, isCrew, countSince, record } from "../lib/_ceilings.js";
+import { signupCheck, hookSignatureOk, beforeUserCreated } from "../lib/_signup.js";
+import { logEvent, EVENTS } from "../lib/events.js";
+
+export const config = { api: { bodyParser: false } };
+
+async function rawBody(req) {
+  if (typeof req.body === "string") return req.body;
+  if (req.body && typeof req.body === "object" && !Buffer.isBuffer(req.body)) return JSON.stringify(req.body);
+  const chunks = []; for await (const c of req) chunks.push(typeof c === "string" ? Buffer.from(c) : c);
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+export default async function handler(req, res) {
+  res.setHeader("Cache-Control", "no-store");
+  if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
+  const raw = await rawBody(req).catch(() => "");
+  let body = {}; try { body = raw ? JSON.parse(raw) : {}; } catch { return res.status(400).json({ error: "bad body" }); }
+  const env = supabaseEnv();
+
+  if (req.query && req.query.hook === "before_user_created") {
+    if (!hookSignatureOk(req.headers, raw)) return res.status(401).json({ error: { http_code: 401, message: "Unauthorized." } });
+    const d = beforeUserCreated(body);
+    if (d.allow) return res.status(200).json({});
+    if (env) await logEvent(env, { event: EVENTS.RATE_LIMIT_HIT, tool: "signup", props: { kind: "signup_refused_at_creation", scope: "signup" } }).catch(() => {});
+    return res.status(400).json({ error: { http_code: 400, message: d.message } });
+  }
+
+  if (body.action !== "check") return res.status(400).json({ error: "unknown action" });
+  if (!env) return res.status(200).json({ ok: true, ticket: null });   // fail open: sign in must never break here
+  const ip = clientAddress(req), dayAgo = () => new Date(Date.now() - 864e5).toISOString();
+  const out = await signupCheck({ email: body.email, token: body.turnstile, ip, crew: isCrew(req) }, {
+    accountExists: async e => {
+      const r = await fetch(`${env.supabaseUrl}/rest/v1/accounts?email=ilike.${encodeURIComponent(e.replace(/[%_*]/g, ""))}&select=user_id&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } });
+      return r.ok ? (await r.json()).length > 0 : false;
+    },
+    countToday: key => countSince(env, key, "c:signup", dayAgo()),
+    record: key => record(env, [key], "c:signup")
+  });
+  if (!out.ok) await logEvent(env, { event: EVENTS.RATE_LIMIT_HIT, tool: "signup", props: { kind: "signup_" + out.reason, scope: "signup" } }).catch(() => {});
+  return res.status(200).json(out.ok ? { ok: true, ticket: out.ticket } : { ok: false, message: out.message });
+}

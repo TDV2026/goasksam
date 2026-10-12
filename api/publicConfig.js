@@ -138,5 +138,7 @@ export default async function handler(req, res) {
   const flagEnv = { supabaseUrl, supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || anonKey };
   let oneboxPublic = false;
   try { oneboxPublic = await appConfigFlag("onebox_public", flagEnv); } catch (e) { oneboxPublic = false; }
-  res.status(200).json({ supabaseUrl, anonKey, authUrl, oneboxPublic });
+  // Sign-up Turnstile (lib/_signup.js): { on, siteKey }, on only when SIGNUP_TURNSTILE=1 and both keys are set.
+  const { turnstileConfig } = await import("../lib/_signup.js");
+  res.status(200).json({ supabaseUrl, anonKey, authUrl, oneboxPublic, turnstile: turnstileConfig() });
 }

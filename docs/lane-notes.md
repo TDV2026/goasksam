@@ -4171,3 +4171,28 @@ when the work has landed.
     pushCheck.mjs now fails on that line, so prePush will show it.
   * Oct 11, 16:40 PT: the Vercel deployment for fc381a3 ended in Error with no build log (0 ms, GitHub status
     "Deployment has failed"); production stayed on 7c2cdc4. Retriggered with this note's commit.
+- 2026-10-12 (Lane C): SPEND EMAILS, BUY ADDRESS LIMIT, SIGN-UP PROTECTION.
+  * Spend emails (lib/_spendAlerts.js): "Model spend has passed 80 percent of the daily cap" and "Model spend has
+    reached the daily cap", each at most once per Pacific day, with the Buy chat / Tasks / Sell chat split.
+    Triggered from the spend read every model guard makes (lib/_ceilings.js buyChatSpend24h); once-a-day record
+    in ip_rate_hits (key "spend_alert"). Recipient: SPEND_ALERT_EMAIL (environment only; unset = nothing sent).
+    SAM: set SPEND_ALERT_EMAIL=feedback@goasksam.com in Vercel (production), then redeploy.
+  * Buy chat: 100 model turns a day per address (BUY_MODEL_TURNS_PER_ADDRESS_DAY), crew exempt, after the 20 per
+    device; past it the no-model results with BUY_MODEL_PAUSED. Every refusal logs rate_limit_hit kind
+    buy_model_address_day, reason "address limit". Model turns now record the address as well as the device.
+  * Sign-up (lib/_signup.js, api/signup.js, js/auth.js): before asking for a sign-in code the page calls
+    /api/signup {action:"check"}. Existing accounts always pass. A new account: throwaway domains refused
+    (lib/data/disposableDomains.js, 9,226 domains, refreshed by scripts/updateDisposableDomains.mjs), 20 new
+    accounts per address per day (crew exempt), Turnstile when SIGNUP_TURNSTILE=1. A pass returns a 30 minute
+    ticket sent with the code request as user metadata. Supabase's Before User Created hook
+    (/api/signup?hook=before_user_created) refuses a new EMAIL account without a valid ticket, so the checks
+    cannot be skipped by calling Supabase directly; Google and other providers always pass. Crew sign-in and the
+    Tasks probe's test address (admin generate_link) carry a server-minted ticket.
+    SAM, three steps, in this order:
+      1. Supabase dashboard > Authentication > Hooks > "Before User Created" > HTTPS, URL
+         https://goasksam.com/api/signup?hook=before_user_created; generate its secret and put it in Vercel as
+         SUPABASE_AUTH_HOOK_SECRET; redeploy. Until this is on, the checks run on our page only.
+      2. Turnstile, at launch: create a Turnstile widget for goasksam.com in Cloudflare; put TURNSTILE_SITE_KEY and
+         TURNSTILE_SECRET_KEY in Vercel. Nothing changes until step 3.
+      3. The single switch: SIGNUP_TURNSTILE=1 (and redeploy). Unset it to switch Turnstile off again.
+    Optional: SIGNUP_TICKET_SECRET (else TASK_LINK_SECRET, else CRON_SECRET signs the tickets).
