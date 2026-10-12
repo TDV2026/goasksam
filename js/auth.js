@@ -107,12 +107,11 @@ async function authSignInEmail() {
     if (!res.ok) {
       // A new account refused at creation (the sign-up hook, lib/_signup.js) carries its own plain sentence.
       const ej = await res.json().catch(() => ({})), said = String(ej.msg || ej.message || ej.error_description || "");
-      const ours = ["That email address can't be used for a new account. Try another address you use.", "New accounts can't be made from here right now. Try again tomorrow, or sign in with an account you already have.", "That didn't go through. Refresh the page and try again."];
-      authCardError(ours.indexOf(said) >= 0 ? said : "That code could not be sent just now. Try again in a moment."); return;
+      authCardError(authRefusal(said) || AUTH_SEND_FAILED); return;
     }
     authRenderCheckEmail(email);
     if (typeof gasFunnel === "function") gasFunnel("sign_in_started", null, { props: { method: "email" } });
-  } catch (e) { authCardError("That code could not be sent just now. Try again in a moment."); }
+  } catch (e) { authCardError(AUTH_SEND_FAILED); }
 }
 // Verify the code and finalize the session (mirrors authBoot's post-login steps).
 async function authVerifyCode() {
@@ -203,7 +202,31 @@ function authScrubPrefill() {
     if (pre) { __authPrefillEmail = pre; u.searchParams.delete("email"); window.history.replaceState(null, "", u.pathname + (u.search || "") + (u.hash || "")); }
   } catch (e) {}
 }
+// A refused new account (the sign-up hook, lib/_signup.js) reaches the person in plain words (Oct 2026): our three
+// sentences, found inside whatever Supabase returns; the old Postgres hook's "A lot of sign-ups ..." reads as the
+// limit sentence. null: not a refusal we know (the caller shows its own line).
+const AUTH_SEND_FAILED = "Sam couldn't send the code just now. Try again in a moment.";
+const AUTH_REFUSALS = ["That email address can't be used for a new account. Try another address you use.", "New accounts can't be made from here right now. Try again tomorrow, or sign in with an account you already have.", "That didn't go through. Refresh the page and try again."];
+function authRefusal(said) {
+  const s = String(said || "").replace(/\+/g, " ");
+  for (const x of AUTH_REFUSALS) if (s.indexOf(x) >= 0) return x;
+  if (/sign-ups are coming from your connection/i.test(s)) return AUTH_REFUSALS[1];
+  return null;
+}
+// Back from Google with an error in the address (a new account the hook refused, or any failed return): the sign-in
+// card opens on this page with a plain sentence, and the error is taken out of the address.
+function authHandleReturnError() {
+  const h = new URLSearchParams(String(location.hash || "").replace(/^#/, "")), q = new URLSearchParams(location.search);
+  const err = h.get("error") || q.get("error"), desc = h.get("error_description") || q.get("error_description");
+  if (!err && !desc) return false;
+  ["error", "error_code", "error_description"].forEach(function(k){ q.delete(k); });
+  try { window.history.replaceState(null, "", location.pathname + (q.toString() ? "?" + q.toString() : "")); } catch (e) {}
+  const msg = authRefusal(desc) || AUTH_REFUSALS[2];
+  setTimeout(function(){ try { openSignInCard(); authCardError(msg); } catch (e) {} }, 0);
+  return true;
+}
 function authHandleCallback() {
+  if (authHandleReturnError()) return false;
   // Google + magic-link both return tokens in the URL hash.
   if (!location.hash || location.hash.indexOf("access_token") === -1) return false;
   try {

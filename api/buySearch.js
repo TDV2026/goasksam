@@ -239,6 +239,23 @@ export default async function handler(req, res) {
     // the ceilings ledger (ip_rate_hits, crew never recorded), per minute, hour and day; the Sell chat's model
     // calls and cost from app_usage_events; Tasks per account per day from tasks and task_updates.
     const BOTUA = /HeadlessChrome|node|undici|curl|python|axios|Go-http|okhttp|bot|spider|crawl|vercel/i;
+    // Probe (PROBE_KEY, header only; read only): the email's middle-half line next to the engine range it is built from,
+    // for live listings of one make and model, with the Market Check question for the same car (m.query), so a check
+    // can open Market Check for it and compare.
+    if (b.action === "rangeproof" && process.env.PROBE_KEY && req.headers["x-probe-key"] === process.env.PROBE_KEY) {
+      const { liveRows, listingMarket, listingFacts } = await import("../lib/live/search.js");
+      const { middleHalfLine } = await import("../lib/live/buyAlerts.js");
+      const mk = String(b.make || "Porsche").replace(/[^A-Za-z0-9 -]/g, ""), md = String(b.model || "911").replace(/[^A-Za-z0-9 -]/g, "");
+      const rows = ((await liveRows(env, `make=ilike.${encodeURIComponent(mk)}&model=ilike.${encodeURIComponent(md)}`)) || []).slice(0, Math.min(40, Number(b.scan) || 20));
+      const out = [];
+      for (const r of rows) {
+        const m = await listingMarket(env, r, listingFacts(r)).catch(() => null);
+        if (!m || m.kind === "pending") continue;
+        out.push({ id: r.id, title: r.listing_title, kind: m.kind, low: m.low, high: m.high, count: m.count, family: m.family, window: m.window, query: m.query, cardLine: m.soldLine, emailLine: middleHalfLine(m) });
+        if (out.filter(x => x.kind === "range").length >= (Number(b.want) || 4)) break;
+      }
+      return res.status(200).json({ rows: out });
+    }
     if (b.action === "limits" && process.env.PROBE_KEY && req.headers["x-probe-key"] === process.env.PROBE_KEY) {
       const days = Math.min(60, Number(b.days) || 30), since = new Date(Date.now() - days * 864e5).toISOString();
       const pct = (arr, q) => { if (!arr.length) return null; const s2 = arr.slice().sort((x, y) => x - y); return s2[Math.min(s2.length - 1, Math.floor(q * (s2.length - 1)))]; };

@@ -42,6 +42,30 @@ export default async function handler(req, res) {
 
   // Our own check (header credential): the raw body arrives byte for byte (the hook's signature depends on it).
   if (body.action === "rawcheck" && hasServerCredential(req)) return res.status(200).json({ rawLength: raw.length, reparsedLength: JSON.stringify(body).length, from });
+  // Our own check (header credential), Oct 2026: is the hook live and is the salt from its own setting? Names and yes or
+  // no only, never a value. Creates throwaway accounts on our own address through Supabase's admin link (no email is
+  // sent): one with a valid ticket (the hook should let it through), one without (the hook should refuse it); both
+  // are deleted again at once. Reports what Supabase answered, so the page's refusal matching can be checked.
+  if (body.action === "hookcheck" && hasServerCredential(req)) {
+    const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const H = { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" };
+    const stamp = Date.now().toString(36), made = [];
+    const tryCreate = async (email, data) => {
+      const r = await fetch(`${url}/auth/v1/admin/generate_link`, { method: "POST", headers: H, body: JSON.stringify({ type: "magiclink", email, data }) });
+      const j = await r.json().catch(() => ({}));
+      const id = (j && (j.id || (j.user && j.user.id))) || null; if (id) made.push(id);
+      return { status: r.status, created: !!id, said: String(j.msg || j.message || j.error_description || j.error || "").slice(0, 200) };
+    };
+    const withTicket = `feedback+hookcheck-${stamp}a@goasksam.com`, without = `feedback+hookcheck-${stamp}b@goasksam.com`;
+    const out = {
+      saltSource: process.env.ADDRESS_HASH_SECRET ? "ADDRESS_HASH_SECRET" : process.env.CRON_SECRET ? "CRON_SECRET (fallback)" : process.env.SUPABASE_SERVICE_ROLE_KEY ? "service role key (fallback)" : "none",
+      hookSecretSet: !!process.env.SUPABASE_AUTH_HOOK_SECRET,
+      withTicket: await tryCreate(withTicket, { signup_ticket: (await import("../lib/_signup.js")).signupTicket(withTicket) }),
+      withoutTicket: await tryCreate(without, {})
+    };
+    for (const id of made) { const d = await fetch(`${url}/auth/v1/admin/users/${id}`, { method: "DELETE", headers: H }).catch(() => null); (out.deleted = out.deleted || []).push(d ? d.status : "error"); }
+    return res.status(200).json(out);
+  }
   if (body.action !== "check") return res.status(400).json({ error: "unknown action" });
   if (!env) return res.status(200).json({ ok: true, ticket: null });   // fail open: sign in must never break here
   const ip = clientAddress(req), dayAgo = () => new Date(Date.now() - 864e5).toISOString();
