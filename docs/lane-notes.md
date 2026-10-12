@@ -4386,8 +4386,9 @@ when the work has landed.
     only; Tasks keep running; a GET only shows the confirm page.
   * ADDRESSES: no raw address is written any more. ip_rate_hits keys: "ah:<daily salted hash>" (address),
     "dev:h<daily salted hash of address and browser>" (cookieless device), "dev:<visitor id>", "user:<id>",
-    "spend_alert"; every row deleted after 24 hours. app_usage_events metadata.ip_hash (daily salted) replaces
-    ip_address; api/funnel.js ip_hint is now ip_hash; the MCP caller id is a daily salted hash. Salt from
+    "spend_alert"; every row deleted after 24 hours. app_usage_events no longer stores any address (ip_address
+    dropped, nothing in its place: usage events are kept long term); api/funnel.js ip_hint dropped; the MCP call
+    log keeps a hash of the client NAME only, the address-based limiter key lives in memory for a day. Salt from
     ADDRESS_HASH_SECRET (else CRON_SECRET, else the service role key). SAM: run docs/supabase-address-privacy.sql
     parts 1 to 3 now. Outside our code: Vercel's request logs and Supabase Auth's own logs keep addresses under
     their own retention.

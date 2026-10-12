@@ -104,11 +104,13 @@ export default async function handler(req, res) {
     const name = msg.params && msg.params.name;
     const args = (msg.params && msg.params.arguments) || {};
     const clientName = (msg.params && msg.params._meta && msg.params._meta.clientName) || (req.headers["user-agent"] || "").slice(0, 60) || null;
-    // A daily salted hash of address and client (lib/_addr.js): the address itself is never kept, here or in the log.
+    // The rate limiter (memory only, dropped after a day): a daily salted hash of address and client (lib/_addr.js).
     const clientId = "h:" + addressHash(String(req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "").split(",")[0].trim() + "|" + String(clientName));
+    // What the call log keeps (long term): the client's name only, hashed, never anything from the address.
+    const logClient = "c:" + crypto.createHash("sha256").update(String(clientName || "")).digest("base64url").slice(0, 16);
     const input = String(args.car || args.vin_or_url || "").slice(0, 200);
     const rl = rateLimit(clientId);
-    if (!rl.ok) { await logCall(env, { tool: name, input, client_id: clientId, client_name: clientName, status: "rate_limited", result_kind: null, ms: 0 }); return res.status(200).json(jsonrpc(id, { content: [{ type: "text", text: "GoAskSam is catching its breath. Please try again in a minute." }], isError: true })); }
+    if (!rl.ok) { await logCall(env, { tool: name, input, client_id: logClient, client_name: clientName, status: "rate_limited", result_kind: null, ms: 0 }); return res.status(200).json(jsonrpc(id, { content: [{ type: "text", text: "GoAskSam is catching its breath. Please try again in a minute." }], isError: true })); }
     if (!env) return res.status(200).json(jsonrpc(id, { content: [{ type: "text", text: "GoAskSam is unavailable right now." }], isError: true }));
     try {
       let out;
@@ -120,10 +122,10 @@ export default async function handler(req, res) {
       const structured = { ...out, summary, attribution: "From GoAskSam" };
       const result = { content: [{ type: "text", text: summary + "\n\nFrom GoAskSam" + (out.link ? " " + out.link : "") }], structuredContent: structured };
       if (name === "market_check" && out.kind === "answer") result._meta = { "openai/outputTemplate": CARD_URI };
-      await logCall(env, { tool: name, input, client_id: clientId, client_name: clientName, status: out.kind === "refusal" ? "refused" : "ok", result_kind: out.kind, ms: Date.now() - t0 });
+      await logCall(env, { tool: name, input, client_id: logClient, client_name: clientName, status: out.kind === "refusal" ? "refused" : "ok", result_kind: out.kind, ms: Date.now() - t0 });
       return res.status(200).json(jsonrpc(id, result));
     } catch (e) {
-      await logCall(env, { tool: name, input, client_id: clientId, client_name: clientName, status: "error", result_kind: null, ms: Date.now() - t0 });
+      await logCall(env, { tool: name, input, client_id: logClient, client_name: clientName, status: "error", result_kind: null, ms: Date.now() - t0 });
       return res.status(200).json(jsonrpc(id, { content: [{ type: "text", text: "GoAskSam had trouble reading that just now." }], isError: true }));
     }
   }
