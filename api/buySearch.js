@@ -23,7 +23,16 @@ import { findGeneration } from "../lib/generations.js";
 import { converse } from "../lib/live/converse.js";
 import { listingDetail, facetsOf, cardFlag, seenCount, listingSays, listingSamFacts, specOf, ladderSteps, walkLadder, panelOf } from "../lib/live/search.js";
 import { vinAppearances } from "./_historyData.js";
-import { applyRung, countText } from "../lib/live/rung.js";
+import { applyRung, askedName, countText } from "../lib/live/rung.js";
+// A card's market with the rung applied (lib/live/rung.js). On the sibling rung the Task door follows the car asked
+// about, so its name is read from the listing's own resolved spec (the same specOf the card line uses); any other
+// rung, or none, never reads anything more.
+async function rungMarket(env, r, facts, m) {
+  const a = applyRung(m);
+  if (!a || a.rung !== "sibling") return a;
+  const sp = await specOf(env, r, facts).catch(() => null);
+  return applyRung(a, { asked: askedName(sp && sp.v) });
+}
 // A count that opens a sentence: "Three", "14", "3,715" (one to ten as words, 11 and up as digits).
 const CountText = n => { const s = countText(n); return s.charAt(0).toUpperCase() + s.slice(1); };
 import { validateBearer } from "../lib/_auth.js";
@@ -88,12 +97,12 @@ useNamer(nameOf);   // Before it ends names a car the way its card does
 async function enrich(env, x) {
   let [market, seen, timeline] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts), seenBefore(env, x.r.vin_norm), timelineOf(env, x)]);
   if (market && market.kind === "pending") market = await listingMarket(env, x.r, x.facts);   // one more go, warm now
-  market = applyRung(market);   // the engine's fallback rung, when it names one (lib/live/rung.js); else unchanged
+  market = await rungMarket(env, x.r, x.facts, market);   // the engine's fallback rung, when it names one; else unchanged
   return { ...cardOf(x), market, seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name: await nameOf(env, x) };
 }
 async function enrichFast(env, x) {
   const [market, seen, timeline, name] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts, { noBlock: true }), seenBefore(env, x.r.vin_norm), timelineOf(env, x), nameOf(env, x)]);
-  return { ...cardOf(x), market: applyRung(market), seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name };
+  return { ...cardOf(x), market: await rungMarket(env, x.r, x.facts, market), seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name };
 }
 async function logSearch(env, v, anonId) {
   try {
@@ -203,7 +212,7 @@ async function handler(req, res) {
       const ids = (Array.isArray(b.ids) ? b.ids : []).map(Number).filter(Number.isFinite).slice(0, 60);
       if (!ids.length) return res.status(200).json({ cards: [] });
       const rows = await liveRows(env, `id=in.(${ids.join(",")})`);
-      const cards = await Promise.all(rows.map(r => { const facts = listingFacts(r); return Promise.all([listingMarket(env, r, facts), seenBefore(env, r.vin_norm), timelineOf(env, { r })]).then(async ([market, seen, timeline]) => { if (market && market.kind === "pending") market = await listingMarket(env, r, facts); return { id: r.id, market: applyRung(market), seen_before: seen, timeline }; }); }));
+      const cards = await Promise.all(rows.map(r => { const facts = listingFacts(r); return Promise.all([listingMarket(env, r, facts), seenBefore(env, r.vin_norm), timelineOf(env, { r })]).then(async ([market, seen, timeline]) => { if (market && market.kind === "pending") market = await listingMarket(env, r, facts); return { id: r.id, market: await rungMarket(env, r, facts, market), seen_before: seen, timeline }; }); }));
       return res.status(200).json({ cards });
     }
     // The Market Check panel under a card: the card's own spec key and engine answer (lib/live/search.js panelOf).
@@ -214,7 +223,7 @@ async function handler(req, res) {
       const r = rows && rows[0]; if (!r) return res.status(200).json({ market: null, representative: null });
       const p = (await panelOf(env, r, listingFacts(r))) || { market: null, representative: null };
       // The rung (lib/live/rung.js): a not_enough_data answer is count-only, so its three priced sales are not shown.
-      const pm = applyRung(p.market);
+      const pm = await rungMarket(env, r, listingFacts(r), p.market);
       return res.status(200).json({ ...p, market: pm, representative: pm && pm.rung === "not_enough_data" ? null : p.representative });
     }
     // Probe (PROBE_KEY): live listings for the card tests (repeat VINs, no photo, no reserve, long titles).

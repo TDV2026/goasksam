@@ -256,8 +256,9 @@ async function handler(req, res) {
       const cases = (Array.isArray(req.body.cases) ? req.body.cases : ["sibling", "ned", "absent"]).filter(c => ["sibling", "ned", "absent", "widened"].includes(c));
       const out = [];
       for (const c of cases) {
-        const { daily, before } = rungEmails(c);
-        for (const [kind, m, headers] of [["daily", daily, emailsOffHeaders(FIXTURE_USER)], ["before_it_ends", before, unsubscribeHeaders(FIXTURE_USER)]]) {
+        const { daily, dailyNoSales, before } = rungEmails(c);
+        // The sibling case also sends the day with no sale of the car asked about yet (its one line).
+        for (const [kind, m, headers] of [["daily", daily, emailsOffHeaders(FIXTURE_USER)], ...(c === "sibling" ? [["daily_no_sale_yet", dailyNoSales, emailsOffHeaders(FIXTURE_USER)]] : []), ["before_it_ends", before, unsubscribeHeaders(FIXTURE_USER)]]) {
           const subject = `[Fixture: ${c}] ${m.subject}`;
           const r = req.body.send ? await sendTaskEmail({ to: "feedback@goasksam.com", subject, text: m.text, html: m.html, headers }) : null;
           out.push({ case: c, kind, subject, sent: r ? (r.ok ? "sent" : r.reason || r.error || r.status || "failed") : "not sent", resend_id: r && r.id || null, html: m.html, text: m.text, list_unsubscribe: !!headers["List-Unsubscribe"] });

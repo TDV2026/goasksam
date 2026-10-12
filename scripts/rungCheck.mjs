@@ -31,7 +31,7 @@ ok(R.rungOf({ rungLabel: "CLK", fallbackRung: "class_era" }).rung === null, "an 
 ok(R.rungOf({ rungLabel: "CLK", fallbackRung: "exact", siblingName: "CLK 55 AMG" }).sibling === null, "siblingName counts only on the sibling rung");
 ok([R.countText(1), R.countText(10), R.countText(11), R.countText(3715), R.countText(12000)].join("|") === "one|ten|11|3,715|12,000", "counts: one to ten as words, 11 and up as digits with a thousands separator");
 const sib = R.applyRung(FIX.sibling), ned = R.applyRung(FIX.ned), wid = R.applyRung(FIX.widened);
-ok(sib.rungLines.join("|") === "Closest: CLK 55 AMG, 2000s|These are CLK 55 AMG sales, not this exact car." && sib.doorName === "CLK 55 AMG" && sib.kind === "range" && sib.low === 14500, "sibling: the label, the sibling named plainly, the range kept, the door names the sibling");
+ok(sib.rungLines.join("|") === "Closest: CLK 55 AMG, 2000s|These are CLK 55 AMG sales, not this exact car." && sib.doorName === "this car" && sib.kind === "range" && sib.low === 14500, "sibling: the label, the sibling named plainly, the range kept, the door never names the sibling");
 ok(ned.kind === "count" && ned.low === null && ned.high === null && ned.span === null && ned.recent.length === 0 && ned.soldLine === "Three sales on record. No range to show yet.", "not_enough_data: count only, every dollar field cleared");
 ok(!/\$|typical range|\bonly\b/i.test(ned.soldLine + ned.rungLines.join(" ")), "not_enough_data: no dollar figure, no \"typical range\", no \"Only N\"");
 ok(R.applyRung({ ...FIX.ned, count: 1 }).soldLine === "One sale on record. No range to show yet." && R.applyRung({ ...FIX.ned, count: 0 }).soldLine === "No range to show yet." && R.applyRung({ ...FIX.ned, count: 1200 }).soldLine === "1,200 sales on record. No range to show yet.", "not_enough_data: one sale, none, and a large count");
@@ -61,22 +61,33 @@ ok(/CLK DTM, 2003 to 2007\nCurrent bid \$61,500 as of 10:30am PT, (inside|within
 ok(/And three more are in your Task\./.test(T.taskEmailBody(task, [blockOf(FIX.absent)], { more: 3, section: true }).text) && /And 14 more are in your Task\./.test(T.taskEmailBody(task, [blockOf(FIX.absent)], { more: 14, section: true }).text), "daily: \"And three more\", \"And 14 more\"");
 
 // ---------------------------------------------------------------- 4. the sold-car Task (lib/live/watches.js): door name, settings, its email section
-const ev = n => Array.from({ length: n }, (_, i) => ({ title: "2004 Mercedes-Benz CLK 55 AMG Coupe", house: "Bring a Trailer", date: "2026-10-1" + (i % 3 + 1), price: 18000 + i * 500, url: "https://example.com/sale/" + i, miles: 61000 }));
-const watchOf = m => { const r = R.rungOf(m); return { id: "5e7a1c33-3333-4d4e-9f50-0a1b2c3d4e5f", kind: "spec", key: "k", label: R.doorName(r) || m.familyBare, spec: { title: "2005 Mercedes-Benz CLK DTM", ...(r ? { rung: r } : {}) } }; };
+const { soldTask } = await import("../lib/tasks/rungFixture.js");
+const ev = (n, t = "2005 Mercedes-Benz CLK DTM AMG Coupe") => Array.from({ length: n }, (_, i) => ({ title: t, house: "Bring a Trailer", date: "2026-10-1" + (i % 3 + 1), price: 250000 + i * 500, url: "https://example.com/sale/" + i, miles: 61000 }));
+// absent keeps today's family label; the fixture's arm() output for the others (watches.js specTaskOf).
+const watchOf = m => m === FIX.absent ? { id: "5e7a1c33-3333-4d4e-9f50-0a1b2c3d4e5f", kind: "spec", key: "k", label: m.familyBare, spec: { title: "2005 Mercedes-Benz CLK DTM" } } : soldTask(m);
 const sold = {}; for (const k of Object.keys(FIX)) sold[k] = W.messageFor(watchOf(FIX[k]), ev(3), { now: NOW, section: true });
 ok(/^Three CLK DTM coupes sold since/.test(sold.absent.text) && /You asked Sam to tell you when the next CLK DTM coupe sells\./.test(sold.absent.text) && sold.absent.subject === "Sam saw three sell: CLK DTM coupes", "sold-car, fields absent: today's wording (the count now a word in the subject)");
-ok(/^Closest: CLK 55 AMG, 2000s\n\nThese are CLK 55 AMG sales, not this exact car\.\n\nThree sold since/.test(sold.sibling.text) && /You asked Sam to tell you about the next sale of CLK 55 AMG\./.test(sold.sibling.text) && sold.sibling.subject === "Sam saw three sell: CLK 55 AMG", "sold-car, sibling: says which car it reports on, first");
-ok(/^CLK DTM, all years\n\nThree sold since/.test(sold.ned.text), "sold-car, not_enough_data: the label first");
+const sibTask = soldTask(FIX.sibling);
+ok(sibTask.label === "CLK DTM" && sibTask.spec.rung.rung === "sibling" && sibTask.spec.rung.label === "Closest: CLK 55 AMG, 2000s", "sibling: the Task is named for the car asked about, the rung kept with its spec");
+ok(sibTask.tcar.make === "Mercedes-Benz" && sibTask.tcar.model === "CLK" && sibTask.tcar.year === 2005 && sibTask.tcar.fallback_rung === "sibling", "sibling: vehicle_key and year are the car asked about, fallback_rung stays sibling");
+ok(R.applyRung(FIX.sibling, { asked: "CLK DTM" }).doorName === "CLK DTM" && R.applyRung(FIX.sibling).doorName === "this car" && R.applyRung(R.applyRung(FIX.sibling), { asked: "CLK DTM" }).doorName === "CLK DTM", "sibling: the door follows the car asked about, never the sibling");
+ok(R.applyRung(FIX.ned, { asked: "CLK DTM" }).doorName === "CLK DTM, all years" && R.applyRung(FIX.widened, { asked: "CLK DTM" }).doorName === "CLK DTM, 2003 to 2007", "not_enough_data and other rungs: the door is unchanged (the label)");
+ok(R.askedName({ model: "CLK", trim: "DTM" }) === "CLK DTM" && R.askedName({ model: "911", trim: "911 Turbo" }) === "911 Turbo", "the car asked about: model and trim, no word repeated");
+ok(/^Three CLK DTM sold since/.test(sold.sibling.text) && !/CLK 55 AMG|Closest/.test(sold.sibling.text) && /You asked Sam to tell you when the next CLK DTM sells\./.test(sold.sibling.text) && sold.sibling.subject === "Sam saw three sell: CLK DTM", "sold-car email, sibling Task: the car asked about's sales, never the sibling's");
+ok(W.namesCar("2005 Mercedes-Benz CLK DTM AMG Coupe", "CLK DTM") && !W.namesCar("2004 Mercedes-Benz CLK 55 AMG Coupe", "CLK DTM"), "sibling Task: a sale counts only when its own title names the car asked about");
+ok(W.noSalesLine(sibTask) === "No CLK DTM has sold since you started this Task. Sam keeps looking.", "sibling Task with no sale yet: one line");
+{ const e = rungEmails("sibling", NOW); ok(/No CLK DTM has sold since you started this Task\. Sam keeps looking\./.test(e.dailyNoSales.text) && !/CLK 55 AMG sold|sold on Bring a Trailer/.test(e.dailyNoSales.text) && /^Sam found a /.test(e.dailyNoSales.subject), "daily email, no sale yet: the one line, no sibling sales, the line not counted as an update"); }
+ok(!rungEmails("ned", NOW).dailyNoSales.text.includes("has sold since you started") && !rungEmails("absent", NOW).dailyNoSales.text.includes("has sold since you started"), "not_enough_data and fields absent: no such line");
+ok(/^CLK DTM, all years\n\nThree sold since/.test(sold.ned.text), "sold-car, not_enough_data: the label first (unchanged)");
 ok(W.messageFor(watchOf(FIX.absent), ev(12), { now: NOW, section: true }).subject === "Sam saw 12 sell: CLK DTM coupes", "sold-car subject: 12 stays digits");
-const shapeOf = w => ({ rung_label: (w.spec && w.spec.rung && w.spec.rung.label) || null, label: w.label });
-ok(shapeOf(watchOf(FIX.sibling)).rung_label === "Closest: CLK 55 AMG, 2000s" && shapeOf(watchOf(FIX.absent)).rung_label === null, "Task settings: rung_label when set from a rung, null otherwise");
+ok(W.shape({ ...sibTask, created_at: null }).rung_sibling === true && W.shape({ ...sibTask, created_at: null }).label === "CLK DTM" && W.shape({ ...sibTask, created_at: null }).rung_label === "Closest: CLK 55 AMG, 2000s" && W.shape(watchOf(FIX.absent)).rung_label === null && W.shape(soldTask(FIX.ned)).rung_sibling === false, "Task settings: the car asked about with the rung label beneath (sibling); unchanged otherwise");
 
-// The probe's whole emails (combined daily + Before it ends) build for every case.
+// The probe's whole emails (combined daily, the same with no sale yet, Before it ends) build for every case.
 const whole = Object.keys(FIX).map(k => rungEmails(k, NOW));
-ok(whole.every(e => e.daily.html && e.before.html), "the fixture probe builds both whole emails for every case");
+ok(whole.every(e => e.daily.html && e.dailyNoSales.html && e.before.html), "the fixture probe builds the whole emails for every case");
 // ---------------------------------------------------------------- 5. copy rules on everything this file renders
 const BANNED = /\b(worth|value|valuation|estimate|estimated|appraisal|pricing|median|alert|watch|AI)\b|[–—]|\bI\b|\bI'm\b|\bmy\b/;
-const allText = [...Object.values(bie), ...Object.values(daily), ...Object.values(sold), ...whole.flatMap(e => [e.daily, e.before])].map(m => m.text + "\n" + (m.subject || "")).join("\n")
+const allText = [...Object.values(bie), ...Object.values(daily), ...Object.values(sold), ...whole.flatMap(e => [e.daily, e.dailyNoSales, e.before])].map(m => m.text + "\n" + (m.subject || "")).join("\n")
   + "\n" + [sib, ned, wid].map(m => m.rungLines.join("\n") + "\n" + m.soldLine).join("\n");
 const hit = allText.split("\n").filter(l => BANNED.test(l.replace(/https?:\/\/\S+/g, "")));
 ok(hit.length === 0, "copy rules: no banned word, no dash, no first person in any rendered line" + (hit.length ? " (" + hit.slice(0, 3).join(" | ") + ")" : ""));
@@ -91,7 +102,7 @@ ok(!/watch/i.test([...Object.values(bie), ...Object.values(daily), ...Object.val
   const ctx = { product: "tasks", surface: "tasks_page", user_id: "aaaaaaaa-0000-4000-8000-000000000001" };
   let threw = null;
   await log.withTracking("rungCheck", async () => {
-    log.trackCurrent("task_created", W.taskCar("sold_car", { make: "Mercedes-Benz", model: "CLK", year: 2005, fallback_rung: R.trackedRung(FIX.sibling) }), ctx);
+    log.trackCurrent("task_created", W.taskCar("sold_car", soldTask(FIX.sibling).tcar), ctx);   // exactly arm()'s car for a sibling-rung Task
     log.trackCurrent("task_created", T.taskCreatedProps("hunt", { make: "Mercedes-Benz", model: "CLK" }, R.trackedRung(FIX.ned)), ctx);
     log.trackCurrent("task_created", T.taskCreatedProps("hunt", { make: "Mercedes-Benz", model: "CLK" }, R.trackedRung(FIX.absent)), ctx);
     log.trackCurrent("task_created", T.taskCreatedProps("hunt", { make: "Mercedes-Benz", model: "CLK" }, R.trackedRung(FIX.widened)), ctx);

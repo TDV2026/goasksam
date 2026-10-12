@@ -5635,3 +5635,20 @@ gates, confirmed on real cars, not assumed**:
     full, e.g. "Closest: CLK 55 AMG, 2000s") - siblingName is wired through to the response (dormant) in case a
     future "search for {siblingName} instead" affordance wants it, but none was asked for this round and none
     was built.
+
+- 2026-10-12 (Lane C): A TASK FROM A SIBLING ANSWER FOLLOWS THE CAR ASKED ABOUT (changes 70b691c's sibling door).
+  * Door and armed line on the sibling rung: "Look for the next sale of {car asked about}" / "Sam is looking for the
+    next sale of CLK DTM." The name is the listing's own resolved model and trim (lib/live/rung.js askedName over
+    specOf, read only when the rung is sibling; api/buySearch.js rungMarket). The sibling never names a Task.
+  * Task record (lib/live/watches.js specTaskOf, pure, used by arm and testSend): label = the car asked about, spec
+    = the asked car's spec with the rung kept as spec.rung; task_created vehicle_key and year from the same spec,
+    fallback_rung "sibling". Task settings (Keep looking row): the car asked about, the rung label beneath it
+    (/api/watch list returns rung_sibling; the line wraps in the narrow rail).
+  * Its emails report the car asked about only: specEvents drops every sale while the engine still answers the
+    spec with the sibling (d.fallbackRung "sibling", FOR LANE B: please carry the field on runOneBox's own answer as
+    well as the mapped one) and any card whose own title does not name the asked car (watches.js namesCar). The
+    sibling's rung lines are not repeated in that Task's section. With no sale of its car yet, the combined daily
+    email carries one line, "No CLK DTM has sold since you started this Task. Sam keeps looking." (digest.js
+    quietSection: last in the email, never counted as an update in the subject, never sends an email on its own,
+    stops once the Task has reported a sale).
+  * not_enough_data and fields-absent: unchanged (re-proven against pre-rung main, Buy HTML and emails).
