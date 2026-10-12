@@ -5569,7 +5569,6 @@ gates, confirmed on real cars, not assumed**:
       job") running in parallel - not caused by, or related to, this round's changes. The facts-line copy fix is
       verified correct independent of the count (no pluralization, no dollar figures, count spelled when <=10),
       and will read whatever number Lane B's fix lands on with no further change needed here.
-
 - 2026-10-12 (Lane C): FALLBACK RUNG RENDERING ON BUY, TASKS AND TASK EMAILS, DORMANT UNTIL LANE B LANDS THE FIELDS.
   * One reader: lib/live/rung.js. applyRung(m) takes the market object Buy, Tasks and the emails already read
     (listingMarket, the same pool as Market Check) and, ONLY when m.rungLabel is a non-empty string, adds
@@ -5604,3 +5603,35 @@ gates, confirmed on real cars, not assumed**:
   * After (not Must): the fixture option on task_email_tests and lib/tasks/rungFixture.js can go once the live
     fields are confirmed; Market Check's own door (public/js/onebox.js obWatchArmed.label) is Lane A's and reads
     the label /api/watch returns, so it picks up doorName with no change.
+- 2026-10-12 (Lane A): ROUND 7 - FALLBACK-LADDER RENDERING, DORMANT UNTIL LANE B LANDS IT.
+  * Built ahead of Lane B's model-first ladder (replacing the make-era fallback): public/js/onebox.js's new
+    rungLabelHtml(d) renders d.rungLabel as the line above the count or range, for Market Check and the Sell
+    result alike (both read the same shared renderer). Sibling (d.fallbackRung === "sibling") prepends "No
+    {car} sales yet. " to the engine's own already-complete clause. factsBlockHtml goes count-only (no dollar
+    figures at all, latest month without a price) whenever d.fallbackRung === "not_enough_data". All three
+    fields (fallbackRung/rungLabel/siblingName) are wired onto the Market Check oneBox response in
+    api/sellerDecision.js, same spot as the existing identityQuestion/factsBlock passthrough.
+  * DORMANT, PROVEN: all three fields are undefined today (Lane B has not landed them yet) - verified live that
+    the page renders byte-identical to before on four real cars. Proved the NEW rendering by patching
+    window.fetch inside a real headless-browser page (not a local fixture, not an engine change) to inject the
+    fields onto the real production response before the page's own script ever sees it - same cookies/TLS
+    fingerprint as the real page, so Vercel's bot protection never flagged it as a second client (a plain Node
+    fetch() re-request, tried first, got the same 429 challenge every bare curl/fetch to this site gets).
+  * Job 2 (counts): the shared helper (obNumWord/obNumWordLow) now renders 11+ as digits with a thousands
+    separator (3,715) instead of a bare digit string. Also found and fixed two PRE-EXISTING prose call sites
+    that bypassed the helper entirely and were never part of this round's new fields: thinHeadHtml's own
+    headline count ("5 Merkur XR4Tis have sold...") and its online-liquidity count ("Only 2 sold through live
+    online marketplaces..."). Both are live now, not dormant.
+  * Job 3 (vinHeroCardHtml): lib/_flags.js (excluded this round) does not select an id column on the VIN-match
+    query, so there is no real sale id to send. Did NOT invent one and did NOT send the required sale_id field
+    with a placeholder - instead, saleCardHtml now only attaches data-gas-event/data-gas-listing-id (so
+    receipt_click only fires) when o.id is actually present. The VIN-matched "This car" hero card is
+    unaffected visually and still opens the listing; it simply never fires receipt_opened until
+    findVinArchiveMatch's select clause gains an id column. FOR LANE B: add `id` to that select list
+    (lib/_flags.js line ~97) and thread it onto the returned match object (e.g. as `.id` on the top-level
+    result) - once present, vinHeroCardHtml needs zero changes on this side to start tracking correctly.
+  * Commits: f75158b.
+  * NOT DONE: no new UI was built around d.siblingName specifically (d.rungLabel already names the sibling in
+    full, e.g. "Closest: CLK 55 AMG, 2000s") - siblingName is wired through to the response (dormant) in case a
+    future "search for {siblingName} instead" affordance wants it, but none was asked for this round and none
+    was built.
