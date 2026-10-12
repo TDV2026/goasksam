@@ -92,10 +92,29 @@ try {
   // tighter number this fix does not actually deliver for its shape - an honest gate, not a wish.
   const PERF_BUDGET_MS = Number(process.env.MC_PERF_BUDGET_MS) || 18000;
   const PERF_TIGHT_MS = Number(process.env.MC_PERF_TIGHT_MS) || 14000;
+  // MC_PERF_WARM_MS (Round 5 Job 3, Oct 2026, bare-nameplate warm cache): a WARMED bare nameplate
+  // (api/sellerDecision.js's "WARM-LIST FAST PATH" - a hit skips the live compute entirely, one
+  // indexed spec_market_cache SELECT by exact key instead of paging/fencing the raw pool) should
+  // cost close to a cache-hit's natural latency, not the cold-compute time the two budgets above
+  // exist for. Set from the observed floor of this SAME browser-measured methodology on an
+  // ALREADY-FAST car ("2008 Porsche 997 Carrera S Coupe" measured 5,438-7,217ms total even on a
+  // live compute, per the prior round's own re-check) - that floor is page-load/render overhead
+  // this methodology always pays, not engine time, so a true cache hit cannot beat it by much
+  // either. 8000ms gives real margin above that floor while sitting far below PERF_TIGHT_MS
+  // (14000) and PERF_BUDGET_MS (18000), which stay a live-compute's honest ceiling, not this one's.
+  // Requires the nameplate to actually be warmed first (scripts/warmMarketCheck.js / task=warmMC) -
+  // this check does not warm it itself, so a cold run here is a signal the warm job needs
+  // re-running, not a code regression.
+  const PERF_WARM_MS = Number(process.env.MC_PERF_WARM_MS) || 8000;
   const PERF_CARS = [
     { car: "2008 Porsche 997 Carrera S Coupe", budget: PERF_TIGHT_MS },
     { car: "1995 Porsche 911 Carrera", budget: PERF_TIGHT_MS },
     { car: "1969 Chevrolet Camaro", budget: PERF_BUDGET_MS }
+    // The warmed-Camaro check (budget PERF_WARM_MS, same nameplate, kept separate from the loose-
+    // budget row above) is added in a FOLLOW-UP commit, after this push deploys and the warm cache
+    // is actually populated (task=warmMC) - adding it in THIS commit would fail prePush's own gate
+    // on this exact push, since the fix it checks for cannot exist until after the push lands. Not
+    // a silent omission: see the Round 5 Job 3 report for the verified-afterward addition.
   ];
   for (const { car, budget } of PERF_CARS) {
     // Without PROBE_KEY this page is the public redirect to /sell (same as the gated PAGES entries

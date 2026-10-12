@@ -5586,6 +5586,59 @@ async function handleOps(req, res) {
   // AUTO-APPLY (write=1) ONLY when the VIN WMI and the title agree (classifier basis "title+VIN agree");
   // everything else stays Unknown. "Better nothing than a fake make." Also returns make-Unknown VINs
   // (with vin_norm) as proof fodder. ZERO OCD.
+  // task=warmMC: TEMPORARY (Round 5 Job 3, Oct 2026). Runs scripts/warmMarketCheck.js's
+  // warmMarketCheck over the built-in 15-nameplate list (or &list=a|b), writing each into the
+  // epoch-gated MCWARM: cache. Remove once the job's before/after proof is captured.
+  if (task === "warmMC") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { warmMarketCheck, WARM_LIST } = await import("../scripts/warmMarketCheck.js");
+    const list = req.query?.list ? String(req.query.list).split("|").filter(Boolean) : WARM_LIST;
+    const result = await warmMarketCheck(env, list);
+    return res.status(200).json({ task: "warmMC", ...result });
+  }
+
+  // task=mcbarediag: TEMPORARY (Round 5 Job 3, Oct 2026). Server-only timing for the 15-nameplate
+  // bare-nameplate list, &mode=cold (direct runOneBox, bypassing the warm cache entirely - what
+  // every request paid before this job) or &mode=warm (the SAME check api/sellerDecision.js's
+  // oneBox branch now runs: readWarmAnswer first, live runOneBox on any miss) x &samples=N passes.
+  // Reports every elapsed ms plus p50/p95/max so before/after is measured the same way, same
+  // method as last round's server-only obdiag sweep. Remove once the job's proof is captured.
+  if (task === "mcbarediag") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { runOneBox } = await import("../lib/onebox.js");
+    const { warmAnswerKeyFor, readWarmAnswer } = await import("../lib/live/search.js");
+    const { WARM_LIST } = await import("../scripts/warmMarketCheck.js");
+    const list = req.query?.list ? String(req.query.list).split("|").filter(Boolean) : WARM_LIST;
+    const mode = String(req.query?.mode || "cold");
+    const samples = Math.max(1, Math.min(3, Number(req.query?.samples) || 1));
+    const rows = [];
+    for (const q of list) {
+      const rv = await resolveVehicle(q, {});
+      const vehicle = rv && rv.vehicle;
+      if (!vehicle || !vehicle.make) { rows.push({ q, error: "unresolved" }); continue; }
+      const generation = await findGeneration(vehicle, env).catch(() => null);
+      const times = [];
+      let tier = null, warmHit = null;
+      for (let i = 0; i < samples; i++) {
+        const t0 = Date.now();
+        if (mode === "warm") {
+          const warmed = await readWarmAnswer(env, warmAnswerKeyFor(vehicle, generation));
+          if (warmed) { warmHit = true; tier = warmed.tier; } else { const d = await runOneBox(vehicle, generation, q, env, null); warmHit = false; tier = d && d.tier; }
+        } else {
+          const d = await runOneBox(vehicle, generation, q, env, null);
+          tier = d && d.tier;
+        }
+        times.push(Date.now() - t0);
+      }
+      rows.push({ q, tier, warmHit, msSamples: times });
+    }
+    const allTimes = rows.flatMap(r => r.msSamples || []).sort((a, b) => a - b);
+    const pct = p => allTimes.length ? allTimes[Math.min(allTimes.length - 1, Math.floor(allTimes.length * p))] : null;
+    return res.status(200).json({ task: "mcbarediag", mode, samples, specCount: list.length, p50: pct(0.5), p95: pct(0.95), max: allTimes[allTimes.length - 1] || null, rows });
+  }
+
   if (task === "unktriage") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { classifyUnknown } = await import("../lib/_unknownClassify.js");

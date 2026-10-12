@@ -43,7 +43,7 @@ import {
 } from "../lib/_classify.js";
 import { hammerUsd, ensureFxReady } from "../lib/_houseComps.js";
 import { buildSharedAnalysis, isRoutableVenue, ROUTABLE_VENUES, SHORT_AUCTION_VENUES, US_ROUTE_VENUES } from "../lib/platformPick.js";
-import { specKeyFor, coreOf, persistCore } from "../lib/live/search.js";
+import { specKeyFor, coreOf, persistCore, warmAnswerKeyFor, readWarmAnswer } from "../lib/live/search.js";
 
 import { isCrewRequest } from "../lib/_crew.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
@@ -3449,13 +3449,31 @@ async function handler(req, res) {
       // left untouched so its latency baseline - Date.now() - obStart, the WHOLE request, not just
       // this call - never changes) works exactly as before. This is Market Check's one production
       // entry point into the shared engine; it previously called runOneBox directly.
-      let oneBox;
+      // WARM-LIST FAST PATH (Round 5 Job 3, Oct 2026): a bare nameplate (no trim, no inline refine,
+      // no exact-VIN comparison, the FIRST ask) checks the epoch-gated warm cache before paying for
+      // a live compute. A hit is the SAME raw engine answer a warmer precomputed, served byte-
+      // identical to what a fresh call would return at this moment (readWarmAnswer's own epoch/
+      // version/24h checks guarantee that, same as Job 1's rangeCache/specMem gate elsewhere). A
+      // miss for ANY reason (never warmed, this exact nameplate is not on the curated list, epoch
+      // went stale, engine version moved) falls straight through to the EXACT existing live path
+      // below, completely unchanged - this is a fast path added on top, never a behavior change,
+      // and it only ever applies to a bare nameplate; a named trim always computes live.
+      let oneBox, warmHit = false;
+      const wantsWarm = !obRefine && !exactSale && vehicle && vehicle.make && !vehicle.trim && Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) === 0;
+      if (wantsWarm) {
+        try {
+          const warmed = await readWarmAnswer({ supabaseUrl, supabaseKey }, warmAnswerKeyFor(vehicle, generation));
+          if (warmed) { oneBox = warmed; warmHit = true; }
+        } catch { /* fall through to the live path below */ }
+      }
       try {
-        const engineAnswer = await Promise.race([
-          oneEngineAnswer(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, asked: Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) }, obRefine),
-          new Promise((_, rej) => setTimeout(() => rej(new Error("onebox_deadline")), Number(process.env.ONEBOX_DEADLINE_MS || 20000)))
-        ]);
-        oneBox = engineAnswer.raw;
+        if (!warmHit) {
+          const engineAnswer = await Promise.race([
+            oneEngineAnswer(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, asked: Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) }, obRefine),
+            new Promise((_, rej) => setTimeout(() => rej(new Error("onebox_deadline")), Number(process.env.ONEBOX_DEADLINE_MS || 20000)))
+          ]);
+          oneBox = engineAnswer.raw;
+        }
       } catch (e) {
         console.error(`One Box unavailable (${(e && e.message) || e}), ${Date.now() - obStart}ms.`);
         mcRun({ answer_type: "failed", failure_state: "catching_breath" });
