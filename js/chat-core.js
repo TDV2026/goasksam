@@ -200,7 +200,7 @@ function preserveDetailedVehicleLabel(candidate,canonical){
 function identityResolveError(opts){
   sellState.lastIdentityVerdict="error";
   if(!(opts&&opts.silentError)&&typeof addMsg==="function"){
-    addMsg("sam","I couldn't check that one just now. Mind giving me the year, make and model again?");
+    addMsg("sam","Sam couldn't check that one just now. Send the year, make and model and Sam will try again.");
   }
   return false;
 }

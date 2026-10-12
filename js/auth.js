@@ -108,11 +108,11 @@ async function authSignInEmail() {
       // A new account refused at creation (the sign-up hook, lib/_signup.js) carries its own plain sentence.
       const ej = await res.json().catch(() => ({})), said = String(ej.msg || ej.message || ej.error_description || "");
       const ours = ["That email address can't be used for a new account. Try another address you use.", "New accounts can't be made from here right now. Try again tomorrow, or sign in with an account you already have.", "That didn't go through. Refresh the page and try again."];
-      authCardError(ours.indexOf(said) >= 0 ? said : "I couldn't send the code just now. Try again in a moment."); return;
+      authCardError(ours.indexOf(said) >= 0 ? said : "That code could not be sent just now. Try again in a moment."); return;
     }
     authRenderCheckEmail(email);
     if (typeof gasFunnel === "function") gasFunnel("sign_in_started", null, { props: { method: "email" } });
-  } catch (e) { authCardError("I couldn't send the code just now. Try again in a moment."); }
+  } catch (e) { authCardError("That code could not be sent just now. Try again in a moment."); }
 }
 // Verify the code and finalize the session (mirrors authBoot's post-login steps).
 async function authVerifyCode() {
@@ -138,7 +138,7 @@ async function authVerifyCode() {
     authRenderTopbar();
     authCloseModal();
     if (typeof gateAfterSignup === "function") gateAfterSignup();
-  } catch (e) { authCardError("I couldn't verify that code just now. Try again in a moment."); }
+  } catch (e) { authCardError("That code could not be verified just now. Try again in a moment."); }
 }
 async function authSignOut() {
   const cfg = await authConfig(); const s = authGetSession();

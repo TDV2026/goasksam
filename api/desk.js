@@ -13,6 +13,7 @@ import { testerCodeExpired } from "../lib/_tester.js";
 import { supabaseSelect } from "../lib/_supabase.js";
 
 import { isCrewRequest } from "../lib/_crew.js";
+import { sendDisguisedNotFound } from "../lib/_notFound.js";
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -28,18 +29,21 @@ function parseCookies(header) {
 }
 
 export default async function handler(req, res) {
+  // Crew/tester check FIRST, before anything else (CORS headers, method handling) can tell a
+  // stranger this endpoint is even here. Desk is crew-only ALWAYS (never public, unlike the
+  // storefront) - a non-crew, non-tester caller gets the exact same plain 404 regardless of HTTP
+  // method, with no JSON, no CORS headers, and no mention of Desk anywhere in the response.
+  const cookies = parseCookies(req.headers.cookie);
+  const crew = isCrewRequest(req);   // the signed crew cookie (lib/_crew.js)
+  const tester = cookies.gas_tester === "ok" && !testerCodeExpired();
+  if (!crew && !tester) return sendDisguisedNotFound(res);
+
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-
-  const cookies = parseCookies(req.headers.cookie);
-  const crew = isCrewRequest(req);   // the signed crew cookie (lib/_crew.js)
-  const tester = cookies.gas_tester === "ok" && !testerCodeExpired();
-  // Desk is crew-only ALWAYS (never public, unlike the storefront).
-  if (!crew && !tester) return res.status(403).json({ status: "sealed", error: "Desk is crew-only." });
 
   // READ-ONLY archive diagnostic (crew-only, 300s budget): count duplicate
   // (vin_norm, sale_date, source_slug) rows archive-wide - the same physical sale ingested under two

@@ -44,7 +44,7 @@ function answerSentence(d) {
     return "Cars like yours have been bringing " + usd(a.low) + " to " + usd(a.high) + "." + z;
   }
   if (a.kind === "two") return "The two closest sales brought " + usd(a.high) + " and " + usd(a.low) + ".";
-  if (a.kind === "one") return "The one sale I'd actually use brought " + usd(a.one) + ".";
+  if (a.kind === "one") return "The one sale that applies here brought " + usd(a.one) + ".";
   return "";
 }
 

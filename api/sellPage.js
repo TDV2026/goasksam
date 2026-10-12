@@ -22,10 +22,11 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;",
 
 // LAUNCH STAGE (Oct 2026, replaces the old binary PUBLIC_LAUNCH switch): strips the nav items for
 // whichever products are not yet released at the current stage (lib/_launchStage.js isReleased,
-// crew- and test-override-aware) - never all-or-nothing. "Where to sell" (this page), PowerSellers,
-// How Sam decides, Your results and the footer (Send feedback/Privacy/About) are stage-0 (always
-// on) and never touched. Each item removed by its own href so a copy/markup change elsewhere can
-// never silently stop matching and leak a link.
+// crew- and test-override-aware) - never all-or-nothing. "Where to sell" (this page), How Sam
+// decides, Your results and the footer (Send feedback/Privacy/About) are stage-0 (always on) and
+// never touched. PowerSellers has no nav link on this page at all (removed, see index.html).
+// Each item removed by its own href so a copy/markup change elsewhere can never silently stop
+// matching and leak a link.
 const HIDDEN_FOR = { "/buy": "buy", "/market-check": "market-check", "/tasks": "tasks", "/business": "business" };
 function stripUnreleasedNav(html, req) {
   let out = html;

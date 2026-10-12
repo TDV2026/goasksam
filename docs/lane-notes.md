@@ -4212,3 +4212,122 @@ when the work has landed.
     and the Tasks page hides the "How often" choice.
   * watches.run and buyAlerts.runAlerts no longer send on their own (opts.send keeps the old direct send for a
     probe that asks for it).
+- 2026-10-11 (Lane A): SHORT RUN, JOBS 1-6 (fixes from the prior report).
+
+  JOB 1 (PowerSellers nav): the Sell page's own hardcoded rail (index.html, served by api/sellPage.js
+  for /sell) and onebox-preview.html (the Screen 2 design-reference page) still linked /powersellers;
+  both removed (lib/appShell.js's shared buildPages() had already dropped it everywhere else, per the
+  9ba8c88 comment, which is why the prior NAV CHECK found every OTHER surface already clean). onebox.html
+  and desk.html carry no such link (already clean). Remaining /powersellers surfaces, unchanged, by
+  design: the page and route itself (powersellers.html, untouched), its sitemap-pages.xml entry
+  (api/sitemapPages.js, product: null, stage-0/always-listed), and robots.txt (no Disallow for it, same
+  as every other public page; the one comment line there is just documenting that /onebox and /desk are
+  the crew-gated exceptions). It is fully indexable (no noindex meta, no X-Robots-Tag) exactly as before -
+  indexing not touched, per the job.
+
+  JOB 2 (Desk must not answer a stranger): api/desk.js's crew/tester check now runs FIRST, before CORS
+  setup or the method check, and a non-crew/non-tester caller gets lib/_notFound.js's sendDisguisedNotFound
+  (404, text/html, generic "This page doesn't exist" body, no JSON, no CORS headers) regardless of HTTP
+  method - not the old `{"status":"sealed","error":"Desk is crew-only."}` 403. The PAGE case (/desk) is
+  now byte-IDENTICAL to a real missing page: vercel.json's rewrite is now conditional on the gas_crew or
+  gas_tester cookie (mirrors the existing /sell, /buy, /history pattern); with neither cookie, no rewrite
+  matches, there is no literal file at "/desk" (only desk.html), so Vercel's own native platform 404
+  answers - nothing invented on our side. Verified via a real local Chrome (puppeteer-core hitting
+  production) BEFORE this fix: the native 404 for a genuinely missing path is status 404, `x-vercel-error:
+  NOT_FOUND`, title "404: NOT_FOUND" - captured and reused as lib/_notFound.js's template for the API case
+  (the one case that can't get the free native 404, since Vercel always invokes a real serverless function
+  at its own filesystem path regardless of any rewrite).
+
+  BIGGER FINDING, same job, SAM/ALL LANES: while searching "page source a non-crew visitor can reach" for
+  Desk mentions, found that /desk's RAW STATIC HTML (title "Sam Desk", branding visible) was served to
+  ANY requester with no cookie check at all (status 200, cached at the edge, confirmed via a real browser
+  hitting production) - the page's own client-side cookie check only REDIRECTS after the HTML has already
+  loaded, so a curl/crawler/any non-JS client saw the full page. That part is fixed by this job's vercel.json
+  change above. But the SAME probe found the much larger issue: this deployment serves the ENTIRE repository
+  as public static files with no restriction - confirmed live (200 OK, real content) for lib/desk/handler.js,
+  js/desk.js, scripts/engineCheck.js, docs/desk-mockups/index.html, and CLAUDE.md itself (this whole product-
+  rules file, at /CLAUDE.md). No .vercelignore exists. This is NOT scoped to Desk or to Lane A's three files -
+  it is every lane's lib/**, scripts/**, docs/**, and any other loose file at the repo root. NOT fixed this
+  run: a blanket .vercelignore would break the Vercel build (api/**'s serverless functions import lib/** at
+  build time, so lib/** cannot simply be ignored from the deployment), and the real fix (moving genuinely-
+  public assets into a proper public/ directory, or an equivalent Vercel output restriction) is an
+  architecture-level, cross-lane change with broad blast radius - exactly the kind of thing to decide with
+  Sam rather than patch mid-task. One concrete, safe, in-scope piece of it WAS fixed here: the orphaned
+  outputs/*.html dev fixtures (zero references anywhere in the codebase, last touched at fdac252, a commit
+  from before several since-reversed product rules) were deleted - they were both a live leak of stale,
+  rule-11-violating copy ("the fee earns its keep", "my personal preference") AND first-person Sam, outside
+  the Sell flow, concrete proof the exposure is not theoretical. SAM: recommend a dedicated task to decide
+  the right boundary (what's genuinely public vs. source) and implement it deliberately, verified end to end,
+  not as a side effect of a nav-copy fix.
+
+  JOB 3 (chat identity failure line): fixed in js/chat-core.js identityResolveError - shown whenever
+  validateVehicleIdentityPreflight (its real name; resolveVehicleInput is its alias) fails on a network/
+  resolver error, which is the shared SELL INPUT PIPELINE identity check called from js/steps.js and
+  js/wizard.js at every step that can accept a car name (initial entry, step 1, trim/model clarification,
+  corrections, confirm-step edits) - all on /sell. Also found and fixed (all genuinely outside the Sell
+  flow/homepage front door, all simple isolated string edits, no behavior risk):
+  - js/auth.js (site-wide sign-in modal, loaded by index.html, api/buy.js, api/history.js, api/specPage.js,
+    api/howSamDecides.js, api/tasksPage.js, api/business.js, api/publicConfig.js, api/marketCheck.js - i.e.
+    every product): "I couldn't send/verify the code just now" -> "That code could not be sent/verified
+    just now", matching the file's own existing neutral-error style used two lines above it.
+  - powersellers.html: the hero script line and one hd-lead sentence used singular "I" ("Sometimes I'd
+    hand the keys...", "...For some vehicles I'd keep it simple...") against the rest of the page's
+    intentional "we" team voice; reworded to drop the first person rather than insert "Sam" into a voice
+    that otherwise says "we". The footer CTA ("Tell me what you're selling") became "Tell Sam what you're
+    selling" (third person, matches this run's other fixes).
+  - onebox-preview.html: stale first-person copy ("I know this exact car", "I can tell you the best
+    places to sell your car...", "See where I'd sell it", "the window I track", "ask me where I'd sell
+    it... I'll read what there is") replaced to match what js/onebox.js ACTUALLY ships today (confirmed by
+    reading the real renderer): "This exact car", "Sam can tell you the best place to sell this car right
+    now, and why.", "See where Sam would sell it", "the window Sam tracks". The mockup had simply drifted
+    from a copy fix that already shipped to production; two lines (the thin/refusal screen's "window I
+    track" and "Tell me more about it...") have no live equivalent to mirror (dead screen state in the
+    mockup), reworded directly to third person.
+  - api/publicConfig.js answerSentence (feeds /o/<id> shareable-result OG/meta text for old saved
+    snapshots): "The one sale I'd actually use brought $X." -> "The one sale that applies here brought $X."
+  NOT fixed, listed for Sam/lanes to decide:
+  - js/desk.js (crew-only B2B Desk tool chat voice, e.g. lines 67/75/488/582: "I ranked...", "I read...",
+    "...and I'll run it."): a different, larger surface (many lines, a whole tool's chat persona) - left
+    for a deliberate decision on Desk's voice convention rather than a drive-by edit.
+  - lib/onebox.js SAM_LINE/trustLine (~1734-1750): first-person, but confirmed DEAD CODE - zero live
+    callers anywhere in the codebase (a "Round-3"/pre-redesign leftover, same vintage as the stale
+    onebox-preview.html screens above). No user ever sees it; no fix needed, flagging only so it isn't
+    mistaken for live copy later.
+  - lib/vehicle.js clarification `question` strings (811, 1549-1550, 2093, 2125) and api/vehicleIdentity.js
+    (209, 256, 306): checked carefully, NOT a violation - the shared resolveVehicle() is also called from
+    api/history.js and api/_historyData.js, but both of those callers read only `.vehicle` and discard
+    `.question`/clarification entirely, so these strings are only ever actually shown via
+    api/vehicleIdentity.js, which is Sell-only. Reachability confirmed by reading every caller, not assumed.
+
+  JOB 4 (Market Check sub-headline): lib/live/marketCheckLanding.js, the `.mc-sub` line right under the
+  "What do cars like yours sell for?" display headline (that headline line is the explicit rule-20
+  exception and was left alone) - old text ("Real sales, matched to your car, with the range most landed
+  in and the cars behind it.") replaced with the exact text given. Nothing else on the landing repeats or
+  clashes with it: the "How Sam gets there" three-item list below explains matching/sorting/outlier
+  mechanics, not the range-and-sales-behind-it framing, and the VIN line below that is about exact-car
+  lookup, unrelated.
+
+  JOB 5 (Buy offWindow fixture): scripts/offWindowCheck.mjs. No live search ever produced a real
+  off-window card to screenshot (tried again this round, no luck), so this proves the RENDERING instead:
+  it extracts js/onebox.js's offWindowLabel and api/buy.js's CLIENT-string drawerHtml - the actual shipped
+  functions, not reimplementations - runs each in a vm sandbox (document/window/fetch/localStorage
+  stubbed; fetch is a rejected stub so a real network call is structurally impossible, not just avoided by
+  convention) with a stubbed offWindow:true card, and asserts both render the identical "A {year} car, a
+  few years from the {searched year} searched." text. Verified it actually catches drift, not just a
+  rubber stamp: temporarily changed one side's wording, confirmed the script fails and exits 1, then
+  restored and confirmed 8/8 pass again. Zero DB, zero OCD, zero live endpoint, no key.
+  FOR LANE B: please register `node scripts/offWindowCheck.mjs` in scripts/prePush.mjs (same family as
+  the other pure-logic checks like rangeLadderCheck.mjs) - not done here per the instruction to leave
+  prePush.mjs to you.
+
+  JOB 6 (copied wording, for a later shared module - nothing built this run): file:line for every copy
+  found.
+  - Bid age ("updated 1h 12m ago" / "Bid as of ... PT"), THREE copies of the same bidAge()/BIDFMT/
+    stampBids-family code: api/buy.js (Lane C's original; CLIENT string literal, search `function
+    bidAge` - the whole CLIENT is one source line so a plain line number isn't meaningful); js/onebox.js
+    lines 225-235 (Lane A, explicitly commented "Ported verbatim from api/buy.js's bidAge/BIDFMT/
+    stampBids"); api/history.js lines 425-435 (Lane A, same comment/pattern, VIN history page).
+  - Off-window wording ("A {year} car, a few years from the {searched} searched."), TWO copies: js/
+    onebox.js lines 823-834 (function offWindowLabel) and api/buy.js (CLIENT string literal, search
+    `var ow = (c.offWindow` - inside function drawerHtml). Text matches today (proven by Job 5's script);
+    nothing to fix, just recorded so the eventual shared module covers both constants, not just one.
