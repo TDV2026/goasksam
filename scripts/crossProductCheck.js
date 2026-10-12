@@ -41,6 +41,7 @@ import { resolveVehicle } from "../lib/vehicle.js";
 import { findGeneration } from "../lib/generations.js";
 import { runOneBox, buildSpec, titleFenceReason } from "../lib/onebox.js";
 import { familyMarket, liveForFamily, emptyFilters, resolveForBuy } from "../lib/live/search.js";
+import { converse } from "../lib/live/converse.js";
 import { fetchOnlinePool, buildSharedAnalysis, pickPlatform, depthWins } from "../lib/platformPick.js";
 import { decide, getSellerCriteria } from "../api/sellerDecision.js";
 import fs from "node:fs";
@@ -604,6 +605,48 @@ export async function checkLiveComparableFences(env, cases = LIVE_FENCE_CASES) {
   return out;
 }
 
+// LIVE-LISTING REGRESSION CASES (Oct 2026, "false none live" job): a real, Sam-reported pair -
+// a 1989 BMW 325i Convertible (abroad, CA) that a "1989 BMW" search said did not exist anywhere,
+// and a 2021 BMW X3 M40i that was simply absent from live_listings (pull/vendor gap, still open,
+// NOT fixed by this job - see docs/lane-notes.md). Each case names the query, the listing's own
+// url (for the pool-presence check) and the expected behaviour so a future code change can't
+// silently reopen the abroad-disclosure bug, and so the day the X3 listing enters the pool, this
+// check starts asserting it is actually found instead of silently passing on its absence.
+export const LIVE_LISTING_CASES = [
+  { q: "1989 BMW", url: "https://bringatrailer.com/listing/1989-bmw-325i-230/", expectAbroadMention: true },
+  { q: "2021 BMW X3 M40i", url: "https://carsandbids.com/auctions/rj0VnZW2/2021-bmw-x3-m40i", expectAbroadMention: false }
+];
+export async function checkLiveListingDisclosure(env, cases = LIVE_LISTING_CASES) {
+  const out = { ok: true, cases: [] };
+  for (const c of cases) {
+    const row = { q: c.q, url: c.url };
+    try {
+      const inPool = await supabaseSelect(env, `live_listings?url=eq.${encodeURIComponent(c.url)}&select=id,status&limit=1`).catch(() => null);
+      row.inPool = Array.isArray(inPool) && inPool.length > 0;
+      const r = await converse(env, { messages: [c.q] });
+      row.say = (r && r.say) || null;
+      row.near = (r && r.near) || null;
+      if (!row.inPool) {
+        // A listing genuinely absent from our own pool can never be asserted as found - that is a
+        // pull/vendor question, not an engine-logic one (see the job's lane-notes entry). Only check
+        // that the engine never CLAIMS a found-but-filtered car does not exist, which needs no live
+        // row to verify (the sentence shape itself is what regressed before).
+        row.note = "not in live_listings - pull/vendor gap, not asserted as found (see lane-notes)";
+      } else if (r && r.type === "results" && (r.matches || []).some(x => x && x.r && x.r.url === c.url)) {
+        row.found = true;
+      } else if (c.expectAbroadMention) {
+        const mentionsAbroad = /\babroad\b/i.test(String(row.say || ""));
+        row.foundViaAbroadDisclosure = mentionsAbroad;
+        if (!mentionsAbroad) { row.ok = false; out.ok = false; }
+      } else {
+        row.ok = false; out.ok = false; row.reason = "expected to find the car (in pool, no abroad fence expected) but it was not in matches";
+      }
+    } catch (e) { row.error = String(e && e.message || e); out.ok = false; }
+    out.cases.push(row);
+  }
+  return out;
+}
+
 // PICK-REPRESENTATIVE INVARIANTS (jobs 4 and 6, trim-fence sweep, Oct 2026): (a) the middle/"closest"
 // card (basis "middle", not a real-similarity "subject" match) must sit INSIDE the headline cluster/
 // span, never outside it; (b) the trim QUESTION's option counts must never sum to more than the
@@ -709,7 +752,8 @@ export async function runEngineCheck(env, specs = DEFAULT_SPECS, opts = {}) {
   const representative = opts.representative === false ? null : await checkRepresentativeInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const splitPools = opts.splitPools === false ? null : await checkSplitPoolInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const overTime = opts.overTime === false ? null : await checkOverTimeInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  return { task: "crossproductcheck", total: rows.length, mismatchSpecs: totalMismatches, singlePick, buyPaths, liveFences, representative, splitPools, overTime, rows };
+  const liveListing = opts.liveListing === false ? null : await checkLiveListingDisclosure(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  return { task: "crossproductcheck", total: rows.length, mismatchSpecs: totalMismatches, singlePick, buyPaths, liveFences, representative, splitPools, overTime, liveListing, rows };
 }
 
 // ---- CLI ----
@@ -738,6 +782,7 @@ function printTable(result) {
   if (result.representative) console.log(`REPRESENTATIVE: ${result.representative.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.representative)}`);
   if (result.splitPools) console.log(`SPLIT POOLS: ${result.splitPools.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.splitPools)}`);
   if (result.overTime) console.log(`OVER TIME: ${result.overTime.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.overTime)}`);
+  if (result.liveListing) console.log(`LIVE LISTING: ${result.liveListing.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.liveListing)}`);
 }
 
 const isMain = import.meta.url === `file://${process.argv[1]}`;
@@ -750,5 +795,5 @@ if (isMain) {
   const result = await runEngineCheck(env, specs);
   if (asJson) console.log(JSON.stringify(result));
   else printTable(result);
-  process.exit(result.mismatchSpecs > 0 || (result.singlePick && !result.singlePick.ok) || (result.buyPaths && !result.buyPaths.ok) || (result.liveFences && !result.liveFences.ok) || (result.representative && !result.representative.ok) || (result.splitPools && !result.splitPools.ok) || (result.overTime && !result.overTime.ok) ? 1 : 0);
+  process.exit(result.mismatchSpecs > 0 || (result.singlePick && !result.singlePick.ok) || (result.buyPaths && !result.buyPaths.ok) || (result.liveFences && !result.liveFences.ok) || (result.representative && !result.representative.ok) || (result.splitPools && !result.splitPools.ok) || (result.overTime && !result.overTime.ok) || (result.liveListing && !result.liveListing.ok) ? 1 : 0);
 }

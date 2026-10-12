@@ -118,15 +118,18 @@ console.log("\n-- deterministic engine checks --");
     record("representative invariants (archive)", "SKIP", "SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set in this environment");
     record("live-comparable fence check (archive)", "SKIP", "SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set in this environment");
     record("split-pool invariants (archive)", "SKIP", "SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set in this environment");
+    record("live-listing disclosure (archive)", "SKIP", "SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set in this environment");
     record("63-spec cross-product sweep (archive)", "SKIP", "SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set in this environment");
   } else {
-    const { checkRepresentativeInvariants, checkLiveComparableFences, checkSplitPoolInvariants, checkOverTimeInvariants, runEngineCheck, DEFAULT_SPECS } = await import("./crossProductCheck.js");
+    const { checkRepresentativeInvariants, checkLiveComparableFences, checkSplitPoolInvariants, checkOverTimeInvariants, checkLiveListingDisclosure, runEngineCheck, DEFAULT_SPECS } = await import("./crossProductCheck.js");
     const rep = await checkRepresentativeInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
     record("representative invariants (archive)", rep.ok ? "PASS" : "FAIL", rep.ok ? "" : JSON.stringify(rep));
     const live = await checkLiveComparableFences(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
     record("live-comparable fence check (archive)", live.ok ? "PASS" : "FAIL", live.ok ? "" : JSON.stringify(live));
     const sp = await checkSplitPoolInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
     record("split-pool invariants (archive)", sp.ok ? "PASS" : "FAIL", sp.ok ? "" : JSON.stringify(sp));
+    const lld = await checkLiveListingDisclosure(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+    record("live-listing disclosure (archive)", lld.ok ? "PASS" : "FAIL", lld.ok ? "" : JSON.stringify(lld));
     const ot = await checkOverTimeInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
     record("over-time invariants (archive)", ot.ok ? "PASS" : "FAIL", ot.ok ? "" : JSON.stringify(ot));
     // 63-spec cross-product sweep (Oct 2026, one-engine-entry-point job; STRICTENED Oct 2026,

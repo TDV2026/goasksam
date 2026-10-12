@@ -1343,12 +1343,12 @@ async function handleOps(req, res) {
     const batchOffset = Math.max(0, Number(req.query?.batchOffset) || 0);
     const batchSize = req.query?.batchSize ? Math.min(12, Math.max(1, Number(req.query.batchSize) || 0)) : null;
     if (batchSize) specs = specs.slice(batchOffset, batchOffset + batchSize);
-    // &buypaths=0/&livefences=0/&representative=0/&splitpools=0/&overtime=0 skip those cases (a
-    // batched caller runs each once, not per batch).
+    // &buypaths=0/&livefences=0/&representative=0/&splitpools=0/&overtime=0/&livelisting=0 skip
+    // those cases (a batched caller runs each once, not per batch).
     const result = await runEngineCheck(env, specs, {
       buyPaths: req.query?.buypaths !== "0", liveFences: req.query?.livefences !== "0",
       representative: req.query?.representative !== "0", splitPools: req.query?.splitpools !== "0",
-      overTime: req.query?.overtime !== "0"
+      overTime: req.query?.overtime !== "0", liveListing: req.query?.livelisting !== "0"
     });
     if (batchSize) { result.batchOffset = batchOffset; result.batchSize = batchSize; result.batchTotal = (req.query?.specs ? String(req.query.specs).split("|").filter(Boolean) : DEFAULT_SPECS).length; }
     return res.status(200).json(result);
