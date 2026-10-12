@@ -152,16 +152,9 @@
   }
   // samTakeHtml removed: the "Got it, I'm looking at comparable sales for your ..." interstitial is
   // gone (replaced by the narrated loader, item 3) and carried ownership language (item 6).
-  // WHY IT LOOKS LIKE THIS: the method, in plain words, under "Ready to sell?". Thin and single-sale
-  // reads (no range: the thin tier, or a result with too few sales for a band) get WHY SO LITTLE.
-  function whyNoteHtml(d) {
-    var thin = d.tier === "thin" || (d.tier === "result" && !d.cluster && Number(d.poolN) > 0 && Number(d.poolN) < 8);
-    var label = thin ? "Why so little" : "Why it looks like this";
-    var text = thin
-      ? "Because that’s all that sold. We’d rather show you every real sale than a number we made up from them."
-      : "Every sale here comes from a real auction, matched to the car’s trim, body and gearbox, with non-comparable sales shown separately.";
-    return '<section class="whynote" data-stage="note"><span class="eyebrow">' + esc(label) + '</span><p>' + esc(text) + '</p><a href="/how-sam-decides">How Sam decides &#8594;</a></section>';
-  }
+  // whyNoteHtml removed (Lane A, Job 4): the bottom "Why it looks like this" block repeated the
+  // "How Sam decided" disclosure already inside the card and the How Sam decides link already in
+  // the nav rail (lib/appShell.js). Zero other callers; .whynote carried no CSS rule.
   // LIVE PANEL: when live_listings holds cars of this family, "{N} like this are live right now" with
   // up to 3 compact rows and a link to /buy. Nothing renders when there are none (or on any error).
   function livePanelSlot() { return '<div id="ob-live" hidden></div>'; }
@@ -1285,7 +1278,6 @@
     body += marketReadHtml(d);
     body += sellHtml();
     body += samOnItHtml(d, m);
-    body += whyNoteHtml(d);
     return body;
   }
   function samMsgHtml(paras, tag, cls) {
@@ -1538,7 +1530,6 @@
     body += siblingHtml(ht);
     // One Box NEVER recommends a house or platform; "Ready to sell?" is the only bridge to /sell.
     body += sellHtml();
-    body += whyNoteHtml(d);
     return body;
   }
 
