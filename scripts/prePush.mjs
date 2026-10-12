@@ -179,6 +179,15 @@ try {
   record("before it ends fixture day (scripts/beforeItEndsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 
+// The engine's fallback rung (Oct 2026, Lane C): Lane B's new fields faked on fixtures through the real Buy, Task door
+// and Task email renderers; fails if a fields-absent render changes or a rung line breaks a copy rule. No network.
+try {
+  const out = execSync("node scripts/rungCheck.mjs", { encoding: "utf8" });
+  record("fallback rung fixtures (scripts/rungCheck.mjs)", "PASS", (out.match(/rungCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("fallback rung fixtures (scripts/rungCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+
 // ---- 3 & 4. BROWSER CHECK (Lane C's pushCheck.mjs) + BASELINE ----
 console.log(`\n-- browser check via scripts/pushCheck.mjs (${BASE}) --`);
 let browserOutput = "";

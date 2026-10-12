@@ -23,6 +23,9 @@ import { findGeneration } from "../lib/generations.js";
 import { converse } from "../lib/live/converse.js";
 import { listingDetail, facetsOf, cardFlag, seenCount, listingSays, listingSamFacts, specOf, ladderSteps, walkLadder, panelOf } from "../lib/live/search.js";
 import { vinAppearances } from "./_historyData.js";
+import { applyRung, countText } from "../lib/live/rung.js";
+// A count that opens a sentence: "Three", "14", "3,715" (one to ten as words, 11 and up as digits).
+const CountText = n => { const s = countText(n); return s.charAt(0).toUpperCase() + s.slice(1); };
 import { validateBearer } from "../lib/_auth.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { checkCeiling, testLimits, CALM, buyModelGuard, recordBuyModelTurn, noteBuySearch, BUY_MODEL_PAUSED } from "../lib/_ceilings.js";
@@ -85,11 +88,12 @@ useNamer(nameOf);   // Before it ends names a car the way its card does
 async function enrich(env, x) {
   let [market, seen, timeline] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts), seenBefore(env, x.r.vin_norm), timelineOf(env, x)]);
   if (market && market.kind === "pending") market = await listingMarket(env, x.r, x.facts);   // one more go, warm now
+  market = applyRung(market);   // the engine's fallback rung, when it names one (lib/live/rung.js); else unchanged
   return { ...cardOf(x), market, seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name: await nameOf(env, x) };
 }
 async function enrichFast(env, x) {
   const [market, seen, timeline, name] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts, { noBlock: true }), seenBefore(env, x.r.vin_norm), timelineOf(env, x), nameOf(env, x)]);
-  return { ...cardOf(x), market, seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name };
+  return { ...cardOf(x), market: applyRung(market), seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name };
 }
 async function logSearch(env, v, anonId) {
   try {
@@ -199,7 +203,7 @@ async function handler(req, res) {
       const ids = (Array.isArray(b.ids) ? b.ids : []).map(Number).filter(Number.isFinite).slice(0, 60);
       if (!ids.length) return res.status(200).json({ cards: [] });
       const rows = await liveRows(env, `id=in.(${ids.join(",")})`);
-      const cards = await Promise.all(rows.map(r => { const facts = listingFacts(r); return Promise.all([listingMarket(env, r, facts), seenBefore(env, r.vin_norm), timelineOf(env, { r })]).then(async ([market, seen, timeline]) => { if (market && market.kind === "pending") market = await listingMarket(env, r, facts); return { id: r.id, market, seen_before: seen, timeline }; }); }));
+      const cards = await Promise.all(rows.map(r => { const facts = listingFacts(r); return Promise.all([listingMarket(env, r, facts), seenBefore(env, r.vin_norm), timelineOf(env, { r })]).then(async ([market, seen, timeline]) => { if (market && market.kind === "pending") market = await listingMarket(env, r, facts); return { id: r.id, market: applyRung(market), seen_before: seen, timeline }; }); }));
       return res.status(200).json({ cards });
     }
     // The Market Check panel under a card: the card's own spec key and engine answer (lib/live/search.js panelOf).
@@ -208,7 +212,10 @@ async function handler(req, res) {
       if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ ok: false });
       const rows = await liveRows(env, `id=eq.${id}`);
       const r = rows && rows[0]; if (!r) return res.status(200).json({ market: null, representative: null });
-      return res.status(200).json((await panelOf(env, r, listingFacts(r))) || { market: null, representative: null });
+      const p = (await panelOf(env, r, listingFacts(r))) || { market: null, representative: null };
+      // The rung (lib/live/rung.js): a not_enough_data answer is count-only, so its three priced sales are not shown.
+      const pm = applyRung(p.market);
+      return res.status(200).json({ ...p, market: pm, representative: pm && pm.rung === "not_enough_data" ? null : p.representative });
     }
     // Probe (PROBE_KEY): live listings for the card tests (repeat VINs, no photo, no reserve, long titles).
     // Probe: the landing's example pick (chips, example, and what each candidate search returned).
@@ -448,7 +455,7 @@ async function handler(req, res) {
       .sort((a, b2) => { const ab = c => (String(c.r.country || "").toUpperCase() && String(c.r.country).toUpperCase() !== "US" ? 2 : 0) + (c.unknown.length ? 1 : 0); return ab(a) - ab(b2); });
     const capped = ordered.slice(0, MAX);
     const first = await Promise.all(capped.slice(0, FIRST).map(x => enrich(env, x)));
-    const emptyMarket = rows.length ? null : await familyMarket(env, v, f);
+    const emptyMarket = rows.length ? null : applyRung(await familyMarket(env, v, f));
     const rest = capped.slice(FIRST).map(cardOf);
     logSearch(env, v, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
     buyRun({ answer_type: rows.length ? "range" : "zero_result", result_count: capped.length, live_count: rows.length,
@@ -516,7 +523,7 @@ async function converseOut(env, b) {
     })).then(gs => gs.filter(g => g.n || g.setAside.length));
     const [groups, maybeGroups] = await Promise.all([shape(r.groups), shape(r.maybeGroups)]);
     const total = groups.concat(maybeGroups).reduce((k, g) => k + g.n, 0);
-    const say = r.near ? r.say : total && seenN ? `${total} live, grouped by model. ${sauce(seenN)}` : (r.say || null);
+    const say = r.near ? r.say : total && seenN ? `${CountText(total)} live, grouped by model. ${sauce(seenN)}` : (r.say || null);
     logSearch(env, null, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
     return { type: "groups", say, groups, maybeGroups, maybeKeys: r.maybeKeys || [], filters: r.filters || null, geo: !!r.geo, footnote: !!r.footnote, perCard: !!r.perCard };
   }
@@ -534,12 +541,12 @@ async function converseOut(env, b) {
   let say = r.say;
   // Count only the confirmed matches; the ones whose listing doesn't say are named as such.
   const allM = r.matches || [], unsure = allM.filter(x => (x.unknown || []).length).length, sureN = allM.length - unsure;
-  const countLine = (unsure && sureN) ? `${sureN} live, and ${unsure} more whose listing doesn't say.` : `${allM.length} live.`;
+  const countLine = (unsure && sureN) ? `${CountText(sureN)} live, and ${countText(unsure)} more whose listing doesn't say.` : `${CountText(allM.length)} live.`;
   // A nearest-years result keeps the shared sentence (lib/live/search.js nearLine) as its opener.
   if (r.near) say = r.say;
-  else if (!r.closest && !r.outOfScope && /^There are \d+ live right now\./.test(r.say || "") && (seenN || (unsure && sureN))) say = countLine + (seenN ? " " + sauce(seenN) : "") + (r.geo ? " Closest first." : "");
+  else if (!r.closest && !r.outOfScope && /^There are [\w,]+ live right now\./.test(r.say || "") && (seenN || (unsure && sureN))) say = countLine + (seenN ? " " + sauce(seenN) : "") + (r.geo ? " Closest first." : "");
   else if (seenN && !r.closest && !r.outOfScope) say = allM.length === 1 ? r.say + " It has been through auction before, and Sam has its history." : (r.say || "") + " " + sauce(seenN);
-  return { type: "results", say: say, near: r.near || null, market: r.market || null, outOfScope: !!r.outOfScope, geo: !!r.geo, closest: !!r.closest, total: cards.length, cards, setAside, facets: r.closest ? null : facetsOf(ordered), filters: r.filters || null };
+  return { type: "results", say: say, near: r.near || null, market: applyRung(r.market) || null, outOfScope: !!r.outOfScope, geo: !!r.geo, closest: !!r.closest, total: cards.length, cards, setAside, facets: r.closest ? null : facetsOf(ordered), filters: r.filters || null };
 }
 // Set-aside cars (modified, engine-swapped, project) are never cards: one quiet line each, with a thumbnail.
 const ASIDE_KINDS = { engine_swap: "engine-swapped", modified: "modified", project: "a project car" };
@@ -562,7 +569,7 @@ async function detailOut(env, b, opts = {}) {
   const facts = listingFacts(row);
   const [detail, hist] = await Promise.all([listingDetail(env, row), row.vin_norm ? vinAppearances(env, row.vin_norm) : Promise.resolve(null)]);
   const history = hist && hist.appearances ? hist.appearances.map(a => ({ kind: a.kind, date: a.date, house: a.house, price: a.kind === "sale" ? a.priceUsd : a.bidUsd, miles: a.mileage, url: a.url })) : [];
-  return { ok: true, card: cardOf({ r: row, facts, gen: null, unknown: [] }), detail, history, historyUrl: row.vin_norm && history.length ? `/vin/${row.vin_norm}` : null };
+  return { ok: true, card: cardOf({ r: row, facts, gen: null, unknown: [] }), detail: detail && detail.market ? { ...detail, market: applyRung(detail.market) } : detail, history, historyUrl: row.vin_norm && history.length ? `/vin/${row.vin_norm}` : null };
 }
 // ---------------------------------------------------------------- saved searches (signed in)
 async function savedSearches(env, req, res, b) {
@@ -669,8 +676,7 @@ async function geoCoverage(env) {
 }
 
 // "Three have been through auction before, and Sam has their history." (small counts in words)
-const WORDS = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve"];
-function sauce(n) { const w = WORDS[n] || String(n); return n === 1 ? "One has been through auction before, and Sam has its history." : `${w} have been through auction before, and Sam has their history.`; }
+function sauce(n) { const w = CountText(n); return n === 1 ? "One has been through auction before, and Sam has its history." : `${w} have been through auction before, and Sam has their history.`; }
 
 // ---------------------------------------------------------------- the conversation, run by Claude
 // POST {action:"chat", messages:[{role,content}], state:{filters}, turns} -> text/event-stream:

@@ -5569,3 +5569,38 @@ gates, confirmed on real cars, not assumed**:
       job") running in parallel - not caused by, or related to, this round's changes. The facts-line copy fix is
       verified correct independent of the count (no pluralization, no dollar figures, count spelled when <=10),
       and will read whatever number Lane B's fix lands on with no further change needed here.
+
+- 2026-10-12 (Lane C): FALLBACK RUNG RENDERING ON BUY, TASKS AND TASK EMAILS, DORMANT UNTIL LANE B LANDS THE FIELDS.
+  * One reader: lib/live/rung.js. applyRung(m) takes the market object Buy, Tasks and the emails already read
+    (listingMarket, the same pool as Market Check) and, ONLY when m.rungLabel is a non-empty string, adds
+    rungLines (the label; on fallbackRung "sibling" also "These are {siblingName} sales, not this exact car.")
+    and doorName (the sibling, else the label). On "not_enough_data" it makes the object count-only (low, high,
+    span, recent, miles band, take cleared) and the sentence "Three sales on record. No range to show yet."
+    No rungLabel: the SAME object comes back, so every surface renders exactly as today (proven byte for byte
+    against origin/main: Buy card + drawer + door HTML, Before it ends, the daily Task section and sold-car
+    section). A label carrying "$" is never printed; an en or em dash in a label prints as "to". Only Lane B's
+    six rung names count; an old ladder name (class_era, thin) never triggers anything.
+  * Where it renders: Buy card Sam line, Market Check drawer, group heading, Sam's notes, Buy chat facts
+    (samChat specFacts, so the model never says "Only N" on not_enough_data); the Task door ("Look for the next
+    sale of {doorName}") and Task settings (the Keep looking row shows the rung label; /api/watch list returns
+    rung_label from watches.spec.rung, a jsonb key, no SQL); the sold-car Task email section (rung lines
+    first, "You asked Sam to tell you about the next sale of {name}."); the daily Task section and Before it ends
+    (rung lines right above the range line; the bid is never placed against a sibling's range, the sibling's
+    range is shown labelled instead; past-year-only rule unchanged, so no range line means no rung line).
+  * Counts: one to ten as words, 11 and up as digits with separators, in Buy's count sentences ("Three live.",
+    "There are seven live right now.", "Based on eight sales", the auction-history line), the drawer, the
+    landing example, "And three more are in your Task.", "Sam saw three sell: ...", "Three updates from your
+    Tasks". The Buy results count tile ("12 live Porsche 911s") is a stat and left as digits.
+  * /admin: "Summaries refreshed not yet" now reads "Summaries not refreshed yet".
+  * Analytics: task_created gains optional fallback_rung (sibling | not_enough_data) in the catalog and
+    docs/analytics-events.md. Sold-car Tasks take it from the read that names the Task; search Tasks from the
+    stored Buy read for the Task's car (noBlock, 2.5s cap, never waits on the engine). No new events.
+  * Proof: scripts/rungCheck.mjs (in prePush) fakes the fields on fixtures (lib/tasks/rungFixture.js); probe
+    api/tasks.js task_email_tests {fixture:"rung", send:true} sends the rendered emails to feedback@ only.
+  * FOR LANE B (needed for the rendering to go live; Lane C cannot touch lib/live/search.js): pass rungLabel,
+    fallbackRung and siblingName through coreOf, classEraCoreOf (or its successor) and listingMarket's `m`
+    whitelist (search.js ~line 418), and through panelOf's market, then bump SPEC_V so stored rows recompute.
+    Until then Buy/Tasks never see the fields, whatever the engine answers.
+  * After (not Must): the fixture option on task_email_tests and lib/tasks/rungFixture.js can go once the live
+    fields are confirmed; Market Check's own door (public/js/onebox.js obWatchArmed.label) is Lane A's and reads
+    the label /api/watch returns, so it picks up doorName with no change.

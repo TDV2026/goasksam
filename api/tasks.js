@@ -244,6 +244,27 @@ async function handler(req, res) {
       }
       return res.status(200).json(out);
     }
+    // The engine's fallback rung, dormant until Lane B ships it (lib/live/rung.js): the combined daily email and Before
+    // it ends rendered from FIXTURE market objects (lib/tasks/rungFixture.js, the new fields faked), sent ONLY to our own
+    // address, with the real List-Unsubscribe headers. No engine read, no table write, no person's Task. Remove with the
+    // fixtures once Lane B's fields are live.
+    if (req.method === "POST" && req.body && req.body.action === "task_email_tests" && req.body.fixture === "rung" && probeOk(req)) {
+      const { rungEmails, FIXTURE_USER } = await import("../lib/tasks/rungFixture.js");
+      const { emailsOffHeaders } = await import("../lib/tasks/tasks.js");
+      const { unsubscribeHeaders } = await import("../lib/live/buyAlerts.js");
+      const { sendTaskEmail } = await import("../lib/_email.js");
+      const cases = (Array.isArray(req.body.cases) ? req.body.cases : ["sibling", "ned", "absent"]).filter(c => ["sibling", "ned", "absent", "widened"].includes(c));
+      const out = [];
+      for (const c of cases) {
+        const { daily, before } = rungEmails(c);
+        for (const [kind, m, headers] of [["daily", daily, emailsOffHeaders(FIXTURE_USER)], ["before_it_ends", before, unsubscribeHeaders(FIXTURE_USER)]]) {
+          const subject = `[Fixture: ${c}] ${m.subject}`;
+          const r = req.body.send ? await sendTaskEmail({ to: "feedback@goasksam.com", subject, text: m.text, html: m.html, headers }) : null;
+          out.push({ case: c, kind, subject, sent: r ? (r.ok ? "sent" : r.reason || r.error || r.status || "failed") : "not sent", resend_id: r && r.id || null, html: m.html, text: m.text, list_unsubscribe: !!headers["List-Unsubscribe"] });
+        }
+      }
+      return res.status(200).json({ to: "our own address", emails: out });
+    }
     if (req.method === "POST" && req.body && req.body.action === "task_email_tests" && probeOk(req)) {
       const { taskEmailBlocks, taskEmailBody, taskEmailSubject, cardOfMatch } = await import("../lib/tasks/tasks.js");
       const { listingFacts } = await import("../lib/live/search.js");
