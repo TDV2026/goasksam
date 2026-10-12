@@ -3483,6 +3483,13 @@ async function handler(req, res) {
         oneBox.identityQuestion = a.identityQuestion;
         oneBox.factsBlock = a.factsBlock;
         oneBox.reasonFlag = a.reasonFlag;
+        // Round 7 (Oct 2026): fallbackRung/rungLabel/siblingName, dormant until Lane B's model-first
+        // ladder sets them on `a` - undefined today, so these three lines are a no-op (JSON drops an
+        // undefined key) until then. fallbackRung was already read above for the search_run event;
+        // this is the first place it (and the two brand-new fields) reach the page itself.
+        oneBox.fallbackRung = a.fallbackRung;
+        oneBox.rungLabel = a.rungLabel;
+        oneBox.siblingName = a.siblingName;
       }
       if (oneBox && !obRefine && vehicle && vehicle.make) {
         logEvent({ supabaseUrl, supabaseKey }, { event: EVENTS.SEARCH, tool: "market_check", visitorId: readVisitorId(req), props: { key: `${vehicle.make}|${vehicle.model || ""}` } }).catch(() => {});

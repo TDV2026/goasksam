@@ -799,7 +799,14 @@
     // data-gas-listing-id (Round 6 Job 1, tracking fix): the record's own id (o.id, already on
     // every card the engine shapes), so receipt_opened's sale_id is the sale, never the platform
     // slug (o.slug) it was wrongly sent as - the shared handler (lib/appShell.js) reads this.
-    var linkAttrs = o.href ? (' href="' + esc(o.href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(o.slug || "") + '" data-gas-event="receipt_click" data-gas-source="' + esc(o.slug || "") + '" data-gas-listing-id="' + esc(o.id != null ? o.id : "") + '"') : "";
+    // Round 7 Job 3: receipt_click only fires when o.id is actually present - sale_id is a REQUIRED
+    // catalog field, and vinHeroCardHtml's match (lib/_flags.js findVinArchiveMatch, not touched
+    // this round) does not select an id column yet, so sending "unknown" for every exact-car hero
+    // click would be a silently-wrong required field, not an honest gap. The card itself is
+    // unaffected - it still opens the listing - only the tracking event is withheld until that
+    // query carries an id.
+    var gasAttrs = (o.href && o.id != null) ? (' data-gas-event="receipt_click" data-gas-source="' + esc(o.slug || "") + '" data-gas-listing-id="' + esc(o.id) + '"') : "";
+    var linkAttrs = o.href ? (' href="' + esc(o.href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(o.slug || "") + '"' + gasAttrs) : "";
     var titleHtml = o.title
       ? (o.href ? ('<h3 class="ctitle"><a' + linkAttrs + ' aria-label="Open the listing">' + esc(o.title) + "</a></h3>") : ('<h3 class="ctitle">' + esc(o.title) + "</h3>"))
       : "";
@@ -1498,10 +1505,13 @@
     // which never gated anything. Name the real number instead; n is still stated, honestly, as
     // what sold in total.
     var onlineN = Number.isFinite(ht && ht.onlineN) ? ht.onlineN : null;
+    // Round 7 (Oct 2026): counts one to ten spelled in sentences, 11+ digits with a thousands
+    // separator - obNumWord/obNumWordLow already do both; this prose just hadn't been routed
+    // through them yet.
     var why = (onlineN != null && onlineN < n)
-      ? "Only " + onlineN + " sold through live online marketplaces in that time, too few to mark a typical band there"
+      ? "Only " + obNumWordLow(onlineN) + " sold through live online marketplaces in that time, too few to mark a typical band there"
       : "Too few to mark a typical band";
-    return '<h1 class="thin-head lead">' + lint("<span class=\"ct\">" + n + " " + esc(plural) + "</span> have sold in " + win + ". " + why + ", so here’s what they went for.", "ht.hero") + "</h1>";
+    return '<h1 class="thin-head lead">' + lint("<span class=\"ct\">" + obNumWord(n) + " " + esc(plural) + "</span> have sold in " + win + ". " + why + ", so here’s what they went for.", "ht.hero") + "</h1>";
   }
   // Paired sales: same chassis at a house AND online. Two receipts side by side, NO percentage
   // until a model clears 3 such pairs (design: the % stays dormant below that).
@@ -1531,24 +1541,35 @@
   // when the caller's own headline already states what was measured (the thin tier's 300SL fix),
   // so the same sentence is never printed twice.
   var FACTS_REASON_SENTENCE = {
-    too_few_online_for_a_range: function (fb) { return (fb && fb.onlineLiquidityN != null) ? ("Only " + fb.onlineLiquidityN + " sold through live online marketplaces in that time, too few to mark a typical band.") : "Too few sold through live online marketplaces in that time to mark a typical band."; },
+    too_few_online_for_a_range: function (fb) { return (fb && fb.onlineLiquidityN != null) ? ("Only " + obNumWordLow(fb.onlineLiquidityN) + " sold through live online marketplaces in that time, too few to mark a typical band.") : "Too few sold through live online marketplaces in that time to mark a typical band."; },
     too_few_in_window: function () { return "Too few sales in the window to mark a typical band."; },
     too_spread_unresolved: function () { return "These sales vary too widely in spec and condition to trade as one market."; },
     body_not_offered_for_this_car: function () { return "That body style was not offered for this car."; }
   };
+  function monthLabelFromYM(ym) {
+    var p = String(ym || "").split("-");
+    return (p.length === 2 && MONTHS_FULL[Number(p[1]) - 1]) ? (MONTHS_FULL[Number(p[1]) - 1] + " " + p[0]) : String(ym || "");
+  }
   function factsBlockHtml(d, includeReason) {
     var fb = d && d.factsBlock; if (!fb || !fb.count) return "";
+    // Round 7 (Oct 2026): the new bottom rung (d.fallbackRung === "not_enough_data") is count-only
+    // by rule - no dollar figures at all, not even lowest/highest - matching the class-era rung's
+    // own, already-shipped treatment. Dormant until Lane B sets fallbackRung; every other caller
+    // (thin/refusal, which genuinely are this car's own sales, just too few for a band) keeps its
+    // existing lowest/highest/latest-price shape exactly as today.
+    var countOnly = d && d.fallbackRung === "not_enough_data";
     // Number words one to ten in sentences (copy rule): this line leads with the count, so cap()
     // alone (meant for a letter-starting string) would silently leave a bare leading digit un-
-    // spelled - obNumWord already handles the one-to-ten case and falls back to the digit above ten.
+    // spelled - obNumWord already handles the one-to-ten case and the thousands separator above ten.
     var bits = [obNumWord(fb.count) + (fb.count === 1 ? " sale" : " sales")];
     if (fb.window) bits.push(fb.window);
     var line1 = cap(bits.join(" "));
-    if (fb.lowest != null && fb.highest != null) line1 += (fb.lowest === fb.highest) ? (", sold at " + usd(fb.lowest)) : (", sold between " + usd(fb.lowest) + " and " + usd(fb.highest));
-    // Skip "most recently" on a single sale - it would just restate the same price a second time.
-    if (fb.count !== 1 && fb.latestPrice != null && fb.latestMonth) {
-      var p = String(fb.latestMonth).split("-"), mn = (p.length === 2 && MONTHS_FULL[Number(p[1]) - 1]) ? (MONTHS_FULL[Number(p[1]) - 1] + " " + p[0]) : fb.latestMonth;
-      line1 += ", most recently " + usd(fb.latestPrice) + " in " + mn;
+    if (!countOnly && fb.lowest != null && fb.highest != null) line1 += (fb.lowest === fb.highest) ? (", sold at " + usd(fb.lowest)) : (", sold between " + usd(fb.lowest) + " and " + usd(fb.highest));
+    if (countOnly && fb.latestMonth) {
+      line1 += ", most recently " + esc(monthLabelFromYM(fb.latestMonth));
+    } else if (!countOnly && fb.count !== 1 && fb.latestPrice != null && fb.latestMonth) {
+      // Skip "most recently" on a single sale - it would just restate the same price a second time.
+      line1 += ", most recently " + usd(fb.latestPrice) + " in " + esc(monthLabelFromYM(fb.latestMonth));
     }
     line1 += ".";
     var reasonFn = includeReason !== false ? FACTS_REASON_SENTENCE[d.reasonFlag] : null;
@@ -1598,9 +1619,12 @@
   }
   // Number words one to ten in sentences (copy rule, result-page-polish round): extended from five
   // to ten - reused by the live-right-now headline/placing sentence and the "see all N live" footer.
+  // Round 7 (Oct 2026): eleven and up render as digits with a thousands separator (3,715), never a
+  // bare "3715" - the one shared spot every caller already routes through, so fixing it here
+  // covers every surface, including the new fallback-ladder rendering below.
   var NUMWORD = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"];
-  function obNumWord(n) { return NUMWORD[n] || String(n); }
-  function obNumWordLow(n) { return (NUMWORD[n] || String(n)).toLowerCase(); }
+  function obNumWord(n) { return NUMWORD[n] || Number(n).toLocaleString("en-US"); }
+  function obNumWordLow(n) { var w = NUMWORD[n]; return w ? w.toLowerCase() : Number(n).toLocaleString("en-US"); }
   function classEraHtml(d, m) {
     var ce = d.classEra;
     htLastD = d;   // so gearboxLabel can read the resolved model for the receipt rows
@@ -1652,6 +1676,22 @@
     return out;
   }
 
+  // Fallback-ladder rendering (Round 7, Oct 2026): DORMANT until Lane B's model-first ladder lands
+  // d.rungLabel/d.fallbackRung/d.siblingName on the engine answer, replacing the old make-era
+  // fallback. Reads only those fields, verbatim - no count or label is computed here, and nothing
+  // renders when they are absent, so every page is byte-identical to today until the fields exist.
+  // "The line above the count or range" - shown once, outside any one tier's own body, so it is in
+  // the same place for a range, a thin pool, or a class-era read alike.
+  // sibling: d.rungLabel already reads as a complete clause ("Closest: CLK 55 AMG, 2000s") per the
+  // engine contract - this only prepends the honest "no sales of the asked car" lead ("No {car}
+  // sales yet. ") the engine does not state itself (resolvedCar is already on hand for every tier).
+  function rungLabelHtml(d) {
+    if (!d || !d.rungLabel) return "";
+    var label = String(d.rungLabel);
+    var text = (d.fallbackRung === "sibling") ? ("No " + carLabel(d.resolvedCar) + " sales yet. " + label) : label;
+    return '<p class="rung-label" data-stage="answer">' + lint(esc(text), "rung.label") + "</p>";
+  }
+
   function renderResults(d) {
     // Search box, resolved car line (VIN MATCH pill on an exact match), then the tier body. Every
     // branch renders from the engine's structured facts - no fabricated numbers, ever.
@@ -1677,7 +1717,7 @@
     else if (d.tier === "non_road") { body = samMsgHtml([lint(esc(d.samLine || "Market Check covers cars, trucks and motorcycles."), "nr")], "Sam’s read", "big"); foot = true; }
     else if (d.tier === "result") body = resultHtml(d, m);
     else { body = samMsgHtml([lint(esc("Not enough real " + carLabel(d.resolvedCar) + " sales for an honest read, and nothing here is made up. Try another car and Sam pulls what actually sold."), "zero")], "Sam’s read", "big") + sellHtml(); foot = true; }
-    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + head + body + (foot ? footHtml() : "");
+    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + head + rungLabelHtml(d) + body + (foot ? footHtml() : "");
     wire();
     streamReveal();
     if (d.tier === "result" || d.tier === "thin") loadLivePanel(d, m);
