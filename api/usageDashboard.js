@@ -2317,6 +2317,20 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "httrigger", cars: out });
   }
 
+  // task=rawtitle: TEMPORARY, READ-ONLY diagnostic (Round 5 Lane B job, Oct 2026 ladder rewrite).
+  // Raw title ILIKE search via lib/onebox.js rawTitleSearch, so a resolver-matching gap (does the
+  // archive carry this phrase/word at all) can be told apart from a genuine zero-sales car.
+  // ?term=CLK+DTM&days=1825&limit=20. Delete once the ladder rewrite's live verification concludes.
+  if (task === "rawtitle") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { rawTitleSearch } = await import("../lib/onebox.js");
+    const term = String(req.query?.term || "CLK DTM");
+    const days = Number(req.query?.days) || 1825;
+    const limit = Number(req.query?.limit) || 20;
+    const r = await rawTitleSearch(term, env, days, limit);
+    return res.status(200).json({ task: "rawtitle", term, days, result: r });
+  }
+
   // task=sellthin: READ-ONLY (archive + partners; ZERO OCD). Mirrors the /sell handler's thin
   // block: assessThinForVehicle + the consigns_to_houses partner lookup, so we can verify the
   // exact decision.thin facts the /sell render consumes (houseSteer, houseVenues, consignPartner)
