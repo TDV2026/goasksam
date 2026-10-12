@@ -4,7 +4,7 @@
 // non-alphanumeric, upper-case. When Lane A's vin_index table lands, only vinAppearances changes.
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { findGeneration } from "../lib/generations.js";
-import { runOneBox } from "../lib/onebox.js";
+import { oneEngineAnswer } from "../lib/onebox.js";
 import { supabaseSelect } from "../lib/_supabase.js";
 import { isPartsListing, isMemorabilia } from "../lib/_classify.js";
 import { genFor } from "../lib/live/search.js";
@@ -192,7 +192,7 @@ export async function oneBoxFor(env, id, exactSale, opts) {
     vehicle.raw = vehicle.raw || text;
     const generation = await findGeneration(vehicle, env);
     const run = (asked) => Promise.race([
-      runOneBox(vehicle, generation, text, { ...env, exactSale: exactSale || null, asked }, null),
+      oneEngineAnswer(vehicle, generation, text, { ...env, exactSale: exactSale || null, asked }, null).then(r => r.raw),
       new Promise((_, rej) => setTimeout(() => rej(new Error("deadline")), 15000))
     ]);
     let d = await run(0);
