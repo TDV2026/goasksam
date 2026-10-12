@@ -1731,20 +1731,17 @@
     renderQuestion(qscreenHtml(lint(esc(d.prompt || "Which one is it?"), "choice"), chipsHtml(opts, kind), ac.eyebrow, ac.sub));
   }
   // Identity question (Round 4 Job 3 engine contract, Lane A render job): dimension/options/
-  // skipLabel are the engine's own identityQuestion payload, nothing computed here. Maps the
-  // engine's real `dimension` value (NOT the lane-notes-documented enum - gearbox_choice ->
-  // "gearbox" and body_choice -> "body" match, but variant_choice -> "variant" (documented as
-  // "competition") and dochistory_choice -> "dochistory" (documented as "documented_history") -
-  // a real mismatch between lib/onebox.js's identityQuestionFrom() and its own doc comment,
-  // confirmed by reading the code; flagged for Lane B, not changed here) to a refine key and a
-  // value-from-label rule, reusing the SAME label-sniffing convention the codebase already applies
-  // to gearbox/variant chips elsewhere (inlineSplitsHtml, renderRefineChoice).
-  var IDQ_DIM_PHRASE = { gearbox: "gearbox", body: "body style", variant: "the competition package", dochistory: "whether the car has documented history", generation: "generation", model: "model", trim: "trim" };
-  var IDQ_REFINE_KEY = { gearbox: "tx", variant: "variant", body: "body", dochistory: "docHistory" };
+  // skipLabel are the engine's own identityQuestion payload, nothing computed here. Round 6 Job 4
+  // (Oct 2026): Lane B's TIER_DIMENSION fix (lib/onebox.js) reconciled the mismatch this comment
+  // used to flag - variant_choice now gives "competition" and dochistory_choice now gives
+  // "documented_history", matching the lane-notes contract and every other caller's own marker
+  // string. Updated here to match; every other dimension name was already correct and is kept.
+  var IDQ_DIM_PHRASE = { gearbox: "gearbox", body: "body style", competition: "the competition package", documented_history: "whether the car has documented history", generation: "generation", model: "model", trim: "trim" };
+  var IDQ_REFINE_KEY = { gearbox: "tx", competition: "variant", body: "body", documented_history: "docHistory" };
   function idqValueFor(dim, label) {
     if (dim === "gearbox") return /manual/i.test(label) ? "manual" : "auto";
-    if (dim === "variant") return /competition/i.test(label) ? "competition" : "standard";
-    if (dim === "dochistory") return /^has/i.test(label) ? "has" : "nohas";
+    if (dim === "competition") return /competition/i.test(label) ? "competition" : "standard";
+    if (dim === "documented_history") return /^has/i.test(label) ? "has" : "nohas";
     if (dim === "body") return String(label || "").toLowerCase();
     return null;
   }
