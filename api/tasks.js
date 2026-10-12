@@ -215,8 +215,8 @@ async function handler(req, res) {
       // The bid's own time (bid_at, the feed's updated_at): rows with a bid but no bid time, and how far each bid time
       // sits behind our last read of the row (last_seen), in minutes. Counts and quantiles only, never a listing.
       const withBid = rows.filter(r => Number(r.current_bid) > 0), lag = [];
-      c.bid_time = { with_bid: withBid.length, no_bid_at: 0, no_bid_at_by: {} };
-      for (const r of withBid) { const b = Date.parse(r.bid_at || ""), s = Date.parse(r.last_seen || ""); if (isNaN(b)) { c.bid_time.no_bid_at++; c.bid_time.no_bid_at_by[r.source] = (c.bid_time.no_bid_at_by[r.source] || 0) + 1; } else if (!isNaN(s)) lag.push((s - b) / 60e3); }
+      c.bid_time = { with_bid: withBid.length, no_bid_at: 0, no_bid_at_by: {}, over60_by: {}, with_bid_by: {} };
+      for (const r of withBid) { c.bid_time.with_bid_by[r.source] = (c.bid_time.with_bid_by[r.source] || 0) + 1; const b = Date.parse(r.bid_at || ""), s = Date.parse(r.last_seen || ""); if (isNaN(b)) { c.bid_time.no_bid_at++; c.bid_time.no_bid_at_by[r.source] = (c.bid_time.no_bid_at_by[r.source] || 0) + 1; } else if (!isNaN(s)) { lag.push((s - b) / 60e3); if (s - b > 3600e3) c.bid_time.over60_by[r.source] = (c.bid_time.over60_by[r.source] || 0) + 1; } }
       lag.sort((a, b) => a - b); const qx = p => lag.length ? Math.round(lag[Math.min(lag.length - 1, Math.floor(p * lag.length))]) : null;
       c.bid_time.minutes_behind_last_read = { p10: qx(0.1), p50: qx(0.5), p90: qx(0.9), max: lag.length ? Math.round(lag[lag.length - 1]) : null, over60: lag.filter(x => x > 60).length };
       return res.status(200).json({ counts: c, examples: ex });
@@ -269,6 +269,25 @@ async function handler(req, res) {
           const subject = `[Fixture: ${c}] ${m.subject}`;
           const r = req.body.send ? await sendTaskEmail({ to: "feedback@goasksam.com", subject, text: m.text, html: m.html, headers }) : null;
           out.push({ case: c, kind, subject, sent: r ? (r.ok ? "sent" : r.reason || r.error || r.status || "failed") : "not sent", resend_id: r && r.id || null, html: m.html, text: m.text, list_unsubscribe: !!headers["List-Unsubscribe"] });
+        }
+      }
+      return res.status(200).json({ to: "our own address", emails: out });
+    }
+    // Probe (Oct 2026): a live car's stored bid by its own time (lib/tasks/bidFixture.js), 10 minutes, 61 minutes, 5 hours
+    // old or with no bid time: the combined Task email and Before it ends, sent to our own address only.
+    if (req.method === "POST" && req.body && req.body.action === "task_email_tests" && req.body.fixture === "bid" && probeOk(req)) {
+      const { bidEmails, BID_CASES, BID_FIXTURE_USER } = await import("../lib/tasks/bidFixture.js");
+      const { emailsOffHeaders } = await import("../lib/tasks/tasks.js");
+      const { unsubscribeHeaders } = await import("../lib/live/buyAlerts.js");
+      const { sendTaskEmail } = await import("../lib/_email.js");
+      const cases = (Array.isArray(req.body.cases) ? req.body.cases : Object.keys(BID_CASES)).filter(c => c in BID_CASES);
+      const out = [];
+      for (const c of cases) {
+        const { daily, before, bidAt } = bidEmails(c);
+        for (const [kind, m, headers] of [["daily", daily, emailsOffHeaders(BID_FIXTURE_USER)], ["before_it_ends", before, unsubscribeHeaders(BID_FIXTURE_USER)]]) {
+          const subject = `[Fixture: bid ${c}] ${m.subject}`;
+          const r = req.body.send ? await sendTaskEmail({ to: "feedback@goasksam.com", subject, text: m.text, html: m.html, headers }) : null;
+          out.push({ case: c, kind, bid_at: bidAt, subject, sent: r ? (r.ok ? "sent" : r.reason || r.error || r.status || "failed") : "not sent", resend_id: r && r.id || null, html: m.html, text: m.text, list_unsubscribe: !!headers["List-Unsubscribe"] });
         }
       }
       return res.status(200).json({ to: "our own address", emails: out });

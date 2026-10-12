@@ -251,13 +251,14 @@ const APP_JS = String.raw`(function(){
   function dropEntryParams(){ var u = new URL(location.href); ["start", "seed", "words", "filters", "vin", "car"].forEach(function(k){ u.searchParams.delete(k); }); try { history.replaceState(null, "", u.pathname + (u.search || "") + u.hash); } catch(e){} }
   function when(iso){ try { var d = new Date(iso), now = new Date(); var o = { month: "short", day: "numeric" }; if (Math.abs(now - d) > 80 * 864e5) o.year = "numeric"; return d.toLocaleDateString("en-US", o) + ", " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }); } catch(e){ return ""; } }
   function money(n){ return "$" + Number(n).toLocaleString("en-US"); }
-  // A stored bid more than an hour old carries its age, as on Buy's cards: " · updated 1h 12m ago".
-  function bidAge(at){ var t = Date.parse(at || ""); if (isNaN(t)) return ""; var m = Math.floor((Date.now() - t) / 60000); if (m < 60) return ""; var d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mm = m % 60; return " · updated " + (d ? d + "d" + (h ? " " + h + "h" : "") : h + "h" + (mm ? " " + mm + "m" : "")) + " ago"; }
+  // A stored bid by its own time, as on Buy's cards (lib/tasks/bidTime.js): within the hour "Bid $42,500"; older, "Last
+  // bid we saw: $42,500 at 4:12am" in the reader's clock; no bid time, no bid.
+  function bidFx(c){ var t = Date.parse(c.bid_at || ""); if (!c.bid_usd || isNaN(t)) return null; if (Date.now() - t <= 3600e3) return "Bid " + money(c.bid_usd); var d = new Date(t), s = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(" AM", "am").replace(" PM", "pm"); return "Last bid we saw: " + money(c.bid_usd) + " at " + s + (d.toDateString() === new Date().toDateString() ? "" : " on " + d.toLocaleDateString("en-US", { weekday: "long" })); }
   function cars(u){
     var cs = (u.data && u.data.cards) || []; if (!cs.length) return "";
     var more = u.data.total > cs.length ? '<li class="more">' + (u.data.total - cs.length) + " more match.</li>" : "";
     return '<ul class="cars">' + cs.map(function(c){
-      var fx = [c.bid_usd ? "Bid " + money(c.bid_usd) + bidAge(c.bid_at) : null, c.house, c.distance_miles != null ? c.distance_miles.toLocaleString("en-US") + " miles away" : c.location, c.miles ? Number(c.miles).toLocaleString("en-US") + " mi" : c.km ? Number(c.km).toLocaleString("en-US") + " km" : null].filter(Boolean).join(" · ");
+      var fx = [bidFx(c), c.house, c.distance_miles != null ? c.distance_miles.toLocaleString("en-US") + " miles away" : c.location, c.miles ? Number(c.miles).toLocaleString("en-US") + " mi" : c.km ? Number(c.km).toLocaleString("en-US") + " km" : null].filter(Boolean).join(" · ");
       // The whole card opens the listing; title, bid and details are plain text inside it (the card rules).
       return '<li><a class="carlink" href="' + esc(c.url || "#") + '" target="_blank" rel="noopener"><span class="t">' + esc(c.title || "Listing") + "</span>" + (fx ? '<span class="fx">' + esc(fx) + "</span>" : "") + "</a></li>";
     }).join("") + more + "</ul>";

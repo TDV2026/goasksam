@@ -5652,3 +5652,22 @@ gates, confirmed on real cars, not assumed**:
     quietSection: last in the email, never counted as an update in the subject, never sends an email on its own,
     stops once the Task has reported a sale).
   * not_enough_data and fields-absent: unchanged (re-proven against pre-rung main, Buy HTML and emails).
+
+- 2026-10-12 (Lane C): A STORED LIVE BID IS SHOWN BY ITS OWN TIME; WHO STARTED EACH PULL IS RECORDED.
+  * Rule (lib/tasks/bidTime.js): the bid's own time is live_listings.bid_at (the feed's updated_at), never last_seen
+    (when we last read the row) and never the page or send time. Within an hour: as before. Older: only with its time,
+    "Last bid we saw: $42,000 at 4:12am PT." in emails (Pacific, zone named), "... at 4:12am" in the reader's clock on
+    the web, never in a sentence that calls it current; a placing line under it reads "That bid is inside the range."
+    No bid time: no bid at all; the line saying when bidding ends stays. Applied in: Before it ends (buyAlerts.js
+    messageFor), the combined Task email (tasks.js bidBlock) and its Keep looking section (watches.js), Buy's card and
+    Sam's notes panel (api/buy.js), the Tasks page match cards (api/tasksPage.js). The Task door and the rail's Before
+    it ends rows show no bid (unchanged). scripts/beforeItEndsCheck.mjs covers 10 minutes, 61 minutes, 5 hours,
+    another day and no bid time.
+  * Measured live (livecheck bid_time): every stored live bid has a bid_at, but it trails our last read by a median of
+    39 minutes; about one in five is over an hour behind even right after a pull, and those now read "Last bid we saw".
+  * NOT CHANGED, other owners: lib/live/samChat.js still gives the chat model bid_as_of from bid_at || last_seen; the
+    Buy landing cards (lib/live/buyLanding.js), the VIN page (api/history.js) and the Market Check live rows
+    (api/buySearch.js rows for Lane A's panel, bid_at || last_seen) still show "Bid $X · updated 5h ago".
+  * started_by on every pull_live usage row and every ocd_call row: scheduled (with the slot), probe (with the
+    endpoint, never the key), admin (no caller today) or unknown. Old rows are not backfilled and count as unknown in
+    /api/pullLive?report=1 startedBy. scripts/pullStarterCheck.mjs, in prePush.
