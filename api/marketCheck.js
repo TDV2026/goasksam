@@ -53,7 +53,7 @@ export default async function handler(req, res) {
   // rollback or a later release does not leave a stale 301 cached anywhere (a browser's own 301
   // cache, a search engine's index, an edge node). Crew passes through untouched.
   if (!isReleased("market-check", req)) { res.setHeader("Cache-Control", "no-store"); res.setHeader("Location", "/sell"); return res.status(302).end(); }
-  if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "onebox.html"), "utf8");
+  if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "public", "onebox.html"), "utf8");
   const crew = isCrewRequest(req);
   const env = supabaseEnv();
   // Date only, no count (Oct 2026, Sam): the real last-ingest date (lib/asOf.js lastUpdatedDate()),

@@ -38,7 +38,7 @@ function stripUnreleasedNav(html, req) {
 }
 
 export async function sellShellHtml(req) {
-  if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "index.html"), "utf8");
+  if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "public", "index.html"), "utf8");
   // The real last-updated date, shared with Market Check (lib/asOf.js lastUpdatedDate). No count.
   const updated = await lastUpdatedDate(supabaseEnv()).catch(() => null);
   const crew = isCrewRequest(req);

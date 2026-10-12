@@ -24,7 +24,7 @@ let shell = null, cardCss = null;
 // @container rule), read from that file so the two pages share ONE card style, never a copy.
 const PCARD_FROM = ":root{color-scheme:light;--pc-cta", PCARD_TO = "@container (max-width:280px){.pcard-tiles{grid-template-columns:1fr;}}";
 function pcardCss() {
-  const css = fs.readFileSync(path.join(process.cwd(), "styles.css"), "utf8");
+  const css = fs.readFileSync(path.join(process.cwd(), "public", "styles.css"), "utf8");
   const a = css.indexOf(PCARD_FROM), b = css.indexOf(PCARD_TO, a);
   if (a < 0 || b < 0) { console.error("sellNext: .pcard section markers not found in styles.css"); return ""; }
   return css.slice(a, b + PCARD_TO.length);
@@ -38,7 +38,7 @@ export default async function handler(req, res) {
   // A result address (/sell?car=..., routed here by vercel.json) while the new Sell is off: the live /sell
   // page, exactly as /sell serves it, so the public never sees the new Sell before the cutover.
   if (process.env.SELL_NEXT_ON !== "1" && !keyed) return /[?&]car=/.test(String(req.url || "")) ? (res.setHeader("X-Robots-Tag", "noindex, follow"), sellPage(req, res)) : res.status(404).json({ error: "Not found." });
-  if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "onebox.html"), "utf8");
+  if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "public", "onebox.html"), "utf8");
   if (cardCss == null) cardCss = pcardCss();
   const crew = isCrewRequest(req);
   const env = supabaseEnv();

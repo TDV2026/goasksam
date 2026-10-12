@@ -19,7 +19,7 @@ const YOUR_RESULTS_RAIL = '<a class="gas-navitem" id="gas-nav-results" href="#" 
 let SHELL = null;
 function shell() {
   if (SHELL != null) return SHELL;
-  try { SHELL = fs.readFileSync(path.join(process.cwd(), "onebox.html"), "utf8"); }
+  try { SHELL = fs.readFileSync(path.join(process.cwd(), "public", "onebox.html"), "utf8"); }
   catch { SHELL = ""; }
   return SHELL;
 }

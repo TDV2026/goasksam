@@ -88,7 +88,7 @@ function unwrapIife(src, label) {
 // ---- extract Market Check's builder (js/onebox.js: a real file, offWindowLabel is internal, not
 // exported via window.OBX) ----
 function loadMarketCheckBuilder() {
-  const src = fs.readFileSync(path.join(ROOT, "js/onebox.js"), "utf8");
+  const src = fs.readFileSync(path.join(ROOT, "public/js/onebox.js"), "utf8");
   const body = unwrapIife(src, "js/onebox.js");
   const context = runAndCapture(body, "js/onebox.js");
   if (typeof context.offWindowLabel !== "function") throw new Error("js/onebox.js: offWindowLabel not found after sandboxed load - function renamed or restructured, update this script");

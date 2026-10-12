@@ -43,7 +43,7 @@ function promptFrom(file, name) {
   try { const s = fs.readFileSync(path.join(process.cwd(), file), "utf8"); const i = s.indexOf("const " + name + "=`"), j = s.indexOf("`;", i); return i < 0 || j < 0 ? null : s.slice(i + name.length + 8, j); } catch { return null; }
 }
 let PROMPTS = null;
-const prompts = () => PROMPTS || (PROMPTS = { assist: promptFrom("js/chat-core.js", "SYS"), followup: promptFrom("js/wizard.js", "SELL_SYS") });
+const prompts = () => PROMPTS || (PROMPTS = { assist: promptFrom("public/js/chat-core.js", "SYS"), followup: promptFrom("public/js/wizard.js", "SELL_SYS") });
 const MAX_MSG = 2000, MAX_TOTAL = 12000, MAX_TURNS = 12, MAX_CONTEXT = 20000, MAX_OUT = 700;
 
 export default async function handler(req, res) {

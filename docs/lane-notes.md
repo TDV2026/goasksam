@@ -3,16 +3,33 @@
 Short, dated cross-lane heads-ups so two lanes don't collide on the same file. Append a line; remove it
 when the work has landed.
 
-- 2026-10-12 (Lane A -> Lanes B and C): IN PROGRESS NOW - moving the public site into `public/`.
-  Security Step 3 (the dedicated-public-folder fix). `js/`, the root HTML files (index.html,
-  about.html, desk.html, mcp.html, onebox.html, onebox-preview.html, powersellers.html,
-  privacy.html), `styles.css`, `img/`, `fonts/`, the icon files, `robots.txt`, the static sitemap
-  files (`sitemap.xml`, `sitemap-hubs.xml`, `sitemap-index.xml`) and `site.webmanifest` are changing
-  PHYSICAL LOCATION only - every URL stays exactly the same. FETCH MAIN BEFORE EVERY PUSH while this
-  is in flight, and DO NOT EDIT any of the files above until this note says the move is done (watch
-  for the "MOVE DONE" update right here). After the move, any new browser-facing file goes under
-  `public/js/` (not `js/`) going forward. This note will be updated in place once the move is live
-  and proven.
+- 2026-10-12 (Lane A -> Lanes B and C): PUBLIC SITE MOVED INTO `public/` - MOVE MAP (live-proof in
+  progress, this note updates again once proven). Security Step 3. Every URL is unchanged; only the
+  on-disk location moved, via `git mv` (full history preserved):
+    - HTML: about.html, desk.html, index.html, mcp.html, onebox.html, onebox-preview.html,
+      powersellers.html, privacy.html -> public/<same name>
+    - styles.css -> public/styles.css
+    - Icons/images: favicon.ico, apple-touch-icon.png, icon-16/32/48/192/512.png, og-card.png,
+      site.webmanifest -> public/<same name>; img/ (whole folder) -> public/img/
+    - robots.txt -> public/robots.txt
+    - Static sitemaps only: sitemap.xml, sitemap-hubs.xml, sitemap-index.xml -> public/<same name>
+      (sitemap-pages.xml, sitemap-vins*.xml, sitemap-specs.xml, sitemap-motorcycles.xml,
+      sitemap-other.xml are API-generated, not files, and were not touched)
+    - fonts/ (whole folder) -> public/fonts/
+    - js/ (all 12 client scripts) -> public/js/ - NEW BROWSER FILES GO UNDER public/js/ FROM NOW ON
+  vercel.json's 5 `includeFiles` entries got the `public/` prefix (api/publicConfig.js,
+  api/marketCheck.js, api/sellPage.js, api/sellNext.js, api/chat.js). 6 disk-read call sites got the
+  same prefix: api/sellNext.js (styles.css, onebox.html), api/sellPage.js (index.html),
+  api/publicConfig.js + api/marketCheck.js (onebox.html), api/chat.js (js/chat-core.js, js/wizard.js
+  - the two literal `file` arguments at its own call site, not the shared helper), lib/sell/
+  sellLanding.js (the specialist-photo existsSync check only - the rendered `<img>` URL is
+  unchanged). No vercel.json rewrite/redirect destination changed - every one of them names a URL
+  path, not a disk path, and public/'s contents serve at the same URL they always did. Required a
+  Vercel dashboard Output Directory override (= `public`) that Sam applied between the probe and
+  this commit - a git revert of the move commit will NOT undo that dashboard setting; it has to be
+  switched back by hand in the same panel if this is ever reverted.
+  FETCH MAIN BEFORE EVERY PUSH until this note says PROVEN, and do not edit any of the files above
+  (now under public/) until then.
 
 - 2026-10-09 (Lane A -> Lane C): item 9 (shared "Sign in" top bar) done. Moved your Buy design (791b6ce)
   into one shared file, `lib/authBar.js` - exports `AUTH_SIGNBAR_HTML`/`AUTH_SIGNBAR_CSS`/

@@ -114,19 +114,19 @@
       "includeFiles": "scripts/warm-list.json"
     },
     "api/publicConfig.js": {
-      "includeFiles": "onebox.html"
+      "includeFiles": "public/onebox.html"
     },
     "api/marketCheck.js": {
-      "includeFiles": "onebox.html"
+      "includeFiles": "public/onebox.html"
     },
     "api/sellPage.js": {
-      "includeFiles": "index.html"
+      "includeFiles": "public/index.html"
     },
     "api/sellNext.js": {
-      "includeFiles": "{onebox.html,styles.css}"
+      "includeFiles": "public/{onebox.html,styles.css}"
     },
     "api/chat.js": {
-      "includeFiles": "js/{chat-core,wizard}.js"
+      "includeFiles": "public/js/{chat-core,wizard}.js"
     },
     "api/sellerDecision.js": {
       "maxDuration": 60
