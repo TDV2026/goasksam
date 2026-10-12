@@ -22,6 +22,7 @@ import { mileageFromText } from "../lib/_mileageText.js";
 import { normalizeListingUrl } from "../lib/_urlNorm.js";
 import { loadFxRates } from "../lib/_fx.js";
 import { hammerUsd, setFxRates } from "../lib/_houseComps.js";
+import { applyRowCorrection } from "../lib/_corrections.js";
 
 // All 19 OCD live sources (Sep 2026). Slugs are OCD's own /auctions?source= values,
 // verified live. The four live-auction houses (barrettjackson, mecum, bonhams, broadarrow)
@@ -177,7 +178,7 @@ function toFullRow(r, label, source) {
   const parsedMiles = mileageFromText(r.title, r.description);
   if (source === "mbmarket") { if (parsedMiles) mileage = parsedMiles.miles; }
   else if (mileage == null && parsedMiles && source !== "autohunter") mileage = parsedMiles.miles;
-  return {
+  const row = {
     source_id: String(r.id ?? ""), sale_date: saleDate, platform: label, source_slug: source,
     make: ident.make, model: ident.model, vehicle_type: ident.vehicle_type,
     stated_mileage: df.stated_mileage, project_flag: df.project_flag, desc_facts: df.desc_facts,
@@ -190,6 +191,12 @@ function toFullRow(r, label, source) {
     has_reserve: toBool(r.has_reserve), views: toInt(r.stats?.views), bids: toInt(r.stats?.bids),
     known_flaws: r.known_flaws ?? null, recent_service_history: r.recent_service_history ?? null, modifications: r.modifications ?? null
   };
+  // SOURCE-ROW CORRECTIONS (Round 5 Lane B job, Oct 2026): a curated override (lib/_corrections.js,
+  // keyed on platform+source_id) applied AFTER OCD's own identity resolution, so a known upstream
+  // mislabel (the Merkur XR4Ti/Ford Sierra RS Cosworth case) is written correctly on every ingest,
+  // including a future re-ingest that would otherwise overwrite a hand-corrected row right back to
+  // OCD's wrong values.
+  return applyRowCorrection(row);
 }
 
 // Delta mode: the newest source_ids we already hold, so we can stop paginating
