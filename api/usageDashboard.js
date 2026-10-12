@@ -5615,6 +5615,25 @@ async function handleOps(req, res) {
     });
   }
 
+  // task=slclassdiag: TEMPORARY, READ-ONLY (URGENT SL-Class family-name bug). For one make+title
+  // regex, reports real sale counts and sample titles - the exact numbers needed to confirm/deny
+  // the family-name resolver gap. Delete once the job concludes.
+  //   ?view=ops&task=slclassdiag&make=Mercedes-Benz&titleRe=...
+  if (task === "slclassdiag") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const make = String(req.query?.make || "Mercedes-Benz").trim();
+    const rows = (await supabaseSelectAll(env, `sales_archive?make=ilike.${encodeURIComponent(make)}&sale_price=not.is.null&select=listing_title,sale_date,year&limit=5000`)) || [];
+    const slRe = /\bsl\s?\d{2,3}\b|\bamg\s+sl\s?\d{2,3}\b|\bmercedes-?amg\s+sl\b/i;
+    const slRows = rows.filter(r => slRe.test(String(r.listing_title || "")));
+    const recent = slRows.filter(r => Number(r.year) >= 2021 && Number(r.year) <= 2025);
+    return res.status(200).json({
+      task: "slclassdiag", make, totalArchiveRows: rows.length,
+      slTotal: slRows.length, slRecent2021_2025: recent.length,
+      sampleSlTitles: slRows.slice(0, 15).map(r => r.listing_title),
+      sampleRecentSlTitles: recent.slice(0, 15).map(r => r.listing_title)
+    });
+  }
+
   // task=descfactscov: READ-ONLY. Coverage of the description-derived columns after the backfill.
   // Global desc_facts-set (confirms every row is stamped) + project_flagged + stated_mileage; per-source
   // total + project_flagged (both index-backed: source_slug and the project_flag partial index).
