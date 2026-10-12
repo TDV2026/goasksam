@@ -1683,12 +1683,23 @@
   // "The line above the count or range" - shown once, outside any one tier's own body, so it is in
   // the same place for a range, a thin pool, or a class-era read alike.
   // sibling: d.rungLabel already reads as a complete clause ("Closest: CLK 55 AMG, 2000s") per the
-  // engine contract - this only prepends the honest "no sales of the asked car" lead ("No {car}
-  // sales yet. ") the engine does not state itself (resolvedCar is already on hand for every tier).
+  // engine contract - this prepends an honest lead about the asked car's OWN pool. The sibling rung
+  // fires whenever that pool is under the minimum, which can be zero OR a handful of real sales
+  // (Oct 2026 fix) - "No sales yet" is only true at poolSize 0; 1-10 gets "{count} sales so far"
+  // instead, so the line never claims zero when the engine actually has a couple on record.
+  function siblingLeadHtml(d) {
+    var n = d.poolSize;
+    var car = carLabel(d.resolvedCar);
+    if (n == null) return "";
+    if (n === 0) return "No " + car + " sales yet. ";
+    if (n >= 1 && n <= 10) return obNumWord(n) + " " + car + " " + (n === 1 ? "sale" : "sales") + " so far. ";
+    if (typeof console !== "undefined" && console.warn) console.warn("rungLabelHtml: sibling rung with poolSize > 10", n);
+    return "";
+  }
   function rungLabelHtml(d) {
     if (!d || !d.rungLabel) return "";
     var label = String(d.rungLabel);
-    var text = (d.fallbackRung === "sibling") ? ("No " + carLabel(d.resolvedCar) + " sales yet. " + label) : label;
+    var text = (d.fallbackRung === "sibling") ? (siblingLeadHtml(d) + label) : label;
     return '<p class="rung-label" data-stage="answer">' + lint(esc(text), "rung.label") + "</p>";
   }
 
