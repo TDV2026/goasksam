@@ -5009,6 +5009,20 @@ identityQuestion: null, OR:
 }
 ```
 
+**UPDATE, Round 5 Job 2 (Oct 2026), contract status: UNCHANGED, confirmed, not left ambiguous.**
+Sam decided the materiality test itself changes (the old 40%-of-median ratio in `splitMaterial`,
+lib/onebox.js, is replaced by a strict quartile no-overlap test: the lower side's own p75 must sit
+below the higher side's own p25 - see that function's own comment for the full rule). This is
+entirely internal to the test deciding WHETHER `identityQuestion` (or an inline split) is
+returned - it changes NEITHER the `identityQuestion` object shape documented above NOR the
+`inlineSplits` shape (`{key, sides, poolN, unknown}`). Checked every consumer of `splitMaterial`'s
+return value (body/gearbox/competition/documented_history/trim, five call sites): all five read
+only `.material`; none reads `.gapRatio` or any other field this change touches. Nothing for Lane A
+to change. Net effect found on the live 72-spec sweep: 70/72 unaffected either way; two specs
+("2008 Porsche 911 Carrera", "2024 Porsche 911 GT3") now show a gearbox inline split that the old
+ratio test missed (their manual/PDK price bands genuinely do not overlap, even though the median
+gap alone was under the old 40% bar) - full numbers in the Round 5 Job 2 report.
+
 **Reversible skip (rule 2)**: once a question is past the 2-question cap (`askCapped`, existing
 mechanism, unchanged), a material dimension no longer BLOCKS - it renders as an inline split
 (`base.inlineSplits`, an array of `{key, sides, poolN, unknown}`) alongside the real range, with
