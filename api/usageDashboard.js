@@ -5594,6 +5594,33 @@ async function handleOps(req, res) {
   // a listing_title ILIKE pattern, returning every raw column (make/model/year/title/vehicle_type)
   // so a cross-model leak can be traced to its real cause (mislabeled make/model column vs a
   // resolver/fetch-scope match) instead of guessed. Remove once closed.
+  // task=fixMerkurRow: TEMPORARY, ONE-TIME, SCOPED (URGENT Merkur XR4Ti defect 3, Oct 2026, Sam
+  // confirmed via AskUserQuestion). Corrects exactly ONE sales_archive row (id 0df5e83d-ed54-4d35-
+  // 8a7b-ea1caa260f01, BaT listing #176322) whose make/model columns were mislabeled "Merkur"/
+  // "XR4Ti" in OldCarsData's OWN upstream feed (ocd_make_name/ocd_model_name both say so) even
+  // though listing_title/description/VIN/engine specs are all unambiguously a 1987 Ford Sierra RS
+  // Cosworth - a third-party data error, not a code bug. &write=1 required to actually write
+  // (default is a dry-run showing before/after without touching the row). Remove once closed.
+  if (task === "fixMerkurRow") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const ROW_ID = "0df5e83d-ed54-4d35-8a7b-ea1caa260f01";
+    const before = (await supabaseSelectAll(env, `sales_archive?select=id,make,model,listing_title&id=eq.${ROW_ID}`)) || [];
+    if (!before.length) return res.status(404).json({ error: "row not found", id: ROW_ID });
+    if (before[0].make !== "Merkur" || before[0].model !== "XR4Ti") {
+      return res.status(200).json({ task: "fixMerkurRow", skipped: "row no longer matches the expected mislabeled state (already fixed, or changed)", before: before[0] });
+    }
+    if (String(req.query?.write || "") !== "1") {
+      return res.status(200).json({ task: "fixMerkurRow", dryRun: true, before: before[0], wouldSet: { make: "Ford", model: "Sierra RS Cosworth" } });
+    }
+    const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?id=eq.${ROW_ID}`, {
+      method: "PATCH", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "return=representation" },
+      body: JSON.stringify({ make: "Ford", model: "Sierra RS Cosworth" })
+    });
+    const after = r.ok ? await r.json().catch(() => null) : null;
+    if (!r.ok) return res.status(500).json({ error: `PATCH failed: HTTP ${r.status}`, body: (await r.text().catch(() => "")).slice(0, 300) });
+    return res.status(200).json({ task: "fixMerkurRow", written: true, before: before[0], after: after && after[0] });
+  }
+
   if (task === "titlerowdiag") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const byId = req.query?.id ? String(req.query.id) : null;

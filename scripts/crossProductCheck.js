@@ -39,7 +39,7 @@
 
 import { resolveVehicle } from "../lib/vehicle.js";
 import { findGeneration } from "../lib/generations.js";
-import { runOneBox, buildSpec, titleFenceReason, TIER_DIMENSION } from "../lib/onebox.js";
+import { runOneBox, buildSpec, titleFenceReason, TIER_DIMENSION, mapEngineAnswer } from "../lib/onebox.js";
 import { familyMarket, liveForFamily, emptyFilters, resolveForBuy } from "../lib/live/search.js";
 import { converse } from "../lib/live/converse.js";
 import { fetchOnlinePool, buildSharedAnalysis, pickPlatform, depthWins } from "../lib/platformPick.js";
@@ -121,7 +121,15 @@ export const DEFAULT_SPECS = [
   // Sprinter, a G580). Regression guard for the fixed resolver gap and the tightened class-era
   // truck/van/SUV fence (TRUCK_CLASS_RE now catches Mercedes SUV badges and Sprinter by name, not
   // just the literal words "van"/"suv"/"g-wagen").
-  "2023 Mercedes-Benz SL-Class", "2015 Mercedes-Benz E-Class", "2018 Mercedes-Benz G-Class"
+  "2023 Mercedes-Benz SL-Class", "2015 Mercedes-Benz E-Class", "2018 Mercedes-Benz G-Class",
+  // URGENT CLK DTM job (Oct 2026): "2005 Mercedes-Benz CLK DTM" is the class-era pool-swap
+  // regression case (see checkUrgentOct2026Guards, CLASS_ERA_MIN=500 - the real population reads
+  // in the thousands; the old bug swapped it for a 13-sale keyword-only match on the car's own
+  // name). "Merkur XR4Ti" is the upstream-mislabel contamination case (one BaT listing, a real
+  // 1987 Ford Sierra RS Cosworth, carried OldCarsData's own make="Merkur"/model="XR4Ti" tag;
+  // corrected in the archive via task=fixMerkurRow - guarded here so a future re-ingest or a
+  // similar mislabel never silently re-contaminates this nameplate's pool).
+  "2005 Mercedes-Benz CLK DTM", "Merkur XR4Ti"
 ];
 
 const round = n => (Number.isFinite(n) ? Math.round(n) : null);
@@ -721,6 +729,59 @@ export async function checkSplitPoolInvariants(env, cases = SPLIT_POOL_CASES) {
   return out;
 }
 
+// URGENT REGRESSION GUARDS (Oct 2026, CLK DTM job). Two live defects found this round, guarded so
+// neither can silently come back:
+//  1. classEraGuarded's wide-band guard used to swap the REAL marque-decade class-era population
+//     for a narrow title-keyword-only match on the car's own name, mislabeled under the SAME
+//     class_era tier - "2005 Mercedes-Benz CLK DTM" went from a real population in the thousands
+//     to 13. CLASS_ERA_MIN is a floor far below the real count (thousands) but far above the old
+//     bug's shape (13) - a regression back to the keyword-swap would read near the old small
+//     number and trip this immediately, without pinning an exact count that the rolling 36-month
+//     window would otherwise make a false positive every single day.
+//  2. A single sales_archive row (BaT listing #176322) carries OldCarsData's own upstream
+//     mislabel - make="Merkur"/model="XR4Ti" on a real 1987 Ford Sierra RS Cosworth - corrected in
+//     the archive (task=fixMerkurRow); this guards that it stays corrected (no "Sierra" title in
+//     the Merkur XR4Ti pool).
+const CLASS_ERA_MIN = 500;
+export async function checkUrgentOct2026Guards(env) {
+  const out = { ok: true, cases: [] };
+  {
+    const q = "2005 Mercedes-Benz CLK DTM";
+    const row = { q, check: "class_era_not_swapped" };
+    try {
+      const rv = await resolveVehicle(q, {}), vehicle = rv && rv.vehicle;
+      if (!vehicle || !vehicle.make) throw new Error("unresolved");
+      const generation = await findGeneration(vehicle, env).catch(() => null);
+      const d = await runOneBox(vehicle, generation, q, env, null);
+      row.tier = d.tier;
+      row.classEraN = d.classEra ? (d.classEra.receipts || []).length : null;
+      row.pass = row.tier === "class_era" && Number.isFinite(row.classEraN) && row.classEraN >= CLASS_ERA_MIN;
+      if (!row.pass) out.ok = false;
+      // factsBlock must never carry a dollar figure for class_era (defect 2 regression guard).
+      const mapped = mapEngineAnswer(d, null);
+      row.factsBlockDollarFree = !mapped.factsBlock || (mapped.factsBlock.lowest == null && mapped.factsBlock.highest == null && mapped.factsBlock.latestPrice == null);
+      if (!row.factsBlockDollarFree) out.ok = false;
+    } catch (e) { row.error = String(e && e.message || e); out.ok = false; }
+    out.cases.push(row);
+  }
+  {
+    const q = "Merkur XR4Ti";
+    const row = { q, check: "no_sierra_contamination" };
+    try {
+      const rv = await resolveVehicle(q, {}), vehicle = rv && rv.vehicle;
+      if (!vehicle || !vehicle.make) throw new Error("unresolved");
+      const generation = await findGeneration(vehicle, env).catch(() => null);
+      const d = await runOneBox(vehicle, generation, q, env, null);
+      const titles = (d.cards || []).map(c => String(c.title || ""));
+      row.cardTitles = titles;
+      row.pass = !titles.some(t => /\bsierra\b/i.test(t));
+      if (!row.pass) out.ok = false;
+    } catch (e) { row.error = String(e && e.message || e); out.ok = false; }
+    out.cases.push(row);
+  }
+  return out;
+}
+
 // OVER-TIME INVARIANTS (job 4, Oct 2026 addendum): the trailing-period rows plus rowsNotShownCount
 // must sum to EXACTLY the headline count, and - when the window is exactly 12 months (useRecent) -
 // the full trailing span's own range must equal the headline cluster. Confirmed live before the fix:
@@ -808,7 +869,8 @@ export async function runEngineCheck(env, specs = DEFAULT_SPECS, opts = {}) {
   const splitPools = opts.splitPools === false ? null : await checkSplitPoolInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const overTime = opts.overTime === false ? null : await checkOverTimeInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const liveListing = opts.liveListing === false ? null : await checkLiveListingDisclosure(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  return { task: "crossproductcheck", total: rows.length, mismatchSpecs: totalMismatches, singlePick, buyPaths, liveFences, representative, splitPools, overTime, liveListing, rows };
+  const urgentOct2026 = opts.urgentOct2026 === false ? null : await checkUrgentOct2026Guards(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  return { task: "crossproductcheck", total: rows.length, mismatchSpecs: totalMismatches, singlePick, buyPaths, liveFences, representative, splitPools, overTime, liveListing, urgentOct2026, rows };
 }
 
 // ---- CLI ----

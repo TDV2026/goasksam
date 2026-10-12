@@ -5009,6 +5009,19 @@ identityQuestion: null, OR:
 }
 ```
 
+**UPDATE, URGENT (Oct 2026): `dimension`'s actual values are now RECONCILED to match this
+documented contract exactly.** The code was the thing that drifted, not these docs - Sam reported
+a live mismatch (variant_choice returned `dimension: "variant"`, dochistory_choice returned
+`"dochistory"`, both wrong against the table above). Root cause: `identityQuestionFrom`
+(lib/onebox.js) derived `dimension` with a bare `tier.replace(/_choice$/, "")` instead of naming
+the value - fixed with an explicit, exported `TIER_DIMENSION` map (also used by
+`scripts/crossProductCheck.js`'s `checkIdentityQuestions`, which had the identical bug). **Match
+on exactly these strings, no others, for each tier**:
+`generation_choice` -> `"generation"`, `gearbox_choice` -> `"gearbox"`, `body_choice` -> `"body"`,
+`variant_choice` -> `"competition"` (NOT "variant"), `model_choice` -> `"model"`,
+`dochistory_choice` -> `"documented_history"` (NOT "dochistory"). The non-blocking trim case is
+unchanged: `"trim"`.
+
 **UPDATE, Round 5 Job 2 (Oct 2026), contract status: UNCHANGED, confirmed, not left ambiguous.**
 Sam decided the materiality test itself changes (the old 40%-of-median ratio in `splitMaterial`,
 lib/onebox.js, is replaced by a strict quartile no-overlap test: the lower side's own p75 must sit
