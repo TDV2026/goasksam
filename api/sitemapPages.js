@@ -1,7 +1,8 @@
 // /sitemap-pages.xml (Oct 2026, Job 4 of the launch-stage round): the static public-pages sitemap
 // became a dynamic, stage-aware one - a product not yet released at the current stage is left out
 // of this list entirely until its stage opens (lib/_launchStage.js isReleased). Sell, How Sam
-// decides, PowerSellers, About and Privacy are stage-0 (always listed). Crawlers never see a page
+// decides, About and Privacy are stage-0 (always listed). PowerSellers is held out of this list
+// (Lane A, Oct 2026) until the gallery returns - the page and its route are untouched. Crawlers never see a page
 // they would 302 away from (the address-level redirect, api/marketCheck.js etc.) - the one thing
 // this file exists to keep true. Crew is never a consideration here: search engines don't carry a
 // crew cookie, so this always serves the PUBLIC list.
@@ -17,7 +18,6 @@ const PAGES = [
   { loc: "/market-check", lastmod: "2026-10-08", changefreq: "daily", priority: "0.9", product: "market-check" },
   { loc: "/mcp", lastmod: "2026-10-07", changefreq: "monthly", priority: "0.7", product: null },
   { loc: "/how-sam-decides", lastmod: "2026-09-03", changefreq: "monthly", priority: "0.6", product: null },
-  { loc: "/powersellers", lastmod: "2026-09-03", changefreq: "monthly", priority: "0.6", product: null },
   { loc: "/about", lastmod: "2026-09-03", changefreq: "yearly", priority: "0.3", product: null },
   { loc: "/privacy", lastmod: "2026-08-31", changefreq: "yearly", priority: "0.3", product: null },
   { loc: "/business", lastmod: "2026-09-03", changefreq: "monthly", priority: "0.5", product: "business" }
