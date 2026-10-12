@@ -5067,63 +5067,94 @@ Sep 2026." Never "Only N sales" (banned - a value judgment on a number that neve
 the lead sentence already states the real gate: no sale of the exact car in the window). The card
 grid below it is unchanged in shape, now reading a correctly-fenced pool (see below).
 
-### URGENT: Mercedes family-name resolver gap + class-era enthusiast fence (Oct 2026, SL-Class)
+### URGENT: Mercedes SL-Class family-name resolver gap + class-era enthusiast fence (Oct 2026)
 
 Sam-reported: "2023 Mercedes-Benz SL-Class" said no SL sold in 3 years and fell to class-era,
-showing a Sprinter van as "2020s Mercedes-Benz sales." Live-traced, not guessed.
+showing a Sprinter van as "2020s Mercedes-Benz sales." Live-traced end to end, not guessed; five
+separate root causes stacked on top of each other, found one at a time by re-querying the live
+engine after each fix instead of assuming the first fix was the whole story.
 
-**Real numbers, before the fix**: 3,706 SL-badged Mercedes-Benz sales total in the archive, 43 of
-them 2021-2025 (the R232 generation this query asked about) - confirmed via a temporary
-diagnostic (task=slclassdiag, removed once confirmed). The model rung was reading ZERO of them.
+**Real numbers**: 3,706 SL-badged Mercedes-Benz sales total in the archive, 43 of them 2021-2025
+(confirmed via a temporary diagnostic, removed once closed). The model rung was reading ZERO.
 
-**Root cause** (`lib/_classify.js` `titleModelTokens`): strips a leading make phrase from a title
-only when it exactly equals the record's own make field, token for token. AMG is Mercedes-Benz's
-own performance division, never a separate manufacturer - every record's `make` field is still
-"Mercedes-Benz" - but many real listings title the make itself as "Mercedes-AMG" ("2022
-Mercedes-AMG SL63", "2023 Mercedes-AMG (R232) SL43"). That string never equalled "Mercedes-Benz"
-token for token, so the strip silently failed, left "mercedes"/"amg" sitting in the LEADING
-position ahead of the real badge token ("sl63"), and `recordMatchesModel`'s `leadingModelMatch`
-then always failed for these titles - the model-scoped rung read zero sales for a car that has
-real ones on record, and the ladder correctly (per its own, unchanged order - see below) fell all
-the way to class-era, which had no fence against SUVs/vans titled by badge rather than by word.
+**Root cause #1 - fetch never scoped to the family's real badges** (`archiveScope`,
+`lib/onebox.js`): only used the curated family (`familyFor`, `lib/modelFamilies.js`: "SL-Class" ->
+fetchBadges SL500/SL550/SL63/SL55/SL65, badgeRe) as a TITLE scope when a trim was ALSO named. A
+bare family-head query ("SL-Class", no trim) fell through to a generic ILIKE on the literal string
+"SL-Class" - a string the archive almost never carries (modelFamilies.js's own comment: keyword
+"SL-Class" returns 74 archive-wide vs 2145 for "SL500" alone). Fixed: `archiveScope` now returns
+`{byFamily:true}` for ANY family-head match, trim or not; `fetchQualifying` fetches by make/year/
+date (no model string) and narrows in-code via `familyBadgeMatch`'s badgeRe. Also fixed
+`familyBadgeMatch` itself: badgeRe is a single-token anchored match, but a badge is titled BOTH
+"SL63" and "SL 63" (same split already documented for 300SL/300 SL) - a whitespace tokenizer
+split the latter into ["sl","63"], neither matching alone. Now also tests adjacent-token-pair
+concatenations. Commit `4c0542e`.
 
-**Fix**: `titleModelTokens` now also strips a leading "mercedes amg" (or bare "amg") phrase when
-the record's real make is Mercedes-Benz - narrowly scoped to this one confirmed sub-brand, not a
-guess at others. Verified directly: `familyBadgeMatch`/`recordMatchesModel` both flipped from
-false to true for all three real title shapes tested against the SL-Class family head.
+**Root cause #2 - buildSpec's own AMG baseExclude emptied the fetched pool**: fix #1 correctly
+fetched the 39 real 2021-2025 SL sales, but EVERY one of them was then excluded by
+`buildSpec`'s Mercedes PERF_TRIMS `baseExclude(/\bamg\b/)` - from MY2022 (R232) the WHOLE SL
+lineup (SL43/SL55/SL63) is AMG-badged, Mercedes dropped the non-AMG SL500/SL550 base trim for this
+generation, so this is the SAME intrinsic-AMG trap the codebase already guards for SLS AMG/AMG GT
+(rule 16), just triggered by the GENERATION rather than the model name. Fixed with a shared
+`intrinsicAmgFor(make, model, year)` helper (next to `haloMatcherFor`): true when the model name
+itself says "amg" (unchanged), OR when model is SL-Class and year >= 2022 (new). Commit `783d5af`.
 
-**Ladder order**: confirmed correct, not changed. `assessThin`'s own model-widening rung (drop
-trim, keep model, set aside halos) already runs BEFORE class-era ("item 2: the exact TRIM pool is
-empty... assess the MODEL... BEFORE ever falling to the make+decade class band" - existing
-comment, lib/onebox.js). The bug was the model rung reading empty, not the order skipping it.
+**Root causes #3 and #4 - the SAME generic-halo gap exists FOUR more times**: `intrinsicAmg`/
+`badgeAware` is computed as a LOCAL COPY at every site that calls the generic make-halo
+(`recordExcludeReason`/`HALO_PATTERNS`), not read from one shared place - each copy only tested
+the model NAME for literal "amg", so each one independently still excluded every R232 SL sale as
+a halo even after #2 was fixed. Found and fixed by re-querying after each deploy and watching the
+qualifying count move: `assessThin`'s own halo set-aside (root cause #3, fixes the `thin`/`result`
+tiers), the house-pool assembly's matching set-aside (fixed preemptively, same shape), and
+`runOneBox`'s trim-ladder `haloRe` computation (fixed preemptively). All four now call the one
+`intrinsicAmgFor` helper instead of re-deriving it. Commit `401522a`.
+
+**Root cause #5 - `buildPool`'s solid-pool halo filter had NO guard at all**: after #1-#4,
+`qs=obdiag` showed the fetch was clean (105 raw, 87 deduped, `cards:23` all real SL titles,
+recent sales from Sept 2026) but the tier was still `refusal` ("too few qualifying sales"). Traced
+to `buildPool`'s MAKE-LEVEL HALO block (job 2e, trim-fence sweep, Oct 2026) - the block that
+builds the `solid` pool `buildResult` uses to decide thin-vs-range - which calls
+`recordExcludeReason(wantHalo:false)` UNCONDITIONALLY, no badge-aware branch whatsoever. It alone
+dropped `solid` to 0 even with the other four fixes live (`refusalRows`/cards already correctly
+held the 23 real sales - proof the fetch and the other set-asides were fine, only this one path
+was still broken). Guarded with the same `intrinsicAmgFor` check. Commit `18cf34b`.
+
+**Verified live after all five fixes**: "2023 Mercedes-Benz SL-Class" -> `tier: "result"`,
+13 cards (all genuine SL43/SL55/SL63 titles, zero Sprinter/G-Class/RV contamination), cluster
+$76,500-$100,000, span $57,000-$127,000, window "last twelve months".
+
+**Ladder order**: confirmed correct throughout, never changed. `assessThin`'s own model-widening
+rung (drop trim, keep model, set aside halos) already ran BEFORE class-era ("item 2: the exact
+TRIM pool is empty... assess the MODEL... BEFORE ever falling to the make+decade class band" -
+existing comment, lib/onebox.js). The bug was always the model rung reading empty/excluded, never
+the order skipping it.
 
 **Class-era enthusiast fence** (`TRUCK_CLASS_RE`/`bodyClassOf`, lib/onebox.js, used ONLY inside
-`assessClassEra` - confirmed no other caller, safe to extend): a fence DID already exist, but only
+`assessClassEra` - confirmed no other caller, safe to extend): a fence DID already exist but only
 matched the literal words "van"/"suv"/"g-wagen" - a vehicle named by BADGE instead (a G580/G550/
 G63 G-Class, any GLA/GLB/GLC/GLE/GLK/GLS/ML-badged SUV, a Sprinter van with no "van" in its title)
-slipped through as "car" and pooled with the SL's class-era read (confirmed live: the G580 and
-Sprinter titles Sam reported both matched "car" before this fix). Added the numeric-badge SUV
-families (the SAME badges `lib/modelFamilies.js` already curates for this marque - reused, not
-duplicated) and sprinter/metris van names. Market Check and Buy/Tasks read the SAME
-`assessClassEra` computation (not two implementations, despite the earlier hypothesis that it
-might be - confirmed by reading `classEraCoreOf`, which reduces runOneBox's own `d.classEra`, it
-does not re-fetch) - this ONE fence fix benefits both; `classEraCoreOf`'s count-only shape
-already hid this fence's gaps rather than fixing them, Market Check's richer card-rendering is
-what made the leak visible.
+slipped through as "car" and is what pooled with the SL's class-era read before fix #1-#5 ever let
+the model rung succeed (confirmed live: the G580 and Sprinter titles Sam reported both matched
+"car"). Added the numeric-badge SUV families (the SAME badges `lib/modelFamilies.js` already
+curates for this marque - reused, not duplicated) and sprinter/metris van names. Market Check and
+Buy/Tasks read the SAME `assessClassEra` computation (confirmed via `classEraCoreOf`, which
+reduces runOneBox's own `d.classEra`, it does not re-fetch) - this one fence fix benefits both.
+Since the model rung now succeeds for SL-Class, class-era is no longer reached for this car at
+all; the fence fix still matters for any OTHER car that genuinely has zero model-rung evidence.
 **NOT fully closed**: the fence still only separates truck/van/SUV from "car" - a SEDAN (a Maybach
-S680, shown in Sam's own report) still pools with an open-top roadster's class-era read, since
-there is no further body-style granularity (coupe/sedan/convertible) within "car" at this rung.
-Flagging as a known, real, remaining gap - not fixed this pass given the scope already covered;
-`detectBodyStyle` (lib/onebox.js) is the existing, more granular detector that a future pass
-should extend this fence with, the same way the body_choice gate already uses it.
+S680) still pools with an open-top roadster's class-era read for a car that genuinely lands there,
+since there is no further body-style granularity (coupe/sedan/convertible) within "car" at this
+rung. Flagging as a known, real, remaining gap; `detectBodyStyle` (lib/onebox.js) is the existing,
+more granular detector a future pass should extend this fence with.
 
 Added to `DEFAULT_SPECS` (72 total): "2023 Mercedes-Benz SL-Class" (the reported case),
-"2015 Mercedes-Benz E-Class", "2018 Mercedes-Benz G-Class" (2 more bare "-Class" family-head
-queries that would hit the identical titleModelTokens gap for any AMG-titled sale in their own
-archive pool).
+"2015 Mercedes-Benz E-Class", "2018 Mercedes-Benz G-Class" - verified live, all three now return
+`tier:"result"` with own-model card titles (E350/E550/G550) and no cross-model contamination.
 
-Commits: `9259248` (titleModelTokens fix), plus the class-era fence/copy fix and sweep additions
-(see commit hashes in the final report).
+Commits: `4c0542e` (archiveScope/familyBadgeMatch fetch fix), `783d5af` (buildSpec perfExclude
+intrinsic-AMG guard, root cause #2), `401522a` (shared intrinsicAmgFor + 3 more call sites, root
+causes #3/#4), `18cf34b` (buildPool solid-pool guard, root cause #5). Plus the class-era fence and
+copy fix committed earlier in this job (see the Class-era facts line note above).
 
 ### The one shared materiality predicate (what replaced what)
 
