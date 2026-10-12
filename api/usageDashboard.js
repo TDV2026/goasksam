@@ -5586,14 +5586,54 @@ async function handleOps(req, res) {
   // AUTO-APPLY (write=1) ONLY when the VIN WMI and the title agree (classifier basis "title+VIN agree");
   // everything else stays Unknown. "Better nothing than a fake make." Also returns make-Unknown VINs
   // (with vin_norm) as proof fodder. ZERO OCD.
-  // task=warmMC: TEMPORARY (Round 5 Job 3, Oct 2026). Runs scripts/warmMarketCheck.js's
-  // warmMarketCheck over the built-in 15-nameplate list (or &list=a|b), writing each into the
-  // epoch-gated MCWARM: cache. Remove once the job's before/after proof is captured.
+  // task=warmMC: TEMPORARY (Round 5 Job 3, Oct 2026). Runs the SAME warming logic
+  // scripts/warmMarketCheck.js's warmMarketCheck runs (inlined here, not dynamically imported -
+  // Vercel's build tracer would not bundle scripts/warmMarketCheck.js into this function even
+  // with an explicit vercel.json includeFiles entry, confirmed live with a "Cannot find module"
+  // error after two different glob forms; scripts/crossProductCheck.js traces fine from the exact
+  // same dynamic-import pattern in this same file, so this is a real, unexplained Vercel bundling
+  // quirk, not a code bug - inlining sidesteps it rather than burning more deploy cycles chasing
+  // it) over the built-in 15-nameplate list (or &list=a|b), writing each into the epoch-gated
+  // MCWARM: cache. scripts/warmMarketCheck.js remains the canonical, documented, CLI-runnable
+  // artifact (for local runs or a future nightly workflow step, where this bundling quirk does
+  // not apply) with its OWN copy of MC_WARM_LIST - the two lists are kept identical by hand; if
+  // they ever need to diverge, that is itself a sign this inlining should be revisited. Remove
+  // once the job's before/after proof is captured.
+  const MC_WARM_LIST = [
+    "1991 BMW M3", "1969 Chevrolet Camaro", "1973 Volkswagen Beetle", "1995 Porsche 911 Carrera",
+    "1967 Ford Mustang Fastback",
+    "1970 Chevrolet Chevelle", "1965 Ford Mustang", "2008 Porsche 911", "1990 Chevrolet Corvette",
+    "1968 Chevrolet Camaro", "1973 Porsche 911", "1966 Ford Mustang", "1972 Datsun 240Z",
+    "1957 Chevrolet Bel Air", "1985 Porsche 911"
+  ];
   if (task === "warmMC") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { warmMarketCheck, WARM_LIST } = await import("../scripts/warmMarketCheck.js");
-    const list = req.query?.list ? String(req.query.list).split("|").filter(Boolean) : WARM_LIST;
-    const result = await warmMarketCheck(env, list);
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { runOneBox } = await import("../lib/onebox.js");
+    const { warmAnswerKeyFor, writeWarmAnswer } = await import("../lib/live/search.js");
+    const list = req.query?.list ? String(req.query.list).split("|").filter(Boolean) : MC_WARM_LIST;
+    const result = { warmed: 0, failed: 0, rows: [] };
+    for (const q of list) {
+      const row = { q };
+      try {
+        const rv = await resolveVehicle(q, {});
+        const vehicle = rv && rv.vehicle;
+        if (!vehicle || !vehicle.make) throw new Error("unresolved");
+        if (vehicle.trim) throw new Error(`not a bare nameplate (resolved trim: ${vehicle.trim})`);
+        const generation = await findGeneration(vehicle, env).catch(() => null);
+        const t0 = Date.now();
+        const d = await runOneBox(vehicle, generation, q, env, null);
+        row.ms = Date.now() - t0;
+        if (!d || !d.tier) throw new Error("engine returned no tier");
+        row.tier = d.tier;
+        const key = warmAnswerKeyFor(vehicle, generation);
+        await writeWarmAnswer(env, key, d);
+        row.key = key;
+        result.warmed++;
+      } catch (e) { row.error = String(e && e.message || e); result.failed++; }
+      result.rows.push(row);
+    }
     return res.status(200).json({ task: "warmMC", ...result });
   }
 
@@ -5609,8 +5649,7 @@ async function handleOps(req, res) {
     const { findGeneration } = await import("../lib/generations.js");
     const { runOneBox } = await import("../lib/onebox.js");
     const { warmAnswerKeyFor, readWarmAnswer } = await import("../lib/live/search.js");
-    const { WARM_LIST } = await import("../scripts/warmMarketCheck.js");
-    const list = req.query?.list ? String(req.query.list).split("|").filter(Boolean) : WARM_LIST;
+    const list = req.query?.list ? String(req.query.list).split("|").filter(Boolean) : MC_WARM_LIST;
     const mode = String(req.query?.mode || "cold");
     const samples = Math.max(1, Math.min(3, Number(req.query?.samples) || 1));
     const rows = [];

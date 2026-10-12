@@ -112,7 +112,7 @@
   "functions": {
     "api/usageDashboard.js": {
       "maxDuration": 300,
-      "includeFiles": "scripts/warm*"
+      "includeFiles": "scripts/warm-list.json"
     },
     "api/publicConfig.js": {
       "includeFiles": "public/onebox.html"
