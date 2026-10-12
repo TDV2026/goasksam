@@ -4473,3 +4473,123 @@ when the work has landed.
     measurement run was still in progress on car 9 when a session limit required wrapping up; no evidence either
     is anomalous (both are dense/bare-nameplate shapes already covered by the 1995 911 Carrera and 1967 Mustang
     Fastback results above), but not directly confirmed.
+
+## One shared engine entry point (Oct 2026, "engine only" unification job)
+
+Sam's ask: a single entry point Market Check, Buy, Sell and Tasks all call for an answer, returning
+one documented result object, so Lane C's event layer has one place to log against. This landed as
+`oneEngineAnswer`/`mapEngineAnswer` in `lib/onebox.js`, plus the real production fix it surfaced.
+
+**Headline finding, before any code changed**: there was never "two engines." Market Check calls
+`runOneBox` (lib/onebox.js) directly; Buy/Tasks reach the SAME `runOneBox` indirectly via
+`lib/live/search.js`'s `familyMarket -> listingMarket -> specOf -> specCore -> refreshSpec ->
+walkLadder -> engineAnswer -> runOneBox`; Sell reaches it via `lib/platformPick.js fetchOnlinePool`
+(already wired to runOneBox's own ladder from an earlier Oct 2026 fix). The three real gaps were
+narrower than "merge two ladders" - each is documented below with its exact fix.
+
+### FOR LANE C
+
+`lib/onebox.js` exports `oneEngineAnswer(vehicle, generation, searchText, env, refine)` - same
+signature as `runOneBox`, so any call site swaps in with no argument changes. It times the call and
+maps the answer via the also-exported, pure `mapEngineAnswer(d, latencyMs)`. Returns:
+
+```
+{
+  raw,              // runOneBox's full, unchanged answer - for a caller that still needs the rich object
+  answerType,       // "range" | "identity_question" | "not_enough_data" | "zero_result"
+  poolSize,         // number | null
+  low, high,        // number | null - only set when answerType === "range"
+  reasonFlag,       // string | null - set whenever answerType !== "range"; see the vocabulary below
+  yearWidened,      // boolean - true when the engine's own ladder widened past the exact year/trim
+  fallbackRung,     // string | null - the engine's own ladderStep/tier name (exact_trim, family, thin, class_era, ...)
+  engineVersion,    // lib/onebox.js's ENGINE_VERSION at read time
+  latencyMs,        // number - wall time of the runOneBox call this answer came from
+  identityQuestion, // null, or { dimension, options: [{label, count}], skipLabel } when answerType === "identity_question"
+  factsBlock,       // null, or { count, window, lowest, highest, latestPrice, latestMonth } when answerType === "not_enough_data"
+}
+```
+
+`reasonFlag` vocabulary (exhaustive, all set by `mapEngineAnswer`): `too_few_in_window`,
+`too_spread_unresolved`, `class_era_other_cars_only`, `body_not_offered_for_this_car`,
+`no_sales_on_record`, `engine_read_failed`, `unmapped_tier:<tier>` (a gap in the mapper itself, not a
+normal empty answer - log this one loudly if it ever appears). `identityQuestion.options[].count` is
+always `null` today - see the general-split-mechanism gap below, this is the one field Lane C cannot
+log per-side counts for yet.
+
+**To add logging**: wrap a call site's `oneEngineAnswer` result (or call `mapEngineAnswer` on an
+already-fetched `d`) and log the object above. Do not call `runOneBox` directly from a new call site
+going forward - call `oneEngineAnswer` so every future caller's answer is already in the one shape.
+
+### The three real gaps, and what actually closed them
+
+1. **class_era / body_unavailable invisible to Buy/Tasks** (lib/live/search.js). `marketOf` only
+   recognized `result`/`thin`/`refusal` tiers; `class_era` and `body_unavailable` carry real cards
+   but never set `d.poolN`, so they silently read as a 0 count. Separately, `walkLadder`'s own gate
+   never called `coreOf` for these two tiers EITHER - by a prior, deliberate, correct design choice
+   ("a class/era band is other cars, never the cohort": `coreOf` builds a FAMILY label claiming "the
+   group THIS car belongs to", which would misstate class_era's evidence). Fixed with a new
+   `classEraCoreOf()` that returns a count-only core with `family`/`short`/`familyOne` all null, so
+   the card's existing generic fallbacks render honestly instead of nothing at all. Confirmed live on
+   5 of the 13 originally-failing specs (CLK DTM, Corvette Roadster, Miata Roadster, 308 GTS Spider,
+   and - after a SPEC_V bump, see below - fixed the remaining class_era/thin specs too).
+   - **SPEC_V bumped 8 -> 9**: the fix above didn't take effect on first deploy. Confirmed live via a
+     temporary diagnostic (now deleted): generations matched exactly, Market Check's own class_era
+     tier had real cards, yet Buy still returned null - a STALE `spec_market_cache` row computed
+     under the OLD logic (`{v: SPEC_V, kind: "none"}`, indistinguishable from a genuine empty pool)
+     persisting for up to `DAY_TTL` (24h) regardless of the code fix, since the freshness gate checks
+     `SPEC_V`, not a timestamp alone. This is the SAME mechanism SPEC_V 8's own comment documents for
+     an identical situation - bumping it is the established, correct fix, not a new pattern.
+2. **Buy/Tasks' `engineAnswer` always escalates past a generation/body/variant question** (it has no
+   interactive UI to ask through) and lands on the engine's own capped family-default - which is
+   CORRECT, and already matched Market Check's own behavior at that same capped point. The 4 specs
+   that looked like a mismatch (1989 Porsche 911 Speedster, 1965 Shelby Cobra, 1967 Shelby Cobra
+   Roadster, 1963 Jaguar E-Type Series 1) were a TEST-HARNESS artifact: `crossProductCheck.js`'s
+   `marketCheckLane` called `runOneBox` with `asked:0` (a fresh query's honest first ask), comparing
+   it against Buy/Sell/Tasks' own internally-capped `asked:2` read - two different, both-correct
+   interaction points. Fixed by calling `marketCheckLane` with `asked:2` too, so the harness compares
+   all four lanes at the one point every product can actually reach. Market Check's own frontend
+   handling of the question itself is unchanged and was never the issue.
+3. **1970/1972 Datsun 240Z**: plain `resolveVehicle("...240Z")` returns `model: null` (240Z doesn't
+   contain "Datsun", the shape plain resolveVehicle can miss); `resolveForBuy` - the function Buy's
+   REAL production entry (`api/buySearch.js`) actually calls - falls back to `archiveResolveToken`
+   and correctly resolves `model: "240Z"`. The harness was resolving ONE vehicle via plain
+   `resolveVehicle` and reusing it for all four lanes, so Buy/Tasks were tested against a resolver
+   they never actually use in production. Fixed: `checkOneSpec` now resolves a separate `buyVehicle`
+   via `resolveForBuy(q, env)` for the buy/tasks lanes specifically.
+
+**Result**: crossProductCheck's default 63-spec sweep, all four lanes, batched sequentially against
+production after all of the above: **0 of 63 specs with any lanesOk:false**, confirmed in a dedicated
+before/after run (13 failing before, 0 after, 0 regressions on the other 50). No range low/high moved
+more than 10% on any already-passing spec (checked programmatically against the same before/after
+data). Wired into `scripts/prePush.mjs` as a new archive-gated check (`runEngineCheck` called
+directly, no HTTP hop) so this can't quietly regress - SKIPs without SUPABASE_URL/
+SUPABASE_SERVICE_ROLE_KEY, same as the other archive checks.
+
+### General-split-mechanism / identity-question work: scoped down, not built this round
+
+Sam's wider ask (item 3: one identity/split engine for all four products, a "middle halves clearly
+apart" materiality test, a reversible skip carried in the link, dimensions beyond trim/gearbox/body)
+was NOT implemented this round - the fixes above make Buy/Tasks' EXISTING identity-question tiers
+(`*_choice`) available through `oneEngineAnswer`'s `identityQuestion` field, but no caller renders
+them yet, and the four ad hoc gates in lib/onebox.js (trim fences, gearbox, competition/variant, body)
+are still four separate hand-rolled blocks, not one generalized mechanism. Reasons, so the next pass
+doesn't re-derive this:
+- `inlineSplitRange` (lib/onebox.js) is already a genuinely generic two-sided-band builder and is the
+  right rendering primitive to build the general mechanism on.
+- No "middle halves clearly apart" test exists anywhere today - all four existing gates are count/
+  share gates only, never a price-magnitude comparison. This needs ONE new predicate, not four.
+- "Documented history" was investigated and explicitly excluded: the real column
+  (`sales_archive.desc_facts.markers.documented_history`/`matching_numbers`) has ~15% fill rate and is
+  selection-biased (absence means "didn't say it," not "doesn't have it") - it clears the "real
+  column" bar literally but not the honesty bar Sam set ("anything you cannot verify from a real
+  sales record does not get a chip"). Verifiable today, with real columns: body style
+  (`detectBodyStyle` on title), gearbox (`row.transmission`), trim (title fences). Nothing else in the
+  schema currently qualifies.
+- The 300SL "32 sales... not enough for a range" copy bug (says a count that cleared the threshold
+  while a DIFFERENT, smaller, unshown online-only count actually gated it) is NOT in this file's
+  scope - it's `thinHeadHtml` in js/onebox.js, frontend copy. `factsBlock`/`reasonFlag` on the shared
+  object now carry the real figures a future frontend fix needs; this round did not touch js/onebox.js.
+- Link-carried refinement state (so a skipped question stays available as a chip) already has
+  plumbing in js/onebox.js (`refine.body`/`refine.tx`/`refine.trim` round-trip through
+  `URLSearchParams` today) - a UI-rendering decision on top of existing infrastructure, not new
+  plumbing, but not built this round either.

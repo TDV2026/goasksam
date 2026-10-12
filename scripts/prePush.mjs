@@ -107,8 +107,9 @@ console.log("\n-- deterministic engine checks --");
     record("representative invariants (archive)", "SKIP", "SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set in this environment");
     record("live-comparable fence check (archive)", "SKIP", "SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set in this environment");
     record("split-pool invariants (archive)", "SKIP", "SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set in this environment");
+    record("63-spec cross-product sweep (archive)", "SKIP", "SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set in this environment");
   } else {
-    const { checkRepresentativeInvariants, checkLiveComparableFences, checkSplitPoolInvariants, checkOverTimeInvariants } = await import("./crossProductCheck.js");
+    const { checkRepresentativeInvariants, checkLiveComparableFences, checkSplitPoolInvariants, checkOverTimeInvariants, runEngineCheck, DEFAULT_SPECS } = await import("./crossProductCheck.js");
     const rep = await checkRepresentativeInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
     record("representative invariants (archive)", rep.ok ? "PASS" : "FAIL", rep.ok ? "" : JSON.stringify(rep));
     const live = await checkLiveComparableFences(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
@@ -117,6 +118,22 @@ console.log("\n-- deterministic engine checks --");
     record("split-pool invariants (archive)", sp.ok ? "PASS" : "FAIL", sp.ok ? "" : JSON.stringify(sp));
     const ot = await checkOverTimeInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
     record("over-time invariants (archive)", ot.ok ? "PASS" : "FAIL", ot.ok ? "" : JSON.stringify(ot));
+    // 63-spec cross-product sweep (Oct 2026, one-engine-entry-point job): calls runEngineCheck
+    // directly against this env (no HTTP hop through goasksam.com - same engine, same Supabase,
+    // just skipping the live ops endpoint so this never depends on a deploy already being live).
+    // The gate matches Sam's own stated bar: zero lanesOk:false rows across the default 63 specs.
+    // Runs all four lanes but skips the OTHER sub-checks (already covered individually above) to
+    // keep this one call to its actual job. This is what proved the one-engine-entry-point fix
+    // (class_era handling, SPEC_V bump, resolveForBuy in the harness) at zero regressions before
+    // it shipped - wired in here so a future change can't quietly reopen any of those 13 specs.
+    const sweep = await runEngineCheck(env, DEFAULT_SPECS, { singlePick: false, buyPaths: false, liveFences: false, representative: false, splitPools: false, overTime: false }).catch(e => ({ error: String(e && e.message || e) }));
+    if (sweep && sweep.error) {
+      record("63-spec cross-product sweep (archive)", "FAIL", sweep.error);
+    } else {
+      const bad = (sweep.rows || []).filter(r => r.lanesOk && !Object.values(r.lanesOk).every(Boolean));
+      record("63-spec cross-product sweep (archive)", bad.length ? "FAIL" : "PASS",
+        bad.length ? `${bad.length} spec(s) with lanesOk:false: ${bad.map(r => r.q).join(" | ")}` : `${sweep.total} specs, 0 lanesOk:false`);
+    }
   }
 }
 
