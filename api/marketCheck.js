@@ -106,7 +106,16 @@ async function handler(req, res) {
   // gas_crew cookie presence, valid or not, as reason enough to skip the shared cache - only a
   // request with NO gas_crew cookie at all is safe to cache publicly.
   const hasCrewCookie = /(?:^|;\s*)gas_crew=/.test(String(req.headers.cookie || ""));
-  res.setHeader("Cache-Control", (crew || hasCrewCookie) ? "private, no-store" : "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400");
+  // LAUNCH-STAGE SAFETY (Oct 2026, production incident): this page is gated by isReleased() above -
+  // a 3600s s-maxage plus an 86400s stale-while-revalidate tail meant that once this response was
+  // cached while the stage was open, a later stage ROLLBACK's 302 (which the gate above correctly
+  // returns, and which is itself never-cached, no-store) could never overwrite that stale 200 - the
+  // edge kept serving the full page to every signed-out visitor for up to a day after the flag
+  // flipped (reproduced live: a cache-busted request correctly 302'd while the bare URL still HIT a
+  // stale 200). api/buy.js's own gated page already uses this exact short, no-stale-while-revalidate
+  // window for the identical reason (see its comment: "the public must always get the real stage") -
+  // mirrored here, not a new pattern.
+  res.setHeader("Cache-Control", (crew || hasCrewCookie) ? "private, no-store" : "public, s-maxage=30");
   res.status(200).send(html);
 }
 
