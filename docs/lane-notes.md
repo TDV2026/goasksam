@@ -4395,3 +4395,24 @@ when the work has landed.
   * FOR LANE B: cars that ended before their combined Task email could carry them (task_updates email_status
     "ended", buy_alerts send_status "ended_before_send") are counted daily in scripts/pullReport.mjs; this should
     become an event in the event layer (lib/events.js), e.g. task_car_ended_before_email {source, count}.
+- 2026-10-12 (Lane C): HOOK OUTAGE FOUND, SIGN-IN REFUSALS, EMAIL COPY.
+  * URGENT, FOUND Oct 12 18:46 PT: since the switch to the HTTPS "Before User Created" hook, EVERY NEW ACCOUNT FAILS
+    ("Service currently unavailable due to hook", from Supabase). Cause: Vercel bot protection (managedRules
+    bot_protection = challenge) answers https://goasksam.com/api/signup?hook=before_user_created with a 429
+    challenge to any non-browser caller, Supabase's server included, so the hook never reaches our code (no
+    /api/signup log line for it). The switch steps above missed this; my error. Existing accounts are unaffected.
+    FIX (Sam): add "/api/signup" to the firewall rule "static-bypass-bot-protection" (Vercel > goasksam > Firewall,
+    a new path condition group, path equals /api/signup), or undo the switch in Supabase until then. With the
+    bypass, the route still refuses an unsigned hook call (401) and the page check keeps its own limits.
+    TEST after the fix: the credentialed check POST /api/signup {action:"hookcheck"} creates a ticketed test account
+    (expect created) and an unticketed one (expect refused), and deletes both; no email is sent.
+  * Sign-in refusals now reach the person (js/auth.js authRefusal): our three sentences are found in whatever
+    Supabase returns, the old function's "A lot of sign-ups ..." reads as the limit sentence; anything else on the
+    email form is "Sam couldn't send the code just now. Try again in a moment."; a return from Google with an error
+    opens the sign-in card with the sentence (or "That didn't go through. Refresh the page and try again.") and the
+    error is taken out of the address.
+  * FOR LANE B: listingMarket (lib/live/search.js) widened the 2017 Porsche 911 Carrera S Coupe to two years
+    ($87,500 to $95,500, "in the past two years") while Market Check's headline for the same car is twelve months
+    ($95,500 to $113,000). 1987 911 Carrera Coupe and 1996 911 Carrera 4S Coupe manual agreed exactly. Buy's cards
+    show the two-year figure too. Until one pool serves both, the email's middle-half line (lib/live/buyAlerts.js
+    middleHalfLine) is printed only for a past-year range.
