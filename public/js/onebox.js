@@ -1525,7 +1525,10 @@
   };
   function factsBlockHtml(d, includeReason) {
     var fb = d && d.factsBlock; if (!fb || !fb.count) return "";
-    var bits = [fb.count + (fb.count === 1 ? " sale" : " sales")];
+    // Number words one to ten in sentences (copy rule): this line leads with the count, so cap()
+    // alone (meant for a letter-starting string) would silently leave a bare leading digit un-
+    // spelled - obNumWord already handles the one-to-ten case and falls back to the digit above ten.
+    var bits = [obNumWord(fb.count) + (fb.count === 1 ? " sale" : " sales")];
     if (fb.window) bits.push(fb.window);
     var line1 = cap(bits.join(" "));
     if (fb.lowest != null && fb.highest != null) line1 += (fb.lowest === fb.highest) ? (", sold at " + usd(fb.lowest)) : (", sold between " + usd(fb.lowest) + " and " + usd(fb.highest));
