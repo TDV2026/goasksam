@@ -118,8 +118,20 @@ function normRecent(list, shape) {
 function datesOf(recent) { return (recent || []).map(r => r.date).filter(Boolean); }
 
 // ---- Lane 1: Market Check (runOneBox direct) ----
+// asked:2 (Oct 2026, one-engine-entry-point job): this lane used to call with asked:0 (a fresh
+// query's FIRST read), which correctly surfaces a generation_choice/body_choice/variant_choice
+// question for an ambiguous bare spec ("Shelby Cobra", "Jaguar E-Type Series 1") - but Buy/Tasks'
+// own engineAnswer (lib/live/search.js) ALWAYS escalates past that question internally (it has no
+// interactive UI to ask through), landing on the engine's own capped/family-default answer. That
+// made this lane fail 4 of the 63 default specs with "a question, not an answer" while Buy/Sell/
+// Tasks correctly matched EACH OTHER on the default they all share - a test-harness artifact (this
+// lane testing a different interaction point than the other three ever can), not a real cross-
+// product inconsistency. asked:2 compares all four lanes at the ONE interaction point every
+// product can actually reach, which is what "one engine, one answer" means here. The *_choice
+// question itself is Market Check's frontend's own concern (already live, confirmed elsewhere in
+// this session) and is intentionally NOT what this harness is checking.
 async function marketCheckLane(vehicle, generation, searchText, env) {
-  const d = await runOneBox(vehicle, generation, searchText, env, null);
+  const d = await runOneBox(vehicle, generation, searchText, { ...env, asked: 2 }, null);
   if (!d || !d.tier) return { ok: false, reason: "no tier" };
   const tier = d.tier;
   if (!/^(result|thin|class_era|refusal)$/.test(tier)) return { ok: false, reason: `tier=${tier} (a question, not an answer - spec needs a year/trim to disambiguate)` };
