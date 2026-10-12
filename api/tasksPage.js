@@ -160,7 +160,11 @@ ${CONSENT_BANNER_HTML}
   // for every anonymous visitor, so it is safely cacheable at the shared edge with no Vary at all -
   // a prior `Vary: Cookie` made the cache key the raw cookie string, which differs per visitor and
   // was an effectively permanent MISS.
-  res.setHeader("Cache-Control", crew ? "private, no-store" : "public, max-age=0, s-maxage=600, stale-while-revalidate=3600");
+  // LAUNCH-STAGE SAFETY (Oct 2026, production incident, api/marketCheck.js has the full writeup):
+  // this page is itself gated by isReleased() above - a stale-while-revalidate tail could keep
+  // serving the full page (and its own more-open rail) past a stage rollback. Short window, no
+  // stale tail, matching api/buy.js's own safe precedent.
+  res.setHeader("Cache-Control", crew ? "private, no-store" : "public, s-maxage=30");
   res.status(200).send(html);
 }
 

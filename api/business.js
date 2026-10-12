@@ -303,6 +303,10 @@ export default async function handler(req, res) {
   // Vary on Cookie - a later REAL crew request to the same bare URL can then hit that stale public
   // cache entry and see the reduced rail. Any gas_crew cookie at all, valid or not, skips the cache.
   const hasCrewCookie = /(?:^|;\s*)gas_crew=/.test(String(req.headers.cookie || ""));
-  res.setHeader("Cache-Control", (crew || hasCrewCookie) ? "private, no-store" : "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400");
+  // LAUNCH-STAGE SAFETY (Oct 2026, production incident, api/marketCheck.js has the full writeup):
+  // this page's own rail is filtered by isReleased() - an 86400s stale-while-revalidate tail could
+  // keep serving an OLD, more-open rail for a day after a stage rollback. Short window, no stale
+  // tail, matching api/buy.js's own safe precedent.
+  res.setHeader("Cache-Control", (crew || hasCrewCookie) ? "private, no-store" : "public, s-maxage=30");
   res.status(200).send(html);
 }

@@ -90,6 +90,10 @@ export default async function handler(req, res) {
   res.setHeader("X-Robots-Tag", "index, follow");
   // Same no-Vary reasoning as the other shared-shell pages: the public response is identical for
   // every anonymous visitor, so it is safely edge-cacheable with no Vary at all.
-  res.setHeader("Cache-Control", crew ? "private, no-store" : "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400");
+  // LAUNCH-STAGE SAFETY (Oct 2026, production incident, api/marketCheck.js has the full writeup):
+  // this page's own rail is filtered by isReleased() - an 86400s stale-while-revalidate tail could
+  // keep serving an OLD, more-open rail for a day after a stage rollback. Short window, no stale
+  // tail, matching api/buy.js's own safe precedent.
+  res.setHeader("Cache-Control", crew ? "private, no-store" : "public, s-maxage=30");
   res.status(200).send(html);
 }

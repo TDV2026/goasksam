@@ -170,7 +170,11 @@ function send(res, status, html, extra = {}, index = false, crew = false, req = 
   // served to a REAL crew request for the same bare URL - the reduced rail, shown to real crew.
   // Any gas_crew cookie at all, valid or not, is reason enough to skip the shared cache.
   const hasCrewCookie = !!(req && /(?:^|;\s*)gas_crew=/.test(String(req.headers.cookie || "")));
-  res.setHeader("Cache-Control", (crew || hasCrewCookie) ? "private, no-store" : (status === 200 ? "public, s-maxage=3600, stale-while-revalidate=86400" : "no-store"));
+  // LAUNCH-STAGE SAFETY (Oct 2026, production incident, api/marketCheck.js has the full writeup):
+  // this page's own rail is filtered by isReleased() - an 86400s stale-while-revalidate tail could
+  // keep serving an OLD, more-open rail for a day after a stage rollback. Short window, no stale
+  // tail, matching api/buy.js's own safe precedent.
+  res.setHeader("Cache-Control", (crew || hasCrewCookie) ? "private, no-store" : (status === 200 ? "public, s-maxage=30" : "no-store"));
   for (const k of Object.keys(extra)) res.setHeader(k, extra[k]);
   res.status(status).send(html);
 }
