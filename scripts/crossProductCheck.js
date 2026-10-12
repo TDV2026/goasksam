@@ -266,12 +266,21 @@ function diagnoseReasons(row, { marketCheck, buy, sell, tasks }) {
       "equivalent generation-ambiguity gate and pools the whole nameplate instead of asking.");
   }
 
-  // resolveVehicle (shared by Market Check + Sell) and resolveForBuy (Buy/Tasks' own resolver,
-  // called inside specOf/familyMarket) can disagree on the same raw text.
+  // CORRECTED (one-resolver fix, Oct 2026): this is not two resolver implementations disagreeing on
+  // the same raw text - Buy/Tasks' familyMarket already received resolveVehicle's own output (the
+  // SAME function Market Check/Sell call), then used to flatten it back into
+  // "[year, make, model, trim].join(' ')" and hand that STRING to resolveForBuy, which called
+  // resolveVehicle a SECOND time on the lossy, re-serialized text. For compound/structured specs
+  // ("CLK DTM", "Targa 4", "356 Speedster", "308 GTS Spider", "Carrera RS", chassis-form "240Z", any
+  // "X Roadster") the flatten-then-reparse step lost information the FIRST resolve already had
+  // correctly. Fixed by having familyMarket pass its already-resolved vehicle straight through
+  // (specOf's resolvedVehicle param -> enrichForBuy, never resolveVehicle a second time). A mismatch
+  // still landing on this branch after that fix is a NEW regression, not this historical class.
   if ((!buy.ok || !tasks.ok) && (marketCheck.ok || sell.ok)) {
-    out.push("resolveForBuy (lib/live/search.js, called from specOf/familyMarket) failed to resolve " +
-      "this spec while resolveVehicle (lib/vehicle.js, used directly by Market Check/Sell) did - two " +
-      "separate resolver implementations for the same raw text, not a shared one.");
+    out.push("Buy/Tasks (lib/live/search.js specOf, via familyMarket's resolvedVehicle param) failed " +
+      "to resolve this spec while resolveVehicle (lib/vehicle.js, used directly by Market Check/Sell, " +
+      "and by Buy/Tasks' own first resolve) did - since the one-resolver fix this should no longer be " +
+      "a lossy double-resolve; check specOf/enrichForBuy directly for what dropped the car.");
   }
 
   // Sell diverging on count/latest (rare after the Oct 2026 "one engine ladder" fix - fetchOnlinePool
