@@ -1,7 +1,7 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
-import { mapEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle, listSalesForVehicle, rawTitleSearch, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
+import { mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle, listSalesForVehicle, rawTitleSearch, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
 import { supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { hasServerCredential } from "../lib/_credential.js";
@@ -3443,12 +3443,19 @@ async function handler(req, res) {
       }
       // Deadline: a slow query must fail fast to the calm line, never hang the spinner. Race the
       // whole compute against a server deadline; any timeout OR throw returns the unavailable line.
+      // oneEngineAnswer (Oct 2026, caller-migration job): same call, same Promise.race/timeout
+      // wrapper, unchanged - .raw is runOneBox's own unmodified return value, so every downstream
+      // reference to `oneBox` (including the mapEngineAnswer call for the search event just below,
+      // left untouched so its latency baseline - Date.now() - obStart, the WHOLE request, not just
+      // this call - never changes) works exactly as before. This is Market Check's one production
+      // entry point into the shared engine; it previously called runOneBox directly.
       let oneBox;
       try {
-        oneBox = await Promise.race([
-          runOneBox(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, asked: Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) }, obRefine),
+        const engineAnswer = await Promise.race([
+          oneEngineAnswer(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, asked: Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) }, obRefine),
           new Promise((_, rej) => setTimeout(() => rej(new Error("onebox_deadline")), Number(process.env.ONEBOX_DEADLINE_MS || 20000)))
         ]);
+        oneBox = engineAnswer.raw;
       } catch (e) {
         console.error(`One Box unavailable (${(e && e.message) || e}), ${Date.now() - obStart}ms.`);
         mcRun({ answer_type: "failed", failure_state: "catching_breath" });
@@ -4065,7 +4072,9 @@ async function handler(req, res) {
     try {
       if (vehicle && vehicle.make && vehicle.model) {
         const pbSearchText = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(" ");
-        const pbResult = await runOneBox(vehicle, generation, pbSearchText, { supabaseUrl, supabaseKey, asked: 2 }, null).catch(() => null);
+        // oneEngineAnswer (Oct 2026, caller-migration job): same call, .raw unwrapped immediately -
+        // pbResult's shape and every downstream read of it (cluster/poolN/cards) is unchanged.
+        const pbResult = (await oneEngineAnswer(vehicle, generation, pbSearchText, { supabaseUrl, supabaseKey, asked: 2 }, null).catch(() => null))?.raw || null;
         if (pbResult && Array.isArray(pbResult.cluster)) {
           decision.priceBand = { low: pbResult.cluster[0], high: pbResult.cluster[1], count: pbResult.poolN ?? null };
         }
