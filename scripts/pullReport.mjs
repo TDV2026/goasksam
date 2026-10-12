@@ -62,6 +62,7 @@ L.push(`Busy window: ${j.busyWindow.pulls} ending-soonest pulls; pages: ${ph || 
 L.push("");
 L.push(`Tasks: ${j.tasks.fullRuns} full runs, ${j.tasks.errors} errors (an at-once exit logs nothing). Pulls that found new cars: ${j.tasks.pullsThatFoundCars}; followed by a Tasks run within 20 minutes: ${j.tasks.followedWithin20Min} (median ${j.tasks.minutesToRun.median ?? "n/a"} min, max ${j.tasks.minutesToRun.max ?? "n/a"} min)`);
 L.push("");
+if (j.endedBeforeEmail) { const e = j.endedBeforeEmail; L.push(`Ended before their email: ${e.cars} car${e.cars === 1 ? "" : "s"} in ${e.taskUpdates} Task update${e.taskUpdates === 1 ? "" : "s"}, ${e.beforeItEnds} Before it ends car${e.beforeItEnds === 1 ? "" : "s"}`); L.push(""); }
 L.push(`Stale bids: ${pct(j.staleBids.shareFinalHourMinutesOver1h)} of final-hour minutes had a stored bid over an hour old, against ${j.staleBids.baseline}% on Oct 11 (${j.staleBids.endedCars} cars ended; ${pct(j.staleBids.shareCarsAnyMinuteOver1h)} of cars had at least one such minute)`);
 for (const h of j.staleBids.byEndHourPT) L.push(`  ending ${String(h.hourPT).padStart(2, "0")}:00 PT  ${String(h.cars).padStart(4)} cars  ${pct(h.share)}`);
 console.log(L.join("\n"));

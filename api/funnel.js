@@ -6,6 +6,7 @@
 import { supabaseEnv, supabaseInsert } from "../lib/_supabase.js";
 import { recordJourneyEvent, journeyVehicle, CLIENT_JOURNEY_EVENTS } from "../lib/_journey.js";
 import { ensureVisitorId } from "../lib/_visitor.js";
+import { addressTag } from "../lib/_addr.js";
 import { EVENTS, storeFirstTouchOnce } from "../lib/events.js";
 
 const ALLOWED = new Set(["homepage_view", "wizard_start", "wizard_complete", "signup_shown", "non_us_attempt", "out_of_scope",
@@ -53,7 +54,7 @@ export default async function handler(req, res) {
           route: String(d.path || "").slice(0, 80),
           status: String(d.kind || "").slice(0, 40),
           oldcarsdata_metered_requests: 0,
-          metadata: { ...scrubMetaVins(d), server_ua: String(req.headers["user-agent"] || "").slice(0, 300), ip_hint: String(req.headers["x-forwarded-for"] || "").split(",")[0].slice(0, 40) }
+          metadata: { ...scrubMetaVins(d), server_ua: String(req.headers["user-agent"] || "").slice(0, 300), ip_hash: addressTag(String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || null) }
         }], env.supabaseUrl, env.supabaseKey, "return=minimal", "");
       }
       res.status(204).end(); return;

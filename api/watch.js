@@ -30,17 +30,17 @@ export default async function handler(req, res) {
     const e = x => String(x == null ? "" : x).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
     const page = (status, title, body) => res.status(status).send(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${e(title)} | GoAskSam</title><style>body{margin:0;background:#F6F3EC;color:#15201A;font:400 17px/1.55 system-ui,-apple-system,'Segoe UI',sans-serif}main{max-width:520px;margin:0 auto;padding:48px 20px}h1{font:500 26px/1.25 Georgia,serif;margin:0 0 12px}button{min-height:44px;padding:0 22px;border:0;border-radius:8px;background:#1E4D38;color:#fff;font:600 15px system-ui,sans-serif;cursor:pointer}.quiet{color:#5F5A53;font-size:15px}a{color:#15201A}</style></head><body><main>${body}</main></body></html>`);
     const id = verifySoldTaskTap(req.query.t, tapAct);
-    if (!id) return page(400, "Link expired", `<h1>That link has expired.</h1><p class="quiet"><a href="/tasks/mine">Open your tasks</a></p>`);
+    if (!id) return page(400, "Link expired", `<h1>That link has expired.</h1><p class="quiet"><a href="/tasks/mine">Open your Tasks</a></p>`);
     const w = await getWatch(env, id).catch(() => null);
-    if (!w) return page(404, "Task gone", `<h1>That task is gone.</h1><p class="quiet"><a href="/tasks/mine">Open your tasks</a></p>`);
+    if (!w) return page(404, "Task gone", `<h1>That task is gone.</h1><p class="quiet"><a href="/tasks/mine">Open your Tasks</a></p>`);
     const name = soldTaskName(w);
-    const words = { pause: ["Pause the task", "Its emails stop until you start it again. Your other tasks keep running.", "Pause this task"], stop: ["Stop the task", "This ends this one task. Your other tasks keep running.", "Stop this task"], resume: ["Start the task again", "Sam tells you again when the next one sells.", "Start it again"] }[tapAct];
-    if (req.method !== "POST") return page(200, words[0], `<h1>${e(words[0])}: ${e(name)}</h1><p>${e(words[1])}</p><form method="post" action="/api/watch?a=${tapAct}&t=${encodeURIComponent(String(req.query.t))}"><button type="submit">${e(words[2])}</button></form><p class="quiet"><a href="/tasks/mine">Open your tasks instead</a></p>`);
+    const words = { pause: ["Pause the Task", "Its emails stop until you start it again. Your other Tasks keep running.", "Pause this Task"], stop: ["Stop the Task", "This ends this one Task. Your other Tasks keep running.", "Stop this Task"], resume: ["Start the Task again", "Sam tells you again when the next one sells.", "Start it again"] }[tapAct];
+    if (req.method !== "POST") return page(200, words[0], `<h1>${e(words[0])}: ${e(name)}</h1><p>${e(words[1])}</p><form method="post" action="/api/watch?a=${tapAct}&t=${encodeURIComponent(String(req.query.t))}"><button type="submit">${e(words[2])}</button></form><p class="quiet"><a href="/tasks/mine">Open your Tasks instead</a></p>`);
     const r = await setWatchState(env, id, tapAct).catch(err => ({ ok: false, error: String(err && err.message) }));
-    if (r.notReady) return page(503, "Not ready", `<h1>Pause isn't ready yet.</h1><p>Nothing changed. You can stop this task instead from its email.</p>`);
+    if (r.notReady) return page(503, "Not ready", `<h1>Pause isn't ready yet.</h1><p>Nothing changed. You can stop this Task instead from its email.</p>`);
     if (!r.ok) return page(500, "Try again", `<h1>That didn't go through.</h1><p>Nothing changed. Try the link again in a moment.</p>`);
-    const done = tapAct === "pause" ? `<h1>Paused: ${e(name)}</h1><p>You can <a href="${e(soldTaskTap(id, "resume"))}">start it again</a> any time.</p>` : tapAct === "stop" ? `<h1>Stopped: ${e(name)}</h1><p>Your other tasks keep running.</p>` : `<h1>Running again: ${e(name)}</h1>`;
-    return page(200, "Done", done + `<p class="quiet"><a href="/tasks/mine">Open your tasks</a></p>`);
+    const done = tapAct === "pause" ? `<h1>Paused: ${e(name)}</h1><p>You can <a href="${e(soldTaskTap(id, "resume"))}">start it again</a> any time.</p>` : tapAct === "stop" ? `<h1>Stopped: ${e(name)}</h1><p>Your other Tasks keep running.</p>` : `<h1>Running again: ${e(name)}</h1>`;
+    return page(200, "Done", done + `<p class="quiet"><a href="/tasks/mine">Open your Tasks</a></p>`);
   }
   try {
     if (req.method === "GET" && req.query && req.query.run) {

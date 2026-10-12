@@ -14,11 +14,11 @@ import { isReleased } from "../lib/_launchStage.js";
 export const TASKS_PITCH = { lead: "A free collector car finder.", sub: "Tell Sam what you want and he keeps searching, then emails you when one fits." };
 const HOW = "The cars Sam shows you come from our rules-based matching algorithm. AI helps understand the question and explain the results, but it does not invent the cars, the matches or the numbers. Every number comes from real market evidence.";
 const FAQ = [
-  ["Is it free?", "Yes. Every GoAskSam account gets one active task free. Sign in, tell Sam what you're looking for, and Sam keeps checking."],
+  ["Is it free?", "Yes. Every GoAskSam account gets one active Task free. Sign in, tell Sam what you're looking for, and Sam keeps checking."],
   ["How is it different from a saved search?", "You describe the car in plain words, the way you'd tell a friend, and Sam confirms exactly what it will look for before it starts. When a car matches, the update says what came up, how far away it is and, when the same car has been to auction before, what happened then."],
-  ["How will I be told?", "Each update appears in your task on GoAskSam, with a badge on Tasks, and Sam sends one email per update. Several matches in one check arrive as one update, never one email per car. When nothing new matches, Sam stays quiet."],
-  ["Does AI choose the cars?", "No. Which live cars match your task is decided by our rules-based matching algorithm, the same one behind the GoAskSam search. AI helps understand what you asked for and write each update, but it does not invent the cars, the matches or the numbers."],
-  ["Can I change or stop a task?", "Yes, at any time. Type the change in the task, or use the pause and stop links in any update. A task keeps running after a match until you pause or stop it."],
+  ["How will I be told?", "Each update appears in your Task on GoAskSam, with a badge on Tasks. By email, Sam sends one email a day with everything new from all your Tasks. You can choose twice a day, three times a day, or as soon as one comes, up to six emails a day. When nothing new matches, Sam stays quiet."],
+  ["Does AI choose the cars?", "No. Which live cars match your Task is decided by our rules-based matching algorithm, the same one behind the GoAskSam search. AI helps understand what you asked for and write each update, but it does not invent the cars, the matches or the numbers."],
+  ["Can I change or stop a Task?", "Yes, at any time. Type the change in the Task, or use the pause and stop links in any update. A task keeps running after a match until you pause or stop it."],
   ["What can I ask Sam to do?", "Look for a car (\"Find me a black manual 997 under $70k\", \"Keep looking for a 964 within 500 miles of LA\"), or research one car (\"Research this car and tell me if it has sold before\" with its VIN or a listing link)."]
 ];
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -139,12 +139,12 @@ ${AUTH_SIGNBAR_HTML}
 ${railOpenHtml({ active: "tasks", crew, req, analytics: true })}
 <main><div class="col">
 <header class="tkhero"><p class="pos">A car search that keeps looking, and free</p><h1>${esc(TASKS_PITCH.lead)}</h1><p class="lead" data-lead-sentence>${esc(TASKS_PITCH.sub)}</p>
-<button type="button" class="cta" id="tkcta" data-task-entry data-href="/tasks/mine?start=1">Give Sam a task</button></header>
+<button type="button" class="cta" id="tkcta" data-task-entry data-href="/tasks/mine?start=1">Give Sam a Task</button></header>
 <section class="sec"><h2>How it works</h2><p>${esc(HOW)}</p>
-<ol class="steps"><li>Tell Sam what you're looking for, in plain words.</li><li>Sam reads the job back to you, and starts when you say so.</li><li>Every time new cars come up for auction, the matching checks them against your task.</li><li>When one matches, Sam tells you what it is, how far away it is and, when the same car has been to auction before, what happened then. Nothing new means no message.</li></ol></section>
+<ol class="steps"><li>Tell Sam what you're looking for, in plain words.</li><li>Sam reads the job back to you, and starts when you say so.</li><li>Every time new cars come up for auction, the matching checks them against your Task.</li><li>When one matches, Sam tells you what it is, how far away it is and, when the same car has been to auction before, what happened then. Nothing new means no message.</li></ol></section>
 ${ex ? `<section class="sec"><h2>A real update</h2><p class="example"><span class="who">Sam</span>${esc(ex.text)}</p></section>` : ""}
 <section class="sec"><h2>Questions</h2><dl class="faq">${FAQ.map(([q, a]) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join("")}</dl></section>
-<p style="margin-top:30px"><button type="button" class="cta" id="tkcta2" data-task-entry data-href="/tasks/mine?start=1">Give Sam a task</button></p>
+<p style="margin-top:30px"><button type="button" class="cta" id="tkcta2" data-task-entry data-href="/tasks/mine?start=1">Give Sam a Task</button></p>
 </div></main>${SHELL_MAIN_CLOSE}
 <script>${SHELL_JS}</script>
 <script>window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};window.GAS_AUTH_MODE="topbar";</script>
@@ -171,7 +171,7 @@ const EXPLAINER_JS = String.raw`(function(){
   if (signedIn() && (params.get("task") || params.get("seed"))) { location.replace("/tasks/mine" + location.search); return; }
   function signIn(){
     if (typeof openSignInCard !== "function") return;
-    openSignInCard("Sign in to give Sam a task. Every GoAskSam account gets one active task free.");
+    openSignInCard("Sign in to give Sam a Task. Every GoAskSam account gets one active Task free.");
     var f = document.getElementById("auth-email"), card = document.querySelector("#auth-modal .auth-dialog");
     if (card && card.scrollIntoView) card.scrollIntoView({ block: "center" });
     if (f) { try { f.focus({ preventScroll: true }); } catch(e){ f.focus(); } }
@@ -187,14 +187,14 @@ const EXPLAINER_JS = String.raw`(function(){
 function appPage(req, res) {
   const crew = isCrewRequest(req);
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Your tasks | GoAskSam</title><meta name="robots" content="noindex, nofollow">
+<title>Your Tasks | GoAskSam</title><meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#F6F3EC">
 ${FONT_LINKS}<style>${PAGE_CSS}${CSS}${APP_CSS}${AUTH_CSS}${SHELL_CSS}</style></head><body>
 ${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 ${railOpenHtml({ active: "tasks", crew, req, analytics: true })}
 <main><div class="col">
-<div class="apph"><h1>Your tasks</h1><a href="/tasks">How it works</a></div>
+<div class="apph"><h1>Your Tasks</h1><a href="/tasks">How it works</a></div>
 <div id="tkapp"></div>
 </div></main>${SHELL_MAIN_CLOSE}
 <script>${SHELL_JS}</script>
@@ -234,7 +234,7 @@ const APP_JS = String.raw`(function(){
   function api(body){ return token().then(function(tk){ return fetch("/api/tasks", { method: "POST", headers: tk ? { "Content-Type": "application/json", Authorization: "Bearer " + tk } : { "Content-Type": "application/json" }, body: JSON.stringify(body) }); }).then(function(r){ if (r.status === 401) { location.replace("/tasks?signin=1&next=" + encodeURIComponent(location.pathname + location.search)); throw new Error("auth"); } return r.json(); }); }
   function status(t){ if (t.state === "running" || t.state === "needs_you") return ["running", "Running"]; if (t.state === "paused") return ["paused", "Paused"]; if (t.state === "done") return t.kind === "research" ? ["done", "Done"] : ["stopped", "Stopped"]; return ["draft", "Not started"]; }
   // A new task was blocked by the one-task rule while the task is on screen: a short note above it, no link.
-  function blockedNote(state){ return state === "paused" ? "Your task is paused below. Resume or stop it to start another." : "Your task is already running below. Stop it to start another."; }
+  function blockedNote(state){ return state === "paused" ? "Your Task is paused below. Resume or stop it to start another." : "Your Task is already running below. Stop it to start another."; }
   function dropEntryParams(){ var u = new URL(location.href); ["start", "seed", "words", "filters", "vin", "car"].forEach(function(k){ u.searchParams.delete(k); }); try { history.replaceState(null, "", u.pathname + (u.search || "") + u.hash); } catch(e){} }
   function when(iso){ try { var d = new Date(iso), now = new Date(); var o = { month: "short", day: "numeric" }; if (Math.abs(now - d) > 80 * 864e5) o.year = "numeric"; return d.toLocaleDateString("en-US", o) + ", " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }); } catch(e){ return ""; } }
   function money(n){ return "$" + Number(n).toLocaleString("en-US"); }
@@ -260,8 +260,8 @@ const APP_JS = String.raw`(function(){
     var btns = t.state !== "done" ? '<div class="tbtns">' + (t.state === "paused" ? '<button class="sbtn" data-act="resume" data-id="' + t.id + '">Resume</button>' : '<button class="sbtn" data-act="pause" data-id="' + t.id + '">Pause</button>') + '<button class="sbtn" data-act="stop" data-id="' + t.id + '">Stop</button></div>' : "";
     var h = '<section class="tcard" id="task-' + t.id + '"><div class="thead"><span class="pill ' + st[0] + '">' + st[1] + '</span><p class="tline">' + esc(t.summary) + "</p>" + btns + "</div>";
     if (live) {
-      if (pending) h += '<p class="readback">' + esc(pending.summary.replace(/^Sam is looking for/, "Sam will look for").replace(/^Sam is researching/, "Sam will research")) + '</p><div class="go"><button class="pbtn" data-apply="' + t.id + '">Use this change</button><button class="plink" data-unpending>Keep the task as it is</button></div>';
-      h += box("Change the task or tell Sam something", "tkq", "", "");
+      if (pending) h += '<p class="readback">' + esc(pending.summary.replace(/^Sam is looking for/, "Sam will look for").replace(/^Sam is researching/, "Sam will research")) + '</p><div class="go"><button class="pbtn" data-apply="' + t.id + '">Use this change</button><button class="plink" data-unpending>Keep the Task as it is</button></div>';
+      h += box("Change the Task or tell Sam something", "tkq", "", "");
       if (reply && !pending) h += '<p class="samreply">' + esc(reply) + "</p>";
     }
     return h + feed(t) + "</section>";
@@ -277,7 +277,7 @@ const APP_JS = String.raw`(function(){
   function notifyLine(){
     var n = (data && data.notify) || null; if (!n) return "";
     var sw = '<label class="sw"><input type="checkbox" data-notify-on' + (n.on ? " checked" : "") + '><i></i>Email updates</label>';
-    if (editEmail) return '<div class="notify"><div class="tkbox"><input id="tkemail" type="email" value="' + esc(n.email || "") + '" aria-label="Email for task updates"><button type="button" data-save-email>Save</button></div><button class="plink" data-cancel-email>Cancel</button></div>';
+    if (editEmail) return '<div class="notify"><div class="tkbox"><input id="tkemail" type="email" value="' + esc(n.email || "") + '" aria-label="Email for Task updates"><button type="button" data-save-email>Save</button></div><button class="plink" data-cancel-email>Cancel</button></div>';
     // How often (Oct 2026): one setting for all of a person's Tasks; shown once the account can store it.
     var opts = [["daily", "Once a day"], ["twice", "Twice a day"], ["thrice", "Three times a day"], ["instant", "As soon as one comes"]];
     var cur = n.every || "daily";
@@ -302,7 +302,7 @@ const APP_JS = String.raw`(function(){
     else if (draft) h += draftCard();
     else h += '<section class="tcard">' + box("Tell Sam what to look for", "tkq", seedWords(), "e.g. find me a black manual 997 under $70k") + (reply ? '<p class="samreply">' + esc(reply) + "</p>" : "") + "</section>";
     if (paused.length) h += '<p class="pausedh">Paused</p>' + paused.map(function(t){ return taskCard(t, true); }).join("");
-    if (past.length) h += '<details class="past"><summary>Past tasks (' + past.length + ")</summary>" + past.map(function(t){ var st = status(t); return '<details><summary><span class="pill ' + st[0] + '">' + st[1] + "</span>" + esc(t.summary) + "</summary>" + feed(t) + "</details>"; }).join("") + "</details>";
+    if (past.length) h += '<details class="past"><summary>Past Tasks (' + past.length + ")</summary>" + past.map(function(t){ var st = status(t); return '<details><summary><span class="pill ' + st[0] + '">' + st[1] + "</span>" + esc(t.summary) + "</summary>" + feed(t) + "</details>"; }).join("") + "</details>";
     app.innerHTML = h;
     if (scrollTo) { var el = app.querySelector(".blocked") || document.getElementById("task-" + scrollTo); scrollTo = null; if (el) el.scrollIntoView({ block: "start" }); }
     var q = $("tkq"); if (q && !cur && (params.get("start") || params.get("seed") || editing)) { q.focus(); }

@@ -5,7 +5,7 @@
 //        SUPABASE_AUTH_HOOK_SECRET). 200 {} lets the user be created; 400 {error:{http_code,message}} refuses.
 // Body parsing is off so the hook's signature is checked over the exact bytes Supabase sent.
 import { supabaseEnv } from "../lib/_supabase.js";
-import { clientAddress, isCrew, countSince, record } from "../lib/_ceilings.js";
+import { clientAddress, isCrew, countSince, record, addressKey, addressKeys } from "../lib/_ceilings.js";
 import { signupCheck, hookSignatureOk, beforeUserCreated } from "../lib/_signup.js";
 import { logEvent, EVENTS } from "../lib/events.js";
 import { hasServerCredential } from "../lib/_credential.js";
@@ -50,8 +50,8 @@ export default async function handler(req, res) {
       const r = await fetch(`${env.supabaseUrl}/rest/v1/accounts?email=ilike.${encodeURIComponent(e.replace(/[%_*]/g, ""))}&select=user_id&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } });
       return r.ok ? (await r.json()).length > 0 : false;
     },
-    countToday: key => countSince(env, key, "c:signup", dayAgo()),
-    record: key => record(env, [key], "c:signup")
+    countToday: () => countSince(env, addressKeys(req), "c:signup", dayAgo()),
+    record: () => record(env, [addressKey(req)].filter(Boolean), "c:signup")
   });
   if (!out.ok) await logEvent(env, { event: EVENTS.RATE_LIMIT_HIT, tool: "signup", props: { kind: "signup_" + out.reason, scope: "signup" } }).catch(() => {});
   return res.status(200).json(out.ok ? { ok: true, ticket: out.ticket } : { ok: false, message: out.message });

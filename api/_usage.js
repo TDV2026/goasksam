@@ -1,3 +1,4 @@
+import { addressTag } from "../lib/_addr.js";
 const OLDCARSDATA_1K_COST_PER_REQUEST = 49 / 1000;
 const OLDCARSDATA_10K_COST_PER_REQUEST = 199 / 10000;
 const CLAUDE_SONNET_INPUT_COST_PER_TOKEN = 3 / 1000000;
@@ -58,9 +59,12 @@ export async function recordUsageEvent(event, supabaseUrl, supabaseKey) {
   }
 }
 
+// The caller's address is never stored (Oct 2026, lib/_addr.js): ip_hash is a hash whose salt changes every UTC
+// day, enough to tell callers apart within a day and nothing more. Rows written before this carried ip_address.
 export function requestMetadata(req) {
+  const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket?.remoteAddress || null;
   return {
     user_agent: req.headers["user-agent"] || null,
-    ip_address: req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket?.remoteAddress || null
+    ip_hash: addressTag(ip)
   };
 }

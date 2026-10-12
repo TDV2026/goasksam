@@ -33,8 +33,8 @@ const gateOf = (req, user) => what => tasksAllowance(supabaseEnv(), req, user.us
 const TEST_USER = /^00000000-0000-4000-8000-[0-9a-f]{12}$/;
 // The email links' confirm and result pages: plain words, one button, never an action on a click alone.
 const TAP_WORDS = {
-  pause: { title: "Pause the task", ask: "Its emails stop until you start it again. Your other tasks keep running.", button: "Pause this task", done: "Paused." },
-  stop: { title: "Stop the task", ask: "This ends this one task. Your other tasks keep running.", button: "Stop this task", done: "Stopped." },
+  pause: { title: "Pause the Task", ask: "Its emails stop until you start it again. Your other Tasks keep running.", button: "Pause this Task", done: "Paused." },
+  stop: { title: "Stop the Task", ask: "This ends this one Task. Your other Tasks keep running.", button: "Stop this Task", done: "Stopped." },
   resume: { title: "Start this search again?", ask: "Sam keeps searching in the background, day and night, and you get an email when a car fits.", button: "Start it again", done: "Searching again." },
   keep_looking: { title: "Keep looking?", ask: "Sam keeps searching in the background, day and night, and you get an email when a car fits.", button: "Keep looking", done: "Sam keeps looking." }
 };
@@ -66,23 +66,35 @@ export default async function handler(req, res) {
         const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${tapEsc(title)} | GoAskSam</title><style>${TAP_CSS}</style></head><body><main><p class="brand">GoAskSam</p>${body}</main></body></html>`;
         return req.method === "HEAD" ? res.status(status).end() : res.status(status).send(html);
       };
+      // Stop ALL Task emails for one person (the List-Unsubscribe header, its one-click POST, and the combined email's
+      // footer link): turns the "Email updates" switch off. Tasks keep running; nothing else changes.
+      if (act === "emails_off") {
+        const uid = verifyTap(q.t, "emails_off");
+        if (!uid || !/^[0-9a-f-]{36}$/.test(uid)) return page(400, "Link expired", `<h1>That link has expired.</h1><p><a href="/tasks/mine">Open your Tasks</a></p>`);
+        if (req.method !== "POST") return page(200, "Stop Task emails", `<h1>Stop all Task emails?</h1><p>Your Tasks keep running, and anything new still shows on your Tasks page. Sam just stops emailing you about them.</p>
+          <form method="post" action="/api/tasks?a=emails_off&t=${encodeURIComponent(String(q.t))}"><button type="submit">Stop Task emails</button></form>
+          <p class="quiet"><a href="/tasks/mine">Open your Tasks instead</a></p>`);
+        const r = await setNotifyPrefs(env, { userId: uid, email: null }, { on: false }).catch(e => ({ error: String(e && e.message) }));
+        if (r && r.error) return page(500, "Try again", `<h1>That didn't go through.</h1><p>Nothing changed. Try the link again in a moment.</p>`);
+        return page(200, "Task emails off", `<h1>Task emails are off.</h1><p>Your Tasks keep running. You can turn emails back on from your Tasks page any time.</p><p><a href="/tasks/mine">Open your Tasks</a></p>`);
+      }
       if (!TAP_WORDS[act]) return page(400, "Unknown link", `<h1>That link doesn't do anything.</h1>`);
       const id = verifyTap(q.t, act);
-      if (!id) return page(400, "Link expired", `<h1>That link has expired.</h1><p><a href="/tasks/mine">Open your tasks</a></p>`);
+      if (!id) return page(400, "Link expired", `<h1>That link has expired.</h1><p><a href="/tasks/mine">Open your Tasks</a></p>`);
       const task = await getTask(env, id);
       if (!task) return page(404, "Task gone", `<h1>That task is gone.</h1><p><a href="/buy">Start a new search</a></p>`);
       const w = TAP_WORDS[act];
       if (req.method !== "POST") {
         // The heading names exactly what it acts on: "Stop the task: manual Porsche 911s from 1964 to 1998".
         const named = (act === "pause" || act === "stop") && task.filters ? `${w.title}: ${jobPhrase(task.filters)}` : w.title;
-        return page(200, w.title, `<h1>${tapEsc(named)}</h1><p class="task">${tapEsc(task.summary || "This task")}</p><p>${tapEsc(w.ask)}</p>
+        return page(200, w.title, `<h1>${tapEsc(named)}</h1><p class="task">${tapEsc(task.summary || "This Task")}</p><p>${tapEsc(w.ask)}</p>
           <form method="post" action="/api/tasks?a=${encodeURIComponent(act)}&t=${encodeURIComponent(String(q.t))}"><button type="submit">${tapEsc(w.button)}</button></form>
-          <p class="quiet"><a href="/tasks/mine?task=${encodeURIComponent(id)}">Open the task instead</a></p>`);
+          <p class="quiet"><a href="/tasks/mine?task=${encodeURIComponent(id)}">Open the Task instead</a></p>`);
       }
       const out = await controlTask(env, { userId: task.user_id }, id, act, {});
       const after = (out && out.task) || task;
       const restart = act === "pause" && after.state === "paused" ? oneTap(id, "resume") : null;
-      return page(200, w.done, `<h1>${tapEsc(w.done)}</h1><p class="task">${tapEsc(task.summary || "")}</p>${restart ? `<p>You can start it again <a href="${restart}">here</a>.</p>` : act === "stop" ? `<p>You can start a new search <a href="/buy">here</a>.</p>` : ""}<p class="quiet"><a href="/tasks/mine?task=${encodeURIComponent(id)}">Open the task</a></p>`);
+      return page(200, w.done, `<h1>${tapEsc(w.done)}</h1><p class="task">${tapEsc(task.summary || "")}</p>${restart ? `<p>You can start it again <a href="${restart}">here</a>.</p>` : act === "stop" ? `<p>You can start a new search <a href="/buy">here</a>.</p>` : ""}<p class="quiet"><a href="/tasks/mine?task=${encodeURIComponent(id)}">Open the Task</a></p>`);
     }
     // The run after each live pull: Vercel cron (CRON_SECRET) or the probe key.
     // The combined Task email (lib/tasks/digest.js): the cron every quarter hour sends each person's email when their
@@ -91,6 +103,8 @@ export default async function handler(req, res) {
       const isCron = process.env.CRON_SECRET && req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
       if (!isCron && !probeOk(req)) return res.status(401).json({ error: "Unauthorized." });
       const { runDigest } = await import("../lib/tasks/digest.js");
+      // The limits ledger keeps nothing past 24 hours (its address keys are daily salted hashes, lib/_addr.js).
+      if (isCron) { const { pruneLedger } = await import("../lib/_ceilings.js"); await pruneLedger(env).catch(() => {}); }
       const out = await runDigest(env, { dry: !isCron && q.dry === "1" });
       if (!(!isCron && q.dry === "1")) await recordUsageEvent({ event_type: "task_email_run", route: "tasks_send", status: "ok", oldcarsdata_metered_requests: 0, metadata: { people: out.people, sent: out.sent, capped: out.capped, notDue: out.notDue, emailOff: out.emailOff } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
       return res.status(200).json(out);
@@ -236,7 +250,7 @@ export default async function handler(req, res) {
           const sr2 = await runSearch(env, noBidTask.filters, { keep: r => r.status === "live" && !(r.end_time && Date.parse(r.end_time) <= Date.now()) });
           noBid = ((sr2 && sr2.matches) || []).map(x => x.r).filter(r => taskFits(noBidTask, r)).find(r => r.current_bid_usd == null || Number(r.current_bid_usd) <= 0);
         }
-        if (!noBid) {   // still none: a task built from a real US no-bid listing's own make and model (it fits by construction)
+        if (!noBid) {   // still none: a Task built from a real US no-bid listing's own make and model (it fits by construction)
           const cand = (await q(`live_listings?status=eq.live&end_time=gt.${nowIso}&current_bid_usd=is.null&country=eq.US&make=not.is.null&model=not.is.null&select=${sel}&order=end_time.asc&limit=20`)) || [];
           const { jobPhrase } = await import("../lib/tasks/tasks.js");
           for (const r of cand) {
@@ -409,10 +423,10 @@ export default async function handler(req, res) {
       if (b.kind === "start") return res.status(200).json({ ...(await sendStartEmail(env, task, null, { to })), to });
       const up = (await taskUpdates(env, task.id)).filter(u => u.role === "sam").pop();
       if (!up) return res.status(400).json({ error: "no Sam update to send" });
-      const out = await notify(env, { ...task, email: to }, up, "A car matching your task just came up", { to });
+      const out = await notify(env, { ...task, email: to }, up, "A car matching your Task just came up", { to });
       return res.status(200).json({ ...out, update_id: up.id, text: up.text, to });
     }
-    if (b.action === "test_set" && probeOk(req)) {   // mock time: move a task's interaction / still-looking stamps
+    if (b.action === "test_set" && probeOk(req)) {   // mock time: move a Task's interaction / still-looking stamps
       const patch = {}; for (const k of ["last_interaction_at", "still_looking_sent_at", "checkpoint", "state"]) if (k in b) patch[k] = b[k];
       return res.status(200).json({ task: await saveTask(env, String(b.task_id), patch) });
     }

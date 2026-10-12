@@ -248,7 +248,7 @@ export default async function handler(req, res) {
       const dev = r => String(r.ip).startsWith("dev:") ? r.ip : null, adr = r => String(r.ip).startsWith("ip:") ? r.ip : null, acct = r => String(r.ip).startsWith("user:") ? r.ip : null;
       const sellAll = hits.filter(h => h.kind !== "a:sell_followup");
       const chat = (await supabaseSelectAll(env, `app_usage_events?event_type=in.(chat,sell_chat_turn,sell_followup_turn)&created_at=gte.${since}&select=created_at,event_type,status,anthropic_cost_usd,anthropic_input_tokens,metadata&order=id.asc`).catch(() => null)) || [];
-      const paid = chat.filter(r => Number(r.anthropic_cost_usd) > 0), ipOf = r => (r.metadata && r.metadata.ip_address) ? "ip:" + r.metadata.ip_address : null;
+      const paid = chat.filter(r => Number(r.anthropic_cost_usd) > 0), ipOf = r => (r.metadata && (r.metadata.ip_hash || r.metadata.ip_address)) ? "ip:" + (r.metadata.ip_hash || r.metadata.ip_address) : null;
       const costs = paid.map(r => Number(r.anthropic_cost_usd));
       const tasks = (await supabaseSelectAll(env, `tasks?created_at=gte.${since}&select=id,user_id,kind,created_at&order=created_at.asc`).catch(() => null)) || [];
       const owner = new Map(tasks.map(t => [t.id, t.user_id]));
@@ -297,7 +297,7 @@ export default async function handler(req, res) {
       };
       const ev = t => supabaseSelectAll(env, `app_usage_events?event_type=eq.${t}&created_at=gte.${since}&select=created_at,status,metadata,oldcarsdata_metered_requests&order=created_at.asc`).catch(() => []);
       const [sd, chat, bchat, se] = await Promise.all([ev("seller_decision"), ev("chat"), ev("buy_chat_turn"), supabaseSelectAll(env, `search_events?surface=eq.buy&created_at=gte.${since}&select=created_at,anon_id,user_id&order=created_at.asc`).catch(() => [])]);
-      const ipOf = r => (r.metadata && r.metadata.ip_address) || null;
+      const ipOf = r => (r.metadata && (r.metadata.ip_hash || r.metadata.ip_address)) || null;
       const recent = (sd || []).filter(r => r.created_at >= since7);
       const by = (rows, f) => rows.reduce((o, r) => { const k = f(r) || "none"; o[k] = (o[k] || 0) + 1; return o; }, {});
       const sum = rows => rows.reduce((n, r) => n + (Number(r.oldcarsdata_metered_requests) || 0), 0);

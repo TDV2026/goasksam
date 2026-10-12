@@ -15,6 +15,7 @@ import { carHistory } from "../lib/tools/carHistory.js";
 import { whereToSell } from "../lib/tools/whereToSell.js";
 import { summarize } from "../lib/tools/_shared.js";
 import crypto from "node:crypto";
+import { addressHash } from "../lib/_addr.js";
 
 // The three tool handlers + their Sam's-voice summary live in lib/tools/ (one copy), so Lane C's /buy
 // conversation imports them instead of keeping duplicates. This file is the MCP transport + guard rails.
@@ -26,6 +27,7 @@ const PER_MIN = 20, PER_DAY = 400;
 const buckets = new Map();
 function rateLimit(clientId) {
   const now = Date.now();
+  if (buckets.size > 2000) for (const [k, v] of buckets) if (now - v.dayStart >= 86400000) buckets.delete(k);   // nothing kept past a day
   let b = buckets.get(clientId);
   if (!b) { b = { minStart: now, minN: 0, dayStart: now, dayN: 0 }; buckets.set(clientId, b); }
   if (now - b.minStart >= 60000) { b.minStart = now; b.minN = 0; }
@@ -102,7 +104,8 @@ export default async function handler(req, res) {
     const name = msg.params && msg.params.name;
     const args = (msg.params && msg.params.arguments) || {};
     const clientName = (msg.params && msg.params._meta && msg.params._meta.clientName) || (req.headers["user-agent"] || "").slice(0, 60) || null;
-    const clientId = crypto.createHash("sha256").update(String(req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "") + "|" + String(clientName)).digest("hex").slice(0, 24);
+    // A daily salted hash of address and client (lib/_addr.js): the address itself is never kept, here or in the log.
+    const clientId = "h:" + addressHash(String(req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "").split(",")[0].trim() + "|" + String(clientName));
     const input = String(args.car || args.vin_or_url || "").slice(0, 200);
     const rl = rateLimit(clientId);
     if (!rl.ok) { await logCall(env, { tool: name, input, client_id: clientId, client_name: clientName, status: "rate_limited", result_kind: null, ms: 0 }); return res.status(200).json(jsonrpc(id, { content: [{ type: "text", text: "GoAskSam is catching its breath. Please try again in a minute." }], isError: true })); }

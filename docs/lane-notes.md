@@ -4331,3 +4331,66 @@ when the work has landed.
     onebox.js lines 823-834 (function offWindowLabel) and api/buy.js (CLIENT string literal, search
     `var ow = (c.offWindow` - inside function drawerHtml). Text matches today (proven by Job 5's script);
     nothing to fix, just recorded so the eventual shared module covers both constants, not just one.
+- 2026-10-12 (Lane C): SIGNUP HOOK FINDINGS, ONE-CLICK STOP, ADDRESS PRIVACY, COPY, ENDED-BEFORE-EMAIL COUNT.
+  * THE EXISTING SUPABASE HOOK. "Before User Created" is a Postgres function, public.before_user_created_ip_cap
+    (docs/supabase-ip-rate-caps.sql, commit 06e8074, TDV2026, 2026-08-10, "Spec C"). It reads the address from
+    the hook event (claims.ip, metadata.ip_address or ip_address; none = allow), reads the cap from app_config
+    ip_cap_signup_day (5), counts ip_rate_hits rows with that RAW address and kind "signup" since midnight UTC,
+    refuses at 5 with http 429 "A lot of sign-ups are coming from your connection. Try again in a bit." (our
+    page shows its generic "I couldn't send the code just now"), else inserts (ip = the raw address, kind
+    "signup") and allows. It runs for EVERY new account, Google included. It had no revoke, so the public anon
+    key could call it through /rest/v1/rpc (docs/supabase-address-privacy.sql part 1 fixes that). Its rows
+    (504 from 290 addresses, Aug 20 to Oct 12) are the only per-address sign-up figures: per address per day
+    typical 1, 90th percentile 5, busiest 6.
+  * THE SWITCH, Postgres function -> HTTPS hook (Sam, in this order; each step has its one-line test):
+      0. Before: Supabase SQL editor, run docs/supabase-address-privacy.sql parts 1 to 3.
+         Test: sign in to an existing account; it works as before.
+      1. Supabase > Authentication > Hooks > "Before User Created" > edit. Change the type to HTTPS. URL:
+         https://goasksam.com/api/signup?hook=before_user_created . Press "Generate secret", copy it, Save.
+         FROM THIS MOMENT UNTIL STEP 2 IS LIVE, EVERY NEW ACCOUNT FAILS (email and Google): the route refuses an
+         unsigned call. A person signing up sees "I couldn't send the code just now. Try again in a moment." (a new
+         Google account lands back on the page signed out). Existing accounts sign in normally.
+         Test: none yet; go straight to step 2.
+      2. Vercel > goasksam > Settings > Environment Variables > Add: SUPABASE_AUTH_HOOK_SECRET, Production, paste
+         the secret, Save. Deployments > the latest Production deployment > "..." > Redeploy. About a minute.
+         Test: when the deployment shows Ready, sign up with a new address (an alias of yours); the code arrives.
+      3. Test Google: in a private window, "Continue with Google" with a Google account that has never signed up;
+         you land signed in.
+      IF A SIGNUP FAILS AFTER STEP 2: Vercel > goasksam > Logs, filter /api/signup: 401 means the secret differs
+      (copy it again from Supabase into Vercel, redeploy); 400 means our rules refused it (expected for a
+      throwaway address). UNDO AT ANY TIME: Supabase > Hooks > "Before User Created" > change the type back to
+      Postgres function, schema public, before_user_created_ip_cap > Save. Signups work again at once.
+      4. A week later, if all is well: run docs/supabase-address-privacy.sql part 4 (drop the old function).
+  * WHAT THE SWITCH LOSES: (a) the cap on NEW GOOGLE accounts per address (5 a day); the HTTPS hook lets every
+    Google sign-up through, per Sam's rule that Google sign in is never blocked. (b) the app_config dial
+    ip_cap_signup_day (5, changeable without a deploy); the new limit is SIGNUPS_PER_ADDRESS_DAY = 20 in
+    lib/_signup.js, rolling 24 hours, email sign-ups only. Today BOTH apply to email sign-ups (old hook 5 per UTC
+    day at Supabase, our page check 20), so the effective email limit is 5. Recommendation: switch to the HTTPS
+    hook (it carries the throwaway list, Turnstile and the ticket that stops direct calls; the old one only
+    counts), keep the old function until the switch has run a week, and decide whether new Google accounts need
+    a per-address cap (it would need the address from the HTTPS hook payload, not yet seen in practice).
+  * FAILURE BEHAVIOUR (answers, nothing changed): (1) HTTPS hook on, SUPABASE_AUTH_HOOK_SECRET missing or wrong:
+    our route answers 401 to every call, Supabase does not create the account: email sign-up shows "I couldn't
+    send the code just now. Try again in a moment."; a new Google account lands back signed out with no message
+    (js/auth.js does not read the error Supabase puts in the address). BLOCKED. (2) HTTPS hook on, the route
+    errors or times out: the same, BLOCKED (Supabase treats a failed hook call as a refusal; our route itself
+    fails closed only on a bad signature, everything else in it fails open). (3) HTTPS hook off, old Postgres
+    function on: LET THROUGH unless that address made 5 accounts since midnight UTC (then refused with its 429
+    sentence, shown on our page as the generic line) or the function itself errors (refused). Our page check
+    (throwaway, 20 a day, Turnstile) still runs for the email form but can be skipped by calling Supabase
+    directly. PROPOSED, NOT DONE: show Supabase's refusal sentence after a Google return, and pass the old
+    hook's sentence through on the email form.
+  * ONE-CLICK STOP (RFC 8058): every Task email (the combined one, research done, Still looking?, the start email)
+    carries List-Unsubscribe <https://goasksam.com/api/tasks?a=emails_off&t=...> and List-Unsubscribe-Post; the
+    combined email's footer has "Stop all Task emails". A POST turns the "Email updates" switch off for that person
+    only; Tasks keep running; a GET only shows the confirm page.
+  * ADDRESSES: no raw address is written any more. ip_rate_hits keys: "ah:<daily salted hash>" (address),
+    "dev:h<daily salted hash of address and browser>" (cookieless device), "dev:<visitor id>", "user:<id>",
+    "spend_alert"; every row deleted after 24 hours. app_usage_events metadata.ip_hash (daily salted) replaces
+    ip_address; api/funnel.js ip_hint is now ip_hash; the MCP caller id is a daily salted hash. Salt from
+    ADDRESS_HASH_SECRET (else CRON_SECRET, else the service role key). SAM: run docs/supabase-address-privacy.sql
+    parts 1 to 3 now. Outside our code: Vercel's request logs and Supabase Auth's own logs keep addresses under
+    their own retention.
+  * FOR LANE B: cars that ended before their combined Task email could carry them (task_updates email_status
+    "ended", buy_alerts send_status "ended_before_send") are counted daily in scripts/pullReport.mjs; this should
+    become an event in the event layer (lib/events.js), e.g. task_car_ended_before_email {source, count}.
