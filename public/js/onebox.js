@@ -863,7 +863,7 @@
     var meta = [mi, venue, c.month || monShort(c.date)].filter(Boolean).join(" · ");
     var pill = isClosest ? (c.basis === "subject" ? "Closest match" : "Middle of the range") : (DELTA_LABEL[c.delta] || (c.role === "closest" ? "Closest sale" : "Recent sale"));
     return saleCardHtml({
-      cls: "ctx", pill: pill, href: utmUrl(c.url), slug: c.platformSlug, image: c.image,
+      cls: "ctx", pill: pill, href: utmUrl(c.url), slug: c.platformSlug, id: c.id, image: c.image,
       priceHtml: esc(usd(c.price)), allIn: (c.isHouse && c.allIn) ? usd(c.allIn) : "", title: cleanReceiptTitle(c.title), meta: meta,
       extra: otherHalfLabel(c, d) + offWindowLabel(c, d)
     });
