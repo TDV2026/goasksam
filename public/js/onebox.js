@@ -271,7 +271,12 @@
           : ('<b>' + esc(bidText) + "</b>");
         var pillText = placingPillText(l.placing);
         var photo = l.photo_url ? '<img src="' + esc(l.photo_url) + '" alt="" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()">' : "";
-        return '<a class="lp-row" href="' + esc(utmUrl(l.url)) + '" target="_blank" rel="noopener noreferrer" data-gas-event="auction_clickout" data-gas-source="' + esc(l.source || "") + '">' +
+        // Round 6 Job 1 (tracking fix): data-gas-source must carry the platform SLUG (l.source_slug,
+        // the engine's own raw value), never l.source (the display name used in the visible line
+        // just below, unchanged) - and data-gas-listing-id carries the record's own id, so the shared
+        // click handler (lib/appShell.js) can send auction_clickout with the real platform and which
+        // car was actually clicked, not the venue's pretty name with no listing id at all.
+        return '<a class="lp-row" href="' + esc(utmUrl(l.url)) + '" target="_blank" rel="noopener noreferrer" data-gas-event="auction_clickout" data-gas-source="' + esc(l.source_slug || "") + '" data-gas-listing-id="' + esc(l.id != null ? l.id : "") + '">' +
           '<span class="lp-ph' + (l.photo_url ? "" : " noimg") + '">' + photo + '<span class="none">No photo</span></span>' +
           '<span class="lp-body"><span class="lp-title">' + esc(cleanReceiptTitle(l.title)) + '</span><span class="lp-sub">' + esc([l.source, endsShort(l.end_time)].filter(Boolean).join(" · ")) + '</span></span>' +
           '<span class="lp-bid">' + bidB + (pillText ? '<span class="pill lp-pos">' + esc(pillText) + "</span>" : "") + "</span></a>";
@@ -440,11 +445,16 @@
   // any other capital letter reads as a typo, not a plural - "997 Carrera S" -> "997 Carrera Ss",
   // "911 GT3" -> "911 GT3s", "Boss 429" -> "Boss 429s". Those get " models" instead; a name that
   // ends lowercase just takes "s" as normal ("Mustang" -> "Mustangs").
+  // Round 6 Job 2 (Oct 2026): also guards a HYPHENATED name ("Mercedes-Benz" -> "Mercedes-Benzs",
+  // the reported production bug) - a hyphen is the mark of a compound proper noun (a marque or a
+  // chassis code), which reads as a typo the same way, and this helper can be reached with a bare
+  // make-only name (bareNameOf's carLabel fallback, called from thinHeadHtml) whenever a car
+  // resolves to make level with no model yet.
   function carNamePlural(name) {
     var n = String(name == null ? "" : name).trim();
     if (!n) return "";
     // Also guards a name already ending in a (lowercase) "s" ("Lotus" -> "Lotuss" is the same typo.
-    return (/[A-Z0-9]$/.test(n) || /s$/i.test(n)) ? n + " models" : n + "s";
+    return (/[A-Z0-9]$/.test(n) || /s$/i.test(n) || /-/.test(n)) ? n + " models" : n + "s";
   }
   // The engine's own prose (d.widening / d.resolvedSpec) can carry the exact same artifact from its
   // own template (a bare "s" appended to a name that already ends in S/digit/capital - flagged to
@@ -786,7 +796,10 @@
   function saleCardHtml(o) {
     var head = o.venueLine ? '<div class="price-row"><span class="cprice num">' + o.priceHtml + '</span><span class="cvenue">' + esc(o.venueLine) + "</span></div>"
       : '<span class="cprice num">' + o.priceHtml + "</span>";
-    var linkAttrs = o.href ? (' href="' + esc(o.href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(o.slug || "") + '" data-gas-event="receipt_click" data-gas-source="' + esc(o.slug || "") + '"') : "";
+    // data-gas-listing-id (Round 6 Job 1, tracking fix): the record's own id (o.id, already on
+    // every card the engine shapes), so receipt_opened's sale_id is the sale, never the platform
+    // slug (o.slug) it was wrongly sent as - the shared handler (lib/appShell.js) reads this.
+    var linkAttrs = o.href ? (' href="' + esc(o.href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(o.slug || "") + '" data-gas-event="receipt_click" data-gas-source="' + esc(o.slug || "") + '" data-gas-listing-id="' + esc(o.id != null ? o.id : "") + '"') : "";
     var titleHtml = o.title
       ? (o.href ? ('<h3 class="ctitle"><a' + linkAttrs + ' aria-label="Open the listing">' + esc(o.title) + "</a></h3>") : ('<h3 class="ctitle">' + esc(o.title) + "</h3>"))
       : "";
@@ -910,7 +923,7 @@
     if (rc.isHouse) { var ch = houseChassisMeta(rc); if (ch) segs.push(ch); }
     else if (htGearboxSplit) { var gl = gearboxLabel(rc); if (gl) segs.push(gl); }
     var marks = (rc.markers && rc.markers.length) ? "<div>" + rc.markers.map(function (mk) { return '<span class="mk">' + esc(mk.label) + "</span>"; }).join("") + "</div>" : "";
-    return saleCardHtml({ cls: "t", href: utmUrl(rc.url), slug: rc.slug, image: rc.image, priceHtml: priceHtml, allIn: allIn,
+    return saleCardHtml({ cls: "t", href: utmUrl(rc.url), slug: rc.slug, id: rc.id, image: rc.image, priceHtml: priceHtml, allIn: allIn,
       title: cleanReceiptTitle(shortCarName(rc.title)), meta: segs.filter(Boolean).join(" · "), extra: marks });
   }
   // Engine d.cards shape (refusal / shown-separately): price, mileageText, platform, month, title.
@@ -923,7 +936,7 @@
     // so this is a no-op there, same function either way).
     var sbText = "Sold before on " + monthYear((c.soldBefore && c.soldBefore.date) || "") + ((c.soldBefore && c.soldBefore.price) ? " for " + usd(c.soldBefore.price) : "");
     var sb = (c.soldBefore && c.soldBefore.date) ? (c.soldBefore.link ? ('<a class="sb-line" href="' + esc(utmUrl(c.soldBefore.link)) + '" target="_blank" rel="noopener noreferrer">' + esc(sbText) + '</a>') : ('<div class="sb-line">' + esc(sbText) + '</div>')) : "";
-    return saleCardHtml({ cls: "t", pill: tagLabel || "", href: utmUrl(c.url), slug: c.platformSlug, image: c.image,
+    return saleCardHtml({ cls: "t", pill: tagLabel || "", href: utmUrl(c.url), slug: c.platformSlug, id: c.id, image: c.image,
       priceHtml: esc(usd(c.price)), title: cleanReceiptTitle(c.title),
       meta: [c.mileageText && c.mileageText !== "TMU" ? c.mileageText : "", venue, c.month || monShort(c.date)].filter(Boolean).join(" · "), after: sb });
   }
@@ -1605,21 +1618,25 @@
     // evidence, never this car's own market, so it never earns a dollar RANGE headline (rule 24:
     // no headline figure without a real band of THIS car's own comparable sales) - the old <h1
     // class="range band"> + tail/outlier sentences asserted exactly that, unconditionally, every
-    // time this tier rendered. Replaced with a facts-only count line (count, lowest, highest,
-    // latest month) - same shape as the thin-tier factsBlock, never a range or a middle. No "Only
-    // N" phrasing (banned - a value judgment on a number, and "N" was never what gated this tier:
-    // the exact-model pool being EMPTY is what did, already stated by the lead sentence above).
+    // time this tier rendered. No "Only N" phrasing (banned - a value judgment on a number, and
+    // "N" was never what gated this tier: the exact-model pool being EMPTY is what did, already
+    // stated by the lead sentence above).
     var leadTxt = ce.rangeSuppressed
       ? "No " + esc(carName) + " has sold in " + HT_WINDOW_TEXT + ", and the wider " + era + " " + make + " market is too spread out to mark a typical range." + (ce.suppressReason ? " " + esc(ce.suppressReason) : "") + (ce.askNarrow && ce.askNarrow.question ? " " + esc(ce.askNarrow.question) : "")
       : exactSold
       ? "The only recent " + esc(carName) + " sale on record is this car" + (saleBits.length ? " (" + saleBits.join(", ") + ")" : "") + "."
       : "No " + esc(carName) + " has sold in " + HT_WINDOW_TEXT + ".";
     var shown = ce.receipts.slice(0, 8);
-    var allPrices = ce.receipts.map(function (r) { return Number(r.hammer); }).filter(function (n) { return Number.isFinite(n) && n > 0; });
     var byDateDesc = ce.receipts.slice().sort(function (a, b) { return String(b.date || "").localeCompare(String(a.date || "")); });
     var latest = byDateDesc[0] || null;
-    var factsTxt = (!ce.rangeSuppressed && allPrices.length)
-      ? (era + " " + make + "s: " + ce.receipts.length + " sold" + (allPrices.length ? ", from " + esc(usd(Math.min.apply(null, allPrices))) + " to " + esc(usd(Math.max.apply(null, allPrices))) : "") + (latest && latest.date ? ", most recently " + esc(monShort(latest.date)) : "") + ".")
+    // Round 6 Job 3 (Oct 2026): count-only rung. The window is already stated once by leadTxt
+    // above (HT_WINDOW_TEXT, the same constant the fetch itself uses), so this line never repeats
+    // it - count and latest sale month only, no dollar figures anywhere on this rung. Round 6 Job
+    // 2: never pluralise the make by appending "s" ("Mercedes-Benzs") - "sales" is the plural
+    // word, the make itself stays exactly as the engine returned it, same pattern already used by
+    // this function's own eyebrow and section heading just below.
+    var factsTxt = (!ce.rangeSuppressed && ce.receipts.length)
+      ? (era + " " + make + " sales: " + obNumWordLow(ce.receipts.length) + " sold" + (latest && latest.date ? ", most recently " + esc(monShort(latest.date)) : "") + ".")
       : "";
     var out = '<section class="anscard solo livetake blk" data-stage="answer"><div class="ans-main">' +
       '<div class="eyebrow">' + esc(ce.era + " " + ce.make + " sales · the wider market") + "</div>" +
@@ -1729,13 +1746,20 @@
     if (dim === "body") return String(label || "").toLowerCase();
     return null;
   }
-  function pluralizeWord(w) { return (/[sxz]$/i.test(w) || /[cs]h$/i.test(w)) ? w + "es" : w + "s"; }
+  // Round 6 Job 2 (Oct 2026): never build a plural by appending "s"/"es" to a make or model -
+  // carLabel's last word is a proper noun (a model, a trim, a chassis code) whenever there is no
+  // body style, and a naive suffix reads as a typo on those ("Mercedes-Benzs", the reported bug,
+  // was this exact pattern one call site over, in classEraHtml). Only the CURATED BODY_PLURAL
+  // table (already used elsewhere in this file for the same reason) pluralizes the trailing word;
+  // anything else stays exactly as the engine returned it, with "cars" doing the plural work
+  // instead - the label itself is never computed or pluralised beyond that lookup.
   function carPluralLabel(rc) {
     var label = carLabel(rc);
     if (label === "this car") return "these cars";
-    var parts = label.split(" ");
-    parts[parts.length - 1] = pluralizeWord(parts[parts.length - 1]);
-    return "these " + parts.join(" ");
+    var parts = label.split(" "), last = parts[parts.length - 1];
+    var bw = BODY_PLURAL[String(last).toLowerCase()];
+    if (bw) { parts[parts.length - 1] = bw; return "these " + parts.join(" "); }
+    return "these " + label + " cars";
   }
   // One sentence shape for every dimension (so the question reads the same regardless of each
   // tier's own ad hoc prompt string - "Manual or F1? They price differently." stays the engine's
