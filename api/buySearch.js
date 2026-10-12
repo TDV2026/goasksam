@@ -260,7 +260,18 @@ export default async function handler(req, res) {
       const accts = (await supabaseSelectAll(env, `accounts?created_at=gte.${since}&select=created_at&order=created_at.asc`).catch(() => null)) || [];
       const sic = (await supabaseSelectAll(env, `funnel_events?event=eq.sign_in_completed&created_at=gte.${since}&select=created_at,visitor_id&order=id.asc`).catch(() => null)) || [];
       const perDayCount = rows => rows.reduce((o, r) => { const d = String(r.created_at).slice(0, 10); o[d] = (o[d] || 0) + 1; return o; }, {});
-      return res.status(200).json({ days,
+      // Where addresses sit (Job 3, Oct 2026): counts and ages only, never an address. The old Supabase hook's rows
+      // (kind "signup", raw address) and the ceilings' address keys; app_usage_events rows carrying an address.
+      const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact", "Range-Unit": "items", Range: "0-0" };
+      const cnt = async q => { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: H }).catch(() => null); return r ? Number((/\/(\d+)$/.exec(r.headers.get("content-range") || "") || [])[1]) : null; };
+      const oldest = async q => { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}&select=created_at&order=created_at.asc&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }).catch(() => null); const j = r && r.ok ? await r.json() : []; return j[0] ? j[0].created_at : null; };
+      const hookRows = (await supabaseSelectAll(env, `ip_rate_hits?kind=eq.signup&select=ip,created_at&order=id.asc`).catch(() => null)) || [];
+      const addressStore = {
+        ipRateHits: { rows: await cnt("ip_rate_hits?select=id"), oldest: await oldest("ip_rate_hits?id=gt.0"), rawAddressKeys: await cnt("ip_rate_hits?ip=like.ip:*&select=id"), cookielessDeviceKeys: await cnt("ip_rate_hits?ip=like.dev:h*&select=id"), oldHookSignupRows: hookRows.length, oldHookOldest: hookRows[0] ? hookRows[0].created_at : null },
+        oldHookPerAddress: three(hookRows, r => r.ip),
+        usageEventsWithAddress: { ipAddress: await cnt("app_usage_events?metadata->>ip_address=not.is.null&select=id"), oldest: await oldest("app_usage_events?metadata->>ip_address=not.is.null"), ipHint: await cnt("app_usage_events?metadata->>ip_hint=not.is.null&select=id") }
+      };
+      return res.status(200).json({ days, addressStore,
         buyChat: { requestsPerAddress: three(bc.filter(r => r.kind === "c:buy_chat"), adr), requestsPerDevice: three(bc.filter(r => r.kind === "c:buy_chat"), dev), modelTurnsPerDevice: three(bc.filter(r => r.kind === "m:buy_chat"), dev) },
         signups: { accountsCreated: accts.length, accountsPerDay: perDayCount(accts), signInsCompleted: sic.length, signInsPerVisitor: three(sic, r => r.visitor_id || null) },
         sellChat: { ledgerRows: hits.length, byKind: hits.reduce((o, h) => (o[h.kind] = (o[h.kind] || 0) + 1, o), {}), perDevice: three(sellAll, dev), perAddress: three(sellAll, adr), followupPerAccount: three(hits.filter(h => h.kind === "a:sell_followup"), acct),
