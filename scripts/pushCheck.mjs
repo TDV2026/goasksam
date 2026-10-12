@@ -78,9 +78,26 @@ try {
   // above today's worst case while stopping well short of the server's own 20s ONEBOX_DEADLINE_MS
   // and the client's 25s fetch abort (js/onebox.js obFetch) - so this gate fires BEFORE either of
   // those would, catching a regression early instead of only after a user already saw the calm line.
+  // TIGHTER TARGET (Oct 2026, bare-nameplate pagination job): lib/_supabase.js's supabaseSelectAll
+  // now pages a large pool concurrently instead of sequentially (same rows, proven byte-identical
+  // tier/cards/cluster/span across 15 measured nameplates before/after) - a real, measured win for
+  // round-trip-bound cases: a 15-nameplate server-only sweep (year+make+model, no trim, via obdiag)
+  // dropped from p50 2.6s/p95 8.46s/max 8.9s to p50 2.4s/p95 7.0s/max 8.5s, with the biggest single
+  // case (1991 BMW M3) going 7.4s -> 2.1-2.4s. MC_PERF_TIGHT_MS (14000, default) applies to the two
+  // existing fixed cars, with real margin above the 11,788ms just re-observed for "1995 Porsche 911
+  // Carrera" post-fix. NOT every shape improved equally: "1969 Chevrolet Camaro" (86 qualifying
+  // cards from a much larger raw pool) stayed at 7.0-8.5s server-only even after this fix - its cost
+  // looks like per-page query/scan time, not round-trip count, and needs its own separate measured
+  // pass. It keeps the LOOSER MC_PERF_BUDGET_MS (18000, unchanged) rather than being held to the
+  // tighter number this fix does not actually deliver for its shape - an honest gate, not a wish.
   const PERF_BUDGET_MS = Number(process.env.MC_PERF_BUDGET_MS) || 18000;
-  const PERF_CARS = ["2008 Porsche 997 Carrera S Coupe", "1995 Porsche 911 Carrera"];
-  for (const car of PERF_CARS) {
+  const PERF_TIGHT_MS = Number(process.env.MC_PERF_TIGHT_MS) || 14000;
+  const PERF_CARS = [
+    { car: "2008 Porsche 997 Carrera S Coupe", budget: PERF_TIGHT_MS },
+    { car: "1995 Porsche 911 Carrera", budget: PERF_TIGHT_MS },
+    { car: "1969 Chevrolet Camaro", budget: PERF_BUDGET_MS }
+  ];
+  for (const { car, budget } of PERF_CARS) {
     // Without PROBE_KEY this page is the public redirect to /sell (same as the gated PAGES entries
     // above), not Market Check at all - timing THAT page would be meaningless noise, not a real
     // measurement, so skip rather than report a number that isn't about Market Check.
@@ -96,7 +113,7 @@ try {
     const t0 = Date.now();
     let navErr = null;
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 }).catch(e => { navErr = String(e && e.message || e).slice(0, 150); });
-    const deadline = Date.now() + Math.max(PERF_BUDGET_MS, 15000) + 5000; // give it a little past budget to see how far over, if at all
+    const deadline = Date.now() + Math.max(budget, 15000) + 5000; // give it a little past budget to see how far over, if at all
     let failLine = null, overBudget = false, elapsed = 0;
     for (;;) {
       elapsed = Date.now() - t0;
@@ -110,10 +127,10 @@ try {
       if (Date.now() > deadline) break;
       await new Promise(r => setTimeout(r, 250));
     }
-    if (elapsed > PERF_BUDGET_MS) overBudget = true;
+    if (elapsed > budget) overBudget = true;
     const ok = !navErr && !failLine && !overBudget;
     if (!ok) failed++;
-    console.log(`${ok ? "PASS" : "FAIL"}  Market Check perf: "${car}"  ${elapsed}ms`);
+    console.log(`${ok ? "PASS" : "FAIL"}  Market Check perf: "${car}"  ${elapsed}ms  (budget ${budget}ms)`);
     // Indented (6 spaces) to match the existing PAGES loop's failure-detail convention above -
     // prePush.mjs's baseline scanner only treats 6-space-indented lines as failure detail to check
     // against BASELINE_FAILURES; a FAIL whose only detail sits on the unindented summary line above
@@ -121,7 +138,7 @@ try {
     // even though pushCheck's own exit code was nonzero. Found and fixed in this same job.
     if (navErr) console.log(`      load: ${navErr}`);
     if (failLine) console.log(`      shows a failure line instead of a result: "${failLine}"`);
-    if (overBudget) console.log(`      exceeds budget: ${elapsed}ms > ${PERF_BUDGET_MS}ms`);
+    if (overBudget) console.log(`      exceeds budget: ${elapsed}ms > ${budget}ms`);
     await page.close();
   }
 } finally { await browser.close(); }
