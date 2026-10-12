@@ -3,6 +3,7 @@
 // deploy cap; all three share USAGE_DASHBOARD_KEY. (Merged from api/adminAccounts.js
 // and api/outboundClicks.js, July 2026.)
 import { hasServerCredential } from "../lib/_credential.js";
+import { sendDisguisedNotFound } from "../lib/_notFound.js";
 import fs from "node:fs";
 import { supabaseEnv, supabaseSelect, supabaseSelectAll, supabaseInsert, supabaseDelete } from "../lib/_supabase.js";
 import { callOldCarsData } from "../lib/_ocd.js";
@@ -5939,7 +5940,8 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "sellexamplerefresh", ms: Date.now() - t0, qualified: !!(d && d.example), example: d && d.example, tried: d && d.tried });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts|vindist|typemodelunk|descfacts|ingestlog|item3probe|unktriage|vinidxcount|mcexamplerefresh|sellexamplerefresh|matsweep." });
+  // A task that does not exist (including the diagnostics removed before launch) is the normal 404: no task list.
+  return sendDisguisedNotFound(res);
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================

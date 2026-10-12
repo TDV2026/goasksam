@@ -2,7 +2,7 @@
 // blocker was a maxlength=6 cutoff + "6-digit" copy while Supabase sends 8). Renders the
 // code screen and confirms: no "6-digit" copy, the input holds all 8 typed digits (no
 // truncation), maxlength is generous, and an 8-digit code PASSES validation (the error
-// after Verify is not the length error). The verify call itself is proven by task=otpselftest
+// after Verify is not the length error). The verify call itself was proven by a pre-launch diagnostic, since removed
 // (8-digit + type:email -> session). Usage: node scripts/otpLengthVerify.mjs
 import puppeteer from "puppeteer-core";
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
