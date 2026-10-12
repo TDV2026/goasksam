@@ -4246,11 +4246,12 @@ async function handleOps(req, res) {
     const { resolveVehicle } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
     const { runOneBox } = await import("../lib/onebox.js");
-    const { familyMarket, listingGeneration, specKeyFor, emptyFilters } = await import("../lib/live/search.js");
+    const { familyMarket, listingGeneration, specKeyFor, emptyFilters, resolveForBuy } = await import("../lib/live/search.js");
     const q = String(req.query?.qs || "").trim();
     const rv = await resolveVehicle(q, {});
     const v = rv && rv.vehicle;
-    if (!v || !v.make) return res.status(200).json({ task: "buypathdiag", q, error: "unresolved", rv });
+    const rfb = await resolveForBuy(q, env).catch(e => ({ error: String(e && e.message || e) }));
+    if (!v || !v.make) return res.status(200).json({ task: "buypathdiag", q, error: "unresolved", rv, resolveForBuy: rfb });
     const mcGen = await findGeneration(v, env).catch(e => ({ error: String(e && e.message || e) }));
     const title = [v.year, v.make, v.model, v.trim].filter(Boolean).join(" ");
     const buyGen = await listingGeneration(v, title, env).catch(e => ({ error: String(e && e.message || e) }));
@@ -4260,6 +4261,7 @@ async function handleOps(req, res) {
     return res.status(200).json({
       task: "buypathdiag", q,
       resolvedVehicle: v,
+      resolveForBuy: rfb,
       marketCheck: { generation: mcGen, tier: mcD && mcD.tier, poolN: mcD && mcD.poolN, cards: mcD && Array.isArray(mcD.cards) ? mcD.cards.length : null, classEraCards: mcD && mcD.classEra ? (mcD.classEra.cards || []).length : null, referenceFigureReason: mcD && mcD.referenceFigureReason },
       buy: { generation: buyGen, specKey: specKeyFor(v, buyGen, null), result: buyM },
       generationsMatch: JSON.stringify(mcGen) === JSON.stringify(buyGen),
