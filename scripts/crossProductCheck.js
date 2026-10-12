@@ -129,7 +129,15 @@ export const DEFAULT_SPECS = [
   // 1987 Ford Sierra RS Cosworth, carried OldCarsData's own make="Merkur"/model="XR4Ti" tag;
   // corrected in the archive via task=fixMerkurRow - guarded here so a future re-ingest or a
   // similar mislabel never silently re-contaminates this nameplate's pool).
-  "2005 Mercedes-Benz CLK DTM", "Merkur XR4Ti"
+  "2005 Mercedes-Benz CLK DTM", "Merkur XR4Ti",
+  // Round 5 Lane B job (Oct 2026, model-first ladder): Sam's own named sweep additions. "2025
+  // Porsche 911" (bare, no body named, must ask body_choice if 2+ bodies independently meet THIN)
+  // and "2025 Porsche 911 Cabriolet" (body already named, must NOT ask) prove the body-choice gate.
+  // "1991 Mercedes-Benz 560SL" is a thin SL-Class year with a real named sibling family (R107/R129
+  // SLs) and no generation curated for the pre-1989 R107. "2021 Land Rover Defender 110" has no
+  // curated generation data at all (lib/generations.js) and no SIBLING_MODELS entry - the
+  // fallbackRung should skip "generation"/"sibling" cleanly rather than guess.
+  "2025 Porsche 911", "2025 Porsche 911 Cabriolet", "1991 Mercedes-Benz 560SL", "2021 Land Rover Defender 110"
 ];
 
 const round = n => (Number.isFinite(n) ? Math.round(n) : null);
@@ -162,7 +170,9 @@ async function marketCheckLane(vehicle, generation, searchText, env) {
   const d = await runOneBox(vehicle, generation, searchText, { ...env, asked: 2 }, null);
   if (!d || !d.tier) return { ok: false, reason: "no tier" };
   const tier = d.tier;
-  if (!/^(result|thin|class_era|refusal)$/.test(tier)) return { ok: false, reason: `tier=${tier} (a question, not an answer - spec needs a year/trim to disambiguate)` };
+  // class_era REMOVED from this allow-list (Round 5 Lane B job, Oct 2026): the tier no longer
+  // exists - classEraGuarded/assessClassEra are deleted, so runOneBox never returns it.
+  if (!/^(result|thin|refusal)$/.test(tier)) return { ok: false, reason: `tier=${tier} (a question, not an answer - spec needs a year/trim to disambiguate)`, identityQuestionAsked: /_choice$/.test(tier) };
   const label = [d.resolvedCar?.genCode, d.resolvedCar?.model, d.resolvedCar?.trim].filter(Boolean).join(" ") || vehicle.model || null;
   // Mirror lib/live/search.js marketOf() exactly: a "range" low/high exists ONLY when
   // d.tier === "result" && Array.isArray(d.cluster) (8+ solid sales, rule 24's cluster gate).
@@ -178,7 +188,11 @@ async function marketCheckLane(vehicle, generation, searchText, env) {
   const latest = cards.map(c => (c.date || "").slice(0, 10)).filter(Boolean).sort().at(-1) || null;
   const recent = normRecent(Array.isArray(d.recent3) ? d.recent3 : cards, "cards");
   const span = Array.isArray(d.span) ? [round(d.span[0]), round(d.span[1])] : null;
-  return { ok: true, tier, label, low, high, count, latest, recent, span, referenceFigure: d.referenceFigure || null, counts: d.counts || null, window: d.windowLabel || null, poolYears: Array.isArray(d.poolYears) ? d.poolYears : null };
+  // fallbackRung/rungLabel/siblingName (Round 5 Lane B job, Oct 2026, Part 1 sweep requirement):
+  // read directly off the raw engine answer, same fields mapEngineAnswer exposes. identityQuestionAsked
+  // is false here (this spec answered, tier is result/thin/refusal) - see the tier-mismatch branch
+  // above for the question-asked case.
+  return { ok: true, tier, label, low, high, count, latest, recent, span, referenceFigure: d.referenceFigure || null, counts: d.counts || null, window: d.windowLabel || null, poolYears: Array.isArray(d.poolYears) ? d.poolYears : null, fallbackRung: d.fallbackRung || null, rungLabel: d.rungLabel || null, siblingName: d.siblingName || null, identityQuestionAsked: false };
 }
 
 // ---- Lane 2 & 4: Buy / Tasks (familyMarket -> listingMarket -> walkLadder, the real empty-state read) ----
@@ -192,7 +206,7 @@ async function buyLane(env, v, f) {
   const count = m.count ?? null;
   const recent = normRecent(m.recent, "cards");
   const latest = datesOf(recent).sort().at(-1) || null;
-  return { ok: true, kind: m.kind, label, low, high, count, latest, recent, referenceFigure: m.referenceFigure || null, counts: m.counts || null, window: m.windowLabel || null, poolYears: Array.isArray(m.poolYears) ? m.poolYears : null };
+  return { ok: true, kind: m.kind, label, low, high, count, latest, recent, referenceFigure: m.referenceFigure || null, counts: m.counts || null, window: m.windowLabel || null, poolYears: Array.isArray(m.poolYears) ? m.poolYears : null, fallbackRung: m.fallbackRung || null, rungLabel: m.rungLabel || null, siblingName: m.siblingName || null };
 }
 
 // ---- Lane 3: Sell (fetchOnlinePool, the shared pool buildSharedAnalysis aggregates from) ----
@@ -230,7 +244,10 @@ async function sellLane(vehicle, generation, env) {
   // call just above (a second runOneBox invocation that already exists for the asking-line
   // verification) rather than adding a third call or editing platformPick.js.
   const counts = (askingResult && askingResult.counts) || null;
-  return { ok: true, label, low, high, span, count: priced.length, latest: (sorted[0]?.auction_end_date || "").slice(0, 10) || null, recent, referenceFigure: referenceFigure || null, askingLineLow, askingLineHigh, counts, window: windowLabel || null, poolYears: Array.isArray(poolYears) ? poolYears : null };
+  // fallbackRung/rungLabel/siblingName (Round 5 Lane B job, Oct 2026): fetchOnlinePool
+  // (lib/platformPick.js, Lane C's file) does not surface these either, same gap as counts above -
+  // reuses the SAME askingResult call rather than adding a third runOneBox invocation.
+  return { ok: true, label, low, high, span, count: priced.length, latest: (sorted[0]?.auction_end_date || "").slice(0, 10) || null, recent, referenceFigure: referenceFigure || null, askingLineLow, askingLineHigh, counts, window: windowLabel || null, poolYears: Array.isArray(poolYears) ? poolYears : null, fallbackRung: (askingResult && askingResult.fallbackRung) || null, rungLabel: (askingResult && askingResult.rungLabel) || null, siblingName: (askingResult && askingResult.siblingName) || null };
 }
 
 // ---- comparison ----
@@ -282,6 +299,14 @@ function compareField(name, values) {
     const strs = present.map(([, v]) => Array.isArray(v) ? v.join("-") : String(v));
     const mismatch = strs.some(s => s !== strs[0]);
     return { field: "poolYears", status: mismatch ? "MISMATCH" : "MATCH", detail: present.map(([k, v]) => `${k}=${Array.isArray(v) ? v.join("-") : v}`).join(" ") };
+  }
+  // fallbackRung/rungLabel/siblingName (Round 5 Lane B job, Oct 2026): EXACT match, same discipline
+  // as window/poolYears - these name WHICH rung/pool produced the answer, not a tolerance-bearing
+  // number.
+  if (name === "fallbackRung" || name === "rungLabel" || name === "siblingName") {
+    const strs = present.map(([, v]) => String(v));
+    const mismatch = strs.some(s => s !== strs[0]);
+    return { field: name, status: mismatch ? "MISMATCH" : "MATCH", detail: present.map(([k, v]) => `${k}="${v}"`).join(" ") };
   }
   if (name === "label") {
     // Informational only - wording legitimately differs by product (plural noun, generation code
@@ -404,7 +429,10 @@ export async function checkOneSpec(q, env) {
   const tasks = await buyLane(env, buyVehicle, f).catch(e => ({ ok: false, reason: String(e && e.message || e) }));
 
   row.lanes = { marketCheck, buy, sell, tasks };
-  const fields = ["label", "low", "high", "count", "latest", "recent", "referenceFigure", "window", "poolYears"];
+  // fallbackRung/rungLabel/siblingName (Round 5 Lane B job, Oct 2026, Part 1 sweep requirement):
+  // EXACT match across every lane that answered, same discipline as window/poolYears above - these
+  // name WHICH POOL/RUNG produced the answer, a fact about the read, not a number with tolerance.
+  const fields = ["label", "low", "high", "count", "latest", "recent", "referenceFigure", "window", "poolYears", "fallbackRung", "rungLabel", "siblingName"];
   row.compare = fields.map(fld => compareField(fld, {
     marketCheck: marketCheck.ok ? marketCheck[fld] : null,
     buy: buy.ok ? buy[fld] : null,
@@ -455,6 +483,15 @@ export async function checkOneSpec(q, env) {
   if (countsCompare.some(c => c.status === "MISMATCH")) row.anyMismatch = true;
   row.anyMismatch = row.compare.some(c => c.status === "MISMATCH") || row.anyMismatch;
   row.lanesOk = { marketCheck: marketCheck.ok, buy: buy.ok, sell: sell.ok, tasks: tasks.ok };
+  // identityQuestionAsked (Round 5 Lane B job, Oct 2026, Part 1 sweep requirement): reported, not a
+  // cross-lane MISMATCH gate - Buy/Tasks (lib/live/search.js walkLadder) structurally never ask an
+  // identity question at all (they are a market-READ surface, not a conversational wizard; see the
+  // pre-existing diagnoseReasons note above on the generation_choice asymmetry), so comparing them
+  // against Market Check's own question-or-answer choice would always "mismatch" on any car that
+  // genuinely needs one - that is expected architecture, not a bug. This names what Market Check
+  // (the one lane that can ask) actually did, for the report's own "was an identity question asked"
+  // requirement.
+  row.identityQuestionAsked = marketCheck.identityQuestionAsked === true;
   row.reasons = diagnoseReasons(row, { vehicle, marketCheck, buy, sell, tasks });
 
   try {
