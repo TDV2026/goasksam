@@ -4598,3 +4598,38 @@ doesn't re-derive this:
   plumbing in js/onebox.js (`refine.body`/`refine.tx`/`refine.trim` round-trip through
   `URLSearchParams` today) - a UI-rendering decision on top of existing infrastructure, not new
   plumbing, but not built this round either.
+
+### FOR LANE C: /admin status report (Job 5, report only, nothing built this pass)
+
+Sam's notes describe an `/admin` dashboard with Supabase sign-in, an `admin_users` allowlist, and
+"owner"/"viewer" roles, assigned Oct 9 2026. Checked every angle; here is exactly what exists today.
+
+- **No `/admin` route anywhere.** No `api/admin.js`, no static page, no vercel.json rewrite. A plain
+  GET to `/admin` on production returns HTTP 429 (Vercel Bot Protection challenging the bare request,
+  the same thing every unauthenticated curl to this site gets this session) - not a real 404/200/
+  redirect signal either way, so this does not confirm OR rule out a route; the file-tree search is
+  the authoritative answer, and it found nothing.
+- **No `admin_users` table or schema file.** The string appears only as PROSE in `docs/admin-
+  analytics.md` and this file (describing the plan), never in a `docs/*.sql` schema, never read or
+  written by any `lib/**`/`api/**` code.
+- **No "owner"/"viewer" role-check code anywhere** in `lib/**` or `api/**`. Grepped both roles
+  directly; zero hits outside prose/docs.
+- **What DOES exist, and is a DIFFERENT, older thing, not the Supabase-auth dashboard**: a key-gated
+  admin surface, `api/usageDashboard.js`, auth'd by `USAGE_DASHBOARD_KEY` (query `?key=` or header
+  `X-Admin-Key`) - no Supabase sign-in, no per-user roles, one shared key. History: `api/
+  adminAccounts.js` (accounts + funnel admin page, commit af65332, Aug 2026) and `api/
+  outboundClicks.js` were later merged INTO `usageDashboard.js` as `?view=accounts`/`?view=outbound`
+  (commit ed33003, same day) to stay under Vercel Hobby's 12-function cap. `adminAccounts.js` no
+  longer exists as a separate file - confirmed, it is not on disk. This file has since grown into
+  this session's own `?view=ops&task=...` surface (crossProductCheck, obdiag, etc.) - it is a real,
+  working, but fundamentally different piece of infrastructure (one shared secret, not a role system).
+  Do not confuse the two when scoping the new dashboard: this one is NOT a foundation to build the
+  Supabase-auth version on top of; it is a parallel, pre-existing ops tool that should keep working
+  independently.
+  - FOR LANE C's purposes: it is safe to treat `/admin` (the Supabase-auth, admin_users, owner/viewer
+    thing) as **not started** - zero route, zero schema, zero role code. The actual foundation that
+    DOES exist for an admin dashboard's DATA is the event layer described earlier in `docs/admin-
+    analytics.md` (visitor id, `lib/events.js` EVENTS/logEvent, `funnel_events`/`visitor_first_touch`
+    tables) - that doc already says explicitly the dashboard PAGES (Supabase-auth shell, Overview/
+    Journeys/Settings UI) were deliberately left for a separate pass. Nothing has changed since: the
+    UI, the auth, and the allowlist are all still to be built from zero, by whoever picks this up next.
