@@ -5618,16 +5618,18 @@ async function handleOps(req, res) {
     const terms = String(req.query?.titleContains || "").split("|").map(s => s.trim()).filter(Boolean);
     if (!make || !terms.length) return res.status(400).json({ error: "dochistdiag needs ?make=&titleContains=a|b" });
     const orTitle = terms.map(t => `listing_title.ilike.*${encodeURIComponent(t)}*`).join(",");
-    const rows = (await supabaseSelectAll(env, `sales_archive?make=ilike.${encodeURIComponent(make)}&or=(${orTitle})&sale_price=not.is.null&select=listing_title,sale_date,sale_price,sale_price_usd,desc_facts&limit=1000`)) || [];
+    const excludeRe = /\b(replica|clone|tribute|recreation|homage|kit\s?car|-style|roadster)\b/i;   // roadster excluded so this scopes to the Coupe/Gullwing body specifically, matching the 300SL Coupe test case
+    const rows = ((await supabaseSelectAll(env, `sales_archive?make=ilike.${encodeURIComponent(make)}&or=(${orTitle})&sale_price=not.is.null&select=listing_title,sale_date,sale_price,sale_price_usd,desc_facts&limit=1000`)) || []).filter(r => !excludeRe.test(String(r.listing_title || "")));
     const usd = r => Number.isFinite(Number(r.sale_price_usd)) && Number(r.sale_price_usd) > 0 ? Number(r.sale_price_usd) : Number(r.sale_price);
     const hasMarker = r => { const m = (r.desc_facts && Array.isArray(r.desc_facts.markers)) ? r.desc_facts.markers : []; return m.includes("documented_history") || m.includes("matching_numbers"); };
     const has = rows.filter(hasMarker), hasNot = rows.filter(r => !hasMarker(r));
     const median = arr => { const v = arr.map(usd).filter(Number.isFinite).sort((a, b) => a - b); if (!v.length) return null; const i = Math.floor(v.length / 2); return v.length % 2 ? v[i] : Math.round((v[i - 1] + v[i]) / 2); };
     return res.status(200).json({
       task: "dochistdiag", make, terms, totalRows: rows.length,
-      has: { n: has.length, medianUsd: median(has) },
-      hasNot: { n: hasNot.length, medianUsd: median(hasNot) },
-      sampleTitlesWithMarker: has.slice(0, 5).map(r => r.listing_title)
+      has: { n: has.length, medianUsd: median(has), prices: has.map(usd).filter(Number.isFinite).sort((a, b) => a - b) },
+      hasNot: { n: hasNot.length, medianUsd: median(hasNot), prices: hasNot.map(usd).filter(Number.isFinite).sort((a, b) => a - b).slice(0, 40) },
+      sampleTitlesWithMarker: has.slice(0, 8).map(r => r.listing_title),
+      sampleTitlesWithoutMarker: hasNot.slice(0, 8).map(r => r.listing_title)
     });
   }
 
