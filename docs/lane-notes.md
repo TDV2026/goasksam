@@ -5248,3 +5248,32 @@ gates, confirmed on real cars, not assumed**:
   * AFTER: a car armed in the last 15 minutes before its end can end before the next run, so it gets no email while the
     Buy switch says "You'll get an email before it ends." Options: say "two hours before it ends" on the switch, or
     hide the switch in the last 15 minutes (Lane A's page).
+- 2026-10-12 (Lane B): "2021 BMW X3 M40I" CLOSED OUT - CONFIRMED VENDOR-COVERAGE GAP, NOT OURS.
+  * Sam approved a bounded page-walk (5 requests) through OCD's /auctions/live (same source, vendor's
+    own soonest-ending-first default order) to settle whether carsandbids.com/auctions/rj0VnZW2/
+    2021-bmw-x3-m40i (reported "ending in about a day") is a pull-logic gap or a vendor-coverage gap.
+  * METHOD: api/pullLive.js's existing zero-write ?probe=1 path extended with &probePage=N (walks the
+    vendor's own page order, one real page per request) and &find=<text> (searches the FULL returned
+    page, not just 2 samples, for the slug) - both already covered the first spent request's
+    determination attempt; this round added the page-walk. Each response also now reports endRange
+    (the page's own min/max auction_end_at vs now), so later pages could be targeted by the evidence
+    already in hand rather than by guessing blind.
+  * RESULT: pages 2 through 5 are CONTIGUOUS with no gap - page 2 ends where page 3 begins (11.3h from
+    now), page 3 ends where page 4 begins (12.5h), page 4 spans all the way to page 5's start (33.7h).
+    Together they fully bracket the "about a day" (24h) window with no hole for a listing to hide in.
+    matchCount: 0 on every single page. The listing's slug (rj0vnzw2) does not appear anywhere in
+    OCD's own live feed across the entire relevant time range.
+  * DETERMINATION: VENDOR-COVERAGE GAP, confirmed, not a pull-logic gap. OCD simply does not carry this
+    specific Cars & Bids listing right now. CLOSED - nothing to fix on our side for this case. (Earlier
+    in this job, BMW X3 as a MODEL was already confirmed NOT excluded by any fence or pull filter -
+    other X3s, e.g. a 2016 X3 xDrive35i M Sport, are in our pool today - so this is specific to this
+    one listing, not a class of car we are systematically missing.)
+  * SPENT: exactly 5 metered requests this batch (the approved ceiling) - one of the five landed on a
+    not-yet-propagated deploy and returned page 1 again (a real metered call that produced no new
+    information, confirmed by its missing endRange field, which the next call onward carried
+    correctly); the other four each covered real, distinct pages. Total across both approved rounds:
+    6 metered requests (1 failed on a parameter error last round, 5 this round).
+  * ALSO FIXED while in here: the probe's own `limit` cap (1000) didn't match OCD's real ceiling (100,
+    confirmed live by the vendor's own 400 "limit: Too big: expected number to be <=100") - corrected,
+    no behavior change for any value already under 100.
+  * Commits: api/pullLive.js (probePage + endRange) ca31117; (limit cap fix) baa4a7b.
