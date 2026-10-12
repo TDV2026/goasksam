@@ -5481,3 +5481,33 @@ gates, confirmed on real cars, not assumed**:
   scripts/otpLengthVerify.mjs cleared. Live (deploy d1ef911): all three names 404 text/html "This page doesn't exist",
   no ops words in the body; ingestlog, vinidxcount, daycount answer 200. Real ops tasks and the key-gated dashboard
   unchanged. AFTER: retire the old dashboard once /admin has a week of live data.
+- 2026-10-12 (Lane C): TURNSTILE PROVEN END TO END, LOCAL ONLY (no production env or API touched, no code change).
+  * How: the real public/js/auth.js on the live /sell page's markup at 390x844; every API call answered inside a
+    local test process: /api/publicConfig (Turnstile on), /api/signup = the real lib/_signup.js signupCheck with the
+    real Cloudflare siteverify, and a stand-in for Supabase's code endpoint that runs the real beforeUserCreated
+    hook decision. Keys: Cloudflare's published TEST pairs (always pass, always fail/block), in that process only.
+  * Results:
+      new address, passing token     -> check passes, ticket, hook lets the account be created, "Enter your code"
+      new address, failing token     -> refused at the check, card shows "That didn't go through. Refresh the page and try again."
+      new address, no token          -> same refusal (widget blocked, no token sent)
+      existing account, no token     -> never asked: code sent
+      Google                         -> the check is never called; the hook allows any Google user
+      check unreachable, no ticket   -> Supabase hook refuses; js/auth.js authRefusal shows the same sentence
+    Widget sits between the email box and "Email me a code" (widget 442 to 511, button 531 to 565 of 844), no
+    sideways scroll; the card keeps every button on screen.
+  * LAUNCH-DAY STEPS FOR SAM:
+      1. Cloudflare > Turnstile > Add widget: hostname goasksam.com (www redirects there), mode Managed. Copy its
+         site key and secret key.
+      2. Vercel > goasksam > Settings > Environment Variables, Production only, three names:
+           TURNSTILE_SITE_KEY      the site key
+           TURNSTILE_SECRET_KEY    the secret key (mark Sensitive)
+           SIGNUP_TURNSTILE        1
+         All three must be set; with any one missing the check stays off.
+      3. Deployments > the latest Production deployment > Redeploy. Env changes do nothing until a redeploy.
+      4. THE TEST (two minutes after the redeploy, the config is cached up to 120 seconds): on a phone or a
+         private window, goasksam.com/sell > Sign in. The Cloudflare box shows under the email field and turns to a
+         tick. Enter an address that has never signed up (feedback+launch1@goasksam.com) > Email me a code. Expect
+         "Enter your code" and the email. If it says "That didn't go through", the keys or the hostname are wrong.
+      To switch off: set SIGNUP_TURNSTILE to 0 and Redeploy. Google and existing accounts are unaffected either way.
+  * AFTER: "Email me a code" is not held until the widget's token arrives; a new person who presses it within the
+    first second or two would see the refusal and a fresh widget. Low risk (typing an address takes longer).
