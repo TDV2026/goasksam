@@ -150,8 +150,10 @@ async function retention(env) {
 
 // Model calls and cost against the spend ledger, and search_run against each product's own search record,
 // for one Pacific day. Internal traffic is in both sides on purpose: it is real spend.
-async function reconcile(env, day) {
-  const { start, end } = ptRange(day);
+async function reconcile(env, day, since) {
+  const r0 = ptRange(day);
+  // since: compare from a later instant in the day (the store's first hour, a deploy), never earlier.
+  const start = since && Date.parse(since) > Date.parse(r0.start) ? new Date(Date.parse(since)).toISOString() : r0.start, end = r0.end;
   const at = `created_at=gte.${encodeURIComponent(start)}&created_at=lt.${encodeURIComponent(end)}`;
   const ts = `ts=gte.${encodeURIComponent(start)}&ts=lt.${encodeURIComponent(end)}`;
   const [ledger, calls, runs, oldSearch, sellRows] = await Promise.all([
@@ -165,7 +167,7 @@ async function reconcile(env, day) {
   const per = (a, f) => a.reduce((o, x) => { const k = f(x) || "none"; o[k] = (o[k] || 0) + 1; return o; }, {});
   const completed = runs.filter(r => r.props.answer_type !== "failed");
   return {
-    day,
+    day, from: start, to: end,
     modelCalls: { ledgerRows: ledger.length, events: calls.length, ledgerUsd: round(sum(ledger, r => r.anthropic_cost_usd)), eventUsd: round(sum(calls, c => c.props.cost_usd)) },
     searches: { searchRunCompleted: per(completed, r => r.product), searchRunFailed: per(runs.filter(r => r.props.answer_type === "failed"), r => r.product),
       oldSearchEvents: per(oldSearch, r => r.tool), sellDecisionLedgerRows: sellRows },
@@ -305,7 +307,7 @@ async function handler(req, res) {
     if (b.part === "demand") return res.status(200).json(await demand(env));
     if (b.part === "journey") return res.status(200).json(await journey(env, typeof b.anon === "string" ? b.anon : null));
     if (b.part === "retention") return res.status(200).json(await retention(env));
-    if (b.part === "reconcile") return res.status(200).json(await reconcile(env, /^\d{4}-\d{2}-\d{2}$/.test(String(b.day || "")) ? b.day : ptDay(-1)));
+    if (b.part === "reconcile") return res.status(200).json(await reconcile(env, /^\d{4}-\d{2}-\d{2}$/.test(String(b.day || "")) ? b.day : ptDay(-1), typeof b.since === "string" && Number.isFinite(Date.parse(b.since)) ? b.since : null));
   } catch (e) { return res.status(500).json({ error: "read failed" }); }
   return sendDisguisedNotFound(res);
 }
