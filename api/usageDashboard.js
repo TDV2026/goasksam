@@ -2301,7 +2301,10 @@ async function handleOps(req, res) {
           onlineN: ht ? ht.onlineN : null, onlineReceiptsN: ht ? ht.onlineReceiptsN : null, houseN: ht ? ht.houseN : null, totalN: ht ? ht.totalN : null,
           houseShare: ht ? Math.round(100 * ht.houseN / Math.max(1, ht.houseN + ht.onlineReceiptsN)) + "%" : null,
           medianHammer: ht ? ht.medianHammer : null, pairsCount: ht ? ht.pairsCount : null, pairPctEligible: ht ? ht.pairPctEligible : null,
-          classEra: r.classEra ? `${r.classEra.era} ${r.classEra.make}: ${r.classEra.totalN} sold $${Math.round(r.classEra.lowHammer).toLocaleString()}-$${Math.round(r.classEra.highHammer).toLocaleString()} (mid $${Math.round(r.classEra.medianHammer).toLocaleString()})` : null,
+          // lowHammer/highHammer/medianHammer are stripped at the source (URGENT, Oct 2026, CLK DTM
+          // defect 2 - class-era never carries a dollar figure to any caller) - this ops line is
+          // count-only now, matching every real renderer, instead of showing $NaN.
+          classEra: r.classEra ? `${r.classEra.era} ${r.classEra.make}: ${r.classEra.totalN} sold` : null,
           notFiredMeta: (!ht && r.htMeta) ? { onlineN: r.htMeta.onlineN, onlineReceiptsN: r.htMeta.onlineReceiptsN, houseN: r.htMeta.houseN, totalN: r.htMeta.totalN } : null,
           intake: ht && ht.intake ? `${ht.intake.kind}${ht.intake.markerKey ? ":" + ht.intake.markerKey : ""}${ht.intake.thresholdK ? " @" + ht.intake.thresholdK + "k" : ""} (fork ${ht.intake.sep.toFixed(2)}x)` : null,
           topReceipts: ht ? (ht.receipts || []).slice(0, 4).map(rc => `${rc.venue} ${rc.year || ""} $${Math.round(rc.hammer).toLocaleString()}${rc.isHouse ? " (H, all-in $" + Math.round(rc.allIn || 0).toLocaleString() + ")" : ""}${rc.mileage ? " " + rc.mileage.toLocaleString() + "mi" : ""}${rc.markers.length ? " [" + rc.markers.map(m => m.label).join(", ") + "]" : ""}`) : null,
@@ -5587,6 +5590,17 @@ async function handleOps(req, res) {
   // raw query (make+decade+36mo window, no model filter) and reports the real raw count plus a
   // stage-by-stage breakdown of what each filter removes, so the 318->13 shrink can be traced to
   // its exact cause instead of guessed. Remove once closed.
+  // task=titlerowdiag: TEMPORARY (URGENT Merkur XR4Ti job, Oct 2026). Direct archive row lookup by
+  // a listing_title ILIKE pattern, returning every raw column (make/model/year/title/vehicle_type)
+  // so a cross-model leak can be traced to its real cause (mislabeled make/model column vs a
+  // resolver/fetch-scope match) instead of guessed. Remove once closed.
+  if (task === "titlerowdiag") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const pattern = String(req.query?.pattern || "sierra*cosworth");
+    const rows = await supabaseSelectAll(env, `sales_archive?select=id,make,model,year,listing_title,vehicle_type,sale_date&listing_title=ilike.${encodeURIComponent("*" + pattern + "*")}&limit=50`) || [];
+    return res.status(200).json({ task: "titlerowdiag", pattern, count: rows.length, rows });
+  }
+
   if (task === "classeradiag") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { recordExcludeReason } = await import("../lib/onebox.js");

@@ -1631,7 +1631,9 @@
     var latest = byDateDesc[0] || null;
     // Round 6 Job 3 (Oct 2026): count-only rung. The window is already stated once by leadTxt
     // above (HT_WINDOW_TEXT, the same constant the fetch itself uses), so this line never repeats
-    // it - count and latest sale month only, no dollar figures anywhere on this rung. Round 6 Job
+    // it - count and latest sale month only, no dollar figures anywhere on this rung (also closes
+    // the CLK DTM defect 2 leak independently found this round - the old line computed its own
+    // min/max straight off the receipts, bypassing lowHammer/highHammer entirely). Round 6 Job
     // 2: never pluralise the make by appending "s" ("Mercedes-Benzs") - "sales" is the plural
     // word, the make itself stays exactly as the engine returned it, same pattern already used by
     // this function's own eyebrow and section heading just below.

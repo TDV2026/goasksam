@@ -39,7 +39,7 @@
 
 import { resolveVehicle } from "../lib/vehicle.js";
 import { findGeneration } from "../lib/generations.js";
-import { runOneBox, buildSpec, titleFenceReason } from "../lib/onebox.js";
+import { runOneBox, buildSpec, titleFenceReason, TIER_DIMENSION } from "../lib/onebox.js";
 import { familyMarket, liveForFamily, emptyFilters, resolveForBuy } from "../lib/live/search.js";
 import { converse } from "../lib/live/converse.js";
 import { fetchOnlinePool, buildSharedAnalysis, pickPlatform, depthWins } from "../lib/platformPick.js";
@@ -781,7 +781,10 @@ export async function checkIdentityQuestions(env, specs = DEFAULT_SPECS) {
       const d = await runOneBox(vehicle, generation, q, { ...env, asked: 0 }, null);
       row.tier = (d && d.tier) || null;
       if (row.tier && IDENTITY_TIERS.has(row.tier)) {
-        row.dimension = row.tier.replace(/_choice$/, "");
+        // TIER_DIMENSION (URGENT fix, Oct 2026, defect 4): the SAME lookup lib/onebox.js's own
+        // identityQuestionFrom uses - a bare _choice-suffix strip gave "variant"/"dochistory"
+        // where the documented contract says "competition"/"documented_history".
+        row.dimension = TIER_DIMENSION[row.tier] || row.tier.replace(/_choice$/, "");
         row.options = d.generationOptions || d.gearboxOptions || d.bodyOptions || d.variantOptions || d.docHistoryOptions || null;
         row.counts = Array.isArray(d.optionCounts) ? d.optionCounts : null;
       }

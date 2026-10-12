@@ -1577,7 +1577,6 @@ function renderClassEraSell(msgs,ce,decisionData){
   const carName=[v.year,v.make,v.model,v.trim].filter(Boolean).join(" ")||((typeof cleanCarForCopy==="function")?cleanCarForCopy():"your car");
   const recs=(ce.receipts||[]).slice().filter(r=>Number(r.hammer)>0);
   if(!recs.length){return false;}
-  const sorted=recs.slice().sort((a,b)=>a.hammer-b.hammer);
   // rangeSuppressed (engine wide-band guard): the class-era band was too wide to be an honest "typical"
   // range (high > 3x low) and no narrower pool was found - NEVER backfill a range from the raw receipts
   // in that case, or the suppression is silently defeated. Show the plain statement + the ask instead.
@@ -1587,9 +1586,18 @@ function renderClassEraSell(msgs,ce,decisionData){
     const ask=ce.askNarrow&&ce.askNarrow.question?" "+ce.askNarrow.question:"";
     line=`No ${esc(carName)} has sold in the last three years, and the wider ${esc(ce.era)} ${esc(ce.make)} ${esc(classPlural)} market is too spread out to mark a typical range. ${esc(ce.suppressReason||"")}${esc(ask)}`;
   } else {
-    const lo=(ce.lowHammer!=null?ce.lowHammer:sorted[0].hammer),hi=(ce.highHammer!=null?ce.highHammer:sorted[sorted.length-1].hammer);
+    // URGENT fix (Oct 2026, CLK DTM defect 2): class-era is OTHER CARS - the wider marque/era
+    // population, never the queried car's own cohort - so NO dollar figure of any kind renders
+    // here, matching the Market Check fix (public/js/onebox.js classEraHtml) and rule 24. The old
+    // "most landed between $X and $Y, the middle around $Z" read lowHammer/highHammer/medianHammer
+    // straight off the engine object (now stripped at the source, lib/onebox.js classEraGuarded)
+    // AND independently recomputed from the raw receipts as a fallback - removed both; count +
+    // latest month only, same shape as the thin-tier facts block.
+    const byDateDesc=recs.slice().sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
+    const latest=byDateDesc[0]||null;
+    const latestBit=latest&&latest.date?`, most recently ${esc(_thinMonthLabel(String(latest.date).slice(0,10))||"")}`:"";
     // Item 1b: the pool is filtered to a body class, so NAME it ("1980s Dodge trucks", not "market").
-    line=`No ${esc(carName)} has sold in the last three years, so this is the wider ${esc(ce.era)} ${esc(ce.make)} ${esc(classPlural)} market, not your exact car. ${ce.totalN} sold; most landed between ${money(lo)} and ${money(hi)}, the middle around ${money(ce.medianHammer)}.`;
+    line=`No ${esc(carName)} has sold in the last three years, so this is the wider ${esc(ce.era)} ${esc(ce.make)} ${esc(classPlural)} market, not your exact car. ${ce.totalN} sold${latestBit}.`;
   }
   // Item 4: state the fact only, never call the exact car "rare". Item 5: the "none sold" fact is
   // already in `line` above, so it is NOT repeated here.
