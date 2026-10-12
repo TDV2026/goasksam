@@ -5577,6 +5577,41 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "vinidxcount", vin_index_rows: vinIndexRows, vin_summary_rows: vinSummaryRows, distinct_vins: vinSummaryRows, multi_appearance_vins: multi, samples: withHistory });
   }
 
+  // task=slfamdiag: TEMPORARY, READ-ONLY (URGENT SL-Class job, Oct 2026). Replicates the EXACT
+  // model-rung spec (buildSpec) for a bare family-head car, calls archiveScope + the raw
+  // family-scope fetch directly, and reports the raw count vs the familyBadgeMatch-filtered count
+  // so the model-rung's still-thin result can be diagnosed without guessing. Remove once closed.
+  if (task === "slfamdiag") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle, sanitizeResolvedVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { buildSpec, archiveScope } = await import("../lib/onebox.js");
+    const { familyFor, familyBadgeMatch } = await import("../lib/modelFamilies.js");
+    const q = String(req.query?.qs || "2023 Mercedes-Benz SL-Class");
+    const rv = await resolveVehicle(q, {});
+    const v = sanitizeResolvedVehicle(rv && rv.vehicle) || (rv && rv.vehicle);
+    if (!v || !v.make) return res.status(200).json({ task: "slfamdiag", q, status: (rv && rv.status) || "unresolved" });
+    const g = await findGeneration(v, env);
+    const spec = buildSpec(v, g, q);
+    const scope = archiveScope(spec);
+    const fam = familyFor(spec.make, spec.model);
+    const HT_WINDOW_DAYS = 1095;
+    const sinceIso = new Date(Date.now() - HT_WINDOW_DAYS * 864e5).toISOString();
+    const base = `sales_archive?select=id,price:sale_price,listing_title,year,make,model&make=ilike.${encodeURIComponent(spec.make)}&sale_price=not.is.null&vehicle_type=eq.car&sale_date=gte.${sinceIso.slice(0, 10)}` +
+      (spec.yearMin ? `&year=gte.${spec.yearMin}` : "") + (spec.yearMax ? `&year=lte.${spec.yearMax}` : "");
+    const raw = await supabaseSelectAll(env, base) || [];
+    const matched = raw.filter(r => familyBadgeMatch({ make: spec.make, model: spec.model }, { title: r.listing_title, model: r.model }));
+    return res.status(200).json({
+      task: "slfamdiag", q,
+      spec: { make: spec.make, model: spec.model, trim: spec.trim, year: spec.year, yearMin: spec.yearMin, yearMax: spec.yearMax },
+      familyForResult: fam ? { head: fam.head, fetchBadges: fam.fetchBadges, badgeRe: String(fam.badgeRe) } : null,
+      scope, sinceIso: sinceIso.slice(0, 10), baseQuery: base,
+      rawCount: raw.length, matchedCount: matched.length,
+      sampleRaw: raw.slice(0, 10).map(r => ({ year: r.year, model: r.model, title: r.listing_title })),
+      sampleMatched: matched.slice(0, 10).map(r => ({ year: r.year, model: r.model, title: r.listing_title }))
+    });
+  }
+
   // task=unktriage: triage the make-Unknown rows (vehicle_type IS NULL) with the classifier (title+VIN).
   // Buckets: make_resolvable (classifier found a make), not_a_vehicle (non_vehicle), junk (unclassified).
   // AUTO-APPLY (write=1) ONLY when the VIN WMI and the title agree (classifier basis "title+VIN agree");
@@ -5880,7 +5915,7 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "sellexamplerefresh", ms: Date.now() - t0, qualified: !!(d && d.example), example: d && d.example, tried: d && d.tried });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts|vindist|typemodelunk|descfacts|ingestlog|item3probe|unktriage|vinidxcount|mcexamplerefresh|sellexamplerefresh." });
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts|vindist|typemodelunk|descfacts|ingestlog|item3probe|unktriage|vinidxcount|mcexamplerefresh|sellexamplerefresh|slfamdiag." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================
