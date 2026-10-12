@@ -4817,3 +4817,83 @@ NOT DONE, and why: (1) full `oneEngineAnswer` adoption across all 7 production c
 caller audit above, a separately-scoped migration; (2) a cheap ingest-epoch check to close the
 in-memory cache gap completely rather than narrow it - flagged for Sam's call, not decided here;
 (3) reconciling the 997.2 2011-vs-2012 end-year discrepancy - a data decision, not mine to make.
+
+## Caller migration completed (Oct 2026, Round 4 Job 1 follow-up, per explicit coordinator ask)
+
+The "NOT DONE" item above ("full oneEngineAnswer adoption") is now DONE for every real,
+user/chat-facing production caller. Each migrated one at a time, proven via a live
+`task=enginecheck` check against production after each push before moving to the next:
+
+1. `api/sellerDecision.js` (Market Check) - both call sites (the main oneBox branch, the
+   priceBand `pbResult` lookup). Commit `f970e5a`. Proven: 2017 Carrera S Coupe low/high/count/
+   window/poolYears all MATCH across all four lanes, live.
+2. `lib/platformPick.js` `fetchOnlinePool` (Sell). Commit `4e4e090`. Proven: same spec, same
+   result, plus `askingLineCompare` MATCH.
+3. `lib/live/search.js` `engineAnswer` (Buy/Tasks' core path - the retry loop and 25s deadline
+   race are unchanged, `.raw` is unwrapped inside the race); `lib/tools/marketCheck.js` (the MCP
+   market_check tool); `lib/live/narrow.js` `engineGenerations` (the 3s soft-timeout
+   Promise.race, unchanged); `lib/live/samChat.js` (chat's capped read); `api/_historyData.js`
+   `oneBoxFor` (the VIN history hub's 15s deadline race, unchanged). Commit `c66bd04`. Proven for
+   Buy/Tasks (the lane the sweep actually models): 2017 Carrera S Coupe, 2012 BMW M3 Competition
+   Coupe, 1970 Plymouth Barracuda, 2008 Porsche 997 Carrera S Coupe all MATCH live, post-deploy.
+   NOT independently live-exercised per-surface for samChat.js/narrow.js/marketCheck.js(MCP)/
+   _historyData.js specifically - the 69-spec sweep only models the four crossProductCheck lanes
+   (Market Check/Buy/Sell/Tasks), not chat/narrow/MCP/VIN-history as separate consumers, and a
+   quick live MCP tools/call attempt got no response (likely needs a handshake/session this
+   check didn't set up - not pursued further). These four use the IDENTICAL proven-safe pattern
+   verified three times over on Market Check/Sell/Buy-Tasks (`oneEngineAnswer(...).raw` or
+   `.then(r => r.raw)` inside the exact same Promise.race/try-catch wrapper, no other line
+   changed), confirmed safe by code reading and module-load, not by an independent live
+   reproduction of each surface.
+4. The Task email's `middleHalfLine` (lib/live/buyAlerts.js) reads via `listingMarket -> specOf
+   -> specCore -> refreshSpec -> walkLadder -> engineAnswer` - already covered transitively by
+   #3's `engineAnswer` migration; no separate call site exists for it.
+
+**Left unmigrated, deliberately** (test/ops/internal tooling, not a number or range shown to a
+user, per Sam's own qualifier): `scripts/crossProductCheck.js` (the test harness itself,
+deliberately calling the raw engine so it can compare against what a caller's wrapper produces -
+migrating it would make the test unable to catch a future wrapper bug), `lib/_specRecompute.js`
+(the nightly `spec_market_cache` recompute job - offline, writes the cache other callers read,
+not a live request), `lib/ops/backtestCore.js`, `api/usageDashboard.js` (ops/admin diagnostics).
+
+**`oneEngineAnswer` now has real callers across every live engine-reading surface in the
+product.**
+
+### Newly surfaced by the strengthened gate: a genuine, PRE-EXISTING `recent` bug (not a
+### regression from this migration)
+
+Live-checking "2006 Mercedes-Benz CLK DTM" (a class_era-tier car - no sales of its own, borrows
+the wider-era market) after the caller migration deployed showed `anyMismatch: true` with an
+empty `reasons` array. Traced: `classEraCoreOf` (`lib/live/search.js:697`, introduced in the
+EARLIER `527d695` commit, confirmed via `git log -S` this was NEVER touched by anything in this
+round) hardcodes `recent: []` unconditionally (line 704) - Buy/Tasks' card for a class_era car has
+always shown zero "recent sales" rows while Market Check's own class_era rendering shows 3 real
+ones. This is a genuine, pre-existing gap that predates every commit in this round; it was
+invisible to the OLD lanesOk-only gate (lanesOk was true for all four lanes) and is now caught by
+the SAME gate-strengthening fix from earlier in this job (anyMismatch, not just lanesOk). NOT
+fixed here - out of scope for the caller-migration task; flagging for whoever owns the next
+class_era pass. The fix is likely small (populate `recent` from `d.recent3`/`guarded.classEra.cards`
+inside `classEraCoreOf`, the same source Market Check's own class_era rendering already reads).
+
+### TTL risk - plain yes/no for Sam
+
+Market Check has ZERO caching at its engine-call layer (`api/sellerDecision.js` - confirmed by
+reading the code: `Promise.race([oneEngineAnswer(...), timeout])` with no cache read/write before
+or after). Buy/Sell/Tasks read `lib/live/search.js`'s in-memory caches with up to 1h TTL (lowered
+from 6h this round). **Plain answer: yes, Market Check and Buy/Sell/Tasks CAN still disagree for
+up to that 1h window** whenever a new sale lands that flips `buildPool`'s `useRecent` threshold -
+any TTL greater than zero on one side and zero on the other means a disagreement window exists by
+construction; narrowing the TTL narrows the window's duration and lowers the odds of a request
+landing inside it, but does not close it. Closing it fully needs either (a) removing in-memory
+caching on the Buy/Sell/Tasks side entirely (a real cost-benefit tradeoff - this cache exists
+specifically to avoid rerunning the full engine on every card render), or (b) a cheap ingest-epoch
+check so the in-memory cache invalidates the moment the DB-backed `spec_market_cache` table does,
+matching the pattern `market_fetch_cache` already uses elsewhere in this codebase ("only healthy
+fetches stamp the cache," CLAUDE.md Phase 3) - neither built this round, both are Sam's call.
+
+### Generation-boundary discrepancy - confirmed still only reported, not changed
+
+Double-checked per the coordinator's explicit ask: `lib/generations.js` is untouched by every
+commit in this job (`git diff <before>..<after> -- lib/generations.js` is empty). It still reads
+997.2 as `{yearStart: 2009, yearEnd: 2011}`. Sam's stated 2012 end year was reported as a
+discrepancy, never applied to the file, in either direction.
