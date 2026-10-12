@@ -46,7 +46,7 @@ import { fetchOnlinePool, buildSharedAnalysis, pickPlatform, depthWins } from ".
 import { decide, getSellerCriteria } from "../api/sellerDecision.js";
 import fs from "node:fs";
 import { hammerUsd } from "../lib/_houseComps.js";
-import { supabaseEnv } from "../lib/_supabase.js";
+import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
 
 export const DEFAULT_SPECS = [
   "2008 Porsche 911 Carrera", "2009 Porsche 911 Carrera S Coupe", "1995 Porsche 993 Carrera",
