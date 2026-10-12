@@ -5583,6 +5583,47 @@ async function handleOps(req, res) {
   // AUTO-APPLY (write=1) ONLY when the VIN WMI and the title agree (classifier basis "title+VIN agree");
   // everything else stays Unknown. "Better nothing than a fake make." Also returns make-Unknown VINs
   // (with vin_norm) as proof fodder. ZERO OCD.
+  // task=classeradiag: TEMPORARY (URGENT CLK DTM job, Oct 2026). Replicates assessClassEra's exact
+  // raw query (make+decade+36mo window, no model filter) and reports the real raw count plus a
+  // stage-by-stage breakdown of what each filter removes, so the 318->13 shrink can be traced to
+  // its exact cause instead of guessed. Remove once closed.
+  if (task === "classeradiag") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { recordExcludeReason, hammerUsd, bodyClassOf } = await import("../lib/onebox.js");
+    const { isMemorabilia, isPartsListing, isPrototype } = await import("../lib/_classify.js");
+    const make = String(req.query?.make || "Mercedes-Benz");
+    const decStart = Number(req.query?.decStart || 2000), decEnd = Number(req.query?.decEnd || 2009);
+    const self = String(req.query?.self || "CLK DTM");
+    const HT_WINDOW_DAYS = 1095;
+    const since = new Date(Date.now() - HT_WINDOW_DAYS * 864e5).toISOString().slice(0, 10);
+    const cols = "price:sale_price,auction_end_date:sale_date,source:platform,raw_title:listing_title,year,vin_norm,mods:raw_record->>modifications";
+    const q = `sales_archive?select=${cols}&make=ilike.${encodeURIComponent(make)}&sale_price=not.is.null&vehicle_type=eq.car&year=gte.${decStart}&year=lte.${decEnd}&sale_date=gte.${since}&order=sale_date.desc`;
+    const rawRows = await supabaseSelectAll(env, q) || [];
+    const stage = { raw: rawRows.length };
+    const afterMemParts = rawRows.filter(r => !isMemorabilia(r.raw_title) && !isPartsListing(r.raw_title, r.mileage) && !isPrototype(r.raw_title));
+    stage.afterMemPartsProto = afterMemParts.length;
+    const priced = afterMemParts.map(r => ({ ...r, _hammer: Math.round(hammerUsd(r)) })).filter(r => Number.isFinite(r._hammer) && r._hammer > 0);
+    stage.afterPriced = priced.length;
+    const excludeReasons = {};
+    const base = [], aside = [];
+    for (const r of priced) {
+      const t = String(r.raw_title || "");
+      const reason = recordExcludeReason(r, make, { wantHalo: false, self });
+      const MODIFIED_RE = /\btwin[-\s]?turbo(charged)?\b|\bengine[-\s]?swap(ped)?\b|\brestomod(ded)?\b|\bmodified\b|\bcustom[-\s]?built\b/i;
+      const finalReason = reason || (MODIFIED_RE.test(t) ? "modified" : null);
+      if (finalReason) { aside.push({ title: t, reason: finalReason }); excludeReasons[finalReason] = (excludeReasons[finalReason] || 0) + 1; }
+      else base.push(r);
+    }
+    stage.basePool = base.length;
+    stage.setAside = aside.length;
+    stage.setAsideReasons = excludeReasons;
+    return res.status(200).json({
+      task: "classeradiag", make, decStart, decEnd, self, since, stage,
+      sampleAside: aside.slice(0, 20),
+      sampleBase: base.slice(0, 10).map(r => r.raw_title)
+    });
+  }
+
   if (task === "unktriage") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { classifyUnknown } = await import("../lib/_unknownClassify.js");
