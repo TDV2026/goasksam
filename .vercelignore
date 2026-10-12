@@ -14,11 +14,25 @@
 CLAUDE.md
 _pd.mjs
 
-docs/
-ops/
-test/
-smoke-artifacts/
-.github/
+# ROOT-ANCHORED (Oct 2026, THE actual cause of the lib/ops/depthProbe.js outage below): every one
+# of these previously had no leading slash, which in gitignore/.vercelignore syntax means "a
+# directory with this name at ANY depth", not just the repo root - confirmed live and reproduced
+# with git check-ignore: the unanchored "ops/" pattern matched BOTH the intended root-level ops/
+# (dev tooling) AND lib/ops/ (depthProbe.js, fillLadder.js, backtestCore.js - all three real
+# runtime imports of api/usageDashboard.js). That silently deleted lib/ops/ from every deploy
+# bundle the moment this file's first version shipped, and because the broken import is a
+# top-level `import` in api/usageDashboard.js (not a dynamic one), EVERY request to that
+# function failed with FUNCTION_INVOCATION_FAILED / ERR_MODULE_NOT_FOUND, not just the ops tasks
+# this file's second version (scripts/** exceptions) was written to fix - that fix was real but
+# masked by this bigger, earlier break. A leading slash anchors each pattern to the repo root,
+# exactly like the already-correct "scripts/**" entry below (which is unambiguous only because it
+# has no bare, unanchored sibling elsewhere in the tree - verified no second scripts/ directory
+# exists under lib/ or elsewhere; only ops/ had a same-named collision, under lib/ops/).
+/docs/
+/ops/
+/test/
+/smoke-artifacts/
+/.github/
 
 # scripts/** is dev/ops tooling only, with exceptions for files api/usageDashboard.js itself
 # reads at request time: warm-list.json via vercel.json's own includeFiles, plus FOUR files it
