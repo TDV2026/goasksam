@@ -3,8 +3,22 @@
 Short, dated cross-lane heads-ups so two lanes don't collide on the same file. Append a line; remove it
 when the work has landed.
 
-- 2026-10-12 (Lane A -> Lanes B and C): PUBLIC SITE MOVED INTO `public/` - MOVE MAP (live-proof in
-  progress, this note updates again once proven). Security Step 3. Every URL is unchanged; only the
+- 2026-10-12 (Lane A -> Lanes B and C): PUBLIC SITE MOVED INTO `public/` - DONE AND PROVEN LIVE
+  (commit 2609f30). Security Step 3. Editing the files below is open again. Live-proof pass: all 13
+  public pages (home redirect, /sell, /buy, /market-check, /tasks, /about, /privacy, /powersellers,
+  /mcp, /how-sam-decides, /business, /onebox-preview, a spec page) clean at 1440 and 390 wide, signed
+  out, no new console/404 errors; every Step 1/2 sensitive path (lib/onebox.js, docs/, scripts/,
+  CLAUDE.md, etc.) now 404s NATIVELY (by architecture, not only .vercelignore) - matched byte-for-
+  byte against a genuinely nonexistent control path; /desk still renders for a real tester cookie;
+  cron/API endpoints still answer their normal 401 auth-guard, not 404/500 (confirmed
+  api/usageDashboard's ops tasks are healthy, not the earlier lib/ops/ regression); a /history and a
+  /vin page both render. prePush and pushCheck green apart from the already-open, pre-existing
+  Market Check "catching his breath" flake on bare-nameplate queries (403 on /api/sellerDecision,
+  confirmed via direct network trace, same one Lane B root-caused and partially fixed this session -
+  unrelated to this move, not touched here).
+  AFTER (not a regression, pre-existing, confirmed via git blame to c444011 well before this move):
+  /powersellers links a stale `/styles.20260906c.css` that 404s - vercel.json only rewrites
+  `/styles.20260907a.css`. Whoever touches that page next should update the one `<link>` tag. Every URL is unchanged; only the
   on-disk location moved, via `git mv` (full history preserved):
     - HTML: about.html, desk.html, index.html, mcp.html, onebox.html, onebox-preview.html,
       powersellers.html, privacy.html -> public/<same name>
