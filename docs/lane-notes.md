@@ -5185,3 +5185,47 @@ gates, confirmed on real cars, not assumed**:
    assumed) and is flagged here for review rather than treated as a silent non-event.
 4. **The trim-vs-rule-1 tension is not resolved** - flagged above for Sam's call, not decided
    unilaterally.
+- 2026-10-12 (Lane B, URGENT): "NONE ARE LIVE" WAS FALSE FOR A REAL CAR - ROOT CAUSE AND FIX.
+  * CAR 1, bringatrailer.com/listing/1989-bmw-325i-230/ ("1989 BMW 325i Convertible", VIN
+    WBABB2305K8862206): confirmed IN live_listings (not a pull or vendor gap) - country CA. Buy's own
+    "Include cars abroad (2)" chip on a "1989 BMW" search already proved two real, live cars existed
+    and were excluded by the existing, deliberate US-first default (converse.js: "Cars abroad stay out
+    unless the buyer said anywhere or named a country"). The bug was never the fence - it was nearLine
+    (lib/live/search.js), the ONE shared sentence both the plain /buy search (converse.js) and the chat
+    search (samChat.js) call, saying "No 1989 BMWs are live right now, and none from 1988 or 1990
+    either" with zero way to know 2 real ones existed, just not in the US.
+  * FIX, at the one shared function so every caller agrees: nearLine(near, noun, abroadHidden) now
+    says "...are live right now in the US...N are live abroad." when abroadHidden > 0, byte-identical
+    to before when it is 0 (every spec with no abroad cars is unaffected). converse.js's once() now
+    counts abroadHidden the same way samChat.js's runSearch already did (one definition, isAbroadRow,
+    not two). nearestYears (lib/live/search.js) now explicitly carries the EXACT asked year's own
+    abroadHidden through the neighbour-year widen, never the widened run's - zero extra request, just a
+    field that was being dropped. samChat.js's own nearLine call was discarding its already-computed
+    abroadHidden every time the nearest-years branch fired (say/plain got overwritten with the bare
+    line) - now passes it through. VERIFIED LIVE: "1989 BMW" now reads "No 1989 BMWs are live right
+    now in the US, and none from 1988 or 1990 either. 2 are live abroad." matching the chip's own count
+    exactly.
+  * CAR 2, carsandbids.com/auctions/rj0VnZW2/2021-bmw-x3-m40i ("2021 BMW X3 M40i"): confirmed NOT in
+    live_listings, by exact URL and by title, zero rows either way. Ruled out a body-style/SUV fence
+    (Sam's own hint to check for one) - BMW X3 as a model is NOT excluded anywhere; other X3s (a 2016
+    X3 xDrive35i M Sport, for one) are in the pool and findable today. Cars & Bids BMW rows ARE being
+    actively pulled (most recent first_seen 2026-10-09, last_seen refreshing same-day through today's
+    pull cycle) and the pull-schedule reports for the last 3 days show no capped-short full-walk pages,
+    so a crude "ran out of pages" explanation does not fit cleanly either. COULD NOT DETERMINE pull-
+    logic-gap vs vendor-coverage-gap further without either deeper ingest forensics (out of this job's
+    scope) or ONE fresh OCD /auctions/live probe filtered to carsandbids+BMW to check whether OCD's own
+    feed carries this listing right now - NOT RUN, per the standing no-vendor-spend-without-sign-off
+    rule. Named precisely for Sam's decision: FOR SAM - if you want this settled, the one call is
+    `GET /auctions/live?source=carsandbids&make=BMW` (or equivalent OCD params), a single metered
+    request, zero writes either way.
+  * REGRESSION GUARD: scripts/crossProductCheck.js checkLiveListingDisclosure (both cars as permanent
+    cases), wired into runEngineCheck (opts.liveListing), the ops endpoint (&livelisting=0 to skip) and
+    prePush.mjs. Asserts the "none live" sentence never claims a found-but-filtered car does not exist
+    (car 1's exact bug class); for a listing genuinely absent from the pool (car 2, today), it notes
+    that plainly rather than asserting a false find, so the day that listing enters the pool this starts
+    asserting it is actually found instead of silently passing on its absence. VERIFIED LIVE via
+    task=enginecheck&livelisting=1: both cases `ok: true` with the exact sentences above.
+  * Commits: api/usageDashboard.js (task=livecheck, temporary read-only live_listings lookup by url/
+    title - delete once no longer needed for similar reports) 1808a60, 7d2f582; lib/live/search.js,
+    converse.js, samChat.js (the fix) 4b2f3f2; scripts/crossProductCheck.js + prePush.mjs + usageDashboard.js
+    (the regression guard, plus a same-session import-bug fix caught live via the guard itself) 10899c2, f67c418.
