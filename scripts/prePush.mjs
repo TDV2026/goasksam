@@ -101,6 +101,17 @@ console.log("\n-- deterministic engine checks --");
   }
 }
 {
+  // offWindowCheck (Lane A, Oct 2026): no DB, no network - runs js/onebox.js's offWindowLabel and
+  // api/buy.js's CLIENT drawerHtml (the actual shipped functions) in a vm sandbox against a stubbed
+  // offWindow:true card, asserting both render identical text. Registered here per Lane A's request.
+  try {
+    execSync("node scripts/offWindowCheck.mjs", { encoding: "utf8" });
+    record("off-window wording parity (synthetic, no DB)", "PASS");
+  } catch (e) {
+    record("off-window wording parity (synthetic, no DB)", "FAIL", String((e.stdout || "") + (e.stderr || "")).split("\n").filter(Boolean).slice(-3).join(" | "));
+  }
+}
+{
   const { supabaseEnv } = await import("../lib/_supabase.js");
   const env = supabaseEnv();
   if (!env) {
