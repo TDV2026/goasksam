@@ -20,10 +20,22 @@ test/
 smoke-artifacts/
 .github/
 
-# scripts/** is dev/ops tooling only, with one exception read at request time by
-# api/usageDashboard.js via vercel.json's own includeFiles - keep that one file reachable.
+# scripts/** is dev/ops tooling only, with exceptions for files api/usageDashboard.js itself
+# reads at request time: warm-list.json via vercel.json's own includeFiles, plus FOUR files it
+# dynamically `import()`s at runtime for ops tasks (confirmed live, Oct 2026 - this file's first
+# version excluded all of scripts/** on the stated assumption that "api/** functions bundle
+# their lib/** and js/** imports at build time (nothing below is in that import graph)", which is
+# true for STATIC imports but not for these - a dynamic import() is invisible to that build-time
+# bundling and was silently broken in production, surfacing as FUNCTION_INVOCATION_FAILED on
+# every task=enginecheck/buildcanonical/buildvinindex/buildspecmarketcache call the moment this
+# file's first version deployed). Keep all four reachable; everything else in scripts/** is true
+# dev/ops tooling run only via GitHub Actions, never imported by a deployed function.
 scripts/**
 !scripts/warm-list.json
+!scripts/crossProductCheck.js
+!scripts/buildCanonical.js
+!scripts/buildVinIndex.js
+!scripts/buildSpecMarketCache.js
 
 # .env.example and .gitignore are not read by the Vercel build in any way (safe to drop from
 # the upload entirely). package.json/package-lock.json/vercel.json are NOT listed here even
