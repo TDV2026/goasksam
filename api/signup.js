@@ -6,6 +6,7 @@
 //        The refusal goes out with HTTP 200: Supabase reads any non-2xx reply as a broken hook ("Invalid payload sent
 //        to hook") and drops our sentence; with 200 it passes http_code and message on to the page.
 // Body parsing is off so the hook's signature is checked over the exact bytes Supabase sent.
+import { withTracking, track, trackSystem } from "../lib/track/log.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { clientAddress, isCrew, countSince, record, addressKey, addressKeys } from "../lib/_ceilings.js";
 import { signupCheck, hookSignatureOk, beforeUserCreated } from "../lib/_signup.js";
@@ -27,7 +28,7 @@ async function rawBody(req) {
   return { raw: b && typeof b === "object" ? JSON.stringify(b) : "", from: "reparsed" };
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
   const { raw, from } = await rawBody(req).catch(() => ({ raw: "", from: "error" }));
@@ -39,6 +40,8 @@ export default async function handler(req, res) {
     const d = beforeUserCreated(body);
     if (d.allow) return res.status(200).json({});
     if (env) await logEvent(env, { event: EVENTS.RATE_LIMIT_HIT, tool: "signup", props: { kind: "signup_refused_at_creation", scope: "signup" } }).catch(() => {});
+    // Supabase's server makes this call, not the person: no consent, region or ids of theirs to record.
+    trackSystem("signup_refused", { reason: /can't be used/.test(String(d.message)) ? "throwaway" : "ticket", stage: "hook" }, { product: "site", surface: "api" });
     return res.status(200).json({ error: { http_code: 400, message: d.message } });
   }
 
@@ -80,5 +83,9 @@ export default async function handler(req, res) {
     record: () => record(env, [addressKey(req)].filter(Boolean), "c:signup")
   });
   if (!out.ok) await logEvent(env, { event: EVENTS.RATE_LIMIT_HIT, tool: "signup", props: { kind: "signup_" + out.reason, scope: "signup" } }).catch(() => {});
+  if (!out.ok) track(req, "signup_refused", { reason: ({ domain: "throwaway", email: "invalid", turnstile: "turnstile", address_day: "cap" })[out.reason] || "other", stage: "check" }, { product: "site", surface: "api" });
   return res.status(200).json(out.ok ? { ok: true, ticket: out.ticket } : { ok: false, message: out.message });
 }
+
+// Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
+export default withTracking("/api/signup", handler, "site");

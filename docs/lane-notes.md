@@ -4661,3 +4661,26 @@ Sam's notes describe an `/admin` dashboard with Supabase sign-in, an `admin_user
     tables) - that doc already says explicitly the dashboard PAGES (Supabase-auth shell, Overview/
     Journeys/Settings UI) were deliberately left for a separate pass. Nothing has changed since: the
     UI, the auth, and the allowlist are all still to be built from zero, by whoever picks this up next.
+- 2026-10-12 (Lane C): EVENT LAYER, ANALYTICS STORE AND DASHBOARD (/admin). Schema: docs/analytics-events.md
+  (read it before logging anything). SQL: docs/supabase-analytics.sql, five parts, NOT YET RUN (Sam): until it is,
+  every write fails quietly and is counted, and no product answer changes.
+  * One write path: lib/track/log.js track(req, name, props, {product, surface}) for a request, trackSystem() for
+    cron, trackCurrent() for lib code under a wrapped route. The list of events and fields is lib/track/catalog.js;
+    an unknown name or field throws in tests (TRACK_STRICT=1) and is dropped and counted in production. Do not log
+    analytics anywhere else and do not add an event without adding it to the catalog and the doc.
+  * model_call, pull_run and task_match_sent come from recordUsageEvent (api/_usage.js) only, so they reconcile
+    with the spend ledger by construction. Do not add a second model_call anywhere.
+  * Error events: withTracking() wraps the default export of sellerDecision, buySearch, tasks, watch, account,
+    signup, submitSellerLead, chat, marketCheck, history, specPage, pullLive, refreshSpecLiveCounts, admin. If you
+    add `export default` to one of these files again, keep the wrapper.
+  * The old layer (lib/events.js logEvent, funnel_events, visitor_links, visitor_first_touch, gas_vid) is left as
+    is and still written; retire it once /admin is proven (list in docs/analytics-events.md). visitor_first_touch
+    keeps a raw referrer up to 300 characters, which the new schema does not allow.
+  * FOR LANE A: instrument public pages with `<script src="/api/track?js=1" defer></script>` once in the shared
+    shell; browser events through window.gasTrack(name, props) only. Your banner's gas_consent cookie is read
+    server side; after it changes, call gasTrack.consentChanged(). Details under "For Lane A" in the doc.
+    Note: /, /sell and the static pages are exempt from bot protection, so a browser that only saw those may get
+    the challenge on its first /api/track call; checked live after this push (see the run report).
+  * FOR LANE B: nothing needed now. search_run maps your oneEngineAnswer/mapEngineAnswer object in
+    api/sellerDecision.js (Market Check). Buy's search does not call the engine directly, so its search_run has no
+    range; if Buy ever gets one engine answer per search, tell me and search_run will carry its range too.

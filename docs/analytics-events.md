@@ -1,0 +1,250 @@
+# Analytics events (schema version 1)
+
+Lane C, Oct 2026. This is the one list of product events. An event means the same thing on every
+product. The code that enforces it is `lib/track/catalog.js` (the list and the field rules) and
+`lib/track/log.js` (the one server write path). The browser helper is built from the same catalog
+by `GET /api/track?js=1`, so the two can never drift. If an event or field is not in the catalog,
+the helper rejects it in tests and drops it in production, without failing the request.
+
+Store: `analytics_events` (SQL in `docs/supabase-analytics.sql`). Dashboard: `/admin`.
+
+## Rules every event follows
+
+- Server events are logged in one place per fact (the handler that knows the fact), through
+  `track()` in `lib/track/log.js`. Never from a template or a page's markup.
+- Browser events use the same names and fields, through the one helper (`window.gasTrack`).
+- The write never slows or breaks a request: fire and forget, at most 1.5 seconds, a bounded
+  queue (200 events per instance, at most three batches in flight), and a failure counter readable on the
+  dashboard: each instance adds its lost-event count to `app_usage_events` (`analytics_write_failed`) at most once a
+  minute. If the store
+  is down, every product answers exactly as before.
+- Never stored anywhere in an event: an IP address, an email address, a phone number, a sign-in
+  code or token, a key, the full user agent, the full referrer, the quota device id (`gas_vid`),
+  unscrubbed free text. A VIN only in the admin-only `vin` column, never in props, a log line or an
+  address.
+- No event carries a valuation or a computed price for a person's car. Ranges logged are the
+  engine's own range for the pool, exactly as shown.
+
+## The envelope (every event)
+
+| Field | Type | Notes |
+|---|---|---|
+| `event_id` | uuid | Made by the caller (server or browser). Writes are idempotent on it: a retry never double counts. |
+| `ts` | timestamptz, UTC | When it happened. Browser times older than 24 hours or in the future are replaced by the server's time. |
+| `name` | text | From the catalog below. |
+| `schema_version` | int | 1. |
+| `product` | text | `buy`, `market_check`, `sell`, `tasks`, `site`, `email`. |
+| `surface` | text | Where: `home`, `buy_page`, `market_check_page`, `spec_page`, `sell_page`, `tasks_page`, `history_page`, `static_page`, `email`, `api`, `mcp`, `cron`. |
+| `anon_id` | text, nullable | First-party random id, cookie `gas_aid`. Null when consent is declined, for crew-free system events, and before the first page view. |
+| `user_id` | uuid, nullable | The signed-in account. Null when consent is declined. |
+| `session_id` | text, nullable | Cookie `gas_sid`, 30 minutes idle. Null when declined. |
+| `region_class` | text, nullable | `restricted` (EEA, UK, Switzerland) or `open`. Null only for system events with no visitor (cron, ledger). Never the raw country. |
+| `consent` | text | `granted`, `declined` or `not_required`. |
+| `received_at` | timestamptz | When the store got it (set by the database). |
+| `ref_domain` | text, nullable | Referring domain only (`google.com`), never the path or query. Own domain is dropped. |
+| `utm_source`, `utm_medium`, `utm_campaign`, `launch_wave` | text, nullable | The whitelist. Each at most 60 characters, letters, digits, `_ - .` only. Nothing else from the address is kept. |
+| `browser_family` | text, nullable | `chrome`, `safari`, `firefox`, `edge`, `samsung`, `other`, `bot`. |
+| `device_class` | text, nullable | `desktop`, `mobile`, `tablet`, `bot`. |
+| `is_bot` | boolean | Known crawler or headless browser. Stored, excluded from summaries. |
+| `internal` | boolean | Crew cookie, probe or test credential, the launch-stage test header, or the test sink. Stored, excluded from summaries by default. |
+| `engine_version` | text, nullable | The engine's `ENGINE_VERSION` on events that come from an engine answer (`search_run`, `sell_answer_shown`). Null elsewhere. |
+| `props` | jsonb | The event's own fields, below. Validated against the catalog. |
+| `vin` | text, nullable | Admin only (see Privacy). |
+
+## Two classes of event
+
+- **Service events** are needed to run the product and are logged for everyone, including a
+  restricted-region visitor who declined. For a declined visitor they carry no `anon_id`,
+  `session_id` or `user_id`, so nothing links one visit to another:
+  `search_run`, `model_call`, `error`, `pull_run`, `task_match_sent`, `limit_hit`,
+  `signup_completed`, `signup_refused`.
+- **Journey events** are everything else. A declined visitor gets none of them: the helper drops
+  them on the server before the write, and the browser helper does not send them.
+
+## Events
+
+"Who" is the one place the event is fired. Required fields must be present or the event is
+rejected (tests) or dropped (production). "Never" is checked by the helper as well as stated here.
+
+### Search and answers
+
+**`search_run`** (service). One per search on Buy, Market Check and Sell, failed ones included (`answer_type`
+`failed` with a `failure_state`). Not on a refinement tap of the result already shown (that is `refinement_applied`).
+Market Check maps Lane B's engine object directly. Buy answers with live cars, so `range` there means live cars
+were shown and `zero_result` none (or the car was not recognised, `reason_flag` `unresolved`). Sell always
+answers (the evidence ladder never dead-ends): `range` when real sales back it, `not_enough_data` at the regional
+policy floor. Known imprecision: Buy's live-listing drawer reuses the Market Check route and counts as Market Check.
+Who: server, `api/sellerDecision.js` (Market Check, Sell), `api/buySearch.js` (Buy).
+Built from Lane B's one engine result object (`oneEngineAnswer`/`mapEngineAnswer`, lib/onebox.js).
+- Required: `query_text` (scrubbed, 120 max), `answer_type` (`range`, `identity_question`,
+  `not_enough_data`, `zero_result`, or `failed`), `latency_ms`.
+- Optional: `vehicle_key` (`make|model`, lower case), `year` (int), `result_count` (cars or sales
+  shown), `live_count` (Buy: live cars), `pool_size`, `range_low`, `range_high`, `year_widened`,
+  `fallback_rung`, `reason_flag`, `model_used` (bool), `cost_usd`, `failure_state`
+  (`catching_breath`, `rate_limited`, `daily_limit`, null), `transmission` (`manual`, `auto`).
+- Never: a VIN (goes to the `vin` column), an address, a typed email or phone.
+
+**`identity_question_shown`** (journey). The page asked which car it is (generation, body, trim,
+gearbox). Who: browser, when the question renders.
+- Required: `dimension`. Optional: `option_count`, `vehicle_key`.
+
+**`identity_question_answered`** (journey). Who: browser, on a choice or a skip.
+- Required: `dimension`. Optional: `choice` (the option's label, 40 max), `skipped` (bool), `vehicle_key`.
+
+**`refinement_applied`** (journey). A chip that reruns the pool (mileage, gearbox, body, trim).
+Who: browser. Required: `field`, `value` (40 max). Optional: `vehicle_key`.
+
+### Evidence and clicks (all journey, all browser)
+
+- **`receipt_opened`**: a sale receipt opened. Required `sale_id`. Optional `platform`.
+- **`auction_clickout`**: a click to an auction site. Required `platform`, `state` (`live` or `sold`). Optional `listing_id`.
+- **`show_more_opened`**: the "show more" list opened. Optional `list` (which list).
+- **`how_sam_decides_opened`**: the methodology explainer opened.
+- **`over_time_row_opened`**: a row of the over-time view opened. Optional `period`.
+- **`live_car_clicked`**: a live car on Buy opened. Required `listing_id`. Optional `platform`.
+- **`sell_cta_clicked`**: a "sell" offer clicked from another product. Optional `from_product`.
+
+### Sell
+
+- **`sell_started`** (journey, browser): the Sell flow's first answer given.
+- **`sell_step_completed`** (journey, browser): Required `step` (the step's name, not its number).
+- **`sell_answer_shown`** (journey, server, `api/sellerDecision.js`): Required `recommended_platform`. Optional `evidence_basis`, `confidence`.
+- **`powerseller_suggested`** (journey, server): a PowerSeller card rendered. Optional `placement` (`lead`, `secondary`).
+- **`introduction_requested`** (journey, server, `api/submitSellerLead.js`): Optional `destination_type`. Never the partner's or person's contact details.
+
+### Tasks and email
+
+- **`task_created`** (journey, server, `lib/tasks/tasks.js` for search and research Tasks, `lib/live/watches.js` for exact-car and sold-car Tasks): Optional `vehicle_key`, `year`, `kind` (`hunt`, `research`, `exact_car`, `sold_car`).
+- **`task_paused`**, **`task_cancelled`** (journey, server): Optional `via` (`page`, `email_link`).
+- **`task_match_sent`** (service, server, from the Task email run's ledger row): Required `emails_sent`. Optional `matches`, `ended_before_send`, `failed`.
+- **`task_email_opened`**, **`task_email_clicked`**: in the catalog but **not fired**. Resend reports
+  opens and clicks only with domain-level open and click tracking switched on and a webhook
+  endpoint; neither exists, and click tracking would rewrite every link in the email. Say so on the
+  dashboard rather than show zero.
+
+### Accounts
+
+- **`signup_completed`** (service, server, `api/account.js` on a new account): Optional `method` (`email`, `google`). Never the address.
+- **`signup_refused`** (service, server, `api/signup.js` page check and hook): Required `reason` (`throwaway`, `ticket`, `cap`, `turnstile`, `invalid`, `other`). Never the address, not even hashed.
+- **`signin`** (journey, server, `api/account.js` on a fresh sign-in): Optional `method`, `new_account` (bool).
+
+### Pages
+
+**`page_view`** (journey). Public pages are cached at the edge, so the page's own handler does not
+run for most views. The browser helper sends one hit per page load and the server records it,
+adding the envelope (region class, consent, browser family, referrer domain). Minimal.
+- Required: `path` (template form: `/cars/:make/:model`, VIN-shaped and id-shaped segments become `:id`). Never a query string.
+
+### Service and cost
+
+- **`model_call`** (service, server). Fired in exactly one place: `recordUsageEvent` in
+  `api/_usage.js`, after a spend-ledger row (`app_usage_events`) with model tokens above zero is written. So the event count
+  and cost equal the ledger by construction. Required `ledger_type`, `tokens_in`, `tokens_out`,
+  `cost_usd`. Optional `model`, `cache_read`, `cache_write`, `cache_hit` (bool), `status`.
+  `product` comes from the ledger row's type (`buy_chat_*` buy, `tasks_*` tasks, `sell_*` and the
+  wording layer `chat` sell).
+- **`limit_hit`** (service, server, `lib/_ceilings.js`): Required `limit` (which one). Optional `scope`. Never an address or a device key.
+- **`error`** (service, server): a 5xx answered (or a throw) by a wrapped API route: `withTracking` in
+  `lib/track/log.js` around sellerDecision, buySearch, tasks, watch, account, signup, submitSellerLead, chat,
+  marketCheck, history, specPage, pullLive, refreshSpecLiveCounts and admin. Cron routes' errors are the
+  dashboard's cron failures. Required `route`, `status`. Optional `code` (short machine reason). Never a message
+  that could hold user text.
+- **`pull_run`** (service, server). Fired from the same ledger write as `model_call`, for the pull
+  report's summary row (`pull_live_summary`). Optional `platforms`, `added`, `ended`, `updated`,
+  `failures`, `requests`, `mode`.
+
+## Consent and identity
+
+`lib/track/consent.js`, `GET /api/track?consent=1` (uncached, `private, no-store`).
+
+- Region class from the edge country header (`x-vercel-ip-country`), stored only as `restricted`
+  (EEA, UK, Switzerland, the same 32-country set as `lib/analytics.js`) or `open`.
+- Cookie `gas_consent` (set by Lane A's banner) is `granted` or `declined`. In a restricted region a
+  missing cookie counts as declined. An explicit `declined` is honoured in an open region too.
+- `consent`: open region with no decline is `not_required`; restricted plus granted is `granted`;
+  anything declined is `declined`.
+- `anon_id`: cookie `gas_aid`, 16 random bytes (base64url), lifetime 13 months (395 days) from the
+  day it was made, never extended. Made only when consent is not declined. Never derived from the
+  device, the address, the browser string or the quota device id.
+- `session_id`: cookie `gas_sid`, random, 30 minutes idle.
+- Both cookies are HttpOnly (the browser helper never reads them), Secure, SameSite=Lax.
+- Declined: no `gas_aid` or `gas_sid` is made, and any existing ones are deleted on the next hit,
+  so there is no link between visits.
+- Sign-in link: `api/account.js` on sign-in calls `analytics_link_anon(anon_id, user_id)`, which
+  fills `user_id` on earlier events from that anon_id. Never when consent is declined (there is no
+  anon_id then, and the function refuses rows marked declined).
+
+### The two identifiers
+
+| | Quota device id | anon_id |
+|---|---|---|
+| Cookie | `gas_vid` (lib/_visitor.js, Lane B's) | `gas_aid` (lib/track/consent.js) |
+| Purpose | Limits only (how many searches a device made today) | Analytics only |
+| Stored | `ip_rate_hits` keys `dev:<id>` (lib/_ceilings.js), deleted after 24 hours; the old layer's `funnel_events.visitor_id`, `visitor_links`, `visitor_first_touch` | `analytics_events.anon_id`, deleted after 13 months |
+| In events | Never. The tracker never reads `gas_vid`. | Yes, unless declined |
+
+## Privacy in the data
+
+- Free text (`query_text`, `choice`, `value`, any string prop): cut to 120 characters, then email
+  addresses become `[email]`, phone numbers `[phone]`, any run of 7 or more digits `[number]`, and a
+  VIN-shaped token (11 to 17 letters and digits with at least 3 digits, no I, O or Q) is moved to the
+  `vin` column and replaced by `[vin]`.
+- `vin` column: returned only by the journey endpoint, only to a viewer on the `ADMIN_EMAILS`
+  allowlist. Never in an address, a log line or a summary table.
+- Raw events are kept 13 months, then deleted by `analytics_purge()` (nightly).
+- Daily summary tables hold counts, sums and percentiles by day, product and car, never an id; a
+  summary row cannot identify anyone.
+- Deletion: `analytics_forget(anon_id, user_id)` deletes every raw event for either id (see the SQL
+  file, part 5). Summaries already computed are aggregates and stay. To run it for a person's
+  request: find their `user_id` (accounts) or the anon_id from their browser (`gas_aid`), then
+  `select analytics_forget('<anon_id>', null);` or `select analytics_forget(null, '<user_id>');`
+  in the SQL editor. It returns the number of rows deleted.
+- Bots (`is_bot`) and internal traffic (`internal`) are stored and excluded from summaries by default.
+
+## Summaries
+
+`docs/supabase-analytics.sql` part 3 and 4. Refreshed hourly for today by the Vercel cron
+(`/api/admin?refresh=hour`) and finalized nightly for yesterday (`/api/admin?refresh=night`), which
+also runs the 13-month purge. Every number comes from `analytics_events`.
+
+- `analytics_daily_counts`: day, product, name, events, distinct visitors, distinct sessions.
+  Product totals and funnel steps read from it.
+- `analytics_daily_search`: day, product, searches, by answer type, failures, fallback use, year
+  widening, latency p50 and p95, range width median.
+- `analytics_daily_demand`: day, make, model, year band (5 years), price band, transmission,
+  searches by product, answered, not enough data, zero live cars, Market Checked, Tasks created.
+- `analytics_daily_cost`: day, product, model calls, tokens in and out, cache hits, cost.
+- `analytics_daily_errors`: day, route, status, errors.
+- `analytics_daily_cross`: day, product set, visitors (distinct anon ids that used exactly that set).
+- `analytics_weekly_retention`: cohort week, weeks after, visitors.
+
+## Retiring the old layer
+
+`lib/events.js` (`funnel_events`, `visitor_links`, `visitor_first_touch`) and the key-gated
+`/api/usageDashboard` stay untouched until `/admin` has been proven against them. To retire later:
+the `logEvent` calls listed in `docs/lane-notes.md`, `funnel_events`' new rows, and
+`visitor_first_touch` (it keeps a raw referrer up to 300 characters, which this schema does not allow).
+
+## Where each fact is logged
+
+| Event | File |
+|---|---|
+| `search_run` | `api/sellerDecision.js` (Market Check `mcRun`, Sell), `api/buySearch.js` (`buyRun`) |
+| `sell_answer_shown`, `powerseller_suggested` | `api/sellerDecision.js` |
+| `introduction_requested` | `api/submitSellerLead.js` |
+| `task_created`, `task_paused`, `task_cancelled` | `lib/tasks/tasks.js`, `lib/live/watches.js` (through `trackCurrent`) |
+| `signin`, `signup_completed` | `api/account.js` |
+| `signup_refused` | `api/signup.js` (page check and hook) |
+| `limit_hit` | `lib/_ceilings.js` (`limitEvent`) |
+| `model_call`, `pull_run`, `task_match_sent` | `lib/track/ledger.js`, called once from `recordUsageEvent` in `api/_usage.js` |
+| `error` | `withTracking` in `lib/track/log.js` |
+| browser events, `page_view` | `window.gasTrack` from `GET /api/track?js=1`, recorded by `api/track.js` |
+
+## For Lane A: instrumenting a page
+
+Add `<script src="/api/track?js=1" defer></script>` once per public page (after the move, in the shared shell).
+It sends `page_view` by itself (turn off with `data-gas-no-pageview` on `<html>`), works out the product and
+surface from the path (or `data-gas-product` and `data-gas-surface` on `<html>`), asks `/api/track?consent=1`
+before sending anything, and sends nothing for a declined visitor. Call `gasTrack(name, props)` for a browser
+event; `gasTrack.events` lists the allowed names. After the banner sets `gas_consent`, call
+`gasTrack.consentChanged()`. Set `window.GAS_TRACK_STRICT = true` in a test to make a wrong name or field throw.

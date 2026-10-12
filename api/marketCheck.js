@@ -15,6 +15,7 @@
 //
 // Query-string variants (?q=<car>, a prefilled search, or a legacy ?tester=/?crew= link) are noindex
 // with THIS canonical (bare /market-check) - rule 2, one URL per object.
+import { withTracking } from "../lib/track/log.js";
 import fs from "node:fs";
 import path from "node:path";
 import { lastUpdatedDate } from "../lib/asOf.js";
@@ -47,7 +48,7 @@ export function stripLaunchGate(html) {
     .replace(/<script>\n\(function\(\)\{try\{[\s\S]*?\}catch\(e\)\{location\.replace\("\/"\);\}\}\)\(\);\n<\/script>\n/, "");
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   // LAUNCH STAGE (Oct 2026, Job 2): a public request to this address, while Market Check is not yet
   // released at the current stage, gets a TEMPORARY redirect to /sell - never permanent, so a stage
   // rollback or a later release does not leave a stale 301 cached anywhere (a browser's own 301
@@ -106,3 +107,6 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", (crew || hasCrewCookie) ? "private, no-store" : "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400");
   res.status(200).send(html);
 }
+
+// Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
+export default withTracking("/api/marketCheck", handler, "market_check");

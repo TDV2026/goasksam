@@ -6,6 +6,7 @@
 // Indexing (Oct 2026): a car page is indexable when the car has at least one SALE with a photo, and is
 // listed in /sitemap-vins.xml; every other page (no photographed sale, hubs, 404s) stays noindex.
 //   GET /sitemap-vins.xml -> sitemap index (?sitemap=index);  /sitemap-vins-N.xml -> page N (?sitemap=N)
+import { withTracking } from "../lib/track/log.js";
 import { vinsForUrls } from "./_historyData.js";
 import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor, parseHubSlug, hubVins, liveListing, addWatch, carSlug, familyOf, slugify, listingSaid, familySales, SITEMAP_PAGE, resolveText, cleanTitle, canonicalHub } from "./_historyData.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
@@ -603,7 +604,7 @@ ${whyResultHtml(crew)}
 }
 
 // ---------------------------------------------------------------- handler
-export default async function handler(req, res) {
+async function handler(req, res) {
   const env = historyEnv();
   const crew = isCrewRequest(req);
   if (!env) return send(res, 503, page({ title: "GoAskSam", crew, body: "<p>Unavailable.</p>", req }), {}, false, crew, req);
@@ -890,3 +891,6 @@ async function photoCheck(req, res, env, kind) {
   await recordUsageEvent({ event_type: "history_photo_check", route: "history_photo_check", status: w.ok ? "ok" : "write_failed", oldcarsdata_metered_requests: 0, metadata: counts }, env.supabaseUrl, env.supabaseKey).catch(() => {});
   return res.status(200).json({ ok: w.ok, ...counts });
 }
+
+// Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
+export default withTracking("/api/history", handler, "site");

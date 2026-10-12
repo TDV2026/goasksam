@@ -16,6 +16,7 @@
 //   POST { action:"arm"|"disarm", listing_id } / { action:"alerts" } (signed in) -> Before it ends (lib/live/buyAlerts.js)
 //   GET  ?alerts=run                    -> the Before it ends send run (Vercel cron, CRON_SECRET; or the probe key)
 //   GET|POST ?alert=stop&t=<signed>     -> the message's stop link: GET shows a confirm page, only a POST acts
+import { track, withTracking } from "../lib/track/log.js";
 import { historyEnv, houseName, normVin } from "./_historyData.js";
 import { parseQuery, emptyFilters, gensNamed, resolveForBuy, searchLive, listingFacts, listingMarket, seenBefore, nounFor, liveForFamily, liveRows, familyMarket, COUNTRY_NAME } from "../lib/live/search.js";
 import { findGeneration } from "../lib/generations.js";
@@ -111,7 +112,7 @@ function cleanFilters(raw) {
   return f;
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const env = historyEnv();
   if (!env) return res.status(500).json({ status: "error" });
   res.setHeader("Cache-Control", "no-store");
@@ -425,8 +426,15 @@ export default async function handler(req, res) {
     }
     const q = String(b.q || "").slice(0, 200).trim();
     if (!q) return res.status(400).json({ status: "error" });
+    const buyT0 = Date.now();
     const parsed = parseQuery(q);
     const v = await resolveForBuy(parsed.text || q, env);
+    // search_run (docs/analytics-events.md): Buy answers with live cars, so "range" here means live cars were
+    // shown and "zero_result" that none were (or the car was not recognised).
+    const buyRun = props => track(req, "search_run", { query_text: q, latency_ms: Date.now() - buyT0, model_used: false, cost_usd: 0,
+      vehicle_key: v && v.make ? `${v.make}|${v.parentModel || v.model || ""}`.toLowerCase() : undefined, year: Number(v && v.year) || undefined, ...props },
+      { product: "buy", surface: "buy_page" });
+    if (!v) buyRun({ answer_type: "zero_result", reason_flag: "unresolved", result_count: 0, live_count: 0 });
     if (!v) return res.status(200).json({ status: "unresolved", message: "Sam couldn’t tell which car that is. Try a make and model, like Porsche 911 or Ferrari 812." });
     const f = cleanFilters(b.filters) || parsed.filters;
     if (!b.filters) { const named = gensNamed(parsed.text, v.make); if (named.length > 1 || (named.length === 1 && !v.genCode)) f.gens = named; }
@@ -439,6 +447,8 @@ export default async function handler(req, res) {
     const emptyMarket = rows.length ? null : await familyMarket(env, v, f);
     const rest = capped.slice(FIRST).map(cardOf);
     logSearch(env, v, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
+    buyRun({ answer_type: rows.length ? "range" : "zero_result", result_count: capped.length, live_count: rows.length,
+      transmission: f && (f.gearbox === "manual" || f.gearbox === "auto") ? f.gearbox : undefined });
     // search event (Oct 2026, open-search policy Part 1.2): the canonical vocabulary's own record of
     // this search, alongside (not replacing) the existing search_events log above - that table has no
     // visitor_id/admin-dashboard join, this one does. Resolved make|model key only, never the typed q.
@@ -673,3 +683,6 @@ function buyChat(res, env, b, visitorId, req) {
     afterTurn: async (usage, out) => { if (usage && usage.calls > 0) await recordBuyModelTurn(env, req); await noteBuySearch(env, req, out && out.state && out.state.filters); },
     shape: async out => ({ cards: await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; })), noun: out.noun, meta: out.meta || null, searchNote: out.searchNote }) });
 }
+
+// Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
+export default withTracking("/api/buySearch", handler, "buy");

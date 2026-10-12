@@ -8,6 +8,7 @@
 //        since a past day, sent to `to` only, recorded nowhere
 // Stopping from a message is the before-it-ends signed stop link (/api/buySearch?alert=stop), which stops
 // every notice on the account, watches included (lib/live/buyAlerts.js stopAll).
+import { withTracking } from "../lib/track/log.js";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
 import { recordUsageEvent } from "./_usage.js";
 import { validateBearer } from "../lib/_auth.js";
@@ -16,7 +17,7 @@ import { hasServerCredential } from "../lib/_credential.js";
 import { ready, arm, stop, resume, list, run, testSend, isMissingTable, probeBackdate, probeInspect, verifySoldTaskTap, soldTaskTap, soldTaskName, getWatch, setWatchState } from "../lib/live/watches.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const env = supabaseEnv();
   if (!env) return res.status(500).json({ error: "not configured" });
   // Our own tests: the header credential only (lib/_credential.js), never a key in the address or body.
@@ -107,3 +108,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Sam couldn't do that just now." });
   }
 }
+
+// Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
+export default withTracking("/api/watch", handler, "tasks");

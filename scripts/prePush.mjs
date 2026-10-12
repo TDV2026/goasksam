@@ -148,6 +148,16 @@ console.log("\n-- deterministic engine checks --");
   }
 }
 
+// Analytics layer (Oct 2026, Lane C; docs/analytics-events.md): the event list, consent groups with simulated
+// region headers, what is never stored, the store being down, ledger reconciliation, and the dashboard's 404 gate.
+// A child process, because the check points the store at a closed local port on purpose. No database, no keys.
+try {
+  const out = execSync("node scripts/analyticsCheck.mjs", { encoding: "utf8" });
+  record("analytics layer (scripts/analyticsCheck.mjs)", "PASS", (out.match(/analyticsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("analytics layer (scripts/analyticsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+
 // ---- 3 & 4. BROWSER CHECK (Lane C's pushCheck.mjs) + BASELINE ----
 console.log(`\n-- browser check via scripts/pushCheck.mjs (${BASE}) --`);
 let browserOutput = "";

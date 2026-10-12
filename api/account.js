@@ -3,6 +3,7 @@
 // row (default tier 'free'), and stores the marketing-consent choice captured at
 // the sign-in card. Returns the account's public state. Beehiiv tiering (2B) and
 // result-claiming (2C) attach to this same endpoint later.
+import { withTracking, track, linkAnonToUser } from "../lib/track/log.js";
 import { validateBearer } from "../lib/_auth.js";
 import { supabaseEnv, supabaseSelect, supabaseInsert } from "../lib/_supabase.js";
 import { beehiivTier } from "../lib/_beehiiv.js";
@@ -116,7 +117,7 @@ function publicAccount(row) {
 // a function so the account reply keeps its shape for any page still on an older script.
 async function dailyQuota() { return { dailyLimit: null, dailyUsed: 0, dailyRemaining: null }; }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   cors(res);
   if (req.method === "OPTIONS") { res.status(204).end(); return; }
   if (req.method !== "POST") { res.status(405).json({ error: "POST only" }); return; }
@@ -143,6 +144,9 @@ export default async function handler(req, res) {
     // handful of plain words - Direct/Organic/Social/Referral/a named source), never trusted as free text.
     const src = typeof req.body.attributionSource === "string" ? req.body.attributionSource.slice(0, 40) : null;
     logEvent(env, { event: EVENTS.SIGN_IN_COMPLETED, userId: auth.userId, visitorId, props: src ? { source: src } : null });
+    // Analytics (docs/analytics-events.md): signin, and this browser's earlier events linked to the account.
+    track(req, "signin", {}, { product: "site", surface: "api", user_id: auth.userId });
+    linkAnonToUser(req, auth.userId);
   }
 
   // Spec E: "Your results" read. Returns the signed-in user's saved results with
@@ -182,6 +186,8 @@ export default async function handler(req, res) {
       const created = (insert.rows && insert.rows[0]) ||
         { email: auth.email, tier: newTier, bonus_searches: 0, marketing_consent: consent === true };
       await funnel(env, "signup_completed", { user_id: auth.userId, dedup_key: `signup:${auth.userId}` });
+      track(req, "signup_completed", {}, { product: "site", surface: "api", user_id: auth.userId });
+      linkAnonToUser(req, auth.userId);
       const claimedNew = await claimResultIfAny(req, env, auth.userId);
       const respNew = publicAccount(created); if (claimedNew !== undefined) respNew.claimed = claimedNew;
       respNew.daily = await dailyQuota(env, auth.userId, respNew.tier);
@@ -222,3 +228,6 @@ export default async function handler(req, res) {
     res.status(500).json({ error: err.message });
   }
 }
+
+// Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
+export default withTracking("/api/account", handler, "site");

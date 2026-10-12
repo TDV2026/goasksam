@@ -1,3 +1,5 @@
+import { ledgerEvents } from "../lib/track/ledger.js";
+
 const OLDCARSDATA_1K_COST_PER_REQUEST = 49 / 1000;
 const OLDCARSDATA_10K_COST_PER_REQUEST = 199 / 10000;
 const CLAUDE_SONNET_INPUT_COST_PER_TOKEN = 3 / 1000000;
@@ -51,6 +53,9 @@ export async function recordUsageEvent(event, supabaseUrl, supabaseKey) {
       console.error(`CRITICAL: usage event write failed (${res.status}) - app_usage_events may be missing (run docs/supabase-v1-schema.sql). Detail: ${text.slice(0, 200)}`);
       return { skipped: true, reason: `usage_insert_failed_${res.status}`, detail: text.slice(0, 300) };
     }
+    // Analytics (docs/analytics-events.md): model_call, pull_run and task_match_sent are taken from this one
+    // written row, so they always match the ledger. Never throws, never waits.
+    try { ledgerEvents(event); } catch {}
     return { recorded: true };
   } catch (err) {
     console.error(`CRITICAL: usage event write threw: ${err.message}`);

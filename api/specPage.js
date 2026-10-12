@@ -10,6 +10,7 @@
 // FAQPage JSON-LD, links up/sideways/down (parent, siblings, children) plus to Market Check (prefilled)
 // and /buy. Indexable ONLY when the data says so (rule 4); a thin/no-sales spec is noindex and still
 // shows the sales themselves (or the honest reason) - never a number without evidence.
+import { withTracking } from "../lib/track/log.js";
 import { specPage, parseSlug, allSpecSlugs911 } from "../lib/specPages.js";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
 import { PAGE_CSS, FONT_LINKS, railHtml, whyResultHtml, isCrewRequest } from "./_chrome.js";
@@ -92,7 +93,7 @@ async function sitemapSpecs(req, res, env) {
   return res.status(200).send(urlset([{ loc: `${SITE}/cars/porsche/911`, lastmod: new Date().toISOString().slice(0, 10) }]));
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const crew = isCrewRequest(req);
   // In-content links to Market Check/Buy (Job 1, Oct 2026: "spec and car pages link to Market
   // Check and Buy: both must follow the stage") - these used to be unconditional for every visitor.
@@ -200,3 +201,6 @@ ${railHtml("history", undefined, crew, req)}
   res.setHeader("X-Robots-Tag", "noindex, follow");
   res.status(404).send(html);
 }
+
+// Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
+export default withTracking("/api/specPage", handler, "site");

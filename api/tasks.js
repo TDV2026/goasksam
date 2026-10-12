@@ -17,6 +17,7 @@
 //   GET  ?run=1                         -> the matching run after each live pull (Vercel cron, CRON_SECRET)
 // Probe-keyed tests (PROBE_KEY): act as a test user, seed listing rows instead of the live table, mock
 // the clock; test runs never send email (email_status "test").
+import { withTracking } from "../lib/track/log.js";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { readVisitorId } from "../lib/_visitor.js";
@@ -49,7 +50,7 @@ async function who(req) {
   return u && u.userId ? { userId: u.userId, email: u.email || null } : null;
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const env = supabaseEnv();
   if (!env) return res.status(503).json({ error: "unavailable" });
   const q = req.query || {};
@@ -91,7 +92,7 @@ export default async function handler(req, res) {
           <form method="post" action="/api/tasks?a=${encodeURIComponent(act)}&t=${encodeURIComponent(String(q.t))}"><button type="submit">${tapEsc(w.button)}</button></form>
           <p class="quiet"><a href="/tasks/mine?task=${encodeURIComponent(id)}">Open the Task instead</a></p>`);
       }
-      const out = await controlTask(env, { userId: task.user_id }, id, act, {});
+      const out = await controlTask(env, { userId: task.user_id }, id, act, { via: "email_link" });
       const after = (out && out.task) || task;
       const restart = act === "pause" && after.state === "paused" ? oneTap(id, "resume") : null;
       return page(200, w.done, `<h1>${tapEsc(w.done)}</h1><p class="task">${tapEsc(task.summary || "")}</p>${restart ? `<p>You can start it again <a href="${restart}">here</a>.</p>` : act === "stop" ? `<p>You can start a new search <a href="/buy">here</a>.</p>` : ""}<p class="quiet"><a href="/tasks/mine?task=${encodeURIComponent(id)}">Open the Task</a></p>`);
@@ -106,7 +107,7 @@ export default async function handler(req, res) {
       // The limits ledger keeps nothing past 24 hours (its address keys are daily salted hashes, lib/_addr.js).
       if (isCron) { const { pruneLedger } = await import("../lib/_ceilings.js"); await pruneLedger(env).catch(() => {}); }
       const out = await runDigest(env, { dry: !isCron && q.dry === "1" });
-      if (!(!isCron && q.dry === "1")) await recordUsageEvent({ event_type: "task_email_run", route: "tasks_send", status: "ok", oldcarsdata_metered_requests: 0, metadata: { people: out.people, sent: out.sent, capped: out.capped, notDue: out.notDue, emailOff: out.emailOff } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
+      if (!(!isCron && q.dry === "1")) await recordUsageEvent({ event_type: "task_email_run", route: "tasks_send", status: "ok", oldcarsdata_metered_requests: 0, metadata: { people: out.people, sent: out.sent, capped: out.capped, notDue: out.notDue, emailOff: out.emailOff, matches: out.matches, endedBeforeSend: out.endedBeforeSend, failed: out.failed } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
       return res.status(200).json(out);
     }
     if (req.method === "GET" && q.run) {
@@ -436,3 +437,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: String((e && e.message) || e).slice(0, 300) });
   }
 }
+
+// Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
+export default withTracking("/api/tasks", handler, "tasks");

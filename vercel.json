@@ -87,6 +87,7 @@
     { "source": "/obx.20261014j/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261014k/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261014l/(.*)", "destination": "/js/$1" },
+    { "source": "/admin", "destination": "/api/admin?page=1" },
     { "source": "/desk", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/desk.html" },
     { "source": "/desk", "has": [{ "type": "cookie", "key": "gas_tester", "value": "ok" }], "destination": "/desk.html" },
     { "source": "/history/:slug/:vin", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/history?slug=:slug&vin=:vin&_crew=1" },
@@ -146,6 +147,8 @@
     { "path": "/api/tasks?run=1&ifnew=1", "schedule": "5,20,35,50 * * * *" },
     { "path": "/api/tasks?send=1", "schedule": "10,25,40,55 * * * *" },
     { "path": "/api/history?photocheck=vins", "schedule": "40 9 * * *" },
-    { "path": "/api/history?photocheck=hubs", "schedule": "50 9 * * *" }
+    { "path": "/api/history?photocheck=hubs", "schedule": "50 9 * * *" },
+    { "path": "/api/admin?refresh=hour", "schedule": "7 * * * *" },
+    { "path": "/api/admin?refresh=night", "schedule": "20 10 * * *" }
   ]
 }

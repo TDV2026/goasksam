@@ -1,3 +1,4 @@
+import { withTracking, track } from "../lib/track/log.js";
 import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
 import { sendLeadNotification, sendAdditionalDetails } from "../lib/_email.js";
 
@@ -144,7 +145,7 @@ async function handleAdditionalDetails(req, res, supabaseUrl, supabaseKey) {
   return res.status(200).json({ status: "sent", reference: ref || null });
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
@@ -273,6 +274,7 @@ export default async function handler(req, res) {
         if (!notify.ok && !notify.skipped) console.error("lead notification email failed:", notify.error || notify.status, "ref", inserted?.reference || reference);
       }
     } catch (e) { console.error("lead notification threw (non-fatal):", e.message); }
+    track(req, "introduction_requested", { destination_type: asText(choice.destinationType).toLowerCase() || undefined }, { product: "sell", surface: "sell_page" });
     return res.status(200).json({
       status: "submitted",
       reference: inserted?.reference || reference,
@@ -282,3 +284,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: err.message });
   }
 }
+
+// Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
+export default withTracking("/api/submitSellerLead", handler, "sell");

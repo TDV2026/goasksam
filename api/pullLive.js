@@ -11,6 +11,7 @@
 // that vanished from the feed as ended, and fills final_price from sales_archive once the sale lands.
 // Idempotent: re-running only refreshes last_seen/current_bid and re-checks ended rows. Every metered
 // request goes through lib/_ocd.js callOldCarsData (the shared daily cap + usage meter, read-only use).
+import { withTracking } from "../lib/track/log.js";
 import { callOldCarsData, configureOcdUsage, getOcdRunMetered, flushOcdUsage } from "../lib/_ocd.js";
 import { historyEnv } from "./_historyData.js";
 import { recordUsageEvent } from "./_usage.js";
@@ -18,7 +19,7 @@ import { ocdWithRetry, readRemaining, reserveFloor } from "../lib/live/ocdGuard.
 import { pullFor, dayPlan, PAGES, ENDING_AHEAD_MS } from "../lib/live/pullSchedule.js";
 import { mapLiveRecord, upsertLive, markVanished, fillFinalPrices, liveStats } from "../lib/live/feed.js";
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const cronSecret = process.env.CRON_SECRET, probeKey = process.env.PROBE_KEY || process.env.OPS_KEY;
   const isCron = !!cronSecret && String(req.headers["authorization"] || "") === `Bearer ${cronSecret}`;
   const provided = req.headers["x-ops-key"] || (req.query && req.query.key);
@@ -160,7 +161,7 @@ export default async function handler(req, res) {
     if (stoppedForReserve != null) await recordUsageEvent({ event_type: "pull_live_skipped", route: "pull_live", status: "stopped", oldcarsdata_metered_requests: 0, metadata: { remaining: stoppedForReserve, reserve } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
     // The run's summary also lands in app_usage_events (pull_live_summary), so a cron run's timings and
     // backlog are readable afterwards (the cron's own HTTP response is not kept anywhere).
-    await recordUsageEvent({ event_type: "pull_live_summary", route: "pull_live", status: "ok", oldcarsdata_metered_requests: 0, metadata: { stepMs, fetched: rows.length, newListings: fresh, upserted: up, ended, finals, stats: { withVin: stats.withVin, vinsChecked: stats.vinsChecked, vinsLeft: stats.vinsLeft, budgetHit: stats.budgetHit } } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
+    await recordUsageEvent({ event_type: "pull_live_summary", route: "pull_live", status: "ok", oldcarsdata_metered_requests: 0, metadata: { stepMs, fetched: rows.length, ocdRequests: used(), newListings: fresh, upserted: up, ended, finals, stats: { withVin: stats.withVin, vinsChecked: stats.vinsChecked, vinsLeft: stats.vinsLeft, budgetHit: stats.budgetHit } } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
     return res.status(200).json({ ok: true, ocdRequests: used(), maxRequests: maxReq, truncated, stoppedForReserve, feedTotal: total, fetched: rows.length, newListings: fresh, perSource, upserted: up, ended, finals, stepMs, ...stats });
   } catch (e) {
     await flushOcdUsage().catch(() => {});
@@ -189,3 +190,6 @@ async function newCount(env, rows) {
   }
   return Math.max(0, rows.length - seen);
 }
+
+// Analytics (docs/analytics-events.md): an error event when this cron route throws or answers 5xx.
+export default withTracking("/api/pullLive", handler, "buy");

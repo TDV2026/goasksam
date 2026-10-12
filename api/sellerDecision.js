@@ -1,13 +1,14 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
-import { runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle, listSalesForVehicle, rawTitleSearch, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
+import { mapEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle, listSalesForVehicle, rawTitleSearch, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
 import { supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { checkCeiling, testLimits, CALM, checkMarketCheckCarLimit, marketCheckDailyCarCap } from "../lib/_ceilings.js";
 import { logEvent, EVENTS } from "../lib/events.js";
 import { readVisitorId } from "../lib/_visitor.js";
+import { track, withTracking } from "../lib/track/log.js";
 import { callOldCarsData } from "../lib/_ocd.js";
 import { testerCodeExpired } from "../lib/_tester.js";
 import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
@@ -2797,10 +2798,11 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
 // public request runs as an ordinary search. archiveOnly, ladderPreview, priceProbe and oneBox stay public:
 // each only ever reduces spend (archive or fetch-free).
 const SERVER_ONLY_FLAGS = ["warm", "bypassCache", "rerun", "poolDiag", "backfillCount", "archiveQuery", "oneBoxProof", "titleSearch", "cacheStats", "reserveSim", "debug"];
-export default async function handler(req, res) {
+async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  const reqStart = Date.now();
   const credentialed = hasServerCredential(req);
   if (!credentialed && req.body && typeof req.body === "object") for (const k of SERVER_ONLY_FLAGS) if (k in req.body) delete req.body[k];
 
@@ -3352,11 +3354,22 @@ export default async function handler(req, res) {
         } catch { return false; }
       };
       const OB_CALM = "Sam’s catching his breath, try again in a minute.";
+      // search_run (docs/analytics-events.md): one per Market Check search, from Lane B's one engine result
+      // object (mapEngineAnswer), failures included. Never on a refine tap (that is refinement_applied).
+      const mcText = typeof rawSearch === "string" ? rawSearch : (vehicle?.raw || vehicle?.canonicalLabel || "");
+      const mcRefine = !!(req.body?.refine || (car && car.refine));
+      const mcRun = (props, engineVersion) => {
+        if (mcRefine) return;
+        track(req, "search_run", { query_text: mcText || "-", latency_ms: Date.now() - obStart, vehicle_key: vehicle && vehicle.make ? `${vehicle.make}|${vehicle.model || ""}`.toLowerCase() : undefined,
+          year: Number(vehicle && vehicle.year) || undefined, model_used: false, cost_usd: 0, ...props },
+          { product: "market_check", surface: "market_check_page", engine_version: engineVersion || ENGINE_VERSION, vin: vehicle && (vehicle.vin || null) });
+      };
       let obHealthy = await obProbeOnce();
       let obProbeRetried = false;
       if (!obHealthy) { obProbeRetried = true; obHealthy = await obProbeOnce(); }
       if (!obHealthy) {
         console.error(`One Box unavailable: Supabase health probe failed twice (slow/down), ${Date.now() - obStart}ms.`);
+        mcRun({ answer_type: "failed", failure_state: "catching_breath" });
         return res.status(200).json({ status: "one_box", tier: "unavailable", samLine: OB_CALM });
       }
       if (obProbeRetried) console.error(`One Box health probe recovered on retry (${Date.now() - obStart}ms) - transient, not a real outage.`);
@@ -3371,6 +3384,7 @@ export default async function handler(req, res) {
       // genuine hit logs rate_limit_hit itself and shows one calm line, no sign-in demand, no number.
       const obCeiling = await checkCeiling({ supabaseUrl, supabaseKey }, req, "market_check_search", { tool: "market_check" });
       if (!obCeiling.ok) {
+        mcRun({ answer_type: "failed", failure_state: "rate_limited" });
         return res.status(200).json({ status: "one_box", tier: "rate_limited", resolvedCar: null, samLine: CALM.search });
       }
       const oneBoxText = typeof rawSearch === "string" ? rawSearch : (vehicle?.raw || vehicle?.canonicalLabel || "");
@@ -3416,6 +3430,7 @@ export default async function handler(req, res) {
         const carKey = specKeyFor(vehicle, generation, null);
         const carLimit = await checkMarketCheckCarLimit({ supabaseUrl, supabaseKey }, req, carKey);
         if (!carLimit.ok) {
+          mcRun({ answer_type: "failed", failure_state: "daily_limit" });
           // Reworded (Oct 2026, evidence-block job): this is Market Check's OWN daily limit, not a
           // pitch for another product - Buy and Sell are unaffected by this cap (it only gates
           // checkMarketCheckCarLimit's distinct-car counter above, which this branch is the sole
@@ -3436,6 +3451,7 @@ export default async function handler(req, res) {
         ]);
       } catch (e) {
         console.error(`One Box unavailable (${(e && e.message) || e}), ${Date.now() - obStart}ms.`);
+        mcRun({ answer_type: "failed", failure_state: "catching_breath" });
         return res.status(200).json({ status: "one_box", tier: "unavailable", samLine: OB_CALM });
       }
       // search event (Oct 2026, open-search policy Part 1.2): once per completed search, never on a
@@ -3445,6 +3461,13 @@ export default async function handler(req, res) {
       // just below), which this does not separately distinguish; a known, minor imprecision, not fixed
       // here (would need a flag threaded from the drawer's own caller). No userId: this branch returns
       // before any bearer/account check runs, so only the visitor id is available.
+      if (oneBox) {
+        const a = mapEngineAnswer(oneBox, Date.now() - obStart);
+        mcRun({ answer_type: a.answerType, pool_size: a.poolSize ?? undefined, result_count: Array.isArray(oneBox.cards) ? oneBox.cards.length : undefined,
+          range_low: a.low ?? undefined, range_high: a.high ?? undefined, year_widened: !!a.yearWidened,
+          fallback_rung: a.fallbackRung ? String(a.fallbackRung).slice(0, 60) : undefined, reason_flag: a.reasonFlag ? String(a.reasonFlag).slice(0, 60) : undefined,
+          transmission: obRefine && obRefine.tx ? obRefine.tx : undefined }, a.engineVersion);
+      }
       if (oneBox && !obRefine && vehicle && vehicle.make) {
         logEvent({ supabaseUrl, supabaseKey }, { event: EVENTS.SEARCH, tool: "market_check", visitorId: readVisitorId(req), props: { key: `${vehicle.make}|${vehicle.model || ""}` } }).catch(() => {});
       }
@@ -4262,6 +4285,21 @@ export default async function handler(req, res) {
     // a signed-in account id isn't resolved in this branch (auth.userId, where it exists, belongs to
     // the follow-up chat gate, a different code path) - the visitor id alone is enough for the admin
     // join via visitor_links.
+    if (!activeTxRefine) {
+      // search_run, sell_answer_shown, powerseller_suggested (docs/analytics-events.md). Sell always answers
+      // (the evidence ladder never dead-ends): "range" when real sales back it, "not_enough_data" at the
+      // regional policy floor.
+      const sellCtx = { product: "sell", surface: "sell_page", engine_version: ENGINE_VERSION, vin: vehicle && (vehicle.vin || null) };
+      const vk = vehicle && vehicle.make ? `${vehicle.make}|${vehicle.model || ""}`.toLowerCase() : undefined;
+      track(req, "search_run", { query_text: typeof rawSearch === "string" ? rawSearch : (vehicle?.raw || vehicle?.canonicalLabel || "-"),
+        answer_type: decision && decision.evidenceBasis === "regional_policy" ? "not_enough_data" : "range",
+        latency_ms: Date.now() - reqStart, vehicle_key: vk, year: Number(vehicle && vehicle.year) || undefined,
+        pool_size: Number(analysis.recordsAnalyzed) || 0, model_used: false, cost_usd: costEstimate.plan1k }, sellCtx);
+      if (decision && decision.recommendedPath) track(req, "sell_answer_shown", { recommended_platform: String(decision.recommendedPath).slice(0, 60),
+        evidence_basis: decision.evidenceBasis || undefined, confidence: typeof decision.confidence === "string" ? decision.confidence.slice(0, 60) : undefined, vehicle_key: vk }, sellCtx);
+      if (decision && decision.partnerReferral && (decision.partnerReferral.eligible || decision.partnerReferral.secondary))
+        track(req, "powerseller_suggested", { placement: decision.partnerReferral.eligible ? "lead" : "secondary" }, sellCtx);
+    }
     if (vehicle && vehicle.make && !activeTxRefine) {
       logEvent({ supabaseUrl, supabaseKey }, { event: EVENTS.SEARCH, tool: "sell", visitorId: readVisitorId(req), props: { key: `${vehicle.make}|${vehicle.model || ""}` } }).catch(() => {});
     }
@@ -4341,3 +4379,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: err.message });
   }
 }
+
+// Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
+export default withTracking("/api/sellerDecision", handler, "sell");

@@ -1,3 +1,4 @@
+import { withTracking } from "../lib/track/log.js";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -46,7 +47,7 @@ let PROMPTS = null;
 const prompts = () => PROMPTS || (PROMPTS = { assist: promptFrom("public/js/chat-core.js", "SYS"), followup: promptFrom("public/js/wizard.js", "SELL_SYS") });
 const MAX_MSG = 2000, MAX_TOTAL = 12000, MAX_TURNS = 12, MAX_CONTEXT = 20000, MAX_OUT = 700;
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
@@ -218,3 +219,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: err.message });
   }
 }
+
+// Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
+export default withTracking("/api/chat", handler, "sell");

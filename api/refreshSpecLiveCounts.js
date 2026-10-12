@@ -4,10 +4,11 @@
 // (filled by /api/pullLive) and PATCHes it in place. Runs on the same 4-hourly cadence as pullLive (20
 // minutes after, so live_listings is freshly filled) so a spec page's live count never waits for the
 // next full nightly build.
+import { withTracking } from "../lib/track/log.js";
 import { historyEnv } from "./_historyData.js";
 import { refreshLiveCounts } from "../lib/specPages.js";
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const cronSecret = process.env.CRON_SECRET, probeKey = process.env.PROBE_KEY || process.env.OPS_KEY;
   const isCron = !!cronSecret && String(req.headers["authorization"] || "") === `Bearer ${cronSecret}`;
   const provided = req.headers["x-ops-key"] || (req.query && req.query.key);
@@ -21,3 +22,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: String((e && e.message) || e).slice(0, 200) });
   }
 }
+
+// Analytics (docs/analytics-events.md): an error event when this cron route throws or answers 5xx.
+export default withTracking("/api/refreshSpecLiveCounts", handler, "buy");
