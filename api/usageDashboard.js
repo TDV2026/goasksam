@@ -4235,6 +4235,36 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "listingmarkettest", out });
   }
 
+  // task=buypathdiag: TEMPORARY, READ-ONLY (one-engine-entry-point job, Oct 2026). Runs the EXACT
+  // Buy/Tasks live path (resolveVehicle -> familyMarket -> specOf/listingGeneration -> engineAnswer
+  // -> runOneBox) side by side with Market Check's own path for the SAME query, so a lanesOk
+  // mismatch can be pinned to an actual divergent field instead of guessed at. Delete once the
+  // class_era/generation-divergence investigation concludes.
+  //   ?view=ops&task=buypathdiag&qs=2006 Mercedes-Benz CLK DTM
+  if (task === "buypathdiag") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { runOneBox } = await import("../lib/onebox.js");
+    const { familyMarket, listingGeneration, specKeyFor, emptyFilters } = await import("../lib/live/search.js");
+    const q = String(req.query?.qs || "").trim();
+    const rv = await resolveVehicle(q, {});
+    const v = rv && rv.vehicle;
+    if (!v || !v.make) return res.status(200).json({ task: "buypathdiag", q, error: "unresolved", rv });
+    const mcGen = await findGeneration(v, env).catch(e => ({ error: String(e && e.message || e) }));
+    const title = [v.year, v.make, v.model, v.trim].filter(Boolean).join(" ");
+    const buyGen = await listingGeneration(v, title, env).catch(e => ({ error: String(e && e.message || e) }));
+    const mcD = await runOneBox(v, mcGen, q, { ...env, asked: 2 }, null).catch(e => ({ error: String(e && e.message || e) }));
+    const f = emptyFilters();
+    const buyM = await familyMarket(env, v, f).catch(e => ({ error: String(e && e.message || e) }));
+    return res.status(200).json({
+      task: "buypathdiag", q,
+      resolvedVehicle: v,
+      marketCheck: { generation: mcGen, tier: mcD && mcD.tier, poolN: mcD && mcD.poolN, cards: mcD && Array.isArray(mcD.cards) ? mcD.cards.length : null, classEraCards: mcD && mcD.classEra ? (mcD.classEra.cards || []).length : null, referenceFigureReason: mcD && mcD.referenceFigureReason },
+      buy: { generation: buyGen, specKey: specKeyFor(v, buyGen, null), result: buyM },
+      generationsMatch: JSON.stringify(mcGen) === JSON.stringify(buyGen),
+    });
+  }
   // task=obdiag: READ-ONLY (archive; ZERO OCD). Runs the LIVE runOneBox for each query and returns
   // the internal pool diagnostics (tier, generation chips, earned question, pool counts, transmission
   // split, driver candidates, widening path) so a question/widening decision can be inspected.
