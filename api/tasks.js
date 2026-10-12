@@ -143,7 +143,16 @@ async function handler(req, res) {
       const head = async f => { const r = await fetch(`${env.supabaseUrl}/rest/v1/accounts?${f}`, { headers: H }).catch(() => null); if (!r) return "no answer"; if (!r.ok) return `error ${r.status}`; return Number(String(r.headers.get("content-range") || "").split("/")[1]) || 0; };
       const col = await fetch(`${env.supabaseUrl}/rest/v1/accounts?select=task_email_every&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }).catch(() => null);
       const every = {}; if (col && col.ok) for (const k of ["daily", "twice", "thrice", "instant"]) every[k] = await head(`select=user_id&task_email_every=eq.${k}`);
-      return res.status(200).json({ everyColumn: col ? col.status : "no answer", accounts: await head("select=user_id"), emailOff: await head("select=user_id&task_email_on=is.false"), every });
+      // The founders' own accounts (ADMIN_EMAILS), as yes/no and counts only: what the Tasks page would show them.
+      const admins = [];
+      for (const e of String(process.env.ADMIN_EMAILS || "").toLowerCase().split(/[\s,;]+/).filter(Boolean)) {
+        const a = ((await supabaseSelect(env, `accounts?email=eq.${encodeURIComponent(e)}&select=user_id&limit=1`).catch(() => null)) || [])[0] || null;
+        if (!a) { admins.push({ accountRow: false }); continue; }
+        const n = await notifyPrefs(env, { userId: a.user_id, email: e }).catch(err => ({ error: String(err && err.message || err).slice(0, 80) }));
+        const ts = (await userTasks(env, a.user_id).catch(() => [])) || [];
+        admins.push({ accountRow: true, on: n.on, every: n.every, everyReady: n.everyReady, stored: n.stored, error: n.error, tasks: ts.length, working: ts.filter(t => ["running", "needs_you"].includes(t.state)).length, paused: ts.filter(t => t.state === "paused").length });
+      }
+      return res.status(200).json({ everyColumn: col ? col.status : "no answer", accounts: await head("select=user_id"), emailOff: await head("select=user_id&task_email_on=is.false"), every, admins });
     }
     // Probe: when each live pull finished (its final usage row) and when each task run ran, last 7 days.
     if (req.method === "GET" && q.pulltiming && probeOk(req)) {
