@@ -254,7 +254,15 @@ export default async function handler(req, res) {
       const owner = new Map(tasks.map(t => [t.id, t.user_id]));
       const msgs = (await supabaseSelectAll(env, `task_updates?role=eq.buyer&kind=eq.message&created_at=gte.${since}&select=task_id,created_at&order=id.asc`).catch(() => null)) || [];
       const tm = (await supabaseSelectAll(env, `app_usage_events?event_type=in.(tasks_model_turn,tasks_model_paused)&created_at=gte.${since}&select=created_at,event_type,anthropic_cost_usd,anthropic_input_tokens,anthropic_output_tokens,metadata&order=id.asc`).catch(() => null)) || [];
+      // Buy chat per address (the request ceiling's ledger rows carry the address) and per device (model turns).
+      const bc = (await supabaseSelectAll(env, `ip_rate_hits?kind=in.(c:buy_chat,m:buy_chat)&created_at=gte.${since}&select=ip,kind,created_at&order=id.asc`).catch(() => null)) || [];
+      // Sign-ups: accounts created per day, and sign-ins completed per visitor per day (no address is stored).
+      const accts = (await supabaseSelectAll(env, `accounts?created_at=gte.${since}&select=created_at&order=created_at.asc`).catch(() => null)) || [];
+      const sic = (await supabaseSelectAll(env, `funnel_events?event=eq.sign_in_completed&created_at=gte.${since}&select=created_at,visitor_id&order=id.asc`).catch(() => null)) || [];
+      const perDayCount = rows => rows.reduce((o, r) => { const d = String(r.created_at).slice(0, 10); o[d] = (o[d] || 0) + 1; return o; }, {});
       return res.status(200).json({ days,
+        buyChat: { requestsPerAddress: three(bc.filter(r => r.kind === "c:buy_chat"), adr), requestsPerDevice: three(bc.filter(r => r.kind === "c:buy_chat"), dev), modelTurnsPerDevice: three(bc.filter(r => r.kind === "m:buy_chat"), dev) },
+        signups: { accountsCreated: accts.length, accountsPerDay: perDayCount(accts), signInsCompleted: sic.length, signInsPerVisitor: three(sic, r => r.visitor_id || null) },
         sellChat: { ledgerRows: hits.length, byKind: hits.reduce((o, h) => (o[h.kind] = (o[h.kind] || 0) + 1, o), {}), perDevice: three(sellAll, dev), perAddress: three(sellAll, adr), followupPerAccount: three(hits.filter(h => h.kind === "a:sell_followup"), acct),
           modelRows: chat.length, byEvent: chat.reduce((o, r) => (o[r.event_type + ":" + r.status] = (o[r.event_type + ":" + r.status] || 0) + 1, o), {}), paidCalls: paid.length, narrationCacheHits: chat.filter(r => r.metadata && r.metadata.narrationCache === "hit").length,
           costUsd: { total: Math.round(costs.reduce((a, c) => a + c, 0) * 100) / 100, perCallP50: pct(costs, 0.5), perCallP90: pct(costs, 0.9), max: pct(costs, 1) }, paidPerAddress: three(paid, ipOf),
