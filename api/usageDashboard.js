@@ -5589,8 +5589,9 @@ async function handleOps(req, res) {
   // its exact cause instead of guessed. Remove once closed.
   if (task === "classeradiag") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { recordExcludeReason, hammerUsd, bodyClassOf } = await import("../lib/onebox.js");
+    const { recordExcludeReason } = await import("../lib/onebox.js");
     const { isMemorabilia, isPartsListing, isPrototype } = await import("../lib/_classify.js");
+    const { hammerUsd } = await import("../lib/_houseComps.js");
     const make = String(req.query?.make || "Mercedes-Benz");
     const decStart = Number(req.query?.decStart || 2000), decEnd = Number(req.query?.decEnd || 2009);
     const self = String(req.query?.self || "CLK DTM");
