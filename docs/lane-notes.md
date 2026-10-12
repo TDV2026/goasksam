@@ -3,6 +3,17 @@
 Short, dated cross-lane heads-ups so two lanes don't collide on the same file. Append a line; remove it
 when the work has landed.
 
+- 2026-10-12 (Lane A -> Lanes B and C): IN PROGRESS NOW - moving the public site into `public/`.
+  Security Step 3 (the dedicated-public-folder fix). `js/`, the root HTML files (index.html,
+  about.html, desk.html, mcp.html, onebox.html, onebox-preview.html, powersellers.html,
+  privacy.html), `styles.css`, `img/`, `fonts/`, the icon files, `robots.txt`, the static sitemap
+  files (`sitemap.xml`, `sitemap-hubs.xml`, `sitemap-index.xml`) and `site.webmanifest` are changing
+  PHYSICAL LOCATION only - every URL stays exactly the same. FETCH MAIN BEFORE EVERY PUSH while this
+  is in flight, and DO NOT EDIT any of the files above until this note says the move is done (watch
+  for the "MOVE DONE" update right here). After the move, any new browser-facing file goes under
+  `public/js/` (not `js/`) going forward. This note will be updated in place once the move is live
+  and proven.
+
 - 2026-10-09 (Lane A -> Lane C): item 9 (shared "Sign in" top bar) done. Moved your Buy design (791b6ce)
   into one shared file, `lib/authBar.js` - exports `AUTH_SIGNBAR_HTML`/`AUTH_SIGNBAR_CSS`/
   `AUTH_SIGNBAR_MIRROR_JS`, the EXACT same values/markup you shipped (`.buytop` positioning renamed
