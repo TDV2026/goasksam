@@ -8,6 +8,7 @@ import { supabaseEnv } from "../lib/_supabase.js";
 import { clientAddress, isCrew, countSince, record } from "../lib/_ceilings.js";
 import { signupCheck, hookSignatureOk, beforeUserCreated } from "../lib/_signup.js";
 import { logEvent, EVENTS } from "../lib/events.js";
+import { hasServerCredential } from "../lib/_credential.js";
 
 export const config = { api: { bodyParser: false } };
 
@@ -33,6 +34,8 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: { http_code: 400, message: d.message } });
   }
 
+  // Our own check (header credential): the raw body arrives byte for byte (the hook's signature depends on it).
+  if (body.action === "rawcheck" && hasServerCredential(req)) return res.status(200).json({ rawLength: raw.length, reparsedLength: JSON.stringify(body).length });
   if (body.action !== "check") return res.status(400).json({ error: "unknown action" });
   if (!env) return res.status(200).json({ ok: true, ticket: null });   // fail open: sign in must never break here
   const ip = clientAddress(req), dayAgo = () => new Date(Date.now() - 864e5).toISOString();
