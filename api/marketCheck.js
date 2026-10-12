@@ -26,6 +26,7 @@ import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../
 import { SHELL_CSS, SHELL_JS, KEEPLOOK_CSS, railOpenHtml, brandPaletteCss } from "../lib/appShell.js";
 import { isCrewRequest } from "./_chrome.js";
 import { isReleased } from "../lib/_launchStage.js";
+import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
 
 // "Your results" (the rail's page-specific section on Market Check/Sell, same mechanism as Buy's
 // "Your searches"): the nav item + its dropdown are hidden by default and filled by js/onebox.js's
@@ -81,7 +82,7 @@ async function handler(req, res) {
   let html = stripLaunchGate(shell)
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${TITLE}</title>`)
     .replace(/<meta name="robots" content="[^"]*"\s*\/?>/, `<meta name="robots" content="${robots}" />`)
-    .replace("</head>", `<link rel="canonical" href="${SITE}/market-check" />\n<meta name="description" content="${esc(metaDesc)}" />\n<meta property="og:title" content="${TITLE}" />\n<meta property="og:description" content="${esc(metaDesc)}" />\n<meta property="og:type" content="website" />\n<meta property="og:url" content="${SITE}/market-check" />\n<style>${LANDING_CSS}\n${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}\n${KEEPLOOK_CSS}\n${brandPaletteCss(crew)}</style>\n</head>`)
+    .replace("</head>", `<link rel="canonical" href="${SITE}/market-check" />\n<meta name="description" content="${esc(metaDesc)}" />\n<meta property="og:title" content="${TITLE}" />\n<meta property="og:description" content="${esc(metaDesc)}" />\n<meta property="og:type" content="website" />\n<meta property="og:url" content="${SITE}/market-check" />\n<style>${LANDING_CSS}\n${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}\n${KEEPLOOK_CSS}\n${brandPaletteCss(crew)}\n${CONSENT_BANNER_CSS}</style>\n</head>`)
     .replace('<main class="wrap"><div id="ob"></div></main>',
       `<main class="wrap"><div id="ob">${landingHtml({ updated, example, h1Text: H1 })}</div></main>`)
     // Round D (app shell, Oct 2026): one shared rail/main/mobile-header, lib/appShell.js.
@@ -90,7 +91,8 @@ async function handler(req, res) {
     // Item 9 (shared top bar, Oct 2026): "Sign in" / the account control, one shared file
     // (lib/authBar.js) - the same markup/CSS Buy now uses, GAS_AUTH_MODE="topbar" so js/auth.js
     // runs its lighter boot (no /sell-wizard upfront gate check, no homepage_view funnel stamp).
-    .replace("<body>", `<body>\n${AUTH_SIGNBAR_HTML}\n<script>${AUTH_SIGNBAR_MIRROR_JS}</script>\n<script>window.GAS_AUTH_MODE="topbar";</script>\n<script src="/js/auth.js" defer></script>`);
+    .replace("<body>", `<body>\n${AUTH_SIGNBAR_HTML}\n<script>${AUTH_SIGNBAR_MIRROR_JS}</script>\n<script>window.GAS_AUTH_MODE="topbar";</script>\n<script src="/js/auth.js" defer></script>`)
+    .replace("<script src=\"/api/track?js=1\" defer></script>", `${CONSENT_BANNER_HTML}\n<script src="/api/track?js=1" defer></script>\n<script>${CONSENT_BANNER_JS}</script>`);
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", robots);

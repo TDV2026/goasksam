@@ -103,11 +103,27 @@ Who: browser. Required: `field`, `value` (40 max). Optional: `vehicle_key`.
 - **`over_time_row_opened`**: a row of the over-time view opened. Optional `period`.
 - **`live_car_clicked`**: a live car on Buy opened. Required `listing_id`. Optional `platform`.
 - **`sell_cta_clicked`**: a "sell" offer clicked from another product. Optional `from_product`.
+- **`keep_looking_clicked`** (Lane A addition, Oct 2026): the "Keep looking" / "Have Sam keep
+  looking" button tapped - the tap itself, not the Task it may lead to (`task_created` is separate
+  and server-side). Optional `from_product`. Who: browser, `lib/appShell.js`'s shared
+  `[data-kl-btn]` handler and Buy's own matching `[data-keep]` control (`api/buy.js`).
 
 ### Sell
 
-- **`sell_started`** (journey, browser): the Sell flow's first answer given.
+- **`sell_started`** (journey, browser): the Sell flow's first answer given. Who: browser,
+  `startSellFlow` (js/wizard.js).
+- **`sell_step_shown`** (journey, browser, Lane A addition, Oct 2026): a step's question renders.
+  Required `step` (the step's name, not its number - the field name from `STEP_SPECS`, or a short
+  name for a step outside it: `vehicle_detail`, `confirm`). Not fired on a re-ask of the SAME step
+  (`escalateStep`) - only a genuinely new step. Who: browser, `askNextSellQuestion`,
+  `askPowerSellerStep`, `askSellPreferenceStep`, `askMissingVehicleDetail`, `showConfirmation`
+  (js/wizard.js, js/steps.js), and the two inline re-asks on return from an edit.
 - **`sell_step_completed`** (journey, browser): Required `step` (the step's name, not its number).
+  Who: browser, the STEP_SPECS pipeline block, the region/state steps, step 8's preference, step
+  16's confirm (js/steps.js).
+  No separate "abandoned" event: `page_hidden` (every page, automatic) already carries seconds on
+  page; a session with a `sell_step_shown` and no later `sell_answer_shown` is an abandon, read from
+  the existing events rather than a new one.
 - **`sell_answer_shown`** (journey, server, `api/sellerDecision.js`): Required `recommended_platform`. Optional `evidence_basis`, `confidence`.
 - **`powerseller_suggested`** (journey, server): a PowerSeller card rendered. Optional `placement` (`lead`, `secondary`).
 - **`introduction_requested`** (journey, server, `api/submitSellerLead.js`): Optional `destination_type`. Never the partner's or person's contact details.
@@ -116,6 +132,11 @@ Who: browser. Required: `field`, `value` (40 max). Optional: `vehicle_key`.
 
 - **`task_created`** (journey, server, `lib/tasks/tasks.js` for search and research Tasks, `lib/live/watches.js` for exact-car and sold-car Tasks): Optional `vehicle_key`, `year`, `kind` (`hunt`, `research`, `exact_car`, `sold_car`). Every kind carries the car: search Tasks from their filters, sold-car Tasks from the engine's spec, exact-car Tasks from the live listing or the VIN's auction history. An exact-car Task's VIN goes to the admin-only `vin` column, never `props`.
 - **`task_paused`**, **`task_cancelled`** (journey, server): Optional `via` (`page`, `email_link`).
+- **`task_frequency_changed`** (journey, browser, Lane A addition, Oct 2026): the "How often"
+  select changed. Required `frequency` (`daily`, `twice`, `thrice`, `instant`). Who: browser,
+  `api/tasksPage.js` APP_JS, `data-notify-every`. Account-wide (not per-task); the control itself is
+  hidden until `accounts.task_email_every` exists (see "known accepted limitations" / Sam's pending
+  SQL step), so this cannot fire before then.
 - **`task_match_sent`** (service, server, from the Task email run's ledger row): Required `emails_sent`. Optional `matches`, `ended_before_send`, `failed`.
 - **`task_email_opened`**, **`task_email_clicked`**: in the catalog but **not fired**. Resend reports
   opens and clicks only with domain-level open and click tracking switched on and a webhook

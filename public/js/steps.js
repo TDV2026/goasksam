@@ -5,6 +5,7 @@ function continueAfterState(){
   if(sellState.returnToConfirm){goBackToConfirm();return true;}
   if(sellState.price){sellState.step=8;askPowerSellerStep();return true;}
   sellState.step=6;
+  if(typeof gasTrack==="function")gasTrack("sell_step_shown",{step:"price"});
   addMsg("sam",SELL_STEP_QUESTIONS[6].ask,priceWhyHtml());
   return true;
 }
@@ -347,8 +348,10 @@ async function handleSellStep(q){
     sellState.country=c.label;
     sellState.countryRoutable=c.routable!==false;
     sellState.state=null;
+    if(typeof gasTrack==="function")gasTrack("sell_step_completed",{step:"region"});
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     sellState.step=18;
+    if(typeof gasTrack==="function")gasTrack("sell_step_shown",{step:"state"});
     addMsg("sam",locationAskText(),"",sellState.region==="US"?chipsHTML(SELL_STEP_QUESTIONS[18].chips):"");
     return true;
   }
@@ -395,6 +398,7 @@ async function handleSellStep(q){
       if(isQuestionInput(q)&&!/^skip$|not sure/i.test(lower))return false;
       sellState.state=/^(skip|not sure)$/i.test(lower)?"Not sure":(String(q||"").trim()||"Not sure");
     }
+    if(typeof gasTrack==="function")gasTrack("sell_step_completed",{step:"state"});
     return continueAfterState();
   }
 
@@ -435,6 +439,7 @@ async function handleSellStep(q){
     if(piped.action==="chat")return false;
     if(piped.action==="escalate"){escalateStep(step);return true;}
     sellState[STEP_SPECS[step].field]=piped.value;
+    if(typeof gasTrack==="function")gasTrack("sell_step_completed",{step:STEP_SPECS[step].field});
     if(step===6&&scopedEditActive("price"))return finishScopedEdit();
     if(sellState.returnToConfirm){goBackToConfirm();return true;}
     // Thesis v1: price is the last free-text intake step; it hands to the
@@ -446,6 +451,7 @@ async function handleSellStep(q){
     const next=FLOW_AFTER[step]||6;
     sellState.step=next;
     const nextQ=SELL_STEP_QUESTIONS[next];
+    if(typeof gasTrack==="function"&&STEP_SPECS[next])gasTrack("sell_step_shown",{step:STEP_SPECS[next].field});
     addMsg("sam",nextQ.ask,"",nextQ.chips&&nextQ.chips.length?chipsHTML(nextQ.chips):"");
     return true;
   }
@@ -476,6 +482,7 @@ async function handleSellStep(q){
       sellState.sellerPreference=pref;
       // Reuse the existing involvement gate so the result stage honors the choice.
       sellState.involvement=pref==="powerseller"?"Want someone to handle everything":pref==="auction_house"?"Take it through an auction house":pref==="diy"?"I'll manage it myself":"";
+      if(typeof gasTrack==="function")gasTrack("sell_step_completed",{step:"sellerPreference"});
       // Preference is the final intake question: the answer runs the analysis
       // directly (no confirm step). An edit re-runs the analysis too.
       sellState.returnToConfirm=false;
@@ -507,6 +514,7 @@ async function handleSellStep(q){
       }
       // Thesis v1: preference was already the fourth intake question, so
       // confirming goes straight to the analysis + recommendation.
+      if(typeof gasTrack==="function")gasTrack("sell_step_completed",{step:"confirm"});
       showSellRecommendation();
       return true;
     }
@@ -594,6 +602,7 @@ function showConfirmation(){
     return;
   }
   sellState.step=16;
+  if(typeof gasTrack==="function")gasTrack("sell_step_shown",{step:"confirm"});
   hideHero();
   // Compressed confirm (no standalone table): one acknowledgment line + chips.
   // Same error-gate above; wizard_complete still fires on Run my analysis.

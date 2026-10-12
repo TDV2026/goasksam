@@ -13,6 +13,7 @@ import { lastUpdatedDate } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { deskExample } from "../lib/live/deskExample.js";
 import { isReleased } from "../lib/_launchStage.js";
+import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
 
 const TITLE = "Sam Desk | GoAskSam for business";
 const DESC = "Sam Desk: ask the whole collector car market in plain words. Real sales, platform comparisons and market slices, with the cars behind every number.";
@@ -274,15 +275,18 @@ async function page(req) {
 <title>${esc(TITLE)}</title><meta name="description" content="${esc(DESC)}"><meta name="robots" content="index, follow"><link rel="canonical" href="${SITE}/business">
 <meta property="og:title" content="${esc(TITLE)}"><meta property="og:description" content="${esc(DESC)}"><meta property="og:url" content="${SITE}/business"><meta property="og:type" content="website">
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#F6F3EC">
-${FONT_LINKS}<style>${CSS}${AUTH_SIGNBAR_CSS}${SHELL_CSS}</style></head><body>
+${FONT_LINKS}<style>${CSS}${AUTH_SIGNBAR_CSS}${SHELL_CSS}${CONSENT_BANNER_CSS}</style></head><body>
 ${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 ${railOpenHtml({ active: "business", pageExtra: YOUR_RESULTS_RAIL, crew, req, analytics: true })}
 ${body}
+${CONSENT_BANNER_HTML}
 <script>${SHELL_JS}</script>
 <script>${leadScript}</script>
 <script>window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};window.GAS_AUTH_MODE="topbar";</script>
 <script src="/js/auth.js" defer></script>
+<script src="/api/track?js=1" defer></script>
+<script>${CONSENT_BANNER_JS}</script>
 </body></html>`;
   return { html, crew };
 }

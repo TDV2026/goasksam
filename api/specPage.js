@@ -18,6 +18,7 @@ import { KEEPLOOK_CSS, KEEPLOOK_JS, keepLookingHtml, keepLookingHref } from "../
 import { isReleased } from "../lib/_launchStage.js";
 import { gaBootstrapHtml } from "../lib/analytics.js";
 import { AUTH_SIGNBAR_CSS } from "../lib/authBar.js";
+import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
 
 const SITE = "https://goasksam.com";
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -169,13 +170,16 @@ ${whyResultHtml(crew)}
 ${index ? '<meta name="robots" content="index, follow">' : '<meta name="robots" content="noindex, follow">'}
 <link rel="canonical" href="${esc(canonical)}">
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(data.lead)}"><meta property="og:type" content="website"><meta property="og:url" content="${esc(canonical)}">
-${FONT_LINKS}<style>${PAGE_CSS}${KEEPLOOK_CSS}${AUTH_SIGNBAR_CSS}</style>${ld.map(o => `<script type="application/ld+json">${JSON.stringify(o)}</script>`).join("")}</head><body>
+${FONT_LINKS}<style>${PAGE_CSS}${KEEPLOOK_CSS}${AUTH_SIGNBAR_CSS}${CONSENT_BANNER_CSS}</style>${ld.map(o => `<script type="application/ld+json">${JSON.stringify(o)}</script>`).join("")}</head><body>
 ${railHtml("history", undefined, crew, req)}
 <main><div class="col">${body}</div></main>
+${CONSENT_BANNER_HTML}
 <script>${KEEPLOOK_JS}</script>
 <script>window.GAS_AUTH_MODE="topbar";</script>
 <script src="/js/auth.js" defer></script>
 ${gaBootstrapHtml()}
+<script src="/api/track?js=1" defer></script>
+<script>${CONSENT_BANNER_JS}</script>
 </body></html>`;
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");

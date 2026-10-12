@@ -2323,6 +2323,7 @@
     Array.prototype.forEach.call(root.querySelectorAll("[data-trimopt]"), function (b) {
       b.addEventListener("click", function () {
         var trim = b.getAttribute("data-trimopt"), label = b.getAttribute("data-mlabel");
+        if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "trim", value: String(label || trim || "").slice(0, 40) });
         runPool(lastQuery, obLastVehicle, mergeRefine({ trim: trim, label: label }));
       });
     });
@@ -2331,6 +2332,7 @@
     Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-bodyopt]"), function (b) {
       b.addEventListener("click", function () {
         var body = b.getAttribute("data-bodyopt"), label = b.getAttribute("data-mlabel");
+        if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "body", value: String(label || body || "").slice(0, 40) });
         runPool(lastQuery, obLastVehicle, mergeRefine({ body: body, label: label }));
       });
     });
@@ -2341,18 +2343,21 @@
     Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-milemin]"), function (b) {
       b.addEventListener("click", function () {
         var lo = b.getAttribute("data-milemin"), hi = b.getAttribute("data-milemax"), label = b.getAttribute("data-mlabel");
+        if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "mileage", value: String(label || lo || "").slice(0, 40) });
         runPool(lastQuery, obLastVehicle, mergeRefine({ miMin: Number(lo), miMax: hi ? Number(hi) : null, miTarget: hi ? Math.round((Number(lo) + Number(hi)) / 2) : Number(lo), label: label }));
       });
     });
     Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-tx]"), function (b) {
       b.addEventListener("click", function () {
         var tx = b.getAttribute("data-tx"), label = b.getAttribute("data-mlabel");
+        if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "gearbox", value: String(label || tx || "").slice(0, 40) });
         runPool(lastQuery, obLastVehicle, mergeRefine({ tx: tx, label: label }));
       });
     });
     Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-variant]"), function (b) {
       b.addEventListener("click", function () {
         var v = b.getAttribute("data-variant"), label = b.getAttribute("data-mlabel");
+        if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "variant", value: String(label || v || "").slice(0, 40) });
         runPool(lastQuery, obLastVehicle, mergeRefine({ variant: v, label: label }));
       });
     });
@@ -2362,6 +2367,7 @@
       b.addEventListener("click", function () {
         var key = b.getAttribute("data-driver"), val = b.getAttribute("data-drvval"), label = b.getAttribute("data-mlabel");
         obEvent("onebox_driver_refine", lastQuery + ":" + key + ":" + val);
+        if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: String(key || "driver").slice(0, 40), value: String(label || val || "").slice(0, 40) });
         runPool(lastQuery, obLastVehicle, mergeRefine({ driver: key, driverVal: val, label: label }));
       });
     });
@@ -2372,6 +2378,7 @@
         var key = b.getAttribute("data-observe"), label = b.getAttribute("data-olabel");
         if (key === "none") { var blk = b.parentNode && b.parentNode.parentNode; if (blk && blk.parentNode) blk.parentNode.removeChild(blk); return; }
         obEvent("onebox_observe_refine", lastQuery + ":" + key);
+        if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "observe", value: String(label || key || "").slice(0, 40) });
         runPool(lastQuery, obLastVehicle, mergeRefine({ observe: key, label: label }));
       });
     });
@@ -2381,7 +2388,7 @@
         var wrap = b.parentNode;
         b.outerHTML = '<span class="typemiles"><input id="ob-miles" type="number" inputmode="numeric" placeholder="miles" /><button type="button" class="qchip" id="ob-miles-go">Go</button></span>';
         var inp = document.getElementById("ob-miles"); if (inp) inp.focus();
-        function submit() { var v = Number((document.getElementById("ob-miles") || {}).value); if (!(v > 0)) return; var band = v >= 60000 ? 25000 : 15000; runPool(lastQuery, obLastVehicle, mergeRefine({ miMin: Math.max(0, v - band), miMax: v + band, miTarget: v, label: "around " + Math.round(v / 1000) + "k" })); }
+        function submit() { var v = Number((document.getElementById("ob-miles") || {}).value); if (!(v > 0)) return; var band = v >= 60000 ? 25000 : 15000; var lbl = "around " + Math.round(v / 1000) + "k"; if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "mileage", value: lbl }); runPool(lastQuery, obLastVehicle, mergeRefine({ miMin: Math.max(0, v - band), miMax: v + band, miTarget: v, label: lbl })); }
         var go = document.getElementById("ob-miles-go"); if (go) go.addEventListener("click", submit);
         if (inp) inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); submit(); } });
       });
@@ -2430,6 +2437,7 @@
     (function () {
       var soi = document.getElementById("ob-samonit"); if (!soi) return;
       soi.addEventListener("click", function () {
+        if (typeof gasTrack === "function") gasTrack("keep_looking_clicked", { from_product: "market_check" });
         if (!(typeof authIsSignedIn === "function" && authIsSignedIn())) {
           stashPendingWatch();
           if (typeof openSignInCard === "function") openSignInCard("Sign in so Sam can keep looking. Free. No card, no plan.");

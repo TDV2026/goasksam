@@ -9,6 +9,7 @@ import { PAGE_CSS, FONT_LINKS, isCrewRequest } from "./_chrome.js";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE } from "../lib/appShell.js";
+import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
 import { isReleased } from "../lib/_launchStage.js";
 
 export const TASKS_PITCH = { lead: "A free collector car finder.", sub: "Tell Sam what you want and he keeps searching, then emails you when one fits." };
@@ -133,7 +134,7 @@ export default async function handler(req, res) {
 <title>${title}</title><meta name="description" content="${esc(desc)}"><meta name="robots" content="${robots}"><link rel="canonical" href="https://goasksam.com/tasks">
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:url" content="https://goasksam.com/tasks"><meta property="og:type" content="website"><meta property="og:image" content="https://goasksam.com/og-card.png">
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#F6F3EC">
-${FONT_LINKS}<style>${PAGE_CSS}${CSS}${AUTH_CSS}${SHELL_CSS}</style>${ld.map(o => '<script type="application/ld+json">' + JSON.stringify(o).replace(/</g, "\\u003c") + "</script>").join("")}</head><body>
+${FONT_LINKS}<style>${PAGE_CSS}${CSS}${AUTH_CSS}${SHELL_CSS}${CONSENT_BANNER_CSS}</style>${ld.map(o => '<script type="application/ld+json">' + JSON.stringify(o).replace(/</g, "\\u003c") + "</script>").join("")}</head><body>
 ${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 ${railOpenHtml({ active: "tasks", crew, req, analytics: true })}
@@ -146,10 +147,13 @@ ${ex ? `<section class="sec"><h2>A real update</h2><p class="example"><span clas
 <section class="sec"><h2>Questions</h2><dl class="faq">${FAQ.map(([q, a]) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join("")}</dl></section>
 <p style="margin-top:30px"><button type="button" class="cta" id="tkcta2" data-task-entry data-href="/tasks/mine?start=1">Give Sam a Task</button></p>
 </div></main>${SHELL_MAIN_CLOSE}
+${CONSENT_BANNER_HTML}
 <script>${SHELL_JS}</script>
 <script>window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};window.GAS_AUTH_MODE="topbar";</script>
 <script src="/js/auth.js" defer></script>
-<script>${EXPLAINER_JS}</script></body></html>`;
+<script>${EXPLAINER_JS}</script>
+<script src="/api/track?js=1" defer></script>
+<script>${CONSENT_BANNER_JS}</script></body></html>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", robots);
   // Crew's full nav is never shared or stored. The public response (no crew cookie) is identical
@@ -189,7 +193,7 @@ function appPage(req, res) {
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Your Tasks | GoAskSam</title><meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#F6F3EC">
-${FONT_LINKS}<style>${PAGE_CSS}${CSS}${APP_CSS}${AUTH_CSS}${SHELL_CSS}</style></head><body>
+${FONT_LINKS}<style>${PAGE_CSS}${CSS}${APP_CSS}${AUTH_CSS}${SHELL_CSS}${CONSENT_BANNER_CSS}</style></head><body>
 ${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 ${railOpenHtml({ active: "tasks", crew, req, analytics: true })}
@@ -197,10 +201,13 @@ ${railOpenHtml({ active: "tasks", crew, req, analytics: true })}
 <div class="apph"><h1>Your Tasks</h1><a href="/tasks">How it works</a></div>
 <div id="tkapp"></div>
 </div></main>${SHELL_MAIN_CLOSE}
+${CONSENT_BANNER_HTML}
 <script>${SHELL_JS}</script>
 <script>window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};window.GAS_AUTH_MODE="topbar";</script>
 <script src="/js/auth.js" defer></script>
-<script>${APP_JS}</script></body></html>`;
+<script>${APP_JS}</script>
+<script src="/api/track?js=1" defer></script>
+<script>${CONSENT_BANNER_JS}</script></body></html>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
   res.setHeader("Cache-Control", "private, no-store");
@@ -354,6 +361,7 @@ const APP_JS = String.raw`(function(){
   document.addEventListener("change", function(e){
     if (e.target && e.target.hasAttribute && e.target.hasAttribute("data-notify-every")) {
       var every = e.target.value; e.target.disabled = true;
+      if (typeof gasTrack === "function") gasTrack("task_frequency_changed", { frequency: every });
       api({ action: "notify", every: every }).then(function(j){ if (j && j.error) note = j.error; else if (data && j) data.notify = j; render(); });
       return;
     }

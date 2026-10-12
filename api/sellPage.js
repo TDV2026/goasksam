@@ -11,6 +11,7 @@ import { isCrewRequest } from "./_chrome.js";
 import { SHELL_TOKENS_CSS, brandPaletteCss } from "../lib/appShell.js";
 import { gaBootstrapHtml } from "../lib/analytics.js";
 import { isReleased } from "../lib/_launchStage.js";
+import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
 
 const TITLE = "Where to sell your collector car";
 const HERO = `<div class="hero" id="hero"><div class="hp-hero">
@@ -47,7 +48,7 @@ export async function sellShellHtml(req) {
     .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${TITLE}$2`)
     .replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${TITLE}$2`)
     .replace("</head>", `<style>${SHELL_TOKENS_CSS}${brandPaletteCss(crew)}</style>\n</head>`)
-    .replace("</body>", `${gaBootstrapHtml()}\n</body>`)
+    .replace("</body>", `<style>${CONSENT_BANNER_CSS}</style>\n${CONSENT_BANNER_HTML}\n<script>${CONSENT_BANNER_JS}</script>\n${gaBootstrapHtml()}\n</body>`)
     .replace('<div id="msgs"></div>', `<div id="msgs">${HERO}</div>`)
     .replace('<div class="hp-value-preview hp-home-only">Built for enthusiast, specialty and collector vehicles</div>',
       '<div class="hp-value-preview hp-home-only">Built for enthusiast, specialty and collector vehicles</div>' +

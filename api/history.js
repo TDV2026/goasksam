@@ -15,6 +15,7 @@ import { isReleased } from "../lib/_launchStage.js";
 import { gaBootstrapHtml } from "../lib/analytics.js";
 import { KEEPLOOK_CSS, KEEPLOOK_JS, keepLookingHtml, keepLookingHref } from "../lib/appShell.js";
 import { AUTH_SIGNBAR_CSS } from "../lib/authBar.js";
+import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
 import { recordUsageEvent } from "./_usage.js";
 import { logPageView } from "../lib/_pageview.js";
 import { classifyRoad } from "../lib/_roadType.js";
@@ -143,13 +144,16 @@ ${index ? '<meta name="robots" content="index, follow">' : '<meta name="robots" 
 ${canonical ? `<link rel="canonical" href="${esc(canonical)}">` : ""}
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#FAF8F4">
 ${FONT_LINKS}
-<style>${CSS}${STYLE}${KEEPLOOK_CSS}${AUTH_SIGNBAR_CSS}</style>${(ld || []).map(jsonLd).join("")}</head><body>
+<style>${CSS}${STYLE}${KEEPLOOK_CSS}${AUTH_SIGNBAR_CSS}${CONSENT_BANNER_CSS}</style>${(ld || []).map(jsonLd).join("")}</head><body>
 ${railHtml("history", undefined, crew, req)}
 <main><div class="col">${body}</div></main>
+${CONSENT_BANNER_HTML}
 <script>${KEEPLOOK_JS}</script>
 <script>window.GAS_AUTH_MODE="topbar";</script>
 <script src="/js/auth.js" defer></script>
 ${gaBootstrapHtml()}
+<script src="/api/track?js=1" defer></script>
+<script>${CONSENT_BANNER_JS}</script>
 </body></html>`;
 }
 function send(res, status, html, extra = {}, index = false, crew = false, req = null) {

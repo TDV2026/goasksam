@@ -955,6 +955,8 @@ function askMissingVehicleDetail(missing){
     return;
   }
   sellState.step=17;
+  // A re-ask of the SAME question (escalation) is not a new step shown, only the first attempt is.
+  if(sellState.trimAskAttempts===1&&typeof gasTrack==="function")gasTrack("sell_step_shown",{step:"vehicle_detail"});
   sellState.lastMissingAsk=missing.ask;
   const chips=(missing.chips||[]).slice();
   if(sellState.trimAskAttempts>=2&&!chips.some(c=>/^skip this step$/i.test(c)))chips.push("Skip this step");
@@ -1346,6 +1348,7 @@ async function startSellFlow(initialCar, showUserBubble=true, preresolved=null){
   // this journey is still classified VIN-originated (with a decode failure).
   try{ if(sessionStorage.getItem("gas_vin_fail")){ sellState.vinEntry=true; sellState.vinDecode="fail"; sessionStorage.removeItem("gas_vin_fail"); } }catch(e){}
   if(typeof gasFunnel==="function")gasFunnel("wizard_start");  // 2F
+  if(typeof gasTrack==="function")gasTrack("sell_started");   // analytics (docs/analytics-events.md)
   hideHero();
   // Rail/menu entry (no seed car): reset the view to a clean surface anchored at
   // the top of the screen, so a click from a scrolled-down results page lands on
@@ -1747,6 +1750,7 @@ function askNextSellQuestion(){
   const q=SELL_STEP_QUESTIONS[sellState.step];
   if(!q)return;
   const extra=sellState.step===6?priceWhyHtml():"";
+  if(typeof gasTrack==="function"&&STEP_SPECS[sellState.step])gasTrack("sell_step_shown",{step:STEP_SPECS[sellState.step].field});
   addMsg("sam",q.ask,extra,q.chips.length?chipsHTML(q.chips):"");
 }
 
@@ -1764,6 +1768,7 @@ function askPowerSellerStep(){
   // sellState.timeline and advances to the SECOND screen (the PowerSeller
   // explainer + the preference question) rather than misreading "No rush" as DIY.
   sellState.awaitingPreference=false;
+  if(typeof gasTrack==="function")gasTrack("sell_step_shown",{step:"timing"});
   addMsg("sam","Are you in a rush to list it?","",chipsHTML(["ASAP","No rush"]));
 }
 // Second screen of step 8: the PowerSeller explainer + the preference question.
@@ -1795,6 +1800,7 @@ function askSellPreferenceStep(){
   // when no house has sold that exact car the house answer says so honestly (renderHouseComparisonSell
   // noOnline / the "no house has sold this" bridge). houseEligibleProxy is retired as the gate.
   const chips=q.chips.slice(0,2).concat(HOUSE_DOOR_CHIP,q.chips.slice(2));
+  if(typeof gasTrack==="function")gasTrack("sell_step_shown",{step:"sellerPreference"});
   addMsg("sam",`${q.explainer} ${q.ask}`,"",chipsHTML(chips));
 }
 

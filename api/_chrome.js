@@ -149,9 +149,10 @@ export function railHtml(active, extra, crew, req) {
   const flag = '<script>window.GAS_CREW=' + (crew ? 'true' : 'false') + ';</script>';
   const pages = buildPages(req, active).filter(p => p.key !== "powersellers");
   const tasksBadgeLabel = 'Tasks<span class="tbadge" data-tasks-badge hidden></span>';
+  const privacyChoices = '<a class="n" href="#" onclick="if(window.gasShowConsentBanner)window.gasShowConsentBanner();return false;">Privacy choices</a>';
   const railItems = pages.map(p => item(p.key, p.href, p.key === "tasks" ? tasksBadgeLabel : p.label)).join("") +
     (active === 'history' ? item('history', '#', 'Car histories') : '') +
-    item('how', '/how-sam-decides', 'How Sam decides');
+    item('how', '/how-sam-decides', 'How Sam decides') + privacyChoices;
   const mnavItems = pages.map(p => item(p.key, p.href, p.key === "tasks" ? tasksBadgeLabel : (p.key === "sell" ? "Sell" : p.label))).join("");
   const mcOn = pages.some(p => p.key === "market-check");
   const home = mcOn ? '/market-check' : '/sell';

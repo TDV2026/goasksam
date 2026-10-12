@@ -152,6 +152,7 @@
     <div class="hp-feedback-fallback">If nothing opens, email us at <a class="hp-copy-email" href="mailto:feedback@goasksam.com" title="Click to copy" onclick="try{navigator.clipboard&&navigator.clipboard.writeText('feedback@goasksam.com')}catch(e){}">feedback@goasksam.com</a></div>
     <a class="hp-navitem" href="/privacy">Privacy</a>
     <a class="hp-navitem" href="/about">About</a>
+    <a class="hp-navitem" href="#" onclick="if(window.gasShowConsentBanner)window.gasShowConsentBanner();return false;">Privacy choices</a>
   </div>
 </div>
 
@@ -195,6 +196,7 @@
 <script src="js.20261010b/result-v2.js"></script>
 <script src="js.20261010b/entry.js"></script>
 <script src="js.20261010b/homepage.js"></script>
+<script src="/api/track?js=1" defer></script>
 <!-- Blank-pane watchdog (inline so it cannot itself fail to load): if a bundle
      fetch was blocked, challenged, or dropped, bootHomepage never paints #msgs and
      the main pane stays blank while the nav chrome (auth.js) still renders. This
