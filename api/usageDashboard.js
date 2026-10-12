@@ -2325,7 +2325,7 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
-    const { assessThinForVehicle, assessClassEraForVehicle } = await import("../lib/onebox.js");
+    const { assessThinForVehicle, anyYearOrSiblingForVehicle } = await import("../lib/onebox.js");
     const qs = String(req.query?.qs || "1966 Ferrari 275 GTB|1972 Ferrari 365 GTB/4 Daytona coupe").split("|");
     const criteria = { region: "US", state: req.query?.state || "" };
     // Select only columns known to exist (no consigns_to_houses column pre-DDL, else the select
@@ -2340,8 +2340,8 @@ async function handleOps(req, res) {
         const g = await findGeneration(v, env);
         const thin = await assessThinForVehicle(v, g, env);
         let classEraProbe = null;
-        if (thin && thin.totalN === 0 && v.year) {
-          try { const ce = await assessClassEraForVehicle(v, g, env); classEraProbe = ce ? { isClass: ce.isClass, era: ce.era, totalN: ce.totalN, receipts: (ce.receipts || []).length, err: ce.error || null } : "null-return"; }
+        if (thin && thin.totalN === 0) {
+          try { const ce = await anyYearOrSiblingForVehicle(v, g, env); classEraProbe = ce ? { siblingName: ce.siblingName, label: ce.label, receipts: (ce.receipts || []).length } : "null-return"; }
           catch (e) { classEraProbe = { thrown: String((e && e.message) || e).slice(0, 150) }; }
         }
         const houseVenues = [];

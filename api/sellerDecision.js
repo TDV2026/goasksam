@@ -1,7 +1,7 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
-import { mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, assessClassEraForVehicle, priceBandForVehicle, listSalesForVehicle, rawTitleSearch, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
+import { mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, priceBandForVehicle, listSalesForVehicle, rawTitleSearch, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
 import { supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { hasServerCredential } from "../lib/_credential.js";
@@ -4171,25 +4171,23 @@ async function handler(req, res) {
       // error is not evidence of "no sales of this model", and widening to the marque surfaced halos
       // (an Enzo, a Superamerica) as comps for a regular 550 Maranello. A thrown thin keeps the normal
       // decision the main ladder already produced; class-era only fires on a REAL zero-model-sales read.
-      // CLASS-ERA rung: the exact model has not sold in three years (empty model pool), OR the model
-      // could not be pinned (make-level "not sure" / unverified). Widen to the same marque within the
-      // car's decade era band, body-class scoped from the typed text - a coarse honest fallback that
-      // gives a real read (e.g. 1980s Dodge trucks) instead of a route pick with no sales behind it.
-      // Archive-only, zero extra OldCarsData.
-      try {
-        ceDbg.ceCalled = true;
-        const ce = await assessClassEraForVehicle(vehicle, generation, thinEnv);
-        ceDbg.ceReceipts = ce && ce.receipts ? ce.receipts.length : (ce ? "no-receipts:" + JSON.stringify(ce).slice(0, 80) : "null");
-        if (ce && ce.isClass && Array.isArray(ce.receipts) && ce.receipts.length) {
-          decision.classEra = ce;
-          // House-by-house over the ERA band (the render frames it as the wider market, not the car).
-          const _tl = String((car && car.timeline) || ""); const asap = /\b(asap|rush|hurry|urgent|fast|quick|soon)\b|right away|this week/i.test(_tl) && !/\bno\s+(rush|hurry)\b/i.test(_tl);
-          decision.classEra.houseComparison = buildHouseComparison(ce.receipts, { todayISO: new Date().toISOString().slice(0, 10), asap, eraBand: true });
-        }
-      } catch (e) { ceDbg.ceErr = "class:" + String((e && e.message) || e).slice(0, 120); }
-      // Safety net: class-era produced nothing but thin DID have real sales -> render the thin state
-      // (never an empty result). With the aligned threshold this is rare (any sales take the thin
-      // branch above), but kept so a class-era miss still falls back to the real sales.
+      // CLASS-ERA rung DELETED (Round 5 Lane B job, Oct 2026): it widened to the same marque within
+      // the car's decade era band - OTHER CARS, never this car's own cohort, exactly what this
+      // round's model-first ladder rules out ("never knowingly answer the wrong version of the
+      // car"). lib/onebox.js assessClassEraForVehicle/classEraGuarded/assessClassEra are deleted;
+      // the replacement rung (anyYearOrSiblingForVehicle: same model at any year, then a named
+      // sibling) is NOT wired in here because the ONLY renderer for decision.classEra
+      // (public/js/result.js renderClassEraSell) is hard-coded to "the wider {era} {make} {class}
+      // market, not your exact car" copy - feeding it same-model/sibling data would print that
+      // false framing over data that is neither wider-market nor other-cars. public/js/result.js is
+      // outside this job's lane; decision.classEra is simply never set now, so renderClassEraSell
+      // goes dead (unreachable) rather than printing a wrong sentence. See the job report, item 10,
+      // for the named gap and the recommended Lane A follow-up. ceDbg kept so the diagnostic probe
+      // (api/usageDashboard.js) does not throw on a ceDbg.ceCalled read elsewhere.
+      ceDbg.ceCalled = false;
+      // Safety net: no class-era rung anymore, but thin DID have real sales -> render the thin state
+      // (never an empty result). A genuinely zero-sales car falls through to the route-policy floor
+      // after this block, same bottom rung every other zero-evidence car already lands on.
       if (!decision.classEra && thin && thin.isThin && thinReceiptN >= 1) { try { await setThinDecision(); } catch { } }
     }
     // DENSE-CAR HOUSE COMPARISON (Item A, Oct 2026): a seller who chose the auction-house door for a
