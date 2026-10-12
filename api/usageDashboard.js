@@ -5596,6 +5596,11 @@ async function handleOps(req, res) {
   // resolver/fetch-scope match) instead of guessed. Remove once closed.
   if (task === "titlerowdiag") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const byId = req.query?.id ? String(req.query.id) : null;
+    if (byId) {
+      const rows = await supabaseSelectAll(env, `sales_archive?select=*&id=eq.${encodeURIComponent(byId)}`) || [];
+      return res.status(200).json({ task: "titlerowdiag", id: byId, rows });
+    }
     const pattern = String(req.query?.pattern || "sierra*cosworth");
     const rows = await supabaseSelectAll(env, `sales_archive?select=id,make,model,year,listing_title,vehicle_type,sale_date&listing_title=ilike.${encodeURIComponent("*" + pattern + "*")}&limit=50`) || [];
     return res.status(200).json({ task: "titlerowdiag", pattern, count: rows.length, rows });
