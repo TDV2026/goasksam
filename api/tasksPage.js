@@ -94,7 +94,7 @@ const APP_CSS = `
 .cars .more{color:var(--sec)}
 .empty{margin:14px 0 0;font:400 15px var(--sans);color:var(--sec)}
 .notify{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:12px 2px 0;font:400 15px/1.5 var(--sans);color:var(--sec)}
-.notify b{font-weight:600;color:var(--ink)}
+.notify b{font-weight:600;color:var(--ink)}.often{display:inline-flex;align-items:center;gap:8px;color:var(--ink)}.often select{min-height:36px;font:400 15px var(--sans);padding:0 8px;border:1px solid var(--div,#E6E1D8);border-radius:6px;background:#fff;color:var(--ink)}.oftenhelp{flex-basis:100%;font-size:14px;color:var(--sec)}
 .notify .plink{min-height:36px;font-size:15px}
 .sw{display:inline-flex;align-items:center;gap:8px;cursor:pointer;min-height:36px;color:var(--ink)}
 .sw input{position:absolute;opacity:0;width:1px;height:1px}
@@ -278,7 +278,12 @@ const APP_JS = String.raw`(function(){
     var n = (data && data.notify) || null; if (!n) return "";
     var sw = '<label class="sw"><input type="checkbox" data-notify-on' + (n.on ? " checked" : "") + '><i></i>Email updates</label>';
     if (editEmail) return '<div class="notify"><div class="tkbox"><input id="tkemail" type="email" value="' + esc(n.email || "") + '" aria-label="Email for task updates"><button type="button" data-save-email>Save</button></div><button class="plink" data-cancel-email>Cancel</button></div>';
-    return '<div class="notify">' + (n.on ? "<span>Updates go to <b>" + esc(n.email || "your account email") + '</b>.</span> <button class="plink" data-edit-email>Change</button>' : "<span>Email is off. Updates show here and on Tasks.</span>") + sw + "</div>";
+    // How often (Oct 2026): one setting for all of a person's Tasks; shown once the account can store it.
+    var opts = [["daily", "Once a day"], ["twice", "Twice a day"], ["thrice", "Three times a day"], ["instant", "As soon as one comes"]];
+    var cur = n.every || "daily";
+    var often = n.on && n.everyReady ? '<label class="often">How often <select data-notify-every>' + opts.map(function(o){ return '<option value="' + o[0] + '"' + (o[0] === cur ? " selected" : "") + ">" + o[1] + "</option>"; }).join("") + "</select></label>" +
+      '<span class="oftenhelp">' + (cur === "instant" ? "An email each time Sam finds one, up to six a day." : "One email with everything new from all your Tasks.") + "</span>" : "";
+    return '<div class="notify">' + (n.on ? "<span>Updates go to <b>" + esc(n.email || "your account email") + '</b>.</span> <button class="plink" data-edit-email>Change</button>' : "<span>Email is off. Updates show here and on Tasks.</span>") + sw + often + "</div>";
   }
   function render(){
     var tasks = (data && data.tasks) || [];
@@ -347,6 +352,11 @@ const APP_JS = String.raw`(function(){
       return load(); }).catch(function(){ load(); }); }
   });
   document.addEventListener("change", function(e){
+    if (e.target && e.target.hasAttribute && e.target.hasAttribute("data-notify-every")) {
+      var every = e.target.value; e.target.disabled = true;
+      api({ action: "notify", every: every }).then(function(j){ if (j && j.error) note = j.error; else if (data && j) data.notify = j; render(); });
+      return;
+    }
     if (!e.target || !e.target.hasAttribute || !e.target.hasAttribute("data-notify-on")) return;
     var on = e.target.checked; e.target.disabled = true;
     api({ action: "notify", on: on }).then(function(j){ if (data && j && !j.error) data.notify = j; render(); });

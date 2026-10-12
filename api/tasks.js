@@ -85,6 +85,16 @@ export default async function handler(req, res) {
       return page(200, w.done, `<h1>${tapEsc(w.done)}</h1><p class="task">${tapEsc(task.summary || "")}</p>${restart ? `<p>You can start it again <a href="${restart}">here</a>.</p>` : act === "stop" ? `<p>You can start a new search <a href="/buy">here</a>.</p>` : ""}<p class="quiet"><a href="/tasks/mine?task=${encodeURIComponent(id)}">Open the task</a></p>`);
     }
     // The run after each live pull: Vercel cron (CRON_SECRET) or the probe key.
+    // The combined Task email (lib/tasks/digest.js): the cron every quarter hour sends each person's email when their
+    // setting says it is due, under the six a day cap. A probe may ask for a dry run (&dry=1): nothing sent or marked.
+    if (req.method === "GET" && q.send) {
+      const isCron = process.env.CRON_SECRET && req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
+      if (!isCron && !probeOk(req)) return res.status(401).json({ error: "Unauthorized." });
+      const { runDigest } = await import("../lib/tasks/digest.js");
+      const out = await runDigest(env, { dry: !isCron && q.dry === "1" });
+      if (!(!isCron && q.dry === "1")) await recordUsageEvent({ event_type: "task_email_run", route: "tasks_send", status: "ok", oldcarsdata_metered_requests: 0, metadata: { people: out.people, sent: out.sent, capped: out.capped, notDue: out.notDue, emailOff: out.emailOff } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
+      return res.status(200).json(out);
+    }
     if (req.method === "GET" && q.run) {
       const isCron = process.env.CRON_SECRET && req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
       if (!isCron && !probeOk(req)) return res.status(401).json({ error: "Unauthorized." });
@@ -340,7 +350,7 @@ export default async function handler(req, res) {
       if (!isReleased("tasks", req)) return notReleasedJson(res);
       return res.status(200).json(await draftTurn(env, user, { draft: b.draft || null, text, seed: b.seed || null, apiKey, model: CHAT_MODEL, paused, gate: gateOf(req, user) }));
     }
-    if (b.action === "notify") return res.status(200).json(await setNotifyPrefs(env, user, { on: typeof b.on === "boolean" ? b.on : undefined, email: b.email !== undefined ? b.email : undefined }));
+    if (b.action === "notify") return res.status(200).json(await setNotifyPrefs(env, user, { on: typeof b.on === "boolean" ? b.on : undefined, email: b.email !== undefined ? b.email : undefined, every: typeof b.every === "string" ? b.every : undefined }));
     // Probe: Resend's own record of one email (delivery status), and the sending domain's verification.
     if (b.action === "test_resend" && probeOk(req)) {
       const H = { Authorization: `Bearer ${process.env.RESEND_API_KEY || ""}` };

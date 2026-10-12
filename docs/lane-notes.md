@@ -4196,3 +4196,19 @@ when the work has landed.
          TURNSTILE_SECRET_KEY in Vercel. Nothing changes until step 3.
       3. The single switch: SIGNUP_TURNSTILE=1 (and redeploy). Unset it to switch Turnstile off again.
     Optional: SIGNUP_TICKET_SECRET (else TASK_LINK_SECRET, else CRON_SECRET signs the tickets).
+- 2026-10-12 (Lane C): TASK EMAIL FREQUENCY (one combined Task email per person).
+  * lib/tasks/digest.js, cron GET /api/tasks?send=1 at 10, 25, 40 and 55 past every hour (it replaces the
+    /api/watch?run=1 and /api/buySearch?alerts=run crons). One email per person carrying everything new from ALL
+    their Tasks: a Task's new live matches (runTasks now QUEUES them: task_updates.email_status "queued", shown in
+    the Task at once), exact-car and sold-car Tasks' new events (watches), and Before it ends cars. Setting
+    accounts.task_email_every: daily (default, 8:00 PT), twice (8:00, 17:00), thrice (8:00, 12:00, 17:00),
+    instant (every run). Cap: 6 match emails per person per Pacific day (ledger key user:<id>, kind e:match);
+    over it, everything waits for the next email (never dropped). A Before it ends car goes in the email before
+    it ends ("as soon as one comes": within 3 hours, as before). Cars that ended before their email are left out
+    (they stay in the Task; an armed Before it ends car is marked ended_before_send). Research done, Still looking?
+    and the Task start email are not match emails: sent at once and not counted. The "Email updates" switch now
+    covers every Task email.
+    SAM: run docs/supabase-accounts-task-email-every.sql once. Until then everyone gets the default (once a day)
+    and the Tasks page hides the "How often" choice.
+  * watches.run and buyAlerts.runAlerts no longer send on their own (opts.send keeps the old direct send for a
+    probe that asks for it).
