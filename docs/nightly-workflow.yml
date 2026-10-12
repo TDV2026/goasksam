@@ -245,6 +245,18 @@ jobs:
           set -euo pipefail
           test -f scripts/warm.js || { echo "::error::scripts/warm.js not found in checkout"; exit 1; }
           node scripts/warm.js --count=30
+      - name: Market Check bare-nameplate warm cache (Round 5 Job 3, archive-only, zero OldCarsData)
+        run: |
+          set -euo pipefail
+          test -f scripts/warmMarketCheck.js || { echo "::error::scripts/warmMarketCheck.js not found in checkout"; exit 1; }
+          node scripts/warmMarketCheck.js
+        # NOTE: this step costs zero OldCarsData (runOneBox reads sales_archive only) and is
+        # deliberately placed in this same job for simplicity - it currently inherits the job-level
+        # OCD_SKIP_WARM gate above even though it has no OCD cost of its own, so a day OCD warming
+        # is paused also skips this free refresh. Accepted for now; split into its own job if that
+        # coupling ever matters in practice. readWarmAnswer's own 24h backstop means a few skipped
+        # nights degrade gracefully to a cache miss (falls through to the live, always-fresh path),
+        # never a stale answer.
 
   attempts:
     runs-on: ubuntu-24.04

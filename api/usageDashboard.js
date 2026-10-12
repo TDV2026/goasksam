@@ -5586,19 +5586,20 @@ async function handleOps(req, res) {
   // AUTO-APPLY (write=1) ONLY when the VIN WMI and the title agree (classifier basis "title+VIN agree");
   // everything else stays Unknown. "Better nothing than a fake make." Also returns make-Unknown VINs
   // (with vin_norm) as proof fodder. ZERO OCD.
-  // task=warmMC: TEMPORARY (Round 5 Job 3, Oct 2026). Runs the SAME warming logic
-  // scripts/warmMarketCheck.js's warmMarketCheck runs (inlined here, not dynamically imported -
-  // Vercel's build tracer would not bundle scripts/warmMarketCheck.js into this function even
-  // with an explicit vercel.json includeFiles entry, confirmed live with a "Cannot find module"
-  // error after two different glob forms; scripts/crossProductCheck.js traces fine from the exact
-  // same dynamic-import pattern in this same file, so this is a real, unexplained Vercel bundling
-  // quirk, not a code bug - inlining sidesteps it rather than burning more deploy cycles chasing
-  // it) over the built-in 15-nameplate list (or &list=a|b), writing each into the epoch-gated
-  // MCWARM: cache. scripts/warmMarketCheck.js remains the canonical, documented, CLI-runnable
-  // artifact (for local runs or a future nightly workflow step, where this bundling quirk does
-  // not apply) with its OWN copy of MC_WARM_LIST - the two lists are kept identical by hand; if
-  // they ever need to diverge, that is itself a sign this inlining should be revisited. Remove
-  // once the job's before/after proof is captured.
+  // task=warmMC (Round 5 Job 3, Oct 2026): STANDING ops mechanism, not a temp diagnostic - an
+  // on-demand way to (re)populate the Market Check bare-nameplate warm cache (see
+  // api/sellerDecision.js's "WARM-LIST FAST PATH" and lib/live/search.js's warmAnswerKeyFor/
+  // readWarmAnswer/writeWarmAnswer). Wired into docs/nightly-workflow.yml as a nightly step
+  // (pending Sam's manual copy into .github/workflows/nightly.yml, per this repo's standing
+  // pattern for workflow files) via scripts/warmMarketCheck.js - but that script's own dynamic
+  // import() is NOT reliably bundled by Vercel's build tracer for THIS serverless function
+  // (confirmed live: "Cannot find module" after two different vercel.json includeFiles glob
+  // forms, while scripts/crossProductCheck.js traces fine from the identical import pattern in
+  // this same file - an unexplained Vercel bundling quirk, not a code bug), so the warming logic
+  // and the MC_WARM_LIST are INLINED here instead of imported. scripts/warmMarketCheck.js remains
+  // the canonical, CLI-runnable artifact (what the nightly workflow actually calls, where this
+  // bundling quirk does not apply) with its own identical copy of the list - kept in sync by
+  // hand; if they ever need to diverge, that is itself a sign this inlining should be revisited.
   const MC_WARM_LIST = [
     "1991 BMW M3", "1969 Chevrolet Camaro", "1973 Volkswagen Beetle", "1995 Porsche 911 Carrera",
     "1967 Ford Mustang Fastback",
@@ -5635,51 +5636,6 @@ async function handleOps(req, res) {
       result.rows.push(row);
     }
     return res.status(200).json({ task: "warmMC", ...result });
-  }
-
-  // task=mcbarediag: TEMPORARY (Round 5 Job 3, Oct 2026). Server-only timing for the 15-nameplate
-  // bare-nameplate list, &mode=cold (direct runOneBox, bypassing the warm cache entirely - what
-  // every request paid before this job) or &mode=warm (the SAME check api/sellerDecision.js's
-  // oneBox branch now runs: readWarmAnswer first, live runOneBox on any miss) x &samples=N passes.
-  // Reports every elapsed ms plus p50/p95/max so before/after is measured the same way, same
-  // method as last round's server-only obdiag sweep. Remove once the job's proof is captured.
-  if (task === "mcbarediag") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { resolveVehicle } = await import("../lib/vehicle.js");
-    const { findGeneration } = await import("../lib/generations.js");
-    const { runOneBox } = await import("../lib/onebox.js");
-    const { warmAnswerKeyFor, readWarmAnswer } = await import("../lib/live/search.js");
-    const list = req.query?.list ? String(req.query.list).split("|").filter(Boolean) : MC_WARM_LIST;
-    const mode = String(req.query?.mode || "cold");
-    const samples = Math.max(1, Math.min(3, Number(req.query?.samples) || 1));
-    const rows = [];
-    for (const q of list) {
-      const rv = await resolveVehicle(q, {});
-      const vehicle = rv && rv.vehicle;
-      if (!vehicle || !vehicle.make) { rows.push({ q, error: "unresolved" }); continue; }
-      const generation = await findGeneration(vehicle, env).catch(() => null);
-      const times = [];
-      let tier = null, warmHit = null, cluster = null, poolN = null, cardsN = null;
-      for (let i = 0; i < samples; i++) {
-        const t0 = Date.now();
-        let d = null;
-        if (mode === "warm") {
-          const warmed = await readWarmAnswer(env, warmAnswerKeyFor(vehicle, generation));
-          if (warmed) { warmHit = true; d = warmed; } else { d = await runOneBox(vehicle, generation, q, env, null); warmHit = false; }
-        } else {
-          d = await runOneBox(vehicle, generation, q, env, null);
-        }
-        tier = d && d.tier;
-        cluster = Array.isArray(d && d.cluster) ? d.cluster : null;
-        poolN = (d && (d.poolN ?? d.soldCount)) ?? null;
-        cardsN = Array.isArray(d && d.cards) ? d.cards.length : null;
-        times.push(Date.now() - t0);
-      }
-      rows.push({ q, tier, warmHit, cluster, poolN, cardsN, msSamples: times });
-    }
-    const allTimes = rows.flatMap(r => r.msSamples || []).sort((a, b) => a - b);
-    const pct = p => allTimes.length ? allTimes[Math.min(allTimes.length - 1, Math.floor(allTimes.length * p))] : null;
-    return res.status(200).json({ task: "mcbarediag", mode, samples, specCount: list.length, p50: pct(0.5), p95: pct(0.95), max: allTimes[allTimes.length - 1] || null, rows });
   }
 
   if (task === "unktriage") {
