@@ -5577,6 +5577,55 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "vinidxcount", vin_index_rows: vinIndexRows, vin_summary_rows: vinSummaryRows, distinct_vins: vinSummaryRows, multi_appearance_vins: multi, samples: withHistory });
   }
 
+  // task=epochdiag: TEMPORARY, proves the Round 5 Job 1 sales-epoch cache gate live. Reads a spec
+  // through familyMarket (the Buy/Tasks CACHED path) three times around a bumpEpoch() call that
+  // SIMULATES an ingest run completing (the same signal scripts/ingest.js sends for real on a
+  // night that inserts rows - no synthetic sales_archive rows are written, zero OldCarsData spend,
+  // zero data pollution). A cache HIT returns near-instantly; a forced recompute (epoch mismatch)
+  // takes materially longer (a live runOneBox call) - elapsed ms is the observable proof, plus a
+  // direct runOneBox call (the Market Check path, never cached) at each checkpoint for a zero-
+  // mismatch comparison. Remove once the job is closed.
+  if (task === "epochdiag") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle, sanitizeResolvedVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { runOneBox } = await import("../lib/onebox.js");
+    const { familyMarket } = await import("../lib/live/search.js");
+    const { currentEpoch, bumpEpoch } = await import("../lib/_epoch.js");
+    const q = String(req.query?.qs || "2015 Mercedes-Benz E-Class");
+    const rv = await resolveVehicle(q, {});
+    const v = sanitizeResolvedVehicle(rv && rv.vehicle) || (rv && rv.vehicle);
+    if (!v || !v.make) return res.status(200).json({ task: "epochdiag", q, status: (rv && rv.status) || "unresolved" });
+    const g = await findGeneration(v, env);
+    const f = { bodies: v.bodyStyle ? [v.bodyStyle] : [], gearbox: null, gearboxLabel: null };
+    const marketCheckOf = async () => {
+      const searchText = [v.year, v.make, v.model, v.trim].filter(Boolean).join(" ");
+      const d = await runOneBox(v, g, searchText, env, null);
+      return { tier: d && d.tier, cluster: (d && d.cluster) || null, cards: Array.isArray(d && d.cards) ? d.cards.length : null };
+    };
+    const buyTasksOf = async () => {
+      const t0 = Date.now();
+      const m = await familyMarket(env, v, f);
+      return { ms: Date.now() - t0, kind: m && m.kind, low: m && m.low, high: m && m.high, count: m && m.count };
+    };
+    const steps = [];
+    const epoch0 = await currentEpoch(env);
+    steps.push({ label: "step1_cold_or_warm", epoch: epoch0, mc: await marketCheckOf(), bt: await buyTasksOf() });
+    steps.push({ label: "step2_immediate_replay_same_epoch", epoch: await currentEpoch(env), mc: await marketCheckOf(), bt: await buyTasksOf() });
+    const bumpedAt = await bumpEpoch(env);
+    const epoch1 = await currentEpoch(env);
+    steps.push({ label: "step3_right_after_simulated_ingest_bump", epoch: epoch1, bumpedAt, bumpChanged: epoch1 !== epoch0, mc: await marketCheckOf(), bt: await buyTasksOf() });
+    steps.push({ label: "step4_immediate_replay_new_epoch", epoch: await currentEpoch(env), mc: await marketCheckOf(), bt: await buyTasksOf() });
+    const mismatches = steps.map(s => {
+      const mcCount = s.mc.cluster ? null : s.mc.cards;
+      const btLow = s.bt.low, btHigh = s.bt.high;
+      const mcCluster = s.mc.cluster;
+      const agree = mcCluster && btLow != null && btHigh != null ? (mcCluster[0] === btLow && mcCluster[1] === btHigh) : true;
+      return { label: s.label, agree };
+    });
+    return res.status(200).json({ task: "epochdiag", q, resolved: { make: v.make, model: v.model, year: v.year }, steps, mismatches, allAgree: mismatches.every(m => m.agree) });
+  }
+
   // task=unktriage: triage the make-Unknown rows (vehicle_type IS NULL) with the classifier (title+VIN).
   // Buckets: make_resolvable (classifier found a make), not_a_vehicle (non_vehicle), junk (unclassified).
   // AUTO-APPLY (write=1) ONLY when the VIN WMI and the title agree (classifier basis "title+VIN agree");
@@ -5880,7 +5929,7 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "sellexamplerefresh", ms: Date.now() - t0, qualified: !!(d && d.example), example: d && d.example, tried: d && d.tried });
   }
 
-  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts|vindist|typemodelunk|descfacts|ingestlog|item3probe|unktriage|vinidxcount|mcexamplerefresh|sellexamplerefresh." });
+  return res.status(400).json({ error: "Unknown ops task. Use ?view=ops&task=probe|fill|handles|partnerfetch|premium|partnerseed|daycount|recentfetch|futurerows|fxaudit|obdiag|eight12scan|unkclassify|unkbackfill|typeall|vtcounts|vindist|typemodelunk|descfacts|ingestlog|item3probe|unktriage|vinidxcount|mcexamplerefresh|sellexamplerefresh|epochdiag." });
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================

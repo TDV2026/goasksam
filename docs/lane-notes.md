@@ -4739,6 +4739,29 @@ so printing the line for any range is honest. FOR LANE C: no field changes neede
 function's own signature and `m` shape are unchanged - it simply no longer refuses a correct,
 accurately-captioned 2-year or 5-year range.
 
+**UPDATE, FOR LANE C (Round 5 Job 1, Oct 2026): the lift above is now ALSO safe against the
+STALENESS class, not just the caption-wording class it was built for.** The item this round closes
+is the one flagged for Sam's call two rounds ago (NOT-DONE item 2 below, "a cheap ingest-epoch
+check to close the in-memory cache gap completely rather than narrow it") - Sam decided: build it.
+What changed and why `middleHalfLine` is covered: `lib/_epoch.js` adds one cheap, globally-readable
+`currentEpoch(env)` (an `app_config` row, `sales_epoch`, bumped by `scripts/ingest.js` at the end of
+any run that actually inserted rows). Every write to `rangeCache`/`specMem` (`lib/live/search.js`)
+now stamps the epoch current at write time; every read checks it matches the CURRENT epoch before
+serving a hit, treating a mismatch exactly like an expired TTL (a miss, forcing a live recompute).
+You already documented the exact call chain `middleHalfLine` sits behind (item 4 above):
+`listingMarket -> specOf -> specCore -> refreshSpec -> walkLadder -> engineAnswer` - `specCore` reads
+`specMem` and `engineAnswer` reads `rangeCache`, so BOTH of this round's epoch-gated caches sit
+directly in that chain. Concretely: `m.window`, `m.low`/`m.high` (range), `m.count` (thin/refusal),
+and every other field `coreOf`/`classEraCoreOf` sets on `m` can now never be served more than
+CACHE_OUTER_TTL (24h, raised from the old 1h now that the epoch does the real minute-to-minute
+work) past a point where the underlying sales actually changed, and in the common case (automated
+nightly ingest) are correct within seconds of it, not up to an hour. The fields to read if you ever
+want to SHOW or log the staleness bound yourself: `lib/_epoch.js currentEpoch(env)` (current value)
+and each cache entry's own `epoch` field are internal (not surfaced on `m`); there is no new field
+on the `m`/`middleHalfLine` object itself to change - the fix is entirely upstream of what you read.
+Live proof (immediate + steady-over-time) is in the Round 5 Job 1 report; this note exists so the
+staleness question doesn't get re-asked next round as if it were still open.
+
 **Generation boundaries, verified live (archive-only, zero OldCarsData spend)**: 997.1/997.2 is
 ALREADY correctly enforced in the sold path - `lib/generations.js` HALF_GENERATIONS has
 `{yearStart:2005,yearEnd:2008}`/`{yearStart:2009,yearEnd:2011}`, `split:false` (a prior, dated,
@@ -4816,7 +4839,9 @@ after this change; nothing to stop for.
 NOT DONE, and why: (1) full `oneEngineAnswer` adoption across all 7 production call sites - see
 caller audit above, a separately-scoped migration; (2) a cheap ingest-epoch check to close the
 in-memory cache gap completely rather than narrow it - flagged for Sam's call, not decided here;
-(3) reconciling the 997.2 2011-vs-2012 end-year discrepancy - a data decision, not mine to make.
+NOW DONE, Round 5 Job 1 (Oct 2026): Sam decided build it - see `lib/_epoch.js` + the FOR LANE C
+update under the `middleHalfLine` note above; (3) reconciling the 997.2 2011-vs-2012 end-year
+discrepancy - a data decision, not mine to make.
 
 ## Caller migration completed (Oct 2026, Round 4 Job 1 follow-up, per explicit coordinator ask)
 

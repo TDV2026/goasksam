@@ -473,6 +473,21 @@ if (inserted > 0) {
   } catch (e) { console.error("spec_market_cache invalidation failed (non-fatal):", e && e.message); }
 }
 
+// SALES EPOCH BUMP (Round 5 Job 1, Oct 2026): the single, cheap, globally-readable signal every
+// in-process engine cache (lib/live/search.js rangeCache/specMem) checks before serving a hit -
+// see lib/_epoch.js for the full mechanism. Bumped ONLY when this run actually inserted new rows
+// (a no-op delta night changes nothing, so it must not thrash every warm instance's caches for no
+// reason). Best-effort: a failure here never blocks or fails the ingest run - the existing TTL
+// backstop (CACHE_OUTER_TTL, lib/live/search.js) still bounds the worst case at 24h even if this
+// write is ever missed.
+if (inserted > 0) {
+  try {
+    const { bumpEpoch } = await import("../lib/_epoch.js");
+    const at = await bumpEpoch(env);
+    console.log(`sales_epoch: bumped to ${at} (${inserted} row(s) inserted this run)`);
+  } catch (e) { console.error("sales_epoch bump failed (non-fatal, CACHE_OUTER_TTL still bounds staleness):", e && e.message); }
+}
+
 // Per-day YIELD of this run (what it added per day), informational only. Pipeline HEALTH is NOT
 // judged here any more: a healthy delta that correctly finds nothing new would always trip a per-run
 // floor. The authoritative, archive-based health check runs below (item 3).
