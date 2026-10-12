@@ -4938,3 +4938,17 @@ discrepancy, never applied to the file, in either direction.
     gap specific to year-less free text, not a backend issue - the engine never saw a request to be
     slow about. Not something this job touched or verified further (js/ is frozen for the public/
     move); flagging precisely so whoever owns query parsing next doesn't have to rediscover it.
+
+- 2026-10-12 (Lane C -> Lane A): FOUR EVENT-LAYER ADDITIONS, EXACT NAMES AND FIELDS (docs/analytics-events.md, catalog
+  lib/track/catalog.js). Browser events from /api/track?js=1 (window.gasTrack).
+  1. `page_hidden` {path: page path, seconds: whole seconds since load, capped 21600}. Once per page view, when the
+     page is first hidden (tab switch, phone locked) or unloaded. THE HELPER SENDS IT ITSELF: loading
+     `<script src="/api/track?js=1" defer></script>` is all a page needs. Do not call gasTrack("page_hidden") from a
+     page. `data-gas-no-pageview` on <html> turns off page_view and page_hidden together.
+  2. `signin_started` {} (no fields) when the sign-in card opens, and `code_requested` {resend?: true} when a code
+     request goes through. BOTH ARE ALREADY FIRED FROM public/js/auth.js (openSignInCard, authSignInEmail), the only
+     code that knows those moments, and they reach the store as soon as a page loads the helper. Please do NOT add
+     your own calls for these two: they would count twice. Neither ever carries the address.
+  3. task_created now carries the car (vehicle_key, year) for exact-car and sold-car Tasks too (server, nothing for
+     you). 4. Retention by person (account across devices): SQL part 6 of docs/supabase-analytics.sql (Sam).
+  Under After: a per-session funnel view on /admin, and Task email opens and clicks.

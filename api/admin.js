@@ -145,7 +145,11 @@ async function journey(env, anon) {
 }
 
 async function retention(env) {
-  return { cohorts: await rows(env, "analytics_weekly_retention?select=cohort_week,weeks_after,visitors&order=cohort_week.desc,weeks_after.asc") };
+  const [cohorts, people] = await Promise.all([
+    rows(env, "analytics_weekly_retention?select=cohort_week,weeks_after,visitors&order=cohort_week.desc,weeks_after.asc"),
+    rows(env, "analytics_weekly_retention_people?select=cohort_week,weeks_after,people,signed_in&order=cohort_week.desc,weeks_after.asc"),
+  ]);
+  return { cohorts, people };
 }
 
 // Model calls and cost against the spend ledger, and search_run against each product's own search record,
@@ -244,10 +248,11 @@ demand:function(d){var c=[["Car","car"],["Searches","searches",n],["Buy","buy",n
  return '<h2>Top searches, 7 days</h2>'+table(c,d.top)+'<h2>Unmet searches</h2>'+table(c,d.unmet)+'<h2>Searched again on another day, 30 days</h2>'+table([["Car","vehicle_key",function(v){return E(String(v||"").replace("|"," "));}],["Visitors who came back to it","visitors",n],["Searches","searches",n]],d.repeats);},
 journey:function(d){if(d.events)return '<h2>One anonymous journey</h2><p class=note>Events for one anon id, oldest first. VINs are shown to admins only.</p>'+table([["Time","ts",function(v){return E(new Date(v).toLocaleString());}],["Product","product"],["Event","name"],["Fields","props",function(v){return E(JSON.stringify(v));}],["Region","region_class"],["Consent","consent"],["Browser","browser_family"],["Device","device_class"],["From","ref_domain"],["Campaign","utm_source"],["Account","user_id"],["VIN","vin"]],d.events)+'<p><button id=ad-back>Back to recent journeys</button></p>';
  return '<h2>Recent journeys, last 24 hours</h2><p class=note>Pick one to see it. Only anonymous ids; no address, no account email.</p>'+table([["Anon id","anon",function(v){return '<a href="#" data-anon="'+E(v)+'">'+E(v.slice(0,6))+'...</a>';}],["Events","events",n],["Products","products"],["Last","last",function(v){return E(new Date(v).toLocaleString());}]],d.recent);},
-retention:function(d){var w={},weeks=0;(d.cohorts||[]).forEach(function(r){(w[r.cohort_week]=w[r.cohort_week]||{})[r.weeks_after]=r.visitors;weeks=Math.max(weeks,r.weeks_after);});
+retention:function(d){function grid(list,field,first){var w={},weeks=0;(list||[]).forEach(function(r){(w[r.cohort_week]=w[r.cohort_week]||{})[r.weeks_after]=r[field];weeks=Math.max(weeks,r.weeks_after);});
  var rows=Object.keys(w).sort().reverse().map(function(k){var o={week:k};for(var i=0;i<=Math.min(weeks,12);i++)o["w"+i]=w[k][i]==null?null:(i===0?w[k][0]:w[k][i]/w[k][0]);return o;});
- var cols=[["Week of","week"]];for(var i=0;i<=Math.min(weeks,12);i++)cols.push([i===0?"Visitors":"Week "+i,"w"+i,i===0?n:pct]);
- return '<h2>Weekly retention</h2><p class=note>Visitors grouped by their first week, and the share seen again each week after.</p>'+table(cols,rows);}};
+ var cols=[["Week of","week"]];for(var i=0;i<=Math.min(weeks,12);i++)cols.push([i===0?first:"Week "+i,"w"+i,i===0?n:pct]);return table(cols,rows);}
+ return '<h2>Weekly retention by person</h2><p class=note>A signed-in person counts once across devices; everyone else by browser. Grouped by first week, with the share seen again each week after.</p>'+grid(d.people,"people","People")
+  +'<h2>Weekly retention by browser</h2><p class=note>By anon id only, so a second device counts as new.</p>'+grid(d.cohorts,"visitors","Visitors");}};
 var cur="overview",main;
 function show(part,extra){cur=part;main.querySelectorAll("nav button").forEach(function(b){b.className=b.getAttribute("data-p")===part?"on":"";});var box=document.getElementById("ad-body");box.innerHTML='<p class=note>Loading...</p>';
  api(Object.assign({part:part},extra||{})).then(function(d){box.innerHTML=R[part](d);

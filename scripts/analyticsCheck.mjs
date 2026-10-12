@@ -48,7 +48,10 @@ const setCookies = res => [].concat(res.getHeader("set-cookie") || []);
   const before = log.trackHealth().dropped_invalid;
   let quiet = true; try { log.track(mkReq(), "made_up", {}, { product: "buy" }); } catch { quiet = false; }
   ok(quiet && log.trackHealth().dropped_invalid === before + 1, "production: an unknown event is dropped and counted, never thrown");
+  ok(validateEvent("page_hidden", { path: "/buy", seconds: 42 }, "browser").ok && !validateEvent("page_hidden", { path: "/buy" }, "browser").ok, "page_hidden needs path and seconds");
+  ok(validateEvent("signin_started", {}, "browser").ok && validateEvent("code_requested", { resend: true }, "browser").ok && !validateEvent("code_requested", { email: "x" }, "browser").ok, "signin_started and code_requested take no address");
   const js = helperJs();
+  ok(/page_hidden/.test(js) && /visibilitychange/.test(js) && /signin_started/.test(js) && /code_requested/.test(js), "browser helper sends page_hidden once per page view and knows the sign-in events");
   ok(!/search_run|model_call/.test(js) && /receipt_opened/.test(js) && /page_view/.test(js), "browser helper carries only browser events, built from the catalog");
   let parses = true; try { new Function(js); } catch { parses = false; }
   ok(parses, "browser helper parses");

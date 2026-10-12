@@ -50,8 +50,10 @@ function consent(){return fetch("/api/track?consent=1",{credentials:"same-origin
 gasTrack.consentChanged=consent;
 gasTrack.events=Object.keys(CAT);
 window.gasTrack=gasTrack;
-addEventListener("pagehide",function(){send(true);});
-var d=document.documentElement.dataset||{};
+var d=document.documentElement.dataset||{},t0=Date.now(),hid=false;
+function hidden(){if(hid)return;hid=true;if(!d.gasNoPageview)gasTrack("page_hidden",{path:location.pathname,seconds:Math.min(21600,Math.round((Date.now()-t0)/1000))});send(true);}
+addEventListener("visibilitychange",function(){if(document.visibilityState==="hidden")hidden();});
+addEventListener("pagehide",function(){hidden();send(true);});
 if(!d.gasNoPageview)gasTrack("page_view",{path:location.pathname});
 consent();
 })();`;

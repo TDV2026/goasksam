@@ -11,6 +11,9 @@
 -- PART 5  Retention and deletion: analytics_purge() (raw events older than 13 months, run nightly),
 --         analytics_forget(anon_id, user_id) (a person's deletion request), analytics_link_anon(anon_id,
 --         user_id) (sign-in link; never touches declined rows).
+-- PART 6  (added Oct 12) Retention by person: analytics_weekly_retention_people, where a signed-in person counts once
+--         across devices (the sign-in link ties an anon_id to its account). analytics_refresh_retention() now fills
+--         both tables. Run part 6 alone if parts 1 to 5 are already in.
 -- Every function is callable by the service role only.
 
 -- ============================================================================================ PART 1
@@ -304,3 +307,48 @@ revoke execute on function public.analytics_forget(text, uuid) from public, anon
 grant  execute on function public.analytics_forget(text, uuid) to service_role;
 revoke execute on function public.analytics_link_anon(text, uuid) from public, anon, authenticated;
 grant  execute on function public.analytics_link_anon(text, uuid) to service_role;
+
+-- ============================================================================================ PART 6
+-- A person is their account when any of their rows carries one (directly, or through the sign-in link on the
+-- same anon_id), otherwise their anon_id. Declined visitors have neither and are not in it.
+create table if not exists public.analytics_weekly_retention_people (
+  cohort_week date not null, weeks_after int not null, people int not null default 0, signed_in int not null default 0,
+  refreshed_at timestamptz not null default now(),
+  primary key (cohort_week, weeks_after)
+);
+alter table public.analytics_weekly_retention_people enable row level security;
+revoke all on public.analytics_weekly_retention_people from anon, authenticated;
+
+create or replace function public.analytics_refresh_retention()
+returns int language plpgsql security definer set search_path = public as $$
+declare n int;
+begin
+  delete from analytics_weekly_retention;
+  insert into analytics_weekly_retention (cohort_week, weeks_after, visitors)
+    select f.cohort_week, ((a.wk - f.cohort_week) / 7)::int, count(distinct a.anon_id)
+    from (select anon_id, date_trunc('week', min(ts) at time zone 'America/Los_Angeles')::date as cohort_week
+            from analytics_events where anon_id is not null and not internal and not is_bot group by anon_id) f
+    join (select distinct anon_id, date_trunc('week', ts at time zone 'America/Los_Angeles')::date as wk
+            from analytics_events where anon_id is not null and not internal and not is_bot) a using (anon_id)
+    group by 1, 2;
+  get diagnostics n = row_count;
+
+  delete from analytics_weekly_retention_people;
+  insert into analytics_weekly_retention_people (cohort_week, weeks_after, people, signed_in)
+    with link as (
+      select distinct on (anon_id) anon_id, user_id from analytics_events
+       where anon_id is not null and user_id is not null order by anon_id, ts desc
+    ), ev as (
+      select coalesce(e.user_id::text, l.user_id::text, e.anon_id) as person,
+             (e.user_id is not null or l.user_id is not null) as known,
+             date_trunc('week', e.ts at time zone 'America/Los_Angeles')::date as wk
+        from analytics_events e left join link l on l.anon_id = e.anon_id
+       where (e.anon_id is not null or e.user_id is not null) and not e.internal and not e.is_bot
+    ), f as (select person, bool_or(known) as known, min(wk) as cohort_week from ev group by person)
+    select f.cohort_week, ((a.wk - f.cohort_week) / 7)::int, count(distinct a.person), count(distinct a.person) filter (where f.known)
+      from f join (select distinct person, wk from ev) a using (person)
+     group by 1, 2;
+  return n;
+end $$;
+revoke execute on function public.analytics_refresh_retention() from public, anon, authenticated;
+grant  execute on function public.analytics_refresh_retention() to service_role;

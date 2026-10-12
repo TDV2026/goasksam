@@ -114,7 +114,7 @@ Who: browser. Required: `field`, `value` (40 max). Optional: `vehicle_key`.
 
 ### Tasks and email
 
-- **`task_created`** (journey, server, `lib/tasks/tasks.js` for search and research Tasks, `lib/live/watches.js` for exact-car and sold-car Tasks): Optional `vehicle_key`, `year`, `kind` (`hunt`, `research`, `exact_car`, `sold_car`).
+- **`task_created`** (journey, server, `lib/tasks/tasks.js` for search and research Tasks, `lib/live/watches.js` for exact-car and sold-car Tasks): Optional `vehicle_key`, `year`, `kind` (`hunt`, `research`, `exact_car`, `sold_car`). Every kind carries the car: search Tasks from their filters, sold-car Tasks from the engine's spec, exact-car Tasks from the live listing or the VIN's auction history. An exact-car Task's VIN goes to the admin-only `vin` column, never `props`.
 - **`task_paused`**, **`task_cancelled`** (journey, server): Optional `via` (`page`, `email_link`).
 - **`task_match_sent`** (service, server, from the Task email run's ledger row): Required `emails_sent`. Optional `matches`, `ended_before_send`, `failed`.
 - **`task_email_opened`**, **`task_email_clicked`**: in the catalog but **not fired**. Resend reports
@@ -134,6 +134,18 @@ Who: browser. Required: `field`, `value` (40 max). Optional: `vehicle_key`.
 run for most views. The browser helper sends one hit per page load and the server records it,
 adding the envelope (region class, consent, browser family, referrer domain). Minimal.
 - Required: `path` (template form: `/cars/:make/:model`, VIN-shaped and id-shaped segments become `:id`). Never a query string.
+
+**`page_hidden`** (journey, browser). Once per page view, sent by the helper itself when the page is first hidden
+(tab switch, phone locked, app switched) or unloaded, whichever comes first. Time after the person comes back to
+the tab is not counted; a page that is never hidden before the browser dies sends nothing.
+- Required: `path` (template form, as `page_view`), `seconds` (whole seconds since the page loaded, capped at 21600).
+
+**`signin_started`** (journey, browser). The sign-in card opened. Fired by `openSignInCard` in `public/js/auth.js`.
+- No fields. Never the address, not even typed.
+
+**`code_requested`** (journey, browser). A sign-in code was requested and the request went through. Fired by
+`authSignInEmail` in `public/js/auth.js`. A refused new account is `signup_refused` (server) instead.
+- Optional: `resend` (true when sent from the code screen). Never the address.
 
 ### Service and cost
 
@@ -216,7 +228,10 @@ also runs the 13-month purge. Every number comes from `analytics_events`.
 - `analytics_daily_cost`: day, product, model calls, tokens in and out, cache hits, cost.
 - `analytics_daily_errors`: day, route, status, errors.
 - `analytics_daily_cross`: day, product set, visitors (distinct anon ids that used exactly that set).
-- `analytics_weekly_retention`: cohort week, weeks after, visitors.
+- `analytics_weekly_retention`: cohort week, weeks after, visitors (by anon_id, so a second device counts as new).
+- `analytics_weekly_retention_people` (part 6): cohort week, weeks after, people, signed in. A person is their
+  account when any row carries one, directly or through the sign-in link on the same anon_id, otherwise their
+  anon_id, so a signed-in person on a second device is not counted as new. Declined visitors are in neither.
 
 ## Retiring the old layer
 
@@ -248,3 +263,11 @@ surface from the path (or `data-gas-product` and `data-gas-surface` on `<html>`)
 before sending anything, and sends nothing for a declined visitor. Call `gasTrack(name, props)` for a browser
 event; `gasTrack.events` lists the allowed names. After the banner sets `gas_consent`, call
 `gasTrack.consentChanged()`. Set `window.GAS_TRACK_STRICT = true` in a test to make a wrong name or field throw.
+
+Sent by the helper or by `public/js/auth.js` already, so a page must NOT send them again (it would count twice):
+`page_view`, `page_hidden`, `signin_started`, `code_requested`.
+
+## After (not built)
+
+- A per-session funnel view on the dashboard (today it shows step totals per day).
+- Task email opens and clicks (needs Resend's open and click tracking and a webhook; click tracking rewrites every link).
