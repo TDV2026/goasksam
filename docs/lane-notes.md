@@ -5402,3 +5402,26 @@ gates, confirmed on real cars, not assumed**:
     confirmed live by the vendor's own 400 "limit: Too big: expected number to be <=100") - corrected,
     no behavior change for any value already under 100.
   * Commits: api/pullLive.js (probePage + endRange) ca31117; (limit cap fix) baa4a7b.
+- 2026-10-12 (Lane C): JOB 2 END-TO-END CHECK (after Lane A 7d0ccf5) + TASKS "HOW OFTEN" HIDDEN.
+  * Open region, live, one browser (internal, normal Chrome string): homepage (redirects to /sell) > Market Check
+    "2008 Porsche 997 Carrera S Coupe" > receipt > live-panel clickout > Buy "Porsche 911" > left > back 61s later.
+    12 events on one anon_id, in order, page_hidden seconds on every page (4, 14, 11, 5), same anon_id and session on
+    return, region open, consent not_required, chrome/desktop, no user, no ref. Server search_run events carry the anon_id.
+  * Restricted region (x-gas-region: restricted, new header, see analytics doc): banner shown, Decline clicked, banner gone,
+    gas_consent=declined, NO gas_aid/gas_sid ever set. Events: 2 search_run (service), anon/session/user all null. No
+    page_view, page_hidden, receipt or clickout. Store check: 0 declined events with any id.
+  * Today tab does NOT count test traffic: summaries exclude internal by design (supabase-analytics.sql). The brief's
+    "Today counts them" and "mark test traffic internal" conflict; Journey by anon_id shows the path.
+  * FOR LANE A (wrong or empty fields, public/js/onebox.js line ~274 and ~782):
+    - receipt_opened.sale_id is the platform slug ("bringatrailer"), not the sale. Which sold car was opened is lost.
+      Put the record's own id in data-gas-listing-id (or a data-gas-sale-id) and send it as sale_id, slug as platform.
+    - auction_clickout from the Market Check live panel: platform is the display name ("Bring a Trailer"), not the
+      slug, and listing_id is missing (no data-gas-listing-id on .lp-row). Which live car was clicked is lost.
+  * Tasks "How often" hidden: NOT the SQL. Probe ?notifycheck=1: task_email_every exists (200), 368 accounts, all daily;
+    the founder account reads on, daily, everyReady true, but has 0 search Tasks. The page drew the whole email block
+    (switch + How often) only under a WORKING search Task, so anyone without one could never reach it. Fixed 65363fe:
+    the block shows for everyone signed in. Also 12a29cf: the column is asked of the table itself (rechecked every
+    10 minutes) and a save that matched no account row reports not saved instead of a silent 200.
+  * Commits: 12a29cf, 402f262 (x-gas-region), 89d4a0e (probe), 65363fe (Tasks page), 0f31aac (admin test_events).
+  * AFTER: Buy search_run latency_ms is the search tool's time inside the model turn, not the whole answer.
+

@@ -233,6 +233,7 @@ the tab is not counted; a page that is never hidden before the browser dies send
   `select analytics_forget('<anon_id>', null);` or `select analytics_forget(null, '<user_id>');`
   in the SQL editor. It returns the number of rows deleted.
 - Bots (`is_bot`) and internal traffic (`internal`) are stored and excluded from summaries by default.
+- End-to-end tests: send `x-gas-test: 1` on every own request (internal) and a normal browser string (a headless one is a bot). `x-gas-region: restricted` makes any request restricted, so the banner and a decline can be tested from outside Europe; it can never open a restricted visitor. `/api/admin` part `test_events` (server credential only) lists internal events from the last two hours with every field, ids shown as present or absent. Internal traffic never reaches the Today tab or the Journey recent list; look it up by anon_id in Journey.
 
 ## Summaries
 
