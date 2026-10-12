@@ -195,6 +195,14 @@ async function storeCheck(env) {
   };
 }
 
+// Our own test traffic (internal only), oldest first, for an end-to-end check: every field, ids shown only as
+// present or absent. since: an ISO time within the last two hours.
+async function testEvents(env, since) {
+  const floor = Date.now() - 2 * 3600e3, t = Math.max(floor, Date.parse(since) || floor);
+  const ev = await rows(env, `analytics_events?internal=is.true&ts=gte.${encodeURIComponent(new Date(t).toISOString())}&select=ts,product,surface,name,props,region_class,consent,browser_family,device_class,ref_domain,is_bot,anon_id,session_id,user_id,vin&order=ts.asc&limit=500`);
+  return { events: ev.map(e => ({ ...e, anon_id: e.anon_id ? "present" : null, session_id: e.session_id ? "present" : null, user_id: e.user_id ? "present" : null, anon_tail: e.anon_id ? String(e.anon_id).slice(-4) : null })) };
+}
+
 // ------------------------------------------------------------------------------------------------ cron
 async function refresh(env, which) {
   const out = {};
@@ -304,6 +312,7 @@ async function handler(req, res) {
   const env = storeEnv(); if (!env) return res.status(500).json({ error: "store not configured" });
   try {
     if (b.part === "check" && cred) return res.status(200).json(await storeCheck(env));
+    if (b.part === "test_events" && cred) return res.status(200).json(await testEvents(env, typeof b.since === "string" ? b.since : null));
     if (b.part === "refresh_now" && cred) return res.status(200).json(await refresh(env, "hour"));
     if (b.part === "me") return res.status(200).json({ ok: true });
     if (b.part === "overview") return res.status(200).json(await overview(env));
