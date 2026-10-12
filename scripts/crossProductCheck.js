@@ -101,7 +101,17 @@ export const DEFAULT_SPECS = [
   // fixed), so a free-text "Sedan"/"Wagon" resolves to vehicle.bodyStyle and every lane scopes the
   // same way. The Bronco case showed no live mismatch when checked (a prior Buy-panel staleness
   // artifact, already self-healing on refresh); kept here as a standing regression guard for both.
-  "1991 BMW 3-Series Sedan", "2022 Ford Bronco"
+  "1991 BMW 3-Series Sedan", "2022 Ford Bronco",
+  // Widened-year job (Oct 2026, one-pool-for-widened-years): the EXACT regression case Lane C
+  // found (2017 Porsche 911 Carrera S Coupe - a car whose "recent" 12-month pool sits right at the
+  // useRecent >= 8 solid-sales threshold, so a stale cached answer and a fresh one can land on
+  // different windows) plus a 997.1/997.2-boundary adjacent-year pair (2008 is already in the list
+  // above; 2009 added here so the two sit on opposite sides of the 2008/2009 line specifically,
+  // not just somewhere within each half) and three further thin/rare specs chosen to exercise
+  // year-widening (low annual volume, likely to need more than the exact year to clear threshold).
+  "2017 Porsche 911 Carrera S Coupe", "2009 Porsche 997 Carrera S Coupe",
+  "1973 Ferrari Dino 246 GT", "1991 Nissan 300ZX Turbo", "2001 Acura Integra Type R",
+  "1989 Alfa Romeo Spider"
 ];
 
 const round = n => (Number.isFinite(n) ? Math.round(n) : null);
@@ -150,7 +160,7 @@ async function marketCheckLane(vehicle, generation, searchText, env) {
   const latest = cards.map(c => (c.date || "").slice(0, 10)).filter(Boolean).sort().at(-1) || null;
   const recent = normRecent(Array.isArray(d.recent3) ? d.recent3 : cards, "cards");
   const span = Array.isArray(d.span) ? [round(d.span[0]), round(d.span[1])] : null;
-  return { ok: true, tier, label, low, high, count, latest, recent, span, referenceFigure: d.referenceFigure || null, counts: d.counts || null };
+  return { ok: true, tier, label, low, high, count, latest, recent, span, referenceFigure: d.referenceFigure || null, counts: d.counts || null, window: d.windowLabel || null, poolYears: Array.isArray(d.poolYears) ? d.poolYears : null };
 }
 
 // ---- Lane 2 & 4: Buy / Tasks (familyMarket -> listingMarket -> walkLadder, the real empty-state read) ----
@@ -164,12 +174,12 @@ async function buyLane(env, v, f) {
   const count = m.count ?? null;
   const recent = normRecent(m.recent, "cards");
   const latest = datesOf(recent).sort().at(-1) || null;
-  return { ok: true, kind: m.kind, label, low, high, count, latest, recent, referenceFigure: m.referenceFigure || null, counts: m.counts || null };
+  return { ok: true, kind: m.kind, label, low, high, count, latest, recent, referenceFigure: m.referenceFigure || null, counts: m.counts || null, window: m.windowLabel || null, poolYears: Array.isArray(m.poolYears) ? m.poolYears : null };
 }
 
 // ---- Lane 3: Sell (fetchOnlinePool, the shared pool buildSharedAnalysis aggregates from) ----
 async function sellLane(vehicle, generation, env) {
-  const { spec, pool, cluster, referenceFigure, recent3 } = await fetchOnlinePool(vehicle, generation, env);
+  const { spec, pool, cluster, referenceFigure, recent3, windowLabel, poolYears } = await fetchOnlinePool(vehicle, generation, env);
   if (!spec) return { ok: false, reason: "no spec (vehicle did not resolve to a buildable spec)" };
   if (!pool.length) return { ok: false, reason: "empty pool (genuinely zero online sales on record)" };
   const priced = pool.map(r => ({ ...r, _usd: Number.isFinite(r._usd) ? r._usd : hammerUsd(r) })).filter(r => Number.isFinite(r._usd) && r._usd > 0);
@@ -202,7 +212,7 @@ async function sellLane(vehicle, generation, env) {
   // call just above (a second runOneBox invocation that already exists for the asking-line
   // verification) rather than adding a third call or editing platformPick.js.
   const counts = (askingResult && askingResult.counts) || null;
-  return { ok: true, label, low, high, span, count: priced.length, latest: (sorted[0]?.auction_end_date || "").slice(0, 10) || null, recent, referenceFigure: referenceFigure || null, askingLineLow, askingLineHigh, counts };
+  return { ok: true, label, low, high, span, count: priced.length, latest: (sorted[0]?.auction_end_date || "").slice(0, 10) || null, recent, referenceFigure: referenceFigure || null, askingLineLow, askingLineHigh, counts, window: windowLabel || null, poolYears: Array.isArray(poolYears) ? poolYears : null };
 }
 
 // ---- comparison ----
@@ -236,6 +246,24 @@ function compareField(name, values) {
     const lists = present.map(([, v]) => datesOf(v).slice().sort().join(","));
     const mismatch = lists.some(s => s !== lists[0]);
     return { field: name, status: mismatch ? "MISMATCH" : "MATCH", detail: present.map(([k, v]) => `${k}=[${datesOf(v).join(",")}]`).join(" ") };
+  }
+  // window/poolYears (Oct 2026, one-pool-for-widened-years job): EXACT match, same discipline as
+  // count/latest above - the engine's own window decision and year span are facts about WHICH POOL
+  // was read, not a number with rounding/estimation tolerance. Lane C's reported case (2017 Porsche
+  // 911 Carrera S Coupe: Market Check "last twelve months" against Buy/Tasks "past 2 years" for the
+  // identical car) had a HIGH mismatch under the 10% price tolerance above, but its LOW values were
+  // only ~9% apart - inside that tolerance, so the root mismatch would have passed silently without
+  // this check. A window/poolYears difference is the mismatch itself, independent of what the
+  // prices happen to be.
+  if (name === "window" || name === "windowLabel") {
+    const strs = present.map(([, v]) => String(v));
+    const mismatch = strs.some(s => s !== strs[0]);
+    return { field: "window", status: mismatch ? "MISMATCH" : "MATCH", detail: present.map(([k, v]) => `${k}="${v}"`).join(" ") };
+  }
+  if (name === "poolYears") {
+    const strs = present.map(([, v]) => Array.isArray(v) ? v.join("-") : String(v));
+    const mismatch = strs.some(s => s !== strs[0]);
+    return { field: "poolYears", status: mismatch ? "MISMATCH" : "MATCH", detail: present.map(([k, v]) => `${k}=${Array.isArray(v) ? v.join("-") : v}`).join(" ") };
   }
   if (name === "label") {
     // Informational only - wording legitimately differs by product (plural noun, generation code
@@ -358,7 +386,7 @@ export async function checkOneSpec(q, env) {
   const tasks = await buyLane(env, buyVehicle, f).catch(e => ({ ok: false, reason: String(e && e.message || e) }));
 
   row.lanes = { marketCheck, buy, sell, tasks };
-  const fields = ["label", "low", "high", "count", "latest", "recent", "referenceFigure"];
+  const fields = ["label", "low", "high", "count", "latest", "recent", "referenceFigure", "window", "poolYears"];
   row.compare = fields.map(fld => compareField(fld, {
     marketCheck: marketCheck.ok ? marketCheck[fld] : null,
     buy: buy.ok ? buy[fld] : null,

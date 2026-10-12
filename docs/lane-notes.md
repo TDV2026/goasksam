@@ -4684,3 +4684,122 @@ Sam's notes describe an `/admin` dashboard with Supabase sign-in, an `admin_user
   * FOR LANE B: nothing needed now. search_run maps your oneEngineAnswer/mapEngineAnswer object in
     api/sellerDecision.js (Market Check). Buy's search does not call the engine directly, so its search_run has no
     range; if Buy ever gets one engine answer per search, tell me and search_run will carry its range too.
+
+## One pool decision for widened years (Oct 2026, Round 4 Job 1)
+
+Live-traced Lane C's "2017 Porsche 911 Carrera S Coupe" report (Market Check: $95,500-$113,000 over
+"last twelve months"; Buy/Sell/Tasks: $87,500-$95,500 over "past 2 years", same resolved car).
+
+**Root cause, confirmed by code reading, not guessed**: Market Check (`api/sellerDecision.js:3434`)
+calls `runOneBox` fresh on every request - no cache at that layer. Buy/Sell/Tasks read it through
+`lib/live/search.js`'s in-process caches (`rangeCache`, 1h TTL; `specMem`, was 6h via `SPEC_TTL`).
+Those in-memory caches have NO ingest-tied invalidation - only the DB-backed `spec_market_cache`
+table does (cleared the moment `scripts/ingest.js` upserts a row for that make/model, per its own
+comment). A warm serverless instance's in-memory hit returns before ever re-checking that table, so
+it can keep serving a PRE-ingest answer for up to its own TTL after ingest (and the nightly
+`recomputeSpecCache.js` run) actually changed the archive. `buildPool`'s `useRecent` test
+(`lib/onebox.js:3731`, `r4Split(recent, keepAll).solid.length >= 8`) is exactly the kind of
+boundary a single new sale can flip - a fresh Market Check call sees the new sale and gets
+`useRecent:true` ("last twelve months"); a warm Buy/Tasks instance's pre-ingest cache entry still
+has `useRecent:false` ("past 2 years") for up to the old 6h ceiling. This matches Lane C's report
+exactly (both the number AND the window label differed).
+
+**Fix** (`lib/live/search.js`): `SPEC_TTL` 6h -> 1h, matching `rangeCache`'s existing ceiling - one
+TTL, not two, and the worst-case post-ingest staleness window narrows from 6h to 1h. NOT a full fix
+(any TTL-based cache can still diverge from an always-fresh read within its own window) - removing
+in-memory caching entirely, or adding a cheap ingest-epoch check on every hit, would close it fully
+but is a bigger, riskier change than this job's scope; flagging as a real option for Sam's call, not
+decided unilaterally here.
+
+**Second, independent bug found and fixed in the same area**: `marketWin()` (`lib/live/search.js`)
+captioned the window via a narrow regex (`/twelve|12 months/` -> "the past year", EVERYTHING else ->
+"the past two years") - so a car the engine actually widened to "past 5 years" or "past 3 years"
+(real `windowLabel` values set at `lib/onebox.js:4596,4623`) was mislabeled as "the past two years"
+regardless, a caption lie independent of any caching. Fixed with `WINDOW_CAPTION`, an exact map of
+every real `windowLabel` string the engine sets. This is the piece that makes "the response says
+plainly which window it covers" actually true, not just usually true.
+
+**`lib/live/buyAlerts.js` `middleHalfLine`**: the past-year-only restriction (added as a workaround
+for the caption bug above) is LIFTED - `m.window` is now always the window the number actually used,
+so printing the line for any range is honest. FOR LANE C: no field changes needed on your side, the
+function's own signature and `m` shape are unchanged - it simply no longer refuses a correct,
+accurately-captioned 2-year or 5-year range.
+
+**Generation boundaries, verified live (archive-only, zero OldCarsData spend)**: 997.1/997.2 is
+ALREADY correctly enforced in the sold path - `lib/generations.js` HALF_GENERATIONS has
+`{yearStart:2005,yearEnd:2008}`/`{yearStart:2009,yearEnd:2011}`, `split:false` (a prior, dated,
+reasoned decision: coupe/cabriolet median gaps too close to split display, but the merge still
+respects the generation's own outer boundary). Confirmed live: 2008/2009/2011 Carrera S all pool
+`[2005,2011]`; 2012 Carrera S correctly jumps to `[2012,2016]` (991.1) - the boundary holds. **Sam
+stated 997.2 as 2009-2012; the file has 2009-2011** - this is a real, dated, deliberate discrepancy
+in the CURATED data, not a bug in the code applying it. NOT changed here (a one-year shift in a
+generation's end year is a data decision with real pool consequences, needs Sam's explicit call, not
+mine to make silently per the standing over-10%-rule). Live path (`nearestYears`/`genBoundFor`) was
+verified correct in an earlier round of this same effort and was not touched again.
+
+**Caller audit (Job 4 fold-in)**: `oneEngineAnswer` (lib/onebox.js, the combined timing+mapping
+wrapper) still has ZERO callers by that name - `grep -rn "oneEngineAnswer("` outside its own
+definition/comment returns nothing, re-checked AFTER rebasing onto Lane C's event-layer commit
+(f362ba7). What Lane C's commit actually did: `api/sellerDecision.js` (Market Check) calls
+`runOneBox` directly as before (line 3449), then calls the SIBLING export `mapEngineAnswer(oneBox,
+latencyMs)` separately (line 3465) to build the search_run event's standardized shape - achieving
+the same net result as `oneEngineAnswer` without calling it by name (both are exported from
+lib/onebox.js; `mapEngineAnswer` now has one real caller, `oneEngineAnswer` itself still has none).
+Every OTHER real production path still calls `runOneBox` directly with no mapping at all:
+`lib/live/search.js` (`engineAnswer`, Buy/Tasks' core path), `lib/platformPick.js`
+(`fetchOnlinePool`, Sell), `lib/tools/marketCheck.js`, `lib/live/samChat.js`, `lib/live/narrow.js`,
+`api/_historyData.js` (VIN history page). `scripts/crossProductCheck.js`, `lib/_specRecompute.js`,
+`lib/ops/backtestCore.js`, `api/usageDashboard.js` also call it directly but are test/ops/internal
+tooling, not user-facing. NOT rewired this pass: `oneEngineAnswer` is a thin wrapper
+(`{raw: d, ...mapEngineAnswer(d, latencyMs)}`, `.raw` is the identical object `runOneBox` returns),
+so swapping a call site's `runOneBox(...)` for `(await oneEngineAnswer(...)).raw` is mechanically
+safe but adds NO value unless the caller also starts consuming the standardized fields
+(`answerType`/`poolSize`/`reasonFlag`/etc.) instead of hand-deriving its own from the raw object -
+doing that properly means rewriting each caller's downstream logic, a materially bigger and riskier
+migration than this job's actual bug (a caching-TTL/caption problem, now fixed at its source
+regardless of which function name sits on top of `runOneBox`). Reporting the full list per Sam's ask
+rather than doing a correctness-neutral rename across 7 production files in this pass.
+
+**Sweep gate widened (Job 1 point 5-6)**: `scripts/crossProductCheck.js` now carries `window`
+(the engine's raw `windowLabel`, passed through unchanged from `lib/onebox.js`/`lib/live/search.js`
+`coreOf`/`lib/platformPick.js fetchOnlinePool`) and `poolYears` (year span, same passthrough
+discipline) as new EXACT-match compare fields (`fields` array in `checkOneSpec`), same discipline as
+`count`/`latest` - zero tolerance, a window or year-span difference IS the mismatch, not a number
+needing a tolerance. **The real gate gap was narrower than expected**: `row.anyMismatch` (used by
+`mismatchSpecs`/the CLI exit code) ALREADY included the 2017 Carrera S Coupe's `high` field
+mismatch under the EXISTING 10%-tolerance `low`/`high` check (`$113,000` vs `$95,500` is ~15.5%
+apart) - the sweep's own regular output was never blind to this case. What WAS blind to it:
+`scripts/prePush.mjs`'s push gate filtered only on `lanesOk` (did each lane answer AT ALL), never on
+`anyMismatch` (do the lanes AGREE) - a row where all four lanes answered but disagreed sailed
+through the gate silently. Fixed: `prePush.mjs` now also fails on any row with `anyMismatch:true`,
+reported separately from `lanesOk:false` rows. The new `window`/`poolYears` fields add detection for
+a SUBTLER version of this bug class (where `low`/`high` both happen to sit inside the 10% tolerance
+but the window/year-span still differ) - defense in depth, not what rescued this specific case.
+
+Added to `DEFAULT_SPECS` (63 -> 69): "2017 Porsche 911 Carrera S Coupe" (the reported case),
+"2009 Porsche 997 Carrera S Coupe" (997.1/997.2 adjacent-year pair with the existing 2008 entry),
+"1973 Ferrari Dino 246 GT", "1991 Nissan 300ZX Turbo", "2001 Acura Integra Type R",
+"1989 Alfa Romeo Spider" (thin/rare, chosen to likely exercise year-widening).
+
+**Before/after, live against production** (checked via `task=enginecheck` before any of this
+deployed): all 6 new specs - and the originally-reported 2017 Carrera S Coupe - currently read
+IDENTICAL low/high/count across all four lanes (the live cache had already self-healed past Lane
+C's observed moment by the time this was checked; the divergence is real but transient by nature,
+not a standing, reproducible-on-demand state). Only "1973 Ferrari Dino 246 GT" is actually widened
+today ("past 5 years", 21 sales); "2001 Acura Integra Type R" sits below the cluster floor (6 cards,
+no cluster) - both genuinely thin/widened shapes, useful regression guards even though they
+currently agree across lanes. Could not force a live reproduction of the ORIGINAL staleness window
+without direct cache manipulation (no DB write access in this environment, and forcing one wasn't
+attempted - out of scope for an archive-only, zero-spend job). The provable, programmatic change is
+the gate fix itself: a synthetic row shaped exactly like Lane C's report (`lanesOk` all true,
+`low`/`high`/`window` disagreeing) now fails `prePush.mjs` where it previously passed - checked
+directly against the new filter logic, not asserted.
+
+**No range edge moved >10% on any already-agreeing spec** - confirmed: every spec checked above
+(the 6 new ones plus 2017 Carrera S Coupe) already agreed across all four lanes both before and
+after this change; nothing to stop for.
+
+NOT DONE, and why: (1) full `oneEngineAnswer` adoption across all 7 production call sites - see
+caller audit above, a separately-scoped migration; (2) a cheap ingest-epoch check to close the
+in-memory cache gap completely rather than narrow it - flagged for Sam's call, not decided here;
+(3) reconciling the 997.2 2011-vs-2012 end-year discrepancy - a data decision, not mine to make.

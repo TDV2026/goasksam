@@ -129,21 +129,30 @@ console.log("\n-- deterministic engine checks --");
     record("split-pool invariants (archive)", sp.ok ? "PASS" : "FAIL", sp.ok ? "" : JSON.stringify(sp));
     const ot = await checkOverTimeInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
     record("over-time invariants (archive)", ot.ok ? "PASS" : "FAIL", ot.ok ? "" : JSON.stringify(ot));
-    // 63-spec cross-product sweep (Oct 2026, one-engine-entry-point job): calls runEngineCheck
-    // directly against this env (no HTTP hop through goasksam.com - same engine, same Supabase,
-    // just skipping the live ops endpoint so this never depends on a deploy already being live).
-    // The gate matches Sam's own stated bar: zero lanesOk:false rows across the default 63 specs.
-    // Runs all four lanes but skips the OTHER sub-checks (already covered individually above) to
-    // keep this one call to its actual job. This is what proved the one-engine-entry-point fix
-    // (class_era handling, SPEC_V bump, resolveForBuy in the harness) at zero regressions before
-    // it shipped - wired in here so a future change can't quietly reopen any of those 13 specs.
+    // 63-spec cross-product sweep (Oct 2026, one-engine-entry-point job; STRICTENED Oct 2026,
+    // one-pool-for-widened-years job): calls runEngineCheck directly against this env (no HTTP hop
+    // through goasksam.com - same engine, same Supabase, just skipping the live ops endpoint so
+    // this never depends on a deploy already being live). Runs all four lanes but skips the OTHER
+    // sub-checks (already covered individually above) to keep this one call to its actual job.
+    // GATE WIDENED: this used to filter on `lanesOk` alone (did each lane answer AT ALL), which is
+    // blind to two lanes BOTH answering but DISAGREEING - confirmed live, the exact shape of the
+    // 2017 Porsche 911 Carrera S Coupe mismatch Lane C found (Market Check "last twelve months"/
+    // $95,500-$113,000 against Buy/Tasks "past 2 years"/$87,500-$95,500: every lane.ok was true,
+    // so the old filter below would have reported this spec as clean). Now also fails on
+    // `row.anyMismatch` (row.compare's per-field MISMATCH flags - label/low/high/count/latest/
+    // recent/referenceFigure/window/poolYears, the last two added this pass specifically so a
+    // window or year-span disagreement is caught even when low/high happen to sit inside the 10%
+    // price tolerance, as this exact case's `low` values did). Sam's own instruction: "the gate
+    // also compares the pool itself, not only lanesOk."
     const sweep = await runEngineCheck(env, DEFAULT_SPECS, { singlePick: false, buyPaths: false, liveFences: false, representative: false, splitPools: false, overTime: false }).catch(e => ({ error: String(e && e.message || e) }));
     if (sweep && sweep.error) {
       record("63-spec cross-product sweep (archive)", "FAIL", sweep.error);
     } else {
-      const bad = (sweep.rows || []).filter(r => r.lanesOk && !Object.values(r.lanesOk).every(Boolean));
+      const badLanes = (sweep.rows || []).filter(r => r.lanesOk && !Object.values(r.lanesOk).every(Boolean));
+      const badMismatch = (sweep.rows || []).filter(r => r.anyMismatch && !badLanes.includes(r));
+      const bad = [...badLanes, ...badMismatch];
       record("63-spec cross-product sweep (archive)", bad.length ? "FAIL" : "PASS",
-        bad.length ? `${bad.length} spec(s) with lanesOk:false: ${bad.map(r => r.q).join(" | ")}` : `${sweep.total} specs, 0 lanesOk:false`);
+        bad.length ? `${badLanes.length} with lanesOk:false, ${badMismatch.length} with a field mismatch (lanesOk all true): ${bad.map(r => r.q).join(" | ")}` : `${sweep.total} specs, 0 lanesOk:false, 0 field mismatches`);
     }
   }
 }
