@@ -1774,6 +1774,27 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "specialscount", total, withFlag, pctFlagged: total > 0 ? Math.round((withFlag / total) * 1000) / 10 : null, byFlagSample: byFlag, sampleSize: (sample || []).length });
   }
 
+  // task=livecheck: TEMPORARY, READ-ONLY (Oct 2026, "false none live" job). For each ?urls=a|b given
+  // (or ?titles=a|b to match by listing_title instead), looks up live_listings directly by url/
+  // listing_title (docs/supabase-live-listings.sql - one `url` column, no source_url) - zero OCD, a
+  // plain Supabase read - so a report of "X is live but Buy says none" can be checked against our OWN
+  // already-pulled pool before assuming a fence/rule problem. Delete once the job concludes.
+  if (task === "livecheck") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const urls = String(req.query?.urls || "").split("|").map(s => s.trim()).filter(Boolean);
+    const titles = String(req.query?.titles || "").split("|").map(s => s.trim()).filter(Boolean);
+    const out = [];
+    for (const u of urls) {
+      const rows = await supabaseSelect(env, `live_listings?url=eq.${encodeURIComponent(u)}&select=*&limit=3`).catch(e => ({ error: String(e && e.message || e) }));
+      out.push({ query: u, by: "url", rows });
+    }
+    for (const t of titles) {
+      const rows = await supabaseSelect(env, `live_listings?listing_title=ilike.*${encodeURIComponent(t)}*&select=*&limit=10`).catch(e => ({ error: String(e && e.message || e) }));
+      out.push({ query: t, by: "title", rows });
+    }
+    return res.status(200).json({ task: "livecheck", out });
+  }
+
   if (task === "fieldcov") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const FIELDS = ["description", "known_flaws", "recent_service_history", "modifications"];
