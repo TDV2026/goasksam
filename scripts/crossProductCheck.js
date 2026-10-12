@@ -762,11 +762,18 @@ export async function checkOverTimeInvariants(env, cases = OVER_TIME_CASES) {
 // spec, dimension by dimension, reproducibly, instead of re-run-and-eyeball. generation_choice is
 // intentionally excluded: it is gated by generation-count ambiguity, not splitMaterial, and is
 // unaffected by any materiality rule change.
+//
+// ALSO captures d.inlineSplits: a year-pinned spec (spec.genPinnedByYear, the common shape in
+// DEFAULT_SPECS - most entries name an explicit year) or a question-capped one converts the SAME
+// splitMaterial decision into a non-blocking inline split instead of a blocking tier (see
+// runOneBox's own "year pinned the generation... go straight to a result" comment) - without this,
+// a materiality-rule change would look like it has NO effect on most of this sweep, when the real
+// effect is showing up as an inline split appearing/disappearing, not a tier change.
 const IDENTITY_TIERS = new Set(["body_choice", "gearbox_choice", "variant_choice", "dochistory_choice"]);
 export async function checkIdentityQuestions(env, specs = DEFAULT_SPECS) {
   const out = [];
   for (const q of specs) {
-    const row = { q, tier: null, dimension: null, options: null, counts: null, error: null };
+    const row = { q, tier: null, dimension: null, options: null, counts: null, inlineSplits: null, error: null };
     try {
       const rv = await resolveVehicle(q, {}), vehicle = rv && rv.vehicle;
       if (!vehicle || !vehicle.make) throw new Error("unresolved");
@@ -777,6 +784,9 @@ export async function checkIdentityQuestions(env, specs = DEFAULT_SPECS) {
         row.dimension = row.tier.replace(/_choice$/, "");
         row.options = d.generationOptions || d.gearboxOptions || d.bodyOptions || d.variantOptions || d.docHistoryOptions || null;
         row.counts = Array.isArray(d.optionCounts) ? d.optionCounts : null;
+      }
+      if (Array.isArray(d && d.inlineSplits) && d.inlineSplits.length) {
+        row.inlineSplits = d.inlineSplits.map(s => ({ key: s.key, poolN: s.poolN, sides: (s.sides || []).map(x => ({ label: x.label, n: x.n, lo: x.lo, hi: x.hi })) }));
       }
     } catch (e) { row.error = String(e && e.message || e); }
     out.push(row);
