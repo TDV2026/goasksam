@@ -49,7 +49,10 @@ async function handler(req, res) {
       return res.status(200).json({ report: true, ocdRequests: 0, ...(await pullReport(env, { from: win[0], to: win[1] })) });
     }
     if (req.query && req.query.probe) {
-      const r = await callOldCarsData("/auctions/live", { page: 1, limit: Math.min(1000, Number(req.query.limit) || 25) }, apiKey);
+      // Cap 100, not 1000 (Oct 2026 fix): OCD's own /auctions/live rejects limit over 100 ("limit:
+      // Too big: expected number to be <=100") - confirmed live, the prior 1000 cap let a caller send
+      // a value the vendor would just 400 on. No behavior change for any value already under 100.
+      const r = await callOldCarsData("/auctions/live", { page: 1, limit: Math.min(100, Number(req.query.limit) || 25) }, apiKey);
       const data = r.data || r.results || [];
       await flushOcdUsage();
       // &find=<text>: ONE metered request (same as any other ?probe=1 call, still writes nothing -
