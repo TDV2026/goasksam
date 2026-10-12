@@ -74,7 +74,16 @@ async function authSignInGoogle() {
   if (typeof gasFunnel === "function") gasFunnel("sign_in_started", null, { props: { method: "google" } });
   location.href = `${authBase}/auth/v1/authorize?provider=google&redirect_to=${redirect}`;
 }
-async function authSignInEmail() {
+// Busy state for a sign-in button (Oct 2026): disabled with a working label until the request returns, so a tap on a
+// phone visibly does something and a second tap sends nothing. Returns the function that puts the button back.
+function authBusy(btn, label) {
+  if (!btn) return () => {};
+  const was = btn.textContent;
+  btn.disabled = true; btn.setAttribute("aria-busy", "true"); btn.textContent = label; btn.style.opacity = "0.7"; btn.style.cursor = "default";
+  return () => { if (!btn.isConnected) return; btn.disabled = false; btn.removeAttribute("aria-busy"); btn.textContent = was; btn.style.opacity = ""; btn.style.cursor = ""; };
+}
+async function authSignInEmail(btn) {
+  if (btn && btn.disabled) return;
   const cfg = await authConfig(); if (!cfg) return authCardError("Sign-in isn't configured yet. Try again shortly.");
   // Email OR the stashed code-email (so "Resend" works from the code screen where the
   // email field no longer exists).
@@ -85,7 +94,9 @@ async function authSignInEmail() {
   // screen doesn't clear a previously-ticked consent.
   const consentEl = document.getElementById("auth-consent");
   if (consentEl) authStashConsent(!!consentEl.checked);
+  const resend = !document.getElementById("auth-email");
   __authOtpEmail = email;
+  const done = authBusy(btn || (resend ? null : document.querySelector("#auth-modal .auth-email-btn")), "Sending...");
   try {
     // Code-only OTP (no magic link): the email template renders {{ .Token }}, a numeric
     // code, so an email-scanner GET can't consume a link before the real user acts.
@@ -96,7 +107,7 @@ async function authSignInEmail() {
       try {
         const cr = await fetch(authApiPath("/api/signup"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "check", email, turnstile: __authTurnstileToken }) });
         const cj = await cr.json().catch(() => null);
-        if (cj && cj.ok === false) { authCardError(cj.message || "That didn't go through. Try again in a moment."); authResetTurnstile(); return; }
+        if (cj && cj.ok === false) { done(); authCardError(cj.message || "That didn't go through. Try again in a moment."); authResetTurnstile(); return; }
         if (cj && cj.ticket) { ticket = cj.ticket; __authTicket = { email: email.toLowerCase(), ticket }; }
       } catch (e) { /* the check is down: go ahead */ }
     }
@@ -107,14 +118,16 @@ async function authSignInEmail() {
     if (!res.ok) {
       // A new account refused at creation (the sign-up hook, lib/_signup.js) carries its own plain sentence.
       const ej = await res.json().catch(() => ({})), said = String(ej.msg || ej.message || ej.error_description || "");
-      authCardError(authRefusal(said) || AUTH_SEND_FAILED); return;
+      done(); authCardError(authRefusal(said) || AUTH_SEND_FAILED); return;
     }
     authRenderCheckEmail(email);
     if (typeof gasFunnel === "function") gasFunnel("sign_in_started", null, { props: { method: "email" } });
-  } catch (e) { authCardError(AUTH_SEND_FAILED); }
+    if (typeof gasTrack === "function") gasTrack("code_requested", resend ? { resend: true } : {});
+  } catch (e) { done(); authCardError(AUTH_SEND_FAILED); }
 }
 // Verify the code and finalize the session (mirrors authBoot's post-login steps).
-async function authVerifyCode() {
+async function authVerifyCode(btn) {
+  if (btn && btn.disabled) return;
   const cfg = await authConfig(); if (!cfg) return authCardError("Sign-in isn't configured yet. Try again shortly.");
   const codeField = document.getElementById("auth-code");
   const code = String((codeField && codeField.value) || "").replace(/\s+/g, "").trim();
@@ -123,13 +136,14 @@ async function authVerifyCode() {
   if (!/^\d{4,10}$/.test(code)) { authCardError("Enter the code from your email."); return; }
   const email = String(__authOtpEmail || "").trim();
   if (!email) { authCardError("Something went wrong. Close this and sign in again."); return; }
+  const done = authBusy(btn || document.querySelector("#auth-modal .auth-email-btn"), "Checking...");
   try {
     const res = await fetch(`${cfg.supabaseUrl}/auth/v1/verify`, {
       method: "POST", headers: { "Content-Type": "application/json", apikey: cfg.anonKey },
       body: JSON.stringify({ type: "email", email, token: code })
     });
     const j = await res.json().catch(() => ({}));
-    if (!res.ok || !j.access_token) { authCardError("That code didn't work. Double-check it, or resend a new one."); return; }
+    if (!res.ok || !j.access_token) { done(); authCardError("That code didn't work. Double-check it, or resend a new one."); return; }
     const now = Math.floor(Date.now() / 1000);
     authSetSession({ access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || (now + (j.expires_in || 3600)), email: (j.user && j.user.email) || email });
     authRenderTopbar();
@@ -137,7 +151,7 @@ async function authVerifyCode() {
     authRenderTopbar();
     authCloseModal();
     if (typeof gateAfterSignup === "function") gateAfterSignup();
-  } catch (e) { authCardError("That code could not be verified just now. Try again in a moment."); }
+  } catch (e) { done(); authCardError("That code could not be verified just now. Try again in a moment."); }
 }
 async function authSignOut() {
   const cfg = await authConfig(); const s = authGetSession();
@@ -290,6 +304,7 @@ function authCloseModal() { const m = document.getElementById("auth-modal"); if 
 // The sign-in card. Sam-voiced, two doors, one unticked consent checkbox.
 function openSignInCard(subtitle) {
   gasFunnel("signup_shown");   // 2F: the sign-in card was shown (a funnel step)
+  if (typeof gasTrack === "function") gasTrack("signin_started");   // analytics (docs/analytics-events.md)
   authCloseModal();
   const scrim = document.createElement("div");
   scrim.className = "hp-dialog-scrim"; scrim.id = "auth-modal";
@@ -303,7 +318,7 @@ function openSignInCard(subtitle) {
     <label class="auth-label" for="auth-email">Email me a sign-in code</label>
     <input id="auth-email" class="auth-input" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" value="${prefill}" />
     <div id="auth-turnstile" class="auth-turnstile"></div>
-    <button class="auth-email-btn" onclick="authSignInEmail()">Email me a code</button>
+    <button class="auth-email-btn" onclick="authSignInEmail(this)">Email me a code</button>
     <label class="auth-consent-row"><input id="auth-consent" type="checkbox" /> <span>Send me Sam's market notes</span></label>
     <div id="auth-error" class="auth-error" style="display:none"></div>
     <div class="auth-fineprint">No passwords. We email you a one-time code. Marketing notes only if you tick the box.</div>
@@ -327,14 +342,14 @@ function authResetTurnstile() { __authTurnstileToken = null; try { if (window.tu
 function authRenderCheckEmail(email) {
   const d = document.querySelector("#auth-modal .auth-dialog");
   if (!d) return;
-  d.innerHTML = `<h3>Check your email</h3>
-    <p>I sent a code to <strong>${authEsc(email)}</strong>. Enter it below and you're in.</p>
+  d.innerHTML = `<h3>Enter your code</h3>
+    <p>Check your email for the code. It went to <strong>${authEsc(email)}</strong>.</p>
     <input id="auth-code" class="auth-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="Enter the code" aria-label="Sign-in code" />
     <div id="auth-error" class="auth-error" style="display:none"></div>
-    <button class="auth-email-btn" onclick="authVerifyCode()">Verify and sign in</button>
-    <button onclick="authSignInEmail()" style="margin-top:10px;background:none;border:none;color:#6B6861;font-size:13px;cursor:pointer;text-decoration:underline">Resend code</button>`;
+    <button class="auth-email-btn" onclick="authVerifyCode(this)">Verify and sign in</button>
+    <button onclick="authSignInEmail(this)" style="margin-top:10px;background:none;border:none;color:#6B6861;font-size:13px;cursor:pointer;text-decoration:underline">Resend code</button>`;
   const f = document.getElementById("auth-code");
-  if (f) { try { f.focus(); } catch (e) {} f.addEventListener("keydown", e => { if (e.key === "Enter") authVerifyCode(); }); }
+  if (f) { try { f.focus(); } catch (e) {} f.addEventListener("keydown", e => { if (e.key === "Enter") authVerifyCode(document.querySelector("#auth-modal .auth-email-btn")); }); }
 }
 // Topbar: signed-out shows "Sign in"; signed-in shows the email + Sign out.
 function authRenderTopbar() {
