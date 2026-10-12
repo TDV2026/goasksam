@@ -5595,24 +5595,26 @@ async function handleOps(req, res) {
     const { findGeneration } = await import("../lib/generations.js");
     const legacy = String(req.query?.legacy || "") === "1";
     let rows = [], error = null;
-    try {
-      __setLegacyMaterialityTestForSweepOnly(legacy);
-      const BATCH = 6;
-      for (let i = 0; i < DEFAULT_SPECS.length; i += BATCH) {
-        const chunk = DEFAULT_SPECS.slice(i, i + BATCH);
-        // Concurrent WITHIN a batch (each spec is its own checkIdentityQuestions([q]) call) so the
-        // batch's wall-clock is its slowest single spec, not the sum - sequential ACROSS batches
-        // so the legacy toggle (module-level, shared by every concurrent call) is never read by a
-        // call still running under the OTHER setting.
-        const got = await Promise.all(chunk.map(q => checkIdentityQuestions(env, [q]).then(r => r[0])));
-        rows = rows.concat(got);
-      }
-    } catch (e) { error = String(e && e.message || e); }
-    finally { __setLegacyMaterialityTestForSweepOnly(false); }
+    if (String(req.query?.skipSweep || "") !== "1") {
+      try {
+        __setLegacyMaterialityTestForSweepOnly(legacy);
+        const BATCH = 6;
+        for (let i = 0; i < DEFAULT_SPECS.length; i += BATCH) {
+          const chunk = DEFAULT_SPECS.slice(i, i + BATCH);
+          // Concurrent WITHIN a batch (each spec is its own checkIdentityQuestions([q]) call) so the
+          // batch's wall-clock is its slowest single spec, not the sum - sequential ACROSS batches
+          // so the legacy toggle (module-level, shared by every concurrent call) is never read by a
+          // call still running under the OTHER setting.
+          const got = await Promise.all(chunk.map(q => checkIdentityQuestions(env, [q]).then(r => r[0])));
+          rows = rows.concat(got);
+        }
+      } catch (e) { error = String(e && e.message || e); }
+      finally { __setLegacyMaterialityTestForSweepOnly(false); }
+    }
     let threeHundredSl = null;
     if (String(req.query?.q300sl || "") === "1") {
       try {
-        const q = "1955 Mercedes-Benz 300SL Coupe";
+        const q = String(req.query?.q300slQuery || "1955 Mercedes-Benz 300SL Coupe");
         const rv = await resolveVehicle(q, {}), vehicle = rv && rv.vehicle;
         const generation = vehicle ? await findGeneration(vehicle, env).catch(() => null) : null;
         const d = vehicle ? await runOneBox(vehicle, generation, q, { ...env, asked: 2 }, null) : null;
