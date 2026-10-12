@@ -5525,3 +5525,34 @@ gates, confirmed on real cars, not assumed**:
       To switch off: set SIGNUP_TURNSTILE to 0 and Redeploy. Google and existing accounts are unaffected either way.
   * AFTER: "Email me a code" is not held until the widget's token arrives; a new person who presses it within the
     first second or two would see the refusal and a fresh widget. Low risk (typing an address takes longer).
+- 2026-10-12 (Lane A): ROUND 6 - TRACKING FIELDS, PLURAL BUG, CLASS-ERA COUNT-ONLY.
+  * Job 1 fixed and proven live (strict mode, zero errors, 1440 and 390): receipt_opened now carries the
+    record's own id as sale_id and the platform slug as platform (was: platform slug as sale_id, no real id
+    anywhere). auction_clickout from the Market Check live panel now carries the real slug and listing id (was:
+    the display name, no listing id at all) - api/buySearch.js's ?panel=1 route now returns source_slug + id,
+    both already on the row.
+  * Found mid-fix, not in Lane C's named line numbers: ctxCardHtml (the Closest match / Middle of the range
+    cards) was the FIRST receipt_click element on a result-tier page and had the same missing-id bug
+    independently - fixed too (commit 1f5d1c4).
+  * Job 2 fixed: classEraHtml's facts line built "{make}s" by concatenation ("Mercedes-Benzs"). Make stays
+    singular, "sales" carries the plural. Also hardened carPluralLabel (Job 1's identity-question sentence) and
+    carNamePlural's existing guard (now also catches a hyphenated name) against the same class of bug.
+  * Job 3 fixed: removed the dollar figures from the class-era facts line - count and latest month only.
+  * Job 4: identityQuestion contract confirmed unchanged by Lane B's own FOR LANE A update today - no dimension
+    rendering change made.
+  * Commits: 22ce211, 1f5d1c4.
+  * AFTER (found while proving, not fixed, out of this job's scope):
+    - vinHeroCardHtml (the VIN-matched "This car" hero) has the same missing-id gap as the other cards, but its
+      underlying query (lib/_flags.js findVinArchiveMatch, the `select` clause) does not fetch an id at all yet -
+      needs a column added before a listing id can be passed through. Narrower surface (only a VIN/chassis exact
+      match reaches this card), left for a follow-up.
+    - Two resolver-level copy oddities, read live, NOT a pluralization bug and not fixed here: "2005 Dodge Viper
+      SRT-10" renders as "SRT10" (the hyphen is lost somewhere in resolution, before this page ever sees the
+      string); "2009 Koenigsegg CCXR" renders carName as "2009 Koenigsegg Koenigsegg Automotive" (the make
+      appears to repeat, "Koenigsegg Automotive" reading as a model value that duplicates the make). Flagging for
+      whoever owns the resolver (lib/vehicle.js) - FOR LANE B.
+    - The CLK DTM class-era pool size was observed at both 13 and 3715 sales within this same session, due to a
+      separate, in-progress Lane B investigation on this exact car (temp classeradiag diagnostic, "pool shrink
+      job") running in parallel - not caused by, or related to, this round's changes. The facts-line copy fix is
+      verified correct independent of the count (no pluralization, no dollar figures, count spelled when <=10),
+      and will read whatever number Lane B's fix lands on with no further change needed here.
