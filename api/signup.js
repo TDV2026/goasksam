@@ -12,17 +12,23 @@ import { hasServerCredential } from "../lib/_credential.js";
 
 export const config = { api: { bodyParser: false } };
 
+// The stream is read BEFORE req.body is touched: on Vercel req.body is a lazy parser over the same bytes, and once
+// it runs only a re-serialised copy is left (Oct 12 live check: 44 bytes sent, 35 seen).
 async function rawBody(req) {
-  if (typeof req.body === "string") return req.body;
-  if (req.body && typeof req.body === "object" && !Buffer.isBuffer(req.body)) return JSON.stringify(req.body);
-  const chunks = []; for await (const c of req) chunks.push(typeof c === "string" ? Buffer.from(c) : c);
-  return Buffer.concat(chunks).toString("utf8");
+  try {
+    const chunks = []; for await (const c of req) chunks.push(typeof c === "string" ? Buffer.from(c) : c);
+    if (chunks.length) return { raw: Buffer.concat(chunks).toString("utf8"), from: "stream" };
+  } catch { /* already consumed: fall through */ }
+  const b = req.body;
+  if (typeof b === "string") return { raw: b, from: "string" };
+  if (Buffer.isBuffer(b)) return { raw: b.toString("utf8"), from: "buffer" };
+  return { raw: b && typeof b === "object" ? JSON.stringify(b) : "", from: "reparsed" };
 }
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
-  const raw = await rawBody(req).catch(() => "");
+  const { raw, from } = await rawBody(req).catch(() => ({ raw: "", from: "error" }));
   let body = {}; try { body = raw ? JSON.parse(raw) : {}; } catch { return res.status(400).json({ error: "bad body" }); }
   const env = supabaseEnv();
 
@@ -35,7 +41,7 @@ export default async function handler(req, res) {
   }
 
   // Our own check (header credential): the raw body arrives byte for byte (the hook's signature depends on it).
-  if (body.action === "rawcheck" && hasServerCredential(req)) return res.status(200).json({ rawLength: raw.length, reparsedLength: JSON.stringify(body).length });
+  if (body.action === "rawcheck" && hasServerCredential(req)) return res.status(200).json({ rawLength: raw.length, reparsedLength: JSON.stringify(body).length, from });
   if (body.action !== "check") return res.status(400).json({ error: "unknown action" });
   if (!env) return res.status(200).json({ ok: true, ticket: null });   // fail open: sign in must never break here
   const ip = clientAddress(req), dayAgo = () => new Date(Date.now() - 864e5).toISOString();
