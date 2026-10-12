@@ -305,9 +305,12 @@ const APP_JS = String.raw`(function(){
     if (arrived) { arrived = false; if (!limit) dropEntryParams(); }
     if (limit) h += '<div class="limitbox" role="status"><p>' + esc(LIMIT_TEXT(limit.current)) + '</p><div class="go"><button class="pbtn" data-limit-swap>Swap it for this one</button><button class="plink" data-limit-keep>Keep the current one</button></div></div>';
     else if (note && cur) h += '<p class="' + (/junk folder/.test(note) ? "noteinfo" : "blocked") + '" role="status">' + esc(note) + "</p>";
-    if (cur) h += taskCard(cur) + notifyLine();
+    if (cur) h += taskCard(cur);
     else if (draft) h += draftCard();
     else h += '<section class="tcard">' + box("Tell Sam what to look for", "tkq", seedWords(), "e.g. find me a black manual 997 under $70k") + (reply ? '<p class="samreply">' + esc(reply) + "</p>" : "") + "</section>";
+    // The email settings show for everyone signed in, with or without a working Task: exact-car, sold-car and
+    // Before it ends emails use them too.
+    h += notifyLine();
     if (paused.length) h += '<p class="pausedh">Paused</p>' + paused.map(function(t){ return taskCard(t, true); }).join("");
     if (past.length) h += '<details class="past"><summary>Past Tasks (' + past.length + ")</summary>" + past.map(function(t){ var st = status(t); return '<details><summary><span class="pill ' + st[0] + '">' + st[1] + "</span>" + esc(t.summary) + "</summary>" + feed(t) + "</details>"; }).join("") + "</details>";
     app.innerHTML = h;
