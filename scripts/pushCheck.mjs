@@ -60,6 +60,70 @@ try {
     for (const x of errors) console.log("      " + x);
     await page.close();
   }
+  // MARKET CHECK LOAD-TIME BUDGET (Oct 2026, "Sam's catching his breath" reliability job): the
+  // existing PAGES loop above already fails on the calm line for ONE car (fc381a3); this adds a
+  // measured ELAPSED-TIME budget across a few more cars from the fixed set Part B measured against
+  // production. networkidle2 + a follow-up waitForNetworkIdle proved unreliable as a "ready" signal
+  // here (some background poll never truly goes idle, so both pinned every measurement to a flat
+  // ~21s regardless of actual load time) - poll the DOM directly for the real signal instead: a
+  // dollar figure, the calm line, or the daily-car-limit line.
+  // Budget proposed from a real 8-car x 5-run measurement against production (Oct 2026): fenced
+  // queries ("2008 Porsche 997 Carrera S Coupe", "2024 Porsche 911 Cabriolet") held 4.2-6.5s total;
+  // bare/unscoped nameplates ("1995 Porsche 911 Carrera", the ORIGINAL car Lane C's fc381a3 note
+  // measured at 9,826ms) held RELIABLY, not intermittently, in the 9.8-11.8s range every single
+  // attempt (5/5) - this is a real, repeatable cost of an unscoped title scan, not noise. Worst
+  // observed total across the full sweep: 12,006ms (a BMW M3 Coupe attempt; its other 4 attempts
+  // were 5.3-8.1s, so that one WAS noise - likely the connection-pool contention this session
+  // already found independently in parallel crossProductCheck batches). 18s sits with real margin
+  // above today's worst case while stopping well short of the server's own 20s ONEBOX_DEADLINE_MS
+  // and the client's 25s fetch abort (js/onebox.js obFetch) - so this gate fires BEFORE either of
+  // those would, catching a regression early instead of only after a user already saw the calm line.
+  const PERF_BUDGET_MS = Number(process.env.MC_PERF_BUDGET_MS) || 18000;
+  const PERF_CARS = ["2008 Porsche 997 Carrera S Coupe", "1995 Porsche 911 Carrera"];
+  for (const car of PERF_CARS) {
+    // Without PROBE_KEY this page is the public redirect to /sell (same as the gated PAGES entries
+    // above), not Market Check at all - timing THAT page would be meaningless noise, not a real
+    // measurement, so skip rather than report a number that isn't about Market Check.
+    if (!KEY) { console.log(`SKIP  Market Check perf: "${car}"  (no PROBE_KEY: public view, nothing to time)`); continue; }
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1280, height: 900 });
+    await page.setRequestInterception(true);
+    page.on("request", r => {
+      let own = false; try { own = new URL(r.url()).host === HOST; } catch (e) {}
+      r.continue(own ? { headers: { ...r.headers(), "x-probe-key": KEY, "x-launch-stage-test": "2" } } : undefined);
+    });
+    const url = BASE + "/market-check?q=" + encodeURIComponent(car);
+    const t0 = Date.now();
+    let navErr = null;
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 }).catch(e => { navErr = String(e && e.message || e).slice(0, 150); });
+    const deadline = Date.now() + Math.max(PERF_BUDGET_MS, 15000) + 5000; // give it a little past budget to see how far over, if at all
+    let failLine = null, overBudget = false, elapsed = 0;
+    for (;;) {
+      elapsed = Date.now() - t0;
+      const info = await page.evaluate(() => {
+        const t = document.body ? document.body.innerText : "";
+        const fail = /catching his breath|having trouble answering|Connection issue|couldn.t finish that one|couldn.t read that just now/i.exec(t);
+        return { fail: fail ? fail[0] : null, money: (t.match(/\$\d[\d,]{2,}/g) || []).length, limit: /today.s limit of \d+ cars/i.test(t) };
+      }).catch(() => ({}));
+      if (info.fail) { failLine = info.fail; break; }
+      if (info.money > 0 || info.limit) break;
+      if (Date.now() > deadline) break;
+      await new Promise(r => setTimeout(r, 250));
+    }
+    if (elapsed > PERF_BUDGET_MS) overBudget = true;
+    const ok = !navErr && !failLine && !overBudget;
+    if (!ok) failed++;
+    console.log(`${ok ? "PASS" : "FAIL"}  Market Check perf: "${car}"  ${elapsed}ms`);
+    // Indented (6 spaces) to match the existing PAGES loop's failure-detail convention above -
+    // prePush.mjs's baseline scanner only treats 6-space-indented lines as failure detail to check
+    // against BASELINE_FAILURES; a FAIL whose only detail sits on the unindented summary line above
+    // is invisible to that scanner and gets silently waved through as "only baseline failures seen"
+    // even though pushCheck's own exit code was nonzero. Found and fixed in this same job.
+    if (navErr) console.log(`      load: ${navErr}`);
+    if (failLine) console.log(`      shows a failure line instead of a result: "${failLine}"`);
+    if (overBudget) console.log(`      exceeds budget: ${elapsed}ms > ${PERF_BUDGET_MS}ms`);
+    await page.close();
+  }
 } finally { await browser.close(); }
-console.log(failed ? `${failed} page(s) failed.` : "All four pages clear: no 5xx, no console error.");
+console.log(failed ? `${failed} page(s) failed.` : "All pages clear: no 5xx, no console error, no Market Check car over budget.");
 process.exit(failed ? 1 : 0);

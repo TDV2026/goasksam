@@ -3322,11 +3322,27 @@ export default async function handler(req, res) {
     // gate, so it burns no allowance, makes zero OldCarsData calls, and writes
     // nothing. Tester/crew devices reach it (the curtain seal above lets them in).
     if (req.body?.oneBox) {
+      // obStart (reliability pass, Oct 2026): covers the health probe through the final response,
+      // for the console.error diagnostics on each failure path below. (Latency/failure-state EVENT
+      // LOGGING was considered here too and deliberately dropped - see docs/lane-notes.md, Lane C
+      // owns the event layer.)
+      const obStart = Date.now();
       // Graceful failure (reliability pass): if Supabase is slow or DOWN, fail FAST to one calm line
       // rather than a hung spinner or a misleading "not enough sales" from empty reads. A cheap probe
       // with a short abort catches the down/slow case before the heavy compute.
-      const OB_CALM = "Sam’s catching his breath, try again in a minute.";
-      const obHealthy = await (async () => {
+      //
+      // ROOT CAUSE (Oct 2026, "Sam's catching his breath" intermittent job): this probe is a single,
+      // trivial `limit=1` read with NO retry - any brief Supabase connection-pool/cold-start blip
+      // (the SAME class of transient contention this session already confirmed independently: parallel
+      // crossProductCheck batches saturating the DB connection pool and timing out, while the identical
+      // batches run SEQUENTIALLY succeed) aborted this probe and showed the calm line even though the
+      // archive was never actually down - confirmed by Lane C's push-check log (fc381a3): two of three
+      // loads showed the line with NO console error, and a later identical load of the SAME car
+      // succeeded. One retry (same short budget) absorbs exactly that class of blip without masking a
+      // real outage (a genuinely down Supabase still fails both attempts). This never touches the
+      // Anthropic/chat path - archive-only, so it is safe to retry per Sam's "never doubles cost on the
+      // model path" rule.
+      const obProbeOnce = async () => {
         try {
           const ctrl = new AbortController();
           const t = setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, Number(process.env.ONEBOX_PROBE_MS || 3500));
@@ -3334,11 +3350,16 @@ export default async function handler(req, res) {
           clearTimeout(t);
           return r.ok;
         } catch { return false; }
-      })();
+      };
+      const OB_CALM = "Sam’s catching his breath, try again in a minute.";
+      let obHealthy = await obProbeOnce();
+      let obProbeRetried = false;
+      if (!obHealthy) { obProbeRetried = true; obHealthy = await obProbeOnce(); }
       if (!obHealthy) {
-        console.error("One Box unavailable: Supabase health probe failed (slow/down).");
+        console.error(`One Box unavailable: Supabase health probe failed twice (slow/down), ${Date.now() - obStart}ms.`);
         return res.status(200).json({ status: "one_box", tier: "unavailable", samLine: OB_CALM });
       }
+      if (obProbeRetried) console.error(`One Box health probe recovered on retry (${Date.now() - obStart}ms) - transient, not a real outage.`);
       // Invisible per-address/per-device ceiling (Oct 2026, open-search policy). REPLACES the old
       // onebox_daily_cap: that cap was counted against a client-chosen, resettable anonId (not a real
       // visitor limit) and, worse, was VISIBLE in normal use - a genuine visitor could land on a full
@@ -3414,7 +3435,7 @@ export default async function handler(req, res) {
           new Promise((_, rej) => setTimeout(() => rej(new Error("onebox_deadline")), Number(process.env.ONEBOX_DEADLINE_MS || 20000)))
         ]);
       } catch (e) {
-        console.error(`One Box unavailable (${(e && e.message) || e}).`);
+        console.error(`One Box unavailable (${(e && e.message) || e}), ${Date.now() - obStart}ms.`);
         return res.status(200).json({ status: "one_box", tier: "unavailable", samLine: OB_CALM });
       }
       // search event (Oct 2026, open-search policy Part 1.2): once per completed search, never on a

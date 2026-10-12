@@ -4416,3 +4416,60 @@ when the work has landed.
     ($95,500 to $113,000). 1987 911 Carrera Coupe and 1996 911 Carrera 4S Coupe manual agreed exactly. Buy's cards
     show the two-year figure too. Until one pool serves both, the email's middle-half line (lib/live/buyAlerts.js
     middleHalfLine) is printed only for a past-year range.
+- 2026-10-11/12 (Lane B): "SAM'S CATCHING HIS BREATH" ROOT CAUSE + RELIABILITY FIX.
+  * ROOT CAUSE: api/sellerDecision.js's oneBox branch (job fc381a3's FOR LANE B note) runs a cheap Supabase health
+    probe (`sales_archive?select=source_id&limit=1`, aborted after ONEBOX_PROBE_MS, default 3500ms) BEFORE the
+    real compute, specifically so a down/slow Supabase fails fast to one calm line instead of a hung spinner. That
+    probe had NO retry: a single, trivial `limit=1` read timing out past 3.5ms is almost certainly transient
+    connection-pool/cold-start contention (the SAME class this session already found independently: parallel
+    crossProductCheck batches saturating Supabase's connection pool and timing out while the identical batches
+    run sequentially succeed), not a real outage, and Lane C's own log (fc381a3) showed exactly that: two of three
+    fresh loads showed the calm line with no console error, and a fourth load of the SAME car drew the real
+    result. A second, independent path to the identical calm line exists too: the 20s ONEBOX_DEADLINE_MS race
+    around runOneBox itself (also no retry, correctly - see below).
+  * FIX (api/sellerDecision.js, around the oneBox branch): the health probe now retries ONCE on failure before
+    concluding "unavailable" (obProbeOnce() factored out, called up to twice). This never touches the Anthropic/
+    chat path (archive-only), so it is safe under Sam's "never doubles cost on the model path" rule. The 20s
+    runOneBox deadline is NOT retried - a slow real compute is a genuine cost, not a transient blip, and retrying
+    it risks the CLIENT's own 25s fetch abort (js/onebox.js obFetch) firing before a retry even finishes.
+  * LOGGING - CONSIDERED, NOT BUILT (Sam's scope call: Lane C owns the event layer/analytics store; do not add
+    one here). What was drafted and then removed from this commit, for Lane C's context: every oneBox request
+    would log EVENTS.SEARCH (lib/events.js) with `latencyMs` and a `failState` ("probe_unavailable" /
+    "compute_timeout" / "compute_error" / null-on-success) in its existing `props` JSON, since TODAY there is
+    NOTHING logged at all on either failure path (the probe-fail return and the deadline-timeout catch both
+    `return` before the single existing EVENTS.SEARCH call a few hundred lines down, which itself only fires on
+    a completed result and carries no timing). If Lane C wants this, the 3 call sites are: the probe-fail return
+    (api/sellerDecision.js, right after "Supabase health probe failed twice"), the runOneBox deadline catch
+    (right after "One Box unavailable (...)"), and the existing success-path EVENTS.SEARCH call just below it -
+    all three already compute `Date.now() - obStart` for their console.error line, so the latency value is
+    sitting right there if this gets built properly as part of the event layer.
+  * THE 9.8s NUMBER, explained and REPRODUCED: measured 8 of the fixed 10-car set live (5 runs each, real browser
+    via scripts/pushCheck.mjs's own launch-stage-gate pattern - bare curl to /api/sellerDecision gets a 429 from
+    Vercel Bot Protection Challenge mode with no bypass secret available). FENCED queries (997 Carrera S Coupe,
+    911 Cabriolet, Camaro SS, GT350R) held 3.6-6.5s total, every attempt. BARE/UNSCOPED nameplates ("1995 Porsche
+    911 Carrera" - the ORIGINAL car Lane C's note measured at 9,826ms - and "1967 Ford Mustang Fastback") held
+    RELIABLY, not intermittently, in the 5.8-11.8s range on EVERY attempt (5/5 each) - this reproduces the
+    original 9.8s almost exactly and shows it is a real, repeatable cost, not noise. One true outlier: a BMW M3
+    Coupe attempt hit 12,006ms total (10,933ms server) against its other 4 attempts' 5.3-8.1s - consistent with
+    the same transient connection-pool contention named above, not a deterministic cost. LIKELY SOURCE (not yet
+    changed - flagging for a separate, properly scoped pass): lib/onebox.js's byTitle/byModel pool scope
+    (~1667-1695) pages the WHOLE title-matched pool via supabaseSelectAll with NO row cap for a bare nameplate,
+    and the file's own existing comment on the adjacent record-path (~1639-1642) already documents this exact
+    class of cost as known: "paging tens of thousands of rows sequentially... is far too slow for a user-facing
+    request... pending a properly benchmarked fix." Not touched this pass - Sam's directive was explicit that a
+    fix "must be purely about reliability/timing, never about what gets computed," and parallelizing or capping
+    that pagination is exactly the kind of change that needs its own measured before/after, not a guess inside a
+    reliability fix.
+  * GUARD (scripts/pushCheck.mjs): added a measured load-time check for 2 of the fixed-set cars (997 Carrera S
+    Coupe, 1995 911 Carrera) on every push - polls the DOM for the real "ready" signal (a dollar figure, the calm
+    line, or the daily-car-limit line) instead of a fixed sleep, and fails if either shows the calm line or
+    exceeds MC_PERF_BUDGET_MS (default 18000ms - comfortable margin above today's worst observed 12,006ms, still
+    short of the server's 20s deadline and the client's 25s abort, so it fires before either of those would).
+    Superseded a flawed first draft of this measurement that relied on Puppeteer's networkidle2 + a follow-up
+    waitForNetworkIdle as the "ready" signal - some background network activity never truly goes idle, so that
+    approach pinned EVERY measurement to a flat ~21s regardless of real load time (a harness bug, not a product
+    one; caught before it reached any committed file).
+  * NOT DONE (2 of the fixed 10 cars untested): 1990 Porsche 911 Targa 4 and 1965 Chevrolet Corvette - the
+    measurement run was still in progress on car 9 when a session limit required wrapping up; no evidence either
+    is anomalous (both are dense/bare-nameplate shapes already covered by the 1995 911 Carrera and 1967 Mustang
+    Fastback results above), but not directly confirmed.
