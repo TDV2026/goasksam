@@ -5659,19 +5659,23 @@ async function handleOps(req, res) {
       if (!vehicle || !vehicle.make) { rows.push({ q, error: "unresolved" }); continue; }
       const generation = await findGeneration(vehicle, env).catch(() => null);
       const times = [];
-      let tier = null, warmHit = null;
+      let tier = null, warmHit = null, cluster = null, poolN = null, cardsN = null;
       for (let i = 0; i < samples; i++) {
         const t0 = Date.now();
+        let d = null;
         if (mode === "warm") {
           const warmed = await readWarmAnswer(env, warmAnswerKeyFor(vehicle, generation));
-          if (warmed) { warmHit = true; tier = warmed.tier; } else { const d = await runOneBox(vehicle, generation, q, env, null); warmHit = false; tier = d && d.tier; }
+          if (warmed) { warmHit = true; d = warmed; } else { d = await runOneBox(vehicle, generation, q, env, null); warmHit = false; }
         } else {
-          const d = await runOneBox(vehicle, generation, q, env, null);
-          tier = d && d.tier;
+          d = await runOneBox(vehicle, generation, q, env, null);
         }
+        tier = d && d.tier;
+        cluster = Array.isArray(d && d.cluster) ? d.cluster : null;
+        poolN = (d && (d.poolN ?? d.soldCount)) ?? null;
+        cardsN = Array.isArray(d && d.cards) ? d.cards.length : null;
         times.push(Date.now() - t0);
       }
-      rows.push({ q, tier, warmHit, msSamples: times });
+      rows.push({ q, tier, warmHit, cluster, poolN, cardsN, msSamples: times });
     }
     const allTimes = rows.flatMap(r => r.msSamples || []).sort((a, b) => a - b);
     const pct = p => allTimes.length ? allTimes[Math.min(allTimes.length - 1, Math.floor(allTimes.length * p))] : null;
