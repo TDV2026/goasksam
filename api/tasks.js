@@ -28,14 +28,16 @@ import { recordUsageEvent } from "./_usage.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
 import { tasksAllowance } from "../lib/_ceilings.js";
 import { signupTicket } from "../lib/_signup.js";
+import { othersRunning, othersLine } from "../lib/tasks/othersRunning.js";
 // The per-account daily limits (Tasks setup chat turns, research started), crew exempt: what -> ok.
 const gateOf = (req, user) => what => tasksAllowance(supabaseEnv(), req, user.userId, what).then(r => r.ok, () => true);
 
 const TEST_USER = /^00000000-0000-4000-8000-[0-9a-f]{12}$/;
 // The email links' confirm and result pages: plain words, one button, never an action on a click alone.
 const TAP_WORDS = {
-  pause: { title: "Pause the Task", ask: "Its emails stop until you start it again. Your other Tasks keep running.", button: "Pause this Task", done: "Paused." },
-  stop: { title: "Stop the Task", ask: "This ends this one Task. Your other Tasks keep running.", button: "Stop this Task", done: "Stopped." },
+  // Pause and Stop add "Your other Tasks keep running." only when it is true (lib/tasks/othersRunning.js).
+  pause: { title: "Pause the Task", ask: "Its emails stop until you start it again.", button: "Pause this Task", done: "Paused." },
+  stop: { title: "Stop the Task", ask: "This ends this one Task.", button: "Stop this Task", done: "Stopped." },
   resume: { title: "Start this search again?", ask: "Sam keeps searching in the background, day and night, and you get an email when a car fits.", button: "Start it again", done: "Searching again." },
   keep_looking: { title: "Keep looking?", ask: "Sam keeps searching in the background, day and night, and you get an email when a car fits.", button: "Keep looking", done: "Sam keeps looking." }
 };
@@ -88,7 +90,8 @@ async function handler(req, res) {
       if (req.method !== "POST") {
         // The heading names exactly what it acts on: "Stop the task: manual Porsche 911s from 1964 to 1998".
         const named = (act === "pause" || act === "stop") && task.filters ? `${w.title}: ${jobPhrase(task.filters)}` : w.title;
-        return page(200, w.title, `<h1>${tapEsc(named)}</h1><p class="task">${tapEsc(task.summary || "This Task")}</p><p>${tapEsc(w.ask)}</p>
+        const others = act === "pause" || act === "stop" ? await othersRunning(env, { userId: task.user_id, taskId: id }).catch(() => null) : undefined;
+        return page(200, w.title, `<h1>${tapEsc(named)}</h1><p class="task">${tapEsc(task.summary || "This Task")}</p><p>${tapEsc(w.ask)}</p>${othersLine(others)}
           <form method="post" action="/api/tasks?a=${encodeURIComponent(act)}&t=${encodeURIComponent(String(q.t))}"><button type="submit">${tapEsc(w.button)}</button></form>
           <p class="quiet"><a href="/tasks/mine?task=${encodeURIComponent(id)}">Open the Task instead</a></p>`);
       }

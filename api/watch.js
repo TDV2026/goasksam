@@ -16,24 +16,23 @@ import { readVisitorId } from "../lib/_visitor.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { ready, arm, stop, resume, list, run, testSend, isMissingTable, probeBackdate, probeInspect, verifySoldTaskTap, soldTaskTap, soldTaskName, getWatch, setWatchState } from "../lib/live/watches.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
+import { othersRunning as othersRunningFor, othersLine } from "../lib/tasks/othersRunning.js";
 
-// After a Task is stopped from its email: does the person still have another running Task? Other looking Tasks
-// (watches) not stopped or paused, or a search Task in an active state (lib/tasks/tasks.js ACTIVE). null when either
-// read fails, so the page then claims neither.
-export async function othersRunning(env, w, select = supabaseSelect) {
-  if (!w || !w.user_id) return null;
-  const [ws, ts] = await Promise.all([
-    select(env, `watches?user_id=eq.${w.user_id}&stopped_at=is.null&id=neq.${w.id}&select=*&limit=100`),
-    select(env, `tasks?user_id=eq.${w.user_id}&state=in.(running,needs_you)&summary=not.is.null&select=id&limit=1`),
-  ]);
-  if (!Array.isArray(ws) || !Array.isArray(ts)) return null;
-  return ws.some(r => !r.paused_at) || ts.length > 0;
+// Does the person still have another running Task (lib/tasks/othersRunning.js)? This looking Task is left out.
+export function othersRunning(env, w, select) {
+  return w && w.user_id ? othersRunningFor(env, { userId: w.user_id, watchId: w.id }, select) : Promise.resolve(null);
 }
 
 // The page after Stop: a sentence naming what Sam stopped, and the second line only when it is true.
 export function stoppedBody(name, others, e) {
-  const second = others === true ? "<p>Your other Tasks keep running.</p>" : others === false ? "<p>Nothing else is running.</p>" : "";
-  return `<h1>Stopped. Sam is no longer looking for ${e(name)}.</h1>${second}`;
+  return `<h1>Stopped. Sam is no longer looking for ${e(name)}.</h1>${othersLine(others)}`;
+}
+
+// The confirm page before Pause or Stop: what the tap does, then the same second line, then the button.
+export const CONFIRM_WORDS = { pause: ["Pause the Task", "Its emails stop until you start it again.", "Pause this Task"], stop: ["Stop the Task", "This ends this one Task.", "Stop this Task"], resume: ["Start the Task again", "Sam tells you again when the next one sells.", "Start it again"] };
+export function confirmBody(act, name, others, e, formAction) {
+  const w = CONFIRM_WORDS[act];
+  return `<h1>${e(w[0])}: ${e(name)}</h1><p>${e(w[1])}</p>${act === "resume" ? "" : othersLine(others)}<form method="post" action="${e(formAction)}"><button type="submit">${e(w[2])}</button></form><p class="quiet"><a href="/tasks/mine">Open your Tasks instead</a></p>`;
 }
 
 async function handler(req, res) {
@@ -54,8 +53,10 @@ async function handler(req, res) {
     const w = await getWatch(env, id).catch(() => null);
     if (!w) return page(404, "Task gone", `<h1>That task is gone.</h1><p class="quiet"><a href="/tasks/mine">Open your Tasks</a></p>`);
     const name = soldTaskName(w);
-    const words = { pause: ["Pause the Task", "Its emails stop until you start it again. Your other Tasks keep running.", "Pause this Task"], stop: ["Stop the Task", "This ends this one Task. Your other Tasks keep running.", "Stop this Task"], resume: ["Start the Task again", "Sam tells you again when the next one sells.", "Start it again"] }[tapAct];
-    if (req.method !== "POST") return page(200, words[0], `<h1>${e(words[0])}: ${e(name)}</h1><p>${e(words[1])}</p><form method="post" action="/api/watch?a=${tapAct}&t=${encodeURIComponent(String(req.query.t))}"><button type="submit">${e(words[2])}</button></form><p class="quiet"><a href="/tasks/mine">Open your Tasks instead</a></p>`);
+    if (req.method !== "POST") {
+      const others = tapAct === "resume" ? null : await othersRunning(env, w).catch(() => null);
+      return page(200, CONFIRM_WORDS[tapAct][0], confirmBody(tapAct, name, others, e, `/api/watch?a=${tapAct}&t=${encodeURIComponent(String(req.query.t))}`));
+    }
     const r = await setWatchState(env, id, tapAct).catch(err => ({ ok: false, error: String(err && err.message) }));
     if (r.notReady) return page(503, "Not ready", `<h1>Pause isn't ready yet.</h1><p>Nothing changed. You can stop this Task instead from its email.</p>`);
     if (!r.ok) return page(500, "Try again", `<h1>That didn't go through.</h1><p>Nothing changed. Try the link again in a moment.</p>`);

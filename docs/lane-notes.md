@@ -6389,3 +6389,9 @@ title/H1/canonical change.
   needs the person; otherwise "Nothing else is running."; if either read fails, no second line. scripts/taskStopCheck.mjs in
   prePush. NOT CHANGED: the confirm pages before Pause and Stop still say "Your other Tasks keep running." unconditionally.
   Search check: no public page touched.
+
+- 2026-10-13 (Lane C): CONFIRM PAGES BEFORE PAUSE AND STOP get the stopped page's rule, for looking Tasks (api/watch.js) and
+  search Tasks (api/tasks.js): "Its emails stop until you start it again." / "This ends this one Task.", then "Your other
+  Tasks keep running." only when another Task on the account is running, else "Nothing else is running.", and no second line
+  when either read fails. One shared read, lib/tasks/othersRunning.js (the Task being acted on is left out).
+  scripts/taskStopCheck.mjs 49 checks (was 12). Search check: no public page touched.
