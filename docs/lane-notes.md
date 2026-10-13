@@ -5903,3 +5903,10 @@ gates, confirmed on real cars, not assumed**:
   NOT CHANGED: 280ZX typed Nissan now reads as Datsun on the assumption the archive files it there like the other early Z
   cars; I could not check the archive from here (no service key), so confirm with one count of Datsun vs Nissan 280ZX.
   "1971 Datsun 240Z Series 1": "Series 1" is dropped (no field for it yet). Search check: no public page touched.
+
+- 2026-10-13 (Lane B2): SERIES 1 CARRIED ON `edition`. FOR LANE B: "1971 Datsun 240Z Series 1" -> year 1971, make Datsun, model 240Z,
+  trim null, edition "Series 1" (before: edition null, the words dropped). "1965 Jaguar E-Type Series I" -> edition "Series I".
+  Pattern: Series 1/2/3 and I/II/III, arabic as typed, roman upper case; "Black Series" still wins first. Both paths agree
+  (resolverLanesCheck, 88 names). Other 240Z shapes are in the entry above. Search check: no public page touched.
+  280ZX MAKE COUNT (ops poolsrc, priced sales_archive rows, read only): Datsun 280ZX 29, Nissan 280ZX 1 (RM Sotheby's); Datsun 240Z 80
+  vs Nissan 1; Datsun 280Z 56 vs Nissan 2 (the 280Z model match is a substring, so it includes the 280ZX rows). Datsun is right.

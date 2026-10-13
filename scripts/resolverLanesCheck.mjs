@@ -101,6 +101,8 @@ const CASES = [
   ["2011 BMW 1M", { year: 2011, make: "BMW", model: "1M", trim: null }],
   ["2008 Alfa Romeo 8C", { year: 2008, make: "Alfa Romeo", model: "8C", trim: null }],
   ["2018 Alfa Romeo Giulia Quadrifoglio", { year: 2018, make: "Alfa Romeo", model: "Giulia", trim: "Quadrifoglio" }],
+  ["1971 Datsun 240Z Series 1", { year: 1971, make: "Datsun", model: "240Z", trim: null, edition: "Series 1" }],
+  ["1965 Jaguar E-Type Series I", { year: 1965, make: "Jaguar", model: "E-Type", edition: "Series I" }],
   ["67 corvette", { year: 1967, make: "Chevrolet", model: "Corvette" }],   // a real two-digit year still reads as one
   ["sell my porsche", { make: "Porsche", model: null }],   // conversation is never a model
 ];
