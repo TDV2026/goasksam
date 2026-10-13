@@ -187,6 +187,14 @@ try {
 } catch (e) {
   record("fallback rung fixtures (scripts/rungCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// One car for one name on every lane (Oct 2026, Lane B2): the same words through Market Check's resolver and Buy/Tasks'
+// resolveForBuy must give the same car, with its casing and hyphens. No vendor request.
+try {
+  const out = execSync("node scripts/resolverLanesCheck.mjs", { encoding: "utf8" });
+  record("one car per name on every lane (scripts/resolverLanesCheck.mjs)", "PASS", (out.match(/resolverLanesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("one car per name on every lane (scripts/resolverLanesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Who started each pull (Oct 2026, Lane C): started_by on the pull job's rows and every ocd_call row, and the report's
 // split. No network, no vendor request.
 try {
