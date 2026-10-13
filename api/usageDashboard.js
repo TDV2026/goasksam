@@ -2317,53 +2317,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "httrigger", cars: out });
   }
 
-  // task=rawtitle: TEMPORARY, READ-ONLY diagnostic (Round 5 Lane B job, Oct 2026 ladder rewrite).
-  // Raw title ILIKE search via lib/onebox.js rawTitleSearch, so a resolver-matching gap (does the
-  // archive carry this phrase/word at all) can be told apart from a genuine zero-sales car.
-  // ?term=CLK+DTM&days=1825&limit=20. Delete once the ladder rewrite's live verification concludes.
-  if (task === "rawtitle") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { rawTitleSearch, fetchQualifying, recordExcludeReason, haloMatcherFor, buildSpec, __specEngine } = await import("../lib/onebox.js");
-    const { outcomeUsd, titleOf } = __specEngine;
-    const term = String(req.query?.term || "CLK DTM");
-    const days = Number(req.query?.days) || 1825;
-    const limit = Number(req.query?.limit) || 20;
-    // &q=... : resolve the full text through resolveVehicle + buildSpec and dump the resulting spec
-    // fields (model/trim/badge), so a self-passed suppression can be checked against what the spec
-    // ACTUALLY carries, not assumed from the typed text.
-    if (req.query?.q) {
-      const { resolveVehicle } = await import("../lib/vehicle.js");
-      const { findGeneration } = await import("../lib/generations.js");
-      const q = String(req.query.q);
-      const rv = await resolveVehicle(q, {});
-      const v = rv && rv.vehicle;
-      if (!v) return res.status(200).json({ task: "rawtitle", mode: "resolve", q, status: rv && rv.status });
-      const g = await findGeneration(v, env);
-      const spec = buildSpec(v, g, q);
-      return res.status(200).json({ task: "rawtitle", mode: "resolve", q, vehicle: v, spec: { make: spec.make, model: spec.model, trim: spec.trim, badge: spec.badge, genCode: spec.genCode, genBound: spec.genBound, yearMin: spec.yearMin, yearMax: spec.yearMax } });
-    }
-    // &make=&model=&self= : ALSO run the exact rung4/5 fetchQualifying + fence pipeline (not just the
-    // raw title search above) so a resolver-matching gap (nothing in the archive) can be told apart
-    // from a fence-exclusion gap (real rows exist, the halo/race/tuner fence drops them all). self
-    // defaults to model, matching the real anyYearOrSiblingForVehicle call.
-    if (req.query?.make && req.query?.model) {
-      const make = String(req.query.make), model = String(req.query.model);
-      const self = req.query?.self != null ? String(req.query.self) : model;
-      const since = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
-      const raw = await fetchQualifying({ make, model, trim: null, titleContains: null, yearMin: null, yearMax: null }, since, env, {});
-      const haloRe = haloMatcherFor(make);
-      const priced = raw.filter(r => { r._usd = outcomeUsd(r); return Number.isFinite(r._usd) && r._usd > 0; });
-      const rows = priced.map(r => {
-        const excl = recordExcludeReason(r, make, { wantHalo: true, self });
-        const halo = !!(haloRe && haloRe.test(titleOf(r)));
-        return { title: r.raw_title || r.rtitle, year: r.year, usd: Math.round(r._usd), excludeReason: excl || null, haloMatch: halo, kept: !excl && !halo };
-      });
-      return res.status(200).json({ task: "rawtitle", mode: "fetchQualifying", make, model, rawCount: raw.length, pricedCount: priced.length, keptCount: rows.filter(x => x.kept).length, rows });
-    }
-    const r = await rawTitleSearch(term, env, days, limit);
-    return res.status(200).json({ task: "rawtitle", term, days, result: r });
-  }
-
   // task=sellthin: READ-ONLY (archive + partners; ZERO OCD). Mirrors the /sell handler's thin
   // block: assessThinForVehicle + the consigns_to_houses partner lookup, so we can verify the
   // exact decision.thin facts the /sell render consumes (houseSteer, houseVenues, consignPartner)
