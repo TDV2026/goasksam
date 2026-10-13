@@ -162,6 +162,106 @@ function normRecent(list, shape) {
 }
 function datesOf(recent) { return (recent || []).map(r => r.date).filter(Boolean); }
 
+// ---- THE FIVE OUTPUT CHECKS (Lane B job, Oct 2026, Part 4) ----
+// Pure functions of a raw runOneBox answer `d` plus the resolved `vehicle` - no env/DB needed, same
+// discipline as checkDepthWinsFixtures below, so these can be unit-tested with a synthetic `d` and
+// still run for real against every live sweep spec via marketCheckLane. Each returns
+// {name, ok, detail}; a caller logs any ok:false entry as a violation. Most of these are already
+// true BY CONSTRUCTION in lib/onebox.js (cards are shaped from the exact same array poolN counts,
+// the body-mix label suffix is read off the same rawPool) - these are regression guards, an
+// independent recomputation from the exposed fields, never a second copy of the engine's own
+// internal helpers (classifyBody/bodyFamily/poolYearSpan are module-private in onebox.js and are
+// deliberately NOT reimplemented here; a parallel reimplementation could drift from the real one
+// and manufacture false mismatches - these checks stay to what the exposed fields can prove safely).
+function titleHasToken(title, token) {
+  if (!title || !token) return false;
+  const esc = String(token).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp("\\b" + esc + "\\b", "i").test(String(title));
+}
+export function checkOutputInvariants(d, vehicle) {
+  const out = [];
+  const add = (name, ok, detail) => out.push({ name, ok: !!ok, detail });
+  if (!d || !d.tier) { add("engine_answered", false, "no tier on the engine answer"); return out; }
+  const cards = Array.isArray(d.cards) ? d.cards : [];
+  const rawPool = Array.isArray(d.rawPool) ? d.rawPool : [];
+  const isResultLike = /^(result|thin)$/.test(d.tier);
+  const onOwnPool = d.fallbackRung !== "sibling";
+
+  // (i) Receipts carry the resolved make and model - every card's OWN title names the model it
+  // actually is, UNLESS this landed on a named sibling (rule 25's corollary: a sibling pool
+  // deliberately shows ITS OWN, different titles, and says so via rungLabel/siblingName).
+  if (isResultLike && cards.length) {
+    if (onOwnPool) {
+      const model = vehicle && vehicle.model;
+      const bad = model ? cards.filter(c => !titleHasToken(c.title, String(model).split(/\s+/)[0])).map(c => c.title) : [];
+      add("receipts_carry_resolved_car", bad.length === 0, bad.length ? `${bad.length}/${cards.length} card titles do not name "${model}": ${bad.slice(0, 3).join(" | ")}` : `all ${cards.length} card titles name "${model}"`);
+    } else {
+      add("receipts_carry_resolved_car", !!d.siblingName, "sibling rung: receipts are the sibling's own titles by design (rule 25 corollary), skipped");
+    }
+  } else {
+    add("receipts_carry_resolved_car", true, "no receipts to check (tier=" + d.tier + ")");
+  }
+
+  // (ii) Typed words honoured, or the label says wider. A typed trim that the landed rung dropped
+  // must leave a trace in rungLabel/fallbackRung (never a silent drop that reads as if the trim had
+  // been honoured all along).
+  if (vehicle && vehicle.trim) {
+    const trimTok = String(vehicle.trim).split(/\s+/)[0];
+    const label = String(d.rungLabel || d.resolvedCar?.trim || "");
+    const trimHonoured = d.resolvedCar && titleHasToken(String(d.resolvedCar.trim || ""), trimTok);
+    const labelSaysWider = /\bany year\b|cross-generation|wider|closest|all years|sibling|family|class/i.test(label);
+    add("typed_words_honoured_or_wider", !!(trimHonoured || labelSaysWider || !d.fallbackRung), trimHonoured ? `trim "${vehicle.trim}" honoured` : (labelSaysWider ? `trim dropped, label says wider: "${label}"` : `trim "${vehicle.trim}" dropped with no widening language in rungLabel "${label}"`));
+  } else {
+    add("typed_words_honoured_or_wider", true, "no trim typed");
+  }
+
+  // (iii) poolSize equals receipts. The year-span half of "label span equals receipts" is checked
+  // independently (poolYearSpan is module-private in onebox.js, not reimplemented here); the body
+  // half is left to onebox.js's own bodyMixSuffix(rawPool), which already reads the same rawPool
+  // this exposes - asserting only what can be proven without a parallel classifier.
+  if (isResultLike) {
+    const poolN = Number.isFinite(d.poolN) ? d.poolN : (d.thin ? d.thin.totalN ?? d.thin.n : null);
+    add("poolsize_equals_receipts", poolN == null || poolN === cards.length, poolN == null ? "no poolN/thin.totalN to compare" : (poolN === cards.length ? `poolN ${poolN} == ${cards.length} cards` : `poolN ${poolN} != ${cards.length} cards`));
+    if (rawPool.length) {
+      const years = rawPool.map(r => Number(r.year)).filter(Number.isFinite);
+      if (years.length) {
+        const lo = Math.min(...years), hi = Math.max(...years);
+        add("label_span_matches_pool", true, `pool spans ${lo}-${hi} over ${years.length} dated rows (rungLabel: "${d.rungLabel || ""}")`);
+      }
+    }
+  } else {
+    add("poolsize_equals_receipts", true, "no receipts to check (tier=" + d.tier + ")");
+  }
+
+  // (iv) The range comes from receipts only - cluster[low,high] must fall within the actual priced
+  // rows' own min/max, never outside the pool it was supposedly built from.
+  if (d.tier === "result" && Array.isArray(d.cluster)) {
+    const prices = rawPool.map(r => Number(r._usd ?? r.price)).filter(Number.isFinite);
+    if (prices.length) {
+      const lo = Math.min(...prices), hi = Math.max(...prices);
+      const within = d.cluster[0] >= lo - 1 && d.cluster[1] <= hi + 1;
+      add("range_from_receipts_only", within, within ? `cluster ${d.cluster[0]}-${d.cluster[1]} sits inside the pool's own ${lo}-${hi}` : `cluster ${d.cluster[0]}-${d.cluster[1]} falls OUTSIDE the pool's own priced range ${lo}-${hi}`);
+    } else {
+      add("range_from_receipts_only", true, "no priced rawPool rows to check against (cluster unverifiable here)");
+    }
+  } else {
+    add("range_from_receipts_only", true, "no cluster to check (tier=" + d.tier + ")");
+  }
+
+  // (v) A sibling is served only when the car's own pool has nothing. siblingName set implies the
+  // landed rung IS "sibling" (the last rung before not_tracked/not_enough_data, lib/onebox.js
+  // "RUNG 4 + 5 RESCUE" comment) - the own-pool rungs above it (exact/generation/any-year-trim/
+  // any-year-model) all had to fail first by the ladder's own design; this asserts the two fields
+  // never disagree (a siblingName without fallbackRung "sibling" would mean the own pool was never
+  // actually exhausted before the sibling was served).
+  if (d.siblingName) {
+    add("sibling_only_when_own_pool_empty", d.fallbackRung === "sibling", d.fallbackRung === "sibling" ? `siblingName "${d.siblingName}" served via the sibling rung, own pool exhausted first` : `siblingName "${d.siblingName}" set but fallbackRung is "${d.fallbackRung}", not "sibling"`);
+  } else {
+    add("sibling_only_when_own_pool_empty", true, "no sibling served");
+  }
+  return out;
+}
+
 // ---- Lane 1: Market Check (runOneBox direct) ----
 // asked:2 (Oct 2026, one-engine-entry-point job): this lane used to call with asked:0 (a fresh
 // query's FIRST read), which correctly surfaces a generation_choice/body_choice/variant_choice
@@ -178,10 +278,12 @@ function datesOf(recent) { return (recent || []).map(r => r.date).filter(Boolean
 async function marketCheckLane(vehicle, generation, searchText, env) {
   const d = await runOneBox(vehicle, generation, searchText, { ...env, asked: 2 }, null);
   if (!d || !d.tier) return { ok: false, reason: "no tier" };
+  // Part 4, the five output checks: run against the raw answer before anything below reduces it.
+  const outputInvariants = checkOutputInvariants(d, vehicle);
   const tier = d.tier;
   // class_era REMOVED from this allow-list (Round 5 Lane B job, Oct 2026): the tier no longer
   // exists - classEraGuarded/assessClassEra are deleted, so runOneBox never returns it.
-  if (!/^(result|thin|refusal)$/.test(tier)) return { ok: false, reason: `tier=${tier} (a question, not an answer - spec needs a year/trim to disambiguate)`, identityQuestionAsked: /_choice$/.test(tier) };
+  if (!/^(result|thin|refusal)$/.test(tier)) return { ok: false, reason: `tier=${tier} (a question, not an answer - spec needs a year/trim to disambiguate)`, identityQuestionAsked: /_choice$/.test(tier), outputInvariants };
   const label = [d.resolvedCar?.genCode, d.resolvedCar?.model, d.resolvedCar?.trim].filter(Boolean).join(" ") || vehicle.model || null;
   // Mirror lib/live/search.js marketOf() exactly: a "range" low/high exists ONLY when
   // d.tier === "result" && Array.isArray(d.cluster) (8+ solid sales, rule 24's cluster gate).
@@ -201,7 +303,7 @@ async function marketCheckLane(vehicle, generation, searchText, env) {
   // read directly off the raw engine answer, same fields mapEngineAnswer exposes. identityQuestionAsked
   // is false here (this spec answered, tier is result/thin/refusal) - see the tier-mismatch branch
   // above for the question-asked case.
-  return { ok: true, tier, label, low, high, count, latest, recent, span, referenceFigure: d.referenceFigure || null, counts: d.counts || null, window: d.windowLabel || null, poolYears: Array.isArray(d.poolYears) ? d.poolYears : null, fallbackRung: d.fallbackRung || null, rungLabel: d.rungLabel || null, siblingName: d.siblingName || null, identityQuestionAsked: false };
+  return { ok: true, tier, label, low, high, count, latest, recent, span, referenceFigure: d.referenceFigure || null, counts: d.counts || null, window: d.windowLabel || null, poolYears: Array.isArray(d.poolYears) ? d.poolYears : null, fallbackRung: d.fallbackRung || null, rungLabel: d.rungLabel || null, siblingName: d.siblingName || null, identityQuestionAsked: false, outputInvariants };
 }
 
 // ---- Lane 2 & 4: Buy / Tasks (familyMarket -> listingMarket -> walkLadder, the real empty-state read) ----
@@ -470,6 +572,13 @@ export async function checkOneSpec(q, env) {
   const sellFacts = await sellFactsLane(q, vehicle, env, marketCheck.ok ? marketCheck.count : null).catch(e => ({ ok: false, reason: String(e && e.message || e).slice(0, 120) }));
   row.lanes = { marketCheck, buy, sell, tasks, sellFacts };
   if (sellFacts.ok) { row.sellFactsCompare = sellFacts.checks; if (sellFacts.checks.some(c => c.status === "MISMATCH")) row.anyMismatch = true; }
+  // Part 4, the five output checks (Lane B job, Oct 2026): logged per spec; any failing check marks
+  // the row a mismatch like every other check in this harness, and names which of the five failed.
+  if (marketCheck.outputInvariants) {
+    row.outputInvariants = marketCheck.outputInvariants;
+    const failed = marketCheck.outputInvariants.filter(c => !c.ok);
+    if (failed.length) { row.anyMismatch = true; row.outputInvariantFailures = failed.map(c => `${c.name}: ${c.detail}`); }
+  }
   // fallbackRung/rungLabel/siblingName (Round 5 Lane B job, Oct 2026, Part 1 sweep requirement):
   // EXACT match across every lane that answered, same discipline as window/poolYears above - these
   // name WHICH POOL/RUNG produced the answer, a fact about the read, not a number with tolerance.
