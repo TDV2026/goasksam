@@ -599,9 +599,8 @@
   // and found none - nothing like it exists yet anywhere on this page. Built fresh, minimal (no new
   // JS, a native title attribute only), rather than blocking on the brief's "existing" framing.
   function infoDotHtml() {
-    return ' <span class="infodot" tabindex="0" aria-label="What this means">' +
-      lint("The middle half of comparable sales, closest to typical, with the highest and lowest set aside.", "hero.infodot.title") +
-      "</span>";
+    var t = "The middle half of comparable sales, closest to typical, with the highest and lowest set aside.";
+    return ' <span class="infodot" tabindex="0" title="' + esc(t) + '" aria-label="' + esc(t) + '"></span>';
   }
   // bodyMixTailOf: reads back the engine's own body-mix clause (lib/onebox.js bodyMixSuffix, e.g.
   // ", coupes and cabriolets") already appended to the end of rungLabel - never computed here, only
@@ -716,8 +715,7 @@
       heroMetaLine(d);
     if (d.cluster) {
       var band = d.cluster;
-      left += '<p class="eyebrow hero-label">' + lint("Where the middle half sold", "hero.rangelbl") + "</p>" +
-        infoDotHtml() +
+      left += '<p class="eyebrow hero-label">' + lint("Where the middle half sold", "hero.rangelbl") + infoDotHtml() + "</p>" +
         '<h2 class="range band">' + esc(usd(band[0])) + ' <span class="to">to</span> ' + esc(usd(band[1])) + "</h2>";
     } else {
       var noun = carNoun(d), subj = noun || "cars like it";
