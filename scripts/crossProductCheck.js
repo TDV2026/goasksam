@@ -39,7 +39,7 @@
 
 import { resolveVehicle } from "../lib/vehicle.js";
 import { findGeneration } from "../lib/generations.js";
-import { runOneBox, buildSpec, titleFenceReason, TIER_DIMENSION, mapEngineAnswer, isQualifying, oneEngineAnswer, runOutputInvariants } from "../lib/onebox.js";
+import { runOneBox, buildSpec, titleFenceReason, TIER_DIMENSION, isQualifying, oneEngineAnswer, runOutputInvariants } from "../lib/onebox.js";
 import { resolveSellCar, placesFor } from "../lib/sell/sellFacts.js";
 import { familyMarket, liveForFamily, emptyFilters, resolveForBuy, engineAnswer, specKeyFor } from "../lib/live/search.js";
 import { converse } from "../lib/live/converse.js";
@@ -872,38 +872,46 @@ export async function checkSplitPoolInvariants(env, cases = SPLIT_POOL_CASES) {
   return out;
 }
 
-// URGENT REGRESSION GUARDS (Oct 2026, CLK DTM job). Two live defects found this round, guarded so
-// neither can silently come back:
-//  1. classEraGuarded's wide-band guard used to swap the REAL marque-decade class-era population
-//     for a narrow title-keyword-only match on the car's own name, mislabeled under the SAME
-//     class_era tier - "2005 Mercedes-Benz CLK DTM" went from a real population in the thousands
-//     to 13. CLASS_ERA_MIN is a floor far below the real count (thousands) but far above the old
-//     bug's shape (13) - a regression back to the keyword-swap would read near the old small
-//     number and trip this immediately, without pinning an exact count that the rolling 36-month
-//     window would otherwise make a false positive every single day.
+// URGENT REGRESSION GUARDS (Oct 2026, CLK DTM job; CLK DTM case RE-WRITTEN Part 7 golden-cars job,
+// Oct 2026 - the mechanism it originally guarded no longer exists). Two live defects found this
+// round, guarded so neither can silently come back:
+//  1. ORIGINAL DEFECT (historical): classEraGuarded's wide-band guard used to swap the REAL
+//     marque-decade class-era population for a narrow title-keyword-only match on the car's own
+//     name, mislabeled under the SAME class_era tier - "2005 Mercedes-Benz CLK DTM" went from a
+//     real population in the thousands to 13. class_era (classEraGuarded/assessClassEra) was
+//     DELETED later the same session (Round 5 Lane B job - every caller reads the model-any-year/
+//     sibling rescue instead), so `tier === "class_era"` can never be true again and the original
+//     assertion would fail PERMANENTLY, not on a real regression - stale, not a live guard. CLK DTM's
+//     correct tier today is "thin" (assessThin, houseSteer true - online-liquidity-gated, a
+//     different and still-live mechanism). Re-written to assert the CURRENT correct shape: thin
+//     tier, a real pool (not empty), and every card's own title actually names CLK and DTM (the
+//     "swap" this guard cares about - a wrong, unrelated pool silently substituted - is still a
+//     real risk under the thin/houseSteer path, just not via the deleted class_era tier). The old
+//     "factsBlock must never carry a dollar figure" half is DROPPED, not replaced: product rule 23/
+//     24 since evolved to ALLOW a thin pool's lowest/highest once n>=8 (docs/golden-rules.md,
+//     "Sold between $X and $Y" - Lane A's thin-tier sold-between line, confirmed live) - asserting
+//     "dollar-free" now would fail on correct, intended behaviour, not a regression.
 //  2. A single sales_archive row (BaT listing #176322) carries OldCarsData's own upstream
 //     mislabel - make="Merkur"/model="XR4Ti" on a real 1987 Ford Sierra RS Cosworth - corrected in
 //     the archive (task=fixMerkurRow); this guards that it stays corrected (no "Sierra" title in
 //     the Merkur XR4Ti pool).
-const CLASS_ERA_MIN = 500;
 export async function checkUrgentOct2026Guards(env) {
   const out = { ok: true, cases: [] };
   {
     const q = "2005 Mercedes-Benz CLK DTM";
-    const row = { q, check: "class_era_not_swapped" };
+    const row = { q, check: "clk_dtm_pool_not_swapped" };
     try {
       const rv = await resolveVehicle(q, {}), vehicle = rv && rv.vehicle;
       if (!vehicle || !vehicle.make) throw new Error("unresolved");
       const generation = await findGeneration(vehicle, env).catch(() => null);
       const d = await runOneBox(vehicle, generation, q, env, null);
       row.tier = d.tier;
-      row.classEraN = d.classEra ? (d.classEra.receipts || []).length : null;
-      row.pass = row.tier === "class_era" && Number.isFinite(row.classEraN) && row.classEraN >= CLASS_ERA_MIN;
+      const titles = (d.cards || []).map(c => String(c.title || ""));
+      row.cardCount = titles.length;
+      const clkDtmTitled = titles.filter(t => /\bclk\b/i.test(t) && /\bdtm\b/i.test(t)).length;
+      row.clkDtmTitled = clkDtmTitled;
+      row.pass = row.tier === "thin" && titles.length > 0 && clkDtmTitled === titles.length;
       if (!row.pass) out.ok = false;
-      // factsBlock must never carry a dollar figure for class_era (defect 2 regression guard).
-      const mapped = mapEngineAnswer(d, null);
-      row.factsBlockDollarFree = !mapped.factsBlock || (mapped.factsBlock.lowest == null && mapped.factsBlock.highest == null && mapped.factsBlock.latestPrice == null);
-      if (!row.factsBlockDollarFree) out.ok = false;
     } catch (e) { row.error = String(e && e.message || e); out.ok = false; }
     out.cases.push(row);
   }
