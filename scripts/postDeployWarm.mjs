@@ -42,7 +42,7 @@ const gm = /```json golden\n([\s\S]*?)```/.exec(doc);
 const GOLDEN = gm ? JSON.parse(gm[1]) : [];
 if (!GOLDEN.length) console.log("postDeployWarm: no golden-cars JSON block found in docs/golden-rules.md - step 2 has nothing to load.");
 
-const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
+const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", protocolTimeout: 600000, args: ["--no-sandbox"] });
 let warmed = 0, failed = 0;
 try {
   const home = await browser.newPage();

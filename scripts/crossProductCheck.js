@@ -41,7 +41,7 @@ import { resolveVehicle } from "../lib/vehicle.js";
 import { findGeneration } from "../lib/generations.js";
 import { runOneBox, buildSpec, titleFenceReason, TIER_DIMENSION, mapEngineAnswer, isQualifying, oneEngineAnswer } from "../lib/onebox.js";
 import { resolveSellCar, placesFor } from "../lib/sell/sellFacts.js";
-import { familyMarket, liveForFamily, emptyFilters, resolveForBuy, engineAnswer } from "../lib/live/search.js";
+import { familyMarket, liveForFamily, emptyFilters, resolveForBuy, engineAnswer, specKeyFor } from "../lib/live/search.js";
 import { converse } from "../lib/live/converse.js";
 import { fetchOnlinePool, buildSharedAnalysis, pickPlatform, depthWins } from "../lib/platformPick.js";
 import { decide, getSellerCriteria } from "../api/sellerDecision.js";
@@ -139,6 +139,13 @@ export const DEFAULT_SPECS = [
   // curated generation data at all (lib/generations.js) and no SIBLING_MODELS entry - the
   // fallbackRung should skip "generation"/"sibling" cleanly rather than guess.
   "2025 Porsche 911", "2025 Porsche 911 Cabriolet", "1991 Mercedes-Benz 560SL", "2021 Land Rover Defender 110",
+  // Part 2 job (Oct 2026): "2025 Porsche 911" was ALREADY in this list, and count is already an
+  // EXACT-match field (compareField, not the 10%-tolerance low/high use) - the 42-vs-30 drift it
+  // missed was a TIMING issue (see checkSpecKeyYearIsolation above for the real, structural guard),
+  // not a gap in this list. Added anyway per the brief's explicit instruction, plus its narrower
+  // golden-rules sibling so both year-widened golden cars (docs/golden-rules.md 1 and 2) are
+  // standing cross-product regressions, not just engine-vs-golden ones.
+  "2024 Porsche 911 Carrera S Coupe",
   // Lane B job (Oct 2026, Part 2): the parseQuery edition-word gaps B2 found and listed in
   // scripts/resolverLanesCheck.mjs's buyGap entries (now closed, entries removed there too) -
   // "Black" in "Black Series" read as a paint colour and "Speedster" as a body filter BEFORE the
@@ -693,6 +700,37 @@ const DEPTH_WINS_FIXTURES = [
 ];
 // Exported directly (job 2, prePush rule, Oct 2026): a pure-function check, no env/DB needed, so
 // scripts/prePush.mjs can run it on every push even with no Supabase credentials available locally.
+// CACHE-KEY YEAR ISOLATION (Lane B job, Oct 2026, Part 2): a pure, DB-free regression guard for the
+// 42-vs-30-sales 2025 Porsche 911 drift. Root cause: lib/live/search.js specKeyFor keyed a model with
+// NO half-generation entry (a bare 911, 992 generation) on generation.code ALONE - two typed years
+// inside the same generation produced the IDENTICAL cache key, so whichever year's ladder computed
+// first silently answered for the other too. The 63-spec sweep (checkOneSpec, above) could not have
+// caught this: it reads each spec in isolation, at one moment, across the four lanes - it never
+// probes whether TWO DIFFERENT specs collide on ONE cache row, which is a property of the key
+// function itself, not of any single spec's own answer. This check asserts that property directly:
+// every pair below must produce DIFFERENT keys. No DB, no network - specKeyFor is a pure function of
+// its inputs, so this runs in prePush on every push, not just when someone happens to query two
+// colliding years back to back in the same sweep run.
+const SPEC_KEY_ISOLATION_FIXTURES = [
+  // The exact bug: a curated generation with NO half-generation entry (911's 992) keyed on
+  // generation.code alone before the fix - 2020 and 2025 used to produce one shared row.
+  { name: "992 911, different years", a: { make: "Porsche", model: "911", trim: null, year: 2020, bodyStyle: null }, b: { make: "Porsche", model: "911", trim: null, year: 2025, bodyStyle: null }, gen: { code: "992", yearStart: 2019, yearEnd: 2026 } },
+  // The two golden cars this exact job adds to DEFAULT_SPECS below - must never share a row either.
+  { name: "2025 911 vs 2024 Carrera S Coupe", a: { make: "Porsche", model: "911", trim: null, year: 2025, bodyStyle: null }, b: { make: "Porsche", model: "911", trim: "Carrera S", year: 2024, bodyStyle: "coupe" }, gen: { code: "992", yearStart: 2019, yearEnd: 2026 } },
+  // A half-generation model (997.2, the pre-existing year-collision fix) - still isolated by year.
+  { name: "997.2 Carrera S, different years", a: { make: "Porsche", model: "911", trim: "Carrera S", year: 2009, bodyStyle: "coupe" }, b: { make: "Porsche", model: "911", trim: "Carrera S", year: 2010, bodyStyle: "coupe" }, gen: { code: "997", yearStart: 2005, yearEnd: 2011 } },
+  // edition/variant/wheelbase (Part 1 job): same year/make/model/trim/body, different resolver field.
+  { name: "Defender 90 vs 110, same year", a: { make: "Land Rover", model: "Defender", trim: "90", year: 1997, bodyStyle: null, wheelbase: "90" }, b: { make: "Land Rover", model: "Defender", trim: "110", year: 1997, bodyStyle: null, wheelbase: "110" }, gen: null },
+  { name: "240Z Series 1 vs plain, same year", a: { make: "Datsun", model: "240Z", trim: null, year: 1971, bodyStyle: null, edition: "Series 1" }, b: { make: "Datsun", model: "240Z", trim: null, year: 1971, bodyStyle: null, edition: null }, gen: null }
+];
+export function checkSpecKeyYearIsolation() {
+  const cases = SPEC_KEY_ISOLATION_FIXTURES.map(f => {
+    const keyA = specKeyFor(f.a, f.gen, null), keyB = specKeyFor(f.b, f.gen, null);
+    return { name: f.name, keyA, keyB, pass: keyA !== keyB };
+  });
+  return { ok: cases.every(c => c.pass), cases };
+}
+
 export function checkDepthWinsFixtures() {
   const cases = DEPTH_WINS_FIXTURES.map(f => {
     const got = depthWins(...f.args);
@@ -1094,7 +1132,8 @@ export async function runEngineCheck(env, specs = DEFAULT_SPECS, opts = {}) {
   const liveListing = opts.liveListing === false ? null : await checkLiveListingDisclosure(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const urgentOct2026 = opts.urgentOct2026 === false ? null : await checkUrgentOct2026Guards(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const cacheConsistency = opts.cacheConsistency === false ? null : await checkCacheConsistency(env, specs).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  return { task: "crossproductcheck", total: rows.length, mismatchSpecs: totalMismatches, singlePick, buyPaths, liveFences, representative, splitPools, overTime, liveListing, urgentOct2026, cacheConsistency, rows };
+  const specKeyYearIsolation = opts.specKeyYearIsolation === false ? null : checkSpecKeyYearIsolation();
+  return { task: "crossproductcheck", total: rows.length, mismatchSpecs: totalMismatches, singlePick, buyPaths, liveFences, representative, splitPools, overTime, liveListing, urgentOct2026, cacheConsistency, specKeyYearIsolation, rows };
 }
 
 // ---- CLI ----

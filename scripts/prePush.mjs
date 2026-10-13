@@ -83,9 +83,14 @@ if (!changed.length) {
 // ---- 2. DETERMINISTIC ENGINE CHECKS ----
 console.log("\n-- deterministic engine checks --");
 {
-  const { checkDepthWinsFixtures } = await import("./crossProductCheck.js");
+  const { checkDepthWinsFixtures, checkSpecKeyYearIsolation } = await import("./crossProductCheck.js");
   const r = checkDepthWinsFixtures();
   record("depthWins fixtures", r.ok ? "PASS" : "FAIL", r.ok ? `${r.cases.length} cases` : JSON.stringify(r.cases.filter(c => !c.pass)));
+  // specKeyFor year-isolation (Lane B job, Oct 2026, Part 2): pure, no DB - the regression guard for
+  // the 42-vs-30-sales 2025 Porsche 911 drift (two different typed years silently sharing one
+  // spec_market_cache row). Runs on every push, not just when a live sweep happens to probe it.
+  const k = checkSpecKeyYearIsolation();
+  record("specKeyFor year isolation (synthetic, no DB)", k.ok ? "PASS" : "FAIL", k.ok ? `${k.cases.length} cases` : JSON.stringify(k.cases.filter(c => !c.pass)));
 }
 {
   // buildPoolSmoke (job 3 addendum): no DB, no network - synthetic rows through every real branch of
