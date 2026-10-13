@@ -420,7 +420,12 @@ a.sb-line:hover{color:var(--green)}
 .whynote .eyebrow{color:var(--sec)}
 .whynote p{margin:0;font:400 15px/1.55 var(--sans);color:var(--sec);max-width:68ch}
 .whynote a{font:600 15px/1.4 var(--sans);min-height:44px;display:inline-flex;align-items:center;align-self:flex-start}
-@media (max-width:640px){.lp-row{grid-template-columns:36px minmax(0,1fr) auto;gap:10px}.lp-ph{width:36px;height:36px}}
+/* Found during the follow-up round's own live-proof read-through (Oct 2026): .lp-bid's desktop
+   white-space:nowrap sizes the grid's third ("auto") column to the bid line's full UNWRAPPED width
+   (confirmed live, 295px for "Last bid we saw: $360,000 at 6:05am PT." Above the range") - at 390px
+   that leaves the minmax(0,1fr) title column under 7px wide, a real bug, not a style preference.
+   Capped the bid column and let it wrap at mobile only; desktop has room and is untouched. */
+@media (max-width:640px){.lp-row{grid-template-columns:36px minmax(0,1fr) minmax(0,112px);gap:10px}.lp-ph{width:36px;height:36px}.lp-bid{white-space:normal;text-align:left;align-items:flex-start}}
 
 /* ---- the full list ("All N comparable sales") - follow-up round, Oct 2026. Rows, not cards: a
    thumbnail, price/model/meta stacked, "View sale" trailing - the SAME row language the live panel
