@@ -5747,3 +5747,42 @@ gates, confirmed on real cars, not assumed**:
     api/sellerDecision.js's `titleSearch` branch (`if (req.body?.titleSearch) {...}`, in the SERVER_ONLY_FLAGS list).
     Both archive-only and behind the header credential; nothing else imports rawTitleSearch. Also the `outcomeUsd`
     entry in `__specEngine` (see the entry above).
+
+- 2026-10-12 (Lane B2, job 3): SPECIAL EDITIONS ARE CARRIED; OPS TASKS RETIRED BY RULE.
+  * FOR LANE B - new resolver field `edition` (string or null), next to trimNumber / variant / series / wheelbase
+    (lib/vehicle.js editionIn; survives sanitizeResolvedVehicle, resolveForBuy and the year-missing partial).
+    Values, first match wins in this order: "Black Series", "Edition 1" (also "1st/first edition", "edition one"),
+    "Final Edition", "Launch Edition", "Anniversary" (with its ordinal when typed: "50th Anniversary"), "Heritage",
+    "Signature", "Sport Classic", "Speedster", "Touring", "CSL", "CS", "GTS", "Competition". `trim` is NEVER changed
+    to make room, so where the word is also a real trim it appears in both ("M3 Competition": trim "Competition",
+    edition "Competition"; "Carrera GTS": trim "Carrera GTS", edition "GTS") - do not print it twice. Where it was
+    being dropped, the word now lives only in `edition`: Black Series, Launch Edition, Edition 1, Final Edition,
+    Touring, Signature. The junk trim "Edition" that "Launch Edition"/"Edition 1" used to leave is gone, and the junk
+    trim "Series" that a year-less "SLS AMG Black Series" left is gone. canonicalLabel appends the edition when the
+    model and trim do not already say it.
+  * BEFORE -> AFTER (Market Check; Buy/Tasks in the last column):
+      2008 CLK 63 AMG Black Series   trim CLK63 AMG, dirty [Series]  ->  trim CLK63 AMG, edition "Black Series"   Buy: edition lost (parseQuery)
+      2013 SLS AMG Black Series      model SLS AMG, dirty [Series]   ->  edition "Black Series"                   Buy: edition lost (parseQuery)
+      SLS AMG Black Series (no year) trim "Series"                   ->  trim null, edition "Black Series"         Buy: trim "Series" (parseQuery)
+      2022 WRX Launch Edition        trim "Edition", dirty [Launch]  ->  trim null, edition "Launch Edition"       same
+      2010 GT-R Edition 1            trim "Edition", dirty [GTR, 1]  ->  trim null, edition "Edition 1"            same
+      2021 911 Turbo S Final Edition trim Turbo S, dirty [Final]     ->  trim Turbo S, edition "Final Edition"     same
+      2023 Z06 Anniversary           trim "Z06 Anniversary"          ->  unchanged trim, edition "Anniversary"     same
+      2022 M3 Competition / 2018 M4 CS / 2003 M3 CSL / 2012 911 Carrera GTS / 2019 911 Sport Classic /
+      2018 911 Heritage Edition      trim kept as before            ->  unchanged trim, edition set               same
+      2019 911 GT3 Touring           trim GT3, "Touring" lost        ->  trim GT3, edition "Touring"               same
+      2020 Navigator Signature       trim null, dirty [Signature]    ->  edition "Signature"                       same
+      2011 911 Speedster             trim Speedster                  ->  unchanged trim, edition "Speedster"       Buy: trim and edition lost (parseQuery)
+  * FOR LANE B (lib/live/search.js parseQuery, your file): it strips words BEFORE the resolver sees them, so Buy and
+    Tasks read different cars than Market Check for two kinds of edition: "Black" in "Black Series" becomes a PAINT
+    COLOUR filter (live cars are filtered to black paint, and the text reaches the resolver as "... AMG Series"), and
+    "Speedster" becomes a body filter with the word removed from the text. Fix: keep "Black Series" (and Speedster as
+    trim on a 911/356) out of the colour/body strip. scripts/resolverLanesCheck.mjs lists these 6 as known gaps (the
+    per-case buyGap list) and FAILS when one closes, so remove the entry then.
+  * OPS TASKS (docs/ops-tasks.md is the full table). Rule: KEEP if referenced by a workflow, a cron, a script, a doc
+    that tells Sam to run it or /admin, and every read-only audit; RETIRE write or spend tasks nothing references; ASK
+    for the launch-relevant ones. RETIRED (31): unkbackfill typeall typemodelunk milesfill titlefill transfill urlnorm
+    zeromiles usdbackfill unktriage futurerows bizleadtest simulatedrawer cachewritesafety specmarkettest histfetch
+    ocdstatus statsprobe liveprobe nonsold nonsold2 coverage houserates modelscan fragscan selldiag sellreal
+    platformpickreport platformpickproof platformpickaudit sellcutoverdiff. 102 remain. CORRECTION: CLAUDE.md says there
+    are no Vercel crons; vercel.json has crons, two of them ops tasks (depth 08:00 and fill 12:00 UTC), both kept.
