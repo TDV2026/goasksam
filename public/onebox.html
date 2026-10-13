@@ -103,6 +103,9 @@ button{font:inherit}
 .carline{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font:400 15px/1.4 var(--sans);color:var(--sec);margin:-4px 0 -8px}
 .vinpill,.pill{display:inline-block;border-radius:999px;font:600 12px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase}
 .vinpill{padding:6px 10px;background:var(--green);color:#fff}
+/* "Change" (result-hero job, Oct 2026): desktop drops it - the search box sits directly above the
+   result, already editable - and keeps it on mobile, where that box has scrolled out of view. */
+.carline .ch{display:none}
 
 /* ---- result hero zone (Oct 2026, result-hero job): the car as typed, then the scope line
    ("Matched to..."), both new - styled quietly, same family as the count line below them, so the
@@ -450,6 +453,7 @@ a.sb-line:hover{color:var(--green)}
   .inbox input{font-size:17px}
   .inbox .go{width:44px;height:44px;border-radius:9px;font-size:20px}
   .carline{font-size:15px;gap:10px;margin:-2px 0 -6px}
+  .carline .ch{display:inline-flex}
   .rung-label{font-size:14px}
   .hero-split{grid-template-columns:1fr;gap:12px}
   .anscard{border-radius:14px}
