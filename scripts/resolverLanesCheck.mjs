@@ -8,7 +8,7 @@ process.env.SUPABASE_URL = "http://127.0.0.1:9";   // nothing listens here: the 
 process.env.SUPABASE_SERVICE_ROLE_KEY = "test-not-a-key";
 const { resolveVehicle } = await import("../lib/vehicle.js");
 const { resolveForBuy, parseQuery } = await import("../lib/live/search.js");
-let bad = 0;
+let bad = 0, gaps = 0;
 const fail = m => { bad++; console.log("FAIL " + m); };
 // [typed words, expected {year, make, model, trim}] (a key left out is not checked)
 const CASES = [
@@ -39,21 +39,41 @@ const CASES = [
   ["2005 Land Rover Range Rover LWB", { year: 2005, model: "Range Rover", variant: "LWB" }],
   ["2015 Jeep Wrangler Unlimited", { year: 2015, model: "Wrangler", variant: "Unlimited" }],
   ["2008 Porsche 911 Carrera 4S", { year: 2008, model: "911", trim: "Carrera 4S" }],
+  // Special editions are carried on `edition` (Lane B2). `buyGap` names fields Buy/Tasks lose BEFORE the resolver, in
+  // lib/live/search.js parseQuery (Lane B's file: "Black" read as a paint colour, "Speedster" as a body filter, so the
+  // words never reach resolveForBuy). Known and listed for Lane B; the check fails if a gap closes so the entry is removed.
+  ["2008 Mercedes-Benz CLK 63 AMG Black Series", { year: 2008, model: "CLK-Class", trim: "CLK63 AMG", edition: "Black Series" }, ["edition"]],
+  ["2013 Mercedes-Benz SLS AMG Black Series", { year: 2013, model: "SLS AMG", trim: null, edition: "Black Series" }, ["edition"]],
+  ["Mercedes-Benz SLS AMG Black Series", { model: "SLS AMG", trim: null, edition: "Black Series" }, ["edition", "trim"]],
+  ["2022 Subaru WRX Launch Edition", { year: 2022, model: "WRX", trim: null, edition: "Launch Edition" }],
+  ["2010 Nissan GT-R Edition 1", { year: 2010, model: "GT-R", trim: null, edition: "Edition 1" }],
+  ["2021 Porsche 911 Turbo S Final Edition", { year: 2021, model: "911", trim: "Turbo S", edition: "Final Edition" }],
+  ["2023 Chevrolet Corvette Z06 Anniversary", { year: 2023, model: "Corvette", trim: "Z06 Anniversary", edition: "Anniversary" }],
+  ["2022 BMW M3 Competition", { year: 2022, model: "M3", trim: "Competition", edition: "Competition" }],
+  ["2018 BMW M4 CS", { year: 2018, model: "M4", trim: "CS", edition: "CS" }],
+  ["2003 BMW M3 CSL", { year: 2003, model: "M3", trim: "CSL", edition: "CSL" }],
+  ["2012 Porsche 911 Carrera GTS", { year: 2012, model: "911", trim: "Carrera GTS", edition: "GTS" }],
+  ["2019 Porsche 911 GT3 Touring", { year: 2019, model: "911", trim: "GT3", edition: "Touring" }],
+  ["2019 Porsche 911 Sport Classic", { year: 2019, model: "911", trim: "Sport Classic", edition: "Sport Classic" }],
+  ["2011 Porsche 911 Speedster", { year: 2011, model: "911", trim: "Speedster", edition: "Speedster" }, ["edition", "trim"]],
+  ["2018 Porsche 911 Heritage Edition", { year: 2018, model: "911", trim: "Heritage Edition", edition: "Heritage" }],
+  ["2020 Lincoln Navigator Signature", { year: 2020, model: "Navigator", trim: null, edition: "Signature" }],
   ["67 corvette", { year: 1967, make: "Chevrolet", model: "Corvette" }],   // a real two-digit year still reads as one
   ["sell my porsche", { make: "Porsche", model: null }],   // conversation is never a model
 ];
-const norm = v => v ? { year: v.year || null, make: v.make || null, model: v.model || null, trim: v.trim || null, trimNumber: v.trimNumber || null, wheelbase: v.wheelbase || null, variant: v.variant || null, series: v.series || null } : null;
-for (const [words, want] of CASES) {
+const norm = v => v ? { year: v.year || null, make: v.make || null, model: v.model || null, trim: v.trim || null, trimNumber: v.trimNumber || null, edition: v.edition || null, wheelbase: v.wheelbase || null, variant: v.variant || null, series: v.series || null } : null;
+for (const [words, want, buyGap = []] of CASES) {
   let mc = null, buy = null;
   try { const r = await resolveVehicle(words, {}); mc = r && r.vehicle ? norm(r.vehicle) : null; } catch (e) { fail(`${words}: resolveVehicle threw ${e.message}`); continue; }
   try { const pq = parseQuery(words); buy = norm(await resolveForBuy(pq.text || words, {})); } catch (e) { fail(`${words}: resolveForBuy threw ${e.message}`); continue; }
   for (const k of Object.keys(want)) {
     if (!mc || mc[k] !== want[k]) fail(`${words}: Market Check ${k} = ${JSON.stringify(mc && mc[k])}, wanted ${JSON.stringify(want[k])}`);
     // Buy never asks, so a year it does not state stays null; the car (make/model/trim) must be the same.
-    if (k !== "year" && (!buy || buy[k] !== want[k])) fail(`${words}: Buy/Tasks ${k} = ${JSON.stringify(buy && buy[k])}, wanted ${JSON.stringify(want[k])}`);
+    if (k !== "year" && buyGap.includes(k)) { if (buy && buy[k] === want[k]) fail(`${words}: Buy/Tasks now carries ${k}; remove it from this case's buyGap list`); else gaps++; }
+    else if (k !== "year" && (!buy || buy[k] !== want[k])) fail(`${words}: Buy/Tasks ${k} = ${JSON.stringify(buy && buy[k])}, wanted ${JSON.stringify(want[k])}`);
   }
   // Same car on both paths: make, model and trim equal wherever Market Check has them.
-  if (mc && buy && mc.make) for (const k of ["make", "model", "trim", "trimNumber", "wheelbase", "variant", "series"]) if ((mc[k] || null) !== (buy[k] || null)) fail(`${words}: lanes differ on ${k}: Market Check ${JSON.stringify(mc[k])} vs Buy/Tasks ${JSON.stringify(buy[k])}`);
+  if (mc && buy && mc.make) for (const k of ["make", "model", "trim", "trimNumber", "wheelbase", "variant", "series", "edition"].filter(k => !buyGap.includes(k))) if ((mc[k] || null) !== (buy[k] || null)) fail(`${words}: lanes differ on ${k}: Market Check ${JSON.stringify(mc[k])} vs Buy/Tasks ${JSON.stringify(buy[k])}`);
   // Copy rules in what the resolver emits.
   for (const s of [mc && mc.model, mc && mc.trim, buy && buy.model, buy && buy.trim].filter(Boolean)) {
     if (/–|—/.test(s)) fail(`${words}: dash in "${s}"`);
@@ -61,5 +81,5 @@ for (const [words, want] of CASES) {
   }
   if (buy && buy.make && buy.model && new RegExp(`^${buy.make}\\b`, "i").test(buy.model) && buy.model.toLowerCase() !== buy.make.toLowerCase()) fail(`${words}: model repeats the make: "${buy.model}"`);
 }
-console.log(bad ? `resolverLanesCheck: ${bad} failure(s)` : `resolverLanesCheck: ${CASES.length} names, one car on every lane`);
+console.log(bad ? `resolverLanesCheck: ${bad} failure(s)` : `resolverLanesCheck: ${CASES.length} names, one car on every lane` + (gaps ? ` (${gaps} known Buy parseQuery gaps listed for Lane B)` : ""));
 process.exit(bad ? 1 : 0);
