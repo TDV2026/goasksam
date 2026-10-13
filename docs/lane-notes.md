@@ -5872,3 +5872,34 @@ gates, confirmed on real cars, not assumed**:
   divergence found there, "1970 Datsun 240Z Spyder", same shape). Suggest: port resolveForBuy's
   archiveResolveToken fallback into resolveVehicle itself (or call it from resolveVehicle on a
   model:null miss) so every caller of the ONE shared resolver gets the same recovery, not just Buy's.
+
+- 2026-10-13 (Lane B2): CODE-STYLE NAMEPLATES IN THE SHARED RESOLVER (240Z and the rest). Files: lib/vehicle.js,
+  lib/vehicleData.js, scripts/resolverLanesCheck.mjs (now 86 names).
+  FOUND (offline, curated data only, same words through resolveVehicle and parseQuery + resolveForBuy):
+    * Datsun 240Z, 260Z, 280Z: model null on BOTH paths offline (Datsun has no taxonomy models). In production Buy
+      recovered the model through the archive fallback and Market Check/Sell did not.
+    * "MG MGB": model "MGB" only when a year was typed; with no year it came out as model "B" (the make strip left the tail
+      of the alias). With a year it was right.
+    * "Nissan 240Z" / "Nissan 280Z": make Nissan, model null (the archive files these under Datsun).
+    * "Evo": model "Evo", while "Lancer Evolution" is the model the archive uses.
+    * Every other name on the list (2000GT, RX-7, RX-8, MR2, NSX, S2000, GT-R, 350Z, 370Z, Supra, WRX STI, E-Type, XK120,
+      TR6, Esprit, Elise, DB5, Testarossa, F40, 308 GTB, Countach, Diablo, Miura, SLS AMG, Z3 M Coupe, Z4 M, 1M, 8C,
+      Giulia Quadrifoglio) already resolved identically on both paths and are now pinned in the check.
+  FIXED: curated Datsun models 240Z/260Z/280Z/280ZX; make-less aliases 240z/260z/280z/280zx (Datsun), 300zx (Nissan),
+  mgb/mga/mgc (MG), evo (Mitsubishi Lancer Evolution); typed Nissan 240Z/260Z/280Z/280ZX resolves to make Datsun (the typed
+  word "Nissan" is consumed, never left as trim); removeKnownNoise strips an alias that starts with the make before the make.
+  FOR LANE B: the resolved shape the sweep can assert (year as typed, trim null unless shown):
+    1970/1972 Datsun 240Z, 1972 Nissan 240Z, bare 240Z -> make Datsun, model 240Z
+    1974 Datsun 260Z -> Datsun 260Z; 1977 Datsun 280Z -> Datsun 280Z; 1982 Datsun or Nissan 280ZX -> Datsun 280ZX
+    1990 Nissan 300ZX, bare 300ZX -> Nissan 300ZX; 2005 Nissan 350Z -> Nissan 350Z; 2010 Nissan 370Z -> Nissan 370Z
+    1967 Toyota 2000GT, 1985 Mazda RX-7, 2004 Mazda RX-8, 1991 Toyota MR2, 1991 Acura NSX, 2002 Honda S2000,
+    2010 Nissan GT-R, 1994 Toyota Supra: model as typed, trim null
+    2004 Mitsubishi Evo -> Mitsubishi, model Lancer Evolution; 2015 Subaru WRX STI -> model WRX, trim STI
+    1966 Jaguar E-Type, 1953 Jaguar XK120, 1974 Triumph TR6, 1972 MG MGB and bare MGB -> MG, model MGB (never "B")
+    1999 Lotus Esprit, 2005 Lotus Elise, 1964 Aston Martin DB5, 1988 Ferrari Testarossa, 1993 Ferrari F40: model as typed
+    1977 Ferrari 308 GTB -> model 308, trim GTB; Lamborghini Countach, Diablo, Miura: model as typed
+    2012 Mercedes-Benz SLS AMG -> model SLS AMG, trim null; 1999 BMW Z3 M Coupe -> Z3, trim M; 2003 BMW Z4 M -> Z4, trim M
+    2011 BMW 1M -> model 1M; 2008 Alfa Romeo 8C -> model 8C; 2018 Alfa Romeo Giulia Quadrifoglio -> Giulia, trim Quadrifoglio
+  NOT CHANGED: 280ZX typed Nissan now reads as Datsun on the assumption the archive files it there like the other early Z
+  cars; I could not check the archive from here (no service key), so confirm with one count of Datsun vs Nissan 280ZX.
+  "1971 Datsun 240Z Series 1": "Series 1" is dropped (no field for it yet). Search check: no public page touched.
