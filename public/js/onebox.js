@@ -1581,35 +1581,43 @@
     return "the past " + w + " months";
   }
   // Thin state (Thin.html): headline with the count in green, freshness, the engine's older-sales
-  // count when present, then the sales as a two-column card grid. NO HEADLINE DOLLAR FIGURE (rule 24)
-  // and no second range line: the cards are the record.
-  function thinHeadHtml(name, scope, scopedLabel, ht) {
+  // count when present, then the sales as a two-column card grid.
+  function thinHeadHtml(d, name, scope, scopedLabel, ht) {
     var who = (scopedLabel ? cap(scopedLabel) + " " + name : cap(name));
     // The year comes from the sale itself, never the typed year (a "1902 Pierce Motorette" whose
     // only sale is a 1904 reads "a 1904").
     var whoNoYear = String(who).replace(/^\s*(18|19|20)\d\d\s+/, "");
     var win = thinWindowText(ht), n = scope.length;
-    var plural = carNamePlural(whoNoYear);
     if (n === 1) {
       var yr = scope[0] && scope[0].year ? scope[0].year : null;
       return '<h1 class="thin-head lead">' + lint("Only <span class=\"ct\">one " + esc(whoNoYear) + "</span> has sold in " + win + (yr ? ", a " + yr : "") + ". Here’s what it went for.", "ht.hero1") + "</h1>";
     }
-    // 300SL copy-bug fix (Round 4 Job 3): this used to say "{n} ... not enough for a range" naming
-    // the FULL total (n, every sale shown below) as the thing that gated this state - but "thin"
-    // only ever fires on a DIFFERENT, smaller number (ht.onlineN, the live-online-marketplace count
-    // over the window; HT_ONLINE_MIN on the server). A 1955 Mercedes-Benz 300SL Coupe with 32 total
-    // sales (n=32, well above the 8-sale range floor) still lands here because only a handful of
-    // those sold through live online marketplaces - the old sentence claimed 32 "wasn't enough,"
-    // which never gated anything. Name the real number instead; n is still stated, honestly, as
-    // what sold in total.
-    var onlineN = Number.isFinite(ht && ht.onlineN) ? ht.onlineN : null;
-    // Round 7 (Oct 2026): counts one to ten spelled in sentences, 11+ digits with a thousands
-    // separator - obNumWord/obNumWordLow already do both; this prose just hadn't been routed
-    // through them yet.
-    var why = (onlineN != null && onlineN < n)
-      ? "Only " + obNumWordLow(onlineN) + " sold through live online marketplaces in that time, too few to mark a typical band there"
-      : "Too few to mark a typical band";
-    return '<h1 class="thin-head lead">' + lint("<span class=\"ct\">" + obNumWord(n) + " " + esc(plural) + "</span> have sold in " + win + ". " + why + ", so here’s what they went for.", "ht.hero") + "</h1>";
+    // Part 1 (Oct 2026): count line, then "Sold between $LOW and $HIGH" the moment the engine's
+    // own factsBlock carries a real lowest/highest - which it only ever does at poolSize 8+
+    // (lib/onebox.js RANGE_THRESHOLD, the SAME 8-sale floor rule 24 uses everywhere else; the
+    // engine nulls both fields below that on its own, so no separate gate is needed here). All-in
+    // prices (buyer's premium reconciled), matching the receipt cards below - NEVER thin.span (the
+    // raw hammer-only span), which this file never reads or prints anywhere. The reason sentence
+    // (why there's no typical band) moved to its own line - see thinReasonHtml below - so it is
+    // never duplicated between this headline and the facts line the way the old one-sentence
+    // headline and factsBlockHtml's own reason used to both almost-say it.
+    var fb = d && d.factsBlock;
+    var latestDate = (scope || []).reduce(function (mx, r) { return (r && r.date && r.date > mx) ? r.date : mx; }, "");
+    var soldBetween = (fb && fb.lowest != null && fb.highest != null) ? (" Sold between " + usd(fb.lowest) + " and " + usd(fb.highest) + ".") : "";
+    var text = "<span class=\"ct\">" + obNumWord(n) + " sales</span> in " + win + (latestDate ? ", the latest on " + freshDay(latestDate) : "") + "." + soldBetween;
+    return '<h1 class="thin-head lead">' + lint(text, "ht.hero") + "</h1>";
+  }
+  // The reason there's no typical band (Part 1, Oct 2026): "the existing reason sentence" - reuses
+  // FACTS_REASON_SENTENCE[d.reasonFlag] unchanged (defined below, already used by factsBlockHtml for
+  // the refusal tier) rather than a second ad-hoc composition, so thin and refusal never drift to
+  // two different wordings for the same fact. tier "thin" always maps to reasonFlag
+  // too_few_online_for_a_range (mapEngineAnswer, lib/onebox.js) - same onlineLiquidityN this
+  // headline's old inline version read, just the one, named sentence instead of two near-duplicates.
+  function thinReasonHtml(d) {
+    var fb = d && d.factsBlock;
+    var fn = FACTS_REASON_SENTENCE[d && d.reasonFlag];
+    var line = fn ? fn(fb) : "";
+    return line ? '<p class="ans-line facts-reason">' + lint(esc(line), "facts.reason") + "</p>" : "";
   }
   // Paired sales: same chassis at a house AND online. Two receipts side by side, NO percentage
   // until a model clears 3 such pairs (design: the % stays dormant below that).
@@ -1691,8 +1699,8 @@
     if (ht.houseSteer) lines.push(!ht.onlineReceiptsN ? "These trade at the auction houses, not online. Every recorded sale here came through one." : "These mostly trade at the auction houses; a few sell online. Both are below.");
     else if (ht.houseN && ht.onlineReceiptsN) lines.push("These sell online and at the auction houses. The recorded sales are below.");
     var gpat = gearboxPatternLine(scope); if (gpat) lines.push(gpat);
-    var body = livePanelSlot() + '<div class="thinblk livetake" data-stage="answer">' + thinHeadHtml(name, scope, scopedLabel, ht) + freshLine(d) +
-      lines.map(function (p) { return '<p class="ans-line">' + lint(esc(p), "ht.line") + "</p>"; }).join("") + factsBlockHtml(d, false) + "</div>";
+    var body = livePanelSlot() + '<div class="thinblk livetake" data-stage="answer">' + thinHeadHtml(d, name, scope, scopedLabel, ht) + freshLine(d) +
+      lines.map(function (p) { return '<p class="ans-line">' + lint(esc(p), "ht.line") + "</p>"; }).join("") + thinReasonHtml(d) + "</div>";
     if (m) body += '<div class="cards5 single" data-stage="cards">' + vinHeroCardHtml(m, d.resolvedCar) + "</div>";
     // Newest first (the honest evidence order); the engine's hammer-desc order is for its own math.
     // Every sale renders (capped display only, Oct 2026): "every real sale", not a curated slice.
@@ -2474,11 +2482,24 @@
     var prefill = obSourceVin || (obResolvedCar ? carLabel(obResolvedCar) : "") || lastQuery || "";
     try { if (prefill) localStorage.setItem("gas_onebox_prefill", prefill); } catch (e) {}
     obEvent("onebox_sell_handoff_clicked");
-    // Result-hero job (Oct 2026): the handoff now fires the catalog's own sell_started (docs/
+    // Result-hero job (Oct 2026): the handoff fires the catalog's own sell_started (docs/
     // analytics-events.md) - the Sell flow's first-answer event - alongside the older onebox-only
     // funnel event above, so this entry point is counted the same way every other Sell start is.
-    // sell_started carries no props (lib/track/catalog.js req:{}, opt:{}).
-    if (typeof gasTrack === "function") gasTrack("sell_started");
+    // Part 2 (Oct 2026): vehicle_key (lower-case make|model, never trim or VIN) and year (an
+    // integer) from the resolved car, so the dashboard can see which car a handoff was for - the
+    // FOR LANE A ask this answers. Nothing computed or guessed: both are omitted entirely when the
+    // resolved car has no make/model or no valid year to build them from. DORMANT until Lane C adds
+    // these as optional props to lib/track/catalog.js's sell_started entry (today req:{}, opt:{}) -
+    // the generated gasTrack() rejects an unknown prop, so sending them now means the event is a
+    // silent no-op for any handoff with a resolved car, same as every other "built ahead of the
+    // landing field" job this session (Round 7's fallbackRung, Part 3's hasHistoryPage).
+    if (typeof gasTrack === "function") {
+      var props = {}, rc = obResolvedCar;
+      if (rc && rc.make && rc.model) props.vehicle_key = (String(rc.make) + "|" + String(rc.model)).toLowerCase();
+      var yr = rc && Number(rc.year);
+      if (Number.isFinite(yr) && yr > 0) props.year = yr;
+      gasTrack("sell_started", props);
+    }
   }
   function shareResult() {
     obEvent("onebox_share_clicked");

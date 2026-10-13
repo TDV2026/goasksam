@@ -89,7 +89,6 @@
     { "source": "/obx.20261014l/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261014m/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261014n/(.*)", "destination": "/js/$1" },
-    { "source": "/obx.20261014o/(.*)", "destination": "/js/$1" },
     { "source": "/admin", "destination": "/api/admin?page=1" },
     { "source": "/desk", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/desk.html" },
     { "source": "/desk", "has": [{ "type": "cookie", "key": "gas_tester", "value": "ok" }], "destination": "/desk.html" },
