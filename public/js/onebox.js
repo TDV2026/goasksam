@@ -328,12 +328,13 @@
     }).catch(function () {});
   }
   // READY TO SELL: a real link into /sell carrying the resolved car + every answered question as URL
-  // parameters (sellHref). Ownership-neutral (rule 20): an offer, not an assertion. Result-hero job
-  // (Oct 2026): copy rewritten off first-person Sam - this line sits on Market Check's result, not
-  // the Sell flow or the homepage Sell door, where first-person Sam is reserved.
+  // parameters (sellHref). Ownership-neutral (rule 20): an offer, not an assertion. Rule 15/first-
+  // person fix (Oct 2026) bans first-person Sam ("I can tell you") on Market Check, not the name
+  // itself - third person ("Sam would sell it") is allowed and reads like a person again, unlike the
+  // content-free "Start here" that briefly replaced it.
   function sellHtml() {
     return '<section class="sellbox" data-stage="note"><div class="st"><h3>Ready to sell?</h3><p>See where cars like this have sold and when.</p></div>' +
-      '<a id="ob-sell" href="' + esc(sellHref()) + '">Start here &#8594;</a></section>';
+      '<a id="ob-sell" href="' + esc(sellHref()) + '">See where Sam would sell it &#8594;</a></section>';
   }
   // ---------------------------------------------------------------- state renderers
   function chipsHtml(options, kind) {
@@ -812,63 +813,35 @@
     if (!txt) return "";
     return '<div class="fresh"><span class="dot"></span>' + esc(txt) + "</div>";
   }
-  // EVIDENCE BLOCK meta line (Oct 2026, evidence-block job): "89 comparable sales, through last
-  // night." - the sold count folded into the SAME sentence as the freshness fact, so the car line
-  // carries both facts at once instead of a separate standalone freshness div further down the
-  // card (which would restate the same currency fact twice on one card). Same freshness inputs as
-  // freshLine above, just the bare phrase instead of a full sentence; the rare dual-fact case (the
-  // in-scope newest sale is older than the archive's) keeps both facts, comma-joined.
-  function freshPhrase(d) {
+  // Latest-sale clause for the count line (Oct 2026 follow-up): the old count line stated the
+  // freshness fact as its OWN second sentence ("...through last night. Latest sale Aug 29.") - two
+  // sentences doing one job. This states just the one fact that actually matters here (when the
+  // newest comparable sale closed), dropping the separate archive-currency half of the old dual-fact
+  // case as redundant with it. Same underlying d.freshness fields, no second measurement.
+  function countLatestPhrase(d) {
     var f = d && d.freshness; if (!f) return "";
     var through = f.through, arch = f.archiveThrough;
-    if (through && arch && through < arch) {
-      var now = Date.now();
-      var archRecent = (now - Date.parse(arch + "T00:00:00Z")) <= 2 * 864e5;
-      var fact1 = archRecent ? "through last night" : ("through " + monthDayYear(arch));
-      return fact1 + ". Latest sale: " + freshDay(through) + ".";
-    }
-    if (f.mode === "house") return f.through ? ("through " + monthOnly(f.through) + ".") : "";
-    if (f.lastNight) return "through last night.";
-    if (f.through) return "through " + monthDayYear(f.through) + ".";
+    if (through && arch && through < arch) return "the latest on " + freshDay(through);
+    if (f.mode === "house") return f.through ? ("the latest on " + monthOnly(f.through)) : "";
+    if (f.through) return "the latest on " + freshDay(f.through);
     return "";
   }
-  // Short "through" clause for the count line (result-hero job, Oct 2026): freshPhrase's own
-  // "through October 7, 2026." is right for a standalone sentence, but the count line wants the
-  // terser "through Oct 7" shape (freshDay's own short-month, no-year-if-current-year format,
-  // already used for "Latest sale: Oct 3") - a different PRINT of the exact same freshness facts,
-  // never a second measurement.
-  function countThroughPhrase(d) {
-    var f = d && d.freshness; if (!f) return "";
-    var through = f.through, arch = f.archiveThrough;
-    if (through && arch && through < arch) {
-      var now = Date.now();
-      var archRecent = (now - Date.parse(arch + "T00:00:00Z")) <= 2 * 864e5;
-      var fact1 = archRecent ? "through last night" : ("through " + freshDay(arch));
-      return fact1 + ". Latest sale " + freshDay(through);
-    }
-    if (f.mode === "house") return f.through ? ("through " + monthOnly(f.through)) : "";
-    if (f.lastNight) return "through last night";
-    if (f.through) return "through " + freshDay(f.through);
-    return "";
-  }
-  // Count line (result-hero job, Oct 2026): "29 comparable sales, last twelve months, through Oct 7."
-  // Replaces the old "N comparable sales in the last twelve months, through last night." phrasing -
-  // same three facts (count, window, freshness), comma-joined per the new design. d.soldCount is the
-  // engine's OWN already-worded field (its countWord helper spells a count under ten - "eight", a
-  // real string - and leaves ten and up numeric), never a plain number this file can safely re-parse
-  // with Number(); printing it verbatim when it is a word avoids the NaN a blind Number()+obNumWord
-  // pass produced here on a live "eight"-sale pool. obNumWord still handles the numeric (11+) case.
+  // Count line (result-hero job, Oct 2026, one-sentence follow-up): "Eight comparable sales in the
+  // last twelve months, the latest on Aug 29." One sentence, not two. d.soldCount is the engine's OWN
+  // already-worded field (its countWord helper spells a count under ten - "eight", a real string -
+  // and leaves ten and up numeric), never a plain number this file can safely re-parse with Number();
+  // printing it verbatim when it is a word avoids the NaN a blind Number()+obNumWord pass produced
+  // here on a live "eight"-sale pool. obNumWord still handles the numeric (11+) case.
   function evidenceMetaLine(d) {
     var count = d && d.soldCount;
-    if (count == null) { var ph = freshPhrase(d); return ph ? '<p class="ev-meta count-line">' + lint(esc(cap(ph)), "ev.meta") + "</p>" : ""; }
+    if (count == null) return "";
     var n = Number(count);
     var isNum = Number.isFinite(n);
     var countWord = isNum ? obNumWord(n) : String(count);
     var isOne = isNum ? n === 1 : /^one$/i.test(String(count));
     var noun = isOne ? " comparable sale" : " comparable sales";
-    var win = windowText(d).replace(/^the\s+/i, "");
-    var through = countThroughPhrase(d);
-    var text = countWord + noun + ", " + win + (through ? ", " + through : "") + ".";
+    var latest = countLatestPhrase(d);
+    var text = countWord + noun + " in " + windowText(d) + (latest ? ", " + latest : "") + ".";
     return '<p class="ev-meta count-line">' + lint(esc(cap(text)), "ev.meta") + "</p>";
   }
   // ---- Sale cards (Oct 2026 design). One renderer for every card size: photo slot (real photo, or
@@ -1148,7 +1121,7 @@
       // Refinement copy pattern (locked, CLAUDE.md): reruns the EVIDENCE around the current
       // mileage, never promises a different number/range. "which real sales are used", not a result.
       return '<div class="qcard earned reconfirm" data-stage="answer"><p class="q">' + lint("Has the mileage changed? Last reported " + mi.toLocaleString("en-US") + " miles" + (asOf ? " in " + asOf : "") + ".", "rc.q") +
-        '</p><p class="rc-sub">' + lint("If it’s different now, update it and the market reruns around the current mileage.", "rc.sub") +
+        '</p><p class="rc-sub">' + lint("If it’s different now, update it and the range reruns around the mileage you give.", "rc.sub") +
         '</p><div class="qchips"><button type="button" class="qchip g" data-refyes>No change</button><button type="button" class="qchip typeit" data-typemiles>Update mileage</button></div></div>';
     }
     return "";
