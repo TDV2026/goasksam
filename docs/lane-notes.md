@@ -6192,3 +6192,97 @@ gates, confirmed on real cars, not assumed**:
   check still asserting classEraN may be asserting on a mechanism that no longer exists. CLK DTM
   wording and the bare-911 fence were not touched, per this round's explicit instruction.
   Search check: no public page touched (lib/_epoch.js, lib/live/search.js, scripts/crossProductCheck.js only).
+
+## Lane A: Market Check result hero + sales row rebuild (2026-10-13)
+
+Full visual rebuild of the Market Check result hero and sales row to the approved design (job text
+in this round's own brief, not re-pasted here). Commits, in order: 98caf26 (the rebuild itself),
+154acf6 (fix: restored offWindowLabel/otherHalfLabel after prePush's offWindowCheck caught a real
+regression from deleting them), 96985ca (fix: info-dot tooltip text was rendering as visible garbled
+text instead of a hover title, and was misplaced outside its paragraph), a1f9813 (fix: the identity-
+takeover "both" sentence was lowercasing acronym option labels, "PDK" -> "pdk").
+
+Removed: the whole "Narrow it down" block and everything that only lived inside it (body-style
+question, gearbox-earned question, the dictionary driver question, the observable-fact question, the
+VIN mileage-staleness reconfirm card, the capped gearbox/competition split chips, the divergence-
+contradiction line, the mileage-nearest-sales-fallback note, the removable-answer chip row, and the
+identity-question "switch sides" chip) - the brief's own instruction was explicit ("Remove: the
+Narrow it down block and all its pills"), read literally as the whole block, not a subset. The old
+boxed/pilled context cards (Middle of the range / Fewer miles / Earlier) and their Sam's Take
+companion panel are also gone - Sam's Take was not in the brief's enumerated 7-item hero list and has
+no new home this round. The old "Matched to ..." scope sentence is gone from both the range and thin
+tiers. FOR SAM, since this is a real functional loss beyond the explicitly-named removals: body/
+gearbox/driver/observe questions, the VIN reconfirm, and Sam's Take currently have nowhere to render
+on Market Check. If any of these should come back, they need an explicit new home, not a revert of
+this round's removal.
+
+identityQuestionHtml/renderIdentityQuestion's full-takeover screen now covers gearbox_choice,
+variant_choice and dochistory_choice (real per-option counts via the engine's own identityQuestion
+contract) - deliberately NOT body_choice/model_choice/generation_choice, which stay on the older
+renderChoice/qscreenHtml chip path: body_choice's chips answer by appending to the query text and
+fully re-resolving, a different, unproven-for-this-screen mechanism from the inline refine the new
+screen's click handler uses, and model_choice/generation_choice carry no per-option count to print at
+all (the brief's design wants counts, never computed).
+
+FOR LANE B: mapEngineAnswer's poolSize/low/high/yearWidened are computed but never copied onto the
+client-facing `oneBox` object in api/sellerDecision.js (only answerType/identityQuestion/factsBlock/
+reasonFlag/fallbackRung/rungLabel/siblingName/queryMileage are, per the existing "Lane A render job"
+comment block there) - confirmed by grep, not touched this round since api/sellerDecision.js is
+outside Lane A's file list this round. The new hero derives an honest equivalent client-side instead
+(heroPoolSizeNum: d.poolN for the range tier, d.factsBlock.count for thin, in that preference order),
+so nothing is broken, but a renderer that actually wants the engine's own poolSize/low/high (e.g. to
+stop re-deriving low/high from d.cluster by hand) still can't read them. Low priority, not blocking.
+
+heroReceipt and contextRoles (the brief's two dormant fields) are still absent from both lib/onebox.js
+and the wire - confirmed again by grep. Every reader (heroReceiptHtml, salesRowHtml) prefers them and
+falls back to the existing d.representative trio the moment either lands, no further Lane A change
+needed.
+
+Rendered copy, each state (live, goasksam.com):
+- RANGE (2025 Porsche 911): "MARKET CHECK / 2025 Porsche 911 / 911 models, 2020 to 2026, coupes and
+  cabriolets · 42 sales in the last twelve months · latest Oct 7 / WHERE THE MIDDLE HALF SOLD (i) /
+  $115,000 to $143,000 / Add mileage to narrow the range. [field] / [receipt: 2026 Porsche 911 Carrera
+  Coupe, 1,800 miles, Bring a Trailer, Apr 2026, Sold for $140,000, View original sale ->, 41 more
+  comparable sales ->] / Sales behind this answer / One from the middle of the range, one at each edge
+  of the middle half. / [3 cards] / See all 42 sales -> How Sam picked these ->". No identity line
+  rendered (this car's pool reads single-trim this round - the line is conditional, as designed).
+- THIN (2006 Mercedes-Benz CLK DTM): "...12 sales in the past three years, the latest on Jul 4. /
+  Sales through last night. Latest sale: Jul 4. / These trade at the auction houses, not online.
+  Every recorded sale here came through one. / WHERE THEY SOLD / $417,843 to $751,062 (ink, not
+  green) / None sold through live online marketplaces in that time, too few to mark a typical band. /
+  [receipt: highest-priced sale, $751,062]". No mileage line, no sales row (kept the existing boxed
+  receipts grid below, per this round's scoping note in the commit).
+- UNDER EIGHT (1931 Duesenberg Model J, 5 sales): count line + the same two reason/context lines, NO
+  headline figure of any kind, same receipt treatment (highest-priced sale, $3,855,000).
+- IDENTITY QUESTION: no live query in several tries (997 Carrera S Coupe, Cayman GT4, Camaro Z28, M3
+  Coupe) actually triggered a blocking gearbox/variant/dochistory question this round - all resolved
+  straight to a result. Proved the screen with a STUBBED engine answer instead (fetch intercept on
+  /api/sellerDecision returning a fabricated gearbox_choice payload, the real shipped code rendering
+  it), marked stubbed: "MARKET CHECK / 2013 Porsche 911 Carrera S / Both Manual and PDK have enough
+  sales to answer separately. / Manual or PDK? / The range changes with the answer. / Manual (29
+  sales) -> PDK (13 sales) ->". Nothing else on the page, as specified.
+
+Screenshots: desktop (1440) and phone (390) captured for all four states via a real Puppeteer/Chrome
+session through the crew test-stage header (PROBE_KEY read fresh per command, never printed). Phone
+stacking verified both visually and via getComputedStyle (display:flex, flex-direction:row, .ph
+width:110px on a sales-row card at 390) after an initial screenshot pass looked wrong and turned out
+to be a stale pre-deploy capture.
+
+Elements removed (visual): the three card labels (Middle of the range / Fewer miles / Earlier), every
+box/shadow in the old evidence card and context cards, the old "Matched to ..." line, Sam's Take
+panel, the Narrow it down header and every pill/chip inside it (see the functional list above for
+what that took with it).
+
+Not done: live-captured identity-question proof (stubbed instead, per the brief's own fallback
+instruction) - no live query this round happened to land on that tier. body_choice was deliberately
+left off the new full-takeover screen (see FOR LANE B-adjacent note above) - a real scope decision,
+not an oversight.
+
+Search check: no title, H1, or canonical changed - the page's <title>/meta are server-rendered
+elsewhere and untouched; results pages were already noindex and remain so (no robots/meta change in
+this diff). Search check: no public page's crawl path touched beyond the existing noindex Market
+Check result surface itself.
+
+prePush: 0 FAIL, 6 SKIP (the archive-backed checks, SUPABASE_URL/SERVICE_ROLE_KEY not set in this
+environment, per the standing note), 10 PASS, including the speed budget (9.5-13.9s against 14-18s
+budgets) and offWindowCheck (8/8, after the fix above). Pushed after a clean run.
