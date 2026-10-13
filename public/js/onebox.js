@@ -737,7 +737,7 @@
   // SALES ROW (task #41): "Sales behind this answer" - the same representative trio (d.representative
   // closest/high/low), now as three borderless cards. Prefers d.contextRoles (dormant, not yet sent by
   // Lane B) for the subhead sentence; falls back to the brief's own fallback sentence verbatim.
-  function salesRowCardHtml(c) {
+  function salesRowCardHtml(c, d) {
     if (!c) return "";
     var venue = (c.platform && c.platform !== "others") ? c.platform : "";
     var month = c.month || monShort(c.date);
@@ -751,6 +751,7 @@
       '<div class="salescard-body"><p class="salescard-price">' + esc(usd(c.price)) + "</p>" +
       '<p class="salescard-title">' + esc(cleanReceiptTitle(c.title)) + "</p>" +
       (meta ? ('<p class="salescard-meta">' + esc(meta) + "</p>") : "") +
+      otherHalfLabel(c, d) + offWindowLabel(c, d) +
       "</div></" + tag + ">";
   }
   function salesRowHtml(d) {
@@ -764,7 +765,7 @@
     var id = "ob-why" + (++obCapSeq);
     return '<div class="salesrow" data-stage="cards"><h2>Sales behind this answer</h2>' +
       '<p class="salesrow-sub">' + lint(esc(sub), "salesrow.sub") + "</p>" +
-      '<div class="salescards">' + cards.map(salesRowCardHtml).join("") + "</div>" +
+      '<div class="salescards">' + cards.map(function (c) { return salesRowCardHtml(c, d); }).join("") + "</div>" +
       '<div class="salesrow-foot">' + (seeAll || "") +
       '<button type="button" class="linkbtn" data-qtoggle="' + id + '" aria-expanded="false">How Sam picked these</button></div>' +
       '<div class="ev-why-note" id="' + id + '" hidden>' + howSamDecidedNoteHtml(d) + "</div></div>";
@@ -948,11 +949,43 @@
   }
   // "Automatic (7-speed)" -> "Automatic, 7-speed".
   function longMiles(c) { return Number(c.mi) > 0 ? Number(c.mi).toLocaleString("en-US") + " miles" : (c.mileageText && c.mileageText !== "TMU" ? c.mileageText : ""); }
-  // ctxCardHtml (the old boxed/pilled "Closest match"/"Middle of the range" context cards) and its
-  // two label helpers, otherHalfLabel and offWindowLabel, were deleted in the hero-rebuild round
-  // (Oct 2026) along with contextSalesHtml - see salesRowCardHtml above, the new borderless
-  // replacement. Neither label (cross-generation-half, off-window) has a new home on the sales row
-  // this round; flagged in the round report as a real, if minor, information loss.
+  // ctxCardHtml (the old boxed/pilled "Closest match"/"Middle of the range" context cards) was
+  // deleted in the hero-rebuild round (Oct 2026) along with contextSalesHtml - see salesRowCardHtml
+  // above, the new borderless replacement. otherHalfLabel and offWindowLabel below are KEPT, byte-
+  // identical, and now called from salesRowCardHtml instead: offWindowLabel specifically is load-
+  // bearing for scripts/offWindowCheck.mjs (prePush), which extracts this exact function by name and
+  // asserts its wording matches api/buy.js's drawerHtml for the same stubbed off-window card -
+  // discovered the hard way when a first pass at this round deleted it and prePush caught the
+  // regression immediately.
+  // OTHER-HALF LABEL (Oct 2026, evidence-block job): a context card drawn from the OTHER half of a
+  // split/merged generation (d.halfGeneration, lib/generations.js) reads "2010, later generation" /
+  // "2006, earlier generation" - the card's own year, plus plain earlier/later against the searched
+  // car's own year. Read defensively: nothing unless the engine actually carries a half-generation
+  // table entry for this model (d.halfGeneration) AND this specific card was tagged cross-half
+  // (c.sameHalf === false, set server-side by pickRepresentative) AND both years are known. This
+  // NEVER computes which half a year belongs to (that boundary is the engine's call, via sameHalf) -
+  // it only orders two already-known years in plain English once the engine says they differ.
+  function otherHalfLabel(c, d) {
+    if (!c || !d || !d.halfGeneration || c.sameHalf !== false || !c.year) return "";
+    var subjYear = d.resolvedCar && Number(d.resolvedCar.year);
+    if (!subjYear || !Number(c.year)) return "";
+    var dir = Number(c.year) > subjYear ? "later generation" : (Number(c.year) < subjYear ? "earlier generation" : "");
+    if (!dir) return "";
+    return '<div class="otherhalf">' + esc(c.year + ", " + dir) + "</div>";
+  }
+  // OFF-WINDOW LABEL (Oct 2026, context-cards job): c.offWindow is true only when this card's own
+  // year sits outside the searched year's preferred window AND the window could not be filled from
+  // the pool (the engine's full-pool fallback, lib/onebox.js pickRepresentative) - false/null means
+  // either the window was satisfied or no window applies, and nothing renders. Same family of note
+  // as otherHalfLabel above (a plain fact-only div under the card, never a second number or a claim
+  // about the range itself - the range/count are unchanged by this field, see docs/lane-notes.md).
+  // ONE function: every surface that can show this card reuses it, never its own copy of the text.
+  function offWindowLabel(c, d) {
+    if (!c || c.offWindow !== true || !c.year) return "";
+    var searchedYear = d && d.resolvedCar && Number(d.resolvedCar.year);
+    if (!searchedYear) return "";
+    return '<div class="offwindow">' + esc("A " + c.year + " car, a few years from the " + searchedYear + " searched.") + "</div>";
+  }
   // The exact car (VIN or chassis match) as the hero: "THIS CAR", 1.5px green border, its last sale.
   // Snapshot attributes are dated and past tense (rule 26). The history link renders only when the
   // engine returns how many times it sold before the shown sale (m.soldBeforeCount >= 1) and the
