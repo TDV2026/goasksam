@@ -5963,3 +5963,26 @@ gates, confirmed on real cars, not assumed**:
     untimed bid (an amount with no reliable bid time) shows no bid at all per that module's own rule,
     rather than "No bids yet" (which would be a wrong claim) or a guessed age.
   * Commits: a5bef4b, c0a5406.
+
+
+
+- 2026-10-13 (Lane B2): BULK RESOLVER AUDIT (scripts/resolverAudit.mjs, docs/resolver-audit.md). 274 makes and models, 8,359 typed forms,
+  both paths, offline, about 40 seconds. Flags 2,067 before, 1,412 after; the 1,412 are all in Lane B's lib/live/search.js plus 4 known cases.
+  FIXED in the shared resolver (lib/vehicle.js, lib/vehicleData.js), pinned in resolverLanesCheck (now 118 names):
+    * a make word inside a model name was stripped (LaFerrari, Mazda3, MGB); spaced models now join (M 3, S 2000, 4 Runner, 300 ZX, 240 D);
+      alias spacing is free (FJ 40, C 63, ZR 1); Porsche trims typed with odd spacing (GT 3, Carrera4S, RS2.7); ZR 1, Z 28, GT 350, SRT 10;
+      F-100 no longer leaves the glued "F100" as a trim; wheelbase survives with no year (Defender 110); 4.5-litre / 6.5-litre / 3-litre;
+      bare model codes one make uses (M5, Z4, X5, A4, RX-7, S2000, 1M, 8C, DMC-12, SV-1); the longest matched alias wins ("550 spyder");
+      Series1 glued is the edition, never a trim.
+  FOR LANE B (lib/live/search.js parseQuery / enrichForBuy; shapes are what resolveVehicle returns, so the Buy path should return the same):
+    1. "Black" read as a colour (and "Series" left as a trim): "2013 Mercedes-Benz SLS AMG Black Series" -> model SLS AMG, trim null,
+       edition "Black Series". Buy returns edition null and, on some cars, trim "Series". 380 audit queries.
+    2. Body words stripped before the resolver, where the resolver keeps them as trim or edition: Roadster, Speedster, Targa, Spyder, Spider.
+       "2011 Porsche 911 Speedster" -> trim Speedster, edition Speedster (Buy: both null, bodyStyle speedster). "Porsche 911 Targa 4 GTS" ->
+       trim "Targa 4 GTS" (Buy: "GTS" or "Targa 4"). "1955 Porsche 550 Spyder" -> model "550 Spyder" (Buy: model null, the make read as Ferrari 550
+       when typed alone). 831 audit queries; the existing TRIM_NOT_BODY list in enrichForBuy is too late because parseQuery has already taken them.
+    3. The article "A" stripped from the word list: "2023 Mercedes-Benz A-Class" -> model A-Class (Buy: "Class"); "Audi A 4", "Audi A 6" -> model A4,
+       A6 (Buy: null); "A 45" -> trim A45, trimNumber 45. 129 audit queries.
+    4. "Wagon" stripped from a model name: "Dodge Power Wagon" -> model Power Wagon (Buy: model null, bodyStyle wagon).
+    5. enrichForBuy bare-make check: "Honda S 2000" -> model S2000 (Buy: model null; "2000" is stripped as a year and "S" as a possessive).
+  Search check: no public page touched.

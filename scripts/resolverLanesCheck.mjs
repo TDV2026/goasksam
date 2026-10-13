@@ -104,6 +104,37 @@ const CASES = [
   ["2018 Alfa Romeo Giulia Quadrifoglio", { year: 2018, make: "Alfa Romeo", model: "Giulia", trim: "Quadrifoglio" }],
   ["1971 Datsun 240Z Series 1", { year: 1971, make: "Datsun", model: "240Z", trim: null, edition: "Series 1" }],
   ["1965 Jaguar E-Type Series I", { year: 1965, make: "Jaguar", model: "E-Type", edition: "Series I" }],
+  // Bulk audit fixes (Lane B2, Oct 2026, scripts/resolverAudit.mjs): each was a typed form the resolver read wrongly.
+  ["Ferrari LaFerrari", { make: "Ferrari", model: "LaFerrari" }],   // the make word inside a model name is not stripped
+  ["Mazda Mazda3", { make: "Mazda", model: "Mazda3" }],
+  ["2010 BMW M 3", { year: 2010, make: "BMW", model: "M3" }],   // a spaced model is joined: M 3, S 2000, 4 Runner, 300 ZX, 240 D
+  ["Mercedes-Benz 240 D", { make: "Mercedes-Benz", model: "240D", trim: null }],
+  ["Toyota 4 Runner", { make: "Toyota", model: "4Runner" }],
+  ["1995 Nissan 300 ZX", { year: 1995, make: "Nissan", model: "300ZX" }],
+  ["Datsun 240 Z", { make: "Datsun", model: "240Z" }],
+  ["Honda S 2000", { make: "Honda", model: "S2000", trim: null }, ["model"]],   // Buy: enrichForBuy reads "2000" as a year and "S" as a possessive
+  ["Land Rover Defender 110", { make: "Land Rover", model: "Defender", wheelbase: "110" }],   // wheelbase survives with no year
+  ["Bentley 4.5 Litre", { make: "Bentley", model: "4\u00bd Litre", trim: null }],
+  ["1928 Bentley 4.5-litre", { year: 1928, make: "Bentley", model: "4\u00bd Litre" }],
+  ["Dodge Viper SRT 10", { make: "Dodge", model: "Viper", trim: "SRT-10" }],
+  ["2001 Chevrolet Corvette ZR 1", { year: 2001, make: "Chevrolet", model: "Corvette", trim: "ZR1" }],
+  ["Ford Mustang GT 350", { make: "Ford", model: "Mustang", trim: "GT350" }],
+  ["2001 Chevrolet Camaro Z 28", { year: 2001, make: "Chevrolet", model: "Camaro", trim: "Z28" }],
+  ["2002 Porsche 911 GT 3 RS", { year: 2002, make: "Porsche", model: "911", trim: "GT3 RS" }],
+  ["2002 Porsche 911 Carrera4S", { year: 2002, make: "Porsche", model: "911", trim: "Carrera 4S" }],
+  ["2002 Porsche 911 Carrera RS2.7", { year: 2002, make: "Porsche", model: "911", trim: "Carrera RS 2.7" }],
+  ["1970 Ford F-100", { year: 1970, make: "Ford", model: "F-100", trim: null }],   // the glued F100 is not left behind as a trim
+  ["1973 Jaguar E-Type Series1", { year: 1973, make: "Jaguar", model: "E-Type", trim: null, edition: "Series 1" }],
+  ["M5", { make: "BMW", model: "M5" }],   // bare model codes only one make uses
+  ["Z4", { make: "BMW", model: "Z4" }],
+  ["X5 M", { make: "BMW" }],
+  ["1M", { make: "BMW", model: "1M" }],
+  ["A4", { make: "Audi", model: "A4" }],
+  ["RX-7", { make: "Mazda", model: "RX-7" }],
+  ["S2000", { make: "Honda", model: "S2000" }],
+  ["DMC-12", { make: "DeLorean", model: "DMC-12" }],
+  ["8C", { make: "Alfa Romeo", model: "8C" }],
+  ["SV-1", { make: "Bricklin", model: "SV-1" }],
   ["67 corvette", { year: 1967, make: "Chevrolet", model: "Corvette" }],   // a real two-digit year still reads as one
   ["sell my porsche", { make: "Porsche", model: null }],   // conversation is never a model
 ];
