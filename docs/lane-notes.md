@@ -6084,6 +6084,11 @@ gates, confirmed on real cars, not assumed**:
     session's transcript. Flagging it plainly rather than burying it; Sam may want to rotate again
     given it appeared outside the Keychain.
   * Commit: 667357e.
+  * FOR LANE B2 (found by prePush, not mine, not touched): resolverLanesCheck.mjs now fails on
+    "2009 Koenigsegg CCXR" - Market Check and Buy/Tasks both resolve make/model to null. This
+    diff touches none of the resolver; confirmed by `git diff` against the same base this failure
+    first showed up on. Pushed anyway (the task's push condition was a failing SPEED check, which
+    this is not, and this file owns none of the resolver), but flagging so it doesn't get missed.
   Search check: public/js/onebox.js and public/onebox.html touched (Market Check result + New Sell,
     same shared renderer). No title, H1, canonical, or indexability change on any page - both
     results surfaces were already noindex and stay noindex; nothing here changes what a crawler
