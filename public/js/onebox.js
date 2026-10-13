@@ -307,16 +307,22 @@
         // just below, unchanged) - and data-gas-listing-id carries the record's own id, so the shared
         // click handler (lib/appShell.js) can send auction_clickout with the real platform and which
         // car was actually clicked, not the venue's pretty name with no listing id at all.
+        // lp-placing (follow-up round, Oct 2026): plain small-caps grey text under the bid, never a
+        // pill - "no pills" below the sales row.
         return '<a class="lp-row" href="' + esc(utmUrl(l.url)) + '" target="_blank" rel="noopener noreferrer" data-gas-event="auction_clickout" data-gas-source="' + esc(l.source_slug || "") + '" data-gas-listing-id="' + esc(l.id != null ? l.id : "") + '">' +
           '<span class="lp-ph' + (l.photo_url ? "" : " noimg") + '">' + photo + '<span class="none">No photo</span></span>' +
           '<span class="lp-body"><span class="lp-title">' + esc(cleanReceiptTitle(l.title)) + '</span><span class="lp-sub">' + esc([l.source, endsShort(l.end_time)].filter(Boolean).join(" · ")) + '</span></span>' +
-          '<span class="lp-bid">' + bidB + (pillText ? '<span class="pill lp-pos">' + esc(pillText) + "</span>" : "") + "</span></a>";
+          '<span class="lp-bid">' + bidB + (pillText ? '<span class="lp-placing">' + esc(pillText) + "</span>" : "") + "</span></a>";
       }).join("");
       var q = (m && m.displayName) || carLabel(rc);
       var summary = liveSummarySentence(j.count, j.rows);
       var seeAll = j.count === 1 ? "See it live" : "See all " + obNumWordLow(j.count) + " live";
+      // Heading (follow-up round, Oct 2026): the SAME .sec-head pattern every section below the hero
+      // uses now - serif h2, no eyebrow, no dot (removed per the brief). The summary sentence moves
+      // out of .sec-head's own .scope slot into its own line (lp-summary) since it is a full sentence,
+      // not a short scope phrase, but keeps the identical grey/sans treatment.
       slot.className = "livepanel";
-      slot.innerHTML = '<div class="lp-h"><span class="eyebrow"><span class="dot" aria-hidden="true"></span>Live right now</span></div>' +
+      slot.innerHTML = '<div class="sec-head"><div><h2>Live right now</h2></div></div>' +
         '<p class="lp-summary">' + lint(esc(summary), "live.summary") + '</p>' + rows +
         '<a class="linkbtn" href="/buy?q=' + encodeURIComponent(q) + '">' + esc(seeAll) + " &#8594;</a>";
       slot.hidden = false;
@@ -643,10 +649,16 @@
     return p ? p.replace(/^the latest on\s+/i, "latest ") : "";
   }
   // The hero's one grey line: scope, count, latest - joined with middle dots, never "Matched to...".
-  function heroMetaLine(d) {
+  // Plain text (no markup), so the "below the sales row" sections (the full list, see
+  // moreComparableSalesHtml) can name the window and scope EXACTLY as the hero does - the same
+  // string, never a second composition that could drift from it.
+  function heroMetaLineText(d) {
     var parts = [heroScopeText(d), heroCountText(d), heroLatestText(d)].filter(Boolean);
-    if (!parts.length) return "";
-    return '<p class="hero-scope" data-stage="answer">' + lint(esc(cap(parts.join(" · "))), "hero.scope") + "</p>";
+    return parts.length ? cap(parts.join(" · ")) : "";
+  }
+  function heroMetaLine(d) {
+    var t = heroMetaLineText(d);
+    return t ? ('<p class="hero-scope" data-stage="answer">' + lint(esc(t), "hero.scope") + "</p>") : "";
   }
   // Mileage line (left column, item 6): a persistent "Add mileage" field when no mileage refine is
   // applied yet, or "Range narrowed around N miles." plus a Change link once one is. Change reruns
@@ -866,19 +878,58 @@
   // "More comparable sales" (item 5): everything the engine qualified into this pool that is not
   // already shown as the exact-car hero or one of the evidence block's three context cards. Collapsed
   // by default (cap 0 - capCardsHtml's own "Show N more" reveal, same pattern used everywhere else).
+  // One row, not a card: thumbnail, price/model/meta stacked, "View sale" trailing. The whole row is
+  // one link - no nested anchor, since there is no second inner link to collide with (unlike
+  // saleCardHtml's receipt cards, which sometimes carry a "Sold before" link).
+  function allSalesRowHtml(c) {
+    if (!c) return "";
+    var venue = (c.platform && c.platform !== "others") ? c.platform : "";
+    var month = c.month || monShort(c.date);
+    var meta = [longMiles(c), venue, month].filter(Boolean).join(" · ");
+    var href = utmUrl(c.url);
+    var gasAttrs = (href && c.id != null) ? (' data-gas-event="receipt_click" data-gas-source="' + esc(c.platformSlug || "") + '" data-gas-listing-id="' + esc(c.id) + '"') : "";
+    var tag = href ? "a" : "div";
+    var attrs = href ? (' href="' + esc(href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(c.platformSlug || "") + '"' + gasAttrs) : "";
+    return "<" + tag + ' class="allsales-row"' + attrs + ">" +
+      '<span class="allsales-ph' + (c.image ? "" : " noimg") + '">' + (c.image ? '<img src="' + esc(c.image) + '" alt="" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()">' : "") + '<span class="none">No photo</span></span>' +
+      '<span class="allsales-body"><span class="allsales-price">' + esc(usd(c.price)) + '</span>' +
+      '<span class="allsales-title">' + esc(cleanReceiptTitle(c.title)) + "</span>" +
+      (meta ? ('<span class="allsales-meta">' + esc(meta) + "</span>") : "") + "</span>" +
+      (href ? '<span class="allsales-view">View sale &#8594;</span>' : "") +
+      "</" + tag + ">";
+  }
+  // First ten rows always visible (server-rendered, search engines see them too); the rest sit
+  // hidden in one container that a single "Show all N" click reveals all at once, in place - never
+  // the old "Show 10 more" batching (capCardsHtml), which this section no longer uses. Reuses the
+  // existing [data-qtoggle] un-hide mechanism (wire()), same one "How Sam picked these" already uses.
+  function allSalesCapHtml(rowsHtml, cap, totalWord) {
+    if (rowsHtml.length <= cap) return '<div class="allsales-rows">' + rowsHtml.join("") + "</div>";
+    var id = "ob-allcap" + (++obCapSeq);
+    var shown = rowsHtml.slice(0, cap).join("");
+    var rest = '<div id="' + id + '" hidden>' + rowsHtml.slice(cap).join("") + "</div>";
+    return '<div class="allsales-rows">' + shown + rest + "</div>" +
+      '<button type="button" class="linkbtn allsales-showall" data-qtoggle="' + id + '" aria-expanded="false">Show all ' + esc(totalWord) + " &#8594;</button>";
+  }
+  // "All N comparable sales" (follow-up round, Oct 2026; was "More comparable sales"): the WHOLE
+  // pool, not just the cards not already shown elsewhere - the three Sales-behind-this-answer cards
+  // are included here too, per the brief, so this section is a true full list. Only the VIN/chassis
+  // exact-car's own sale (shown separately, This exact car) is excluded, never the representative
+  // trio. The heading count and the scope/window subline both come from the SAME single source the
+  // hero itself reads (heroPoolSizeNum / heroMetaLineText) - never a second computation that could
+  // disagree with "41 more comparable sales" or "See all 42 sales" above it.
   function moreComparableSalesHtml(d, m) {
-    var rep = d.representative;
     var shownUrls = {};
     if (m && m.url) shownUrls[m.url] = true;
-    [rep && rep.closest, rep && rep.high, rep && rep.low].forEach(function (c) { if (c && c.url) shownUrls[c.url] = true; });
-    var more = (d.cards || []).filter(function (c) { return !(c.url && shownUrls[c.url]); });
-    if (!more.length) return "";
-    // id="more-sales" (hero-rebuild round): the hero receipt's "N more comparable sales" link and
-    // the sales row's "See all N sales" link both scroll here via the existing [data-scrollto]
-    // mechanism (wire()) - this section already renders every card server-side, just collapsed past
-    // the first batch, so there is nothing to un-hide, only to scroll to.
-    var head = '<div class="sec-head" data-stage="cards"><div><h2>More comparable sales</h2></div></div>';
-    return '<div id="more-sales">' + head + capCardsHtml("grid3", more.map(function (c) { return poolCardHtml(c, false); }), 0) + "</div>";
+    var all = (d.cards || []).filter(function (c) { return !(c.url && shownUrls[c.url]); });
+    if (!all.length) return "";
+    var poolSize = heroPoolSizeNum(d);
+    var countWord = Number.isFinite(poolSize) ? obNumWord(poolSize) : obNumWord(all.length);
+    var sub = heroMetaLineText(d);
+    // id="more-sales" (hero-rebuild round, kept): the hero receipt's "N more comparable sales" link
+    // and the sales row's "See all N sales" link both scroll here via [data-scrollto] (wire()).
+    return '<div id="more-sales"><div class="sec-head" data-stage="cards"><div><h2>All ' + esc(countWord) + ' comparable sales</h2>' +
+      (sub ? ('<span class="scope">' + lint(esc(sub), "allsales.scope") + "</span>") : "") + "</div></div>" +
+      allSalesCapHtml(all.map(allSalesRowHtml), 10, countWord) + "</div>";
   }
   // THIS EXACT CAR (item 2): only when the engine has a VIN/chassis match (m). Absent otherwise -
   // never a placeholder.
@@ -1396,7 +1447,9 @@
       return '<section class="samonit" data-stage="note"><p class="samonit-on">' + lint(onLine, "samonit.on") + "</p>" + (obWatchFirst ? '<p class="samonit-free">Free. No card, no plan.</p>' : "") + "</section>";
     }
     var line = m ? "If this exact car comes up again, Sam will email you, with the sale attached." : ("When the next " + esc(carLabel(d.resolvedCar)) + " sells, Sam will email you, with the sale attached.");
-    return '<section class="samonit" data-stage="note"><p>' + lint(line, "samonit") + '</p><button type="button" class="linkbtn" id="ob-samonit">Have Sam keep looking &#8594;</button><p class="samonit-free">Free to use. Sign in only if you want Sam to keep looking.</p><p class="samonit-msg" id="ob-samonit-msg" hidden></p></section>';
+    // samonit-main (follow-up round, Oct 2026): the sentence and the link read as one group on the
+    // left, grey "Free to use..." sits at the right - plain text, no box, same copy as before.
+    return '<section class="samonit" data-stage="note"><span class="samonit-main"><p>' + lint(line, "samonit") + '</p><button type="button" class="linkbtn" id="ob-samonit">Have Sam keep looking &#8594;</button></span><p class="samonit-free">Free to use. Sign in only if you want Sam to keep looking.</p><p class="samonit-msg" id="ob-samonit-msg" hidden></p></section>';
   }
   // narrowItDownHtml ("Narrow it down": the refinement questions, pills and removable-answer chips)
   // was removed WHOLESALE in the hero-rebuild round (Oct 2026) per the brief's explicit "Remove the
