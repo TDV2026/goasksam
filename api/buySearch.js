@@ -18,7 +18,7 @@
 //   GET|POST ?alert=stop&t=<signed>     -> the message's stop link: GET shows a confirm page, only a POST acts
 import { track, withTracking } from "../lib/track/log.js";
 import { historyEnv, houseName, normVin } from "./_historyData.js";
-import { parseQuery, emptyFilters, gensNamed, resolveForBuy, searchLive, listingFacts, listingMarket, seenBefore, nounFor, liveForFamily, liveRows, familyMarket, COUNTRY_NAME } from "../lib/live/search.js";
+import { parseQuery, parseQueryResolved, emptyFilters, gensNamed, resolveForBuy, searchLive, listingFacts, listingMarket, seenBefore, nounFor, liveForFamily, liveRows, familyMarket, COUNTRY_NAME } from "../lib/live/search.js";
 import { findGeneration } from "../lib/generations.js";
 import { converse } from "../lib/live/converse.js";
 import { listingDetail, facetsOf, cardFlag, seenCount, listingSays, listingSamFacts, specOf, ladderSteps, walkLadder, panelOf } from "../lib/live/search.js";
@@ -408,8 +408,10 @@ async function handler(req, res) {
     // The searching state's "what has been understood so far": the words parsed and the car resolved (the
     // same parser and resolver the search uses, no model call), as short chips. Never a count.
     if (b.action === "parse") {
-      const text = String(b.text || "").slice(0, 200), pq = parseQuery(text), f = pq.filters || {};
-      const v = await Promise.race([resolveForBuy(pq.text || text, env).catch(() => null), new Promise(r => setTimeout(() => r(null), 1500))]);
+      const text = String(b.text || "").slice(0, 200);
+      const pq = await Promise.race([parseQueryResolved(text, env).catch(() => parseQuery(text)), new Promise(r => setTimeout(() => r(parseQuery(text)), 1500))]);
+      const f = pq.filters || {};
+      const v = pq.vehicle || null;
       const chips = [];
       if (f.yearMin && f.yearMax) chips.push(f.yearMin === f.yearMax ? String(f.yearMin) : `${f.yearMin} to ${f.yearMax}`);
       for (const c of f.colours || []) chips.push(c);
@@ -448,8 +450,8 @@ async function handler(req, res) {
     const q = String(b.q || "").slice(0, 200).trim();
     if (!q) return res.status(400).json({ status: "error" });
     const buyT0 = Date.now();
-    const parsed = parseQuery(q);
-    const v = await resolveForBuy(parsed.text || q, env);
+    const parsed = await parseQueryResolved(q, env);
+    const v = parsed.vehicle;
     // search_run (docs/analytics-events.md): Buy answers with live cars, so "range" here means live cars were
     // shown and "zero_result" that none were (or the car was not recognised).
     const buyRun = props => track(req, "search_run", { query_text: q, latency_ms: Date.now() - buyT0, model_used: false, cost_usd: 0,

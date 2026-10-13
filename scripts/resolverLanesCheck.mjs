@@ -7,7 +7,7 @@
 process.env.SUPABASE_URL = "http://127.0.0.1:9";   // nothing listens here: the resolver uses its curated data
 process.env.SUPABASE_SERVICE_ROLE_KEY = "test-not-a-key";
 const { resolveVehicle } = await import("../lib/vehicle.js");
-const { resolveForBuy, parseQuery } = await import("../lib/live/search.js");
+const { resolveForBuy, parseQuery, parseQueryResolved } = await import("../lib/live/search.js");
 let bad = 0, gaps = 0;
 const fail = m => { bad++; console.log("FAIL " + m); };
 // [typed words, expected {year, make, model, trim}] (a key left out is not checked)
@@ -142,7 +142,7 @@ const norm = v => v ? { year: v.year || null, make: v.make || null, model: v.mod
 for (const [words, want, buyGap = []] of CASES) {
   let mc = null, buy = null;
   try { const r = await resolveVehicle(words, {}); mc = r && r.vehicle ? norm(r.vehicle) : null; } catch (e) { fail(`${words}: resolveVehicle threw ${e.message}`); continue; }
-  try { const pq = parseQuery(words); buy = norm(await resolveForBuy(pq.text || words, {})); } catch (e) { fail(`${words}: resolveForBuy threw ${e.message}`); continue; }
+  try { const r = await parseQueryResolved(words, {}); buy = norm(r.vehicle); } catch (e) { fail(`${words}: resolveForBuy threw ${e.message}`); continue; }
   for (const k of Object.keys(want)) {
     if (!mc || mc[k] !== want[k]) fail(`${words}: Market Check ${k} = ${JSON.stringify(mc && mc[k])}, wanted ${JSON.stringify(want[k])}`);
     // Buy never asks, so a year it does not state stays null; the car (make/model/trim) must be the same.

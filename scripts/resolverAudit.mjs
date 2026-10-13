@@ -29,7 +29,7 @@ const loud = () => { console.log = origLog; console.warn = origWarn; console.err
 const D = await import("../lib/vehicleData.js");
 const { CURATED_GENERATIONS } = await import("../lib/generations.js");
 const { resolveVehicle } = await import("../lib/vehicle.js");
-const { resolveForBuy, parseQuery } = await import("../lib/live/search.js");
+const { resolveForBuy, parseQuery, parseQueryResolved } = await import("../lib/live/search.js");
 import fs from "node:fs";
 
 const squash = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -123,7 +123,7 @@ const pick = v => v ? Object.fromEntries(FIELDS.map(k => [k, v[k] ?? null])) : n
 // --try "a|b" prints the full shape of those queries on both paths and stops (for chasing one cause).
 if (process.argv.includes("--try")) {
   for (const text of process.argv[process.argv.indexOf("--try") + 1].split("|")) {
-    const mc = await resolveVehicle(text, {}), pq = parseQuery(text), buy = await resolveForBuy(pq.text || text, {});
+    const mc = await resolveVehicle(text, {}), r = await parseQueryResolved(text, {}), pq = r, buy = r.vehicle;
     console.log(text + "\n  MC  " + JSON.stringify([mc.status, pick(mc.vehicle), mc.clarification && mc.clarification.question]) + "\n  BUY " + JSON.stringify([pq.text, pick(buy)]));
   }
   process.exit(0);
@@ -134,7 +134,7 @@ quiet();
 for (const item of queries) {
   let mc = null, buy = null, pq = null, err = null;
   try { const r = await resolveVehicle(item.text, {}); mc = pick(r && r.vehicle); } catch (e) { err = "resolveVehicle threw " + e.message; }
-  try { pq = parseQuery(item.text); buy = pick(await resolveForBuy(pq.text || item.text, {})); if (buy && !buy.bodyStyle && pq.filters.bodies.length === 1) buy.bodyStyle = pq.filters.bodies[0]; } catch (e) { err = (err ? err + "; " : "") + "resolveForBuy threw " + e.message; }
+  try { const r = await parseQueryResolved(item.text, {}); pq = r; buy = pick(r.vehicle); if (buy && !buy.bodyStyle && pq.filters.bodies.length === 1) buy.bodyStyle = pq.filters.bodies[0]; } catch (e) { err = (err ? err + "; " : "") + "resolveForBuy threw " + e.message; }
   results.push({ ...item, mc, buy, pq, err });
 }
 loud();
