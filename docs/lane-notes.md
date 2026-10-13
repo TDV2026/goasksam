@@ -6412,3 +6412,99 @@ title/H1/canonical change.
     SELL PAGE (owner Lane C): the result prints "N of M ... in the last 12 months" for the generation, never the typed car's pool, and no range. M against the lane count: 2025 911 173 vs 42, 1995 Carrera 91 vs 37, 2008 997 70 vs 14, Camaro 116 vs 21, Black Series 11 vs 35, 356 Speedster 33 vs 8, Defender 32 vs 31, M3 94 vs 14, GT3 27 vs 25, Mustang GT 25 vs 8, Grand National 22 vs 9, S2000 3 vs 7, Split Window 334 vs 51, NSX 32 vs 15. The scope line is the typed car plus the generation and leaves out the widened years (2025 911 "992 generation" vs "2020 to 2026", 2024 Carrera S, CLK DTM, Merkur, Saab, 275 GTB, S2000). Whether the Sell count is meant to be the platform pool of the generation is Sam's call; as written it is not the pool the other three products show.
   FOR LANE C, Tasks page not reached: a Task preview (the read-back before "start") needs a signed-in or test-user request, and api/tasks.js `probeOk` accepts the key only in `x-probe-key` (and `?key=` in the address, which must never be used). Every other keyed path goes through lib/_credential.js `hasServerCredential`, which takes `x-ops-key` too. Please make `probeOk` call `hasServerCredential` (keep the TEST_USER header requirement), then goldenTruth can open the in-memory `test_scenario` read-back (no Task row, no email) and compare its count and range. Until then the Tasks page column reads NOT REACHED.
   Search check: no public page touched.
+
+## Lane A: below the sales row into the hero's design language (2026-10-13, follow-up)
+
+Commits: 3dfb75f (the rebuild), 51ed3ce (fix: live-row bid column had no width cap, crushing the
+title at 390px), d73cc92 (fix: identity-line parenthetical counts are digits throughout now).
+
+Part 1 (live block): heading is now a plain serif .sec-head (the same pattern every other section
+below the hero uses), no eyebrow, no dot. Each row's placing (above/below/inside the range) is plain
+small-caps grey text under the bid, not a tinted pill. The outer card box (background/border/radius/
+padding) is gone - a flat section with thin row dividers. Bid-text/time computation itself is
+untouched (per "the existing rule stays," read as: do not touch the upstream logic, only restyle).
+REAL BUG FOUND AND FIXED during this round's own live-proof read-through (Part 5): .lp-bid's
+desktop white-space:nowrap sized the row's grid "auto" column to the bid line's full UNWRAPPED width
+(confirmed live: 295px for "Last bid we saw: $360,000 at 6:05am PT. Above the range") - at 390px that
+left the title column under 7px wide, nearly invisible. Capped the mobile bid column to 112px and let
+it wrap there; desktop is untouched (it already has room, confirmed not to reproduce at 1440).
+
+Part 2 (full list): "More comparable sales" is now "All N comparable sales" (N from the same
+heroPoolSizeNum the hero itself reads), with a grey subline built from the IDENTICAL text the hero's
+own scope line prints (extracted heroMetaLineText so both read from one source, never two
+compositions that could drift). The three Sales-behind-this-answer cards are no longer excluded, so
+this is a genuine full list now. Rows replace cards: thumbnail, price in bold, model, miles/venue/
+month, "View sale". First ten always render (server-side); the rest sit in one hidden container a
+single "Show all N" click reveals in place (reusing the existing [data-qtoggle] mechanism, the same
+one "How Sam picked these" already uses) - no more "Show 10 more" batching.
+
+Part 3 (Sell band): border-radius removed, a thin top divider added - a full-width flat green band,
+not a floating rounded card. Copy, button and behavior unchanged (confirmed live, both cars).
+
+Part 4 (Task line): card background/border/padding removed entirely - plain text, sentence and link
+grouped on the left (wrapped in one span so they read together), "Free to use..." in grey at the
+right (wraps to its own line on narrow content widths, which is fine - no box either way). Copy and
+behavior unchanged.
+
+COPY FIX (found during Part 5): the identity-line counts (trim/body/gearbox, from the two prior
+rounds) used obNumWordLow - a mixed pool would have printed "(nine) · (21)" on the same line. This
+round's own copy-rule note ("counts inside parentheses may be digits throughout so (20) · (10) reads
+evenly") is exactly the fix for that unevenness - switched all three to plain digit formatting.
+Confirmed live: "2020 Porsche 911" now reads "Coupe (20) · Cabriolet (10)" (was "Cabriolet (ten)").
+
+Rendered copy, both cars, live (abbreviated - full page read top to bottom during Part 5):
+- 2025 Porsche 911: "...Live right now / Five comparable cars are live. One is bidding inside the
+  range, two above it. / [3 rows, each: photo, title, venue + ends, bid line, placing in small caps
+  grey] / See all five live -> / All 42 comparable sales / 911 models, 2020 to 2026, coupes and
+  cabriolets - 42 sales in the last twelve months - latest Oct 7 / [10 rows: price/model/meta/View
+  sale] / Show all 42 -> / Where sales landed over time [unchanged] / Ready to sell? / See where cars
+  like this have sold and when. / See where Sam would sell it -> / When the next 2025 Porsche 911
+  sells, Sam will email you, with the sale attached. / Have Sam keep looking -> / Free to use. Sign
+  in only if you want Sam to keep looking."
+- 2006 Mercedes-Benz CLK DTM: no live block (zero live listings for this car - correctly absent, no
+  placeholder), no full-list section (thin tier keeps its own existing receipts grid, see Part 5),
+  Sell band flattened the same way, no Task line (thin tier does not call samOnItHtml - pre-existing,
+  unrelated to this round).
+
+Part 5 (read-through, both cars, both widths):
+- Nothing read oddly top to bottom on either car. Every visible number traced to the answer, a
+  receipt, or a count - no new computed figure anywhere in this round's diff.
+- Live-row crowding at 390 (found and fixed, see above).
+- Leftover boxes/pills NOT touched this round (outside the explicit four parts, flagged per the
+  brief's own Part 5 instruction, not fixed): the thin tier's own receipts grid (boxed .card cards,
+  still "Show N more" batched, not "Show all") - visible on both CLK DTM and the no-live proof car
+  (Duesenberg); "This exact car"'s vinHeroCardHtml card (border, not exercised by either proof car
+  this round); the collapsed "N sales sat outside the range" cards (collapsedAsideHtml -> poolCardHtml,
+  not exercised by either proof car); "Where sales landed over time" (marketReadHtml, .mktread) - a
+  bordered white card, visible on the 2025 Porsche 911 screenshot, unchanged since it was not one of
+  the four named sections. None of these are new; all pre-date this round and sit outside "live block,
+  full list, Sell band, Task line."
+- A pre-existing, unrelated "golden truth" report-only check (added by another lane between this
+  session's rounds) flags "2025 Porsche 911" with an engine-data mismatch across Market Check/Buy/
+  Sell/Tasks (label, count, low/high all disagree with docs/golden-rules.md's expected answer) -
+  confirmed unrelated to this round's diff (it is an engine/resolver question, lib/onebox.js, not
+  rendering) and does not set prePush's exit code. Flagging since it is literally about my proof car,
+  not fixing (out of ownership).
+
+Not done: nothing from the four parts was skipped. The only scope choice made beyond the brief was
+NOT extending the new design language to thisExactCarHtml/collapsedAsideHtml/marketReadHtml/the thin
+tier's own receipts grid, since the brief named exactly four sections and said "no new sections" -
+read as a closed list.
+
+Screenshots: 1440 and 390 for 2025 Porsche 911, 2006 Mercedes-Benz CLK DTM, and 1931 Duesenberg Model
+J (the no-live-listings proof car - confirmed ob-live stays hidden, no placeholder, verified via
+el.hidden in the DOM, not just visually).
+
+prePush: this round's own blocking run was 0 FAIL on its first full pass (10 PASS, 6 SKIP, the
+archive checks with no Supabase creds in this environment). A later rerun (after the two Part-5 fixes
+above) hit a real but clearly transient speed spike on "1995 Porsche 911 Carrera" (16265ms, then
+15356ms against a 14000ms budget, two separate runs) that did NOT reproduce on a third rerun
+(13244ms, comfortably under budget) or on the OTHER fixed car in the same runs (12068-13965ms,
+consistently under). No lib/api file changed this round ("module load: SKIP, no changed lib/api
+files") and nothing in this diff touches fetch/cache/engine code, so this reads as server-side
+variance, not a regression from a render-only change. Per this round's explicit allowance ("if the
+speed check fails by under two seconds on one car, report the numbers and push anyway"), the final
+push (1356ms over budget, one car) qualifies and was pushed.
+
+Search check: no title, H1 or canonical changed on any page; results pages remain noindex (no
+robots/meta change in this diff, nothing in this round touches SSR head tags).
