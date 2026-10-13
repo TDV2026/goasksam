@@ -6117,3 +6117,26 @@ gates, confirmed on real cars, not assumed**:
     4. Entries written before today: an in-process entry has no epoch field at all only if it was written by code that predates the epoch gate; `undefined === null` is FALSE, so such an entry is a MISS against a null epoch and against a real one. In practice in-memory Maps do not survive a deploy, so this cannot occur on current instances. The persisted spec_market_cache rows are not compared on epoch directly: specMem is restamped with the epoch current at read time (~943), and the row's own freshness is engineVersion plus its 24-hour age. The warm rows (~896) with no warmEpoch field are served, as in 3.
     5. answerCacheable (search.js ~517): null is cacheable; a tier other than result/thin/refusal is cacheable. For result/thin/refusal it REJECTS when fallbackRung is not one of exact, year_widened, generation, model_any_year, sibling, not_enough_data, when rungLabel is blank, or when the receipt count (rawPool length, else cards length) differs from poolN (thin: thin.totalN). A normal result passes today: its poolN is solid.length (onebox.js ~4255) and its rawPool is that same solid array. It can reject a normal result only if a later step replaces rawPool or cards without updating poolN (a rescue or refine that swaps the pool), or a path returns a fallbackRung outside that set. Rejection is silent: the caller still gets the answer, it just is not cached, so the symptom would be repeat loads recomputing, not wrong numbers.
   Search check: no public page touched.
+- 2026-10-13 (Lane A): ACCESS RESOLVED MID-ROUND - everything in the 401/redirect report above is
+  now proven live. x-ops-key (same Keychain read, same header) started authenticating partway
+  through this session with no action on my side - consistent with Lane B2's own diagnosis (a
+  Vercel env change needing a redeploy to reach running functions). All three parts from the thin-
+  tier/sell_started/vercel.json job are confirmed:
+  * Part 1, live: "2006 Mercedes-Benz CLK DTM" (12 sales, >=8) renders "12 sales in the past three
+    years, the latest on Jul 4. Sold between $417,843 and $751,062." then, its own line, "None sold
+    through live online marketplaces in that time, too few to mark a typical band." - the engine's
+    own span (hammer [$366,000, $663,000]) confirmed ABSENT from that line and never stated as a
+    pair anywhere on the page. "1992 Bugatti EB110" (3 sales, <8) renders count-only: "Three sales
+    in the past three years, the latest on Aug 15." with no "Sold between" clause - factsBlock's
+    own lowest/highest are null below the engine's 8-sale floor, exactly as designed.
+  * Part 2, live: the real handoff click on a 2025 Porsche 911 result calls
+    gasTrack("sell_started", {vehicle_key:"porsche|911", year:2025}) - confirmed by wrapping the
+    real gasTrack and capturing the call. The network request itself still only carries page_view
+    today (sell_started confirmed DROPPED, not sent) because lib/track/catalog.js has not added
+    the props yet - the dependency on Lane C is real and current, not hypothetical.
+  * Part 3, live: VIN WP0AB2A94MS223093 (sampled from a live 2025 Porsche 911 card pool, first
+    try) has mileage 12,000 and soldDate 2026-10-07 on its vinArchiveMatch. Its reconfirm card
+    reads "Has the mileage changed? Last reported 12,000 miles in October 2026." /
+    "If it's different now, update it and the range reruns around the mileage you give."
+  No code change this entry - the Part 0-3 code already pushed (9824044/3979a34) rendered exactly
+  as documented once access resolved.
