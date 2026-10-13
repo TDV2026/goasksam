@@ -116,9 +116,19 @@ try {
       return { count: cm ? num(cm[1]) : null, range, scope, kind: k >= 0 && /MIDDLE HALF/.test(lines[k]) ? "band" : (k >= 0 ? "soldBetween" : null) };
     },
     buy(text) {
-      const m = /landed at \$([\d,]+) to \$([\d,]+)/.exec(text) || /sold between \$([\d,]+) and \$([\d,]+)/.exec(text);
-      const src = /\|?\s*SAM\s*\n([^\n]+)/.exec(text);
-      return { count: null, range: m ? { low: Number(m[1].replace(/,/g, "")), high: Number(m[2].replace(/,/g, "")) } : null, scope: src ? src[1].trim() : "" };
+      // Each live car on the page carries Sam's line about ITS OWN cohort. Read every listing: its title, the cohort label, the range.
+      const lines = text.split("\n").map(x => x.trim()).filter(Boolean);
+      const listings = [];
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i] !== "SAM") continue;
+        let title = null;
+        for (let k = i - 1; k >= Math.max(0, i - 6); k--) if (/\b(19|20)\d{2}\b.*[A-Za-z]/.test(lines[k]) && !/miles|bids?|Ends|ago|left/i.test(lines[k]) && lines[k].length < 90) { title = lines[k]; break; }
+        const label = lines[i + 1] || "", sentence = lines[i + 2] || "";
+        const m = /\$([\d,]+) to \$([\d,]+)/.exec(sentence) || /between \$([\d,]+) and \$([\d,]+)/.exec(sentence);
+        if (title) listings.push({ title, label, range: m ? { low: Number(m[1].replace(/,/g, "")), high: Number(m[2].replace(/,/g, "")) } : null, sentence });
+      }
+      const first = listings.find(l => l.range) || null;
+      return { count: null, range: first ? first.range : null, scope: first ? first.label : "", listings };
     },
     sell(text) {
       const m = /(\d[\d,]*)\s+of\s+(\d[\d,]*)\b[^\n]*?last\s+12\s+months/i.exec(text) || /(\d[\d,]*)\s+of\s+(\d[\d,]*)/.exec(text);
@@ -156,12 +166,13 @@ try {
     } finally { await ctx.close().catch(() => {}); }
   }
   // Compare one rendered page with the same product's engine lane. Returns drift strings.
-  function drift(product, rendered, lane) {
+  function drift(product, rendered, lane, facts) {
     const out = [];
     if (!lane || !lane.ok) return out;
     if (rendered.count != null && lane.count != null && rendered.count !== lane.count) out.push(`count ${rendered.count} on the page, ${lane.count} in its engine answer`);
-    const want = lane.low != null ? { low: lane.low, high: lane.high } : (Array.isArray(lane.span) ? { low: lane.span[0], high: lane.span[1] } : null);
-    if (rendered.range && want && (rendered.range.low !== want.low || rendered.range.high !== want.high)) out.push(`range ${money(rendered.range.low)} to ${money(rendered.range.high)} on the page, ${money(want.low)} to ${money(want.high)} in its engine answer${lane.low == null ? " (span)" : ""}`);
+    // The Market Check page of a pool with no band prints the engine's factsBlock lowest and highest (all-in, the real sales), not the thin span (hammer).
+    const want = lane.low != null ? { low: lane.low, high: lane.high } : (product === "marketCheck" && facts ? facts : (product === "marketCheck" ? null : (Array.isArray(lane.span) ? { low: lane.span[0], high: lane.span[1] } : null)));
+    if (rendered.range && want && (rendered.range.low !== want.low || rendered.range.high !== want.high)) out.push(`range ${money(rendered.range.low)} to ${money(rendered.range.high)} on the page, ${money(want.low)} to ${money(want.high)} in its engine answer${lane.low == null ? " (factsBlock)" : ""}`);
     else if (rendered.range && !want) out.push(`page prints ${money(rendered.range.low)} to ${money(rendered.range.high)}, engine answer has no range`);
     else if (!rendered.range && want && product === "marketCheck") out.push(`page prints no range, engine answer has ${money(want.low)} to ${money(want.high)}`);
     const yrs = /\d{4} to \d{4}/.exec(String(lane.rungLabel || ""));
@@ -169,6 +180,15 @@ try {
     return out;
   }
   const PAGE_PRODUCTS = flag("pages") ? ["marketCheck", "buy", "sell"] : ["marketCheck"];
+  // factsBlock lowest and highest for a pool with 8+ sales and no band (the thin tier): the cards' lowest and highest price (lib/live/search.js
+  // factsBlockFrom reads exactly this), taken from obdiag's cards.
+  const facts = {};
+  for (const r of rows) {
+    const lane = (byQ[r.g.q] && byQ[r.g.q].lanes || {}).marketCheck;
+    if (!(flag("pages") || r.g.page) || !lane || !lane.ok || lane.low != null || !(lane.count >= 8)) continue;
+    const o = await ops(`/api/usageDashboard?view=ops&task=obdiag&detail=1&qs=${encodeURIComponent(r.g.q)}`);
+    try { const c = JSON.parse(o.text).cars[0]; const pr = (c.cardDetail || []).map(x => x.price).filter(Number.isFinite); if (pr.length >= 8) facts[r.g.q] = { low: Math.min(...pr), high: Math.max(...pr) }; } catch (e) {}
+  }
   const jobs = [];
   for (const r of rows) if (flag("pages") || r.g.page) for (const pr of PAGE_PRODUCTS) jobs.push({ r, pr });
   let next = 0;
@@ -180,16 +200,54 @@ try {
       r.pages = r.pages || {};
       if (!rd.path.startsWith("/" + ({ marketCheck: "market-check", buy: "buy", sell: "sell" })[pr])) { r.pages[pr] = { cell: "FAIL", diffs: [rd.path.startsWith("/sell") && pr !== "sell" ? "redirected to /sell: key rejected" : `ended on ${rd.path || "nothing"}`] }; continue; }
       const parsed = PARSERS[pr](rd.text);
+      if (pr === "buy") { r.buyListings = parsed.listings; r.pages.buy = { cell: parsed.listings.length ? "PENDING" : "N/A", diffs: [], shown: parsed.listings.length ? `${parsed.listings.length} live car(s)` : "no live car" }; continue; }
       const lane = (byQ[g.q] && byQ[g.q].lanes || {})[pr];
-      const dr = drift(pr, parsed, lane);
-      const none = pr === "buy" && !parsed.range;       // no live car, so Buy prints no market line: nothing to compare
+      const dr = drift(pr, parsed, lane, facts[g.q]);
       if (dr.length) r.pages[pr] = { cell: "DRIFT", diffs: dr.map(d => "RENDER DRIFT, " + d) };
-      else if (none) r.pages[pr] = { cell: "N/A", diffs: [] };
       else r.pages[pr] = { cell: engineCell.cell, diffs: [] };
       r.pages[pr].shown = `${parsed.count == null ? "-" : parsed.count} ${parsed.range ? money(parsed.range.low) + "-" + money(parsed.range.high) : "no range"}`;
     }
   };
   await Promise.all(Array.from({ length: Math.min(3, jobs.length) }, worker));
+
+  // BUY PAGE (Part 2b): each live car's line is compared with the engine's answer for THAT car (its own year, make and model, the title the
+  // page shows), not with the typed car's answer. A difference is RENDER DRIFT with both figures.
+  const titles = [...new Set(rows.flatMap(r => (r.buyListings || []).map(l => l.title)))];
+  const listingLane = {};
+  for (let i = 0; i < titles.length; i += BATCH) {
+    const chunk = titles.slice(i, i + BATCH);
+    const o = await ops(`/api/usageDashboard?view=ops&task=enginecheck&buypaths=0&livefences=0&representative=0&splitpools=0&overtime=0&livelisting=0&cacheconsistency=0&specs=${encodeURIComponent(chunk.join("|"))}`);
+    let j = null; try { j = JSON.parse(o.text); } catch (e) {}
+    for (const row of (j && j.rows) || []) listingLane[row.q] = row.lanes && row.lanes.buy;
+  }
+  for (const r of rows) {
+    if (!r.buyListings || !r.buyListings.length) continue;
+    const diffs = [];
+    for (const l of r.buyListings) {
+      const lane = listingLane[l.title];
+      if (!lane || !lane.ok) { if (l.range) diffs.push(`RENDER DRIFT, "${l.title}": page prints ${money(l.range.low)} to ${money(l.range.high)}, its own engine answer has none`); continue; }
+      const want = lane.low != null ? { low: lane.low, high: lane.high } : null;
+      if (l.range && (!want || l.range.low !== want.low || l.range.high !== want.high)) diffs.push(`RENDER DRIFT, "${l.title}": page ${money(l.range.low)} to ${money(l.range.high)} (${l.label.slice(0, 40)}), engine answer for that car ${want ? money(want.low) + " to " + money(want.high) : "no range"} (${String(lane.rungLabel || "").slice(0, 40)})`);
+    }
+    r.pages.buy = { cell: diffs.length ? "DRIFT" : "PASS", diffs, shown: r.buyListings.map(l => l.range ? `${money(l.range.low)}-${money(l.range.high)}` : "no range").join(" / ") };
+  }
+
+  // TASKS PAGE (Part 2c): the in-memory read-back (api/tasks.js test_scenario: no Task row, no email, nothing stored), now that probeOk takes x-ops-key
+  // through hasServerCredential. The read-back is what the Tasks screen shows before "start". Count and range are read from it when it prints any.
+  if (flag("pages")) for (const r of rows) {
+    const o = await home.evaluate(async (k, say) => {
+      try { const x = await fetch("/api/tasks", { method: "POST", headers: { "content-type": "application/json", "x-ops-key": k }, body: JSON.stringify({ action: "test_scenario", steps: [{ say }] }) }); return { status: x.status, text: await x.text() }; }
+      catch (e) { return { status: 0, text: String(e && e.message || e) }; }
+    }, KEY, "a " + r.g.q).catch(() => ({ status: 0, text: "" }));
+    let out = null; try { out = JSON.parse(o.text).steps[0].out; } catch (e) {}
+    if (!out) { r.pages = r.pages || {}; r.pages.tasks = { cell: "NOREACH", diffs: [`Tasks read-back returned HTTP ${o.status}`], shown: "-" }; continue; }
+    const txt = `${out.reply || ""} ${(out.draft && out.draft.summary) || ""}`;
+    const rng = /\$([\d,]+)\s+to\s+\$([\d,]+)/.exec(txt), cm = /(\d[\d,]*)\s+(?:sales|cars|comparable)/i.exec(txt);
+    const f = out.draft && out.draft.filters || {};
+    const lane = (byQ[r.g.q] && byQ[r.g.q].lanes || {}).tasks;
+    const dr = lane ? drift("tasks", { count: cm ? Number(cm[1].replace(/,/g, "")) : null, range: rng ? { low: Number(rng[1].replace(/,/g, "")), high: Number(rng[2].replace(/,/g, "")) } : null, scope: "" }, lane) : [];
+    r.pages.tasks = { cell: dr.length ? "DRIFT" : ((cm || rng) ? r.cells.tasks.cell : "N/A"), diffs: dr.map(d => "RENDER DRIFT, " + d), shown: (cm || rng) ? `${cm ? cm[1] : "-"} ${rng ? money(rng[1]) + "-" + money(rng[2]) : "no range"}` : `read-back prints no count or range; filters ${[f.make, f.model, f.year_min && f.year_max ? (f.year_min === f.year_max ? f.year_min : f.year_min + "-" + f.year_max) : ""].filter(Boolean).join(" ")}` };
+  }
 } finally { await browser.close(); }
 
 // ---- the table ----
@@ -200,9 +258,9 @@ console.log(pad("#", 3) + pad("Car", 44) + pad("MC", 9) + pad("Buy", 9) + pad("S
 let nFail = 0, nPend = 0, nPass = 0, nDrift = 0;
 for (const r of rows) {
   const eng = PRODUCTS.map(p => r.cells[p].cell);
-  const pg = ["marketCheck", "buy", "sell"].map(p => r.pages && r.pages[p] ? r.pages[p].cell : "-");
-  console.log(pad(r.g.id, 3) + pad(r.g.q, 44) + eng.map(c => pad(c, 9)).join("") + pad(pg[0], 11) + pad(pg[1], 11) + pad(pg[2], 11) + pad(flag("pages") ? "NOT REACHED" : "-", 11));
-  for (const c of [...PRODUCTS.map(p => r.cells[p]), ...Object.values(r.pages || {})]) { if (c.cell === "FAIL") nFail++; else if (c.cell === "DRIFT") nDrift++; else if (c.cell === "PENDING") nPend++; else if (c.cell === "PASS") nPass++; }
+  const pg = ["marketCheck", "buy", "sell", "tasks"].map(p => r.pages && r.pages[p] ? (r.pages[p].cell === "NOREACH" ? "NOT REACHED" : r.pages[p].cell) : "-");
+  console.log(pad(r.g.id, 3) + pad(r.g.q, 44) + eng.map(c => pad(c, 9)).join("") + pad(pg[0], 11) + pad(pg[1], 11) + pad(pg[2], 11) + pad(pg[3], 11));
+  for (const c of [...PRODUCTS.map(p => r.cells[p]), ...Object.values(r.pages || {})]) { if (c.cell === "FAIL" || c.cell === "NOREACH") nFail++; else if (c.cell === "DRIFT") nDrift++; else if (c.cell === "PENDING") nPend++; else if (c.cell === "PASS") nPass++; }
 }
 console.log("\nDifferences (same text on several products is shown once; page lines name the page):");
 for (const r of rows) {
@@ -216,8 +274,9 @@ for (const r of rows) {
 }
 if (flag("pages")) {
   console.log("\nRendered, per page (count, range as the page prints them):");
-  for (const r of rows) console.log(`  ${r.g.id}. ${pad(r.g.q, 42)}` + ["marketCheck", "buy", "sell"].map(p => `${p}: ${r.pages && r.pages[p] ? r.pages[p].shown : "-"}`).join("   |   "));
-  console.log("\nTasks page: NOT REACHED. A Task preview needs a signed-in or test-user request, and api/tasks.js probeOk accepts the key only in x-probe-key (every other keyed path takes x-ops-key through lib/_credential.js hasServerCredential). Sending the key in x-probe-key would break the one-header rule for this job, so no Tasks page was opened and no Task was created.");
+  for (const r of rows) console.log(`  ${r.g.id}. ${pad(r.g.q, 42)}` + ["marketCheck", "buy", "sell", "tasks"].map(p => `${p}: ${r.pages && r.pages[p] ? r.pages[p].shown : "-"}`).join("   |   "));
+  console.log("\nSell page count against the engine count (they must be equal):");
+  for (const r of rows) { const lane = (byQ[r.g.q] && byQ[r.g.q].lanes || {}).sell; const sp = r.pages && r.pages.sell; const m = sp && /^(\d+|-)/.exec(sp.shown || ""); console.log(`  ${r.g.id}. ${pad(r.g.q, 42)} page ${m ? m[1] : "-"}   engine ${lane && lane.ok ? lane.count : "-"}`); }
 }
 console.log(`\n${nPass} PASS, ${nFail} FAIL, ${nDrift} RENDER DRIFT, ${nPend} PENDING (report-only; ${flag("strict") ? "strict: failures set the exit code" : "does not set the exit code"}).`);
 process.exit(flag("strict") && (nFail || nDrift) ? 1 : 0);
