@@ -93,7 +93,7 @@ Desk data-integrity standing rules (locked, review 3, Sep 2026):
 - `api/_usage.js`: shared cost/usage helpers.
 
 ### Env vars (Vercel production)
-OLDCARSDATA_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY, USAGE_DASHBOARD_KEY. Optional: OCD_DAILY_REQUEST_BUDGET caps fresh OldCarsData spend per day (default 33, plan pace); OCD_MONTHLY_BUDGET caps monthly metered spend (default 1000; set 10000 for the upgraded plan; warnings fire at 50%/80%, 7A.2); OCD_WARM_BUDGET_FRACTION reserves budget for searches over the nightly warm (default 0.7, 7E); SAM_MODEL overrides the chat wording-layer model (defaults to claude-sonnet-4-6 in api/chat.js); never set it to a dated snapshot.
+OLDCARSDATA_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY, USAGE_DASHBOARD_KEY. Optional: OCD_DAILY_REQUEST_BUDGET caps fresh OldCarsData spend per day (production value 900 as of Oct 12 2026, read from the ocdmeter ops task; the code default is 33); OCD_MONTHLY_BUDGET caps monthly metered spend in api/sellerDecision.js (code default 1000, which predates the plan: Sam bought 100,000 credits on Oct 12 2026, see the Plan line; the production value was not read, so check it in Vercel; warnings fire at 50%/80%, 7A.2); OCD_WARM_BUDGET_FRACTION reserves budget for searches over the nightly warm (default 0.7, 7E); SAM_MODEL overrides the chat wording-layer model (defaults to claude-sonnet-4-6 in api/chat.js); never set it to a dated snapshot.
 - USAGE_DASHBOARD_KEY is currently UNSET in prod, so /api/usageDashboard and /api/outboundClicks 500 (serve no data) until it is set; setting it enables both keyed read paths.
 Server-side writes use the service role key. Never expose it in browser code.
 

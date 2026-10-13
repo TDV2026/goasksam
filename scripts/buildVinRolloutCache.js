@@ -7,7 +7,8 @@
 // serverless ceiling in a GitHub Actions job) so this ONE nightly run computes the complete, uncut set.
 // Run AFTER scripts/buildVinIndex.js so it reads the freshest vin_index.
 //
-//   node scripts/buildVinRolloutCache.js
+//   node scripts/buildVinRolloutCache.js             compute and write vin_rollout_cache
+//   node scripts/buildVinRolloutCache.js --dry-run   compute and print the counts, write nothing
 import { supabaseEnv, supabaseInsert } from "../lib/_supabase.js";
 import { rollout } from "../api/history.js";
 
@@ -20,9 +21,16 @@ const t0 = Date.now();
 const BUDGET_MS = 20 * 60 * 1000;
 const r = await rollout(env, { budgetMs: BUDGET_MS });
 const secs = Math.round((Date.now() - t0) / 1000);
+const DRY = process.argv.includes("--dry-run");
+// What the scan covered (Oct 2026): rollout() reports rows_scanned / scan_pages / scan_complete once its scan is uncapped
+// (FOR LANE A in docs/lane-notes.md). Until then these print as "not reported" and the cache is written as before.
+const c = r.counts || {};
+console.log(`scan: vin_index rows scanned ${c.rows_scanned ?? "(not reported by rollout yet)"}, pages ${c.scan_pages ?? "(not reported)"}, distinct VINs seen ${c.vins}, scan complete ${c.scan_complete ?? "(not reported)"}`);
+if (c.scan_complete === false) { console.error("::error::rollout() scan did not reach the end of vin_index (time budget or a failed page). Refusing to overwrite vin_rollout_cache with a partial set."); process.exit(1); }
 console.log(`rollout() computed in ${secs}s: ${r.vins.length} vins, ${r.motos.length} motorcycles, ${r.others.length} other, ${r.hubs.length} hubs.`);
 if (r.counts.rollout_budget_cut) console.error(`::warning::rollout() hit its ${Math.round(BUDGET_MS / 1000)}s budget even on the nightly run - vin_index has grown enough that this budget needs raising.`);
 
+if (DRY) { console.log("DRY RUN: nothing written."); process.exit(0); }
 const row = { key: "current", data: r, computed_at: new Date().toISOString() };
 const res = await supabaseInsert("vin_rollout_cache", [row], env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=key");
 if (res.error) { console.error("vin_rollout_cache write failed:", res.error); process.exit(1); }

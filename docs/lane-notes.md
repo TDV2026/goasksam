@@ -5795,3 +5795,43 @@ gates, confirmed on real cars, not assumed**:
   empty set. Stored columns, the status filter and the five sources are unchanged. Typical night 16 -> 7 requests (BaT 2,
   Cars & Bids 2, the other three 1 each; 5 to 9 range), a 14 day catch-up about 12. scripts/attemptsWalkCheck.mjs proves
   it on a recorded page set and is in prePush. The nightly job needs the repo variable OCD_SKIP_ATTEMPTS set to 0.
+
+- 2026-10-12 (Lane B2): FOR LANE A - THE VIN ROLLOUT SCAN IS CAPPED AT 200,000 ROWS (api/history.js, your file), AND TWO STALE COMMENTS.
+  * FINDING. rollout() (api/history.js, the function scripts/buildVinRolloutCache.js runs nightly and the sitemaps read
+    from vin_rollout_cache) scans vin_index with `for (let page = 0; page < 200; page++)` at 1,000 rows, so it can never
+    read past row 200,000. vin_index has 266,402 rows (task=vinidxcount) and vin_summary 244,072 VINs. The cached rollout
+    (task sitemap=stats, Oct 12) saw 180,599 distinct VINs and rollout_budget_cut false (that flag only covers the
+    validation loop, not the scan). So the cap is hit: 200,000 rows hold 180,599 distinct VINs, and the 66,402 rows beyond
+    it hold the other 63,473 (244,072 minus 180,599). The filters cannot explain the gap, because counts.vins is
+    `per.size` taken BEFORE any filter. MISSED PAGES: vin_summary has 20,312 VINs with 2+ appearances against 17,277
+    candidates the rollout validated (cars 16,947 + motorcycles and other 330), so about 3,000 multi-appearance VINs are
+    never considered (an upper bound: it includes junk identifiers and untitled rows; the rollout's own pass rate is
+    98.5%, so roughly 2,500 to 3,000 indexable car pages). Likely the newest, since order is id.asc.
+  * EXACT CHANGE (api/history.js rollout(), replace the scan loop at the line `for (let page = 0; page < 200; page++) {`):
+      let lastId = 0, rowsScanned = 0, scanPages = 0, scanComplete = true;
+      for (;;) {
+        if (Date.now() - t0 > BUDGET_MS) { scanComplete = false; break; }
+        const rows = await supabaseSelectSafe(env, `vin_index?select=id,vin_norm,year,make,model_family,listing_title,photo_url,vehicle_type,appearance_date,result&id=gt.${lastId}&order=id.asc&limit=1000`);
+        if (!Array.isArray(rows)) { scanComplete = false; break; }   // a failed page is NOT the end of the table
+        if (!rows.length) break;
+        scanPages++; rowsScanned += rows.length; lastId = rows[rows.length - 1].id;
+        for (const r of rows) { ...body unchanged... }
+        if (rows.length < 1000) break;
+      }
+    (keyset on id instead of offset, so page 267 costs the same as page 1; the cap is gone.) Then add to `counts`:
+    `rows_scanned: rowsScanned, scan_pages: scanPages, scan_complete: scanComplete`. scripts/buildVinRolloutCache.js
+    (mine) already prints those three plus distinct VINs and EXITS 1 without overwriting vin_rollout_cache when
+    scan_complete is false, so a partial scan can never replace a good cache. It also has `--dry-run` (compute and print,
+    write nothing). Until your change lands those print as "not reported".
+  * MEMORY AND TIME. `per` holds one small object per VIN: about 244k entries (roughly 100 MB) against about 181k now, fine
+    on the Actions runner. If you want it bounded, count appearances per VIN in a first cheap pass and keep titles and
+    photos only for VINs with 2+ (about 20k); not needed for the nightly. Runtime: the rollout took 521 s on Oct 12
+    (counts.rollout_ms); the scan grows about a third (267 pages instead of 200) and validation about 3,000 more
+    candidates in batches of 40, so expect about 11 to 13 minutes, inside the script's 20 minute budget and the caches
+    job's 55 minute limit. The live fallback path keeps its 180 s budget (it will report scan_complete false).
+  * NOT RUN: I have no service key here, so I could not run the dry run. After your change: `node scripts/buildVinRolloutCache.js --dry-run`
+    (or the nightly log) prints rows scanned (expect about 266,000) and distinct VINs seen (expect about 244,000, up from 180,599).
+  * STALE COMMENT, api/history.js lines 6 and 7. Replace with:
+      // Indexing (Oct 2026): a car page is indexable when the car has at least two appearances that each carry a price (a sale or a bid), a real VIN, a make and model family, and live photos, and is
+      // listed in /sitemap-vins.xml; every other page (single priced appearance, hubs, 404s) stays noindex.
+    (the code is `pricedCount >= 2` at the index decision, and the same gate in rollout().)
