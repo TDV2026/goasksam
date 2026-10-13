@@ -39,7 +39,8 @@
 
 import { resolveVehicle } from "../lib/vehicle.js";
 import { findGeneration } from "../lib/generations.js";
-import { runOneBox, buildSpec, titleFenceReason, TIER_DIMENSION, mapEngineAnswer } from "../lib/onebox.js";
+import { runOneBox, buildSpec, titleFenceReason, TIER_DIMENSION, mapEngineAnswer, isQualifying } from "../lib/onebox.js";
+import { resolveSellCar, placesFor } from "../lib/sell/sellFacts.js";
 import { familyMarket, liveForFamily, emptyFilters, resolveForBuy } from "../lib/live/search.js";
 import { converse } from "../lib/live/converse.js";
 import { fetchOnlinePool, buildSharedAnalysis, pickPlatform, depthWins } from "../lib/platformPick.js";
@@ -395,6 +396,36 @@ function diagnoseReasons(row, { marketCheck, buy, sell, tasks }) {
   return out;
 }
 
+// ---- Lane 5: /sell's own facts (lib/sell/sellFacts.js) ----
+// DECISION (Lane B2, Oct 2026): sellFacts keeps its own pool read (fetchQualifying through the engine's own buildSpec
+// and isQualifying) instead of going through oneEngineAnswer, because it needs the pool's ROWS split by venue (per-venue
+// sales, middle half, last sale, sold-through) and oneEngineAnswer returns one range plus receipts, not the rows. So the
+// invariant is asserted here, per spec, rather than assumed. What must hold for every sweep spec:
+//   1. the car sellFacts sells is the car every other lane resolved (make, model, trim, body);
+//   2. its venue sales add up to its own total (no venue dropped, none counted twice);
+//   3. on an engine rung (exact / any_gearbox / any_body) EVERY row it counts passes the engine's own fence
+//      (isQualifying on the engine's spec), so it never counts a sale the engine would set aside.
+// Its window (12 then 36 months), house tier and display floor differ from the engine's answer by design, so its
+// TOTAL is reported next to the engine's count but is not compared for equality.
+async function sellFactsLane(q, vehicle, env, engineCount) {
+  const out = { ok: true, checks: [] };
+  const add = (name, ok, detail) => out.checks.push({ name, status: ok ? "MATCH" : "MISMATCH", detail });
+  const sc = await resolveSellCar(q, env);
+  if (!sc.car) return { ok: false, reason: "resolveSellCar found no car" };
+  const a = sc.car.v, b = vehicle;
+  const same = k => String(a[k] || "").toLowerCase() === String(b[k] || "").toLowerCase();
+  add("car", ["make", "model", "trim"].every(same) || (String(a.model) === "911" && String(a.make) === "Porsche" && /^9\d\d$/.test(String(b.model))), `sellFacts=${a.make}|${a.model}|${a.trim || ""} resolver=${b.make}|${b.model}|${b.trim || ""}`);
+  const pl = await placesFor({ ...sc.car, env: { supabaseUrl: env.supabaseUrl, supabaseKey: env.supabaseKey } });
+  const venueSum = (pl.places || []).reduce((n, p) => n + p.sales, 0) + (pl.others || []).reduce((n, p) => n + p.sales, 0);
+  add("venue sales add up", venueSum === pl.total, `venues=${venueSum} total=${pl.total}`);
+  if (/^(exact|any_gearbox|any_body)$/.test(pl.step) && pl._spec) {
+    const bad = (pl._pool || []).filter(r => !isQualifying(r, pl._spec));
+    add("every counted sale passes the engine fence", bad.length === 0, `${bad.length} of ${(pl._pool || []).length} fail; first: ${bad[0] ? String(bad[0].raw_title || bad[0].rtitle || "").slice(0, 60) : "-"}`);
+  }
+  out.total = pl.total; out.step = pl.step; out.engineCount = engineCount == null ? null : engineCount;
+  return out;
+}
+
 export async function checkOneSpec(q, env) {
   const row = { q };
   const rv = await resolveVehicle(q, {}).catch(e => ({ error: e }));
@@ -428,7 +459,9 @@ export async function checkOneSpec(q, env) {
   // (not reusing buy's object) so a future divergence between the two call SITES still shows up.
   const tasks = await buyLane(env, buyVehicle, f).catch(e => ({ ok: false, reason: String(e && e.message || e) }));
 
-  row.lanes = { marketCheck, buy, sell, tasks };
+  const sellFacts = await sellFactsLane(q, vehicle, env, marketCheck.ok ? marketCheck.count : null).catch(e => ({ ok: false, reason: String(e && e.message || e).slice(0, 120) }));
+  row.lanes = { marketCheck, buy, sell, tasks, sellFacts };
+  if (sellFacts.ok) { row.sellFactsCompare = sellFacts.checks; if (sellFacts.checks.some(c => c.status === "MISMATCH")) row.anyMismatch = true; }
   // fallbackRung/rungLabel/siblingName (Round 5 Lane B job, Oct 2026, Part 1 sweep requirement):
   // EXACT match across every lane that answered, same discipline as window/poolYears above - these
   // name WHICH POOL/RUNG produced the answer, a fact about the read, not a number with tolerance.
