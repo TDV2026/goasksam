@@ -5854,3 +5854,21 @@ gates, confirmed on real cars, not assumed**:
     --dry-run` against the real table is the outstanding real-data confirmation (expect ~266,000 rows scanned,
     ~244,000 distinct VINs, up from 180,599); the unit-level fixture proof above cannot substitute for that, it
     only proves the loop logic itself is no longer capped.
+- 2026-10-12 (Lane B): FOR LANE B2 - plain resolveVehicle("1970 Datsun 240Z") returns model: null in
+  production, not just in the old crossProductCheck harness. 240Z (and presumably 280Z, and any other
+  bare chassis-style nameplate that doesn't contain its own make name) resolves to make-only. This is
+  the real cause of the two remaining crossProductCheck mismatches in the 78-spec sweep ("1970 Datsun
+  240Z", "1972 Datsun 240Z"): Market Check and Sell call resolveVehicle directly (lib/onebox.js/
+  api/sellerDecision.js's oneBox branch) and get the make-only, model-less pool (every 1970/1972
+  Datsun on record, not just 240Zs - confirmed live via task=resolvediff&q=1970%20Datsun%20240Z:
+  marketCheckResolve.model is null). Buy/Tasks' real production entry (resolveForBuy, lib/live/
+  search.js) falls back to archiveResolveToken and correctly resolves model:"240Z" - so a seller typing
+  the identical words into Market Check today gets a worse, make-wide answer than the same words typed
+  into Buy. docs/lane-notes.md already documents the harness-level fix for this (line ~4599, "the
+  harness was resolving ONE vehicle via plain resolveVehicle and reusing it for all four lanes") - that
+  fix stopped a FALSE alarm on Buy/Tasks, it did not touch the real gap, which is still live in
+  lib/vehicle.js today. Not fixed here (lib/vehicle.js is out of scope for Lane B this round, and the
+  working rules say to flag rather than touch it). Confirmed via task=trimresolvediff too (one
+  divergence found there, "1970 Datsun 240Z Spyder", same shape). Suggest: port resolveForBuy's
+  archiveResolveToken fallback into resolveVehicle itself (or call it from resolveVehicle on a
+  model:null miss) so every caller of the ONE shared resolver gets the same recovery, not just Buy's.
