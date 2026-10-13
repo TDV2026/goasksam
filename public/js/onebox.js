@@ -877,7 +877,7 @@
     var cardsHtml = list.map(function (c, i) { return poolCardHtml(c, dirs[i]); });
     var label = obNumWord(list.length) + (list.length === 1 ? " sale sat outside where the middle half landed" : " sales sat outside where the middle half landed");
     return '<p class="ev-aside-toggle"><button type="button" class="linkbtn" data-qtoggle="shown-separately" aria-expanded="false">' + esc(label) + " " + CHEV_SVG + "</button></p>" +
-      '<div class="ev-aside-note" id="shown-separately" hidden>' + rangeBarHtml(d) + '<p class="sep-note" data-stage="cards">' + lint(sentence, "sep.note") + "</p>" + capCardsHtml("grid3", cardsHtml, 3) + "</div>";
+      '<div class="ev-aside-note" id="shown-separately" hidden>' + rangeBarHtml(d) + '<p class="sep-note" data-stage="cards">' + lint(sentence, "sep.note") + "</p>" + capCardsHtml("flatlist", cardsHtml, 3) + "</div>";
   }
   // "More comparable sales" (item 5): everything the engine qualified into this pool that is not
   // already shown as the exact-car hero or one of the evidence block's three context cards. Collapsed
@@ -940,7 +940,7 @@
   function thisExactCarHtml(d, m) {
     if (!m) return "";
     return '<div class="ev-exact" data-stage="cards"><span class="eyebrow">This exact car</span>' +
-      '<div class="cards5 single" data-stage="cards">' + vinHeroCardHtml(m, d.resolvedCar) + "</div></div>";
+      '<div class="cards5 single" data-stage="cards">' + vinHeroCardHtml(m, d.resolvedCar, true) + "</div></div>";
   }
   // contradictionLine (the divergence sentence) was deleted in the hero-rebuild round (Oct 2026) -
   // its only call site was resultHtml's removed "notes" block (narrowItDownHtml). No new home this
@@ -1039,15 +1039,24 @@
     var titleHtml = o.title
       ? (o.href ? ('<h3 class="ctitle"><a' + linkAttrs + ' aria-label="Open the listing">' + esc(o.title) + "</a></h3>") : ('<h3 class="ctitle">' + esc(o.title) + "</h3>"))
       : "";
-    var bodyInner = head +
+    // o.flat (follow-up round, Oct 2026): the thin tier's own receipts grid, "This exact car," the
+    // collapsed outside-range cards and the market-read quarter-row panel all opt into this - the
+    // SAME box/pill/shadow removal the sales row and live panel already got, reusing this ONE shared
+    // builder instead of a parallel row component (unlike allSalesRowHtml, which has a materially
+    // different, simpler field set). Every other caller (htPairsHtml, classEraHtml, refusalHtml,
+    // renderChassisMatch) does not pass it and is BYTE-IDENTICAL to before - not named in this round's
+    // four pieces, left alone. A pill (o.pill) becomes plain small-caps grey text instead of the
+    // green photo badge, since "no pills" applies here too.
+    var flatTag = (o.flat && o.pill) ? ('<div class="flat-tag">' + esc(o.pill) + "</div>") : "";
+    var bodyInner = flatTag + head +
       (o.allIn ? '<div class="callin">Buyer paid ' + esc(o.allIn) + " with premium</div>" : "") +
       titleHtml +
       (o.meta ? '<div class="cmeta">' + esc(o.meta) + "</div>" : "") +
       (o.extra || "") +
       (o.href ? ('<a class="viewsale"' + linkAttrs + ">View sale &#8594;</a>") : "") +
       (o.why ? '<p class="cwhy">' + lint(esc(o.why), "card.why") + "</p>" : "");
-    var cls = "card " + (o.cls || "");
-    var photo = photoHtml(o.image, o.title, o.pill);
+    var cls = "card " + (o.cls || "") + (o.flat ? " flat" : "");
+    var photo = photoHtml(o.image, o.title, o.flat ? "" : o.pill);
     var body = '<div class="cbody">' + bodyInner + "</div>" + (o.after || "");
     return '<article class="' + cls + (o.href ? " clickable" : "") + '">' + photo + body + "</article>";
   }
@@ -1094,7 +1103,11 @@
   // Snapshot attributes are dated and past tense (rule 26). The history link renders only when the
   // engine returns how many times it sold before the shown sale (m.soldBeforeCount >= 1) and the
   // query was a VIN (the /vin/{vin} page is keyed on it).
-  function vinHeroCardHtml(m, rc) {
+  // flat (follow-up round, Oct 2026, 3rd arg, default false): "This exact car" - both its wrapped
+  // form (thisExactCarHtml, range tier) and the bare card thin's own hero renders on a VIN match are
+  // the SAME concept, so both opt in. classEraHtml and renderChassisMatch call this too but are NOT
+  // one of this round's four named pieces - left boxed, unchanged.
+  function vinHeroCardHtml(m, rc, flat) {
     var name = m.displayName || carLabel(rc);
     var priceHtml, venueLine;
     var lastAttempt = (m.history || []).filter(function (h) { return h.kind === "attempt" || h.notSold; })[0];
@@ -1120,7 +1133,7 @@
     var hist = (n >= 1 && obSourceVin)
       ? '<a class="histlink" href="' + esc(historyHref(rc, obSourceVin)) + '">' + esc(priorSaleLine + "See its full history") + " &#8594;</a>"
       : "";
-    return saleCardHtml({ cls: "hero this exact", pill: "This car", href: utmUrl(m.url), slug: m.source, image: m.photoUrl,
+    return saleCardHtml({ cls: "hero this exact", flat: !!flat, pill: "This car", href: utmUrl(m.url), slug: m.source, image: m.photoUrl,
       priceHtml: priceHtml, venueLine: venueLine, title: name, meta: meta, after: hist });
   }
   // Canonical VIN history URL (/history/{year}-{make}-{model-slug}/{VIN}), built the same way as
@@ -1137,7 +1150,12 @@
   // These never carry vinNorm/hasHistoryPage - Lane B's attachHistoryPage (lane-notes FOR LANE A,
   // Oct 13) is scoped to "result"-tier cards only (the same d.cards array poolCardHtml below reads),
   // same scope as the existing attachSoldBefore right beside it. Nothing to link here.
-  function receiptCardHtml(rc) {
+  // flat (follow-up round, Oct 2026, 2nd arg, default false): opt-in, NOT a 3rd .map() index gotcha -
+  // every call site below passes it explicitly via a wrapping function, never bare `.map(receiptCardHtml)`
+  // for the one caller (thin's own grid) that wants it, so the array index can never leak in as this
+  // argument. Only the thin tier's own receipts grid passes true; htPairsHtml and classEraHtml are
+  // unchanged, still boxed - neither is one of this round's four named pieces.
+  function receiptCardHtml(rc, flat) {
     var natH = rc.nativeCur && rc.nativeHammer;
     var priceHtml = natH ? esc(natMoney(rc.nativeCur, rc.nativeHammer)) + ' <span class="cvenue">(' + esc(usd(rc.hammer)) + ")</span>" : esc(usd(rc.hammer));
     var allIn = "";
@@ -1148,7 +1166,7 @@
     if (rc.isHouse) { var ch = houseChassisMeta(rc); if (ch) segs.push(ch); }
     else if (htGearboxSplit) { var gl = gearboxLabel(rc); if (gl) segs.push(gl); }
     var marks = (rc.markers && rc.markers.length) ? "<div>" + rc.markers.map(function (mk) { return '<span class="mk">' + esc(mk.label) + "</span>"; }).join("") + "</div>" : "";
-    return saleCardHtml({ cls: "t", href: utmUrl(rc.url), slug: rc.slug, id: rc.id, image: rc.image, priceHtml: priceHtml, allIn: allIn,
+    return saleCardHtml({ cls: "t", flat: !!flat, href: utmUrl(rc.url), slug: rc.slug, id: rc.id, image: rc.image, priceHtml: priceHtml, allIn: allIn,
       title: cleanReceiptTitle(shortCarName(rc.title)), meta: segs.filter(Boolean).join(" · "), extra: marks });
   }
   // Engine d.cards shape (refusal / shown-separately): price, mileageText, platform, month, title.
@@ -1168,7 +1186,10 @@
     var sb = (c.soldBefore && c.soldBefore.date)
       ? (c.soldBefore.link ? ('<a class="sb-line" href="' + esc(utmUrl(c.soldBefore.link)) + '" target="_blank" rel="noopener noreferrer">' + esc(sbText) + '</a>') : ('<div class="sb-line">' + esc(sbText) + '</div>'))
       : (c.hasHistoryPage && c.vinNorm) ? ('<a class="sb-line" href="' + esc(historyHref(null, c.vinNorm)) + '">Sold before &#8594;</a>') : "";
-    return saleCardHtml({ cls: "t", pill: tagLabel || "", href: utmUrl(c.url), slug: c.platformSlug, id: c.id, image: c.image,
+    // flat: true unconditionally (follow-up round, Oct 2026) - poolCardHtml's only two callers,
+    // collapsedAsideHtml (the outside-range cards) and the market-read quarter-row panel, are both
+    // named Part 3 targets.
+    return saleCardHtml({ cls: "t", flat: true, pill: tagLabel || "", href: utmUrl(c.url), slug: c.platformSlug, id: c.id, image: c.image,
       priceHtml: esc(usd(c.price)), title: cleanReceiptTitle(c.title),
       meta: [c.mileageText && c.mileageText !== "TMU" ? c.mileageText : "", venue, c.month || monShort(c.date)].filter(Boolean).join(" · "), after: sb });
   }
@@ -1318,7 +1339,7 @@
         return '<div class="mktread-qrow"><div class="mktread-qrowbtn">' + period + '<span class="mktread-qtrack">' + track + '</span>' + rowText + '</div></div>';
       }
       var panelId = "mktread-q" + (++obMktreadSeq);
-      var panel = capCardsHtml("grid3", q.sales.map(function (c) { return poolCardHtml(c, false); }), 3);
+      var panel = capCardsHtml("flatlist", q.sales.map(function (c) { return poolCardHtml(c, false); }), 3);
       return '<div class="mktread-qrow"><button type="button" class="mktread-qrowbtn mktread-qopen" data-qtoggle="' + panelId + '" aria-expanded="false">' +
         period + '<span class="mktread-qtrack">' + track + '</span>' + rowText + CHEV_SVG + '</button>' +
         '<div class="mktread-qpanel" id="' + panelId + '" hidden>' + panel + '</div></div>';
@@ -1681,7 +1702,15 @@
       var latestDate = (scope || []).reduce(function (mx, r) { return (r && r.date && r.date > mx) ? r.date : mx; }, "");
       countTxt = obNumWord(n) + " sales in " + win + (latestDate ? ", the latest on " + freshDay(latestDate) : "") + ".";
     }
-    left += '<p class="hero-scope" data-stage="answer">' + lint(esc(cap(countTxt)), "hero.thin.count") + "</p>";
+    // Scope (follow-up round, Oct 2026): the thin tier's own count line never named which years the
+    // pool actually used, even when the engine's own rungLabel widened past the typed year (Lane B2's
+    // golden check: a 2006 CLK DTM read only "the past three years," dropping the engine's own "2005
+    // to 2007"). heroScopeText is the SAME function the range tier's scope line already uses - prints
+    // d.rungLabel verbatim (full years, never shortened) except on a genuinely exact, nothing-widened
+    // rung, where it is body-only, per the same rule everywhere else on this page.
+    var scopeTxt = heroScopeText(d);
+    var fullLine = [scopeTxt, countTxt].filter(Boolean).join(" · ");
+    left += '<p class="hero-scope" data-stage="answer">' + lint(esc(cap(fullLine)), "hero.thin.count") + "</p>";
     var fl = freshLine(d); if (fl) left += fl;
     var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.thin.older") + "</p>";
     if (ht.houseSteer) left += '<p class="hero-noband" data-stage="answer">' + lint(!ht.onlineReceiptsN ? "These trade at the auction houses, not online. Every recorded sale here came through one." : "These mostly trade at the auction houses; a few sell online. Both are below.", "hero.thin.steer") + "</p>";
@@ -1729,7 +1758,7 @@
       ? "Same car, both venues."
       : "The same chassis, sold at a house and online. Too few matched pairs yet to read a house-versus-online pattern, so here are both receipts.";
     return '<div class="sec-head" data-stage="cards"><div><h2>' + lint("The same car, twice", "ht.pairlab") + '</h2><span class="scope">' + lint(note, "ht.pairnote") + "</span></div></div>" +
-      '<div class="grid2" data-stage="cards">' + ht.pairs[0].map(receiptCardHtml).join("") + "</div>";
+      '<div class="grid2" data-stage="cards">' + ht.pairs[0].map(function (rc) { return receiptCardHtml(rc); }).join("") + "</div>";
   }
   // Widening box: ONLY when the engine returns a sibling family (thin.sibling {label, count, query,
   // relation?}). The button runs the sibling's own query.
@@ -1805,14 +1834,14 @@
     // A gearbox tag shows only when the pool has a real manual-vs-non-manual split.
     htGearboxSplit = (function () { var man = 0, non = 0; (scope || []).forEach(function (rc) { if (rc.isHouse) return; var g = gearboxLabel(rc); if (!g) return; if (/^manual/i.test(g)) man++; else non++; }); return man > 0 && non > 0; })();
     var body = livePanelSlot() + thinHeroHtml(d, name, scope, scopedLabel, ht, m);
-    if (m) body += '<div class="cards5 single" data-stage="cards">' + vinHeroCardHtml(m, d.resolvedCar) + "</div>";
+    if (m) body += '<div class="cards5 single" data-stage="cards">' + vinHeroCardHtml(m, d.resolvedCar, true) + "</div>";
     // Newest first (the honest evidence order); the engine's hammer-desc order is for its own math.
     // Every sale renders (capped display only, Oct 2026): "every real sale", not a curated slice.
     // id="more-sales" (hero-rebuild round): the thin hero receipt's "N more comparable sales" link
     // scrolls here, the same [data-scrollto] target id the range tier's "more comparable sales"
     // section uses - one id, one mechanism, regardless of tier.
     var shownRecs = scope.slice().sort(function (a, b) { return String(b.date || "").localeCompare(String(a.date || "")); });
-    body += '<div id="more-sales">' + capCardsHtml("grid2", shownRecs.map(receiptCardHtml), 4) + "</div>";
+    body += '<div id="more-sales">' + capCardsHtml("flatlist", shownRecs.map(function (rc) { return receiptCardHtml(rc, true); }), 4) + "</div>";
     if (scope === ht.receipts) body += htPairsHtml(ht);
     body += siblingHtml(ht);
     // One Box NEVER recommends a house or platform; "Ready to sell?" is the only bridge to /sell.
@@ -1884,7 +1913,7 @@
       freshLine(d) + "</div></section>";
     if (m) out += '<div class="cards5 single" data-stage="cards">' + vinHeroCardHtml(m, d.resolvedCar) + "</div>";
     out += '<div class="sec-head" data-stage="cards"><div><h2>' + lint(era + " " + make + " sales, " + spanRange(ce.receipts), "ce.reclab") + "</h2></div></div>";
-    out += '<div class="grid2" data-stage="cards">' + shown.map(receiptCardHtml).join("") + "</div>";
+    out += '<div class="grid2" data-stage="cards">' + shown.map(function (rc) { return receiptCardHtml(rc); }).join("") + "</div>";
     out += sellHtml();
     return out;
   }

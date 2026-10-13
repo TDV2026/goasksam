@@ -236,9 +236,11 @@ a.salescard:hover .salescard-title{text-decoration:underline;text-underline-offs
 .notes p{margin:0;font:400 17px/1.5 var(--serif);color:var(--soft)}
 .notes .num{font-weight:600;color:var(--ink)}
 
-/* ---- Market read card (Oct 2026): same paper surface/radius/padding as the range card above ---- */
-.mktread{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:23px 25px 21px;display:flex;flex-direction:column;gap:16px}
-.mktread-h2{margin:0;font:500 20px/1.25 var(--serif)}
+/* ---- Market read card (Oct 2026). Flattened (follow-up round, Oct 2026): no paper surface, no
+   border, no radius - a thin top divider and a serif heading, the same .sec-head language every
+   other section below the hero now uses. Content/behavior unchanged. ---- */
+.mktread{padding-top:14px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:16px}
+.mktread-h2{margin:0;font:500 22px/1.25 var(--serif)}
 .mktread-lead{margin:0;font:400 18px/1.4 var(--serif);color:var(--ink)}
 .mktread-qrows{display:flex;flex-direction:column}
 .mktread-qrow+.mktread-qrow{border-top:1px solid var(--div)}
@@ -346,6 +348,32 @@ a.sb-line:hover{color:var(--green)}
 .grid3 .cprice{font-size:22px}
 .grid3 .cbody{padding:12px 16px 14px;gap:4px}
 .grid3 .ctitle{font-size:15px}
+
+/* ---- flat rows (follow-up round, Oct 2026): the thin tier's own receipts grid, the collapsed
+   outside-range cards and the market-read quarter panel all render here instead of grid2/grid3 -
+   one column, thin row dividers, no card surface. saleCardHtml's o.flat (see that function) strips
+   the box/pill from each card; this is the one-column list wrapper they sit in instead of a grid. */
+.flatlist{display:flex;flex-direction:column}
+.card.flat{background:transparent;border:0;border-radius:0;overflow:visible;flex-direction:row;align-items:center;gap:16px;padding:12px 0;border-top:1px solid var(--div)}
+.flatlist .card.flat:first-child{border-top:0}
+.card.flat:hover{border-color:var(--div)}
+.card.flat .ph{width:64px;height:48px;flex:none;border-radius:8px;aspect-ratio:auto}
+.card.flat .cbody{padding:0;gap:1px;flex:1;min-width:0}
+.card.flat .ctitle{font-size:14px}
+.card.flat .cprice{font-size:16px}
+.card.flat .cmeta{font-size:13px}
+.card.flat .callin{font-size:12px}
+.card.flat .viewsale{margin-top:4px}
+.card.flat .sb-line,.card.flat .histlink{margin-top:4px}
+/* markers (.mk): a tinted pill elsewhere on the page, plain inline grey text here - "no pills". */
+.card.flat .mk{display:inline;background:none;border:0;border-radius:0;padding:0;margin:0 10px 0 0;color:var(--sec);font-weight:600;letter-spacing:0;text-transform:none}
+/* the pill (tagLabel / "This car") becomes small-caps grey text above the price, same language as
+   the live panel's own .lp-placing. */
+.flat-tag{margin:0 0 2px;font:600 11px/1.2 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--sec)}
+@media (max-width:640px){
+  .card.flat{gap:12px}
+  .card.flat .ph{width:52px;height:40px}
+}
 
 /* ---- question card (inside a result) + question screen ---- */
 .qchip{min-height:44px;padding:0 16px;border-radius:999px;border:1px solid var(--chip);background:var(--card);color:var(--ink);font:500 15px var(--sans);cursor:pointer}
