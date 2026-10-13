@@ -6140,3 +6140,16 @@ gates, confirmed on real cars, not assumed**:
     "If it's different now, update it and the range reruns around the mileage you give."
   No code change this entry - the Part 0-3 code already pushed (9824044/3979a34) rendered exactly
   as documented once access resolved.
+- 2026-10-13 (Lane A): SPEED CHECK NOW FAILING - "1995 Porsche 911 Carrera" 20693ms (budget
+  14000ms), "1969 Chevrolet Camaro" 20526ms (budget 8000ms), run with a real key once access
+  resolved. NOT this diff: toSell's vehicle_key/year build is client-side, runs only on the handoff
+  button click, never touches a Market Check result's load time; the thin-tier and vercel.json
+  changes don't touch fetch/cache paths either. Both failing queries landed right after this
+  session's rebases pulled in d225354 (specKeyFor cache key always includes the literal year) and
+  90febaa (readWarmAnswer forced a cache miss whenever the sales epoch was unavailable) - FOR LANE
+  B: these look like the likely cause (more cache misses -> slower responses matches the symptom
+  exactly), worth checking before the next push. Did not revert or touch anything - not this lane's
+  files, and the already-pushed commits in this round are confirmed unrelated by their own diff.
+  Flagging plainly per this round's own "state it plainly" rule rather than silently pushing past it
+  (nothing of mine was pending to push at the time this ran - the finding came after this round's
+  own commits were already out).
