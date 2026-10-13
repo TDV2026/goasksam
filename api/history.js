@@ -3,8 +3,8 @@
 //   GET /history/{year}-{make}-{model-slug}        -> the hub page   (?slug=)
 //   GET /vin/{VIN}                                 -> 301 to the car page (?vin=&go=1)
 //   POST /api/history {action:"watch", vin, email} -> watch_requests (service role)
-// Indexing (Oct 2026): a car page is indexable when the car has at least one SALE with a photo, and is
-// listed in /sitemap-vins.xml; every other page (no photographed sale, hubs, 404s) stays noindex.
+// Indexing (Oct 2026): a car page is indexable when the car has at least two appearances that each carry a price (a sale or a bid), a real VIN, a make and model family, and live photos, and is
+// listed in /sitemap-vins.xml; every other page (single priced appearance, hubs, 404s) stays noindex.
 //   GET /sitemap-vins.xml -> sitemap index (?sitemap=index);  /sitemap-vins-N.xml -> page N (?sitemap=N)
 import { withTracking } from "../lib/track/log.js";
 import { vinsForUrls } from "./_historyData.js";
@@ -710,10 +710,23 @@ async function rollout(env, opts = {}) {
   const t0 = Date.now();
   const BUDGET_MS = opts.budgetMs || 180000;   // 180s default, leaving 120s of margin under Vercel's 300s ceiling
   const per = new Map();
-  for (let page = 0; page < 200; page++) {
-    if (Date.now() - t0 > BUDGET_MS) break;
-    const rows = await supabaseSelectSafe(env, `vin_index?select=vin_norm,year,make,model_family,listing_title,photo_url,vehicle_type,appearance_date,result&order=id.asc&limit=1000&offset=${page * 1000}`);
-    if (!Array.isArray(rows) || !rows.length) break;
+  // Keyset paging on id (Oct 2026 fix, Lane B2): the old `offset=${page*1000}` loop was capped at a
+  // fixed 200 pages, so it could never read past row 200,000 - vin_index has grown well past that
+  // (266,402 rows at the time of the fix), silently dropping the newest ~63,000 VINs' worth of rows
+  // from the scan every single run. Keyset paging on id has no such ceiling: page 267 costs the same
+  // as page 1, so the scan runs until the table is actually exhausted, bounded only by BUDGET_MS.
+  let lastId = 0, rowsScanned = 0, scanPages = 0, scanComplete = true;
+  for (;;) {
+    if (Date.now() - t0 > BUDGET_MS) { scanComplete = false; break; }
+    const q = `vin_index?select=id,vin_norm,year,make,model_family,listing_title,photo_url,vehicle_type,appearance_date,result&id=gt.${lastId}&order=id.asc&limit=1000`;
+    let rows = await supabaseSelectSafe(env, q);
+    // A failed page is NEVER treated as the end of the table - that would silently truncate the scan
+    // exactly like the old 200-page cap did. Retry twice before giving up; only then fail the whole
+    // scan (scan_complete false) so buildVinRolloutCache.js's guard refuses to write a partial cache.
+    for (let attempt = 0; !Array.isArray(rows) && attempt < 2; attempt++) rows = await supabaseSelectSafe(env, q);
+    if (!Array.isArray(rows)) { scanComplete = false; break; }
+    if (!rows.length) break;   // genuinely the end of the table - scanComplete stays true
+    scanPages++; rowsScanned += rows.length; lastId = rows[rows.length - 1].id;
     for (const r of rows) {
       const g = per.get(r.vin_norm) || { n: 0, sold: 0, photo: false, photos: [], title: null, year: null, make: null, family: null, type: null, date: "" };
       g.n++; if (r.photo_url) { g.photo = true; if (g.photos.length < 4 && !g.photos.includes(r.photo_url)) g.photos.push(r.photo_url); } if (/^sold/i.test(String(r.result || ""))) g.sold++;
@@ -722,7 +735,7 @@ async function rollout(env, opts = {}) {
     }
     if (rows.length < 1000) break;
   }
-  const counts = { vins: per.size, non_vehicle: 0, junk_identifier: 0, no_proper_title: 0, no_photo: 0, single_noindex: 0, multi_candidates: 0, multi_indexable: 0, hubs_indexable: 0 };
+  const counts = { vins: per.size, rows_scanned: rowsScanned, scan_pages: scanPages, scan_complete: scanComplete, non_vehicle: 0, junk_identifier: 0, no_proper_title: 0, no_photo: 0, single_noindex: 0, multi_candidates: 0, multi_indexable: 0, hubs_indexable: 0 };
   const hubs = new Map(), multi = [], motoMulti = [], otherMulti = [], merged = new Map();
   for (const [vin, g] of per) {
     if (!realVin(vin)) { counts.junk_identifier++; continue; }
