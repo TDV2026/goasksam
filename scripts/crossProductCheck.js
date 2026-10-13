@@ -39,9 +39,9 @@
 
 import { resolveVehicle } from "../lib/vehicle.js";
 import { findGeneration } from "../lib/generations.js";
-import { runOneBox, buildSpec, titleFenceReason, TIER_DIMENSION, mapEngineAnswer, isQualifying } from "../lib/onebox.js";
+import { runOneBox, buildSpec, titleFenceReason, TIER_DIMENSION, mapEngineAnswer, isQualifying, oneEngineAnswer } from "../lib/onebox.js";
 import { resolveSellCar, placesFor } from "../lib/sell/sellFacts.js";
-import { familyMarket, liveForFamily, emptyFilters, resolveForBuy } from "../lib/live/search.js";
+import { familyMarket, liveForFamily, emptyFilters, resolveForBuy, engineAnswer } from "../lib/live/search.js";
 import { converse } from "../lib/live/converse.js";
 import { fetchOnlinePool, buildSharedAnalysis, pickPlatform, depthWins } from "../lib/platformPick.js";
 import { decide, getSellerCriteria } from "../api/sellerDecision.js";
@@ -138,7 +138,15 @@ export const DEFAULT_SPECS = [
   // SLs) and no generation curated for the pre-1989 R107. "2021 Land Rover Defender 110" has no
   // curated generation data at all (lib/generations.js) and no SIBLING_MODELS entry - the
   // fallbackRung should skip "generation"/"sibling" cleanly rather than guess.
-  "2025 Porsche 911", "2025 Porsche 911 Cabriolet", "1991 Mercedes-Benz 560SL", "2021 Land Rover Defender 110"
+  "2025 Porsche 911", "2025 Porsche 911 Cabriolet", "1991 Mercedes-Benz 560SL", "2021 Land Rover Defender 110",
+  // Lane B job (Oct 2026, Part 2): the parseQuery edition-word gaps B2 found and listed in
+  // scripts/resolverLanesCheck.mjs's buyGap entries (now closed, entries removed there too) -
+  // "Black" in "Black Series" read as a paint colour and "Speedster" as a body filter BEFORE the
+  // resolver ever saw them, so Buy/Tasks searched a different car than Market Check for the same
+  // typed words. These four must match across all four lanes now that parseQuery protects both
+  // phrases before colour/body stripping runs.
+  "2008 Mercedes-Benz CLK 63 AMG Black Series", "2013 Mercedes-Benz SLS AMG Black Series",
+  "Mercedes-Benz SLS AMG Black Series", "2011 Porsche 911 Speedster"
 ];
 
 const round = n => (Number.isFinite(n) ? Math.round(n) : null);
@@ -928,6 +936,42 @@ export async function checkIdentityQuestions(env, specs = DEFAULT_SPECS) {
   return out;
 }
 
+// CACHE CONSISTENCY (Lane B job, Oct 2026, Part 1): a warm in-memory hit (lib/live/search.js
+// rangeCache, via engineAnswer) must return the IDENTICAL answer a cold read would give right now -
+// never a hit that outlived the epoch/version it was stamped under, and never a one-off bad read
+// that got latched in and kept being served afterward. For every spec: call engineAnswer twice (the
+// second call is guaranteed warm, same tick), then call oneEngineAnswer directly (bypassing
+// rangeCache entirely, the same asked:0-then-asked:2 escalation engineAnswer itself does) for a
+// genuinely fresh read, and compare the two on the fields a seller actually reads.
+export async function checkCacheConsistency(env, specs = DEFAULT_SPECS) {
+  const out = { ok: true, cases: [] };
+  const fields = ["tier", "poolN", "low", "high", "fallbackRung", "rungLabel"];
+  const shape = d => {
+    const hasCluster = d && d.tier === "result" && Array.isArray(d.cluster);
+    return { tier: (d && d.tier) || null, poolN: d && d.poolN != null ? d.poolN : null, low: hasCluster ? d.cluster[0] : null, high: hasCluster ? d.cluster[1] : null, fallbackRung: (d && d.fallbackRung) || null, rungLabel: (d && d.rungLabel) || null };
+  };
+  for (const q of specs) {
+    const row = { q };
+    try {
+      const rv = await resolveVehicle(q, {}), vehicle = rv && rv.vehicle;
+      if (!vehicle || !vehicle.make) throw new Error("unresolved");
+      const generation = await findGeneration(vehicle, env).catch(() => null);
+      const searchText = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(" ");
+      await engineAnswer(vehicle, generation, searchText, env, null);   // first call: may be cold, primes the cache
+      const warm = await engineAnswer(vehicle, generation, searchText, env, null);   // second call: guaranteed warm
+      const coldRun = async asked => (await oneEngineAnswer(vehicle, generation, searchText, { ...env, exactSale: null, asked }, null)).raw;
+      let cold = await coldRun(0);
+      if (cold && /_choice$/.test(String(cold.tier || ""))) cold = await coldRun(2);   // same escalation engineAnswer itself does
+      const a = shape(warm), b = shape(cold);
+      row.warm = a; row.cold = b;
+      row.agree = fields.every(f => a[f] === b[f]);
+      if (!row.agree) out.ok = false;
+    } catch (e) { row.error = String(e && e.message || e); out.ok = false; }
+    out.cases.push(row);
+  }
+  return out;
+}
+
 export async function runEngineCheck(env, specs = DEFAULT_SPECS, opts = {}) {
   const rows = [];
   for (const q of specs) rows.push(await checkOneSpec(q, env));
@@ -940,7 +984,8 @@ export async function runEngineCheck(env, specs = DEFAULT_SPECS, opts = {}) {
   const overTime = opts.overTime === false ? null : await checkOverTimeInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const liveListing = opts.liveListing === false ? null : await checkLiveListingDisclosure(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const urgentOct2026 = opts.urgentOct2026 === false ? null : await checkUrgentOct2026Guards(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  return { task: "crossproductcheck", total: rows.length, mismatchSpecs: totalMismatches, singlePick, buyPaths, liveFences, representative, splitPools, overTime, liveListing, urgentOct2026, rows };
+  const cacheConsistency = opts.cacheConsistency === false ? null : await checkCacheConsistency(env, specs).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  return { task: "crossproductcheck", total: rows.length, mismatchSpecs: totalMismatches, singlePick, buyPaths, liveFences, representative, splitPools, overTime, liveListing, urgentOct2026, cacheConsistency, rows };
 }
 
 // ---- CLI ----
@@ -970,6 +1015,7 @@ function printTable(result) {
   if (result.splitPools) console.log(`SPLIT POOLS: ${result.splitPools.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.splitPools)}`);
   if (result.overTime) console.log(`OVER TIME: ${result.overTime.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.overTime)}`);
   if (result.liveListing) console.log(`LIVE LISTING: ${result.liveListing.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.liveListing)}`);
+  if (result.cacheConsistency) console.log(`CACHE CONSISTENCY: ${result.cacheConsistency.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.cacheConsistency)}`);
 }
 
 const isMain = import.meta.url === `file://${process.argv[1]}`;
@@ -982,5 +1028,5 @@ if (isMain) {
   const result = await runEngineCheck(env, specs);
   if (asJson) console.log(JSON.stringify(result));
   else printTable(result);
-  process.exit(result.mismatchSpecs > 0 || (result.singlePick && !result.singlePick.ok) || (result.buyPaths && !result.buyPaths.ok) || (result.liveFences && !result.liveFences.ok) || (result.representative && !result.representative.ok) || (result.splitPools && !result.splitPools.ok) || (result.overTime && !result.overTime.ok) || (result.liveListing && !result.liveListing.ok) ? 1 : 0);
+  process.exit(result.mismatchSpecs > 0 || (result.singlePick && !result.singlePick.ok) || (result.buyPaths && !result.buyPaths.ok) || (result.liveFences && !result.liveFences.ok) || (result.representative && !result.representative.ok) || (result.splitPools && !result.splitPools.ok) || (result.overTime && !result.overTime.ok) || (result.liveListing && !result.liveListing.ok) || (result.cacheConsistency && !result.cacheConsistency.ok) ? 1 : 0);
 }

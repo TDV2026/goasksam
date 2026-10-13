@@ -39,12 +39,13 @@ const CASES = [
   ["2005 Land Rover Range Rover LWB", { year: 2005, model: "Range Rover", variant: "LWB" }],
   ["2015 Jeep Wrangler Unlimited", { year: 2015, model: "Wrangler", variant: "Unlimited" }],
   ["2008 Porsche 911 Carrera 4S", { year: 2008, model: "911", trim: "Carrera 4S" }],
-  // Special editions are carried on `edition` (Lane B2). `buyGap` names fields Buy/Tasks lose BEFORE the resolver, in
-  // lib/live/search.js parseQuery (Lane B's file: "Black" read as a paint colour, "Speedster" as a body filter, so the
-  // words never reach resolveForBuy). Known and listed for Lane B; the check fails if a gap closes so the entry is removed.
-  ["2008 Mercedes-Benz CLK 63 AMG Black Series", { year: 2008, model: "CLK-Class", trim: "CLK63 AMG", edition: "Black Series" }, ["edition"]],
-  ["2013 Mercedes-Benz SLS AMG Black Series", { year: 2013, model: "SLS AMG", trim: null, edition: "Black Series" }, ["edition"]],
-  ["Mercedes-Benz SLS AMG Black Series", { model: "SLS AMG", trim: null, edition: "Black Series" }, ["edition", "trim"]],
+  // Special editions are carried on `edition` (Lane B2). Lane B job (Oct 2026): parseQuery (lib/live/search.js)
+  // used to strip "Black" (in "Black Series") as a paint colour and "Speedster" as a body filter BEFORE the words
+  // ever reached resolveForBuy, so Buy/Tasks searched a different car than Market Check. Fixed by protecting both
+  // phrases before colour/body stripping runs; no buyGap entries remain below.
+  ["2008 Mercedes-Benz CLK 63 AMG Black Series", { year: 2008, model: "CLK-Class", trim: "CLK63 AMG", edition: "Black Series" }],
+  ["2013 Mercedes-Benz SLS AMG Black Series", { year: 2013, model: "SLS AMG", trim: null, edition: "Black Series" }],
+  ["Mercedes-Benz SLS AMG Black Series", { model: "SLS AMG", trim: null, edition: "Black Series" }],
   ["2022 Subaru WRX Launch Edition", { year: 2022, model: "WRX", trim: null, edition: "Launch Edition" }],
   ["2010 Nissan GT-R Edition 1", { year: 2010, model: "GT-R", trim: null, edition: "Edition 1" }],
   ["2021 Porsche 911 Turbo S Final Edition", { year: 2021, model: "911", trim: "Turbo S", edition: "Final Edition" }],
@@ -55,7 +56,7 @@ const CASES = [
   ["2012 Porsche 911 Carrera GTS", { year: 2012, model: "911", trim: "Carrera GTS", edition: "GTS" }],
   ["2019 Porsche 911 GT3 Touring", { year: 2019, model: "911", trim: "GT3", edition: "Touring" }],
   ["2019 Porsche 911 Sport Classic", { year: 2019, model: "911", trim: "Sport Classic", edition: "Sport Classic" }],
-  ["2011 Porsche 911 Speedster", { year: 2011, model: "911", trim: "Speedster", edition: "Speedster" }, ["edition", "trim"]],
+  ["2011 Porsche 911 Speedster", { year: 2011, model: "911", trim: "Speedster", edition: "Speedster" }],
   ["2018 Porsche 911 Heritage Edition", { year: 2018, model: "911", trim: "Heritage Edition", edition: "Heritage" }],
   ["2020 Lincoln Navigator Signature", { year: 2020, model: "Navigator", trim: null, edition: "Signature" }],
   // Code-style nameplates (Lane B2, Oct 2026): chassis-style names resolve to the make the archive stores, on both paths.
