@@ -5786,3 +5786,12 @@ gates, confirmed on real cars, not assumed**:
     ocdstatus statsprobe liveprobe nonsold nonsold2 coverage houserates modelscan fragscan selldiag sellreal
     platformpickreport platformpickproof platformpickaudit sellcutoverdiff. 102 remain. CORRECTION: CLAUDE.md says there
     are no Vercel crons; vercel.json has crons, two of them ops tasks (depth 08:00 and fill 12:00 UTC), both kept.
+
+- 2026-10-12 (Lane B2): ATTEMPTS PULL NOW STOPS AT THE FIRST KNOWN PAGE. scripts/ingestAttempts.js reads the attempts it
+  already holds inside the window (source_slug plus source_record_id), pages newest first and stops once a whole page is
+  held (lib/_attemptsWalk.js, same idea as ingest.js --delta). --months stays the outer bound (default 1, so a manual
+  --months=2 still reaches back); --full re-reads the whole window; --dry-run pages and counts with no database write (it
+  still spends vendor requests, so it is not run in prePush). A failed held-ids read walks the whole window, never an
+  empty set. Stored columns, the status filter and the five sources are unchanged. Typical night 16 -> 7 requests (BaT 2,
+  Cars & Bids 2, the other three 1 each; 5 to 9 range), a 14 day catch-up about 12. scripts/attemptsWalkCheck.mjs proves
+  it on a recorded page set and is in prePush. The nightly job needs the repo variable OCD_SKIP_ATTEMPTS set to 0.

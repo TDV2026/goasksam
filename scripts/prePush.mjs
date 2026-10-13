@@ -195,6 +195,13 @@ try {
 } catch (e) {
   record("one car per name on every lane (scripts/resolverLanesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The attempts pull's stop-at-known-page rule on a recorded page set (Oct 2026, Lane B2). No network, no vendor request.
+try {
+  const out = execSync("node scripts/attemptsWalkCheck.mjs", { encoding: "utf8" });
+  record("attempts pull stop rule (scripts/attemptsWalkCheck.mjs)", "PASS", (out.match(/attemptsWalkCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("attempts pull stop rule (scripts/attemptsWalkCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Who started each pull (Oct 2026, Lane C): started_by on the pull job's rows and every ocd_call row, and the report's
 // split. No network, no vendor request.
 try {
