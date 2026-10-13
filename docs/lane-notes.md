@@ -5986,3 +5986,19 @@ gates, confirmed on real cars, not assumed**:
     4. "Wagon" stripped from a model name: "Dodge Power Wagon" -> model Power Wagon (Buy: model null, bodyStyle wagon).
     5. enrichForBuy bare-make check: "Honda S 2000" -> model S2000 (Buy: model null; "2000" is stripped as a year and "S" as a possessive).
   Search check: no public page touched.
+- 2026-10-13 (Lane A): RESULT HERO JOB - two bugs found live during proof, both fixed before the
+  report shipped, plus the Change-link gap caught reviewing a screenshot.
+  * evidenceMetaLine's new count line read "NaN comparable sales" on a live query (a real 8-sale
+    Carrera S pool) - the engine's own soldCount is ALREADY a spelled word for any count under ten
+    (its countWord helper, e.g. "eight", a string, never a bare integer), and the new line's
+    Number()+obNumWord pass turned that string into NaN. Fixed to print the engine's own word
+    verbatim when soldCount is not numeric, only applying obNumWord to the genuine 11+ numeric case.
+  * queryMileage (mapEngineAnswer's own field, added in an earlier Lane B round) was computed but
+    never copied onto oneBox in api/sellerDecision.js, so a typed "...8,500 miles" query always
+    reached the page as undefined and the new mileage field never pre-filled. Wired it alongside the
+    existing fallbackRung/rungLabel/siblingName lines - confirmed live afterward (milesValue "8500").
+  * The "Change" link (carLineHtml) was still showing on desktop in the first live screenshot - the
+    brief's "remove on desktop, keep on mobile" instruction was written into the job but never
+    actually built. Added `.carline .ch{display:none}` with the existing mobile breakpoint re-
+    enabling it; verified both ways in the final screenshots.
+  * Commits: a5bef4b, c0a5406, 3f06064, 5ba8695 (cache-bust bump), db8eb94.
