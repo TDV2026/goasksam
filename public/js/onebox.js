@@ -691,10 +691,14 @@
   }
   // Identity line (left column, item 7): EVERY narrower pool the engine already returns with eight
   // or more sales on each side - not only trim. Three independent sources, each its own grey line
-  // under one shared divider, in this order: trim ("Which 911? Carrera S (six) - Carrera T (12)"),
-  // body (d.bodyOptions, "Coupe (29) - Cabriolet (13)", no leading question - follow-up round, Oct
-  // 2026), gearbox (d.inlineSplits, key "gearbox", "Manual (nine) - PDK (21)", also no leading
-  // question). Every option an UNQUALIFIED count check (never the engine computing a NEW number -
+  // under one shared divider, in this order: trim ("Which 911? Carrera S (9) · Carrera T (12)"),
+  // body (d.bodyOptions, "Coupe (29) · Cabriolet (13)", no leading question - follow-up round, Oct
+  // 2026), gearbox (d.inlineSplits, key "gearbox", "Manual (9) · PDK (21)", also no leading
+  // question). Counts are DIGITS THROUGHOUT (Number().toLocaleString, not obNumWordLow) - the "below
+  // the sales row" round's own copy rule: a parenthetical count may read as digits even under ten,
+  // "so (20) · (10) reads evenly" - a mixed "(nine) · (21)" on the same line was the exact unevenness
+  // that rule calls out. Every option an UNQUALIFIED count check (never the engine computing a NEW
+  // number -
   // just reading its own n/thin flags): trim and gearbox read the engine's own thin flag (n < the
   // same RANGE_THRESHOLD(8) this whole product uses); bodyOptions carries no thin flag of its own
   // (its only floor is n>=2, a real-split guard, not an eight-sale one), so body is filtered here on
@@ -710,7 +714,7 @@
     if (shown.length < 2) return "";
     var links = shown.map(function (o) {
       var n = digitOf(o.n);
-      return '<button type="button" class="linkbtn hero-idlink" data-trimopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + " (" + esc(obNumWordLow(n)) + ")</button>";
+      return '<button type="button" class="linkbtn hero-idlink" data-trimopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + " (" + n.toLocaleString("en-US") + ")</button>";
     }).join(" · ");
     return '<p class="hero-idline" data-stage="answer">' + lint("Which " + esc(q.model) + "?", "hero.idq") + " " + links + "</p>";
   }
@@ -719,7 +723,7 @@
     var shown = opts.filter(function (o) { return Number(o.n) >= 8; });
     if (shown.length < 2) return "";
     var links = shown.map(function (o) {
-      return '<button type="button" class="linkbtn hero-idlink" data-bodyopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + " (" + esc(obNumWordLow(Number(o.n))) + ")</button>";
+      return '<button type="button" class="linkbtn hero-idlink" data-bodyopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + " (" + Number(o.n).toLocaleString("en-US") + ")</button>";
     }).join(" · ");
     return '<p class="hero-idline" data-stage="answer">' + links + "</p>";
   }
@@ -733,7 +737,7 @@
     var links = shown.map(function (s) {
       var label = String(s.label || "").replace(/s$/, ""); // the engine's own split labels are plural ("Manuals", "PDKs")
       var val = /manual/i.test(label) ? "manual" : "auto";
-      return '<button type="button" class="linkbtn hero-idlink" data-tx="' + val + '" data-mlabel="' + esc(label) + '">' + esc(label) + " (" + esc(obNumWordLow(Number(s.n))) + ")</button>";
+      return '<button type="button" class="linkbtn hero-idlink" data-tx="' + val + '" data-mlabel="' + esc(label) + '">' + esc(label) + " (" + Number(s.n).toLocaleString("en-US") + ")</button>";
     }).join(" · ");
     return '<p class="hero-idline" data-stage="answer">' + links + "</p>";
   }
