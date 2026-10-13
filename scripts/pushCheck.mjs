@@ -18,8 +18,8 @@ const HOST = new URL(BASE).host;
 const KEY = process.env.PROBE_KEY || null;
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const PAGES = [
-  { name: "Market Check result", path: "/market-check?q=" + encodeURIComponent("1995 Porsche 911 Carrera"), gated: true, freshVisitor: true, waitFor: 20000 },
-  { name: "Buy result", path: "/buy?q=" + encodeURIComponent("Porsche 911"), gated: true, waitFor: 20000 },
+  { name: "Market Check result", path: "/market-check?q=" + encodeURIComponent("1995 Porsche 911 Carrera"), gated: true, base: "/market-check", freshVisitor: true, waitFor: 20000 },
+  { name: "Buy result", path: "/buy?q=" + encodeURIComponent("Porsche 911"), gated: true, base: "/buy", waitFor: 20000 },
   { name: "Spec page", path: "/cars/porsche/911", gated: false, waitFor: 3000 },
   { name: "Sell first step", path: "/sell", gated: false, waitFor: 3000 }
 ];
@@ -53,6 +53,19 @@ try {
     // "Sam's catching his breath" with no console error and passed).
     const failLine = await page.evaluate(() => { const t = document.body ? document.body.innerText : ""; const m = /catching his breath|having trouble answering|Connection issue|couldn.t finish that one|couldn.t read that just now/i.exec(t); return m ? m[0] : null; }).catch(() => null);
     if (failLine) errors.push(`shows a failure line instead of a result: "${failLine}"`);
+    // KEY-REJECTED GUARD (Oct 2026, Lane B2): with a key, a gated page must END on its own address and show its
+    // real result. A rejected key falls back to the public launch stage, which redirects to /sell; that page loads
+    // cleanly, so the 5xx/console checks alone PASSED it (Oct 13: a rotated key went unnoticed). A real result is a
+    // dollar figure, a count line ("12 sales"), or the identity question (which model / did you mean).
+    if (pg.gated && KEY) {
+      const finalPath = new URL(page.url()).pathname;
+      if (!finalPath.startsWith(pg.base)) errors.push(finalPath.startsWith("/sell") ? "redirected to /sell: key rejected" : `ended on ${finalPath}, not ${pg.base}`);
+      else {
+        const body = await page.evaluate(() => document.body ? document.body.innerText : "").catch(() => "");
+        const real = /\$\d[\d,]{2,}/.test(body) || /\b(\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten)\s+(comparable\s+|recorded\s+)?(sales?|listings?|cars?)\b/i.test(body) || /which (one|generation|body|model|year|trim)|did you mean|which is it/i.test(body);
+        if (!real) errors.push("no result on the page: no range, count line or identity question");
+      }
+    }
     const ok = status > 0 && status < 500 && !fivexx.length && !errors.length;
     if (!ok) failed++;
     console.log(`${ok ? "PASS" : "FAIL"}  ${pg.name}  HTTP ${status}  ${final}  h1 "${shown.h1 || ""}", ${shown.text || 0} chars, ${shown.money || 0} dollar figures` + (pg.gated && !KEY ? "  (no PROBE_KEY: public view)" : ""));
@@ -117,7 +130,7 @@ try {
     // hit 431-535ms for this exact nameplate, tier/poolN/cluster byte-identical both ways).
     { car: "1969 Chevrolet Camaro", budget: PERF_WARM_MS }
   ];
-  for (const { car, budget } of PERF_CARS) {
+  for (const { car, budget } of (process.argv.includes("--skip-perf") ? [] : PERF_CARS)) {
     // Without PROBE_KEY this page is the public redirect to /sell (same as the gated PAGES entries
     // above), not Market Check at all - timing THAT page would be meaningless noise, not a real
     // measurement, so skip rather than report a number that isn't about Market Check.
