@@ -388,85 +388,12 @@
   function windowMeta(d) { return /12 months|twelve/.test(d.windowLabel || "") ? "Past twelve months" : "Past two years"; }
   function priceRange(a) { return r3money(a[0]) + " to " + r3money(a[1]); }
   function monthOnly(dstr) { var p = String(dstr || "").slice(0, 10).split("-"); var M = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]; return p.length >= 2 ? (M[+p[1]] || "") : ""; }
-  // BODY STYLE QUESTION (Oct 2026): independent of the earned mileage/transmission/driver slot below -
-  // a seller can answer both, either order. d.bodyOptions is null once the pool reads single-body (the
-  // query already pinned one, or refine.body already answered it). Narrows the SAME pool, same as the
-  // mileage chips (a re-request with refine.body), never a second implementation.
-  // Job 9a (result-page-polish round): "These sold as Coupe, Targa and Cabriolet, and each sells
-  // for a different amount. Which one is it?" - built from the engine's own body options, never a
-  // fixed Coupe/cabriolet pair (a car with a different body mix read wrong before).
-  function bodyOptionsHtml(d) {
-    var opts = d && d.bodyOptions; if (!opts || !opts.length) return "";
-    var chips = opts.map(function (o) { return '<button type="button" class="qchip" data-bodyopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + "</button>"; }).join("");
-    var list = obListPhrase(opts.map(function (o) { return o.label; }));
-    var q = "These sold as " + list + ", and each sells for a different amount. Which one is it?";
-    return '<div class="qcard earned" data-stage="answer"><p class="q">' + esc(q) + '</p><div class="qchips">' + chips + "</div></div>";
-  }
-  // TRIM QUESTION (Oct 2026, item 2): independent of the earned/body slots - a visitor can answer
-  // any combination, any order. d.trimQuestion is null once the pool reads single-trim (the query
-  // already named one, or refine.trim already answered it). Chips carry their own count, same
-  // style as the body question; answering reruns the SAME pool scoped to that trim (refine.trim),
-  // never a client-side guess.
-  function trimQuestionHtml(d) {
-    var q = d && d.trimQuestion; if (!q || !q.options || !q.options.length) return "";
-    var chips = q.options.map(function (o) { return '<button type="button" class="qchip" data-trimopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + ' (' + esc(o.n) + ')</button>'; }).join("");
-    return '<div class="qcard earned" data-stage="answer"><p class="q">Which ' + esc(q.model) + '?</p><div class="qchips">' + chips + "</div></div>";
-  }
-  // Result-hero job (Oct 2026): mileage is now a PERSISTENT field in Narrow it down (mileageFieldHtml,
-  // below), not a one-shot "earned" question, so this function no longer renders mileage at all - it
-  // used to, before this round. Transmission and the dictionary-driven driver question keep their
-  // own small "earned" cards, split into two named functions so Narrow it down can place gearbox
-  // chips right after body chips (per the brief's order) while driver falls in with "other" chips.
-  // Never ask for a field the matched record already supplies - on an exact archive match the
-  // transmission is already known from the listing (same class as the VIN-decode "don't re-ask what's
-  // known" rule).
-  function gearboxEarnedHtml(d, m) {
-    var e = d && d.earned; if (!e || e.kind !== "transmission") return "";
-    if (m && m.transmission && String(m.transmission).trim()) return "";
-    var q = cap(e.labels.manual) + " or " + e.labels.auto + "?";
-    var chips = '<button type="button" class="qchip" data-tx="manual" data-mlabel="' + esc(e.labels.manual) + '">' + esc(cap(e.labels.manual)) + '</button><button type="button" class="qchip" data-tx="auto" data-mlabel="' + esc(e.labels.auto) + '">' + esc(e.labels.auto) + "</button>";
-    return '<div class="qcard earned" data-stage="answer"><p class="q">' + esc(q) + '</p><div class="qchips">' + chips + "</div></div>";
-  }
-  function driverEarnedHtml(d) {
-    var e = d && d.earned; if (!e || e.kind !== "driver") return "";
-    // Item 7/8: a dictionary-driven second question (mined from titles, so the pool splits on it).
-    var chips = '<button type="button" class="qchip" data-driver="' + esc(e.driverKey) + '" data-drvval="yes" data-mlabel="' + esc(e.yes) + '">' + esc(e.yes) + '</button>'
-          + '<button type="button" class="qchip" data-driver="' + esc(e.driverKey) + '" data-drvval="no" data-mlabel="' + esc(e.no) + '">' + esc(e.no) + "</button>";
-    return '<div class="qcard earned" data-stage="answer"><p class="q">' + esc(e.q) + '</p><div class="qchips">' + chips + "</div></div>";
-  }
-  // Mileage field (result-hero job, Oct 2026): ALWAYS offered in Narrow it down (never gated on
-  // whether the engine picked mileage as its single "earned" question this time), pre-filled from
-  // queryMileage when the typed query itself named a mileage - never changes the pool on its own,
-  // same as every other chip here, a submit just re-queries with that number. The pool-relative
-  // bucket chips beside it are the engine's own (d.earned.buckets) when mileage happens to be the
-  // earned slot this round; otherwise the field renders alone - never invented bucket edges. Skipped
-  // entirely once mileage is already answered (reconfirmHtml's VIN-known case, or a removable chip in
-  // currentAnswersChipsHtml already covers an answered refine.mileage).
-  function mileageFieldHtml(d, m) {
-    var rf = obLastRefine || {};
-    if (rf.miMin != null || rf.miLabel) return "";
-    var mi = m && Number(String(m.mileage == null ? "" : m.mileage).replace(/[^\d]/g, ""));
-    if (mi > 0 && m.soldDate) return ""; // reconfirmHtml owns this case
-    var e = d && d.earned;
-    var buckets = (e && e.kind === "mileage" && Array.isArray(e.buckets)) ? e.buckets : [];
-    var pre = (d && Number.isFinite(d.queryMileage) && d.queryMileage > 0) ? d.queryMileage : null;
-    var bucketChips = buckets.map(function (bk) { return '<button type="button" class="qchip" data-milemin="' + bk.min + '" data-milemax="' + (bk.max == null ? "" : bk.max) + '" data-mlabel="' + esc(bk.label) + '">' + esc(bk.label) + "</button>"; }).join("");
-    return '<div class="qcard earned mileagefield" data-stage="answer"><div class="qchips"><span class="typemiles"><input id="ob-miles" type="number" inputmode="numeric" placeholder="Add mileage" aria-label="Add mileage"' + (pre ? ' value="' + pre + '"' : "") + ' /><button type="button" class="qchip" id="ob-miles-go">Go</button></span>' + bucketChips + "</div></div>";
-  }
-  // Item 9: the observable-fact refinement. Offers only the flags the pool actually contains; a tap
-  // re-scopes the evidence set and adds a sentence, never adjusts a price. "Nothing major" dismisses.
-  var OBS_CHIP = { needs_work: "Needs work", modified: "Modified", salvage: "Salvage or rebuilt title" };
-  function observeHtml(d) {
-    var offer = (d && d.observeOffer) || []; if (!offer.length) return "";
-    var chips = offer.map(function (o) { return '<button type="button" class="qchip" data-observe="' + esc(o.key) + '" data-olabel="' + esc(o.label) + '">' + esc(OBS_CHIP[o.key] || o.key) + "</button>"; }).join("");
-    chips += '<button type="button" class="qchip" data-observe="none">Nothing major</button>';
-    return '<div class="qcard earned observe" data-stage="answer"><p class="q">' + lint("Anything to know about it?", "obs.q") + '</p><div class="qchips">' + chips + "</div></div>";
-  }
-  function observeAsideHtml(d) {
-    var a = d && d.observeAside; if (!a || !(a.lo > 0)) return "";
-    var bare = bareNameOf(d, null);
-    return '<p class="varynote">' + lint(esc(bare) + "s listed as " + esc(a.label) + " brought " + priceRange([a.lo, a.hi]) + "; the band above is for cars that didn’t.", "obs.aside") + "</p>";
-  }
+  // bodyOptionsHtml / trimQuestionHtml / gearboxEarnedHtml / driverEarnedHtml / the old
+  // mileageFieldHtml / observeHtml / observeAsideHtml (earned-question cards that used to live in
+  // "Narrow it down") were deleted in the hero-rebuild round (Oct 2026) along with that whole block
+  // - see narrowItDownHtml's removal note further down. The mileage field and the trim question each
+  // got a direct replacement inside the new hero (heroMileageLineHtml, heroIdentityLineHtml); body,
+  // gearbox, driver and observe have no new home on this surface this round.
   function receiptCardHtml(c, tagAside) {
     var img = c.image ? '<img src="' + esc(c.image) + '" alt="' + esc(c.title) + '" loading="lazy" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.rplate\');if(p)p.style.display=\'flex\'">' : "";
     var aside = (tagAside && c.hollow) ? '<span class="aside">set aside</span>' : "";
@@ -639,75 +566,216 @@
     return '<div class="rangebar" data-stage="answer"><div class="rb-row"><span class="rb-end rb-lo">' + lint(esc("Lowest sale " + usd(lo)), "rb.lo") +
       '</span><span class="rb-track"><i class="rb-band" style="left:' + a.toFixed(1) + "%;width:" + Math.max(1.5, b - a).toFixed(1) + '%"></i></span><span class="rb-end rb-hi">' + lint(esc("Highest sale " + usd(hi)), "rb.hi") + "</span></div></div>";
   }
-  // THE EVIDENCE BLOCK (Oct 2026, evidence-block job): ONE card, no visual gap between parts, so a
-  // screenshot of just the first screen still shows the range AND the real cars it came from. Order:
-  // car line + sold-count/freshness sentence, the range (labelled "WHERE THE MIDDLE HALF SOLD" -
-  // rule 24, no headline $ without a band, still applies: no cluster means no range of any kind, the
-  // sales-themselves fallback below), Sam's Take, "Three sales that put the range in context" (the
-  // engine's own representative closest/high/low - d.representative - each labelled MIDDLE OF THE
-  // RANGE or CLOSEST MATCH per c.basis, with an other-half label when the engine tagged one), "How
-  // Sam decided" (the comparison fence + set-aside reasons, collapsed), and the collapsed "N sales
-  // sat outside this range" line. ans-main/take keep the original 7/3 grid columns; the sub-sections
-  // below them span the full card width (CSS grid-column 1/-1) with no border between them.
-  // Result hero zone (Oct 2026, result-hero job): eyebrow (the car as typed) / car line / scope line
-  // ("Matched to...") / count line, then the kicker+range beside Sam's Take as a two-column split on
-  // desktop (CSS .hero-split - stacks on mobile), then "Narrow it down" (passed in already built, so
-  // it lands inside this SAME card, per the brief), then the existing context cards/outside-range/
-  // how-Sam-decided sub-sections, unchanged.
-  function evidenceBlockHtml(d, m, narrow) {
-    var take = d.samsTake && d.samsTake.sentence ? wordifyRatios(String(d.samsTake.sentence)) : "";
-    var head = typedEyebrowHtml() + carLineHtml(d, m) + rungLabelHtml(d) + evidenceMetaLine(d);
-    var rangeOrFallback;
+  // ================= HERO REBUILD (Oct 2026, hero-rebuild round) =================
+  // Replaces the old evidenceBlockHtml (one boxed "anscard" with eyebrow/range/Sam's Take/Narrow it
+  // down folded inside it) with the approved two-column hero: label, car name, one grey scope+count
+  // +latest line, the range (or the rule-24 no-band fallback), the mileage field, and the trim
+  // identity line on the left; one real receipt on the right. Sam's Take and the whole "Narrow it
+  // down" block (body/gearbox/driver/observe/trim-chip/reconfirm questions, the removable-answer
+  // chips) are gone - not part of the approved design's enumerated hero, and not given a new home
+  // this round. Flagged plainly in the round report, not silently dropped.
+  //
+  // heroReceipt / contextRoles (dormant): Lane B has not yet added either field to the engine answer
+  // (grepped lib/onebox.js - absent). Every reader below prefers d.heroReceipt / d.contextRoles and
+  // falls back to the existing d.representative trio the moment they exist, no code change needed.
+  //
+  // poolSize (dormant on the wire): mapEngineAnswer computes poolSize/low/high/yearWidened but
+  // api/sellerDecision.js only copies answerType/identityQuestion/factsBlock/reasonFlag/fallbackRung/
+  // rungLabel/siblingName/queryMileage onto the client-facing object (grepped) - poolSize itself
+  // never reaches the page. heroPoolSizeNum derives the same number honestly from fields that ARE
+  // already on the wire (d.poolN, d.soldCount, d.factsBlock.count) rather than waiting on it; see the
+  // FOR LANE B note in docs/lane-notes.md.
+  function heroPoolSizeNum(d) {
+    if (!d) return null;
+    if (Number.isFinite(d.poolSize)) return d.poolSize;
+    if (Number.isFinite(Number(d.poolN))) return Number(d.poolN);
+    if (d.factsBlock && Number.isFinite(d.factsBlock.count)) return d.factsBlock.count;
+    if (d.soldCount != null) { var v = digitOf(d.soldCount); return Number.isFinite(v) ? v : null; }
+    return null;
+  }
+  // A small, non-interactive info marker (native title-attribute tooltip) beside "WHERE THE MIDDLE
+  // HALF SOLD". The brief calls this "the existing info dot"; grepped public/js/onebox.js and
+  // public/onebox.html for info-dot/tooltip markup (info.dot, data-info, title-tip, aria-label="Info)
+  // and found none - nothing like it exists yet anywhere on this page. Built fresh, minimal (no new
+  // JS, a native title attribute only), rather than blocking on the brief's "existing" framing.
+  function infoDotHtml() {
+    return ' <span class="infodot" tabindex="0" aria-label="What this means">' +
+      lint("The middle half of comparable sales, closest to typical, with the highest and lowest set aside.", "hero.infodot.title") +
+      "</span>";
+  }
+  // bodyMixTailOf: reads back the engine's own body-mix clause (lib/onebox.js bodyMixSuffix, e.g.
+  // ", coupes and cabriolets") already appended to the end of rungLabel - never computed here, only
+  // isolated so the exact-rung scope line can show the body alone instead of repeating the car's
+  // name (already the heading just above it).
+  var BODY_MIX_WORDS = "coupes|cabriolets|convertibles|roadsters|targas|sedans|saloons|wagons|spiders|spyders|hardtops";
+  var BODY_MIX_TAIL_RE = new RegExp(",\\s*((?:" + BODY_MIX_WORDS + ")(?:,?\\s*(?:and\\s+)?(?:" + BODY_MIX_WORDS + "))*)$", "i");
+  function bodyMixTailOf(label) {
+    var mm = BODY_MIX_TAIL_RE.exec(String(label || ""));
+    return mm ? mm[1] : "";
+  }
+  // The scope segment of the hero's one grey line. Prints d.rungLabel verbatim (never "Matched to
+  // ..."), EXCEPT on a genuinely exact, nothing-widened rung (d.fallbackRung === "exact"): there the
+  // car's own name already carries the year+nameplate (the heading just above), so repeating the
+  // whole rungLabel would just restate it - the one new fact worth a line is which body(ies) the
+  // pool covers, read straight off the resolved car's own bodyStyle or the engine's own body-mix
+  // clause. Nothing invented when neither is present.
+  function heroScopeText(d) {
+    if (!d) return "";
+    if (d.fallbackRung === "sibling") return (siblingLeadHtml(d) + String(d.rungLabel || "")).trim();
+    if (!d.rungLabel) return "";
+    if (d.fallbackRung === "exact") {
+      var rc = d.resolvedCar || {};
+      if (rc.bodyStyle) return cap(String(rc.bodyStyle));
+      var tail = bodyMixTailOf(d.rungLabel);
+      return tail ? cap(tail) : "";
+    }
+    return String(d.rungLabel);
+  }
+  function heroCountText(d) {
+    var count = d && d.soldCount;
+    if (count == null) return "";
+    var n = Number(count), isNum = Number.isFinite(n);
+    var countWord = isNum ? obNumWord(n) : String(count);
+    var isOne = isNum ? n === 1 : /^one$/i.test(String(count));
+    return countWord + (isOne ? " sale" : " sales") + " in " + windowText(d);
+  }
+  function heroLatestText(d) {
+    var p = countLatestPhrase(d);
+    return p ? p.replace(/^the latest on\s+/i, "latest ") : "";
+  }
+  // The hero's one grey line: scope, count, latest - joined with middle dots, never "Matched to...".
+  function heroMetaLine(d) {
+    var parts = [heroScopeText(d), heroCountText(d), heroLatestText(d)].filter(Boolean);
+    if (!parts.length) return "";
+    return '<p class="hero-scope" data-stage="answer">' + lint(esc(cap(parts.join(" · "))), "hero.scope") + "</p>";
+  }
+  // Mileage line (left column, item 6): a persistent "Add mileage" field when no mileage refine is
+  // applied yet, or "Range narrowed around N miles." plus a Change link once one is. Change reruns
+  // the SAME search without the mileage refine (data-rmchip="mi", the existing removable-answer
+  // mechanism) rather than patching the DOM by hand. Never rendered on a VIN/chassis exact match
+  // that already states its own known mileage on the car's own hero card.
+  function heroMileageLineHtml(d, m) {
+    var mi = m && Number(String(m.mileage == null ? "" : m.mileage).replace(/[^\d]/g, ""));
+    if (mi > 0 && m.soldDate) return "";
+    var rf = obLastRefine || {};
+    if (Number(rf.miTarget) > 0) {
+      var val = Number(rf.miTarget).toLocaleString("en-US");
+      return '<p class="hero-miles on" data-stage="answer">' + lint(esc("Range narrowed around " + val + " miles."), "hero.mi.on") +
+        ' <button type="button" class="linkbtn" data-rmchip="mi">Change</button></p>';
+    }
+    var pre = (d && Number.isFinite(d.queryMileage) && d.queryMileage > 0) ? d.queryMileage : null;
+    return '<p class="hero-miles ask" data-stage="answer">' + lint("Add mileage to narrow the range.", "hero.mi.ask") +
+      ' <span class="miles-inline"><input id="ob-miles" type="number" inputmode="numeric" placeholder="e.g. 5,000" aria-label="Add mileage"' + (pre ? ' value="' + pre + '"' : "") + ' /><span class="mi-unit">miles</span><button type="button" class="linkbtn" id="ob-miles-go">Go</button></span></p>';
+  }
+  // Identity line (left column, item 7): the trim question as plain text links with counts, never
+  // chips - d.trimQuestion is null once the pool reads single-trim, same gating trimQuestionHtml
+  // used. Reuses the already-wired [data-trimopt] handler (wire()), so answering re-scopes the SAME
+  // pool exactly as the old chip version did.
+  function heroIdentityLineHtml(d) {
+    var q = d && d.trimQuestion; if (!q || !q.options || !q.options.length) return "";
+    var links = q.options.map(function (o) {
+      var n = digitOf(o.n);
+      return '<button type="button" class="linkbtn hero-idlink" data-trimopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + " (" + esc(obNumWordLow(n)) + ")</button>";
+    }).join(" · ");
+    return '<div class="hero-divider"></div><p class="hero-idline" data-stage="answer">' + lint("Which " + esc(q.model) + "?", "hero.idq") + " " + links + "</p>";
+  }
+  // Right column: one receipt card. Photo, the car's own model, miles/venue/month each their own
+  // grey line, a thin divider, "Sold for $X", then two text links. Prefers d.heroReceipt (dormant,
+  // not yet sent by Lane B); falls back to the card passed in by the caller (the representative
+  // closest sale on a range, the highest-priced sale on a thin pool).
+  function heroReceiptHtml(d, fallbackCard, poolSizeOverride) {
+    var c = (d && d.heroReceipt) || fallbackCard;
+    if (!c) return "";
+    var venue = (c.platform && c.platform !== "others") ? c.platform : "";
+    var month = c.month || monShort(c.date);
+    var href = utmUrl(c.url);
+    var gasAttrs = (href && c.id != null) ? (' data-gas-event="receipt_click" data-gas-source="' + esc(c.platformSlug || "") + '" data-gas-listing-id="' + esc(c.id) + '"') : "";
+    var linkAttrs = href ? (' href="' + esc(href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(c.platformSlug || "") + '"' + gasAttrs) : "";
+    var poolSize = Number.isFinite(poolSizeOverride) ? poolSizeOverride : heroPoolSizeNum(d);
+    var moreN = Number.isFinite(poolSize) ? Math.max(0, poolSize - 1) : null;
+    var moreLink = (moreN != null && moreN > 0)
+      ? ('<button type="button" class="linkbtn hr-more" data-scrollto="more-sales">' + esc(obNumWord(moreN) + (moreN === 1 ? " more comparable sale" : " more comparable sales")) + " &#8594;</button>")
+      : "";
+    return '<div class="hero-receipt">' +
+      photoHtml(c.image, cleanReceiptTitle(c.title), "") +
+      '<div class="hr-body"><h2 class="hr-title">' + esc(cleanReceiptTitle(c.title)) + "</h2>" +
+      (longMiles(c) ? ('<p class="hr-meta">' + esc(longMiles(c)) + "</p>") : "") +
+      (venue ? ('<p class="hr-meta">' + esc(venue) + "</p>") : "") +
+      (month ? ('<p class="hr-meta">' + esc(month) + "</p>") : "") +
+      '<div class="hr-div"></div><p class="hr-price">' + lint(esc("Sold for " + usd(c.price)), "hero.receipt.price") + "</p>" +
+      (href ? ('<a class="linkbtn hr-view"' + linkAttrs + ">View original sale &#8594;</a>") : "") +
+      moreLink + "</div></div>";
+  }
+  // RANGE-TIER HERO (task #38). The rule-24 no-band fallback is unchanged copy, just inside the new
+  // shell: no cluster means no dollar headline of any kind, ever (STANDING CHECK: the only <h2
+  // class="range"> with the green band class lives inside the `if (d.cluster)` branch below).
+  function heroRangeHtml(d, m) {
+    var rep = d.representative || {};
+    var left = '<p class="eyebrow hero-label">Market Check</p>' +
+      '<h1 class="hero-carname">' + esc(m ? (m.displayName || carLabel(d.resolvedCar)) : carLabel(d.resolvedCar)) + "</h1>" +
+      heroMetaLine(d);
     if (d.cluster) {
       var band = d.cluster;
-      // "The middle half of comparable sales landed here." removed (Job 1, second result-page-
-      // polish round): the eyebrow above the range ("Where the middle half sold") already says it -
-      // top block is now count line, eyebrow, range, Sam's take, straight into the context cards.
-      rangeOrFallback = '<span class="eyebrow">' + esc("Where the middle half sold") + "</span>" +
-        '<h1 class="range band">' + esc(usd(band[0])) + ' <span class="to">to</span> ' + esc(usd(band[1])) + "</h1>";
+      left += '<p class="eyebrow hero-label">' + lint("Where the middle half sold", "hero.rangelbl") + "</p>" +
+        infoDotHtml() +
+        '<h2 class="range band">' + esc(usd(band[0])) + ' <span class="to">to</span> ' + esc(usd(band[1])) + "</h2>";
     } else {
       var noun = carNoun(d), subj = noun || "cars like it";
       var line = (d.poolN && d.poolN < 8)
         ? ("Only " + obNumWordLow(d.poolN) + " " + subj + " ha" + (d.poolN === 1 ? "s" : "ve") + " sold in " + windowText(d) + ", not enough for a range, so here are the sales themselves.")
         : (subj.charAt(0).toUpperCase() + subj.slice(1) + " sold too spread out in " + windowText(d) + " to call a typical price, so here are the sales themselves.");
-      rangeOrFallback = '<p class="ans-lead lead">' + lint(line, "ans.noband") + "</p>";
-      var ol = olderOutsideLine(d); if (ol) rangeOrFallback += '<p class="ans-line older">' + lint(esc(ol), "ans.older") + "</p>";
+      left += '<p class="hero-noband" data-stage="answer">' + lint(line, "hero.noband") + "</p>";
+      var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.older") + "</p>";
     }
-    // Sam's Take (Oct 2026, result-hero job): now a right-hand column beside the range on desktop,
-    // stacked below it on mobile (CSS .hero-split, media-queried to one column) - was full width,
-    // directly under the range. Nothing renders and nothing is reserved when the engine gives no take.
-    var takeHtml = take ? ('<aside class="take" aria-label="Sam’s Take"><div class="take-h"><span class="roundel" aria-hidden="true">SAM</span><span class="take-tag">' + lint("Sam’s Take", "take.tag") + "</span></div><p>" + lint(esc(take), "take") + "</p></aside>") : "";
-    var heroSplit = takeHtml
-      ? '<div class="hero-split"><div class="hero-range">' + rangeOrFallback + '</div><div class="hero-take">' + takeHtml + "</div></div>"
-      : rangeOrFallback;
-    var main = head + heroSplit;
-    // Sub-section order (Job 1, result-page-polish round): context cards, the outside-range line,
-    // then How Sam decided - was How-Sam-decided then outside-range, swapped to match.
-    return '<section class="anscard evidence livetake blk solo" data-stage="answer"><div class="ans-main">' + main + "</div>" + (narrow || "") +
-      contextSalesHtml(d) + collapsedAsideHtml(d, m) + howSamDecidedHtml(d) + "</section>";
+    left += heroMileageLineHtml(d, m);
+    left += heroIdentityLineHtml(d);
+    var heroCard = rep.closest || rep.high || rep.low || null;
+    var right = heroReceiptHtml(d, heroCard);
+    return '<section class="hero2col" data-stage="answer"><div class="hero-left">' + left + "</div>" +
+      (right ? ('<div class="hero-right">' + right + "</div>") : "") + "</section>";
   }
-  // "Three sales that put the range in context": the engine's own representative pick (closest/
-  // high/low, subject already excluded server-side). Always drawn from d.representative regardless
-  // of a VIN/chassis match - the subject's own sale has its own section (THIS EXACT CAR) now, so
-  // this trio is always genuine OTHER comparable sales.
-  // Heading built from the count (Job 2e, result-page-polish round): one/two/three sales, never
-  // hardcoded - the engine can return a trio of 1, 2 or 3 depending on what pickRepresentative found.
-  function contextSalesHtml(d) {
+  // SALES ROW (task #41): "Sales behind this answer" - the same representative trio (d.representative
+  // closest/high/low), now as three borderless cards. Prefers d.contextRoles (dormant, not yet sent by
+  // Lane B) for the subhead sentence; falls back to the brief's own fallback sentence verbatim.
+  function salesRowCardHtml(c) {
+    if (!c) return "";
+    var venue = (c.platform && c.platform !== "others") ? c.platform : "";
+    var month = c.month || monShort(c.date);
+    var meta = [longMiles(c), venue, month].filter(Boolean).join(" · ");
+    var href = utmUrl(c.url);
+    var gasAttrs = (href && c.id != null) ? (' data-gas-event="receipt_click" data-gas-source="' + esc(c.platformSlug || "") + '" data-gas-listing-id="' + esc(c.id) + '"') : "";
+    var tag = href ? "a" : "div";
+    var attrs = href ? (' href="' + esc(href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(c.platformSlug || "") + '"' + gasAttrs) : "";
+    return "<" + tag + ' class="salescard"' + attrs + ">" +
+      photoHtml(c.image, cleanReceiptTitle(c.title), "") +
+      '<div class="salescard-body"><p class="salescard-price">' + esc(usd(c.price)) + "</p>" +
+      '<p class="salescard-title">' + esc(cleanReceiptTitle(c.title)) + "</p>" +
+      (meta ? ('<p class="salescard-meta">' + esc(meta) + "</p>") : "") +
+      "</div></" + tag + ">";
+  }
+  function salesRowHtml(d) {
     var rep = d.representative;
     if (!rep || !rep.closest) return "";
     var cards = [rep.closest, rep.high, rep.low].filter(Boolean);
-    var n = cards.length;
-    var heading = n === 1 ? "One sale that puts the range in context" : n === 2 ? "Two sales that put the range in context" : "Three sales that put the range in context";
-    var html = cards.map(function (c) { return ctxCardHtml(c, d, c === rep.closest); }).join("");
-    return '<div class="ev-sales" data-stage="cards"><h2>' + esc(heading) + '</h2><div class="ctxcards n' + n + '" data-stage="cards">' + html + "</div></div>";
+    if (!cards.length) return "";
+    var sub = (d.contextRoles && d.contextRoles.sentence) ? String(d.contextRoles.sentence) : "One from the middle of the range, one at each edge of the middle half.";
+    var poolSize = heroPoolSizeNum(d);
+    var seeAll = Number.isFinite(poolSize) ? ('<button type="button" class="linkbtn" data-scrollto="more-sales">See all ' + esc(obNumWordLow(poolSize)) + " sales &#8594;</button>") : "";
+    var id = "ob-why" + (++obCapSeq);
+    return '<div class="salesrow" data-stage="cards"><h2>Sales behind this answer</h2>' +
+      '<p class="salesrow-sub">' + lint(esc(sub), "salesrow.sub") + "</p>" +
+      '<div class="salescards">' + cards.map(salesRowCardHtml).join("") + "</div>" +
+      '<div class="salesrow-foot">' + (seeAll || "") +
+      '<button type="button" class="linkbtn" data-qtoggle="' + id + '" aria-expanded="false">How Sam picked these</button></div>' +
+      '<div class="ev-why-note" id="' + id + '" hidden>' + howSamDecidedNoteHtml(d) + "</div></div>";
   }
   // "How Sam decided": the comparison fence (poolYears + the car's own name, e.g. "2005 to 2011 997
   // Carrera S"), that only completed sales count (hammer + buyer's premium reconciled), and what was
-  // set aside and why (d.setAsideReasons) - never a count of sources/venues. Everything here is read
-  // straight off the engine's own result fields, never hand-written per car. Collapsed by default
-  // (data-qtoggle, the same reveal pattern the market-read quarter rows already use).
+  // set aside and why (d.setAsideReasons) - never a count of sources/venues. Content unchanged from
+  // the prior "How Sam decided" toggle; only its trigger moved (now "How Sam picked these", beside
+  // "See all N sales" at the foot of the sales row, see salesRowHtml above).
   var ASIDE_REASON_LABEL = { modified: ["modified", "modified"], project: ["project car", "project cars"], replica: ["replica or tribute", "replicas or tributes"], "odd sale": ["odd sale", "odd sales"] };
-  function howSamDecidedHtml(d) {
+  function howSamDecidedNoteHtml(d) {
     var yrs = Array.isArray(d.poolYears) ? d.poolYears : null;
     var yearPhrase = yrs ? (yrs[0] === yrs[1] ? String(yrs[0]) : (yrs[0] + " to " + yrs[1])) : "";
     var fence = [yearPhrase, carHead(d)].filter(Boolean).join(" ") || carLabel(d.resolvedCar);
@@ -720,9 +788,7 @@
       });
     }
     var asideSentence = asideBits.length ? (" " + asideTotal + (asideTotal === 1 ? " sale set aside: " : " sales set aside: ") + asideBits.join(", ") + ".") : "";
-    var id = "ob-why" + (++obCapSeq);
-    return '<p class="ev-why-toggle"><button type="button" class="linkbtn" data-qtoggle="' + id + '" aria-expanded="false">How Sam decided</button></p>' +
-      '<div class="ev-why-note" id="' + id + '" hidden><p>' + lint(esc(sentence + asideSentence), "ev.why") + "</p></div>";
+    return '<p>' + lint(esc(sentence + asideSentence), "ev.why") + "</p>";
   }
   // Collapsed "N sales sat outside this range" line (was the always-open "Shown separately" section):
   // opens the lowest-to-highest bar (rangeBarHtml) and the above/below-range cards. id="shown-
@@ -757,8 +823,12 @@
     [rep && rep.closest, rep && rep.high, rep && rep.low].forEach(function (c) { if (c && c.url) shownUrls[c.url] = true; });
     var more = (d.cards || []).filter(function (c) { return !(c.url && shownUrls[c.url]); });
     if (!more.length) return "";
+    // id="more-sales" (hero-rebuild round): the hero receipt's "N more comparable sales" link and
+    // the sales row's "See all N sales" link both scroll here via the existing [data-scrollto]
+    // mechanism (wire()) - this section already renders every card server-side, just collapsed past
+    // the first batch, so there is nothing to un-hide, only to scroll to.
     var head = '<div class="sec-head" data-stage="cards"><div><h2>More comparable sales</h2></div></div>';
-    return head + capCardsHtml("grid3", more.map(function (c) { return poolCardHtml(c, false); }), 0);
+    return '<div id="more-sales">' + head + capCardsHtml("grid3", more.map(function (c) { return poolCardHtml(c, false); }), 0) + "</div>";
   }
   // THIS EXACT CAR (item 2): only when the engine has a VIN/chassis match (m). Absent otherwise -
   // never a placeholder.
@@ -767,21 +837,9 @@
     return '<div class="ev-exact" data-stage="cards"><span class="eyebrow">This exact car</span>' +
       '<div class="cards5 single" data-stage="cards">' + vinHeroCardHtml(m, d.resolvedCar) + "</div></div>";
   }
-  // Item 2: the divergence contradiction as ONE plain serif line (no box, no kicker), assembled from
-  // the real numbers - same delta logic, rendered as a sentence.
-  function contradictionLine(d) {
-    var dv = d.divergence; if (!dv) return "";
-    // The price/mileage fact is already in the exact-car hero ("Last sold $X ... N mi"), so it is
-    // NOT restated here. Render ONLY the new information (where the recent market sits relative to
-    // this car) and omit the line entirely when there is no such insight to add.
-    var trim = (d.resolvedCar && d.resolvedCar.trim) || "";
-    var tw = trim ? (String(trim).split(/\s+/)[0] + " ") : "";
-    var dir = dv.direction === "below" ? ("Recent lower-mileage " + esc(tw) + "cars have sold higher.")
-            : dv.direction === "above" ? ("Recent higher-mileage " + esc(tw) + "cars have sold lower.")
-            : "";
-    if (!dir) return "";
-    return '<p class="contradiction">' + lint(dir, "contra") + "</p>";
-  }
+  // contradictionLine (the divergence sentence) was deleted in the hero-rebuild round (Oct 2026) -
+  // its only call site was resultHtml's removed "notes" block (narrowItDownHtml). No new home this
+  // round; flagged in the round report.
   // Pool-aware freshness line (S2-2). NOT passed through lint(): "estimated" is a deliberate
   // negation here (as in the trust line), not a valuation claim. No dashes.
   // Item 12 (Oct 2026): the day, not the month - "Oct 6" this year, "Oct 6, 2025" once it isn't.
@@ -826,24 +884,9 @@
     if (f.through) return "the latest on " + freshDay(f.through);
     return "";
   }
-  // Count line (result-hero job, Oct 2026, one-sentence follow-up): "Eight comparable sales in the
-  // last twelve months, the latest on Aug 29." One sentence, not two. d.soldCount is the engine's OWN
-  // already-worded field (its countWord helper spells a count under ten - "eight", a real string -
-  // and leaves ten and up numeric), never a plain number this file can safely re-parse with Number();
-  // printing it verbatim when it is a word avoids the NaN a blind Number()+obNumWord pass produced
-  // here on a live "eight"-sale pool. obNumWord still handles the numeric (11+) case.
-  function evidenceMetaLine(d) {
-    var count = d && d.soldCount;
-    if (count == null) return "";
-    var n = Number(count);
-    var isNum = Number.isFinite(n);
-    var countWord = isNum ? obNumWord(n) : String(count);
-    var isOne = isNum ? n === 1 : /^one$/i.test(String(count));
-    var noun = isOne ? " comparable sale" : " comparable sales";
-    var latest = countLatestPhrase(d);
-    var text = countWord + noun + " in " + windowText(d) + (latest ? ", " + latest : "") + ".";
-    return '<p class="ev-meta count-line">' + lint(esc(cap(text)), "ev.meta") + "</p>";
-  }
+  // evidenceMetaLine (the old count line) was deleted in the hero-rebuild round - heroCountText above
+  // carries the same logic (d.soldCount, verbatim-if-a-word / obNumWord if numeric) folded into the
+  // new hero's one grey meta line (heroMetaLine) instead of its own paragraph.
   // ---- Sale cards (Oct 2026 design). One renderer for every card size: photo slot (real photo, or
   // a clearly marked "No photo" slot), pill, price, venue + month, the record's OWN title (rule 25),
   // a meta line, and an optional italic why-line. Whole card is the listing link when there is one.
@@ -905,57 +948,11 @@
   }
   // "Automatic (7-speed)" -> "Automatic, 7-speed".
   function longMiles(c) { return Number(c.mi) > 0 ? Number(c.mi).toLocaleString("en-US") + " miles" : (c.mileageText && c.mileageText !== "TMU" ? c.mileageText : ""); }
-  // OTHER-HALF LABEL (Oct 2026, evidence-block job): a context card drawn from the OTHER half of a
-  // split/merged generation (d.halfGeneration, lib/generations.js) reads "2010, later generation" /
-  // "2006, earlier generation" - the card's own year, plus plain earlier/later against the searched
-  // car's own year. Read defensively: nothing unless the engine actually carries a half-generation
-  // table entry for this model (d.halfGeneration) AND this specific card was tagged cross-half
-  // (c.sameHalf === false, set server-side by pickRepresentative) AND both years are known. This
-  // NEVER computes which half a year belongs to (that boundary is the engine's call, via sameHalf) -
-  // it only orders two already-known years in plain English once the engine says they differ.
-  function otherHalfLabel(c, d) {
-    if (!c || !d || !d.halfGeneration || c.sameHalf !== false || !c.year) return "";
-    var subjYear = d.resolvedCar && Number(d.resolvedCar.year);
-    if (!subjYear || !Number(c.year)) return "";
-    var dir = Number(c.year) > subjYear ? "later generation" : (Number(c.year) < subjYear ? "earlier generation" : "");
-    if (!dir) return "";
-    return '<div class="otherhalf">' + esc(c.year + ", " + dir) + "</div>";
-  }
-  // OFF-WINDOW LABEL (Oct 2026, context-cards job): c.offWindow is true only when this card's own
-  // year sits outside the searched year's preferred window AND the window could not be filled from
-  // the pool (the engine's full-pool fallback, lib/onebox.js pickRepresentative) - false/null means
-  // either the window was satisfied or no window applies, and nothing renders. Same family of note
-  // as otherHalfLabel above (a plain fact-only div under the card, never a second number or a claim
-  // about the range itself - the range/count are unchanged by this field, see docs/lane-notes.md).
-  // ONE function: every surface that can show this card reuses it, never its own copy of the text.
-  function offWindowLabel(c, d) {
-    if (!c || c.offWindow !== true || !c.year) return "";
-    var searchedYear = d && d.resolvedCar && Number(d.resolvedCar.year);
-    if (!searchedYear) return "";
-    return '<div class="offwindow">' + esc("A " + c.year + " car, a few years from the " + searchedYear + " searched.") + "</div>";
-  }
-  // ONE card builder for every context-card slot (Job 2e, result-page-polish round): used to be two
-  // separate functions (a large "hero" card for the closest/middle sale, smaller "sm" cards for the
-  // other two) with different meta lines and an extra italic "why" sentence on the hero only - now
-  // one equal-size card everywhere, one meta line (miles, platform, month and year), no why line.
-  // isClosest picks which role-label pair applies; the label itself still comes from an engine field
-  // either way (c.basis for the closest card, c.delta/c.role for the other two) - never chosen here.
-  // c.basis "subject" means pickRepresentative anchored on the subject's own mileage (a real VIN/
-  // chassis match or a known subject mileage) - genuine similarity, so the label is CLOSEST MATCH;
-  // "middle" means it anchored on the pool's median price instead, so the honest label is MIDDLE OF
-  // THE RANGE.
-  function ctxCardHtml(c, d, isClosest) {
-    if (!c) return "";
-    var venue = (c.platform && c.platform !== "others") ? c.platform : "";
-    var mi = longMiles(c);
-    var meta = [mi, venue, c.month || monShort(c.date)].filter(Boolean).join(" · ");
-    var pill = isClosest ? (c.basis === "subject" ? "Closest match" : "Middle of the range") : (DELTA_LABEL[c.delta] || (c.role === "closest" ? "Closest sale" : "Recent sale"));
-    return saleCardHtml({
-      cls: "ctx", pill: pill, href: utmUrl(c.url), slug: c.platformSlug, id: c.id, image: c.image,
-      priceHtml: esc(usd(c.price)), allIn: (c.isHouse && c.allIn) ? usd(c.allIn) : "", title: cleanReceiptTitle(c.title), meta: meta,
-      extra: otherHalfLabel(c, d) + offWindowLabel(c, d)
-    });
-  }
+  // ctxCardHtml (the old boxed/pilled "Closest match"/"Middle of the range" context cards) and its
+  // two label helpers, otherHalfLabel and offWindowLabel, were deleted in the hero-rebuild round
+  // (Oct 2026) along with contextSalesHtml - see salesRowCardHtml above, the new borderless
+  // replacement. Neither label (cross-generation-half, off-window) has a new home on the sales row
+  // this round; flagged in the round report as a real, if minor, information loss.
   // The exact car (VIN or chassis match) as the hero: "THIS CAR", 1.5px green border, its last sale.
   // Snapshot attributes are dated and past tense (rule 26). The history link renders only when the
   // engine returns how many times it sold before the shown sale (m.soldBeforeCount >= 1) and the
@@ -1110,54 +1107,13 @@
     t = titleCaseSaleTitle(t);                   // item 6: never shout a sale title
     return t || String(title == null ? "" : title);
   }
-  // Item 4: the mileage reconfirm / earned question renders AFTER the evidence (answer, proof, then
-  // the refinement). On an exact VIN/chassis match (own known mileage + date) it is the mileage-
-  // staleness reconfirm: real time has passed since that listing, so the figure may be out of date.
-  // Otherwise the normal earned question. One ask, never two.
-  function reconfirmHtml(d, m) {
-    var mi = m && Number(String(m.mileage == null ? "" : m.mileage).replace(/[^\d]/g, ""));
-    if (mi > 0 && m.soldDate) {
-      var asOf = monthYear(m.soldDate);
-      // Refinement copy pattern (locked, CLAUDE.md): reruns the EVIDENCE around the current
-      // mileage, never promises a different number/range. "which real sales are used", not a result.
-      return '<div class="qcard earned reconfirm" data-stage="answer"><p class="q">' + lint("Has the mileage changed? Last reported " + mi.toLocaleString("en-US") + " miles" + (asOf ? " in " + asOf : "") + ".", "rc.q") +
-        '</p><p class="rc-sub">' + lint("If it’s different now, update it and the range reruns around the mileage you give.", "rc.sub") +
-        '</p><div class="qchips"><button type="button" class="qchip g" data-refyes>No change</button><button type="button" class="qchip typeit" data-typemiles>Update mileage</button></div></div>';
-    }
-    return "";
-  }
-  // Capped third split (Part 3 question cap), a chip row instead of prose (Job 2, result-page-
-  // polish round two): the prose ("The middle half of manuals sold between X and Y, from N sales")
-  // is gone - picking a chip reruns the result through the engine via the SAME data-tx/data-variant
-  // handlers the earned gearbox/competition QUESTION already uses (lines ~2270+), so this is one
-  // wiring, not a new one. A side flagged `thin` by the engine (RANGE_THRESHOLD, lib/onebox.js
-  // inlineSplitRange) renders disabled with "too few sales" - no number lives in this template.
-  // COUNTS restored (2026-10-13): Lane B's buildPool fix (docs/lane-notes.md, pool-consistency root
-  // cause job) now computes these sides from the SAME pool the headline count comes from - sides[].n
-  // plus sp.unknown sum to exactly the headline count (checkSplitPoolInvariants asserts this), so the
-  // 87-vs-147 contradiction that held this back is gone; "Labels exactly as the engine gives them"
-  // now applies to the count too. The /manual/i and /competition/i label tests mirror the existing
-  // gearboxOptions/variantOptions chip code (~line 1573) - not a new text transform, the same one
-  // already used to turn an engine label into a refine value.
-  function inlineSplitsHtml(d) {
-    if (!d.inlineSplits || !d.inlineSplits.length) return "";
-    var blocks = d.inlineSplits.map(function (sp) {
-      var attr = sp.key === "gearbox" ? "data-tx" : "data-variant";
-      var chips = sp.sides.map(function (s) {
-        if (s.thin) return '<button type="button" class="qchip" disabled>' + esc(s.label) + " - too few sales</button>";
-        var val = sp.key === "gearbox" ? (/manual/i.test(s.label) ? "manual" : "auto") : (/competition/i.test(s.label) ? "competition" : "standard");
-        return '<button type="button" class="qchip" ' + attr + '="' + esc(val) + '" data-mlabel="' + esc(s.label) + '">' + esc(s.label) + ' (' + esc(s.n) + ')</button>';
-      }).join("");
-      return '<div class="qchips splitchips">' + chips + "</div>";
-    }).join("");
-    return '<div class="inlinesplits" data-stage="answer">' + blocks + "</div>";
-  }
-  // Mileage nearest-sales fallback (Part 3): the band was too thin, so the sales shown are the closest
-  // by mileage. Said plainly so the read never looks like an exact-band match it isn't.
-  function mileageFallbackHtml(d) {
-    if (!d.mileageFallback) return "";
-    return '<p class="mifallback" data-stage="answer">' + lint(esc("Too few sold right at that mileage, so these are the " + d.mileageFallback.n + " closest sales by mileage."), "mifb") + "</p>";
-  }
+  // reconfirmHtml (the VIN mileage-staleness reconfirm), inlineSplitsHtml (the capped gearbox/
+  // competition split chips) and mileageFallbackHtml were deleted in the hero-rebuild round (Oct
+  // 2026) along with the rest of "Narrow it down" (resultHtml's removed "notes" block was their only
+  // call site). No new home this round; flagged in the round report. The new hero's mileage line
+  // (heroMileageLineHtml) keeps the same gate reconfirmHtml and the old mileageFieldHtml both used -
+  // nothing mileage-related renders on a VIN/chassis match with a known mileage and sale date, since
+  // that car's own hero card already states it.
   // "Digits not words" (Oct 2026, Market read pills): the engine word-ifies a count under ten
   // (countWord, lib/onebox.js) for prose; this card's pills want the raw digit instead. Same fact,
   // different print - not a recompute. Reverses the exact ST_NUMWORD list the engine uses.
@@ -1270,14 +1226,10 @@
   // (mcPushUrl, already called inside runPool's success path) - never a second source of truth.
   var RMCHIP_KEYS = { mi: ["miMin", "miMax", "miTarget", "miLabel"], body: ["body", "bodyLabel"], tx: ["tx", "txLabel"], trim: ["trim", "trimLabel"], variant: ["variant", "variantLabel"], driver: ["driver", "driverVal", "driverLabel"], observe: ["observe", "observeLabel"] };
   var RMCHIP_ANSWER_KEYS = ["miMin", "body", "tx", "trim", "variant", "driver", "observe"];
-  function currentAnswersChipsHtml() {
-    var rf = obLastRefine; if (!rf) return "";
-    var defs = [["mi", rf.miLabel], ["body", rf.bodyLabel], ["tx", rf.txLabel], ["trim", rf.trimLabel], ["variant", rf.variantLabel], ["driver", rf.driverLabel], ["observe", rf.observeLabel]];
-    var chips = defs.filter(function (p) { return p[1]; }).map(function (p) {
-      return '<button type="button" class="anschip" data-rmchip="' + p[0] + '">' + esc(p[1]) + ' <span aria-hidden="true">&times;</span></button>';
-    }).join("");
-    return chips ? '<div class="anschips" data-stage="answer">' + chips + '</div>' : "";
-  }
+  // currentAnswersChipsHtml (the removable-answer chip row) was deleted in the hero-rebuild round -
+  // its only call site was narrowItDownHtml, also removed. The [data-rmchip] mechanism it fed
+  // (refineWithout below, still wired in wire()) is reused directly by the new hero's mileage
+  // "Change" link (heroMileageLineHtml, data-rmchip="mi").
   function refineWithout(dim) {
     var keys = RMCHIP_KEYS[dim]; if (!keys || !obLastRefine) return null;
     var r = Object.assign({}, obLastRefine);
@@ -1364,39 +1316,25 @@
     var line = m ? "If this exact car comes up again, Sam will email you, with the sale attached." : ("When the next " + esc(carLabel(d.resolvedCar)) + " sells, Sam will email you, with the sale attached.");
     return '<section class="samonit" data-stage="note"><p>' + lint(line, "samonit") + '</p><button type="button" class="linkbtn" id="ob-samonit">Have Sam keep looking &#8594;</button><p class="samonit-free">Free to use. Sign in only if you want Sam to keep looking.</p><p class="samonit-msg" id="ob-samonit-msg" hidden></p></section>';
   }
-  // "Narrow it down" (item 4): the refinement questions (trim, body, mileage/transmission/driver,
-  // observe, other trims) and the already-answered chips, under one header - only when there is
-  // actually something to narrow. Refinement reruns the evidence set, never implies a price change
-  // (the copy on each question already says so); a rejected model chip never comes back (the model-
-  // choice dropRejectedChips filter this reuses lives in the model_choice render path, not here).
-  // Other trims is gone (Job 1, result-page-polish round): the Which [model]? chips already carry
-  // the same choice, so a second list of the same trims read as a duplicate. otherTrimsHtml had
-  // exactly one caller (here) and is deleted below along with it - not used anywhere else in this
-  // file or by Buy/the car page.
-  // Order (result-hero job, Oct 2026): mileage field first, then body and gearbox chips (the two
-  // "offered as a refinement" kinds named in the brief), then everything else that narrows the SAME
-  // pool (trim, the VIN-reconfirm mileage card, the dictionary driver question, observe) - was trim/
-  // body/reconfirm/observe with no mileage field at all.
-  function narrowItDownHtml(d, m, notes) {
-    var chips = currentAnswersChipsHtml();
-    var qs = mileageFieldHtml(d, m) + bodyOptionsHtml(d) + gearboxEarnedHtml(d, m) + trimQuestionHtml(d) + reconfirmHtml(d, m) + driverEarnedHtml(d) + observeHtml(d);
-    if (!notes && !chips && !qs) return "";
-    return '<div class="sec-head" data-stage="answer"><div><h2>Narrow it down</h2></div></div>' +
-      (notes ? '<div class="notes" data-stage="answer">' + notes + "</div>" : "") + chips + qs;
-  }
+  // narrowItDownHtml ("Narrow it down": the refinement questions, pills and removable-answer chips)
+  // was removed WHOLESALE in the hero-rebuild round (Oct 2026) per the brief's explicit "Remove the
+  // Narrow it down block and all its pills" - the trim question and the mileage field each got a
+  // direct replacement inside the new hero (heroIdentityLineHtml, heroMileageLineHtml); body style,
+  // gearbox, the dictionary driver question, the observable-fact question, the VIN mileage reconfirm,
+  // the capped gearbox/competition split chips, the divergence-contradiction line, the mileage-
+  // nearest-sales-fallback note and the identity-question "switch sides" chip have NO new home this
+  // round. All flagged explicitly in the round report, not silently dropped.
   function resultHtml(d, m) {
-    // Page order (Job 1, result-page-polish round): A evidence block, B narrow it down, C this
-    // exact car (VIN/chassis match only), D live right now, E more comparable sales (collapsed),
-    // F where sales landed over time, G ready to sell, H have Sam keep looking (one block, see
-    // samOnItHtml), I the trust sentence. Was evidence/exact-car/live/narrow before - narrow moved
-    // up, exact-car and live moved down, to match.
-    // Result-hero job (Oct 2026): narrow it down is now built FIRST and handed into evidenceBlockHtml
-    // so it renders inside the SAME hero zone card, directly under Sam's Take, instead of as a
-    // separate card below it - the brief's "inside the same zone" instruction.
-    var notes = mileageFallbackHtml(d) + contradictionLine(d) + observeAsideHtml(d) + inlineSplitsHtml(d) + idqSwitchChipHtml();
-    if (d.driverSentence && !(d.earned) && !(d.divergence && d.divergence.kase === "a")) notes += '<p class="varynote">' + lint(esc(d.driverSentence), "varynote") + "</p>";
-    var narrow = narrowItDownHtml(d, m, notes);
-    var body = evidenceBlockHtml(d, m, narrow);
+    // Page order (hero-rebuild round, Oct 2026): A the new two-column hero (heroRangeHtml), B the
+    // sales row ("Sales behind this answer"), C the collapsed "N sales sat outside the range" line,
+    // D this exact car (VIN/chassis match only), E live right now, F more comparable sales
+    // (collapsed), G where sales landed over time, H ready to sell, I have Sam keep looking, J the
+    // trust sentence. Was evidence-block/narrow-it-down/exact-car/live/more-sales/market-read/sell/
+    // keep-looking before; narrow it down is gone (see above) and the sales row + its collapsed
+    // outside-range line now sit between the hero and the exact-car section, in that order.
+    var body = heroRangeHtml(d, m);
+    body += salesRowHtml(d);
+    body += collapsedAsideHtml(d, m);
     body += thisExactCarHtml(d, m);
     body += livePanelSlot();
     body += moreComparableSalesHtml(d, m);
@@ -1580,32 +1518,57 @@
     if (w % 12 === 0) return "the past " + spellK(w / 12) + " years";
     return "the past " + w + " months";
   }
-  // Thin state (Thin.html): headline with the count in green, freshness, the engine's older-sales
-  // count when present, then the sales as a two-column card grid.
-  function thinHeadHtml(d, name, scope, scopedLabel, ht) {
+  // THIN-TIER HERO (task #39, hero-rebuild round): same two-column shell as the range hero, with an
+  // ink (never green) headline gated on the SAME 8-sale floor the engine's own factsBlock already
+  // enforces (factsBlockFrom, lib/onebox.js, RANGE_THRESHOLD) - below that, count line only, exactly
+  // per the brief. The receipt is the highest-priced sale, read off d.cards (the price-shaped array
+  // the engine already attaches to a thin answer too, the same shape factsBlockFrom itself reads and
+  // the same shape heroReceiptHtml/salesRowCardHtml expect - not d.thin.receipts, a different, hammer-
+  // only shape receiptCardHtml below reads for the (unchanged) full receipts grid). No mileage line,
+  // no identity line, ever, on this tier.
+  function thinHeroHtml(d, name, scope, scopedLabel, ht, m) {
     var who = (scopedLabel ? cap(scopedLabel) + " " + name : cap(name));
     // The year comes from the sale itself, never the typed year (a "1902 Pierce Motorette" whose
     // only sale is a 1904 reads "a 1904").
     var whoNoYear = String(who).replace(/^\s*(18|19|20)\d\d\s+/, "");
     var win = thinWindowText(ht), n = scope.length;
+    var left = '<p class="eyebrow hero-label">Market Check</p>' +
+      '<h1 class="hero-carname">' + esc(m ? (m.displayName || carLabel(d.resolvedCar)) : cap(name)) + "</h1>";
+    var countTxt;
     if (n === 1) {
       var yr = scope[0] && scope[0].year ? scope[0].year : null;
-      return '<h1 class="thin-head lead">' + lint("Only <span class=\"ct\">one " + esc(whoNoYear) + "</span> has sold in " + win + (yr ? ", a " + yr : "") + ". Here’s what it went for.", "ht.hero1") + "</h1>";
+      countTxt = "Only one " + whoNoYear + " has sold in " + win + (yr ? ", a " + yr : "") + ". Here’s what it went for.";
+    } else {
+      var latestDate = (scope || []).reduce(function (mx, r) { return (r && r.date && r.date > mx) ? r.date : mx; }, "");
+      countTxt = obNumWord(n) + " sales in " + win + (latestDate ? ", the latest on " + freshDay(latestDate) : "") + ".";
     }
-    // Part 1 (Oct 2026): count line, then "Sold between $LOW and $HIGH" the moment the engine's
-    // own factsBlock carries a real lowest/highest - which it only ever does at poolSize 8+
-    // (lib/onebox.js RANGE_THRESHOLD, the SAME 8-sale floor rule 24 uses everywhere else; the
-    // engine nulls both fields below that on its own, so no separate gate is needed here). All-in
-    // prices (buyer's premium reconciled), matching the receipt cards below - NEVER thin.span (the
-    // raw hammer-only span), which this file never reads or prints anywhere. The reason sentence
-    // (why there's no typical band) moved to its own line - see thinReasonHtml below - so it is
-    // never duplicated between this headline and the facts line the way the old one-sentence
-    // headline and factsBlockHtml's own reason used to both almost-say it.
+    left += '<p class="hero-scope" data-stage="answer">' + lint(esc(cap(countTxt)), "hero.thin.count") + "</p>";
+    var fl = freshLine(d); if (fl) left += fl;
+    var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.thin.older") + "</p>";
+    if (ht.houseSteer) left += '<p class="hero-noband" data-stage="answer">' + lint(!ht.onlineReceiptsN ? "These trade at the auction houses, not online. Every recorded sale here came through one." : "These mostly trade at the auction houses; a few sell online. Both are below.", "hero.thin.steer") + "</p>";
+    else if (ht.houseN && ht.onlineReceiptsN) left += '<p class="hero-noband" data-stage="answer">' + lint("These sell online and at the auction houses. The recorded sales are below.", "hero.thin.mix") + "</p>";
+    var gpat = gearboxPatternLine(scope); if (gpat) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(gpat), "hero.thin.gpat") + "</p>";
     var fb = d && d.factsBlock;
-    var latestDate = (scope || []).reduce(function (mx, r) { return (r && r.date && r.date > mx) ? r.date : mx; }, "");
-    var soldBetween = (fb && fb.lowest != null && fb.highest != null) ? (" Sold between " + usd(fb.lowest) + " and " + usd(fb.highest) + ".") : "";
-    var text = "<span class=\"ct\">" + obNumWord(n) + " sales</span> in " + win + (latestDate ? ", the latest on " + freshDay(latestDate) : "") + "." + soldBetween;
-    return '<h1 class="thin-head lead">' + lint(text, "ht.hero") + "</h1>";
+    var poolSize = heroPoolSizeNum(d);
+    if (Number.isFinite(poolSize) && poolSize >= 8 && fb && fb.lowest != null && fb.highest != null) {
+      left += '<p class="eyebrow hero-label">Where they sold</p>' +
+        '<h2 class="range ink">' + esc(usd(fb.lowest)) + ' <span class="to">to</span> ' + esc(usd(fb.highest)) + "</h2>";
+    }
+    var reason = thinReasonHtml(d); if (reason) left += reason;
+    // The receipt is picked from `scope` (the hammer-shaped receipts already filtered by any intake
+    // answer), never d.cards (the engine's own unscoped price-shaped array factsBlock reads) - an
+    // intake split narrows `scope` client-side with no server round-trip, so d.cards would still
+    // hold the WRONG, unscoped pool whenever htChoice is active. thinReceiptAsCard adapts the one
+    // field that differs (price = allIn when a house reconciled one, else the hammer).
+    function thinReceiptAsCard(rc) {
+      return { price: rc.allIn || rc.hammer, url: rc.url, platformSlug: rc.slug, id: rc.id, image: rc.image, title: rc.title,
+        mi: Number(rc.mileage) > 0 ? Number(rc.mileage) : null, platform: rc.venue, month: monthYear(rc.date), date: rc.date };
+    }
+    var priced = (scope || []).filter(function (rc) { return rc && (Number(rc.allIn) > 0 || Number(rc.hammer) > 0); });
+    var highestRc = priced.reduce(function (best, rc) { var v = Number(rc.allIn || rc.hammer); return (!best || v > Number(best.allIn || best.hammer)) ? rc : best; }, null);
+    var right = heroReceiptHtml(d, highestRc ? thinReceiptAsCard(highestRc) : null, scope.length);
+    return '<section class="hero2col" data-stage="answer"><div class="hero-left">' + left + "</div>" +
+      (right ? ('<div class="hero-right">' + right + "</div>") : "") + "</section>";
   }
   // The reason there's no typical band (Part 1, Oct 2026): "the existing reason sentence" - reuses
   // FACTS_REASON_SENTENCE[d.reasonFlag] unchanged (defined below, already used by factsBlockHtml for
@@ -1702,19 +1665,15 @@
     var scope = sc.scope, scopedLabel = sc.label;
     // A gearbox tag shows only when the pool has a real manual-vs-non-manual split.
     htGearboxSplit = (function () { var man = 0, non = 0; (scope || []).forEach(function (rc) { if (rc.isHouse) return; var g = gearboxLabel(rc); if (!g) return; if (/^manual/i.test(g)) man++; else non++; }); return man > 0 && non > 0; })();
-    var lines = [];
-    var ol = olderOutsideLine(d); if (ol) lines.push(ol);
-    // HOUSE STEER text only when house share >= 2/3 (ht.houseSteer); venue-neutral otherwise.
-    if (ht.houseSteer) lines.push(!ht.onlineReceiptsN ? "These trade at the auction houses, not online. Every recorded sale here came through one." : "These mostly trade at the auction houses; a few sell online. Both are below.");
-    else if (ht.houseN && ht.onlineReceiptsN) lines.push("These sell online and at the auction houses. The recorded sales are below.");
-    var gpat = gearboxPatternLine(scope); if (gpat) lines.push(gpat);
-    var body = livePanelSlot() + '<div class="thinblk livetake" data-stage="answer">' + thinHeadHtml(d, name, scope, scopedLabel, ht) + freshLine(d) +
-      lines.map(function (p) { return '<p class="ans-line">' + lint(esc(p), "ht.line") + "</p>"; }).join("") + thinReasonHtml(d) + "</div>";
+    var body = livePanelSlot() + thinHeroHtml(d, name, scope, scopedLabel, ht, m);
     if (m) body += '<div class="cards5 single" data-stage="cards">' + vinHeroCardHtml(m, d.resolvedCar) + "</div>";
     // Newest first (the honest evidence order); the engine's hammer-desc order is for its own math.
     // Every sale renders (capped display only, Oct 2026): "every real sale", not a curated slice.
+    // id="more-sales" (hero-rebuild round): the thin hero receipt's "N more comparable sales" link
+    // scrolls here, the same [data-scrollto] target id the range tier's "more comparable sales"
+    // section uses - one id, one mechanism, regardless of tier.
     var shownRecs = scope.slice().sort(function (a, b) { return String(b.date || "").localeCompare(String(a.date || "")); });
-    body += capCardsHtml("grid2", shownRecs.map(receiptCardHtml), 4);
+    body += '<div id="more-sales">' + capCardsHtml("grid2", shownRecs.map(receiptCardHtml), 4) + "</div>";
     if (scope === ht.receipts) body += htPairsHtml(ht);
     body += siblingHtml(ht);
     // One Box NEVER recommends a house or platform; "Ready to sell?" is the only bridge to /sell.
@@ -1831,11 +1790,12 @@
     obGbApplies = !!(d && d.gearboxApplies);   // item 4: gate the hero gearbox line
     obLastD = d;
     var m = vinAnchor;
-    // The duplicate car line (Oct 2026, Sam's live review): the "result" tier's own evidenceBlockHtml
-    // already renders carLineHtml at the top of its one evidence card, so this outer copy (used by
-    // every OTHER tier - thin, refusal, class_era, not_tracked... - which have no car line of their
-    // own) must not render a second time for "result" specifically.
-    var head = (d.tier !== "result" && (d.resolvedCar || m)) ? carLineHtml(d, m) : "";
+    // The duplicate car line (Oct 2026, Sam's live review; extended to "thin" in the hero-rebuild
+    // round): "result" and "thin" each render their own car-name heading at the top of the new hero
+    // (heroRangeHtml / thinHeroHtml), so this outer copy (used by every OTHER tier - refusal,
+    // class_era, not_tracked... - which have no such heading of their own) must not render a second
+    // time for either of those two.
+    var head = (d.tier !== "result" && d.tier !== "thin" && (d.resolvedCar || m)) ? carLineHtml(d, m) : "";
     // A VIN that resolved a car but has NO recorded sale must SAY SO before the model market, so the
     // market read is never mistaken for this exact car's history.
     if (!m && vinQueryNoSale) {
@@ -1850,11 +1810,11 @@
     else if (d.tier === "non_road") { body = samMsgHtml([lint(esc(d.samLine || "Market Check covers cars, trucks and motorcycles."), "nr")], "Sam’s read", "big"); foot = true; }
     else if (d.tier === "result") body = resultHtml(d, m);
     else { body = samMsgHtml([lint(esc("Not enough real " + carLabel(d.resolvedCar) + " sales for an honest read, and nothing here is made up. Try another car and Sam pulls what actually sold."), "zero")], "Sam’s read", "big") + sellHtml(); foot = true; }
-    // The "result" tier (a real range) renders its own copy of the scope line INSIDE the hero zone
-    // card (evidenceBlockHtml), directly under the car line, per the Oct 2026 result-hero job - so it
-    // is not duplicated here. Every other tier (thin, class_era, refusal...) has no such card to put
-    // it in, so it keeps rendering at this shared top level exactly as Round 7/8 shipped it.
-    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + head + (d.tier === "result" ? "" : rungLabelHtml(d)) + body + (foot ? footHtml() : "");
+    // "Matched to ..." is gone from both "result" and "thin" (hero-rebuild round, Oct 2026): their
+    // new heroes (heroRangeHtml / thinHeroHtml) never print that sentence, so it must not render at
+    // this shared top level for them either. Every other tier (class_era, refusal...) is unchanged -
+    // it keeps rendering here exactly as Round 7/8 shipped it.
+    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + head + ((d.tier === "result" || d.tier === "thin") ? "" : rungLabelHtml(d)) + body + (foot ? footHtml() : "");
     wire();
     streamReveal();
     if (d.tier === "result" || d.tier === "thin") loadLivePanel(d, m);
@@ -1913,7 +1873,6 @@
   // used to flag - variant_choice now gives "competition" and dochistory_choice now gives
   // "documented_history", matching the lane-notes contract and every other caller's own marker
   // string. Updated here to match; every other dimension name was already correct and is kept.
-  var IDQ_DIM_PHRASE = { gearbox: "gearbox", body: "body style", competition: "the competition package", documented_history: "whether the car has documented history", generation: "generation", model: "model", trim: "trim" };
   var IDQ_REFINE_KEY = { gearbox: "tx", competition: "variant", body: "body", documented_history: "docHistory" };
   function idqValueFor(dim, label) {
     if (dim === "gearbox") return /manual/i.test(label) ? "manual" : "auto";
@@ -1922,59 +1881,57 @@
     if (dim === "body") return String(label || "").toLowerCase();
     return null;
   }
-  // Round 6 Job 2 (Oct 2026): never build a plural by appending "s"/"es" to a make or model -
-  // carLabel's last word is a proper noun (a model, a trim, a chassis code) whenever there is no
-  // body style, and a naive suffix reads as a typo on those ("Mercedes-Benzs", the reported bug,
-  // was this exact pattern one call site over, in classEraHtml). Only the CURATED BODY_PLURAL
-  // table (already used elsewhere in this file for the same reason) pluralizes the trailing word;
-  // anything else stays exactly as the engine returned it, with "cars" doing the plural work
-  // instead - the label itself is never computed or pluralised beyond that lookup.
-  function carPluralLabel(rc) {
-    var label = carLabel(rc);
-    if (label === "this car") return "these cars";
-    var parts = label.split(" "), last = parts[parts.length - 1];
-    var bw = BODY_PLURAL[String(last).toLowerCase()];
-    if (bw) { parts[parts.length - 1] = bw; return "these " + parts.join(" "); }
-    return "these " + label + " cars";
+  // ================= IDENTITY-QUESTION TAKEOVER (task #40, hero-rebuild round) =================
+  // Full-takeover screen for a BLOCKING identity question (iq.blocking, set by mapEngineAnswer):
+  // today that is gearbox_choice, variant_choice and dochistory_choice (the runPool dispatch below,
+  // unchanged) - each already carries a real per-option count via the engine's optionCounts field
+  // (identityQuestionFrom, lib/onebox.js), which is what the approved design's "Coupe (29 sales) ->
+  // Cabriolet (13 sales) ->" example calls for. model_choice/generation_choice/body_choice stay on
+  // the older renderChoice/qscreenHtml/chipAnswer path, deliberately not moved here this round: the
+  // brief's own example happens to read like a body question, but body_choice's chip answers work by
+  // appending to the query text and fully re-resolving (chipAnswer), not by an inline refine on the
+  // same pool the way gearbox/competition/documented-history do - moving it onto this screen would
+  // mean rewiring its click handler to a mechanism (refine.body on a pre-ladder question) never
+  // proven live, a real regression risk for an untested gain. Flagged in the round report.
+  // The brief's screen is a closed list ("nothing else on the page"): no skip link renders here,
+  // unlike the old identityQuestionHtml/idqSwitchChipHtml this replaces - both always offered a way
+  // past the question (the engine's own skipLabel chip, and a "switch sides" chip after answering).
+  // That is a deliberate, real behavior change made to follow the brief literally; flagged plainly in
+  // the round report, not silently dropped.
+  function idqBothLine(iq) {
+    var labels = (iq.options || []).map(function (o) { return String(o.label || "").toLowerCase(); });
+    if (labels.length === 2) return "Both " + labels[0] + " and " + labels[1] + " have enough sales to answer separately.";
+    if (labels.length > 2) return "Each of " + obListPhrase(labels) + " has enough sales to answer separately.";
+    return "Each side has enough sales to answer separately.";
   }
-  // One sentence shape for every dimension (so the question reads the same regardless of each
-  // tier's own ad hoc prompt string - "Manual or F1? They price differently." stays the engine's
-  // internal prompt but is not what renders), one button per option carrying its real engine
-  // count, and a skip that is never a dead end (rule 2 below).
-  function identityQuestionHtml(d) {
-    var iq = d.identityQuestion; if (!iq) return "";
-    var dim = iq.dimension;
-    var sentence = "One thing separates " + carPluralLabel(d.resolvedCar) + " on price: " + (IDQ_DIM_PHRASE[dim] || dim) + ".";
-    var chips = (iq.options || []).map(function (o) {
-      var val = idqValueFor(dim, o.label);
-      var countTxt = o.count != null ? (", " + o.count + " sales") : "";
-      return '<button type="button" class="qchip idqchip" data-idq-dim="' + esc(dim) + '" data-idq-val="' + esc(val || "") + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + countTxt + "</button>";
-    }).join("");
-    chips += '<button type="button" class="qchip idqskip" data-idq-dim="' + esc(dim) + '">' + esc(iq.skipLabel || "Just show what sold") + "</button>";
-    return qscreenHtml(lint(esc(sentence), "idq"), '<div class="chips">' + chips + "</div>", "One question first", "");
+  function idqQuestionText(iq, d) {
+    var labels = (iq.options || []).map(function (o) { return String(o.label || ""); }).filter(Boolean);
+    if (labels.length === 2) return labels[0] + " or " + labels[1] + "?";
+    if (labels.length > 2) return labels.slice(0, -1).join(", ") + " or " + labels[labels.length - 1] + "?";
+    return (d && d.prompt) || "Which is it?";
+  }
+  function identityTakeoverHtml(d) {
+    var iq = d && d.identityQuestion; if (!iq) return "";
+    var links = (iq.options || []).map(function (o) {
+      var val = idqValueFor(iq.dimension, o.label);
+      var n = o.count != null ? digitOf(o.count) : null;
+      var countTxt = Number.isFinite(n) ? (" (" + obNumWordLow(n) + (n === 1 ? " sale" : " sales") + ")") : "";
+      return '<button type="button" class="linkbtn idqchip idq-takeover" data-idq-dim="' + esc(iq.dimension) + '" data-idq-val="' + esc(val || "") + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + countTxt + " &#8594;</button>";
+    }).join(" ");
+    return '<section class="hero2col idq-takeover-wrap" data-stage="answer"><div class="hero-left">' +
+      '<p class="eyebrow hero-label">Market Check</p>' +
+      '<h1 class="hero-carname">' + esc(carLabel(d.resolvedCar)) + "</h1>" +
+      '<p class="hero-scope" data-stage="answer">' + lint(esc(idqBothLine(iq)), "idq.both") + "</p>" +
+      '<h2 class="range ink">' + lint(esc(idqQuestionText(iq, d)), "idq.q") + "</h2>" +
+      '<p class="hero-scope" data-stage="answer">The range changes with the answer.</p>' +
+      '<p class="hero-idline idq-choices" data-stage="answer">' + links + "</p>" +
+      "</div></section>";
   }
   function renderIdentityQuestion(d) {
     obLastD = d;
     var iq = d.identityQuestion;
-    obIdQContext = iq ? { dimension: iq.dimension, options: iq.options, refineKey: IDQ_REFINE_KEY[iq.dimension] || null } : null;
-    renderQuestion(identityQuestionHtml(d));
+    renderQuestion(identityTakeoverHtml(d));
     if (typeof gasTrack === "function" && iq) gasTrack("identity_question_shown", { dimension: iq.dimension, option_count: (iq.options || []).length });
-  }
-  // Rule 2, nothing is a one-way door: once a side is answered (refine carries the matching key),
-  // the NOT-chosen side stays reachable from Narrow it down with the SAME count the engine gave on
-  // the question screen - never recomputed from the narrower result that followed.
-  function idqSwitchChipHtml() {
-    if (!obIdQContext || !obIdQContext.refineKey) return "";
-    var active = obLastRefine && obLastRefine[obIdQContext.refineKey];
-    if (!active) return "";
-    var other = (obIdQContext.options || []).filter(function (o) { return idqValueFor(obIdQContext.dimension, o.label) !== active; });
-    if (!other.length) return "";
-    var chips = other.map(function (o) {
-      var val = idqValueFor(obIdQContext.dimension, o.label);
-      var countTxt = o.count != null ? (" (" + o.count + ")") : "";
-      return '<button type="button" class="qchip idqchip" data-idq-dim="' + esc(obIdQContext.dimension) + '" data-idq-val="' + esc(val || "") + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + countTxt + "</button>";
-    }).join("");
-    return '<div class="qchips idqswitch" data-stage="answer">' + chips + "</div>";
   }
   function renderError(msg) {
     root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + samMsgHtml([esc(msg)], "", "big") + footHtml();

@@ -112,20 +112,74 @@ button{font:inherit}
    car's own resolved name (.carline) still reads as the most prominent fact in this stack. ---- */
 .typed-eyebrow{margin:0}
 .rung-label{margin:0;font:500 15px/1.4 var(--sans);color:var(--soft)}
-/* ---- Sam's Take beside the range on desktop, stacked below it on mobile (was always full width
-   under the range - now a two-column split so the take reads as a companion to the number, not a
-   footnote under it). Collapses to one column at the same breakpoint every other hero element
-   does. ---- */
-.hero-split{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:20px;align-items:start;margin-top:2px}
-.hero-range,.hero-take{min-width:0}
-.hero-take .take{margin-top:0}
 
-/* ---- current answers, removable (item 7, Oct 2026) ---- */
-.anschips{display:flex;flex-wrap:wrap;gap:8px}
-.anschip{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 8px 0 14px;border-radius:999px;border:1px solid var(--chip);background:var(--card);color:var(--soft);font:500 14px/1 var(--sans);cursor:pointer}
-.anschip:hover{border-color:var(--green);color:var(--green)}
-.anschip span{font-size:15px;line-height:1;color:var(--sec)}
-.anschip:hover span{color:var(--green)}
+/* ================= HERO REBUILD (hero-rebuild round, Oct 2026) =================
+   One glance: understand the answer, trust it, see a receipt you can click. Thin dividers, almost
+   no shadows, no pills, serif headings, grey for everything that is not the answer - no card
+   surface, no border, no box-shadow anywhere in this block or in .salesrow below it. Two columns
+   at desktop (minmax so the receipt never gets crushed), one column stacked at 390 (media query at
+   the bottom of this file, grouped with the rest of the phone rules). */
+.hero2col{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,340px);gap:0 48px;align-items:start}
+.hero-left{display:flex;flex-direction:column;gap:10px;min-width:0;padding-right:36px;border-right:1px solid var(--div)}
+.hero-right{min-width:0}
+.hero-label{margin:0}
+.hero-carname{margin:2px 0 0;font:600 30px/1.2 var(--serif);letter-spacing:-.01em;color:var(--ink);text-wrap:balance}
+.hero-scope{margin:2px 0 0;font:400 15px/1.5 var(--sans);color:var(--sec)}
+.hero-noband{margin:2px 0 0;font:400 17px/1.4 var(--serif);color:var(--ink)}
+/* The info dot beside "WHERE THE MIDDLE HALF SOLD": a native title-attribute tooltip, no JS, no new
+   popover component - see heroScopeText/infoDotHtml's own comment in js/onebox.js for why this is
+   built fresh rather than reusing something that turned out not to exist yet. */
+.infodot{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--sec);color:var(--sec);font:600 10px/1 var(--sans);margin-left:2px;vertical-align:middle;cursor:default}
+.infodot::before{content:"i"}
+.hero2col .range{margin-top:2px}
+.hero-divider{height:1px;background:var(--div);margin:10px 0 0}
+.hero-idline{margin:2px 0 0;font:400 15px/1.6 var(--sans);color:var(--sec)}
+.hero-idlink{font-size:15px}
+/* Mileage line: an "Add mileage" field inline with its own sentence when nothing is applied yet, or
+   "Range narrowed around N miles." plus a quiet Change link once one is - both one line, no card,
+   no pill. */
+.hero-miles{margin:4px 0 0;font:400 15px/1.5 var(--sans);color:var(--sec);display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.miles-inline{display:inline-flex;align-items:center;gap:8px}
+.miles-inline input{width:110px;min-height:36px;border:1px solid var(--border);border-radius:8px;padding:0 10px;font:500 15px var(--sans);color:var(--ink);background:var(--card);outline:none}
+.miles-inline input:focus{border-color:var(--green)}
+.miles-inline input::placeholder{color:var(--sec)}
+.mi-unit{color:var(--sec)}
+/* The one receipt, right column: photo, model, miles/venue/month each their own grey line, a thin
+   divider, "Sold for $X", two text links. No card surface. */
+.hero-receipt{display:flex;flex-direction:column;gap:2px}
+.hero-receipt .ph{border-radius:12px;aspect-ratio:4/3}
+.hr-body{display:flex;flex-direction:column;gap:2px;margin-top:12px}
+.hr-title{margin:0;font:600 19px/1.3 var(--serif);color:var(--ink)}
+.hr-meta{margin:0;font:400 14px/1.4 var(--sans);color:var(--sec)}
+.hr-div{height:1px;background:var(--div);margin:10px 0}
+.hr-price{margin:0;font:600 24px/1.1 var(--serif);color:var(--ink);font-variant-numeric:tabular-nums}
+.hr-view{display:block;margin-top:10px}
+.hr-more{display:block;margin-top:6px}
+
+/* ---- identity-question takeover (task #40): the same two-column shell, right column empty,
+   nothing else on the page - label, car name, grey line, the question itself at range size (ink,
+   never green), another grey line, then the choices as green text links with arrows and counts. ---- */
+.idq-takeover-wrap .hero-left{border-right:0;padding-right:0}
+.idq-choices{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:6px}
+.idq-choices .linkbtn{font-size:16px}
+
+/* ---- sales row ("Sales behind this answer"): three borderless cards, no labels, no shadows,
+   separated by thin vertical dividers, never boxed like the comparable-sales grid below it. ---- */
+.salesrow{display:flex;flex-direction:column;gap:14px;padding-top:18px;margin-top:4px;border-top:1px solid var(--border)}
+.salesrow h2{margin:0;font:500 22px/1.25 var(--serif)}
+.salesrow-sub{margin:0;font:400 15px/1.5 var(--sans);color:var(--sec)}
+.salescards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0}
+.salescard{display:flex;flex-direction:column;text-decoration:none;color:inherit;padding:0 20px;min-width:0}
+.salescard:first-child{padding-left:0}
+.salescard:last-child{padding-right:0}
+.salescard+.salescard{border-left:1px solid var(--div)}
+.salescard .ph{border-radius:10px;aspect-ratio:4/3}
+.salescard-body{display:flex;flex-direction:column;gap:2px;margin-top:10px}
+.salescard-price{margin:0;font:700 19px/1.1 var(--serif);color:var(--ink);font-variant-numeric:tabular-nums}
+.salescard-title{margin:0;font:500 14px/1.35 var(--sans);color:var(--ink)}
+.salescard-meta{margin:0;font:400 13px/1.4 var(--sans);color:var(--sec)}
+a.salescard:hover .salescard-title{text-decoration:underline;text-underline-offset:3px}
+.salesrow-foot{display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin-top:2px}
 
 /* ---- answer card ---- */
 /* Simple block now (result-page-polish round, Job 2d): Sam's Take used to be a separate grid
@@ -139,6 +193,9 @@ button{font:inherit}
 .eyebrow{font:600 13px/1.4 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--sec)}
 .range{margin:0;font:600 36px/1.1 var(--serif);color:var(--green);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 .range .to{font-weight:400;font-size:24px;color:var(--sec)}
+/* Thin tier and the identity-question takeover both use this same heading size, but never green -
+   only a real cluster (the "Where the middle half sold" band) ever gets the green number. */
+.range.ink{color:var(--ink)}
 .landed{margin:0;font:400 18px/1.4 var(--serif);color:var(--ink)}
 /* ---- range bar: full spread, typical band highlighted, labelled ends - now only inside the
    collapsed "sales sat outside" note (Job 2c, result-page-polish round; was also always-visible
@@ -151,35 +208,16 @@ button{font:inherit}
 .rb-hi{grid-area:hi;text-align:right}
 .rb-track{grid-area:track;position:relative;height:4px;background:var(--border);border-radius:2px}
 .rb-band{position:absolute;top:0;height:4px;background:var(--green);border-radius:2px}
-.ans-lead{margin:0;font:400 24px/1.38 var(--serif);color:var(--ink);text-wrap:pretty}
 .fresh{display:flex;gap:10px;align-items:center;font:400 14px/1.4 var(--sans);color:var(--sec);margin-top:4px}
 .fresh .dot{width:8px;height:8px;border-radius:50%;background:var(--live);flex:none}
 .ans-line{margin:0;font:400 15px/1.5 var(--sans);color:var(--soft)}
-/* Quiet, full width (Job 2d): was a 30%-width side panel with heavier padding; now a thin tinted
-   strip directly under the range line, same family as the context-card note classes (otherhalf/
-   offwindow) in restraint, just with its own roundel + one or two sentences. */
-.take{padding:14px 16px;background:var(--take);border-radius:10px;display:flex;flex-direction:column;gap:6px}
-/* margin, not gap (Oct 2026, mid-width job): Sam reported the roundel overlapping the SAM'S TAKE
-   text in a narrower Safari window - not reproducible in Chrome at 390 to 1440 (measured: a real
-   10px gap holds at every width, the only change at 900 is the label wrapping to two lines, which
-   does not overlap the badge). Flexbox gap on a row with a wrapping two-line label is exactly the
-   kind of case that has had real cross-engine quirks; margin-right costs nothing and removes that
-   dependency entirely rather than leaving it unresolved on a hunch. */
-.take-h{display:flex;align-items:center}
-.take-h .roundel{margin-right:10px}
 .roundel{flex:none;width:28px;height:28px;border-radius:50%;border:1.5px solid var(--green);color:var(--green);font:600 10px/1 var(--sans);letter-spacing:.08em;display:flex;align-items:center;justify-content:center}
 .roundel.lg{width:40px;height:40px;font-size:11px}
-.take-tag{font:600 13px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--green)}
-.take p{margin:0;font:400 17px/1.45 var(--serif);color:var(--soft)}
 
-/* ---- evidence block: the range card's sub-sections - the three context sales, the collapsed
-   outside-range line and "How Sam decided" - as direct children of the SAME .anscard, so the whole
-   thing reads as one card with no border between parts (CLAUDE.md: a screenshot of the first
-   screen alone must still show the range and the real sales it came from). ---- */
-.ev-meta{margin:0;font:400 15px/1.4 var(--sans);color:var(--sec)}
-.ev-sales{padding:7px 25px 20px;display:flex;flex-direction:column;gap:13px}
-.ev-sales h2{margin:0;font:500 20px/1.25 var(--serif)}
-.otherhalf,.offwindow{margin-top:2px;font:400 12.5px/1.3 var(--sans);color:var(--sec)}
+/* ---- evidence block: the range card's sub-sections - the collapsed outside-range line and "How
+   Sam decided" - as direct children of the SAME .anscard, so the whole thing reads as one card with
+   no border between parts (CLAUDE.md: a screenshot of the first screen alone must still show the
+   range and the real sales it came from). ---- */
 .ev-why-toggle,.ev-aside-toggle{margin:0;padding:0 28px 18px}
 .ev-why-note,.ev-aside-note{padding:0 28px 22px}
 .ev-why-note[hidden],.ev-aside-note[hidden]{display:none}
@@ -189,7 +227,7 @@ button{font:inherit}
 /* ---- this exact car (Oct 2026): its own eyebrow + single hero card, VIN/chassis match only ---- */
 .ev-exact{display:flex;flex-direction:column;gap:12px}
 
-/* ---- notes under the answer (engine-gated secondary lines) ---- */
+/* ---- notes under the answer (engine-gated secondary lines; today only the VIN-no-sale note) ---- */
 .notes{display:flex;flex-direction:column;gap:8px;margin-top:-8px}
 .notes p{margin:0;font:400 17px/1.5 var(--serif);color:var(--soft)}
 .notes .num{font-weight:600;color:var(--ink)}
@@ -289,21 +327,6 @@ button{font:inherit}
 .cprice{font:600 29px/1 var(--serif);font-variant-numeric:tabular-nums}
 .cvenue{font:400 14px/1.4 var(--sans);color:var(--sec)}
 .ctitle{font:500 17px/1.35 var(--sans);color:var(--ink)}
-/* ---- context cards (Job 2e, result-page-polish round): one equal-size card for every slot, 1 to
-   3 of them - replaces the old hero(large)+stack(small) asymmetric pair, which forced whichever
-   card was "closest" to visually outrank the other two even though all three are equally real
-   evidence. Three across at desktop, two across for a 2-card result, one (constrained, not full
-   hero width) for a 1-card result; always one column at 390 (media query below). Same photo
-   aspect-ratio and same type scale on every card regardless of count or role. */
-.ctxcards{display:grid;gap:20px;align-items:start}
-.ctxcards.n3{grid-template-columns:repeat(3,minmax(0,1fr))}
-.ctxcards.n2{grid-template-columns:repeat(2,minmax(0,1fr))}
-.ctxcards.n1{grid-template-columns:minmax(0,1fr);max-width:360px}
-.card.ctx .ph{aspect-ratio:4/3}
-.card.ctx .pill{top:10px;left:10px;padding:5px 9px;background:var(--card);color:var(--green)}
-.card.ctx .cbody{padding:13px 14px 14px;gap:4px}
-.card.ctx .cprice{font-size:22px}
-.card.ctx .ctitle{font-size:14px;line-height:1.3}
 .cmeta{font:400 14px/1.45 var(--sans);color:var(--sec)}
 .callin{font:400 14px/1.4 var(--sans);color:var(--sec)}
 .cwhy{margin:4px 0 0;font:italic 400 16px/1.45 var(--serif);color:var(--soft)}
@@ -321,10 +344,6 @@ a.sb-line:hover{color:var(--green)}
 .grid3 .ctitle{font-size:15px}
 
 /* ---- question card (inside a result) + question screen ---- */
-.qcard{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 22px;display:flex;align-items:center;gap:12px 18px;flex-wrap:wrap}
-.qcard .q{margin:0;font:400 20px/1.35 var(--serif)}
-.qcard .rc-sub{flex-basis:100%;margin:-4px 0 0;font:400 15px/1.45 var(--sans);color:var(--sec)}
-.qchips{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .qchip{min-height:44px;padding:0 16px;border-radius:999px;border:1px solid var(--chip);background:var(--card);color:var(--ink);font:500 15px var(--sans);cursor:pointer}
 .qchip:hover,.qchip.sel{border-color:var(--green);color:var(--green)}
 .qchip.typeit{border-style:dashed;color:var(--sec)}
@@ -333,9 +352,6 @@ a.sb-line:hover{color:var(--green)}
 .typemiles{display:inline-flex;gap:8px;align-items:center}
 .typemiles input{width:120px;min-height:44px;border:1px solid var(--chip);border-radius:999px;padding:0 16px;font:500 15px var(--sans);color:var(--ink);background:var(--card);outline:none}
 .typemiles input:focus{border-color:var(--green)}
-/* "Add mileage" (Narrow it down, Oct 2026): wider than the bare "type it" input above it replaces
-   inline, so the longer placeholder never clips. */
-.mileagefield .typemiles input{width:150px}
 .qscreen{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:26px 28px 28px;display:flex;gap:18px}
 .qscreen .qbody{display:flex;flex-direction:column;gap:16px;min-width:0}
 .qscreen .qtop{display:flex;flex-direction:column;gap:6px}
@@ -361,11 +377,6 @@ a.sb-line:hover{color:var(--green)}
 .wayfwd{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 
 /* ---- thin ---- */
-.thin-head{margin:0;font:400 30px/1.3 var(--serif);text-wrap:pretty}
-.thin-head .ct{font-weight:600;color:var(--green)}
-.thinblk{display:flex;flex-direction:column;gap:12px}
-.thinblk .fresh{font-size:15px;margin-top:0}
-.thinblk .ans-line{font-size:15px}
 .widen{background:var(--tint);border:1px solid var(--tint-line);border-radius:14px;padding:18px 22px;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .widen p{margin:0;font:400 19px/1.4 var(--serif)}
 .widen button{min-height:44px;padding:0 16px;border:1.5px solid var(--green);border-radius:999px;background:var(--card);color:var(--green);font:600 16px var(--sans);cursor:pointer}
@@ -455,19 +466,14 @@ a.sb-line:hover{color:var(--green)}
   .carline{font-size:15px;gap:10px;margin:-2px 0 -6px}
   .carline .ch{display:inline-flex}
   .rung-label{font-size:14px}
-  .hero-split{grid-template-columns:1fr;gap:12px}
   .anscard{border-radius:14px}
   .ans-main{padding:18px 18px 16px;gap:8px}
-  .ev-sales{padding:4px 18px 18px}
   .ev-why-toggle,.ev-aside-toggle{padding:0 18px 14px}
   .ev-why-note,.ev-aside-note{padding:0 18px 18px}
   .eyebrow{font-size:12px;letter-spacing:.12em}
   .range{font-size:32px}
   .range .to{font-size:20px}
   .landed{font-size:18px}
-  .ans-lead{font-size:21px}
-  .take{padding:12px 14px}
-  .take-tag{font-size:12px}
   .sec-head{display:block;padding-top:14px;margin-top:4px}
   .sec-head h2{font-size:20px}
   .capshow{margin-top:10px}
@@ -476,21 +482,30 @@ a.sb-line:hover{color:var(--green)}
   .card.hero{grid-column:1 / -1}
   .hero .cprice{font-size:30px}
   .hero .cbody{padding:16px 18px 18px}
-  .ctxcards.n3,.ctxcards.n2,.ctxcards.n1{grid-template-columns:minmax(0,1fr);max-width:none;gap:12px}
   .grid2{grid-template-columns:1fr;gap:14px}
   .grid3{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
   .grid3 .cbody{padding:12px}
   .grid2 .ph{height:200px}
-  .qcard{flex-direction:column;align-items:flex-start;padding:16px}
-  .qcard .q{font-size:19px}
   .qscreen{padding:20px 18px 22px;gap:14px}
   .qscreen .roundel.lg{width:34px;height:34px;font-size:10px}
   .qtext{font-size:23px}
   .chip{padding:0 20px}
   .sam{padding:18px;gap:12px}
   .sam.big p{font-size:21px}
-  .thin-head{font-size:24px}
   .refusal .ans{font-size:25px}
+  /* ---- hero rebuild, phone stacking (task #42): label, car name, scope line, range label, range,
+     mileage line+field, receipt (photo full width then text), identity line, then the sales row
+     stacked (photo left, text right per card) - one column, the left column's divider/padding
+     dropped so the receipt lands inside the first screen and a half. ---- */
+  .hero2col{grid-template-columns:1fr;gap:18px}
+  .hero-left{border-right:0;padding-right:0}
+  .hero-carname{font-size:25px}
+  .hero-receipt .ph{aspect-ratio:16/9}
+  .salescards{grid-template-columns:1fr;gap:16px}
+  .salescard{padding:0;flex-direction:row;gap:14px;align-items:flex-start}
+  .salescard+.salescard{border-left:0;border-top:1px solid var(--div);padding-top:16px}
+  .salescard .ph{width:110px;flex:none;aspect-ratio:4/3}
+  .salescard-body{margin-top:0}
   .sellbox{flex-direction:column;align-items:flex-start;gap:12px;padding:16px 14px}
   .sellbox h3{font-size:18px}
   .sellbox p{font-size:13px}
