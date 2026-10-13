@@ -13,6 +13,8 @@ const fail = m => { bad++; console.log("FAIL " + m); };
 // [typed words, expected {year, make, model, trim}] (a key left out is not checked)
 const CASES = [
   ["2005 Mercedes-Benz CLK DTM", { year: 2005, make: "Mercedes-Benz", model: "CLK DTM" }],
+  ["1987 Buick Regal Grand National", { year: 1987, make: "Buick", model: "Grand National" }],   // "National" was dropped as a stray word and the car read as a Regal "Grand"
+  ["Buick Regal Grand National", { make: "Buick", model: "Grand National" }],
   ["CLK DTM", { make: "Mercedes-Benz", model: "CLK DTM" }],
   ["Mercedes-Benz CLK DTM", { make: "Mercedes-Benz", model: "CLK DTM" }],   // how Tasks joins make + model + trim
   ["CLK 55 AMG", { year: null, make: "Mercedes-Benz", model: "CLK-Class", trim: "CLK55 AMG", trimNumber: "55" }],   // 55 is a model number, never 1955, and it is kept
