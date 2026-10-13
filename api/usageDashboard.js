@@ -2348,6 +2348,80 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "poolsrc", make, model, title, rawPool: raw, keptAfterExclusion: kept, removed: raw - kept, ukSourcesInPool: Object.fromEntries(excluded), allPlatforms: counts });
   }
 
+  // task=poolrows (Lane B2 spec, docs/lane-notes.md Oct 13 2026): READ-ONLY, archive only, zero vendor
+  // spend, no writes, no free-form SQL. The raw sales_archive rows behind any scope, so a human can
+  // see exactly which sales a pool holds (and, with fence=1, why the engine kept or dropped each one)
+  // without any read-only task having to reconstruct a fence by hand. Settles the "pending" golden
+  // cars (356 Speedster, Merkur XR4Ti, Mustang GT, 275 GTB, Saab 9-2X) and anything like them later.
+  if (task === "poolrows") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const make = String(req.query?.make || "").trim();
+    const model = String(req.query?.model || "").trim();
+    const title = String(req.query?.title || "").trim();
+    const yearMin = Number.isFinite(Number(req.query?.yearMin)) && req.query?.yearMin ? Number(req.query.yearMin) : null;
+    const yearMax = Number.isFinite(Number(req.query?.yearMax)) && req.query?.yearMax ? Number(req.query.yearMax) : null;
+    const since = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.since || "")) ? String(req.query.since) : null;
+    const until = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.until || "")) ? String(req.query.until) : null;
+    const limit = Math.max(1, Math.min(500, Number(req.query?.limit) || 200));
+    const offset = Math.max(0, Number(req.query?.offset) || 0);
+    const wantFence = req.query?.fence === "1";
+    const q = typeof req.query?.q === "string" ? req.query.q.trim() : "";
+
+    // Column aliases match the engine's own select (lib/onebox.js ~1670): currency/mileage/mods/
+    // rtitle/transmission/image live in raw_record, the rest are native columns.
+    const cols = "id,year,make,model,raw_title:listing_title,source_slug,platform,sale_date,price:sale_price,price_usd:sale_price_usd," +
+      "currency:raw_record->>currency,mileage:raw_record->>mileage,rtitle:raw_record->>title,mods:raw_record->>modifications," +
+      "transmission:raw_record->>transmission,image:raw_record->>featured_image_url,vin_norm,project_flag,vehicle_type";
+    let qs = `sales_archive?select=${cols}&sale_price=not.is.null&vehicle_type=eq.car`;
+    if (make) qs += `&make=ilike.${encodeURIComponent("*" + make + "*")}`;
+    if (model) qs += `&model=ilike.${encodeURIComponent("*" + model + "*")}`;
+    if (title) qs += `&listing_title=ilike.${encodeURIComponent("*" + title + "*")}`;
+    if (yearMin != null) qs += `&year=gte.${yearMin}`;
+    if (yearMax != null) qs += `&year=lte.${yearMax}`;
+    if (since) qs += `&sale_date=gte.${since}`;
+    if (until) qs += `&sale_date=lte.${until}`;
+    qs += `&order=sale_date.desc`;
+
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
+    let total = null;
+    try {
+      const tr = await fetch(`${env.supabaseUrl}/rest/v1/${qs}&limit=1`, { headers: H });
+      const m = /\/(\d+)$/.exec(tr.headers.get("content-range") || "");
+      total = m ? Number(m[1]) : null;
+    } catch (e) { total = null; }
+    const rows = (await supabaseSelect(env, `${qs}&limit=${limit}&offset=${offset}`)) || [];
+
+    // fence=1&q=<typed words>: resolve q the SAME way Market Check does and run every row through
+    // the engine's own qualifyReason (titleFenceReason plus the price-floor/photo gates) - this
+    // NEVER changes a fence, it only narrates what the existing one already decided per row.
+    let fenceSpec = null;
+    if (wantFence && q) {
+      try {
+        const { resolveVehicle, sanitizeResolvedVehicle } = await import("../lib/vehicle.js");
+        const { findGeneration } = await import("../lib/generations.js");
+        const { buildSpec } = await import("../lib/onebox.js");
+        const rv = await resolveVehicle(q, { vinConfirm: true });
+        const v = sanitizeResolvedVehicle(rv && rv.vehicle) || (rv && rv.vehicle);
+        if (v && v.make) fenceSpec = buildSpec(v, await findGeneration(v, env).catch(() => null), q);
+      } catch (e) { fenceSpec = null; }
+    }
+    const { qualifyReason, __specEngine } = await import("../lib/onebox.js");
+    const windowDays = since ? Math.round((Date.now() - Date.parse(since + "T00:00:00Z")) / 864e5) : null;
+    const out = rows.map(r => {
+      const engineRow = { price: r.price, currency: r.currency, source_slug: r.source_slug, source: r.platform, date: r.sale_date, raw_title: r.raw_title, rtitle: r.rtitle, mileage: r.mileage, mods: r.mods, transmission: r.transmission, image: r.image, project_flag: r.project_flag, year: r.year };
+      const hammer = __specEngine.hammerUsd(engineRow);
+      const allIn = __specEngine.outcomeUsd(engineRow);
+      return {
+        id: r.id, year: r.year, make: r.make, model: r.model, listing_title: r.raw_title, source_slug: r.source_slug, platform: r.platform,
+        sale_date: r.sale_date, currency: r.currency, sale_price: r.price, sale_price_usd: r.price_usd,
+        hammerUsd: Number.isFinite(hammer) ? Math.round(hammer) : null, allInUsd: Number.isFinite(allIn) ? Math.round(allIn) : null,
+        mileage: r.mileage || null, vin_norm: r.vin_norm || null, has_photo: !!r.image, project_flag: r.project_flag || null, vehicle_type: r.vehicle_type,
+        engineVerdict: fenceSpec ? qualifyReason(engineRow, fenceSpec) : null
+      };
+    });
+    return res.status(200).json({ task: "poolrows", filters: { make: make || null, model: model || null, title: title || null, yearMin, yearMax, since, until }, total, windowDays, count: out.length, rows: out });
+  }
+
   // ===================== Sam Desk Stage A: dictionary coverage + gate (READ-ONLY) =====================
   // task=deskcounts : archive sale count for every dictionary scope member + grouping member
   //                   (all-time, sold-only). No writes. Flags any expansion with zero sales (spec s4).

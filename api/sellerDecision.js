@@ -43,7 +43,7 @@ import {
 } from "../lib/_classify.js";
 import { hammerUsd, ensureFxReady } from "../lib/_houseComps.js";
 import { buildSharedAnalysis, isRoutableVenue, ROUTABLE_VENUES, SHORT_AUCTION_VENUES, US_ROUTE_VENUES } from "../lib/platformPick.js";
-import { specKeyFor, coreOf, persistCore, warmAnswerKeyFor, readWarmAnswer } from "../lib/live/search.js";
+import { specKeyFor, coreOf, persistCore, warmAnswerKeyFor, readWarmAnswer, writeWarmAnswer, answerCacheable } from "../lib/live/search.js";
 
 import { isCrewRequest } from "../lib/_crew.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
@@ -3443,20 +3443,28 @@ async function handler(req, res) {
       // left untouched so its latency baseline - Date.now() - obStart, the WHOLE request, not just
       // this call - never changes) works exactly as before. This is Market Check's one production
       // entry point into the shared engine; it previously called runOneBox directly.
-      // WARM-LIST FAST PATH (Round 5 Job 3, Oct 2026): a bare nameplate (no trim, no inline refine,
-      // no exact-VIN comparison, the FIRST ask) checks the epoch-gated warm cache before paying for
-      // a live compute. A hit is the SAME raw engine answer a warmer precomputed, served byte-
-      // identical to what a fresh call would return at this moment (readWarmAnswer's own epoch/
-      // version/24h checks guarantee that, same as Job 1's rangeCache/specMem gate elsewhere). A
-      // miss for ANY reason (never warmed, this exact nameplate is not on the curated list, epoch
-      // went stale, engine version moved) falls straight through to the EXACT existing live path
-      // below, completely unchanged - this is a fast path added on top, never a behavior change,
-      // and it only ever applies to a bare nameplate; a named trim always computes live.
+      // WARM FAST PATH + WRITE-THROUGH (Round 5 Job 3, extended Lane B Part 1, Oct 2026): every
+      // resolved spec (no inline refine, no exact-VIN comparison, the FIRST ask) - not only a bare
+      // nameplate anymore - checks the epoch-gated persistent cache before paying for a live
+      // compute. A hit is the SAME raw engine answer precomputed earlier, served byte-identical to
+      // what a fresh call would return at this moment (readWarmAnswer's own epoch/version/24h
+      // checks guarantee that, same as Job 1's rangeCache/specMem gate elsewhere). A miss for ANY
+      // reason (never warmed, epoch went stale, engine version moved) falls through to the live
+      // path below, which now WRITES the fresh answer back under warmKey before returning - so an
+      // ENGINE_VERSION bump costs exactly one slow load per spec, not every load until the next
+      // nightly warm run (the root cause behind "every bare name slow until someone re-warms").
+      // Mileage is excluded on purpose: obRefine (the mileage-band/gearbox/variant/body/driver/
+      // observe inline refine) is EXCLUDED from wantsWarm below, so a mileage-narrowed answer is
+      // NEVER read from or written into this cache as the mileage-free one - the typed free-text
+      // queryMileage parse (a display pre-fill only, see mapEngineAnswer) never reaches obRefine
+      // and so never affects this gate either. answerCacheable (the same store guard rangeCache
+      // uses) keeps a malformed/partial read from ever latching in.
       let oneBox, warmHit = false;
-      const wantsWarm = !obRefine && !exactSale && vehicle && vehicle.make && !vehicle.trim && Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) === 0;
+      const wantsWarm = !obRefine && !exactSale && vehicle && vehicle.make && Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) === 0;
+      const warmKey = wantsWarm ? warmAnswerKeyFor(vehicle, generation) : null;
       if (wantsWarm) {
         try {
-          const warmed = await readWarmAnswer({ supabaseUrl, supabaseKey }, warmAnswerKeyFor(vehicle, generation));
+          const warmed = await readWarmAnswer({ supabaseUrl, supabaseKey }, warmKey);
           if (warmed) { oneBox = warmed; warmHit = true; }
         } catch { /* fall through to the live path below */ }
       }
@@ -3467,6 +3475,9 @@ async function handler(req, res) {
             new Promise((_, rej) => setTimeout(() => rej(new Error("onebox_deadline")), Number(process.env.ONEBOX_DEADLINE_MS || 20000)))
           ]);
           oneBox = engineAnswer.raw;
+          if (wantsWarm && answerCacheable(oneBox)) {
+            await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, oneBox).catch(() => {});
+          }
         }
       } catch (e) {
         console.error(`One Box unavailable (${(e && e.message) || e}), ${Date.now() - obStart}ms.`);
