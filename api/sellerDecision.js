@@ -1,7 +1,7 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
-import { mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, priceBandForVehicle, listSalesForVehicle, rawTitleSearch, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
+import { mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, priceBandForVehicle, listSalesForVehicle, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
 import { supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { hasServerCredential } from "../lib/_credential.js";
@@ -2797,7 +2797,7 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
 // x-probe-key / x-ops-key, or the cron secret). Without it they are removed before anything reads them, so a
 // public request runs as an ordinary search. archiveOnly, ladderPreview, priceProbe and oneBox stay public:
 // each only ever reduces spend (archive or fetch-free).
-const SERVER_ONLY_FLAGS = ["warm", "bypassCache", "rerun", "poolDiag", "backfillCount", "archiveQuery", "oneBoxProof", "titleSearch", "cacheStats", "reserveSim", "debug"];
+const SERVER_ONLY_FLAGS = ["warm", "bypassCache", "rerun", "poolDiag", "backfillCount", "archiveQuery", "oneBoxProof", "cacheStats", "reserveSim", "debug"];
 async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -3119,12 +3119,6 @@ async function handler(req, res) {
       return res.status(200).json({ status: "archive_query", mode, source: srcLabel, count: rows.length, byInferredCurrency: byCur, rows: rows.map(r => ({ ...r, inferredCur: inferCur(r) })) });
     }
     return res.status(400).json({ error: "unknown archiveQuery mode" });
-  }
-  // Raw archive title-search diagnostic (archive-only, no car needed, no OCD) -> answered before
-  // the car-required check so it is a pure verification tool.
-  if (req.body?.titleSearch) {
-    const ts = await rawTitleSearch(String(req.body.titleSearch), { supabaseUrl, supabaseKey }, Number(req.body?.sinceDays) || undefined, Number(req.body?.limit) || undefined);
-    return res.status(200).json({ status: "title_search", ...ts });
   }
   if (!apiKey) return res.status(500).json({ error: "OldCarsData API key not configured" });
   // Metered DRY-RUN for a backfill: reads OCD's own total count for a source+year range and its
