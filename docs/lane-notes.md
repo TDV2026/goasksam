@@ -6153,3 +6153,42 @@ gates, confirmed on real cars, not assumed**:
   Flagging plainly per this round's own "state it plainly" rule rather than silently pushing past it
   (nothing of mine was pending to push at the time this ran - the finding came after this round's
   own commits were already out).
+- 2026-10-13 (Lane B): SPEED CHECK ROOT CAUSE FOUND AND FIXED - not an epoch bug, not d225354/90febaa.
+  Pushed 970e305 (structured cache_decision/epoch_poll logging, Sam's explicit one-time exception to
+  the no-push-over-a-failing-speed-check rule, since it changes no behaviour). Read the real Vercel
+  logs for 15 live Market Check loads (5 rounds each, Camaro/1995 911 Carrera/997 Carrera S Coupe)
+  through the public page, confirming the final URL on every load.
+  THE FINDING: "1995 Porsche 911 Carrera" and "2008 Porsche 997 Carrera S Coupe" never touch the warm
+  cache at all - both resolve a trim ("Carrera"/"Carrera S"), and the MCWARM fast path in
+  api/sellerDecision.js is gated to bare nameplates only (!vehicle.trim). That is by design, not a
+  bug; their live-compute times measured 5.4-16.8s against this session's own browser, under budget
+  every time. "1969 Chevrolet Camaro" (bare nameplate, the only one of the three the warm path even
+  applies to) missed EVERY time, 100%, with reason engine_version_mismatch:
+  e17-20261013-poolconsistency != e26-20261013-revertoneyearwiden. The row existed and was otherwise
+  fresh (not an epoch or TTL problem - production's sales_epoch row DOES exist, value
+  2026-10-13T14:58:32.862Z, confirmed from the epoch_poll log) - it was simply warmed under an OLD
+  ENGINE_VERSION from before this session's e18-e26 bumps and never re-warmed since, because the
+  nightly Market Check warm step still only lives in docs/nightly-workflow.yml, not
+  .github/workflows/nightly.yml (same gap flagged in Part 7 of CLAUDE.md). The comparison logic
+  itself is correct and was NOT changed - serving a cached answer computed under a retired engine
+  version would be the exact bug class that gate exists to prevent.
+  THE FIX: no code change. Re-warmed the Camaro MCWARM row via the existing task=warmMC ops
+  endpoint (writes under the CURRENT ENGINE_VERSION automatically). Re-ran the same 5 rounds:
+  Camaro now hits every time (confirmed hit:true in the logs, ms 348-568 for the read itself),
+  elapsed totals dropped to 3.2-7.8s. prePush now passes in full including the speed check (0 FAIL,
+  6 SKIP, 10 PASS) - verified by reading the real exit code from a redirected file, not a piped
+  command (a pipe masked a real FAIL as exit 0 earlier this same round; noting it so nobody else
+  trusts `| tail` to carry prePush's exit code).
+  SIDE FINDING, not acted on (out of scope for a speed job, flagging for whoever owns it): the new
+  Part 4 "receipts carry the resolved car" sweep check (scripts/crossProductCheck.js
+  checkOutputInvariants) threw 5 false positives this run, all the same root cause - a strict
+  \b-bounded regex missing real title variants that don't restate the resolved model with a word
+  boundary (911T vs 911, 356A vs 356, 300 SL vs 300SL, Mazda Roadster vs MX-5, 'Cuda vs Barracuda).
+  Not a pool-contamination bug; the check's matching needs loosening (strip trailing letter suffixes,
+  or match leading digits only) before it can be trusted on a full sweep. Also still open, pre-
+  existing, not touched: singlePick's "1965 Chevrolet Corvette" rush case (exercised:false,
+  agree:false) and urgentOct2026's CLK DTM class_era_not_swapped check, which may itself be stale -
+  class_era was removed as a tier this same session (classEraGuarded/assessClassEra deleted) so a
+  check still asserting classEraN may be asserting on a mechanism that no longer exists. CLK DTM
+  wording and the bare-911 fence were not touched, per this round's explicit instruction.
+  Search check: no public page touched (lib/_epoch.js, lib/live/search.js, scripts/crossProductCheck.js only).
