@@ -6304,3 +6304,58 @@ budgets) and offWindowCheck (8/8, after the fix above). Pushed after a clean run
     With it, cars 8, 11, 13, 14 and 16 can be settled and the "no legitimate sale was left out" caveat in docs/golden-rules.md section 3 can be closed for all 20.
   Using it: `PROBE_KEY="$(security find-generic-password -s goasksam-probe -w)" node scripts/goldenTruth.mjs [--quick] [--ids 1,9] [--pages]`. Expected counts on the twelve-month window drift as old sales leave it; `tol` in the JSON block allows for that.
   Search check: no public page touched.
+
+## Lane A: VIN mileage reconfirm restored + body/gearbox identity lines (2026-10-13, follow-up)
+
+Commit 387647c. Two things the hero rebuild had dropped, now back in the new design language.
+
+Part 1 (VIN reconfirm): heroMileageLineHtml now checks for a known VIN/chassis mileage+soldDate
+AFTER the already-answered (miTarget) branch, so a visitor who already updated mileage this session
+sees the normal "Range narrowed..." state, not a repeated reconfirm. The reconfirm question, the
+SAME inline field (prefilled with the known mileage) and a grey sub-line render in the mileage line's
+own position - no card, no box, same as the rest of this round's design language.
+
+Part 2 (body/gearbox identity lines): heroIdentityLineHtml now composes three independent lines
+under one shared divider - trim (unchanged, now also drops thin (<8-sale) options, matching the
+floor the brief asked for explicitly), body (d.bodyOptions, filtered to n>=8 client-side since that
+field's own only floor is n>=2 - a display filter on the engine's own count, not a computed number),
+and gearbox (d.inlineSplits key "gearbox", filtered on the engine's own thin flag, n<8). Body and
+gearbox render as bare link lines with no leading question, matching the brief's literal example.
+Competition/documented-history splits (the other two dimensions d.inlineSplits can carry) were NOT
+added - the brief's own two examples are body and gearbox only, and "Has documented history (29)"
+reads oddly as a bare link; left for a future round if wanted, flagging the scope choice rather than
+guessing it in silently.
+
+WIRING FIX: the engine's gearbox split labels are plural ("Manuals", "PDKs" - inlineSplitRange's own
+construction); singularized with a trailing-s strip so the line reads "Manual (nine) - PDK (21)" per
+the brief, not "Manuals (nine)". Also loosened [data-bodyopt]/[data-tx] in wire() from .qchip-scoped
+selectors to bare attribute selectors - their old sole .qchip producers are gone (bodyOptionsHtml,
+gearboxEarnedHtml, both deleted last round) and the new hero links are plain .linkbtn text, not
+pills, so the old selectors would never have matched them. Confirmed via a live click-through (not
+just a screenshot): clicking "Coupe (20)" on a real car re-scoped the pool (30 -> 20 sales, range
+$105k-$123k -> $100k-$118k), no console errors.
+
+Rendered copy, live:
+- VIN reconfirm (WP0AB2A94MS223093, a real archive match, mileage 12,000, sold Oct 2026): "Has the
+  mileage changed? Last reported 12,000 miles in October 2026." [field value=12000] "If it's
+  different now, update it and the range reruns around the mileage you give." - sits directly above
+  the receipt, exact-car card below confirms the same 12,000 mi / October 2026 record.
+- Body split (2020 Porsche 911, live): divider, then "Coupe (20) · Cabriolet (ten)" as plain green
+  links. No live gearbox split turned up in this round's tries (997/996/Boxster/Cayman/Corvette era
+  cars all tried clean single-trim or no-split pools) - not needed since the body example already
+  satisfies "a body or gearbox split with enough sales on both sides"; no stub was required.
+
+Screenshots: 1440 and 390 for the VIN case, 1440 for the body-split case (the brief's Part 2 ask was
+for proof "at" a car with a split, not explicitly both widths the way Part 1 was - captured 1440 only
+for that one; can add 390 on request).
+
+Not done: a live gearbox split proof specifically (satisfied by the body split instead, per the
+brief's "a body or gearbox split" wording); competition/documented-history identity lines (explicit
+scope decision, see above).
+
+prePush: 0 FAIL, 6 SKIP (archive checks, no Supabase creds in this environment), 10 PASS, speed
+budgets 10.4-11.3s against 14-18s (no slowdown from this round's render-only changes). Pushed after
+a clean run - the "push anyway under two seconds" allowance was not needed.
+
+Search check: no public page touched beyond the existing noindex Market Check result surface; no
+title/H1/canonical change.
