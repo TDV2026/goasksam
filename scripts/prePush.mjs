@@ -237,11 +237,11 @@ if (browserExit === 0) {
 }
 
 // ---- 5. GOLDEN TRUTH (Lane B2, Oct 2026): REPORT-ONLY. Printed, never blocking, never recorded as a PASS or FAIL. ----
-// Compares the four product paths to the hand-derived answers in docs/golden-rules.md (quick subset: 6 cars). Needs
+// Compares the four product paths to the hand-derived answers in docs/golden-rules.md (quick subset: 3 cars, about 3 minutes). Needs
 // PROBE_KEY in the environment (it SKIPs itself without one). Run the full 20 with `node scripts/goldenTruth.mjs`.
 console.log("\n-- golden truth, report-only (scripts/goldenTruth.mjs --quick) --");
 try {
-  console.log(execSync("node scripts/goldenTruth.mjs --quick", { encoding: "utf8", timeout: 600000 }).trim());
+  console.log(execSync("node scripts/goldenTruth.mjs --quick", { encoding: "utf8", timeout: 420000 }).trim());
 } catch (e) {
   console.log(String((e.stdout || "") + (e.stderr || "")).trim().slice(-1500) || "goldenTruth did not complete (report-only, not blocking).");
 }

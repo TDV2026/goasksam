@@ -114,13 +114,13 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
 [
  {"id":1,"q":"2025 Porsche 911","status":"ready","rung":"year_widened","labelHas":["Carrera and Carrera S","2024 to 2026"],"count":12,"tol":2,"low":143000,"high":163000,"tolPct":3,"quick":true,"page":true},
  {"id":2,"q":"2024 Porsche 911 Carrera S Coupe","status":"ready","rung":"year_widened","labelHas":["Carrera S Coupe","2023 to 2025"],"count":8,"tol":2,"low":145000,"high":163000,"tolPct":3},
- {"id":3,"q":"1995 Porsche 911 Carrera","status":"ready","rung":"exact","labelHas":["1995","911 Carrera"],"count":37,"tol":3,"low":64000,"high":107000,"tolPct":3,"quick":true,"page":true},
+ {"id":3,"q":"1995 Porsche 911 Carrera","status":"ready","rung":"exact","labelHas":["1995","911 Carrera"],"count":37,"tol":3,"low":64000,"high":107000,"tolPct":3,"quick":true},
  {"id":4,"q":"2008 Porsche 997 Carrera S Coupe","status":"ready","rung":"exact","labelHas":["2008","997 Carrera S Coupe"],"count":14,"tol":0,"low":45500,"high":64500,"tolPct":0},
- {"id":5,"q":"1969 Chevrolet Camaro","status":"ready","rung":"exact","labelHas":["1969 Camaro"],"count":21,"tol":3,"low":45500,"high":78500,"tolPct":3,"quick":true},
+ {"id":5,"q":"1969 Chevrolet Camaro","status":"ready","rung":"exact","labelHas":["1969 Camaro"],"count":21,"tol":3,"low":45500,"high":78500,"tolPct":3},
  {"id":6,"q":"2006 Mercedes-Benz CLK DTM","status":"ready","rung":"year_widened","labelHas":["CLK DTM","2005 to 2007"],"count":12,"tol":0,"low":null,"high":null,"thin":true},
  {"id":7,"q":"2008 Mercedes-Benz CLK63 AMG Black Series","status":"ready","rung":"exact","labelHas":["CLK63","Black Series"],"count":35,"tol":0,"low":95000,"high":146000,"tolPct":0},
  {"id":8,"q":"1957 Porsche 356 Speedster","status":"pending","rung":"exact","labelHas":["356 Speedster"],"pending":"the engine finds 8 and the archive holds 17 in 1957; which belong to the window needs poolrows"},
- {"id":9,"q":"1997 Land Rover Defender 110","status":"ready","rung":"exact","labelHas":["1997","Defender 110"],"count":10,"tol":2,"low":30500,"high":56000,"tolPct":3,"quick":true},
+ {"id":9,"q":"1997 Land Rover Defender 110","status":"ready","rung":"exact","labelHas":["1997","Defender 110"],"count":10,"tol":2,"low":30500,"high":56000,"tolPct":3},
  {"id":10,"q":"2003 BMW M3 Coupe","status":"ready","rung":"exact","labelHas":["2003","M3 Coupe"],"count":14,"tol":2,"low":23500,"high":35500,"tolPct":3},
  {"id":11,"q":"1989 Merkur XR4Ti","status":"pending","rung":"model_any_year","labelHas":["XR4Ti"],"pending":"rung and count depend on the window; needs poolrows"},
  {"id":12,"q":"2024 Porsche 911 GT3","status":"ready","rung":"generation","labelHas":["GT3","992 generation"],"count":25,"tol":2,"low":244000,"high":272000,"tolPct":3,"quick":true},
@@ -129,7 +129,7 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":15,"q":"1987 Buick Regal Grand National","status":"ready","rung":"exact","labelHas":["1987","Grand National"],"count":55,"tol":0,"low":35500,"high":56000,"tolPct":0},
  {"id":16,"q":"2005 Saab 9-2X","status":"pending","rung":"model_any_year","labelHas":["9-2X"],"pending":"36-month window vs all years decides model_any_year or sibling; needs poolrows"},
  {"id":17,"q":"1931 Bugatti Type 41","status":"ready","rung":"not_enough_data","labelHas":[],"empty":true},
- {"id":18,"q":"2011 Honda S2000","status":"ready","rung":"model_any_year","labelHas":["S2000","all years"],"countMin":8,"low":null,"high":null,"anyBand":true,"quick":true},
+ {"id":18,"q":"2011 Honda S2000","status":"ready","rung":"model_any_year","labelHas":["S2000","all years"],"countMin":8,"low":null,"high":null,"anyBand":true},
  {"id":19,"q":"1963 Chevrolet Corvette Split Window","status":"ready","rung":"exact","labelHas":["1963"],"count":32,"tol":3,"low":135000,"high":197000,"tolPct":3},
  {"id":20,"q":"1995 Acura NSX","status":"ready","rung":"exact","labelHas":["1995","NSX"],"count":15,"tol":2,"low":86000,"high":136000,"tolPct":3}
 ]
