@@ -6508,3 +6508,8 @@ push (1356ms over budget, one car) qualifies and was pushed.
 
 Search check: no title, H1 or canonical changed on any page; results pages remain noindex (no
 robots/meta change in this diff, nothing in this round touches SSR head tags).
+
+## Lane C, Oct 13 2026: Tasks probe key through the shared credential check
+- api/tasks.js `probeOk` now calls lib/_credential.js `hasServerCredential` (the same check the ops endpoint and the launch stage test use), fed only the x-ops-key and x-probe-key headers. Accepted: the key in either header. Refused: a wrong key, no key, the key in the address (`?key=` was accepted before and is gone), a cookie, and the cron Bearer secret (the cron paths keep their own CRON_SECRET check). Still requires PROBE_KEY to be set, as before. Exported for the check.
+- scripts/taskStopCheck.mjs: 13 new cases (62 total), including the handler's in-memory read-back (`test_scenario`, memStore, no Task row) opening with the key in x-ops-key and refusing the others.
+- FOR LANE B2: goldenTruth can now open the Tasks read-back with the key in x-ops-key only: POST /api/tasks `{action:"test_scenario", steps:[{say:"<car>"}]}`. It runs in memory (no Task row, no email) and costs one Claude turn per step, zero OldCarsData. The "Tasks page: NOT REACHED" line in scripts/goldenTruth.mjs is yours to change.

@@ -15,7 +15,7 @@
 //   POST ?a=...&t=<signed token>        -> the confirm page's button, or a mail provider's one-click
 //                                          unsubscribe (RFC 8058, List-Unsubscribe-Post): the only way a link acts
 //   GET  ?run=1                         -> the matching run after each live pull (Vercel cron, CRON_SECRET)
-// Probe-keyed tests (PROBE_KEY): act as a test user, seed listing rows instead of the live table, mock
+// Probe-keyed tests (PROBE_KEY, in the x-ops-key or x-probe-key header): act as a test user, seed listing rows instead of the live table, mock
 // the clock; test runs never send email (email_status "test").
 import { withTracking } from "../lib/track/log.js";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
@@ -29,6 +29,7 @@ import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
 import { tasksAllowance } from "../lib/_ceilings.js";
 import { signupTicket } from "../lib/_signup.js";
 import { othersRunning, othersLine } from "../lib/tasks/othersRunning.js";
+import { hasServerCredential } from "../lib/_credential.js";
 // The per-account daily limits (Tasks setup chat turns, research started), crew exempt: what -> ok.
 const gateOf = (req, user) => what => tasksAllowance(supabaseEnv(), req, user.userId, what).then(r => r.ok, () => true);
 
@@ -44,7 +45,9 @@ const TAP_WORDS = {
 const tapEsc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const TAP_CSS = "body{margin:0;background:#F6F3EC;color:#15201A;font:400 17px/1.55 system-ui,-apple-system,'Segoe UI',sans-serif}main{max-width:520px;margin:0 auto;padding:48px 20px}.brand{font:600 20px/1 Georgia,serif;margin:0 0 32px}h1{font:500 30px/1.15 Georgia,serif;margin:0 0 14px}.task{background:#fff;border:1px solid #E2DED3;border-radius:10px;padding:12px 14px}button{margin:10px 0 6px;min-height:48px;padding:0 22px;border:0;border-radius:10px;background:#1E4D38;color:#fff;font:600 16px/1 system-ui,sans-serif;cursor:pointer}a{color:#1E4D38}.quiet{font-size:14px;color:#5E6B63}";
 const TEST_EMAIL = "feedback+taskstest@goasksam.com";   // the one real test account (sign-in checks)
-const probeOk = req => process.env.PROBE_KEY && (req.headers["x-probe-key"] === process.env.PROBE_KEY || (req.query && req.query.key === process.env.PROBE_KEY));
+// The probe key through the one shared check (lib/_credential.js), in the x-ops-key or x-probe-key header only: never
+// the address, a cookie, the body or the cron secret (the cron paths check CRON_SECRET themselves).
+export const probeOk = req => !!process.env.PROBE_KEY && hasServerCredential({ headers: { "x-probe-key": req.headers && req.headers["x-probe-key"], "x-ops-key": req.headers && req.headers["x-ops-key"] } });
 async function who(req) {
   // Probe test users only: a fixed id prefix, so a probe call can never act as a real account.
   if (probeOk(req) && TEST_USER.test(String(req.headers["x-test-user"] || ""))) return { userId: String(req.headers["x-test-user"]), email: null, test: true };

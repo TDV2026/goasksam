@@ -1,11 +1,13 @@
 // The pages around a Pause or Stop from a Task email (Oct 2026, Lane C): the stopped page and the confirm pages before
 // Pause and Stop, for looking Tasks (api/watch.js) and search Tasks (api/tasks.js). "Your other Tasks keep running."
-// only when another Task is running (lib/tasks/othersRunning.js). No network: the reads are stubbed.
+// only when another Task is running (lib/tasks/othersRunning.js). Also the Tasks probe key (api/tasks.js probeOk): the
+// x-ops-key or x-probe-key header only. No network: the reads are stubbed.
 //   node scripts/taskStopCheck.mjs
 process.env.SUPABASE_URL = "https://fixture.invalid"; process.env.SUPABASE_SERVICE_ROLE_KEY = "fixture-only"; process.env.TASK_LINK_SECRET = "fixture-only";
+process.env.PROBE_KEY = "fixture-probe-key"; process.env.CRON_SECRET = "fixture-cron"; delete process.env.OPS_KEY;
 const { othersRunning, stoppedBody, confirmBody } = await import("../api/watch.js");
 const { default: watchHandler } = await import("../api/watch.js");
-const { default: tasksHandler } = await import("../api/tasks.js");
+const { default: tasksHandler, probeOk } = await import("../api/tasks.js");
 const { soldTaskTap } = await import("../lib/live/watches.js");
 const { oneTap } = await import("../lib/tasks/tasks.js");
 
@@ -64,6 +66,29 @@ for (const act of ["pause", "stop"]) {
   }
 }
 ok(!/Your other Tasks|Nothing else/.test(confirmBody("resume", NAME, true, e, "/x")), "Start again confirm: no second line");
+
+// The Tasks probe key: lib/_credential.js hasServerCredential, in x-ops-key or x-probe-key and nowhere else.
+const K = process.env.PROBE_KEY;
+ok(probeOk({ headers: { "x-ops-key": K } }) === true, "key in x-ops-key: accepted");
+ok(probeOk({ headers: { "x-probe-key": K } }) === true, "key in x-probe-key: accepted");
+ok(probeOk({ headers: { "x-ops-key": "not-the-key" } }) === false && probeOk({ headers: { "x-probe-key": K + "x" } }) === false, "wrong key: refused");
+ok(probeOk({ headers: {}, query: { key: K } }) === false, "key in the address: ignored");
+ok(probeOk({ headers: { cookie: `key=${K}; x-ops-key=${K}` } }) === false, "key in a cookie: ignored");
+ok(probeOk({ headers: {} }) === false && probeOk({ headers: { "x-ops-key": "" } }) === false, "no key: refused");
+ok(probeOk({ headers: { authorization: "Bearer fixture-cron" } }) === false, "cron secret is not the probe key");
+{ const k = process.env.PROBE_KEY; delete process.env.PROBE_KEY; ok(probeOk({ headers: { "x-ops-key": k } }) === false, "no PROBE_KEY set: refused"); process.env.PROBE_KEY = k; }
+// Through the handler: the in-memory Tasks read-back (test_scenario, no Task row) opens only with the key in a header.
+async function post(headers, query = {}) {
+  let body = null, code = 0;
+  const res = { statusCode: 200, setHeader() {}, getHeader() {}, status(c) { code = c; return this; }, send(h) { body = h; return this; }, json(b) { body = b; return this; }, end() { return this; } };
+  await tasksHandler({ method: "POST", query, headers, body: { action: "test_scenario", steps: [] } }, res);
+  return { code, body };
+}
+{ const r = await post({ "x-ops-key": K }); ok(r.code === 200 && Array.isArray(r.body.steps) && Array.isArray(r.body.tasks) && r.body.tasks.length === 0, `read-back, key in x-ops-key: 200, no Task (got ${r.code})`); }
+{ const r = await post({ "x-probe-key": K }); ok(r.code === 200 && r.body.tasks.length === 0, `read-back, key in x-probe-key: 200 (got ${r.code})`); }
+for (const [what, h, q] of [["wrong key", { "x-ops-key": "not-the-key" }, {}], ["key in the address", {}, { key: K }], ["no key", {}, {}]]) {
+  const r = await post(h, q); ok(r.code === 401 && !(r.body && r.body.steps), `read-back, ${what}: refused (got ${r.code})`);
+}
 if (process.argv.includes("--print")) for (const [k, v] of Object.entries(CONFIRM_TEXT)) console.log(k.padEnd(22), v);
 
 console.log(`taskStopCheck: ${passes} passed, ${fails} failed`);
