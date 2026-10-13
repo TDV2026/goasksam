@@ -5925,3 +5925,41 @@ gates, confirmed on real cars, not assumed**:
   page is indexable. This under-claims, never over-claims, so it never breaks the "never land on
   noindex" rule - just occasionally more cautious than the real answer. If Lane A wants the exact
   figure instead of this conservative one, say so and the auction_attempts side can be added.
+- 2026-10-13 (Lane A): RESULT HERO JOB - eyebrow/scope/count line, Sam's Take beside the range,
+  persistent mileage field, dormant Sold-before link correction, VIN page no-sale/bid-age rules.
+  * The result tier's hero zone is rebuilt per the Oct 12 design: the typed query as an eyebrow,
+    rungLabelHtml's scope line now prefixed "Matched to " (sibling/not_enough_data keep their own
+    existing treatment) and moved INSIDE the hero card for this tier only, a reworded count line
+    (word/digit rule, short "through Oct 7" date), the range and Sam's Take side by side on desktop
+    (.hero-split, stacked on mobile), and Narrow it down rendered inside the same card instead of a
+    separate section below it. Sam's Take ratios print as words ("five in ten manual") - a client
+    reformat of digits already in the engine's sentence, no number recomputed.
+  * Narrow it down order: a persistent "Add mileage" field (pre-filled from queryMileage, bucket
+    chips beside it only when the engine offers them) leads, then body and gearbox chips, then trim/
+    reconfirm/driver/observe. earnedHtml split into gearboxEarnedHtml/driverEarnedHtml since mileage
+    is no longer a one-shot earned question.
+  * Search placeholder rotates through four Lane-B-confirmed examples, one per page load (persisted
+    round-robin in localStorage) - replaced dead rotation code (startPlaceholderRotation/phTimer) that
+    was never actually called. NOT DONE: the server-rendered landing's own placeholder
+    (lib/live/marketCheckLanding.js, "Your car or its VIN") is unchanged - lib/** out of scope this
+    round, so the very first paint still shows the fixed text until a client re-render happens
+    (renderEmpty fallback, or a "Change" click).
+  * PART 3 CORRECTION (found live, not as briefed): hasHistoryPage/vinNorm are NOT on thin/house/pair
+    receipts - confirmed via a live capture that Lane B's attachHistoryPage (your Oct 13 note two
+    entries up) is scoped to d.cards only, the same array attachSoldBefore already covers;
+    representative.closest carries vinNorm but not hasHistoryPage either (a different object, built
+    before attachHistoryPage runs). Built the dormant link on poolCardHtml instead (d.cards' own
+    "Sold before" line), as a fallback when the engine has no dated soldBefore fact - this one is
+    LIVE today, not dormant, since the field already exists; it just has not been true in the queries
+    tested yet. FOR LANE B, if wanted: thin/class-era/pair receipts (receiptCardHtml) and
+    representative still have no path to this link.
+  * sellHtml dropped first-person Sam (this sits on Market Check, not the Sell flow) and the handoff
+    click now fires the catalog's sell_started alongside the existing onebox funnel event.
+  * api/history.js: timelineHtml's no-sale rows now read "Ended {month year} on {venue}. Bidding
+    reached $X. Did not sell." (or "Sold later." when a later sale exists in the same record), never
+    "Listed"; withdrawn is checked before the bid so a withdrawn-with-a-bid row never showed a bid.
+    liveCardHtml and the Market Check live panel both follow lib/tasks/bidTime.js's rule (imported,
+    not edited): a bid over an hour old renders "Last bid we saw: $X at 4:12pm PT." outright, and an
+    untimed bid (an amount with no reliable bid time) shows no bid at all per that module's own rule,
+    rather than "No bids yet" (which would be a wrong claim) or a guessed age.
+  * Commits: a5bef4b, c0a5406.
