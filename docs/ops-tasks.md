@@ -51,6 +51,7 @@ Read = no write, no vendor request. Write = can change production rows or caches
 | specialscount | read | (none, read-only audit) | Oct 2026, Lane B status check): how many live_listings rows carry a special_flag (Singer/RUF/RWB, race car, replica/clone - lib/li |
 | fieldcov | read | (none, read-only audit) |  |
 | unknownmake | read | (none, read-only audit) | READ-ONLY (archive; ZERO OCD). |
+| attemptkeys | read | (none, read-only audit) | READ-ONLY (auction_attempts; ZERO OCD). Oct 2026, Lane B2: top-level keys of stored vendor raw_records per source (40 recent rows each) plus samples of date-like fields, to see whether a listing start date exists. |
 | tzcheck | read | (none, read-only audit) | READ-ONLY. 5 recent BaT sales: stored sale_date vs the OCD raw_record end timestamp, to tell whether sale_date is the auction's LO |
 | burn | read | (none, read-only audit) | OCD daily burn from app_usage_events (Supabase read ONLY - no OCD call, no metered spend). |
 | reviewfix | read | (none, read-only audit) | READ-ONLY (archive + hammerUsd; NO OCD). #3: transmission-split vs mileage-split median gaps for 928 + 997 (to test "transmission  |

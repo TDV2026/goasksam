@@ -1569,6 +1569,24 @@ async function handleOps(req, res) {
     });
   }
 
+  // task=attemptkeys: READ-ONLY (auction_attempts; ZERO OCD, no writes). Oct 2026, Lane B2: which fields does a stored
+  // vendor raw_record carry for an unsold listing, and does any hold a listing START or first-seen date? Per source,
+  // 40 recent rows: how many carry each top-level key, and a sample of every key that looks like a date.
+  if (task === "attemptkeys") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const out = {};
+    for (const src of ["bringatrailer", "carsandbids", "pcarmarket", "hagerty", "rmsothebys"]) {
+      const rows = (await supabaseSelect(env, `auction_attempts?source_slug=eq.${src}&select=attempt_date,raw_record&order=attempt_date.desc&limit=40`)) || [];
+      const keys = {}, dates = {};
+      for (const r of rows) for (const [k, v] of Object.entries(r.raw_record || {})) {
+        keys[k] = (keys[k] || 0) + 1;
+        if (/date|time|_at$|start|listed|seen|created|updated/i.test(k) && v != null && typeof v !== "object") (dates[k] ||= []).length < 3 && dates[k].push({ attempt_date: r.attempt_date, value: String(v).slice(0, 40) });
+      }
+      out[src] = { rows: rows.length, keys, dateLikeKeys: dates };
+    }
+    return res.status(200).json({ task: "attemptkeys", ocdSpend: 0, sources: out });
+  }
+
   // task=tzcheck: READ-ONLY. 5 recent BaT sales: stored sale_date vs the OCD raw_record end timestamp,
   // to tell whether sale_date is the auction's LOCAL (Pacific) end date or a UTC date.
   if (task === "tzcheck") {
