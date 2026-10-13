@@ -5671,3 +5671,39 @@ gates, confirmed on real cars, not assumed**:
   * started_by on every pull_live usage row and every ocd_call row: scheduled (with the slot), probe (with the
     endpoint, never the key), admin (no caller today) or unknown. Old rows are not backfilled and count as unknown in
     /api/pullLive?report=1 startedBy. scripts/pullStarterCheck.mjs, in prePush.
+
+- 2026-10-12 (Lane B2): ONE CAR FOR ONE NAME ON EVERY LANE; THE LADDER JOB'S rawtitle DIAGNOSTIC REMOVED; sellFacts DECISION.
+  * RESOLVER (lib/vehicle.js). At origin/main 45ca604, "CLK DTM" ALREADY resolved to the same car on all four lanes
+    (Mercedes-Benz, model "CLK DTM", via the curated alias in lib/vehicleData.js; Buy, Tasks and the Buy chat reach it
+    through resolveForBuy, which calls resolveVehicle first). The null was not reproducible from code. Two real defects
+    in the same family were, and are fixed in the shared resolver (so every lane gets them): (1) "CLK 55 AMG" read the
+    55 as the year 1955 (extractYearInfo's two-digit-year rule; now a number after a letter-code model prefix such as
+    CLK/SL/E/GT, or before AMG, is a model number); (2) an uncatalogued all-letter model came back title-cased
+    ("CCXR" as "Ccxr"; typedModelCase now keeps capitals the user typed, and a consonant-only code), and with no year
+    typed ("Koenigsegg CCXR") the model was dropped so Buy/Tasks searched the whole make (a lone code-shaped token is
+    now carried on the year-missing partial). scripts/resolverLanesCheck.mjs (15 names, Market Check path vs
+    parseQuery + resolveForBuy, casing and dash rules) is in prePush; it fails 7 ways on the old resolver.
+  * STILL DIFFERENT, NOT FIXED (consistent across lanes, so not a lane split): "CLK 55 AMG" resolves to CLK-Class,
+    trim "AMG" (the 55 is dropped, so it pools all AMG CLKs); "2021 Land Rover Defender 110" drops the 110 (trim
+    null). Both scope the pool, which is Lane B's call. FOR LANE B: say if you want trim "55 AMG" / "110".
+  * DIAGNOSTICS. The three ladder-job commits are deeccf3, 48dd82c, 8f426a2: all added or grew task=rawtitle in
+    api/usageDashboard.js (key-gated ops task: raw title search, spec resolve dump, fetchQualifying plus fence dump;
+    read-only, zero writes, zero vendor). Removed here (the whole block, 47 lines); an unknown task answers the normal
+    404. 48dd82c also touched lib/onebox.js (Lane B's file): it added `outcomeUsd` to the `__specEngine` export, used
+    only by the rawtitle block. FOR LANE B, exact revert, one line near the end of lib/onebox.js:
+      -export const __specEngine = { gearboxType, hammerUsd, outcomeUsd, mileageInfo, titleOf, monthYear, ...
+      +export const __specEngine = { gearboxType, hammerUsd, mileageInfo, titleOf, monthYear, ...
+    (nothing else reads __specEngine.outcomeUsd; harmless if left). Not part of the three and left alone:
+    lib/onebox.js rawTitleSearch plus api/sellerDecision.js `titleSearch` (commit 59d8201, earlier; a SERVER_ONLY_FLAG,
+    removed unless the request carries our header credential), and older TEMPORARY ops tasks from other jobs still in
+    api/usageDashboard.js: modmatch, flawsample, livecheck, fasttest, listingmarkettest. Sam to say whether to sweep them.
+  * sellFacts. DECISION: assertion, not rerouting. sellFacts needs the pool's ROWS split by venue (per-venue sales,
+    middle half, last sale, sold-through, tiles); oneEngineAnswer returns one range plus receipts. It already builds its
+    spec with the engine's buildSpec and reads rows with the engine's fetchQualifying/isQualifying. Its window (12 then 36
+    months), house tier and display floor differ from the engine answer by design, so a total is not comparable for
+    equality. checkOneSpec (scripts/crossProductCheck.js) now runs sellFactsLane for every sweep spec and gates on: same
+    car as the other lanes, venue sales add up to its total, and every counted sale on an engine rung passes the
+    engine's isQualifying. Reported next to it, not gated: its total vs the engine's count. FOR LANE B: if you can expose
+    the sold rows (or a per-venue split) on runOneBox's answer, sellFacts can drop its own read and take them from it.
+  * NOT RUN: the sellFacts data checks need the service key and run in the nightly crossProductCheck or the deployed
+    enginecheck; only the car-identity and venue-sum checks ran offline (empty pool).
