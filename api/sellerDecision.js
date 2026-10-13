@@ -3502,6 +3502,11 @@ async function handler(req, res) {
         oneBox.fallbackRung = a.fallbackRung;
         oneBox.rungLabel = a.rungLabel;
         oneBox.siblingName = a.siblingName;
+        // Result-hero job (Oct 2026): queryMileage was added to mapEngineAnswer's standard shape back
+        // in the Round 5 Lane B job (Part 4) but never wired onto oneBox - found live while proving
+        // the mileage field's pre-fill (a typed "8,500 miles" query reached the page as undefined,
+        // never the parsed number). Same no-op-until-present pattern as the three lines above.
+        oneBox.queryMileage = a.queryMileage;
       }
       if (oneBox && !obRefine && vehicle && vehicle.make) {
         logEvent({ supabaseUrl, supabaseKey }, { event: EVENTS.SEARCH, tool: "market_check", visitorId: readVisitorId(req), props: { key: `${vehicle.make}|${vehicle.model || ""}` } }).catch(() => {});

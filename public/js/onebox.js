@@ -853,18 +853,22 @@
   }
   // Count line (result-hero job, Oct 2026): "29 comparable sales, last twelve months, through Oct 7."
   // Replaces the old "N comparable sales in the last twelve months, through last night." phrasing -
-  // same three facts (count, window, freshness), comma-joined per the new design, and the count now
-  // goes through the shared word/digit rule (one to ten spelled, 11+ digits with a thousands
-  // separator) like every other count on this page - this was the one count on the card that still
-  // printed a bare number.
+  // same three facts (count, window, freshness), comma-joined per the new design. d.soldCount is the
+  // engine's OWN already-worded field (its countWord helper spells a count under ten - "eight", a
+  // real string - and leaves ten and up numeric), never a plain number this file can safely re-parse
+  // with Number(); printing it verbatim when it is a word avoids the NaN a blind Number()+obNumWord
+  // pass produced here on a live "eight"-sale pool. obNumWord still handles the numeric (11+) case.
   function evidenceMetaLine(d) {
     var count = d && d.soldCount;
     if (count == null) { var ph = freshPhrase(d); return ph ? '<p class="ev-meta count-line">' + lint(esc(cap(ph)), "ev.meta") + "</p>" : ""; }
     var n = Number(count);
-    var noun = (Number.isFinite(n) && n === 1) ? " comparable sale" : " comparable sales";
+    var isNum = Number.isFinite(n);
+    var countWord = isNum ? obNumWord(n) : String(count);
+    var isOne = isNum ? n === 1 : /^one$/i.test(String(count));
+    var noun = isOne ? " comparable sale" : " comparable sales";
     var win = windowText(d).replace(/^the\s+/i, "");
     var through = countThroughPhrase(d);
-    var text = obNumWord(n) + noun + ", " + win + (through ? ", " + through : "") + ".";
+    var text = countWord + noun + ", " + win + (through ? ", " + through : "") + ".";
     return '<p class="ev-meta count-line">' + lint(esc(cap(text)), "ev.meta") + "</p>";
   }
   // ---- Sale cards (Oct 2026 design). One renderer for every card size: photo slot (real photo, or
