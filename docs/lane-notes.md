@@ -5835,3 +5835,22 @@ gates, confirmed on real cars, not assumed**:
       // Indexing (Oct 2026): a car page is indexable when the car has at least two appearances that each carry a price (a sale or a bid), a real VIN, a make and model family, and live photos, and is
       // listed in /sitemap-vins.xml; every other page (single priced appearance, hubs, 404s) stays noindex.
     (the code is `pricedCount >= 2` at the index decision, and the same gate in rollout().)
+- 2026-10-12 (Lane A): FIXED - THE 200-PAGE ROLLOUT SCAN CAP AND THE STALE INDEXING COMMENT (Lane B2's ask above).
+  * Both exact changes landed as written: rollout()'s scan is now keyset paging on id with no page limit, bounded
+    only by BUDGET_MS; a failed page retries twice before the whole scan reports scan_complete false (never
+    silently treated as the end of the table, never a partial result mistaken for a complete one). counts now
+    carries rows_scanned, scan_pages and scan_complete, which scripts/buildVinRolloutCache.js (not touched) already
+    reads. The lines-6-7 comment is the exact replacement text given above. Index rule unchanged (still
+    pricedCount >= 2, real VIN, make and family, live photos).
+  * NOT RUN: no Supabase service key in this environment either, so `--dry-run` against the real table was not
+    possible. Proved at the unit level instead: a fixture monkey-patches global fetch (no vendor request, no
+    production write) so rollout() reads 225,000 synthetic vin_index rows (225 pages) with no real network call.
+    Result: rows_scanned=225000, scan_pages=225, distinct_vins=225000, scan_complete=true, runtime ~5.8s - proving
+    the scan now runs past the old 200-page/200,000-row ceiling to the real end of the table. A second fixture
+    makes one page fail every attempt (first try + both retries) at id 150,000: rows_scanned=150000,
+    scan_pages=150, scan_complete=false, runtime ~4.1s - proving a failed page stops the scan and reports it
+    incomplete rather than reading as a clean, complete 150,000-row result.
+  * Commit: 3d0e3c4. FOR SAM/LANE B2: when a service key is available, `node scripts/buildVinRolloutCache.js
+    --dry-run` against the real table is the outstanding real-data confirmation (expect ~266,000 rows scanned,
+    ~244,000 distinct VINs, up from 180,599); the unit-level fixture proof above cannot substitute for that, it
+    only proves the loop logic itself is no longer capped.
