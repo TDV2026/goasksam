@@ -218,6 +218,13 @@ try {
 } catch (e) {
   record("premium freshness (scripts/premiumFreshCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The page after a Task is stopped from its email (Oct 2026, Lane C): the second line only when it is true. No network.
+try {
+  const out = execSync("node scripts/taskStopCheck.mjs", { encoding: "utf8" });
+  record("Task stopped page (scripts/taskStopCheck.mjs)", "PASS", (out.match(/taskStopCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Task stopped page (scripts/taskStopCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 
 // ---- 3 & 4. BROWSER CHECK (Lane C's pushCheck.mjs) + BASELINE ----
 console.log(`\n-- browser check via scripts/pushCheck.mjs (${BASE}) --`);

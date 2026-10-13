@@ -111,7 +111,9 @@ Who: browser. Required: `field`, `value` (40 max). Optional: `vehicle_key`.
 ### Sell
 
 - **`sell_started`** (journey, browser): the Sell flow's first answer given. Who: browser,
-  `startSellFlow` (js/wizard.js).
+  `startSellFlow` (js/wizard.js), and Market Check's handoff to Sell (public/js/onebox.js). Optional
+  `vehicle_key` (make|model, lower case, no trim or VIN) and `year`, the same shape `task_created` uses (Lane C,
+  Oct 2026), sent when the caller has the car. /admin's Journey tab lists Market Check handoffs by car from it.
 - **`sell_step_shown`** (journey, browser, Lane A addition, Oct 2026): a step's question renders.
   Required `step` (the step's name, not its number - the field name from `STEP_SPECS`, or a short
   name for a step outside it: `vehicle_detail`, `confirm`). Not fired on a re-ask of the SAME step

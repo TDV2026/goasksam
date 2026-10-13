@@ -17,6 +17,25 @@ import { hasServerCredential } from "../lib/_credential.js";
 import { ready, arm, stop, resume, list, run, testSend, isMissingTable, probeBackdate, probeInspect, verifySoldTaskTap, soldTaskTap, soldTaskName, getWatch, setWatchState } from "../lib/live/watches.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
 
+// After a Task is stopped from its email: does the person still have another running Task? Other looking Tasks
+// (watches) not stopped or paused, or a search Task in an active state (lib/tasks/tasks.js ACTIVE). null when either
+// read fails, so the page then claims neither.
+export async function othersRunning(env, w, select = supabaseSelect) {
+  if (!w || !w.user_id) return null;
+  const [ws, ts] = await Promise.all([
+    select(env, `watches?user_id=eq.${w.user_id}&stopped_at=is.null&id=neq.${w.id}&select=*&limit=100`),
+    select(env, `tasks?user_id=eq.${w.user_id}&state=in.(running,needs_you)&summary=not.is.null&select=id&limit=1`),
+  ]);
+  if (!Array.isArray(ws) || !Array.isArray(ts)) return null;
+  return ws.some(r => !r.paused_at) || ts.length > 0;
+}
+
+// The page after Stop: a sentence naming what Sam stopped, and the second line only when it is true.
+export function stoppedBody(name, others, e) {
+  const second = others === true ? "<p>Your other Tasks keep running.</p>" : others === false ? "<p>Nothing else is running.</p>" : "";
+  return `<h1>Stopped. Sam is no longer looking for ${e(name)}.</h1>${second}`;
+}
+
 async function handler(req, res) {
   const env = supabaseEnv();
   if (!env) return res.status(500).json({ error: "not configured" });
@@ -40,7 +59,7 @@ async function handler(req, res) {
     const r = await setWatchState(env, id, tapAct).catch(err => ({ ok: false, error: String(err && err.message) }));
     if (r.notReady) return page(503, "Not ready", `<h1>Pause isn't ready yet.</h1><p>Nothing changed. You can stop this Task instead from its email.</p>`);
     if (!r.ok) return page(500, "Try again", `<h1>That didn't go through.</h1><p>Nothing changed. Try the link again in a moment.</p>`);
-    const done = tapAct === "pause" ? `<h1>Paused: ${e(name)}</h1><p>You can <a href="${e(soldTaskTap(id, "resume"))}">start it again</a> any time.</p>` : tapAct === "stop" ? `<h1>Stopped: ${e(name)}</h1><p>Your other Tasks keep running.</p>` : `<h1>Running again: ${e(name)}</h1>`;
+    const done = tapAct === "pause" ? `<h1>Paused: ${e(name)}</h1><p>You can <a href="${e(soldTaskTap(id, "resume"))}">start it again</a> any time.</p>` : tapAct === "stop" ? stoppedBody(name, await othersRunning(env, w).catch(() => null), e) : `<h1>Running again: ${e(name)}</h1>`;
     return page(200, "Done", done + `<p class="quiet"><a href="/tasks/mine">Open your Tasks</a></p>`);
   }
   try {

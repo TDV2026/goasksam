@@ -6374,3 +6374,18 @@ title/H1/canonical change.
   premiumfresh: read-only ops task (lib/ops/premiumFresh.js): each partner's specialties.premium.computedAt, the newest stamp,
   hours old, stale past 36 hours. /admin Cost and Reliability tab opens with "Premium numbers last refreshed N hours ago", amber
   past 36 hours or when it cannot be read. scripts/premiumFreshCheck.mjs in prePush. Search check: no public page touched.
+
+- 2026-10-13 (Lane C): SELL_STARTED CARRIES THE CAR, AND THE TASK STOPPED PAGE.
+  lib/track/catalog.js: sell_started opt was {} and is now { vehicle_key: "key", year: "int" } (the KEYS task_created uses);
+  docs/analytics-events.md updated. /admin Journey tab: "Handed off to Sell, 7 days" by car, from sell_started fired on any
+  page but Sell (crew, test and bots left out); a handoff without the car shows as "Car not recorded".
+  FOR LANE A (public/js/onebox.js, the handoff click near line 2481): add these two lines just above the gasTrack call,
+      var rcT = obResolvedCar || (obLastD || {}).resolvedCar || {}, spT = rcT.make ? { vehicle_key: (rcT.make + "|" + (rcT.model || "")).toLowerCase() } : {};
+      if (rcT.make && Number(rcT.year) > 0) spT.year = Number(rcT.year);
+    and pass it: gasTrack("sell_started", spT). Make and model only, never trim or VIN; the server cleans the key's
+    characters. Until then every handoff lists as "Car not recorded".
+  api/watch.js stopped page (from a Task email): "Stopped. Sam is no longer looking for {the next ... sale}." then "Your
+  other Tasks keep running." only when another looking Task is neither stopped nor paused, or a search Task is running or
+  needs the person; otherwise "Nothing else is running."; if either read fails, no second line. scripts/taskStopCheck.mjs in
+  prePush. NOT CHANGED: the confirm pages before Pause and Stop still say "Your other Tasks keep running." unconditionally.
+  Search check: no public page touched.

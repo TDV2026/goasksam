@@ -55,6 +55,13 @@ const setCookies = res => [].concat(res.getHeader("set-cookie") || []);
   ok(!/search_run|model_call/.test(js) && /receipt_opened/.test(js) && /page_view/.test(js), "browser helper carries only browser events, built from the catalog");
   let parses = true; try { new Function(js); } catch { parses = false; }
   ok(parses, "browser helper parses");
+  // sell_started carries the car when the caller has it (Market Check's handoff), same shape as task_created.
+  ok(validateEvent("sell_started", {}, "browser").ok && validateEvent("sell_started", { vehicle_key: "bmw|m4", year: 2016 }, "browser").ok, "sell_started takes optional vehicle_key and year");
+  ok(!validateEvent("sell_started", { vehicle_key: "bmw|m4", vin: "WBS3R9C50FK000000" }, "browser").ok && validateEvent("sell_started", { year: "2016" }, "browser").props.year === 2016, "sell_started takes no VIN, and year is stored as a number");
+  ok(JSON.stringify(EVENTS.sell_started.opt) === JSON.stringify(EVENTS.task_created.opt.vehicle_key && { vehicle_key: EVENTS.task_created.opt.vehicle_key, year: EVENTS.task_created.opt.year }), "sell_started's car fields match task_created's");
+  const { handoffsByCar } = await import("../api/admin.js");
+  const hb = handoffsByCar([{ anon_id: "a", props: { vehicle_key: "bmw|m4", year: 2016 } }, { anon_id: "a", props: { vehicle_key: "bmw|m4", year: 2018 } }, { anon_id: "b", props: { vehicle_key: "bmw|m4" } }, { anon_id: "c", props: {} }, { anon_id: "d", props: { vehicle_key: "porsche|911", year: 1995 } }]);
+  ok(JSON.stringify(hb) === JSON.stringify([{ vehicle_key: "bmw|m4", handoffs: 3, visitors: 2, years: [2016, 2018] }, { vehicle_key: "porsche|911", handoffs: 1, visitors: 1, years: [1995] }, { vehicle_key: null, handoffs: 1, visitors: 1, years: [] }]), `admin handoffs group by car, car-less last (got ${JSON.stringify(hb)})`);
 }
 
 // ---------------------------------------------------------------- 2. privacy helpers

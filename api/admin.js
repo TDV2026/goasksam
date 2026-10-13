@@ -141,10 +141,27 @@ async function journey(env, anon) {
     const ev = await rows(env, `analytics_events?anon_id=eq.${encodeURIComponent(anon)}&select=ts,product,surface,name,props,region_class,consent,browser_family,device_class,ref_domain,utm_source,utm_medium,utm_campaign,launch_wave,internal,is_bot,user_id,vin&order=ts.asc&limit=500`);
     return { anon, events: ev.map(e => ({ ...e, user_id: e.user_id ? "signed in" : null })) };
   }
-  const recent = await rows(env, `analytics_events?anon_id=not.is.null&internal=is.false&is_bot=is.false&ts=gte.${encodeURIComponent(new Date(Date.now() - 864e5).toISOString())}&select=anon_id,ts,product&order=ts.desc&limit=2000`);
+  const [recent, handoffRows] = await Promise.all([
+    rows(env, `analytics_events?anon_id=not.is.null&internal=is.false&is_bot=is.false&ts=gte.${encodeURIComponent(new Date(Date.now() - 864e5).toISOString())}&select=anon_id,ts,product&order=ts.desc&limit=2000`),
+    // Handed off to Sell, 7 days: sell_started fired from a page other than Sell (Market Check's handoff), by car.
+    rows(env, `analytics_events?name=eq.sell_started&product=neq.sell&internal=is.false&is_bot=is.false&ts=gte.${encodeURIComponent(ptRange(ptDay(-6)).start)}&select=anon_id,props&limit=5000`),
+  ]);
   const m = new Map();
   for (const r of recent) { const x = m.get(r.anon_id) || { anon: r.anon_id, events: 0, last: r.ts, products: new Set() }; x.events++; x.products.add(r.product); m.set(r.anon_id, x); }
-  return { recent: [...m.values()].slice(0, 30).map(x => ({ ...x, products: [...x.products].join(", ") })) };
+  return { recent: [...m.values()].slice(0, 30).map(x => ({ ...x, products: [...x.products].join(", ") })), handoffs: handoffsByCar(handoffRows) };
+}
+
+// One row per car (vehicle_key), with the model years seen; a handoff sent without the car is its own row.
+export function handoffsByCar(list) {
+  const cars = new Map();
+  for (const r of list || []) {
+    const p = r.props || {}, k = typeof p.vehicle_key === "string" && p.vehicle_key ? p.vehicle_key : null;
+    const c = cars.get(k) || { vehicle_key: k, handoffs: 0, visitors: new Set(), years: new Set() };
+    c.handoffs++; if (r.anon_id) c.visitors.add(r.anon_id); if (Number(p.year) > 0) c.years.add(Number(p.year));
+    cars.set(k, c);
+  }
+  return [...cars.values()].sort((a, b) => (a.vehicle_key === null) - (b.vehicle_key === null) || b.handoffs - a.handoffs).slice(0, 50)
+    .map(c => ({ vehicle_key: c.vehicle_key, handoffs: c.handoffs, visitors: c.visitors.size, years: [...c.years].sort((a, b) => a - b) }));
 }
 
 async function retention(env) {
@@ -265,7 +282,8 @@ buy:function(d){var b=d.behavior,rowsB=[];["buy","market_check"].forEach(functio
 demand:function(d){var c=[["Car","car"],["Searches","searches",n],["Buy","buy",n],["Market Check","marketCheck",n],["Sell","sell",n],["Not enough data","notEnough",n],["No live cars","zeroLive",n],["Market Checked","marketChecked",n],["Tasks","tasks",n]];
  return '<h2>Top searches, 7 days</h2>'+table(c,d.top)+'<h2>Unmet searches</h2>'+table(c,d.unmet)+'<h2>Searched again on another day, 30 days</h2>'+table([["Car","vehicle_key",function(v){return E(String(v||"").replace("|"," "));}],["Visitors who came back to it","visitors",n],["Searches","searches",n]],d.repeats);},
 journey:function(d){if(d.events)return '<h2>One anonymous journey</h2><p class=note>Events for one anon id, oldest first. VINs are shown to admins only.</p>'+table([["Time","ts",function(v){return E(new Date(v).toLocaleString());}],["Product","product"],["Event","name"],["Fields","props",function(v){return E(JSON.stringify(v));}],["Region","region_class"],["Consent","consent"],["Browser","browser_family"],["Device","device_class"],["From","ref_domain"],["Campaign","utm_source"],["Account","user_id"],["VIN","vin"]],d.events)+'<p><button id=ad-back>Back to recent journeys</button></p>';
- return '<h2>Recent journeys, last 24 hours</h2><p class=note>Pick one to see it. Only anonymous ids; no address, no account email.</p>'+table([["Anon id","anon",function(v){return '<a href="#" data-anon="'+E(v)+'">'+E(v.slice(0,6))+'...</a>';}],["Events","events",n],["Products","products"],["Last","last",function(v){return E(new Date(v).toLocaleString());}]],d.recent);},
+ return '<h2>Recent journeys, last 24 hours</h2><p class=note>Pick one to see it. Only anonymous ids; no address, no account email.</p>'+table([["Anon id","anon",function(v){return '<a href="#" data-anon="'+E(v)+'">'+E(v.slice(0,6))+'...</a>';}],["Events","events",n],["Products","products"],["Last","last",function(v){return E(new Date(v).toLocaleString());}]],d.recent)
+  +'<h2>Handed off to Sell, 7 days</h2><p class=note>Market Check results passed to Sell, by car. Crew, test and bot traffic left out.</p>'+table([["Car","vehicle_key",function(v){return v?E(String(v).replace("|"," ")):'<span class=muted>Car not recorded</span>';}],["Model years","years",function(v){return v&&v.length?E(v.length>3?v[0]+" to "+v[v.length-1]:v.join(", ")):"-";}],["Handoffs","handoffs",n],["Visitors","visitors",n]],d.handoffs);},
 retention:function(d){function grid(list,field,first){var w={},weeks=0;(list||[]).forEach(function(r){(w[r.cohort_week]=w[r.cohort_week]||{})[r.weeks_after]=r[field];weeks=Math.max(weeks,r.weeks_after);});
  var rows=Object.keys(w).sort().reverse().map(function(k){var o={week:k};for(var i=0;i<=Math.min(weeks,12);i++)o["w"+i]=w[k][i]==null?null:(i===0?w[k][0]:w[k][i]/w[k][0]);return o;});
  var cols=[["Week of","week"]];for(var i=0;i<=Math.min(weeks,12);i++)cols.push([i===0?first:"Week "+i,"w"+i,i===0?n:pct]);return table(cols,rows);}
