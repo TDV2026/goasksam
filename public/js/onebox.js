@@ -1023,12 +1023,9 @@
     return (v.year && v.make && model) ? "/history/" + slug + "/" + encodeURIComponent(vin) : "/vin/" + encodeURIComponent(vin);
   }
   // Thin / class-era / pair receipts (engine thin.receipts shape: hammer, venue, isHouse, allIn...).
-  // Part 3 (result-hero job, Oct 2026): DORMANT until Lane B adds hasHistoryPage alongside the
-  // vinNorm these receipts already carry (lane-notes FOR LANE A). Reuses historyHref the same way
-  // vinHeroCardHtml does, with no resolvedCar of its own to pass (this receipt may not be the
-  // originally-asked car) - historyHref's own fallback (no year/make/model) is the honest
-  // "/vin/{VIN}" redirect route, which 301s to the full canonical page server-side, so the link is
-  // always correct without this file ever guessing a slug. Absent or false: no link, same as today.
+  // These never carry vinNorm/hasHistoryPage - Lane B's attachHistoryPage (lane-notes FOR LANE A,
+  // Oct 13) is scoped to "result"-tier cards only (the same d.cards array poolCardHtml below reads),
+  // same scope as the existing attachSoldBefore right beside it. Nothing to link here.
   function receiptCardHtml(rc) {
     var natH = rc.nativeCur && rc.nativeHammer;
     var priceHtml = natH ? esc(natMoney(rc.nativeCur, rc.nativeHammer)) + ' <span class="cvenue">(' + esc(usd(rc.hammer)) + ")</span>" : esc(usd(rc.hammer));
@@ -1040,9 +1037,8 @@
     if (rc.isHouse) { var ch = houseChassisMeta(rc); if (ch) segs.push(ch); }
     else if (htGearboxSplit) { var gl = gearboxLabel(rc); if (gl) segs.push(gl); }
     var marks = (rc.markers && rc.markers.length) ? "<div>" + rc.markers.map(function (mk) { return '<span class="mk">' + esc(mk.label) + "</span>"; }).join("") + "</div>" : "";
-    var hist = (rc.hasHistoryPage && rc.vinNorm) ? ('<a class="sb-line" href="' + esc(historyHref(null, rc.vinNorm)) + '">Sold before &#8594;</a>') : "";
     return saleCardHtml({ cls: "t", href: utmUrl(rc.url), slug: rc.slug, id: rc.id, image: rc.image, priceHtml: priceHtml, allIn: allIn,
-      title: cleanReceiptTitle(shortCarName(rc.title)), meta: segs.filter(Boolean).join(" · "), extra: marks, after: hist });
+      title: cleanReceiptTitle(shortCarName(rc.title)), meta: segs.filter(Boolean).join(" · "), extra: marks });
   }
   // Engine d.cards shape (refusal / shown-separately): price, mileageText, platform, month, title.
   // tagLabel is an optional small pill ("Above range") - never invented, only ever a label the
@@ -1053,7 +1049,14 @@
     // d.cards only - asideCards/setAsideRows are a separate shapeCards call never mutated with it,
     // so this is a no-op there, same function either way).
     var sbText = "Sold before on " + monthYear((c.soldBefore && c.soldBefore.date) || "") + ((c.soldBefore && c.soldBefore.price) ? " for " + usd(c.soldBefore.price) : "");
-    var sb = (c.soldBefore && c.soldBefore.date) ? (c.soldBefore.link ? ('<a class="sb-line" href="' + esc(utmUrl(c.soldBefore.link)) + '" target="_blank" rel="noopener noreferrer">' + esc(sbText) + '</a>') : ('<div class="sb-line">' + esc(sbText) + '</div>')) : "";
+    // Part 3 (result-hero job, Oct 2026): when the engine has no dated soldBefore fact but this
+    // card's own VIN IS indexable (c.hasHistoryPage, lane-notes FOR LANE A Oct 13 - same d.cards
+    // array, same conservative "never link to a noindex page" rule attachSoldBefore already
+    // follows), the label still becomes a link - to the car's own history page rather than a specific
+    // dated prior sale. soldBefore (a specific sale, when known) takes precedence when both are true.
+    var sb = (c.soldBefore && c.soldBefore.date)
+      ? (c.soldBefore.link ? ('<a class="sb-line" href="' + esc(utmUrl(c.soldBefore.link)) + '" target="_blank" rel="noopener noreferrer">' + esc(sbText) + '</a>') : ('<div class="sb-line">' + esc(sbText) + '</div>'))
+      : (c.hasHistoryPage && c.vinNorm) ? ('<a class="sb-line" href="' + esc(historyHref(null, c.vinNorm)) + '">Sold before &#8594;</a>') : "";
     return saleCardHtml({ cls: "t", pill: tagLabel || "", href: utmUrl(c.url), slug: c.platformSlug, id: c.id, image: c.image,
       priceHtml: esc(usd(c.price)), title: cleanReceiptTitle(c.title),
       meta: [c.mileageText && c.mileageText !== "TMU" ? c.mileageText : "", venue, c.month || monShort(c.date)].filter(Boolean).join(" · "), after: sb });
