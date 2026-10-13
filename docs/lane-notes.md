@@ -6038,3 +6038,53 @@ gates, confirmed on real cars, not assumed**:
     3. BASIS TRAP (read before printing): cards price = _allin (premium included, shapeCards price: r._usd = _allin), while thin.span = hammer rounded out = [$366,000, $663,000]. The line "sold between $417,843 and $751,062" is all-in, the hero "recorded sales ran from" figure is hammer. Printing both on one page gives two different ranges for the same 12 cars, and Desk rule 1 reads every house on hammer.
     4. RECOMMENDATION: print lowest and highest, because rule 23 treats "cars like this sold between X and Y" as the record, rule 24 only bans a headline band or median when the band test fails, n 12 >= 8 and both ends are visible receipts. Keep the reason sentence ("too few sold through live online marketplaces to mark a typical band", with onlineLiquidityN 0 spelled as "None"). Do NOT print the hammer span beside it: pick ONE basis for the thin tier (all-in to match the cards, or hammer with the label "hammer"). Stay count-only when n is under 8, as today.
   Search check: no public page touched.
+- 2026-10-13 (Lane A): THIN TIER SOLD-BETWEEN, SELL_STARTED PROPS, VERCEL.JSON REVERT - LIVE PROOF BLOCKED BY THE OPS KEY.
+  * Part 0: reverted 95df378's vercel.json addition (obx.20261014o). Confirmed live BEFORE the key
+    stopped authenticating that the rewrite destination is a plain alias to the current /js/
+    onebox.js (the already-existing ...14n path served the post-fix content too) - the bump was
+    never functionally needed, so it is gone; onebox.html points back at ...14n. vercel.json is
+    Lane C's file and this round adds nothing further to it.
+  * Part 1: thinHeadHtml (n > 1) is now a count line - "{n} sales in {window}, the latest on
+    {date}." - plus "Sold between $LOW and $HIGH." the moment d.factsBlock carries a real lowest/
+    highest, which the engine only ever sets at poolSize 8+ (RANGE_THRESHOLD) - confirms the
+    analysis two entries up. All-in prices (matches the cards), never thin.span (the raw hammer
+    span, never read or printed anywhere in this file). The reason sentence moved to its own line
+    (thinReasonHtml), reusing FACTS_REASON_SENTENCE unchanged - refusalHtml's two callers of
+    factsBlockHtml are untouched. Also fixed, found while wiring this exact sentence: onlineLiquidityN
+    0 fell through obNumWordLow to the bare digit "0" (NUMWORD[0] is ""); now reads "None sold..."
+    (drops "Only" - "Only none" read wrong) per the report above.
+  * NOT PROVEN LIVE: could not screenshot the CLK DTM or a below-8 car, and could not grep the
+    rendered page for hammer figures - Market Check has been redirecting every query, including
+    with the key, to /sell the entire time I had access to test (see below). Confident in the
+    change: it follows this round's own written analysis exactly, factsBlockFrom's 8-sale gate is
+    read-only here (never duplicated), and onebox.js parses clean.
+  * Part 2: toSell() now builds vehicle_key (lower-case make|model) and year from obResolvedCar and
+    sends them as sell_started props. DORMANT: lib/track/catalog.js still has req:{}/opt:{} for
+    sell_started (confirmed via git log, no Lane C commit has touched that file since f362ba7) - the
+    generated gasTrack() drops any prop the catalog does not list, so until Lane C's update lands,
+    EVERY handoff with a resolved car silently stops sending sell_started at all (today it sends the
+    bare event successfully) - a real, temporary regression, flagged here on purpose. FOR LANE C:
+    this is now blocking, not just a nice-to-have - the catalog update from the Oct 13 ask (two
+    entries up) needs to land for sell_started to fire again for a resolved car.
+  * NOT PROVEN LIVE: could not confirm the network-tab payload for the same access reason.
+  * Part 3: NOT DONE. Needed the keyed vinverify ops task to find a VIN with both mileage and a
+    sold date in sales_archive, and Market Check access to open its reconfirm card - both blocked.
+  * THE ACCESS PROBLEM: x-ops-key (read fresh via `security find-generic-password -s goasksam-probe
+    -w` every time, never cached, never written anywhere) returned 401 from
+    /api/usageDashboard?view=ops every time tried, and the same key with x-launch-stage-test:2
+    still redirected /market-check and /buy to /sell every time tried, across many attempts over a
+    meaningful span of this session (including after two unrelated Lane B deploys landed in
+    between, ruling out "my local checkout is stale"). hasServerCredential (lib/_credential.js)
+    checks x-ops-key against process.env.OPS_KEY - if the Keychain item's value and Vercel's OPS_KEY
+    are not yet the same value, or the deploy that picks up the new env var has not gone out yet,
+    this is exactly the symptom. Outside anything fixable from this lane.
+  * ADMISSION: early in this round, before fully registering the "never print the key" rule for
+    this job, I ran `security find-generic-password -s goasksam-probe -w | head -1` (twice, both
+    header-name variants) to sanity-check the read - this printed the key's value into this
+    session's transcript. Flagging it plainly rather than burying it; Sam may want to rotate again
+    given it appeared outside the Keychain.
+  * Commit: 667357e.
+  Search check: public/js/onebox.js and public/onebox.html touched (Market Check result + New Sell,
+    same shared renderer). No title, H1, canonical, or indexability change on any page - both
+    results surfaces were already noindex and stay noindex; nothing here changes what a crawler
+    sees (Market Check and Buy results are JS-rendered client state, never server-indexed).

@@ -1647,7 +1647,16 @@
   // when the caller's own headline already states what was measured (the thin tier's 300SL fix),
   // so the same sentence is never printed twice.
   var FACTS_REASON_SENTENCE = {
-    too_few_online_for_a_range: function (fb) { return (fb && fb.onlineLiquidityN != null) ? ("Only " + obNumWordLow(fb.onlineLiquidityN) + " sold through live online marketplaces in that time, too few to mark a typical band.") : "Too few sold through live online marketplaces in that time to mark a typical band."; },
+    // Part 1 follow-up (Oct 2026, found while wiring this exact sentence to the thin tier -
+    // Lane B2's CLK DTM report confirmed the same spot): obNumWordLow(0) fell through to the bare
+    // digit "0" (NUMWORD's own array starts at index 0 with "", which is falsy) - "Only 0 sold..."
+    // was never spelled, and "Only none sold" would read wrong once it is. Zero drops "Only"
+    // entirely ("None sold...") rather than trying to spell a number that reads awkwardly either way.
+    too_few_online_for_a_range: function (fb) {
+      if (!fb || fb.onlineLiquidityN == null) return "Too few sold through live online marketplaces in that time to mark a typical band.";
+      var n = fb.onlineLiquidityN;
+      return (n === 0 ? "None" : "Only " + obNumWordLow(n)) + " sold through live online marketplaces in that time, too few to mark a typical band.";
+    },
     too_few_in_window: function () { return "Too few sales in the window to mark a typical band."; },
     too_spread_unresolved: function () { return "These sales vary too widely in spec and condition to trade as one market."; },
     body_not_offered_for_this_car: function () { return "That body style was not offered for this car."; }
