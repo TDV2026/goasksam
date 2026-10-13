@@ -5707,3 +5707,43 @@ gates, confirmed on real cars, not assumed**:
     the sold rows (or a per-venue split) on runOneBox's answer, sellFacts can drop its own read and take them from it.
   * NOT RUN: the sellFacts data checks need the service key and run in the nightly crossProductCheck or the deployed
     enginecheck; only the car-identity and venue-sum checks ran offline (empty pool).
+
+- 2026-10-12 (Lane B2, job 2): STATED NUMBERS AND VARIANTS ARE CARRIED; THE FIVE REMAINING TEMPORARY OPS TASKS REMOVED.
+  * CORRECTION to my last entry: "Defender 110 drops the 110" was WRONG. The resolver already carried it as
+    `wheelbase: "110"` (lib/marketSpec.js, Defender 90/110/130); my probe printed only make/model/trim. It is unchanged.
+  * FOR LANE B - fields the resolver (lib/vehicle.js resolveVehicle, survives sanitizeResolvedVehicle and
+    resolveForBuy/enrichForBuy) now emits, for your label rule. All are null when not typed:
+      trim         "CLK55 AMG" / "SL55 AMG" / "E55 AMG" / "C63 AMG" / "G63 AMG": letters glued to the number, then AMG
+                   (the curated c63/e63/g63 convention; model is the "-Class" model). Titles also say "CLK 55 AMG":
+                   your trim fence must match the glued form to the spaced one, as it does for the others.
+      trimNumber   the number inside a Mercedes badge trim, as a string ("55", "63"). Read this to say "the 55".
+      wheelbase    Defender only: "90" | "110" | "130".
+      variant      "LWB" | "SWB" (also from "long wheelbase") | "Unlimited" (Jeep Wrangler only). Never in trim.
+      series       Toyota Land Cruiser only: "40" "45" "55" "60" "70" "80" "100" "200" "300" ("200" or "200 series").
+                   With a year typed, your generation lookup already covers it; with none, `series` is the only signal
+                   (lib/generations.js has "200-series" 2008 to 2021).
+    canonicalLabel now reads "2012 Toyota Land Cruiser 200", "2005 Land Rover Range Rover LWB". The year-missing
+    partial carries series, variant and trimNumber too (Buy and Tasks need no year).
+  * Spaced AMG numbers ("C 63 AMG", "G 63 AMG", "CLK 55 AMG") are glued before matching (Mercedes/AMG text only, real
+    AMG numbers only) and lib/vehicleData.js AMG_NUMBER_BADGES generates the missing aliases (an existing curated alias wins).
+  * BEFORE -> AFTER (same on Market Check and Buy/Tasks):
+      CLK 55 AMG        CLK-Class, trim AMG (55 dropped; at first read as 1955)  ->  CLK-Class, trim CLK55 AMG, trimNumber 55
+      SL 55 AMG         SL-Class, SL55 AMG  ->  unchanged         SL 63 AMG   SL-Class, SL63 AMG  ->  unchanged
+      E 55 AMG          E-Class, E55 AMG    ->  unchanged
+      C 63 AMG          model "AMG", no trim (wrong)  ->  C-Class, trim C63 AMG, trimNumber 63
+      G 63 AMG          model "AMG", no trim (wrong)  ->  G-Class, trim G63 AMG, trimNumber 63
+      Defender 90/110/130   wheelbase carried  ->  unchanged
+      Land Cruiser 200  200 only in dirtyTokens  ->  series "200"
+      911 Carrera 4S    911, trim Carrera 4S  ->  unchanged
+      Range Rover LWB   LWB only in dirtyTokens  ->  variant "LWB"
+      Wrangler Unlimited  Unlimited only in dirtyTokens  ->  variant "Unlimited"
+    Still dropped, noticed not fixed: "CLK 63 AMG Black Series" keeps trim CLK63 AMG and drops "Black" (only "Series"
+    lands in dirtyTokens).
+  * TASKS REMOVED from api/usageDashboard.js: modmatch, flawsample, livecheck, fasttest, listingmarkettest. 133 ops
+    tasks remain (none now labelled TEMPORARY); docs/ops-tasks.md lists each with W (can write) / M (can spend vendor
+    requests) flags. Most are read-only audits; 30 can write and 2 can meter. Those are standing ops mechanisms or
+    one-off audits, not removed here (not asked). Sam to say which audits to retire.
+  * FOR LANE B - NEXT TO STRIP (your files, not touched): lib/onebox.js `rawTitleSearch` (export, near line 3111) and
+    api/sellerDecision.js's `titleSearch` branch (`if (req.body?.titleSearch) {...}`, in the SERVER_ONLY_FLAGS list).
+    Both archive-only and behind the header credential; nothing else imports rawTitleSearch. Also the `outcomeUsd`
+    entry in `__specEngine` (see the entry above).
