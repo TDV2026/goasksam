@@ -1162,12 +1162,16 @@ async function handleOps(req, res) {
     const batchOffset = Math.max(0, Number(req.query?.batchOffset) || 0);
     const batchSize = req.query?.batchSize ? Math.min(12, Math.max(1, Number(req.query.batchSize) || 0)) : null;
     if (batchSize) specs = specs.slice(batchOffset, batchOffset + batchSize);
-    // &buypaths=0/&livefences=0/&representative=0/&splitpools=0/&overtime=0/&livelisting=0 skip
-    // those cases (a batched caller runs each once, not per batch).
+    // &buypaths=0/&livefences=0/&representative=0/&splitpools=0/&overtime=0/&livelisting=0/
+    // &cacheconsistency=0 skip those cases (a batched caller runs each once, not per batch).
+    // cacheConsistency (Lane B job, Oct 2026, Part 1) runs 3 extra engine calls PER SPEC in the
+    // batch (2 warm + up to 2 cold), so a batched caller doing it per-batch rather than once would
+    // multiply that cost - same opt-out convention as the others, default on.
     const result = await runEngineCheck(env, specs, {
       buyPaths: req.query?.buypaths !== "0", liveFences: req.query?.livefences !== "0",
       representative: req.query?.representative !== "0", splitPools: req.query?.splitpools !== "0",
-      overTime: req.query?.overtime !== "0", liveListing: req.query?.livelisting !== "0"
+      overTime: req.query?.overtime !== "0", liveListing: req.query?.livelisting !== "0",
+      cacheConsistency: req.query?.cacheconsistency !== "0"
     });
     if (batchSize) { result.batchOffset = batchOffset; result.batchSize = batchSize; result.batchTotal = (req.query?.specs ? String(req.query.specs).split("|").filter(Boolean) : DEFAULT_SPECS).length; }
     return res.status(200).json(result);
