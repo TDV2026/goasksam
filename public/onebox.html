@@ -137,8 +137,11 @@ button{font:inherit}
 .hero-idlink{font-size:15px}
 /* Mileage line: an "Add mileage" field inline with its own sentence when nothing is applied yet, or
    "Range narrowed around N miles." plus a quiet Change link once one is - both one line, no card,
-   no pill. */
+   no pill. The VIN/chassis reconfirm (restored, follow-up round) is the same one-line shape (field
+   prefilled with the known mileage) plus a second, smaller grey sub-line underneath - still no card,
+   no box. */
 .hero-miles{margin:4px 0 0;font:400 15px/1.5 var(--sans);color:var(--sec);display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.hero-miles-sub{margin:2px 0 0;font:400 13.5px/1.4 var(--sans);color:var(--sec)}
 .miles-inline{display:inline-flex;align-items:center;gap:8px}
 .miles-inline input{width:110px;min-height:36px;border:1px solid var(--border);border-radius:8px;padding:0 10px;font:500 15px var(--sans);color:var(--ink);background:var(--card);outline:none}
 .miles-inline input:focus{border-color:var(--green)}

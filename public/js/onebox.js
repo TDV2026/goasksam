@@ -651,32 +651,83 @@
   // Mileage line (left column, item 6): a persistent "Add mileage" field when no mileage refine is
   // applied yet, or "Range narrowed around N miles." plus a Change link once one is. Change reruns
   // the SAME search without the mileage refine (data-rmchip="mi", the existing removable-answer
-  // mechanism) rather than patching the DOM by hand. Never rendered on a VIN/chassis exact match
-  // that already states its own known mileage on the car's own hero card.
+  // mechanism) rather than patching the DOM by hand.
+  // VIN/chassis reconfirm (restored, follow-up round, Oct 2026): a known mileage + sold date from an
+  // exact match gets its own question instead of "Add mileage" - "Has the mileage changed? Last
+  // reported N miles in Month Year.", the SAME inline field (prefilled with the known mileage), and
+  // a quiet sub-line underneath. Checked AFTER the miTarget branch so a VIN reconfirm the visitor has
+  // already answered this session correctly shows the normal "Range narrowed around..." state instead
+  // of re-asking.
   function heroMileageLineHtml(d, m) {
-    var mi = m && Number(String(m.mileage == null ? "" : m.mileage).replace(/[^\d]/g, ""));
-    if (mi > 0 && m.soldDate) return "";
     var rf = obLastRefine || {};
     if (Number(rf.miTarget) > 0) {
       var val = Number(rf.miTarget).toLocaleString("en-US");
       return '<p class="hero-miles on" data-stage="answer">' + lint(esc("Range narrowed around " + val + " miles."), "hero.mi.on") +
         ' <button type="button" class="linkbtn" data-rmchip="mi">Change</button></p>';
     }
+    var mi = m && Number(String(m.mileage == null ? "" : m.mileage).replace(/[^\d]/g, ""));
+    if (mi > 0 && m.soldDate) {
+      var asOf = monthYear(m.soldDate);
+      var q = "Has the mileage changed? Last reported " + mi.toLocaleString("en-US") + " miles" + (asOf ? " in " + asOf : "") + ".";
+      return '<p class="hero-miles ask" data-stage="answer">' + lint(esc(q), "hero.mi.rc.q") +
+        ' <span class="miles-inline"><input id="ob-miles" type="number" inputmode="numeric" placeholder="e.g. 5,000" aria-label="Update mileage" value="' + mi + '" /><span class="mi-unit">miles</span><button type="button" class="linkbtn" id="ob-miles-go">Go</button></span></p>' +
+        '<p class="hero-miles-sub" data-stage="answer">' + lint("If it’s different now, update it and the range reruns around the mileage you give.", "hero.mi.rc.sub") + "</p>";
+    }
     var pre = (d && Number.isFinite(d.queryMileage) && d.queryMileage > 0) ? d.queryMileage : null;
     return '<p class="hero-miles ask" data-stage="answer">' + lint("Add mileage to narrow the range.", "hero.mi.ask") +
       ' <span class="miles-inline"><input id="ob-miles" type="number" inputmode="numeric" placeholder="e.g. 5,000" aria-label="Add mileage"' + (pre ? ' value="' + pre + '"' : "") + ' /><span class="mi-unit">miles</span><button type="button" class="linkbtn" id="ob-miles-go">Go</button></span></p>';
   }
-  // Identity line (left column, item 7): the trim question as plain text links with counts, never
-  // chips - d.trimQuestion is null once the pool reads single-trim, same gating trimQuestionHtml
-  // used. Reuses the already-wired [data-trimopt] handler (wire()), so answering re-scopes the SAME
-  // pool exactly as the old chip version did.
-  function heroIdentityLineHtml(d) {
+  // Identity line (left column, item 7): EVERY narrower pool the engine already returns with eight
+  // or more sales on each side - not only trim. Three independent sources, each its own grey line
+  // under one shared divider, in this order: trim ("Which 911? Carrera S (six) - Carrera T (12)"),
+  // body (d.bodyOptions, "Coupe (29) - Cabriolet (13)", no leading question - follow-up round, Oct
+  // 2026), gearbox (d.inlineSplits, key "gearbox", "Manual (nine) - PDK (21)", also no leading
+  // question). Every option an UNQUALIFIED count check (never the engine computing a NEW number -
+  // just reading its own n/thin flags): trim and gearbox read the engine's own thin flag (n < the
+  // same RANGE_THRESHOLD(8) this whole product uses); bodyOptions carries no thin flag of its own
+  // (its only floor is n>=2, a real-split guard, not an eight-sale one), so body is filtered here on
+  // the same n>=8 the brief asks for explicitly - a display floor, not a recompute. Variant/
+  // documented-history splits are NOT added here: the brief's own two examples are body and gearbox
+  // only, and those two read awkwardly as a bare link line ("Has documented history (29)") - left for
+  // a future round if Sam wants them. Each category reuses its OWN already-wired click handler
+  // ([data-trimopt]/[data-bodyopt]/[data-tx], see wire()), so answering any of them re-scopes the
+  // SAME pool inline exactly as the old chip versions did.
+  function heroTrimLineHtml(d) {
     var q = d && d.trimQuestion; if (!q || !q.options || !q.options.length) return "";
-    var links = q.options.map(function (o) {
+    var shown = q.options.filter(function (o) { return !o.thin; });
+    if (shown.length < 2) return "";
+    var links = shown.map(function (o) {
       var n = digitOf(o.n);
       return '<button type="button" class="linkbtn hero-idlink" data-trimopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + " (" + esc(obNumWordLow(n)) + ")</button>";
     }).join(" · ");
-    return '<div class="hero-divider"></div><p class="hero-idline" data-stage="answer">' + lint("Which " + esc(q.model) + "?", "hero.idq") + " " + links + "</p>";
+    return '<p class="hero-idline" data-stage="answer">' + lint("Which " + esc(q.model) + "?", "hero.idq") + " " + links + "</p>";
+  }
+  function heroBodyLineHtml(d) {
+    var opts = (d && d.bodyOptions) || [];
+    var shown = opts.filter(function (o) { return Number(o.n) >= 8; });
+    if (shown.length < 2) return "";
+    var links = shown.map(function (o) {
+      return '<button type="button" class="linkbtn hero-idlink" data-bodyopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + " (" + esc(obNumWordLow(Number(o.n))) + ")</button>";
+    }).join(" · ");
+    return '<p class="hero-idline" data-stage="answer">' + links + "</p>";
+  }
+  function heroGearboxLineHtml(d) {
+    var splits = (d && d.inlineSplits) || [];
+    var gb = null;
+    for (var i = 0; i < splits.length; i++) { if (splits[i] && splits[i].key === "gearbox") { gb = splits[i]; break; } }
+    if (!gb || !gb.sides) return "";
+    var shown = gb.sides.filter(function (s) { return !s.thin; });
+    if (shown.length < 2) return "";
+    var links = shown.map(function (s) {
+      var label = String(s.label || "").replace(/s$/, ""); // the engine's own split labels are plural ("Manuals", "PDKs")
+      var val = /manual/i.test(label) ? "manual" : "auto";
+      return '<button type="button" class="linkbtn hero-idlink" data-tx="' + val + '" data-mlabel="' + esc(label) + '">' + esc(label) + " (" + esc(obNumWordLow(Number(s.n))) + ")</button>";
+    }).join(" · ");
+    return '<p class="hero-idline" data-stage="answer">' + links + "</p>";
+  }
+  function heroIdentityLineHtml(d) {
+    var lines = heroTrimLineHtml(d) + heroBodyLineHtml(d) + heroGearboxLineHtml(d);
+    return lines ? ('<div class="hero-divider"></div>' + lines) : "";
   }
   // Right column: one receipt card. Photo, the car's own model, miles/venue/month each their own
   // grey line, a thin divider, "Sold for $X", then two text links. Prefers d.heroReceipt (dormant,
@@ -2638,7 +2689,11 @@
     });
     // Body style chip: narrows the SAME pool inline (re-request with refine.body), same merge
     // pattern as mileage/transmission below - answering body never un-asks miles, or vice versa.
-    Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-bodyopt]"), function (b) {
+    // Bare [data-bodyopt] (follow-up round, Oct 2026): the hero's identity-line body links are plain
+    // text (.linkbtn), not .qchip pills - loosened to match the [data-trimopt] handler's own
+    // precedent just above. The old .qchip-scoped producer (bodyOptionsHtml) is gone, so this is a
+    // strict broadening, not a behavior change for anything still alive.
+    Array.prototype.forEach.call(root.querySelectorAll("[data-bodyopt]"), function (b) {
       b.addEventListener("click", function () {
         var body = b.getAttribute("data-bodyopt"), label = b.getAttribute("data-mlabel");
         if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "body", value: String(label || body || "").slice(0, 40) });
@@ -2679,7 +2734,10 @@
         runPool(lastQuery, obLastVehicle, mergeRefine({ miMin: Number(lo), miMax: hi ? Number(hi) : null, miTarget: hi ? Math.round((Number(lo) + Number(hi)) / 2) : Number(lo), label: label }));
       });
     });
-    Array.prototype.forEach.call(root.querySelectorAll(".qchip[data-tx]"), function (b) {
+    // Bare [data-tx] (follow-up round, Oct 2026): also matches the hero's plain-text (.linkbtn)
+    // gearbox identity-line links, not just renderRefineChoice's .chip.qchip gearbox_choice answer
+    // buttons - a strict broadening, same precedent as the [data-bodyopt] loosening just above.
+    Array.prototype.forEach.call(root.querySelectorAll("[data-tx]"), function (b) {
       b.addEventListener("click", function () {
         var tx = b.getAttribute("data-tx"), label = b.getAttribute("data-mlabel");
         if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "gearbox", value: String(label || tx || "").slice(0, 40) });
