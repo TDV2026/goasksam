@@ -5910,3 +5910,18 @@ gates, confirmed on real cars, not assumed**:
   (resolverLanesCheck, 88 names). Other 240Z shapes are in the entry above. Search check: no public page touched.
   280ZX MAKE COUNT (ops poolsrc, priced sales_archive rows, read only): Datsun 280ZX 29, Nissan 280ZX 1 (RM Sotheby's); Datsun 240Z 80
   vs Nissan 1; Datsun 280Z 56 vs Nissan 2 (the 280Z model match is a substring, so it includes the 280ZX rows). Datsun is right.
+- 2026-10-13 (Lane B): FOR LANE A - two new fields on every sale card (lib/onebox.js shapeCards /
+  attachHistoryPage), "result"-tier cards only today (same scope as the existing soldBefore field).
+    vinNorm         the record's own vin_norm, passed through, null when the record has none.
+    hasHistoryPage  true only when the car's VIN page is actually indexable right now, by the SAME
+                    test api/history.js uses (two or more priced appearances, a real VIN - the regex
+                    /^[A-Z0-9]{5,17}$/ plus a digit, a make and model family, and not flagged as
+                    photo-dead). Link "Sold before" (or any other card affordance) to the car's
+                    history page ONLY when this is true, so a link can never land on a noindex page.
+  CONSERVATIVE BY DESIGN: pricedCount here is computed from sales_archive alone (this engine's own
+  table, one batched query over every card's VIN, same pattern as attachSoldBefore right next to it).
+  api/history.js's own pricedCount also counts unsold auction_attempts bids as appearances - a car
+  whose SECOND appearance was a bid, not a sale, reads hasHistoryPage:false here even though the real
+  page is indexable. This under-claims, never over-claims, so it never breaks the "never land on
+  noindex" rule - just occasionally more cautious than the real answer. If Lane A wants the exact
+  figure instead of this conservative one, say so and the auction_attempts side can be added.
