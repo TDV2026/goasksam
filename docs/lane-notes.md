@@ -6002,3 +6002,24 @@ gates, confirmed on real cars, not assumed**:
     actually built. Added `.carline .ch{display:none}` with the existing mobile breakpoint re-
     enabling it; verified both ways in the final screenshots.
   * Commits: a5bef4b, c0a5406, 3f06064, 5ba8695 (cache-bust bump), db8eb94.
+- 2026-10-13 (Lane A): RESULT HERO JOB - three-string follow-up, read-through found these did not
+  read like a person.
+  * "Start here" (the handoff button) replaced with "See where Sam would sell it" - rule 15's ban is
+    on first-person Sam ("I can tell you"), not the name; third person is fine on Market Check, and
+    the content-free button lost real information the prior copy carried.
+  * Reconfirm sub-line: "update it and the market reruns around the current mileage" ->
+    "update it and the range reruns around the mileage you give."
+  * Count line collapsed from two sentences to one: "29 comparable sales, last twelve months,
+    through Oct 7. Latest sale Aug 29." (when the two freshness facts diverged) is now
+    "29 comparable sales in the last twelve months, the latest on Aug 29." - one fact, not two;
+    evidenceMetaLine's own countThroughPhrase helper is gone, replaced by countLatestPhrase; the
+    now-orphaned freshPhrase (its last caller was evidenceMetaLine's null-count fallback, which this
+    pass also dropped) was removed too.
+  * Commit: 95df378.
+  * FOR LANE C: sell_started fires with props {} because the catalog (lib/track/catalog.js) allows
+    none - req:{}, opt:{} - so the dashboard cannot tell which car a handoff click was for. The
+    renderer has the full resolved vehicle at hand (sellHref() already builds year/make/model/family/
+    gen/body from it) and would happily send more if the catalog allowed it. Ask: add optional props
+    to sell_started (vehicle_key - make+model, no trim/VIN - and year would cover the common "which
+    car" question without carrying anything identifying) in lib/track/catalog.js and
+    docs/analytics-events.md. Not changed here - that file is yours.
