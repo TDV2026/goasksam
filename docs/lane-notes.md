@@ -6513,3 +6513,88 @@ robots/meta change in this diff, nothing in this round touches SSR head tags).
 - api/tasks.js `probeOk` now calls lib/_credential.js `hasServerCredential` (the same check the ops endpoint and the launch stage test use), fed only the x-ops-key and x-probe-key headers. Accepted: the key in either header. Refused: a wrong key, no key, the key in the address (`?key=` was accepted before and is gone), a cookie, and the cron Bearer secret (the cron paths keep their own CRON_SECRET check). Still requires PROBE_KEY to be set, as before. Exported for the check.
 - scripts/taskStopCheck.mjs: 13 new cases (62 total), including the handler's in-memory read-back (`test_scenario`, memStore, no Task row) opening with the key in x-ops-key and refusing the others.
 - FOR LANE B2: goldenTruth can now open the Tasks read-back with the key in x-ops-key only: POST /api/tasks `{action:"test_scenario", steps:[{say:"<car>"}]}`. It runs in memory (no Task row, no email) and costs one Claude turn per step, zero OldCarsData. The "Tasks page: NOT REACHED" line in scripts/goldenTruth.mjs is yours to change.
+
+## Lane A: scope-line years on the thin tier, last four boxed pieces flattened (2026-10-13)
+
+Commit: 4c9b6b5.
+
+Part 1 (scope years): thinHeroHtml's own count line never read d.rungLabel at all, so a widened thin
+pool's own matched years were simply absent from the page - confirmed live before the fix: "2006
+Mercedes-Benz CLK DTM" read "12 sales in the past three years, the latest on Jul 4." with no mention
+of the engine's own "2005 to 2007." Fixed by prepending heroScopeText(d) - the SAME function the
+range tier's scope line already uses, so the rule is one function, not two parallel copies that could
+drift. Confirmed live on all three named cars:
+- 2006 Mercedes-Benz CLK DTM: "CLK DTM, 2005 to 2007, cabriolets and coupes - 12 sales in the past
+  three years, the latest on Jul 4."
+- 1989 Merkur XR4Ti: "XR4Ti, 1987 to 1989 - Three sales in the past three years, the latest on Aug 8."
+- 1966 Ferrari 275 GTB: "275 GTB, 1965 to 1967 - 19 sales in the past three years, the latest on Aug
+  15."
+The full list's scope sub-line already read from the identical heroMetaLineText(d) source (wired last
+round), so it carries the same years automatically wherever a full list renders - confirmed live on
+the VIN test car ("992, all years - 26 sales in the last twelve months").
+
+Part 2 (two pages with no range - investigated, not a rendering bug): read the engine fields next to
+the rendered text for both named cars.
+- 1957 Porsche 356 Speedster: tier=generation_choice, answerType=identity_question, rungLabel=null,
+  factsBlock=null. The page correctly shows a blocking question ("The 356 spans generations that
+  price very differently. Which is it? pre-A (1948-1955) / A (1956-1959) / B (1960-1963) / C
+  (1964-1965)") - there is no range to print yet because the engine has not resolved one; it needs an
+  answer first. Clicked "A (1956-1959)" to confirm the downstream page works: tier=result,
+  answerType=range, fallbackRung=exact, rungLabel="1957 356, coupes and cabriolets" ->
+  "$86,500 to $147,000" renders correctly, with a real "N sales sat outside the range" line too (see
+  Part 3). Change nothing - this is the engine's own generation-disambiguation flow working as
+  designed, not a missing-range bug. (Separately: the query already states a specific year, 1957 -
+  whether the resolver should use that to skip the question is a resolver/engine behavior question,
+  Lane B2's territory, not a rendering one; flagging for awareness, not touching.)
+- 2005 Saab 9-2X: tier=thin, answerType=not_enough_data, fallbackRung=year_widened,
+  rungLabel="9-2X, 2005 to 2006", factsBlock={"count":6,"lowest":null,"highest":null,
+  "onlineLiquidityN":6}. The page's FIRST screen is a mileage-intake question (thinIntakeHtml, pre-
+  existing, unrelated to this round - "Mileage moves the number most on these. Roughly how many miles
+  on it?"), not the thin hero yet. Clicked "Just show what sold": the thin hero then correctly prints
+  "Six sales in the past three years, the latest on Aug 29, 2025. ... Only six sold through live
+  online marketplaces in that time, too few to mark a typical band." - no headline, exactly matching
+  factsBlock.lowest/highest=null (6 sales, below RANGE_THRESHOLD(8)). Change nothing - the engine
+  genuinely has too few sales for a range here; the page already says so correctly.
+
+Part 3 (last four boxed pieces, flattened): saleCardHtml gained an opt-in flat mode - box/border/
+radius/shadow removed, a thin top divider between rows (reusing capCardsHtml's existing gridClass
+param with a new "flatlist" one-column wrapper instead of grid2/grid3), and a pill becomes small-caps
+grey text above the price instead of a green photo badge (the same language the live panel's own
+.lp-placing already uses). Wired to exactly the four named pieces, confirmed via each function's
+caller list before touching it: the thin tier's own receipts grid and "This exact car" (both via a
+new optional flat argument on receiptCardHtml/vinHeroCardHtml - every other caller of those two
+functions, htPairsHtml/classEraHtml/refusalHtml/renderChassisMatch, passes nothing and is byte-
+identical to before); the collapsed outside-range cards and the market-read quarter panel (both via
+poolCardHtml, which now flattens unconditionally since its only two callers are both named targets).
+The market-read card's own outer box is gone too - a thin top divider and a serif heading, matching
+every other section. No number was added, removed or recomputed anywhere in this change - confirmed
+by reading every touched function's own field list before and after; this was a pure CSS/markup
+restyle of facts the page already showed.
+
+Part 4 (read-through, three cars, both widths): 2025 Porsche 911, 2006 Mercedes-Benz CLK DTM, and the
+VIN page (WP0AB2A94MS223093). No sideways scroll at 390 on any of the three (checked via
+document.documentElement.scrollWidth vs clientWidth, not just a visual glance). No console or page
+errors on any of the six captures. Nothing read oddly top to bottom; every visible figure traced to
+the answer, a receipt, or a count. The VIN page's "This exact car" now reads as a clean flat row
+("THIS CAR" in small caps grey, $135,500, title, "12,000 miles, as reported October 2026," venue/date
+at the right, "View sale ->") - confirmed by expanding every [data-qtoggle] section (How Sam picked
+these, market-read quarter panels) before screenshotting, so the flattened cards inside those
+toggles were actually visible in the proof, not just the collapsed state.
+
+Leftover boxes/pills NOT touched this round (genuinely out of the four named pieces, confirmed by
+tracing every remaining saleCardHtml/vinHeroCardHtml caller): classEraHtml's own grid2 receipts,
+refusalHtml, and renderChassisMatch (the VIN-confirm screen reached before a full result) are all
+still boxed - none of the three proof cars this round exercises classEraHtml or refusalHtml, so
+nothing to screenshot there, but they are unchanged on purpose, not an oversight.
+
+A pre-existing, unrelated "golden truth" report-only check still flags "2025 Porsche 911" with an
+engine-data mismatch (label/count/low/high) across every product - confirmed again this round, still
+does not set prePush's exit code, still an engine/resolver question (lib/onebox.js), not a rendering
+one. Not touched, flagged for whoever owns it.
+
+prePush: 0 FAIL, 6 SKIP (archive checks, no Supabase creds in this environment), 12 PASS. Speed
+budgets 10.4s and 13.9s against 14000ms, both comfortably under - no "push anyway" allowance needed
+this round.
+
+Search check: no title, H1 or canonical changed on any page; results pages remain noindex (nothing
+in this diff touches SSR head tags).
