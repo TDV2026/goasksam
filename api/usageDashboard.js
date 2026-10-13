@@ -699,11 +699,6 @@ async function handleOps(req, res) {
   // other curated model (Targa/Speedster-style risk: a body-style word resolveVehicle resolves as a
   // genuine trim, that resolveForBuy's generic body-word-as-trim correction then strips to
   // bodyStyle). Reports make/model/trim/bodyStyle/genCode from both resolvers and flags any mismatch.
-  // task=simulatedrawer: WRITES (opportunistic cache refresh only - same as a real drawer/Market
-  // Check call). Resolves q via resolveVehicle, calls runOneBox live, then writes the result to
-  // spec_market_cache via the EXACT same coreOf/persistCore/specKeyFor path api/sellerDecision.js's
-  // oneBox branch now uses - for verifying that opportunistic-refresh mechanism works without
-  // fighting Vercel's bot challenge on a raw POST to /api/sellerDecision (curl gets 429there).
   // task=venuecheck (Oct 2026, Lane B follow-up item 3): calls pickPlatform live and prints the
   // new picked-venue-only fields (pickedVenueSalesPerMonth, pickedVenueTypicalRange). READ-ONLY.
   // task=sellshadow (Oct 2026, Lane B item 2): read-only, zero writes, zero OldCarsData spend.
@@ -720,77 +715,6 @@ async function handleOps(req, res) {
   // task=sellshadowdetail (Oct 2026, evidence for Sam's follow-up): raw per-sale rows (platform,
   // date, price, title) behind the picked-route priceBand on BOTH paths for ONE spec, so the
   // "shared path has more sales" claim can be checked sale-by-sale, not just by count. READ-ONLY.
-  // task=sellreal (Oct 2026, correction): the EARLIER sellshadow/sellshadowdetail tasks called
-  // buildAnalysisFromStore - a convenience wrapper written for evaluatePartnerReferral, NOT what
-  // the live /sell page actually calls. The real handler (api/sellerDecision.js ~line 3786-3920)
-  // picks the fetch path itself: (1) a market_fetch_cache HIT -> fetchRecordsFromStore (archive-
-  // only, zero OCD); (2) a MISS, budget permitting -> fetchRecentRecords (a LIVE, metered OCD
-  // multi-pass fetch - THIS is very likely what produced the $60,000-$155,000 / 83-sale answer
-  // Sam saw on the real page, which the store-only harness could never reproduce). This task
-  // replicates that exact branch (not the budget-guard degrade logic, which only matters when the
-  // day's spend is already near its cap) so the comparison calls the SAME path the page calls.
-  // seller criteria do not affect analyze()'s range/evidenceSales at all (analyze() takes no
-  // criteria param) - they only affect decide()'s venue/why text - so passing them matters for
-  // recommendedPath parity, not for the range number itself.
-  if (task === "sellreal") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const q = String(req.query?.q || "");
-    if (!q) return res.status(400).json({ error: "?q= required" });
-    const apiKey = process.env.OLDCARSDATA_API_KEY;
-    const { resolveVehicle } = await import("../lib/vehicle.js");
-    const { findGeneration } = await import("../lib/generations.js");
-    const { readMarketFetchCache, fetchRecordsFromStore, fetchRecentRecords, analyze, decide, buildLadder } = await import("./sellerDecision.js");
-    const { classifyRecord } = await import("../lib/_classify.js");
-    const { runOneBox } = await import("../lib/onebox.js");
-    const rv = await resolveVehicle(q, {}).catch(() => null);
-    const vehicle = rv && rv.vehicle;
-    if (!vehicle || !vehicle.make) return res.status(200).json({ task: "sellreal", q, error: "unresolved" });
-    const generation = await findGeneration(vehicle, env).catch(() => null);
-    const criteria = {
-      region: req.query.region || "Florida", targetPrice: req.query.targetPrice || "88000",
-      timeline: req.query.timeline || "no rush", condition: req.query.condition || null
-    };
-    const cacheHit = await readMarketFetchCache(vehicle, env.supabaseUrl, env.supabaseKey).catch(() => false);
-    let fetchResult, pathTaken;
-    if (cacheHit) {
-      fetchResult = await fetchRecordsFromStore(vehicle, env.supabaseUrl, env.supabaseKey, generation);
-      pathTaken = "market_fetch_cache_hit -> fetchRecordsFromStore (archive, zero OCD)";
-    } else {
-      fetchResult = await fetchRecentRecords(vehicle, apiKey, generation, Infinity);
-      pathTaken = "market_fetch_cache MISS -> fetchRecentRecords (LIVE OCD multi-pass fetch, metered)";
-    }
-    if (!fetchResult || !fetchResult.records) {
-      return res.status(200).json({ task: "sellreal", q, pathTaken, error: "no fetchResult/records" });
-    }
-    const classifications = fetchResult.records.map(r => classifyRecord(r, vehicle));
-    const analysis = analyze(fetchResult.records, classifications, fetchResult.ladder || buildLadder(vehicle, generation), vehicle, false, null);
-    const decision = decide(analysis, criteria, vehicle);
-    const pickedRoute = decision.routeFit && decision.routeFit.routes && decision.routeFit.routes.find(r => r.platform === decision.recommendedPath);
-    const pb = pickedRoute && pickedRoute.marketEvidence && pickedRoute.marketEvidence.priceBand;
-    // decision.priceBand (rule 23, item 4b in sellerDecision.js, Oct 2026 ONE RANGE fix): now set
-    // by the handler from runOneBox's own cluster, the SAME call Market Check makes for this car -
-    // decide() itself does not set this field, the handler bolts it on afterward from the same
-    // vehicle/generation this diagnostic already has, so mirroring that exact call here is faithful.
-    // priceBandForVehicle is no longer called anywhere in this diagnostic.
-    // Two INDEPENDENT calls (not one shared variable read twice) - a genuine regression check that
-    // the Sell asking-line band and Market Check's own cluster are the same number from two
-    // separate invocations, not just "the same code path by construction".
-    const searchText = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(" ");
-    const sellSide = await runOneBox(vehicle, generation, searchText, { ...env, asked: 2 }, null).catch(() => null);
-    const mcSide = await runOneBox(vehicle, generation, searchText, { ...env, asked: 2 }, null).catch(() => null);
-    const liveSellAskingLineBand = sellSide && Array.isArray(sellSide.cluster) ? { low: sellSide.cluster[0], high: sellSide.cluster[1], count: sellSide.poolN ?? null } : null;
-    const marketCheckCluster = mcSide && Array.isArray(mcSide.cluster) ? { low: mcSide.cluster[0], high: mcSide.cluster[1], poolN: mcSide.poolN, windowLabel: mcSide.windowLabel, tier: mcSide.tier } : { tier: mcSide && mcSide.tier, cluster: null };
-    return res.status(200).json({
-      task: "sellreal", q, pathTaken, meteredRequests: fetchResult.meteredRequests || 0, stopReason: fetchResult.stopReason || null,
-      recommendedPath: decision.recommendedPath, evidenceSales: analysis.evidenceSales,
-      venuePickPriceBand: pb ? { low: pb.low, high: pb.high, sample: pb.sample } : null,
-      liveSellAskingLineBand,
-      marketCheckCluster,
-      sameAsMarketCheck: !!(liveSellAskingLineBand && marketCheckCluster.low != null && liveSellAskingLineBand.low === marketCheckCluster.low && liveSellAskingLineBand.high === marketCheckCluster.high),
-      ladderLanded: analysis.ladder && analysis.ladder.landed ? analysis.ladder.landed.key : null
-    });
-  }
-
   if (task === "sellshadowdetail") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const q = String(req.query?.q || "");
@@ -922,85 +846,6 @@ async function handleOps(req, res) {
     const generation = await findGeneration(vehicle, env).catch(() => null);
     const pick = await pickPlatform(vehicle, generation, env, {});
     return res.status(200).json({ task: "venuecheck", q, platform: pick.platform, evidenceSales: pick.evidenceSales, pickedVenueSalesPerMonth: pick.pickedVenueSalesPerMonth, pickedVenueTypicalRange: pick.pickedVenueTypicalRange });
-  }
-
-  if (task === "simulatedrawer") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const q = String(req.query?.q || "1988 Porsche 911 Carrera Targa");
-    const { resolveVehicle } = await import("../lib/vehicle.js");
-    const { findGeneration } = await import("../lib/generations.js");
-    const { runOneBox } = await import("../lib/onebox.js");
-    const { specKeyFor, coreOf, persistCore } = await import("../lib/live/search.js");
-    const rv = await resolveVehicle(q, {});
-    const vehicle = rv && rv.vehicle;
-    if (!vehicle || !vehicle.make) return res.status(200).json({ task: "simulatedrawer", q, error: "unresolved" });
-    const generation = await findGeneration(vehicle, env).catch(() => null);
-    const searchText = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(" ");
-    const t0 = Date.now();
-    const d = await runOneBox(vehicle, generation, searchText, env, null);
-    const ms = Date.now() - t0;
-    let wrote = false;
-    if (d && d.tier === "result") {
-      const key = specKeyFor(vehicle, generation, null);
-      const core = coreOf(d, { v: vehicle, generation, refine: null });
-      if (core) { await persistCore(env, key, core); wrote = true; }
-    }
-    return res.status(200).json({ task: "simulatedrawer", q, tier: d && d.tier, ms, wrote });
-  }
-
-  // task=cachewritesafety (Oct 2026, Lane B follow-up item 2): proves the drawer's opportunistic
-  // write-back (api/sellerDecision.js's oneBox branch) can never overwrite the PLAIN spec's
-  // spec_market_cache row with a filtered answer. The real gate is structural, not key-based: the
-  // write only runs `if (oneBox.tier === "result" && !obRefine && ...)` - ANY refine object at all
-  // (mileage, gearbox, trim chip, body, variant, driver/observe) skips the write entirely, so a
-  // filtered read is never even CANDIDATE to land under the plain key. Mirrors that exact gate here
-  // (not a second implementation) and proves it by reading the plain row's computed_at before and
-  // after a trim-filtered and a mileage-filtered run.
-  if (task === "cachewritesafety") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const q = String(req.query?.q || "2008 Porsche 911 Carrera");
-    const { resolveVehicle } = await import("../lib/vehicle.js");
-    const { findGeneration } = await import("../lib/generations.js");
-    const { runOneBox } = await import("../lib/onebox.js");
-    const { specKeyFor, coreOf, persistCore } = await import("../lib/live/search.js");
-    const rv = await resolveVehicle(q, {});
-    const vehicle = rv && rv.vehicle;
-    if (!vehicle || !vehicle.make) return res.status(200).json({ task: "cachewritesafety", q, error: "unresolved" });
-    const generation = await findGeneration(vehicle, env).catch(() => null);
-    const searchText = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(" ");
-    const plainKey = specKeyFor(vehicle, generation, null);
-    const readPlain = async () => {
-      const rows = await supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent(plainKey)}&select=computed_at,market`);
-      return Array.isArray(rows) && rows[0] ? rows[0] : null;
-    };
-    // Seed the plain row first (same as real traffic), exactly as api/sellerDecision.js's
-    // !obRefine write does, so there is a real "before" row with a real timestamp to protect.
-    const plainD = await runOneBox(vehicle, generation, searchText, env, null);
-    if (plainD && plainD.tier === "result") {
-      const core = coreOf(plainD, { v: vehicle, generation, refine: null });
-      if (core) await persistCore(env, plainKey, core);
-    }
-    const before = await readPlain();
-    // The two filtered reads - the SAME runOneBox call, with obRefine set, exactly as the drawer
-    // sends it. The real sellerDecision.js write gate (`!obRefine`) means this code path never
-    // calls persistCore at all when obRefine is truthy - that is the actual safety mechanism,
-    // reproduced here verbatim rather than re-implemented.
-    const obRefineTrim = { miMin: null, miMax: null, miTarget: null, tx: null, body: null, trim: "turbo", variant: null, driver: null, driverVal: null, observe: null, label: null };
-    const trimD = await runOneBox(vehicle, generation, searchText, env, obRefineTrim);
-    // Neither filtered call below ever reaches persistCore - obRefineTrim/obRefineMiles are always
-    // truthy objects, so the production `!obRefine` gate (reproduced verbatim, not reimplemented)
-    // is false for both. That is the entire safety mechanism; nothing else to call here.
-    const obRefineMiles = { miMin: 10000, miMax: 40000, miTarget: 25000, tx: null, body: null, trim: null, variant: null, driver: null, driverVal: null, observe: null, label: null };
-    const milesD = await runOneBox(vehicle, generation, searchText, env, obRefineMiles);
-    const after = await readPlain();
-    return res.status(200).json({
-      task: "cachewritesafety", q, plainKey,
-      before: before ? { computedAt: before.computed_at, low: before.market && before.market.low, high: before.market && before.market.high } : null,
-      after: after ? { computedAt: after.computed_at, low: after.market && after.market.low, high: after.market && after.market.high } : null,
-      unchanged: !!(before && after && before.computed_at === after.computed_at),
-      trimFilterTier: trimD && trimD.tier, milesFilterTier: milesD && milesD.tier,
-      note: "the real write gate is `tier===\"result\" && !obRefine`; both filtered calls pass a truthy obRefine, so sellerDecision.js never calls persistCore for either - this task proves the plain row's computed_at is bit-for-bit unchanged across both filtered reads, not just that the gate reads correctly"
-    });
   }
 
   if (task === "trimresolvediff") {
@@ -1204,12 +1049,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "deskexample", ms: Date.now() - t0, ok: !!d, data: d });
   }
 
-  // task=bizleadtest: submits one clearly-marked test row through the SAME path a real visitor uses
-  // (api/businessLead.js, not a second insert implementation) so the notification fix can be proven
-  // end to end, then reports the row's saved notify_ok/notify_error (if the migration has run) so the
-  // provider's real outcome is visible without a second Resend call. ?delete=1 instead deletes every
-  // row whose name starts with "QA TEST ROW" (this task's own marker) - used for cleanup, never a
-  // bare/unfiltered delete.
   // task=bizleadlist: READ-ONLY, lists every business_leads row (most recent first) so a real
   // (non-QA-marked) test submission - e.g. Sam's own - can be identified and reported back, without
   // guessing at or deleting anything.
@@ -1229,27 +1068,6 @@ async function handleOps(req, res) {
     const kindFilter = req.query?.kind === "mc_car" ? `&kind=like.${encodeURIComponent("mc_car:*")}` : "";
     const rows = await supabaseSelect(env, `ip_rate_hits?select=id,ip,kind,created_at&order=created_at.desc&limit=50${kindFilter}`);
     return res.status(200).json({ task: "ratehits", rows: rows || [] });
-  }
-
-  if (task === "bizleadtest") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    if (req.query?.delete === "1") {
-      const rows = await supabaseSelect(env, `business_leads?name=like.${encodeURIComponent("QA TEST ROW*")}&select=id,name,email,created_at`).catch(() => null);
-      if (!rows || !rows.length) return res.status(200).json({ task: "bizleadtest", deleted: 0, rows: [] });
-      const del = await supabaseDelete(env, `business_leads?id=in.(${rows.map(r => r.id).join(",")})`);
-      return res.status(200).json({ task: "bizleadtest", deleted: del.ok ? rows.length : 0, error: del.error || null, rows });
-    }
-    const { supabaseInsert: insertRow, supabasePatch } = await import("../lib/_supabase.js");
-    const { sendTaskEmail } = await import("../lib/_email.js");
-    const stamp = new Date().toISOString();
-    const row = { name: `QA TEST ROW - delete me (${stamp})`, company: "QA Test (Lane A verification)", email: "qa-test-delete-me@example.com", message: "Ops probe test row, safe to delete." };
-    const ins = await insertRow("business_leads", [row], env.supabaseUrl, env.supabaseKey, "return=representation", "");
-    if (ins.error) return res.status(500).json({ task: "bizleadtest", error: ins.error });
-    const leadId = ins.rows && ins.rows[0] && ins.rows[0].id;
-    const to = String(process.env.LEADS_NOTIFY_EMAIL || "").trim() || "feedback@goasksam.com";
-    const sent = await sendTaskEmail({ to, subject: "New Sam Desk request", text: `Name: ${row.name}\nCompany: ${row.company}\nWork email: ${row.email}\nOne line: ${row.message}\n\nLead id: ${leadId} (ops probe, task=bizleadtest)` }).catch(e => ({ ok: false, error: e && e.message }));
-    if (leadId) await supabasePatch(env, `business_leads?id=eq.${leadId}`, { notify_ok: !!sent.ok, notify_error: sent.ok ? null : String(sent.error || sent.reason || "unknown").slice(0, 300), notified_at: new Date().toISOString() }).catch(() => {});
-    return res.status(200).json({ task: "bizleadtest", leadId, to, sent });
   }
 
   // task=resolvecheck: READ-ONLY, zero writes, zero OCD. Runs lib/vehicle.js resolveVehicle() over a
@@ -1680,31 +1498,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "vinaudit", scanned, report });
   }
 
-  // task=ocdstatus: READ-ONLY. Probe OCD's non-sold status coverage. For each candidate
-  // status value, report meta.total_results per source; and tally the auction_status field
-  // from an unfiltered pull to see the real vocabulary. Metered (~a few /auctions calls).
-  if (task === "ocdstatus") {
-    const statuses = ["sold", "unsold", "not_sold", "reserve_not_met", "reserve_not_reached", "withdrawn", "live", "active", "upcoming", "ended"];
-    const srcs = req.query?.slugs ? String(req.query.slugs).split(",") : ["bringatrailer", "carsandbids", "rmsothebys", "bonhams", "barrettjackson"];
-    const out = { byStatusTotals: {}, unfilteredStatusTally: {}, sampleFields: null };
-    let metered = 0;
-    // 1) total_results per (source, status)
-    for (const s of srcs) {
-      out.byStatusTotals[s] = {};
-      for (const st of statuses) {
-        try { metered++; const r = await callOldCarsData("/auctions", { source: s, status: st, page: 1, limit: 1 }, apiKey); out.byStatusTotals[s][st] = r.meta?.total_results ?? r.meta?.total ?? (r.data || []).length; }
-        catch (e) { out.byStatusTotals[s][st] = `err:${String(e.message).slice(0, 30)}`; }
-      }
-    }
-    // 2) unfiltered pull to see the real auction_status vocabulary + which fields carry bid data
-    for (const s of ["bringatrailer", "rmsothebys"]) {
-      try { metered++; const r = await callOldCarsData("/auctions", { source: s, page: 1, limit: 100 }, apiKey); const t = {}; for (const rec of (r.data || [])) { const v = rec.auction_status || "(none)"; t[v] = (t[v] || 0) + 1; } out.unfilteredStatusTally[s] = t;
-        if (!out.sampleFields && (r.data || [])[0]) { const rec = r.data[0]; out.sampleFields = Object.keys(rec).filter(k => /status|bid|reserve|high|price|withdraw|sold|current|estimate/i.test(k)); } }
-      catch (e) { out.unfilteredStatusTally[s] = `err:${String(e.message).slice(0, 40)}`; }
-    }
-    return res.status(200).json({ task: "ocdstatus", metered, ...out });
-  }
-
   // task=fieldcov: READ-ONLY (archive; ZERO OCD). Fill rate of the four enrichment fields
   // (description, known_flaws, recent_service_history, modifications) among SOLD rows, per
   // source_slug (all-time) and, when PostgREST aggregates are enabled, a source x model-year cross.
@@ -1758,33 +1551,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "fieldcov", ocdSpend: 0, countMode: exact ? "exact" : "planner-estimate", fields: FIELDS, bySource, note: "Fill = value present (non-null) among sold rows. Counts are Postgres planner ESTIMATES by default (add ?exact=1 for exact, slower). A per-model-year cross needs a workflow (interactive PostgREST aggregates are disabled on this project)." });
   }
 
-  // task=statsprobe: ONE call — fetch recent UNSOLD auctions for a source and return each record's
-  // raw `stats` object verbatim, so we can see whether OCD carries views + watches with real numbers
-  // (auction_attempts currently drops stats). Diagnostic only.
-  if (task === "statsprobe") {
-    const src = String(req.query?.source || "bringatrailer");
-    let metered = 0;
-    try {
-      metered++;
-      const r = await callOldCarsData("/auctions", { source: src, status: "unsold", sort: "date", direction: "desc", page: 1, limit: 6 }, apiKey);
-      const records = (r.data || []).map(rec => ({ title: String(rec.title || "").slice(0, 54), auction_status: rec.auction_status, price: rec.price, has_reserve: rec.has_reserve, statsKeys: rec.stats ? Object.keys(rec.stats) : [], stats: rec.stats || null }));
-      return res.status(200).json({ task: "statsprobe", metered, source: src, count: records.length, records });
-    } catch (e) { return res.status(200).json({ task: "statsprobe", metered, error: String((e && e.message) || e) }); }
-  }
-
-  // task=liveprobe: ONE call to GET /auctions/live (limit 100). Reports meta.total and the sources
-  // present in the first page + the record's field keys. Diagnostic only - nothing is built on it.
-  if (task === "liveprobe") {
-    try {
-      const r = await callOldCarsData("/auctions/live", { page: 1, limit: 100 }, apiKey);
-      const data = r.data || r.results || [];
-      const total = (r.meta && (r.meta.total ?? r.meta.total_results ?? r.meta.count)) ?? r.total ?? null;
-      const sourcesInPage = {};
-      for (const rec of data) { const s = rec.source_slug || rec.source || rec.platform || "?"; sourcesInPage[s] = (sourcesInPage[s] || 0) + 1; }
-      return res.status(200).json({ task: "liveprobe", metered: 1, total, returned: data.length, meta: r.meta || null, sourcesInPage, recordKeys: data[0] ? Object.keys(data[0]) : [], pagesAt100: total != null ? Math.ceil(total / 100) : null, refreshCostRequests: total != null ? Math.ceil(total / 100) + 1 : null });
-    } catch (e) { return res.status(200).json({ task: "liveprobe", error: String((e && e.message) || e), status: (e && e.status) || null }); }
-  }
-
   // task=unknownmake: READ-ONLY (archive; ZERO OCD). BaT rows with make='unknown' in the last 12 months,
   // sold + unsold, with sample titles and a rough "parseable from title" estimate. Report only.
   if (task === "unknownmake") {
@@ -1820,64 +1586,6 @@ async function handleOps(req, res) {
     // UTC date and the Pacific date are DIFFERENT days.
     const disc = all.filter(r => r.differ).slice(0, 5);
     return res.status(200).json({ task: "tzcheck", ocdSpend: 0, discriminating: disc, sampleAll: all.slice(0, 3) });
-  }
-
-  // task=nonsold: READ-ONLY non-sold data scoping (report-only). Per source: sold total,
-  // withdrawn total (both filterable), and an unfiltered auction_status tally (sold vs
-  // "reserve not met" vs withdrawn vs "result unavailable") to estimate the non-sold mix,
-  // recent-first (approximates last 12mo). Also grabs sample reserve-not-met records to
-  // show price / stats.bids / has_reserve semantics. Metered (~a few /auctions calls).
-  if (task === "nonsold") {
-    const srcs = req.query?.slugs ? String(req.query.slugs).split(",") : ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "hemmings", "sothebysmotorsport", "mbmarket", "acc", "carandclassic", "collectingcars", "themarket", "pistonheads", "rmsothebys", "gooding", "bonhams", "barrettjackson"];
-    let metered = 0; const per = {}; let sampleRNM = null;
-    for (const s of srcs) {
-      const o = { sold: null, withdrawn: null, unfilteredTally: {}, sampled: 0 };
-      try { metered++; const r = await callOldCarsData("/auctions", { source: s, status: "sold", page: 1, limit: 1 }, apiKey); o.sold = r.meta?.total_results ?? r.meta?.total ?? null; } catch (e) { o.sold = `err`; }
-      try { metered++; const r = await callOldCarsData("/auctions", { source: s, status: "withdrawn", page: 1, limit: 1 }, apiKey); o.withdrawn = r.meta?.total_results ?? r.meta?.total ?? null; } catch (e) { o.withdrawn = `err`; }
-      // unfiltered, recent-first: tally the real auction_status vocabulary
-      try {
-        metered++; const r = await callOldCarsData("/auctions", { source: s, sort: "date", direction: "desc", page: 1, limit: 100 }, apiKey);
-        for (const rec of (r.data || [])) { const v = String(rec.auction_status || "(none)"); o.unfilteredTally[v] = (o.unfilteredTally[v] || 0) + 1; o.sampled++;
-          if (!sampleRNM && /reserve.*not.*met/i.test(v)) sampleRNM = { source: s, auction_status: v, price: rec.price, currency: rec.currency, has_reserve: rec.has_reserve, bids: rec.stats?.bids, views: rec.stats?.views, title: String(rec.title || "").slice(0, 50), url: rec.url }; }
-      } catch (e) { o.unfilteredTally = { err: String(e.message).slice(0, 30) }; }
-      per[s] = o;
-    }
-    return res.status(200).json({ task: "nonsold", metered, sampleReserveNotMet: sampleRNM, per });
-  }
-
-  // task=nonsold2: closes the non-sold scoping. (a) relist pair: pull reserve-not-met
-  // records, and for each VIN check whether a SOLD record with the same VIN exists in our
-  // archive (a later, separately-id'd sale) - proving both persist independently. (b) 20
-  // reserve-not-met records across BaT/C&B/Hagerty with price/bids/has_reserve for the
-  // price=high-unmet-bid semantics. Metered (a few /auctions calls). No writes.
-  if (task === "nonsold2") {
-    const can = await import("../lib/_canonical.js");
-    const norm = v => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-    const pullRNM = async (source, pages) => { const out = []; for (let p = 1; p <= pages; p++) { let r; try { r = await callOldCarsData("/auctions", { source, sort: "date", direction: "desc", page: p, limit: 100 }, apiKey); } catch (e) { break; } for (const rec of (r.data || [])) if (/reserve.*not.*met/i.test(String(rec.auction_status || "")) && Number(rec.price) > 0) out.push(rec); } return out; };
-    // (b) 20 samples across three platforms
-    const samples = [];
-    for (const s of ["bringatrailer", "carsandbids", "hagerty"]) { const recs = await pullRNM(s, 3); for (const r of recs.slice(0, 7)) samples.push({ source: s, price: r.price, currency: r.currency, has_reserve: r.has_reserve, bids: r.stats?.bids, vin: r.vin, title: String(r.title || "").slice(0, 44), url: r.url }); }
-    // (a) relist pair: pull a large unfiltered window and group by VIN. Any VIN with 2+
-    // distinct listing ids proves OCD keeps each auction attempt as a separate record (no
-    // overwrite); a group with a reserve-not-met AND a sold is the resurfacing case.
-    const pages = Math.min(40, Number(req.query?.pages || 25));
-    const byVin = new Map(); let scanned = 0;
-    for (let p = 1; p <= pages; p++) {
-      let r; try { r = await callOldCarsData("/auctions", { source: "bringatrailer", sort: "date", direction: "desc", page: p, limit: 100 }, apiKey); } catch (e) { break; }
-      const rows = r.data || []; if (!rows.length) break;
-      for (const rec of rows) { if (!can.validVin(rec.vin)) continue; scanned++; const k = norm(rec.vin); const a = byVin.get(k) || []; a.push({ id: String(rec.id), status: rec.auction_status, price: rec.price, date: rec.auction_end_date, url: rec.url }); byVin.set(k, a); }
-    }
-    const multiAttempt = []; let relistPair = null;
-    for (const [vin, recs] of byVin) {
-      const ids = [...new Set(recs.map(x => x.id))];
-      if (ids.length < 2) continue;
-      const entry = { vin, records: recs };
-      multiAttempt.push(entry);
-      const hasSold = recs.some(x => /sold/i.test(String(x.status || "")));
-      const hasRNM = recs.some(x => /reserve.*not.*met/i.test(String(x.status || "")));
-      if (!relistPair && hasSold && hasRNM) relistPair = entry;
-    }
-    return res.status(200).json({ task: "nonsold2", rnmSampled: samples.length, samples, scannedForRelist: scanned, distinctVins: byVin.size, multiAttemptVins: multiAttempt.length, relistPair, multiAttemptExamples: multiAttempt.slice(0, 5) });
   }
 
   // task=burn: OCD daily burn from app_usage_events (Supabase read ONLY - no OCD call, no
@@ -2386,139 +2094,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "pairgate", multiAliasCanonicals: canon.length, modelsWithAnyCrossVenuePair: Object.keys(modelPairs).length, modelsClearing3PairGate: clearing.length, list: clearing });
   }
 
-  // task=selldiag: LIVE /sell fetch trace (METERED OCD). Runs the REAL fetchRecentRecords for a
-  // car and reports what sources the /sell pipeline actually pulls + whether houses clear the
-  // strongerNonRoutable gate (>=5 in-window sales AND median > the online pick). Answers "what is
-  // actually being considered as evidence for this car, live" without the WAF-blocked POST path.
-  if (task === "selldiag") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const apiKey = process.env.OLDCARSDATA_API_KEY; if (!apiKey) return res.status(500).json({ error: "OLDCARSDATA_API_KEY not set." });
-    const { resolveVehicle } = await import("../lib/vehicle.js");
-    const { findGeneration } = await import("../lib/generations.js");
-    const { fetchRecentRecords, isEvidenceSource, analyze, buildLadder, decide } = await import("./sellerDecision.js");
-    const { recordPlatform, classifyRecord } = await import("../lib/_classify.js");
-    const { hammerUsd, isHouseSource } = await import("../lib/_houseComps.js");
-    const q = String(req.query?.q || "1972 Ferrari 365 GTB/4 Daytona");
-    const rv = await resolveVehicle(q, {}); const vehicle = rv && rv.vehicle;
-    if (!vehicle || !vehicle.make) return res.status(200).json({ task: "selldiag", q, resolved: null, status: rv && rv.status });
-    const generation = await findGeneration(vehicle, env);
-    const fetched = await fetchRecentRecords(vehicle, apiKey, generation);
-    const recs = (fetched && fetched.records) || [];
-    const daysAgo = d => { const t = new Date(d || 0).getTime(); return t ? (Date.now() - t) / 864e5 : 1e9; };
-    const median = a => { const s = a.filter(x => x > 0).sort((x, y) => x - y); return s.length ? Math.round(s[Math.floor(s.length / 2)]) : null; };
-    const per = {};
-    for (const r of recs) {
-      const p = recordPlatform(r); const o = per[p] || (per[p] = { total: 0, inWin180: 0, evidence: isEvidenceSource(r, vehicle), house: isHouseSource(r), hammers: [] });
-      o.total++; const win = daysAgo(r.auction_end_date || r.sale_date) <= 180; if (win) { o.inWin180++; const h = hammerUsd(r); if (h > 0) o.hammers.push(h); }
-    }
-    const table = Object.entries(per).map(([platform, o]) => ({ platform, total: o.total, inWin180: o.inWin180, evidenceEligible: o.evidence, house: o.house, medianHammerInWin: median(o.hammers) })).sort((a, b) => b.total - a.total);
-    const houses = table.filter(r => r.house);
-    const houseGateClears = houses.filter(h => h.inWin180 >= 5);
-    // Run the REAL decision so we see the actual decision.strongerNonRoutable value (null or a house),
-    // not just the raw gate inputs. Minimal US criteria (region-covered, no target price).
-    let realDecision = null;
-    try {
-      const cls = recs.map(r => classifyRecord(r, vehicle));
-      const analysis = analyze(recs, cls, buildLadder(vehicle, generation), vehicle, false);
-      const criteria = { region: { country: "US", regionLabel: "the US" }, state: "CA", timeline: "flexible", involvement: "diy", notes: "", targetPrice: null };
-      const dec = decide(analysis, criteria, vehicle);
-      realDecision = { recommendedPath: dec.recommendedPath, evidenceBasis: dec.evidenceBasis, landed: analysis.ladder && analysis.ladder.landed ? { key: analysis.ladder.landed.key, sales: analysis.ladder.landed.sales } : null, strongerNonRoutable: dec.strongerNonRoutable || null, routes: (dec.routeFit && dec.routeFit.routes || []).map(rt => ({ platform: rt.platform, routable: rt.routable, evidenceSales: rt.marketEvidence && rt.marketEvidence.evidenceSales, median: rt.marketEvidence && rt.marketEvidence.medianSalePrice })) };
-    } catch (e) { realDecision = { error: String(e && e.message || e) }; }
-    return res.status(200).json({
-      realDecision,
-      task: "selldiag", q, resolved: `${vehicle.year || ""} ${vehicle.make} ${vehicle.model || ""}${vehicle.trim ? " " + vehicle.trim : ""}`.trim(),
-      landedRung: fetched && fetched.ladder && fetched.ladder.landed ? { key: fetched.ladder.landed.key, sales: fetched.ladder.landed.sales } : null,
-      totalFetched: recs.length, sourceTable: table,
-      housesPresent: houses.length, houseInWindowTotal: houses.reduce((s, h) => s + h.inWin180, 0),
-      houseGate5plus: houseGateClears.map(h => ({ platform: h.platform, inWin180: h.inWin180, medianHammer: h.medianHammerInWin })),
-      verdict: houses.length === 0 ? "NO house records fetched for this car" : (houseGateClears.length === 0 ? "houses fetched but NONE clear the 5+ in-window gate" : "houses clear the gate -> should be named")
-    });
-  }
-
-  // task=platformpickreport: side-by-side report for lib/platformPick.js (the shared platform-pick
-  // function) - the CURRENT live /sell pick (same fetchRecentRecords+analyze+decide path selldiag
-  // runs, metered/cached exactly like a real live /sell request, SELL_PICK_SHARED untouched) next to
-  // the shared function's pick for the SAME car+criteria. ?q=, ?house=1, ?rush=1.
-  if (task === "platformpickreport") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const apiKey = process.env.OLDCARSDATA_API_KEY; if (!apiKey) return res.status(500).json({ error: "OLDCARSDATA_API_KEY not set." });
-    const { resolveVehicle } = await import("../lib/vehicle.js");
-    const { findGeneration } = await import("../lib/generations.js");
-    const { fetchRecentRecords, analyze, buildLadder, decide } = await import("./sellerDecision.js");
-    const { classifyRecord } = await import("../lib/_classify.js");
-    const { pickPlatform } = await import("../lib/platformPick.js");
-    const q = String(req.query?.q || "2008 Porsche 911 Carrera S Coupe");
-    const wantHouse = req.query?.house === "1", wantRush = req.query?.rush === "1";
-    const rv = await resolveVehicle(q, {}); const vehicle = rv && rv.vehicle;
-    if (!vehicle || !vehicle.make) return res.status(200).json({ task: "platformpickreport", q, resolved: null, status: rv && rv.status });
-    const generation = await findGeneration(vehicle, env);
-    const criteria = { region: { country: "US", regionLabel: "the US" }, state: "CA",
-      timeline: wantRush ? "ASAP" : "No rush", involvement: wantHouse ? "Take it through an auction house" : "I'll sell it myself",
-      sellerPreference: wantHouse ? "auction_house" : "diy", notes: "", targetPrice: null };
-    let currentPick = null;
-    try {
-      const fetched = await fetchRecentRecords(vehicle, apiKey, generation);
-      const recs = (fetched && fetched.records) || [];
-      const cls = recs.map(r => classifyRecord(r, vehicle));
-      const analysis = analyze(recs, cls, buildLadder(vehicle, generation), vehicle, false);
-      const dec = decide(analysis, criteria, vehicle);
-      const bestRoute = (dec.routeFit && dec.routeFit.routes || []).find(r => r.platform === dec.recommendedPath);
-      currentPick = { recommendedPath: dec.recommendedPath, evidenceBasis: dec.evidenceBasis,
-        evidenceSales: bestRoute && bestRoute.marketEvidence && bestRoute.marketEvidence.evidenceSales,
-        premium: bestRoute && bestRoute.marketEvidence && bestRoute.marketEvidence.pricePremium || null,
-        totalFetched: recs.length };
-    } catch (e) { currentPick = { error: String((e && e.message) || e) }; }
-    let sharedPick = null;
-    try { sharedPick = await pickPlatform(vehicle, generation, env, criteria); } catch (e) { sharedPick = { error: String((e && e.message) || e) }; }
-    return res.status(200).json({
-      task: "platformpickreport", q, criteria: { house: wantHouse, rush: wantRush },
-      resolved: `${vehicle.year || ""} ${vehicle.make} ${vehicle.model || ""}${vehicle.trim ? " " + vehicle.trim : ""}`.trim(),
-      currentPick, sharedPick
-    });
-  }
-
-  // task=platformpickproof: Bucket A proof, READ ONLY - calls fetchRecentRecords exactly as live
-  // /sell does (no change to it), reports its per-platform evidenceSales at ITS OWN landed rung
-  // (analysis.platformPerformance - what the old ladder actually used), next to the shared archive
-  // pool's per-platform counts (pickPlatform's byPlatform) at ITS OWN window - both windows are
-  // reported explicitly since the two ladders land on different scopes by design (this task proves
-  // the GAP, it does not force a false apples-to-apples window).
-  if (task === "platformpickproof") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const apiKey = process.env.OLDCARSDATA_API_KEY; if (!apiKey) return res.status(500).json({ error: "OLDCARSDATA_API_KEY not set." });
-    const { resolveVehicle } = await import("../lib/vehicle.js");
-    const { findGeneration } = await import("../lib/generations.js");
-    const { fetchRecentRecords, analyze, buildLadder } = await import("./sellerDecision.js");
-    const { classifyRecord } = await import("../lib/_classify.js");
-    const { pickPlatform } = await import("../lib/platformPick.js");
-    const PROOF_CARS = String(req.query?.cars || "1995 Mazda Miata|2016 Ford Mustang GT350|1993 Toyota Supra Turbo|2008 Audi RS4").split("|");
-    const rows = [];
-    for (const q of PROOF_CARS) {
-      const row = { q };
-      try {
-        const rv = await resolveVehicle(q, {}); const vehicle = rv && rv.vehicle;
-        if (!vehicle || !vehicle.make) { row.error = "unresolved"; rows.push(row); continue; }
-        row.resolved = `${vehicle.year || ""} ${vehicle.make} ${vehicle.model || ""}${vehicle.trim ? " " + vehicle.trim : ""}`.trim();
-        const generation = await findGeneration(vehicle, env);
-        const criteria = { region: { country: "US", regionLabel: "the US" }, state: "CA", timeline: "No rush", involvement: "I'll sell it myself", sellerPreference: "diy", notes: "", targetPrice: null };
-        const fetched = await fetchRecentRecords(vehicle, apiKey, generation);
-        const recs = (fetched && fetched.records) || [];
-        const cls = recs.map(r => classifyRecord(r, vehicle));
-        const analysis = analyze(recs, cls, buildLadder(vehicle, generation), vehicle, false);
-        row.oldFunction = "fetchRecentRecords (api/sellerDecision.js) -> analyze()";
-        row.oldLandedRung = analysis.ladder && analysis.ladder.landed ? { key: analysis.ladder.landed.key, label: analysis.ladder.landed.label, windowDays: analysis.ladder.landed.windowDays } : null;
-        row.oldTotalFetchedRaw = recs.length;
-        row.oldByPlatform = (analysis.platformPerformance || []).map(p => ({ platform: p.platform, evidenceSales: p.evidenceSales, medianSalePrice: p.medianSalePrice })).sort((a, b) => b.evidenceSales - a.evidenceSales);
-        const shared = await pickPlatform(vehicle, generation, env, criteria);
-        row.sharedFunction = "pickPlatform (lib/platformPick.js) -> fetchQualifying on sales_archive";
-        row.sharedPool = shared && shared.pool;
-        row.sharedByPlatform = shared ? Object.entries(shared.byPlatform || {}).map(([platform, v]) => ({ platform, ...v })).sort((a, b) => b.evidenceSales - a.evidenceSales) : [];
-      } catch (e) { row.error = String((e && e.message) || e); }
-      rows.push(row);
-    }
-    return res.status(200).json({ task: "platformpickproof", rows });
-  }
-
   // task=perftrimregress: READ-ONLY regression check for the PERF_TRIMS fix (commit 16eeb27). Fetches
   // the pool ONCE per spec with perfInclude/perfExclude stripped (every other qualifyReason gate -
   // body, year, halo, race, modified, memorabilia - still applies unchanged; archiveScope/the DB query
@@ -2642,192 +2217,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "yearrecovery", liveRowsWithNoYear: blank.length, recoverableViaVinDecode: vinRecoverable, stillUnrecoverable: unrecoverable, note: "prior-appearance leg protects future polls from regressing an already-known year; it has no effect on today's already-blank rows, which is why this count is VIN-decode only." });
   }
 
-  // task=platformpickaudit: the 40-car dropped-gates audit (flag off, read only - never writes, never
-  // touches SELL_PICK_SHARED). Runs the SAME old-ladder-vs-shared-function comparison
-  // platformpickreport does, sequentially (never parallel - this is metered OCD spend; sequential
-  // keeps it inside the daily budget guard's normal pacing), over a built-in 40-car list (28 common
-  // models across eras/platforms + 5 deliberately thin/rare + the 7 from the original table).
-  // ?limit=N runs only the first N (test before spending the full run's metered budget).
-  if (task === "platformpickaudit") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const apiKey = process.env.OLDCARSDATA_API_KEY; if (!apiKey) return res.status(500).json({ error: "OLDCARSDATA_API_KEY not set." });
-    const { resolveVehicle } = await import("../lib/vehicle.js");
-    const { findGeneration } = await import("../lib/generations.js");
-    const { fetchRecentRecords, analyze, buildLadder, decide } = await import("./sellerDecision.js");
-    const { classifyRecord } = await import("../lib/_classify.js");
-    const { pickPlatform, buildSharedAnalysis } = await import("../lib/platformPick.js");
-    const AUDIT_CARS = [
-      // the original 7
-      "2008 Porsche 911 Carrera S Coupe", "1967 Ford Mustang Fastback", "1955 Mercedes-Benz 300SL Gullwing",
-      "2006 Mercedes-Benz CLK DTM AMG Cabriolet", "1930 Ford Model A", "1999 Nissan Skyline GT-R", "2015 Chevrolet Corvette Z06",
-      // common models, spread of years/platforms (28)
-      "1965 Chevrolet Corvette", "1970 Plymouth Barracuda", "1969 Chevrolet Camaro Z28", "1973 Porsche 911 Carrera RS",
-      "1987 BMW M3", "1995 Mazda Miata", "2003 Ferrari 360 Modena", "1985 Ferrari 308 GTS", "2016 Ford Mustang GT350",
-      "1978 Porsche 911 SC", "2001 BMW M5", "1993 Toyota Supra Turbo", "2012 Audi R8", "2005 Ford GT",
-      "1967 Chevrolet Camaro SS", "1972 Datsun 240Z", "2014 Chevrolet Corvette Stingray", "1999 BMW M3",
-      "2008 Audi RS4", "1976 Porsche 930 Turbo", "1965 Ford Mustang", "2009 Nissan GT-R", "1988 Porsche 911 Carrera",
-      "2000 Honda S2000", "1963 Jaguar E-Type", "2017 Porsche 911 GT3", "1990 Chevrolet Corvette ZR-1", "1980 Datsun 280ZX",
-      // deliberately thin/rare (5)
-      "1990 Lamborghini Countach 25th Anniversary", "1989 Porsche 911 Speedster", "1955 Jaguar D-Type",
-      "1967 Ferrari 275 GTB/4", "2014 McLaren P1"
-    ];
-    const offset = Number(req.query?.offset) > 0 ? Number(req.query.offset) : 0;
-    const limit = Number(req.query?.limit) > 0 ? Number(req.query.limit) : AUDIT_CARS.length;
-    const rows = [];
-    for (const q of AUDIT_CARS.slice(offset, offset + limit)) {
-      const row = { q };
-      try {
-        const rv = await resolveVehicle(q, {}); const vehicle = rv && rv.vehicle;
-        if (!vehicle || !vehicle.make) { row.error = "unresolved"; rows.push(row); continue; }
-        row.resolved = `${vehicle.year || ""} ${vehicle.make} ${vehicle.model || ""}${vehicle.trim ? " " + vehicle.trim : ""}`.trim();
-        const generation = await findGeneration(vehicle, env);
-        const criteria = { region: { country: "US", regionLabel: "the US" }, state: "CA", timeline: "No rush", involvement: "I'll sell it myself", sellerPreference: "diy", notes: "", targetPrice: null };
-        const fetched = await fetchRecentRecords(vehicle, apiKey, generation);
-        const recs = (fetched && fetched.records) || [];
-        const cls = recs.map(r => classifyRecord(r, vehicle));
-        const analysis = analyze(recs, cls, buildLadder(vehicle, generation), vehicle, false);
-        const dec = decide(analysis, criteria, vehicle);
-        const bestRoute = (dec.routeFit && dec.routeFit.routes || []).find(r => r.platform === dec.recommendedPath);
-        const ev = bestRoute && bestRoute.marketEvidence;
-        const premiumCleared = ev && ev.pricePremium && ev.pricePremium.gateType === "symmetric" && Number(ev.pricePremium.percent) >= 10;
-        row.oldPick = dec.recommendedPath || null;
-        row.oldReason = premiumCleared ? "premium" : (dec.evidenceBasis === "regional_policy" ? "policy" : "evidence");
-        row.oldEvidenceSales = (ev && ev.evidenceSales) || 0;
-        // Oct 2026, Part 2 of the venue-pick audit round: the range each ladder lands on, not just the
-        // count - ev.priceBand is the old ladder's own band at its landed rung (same field sellreal reads).
-        row.oldRange = (ev && ev.priceBand && Number.isFinite(ev.priceBand.low) && Number.isFinite(ev.priceBand.high)) ? [ev.priceBand.low, ev.priceBand.high] : null;
-        const shared = await pickPlatform(vehicle, generation, env, criteria).catch(e => ({ error: String((e && e.message) || e) }));
-        row.sharedPick = (shared && shared.platform) || null;
-        row.sharedReason = (shared && shared.reasonCode) || null;
-        row.sharedEvidenceSales = (shared && shared.evidenceSales) || 0;
-        row.sharedThin = !!(shared && shared.thin);
-        row.sharedRange = (shared && Array.isArray(shared.pickedVenueTypicalRange)) ? shared.pickedVenueTypicalRange : null;
-        // THE REAL PRODUCTION PATH (Oct 2026, post-flip verification): api/sellerDecision.js's own
-        // handler, with SELL_PICK_SHARED=1, feeds buildSharedAnalysis's output into decide() - NOT
-        // pickPlatform directly. decide()'s own pickRecommendedRoute (private, not exported) has an
-        // independent "depth leader" tie-break with the same strict > pattern depthPick had before
-        // the fix - a genuine second implementation, still live. This reproduces exactly what the
-        // real page computes, without editing api/sellerDecision.js (decide/buildSharedAnalysis were
-        // already exported).
-        try {
-          const realAnalysis = await buildSharedAnalysis(vehicle, generation, env, criteria);
-          if (realAnalysis) {
-            const realDec = decide(realAnalysis, criteria, vehicle);
-            row.realPick = realDec.recommendedPath || null;
-          } else { row.realPick = null; }
-        } catch (e) { row.realPick = null; row.realPickError = String((e && e.message) || e); }
-        // Market Check's own cluster for this car, zero OCD (runOneBox is archive-only) - which ladder's
-        // pick/range it agrees with is the tiebreaker on a divergent-platform car.
-        const { runOneBox: runOneBoxMC } = await import("../lib/onebox.js");
-        const mcSearchText = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(" ");
-        const mc = await runOneBoxMC(vehicle, generation, mcSearchText, { ...env, asked: 2 }, null).catch(() => null);
-        row.marketCheckCluster = (mc && Array.isArray(mc.cluster)) ? { low: mc.cluster[0], high: mc.cluster[1], poolN: mc.poolN ?? null } : null;
-        const normP = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-        row.agree = !!(row.oldPick && row.sharedPick) && normP(row.oldPick) === normP(row.sharedPick);
-        // realPick (the production path, via decide()'s own pickRecommendedRoute) vs sharedPick (the
-        // standalone pickPlatform this task otherwise compares) - a false here, with agree:true above,
-        // is exactly the GT-R class of bug: the diagnostic and the real page disagree with EACH OTHER,
-        // not just with the legacy pre-flip ladder.
-        row.realAgreesWithShared = !!(row.realPick && row.sharedPick) && normP(row.realPick) === normP(row.sharedPick);
-      } catch (e) { row.error = String((e && e.message) || e); }
-      rows.push(row);
-    }
-    const agreeCount = rows.filter(r => r.agree).length;
-    const disagreeCount = rows.filter(r => r.oldPick && r.sharedPick && !r.agree).length;
-    return res.status(200).json({ task: "platformpickaudit", total: rows.length, agreeCount, disagreeCount, rows });
-  }
-
-  // task=sellcutoverdiff: READ-ONLY, NEVER touches SELL_PICK_SHARED (the real env var stays whatever
-  // it is - this calls buildSharedAnalysis() and decide() directly, the exact functions the flag
-  // would wire in, without flipping anything live). For each of the same 40 audit cars, builds BOTH
-  // decisions - OLD: analyze(capped fetchRecentRecords records) -> decide(); NEW: buildSharedAnalysis
-  // (shared archive pool) -> decide(), the SAME decide() function both times - and diffs every field
-  // named in Sam's round: recommendedPath, confidence, evidenceBasis, evidenceSales, medianSalePrice,
-  // pricePremium, matchedPremium, dayAdvantage, momentum, strongerNonRoutable, the by-venue breakdown,
-  // and the PowerSeller value check (evaluatePartnerReferral on each analysis). ?limit=N/?offset=N for
-  // paging within the function's time budget; ?cars=a|b|c overrides the built-in list.
-  if (task === "sellcutoverdiff") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const apiKey = process.env.OLDCARSDATA_API_KEY; if (!apiKey) return res.status(500).json({ error: "OLDCARSDATA_API_KEY not set." });
-    const { resolveVehicle } = await import("../lib/vehicle.js");
-    const { findGeneration } = await import("../lib/generations.js");
-    const { fetchRecentRecords, analyze, buildLadder, decide, evaluatePartnerReferral } = await import("./sellerDecision.js");
-    const { classifyRecord } = await import("../lib/_classify.js");
-    const { buildSharedAnalysis } = await import("../lib/platformPick.js");
-    const DEFAULT_CARS = [
-      "2008 Porsche 911 Carrera S Coupe", "1967 Ford Mustang Fastback", "1955 Mercedes-Benz 300SL Gullwing",
-      "2006 Mercedes-Benz CLK DTM AMG Cabriolet", "1930 Ford Model A", "1999 Nissan Skyline GT-R", "2015 Chevrolet Corvette Z06",
-      "1965 Chevrolet Corvette", "1970 Plymouth Barracuda", "1969 Chevrolet Camaro Z28", "1973 Porsche 911 Carrera RS",
-      "1987 BMW M3", "1995 Mazda Miata", "2003 Ferrari 360 Modena", "1985 Ferrari 308 GTS", "2016 Ford Mustang GT350",
-      "1978 Porsche 911 SC", "2001 BMW M5", "1993 Toyota Supra Turbo", "2012 Audi R8", "2005 Ford GT",
-      "1967 Chevrolet Camaro SS", "1972 Datsun 240Z", "2014 Chevrolet Corvette Stingray", "1999 BMW M3",
-      "2008 Audi RS4", "1976 Porsche 930 Turbo", "1965 Ford Mustang", "2009 Nissan GT-R", "1988 Porsche 911 Carrera",
-      "2000 Honda S2000", "1963 Jaguar E-Type", "2017 Porsche 911 GT3", "1990 Chevrolet Corvette ZR-1", "1980 Datsun 280ZX",
-      "1990 Lamborghini Countach 25th Anniversary", "1989 Porsche 911 Speedster", "1955 Jaguar D-Type",
-      "1967 Ferrari 275 GTB/4", "2014 McLaren P1"
-    ];
-    const CARS = req.query?.cars ? String(req.query.cars).split("|") : DEFAULT_CARS;
-    const offset = Number(req.query?.offset) > 0 ? Number(req.query.offset) : 0;
-    const limit = Number(req.query?.limit) > 0 ? Number(req.query.limit) : CARS.length;
-    const criteriaFor = () => ({ region: { country: "US", regionLabel: "the US" }, state: "CA", timeline: "No rush", involvement: "I'll sell it myself", sellerPreference: "diy", notes: "", targetPrice: null });
-    const shapeDecision = (dec, partnerRef) => {
-      const bestRoute = (dec.routeFit && dec.routeFit.routes || []).find(r => r.platform === dec.recommendedPath);
-      const ev = bestRoute && bestRoute.marketEvidence;
-      const byVenue = ((dec.routeFit && dec.routeFit.routes) || []).filter(r => r.routable && r.marketEvidence).map(r => ({
-        platform: r.platform, evidenceSales: r.marketEvidence.evidenceSales, medianSalePrice: r.marketEvidence.medianSalePrice,
-        pricePremium: r.marketEvidence.pricePremium || null
-      }));
-      return {
-        recommendedPath: dec.recommendedPath || null, confidence: dec.confidence || null, evidenceBasis: dec.evidenceBasis || null,
-        evidenceSales: (ev && ev.evidenceSales) || 0, medianSalePrice: (ev && ev.medianSalePrice) || null,
-        pricePremium: (ev && ev.pricePremium) || null, matchedPremium: (ev && ev.matchedPremium) || null,
-        dayAdvantage: (ev && ev.dayAdvantage) || null, momentum: (ev && ev.momentum) || null,
-        strongerNonRoutable: dec.strongerNonRoutable || null, byVenue,
-        why: dec.why || [],
-        partnerShouldEvaluate: !!(partnerRef && partnerRef.shouldEvaluate), partnerEligible: !!(partnerRef && partnerRef.eligible)
-      };
-    };
-    const rows = [];
-    for (const q of CARS.slice(offset, offset + limit)) {
-      const row = { q };
-      try {
-        const rv = await resolveVehicle(q, {}); const vehicle = rv && rv.vehicle;
-        if (!vehicle || !vehicle.make) { row.error = "unresolved"; rows.push(row); continue; }
-        row.resolved = `${vehicle.year || ""} ${vehicle.make} ${vehicle.model || ""}${vehicle.trim ? " " + vehicle.trim : ""}`.trim();
-        const generation = await findGeneration(vehicle, env);
-        const criteria = criteriaFor();
-        const fetched = await fetchRecentRecords(vehicle, apiKey, generation);
-        const recs = (fetched && fetched.records) || [];
-        const cls = recs.map(r => classifyRecord(r, vehicle));
-        const oldAnalysis = analyze(recs, cls, buildLadder(vehicle, generation), vehicle, false);
-        const oldDecision = decide(oldAnalysis, criteria, vehicle);
-        const oldPartner = await evaluatePartnerReferral(oldAnalysis, criteria, vehicle, env.supabaseUrl, env.supabaseKey).catch(() => null);
-        row.before = shapeDecision(oldDecision, oldPartner);
-        let newAnalysis = await buildSharedAnalysis(vehicle, generation, env, criteria).catch(() => null);
-        if (!newAnalysis) {
-          newAnalysis = { evidenceSales: 0, estimatedValue: null, thinMarket: true, ladder: { landed: null, rungs: [], policyFloorRung: 1 },
-            platformPerformance: [], sellerActivity: null, historicalWeekday: null, transmissionSplit: null, windowDays: null, evidenceLabel: "no comparable sales in tracked auction data" };
-        }
-        const newDecision = decide(newAnalysis, criteria, vehicle);
-        const newPartner = await evaluatePartnerReferral(newAnalysis, criteria, vehicle, env.supabaseUrl, env.supabaseKey).catch(() => null);
-        row.after = shapeDecision(newDecision, newPartner);
-        const numDiff = (a, b) => (a == null || b == null) ? (a !== b) : Math.abs(a - b) > Math.max(1, Math.abs(a) * 0.05);
-        row.diff = {
-          recommendedPath: row.before.recommendedPath !== row.after.recommendedPath,
-          confidence: row.before.confidence !== row.after.confidence,
-          evidenceBasis: row.before.evidenceBasis !== row.after.evidenceBasis,
-          evidenceSales: numDiff(row.before.evidenceSales, row.after.evidenceSales),
-          medianSalePrice: numDiff(row.before.medianSalePrice, row.after.medianSalePrice),
-          pricePremiumPresence: !!row.before.pricePremium !== !!row.after.pricePremium,
-          strongerNonRoutable: !!row.before.strongerNonRoutable !== !!row.after.strongerNonRoutable
-        };
-        row.anyDiff = Object.values(row.diff).some(Boolean);
-      } catch (e) { row.error = String((e && e.message) || e); }
-      rows.push(row);
-    }
-    return res.status(200).json({ task: "sellcutoverdiff", total: rows.length, diffCount: rows.filter(r => r.anyDiff).length, rows });
-  }
-
   // task=taxprobe: READ-ONLY (archive; ZERO OCD). Grounding data for the class-taxonomy design +
   // the two resolver fixes: what the resolver returns for the flagged cars, the Viper body tags,
   // and title/body tokens actually present in the archive for rare/coachbuilt/era-reuse cars.
@@ -2934,89 +2323,6 @@ async function handleOps(req, res) {
     const excluded = Object.entries(counts).filter(([p]) => RE.test(p));
     const raw = rows.length, kept = rows.filter(r => !RE.test(String(r.platform || ""))).length;
     return res.status(200).json({ task: "poolsrc", make, model, title, rawPool: raw, keptAfterExclusion: kept, removed: raw - kept, ukSourcesInPool: Object.fromEntries(excluded), allPlatforms: counts });
-  }
-
-  // task=coverage: READ-ONLY platform coverage audit (Sep 2026). Reports OCD's real
-  // source universe (probes each candidate source), what is ingested into sales_archive
-  // and vehicle_market_records (row count + latest record date per platform, to catch a
-  // silently-stale platform), the MarketPlace leak count, and whether ingest_runs exists.
-  // Metered: ~1 OCD /auctions call per probed source. No writes.
-  if (task === "coverage") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
-    const countAndMax = async (table, filter, dateCol) => {
-      try {
-        const q = `${table}?${filter ? filter + "&" : ""}select=${dateCol}&order=${dateCol}.desc.nullslast&limit=1`;
-        const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: { ...H, Prefer: "count=exact" } });
-        const cr = r.headers.get("content-range"); const total = cr ? cr.split("/")[1] : null;
-        const rows = await r.json().catch(() => []);
-        return { count: total, latest: (Array.isArray(rows) && rows[0] && rows[0][dateCol]) || null };
-      } catch (e) { return { error: e.message }; }
-    };
-    // 1) OCD source universe - probe each candidate source for total + latest + VIN/chassis.
-    const ocdSources = {};
-    const ocdCandidates = req.query?.slugs ? String(req.query.slugs).split(",").map(s => s.trim()).filter(Boolean) : [
-      "bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter",
-      // the eight new candidates + common slug variants
-      "barrettjackson", "barrett-jackson", "mecum", "mecumauctions", "bonhams", "broadarrow", "broad-arrow", "broadarrowauctions",
-      "carandclassic", "car-and-classic", "carclassic", "collectingcars", "collecting-cars", "themarket", "the-market", "themarketbybonhams", "pistonheads", "piston-heads"
-    ];
-    let ocdMetered = 0;
-    for (const s of ocdCandidates) {
-      try { ocdMetered++; const r = await callOldCarsData("/auctions", { source: s, status: "sold", sort: "date", direction: "desc", page: 1, limit: 1 }, apiKey);
-        const rec = (r.data || [])[0] || null;
-        const vinField = rec ? (rec.vin || rec.chassis || rec.chassis_number || rec.vin_number || null) : null;
-        const geoKeys = rec ? Object.keys(rec).filter(k => /countr|locat|venue|city|state|region|address|lot|currenc/i.test(k)) : [];
-        const geoVals = {}; if (rec) for (const k of geoKeys) geoVals[k] = rec[k] == null ? null : String(rec[k]).slice(0, 30);
-        ocdSources[s] = { total: r.meta?.total_results ?? r.meta?.total ?? (r.data || []).length, latest: rec?.auction_end_date || null, hasData: (r.data || []).length > 0,
-          vinSample: vinField ? String(vinField).slice(0, 20) : null, vinKeys: rec ? Object.keys(rec).filter(k => /vin|chassis/i.test(k)) : [], currencySample: rec?.currency || null,
-          geoVals, allKeys: (req.query?.keys && rec) ? Object.keys(rec) : undefined };
-      } catch (e) { ocdSources[s] = { error: e.message }; }
-    }
-    // 2) sales_archive per platform label (One Box comp source) + distinct sample.
-    const archiveLabels = ["Bring a Trailer", "Cars & Bids", "Hagerty", "PCARMarket", "All Collector Cars", "Gooding & Co", "RM Sotheby's", "Sotheby's Motorsport (SOMO)", "Sotheby's Motorsport", "Hemmings", "MB Market", "AutoHunter", "Barrett-Jackson", "Mecum Auctions", "Bonhams", "Broad Arrow", "Car & Classic", "Collecting Cars", "The Market", "PistonHeads"];
-    const archivePlatforms = {};
-    for (const L of archiveLabels) archivePlatforms[L] = await countAndMax("sales_archive", `platform=eq.${encodeURIComponent(L)}`, "sale_date");
-    const archiveTotal = await countAndMax("sales_archive", "", "sale_date");
-    const aSample = await supabaseSelect(env, `sales_archive?select=platform&order=sale_date.desc&limit=1000`);
-    const archiveSampleDist = {}; for (const r of (aSample || [])) archiveSampleDist[r.platform] = (archiveSampleDist[r.platform] || 0) + 1;
-    // 3) vehicle_market_records per source (the /sell live-fetch store) + distinct sample.
-    const vmrLabels = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "allcollectorcars", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter"];
-    const vmrSources = {};
-    for (const s of vmrLabels) vmrSources[s] = await countAndMax("vehicle_market_records", `source=eq.${encodeURIComponent(s)}`, "auction_end_date");
-    const vmrTotal = await countAndMax("vehicle_market_records", "", "auction_end_date");
-    const vSample = await supabaseSelect(env, `vehicle_market_records?select=source&order=auction_end_date.desc&limit=1000`);
-    const vmrSampleDist = {}; for (const r of (vSample || [])) vmrSampleDist[r.source] = (vmrSampleDist[r.source] || 0) + 1;
-    // 4) MarketPlace leak (should be 0 after the purge).
-    const marketplace = await countAndMax("sales_archive", `listing_title=ilike.MarketPlace:*`, "sale_date");
-    // 5) ingest_runs existence + latest.
-    let ingestRuns;
-    try { const r = await fetch(`${env.supabaseUrl}/rest/v1/ingest_runs?select=*&limit=3`, { headers: H }); ingestRuns = r.ok ? { exists: true, sample: await r.json() } : { exists: false, httpStatus: r.status, body: (await r.text()).slice(0, 200) }; }
-    catch (e) { ingestRuns = { exists: false, error: e.message }; }
-    // 5b) VIN/chassis fill rate for the four live-auction houses (exact-car match depends on it).
-    const vinFill = {};
-    for (const s of ["barrettjackson", "mecum", "bonhams", "broadarrow"]) {
-      try { ocdMetered++; const r = await callOldCarsData("/auctions", { source: s, status: "sold", sort: "date", direction: "desc", page: 1, limit: 20 }, apiKey);
-        const rows = r.data || []; const withVin = rows.filter(x => x.vin && String(x.vin).trim());
-        vinFill[s] = { sampled: rows.length, withVin: withVin.length, samples: withVin.slice(0, 3).map(x => String(x.vin).slice(0, 20)) };
-      } catch (e) { vinFill[s] = { error: e.message }; }
-    }
-    // 6) House-source reconciliation: does the stored platform value back out premium?
-    // One Box reads sales_archive.platform AS row.source; isHouseSource/HOUSE_SCHEDULES key
-    // on slugs. If the archive stores the DISPLAY LABEL ("RM Sotheby's"), the premium
-    // back-out silently never fires. Pull real rows and run the ACTUAL functions on them.
-    let houseCheck = {};
-    try {
-      const mod = await import("../lib/_houseComps.js");
-      for (const q of ["sotheby", "gooding", "bonham", "barrett", "mecum", "broad arrow"]) {
-        const rows = await supabaseSelect(env, `sales_archive?select=platform,sale_price,raw_record->>currency&platform=ilike.*${encodeURIComponent(q)}*&limit=1`);
-        const r = rows && rows[0];
-        if (!r) { houseCheck[q] = { rows: 0 }; continue; }
-        const asRow = { source: r.platform, price: Number(r.sale_price), currency: r.currency || "USD" };
-        houseCheck[q] = { storedPlatform: r.platform, isHouseSource: mod.isHouseSource(r.platform), price: asRow.price, hammerUsd: mod.hammerUsd(asRow), backedOut: mod.hammerUsd(asRow) !== mod.toUsd(asRow.price, asRow.currency) };
-      }
-    } catch (e) { houseCheck = { error: e.message }; }
-    return res.status(200).json({ task: "coverage", ocdMetered, ocdSources, archiveTotal, archivePlatforms, archiveSampleDist, vmrTotal, vmrSources, vmrSampleDist, marketplace, ingestRuns, vinFill, houseCheck });
   }
 
   // ===================== Sam Desk Stage A: dictionary coverage + gate (READ-ONLY) =====================
@@ -3183,127 +2489,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "deskgate", set: which === FIVE ? "five" : "thirty", count: out.length, results: out });
   }
 
-
-  // task=houserates: empirical premium-rate calibration. A correct back-out rate turns a
-  // premium-INCLUSIVE total into a ROUND hammer (auction hammers land on $500/$1000 steps).
-  // Tests candidate rates and reports which reproduces round hammers most often. Also
-  // screens PistonHeads for asking-price/classified rows. Metered (~6 OCD calls). No writes.
-  if (task === "houserates") {
-    const inv = (total, tiers) => { let lo = 0, ft = 0; for (const [th, rate] of tiers) { const span = th - lo, top = ft + span * (1 + rate); if (total <= top || !Number.isFinite(th)) return lo + (total - ft) / (1 + rate); lo = th; ft = top; } return total; };
-    const roundHits = (hammers, step) => hammers.filter(h => { const r = Math.round(h); return Math.abs(r - Math.round(r / step) * step) <= 25; }).length;
-    const pull = async (source, pages) => { const out = []; for (let p = 1; p <= pages; p++) { try { const r = await callOldCarsData("/auctions", { source, status: "sold", sort: "date", direction: "desc", page: p, limit: 50 }, apiKey); out.push(...(r.data || [])); } catch (e) { break; } } return out; };
-    const out = {};
-    // Barrett-Jackson: flat 10 / 12 / 13.5
-    { const rows = (await pull("barrettjackson", 2)).filter(r => Number(r.price) > 0);
-      const prices = rows.map(r => Number(r.price));
-      out.barrettjackson = { lots: prices.length };
-      for (const rate of [0.10, 0.12, 0.135]) { const hs = prices.map(p => p / (1 + rate)); out.barrettjackson["rate_" + rate] = { round500: roundHits(hs, 500), round1000: roundHits(hs, 1000) }; }
-      out.barrettjackson.sampleTotals = prices.slice(0, 5);
-    }
-    // Mecum: flat 10
-    { const rows = (await pull("mecum", 1)).filter(r => Number(r.price) > 0).slice(0, 20);
-      const prices = rows.map(r => Number(r.price));
-      const hs = prices.map(p => p / 1.10);
-      out.mecum = { lots: prices.length, "rate_0.10": { round500: roundHits(hs, 500), round1000: roundHits(hs, 1000) }, sampleTotals: prices.slice(0, 5) }; }
-    // RM Paris EUR: EU_200 no-VAT vs +20% VAT on premium
-    { const rows = (await pull("rmsothebys", 3)).filter(r => Number(r.price) > 0 && String(r.currency).toUpperCase() === "EUR").slice(0, 20);
-      const prices = rows.map(r => Number(r.price));
-      const EU = [[200000, 0.15], [Infinity, 0.125]];
-      // no-VAT: total = hammer + premium(hammer). with-VAT: total = hammer + 1.2*premium(hammer).
-      const EU_VAT = [[200000, 0.15 * 1.2], [Infinity, 0.125 * 1.2]];
-      const hsNo = prices.map(p => inv(p, EU)); const hsVat = prices.map(p => inv(p, EU_VAT));
-      out.rmParisEUR = { lots: prices.length, noVat_round500: roundHits(hsNo, 500), withVat_round500: roundHits(hsVat, 500), sampleTotals: prices.slice(0, 5) }; }
-    // PistonHeads classified/asking-price screen
-    { const rows = await pull("pistonheads", 3);
-      const askRe = /for sale|asking|guide price|\bono\b|classified|p\.?o\.?a/i;
-      const flagged = rows.filter(r => askRe.test(String(r.title || "")) || !r.auction_end_date || Number(r.price) <= 0);
-      out.pistonheads = { sampled: rows.length, flagged: flagged.length, noEndDate: rows.filter(r => !r.auction_end_date).length, zeroPrice: rows.filter(r => !(Number(r.price) > 0)).length, sampleTitles: flagged.slice(0, 5).map(r => String(r.title || "").slice(0, 50)) }; }
-    return res.status(200).json({ task: "houserates", ...out });
-  }
-
-  // task=modelscan: read-only fragmentation diagnostic. Lists OCD's model
-  // identifiers for a make (/models is free) and probes a few keywords for
-  // reported totals + the ocd_model_name each keyword's records actually carry -
-  // so we can see whether "E-Class" sales live under E320/E350/E63 badge-models.
-  if (task === "modelscan") {
-    const make = String(req.query?.make || "Mercedes-Benz");
-    const filter = String(req.query?.filter || "").toLowerCase();
-    const probes = req.query?.probes ? String(req.query.probes).split(",").map(s => s.trim()).filter(Boolean) : [];
-    let models = [];
-    try { const m = await callOldCarsData("/models", { make }, apiKey); const arr = m.data || m.models || (Array.isArray(m) ? m : []); models = arr.map(x => (x && (x.name || x.model)) || x).filter(Boolean).map(String); }
-    catch (e) { return res.status(200).json({ task: "modelscan", error: "models fetch: " + e.message }); }
-    const filtered = filter ? models.filter(m => m.toLowerCase().includes(filter)) : models;
-    let metered = 0; const probeResults = [];
-    for (const kw of probes) {
-      metered++;
-      let resp; try { resp = await callOldCarsData("/auctions", { keyword: kw, status: "sold", sort: "date", direction: "desc", page: 1, limit: 50 }, apiKey); }
-      catch (e) { probeResults.push({ keyword: kw, error: e.message }); continue; }
-      const rows = resp.data || [];
-      const modelNames = {}; let recent = 0; const now = Date.now();
-      for (const r of rows) { const mn = r.ocd_model_name || r.listing_model || "?"; modelNames[mn] = (modelNames[mn] || 0) + 1; const d = r.auction_end_date ? new Date(r.auction_end_date).getTime() : 0; if (d && now - d <= 180 * 864e5) recent++; }
-      probeResults.push({ keyword: kw, reportedTotal: resp.meta?.total_results ?? resp.meta?.total ?? rows.length, recentInPage180d: recent, sampleModelNames: modelNames });
-    }
-    return res.status(200).json({ task: "modelscan", make, modelCount: models.length, filtered, probes: probeResults, meteredThisRun: metered });
-  }
-
-  // task=fragscan: FREE systematic fragmentation scan across the model catalog.
-  // The archive `model` column IS the OCD badge (persistableMakeModel keeps E550/M5,
-  // it does not defrag at persist), so the per-make model-name distribution is a
-  // full-count fragmentation signal at zero OCD cost. Auto-flags umbrella families
-  // (names ending Series/Class/Type whose badge siblings outweigh the head) and
-  // ranks makes by the SAME interest x gap the standing depth job uses (warm seed
-  // w1, partner models w2, 180d search history w3). Archive is head-keyword-biased,
-  // so siblingCount is a LOWER BOUND: a high ratio despite that bias confirms
-  // fragmentation; topModels is returned for judgment on non-umbrella patterns
-  // (Audi A4/S4/RS4, Lexus LS, Cadillac CTS/CTS-V). &probe=1 adds bounded live
-  // head-vs-badge keyword counts, budget-gated.
-  if (task === "fragscan") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-    const key = (mk, md) => `${norm(mk)}|${norm(md)}`;
-    const makes = req.query?.makes ? String(req.query.makes).split(",").map(s => s.trim()).filter(Boolean)
-      : ["Ford", "Audi", "Mercedes-Benz", "BMW", "Jaguar", "Land Rover", "Cadillac", "Lexus", "Porsche", "Chevrolet", "Toyota", "Nissan"];
-    // Interest x gap map, reused from the depth ranking.
-    const makeInterest = new Map();
-    const modelInterest = new Map();
-    const addI = (mk, md, w) => { const a = String(mk || "").trim(), b = String(md || "").trim(); if (!a || !b) return; makeInterest.set(norm(a), (makeInterest.get(norm(a)) || 0) + w); modelInterest.set(key(a, b), (modelInterest.get(key(a, b)) || 0) + w); };
-    try { const seed = JSON.parse(fs.readFileSync(new URL("../scripts/warm-list.json", import.meta.url), "utf8")).models || []; for (const [mk, md] of seed) addI(mk, md, 1); } catch { /* seed optional */ }
-    try { const t = await supabaseSelect(env, `app_usage_events?event_type=eq.warm_targeted&select=metadata&order=created_at.desc&limit=1`); for (const [mk, md] of ((t && t[0] && t[0].metadata && t[0].metadata.models) || [])) addI(mk, md, 2); } catch { /* partners optional */ }
-    try { const since = new Date(Date.now() - 180 * 864e5).toISOString(); const rows = await supabaseSelect(env, `app_usage_events?event_type=eq.seller_decision&created_at=gte.${since}&select=vehicle&limit=20000`); for (const r of (rows || [])) { const v = r.vehicle || {}; addI(v.make, v.model, 3); } } catch { /* history optional */ }
-    const probe = req.query?.probe === "1" || req.query?.probe === "true";
-    const spent0 = probe ? await meteredToday() : null;
-    let probeLeft = probe ? (spent0 === null ? Infinity : Math.max(0, dailyBudget - spent0)) : 0;
-    let metered = 0;
-    const probeKw = async kw => { if (probeLeft !== Infinity && metered >= probeLeft) return null; metered++; try { const resp = await callOldCarsData("/auctions", { keyword: kw, status: "sold", page: 1, limit: 1 }, apiKey); return resp.meta?.total_results ?? resp.meta?.total ?? (resp.data || []).length; } catch { return null; } };
-    const out = [];
-    for (const make of makes) {
-      const rows = await supabaseSelect(env, `vehicle_market_records?make=ilike.${encodeURIComponent(make)}&select=model&limit=100000`);
-      const counts = new Map();
-      for (const r of (rows || [])) { const m = String(r.model || "").trim(); if (!m || m.toLowerCase() === "other") continue; counts.set(m, (counts.get(m) || 0) + 1); }
-      const total = rows ? rows.length : 0;
-      const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 30).map(([model, n]) => ({ model, n }));
-      const umbrellas = [];
-      for (const [name, n] of counts) {
-        const low = name.toLowerCase().trim();
-        const mCS = low.match(/^([a-z0-9]+)[\s-]?(series|class|type)$/); // E-Class, F-Series, 3-Series, F-Type
-        if (!mCS) continue;
-        const stem = mCS[1];
-        const stemEsc = stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const sibRe = new RegExp(`^${stemEsc}[\\s-]?\\d`, "i");
-        let sibSum = 0; const sibEx = [];
-        for (const [nm, c] of counts) { if (nm === name) continue; const bare = nm.replace(/[^a-z0-9\s-]/gi, ""); if (sibRe.test(nm) || sibRe.test(bare)) { sibSum += c; sibEx.push({ model: nm, n: c }); } }
-        if (/^\d/.test(stem)) { const mRe = new RegExp(`^m${stem}`, "i"); for (const [nm, c] of counts) { if (nm === name) continue; if (mRe.test(nm.replace(/[^a-z0-9]/gi, ""))) { sibSum += c; sibEx.push({ model: nm, n: c }); } } }
-        sibEx.sort((a, b) => b.n - a.n);
-        const flag = { umbrella: name, headCount: n, siblingCount: sibSum, ratio: n ? +(sibSum / n).toFixed(1) : null, siblingExamples: sibEx.slice(0, 8) };
-        if (probe && sibSum > 0) { flag.liveHead = await probeKw(`${make} ${name}`); flag.liveTopBadge = sibEx[0] ? await probeKw(`${make} ${sibEx[0].model}`) : null; }
-        umbrellas.push(flag);
-      }
-      umbrellas.sort((a, b) => b.siblingCount - a.siblingCount);
-      out.push({ make, archiveTotal: total, truncated: total >= 100000, interest: makeInterest.get(norm(make)) || 0, umbrellaFlags: umbrellas.filter(u => u.siblingCount > 0), topModels: top });
-    }
-    out.sort((a, b) => (b.interest - a.interest) || (b.archiveTotal - a.archiveTotal));
-    return res.status(200).json({ task: "fragscan", probe, meteredThisRun: metered, spentToday: spent0, makes: out });
-  }
 
   if (task === "probe") {
     const spent = await meteredToday();
@@ -3516,103 +2701,6 @@ async function handleOps(req, res) {
     try { await recordUsageEvent({ event_type: "warm_targeted", route: "partnerfetch", status: "ok", oldcarsdata_metered_requests: 0, duration_ms: 0, metadata: { models: targeted, count: targeted.length, generatedAt: new Date().toISOString() } }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ }
     if (env && metered > 0) { try { await recordUsageEvent({ event_type: "partner_fetch", route: "api/usageDashboard.js?task=partnerfetch", status: "ok", oldcarsdata_metered_requests: metered, duration_ms: 0, metadata: { persisted: totalPersisted, targetedModels: targeted.length } }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ } }
     return res.status(200).json({ task: "partnerfetch", spentToday: spent0, meteredThisRun: metered, persisted: totalPersisted, targetedModelCount: targeted.length, targetedModels: targeted, summary });
-  }
-
-  // task=histfetch: the historical comp backfill. Warming (fill) only fetches each
-  // model's RECENT (~180d) sales, so a partner's 2019-2024 sale has no comps in its
-  // +/-6mo window and stays unmatched (the recent-bias that pins Dan/Chris to a thin
-  // recent slice). This pages each TARGETED model's SOLD history back through time
-  // (to ~2018) across the 8 US platforms and persists it, so every partner sale finds
-  // like-for-like comps. Budget-guarded (daily cap), resumable, drain/cron-able.
-  if (task === "histfetch") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const spent0 = await meteredToday();
-    const budgetLeft = spent0 === null ? Infinity : Math.max(0, dailyBudget - spent0);
-    if (budgetLeft <= 0) return res.status(200).json({ task: "histfetch", skipped: "daily_budget_spent", spentToday: spent0, dailyBudget });
-    const US8 = new Set(["bringatrailer", "bat", "carsandbids", "hagerty", "pcarmarket", "sothebysmotorsport", "hemmings", "autohunter", "mbmarket"]);
-    const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-    const floor = String(req.query?.floor || "2018-01-01");
-    const maxPagesPerModel = Math.max(2, Math.min(30, Number(req.query?.pages || 16)));
-    let metered = 0, persisted = 0, modelsProcessed = 0, ocdRemaining = null;
-    const t0 = Date.now();
-    async function doModel(make, model) {
-      const recs = [];
-      for (let page = 1; page <= maxPagesPerModel; page++) {
-        if (budgetLeft !== Infinity && metered >= budgetLeft) break;
-        metered++;
-        let resp; try { resp = await callOldCarsData("/auctions", { keyword: `${make} ${model}`, status: "sold", sort: "date", direction: "desc", page, limit: 50 }, apiKey); } catch (e) { if (e.rateLimited) throw e; break; }
-        if (resp.__rateLimit && resp.__rateLimit.remaining != null) ocdRemaining = Number(resp.__rateLimit.remaining);
-        const rows = resp.data || [];
-        if (!rows.length) break;
-        for (const r of rows) { const mm = persistableMakeModel(r); if (US8.has(norm(r.platform || r.source)) && norm(mm.make) === norm(make) && norm(mm.model) === norm(model)) recs.push(r); }
-        const oldest = rows.map(r => r.auction_end_date).filter(Boolean).sort()[0];
-        if (oldest && String(oldest).slice(0, 10) < floor) break;
-        if (rows.length < 50) break;
-        if (page >= (resp.meta?.total_pages || 1)) break;
-      }
-      if (recs.length) {
-        const payload = recs.map(record => ({
-          source: recordPlatform(record), source_record_id: stableRecordId(record), source_url: record.url || record.listing_url || null, platform: recordPlatform(record),
-          ...persistableMakeModel(record), year: record.year || null, raw_title: record.title || record.listing_title || null,
-          price: Number(record.price ?? record.sold_price ?? record.final_price ?? record.current_bid) || null,
-          auction_status: record.auction_status || record.status || null, auction_end_date: record.auction_end_date || null,
-          seller_username: record.seller_username || null, raw_record: record
-        })).filter(p => p.source_record_id);
-        if (payload.length) { try { await supabaseInsert("vehicle_market_records", payload, env.supabaseUrl, env.supabaseKey, "resolution=ignore-duplicates,return=minimal", "?on_conflict=source,source_record_id"); persisted += payload.length; } catch (e) { /* non-fatal */ } }
-      }
-    }
-    // AD-HOC models slice: &models=Make:Model,Make:Model persists exactly those
-    // nameplates (one-off, does not touch the standing cursor). Used to backfill a
-    // family's badge nameplates (E350, E550, E63 ...) so the fragmentation fix has
-    // badge records to defrag under the family head.
-    if (req.query?.models) {
-      const pairs = String(req.query.models).split(",").map(s => s.trim()).filter(Boolean)
-        .map(s => { const i = s.indexOf(":"); return i < 0 ? null : [s.slice(0, i).trim(), s.slice(i + 1).trim()]; })
-        .filter(p => p && p[0] && p[1]);
-      let nextIdx = 0, stopReason = "list_done";
-      try { for (let i = 0; i < pairs.length; i++) { if (budgetLeft !== Infinity && metered >= budgetLeft) { stopReason = "budget"; break; } if (Date.now() - t0 > 230000) { stopReason = "time"; break; } await doModel(pairs[i][0], pairs[i][1]); modelsProcessed++; nextIdx = i + 1; } }
-      catch (e) { stopReason = "ratelimit"; }
-      if (env && metered > 0) { try { await recordUsageEvent({ event_type: "adhoc_histfetch", route: "histfetch?models", status: stopReason, oldcarsdata_metered_requests: metered, duration_ms: 0, metadata: { models: pairs.map(p => p.join(" ")), persisted } }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ } }
-      return res.status(200).json({ task: "histfetch", mode: "adhoc", models: pairs.map(p => p.join(" ")), modelCount: pairs.length, nextIdx, done: nextIdx >= pairs.length, meteredThisRun: metered, persistedThisRun: persisted, modelsProcessed, stopReason, ocdRemaining, spentToday: spent0, dailyBudget });
-    }
-    // PARTNERS priority slice: fetch the DISTINCT models these partners actually sold
-    // FIRST (one-off, ahead of the standing interest x gap queue; does not touch the
-    // standing cursor). Used to stabilize a specific partner's four numbers fast.
-    if (req.query?.partners) {
-      const handles = String(req.query.partners).split(",").map(s => s.trim()).filter(Boolean);
-      const inList = handles.map(h => `"${h}"`).join(",");
-      const rows = await supabaseSelect(env, `vehicle_market_records?seller_username=in.(${encodeURIComponent(inList)})&select=raw_record&limit=5000`);
-      const set = new Map();
-      for (const r of (rows || [])) { const rec = r.raw_record || {}; const mk = String(rec.ocd_make_name || rec.listing_make || "").trim(), md = String(rec.ocd_model_name || rec.listing_model || "").trim(); if (mk && md) { const k = `${mk}|${md}`; const e = set.get(k) || { make: mk, model: md, n: 0 }; e.n++; set.set(k, e); } }
-      const queue = [...set.values()].sort((a, b) => b.n - a.n).map(e => [e.make, e.model]);
-      const offset = Math.max(0, Number(req.query?.offset || 0)); // resume point (queue is deterministic)
-      let nextIdx = offset, stopReason = "list_done";
-      try { for (let i = offset; i < queue.length; i++) { if (budgetLeft !== Infinity && metered >= budgetLeft) { stopReason = "budget"; break; } if (Date.now() - t0 > 230000) { stopReason = "time"; break; } await doModel(queue[i][0], queue[i][1]); modelsProcessed++; nextIdx = i + 1; } }
-      catch (e) { stopReason = "ratelimit"; }
-      if (env && metered > 0) { try { await recordUsageEvent({ event_type: "partner_histfetch", route: "histfetch?partners", status: stopReason, oldcarsdata_metered_requests: metered, duration_ms: 0, metadata: { handles, models: queue.length, offset, nextIdx, persisted } }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ } }
-      return res.status(200).json({ task: "histfetch", mode: "partners", partners: handles, modelCount: queue.length, offset, nextIdx, done: nextIdx >= queue.length, meteredThisRun: metered, persistedThisRun: persisted, modelsProcessed, stopReason, ocdRemaining, spentToday: spent0, dailyBudget });
-    }
-    // STANDARD cursor mode over the warm_targeted (soon: interest x gap) queue.
-    const tRows = await supabaseSelect(env, `app_usage_events?event_type=eq.warm_targeted&select=metadata&order=created_at.desc&limit=1`);
-    const models = (tRows && tRows[0] && Array.isArray(tRows[0].metadata?.models)) ? tRows[0].metadata.models : [];
-    if (!models.length) return res.status(500).json({ error: "No targeted models; run task=partnerfetch first." });
-    const reset = req.query?.reset === "1" || req.query?.reset === "true";
-    let cursor = { index: 0, spent: 0, persisted: 0, runs: 0 };
-    if (!reset) { const c = await supabaseSelect(env, `app_usage_events?event_type=eq.histfetch_cursor&select=metadata&order=created_at.desc&limit=1`); if (c && c[0] && c[0].metadata) cursor = { ...cursor, ...c[0].metadata }; }
-    if (cursor.index >= models.length) return res.status(200).json({ task: "histfetch", done: true, message: "Historical backfill complete. &reset=1 to re-run.", cursor, total: models.length });
-    let idx = cursor.index, stopReason = "list_done";
-    try {
-      while (idx < models.length) {
-        if (budgetLeft !== Infinity && metered >= budgetLeft) { stopReason = "budget"; break; }
-        if (Date.now() - t0 > 230000) { stopReason = "time"; break; }
-        await doModel(models[idx][0], models[idx][1]);
-        idx++; modelsProcessed++;
-        if (modelsProcessed % 3 === 0) { try { await recordUsageEvent({ event_type: "histfetch_cursor", route: "histfetch", status: "chunk", oldcarsdata_metered_requests: 0, duration_ms: 0, metadata: { index: idx, spent: (cursor.spent || 0) + metered, persisted: (cursor.persisted || 0) + persisted, runs: (cursor.runs || 0) + 1 } }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ } }
-      }
-    } catch (e) { stopReason = "ratelimit"; }
-    const next = { index: idx, spent: (cursor.spent || 0) + metered, persisted: (cursor.persisted || 0) + persisted, runs: (cursor.runs || 0) + 1 };
-    try { await recordUsageEvent({ event_type: "histfetch_cursor", route: "histfetch", status: idx >= models.length ? "complete" : stopReason, oldcarsdata_metered_requests: 0, duration_ms: 0, metadata: next }, env.supabaseUrl, env.supabaseKey); } catch { /* non-fatal */ }
-    return res.status(200).json({ task: "histfetch", spentToday: spent0, meteredThisRun: metered, persistedThisRun: persisted, modelsProcessed, stopReason, ocdRemaining, cursor: next, total: models.length, done: idx >= models.length });
   }
 
   // task=depth: the STANDING archive-depth job. Not partner-scoped - it keeps the
@@ -4053,26 +3141,6 @@ async function handleOps(req, res) {
     });
   }
 
-  // task=futurerows: READ-ONLY find (ZERO OCD) of any sales_archive row dated AFTER today (a completed
-  // sale cannot be). Shows source, title, URL and raw dates so we can confirm they are upcoming/
-  // scheduled auctions mis-stored as sales. A guarded DELETE runs only with &deleteIds=a,b AND only
-  // removes rows that are BOTH in that id list AND genuinely future-dated, so it can never delete a
-  // real past sale.
-  if (task === "futurerows") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const today = new Date().toISOString().slice(0, 10);
-    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
-    const deleteIds = req.query?.deleteIds ? String(req.query.deleteIds).split(",").map(s => s.trim()).filter(Boolean) : null;
-    if (deleteIds && deleteIds.length) {
-      const idList = deleteIds.map(encodeURIComponent).join(",");
-      const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?id=in.(${idList})&sale_date=gt.${today}`, { method: "DELETE", headers: { ...H, Prefer: "return=representation" } });
-      const body = await r.json().catch(() => null);
-      return res.status(r.ok ? 200 : 500).json({ task: "futurerows", action: "delete", ok: r.ok, today, requestedIds: deleteIds, deleted: Array.isArray(body) ? body.map(x => ({ id: x.id, platform: x.platform, title: x.listing_title, sale_date: x.sale_date })) : body });
-    }
-    const rows = await supabaseSelect(env, `sales_archive?sale_date=gt.${today}&select=id,source_id,source_slug,platform,listing_title,sale_date,month,url:raw_record->>url,source_url:raw_record->>source_url,link:raw_record->>link,aed:raw_record->>auction_end_date,status:raw_record->>status&order=sale_date.desc&limit=200`);
-    return res.status(200).json({ task: "futurerows", today, count: rows ? rows.length : null, rows: rows || [] });
-  }
-
   // task=fxaudit: READ-ONLY (archive + saved_results + cube; ZERO OCD, no writes). Finds every
   // sales_archive row in JPY/HKD/NZD (currencies NOT in the static FX fallback, so their stored USD
   // is the native number read as dollars), computes the dated-FX corrected USD, and checks whether
@@ -4334,119 +3402,6 @@ async function handleOps(req, res) {
     });
   }
 
-  // task=unkbackfill: Fix 5 item 4. Backfill make/model/vehicle_type for make/model-'Unknown' rows.
-  // DRY by default (write=1 to persist). Writes make+model+vehicle_type for HIGH-confidence car/moto,
-  // and vehicle_type only for detected non_vehicle/other (so the NULL=car engine transition never
-  // pools memorabilia). Low-confidence + unclassified are left Unknown. VIN-dedupe: a VIN on >1 lot is
-  // never trusted (polluted Bonhams automobilia VINs). Resumable via &offset=; &maxGroups caps a call.
-  if (task === "unkbackfill") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { classifyUnknown } = await import("../lib/_unknownClassify.js");
-    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "return=minimal" };
-    const write = req.query?.write === "1";
-    const offset = Math.max(0, Number(req.query?.offset || 0));
-    const maxGroups = Math.max(1, Math.min(4000, Number(req.query?.maxGroups || 1200)));
-    // Only still-UNTYPED Unknown rows, so repeated write calls converge (a written row gets a
-    // vehicle_type and drops out; non_vehicle/other keep make=Unknown so this is what retires them).
-    const rows = await supabaseSelectAll(env, `sales_archive?or=(make.ilike.unknown,model.ilike.unknown)&vehicle_type=is.null&select=id,source_slug,vin,listing_title&order=id.asc`);
-    if (!rows) return res.status(500).json({ error: "read failed" });
-    const vinCount = {}; for (const r of rows) { const v = String(r.vin || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); if (v.length >= 6) vinCount[v] = (vinCount[v] || 0) + 1; }
-    const repeated = new Set(Object.entries(vinCount).filter(([, n]) => n > 1).map(([v]) => v));
-    // Group rows by the exact update they need, so one PATCH (id=in.(...)) updates many rows.
-    const groups = new Map(); const plan = { car: 0, motorcycle: 0, non_vehicle: 0, other: 0, low: 0, unclassified: 0 };
-    for (const r of rows) {
-      const v = String(r.vin || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-      const useVin = v && !repeated.has(v) ? r.vin : null;
-      const c = classifyUnknown({ listing_title: r.listing_title, vin: useVin });
-      let patch = null;
-      if (c.confidence === "high" && (c.vehicle_type === "car" || c.vehicle_type === "motorcycle") && c.make && c.model) { patch = { make: c.make, model: c.model, vehicle_type: c.vehicle_type }; plan[c.vehicle_type]++; }
-      else if (c.vehicle_type === "non_vehicle") { patch = { vehicle_type: "non_vehicle" }; plan.non_vehicle++; }
-      else if (c.vehicle_type === "other") { patch = { vehicle_type: "other" }; plan.other++; }
-      else if (c.confidence === "low") { plan.low++; continue; }
-      else { plan.unclassified++; continue; }
-      const key = JSON.stringify(patch);
-      if (!groups.has(key)) groups.set(key, { patch, ids: [] });
-      groups.get(key).ids.push(r.id);
-    }
-    const allGroups = [...groups.values()];
-    let written = 0, groupsDone = 0, patchErrors = 0;
-    for (let gi = offset; gi < allGroups.length && groupsDone < maxGroups; gi++, groupsDone++) {
-      const g = allGroups[gi];
-      if (!write) { written += g.ids.length; continue; }
-      for (let i = 0; i < g.ids.length; i += 100) {   // chunk ids to keep the URL bounded
-        const idList = g.ids.slice(i, i + 100).map(encodeURIComponent).join(",");
-        const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?id=in.(${idList})`, { method: "PATCH", headers: H, body: JSON.stringify(g.patch) });
-        if (r.ok) written += Math.min(100, g.ids.length - i); else patchErrors++;
-      }
-    }
-    const nextOffset = offset + groupsDone;
-    return res.status(200).json({ task: "unkbackfill", write, totalUnknownRows: rows.length, repeatedVinsIgnored: repeated.size, plan, distinctUpdateGroups: allGroups.length, groupsProcessedThisCall: groupsDone, rowsWritten: written, patchErrors, nextOffset: nextOffset < allGroups.length ? nextOffset : null });
-  }
-
-  // task=typeall: Fix 5 full-typing of the ~284k ALREADY-identified (non-Unknown) rows. DRY report of
-  // vehicle_type by source + type from the existing make (typeByMake). write=1 persists via cheap
-  // make-keyed bulk PATCHes (one per pure-moto / off-highway make -> moto/other, then a catch-all ->
-  // car), only where vehicle_type IS NULL. Unknown rows are out of scope here (unkbackfill owns them).
-  if (task === "typeall") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { typeByMake, makeTypeLists } = await import("../lib/_unknownClassify.js");
-    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "return=minimal" };
-    const write = req.query?.write === "1";
-    const { motorcycleMakes, otherMakes } = makeTypeLists();
-    if (!write) {
-      // COUNT-based (fetching all ~284k rows times the function out): make-indexed count=exact per
-      // moto/other make, total identified, and per-source totals. car = total - moto - other.
-      const countQ = async filter => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${filter}&select=id&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" } }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : 0; } catch (e) { return null; } };
-      const total = await countQ("make=not.ilike.unknown&model=not.ilike.unknown");
-      const already = await countQ("vehicle_type=not.is.null");
-      let moto = 0, other = 0; const motoDetail = {}, otherDetail = {};
-      for (const mk of motorcycleMakes) { const n = await countQ(`make=ilike.${encodeURIComponent(mk)}&model=not.ilike.unknown`); if (n) { moto += n; motoDetail[mk] = n; } }
-      for (const mk of otherMakes) { const n = await countQ(`make=ilike.${encodeURIComponent(mk)}&model=not.ilike.unknown`); if (n) { other += n; otherDetail[mk] = n; } }
-      const SRCS = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
-      const bySourceIdentified = {};
-      for (const s of SRCS) bySourceIdentified[s] = await countQ(`source_slug=eq.${s}&make=not.ilike.unknown&model=not.ilike.unknown`);
-      return res.status(200).json({
-        task: "typeall", write: false, note: "DRY (count-based) - identified (non-Unknown) rows; car = total - motorcycle - other",
-        byType: { car: (total != null ? total - moto - other : null), motorcycle: moto, other, total_identified: total, already_typed: already },
-        motorcycleMakeDetail: motoDetail, otherMakeDetail: otherDetail, bySourceIdentified
-      });
-    }
-    // WRITE: all PATCHes are count-only (return=minimal,count=exact - never return=representation, which
-    // on the ~286k car catch-all would stream back every row). vehicle_type IS NULL only, so a re-run
-    // never re-touches a typed row. Two phases: makes (moto/other, fast), then car (catch-all, chunked
-    // by source x year so no single UPDATE is big enough to hit the statement timeout; resumable).
-    const countHdr = r => { const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : 0; };
-    const patchFilter = async (filter, type) => { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${filter}&vehicle_type=is.null`, { method: "PATCH", headers: { ...H, Prefer: "return=minimal,count=exact" }, body: JSON.stringify({ vehicle_type: type }) }); return { ok: r.ok, n: r.ok ? countHdr(r) : 0, status: r.status }; };
-    const phase = String(req.query?.phase || "makes");
-    if (phase === "makes") {
-      const done = { motorcycle: 0, other: 0, errors: 0, errorDetail: [] };
-      for (const mk of otherMakes) { const x = await patchFilter(`make=ilike.${encodeURIComponent(mk)}&model=not.ilike.unknown`, "other"); if (x.ok) done.other += x.n; else { done.errors++; done.errorDetail.push("other:" + mk + ":" + x.status); } }
-      for (const mk of motorcycleMakes) { const x = await patchFilter(`make=ilike.${encodeURIComponent(mk)}&model=not.ilike.unknown`, "motorcycle"); if (x.ok) done.motorcycle += x.n; else { done.errors++; done.errorDetail.push("moto:" + mk + ":" + x.status); } }
-      return res.status(200).json({ task: "typeall", write: true, phase: "makes", done, next: "run phase=car&offset=0 next" });
-    }
-    // phase=car: catch-all (identified, still-null -> car), chunked by source x year, resumable via offset.
-    const nowY = new Date().getUTCFullYear();
-    const SRCS = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
-    const chunks = [];
-    for (const s of SRCS) { chunks.push({ s, where: `source_slug=eq.${s}&sale_date=is.null` }); chunks.push({ s, where: `source_slug=eq.${s}&sale_date=lt.1990-01-01` }); for (let y = 1990; y <= nowY; y++) chunks.push({ s, y, where: `source_slug=eq.${s}&sale_date=gte.${y}-01-01&sale_date=lt.${y + 1}-01-01` }); }
-    const offset = Math.max(0, Number(req.query?.offset || 0));
-    const maxChunks = Math.max(1, Math.min(400, Number(req.query?.maxChunks || 250)));
-    let carWritten = 0, chunksDone = 0, errors = 0, monthRetries = 0;
-    for (let i = offset; i < chunks.length && chunksDone < maxChunks; i++, chunksDone++) {
-      const ch = chunks[i];
-      const x = await patchFilter(`${ch.where}&make=not.ilike.unknown&model=not.ilike.unknown`, "car");
-      if (x.ok) { carWritten += x.n; continue; }
-      // A whole-year chunk that errors is too big for one UPDATE (statement timeout): split by month.
-      if (ch.y) {
-        monthRetries++; let subFail = false;
-        for (let m = 1; m <= 12; m++) { const mm = String(m).padStart(2, "0"); const nx = m === 12 ? `${ch.y + 1}-01-01` : `${ch.y}-${String(m + 1).padStart(2, "0")}-01`; const xr = await patchFilter(`source_slug=eq.${ch.s}&sale_date=gte.${ch.y}-${mm}-01&sale_date=lt.${nx}&make=not.ilike.unknown&model=not.ilike.unknown`, "car"); if (xr.ok) carWritten += xr.n; else subFail = true; }
-        if (subFail) errors++;
-      } else errors++;
-    }
-    const nextOffset = offset + chunksDone;
-    return res.status(200).json({ task: "typeall", write: true, phase: "car", carWritten, chunksDone, monthRetries, totalChunks: chunks.length, errors, nextOffset: nextOffset < chunks.length ? nextOffset : null });
-  }
-
   // task=vtcounts: READ-ONLY. Authoritative stored vehicle_type distribution (count=exact) global and
   // per source, to verify the backfill + full typing landed.
   if (task === "vtcounts") {
@@ -4487,37 +3442,6 @@ async function handleOps(req, res) {
       distribution: { exactly_1: counts.filter(n => n === 1).length, two_plus: counts.filter(n => n >= 2).length, three_plus: counts.filter(n => n >= 3).length },
       top10MostSeen: top10
     });
-  }
-
-  // task=typemodelunk: Fix 5 tail. The typeall car phase required model != Unknown, so make-KNOWN /
-  // model-UNKNOWN rows were left vehicle_type NULL (these are real cars whose variant is just unnamed).
-  // Type them by their make (typeByMake -> car|motorcycle|other, default car), so the engine can switch
-  // to strict vehicle_type = car. DRY reports counts by resolved type + the non-car makes; write=1
-  // PATCHes per distinct make, vehicle_type IS NULL only, so a re-run never re-touches a typed row.
-  if (task === "typemodelunk") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { typeByMake } = await import("../lib/_unknownClassify.js");
-    const unk = s => !s || /^unknown$/i.test(String(s).trim());
-    // ALL make-known rows still vehicle_type NULL (any model). model-Unknown rows AND the chunk-missed
-    // make-known/model-known rows (off-list sources e.g. autohunter, future dates, null source_slug).
-    const BASE = `vehicle_type=is.null&make=not.ilike.unknown&make=not.is.null`;
-    const rows = await supabaseSelectAll(env, `sales_archive?${BASE}&select=make,model`) || [];
-    const byMake = new Map(); let modelUnknown = 0, modelKnown = 0;
-    for (const r of rows) { const mk = String(r.make || "").trim(); if (!mk) continue; byMake.set(mk, (byMake.get(mk) || 0) + 1); if (unk(r.model)) modelUnknown++; else modelKnown++; }
-    const typeOf = mk => typeByMake(mk) || "car";
-    const tally = { car: 0, motorcycle: 0, other: 0 }; const nonCar = {};
-    for (const [mk, n] of byMake) { const t = typeOf(mk); tally[t] += n; if (t !== "car") nonCar[mk] = { type: t, n }; }
-    const write = req.query?.write === "1";
-    if (!write) return res.status(200).json({ task: "typemodelunk", write: false, matchedRows: rows.length, distinctMakes: byMake.size, split: { modelUnknown, modelKnown }, byType: tally, nonCarMakes: nonCar });
-    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json" };
-    const countHdr = r => { const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : 0; };
-    const done = { car: 0, motorcycle: 0, other: 0, errors: 0, errorDetail: [] };
-    for (const [mk, ] of byMake) {
-      const t = typeOf(mk);
-      const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?make=eq.${encodeURIComponent(mk)}&vehicle_type=is.null`, { method: "PATCH", headers: { ...H, Prefer: "return=minimal,count=exact" }, body: JSON.stringify({ vehicle_type: t }) });
-      if (r.ok) done[t] += countHdr(r); else { done.errors++; done.errorDetail.push(`${mk}:${r.status}`); }
-    }
-    return res.status(200).json({ task: "typemodelunk", write: true, matchedRows: rows.length, distinctMakes: byMake.size, done });
   }
 
   // task=descfacts: resumable backfill of the description-derived columns (stated_mileage, project_flag,
@@ -4576,104 +3500,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "ingestlog", count: rows.length, events: rows.map(r => ({ at: r.created_at, type: r.event_type, status: r.status, ocd_metered: r.oldcarsdata_metered_requests, mode: r.metadata?.mode || null, upserted: r.metadata?.upserted ?? null, ocd_http: r.metadata?.ocd_http_requests ?? null, meta: r.metadata || null })) });
   }
 
-  // task=milesfill: backfill mileage from the title+description parser (lib/_mileageText.js). ZERO OCD.
-  //   ?mode=mb&cursor=<id>  : MB Market - OVERWRITE mileage with the parsed figure where the text states
-  //                           one (prefer parsed over the unreliable stored field); no text -> leave as is.
-  //   ?mode=fill&cursor=<id>: every other source (AutoHunter + MB Market excluded) where mileage IS NULL
-  //                           - fill from the text; no text -> stays null. Never overwrites a non-null.
-  // ?write=1 persists (bulk upsert on source_id). Resumable by id cursor. Returns per-batch tallies +
-  // samples (phrase + basis), so the driver can assemble the before/after examples.
-  if (task === "milesfill") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { mileageFromText } = await import("../lib/_mileageText.js");
-    const modeRaw = String(req.query?.mode || "mb");
-    const mode = modeRaw === "fill" ? "fill" : modeRaw === "recheck" ? "recheck" : "mb";
-    const write = req.query?.write === "1";
-    const cursor = req.query?.cursor ? String(req.query.cursor) : "";
-    const limit = Math.max(200, Math.min(1000, Number(req.query?.limit || 1000)));
-    // RECHECK: correct km/h false-positive fills written before the km/h fix. A velocity ("0-100 km/h")
-    // was wrongly read as a km odometer (-> ~100-200 mi). Narrowed to non-AH/non-MB rows with mileage
-    // 1..400 (where such fills land). A row is MINE to correct only if the OLD km-inclusive match
-    // reproduces the current value; set it to the FIXED parse (null for pure km/h, or the real odometer
-    // if the text also states one). Real structured mileages are never touched (they do not match).
-    if (mode === "recheck") {
-      const curF = cursor ? `&id=gt.${encodeURIComponent(cursor)}` : "";
-      const rows = await supabaseSelect(env, `sales_archive?mileage=gte.1&mileage=lte.400&source_slug=not.eq.autohunter&source_slug=not.eq.mbmarket${curF}&select=id,source_id,source_slug,mileage,listing_title,description&order=id.asc&limit=${limit}`) || [];
-      if (!rows.length) return res.status(200).json({ task: "milesfill", mode, done: true, processed: 0, nextCursor: null });
-      const legacyKmMiles = text => { const m = /(\d[\d.,]*)\s*(k)?[\s-]*(?:kms?\b|kilomete?res?\b)/i.exec(String(text || "")); if (!m) return null; let n = Number(String(m[1]).replace(/,/g, "")); if (!(n > 0)) return null; if (m[2]) n *= 1000; return Math.round(n * 0.621371 / 100) * 100; };
-      const fixes = [], correctedBySource = {}, samples = [];
-      for (const r of rows) {
-        const nw = mileageFromText(r.listing_title, r.description);
-        if (nw && nw.miles === r.mileage) continue;                        // correctly filled / real
-        const lk = legacyKmMiles(`${r.listing_title || ""} . ${r.description || ""}`);
-        if (lk != null && lk === r.mileage) {                              // my km fill the fixed parser rejects/changes
-          const newMiles = nw ? nw.miles : null;
-          fixes.push({ source_id: String(r.source_id), mileage: newMiles });
-          correctedBySource[r.source_slug] = (correctedBySource[r.source_slug] || 0) + 1;
-          if (samples.length < 20) samples.push({ src: r.source_slug, title: r.listing_title, was: r.mileage, now: newMiles });
-        }
-      }
-      let wrote = 0, writeErrors = 0;
-      if (write && fixes.length) { for (let i = 0; i < fixes.length; i += 300) { const rr = await supabaseInsert("sales_archive", fixes.slice(i, i + 300), env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=source_id"); if (rr.error) writeErrors++; else wrote += Math.min(300, fixes.length - i); } }
-      return res.status(200).json({ task: "milesfill", mode, write, processed: rows.length, nextCursor: rows[rows.length - 1].id, corrected: fixes.length, wrote, writeErrors, correctedBySource, samples });
-    }
-    const base = mode === "mb"
-      ? `source_slug=eq.mbmarket`
-      : `mileage=is.null&source_slug=not.eq.autohunter&source_slug=not.eq.mbmarket`;
-    const curF = cursor ? `&id=gt.${encodeURIComponent(cursor)}` : "";
-    const rows = await supabaseSelect(env, `sales_archive?${base}${curF}&select=id,source_id,source_slug,mileage,listing_title,description&order=id.asc&limit=${limit}`) || [];
-    if (!rows.length) return res.status(200).json({ task: "milesfill", mode, done: true, processed: 0, nextCursor: null });
-    const fixes = [], filledBySource = {}, leftNullBySource = {}, samples = [];
-    for (const r of rows) {
-      const parsed = mileageFromText(r.listing_title, r.description);
-      if (parsed && parsed.miles > 0) {
-        // MB Market overwrites; fill mode only ever sees null rows, so it always sets.
-        fixes.push({ source_id: String(r.source_id), mileage: parsed.miles });
-        filledBySource[r.source_slug] = (filledBySource[r.source_slug] || 0) + 1;
-        if (samples.length < 40) samples.push({ src: r.source_slug, title: r.listing_title, before: r.mileage, after: parsed.miles, basis: parsed.basis, phrase: parsed.phrase });
-      } else {
-        leftNullBySource[r.source_slug] = (leftNullBySource[r.source_slug] || 0) + 1;
-        if (samples.filter(s => s.after == null).length < 10) samples.push({ src: r.source_slug, title: r.listing_title, before: r.mileage, after: null, basis: null, phrase: null });
-      }
-    }
-    let wrote = 0, writeErrors = 0;
-    if (write && fixes.length) { for (let i = 0; i < fixes.length; i += 300) { const rr = await supabaseInsert("sales_archive", fixes.slice(i, i + 300), env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=source_id"); if (rr.error) writeErrors++; else wrote += Math.min(300, fixes.length - i); } }
-    return res.status(200).json({ task: "milesfill", mode, write, processed: rows.length, nextCursor: rows[rows.length - 1].id, computable: fixes.length, wrote, writeErrors, filledBySource, leftNullBySource, samples });
-  }
-
-  // task=titlefill: fill vin_summary (+ vin_index) make/model/year for title-less VINs from the best of
-  // sales_archive / auction_attempts / live_listings. The unfillable stay null (the VIN page 404s, never
-  // a blank title, noindex). ?write=1 persists. Also counts the M5-type set (title-less vin_index rows
-  // with a stored make, which the carIdentity fallback now rescues). ZERO OCD.
-  if (task === "titlefill") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const unk = s => !s || /^unknown$/i.test(String(s).trim());
-    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "return=minimal" };
-    const cq = async f => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${f}&select=vin_norm&limit=1`, { headers: { ...H, Prefer: "count=exact" } }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
-    const m5TypeRows = await cq("vin_index?listing_title=is.null&make=not.is.null");  // title-less but make-known appearances (carIdentity fallback rescues)
-    const sample = await supabaseSelect(env, `vin_summary?make=is.null&select=vin_norm&limit=1000`) || [];
-    const vins = sample.map(r => r.vin_norm).filter(Boolean);
-    const chunk = (a, n) => { const o = []; for (let i = 0; i < a.length; i += n) o.push(a.slice(i, i + n)); return o; };
-    const have = {};
-    const scan = async (table, vinCol) => { for (const c of chunk(vins.filter(v => !have[v]), 120)) { if (!c.length) continue; const rows = await supabaseSelect(env, `${table}?${vinCol}=in.(${c.map(encodeURIComponent).join(",")})&make=not.is.null&make=not.ilike.unknown&select=${vinCol},make,model,year`) || []; for (const r of rows) { const v = r[vinCol]; if (!have[v] && !unk(r.make)) have[v] = { src: table, make: r.make, model: unk(r.model) ? null : r.model, year: Number(r.year) || null }; } } };
-    await scan("sales_archive", "vin_norm");
-    await scan("auction_attempts", "chassis_vin_norm");
-    await scan("live_listings", "vin_norm");
-    const fillable = Object.keys(have);
-    const write = req.query?.write === "1";
-    let filled = 0, errors = 0; const bySrc = {};
-    if (write) {
-      for (const v of fillable) {
-        const h = have[v];
-        // vin_summary has no year column (make/model/model_family only); vin_index carries year.
-        const r1 = await fetch(`${env.supabaseUrl}/rest/v1/vin_summary?vin_norm=eq.${encodeURIComponent(v)}`, { method: "PATCH", headers: H, body: JSON.stringify({ make: h.make, model: h.model }) });
-        await fetch(`${env.supabaseUrl}/rest/v1/vin_index?vin_norm=eq.${encodeURIComponent(v)}&make=is.null`, { method: "PATCH", headers: H, body: JSON.stringify(h.year ? { make: h.make, model: h.model, year: h.year } : { make: h.make, model: h.model }) });
-        if (r1.ok) { filled++; bySrc[h.src] = (bySrc[h.src] || 0) + 1; } else errors++;
-      }
-    }
-    return res.status(200).json({ task: "titlefill", write, titlelessVinSummary: vins.length, fillable: fillable.length, nothing: vins.length - fillable.length, fillableBySource: fillable.reduce((o, v) => (o[have[v].src] = (o[have[v].src] || 0) + 1, o), {}), filled, errors, filledBySource: bySrc, m5TypeTitlelessMakeKnownRows: m5TypeRows, examples: fillable.slice(0, 8).map(v => ({ vin: v, ...have[v] })) });
-  }
-
   // task=speccache: READ-ONLY. spec_market_cache size + how many specs were refreshed in the last run.
   if (task === "speccache") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
@@ -4715,52 +3541,6 @@ async function handleOps(req, res) {
       out.push({ scope: name, total, usable, blank, emptyString: emptyStr, "null": nullBlank, usablePct: total ? Math.round(1000 * usable / total) / 10 : null });
     }
     return res.status(200).json({ task: "transaudit", scopes: out, note: "approximate scopes; boundary years overlap" });
-  }
-
-  // task=transfill: WRITE (write=1). Fills the top-level transmission column from the title/description
-  // where it is stated plainly, for rows where it is currently blank; never overwrites an existing value,
-  // never infers from the model. Resumable by an id cursor (pass after=<nextAfter> each call); the id PK
-  // index makes the ordered scan skip the already-passed prefix, so it never re-walks filled rows.
-  if (task === "transfill") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
-    const cnt = async f => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${f}&select=id&limit=1`, { headers: H }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
-    if (req.query?.write !== "1") {
-      return res.status(200).json({ task: "transfill", write: false, total: await cnt("id=not.is.null"), blankTransmission: await cnt("transmission=is.null"), note: "pass write=1 (optionally after=<id>); carry nextAfter back each call until done" });
-    }
-    const { transmissionFromText } = await import("../lib/_descFacts.js");
-    const pageSize = Math.max(100, Math.min(1000, Number(req.query?.pageSize || 1000)));
-    const maxRows = Math.max(pageSize, Math.min(150000, Number(req.query?.maxRows || 60000)));
-    // id is a random UUID, so the cursor is source_id (text, UNIQUE/indexed). We walk ONLY the blank
-    // rows (transmission IS null) in source_id order; a row we fill leaves the null set and sits behind
-    // the cursor, a row we can't fill stays null but is also behind the cursor, so each blank is seen
-    // exactly once and the scan terminates when source_id > cursor returns nothing.
-    // Sweep ALL rows by the indexed unique source_id cursor (NOT filtered by transmission): ordering an
-    // index range scan is fast, whereas ordering with transmission=is.null makes Postgres walk the index
-    // over a sparse filter and statement-times-out (the documented descfacts gotcha) -> supabaseSelect
-    // returns null -> a false "done". We check transmission in code and fill only the blanks.
-    let cursor = String(req.query?.after ?? "");
-    const deadline = Date.now() + 230000;
-    let processed = 0, filled = 0, pages = 0, errors = 0, skippedFilled = 0; const errorDetail = [], byLabel = {};
-    let done = false;
-    while (processed < maxRows && Date.now() < deadline) {
-      const slice = (await supabaseSelect(env, `sales_archive?source_id=not.is.null&source_id=gt.${encodeURIComponent(cursor)}&select=source_id,listing_title,description,transmission&order=source_id.asc&limit=${pageSize}`)) || [];
-      if (!slice.length) { done = true; break; }
-      const patch = [];
-      for (const r of slice) {
-        cursor = String(r.source_id);
-        if (String(r.transmission || "").trim()) { skippedFilled++; continue; }   // already has a value
-        const tx = transmissionFromText(r.listing_title, r.description);
-        if (tx) { patch.push({ source_id: String(r.source_id), transmission: tx }); byLabel[tx] = (byLabel[tx] || 0) + 1; }
-      }
-      for (let i = 0; i < patch.length; i += 200) {
-        const w = await supabaseInsert("sales_archive", patch.slice(i, i + 200), env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=source_id");
-        if (w.error) { errors++; if (errorDetail.length < 5) errorDetail.push(w.error.slice(0, 160)); } else filled += Math.min(200, patch.length - i);
-      }
-      processed += slice.length; pages++;
-      if (errors) break;
-    }
-    return res.status(200).json({ task: "transfill", write: true, processedThisCall: processed, filledThisCall: filled, skippedAlreadyFilled: skippedFilled, byLabel, pages, errors, errorDetail, nextAfter: done ? null : cursor, done });
   }
 
   // task=nonroadpreview: READ-ONLY dry run. Lists the VINs the non-road detector WOULD exclude (not
@@ -5010,55 +3790,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "urlproof", filledSalesRows: filledSales, bySource: out });
   }
 
-  // task=urlnorm: backfill the indexed url_norm column from raw_record url/source_url. ZERO OCD.
-  //   ?table=sales  (id cursor) | ?table=attempts (source_record_id cursor). ?write=1 to persist.
-  if (task === "urlnorm") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { normalizeListingUrl } = await import("../lib/_urlNorm.js");
-    const tbl = String(req.query?.table || "sales") === "attempts" ? "attempts" : "sales";
-    const write = req.query?.write === "1";
-    const cursor = req.query?.cursor ? String(req.query.cursor) : "";
-    const limit = Math.max(200, Math.min(1000, Number(req.query?.limit || 1000)));
-    const isS = tbl === "sales", table = isS ? "sales_archive" : "auction_attempts";
-    const keyCol = isS ? "id" : "source_record_id", conflict = isS ? "source_id" : "source_slug,source_record_id";
-    const curF = cursor ? `&${keyCol}=gt.${encodeURIComponent(cursor)}` : "";
-    const sel = isS ? "id,source_id,u:raw_record->>url,su:raw_record->>source_url" : "source_slug,source_record_id,u:raw_record->>url,su:raw_record->>source_url";
-    const rows = await supabaseSelect(env, `${table}?url_norm=is.null${curF}&select=${sel}&order=${keyCol}.asc&limit=${limit}`) || [];
-    if (!rows.length) return res.status(200).json({ task: "urlnorm", table: tbl, done: true, processed: 0, nextCursor: null });
-    const fixes = [];
-    for (const r of rows) { const n = normalizeListingUrl(r.u || r.su); if (!n) continue; fixes.push(isS ? { source_id: String(r.source_id), url_norm: n } : { source_slug: r.source_slug, source_record_id: r.source_record_id, url_norm: n }); }
-    let wrote = 0, writeErrors = 0;
-    if (write && fixes.length) { for (let i = 0; i < fixes.length; i += 300) { const rr = await supabaseInsert(table, fixes.slice(i, i + 300), env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", `?on_conflict=${conflict}`); if (rr.error) writeErrors++; else wrote += Math.min(300, fixes.length - i); } }
-    return res.status(200).json({ task: "urlnorm", table: tbl, write, processed: rows.length, nextCursor: rows[rows.length - 1][keyCol], filled: fixes.length, wrote, writeErrors });
-  }
-
-  // task=zeromiles: backfill mileage 0 -> null on sales_archive (zero is not a mileage). Per-source
-  // PATCH, chunked by year on a statement timeout. ?write=1 to persist; dry = counts by source. ZERO OCD.
-  if (task === "zeromiles") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json" };
-    const countHdr = r => { const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : 0; };
-    // AutoHunter is left alone entirely (standing rule); its historical zeros are not touched.
-    const SRCS = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
-    const cq = async f => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${f}&select=source_id&limit=1`, { headers: { ...H, Prefer: "count=exact" } }); return countHdr(r); } catch { return 0; } };
-    const write = req.query?.write === "1";
-    if (!write) { const by = {}; for (const s of SRCS) { const z = await cq(`source_slug=eq.${s}&mileage=eq.0`); if (z) by[s] = z; } return res.status(200).json({ task: "zeromiles", write: false, zeroBySource: by, total: Object.values(by).reduce((a, b) => a + b, 0) }); }
-    const nowY = new Date().getUTCFullYear();
-    const patch = async f => { const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${f}&mileage=eq.0`, { method: "PATCH", headers: { ...H, Prefer: "return=minimal,count=exact" }, body: JSON.stringify({ mileage: null }) }); return { ok: r.ok, n: r.ok ? countHdr(r) : 0 }; };
-    const fixedBySource = {}; let errors = 0;
-    for (const s of SRCS) {
-      const x = await patch(`source_slug=eq.${s}`);
-      if (x.ok) { if (x.n) fixedBySource[s] = x.n; continue; }
-      // timed out as one UPDATE: split by year (+ null/pre-1990 buckets)
-      let sub = 0, subFail = false;
-      for (const w of [`sale_date=is.null`, `sale_date=lt.1990-01-01`, ...Array.from({ length: nowY - 1989 }, (_, i) => { const y = 1990 + i; return `sale_date=gte.${y}-01-01&sale_date=lt.${y + 1}-01-01`; })]) {
-        const xr = await patch(`source_slug=eq.${s}&${w}`); if (xr.ok) sub += xr.n; else subFail = true;
-      }
-      if (sub) fixedBySource[s] = sub; if (subFail) errors++;
-    }
-    return res.status(200).json({ task: "zeromiles", write: true, fixedBySource, total: Object.values(fixedBySource).reduce((a, b) => a + b, 0), errors });
-  }
-
   // task=ocdmeter: READ-ONLY. The authoritative OCD-request totals: sum of oldcarsdata_metered_requests
   // across ALL event_types for today and this month, plus a per-event_type breakdown, so we can see
   // whether small runs / pullLive are actually being recorded. ZERO OCD.
@@ -5227,93 +3958,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "reserveaudit", crossTabRowsScanned: rows.length, fullTable: { total: fullTotal, has_reserve_null: fullNull, has_reserve_known: (fullTotal != null && fullNull != null) ? fullTotal - fullNull : null }, bySource, byYear });
   }
 
-  // task=usdbackfill: backfill sale_price_usd on sales_archive rows that have a sale_price but no
-  // sale_price_usd, using the EXISTING FX handling (lib/_fx loadFxRates + lib/_houseComps hammerUsd) at
-  // the sale month's rate. SKIP blank/ambiguous currency (better nothing than a fake number) and report
-  // them. Resumable via id cursor (so skipped rows are not re-scanned). ZERO OCD. AutoHunter left alone.
-  //   phase=count : dry - total needing usd + currency breakdown from a sample.
-  //   phase=usd&write=1&cursor=<id> : one bounded batch; returns nextCursor + tallies.
-  if (task === "usdbackfill") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const phase = String(req.query?.phase || "count");
-    const tbl = String(req.query?.table || "sales") === "attempts" ? "attempts" : "sales";
-    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
-    const countQ = async filter => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${tbl === "attempts" ? "auction_attempts" : "sales_archive"}?${filter}&select=${tbl === "attempts" ? "source_record_id" : "id"}&limit=1`, { headers: { ...H, Prefer: "count=exact" } }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
-    // ---- auction_attempts.high_bid_usd backfill (no id column; top-level currency; attempt_date month).
-    // No cursor: auction_attempts has no single id. Fetch the first 1000 null rows (no order), convert,
-    // upsert on the composite key; filled rows drop out. Stop when a batch converts nothing (only
-    // un-convertable rows remain) or none are left. attempts come only from 5 online USD-ish sources.
-    if (tbl === "attempts") {
-      const NEEDA = "high_bid_usd=is.null&high_bid=gt.0";
-      if (phase === "count") {
-        const total = await countQ(NEEDA);
-        const sample = await supabaseSelect(env, `auction_attempts?${NEEDA}&select=source_slug,attempt_date,currency&limit=1000`) || [];
-        const byCcy = {}; for (const r of sample) { const c = String(r.currency || "").trim().toUpperCase() || "(blank)"; byCcy[c] = (byCcy[c] || 0) + 1; }
-        // sample unsold cars (now with high_bid_usd, decent bid, a chassis) for a before/after proof
-        const cand = await supabaseSelect(env, `auction_attempts?high_bid_usd=gt.20000&chassis_vin_norm=not.is.null&select=chassis_vin_norm,high_bid,high_bid_usd,currency,auction_status,attempt_date,make,model,source_slug&order=high_bid_usd.desc&limit=25`) || [];
-        return res.status(200).json({ task: "usdbackfill", table: "attempts", phase: "count", totalNeedingUsd: total, sampleSize: sample.length, currencyBreakdownInSample: byCcy, sampleUnsoldForProof: cand });
-      }
-      if (phase === "usd") {
-        const { loadFxRates } = await import("../lib/_fx.js");
-        const fx = await loadFxRates(env);
-        const write = req.query?.write === "1";
-        const rows = await supabaseSelect(env, `auction_attempts?${NEEDA}&select=source_slug,source_record_id,attempt_date,high_bid,currency&limit=1000`) || [];
-        if (!rows.length) return res.status(200).json({ task: "usdbackfill", table: "attempts", phase: "usd", done: true, processed: 0 });
-        const fixes = [], fixedBySource = {}, fixedByYear = {}, skipped = {}, skipSamples = [];
-        for (const r of rows) {
-          const ccy = String(r.currency || "").trim().toUpperCase();
-          const yr = String(r.attempt_date || "").slice(0, 4) || "unknown";
-          let usd = null, reason = null;
-          if (!ccy) reason = "blank_currency";
-          else if (ccy === "USD") usd = Math.round(Number(r.high_bid));
-          else if (fx.has(ccy)) { const v = fx.toUsd(Number(r.high_bid), ccy, r.attempt_date); usd = (Number.isFinite(v) && v > 0) ? Math.round(v) : null; if (usd == null) reason = `no_rate_for_month:${ccy}`; }
-          else reason = `unknown_currency:${ccy}`;
-          if (usd != null) { fixes.push({ source_slug: r.source_slug, source_record_id: r.source_record_id, high_bid_usd: usd }); fixedBySource[r.source_slug] = (fixedBySource[r.source_slug] || 0) + 1; fixedByYear[yr] = (fixedByYear[yr] || 0) + 1; }
-          else { skipped[reason] = (skipped[reason] || 0) + 1; if (skipSamples.length < 15) skipSamples.push({ source_slug: r.source_slug, source_record_id: r.source_record_id, ccy: ccy || "(blank)", reason }); }
-        }
-        let wrote = 0, writeErrors = 0;
-        if (write && fixes.length) { for (let i = 0; i < fixes.length; i += 300) { const rr = await supabaseInsert("auction_attempts", fixes.slice(i, i + 300), env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=source_slug,source_record_id"); if (rr.error) writeErrors++; else wrote += Math.min(300, fixes.length - i); } }
-        return res.status(200).json({ task: "usdbackfill", table: "attempts", phase: "usd", write, processed: rows.length, computable: fixes.length, wrote, writeErrors, done: fixes.length === 0, fixedBySource, fixedByYear, skipped, skipSamples });
-      }
-      return res.status(400).json({ error: "usdbackfill attempts: phase=count|usd" });
-    }
-    const NEED = "sale_price_usd=is.null&sale_price=gt.0&source_slug=not.eq.autohunter";
-    if (phase === "count") {
-      const total = await countQ(NEED);
-      const sample = await supabaseSelect(env, `sales_archive?${NEED}&select=source_slug,sale_date,curr:raw_record->>currency&order=id.asc&limit=4000`) || [];
-      const byCcy = {}, bySourceBlank = {};
-      for (const r of sample) { const c = String(r.curr || "").trim().toUpperCase() || "(blank)"; byCcy[c] = (byCcy[c] || 0) + 1; if (c === "(blank)") bySourceBlank[r.source_slug] = (bySourceBlank[r.source_slug] || 0) + 1; }
-      return res.status(200).json({ task: "usdbackfill", phase: "count", totalNeedingUsd: total, sampleSize: sample.length, currencyBreakdownInSample: byCcy, blankCurrencyBySourceInSample: bySourceBlank });
-    }
-    if (phase === "usd") {
-      const { loadFxRates } = await import("../lib/_fx.js");
-      const hc = await import("../lib/_houseComps.js");
-      const fx = await loadFxRates(env); hc.setFxRates(fx);
-      const write = req.query?.write === "1";
-      const cursor = req.query?.cursor ? String(req.query.cursor) : "";
-      const limit = Math.max(500, Math.min(5000, Number(req.query?.limit || 3000)));
-      const curFilter = cursor ? `&id=gt.${encodeURIComponent(cursor)}` : "";
-      const rows = await supabaseSelect(env, `sales_archive?${NEED}${curFilter}&select=id,source_id,source_slug,sale_date,sale_price,curr:raw_record->>currency&order=id.asc&limit=${limit}`) || [];
-      if (!rows.length) return res.status(200).json({ task: "usdbackfill", phase: "usd", done: true, nextCursor: null, processed: 0 });
-      const fixes = [], fixedBySource = {}, fixedByYear = {}, skipped = {}, skipSamples = [];
-      for (const r of rows) {
-        const ccy = String(r.curr || "").trim().toUpperCase();
-        const yr = String(r.sale_date || "").slice(0, 4) || "unknown";
-        let usd = null, reason = null;
-        if (!ccy) reason = "blank_currency";
-        else if (ccy === "USD") usd = Math.round(Number(r.sale_price));
-        else if (fx.has(ccy)) { const v = hc.hammerUsd({ source_slug: r.source_slug, source: r.source_slug, price: Number(r.sale_price), currency: ccy, date: r.sale_date }); usd = (Number.isFinite(v) && v > 0) ? Math.round(v) : null; if (usd == null) reason = `no_rate_for_month:${ccy}`; }
-        else reason = `unknown_currency:${ccy}`;
-        if (usd != null) { fixes.push({ source_id: String(r.source_id), sale_price_usd: usd }); fixedBySource[r.source_slug] = (fixedBySource[r.source_slug] || 0) + 1; fixedByYear[yr] = (fixedByYear[yr] || 0) + 1; }
-        else { skipped[reason] = (skipped[reason] || 0) + 1; if (skipSamples.length < 15) skipSamples.push({ source_id: r.source_id, src: r.source_slug, ccy: ccy || "(blank)", reason }); }
-      }
-      let wrote = 0, writeErrors = 0;
-      if (write && fixes.length) { for (let i = 0; i < fixes.length; i += 300) { const rr = await supabaseInsert("sales_archive", fixes.slice(i, i + 300), env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=source_id"); if (rr.error) writeErrors++; else wrote += Math.min(300, fixes.length - i); } }
-      return res.status(200).json({ task: "usdbackfill", phase: "usd", write, processed: rows.length, nextCursor: rows[rows.length - 1].id, computable: fixes.length, wrote, writeErrors, fixedBySource, fixedByYear, skipped, skipSamples });
-    }
-    return res.status(400).json({ error: "usdbackfill: phase=count|usd" });
-  }
-
   // task=provevins: READ-ONLY. Find multi-appearance VINs with a non-USD (GBP/EUR) earlier sale - those
   // sale_price_usd values could ONLY have come from the FX backfill (non-USD never passes through), so
   // their history page's prior USD price is the before/after proof. Returns a few with full sale history.
@@ -5437,19 +4081,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "buildvinindex", ...stats });
   }
 
-  // task=specmarkettest: run scripts/buildSpecMarketCache.js's SAME exported function (no second
-  // copy), the only way to exercise it against real Supabase from outside a GitHub Actions run
-  // (Supabase credentials are not pullable locally - standing limitation). ?dry=0 runs it against
-  // real live listings instead of the built-in no-year + normal fixture pair; ?budgetMin/?concurrency
-  // override the tiny defaults used here so a manual test never eats the real nightly's budget.
-  if (task === "specmarkettest") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { buildSpecMarketCache } = await import("../scripts/buildSpecMarketCache.js");
-    const dry = req.query?.dry !== "0";
-    const r = await buildSpecMarketCache(env, { dry, budgetMin: Number(req.query?.budgetMin) || 2, concurrency: Number(req.query?.concurrency) || 2, staleDays: req.query?.staleDays != null ? Number(req.query.staleDays) : undefined });
-    return res.status(200).json({ task: "specmarkettest", dry, ...r });
-  }
-
   // task=vinidxcount: READ-ONLY. vin_index / vin_summary readiness for Lane C: row counts, distinct VINs,
   // multi-appearance VIN count, and 5 sample multi-appearance VINs with their appearance history.
   if (task === "vinidxcount") {
@@ -5465,11 +4096,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "vinidxcount", vin_index_rows: vinIndexRows, vin_summary_rows: vinSummaryRows, distinct_vins: vinSummaryRows, multi_appearance_vins: multi, samples: withHistory });
   }
 
-  // task=unktriage: triage the make-Unknown rows (vehicle_type IS NULL) with the classifier (title+VIN).
-  // Buckets: make_resolvable (classifier found a make), not_a_vehicle (non_vehicle), junk (unclassified).
-  // AUTO-APPLY (write=1) ONLY when the VIN WMI and the title agree (classifier basis "title+VIN agree");
-  // everything else stays Unknown. "Better nothing than a fake make." Also returns make-Unknown VINs
-  // (with vin_norm) as proof fodder. ZERO OCD.
   // task=warmMC (Round 5 Job 3, Oct 2026): STANDING ops mechanism, not a temp diagnostic - an
   // on-demand way to (re)populate the Market Check bare-nameplate warm cache (see
   // api/sellerDecision.js's "WARM-LIST FAST PATH" and lib/live/search.js's warmAnswerKeyFor/
@@ -5520,39 +4146,6 @@ async function handleOps(req, res) {
       result.rows.push(row);
     }
     return res.status(200).json({ task: "warmMC", ...result });
-  }
-
-  if (task === "unktriage") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { classifyUnknown } = await import("../lib/_unknownClassify.js");
-    const rows = await supabaseSelectAll(env, `sales_archive?vehicle_type=is.null&select=id,source_id,listing_title,vin,vin_norm,year,source_slug`) || [];
-    const buckets = { make_resolvable: [], not_a_vehicle: [], junk: [] };
-    const autoApply = [];
-    for (const r of rows) {
-      const c = classifyUnknown({ listing_title: r.listing_title, vin: r.vin || r.vin_norm });
-      const rec = { id: r.id, source_id: r.source_id, title: r.listing_title, vin: r.vin || null, vin_norm: r.vin_norm || null, src: r.source_slug, year: r.year, make: c.make, model: c.model, vehicle_type: c.vehicle_type, basis: c.basis };
-      if (c.vehicle_type === "non_vehicle") buckets.not_a_vehicle.push(rec);
-      else if (c.make) { buckets.make_resolvable.push(rec); if (c.basis === "title+VIN agree") autoApply.push(rec); }
-      else buckets.junk.push(rec);
-    }
-    const write = req.query?.write === "1";
-    let applied = 0, applyErrors = 0;
-    if (write) {
-      const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "return=minimal" };
-      for (const rec of autoApply) {
-        const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?id=eq.${encodeURIComponent(rec.id)}&vehicle_type=is.null`, { method: "PATCH", headers: H, body: JSON.stringify({ make: rec.make, model: rec.model, vehicle_type: "car" }) });
-        if (r.ok) applied++; else applyErrors++;
-      }
-    }
-    const ex = arr => arr.slice(0, 10).map(r => ({ title: r.title, vin: r.vin || r.vin_norm, src: r.src, year: r.year, guess: [r.make, r.model].filter(Boolean).join(" ") || null, basis: r.basis }));
-    const sampleUnkVins = rows.filter(r => r.vin_norm && String(r.vin_norm).length >= 11).slice(0, 8).map(r => ({ vin_norm: r.vin_norm, vin: r.vin, title: r.listing_title, src: r.source_slug }));
-    return res.status(200).json({
-      task: "unktriage", write, totalMakeUnknown: rows.length,
-      counts: { make_resolvable: buckets.make_resolvable.length, not_a_vehicle: buckets.not_a_vehicle.length, junk: buckets.junk.length, autoApplyCorroborated: autoApply.length },
-      applied, applyErrors,
-      examples: { make_resolvable: ex(buckets.make_resolvable), not_a_vehicle: ex(buckets.not_a_vehicle), junk: ex(buckets.junk) },
-      sampleUnkVins
-    });
   }
 
   // task=descfactscov: READ-ONLY. Coverage of the description-derived columns after the backfill.
