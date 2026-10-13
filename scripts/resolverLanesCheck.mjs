@@ -15,7 +15,7 @@ const CASES = [
   ["2005 Mercedes-Benz CLK DTM", { year: 2005, make: "Mercedes-Benz", model: "CLK DTM" }],
   ["CLK DTM", { make: "Mercedes-Benz", model: "CLK DTM" }],
   ["Mercedes-Benz CLK DTM", { make: "Mercedes-Benz", model: "CLK DTM" }],   // how Tasks joins make + model + trim
-  ["CLK 55 AMG", { year: null, make: "Mercedes-Benz", model: "CLK-Class" }],   // 55 is a model number, never 1955
+  ["CLK 55 AMG", { year: null, make: "Mercedes-Benz", model: "CLK-Class", trim: "CLK55 AMG", trimNumber: "55" }],   // 55 is a model number, never 1955, and it is kept
   ["2004 Dodge Viper SRT-10", { year: 2004, make: "Dodge", model: "Viper", trim: "SRT-10" }],
   ["2017 Ford Mustang GT350", { year: 2017, make: "Ford", model: "Mustang", trim: "GT350" }],
   ["2004 BMW M3", { year: 2004, make: "BMW", model: "M3" }],
@@ -25,10 +25,24 @@ const CASES = [
   ["1993 Porsche 911 Carrera RS Targa", { year: 1993, make: "Porsche", model: "911", trim: "Carrera RS" }],
   ["2009 Koenigsegg CCXR", { year: 2009, make: "Koenigsegg", model: "CCXR" }],
   ["Koenigsegg CCXR", { make: "Koenigsegg", model: "CCXR" }],   // no year: still the CCXR, not the whole make
+  // Stated numbers and variants are carried, never dropped (Lane B2, Oct 2026). Same shape as the curated c63/e63 badges.
+  ["2005 Mercedes-Benz SL 55 AMG", { year: 2005, model: "SL-Class", trim: "SL55 AMG", trimNumber: "55" }],
+  ["2010 Mercedes-Benz SL 63 AMG", { year: 2010, model: "SL-Class", trim: "SL63 AMG", trimNumber: "63" }],
+  ["2005 Mercedes-Benz E 55 AMG", { year: 2005, model: "E-Class", trim: "E55 AMG", trimNumber: "55" }],
+  ["2010 Mercedes-Benz C 63 AMG", { year: 2010, model: "C-Class", trim: "C63 AMG", trimNumber: "63" }],
+  ["2015 Mercedes-Benz G 63 AMG", { year: 2015, model: "G-Class", trim: "G63 AMG", trimNumber: "63" }],
+  ["2021 Land Rover Defender 90", { year: 2021, model: "Defender", wheelbase: "90" }],
+  ["2021 Land Rover Defender 110", { year: 2021, model: "Defender", wheelbase: "110" }],
+  ["2021 Land Rover Defender 130", { year: 2021, model: "Defender", wheelbase: "130" }],
+  ["2012 Toyota Land Cruiser 200", { year: 2012, model: "Land Cruiser", series: "200" }],
+  ["Toyota Land Cruiser 200", { model: "Land Cruiser", series: "200" }],
+  ["2005 Land Rover Range Rover LWB", { year: 2005, model: "Range Rover", variant: "LWB" }],
+  ["2015 Jeep Wrangler Unlimited", { year: 2015, model: "Wrangler", variant: "Unlimited" }],
+  ["2008 Porsche 911 Carrera 4S", { year: 2008, model: "911", trim: "Carrera 4S" }],
   ["67 corvette", { year: 1967, make: "Chevrolet", model: "Corvette" }],   // a real two-digit year still reads as one
   ["sell my porsche", { make: "Porsche", model: null }],   // conversation is never a model
 ];
-const norm = v => v ? { year: v.year || null, make: v.make || null, model: v.model || null, trim: v.trim || null } : null;
+const norm = v => v ? { year: v.year || null, make: v.make || null, model: v.model || null, trim: v.trim || null, trimNumber: v.trimNumber || null, wheelbase: v.wheelbase || null, variant: v.variant || null, series: v.series || null } : null;
 for (const [words, want] of CASES) {
   let mc = null, buy = null;
   try { const r = await resolveVehicle(words, {}); mc = r && r.vehicle ? norm(r.vehicle) : null; } catch (e) { fail(`${words}: resolveVehicle threw ${e.message}`); continue; }
@@ -39,7 +53,7 @@ for (const [words, want] of CASES) {
     if (k !== "year" && (!buy || buy[k] !== want[k])) fail(`${words}: Buy/Tasks ${k} = ${JSON.stringify(buy && buy[k])}, wanted ${JSON.stringify(want[k])}`);
   }
   // Same car on both paths: make, model and trim equal wherever Market Check has them.
-  if (mc && buy && mc.make) for (const k of ["make", "model", "trim"]) if ((mc[k] || null) !== (buy[k] || null)) fail(`${words}: lanes differ on ${k}: Market Check ${JSON.stringify(mc[k])} vs Buy/Tasks ${JSON.stringify(buy[k])}`);
+  if (mc && buy && mc.make) for (const k of ["make", "model", "trim", "trimNumber", "wheelbase", "variant", "series"]) if ((mc[k] || null) !== (buy[k] || null)) fail(`${words}: lanes differ on ${k}: Market Check ${JSON.stringify(mc[k])} vs Buy/Tasks ${JSON.stringify(buy[k])}`);
   // Copy rules in what the resolver emits.
   for (const s of [mc && mc.model, mc && mc.trim, buy && buy.model, buy && buy.trim].filter(Boolean)) {
     if (/–|—/.test(s)) fail(`${words}: dash in "${s}"`);
