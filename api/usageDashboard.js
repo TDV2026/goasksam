@@ -3430,7 +3430,12 @@ async function handleOps(req, res) {
           bodyScoped: ob.bodyScoped !== undefined ? ob.bodyScoped : null,
           halfGeneration: ob.halfGeneration || null, representative: ob.representative || null,
           reserve, chips, cacheRows, listSales,
-          gate: wantGate ? runOutputInvariants(ob, v) : null
+          gate: wantGate ? runOutputInvariants(ob, v) : null,
+          // Part 5/6 fields (Oct 2026, read-only diagnostic): surfaced here so they can be inspected
+          // without guessing from the production-gated response shape.
+          scopeLabel: ob.scopeLabel || null, liveScope: ob.liveScope || null,
+          contextRoles: ob.contextRoles || null, identityQuestion: ob.identityQuestion || null,
+          trend: ob.trend || null, distribution: ob.distribution || null, strip: ob.strip || null
         });
       } catch (e) { out.push({ q, error: String((e && e.message) || e).slice(0, 220) }); }
     }
