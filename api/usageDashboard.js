@@ -14,6 +14,7 @@ import { journeyManualUpdate } from "../lib/_journey.js";
 import { runDepthProbe, LAUNCH_SOURCES } from "../lib/ops/depthProbe.js";
 import { censusRegion, CENSUS_REGIONS } from "../lib/_regions.js";
 import { runFillBatch } from "../lib/ops/fillLadder.js";
+import { readPremiumFreshness } from "../lib/ops/premiumFresh.js";
 
 function adminEsc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 const adminDayKey = ts => new Date(ts).toISOString().slice(0, 10);
@@ -2888,6 +2889,14 @@ async function handleOps(req, res) {
       task: "partnerread",
       rows: rows.map(r => ({ name: r.name, slug: r.slug, active: r.active, updatedAt: r.updated_at, premium: (r.specialties && r.specialties.premium) || null }))
     });
+  }
+
+  // task=premiumfresh (Oct 2026, Lane C): read only. When each partner's stored premium was last written by
+  // task=premium&persist=1, and how many hours old the newest stamp is; stale past 36 hours (lib/ops/premiumFresh.js).
+  if (task === "premiumfresh") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    try { return res.status(200).json({ task: "premiumfresh", now: new Date().toISOString(), ...(await readPremiumFreshness(supabaseSelect, env)) }); }
+    catch (e) { return res.status(502).json({ task: "premiumfresh", error: "partners read failed" }); }
   }
 
   if (task === "premium") {

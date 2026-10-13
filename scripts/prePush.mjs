@@ -210,6 +210,14 @@ try {
 } catch (e) {
   record("pull starter (scripts/pullStarterCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Partner premium freshness (Oct 2026, Lane C): the premiumfresh read, the /admin line, and the nightly premium step's
+// readable failure with the key kept off curl's command line. No network.
+try {
+  const out = execSync("node scripts/premiumFreshCheck.mjs", { encoding: "utf8" });
+  record("premium freshness (scripts/premiumFreshCheck.mjs)", "PASS", (out.match(/premiumFreshCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("premium freshness (scripts/premiumFreshCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 
 // ---- 3 & 4. BROWSER CHECK (Lane C's pushCheck.mjs) + BASELINE ----
 console.log(`\n-- browser check via scripts/pushCheck.mjs (${BASE}) --`);

@@ -6359,3 +6359,18 @@ a clean run - the "push anyway under two seconds" allowance was not needed.
 
 Search check: no public page touched beyond the existing noindex Market Check result surface; no
 title/H1/canonical change.
+
+- 2026-10-13 (Lane C): NIGHTLY PREMIUM RECOMPUTE, WHY IT FAILED. Vercel request logs (observability, read only) for the premium
+  step's call from the GitHub runner (Microsoft ASN, curl/8.5.0, GET /api/usageDashboard): Oct 10 13:35 UTC 200 and Oct 11
+  13:58 UTC 200, both bypassed by ops-bypass-bot-protection; Oct 12 16:41 UTC 401, also bypassed by that rule. The firewall let
+  all three through; our own function refused the Oct 12 key. Vercel's PROBE_KEY was changed Oct 11 18:05 UTC, between the green
+  and the red run, so the GitHub Actions secret PROBE_KEY still holds the old value. Oct 10's run went red on the caches job
+  (cross-product check), not on premium: the premium job was green and stamped. No 429 on /api/usageDashboard since Oct 11
+  (about 1,100 requests, every one bypassed). FOR SAM: set the GitHub secret PROBE_KEY to the current Vercel value (smoke-prod.yml
+  uses the same secret). No firewall change needed.
+  READABLE FAILURE: docs/nightly-workflow.yml premium step now sends the key on curl's stdin (-H @-), retries only no-answer,
+  429, 502, 503 (three tries, 30s apart), and on failure annotates "HTTP <status>, <hint>. Body: <first line, 160 chars>".
+  FOR SAM: copy the step into .github/workflows/nightly.yml (Lane C may not edit workflow files).
+  premiumfresh: read-only ops task (lib/ops/premiumFresh.js): each partner's specialties.premium.computedAt, the newest stamp,
+  hours old, stale past 36 hours. /admin Cost and Reliability tab opens with "Premium numbers last refreshed N hours ago", amber
+  past 36 hours or when it cannot be read. scripts/premiumFreshCheck.mjs in prePush. Search check: no public page touched.

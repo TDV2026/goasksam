@@ -13,6 +13,7 @@ import { sendDisguisedNotFound } from "../lib/_notFound.js";
 import { supabaseSelectAll } from "../lib/_supabase.js";
 import { trackHealth, withTracking } from "../lib/track/log.js";
 import { BUY_CHAT_SPEND_PER_DAY_USD } from "../lib/_ceilings.js";
+import { readPremiumFreshness } from "../lib/ops/premiumFresh.js";
 
 const CRON_ROUTES = ["/api/pullLive", "/api/tasks", "/api/refreshSpecLiveCounts", "/api/admin"];
 
@@ -80,16 +81,18 @@ async function overview(env) {
 
 async function reliability(env) {
   const from = ptDay(-6);
-  const [cost, errs, search, emails] = await Promise.all([
+  const [cost, errs, search, emails, premium] = await Promise.all([
     rows(env, `analytics_daily_cost?day=gte.${from}&select=*&order=day.desc`),
     rows(env, `analytics_daily_errors?day=gte.${from}&select=*&order=day.desc`),
     rows(env, `analytics_daily_search?day=gte.${from}&select=day,product,searches,failed,catching_breath,fallback_used,year_widened,latency_p50,latency_p95&order=day.desc`),
     rows(env, `analytics_events?name=eq.task_match_sent&ts=gte.${encodeURIComponent(ptRange(from).start)}&select=ts,props&order=ts.desc`),
+    // When the nightly job last wrote the partner premium numbers (lib/ops/premiumFresh.js); a failed read says so.
+    readPremiumFreshness(supabaseSelectAll, env).catch(() => ({ error: true })),
   ]);
   const routes = {};
   for (const e of errs) { const k = e.route; routes[k] = routes[k] || { route: k, errors: 0, statuses: {} }; routes[k].errors += e.errors; routes[k].statuses[e.status] = (routes[k].statuses[e.status] || 0) + e.errors; }
   return {
-    cost, search,
+    cost, search, premium,
     errorsByRoute: Object.values(routes).sort((a, b) => b.errors - a.errors),
     cronFailures: errs.filter(e => CRON_ROUTES.includes(e.route)),
     email: { runs: emails.length, sent: sum(emails, e => e.props.emails_sent), failed: sum(emails, e => e.props.failed), endedBeforeSend: sum(emails, e => e.props.ended_before_send) },
@@ -225,7 +228,7 @@ function pageHtml() {
   // The script holds no key and no data; everything comes from POST /api/admin with the person's own token.
   return `<!doctype html><html lang=en><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=robots content="noindex,nofollow"><title>404: NOT_FOUND</title>
 <style>:root{color-scheme:dark;--background:#0a0a0a;--foreground:#ededed;--copy:#ffffff;--secondary:#a0a0a0}@media(prefers-color-scheme:light){:root{color-scheme:light;--background:#ffffff;--foreground:#171717;--copy:#171717;--secondary:#4d4d4d}}*,*::before,*::after{box-sizing:border-box}html,body{min-height:100%}body{margin:0;background:var(--background);color:var(--foreground);font-family:geist,-apple-system,BlinkMacSystemFont,segoe ui,helvetica neue,Arial,sans-serif}main.nf{display:grid;min-height:100vh;place-items:center;padding:32px}h1{font-size:24px;font-weight:600;letter-spacing:-.96px;line-height:32px;margin:0}p{margin:8px 0 0;color:var(--copy);font-size:16px;line-height:24px}.metadata{margin-top:23px;color:var(--secondary);font-family:geist mono,sfmono-regular,Consolas,liberation mono,Menlo,monospace;font-size:12px;line-height:16px}</style>
-<style id=ad-style media="not all">body.ad{background:#f7f6f3;color:#1a1a1a;color-scheme:light}.ad main{max-width:1100px;margin:0 auto;padding:16px}.ad h1{font-size:20px;letter-spacing:0}.ad h2{font-size:16px;margin:22px 0 8px}.ad nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}.ad nav button{border:1px solid #cfcac2;background:#fff;border-radius:16px;padding:6px 12px;font-size:14px;cursor:pointer;color:#1a1a1a}.ad nav button.on{background:#1a1a1a;color:#fff;border-color:#1a1a1a}.ad .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}.ad .tile{background:#fff;border:1px solid #e4e0d8;border-radius:10px;padding:10px}.ad .tile b{display:block;font-size:22px;margin-top:4px}.ad .tile span{font-size:12px;color:#5f5a53}.ad .wrap{overflow-x:auto;background:#fff;border:1px solid #e4e0d8;border-radius:10px}.ad table{border-collapse:collapse;width:100%;font-size:13px}.ad th,.ad td{text-align:left;padding:6px 8px;border-bottom:1px solid #eee;white-space:nowrap}.ad th{color:#5f5a53;font-weight:600}.ad .note{font-size:12px;color:#5f5a53;margin:6px 0}.ad input{font-size:14px;padding:6px 8px;border:1px solid #cfcac2;border-radius:6px;width:min(320px,100%)}.ad .muted{color:#8a857d}</style>
+<style id=ad-style media="not all">body.ad{background:#f7f6f3;color:#1a1a1a;color-scheme:light}.ad main{max-width:1100px;margin:0 auto;padding:16px}.ad h1{font-size:20px;letter-spacing:0}.ad h2{font-size:16px;margin:22px 0 8px}.ad nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}.ad nav button{border:1px solid #cfcac2;background:#fff;border-radius:16px;padding:6px 12px;font-size:14px;cursor:pointer;color:#1a1a1a}.ad nav button.on{background:#1a1a1a;color:#fff;border-color:#1a1a1a}.ad .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}.ad .tile{background:#fff;border:1px solid #e4e0d8;border-radius:10px;padding:10px}.ad .tile b{display:block;font-size:22px;margin-top:4px}.ad .tile span{font-size:12px;color:#5f5a53}.ad .wrap{overflow-x:auto;background:#fff;border:1px solid #e4e0d8;border-radius:10px}.ad table{border-collapse:collapse;width:100%;font-size:13px}.ad th,.ad td{text-align:left;padding:6px 8px;border-bottom:1px solid #eee;white-space:nowrap}.ad th{color:#5f5a53;font-weight:600}.ad .note{font-size:12px;color:#5f5a53;margin:6px 0}.ad input{font-size:14px;padding:6px 8px;border:1px solid #cfcac2;border-radius:6px;width:min(320px,100%)}.ad .muted{color:#8a857d}.ad .fresh{background:#fff;border:1px solid #e4e0d8;border-radius:10px;padding:10px 12px;margin:12px 0 0;font-size:14px}.ad .fresh.amber{background:#fff4d6;border-color:#d9a400;color:#5c4100}</style>
 </head><body><main class=nf><section aria-labelledby=error-title><h1 id=error-title>This page doesn&#8217;t exist</h1><p>It may have been moved, removed, or never existed.</p><div class=metadata><p>404 NOT_FOUND</p></div></section></main>
 <script>(function(){
 var tok=null;
@@ -239,10 +242,17 @@ var E=function(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){retu
 var n=function(x){return x==null?"-":Number(x).toLocaleString("en-US");},usd=function(x){return x==null?"-":"$"+Number(x).toFixed(2);},pct=function(x){return x==null?"-":Math.round(x*100)+"%";};
 function table(cols,rows){if(!rows||!rows.length)return '<p class=note>No rows yet.</p>';return '<div class=wrap><table><tr>'+cols.map(function(c){return '<th>'+E(c[0])+'</th>';}).join("")+'</tr>'+rows.map(function(r){return '<tr>'+cols.map(function(c){return '<td>'+(c[2]?c[2](r[c[1]],r):E(r[c[1]]))+'</td>';}).join("")+'</tr>';}).join("")+'</table></div>';}
 function tiles(t){return '<div class=tiles>'+t.map(function(x){return '<div class=tile><span>'+E(x[0])+'</span><b>'+x[1]+'</b>'+(x[2]?'<span>'+E(x[2])+'</span>':'')+'</div>';}).join("")+'</div>';}
+// Partner premium numbers: how long since the nightly job last wrote them; amber past the limit (36 hours).
+function hoursText(h){var r=Math.round(h),W=["zero","one","two","three","four","five","six","seven","eight","nine","ten"];return h<1?"less than an hour":(r<=10?W[r]:n(r))+(r===1?" hour":" hours");}
+function premiumLine(p){if(!p||p.error)return '<p class="fresh amber">Premium numbers: the last refresh time could not be read.</p>';
+ if(!p.lastRefreshed)return '<p class="fresh amber">Premium numbers: no partner has a stored number.</p>';
+ var act=(p.partners||[]).filter(function(x){return x.active;}),behind=act.filter(function(x){return x.computedAt&&Date.parse(p.lastRefreshed)-Date.parse(x.computedAt)>36e5;}).map(function(x){return x.name;}),none=act.filter(function(x){return !x.computedAt;}).map(function(x){return x.name;});
+ return '<p class="fresh'+(p.stale?' amber':'')+'" title="'+E(new Date(p.lastRefreshed).toLocaleString())+'">Premium numbers last refreshed '+hoursText(p.hoursOld)+' ago.'+(p.stale?' That is over '+n(p.staleAfterHours)+' hours: check the nightly premium job.':'')+'</p>'
+  +(behind.length?'<p class=note>Older than that run: '+E(behind.join(", "))+'.</p>':'')+(none.length?'<p class=note>No stored number (below the sales needed): '+E(none.join(", "))+'.</p>':'');}
 var PARTS=[["overview","Today"],["reliability","Cost and Reliability"],["buy","Buy and Market Check"],["demand","Demand"],["journey","Journey"],["retention","Retention"]];
 var R={
 overview:function(d){return tiles([["Searches",n(d.searches)],["Answered with a range",n(d.answered)],["Not enough data",pct(d.notEnoughRate)],["Clickouts",n(d.clickouts)],["Market Checks",n(d.marketChecks)],["Tasks created",n(d.tasksCreated)],["Sign-ups",n(d.signups)],["Visitors",n(d.visitors)],["Model spend",usd(d.spendUsd),"of the "+usd(d.spendCapUsd)+" cap"],["Errors",n(d.errors)],["Live cars",n(d.liveInventory)],["Analytics events lost",n(d.analyticsLost)]])+'<p class=note>'+E(d.day)+' Pacific. '+(d.refreshed?'Summaries refreshed '+E(new Date(d.refreshed).toLocaleTimeString()):'Summaries not refreshed yet')+'; crew, test and bot traffic left out.</p>';},
-reliability:function(d){return '<h2>Spend by product</h2>'+table([["Day","day"],["Product","product"],["Calls","model_calls",n],["Cache hits","cache_hits",n],["Tokens in","tokens_in",n],["Tokens out","tokens_out",n],["Cost","cost_usd",usd]],d.cost)
+reliability:function(d){return premiumLine(d.premium)+'<h2>Spend by product</h2>'+table([["Day","day"],["Product","product"],["Calls","model_calls",n],["Cache hits","cache_hits",n],["Tokens in","tokens_in",n],["Tokens out","tokens_out",n],["Cost","cost_usd",usd]],d.cost)
  +'<h2>Errors by route, 7 days</h2>'+table([["Route","route"],["Errors","errors",n],["Statuses","statuses",function(v){return E(Object.keys(v).map(function(k){return k+": "+v[k];}).join(", "));}]],d.errorsByRoute)
  +'<h2>Latency and failures</h2>'+table([["Day","day"],["Product","product"],["Searches","searches",n],["p50 ms","latency_p50",n],["p95 ms","latency_p95",n],["Failed","failed",n],["Catching his breath","catching_breath",n],["Fallback rung","fallback_used",n],["Year widened","year_widened",n]],d.search)
  +'<h2>Cron failures</h2>'+table([["Day","day"],["Route","route"],["Status","status"],["Errors","errors",n]],d.cronFailures)
