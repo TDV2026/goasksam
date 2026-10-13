@@ -1355,51 +1355,6 @@ async function handleOps(req, res) {
     return res.status(200).json(result);
   }
 
-  // task=modmatch: TEMPORARY, READ-ONLY (description-match job, Oct 2026). For each title given, finds
-  // the sales_archive row, re-runs every RESTOMOD_TAGS pattern against title-only vs title+description,
-  // and reports which pattern matched and where (title or description), with ~80 chars of context.
-  // Delete once the job concludes.
-  if (task === "modmatch") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { RESTOMOD_TAGS } = await import("../lib/modelRules.js");
-    const titles = String(req.query?.titles || "").split("|").map(s => s.trim()).filter(Boolean);
-    const out = [];
-    for (const t of titles) {
-      const rows = await supabaseSelect(env, `sales_archive?listing_title=eq.${encodeURIComponent(t)}&select=listing_title,description&limit=1`).catch(() => null);
-      const row = rows && rows[0];
-      if (!row) { out.push({ title: t, error: "not found" }); continue; }
-      const desc = String(row.description || "");
-      const hits = [];
-      for (const spec of RESTOMOD_TAGS) {
-        const reTitle = new RegExp(spec.re.source, spec.re.flags);
-        const reDesc = new RegExp(spec.re.source, spec.re.flags);
-        const mTitle = reTitle.exec(t);
-        const mDesc = !mTitle ? reDesc.exec(desc) : null;
-        if (mTitle) hits.push({ word: spec.word, where: "title", match: mTitle[0] });
-        else if (mDesc) {
-          const i = mDesc.index, ctx = desc.slice(Math.max(0, i - 80), i + mDesc[0].length + 80);
-          hits.push({ word: spec.word, where: "description", match: mDesc[0], context: ctx });
-        }
-      }
-      out.push({ title: t, hits, descLen: desc.length });
-    }
-    return res.status(200).json({ task: "modmatch", out });
-  }
-
-  // task=flawsample: TEMPORARY, READ-ONLY (Sam's Take issue-count basis job, Oct 2026). Samples the
-  // raw known_flaws field (raw_record->>known_flaws) for a make/model so its actual shape (clean
-  // itemized array vs freeform prose split by newline/semicolon) can be inspected before trusting a
-  // COUNT of it in a headline sentence. Delete once the job concludes.
-  if (task === "flawsample") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const make = String(req.query?.make || "Porsche");
-    const model = String(req.query?.model || "911");
-    const limit = Math.min(Number(req.query?.limit) || 20, 50);
-    const rows = await supabaseSelect(env, `sales_archive?make=ilike.${encodeURIComponent(make)}&model=ilike.*${encodeURIComponent(model)}*&select=listing_title,flaws:raw_record->>known_flaws&order=sale_date.desc&limit=${limit}`);
-    const out = (rows || []).map(r => ({ title: r.listing_title, raw: r.flaws, rawType: r.flaws == null ? "null" : (() => { try { const p = JSON.parse(r.flaws); return Array.isArray(p) ? `json array (n=${p.length})` : "json scalar"; } catch { return "plain string"; } })() }));
-    return res.status(200).json({ task: "flawsample", make, model, n: out.length, out });
-  }
-
   // task=vinhistory: READ-ONLY (weekly report job 2, Oct 2026). For every VIN that sold in [from, to]
   // on a non-live-house platform, returns that VIN's EARLIER records (sold, from sales_archive, and
   // not-sold, from auction_attempts) - date, platform, price or high bid, result, miles, id. A live-
@@ -1775,36 +1730,6 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "specialscount", total, withFlag, pctFlagged: total > 0 ? Math.round((withFlag / total) * 1000) / 10 : null, byFlagSample: byFlag, sampleSize: (sample || []).length });
   }
 
-  // task=livecheck: TEMPORARY, READ-ONLY (Oct 2026, "false none live" job). For each ?urls=a|b given
-  // (or ?titles=a|b to match by listing_title instead), looks up live_listings directly by url/
-  // listing_title (docs/supabase-live-listings.sql - one `url` column, no source_url) - zero OCD, a
-  // plain Supabase read - so a report of "X is live but Buy says none" can be checked against our OWN
-  // already-pulled pool before assuming a fence/rule problem. Delete once the job concludes.
-  if (task === "livecheck") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const urls = String(req.query?.urls || "").split("|").map(s => s.trim()).filter(Boolean);
-    const titles = String(req.query?.titles || "").split("|").map(s => s.trim()).filter(Boolean);
-    const out = [];
-    for (const u of urls) {
-      const rows = await supabaseSelect(env, `live_listings?url=eq.${encodeURIComponent(u)}&select=*&limit=3`).catch(e => ({ error: String(e && e.message || e) }));
-      out.push({ query: u, by: "url", rows });
-    }
-    for (const t of titles) {
-      const rows = await supabaseSelect(env, `live_listings?listing_title=ilike.*${encodeURIComponent(t)}*&select=*&limit=10`).catch(e => ({ error: String(e && e.message || e) }));
-      out.push({ query: t, by: "title", rows });
-    }
-    // &recentSource=carsandbids&recentMake=BMW: ingest-health check - the most recently first_seen rows
-    // for that source+make, so a "missing" listing can be told apart from "the pull hasn't run since it
-    // went live" (a pull-timing gap) vs "the pull ran recently and still never saw it" (more likely a
-    // pull-logic or vendor-coverage gap).
-    if (req.query?.recentSource) {
-      const src = String(req.query.recentSource), mk = String(req.query?.recentMake || "");
-      const recent = await supabaseSelect(env, `live_listings?source=eq.${encodeURIComponent(src)}${mk ? `&make=ilike.${encodeURIComponent(mk)}` : ""}&select=listing_title,year,first_seen,last_seen,status,url&order=first_seen.desc&limit=15`).catch(e => ({ error: String(e && e.message || e) }));
-      out.push({ recentSource: src, recentMake: mk || null, recent });
-    }
-    return res.status(200).json({ task: "livecheck", out });
-  }
-
   if (task === "fieldcov") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const FIELDS = ["description", "known_flaws", "recent_service_history", "modifications"];
@@ -1831,18 +1756,6 @@ async function handleOps(req, res) {
       bySource[s] = { total, filled: Object.fromEntries(FIELDS.map(f => [f, cells[f]])), pct: Object.fromEntries(FIELDS.map(f => [f, pctOf(cells[f], total)])) };
     }
     return res.status(200).json({ task: "fieldcov", ocdSpend: 0, countMode: exact ? "exact" : "planner-estimate", fields: FIELDS, bySource, note: "Fill = value present (non-null) among sold rows. Counts are Postgres planner ESTIMATES by default (add ?exact=1 for exact, slower). A per-model-year cross needs a workflow (interactive PostgREST aggregates are disabled on this project)." });
-  }
-
-  // task=fasttest: TEMP diagnostic for the Desk indexed fast path. Runs the exact make=eq +
-  // model_family=eq read and returns the raw PostgREST status + body so a query error is visible.
-  if (task === "fasttest") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const mk = String(req.query?.make || "Chevrolet"), fam = String(req.query?.fam || "Camaro");
-    const cols = "id,price:sale_price,auction_end_date:sale_date,source:platform,source_slug,model_family,raw_title:listing_title,year,vin_norm,image:raw_record->>featured_image_url,mileage:raw_record->>mileage,currency:raw_record->>currency,srcurl:raw_record->>url";
-    const q = `sales_archive?select=${cols}&make=eq.${encodeURIComponent(mk)}&model_family=eq.${encodeURIComponent(fam)}&sale_price=not.is.null&order=sale_date.desc&limit=10`;
-    let status = null, body = null, err = null;
-    try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }); status = r.status; body = await r.text(); } catch (e) { err = String((e && e.message) || e); }
-    return res.status(200).json({ task: "fasttest", make: mk, fam, status, err, sample: (body || "").slice(0, 600) });
   }
 
   // task=statsprobe: ONE call — fetch recent UNSOLD auctions for a source and return each record's
@@ -4238,35 +4151,6 @@ async function handleOps(req, res) {
       item3: { bySource, inBatOrCandB: inBatCB.length, june2026Count: june.length, june2026: june.slice(0, 20).map(r => ({ title: r.title, source: r.source, date: r.date })), note: "BaT/C&B are USD-only sources; a JPY/HKD/NZD row cannot be in their totals" },
       item2: { savedResultsScannedLast60d: savedScanned, matchScanRows: scan.length, savedMatches, cube: { note: "desk_aggregates holds aggregate medians per (make,model_family,gen,year,channel,venue,window); no individual-row membership", families: cubeCells } }
     });
-  }
-
-  // task=listingmarkettest (TEMPORARY, body-style scoping job): exercises the Buy/Tasks listing-
-  // judgment path (listingFacts -> specOf -> listingMarket), the SAME path task emails and Buy's
-  // live cards use, for a SYNTHETIC row built from a raw title - so the body-detection + scoping
-  // chain can be inspected independent of a real archive row. Read-only, archive-only.
-  //   ?view=ops&task=listingmarkettest&title=1988 Porsche 911 Carrera Targa
-  if (task === "listingmarkettest") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { listingFacts, listingMarket, specOf } = await import("../lib/live/search.js");
-    const titles = String(req.query?.title || "1988 Porsche 911 Carrera Targa").split("|").map(s => s.trim()).filter(Boolean);
-    // bodyField (Oct 2026, Boxster text-vs-field job): forces facts.body to this value AFTER
-    // listingFacts runs on the title, mirroring exactly how lib/live/search.js familyMarket builds
-    // its row (a title with NO body word + body supplied only as a separate facts field, the same
-    // shape Buy/Tasks send). Leave unset to use the title-detected body (Market Check's shape).
-    const bodyFieldOverride = req.query?.bodyField ? String(req.query.bodyField) : null;
-    const out = [];
-    for (const title of titles) {
-      try {
-        const yr = Number((title.match(/\b(19|20)\d{2}\b/) || [])[0]) || null;
-        const row = { listing_title: title, year: yr };
-        const facts = listingFacts(row);
-        if (bodyFieldOverride) facts.body = bodyFieldOverride;
-        const spec = await specOf(env, row, facts).catch(e => ({ error: String(e && e.message || e) }));
-        const m = await listingMarket(env, row, facts).catch(e => ({ error: String(e && e.message || e) }));
-        out.push({ title, facts: { body: facts.body, gearbox: facts.gearbox }, spec: spec ? { make: spec.v?.make, model: spec.v?.model, trim: spec.v?.trim, bodyStyle: spec.v?.bodyStyle, genCode: spec.generation?.code, year: spec.v?.year, key: spec.key } : null, market: m });
-      } catch (e) { out.push({ title, error: String((e && e.message) || e).slice(0, 220) }); }
-    }
-    return res.status(200).json({ task: "listingmarkettest", out });
   }
 
   // task=obdiag: READ-ONLY (archive; ZERO OCD). Runs the LIVE runOneBox for each query and returns
