@@ -30,6 +30,11 @@ Under eight sales on every rung: show the nearest real sales, count only, name t
   a reader of "911 models" assumes every 911.
 - **Typed words are carried, never dropped.** A trim, edition, wheelbase, body or series the user typed scopes the pool and
   appears in the label. A halo trim that is the thing asked for (GT3, Black Series) is the pool, not an aside.
+- **An aftermarket or dealer package does not change the car.** A Mustang GT with a Steeda (or Roush) package is still a Mustang GT and counts in the Mustang GT
+  pool. Only a substantial modification, a conversion, a clone or a replica is out (the modified and replica fences). A package never moves a car to another
+  model's pool or out of its own.
+- **A model with its own name is its own pool.** The 275 GTB/4 is a separate model from the 275 GTB (two-cam): it is not in the 275 GTB pool, and the 275 GTB is
+  not in its. The same applies to any suffix that names a different car (GTB/4, GTS, GTC).
 - **Halo aside.** On a base query a separate, pricier tier is set aside. It is the base pool that must survive.
 - **Models that blend.** A nameplate whose number covers distinct cars (Ferrari 250, 275, 330, 365, 512, Dodge Viper) never widens
   into the family; it stays on its own sales.
@@ -41,13 +46,16 @@ Under eight sales on every rung: show the nearest real sales, count only, name t
   themselves, no band. Eight or more sales of any kind let the facts line state the lowest and highest real sale.
 - **Same answer everywhere.** Market Check, Buy, Sell and Tasks agree on rung, label, count, low and high for the same words.
 
+- **A page says what its engine said.** What a product's page prints (the scope line, the sales count, the range or sold-between range) is the same pool as that
+  product's engine answer: same count, same low and high, same years in the scope line. goldenTruth reports a difference as RENDER DRIFT.
+
 ## 3. How the expected values were derived
 
 Each value was worked out by hand: the rung from the thresholds above, the pool by reading every title the engine returned for the
 car (`obdiag`, `detail=1`) against the fences, and the band by recomputing p25 and p75 from those prices (it matched the engine's own
 cluster on every car where the pool was right). Raw all-time archive counts (`poolsrc`) bound the pool from above. What no
 read-only task can show is the RAW archive rows of a window, so "no legitimate sale was left out" cannot be proved for any car yet.
-Cars where the rung itself depends on that are marked **pending**; the task that would settle them is specified under FOR LANE B in
+Cars where the rung itself depends on that are marked **pending** (8, 11 and 16); the task that would settle them is specified under FOR LANE B in
 `docs/lane-notes.md` (`poolrows`).
 
 Expected counts for cars on the "last twelve months" window drift as old sales leave it. `tol` is the allowed drift on the count (and
@@ -69,8 +77,8 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 10 | 2003 BMW M3 Coupe | exact, E46 | exact, 14 sales, $23,500 to $35,500 |
 | 11 | 1989 Merkur XR4Ti | thin model, rung depends on the window | pending |
 | 12 | 2024 Porsche 911 GT3 | generation boundary, halo trim asked for | generation, 992, 25 sales, $244,000 to $272,000 |
-| 13 | 2018 Ford Mustang GT | exactly eight, tuner package | pending |
-| 14 | 1966 Ferrari 275 GTB | blends across models (no family widening) | pending |
+| 13 | 2018 Ford Mustang GT | exactly eight, aftermarket package still counts | exact, 8 sales, $30,000 to $35,500 |
+| 14 | 1966 Ferrari 275 GTB | its own model (the 275 GTB/4 is out), blends across models | year_widened, 1965 to 1966, 10 sales, thin, no band |
 | 15 | 1987 Buick Regal Grand National | typed words carried | exact, 55 sales, $35,500 to $56,000 |
 | 16 | 2005 Saab 9-2X | sibling rung | pending |
 | 17 | 1931 Bugatti Type 41 | not enough data | not_enough_data, nothing on record |
@@ -95,8 +103,11 @@ Per car, in the words of the derivation:
 10. **E46 M3 Coupe.** 14 sales, band $23,500 to $35,500.
 11. **Merkur XR4Ti.** 1989 holds 1; the model has 9 sales in five years. Whether the rung is the widened years or the model any year, and its count, depends on the window. Pending.
 12. **2024 GT3.** 2024 holds 1, 2023 to 2025 holds 5, so the whole 992 generation (2022 to 2026) is used: 25 sales. Band $244,000 to $272,000.
-13. **2018 Mustang GT.** The engine counts exactly 8, but one of them is a Steeda Q500 Enforcer (aftermarket supercharged package). Without it the count is 7 and the rung moves to 2017 to 2019. Pending a ruling on tuner packages.
-14. **275 GTB.** The pool mixes 275 GTB, GTB/4 and GTB/6C titles. Whether GTB/4 belongs to "275 GTB" is a product decision. Pending.
+13. **2018 Mustang GT.** Eight sales, band $30,000 to $35,500. One is a Steeda Q500 Enforcer; an aftermarket package does not change the car, so it counts. (A Roush
+    Jackhammer is set aside as an odd sale on price, not for the package.) Exactly eight, so the ladder stops on the exact year.
+14. **275 GTB.** The 275 GTB/4 (1966 to 1968, four-cam) is its own model and is out. What is left is the two-cam 275 GTB, including GTB/6C and Alloy: 1966 alone holds 7,
+    1965 adds 3, so 1965 to 1966 holds 10 and the ladder stops. Every one is a house sale, so the tier is thin: the sales themselves, no band. (The engine pools 19: nine
+    of them 1967 GTB/4.)
 15. **Grand National.** "Regal Grand National" and "Grand National" are one car. 55 sales (4 odd sales set aside), band $35,500 to $56,000. The label must say Grand National.
 16. **Saab 9-2X.** Six in the 36-month window, 32 over all years. A sibling (Subaru Impreza) is the next rung only if the model-any-year pool fails eight. Pending.
 17. **Bugatti Type 41.** No sale on record: not enough data, say so.
@@ -124,8 +135,8 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":10,"q":"2003 BMW M3 Coupe","status":"ready","rung":"exact","labelHas":["2003","M3 Coupe"],"count":14,"tol":2,"low":23500,"high":35500,"tolPct":3},
  {"id":11,"q":"1989 Merkur XR4Ti","status":"pending","rung":"model_any_year","labelHas":["XR4Ti"],"pending":"rung and count depend on the window; needs poolrows"},
  {"id":12,"q":"2024 Porsche 911 GT3","status":"ready","rung":"generation","labelHas":["GT3","992 generation"],"count":25,"tol":2,"low":244000,"high":272000,"tolPct":3,"quick":true},
- {"id":13,"q":"2018 Ford Mustang GT","status":"pending","rung":"exact","labelHas":["2018","Mustang GT"],"pending":"count is 8 only if the Steeda Q500 Enforcer counts; ruling on tuner packages needed, then poolrows"},
- {"id":14,"q":"1966 Ferrari 275 GTB","status":"pending","rung":"year_widened","labelHas":["275 GTB"],"pending":"does GTB/4 belong to 275 GTB; product decision, then poolrows"},
+ {"id":13,"q":"2018 Ford Mustang GT","status":"ready","rung":"exact","labelHas":["2018","Mustang GT"],"count":8,"tol":0,"low":30000,"high":35500,"tolPct":0},
+ {"id":14,"q":"1966 Ferrari 275 GTB","status":"ready","rung":"year_widened","labelHas":["275 GTB","1965 to 1966"],"count":10,"tol":0,"low":null,"high":null,"thin":true},
  {"id":15,"q":"1987 Buick Regal Grand National","status":"ready","rung":"exact","labelHas":["1987","Grand National"],"count":55,"tol":0,"low":35500,"high":56000,"tolPct":0},
  {"id":16,"q":"2005 Saab 9-2X","status":"pending","rung":"model_any_year","labelHas":["9-2X"],"pending":"36-month window vs all years decides model_any_year or sibling; needs poolrows"},
  {"id":17,"q":"1931 Bugatti Type 41","status":"ready","rung":"not_enough_data","labelHas":[],"empty":true},

@@ -35,7 +35,7 @@ try {
       await page.setRequestInterception(true);
       page.on("request", r => {
         let own = false; try { own = new URL(r.url()).host === HOST; } catch (e) {}
-        r.continue(own ? { headers: { ...r.headers(), "x-probe-key": KEY, "x-launch-stage-test": "2" } } : undefined);
+        r.continue(own ? { headers: { ...r.headers(), "x-ops-key": KEY, "x-launch-stage-test": "2" } } : undefined);
       });
     }
     page.on("console", m => { if (m.type() === "error") errors.push("console: " + m.text().slice(0, 200)); });
@@ -140,7 +140,7 @@ try {
     await page.setRequestInterception(true);
     page.on("request", r => {
       let own = false; try { own = new URL(r.url()).host === HOST; } catch (e) {}
-      r.continue(own ? { headers: { ...r.headers(), "x-probe-key": KEY, "x-launch-stage-test": "2" } } : undefined);
+      r.continue(own ? { headers: { ...r.headers(), "x-ops-key": KEY, "x-launch-stage-test": "2" } } : undefined);
     });
     const url = BASE + "/market-check?q=" + encodeURIComponent(car);
     const t0 = Date.now();

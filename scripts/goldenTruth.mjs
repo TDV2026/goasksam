@@ -60,6 +60,7 @@ function judge(g, lane) {
 
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", protocolTimeout: 600000, args: ["--no-sandbox"] });
 const rows = [];
+const byQ = {};
 try {
   // The ops task is a keyed GET; plain curl is turned away by Vercel's bot protection, so the request is made from a real page
   // on the site's own address. The key travels only in the x-ops-key header.
@@ -72,7 +73,7 @@ try {
     catch (e) { return { status: 0, text: String(e && e.message || e) }; } finally { clearTimeout(t); }
   }, url, KEY);
 
-  const byQ = {};
+  
   for (let i = 0; i < GOLDEN.length; i += BATCH) {
     const chunk = GOLDEN.slice(i, i + BATCH);
     const url = `/api/usageDashboard?view=ops&task=enginecheck&buypaths=0&livefences=0&representative=0&splitpools=0&overtime=0&livelisting=0&cacheconsistency=0&specs=${encodeURIComponent(chunk.map(g => g.q).join("|"))}`;
@@ -91,51 +92,132 @@ try {
     rows.push({ g, cells, page: null });
   }
 
-  // Public Market Check page (the heading carries the range), for the cars marked "page" (all with --pages).
-  const pageCars = rows.filter(r => flag("pages") || r.g.page);
-  for (const r of pageCars) {
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1280, height: 900 });
-    await page.setRequestInterception(true);
-    const host = new URL(BASE).host;
-    page.on("request", q => { let own = false; try { own = new URL(q.url()).host === host; } catch (e) {} q.continue(own ? { headers: { ...q.headers(), "x-probe-key": KEY, "x-launch-stage-test": "2" } } : undefined); });
-    await page.goto(BASE + "/market-check?q=" + encodeURIComponent(r.g.q), { waitUntil: "domcontentloaded", timeout: 60000 }).catch(() => {});
-    let text = "";
-    for (let t = 0; t < 80; t++) { text = await page.evaluate(() => document.body ? document.body.innerText : "").catch(() => ""); if (/\$\d[\d,]{2,}|catching his breath|limit of \d+ cars/i.test(text)) break; await new Promise(x => setTimeout(x, 500)); }
-    const path = new URL(page.url()).pathname;
-    const h1 = await page.evaluate(() => { const h = document.querySelector("h1"); return h ? h.textContent.replace(/\s+/g, " ").trim() : ""; }).catch(() => "");
-    const band = /\$([\d,]+)\s+to\s+\$([\d,]+)/.exec(h1) || /\$([\d,]+)\s+to\s+\$([\d,]+)/.exec(text);
-    const got = band ? { low: Number(band[1].replace(/,/g, "")), high: Number(band[2].replace(/,/g, "")) } : null;
-    const diffs = [];
-    if (!path.startsWith("/market-check")) diffs.push(path.startsWith("/sell") ? "redirected to /sell: key rejected" : "ended on " + path);
-    else if (r.g.low != null) {
-      if (!got) diffs.push("no range on the page");
-      else { if (!near(got.low, r.g.low, r.g.tolPct)) diffs.push(`low ${money(got.low)} != ${money(r.g.low)}`); if (!near(got.high, r.g.high, r.g.tolPct)) diffs.push(`high ${money(got.high)} != ${money(r.g.high)}`); }
+  // PAGES (Part 1, Oct 13 2026): what each product's page actually RENDERS, read from the page text.
+  //   marketCheck  /market-check?q=      the hero: scope line, "N sales", the middle-half range or the sold-between range
+  //   buy          /buy?q=               the figure the page prints on its first live car (Sam's line: "landed at $X to $Y"); Buy prints no sold count
+  //   sell         /sell?car=&state=&how=&rush=   the result address (the three questions answered in the address); the page prints "N of M ... in the last 12 months"
+  //                and no range. Viewing it sends no email and writes no lead; there is no dry-run flag to pass because none is needed.
+  //   tasks        NOT REACHED: see the note printed under the table.
+  // Each rendered count and range is compared with that product's OWN engine answer (a difference is RENDER DRIFT, with the field)
+  // and, when the page agrees with its engine, the engine's verdict against the golden line stands for the page.
+  // Every page is opened in its own browser context (a fresh visitor, so no per-visitor car limit) and the key goes only in the
+  // x-ops-key header of requests to goasksam's own address.
+  const WORDS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
+  const num = w => { const t = String(w || "").toLowerCase().replace(/,/g, ""); return /^\d+$/.test(t) ? Number(t) : (WORDS[t] || null); };
+  const parseRange = t => { const m = /\$([\d,]+)\s+to\s+\$([\d,]+)/.exec(t); return m ? { low: Number(m[1].replace(/,/g, "")), high: Number(m[2].replace(/,/g, "")) } : null; };
+  const PARSERS = {
+    marketCheck(text) {
+      const lines = text.split("\n").map(x => x.trim()).filter(Boolean);
+      const i = lines.findIndex(x => /^MARKET CHECK$/.test(x));
+      const scope = i >= 0 ? (lines[i + 2] || "") : "";
+      const cm = /(\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten)\s+sales?\b/i.exec(scope);
+      const k = lines.findIndex(x => /^WHERE (THE MIDDLE HALF|THEY) SOLD/.test(x));
+      const range = k >= 0 ? parseRange(lines.slice(k, k + 3).join(" ")) : null;
+      return { count: cm ? num(cm[1]) : null, range, scope, kind: k >= 0 && /MIDDLE HALF/.test(lines[k]) ? "band" : (k >= 0 ? "soldBetween" : null) };
+    },
+    buy(text) {
+      const m = /landed at \$([\d,]+) to \$([\d,]+)/.exec(text) || /sold between \$([\d,]+) and \$([\d,]+)/.exec(text);
+      const src = /\|?\s*SAM\s*\n([^\n]+)/.exec(text);
+      return { count: null, range: m ? { low: Number(m[1].replace(/,/g, "")), high: Number(m[2].replace(/,/g, "")) } : null, scope: src ? src[1].trim() : "" };
+    },
+    sell(text) {
+      const m = /(\d[\d,]*)\s+of\s+(\d[\d,]*)\b[^\n]*?last\s+12\s+months/i.exec(text) || /(\d[\d,]*)\s+of\s+(\d[\d,]*)/.exec(text);
+      const sc = /^For the (.+?)\.?$/m.exec(text);
+      return { count: m ? Number(m[2].replace(/,/g, "")) : null, range: parseRange(text.split("WHO SAM WOULD RECOMMEND")[0]), scope: sc ? sc[1] : "" };
     }
-    r.page = { cell: r.g.status === "pending" ? "PENDING" : (diffs.length ? "FAIL" : "PASS"), diffs };
-    await page.close();
+  };
+  const pageUrl = {
+    marketCheck: q => BASE + "/market-check?q=" + encodeURIComponent(q),
+    buy: q => BASE + "/buy?q=" + encodeURIComponent(q),
+    sell: q => BASE + "/sell?car=" + encodeURIComponent(q) + "&state=California&how=self&rush=none"
+  };
+  const READY = {
+    marketCheck: /\$\d[\d,]{2,}|catching his breath|limit of \d+ cars/i,
+    buy: /landed at \$|sold between \$|That.s everything matching|Nothing else right now|No live|0 live|live .* right now/i,
+    sell: /SAM.S PICK|WHO SAM WOULD RECOMMEND|not enough|couldn.t/i
+  };
+  async function readPage(product, q) {
+    const ctx = await browser.createBrowserContext();
+    const page = await ctx.newPage();
+    try {
+      await page.setViewport({ width: 1280, height: 900 });
+      await page.setRequestInterception(true);
+      const host = new URL(BASE).host;
+      page.on("request", rq => { let own = false; try { own = new URL(rq.url()).host === host; } catch (e) {} rq.continue(own ? { headers: { ...rq.headers(), "x-ops-key": KEY, "x-launch-stage-test": "2" } } : undefined); });
+      await page.goto(BASE + "/", { waitUntil: "domcontentloaded", timeout: 60000 }).catch(() => {});
+      await new Promise(x => setTimeout(x, 1500));
+      await page.goto(pageUrl[product](q), { waitUntil: "domcontentloaded", timeout: 60000 }).catch(() => {});
+      let text = "";
+      const until = Date.now() + (product === "sell" ? 90000 : 45000);
+      while (Date.now() < until) { text = await page.evaluate(() => document.body ? document.body.innerText : "").catch(() => ""); if (READY[product].test(text)) break; await new Promise(x => setTimeout(x, 1000)); }
+      await new Promise(x => setTimeout(x, 1500));
+      text = await page.evaluate(() => document.body ? document.body.innerText : "").catch(() => text);
+      return { path: new URL(page.url()).pathname, text };
+    } finally { await ctx.close().catch(() => {}); }
   }
+  // Compare one rendered page with the same product's engine lane. Returns drift strings.
+  function drift(product, rendered, lane) {
+    const out = [];
+    if (!lane || !lane.ok) return out;
+    if (rendered.count != null && lane.count != null && rendered.count !== lane.count) out.push(`count ${rendered.count} on the page, ${lane.count} in its engine answer`);
+    const want = lane.low != null ? { low: lane.low, high: lane.high } : (Array.isArray(lane.span) ? { low: lane.span[0], high: lane.span[1] } : null);
+    if (rendered.range && want && (rendered.range.low !== want.low || rendered.range.high !== want.high)) out.push(`range ${money(rendered.range.low)} to ${money(rendered.range.high)} on the page, ${money(want.low)} to ${money(want.high)} in its engine answer${lane.low == null ? " (span)" : ""}`);
+    else if (rendered.range && !want) out.push(`page prints ${money(rendered.range.low)} to ${money(rendered.range.high)}, engine answer has no range`);
+    else if (!rendered.range && want && product === "marketCheck") out.push(`page prints no range, engine answer has ${money(want.low)} to ${money(want.high)}`);
+    const yrs = /\d{4} to \d{4}/.exec(String(lane.rungLabel || ""));
+    if (yrs && rendered.scope && !rendered.scope.includes(yrs[0])) out.push(`scope line "${rendered.scope.slice(0, 60)}" lacks "${yrs[0]}" from its engine label`);
+    return out;
+  }
+  const PAGE_PRODUCTS = flag("pages") ? ["marketCheck", "buy", "sell"] : ["marketCheck"];
+  const jobs = [];
+  for (const r of rows) if (flag("pages") || r.g.page) for (const pr of PAGE_PRODUCTS) jobs.push({ r, pr });
+  let next = 0;
+  const worker = async () => {
+    while (next < jobs.length) {
+      const { r, pr } = jobs[next++];
+      const g = r.g, engineCell = r.cells[pr];
+      let rd; try { rd = await readPage(pr, g.q); } catch (e) { rd = { path: "", text: "", err: String(e && e.message || e) }; }
+      r.pages = r.pages || {};
+      if (!rd.path.startsWith("/" + ({ marketCheck: "market-check", buy: "buy", sell: "sell" })[pr])) { r.pages[pr] = { cell: "FAIL", diffs: [rd.path.startsWith("/sell") && pr !== "sell" ? "redirected to /sell: key rejected" : `ended on ${rd.path || "nothing"}`] }; continue; }
+      const parsed = PARSERS[pr](rd.text);
+      const lane = (byQ[g.q] && byQ[g.q].lanes || {})[pr];
+      const dr = drift(pr, parsed, lane);
+      const none = pr === "buy" && !parsed.range;       // no live car, so Buy prints no market line: nothing to compare
+      if (dr.length) r.pages[pr] = { cell: "DRIFT", diffs: dr.map(d => "RENDER DRIFT, " + d) };
+      else if (none) r.pages[pr] = { cell: "N/A", diffs: [] };
+      else r.pages[pr] = { cell: engineCell.cell, diffs: [] };
+      r.pages[pr].shown = `${parsed.count == null ? "-" : parsed.count} ${parsed.range ? money(parsed.range.low) + "-" + money(parsed.range.high) : "no range"}`;
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(3, jobs.length) }, worker));
 } finally { await browser.close(); }
 
 // ---- the table ----
 const pad = (s, n) => String(s).padEnd(n);
-const short = c => c.cell === "FAIL" ? "FAIL" : c.cell;
+const PAGEHEAD = ["MC page", "Buy page", "Sell page", "Tasks page"];
 console.log(`\nGOLDEN TRUTH  ${new Date().toISOString().slice(0, 10)}  (${BASE})  ${rows.length} cars, expected answers from docs/golden-rules.md\n`);
-console.log(pad("#", 3) + pad("Car", 46) + pad("Market Check", 14) + pad("Buy", 9) + pad("Sell", 9) + pad("Tasks", 9) + "Page");
-let nFail = 0, nPend = 0, nPass = 0;
+console.log(pad("#", 3) + pad("Car", 44) + pad("MC", 9) + pad("Buy", 9) + pad("Sell", 9) + pad("Tasks", 9) + PAGEHEAD.map(h => pad(h, 11)).join(""));
+let nFail = 0, nPend = 0, nPass = 0, nDrift = 0;
 for (const r of rows) {
-  const cells = PRODUCTS.map(p => short(r.cells[p]));
-  console.log(pad(r.g.id, 3) + pad(r.g.q, 46) + pad(cells[0], 14) + pad(cells[1], 9) + pad(cells[2], 9) + pad(cells[3], 9) + (r.page ? short(r.page) : "-"));
-  for (const c of [...PRODUCTS.map(p => r.cells[p]), r.page].filter(Boolean)) { if (c.cell === "FAIL") nFail++; else if (c.cell === "PENDING") nPend++; else nPass++; }
+  const eng = PRODUCTS.map(p => r.cells[p].cell);
+  const pg = ["marketCheck", "buy", "sell"].map(p => r.pages && r.pages[p] ? r.pages[p].cell : "-");
+  console.log(pad(r.g.id, 3) + pad(r.g.q, 44) + eng.map(c => pad(c, 9)).join("") + pad(pg[0], 11) + pad(pg[1], 11) + pad(pg[2], 11) + pad(flag("pages") ? "NOT REACHED" : "-", 11));
+  for (const c of [...PRODUCTS.map(p => r.cells[p]), ...Object.values(r.pages || {})]) { if (c.cell === "FAIL") nFail++; else if (c.cell === "DRIFT") nDrift++; else if (c.cell === "PENDING") nPend++; else if (c.cell === "PASS") nPass++; }
 }
-console.log("\nDifferences (same text on several products is shown once):");
+console.log("\nDifferences (same text on several products is shown once; page lines name the page):");
 for (const r of rows) {
   const seen = new Map();
-  for (const p of PRODUCTS) for (const d of r.cells[p].diffs) { if (!seen.has(d)) seen.set(d, []); seen.get(d).push(p); }
-  if (r.page) for (const d of r.page.diffs) { if (!seen.has(d)) seen.set(d, []); seen.get(d).push("page"); }
+  const add = (d, who) => { if (!seen.has(d)) seen.set(d, []); seen.get(d).push(who); };
+  for (const p of PRODUCTS) for (const d of r.cells[p].diffs) add(d, p);
+  for (const [p, c] of Object.entries(r.pages || {})) for (const d of c.diffs) add(d, p + " page");
   if (!seen.size) continue;
   console.log(`  ${r.g.id}. ${r.g.q}${r.g.status === "pending" ? "  [PENDING: " + r.g.pending + "]" : ""}`);
-  for (const [d, ps] of seen) console.log(`      ${ps.length === 4 && !ps.includes("page") ? "all four" : ps.join(", ")}: ${d}`);
+  for (const [d, ps] of seen) console.log(`      ${ps.length === 4 && !ps.some(x => /page/.test(x)) ? "all four" : ps.join(", ")}: ${d}`);
 }
-console.log(`\n${nPass} PASS, ${nFail} FAIL, ${nPend} PENDING (report-only; ${flag("strict") ? "strict: failures set the exit code" : "does not set the exit code"}).`);
-process.exit(flag("strict") && nFail ? 1 : 0);
+if (flag("pages")) {
+  console.log("\nRendered, per page (count, range as the page prints them):");
+  for (const r of rows) console.log(`  ${r.g.id}. ${pad(r.g.q, 42)}` + ["marketCheck", "buy", "sell"].map(p => `${p}: ${r.pages && r.pages[p] ? r.pages[p].shown : "-"}`).join("   |   "));
+  console.log("\nTasks page: NOT REACHED. A Task preview needs a signed-in or test-user request, and api/tasks.js probeOk accepts the key only in x-probe-key (every other keyed path takes x-ops-key through lib/_credential.js hasServerCredential). Sending the key in x-probe-key would break the one-header rule for this job, so no Tasks page was opened and no Task was created.");
+}
+console.log(`\n${nPass} PASS, ${nFail} FAIL, ${nDrift} RENDER DRIFT, ${nPend} PENDING (report-only; ${flag("strict") ? "strict: failures set the exit code" : "does not set the exit code"}).`);
+process.exit(flag("strict") && (nFail || nDrift) ? 1 : 0);
