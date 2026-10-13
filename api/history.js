@@ -20,6 +20,7 @@ import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../l
 import { recordUsageEvent } from "./_usage.js";
 import { logPageView } from "../lib/_pageview.js";
 import { classifyRoad } from "../lib/_roadType.js";
+import { bidState, bidTimePT, lastBidLine } from "../lib/tasks/bidTime.js";
 
 const SITE = "https://goasksam.com";
 // Card design system (Oct 2026, the /buy cards): #FAF8F4 paper, near-black ink, one red (#D7262C),
@@ -50,6 +51,10 @@ body{background:var(--page);color:var(--ink)}.rail{background:var(--page)}
 .vtl li.now i{background:var(--red)}
 .vtl .d{margin-top:14px;font:500 15px/1.3 var(--sans);color:var(--ink)}
 .vtl .r{margin-top:4px;font:400 19px/1.3 var(--serif);color:var(--ink)}
+/* A no-sale point (Part 4, result-hero job, Oct 2026) has no separate .d/.h - the one composed
+   sentence states date and venue itself - so .r needs the breathing room .d would otherwise have
+   given it under the dot. Desktop only; the mobile grid already lays .r out with no .d to miss. */
+.vtl li.nosale .r{margin-top:14px;font-size:17px}
 .vtl .h,.vtl .m{margin-top:3px;font:400 13px/1.4 var(--sans);color:var(--sec)}
 .vtl .h a{color:var(--sec);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line)}
 .vtl li.now .r{color:var(--red)}
@@ -392,10 +397,25 @@ function otherNoun(title) {
 // THE TIMELINE (the page's main visual): every appearance, oldest left, with its date, result, house
 // and miles; sold dots filled, unsold hollow, the live listing last in red.
 function timelineHtml(apps, live) {
+  // Part 4 (result-hero job, Oct 2026): a no-sale point reads as one composed fact - "Ended {month
+  // year} on {venue}. Bidding reached $X. Did not sell." (or "Sold later." when a later appearance in
+  // THIS same record is a sale) - "Ended" because the table stores the end date only, never "Listed".
+  // Withdrawn is checked FIRST, before the bid: a withdrawn listing shows no bid at all, even when
+  // one was recorded (the old order let bidPrice(a) short-circuit past the withdraw check, so a
+  // withdrawn-with-a-bid row never said "Withdrawn"). Sold rows are unchanged.
   const items = apps.slice().reverse().map(a => {
-    const res = a.kind === "sale" ? `Sold ${salePrice(a)}` : (bidPrice(a) ? `Bid to ${bidPrice(a)}, not sold` : (/withdraw/i.test(String(a.status || "")) ? "Withdrawn" : "Not sold"));
-    const house = a.url ? `<a href="${esc(utm(a.url))}" target="_blank" rel="noopener">${esc(a.house)}</a>` : esc(a.house);
-    return `<li class="${a.kind === "sale" ? "sold" : "unsold"}"><i></i><span class="d">${esc(monShort(a.date))}</span><span class="r">${esc(res)}</span><span class="h">${house}</span>${a.mileage ? `<span class="m">${esc(miles(a.mileage))} miles</span>` : ""}</li>`;
+    if (a.kind === "sale") {
+      const house = a.url ? `<a href="${esc(utm(a.url))}" target="_blank" rel="noopener">${esc(a.house)}</a>` : esc(a.house);
+      return `<li class="sold"><i></i><span class="d">${esc(monShort(a.date))}</span><span class="r">Sold ${esc(salePrice(a))}</span><span class="h">${house}</span>${a.mileage ? `<span class="m">${esc(miles(a.mileage))} miles</span>` : ""}</li>`;
+    }
+    if (/withdraw/i.test(String(a.status || ""))) {
+      const house = a.url ? `<a href="${esc(utm(a.url))}" target="_blank" rel="noopener">${esc(a.house)}</a>` : esc(a.house);
+      return `<li class="unsold"><i></i><span class="d">${esc(monShort(a.date))}</span><span class="r">Withdrawn</span><span class="h">${house}</span>${a.mileage ? `<span class="m">${esc(miles(a.mileage))} miles</span>` : ""}</li>`;
+    }
+    const soldLater = apps.some(x => x.kind === "sale" && x.date > a.date);
+    const bid = bidPrice(a);
+    const sentence = `Ended ${monthYear(a.date)} ${on(a.house)}.` + (bid ? ` Bidding reached ${bid}.` : "") + (soldLater ? " Sold later." : " Did not sell.");
+    return `<li class="unsold nosale"><i></i><span class="r">${esc(sentence)}</span>${a.mileage ? `<span class="m">${esc(miles(a.mileage))} miles</span>` : ""}</li>`;
   });
   if (live) items.push(`<li class="now"><i></i><span class="d">Now</span><span class="r">Live</span><span class="h">${esc(houseName(live.source))}</span>${live.mileage ? `<span class="m">${esc(miles(live.mileage))} miles</span>` : ""}</li>`);
   return `<section class="sec" aria-label="Every time it has been to auction"><h2>Every time it&#8217;s been to auction</h2><p class="sub">${apps.length} appearance${apps.length === 1 ? "" : "s"}${live ? ", and live now" : ""}. Oldest first.</p><ol class="vtl" style="--n:${items.length}">${items.join("")}</ol></section>`;
@@ -431,21 +451,28 @@ function timeLeft(iso) {
   if (h < 24) { const hh = Math.floor(h); return hh + (hh === 1 ? " hour left" : " hours left"); }
   const dd = Math.floor(h / 24); return dd + (dd === 1 ? " day left" : " days left");
 }
-// Bid age (third addendum, result-page-polish round two): ported verbatim from api/buy.js's
-// bidAge/BIDFMT/stampBids (Lane C) so the wording ("updated 1h 12m ago") is identical everywhere a
-// live bid shows its age - not a second computation. This page has no shared client bundle, so the
-// same three functions are inlined once, gated on a live card actually rendering.
+// Live bid age (Part 4, result-hero job, Oct 2026): follows lib/tasks/bidTime.js's rule, imported
+// above (bidState/bidTimePT/lastBidLine, not edited). Fresh (<=1h old) renders "Bid $X" as before;
+// old (>1h) renders the past-tense fact straight away, "Last bid we saw: $42,000 at 4:12pm PT.",
+// never a live number with an age badge bolted on (the old treatment, replaced). This page has no
+// shared client bundle, so a small client script duplicates bidTimePT's own formatting (same TZ,
+// same wording) to flip a still-fresh bid's text the moment it crosses the one-hour mark while the
+// page stays open - the same necessary duplication the removed BID_AGE_JS already had, for the same
+// reason (no module system in a plain inline <script>).
 const BID_AGE_JS = `(function(){
-  function bidAge(ms){ var m = Math.floor(ms / 60000); if (m < 60) return ""; var d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mm = m % 60; return d ? d + "d" + (h ? " " + h + "h" : "") : h + "h" + (mm ? " " + mm + "m" : ""); }
-  var BIDFMT = { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" };
+  var FRESH_MS = 3600e3, TZ = "America/Los_Angeles";
+  function bidTimePT(at){
+    var d = new Date(at);
+    var dayPT = function(x){ return x.toLocaleDateString("en-US", { timeZone: TZ }); };
+    var time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: TZ }).replace(" AM","am").replace(" PM","pm");
+    return time + " PT" + (dayPT(d) === dayPT(new Date()) ? "" : " on " + d.toLocaleDateString("en-US", { weekday: "long", timeZone: TZ }));
+  }
   function stampBids(){
     Array.prototype.forEach.call(document.querySelectorAll("[data-bidat]"), function(el){
-      var t = Date.parse(el.getAttribute("data-bidat")), w = isNaN(t) ? "" : bidAge(Date.now() - t), box = el.querySelector(".bage");
-      if (!box) return;
-      var txt = w ? "updated " + w + " ago" : "", tt = box.querySelector(".bage-t"), ttl = w ? "Bid as of " + new Date(t).toLocaleString("en-US", BIDFMT) + " PT" : null;
-      if (box.hidden !== !w) box.hidden = !w;
-      if (tt.textContent !== txt) tt.textContent = txt;
-      if (el.getAttribute("title") !== ttl) { if (ttl) el.setAttribute("title", ttl); else el.removeAttribute("title"); }
+      var t = Date.parse(el.getAttribute("data-bidat"));
+      if (isNaN(t) || Date.now() - t <= FRESH_MS) return;
+      el.textContent = "Last bid we saw: " + el.getAttribute("data-bidamt") + " at " + bidTimePT(el.getAttribute("data-bidat")) + ".";
+      el.removeAttribute("data-bidat");
     });
   }
   stampBids();
@@ -454,17 +481,24 @@ const BID_AGE_JS = `(function(){
 function liveCardHtml(l, name, noun = "car") {
   const house = houseName(l.source);
   const chips = [[house, timeLeft(l.end_time)].filter(Boolean).join(" · ")].concat(l.has_reserve === false ? ["No reserve"] : []);
-  const bidText = l.current_bid_usd ? "Bid " + usd(l.current_bid_usd) : (l.current_bid ? "Bid " + Math.round(l.current_bid).toLocaleString("en-US") + " " + (l.currency || "") : "No bids yet");
+  const amt = l.current_bid_usd ? usd(l.current_bid_usd) : (l.current_bid ? Math.round(l.current_bid).toLocaleString("en-US") + " " + (l.currency || "") : "");
   const live = !l.end_time || Date.parse(l.end_time) > Date.now();
-  const showAge = l.bid_at && (l.current_bid_usd || l.current_bid) && live;
-  const bid = showAge
-    ? `<span data-bidat="${esc(l.bid_at)}">${esc(bidText)}<span class="bage" hidden> <span class="sep">·</span> <span class="bage-t"></span></span></span>`
+  const st = bidState(l.current_bid_usd || l.current_bid, l.bid_at);
+  // untimed (a bid amount with no reliable bid time) reads as no bid at all per the rule - a guessed
+  // age would be worse than silence, and "No bids yet" would be factually wrong when a bid may exist.
+  const watching = live && st.kind === "fresh";
+  const bidText = st.kind === "old" ? lastBidLine(amt, st.at).replace(/\.$/, "")
+    : st.kind === "untimed" ? ""
+    : st.kind === "fresh" ? "Bid " + amt
+    : "No bids yet";
+  const bid = !bidText ? "" : watching
+    ? `<span data-bidat="${esc(l.bid_at)}" data-bidamt="${esc(amt)}">${esc(bidText)}</span>`
     : esc(bidText);
   const meta = [bid, l.location ? esc(l.location) : "", l.mileage ? esc(miles(l.mileage) + " miles") : ""].filter(Boolean);
   const img = l.photo_url ? `<img src="${esc(l.photo_url)}" alt="${esc(name)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : "";
   return `<section class="sec" aria-label="Back at auction now"><h2>Back at auction now</h2><p class="sub">This ${esc(noun)} is live ${house === "Hemmings" || /^(Mecum|Bonhams|Gooding|RM|Broad|Barrett)/.test(house) ? "at" : "on"} ${esc(house)}.</p>
 <article class="lcard"><a class="lph" href="${esc(utm(l.url))}" target="_blank" rel="noopener">${img}<span class="chips">${chips.map(c => `<span class="chip">${esc(c)}</span>`).join("")}</span></a>
-<div><h3><a href="${esc(utm(l.url))}" target="_blank" rel="noopener">${esc(name)}</a></h3><p class="meta">${meta.join(" · ")}</p><a class="go" href="${esc(utm(l.url))}" target="_blank" rel="noopener">See the live auction</a></div></article></section>${showAge ? `<script>${BID_AGE_JS}</script>` : ""}`;
+<div><h3><a href="${esc(utm(l.url))}" target="_blank" rel="noopener">${esc(name)}</a></h3><p class="meta">${meta.join(" · ")}</p><a class="go" href="${esc(utm(l.url))}" target="_blank" rel="noopener">See the live auction</a></div></article></section>${watching ? `<script>${BID_AGE_JS}</script>` : ""}`;
 }
 // THE SALES BEHIND THE RAIL: exactly the rail's group (the engine's pool, same window), so the counts
 // agree. Other bodies of the family sold in the same window get their OWN list each ("XJS V12
