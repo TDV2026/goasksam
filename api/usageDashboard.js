@@ -3334,7 +3334,7 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle, sanitizeResolvedVehicle, modelChipsForMakeYear } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
-    const { runOneBox, reserveInsightForVehicle, reserveDayInsightForVehicle, ENGINE_VERSION, listSalesForVehicle, __specEngine } = await import("../lib/onebox.js");
+    const { runOneBox, reserveInsightForVehicle, reserveDayInsightForVehicle, ENGINE_VERSION, listSalesForVehicle, __specEngine, runOutputInvariants } = await import("../lib/onebox.js");
     const { specKeyFor } = await import("../lib/live/search.js");
     const qs = String(req.query?.qs || "458 Speciale coupe").split("|").map(s => s.trim()).filter(Boolean);
     const genOverrideRaw = req.query?.genOverride ? String(req.query.genOverride).split(",") : null;
@@ -3344,6 +3344,10 @@ async function handleOps(req, res) {
     const wantReserve = req.query?.reserve === "1";
     const wantChips = req.query?.chips === "1";
     const wantCache = req.query?.cachecheck === "1";
+    // gate=1 (Part 4 diagnostic, Oct 2026, read-only): reports what runOutputInvariants would decide
+    // for THIS exact answer, without mutating it - so the production gate's live behavior (oneEngineAnswer)
+    // can be inspected directly instead of guessed at from a downstream lane's "not_enough_data".
+    const wantGate = req.query?.gate === "1";
     const out = [];
     for (const q of qs) {
       try {
@@ -3425,7 +3429,8 @@ async function handleOps(req, res) {
           setAsideRows: Array.isArray(ob.setAsideRows) ? ob.setAsideRows.map(c => ({ title: c.title, price: c.price, mi: c.mi, mileageText: c.mileageText, reason: c.reason })) : null,
           bodyScoped: ob.bodyScoped !== undefined ? ob.bodyScoped : null,
           halfGeneration: ob.halfGeneration || null, representative: ob.representative || null,
-          reserve, chips, cacheRows, listSales
+          reserve, chips, cacheRows, listSales,
+          gate: wantGate ? runOutputInvariants(ob, v) : null
         });
       } catch (e) { out.push({ q, error: String((e && e.message) || e).slice(0, 220) }); }
     }
