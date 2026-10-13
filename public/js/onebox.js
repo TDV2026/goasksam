@@ -1930,7 +1930,10 @@
   // That is a deliberate, real behavior change made to follow the brief literally; flagged plainly in
   // the round report, not silently dropped.
   function idqBothLine(iq) {
-    var labels = (iq.options || []).map(function (o) { return String(o.label || "").toLowerCase(); });
+    // Labels print exactly as the engine gives them (never lowercased) - an acronym like "PDK"
+    // would otherwise read as "pdk", a real bug a first pass at this shipped and prePush's own
+    // live proof caught.
+    var labels = (iq.options || []).map(function (o) { return String(o.label || ""); }).filter(Boolean);
     if (labels.length === 2) return "Both " + labels[0] + " and " + labels[1] + " have enough sales to answer separately.";
     if (labels.length > 2) return "Each of " + obListPhrase(labels) + " has enough sales to answer separately.";
     return "Each side has enough sales to answer separately.";
