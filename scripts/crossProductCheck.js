@@ -662,6 +662,11 @@ export function checkSpecKeyYearIsolation() {
 // so the gate is proven to still gate.
 const card = (make, model, title) => ({ make, model, title });
 const GATE_FIXTURES = [
+  // e36/e37 (Oct 14 2026): a chassis-code query's pool holds the nameplate's rows on purpose (the union); not a swapped pool.
+  { name: "997 Carrera S: rows filed under '911' in a '997' query's pool are the same car (chassis-code union)", expect: true,
+    vehicle: { make: "Porsche", model: "997", trim: "Carrera S", year: 2008 },
+    d: { tier: "result", fallbackRung: "exact", rungLabel: "2008 997 Carrera S Coupe", resolvedCar: { trim: "Carrera S", genCode: "997" }, poolN: 4, cluster: [58500, 69000], rawPool: [{ _usd: 55000, year: 2008 }, { _usd: 60000, year: 2008 }, { _usd: 65000, year: 2008 }, { _usd: 70000, year: 2008 }],
+      cards: [card("Porsche", "911", "2008 Porsche 911 Carrera S Coupe"), card("Porsche", "911", "2008 Porsche 911 Carrera S Coupe 6-Speed"), card("Porsche", "911", "2008 Porsche 911 Carrera S Coupe"), card("Porsche", "997", "2008 Porsche 997 Carrera S Coupe 6-Speed")] } },
   // Golden car 12 (Oct 14 2026): a generation label over receipts that hold only two of the generation's years must fail.
   { name: "GT3: '(992 generation)' label over a 2023 to 2024 pool names a wider span than the receipts", expect: false,
     vehicle: { make: "Porsche", model: "911", trim: "GT3", year: 2024 },
