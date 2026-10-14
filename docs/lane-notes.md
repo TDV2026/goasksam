@@ -7703,3 +7703,13 @@ adjacent-year paths for the identical car are unaffected.
 
 Search check: no title/H1/canonical/meta changed - search-bar CSS, identity-line rendering/CSS and
 one click-handler addition, all within the existing Market Check template.
+
+## Lane C, Oct 14 2026: Buy proofs on e39, prePush module load, launch fixes, Canada held
+
+- PREPUSH "module load" SKIP: not a key. The check imports only the lib/api files changed in this branch's commits since origin/main (`git diff origin/main...HEAD`); a run with nothing ahead of main, or with the changes not yet committed, prints "SKIP module load: no changed lib/api files in this branch's commits since origin/main". It needs no key. Run after committing, it loads each changed file (PASS on api/buy.js, api/buySearch.js, lib/tasks/bidTime.js this round).
+- Buy fixes this round: 374e36a (Sam's four: chip words, one count, bid with its time, car-name line), cfb7dc6 (the card carries its make, so the name line comparison works), 023a037 (an interior chip ends at its last colour word: "sand beige full" reads "sand beige"), b6c34f9 (the name beside the pill wraps in full at 390).
+- PROOFS (~/Desktop/goasksam-proofs/buy/e39/, 1440 and 390): black Porsche 911 (before in buy/e39/before), red BMW, 997 Carrera, E46 M3, "2014 black Porsche 911", 1997 Porsche 911 Targa (card 100494). 29 distinct cars on the cards, each card's count and range against the keyed enginecheck task (Market Check, Buy, Tasks, Sell lanes): 29 same, 0 different. Market Check's own page refused most of them to the test device (business_limit, the 10 cars a day ceiling; the ops key does not lift it); the 13 it answered match too.
+- FOR LANE B (lib/live/search.js, report only): "E46 M3" on Buy reads "8 live BMW M3 E46s" and its cards include a 2004 BMW 325ci Convertible (listing 56313) and a 2003 BMW 330i Sedan (56336). The era chip E46 seems to admit every E46 3 Series under model M3. Each card's own market is right for its own car; it is which cars the M3 search counts.
+- FOR LANE B (label, report only): "2006 BMW M5" labels its pool "2006 M5, sedans and convertibles" (17 sales, $19,000 to $27,000, every lane). The E60 M5 was a sedan (and a Touring in Europe); no convertible was built, so the body clause reads oddly. The count and range agree on every lane.
+- CANADA: Lane B's e39 (b529a71) made isAbroadRow keep Canada at home, so Buy and Task counts already include Canadian listings. Lane C's own spots (the card's abroad flag, the market-first order, two probe counts in api/buySearch.js; a Canadian card still names Canada and its own currency in api/buy.js) are ready on a local branch and NOT pushed, waiting for Lane B's FOR LANE C note.
+Search check: no public page touched; /buy result views are noindex.
