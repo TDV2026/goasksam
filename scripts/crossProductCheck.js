@@ -662,6 +662,15 @@ export function checkSpecKeyYearIsolation() {
 // so the gate is proven to still gate.
 const card = (make, model, title) => ({ make, model, title });
 const GATE_FIXTURES = [
+  // Golden car 12 (Oct 14 2026): a generation label over receipts that hold only two of the generation's years must fail.
+  { name: "GT3: '(992 generation)' label over a 2023 to 2024 pool names a wider span than the receipts", expect: false,
+    vehicle: { make: "Porsche", model: "911", trim: "GT3", year: 2024 },
+    d: { tier: "result", fallbackRung: "generation", rungLabel: "911 GT3 (992 generation)", genYears: [2020, 2026], resolvedCar: { trim: "GT3" }, poolN: 3, cluster: [243000, 269000], rawPool: [{ _usd: 240000, year: 2023 }, { _usd: 250000, year: 2024 }, { _usd: 270000, year: 2023 }],
+      cards: [card("Porsche", "911", "2023 Porsche 911 GT3"), card("Porsche", "911", "2024 Porsche 911 GT3"), card("Porsche", "911", "2023 Porsche 911 GT3")] } },
+  { name: "GT3: '2023 to 2024' label over the same pool describes the receipts exactly", expect: true,
+    vehicle: { make: "Porsche", model: "911", trim: "GT3", year: 2024 },
+    d: { tier: "result", fallbackRung: "year_widened", rungLabel: "911 GT3 models, 2023 to 2024", genYears: [2020, 2026], resolvedCar: { trim: "GT3" }, poolN: 3, cluster: [243000, 269000], rawPool: [{ _usd: 240000, year: 2023 }, { _usd: 250000, year: 2024 }, { _usd: 270000, year: 2023 }],
+      cards: [card("Porsche", "911", "2023 Porsche 911 GT3"), card("Porsche", "911", "2024 Porsche 911 GT3"), card("Porsche", "911", "2023 Porsche 911 GT3")] } },
   { name: "Grand National: archive model column 'Grand National - Regal' is the Regal", expect: true,
     vehicle: { make: "Buick", model: "Regal", trim: "Grand National" },
     d: { tier: "result", fallbackRung: "exact", rungLabel: "1987 Regal Grand National", resolvedCar: { trim: "Grand National" }, poolN: 4, cluster: [35500, 56000], rawPool: [{ _usd: 30000 }, { _usd: 40000 }, { _usd: 50000 }, { _usd: 60000 }],
