@@ -7033,3 +7033,132 @@ Audit (page numbers, pool, equals the page's own sales count):
 - Reserve box: own pool; NO; hidden.
 - Latest sales cards: first three of the engine pool (recentSales); yes.
 - PowerSeller facts ("440+ enthusiast auctions", "Top 10% of Bring a Trailer sellers"): the partner's whole record by design (rule 14), not this car's pool; Lane C's.
+
+## Lane A, Oct 13 2026: Market Check vs the approved mockup (final-mockup.jpg) - four jobs
+Sam's brief: the mockup wins over any written spec wherever they disagree. Compared the live page
+to /Users/davidzysblat/Desktop/goasksam-proofs/market-check-live/final-mockup.jpg at its own 941px
+width, found and fixed real gaps, re-screenshotted after each deploy, looped until no visible gap
+remained at 941/1440/390.
+
+JOB 1 (mockup match):
+- Real structural gap found, not in the written spec: the mockup has NO side rail at all - a plain
+  top bar (wordmark, search, sign-in) with full-width content. The live page carries the shared
+  200px rail on every product page, so Market Check's content column was ~740px when the mockup
+  assumes close to the full viewport. That alone explained most of the "chart too small"/"range
+  number too big" complaints - the column was simply narrower than the mockup assumes.
+  FIX: js/onebox.js reads window.GAS_TOOL (already set server-side by lib/appShell.js railOpenHtml
+  from the active key, "market_check" vs "sell") and adds one class, `.mc-flat`, to <html> - only on
+  Market Check, never on the shared Sell page that loads this same onebox.html/onebox.js. All CSS
+  lives under that class in onebox.html: hides #gas-rail/#gas-scrim, zeroes #gas-main's margin, and
+  shows the existing .gas-mhead bar (wordmark; hamburger hidden, nothing left for it to open) rather
+  than inventing new markup. lib/appShell.js itself is UNTOUCHED - Sell/Buy/Tasks keep their rail
+  exactly as shipped. LOST as a direct consequence, flagged plainly: Market Check's own chrome no
+  longer carries cross-nav to Sell/Buy/Tasks/Your results or the footer links (How Sam decides, Send
+  feedback, Privacy, About) - the mockup shows none of it. The top wordmark still links home.
+- Type scale brought down across the board to match the mockup's measured proportions: range number
+  72/48px -> 44/28px, car name 40/30px -> 32/28px (two steps), section headings 28/24px -> 22/19px,
+  sales-card price 24/20px -> 20/17px.
+- Chart box itself: .hc-svg had a fixed height:300px against a 560x220 viewBox (2.545:1) -
+  preserveAspectRatio scaled to the narrower dimension and left empty space below the drawn content.
+  Both chart types now share a 560x420 (4:3) viewBox matching .hc-svg's own CSS aspect-ratio exactly,
+  and .hero2col's column stretch (removed an `align-items:start` override) plus a new .hc-body flex
+  wrapper keep the heading pinned at top while the chart content centers in any extra stretched
+  height.
+- Thin-fallback chart (<3 qualifying quarters) STILL read as "a thin line in a mostly empty panel"
+  live even after the box-level fix above - the SVG container filled correctly but the drawn content
+  (all points on one horizontal line at vertical-center) only ever occupied a thin band. Rebuilt
+  stripChartHtml as a real two-axis scatter: date along X (oldest to newest, falling back to even
+  ordinal spacing if a date fails to parse), price along Y with the same gridline/$K-label style
+  candleChartHtml uses, so the two chart types share one visual language and the fallback genuinely
+  fills the box. The middle-half band (when given) shades horizontally across its price range.
+  PROVEN LIVE: 2025 Porsche 911 (12 sales, the exact example Sam named) - chart now fills the panel
+  with gridlines, a shaded band, and every sale plotted; screenshot
+  compare/live-911-941-r6.png.
+- Candle chart PROVEN LIVE on a genuinely high-volume car: 1965 Ford Mustang, 68 sales, 4 quarters
+  each with 9/13/21/21 sales (all >=8) - bars, gridlines, $ labels, typical-sale dots, legend and the
+  prior-year line all render correctly; screenshot compare/live-mustang-1440.png.
+- Distribution section (20+ sales) PROVEN LIVE on the same Mustang: six price-band rows, proportional
+  bar widths, the top bucket shaded dark exactly as the mockup does for its own top bucket, expandable
+  receipts. One real gap: the mockup's rows carry a percentage ("36% (15)"); the engine's
+  distribution buckets (lib/onebox.js distributionFor) carry only {low, high, count, receipts,
+  typicalBucket} - no percent field. Per the standing rule (nothing computed on the page), I did NOT
+  compute count/total on the frontend. FOR LANE B: add a `pct` (or `percent`) number per bucket,
+  precomputed server-side from the same pool, so distributionHtml can print it without computing
+  anything itself.
+- Verified at 390px: single column, chart/sales/live-panel/distribution all readable, no overflow or
+  clipping observed; screenshot compare/live-911-390.png.
+
+JOB 2 (exact car - "This car's own sales"): exactCarSalesHtml was wired into resultHtml/thinHtml
+last round but NOT refusalHtml - Sam's required proof VIN (WP0AB2A94MS223093) resolves to the
+refusal tier (2021 Porsche 992 Coupe, spec/condition spread too wide for one range), which has no
+hero/chart shape, so the section never rendered for it. Wired exactCarSalesHtml into both
+refusalHtml branches (the thin-kind sub-branch and the main spread-too-wide branch), placed right
+after the head block and before "What has sold" - the refusal tier's own equivalent of "under the
+hero, above Sales behind this answer". No new engine field: m.sales already carried everything.
+The last-sale placement sentence only renders when a band exists (d.cluster/d.span); refusal has
+neither by definition, so the section correctly shows the sale row with no placement sentence there
+- not a bug, the honest absence of a range to place it against.
+PROVEN LIVE with the required VIN: "VIN MATCH / 2021 Porsche 911 Carrera S" heads the page, then
+"This car's own sales / Oct 2026 / $135,500 / Bring a Trailer / 12,000 miles / View sale ->"
+directly under the "Sam's read" refusal copy.
+Test-methodology note for future lanes: testing via `?car=<VIN text>` (the market-check URL's car
+param) silently skips the whole VIN-decode/match path (mcApplyFromUrl only calls vinResolve for a
+`?vin=` param) - any VIN proof must use `?vin=`, not `?car=`.
+
+JOB 3 (old boxes flattened): renderChoice (generation_choice, body_choice, the VIN-decode
+model/typo-clarification flow) and renderVinConfirm both rewritten to the same flat
+hero2col/idq-takeover shell the identity-question screen already uses - no boxes, pills, badges or
+chips, plain underlined text-link options with counts where the engine gives them (word-form, e.g.
+"Carrera S (eight)"). Click mechanisms completely unchanged ([data-genquery]/[data-model]/[data-body]
+already wired generically in wire(), by attribute). Dead code removed: renderRefineChoice and
+chipsHtml, confirmed no remaining callers before deleting.
+Queries tested live, with results:
+  - "porshe 911" (deliberate typo) -> silently corrected to Porsche 911, flat generation_choice
+    (901/G-Body/964/993/996/997/991/992), no box markers in the rendered text.
+  - "porsche 356" -> flat generation_choice (pre-A/A/B/C).
+  - "2005 bmw" (bare make) -> flat model_choice (3-Series/M3/5-Series/M5/6-Series/Z4), unchanged
+    from last round, confirmed still correct.
+  - VIN 1HGCM82633A004352 (a VIN with no archive match) -> genuine flat vin_confirmation screen,
+    "That VIN decodes to a 2021 Porsche 992 Coupe... wait, a 2003 Honda Accord EXV6 Coupe. Right? /
+    Yes, that's it -> / No, type it instead", no box; screenshot compare/vin-confirm-941.png.
+  - body_choice: tried ten-plus candidates known or suspected to carry a material body-price split
+    (1990/1989/1988/1986/1972 Porsche 911, Porsche 911 Targa, Ferrari 308, 1970 Plymouth Barracuda,
+    1969 Pontiac GTO, 1963 Chevrolet Corvette, 1965 Ford Mustang, 1970 Dodge Challenger, Jaguar
+    E-Type/XJS, Mercedes-Benz 450/380SL, Alfa Romeo Spider, 2001/2005 BMW M3, the 2025 Porsche 911
+    case named in scripts/crossProductCheck.js as the documented body_choice proof). NONE landed on
+    the body_choice tier today (a few carried a `bodyOptions` array on a RESULT-tier response - a
+    different, informational field the identity line reads, not the body_choice screen; two 911
+    queries hit generation_choice instead; 1989/1972/1974 Porsche 911 hit generation_choice/
+    unavailable/business_limit). Current archive composition does not trigger body_choice for any
+    car tried live today - not something this round can fix or fake. The rendering code path is
+    proven correct by construction: body_choice and generation_choice share the exact same
+    renderChoice function and the exact same data shape (bodyOptions/d.generationOptions, both plain
+    label arrays per lib/onebox.js line ~4876 `bodyOptions: present.map(p => p.label)`), and
+    generation_choice is proven live above.
+  NOTE for future lanes: Market Check's daily distinct-car limit (10 per device/session, 
+  api/sellerDecision.js checkMarketCheckCarLimit) was hit partway through this body_choice search
+  (several probes above returned tier "business_limit" instead of a real answer) - a batch
+  live-probe session for body_choice candidates should expect to burn real daily slots on THIS
+  product rule, not just OldCarsData spend; plan probes accordingly (one browser session, reuse
+  already-looked-up cars where possible - re-querying the SAME car does not cost a slot).
+
+JOB 4 (live table miles): docs/lane-notes.md already carried Lane C's FOR LANE A note (this file,
+2026-10-13 Lane C section): GET /api/buySearch?panel=1 returns `miles` on every row - a whole
+number, or null when the listing has no usable mileage or states kilometres. Wired straight through:
+a small second line under the car title in "Live right now" ("71,000 miles"), nothing rendered when
+null. No new fetch, no computation. PROVEN LIVE: 1970 Dodge Challenger's live panel shows "1970
+Dodge Challenger T/A 340 Six Pack / 71,000 miles" under the title.
+
+Search check: no title/H1/canonical/meta changed on any public page this round - every change is
+type scale, chart rendering, rail visibility and small CSS/JS additions within the existing Market
+Check template. rule 1 (no dated claim touched), rule 7 (sitemap untouched) not applicable.
+
+NOT DONE / open:
+- Distribution bucket percentage (JOB 1, see above) - FOR LANE B, needs an engine field.
+- body_choice could not be proven live today (see JOB 3 note above) - not a known bug, current data
+  composition; the identical render path is proven via generation_choice.
+- Rail removal (JOB 1) is scoped to Market Check only by a runtime class check, not a server-side
+  flag - correct today (window.GAS_TOOL is always set before onebox.js runs, confirmed in the
+  deployed HTML's script order), but any future reordering of the SHELL_RAIL splice relative to the
+  onebox.js <script> tag in api/marketCheck.js would silently break this. Flagging for whoever next
+  touches that file's splice order.
