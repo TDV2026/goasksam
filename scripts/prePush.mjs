@@ -223,6 +223,13 @@ try {
 } catch (e) {
   record("premium freshness (scripts/premiumFreshCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The Sell pick card's venue line (Oct 2026, Lane C, lib/sell/sellFlow.js pickFacts). No network.
+try {
+  const out = execSync("node scripts/sellVenueLineCheck.mjs", { encoding: "utf8" });
+  record("Sell venue line (scripts/sellVenueLineCheck.mjs)", "PASS", (out.match(/sellVenueLineCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Sell venue line (scripts/sellVenueLineCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Task filters carry the car as typed (Oct 2026, Lane C, lib/tasks/tasks.js typedCar). No network.
 try {
   const out = execSync("node scripts/taskFiltersCheck.mjs", { encoding: "utf8" });

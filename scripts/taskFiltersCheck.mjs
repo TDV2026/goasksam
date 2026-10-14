@@ -19,6 +19,7 @@ for (const [what, p, v, want] of cases) {
   const out = typedCar(p, v);
   ok(Object.entries(want).every(([k, x]) => out[k] === x), `${what} (got ${JSON.stringify(out)})`);
 }
+{ const p = { make: "Land Rover", model: "Defender 110", year_min: 1997 }; const out = typedCar(p, V("Land Rover", "Defender", { wheelbase: "110", year: 1997 })); ok(out.model === "Defender" && out.trim === "110", "model written as Defender 110: model Defender, trim 110 (got " + JSON.stringify(out) + ")"); }
 // Never a different car, never a guess.
 const mus = { make: "Ford", model: "Mustang", trim: "GT" };
 ok(typedCar(mus, V("Chevrolet", "Camaro", { trim: "SS" })) === mus, "a different make: the model's job stands");
