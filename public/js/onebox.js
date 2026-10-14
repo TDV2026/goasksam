@@ -724,7 +724,10 @@
   function usdK(n) { var v = Number(n); return Number.isFinite(v) ? ("$" + Math.round(v / 1000) + "K") : ""; }
   function chartTip(parts) { return esc(parts.filter(Boolean).join(" · ")); }
   function candleChartHtml(d) {
-    var qs = (d && Array.isArray(d.trend)) ? d.trend.filter(function (q) { return q && Number.isFinite(Number(q.low)) && Number.isFinite(Number(q.high)) && Number.isFinite(Number(q.typical)); }) : [];
+    // d.trend is {quarters:[{period,low,high,typical,count}], priorYear:{low,high}|null} (Lane B
+    // Part 5/6, Oct 2026) - never a bare array.
+    var trendObj = d && d.trend;
+    var qs = (trendObj && Array.isArray(trendObj.quarters)) ? trendObj.quarters.filter(function (q) { return q && Number.isFinite(Number(q.low)) && Number.isFinite(Number(q.high)) && Number.isFinite(Number(q.typical)); }) : [];
     if (qs.length < 3) return "";
     var W = 560, H = 220, padL = 46, padR = 8, padB = 36, padT = 10;
     var lo = Math.min.apply(null, qs.map(function (q) { return Number(q.low); }));
@@ -752,8 +755,8 @@
     });
     var svg = '<svg class="hc-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMinYMin meet" role="img" aria-label="Quarterly sale prices">' + grid + bars + "</svg>";
     var legend = '<div class="hc-legend"><span class="hc-legend-sw"><span class="hc-legend-box"></span>Middle half of sales</span><span class="hc-legend-sw"><span class="hc-legend-dot"></span>Typical sale</span></div>';
-    var py = (d && Array.isArray(d.priorYear) && d.priorYear.length === 2 && Number(d.priorYear[1]) > 0)
-      ? ('<p class="hc-prioryear">' + lint(esc("The year before, the middle half was " + usd(d.priorYear[0]) + " to " + usd(d.priorYear[1]) + "."), "hc.prioryear") + "</p>") : "";
+    var py = trendObj && trendObj.priorYear && Number(trendObj.priorYear.high) > 0
+      ? ('<p class="hc-prioryear">' + lint(esc("The year before, the middle half was " + usd(trendObj.priorYear.low) + " to " + usd(trendObj.priorYear.high) + "."), "hc.prioryear") + "</p>") : "";
     return svg + legend + py;
   }
   // The strip: lowest-to-highest line, the middle-half band behind it (when `band` is given - never
@@ -859,9 +862,13 @@
   // first three, newest-first) with no subhead - the "one from the middle, one at each edge" sentence
   // does not describe a thin pool, and the brief gives no thin-specific alternative.
   function salesRowHtml(d, m, fallbackCards) {
+    // d.contextRoles is {roles:[{role, sale}], sentence} (Lane B Part 5/6, Oct 2026) - the sale is
+    // already shapeCards()-shaped (title/url/image/platform/month/date/price/mi), same shape
+    // salesRowCardHtml already reads off d.representative.
     var cr = d.contextRoles;
+    var crSales = (cr && Array.isArray(cr.roles)) ? cr.roles.map(function (r) { return r && r.sale; }).filter(Boolean) : [];
     var cards = null, sub = null;
-    if (cr && Array.isArray(cr.sales) && cr.sales.length) { cards = cr.sales.slice(0, 3); sub = cr.sentence ? String(cr.sentence) : null; }
+    if (crSales.length) { cards = crSales.slice(0, 3); sub = cr.sentence ? String(cr.sentence) : null; }
     else {
       var rep = d.representative;
       if (rep && rep.closest) { cards = [rep.closest, rep.high, rep.low].filter(Boolean); sub = "One from the middle of the range, one at each edge of the middle half."; }
@@ -1416,17 +1423,28 @@
   // 20+ sales). Never computed here - absent entirely until the engine sends it. Clicking a row
   // expands its receipts underneath, one bucket open at a time (shares one data-distgroup id).
   var obDistSeq = 0;
+  // Bucket shape (Lane B Part 5/6, Oct 2026): {low, high, count, receipts, typicalBucket} - no
+  // label field, so the band label is composed here from low/high (never invented - both are the
+  // engine's own numbers, run through the same usd() every other dollar figure on this page uses).
+  // Every bucket but the last is a half-open [low, high) band (the engine's own distributionFor
+  // uses "< bHi" there and "<= bHi" only on the final bucket), so the label reads "low to high-1"
+  // except on the last row, which reads "low to high".
+  function distBucketLabel(b, isLast) {
+    var hi = isLast ? Number(b.high) : Math.max(Number(b.low), Number(b.high) - 1);
+    return usd(b.low) + " to " + usd(hi);
+  }
   function distributionHtml(d) {
     var dist = d && d.distribution;
-    var buckets = (dist && Array.isArray(dist.buckets)) ? dist.buckets.filter(function (b) { return b && b.label && Number(b.count) > 0; }) : [];
+    var buckets = (dist && Array.isArray(dist.buckets)) ? dist.buckets.filter(function (b) { return b && Number.isFinite(Number(b.low)) && Number.isFinite(Number(b.high)); }) : [];
     if (buckets.length < 2) return "";
-    var max = Math.max.apply(null, buckets.map(function (b) { return Number(b.count); }));
+    var max = Math.max.apply(null, buckets.map(function (b) { return Number(b.count) || 0; }));
     var groupId = "ob-dist" + (++obDistSeq);
     var rows = buckets.map(function (b, i) {
-      var pct = max > 0 ? Math.max(2, Number(b.count) / max * 100) : 0;
+      var count = Number(b.count) || 0;
+      var pct = max > 0 ? Math.max(2, count / max * 100) : 0;
       var receipts = Array.isArray(b.receipts) ? b.receipts : [];
       var panelId = groupId + "-" + i;
-      var barHtml = '<span class="dist-label">' + esc(b.label) + '</span><span class="dist-track"><span class="dist-bar' + (b.typical ? " typical" : "") + '" style="width:' + pct.toFixed(1) + '%"></span></span><span class="dist-count num">' + esc(Number(b.count).toLocaleString("en-US")) + "</span>";
+      var barHtml = '<span class="dist-label">' + esc(distBucketLabel(b, i === buckets.length - 1)) + '</span><span class="dist-track"><span class="dist-bar' + (b.typicalBucket ? " typical" : "") + '" style="width:' + pct.toFixed(1) + '%"></span></span><span class="dist-count num">' + esc(count.toLocaleString("en-US")) + "</span>";
       var btn = receipts.length
         ? ('<button type="button" class="distrowbtn" data-disttoggle="' + panelId + '" data-distgroup="' + groupId + '" aria-expanded="false">' + barHtml + "</button>")
         : ('<div class="distrowbtn" style="cursor:default">' + barHtml + "</div>");
