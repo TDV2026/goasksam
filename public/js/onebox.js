@@ -6,26 +6,6 @@
 (function () {
   "use strict";
   var API_ORIGIN = (location.hostname === "localhost" || location.protocol === "file:") ? "https://goasksam.com" : "";
-  // FLAT SHELL (mockup match, Oct 2026): Market Check's approved mockup has no side rail - a plain
-  // top bar (wordmark + search + sign-in) and full-width content. window.GAS_TOOL is set server-side
-  // by lib/appShell.js railOpenHtml from the SAME active key Sell's shell uses ("market_check" vs
-  // "sell"), so this reads an existing global rather than adding a new one, and only Market Check
-  // (never the shared Sell page that also loads this file) gets the class the CSS below keys on.
-  if (window.GAS_TOOL === "market_check") {
-    document.documentElement.classList.add("mc-flat");
-    // Item 9 (nav, mockup match round, Oct 2026): hiding the rail also hid its only links to Buy and
-    // Sell. Restored in the header, not as a rail - inserted into the existing .gas-mhead bar
-    // (already showing the GoAskSam wordmark under .mc-flat) via plain JS, scoped to this same
-    // market_check check, so Sell/Buy/Tasks (which load this same onebox.js/CSS) are untouched.
-    // Sign-in is unaffected either way - lib/authBar.js already floats it position:fixed.
-    var mh = document.querySelector(".gas-mhead");
-    if (mh) {
-      var nav = document.createElement("nav");
-      nav.className = "mc-mhead-nav";
-      nav.innerHTML = '<a href="/buy">Buy</a><a href="/sell">Sell</a>';
-      mh.insertBefore(nav, mh.querySelector(".gas-menu"));
-    }
-  }
   var root = document.getElementById("ob");
   // SELL MODE (Lane C, Oct 2026): the one-direction Sell runs on THIS page and THIS question flow, so
   // its questions, cards and type are Market Check's own. api/sellNext.js sets window.GAS_SELL; when it
@@ -163,7 +143,10 @@
     // this is the SAME .inbox/js/onebox.js markup both surfaces share, so the narrower desktop width
     // is scoped to this one extra class rather than touching .inbox itself (which would also narrow
     // New Sell's bar).
-    return '<div class="inbox' + (SELL ? '' : ' mc-bar') + '" role="search"><label class="sr" for="ob-input">Search a car</label><input id="ob-input" autocomplete="off" ' + (value ? 'value="' + esc(value) + '"' : 'placeholder="' + esc(placeholder || OB_PLACEHOLDER) + '"') + '>' +
+    // Magnifier icon (mockup match round, Oct 2026): Market Check's own search bar only (SELL
+    // false) - matches the approved mockup's header search box, never added to New Sell's bar.
+    var magnifier = SELL ? "" : '<svg class="inbox-mag" viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="14" y1="14" x2="18.5" y2="18.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+    return '<div class="inbox' + (SELL ? '' : ' mc-bar') + '" role="search">' + magnifier + '<label class="sr" for="ob-input">Search a car</label><input id="ob-input" autocomplete="off" ' + (value ? 'value="' + esc(value) + '"' : 'placeholder="' + esc(placeholder || OB_PLACEHOLDER) + '"') + '>' +
       '<button type="button" class="go" id="ob-go" aria-label="Search"' + (SELL ? '' : ' data-gas-event="market_check_open"') + '>&#8594;</button></div>';
   }
   // Layout fix (item 3): the empty state centres the input in the viewport; the loading/result
@@ -364,7 +347,6 @@
   // facts (span/cluster/recency/basis/platforms/cards/refusal). Prose is composed here with
   // styled number spans; the engine never sends prose numbers. Matches the design of record.
   function r3money(n) { return '<span class="num">' + usd(n) + "</span>"; }
-  function spellK(n) { return ({ 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten" })[n] || String(n); }
   // A chassis-style generation code ("E30", "964", "991.2") to prefix the model name so the cluster
   // reads "Most E30 M3s", not "Most M3s". Word codes ("first"/"second") and family codes are skipped.
   function genCodeLabel(rc) {
@@ -383,8 +365,10 @@
   // ---- Round-4 render: Sam's take folded block, earned question, clickable cards, no counts ----
   var OB_UTM = "utm_source=goasksam&utm_medium=onebox&utm_campaign=comp_card";
   function utmUrl(url) { return url ? url + (url.indexOf("?") >= 0 ? "&" : "?") + OB_UTM : null; }
-  function windowText(d) { return /12 months|twelve/.test(d.windowLabel || "") ? "the last twelve months" : "the past two years"; }
-  function windowMeta(d) { return /12 months|twelve/.test(d.windowLabel || "") ? "Past twelve months" : "Past two years"; }
+  // The engine's own windowWords (lib/onebox.js windowFactsFor, e34): "in the last twelve months"
+  // or "since {Month YYYY}" - a complete phrase, already carrying its own leading word. No page-side
+  // fallback wording; a call site with no windowWords prints nothing rather than guess.
+  function windowText(d) { return (d && d.windowWords) || ""; }
   function priceRange(a) { return r3money(a[0]) + " to " + r3money(a[1]); }
   function monthOnly(dstr) { var p = String(dstr || "").slice(0, 10).split("-"); var M = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]; return p.length >= 2 ? (M[+p[1]] || "") : ""; }
   // bodyOptionsHtml / trimQuestionHtml / gearboxEarnedHtml / driverEarnedHtml / the old
@@ -536,7 +520,9 @@
     // Market Check engine additions, item 1 (Oct 2026): the sold count as a market fact, phrased as
     // the market, not us - "42 sold in the last twelve months", never "based on". d.soldCount is the
     // engine's own word-or-number (countWord); printed exactly as it comes back, no reformatting.
-    parts.push((d.soldCount != null ? d.soldCount + " " : "") + "sold in " + windowText(d));
+    // windowText(d) is the engine's own windowWords, a complete phrase ("in the last twelve
+    // months") - "sold" + windowWords directly, no page-side "in" (would double up with it).
+    parts.push((d.soldCount != null ? d.soldCount + " " : "") + "sold " + windowText(d));
     return parts.join(" · ");
   }
   // Older-sales count (engine d.olderOutside = { n, years, recentN }): "14 more sold in 2023 and 2024."
@@ -635,7 +621,7 @@
     var n = Number(count), isNum = Number.isFinite(n);
     var countWord = isNum ? obNumWord(n) : String(count);
     var isOne = isNum ? n === 1 : /^one$/i.test(String(count));
-    return countWord + (isOne ? " sale" : " sales") + " in " + windowText(d);
+    return countWord + (isOne ? " sale" : " sales") + " " + windowText(d);
   }
   function heroLatestText(d) {
     var p = countLatestPhrase(d);
@@ -658,7 +644,11 @@
     // sale(s) (d.ownSales - the same signal exactCarSalesHtml reads) - never just because a VIN was
     // typed (no recorded sale means nothing of the car's own to lead with).
     if (obSourceVin && d && d.ownSales) t = "VIN ending " + String(obSourceVin).slice(-6) + (t ? (" · " + t) : "");
-    return t ? ('<p class="hero-scope" data-stage="answer">' + lint(esc(t), "hero.scope") + "</p>") : "";
+    // hero-scope-1line (mockup match round, Oct 2026): the hero's OWN scope line, one line always -
+    // a distinct class from the shared .hero-scope (reused elsewhere for legitimately multi-line
+    // text, e.g. the thin tier's reason sentences), truncated with an ellipsis via CSS rather than
+    // shortening the engine's own scopeLabel text itself.
+    return t ? ('<p class="hero-scope hero-scope-1line" data-stage="answer" title="' + esc(t) + '">' + lint(esc(t), "hero.scope") + "</p>") : "";
   }
   // Mileage line (left column, item 6, Market Check result-page spec): the field is ALWAYS present
   // once rendered - only the sentence above it switches. Not yet narrowed: "Add mileage to narrow
@@ -773,39 +763,49 @@
     var mult = norm < 1.5 ? 1 : norm < 3.5 ? 2 : norm < 7.5 ? 5 : 10;
     return mult * mag;
   }
-  // CANDLES ONLY (mockup match round, Oct 2026): no dot/strip fallback any more - fewer than 3
-  // qualifying quarters means no chart at all (see heroChartHtml/noChartLineHtml below). Every
-  // proportion here is measured directly off the approved final-mockup.jpg (2025 Porsche 911,
-  // 941px): the plot box itself (gridlines + bars + quarter labels, not the "How this market has
-  // moved" heading or the legend, both rendered by the caller) measured ~411x284px there - a
-  // ~1.45:1 width:height ratio, reproduced here as viewBox 880x608 (same ratio, so .hc-svg's CSS
-  // aspect-ratio renders identically at any container width). Bar width (~38px measured) and the
-  // gap between quarter centres (~94px measured) are FIXED viewBox units (barW/slot) - never
-  // divided down by the quarter count the way the old slot-per-quarter math did - so a 4-quarter
-  // and an 8-quarter trend draw the SAME size box and spacing; the group of N bars is centred
-  // within a viewBox sized for MAXQ (8) quarters, the trend window's own practical ceiling (it only
-  // ever grows past that if the engine genuinely sends more). Axis headroom (measured): the data's
-  // own min/max rounds OUT to the nearest step, then gets one MORE full step on each side - this is
-  // why the mockup's axis runs $80K to $200K against $102K-$172K data and no box ever touches the
-  // top or bottom gridline. No numbers print beside the boxes (low/high/typical/count are tooltip
-  // text only, hover on desktop or tap on phone) - only the axis, the boxes, the typical dot, the
-  // quarter label and its count underneath, the legend and prior-year line (both from the caller).
+  // "2026-Q1" (the engine's own period key) -> "Q1 2026" (the mockup's own label format). Pure
+  // string reformatting of a value the engine already gave, never a new fact.
+  function qtrLabel(period) {
+    var m = /^(\d{4})-Q([1-4])$/.exec(String(period || ""));
+    return m ? ("Q" + m[2] + " " + m[1]) : String(period || "");
+  }
+  // CANDLES (mockup match round, Oct 2026). Every proportion measured directly off the approved
+  // final-mockup.jpg (2025 Porsche 911, 941px): the plot area (axis + bars + quarter labels, not
+  // the "How this market has moved" heading or the legend, both rendered by the caller) measures
+  // about 11:7 (width:height), reproduced here as viewBox 880x560. Four quarter slots, evenly
+  // spaced across the FULL plot width (slot = plotWidth / count), each box about 40% of its slot
+  // (measured ~38px box in a ~94px slot). Axis headroom (measured): the data's own min/max rounds
+  // OUT to the nearest round step, then one MORE full step on each side - this is why the mockup's
+  // axis runs $80K to $200K against $102K-$172K data and no box ever touches the top or bottom
+  // gridline. High prints just above each box and low just below it (small grey text, matching the
+  // mockup, ALWAYS visible) - only the typical figure is hover (desktop) / tap (phone) only, beside
+  // the dot, never printed permanently (a deliberate simplification the mockup itself does not
+  // make). d.trend.quarters is ALWAYS the last four calendar quarters (lib/onebox.js trendFor,
+  // e34): a quarter under eight sales still returns its own low/high/typical flagged thin: true -
+  // drawn exactly the same as any other quarter (this function reads no thin flag at all, by
+  // design: thin-ness changes nothing about how a quarter is PLOTTED, only that the engine kept it
+  // in rather than dropping it). A quarter with zero sales in the window returns
+  // low/high/typical/count: null - its slot still gets a label and "0 sales", just no box or dot
+  // (nothing to plot). No chart at all when the engine supplies no trend (see heroChartHtml/
+  // noChartLineHtml) - trendFor itself withholds the whole field unless at least one of the four
+  // clears eight sales.
   function candleChartHtml(d) {
     var trendObj = d && d.trend;
-    var qs = (trendObj && Array.isArray(trendObj.quarters)) ? trendObj.quarters.filter(function (q) { return q && Number.isFinite(Number(q.low)) && Number.isFinite(Number(q.high)) && Number.isFinite(Number(q.typical)); }) : [];
-    if (qs.length < 3) return "";
-    var dataLo = Math.min.apply(null, qs.map(function (q) { return Number(q.low); }));
-    var dataHi = Math.max.apply(null, qs.map(function (q) { return Number(q.high); }));
+    var all = (trendObj && Array.isArray(trendObj.quarters)) ? trendObj.quarters.filter(Boolean) : [];
+    if (!all.length) return "";
+    var qs = all.slice(-4);
+    var priced = qs.filter(function (q) { return Number.isFinite(Number(q.low)) && Number.isFinite(Number(q.high)); });
+    if (!priced.length) return "";
+    var dataLo = Math.min.apply(null, priced.map(function (q) { return Number(q.low); }));
+    var dataHi = Math.max.apply(null, priced.map(function (q) { return Number(q.high); }));
     if (!(dataHi > dataLo)) return "";
     var step = niceStep((dataHi - dataLo) / 4);
     var axisLo = Math.floor(dataLo / step) * step - step;
     var axisHi = Math.ceil(dataHi / step) * step + step;
     if (!(axisHi > axisLo)) return "";
-    var barW = 40, slot = 100, MAXQ = 8, padL = 60, padR = 20, padB = 56, padT = 20;
-    var groupW = Math.max(qs.length, MAXQ) * slot;
-    var W = padL + padR + groupW, H = Math.round(W * 608 / 880);
+    var W = 880, H = 560, padL = 60, padR = 20, padB = 56, padT = 44;
+    var plotW = W - padL - padR, slot = plotW / qs.length, barW = slot * 0.4;
     var y = function (v) { return padT + (1 - (v - axisLo) / (axisHi - axisLo)) * (H - padT - padB); };
-    var groupStart = padL + (groupW - qs.length * slot) / 2;
     var grid = "";
     for (var v = axisLo; v <= axisHi + step * 0.01; v += step) {
       var yy = y(v);
@@ -814,23 +814,32 @@
     }
     var bars = "";
     qs.forEach(function (q, i) {
-      var cx = groupStart + slot * i + slot / 2, ylo = y(Number(q.low)), yhi = y(Number(q.high));
-      var label = String(q.period || q.label || ""), count = digitOf(q.count);
-      var tip = chartTip([label, "Low " + usd(q.low), "Typical " + usd(q.typical), "High " + usd(q.high), Number.isFinite(count) ? (obNumWordLow(count) + " sales") : ""]);
-      bars += '<g class="hc-bar" tabindex="0" data-tip="' + tip + '"><title>' + tip + '</title>' +
-        '<rect x="' + (cx - barW / 2).toFixed(1) + '" y="' + yhi.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + Math.max(2, ylo - yhi).toFixed(1) + '" rx="2" fill="var(--chip)"/>' +
-        '<circle cx="' + cx.toFixed(1) + '" cy="' + y(Number(q.typical)).toFixed(1) + '" r="6" fill="var(--green)"/>' +
-        '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 20).toFixed(1) + '" text-anchor="middle" font-size="14" fill="var(--ink)">' + esc(label) + "</text>" +
-        (Number.isFinite(count) ? ('<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 38).toFixed(1) + '" text-anchor="middle" font-size="13" fill="var(--sec)">' + esc(obNumWordLow(count) + " sales") + "</text>") : "") +
+      var cx = padL + slot * i + slot / 2;
+      var label = qtrLabel(q.period || q.label), count = digitOf(q.count);
+      var hasBox = Number.isFinite(Number(q.low)) && Number.isFinite(Number(q.high));
+      var box = "";
+      if (hasBox) {
+        var ylo = y(Number(q.low)), yhi = y(Number(q.high));
+        box = '<rect x="' + (cx - barW / 2).toFixed(1) + '" y="' + yhi.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + Math.max(2, ylo - yhi).toFixed(1) + '" rx="2" fill="var(--chip)"/>' +
+          '<text x="' + cx.toFixed(1) + '" y="' + (yhi - 10).toFixed(1) + '" text-anchor="middle" font-size="13" fill="var(--sec)">' + esc(usd(q.high)) + "</text>" +
+          '<text x="' + cx.toFixed(1) + '" y="' + (ylo + 20).toFixed(1) + '" text-anchor="middle" font-size="13" fill="var(--sec)">' + esc(usd(q.low)) + "</text>";
+        if (Number.isFinite(Number(q.typical))) {
+          var typTip = chartTip(["Typical " + usd(q.typical)]);
+          box += '<circle class="hc-bar" tabindex="0" data-tip="' + typTip + '" cx="' + cx.toFixed(1) + '" cy="' + y(Number(q.typical)).toFixed(1) + '" r="6" fill="var(--green)"><title>' + typTip + "</title></circle>";
+        }
+      }
+      bars += '<g>' + box +
+        '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 24).toFixed(1) + '" text-anchor="middle" font-size="14" fill="var(--ink)">' + esc(label) + "</text>" +
+        '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 42).toFixed(1) + '" text-anchor="middle" font-size="13" fill="var(--sec)">' + esc(obNumWordLow(Number.isFinite(count) ? count : 0) + " sales") + "</text>" +
         "</g>";
     });
     var svg = '<svg class="hc-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Quarterly sale prices">' + grid + bars + "</svg>";
-    var legend = '<div class="hc-legend"><span class="hc-legend-sw"><span class="hc-legend-box"></span>Middle half of sales</span><span class="hc-legend-sw"><span class="hc-legend-dot"></span>Typical sale</span></div>';
+    var legend = '<div class="hc-legend"><span class="hc-legend-sw"><span class="hc-legend-box"></span>Middle half of sales (25th to 75th percentile)</span><span class="hc-legend-sw"><span class="hc-legend-dot"></span>Typical sale (median)</span></div>';
     var py = trendObj && trendObj.priorYear && Number(trendObj.priorYear.high) > 0
       ? ('<p class="hc-prioryear">' + lint(esc("The year before, the middle half was " + usd(trendObj.priorYear.low) + " to " + usd(trendObj.priorYear.high) + "."), "hc.prioryear") + "</p>") : "";
     return svg + legend + py;
   }
-  // No candle chart (fewer than 3 qualifying quarters): no chart, no empty panel - the hero goes
+  // No candle chart (the engine supplies no trend at all): no chart, no empty panel - the hero goes
   // full width instead (see heroRangeHtml/thinHeroHtml, :only-child CSS in onebox.html) and this one
   // quiet line sits where the chart would have been.
   function noChartLineHtml() {
@@ -846,13 +855,13 @@
     // sliding the heading itself away from the top.
     return '<div class="hero-chart"><h2>How this market has moved</h2><div class="hc-body">' + inner + "</div></div>";
   }
-  // TAP TOOLTIPS (item 1/8, mockup match round, Oct 2026): low/high/typical/count are tooltip-only
-  // text, never printed beside a box - the native SVG <title> already covers desktop hover, but
-  // phones do not reliably show <title> on tap, so each bar also carries a plain data-tip attribute
-  // (same escaped text) that this one delegated, bind-once listener turns into a small floating
-  // tooltip: tap a bar to show it, tap the SAME bar again or tap anywhere else to hide it. Bound on
-  // root (survives every re-render; root itself is never replaced) rather than re-attached per
-  // chart render.
+  // HOVER (desktop) / TAP (phone) TOOLTIPS (mockup match round, Oct 2026): the typical figure is
+  // the ONLY chart number never printed permanently - shown beside the dot, matching the mockup's
+  // own position, but only on hover or tap (a deliberate simplification the mockup itself does not
+  // make; high/low print always). Each dot carries a plain data-tip attribute (native <title> is
+  // the desktop-hover/accessibility fallback) read by two bind-once listeners on root (survives
+  // every re-render; root itself is never replaced): mouseenter/mouseleave for real desktop hover,
+  // and a click toggle for touch (tap to show, tap the same dot again or tap elsewhere to hide).
   var hcTipEl = null, hcTipTarget = null;
   function hcHideTip() { if (hcTipEl) { hcTipEl.remove(); hcTipEl = null; hcTipTarget = null; } }
   function hcShowTip(target, text) {
@@ -878,6 +887,14 @@
     }
     hcHideTip();
   });
+  root.addEventListener("mouseover", function (e) {
+    var t = e.target.closest ? e.target.closest("[data-tip]") : null;
+    if (t && t !== hcTipTarget) hcShowTip(t, t.getAttribute("data-tip"));
+  });
+  root.addEventListener("mouseout", function (e) {
+    var t = e.target.closest ? e.target.closest("[data-tip]") : null;
+    if (t && (!e.relatedTarget || !t.contains(e.relatedTarget))) hcHideTip();
+  });
   document.addEventListener("click", function (e) { if (!root.contains(e.target)) hcHideTip(); });
   // RANGE-TIER HERO (task #38). The rule-24 no-band fallback is unchanged copy, just inside the new
   // shell: no cluster means no dollar headline of any kind, ever (STANDING CHECK: the only <h2
@@ -888,13 +905,13 @@
       heroMetaLine(d);
     if (d.cluster) {
       var band = d.cluster;
-      left += '<p class="eyebrow hero-label">' + lint("Where the middle half sold", "hero.rangelbl") + infoDotHtml() + "</p>" +
+      left += '<p class="eyebrow hero-label hero-label-range">' + lint("Where the middle half sold", "hero.rangelbl") + infoDotHtml() + "</p>" +
         '<h2 class="range band">' + esc(usd(band[0])) + ' <span class="to">to</span> ' + esc(usd(band[1])) + "</h2>";
     } else {
       var noun = carNoun(d), subj = noun || "cars like it";
       var line = (d.poolN && d.poolN < 8)
-        ? ("Only " + obNumWordLow(d.poolN) + " " + subj + " ha" + (d.poolN === 1 ? "s" : "ve") + " sold in " + windowText(d) + ", not enough for a range, so here are the sales themselves.")
-        : (subj.charAt(0).toUpperCase() + subj.slice(1) + " sold too spread out in " + windowText(d) + " to call a typical price, so here are the sales themselves.");
+        ? ("Only " + obNumWordLow(d.poolN) + " " + subj + " ha" + (d.poolN === 1 ? "s" : "ve") + " sold " + windowText(d) + ", not enough for a range, so here are the sales themselves.")
+        : (subj.charAt(0).toUpperCase() + subj.slice(1) + " sold too spread out " + windowText(d) + " to call a typical price, so here are the sales themselves.");
       left += '<p class="hero-noband" data-stage="answer">' + lint(line, "hero.noband") + "</p>";
       var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.older") + "</p>";
     }
@@ -912,16 +929,20 @@
     if (!c) return "";
     var venue = (c.platform && c.platform !== "others") ? c.platform : "";
     var month = c.month || monShort(c.date);
-    var meta = [longMiles(c), venue, month].filter(Boolean).join(" · ");
+    var miles = longMiles(c);
     var href = utmUrl(c.url);
     var gasAttrs = (href && c.id != null) ? (' data-gas-event="receipt_click" data-gas-source="' + esc(c.platformSlug || "") + '" data-gas-listing-id="' + esc(c.id) + '"') : "";
     var tag = href ? "a" : "div";
     var attrs = href ? (' href="' + esc(href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(c.platformSlug || "") + '"' + gasAttrs) : "";
+    // Mockup match round, Oct 2026: miles, venue and date each on their own small line (was one
+    // middle-dot-joined meta line) - matches the mockup's card layout exactly.
     return "<" + tag + ' class="salescard"' + attrs + ">" +
       photoHtml(c.image, cleanReceiptTitle(c.title), "") +
       '<div class="salescard-body"><p class="salescard-price">' + esc(usd(c.price)) + "</p>" +
       '<p class="salescard-title">' + esc(cleanReceiptTitle(c.title)) + "</p>" +
-      (meta ? ('<p class="salescard-meta">' + esc(meta) + "</p>") : "") +
+      (miles ? ('<p class="salescard-meta">' + esc(miles) + "</p>") : "") +
+      (venue ? ('<p class="salescard-meta">' + esc(venue) + "</p>") : "") +
+      (month ? ('<p class="salescard-meta">' + esc(month) + "</p>") : "") +
       otherHalfLabel(c, d) + offWindowLabel(c, d) +
       "</div></" + tag + ">";
   }
@@ -967,6 +988,29 @@
   // with neither (thin, below the range threshold) falls back to `fallbackCards` (its caller's own
   // first three, newest-first) with no subhead - the "one from the middle, one at each edge" sentence
   // does not describe a thin pool, and the brief gives no thin-specific alternative.
+  // Mockup match round, Oct 2026: on a cluster (ranged) answer, build the subhead sentence FROM the
+  // engine's own role labels ("near the middle of the typical range" / "at the lower/upper edge of
+  // the typical range") in the mockup's "one X, one Y, and one Z" pattern, instead of the engine's
+  // own canned sentence - the mockup's literal words ("one with the lowest mileage") describe a
+  // DIFFERENT selection rule than contextRolesFor actually uses (price position, not mileage or
+  // date), so this reads the real roles into that same one-line shape rather than printing a
+  // mismatched claim. A shared trailing clause ("of the typical range") is kept once, on the last
+  // role, instead of repeated three times. Falls back to the engine's own sentence for the no-
+  // cluster (thin) case, where the roles ("the lowest sale on record", "a sale between the two")
+  // do not read naturally with a "one ..." prefix.
+  function contextSentence(d, cr) {
+    var roles = (cr && Array.isArray(cr.roles)) ? cr.roles.map(function (r) { return r && r.role; }).filter(Boolean) : [];
+    if (d.cluster && roles.length) {
+      var texts = roles.slice();
+      var tailRe = / of the typical range$/i;
+      if (tailRe.test(texts[texts.length - 1])) {
+        texts = texts.map(function (t, i) { return (i < texts.length - 1 && tailRe.test(t)) ? t.replace(tailRe, "") : t; });
+      }
+      var joined = texts.length === 1 ? ("One " + texts[0]) : ("One " + texts.slice(0, -1).join(", one ") + ", and one " + texts[texts.length - 1]);
+      return joined + ".";
+    }
+    return cr && cr.sentence ? String(cr.sentence) : null;
+  }
   function salesRowHtml(d, m, fallbackCards) {
     // d.contextRoles is {roles:[{role, sale}], sentence} (Lane B Part 5/6, Oct 2026) - the sale is
     // already shapeCards()-shaped (title/url/image/platform/month/date/price/mi), same shape
@@ -974,7 +1018,7 @@
     var cr = d.contextRoles;
     var crSales = (cr && Array.isArray(cr.roles)) ? cr.roles.map(function (r) { return r && r.sale; }).filter(Boolean) : [];
     var cards = null, sub = null;
-    if (crSales.length) { cards = crSales.slice(0, 3); sub = cr.sentence ? String(cr.sentence) : null; }
+    if (crSales.length) { cards = crSales.slice(0, 3); sub = contextSentence(d, cr); }
     else {
       var rep = d.representative;
       if (rep && rep.closest) { cards = [rep.closest, rep.high, rep.low].filter(Boolean); sub = "One from the middle of the range, one at each edge of the middle half."; }
@@ -1060,7 +1104,7 @@
     var carCell = href
       ? ('<a href="' + esc(href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(c.platformSlug || "") + '"' + gasAttrs + ">" + esc(cleanReceiptTitle(c.title)) + "</a>")
       : esc(cleanReceiptTitle(c.title));
-    return "<tr><td>" + esc(c.month || monShort(c.date)) + "</td><td>" + carCell + "</td><td>" + esc(longMiles(c) || "") + "</td><td>" + esc(venue) +
+    return "<tr><td>" + esc(fullDateOrMonth(c)) + "</td><td>" + carCell + "</td><td>" + esc(longMiles(c) || "") + "</td><td>" + esc(venue) +
       '</td><td class="astc-price num">' + esc(usd(c.price)) + "</td></tr>";
   }
   // "All N comparable sales" (Market Check result-page spec, Oct 2026): the heading count and the
@@ -1532,18 +1576,18 @@
     var m = /((?:18|19|20)\d{2})(\s+to\s+(?:18|19|20)\d{2})?\s*$/.exec(s);
     return m ? (m[1] + (m[2] || "")) : "";
   }
-  // ================= DISTRIBUTION (Market Check result-page spec, Oct 2026) =================
-  // "How this market is distributed": price-band rows from d.distribution (Lane B field, dormant -
-  // grepped lib/onebox.js, not present yet: buckets with label/count/receipts, the pool scoped at
-  // 20+ sales). Never computed here - absent entirely until the engine sends it. Clicking a row
-  // expands its receipts underneath, one bucket open at a time (shares one data-distgroup id).
+  // ================= DISTRIBUTION (mockup match round, Oct 2026) =================
+  // "How this market is distributed": price-band rows from d.distribution (lib/onebox.js
+  // distributionFor, e34 - buckets with low/high/count/share/receipts/typicalBucket, the pool
+  // scoped at 20+ sales). share is the engine's own whole percent (largest-remainder rounding, the
+  // buckets' shares sum to 100) - printed directly, never computed here. Clicking a row expands its
+  // receipts underneath, one bucket open at a time (shares one data-distgroup id).
   var obDistSeq = 0;
-  // Bucket shape (Lane B Part 5/6, Oct 2026): {low, high, count, receipts, typicalBucket} - no
-  // label field, so the band label is composed here from low/high (never invented - both are the
-  // engine's own numbers, run through the same usd() every other dollar figure on this page uses).
-  // Every bucket but the last is a half-open [low, high) band (the engine's own distributionFor
-  // uses "< bHi" there and "<= bHi" only on the final bucket), so the label reads "low to high-1"
-  // except on the last row, which reads "low to high".
+  // No label field on a bucket, so the band label is composed here from low/high (never invented -
+  // both are the engine's own numbers, run through the same usd() every other dollar figure on this
+  // page uses). Every bucket but the last is a half-open [low, high) band (the engine's own
+  // distributionFor uses "< bHi" there and "<= bHi" only on the final bucket), so the label reads
+  // "low to high-1" except on the last row, which reads "low to high".
   function distBucketLabel(b, isLast) {
     var hi = isLast ? Number(b.high) : Math.max(Number(b.low), Number(b.high) - 1);
     return usd(b.low) + " to " + usd(hi);
@@ -1557,17 +1601,18 @@
     var rows = buckets.map(function (b, i) {
       var count = Number(b.count) || 0;
       var pct = max > 0 ? Math.max(2, count / max * 100) : 0;
+      var share = Number.isFinite(Number(b.share)) ? (Math.round(Number(b.share)) + "% (" + count.toLocaleString("en-US") + ")") : count.toLocaleString("en-US");
       var receipts = Array.isArray(b.receipts) ? b.receipts : [];
       var panelId = groupId + "-" + i;
-      var barHtml = '<span class="dist-label">' + esc(distBucketLabel(b, i === buckets.length - 1)) + '</span><span class="dist-track"><span class="dist-bar' + (b.typicalBucket ? " typical" : "") + '" style="width:' + pct.toFixed(1) + '%"></span></span><span class="dist-count num">' + esc(count.toLocaleString("en-US")) + "</span>";
+      var barHtml = '<span class="dist-label">' + esc(distBucketLabel(b, i === buckets.length - 1)) + '</span><span class="dist-track"><span class="dist-bar' + (b.typicalBucket ? " typical" : "") + '" style="width:' + pct.toFixed(1) + '%"></span></span><span class="dist-count num">' + esc(share) + "</span>";
       var btn = receipts.length
         ? ('<button type="button" class="distrowbtn" data-disttoggle="' + panelId + '" data-distgroup="' + groupId + '" aria-expanded="false">' + barHtml + "</button>")
         : ('<div class="distrowbtn" style="cursor:default">' + barHtml + "</div>");
       var panel = receipts.length ? ('<div class="dist-panel" id="' + panelId + '" hidden>' + capCardsHtml("flatlist", receipts.map(function (c) { return poolCardHtml(c, false); }), receipts.length) + "</div>") : "";
       return '<div class="distrow">' + btn + panel + "</div>";
     }).join("");
-    var poolSize = heroPoolSizeNum(d), years = yearsClauseOf(d);
-    var sub = "Sales in each price band" + (Number.isFinite(poolSize) ? (", from the same " + obNumWordLow(poolSize) + " sales") : "") + (years ? (", " + years) : "") + ".";
+    var poolSize = heroPoolSizeNum(d);
+    var sub = "Share of sales in each price band" + (Number.isFinite(poolSize) ? (", based on " + obNumWordLow(poolSize) + " sales") : "") + ".";
     return '<div class="sec-head" data-stage="cards"><div><h2>How this market is distributed</h2><span class="scope">' + lint(esc(sub), "dist.sub") + "</span></div></div>" +
       '<div class="distrows" data-stage="cards">' + rows + "</div>";
   }
@@ -1689,6 +1734,16 @@
   }
   // Compact month for the house meta line ("Aug 2026") so venue + date + chassis scan as ONE line.
   function monShort(dstr) { var p = String(dstr || "").slice(0, 10).split("-"); var M = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]; return p.length >= 2 ? ((M[+p[1]] || "") + " " + p[0]).trim() : ""; }
+  // Mockup match round, Oct 2026: "All N comparable sales" dates read "Oct 7, 2026" when the
+  // engine gives a day (c.date, YYYY-MM-DD), else "Oct 2026" (monShort) when only a month is known.
+  function fullDateOrMonth(c) {
+    var p = String((c && c.date) || "").slice(0, 10).split("-");
+    if (p.length === 3 && +p[2] > 0) {
+      var M = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      return ((M[+p[1]] || "") + " " + (+p[2]) + ", " + p[0]).trim();
+    }
+    return (c && c.month) || monShort(c && c.date) || "";
+  }
   // One chassis format everywhere (item 3): "chassis" + the last six alphanumeric characters of the
   // VIN/chassis, never the full VIN on some rows and the tail on others. A shorter id shows in full.
   // Item 4 (Oct 2026): render ONLY a plausible VIN/chassis. A field like "SEE TEXT" / "N/A" /
@@ -1755,15 +1810,6 @@
     else { keep = receipts.filter(function (r) { return htHasMk(r, choice); }); lbl = (intake && intake.markerLabel ? intake.markerLabel : "").toLowerCase(); }
     return keep && keep.length ? { scope: keep, label: lbl } : { scope: receipts, label: null };
   }
-  // The window the thin pool covers, from the engine's thin.windowMonths (never assumed).
-  function thinWindowText(ht) {
-    var w = Number(ht && ht.windowMonths);
-    if (w === 12) return "the last twelve months";
-    if (w === 24) return "the past two years";
-    if (w === 36 || !w) return HT_WINDOW_TEXT;
-    if (w % 12 === 0) return "the past " + spellK(w / 12) + " years";
-    return "the past " + w + " months";
-  }
   // Adapts the thin tier's own hammer-shaped receipts to the price-card shape the chart/sales-row/
   // all-sales table all read (price/title/image/platform/month/date/url/id) - price is allIn when a
   // house reconciled one, else the hammer. Shared by thinHeroHtml (the chart's dots), salesRowHtml's
@@ -1787,16 +1833,18 @@
     // The year comes from the sale itself, never the typed year (a "1902 Pierce Motorette" whose
     // only sale is a 1904 reads "a 1904").
     var whoNoYear = String(who).replace(/^\s*(18|19|20)\d\d\s+/, "");
-    var win = thinWindowText(ht), n = scope.length;
+    // windowWords (e34): the engine's own phrase for the window this thin pool covers, replacing
+    // the old thinWindowText(ht) month-count guesswork - no page-side fallback.
+    var win = (d && d.windowWords) || "", n = scope.length;
     var left = '<p class="eyebrow hero-label">Market Check</p>' +
       '<h1 class="hero-carname">' + esc(m ? (m.displayName || carLabel(d.resolvedCar)) : cap(name)) + "</h1>";
     var countTxt;
     if (n === 1) {
       var yr = scope[0] && scope[0].year ? scope[0].year : null;
-      countTxt = "Only one " + whoNoYear + " has sold in " + win + (yr ? ", a " + yr : "") + ". Here’s what it went for.";
+      countTxt = "Only one " + whoNoYear + " has sold " + win + (yr ? ", a " + yr : "") + ". Here’s what it went for.";
     } else {
       var latestDate = (scope || []).reduce(function (mx, r) { return (r && r.date && r.date > mx) ? r.date : mx; }, "");
-      countTxt = obNumWord(n) + " sales in " + win + (latestDate ? ", the latest on " + freshDay(latestDate) : "") + ".";
+      countTxt = obNumWord(n) + " sales " + win + (latestDate ? ", the latest on " + freshDay(latestDate) : "") + ".";
     }
     // Scope (follow-up round, Oct 2026): the thin tier's own count line never named which years the
     // pool actually used, even when the engine's own rungLabel widened past the typed year (Lane B2's
@@ -1810,7 +1858,7 @@
     // VIN prefix (item 3): same rule as the result tier's heroMetaLine - lead with "VIN ending
     // 223093" only when this search is a VIN with its own recorded sale (d.ownSales).
     if (obSourceVin && d && d.ownSales) fullLineCap = "VIN ending " + String(obSourceVin).slice(-6) + (fullLineCap ? (" · " + fullLineCap) : "");
-    left += '<p class="hero-scope" data-stage="answer">' + lint(esc(fullLineCap), "hero.thin.count") + "</p>";
+    left += '<p class="hero-scope hero-scope-1line" data-stage="answer" title="' + esc(fullLineCap) + '">' + lint(esc(fullLineCap), "hero.thin.count") + "</p>";
     var fl = freshLine(d); if (fl) left += fl;
     var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.thin.older") + "</p>";
     if (ht.houseSteer) left += '<p class="hero-noband" data-stage="answer">' + lint(!ht.onlineReceiptsN ? "These trade at the auction houses, not online. Every recorded sale here came through one." : "These mostly trade at the auction houses; a few sell online. Both are below.", "hero.thin.steer") + "</p>";
@@ -1819,7 +1867,7 @@
     var fb = d && d.factsBlock;
     var poolSize = heroPoolSizeNum(d);
     if (Number.isFinite(poolSize) && poolSize >= 8 && fb && fb.lowest != null && fb.highest != null) {
-      left += '<p class="eyebrow hero-label">Where they sold</p>' +
+      left += '<p class="eyebrow hero-label hero-label-range">Where they sold</p>' +
         '<h2 class="range ink">' + esc(usd(fb.lowest)) + ' <span class="to">to</span> ' + esc(usd(fb.highest)) + "</h2>";
     }
     var reason = thinReasonHtml(d); if (reason) left += reason;

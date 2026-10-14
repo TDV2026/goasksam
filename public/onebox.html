@@ -46,7 +46,7 @@
 :root{
   --page:#F6F3EC; --card:#FFFFFF; --border:#DCD8CC; --ink:#15201A; --green:#1E4D38; --green-dk:#15372A;
   --sec:#5E6B63; --div:#E2DED3; --take:#F1F5F1; --live:#2E8B57; --ph:#E6E2D8; --ph-ink:#4A564F;
-  --soft:#3C4942; --chip:#C9D6CC; --tint:#EDF3EE; --tint-line:#D5E2D8; --amber:#C9971E;
+  --soft:#3C4942; --chip:#C9D6CC; --tint:#EDF3EE; --tint-line:#D5E2D8; --amber:#C9971E; --bluegrey:#6E7F94;
   --serif:"Newsreader",Georgia,"Times New Roman",serif;
   --sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   color-scheme:light;
@@ -63,32 +63,9 @@ button{font:inherit}
 .linkbtn:hover{color:var(--green-dk)}
 
 /* ---- shell: left rail + main column (lib/appShell.js SHELL_CSS is spliced in server-side above;
+   Market Check carries the same shared rail as every other page, Oct 2026 - a prior round hid it
+   to match the approved mockup's full-bleed look; Sam reversed that decision, rail stays.
    .gas-submenu here is the "Your results" page-specific rail section's own dropdown) ---- */
-/* FLAT SHELL (mockup match, Oct 2026): the approved mockup has no side rail - a plain top bar
-   (wordmark left, sign-in pill floats via lib/authBar.js's own position:fixed, unaffected here)
-   and full-width content. .mc-flat is added to <html> by js/onebox.js only when window.GAS_TOOL
-   is "market_check" (never on the shared Sell page, which loads this same file/CSS) - see that
-   file's own comment for why reading the existing global is safe. Scoped entirely to this class so
-   lib/appShell.js's shared rail CSS/markup is untouched for Sell, Buy and Tasks.
-   .gas-mhead already renders "GoAskSam" + a hamburger menu (only ever shown under 761px); reused
-   here instead of inventing a second wordmark, with the hamburger hidden since there is no rail
-   left for it to open. */
-.mc-flat #gas-rail,.mc-flat #gas-scrim{display:none !important}
-.mc-flat #gas-main{margin-left:0}
-/* align-items/gap below: lib/appShell.js only gives .gas-mhead these (and .gas-brand its
-   order/margin-right:auto) INSIDE its own mobile media query - .gas-mhead is plain display:none
-   outside it, so on desktop this override needs its own copy of the alignment rules, not just
-   display:flex, or the brand and nav links collapse together with no spacing at all. */
-.mc-flat .gas-mhead{display:flex !important;align-items:center;gap:10px;padding:22px 32px 0;background:transparent}
-.mc-flat .gas-mhead .gas-menu{display:none !important}
-.mc-flat .gas-mhead .gas-brand{font:600 24px/1.1 var(--serif);letter-spacing:-.01em}
-/* Item 9: Buy/Sell, lost with the rail, restored in the header (js/onebox.js inserts this nav into
-   .gas-mhead right after the wordmark) - plain text links, deliberately NOT pushed to the far right
-   (an auto-margin there collides with the sign-in pill's own fixed top:14px/right:22px position,
-   lib/authBar.js) - sits right next to "GoAskSam" instead. */
-.mc-mhead-nav{display:flex;gap:20px;order:2;margin-left:8px}
-.mc-mhead-nav a{font:500 15px/1 var(--sans);color:var(--sec);text-decoration:none;min-height:44px;display:inline-flex;align-items:center}
-.mc-mhead-nav a:hover{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
 .gas-submenu{display:none;flex-direction:column;margin:0 0 4px 14px;border-left:1px solid var(--rail-line,var(--div))}
 .gas-submenu.open{display:flex}
 .gas-submenu a{display:flex;align-items:center;min-height:40px;font:400 14px/1.3 var(--sans);color:var(--sec);text-decoration:none;padding:0 12px;cursor:pointer}
@@ -118,11 +95,12 @@ button{font:inherit}
 .inbox input::placeholder{color:var(--sec)}
 .inbox .go{width:48px;height:48px;flex:none;border:0;border-radius:10px;background:var(--green);color:#fff;font-size:22px;cursor:pointer}
 .inbox .go:hover{background:var(--green-dk)}
-/* Market Check desktop width fix (Oct 2026): capped so the bar ends well before this page's own
-   search-example chips/VIN line would otherwise run under 840px+ #ob widths. 600 has no effect at
-   or under 600px wide (the bar already reads "full width" there, unchanged). New Sell (same shared
-   .inbox markup) never gets this class - see inboxHtml() in js/onebox.js. */
-.inbox.mc-bar{max-width:600px}
+/* Mockup match round, Oct 2026: the approved mockup's header search box reads about 30% of the
+   content width - a percentage (not a fixed px cap) so it scales with #ob's own width at any
+   viewport, same as every other region this round. New Sell (same shared .inbox markup) never
+   gets this class - see inboxHtml() in js/onebox.js. */
+.inbox.mc-bar{max-width:30%;min-width:220px}
+.inbox-mag{width:18px;height:18px;flex:none;color:var(--sec)}
 
 /* ---- resolved car line ---- */
 .carline{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font:400 15px/1.4 var(--sans);color:var(--sec);margin:-4px 0 -8px}
@@ -157,16 +135,22 @@ button{font:inherit}
 .hero-left{display:flex;flex-direction:column;gap:10px;min-width:0;padding-right:36px;border-right:1px solid var(--div)}
 .hero-right{min-width:0;display:flex;flex-direction:column}
 .hero-label{margin:0}
+/* Mockup match round: a clear gap (about one line height) before "WHERE THE MIDDLE HALF SOLD" -
+   .hero-left's own flex gap (10px) is uniform for every child, so this one label gets extra
+   top margin on top of it. */
+.hero-label-range{margin-top:16px}
 .hero-carname{margin:2px 0 0;font:600 28px/1.2 var(--serif);letter-spacing:-.01em;color:var(--ink);text-wrap:balance}
 .hero-scope{margin:2px 0 0;font:400 17px/1.5 var(--sans);color:var(--sec)}
+.hero-scope-1line{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hero-noband{margin:2px 0 0;font:400 17px/1.4 var(--serif);color:var(--ink)}
 /* The info dot beside "WHERE THE MIDDLE HALF SOLD": a native title-attribute tooltip, no JS, no new
    popover component - see heroScopeText/infoDotHtml's own comment in js/onebox.js for why this is
    built fresh rather than reusing something that turned out not to exist yet. */
 .infodot{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--sec);color:var(--sec);font:600 10px/1 var(--sans);margin-left:2px;vertical-align:middle;cursor:default}
 .infodot::before{content:"i"}
-.hero2col .range{margin-top:2px;font-size:44px;line-height:1.1}
-.hero2col .range .to{font-size:26px}
+.hero2col .range{margin-top:2px;font-size:44px;line-height:1.1;white-space:nowrap}
+/* "to" matches the figures - same size, weight and green (Sam's explicit correction this round;
+   the approved mockup itself shows it smaller and grey, overridden on purpose). */
 .hero-divider{height:1px;background:var(--div);margin:10px 0 0}
 .hero-idline{margin:2px 0 0;font:400 17px/1.6 var(--sans);color:var(--sec)}
 .hero-idlink{font-size:17px}
@@ -178,11 +162,11 @@ button{font:inherit}
 .hero-miles{margin:4px 0 0;font:400 17px/1.5 var(--sans);color:var(--sec);display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .hero-miles-sub{margin:2px 0 0;font:400 15px/1.4 var(--sans);color:var(--sec)}
 .miles-inline{display:inline-flex;align-items:center;gap:8px}
-.miles-inline input{width:160px;height:40px;border:1px solid var(--border);border-radius:2px;padding:0 10px;font:500 15px var(--sans);color:var(--ink);background:var(--card);outline:none}
+.miles-inline input{width:160px;height:40px;border:1px solid var(--border);border-radius:8px;padding:0 10px;font:500 15px var(--sans);color:var(--ink);background:var(--card);outline:none}
 .miles-inline input:focus{border-color:var(--green)}
 .miles-inline input::placeholder{color:var(--sec)}
 .mi-unit{color:var(--sec)}
-.mi-go{min-height:0;height:40px;padding:0 14px;border-radius:2px;background:var(--green);color:#fff;text-decoration:none}
+.mi-go{min-height:0;height:40px;padding:0 14px;border-radius:8px;background:var(--green);color:#fff;text-decoration:none}
 .mi-go:hover{background:var(--green-dk);color:#fff}
 .hero-dim{opacity:.4;pointer-events:none;transition:opacity .2s ease}
 /* Right column, hero: "How this market has moved" - candles when the engine answer carries trend,
@@ -194,11 +178,10 @@ button{font:inherit}
    candleChartHtml/stripChartHtml, js/onebox.js), so the chart always fills its box edge to edge at
    any column width - a fixed height paired with a mismatched viewBox ratio was leaving empty space
    below the content once preserveAspectRatio="meet" scaled to fit the narrower dimension. */
-/* Ratio measured directly off the approved mockup's chart plot box (gridlines+bars+quarter labels,
-   excluding the heading/legend), ~411x284px at the mockup's own 941px width - reproduced here as
-   55:38 (candleChartHtml's viewBox is 880x608, the same ratio), so the box is this shape at any
-   container width, never stretched. */
-.hc-svg{width:100%;aspect-ratio:55/38;display:block}
+/* Ratio measured directly off the approved mockup's chart plot area (gridlines+bars+quarter
+   labels, excluding the heading/legend) - about 11:7 (candleChartHtml's viewBox is 880x560, the
+   same ratio), so the box is this shape at any container width, never stretched. */
+.hc-svg{width:100%;aspect-ratio:11/7;display:block}
 .hc-legend{display:flex;flex-wrap:wrap;gap:16px;align-items:center;font:400 13px/1.3 var(--sans);color:var(--sec)}
 .hc-legend-sw{display:inline-flex;align-items:center;gap:6px}
 .hc-legend-box{width:12px;height:12px;border-radius:2px;background:var(--chip);display:inline-block}
@@ -465,7 +448,7 @@ a.sb-line:hover{color:var(--green)}
 .lp-dot{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block}
 .lp-dot-within{background:var(--live)}
 .lp-dot-above{background:var(--amber)}
-.lp-dot-below{background:var(--sec)}
+.lp-dot-below{background:var(--bluegrey)}
 @media (max-width:640px){
   .lptable,.lptable thead{display:block}
   .lptable thead{display:none}
@@ -481,7 +464,7 @@ a.sb-line:hover{color:var(--green)}
 .allsales-table{width:100%;border-collapse:collapse;margin-top:8px}
 .allsales-table th{text-align:left;padding:0 12px 8px 0;border-bottom:1px solid var(--border)}
 .allsales-table th.astc-price{text-align:right;padding-right:0}
-.allsales-table td{padding:12px 12px 12px 0;border-top:1px solid var(--div);font:400 16px/1.4 var(--sans);color:var(--ink)}
+.allsales-table td{padding:8px 12px 8px 0;border-top:1px solid var(--div);font:400 15px/1.4 var(--sans);color:var(--ink)}
 .allsales-table tr:first-child td{border-top:0}
 .allsales-table td.astc-price{text-align:right;padding-right:0;font:600 18px/1.2 var(--serif);font-variant-numeric:tabular-nums}
 .allsales-table a{color:inherit;text-decoration:none}
@@ -601,8 +584,7 @@ a.sb-line:hover{color:var(--green)}
   .hero-left{border-right:0;padding-right:0}
   .hero-carname{font-size:24px}
   .hero-scope,.hero-miles-sub,.salesrow-sub,.lp-summary,.samonit p{font-size:16px}
-  .hero2col .range{font-size:28px}
-  .hero2col .range .to{font-size:18px}
+  .hero2col .range{font-size:28px;white-space:normal}
   .hero-idline,.hero-idlink{font-size:16px}
   .dist-label,.dist-count{font-size:15px}
   .sep-note,.ev-why-note p{font-size:13px}
