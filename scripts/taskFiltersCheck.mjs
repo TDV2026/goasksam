@@ -2,7 +2,7 @@
 // from the one resolver's read of the buyer's words when it is the same car. Fixtures are the resolver's own output
 // for each phrase (parseQueryResolved, checked by hand Oct 13 2026). No network.
 //   node scripts/taskFiltersCheck.mjs
-const { typedCar, validateJob, summaryFor } = await import("../lib/tasks/tasks.js");
+const { typedCar, validateJob, summaryFor, taskRow } = await import("../lib/tasks/tasks.js");
 let fails = 0, passes = 0;
 const ok = (c, what) => { if (c) passes++; else { fails++; console.log("FAIL  " + what); } };
 const V = (make, model, extra = {}) => ({ make, model, trim: null, edition: null, variant: null, wheelbase: null, series: null, bodyStyle: null, year: null, ...extra });
@@ -34,6 +34,12 @@ ok(typedCar(mus, null) === mus && typedCar(mus, V("Ford", null)) === mus, "nothi
 { const p = { make: "BMW", model: "M3", body: "convertible" }; ok(typedCar(p, V("BMW", "M3", { bodyStyle: "coupe" })).body === "convertible", "a body the job already states is never replaced"); }
 ok(typedCar({ make: "BMW", model: "M3" }, V("BMW", "M3")).body === undefined, "no body typed: none added");
 ok(validateJob("hunt", typedCar({ make: "BMW", model: "M3" }, V("BMW", "M3", { bodyStyle: "coupe" }))).filters.body === "coupe", "validateJob keeps the body");
+// The row the Task's market is read from names what Market Check reads (golden table, Oct 14 2026).
+{ const row = f => taskRow(f, f.year_min).listing_title;
+  ok(row(validateJob("hunt", typedCar({ make: "Porsche", model: "911" }, V("Porsche", "997", { parentModel: "911", trim: "Carrera S", bodyStyle: "coupe", year: 2008 }))).filters) === "2008 Porsche 997 Carrera S coupe", "997 Carrera S Coupe: the row reads the 997");
+  ok(row(validateJob("hunt", typedCar({ make: "BMW", model: "M3", year_min: 2003 }, V("BMW", "M3", { bodyStyle: "coupe", year: 2003 }))).filters) === "2003 BMW M3 coupe", "M3 Coupe: the row reads the coupe");
+  ok(row(validateJob("hunt", typedCar({ make: "Chevrolet", model: "Corvette", year_min: 1963 }, V("Chevrolet", "Corvette", { bodyStyle: "coupe", year: 1963 }))).filters) === "1963 Chevrolet Corvette coupe", "Corvette Split Window: the row reads the coupe");
+  ok(row({ make: "Chevrolet", model: "Corvette", generation: "C2", year_min: 1965 }) === "1965 Chevrolet Corvette", "a generation that is not a chassis code leaves the model"); }
 // The read-back names every typed word.
 ok(summaryFor("hunt", validateJob("hunt", typedCar({ make: "Buick", model: "Regal", year_min: 1987 }, V("Buick", "Regal", { trim: "Grand National", year: 1987 }))).filters).includes("Grand National"), "the read-back says Grand National");
 ok(summaryFor("hunt", validateJob("hunt", typedCar({ make: "Ford", model: "Mustang", year_min: 2018 }, V("Ford", "Mustang", { trim: "GT", year: 2018 }))).filters).includes("Mustang GT"), "the read-back says Mustang GT");

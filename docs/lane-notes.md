@@ -7546,3 +7546,12 @@ Market Check template.
 FOR LANE A: the page workaround in public/js/onebox.js vehicleFromMatch (1c1d040, the displayName suffix) can be removed once this is live: the server cleans the trim on every path. Not edited here.
 2. THIN-STATE SCOPE LINE. lib/sell/sellFacts.js `scopeWithSpan`: when the engine's rungLabel names a span ("CLK DTM, 2005 to 2007") that its scopeLabel lacks ("2006 Mercedes-Benz CLK DTM"), the scope is the engine's own label. The thin and partner-led Sell pages print no "Analysis scope" row at all, so the header now carries the span: "For the 2006 Mercedes-Benz CLK DTM, sales from 2005 to 2007." Cache key sell|v10.
 FOR LANE C: lib/sell/sellFlow.js (pickFacts) adds `span` to carLine (the "YYYY to YYYY" in pl.scope_label, else null); lib/sell/sellMcClient.js renders it after the generation in the "For the ..." line. Nothing else.
+
+## Lane C, Oct 14 2026: Task filters carry the body (golden table)
+
+- Applied B2's line in `lib/tasks/tasks.js` typedCar: `if (v.bodyStyle && !out.body) out.body = String(v.bodyStyle)` (the resolver's value as given, "coupe"; a body the job already states is kept). emailPreview reads through typedCar, so it gets the same filters.
+- A second gap showed on the 997: the Task kept `generation: "997"` but its market row was built from `model` ("2008 Porsche 911 Carrera S coupe", 10 sales) while Market Check reads "2008 997 Carrera S Coupe" (14). New `taskRow(f, yr)` (used by taskRung and emailPreview) names a three-digit chassis-code generation in place of the nameplate. Other generations (C2, E46) leave the model alone.
+- scripts/taskFiltersCheck.mjs: the three cars, the kept body, no body added when none typed, and the rows (25 pass).
+- Task email preview after deploy, equal to Market Check on every lane: 2003 BMW M3 Coupe 14 sales, $23,500 to $35,500; 1963 Corvette Split Window 37 sales, $140,000 to $216,000; 2008 Porsche 997 Carrera S Coupe 14 sales, $45,500 to $64,500.
+- FOR LANE B (engine, report only): the same car reads two pools by its model word. "2008 Porsche 911 Carrera S coupe" reads 10 sales, $58,000 to $67,000, on every lane; "2008 Porsche 997 Carrera S Coupe" reads 14, $45,500 to $64,500. Same year, trim and body. Worth one look at why the 911 title loses four 997 sales (the chassis-code union in specOf or walkLadder).
+Search check: no public page touched.
