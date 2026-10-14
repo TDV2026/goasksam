@@ -260,8 +260,8 @@
   // without an honest basis - a fixed price reads "Asking $X", a real bid reads "Current bid $X"
   // with its own "at HH:MMam PT" time underneath when the engine gave one, and nothing at all reads
   // "No bids yet" - exactly today's fallback tree, just laid out as two lines (amount, then time)
-  // instead of one sentence. No live-listings mileage field exists on this response (api/buySearch.js,
-  // Lane C) - the CAR cell is photo + name only; flagged in docs/lane-notes.md, not fabricated here.
+  // instead of one sentence. Job 4 (Oct 2026): api/buySearch.js panel=1 rows now carry `miles` (a
+  // whole number, or null when the listing has none usable) - l.miles.
   function loadLivePanel(d, m) {
     var slot = document.getElementById("ob-live"); var rc = d && d.resolvedCar;
     if (!slot || !rc || !rc.make || !rc.model) return;
@@ -282,11 +282,13 @@
         var vsrangeDot = placingDotClass(l.placing);
         var photo = l.photo_url ? '<img src="' + esc(l.photo_url) + '" alt="" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()">' : "";
         var href = utmUrl(l.url);
+        var milesText = (l.miles != null && Number(l.miles) > 0) ? Number(l.miles).toLocaleString("en-US") + " miles" : "";
         // Round 6 Job 1 (tracking fix, carried forward): data-gas-source carries the platform SLUG
         // (l.source_slug), never l.source (the display name used in the VENUE cell).
         var gasAttrs = ' data-gas-event="auction_clickout" data-gas-source="' + esc(l.source_slug || "") + '" data-gas-listing-id="' + esc(l.id != null ? l.id : "") + '"';
         return "<tr><td><span class=\"lp-car\"><span class=\"lp-ph" + (l.photo_url ? "" : " noimg") + "\">" + photo + '<span class="none">No photo</span></span>' +
-          '<span class="lp-cbody"><a class="lp-title" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer"' + gasAttrs + ">" + esc(cleanReceiptTitle(l.title)) + "</a></span></span></td>" +
+          '<span class="lp-cbody"><a class="lp-title" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer"' + gasAttrs + ">" + esc(cleanReceiptTitle(l.title)) + "</a>" +
+          (milesText ? ('<span class="lp-miles">' + esc(milesText) + "</span>") : "") + "</span></span></td>" +
           '<td><span class="lp-venue">' + esc(l.source || "") + '</span><span class="lp-ends">' + esc(endsShort(l.end_time)) + "</span></td>" +
           '<td class="lp-bid"><b>' + esc(amountText) + "</b>" + (timeText ? ('<span class="lp-bidtime">' + esc(timeText) + "</span>") : "") + "</td>" +
           '<td class="lp-vsrange">' + (vsrangeDot ? ('<span class="lp-dot ' + vsrangeDot + '"></span>') : "") + esc(vsrange) + "</td></tr>";
