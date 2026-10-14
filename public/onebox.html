@@ -78,6 +78,12 @@ button{font:inherit}
 .mc-flat .gas-mhead{display:flex !important;padding:22px 32px 0;background:transparent}
 .mc-flat .gas-mhead .gas-menu{display:none !important}
 .mc-flat .gas-mhead .gas-brand{font:600 24px/1.1 var(--serif);letter-spacing:-.01em}
+/* Item 9: Buy/Sell, lost with the rail, restored in the header (js/onebox.js inserts this nav into
+   .gas-mhead) - plain text links, same row as the wordmark, well clear of the sign-in pill which
+   floats fixed at top:14px/right:22px (lib/authBar.js). */
+.mc-mhead-nav{display:flex;gap:20px;order:2}
+.mc-mhead-nav a{font:500 15px/1 var(--sans);color:var(--sec);text-decoration:none;min-height:44px;display:inline-flex;align-items:center}
+.mc-mhead-nav a:hover{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
 .gas-submenu{display:none;flex-direction:column;margin:0 0 4px 14px;border-left:1px solid var(--rail-line,var(--div))}
 .gas-submenu.open{display:flex}
 .gas-submenu a{display:flex;align-items:center;min-height:40px;font:400 14px/1.3 var(--sans);color:var(--sec);text-decoration:none;padding:0 12px;cursor:pointer}
@@ -138,6 +144,11 @@ button{font:inherit}
    the left column (mileage/identity lines) runs long - the chart itself still centers in that
    stretched space (.hero-chart below), so it never looks squeezed, only genuinely fills the row. */
 .hero2col{display:grid;grid-template-columns:minmax(0,6fr) minmax(280px,6fr);gap:0 48px}
+/* No chart (fewer than 3 qualifying quarters, item 1): hero-right is omitted entirely rather than
+   rendered empty, so .hero-left is the grid's only child - span the full row instead of sitting in
+   the first 6fr track, matching "the hero uses the full container width with the range left
+   aligned." */
+.hero2col > .hero-left:only-child{grid-column:1/-1}
 .hero-left{display:flex;flex-direction:column;gap:10px;min-width:0;padding-right:36px;border-right:1px solid var(--div)}
 .hero-right{min-width:0;display:flex;flex-direction:column}
 .hero-label{margin:0}
@@ -178,22 +189,27 @@ button{font:inherit}
    candleChartHtml/stripChartHtml, js/onebox.js), so the chart always fills its box edge to edge at
    any column width - a fixed height paired with a mismatched viewBox ratio was leaving empty space
    below the content once preserveAspectRatio="meet" scaled to fit the narrower dimension. */
-.hc-svg{width:100%;aspect-ratio:4/3;display:block}
+/* Ratio measured directly off the approved mockup's chart plot box (gridlines+bars+quarter labels,
+   excluding the heading/legend), ~411x284px at the mockup's own 941px width - reproduced here as
+   55:38 (candleChartHtml's viewBox is 880x608, the same ratio), so the box is this shape at any
+   container width, never stretched. */
+.hc-svg{width:100%;aspect-ratio:55/38;display:block}
 .hc-legend{display:flex;flex-wrap:wrap;gap:16px;align-items:center;font:400 13px/1.3 var(--sans);color:var(--sec)}
 .hc-legend-sw{display:inline-flex;align-items:center;gap:6px}
 .hc-legend-box{width:12px;height:12px;border-radius:2px;background:var(--chip);display:inline-block}
 .hc-legend-dot{width:10px;height:10px;border-radius:50%;background:var(--green);display:inline-block}
 .hc-prioryear{margin:0;font:400 13px/1.4 var(--sans);color:var(--sec)}
-.hc-stub{margin:0;font:600 11px/1.2 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--sec)}
-.hc-dot{cursor:pointer}
-.hc-dot:focus-visible{outline:2px solid var(--green);outline-offset:2px}
 
-/* ---- identity-question takeover (task #40): the same two-column shell, right column empty,
-   nothing else on the page - label, car name, grey line, the question itself at range size (ink,
-   never green), another grey line, then the choices as green text links with arrows and counts. ---- */
-.idq-takeover-wrap .hero-left{border-right:0;padding-right:0}
-.idq-choices{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:6px}
-.idq-choices .linkbtn{font-size:16px}
+/* ---- question screens (item 4, mockup match round, Oct 2026): VIN confirm, generation, model,
+   body, typo-clarification, the identity takeover (gearbox/competition/documented-history) and the
+   bare-make "Which BMW?" case all share this one full-width layout - no hero2col split (nothing
+   ever filled the second column), the question at car-name size (.hero-carname, reused directly -
+   same class, same size item 2 measured off the live Mustang page), options/actions in a real row
+   below with generous spacing, no boxes/pills/chips. "Real sales only." is footHtml(), appended by
+   renderQuestion() below every screen, not part of this block. */
+.idq-question{margin-top:10px}
+.idq-options-row{display:flex;flex-wrap:wrap;gap:14px 32px;margin-top:24px}
+.idq-options-row .linkbtn{font-size:17px;min-height:44px}
 
 /* ---- this car's own sales (Job 2, Sam's follow-up round): flat rows, no box/pill/badge - one
    line per real sale, a plain closing sentence placing the last one against the range. ---- */
