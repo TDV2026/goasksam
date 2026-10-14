@@ -63,6 +63,14 @@
   // them. Per-dimension label keys (miLabel/txLabel/variantLabel/driverLabel) so the eyebrow can
   // name every answered question, not just the newest one.
   var obLastRefine = null;
+  // Item 2 (Sam's review round, Oct 14 2026): the engine only sends bodyOptions/trimQuestion on the
+  // UNREFINED answer (null once a body/trim refine is applied), so the identity line has nothing to
+  // draw from once a choice is made. These hold the LAST unrefined set (options + the unrefined
+  // soldCount, for "Any") so the line - chosen option, every other option, "Any (N)" - survives the
+  // refine. Updated only when the engine actually sends fresh options (a refined answer's null
+  // bodyOptions/trimQuestion never overwrites what is already stored); reset alongside obLastRefine
+  // at every new-search point.
+  var obIdOrigBody = null, obIdOrigTrim = null;
   // Search box placeholder (Part 2, result-hero job, Oct 2026): one of these four per PAGE LOAD
   // (not a mid-session ticker - the old startPlaceholderRotation()/phTimer cycling was dead code,
   // never called), prefixed "Try". Lane B confirmed each of these answers on the exact rung with a
@@ -102,6 +110,16 @@
     // would print "300SL Roadster Roadster"); trim stays to protect real model names.
     var body = rc.bodyStyle && !(rc.trim && String(rc.trim).toLowerCase().indexOf(String(rc.bodyStyle).toLowerCase()) >= 0) ? cap(rc.bodyStyle) : "";
     return [rc.year, rc.make, rc.model, rc.trim, body].filter(Boolean).join(" ") || "this car";
+  }
+  // Item 2 (Sam's review round): the engine never writes an applied body/trim refine back onto
+  // resolvedCar (bodyStyle/trim stay null/"" post-refine), so the heading doesn't pick it up on its
+  // own. Appends the chosen option's own label (obLastRefine.bodyLabel/trimLabel, the exact text the
+  // engine's own options array gave for that choice) when it isn't already part of the name.
+  function appendChosenLabel(base) {
+    var lbl = obLastRefine && (obLastRefine.bodyLabel || obLastRefine.trimLabel);
+    if (!lbl) return base;
+    if (String(base).toLowerCase().indexOf(String(lbl).toLowerCase()) >= 0) return base;
+    return base + " " + lbl;
   }
   function cap(s) { s = String(s || ""); return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
   function hashStr(s) { var h = 0, i; s = String(s || ""); for (i = 0; i < s.length; i++) { h = (h << 5) - h + s.charCodeAt(i); h |= 0; } return Math.abs(h); }
@@ -653,6 +671,14 @@
     } else {
       var tail = bodyMixTailOf(d.rungLabel);
       if (tail) bodies = cap(tail);
+      // Item 2 fallback (Sam's review round): a body refine is active but resolvedCar.bodyStyle was
+      // never updated to reflect it (engine gap) and rungLabel's own mix clause collapses once the
+      // pool is down to one body (bodyMixSuffix only fires for 2+ families) - so read the chosen
+      // body's own label back off obLastRefine, the exact text the engine's own option gave.
+      else if (obLastRefine && obLastRefine.bodyLabel) {
+        var bp = BODY_PLURAL[String(obLastRefine.bodyLabel).toLowerCase()];
+        bodies = cap(bp || (String(obLastRefine.bodyLabel) + "s"));
+      }
     }
     var py = Array.isArray(d.poolYears) && d.poolYears.length === 2 && Number.isFinite(d.poolYears[0]) && Number.isFinite(d.poolYears[1]) ? d.poolYears : null;
     var yearSpan = py ? (py[0] === py[1] ? String(py[0]) : (py[0] + " to " + py[1])) : "";
@@ -750,29 +776,47 @@
     }
     return rc.model || "";
   }
+  // Item 2 (Sam's review round, Oct 14 2026): once a trim/body choice is made, the identity line
+  // persists instead of vanishing - the chosen option reads as plain ink text (not a link), every
+  // other option stays a link, and an "Any (N)" link returns to the unsplit answer. N is the
+  // UNREFINED answer's own soldCount (obIdOrigBody/obIdOrigTrim.poolN) - never a sum of the shown
+  // options (the engine's own count can exceed that sum, e.g. a car neither chip's share crosses
+  // the display floor but is still part of the real total - printing the engine's own number keeps
+  // this honest rather than inventing a total from what happens to be shown).
   function heroTrimLineHtml(d) {
-    var q = d && d.trimQuestion; if (!q || !q.options || !q.options.length) return "";
-    var shown = q.options.filter(function (o) { return !o.thin; });
-    if (shown.length < 2) return "";
-    var links = shown.map(function (o) {
-      var n = digitOf(o.n);
-      return '<button type="button" class="linkbtn hero-idlink" data-trimopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + " (" + idLineNum(n) + ")</button>";
-    }).join(" · ");
-    return '<p class="hero-idline" data-stage="answer">' + lint("Which " + esc(q.model) + "?", "hero.idq") + " " + links + "</p>";
+    var chosen = obLastRefine && obLastRefine.trim;
+    var orig = obIdOrigTrim;
+    var q = (d && d.trimQuestion) || (chosen && orig ? { model: orig.model, options: orig.options } : null);
+    if (!q || !q.options || !q.options.length) return "";
+    var shown = q.options.filter(function (o) { return !o.thin || (chosen && String(o.value) === String(chosen)); });
+    if (!chosen && shown.length < 2) return "";
+    var items = shown.map(function (o) {
+      var isChosen = chosen && String(o.value) === String(chosen);
+      var label = esc(o.label) + " (" + idLineNum(digitOf(o.n)) + ")";
+      return isChosen ? ('<span class="hero-idlink hero-idlink-chosen">' + label + "</span>")
+        : ('<button type="button" class="linkbtn hero-idlink" data-trimopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + label + "</button>");
+    });
+    if (chosen && orig && Number.isFinite(Number(orig.poolN))) items.push('<button type="button" class="linkbtn hero-idlink" data-trimopt-any="1">Any (' + idLineNum(orig.poolN) + ")</button>");
+    return '<p class="hero-idline" data-stage="answer">' + lint("Which " + esc(q.model) + "?", "hero.idq") + " " + items.join(" · ") + "</p>";
   }
   function heroBodyLineHtml(d) {
-    var opts = (d && d.bodyOptions) || [];
-    var shown = opts.filter(function (o) { return Number(o.n) >= 8; });
-    if (shown.length < 2) return "";
-    var links = shown.map(function (o) {
-      return '<button type="button" class="linkbtn hero-idlink" data-bodyopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + " (" + idLineNum(o.n) + ")</button>";
-    }).join(" · ");
-    // Item 2 (Sam's follow-up round): "Which {nameplate}?" precedes the options, same as the trim
-    // line above - was options only. Falls back to options-only when no nameplate is available
-    // (never invented).
+    var chosen = obLastRefine && obLastRefine.body;
+    var orig = obIdOrigBody;
+    var opts = (d && d.bodyOptions) || (chosen && orig ? orig.options : []);
+    var shown = opts.filter(function (o) { return Number(o.n) >= 8 || (chosen && String(o.value) === String(chosen)); });
+    if (!chosen && shown.length < 2) return "";
+    var items = shown.map(function (o) {
+      var isChosen = chosen && String(o.value) === String(chosen);
+      var label = esc(o.label) + " (" + idLineNum(o.n) + ")";
+      return isChosen ? ('<span class="hero-idlink hero-idlink-chosen">' + label + "</span>")
+        : ('<button type="button" class="linkbtn hero-idlink" data-bodyopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + label + "</button>");
+    });
+    if (chosen && orig && Number.isFinite(Number(orig.poolN))) items.push('<button type="button" class="linkbtn hero-idlink" data-bodyopt-any="1">Any (' + idLineNum(orig.poolN) + ")</button>");
+    // "Which {nameplate}?" precedes the options - falls back to options-only when no nameplate is
+    // available (never invented).
     var np = nameplateOf(d);
     var lead = np ? (lint("Which " + esc(np) + "?", "hero.idq.body") + " ") : "";
-    return '<p class="hero-idline" data-stage="answer">' + lead + links + "</p>";
+    return '<p class="hero-idline" data-stage="answer">' + lead + items.join(" · ") + "</p>";
   }
   function heroGearboxLineHtml(d) {
     var splits = (d && d.inlineSplits) || [];
@@ -954,7 +998,7 @@
   // class="range"> with the green band class lives inside the `if (d.cluster)` branch below).
   function heroRangeHtml(d, m) {
     var left = '<p class="eyebrow hero-label">Market Check</p>' +
-      '<h1 class="hero-carname">' + esc(m ? (m.displayName || carLabel(d.resolvedCar)) : carLabel(d.resolvedCar)) + "</h1>" +
+      '<h1 class="hero-carname">' + esc(m ? (m.displayName || appendChosenLabel(carLabel(d.resolvedCar))) : appendChosenLabel(carLabel(d.resolvedCar))) + "</h1>" +
       heroMetaLine(d);
     if (d.cluster) {
       var band = d.cluster;
@@ -1891,7 +1935,7 @@
     // the old thinWindowText(ht) month-count guesswork - no page-side fallback.
     var win = (d && d.windowWords) || "", n = scope.length;
     var left = '<p class="eyebrow hero-label">Market Check</p>' +
-      '<h1 class="hero-carname">' + esc(m ? (m.displayName || carLabel(d.resolvedCar)) : cap(name)) + "</h1>";
+      '<h1 class="hero-carname">' + esc(m ? (m.displayName || appendChosenLabel(carLabel(d.resolvedCar))) : appendChosenLabel(cap(name))) + "</h1>";
     var countTxt;
     if (n === 1) {
       var yr = scope[0] && scope[0].year ? scope[0].year : null;
@@ -2141,6 +2185,11 @@
     // branch renders from the engine's structured facts - no fabricated numbers, ever.
     obGbApplies = !!(d && d.gearboxApplies);   // item 4: gate the hero gearbox line
     obLastD = d;
+    // Item 2: capture the UNREFINED bodyOptions/trimQuestion (+ the unrefined soldCount, for "Any")
+    // whenever the engine actually sends fresh ones - never overwritten by a refined answer's null
+    // (the whole point is surviving past that). See heroBodyLineHtml/heroTrimLineHtml.
+    if (d && Array.isArray(d.bodyOptions) && d.bodyOptions.length) obIdOrigBody = { options: d.bodyOptions, poolN: d.soldCount };
+    if (d && d.trimQuestion && Array.isArray(d.trimQuestion.options) && d.trimQuestion.options.length) obIdOrigTrim = { model: d.trimQuestion.model, options: d.trimQuestion.options, poolN: d.soldCount };
     var m = vinAnchor;
     // The duplicate car line (Oct 2026, Sam's live review; extended to "thin" in the hero-rebuild
     // round): "result" and "thin" each render their own car-name heading at the top of the new hero
@@ -2483,7 +2532,7 @@
     // A brand-new search resets the question count; a chip answer (keepAsk) carries it forward so
     // the engine can enforce the two-question cap across generation/body re-queries (Part 3).
     if (!keepAsk) obAsked = 0;
-    lastQuery = text; obLastRefine = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; htChoice = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
+    lastQuery = text; obLastRefine = null; obIdOrigBody = null; obIdOrigTrim = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; htChoice = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
     // Identifier-shaped input (VIN or chassis) routes through the shared resolver (decode +
     // confirm + exact-match + the honest VIN-invalid / chassis lines); everything else goes
     // straight to the archive pool.
@@ -2553,7 +2602,7 @@
     var vin = sp.get("vin"), car = sp.get("car");
     if (!vin && !car) { renderEmpty(); syncRailResults(); return; }
     var refine = mcRefineFromParams(sp);
-    obAsked = 0; lastQuery = vin || deslugifyQuery(car); obLastRefine = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; htChoice = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
+    obAsked = 0; lastQuery = vin || deslugifyQuery(car); obLastRefine = null; obIdOrigBody = null; obIdOrigTrim = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; htChoice = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
     if (vin) { vinResolve(vin); return; }   // VIN re-decode is the full, tested path - refine on a VIN result is a rare combo and not threaded through it.
     runPool(lastQuery, null, refine);
   }
@@ -3038,6 +3087,21 @@
         runPool(lastQuery, obLastVehicle, mergeRefine({ body: body, label: label }));
       });
     });
+    // "Any (N)" (item 2, Sam's review round): clears the chosen trim/body refine, returning to the
+    // unsplit answer - mergeRefine sets the key to null (and its *Label alongside), the server reads
+    // a null refine key as unanswered, same as never having asked.
+    Array.prototype.forEach.call(root.querySelectorAll("[data-trimopt-any]"), function (b) {
+      b.addEventListener("click", function () {
+        if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "trim", value: "any" });
+        runPool(lastQuery, obLastVehicle, mergeRefine({ trim: null, label: null }));
+      });
+    });
+    Array.prototype.forEach.call(root.querySelectorAll("[data-bodyopt-any]"), function (b) {
+      b.addEventListener("click", function () {
+        if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "body", value: "any" });
+        runPool(lastQuery, obLastVehicle, mergeRefine({ body: null, label: null }));
+      });
+    });
     // Identity question answer (either the original blocking screen or the "switch sides" chip
     // Narrow it down offers afterward - same handler, same event, same re-query): re-scopes the
     // SAME pool inline via the dimension's refine key.
@@ -3146,6 +3210,11 @@
         var open = list.hasAttribute("hidden");
         if (open) list.removeAttribute("hidden"); else list.setAttribute("hidden", "");
         b.setAttribute("aria-expanded", open ? "true" : "false");
+        // Item 4 (Sam's note, Oct 14 2026): "Show more sales (N)" is a one-way reveal, not a
+        // collapsible toggle like the other [data-qtoggle] triggers - once the remaining rows are
+        // showing there is nothing left for the button to do, so it goes away instead of sitting
+        // there still reading a stale count.
+        if (open && b.classList.contains("allsales-showall")) b.setAttribute("hidden", "");
       });
     });
     // Distribution row: expands its own receipts, closing any other open row in the same group first

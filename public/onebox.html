@@ -96,11 +96,11 @@ button{font:inherit}
 .inbox input::placeholder{color:var(--sec)}
 .inbox .go{width:48px;height:48px;flex:none;border:0;border-radius:10px;background:var(--green);color:#fff;font-size:22px;cursor:pointer}
 .inbox .go:hover{background:var(--green-dk)}
-/* Mockup match round, Oct 2026: the approved mockup's header search box reads about 30% of the
-   content width - a percentage (not a fixed px cap) so it scales with #ob's own width at any
-   viewport, same as every other region this round. New Sell (same shared .inbox markup) never
-   gets this class - see inboxHtml() in js/onebox.js. */
-.inbox.mc-bar{max-width:30%;min-width:220px}
+/* Sam's review round, Oct 2026: restored to the full-width box this page had before the mockup-
+   match round's 30%-width experiment (.mc-bar carried max-width:30%/min-width:220px, which clipped
+   a long car name at 390 wide and read too narrow on desktop against Sam's own call). The class
+   stays on the markup (inboxHtml, js/onebox.js) only so New Sell's search bar - which never gets
+   this class - is untouched; it carries no width rule of its own any more. */
 .inbox-mag{width:18px;height:18px;flex:none;color:var(--sec)}
 
 /* ---- resolved car line ---- */
@@ -154,6 +154,10 @@ button{font:inherit}
 .hero-divider{height:1px;background:var(--div);margin:10px 0 0}
 .hero-idline{margin:2px 0 0;font:400 17px/1.6 var(--sans);color:var(--sec)}
 .hero-idlink{font-size:17px}
+/* Item 2 (Sam's review round): the chosen option in a persisted identity line reads as plain ink
+   text, not a link - same weight/size as the .linkbtn options beside it, no underline, not
+   clickable (it is a <span>, not a <button>). */
+.hero-idlink-chosen{font:600 17px/1.4 var(--sans);color:var(--ink);text-decoration:none;display:inline-flex;align-items:center}
 /* Mileage line: an "Add mileage" field inline with its own sentence when nothing is applied yet, or
    "Range narrowed around N miles." plus a quiet Change link once one is - both one line, no card,
    no pill. The VIN/chassis reconfirm (restored, follow-up round) is the same one-line shape (field
@@ -550,11 +554,6 @@ a.sb-line:hover{color:var(--green)}
   .inbox{border-radius:12px;padding:6px 6px 6px 14px}
   .inbox input{font-size:17px}
   .inbox .go{width:44px;height:44px;border-radius:9px;font-size:20px}
-  /* Item 6 (Sam's follow-up round): the search box was capped at 30% of content width (desktop,
-     under the wordmark on its own row) with a 220px floor - a long car name still clipped inside
-     that floor at 390 wide. Full content width on phone instead, where it already sits on its own
-     row under the header. */
-  .inbox.mc-bar{max-width:100%;min-width:0}
   .carline{font-size:15px;gap:10px;margin:-2px 0 -6px}
   .carline .ch{display:inline-flex}
   .rung-label{font-size:14px}
@@ -590,7 +589,7 @@ a.sb-line:hover{color:var(--green)}
   .hero-carname{font-size:24px}
   .hero-scope,.hero-miles-sub,.salesrow-sub,.lp-summary,.samonit p{font-size:16px}
   .hero2col .range{font-size:28px;white-space:normal}
-  .hero-idline,.hero-idlink{font-size:16px}
+  .hero-idline,.hero-idlink,.hero-idlink-chosen{font-size:16px}
   .dist-label,.dist-count{font-size:15px}
   .sep-note,.ev-why-note p{font-size:13px}
   /* Mileage field (item 8): the sentence on its own line, then the field full width with Go beside
