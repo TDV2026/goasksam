@@ -75,9 +75,13 @@ button{font:inherit}
    left for it to open. */
 .mc-flat #gas-rail,.mc-flat #gas-scrim{display:none !important}
 .mc-flat #gas-main{margin-left:0}
-.mc-flat .gas-mhead{display:flex !important;padding:22px 32px 0;background:transparent}
+/* align-items/gap below: lib/appShell.js only gives .gas-mhead these (and .gas-brand its
+   order/margin-right:auto) INSIDE its own mobile media query - .gas-mhead is plain display:none
+   outside it, so on desktop this override needs its own copy of the alignment rules, not just
+   display:flex, or the brand and nav links collapse together with no spacing at all. */
+.mc-flat .gas-mhead{display:flex !important;align-items:center;gap:10px;padding:22px 32px 0;background:transparent}
 .mc-flat .gas-mhead .gas-menu{display:none !important}
-.mc-flat .gas-mhead .gas-brand{font:600 24px/1.1 var(--serif);letter-spacing:-.01em}
+.mc-flat .gas-mhead .gas-brand{font:600 24px/1.1 var(--serif);letter-spacing:-.01em;margin-right:auto}
 /* Item 9: Buy/Sell, lost with the rail, restored in the header (js/onebox.js inserts this nav into
    .gas-mhead) - plain text links, same row as the wordmark, well clear of the sign-in pill which
    floats fixed at top:14px/right:22px (lib/authBar.js). */
