@@ -230,6 +230,13 @@ try {
 } catch (e) {
   record("Sell venue line (scripts/sellVenueLineCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The Sell day-of-week tile (Oct 2026, Lane B2, lib/sell/sellFacts.js dayBuckets + sellFlow.js dayTile). No network.
+try {
+  const out = execSync("node scripts/sellDayTileCheck.mjs", { encoding: "utf8" });
+  record("Sell day tile (scripts/sellDayTileCheck.mjs)", "PASS", (out.match(/sellDayTileCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Sell day tile (scripts/sellDayTileCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Task filters carry the car as typed (Oct 2026, Lane C, lib/tasks/tasks.js typedCar). No network.
 try {
   const out = execSync("node scripts/taskFiltersCheck.mjs", { encoding: "utf8" });
