@@ -204,6 +204,10 @@ button{font:inherit}
 .hc-legend-box{width:12px;height:12px;border-radius:2px;background:var(--chip);display:inline-block}
 .hc-legend-dot{width:10px;height:10px;border-radius:50%;background:var(--green);display:inline-block}
 .hc-prioryear{margin:0;font:400 13px/1.4 var(--sans);color:var(--sec)}
+.hc-bar{cursor:pointer}
+.hc-bar:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+/* Tap tooltip (item 1/8): js/onebox.js's hcShowTip positions this near the tapped bar. */
+.hc-tooltip{position:absolute;z-index:60;background:var(--ink);color:#fff;font:400 13px/1.4 var(--sans);padding:6px 10px;border-radius:6px;max-width:240px;pointer-events:none;box-shadow:0 4px 14px rgba(21,32,26,.22)}
 
 /* ---- question screens (item 4, mockup match round, Oct 2026): VIN confirm, generation, model,
    body, typo-clarification, the identity takeover (gearbox/competition/documented-history) and the
@@ -591,30 +595,55 @@ a.sb-line:hover{color:var(--green)}
   .sam.big p{font-size:21px}
   .refusal .ans{font-size:25px}
   /* ---- hero, phone stacking: label, car name, scope line, mileage line+field, range/headline,
-     the chart below it, identity line, then the sales row stacked (photo left, text right). ---- */
+     the chart below it, identity line, then the sales row stacked (full-width photo, text below,
+     matching the desktop card's own column layout - item 8, mockup match round, Oct 2026). ---- */
   .hero2col{grid-template-columns:1fr;gap:18px}
   .hero-left{border-right:0;padding-right:0}
   .hero-carname{font-size:24px}
-  .hero-scope,.hero-miles,.hero-miles-sub,.salesrow-sub,.lp-summary,.samonit p{font-size:16px}
+  .hero-scope,.hero-miles-sub,.salesrow-sub,.lp-summary,.samonit p{font-size:16px}
   .hero2col .range{font-size:28px}
   .hero2col .range .to{font-size:18px}
   .hero-idline,.hero-idlink{font-size:16px}
-  .lptable td,.allsales-table td,.lp-title,.lp-venue,.lp-vsrange,.dist-label,.dist-count{font-size:15px}
-  .lp-ends,.lp-bidtime,.lp-miles,.sep-note,.ev-why-note p{font-size:13px}
-  .salescards{grid-template-columns:1fr;gap:16px}
-  .salescard{flex-direction:row;gap:14px;align-items:flex-start}
+  .dist-label,.dist-count{font-size:15px}
+  .sep-note,.ev-why-note p{font-size:13px}
+  /* Mileage field (item 8): the sentence on its own line, then the field full width with Go beside
+     it - the field was a fixed 160px (fine on desktop, cramped in a 358px column). */
+  .hero-miles{flex-direction:column;align-items:flex-start;gap:8px;font-size:16px}
+  .miles-inline{width:100%}
+  .miles-inline input{flex:1;width:auto;height:44px}
+  .mi-go{height:44px}
+  .salescards{grid-template-columns:1fr;gap:20px}
   .salescard+.salescard::before{display:none}
-  .salescard+.salescard{border-top:1px solid var(--div);padding-top:16px}
-  .salescard .ph{width:110px;flex:none;aspect-ratio:3/2}
-  .salescard-body{margin-top:0}
+  .salescard+.salescard{border-top:1px solid var(--div);padding-top:20px}
   .salescard-price{font-size:17px}
   .salescard-title{font-size:15px}
   .salescard-meta{font-size:14px}
-  .sellbox{flex-direction:column;align-items:flex-start;gap:12px;padding:20px 14px}
+  /* Live right now / All N comparable sales (item 8): real <table> markup stays - headers hidden,
+     every row becomes a stacked block with a hairline between rows, cell groups keep their own
+     existing layout (.lp-car/.lp-venue+.lp-ends/.lp-bid+.lp-vsrange already group the right facts
+     together; the all-sales row gets the same car-name-first-and-large treatment, with "View sale"
+     appended after the linked title since that table has no separate link text of its own). */
+  .lptable,.lptable tbody,.lptable tr,.lptable td,.allsales-table,.allsales-table tbody,.allsales-table tr,.allsales-table td{display:block;width:100%}
+  .lptable thead,.allsales-table thead{display:none}
+  .lptable tr,.allsales-table tr{padding:16px 0;border-top:1px solid var(--div)}
+  .lptable tbody tr:first-child,.allsales-table tbody:first-of-type tr:first-child{border-top:0}
+  /* Undo the desktop per-CELL border/padding (a border on every td, meant for column dividers) -
+     the row itself carries the one hairline above, not each stacked field within it. */
+  .lptable td,.allsales-table td{padding:0;border-top:0;font-size:15px}
+  .lptable td+td,.allsales-table td+td{margin-top:6px}
+  .allsales-table td:nth-child(2){font:500 16px/1.3 var(--sans);order:-1}
+  .allsales-table td:nth-child(2) a{color:var(--ink);text-decoration:none}
+  .allsales-table td:nth-child(2) a::after{content:" · View sale \2192";color:var(--green);font-size:14px;font-weight:600}
+  .allsales-table td.astc-price{font:600 17px/1.2 var(--serif);text-align:left}
+  .allsales-table tr{display:flex;flex-direction:column}
+  .sellbox{flex-direction:column;align-items:stretch;gap:12px;padding:20px 14px}
   .sellbox h3{font-size:24px}
   .sellbox p{font-size:16px}
+  .sellbox a{width:100%;justify-content:center}
   .samonit{flex-direction:column;align-items:flex-start;gap:10px}
   .samonit-main .linkbtn{font-size:16px}
+  /* Question screens (item 4/8): options stack one per line on phone, never try to share a row. */
+  .idq-options-row{flex-direction:column;align-items:flex-start;gap:16px}
 }
 </style>
 </head>

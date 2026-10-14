@@ -817,7 +817,7 @@
       var cx = groupStart + slot * i + slot / 2, ylo = y(Number(q.low)), yhi = y(Number(q.high));
       var label = String(q.period || q.label || ""), count = digitOf(q.count);
       var tip = chartTip([label, "Low " + usd(q.low), "Typical " + usd(q.typical), "High " + usd(q.high), Number.isFinite(count) ? (obNumWordLow(count) + " sales") : ""]);
-      bars += '<g><title>' + tip + '</title>' +
+      bars += '<g class="hc-bar" tabindex="0" data-tip="' + tip + '"><title>' + tip + '</title>' +
         '<rect x="' + (cx - barW / 2).toFixed(1) + '" y="' + yhi.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + Math.max(2, ylo - yhi).toFixed(1) + '" rx="2" fill="var(--chip)"/>' +
         '<circle cx="' + cx.toFixed(1) + '" cy="' + y(Number(q.typical)).toFixed(1) + '" r="6" fill="var(--green)"/>' +
         '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 20).toFixed(1) + '" text-anchor="middle" font-size="14" fill="var(--ink)">' + esc(label) + "</text>" +
@@ -846,6 +846,39 @@
     // sliding the heading itself away from the top.
     return '<div class="hero-chart"><h2>How this market has moved</h2><div class="hc-body">' + inner + "</div></div>";
   }
+  // TAP TOOLTIPS (item 1/8, mockup match round, Oct 2026): low/high/typical/count are tooltip-only
+  // text, never printed beside a box - the native SVG <title> already covers desktop hover, but
+  // phones do not reliably show <title> on tap, so each bar also carries a plain data-tip attribute
+  // (same escaped text) that this one delegated, bind-once listener turns into a small floating
+  // tooltip: tap a bar to show it, tap the SAME bar again or tap anywhere else to hide it. Bound on
+  // root (survives every re-render; root itself is never replaced) rather than re-attached per
+  // chart render.
+  var hcTipEl = null, hcTipTarget = null;
+  function hcHideTip() { if (hcTipEl) { hcTipEl.remove(); hcTipEl = null; hcTipTarget = null; } }
+  function hcShowTip(target, text) {
+    hcHideTip();
+    var rect = target.getBoundingClientRect();
+    var tip = document.createElement("div");
+    tip.className = "hc-tooltip";
+    tip.textContent = text;
+    document.body.appendChild(tip);
+    var tr = tip.getBoundingClientRect();
+    var left = rect.left + rect.width / 2 - tr.width / 2 + window.scrollX;
+    var top = rect.top - tr.height - 8 + window.scrollY;
+    tip.style.left = Math.max(8, left) + "px";
+    tip.style.top = Math.max(8, top) + "px";
+    hcTipEl = tip; hcTipTarget = target;
+  }
+  root.addEventListener("click", function (e) {
+    var t = e.target.closest ? e.target.closest("[data-tip]") : null;
+    if (t) {
+      e.preventDefault();
+      if (hcTipTarget === t) hcHideTip(); else hcShowTip(t, t.getAttribute("data-tip"));
+      return;
+    }
+    hcHideTip();
+  });
+  document.addEventListener("click", function (e) { if (!root.contains(e.target)) hcHideTip(); });
   // RANGE-TIER HERO (task #38). The rule-24 no-band fallback is unchanged copy, just inside the new
   // shell: no cluster means no dollar headline of any kind, ever (STANDING CHECK: the only <h2
   // class="range"> with the green band class lives inside the `if (d.cluster)` branch below).
