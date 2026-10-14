@@ -91,6 +91,14 @@ console.log("\n-- deterministic engine checks --");
   // spec_market_cache row). Runs on every push, not just when a live sweep happens to probe it.
   const k = checkSpecKeyYearIsolation();
   record("specKeyFor year isolation (synthetic, no DB)", k.ok ? "PASS" : "FAIL", k.ok ? `${k.cases.length} cases` : JSON.stringify(k.cases.filter(c => !c.pass)));
+  // Output gate + fence word fixtures (Lane B job, Oct 13 2026, Jobs 1 and 4): pure, no DB - the shapes the
+  // live gate wrongly refused (Grand National, 275 GTB/4, CLK63 Black Series, M3 Coupe) must be accepted, a
+  // swapped pool must still fail, and the hyphenated/spaced replica spellings must be fenced.
+  const { checkOutputGateFixtures, checkFenceWordFixtures } = await import("./crossProductCheck.js");
+  const g = checkOutputGateFixtures();
+  record("output gate fixtures (synthetic, no DB)", g.ok ? "PASS" : "FAIL", g.ok ? `${g.cases.length} cases` : JSON.stringify(g.cases.filter(c => !c.pass)));
+  const fw = checkFenceWordFixtures();
+  record("replica fence words (synthetic, no DB)", fw.ok ? "PASS" : "FAIL", fw.ok ? `${fw.cases.length} cases` : JSON.stringify(fw.cases.filter(c => !c.pass)));
 }
 {
   // buildPoolSmoke (job 3 addendum): no DB, no network - synthetic rows through every real branch of

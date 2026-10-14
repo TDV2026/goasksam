@@ -48,6 +48,7 @@ import { decide, getSellerCriteria } from "../api/sellerDecision.js";
 import fs from "node:fs";
 import { hammerUsd } from "../lib/_houseComps.js";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
+import { isMemorabilia } from "../lib/_classify.js";
 
 export const DEFAULT_SPECS = [
   "2008 Porsche 911 Carrera", "2009 Porsche 911 Carrera S Coupe", "1995 Porsche 993 Carrera",
@@ -146,6 +147,10 @@ export const DEFAULT_SPECS = [
   // golden-rules sibling so both year-widened golden cars (docs/golden-rules.md 1 and 2) are
   // standing cross-product regressions, not just engine-vs-golden ones.
   "2024 Porsche 911 Carrera S Coupe",
+  // Lane B job, Oct 13 2026 (Job 1): the two cars the e28-e30 output gate wrongly refused (archive model
+  // column "Grand National - Regal" read as a wrong car; one stray 365 in a 14-sale 275 pool hid the other
+  // thirteen). Permanent regression specs: all four lanes must give the range golden-rules.md expects.
+  "1987 Buick Regal Grand National", "1967 Ferrari 275 GTB/4 NART Spider",
   // Lane B job (Oct 2026, Part 2): the parseQuery edition-word gaps B2 found and listed in
   // scripts/resolverLanesCheck.mjs's buyGap entries (now closed, entries removed there too) -
   // "Black" in "Black Series" read as a paint colour and "Speedster" as a body filter BEFORE the
@@ -646,6 +651,59 @@ export function checkSpecKeyYearIsolation() {
     const keyA = specKeyFor(f.a, f.gen, null), keyB = specKeyFor(f.b, f.gen, null);
     return { name: f.name, keyA, keyB, pass: keyA !== keyB };
   });
+  return { ok: cases.every(c => c.pass), cases };
+}
+
+// OUTPUT GATE FIXTURES (Lane B job, Oct 13 2026, Job 1): pure, no DB - the exact shapes the live gate
+// wrongly refused, as synthetic answers through the REAL runOutputInvariants, so the refusal can never
+// come back on a push without this failing first. Plus one genuinely swapped pool that MUST still fail,
+// so the gate is proven to still gate.
+const card = (make, model, title) => ({ make, model, title });
+const GATE_FIXTURES = [
+  { name: "Grand National: archive model column 'Grand National - Regal' is the Regal", expect: true,
+    vehicle: { make: "Buick", model: "Regal", trim: "Grand National" },
+    d: { tier: "result", fallbackRung: "exact", rungLabel: "1987 Regal Grand National", resolvedCar: { trim: "Grand National" }, poolN: 4, cluster: [35500, 56000], rawPool: [{ _usd: 30000 }, { _usd: 40000 }, { _usd: 50000 }, { _usd: 60000 }],
+      cards: [card("Buick", "Regal", "1987 Buick Regal Grand National"), card("Buick", "Grand National - Regal", "1987 Buick Grand National"), card("Buick", "Grand National - Regal", "1987 Buick Regal Grand National"), card("Buick", "Regal", "1987 Buick Regal Grand National")] } },
+  { name: "275 GTB/4: one stray 365 in a 14-sale pool is a minority, the answer stands", expect: true,
+    vehicle: { make: "Ferrari", model: "275", trim: "GTB/4 Spider" },
+    d: { tier: "result", fallbackRung: "model_any_year", rungLabel: "275, all years", resolvedCar: { trim: null }, poolN: 14, cluster: [1925000, 2835000], rawPool: Array.from({ length: 14 }, (_, i) => ({ _usd: 200000 + i * 250000 })),
+      cards: [...Array.from({ length: 13 }, (_, i) => card("Ferrari", "275", `196${5 + (i % 3)} Ferrari 275 GTB/4 Chassis no. ${10000 + i}`)), card("Ferrari", "365", "1969 Ferrari 365 GT 2+2 Chassis no. 12751")] } },
+  { name: "CLK63 Black Series: model column 'CLK AMG'/'CLK63 AMG Black' shares the CLK stem; trim token named by the label", expect: true,
+    vehicle: { make: "Mercedes-Benz", model: "CLK-Class", trim: "CLK63 AMG" },
+    d: { tier: "result", fallbackRung: "exact", rungLabel: "2008 CLK63 Black Series", resolvedCar: { trim: "Black Series" }, poolN: 3, cluster: [95000, 146000], rawPool: [{ _usd: 90000 }, { _usd: 120000 }, { _usd: 150000 }],
+      cards: [card("Mercedes-Benz", "CLK AMG", "2008 Mercedes-Benz CLK63 AMG Black Series"), card("Mercedes-Benz", "CLK63 AMG Black", "2008 Mercedes-Benz CLK63 AMG Black Series"), card("Mercedes-Benz", "CLK-Class", "2008 Mercedes-Benz CLK63 AMG Black Series")] } },
+  { name: "M3 Coupe: model column '3-Series' but the title says M3", expect: true,
+    vehicle: { make: "BMW", model: "M3", trim: null },
+    d: { tier: "result", fallbackRung: "exact", rungLabel: "2003 M3 Coupe", resolvedCar: { trim: null }, poolN: 2, cluster: [23500, 35500], rawPool: [{ _usd: 20000 }, { _usd: 40000 }],
+      cards: [card("BMW", "3-Series", "2003 BMW M3 Coupe 6-Speed"), card("BMW", "M3", "2003 BMW M3 Coupe")] } },
+  { name: "992 column for a typed 911 (chassis-code alias, e29)", expect: true,
+    vehicle: { make: "Porsche", model: "911", trim: null },
+    d: { tier: "result", fallbackRung: "year_widened", rungLabel: "911 Carrera and Carrera S models, 2024 to 2026", resolvedCar: { genCode: "992", trim: null }, poolN: 2, cluster: [143000, 163000], rawPool: [{ _usd: 140000 }, { _usd: 170000 }],
+      cards: [card("Porsche", "992", "2024 Porsche 911 Carrera S Coupe"), card("Porsche", "911", "2026 Porsche 911 Carrera Coupe")] } },
+  { name: "a genuinely swapped pool (Mustangs under a Camaro) still fails", expect: false,
+    vehicle: { make: "Chevrolet", model: "Camaro", trim: null },
+    d: { tier: "result", fallbackRung: "exact", rungLabel: "1969 Camaro", resolvedCar: { trim: null }, poolN: 4, cluster: [45500, 78500], rawPool: [{ _usd: 40000 }, { _usd: 50000 }, { _usd: 60000 }, { _usd: 80000 }],
+      cards: [card("Ford", "Mustang", "1969 Ford Mustang Mach 1"), card("Ford", "Mustang", "1969 Ford Mustang Boss 302"), card("Ford", "Mustang", "1969 Ford Mustang GT"), card("Chevrolet", "Camaro", "1969 Chevrolet Camaro")] } }
+];
+export function checkOutputGateFixtures() {
+  const cases = GATE_FIXTURES.map(f => {
+    const checks = runOutputInvariants(f.d, f.vehicle);
+    const failed = checks.filter(c => !c.ok).map(c => c.name);
+    const accepted = failed.length === 0;
+    return { name: f.name, expect: f.expect, accepted, failed, pass: accepted === f.expect };
+  });
+  return { ok: cases.every(c => c.pass), cases };
+}
+// FENCE WORD FIXTURES (Lane B job, Oct 13 2026, Job 4): the replica/memorabilia fence (lib/_classify.js
+// isMemorabilia) on the hyphenated and spaced spellings the archive actually uses, plus the words that must
+// NOT trip it. Pure, no DB.
+const FENCE_WORD_FIXTURES = [
+  ["1957 PORSCHE 356 SPEEDSTER RE-CREATION", true], ["1956 Porsche 356 Speedster Re Creation", true], ["1957 Porsche 356 Speedster Recreation", true],
+  ["1967 Shelby GT500CR by Classic Recreations", true], ["1958 Porsche 356 Speedster Replica by Beck", true], ["1965 Shelby Cobra Re-Production", true],
+  ["1957 Porsche 356A Speedster", false], ["2019 Winnebago Recreational Vehicle", false], ["1966 Ford Bronco", false]
+];
+export function checkFenceWordFixtures() {
+  const cases = FENCE_WORD_FIXTURES.map(([title, expect]) => ({ title, expect, got: isMemorabilia(title), pass: isMemorabilia(title) === expect }));
   return { ok: cases.every(c => c.pass), cases };
 }
 
