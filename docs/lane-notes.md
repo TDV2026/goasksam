@@ -7256,3 +7256,134 @@ FOR LANE A (public/onebox.html is yours): its browser gate, around line 22, test
 
 Search check: rule 7 and rule 9. The only page change is inside the signed-in /tasks/mine app (noindex, in no
 sitemap), and its one new sentence carries no banned word.
+
+## Lane A, Oct 13 2026 (later): Sam's approved-with-changes round, nine items
+Sam reviewed the live 1965 Mustang / 2025 Porsche 911 / VIN confirm pages and approved with the
+nine changes below. Mockup wins wherever it differs from older notes. Proven live throughout; the
+one blocked item (ownSales not reaching the client) is a real engine-side gap, not mine to fix.
+
+FOR LANE B, blocking: `ownSales` (lib/onebox.js `ownSalesFor`, `result.ownSales = ownSalesFor(...)`
+at line ~5470) is computed inside `runOneBox` but never reaches the client. Traced end to end:
+`vehicle.vin` IS present and correct on the request (`sanitizeResolvedVehicle`, lib/vehicle.js,
+keeps it); `result.cards` genuinely contains a card whose `vinNorm` matches the searched VIN
+exactly (confirmed by direct capture); `oneEngineAnswer` returns `{ raw: d, ...mapEngineAnswer(d,
+latencyMs) }` and api/sellerDecision.js explicitly uses `oneBox = engineAnswer.raw` (the full `d`,
+not the narrow `mapEngineAnswer` shape) before spreading it into the response
+(`res.json({status:"one_box", ...oneBox, ...})`) - so on paper the field should survive untouched.
+Live capture nonetheless shows the response has NO `ownSales` key at all (not null - genuinely
+absent, confirmed via `"ownSales" in response` === false), on a tier "result" response where the
+invariant gate never fired. Repro: VIN WP0AB2A94MS223093 (now resolves to tier "result", 26 sales,
+not the earlier refusal) - `has ownSales key: false`, `cards[]` has the matching
+`vinNorm:"WP0AB2A94MS223093"` row right there. I could not find the drop point without edit access
+to lib/onebox.js (out of my scope this round) - worth checking whether `buildResult`'s own early
+returns (several `return {...b, tier: ...}` statements earlier in the file, before the point
+rungLabel/scopeLabel/ownSales get attached) bypass line ~5470 for some "result"-tier paths, or
+whether a second result-shaping step downstream re-touches the object. Both exactCarSalesHtml
+(reads d.ownSales directly) and the hero's "VIN ending 223093" scope-line prefix (same gate) are
+built and correct on my side - proven with a hand-built stub shape matching ownSalesFor's own
+documented return type; blocked on this VIN specifically until the field reaches the wire.
+
+1. CHART, candles only. Deleted stripChartHtml (and the now-dead .hc-dot/.hc-stub CSS) entirely -
+   no dot/strip fallback, no empty panel when there's no chart. Proportions measured directly off
+   final-mockup.jpg (2025 Porsche 911, 941px): plot box ~411x284px (55:38 ratio) -> viewBox 880x608;
+   bar width ~38px and quarter-centre spacing ~94px measured and used as FIXED viewBox units
+   (barW 40, slot 100) rather than divided by quarter count, so 4 and 8 quarters draw the identical
+   box/spacing, the group centred within a viewBox sized for 8 quarters (MAXQ). Axis headroom
+   matches the mockup exactly: data's own min/max rounds OUT to the nearest "nice" step (4-step
+   target, same algorithm that reproduces the mockup's measured $20K step over its $70K span), then
+   ONE MORE full step on each side (mockup's $80K-$200K axis against $102K-$172K data, reproduced
+   exactly by this rule). No numbers print beside the boxes - low/high/typical/count are tooltip
+   text only. Fewer than 3 qualifying quarters: no chart at all - the hero drops to one column
+   (`.hero2col > .hero-left:only-child{grid-column:1/-1}`) with one quiet line, "There are too few
+   sales in each quarter to chart how this market has moved." Tap tooltips (item 8 dependency): each
+   bar carries a plain `data-tip` attribute (native `<title>` covers desktop hover but phones do not
+   reliably show it on tap) and one delegated, bind-once click listener on `root` shows/hides a
+   small floating tooltip - proven live via a real touchscreen tap (Puppeteer), returned the full
+   tooltip text. PROVEN LIVE: 2025 Porsche 911 (12 sales, the no-chart case, screenshot
+   compare/911-1440-v4.png) and 1965 Ford Mustang (68 sales, 4 qualifying quarters, screenshot
+   compare/mustang-1440-v2.png) - bars, gridlines, legend, prior-year line, tap tooltip all correct.
+
+2. TYPE PROPORTIONS. Audited every `<h2 class="range...">` in the file - only two remain, both
+   genuine range FIGURES (the cluster band, the thin tier's "Where they sold" band); every question
+   screen (item 4) now reuses `.hero-carname` (28px) instead of the oversized `.range` class (44px)
+   it used before, so the name/question is always clearly smaller than any range figure on the same
+   page. No separate "name" CSS class needed - item 2 and item 4 turned out to be the same fix.
+
+3. EXACT CAR. exactCarSalesHtml rewritten to read `d.ownSales` directly (sales[], lastSale.placing -
+   the engine's own computed "inside/above/below the range") instead of the earlier client-side
+   placement math against d.cluster/d.span. Wired into result, thin AND refusal (all three tiers
+   ownSalesFor can populate). Hero scope line now leads "VIN ending 223093 · ..." when the search is
+   a VIN with its own recorded sale (reads the client's own obSourceVin, already captured from the
+   VIN-decode step - never computed, never the words "your car"). BLOCKED on live proof by the
+   engine gap above - see the FOR LANE B note. Code is correct and ready; re-test once ownSales
+   reaches the wire.
+
+4. QUESTION SCREENS. VIN confirm, generation, model, body, typo-clarification and the identity
+   takeover (gearbox/competition/documented-history, "Which BMW?") all rebuilt on one shared
+   idqScreenHtml - full container width (no more hero2col 6fr/6fr split reserving an empty second
+   column), the question at car-name size, options/actions in a real flex row with generous gap
+   (14px/32px) instead of the old tight inline text flow, no boxes/pills/chips. Click mechanisms
+   completely unchanged (attribute-selector wiring in wire(), confirmed untouched). Tested live:
+   VIN 1HGCM82633A004352 (genuine vin_confirmation, no archive match) - flat screen, large serif
+   question, "Yes, that's it ->" / "No, type it instead" in a row; "porshe 911" (deliberate typo) ->
+   generation_choice, same shell; "2005 bmw" -> bare-make model_choice, same shell. body_choice
+   still not reproducible live against current archive composition (same finding as last round,
+   tried again this round with no change) - the render path is identical to the proven
+   generation_choice path by construction, not a separate untested mechanism.
+
+5. COUNTS ARE DIGITS. idLineNumWord (the word-number helper from the PRIOR round, now reversed)
+   deleted entirely; every identity-line count ("Carrera S (8) · Carrera T (15)",
+   "Convertible (33) · Coupe (19)") is idLineNum, a plain `Number(n).toLocaleString("en-US")`.
+   "Which 911?" now sits on one line where it fits (confirmed live, 1440px) since digits read much
+   shorter than the words did, combined with the extra width from item 1's rail removal.
+
+6. WORDING. "Seven sales sat outside the middle half" was wrong on its face (a 68-sale pool's real
+   IQR excludes ~34, not 7) because the panel it opens is d.asideCards, the engine's own set-aside
+   pool (price outliers AND other fenced-out reasons), never a statistical middle-half cut. Reworded
+   to match what the panel actually lists: "N sales sat outside the range" only when every aside
+   card is genuinely a price outlier (dirN === list.length, the same test the sentence below it
+   already used), else "N sales were set aside" - confirmed live on the Mustang (shows "Seven sales
+   sat outside the range", meaning all seven really are outliers there). Read both named pages top
+   to bottom as a conversation (full text dumps, 1440px) end to end - nothing else read unnatural;
+   no "your car" language found on either page.
+
+7. DISTRIBUTION. Re-checked lib/onebox.js distributionFor - bucket shape is still {low, high, count,
+   receipts, typicalBucket}, no percent/share field. Counts only, as last round; did not compute a
+   percentage client-side (the standing rule). Unchanged from the prior round's finding.
+
+8. PHONE, 390 wide. Built and proven (Puppeteer at a real 390x844 viewport, a real touchscreen tap
+   for the tooltip test): scrollWidth === clientWidth === 390 (no horizontal scroll) on both named
+   pages. 16px side gutters: already existing (.wrap padding, <=860px). Hero: mileage field was a
+   fixed 160px (fine on desktop, cramped in a 358px column) - now the sentence sits on its own line,
+   then the field flexes full width with Go beside it, both at 44px tap-target height. Live right
+   now / All N comparable sales (real <table> markup, unchanged): headers hidden, every row becomes
+   a stacked block with ONE hairline between rows (had to explicitly zero the old PER-CELL border,
+   which would otherwise draw a line between every stacked field, not just between rows) - existing
+   cell groupings preserved for the live table (car / venue+ending / bid+vs-range); the all-sales
+   row leads with the car name (flex order) and appends "View sale" after the linked title since
+   that table had no separate link text of its own. Sales behind this answer: dropped the old
+   side-by-side thumbnail phone layout and kept the desktop card's own column layout (full-width 3:2
+   photo, text below) at one column instead of three - matches "full width photos... equal heights"
+   without inventing a new layout. Sell band button: full width, centred. Question screens: options
+   now stack one per line (was flex-wrap, which could fit two short labels side by side with room
+   to spare). Distribution needed no change - already had a responsive label/count-row-then-full-
+   width-bar layout from an earlier round. Chart: no phone-specific override needed - the aspect-
+   ratio CSS already scales the same ratio to any container width automatically; tap tooltips proven
+   live (see item 1). Screenshots: compare/mustang-390-v2.png (full page),
+   compare/question-390.png (a generation_choice screen).
+
+9. NAVIGATION. Confirmed GoAskSam/Sign in/Buy/Sell all reachable on a Market Check result AND every
+   question screen, desktop and phone. GoAskSam wordmark and Sign in were already unaffected (the
+   wordmark lives in .gas-mhead, shown via .mc-flat; sign-in floats position:fixed independent of
+   rail/main layout, lib/authBar.js). Buy and Sell were genuinely lost with the rail - restored in
+   the header, not as a rail: js/onebox.js inserts a small nav (Buy, Sell) into the existing
+   .gas-mhead bar, scoped to window.GAS_TOOL==="market_check" only (Sell/Buy/Tasks, which load this
+   same onebox.js/CSS, are untouched - lib/appShell.js itself was not edited). Found and fixed one
+   bug while proving this: lib/appShell.js only gives .gas-mhead its flex align-items/gap and
+   .gas-brand its order/margin-right:auto INSIDE its own mobile media query - .gas-mhead is plain
+   display:none outside it on every other page, so my override needed its own copy of those rules on
+   desktop or the brand and nav links collapsed together with no spacing. Verified both desktop
+   (compare/header-crop.png) and phone (compare/mustang-390-v2.png) read cleanly.
+
+Search check: no title/H1/canonical/meta changed - every change is chart rendering, header nav
+markup/CSS, type scale and phone-layout CSS within the existing Market Check template.
