@@ -143,6 +143,13 @@ async function handler(req, res) {
       await recordUsageEvent({ event_type: "tasks_run", route: "tasks_run", status: "ok", oldcarsdata_metered_requests: 0, metadata: { ran: out.ran, matched: out.report.reduce((k, r) => k + (r.matched || 0), 0), ms: Date.now() - t0 } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
       return res.status(200).json(out);
     }
+    // Probe: what a Task email would state for typed words (lib/tasks/tasks.js emailPreview). Read only: no Task, no
+    // email, no cache row, no setup model turn, zero OCD (the engine reads the archive). &q=the words.
+    if (req.method === "GET" && q.emailpreview && probeOk(req)) {
+      const { emailPreview } = await import("../lib/tasks/tasks.js");
+      res.setHeader("Cache-Control", "private, no-store");
+      return res.status(200).json(await emailPreview(env, String(q.q || "").slice(0, 300)));
+    }
     // Probe: is the "How often" choice ready? The column's own answer (200 present, 400 missing) and counts only, no addresses.
     if (req.method === "GET" && q.notifycheck && probeOk(req)) {
       const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact", Range: "0-0" };
