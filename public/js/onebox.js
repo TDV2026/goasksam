@@ -1562,7 +1562,7 @@
         : "There are no recent " + esc(model) + " sales in the window needed for a spread.";
       var follow = m ? "" : "A bit more detail, or a different car, and Sam pulls what actually sold.";
       var paras = [lint(esc(lead), "thin")]; if (follow) paras.push(lint(esc(follow), "thin.follow"));
-      return '<div class="refusal">' + samMsgHtml(paras, "Sam’s read") + factsBlockHtml(d, false) + "</div>" + poolGridHtml(cards, "What has sold") + sellHtml();
+      return '<div class="refusal">' + samMsgHtml(paras, "Sam’s read") + factsBlockHtml(d, false) + "</div>" + exactCarSalesHtml(d, m) + poolGridHtml(cards, "What has sold") + sellHtml();
     }
     var listJoin = function (a) { return a.length <= 1 ? (a[0] || "") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]; };
     // Only claim a YEAR spread when there genuinely is one (>= 2 years, so no "across 1 years").
@@ -1576,7 +1576,7 @@
       : "";
     var head = '<div class="refusal" data-stage="answer"><p class="ans">' + lint(esc("No range on this one. It would be a guess."), "refuse") + "</p>" +
       samMsgHtml([lint(reason, "refuse.reason"), lint(esc(follow2), "refuse.follow")], "Sam’s read") + factsBlockHtml(d, false) + chips + "</div>";
-    return head + poolGridHtml(cards, "What has sold") + sellHtml();
+    return head + exactCarSalesHtml(d, m) + poolGridHtml(cards, "What has sold") + sellHtml();
   }
   // ============ THIN MODE render (Sep 2026, revised) ====================================
   // Two decoupled concerns: THIN MODE (render) fires whenever the online pool is too thin for a
