@@ -751,9 +751,9 @@
     var trendObj = d && d.trend;
     var qs = (trendObj && Array.isArray(trendObj.quarters)) ? trendObj.quarters.filter(function (q) { return q && Number.isFinite(Number(q.low)) && Number.isFinite(Number(q.high)) && Number.isFinite(Number(q.typical)); }) : [];
     if (qs.length < 3) return "";
-    // 560x315 (16:9), matching .hc-svg's own CSS aspect-ratio exactly - the chart fills its box at
+    // 560x420 (4:3), matching .hc-svg's own CSS aspect-ratio exactly - the chart fills its box at
     // any column width with no leftover empty space (see the CSS comment, onebox.html).
-    var W = 560, H = 315, padL = 50, padR = 10, padB = 46, padT = 14;
+    var W = 560, H = 420, padL = 54, padR = 10, padB = 50, padT = 16;
     var lo = Math.min.apply(null, qs.map(function (q) { return Number(q.low); }));
     var hi = Math.max.apply(null, qs.map(function (q) { return Number(q.high); }));
     if (!(hi > lo)) return "";
@@ -792,11 +792,11 @@
     if (!pts.length) return "";
     var prices = pts.map(function (c) { return Number(c.price); });
     var lo = Math.min.apply(null, prices), hi = Math.max.apply(null, prices);
-    // 560x315 (16:9), matching .hc-svg's own CSS aspect-ratio exactly - same fix as the candles:
+    // 560x420 (4:3), matching .hc-svg's own CSS aspect-ratio exactly - same fix as the candles:
     // the line sits at vertical-center with real room above (the latest-sale label, dot stacking)
     // and below (the endpoint labels), so the strip fills its box instead of sitting as a thin
     // line across a mostly-empty panel.
-    var W = 560, H = 315, padL = 14, padR = 14, lineY = 175;
+    var W = 560, H = 420, padL = 16, padR = 16, lineY = 230;
     var x = function (v) { return hi > lo ? (padL + (v - lo) / (hi - lo) * (W - padL - padR)) : (W / 2); };
     var bandHtml = "";
     if (Array.isArray(band) && band.length === 2 && hi > lo) {
@@ -835,7 +835,12 @@
   function heroChartHtml(d, cards, band) {
     var inner = candleChartHtml(d) || stripChartHtml(cards, band);
     if (!inner) return "";
-    return '<div class="hero-chart"><h2>How this market has moved</h2>' + inner + "</div>";
+    // The heading stays pinned at the top (hc-body is the ONLY flex:1/centered element) - when the
+    // left column (mileage/identity lines) runs longer than the chart's own natural height, the
+    // stretched right column (.hero2col's default align-items:stretch) gives the chart's own body
+    // the extra room and centers within it, rather than leaving dead space below the legend or
+    // sliding the heading itself away from the top.
+    return '<div class="hero-chart"><h2>How this market has moved</h2><div class="hc-body">' + inner + "</div></div>";
   }
   // RANGE-TIER HERO (task #38). The rule-24 no-band fallback is unchanged copy, just inside the new
   // shell: no cluster means no dollar headline of any kind, ever (STANDING CHECK: the only <h2

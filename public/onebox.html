@@ -119,9 +119,13 @@ button{font:inherit}
    surface, no border, no box-shadow anywhere in this block or in .salesrow below it. Two columns
    at desktop (minmax so the receipt never gets crushed), one column stacked at 390 (media query at
    the bottom of this file, grouped with the rest of the phone rules). */
-.hero2col{display:grid;grid-template-columns:minmax(0,6fr) minmax(280px,6fr);gap:0 48px;align-items:start}
+/* align-items default (stretch, not start): the right column (the chart) grows to match whichever
+   column is taller instead of sizing to its own content alone and leaving empty space below it when
+   the left column (mileage/identity lines) runs long - the chart itself still centers in that
+   stretched space (.hero-chart below), so it never looks squeezed, only genuinely fills the row. */
+.hero2col{display:grid;grid-template-columns:minmax(0,6fr) minmax(280px,6fr);gap:0 48px}
 .hero-left{display:flex;flex-direction:column;gap:10px;min-width:0;padding-right:36px;border-right:1px solid var(--div)}
-.hero-right{min-width:0}
+.hero-right{min-width:0;display:flex;flex-direction:column}
 .hero-label{margin:0}
 .hero-carname{margin:2px 0 0;font:600 32px/1.2 var(--serif);letter-spacing:-.01em;color:var(--ink);text-wrap:balance}
 .hero-scope{margin:2px 0 0;font:400 17px/1.5 var(--sans);color:var(--sec)}
@@ -153,13 +157,14 @@ button{font:inherit}
 .hero-dim{opacity:.4;pointer-events:none;transition:opacity .2s ease}
 /* Right column, hero: "How this market has moved" - candles when the engine answer carries trend,
    else the strip (every sale as a dot on a lowest-to-highest line). No card surface, no photo. */
-.hero-chart{display:flex;flex-direction:column;gap:10px}
+.hero-chart{flex:1;display:flex;flex-direction:column;gap:10px}
+.hc-body{flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px}
 .hero-chart h2{margin:0;font:600 20px/1.3 var(--serif);color:var(--ink)}
 /* aspect-ratio (not a fixed px height): the SVG's own viewBox is cut to the SAME ratio (see
    candleChartHtml/stripChartHtml, js/onebox.js), so the chart always fills its box edge to edge at
    any column width - a fixed height paired with a mismatched viewBox ratio was leaving empty space
    below the content once preserveAspectRatio="meet" scaled to fit the narrower dimension. */
-.hc-svg{width:100%;aspect-ratio:16/9;display:block}
+.hc-svg{width:100%;aspect-ratio:4/3;display:block}
 .hc-legend{display:flex;flex-wrap:wrap;gap:16px;align-items:center;font:400 13px/1.3 var(--sans);color:var(--sec)}
 .hc-legend-sw{display:inline-flex;align-items:center;gap:6px}
 .hc-legend-box{width:12px;height:12px;border-radius:2px;background:var(--chip);display:inline-block}
