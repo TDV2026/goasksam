@@ -7555,3 +7555,56 @@ FOR LANE C: lib/sell/sellFlow.js (pickFacts) adds `span` to carLine (the "YYYY t
 - Task email preview after deploy, equal to Market Check on every lane: 2003 BMW M3 Coupe 14 sales, $23,500 to $35,500; 1963 Corvette Split Window 37 sales, $140,000 to $216,000; 2008 Porsche 997 Carrera S Coupe 14 sales, $45,500 to $64,500.
 - FOR LANE B (engine, report only): the same car reads two pools by its model word. "2008 Porsche 911 Carrera S coupe" reads 10 sales, $58,000 to $67,000, on every lane; "2008 Porsche 997 Carrera S Coupe" reads 14, $45,500 to $64,500. Same year, trim and body. Worth one look at why the 911 title loses four 997 sales (the chassis-code union in specOf or walkLadder).
 Search check: no public page touched.
+
+## Lane A, Oct 14 2026 (later): Sam's seven remaining differences, all fixed and proven live
+Mockup read: /Users/davidzysblat/Desktop/goasksam-proofs/market-check-live/final-mockup.jpg.
+
+1. Scope line rebuilt from engine primitives (new heroScopeLineText), not the full rungLabel
+   string: bodies (resolvedCar.bodyStyle when the pool is one body, else the engine's own body-mix
+   clause lifted off rungLabel via the existing bodyMixTailOf) + d.poolYears (the engine's own
+   field, never computed) + count + latest date - no model name (the H1 already carries it), no
+   window clause (kept on the unchanged All N comparable sales caption). Removed the ellipsis-
+   truncation CSS. PROVEN LIVE (page text dump, not a screenshot read): "Coupes, cabriolets and
+   targas, 2005 · 39 sales · latest Oct 7" for 2005 Porsche 911 - the exact pattern given.
+2. "Which {nameplate}?" now precedes the body-option links. New nameplateOf(d) reads
+   resolvedCar.canonicalLabel (the engine's clean title-derived name) and isolates the first word
+   after stripping "{year} {make} ". PROVEN LIVE: "Which 911? Coupe (24) · Cabriolet (14)" - exact
+   match to the example.
+3. Chart: box width 40% to 28% of slot (measured narrower against the mockup). Removed the per-
+   quarter sale-count line - count now lives only in the typical dot's tooltip, joined with the
+   typical figure. High/low text: grey to ink colour, font-weight 600. PROVEN LIVE (cropped
+   screenshot): boxes visibly narrower, high/low values bold and dark, no count line under any
+   quarter label.
+4. VS. RANGE dots: three new dedicated tokens (--vs-within #2E7D4F, --vs-above #D99A2B, --vs-below
+   #7A8794), scoped so the fix never touches the shared --live/--amber tokens used elsewhere
+   (freshness/trust dots). PROVEN LIVE (cropped screenshot): "Below the range" and "Within the
+   range" dots plainly different colours side by side.
+5. Distribution: share only ("21%"), count in brackets dropped. Track background #EFEDE6 (was
+   --div). PROVEN LIVE: "21%", "15%", "36%", "15%", "8%", "5%" rows, visibly fainter tracks against
+   the filled/typical bars.
+6. Phone search box: was floored at 220px, clipping a long name at 390 wide. Full content width
+   under 640px now. PROVEN LIVE: "1965 Ford Mustang" shows uncropped in the box at 390; no
+   horizontal scroll (scrollWidth === clientWidth === 390).
+7. Trim-contamination workaround (1c1d040, vehicleFromMatch) removed now that Lane B2's server fix
+   is confirmed live (lib/vehicle.js sanitizeResolvedVehicle cleanTrim). PROVEN LIVE: VIN
+   WP0AB2A94MS223093 still resolves cleanly with no "Brewster Green" contamination - "VIN ending
+   223093 · Coupes, 2021 · 14 sales · latest Oct 7", 14 real comparable sales, "This car's own
+   sales" and the placement sentence all intact.
+
+FOR LANE B, found while re-running prePush (not caused by anything in this round's diff - every
+change above is CSS/JS rendering only, no new fetch or compute path touched): "2008 Porsche 997
+Carrera S Coupe" now reproducibly exceeds the Market Check speed budget - 20.4s to 20.9s against
+the 14s budget, four consecutive runs, no improvement on repeat (so not a simple cold-cache warm).
+Other test cars (1995 911 Carrera, 1969 Camaro) stayed in the 3-5s range throughout. Landed
+somewhere in today's rapid run of engine commits (e34 through e36 while this round was in
+progress) - the most likely candidate by description alone is e35's thin-gate window widen (3
+years to 5 years, assessThin/OB_THIN_WINDOW_DAYS), which could mean a materially larger fetch for
+a car whose pool sits near that boundary; not confirmed, just the closest match to the symptom. A
+later pushCheck run (after e36 landed) also hit a NEW failure not seen before: Buy "Porsche 911"
+("q=Porsche%20911") returned "no result on the page: no range, count line or identity question" -
+not reproduced a second time in the time available, flagged rather than chased, since Buy is
+outside this lane's files entirely.
+
+Search check: no title/H1/canonical/meta changed - every change is scope-line composition, identity-
+line text, chart rendering, dot colours, distribution display and phone CSS within the existing
+Market Check template.
