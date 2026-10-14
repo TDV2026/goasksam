@@ -131,6 +131,11 @@ const CASES = [
   ["2002 Porsche 911 Carrera RS2.7", { year: 2002, make: "Porsche", model: "911", trim: "Carrera RS 2.7" }],
   ["1970 Ford F-100", { year: 1970, make: "Ford", model: "F-100", trim: null }],   // the glued F100 is not left behind as a trim
   ["1973 Jaguar E-Type Series1", { year: 1973, make: "Jaguar", model: "E-Type", trim: null, edition: "Series 1" }],
+  // Body lines (Lane B2, lib/vehicleData.js BODY_LINES): a body phrase is not a model or a trim; it sets the body on every path.
+  ["1995 Acura NSX-T", { year: 1995, make: "Acura", model: "NSX", trim: null, bodyStyle: "targa" }],
+  ["Acura NSX T", { make: "Acura", model: "NSX", bodyStyle: "targa" }],
+  ["1963 Chevrolet Corvette Split Window", { year: 1963, make: "Chevrolet", model: "Corvette", trim: null, bodyStyle: "coupe" }],
+  ["Corvette Split Window", { make: "Chevrolet", model: "Corvette", bodyStyle: "coupe" }],
   ["M5", { make: "BMW", model: "M5" }],   // bare model codes only one make uses
   ["Z4", { make: "BMW", model: "Z4" }],
   ["X5 M", { make: "BMW" }],
@@ -144,7 +149,7 @@ const CASES = [
   ["67 corvette", { year: 1967, make: "Chevrolet", model: "Corvette" }],   // a real two-digit year still reads as one
   ["sell my porsche", { make: "Porsche", model: null }],   // conversation is never a model
 ];
-const norm = v => v ? { year: v.year || null, make: v.make || null, model: v.model || null, trim: v.trim || null, trimNumber: v.trimNumber || null, edition: v.edition || null, wheelbase: v.wheelbase || null, variant: v.variant || null, series: v.series || null } : null;
+const norm = v => v ? { year: v.year || null, make: v.make || null, model: v.model || null, trim: v.trim || null, trimNumber: v.trimNumber || null, bodyStyle: v.bodyStyle || null, edition: v.edition || null, wheelbase: v.wheelbase || null, variant: v.variant || null, series: v.series || null } : null;
 for (const [words, want, buyGap = []] of CASES) {
   let mc = null, buy = null;
   try { const r = await resolveVehicle(words, {}); mc = r && r.vehicle ? norm(r.vehicle) : null; } catch (e) { fail(`${words}: resolveVehicle threw ${e.message}`); continue; }
@@ -156,7 +161,7 @@ for (const [words, want, buyGap = []] of CASES) {
     else if (k !== "year" && (!buy || buy[k] !== want[k])) fail(`${words}: Buy/Tasks ${k} = ${JSON.stringify(buy && buy[k])}, wanted ${JSON.stringify(want[k])}`);
   }
   // Same car on both paths: make, model and trim equal wherever Market Check has them.
-  if (mc && buy && mc.make) for (const k of ["make", "model", "trim", "trimNumber", "wheelbase", "variant", "series", "edition"].filter(k => !buyGap.includes(k))) if ((mc[k] || null) !== (buy[k] || null)) fail(`${words}: lanes differ on ${k}: Market Check ${JSON.stringify(mc[k])} vs Buy/Tasks ${JSON.stringify(buy[k])}`);
+  if (mc && buy && mc.make) for (const k of ["make", "model", "trim", "trimNumber", "bodyStyle", "wheelbase", "variant", "series", "edition"].filter(k => !buyGap.includes(k))) if ((mc[k] || null) !== (buy[k] || null)) fail(`${words}: lanes differ on ${k}: Market Check ${JSON.stringify(mc[k])} vs Buy/Tasks ${JSON.stringify(buy[k])}`);
   // Copy rules in what the resolver emits.
   for (const s of [mc && mc.model, mc && mc.trim, buy && buy.model, buy && buy.trim].filter(Boolean)) {
     if (/–|—/.test(s)) fail(`${words}: dash in "${s}"`);
