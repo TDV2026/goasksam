@@ -3460,7 +3460,11 @@ async function handler(req, res) {
       // and so never affects this gate either. answerCacheable (the same store guard rangeCache
       // uses) keeps a malformed/partial read from ever latching in.
       let oneBox, warmHit = false;
-      const wantsWarm = !obRefine && !exactSale && vehicle && vehicle.make && Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) === 0;
+      // A VIN or chassis search never reads or writes the warm cache (Lane B, Oct 14 2026, Lane A's ownSales
+      // blocker): the warm key is the resolved spec (make, model, trim, year, body...), with no identity in
+      // it, so a VIN search could be served the car's plain warm answer, which carries no ownSales, and a
+      // VIN search's own answer could be written as the plain one. Identity searches compute live.
+      const wantsWarm = !obRefine && !exactSale && vehicle && vehicle.make && !vehicle.vin && !vehicle.chassis && Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) === 0;
       const warmKey = wantsWarm ? warmAnswerKeyFor(vehicle, generation) : null;
       if (wantsWarm) {
         try {

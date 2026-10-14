@@ -3425,7 +3425,7 @@ async function handleOps(req, res) {
           cardDetail: req.query?.detail === "1" && Array.isArray(ob.cards) ? ob.cards.map(c => ({ title: c.title, price: c.price, mi: c.mi, platform: c.platform, date: c.date })).sort((a, b) => (b.price || 0) - (a.price || 0)) : null,
           recent3: Array.isArray(ob.recent3) ? ob.recent3.map(c => ({ title: c.title, mi: c.mi, date: c.date, again: !!c.again })) : null,
           exactSale: ob.exactSale ? { price: ob.exactSale.price, date: ob.exactSale.soldDate || ob.exactSale.date || null, mileage: ob.exactSale.mileage } : null,
-          r4: d.r4 || null, dedup: { fetchedRaw: d.fetchedRaw, fetchedDeduped: d.fetchedDeduped, rule5: d.rule5 || null },
+          r4: d.r4 || null, dedup: { fetchedRaw: d.fetchedRaw, fetchedDeduped: d.fetchedDeduped, rule5: d.rule5 || null, fetches: d.fetches || null },
           counts: ob.counts || null, soldCount: ob.soldCount != null ? ob.soldCount : null, setAsideCount: ob.setAsideCount != null ? ob.setAsideCount : null, setAsideReasons: ob.setAsideReasons || null,
           setAsideRows: Array.isArray(ob.setAsideRows) ? ob.setAsideRows.map(c => ({ title: c.title, price: c.price, mi: c.mi, mileageText: c.mileageText, reason: c.reason })) : null,
           bodyScoped: ob.bodyScoped !== undefined ? ob.bodyScoped : null,
