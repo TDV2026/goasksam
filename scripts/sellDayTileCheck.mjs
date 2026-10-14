@@ -25,6 +25,7 @@ for (const [what, rows, w] of cases) {
   ok(bd && bd.days.reduce((n, g) => n + g.count, 0) + bd.undated === rows.length, `${what}: day counts add up to the pool (${rows.length})`);
   ok(!!t, `${what}: tile shown`); if (!t) continue;
   const text = [t.label, t.head, t.line, t.line2, t.words].filter(Boolean).join(" ");
+  if (w.tie) ok(t.line === "five sales each, among the 12 in the last 12 months", `${what}: tie line reads naturally (got ${t.line})`);
   if (w.tie) ok(/Sunday and Saturday|Saturday and Sunday/.test(t.head) && !t.line2, `${what}: ties named, no range`);
   else { ok(t.head === w.top, `${what}: top day ${w.top} (got ${t.head})`); ok(t.line === w.line, `${what}: line ${JSON.stringify(w.line)} (got ${JSON.stringify(t.line)})`); }
   ok(w.ranges ? /^The middle half of Sunday sales landed between \$[\d,]+ and \$[\d,]+, and of sales on other days between \$[\d,]+ and \$[\d,]+\.$/.test(t.line2 || "") : !t.line2, `${what}: range only with eight or more in both groups`);

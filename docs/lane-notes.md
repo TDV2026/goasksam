@@ -7022,3 +7022,14 @@ FOR LANE C: I made a small edit in your files. `lib/sell/sellFlow.js`: `dayTile(
 - Words: the card says "More of these sold on a Sunday than on any other day" (landing example words carry no figures), the line carries the count ("11 of the 30 sales in the last 12 months", words one to ten), `line2` the range. Never a cause.
 - Check: `scripts/sellDayTileCheck.mjs` (in prePush): counts add up, range only with eight or more in both groups, hidden under eight, no percentage, no banned word, no dash.
 - FOR LANE C: api/sellChat.js probe now also returns places.by_day (read-only, keyed) so the day tile can be proved per car.
+
+## Lane B2: Sell result page number audit (Oct 13 2026)
+FOR LANE C: `lib/sell/sellFlow.js` pickFacts no longer builds the RESERVE box (it read `reserveInsightForVehicle`, its own pool: the generation, all trims, no fences, a separate 12-month sales_archive read, so "204 of 624 no reserve" sat beside "21 sales"). `dayTile` tie line now reads "five sales each, among the 12 in the last 12 months". Nothing else.
+FOR LANE B: to bring the Reserve box back it must count from the engine's pool. `rawPool` rows (vehicle_market_records) need a has_reserve flag (true/false/null) carried through; then Sell counts reserve vs no reserve from the same rows, min eight each side. Not touched by me.
+Audit (page numbers, pool, equals the page's own sales count):
+- Headline "N of M in the last ..." and the venue counts: engine pool (placesFor); yes.
+- Day tile: engine pool (dayBuckets); yes, the day counts add up to M.
+- Analysis window ("Last N months"): the engine's window; yes.
+- Reserve box: own pool; NO; hidden.
+- Latest sales cards: first three of the engine pool (recentSales); yes.
+- PowerSeller facts ("440+ enthusiast auctions", "Top 10% of Bring a Trailer sellers"): the partner's whole record by design (rule 14), not this car's pool; Lane C's.
