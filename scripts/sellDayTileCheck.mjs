@@ -1,7 +1,7 @@
 // The Sell day-of-week tile (Oct 2026, Lane B2): sold cars only, from the engine's pool. No network: every read stubbed.
 //   node scripts/sellDayTileCheck.mjs [--print]
 globalThis.fetch = async () => { throw new Error("no network in this check"); };
-const { dayBuckets } = await import("../lib/sell/sellFacts.js");
+const { dayBuckets, scopeWithSpan } = await import("../lib/sell/sellFacts.js");
 const { dayTile } = await import("../lib/sell/sellFlow.js");
 let fails = 0, passes = 0;
 const ok = (c, what) => { if (c) passes++; else { fails++; console.log("FAIL  " + what); } };
@@ -36,5 +36,11 @@ for (const [what, rows, w] of cases) {
 }
 // Undated rows are counted in the total and never invented a day.
 { const rows = [...mk([[SUN, 8, 50000]]), { auction_end_date: null, _hv: 1000 }]; const bd = dayBuckets(rows); ok(bd && bd.undated === 1 && bd.days[0].count === 8 && bd.total === 9, "undated rows are counted apart"); }
+// The scope line carries the span the engine label carries (golden cars 6 and 14).
+ok(scopeWithSpan({ scopeLabel: "2006 Mercedes-Benz CLK DTM", rungLabel: "CLK DTM, 2005 to 2007" }) === "CLK DTM, 2005 to 2007", "thin CLK DTM scope names 2005 to 2007");
+ok(scopeWithSpan({ scopeLabel: "1966 Ferrari 275 GTB", rungLabel: "275 GTB, 1965 to 1966" }) === "275 GTB, 1965 to 1966", "thin 275 GTB scope names 1965 to 1966");
+ok(scopeWithSpan({ scopeLabel: "S2000 models, 2009 to 2013", rungLabel: "S2000 models, 2009 to 2013" }) === "S2000 models, 2009 to 2013", "a scope that has the span is kept");
+ok(scopeWithSpan({ scopeLabel: "1995 Carrera", rungLabel: "1995 911 Carrera" }) === "1995 Carrera", "no span in the label: the scope stands");
+ok(scopeWithSpan({}) === null, "no engine answer: no scope");
 console.log(`sellDayTileCheck: ${passes} pass, ${fails} fail`);
 process.exit(fails ? 1 : 0);

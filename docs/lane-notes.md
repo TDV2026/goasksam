@@ -7539,3 +7539,10 @@ pattern active.
 Search check: no title/H1/canonical/meta changed - every change is chart rendering, header/rail
 markup, type scale, phone-layout CSS and one client-side vehicle-object fix within the existing
 Market Check template.
+
+## Lane B2, Oct 14 2026: colour in the trim, thin-state scope line
+
+1. COLOUR OR MODEL NAME IN THE TRIM (shared resolver). lib/vehicle.js `cleanTrim`, applied inside `sanitizeResolvedVehicle`, so every product that receives a resolved vehicle (Market Check, Buy, Sell, Tasks, the comp fetch) strips a paint name from the front of a trim ("Brewster Green 911 Carrera S" -> "Carrera S", "Guards Red Carrera 4S" -> "Carrera 4S") and the model's own name inside it ("Racing Yellow M3 Competition" -> "Competition"); a colour that is part of a trim name stays ("Black Series", "Black Edition", "Silver Arrow"). The typed-words path already read these clean (resolveVehicle on "2021 Porsche Brewster Green 911 Carrera S" gives trim "Carrera S"); the contamination entered through a vehicle built from a VIN match's trim field. Six regression cases in scripts/resolverLanesCheck.mjs (the VIN's trim, two more, three that must not change).
+FOR LANE A: the page workaround in public/js/onebox.js vehicleFromMatch (1c1d040, the displayName suffix) can be removed once this is live: the server cleans the trim on every path. Not edited here.
+2. THIN-STATE SCOPE LINE. lib/sell/sellFacts.js `scopeWithSpan`: when the engine's rungLabel names a span ("CLK DTM, 2005 to 2007") that its scopeLabel lacks ("2006 Mercedes-Benz CLK DTM"), the scope is the engine's own label. The thin and partner-led Sell pages print no "Analysis scope" row at all, so the header now carries the span: "For the 2006 Mercedes-Benz CLK DTM, sales from 2005 to 2007." Cache key sell|v10.
+FOR LANE C: lib/sell/sellFlow.js (pickFacts) adds `span` to carLine (the "YYYY to YYYY" in pl.scope_label, else null); lib/sell/sellMcClient.js renders it after the generation in the "For the ..." line. Nothing else.

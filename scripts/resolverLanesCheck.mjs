@@ -8,6 +8,7 @@ process.env.SUPABASE_URL = "http://127.0.0.1:9";   // nothing listens here: the 
 process.env.SUPABASE_SERVICE_ROLE_KEY = "test-not-a-key";
 const { resolveVehicle } = await import("../lib/vehicle.js");
 const { resolveForBuy, parseQuery, parseQueryResolved } = await import("../lib/live/search.js");
+const { sanitizeResolvedVehicle } = await import("../lib/vehicle.js");
 let bad = 0, gaps = 0;
 const fail = m => { bad++; console.log("FAIL " + m); };
 // [typed words, expected {year, make, model, trim}] (a key left out is not checked)
@@ -170,5 +171,15 @@ for (const [words, want, buyGap = []] of CASES) {
   }
   if (buy && buy.make && buy.model && new RegExp(`^${buy.make}\\b`, "i").test(buy.model) && buy.model.toLowerCase() !== buy.make.toLowerCase()) fail(`${words}: model repeats the make: "${buy.model}"`);
 }
+// A trim field that carries a colour or the model name (Lane B2, Oct 14 2026; the archive's own trim for VIN WP0AB2A94MS223093 is
+// "Brewster Green 911 Carrera S"). Every product receives the resolved vehicle through sanitizeResolvedVehicle, so the cut is made once.
+for (const [make, model, trim, want] of [
+  ["Porsche", "911", "Brewster Green 911 Carrera S", "Carrera S"],
+  ["Porsche", "911", "Guards Red Carrera 4S", "Carrera 4S"],
+  ["BMW", "M3", "Racing Yellow M3 Competition", "Competition"],
+  ["Mercedes-Benz", "CLK-Class", "Black Series", "Black Series"],
+  ["Buick", "Regal", "Grand National", "Grand National"],
+  ["Porsche", "911", "Carrera S", "Carrera S"],
+]) { const v = sanitizeResolvedVehicle({ year: 2021, make, model, trim }); if (!v || v.trim !== want) fail(`trim "${trim}" on the ${make} ${model} came out as ${JSON.stringify(v && v.trim)}, wanted ${JSON.stringify(want)}`); }
 console.log(bad ? `resolverLanesCheck: ${bad} failure(s)` : `resolverLanesCheck: ${CASES.length} names, one car on every lane` + (gaps ? ` (${gaps} known Buy parseQuery gaps listed for Lane B)` : ""));
 process.exit(bad ? 1 : 0);
