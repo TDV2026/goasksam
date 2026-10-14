@@ -6,6 +6,12 @@
 (function () {
   "use strict";
   var API_ORIGIN = (location.hostname === "localhost" || location.protocol === "file:") ? "https://goasksam.com" : "";
+  // FLAT SHELL (mockup match, Oct 2026): Market Check's approved mockup has no side rail - a plain
+  // top bar (wordmark + search + sign-in) and full-width content. window.GAS_TOOL is set server-side
+  // by lib/appShell.js railOpenHtml from the SAME active key Sell's shell uses ("market_check" vs
+  // "sell"), so this reads an existing global rather than adding a new one, and only Market Check
+  // (never the shared Sell page that also loads this file) gets the class the CSS below keys on.
+  if (window.GAS_TOOL === "market_check") document.documentElement.classList.add("mc-flat");
   var root = document.getElementById("ob");
   // SELL MODE (Lane C, Oct 2026): the one-direction Sell runs on THIS page and THIS question flow, so
   // its questions, cards and type are Market Check's own. api/sellNext.js sets window.GAS_SELL; when it
