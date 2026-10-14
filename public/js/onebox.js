@@ -627,28 +627,57 @@
     var p = countLatestPhrase(d);
     return p ? p.replace(/^the latest on\s+/i, "latest ") : "";
   }
-  // The hero's one grey line: scope, count, latest - joined with middle dots, never "Matched to...".
-  // Plain text (no markup), so the "below the sales row" sections (the full list, see
-  // moreComparableSalesHtml) can name the window and scope EXACTLY as the hero does - the same
-  // string, never a second composition that could drift from it. The VIN prefix added in
-  // heroMetaLine below is deliberately NOT folded in here - this string is reused for the
-  // comparable-pool sections, which describe the pool, not the one matched car.
+  // The all-sales caption's own line: scope, count, latest - joined with middle dots, never
+  // "Matched to...". Plain text (no markup), so moreComparableSalesHtml can name the window and
+  // scope EXACTLY as before - unchanged by the hero's own line below.
   function heroMetaLineText(d) {
     var parts = [heroScopeText(d), heroCountText(d), heroLatestText(d)].filter(Boolean);
     return parts.length ? cap(parts.join(" · ")) : "";
   }
+  // The hero's OWN scope line (item 1, Sam's follow-up round, Oct 2026): bodies, the pool's year
+  // span, the count, the latest date - "Coupes, cabriolets and targas, 2004 to 2006 · 39 sales ·
+  // latest Oct 7". Deliberately NOT heroMetaLineText any more (that stays for the all-sales caption,
+  // which still carries the window via heroCountText/windowText): no model name (the H1 above
+  // already carries it), no window clause. Bodies read the same way heroScopeText's "exact" branch
+  // already did (resolvedCar.bodyStyle when the pool is one body, else the engine's own body-mix
+  // clause lifted off rungLabel, bodyMixTailOf - never invented). Year span is d.poolYears, the
+  // engine's own field, never computed here; omitted entirely when the engine gives none, never
+  // guessed. Count re-uses heroCountText's own number formatting, just without its window suffix.
+  function heroScopeLineText(d) {
+    if (!d) return "";
+    var rc = d.resolvedCar || {};
+    var bodies = "";
+    if (rc.bodyStyle) {
+      var p = BODY_PLURAL[String(rc.bodyStyle).toLowerCase()];
+      bodies = cap(p || (String(rc.bodyStyle) + "s"));
+    } else {
+      var tail = bodyMixTailOf(d.rungLabel);
+      if (tail) bodies = cap(tail);
+    }
+    var py = Array.isArray(d.poolYears) && d.poolYears.length === 2 && Number.isFinite(d.poolYears[0]) && Number.isFinite(d.poolYears[1]) ? d.poolYears : null;
+    var yearSpan = py ? (py[0] === py[1] ? String(py[0]) : (py[0] + " to " + py[1])) : "";
+    var bodyYear = bodies && yearSpan ? (bodies + ", " + yearSpan) : (bodies || yearSpan);
+    var count = d.soldCount, countTxt = "";
+    if (count != null) {
+      var n = Number(count), isNum = Number.isFinite(n);
+      var countWord = isNum ? obNumWord(n) : String(count);
+      var isOne = isNum ? n === 1 : /^one$/i.test(String(count));
+      countTxt = countWord + (isOne ? " sale" : " sales");
+    }
+    var parts = [bodyYear, countTxt, heroLatestText(d)].filter(Boolean);
+    return parts.length ? cap(parts.join(" · ")) : "";
+  }
   function heroMetaLine(d) {
-    var t = heroMetaLineText(d);
+    var t = heroScopeLineText(d);
     // VIN prefix (item 3, mockup match round, Oct 2026): "VIN ending 223093 · ..." leads the HERO's
     // own scope line whenever this search IS a VIN and the engine found that exact car's own
     // sale(s) (d.ownSales - the same signal exactCarSalesHtml reads) - never just because a VIN was
     // typed (no recorded sale means nothing of the car's own to lead with).
     if (obSourceVin && d && d.ownSales) t = "VIN ending " + String(obSourceVin).slice(-6) + (t ? (" · " + t) : "");
-    // hero-scope-1line (mockup match round, Oct 2026): the hero's OWN scope line, one line always -
-    // a distinct class from the shared .hero-scope (reused elsewhere for legitimately multi-line
-    // text, e.g. the thin tier's reason sentences), truncated with an ellipsis via CSS rather than
-    // shortening the engine's own scopeLabel text itself.
-    return t ? ('<p class="hero-scope hero-scope-1line" data-stage="answer" title="' + esc(t) + '">' + lint(esc(t), "hero.scope") + "</p>") : "";
+    // Item 1 (Sam's follow-up round): never truncate with an ellipsis - this line is already short
+    // (no model name, no window clause) and wraps normally if it is ever still too long for one
+    // line, rather than clipping.
+    return t ? ('<p class="hero-scope" data-stage="answer">' + lint(esc(t), "hero.scope") + "</p>") : "";
   }
   // Mileage line (left column, item 6, Market Check result-page spec): the field is ALWAYS present
   // once rendered - only the sentence above it switches. Not yet narrowed: "Add mileage to narrow
@@ -706,6 +735,21 @@
   // Identity-line counts in parentheses are digits (item 5, mockup match round, Oct 2026): "Carrera
   // S (8) · Carrera T (15)", thousands separators from 1,000 per the standing copy rule.
   function idLineNum(n) { return Number(n).toLocaleString("en-US"); }
+  // The nameplate for "Which {nameplate}?" (item 2, Sam's follow-up round, Oct 2026): resolvedCar's
+  // own canonicalLabel is the engine's clean title-derived name ("2025 Porsche 911", never the
+  // chassis code "992" resolvedCar.model carries) - stripping "{year} {make} " off the front and
+  // keeping only the first remaining word isolates the nameplate alone, the same way carLabel
+  // already prefers canonicalLabel for the car-name heading. Never invented when canonicalLabel is
+  // absent or does not start with year+make as expected.
+  function nameplateOf(d) {
+    var rc = (d && d.resolvedCar) || {};
+    var cl = rc.canonicalLabel;
+    if (cl && rc.year && rc.make) {
+      var prefix = rc.year + " " + rc.make + " ";
+      if (String(cl).indexOf(prefix) === 0) return String(cl).slice(prefix.length).split(" ")[0] || "";
+    }
+    return rc.model || "";
+  }
   function heroTrimLineHtml(d) {
     var q = d && d.trimQuestion; if (!q || !q.options || !q.options.length) return "";
     var shown = q.options.filter(function (o) { return !o.thin; });
@@ -723,7 +767,12 @@
     var links = shown.map(function (o) {
       return '<button type="button" class="linkbtn hero-idlink" data-bodyopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + " (" + idLineNum(o.n) + ")</button>";
     }).join(" · ");
-    return '<p class="hero-idline" data-stage="answer">' + links + "</p>";
+    // Item 2 (Sam's follow-up round): "Which {nameplate}?" precedes the options, same as the trim
+    // line above - was options only. Falls back to options-only when no nameplate is available
+    // (never invented).
+    var np = nameplateOf(d);
+    var lead = np ? (lint("Which " + esc(np) + "?", "hero.idq.body") + " ") : "";
+    return '<p class="hero-idline" data-stage="answer">' + lead + links + "</p>";
   }
   function heroGearboxLineHtml(d) {
     var splits = (d && d.inlineSplits) || [];
@@ -803,8 +852,10 @@
     var axisLo = Math.floor(dataLo / step) * step - step;
     var axisHi = Math.ceil(dataHi / step) * step + step;
     if (!(axisHi > axisLo)) return "";
-    var W = 880, H = 560, padL = 60, padR = 20, padB = 56, padT = 44;
-    var plotW = W - padL - padR, slot = plotW / qs.length, barW = slot * 0.4;
+    var W = 880, H = 560, padL = 60, padR = 20, padB = 44, padT = 44;
+    // Item 3 (Sam's follow-up round): box width ~28% of its slot (was 40%, read as too fat against
+    // the mockup).
+    var plotW = W - padL - padR, slot = plotW / qs.length, barW = slot * 0.28;
     var y = function (v) { return padT + (1 - (v - axisLo) / (axisHi - axisLo)) * (H - padT - padB); };
     var grid = "";
     for (var v = axisLo; v <= axisHi + step * 0.01; v += step) {
@@ -820,17 +871,19 @@
       var box = "";
       if (hasBox) {
         var ylo = y(Number(q.low)), yhi = y(Number(q.high));
+        // Item 3: high/low print in the ink colour at a heavier weight (was grey, same weight as
+        // everything else) so they read at a glance - the count line underneath is gone; count now
+        // lives only in the dot's hover/tap tooltip, together with the typical figure.
         box = '<rect x="' + (cx - barW / 2).toFixed(1) + '" y="' + yhi.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + Math.max(2, ylo - yhi).toFixed(1) + '" rx="2" fill="var(--chip)"/>' +
-          '<text x="' + cx.toFixed(1) + '" y="' + (yhi - 10).toFixed(1) + '" text-anchor="middle" font-size="13" fill="var(--sec)">' + esc(usd(q.high)) + "</text>" +
-          '<text x="' + cx.toFixed(1) + '" y="' + (ylo + 20).toFixed(1) + '" text-anchor="middle" font-size="13" fill="var(--sec)">' + esc(usd(q.low)) + "</text>";
+          '<text x="' + cx.toFixed(1) + '" y="' + (yhi - 10).toFixed(1) + '" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)">' + esc(usd(q.high)) + "</text>" +
+          '<text x="' + cx.toFixed(1) + '" y="' + (ylo + 20).toFixed(1) + '" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)">' + esc(usd(q.low)) + "</text>";
         if (Number.isFinite(Number(q.typical))) {
-          var typTip = chartTip(["Typical " + usd(q.typical)]);
+          var typTip = chartTip(["Typical " + usd(q.typical), Number.isFinite(count) ? (obNumWordLow(count) + " sales") : ""]);
           box += '<circle class="hc-bar" tabindex="0" data-tip="' + typTip + '" cx="' + cx.toFixed(1) + '" cy="' + y(Number(q.typical)).toFixed(1) + '" r="6" fill="var(--green)"><title>' + typTip + "</title></circle>";
         }
       }
       bars += '<g>' + box +
         '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 24).toFixed(1) + '" text-anchor="middle" font-size="14" fill="var(--ink)">' + esc(label) + "</text>" +
-        '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 42).toFixed(1) + '" text-anchor="middle" font-size="13" fill="var(--sec)">' + esc(obNumWordLow(Number.isFinite(count) ? count : 0) + " sales") + "</text>" +
         "</g>";
     });
     var svg = '<svg class="hc-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Quarterly sale prices">' + grid + bars + "</svg>";
@@ -1601,7 +1654,8 @@
     var rows = buckets.map(function (b, i) {
       var count = Number(b.count) || 0;
       var pct = max > 0 ? Math.max(2, count / max * 100) : 0;
-      var share = Number.isFinite(Number(b.share)) ? (Math.round(Number(b.share)) + "% (" + count.toLocaleString("en-US") + ")") : count.toLocaleString("en-US");
+      // Item 5 (Sam's follow-up round): share only, "21%" - no count in brackets.
+      var share = Number.isFinite(Number(b.share)) ? (Math.round(Number(b.share)) + "%") : count.toLocaleString("en-US");
       var receipts = Array.isArray(b.receipts) ? b.receipts : [];
       var panelId = groupId + "-" + i;
       var barHtml = '<span class="dist-label">' + esc(distBucketLabel(b, i === buckets.length - 1)) + '</span><span class="dist-track"><span class="dist-bar' + (b.typicalBucket ? " typical" : "") + '" style="width:' + pct.toFixed(1) + '%"></span></span><span class="dist-count num">' + esc(share) + "</span>";
@@ -1858,7 +1912,7 @@
     // VIN prefix (item 3): same rule as the result tier's heroMetaLine - lead with "VIN ending
     // 223093" only when this search is a VIN with its own recorded sale (d.ownSales).
     if (obSourceVin && d && d.ownSales) fullLineCap = "VIN ending " + String(obSourceVin).slice(-6) + (fullLineCap ? (" · " + fullLineCap) : "");
-    left += '<p class="hero-scope hero-scope-1line" data-stage="answer" title="' + esc(fullLineCap) + '">' + lint(esc(fullLineCap), "hero.thin.count") + "</p>";
+    left += '<p class="hero-scope" data-stage="answer">' + lint(esc(fullLineCap), "hero.thin.count") + "</p>";
     var fl = freshLine(d); if (fl) left += fl;
     var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.thin.older") + "</p>";
     if (ht.houseSteer) left += '<p class="hero-noband" data-stage="answer">' + lint(!ht.onlineReceiptsN ? "These trade at the auction houses, not online. Every recorded sale here came through one." : "These mostly trade at the auction houses; a few sell online. Both are below.", "hero.thin.steer") + "</p>";
@@ -2381,23 +2435,10 @@
     // window resolves. The anchor still names the car from displayName. (Real models never match:
     // M3/X5/A6 are 1 digit; 993/997 pure digits.)
     if (v.model) v.model = String(v.model).replace(/^[A-Za-z]\d{2,3}\s+/, "").trim() || v.model;
-    if (match.trim && !obRedundantTrim(match.trim, v.model)) {
-      var trimVal = match.trim;
-      // A color baked into the archive's own trim field (found live, WP0AB2A94MS223093: trim
-      // "Brewster Green 911 Carrera S" against a clean displayName "2021 Porsche 911 Carrera S")
-      // sends a contaminated trim to the comp fetch, whose title filter then matches nothing -
-      // "not_tracked" for a car with real comparable sales. displayName never carries a color;
-      // when match.trim is match.displayName's own trim portion with an extra leading word (a
-      // color, here), prefer the clean suffix instead of the raw field.
-      if (match.displayName && match.year && match.make) {
-        var prefix = match.year + " " + match.make + " ";
-        if (match.displayName.indexOf(prefix) === 0) {
-          var fromDisplay = match.displayName.slice(prefix.length).trim();
-          if (fromDisplay && trimVal.length > fromDisplay.length && trimVal.slice(-fromDisplay.length) === fromDisplay) trimVal = fromDisplay;
-        }
-      }
-      v.trim = trimVal;
-    }
+    // Item 7 (Sam's follow-up round): the page-side colour-in-trim workaround (1c1d040) is removed -
+    // lib/vehicle.js sanitizeResolvedVehicle now cleans a trim field server-side on every path
+    // (Lane B2, "COLOUR OR MODEL NAME IN THE TRIM"), so match.trim already arrives clean.
+    if (match.trim && !obRedundantTrim(match.trim, v.model)) v.trim = match.trim;
     // On an exact match we know the body from the record: carry it so the comp pool scopes to
     // the right body and never detours through the "coupe or convertible?" ask (the match IS
     // the answer). detectBodyStyle in buildSpec normalizes the raw value ("Coupe" -> coupe).
