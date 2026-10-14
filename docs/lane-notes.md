@@ -7162,3 +7162,15 @@ NOT DONE / open:
   deployed HTML's script order), but any future reordering of the SHELL_RAIL splice relative to the
   onebox.js <script> tag in api/marketCheck.js would silently break this. Flagging for whoever next
   touches that file's splice order.
+
+## Lane B2: 1998 Defender 90, four products (Oct 13 2026)
+Typed words "1998 Land Rover Defender 90", live after 6c33bd2:
+- Market Check page: 12 sales, $34,000 to $62,000, "1998 Land Rover Defender 90", pool is the 90 only (engine poolTrim "90", rung exact year, scopeLabel "1998 Defender 90").
+- Buy page: Defender 90s, $34,000 to $62,000, the same 12.
+- Sell page: 12 of 12, scope now "1998 Defender 90", header "1998 Land Rover Defender 90" (was "Defender": the engine reads the 90 out of the typed words, Sell named the vehicle).
+- Tasks read-back: filters now carry trim "90" for 1998 (before the resolver fix they dropped it and a Task would have matched all 27 Defenders of 1998).
+Why 27 elsewhere: (1) scripts/crossProductCheck.js builds searchText from the resolved vehicle (year make model trim) and the resolver left the 90 off, so enginecheck read the 90, 110 and 130 together: 27, $36,500 to $68,000. (2) A live 1998 Defender listing titled without a wheelbase reads its own car as the whole Defender: 27. Both are correct for their words; the typed "90" is 12.
+Cause fixed (my files): vPIC lists no 1998 Defender, so the resolver answered "I don't think there was a 1998 Land Rover Defender" and returned the vehicle without its wheelbase. lib/vehicleData.js PRODUCTION_RULES now has Defender 1983 to 2016 and 2020 to 2026; resolverLanesCheck has the 1998 and 2004 cases. Sell's label carries the wheelbase and the scope row is the engine's scopeLabel (pool_trim and scope_label in placesFor, cache key sell|v8).
+FOR LANE C: lib/sell/sellFlow.js: the meta "Analysis scope" row reads the engine's scope_label, and the car title appends the engine's pool_trim when the label lacks it. Nothing else.
+FOR LANE A / LANE B (not mine): the Market Check page says "12 sales in the past two years" for this pool, but the engine's windowLabel is "the model year itself" with windowStart 2023-11-12. lib/live/search.js marketWin falls back to "the past two years" for any label not in WINDOW_CAPTION, so the page names a shorter window than the engine searched. Sell says "since November 2023" from the same windowStart. One of them should say the span; suggest search.js read windowStart for labels with no span.
+Also for Lane B: scripts/crossProductCheck.js searchText drops the wheelbase and any trim the resolver leaves off; it should pass the typed words, as the pages do.
