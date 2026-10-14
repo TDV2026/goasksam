@@ -473,7 +473,9 @@ export async function checkOneSpec(q, env) {
   if (!vehicle || !vehicle.make) { row.error = "unresolved: " + (rv && (rv.status || rv.error?.message) || "?"); return row; }
   row.resolved = `${vehicle.year || ""} ${vehicle.make} ${vehicle.model || ""}${vehicle.trim ? " " + vehicle.trim : ""}`.trim();
   const generation = await findGeneration(vehicle, env).catch(() => null);
-  const searchText = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(" ");
+  // searchText is the TYPED words, exactly as the pages pass them (Sam, Oct 14 2026): building it from
+  // the resolved vehicle dropped the Defender's "90" and read 27 sales where the pages read 12.
+  const searchText = q;
   const f = emptyFilters();
   if (vehicle.bodyStyle) f.bodies = [String(vehicle.bodyStyle).toLowerCase()];
   // buyVehicle (Oct 2026, one-engine-entry-point job): Buy/Tasks' REAL production entry
@@ -1087,7 +1089,7 @@ export async function checkCacheConsistency(env, specs = DEFAULT_SPECS) {
       const rv = await resolveVehicle(q, {}), vehicle = rv && rv.vehicle;
       if (!vehicle || !vehicle.make) throw new Error("unresolved");
       const generation = await findGeneration(vehicle, env).catch(() => null);
-      const searchText = [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(" ");
+      const searchText = q;   // the typed words, as the pages pass them (see checkOneSpec)
       await engineAnswer(vehicle, generation, searchText, env, null);   // first call: may be cold, primes the cache
       const warm = await engineAnswer(vehicle, generation, searchText, env, null);   // second call: guaranteed warm
       const coldRun = async asked => (await oneEngineAnswer(vehicle, generation, searchText, { ...env, exactSale: null, asked }, null)).raw;
