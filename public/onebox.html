@@ -283,7 +283,14 @@ a.salescard:hover .salescard-title{text-decoration:underline;text-underline-offs
    (.noimg, onerror removes the <img>) never changes the card's height and never breaks row
    alignment in a grid - the placeholder fills exactly the same box a real photo would have. */
 .ph{position:relative;background:var(--ph);flex:none;aspect-ratio:4/3;height:auto}
-.ph img{width:100%;height:100%;object-fit:cover;display:block}
+/* position:absolute (not a normal-flow width:100%/height:100%): a percentage height on a normal-
+   flow child does not resolve against a parent whose own height is "auto" (even when aspect-ratio
+   gives that parent a definite computed height) - found live on the sales-row cards, where a card
+   WITH a real photo rendered its .ph box at the photo's own intrinsic ratio (240px, 4:3) instead of
+   the card shape's 3:2 (213px), while the two "no photo" placeholder siblings (already absolutely
+   positioned) were unaffected. Absolute positioning against the already-relative .ph sizes the img
+   from the parent's actual layout box, matching .ph .none's existing (unaffected) pattern. */
+.ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .ph .none{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:600 12px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ph-ink)}
 .ph img+.none{display:none}
 .ph.noimg .none{display:flex}
