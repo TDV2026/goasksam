@@ -223,6 +223,13 @@ try {
 } catch (e) {
   record("premium freshness (scripts/premiumFreshCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Task filters carry the car as typed (Oct 2026, Lane C, lib/tasks/tasks.js typedCar). No network.
+try {
+  const out = execSync("node scripts/taskFiltersCheck.mjs", { encoding: "utf8" });
+  record("Task filters carry the typed car (scripts/taskFiltersCheck.mjs)", "PASS", (out.match(/taskFiltersCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Task filters carry the typed car (scripts/taskFiltersCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The page after a Task is stopped from its email (Oct 2026, Lane C): the second line only when it is true. No network.
 try {
   const out = execSync("node scripts/taskStopCheck.mjs", { encoding: "utf8" });

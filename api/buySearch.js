@@ -6,6 +6,7 @@
 //   POST { action:"panel", id } -> { market, representative } for a card's Market Check panel (same spec as its line).
 //   POST { action:"watch", key, email } -> watch_requests (key = VIN, family:..., live:...)
 //   GET  ?panel=1&make&model&trim&year&body(&lo&hi) -> { count, positions, rows[<=3] } for the One Box
+//                                          (each row's `miles`: the Buy card's own miles, cardMiles, or null)
 //                                          live panel. lo/hi (optional): Market Check's own headline
 //                                          band (d.cluster); each row's `placing` and the `positions`
 //                                          tally are computed ONCE in the engine (lib/live/search.js
@@ -52,6 +53,9 @@ import { chatOut } from "../lib/live/chatHttp.js";
 import { armAlert, cancelAlert, listAlerts, runAlerts, stopAll, verifyStop, verifyItem, stopOne, itemLabel, testSend, isMissingTable, alertsReady, useNamer } from "../lib/live/buyAlerts.js";
 
 const FIRST = 10, MAX = 200;
+// A live car's miles, as its Buy card shows them (liveTrust through listingFacts): stated miles, a US lot with no stated
+// unit, or null when unknown or when the listing states kilometres (the card shows those as km). Never a guess.
+export const cardMiles = facts => (facts && !facts.km && Number(facts.miles) > 0 ? Math.round(Number(facts.miles)) : null);
 const titleCaseIfShouting = s => String(s || "").split(",").map(p => { const t = p.trim(); return t && t === t.toUpperCase() && /[A-Z]{3}/.test(t) ? t.toLowerCase().replace(/\b([a-z])/g, c => c.toUpperCase()) : t; }).filter(Boolean).join(", ");
 export function cardOf(x) {
   const r = x.r, facts = x.facts, cc = String(r.country || "").toUpperCase();
@@ -62,7 +66,7 @@ export function cardOf(x) {
     bid_unknown: facts.priceState === "suspect" || facts.priceState === "unconverted" || (!facts.priceUsd && Number(r.bid_count) > 0),
     // The bid's own time only (bid_at), never when we last read the row: the page shows a bid by it (lib/tasks/bidTime.js).
     bid_at: r.bid_at || null, end_time: r.end_time, year: r.year,
-    miles: facts.km ? null : facts.miles, km: facts.km || null, colour: facts.colour, colourSrc: facts.colourSrc || null, body: facts.body, gearbox: facts.gearboxLabel,
+    miles: cardMiles(facts), km: facts.km || null, colour: facts.colour, colourSrc: facts.colourSrc || null, body: facts.body, gearbox: facts.gearboxLabel,
     location: titleCaseIfShouting(r.location) || null, country: cc || null, countryName: COUNTRY_NAME[cc] || cc || null, abroad: !!cc && cc !== "US",
     vin_norm: r.vin_norm || null, generation: x.gen ? x.gen.code : null, unknown: x.unknown, flag: cardFlag(r),
     reserve: r.has_reserve === true ? "reserve" : r.has_reserve === false ? "none" : null, says: listingSays(r), sam_facts: listingSamFacts(r, facts) };
@@ -190,7 +194,7 @@ async function handler(req, res) {
       // (source, via houseName) and no row identifier at all - Lane A's auction_clickout needs the
       // real platform slug, never the display name, and a listing id for which car was clicked.
       // Both are already on the row; this just carries them through, nothing computed.
-      return res.status(200).json({ count: live.total, positions: live.positions, rows: live.rows.map(r => ({ id: r.id, source: houseName(r.source), source_slug: r.source || null, title: r.listing_title, url: r.url, photo_url: r.photo_url || null, current_bid_usd: r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, current_bid: r.current_bid, currency: r.currency, end_time: r.end_time, bid_at: r.bid_at || r.last_seen || null, placing: r.position })) });
+      return res.status(200).json({ count: live.total, positions: live.positions, rows: live.rows.map(r => ({ id: r.id, source: houseName(r.source), source_slug: r.source || null, title: r.listing_title, url: r.url, photo_url: r.photo_url || null, current_bid_usd: r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, current_bid: r.current_bid, currency: r.currency, end_time: r.end_time, bid_at: r.bid_at || r.last_seen || null, placing: r.position, miles: cardMiles(listingFacts(r)) })) });
     }
     if (req.method !== "POST") return res.status(405).json({ status: "error" });
     // Everything from here down is Buy's own endpoint (search, chat, saved searches, alerts) - gated
