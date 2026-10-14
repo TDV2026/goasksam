@@ -2381,7 +2381,23 @@
     // window resolves. The anchor still names the car from displayName. (Real models never match:
     // M3/X5/A6 are 1 digit; 993/997 pure digits.)
     if (v.model) v.model = String(v.model).replace(/^[A-Za-z]\d{2,3}\s+/, "").trim() || v.model;
-    if (match.trim && !obRedundantTrim(match.trim, v.model)) v.trim = match.trim;
+    if (match.trim && !obRedundantTrim(match.trim, v.model)) {
+      var trimVal = match.trim;
+      // A color baked into the archive's own trim field (found live, WP0AB2A94MS223093: trim
+      // "Brewster Green 911 Carrera S" against a clean displayName "2021 Porsche 911 Carrera S")
+      // sends a contaminated trim to the comp fetch, whose title filter then matches nothing -
+      // "not_tracked" for a car with real comparable sales. displayName never carries a color;
+      // when match.trim is match.displayName's own trim portion with an extra leading word (a
+      // color, here), prefer the clean suffix instead of the raw field.
+      if (match.displayName && match.year && match.make) {
+        var prefix = match.year + " " + match.make + " ";
+        if (match.displayName.indexOf(prefix) === 0) {
+          var fromDisplay = match.displayName.slice(prefix.length).trim();
+          if (fromDisplay && trimVal.length > fromDisplay.length && trimVal.slice(-fromDisplay.length) === fromDisplay) trimVal = fromDisplay;
+        }
+      }
+      v.trim = trimVal;
+    }
     // On an exact match we know the body from the record: carry it so the comp pool scopes to
     // the right body and never detours through the "coupe or convertible?" ask (the match IS
     // the answer). detectBodyStyle in buildSpec normalizes the raw value ("Coupe" -> coupe).
