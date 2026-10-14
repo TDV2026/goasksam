@@ -129,6 +129,7 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   ok(/chipsHtml\(l\)/.test(client) && /l\.sam_lines/.test(client) && /c\.sam_lines/.test(client) && /j\.sam_lines/.test(client), "the card draws the chips and both lines from every path");
   ok(!/askShown\) >= 2/.test(client), "no two-question cap: the rule decides");
   ok(/border:1\.5px solid var\(--green\)[^}]*background:transparent/.test(page), "the pill is outlined, no fill");
+  ok(/\.car \.trow h3\{[^}]*-webkit-line-clamp:unset;overflow:visible/.test(page), "the car name beside the pill is never cut off");
   const copy = ["Which model?", "Which body style?", "Manual or automatic?", "How many miles?", "How far would you travel?", "Keep it near you? Enter a zip or choose Anywhere.", "Any mileage", "Anywhere", "Any body style", "Any gearbox", "Use this zip", "The bid is below the range.", "This exact car sold for", "Have Sam keep looking"];
   const banned = /\b(worth|values?|valuation|estimates?|appraisal|median|percentile|alerts?|your car|I found)\b|[–—]/i;
   ok(copy.every(c => !banned.test(c)), "the new copy has no banned word, no first person, no dash");
