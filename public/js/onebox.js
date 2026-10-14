@@ -795,48 +795,69 @@
   // on the thin tier), every sale a dot, the latest sale its own highlighted dot. `cards` is the
   // tier's own full sale list (d.cards on a range answer; the thin tier's own scoped receipts,
   // mapped to the same price/title/date shape, on a thin answer).
+  // THIN FALLBACK (<3 qualifying quarters for candles): too few sales to bucket into quarters, so
+  // this plots every sale individually - date along X (oldest to newest, matching "how this market
+  // has moved"), price along Y with the same gridline/$ axis style as the candle chart, so the
+  // fallback fills the panel the same way the candle chart does instead of reading as a thin line
+  // across empty space.
   function stripChartHtml(cards, band) {
     var pts = (cards || []).filter(function (c) { return c && Number(c.price) > 0; });
     if (!pts.length) return "";
     var prices = pts.map(function (c) { return Number(c.price); });
     var lo = Math.min.apply(null, prices), hi = Math.max.apply(null, prices);
-    // 560x420 (4:3), matching .hc-svg's own CSS aspect-ratio exactly - same fix as the candles:
-    // the line sits at vertical-center with real room above (the latest-sale label, dot stacking)
-    // and below (the endpoint labels), so the strip fills its box instead of sitting as a thin
-    // line across a mostly-empty panel.
-    var W = 560, H = 420, padL = 16, padR = 16, lineY = 230;
-    var x = function (v) { return hi > lo ? (padL + (v - lo) / (hi - lo) * (W - padL - padR)) : (W / 2); };
-    var bandHtml = "";
-    if (Array.isArray(band) && band.length === 2 && hi > lo) {
-      var bx1 = x(Number(band[0])), bx2 = x(Number(band[1]));
-      bandHtml = '<rect x="' + bx1.toFixed(1) + '" y="' + (lineY - 20) + '" width="' + Math.max(1, bx2 - bx1).toFixed(1) + '" height="40" fill="var(--chip)"/>';
+    if (!(hi > lo)) hi = lo + 1;   // a single-price pool still needs a non-zero Y range to plot
+    var W = 560, H = 420, padL = 54, padR = 16, padB = 40, padT = 16;
+    var y = function (v) { return padT + (1 - (v - lo) / (hi - lo)) * (H - padT - padB); };
+    // X by actual sale date when every point parses, else fall back to even ordinal spacing -
+    // either way every point gets a real, distinct X inside the full plot width.
+    var times = pts.map(function (c) { var t = Date.parse(c.date || ""); return Number.isFinite(t) ? t : null; });
+    var datedOk = times.every(function (t) { return t != null; });
+    var tLo = datedOk ? Math.min.apply(null, times) : 0, tHi = datedOk ? Math.max.apply(null, times) : 1;
+    var sorted = pts.map(function (c, i) { return { c: c, t: times[i] }; }).sort(function (a, b) { return (a.t || 0) - (b.t || 0); });
+    var x = function (c, i) {
+      if (datedOk && tHi > tLo) { var t = Date.parse(c.date || ""); return padL + (t - tLo) / (tHi - tLo) * (W - padL - padR); }
+      return pts.length > 1 ? (padL + i / (pts.length - 1) * (W - padL - padR)) : (padL + (W - padL - padR) / 2);
+    };
+    var grid = "";
+    for (var g = 0; g < 4; g++) {
+      var v = lo + (hi - lo) * g / 3, yy = y(v);
+      grid += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + yy.toFixed(1) + '" y2="' + yy.toFixed(1) + '" stroke="var(--div)" stroke-width="1"/>' +
+        '<text x="' + (padL - 8) + '" y="' + (yy + 4).toFixed(1) + '" text-anchor="end" font-size="13" fill="var(--sec)">' + esc(usdK(v)) + "</text>";
     }
-    var line = '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + lineY + '" y2="' + lineY + '" stroke="var(--border)" stroke-width="2"/>';
-    var latest = pts.reduce(function (best, c) { return (!best || String(c.date || "") > String(best.date || "")) ? c : best; }, null);
-    var bucketN = {};
-    var dots = pts.map(function (c) {
+    var bandHtml = "";
+    if (Array.isArray(band) && band.length === 2) {
+      var by1 = y(Number(band[1])), by2 = y(Number(band[0]));
+      bandHtml = '<rect x="' + padL + '" y="' + by1.toFixed(1) + '" width="' + (W - padL - padR).toFixed(1) + '" height="' + Math.max(1, by2 - by1).toFixed(1) + '" fill="var(--chip)"/>';
+    }
+    var latest = sorted[sorted.length - 1] ? sorted[sorted.length - 1].c : null;
+    var dots = pts.map(function (c, i) {
       if (c === latest) return "";
-      var cx = x(Number(c.price)), bucket = Math.round(cx / 6);
-      var stack = bucketN[bucket] = (bucketN[bucket] || 0) + 1;
+      var cx = x(c, i), cy = y(Number(c.price));
       var tip = chartTip([cleanReceiptTitle(c.title), longMiles(c), (c.platform && c.platform !== "others") ? c.platform : "", c.month || monShort(c.date), usd(c.price)]);
-      var inner = '<circle cx="' + cx.toFixed(1) + '" cy="' + (lineY - (stack - 1) * 11).toFixed(1) + '" r="4" fill="var(--ink)" class="hc-dot"><title>' + tip + '</title></circle>';
+      var inner = '<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="5" fill="var(--ink)" class="hc-dot"><title>' + tip + '</title></circle>';
       var href = utmUrl(c.url);
       return href ? ('<a href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">' + inner + "</a>") : inner;
     }).join("");
     var latestHtml = "";
     if (latest) {
-      var lx = x(Number(latest.price));
+      var li = pts.indexOf(latest);
+      var lx = x(latest, li), ly = y(Number(latest.price));
       var lbl = chartTip([latest.month || monShort(latest.date), usd(latest.price)]);
       var tip = chartTip([cleanReceiptTitle(latest.title), longMiles(latest), (latest.platform && latest.platform !== "others") ? latest.platform : "", latest.month || monShort(latest.date), usd(latest.price)]);
-      var inner = '<circle cx="' + lx.toFixed(1) + '" cy="' + lineY + '" r="8" fill="var(--green)" class="hc-dot"><title>' + tip + '</title></circle>' +
-        '<text x="' + lx.toFixed(1) + '" y="' + (lineY - 22) + '" text-anchor="middle" font-size="14" fill="var(--sec)">' + esc(lbl) + "</text>";
+      var labelY = ly < padT + 20 ? ly + 24 : ly - 16;
+      var inner = '<circle cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="8" fill="var(--green)" class="hc-dot"><title>' + tip + '</title></circle>' +
+        '<text x="' + lx.toFixed(1) + '" y="' + labelY.toFixed(1) + '" text-anchor="middle" font-size="14" fill="var(--sec)">' + esc(lbl) + "</text>";
       var href = utmUrl(latest.url);
       latestHtml = href ? ('<a href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">' + inner + "</a>") : inner;
     }
-    var endLo = '<text x="' + padL + '" y="' + (lineY + 40) + '" font-size="14" fill="var(--sec)">' + esc(usd(lo)) + "</text>";
-    var endHi = '<text x="' + (W - padR) + '" y="' + (lineY + 40) + '" text-anchor="end" font-size="14" fill="var(--sec)">' + esc(usd(hi)) + "</text>";
-    return '<svg class="hc-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMinYMin meet" role="img" aria-label="Sale prices, lowest to highest">' +
-      bandHtml + line + dots + latestHtml + endLo + endHi + "</svg>";
+    var dateLabels = "";
+    if (sorted.length) {
+      var first = sorted[0].c, last = sorted[sorted.length - 1].c;
+      dateLabels = '<text x="' + padL + '" y="' + (H - padB + 24) + '" font-size="13" fill="var(--sec)">' + esc(first.month || monShort(first.date)) + "</text>" +
+        (last !== first ? ('<text x="' + (W - padR) + '" y="' + (H - padB + 24) + '" text-anchor="end" font-size="13" fill="var(--sec)">' + esc(last.month || monShort(last.date)) + "</text>") : "");
+    }
+    return '<svg class="hc-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMinYMin meet" role="img" aria-label="Sale prices over time">' +
+      grid + bandHtml + dots + latestHtml + dateLabels + "</svg>";
   }
   // cards: the sale list to chart on the strip path (ignored once candles qualify). band: the
   // middle-half cluster to shade behind the strip line, or null/undefined (thin tier - never a band).
