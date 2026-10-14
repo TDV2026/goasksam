@@ -55,8 +55,7 @@ Each value was worked out by hand: the rung from the thresholds above, the pool 
 car (`obdiag`, `detail=1`) against the fences, and the band by recomputing p25 and p75 from those prices (it matched the engine's own
 cluster on every car where the pool was right). Raw all-time archive counts (`poolsrc`) bound the pool from above. What no
 read-only task can show is the RAW archive rows of a window, so "no legitimate sale was left out" cannot be proved for any car yet.
-Cars where the rung itself depends on that are marked **pending** (8, 11 and 16); the task that would settle them is specified under FOR LANE B in
-`docs/lane-notes.md` (`poolrows`).
+Cars 8, 11 and 16 were pending until `poolrows` was built; they were settled on Oct 14 (see their lines below). Cars 12 and 18 were re-derived the same day because the archive grew.
 
 Expected counts for cars on the "last twelve months" window drift as old sales leave it. `tol` is the allowed drift on the count (and
 `tolPct` on a band edge). Refresh this file when a car moves further than that.
@@ -72,18 +71,18 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 5 | 1969 Chevrolet Camaro | exact, halo aside (Z/28, SS, COPO, Yenko) | exact, 21 sales, $45,500 to $78,500 |
 | 6 | 2006 Mercedes-Benz CLK DTM | thin: house sales do not make an online range | year_widened, 2005 to 2007, 12 sales, no band |
 | 7 | 2008 Mercedes-Benz CLK63 AMG Black Series | Black Series is the pool asked for | exact, 35 sales, $95,000 to $146,000 |
-| 8 | 1957 Porsche 356 Speedster | exact at the threshold | pending |
+| 8 | 1957 Porsche 356 Speedster | exact at the threshold, online sales only | exact, 8 sales, $282,000 to $363,000 |
 | 9 | 1997 Land Rover Defender 110 | wheelbase carried | exact, 10 sales, $30,500 to $56,000 |
 | 10 | 2003 BMW M3 Coupe | exact, E46 | exact, 14 sales, $23,500 to $35,500 |
-| 11 | 1989 Merkur XR4Ti | thin model, rung depends on the window | pending |
-| 12 | 2024 Porsche 911 GT3 | generation boundary, halo trim asked for | generation, 992, 25 sales, $244,000 to $272,000 |
+| 11 | 1989 Merkur XR4Ti | thin model, no rung reaches eight | thin, no band |
+| 12 | 2024 Porsche 911 GT3 | halo trim asked for, window before years | year_widened, 2023 to 2024, 14 sales, $243,000 to $269,000 |
 | 13 | 2018 Ford Mustang GT | exactly eight, aftermarket package still counts | exact, 8 sales, $30,000 to $35,500 |
 | 14 | 1966 Ferrari 275 GTB | its own model (the 275 GTB/4 is out), blends across models | year_widened, 1965 to 1966, 10 sales, thin, no band |
 | 15 | 1987 Buick Regal Grand National | typed words carried | exact, 55 sales, $35,500 to $56,000 |
-| 16 | 2005 Saab 9-2X | sibling rung | pending |
+| 16 | 2005 Saab 9-2X | exact year, five-year window | exact, 20 sales, $9,000 to $13,500 |
 | 17 | 1931 Bugatti Type 41 | not enough data | not_enough_data, nothing on record |
-| 18 | 2011 Honda S2000 | model any year (no sale in the year or near it) | model_any_year, at least 8 sales |
-| 19 | 1963 Chevrolet Corvette Split Window | typed word carried (the split window is the coupe) | exact, 32 coupes, $135,000 to $197,000 |
+| 18 | 2011 Honda S2000 | year outside the production run, span clamped to 2009 | year_widened, 2009, 15 sales, $36,500 to $64,000 |
+| 19 | 1963 Chevrolet Corvette Split Window | typed word carried (the split window is the coupe) | exact, 38 coupes, $140,000 to $214,000 |
 | 20 | 1995 Acura NSX | exact, odd-sale fence (a Honda NSX-R set aside) | exact, 15 sales, $86,000 to $136,000 |
 
 Per car, in the words of the derivation:
@@ -98,21 +97,21 @@ Per car, in the words of the derivation:
 6. **CLK DTM.** 2006 alone holds 6; 2005 to 2007 holds 12, all house sales. Online sales: 0, so the tier is thin and there is no band. The facts line
    may state the lowest and highest real sale. Basis note: cards carry the all-in figure and the thin span carries hammer; pick one before printing.
 7. **CLK63 AMG Black Series.** Every one of the 35 titles says Black Series. Band $95,000 to $146,000.
-8. **356 Speedster.** The engine finds 8; the archive holds 17 titled 356 Speedster in 1957 across all years. Which of them belong to the window cannot be shown. Pending.
+8. **356 Speedster.** (Settled Oct 14 from poolrows.) 1957 Speedster rows that are not replicas, re-creations, conversions or Carrera/Zagato cars: 33 since Feb 2022, 18 of them house sales and 15 online. House sales do not make the online range, so the pool is the online sales: the last twelve months hold 1, so the window looks back (five years, from 1 Feb 2022). Fifteen online rows less the Collecting Cars rows with no photo, one modified car and one odd sale leaves 8 to 10. The ladder stops on the exact year at eight. Band: p25 and p75 of the eight cards, $282,000 to $363,000 (tolPct 5, because the exact set depends on the photo and modified fences).
 9. **Defender 110.** Ten 1997 Defender 110 sales, no 90 or 130. Band $30,500 to $56,000.
 10. **E46 M3 Coupe.** 14 sales, band $23,500 to $35,500.
-11. **Merkur XR4Ti.** 1989 holds 1; the model has 9 sales in five years. Whether the rung is the widened years or the model any year, and its count, depends on the window. Pending.
-12. **2024 GT3.** 2024 holds 1, 2023 to 2025 holds 5, so the whole 992 generation (2022 to 2026) is used: 25 sales. Band $244,000 to $272,000.
+11. **Merkur XR4Ti.** (Settled Oct 14 from poolrows.) Eleven rows on record. In the five-year window, less one project car and one $1,400 sale (under the $2,500 floor): 8 sales across the whole model (1985 to 1989: $4,505, $6,200, $6,600, $7,250, $8,000, $9,700, $16,000, $31,000). 1989 holds 1, 1987 to 1989 holds 6. The whole model reaches eight only with the $31,000 1985 car, which sits above p75 + 1.5 x the middle range ($11,275 + 1.5 x $4,775 = $18,437) and is set aside as an odd sale, leaving 7. No rung reaches eight: thin, the sales themselves, no band. (The engine shows 3 sales, on a 36 month window; the ladder's window is five years, so the count it prints is shorter than the ladder's 6. Reported, not a band difference.)
+12. **2024 GT3.** (Re-derived Oct 14 from poolrows, 300 rows of 2022 to 2026 GT3 sales; the old 25 counted the 2022 cars from a 12 month window.) The pool is the plain GT3: Touring, RS, Weissach, Manthey and Clubsport are other tiers, and Tribute and race cars are fenced. Plain GT3 by year on record: 2022 40, 2023 10, 2024 6, 2026 5, 2025 none. Exact 2024: 2 in twelve months, 6 over five years, never eight. Plus and minus one year (2023 to 2025): 6 in twelve months, so the window looks back: 9 in 18 months, 14 in 24 months. Eight reached, stop. The pool holds 2023 and 2024 (no plain 2025 sale), 14 sales since Oct 2024, p25 $243,125 and p75 $269,000: $243,000 to $269,000. The ladder stops at the first span that reaches eight, and the window rule extends the window inside the rung, so the whole generation (rung 3) is never needed. The label must read years, not the generation: "911 GT3, 2023 to 2024" (the whole-generation label would say a 2022 to 2026 pool).
 13. **2018 Mustang GT.** Eight sales, band $30,000 to $35,500. One is a Steeda Q500 Enforcer; an aftermarket package does not change the car, so it counts. (A Roush
     Jackhammer is set aside as an odd sale on price, not for the package.) Exactly eight, so the ladder stops on the exact year.
 14. **275 GTB.** The 275 GTB/4 (1966 to 1968, four-cam) is its own model and is out. What is left is the two-cam 275 GTB, including GTB/6C and Alloy: 1966 alone holds 7,
     1965 adds 3, so 1965 to 1966 holds 10 and the ladder stops. Every one is a house sale, so the tier is thin: the sales themselves, no band. (The engine pools 19: nine
     of them 1967 GTB/4.)
 15. **Grand National.** "Regal Grand National" and "Grand National" are one car. 55 sales (4 odd sales set aside), band $35,500 to $56,000. The label must say Grand National.
-16. **Saab 9-2X.** Six in the 36-month window, 32 over all years. A sibling (Subaru Impreza) is the next rung only if the model-any-year pool fails eight. Pending.
+16. **Saab 9-2X.** (Settled Oct 14 from poolrows; the one derivation that rests on the window reading.) 33 rows on record, all 2005 and 2006. Exact 2005: 4 in 36 months, 20 in the five-year window since 15 Oct 2021. The written window rule is "the last twelve months when it holds eight, otherwise back up to five years", so the exact year is the rung: 20 sales, p25 $9,000 and p75 $13,262, $9,000 to $13,500. The engine stops widening the window at 36 months for this car and lands on 2005 to 2006 with 6 sales and no band; that is the difference goldenTruth reports (Lane B's window).
 17. **Bugatti Type 41.** No sale on record: not enough data, say so.
-18. **Honda S2000, 2011.** The car was not built in 2011; no sale in 2010 to 2012. The pool is every S2000 sale in the window, labelled "all years".
-19. **Split Window.** The 1963 split-window is the coupe; the convertible is a different car. 32 coupes, band $135,000 to $197,000.
+18. **Honda S2000, 2011.** (Re-derived Oct 14 from poolrows.) The S2000 was built 2000 to 2009. Exact 2011: none. Plus and minus two years is 2009 to 2013, but the ladder never goes past the curated production run, so the span is 2009 alone. 2009 holds 5 in twelve months to 24 months (9), and 18 in the five-year window since 23 Apr 2022; two CR cars ($170,000, $200,000) are odd sales, one more is below the floor or no photo: 15 to 16 sales (the engine used 14). p25 $36,375 and p75 $64,000: $36,500 to $64,000. The rung is year_widened, and the label must name the years the pool holds (2009). The old "model any year" reading assumed the widened span held no sale; it holds 2009.
+19. **Split Window.** The 1963 split-window is the coupe; the convertible is a different car. Re-derived Oct 14 from poolrows (1963 Corvette rows since 24 Oct 2025, convertibles fenced as a different body): 58 coupes, 39 of them online sales (house sales do not make the online range), less one odd sale ($312,500): 38, p25 $140,000 and p75 $213,500, so $140,000 to $214,000. The old 32 and $135,000 to $197,000 were the pool in October's first window; new BaT sales have moved it.
 20. **1995 NSX.** 15 NSX-T sales; a Honda NSX-R is set aside as an odd sale. Band $86,000 to $136,000.
 
 ## 5. Machine-readable block (read by scripts/goldenTruth.mjs)
@@ -130,18 +129,18 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":5,"q":"1969 Chevrolet Camaro","status":"ready","rung":"exact","labelHas":["1969 Camaro"],"count":21,"tol":3,"low":45500,"high":78500,"tolPct":3},
  {"id":6,"q":"2006 Mercedes-Benz CLK DTM","status":"ready","rung":"year_widened","labelHas":["CLK DTM","2005 to 2007"],"count":12,"tol":0,"low":null,"high":null,"thin":true},
  {"id":7,"q":"2008 Mercedes-Benz CLK63 AMG Black Series","status":"ready","rung":"exact","labelHas":["CLK63","Black Series"],"count":35,"tol":0,"low":95000,"high":146000,"tolPct":0},
- {"id":8,"q":"1957 Porsche 356 Speedster","status":"pending","rung":"exact","labelHas":["356 Speedster"],"pending":"the engine finds 8 and the archive holds 17 in 1957; which belong to the window needs poolrows"},
+ {"id":8,"q":"1957 Porsche 356 Speedster","status":"ready","rung":"exact","labelHas":["1957","356 Speedster"],"count":8,"tol":2,"low":282000,"high":363000,"tolPct":5},
  {"id":9,"q":"1997 Land Rover Defender 110","status":"ready","rung":"exact","labelHas":["1997","Defender 110"],"count":10,"tol":2,"low":30500,"high":56000,"tolPct":3},
  {"id":10,"q":"2003 BMW M3 Coupe","status":"ready","rung":"exact","labelHas":["2003","M3 Coupe"],"count":14,"tol":2,"low":23500,"high":35500,"tolPct":3},
- {"id":11,"q":"1989 Merkur XR4Ti","status":"pending","rung":"model_any_year","labelHas":["XR4Ti"],"pending":"rung and count depend on the window; needs poolrows"},
- {"id":12,"q":"2024 Porsche 911 GT3","status":"ready","rung":"generation","labelHas":["GT3","992 generation"],"count":25,"tol":2,"low":244000,"high":272000,"tolPct":3,"quick":true},
+ {"id":11,"q":"1989 Merkur XR4Ti","status":"ready","labelHas":["XR4Ti"],"low":null,"high":null,"thin":true},
+ {"id":12,"q":"2024 Porsche 911 GT3","status":"ready","rung":"year_widened","labelHas":["GT3","2023 to 2024"],"count":14,"tol":2,"low":243000,"high":269000,"tolPct":3,"quick":true},
  {"id":13,"q":"2018 Ford Mustang GT","status":"ready","rung":"exact","labelHas":["2018","Mustang GT"],"count":8,"tol":0,"low":30000,"high":35500,"tolPct":0},
  {"id":14,"q":"1966 Ferrari 275 GTB","status":"ready","rung":"year_widened","labelHas":["275 GTB","1965 to 1966"],"count":10,"tol":0,"low":null,"high":null,"thin":true},
  {"id":15,"q":"1987 Buick Regal Grand National","status":"ready","rung":"exact","labelHas":["1987","Grand National"],"count":55,"tol":0,"low":35500,"high":56000,"tolPct":0},
- {"id":16,"q":"2005 Saab 9-2X","status":"pending","rung":"model_any_year","labelHas":["9-2X"],"pending":"36-month window vs all years decides model_any_year or sibling; needs poolrows"},
+ {"id":16,"q":"2005 Saab 9-2X","status":"ready","rung":"exact","labelHas":["2005","9-2X"],"count":20,"tol":3,"low":9000,"high":13500,"tolPct":5},
  {"id":17,"q":"1931 Bugatti Type 41","status":"ready","rung":"not_enough_data","labelHas":[],"empty":true},
- {"id":18,"q":"2011 Honda S2000","status":"ready","rung":"model_any_year","labelHas":["S2000","all years"],"countMin":8,"low":null,"high":null,"anyBand":true},
- {"id":19,"q":"1963 Chevrolet Corvette Split Window","status":"ready","rung":"exact","labelHas":["1963"],"count":32,"tol":3,"low":135000,"high":197000,"tolPct":3},
+ {"id":18,"q":"2011 Honda S2000","status":"ready","rung":"year_widened","labelHas":["S2000","2009"],"count":15,"tol":2,"low":36500,"high":64000,"tolPct":3},
+ {"id":19,"q":"1963 Chevrolet Corvette Split Window","status":"ready","rung":"exact","labelHas":["1963"],"count":38,"tol":3,"low":140000,"high":214000,"tolPct":3},
  {"id":20,"q":"1995 Acura NSX","status":"ready","rung":"exact","labelHas":["1995","NSX"],"count":15,"tol":2,"low":86000,"high":136000,"tolPct":3}
 ]
 ```

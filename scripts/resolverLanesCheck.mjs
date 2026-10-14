@@ -133,6 +133,7 @@ const CASES = [
   ["1973 Jaguar E-Type Series1", { year: 1973, make: "Jaguar", model: "E-Type", trim: null, edition: "Series 1" }],
   // Body lines (Lane B2, lib/vehicleData.js BODY_LINES): a body phrase is not a model or a trim; it sets the body on every path.
   ["1995 Acura NSX-T", { year: 1995, make: "Acura", model: "NSX", trim: null, bodyStyle: "targa" }],
+  ["1995 Acura NSX Targa", { year: 1995, make: "Acura", model: "NSX", trim: null, bodyStyle: "targa" }],
   ["Acura NSX T", { make: "Acura", model: "NSX", bodyStyle: "targa" }],
   ["1963 Chevrolet Corvette Split Window", { year: 1963, make: "Chevrolet", model: "Corvette", trim: null, bodyStyle: "coupe" }],
   ["Corvette Split Window", { make: "Chevrolet", model: "Corvette", bodyStyle: "coupe" }],

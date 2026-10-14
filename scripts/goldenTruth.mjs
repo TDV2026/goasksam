@@ -61,17 +61,21 @@ function judge(g, lane) {
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", protocolTimeout: 600000, args: ["--no-sandbox"] });
 const rows = [];
 const byQ = {};
+let chassisGuard = null;
 try {
   // The ops task is a keyed GET; plain curl is turned away by Vercel's bot protection, so the request is made from a real page
   // on the site's own address. The key travels only in the x-ops-key header.
-  const home = await browser.newPage();
+  let home = await browser.newPage();
+  const openHome = async () => { home = await browser.newPage(); await home.goto(BASE + "/", { waitUntil: "networkidle2", timeout: 60000 }).catch(() => {}); await new Promise(r => setTimeout(r, 2000)); };
   await home.goto(BASE + "/", { waitUntil: "networkidle2", timeout: 60000 }).catch(() => {});
   await new Promise(r => setTimeout(r, 2000));
-  const ops = (url) => home.evaluate(async (u, k) => {
+  const ops1 = (url) => home.evaluate(async (u, k) => {
     const ac = new AbortController(); const t = setTimeout(() => ac.abort(), 290000);
     try { const r = await fetch(u, { headers: { "x-ops-key": k }, signal: ac.signal }); const text = await r.text(); return { status: r.status, text }; }
     catch (e) { return { status: 0, text: String(e && e.message || e) }; } finally { clearTimeout(t); }
   }, url, KEY);
+  // The page can navigate itself (a detached frame); open a fresh one and ask again, once.
+  const ops = async (url) => { try { return await ops1(url); } catch (e) { await openHome(); return await ops1(url); } };
 
   
   for (let i = 0; i < GOLDEN.length; i += BATCH) {
@@ -97,7 +101,7 @@ try {
   //   buy          /buy?q=               the figure the page prints on its first live car (Sam's line: "landed at $X to $Y"); Buy prints no sold count
   //   sell         /sell?car=&state=&how=&rush=   the result address (the three questions answered in the address); the page prints "N of M ... in the last 12 months"
   //                and no range. Viewing it sends no email and writes no lead; there is no dry-run flag to pass because none is needed.
-  //   tasks        NOT REACHED: see the note printed under the table.
+  //   tasks        the Task email line, from Lane C's read-only preview (GET /api/tasks?emailpreview=1&q=), column Task email.
   // Each rendered count and range is compared with that product's OWN engine answer (a difference is RENDER DRIFT, with the field)
   // and, when the page agrees with its engine, the engine's verdict against the golden line stands for the page.
   // Every page is opened in its own browser context (a fresh visitor, so no per-visitor car limit) and the key goes only in the
@@ -131,9 +135,10 @@ try {
       return { count: null, range: first ? first.range : null, scope: first ? first.label : "", listings };
     },
     sell(text) {
-      const m = /(\d[\d,]*)\s+of\s+(\d[\d,]*)\b[^\n]*?last\s+12\s+months/i.exec(text) || /(\d[\d,]*)\s+of\s+(\d[\d,]*)/.exec(text);
-      const sc = /^For the (.+?)\.?$/m.exec(text);
-      return { count: m ? Number(m[2].replace(/,/g, "")) : null, range: parseRange(text.split("WHO SAM WOULD RECOMMEND")[0]), scope: sc ? sc[1] : "" };
+      const NW = "\\d[\\d,]*|one|two|three|four|five|six|seven|eight|nine|ten";   // the page writes one to ten as words
+      const m = new RegExp(`(${NW})\\s+of\\s+(${NW})\\b[^\\n]*?(?:last|past)\\s+(?:12 months|\\w+ years?)|(${NW})\\s+of\\s+(${NW})\\s+(?:since|in the)`, "i").exec(text) || new RegExp(`(${NW})\\s+of\\s+(${NW})\\b`, "i").exec(text);
+      const ls = text.split("\n").map(x => x.trim()), ai = ls.indexOf("Analysis scope"), sc = ai > 0 ? [null, ls[ai - 1]] : /^For the (.+?)\.?$/m.exec(text);   // the scope row names the span; the header names the car
+      return { count: m ? num(m[2] || m[4]) : null, range: parseRange(text.split("WHO SAM WOULD RECOMMEND")[0]), scope: sc ? sc[1] : "" };
     }
   };
   const pageUrl = {
@@ -232,27 +237,38 @@ try {
     r.pages.buy = { cell: diffs.length ? "DRIFT" : "PASS", diffs, shown: r.buyListings.map(l => l.range ? `${money(l.range.low)}-${money(l.range.high)}` : "no range").join(" / ") };
   }
 
-  // TASKS PAGE (Part 2c): the in-memory read-back (api/tasks.js test_scenario: no Task row, no email, nothing stored), now that probeOk takes x-ops-key
-  // through hasServerCredential. The read-back is what the Tasks screen shows before "start". Count and range are read from it when it prints any.
-  if (flag("pages")) for (const r of rows) {
-    const o = await home.evaluate(async (k, say) => {
-      try { const x = await fetch("/api/tasks", { method: "POST", headers: { "content-type": "application/json", "x-ops-key": k }, body: JSON.stringify({ action: "test_scenario", steps: [{ say }] }) }); return { status: x.status, text: await x.text() }; }
-      catch (e) { return { status: 0, text: String(e && e.message || e) }; }
-    }, KEY, "a " + r.g.q).catch(() => ({ status: 0, text: "" }));
-    let out = null; try { out = JSON.parse(o.text).steps[0].out; } catch (e) {}
-    if (!out) { r.pages = r.pages || {}; r.pages.tasks = { cell: "NOREACH", diffs: [`Tasks read-back returned HTTP ${o.status}`], shown: "-" }; continue; }
-    const txt = `${out.reply || ""} ${(out.draft && out.draft.summary) || ""}`;
-    const rng = /\$([\d,]+)\s+to\s+\$([\d,]+)/.exec(txt), cm = /(\d[\d,]*)\s+(?:sales|cars|comparable)/i.exec(txt);
-    const f = out.draft && out.draft.filters || {};
+  // TASKS EMAIL (Oct 14 2026, Lane C's preview): GET /api/tasks?emailpreview=1&q=<typed words>, key in x-ops-key only. Read only: no Task, no email,
+  // no cache row, no setup model turn, zero OldCarsData. It returns the line a Task email would state for the typed words: the stored
+  // spec_market_cache line when listingMarket would serve it, else a fresh engine read. Count and range come from that one line, are
+  // judged against the golden answer like any engine lane, and are compared with the Tasks lane of the same run (a difference is RENDER DRIFT).
+  if (flag("pages") || flag("tasks")) for (const r of rows) {
+    const o = await ops(`/api/tasks?emailpreview=1&q=${encodeURIComponent(r.g.q)}`);
+    let out = null; try { out = JSON.parse(o.text); } catch (e) {}
+    r.pages = r.pages || {};
+    if (!out || o.status !== 200) { r.pages.tasks = { cell: "NOREACH", diffs: [`email preview returned HTTP ${o.status}`], shown: "-" }; continue; }
+    const src = out.email === "stored" ? (out.stored && (out.stored.market || out.stored)) : out.engine;
+    const f = out.filters || {};
+    if (!src) { r.pages.tasks = { cell: r.g.empty ? "PASS" : (r.g.status === "pending" ? "PENDING" : "FAIL"), diffs: r.g.empty ? [] : ["the Task email states nothing for these words"], shown: `no line; filters ${[f.make, f.model, f.trim, f.year_min].filter(Boolean).join(" ")}` }; continue; }
+    const count = src.count != null ? Number(src.count) : null, low = src.low != null ? Number(src.low) : null, high = src.high != null ? Number(src.high) : null;
+    const rung = src.rung || src.step || null, label = src.family || src.short || "";
+    const asLane = { ok: count != null, fallbackRung: rung, rungLabel: label, count, low, high, reason: count == null ? "nothing on record" : null };
+    // The Task email names the car by its family noun ("992s", "E46 M3s"), so the label words are not compared; rung, count and range are.
+    const j = judge({ ...r.g, labelHas: [] }, asLane);
     const lane = (byQ[r.g.q] && byQ[r.g.q].lanes || {}).tasks;
-    const dr = lane ? drift("tasks", { count: cm ? Number(cm[1].replace(/,/g, "")) : null, range: rng ? { low: Number(rng[1].replace(/,/g, "")), high: Number(rng[2].replace(/,/g, "")) } : null, scope: "" }, lane) : [];
-    r.pages.tasks = { cell: dr.length ? "DRIFT" : ((cm || rng) ? r.cells.tasks.cell : "N/A"), diffs: dr.map(d => "RENDER DRIFT, " + d), shown: (cm || rng) ? `${cm ? cm[1] : "-"} ${rng ? money(rng[1]) + "-" + money(rng[2]) : "no range"}` : `read-back prints no count or range; filters ${[f.make, f.model, f.year_min && f.year_max ? (f.year_min === f.year_max ? f.year_min : f.year_min + "-" + f.year_max) : ""].filter(Boolean).join(" ")}` };
+    const dr = lane && lane.ok ? drift("tasks", { count, range: low != null ? { low, high } : null, scope: "" }, lane) : [];
+    r.pages.tasks = { cell: dr.length ? "DRIFT" : j.cell, diffs: [...dr.map(d => "RENDER DRIFT, " + d), ...j.diffs.map(d => "Task email: " + d)], shown: `${count == null ? "-" : count} ${low != null ? money(low) + "-" + money(high) : "no range"} (${out.email}${rung ? ", " + rung : ""})` };
+  }
+  // CHASSIS-NUMBER GUARD (Oct 14 2026): a keyword is never read inside a chassis or lot number. The 1969 365 GT 2+2 whose chassis number is 12751
+  // holds "275"; the engine's row fence must set it aside for a 275 GTB, not pool it. One read-only poolrows call, run with every full table.
+  if (!flag("quick") && !ids.length) {
+    const o = await ops(`/api/usageDashboard?view=ops&task=poolrows&make=Ferrari&title=12751&limit=5&fence=1&q=${encodeURIComponent("1966 Ferrari 275 GTB")}`);
+    try { const rr = (JSON.parse(o.text).rows || []).filter(x => /12751/.test(x.listing_title || "")); chassisGuard = rr.length ? (rr.every(x => x.engineVerdict) ? "PASS" : "FAIL") : "N/A"; } catch (e) { chassisGuard = "NOREACH"; }
   }
 } finally { await browser.close(); }
 
 // ---- the table ----
 const pad = (s, n) => String(s).padEnd(n);
-const PAGEHEAD = ["MC page", "Buy page", "Sell page", "Tasks page"];
+const PAGEHEAD = ["MC page", "Buy page", "Sell page", "Task email"];
 console.log(`\nGOLDEN TRUTH  ${new Date().toISOString().slice(0, 10)}  (${BASE})  ${rows.length} cars, expected answers from docs/golden-rules.md\n`);
 console.log(pad("#", 3) + pad("Car", 44) + pad("MC", 9) + pad("Buy", 9) + pad("Sell", 9) + pad("Tasks", 9) + PAGEHEAD.map(h => pad(h, 11)).join(""));
 let nFail = 0, nPend = 0, nPass = 0, nDrift = 0;
@@ -278,5 +294,6 @@ if (flag("pages")) {
   console.log("\nSell page count against the engine count (they must be equal):");
   for (const r of rows) { const lane = (byQ[r.g.q] && byQ[r.g.q].lanes || {}).sell; const sp = r.pages && r.pages.sell; const m = sp && /^(\d+|-)/.exec(sp.shown || ""); console.log(`  ${r.g.id}. ${pad(r.g.q, 42)} page ${m ? m[1] : "-"}   engine ${lane && lane.ok ? lane.count : "-"}`); }
 }
+if (chassisGuard) console.log(`\nChassis-number guard (365 GT 2+2, chassis 12751, set aside from the 275 GTB pool): ${chassisGuard}`);
 console.log(`\n${nPass} PASS, ${nFail} FAIL, ${nDrift} RENDER DRIFT, ${nPend} PENDING (report-only; ${flag("strict") ? "strict: failures set the exit code" : "does not set the exit code"}).`);
 process.exit(flag("strict") && (nFail || nDrift) ? 1 : 0);
