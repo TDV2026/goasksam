@@ -228,12 +228,21 @@
   }
   // Status text from the engine's own placing field ("inside the range"/"below the range"/"above
   // the range", lib/live/search.js placingFor) - "Within the range" (not "Inside") to match the
-  // Market Check result-page spec's own VS. RANGE wording exactly. Plain ink text, never a pill or
-  // a coloured dot (Job 8, result-page-polish round, carried forward: never green or red).
+  // approved mockup's own VS. RANGE wording. The mockup also shows a small coloured dot ahead of
+  // this text (green for within, amber for above) - a DIFFERENT, older product rule (Job 8) banned
+  // a coloured position pill on the comp-CARD badge, a different component; the mockup wins here,
+  // per this round's explicit instruction. No "below" example exists in the mockup; given a muted,
+  // non-primary grey for that third state rather than guess at an unreferenced colour.
   function placingPillText(placing) {
     if (placing === "inside the range") return "Within the range";
     if (placing === "below the range") return "Below the range";
     if (placing === "above the range") return "Above the range";
+    return "";
+  }
+  function placingDotClass(placing) {
+    if (placing === "inside the range") return "lp-dot-within";
+    if (placing === "above the range") return "lp-dot-above";
+    if (placing === "below the range") return "lp-dot-below";
     return "";
   }
   // bidTimePT mirrors lib/tasks/bidTime.js's own helper verbatim (same TZ, same wording) - this
@@ -270,6 +279,7 @@
         var amountText = l.fixedPriceUsd ? "Asking " + usd(l.fixedPriceUsd) : (amt ? "Current bid " + amt : "No bids yet");
         var timeText = (!l.fixedPriceUsd && amt && l.bid_at) ? ("at " + bidTimePT(l.bid_at)) : "";
         var vsrange = placingPillText(l.placing);
+        var vsrangeDot = placingDotClass(l.placing);
         var photo = l.photo_url ? '<img src="' + esc(l.photo_url) + '" alt="" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()">' : "";
         var href = utmUrl(l.url);
         // Round 6 Job 1 (tracking fix, carried forward): data-gas-source carries the platform SLUG
@@ -279,7 +289,7 @@
           '<span class="lp-cbody"><a class="lp-title" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer"' + gasAttrs + ">" + esc(cleanReceiptTitle(l.title)) + "</a></span></span></td>" +
           '<td><span class="lp-venue">' + esc(l.source || "") + '</span><span class="lp-ends">' + esc(endsShort(l.end_time)) + "</span></td>" +
           '<td class="lp-bid"><b>' + esc(amountText) + "</b>" + (timeText ? ('<span class="lp-bidtime">' + esc(timeText) + "</span>") : "") + "</td>" +
-          '<td class="lp-vsrange">' + esc(vsrange) + "</td></tr>";
+          '<td class="lp-vsrange">' + (vsrangeDot ? ('<span class="lp-dot ' + vsrangeDot + '"></span>') : "") + esc(vsrange) + "</td></tr>";
       }).join("");
       var q = (m && m.displayName) || carLabel(rc);
       // The live scope (Market Check result-page spec): the engine's own live sentence plus the SAME
@@ -307,9 +317,6 @@
       '<a id="ob-sell" href="' + esc(sellHref()) + '">See where Sam would sell it &#8594;</a></section>';
   }
   // ---------------------------------------------------------------- state renderers
-  function chipsHtml(options, kind) {
-    return '<div class="chips">' + (options || []).map(function (o) { return '<button class="chip" data-' + kind + '="' + esc(o) + '">' + esc(o) + "</button>"; }).join("") + "</div>";
-  }
   function renderEmpty() {
     if (SELL && SELL.homeHtml) { root.innerHTML = SELL.homeHtml(inboxHtml); wire(); syncRailResults(); return; }
     // Screen 1 (empty state): reached on boot only when the server did NOT already render the rich
@@ -676,13 +683,28 @@
   // a future round if Sam wants them. Each category reuses its OWN already-wired click handler
   // ([data-trimopt]/[data-bodyopt]/[data-tx], see wire()), so answering any of them re-scopes the
   // SAME pool inline exactly as the old chip versions did.
+  // Identity-line counts as WORDS, not digits (mockup, "Carrera S (six) · Carrera T (twelve)") -
+  // consistently across the whole range (never digits for 11+ beside words for 1-10, the exact
+  // unevenness the product's own "digits throughout" fix was trying to avoid, "(nine) · (21)" -
+  // this reverses that fix per the mockup, which shows words on BOTH sides of ten). Covers the
+  // realistic trim/body/gearbox split range; falls back to a digit only past 99.
+  var IDLINE_NUMWORD_TEENS = ["ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
+  var IDLINE_NUMWORD_TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+  function idLineNumWord(n) {
+    n = Number(n);
+    if (!Number.isFinite(n) || n < 0 || n > 99) return Number(n).toLocaleString("en-US");
+    if (n < 10) return (NUMWORD[n] || String(n)).toLowerCase();
+    if (n < 20) return IDLINE_NUMWORD_TEENS[n - 10];
+    var tens = Math.floor(n / 10), ones = n % 10;
+    return IDLINE_NUMWORD_TENS[tens] + (ones ? "-" + (NUMWORD[ones] || "").toLowerCase() : "");
+  }
   function heroTrimLineHtml(d) {
     var q = d && d.trimQuestion; if (!q || !q.options || !q.options.length) return "";
     var shown = q.options.filter(function (o) { return !o.thin; });
     if (shown.length < 2) return "";
     var links = shown.map(function (o) {
       var n = digitOf(o.n);
-      return '<button type="button" class="linkbtn hero-idlink" data-trimopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + " (" + n.toLocaleString("en-US") + ")</button>";
+      return '<button type="button" class="linkbtn hero-idlink" data-trimopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + " (" + idLineNumWord(n) + ")</button>";
     }).join(" · ");
     return '<p class="hero-idline" data-stage="answer">' + lint("Which " + esc(q.model) + "?", "hero.idq") + " " + links + "</p>";
   }
@@ -691,7 +713,7 @@
     var shown = opts.filter(function (o) { return Number(o.n) >= 8; });
     if (shown.length < 2) return "";
     var links = shown.map(function (o) {
-      return '<button type="button" class="linkbtn hero-idlink" data-bodyopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + " (" + Number(o.n).toLocaleString("en-US") + ")</button>";
+      return '<button type="button" class="linkbtn hero-idlink" data-bodyopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + esc(o.label) + " (" + idLineNumWord(o.n) + ")</button>";
     }).join(" · ");
     return '<p class="hero-idline" data-stage="answer">' + links + "</p>";
   }
@@ -705,7 +727,7 @@
     var links = shown.map(function (s) {
       var label = String(s.label || "").replace(/s$/, ""); // the engine's own split labels are plural ("Manuals", "PDKs")
       var val = /manual/i.test(label) ? "manual" : "auto";
-      return '<button type="button" class="linkbtn hero-idlink" data-tx="' + val + '" data-mlabel="' + esc(label) + '">' + esc(label) + " (" + Number(s.n).toLocaleString("en-US") + ")</button>";
+      return '<button type="button" class="linkbtn hero-idlink" data-tx="' + val + '" data-mlabel="' + esc(label) + '">' + esc(label) + " (" + idLineNumWord(s.n) + ")</button>";
     }).join(" · ");
     return '<p class="hero-idline" data-stage="answer">' + links + "</p>";
   }
@@ -729,12 +751,14 @@
     var trendObj = d && d.trend;
     var qs = (trendObj && Array.isArray(trendObj.quarters)) ? trendObj.quarters.filter(function (q) { return q && Number.isFinite(Number(q.low)) && Number.isFinite(Number(q.high)) && Number.isFinite(Number(q.typical)); }) : [];
     if (qs.length < 3) return "";
-    var W = 560, H = 220, padL = 46, padR = 8, padB = 36, padT = 10;
+    // 560x315 (16:9), matching .hc-svg's own CSS aspect-ratio exactly - the chart fills its box at
+    // any column width with no leftover empty space (see the CSS comment, onebox.html).
+    var W = 560, H = 315, padL = 50, padR = 10, padB = 46, padT = 14;
     var lo = Math.min.apply(null, qs.map(function (q) { return Number(q.low); }));
     var hi = Math.max.apply(null, qs.map(function (q) { return Number(q.high); }));
     if (!(hi > lo)) return "";
     var y = function (v) { return padT + (1 - (v - lo) / (hi - lo)) * (H - padT - padB); };
-    var slot = (W - padL - padR) / qs.length, barW = 36;
+    var slot = (W - padL - padR) / qs.length, barW = Math.min(44, slot * 0.46);
     var grid = "";
     for (var g = 0; g < 4; g++) {
       var v = lo + (hi - lo) * g / 3, yy = y(v);
@@ -747,10 +771,10 @@
       var label = String(q.period || q.label || ""), count = digitOf(q.count);
       var tip = chartTip([label, "Low " + usd(q.low), "Typical " + usd(q.typical), "High " + usd(q.high)]);
       bars += '<g><title>' + tip + '</title>' +
-        '<rect x="' + (cx - barW / 2).toFixed(1) + '" y="' + yhi.toFixed(1) + '" width="' + barW + '" height="' + Math.max(2, ylo - yhi).toFixed(1) + '" rx="2" fill="var(--chip)"/>' +
-        '<circle cx="' + cx.toFixed(1) + '" cy="' + y(Number(q.typical)).toFixed(1) + '" r="5" fill="var(--green)"/>' +
-        '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 18).toFixed(1) + '" text-anchor="middle" font-size="14" fill="var(--ink)">' + esc(label) + "</text>" +
-        (Number.isFinite(count) ? ('<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 32).toFixed(1) + '" text-anchor="middle" font-size="13" fill="var(--sec)">' + esc(obNumWordLow(count) + " sales") + "</text>") : "") +
+        '<rect x="' + (cx - barW / 2).toFixed(1) + '" y="' + yhi.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + Math.max(2, ylo - yhi).toFixed(1) + '" rx="2" fill="var(--chip)"/>' +
+        '<circle cx="' + cx.toFixed(1) + '" cy="' + y(Number(q.typical)).toFixed(1) + '" r="6" fill="var(--green)"/>' +
+        '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 20).toFixed(1) + '" text-anchor="middle" font-size="14" fill="var(--ink)">' + esc(label) + "</text>" +
+        (Number.isFinite(count) ? ('<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 36).toFixed(1) + '" text-anchor="middle" font-size="13" fill="var(--sec)">' + esc(obNumWordLow(count) + " sales") + "</text>") : "") +
         "</g>";
     });
     var svg = '<svg class="hc-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMinYMin meet" role="img" aria-label="Quarterly sale prices">' + grid + bars + "</svg>";
@@ -768,12 +792,16 @@
     if (!pts.length) return "";
     var prices = pts.map(function (c) { return Number(c.price); });
     var lo = Math.min.apply(null, prices), hi = Math.max.apply(null, prices);
-    var W = 560, H = 220, padL = 10, padR = 10, lineY = 112;
+    // 560x315 (16:9), matching .hc-svg's own CSS aspect-ratio exactly - same fix as the candles:
+    // the line sits at vertical-center with real room above (the latest-sale label, dot stacking)
+    // and below (the endpoint labels), so the strip fills its box instead of sitting as a thin
+    // line across a mostly-empty panel.
+    var W = 560, H = 315, padL = 14, padR = 14, lineY = 175;
     var x = function (v) { return hi > lo ? (padL + (v - lo) / (hi - lo) * (W - padL - padR)) : (W / 2); };
     var bandHtml = "";
     if (Array.isArray(band) && band.length === 2 && hi > lo) {
       var bx1 = x(Number(band[0])), bx2 = x(Number(band[1]));
-      bandHtml = '<rect x="' + bx1.toFixed(1) + '" y="' + (lineY - 12) + '" width="' + Math.max(1, bx2 - bx1).toFixed(1) + '" height="24" fill="var(--chip)"/>';
+      bandHtml = '<rect x="' + bx1.toFixed(1) + '" y="' + (lineY - 20) + '" width="' + Math.max(1, bx2 - bx1).toFixed(1) + '" height="40" fill="var(--chip)"/>';
     }
     var line = '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + lineY + '" y2="' + lineY + '" stroke="var(--border)" stroke-width="2"/>';
     var latest = pts.reduce(function (best, c) { return (!best || String(c.date || "") > String(best.date || "")) ? c : best; }, null);
@@ -783,7 +811,7 @@
       var cx = x(Number(c.price)), bucket = Math.round(cx / 6);
       var stack = bucketN[bucket] = (bucketN[bucket] || 0) + 1;
       var tip = chartTip([cleanReceiptTitle(c.title), longMiles(c), (c.platform && c.platform !== "others") ? c.platform : "", c.month || monShort(c.date), usd(c.price)]);
-      var inner = '<circle cx="' + cx.toFixed(1) + '" cy="' + (lineY - (stack - 1) * 8).toFixed(1) + '" r="3" fill="var(--ink)" class="hc-dot"><title>' + tip + '</title></circle>';
+      var inner = '<circle cx="' + cx.toFixed(1) + '" cy="' + (lineY - (stack - 1) * 11).toFixed(1) + '" r="4" fill="var(--ink)" class="hc-dot"><title>' + tip + '</title></circle>';
       var href = utmUrl(c.url);
       return href ? ('<a href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">' + inner + "</a>") : inner;
     }).join("");
@@ -792,13 +820,13 @@
       var lx = x(Number(latest.price));
       var lbl = chartTip([latest.month || monShort(latest.date), usd(latest.price)]);
       var tip = chartTip([cleanReceiptTitle(latest.title), longMiles(latest), (latest.platform && latest.platform !== "others") ? latest.platform : "", latest.month || monShort(latest.date), usd(latest.price)]);
-      var inner = '<circle cx="' + lx.toFixed(1) + '" cy="' + lineY + '" r="6" fill="var(--green)" class="hc-dot"><title>' + tip + '</title></circle>' +
-        '<text x="' + lx.toFixed(1) + '" y="' + (lineY - 16) + '" text-anchor="middle" font-size="13" fill="var(--sec)">' + esc(lbl) + "</text>";
+      var inner = '<circle cx="' + lx.toFixed(1) + '" cy="' + lineY + '" r="8" fill="var(--green)" class="hc-dot"><title>' + tip + '</title></circle>' +
+        '<text x="' + lx.toFixed(1) + '" y="' + (lineY - 22) + '" text-anchor="middle" font-size="14" fill="var(--sec)">' + esc(lbl) + "</text>";
       var href = utmUrl(latest.url);
       latestHtml = href ? ('<a href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">' + inner + "</a>") : inner;
     }
-    var endLo = '<text x="' + padL + '" y="' + (lineY + 30) + '" font-size="13" fill="var(--sec)">' + esc(usd(lo)) + "</text>";
-    var endHi = '<text x="' + (W - padR) + '" y="' + (lineY + 30) + '" text-anchor="end" font-size="13" fill="var(--sec)">' + esc(usd(hi)) + "</text>";
+    var endLo = '<text x="' + padL + '" y="' + (lineY + 40) + '" font-size="14" fill="var(--sec)">' + esc(usd(lo)) + "</text>";
+    var endHi = '<text x="' + (W - padR) + '" y="' + (lineY + 40) + '" text-anchor="end" font-size="14" fill="var(--sec)">' + esc(usd(hi)) + "</text>";
     return '<svg class="hc-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMinYMin meet" role="img" aria-label="Sale prices, lowest to highest">' +
       bandHtml + line + dots + latestHtml + endLo + endHi + "</svg>";
   }
@@ -853,6 +881,37 @@
       (meta ? ('<p class="salescard-meta">' + esc(meta) + "</p>") : "") +
       otherHalfLabel(c, d) + offWindowLabel(c, d) +
       "</div></" + tag + ">";
+  }
+  // THIS CAR'S OWN SALES (Job 2, Sam's follow-up round, Oct 2026): a VIN/chassis match's own
+  // history - one row per time it actually SOLD (m.sales, lib/_flags.js findVinArchiveMatch; never
+  // the unsold attempts in m.history). Flat: no box, no pill, no badge. Nothing computed here beyond
+  // a plain comparison of two numbers the engine already gave (this sale's own price against the
+  // SAME cluster/span the headline range already shows) to choose which of three fixed words to
+  // print - the same kind of classification asideToggleHtml and the live panel's own VS. RANGE
+  // column already do client-side; no new number is produced. Absent entirely when the car has no
+  // recorded sale (m.sales empty) or this isn't a matched-car search (m null).
+  function exactCarSalesHtml(d, m) {
+    if (!m || !Array.isArray(m.sales) || !m.sales.length) return "";
+    var rows = m.sales.map(function (s) {
+      var venue = obPlat(s.platform) || s.platform || "";
+      var miles = Number(s.mileage) > 0 ? Number(s.mileage).toLocaleString("en-US") + " miles" : "";
+      var href = utmUrl(s.url);
+      return '<div class="exactsale-row"><span class="exactsale-date">' + esc(monShort(s.soldDate)) + '</span>' +
+        '<span class="exactsale-price num">' + esc(usd(s.price)) + '</span>' +
+        '<span class="exactsale-venue">' + esc(venue) + '</span>' +
+        '<span class="exactsale-miles">' + esc(miles) + '</span>' +
+        (href ? ('<a class="linkbtn exactsale-view" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">View sale &#8594;</a>') : "") +
+        "</div>";
+    }).join("");
+    var latest = m.sales[0];
+    var note = "";
+    var band = Array.isArray(d.cluster) ? d.cluster : (Array.isArray(d.span) ? d.span : null);
+    if (latest && Number(latest.price) > 0 && band) {
+      var pos = Number(latest.price) > band[1] ? "above the range" : Number(latest.price) < band[0] ? "below the range" : "inside the range";
+      var sentence = "Its last sale, " + usd(latest.price) + " in " + monthOnly(latest.soldDate) + ", sits " + pos + ".";
+      note = '<p class="exactsale-note">' + lint(esc(sentence), "exactsale.note") + "</p>";
+    }
+    return '<div class="exactsales" data-stage="cards"><h2>This car&#8217;s own sales</h2>' + rows + note + "</div>";
   }
   // d.contextRoles (dormant Lane B field, grepped lib/onebox.js - not present yet) is preferred for
   // both the cards and the subhead sentence; the range tier's own representative trio (closest/high/
@@ -1465,6 +1524,7 @@
   // behavior change, not an oversight - flagged plainly in docs/lane-notes.md.
   function resultHtml(d, m) {
     var body = heroRangeHtml(d, m);
+    body += exactCarSalesHtml(d, m);
     body += salesRowHtml(d, m);
     body += livePanelSlot();
     body += moreComparableSalesHtml(d, m, d.cards);
@@ -1800,6 +1860,7 @@
     // Newest first (the honest evidence order); the engine's hammer-desc order is for its own math.
     var newestFirst = thinCardsFrom(scope).sort(function (a, b) { return String(b.date || "").localeCompare(String(a.date || "")); });
     var body = thinHeroHtml(d, name, scope, scopedLabel, ht, m);
+    body += exactCarSalesHtml(d, m);
     body += salesRowHtml(d, m, newestFirst);
     body += livePanelSlot();
     // id="more-sales" (hero-rebuild round, kept): the sales row's "See all N sales" link scrolls
@@ -1970,33 +2031,44 @@
     root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + html + footHtml();
     wire();
   }
-  // Gearbox / Competition question (Part 1 Rule 2 + change 1): a REFINE choice - the chip re-scopes
-  // the SAME car (runPool with refine), not a re-query.
-  function renderRefineChoice(d) {
-    var chips = "";
-    if (d.gearboxOptions) chips = d.gearboxOptions.map(function (o) { var tx = /manual/i.test(o) ? "manual" : "auto"; return '<button type="button" class="chip qchip" data-tx="' + tx + '" data-mlabel="' + esc(o) + '">' + esc(o) + "</button>"; }).join("");
-    else if (d.variantOptions) chips = d.variantOptions.map(function (o) { var v = /competition/i.test(o) ? "competition" : "standard"; return '<button type="button" class="chip qchip" data-variant="' + v + '" data-mlabel="' + esc(o) + '">' + esc(o) + "</button>"; }).join("");
-    var ac = askCopy(d);
-    renderQuestion(qscreenHtml(lint(esc(d.prompt || "Which one is it?"), "refchoice"), '<div class="chips">' + chips + "</div>", ac.eyebrow, ac.sub));
-  }
+  // renderRefineChoice (gearbox_choice/variant_choice as a bare-chip refine) had no remaining
+  // caller - both tiers route through renderIdentityQuestion instead (the flat identity takeover),
+  // confirmed by grep before deleting. Deleted rather than left dead.
+  //
+  // FLATTENED (Job 3, Sam's follow-up round, Oct 2026): generation_choice, body_choice, and the
+  // VIN-decode/typo model-clarification flow (both call this same function, see vinResolve) now
+  // share the SAME no-box/no-pill/no-badge shell identityTakeoverHtml/modelChoiceTakeoverHtml
+  // already use - label, car/make name (when known), the question in ink serif, a grey line, plain
+  // green text-link options with arrows. Click mechanisms are completely UNCHANGED: [data-genquery]/
+  // [data-model]/[data-body] are already wired generically in wire() (by attribute, not by class or
+  // element), so restyling the buttons as .linkbtn text instead of .chip pills does not touch how
+  // an answer is recorded. No per-option counts here (none of these three option shapes carry one).
   function renderChoice(d) {
-    var ac = askCopy(d);
-    // Generation choice: chips carry a full year-resolvable query (run directly, not appended).
-    if (d.generationOptions && d.generationOptions.length) {
-      var gchips = '<div class="chips">' + d.generationOptions.map(function (o) {
-        return '<button type="button" class="chip" data-genquery="' + esc(o.query) + '">' + esc(o.label) + "</button>";
-      }).join("") + "</div>";
-      renderQuestion(qscreenHtml(lint(esc(d.prompt || "Which generation is it?"), "genchoice"), gchips, ac.eyebrow, ac.sub));
-      return;
-    }
-    var opts = d.modelOptions || d.bodyOptions || [];
-    var kind = d.modelOptions ? "model" : "body";
-    if (d.modelOptions && d.resolvedCar) opts = obDropRejectedChips(d.resolvedCar.year, d.resolvedCar.make, opts);
+    var isGen = d.generationOptions && d.generationOptions.length;
+    var opts = isGen ? d.generationOptions : (d.modelOptions || d.bodyOptions || []);
+    var kind = isGen ? "gen" : (d.modelOptions ? "model" : "body");
+    if (!isGen && d.modelOptions && d.resolvedCar) opts = obDropRejectedChips(d.resolvedCar.year, d.resolvedCar.make, opts);
     // Base a chip appends its answer to: a passed baseLabel (year+make on a VIN model ask), else
     // the resolved car (year+make+model+trim on a body ask), so a body answer re-queries the SAME
-    // car and a VIN chip never appends to the VIN (which re-decodes and loops).
-    choiceCtx = d.baseLabel || (d.resolvedCar ? [d.resolvedCar.year, d.resolvedCar.make, d.resolvedCar.model, d.resolvedCar.trim].filter(Boolean).join(" ") : null) || null;
-    renderQuestion(qscreenHtml(lint(esc(d.prompt || "Which one is it?"), "choice"), chipsHtml(opts, kind), ac.eyebrow, ac.sub));
+    // car and a VIN chip never appends to the VIN (which re-decodes and loops). Generation chips
+    // carry a full query of their own and never touch choiceCtx.
+    if (!isGen) choiceCtx = d.baseLabel || (d.resolvedCar ? [d.resolvedCar.year, d.resolvedCar.make, d.resolvedCar.model, d.resolvedCar.trim].filter(Boolean).join(" ") : null) || null;
+    var headName = d.baseLabel || carLabel(d.resolvedCar) || lastQuery || "";
+    var question = d.prompt || (isGen ? "Which generation is it?" : "Which one is it?");
+    var links = (opts || []).map(function (o) {
+      if (kind === "gen") return '<button type="button" class="linkbtn" data-genquery="' + esc(o.query) + '">' + esc(o.label) + " &#8594;</button>";
+      var attr = kind === "model" ? "data-model" : "data-body";
+      return '<button type="button" class="linkbtn" ' + attr + '="' + esc(o) + '">' + esc(o) + " &#8594;</button>";
+    }).join(" ");
+    renderQuestion(
+      '<section class="hero2col idq-takeover-wrap" data-stage="answer"><div class="hero-left">' +
+      '<p class="eyebrow hero-label">Market Check</p>' +
+      (headName ? ('<h1 class="hero-carname">' + esc(headName) + "</h1>") : "") +
+      '<h2 class="range ink">' + lint(esc(question), "choice.q") + "</h2>" +
+      '<p class="hero-scope" data-stage="answer">The range changes with the answer.</p>' +
+      '<p class="hero-idline idq-choices" data-stage="answer">' + links + "</p>" +
+      "</div></section>"
+    );
   }
   // Identity question (Round 4 Job 3 engine contract, Lane A render job): dimension/options/
   // skipLabel are the engine's own identityQuestion payload, nothing computed here. Round 6 Job 4
@@ -2520,9 +2592,18 @@
         runPool(text, null);
       }).catch(function () { runPool(text, null); });
   }
+  // FLATTENED (Job 3, Sam's follow-up round): same no-box shell as renderChoice above. Click
+  // handlers are the SAME two id-based listeners the boxed version used, unchanged.
   function renderVinConfirm(question, vehicle) {
-    renderQuestion(qscreenHtml(lint(esc(question || "Is this the car?"), "vinconfirm"),
-      '<div class="chips"><button type="button" class="chip" id="ob-vin-yes">Yes, that’s it</button><button type="button" class="chip ghost" id="ob-vin-no">No, type it instead</button></div>', "One question first", ""));
+    renderQuestion(
+      '<section class="hero2col idq-takeover-wrap" data-stage="answer"><div class="hero-left">' +
+      '<p class="eyebrow hero-label">Market Check</p>' +
+      '<h2 class="range ink">' + lint(esc(question || "Is this the car?"), "vinconfirm") + "</h2>" +
+      '<p class="hero-idline idq-choices" data-stage="answer">' +
+      '<button type="button" class="linkbtn" id="ob-vin-yes">Yes, that’s it &#8594;</button>' +
+      '<button type="button" class="linkbtn" id="ob-vin-no">No, type it instead</button>' +
+      "</p></div></section>"
+    );
     var yes = document.getElementById("ob-vin-yes"), no = document.getElementById("ob-vin-no");
     if (yes) yes.addEventListener("click", function () { runPool(lastQuery, pendingVin); });
     if (no) no.addEventListener("click", function () { vinAnchor = null; pendingVin = null; renderEmpty(); });

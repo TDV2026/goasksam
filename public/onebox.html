@@ -46,7 +46,7 @@
 :root{
   --page:#F6F3EC; --card:#FFFFFF; --border:#DCD8CC; --ink:#15201A; --green:#1E4D38; --green-dk:#15372A;
   --sec:#5E6B63; --div:#E2DED3; --take:#F1F5F1; --live:#2E8B57; --ph:#E6E2D8; --ph-ink:#4A564F;
-  --soft:#3C4942; --chip:#C9D6CC; --tint:#EDF3EE; --tint-line:#D5E2D8;
+  --soft:#3C4942; --chip:#C9D6CC; --tint:#EDF3EE; --tint-line:#D5E2D8; --amber:#C9971E;
   --serif:"Newsreader",Georgia,"Times New Roman",serif;
   --sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   color-scheme:light;
@@ -123,7 +123,7 @@ button{font:inherit}
 .hero-left{display:flex;flex-direction:column;gap:10px;min-width:0;padding-right:36px;border-right:1px solid var(--div)}
 .hero-right{min-width:0}
 .hero-label{margin:0}
-.hero-carname{margin:2px 0 0;font:600 40px/1.2 var(--serif);letter-spacing:-.01em;color:var(--ink);text-wrap:balance}
+.hero-carname{margin:2px 0 0;font:600 32px/1.2 var(--serif);letter-spacing:-.01em;color:var(--ink);text-wrap:balance}
 .hero-scope{margin:2px 0 0;font:400 17px/1.5 var(--sans);color:var(--sec)}
 .hero-noband{margin:2px 0 0;font:400 17px/1.4 var(--serif);color:var(--ink)}
 /* The info dot beside "WHERE THE MIDDLE HALF SOLD": a native title-attribute tooltip, no JS, no new
@@ -131,8 +131,8 @@ button{font:inherit}
    built fresh rather than reusing something that turned out not to exist yet. */
 .infodot{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--sec);color:var(--sec);font:600 10px/1 var(--sans);margin-left:2px;vertical-align:middle;cursor:default}
 .infodot::before{content:"i"}
-.hero2col .range{margin-top:2px;font-size:72px;line-height:1.05}
-.hero2col .range .to{font-size:40px}
+.hero2col .range{margin-top:2px;font-size:44px;line-height:1.1}
+.hero2col .range .to{font-size:26px}
 .hero-divider{height:1px;background:var(--div);margin:10px 0 0}
 .hero-idline{margin:2px 0 0;font:400 17px/1.6 var(--sans);color:var(--sec)}
 .hero-idlink{font-size:17px}
@@ -154,8 +154,12 @@ button{font:inherit}
 /* Right column, hero: "How this market has moved" - candles when the engine answer carries trend,
    else the strip (every sale as a dot on a lowest-to-highest line). No card surface, no photo. */
 .hero-chart{display:flex;flex-direction:column;gap:10px}
-.hero-chart h2{margin:0;font:500 24px/1.25 var(--serif);color:var(--ink)}
-.hc-svg{width:100%;height:300px;display:block;overflow:visible}
+.hero-chart h2{margin:0;font:600 20px/1.3 var(--serif);color:var(--ink)}
+/* aspect-ratio (not a fixed px height): the SVG's own viewBox is cut to the SAME ratio (see
+   candleChartHtml/stripChartHtml, js/onebox.js), so the chart always fills its box edge to edge at
+   any column width - a fixed height paired with a mismatched viewBox ratio was leaving empty space
+   below the content once preserveAspectRatio="meet" scaled to fit the narrower dimension. */
+.hc-svg{width:100%;aspect-ratio:16/9;display:block}
 .hc-legend{display:flex;flex-wrap:wrap;gap:16px;align-items:center;font:400 13px/1.3 var(--sans);color:var(--sec)}
 .hc-legend-sw{display:inline-flex;align-items:center;gap:6px}
 .hc-legend-box{width:12px;height:12px;border-radius:2px;background:var(--chip);display:inline-block}
@@ -172,10 +176,21 @@ button{font:inherit}
 .idq-choices{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:6px}
 .idq-choices .linkbtn{font-size:16px}
 
+/* ---- this car's own sales (Job 2, Sam's follow-up round): flat rows, no box/pill/badge - one
+   line per real sale, a plain closing sentence placing the last one against the range. ---- */
+.exactsales{display:flex;flex-direction:column;gap:2px;padding-top:14px;border-top:1px solid var(--border)}
+.exactsales h2{margin:0 0 6px;font:600 22px/1.3 var(--serif)}
+.exactsale-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px;padding:10px 0;border-top:1px solid var(--div);font:400 16px/1.4 var(--sans);color:var(--ink)}
+.exactsale-row:first-of-type{border-top:0}
+.exactsale-price{font:600 17px/1.2 var(--serif)}
+.exactsale-venue,.exactsale-miles{color:var(--sec)}
+.exactsale-view{margin-left:auto}
+.exactsale-note{margin:8px 0 0;font:400 16px/1.5 var(--sans);color:var(--soft)}
+
 /* ---- sales row ("Sales behind this answer"): three borderless cards, no labels, no shadows,
    separated by thin vertical dividers, never boxed like the comparable-sales grid below it. ---- */
 .salesrow{display:flex;flex-direction:column;gap:14px;padding-top:14px;border-top:1px solid var(--border)}
-.salesrow h2{margin:0;font:500 28px/1.25 var(--serif)}
+.salesrow h2{margin:0;font:600 22px/1.3 var(--serif)}
 .salesrow-sub{margin:0;font:400 17px/1.5 var(--sans);color:var(--sec)}
 /* gap:40px (not padding on each card): every card gets the SAME width, so the three fixed-aspect
    photos render at the SAME height - a per-card padding that drops on the first/last child (the
@@ -186,7 +201,7 @@ button{font:inherit}
 .salescard+.salescard::before{content:"";position:absolute;left:-20px;top:0;bottom:0;width:1px;background:var(--div)}
 .salescard .ph{border-radius:2px;aspect-ratio:3/2}
 .salescard-body{display:flex;flex-direction:column;gap:2px;margin-top:10px}
-.salescard-price{margin:0;font:600 24px/1.1 var(--serif);color:var(--ink);font-variant-numeric:tabular-nums}
+.salescard-price{margin:0;font:600 20px/1.2 var(--serif);color:var(--ink);font-variant-numeric:tabular-nums}
 .salescard-title{margin:0;font:500 16px/1.35 var(--sans);color:var(--ink)}
 .salescard-meta{margin:0;font:400 15px/1.4 var(--sans);color:var(--sec)}
 a.salescard:hover .salescard-title{text-decoration:underline;text-underline-offset:3px}
@@ -247,7 +262,7 @@ a.salescard:hover .salescard-title{text-decoration:underline;text-underline-offs
 
 /* ---- section head ---- */
 .sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding-top:14px;border-top:1px solid var(--border)}
-.sec-head h2{margin:0;font:500 28px/1.25 var(--serif)}
+.sec-head h2{margin:0;font:600 22px/1.3 var(--serif)}
 .sec-head .scope{display:block;font:400 17px/1.45 var(--sans);color:var(--sec);margin-top:2px}
 .sec-head .linkbtn{white-space:nowrap}
 .sep-note{margin:0;font:400 17px/1.5 var(--sans);color:var(--sec);max-width:68ch}
@@ -401,7 +416,11 @@ a.sb-line:hover{color:var(--green)}
 .lp-ends{display:block;font:400 15px/1.3 var(--sans);color:var(--sec)}
 .lp-bid b{font:600 20px/1.2 var(--serif);color:var(--ink);font-weight:600;white-space:nowrap}
 .lp-bidtime{display:block;font:400 15px/1.3 var(--sans);color:var(--sec)}
-.lp-vsrange{font:400 16px/1.3 var(--sans);color:var(--ink)}
+.lp-vsrange{font:400 16px/1.3 var(--sans);color:var(--ink);display:inline-flex;align-items:center;gap:7px}
+.lp-dot{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block}
+.lp-dot-within{background:var(--live)}
+.lp-dot-above{background:var(--amber)}
+.lp-dot-below{background:var(--sec)}
 @media (max-width:640px){
   .lptable,.lptable thead{display:block}
   .lptable thead{display:none}
@@ -511,7 +530,7 @@ a.sb-line:hover{color:var(--green)}
   .ev-why-note,.ev-aside-note{padding:10px 0 0}
   .landed{font-size:18px}
   .sec-head{display:block;padding-top:14px}
-  .sec-head h2,.salesrow h2{font-size:24px}
+  .sec-head h2,.salesrow h2{font-size:19px}
   .sec-head .scope{font-size:16px}
   .capshow{margin-top:10px}
   .cards5{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
@@ -534,12 +553,11 @@ a.sb-line:hover{color:var(--green)}
      the chart below it, identity line, then the sales row stacked (photo left, text right). ---- */
   .hero2col{grid-template-columns:1fr;gap:18px}
   .hero-left{border-right:0;padding-right:0}
-  .hero-carname{font-size:30px}
+  .hero-carname{font-size:24px}
   .hero-scope,.hero-miles,.hero-miles-sub,.salesrow-sub,.lp-summary,.samonit p{font-size:16px}
-  .hero2col .range{font-size:48px}
-  .hero2col .range .to{font-size:28px}
+  .hero2col .range{font-size:28px}
+  .hero2col .range .to{font-size:18px}
   .hero-idline,.hero-idlink{font-size:16px}
-  .hc-svg{height:300px}
   .lptable td,.allsales-table td,.lp-title,.lp-venue,.lp-vsrange,.dist-label,.dist-count{font-size:15px}
   .lp-ends,.lp-bidtime,.sep-note,.ev-why-note p{font-size:14px}
   .salescards{grid-template-columns:1fr;gap:16px}
@@ -548,7 +566,7 @@ a.sb-line:hover{color:var(--green)}
   .salescard+.salescard{border-top:1px solid var(--div);padding-top:16px}
   .salescard .ph{width:110px;flex:none;aspect-ratio:3/2}
   .salescard-body{margin-top:0}
-  .salescard-price{font-size:20px}
+  .salescard-price{font-size:17px}
   .salescard-title{font-size:15px}
   .salescard-meta{font-size:14px}
   .sellbox{flex-direction:column;align-items:flex-start;gap:12px;padding:20px 14px}
