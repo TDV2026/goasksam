@@ -6659,7 +6659,48 @@ in this diff touches SSR head tags).
 ## Lane A: Market Check result page rebuilt to the new locked spec (2026-10-13)
 
 Commits: ed97110 (the rebuild), 344f701 (fix: Sales behind this answer heading was still 28px at
-phone - caught by this round's own measured-report pass).
+phone - caught by this round's own measured-report pass), bff5e72 (fix: read Lane B's REAL trend/
+distribution/contextRoles shapes - see the note right after this list; Lane B's Part 5/6 fields
+landed on main mid-round, after the dormant-field code below was already written against a guess).
+
+IMPORTANT CORRECTION, read before the rest of this report: Lane B's Part 5/6 commit (49a509b,
+rebased in after most of this round's own code was written) shipped `trend`, `distribution` and
+`contextRoles` with real shapes that differ from what the dormant-field code originally guessed.
+Fixed in bff5e72, confirmed against fixtures in the REAL shape:
+  - `d.trend` is `{quarters:[{period,low,high,typical,count}], priorYear:{low,high}|null}` - NOT a
+    bare array, and `priorYear` lives inside it, not as a separate top-level `d.priorYear`. The
+    original code's `Array.isArray(d.trend)` check would have been false forever against the real
+    field - candles would silently never have fired. Fixed.
+  - Distribution buckets carry `low`/`high` (no `label`) and `typicalBucket` (not `typical`). The
+    band label ("$95,000 to $114,999") is composed from low/high here - both real engine numbers,
+    through the same `usd()` every other dollar figure on the page already uses, never invented -
+    half-open except the last bucket, matching `distributionFor`'s own `< bHi` / `<= bHi` split.
+  - `d.contextRoles` is `{roles:[{role, sale}], sentence}`, not `{sales:[...], sentence}` -
+    `salesRowHtml` now maps `roles[].sale`.
+  - `d.scopeLabel` is a verbatim copy of `d.rungLabel` whenever the latter is a string (confirmed by
+    reading lib/onebox.js) - the existing `heroScopeText`/`yearsClauseOf` reading `d.rungLabel` are
+    therefore already reading the right value under its pre-existing name; left unchanged rather than
+    a no-op rename.
+  - `d.liveScope` is a real sentence ("Comparing live listings to {scope} against {range}.") but its
+    own wording carries no count/placing information, while the brief's own live-panel example
+    ("Three comparable cars are live, 2024 to 2025.") is clearly count-led - so the live panel below
+    still composes its own count/placing sentence (`liveSummarySentence`, built from the real live
+    rows) plus the matched years, rather than printing `d.liveScope` verbatim, which would have
+    dropped the count/placing fact the brief's own example keeps. Flagging the mismatch rather than
+    silently picking one.
+  - `d.identityQuestion` (the NEW unified trim-or-body field, `{dimension, prompt, options:[{label,
+    n}]}`) is attached to a full "result" tier answer that ALSO has a range - it is not the blocking
+    takeover case this round's own "Identity question first" work already covers (that is a separate,
+    already-correct mechanism for genuinely blocking tiers). Left unconsumed this round: it looks like
+    a candidate to unify/replace the existing inline trim/body links (`heroTrimLineHtml`/
+    `heroBodyLineHtml`, untouched this round, still reading the older `d.trimQuestion`/`d.bodyOptions`
+    and still working), but that is a product-UI call outside what this round's brief described, not
+    mine to make unprompted.
+  - `d.strip` (`{sales:[{date,price,miles,venue,id}], latestSale}`) is real but carries no title/url/
+    image - too thin for the chart's own tooltip-and-click requirement. The strip chart keeps reading
+    `d.cards` (range tier) / the thin tier's own `scope`-derived cards (`thinCardsFrom`) instead -
+    both are the exact same underlying pool `d.strip` is built from, just richer, and for the thin
+    tier specifically, scope-aware in the one case (an answered intake split) where `d.strip` is not.
 
 This round replaced the brief's own opening framing ("the complete and only Market Check result
 page spec") literally: every section named in it was rebuilt or newly added, and everything not
@@ -6683,9 +6724,18 @@ my scope - "Do not edit ... vercel.json") - the script tag still points at the e
 `/obx.20261014n/` folder, so whoever deploys this needs a new `/obx.20261014o/` entry added there
 first or the CDN may keep serving the previous round's cached JS. Flagging, not fixing.
 
+Second verification pass: Lane B's Part 5/6 commit (49a509b) landed and was rebased in partway
+through this round, after the proof above was already captured - re-verified the three fields whose
+shape actually changed rendering logic (trend/distribution/contextRoles) against fixtures built in
+their REAL shape (read straight from lib/onebox.js's own trendFor/distributionFor/contextRolesFor,
+not guessed) - see the correction note right after the commit list above, and
+stubbed-1440.png/stubbed-390.png (regenerated after the fix). Still a local render, for the same
+production-access reasons.
+
 HERO. Right column is no longer a single receipt card - it is `heroChartHtml`: candles when
-`d.trend` is an array of 3+ `{period/label, low, high, typical, count}` quarters (none shipped yet -
-grepped lib/onebox.js, absent), else a strip built from the tier's own card list (`d.cards` on a
+`d.trend.quarters` has 3+ qualifying `{period, low, high, typical, count}` entries (confirmed live
+on main as of this round, via Lane B's Part 5/6 - see the correction note above for the exact
+shape), else a strip built from the tier's own card list (`d.cards` on a
 range answer, the thin tier's own receipts adapted by the new `thinCardsFrom` helper) with the
 middle-half band (`d.cluster`) shaded behind it when one exists, never on the thin tier. Every dot
 and the latest-sale highlight carry a native-title tooltip (the same pattern the existing info dot
@@ -6703,8 +6753,9 @@ mocked 1.2s-delayed fetch: dimmed state at 400ms shows opacity 0.4 on both the r
 with the field still holding "5000", the post-response state shows opacity 1 and the real narrowed
 range "$119,000 to $135,000", at no point does the page blank or navigate).
 
-SALES BEHIND THIS ANSWER. Cards/subhead prefer `d.contextRoles.sales`/`.sentence` (dormant, grepped
-absent); fall back to the range tier's own `d.representative` trio (closest/high/low - a real,
+SALES BEHIND THIS ANSWER. Cards/subhead prefer `d.contextRoles.roles[].sale`/`.sentence` (confirmed
+live on main via Lane B's Part 5/6, shape corrected per the note above); fall back to the range
+tier's own `d.representative` trio (closest/high/low - a real,
 already-shipped editorial selection, not an arbitrary "first three" - its own semantics already
 match the brief's fallback sentence word for word, so I kept it rather than literally picking
 `cards[0:3]`); a tier with neither (thin, below the range threshold) falls back to the caller's own
@@ -6735,9 +6786,11 @@ cap before `.allsales-table tbody[hidden]{display:none}` was added back explicit
 390px screenshot of the 42-sale car, confirmed fixed (10 of 42 rows visible, by actual
 `getBoundingClientRect` check, not just DOM count).
 
-HOW THIS MARKET IS DISTRIBUTED. New section, `d.distribution.buckets[{label,count,receipts,typical}]`
-(dormant, grepped absent) - bucket rows with a proportional bar (pale green, deep green on the
-engine-flagged typical bucket), count as a digit, no percentages ever. Clicking a row opens its own
+HOW THIS MARKET IS DISTRIBUTED. New section, `d.distribution.buckets[{low,high,count,receipts,
+typicalBucket}]` (confirmed live on main via Lane B's Part 5/6, shape corrected per the note above;
+the band label is composed from low/high here, not an engine-provided `label`) - bucket rows with a
+proportional bar (pale green, deep green on the engine-flagged typical bucket), count as a digit, no
+percentages ever. Clicking a row opens its own
 receipts; opening one closes any other open row in the same group (one `data-distgroup` id per
 section). Subhead reuses `heroPoolSizeNum`/`yearsClauseOf` - never a second count/year computation.
 
@@ -6781,16 +6834,19 @@ a Task Line ("Have Sam keep looking") for the first time - it never called `samO
 since the brief's order list applies with no tier carve-out and the copy is tier-agnostic, I added it
 rather than leave a gap only the thin tier has.
 
-FIELD NAMES READ (all per Lane B's engine-answer contract, grepped against lib/onebox.js /
-api/sellerDecision.js this round - none except `identityQuestion`/`rungLabel` exist on the wire yet,
-confirmed absent, not merely unused): `d.trend` (candles), `d.priorYear` (the grey comparison line
-under the candles), `d.distribution` (the new section), `d.contextRoles` (sales-row cards/subhead),
-`d.identityQuestion` (already live, unchanged this round), `d.rungLabel` read as the "scopeLabel"
-equivalent (no field literally named `scopeLabel` exists; `rungLabel` is what `heroScopeText` already
-read before this round and is what `yearsClauseOf` pulls years from for both the distribution subhead
-and the live panel's scope sentence) - there is no engine "live scope" field either, so the live panel
-approximates it by appending `yearsClauseOf(d)` to its own count/placing sentence rather than
-inventing a number.
+FIELD NAMES READ - UPDATED after the correction above (Lane B's Part 5/6, commit 49a509b, landed on
+main mid-round and was rebased in): `d.trend.quarters[]` / `d.trend.priorYear` (candles + the grey
+comparison line), `d.distribution.buckets[]` (low/high/count/receipts/typicalBucket - the new
+section), `d.contextRoles.roles[].sale` / `.sentence` (sales-row cards/subhead), `d.identityQuestion`
+(the pre-existing gearbox/competition/documented-history shape, unchanged this round - the NEW
+trim-or-body `d.identityQuestion` shape Lane B also shipped is a different, additive field on the
+SAME name and is read nowhere this round, see the correction note above), `d.rungLabel` (and its
+exact-copy `d.scopeLabel`, confirmed equivalent, not switched to) for the scope line and for
+`yearsClauseOf`'s years clause (used by both the distribution subhead and the live panel's scope
+sentence, in place of a dedicated "live scope" field whose real content - `d.liveScope` - does not
+carry the count/placing fact the brief's own live-panel example needs; see the correction note).
+`d.strip` exists and is real but is not the chart's dot source (see the correction note); the strip
+chart reads `d.cards` / `thinCardsFrom(scope)` instead, the same underlying pool, richer shape.
 
 MEASURED REPORT (2025 Porsche 911 fixture, local render, Chrome headless via puppeteer-core,
 `getComputedStyle`):
@@ -6830,9 +6886,11 @@ SCREENSHOTS (1440 and 390 unless noted; /Users/davidzysblat/Desktop/goasksam-pro
     full opacity with "Add mileage..." -> 40% opacity on the range+chart with "Range narrowed around
     5,000 miles." and the field still showing 5000 -> full opacity restored with the real narrowed
     range ($119,000 to $135,000), page never left throughout.
-  stubbed-1440.png / stubbed-390.png - the 911 again with a hand-built `d.trend`/`d.priorYear`/
-    `d.distribution`, a visible red "STUBBED" banner marking it as such, proving the candle chart and
-    the distribution section before Lane B ships either field.
+  stubbed-1440.png / stubbed-390.png - the 911 again with a hand-built `d.trend`/`d.distribution`/
+    `d.contextRoles` fixture in the REAL shape (regenerated after the field-shape correction above),
+    a visible red "STUBBED" banner left in place since the underlying data is still a fixture, not a
+    live answer - proves the candle chart, the distribution section and the contextRoles-sourced
+    sales row all render correctly against the real field shapes.
   measurements.json in the same folder - the raw getComputedStyle/violation/console data behind the
   table above, one entry per screenshot.
 
