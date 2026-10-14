@@ -73,6 +73,12 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   const b = askRule(xs, { p: { make: "Porsche", model: "911" }, v: { make: "Porsche", model: "911", genCode: "997" }, distance: { estimate: 15, maxShare: 0.4 } });
   ok(b.map(q => q.dim).join(",") === "body,distance" && b[1].zipAsk && /Enter a zip or choose Anywhere/.test(b[1].q), `the zip question comes last (got ${b.map(q => q.dim)})`);
   ok(Math.abs(removalOf({ chips: [{ n: 10 }, { n: 10 }] }, 20) - 10) < 1e-9 && ASK_STOP_SHARE === 0.25, "removal arithmetic and the stop share");
+  // Cumulative: the cars past the last chip are reached only by Any (removes nothing). Live Oct 14: 12 997 Carreras, six
+  // under 50,000 miles, six over: mileage removes 3, the body (7 coupes, 5 cabriolets) 5.8, so the body is asked.
+  ok(Math.abs(removalOf({ chips: [{ n: 6 }], bands: [6, 6], cumulative: true }, 12) - 3) < 1e-9, "a cumulative chip's removal counts the cars past it at zero");
+  const live997 = [...many(4, { body: "coupe", gearbox: "manual", miles: 30000 }), ...many(3, { body: "coupe", gearbox: "manual", miles: 80000 }), ...many(3, { body: "cabriolet", gearbox: "manual", miles: 90000 }), car({ body: "cabriolet", gearbox: "auto", miles: 20000 }), car({ body: "cabriolet", gearbox: "auto", miles: 40000 })];
+  const q997 = askRule(live997, { p: { make: "Porsche", model: "911", generation: "997", trim: "Carrera" }, v: { make: "Porsche", model: "911", genCode: "997", trim: "Carrera" } });
+  ok(q997[0] && q997[0].dim === "body" && !q997.some(q => q.dim === "gearbox"), `the live 997 Carrera split asks the body, the gearbox skipped at 10 of 12 (got ${q997.map(q => q.dim + ":" + q.why.removes)})`);
 }
 
 // ---- 2. spec chips
