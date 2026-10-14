@@ -226,46 +226,33 @@
     });
     return headline + " " + out.join(", ") + ".";
   }
-  // Status pill text from the engine's own placing field ("inside the range"/"below the range"/
-  // "above the range", lib/live/search.js placingFor) - sentence-cased here, CSS (.pill,
-  // text-transform:uppercase) renders it in caps like every other pill. Never green or red (Job 8,
-  // result-page-polish round): .lp-pos below is the same neutral-ink treatment the context cards'
-  // Above/Below range pill already uses.
+  // Status text from the engine's own placing field ("inside the range"/"below the range"/"above
+  // the range", lib/live/search.js placingFor) - "Within the range" (not "Inside") to match the
+  // Market Check result-page spec's own VS. RANGE wording exactly. Plain ink text, never a pill or
+  // a coloured dot (Job 8, result-page-polish round, carried forward: never green or red).
   function placingPillText(placing) {
-    if (placing === "inside the range") return "Inside the range";
+    if (placing === "inside the range") return "Within the range";
     if (placing === "below the range") return "Below the range";
     if (placing === "above the range") return "Above the range";
     return "";
   }
-  // Live bid age (Part 4, result-hero job, Oct 2026): a stored bid over an hour old never reads as
-  // current - it is a listing FACT with its own time, "Last bid we saw: $42,000 at 4:12pm PT.",
-  // never a live number with an "updated Xh ago" badge bolted on (the old treatment, replaced).
-  // Mirrors lib/tasks/bidTime.js's bidState/bidTimePT/lastBidLine verbatim (same TZ, same wording) -
-  // this script has no module system (plain <script>, no bundler), the same reason api/history.js's
-  // own BID_AGE_JS already duplicates its small formatting helpers inline rather than importing them
+  // bidTimePT mirrors lib/tasks/bidTime.js's own helper verbatim (same TZ, same wording) - this
+  // script has no module system (plain <script>, no bundler), the same reason api/history.js's own
+  // BID_AGE_JS already duplicates its small formatting helpers inline rather than importing them
   // into a browser context that cannot resolve ES module imports.
-  var BID_FRESH_MS = 3600e3;
   function bidTimePT(at) {
     var d = new Date(at), tz = "America/Los_Angeles";
     var dayPT = function (x) { return x.toLocaleDateString("en-US", { timeZone: tz }); };
     var time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: tz }).replace(" AM", "am").replace(" PM", "pm");
     return time + " PT" + (dayPT(d) === dayPT(new Date()) ? "" : " on " + d.toLocaleDateString("en-US", { weekday: "long", timeZone: tz }));
   }
-  function lastBidLine(amount, at) { return "Last bid we saw: " + amount + " at " + bidTimePT(at) + "."; }
-  // Flips a still-watched row's bold text from "Current bid $X" to the lastBidLine sentence the
-  // moment it crosses the one-hour mark while the page stays open - never a second badge, the
-  // number's own line becomes the honest "we saw, we're not still watching" fact. Stops watching an
-  // element once flipped (removes data-bidat) - it can only go stale once.
-  function stampBids() {
-    Array.prototype.forEach.call(document.querySelectorAll("[data-bidat]"), function (el) {
-      var t = Date.parse(el.getAttribute("data-bidat"));
-      if (isNaN(t) || Date.now() - t <= BID_FRESH_MS) return;
-      var b = el.querySelector("b");
-      if (b) b.textContent = lastBidLine(el.getAttribute("data-bidamt") || "", el.getAttribute("data-bidat"));
-      el.removeAttribute("data-bidat");
-    });
-  }
-  var obBidStampTimer = null;
+  // LIVE RIGHT NOW (Market Check result-page spec, Oct 2026): a plain table - CAR / VENUE / LAST BID
+  // WE SAW / VS. RANGE. "The existing rule stays" (the brief's own words): no amount is ever shown
+  // without an honest basis - a fixed price reads "Asking $X", a real bid reads "Current bid $X"
+  // with its own "at HH:MMam PT" time underneath when the engine gave one, and nothing at all reads
+  // "No bids yet" - exactly today's fallback tree, just laid out as two lines (amount, then time)
+  // instead of one sentence. No live-listings mileage field exists on this response (api/buySearch.js,
+  // Lane C) - the CAR cell is photo + name only; flagged in docs/lane-notes.md, not fabricated here.
   function loadLivePanel(d, m) {
     var slot = document.getElementById("ob-live"); var rc = d && d.resolvedCar;
     if (!slot || !rc || !rc.make || !rc.model) return;
@@ -278,59 +265,36 @@
       (band ? "&lo=" + Math.round(band[0]) + "&hi=" + Math.round(band[1]) : "");
     fetch(API_ORIGIN + "/api/buySearch?" + qs).then(function (r) { return r.json(); }).then(function (j) {
       if (!j || !(j.count > 0) || !j.rows || !j.rows.length || !document.body.contains(slot)) return;
-      // Compact rows (Job 4, result-page-polish round): the car leads, not the venue - a small fixed-
-      // box thumbnail (same placeholder-box pattern as .ph elsewhere, so a missing photo never
-      // changes row height), the title as the primary line, "{venue} · Ends {when}" as the secondary
-      // line, the bid visible but modest size, and a neutral-ink position pill from the engine's own
-      // placing field when a range exists to judge it against.
       var rows = j.rows.map(function (l) {
         var amt = l.current_bid_usd ? usd(l.current_bid_usd) : (l.current_bid ? Math.round(l.current_bid).toLocaleString("en-US") + " " + l.currency : "");
-        // Part 4 (result-hero job, Oct 2026): a bid already over an hour old at render time reads as
-        // the honest past-tense fact straight away ("Last bid we saw: $X at 4:12pm PT."), never
-        // "Current bid $X" for even a moment. No asking price, no live end time already passed (a
-        // dead listing's bid age is not meaningful either way).
-        var live = !l.end_time || Date.parse(l.end_time) > Date.now();
-        var bidAtMs = l.bid_at ? Date.parse(l.bid_at) : NaN;
-        var isOld = !!(amt && !l.fixedPriceUsd && live && Number.isFinite(bidAtMs) && (Date.now() - bidAtMs > BID_FRESH_MS));
-        var bidText = l.fixedPriceUsd ? "Asking " + usd(l.fixedPriceUsd) : isOld ? lastBidLine(amt, l.bid_at) : (amt ? "Current bid " + amt : "No bids yet");
-        // data-bidat/data-bidamt (still-fresh rows only): stampBids watches these while the page
-        // stays open and flips the bold text to the same lastBidLine sentence the moment this bid
-        // crosses the one-hour mark - never a second line, the number's own text becomes the fact.
-        var showAge = l.bid_at && amt && !l.fixedPriceUsd && live && !isOld;
-        var bidB = showAge
-          ? ('<span class="lp-bidwrap" data-bidat="' + esc(l.bid_at) + '" data-bidamt="' + esc(amt) + '"><b>' + esc(bidText) + "</b></span>")
-          : ('<b>' + esc(bidText) + "</b>");
-        var pillText = placingPillText(l.placing);
+        var amountText = l.fixedPriceUsd ? "Asking " + usd(l.fixedPriceUsd) : (amt ? "Current bid " + amt : "No bids yet");
+        var timeText = (!l.fixedPriceUsd && amt && l.bid_at) ? ("at " + bidTimePT(l.bid_at)) : "";
+        var vsrange = placingPillText(l.placing);
         var photo = l.photo_url ? '<img src="' + esc(l.photo_url) + '" alt="" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()">' : "";
-        // Round 6 Job 1 (tracking fix): data-gas-source must carry the platform SLUG (l.source_slug,
-        // the engine's own raw value), never l.source (the display name used in the visible line
-        // just below, unchanged) - and data-gas-listing-id carries the record's own id, so the shared
-        // click handler (lib/appShell.js) can send auction_clickout with the real platform and which
-        // car was actually clicked, not the venue's pretty name with no listing id at all.
-        // lp-placing (follow-up round, Oct 2026): plain small-caps grey text under the bid, never a
-        // pill - "no pills" below the sales row.
-        return '<a class="lp-row" href="' + esc(utmUrl(l.url)) + '" target="_blank" rel="noopener noreferrer" data-gas-event="auction_clickout" data-gas-source="' + esc(l.source_slug || "") + '" data-gas-listing-id="' + esc(l.id != null ? l.id : "") + '">' +
-          '<span class="lp-ph' + (l.photo_url ? "" : " noimg") + '">' + photo + '<span class="none">No photo</span></span>' +
-          '<span class="lp-body"><span class="lp-title">' + esc(cleanReceiptTitle(l.title)) + '</span><span class="lp-sub">' + esc([l.source, endsShort(l.end_time)].filter(Boolean).join(" · ")) + '</span></span>' +
-          '<span class="lp-bid">' + bidB + (pillText ? '<span class="lp-placing">' + esc(pillText) + "</span>" : "") + "</span></a>";
+        var href = utmUrl(l.url);
+        // Round 6 Job 1 (tracking fix, carried forward): data-gas-source carries the platform SLUG
+        // (l.source_slug), never l.source (the display name used in the VENUE cell).
+        var gasAttrs = ' data-gas-event="auction_clickout" data-gas-source="' + esc(l.source_slug || "") + '" data-gas-listing-id="' + esc(l.id != null ? l.id : "") + '"';
+        return "<tr><td><span class=\"lp-car\"><span class=\"lp-ph" + (l.photo_url ? "" : " noimg") + "\">" + photo + '<span class="none">No photo</span></span>' +
+          '<span class="lp-cbody"><a class="lp-title" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer"' + gasAttrs + ">" + esc(cleanReceiptTitle(l.title)) + "</a></span></span></td>" +
+          '<td><span class="lp-venue">' + esc(l.source || "") + '</span><span class="lp-ends">' + esc(endsShort(l.end_time)) + "</span></td>" +
+          '<td class="lp-bid"><b>' + esc(amountText) + "</b>" + (timeText ? ('<span class="lp-bidtime">' + esc(timeText) + "</span>") : "") + "</td>" +
+          '<td class="lp-vsrange">' + esc(vsrange) + "</td></tr>";
       }).join("");
       var q = (m && m.displayName) || carLabel(rc);
+      // The live scope (Market Check result-page spec): the engine's own live sentence plus the SAME
+      // matched years the hero's scope line already carries (yearsClauseOf, off d.rungLabel) - never
+      // a second, independently-computed scope.
+      var years = yearsClauseOf(d);
       var summary = liveSummarySentence(j.count, j.rows);
+      var scopeSentence = years ? (summary + " " + cap(years) + ".") : summary;
       var seeAll = j.count === 1 ? "See it live" : "See all " + obNumWordLow(j.count) + " live";
-      // Heading (follow-up round, Oct 2026): the SAME .sec-head pattern every section below the hero
-      // uses now - serif h2, no eyebrow, no dot (removed per the brief). The summary sentence moves
-      // out of .sec-head's own .scope slot into its own line (lp-summary) since it is a full sentence,
-      // not a short scope phrase, but keeps the identical grey/sans treatment.
       slot.className = "livepanel";
       slot.innerHTML = '<div class="sec-head"><div><h2>Live right now</h2></div></div>' +
-        '<p class="lp-summary">' + lint(esc(summary), "live.summary") + '</p>' + rows +
+        '<p class="lp-summary">' + lint(esc(scopeSentence), "live.summary") + "</p>" +
+        '<table class="lptable"><thead><tr><th class="colhead">Car</th><th class="colhead">Venue</th><th class="colhead">Last bid we saw</th><th class="colhead">Vs. range</th></tr></thead><tbody>' + rows + "</tbody></table>" +
         '<a class="linkbtn" href="/buy?q=' + encodeURIComponent(q) + '">' + esc(seeAll) + " &#8594;</a>";
       slot.hidden = false;
-      // stampBids fills in any .bage rows just rendered, then keeps them current the same way
-      // Buy's own live cards do (a bid that crosses the one-hour mark while this page is open gets
-      // its stamp without a reload).
-      stampBids();
-      if (!obBidStampTimer) obBidStampTimer = setInterval(stampBids, 30000);
     }).catch(function () {});
   }
   // READY TO SELL: a real link into /sell carrying the resolved car + every answered question as URL
@@ -660,34 +624,38 @@
     var t = heroMetaLineText(d);
     return t ? ('<p class="hero-scope" data-stage="answer">' + lint(esc(t), "hero.scope") + "</p>") : "";
   }
-  // Mileage line (left column, item 6): a persistent "Add mileage" field when no mileage refine is
-  // applied yet, or "Range narrowed around N miles." plus a Change link once one is. Change reruns
-  // the SAME search without the mileage refine (data-rmchip="mi", the existing removable-answer
-  // mechanism) rather than patching the DOM by hand.
+  // Mileage line (left column, item 6, Market Check result-page spec): the field is ALWAYS present
+  // once rendered - only the sentence above it switches. Not yet narrowed: "Add mileage to narrow
+  // the range." Narrowed: "Range narrowed around N miles." plus a small "Change" link that only
+  // focuses the (already-visible, still-filled) field - never a rerun/undo (that mechanism,
+  // data-rmchip="mi"/refineWithout, is gone with this round: nothing else ever fed it). Submitting
+  // the field never leaves the page (see submitMileageInline/dimHeroForRerun in wire()): the range
+  // and chart dim in place while the engine reruns, then this line + the range update together.
   // VIN/chassis reconfirm (restored, follow-up round, Oct 2026): a known mileage + sold date from an
   // exact match gets its own question instead of "Add mileage" - "Has the mileage changed? Last
   // reported N miles in Month Year.", the SAME inline field (prefilled with the known mileage), and
   // a quiet sub-line underneath. Checked AFTER the miTarget branch so a VIN reconfirm the visitor has
   // already answered this session correctly shows the normal "Range narrowed around..." state instead
   // of re-asking.
+  function milesFieldHtml(val) {
+    return ' <span class="miles-inline"><input id="ob-miles" type="number" inputmode="numeric" placeholder="e.g. 5,000" aria-label="Mileage"' + (val > 0 ? ' value="' + val + '"' : "") + ' /><span class="mi-unit">miles</span><button type="button" class="linkbtn mi-go" id="ob-miles-go">Go</button></span>';
+  }
   function heroMileageLineHtml(d, m) {
     var rf = obLastRefine || {};
     if (Number(rf.miTarget) > 0) {
       var val = Number(rf.miTarget).toLocaleString("en-US");
       return '<p class="hero-miles on" data-stage="answer">' + lint(esc("Range narrowed around " + val + " miles."), "hero.mi.on") +
-        ' <button type="button" class="linkbtn" data-rmchip="mi">Change</button></p>';
+        ' <button type="button" class="linkbtn" id="ob-miles-change">Change</button>' + milesFieldHtml(rf.miTarget) + "</p>";
     }
     var mi = m && Number(String(m.mileage == null ? "" : m.mileage).replace(/[^\d]/g, ""));
     if (mi > 0 && m.soldDate) {
       var asOf = monthYear(m.soldDate);
       var q = "Has the mileage changed? Last reported " + mi.toLocaleString("en-US") + " miles" + (asOf ? " in " + asOf : "") + ".";
-      return '<p class="hero-miles ask" data-stage="answer">' + lint(esc(q), "hero.mi.rc.q") +
-        ' <span class="miles-inline"><input id="ob-miles" type="number" inputmode="numeric" placeholder="e.g. 5,000" aria-label="Update mileage" value="' + mi + '" /><span class="mi-unit">miles</span><button type="button" class="linkbtn" id="ob-miles-go">Go</button></span></p>' +
+      return '<p class="hero-miles ask" data-stage="answer">' + lint(esc(q), "hero.mi.rc.q") + milesFieldHtml(mi) + "</p>" +
         '<p class="hero-miles-sub" data-stage="answer">' + lint("If it’s different now, update it and the range reruns around the mileage you give.", "hero.mi.rc.sub") + "</p>";
     }
     var pre = (d && Number.isFinite(d.queryMileage) && d.queryMileage > 0) ? d.queryMileage : null;
-    return '<p class="hero-miles ask" data-stage="answer">' + lint("Add mileage to narrow the range.", "hero.mi.ask") +
-      ' <span class="miles-inline"><input id="ob-miles" type="number" inputmode="numeric" placeholder="e.g. 5,000" aria-label="Add mileage"' + (pre ? ' value="' + pre + '"' : "") + ' /><span class="mi-unit">miles</span><button type="button" class="linkbtn" id="ob-miles-go">Go</button></span></p>';
+    return '<p class="hero-miles ask" data-stage="answer">' + lint("Add mileage to narrow the range.", "hero.mi.ask") + milesFieldHtml(pre) + "</p>";
   }
   // Identity line (left column, item 7): EVERY narrower pool the engine already returns with eight
   // or more sales on each side - not only trim. Three independent sources, each its own grey line
@@ -745,38 +713,103 @@
     var lines = heroTrimLineHtml(d) + heroBodyLineHtml(d) + heroGearboxLineHtml(d);
     return lines ? ('<div class="hero-divider"></div>' + lines) : "";
   }
-  // Right column: one receipt card. Photo, the car's own model, miles/venue/month each their own
-  // grey line, a thin divider, "Sold for $X", then two text links. Prefers d.heroReceipt (dormant,
-  // not yet sent by Lane B); falls back to the card passed in by the caller (the representative
-  // closest sale on a range, the highest-priced sale on a thin pool).
-  function heroReceiptHtml(d, fallbackCard, poolSizeOverride) {
-    var c = (d && d.heroReceipt) || fallbackCard;
-    if (!c) return "";
-    var venue = (c.platform && c.platform !== "others") ? c.platform : "";
-    var month = c.month || monShort(c.date);
-    var href = utmUrl(c.url);
-    var gasAttrs = (href && c.id != null) ? (' data-gas-event="receipt_click" data-gas-source="' + esc(c.platformSlug || "") + '" data-gas-listing-id="' + esc(c.id) + '"') : "";
-    var linkAttrs = href ? (' href="' + esc(href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(c.platformSlug || "") + '"' + gasAttrs) : "";
-    var poolSize = Number.isFinite(poolSizeOverride) ? poolSizeOverride : heroPoolSizeNum(d);
-    var moreN = Number.isFinite(poolSize) ? Math.max(0, poolSize - 1) : null;
-    var moreLink = (moreN != null && moreN > 0)
-      ? ('<button type="button" class="linkbtn hr-more" data-scrollto="more-sales">' + esc(obNumWord(moreN) + (moreN === 1 ? " more comparable sale" : " more comparable sales")) + " &#8594;</button>")
-      : "";
-    return '<div class="hero-receipt">' +
-      photoHtml(c.image, cleanReceiptTitle(c.title), "") +
-      '<div class="hr-body"><h2 class="hr-title">' + esc(cleanReceiptTitle(c.title)) + "</h2>" +
-      (longMiles(c) ? ('<p class="hr-meta">' + esc(longMiles(c)) + "</p>") : "") +
-      (venue ? ('<p class="hr-meta">' + esc(venue) + "</p>") : "") +
-      (month ? ('<p class="hr-meta">' + esc(month) + "</p>") : "") +
-      '<div class="hr-div"></div><p class="hr-price">' + lint(esc("Sold for " + usd(c.price)), "hero.receipt.price") + "</p>" +
-      (href ? ('<a class="linkbtn hr-view"' + linkAttrs + ">View original sale &#8594;</a>") : "") +
-      moreLink + "</div></div>";
+  // ================= HERO CHART (Market Check result-page spec, Oct 2026) =================
+  // Right column: "How this market has moved" - candles when the engine answer carries d.trend
+  // (3+ quarters, each with low/high/typical/count), else the strip: every sale in the pool as a
+  // dot on a lowest-to-highest line, the middle-half band behind it when `band` (d.cluster) is
+  // given. Absent entirely when there is nothing to chart - never a placeholder box. d.trend/
+  // d.priorYear are Lane B engine fields, dormant as of this round (grepped lib/onebox.js - not
+  // present yet): read when present, never computed here. Proven via a hand-built stub (see
+  // docs/lane-notes.md) until Lane B ships them live.
+  function usdK(n) { var v = Number(n); return Number.isFinite(v) ? ("$" + Math.round(v / 1000) + "K") : ""; }
+  function chartTip(parts) { return esc(parts.filter(Boolean).join(" · ")); }
+  function candleChartHtml(d) {
+    var qs = (d && Array.isArray(d.trend)) ? d.trend.filter(function (q) { return q && Number.isFinite(Number(q.low)) && Number.isFinite(Number(q.high)) && Number.isFinite(Number(q.typical)); }) : [];
+    if (qs.length < 3) return "";
+    var W = 560, H = 220, padL = 46, padR = 8, padB = 36, padT = 10;
+    var lo = Math.min.apply(null, qs.map(function (q) { return Number(q.low); }));
+    var hi = Math.max.apply(null, qs.map(function (q) { return Number(q.high); }));
+    if (!(hi > lo)) return "";
+    var y = function (v) { return padT + (1 - (v - lo) / (hi - lo)) * (H - padT - padB); };
+    var slot = (W - padL - padR) / qs.length, barW = 36;
+    var grid = "";
+    for (var g = 0; g < 4; g++) {
+      var v = lo + (hi - lo) * g / 3, yy = y(v);
+      grid += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + yy.toFixed(1) + '" y2="' + yy.toFixed(1) + '" stroke="var(--div)" stroke-width="1"/>' +
+        '<text x="' + (padL - 8) + '" y="' + (yy + 4).toFixed(1) + '" text-anchor="end" font-size="13" fill="var(--sec)">' + esc(usdK(v)) + "</text>";
+    }
+    var bars = "";
+    qs.forEach(function (q, i) {
+      var cx = padL + slot * i + slot / 2, ylo = y(Number(q.low)), yhi = y(Number(q.high));
+      var label = String(q.period || q.label || ""), count = digitOf(q.count);
+      var tip = chartTip([label, "Low " + usd(q.low), "Typical " + usd(q.typical), "High " + usd(q.high)]);
+      bars += '<g><title>' + tip + '</title>' +
+        '<rect x="' + (cx - barW / 2).toFixed(1) + '" y="' + yhi.toFixed(1) + '" width="' + barW + '" height="' + Math.max(2, ylo - yhi).toFixed(1) + '" rx="2" fill="var(--chip)"/>' +
+        '<circle cx="' + cx.toFixed(1) + '" cy="' + y(Number(q.typical)).toFixed(1) + '" r="5" fill="var(--green)"/>' +
+        '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 18).toFixed(1) + '" text-anchor="middle" font-size="14" fill="var(--ink)">' + esc(label) + "</text>" +
+        (Number.isFinite(count) ? ('<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 32).toFixed(1) + '" text-anchor="middle" font-size="13" fill="var(--sec)">' + esc(obNumWordLow(count) + " sales") + "</text>") : "") +
+        "</g>";
+    });
+    var svg = '<svg class="hc-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMinYMin meet" role="img" aria-label="Quarterly sale prices">' + grid + bars + "</svg>";
+    var legend = '<div class="hc-legend"><span class="hc-legend-sw"><span class="hc-legend-box"></span>Middle half of sales</span><span class="hc-legend-sw"><span class="hc-legend-dot"></span>Typical sale</span></div>';
+    var py = (d && Array.isArray(d.priorYear) && d.priorYear.length === 2 && Number(d.priorYear[1]) > 0)
+      ? ('<p class="hc-prioryear">' + lint(esc("The year before, the middle half was " + usd(d.priorYear[0]) + " to " + usd(d.priorYear[1]) + "."), "hc.prioryear") + "</p>") : "";
+    return svg + legend + py;
+  }
+  // The strip: lowest-to-highest line, the middle-half band behind it (when `band` is given - never
+  // on the thin tier), every sale a dot, the latest sale its own highlighted dot. `cards` is the
+  // tier's own full sale list (d.cards on a range answer; the thin tier's own scoped receipts,
+  // mapped to the same price/title/date shape, on a thin answer).
+  function stripChartHtml(cards, band) {
+    var pts = (cards || []).filter(function (c) { return c && Number(c.price) > 0; });
+    if (!pts.length) return "";
+    var prices = pts.map(function (c) { return Number(c.price); });
+    var lo = Math.min.apply(null, prices), hi = Math.max.apply(null, prices);
+    var W = 560, H = 220, padL = 10, padR = 10, lineY = 112;
+    var x = function (v) { return hi > lo ? (padL + (v - lo) / (hi - lo) * (W - padL - padR)) : (W / 2); };
+    var bandHtml = "";
+    if (Array.isArray(band) && band.length === 2 && hi > lo) {
+      var bx1 = x(Number(band[0])), bx2 = x(Number(band[1]));
+      bandHtml = '<rect x="' + bx1.toFixed(1) + '" y="' + (lineY - 12) + '" width="' + Math.max(1, bx2 - bx1).toFixed(1) + '" height="24" fill="var(--chip)"/>';
+    }
+    var line = '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + lineY + '" y2="' + lineY + '" stroke="var(--border)" stroke-width="2"/>';
+    var latest = pts.reduce(function (best, c) { return (!best || String(c.date || "") > String(best.date || "")) ? c : best; }, null);
+    var bucketN = {};
+    var dots = pts.map(function (c) {
+      if (c === latest) return "";
+      var cx = x(Number(c.price)), bucket = Math.round(cx / 6);
+      var stack = bucketN[bucket] = (bucketN[bucket] || 0) + 1;
+      var tip = chartTip([cleanReceiptTitle(c.title), longMiles(c), (c.platform && c.platform !== "others") ? c.platform : "", c.month || monShort(c.date), usd(c.price)]);
+      var inner = '<circle cx="' + cx.toFixed(1) + '" cy="' + (lineY - (stack - 1) * 8).toFixed(1) + '" r="3" fill="var(--ink)" class="hc-dot"><title>' + tip + '</title></circle>';
+      var href = utmUrl(c.url);
+      return href ? ('<a href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">' + inner + "</a>") : inner;
+    }).join("");
+    var latestHtml = "";
+    if (latest) {
+      var lx = x(Number(latest.price));
+      var lbl = chartTip([latest.month || monShort(latest.date), usd(latest.price)]);
+      var tip = chartTip([cleanReceiptTitle(latest.title), longMiles(latest), (latest.platform && latest.platform !== "others") ? latest.platform : "", latest.month || monShort(latest.date), usd(latest.price)]);
+      var inner = '<circle cx="' + lx.toFixed(1) + '" cy="' + lineY + '" r="6" fill="var(--green)" class="hc-dot"><title>' + tip + '</title></circle>' +
+        '<text x="' + lx.toFixed(1) + '" y="' + (lineY - 16) + '" text-anchor="middle" font-size="13" fill="var(--sec)">' + esc(lbl) + "</text>";
+      var href = utmUrl(latest.url);
+      latestHtml = href ? ('<a href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">' + inner + "</a>") : inner;
+    }
+    var endLo = '<text x="' + padL + '" y="' + (lineY + 30) + '" font-size="13" fill="var(--sec)">' + esc(usd(lo)) + "</text>";
+    var endHi = '<text x="' + (W - padR) + '" y="' + (lineY + 30) + '" text-anchor="end" font-size="13" fill="var(--sec)">' + esc(usd(hi)) + "</text>";
+    return '<svg class="hc-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMinYMin meet" role="img" aria-label="Sale prices, lowest to highest">' +
+      bandHtml + line + dots + latestHtml + endLo + endHi + "</svg>";
+  }
+  // cards: the sale list to chart on the strip path (ignored once candles qualify). band: the
+  // middle-half cluster to shade behind the strip line, or null/undefined (thin tier - never a band).
+  function heroChartHtml(d, cards, band) {
+    var inner = candleChartHtml(d) || stripChartHtml(cards, band);
+    if (!inner) return "";
+    return '<div class="hero-chart"><h2>How this market has moved</h2>' + inner + "</div>";
   }
   // RANGE-TIER HERO (task #38). The rule-24 no-band fallback is unchanged copy, just inside the new
   // shell: no cluster means no dollar headline of any kind, ever (STANDING CHECK: the only <h2
   // class="range"> with the green band class lives inside the `if (d.cluster)` branch below).
   function heroRangeHtml(d, m) {
-    var rep = d.representative || {};
     var left = '<p class="eyebrow hero-label">Market Check</p>' +
       '<h1 class="hero-carname">' + esc(m ? (m.displayName || carLabel(d.resolvedCar)) : carLabel(d.resolvedCar)) + "</h1>" +
       heroMetaLine(d);
@@ -794,8 +827,7 @@
     }
     left += heroMileageLineHtml(d, m);
     left += heroIdentityLineHtml(d);
-    var heroCard = rep.closest || rep.high || rep.low || null;
-    var right = heroReceiptHtml(d, heroCard);
+    var right = heroChartHtml(d, d.cards, d.cluster);
     return '<section class="hero2col" data-stage="answer"><div class="hero-left">' + left + "</div>" +
       (right ? ('<div class="hero-right">' + right + "</div>") : "") + "</section>";
   }
@@ -819,21 +851,33 @@
       otherHalfLabel(c, d) + offWindowLabel(c, d) +
       "</div></" + tag + ">";
   }
-  function salesRowHtml(d) {
-    var rep = d.representative;
-    if (!rep || !rep.closest) return "";
-    var cards = [rep.closest, rep.high, rep.low].filter(Boolean);
-    if (!cards.length) return "";
-    var sub = (d.contextRoles && d.contextRoles.sentence) ? String(d.contextRoles.sentence) : "One from the middle of the range, one at each edge of the middle half.";
+  // d.contextRoles (dormant Lane B field, grepped lib/onebox.js - not present yet) is preferred for
+  // both the cards and the subhead sentence; the range tier's own representative trio (closest/high/
+  // low - a real, already-shipped editorial selection, not an arbitrary "first three") is the next
+  // fallback, since its own semantics are exactly the brief's fallback sentence describes. A tier
+  // with neither (thin, below the range threshold) falls back to `fallbackCards` (its caller's own
+  // first three, newest-first) with no subhead - the "one from the middle, one at each edge" sentence
+  // does not describe a thin pool, and the brief gives no thin-specific alternative.
+  function salesRowHtml(d, m, fallbackCards) {
+    var cr = d.contextRoles;
+    var cards = null, sub = null;
+    if (cr && Array.isArray(cr.sales) && cr.sales.length) { cards = cr.sales.slice(0, 3); sub = cr.sentence ? String(cr.sentence) : null; }
+    else {
+      var rep = d.representative;
+      if (rep && rep.closest) { cards = [rep.closest, rep.high, rep.low].filter(Boolean); sub = "One from the middle of the range, one at each edge of the middle half."; }
+      else { cards = (fallbackCards || []).slice(0, 3); }
+    }
+    if (!cards || !cards.length) return "";
     var poolSize = heroPoolSizeNum(d);
-    var seeAll = Number.isFinite(poolSize) ? ('<button type="button" class="linkbtn" data-scrollto="more-sales">See all ' + esc(obNumWordLow(poolSize)) + " sales &#8594;</button>") : "";
+    var seeAll = Number.isFinite(poolSize) ? ('<button type="button" class="linkbtn" data-scrollto="more-sales">See all ' + esc(obNumWordLow(poolSize)) + (poolSize === 1 ? " sale" : " sales") + " &#8594;</button>") : "";
     var id = "ob-why" + (++obCapSeq);
+    var aside = asideToggleHtml(d, m);
     return '<div class="salesrow" data-stage="cards"><h2>Sales behind this answer</h2>' +
-      '<p class="salesrow-sub">' + lint(esc(sub), "salesrow.sub") + "</p>" +
+      (sub ? ('<p class="salesrow-sub">' + lint(esc(sub), "salesrow.sub") + "</p>") : "") +
       '<div class="salescards">' + cards.map(function (c) { return salesRowCardHtml(c, d); }).join("") + "</div>" +
       '<div class="salesrow-foot">' + (seeAll || "") +
-      '<button type="button" class="linkbtn" data-qtoggle="' + id + '" aria-expanded="false">How Sam picked these</button></div>' +
-      '<div class="ev-why-note" id="' + id + '" hidden>' + howSamDecidedNoteHtml(d) + "</div></div>";
+      '<button type="button" class="linkbtn" data-qtoggle="' + id + '" aria-expanded="false">How Sam picked these</button>' + aside.trigger + "</div>" +
+      '<div class="ev-why-note" id="' + id + '" hidden>' + howSamDecidedNoteHtml(d) + "</div>" + aside.panel + "</div>";
   }
   // "How Sam decided": the comparison fence (poolYears + the car's own name, e.g. "2005 to 2011 997
   // Carrera S"), that only completed sales count (hammer + buyer's premium reconciled), and what was
@@ -856,13 +900,14 @@
     var asideSentence = asideBits.length ? (" " + asideTotal + (asideTotal === 1 ? " sale set aside: " : " sales set aside: ") + asideBits.join(", ") + ".") : "";
     return '<p>' + lint(esc(sentence + asideSentence), "ev.why") + "</p>";
   }
-  // Collapsed "N sales sat outside this range" line (was the always-open "Shown separately" section):
-  // opens the lowest-to-highest bar (rangeBarHtml) and the above/below-range cards. id="shown-
-  // separately" is unchanged so the market-read "set aside" pointer (if any still links here) keeps
-  // working; the scrollto handler also un-hides this container (see wire()).
-  function collapsedAsideHtml(d, m) {
+  // "N sales sat outside the middle half" (Market Check result-page spec, Oct 2026): the brief's own
+  // "existing ... opening in place as plain rows" - the trigger now lives in the sales row's footer
+  // (salesRowHtml above), beside "See all N sales" and "How Sam picked these"; the panel it opens
+  // (the lowest-to-highest bar + the above/below-range cards) is unchanged, still id="shown-
+  // separately" so the scrollto handler keeps working.
+  function asideToggleHtml(d, m) {
     var list = (d.asideCards || []).filter(function (c) { return !(m && m.url && c.url === m.url); });
-    if (!list.length) return "";
+    if (!list.length) return { trigger: "", panel: "" };
     var band = Array.isArray(d.cluster) ? d.cluster : (Array.isArray(d.span) ? d.span : null);
     var dirN = 0;
     var dirs = list.map(function (c) {
@@ -875,72 +920,56 @@
       ? "Real sales of the same car that sat well above or below the range, so they are not used to set it. Still useful to know about."
       : "Real sales of the same car, kept out of the range above. Still useful to know about.";
     var cardsHtml = list.map(function (c, i) { return poolCardHtml(c, dirs[i]); });
-    var label = obNumWord(list.length) + (list.length === 1 ? " sale sat outside where the middle half landed" : " sales sat outside where the middle half landed");
-    return '<p class="ev-aside-toggle"><button type="button" class="linkbtn" data-qtoggle="shown-separately" aria-expanded="false">' + esc(label) + " " + CHEV_SVG + "</button></p>" +
-      '<div class="ev-aside-note" id="shown-separately" hidden>' + rangeBarHtml(d) + '<p class="sep-note" data-stage="cards">' + lint(sentence, "sep.note") + "</p>" + capCardsHtml("flatlist", cardsHtml, 3) + "</div>";
+    var label = obNumWord(list.length) + (list.length === 1 ? " sale sat outside the middle half" : " sales sat outside the middle half");
+    var trigger = '<button type="button" class="linkbtn" data-qtoggle="shown-separately" aria-expanded="false">' + esc(label) + " " + CHEV_SVG + "</button>";
+    var panel = '<div class="ev-aside-note" id="shown-separately" hidden>' + rangeBarHtml(d) + '<p class="sep-note" data-stage="cards">' + lint(sentence, "sep.note") + "</p>" + capCardsHtml("flatlist", cardsHtml, 3) + "</div>";
+    return { trigger: trigger, panel: panel };
   }
-  // "More comparable sales" (item 5): everything the engine qualified into this pool that is not
-  // already shown as the exact-car hero or one of the evidence block's three context cards. Collapsed
-  // by default (cap 0 - capCardsHtml's own "Show N more" reveal, same pattern used everywhere else).
-  // One row, not a card: thumbnail, price/model/meta stacked, "View sale" trailing. The whole row is
-  // one link - no nested anchor, since there is no second inner link to collide with (unlike
-  // saleCardHtml's receipt cards, which sometimes carry a "Sold before" link).
+  // "All N comparable sales": a plain table - DATE, CAR, MILES, VENUE, PRICE (right aligned serif).
+  // The whole pool, including the three Sales-behind-this-answer cards (per the brief, so this is a
+  // true full list) - the exact-car's own sale is no longer excluded (there is no exact-car section
+  // left on this page to have already shown it; see resultHtml's own note). Car cell links to the
+  // sale; the row itself is plain.
   function allSalesRowHtml(c) {
     if (!c) return "";
     var venue = (c.platform && c.platform !== "others") ? c.platform : "";
-    var month = c.month || monShort(c.date);
-    var meta = [longMiles(c), venue, month].filter(Boolean).join(" · ");
     var href = utmUrl(c.url);
     var gasAttrs = (href && c.id != null) ? (' data-gas-event="receipt_click" data-gas-source="' + esc(c.platformSlug || "") + '" data-gas-listing-id="' + esc(c.id) + '"') : "";
-    var tag = href ? "a" : "div";
-    var attrs = href ? (' href="' + esc(href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(c.platformSlug || "") + '"' + gasAttrs) : "";
-    return "<" + tag + ' class="allsales-row"' + attrs + ">" +
-      '<span class="allsales-ph' + (c.image ? "" : " noimg") + '">' + (c.image ? '<img src="' + esc(c.image) + '" alt="" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()">' : "") + '<span class="none">No photo</span></span>' +
-      '<span class="allsales-body"><span class="allsales-price">' + esc(usd(c.price)) + '</span>' +
-      '<span class="allsales-title">' + esc(cleanReceiptTitle(c.title)) + "</span>" +
-      (meta ? ('<span class="allsales-meta">' + esc(meta) + "</span>") : "") + "</span>" +
-      (href ? '<span class="allsales-view">View sale &#8594;</span>' : "") +
-      "</" + tag + ">";
+    var carCell = href
+      ? ('<a href="' + esc(href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(c.platformSlug || "") + '"' + gasAttrs + ">" + esc(cleanReceiptTitle(c.title)) + "</a>")
+      : esc(cleanReceiptTitle(c.title));
+    return "<tr><td>" + esc(c.month || monShort(c.date)) + "</td><td>" + carCell + "</td><td>" + esc(longMiles(c) || "") + "</td><td>" + esc(venue) +
+      '</td><td class="astc-price num">' + esc(usd(c.price)) + "</td></tr>";
   }
-  // First ten rows always visible (server-rendered, search engines see them too); the rest sit
-  // hidden in one container that a single "Show all N" click reveals all at once, in place - never
-  // the old "Show 10 more" batching (capCardsHtml), which this section no longer uses. Reuses the
-  // existing [data-qtoggle] un-hide mechanism (wire()), same one "How Sam picked these" already uses.
-  function allSalesCapHtml(rowsHtml, cap, totalWord) {
-    if (rowsHtml.length <= cap) return '<div class="allsales-rows">' + rowsHtml.join("") + "</div>";
-    var id = "ob-allcap" + (++obCapSeq);
-    var shown = rowsHtml.slice(0, cap).join("");
-    var rest = '<div id="' + id + '" hidden>' + rowsHtml.slice(cap).join("") + "</div>";
-    return '<div class="allsales-rows">' + shown + rest + "</div>" +
-      '<button type="button" class="linkbtn allsales-showall" data-qtoggle="' + id + '" aria-expanded="false">Show all ' + esc(totalWord) + " &#8594;</button>";
-  }
-  // "All N comparable sales" (follow-up round, Oct 2026; was "More comparable sales"): the WHOLE
-  // pool, not just the cards not already shown elsewhere - the three Sales-behind-this-answer cards
-  // are included here too, per the brief, so this section is a true full list. Only the VIN/chassis
-  // exact-car's own sale (shown separately, This exact car) is excluded, never the representative
-  // trio. The heading count and the scope/window subline both come from the SAME single source the
-  // hero itself reads (heroPoolSizeNum / heroMetaLineText) - never a second computation that could
-  // disagree with "41 more comparable sales" or "See all 42 sales" above it.
-  function moreComparableSalesHtml(d, m) {
-    var shownUrls = {};
-    if (m && m.url) shownUrls[m.url] = true;
-    var all = (d.cards || []).filter(function (c) { return !(c.url && shownUrls[c.url]); });
+  // "All N comparable sales" (Market Check result-page spec, Oct 2026): the heading count and the
+  // scope/window subline both come from the SAME single source the hero itself reads
+  // (heroPoolSizeNum / heroMetaLineText) - never a second computation that could disagree with the
+  // hero's own count. First ten rows always visible (server-rendered); the rest sit hidden in one
+  // <tbody> a single "Show more sales (N)" click reveals in place (the existing [data-qtoggle]
+  // mechanism). `cards` is the tier's own full sale list (d.cards on a range answer; thinCardsFrom's
+  // output on a thin answer - the thin tier has no exact-car section to exclude either).
+  function moreComparableSalesHtml(d, m, cards) {
+    var all = (cards || []).filter(function (c) { return c && Number(c.price) > 0; });
     if (!all.length) return "";
     var poolSize = heroPoolSizeNum(d);
-    var countWord = Number.isFinite(poolSize) ? obNumWord(poolSize) : obNumWord(all.length);
+    var n = Number.isFinite(poolSize) ? poolSize : all.length;
+    var countWord = obNumWord(n);
     var sub = heroMetaLineText(d);
-    // id="more-sales" (hero-rebuild round, kept): the hero receipt's "N more comparable sales" link
-    // and the sales row's "See all N sales" link both scroll here via [data-scrollto] (wire()).
-    return '<div id="more-sales"><div class="sec-head" data-stage="cards"><div><h2>All ' + esc(countWord) + ' comparable sales</h2>' +
+    var rows = all.map(allSalesRowHtml);
+    var cap = 10, bodyHtml, foot = "";
+    if (rows.length <= cap) { bodyHtml = "<tbody>" + rows.join("") + "</tbody>"; }
+    else {
+      var id = "ob-allcap" + (++obCapSeq);
+      var restN = rows.length - cap;
+      bodyHtml = "<tbody>" + rows.slice(0, cap).join("") + '</tbody><tbody id="' + id + '" hidden>' + rows.slice(cap).join("") + "</tbody>";
+      foot = '<button type="button" class="linkbtn allsales-showall" data-qtoggle="' + id + '" aria-expanded="false">Show more ' + (restN === 1 ? "sale" : "sales") + " (" + restN + ") " + CHEV_SVG + "</button>";
+    }
+    // id="more-sales" (hero-rebuild round, kept): the sales row's "See all N sales" link scrolls here
+    // via [data-scrollto] (wire()).
+    return '<div id="more-sales"><div class="sec-head" data-stage="cards"><div><h2>All ' + esc(countWord) + " comparable " + (n === 1 ? "sale" : "sales") + "</h2>" +
       (sub ? ('<span class="scope">' + lint(esc(sub), "allsales.scope") + "</span>") : "") + "</div></div>" +
-      allSalesCapHtml(all.map(allSalesRowHtml), 10, countWord) + "</div>";
-  }
-  // THIS EXACT CAR (item 2): only when the engine has a VIN/chassis match (m). Absent otherwise -
-  // never a placeholder.
-  function thisExactCarHtml(d, m) {
-    if (!m) return "";
-    return '<div class="ev-exact" data-stage="cards"><span class="eyebrow">This exact car</span>' +
-      '<div class="cards5 single" data-stage="cards">' + vinHeroCardHtml(m, d.resolvedCar, true) + "</div></div>";
+      '<table class="allsales-table" data-stage="cards"><thead><tr><th class="colhead">Date</th><th class="colhead">Car</th><th class="colhead">Miles</th><th class="colhead">Venue</th><th class="colhead astc-price">Price</th></tr></thead>' +
+      bodyHtml + "</table>" + foot + "</div>";
   }
   // contradictionLine (the divergence sentence) was deleted in the hero-rebuild round (Oct 2026) -
   // its only call site was resultHtml's removed "notes" block (narrowItDownHtml). No new home this
@@ -1103,10 +1132,8 @@
   // Snapshot attributes are dated and past tense (rule 26). The history link renders only when the
   // engine returns how many times it sold before the shown sale (m.soldBeforeCount >= 1) and the
   // query was a VIN (the /vin/{vin} page is keyed on it).
-  // flat (follow-up round, Oct 2026, 3rd arg, default false): "This exact car" - both its wrapped
-  // form (thisExactCarHtml, range tier) and the bare card thin's own hero renders on a VIN match are
-  // the SAME concept, so both opt in. classEraHtml and renderChassisMatch call this too but are NOT
-  // one of this round's four named pieces - left boxed, unchanged.
+  // flat (follow-up round, Oct 2026, 3rd arg, default false): classEraHtml and renderChassisMatch
+  // call this too but are out of the Market Check result-page spec's scope - left boxed, unchanged.
   function vinHeroCardHtml(m, rc, flat) {
     var name = m.displayName || carLabel(rc);
     var priceHtml, venueLine;
@@ -1186,9 +1213,8 @@
     var sb = (c.soldBefore && c.soldBefore.date)
       ? (c.soldBefore.link ? ('<a class="sb-line" href="' + esc(utmUrl(c.soldBefore.link)) + '" target="_blank" rel="noopener noreferrer">' + esc(sbText) + '</a>') : ('<div class="sb-line">' + esc(sbText) + '</div>'))
       : (c.hasHistoryPage && c.vinNorm) ? ('<a class="sb-line" href="' + esc(historyHref(null, c.vinNorm)) + '">Sold before &#8594;</a>') : "";
-    // flat: true unconditionally (follow-up round, Oct 2026) - poolCardHtml's only two callers,
-    // collapsedAsideHtml (the outside-range cards) and the market-read quarter-row panel, are both
-    // named Part 3 targets.
+    // flat: true unconditionally (follow-up round, Oct 2026) - poolCardHtml's callers (the aside-
+    // toggle's outside-range cards, distribution's bucket receipts) all want the flat row treatment.
     return saleCardHtml({ cls: "t", flat: true, pill: tagLabel || "", href: utmUrl(c.url), slug: c.platformSlug, id: c.id, image: c.image,
       priceHtml: esc(usd(c.price)), title: cleanReceiptTitle(c.title),
       meta: [c.mileageText && c.mileageText !== "TMU" ? c.mileageText : "", venue, c.month || monShort(c.date)].filter(Boolean).join(" · "), after: sb });
@@ -1278,122 +1304,13 @@
   var NUMWORD_REV = { zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9 };
   function digitOf(v) { if (typeof v === "number") return v; var n = NUMWORD_REV[String(v == null ? "" : v).toLowerCase()]; return n != null ? n : (Number(v) || 0); }
   var CHEV_SVG = '<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>';
-  // Market read card (Oct 2026): one paper card directly under the range card - the engine's
-  // direction sentence, four quarter rows (bars on the SAME price scale as the range card's own
-  // rangebar, d.span), and two quiet count pills. Lane B's fix (lib/onebox.js quarterlyBandsFor,
-  // "sales belong to the quarter WITH a band") landed Oct 9 (docs/lane-notes.md), so a banded row's
-  // own sales now open inline; a thin row has no sales to open and is plain text, never a button.
   var MONTHS_FULL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  var obMktreadSeq = 0;
-  function marketReadQuarterRows(d) {
-    var qb = d && d.quarterlyBands, span = d && d.span;
-    if (!Array.isArray(qb)) return "";
-    var banded = qb.filter(function (q) { return Array.isArray(q.band) && q.band.length === 2; });
-    if (banded.length < 2) return "";
-    var lo = Array.isArray(span) ? Number(span[0]) : NaN, hi = Array.isArray(span) ? Number(span[1]) : NaN;
-    var haveScale = hi > lo;
-    var pc = function (x) { return Math.max(0, Math.min(100, (x - lo) / (hi - lo) * 100)); };
-    var now = new Date();
-    // latestAssigned (found while checking the bar's own contrast, Job 5): the ".latest" highlight
-    // used to key off the row's raw array index (i===0), which is wrong whenever the true current
-    // quarter is omitted for having under 3 sales - the first row actually ON SCREEN (i===1 in that
-    // case) never got the highlight. Tag whichever banded row renders first, not whichever has the
-    // lowest original index.
-    var latestAssigned = false;
-    var rows = qb.map(function (q, i) {
-      if (!Array.isArray(q.band) || q.band.length !== 2) {
-        // Current-quarter special case (Oct 2026, evidence-block job): a calendar quarter still in
-        // progress is NEVER "not enough sales" (that reads as a dead archive, not a quarter that
-        // just hasn't finished yet). With 3+ sales already this quarter it shows "{Month} {Year} so
-        // far" and the real count; under 3 it is OMITTED entirely, same as a thin past quarter (item
-        // 6, result-page-polish round two: no empty bar, no "too few" row - omitted before the
-        // template sees it in spirit, since this render has no other source for the row).
-        if (i === 0) {
-          var cnt = digitOf(q.count);
-          if (cnt < 3) return null;
-          var soFarPeriod = '<span class="mktread-qperiod">' + esc(MONTHS_FULL[now.getMonth()] + " " + now.getFullYear() + " so far") + '</span>';
-          return '<div class="mktread-qrow mktread-qrow-sofar"><div class="mktread-qrowbtn">' + soFarPeriod +
-            '<span class="mktread-qtrack"></span><span class="mktread-qtext num">' + esc(cnt + " sold") + '</span><span class="mktread-qcount"></span></div></div>';
-        }
-        // A past quarter too thin for a band is omitted entirely, not printed as "Not enough sales" -
-        // same rule as the current-quarter case above, now applied consistently to every row.
-        return null;
-      }
-      var period = '<span class="mktread-qperiod">' + esc(q.period) + '</span>';
-      var track = "";
-      if (haveScale) {
-        var a = pc(q.band[0]), b = pc(q.band[1]);
-        var isLatest = !latestAssigned; latestAssigned = true;
-        track = '<i class="mktread-qband' + (isLatest ? " latest" : "") + '" style="left:' + a.toFixed(1) + '%;width:' + Math.max(1.5, b - a).toFixed(1) + '%"></i>';
-      }
-      // Item 6 (result-page-polish round two): quarter rows open their own already server-rendered
-      // sales again, via the SAME data-qtoggle open/close mechanism "How Sam decided" and "shown
-      // separately" already use (one mechanism, keyed by a unique id, toggling a single `hidden`
-      // attribute) - not the old per-row click handler that never reliably closed. A chevron + hover
-      // state marks it as a quiet reveal, never a button. Omitted (no sales array) only when the
-      // engine did not attach one - every banded quarter here has q.sales (quarterlyBandsFor always
-      // attaches shapeCards(qSolid) alongside a band), so this only guards a future shape change.
-      var hasSales = Array.isArray(q.sales) && q.sales.length > 0;
-      var rowText = '<span class="mktread-qtext num">' + esc(usd(q.band[0])) + ' to ' + esc(usd(q.band[1])) + '</span><span class="mktread-qcount">' + esc(q.count) + ' sold</span>';
-      if (!hasSales) {
-        return '<div class="mktread-qrow"><div class="mktread-qrowbtn">' + period + '<span class="mktread-qtrack">' + track + '</span>' + rowText + '</div></div>';
-      }
-      var panelId = "mktread-q" + (++obMktreadSeq);
-      var panel = capCardsHtml("flatlist", q.sales.map(function (c) { return poolCardHtml(c, false); }), 3);
-      return '<div class="mktread-qrow"><button type="button" class="mktread-qrowbtn mktread-qopen" data-qtoggle="' + panelId + '" aria-expanded="false">' +
-        period + '<span class="mktread-qtrack">' + track + '</span>' + rowText + CHEV_SVG + '</button>' +
-        '<div class="mktread-qpanel" id="' + panelId + '" hidden>' + panel + '</div></div>';
-    }).filter(Boolean).join("");
-    if (!rows) return "";
-    return '<div class="mktread-qrows">' + rows + '</div>';
-  }
-  // WHERE SALES LANDED OVER TIME (item 6, evidence-block job, last on the page before Ready to
-  // sell): the quarter bars only. The "N sales set aside" pill that used to live here is gone - the
-  // evidence block above already carries its own collapsed "N sales sat outside where the middle
-  // half landed" line right next to the range it describes, so a second pointer down here was
-  // pure duplication (part of the "fourteen cards between the answer and everything else" clutter).
-  // The lead sentence is composed HERE from the engine's structured yoyDirection fields (recentBand/
-  // priorBand/percent/status), never read from its pre-built .sentence string - the engine's own
-  // phrasing said "Most sales landed...", which is wrong for a p25-p75 band (same "middle half, never
-  // most" rule the evidence block above already follows). This is a copy-only fix: the numbers
-  // (recentBand/priorBand) are unchanged, only how they're worded. NOTE (Oct 2026, Sam's live review):
-  // this recentBand is NOT always identical to the headline's own cluster - yearOverYearDirectionFor
-  // (lib/onebox.js) computes it from a pool that has only passed the r4Split price-outlier fence,
-  // while the headline's cluster additionally has provenance/engine-swap/halo cars removed after
-  // that split. Reported, not patched here (engine file, not page code).
-  function marketReadHtml(d) {
-    var yoy = d && d.yoyDirection;
-    var lead = "";
-    if (yoy && Array.isArray(yoy.recentBand) && Array.isArray(yoy.priorBand)) {
-      // Job 4 / addendum item 6 (result-page-polish round two): no percentage anywhere - the two
-      // ranges stated plainly carry the move. First clause is the engine's own direction word
-      // (yoy.status: "higher"/"lower"/"flat"), never computed here.
-      var dirClause = yoy.status === "flat" ? "Sales have held steady."
-        : yoy.status === "higher" ? "Sales have moved higher."
-        : yoy.status === "lower" ? "Sales have moved lower." : "";
-      var txt = dirClause + " The middle half landed between " + usd(yoy.recentBand[0]) + " and " + usd(yoy.recentBand[1]) +
-        " over the past 12 months, versus " + usd(yoy.priorBand[0]) + " to " + usd(yoy.priorBand[1]) + " in the 12 months before.";
-      if (dirClause) lead = '<p class="mktread-lead">' + lint(txt, "mktread.lead") + '</p>';
-    }
-    var qrows = marketReadQuarterRows(d);
-    if (!lead && !qrows) return "";
-    return '<section class="mktread" data-stage="answer"><h2 class="mktread-h2">Where sales landed over time</h2>' + lead + qrows + '</section>';
-  }
-  // Item 7: the answered questions this view is already scoped to, as removable chips. Removing one
-  // reruns the SAME search without that answer (mergeRefine's inverse) and updates the address
-  // (mcPushUrl, already called inside runPool's success path) - never a second source of truth.
-  var RMCHIP_KEYS = { mi: ["miMin", "miMax", "miTarget", "miLabel"], body: ["body", "bodyLabel"], tx: ["tx", "txLabel"], trim: ["trim", "trimLabel"], variant: ["variant", "variantLabel"], driver: ["driver", "driverVal", "driverLabel"], observe: ["observe", "observeLabel"] };
-  var RMCHIP_ANSWER_KEYS = ["miMin", "body", "tx", "trim", "variant", "driver", "observe"];
-  // currentAnswersChipsHtml (the removable-answer chip row) was deleted in the hero-rebuild round -
-  // its only call site was narrowItDownHtml, also removed. The [data-rmchip] mechanism it fed
-  // (refineWithout below, still wired in wire()) is reused directly by the new hero's mileage
-  // "Change" link (heroMileageLineHtml, data-rmchip="mi").
-  function refineWithout(dim) {
-    var keys = RMCHIP_KEYS[dim]; if (!keys || !obLastRefine) return null;
-    var r = Object.assign({}, obLastRefine);
-    keys.forEach(function (k) { delete r[k]; });
-    return RMCHIP_ANSWER_KEYS.some(function (k) { return r[k] != null; }) ? r : null;
-  }
+  // marketReadQuarterRows/marketReadHtml ("Where sales landed over time") and the removable-answer
+  // chip mechanism (RMCHIP_KEYS/refineWithout, [data-rmchip]) were deleted this round (Market Check
+  // result-page spec, Oct 2026): the spec's own "ORDER AND NOTHING ELSE" names the hero chart as the
+  // page's only over-time/spread view and explicitly calls out removing "any market-read text"; the
+  // mileage "Change" link no longer reruns without the refine (it only focuses the field, see
+  // heroMileageLineHtml), so refineWithout had no remaining caller. Flagged in docs/lane-notes.md.
   // Sign-in-then-continue for "Put Sam on it" (Oct 2026): module scope, not inside wire(), so both
   // the click handler AND renderResults() (after a post-sign-in reload) can reach it. Mirrors Buy's
   // own askSignIn/resumeArm/armWait pattern (api/buy.js) - a pending-arm flag in sessionStorage, a
@@ -1484,21 +1401,56 @@
   // the capped gearbox/competition split chips, the divergence-contradiction line, the mileage-
   // nearest-sales-fallback note and the identity-question "switch sides" chip have NO new home this
   // round. All flagged explicitly in the round report, not silently dropped.
+  // The years clause off the end of the engine's own rungLabel ("911 models, 2020 to 2026" -> "2020
+  // to 2026") - reused wherever a sentence needs the matched years without repeating the whole
+  // rungLabel (the distribution subhead, the live panel's own scope sentence). Never computed from
+  // the cards; read straight off the same field heroScopeText already prints.
+  function yearsClauseOf(d) {
+    var s = String((d && d.rungLabel) || "");
+    var m = /((?:18|19|20)\d{2})(\s+to\s+(?:18|19|20)\d{2})?\s*$/.exec(s);
+    return m ? (m[1] + (m[2] || "")) : "";
+  }
+  // ================= DISTRIBUTION (Market Check result-page spec, Oct 2026) =================
+  // "How this market is distributed": price-band rows from d.distribution (Lane B field, dormant -
+  // grepped lib/onebox.js, not present yet: buckets with label/count/receipts, the pool scoped at
+  // 20+ sales). Never computed here - absent entirely until the engine sends it. Clicking a row
+  // expands its receipts underneath, one bucket open at a time (shares one data-distgroup id).
+  var obDistSeq = 0;
+  function distributionHtml(d) {
+    var dist = d && d.distribution;
+    var buckets = (dist && Array.isArray(dist.buckets)) ? dist.buckets.filter(function (b) { return b && b.label && Number(b.count) > 0; }) : [];
+    if (buckets.length < 2) return "";
+    var max = Math.max.apply(null, buckets.map(function (b) { return Number(b.count); }));
+    var groupId = "ob-dist" + (++obDistSeq);
+    var rows = buckets.map(function (b, i) {
+      var pct = max > 0 ? Math.max(2, Number(b.count) / max * 100) : 0;
+      var receipts = Array.isArray(b.receipts) ? b.receipts : [];
+      var panelId = groupId + "-" + i;
+      var barHtml = '<span class="dist-label">' + esc(b.label) + '</span><span class="dist-track"><span class="dist-bar' + (b.typical ? " typical" : "") + '" style="width:' + pct.toFixed(1) + '%"></span></span><span class="dist-count num">' + esc(Number(b.count).toLocaleString("en-US")) + "</span>";
+      var btn = receipts.length
+        ? ('<button type="button" class="distrowbtn" data-disttoggle="' + panelId + '" data-distgroup="' + groupId + '" aria-expanded="false">' + barHtml + "</button>")
+        : ('<div class="distrowbtn" style="cursor:default">' + barHtml + "</div>");
+      var panel = receipts.length ? ('<div class="dist-panel" id="' + panelId + '" hidden>' + capCardsHtml("flatlist", receipts.map(function (c) { return poolCardHtml(c, false); }), receipts.length) + "</div>") : "";
+      return '<div class="distrow">' + btn + panel + "</div>";
+    }).join("");
+    var poolSize = heroPoolSizeNum(d), years = yearsClauseOf(d);
+    var sub = "Sales in each price band" + (Number.isFinite(poolSize) ? (", from the same " + obNumWordLow(poolSize) + " sales") : "") + (years ? (", " + years) : "") + ".";
+    return '<div class="sec-head" data-stage="cards"><div><h2>How this market is distributed</h2><span class="scope">' + lint(esc(sub), "dist.sub") + "</span></div></div>" +
+      '<div class="distrows" data-stage="cards">' + rows + "</div>";
+  }
+  // ORDER AND NOTHING ELSE (Market Check result-page spec, Oct 2026): hero, sales behind this
+  // answer, live right now, all N comparable sales, how this market is distributed, sell band, task
+  // line. "This exact car" (VIN/chassis hero card) and "N sales sat outside the range" as a standalone
+  // section are both gone from this order - the aside toggle survives, folded into the sales row's own
+  // footer (per the brief's explicit "and the existing 'Four sales sat outside the middle half'
+  // opening in place"), but a VIN/chassis match no longer gets its own card on this page. A real
+  // behavior change, not an oversight - flagged plainly in docs/lane-notes.md.
   function resultHtml(d, m) {
-    // Page order (hero-rebuild round, Oct 2026): A the new two-column hero (heroRangeHtml), B the
-    // sales row ("Sales behind this answer"), C the collapsed "N sales sat outside the range" line,
-    // D this exact car (VIN/chassis match only), E live right now, F more comparable sales
-    // (collapsed), G where sales landed over time, H ready to sell, I have Sam keep looking, J the
-    // trust sentence. Was evidence-block/narrow-it-down/exact-car/live/more-sales/market-read/sell/
-    // keep-looking before; narrow it down is gone (see above) and the sales row + its collapsed
-    // outside-range line now sit between the hero and the exact-car section, in that order.
     var body = heroRangeHtml(d, m);
-    body += salesRowHtml(d);
-    body += collapsedAsideHtml(d, m);
-    body += thisExactCarHtml(d, m);
+    body += salesRowHtml(d, m);
     body += livePanelSlot();
-    body += moreComparableSalesHtml(d, m);
-    body += marketReadHtml(d);
+    body += moreComparableSalesHtml(d, m, d.cards);
+    body += distributionHtml(d);
     body += sellHtml();
     body += samOnItHtml(d, m);
     return body;
@@ -1678,14 +1630,24 @@
     if (w % 12 === 0) return "the past " + spellK(w / 12) + " years";
     return "the past " + w + " months";
   }
-  // THIN-TIER HERO (task #39, hero-rebuild round): same two-column shell as the range hero, with an
-  // ink (never green) headline gated on the SAME 8-sale floor the engine's own factsBlock already
-  // enforces (factsBlockFrom, lib/onebox.js, RANGE_THRESHOLD) - below that, count line only, exactly
-  // per the brief. The receipt is the highest-priced sale, read off d.cards (the price-shaped array
-  // the engine already attaches to a thin answer too, the same shape factsBlockFrom itself reads and
-  // the same shape heroReceiptHtml/salesRowCardHtml expect - not d.thin.receipts, a different, hammer-
-  // only shape receiptCardHtml below reads for the (unchanged) full receipts grid). No mileage line,
-  // no identity line, ever, on this tier.
+  // Adapts the thin tier's own hammer-shaped receipts to the price-card shape the chart/sales-row/
+  // all-sales table all read (price/title/image/platform/month/date/url/id) - price is allIn when a
+  // house reconciled one, else the hammer. Shared by thinHeroHtml (the chart's dots), salesRowHtml's
+  // fallback cards and moreComparableSalesHtml (the full table), so all three thin-tier sections read
+  // the exact same pool.
+  function thinCardsFrom(scope) {
+    return (scope || []).filter(function (rc) { return rc && (Number(rc.allIn) > 0 || Number(rc.hammer) > 0); }).map(function (rc) {
+      return { price: rc.allIn || rc.hammer, url: rc.url, platformSlug: rc.slug, id: rc.id, image: rc.image, title: rc.title,
+        mi: Number(rc.mileage) > 0 ? Number(rc.mileage) : null, platform: rc.venue, month: monthYear(rc.date), date: rc.date };
+    });
+  }
+  // THIN-TIER HERO (task #39, hero-rebuild round; chart + WHERE THEY SOLD headline, Market Check
+  // result-page spec, Oct 2026): same two-column shell as the range hero, with an ink (never green)
+  // headline gated on the SAME 8-sale floor the engine's own factsBlock already enforces
+  // (factsBlockFrom, lib/onebox.js, RANGE_THRESHOLD) - below that, count line only, exactly per the
+  // brief. The chart's dots are thinCardsFrom(scope) (the hammer-shaped receipts, adapted) - never
+  // d.cards, a different, unscoped array an intake split never narrows. No mileage line, no identity
+  // line, ever, on this tier.
   function thinHeroHtml(d, name, scope, scopedLabel, ht, m) {
     var who = (scopedLabel ? cap(scopedLabel) + " " + name : cap(name));
     // The year comes from the sale itself, never the typed year (a "1902 Pierce Motorette" whose
@@ -1723,18 +1685,12 @@
         '<h2 class="range ink">' + esc(usd(fb.lowest)) + ' <span class="to">to</span> ' + esc(usd(fb.highest)) + "</h2>";
     }
     var reason = thinReasonHtml(d); if (reason) left += reason;
-    // The receipt is picked from `scope` (the hammer-shaped receipts already filtered by any intake
-    // answer), never d.cards (the engine's own unscoped price-shaped array factsBlock reads) - an
-    // intake split narrows `scope` client-side with no server round-trip, so d.cards would still
-    // hold the WRONG, unscoped pool whenever htChoice is active. thinReceiptAsCard adapts the one
-    // field that differs (price = allIn when a house reconciled one, else the hammer).
-    function thinReceiptAsCard(rc) {
-      return { price: rc.allIn || rc.hammer, url: rc.url, platformSlug: rc.slug, id: rc.id, image: rc.image, title: rc.title,
-        mi: Number(rc.mileage) > 0 ? Number(rc.mileage) : null, platform: rc.venue, month: monthYear(rc.date), date: rc.date };
-    }
-    var priced = (scope || []).filter(function (rc) { return rc && (Number(rc.allIn) > 0 || Number(rc.hammer) > 0); });
-    var highestRc = priced.reduce(function (best, rc) { var v = Number(rc.allIn || rc.hammer); return (!best || v > Number(best.allIn || best.hammer)) ? rc : best; }, null);
-    var right = heroReceiptHtml(d, highestRc ? thinReceiptAsCard(highestRc) : null, scope.length);
+    // The chart's dots are picked from `scope` (the hammer-shaped receipts already filtered by any
+    // intake answer), never d.cards (the engine's own unscoped price-shaped array factsBlock reads) -
+    // an intake split narrows `scope` client-side with no server round-trip, so d.cards would still
+    // hold the WRONG, unscoped pool whenever htChoice is active. No band on this tier, ever - the
+    // thin tier has no cluster to shade.
+    var right = heroChartHtml(d, thinCardsFrom(scope), null);
     return '<section class="hero2col" data-stage="answer"><div class="hero-left">' + left + "</div>" +
       (right ? ('<div class="hero-right">' + right + "</div>") : "") + "</section>";
   }
@@ -1750,25 +1706,9 @@
     var line = fn ? fn(fb) : "";
     return line ? '<p class="ans-line facts-reason">' + lint(esc(line), "facts.reason") + "</p>" : "";
   }
-  // Paired sales: same chassis at a house AND online. Two receipts side by side, NO percentage
-  // until a model clears 3 such pairs (design: the % stays dormant below that).
-  function htPairsHtml(ht) {
-    if (!ht.pairs || !ht.pairs.length) return "";
-    var note = ht.pairPctEligible
-      ? "Same car, both venues."
-      : "The same chassis, sold at a house and online. Too few matched pairs yet to read a house-versus-online pattern, so here are both receipts.";
-    return '<div class="sec-head" data-stage="cards"><div><h2>' + lint("The same car, twice", "ht.pairlab") + '</h2><span class="scope">' + lint(note, "ht.pairnote") + "</span></div></div>" +
-      '<div class="grid2" data-stage="cards">' + ht.pairs[0].map(function (rc) { return receiptCardHtml(rc); }).join("") + "</div>";
-  }
-  // Widening box: ONLY when the engine returns a sibling family (thin.sibling {label, count, query,
-  // relation?}). The button runs the sibling's own query.
-  function siblingHtml(ht) {
-    var sb = ht && ht.sibling;
-    if (!sb || !sb.label || !sb.query || !(Number(sb.count) > 0)) return "";
-    var who = sb.relation ? "Its " + esc(sb.label) + " " + esc(sb.relation) : "The " + esc(sb.label);
-    var times = Number(sb.count) === 1 ? "once" : Number(sb.count) + " times";
-    return '<section class="widen" data-stage="cards"><p>' + lint("Want the wider picture? " + who + " sold " + times + ".", "ht.sibling") + '</p><button type="button" data-sibling="' + esc(sb.query) + '">Show those too &#8594;</button></section>';
-  }
+  // htPairsHtml ("the same car, twice") and siblingHtml (the "widen" box) were deleted this round
+  // (Market Check result-page spec, Oct 2026) along with their only caller (thinHtml) - neither is
+  // in the brief's enumerated section list; flagged in docs/lane-notes.md.
   // Facts block (Round 4 Job 3 engine contract, Lane A render job): every number here is
   // d.factsBlock, the engine's own mapEngineAnswer() output - count/window/lowest/highest/latest
   // price+month, never recomputed from the cards in this file. Rule 24 still applies at this rung:
@@ -1822,6 +1762,12 @@
     var line2 = reasonFn ? reasonFn(fb) : "";
     return '<p class="ans-line facts-block">' + lint(esc(line1), "facts.block") + "</p>" + (line2 ? '<p class="ans-line facts-reason">' + lint(esc(line2), "facts.reason") + "</p>" : "");
   }
+  // ORDER AND NOTHING ELSE applies to the thin tier too (Market Check result-page spec, Oct 2026):
+  // hero, sales behind this answer, live right now, all N comparable sales, distribution (never
+  // fires below the 20-sale floor), sell band, task line. htPairsHtml ("the same car, twice") and
+  // siblingHtml (the "widen" box) are gone - neither is in the brief's enumerated list; flagged in
+  // docs/lane-notes.md. The thin tier's own "This exact car" VIN card is gone too, for the same
+  // reason the range tier's is (resultHtml's own note) - consistency, not an oversight.
   function thinHtml(d, m) {
     var ht = d.thin;
     htLastD = d;
@@ -1833,19 +1779,18 @@
     var scope = sc.scope, scopedLabel = sc.label;
     // A gearbox tag shows only when the pool has a real manual-vs-non-manual split.
     htGearboxSplit = (function () { var man = 0, non = 0; (scope || []).forEach(function (rc) { if (rc.isHouse) return; var g = gearboxLabel(rc); if (!g) return; if (/^manual/i.test(g)) man++; else non++; }); return man > 0 && non > 0; })();
-    var body = livePanelSlot() + thinHeroHtml(d, name, scope, scopedLabel, ht, m);
-    if (m) body += '<div class="cards5 single" data-stage="cards">' + vinHeroCardHtml(m, d.resolvedCar, true) + "</div>";
     // Newest first (the honest evidence order); the engine's hammer-desc order is for its own math.
-    // Every sale renders (capped display only, Oct 2026): "every real sale", not a curated slice.
-    // id="more-sales" (hero-rebuild round): the thin hero receipt's "N more comparable sales" link
-    // scrolls here, the same [data-scrollto] target id the range tier's "more comparable sales"
-    // section uses - one id, one mechanism, regardless of tier.
-    var shownRecs = scope.slice().sort(function (a, b) { return String(b.date || "").localeCompare(String(a.date || "")); });
-    body += '<div id="more-sales">' + capCardsHtml("flatlist", shownRecs.map(function (rc) { return receiptCardHtml(rc, true); }), 4) + "</div>";
-    if (scope === ht.receipts) body += htPairsHtml(ht);
-    body += siblingHtml(ht);
+    var newestFirst = thinCardsFrom(scope).sort(function (a, b) { return String(b.date || "").localeCompare(String(a.date || "")); });
+    var body = thinHeroHtml(d, name, scope, scopedLabel, ht, m);
+    body += salesRowHtml(d, m, newestFirst);
+    body += livePanelSlot();
+    // id="more-sales" (hero-rebuild round, kept): the sales row's "See all N sales" link scrolls
+    // here, the same [data-scrollto] mechanism the range tier uses.
+    body += moreComparableSalesHtml(d, m, newestFirst);
+    body += distributionHtml(d);
     // One Box NEVER recommends a house or platform; "Ready to sell?" is the only bridge to /sell.
     body += sellHtml();
+    body += samOnItHtml(d, m);
     return body;
   }
 
@@ -2094,6 +2039,32 @@
       '<h1 class="hero-carname">' + esc(carLabel(d.resolvedCar)) + "</h1>" +
       '<p class="hero-scope" data-stage="answer">' + lint(esc(idqBothLine(iq)), "idq.both") + "</p>" +
       '<h2 class="range ink">' + lint(esc(idqQuestionText(iq, d)), "idq.q") + "</h2>" +
+      '<p class="hero-scope" data-stage="answer">The range changes with the answer.</p>' +
+      '<p class="hero-idline idq-choices" data-stage="answer">' + links + "</p>" +
+      "</div></section>";
+  }
+  // MODEL CHOICE, the bare-make case ("Which BMW?", Market Check result-page spec, Oct 2026): the
+  // SAME no-box/no-pill takeover shell as identityTakeoverHtml above, now covering d.tier ===
+  // "model_choice" too - reuses the EXISTING [data-model] click mechanism (chipAnswer, wire())
+  // unchanged, only the markup/style changes, not how an answer is recorded. No per-option counts
+  // (d.modelOptions carries none). body_choice/generation_choice stay on the older qscreen/chip path
+  // - not named in the brief's own "bare make" example, and body_choice's answer mechanism re-queries
+  // the whole car rather than refining in place; rewiring it is a real regression risk for an
+  // untested gain. Flagged plainly in docs/lane-notes.md.
+  function modelChoiceTakeoverHtml(d) {
+    var opts = d.modelOptions || [];
+    if (d.resolvedCar) opts = obDropRejectedChips(d.resolvedCar.year, d.resolvedCar.make, opts);
+    choiceCtx = d.baseLabel || (d.resolvedCar ? [d.resolvedCar.year, d.resolvedCar.make, d.resolvedCar.model, d.resolvedCar.trim].filter(Boolean).join(" ") : null) || null;
+    var make = (d.resolvedCar && d.resolvedCar.make) || String(d.baseLabel || "").trim().split(/\s+/).pop() || "";
+    var headName = d.baseLabel || carLabel(d.resolvedCar) || make;
+    var question = make ? ("Which " + make + "?") : (d.prompt || "Which one is it?");
+    var links = opts.map(function (o) {
+      return '<button type="button" class="linkbtn" data-model="' + esc(o) + '">' + esc(o) + " &#8594;</button>";
+    }).join(" ");
+    return '<section class="hero2col idq-takeover-wrap" data-stage="answer"><div class="hero-left">' +
+      '<p class="eyebrow hero-label">Market Check</p>' +
+      '<h1 class="hero-carname">' + esc(headName) + "</h1>" +
+      '<h2 class="range ink">' + lint(esc(question), "mc.q") + "</h2>" +
       '<p class="hero-scope" data-stage="answer">The range changes with the answer.</p>' +
       '<p class="hero-idline idq-choices" data-stage="answer">' + links + "</p>" +
       "</div></section>";
@@ -2365,13 +2336,40 @@
     if ("docHistory" in partial) base.docHistoryLabel = partial.label;
     return base;
   }
-  function runPool(text, vehicle, refine) {
+  // Mileage dim-in-place rerun (Market Check result-page spec, Oct 2026): pressing Go never leaves
+  // the page. Only the two things the brief names - the headline range/no-band line and the chart
+  // column - dim to 40% (CSS .hero-dim); the mileage line/field/identity line stay fully interactive.
+  function dimHeroForRerun(on) {
+    var els = document.querySelectorAll(".hero2col .range, .hero2col .hero-noband, .hero-right");
+    Array.prototype.forEach.call(els, function (el) { el.classList.toggle("hero-dim", on); });
+  }
+  function submitMileageInline(v) {
+    if (!(v > 0)) return;
+    var band = v >= 60000 ? 25000 : 15000, lbl = "around " + Math.round(v / 1000) + "k";
+    if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "mileage", value: lbl });
+    // Optimistic line update (the field itself keeps its typed value, untouched): the final
+    // renderResults() call below will redraw this exactly the same way once the rerun lands, from
+    // obLastRefine - set here only so the wait never shows the old "Add mileage" sentence.
+    var mline = document.querySelector(".hero-miles");
+    if (mline) mline.outerHTML = '<p class="hero-miles on" data-stage="answer">' + lint(esc("Range narrowed around " + v.toLocaleString("en-US") + " miles."), "hero.mi.on.opt") +
+      ' <button type="button" class="linkbtn" disabled>Change</button>' + milesFieldHtml(v) + "</p>";
+    dimHeroForRerun(true);
+    runPool(lastQuery, obLastVehicle, mergeRefine({ miMin: Math.max(0, v - band), miMax: v + band, miTarget: v, label: lbl }), { inline: true });
+  }
+  function runPool(text, vehicle, refine, opts) {
+    opts = opts || {};
     obLastVehicle = vehicle || obLastVehicle;
     obLastRefine = refine || null;
-    setRootHtmlLifted(inboxHtml(text) + loaderHtml() + footHtml());
-    wire();
-    var loader = makeLoader();
-    loader.start(["Working out exactly what car this is", "Pulling the real sales"]);
+    var loader = null;
+    if (opts.inline) {
+      // The current result stays on screen, dimmed (dimHeroForRerun, called by the caller before
+      // this runs) - no loader screen, no root.innerHTML replace, until the fetch actually resolves.
+    } else {
+      setRootHtmlLifted(inboxHtml(text) + loaderHtml() + footHtml());
+      wire();
+      loader = makeLoader();
+      loader.start(["Working out exactly what car this is", "Pulling the real sales"]);
+    }
     var car = { raw: text };
     if (vehicle) car.vehicle = vehicle;
     // #1 divergence rule: pass the exact car's own sale (from the VIN/chassis match) so the engine
@@ -2401,7 +2399,8 @@
       if (d.tier === "unavailable") { renderError(d.samLine || OB_CALM); return; }
       if (d.tier === "rate_limited") { renderError(d.samLine || "That’s a lot of lookups for one day. Come back tomorrow and Sam keeps pulling real sales."); return; }
       if (d.tier === "business_limit") { renderBusinessLimit(d.samLine); return; }
-      if (d.tier === "model_choice" || d.tier === "body_choice" || d.tier === "generation_choice") { if (d.askIndex) obAsked = d.askIndex; renderChoice(d); return; }
+      if (d.tier === "model_choice") { if (d.askIndex) obAsked = d.askIndex; obLastD = d; renderQuestion(modelChoiceTakeoverHtml(d)); return; }
+      if (d.tier === "body_choice" || d.tier === "generation_choice") { if (d.askIndex) obAsked = d.askIndex; renderChoice(d); return; }
       // Identity question (Round 4 Job 3 engine contract): gearbox/competition/documented-history
       // are the three BLOCKING dimensions the engine gives real per-side counts for today, routed
       // through the one generic renderer below instead of the bare-chip renderRefineChoice (which
@@ -2420,8 +2419,9 @@
       var finalSteps = [];
       if (resultIsHousePool(d)) finalSteps.push("Backing out the buyer’s premiums");
       finalSteps.push("Picking the ones that matter");
-      loader.finish(finalSteps, function () { mcPushUrl(); if (SELL && SELL.onCar && SELL.onCar(d, text)) return; renderResults(d); });
-    }).catch(function () { renderError(OB_CALM); });
+      var finish = function () { mcPushUrl(); if (SELL && SELL.onCar && SELL.onCar(d, text)) return; renderResults(d); };
+      if (loader) loader.finish(finalSteps, finish); else finish();
+    }).catch(function () { if (opts.inline) dimHeroForRerun(false); renderError(OB_CALM); });
   }
   // VIN path: decode + confirm (reuses /api/vehicleIdentity). VINs travel in the request
   // body only; nothing here logs the raw VIN.
@@ -2744,8 +2744,6 @@
         });
       });
     })();
-    // Thin widening box: run the sibling family the engine named.
-    Array.prototype.forEach.call(root.querySelectorAll("[data-sibling]"), function (b) { b.addEventListener("click", function () { obEvent("onebox_sibling_clicked", lastQuery); run(b.getAttribute("data-sibling")); }); });
     var share = root.querySelector("[data-share]"); if (share) share.addEventListener("click", shareResult);
     // A clarification chip RESOLVES the answer and advances: it builds a clean "year make model"
     // (or "...body") query from the choice context, never appending to the raw query - which for
@@ -2867,7 +2865,7 @@
       var inp = document.getElementById("ob-miles"), go = document.getElementById("ob-miles-go");
       if (!inp || !go || inp.getAttribute("data-wired")) return;
       inp.setAttribute("data-wired", "1");
-      function submit() { var v = Number((document.getElementById("ob-miles") || {}).value); if (!(v > 0)) return; var band = v >= 60000 ? 25000 : 15000; var lbl = "around " + Math.round(v / 1000) + "k"; if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "mileage", value: lbl }); runPool(lastQuery, obLastVehicle, mergeRefine({ miMin: Math.max(0, v - band), miMax: v + band, miTarget: v, label: lbl })); }
+      function submit() { submitMileageInline(Number((document.getElementById("ob-miles") || {}).value)); }
       go.addEventListener("click", submit);
       inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); submit(); } });
     }
@@ -2886,13 +2884,29 @@
     Array.prototype.forEach.call(root.querySelectorAll("a[data-cardclick]"), function (a) {
       a.addEventListener("click", function () { try { obEvent("onebox_comp_click", a.getAttribute("data-cardclick") + ":" + lastQuery); } catch (e) {} });
     });
-    // Market read card: a banded quarter row reveals its own already server-rendered sales in place.
+    // One id, one hidden attribute: "How Sam picked these", "N sales sat outside the middle half"
+    // and "Show more sales (N)" all reveal their own already server-rendered content in place.
     Array.prototype.forEach.call(root.querySelectorAll("[data-qtoggle]"), function (b) {
       b.addEventListener("click", function () {
         var list = document.getElementById(b.getAttribute("data-qtoggle")); if (!list) return;
         var open = list.hasAttribute("hidden");
         if (open) list.removeAttribute("hidden"); else list.setAttribute("hidden", "");
         b.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+    });
+    // Distribution row: expands its own receipts, closing any other open row in the same group first
+    // (one bucket open at a time, per the brief).
+    Array.prototype.forEach.call(root.querySelectorAll("[data-disttoggle]"), function (b) {
+      b.addEventListener("click", function () {
+        var id = b.getAttribute("data-disttoggle"), grp = b.getAttribute("data-distgroup");
+        var panel = document.getElementById(id); if (!panel) return;
+        var willOpen = panel.hasAttribute("hidden");
+        Array.prototype.forEach.call(root.querySelectorAll('[data-distgroup="' + grp + '"]'), function (ob) {
+          var p = document.getElementById(ob.getAttribute("data-disttoggle"));
+          if (p && p !== panel) { p.setAttribute("hidden", ""); ob.setAttribute("aria-expanded", "false"); }
+        });
+        if (willOpen) panel.removeAttribute("hidden"); else panel.setAttribute("hidden", "");
+        b.setAttribute("aria-expanded", willOpen ? "true" : "false");
       });
     });
     // A "set aside" pointer is never a second list - it scrolls to (and, if the evidence block's own
@@ -2910,12 +2924,12 @@
         t.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     });
-    // Item 7: a removable current-answer chip reruns the SAME search without that one answer.
-    Array.prototype.forEach.call(root.querySelectorAll("[data-rmchip]"), function (b) {
-      b.addEventListener("click", function () {
-        runPool(lastQuery, obLastVehicle, refineWithout(b.getAttribute("data-rmchip")));
-      });
-    });
+    // Mileage "Change" (Market Check result-page spec, Oct 2026): focuses the field only - the field
+    // is already visible with its value retained, never a rerun/undo.
+    (function () {
+      var ch = document.getElementById("ob-miles-change");
+      if (ch) ch.addEventListener("click", function () { var inp = document.getElementById("ob-miles"); if (inp) { inp.focus(); inp.select(); } });
+    })();
     // Item 9 ("Put Sam on it"), connected (Oct 2026): Lane C's arm-by-spec/arm-by-vin addition to
     // /api/watch (docs/lane-notes.md) takes a resolved car or a bare VIN directly, no listing_id
     // needed - the SAME endpoint and wording Buy's own watch control uses, never a second one.
@@ -2987,7 +3001,11 @@
     if (q) { try { run(decodeURIComponent(q[1])); } catch (e) {} }
   }
   // The card builders, for Sell mode (same cards, same type): read-only use, nothing here changes.
+  // renderResults (Market Check result-page spec, Oct 2026 proof round): exported so a hand-built
+  // engine answer (a trend/distribution stub, before Lane B ships either field live) can be rendered
+  // straight to the page for a screenshot - read-only, no new behavior.
   window.OBX = { carHead: carHead, qscreenHtml: qscreenHtml, askCopy: askCopy, esc: esc, inboxHtml: inboxHtml, footHtml: footHtml, saleCardHtml: saleCardHtml,
-    samMsgHtml: samMsgHtml, setRootHtmlLifted: setRootHtmlLifted, wire: wire, root: root, run: run, renderError: renderError, renderEmpty: renderEmpty };
+    samMsgHtml: samMsgHtml, setRootHtmlLifted: setRootHtmlLifted, wire: wire, root: root, run: run, renderError: renderError, renderEmpty: renderEmpty,
+    renderResults: renderResults, renderQuestion: renderQuestion, modelChoiceTakeoverHtml: modelChoiceTakeoverHtml };
   boot();
 })();
