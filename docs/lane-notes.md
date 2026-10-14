@@ -7636,3 +7636,70 @@ Search check: rule 7 and rule 9 not touched; /buy result views are noindex (unch
 4. The car-name line under SAM (the engine's rungLines) shows only when it names a different car than the card title, compared without the make word; the same car runs straight into the sentence.
 scripts/buyCardAskCheck.mjs covers all four (51 cases).
 Search check: no public page touched; /buy result views are noindex.
+
+## Lane A, Oct 14 2026 (later still): search bar width, identity line persists after a choice, Show more sales
+
+1. SEARCH BAR restored to full content width (desktop and phone) - removed the 30%-width/220px-min
+   rule from `.mc-bar` added in the mockup-match round; the class stays on the markup for New Sell
+   (unaffected, never had this rule) but carries no width override any more. PROVEN LIVE.
+2. IDENTITY LINE PERSISTS AFTER A CHOICE. New obIdOrigBody/obIdOrigTrim (public/js/onebox.js) hold
+   the last UNREFINED bodyOptions/trimQuestion + their own soldCount (the engine nulls both fields
+   once a refine is applied, and never writes an applied refine back onto resolvedCar.bodyStyle/
+   trim - confirmed by direct probe, both stay null/"" post-refine). heroBodyLineHtml/
+   heroTrimLineHtml now render every original option: the chosen one as plain ink text
+   (.hero-idlink-chosen, new CSS, no underline, a <span> not a button), every other option still a
+   link, plus a new "Any (N)" link (N = the stored unrefined total) that clears the refine via
+   mergeRefine({body:null,label:null}) (same for trim). New appendChosenLabel() adds the chosen
+   label onto the H1 heading when resolvedCar doesn't already carry it; heroScopeLineText falls
+   back to obLastRefine.bodyLabel when rc.bodyStyle is empty and rungLabel's own body-mix clause
+   has collapsed (the normal case once a pool is down to one body).
+   PROVEN LIVE on 2005 Porsche 911 (car=2005-porsche-911; NOTE the "car" URL param needs a SLUG -
+   spaces in the raw string land on the "we haven't tracked" fallback, a pre-existing param-shape
+   gotcha, not a Lane A regression - the real redirect flow always slugifies via "q="):
+   - Unrefined: "Which 911? Coupe (25) · Cabriolet (14)"
+   - Click Coupe: H1 "2005 Porsche 911 Coupe", idLine "Which 911? [Coupe (25), ink] · Cabriolet
+     (14) [link] · Any (40) [link]", scope line "Coupes, 2005 · 25 sales · latest Sep 30"
+   - Click Cabriolet (fresh load): H1 "2005 Porsche 911 Cabriolet", idLine "Coupe (25) [link] ·
+     [Cabriolet (14), ink] · Any (40) [link]"
+   - Click Any (from Cabriolet): back to unrefined - H1 "2005 Porsche 911", soldCount 40, idLine
+     "Which 911? Coupe (25) · Cabriolet (14)" (no chosen state, no Any - matches the original
+     unrefined render exactly)
+3. PILL COUNT EQUALS PAGE COUNT. On every case above the pill's own number and the refined page's
+   soldCount matched EXACTLY (Coupe 25=25, Cabriolet 14=14, Any 40=40) - no mismatch found, so
+   nothing computed on the page and no fix needed here; Sam's observed 24-vs-25 was almost
+   certainly two sequential calls straddling a new sale landing in the archive (confirmed elsewhere
+   this session that the SAME car's own count can shift minutes apart), not a structural spec
+   mismatch between the two engine calls.
+4. SHOW MORE SALES is now one-way: clicking it still reveals the hidden rows (unchanged), but the
+   trigger itself (.allsales-showall) now also gets `hidden` set the moment it opens, so it
+   disappears instead of sitting there with a stale "(2)" count. PROVEN LIVE on 2023 BMW M3
+   (car=2023-bmw-m3): button read "Show more sales (2)", hidden:false before click; after click,
+   hidden:true (gone from view), rows showing.
+
+BLOCKED FOR SAM/SELF, RESOLVED MID-TASK: my test IP hit Market Check's 10-distinct-cars-per-device-
+per-day ceiling (lib/_ceilings.js checkMarketCheckCarLimit) partway through this round's live
+testing - x-ops-key/PROBE_KEY bypasses the pre-launch curtain but NOT this ceiling, only the signed
+gas_crew cookie does (isCrew(req) check). Sam provided the CURTAIN_CREW_CODE live in chat; minted
+the cookie via /api/crew?code=... in-memory inside one node process (never written to disk, never
+printed) and used it immediately to set the cookie for the rest of this round's browser checks.
+
+FOR LANE B (genuine engine bug, found while proving item 2/3 on the required 1965 Ford Mustang
+case, reproducible, NOT a Lane A frontend issue): "1965 Ford Mustang" typed BARE (no body, no
+trim) returns tier "not_tracked" / fallbackRung "not_enough_data" / rungLabel "Ford Mustang" -
+zero evidence, "We haven't tracked a Ford Mustang sale yet" - even though real sales plainly exist
+for that exact year: "1965 Ford Mustang Coupe" returns tier "result", 38 sales, fallbackRung
+"exact"; "1965 Ford Mustang Convertible" returns tier "result", 33 sales. Adjacent years on the
+SAME bare (no-body) query resolve fine: 1964 Ford Mustang -> 14 sales (exact, "1964 Mustang,
+coupes and convertibles"); 1967 Ford Mustang -> 41 sales with bodyOptions Coupe(16)/
+Convertible(11). Reproduced twice on 1965-ford-mustang and once more on the bare alias
+1965-mustang, all three identical (not_tracked). This blocks the required proof pass on 1965 Ford
+Mustang specifically - the identity line/Any-link/pill-count code (item 2/3 above) is fully
+verified on 2005 Porsche 911 instead, and is architecturally identical for any car whose engine
+response carries bodyOptions, so there is no reason to expect it behaves differently once this is
+fixed - but it could not be shown live on the named car. Worth checking: something in the bare
+(no-body) fetch/ladder path specifically mishandles year 1965 for this model (a body-split
+threshold, a generation-boundary guard, or a date-string edge case), while the explicit-body and
+adjacent-year paths for the identical car are unaffected.
+
+Search check: no title/H1/canonical/meta changed - search-bar CSS, identity-line rendering/CSS and
+one click-handler addition, all within the existing Market Check template.
