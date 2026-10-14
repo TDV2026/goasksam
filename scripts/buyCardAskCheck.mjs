@@ -111,12 +111,13 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   const filters = { make: "Porsche", model: "911", generation: "997", trim: "Carrera", body: "coupe", gearbox: "manual", colour: "black", era: "997", sort: "lowest_bid", location: "46552", radius_miles: 250 };
   const mem = T.memStore(), env = { mem }, U = "aaaaaaaa-0000-4000-8000-0000000000c1";
   const r = await T.draftTurn(env, { userId: U }, { draft: null, text: "997 Carrera coupes", seed: { from: "buy_search", ref: null, filters } });
-  const want = { make: "Porsche", model: "911", generation: "997", trim: "Carrera", body: "coupe", gearbox: "manual", colour: "black", location: "46552", radius_miles: 250 };
+  const want = { make: "Porsche", model: "911", generation: "997", era: "997", trim: "Carrera", body: "coupe", gearbox: "manual", colour: "black", location: "46552", radius_miles: 250 };
   ok(r.draft && JSON.stringify(r.draft.filters) === JSON.stringify(want) && r.draft.seed.from === "buy_search", `the drafted Task's filters are the page's (got ${JSON.stringify(r.draft && r.draft.filters)})`);
   ok(mem.tasks.length === 0 && /^Sam will look for /.test(r.reply) && /Shall Sam start\?$/.test(r.reply), "drafting writes nothing and reads the job back");
   ok(T.taskRow(want, null).listing_title === "Porsche 997 Carrera coupe", "the Task's market row names the page's car and body");
-  ok(T.taskRow(T.buyJob({ make: "BMW", model: "M3", era: "E46", body: "coupe", year_min: 2001, year_max: 2006 }).filters, null).listing_title === "BMW M3 E46 coupe", "one era chip is the Task's generation, named in its row");
-  ok(!T.buyJob({ make: "Porsche", model: "911", era: "996,997" }).filters.generation, "two eras are not one generation");
+  const e46 = T.buyJob({ make: "BMW", model: "M3", era: "E46", body: "coupe", year_min: 2001, year_max: 2006 }).filters;
+  ok(e46.era === "E46" && !e46.generation && T.taskRow(e46, null).listing_title === "BMW M3 E46 coupe", "the era chip is kept as the page had it (the same search) and names the row");
+  ok(T.taskRow(T.buyJob({ make: "Porsche", model: "911", era: "996,997", body: "coupe" }).filters, null).listing_title === "Porsche 911 coupe", "two eras are not one generation");
   ok(T.buyJob({ colour: "red" }) === null, "a page spec without a make is not a job");
 }
 
