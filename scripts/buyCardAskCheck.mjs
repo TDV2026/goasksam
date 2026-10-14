@@ -137,6 +137,7 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
 // ---- 6. Sam's review, Oct 14 2026: chip words, one count, the bid with its time, no repeated car name
 {
   ok(colourChip({ listing_title: "2008 Porsche 911 GT2 Black over a Black" }, { colour: "black" }) === "Black over black", "a stray article and odd capitals leave the colour chip");
+  ok(colourChip({ listing_title: "2005 Porsche 911", description: "This car is finished in Dark Olive Metallic over Sand Beige full leather upholstery." }, { colour: "green" }) === "Dark olive metallic over sand beige" && colourChip({ listing_title: "2006 BMW M3 Titanium Silver over Black Nappa" }, { colour: "silver" }) === "Titanium silver over black", "an interior ends at its last colour word");
   ok(colourChip({ listing_title: "1999 Porsche 911 Carrera" }, { colour: "Silver" }) === "Silver" && colourChip({ listing_title: "x" }, {}) === null, "one colour as stated; none stated, no chip");
   const page = fs.readFileSync(new URL("../api/buy.js", import.meta.url), "utf8");
   const client = JSON.parse(/^const CLIENT = (.*);$/m.exec(page)[1]);
