@@ -150,7 +150,7 @@ export const DEFAULT_SPECS = [
   // Lane B job, Oct 13 2026 (Job 1): the two cars the e28-e30 output gate wrongly refused (archive model
   // column "Grand National - Regal" read as a wrong car; one stray 365 in a 14-sale 275 pool hid the other
   // thirteen). Permanent regression specs: all four lanes must give the range golden-rules.md expects.
-  "1987 Buick Regal Grand National", "1967 Ferrari 275 GTB/4 NART Spider", "2008 997 Carrera S Coupe",
+  "1987 Buick Regal Grand National", "1967 Ferrari 275 GTB/4 NART Spider", "2008 997 Carrera S Coupe", "2023 BMW M3", "1964 Ferrari 275 GTB",
   // Lane B job (Oct 2026, Part 2): the parseQuery edition-word gaps B2 found and listed in
   // scripts/resolverLanesCheck.mjs's buyGap entries (now closed, entries removed there too) -
   // "Black" in "Black Series" read as a paint colour and "Speedster" as a body filter BEFORE the

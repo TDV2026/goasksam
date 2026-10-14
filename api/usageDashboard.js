@@ -2354,6 +2354,33 @@ async function handleOps(req, res) {
   // see exactly which sales a pool holds (and, with fence=1, why the engine kept or dropped each one)
   // without any read-only task having to reconstruct a fence by hand. Settles the "pending" golden
   // cars (356 Speedster, Merkur XR4Ti, Mustang GT, 275 GTB, Saab 9-2X) and anything like them later.
+  // task=bodyaudit (Lane B, Oct 15 2026, Sam's Job 1c, read-only): for one venue since a date, how the stored
+  // body_style relates to the listing's own title and to the model's own facts (lib/modelRules.js). Zero OCD.
+  if (task === "bodyaudit") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const since = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.since || "")) ? String(req.query.since) : "2025-01-01";
+    const slug = String(req.query?.source || "carsandbids").trim();
+    const { rulesFor, bodiesForYear } = await import("../lib/modelRules.js");
+    const BODY = [["targa", ["targa"]], ["cabriolet", ["cabriolet", "cabrio"]], ["convertible", ["convertible", "drophead", "dhc"]], ["roadster", ["roadster", "spyder", "spider"]], ["coupe", ["coupe", "coupé", "berlinetta", "fastback", "hardtop", "notchback"]], ["sedan", ["sedan", "saloon", "berlina"]]];
+    const bodyOf = t => { t = String(t || "").toLowerCase(); for (const [s, ws] of BODY) if (ws.some(w => t.includes(w))) return s; return null; };
+    const fam = s => s === "targa" ? "targa" : s === "coupe" ? "coupe" : s === "sedan" ? "sedan" : "open";
+    const rows = (await supabaseSelectAll(env, `sales_archive?select=year,make,model,listing_title,body:raw_record->>body_style&source_slug=eq.${encodeURIComponent(slug)}&sale_price=not.is.null&vehicle_type=eq.car&sale_date=gte.${since}`)) || [];
+    const c = { total: rows.length, titleNamesBody: 0, storedAgreesOrEmpty: 0, storedContradictsTitle: 0, titleNamesNone: 0, noneStoredEmpty: 0, noneStoredCoveredOffered: 0, noneStoredCoveredNotOffered: 0, noneStoredUncovered: 0 };
+    const byStored = {}; const notOfferedSample = [];
+    for (const r of rows) {
+      const tb = bodyOf(r.listing_title), sb = bodyOf(r.body);
+      const k = String(r.body || "(empty)"); byStored[k] = (byStored[k] || 0) + 1;
+      if (tb) { c.titleNamesBody++; if (!sb || fam(sb) === fam(tb)) c.storedAgreesOrEmpty++; else c.storedContradictsTitle++; continue; }
+      c.titleNamesNone++;
+      if (!sb) { c.noneStoredEmpty++; continue; }
+      const rule = rulesFor(r.make, r.model);
+      if (!rule) { c.noneStoredUncovered++; continue; }
+      const offered = bodiesForYear(rule, r.year);
+      if (offered && offered.length && !offered.some(b => fam(bodyOf(b) || b) === fam(sb))) { c.noneStoredCoveredNotOffered++; if (notOfferedSample.length < 25) notOfferedSample.push({ year: r.year, make: r.make, model: r.model, title: r.listing_title, stored: r.body, offered }); }
+      else c.noneStoredCoveredOffered++;
+    }
+    return res.status(200).json({ task: "bodyaudit", source: slug, since, counts: c, byStoredBody: byStored, notOfferedSample });
+  }
   // task=countrycov (Lane B, Oct 15 2026, Sam's Job 2a, read-only): per venue since a date, how many sold car rows carry
   // raw_record country_code and how many carry none, plus the distinct codes and currencies seen on a sample. Zero OCD.
   if (task === "countrycov") {
@@ -2430,6 +2457,9 @@ async function handleOps(req, res) {
       } catch (e) { fenceSpec = null; }
     }
     const { qualifyReason, __specEngine } = await import("../lib/onebox.js");
+    const { marketCountry: prCountryOf, inMarket: prInMarketOf } = await import("../lib/_classify.js");
+    const prCountry = r => prCountryOf({ ...r, source: r.platform, raw_title: r.raw_title });
+    const prInMarket = r => prInMarketOf({ ...r, source: r.platform, raw_title: r.raw_title });
     const windowDays = since ? Math.round((Date.now() - Date.parse(since + "T00:00:00Z")) / 864e5) : null;
     const out = rows.map(r => {
       const engineRow = { price: r.price, currency: r.currency, source_slug: r.source_slug, source: r.platform, date: r.sale_date, raw_title: r.raw_title, rtitle: r.rtitle, mileage: r.mileage, mods: r.mods, transmission: r.transmission, image: r.image, project_flag: r.project_flag, year: r.year };
@@ -2441,6 +2471,7 @@ async function handleOps(req, res) {
         hammerUsd: Number.isFinite(hammer) ? Math.round(hammer) : null, allInUsd: Number.isFinite(allIn) ? Math.round(allIn) : null,
         mileage: r.mileage || null, vin_norm: r.vin_norm || null, has_photo: !!r.image, project_flag: r.project_flag || null, vehicle_type: r.vehicle_type,
         body_style: r.body || null, country_code: r.cc || null, city: r.city || null, state: r.state || null,
+        country: prCountry(r).country, countryBasis: prCountry(r).basis, inMarket: prInMarket(r),
         engineVerdict: fenceSpec ? qualifyReason(engineRow, fenceSpec) : null
       };
     });
@@ -3390,11 +3421,17 @@ async function handleOps(req, res) {
         const d = ob.dedup || {};
         let considered = null;
         if (wantRows) {
-          const rowOut = (r, extra) => ({ id: r.id, title: r.raw_title || r.rtitle || null, year: r.year ?? null, model: r.model || null, body_style: r.body || null, source: r.source || r.platform || null, date: String(r.auction_end_date || r.sale_date || "").slice(0, 10) || null, price: r.price ?? null, currency: r.currency || null, country_code: r.cc || null, city: r.city || null, state: r.state || null, ...extra });
+          const { marketCountry: mcOf } = await import("../lib/_classify.js");
+          const rowOut = (r, extra) => { const mc = mcOf(r); return { id: r.id, title: r.raw_title || r.rtitle || null, year: r.year ?? null, model: r.model || null, body_style: r.body || null, source: r.source || r.platform || null, date: String(r.auction_end_date || r.sale_date || "").slice(0, 10) || null, price: r.price ?? null, currency: r.currency || null, country_code: r.cc || null, city: r.city || null, state: r.state || null, country: r.country || mc.country, countryBasis: r.countryBasis || mc.basis, ...extra }; };
           const included = (ob.rawPool || []).map(r => rowOut(r, {}));
+          const inIds = new Set(included.map(r => r.id));
+          // A row in the final pool is never listed as excluded (an earlier, wider fetch may have rejected it
+          // under that fetch's own scope); each excluded row names the fetch that rejected it.
           const seenEx = new Set(), excluded = [];
-          for (const e of (d.excluded || [])) { const id = e.row && e.row.id; if (id == null || seenEx.has(id)) continue; seenEx.add(id); excluded.push(rowOut(e.row, { reason: e.reason })); }
-          const known = new Set([...included.map(r => r.id), ...excluded.map(r => r.id)]);
+          for (const e of (d.excluded || [])) { const id = e.row && e.row.id; if (id == null || seenEx.has(id) || inIds.has(id)) continue; seenEx.add(id); excluded.push(rowOut(e.row, { reason: e.reason, fetch: e.fetch || null })); }
+          const abroad = [];
+          for (const e of (d.abroad || [])) { const id = e.row && e.row.id; if (id == null || seenEx.has(id) || inIds.has(id)) continue; seenEx.add(id); abroad.push(rowOut(e.row, { reason: e.reason, fetch: e.fetch || null })); }
+          const known = new Set([...included.map(r => r.id), ...excluded.map(r => r.id), ...abroad.map(r => r.id)]);
           let notFetched = [];
           if (v.model) {
             const since5 = new Date(Date.now() - 1825 * 864e5).toISOString().slice(0, 10);
@@ -3404,7 +3441,7 @@ async function handleOps(req, res) {
             const broad = (await supabaseSelect(env, `sales_archive?select=${cols}&make=ilike.${encodeURIComponent("*" + v.make + "*")}&sale_price=not.is.null&sale_date=gte.${since5}${yq}&or=(model.ilike.${mdl},listing_title.ilike.${mdl})&order=sale_date.desc&limit=1000`)) || [];
             notFetched = broad.filter(r => !known.has(r.id)).map(r => rowOut(r, { reason: "not returned by any fetch (outside the fetch filters: model/title scope, year bound, window or venue hold-out)" }));
           }
-          considered = { includedCount: included.length, excludedCount: excluded.length, notFetchedCount: notFetched.length, included, excluded, notFetched };
+          considered = { includedCount: included.length, excludedCount: excluded.length, abroadCount: abroad.length, notFetchedCount: notFetched.length, included, excluded, abroad, notFetched };
         }
         // reserve=1 (Oct 2026, Job 3 verify): the two reserve-tile labels, read-only, archive-only.
         const reserve = wantReserve ? {
