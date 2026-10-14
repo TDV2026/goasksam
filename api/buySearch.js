@@ -62,19 +62,22 @@ const titleCaseIfShouting = s => String(s || "").split(",").map(p => { const t =
 // when the listing states it; a field the listing doesn't state is left out, never guessed.
 const COLOUR_WORDS = new Set(Object.values(COLOURS).flat().concat(["gray", "tan", "cream", "ivory", "oxblood", "cinnamon", "saddle", "camel", "parchment", "stone", "biscuit", "magnolia", "natural"]));
 const isColourPhrase = s => String(s || "").toLowerCase().split(/[\s-]+/).some(w => COLOUR_WORDS.has(w));
-const titleWords = s => String(s || "").trim().replace(/\s+/g, " ").toLowerCase().replace(/\b([a-z])/g, c => c.toUpperCase());
+// A colour as the listing words it, cleaned for a chip: a leading article (a, an, the, in) dropped, lower case, so
+// "a Black" reads "black" (Sam, Oct 14 2026). The paint leads the chip with one capital ("Black over black").
+const colourWords = s => String(s || "").trim().replace(/\s+/g, " ").toLowerCase().replace(/^(?:(?:a|an|the|in)\s+)+/, "");
+const sentenceCase = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 const INTERIOR_NOUN = "(?:leather|leatherette|vinyl|cloth|upholstery|interior|alcantara|houndstooth|tartan|corduroy|velour|sport-?tex|suede|seats|trim)";
 const OVER_DESC = new RegExp("\\b(?:finished|painted|refinished|presented|is shown|done|wears)\\s+in\\s+([a-z][a-z -]{1,30}?)\\s+over\\s+([a-z][a-z -]{1,30}?)\\s+" + INTERIOR_NOUN + "\\b", "i");
 const OVER_TITLE = /\b([A-Za-z]+(?: [A-Za-z]+)?) over ([A-Za-z]+(?: [A-Za-z]+)?)\b/;
 export function colourChip(r, facts) {
-  const ext = facts && facts.colour ? titleWords(facts.colour) : null;
+  const ext = facts && facts.colour ? colourWords(facts.colour) : null;
   const m = OVER_TITLE.exec(String(r.listing_title || "")) || OVER_DESC.exec(String(r.description || ""));
-  const paint = m && isColourPhrase(m[1]) ? titleWords(m[1]) : null, trim = m && isColourPhrase(m[2]) ? titleWords(m[2]) : null;
+  const paint = m && isColourPhrase(m[1]) ? colourWords(m[1]) : null, trim = m && isColourPhrase(m[2]) ? colourWords(m[2]) : null;
   // The paint as the listing words it when it is the same colour the card reads; the interior only as stated.
-  const sameColour = paint && ext && paint.toLowerCase().split(/[\s-]+/).some(w => (COLOURS[ext.toLowerCase()] || []).includes(w) || w === ext.toLowerCase());
+  const sameColour = paint && ext && paint.split(/[\s-]+/).some(w => (COLOURS[ext] || []).includes(w) || w === ext);
   const outside = sameColour ? paint : (ext || paint);
   if (!outside) return null;   // no paint stated: no colour chip (an interior alone says too little)
-  return trim ? `${outside} over ${trim}` : outside;
+  return sentenceCase(trim ? `${outside} over ${trim}` : outside);
 }
 const TITLE_RE = /\b(clean(?: and clear)?|salvage|rebuilt|branded|reconstructed|flood|lemon)\s+(?:[A-Z][a-z]+\s+){0,2}title\b/gi;
 export function titleChip(r) {

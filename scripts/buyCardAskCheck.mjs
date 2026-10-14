@@ -12,7 +12,7 @@
 process.env.SUPABASE_URL = "http://127.0.0.1:9"; process.env.SUPABASE_SERVICE_ROLE_KEY = "fixture-only";
 import fs from "node:fs";
 const { askRule, mileageAsk, distanceAsk, removalOf, ASK_SKIP_SHARE, ASK_STOP_SHARE } = await import("../lib/live/narrow.js");
-const { specChips, samLines, bidPlacing } = await import("../api/buySearch.js");
+const { specChips, colourChip, samLines, bidPlacing } = await import("../api/buySearch.js");
 const T = await import("../lib/tasks/tasks.js");
 
 let fails = 0, passes = 0;
@@ -84,7 +84,7 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
 // ---- 2. spec chips
 {
   const full = specChips({ listing_title: "42k-Mile 1997 Porsche 911 Carrera Targa", vin_norm: "WP0DA299XVS385140", description: "This Targa is finished in Black over Cashmere Beige leather. It is offered with a clean Carfax report and a clean Indiana title." }, { colour: "black", gearboxLabel: "Manual" });
-  ok(full.join(" | ") === "Manual | Black over Cashmere Beige | Clean title | VIN WP0DA2…5140", `all four chips (got ${full.join(" | ")})`);
+  ok(full.join(" | ") === "Manual | Black over cashmere beige | Clean title | VIN WP0DA2…5140", `all four chips (got ${full.join(" | ")})`);
   ok(specChips({ listing_title: "2004 BMW M3 Coupe" }, {}).length === 0, "nothing stated: no chips");
   ok(specChips({ listing_title: "1987 Porsche 911", vin_norm: "9117100123" }, { colour: "red" }).join("|") === "Red", "a chassis number is not a VIN chip; the paint alone when no interior is stated");
   ok(!specChips({ listing_title: "x", description: "It has never had a salvage title." }, {}).some(c => /title/i.test(c)), "a title status stated only in the negative is left out");
@@ -132,6 +132,26 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   const copy = ["Which model?", "Which body style?", "Manual or automatic?", "How many miles?", "How far would you travel?", "Keep it near you? Enter a zip or choose Anywhere.", "Any mileage", "Anywhere", "Any body style", "Any gearbox", "Use this zip", "The bid is below the range.", "This exact car sold for", "Have Sam keep looking"];
   const banned = /\b(worth|values?|valuation|estimates?|appraisal|median|percentile|alerts?|your car|I found)\b|[–—]/i;
   ok(copy.every(c => !banned.test(c)), "the new copy has no banned word, no first person, no dash");
+}
+
+// ---- 6. Sam's review, Oct 14 2026: chip words, one count, the bid with its time, no repeated car name
+{
+  ok(colourChip({ listing_title: "2008 Porsche 911 GT2 Black over a Black" }, { colour: "black" }) === "Black over black", "a stray article and odd capitals leave the colour chip");
+  ok(colourChip({ listing_title: "1999 Porsche 911 Carrera" }, { colour: "Silver" }) === "Silver" && colourChip({ listing_title: "x" }, {}) === null, "one colour as stated; none stated, no chip");
+  const page = fs.readFileSync(new URL("../api/buy.js", import.meta.url), "utf8");
+  const client = JSON.parse(/^const CLIENT = (.*);$/m.exec(page)[1]);
+  const fnSrc = name => { const i = client.indexOf("function " + name + "("); let d = 0, j = client.indexOf("{", i); for (let k = j; k < client.length; k++) { if (client[k] === "{") d++; else if (client[k] === "}" && !--d) return client.slice(i, k + 1); } return ""; };
+  const lib = new Function(`var TZ = "America/Los_Angeles"; ${["timePT", "sameDay", "bidAt", "bidText", "carWords", "rungShown"].map(fnSrc).join("\n")}; function carTitle(l){ return l.title; } return { bidText, rungShown };`)();
+  const t = Date.now() - 3 * 3600e3, want = new Date(t).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" }).replace(" AM", "am").replace(" PM", "pm");
+  const recent = lib.bidText("$66,666", Date.now() - 5 * 60e3);
+  ok(/^Last bid we saw \$66,666 at \d{1,2}:\d\d[ap]m PT( on \w+day)?$/.test(recent), `a fresh bid reads with its time (got ${recent})`);
+  ok(lib.bidText("$66,666", t).startsWith("Last bid we saw $66,666 at " + want + " PT"), "an older bid reads with its own time in Pacific time");
+  ok(lib.bidText("$1", NaN) === "Bid $1", "a bid with no time reads Bid $X, a $1 bid as stored");
+  ok(/k === "untimed" \? esc\("Bid " \+ amt\)/.test(client) && /!amt \? \(l\.bid_unknown \? "" : esc\("No bids yet"\)\)/.test(client), "No bids yet only with no bid record");
+  const card = { make: "Porsche", title: "2014 Porsche 911 Carrera S Coupe" };
+  ok(lib.rungShown(card, ["2014 911 Carrera S Coupe"]).length === 0, "the car name under SAM is dropped when it is the card's own car");
+  ok(lib.rungShown({ make: "Porsche", title: "2008 Porsche 911 GT2 Coupe" }, ["2008 911 GT2"]).length === 1 && lib.rungShown(card, ["Closest: 911 Carrera 4S"]).length === 1, "a different car compared keeps its line");
+  ok(/headerHtml\(d\.meta \|\| \{\}, q, qp, f \|\| \{\}, !!\(a && !d\._showAll && !a\.vague\)\)/.test(client) && /: n && asking \? ""/.test(client), "a question on screen carries the count; the right-hand line is left out");
 }
 
 console.log(`buyCardAskCheck: ${passes} passed, ${fails} failed`);

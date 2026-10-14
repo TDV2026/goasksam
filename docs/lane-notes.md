@@ -7627,3 +7627,12 @@ Search check: rule 7 and rule 9 not touched; /buy result views are noindex (unch
   SWEEP on e38, 86 specs, serial batches of three: 84 clean on all four lanes, 0 mismatches, 2 specs with no read on any lane, all four agreeing (1964 Porsche 356 Speedster, no such car; 1993 Porsche 911 Carrera RS Targa, nothing on record).
   Not done / for B2: golden rows 4 and 16 to re-derive (above); the 2016 911 R refusal label now reads "911 R models, 2016" (the real-span rule on a one-year refusal pool), fine but note it.
   Search check: no public page touched.
+
+## Lane C, Oct 14 2026: four fixes from Sam's review of "black Porsche 911"
+
+1. Colour chip (api/buySearch.js colourChip, the one chip builder): the listing's colour words lose a leading article (a, an, the, in) and odd capitals, the paint leads with one capital: "Black over a Black" reads "Black over black". Only stated words; no colour added. A Porsche name like "Guards Red" now reads "Guards red".
+2. One count: while a question with a count is on screen ("14 live black Porsche 911s. Which era?"), the right-hand count line is left out (the sort control stays). No question, or a vague question with no count: the right-hand line as before.
+3. Bid line on the card: every live bid reads "Last bid we saw $66,666 at 3:12pm PT", from bid_at (the feed's updated_at, the Task emails' source) in Pacific time with the weekday when not today (the Task email zone rule). No bid time: "Bid $X". "No bids yet" only with no bid record; a $1 bid prints as stored.
+4. The car-name line under SAM (the engine's rungLines) shows only when it names a different car than the card title, compared without the make word; the same car runs straight into the sentence.
+scripts/buyCardAskCheck.mjs covers all four (51 cases).
+Search check: no public page touched; /buy result views are noindex.
