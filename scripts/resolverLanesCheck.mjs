@@ -38,6 +38,8 @@ const CASES = [
   ["2021 Land Rover Defender 90", { year: 2021, model: "Defender", wheelbase: "90" }],
   ["2021 Land Rover Defender 110", { year: 2021, model: "Defender", wheelbase: "110" }],
   ["2021 Land Rover Defender 130", { year: 2021, model: "Defender", wheelbase: "130" }],
+  ["1998 Land Rover Defender 90", { year: 1998, make: "Land Rover", model: "Defender", wheelbase: "90" }],   // vPIC lists no 1998 Defender; the curated 1983 to 2016 range keeps it valid
+  ["2004 Land Rover Defender 110", { year: 2004, make: "Land Rover", model: "Defender", wheelbase: "110" }],
   ["2012 Toyota Land Cruiser 200", { year: 2012, model: "Land Cruiser", series: "200" }],
   ["Toyota Land Cruiser 200", { model: "Land Cruiser", series: "200" }],
   ["2005 Land Rover Range Rover LWB", { year: 2005, model: "Range Rover", variant: "LWB" }],
