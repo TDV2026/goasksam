@@ -81,11 +81,12 @@ button{font:inherit}
    display:flex, or the brand and nav links collapse together with no spacing at all. */
 .mc-flat .gas-mhead{display:flex !important;align-items:center;gap:10px;padding:22px 32px 0;background:transparent}
 .mc-flat .gas-mhead .gas-menu{display:none !important}
-.mc-flat .gas-mhead .gas-brand{font:600 24px/1.1 var(--serif);letter-spacing:-.01em;margin-right:auto}
+.mc-flat .gas-mhead .gas-brand{font:600 24px/1.1 var(--serif);letter-spacing:-.01em}
 /* Item 9: Buy/Sell, lost with the rail, restored in the header (js/onebox.js inserts this nav into
-   .gas-mhead) - plain text links, same row as the wordmark, well clear of the sign-in pill which
-   floats fixed at top:14px/right:22px (lib/authBar.js). */
-.mc-mhead-nav{display:flex;gap:20px;order:2}
+   .gas-mhead right after the wordmark) - plain text links, deliberately NOT pushed to the far right
+   (an auto-margin there collides with the sign-in pill's own fixed top:14px/right:22px position,
+   lib/authBar.js) - sits right next to "GoAskSam" instead. */
+.mc-mhead-nav{display:flex;gap:20px;order:2;margin-left:8px}
 .mc-mhead-nav a{font:500 15px/1 var(--sans);color:var(--sec);text-decoration:none;min-height:44px;display:inline-flex;align-items:center}
 .mc-mhead-nav a:hover{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
 .gas-submenu{display:none;flex-direction:column;margin:0 0 4px 14px;border-left:1px solid var(--rail-line,var(--div))}
