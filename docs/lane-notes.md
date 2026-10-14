@@ -6912,3 +6912,73 @@ Search check: results pages stay noindex (`<meta name="robots" content="noindex,
 public/onebox.html is unchanged - grepped, same line, same value); no title, H1 or canonical changed
 anywhere in this diff (only CSS and the result-render functions inside the IIFE were touched; the
 `<title>`/meta tags and the server-rendered landing path are untouched).
+
+## Lane A: Market Check live-site verification + a real bug the local proof missed (2026-10-13)
+
+Sam flagged that the live page still showed the old design. Root cause: the prior round's five
+commits were sitting on the `worktree-lane-a` branch only - never merged to `main`, so nothing had
+deployed. Fixed by pushing the branch straight onto `main` (`git push origin worktree-lane-a:main`,
+a clean fast-forward, db3cbd4 at the time..6cdafa5) - Sam confirmed this is the normal workflow here
+(every lane pushes its own worktree to main; Vercel deploys from main) and approved it going forward.
+Vercel's git integration auto-deployed off that push.
+
+PREPUSH: no git `pre-push` hook exists in this repo (checked `.git/hooks/`, only the default
+`.sample` files - git never runs those). `scripts/prePush.mjs` is a manual, lane-run script, not a
+git hook, and it was not run before either push in the prior round. Run now (`PROBE_KEY` from the
+Keychain into that one command's environment only): module load SKIP (no changed lib/api files
+this branch's commits), every deterministic/synthetic check PASS, every archive-backed check SKIP
+(no Supabase creds in this environment, the standing, expected state), and the browser check
+(`scripts/pushCheck.mjs`, against live `https://goasksam.com`) PASS - including the Market Check
+speed check specifically: "2008 Porsche 997 Carrera S Coupe" 3605ms/14000ms budget, "1995 Porsche
+911 Carrera" 3066ms/14000ms, "1969 Chevrolet Camaro" 3802ms/18000ms and 3003ms/8000ms - all four
+comfortably under budget, no 5xx, no console error. The report-only `goldenTruth.mjs --quick` tail
+timed out after 3 minutes in this environment (a tooling limit on my end, not a failure) - it is
+non-blocking and was not re-run standalone since the gating checks had already all passed.
+
+A REAL BUG, found only once real production photos were in the mix: the first "Sales behind this
+answer" card on the live 2006 Mercedes-Benz CLK DTM page (which has a real photo; its two siblings
+show "NO PHOTO") rendered its photo box at 320x240 (the photo's own 4:3 intrinsic ratio) instead of
+the card shape's 320x213 (3:2) - visibly taller than its two placeholder-only siblings. Root cause:
+`.ph{height:auto}` (aspect-ratio supplies the computed height once width is known) combined with
+`.ph img{height:100%}` in normal flow - a percentage height does not resolve against an auto-height
+parent, so the real `<img>` fell back to its own natural ratio and the auto-height parent grew to
+fit it; the placeholder text (`.ph .none`) was already `position:absolute` and never had this
+problem. Every local proof fixture in the prior round used `image: null` on every card, so this
+never had a chance to surface locally - only Sam's own insistence on live verification caught it.
+Fixed (commit 952b338) by giving `.ph img` the same `position:absolute;inset:0` treatment `.ph .none`
+already had. This is the shared base `.ph`/`.ph img` rule, so the fix also covers every other real-
+photo card using the same aspect-ratio'd `.ph` (grid2/grid3/cards5 - class_era/refusal/VIN-confirm,
+out of this round's own scope but carrying the identical bug before this fix). Re-verified live after
+redeploy: all three card photos on the CLK DTM page now measure 320x213.33, bit-identical.
+
+LIVE VERIFICATION (goasksam.com, real data, via the same `x-ops-key`/`x-launch-stage-test` header
+technique `pushCheck.mjs` itself uses, `PROBE_KEY` read from the Keychain into one command's
+environment, never printed): all four named cars and the mileage flow confirmed live, with real
+data (not fixtures) - including a live "Live right now" table (five live 911s, "One is bidding below
+the range, two above it.") and a real trimQuestion-driven identity line ("Which 911? Carrera S (8)
+Carrera T (15)") I had no fixture for. Every font size matched the spec table exactly at both widths
+on every page (72/48 range, 40/30 car name, 28/24 section heading, 24/20 card price, 17/16 scope,
+15/14 meta - re-confirmed via `getComputedStyle` on the real `h2.range` element specifically for the
+thin-tier cars, where a looser selector in my own measurement script briefly grabbed an earlier grey
+line instead of the headline - a measurement-script issue, not a page bug, caught by cross-checking
+against the screenshot). Zero border-radius/box-shadow violations, zero console errors, scrollWidth
+== clientWidth at 390 on every page, on live production. Distribution never fired on any of the four
+named cars (all have well under the 20-sale floor) - correct, not a gap. The 911's chart is the strip
+(12 sales, trend needs 3+ quarters of 8+ each, which 12 total sales cannot reach) - my own
+"hasCandles" diagnostic check had a false positive (it matched the strip's own band `<rect>`, which
+looks identical in markup terms to a candle bar); confirmed by eye on the screenshot it is the strip,
+correctly.
+
+Screenshots (1440 and 390, live production, in
+/Users/davidzysblat/Desktop/goasksam-proofs/market-check-live/): 911-1440/390.png, clkdtm-1440/
+390.png (post-fix: equal photo heights), duesenberg-1440/390.png, bmw-model-1440/390.png, mileage-1-
+before/2-dimmed/3-after.png (dimmed: 0.4 opacity on both the range and the chart, field holds "5000";
+after: opacity 1, real narrowed range "$143,000 to $163,000"). measurements.json alongside them.
+
+Two NOT-DONE items from the prior report are now resolved: proof is live-production, not local-
+render; and the vercel.json cache-busting worry did not materialize (the live site served the new
+code immediately after deploy, no stale-JS issue observed). The rest of the prior round's NOT DONE
+list stands unchanged.
+
+Search check: no public page's title, H1 or canonical touched this round either - the CSS fix is a
+single `.ph img` rule change, nothing else.
