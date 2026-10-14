@@ -7423,7 +7423,6 @@ markup/CSS, type scale and phone-layout CSS within the existing Market Check tem
   Not done: the Market Check page's own window caption and the trend/distribution renderers are Lane A's (public/js/onebox.js); the fields are live, the page switch is theirs. prePush: first run failed the speed check on one read (997 Carrera S Coupe 14,035ms against 14,000ms on the then-deployed e33); not pushed over it; the rerun passed every speed read (3,794ms for that car), 0 FAIL, 5 SKIP (the archive checks with no local Supabase credentials), 28 PASS.
   Search check: no public page touched (lib/live/marketCheckLanding.js only changes the window clause of the example band to the engine's words, same rules as before).
 
-
 ## Lane B2, Oct 14 2026: resolver gaps, golden hand-checks, full golden table
 
 RESOLVER (ba6a5fc, and the follow-up commit): (a) NSX-T reads as model NSX with bodyStyle targa on every path; "NSX Targa" the same (lib/vehicleData.js BODY_LINES, applied at the top of resolveVehicle, so Market Check, Buy, Sell and Tasks read it alike). "Corvette Split Window" reads as the Corvette with bodyStyle coupe (needs "corvette" in the words). (b) The 365 GT 2+2 with chassis 12751: the keyword route that reads titles (lib/_classify.js titleKeywordPool) is already word-bounded, and poolrows shows the row set aside for a 275 query ("different variant (trim scope)"); no stray in the 275 GTB or 275 GTB/4 pools on e33. goldenTruth now checks that row on every full run (chassis-number guard). (c) Honda S 2000: the join of a spaced model ("S 2000" to "S2000") read the make's model list from OldCarsData; a failed read was cached as an empty list, so the same words resolved with a model on one request and none on the next. Now a failed read is retried once and not cached, and curated models always join (reproduced against the old code with every outside read failing). scripts/resolverOfflineCheck.mjs (in prePush) runs the names with every outside read failing, twice. (d) Split Window, above. carTitle: GTB, GTC, GTE, GTV, GTZ, GTA, SVR, SVO, TTS stay in capitals ("275 Gtb" printed in the Sell header).
@@ -7431,3 +7430,112 @@ FOR LANE B (not mine, not touched): obdiag answers status needs_clarification fo
 FOR LANE B (window): 2005 Saab 9-2X lands on year_widened 2005 to 2006, 6 sales, no band, on a 36 month window; the written ladder (docs/golden-rules.md section 2, window up to five years) gives exact 2005, 20 sales, $9,000 to $13,500. 2024 GT3: the engine names the rung "generation" and the label "911 GT3 (992 generation)" for a pool that is 2023 and 2024 only (14 sales, window 24 months); the ladder's label is "2023 to 2024". 2011 S2000: label "2009 to 2013" for a pool of 2009 only. 1989 Merkur XR4Ti: thin shows 3 sales (36 months), the five-year window holds 6.
 FOR LANE C (lib/tasks/tasks.js typedCar and emailPreview): the Task filters never carry vehicle.bodyStyle (filters.body), so a Task for "2003 BMW M3 Coupe" reads 28 sales (coupes, convertibles and sedans), "2008 Porsche 997 Carrera S Coupe" 17 (engine 14) and "1963 Corvette Split Window" 53 (engine 37, coupes). One line in typedCar: `if (v.bodyStyle && !out.body) out.body = String(v.bodyStyle)` (and the same in emailPreview's seed), if validateJob accepts the value.
 GOLDEN: docs/golden-rules.md re-derived 12 (GT3), 18 (S2000), 19 (Split Window) from poolrows and settled 8, 11 and 16; the working is in each car's line. goldenTruth now fills the Task email column from Lane C's preview (GET /api/tasks?emailpreview=1&q=), reads the Sell page's number words ("eight of ten") and its Analysis scope row, and survives a page that navigates away mid-run.
+
+## Lane A, Oct 14 2026: rail restored, full mockup-measured rebuild, live e34 fields wired
+Sam compared the live page against the approved mockup top to bottom and asked for a region-by-
+region rebuild from measurements, with two explicit reversals of the prior round: the shared rail
+is back (not hidden), locked copy stays. Mockup read: /Users/davidzysblat/Desktop/goasksam-proofs/
+market-check-live/final-mockup.jpg (no literal mockup/ folder exists; flagged to Sam, no objection).
+
+RAIL: removed the .mc-flat full-width hack entirely. Market Check carries the same shared rail as
+every other page again (confirmed live: Sell/Market Check/Tasks/Buy/Your results nav, footer links,
+hamburger-drawer pattern on phone). Header search box moved to ~30% of content width (Sam's explicit
+figure, not the mockup's own ~60% - measured and flagged, followed the explicit number), rounded,
+magnifier icon added. On phone the box floors at min-width:220px (prevents an unreadably thin box)
+- a long car name still visually truncates inside it at 390px; not worth a phone-specific width
+override for a field that still submits correctly on Enter/tap, flagged rather than silently
+accepted as perfect.
+
+HERO LEFT: "to" in the range now matches the figures exactly (same size/weight/green) - Sam's
+explicit correction this round, overriding the mockup's own smaller/grey "to". Scope line capped to
+one line with an ellipsis (new .hero-scope-1line class, scoped so the shared .hero-scope class's
+other legitimately-multi-line uses elsewhere are untouched) - proven live, truncates cleanly
+("Convertibles and coupes · 69 sales in the last twelve mont...", full text still in the title
+attribute). Measured gap before "WHERE THE MIDDLE HALF SOLD" (new .hero-label-range class, +16px).
+Mileage field/Go pill corner radius matched to the search box's.
+
+CHART: full rebuild. Plot ratio measured ~11:7 off the mockup (viewBox 880x560). Four quarter slots
+evenly spaced across the full plot width (slot = plotWidth / count), each box ~40% of its slot
+(measured). Axis headroom: data rounds out to the nearest step, then one more full step each side -
+reproduces the mockup's $80K-$200K axis against $102K-$172K data exactly. High/low print
+permanently above/below each box now (small grey text, matching the mockup) - only the typical
+figure is hover (desktop, real mouseenter/mouseleave)/tap (phone) only, beside the dot, a deliberate
+simplification the mockup itself does not make. Quarter labels read "Q1 2026" (was "2026-Q1").
+Legend text matches the mockup exactly. Wired to the SAME-DAY e34 engine fields (lib/onebox.js
+trendFor, Lane B): always the last four calendar quarters, a quarter under 8 sales still returns
+real figures flagged thin (drawn identically - thinness never changes how a quarter plots, only
+that the engine keeps it instead of dropping it), a zero-sale quarter returns nulls (label + "0
+sales", no box). PROVEN LIVE: 1965 Ford Mustang now shows Q1-Q4 2026 (today's real last-four
+quarters, including the in-progress Q4 2026 at 5 sales, correctly thin) - confirms the live wiring,
+not just a stub.
+
+SALES BEHIND THIS ANSWER: subhead sentence now built from the engine's own contextRoles labels
+("near the middle of the typical range" / "at the lower/upper edge") in the mockup's "one X, one Y,
+and one Z" pattern, replacing the engine's own canned sentence for the cluster case - the mockup's
+literal words ("one with the lowest mileage") describe a selection rule the engine does not
+actually use (price position, not mileage), so this reads the REAL roles into the same shape rather
+than printing a mismatched claim. Falls back to the engine's own sentence for the thin (no-cluster)
+case, where the roles do not read naturally with a "one ..." prefix. PROVEN LIVE on both named cars:
+"One near the middle, one at the lower edge, and one at the upper edge of the typical range."
+Cards: miles/venue/date each on their own line now (was one middle-dot-joined line).
+
+LIVE RIGHT NOW: added a dedicated --bluegrey token (#6E7F94) for the "below the range" dot (was
+reusing --sec, too close to a generic grey to read as a distinct status colour) - within/above were
+already green/amber and correctly wired; confirmed live on both named cars.
+
+ALL N COMPARABLE SALES: tighter row padding (12px to 8px) and text (16px to 15px); dates now read
+"Oct 7, 2026" when the engine gives a day (new fullDateOrMonth), else "Oct 2026" as before - proven
+live on both named cars. Price column was already right-aligned serif.
+
+DISTRIBUTION: subtitle now "Share of sales in each price band, based on N sales." (was "Sales in
+each price band, from the same N sales, {years}"). Each row now prints the engine's own live share
+(lib/onebox.js distributionFor, e34, largest-remainder rounding to whole percents summing to 100) -
+"29% (20)" - replacing count-only; never computed here. PROVEN LIVE: 1965 Ford Mustang, six bands,
+shares 3/16/29/29/13/10 summing to 100, the two 29% bands tied on bar length but only the genuine
+typicalBucket renders dark (confirms typicalBucket is still read correctly, not conflated with "the
+longest bar").
+
+WINDOW TEXT: every page caption that built its own "the last twelve months" / "the past two years"
+/ month-count guesswork now reads the engine's own windowWords directly (lib/onebox.js
+windowFactsFor, e34, on every tier) - windowText(d) is now a thin reader of d.windowWords, no regex
+guessing against windowLabel. Removed the now-dead thinWindowText (month-count branching) and its
+only caller (spellK), and the double "in"/"since" that would have resulted from naively substituting
+windowWords into call sites that already said "sold in " + windowText(d) - each site's leading
+preposition was dropped since windowWords supplies its own. PROVEN LIVE: the VIN proof page now
+reads "VIN ending 223093 · Coupe · 14 sales since November 2022 · latest Oct 7" - windowWords
+("since November 2022") flowing straight through with no page-side guess.
+  Not switched: classEraHtml's two HT_WINDOW_TEXT uses - lib/onebox.js's own comment confirms the
+  class_era tier was removed in an earlier Lane B round and the engine never returns it any more;
+  left alone as unreachable code rather than invest in dead-path wording. spanSince/spanRange's own
+  HT_WINDOW_TEXT fallback (no receipt dates at all, a different condition) is unrelated to window
+  text and also left alone.
+
+REAL BUG FOUND AND FIXED while re-proving Job 3's required VIN (WP0AB2A94MS223093): the archive's
+own vinArchiveMatch.trim for this car is "Brewster Green 911 Carrera S" (a colour baked into the
+trim field) while displayName is the clean "2021 Porsche 911 Carrera S". vehicleFromMatch
+(public/js/onebox.js) sent the contaminated trim straight to the comp fetch, whose title filter
+then required "Brewster Green" literally in every comparable sale's title - matching nothing, so a
+car that read 26 real comparable sales minutes earlier (before today's engine changes landed)
+started answering "not_tracked" ("We haven't tracked a ... sale yet"), confirmed reproducible on
+three separate loads before the fix. Fix: when match.trim is displayName's own trim portion (after
+stripping "{year} {make} ") with an extra leading word, prefer the clean suffix instead of the raw
+field - narrow and conservative, only fires when the raw trim literally ends with the clean one, so
+it corrects exactly this contamination pattern without touching any trim that already reads clean.
+This was a genuine production regression this round's live testing caught, not something my own
+rendering changes introduced - flagging for Lane B in case the SAME contamination exists in the
+archive's trim field for other cars (a systemic ingest issue, not fixable from my file).
+JOB 3 (This car's own sales) is now fully proven live with the required VIN after this fix:
+"VIN MATCH" hero names the car, "This car's own sales" shows "Oct 2026 $135,500 Bring a Trailer
+12,000 miles View sale →", and "Its last sale, $135,500 in October, sits above the range." - all
+three pieces (section, placement sentence, VIN-ending scope prefix) reading from d.ownSales exactly
+as built.
+
+PHONE (390): verified no horizontal scroll on both named cars (scrollWidth === clientWidth === 390)
+post-rail-restoration (a real structural change from the prior round, where the rail was hidden
+entirely - phone now uses the shared hamburger-drawer pattern, confirmed clean). Stacked tables,
+full-width cards, colored dots, flat question screens all still correct with the rail's mobile
+pattern active.
+
+Search check: no title/H1/canonical/meta changed - every change is chart rendering, header/rail
+markup, type scale, phone-layout CSS and one client-side vehicle-object fix within the existing
+Market Check template.
