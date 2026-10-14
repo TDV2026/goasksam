@@ -7174,3 +7174,30 @@ Cause fixed (my files): vPIC lists no 1998 Defender, so the resolver answered "I
 FOR LANE C: lib/sell/sellFlow.js: the meta "Analysis scope" row reads the engine's scope_label, and the car title appends the engine's pool_trim when the label lacks it. Nothing else.
 FOR LANE A / LANE B (not mine): the Market Check page says "12 sales in the past two years" for this pool, but the engine's windowLabel is "the model year itself" with windowStart 2023-11-12. lib/live/search.js marketWin falls back to "the past two years" for any label not in WINDOW_CAPTION, so the page names a shorter window than the engine searched. Sell says "since November 2023" from the same windowStart. One of them should say the span; suggest search.js read windowStart for labels with no span.
 Also for Lane B: scripts/crossProductCheck.js searchText drops the wheelbase and any trim the resolver leaves off; it should pass the typed words, as the pages do.
+## Lane C, Oct 13 2026: Task email preview (abf5104), and launch readiness read
+
+FOR LANE B2: the Tasks column of the golden table can now be filled. The call:
+`GET https://goasksam.com/api/tasks?emailpreview=1&q=<typed words, URL encoded>` with the key in the `x-ops-key`
+header only (the same probeOk check as every Tasks probe). Run it from inside a goasksam.com page (Puppeteer
+page.evaluate fetch), as a bare script call meets the Vercel challenge. Read only: no Task, no email, no setup
+model turn, no cache row written, zero OCD (the resolver uses only the free /makes and /models; the engine reads
+the archive). It returns:
+- `filters`: what the Task would save (the typed words through typedCar, the same fill-in a Task's setup uses).
+- `row`: the title the market is read for (built from the filters exactly as taskRung builds it).
+- `stored`: the spec_market_cache line for that spec, with `current` true when listingMarket would serve it.
+- `engine`: a fresh walkLadder read (oneEngineAnswer) for the same spec.
+- `email`: "stored" or "engine", whichever the Task email would use today. Read count, low, high and sentence
+  from that one.
+
+Five cars, Oct 13 (Task email figures against Market Check's own request):
+- 1995 Porsche 911 Carrera: 37 sales, $64,000 to $107,000. Equal (enginecheck, all four lanes).
+- 1969 Chevrolet Camaro: 21 sales, $45,500 to $78,500. Equal.
+- 1987 Buick Regal Grand National: 55 sales, $35,500 to $56,000. Equal (the output gate fix in f60422f cleared
+  the earlier refusal).
+- 2006 Mercedes-Benz CLK DTM: 12 sales, no range (year_widened rung). Market Check also gives no range (thin,
+  year_widened, "CLK DTM, 2005 to 2007"). Its count was not read: the probe browser hit Market Check's ten cars
+  a day limit.
+- 1998 Land Rover Defender 90: 12 sales, $34,000 to $62,000 ("Defender 90"). Equal, after Lane B's 6c33bd2
+  went live. Before it, the resolver dropped "90" (the Task saved model Defender only), and the Buy/Tasks engine
+  read for that key gave 27 sales, $36,500 to $68,000 ("Defenders"), while the stored row held Market Check's 12.
+  Now the Task saves trim 90, the key carries wheelbase 90, and the stored line and a fresh engine read agree.
