@@ -12,7 +12,7 @@ import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor,
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { PAGE_CSS as CSS, FONT_LINKS, railHtml, whyResultHtml, isCrewRequest } from "./_chrome.js";
 import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
-import { hasServerCredential } from "../lib/_credential.js";
+import { hasServerCredential, keyInAddress, ADDRESS_KEY_REFUSED } from "../lib/_credential.js";
 import { gaBootstrapHtml } from "../lib/analytics.js";
 import { KEEPLOOK_CSS, KEEPLOOK_JS, keepLookingHtml, keepLookingHref } from "../lib/appShell.js";
 import { AUTH_SIGNBAR_CSS } from "../lib/authBar.js";
@@ -909,9 +909,9 @@ async function photoStatus(url) {
   return st >= 200 && st < 400 ? "live" : (st === 403 || st === 404 || st === 410) ? "dead" : "unknown";
 }
 async function photoCheck(req, res, env, kind) {
-  const cronSecret = process.env.CRON_SECRET, probeKey = process.env.PROBE_KEY || process.env.OPS_KEY;
-  const isCron = !!cronSecret && String(req.headers["authorization"] || "") === `Bearer ${cronSecret}`;
-  if (!isCron && (!probeKey || String((req.query && req.query.key) || "") !== probeKey)) return res.status(401).json({ error: "Unauthorized." });
+  // The Vercel cron (Bearer CRON_SECRET) or the probe key in the x-ops-key header; a key in the address is refused.
+  if (keyInAddress(req)) return res.status(400).json(ADDRESS_KEY_REFUSED);
+  if (!hasServerCredential(req)) return res.status(401).json({ error: "Unauthorized." });
   if (kind !== "vins" && kind !== "hubs") return res.status(400).json({ error: "photocheck=vins|hubs" });
   const t0 = Date.now(), BUDGET = 240e3, RATE = 8;
   const r = await rollout(env);

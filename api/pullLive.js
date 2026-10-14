@@ -1,5 +1,6 @@
 // Live feed pull (Lane C, Oct 2026). GET /api/pullLive
-//   Auth: Vercel cron (Authorization: Bearer CRON_SECRET) or ?key=PROBE_KEY for a manual run.
+//   Auth: Vercel cron (Authorization: Bearer CRON_SECRET) or the probe key in the x-ops-key header for a manual
+//   run (lib/_credential.js hasServerCredential). A key in the address is refused.
 //   ?probe=1          ONE metered request: returns the record keys + 2 samples, writes nothing.
 //   ?max-requests=N   hard guard on metered requests this run (default 30, a full walk is ~19 at 100/page; the cron uses the default).
 //   ?mode=auto        THE CRON (every 15 minutes, UTC): runs whatever lib/live/pullSchedule.js gives this Pacific
@@ -11,6 +12,7 @@
 // that vanished from the feed as ended, and fills final_price from sales_archive once the sale lands.
 // Idempotent: re-running only refreshes last_seen/current_bid and re-checks ended rows. Every metered
 // request goes through lib/_ocd.js callOldCarsData (the shared daily cap + usage meter, read-only use).
+import { hasServerCredential, keyInAddress, ADDRESS_KEY_REFUSED } from "../lib/_credential.js";
 import { withTracking } from "../lib/track/log.js";
 import { callOldCarsData, configureOcdUsage, getOcdRunMetered, flushOcdUsage } from "../lib/_ocd.js";
 import { historyEnv } from "./_historyData.js";
@@ -20,10 +22,10 @@ import { pullFor, dayPlan, PAGES, ENDING_AHEAD_MS } from "../lib/live/pullSchedu
 import { mapLiveRecord, upsertLive, markVanished, fillFinalPrices, liveStats } from "../lib/live/feed.js";
 
 async function handler(req, res) {
-  const cronSecret = process.env.CRON_SECRET, probeKey = process.env.PROBE_KEY || process.env.OPS_KEY;
+  const cronSecret = process.env.CRON_SECRET;
+  if (keyInAddress(req)) return res.status(400).json(ADDRESS_KEY_REFUSED);
   const isCron = !!cronSecret && String(req.headers["authorization"] || "") === `Bearer ${cronSecret}`;
-  const provided = req.headers["x-ops-key"] || (req.query && req.query.key);
-  if (!isCron && (!probeKey || provided !== probeKey)) return res.status(401).json({ error: "Unauthorized." });
+  if (!hasServerCredential(req)) return res.status(401).json({ error: "Unauthorized." });
   const apiKey = process.env.OLDCARSDATA_API_KEY;
   const env = historyEnv();
   if (!apiKey || !env) return res.status(500).json({ error: "OCD or Supabase env missing." });
@@ -31,7 +33,7 @@ async function handler(req, res) {
   // Vercel scheduler, with its schedule slot), "probe" (a manual call with the probe key, with the endpoint and its
   // parameters, never the key), or "unknown" (anything else, for example the cron secret sent by something other than
   // the scheduler). "admin" is part of the vocabulary, but no admin path calls this endpoint today.
-  const starter = startedBy(req, isCron, provided === probeKey);
+  const starter = startedBy(req, isCron, !isCron);
   configureOcdUsage({ ...env, job: "pull_live", startedBy: starter.by, startedDetail: starter.detail });
   const start = getOcdRunMetered();
   const used = () => getOcdRunMetered() - start;

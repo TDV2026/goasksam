@@ -1,18 +1,18 @@
 // Cheap 4-hourly refresh of spec_pages.liveListings (Spec page type, rule 11). GET /api/refreshSpecLiveCounts
-//   Auth: Vercel cron (Authorization: Bearer CRON_SECRET) or ?key=PROBE_KEY for a manual run.
+//   Auth: Vercel cron (Authorization: Bearer CRON_SECRET) or the probe key in the x-ops-key header for a manual
+//   run (lib/_credential.js hasServerCredential). A key in the address is refused.
 // No pool read, no OldCarsData: just recomputes each row's liveListings against the live_listings table
 // (filled by /api/pullLive) and PATCHes it in place. Runs on the same 4-hourly cadence as pullLive (20
 // minutes after, so live_listings is freshly filled) so a spec page's live count never waits for the
 // next full nightly build.
+import { hasServerCredential, keyInAddress, ADDRESS_KEY_REFUSED } from "../lib/_credential.js";
 import { withTracking } from "../lib/track/log.js";
 import { historyEnv } from "./_historyData.js";
 import { refreshLiveCounts } from "../lib/specPages.js";
 
 async function handler(req, res) {
-  const cronSecret = process.env.CRON_SECRET, probeKey = process.env.PROBE_KEY || process.env.OPS_KEY;
-  const isCron = !!cronSecret && String(req.headers["authorization"] || "") === `Bearer ${cronSecret}`;
-  const provided = req.headers["x-ops-key"] || (req.query && req.query.key);
-  if (!isCron && (!probeKey || provided !== probeKey)) return res.status(401).json({ error: "Unauthorized." });
+  if (keyInAddress(req)) return res.status(400).json(ADDRESS_KEY_REFUSED);
+  if (!hasServerCredential(req)) return res.status(401).json({ error: "Unauthorized." });
   const env = historyEnv();
   if (!env) return res.status(500).json({ error: "Supabase env missing." });
   try {

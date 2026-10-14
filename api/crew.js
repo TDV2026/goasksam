@@ -4,7 +4,7 @@
 // JS-readable unlock cookie, then 302s back to a same-origin path. Presentation
 // only: it never touches auth, the product API, or 2A. Rotate the code by
 // changing the env var (existing unlocked devices keep their cookie).
-import { TESTER_CODE, testerCodeExpired, testerCookieMaxAge } from "../lib/_tester.js";
+import { testerCodeMatches, testerSetCookie } from "../lib/_tester.js";
 import { beehiivBySubscriberId } from "../lib/_beehiiv.js";
 
 import crypto from "node:crypto";
@@ -71,8 +71,9 @@ export default async function handler(req, res) {
         body: JSON.stringify([{ event: "beehiiv_link_signin", user_id: session.userId || null, dedup_key: `beehiiv_signin:${session.userId || sub.email}` }])
       });
     } catch (e) { /* attribution best-effort */ }
-    // Lift the curtain for a verified active subscriber, then hand the tokens to the app.
-    res.setHeader("Set-Cookie", `gas_tester=ok; Max-Age=${60 * 60 * 24 * 120}; Path=/; SameSite=Lax; Secure`);
+    // Lift the curtain for a verified active subscriber (the signed tester cookie, only while tester access is on:
+    // lib/_tester.js), then hand the tokens to the app.
+    const tc = testerSetCookie(); if (tc) res.setHeader("Set-Cookie", tc);
     // Redirect to the CANONICAL /sell path directly (not /), so the browser doesn't take
     // the vercel.json / -> /sell hop, which would carry the token fragment past the auth
     // callback's scrub and leave tokens in the URL. This matches the OAuth/magic-link path.
@@ -84,15 +85,15 @@ export default async function handler(req, res) {
 
   const rawTo = String(q.to || "/");
   const to = /^\/(?!\/)/.test(rawTo) ? rawTo : "/"; // same-origin path only, never an open redirect
-  // TESTER cohort redemption: ?tcode=<TESTER_CODE>. Sets a gas_tester cookie whose
+  // TESTER cohort redemption: ?tcode=<the CURTAIN_TESTER_CODE env value>. Sets a signed gas_tester cookie whose
   // Max-Age ends at the hard expiry, and NEVER issues once the code has expired
   // (the search gate + curtain seal also re-check expiry, so this is one of two
   // enforcement points). Falls through to the curtain on a bad or expired code.
   const tcode = String(q.tcode || "");
   if (tcode) {
-    if (tcode === TESTER_CODE && !testerCodeExpired()) {
-      const maxAge = testerCookieMaxAge();
-      res.setHeader("Set-Cookie", `gas_tester=ok; Max-Age=${maxAge}; Path=/; SameSite=Lax; Secure`);
+    const tc = testerCodeMatches(tcode) ? testerSetCookie() : null;
+    if (tc) {
+      res.setHeader("Set-Cookie", tc);
       res.setHeader("Location", to);
       res.status(302).end();
       return;

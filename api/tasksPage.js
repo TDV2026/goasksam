@@ -104,7 +104,6 @@ const APP_CSS = `
 .sw i::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s}
 .sw input:checked+i{background:var(--ink)}.sw input:checked+i::after{transform:translateX(16px)}
 .sw input:focus-visible+i{outline:2px solid var(--ink);outline-offset:2px}
-.notify .tkbox{flex-basis:100%;max-width:460px}
 .past{margin-top:22px}
 .past>summary{cursor:pointer;font:500 15px var(--sans);color:var(--sec);min-height:44px;display:flex;align-items:center}
 .past details{border-top:1px solid var(--div);padding:6px 0}
@@ -229,7 +228,7 @@ const APP_JS = String.raw`(function(){
   function signedIn(){ try { var s = JSON.parse(localStorage.getItem("gas_auth_session") || "null"); return !!(s && s.access_token); } catch(e){ return false; } }
   if (!signedIn()) { location.replace("/tasks?signin=1&next=" + encodeURIComponent(location.pathname + location.search)); return; }
   var params = new URLSearchParams(location.search);
-  var editEmail = false, data = null, busy = false, reply = "", pending = null, note = "", editing = false, arrived = !!(params.get("start") || params.get("seed")), scrollTo = null;
+  var data = null, busy = false, reply = "", pending = null, note = "", editing = false, arrived = !!(params.get("start") || params.get("seed")), scrollTo = null;
   // One task at a time (beta): the choice shown when a second task is attempted. { mode: "seed" | "draft" |
   // "resume", task_id (the running task), current (its words), attempted (the new job's words), resume_id }.
   var limit = null;
@@ -287,17 +286,16 @@ const APP_JS = String.raw`(function(){
     else h += (last ? '<p class="readback">' + esc(last.text) + "</p>" : "") + box(draft.summary ? "Change what Sam looks for" : "Answer Sam", "tkq", editing ? draft.words : "", "");
     return h + "</section>";
   }
-  // Under the card: where updates go, a Change link, and the email switch (stored on the account).
+  // Under the card: where updates go (the sign-in address, not a setting) and the email switch (stored on the account).
   function notifyLine(){
     var n = (data && data.notify) || null; if (!n) return "";
     var sw = '<label class="sw"><input type="checkbox" data-notify-on' + (n.on ? " checked" : "") + '><i></i>Email updates</label>';
-    if (editEmail) return '<div class="notify"><div class="tkbox"><input id="tkemail" type="email" value="' + esc(n.email || "") + '" aria-label="Email for Task updates"><button type="button" data-save-email>Save</button></div><button class="plink" data-cancel-email>Cancel</button></div>';
     // How often (Oct 2026): one setting for all of a person's Tasks; shown once the account can store it.
     var opts = [["daily", "Once a day"], ["twice", "Twice a day"], ["thrice", "Three times a day"], ["instant", "As soon as one comes"]];
     var cur = n.every || "daily";
     var often = n.on && n.everyReady ? '<label class="often">How often <select data-notify-every>' + opts.map(function(o){ return '<option value="' + o[0] + '"' + (o[0] === cur ? " selected" : "") + ">" + o[1] + "</option>"; }).join("") + "</select></label>" +
       '<span class="oftenhelp">' + (cur === "instant" ? "An email each time Sam finds one, up to six a day." : "One email with everything new from all your Tasks.") + " A car you asked to hear about before bidding ends gets its own email two hours before the end." + "</span>" : "";
-    return '<div class="notify">' + (n.on ? "<span>Updates go to <b>" + esc(n.email || "your account email") + '</b>.</span> <button class="plink" data-edit-email>Change</button>' : "<span>Email is off. Updates show here and on Tasks.</span>") + sw + often + "</div>";
+    return '<div class="notify">' + (n.on ? "<span>Updates go to <b>" + esc(n.email || "your account email") + '</b>, the address you sign in with.</span>' : "<span>Email is off. Updates show here and on Tasks.</span>") + sw + often + "</div>";
   }
   function render(){
     var tasks = (data && data.tasks) || [];
@@ -343,7 +341,7 @@ const APP_JS = String.raw`(function(){
     }).catch(function(){ busy = false; render(); var q = $("tkq"); if (q) q.value = text; });
   }
   document.addEventListener("click", function(e){
-    var t = e.target.closest("[data-send],[data-act],[data-start],[data-change],[data-apply],[data-unpending],[data-goto],[data-edit-email],[data-cancel-email],[data-save-email],[data-limit-swap],[data-limit-keep]"); if (!t) return;
+    var t = e.target.closest("[data-send],[data-act],[data-start],[data-change],[data-apply],[data-unpending],[data-goto],[data-limit-swap],[data-limit-keep]"); if (!t) return;
     if (t.hasAttribute("data-limit-keep")) { e.preventDefault(); var lk = limit; limit = null; note = ""; if (lk) api({ action: "limit", event: "keep", mode: lk.mode, task_id: lk.task_id, attempted: lk.attempted }).catch(function(){}); dropEntryParams(); render(); return; }
     if (t.hasAttribute("data-limit-swap")) { e.preventDefault(); if (t.disabled) return; var ls = limit; working(t, "Swapping...");
       api({ action: "limit", event: "swap", mode: ls.mode, task_id: ls.task_id, attempted: ls.attempted, resume_id: ls.resume_id || null, draft: ls.mode === "draft" ? draft : null }).then(function(j){
@@ -353,9 +351,6 @@ const APP_JS = String.raw`(function(){
         if (ls.mode === "seed") { var w = seedWords(); dropEntryParams(); return load().then(function(){ if (w) send(w); }); }
         return load();
       }).catch(function(){ limit = null; load(); }); return; }
-    if (t.hasAttribute("data-edit-email")) { e.preventDefault(); editEmail = true; render(); var f = $("tkemail"); if (f) f.focus(); return; }
-    if (t.hasAttribute("data-cancel-email")) { e.preventDefault(); editEmail = false; render(); return; }
-    if (t.hasAttribute("data-save-email")) { e.preventDefault(); var v = ($("tkemail") || {}).value || ""; working(t, "Saving..."); api({ action: "notify", email: v.trim() }).then(function(j){ if (j && j.error) { editEmail = true; note = j.error; } else { editEmail = false; if (data) data.notify = j; } render(); }); return; }
     if (t.hasAttribute("data-goto")) { var el = document.getElementById("task-" + t.getAttribute("data-goto")); if (el) { e.preventDefault(); el.scrollIntoView({ block: "start" }); } return; }
     e.preventDefault();
     if (t.hasAttribute("data-send")) { var q = $(t.getAttribute("data-send")); if (q && q.value.trim()) send(q.value.trim()); return; }

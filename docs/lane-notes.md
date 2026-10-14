@@ -7201,3 +7201,58 @@ Five cars, Oct 13 (Task email figures against Market Check's own request):
   went live. Before it, the resolver dropped "90" (the Task saved model Defender only), and the Buy/Tasks engine
   read for that key gave 27 sales, $36,500 to $68,000 ("Defenders"), while the stored row held Market Check's 12.
   Now the Task saves trim 90, the key carries wheelbase 90, and the stored line and a fresh engine read agree.
+
+## Lane C, Oct 14 2026: Task email destination, email words, keys out of addresses, tester code
+
+1. TASK EMAIL DESTINATION. lib/tasks/delivery.js getDeliveryTargets(env, userId) is the one place channels are
+   decided. Today it returns one email channel: the address Supabase Auth holds for the account, only when
+   confirmed (read with the service key from /auth/v1/admin/users/<id>, held 10 minutes). Nothing is sent when there
+   is none. Every sender reads it: sendStartEmail and notify (lib/tasks/tasks.js), runDigest and runBeforeItEnds
+   (lib/tasks/digest.js, io.targets), the sold-car run (lib/live/watches.js run) and Buy's Before it ends sendOne
+   (lib/live/buyAlerts.js).
+   - Stored addresses are no longer read for delivery and are not deleted: accounts.task_email, tasks.email,
+     watches.email, buy_alerts.email.
+   - setNotifyPrefs takes on/off and how often only. The Tasks page lost its Change link and address box; it says
+     "Updates go to <sign-in address>, the address you sign in with."
+   - Probe test sends (api/tasks.js test_email, api/watch.js, api/buySearch.js) go only to feedback@goasksam.com or
+     a feedback+tag alias (testInbox).
+   - Count probe: GET /api/tasks?customaddresses=1 (x-ops-key header) returns counts only.
+   - A text channel is added in getDeliveryTargets only, from a verified phone number.
+2. WORDS. The sold-car Pause and Stop links now use /api/task-link (vercel.json rewrites it to api/watch.js); old
+   /api/watch?a= links in sent emails still resolve. lib/tasks/emailWords.js screens model-written text before an
+   email: notify() checks research and match updates; on a hit the email carries the plain line, the Task page
+   keeps the text, and an email_words_held usage row logs the words and the task id only. All other Task email text
+   is written in code; scripts/emailWordsCheck.mjs renders those templates and fails on any banned word in the words
+   or in a link.
+3. KEYS IN ADDRESSES. lib/_credential.js keyInAddress refuses a key in the address with 400 (even the right one).
+   - Header key or the cron Bearer secret (hasServerCredential), as the crons call them: api/pullLive.js,
+     api/refreshSpecLiveCounts.js, api/history.js photocheck.
+   - Header key only (hasHeaderKey), as no cron calls them: api/usageDashboard.js non-ops views (USAGE_DASHBOARD_KEY
+     no longer read; key= removed from every link and form) and api/buySearch.js ?alerts=run.
+   - Callers checked: vercel.json crons send no key in the path (Bearer CRON_SECRET, unchanged); nightly.yml and
+     docs/nightly-workflow.yml send the header on stdin (unchanged); scripts/pullReport.mjs uses the header
+     (unchanged).
+   - Callers changed: scripts/smokeOutbound.mjs (a wrong key now goes in the header, plus a new address-refused
+     case), docs/api-smoke-tests.md (header on stdin), docs/launch-checklist.md (USAGE_DASHBOARD_KEY no longer read).
+4. TESTER CODE. lib/_tester.js has no written-in code or date. CURTAIN_TESTER_CODE (16+ characters) and
+   TESTER_CODE_EXPIRES are both required, or tester access is off. The cookie is gas_tester=t1.<exp>.<HMAC> keyed
+   from the code, so a new code ends every cookie. The plain "ok" cookie is never a tester.
+   - Readers moved: api/crew.js (redeem and the Beehiiv link), api/desk.js, the /desk rewrite in vercel.json, the
+     browser gates in public/desk.html and public/onebox-preview.html (the shape only).
+   - The old code was in the repository and is treated as compromised: never reuse it.
+
+FOR LANE B (api/sellerDecision.js and api/vehicleIdentity.js are yours, so I left them): replace the plain cookie
+reads with the signed check.
+- In both files: `import { isTesterRequest } from "../lib/_tester.js"` in place of testerCodeExpired.
+- sellerDecision.js, around line 2791: `const tester = isTesterRequest(req) && !accountId;` and drop the parseCookies
+  line above it if nothing else uses it.
+- sellerDecision.js, around line 2817: `const testerSeal = isTesterRequest(req);` and drop sealCookies.
+- vehicleIdentity.js, around line 121: `const testerOk = isTesterRequest(cookie);`.
+Until then both stay closed to the plain cookie: their `!testerCodeExpired()` is true unless Sam sets both a code
+and a future date. Sam should not turn tester access on before this ships.
+
+FOR LANE A (public/onebox.html is yours): its browser gate, around line 22, tests `gas_tester=ok`. Change it to
+`gas_tester=t1.` so a signed tester is not sent home from /onebox. It is a browser redirect only; it unlocks nothing.
+
+Search check: rule 7 and rule 9. The only page change is inside the signed-in /tasks/mine app (noindex, in no
+sitemap), and its one new sentence carries no banned word.

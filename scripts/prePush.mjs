@@ -259,6 +259,27 @@ try {
 } catch (e) {
   record("Task stopped page + Tasks probe key (scripts/taskStopCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Task emails go to the sign-in address only, and no banned word reaches one (Oct 2026, Lane C). No network.
+try {
+  const out = execSync("node scripts/emailWordsCheck.mjs", { encoding: "utf8" });
+  record("Task email delivery + words (scripts/emailWordsCheck.mjs)", "PASS", (out.match(/emailWordsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Task email delivery + words (scripts/emailWordsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// No key in an address: header only on pullLive, refreshSpecLiveCounts, photocheck, the dashboard, alerts=run. No network.
+try {
+  const out = execSync("node scripts/keyInAddressCheck.mjs", { encoding: "utf8" });
+  record("Keys in the header only (scripts/keyInAddressCheck.mjs)", "PASS", (out.match(/keyInAddressCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Keys in the header only (scripts/keyInAddressCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// Tester access: env code, mandatory expiry, signed cookie, no written-in code (Oct 2026, Lane C). No network.
+try {
+  const out = execSync("node scripts/testerCheck.mjs", { encoding: "utf8" });
+  record("Tester cookie signed (scripts/testerCheck.mjs)", "PASS", (out.match(/testerCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Tester cookie signed (scripts/testerCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 
 // ---- 3 & 4. BROWSER CHECK (Lane C's pushCheck.mjs) + BASELINE ----
 console.log(`\n-- browser check via scripts/pushCheck.mjs (${BASE}) --`);

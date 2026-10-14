@@ -23,6 +23,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/api/task-link", "destination": "/api/watch" },
     { "source": "/sell", "has": [{ "type": "query", "key": "car" }], "destination": "/api/sellNext" },
     { "source": "/sell", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/sellPage?_crew=1" },
     { "source": "/sell", "destination": "/api/sellPage" },
@@ -91,7 +92,7 @@
     { "source": "/obx.20261014n/(.*)", "destination": "/js/$1" },
     { "source": "/admin", "destination": "/api/admin?page=1" },
     { "source": "/desk", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/desk.html" },
-    { "source": "/desk", "has": [{ "type": "cookie", "key": "gas_tester", "value": "ok" }], "destination": "/desk.html" },
+    { "source": "/desk", "has": [{ "type": "cookie", "key": "gas_tester", "value": "t1\\..*" }], "destination": "/desk.html" },
     { "source": "/history/:slug/:vin", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/history?slug=:slug&vin=:vin&_crew=1" },
     { "source": "/history/:slug/:vin", "destination": "/api/history?slug=:slug&vin=:vin" },
     { "source": "/history/:slug", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/history?slug=:slug&_crew=1" },

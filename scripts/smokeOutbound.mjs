@@ -2,7 +2,7 @@
 // Runs against prod (or FLOW_BASE). The click-log TABLE is a manual step
 // (docs/supabase-outbound-clicks.sql); /out still 302s before it exists, so these
 // checks do not depend on the table. Row-content verification is done via the
-// read path once the table exists (and needs USAGE_DASHBOARD_KEY).
+// read path once the table exists (the probe key in the x-ops-key header; a key in the address is refused).
 const BASE = process.env.FLOW_BASE || "https://goasksam.vercel.app";
 let failures = 0;
 const check = (name, ok, detail = "") => { console.log(`${ok ? "PASS" : "FAIL"}  ${name}${ok ? "" : "  ->  " + detail}`); if (!ok) failures++; };
@@ -44,9 +44,11 @@ const ctx = "s=q_test&sid=s_testsession&card=pick&year=2006&make=Ford&model=Focu
   const noKey = await fetch(`${BASE}/api/usageDashboard?view=outbound`);
   const noKeyBody = await noKey.text();
   check("read path: serves no data without a key (not public)", [401, 500].includes(noKey.status) && !/<table/i.test(noKeyBody), `status=${noKey.status}`);
-  const wrongKey = await fetch(`${BASE}/api/usageDashboard?view=outbound&key=definitely-wrong-key`);
+  const wrongKey = await fetch(`${BASE}/api/usageDashboard?view=outbound`, { headers: { "x-ops-key": "definitely-wrong-key" } });
   const wrongBody = await wrongKey.text();
   check("read path: serves no data with a wrong key", [401, 500].includes(wrongKey.status) && !/<table/i.test(wrongBody), `status=${wrongKey.status}`);
+  const inAddress = await fetch(`${BASE}/api/usageDashboard?view=outbound&key=definitely-wrong-key`);
+  check("read path: a key in the address is refused", inAddress.status === 400 && !/<table/i.test(await inAddress.text()), `status=${inAddress.status}`);
 }
 
 console.log(failures ? `\n${failures} FAILURE(S)` : "\nOUTBOUND ALL PASS");

@@ -9,7 +9,7 @@
 // Behaviour is identical to the old inlined block: crew-only ALWAYS (a non-crew,
 // non-tester caller is refused regardless of the launch curtain), same context shape.
 import { handleDeskRequest } from "../lib/desk/handler.js";
-import { testerCodeExpired } from "../lib/_tester.js";
+import { isTesterRequest } from "../lib/_tester.js";
 import { supabaseSelect } from "../lib/_supabase.js";
 
 import { isCrewRequest } from "../lib/_crew.js";
@@ -19,23 +19,14 @@ function setCors(res) {
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
-function parseCookies(header) {
-  const out = {};
-  String(header || "").split(";").forEach(part => {
-    const i = part.indexOf("=");
-    if (i > 0) { try { out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim()); } catch (e) {} }
-  });
-  return out;
-}
 
 export default async function handler(req, res) {
   // Crew/tester check FIRST, before anything else (CORS headers, method handling) can tell a
   // stranger this endpoint is even here. Desk is crew-only ALWAYS (never public, unlike the
   // storefront) - a non-crew, non-tester caller gets the exact same plain 404 regardless of HTTP
   // method, with no JSON, no CORS headers, and no mention of Desk anywhere in the response.
-  const cookies = parseCookies(req.headers.cookie);
   const crew = isCrewRequest(req);   // the signed crew cookie (lib/_crew.js)
-  const tester = cookies.gas_tester === "ok" && !testerCodeExpired();
+  const tester = isTesterRequest(req);   // the signed tester cookie, inside its date (lib/_tester.js)
   if (!crew && !tester) return sendDisguisedNotFound(res);
 
   setCors(res);

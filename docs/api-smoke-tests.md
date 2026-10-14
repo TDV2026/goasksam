@@ -78,10 +78,11 @@ Expected:
 
 ## Usage Dashboard
 
-After running the latest Supabase schema, set `USAGE_DASHBOARD_KEY` in Vercel.
+The key goes in the `x-ops-key` header only (Oct 2026): a key in the address is refused with 400, and
+`USAGE_DASHBOARD_KEY` is no longer read. The probe key reaches curl on stdin, never on its command line:
 
 ```sh
-curl -s "$BASE_URL/api/usageDashboard?key=$USAGE_DASHBOARD_KEY&format=json"
+printf 'x-ops-key: %s\n' "$PROBE_KEY" | curl -s -H @- "$BASE_URL/api/usageDashboard?format=json"
 ```
 
 Expected:

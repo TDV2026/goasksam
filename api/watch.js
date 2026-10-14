@@ -55,7 +55,7 @@ async function handler(req, res) {
     const name = soldTaskName(w);
     if (req.method !== "POST") {
       const others = tapAct === "resume" ? null : await othersRunning(env, w).catch(() => null);
-      return page(200, CONFIRM_WORDS[tapAct][0], confirmBody(tapAct, name, others, e, `/api/watch?a=${tapAct}&t=${encodeURIComponent(String(req.query.t))}`));
+      return page(200, CONFIRM_WORDS[tapAct][0], confirmBody(tapAct, name, others, e, `/api/task-link?a=${tapAct}&t=${encodeURIComponent(String(req.query.t))}`));
     }
     const r = await setWatchState(env, id, tapAct).catch(err => ({ ok: false, error: String(err && err.message) }));
     if (r.notReady) return page(503, "Not ready", `<h1>Pause isn't ready yet.</h1><p>Nothing changed. You can stop this Task instead from its email.</p>`);

@@ -1,8 +1,9 @@
 // Consolidated admin dashboard. One key-gated GET function serves three views
 // (?view=usage default, accounts, outbound) so the app stays under the 12-function
-// deploy cap; all three share USAGE_DASHBOARD_KEY. (Merged from api/adminAccounts.js
+// deploy cap; all three take the probe key in the x-ops-key header only (Oct 2026; USAGE_DASHBOARD_KEY is no longer
+// read, and a key in the address is refused). (Merged from api/adminAccounts.js
 // and api/outboundClicks.js, July 2026.)
-import { hasServerCredential } from "../lib/_credential.js";
+import { hasServerCredential, hasHeaderKey, keyInAddress, ADDRESS_KEY_REFUSED } from "../lib/_credential.js";
 import { sendDisguisedNotFound } from "../lib/_notFound.js";
 import fs from "node:fs";
 import { supabaseEnv, supabaseSelect, supabaseSelectAll, supabaseInsert, supabaseDelete } from "../lib/_supabase.js";
@@ -92,7 +93,7 @@ async function renderAccountsView(req, res) {
   <div class="card"><div class="big">${outcomeToday.refused}</div>refused</div>
   <div class="card"><div class="big">${outcomeToday.unavailable}</div>unavailable</div>
 </div>
-<nav style="margin-top:12px"><a href="?view=searches&key=${adminEsc(req.query?.key || "")}">searches &rarr;</a> <a href="?view=cars&key=${adminEsc(req.query?.key || "")}">cars &rarr;</a> <a href="?view=geo&key=${adminEsc(req.query?.key || "")}">geo &rarr;</a></nav>
+<nav style="margin-top:12px"><a href="?view=searches">searches &rarr;</a> <a href="?view=cars">cars &rarr;</a> <a href="?view=geo">geo &rarr;</a></nav>
 <h2>Accounts by tier</h2><table><tr><th>Tier</th><th>Accounts</th><th>Limit</th></tr>${tierRows || "<tr><td colspan=3>none</td></tr>"}</table>
 <h2>Accounts created (last 14 days)</h2><table><tr><th>Day</th><th>New accounts</th></tr>${acctDayRows || "<tr><td colspan=2>none</td></tr>"}</table>
 <h2>Funnel (yesterday vs 7-day)</h2><table><tr><th>Step</th><th>Yesterday</th><th>7-day</th></tr>${funnelRows}</table>`);
@@ -141,7 +142,7 @@ function eventOutcome(e) { return (e.metadata?.outcome) || (e.event_type === "da
 function pageChrome(title, body) {
   return `<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${adminEsc(title)}</title>
 <style>body{font:14px/1.5 system-ui;margin:28px;color:#16140f}h1{font-size:20px}h2{font-size:14px;text-transform:uppercase;letter-spacing:.05em;color:#6b6861;margin-top:26px}table{border-collapse:collapse;width:100%;margin-top:8px}td,th{border:1px solid #e3e1db;padding:5px 9px;text-align:left;font-size:13px}th{background:#f6f5f2}nav a{margin-right:14px;font-size:13px}.pill{font-size:11px;padding:1px 6px;border-radius:8px;background:#eee}.crew{background:#ffe8c2}.tester{background:#d7ebff}</style>
-<nav><a href="?view=business&key=${adminEsc((body.__key) || "")}" style="font-weight:700;color:#0b5c3e">&larr; BUSINESS</a><span style="color:#c9c5bc;margin-right:14px">|</span><span style="color:#a29e95;font-size:12px;margin-right:8px">Engineering / Costs:</span>${["searches", "cars", "geo", "accounts", "usage", "outbound"].map(v => `<a href="?view=${v}&key=${adminEsc((body.__key) || "")}">${v}</a>`).join("")}</nav>
+<nav><a href="?view=business" style="font-weight:700;color:#0b5c3e">&larr; BUSINESS</a><span style="color:#c9c5bc;margin-right:14px">|</span><span style="color:#a29e95;font-size:12px;margin-right:8px">Engineering / Costs:</span>${["searches", "cars", "geo", "accounts", "usage", "outbound"].map(v => `<a href="?view=${v}">${v}</a>`).join("")}</nav>
 <h1>${adminEsc(title)}</h1>${body.html}`;
 }
 // ?view=searches : last 100 decisions, one row each.
@@ -171,7 +172,7 @@ async function renderSearchesView(req, res) {
   }).join("");
   if (req.query?.format === "json") return res.status(200).json({ days, crew: mode, count: events.length, searches: events.map(e => ({ at: e.created_at, car: carLabel(e.vehicle), location: geoKey(e.metadata), tier: e.metadata?.tier, outcome: eventOutcome(e), pick: e.metadata?.pickPlatform || null, powerSeller: e.metadata?.powerSeller || null, outbound: outboundFor(e) })) });
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  return res.status(200).send(pageChrome("Searches", { __key: req.query?.key, html: `<div>last ${days}d, crew + testers: ${mode} &middot; <a href="?view=searches&crew=exclude&key=${adminEsc(req.query?.key || "")}">exclude (real users)</a> <a href="?view=searches&crew=only&key=${adminEsc(req.query?.key || "")}">only</a> <a href="?view=searches&crew=include&key=${adminEsc(req.query?.key || "")}">all</a></div>
+  return res.status(200).send(pageChrome("Searches", { html: `<div>last ${days}d, crew + testers: ${mode} &middot; <a href="?view=searches&crew=exclude">exclude (real users)</a> <a href="?view=searches&crew=only">only</a> <a href="?view=searches&crew=include">all</a></div>
   <table><tr><th>Time</th><th>Car</th><th>Location</th><th>Tier</th><th>Outcome</th><th>Pick</th><th>PowerSeller</th><th>Outbound</th></tr>${rows || "<tr><td colspan=8>none</td></tr>"}</table>
   <p style="color:#6b6861">Outbound is best-effort (car+time match); a per-search intro/outbound join key is a follow-up.</p>` }));
 }
@@ -195,7 +196,7 @@ async function renderCarsView(req, res) {
   if (req.query?.format === "json") return res.status(200).json({ crew: mode, cars: list });
   const rows = list.map(a => `<tr><td>${adminEsc(a.name)}</td><td>${a.c7}</td><td>${a.c30}</td><td>${a.hitRate}%</td><td>${adminEsc(OUTCOME_LABELS[a.dominant] || a.dominant)}</td></tr>`).join("");
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  return res.status(200).send(pageChrome("Top cars", { __key: req.query?.key, html: `<div>crew: ${mode}</div><table><tr><th>Model</th><th>7d</th><th>30d</th><th>Cache hit</th><th>Dominant outcome</th></tr>${rows || "<tr><td colspan=5>none</td></tr>"}</table>` }));
+  return res.status(200).send(pageChrome("Top cars", { html: `<div>crew: ${mode}</div><table><tr><th>Model</th><th>7d</th><th>30d</th><th>Cache hit</th><th>Dominant outcome</th></tr>${rows || "<tr><td colspan=5>none</td></tr>"}</table>` }));
 }
 // ?view=geo : searches by entered state/country, 7d and 30d. No raw IPs.
 async function renderGeoView(req, res) {
@@ -213,7 +214,7 @@ async function renderGeoView(req, res) {
   if (req.query?.format === "json") return res.status(200).json({ crew: mode, geo: list });
   const rows = list.map(a => `<tr><td>${adminEsc(a.loc)}</td><td>${a.c7}</td><td>${a.c30}</td></tr>`).join("");
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  return res.status(200).send(pageChrome("Geo", { __key: req.query?.key, html: `<div>crew: ${mode} &middot; entered location only, never IPs</div><table><tr><th>Location</th><th>7d</th><th>30d</th></tr>${rows || "<tr><td colspan=3>none</td></tr>"}</table>` }));
+  return res.status(200).send(pageChrome("Geo", { html: `<div>crew: ${mode} &middot; entered location only, never IPs</div><table><tr><th>Location</th><th>7d</th><th>30d</th></tr>${rows || "<tr><td colspan=3>none</td></tr>"}</table>` }));
 }
 
 function setCors(res) {
@@ -333,7 +334,7 @@ async function fetchUsageEvents(supabaseUrl, supabaseKey, days) {
   return Array.isArray(data) ? data : [];
 }
 
-function renderHtml({ summary, events, days, key }) {
+function renderHtml({ summary, events, days }) {
   const rows = summary.days.map(day => `
     <tr>
       <td>${day.day}</td>
@@ -378,7 +379,7 @@ function renderHtml({ summary, events, days, key }) {
   </style>
 </head>
 <body>
-  <div style="margin-bottom:12px"><a href="?view=business&key=${adminEsc(key || "")}" style="font-weight:700;color:#0b5c3e;text-decoration:none">&larr; BUSINESS dashboard</a></div>
+  <div style="margin-bottom:12px"><a href="?view=business" style="font-weight:700;color:#0b5c3e;text-decoration:none">&larr; BUSINESS dashboard</a></div>
   <h1>GoAskSam Usage</h1>
   <div class="muted">Last ${days} days. OldCarsData cost shows both current 1K pricing and 10K pricing.</div>
   <div class="grid">
@@ -4541,7 +4542,6 @@ const NYT = `<span style="color:#a29e95;font-style:italic">Not yet tracked</span
 const fmtN = n => (n == null ? "0" : Number(n).toLocaleString());
 const fmtPct = (num, den) => (den > 0 ? `${(100 * num / den).toFixed(num / den >= 0.1 ? 0 : 1)}%` : NYT);
 const fmtMoney = n => (n == null ? NYT : "$" + Math.round(Number(n)).toLocaleString());
-const bizKey = req => adminEsc(req.query?.key || "");
 
 // --- Timezone (Item 2): all dashboard dates render in ET (America/New_York) to match
 // the quota-day boundary (reserve_search day-truncates in the same zone). ---
@@ -4713,7 +4713,7 @@ async function computeBusiness(env, range, mode) {
 }
 
 function bizChrome(title, key, active) {
-  const nav = (v, label) => `<a href="?view=${v}&key=${adminEsc(key || "")}"${v === active ? ' style="font-weight:700;color:#0b5c3e"' : ""}>${label}</a>`;
+  const nav = (v, label) => `<a href="?view=${v}"${v === active ? ' style="font-weight:700;color:#0b5c3e"' : ""}>${label}</a>`;
   return `<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${adminEsc(title)}</title>
 <style>
 :root{--ink:#16140f;--slate:#6b6861;--line:#e3e1db;--green:#0b5c3e;--paper:#fff;--shade:#f6f5f2}
@@ -4755,24 +4755,24 @@ ${title !== "__bare" ? `<h1>${adminEsc(title)}</h1>` : ""}`;
 }
 
 function bizFilters(req, view, opts = {}) {
-  const k = bizKey(req), r = String(req.query?.range || "7d"), m = bizMode(req);
+  const r = String(req.query?.range || "7d"), m = bizMode(req);
   const xq = bizExtraQS(req);
   const rl = [["today", "Today"], ["7d", "7 days"], ["30d", "30 days"], ["all", "All time"]];
-  const rangeLinks = rl.map(([v, l]) => `<a class="${r === v ? "on" : ""}" href="?view=${view}&range=${v}&biz=${m}&key=${k}${xq}">${l}</a>`).join("");
+  const rangeLinks = rl.map(([v, l]) => `<a class="${r === v ? "on" : ""}" href="?view=${view}&range=${v}&biz=${m}${xq}">${l}</a>`).join("");
   // Custom date range (Item 4): start/end dates, applied in ET. Preserves mode + search
   // filters via hidden inputs, so it works the same as the fixed buttons and with CSV.
   const from = adminEsc(req.query?.from || ""), to = adminEsc(req.query?.to || "");
   const hid = ["q", "stage", "ps", "plat", "sort"].filter(n => req.query?.[n]).map(n => `<input type="hidden" name="${n}" value="${adminEsc(req.query[n])}">`).join("");
-  const customForm = `<form method="get" style="display:inline-flex;gap:5px;align-items:center;margin-left:6px;vertical-align:middle"><input type="hidden" name="view" value="${view}"><input type="hidden" name="biz" value="${m}"><input type="hidden" name="key" value="${k}"><input type="hidden" name="range" value="custom">${hid}<span style="color:#6b6861;font-size:12px">Custom${r === "custom" ? " ●" : ""}:</span> <input type="date" name="from" value="${from}" style="padding:3px 5px;border:1px solid var(--line);border-radius:5px;font:inherit"><span style="color:#a29e95">to</span> <input type="date" name="to" value="${to}" style="padding:3px 5px;border:1px solid var(--line);border-radius:5px;font:inherit"> <button>Apply</button></form>`;
+  const customForm = `<form method="get" style="display:inline-flex;gap:5px;align-items:center;margin-left:6px;vertical-align:middle"><input type="hidden" name="view" value="${view}"><input type="hidden" name="biz" value="${m}"><input type="hidden" name="range" value="custom">${hid}<span style="color:#6b6861;font-size:12px">Custom${r === "custom" ? " ●" : ""}:</span> <input type="date" name="from" value="${from}" style="padding:3px 5px;border:1px solid var(--line);border-radius:5px;font:inherit"><span style="color:#a29e95">to</span> <input type="date" name="to" value="${to}" style="padding:3px 5px;border:1px solid var(--line);border-radius:5px;font:inherit"> <button>Apply</button></form>`;
   if (opts.noMode) return `<div class="filters" style="margin:6px 0">${rangeLinks}${customForm}</div>`;
   const ml = [["exclude", "Real sellers"], ["include", "All (incl. testers)"], ["only", "Testers only"]];
-  const modeLinks = ml.map(([v, l]) => `<a class="${m === v ? "on" : ""}" href="?view=${view}&range=${r}&biz=${v}&key=${k}${r === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${xq}">${l}</a>`).join("");
+  const modeLinks = ml.map(([v, l]) => `<a class="${m === v ? "on" : ""}" href="?view=${view}&range=${r}&biz=${v}${r === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${xq}">${l}</a>`).join("");
   return `<div class="filters" style="margin:6px 0">${rangeLinks}${customForm} <span style="color:#c9c5bc">&nbsp;|&nbsp;</span> ${modeLinks}</div>`;
 }
 
 async function renderBusinessView(req, res) {
   const env = supabaseEnv(); if (!env) return res.status(500).json({ error: "storage not configured" });
-  const range = bizRange(req), mode = bizMode(req), key = req.query?.key;
+  const range = bizRange(req), mode = bizMode(req);
   const b = await computeBusiness(env, range, mode);
 
   // funnel (cohort of journeys started in range). Platform & PowerSeller kept separate.
@@ -4910,7 +4910,7 @@ async function renderBusinessView(req, res) {
     ${acqSection}
     ${psSection}
     ${platSection}
-    <p style="margin-top:22px"><a class="jlink" href="?view=journeys&range=${range.range}&biz=${mode}&key=${bizKey(req)}">Open the Journey Explorer &rarr;</a> &middot; <a class="jlink" href="?view=economics&range=${range.range}&key=${bizKey(req)}">Economics &rarr;</a> &middot; <a class="jlink" href="?view=quality&range=${range.range}&key=${bizKey(req)}">Product quality &rarr;</a></p>
+    <p style="margin-top:22px"><a class="jlink" href="?view=journeys&range=${range.range}&biz=${mode}">Open the Journey Explorer &rarr;</a> &middot; <a class="jlink" href="?view=economics&range=${range.range}">Economics &rarr;</a> &middot; <a class="jlink" href="?view=quality&range=${range.range}">Product quality &rarr;</a></p>
   </div>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   return res.status(200).send(html);
@@ -4984,7 +4984,6 @@ async function processManualUpdate(env, req) {
 
 async function renderJourneysView(req, res) {
   const env = supabaseEnv(); if (!env) return res.status(500).json({ error: "storage not configured" });
-  const key = req.query?.key;
   // Single-journey detail
   if (req.query?.jid) {
     const jid = String(req.query.jid);
@@ -5020,8 +5019,8 @@ async function renderJourneysView(req, res) {
     const editor = `<h2>Update downstream outcome</h2>
       <div class="note">Every change is written to the audit log below with who, field, old value, new value and timestamp. Dates are day granular. Leave a field blank to clear it. Sold is never inferred, so set the sale status explicitly.</div>
       ${flash}
-      <form method="post" action="?view=journeys&jid=${encodeURIComponent(jid)}&key=${bizKey(req)}">
-        <input type="hidden" name="jid" value="${adminEsc(jid)}"><input type="hidden" name="key" value="${bizKey(req)}">
+      <form method="post" action="?view=journeys&jid=${encodeURIComponent(jid)}">
+        <input type="hidden" name="jid" value="${adminEsc(jid)}">
         <div class="editgrid">${editRows}</div>
         <div class="efield" style="margin-top:10px"><label>Your initials or name (recorded in the audit) *</label><input type="text" name="changed_by" required placeholder="e.g. Sam"></div>
         <div class="efield"><label>Note (optional, applies to this update)</label><input type="text" name="note" placeholder="context for the change"></div>
@@ -5034,7 +5033,7 @@ async function renderJourneysView(req, res) {
     const html = `${bizChrome("__bare", key, "journeys")}
       <style>.editgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;margin-top:10px}.efield label{display:block;font-size:11.5px;color:var(--slate);margin-bottom:3px}.efield input,.efield select{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font:inherit}.efield:has(textarea),.efield:last-of-type,.efield:nth-last-of-type(2){grid-column:1 / -1}</style>
       <h1>${adminEsc(veh)}</h1>
-      <div class="sub">${adminEsc(j.vehicle_location || "Location unknown")} &middot; journey ${adminEsc(jid.slice(0, 8))} &middot; ${j.user_id ? "signed-in" : "anonymous"} &middot; <a class="jlink" href="?view=journeys&key=${bizKey(req)}">back to explorer</a></div>
+      <div class="sub">${adminEsc(j.vehicle_location || "Location unknown")} &middot; journey ${adminEsc(jid.slice(0, 8))} &middot; ${j.user_id ? "signed-in" : "anonymous"} &middot; <a class="jlink" href="?view=journeys">back to explorer</a></div>
       <div class="split" style="grid-template-columns:2fr 1fr">
         <div><h2>History</h2><div class="tl">${evLines}${man}</div></div>
         <div><h2>Recommendation</h2><div class="path">
@@ -5092,7 +5091,7 @@ async function renderJourneysView(req, res) {
   const emailBy = await fetchEmailsByUserId(env, shown.map(j => j.user_id));   // Item 1: signed-in requester email
   const tr = shown.map(j => `<tr>
     <td>${fmtDayET(j.created_at)}</td>
-    <td><a class="jlink" href="?view=journeys&jid=${encodeURIComponent(j.journey_id)}&key=${bizKey(req)}">${adminEsc([j.vehicle_year, j.vehicle_make, j.vehicle_model].filter(Boolean).join(" ") || "?")}</a>${b.entryMethodBy.get(j.journey_id) === "vin" ? ` <span style="display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.4px;color:#0b5c3e;background:#e7f3ec;border:1px solid #bfe3cc;border-radius:4px;padding:1px 4px;vertical-align:middle;margin-left:5px" title="Started from a VIN">VIN</span>` : ""}</td>
+    <td><a class="jlink" href="?view=journeys&jid=${encodeURIComponent(j.journey_id)}">${adminEsc([j.vehicle_year, j.vehicle_make, j.vehicle_model].filter(Boolean).join(" ") || "?")}</a>${b.entryMethodBy.get(j.journey_id) === "vin" ? ` <span style="display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.4px;color:#0b5c3e;background:#e7f3ec;border:1px solid #bfe3cc;border-radius:4px;padding:1px 4px;vertical-align:middle;margin-left:5px" title="Started from a VIN">VIN</span>` : ""}</td>
     <td>${adminEsc(j.user_id ? (emailBy.get(j.user_id) || "") : "")}</td>
     <td>${adminEsc(j.vehicle_location || "")}</td>
     <td>${adminEsc(stateRegion(j.vehicle_location))}</td>
@@ -5109,31 +5108,31 @@ async function renderJourneysView(req, res) {
   </tr>`).join("");
   // CSV download links carry ALL current filters (Items 2/4/3b).
   const filterQS = `${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fReg ? `&region=${encodeURIComponent(fReg)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fTier ? `&tier=${encodeURIComponent(fTier)}` : ""}${fVin ? `&vin=${encodeURIComponent(fVin)}` : ""}`;
-  const csvParams = extra => `?view=journeys&format=csv&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${filterQS}${extra}`;
+  const csvParams = extra => `?view=journeys&format=csv&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${filterQS}${extra}`;
   // Region rollup filter chips (Item 2). Preserve every other current filter.
-  const regionBase = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fTier ? `&tier=${encodeURIComponent(fTier)}` : ""}${fVin ? `&vin=${encodeURIComponent(fVin)}` : ""}${fSort ? `&sort=${encodeURIComponent(fSort)}` : ""}`;
+  const regionBase = `?view=journeys&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fTier ? `&tier=${encodeURIComponent(fTier)}` : ""}${fVin ? `&vin=${encodeURIComponent(fVin)}` : ""}${fSort ? `&sort=${encodeURIComponent(fSort)}` : ""}`;
   const regionChips = `<div class="filters" style="margin:4px 0"><span style="color:#6b6861;font-size:12px">Region:</span> <a class="${!fReg ? "on" : ""}" href="${regionBase}">All</a>${CENSUS_REGIONS.map(rg => `<a class="${fReg === rg ? "on" : ""}" href="${regionBase}&region=${encodeURIComponent(rg)}">${rg}</a>`).join("")}</div>`;
   // Stage filter chips (same pattern as Region). Preserves every other filter; shows only
   // stages present in the current view, each with its own count so "just CTA clicked" etc.
   // reads its count at a glance. "All" clears the stage filter.
-  const stageBase = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fReg ? `&region=${encodeURIComponent(fReg)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fTier ? `&tier=${encodeURIComponent(fTier)}` : ""}${fVin ? `&vin=${encodeURIComponent(fVin)}` : ""}${fSort ? `&sort=${encodeURIComponent(fSort)}` : ""}`;
+  const stageBase = `?view=journeys&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fReg ? `&region=${encodeURIComponent(fReg)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fTier ? `&tier=${encodeURIComponent(fTier)}` : ""}${fVin ? `&vin=${encodeURIComponent(fVin)}` : ""}${fSort ? `&sort=${encodeURIComponent(fSort)}` : ""}`;
   const presentStages = STAGE_KEYS.filter(s => stageCounts.get(s));
   const stageChips = presentStages.length ? `<div class="filters" style="margin:4px 0"><span style="color:#6b6861;font-size:12px">Stage:</span> <a class="${!fStage ? "on" : ""}" href="${stageBase}">All</a>${presentStages.map(s => `<a class="${fStage === s ? "on" : ""}" href="${stageBase}&stage=${encodeURIComponent(s)}">${adminEsc(STAGE_LABEL[s])} (${fmtN(stageCounts.get(s))})</a>`).join("")}</div>` : "";
   // Tier filter chips (guest30, free, tdv, ...). Preserves every other filter; guest30 is
   // included by default (not internal), so this is the way to isolate a guest cohort.
-  const tierBase = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fReg ? `&region=${encodeURIComponent(fReg)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fVin ? `&vin=${encodeURIComponent(fVin)}` : ""}${fSort ? `&sort=${encodeURIComponent(fSort)}` : ""}`;
+  const tierBase = `?view=journeys&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fReg ? `&region=${encodeURIComponent(fReg)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fVin ? `&vin=${encodeURIComponent(fVin)}` : ""}${fSort ? `&sort=${encodeURIComponent(fSort)}` : ""}`;
   const presentTiers = [...tierCounts.keys()].filter(t => t && t !== "(none)").sort();
   const tierChips = presentTiers.length ? `<div class="filters" style="margin:4px 0"><span style="color:#6b6861;font-size:12px">Tier:</span> <a class="${!fTier ? "on" : ""}" href="${tierBase}">All</a>${presentTiers.map(t => `<a class="${fTier === t ? "on" : ""}" href="${tierBase}&tier=${encodeURIComponent(t)}">${adminEsc(t)} (${fmtN(tierCounts.get(t))})</a>`).join("")}</div>` : "";
   // Entry-method chip: isolate VIN-originated journeys at a glance. Preserves every other
   // filter; only rendered when at least one VIN journey is present in the current view.
-  const vinBase = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fReg ? `&region=${encodeURIComponent(fReg)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fTier ? `&tier=${encodeURIComponent(fTier)}` : ""}${fSort ? `&sort=${encodeURIComponent(fSort)}` : ""}`;
+  const vinBase = `?view=journeys&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}${q ? `&q=${encodeURIComponent(req.query?.q || "")}` : ""}${fStage ? `&stage=${encodeURIComponent(fStage)}` : ""}${fPs ? `&ps=${encodeURIComponent(fPs)}` : ""}${fPlat ? `&plat=${encodeURIComponent(fPlat)}` : ""}${fReg ? `&region=${encodeURIComponent(fReg)}` : ""}${fUid ? `&uid=${encodeURIComponent(fUid)}` : ""}${fAid ? `&aid=${encodeURIComponent(fAid)}` : ""}${fTier ? `&tier=${encodeURIComponent(fTier)}` : ""}${fSort ? `&sort=${encodeURIComponent(fSort)}` : ""}`;
   const vinChip = (vinCount > 0 || fVin) ? `<div class="filters" style="margin:4px 0"><span style="color:#6b6861;font-size:12px">Entry:</span> <a class="${!fVin ? "on" : ""}" href="${vinBase}">All</a><a class="${fVin ? "on" : ""}" href="${vinBase}&vin=1">VIN journeys (${fmtN(vinCount)})</a></div>` : "";
   // Clickable Stage column header: toggles funnel-order sort on/off (filterQS already
   // carries every active filter; sort is added/removed on top).
-  const stageSortHref = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${filterQS}${fSort === "stage" ? "" : "&sort=stage"}`;
+  const stageSortHref = `?view=journeys&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${filterQS}${fSort === "stage" ? "" : "&sort=stage"}`;
   const stageHeader = `<a href="${stageSortHref}" style="color:inherit;text-decoration:none" title="Sort by stage (funnel order)">Stage ${fSort === "stage" ? "▲" : "⇅"}</a>`;
   // Person-filter banner when arriving from the Visitors view (Item 3b).
-  const personBanner = (fUid || fAid) ? `<div class="note">Showing journeys for ${fUid ? `signed-in user ${adminEsc((emailBy.get(fUid) || fUid.slice(0, 8) + "…"))}` : `anonymous device ${adminEsc(fAid.slice(0, 12) + "…")}`}. <a class="jlink" href="?view=visitors&range=${range.range}&biz=${mode}&key=${bizKey(req)}">Back to Visitors</a></div>` : "";
+  const personBanner = (fUid || fAid) ? `<div class="note">Showing journeys for ${fUid ? `signed-in user ${adminEsc((emailBy.get(fUid) || fUid.slice(0, 8) + "…"))}` : `anonymous device ${adminEsc(fAid.slice(0, 12) + "…")}`}. <a class="jlink" href="?view=visitors&range=${range.range}&biz=${mode}">Back to Visitors</a></div>` : "";
   const html = `${bizChrome("Journey Explorer", key, "journeys")}
     ${bizFilters(req, "journeys")}
     ${regionChips}
@@ -5141,7 +5140,7 @@ async function renderJourneysView(req, res) {
     ${tierChips}
     ${vinChip}
     ${personBanner}
-    <form method="get" style="margin:8px 0"><input type="hidden" name="view" value="journeys"><input type="hidden" name="key" value="${bizKey(req)}"><input type="hidden" name="range" value="${range.range}"><input type="hidden" name="biz" value="${mode}">${range.range === "custom" ? `<input type="hidden" name="from" value="${adminEsc(req.query?.from || "")}"><input type="hidden" name="to" value="${adminEsc(req.query?.to || "")}">` : ""}${fReg ? `<input type="hidden" name="region" value="${adminEsc(fReg)}">` : ""}${fStage ? `<input type="hidden" name="stage" value="${adminEsc(fStage)}">` : ""}${fTier ? `<input type="hidden" name="tier" value="${adminEsc(fTier)}">` : ""}${fVin ? `<input type="hidden" name="vin" value="${adminEsc(fVin)}">` : ""}${fSort ? `<input type="hidden" name="sort" value="${adminEsc(fSort)}">` : ""}${fUid ? `<input type="hidden" name="uid" value="${adminEsc(fUid)}">` : ""}${fAid ? `<input type="hidden" name="aid" value="${adminEsc(fAid)}">` : ""}<input type="text" name="q" value="${adminEsc(req.query?.q || "")}" placeholder="Search vehicle or location"> <button>Search</button></form>
+    <form method="get" style="margin:8px 0"><input type="hidden" name="view" value="journeys"><input type="hidden" name="range" value="${range.range}"><input type="hidden" name="biz" value="${mode}">${range.range === "custom" ? `<input type="hidden" name="from" value="${adminEsc(req.query?.from || "")}"><input type="hidden" name="to" value="${adminEsc(req.query?.to || "")}">` : ""}${fReg ? `<input type="hidden" name="region" value="${adminEsc(fReg)}">` : ""}${fStage ? `<input type="hidden" name="stage" value="${adminEsc(fStage)}">` : ""}${fTier ? `<input type="hidden" name="tier" value="${adminEsc(fTier)}">` : ""}${fVin ? `<input type="hidden" name="vin" value="${adminEsc(fVin)}">` : ""}${fSort ? `<input type="hidden" name="sort" value="${adminEsc(fSort)}">` : ""}${fUid ? `<input type="hidden" name="uid" value="${adminEsc(fUid)}">` : ""}${fAid ? `<input type="hidden" name="aid" value="${adminEsc(fAid)}">` : ""}<input type="text" name="q" value="${adminEsc(req.query?.q || "")}" placeholder="Search vehicle or location"> <button>Search</button></form>
     <div class="sub">${rows.length} journeys ${anyFilter ? "(filtered)" : ""} &nbsp;·&nbsp; Download CSV (current filters): <a href="${csvParams("&dataset=journeys")}">journeys</a> · <a href="${csvParams("&dataset=journey_events")}">events</a> · <a href="${csvParams("&dataset=funnel_events")}">funnel</a></div>
     <table><tr><th>Date</th><th>Vehicle</th><th>Email</th><th>Location</th><th>Region</th><th class="num">Asking</th><th>Preference</th><th>Timing</th><th>Recommendation</th><th>PowerSeller</th><th>${stageHeader}</th><th>Actual platform</th><th>Sale status</th><th class="num">Sale price</th><th class="num">Revenue</th></tr>${tr || `<tr><td colspan=15>No journeys.</td></tr>`}</table>
   </div>`;
@@ -5171,23 +5170,23 @@ function groupVisitors(journeys, emailBy) {
 // Item 3(b): Visitors view — repeat activity by person across journeys/days.
 async function renderVisitorsView(req, res) {
   const env = supabaseEnv(); if (!env) return res.status(500).json({ error: "storage not configured" });
-  const range = bizRange(req), mode = bizMode(req), key = req.query?.key;
+  const range = bizRange(req), mode = bizMode(req);
   const b = await computeBusiness(env, range, mode);
   const emailBy = await fetchEmailsByUserId(env, b.journeys.map(j => j.user_id));
   const all = groupVisitors(b.journeys, emailBy);
   const returning = all.filter(v => v.journeys >= 2).length;
   const showAll = req.query?.all === "1";
   const visitors = (showAll ? all : all.filter(v => v.journeys >= 2)).slice(0, 500);
-  const linkBase = `?view=journeys&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}`;
+  const linkBase = `?view=journeys&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}`;
   const tr = visitors.map(v => {
     const label = v.signedIn ? (v.email || v.id.slice(0, 8) + "…") : ("anon " + String(v.id).slice(0, 12) + "…");
     const link = `${linkBase}&${v.signedIn ? "uid" : "aid"}=${encodeURIComponent(v.id)}`;
     return `<tr><td><a class="jlink" href="${link}">${adminEsc(label)}</a></td><td>${v.signedIn ? "signed-in" : "anon"}</td><td class="num">${fmtN(v.journeys)}</td><td>${fmtDayET(v.first)}</td><td>${fmtDayET(v.last)}</td><td class="num">${fmtN(v.activeDays)}</td></tr>`;
   }).join("");
-  const csvParams = `?view=visitors&format=csv&key=${bizKey(req)}&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}`;
+  const csvParams = `?view=visitors&format=csv&range=${encodeURIComponent(range.range)}&biz=${encodeURIComponent(mode)}${range.range === "custom" ? `&from=${encodeURIComponent(req.query?.from || "")}&to=${encodeURIComponent(req.query?.to || "")}` : ""}`;
   const toggle = showAll
-    ? `<a class="jlink" href="?view=visitors&range=${range.range}&biz=${mode}&key=${bizKey(req)}">Show returning only (2+)</a>`
-    : `<a class="jlink" href="?view=visitors&all=1&range=${range.range}&biz=${mode}&key=${bizKey(req)}">Show all visitors</a>`;
+    ? `<a class="jlink" href="?view=visitors&range=${range.range}&biz=${mode}">Show returning only (2+)</a>`
+    : `<a class="jlink" href="?view=visitors&all=1&range=${range.range}&biz=${mode}">Show all visitors</a>`;
   const html = `${bizChrome("Visitors", key, "visitors")}
     <div class="sub">${adminEsc(range.label)} &middot; ${mode === "exclude" ? "real sellers only" : mode === "only" ? "testers only" : "all traffic"}</div>
     ${bizFilters(req, "visitors")}
@@ -5201,7 +5200,7 @@ async function renderVisitorsView(req, res) {
 
 // CSV export (Item 4): journeys / journey_events / funnel_events for the current range +
 // tier cohort, honoring the same filters as the Journey Explorer. Behind the same
-// USAGE_DASHBOARD_KEY gate (checked in the handler before this ever runs). Timestamps
+// header-key gate (checked in the handler before this ever runs). Timestamps
 // stay ISO/UTC in the file (raw-data export convention; the on-screen dashboard is ET).
 async function renderCsvExport(req, res) {
   const env = supabaseEnv();
@@ -5272,7 +5271,7 @@ const num = v => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 // ===================== ECONOMICS (Phase 4) =====================
 async function renderEconomicsView(req, res) {
   const env = supabaseEnv(); if (!env) return res.status(500).json({ error: "storage not configured" });
-  const range = bizRange(req), key = req.query?.key;
+  const range = bizRange(req);
   const [b, usage] = await Promise.all([computeBusiness(env, range, "include"), fetchUsageInRange(env, range.sinceIso)]);
   // Tracked VARIABLE costs only. Fixed costs (the $49/$X monthly plan floor) are NOT
   // variable and are deliberately excluded from gross contribution.
@@ -5303,7 +5302,7 @@ async function renderEconomicsView(req, res) {
     ${bizFilters(req, "economics", { noMode: true })}
     <h2>Unit economics</h2>${cards}
     <div class="note">Gross contribution counts <b>tracked variable costs only</b> (OldCarsData metered requests + Claude tokens). It deliberately excludes fixed monthly plan costs, which are not variable and would distort per-journey economics. Revenue is manual (Phase 3) and reads Not yet tracked until real sale revenue is entered; contribution stays Not yet tracked until then rather than showing a cost-only negative that reads as a loss.</div>
-    <p style="margin-top:18px"><a class="jlink" href="?view=business&range=${range.range}&key=${bizKey(req)}">&larr; Business</a> &middot; <a class="jlink" href="?view=quality&range=${range.range}&key=${bizKey(req)}">Product quality &rarr;</a></p>
+    <p style="margin-top:18px"><a class="jlink" href="?view=business&range=${range.range}">&larr; Business</a> &middot; <a class="jlink" href="?view=quality&range=${range.range}">Product quality &rarr;</a></p>
   </div>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   return res.status(200).send(html);
@@ -5312,7 +5311,7 @@ async function renderEconomicsView(req, res) {
 // ===================== PRODUCT QUALITY (Phase 4) =====================
 async function renderQualityView(req, res) {
   const env = supabaseEnv(); if (!env) return res.status(500).json({ error: "storage not configured" });
-  const range = bizRange(req), key = req.query?.key;
+  const range = bizRange(req);
   const [usage, funnel, b] = await Promise.all([fetchUsageInRange(env, range.sinceIso), fetchFunnelInRange(env, range.sinceIso), computeBusiness(env, range, "include")]);
   const fc = {}; for (const f of funnel) fc[f.event] = (fc[f.event] || 0) + 1;
   const decisions = usage.filter(e => e.event_type === "seller_decision");
@@ -5380,7 +5379,7 @@ async function renderQualityView(req, res) {
     ${bizFilters(req, "quality", { noMode: true })}
     ${resolution}${recq}${vinq}${perf}${abandon}
     <div class="note">Signals are forward-only from when each was wired; a metric with no source in range reads 0 for a genuine zero and Not yet tracked where nothing emits it yet. Out-of-scope capture starts at this deploy.</div>
-    <p style="margin-top:18px"><a class="jlink" href="?view=business&range=${range.range}&key=${bizKey(req)}">&larr; Business</a> &middot; <a class="jlink" href="?view=economics&range=${range.range}&key=${bizKey(req)}">Economics &rarr;</a></p>
+    <p style="margin-top:18px"><a class="jlink" href="?view=business&range=${range.range}">&larr; Business</a> &middot; <a class="jlink" href="?view=economics&range=${range.range}">Economics &rarr;</a></p>
   </div>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   return res.status(200).send(html);
@@ -5398,10 +5397,11 @@ export default async function handler(req, res) {
     try { return await handleOps(req, res); } catch (err) { return res.status(500).json({ error: err.message }); }
   }
 
-  const configuredKey = process.env.USAGE_DASHBOARD_KEY || process.env.ADMIN_DASHBOARD_KEY;
-  const providedKey = req.headers["x-admin-key"] || req.query?.key || req.body?.key;
-  if (!configuredKey) return res.status(500).json({ error: "Set USAGE_DASHBOARD_KEY in Vercel before using this dashboard." });
-  if (providedKey !== configuredKey) return res.status(401).json({ error: "Unauthorized" });
+  // The probe key in the x-ops-key header only (Oct 2026, Lane C; lib/_credential.js hasHeaderKey): a key in the
+  // address or the body is refused, and USAGE_DASHBOARD_KEY is no longer read. In a browser, /admin is the dashboard
+  // (sign-in plus ADMIN_EMAILS); these views answer scripts that send the header.
+  if (keyInAddress(req) || (req.body && req.body.key != null)) return res.status(400).json(ADDRESS_KEY_REFUSED);
+  if (!hasHeaderKey(req)) return res.status(401).json({ error: "Unauthorized. Send the key in the x-ops-key header." });
 
   // Phase 3 write path: audited manual downstream update, then Post/Redirect/Get
   // back to the journey detail so a refresh never re-submits.
@@ -5410,7 +5410,7 @@ export default async function handler(req, res) {
       const env = supabaseEnv();
       if (!env) return res.status(500).json({ error: "storage not configured" });
       const result = await processManualUpdate(env, req);
-      const params = new URLSearchParams({ view: "journeys", jid: result.jid || String(req.body?.jid || ""), key: String(providedKey || ""), saved: String(result.saved) });
+      const params = new URLSearchParams({ view: "journeys", jid: result.jid || String(req.body?.jid || ""), saved: String(result.saved) });
       if (result.errors && result.errors.length) params.set("errs", result.errors.join(","));
       res.setHeader("Location", `?${params.toString()}`);
       return res.status(303).end();
@@ -5446,7 +5446,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ days, summary, events: events.slice(0, 100) });
     }
     res.setHeader("Content-Type", "text/html; charset=utf-8");
-    return res.status(200).send(renderHtml({ summary, events, days, key: req.query?.key }));
+    return res.status(200).send(renderHtml({ summary, events, days }));
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

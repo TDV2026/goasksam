@@ -1,7 +1,8 @@
 # Launch-day checklist
 
 ## Secret rotation
-- [ ] `USAGE_DASHBOARD_KEY` — rotate before launch. **NOTE (Aug 2026): this key now
+- [ ] `USAGE_DASHBOARD_KEY`: no longer read (Oct 2026). `api/usageDashboard.js` takes the probe key in the
+  x-ops-key header only, so it can be deleted from Vercel. Earlier note, kept for history: **NOTE (Aug 2026): this key now
   gates the internal admin surface in `api/usageDashboard.js`, which has WRITE access
   to sale / revenue / journey data (via the `journey_manual_update` RPC), not just
   read access to analytics. Treat it as a write-capable admin credential: rotate it,

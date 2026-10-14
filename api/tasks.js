@@ -30,6 +30,7 @@ import { tasksAllowance } from "../lib/_ceilings.js";
 import { signupTicket } from "../lib/_signup.js";
 import { othersRunning, othersLine } from "../lib/tasks/othersRunning.js";
 import { hasServerCredential } from "../lib/_credential.js";
+import { testInbox } from "../lib/tasks/delivery.js";
 // The per-account daily limits (Tasks setup chat turns, research started), crew exempt: what -> ok.
 const gateOf = (req, user) => what => tasksAllowance(supabaseEnv(), req, user.userId, what).then(r => r.ok, () => true);
 
@@ -142,6 +143,17 @@ async function handler(req, res) {
       }
       await recordUsageEvent({ event_type: "tasks_run", route: "tasks_run", status: "ok", oldcarsdata_metered_requests: 0, metadata: { ran: out.ran, matched: out.report.reduce((k, r) => k + (r.matched || 0), 0), ms: Date.now() - t0 } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
       return res.status(200).json(out);
+    }
+    // Probe: how many accounts carry a stored Task email address (accounts.task_email, no longer read since Task emails
+    // go only to the sign-in address, lib/tasks/delivery.js), and how many of those differ from the account's email.
+    // Counts only, never an address. Read only.
+    if (req.method === "GET" && q.customaddresses && probeOk(req)) {
+      const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
+      const r = await fetch(`${env.supabaseUrl}/rest/v1/accounts?task_email=not.is.null&select=task_email,email&limit=10000`, { headers: H }).catch(() => null);
+      if (!r || !r.ok) return res.status(200).json({ error: r ? `accounts read ${r.status}` : "no answer" });
+      const rows = await r.json().catch(() => []);
+      const norm = x => String(x || "").trim().toLowerCase();
+      return res.status(200).json({ accounts_with_task_email: rows.length, differing_from_account_email: rows.filter(x => norm(x.task_email) !== norm(x.email)).length });
     }
     // Probe: what a Task email would state for typed words (lib/tasks/tasks.js emailPreview). Read only: no Task, no
     // email, no cache row, no setup model turn, zero OCD (the engine reads the archive). &q=the words.
@@ -446,7 +458,8 @@ async function handler(req, res) {
       if (!isReleased("tasks", req)) return notReleasedJson(res);
       return res.status(200).json(await draftTurn(env, user, { draft: b.draft || null, text, seed: b.seed || null, apiKey, model: CHAT_MODEL, paused, gate: gateOf(req, user) }));
     }
-    if (b.action === "notify") return res.status(200).json(await setNotifyPrefs(env, user, { on: typeof b.on === "boolean" ? b.on : undefined, email: b.email !== undefined ? b.email : undefined, every: typeof b.every === "string" ? b.every : undefined }));
+    // On or off and how often only: the address is the sign-in address, never a setting (b.email is ignored).
+    if (b.action === "notify") return res.status(200).json(await setNotifyPrefs(env, user, { on: typeof b.on === "boolean" ? b.on : undefined, every: typeof b.every === "string" ? b.every : undefined }));
     // Probe: Resend's own record of one email (delivery status), and the sending domain's verification.
     if (b.action === "test_resend" && probeOk(req)) {
       const H = { Authorization: `Bearer ${process.env.RESEND_API_KEY || ""}` };
@@ -496,12 +509,13 @@ async function handler(req, res) {
       const left = await (await fetch(`${env.supabaseUrl}/rest/v1/tasks?user_id=eq.${user.userId}&select=id`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } })).json();
       return res.status(200).json({ deleted_tasks: gone, tasks_left: Array.isArray(left) ? left.length : left });
     }
-    // Probe: send one real email of a TEST task, to Sam's own address or a disposable test inbox (b.to),
+    // Probe: send one real email of a TEST task, to our own inbox only (feedback@goasksam.com or a feedback+tag alias),
     // never a real user's: the latest Sam update, or with kind "start" the first email. Test user only.
     if (b.action === "test_email" && probeOk(req) && user.test) {
       const task = await getTask(env, String(b.task_id), user.userId);
       if (!task) return res.status(404).json({ error: "no such test task" });
-      const to = typeof b.to === "string" && /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(b.to) ? b.to : "feedback@goasksam.com";
+      // Our own inbox only (lib/tasks/delivery.js testInbox): any other b.to falls back to feedback@goasksam.com.
+      const to = testInbox(b.to) || "feedback@goasksam.com";
       if (b.kind === "start") return res.status(200).json({ ...(await sendStartEmail(env, task, null, { to })), to });
       const up = (await taskUpdates(env, task.id)).filter(u => u.role === "sam").pop();
       if (!up) return res.status(400).json({ error: "no Sam update to send" });

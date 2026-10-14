@@ -8,12 +8,12 @@
 <link rel="icon" href="/favicon.ico" sizes="any" />
 <meta name="theme-color" content="#0b5c3e" />
 <!-- Sam Desk: B2B research surface, crew-ONLY (never public, not in nav, not in sitemap).
-     A device holding gas_crew=ok or gas_tester=ok is let in; anything else is sent home.
+     A device holding a signed gas_crew (v1.) or gas_tester (t1.) cookie is let in (the shape only; /api/desk checks the signature); anything else is sent home.
      Invite: /desk?crew=<code>. There is deliberately NO public-flag fallback here. -->
 <script>
 (function(){try{
   var c=document.cookie||"";
-  if(c.indexOf("gas_tester=ok")!==-1||c.indexOf("gas_crew=v1.")!==-1)return;
+  if(c.indexOf("gas_tester=t1.")!==-1||c.indexOf("gas_crew=v1.")!==-1)return;
   var m=/[?&](tester|crew)=([^&]*)/.exec(location.search||"");
   if(m){var q=m[1]==="tester"?"tcode":"code";location.replace("/api/crew?"+q+"="+encodeURIComponent(m[2])+"&to="+encodeURIComponent((location.pathname||"/desk")+(location.search||"")+(location.hash||"")));return;}
   location.replace("/");

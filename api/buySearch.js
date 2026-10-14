@@ -15,7 +15,7 @@
 //                                          set, not just the <=3 cards shown - this route renders only
 //                                          what it returns, never a second placingFor call (job 3).
 //   POST { action:"arm"|"disarm", listing_id } / { action:"alerts" } (signed in) -> Before it ends (lib/live/buyAlerts.js)
-//   GET  ?alerts=run                    -> the Before it ends send run (Vercel cron, CRON_SECRET; or the probe key)
+//   GET  ?alerts=run                    -> the Before it ends probe run (the probe key in the x-ops-key header only)
 //   GET|POST ?alert=stop&t=<signed>     -> the message's stop link: GET shows a confirm page, only a POST acts
 import { track, withTracking } from "../lib/track/log.js";
 import { historyEnv, houseName, normVin } from "./_historyData.js";
@@ -37,7 +37,7 @@ async function rungMarket(env, r, facts, m) {
 // A count that opens a sentence: "Three", "14", "3,715" (one to ten as words, 11 and up as digits).
 const CountText = n => { const s = countText(n); return s.charAt(0).toUpperCase() + s.slice(1); };
 import { validateBearer } from "../lib/_auth.js";
-import { hasServerCredential } from "../lib/_credential.js";
+import { hasServerCredential, hasHeaderKey, keyInAddress, ADDRESS_KEY_REFUSED } from "../lib/_credential.js";
 import { checkCeiling, testLimits, CALM, buyModelGuard, recordBuyModelTurn, noteBuySearch, BUY_MODEL_PAUSED } from "../lib/_ceilings.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
 import { logEvent, EVENTS } from "../lib/events.js";
@@ -167,9 +167,10 @@ async function handler(req, res) {
       return page(200, `<h1>Stopped.</h1><p>GoAskSam won't send any more messages about the cars you picked.</p><p class="quiet"><a href="/buy">Back to Buy</a></p>`);
     }
     if (req.method === "GET" && q0.alerts === "run") {
-      const isCron = process.env.CRON_SECRET && req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
-      const isProbe = process.env.PROBE_KEY && (req.headers["x-probe-key"] === process.env.PROBE_KEY || q0.key === process.env.PROBE_KEY);
-      if (!isCron && !isProbe) return res.status(401).json({ error: "Unauthorized." });
+      // No Vercel cron calls this (the send is /api/tasks?send=1): the probe key in a header only (lib/_credential.js);
+      // a key in the address is refused.
+      if (keyInAddress(req)) return res.status(400).json(ADDRESS_KEY_REFUSED);
+      if (!hasHeaderKey(req)) return res.status(401).json({ error: "Unauthorized." });
       try { return res.status(200).json(await runAlerts(env, { freshBid })); }
       catch (e) { if (isMissingTable(e)) return res.status(200).json({ checked: 0, sent: 0, setup: "run docs/supabase-buy-alerts.sql" }); throw e; }
     }

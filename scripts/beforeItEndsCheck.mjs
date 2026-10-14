@@ -21,7 +21,8 @@ const cars = {
 };
 const U = { daily: "aaaaaaaa-0000-4000-8000-000000000001", instant: "bbbbbbbb-0000-4000-8000-000000000002", off: "cccccccc-0000-4000-8000-000000000003" };
 const prefs = { [U.daily]: { on: true, email: "feedback+daily@goasksam.com", every: "daily" }, [U.instant]: { on: true, email: "feedback+instant@goasksam.com", every: "instant" }, [U.off]: { on: false, email: "feedback+off@goasksam.com", every: "daily" } };
-let n = 0; const alert = (user, listing, armedAt) => ({ id: `00000000-0000-4000-8000-${String(++n).padStart(12, "0")}`, user_id: user, email: prefs[user].email, listing_id: listing, armed_at: armedAt || pt(0, 0), sent_at: null, send_status: null });
+// Each stored row carries a different, typed address: delivery must never read it (lib/tasks/delivery.js).
+let n = 0; const alert = (user, listing, armedAt) => ({ id: `00000000-0000-4000-8000-${String(++n).padStart(12, "0")}`, user_id: user, email: "someone-else@example.com", listing_id: listing, armed_at: armedAt || pt(0, 0), sent_at: null, send_status: null });
 const alerts = [
   alert(U.daily, 101), alert(U.daily, 102), alert(U.daily, 103), alert(U.daily, 104),
   alert(U.instant, 101), alert(U.instant, 103), alert(U.instant, 104),
@@ -38,6 +39,8 @@ const io = {
   liveRows: ids => ids.map(id => cars[id]).filter(c => c && curEnd(c) > clock)
     .map(c => ({ id: c.id, end_time: curEnd(c).toISOString(), url: `https://example.com/listing/${c.id}`, source: "bringatrailer" })),
   prefs: uid => prefs[uid],
+  // The sign-in address, the only target.
+  targets: uid => [{ channel: "email", to: prefs[uid].email }],
   claimAlert: id => { const a = alerts.find(x => x.id === id); if (!a || a.sent_at) return false; a.sent_at = clock.toISOString(); a.send_status = "sending"; return true; },
   finishAlert: (id, status, release) => { const a = alerts.find(x => x.id === id); a.send_status = status; if (release) a.sent_at = null; },
   markAlert: (id, status) => { const a = alerts.find(x => x.id === id); if (!a.sent_at) { a.sent_at = clock.toISOString(); a.send_status = status; } },
@@ -73,6 +76,7 @@ for (const [u, car, at] of expect) {
   ok(got[0] && end - got[0].at <= 2 * 3600e3 && end - got[0].at > 0, `${label[u]}, car ${car}: inside the two hours and before the end`);
 }
 ok(!sends.some(s => who(s.to) === U.off), "emails off: nothing sent");
+ok(sends.length > 0 && sends.every(s => who(s.to)) && !sends.some(s => /example\.com/.test(s.to)), "every email goes to the sign-in address, never a stored one");
 ok(sends.length === expect.length, `no extra emails (${sends.length} sent, ${expect.length} expected)`);
 ok(alerts.filter(a => a.user_id === U.off).every(a => a.send_status === "off"), "emails off: each armed car marked off, never sent later");
 ok(alerts.filter(a => a.user_id !== U.off).every(a => a.send_status === "sent"), "every other armed car marked sent once");
