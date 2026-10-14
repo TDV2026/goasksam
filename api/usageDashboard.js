@@ -2354,6 +2354,26 @@ async function handleOps(req, res) {
   // see exactly which sales a pool holds (and, with fence=1, why the engine kept or dropped each one)
   // without any read-only task having to reconstruct a fence by hand. Settles the "pending" golden
   // cars (356 Speedster, Merkur XR4Ti, Mustang GT, 275 GTB, Saab 9-2X) and anything like them later.
+  // task=countrycov (Lane B, Oct 15 2026, Sam's Job 2a, read-only): per venue since a date, how many sold car rows carry
+  // raw_record country_code and how many carry none, plus the distinct codes and currencies seen on a sample. Zero OCD.
+  if (task === "countrycov") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const since = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.since || "")) ? String(req.query.since) : "2025-01-01";
+    const slugs = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
+    const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
+    const countOf = async qs => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${qs}&limit=1`, { headers: H }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch (e) { return null; } };
+    const venues = [];
+    for (const slug of slugs) {
+      const baseQ = `sales_archive?select=id&source_slug=eq.${slug}&sale_price=not.is.null&vehicle_type=eq.car&sale_date=gte.${since}`;
+      const total = await countOf(baseQ);
+      const withCc = await countOf(`${baseQ}&raw_record->>country_code=not.is.null`);
+      const sample = (await supabaseSelect(env, `${baseQ.replace("select=id", "select=cc:raw_record->>country_code,cur:raw_record->>currency")}&limit=500`)) || [];
+      const codes = {}; for (const r of sample) { const k = String(r.cc || "").trim().toUpperCase() || "(none)"; codes[k] = (codes[k] || 0) + 1; }
+      const curs = {}; for (const r of sample) { const k = String(r.cur || "").trim().toUpperCase() || "(none)"; curs[k] = (curs[k] || 0) + 1; }
+      venues.push({ venue: slug, total, withCountryCode: withCc, withoutCountryCode: total != null && withCc != null ? total - withCc : null, sampleOf: sample.length, codesSeen: codes, currenciesSeen: curs });
+    }
+    return res.status(200).json({ task: "countrycov", since, venues });
+  }
   if (task === "poolrows") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const make = String(req.query?.make || "").trim();
@@ -2372,8 +2392,11 @@ async function handleOps(req, res) {
     // rtitle/transmission/image live in raw_record, the rest are native columns.
     const cols = "id,year,make,model,raw_title:listing_title,source_slug,platform,sale_date,price:sale_price,price_usd:sale_price_usd," +
       "currency:raw_record->>currency,mileage:raw_record->>mileage,rtitle:raw_record->>title,mods:raw_record->>modifications," +
-      "transmission:raw_record->>transmission,image:raw_record->>featured_image_url,vin_norm,project_flag,vehicle_type";
+      "transmission:raw_record->>transmission,image:raw_record->>featured_image_url,vin_norm,project_flag,vehicle_type," +
+      "body:raw_record->>body_style,cc:raw_record->>country_code,city:raw_record->>city,state:raw_record->>state";
+    const sourceSlug = String(req.query?.source || "").trim();
     let qs = `sales_archive?select=${cols}&sale_price=not.is.null&vehicle_type=eq.car`;
+    if (sourceSlug) qs += `&source_slug=eq.${encodeURIComponent(sourceSlug)}`;
     if (make) qs += `&make=ilike.${encodeURIComponent("*" + make + "*")}`;
     if (model) qs += `&model=ilike.${encodeURIComponent("*" + model + "*")}`;
     if (title) qs += `&listing_title=ilike.${encodeURIComponent("*" + title + "*")}`;
@@ -2417,6 +2440,7 @@ async function handleOps(req, res) {
         sale_date: r.sale_date, currency: r.currency, sale_price: r.price, sale_price_usd: r.price_usd,
         hammerUsd: Number.isFinite(hammer) ? Math.round(hammer) : null, allInUsd: Number.isFinite(allIn) ? Math.round(allIn) : null,
         mileage: r.mileage || null, vin_norm: r.vin_norm || null, has_photo: !!r.image, project_flag: r.project_flag || null, vehicle_type: r.vehicle_type,
+        body_style: r.body || null, country_code: r.cc || null, city: r.city || null, state: r.state || null,
         engineVerdict: fenceSpec ? qualifyReason(engineRow, fenceSpec) : null
       };
     });
@@ -3349,6 +3373,11 @@ async function handleOps(req, res) {
     // for THIS exact answer, without mutating it - so the production gate's live behavior (oneEngineAnswer)
     // can be inspected directly instead of guessed at from a downstream lane's "not_enough_data".
     const wantGate = req.query?.gate === "1";
+    // rows=1 (Lane B, Oct 15 2026, Sam's Job 1a, read-only, zero OCD): every archive row the engine considered for the
+    // typed car - the rows in the pool (rawPool), every fetched row the qualifier rejected with its reason, and the
+    // archive rows for this make/model/year inside the five-year window that no fetch returned at all (outside the
+    // fetch's own filters) - each with its stored body_style, model, country_code, city, state and venue.
+    const wantRows = req.query?.rows === "1";
     const out = [];
     for (const q of qs) {
       try {
@@ -3357,8 +3386,26 @@ async function handleOps(req, res) {
         const v = sanitizeResolvedVehicle(rv && rv.vehicle) || (rv && rv.vehicle);
         if (!v || !v.make) { out.push({ q, status: (rv && rv.status) || "unresolved", clarify: (rv && rv.clarify) || null }); continue; }
         const g = await findGeneration(v, env);
-        const ob = await runOneBox(v, g, q, env, null);
+        const ob = await runOneBox(v, g, q, wantRows ? { ...env, collectExcluded: true } : env, null);
         const d = ob.dedup || {};
+        let considered = null;
+        if (wantRows) {
+          const rowOut = (r, extra) => ({ id: r.id, title: r.raw_title || r.rtitle || null, year: r.year ?? null, model: r.model || null, body_style: r.body || null, source: r.source || r.platform || null, date: String(r.auction_end_date || r.sale_date || "").slice(0, 10) || null, price: r.price ?? null, currency: r.currency || null, country_code: r.cc || null, city: r.city || null, state: r.state || null, ...extra });
+          const included = (ob.rawPool || []).map(r => rowOut(r, {}));
+          const seenEx = new Set(), excluded = [];
+          for (const e of (d.excluded || [])) { const id = e.row && e.row.id; if (id == null || seenEx.has(id)) continue; seenEx.add(id); excluded.push(rowOut(e.row, { reason: e.reason })); }
+          const known = new Set([...included.map(r => r.id), ...excluded.map(r => r.id)]);
+          let notFetched = [];
+          if (v.model) {
+            const since5 = new Date(Date.now() - 1825 * 864e5).toISOString().slice(0, 10);
+            const cols = "id,year,make,model,raw_title:listing_title,source:platform,auction_end_date:sale_date,price:sale_price,currency:raw_record->>currency,body:raw_record->>body_style,cc:raw_record->>country_code,city:raw_record->>city,state:raw_record->>state";
+            const yq = v.year ? `&year=eq.${Number(v.year)}` : "";
+            const mdl = encodeURIComponent("*" + String(v.model).trim() + "*");
+            const broad = (await supabaseSelect(env, `sales_archive?select=${cols}&make=ilike.${encodeURIComponent("*" + v.make + "*")}&sale_price=not.is.null&sale_date=gte.${since5}${yq}&or=(model.ilike.${mdl},listing_title.ilike.${mdl})&order=sale_date.desc&limit=1000`)) || [];
+            notFetched = broad.filter(r => !known.has(r.id)).map(r => rowOut(r, { reason: "not returned by any fetch (outside the fetch filters: model/title scope, year bound, window or venue hold-out)" }));
+          }
+          considered = { includedCount: included.length, excludedCount: excluded.length, notFetchedCount: notFetched.length, included, excluded, notFetched };
+        }
         // reserve=1 (Oct 2026, Job 3 verify): the two reserve-tile labels, read-only, archive-only.
         const reserve = wantReserve ? {
           ri: await reserveInsightForVehicle(v, g, env).catch(e => ({ ok: false, reason: String(e && e.message || e) })),
@@ -3432,7 +3479,7 @@ async function handleOps(req, res) {
           setAsideRows: Array.isArray(ob.setAsideRows) ? ob.setAsideRows.map(c => ({ title: c.title, price: c.price, mi: c.mi, mileageText: c.mileageText, reason: c.reason })) : null,
           bodyScoped: ob.bodyScoped !== undefined ? ob.bodyScoped : null,
           halfGeneration: ob.halfGeneration || null, representative: ob.representative || null,
-          reserve, chips, cacheRows, listSales,
+          reserve, chips, cacheRows, listSales, considered,
           gate: wantGate ? runOutputInvariants(ob, v) : null,
           // Part 5/6 fields (Oct 2026, read-only diagnostic): surfaced here so they can be inspected
           // without guessing from the production-gated response shape.
