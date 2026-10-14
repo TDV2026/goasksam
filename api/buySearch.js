@@ -19,7 +19,7 @@
 //   GET|POST ?alert=stop&t=<signed>     -> the message's stop link: GET shows a confirm page, only a POST acts
 import { track, withTracking } from "../lib/track/log.js";
 import { historyEnv, houseName, normVin } from "./_historyData.js";
-import { parseQuery, parseQueryResolved, emptyFilters, gensNamed, resolveForBuy, searchLive, listingFacts, listingMarket, seenBefore, nounFor, liveForFamily, liveRows, familyMarket, COUNTRY_NAME, COLOURS } from "../lib/live/search.js";
+import { isAbroadRow, parseQuery, parseQueryResolved, emptyFilters, gensNamed, resolveForBuy, searchLive, listingFacts, listingMarket, seenBefore, nounFor, liveForFamily, liveRows, familyMarket, COUNTRY_NAME, COLOURS } from "../lib/live/search.js";
 import { placingFor } from "../lib/onebox.js";
 import { findGeneration } from "../lib/generations.js";
 import { converse } from "../lib/live/converse.js";
@@ -136,7 +136,7 @@ export function cardOf(x) {
     // The bid's own time only (bid_at), never when we last read the row: the page shows a bid by it (lib/tasks/bidTime.js).
     bid_at: r.bid_at || null, end_time: r.end_time, year: r.year, make: r.make || null,
     miles: cardMiles(facts), km: facts.km || null, colour: facts.colour, colourSrc: facts.colourSrc || null, body: facts.body, gearbox: facts.gearboxLabel,
-    location: titleCaseIfShouting(r.location) || null, country: cc || null, countryName: COUNTRY_NAME[cc] || cc || null, abroad: !!cc && cc !== "US",
+    location: titleCaseIfShouting(r.location) || null, country: cc || null, countryName: COUNTRY_NAME[cc] || cc || null, abroad: isAbroadRow(r),
     vin_norm: r.vin_norm || null, generation: x.gen ? x.gen.code : null, unknown: x.unknown, flag: cardFlag(r),
     reserve: r.has_reserve === true ? "reserve" : r.has_reserve === false ? "none" : null, says: listingSays(r), sam_facts: listingSamFacts(r, facts), chips: specChips(r, facts) };
 }
@@ -314,7 +314,7 @@ async function handler(req, res) {
     }
     if (b.action === "finds" && process.env.PROBE_KEY && b.key === process.env.PROBE_KEY) {
       const rows = (await liveRows(env, "id=gt.0")) || [];
-      const us = rows.filter(r => String(r.country || "US").toUpperCase() === "US");
+      const us = rows.filter(r => !isAbroadRow(r));
       const vins = [...new Set(us.map(r => r.vin_norm).filter(v => v && String(v).length >= 11))];
       const reps = [];
       for (let i = 0; i < vins.length; i += 80) {
@@ -542,9 +542,9 @@ async function handler(req, res) {
     const f = cleanFilters(b.filters) || parsed.filters;
     if (!b.filters) { const named = gensNamed(parsed.text, v.make); if (named.length > 1 || (named.length === 1 && !v.genCode)) f.gens = named; }
     const { rows, facets } = await searchLive(env, v, f, parsed.text);
-    // US first, then abroad; inside each, every-filter-confirmed before "may match".
-    const ordered = [...rows.filter(x => !String(x.r.country || "").toUpperCase() || String(x.r.country).toUpperCase() === "US"), ...rows.filter(x => String(x.r.country || "").toUpperCase() && String(x.r.country).toUpperCase() !== "US")]
-      .sort((a, b2) => { const ab = c => (String(c.r.country || "").toUpperCase() && String(c.r.country).toUpperCase() !== "US" ? 2 : 0) + (c.unknown.length ? 1 : 0); return ab(a) - ab(b2); });
+    // The market (the US and Canada, lib/live/search.js isAbroadRow) first, then abroad; inside each, every-filter-confirmed before "may match".
+    const ordered = [...rows.filter(x => !isAbroadRow(x.r)), ...rows.filter(x => isAbroadRow(x.r))]
+      .sort((a, b2) => { const ab = c => (isAbroadRow(c.r) ? 2 : 0) + (c.unknown.length ? 1 : 0); return ab(a) - ab(b2); });
     const capped = ordered.slice(0, MAX);
     const first = await Promise.all(capped.slice(0, FIRST).map(x => enrich(env, x)));
     const emptyMarket = rows.length ? null : applyRung(await familyMarket(env, v, f));
@@ -621,7 +621,7 @@ async function converseOut(env, b) {
   }
   const matches = (r.matches || []).slice(0, MAX);
   // Stated matches first, then the ones whose listing doesn't say; nearest first within each.
-  const ordered = [...matches].sort((a, x) => { const k = c => (c.unknown.length ? 10 : 0) + (c.distance != null ? 0 : (String(c.r.country || "").toUpperCase() && String(c.r.country).toUpperCase() !== "US" ? 2 : 1)); return k(a) - k(x) || ((a.distance == null ? 1e9 : a.distance) - (x.distance == null ? 1e9 : x.distance)); });
+  const ordered = [...matches].sort((a, x) => { const k = c => (c.unknown.length ? 10 : 0) + (c.distance != null ? 0 : (isAbroadRow(c.r) ? 2 : 1)); return k(a) - k(x) || ((a.distance == null ? 1e9 : a.distance) - (x.distance == null ? 1e9 : x.distance)); });
   const split = splitAside(ordered);
   // Fill every card drawn first: the first 10 confirmed matches and the first 4 unconfirmed ones.
   let unsureSeen = 0, sureSeen = 0;
@@ -759,8 +759,7 @@ async function geoCoverage(env) {
   for (const r of rows) {
     const s = houseName(r.source); by[s] = by[s] || { live: 0, us: 0, usable: 0, abroad: 0 };
     by[s].live++;
-    const cc = String(r.country || "").toUpperCase();
-    if (cc && cc !== "US") { by[s].abroad++; continue; }
+    if (isAbroadRow(r)) { by[s].abroad++; continue; }
     by[s].us++;
     if (listingCoord(r)) by[s].usable++;
   }
