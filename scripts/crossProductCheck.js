@@ -150,7 +150,7 @@ export const DEFAULT_SPECS = [
   // Lane B job, Oct 13 2026 (Job 1): the two cars the e28-e30 output gate wrongly refused (archive model
   // column "Grand National - Regal" read as a wrong car; one stray 365 in a 14-sale 275 pool hid the other
   // thirteen). Permanent regression specs: all four lanes must give the range golden-rules.md expects.
-  "1987 Buick Regal Grand National", "1967 Ferrari 275 GTB/4 NART Spider",
+  "1987 Buick Regal Grand National", "1967 Ferrari 275 GTB/4 NART Spider", "2008 997 Carrera S Coupe",
   // Lane B job (Oct 2026, Part 2): the parseQuery edition-word gaps B2 found and listed in
   // scripts/resolverLanesCheck.mjs's buyGap entries (now closed, entries removed there too) -
   // "Black" in "Black Series" read as a paint colour and "Speedster" as a body filter BEFORE the
@@ -1114,6 +1114,29 @@ export async function checkCacheConsistency(env, specs = DEFAULT_SPECS) {
   return out;
 }
 
+// FORM PAIRS (Sam, Oct 14 2026, Lane C's find): the same car typed two ways must give the same pool -
+// same count, low and high from the engine. Nameplate vs chassis code today; extend with any pair.
+export const FORM_PAIRS = [
+  ["2008 Porsche 911 Carrera S Coupe", "2008 997 Carrera S Coupe"],
+  ["2008 Porsche 997 Carrera S Coupe", "2008 997 Carrera S Coupe"],
+  ["2014 Porsche 911 Carrera S", "2014 Porsche 991 Carrera S"]
+];
+export async function checkFormPairs(env, pairs = FORM_PAIRS) {
+  const read = async q => {
+    const rv = await resolveVehicle(q, {}), vehicle = rv && rv.vehicle;
+    if (!vehicle || !vehicle.make) return { q, error: "unresolved" };
+    const generation = await findGeneration(vehicle, env).catch(() => null);
+    const a = await oneEngineAnswer(vehicle, generation, q, { ...env, exactSale: null, asked: 2 }, null);
+    return { q, tier: a.answerType, count: a.poolSize, low: a.low, high: a.high, label: a.rungLabel };
+  };
+  const cases = [];
+  for (const [p, q] of pairs) {
+    const [a, b] = [await read(p), await read(q)];
+    const same = !a.error && !b.error && a.count === b.count && a.low === b.low && a.high === b.high;
+    cases.push({ pair: [p, q], same, a, b });
+  }
+  return { ok: cases.every(c => c.same), cases };
+}
 export async function runEngineCheck(env, specs = DEFAULT_SPECS, opts = {}) {
   const rows = [];
   for (const q of specs) rows.push(await checkOneSpec(q, env));
@@ -1128,7 +1151,8 @@ export async function runEngineCheck(env, specs = DEFAULT_SPECS, opts = {}) {
   const urgentOct2026 = opts.urgentOct2026 === false ? null : await checkUrgentOct2026Guards(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const cacheConsistency = opts.cacheConsistency === false ? null : await checkCacheConsistency(env, specs).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const specKeyYearIsolation = opts.specKeyYearIsolation === false ? null : checkSpecKeyYearIsolation();
-  return { task: "crossproductcheck", total: rows.length, mismatchSpecs: totalMismatches, singlePick, buyPaths, liveFences, representative, splitPools, overTime, liveListing, urgentOct2026, cacheConsistency, specKeyYearIsolation, rows };
+  const formPairs = opts.formPairs === false ? null : await checkFormPairs(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  return { task: "crossproductcheck", formPairs, total: rows.length, mismatchSpecs: totalMismatches, singlePick, buyPaths, liveFences, representative, splitPools, overTime, liveListing, urgentOct2026, cacheConsistency, specKeyYearIsolation, rows };
 }
 
 // ---- CLI ----

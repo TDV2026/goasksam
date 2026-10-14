@@ -1173,7 +1173,7 @@ async function handleOps(req, res) {
       buyPaths: req.query?.buypaths !== "0", liveFences: req.query?.livefences !== "0",
       representative: req.query?.representative !== "0", splitPools: req.query?.splitpools !== "0",
       overTime: req.query?.overtime !== "0", liveListing: req.query?.livelisting !== "0",
-      cacheConsistency: req.query?.cacheconsistency !== "0"
+      cacheConsistency: req.query?.cacheconsistency !== "0", formPairs: req.query?.formpairs !== "0"
     });
     if (batchSize) { result.batchOffset = batchOffset; result.batchSize = batchSize; result.batchTotal = (req.query?.specs ? String(req.query.specs).split("|").filter(Boolean) : DEFAULT_SPECS).length; }
     return res.status(200).json(result);
