@@ -148,7 +148,10 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   ok(lib.bidText("$66,666", t).startsWith("Last bid we saw $66,666 at " + want + " PT"), "an older bid reads with its own time in Pacific time");
   ok(lib.bidText("$1", NaN) === "Bid $1", "a bid with no time reads Bid $X, a $1 bid as stored");
   ok(/k === "untimed" \? esc\("Bid " \+ amt\)/.test(client) && /!amt \? \(l\.bid_unknown \? "" : esc\("No bids yet"\)\)/.test(client), "No bids yet only with no bid record");
-  const card = { make: "Porsche", title: "2014 Porsche 911 Carrera S Coupe" };
+  // The card as the server builds it (cardOf), so the make the comparison drops is the one the page really has.
+  const { cardOf } = await import("../api/buySearch.js");
+  const card = cardOf({ r: { id: 1, make: "Porsche", listing_title: "2014 Porsche 911 Carrera S Coupe", source: "carsandbids" }, facts: {}, gen: null, unknown: [] });
+  ok(card.make === "Porsche", "the card carries its make for the comparison");
   ok(lib.rungShown(card, ["2014 911 Carrera S Coupe"]).length === 0, "the car name under SAM is dropped when it is the card's own car");
   ok(lib.rungShown({ make: "Porsche", title: "2008 Porsche 911 GT2 Coupe" }, ["2008 911 GT2"]).length === 1 && lib.rungShown(card, ["Closest: 911 Carrera 4S"]).length === 1, "a different car compared keeps its line");
   ok(/headerHtml\(d\.meta \|\| \{\}, q, qp, f \|\| \{\}, !!\(a && !d\._showAll && !a\.vague\)\)/.test(client) && /: n && asking \? ""/.test(client), "a question on screen carries the count; the right-hand line is left out");
