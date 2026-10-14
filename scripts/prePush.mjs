@@ -280,6 +280,15 @@ try {
 } catch (e) {
   record("Tester cookie signed (scripts/testerCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Buy's card and its one question (Oct 14 2026, Lane C): the question rule on three fixtures, the no-question case, spec
+// chips left out when the listing doesn't state them, both Sam lines when the car has a history, the Task from the page's
+// spec. No network.
+try {
+  const out = execSync("node scripts/buyCardAskCheck.mjs", { encoding: "utf8" });
+  record("Buy card and question rule (scripts/buyCardAskCheck.mjs)", "PASS", (out.match(/buyCardAskCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Buy card and question rule (scripts/buyCardAskCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 
 // ---- 3 & 4. BROWSER CHECK (Lane C's pushCheck.mjs) + BASELINE ----
 console.log(`\n-- browser check via scripts/pushCheck.mjs (${BASE}) --`);

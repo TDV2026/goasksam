@@ -160,7 +160,9 @@ async function handler(req, res) {
     if (req.method === "GET" && q.emailpreview && probeOk(req)) {
       const { emailPreview } = await import("../lib/tasks/tasks.js");
       res.setHeader("Cache-Control", "private, no-store");
-      return res.status(200).json(await emailPreview(env, String(q.q || "").slice(0, 300)));
+      // filters: a Buy page's spec as JSON (what "Have Sam keep looking" saves), read through buyJob.
+      let pf = null; if (q.filters) { try { pf = JSON.parse(String(q.filters).slice(0, 2000)); } catch (e) { return res.status(400).json({ error: "filters is not JSON" }); } }
+      return res.status(200).json(await emailPreview(env, String(q.q || "").slice(0, 300), pf));
     }
     // Probe: is the "How often" choice ready? The column's own answer (200 present, 400 missing) and counts only, no addresses.
     if (req.method === "GET" && q.notifycheck && probeOk(req)) {

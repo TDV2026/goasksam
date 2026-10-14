@@ -19,7 +19,8 @@
 //   GET|POST ?alert=stop&t=<signed>     -> the message's stop link: GET shows a confirm page, only a POST acts
 import { track, withTracking } from "../lib/track/log.js";
 import { historyEnv, houseName, normVin } from "./_historyData.js";
-import { parseQuery, parseQueryResolved, emptyFilters, gensNamed, resolveForBuy, searchLive, listingFacts, listingMarket, seenBefore, nounFor, liveForFamily, liveRows, familyMarket, COUNTRY_NAME } from "../lib/live/search.js";
+import { parseQuery, parseQueryResolved, emptyFilters, gensNamed, resolveForBuy, searchLive, listingFacts, listingMarket, seenBefore, nounFor, liveForFamily, liveRows, familyMarket, COUNTRY_NAME, COLOURS } from "../lib/live/search.js";
+import { placingFor } from "../lib/onebox.js";
 import { findGeneration } from "../lib/generations.js";
 import { converse } from "../lib/live/converse.js";
 import { listingDetail, facetsOf, cardFlag, seenCount, listingSays, listingSamFacts, specOf, ladderSteps, walkLadder, panelOf } from "../lib/live/search.js";
@@ -57,6 +58,69 @@ const FIRST = 10, MAX = 200;
 // unit, or null when unknown or when the listing states kilometres (the card shows those as km). Never a guess.
 export const cardMiles = facts => (facts && !facts.km && Number(facts.miles) > 0 ? Math.round(Number(facts.miles)) : null);
 const titleCaseIfShouting = s => String(s || "").split(",").map(p => { const t = p.trim(); return t && t === t.toUpperCase() && /[A-Z]{3}/.test(t) ? t.toLowerCase().replace(/\b([a-z])/g, c => c.toUpperCase()) : t; }).filter(Boolean).join(", ");
+// SPEC CHIPS (Sam, Oct 14 2026): gearbox, exterior over interior colour, title status and the VIN shortened, each only
+// when the listing states it; a field the listing doesn't state is left out, never guessed.
+const COLOUR_WORDS = new Set(Object.values(COLOURS).flat().concat(["gray", "tan", "cream", "ivory", "oxblood", "cinnamon", "saddle", "camel", "parchment", "stone", "biscuit", "magnolia", "natural"]));
+const isColourPhrase = s => String(s || "").toLowerCase().split(/[\s-]+/).some(w => COLOUR_WORDS.has(w));
+const titleWords = s => String(s || "").trim().replace(/\s+/g, " ").toLowerCase().replace(/\b([a-z])/g, c => c.toUpperCase());
+const INTERIOR_NOUN = "(?:leather|leatherette|vinyl|cloth|upholstery|interior|alcantara|houndstooth|tartan|corduroy|velour|sport-?tex|suede|seats|trim)";
+const OVER_DESC = new RegExp("\\b(?:finished|painted|refinished|presented|is shown|done|wears)\\s+in\\s+([a-z][a-z -]{1,30}?)\\s+over\\s+([a-z][a-z -]{1,30}?)\\s+" + INTERIOR_NOUN + "\\b", "i");
+const OVER_TITLE = /\b([A-Za-z]+(?: [A-Za-z]+)?) over ([A-Za-z]+(?: [A-Za-z]+)?)\b/;
+export function colourChip(r, facts) {
+  const ext = facts && facts.colour ? titleWords(facts.colour) : null;
+  const m = OVER_TITLE.exec(String(r.listing_title || "")) || OVER_DESC.exec(String(r.description || ""));
+  const paint = m && isColourPhrase(m[1]) ? titleWords(m[1]) : null, trim = m && isColourPhrase(m[2]) ? titleWords(m[2]) : null;
+  // The paint as the listing words it when it is the same colour the card reads; the interior only as stated.
+  const sameColour = paint && ext && paint.toLowerCase().split(/[\s-]+/).some(w => (COLOURS[ext.toLowerCase()] || []).includes(w) || w === ext.toLowerCase());
+  const outside = sameColour ? paint : (ext || paint);
+  if (!outside) return null;   // no paint stated: no colour chip (an interior alone says too little)
+  return trim ? `${outside} over ${trim}` : outside;
+}
+const TITLE_RE = /\b(clean(?: and clear)?|salvage|rebuilt|branded|reconstructed|flood|lemon)\s+(?:[A-Z][a-z]+\s+){0,2}title\b/gi;
+export function titleChip(r) {
+  const t = String(r.description || "") + " . " + String(r.listing_title || "");
+  let best = null;
+  for (const m of t.matchAll(TITLE_RE)) {
+    if (/\b(?:no|never|not|without|free of)\b[^.]{0,20}$/i.test(t.slice(Math.max(0, m.index - 24), m.index))) continue;
+    const w = m[1].toLowerCase().startsWith("clean") ? "clean" : m[1].toLowerCase();
+    if (!best || best === "clean") best = w;   // a branded title, when stated, is the one that shows
+  }
+  return best ? `${best.charAt(0).toUpperCase() + best.slice(1)} title` : null;
+}
+export function vinChip(r) { const v = String(r.vin_norm || "").toUpperCase(); return /^[A-HJ-NPR-Z0-9]{17}$/.test(v) ? `VIN ${v.slice(0, 6)}\u2026${v.slice(-4)}` : null; }
+export function specChips(r, facts) { return [facts && facts.gearboxLabel, colourChip(r, facts || {}), titleChip(r), vinChip(r)].filter(Boolean); }
+// THE SAM LINES (Sam, Oct 14 2026), built here once for every path that draws a card (a search, Show more, the panel):
+// first the range line with the bid judged against that range ("The bid is below the range."), then the car's own sale
+// history ("This exact car sold for $79,500 in June 2023."). No history: the range line only. The range is the card's
+// own engine answer (listingMarket, the same call Market Check makes); the judgement is the engine's placingFor on the
+// live bid in dollars, only for a live car with a real range of its own (never the sibling or count-only rung, never a
+// range the engine says is not body-scoped).
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const usdText = n => "$" + Math.round(Number(n)).toLocaleString("en-US");
+function whenFull(d, now) { const m = /^(\d{4})-(\d{2})/.exec(String(d || "")); if (!m) return ""; const y = +m[1], mo = +m[2] - 1, n = new Date(now), ago = (n.getUTCFullYear() - y) * 12 + (n.getUTCMonth() - mo); return MONTHS[mo] + (ago >= 0 && ago < 3 ? "" : " " + y); }
+export function bidPlacing(c, now = Date.now()) {
+  const m = c && c.market;
+  if (!m || m.kind !== "range" || m.rung === "sibling" || m.rung === "not_enough_data" || m.bodyScoped === false) return null;
+  if (c.bid_unknown || !(Number(c.current_bid_usd) > 0) || (c.end_time && Date.parse(c.end_time) <= now)) return null;
+  return placingFor(Number(c.current_bid_usd), [Number(m.low), Number(m.high)]);
+}
+export function samLines(c, now = Date.now()) {
+  if (!c || c.swap) return [];
+  const out = [], m = c.market;
+  if (m && m.kind !== "pending" && m.soldLine) {
+    const pl = bidPlacing(c, now);
+    out.push({ kind: "range", rung: m.rungLines || [], text: m.soldLine + (pl ? ` The bid is ${pl}.` : "") });
+  }
+  const t = (c.timeline || []).filter(a => a && a.date);
+  const s0 = c.seen_before;
+  const a = t.length ? t[t.length - 1] : (s0 && s0.date ? { date: s0.date, result: s0.result === "sold" ? "sold" : "not_sold", price: s0.priceUsd, url: null } : null);
+  if (a && a.price) {
+    const w = whenFull(a.date, now), what = a.result === "sold" ? `sold for ${usdText(a.price)}${w ? " in " + w : ""}` : `bid to ${usdText(a.price)}${w ? " in " + w : ""}`;
+    out.push(a.result === "sold" ? { kind: "same", text: `This exact car ${what}.`, lead: "This exact car ", link: what, tail: ".", url: /^https?:\/\//.test(String(a.url || "")) ? a.url : null }
+      : { kind: "same", text: `This exact car was ${what} and didn\u2019t sell.`, lead: "This exact car was ", link: what, tail: " and didn\u2019t sell.", url: /^https?:\/\//.test(String(a.url || "")) ? a.url : null });
+  }
+  return out;
+}
 export function cardOf(x) {
   const r = x.r, facts = x.facts, cc = String(r.country || "").toUpperCase();
   return { id: r.id, source: houseName(r.source), sourceSlug: r.source, title: r.listing_title, url: r.url, photo_url: r.photo_url, swap: !!x.swap,
@@ -69,7 +133,7 @@ export function cardOf(x) {
     miles: cardMiles(facts), km: facts.km || null, colour: facts.colour, colourSrc: facts.colourSrc || null, body: facts.body, gearbox: facts.gearboxLabel,
     location: titleCaseIfShouting(r.location) || null, country: cc || null, countryName: COUNTRY_NAME[cc] || cc || null, abroad: !!cc && cc !== "US",
     vin_norm: r.vin_norm || null, generation: x.gen ? x.gen.code : null, unknown: x.unknown, flag: cardFlag(r),
-    reserve: r.has_reserve === true ? "reserve" : r.has_reserve === false ? "none" : null, says: listingSays(r), sam_facts: listingSamFacts(r, facts) };
+    reserve: r.has_reserve === true ? "reserve" : r.has_reserve === false ? "none" : null, says: listingSays(r), sam_facts: listingSamFacts(r, facts), chips: specChips(r, facts) };
 }
 // The car's own past appearances, oldest first, for the card's timeline: vin_index, falling back to the
 // archive exactly as the Sam line's history does (vinAppearances), so the two never disagree. This
@@ -103,11 +167,13 @@ async function enrich(env, x) {
   let [market, seen, timeline] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts), seenBefore(env, x.r.vin_norm), timelineOf(env, x)]);
   if (market && market.kind === "pending") market = await listingMarket(env, x.r, x.facts);   // one more go, warm now
   market = await rungMarket(env, x.r, x.facts, market);   // the engine's fallback rung, when it names one; else unchanged
-  return { ...cardOf(x), market, seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name: await nameOf(env, x) };
+  const c = { ...cardOf(x), market, seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name: await nameOf(env, x) };
+  return { ...c, sam_lines: samLines(c) };
 }
 async function enrichFast(env, x) {
   const [market, seen, timeline, name] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts, { noBlock: true }), seenBefore(env, x.r.vin_norm), timelineOf(env, x), nameOf(env, x)]);
-  return { ...cardOf(x), market: await rungMarket(env, x.r, x.facts, market), seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name };
+  const c = { ...cardOf(x), market: await rungMarket(env, x.r, x.facts, market), seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name };
+  return { ...c, sam_lines: samLines(c) };
 }
 async function logSearch(env, v, anonId) {
   try {
@@ -218,7 +284,7 @@ async function handler(req, res) {
       const ids = (Array.isArray(b.ids) ? b.ids : []).map(Number).filter(Number.isFinite).slice(0, 60);
       if (!ids.length) return res.status(200).json({ cards: [] });
       const rows = await liveRows(env, `id=in.(${ids.join(",")})`);
-      const cards = await Promise.all(rows.map(r => { const facts = listingFacts(r); return Promise.all([listingMarket(env, r, facts), seenBefore(env, r.vin_norm), timelineOf(env, { r })]).then(async ([market, seen, timeline]) => { if (market && market.kind === "pending") market = await listingMarket(env, r, facts); return { id: r.id, market: await rungMarket(env, r, facts, market), seen_before: seen, timeline }; }); }));
+      const cards = await Promise.all(rows.map(r => { const facts = listingFacts(r); return Promise.all([listingMarket(env, r, facts), seenBefore(env, r.vin_norm), timelineOf(env, { r })]).then(async ([market, seen, timeline]) => { if (market && market.kind === "pending") market = await listingMarket(env, r, facts); const c = { ...cardOf({ r, facts, gen: null, unknown: [] }), market: await rungMarket(env, r, facts, market), seen_before: seen, timeline }; return { id: r.id, market: c.market, seen_before: seen, timeline, sam_lines: samLines(c) }; }); }));
       return res.status(200).json({ cards });
     }
     // The Market Check panel under a card: the card's own spec key and engine answer (lib/live/search.js panelOf).
@@ -230,7 +296,10 @@ async function handler(req, res) {
       const p = (await panelOf(env, r, listingFacts(r))) || { market: null, representative: null };
       // The rung (lib/live/rung.js): a not_enough_data answer is count-only, so its three priced sales are not shown.
       const pm = await rungMarket(env, r, listingFacts(r), p.market);
-      return res.status(200).json({ ...p, market: pm, representative: pm && pm.rung === "not_enough_data" ? null : p.representative });
+      // The card's two Sam lines from this same answer, so the card and its panel never disagree on screen.
+      const [seen, timeline] = await Promise.all([seenBefore(env, r.vin_norm), timelineOf(env, { r })]);
+      const sl = samLines({ ...cardOf({ r, facts: listingFacts(r), gen: null, unknown: [] }), market: pm, seen_before: seen, timeline });
+      return res.status(200).json({ ...p, market: pm, representative: pm && pm.rung === "not_enough_data" ? null : p.representative, sam_lines: sl });
     }
     // Probe (PROBE_KEY): live listings for the card tests (repeat VINs, no photo, no reserve, long titles).
     // Probe: the landing's example pick (chips, example, and what each candidate search returned).
@@ -431,7 +500,8 @@ async function handler(req, res) {
     }
     // A result address reloaded or pasted (/buy?q=...&make=...): the same search from its filters, no model call.
     if (b.action === "rerun") {
-      const out = await runFilters(env, b.filters || {});
+      // zip: the buyer's zip for the distance question (kept by the page for the session), never a filter by itself.
+      const out = await runFilters(env, b.filters || {}, { zip: /^\d{5}$/.test(String(b.zip || "")) ? String(b.zip) : null });
       const cards = await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; }));
       return res.status(200).json({ reply: out.reply, searchNote: null, cards, noun: out.noun, meta: out.meta, state: out.state, turns: (Number(b.turns) || 0) + 1 });
     }
