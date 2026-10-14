@@ -6656,3 +6656,201 @@ in this diff touches SSR head tags).
   Not done, with reasons: the full 83-spec enginecheck sweep (live endpoint timeouts today, not this lane's code - see Part 4 above); three golden cars (356 Speedster, Merkur XR4Ti, Saab 9-2X) stay pending per the file's own note, now with poolrows available and one real fence gap (RE-CREATION hyphenation) found and flagged for whoever owns lib/_classify.js; docs/golden-rules.md car 12's number needs a refresh by Lane B2 (not edited here, out of file ownership); car 19's fix needs one line in lib/vehicle.js from Lane B2 (confirmed safe on the engine side).
 
   Search check: no public page touched. Every change this round lives in lib/onebox.js, lib/live/search.js, api/sellerDecision.js (cache read/write lines only), api/usageDashboard.js (new ops tasks/diagnostics) and scripts/ (crossProductCheck.js, postDeployWarm.mjs, prePush.mjs) - no title, H1, canonical, sitemap or SSR head tag touched anywhere.
+## Lane A: Market Check result page rebuilt to the new locked spec (2026-10-13)
+
+Commits: ed97110 (the rebuild), 344f701 (fix: Sales behind this answer heading was still 28px at
+phone - caught by this round's own measured-report pass).
+
+This round replaced the brief's own opening framing ("the complete and only Market Check result
+page spec") literally: every section named in it was rebuilt or newly added, and everything not
+named was removed from the result page. public/js/onebox.js and public/onebox.html only - no other
+file touched.
+
+PROOF METHOD (read this first): /market-check on production currently returns the Sell homepage for
+an anonymous visitor (Market Check sits behind a later launch stage there right now), and a direct
+curl hits Vercel's bot-protection challenge (429) without a bypass secret I was not given. Rather
+than guess at a bypass or touch anything production-adjacent, every screenshot and measurement below
+is a LOCAL render: a plain Node static server serving the real public/ files (mirroring vercel.json's
+`/obx.<ver>/(.*) -> /js/$1` rewrite for the one path onebox.html requests, without touching
+vercel.json itself), driven by hand-built engine-answer fixtures through the real, unmodified
+`window.OBX.renderResults` - the same fixture-driven technique scripts/layoutShots.mjs already uses
+in this repo. The 911 and CLK DTM fixtures use the real, already-confirmed figures from this file's
+own Oct 13 entries above (42 sales/$115,000 to $143,000/"911 models, 2020 to 2026"; CLK DTM hammer
+span $366,000 to $663,000/"CLK DTM, 2005 to 2007"); the rest of each fixture (card lists, exact
+dates) is a plausible stand-in, clearly a fixture, not a claim about live data. vercel.json carries
+no rewrite entry for this round's own cache-busting version folder (that file is explicitly out of
+my scope - "Do not edit ... vercel.json") - the script tag still points at the existing
+`/obx.20261014n/` folder, so whoever deploys this needs a new `/obx.20261014o/` entry added there
+first or the CDN may keep serving the previous round's cached JS. Flagging, not fixing.
+
+HERO. Right column is no longer a single receipt card - it is `heroChartHtml`: candles when
+`d.trend` is an array of 3+ `{period/label, low, high, typical, count}` quarters (none shipped yet -
+grepped lib/onebox.js, absent), else a strip built from the tier's own card list (`d.cards` on a
+range answer, the thin tier's own receipts adapted by the new `thinCardsFrom` helper) with the
+middle-half band (`d.cluster`) shaded behind it when one exists, never on the thin tier. Every dot
+and the latest-sale highlight carry a native-title tooltip (the same pattern the existing info dot
+already used) and open the sale on click. Left column: scope line, "WHERE THE MIDDLE HALF SOLD" /
+"WHERE THEY SOLD" / count-only (unchanged logic, now feeding the chart instead of a card), mileage
+line, identity line - all as before, with one real behavior change: the mileage field is now ALWAYS
+rendered (even once narrowed) and "Change" only focuses it (`inp.focus(); inp.select()`), it no
+longer reruns-without-the-refine (the old `data-rmchip="mi"`/`refineWithout` mechanism had no other
+caller, so it is deleted, not just unwired). Submitting mileage (`submitMileageInline`) never shows
+the loader screen: it optimistically rewrites the mileage line in place, dims the range/chart to 40%
+(`.hero-dim`, CSS opacity), and reruns `runPool(..., {inline:true})`, which skips the loader
+branch entirely and calls `renderResults(d)` directly once the real response lands (that full
+replace is what clears the dim and shows the real updated line/range together - verified via a
+mocked 1.2s-delayed fetch: dimmed state at 400ms shows opacity 0.4 on both the range and the chart
+with the field still holding "5000", the post-response state shows opacity 1 and the real narrowed
+range "$119,000 to $135,000", at no point does the page blank or navigate).
+
+SALES BEHIND THIS ANSWER. Cards/subhead prefer `d.contextRoles.sales`/`.sentence` (dormant, grepped
+absent); fall back to the range tier's own `d.representative` trio (closest/high/low - a real,
+already-shipped editorial selection, not an arbitrary "first three" - its own semantics already
+match the brief's fallback sentence word for word, so I kept it rather than literally picking
+`cards[0:3]`); a tier with neither (thin, below the range threshold) falls back to the caller's own
+first three newest-first cards with no subhead (the "one from the middle, one at each edge" sentence
+does not describe a thin pool and the brief gives no thin-specific line). Footer now carries all
+three links the brief names together: "See all N sales", "How Sam picked these", and the existing
+outside-range toggle (copy tightened from "sat outside where the middle half landed" to "sat outside
+the middle half", matching the brief's own example almost verbatim) - previously a separate line
+below the row, now folded in as its third footer link, same panel/mechanism.
+
+LIVE RIGHT NOW. Rebuilt as a real `<table>`: CAR (64x43 photo + name only - no mileage field exists
+on api/buySearch.js's panel response, Lane C's file, not mine to add; omitted rather than invented),
+VENUE (name + "Ends ..." stacked), LAST BID WE SAW (amount in serif 20, the time the engine gave
+underneath, "No bids yet" when there is none - the same fallback tree as before, just two lines
+instead of one sentence), VS. RANGE (plain text, "Within/Above/Below the range", no dot, no pill).
+The old per-row age-stamping JS (`stampBids`/`BID_FRESH_MS`/`lastBidLine`) is deleted - it existed to
+flip a bold "Current bid" into a timed sentence after an hour; since every row now always shows its
+own time underneath, there was nothing left for it to flip. Subhead appends the matched years off
+`d.rungLabel` (`yearsClauseOf`, the same source the hero's own scope line reads) to the existing
+count/placing sentence, since no dedicated "live scope" field exists on the wire.
+
+ALL N COMPARABLE SALES. Rebuilt as a table: DATE, CAR (links to the sale), MILES, VENUE, PRICE
+(right-aligned serif 18). First ten rows render in one `<tbody>`; the rest sit in a second, hidden
+`<tbody>` a "Show more sales (N)" click reveals - found and fixed a real bug here: the 640px media
+query's `display:block` override on `tbody` was beating the `[hidden]` attribute's own `display:none`
+(author CSS always wins over the UA default), so at phone width every row showed regardless of the
+cap before `.allsales-table tbody[hidden]{display:none}` was added back explicitly - caught by my own
+390px screenshot of the 42-sale car, confirmed fixed (10 of 42 rows visible, by actual
+`getBoundingClientRect` check, not just DOM count).
+
+HOW THIS MARKET IS DISTRIBUTED. New section, `d.distribution.buckets[{label,count,receipts,typical}]`
+(dormant, grepped absent) - bucket rows with a proportional bar (pale green, deep green on the
+engine-flagged typical bucket), count as a digit, no percentages ever. Clicking a row opens its own
+receipts; opening one closes any other open row in the same group (one `data-distgroup` id per
+section). Subhead reuses `heroPoolSizeNum`/`yearsClauseOf` - never a second count/year computation.
+
+IDENTITY QUESTIONS. The existing gearbox/competition/documented-history takeover
+(`identityTakeoverHtml`) already matched the brief almost exactly and needed no change. Added the
+bare-make case the brief explicitly calls out ("Which BMW?"): `modelChoiceTakeoverHtml` renders the
+SAME no-box/no-pill shell, with the question built as "Which {make}?" and the options as plain green
+text links - but reuses the EXISTING `[data-model]` -> `chipAnswer()` click mechanism unchanged
+(confirmed via `wire()`'s existing generic `[data-model]` selector, which does not care what element
+or class carries the attribute). body_choice/generation_choice stay on the older boxed qscreen/chip
+path on purpose: the brief's own example is the bare-make case specifically, and body_choice answers
+by re-querying the whole car text rather than an inline refine - rewiring it onto this shell would be
+a real regression risk for a path this round's proof does not exercise. Same call for the VIN
+confirm/chassis-match screens and the clarification-chip (typo/"Did you mean") flow: all pre-answer,
+not named in the brief's closed list, left exactly as they were, pills and all.
+
+LAYOUT/TYPE/FLATTENING. `#ob` 780px -> 1040px max-width, `#ob` gap 25px/20px -> 64px/48px (desktop/
+phone - the divider+heading pattern already existing on every section needed no other change once
+the gap itself carried the spacing). Hero grid is now an even 6fr/6fr split (was an uneven
+minmax(0,1fr)/minmax(280px,340px)). Every size in the brief's own table verified by
+`getComputedStyle` against the live DOM (see MEASURED REPORT below) - not eyeballed. Radius above
+2px and any box-shadow removed from every surface this round touched (the sales-row photo cards, the
+new chart/live/all-sales/distribution/sell-band/task-line elements, the search box's own stray
+box-shadow which had no stated exception); the three named exceptions (search box, mileage field,
+Sell button) keep their existing radii. NOT touched on purpose, confirmed out of this round's new
+markup entirely: `.card`/`.anscard`/`.qscreen`/`.chip`/`.qchip`/`.pill`/`.vinpill` - all exclusively
+serve tiers this spec does not cover (class_era, refusal, VIN confirm, body/generation choice) or the
+small round "dot" markers the spec's own chart language calls for (the existing info dot, the chart
+legend swatch dot) - neither of those is a "pill," so I read the no-radius rule as aimed at surfaces
+(cards/boxes/buttons/badges), not an 8-15px circular marker, and left them. Flagging this reading
+explicitly rather than silently deciding it does not matter.
+
+REMOVED, PER "ORDER AND NOTHING ELSE" (a real behavior change, not a rendering bug - flagging loudly):
+"This exact car" (the VIN/chassis hero card) is gone from BOTH the range and thin tiers' result
+composition - a VIN/chassis match no longer gets its own card on this page at all. "Where sales
+landed over time" (the old quarter-bar market-read card, `marketReadHtml`/`marketReadQuarterRows`)
+is deleted outright, not just unwired - the brief names it explicitly for removal. The thin tier's
+"same car, twice" paired-receipts box (`htPairsHtml`) and its "widen"/sibling-family box
+(`siblingHtml`) are deleted - neither is in the brief's seven-item list. The thin tier now also gets
+a Task Line ("Have Sam keep looking") for the first time - it never called `samOnItHtml` before;
+since the brief's order list applies with no tier carve-out and the copy is tier-agnostic, I added it
+rather than leave a gap only the thin tier has.
+
+FIELD NAMES READ (all per Lane B's engine-answer contract, grepped against lib/onebox.js /
+api/sellerDecision.js this round - none except `identityQuestion`/`rungLabel` exist on the wire yet,
+confirmed absent, not merely unused): `d.trend` (candles), `d.priorYear` (the grey comparison line
+under the candles), `d.distribution` (the new section), `d.contextRoles` (sales-row cards/subhead),
+`d.identityQuestion` (already live, unchanged this round), `d.rungLabel` read as the "scopeLabel"
+equivalent (no field literally named `scopeLabel` exists; `rungLabel` is what `heroScopeText` already
+read before this round and is what `yearsClauseOf` pulls years from for both the distribution subhead
+and the live panel's scope sentence) - there is no engine "live scope" field either, so the live panel
+approximates it by appending `yearsClauseOf(d)` to its own count/placing sentence rather than
+inventing a number.
+
+MEASURED REPORT (2025 Porsche 911 fixture, local render, Chrome headless via puppeteer-core,
+`getComputedStyle`):
+  desktop (1440) / phone (390), font-size (line-height):
+    range:            72px (75.6px) / 48px (50.4px)   - spec: 72 / 48, line-height 1.05  (matches:
+                       72/75.6=1.05, 48/50.4=1.05)
+    car name:          40px (48px)   / 30px (36px)      - spec: 40 / 30
+    section heading:    28px (35px)  / 24px (30px)       - spec: 28 / 24 (both .sec-head h2 and
+                       .salesrow h2 - the latter was still 28px at phone until commit 344f701, this
+                       round's own measured pass caught it)
+    card price (sales row): 24px (26.4px) / 20px (22px) - spec: 24 / 20
+    scope line:          17px (25.5px) / 16px (24px)     - spec: 17 / 16
+    meta line:          15px (21px)   / 14px (19.6px)    - spec: 15 / 14
+  Three sale-card photo heights (sales row, fixed 3:2 + grid gap, not per-card padding): 213.33px /
+  213.33px / 213.33px at 1440 (bit-identical), 73.33px x3 at 390 - also fixed a real pre-existing bug
+  here: the old per-card padding that dropped on `:first-child`/`:last-child` made the outer two
+  cards wider than the middle one (measured 217.8/203.8/217.1px before the fix), a genuine inequality
+  this round's own measured-report requirement surfaced; fixed by moving to a true grid gap with the
+  divider at its midpoint instead of asymmetric card padding.
+  Border-radius/box-shadow walk (every element under #ob, all six states below): zero violations
+  above 2px outside the three named exceptions, zero box-shadows, on every page tested.
+  scrollWidth === clientWidth at 390px: true on every page tested (911, CLK DTM, Duesenberg, BMW
+  question, both stubbed charts).
+  Console: clean on every page (the only console lines at all are expected CORS/404 noise from the
+  live-panel/watch-rail fetches reaching out to a real `goasksam.com` origin from a bare local test
+  server with no backend - not reachable in a real deployment, not a product error).
+
+SCREENSHOTS (1440 and 390 unless noted; /Users/davidzysblat/Desktop/goasksam-proofs/market-check/):
+  911-1440.png / 911-390.png - 2025 Porsche 911, range tier, strip chart (no trend field live yet).
+  clkdtm-1440.png / clkdtm-390.png - 2006 Mercedes-Benz CLK DTM, thin tier, ink headline, strip with
+    no band, reason line, full all-sales table.
+  duesenberg-1440.png / duesenberg-390.png - 1931 Duesenberg Model J, one sale, under the eight-sale
+    floor: count line only, no headline, strip chart with a single dot.
+  bmw-model-1440.png / bmw-model-390.png - "2005 BMW", the bare-make identity question ("Which
+    BMW?"), no box, no pills, green text-link options.
+  mileage-1-before.png / mileage-2-dimmed.png / mileage-3-after.png - the 911, mileage submit flow:
+    full opacity with "Add mileage..." -> 40% opacity on the range+chart with "Range narrowed around
+    5,000 miles." and the field still showing 5000 -> full opacity restored with the real narrowed
+    range ($119,000 to $135,000), page never left throughout.
+  stubbed-1440.png / stubbed-390.png - the 911 again with a hand-built `d.trend`/`d.priorYear`/
+    `d.distribution`, a visible red "STUBBED" banner marking it as such, proving the candle chart and
+    the distribution section before Lane B ships either field.
+  measurements.json in the same folder - the raw getComputedStyle/violation/console data behind the
+  table above, one entry per screenshot.
+
+NOT DONE / explicitly flagged, not silently skipped:
+  - "This exact car" removed from the result page entirely (above) - if this was meant to survive
+    somewhere, it needs a new home; none is named in the brief.
+  - body_choice/generation_choice/VIN-confirm/typo-clarification screens keep their existing boxed
+    qscreen/pill chips - out of the brief's named list, rewiring carries real regression risk.
+  - Live panel CAR cell has no miles sub-line - api/buySearch.js (Lane C) does not return mileage on
+    the live panel response; not fabricated here.
+  - vercel.json needs a new `/obx.20261014o/` (or similar) rewrite entry for this round's JS/CSS to
+    reliably cache-bust once deployed - out of my scope to add (explicit "do not edit vercel.json").
+  - Proof is local-render, not a live-deploy screenshot (see PROOF METHOD above) - production itself
+    was not reachable at the right launch stage with the tools I had.
+  - The small-round-marker reading of the radius rule (info dot, chart legend dot) is a judgment call,
+    not a literal instruction - flagged above, reversible in one line if Sam wants them flattened too.
+
+Search check: results pages stay noindex (`<meta name="robots" content="noindex, nofollow">` in
+public/onebox.html is unchanged - grepped, same line, same value); no title, H1 or canonical changed
+anywhere in this diff (only CSS and the result-render functions inside the IIFE were touched; the
+`<title>`/meta tags and the server-rendered landing path are untouched).
