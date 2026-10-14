@@ -19,14 +19,24 @@ const cases = [
   ["30 sales, no venue with three", pool(30, Array.from({ length: 15 }, (_, i) => ({ name: "Site " + i, slug: "s" + i, house: false, sales: 2 }))), 0, {}, "30 sales in the last 12 months, but no single venue has enough of them to compare."],
   ["nine sales, no venue with three", pool(9, [{ ...BAT, sales: 2 }, { ...CB, sales: 2 }, { name: "Site", slug: "s", sales: 2 }, { name: "Site 2", slug: "s2", sales: 2 }, { name: "Site 3", slug: "s3", sales: 1 }]), 0, {}, "Nine sales in the last 12 months, but no single venue has enough of them to compare."],
   ["30 sales, ASAP house with two (top venue has 20)", pool(30, [{ ...BAT, sales: 20 }, { ...CB, sales: 8 }, { ...RM, sales: 2 }]), 2, { asap: true }, "Of the auction houses where cars like this have sold, RM Sotheby's has the soonest sale coming up, and two of the 30 sales in the last 12 months were there."],
-  ["30 sales, normal pick", pool(30, [{ ...BAT, sales: 20 }, { ...CB, sales: 10 }]), 0, {}, "Most 993 Carrera sales at auction were on Bring a Trailer, 20 of 30 in the last 12 months."],
+  // "at auction" is gone (Sam, Oct 13 2026): every sale on record is an auction, so it counted nothing.
+  ["30 sales, normal pick", pool(30, [{ ...BAT, sales: 20 }, { ...CB, sales: 10 }]), 0, {}, "Most 993 Carrera sales were on Bring a Trailer, 20 of 30 in the last 12 months."],
+  ["30 sales, house is the top venue", pool(30, [{ ...RM, sales: 20 }, { ...BAT, sales: 10 }]), 0, {}, "Most 993 Carrera sales were at RM Sotheby's, 20 of 30 in the last 12 months."],
+  ["30 sales, under half at the pick", pool(30, [{ ...BAT, sales: 12 }, { ...CB, sales: 10 }, { ...RM, sales: 8 }]), 0, {}, "993 Carrera sales were on Bring a Trailer more than anywhere else, 12 of 30 in the last 12 months."],
 ];
 for (const [what, pl, i, opts, want] of cases) {
   const got = await run(pl, pl.places[i], opts); out[what] = got;
   ok(got === want, `${what}: ${JSON.stringify(want)} (got ${JSON.stringify(got)})`);
   ok(!/[–—]/.test(got || "") && !/\b(venues|sources|sites) (exist|in all)\b|\b\d+ venues\b|\b(fifteen|15) (venues|sites)\b/i.test(got || ""), `${what}: no dash, never how many venues`);
 }
-{ const pl = pool(9, [{ ...BAT, sales: 6 }, { ...CB, sales: 3 }]); ok((await pickFacts({}, car, pl, pl.places[0], {})).why === "Most 993 Carrera sales at auction were on Bring a Trailer, six of nine in the last 12 months.", "counts of ten or under in words"); }
+{ const pl = pool(9, [{ ...BAT, sales: 6 }, { ...CB, sales: 3 }]); ok((await pickFacts({}, car, pl, pl.places[0], {})).why === "Most 993 Carrera sales were on Bring a Trailer, six of nine in the last 12 months.", "counts of ten or under in words"); }
+// No sell-through percentage anywhere on the card (Sam, Oct 13 2026): the day box is gone, and no box prints a "%".
+{ const pl = pool(30, [{ ...BAT, sales: 20 }, { ...CB, sales: 10 }]); const pf = await pickFacts({}, car, pl, pl.places[0], {}); ok(!pf.boxes.some(b => b.key === "day" || /%/.test(`${b.head} ${b.line} ${b.words}`)), "no day box, no percentage on any box"); }
+// A research Task names the car as typed (lib/tasks/tasks.js researchCar), never "that car".
+{ const { summaryFor } = await import("../lib/tasks/tasks.js");
+  ok(summaryFor("research", { make: "Land Rover", model: "Defender", trim: "110", year_min: 1997, year_max: 1997 }) === "Sam is researching the 1997 Land Rover Defender 110: its auction history and what cars like it sold for.", "research read-back names the typed car");
+  ok(summaryFor("research", { make: "Porsche", model: "911", generation: "993", trim: "Carrera" }) === "Sam is researching the Porsche 993 Carrera: its auction history and what cars like it sold for.", "research read-back, a 911 generation stands for the model");
+  ok(summaryFor("research", { vin: "WP0AB2A94MS223093" }) === "Sam is researching the car with VIN WP0AB2A94MS223093: its auction history and what cars like it sold for.", "research read-back by VIN"); }
 // The landing example (no venue named).
 { const pl = pool(1, [{ ...BAT, sales: 1 }]); ok((await pickFacts({}, car, pl, pl.places[0], {})).whyAnon === "The one sale in the last 12 months was on an auction site. One sale is too few to compare venues.", "one sale, venue unnamed"); }
 { const pl = pool(2, [{ ...RM, sales: 2 }]); ok((await pickFacts({}, car, pl, pl.places[0], {})).whyAnon === "Both sales in the last 12 months were at the same auction house. Two sales are too few to compare venues.", "two sales at one house, venue unnamed"); }
