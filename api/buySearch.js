@@ -325,6 +325,12 @@ async function handler(req, res) {
       const { exampleBand } = await import("../lib/live/buyExample.js");
       return res.status(200).json(await exampleBand(env, 60000, { fresh: !!b.fresh }));
     }
+    // LIVE AUDIT (Lane C, Oct 15 2026; read-only, our own credential in the header only): every live listing's id, title
+    // and the make, model and year it is filed under, for the check that every live car draws a card with a market.
+    if (b.action === "liveaudit" && hasServerCredential(req)) {
+      const rows = (await liveRows(env, "id=gt.0")) || [];
+      return res.status(200).json({ live: rows.length, rows: rows.map(r => ({ id: r.id, title: r.listing_title, make: r.make || null, model: r.model || null, year: r.year || null, abroad: isAbroadRow(r), source: r.source || null })) });
+    }
     if (b.action === "finds" && process.env.PROBE_KEY && b.key === process.env.PROBE_KEY) {
       const rows = (await liveRows(env, "id=gt.0")) || [];
       const us = rows.filter(r => !isAbroadRow(r));
