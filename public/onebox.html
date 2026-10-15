@@ -189,6 +189,16 @@ button{font:inherit}
    labels, excluding the heading/legend) - about 11:7 (candleChartHtml's viewBox is 880x560, the
    same ratio), so the box is this shape at any container width, never stretched. */
 .hc-svg{width:100%;aspect-ratio:11/7;display:block}
+/* Job 2 (Sam's review round, round two): the axis figures and the candle high/low both carry a CSS
+   class now (not an inline font-size="13" SVG attribute) because the SVG's own viewBox-to-viewport
+   scale (measured live: ~0.56 at 1440, ~0.41 at 390 - this box sits in a half-width column on
+   desktop, full width on phone) shrinks a bare "13" SVG unit to well under 8 real screen pixels -
+   the "too small and too pale" Sam flagged. 23px here is sized to read as roughly 13 real px at
+   the desktop scale measured against the live page; the phone override below is sized the same way
+   against the phone scale, so both breakpoints read the same weight, not just the same SVG number.
+   font-family inherits from the SVG's own ambient sans (no attribute needed). */
+.hc-axislabel{font-size:23px;fill:var(--sec)}
+.hc-candlelabel{font-size:23px;font-weight:600;fill:var(--sec)}
 .hc-legend{display:flex;flex-wrap:wrap;gap:16px;align-items:center;font:400 13px/1.3 var(--sans);color:var(--sec)}
 .hc-legend-sw{display:inline-flex;align-items:center;gap:6px}
 .hc-legend-box{width:12px;height:12px;border-radius:2px;background:var(--chip);display:inline-block}
@@ -205,10 +215,16 @@ button{font:inherit}
    pattern above) for each tile's photo; js/onebox.js puts the car's own title in the fallback span
    instead of "No photo" for this one caller. ---- */
 .thin-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:4px}
-.thin-tile{display:block;background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;text-decoration:none;color:var(--ink)}
+.thin-tile{position:relative;display:block;background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;text-decoration:none;color:var(--ink)}
 .thin-tile:hover{border-color:var(--green)}
 .thin-tile:focus-visible{outline:2px solid var(--green);outline-offset:2px}
 .thin-tile .none{font:400 12px/1.3 var(--sans);text-transform:none;letter-spacing:normal;padding:8px;text-align:center}
+/* Job 5 (round two): a set-aside sale is labelled, never hidden - the tile is otherwise identical
+   (same photo/price/meta/link) to an in-range one, so it reads as "one of the sales" with one extra
+   fact, not a visually demoted second kind of card. Same corner position as the existing .pill
+   pattern, plain ink on the card surface (never a status colour - matches the neutral range-position
+   pills elsewhere on this page). */
+.thin-tile-label{position:absolute;top:10px;left:10px;padding:3px 8px;border-radius:999px;background:var(--card);color:var(--sec);border:1px solid var(--border);font:600 11px/1.3 var(--sans);letter-spacing:.02em;z-index:1}
 .thin-tile-body{padding:9px 11px 11px}
 .thin-tile-price{margin:0;font:600 17px/1.2 var(--serif);color:var(--ink);font-variant-numeric:tabular-nums}
 .thin-tile-meta{margin:2px 0 0;font:400 13px/1.35 var(--sans);color:var(--sec)}
@@ -609,6 +625,10 @@ a.sb-line:hover{color:var(--green)}
   .hero2col .range{font-size:28px;white-space:normal}
   .hero-idline,.hero-idlink,.hero-idlink-chosen{font-size:16px}
   .thin-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  /* Job 2 (round two): phone's .hc-svg scales down further than desktop's (measured live: ~0.41 vs
+     ~0.56 - the chart is full width here but a shorter box, a bigger scale drop than the half-width
+     desktop column), so the same real-13px target needs a bigger SVG-unit base at this width. */
+  .hc-axislabel,.hc-candlelabel{font-size:32px}
   .dist-label,.dist-count{font-size:15px}
   .sep-note,.ev-why-note p{font-size:13px}
   /* Mileage field (item 8): the sentence on its own line, then the field full width with Go beside

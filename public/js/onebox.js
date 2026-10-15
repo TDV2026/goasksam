@@ -679,7 +679,15 @@
   // clause lifted off rungLabel, bodyMixTailOf - never invented). Year span is d.poolYears, the
   // engine's own field, never computed here; omitted entirely when the engine gives none, never
   // guessed. Count re-uses heroCountText's own number formatting, just without its window suffix.
-  function heroScopeLineText(d) {
+  // poolLenOverride (job 1, round two): the labelled-rung "thin" tier carries no top-level
+  // d.soldCount at all (confirmed live - undefined on every thin-tier response), so this line went
+  // empty there and thinHeroHtml built its own separate count sentence instead - two different
+  // scope-line shapes on two tiers (the Speedster had the new line, CLK DTM and 275 GTB still had
+  // the old one, repeating "latest" and "too few" twice). Passing the caller's own exact pool length
+  // (the same array its tiles are built from) makes this ONE function the scope line for every tier -
+  // never d.soldCount directly when an override is given, so the printed count always matches the
+  // tiles shown, not a second-sourced engine field that might not even exist on this tier.
+  function heroScopeLineText(d, poolLenOverride) {
     if (!d) return "";
     var rc = d.resolvedCar || {};
     var bodies = "";
@@ -708,7 +716,7 @@
     var py = Array.isArray(d.poolYears) && d.poolYears.length === 2 && Number.isFinite(d.poolYears[0]) && Number.isFinite(d.poolYears[1]) ? d.poolYears : null;
     var yearSpan = py ? (py[0] === py[1] ? String(py[0]) : (py[0] + " to " + py[1])) : "";
     var bodyYear = bodies && yearSpan ? (bodies + ", " + yearSpan) : (bodies || yearSpan);
-    var count = d.soldCount, countTxt = "";
+    var count = poolLenOverride != null ? poolLenOverride : d.soldCount, countTxt = "";
     if (count != null) {
       var n = Number(count), isNum = Number.isFinite(n);
       var countWord = isNum ? obNumWord(n) : String(count);
@@ -718,8 +726,8 @@
     var parts = [bodyYear, countTxt, heroLatestText(d)].filter(Boolean);
     return parts.length ? cap(parts.join(" · ")) : "";
   }
-  function heroMetaLine(d) {
-    var t = heroScopeLineText(d);
+  function heroMetaLine(d, poolLenOverride) {
+    var t = heroScopeLineText(d, poolLenOverride);
     // VIN prefix (item 3, mockup match round, Oct 2026): "VIN ending 223093 · ..." leads the HERO's
     // own scope line whenever this search IS a VIN and the engine found that exact car's own
     // sale(s) (d.ownSales - the same signal exactCarSalesHtml reads) - never just because a VIN was
@@ -930,7 +938,7 @@
     for (var v = axisLo; v <= axisHi + step * 0.01; v += step) {
       var yy = y(v);
       grid += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + yy.toFixed(1) + '" y2="' + yy.toFixed(1) + '" stroke="var(--div)" stroke-width="1"/>' +
-        '<text x="' + (padL - 10) + '" y="' + (yy + 4).toFixed(1) + '" text-anchor="end" font-size="13" fill="var(--sec)">' + esc(usdK(v)) + "</text>";
+        '<text class="hc-axislabel" x="' + (padL - 10) + '" y="' + (yy + 4).toFixed(1) + '" text-anchor="end">' + esc(usdK(v)) + "</text>";
     }
     var bars = "";
     qs.forEach(function (q, i) {
@@ -940,12 +948,15 @@
       var box = "";
       if (hasBox) {
         var ylo = y(Number(q.low)), yhi = y(Number(q.high));
-        // Item 3: high/low print in the ink colour at a heavier weight (was grey, same weight as
-        // everything else) so they read at a glance - the count line underneath is gone; count now
-        // lives only in the dot's hover/tap tooltip, together with the typical figure.
+        // Job 2 (round two): high/low in the secondary ink (not the heavier dark ink) at a size that
+        // actually reads as 13px - .hc-axislabel/.hc-candlelabel (CSS, onebox.html) compensate for
+        // the SVG's own viewBox-to-viewport scale (measured live: ~0.56 at 1440, ~0.41 at 390 - the
+        // bare "13" SVG unit this used to carry rendered at under 8px on screen, the "too small and
+        // too pale" Sam flagged), so the class carries a different base size per breakpoint instead
+        // of one inline attribute that could only ever be right at one width.
         box = '<rect x="' + (cx - barW / 2).toFixed(1) + '" y="' + yhi.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + Math.max(2, ylo - yhi).toFixed(1) + '" rx="2" fill="var(--chip)"/>' +
-          '<text x="' + cx.toFixed(1) + '" y="' + (yhi - 10).toFixed(1) + '" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)">' + esc(usd(q.high)) + "</text>" +
-          '<text x="' + cx.toFixed(1) + '" y="' + (ylo + 20).toFixed(1) + '" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)">' + esc(usd(q.low)) + "</text>";
+          '<text class="hc-candlelabel" x="' + cx.toFixed(1) + '" y="' + (yhi - 10).toFixed(1) + '" text-anchor="middle">' + esc(usd(q.high)) + "</text>" +
+          '<text class="hc-candlelabel" x="' + cx.toFixed(1) + '" y="' + (ylo + 20).toFixed(1) + '" text-anchor="middle">' + esc(usd(q.low)) + "</text>";
         if (Number.isFinite(Number(q.typical))) {
           var typTip = chartTip(["Typical " + usd(q.typical), Number.isFinite(count) ? (obNumWordLow(count) + " sales") : ""]);
           box += '<circle class="hc-bar" tabindex="0" data-tip="' + typTip + '" cx="' + cx.toFixed(1) + '" cy="' + y(Number(q.typical)).toFixed(1) + '" r="6" fill="var(--green)"><title>' + typTip + "</title></circle>";
@@ -977,12 +988,12 @@
     // sliding the heading itself away from the top.
     return '<div class="hero-chart"><h2>How this market has moved</h2><div class="hc-body">' + inner + "</div></div>";
   }
-  // ============ THIN-TILE TREATMENT (Sam's review round, Oct 2026) =========================
+  // ============ THIN-TILE TREATMENT (Sam's review round, Oct 2026; widened round two) ==========
   // Replaces "too few sales in each quarter to chart" with the mockup's own treatment on any pool
   // that has no quarter trend (candleChartHtml returns nothing): a left-column serif sentence
   // always; a right-column grid, one tile per sale in the pool actually rendered, when that pool
-  // holds 3-16 sales. Below 3 (only reachable on a labelled rung, d.tier==="thin") the serif line
-  // prints alone, no tiles - and above 16 this returns null so the caller falls back to
+  // holds 1-16 sales (job 3, round two: widened from 3-16 - a one- or two-sale pool now gets tiles
+  // too, never the serif line alone). Above 16 this returns null so the caller falls back to
   // noChartLineHtml exactly as before. Shared by heroRangeHtml (result tier) and thinHeroHtml
   // (thin/labelled-rung tier): both already carry a pool array shaped the same way (shapeCards), so
   // one function serves both - the caller passes its OWN pool (d.cards for the result tier, the
@@ -994,6 +1005,17 @@
   // pages never reach this function at all (separate tiers, separate render paths), so they need no
   // extra gate here.
   var THIN_ASIDE_LABEL = { modified: ["a modification", "modifications"], project: ["a project car", "project cars"], replica: ["a replica", "replicas"], "odd sale": ["an odd sale", "odd sales"], variant: ["a different variant", "different variants"] };
+  // Job 5 (round two): the small label printed ON a set-aside tile - a known reason key reads its
+  // established short word; any OTHER reason the engine returns (the brief's "and any other reason
+  // the engine returns") reads back exactly as given, first letter capitalised, never invented or
+  // guessed at. Deliberately a different (shorter) wording than THIN_ASIDE_LABEL above, which builds
+  // the trust-line SENTENCE ("a modification") - this builds a tile OVERLAY word ("Modified").
+  var THIN_ASIDE_TILE_LABEL = { modified: "Modified", project: "Project car", replica: "Replica", "odd sale": "Odd sale", variant: "Different variant" };
+  function thinAsideTileLabel(reason) {
+    var key = String(reason || "").toLowerCase();
+    if (THIN_ASIDE_TILE_LABEL[key]) return THIN_ASIDE_TILE_LABEL[key];
+    return reason ? cap(String(reason)) : "";
+  }
   // "Use only the reason words the engine supplies": d.setAsideReasons is the engine's own per-
   // reason count object (lib/onebox.js setAsideReasonFor); d.counts is the engine's own plain-number
   // reconciliation (qualifying = used + setAside.total, always, per that file's own comment). Prints
@@ -1033,7 +1055,7 @@
     var img = image ? ('<img src="' + esc(image) + '" alt="' + esc(title || "") + '" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()">') : "";
     return '<div class="ph' + (image ? "" : " noimg") + '">' + img + '<span class="none">' + esc(title || "") + "</span></div>";
   }
-  function thinTileHtml(c) {
+  function thinTileHtml(c, asideLabel) {
     var href = utmUrl(c.url);
     var title = cleanReceiptTitle(c.title);
     var miles = Number(c.mi) > 0 ? (Number(c.mi).toLocaleString("en-US") + " miles") : "";
@@ -1047,23 +1069,36 @@
     var gasAttrs = (href && c.id != null) ? (' data-gas-event="receipt_click" data-gas-source="' + esc(c.platformSlug || "") + '" data-gas-listing-id="' + esc(c.id) + '"') : "";
     var tag = href ? "a" : "div";
     var attrs = href ? (' href="' + esc(href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(c.platformSlug || "") + '"' + gasAttrs) : "";
-    return "<" + tag + ' class="thin-tile"' + attrs + ">" + thinTilePhotoHtml(c.image, title) +
+    // Job 5 (round two): a set-aside sale is never hidden, only labelled - the tile is byte-identical
+    // otherwise (same photo/price/meta, same link), so it reads as "one of the sales," not a second,
+    // different kind of thing.
+    var label = asideLabel ? ('<span class="thin-tile-label">' + esc(asideLabel) + "</span>") : "";
+    return "<" + tag + ' class="thin-tile' + (asideLabel ? " thin-tile-aside" : "") + '"' + attrs + ">" + thinTilePhotoHtml(c.image, title) + label +
       '<div class="thin-tile-body"><p class="thin-tile-price">' + esc(usd(c.price)) + "</p>" +
       (meta ? ('<p class="thin-tile-meta">' + esc(meta) + "</p>") : "") +
       "</div></" + tag + ">";
   }
-  function thinTileTreatment(d, m, pool) {
+  // asideRows (job 5, round two): the engine's own set-aside cards for THIS pool (d.setAsideRows on
+  // the result tier - shapeCards(aside) plus each row's own `reason` key, lib/onebox.js
+  // setAsideReasonFor; the labelled-rung "thin" tier has no fence/aside concept at all today, so this
+  // is simply absent there - nothing invented, see the FOR LANE B note if Sam expects one on that
+  // tier). Appended to the SAME grid after the in-range tiles, each carrying its own reason label;
+  // never a second section, never hidden.
+  function thinTileTreatment(d, m, pool, asideRows) {
     if (d && d.identityQuestion) return null;
     if (m && d && d.ownSales && Array.isArray(d.ownSales.sales) && d.ownSales.sales.length) return null;
     var list = Array.isArray(pool) ? pool : [];
     var n = list.length;
     if (!n || n > 16) return null;
     var said = '<p class="hero-noband" data-stage="answer">' + lint(esc(obNumWord(n) + " sales. Too few to show movement, enough to show where they landed."), "hero.thintiles.said") + "</p>";
-    if (n < 3) return { said: said, right: "", suppressSalesRow: false };
     var sorted = list.slice().sort(function (a, b) { return Number(b.price) - Number(a.price); });
-    var tiles = sorted.map(thinTileHtml).join("");
+    var tiles = sorted.map(function (c) { return thinTileHtml(c, null); }).join("");
+    var aside = Array.isArray(asideRows) ? asideRows : [];
+    var asideTiles = aside.length
+      ? aside.slice().sort(function (a, b) { return Number(b.price) - Number(a.price); }).map(function (c) { return thinTileHtml(c, thinAsideTileLabel(c.reason)); }).join("")
+      : "";
     var eyebrow = '<div class="eyebrow">' + lint(esc("The " + obNumWordLow(n) + " sales"), "hero.thintiles.eyebrow") + "</div>";
-    var right = eyebrow + '<div class="thin-tiles">' + tiles + "</div>" + thinTrustLineHtml(d, n);
+    var right = eyebrow + '<div class="thin-tiles">' + tiles + asideTiles + "</div>" + thinTrustLineHtml(d, n);
     return { said: said, right: right, suppressSalesRow: true };
   }
   // HOVER (desktop) / TAP (phone) TOOLTIPS (mockup match round, Oct 2026): the typical figure is
@@ -1277,20 +1312,23 @@
   // (the lowest-to-highest bar + the above/below-range cards) is unchanged, still id="shown-
   // separately" so the scrollto handler keeps working.
   function asideToggleHtml(d, m) {
-    var list = (d.asideCards || []).filter(function (c) { return !(m && m.url && c.url === m.url); });
+    // Job 5 (round two): d.setAsideRows (shapeCards(aside) plus each row's own `reason`,
+    // lib/onebox.js setAsideReasonFor) when present - same rows as d.asideCards, same order, same
+    // length, the only difference is the reason key - so a candle page's own "sat outside this
+    // range" cards can carry the SAME per-sale label the thin-tile treatment uses, never hidden.
+    var source = (Array.isArray(d.setAsideRows) && d.setAsideRows.length === (d.asideCards || []).length) ? d.setAsideRows : d.asideCards;
+    var list = (source || []).filter(function (c) { return !(m && m.url && c.url === m.url); });
     if (!list.length) return { trigger: "", panel: "" };
     var band = Array.isArray(d.cluster) ? d.cluster : (Array.isArray(d.span) ? d.span : null);
     var dirN = 0;
-    var dirs = list.map(function (c) {
-      if (!band || !(Number(c.price) > 0)) return "";
-      if (c.price > band[1]) { dirN++; return "Above range"; }
-      if (c.price < band[0]) { dirN++; return "Below range"; }
-      return "";
+    list.forEach(function (c) {
+      if (!band || !(Number(c.price) > 0)) return;
+      if (c.price > band[1] || c.price < band[0]) dirN++;
     });
     var sentence = (dirN === list.length)
       ? "Real sales of the same car that sat well above or below the range, so they are not used to set it. Still useful to know about."
       : "Real sales of the same car, kept out of the range above. Still useful to know about.";
-    var cardsHtml = list.map(function (c, i) { return poolCardHtml(c, dirs[i]); });
+    var cardsHtml = list.map(function (c) { return poolCardHtml(c, c.reason ? thinAsideTileLabel(c.reason) : ""); });
     // Wording matches what the panel actually lists (item 6, mockup match round, Oct 2026): this is
     // d.asideCards, the engine's own set-aside pool (fenced out for price position OR other reasons
     // - modified, replica, odd spec), never a statistical "outside the middle half" cut (a 68-sale
@@ -1333,7 +1371,9 @@
     if (!all.length) return "";
     var poolSize = heroPoolSizeNum(d);
     var n = Number.isFinite(poolSize) ? poolSize : all.length;
-    var countWord = obNumWord(n);
+    // Job 6a (round two): "All eight comparable sales," not "All Eight" - obNumWordLow reads
+    // lowercase mid-sentence, matching every other count-word mid-sentence on this page.
+    var countWord = obNumWordLow(n);
     var sub = heroMetaLineText(d);
     var rows = all.map(allSalesRowHtml);
     var cap = 10, bodyHtml, foot = "";
@@ -1839,15 +1879,17 @@
   // opening in place"), but a VIN/chassis match no longer gets its own card on this page. A real
   // behavior change, not an oversight - flagged plainly in docs/lane-notes.md.
   function resultHtml(d, m) {
-    var thinTile = thinTileTreatment(d, m, d.cards);
+    var thinTile = thinTileTreatment(d, m, d.cards, d.setAsideRows);
     var body = heroRangeHtml(d, m, thinTile);
     body += exactCarSalesHtml(d);
     // Item (d), Sam's review round: every sale is already on screen as a tile, so the "Sales behind
-    // this answer" teaser (three cards + its own "see all" link) is redundant - suppressed only when
-    // tiles actually rendered (suppressSalesRow), never on the serif-line-only <3 case.
+    // this answer" teaser (three cards + its own "see all" link) is redundant - suppressed whenever
+    // tiles rendered (every pool size now, job 3 round two: 1 to 16 sales all get tiles).
     if (!(thinTile && thinTile.suppressSalesRow)) body += salesRowHtml(d, m);
     body += livePanelSlot();
-    body += moreComparableSalesHtml(d, m, d.cards);
+    // Job 6a (round two): the full comparable-sales table is redundant once every sale is already a
+    // tile - suppressed on the same gate as the sales-row teaser above.
+    if (!(thinTile && thinTile.suppressSalesRow)) body += moreComparableSalesHtml(d, m, d.cards);
     body += distributionHtml(d);
     body += sellHtml();
     body += samOnItHtml(d, m);
@@ -1980,43 +2022,14 @@
     const tail = chassisTail6(rc.chassis || rc.chassisTail);
     return tail ? "Chassis " + esc(tail) : "";
   }
-  // Intake copy composed CLIENT-side from the engine's split FACTS (product rule 3). Marker splits
-  // carry a curated phrasing where we have one; mileage/transmission are generic. Returns the
-  // question + chips (value + label). Value encodes how the client scopes: a marker key (yes) /
-  // "no:<key>" / "mi:lo" / "mi:hi" / "tx:manual" / "tx:auto".
-  var HT_MARKER_PHRASE = {
-    competizione: { q: "One thing sets the price apart on these: whether it is a competition car.", yes: "Competition car", no: "Road car" },
-    matching_numbers: { q: "One thing moves the number most on these: whether it keeps its original matching-numbers engine.", yes: "Matching numbers", no: "Replacement engine" },
-    alloy_body: { q: "One thing sets these apart on price: whether it is an alloy-body car.", yes: "Alloy body", no: "Steel body" },
-    long_nose: { q: "One thing separates these on price: whether it is a long-nose car.", yes: "Long nose", no: "Short nose" }
-  };
-  function thinIntakeCopy(intake) {
-    if (!intake) return null;
-    if (intake.kind === "marker") {
-      var p = HT_MARKER_PHRASE[intake.markerKey];
-      if (p) return { q: p.q, chips: [{ v: intake.markerKey, label: p.yes }, { v: "no:" + intake.markerKey, label: p.no }] };
-      var lbl = String(intake.markerLabel || "that spec");
-      return { q: "One thing separates these on price: whether it is " + lbl.toLowerCase() + ".", chips: [{ v: intake.markerKey, label: lbl }, { v: "no:" + intake.markerKey, label: "Not " + lbl.toLowerCase() }] };
-    }
-    if (intake.kind === "mileage") {
-      var k = intake.thresholdK;
-      return { q: "Mileage moves the number most on these. Roughly how many miles on it?", chips: [{ v: "mi:lo", label: "Under " + k + "k" }, { v: "mi:hi", label: "Over " + k + "k" }] };
-    }
-    if (intake.kind === "transmission") {
-      var egM = EGEAR_MODELS.test(String((htLastD && htLastD.resolvedCar && htLastD.resolvedCar.model) || (htLastD && htLastD.vehicle && htLastD.vehicle.model) || ""));
-      return { q: "The gearbox splits these on price. Which is it?", chips: [{ v: "tx:manual", label: "Manual" }, { v: "tx:auto", label: egM ? "E-gear" : "Automatic" }] };
-    }
-    return null;
-  }
-  function thinIntakeHtml(d, ht, name) {
-    var c = thinIntakeCopy(ht.intake);
-    if (!c) return null;
-    var lead = "Before the numbers, one thing about the " + esc(name) + ". " + esc(c.q);
-    var chips = '<div class="chips htintake">' +
-      c.chips.map(function (ch) { return '<button type="button" class="chip" data-thinsplit="' + esc(ch.v) + '">' + esc(ch.label) + "</button>"; }).join("") +
-      '<button type="button" class="chip ghost" data-htskip>Just show what sold</button></div>';
-    return qscreenHtml(lint(esc(lead), "ht.intake"), chips, "One question first", "");
-  }
+  // Job 4 (round two, Sam's decision): the "One question first" price-split intake screen
+  // (thinIntakeHtml/thinIntakeCopy/HT_MARKER_PHRASE, the [data-thinsplit]/[data-htskip] chips and the
+  // htChoice state that tracked an answer) is deleted entirely - the page renders the engine's answer
+  // for the typed words directly, never a blocking question first. If the engine still returns an
+  // intake split (ht.intake truthy), it is simply ignored (thinScope below is always called with a
+  // null choice, which already returns the full unscoped receipts - the exact behavior the screen's
+  // own "Just show what sold" skip used to produce, now simply what always happens); flagged under
+  // FOR LANE B so Lane B can confirm their own removal landed.
   // Scope the receipts by the intake answer (client-side; the engine returned them all).
   function thinScope(receipts, intake, choice) {
     if (!choice || choice === "__skip__") return { scope: receipts, label: null };
@@ -2047,49 +2060,41 @@
   // brief. The chart's dots are thinCardsFrom(scope) (the hammer-shaped receipts, adapted) - never
   // d.cards, a different, unscoped array an intake split never narrows. No mileage line, no identity
   // line, ever, on this tier.
-  function thinHeroHtml(d, name, scope, scopedLabel, ht, m, thinTile) {
-    var who = (scopedLabel ? cap(scopedLabel) + " " + name : cap(name));
-    // The year comes from the sale itself, never the typed year (a "1902 Pierce Motorette" whose
-    // only sale is a 1904 reads "a 1904").
-    var whoNoYear = String(who).replace(/^\s*(18|19|20)\d\d\s+/, "");
-    // windowWords (e34): the engine's own phrase for the window this thin pool covers, replacing
-    // the old thinWindowText(ht) month-count guesswork - no page-side fallback.
-    var win = (d && d.windowWords) || "", n = scope.length;
+  // Job 1 (round two, Sam's review): ONE scope-line format on every page, whatever rung or tier - the
+  // thin tier used to build its own separate scope+count sentence here (the old countTxt/scopeTxt/
+  // fullLine below), different from the result tier's heroMetaLine, so a car that landed on this tier
+  // (CLK DTM, 275 GTB) carried the OLD shape while a car on the result tier (the Speedster) already
+  // had the new one - two formats live at once, several facts stated twice (the old countTxt's own
+  // "the latest on {date}" duplicated heroLatestText's clause once both existed; freshLine's "Sales
+  // through X. Latest sale: Y." duplicated it again). Now calls the SAME heroMetaLine(d, poolLen) the
+  // result tier's hero already uses - poolLen is the exact tile-pool length (newestFirst.length, the
+  // array this render's own tiles are built from), never d.soldCount (which this tier never sets) or
+  // a second-sourced count.
+  function thinHeroHtml(d, name, scope, ht, m, thinTile, poolLen) {
     var left = '<p class="eyebrow hero-label">Market Check</p>' +
       '<h1 class="hero-carname">' + esc(m ? (m.displayName || appendChosenLabel(carLabel(d.resolvedCar))) : appendChosenLabel(cap(name))) + "</h1>";
-    var countTxt;
-    if (n === 1) {
-      var yr = scope[0] && scope[0].year ? scope[0].year : null;
-      countTxt = "Only one " + whoNoYear + " has sold " + win + (yr ? ", a " + yr : "") + ". Here’s what it went for.";
-    } else {
-      var latestDate = (scope || []).reduce(function (mx, r) { return (r && r.date && r.date > mx) ? r.date : mx; }, "");
-      countTxt = obNumWord(n) + " sales " + win + (latestDate ? ", the latest on " + freshDay(latestDate) : "") + ".";
-    }
-    // Scope (follow-up round, Oct 2026): the thin tier's own count line never named which years the
-    // pool actually used, even when the engine's own rungLabel widened past the typed year (Lane B2's
-    // golden check: a 2006 CLK DTM read only "the past three years," dropping the engine's own "2005
-    // to 2007"). heroScopeText is the SAME function the range tier's scope line already uses - prints
-    // d.rungLabel verbatim (full years, never shortened) except on a genuinely exact, nothing-widened
-    // rung, where it is body-only, per the same rule everywhere else on this page.
-    var scopeTxt = heroScopeText(d);
-    var fullLine = [scopeTxt, countTxt].filter(Boolean).join(" · ");
-    var fullLineCap = cap(fullLine);
-    // VIN prefix (item 3): same rule as the result tier's heroMetaLine - lead with "VIN ending
-    // 223093" only when this search is a VIN with its own recorded sale (d.ownSales).
-    if (obSourceVin && d && d.ownSales) fullLineCap = "VIN ending " + String(obSourceVin).slice(-6) + (fullLineCap ? (" · " + fullLineCap) : "");
-    left += '<p class="hero-scope" data-stage="answer">' + lint(esc(fullLineCap), "hero.thin.count") + "</p>";
-    var fl = freshLine(d); if (fl) left += fl;
+    left += heroMetaLine(d, poolLen);
     var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.thin.older") + "</p>";
-    if (ht.houseSteer) left += '<p class="hero-noband" data-stage="answer">' + lint(!ht.onlineReceiptsN ? "These trade at the auction houses, not online. Every recorded sale here came through one." : "These mostly trade at the auction houses; a few sell online. Both are below.", "hero.thin.steer") + "</p>";
-    else if (ht.houseN && ht.onlineReceiptsN) left += '<p class="hero-noband" data-stage="answer">' + lint("These sell online and at the auction houses. The recorded sales are below.", "hero.thin.mix") + "</p>";
+    // Job 1: the old three-way house/online framing collapses to ONE new sentence for the all-house
+    // case (the brief's literal replacement, "All {count} sold at the auction houses, none online.")
+    // - the two OTHER cases (mostly house with a few online; a genuine online/house mix) are not named
+    // for removal, unchanged.
+    if (ht.houseSteer && !ht.onlineReceiptsN) {
+      left += '<p class="hero-noband" data-stage="answer">' + lint(esc("All " + obNumWordLow(poolLen) + " sold at the auction houses, none online."), "hero.thin.allhouse") + "</p>";
+    } else if (ht.houseSteer) {
+      left += '<p class="hero-noband" data-stage="answer">' + lint("These mostly trade at the auction houses; a few sell online. Both are below.", "hero.thin.steer") + "</p>";
+    } else if (ht.houseN && ht.onlineReceiptsN) {
+      left += '<p class="hero-noband" data-stage="answer">' + lint("These sell online and at the auction houses. The recorded sales are below.", "hero.thin.mix") + "</p>";
+    }
     var gpat = gearboxPatternLine(scope); if (gpat) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(gpat), "hero.thin.gpat") + "</p>";
     var fb = d && d.factsBlock;
-    var poolSize = heroPoolSizeNum(d);
-    if (Number.isFinite(poolSize) && poolSize >= 8 && fb && fb.lowest != null && fb.highest != null) {
+    // Job 3 (round two): never the big range face under eight sales - gated on poolLen, the SAME
+    // array the tiles below are built from (the 275 GTB bug: a different, larger count had passed
+    // this gate - heroPoolSizeNum(d) - while the actually-visible pool was far smaller).
+    if (poolLen >= 8 && fb && fb.lowest != null && fb.highest != null) {
       left += '<p class="eyebrow hero-label hero-label-range">Where they sold</p>' +
         '<h2 class="range ink">' + esc(usd(fb.lowest)) + ' <span class="to">to</span> ' + esc(usd(fb.highest)) + "</h2>";
     }
-    var reason = thinReasonHtml(d); if (reason) left += reason;
     // Candles only (engine's own d.trend quarters) - same rule as the result tier, no scope-filtered
     // fallback any more.
     var right = heroChartHtml(d);
@@ -2100,18 +2105,10 @@
     return '<section class="hero2col" data-stage="answer"><div class="hero-left">' + left + "</div>" +
       (right ? ('<div class="hero-right">' + right + "</div>") : "") + "</section>";
   }
-  // The reason there's no typical band (Part 1, Oct 2026): "the existing reason sentence" - reuses
-  // FACTS_REASON_SENTENCE[d.reasonFlag] unchanged (defined below, already used by factsBlockHtml for
-  // the refusal tier) rather than a second ad-hoc composition, so thin and refusal never drift to
-  // two different wordings for the same fact. tier "thin" always maps to reasonFlag
-  // too_few_online_for_a_range (mapEngineAnswer, lib/onebox.js) - same onlineLiquidityN this
-  // headline's old inline version read, just the one, named sentence instead of two near-duplicates.
-  function thinReasonHtml(d) {
-    var fb = d && d.factsBlock;
-    var fn = FACTS_REASON_SENTENCE[d && d.reasonFlag];
-    var line = fn ? fn(fb) : "";
-    return line ? '<p class="ans-line facts-reason">' + lint(esc(line), "facts.reason") + "</p>" : "";
-  }
+  // thinReasonHtml (the thin tier's own "None sold through live online marketplaces..." sentence)
+  // was deleted this round (job 1, round two) - it duplicated the new unified scope line's own
+  // count+latest facts on the exact pages Sam flagged (CLK DTM). FACTS_REASON_SENTENCE stays; it is
+  // still read by factsBlockHtml below for the refusal tier, untouched.
   // htPairsHtml ("the same car, twice") and siblingHtml (the "widen" box) were deleted this round
   // (Market Check result-page spec, Oct 2026) along with their only caller (thinHtml) - neither is
   // in the brief's enumerated section list; flagged in docs/lane-notes.md.
@@ -2179,22 +2176,27 @@
     htLastD = d;
     if (!ht || !ht.receipts || !ht.receipts.length) return refusalHtml(d, m); // safety: never dead-end
     var name = bareNameOf(d, m);
-    // Intake FIRST, but only when a split forks THIS car's price and the user has not answered.
-    if (ht.intake && htChoice === null) { var iv = thinIntakeHtml(d, ht, name); if (iv) return iv; }
-    var sc = thinScope(ht.receipts, ht.intake, htChoice);
-    var scope = sc.scope, scopedLabel = sc.label;
+    // Job 4 (round two, Sam's decision): the "One question first" price-split intake screen is gone
+    // - the page renders the engine's answer for the typed words directly. thinScope's own choice
+    // param is always null now (never answered, never will be - htChoice/thinIntakeHtml/
+    // thinIntakeCopy/HT_MARKER_PHRASE are deleted below), which already made it return the FULL
+    // unscoped receipts with no label (thinScope's own first line) - exactly the old "Just show what
+    // sold" skip's own behavior, now simply what always happens.
+    var sc = thinScope(ht.receipts, ht.intake, null);
+    var scope = sc.scope;
     // A gearbox tag shows only when the pool has a real manual-vs-non-manual split.
     htGearboxSplit = (function () { var man = 0, non = 0; (scope || []).forEach(function (rc) { if (rc.isHouse) return; var g = gearboxLabel(rc); if (!g) return; if (/^manual/i.test(g)) man++; else non++; }); return man > 0 && non > 0; })();
     // Newest first (the honest evidence order); the engine's hammer-desc order is for its own math.
     var newestFirst = thinCardsFrom(scope).sort(function (a, b) { return String(b.date || "").localeCompare(String(a.date || "")); });
-    var thinTile = thinTileTreatment(d, m, newestFirst);
-    var body = thinHeroHtml(d, name, scope, scopedLabel, ht, m, thinTile);
+    var thinTile = thinTileTreatment(d, m, newestFirst, d.setAsideRows);
+    var body = thinHeroHtml(d, name, scope, ht, m, thinTile, newestFirst.length);
     body += exactCarSalesHtml(d);
     if (!(thinTile && thinTile.suppressSalesRow)) body += salesRowHtml(d, m, newestFirst);
     body += livePanelSlot();
-    // id="more-sales" (hero-rebuild round, kept): the sales row's "See all N sales" link scrolls
-    // here, the same [data-scrollto] mechanism the range tier uses.
-    body += moreComparableSalesHtml(d, m, newestFirst);
+    // Job 6a (round two): the full comparable-sales table is redundant once every sale is already a
+    // tile - suppressed on the same gate as the sales-row teaser above. id="more-sales" (hero-rebuild
+    // round, kept) still exists on pages that keep the table (over 16 sales).
+    if (!(thinTile && thinTile.suppressSalesRow)) body += moreComparableSalesHtml(d, m, newestFirst);
     body += distributionHtml(d);
     // One Box NEVER recommends a house or platform; "Ready to sell?" is the only bridge to /sell.
     body += sellHtml();
@@ -2361,8 +2363,10 @@
       ? { eyebrow: "One last question", sub: "Then what actually sold." }
       : { eyebrow: "One question first", sub: "One more at most, then what actually sold." };
   }
+  // Job 6b (round two): "Real sales only." read as a dangling bullet under a question's own chip
+  // row, with no rule above it to sit under - question screens never append footHtml() any more.
   function renderQuestion(html) {
-    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + html + footHtml();
+    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + html;
     wire();
   }
   // renderRefineChoice (gearbox_choice/variant_choice as a bare-chip refine) had no remaining
@@ -2612,8 +2616,7 @@
   // re-decodes and loops) - the chip builds a clean query from this context instead. Null for a
   // typed query, where appending to the raw text is correct.
   var choiceCtx = null;
-  var htChoice = null; // house-tier intake selection: null=not asked, "__skip__", or a marker key
-  var htLastD = null;  // last house-tier decision, so an intake chip can re-render in place
+  var htLastD = null;  // last house-tier decision; gearboxLabel reads its resolved model
   var obGbApplies = false;  // item 4: gearbox line on a volume-result card only when a gearbox question applies
   var htGearboxSplit = false;  // item 7b: true only when the pool holds BOTH a manual and a non-manual
   // gearbox (a real split / a gearbox question applies). When false, the per-card gearbox tag is dropped.
@@ -2683,7 +2686,7 @@
     // A brand-new search resets the question count; a chip answer (keepAsk) carries it forward so
     // the engine can enforce the two-question cap across generation/body re-queries (Part 3).
     if (!keepAsk) obAsked = 0;
-    lastQuery = text; obLastRefine = null; obIdOrigBody = null; obIdOrigTrim = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; htChoice = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
+    lastQuery = text; obLastRefine = null; obIdOrigBody = null; obIdOrigTrim = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
     // Identifier-shaped input (VIN or chassis) routes through the shared resolver (decode +
     // confirm + exact-match + the honest VIN-invalid / chassis lines); everything else goes
     // straight to the archive pool.
@@ -2753,7 +2756,7 @@
     var vin = sp.get("vin"), car = sp.get("car");
     if (!vin && !car) { renderEmpty(); syncRailResults(); return; }
     var refine = mcRefineFromParams(sp);
-    obAsked = 0; lastQuery = vin || deslugifyQuery(car); obLastRefine = null; obIdOrigBody = null; obIdOrigTrim = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; htChoice = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
+    obAsked = 0; lastQuery = vin || deslugifyQuery(car); obLastRefine = null; obIdOrigBody = null; obIdOrigTrim = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
     if (vin) { vinResolve(vin); return; }   // VIN re-decode is the full, tested path - refine on a VIN result is a rare combo and not threaded through it.
     runPool(lastQuery, null, refine);
   }
@@ -3243,10 +3246,8 @@
     Array.prototype.forEach.call(root.querySelectorAll("[data-recent]"), function (b) { b.addEventListener("click", function () { run(b.getAttribute("data-recent")); }); });
     // Generation chips carry a full year-resolvable query - run it directly (never appended).
     Array.prototype.forEach.call(root.querySelectorAll("[data-genquery]"), function (b) { b.addEventListener("click", function () { run(b.getAttribute("data-genquery"), true); }); });
-    // House-tier intake: place the car by its price-forking config, then re-render the same
-    // decision scoped to the answer (no re-fetch; the engine returned every receipt).
-    Array.prototype.forEach.call(root.querySelectorAll("[data-thinsplit]"), function (b) { b.addEventListener("click", function () { htChoice = b.getAttribute("data-thinsplit"); obEvent("onebox_ht_intake", lastQuery + ":" + htChoice); if (htLastD) { renderResults(htLastD); } }); });
-    Array.prototype.forEach.call(root.querySelectorAll("[data-htskip]"), function (b) { b.addEventListener("click", function () { htChoice = "__skip__"; obEvent("onebox_ht_skip", lastQuery); if (htLastD) { renderResults(htLastD); } }); });
+    // House-tier intake screen (job 4, round two) is deleted - [data-thinsplit]/[data-htskip] no
+    // longer render anywhere, so these handlers are gone with it.
     // Trim chip (item 2, Oct 2026) - from the question OR an "Other trims" row, same handler:
     // narrows the SAME pool inline (re-request with refine.trim), same merge pattern as body/
     // mileage/transmission - answering trim never un-asks the others, or vice versa.
