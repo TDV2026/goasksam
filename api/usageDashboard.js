@@ -2372,7 +2372,7 @@ async function handleOps(req, res) {
     const why = {}; for (const t of trace) why[t.why] = (why[t.why] || 0) + 1;
     // The Market Check panel's own count for the same resolved car (liveForFamily), to prove the three counts equal.
     const gLive = await fgLive({ make: v.make, model: v.parentModel || v.model, year: v.year || null }, env).catch(() => null);
-    const panel = await liveForFamily(env, { make: v.make, model: v.parentModel || v.model, trim: v.trim || null, year: v.year || null, bodyStyle: v.bodyStyle || null }, gLive, null, 50, null).catch(e => ({ error: String(e && e.message || e) }));
+    const panel = await liveForFamily(env, { make: v.make, model: v.parentModel || v.model, trim: v.trim || null, year: v.year || null, bodyStyle: v.bodyStyle || null, genCode: v.genCode || null }, gLive, null, 50, null).catch(e => ({ error: String(e && e.message || e) }));
     const yearWindow = v.year ? await liveYearWindow(env, v).catch(() => null) : null;
     return res.status(200).json({ task: "livesearch", q, vehicle: { make: v.make, model: v.model, parentModel: v.parentModel || null, trim: v.trim || null, genCode: v.genCode || null, year: v.year || null }, gens: f.gens, noun: nounFor(v, f), count: rows.length, yearWindow,
       panel: panel && !panel.error ? { count: panel.total, yearWindow: panel.yearWindow, titles: (panel.rows || []).map(r => r.listing_title) } : panel,
