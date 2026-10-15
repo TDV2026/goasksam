@@ -3443,7 +3443,9 @@ async function handleOps(req, res) {
         const v = sanitizeResolvedVehicle(rv && rv.vehicle) || (rv && rv.vehicle);
         if (!v || !v.make) { out.push({ q, status: (rv && rv.status) || "unresolved", clarify: (rv && rv.clarify) || null }); continue; }
         const g = await findGeneration(v, env);
-        const ob = await runOneBox(v, g, q, wantRows ? { ...env, collectExcluded: true } : env, null);
+        // refine=<json> (e47, read-only): run the same words with a chip's refine object ({"variant":"carrera"}, {"body":"coupe"}).
+        let refineQ = null; try { refineQ = req.query?.refine ? JSON.parse(String(req.query.refine)) : null; } catch (e) { refineQ = null; }
+        const ob = await runOneBox(v, g, q, wantRows ? { ...env, collectExcluded: true } : env, refineQ);
         const d = ob.dedup || {};
         let considered = null;
         if (wantRows) {
@@ -3531,6 +3533,8 @@ async function handleOps(req, res) {
           yoyDirection: ob.yoyDirection ? { recentBand: ob.yoyDirection.recentBand, priorBand: ob.yoyDirection.priorBand, percent: ob.yoyDirection.percent, status: ob.yoyDirection.status, n: ob.yoyDirection.n } : null,
           cards: Array.isArray(ob.cards) ? ob.cards.length : null,
           bodyOptions: ob.bodyOptions || null, bodyUnspecified: ob.bodyUnspecified ?? null, identityQuestion: ob.identityQuestion || null, resolvedCar: ob.resolvedCar || null,
+          variantOptionsLine: ob.variantOptionsLine || null, variantAsides: ob.variantAsides || null, setAsideCount: ob.setAsideCount ?? null, qualifyingTotal: ob.qualifyingTotal ?? null, samLine: ob.samLine || null,
+          setAsideRowsOut: Array.isArray(ob.setAsideRows) ? ob.setAsideRows.map(c => ({ title: c.title, price: c.price, date: c.date, reason: c.reason, setAside: c.setAside })) : null,
           // mapped (e45, Sam's item 8): the standard shape every product reads (mapEngineAnswer), beside the raw tier.
           mapped: (() => { const m = mapEngineAnswer(ob, null); return { answerType: m.answerType, poolSize: m.poolSize, low: m.low, high: m.high, rungLabel: m.rungLabel, fallbackRung: m.fallbackRung, reasonFlag: m.reasonFlag, factsBlock: m.factsBlock, windowWords: ob.windowWords || null }; })(),
           cardTitles: req.query?.titles === "1" && Array.isArray(ob.cards) ? ob.cards.map(c => c.title) : null,
