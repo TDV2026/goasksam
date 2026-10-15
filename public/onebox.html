@@ -223,7 +223,7 @@ button{font:inherit}
    base .ph .none flex box (no line limit) and bled into the price text below - a real violation of
    the no-clip/overflow rule. Clamped to five lines with an ellipsis instead of flex-centered, so the
    fallback caption always stays inside its own tile regardless of title length. */
-.thin-tile .none{font:400 12px/1.3 var(--sans);text-transform:none;letter-spacing:normal;padding:8px;text-align:center;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+.thin-tile .ph.noimg .none{font:400 12px/1.3 var(--sans);text-transform:none;letter-spacing:normal;padding:8px;text-align:center;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
 /* Job 5 (round two): a set-aside sale is labelled, never hidden - the tile is otherwise identical
    (same photo/price/meta/link) to an in-range one, so it reads as "one of the sales" with one extra
    fact, not a visually demoted second kind of card. Same corner position as the existing .pill
