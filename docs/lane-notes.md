@@ -7971,3 +7971,131 @@ Search check: no public page touched; /buy result views are noindex.
 - Power-adder words: "Supercharged Dart 363-Powered 1965 Ford Mustang Fastback" resolved with trim "Supercharged Fastback", which has no market. A power-adder word (supercharged, turbocharged, twin turbo, blown, nitrous, stroked) the factory never sold on that make, model and year now leaves the trim and rides on the vehicle as `modifications` (kept through sanitizeResolvedVehicle). The title now resolves to the 1965 Mustang Fastback with modifications ["Supercharged"]; "1967 Chevrolet Camaro Supercharged" has no trim; where the factory sold the word it stays a trim (2013 Mustang Shelby GT500 Supercharged, 2016 Jaguar F-Type Supercharged, 2019 Challenger Hellcat Supercharged). The factory list is in lib/vehicle.js (FACTORY_POWER_ADDER): Jaguar, Land Rover, Lotus and Mini from 2002; Dodge, Jeep and Ram from 2015; Ford F-150 and Lightning from 1999; Mustang from 2003 only with a Cobra, GT500, Shelby or SVT trim; Chevrolet, Cadillac and GMC from 2004; Pontiac, Buick, Oldsmobile, Saturn and Mercury from 1989; Mercedes, Audi, Volkswagen, Toyota, Mazda and Maserati from 1989. A car outside the list reads as modified.
 - FOR LANE B: the vehicle now carries `modifications` (an array of words, absent when none). The pool for the title is the model's own stock Fastbacks; if you want the answer to say that the typed words describe a modified car and that the sales shown are stock ones, read vehicle.modifications.
 - scripts/pushCheck.mjs and the goldenTruth page reads mint the crew cookie from the Keychain item goasksam-crew (account goasksam) per run (scripts/_crewCookie.mjs): the code is held in memory to sign the cookie and is never printed, written, exported or placed in an address; without the item no cookie is sent. With the cookie the "catching his breath" failures are gone and the page timings are speed only.
+
+## Lane A, Oct 15 2026 (round two): one scope line, chart labels, no-range-under-eight, no intake screen, labelled set-aside tiles, variant-market identity lines
+
+Sam reviewed the live Speedster/CLK DTM/275 GTB/Carrera Speedster/2005 911 pages; the seven jobs below
+come from that review. Built against Lane B's e47-e49 pushes, which landed mid-round (setAsideRows on
+every tier, variantOptionsLine, the refine cache-key fix) - pulled and re-tested against each as they
+arrived rather than building against a stale shape.
+
+JOB 1, one scope line. heroScopeLineText/heroMetaLine now take a pool-length override (the thin tier
+carries no top-level d.soldCount at all), so ONE function builds the scope line on every tier - the
+thin tier's own separate scope+count sentence, freshLine's "Sales through X. Latest sale: Y." bullet
+and thinReasonHtml's "None sold through live online marketplaces..." sentence are all gone from this
+path (their facts are now stated once, in the one scope line, or not restated at all). The three-way
+house/online framing collapses to one new sentence for the all-house case: "All {count in words} sold
+at the auction houses, none online." PROVEN LIVE, CLK DTM, read top to bottom as one conversation:
+"2006 Mercedes-Benz CLK DTM / Cabriolets and coupes · Six sales · latest Mar 7 / All six sold at the
+auction houses, none online. / Which CLK DTM? Unrestored (6) · Professional restoration (0) / Six
+sales. Too few to show movement, enough to show where they landed." - "latest Mar 7" once, "too few"
+once, the house fact once. Nothing read unnatural.
+
+JOB 2, chart labels. The axis figures and candle high/low carried an inline SVG font-size="13"
+attribute, which the SVG's own viewBox-to-viewport scaling (measured live: ~0.56 at 1440, ~0.41 at
+390 - the chart sits in a half-width column on desktop, full width on phone) shrank to under 8 real
+screen pixels - the actual cause of "too small and too pale" (anti-aliasing blur at that size, not
+the colour value, which was already dark ink). Moved to CSS classes (.hc-axislabel/.hc-candlelabel,
+onebox.html) in the secondary ink, sized per breakpoint against the measured scale (23px base, 32px
+under the existing 640px phone query) so both read as roughly the same real weight. PROVEN LIVE:
+computed font-size 23px at 1440, 32px at 390, fill the secondary-ink token; screenshots confirm the
+numbers are now plainly legible. Quarter labels and the legend untouched, as asked. Screenshots:
+2005-911-candle-{1440,390}.png (before/after is the same pair - the earlier round's own screenshots
+from before this round are the "before"; these are "after").
+
+JOB 3, no big range under eight. The "Where they sold" ink-coloured range used to gate on
+heroPoolSizeNum(d), a value that could disagree with the pool actually rendered (the 275 GTB bug: a
+different, larger count passed the gate while the visible pool was smaller). Now gated on poolLen,
+the exact array the tiles below are built from - the same number, never a second source. The thin-
+tile treatment widened from 3-16 to 1-16 sales (a one- or two-sale pool now gets its own tiles, never
+the serif line alone); above 16 is unchanged. No live car with 1-7 result-tier sales or a 1-2 sale
+thin-tier car was found this round to screenshot the extreme low end directly - the rule is coded and
+unit-testable (the `n < 3` special case is gone from thinTileTreatment entirely, one path 1-16), but
+not proven on a real 1- or 2-sale page; flagged rather than claimed.
+
+JOB 4, no intake screen. Sam's decision: the "One question first" price-split intake
+(thinIntakeHtml/thinIntakeCopy/HT_MARKER_PHRASE, the chips and the htChoice state) is deleted
+entirely - thinScope's own choice param is always null now, which already returned the full unscoped
+receipts with no label (the exact behaviour the screen's own "Just show what sold" skip used to
+produce). PROVEN LIVE on 1966 Ferrari 275 GTB: no question screen at all, straight to "1966 Ferrari
+275 GTB / Road cars · Nine sales · latest Aug 15 / All nine sold at the auction houses, none online. /
+WHERE THEY SOLD $1,215,000 to $3,481,000" and the full tile grid. If the engine still returns an
+intake split for any car, it is simply ignored now (not checked live this round since every tested
+car's own `ht.intake` behaviour was not inspected post-change; the removal is unconditional in the
+code, not a conditional skip, so this holds regardless).
+
+JOB 5, labelled set-aside tiles. Lane B's e47 push (465a982) put setAsideRows (each row its own
+`reason`) and uniform setAsideCount/qualifyingTotal fields on every tier, including the thin tier
+where the old d.counts/d.setAsideReasons never existed. thinAsideSentence now aggregates reasons
+straight off the SAME asideRows array the tiles render from (one source for both the trust-line
+sentence and the tile labels), reconciling against qualifyingTotal. PROVEN LIVE on 1957 Porsche 356
+Speedster: 10 tiles (8 in-range + 2 set-aside, labelled "Odd sale" and "Modified" on their own tiles),
+trust line "...Two sales set aside: an odd sale and a modification." - the numbers add up (8 + 2 = 10
+= qualifyingTotal). The candle-page "N sales sat outside this range" panel (asideToggleHtml) now
+reads the same setAsideRows (falling back to the older asideCards when the lengths disagree, never
+silently) and labels each card with its own reason instead of only an Above/Below-range tag. Added
+"restoration"/"professional restoration" to both reason-word maps, matching the exact label
+("Professional restoration") Lane B's variantOptionsLine already uses for the same concept - no car
+tested this round actually had a restoration-reason set-aside row live, so this mapping is built
+against the documented shape, not proven on a real tile; the GENERIC fallback (capitalise whatever
+reason string arrives) covers any reason word neither map has, so nothing is ever silently dropped.
+
+JOB 6, small copy fixes. (a) "All eight comparable sales," not "All Eight" (obNumWordLow, was
+obNumWord); the full table and the "Sales behind this answer" teaser are both suppressed on every
+page where the tile treatment actually rendered (every sale is already a tile there). (b) Question
+screens (renderQuestion) no longer append footHtml()'s "Real sales only." bullet - PROVEN LIVE on the
+1986 Carrera Speedster confirmation: the question screen's own next sibling in the DOM is nothing: no
+trailing bullet. (c) read every new sentence top to bottom this round: no worth/value/valuation/
+estimate/appraisal/pricing/median/percentile/alert/watch, no "your car", no first-person Sam, no em
+or en dashes, number words in sentences, digits in tiles, thousands separators from 1,000. Nothing
+read unnatural.
+
+JOB 7, variant-market identity lines. Lane B's e47 push also added d.variantOptionsLine: an array of
+independent variant-market entries (e.g. "carrera" four-cam vs pushrod, "restoration" professional-
+restoration vs unrestored), each offering BOTH sides with their own counts, zero allowed - confirmed
+a genuinely different shape from d.variantChoices (the earlier round's blocking variant_choice
+takeover), so this needed its own renderer, not a reuse. New variantOptionsLineHtml renders one
+chip-plus-Any line per entry (survives a refine the same persistence pattern as the body/trim lines),
+reusing the existing refine.variant mechanism every entry already shares. PROVEN LIVE on 1957 356
+Speedster ("Which 356? Pushrod (8) · Carrera four-cam (0)" and "Which 356? Unrestored (8) ·
+Professional restoration (0)"), 2006 CLK DTM, 1966 275 GTB (two entries each), 1995 Porsche 911
+Carrera, 2005 Porsche 911 and 2023 BMW M3 (restoration entry only) - the zero-count side renders as a
+real, live link on every car tested, never disabled.
+  FOR LANE B (found while proving the "zero side opens its own ladder" half of job 7, reproducible,
+  confirmed on BOTH the result and thin tiers, confirmed AFTER e48 ("a variant chip narrows a thin
+  pool to its side") and e49 (the refine cache-key fix) both deployed): clicking a zero-count variant
+  option returns the IDENTICAL unrefined page, not a narrowed/labelled page and not an honest nothing-
+  on-record. Confirmed via direct network trace (request payload correctly sends `{"variant":
+  "competizione","variantLabel":"Competizione"}` - the page's own refine mechanism is not the issue):
+  on "1966 Ferrari 275 GTB" clicking Competizione (0) returns tier "thin", cards.length 9, rungLabel
+  "275 GTB, 1965 to 1966, road cars" - byte-identical to the unrefined answer, the Competizione filter
+  never applied. On "1957 Porsche 356 Speedster" clicking Carrera four-cam (0) returns tier "result",
+  soldCount "eight", rungLabel "1957 356 Speedster, pushrod cars" - same thing, the Carrera filter
+  never applied, on the OTHER tier. The client-side chosen/Any state renders correctly either way (a
+  `.hero-idlink-chosen` span with the right text appears), so the page is being honest about what the
+  engine actually returned - it is the engine side that is not narrowing on this refine value yet.
+
+Commits this round: b0ef376 (jobs 1/3/4/5/6 core), f27f1dd (job 5 field-shape fix + job 7 render),
+46e7098 (same, after a rebase onto e47) - all on main, Vercel Ready after each push. prePush: every
+push 0 FAIL, 6 SKIP (archive checks, no local Supabase credentials), 23-24 PASS (the count grew as
+Lane B's own new checks - refine key isolation, set-aside sales labelled - joined the suite); speed
+reads 2.7s to 11.1s against budgets of 8-18s on every run that completed (one run read "2008 Porsche
+997 Carrera S Coupe" at 20.5s mid-run, which cleared on a re-run minutes later once Lane B's e47
+deploy settled - not pushed over, confirmed transient before proceeding). "2005 Porsche 911"
+specifically returned tier "unavailable" (the engine's own fail-fast deadline) on several consecutive
+attempts during this round's testing window, clearing on a later attempt once server load eased -
+flagged as observed, not chased, since every OTHER car tested throughout stayed fast and the page's
+own code never changed for this car beyond job 2's CSS.
+
+Screenshots (1440 and 390 unless noted) in /Users/davidzysblat/Desktop/goasksam-proofs/compare/
+thin2/: 356-speedster (ten tiles, two labelled), clk-dtm (one scope line, no repeats), 275-gtb (no
+question screen, no big-number-under-eight concern since it is nine sales, tiles, labelled would-be
+set-aside - none were set aside live on this car), 275-gtb-competizione-clicked (the FOR LANE B
+finding, 1440 only), 1986-speedster-confirm (question page, no dangling bullet), 2005-911-candle
+(chart with the new label size, otherwise unchanged), 2023-bmw-m3, control-test (1995 Porsche 911
+Carrera, a working substitute candle-tier page captured while 2005 911 was transiently unavailable).
+
+Search check: no title/H1/canonical/meta changed on any page; every change (scope line, chart label
+CSS, tile grid, intake-screen removal, set-aside labels, variant identity lines) sits inside the
+existing Market Check template (noindex, nofollow unchanged, public/onebox.html line 7). Result pages
+stay noindex.
