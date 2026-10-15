@@ -1033,7 +1033,12 @@
     var title = cleanReceiptTitle(c.title);
     var miles = Number(c.mi) > 0 ? (Number(c.mi).toLocaleString("en-US") + " miles") : "";
     var venue = (c.platform && c.platform !== "others") ? c.platform : "";
-    var meta = [c.month, venue, miles].filter(Boolean).join(" · ");
+    // monShort(c.date), never c.month directly: the thin tier's own pool (thinCardsFrom) builds
+    // month with the client's full-month-name monthYear(), while the result tier's d.cards (shapeCards)
+    // builds it with the server's three-letter one - monShort reads the shared date field instead, so
+    // every tile reads "Mon YYYY" the same way regardless of which tier supplied the pool.
+    var mon = monShort(c.date);
+    var meta = [mon, venue, miles].filter(Boolean).join(" · ");
     var gasAttrs = (href && c.id != null) ? (' data-gas-event="receipt_click" data-gas-source="' + esc(c.platformSlug || "") + '" data-gas-listing-id="' + esc(c.id) + '"') : "";
     var tag = href ? "a" : "div";
     var attrs = href ? (' href="' + esc(href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(c.platformSlug || "") + '"' + gasAttrs) : "";
