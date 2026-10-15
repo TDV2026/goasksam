@@ -21,6 +21,7 @@ import { track, withTracking } from "../lib/track/log.js";
 import { historyEnv, houseName, normVin } from "./_historyData.js";
 import { isAbroadRow, parseQuery, parseQueryResolved, emptyFilters, gensNamed, resolveForBuy, searchLive, listingFacts, listingMarket, seenBefore, nounFor, liveForFamily, liveRows, familyMarket, COUNTRY_NAME, COLOURS } from "../lib/live/search.js";
 import { placingFor, ENGINE_VERSION } from "../lib/onebox.js";
+import { asideRowsFor, asideMatch, setAsideLabel } from "../lib/tasks/setAside.js";
 import { findGeneration } from "../lib/generations.js";
 import { converse } from "../lib/live/converse.js";
 import { listingDetail, facetsOf, cardFlag, seenCount, listingSays, listingSamFacts, specOf, ladderSteps, walkLadder, panelOf } from "../lib/live/search.js";
@@ -149,9 +150,16 @@ export async function timelineOf(env, x) {
   const data = await vinAppearances(env, vin).catch(() => null);
   if (!data || !data.ok) return null;
   const today = new Date().toISOString().slice(0, 10), norm = u => String(u || "").replace(/^https?:\/\/(www\.)?/, "").replace(/\/+$/, "");
-  return data.appearances.filter(a => a.date && a.date < today && norm(a.url) !== norm(x.r.url))
+  const list = data.appearances.filter(a => a.date && a.date < today && norm(a.url) !== norm(x.r.url))
     .map(a => ({ date: a.date, house: a.house, result: a.kind === "sale" ? "sold" : (/withdraw/i.test(String(a.status || a.result || "")) ? "withdrawn" : "not_sold"), price: a.kind === "sale" ? (a.priceUsd || null) : (a.bidUsd || null), url: /^https?:\/\//.test(String(a.url || "")) ? String(a.url) : null, miles: a.mileage || null, photo: a.image || null }))
     .sort((a, b) => a.date.localeCompare(b.date));
+  // A past sale the engine set aside for this car's own market carries the engine's reason as its label ("Set aside
+  // as modified"); nothing here judges a sale against the range (Sam, Oct 15 2026).
+  if (list.some(a => a.result === "sold")) {
+    const rows = await asideRowsFor(env, x.r, x.facts || {}).catch(() => null);
+    for (const a of list) { const hit = a.result === "sold" ? asideMatch(rows, { url: a.url, vin: vin, date: a.date, price: a.price }) : null; if (hit) { a.set_aside = String(hit.reason || ""); a.set_aside_label = setAsideLabel(hit.reason); } }
+  }
+  return list;
 }
 // The card's name from the resolved spec: year, make, model, trim, body. Never the seller's copy
 // ("With Less Than 73k Miles", "Restored", "No Reserve"); null when the title doesn't resolve.

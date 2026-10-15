@@ -289,6 +289,14 @@ try {
 } catch (e) {
   record("Buy card and question rule (scripts/buyCardAskCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Set-aside sales (Lane C, Oct 15 2026): labelled with the engine's reason, never placed against the range, in the sold
+// Task email, Buy's prior-sale popup and an ended car's card. No network.
+try {
+  const out = execSync("node scripts/setAsideCheck.mjs", { encoding: "utf8" });
+  record("Set-aside sales labelled, never placed (scripts/setAsideCheck.mjs)", "PASS", (out.match(/setAsideCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Set-aside sales labelled, never placed (scripts/setAsideCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 
 // ---- 3 & 4. BROWSER CHECK (Lane C's pushCheck.mjs) + BASELINE ----
 console.log(`\n-- browser check via scripts/pushCheck.mjs (${BASE}) --`);
