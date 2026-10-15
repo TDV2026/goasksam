@@ -138,6 +138,11 @@ const CASES = [
   ["Acura NSX T", { make: "Acura", model: "NSX", bodyStyle: "targa" }],
   ["1963 Chevrolet Corvette Split Window", { year: 1963, make: "Chevrolet", model: "Corvette", trim: null, bodyStyle: "coupe" }],
   ["Corvette Split Window", { make: "Chevrolet", model: "Corvette", bodyStyle: "coupe" }],
+  // "Type R" keeps its Type (Oct 15 2026): the trim whitelist dropped "Type" and the Integra Type R read as a trim "R", then as the whole Integra line.
+  ["2001 Acura Integra Type R", { year: 2001, make: "Acura", model: "Integra", trim: "Type R" }],
+  ["1999 Acura Integra Type-R", { year: 1999, make: "Acura", model: "Integra", trim: "Type R" }],
+  ["1989 Porsche 911 Carrera Speedster", { year: 1989, make: "Porsche", model: "911", trim: "Carrera", bodyStyle: "speedster" }],   // a factory year stays a Speedster
+  ["1994 Porsche 911 Speedster", { year: 1994, make: "Porsche", model: "911", trim: "Speedster" }],
   ["M5", { make: "BMW", model: "M5" }],   // bare model codes only one make uses
   ["Z4", { make: "BMW", model: "Z4" }],
   ["X5 M", { make: "BMW" }],
@@ -181,5 +186,17 @@ for (const [make, model, trim, want] of [
   ["Buick", "Regal", "Grand National", "Grand National"],
   ["Porsche", "911", "Carrera S", "Carrera S"],
 ]) { const v = sanitizeResolvedVehicle({ year: 2021, make, model, trim }); if (!v || v.trim !== want) fail(`trim "${trim}" on the ${make} ${model} came out as ${JSON.stringify(v && v.trim)}, wanted ${JSON.stringify(want)}`); }
+// A Speedster for a 911 year that never had one (1986) is a confirmation on the shared resolver, not a Speedster pool of Cabriolets; a
+// conversion keeps its word; the label never prints the body twice ("Speedster Speedster").
+{
+  const r = await resolveVehicle("1986 Porsche 911 Carrera Speedster", {});
+  if (!r || r.status !== "needs_confirmation" || !/1986 Porsche 911 Cabriolet/.test(String(r.clarification && r.clarification.suggestion))) fail(`1986 911 Carrera Speedster: wanted a confirmation of the 1986 Cabriolet, got ${JSON.stringify(r && r.status)} ${JSON.stringify(r && r.clarification && r.clarification.suggestion)}`);
+  const c = await resolveVehicle("1979 Porsche 911 SC Speedster", {});
+  if (!c || c.status !== "needs_confirmation" || !/1979 Porsche 911 Targa/.test(String(c.clarification && c.clarification.suggestion))) fail(`1979 911 SC Speedster: wanted a confirmation of the 1979 Targa`);
+  const k = await resolveVehicle("1986 Porsche 911 Carrera Speedster Conversion", {});
+  if (!k || k.status !== "valid") fail(`1986 911 Carrera Speedster Conversion: a conversion keeps its word, got ${JSON.stringify(k && k.status)}`);
+  const f = await resolveVehicle("1989 Porsche 911 Carrera Speedster", {});
+  if (!f || !f.vehicle || /Speedster\s+Speedster/i.test(String(f.vehicle.canonicalLabel))) fail(`1989 911 Carrera Speedster: label prints the body twice: ${JSON.stringify(f && f.vehicle && f.vehicle.canonicalLabel)}`);
+}
 console.log(bad ? `resolverLanesCheck: ${bad} failure(s)` : `resolverLanesCheck: ${CASES.length} names, one car on every lane` + (gaps ? ` (${gaps} known Buy parseQuery gaps listed for Lane B)` : ""));
 process.exit(bad ? 1 : 0);

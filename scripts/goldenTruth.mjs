@@ -26,6 +26,9 @@ let GOLDEN = JSON.parse(m[1]);
 const ids = (arg("ids") || "").split(",").filter(Boolean).map(Number);
 if (ids.length) GOLDEN = GOLDEN.filter(g => ids.includes(g.id));
 else if (flag("quick")) GOLDEN = GOLDEN.filter(g => g.quick);
+// An identity row (the bare 1965 Mustang) checks the question's option counts, not a range; it has its own block below.
+const IDENT = GOLDEN.filter(g => g.identity);
+GOLDEN = GOLDEN.filter(g => !g.identity);
 
 if (!KEY) { console.log("goldenTruth: SKIP, no PROBE_KEY in the environment (report-only, nothing compared)."); process.exit(0); }
 
@@ -62,6 +65,7 @@ const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new"
 const rows = [];
 const byQ = {};
 let chassisGuard = null;
+let identityOut = null;   // the identity row: { q, checks: [{ name, cell, diffs, shown }] }
 try {
   // The ops task is a keyed GET; plain curl is turned away by Vercel's bot protection, so the request is made from a real page
   // on the site's own address. The key travels only in the x-ops-key header.
@@ -258,6 +262,42 @@ try {
     const dr = lane && lane.ok ? drift("tasks", { count, range: low != null ? { low, high } : null, scope: "" }, lane) : [];
     r.pages.tasks = { cell: dr.length ? "DRIFT" : j.cell, diffs: [...dr.map(d => "RENDER DRIFT, " + d), ...j.diffs.map(d => "Task email: " + d)], shown: `${count == null ? "-" : count} ${low != null ? money(low) + "-" + money(high) : "no range"} (${out.email}${rung ? ", " + rung : ""})` };
   }
+  // COUNTRY (Oct 15 2026, e39 country rule): every pool row carries country and countryBasis (obdiag rows=1, considered.included). The pool is the
+  // United States and Canada; a row whose country is missing, outside both, or only assumed from the venue is listed per car. Read only.
+  if (flag("pages") || flag("country")) for (const r of rows) {
+    const o = await ops(`/api/usageDashboard?view=ops&task=obdiag&detail=1&rows=1&qs=${encodeURIComponent(r.g.q)}`);
+    let inc = null; try { inc = JSON.parse(o.text).cars[0].considered.included; } catch (e) {}
+    if (!inc) { r.country = { n: null, note: "no rows read" }; continue; }
+    const bases = {}, odd = [];
+    for (const x of inc) {
+      bases[x.countryBasis || "none"] = (bases[x.countryBasis || "none"] || 0) + 1;
+      const cc = String(x.country || "").toUpperCase();
+      if (!cc || cc === "XX" || !/^(US|CA)$/.test(cc) || /^(unknown|none)$/i.test(x.countryBasis || "")) odd.push(`${x.date} ${x.source} ${String(x.title).slice(0, 40)} (${cc || "none"}, ${x.countryBasis || "none"})`);
+    }
+    r.country = { n: inc.length, bases, odd };
+  }
+  // IDENTITY ROW (bare 1965 Ford Mustang): (a) each option count the page prints equals the count the page shows when that option is typed;
+  // (b) the option counts add up to the Any count on the bare page. A difference is a FAIL with both numbers.
+  for (const g of IDENT) {
+    const facts = async (q) => {
+      const rd = await readPage("marketCheck", q);
+      const p = PARSERS.marketCheck(rd.text);
+      const wm = /Which [^?\n]+\?\s*([^\n]+)/.exec(rd.text);
+      const options = wm ? [...wm[1].matchAll(/([A-Za-z][A-Za-z \/-]*?)\s*\((\d+)\)/g)].map(x => ({ label: x[1].trim(), n: Number(x[2]) })) : [];
+      return { count: p.count, options, scope: p.scope };
+    };
+    const any = await facts(g.q);
+    const checks = [];
+    for (const op of any.options) {
+      const pg = await facts(`${g.q} ${op.label.toLowerCase()}`);
+      const ok = pg.count === op.n;
+      checks.push({ name: `option ${op.label}`, cell: ok ? "PASS" : "FAIL", diffs: ok ? [] : [`the question prints ${op.label} (${op.n}); the page it opens shows ${pg.count == null ? "no count" : pg.count} sales`], shown: `${op.n} vs ${pg.count == null ? "-" : pg.count}` });
+    }
+    const sum = any.options.reduce((a, b) => a + b.n, 0);
+    const okSum = any.options.length > 0 && any.count != null && sum === any.count;
+    checks.push({ name: "options add up to Any", cell: okSum ? "PASS" : "FAIL", diffs: okSum ? [] : [any.options.length ? `${any.options.map(x => x.n).join(" + ")} = ${sum}, the bare page shows ${any.count == null ? "no count" : any.count} (Any)` : "the bare page prints no identity question"], shown: `${any.options.map(x => x.n).join("+") || "-"} vs ${any.count == null ? "-" : any.count}` });
+    identityOut = { q: g.q, any, checks };
+  }
   // CHASSIS-NUMBER GUARD (Oct 14 2026): a keyword is never read inside a chassis or lot number. The 1969 365 GT 2+2 whose chassis number is 12751
   // holds "275"; the engine's row fence must set it aside for a 275 GTB, not pool it. One read-only poolrows call, run with every full table.
   if (!flag("quick") && !ids.length) {
@@ -293,6 +333,14 @@ if (flag("pages")) {
   for (const r of rows) console.log(`  ${r.g.id}. ${pad(r.g.q, 42)}` + ["marketCheck", "buy", "sell", "tasks"].map(p => `${p}: ${r.pages && r.pages[p] ? r.pages[p].shown : "-"}`).join("   |   "));
   console.log("\nSell page count against the engine count (they must be equal):");
   for (const r of rows) { const lane = (byQ[r.g.q] && byQ[r.g.q].lanes || {}).sell; const sp = r.pages && r.pages.sell; const m = sp && /^(\d+|-)/.exec(sp.shown || ""); console.log(`  ${r.g.id}. ${pad(r.g.q, 42)} page ${m ? m[1] : "-"}   engine ${lane && lane.ok ? lane.count : "-"}`); }
+}
+if (rows.some(r => r.country)) {
+  console.log("\nCountry on the pool rows (US and Canada only; basis shows where the country came from; unknown or outside rows are listed):");
+  for (const r of rows) if (r.country) console.log(`  ${r.g.id}. ${pad(r.g.q, 42)} ${r.country.n == null ? r.country.note : r.country.n + " rows  " + Object.entries(r.country.bases).map(([k, v]) => k + " " + v).join(", ") + (r.country.odd.length ? "  UNKNOWN OR OUTSIDE: " + r.country.odd.join("; ") : "")}`);
+}
+if (identityOut) {
+  console.log(`\nIdentity row 21, ${identityOut.q}: the bare page shows ${identityOut.any.count == null ? "no count" : identityOut.any.count} sales (Any), options ${identityOut.any.options.map(x => x.label + " (" + x.n + ")").join(", ") || "none"}`);
+  for (const c of identityOut.checks) { console.log(`  ${pad(c.cell, 6)} ${pad(c.name, 26)} ${c.shown}`); for (const d of c.diffs) console.log(`         ${d}`); if (c.cell === "FAIL") nFail++; else if (c.cell === "PASS") nPass++; }
 }
 if (chassisGuard) console.log(`\nChassis-number guard (365 GT 2+2, chassis 12751, set aside from the 275 GTB pool): ${chassisGuard}`);
 console.log(`\n${nPass} PASS, ${nFail} FAIL, ${nDrift} RENDER DRIFT, ${nPend} PENDING (report-only; ${flag("strict") ? "strict: failures set the exit code" : "does not set the exit code"}).`);

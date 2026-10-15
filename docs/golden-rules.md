@@ -67,9 +67,9 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 1 | 2025 Porsche 911 | widen one year each side, bare model = base trims | year_widened, 2024 to 2026, 12 sales, $143,000 to $163,000 |
 | 2 | 2024 Porsche 911 Carrera S Coupe | widen, trim + body kept | year_widened, 2023 to 2025, 8 sales, $145,000 to $163,000 |
 | 3 | 1995 Porsche 911 Carrera | exact, Carrera 4 fenced out | exact, 37 sales, $64,000 to $107,000 |
-| 4 | 2008 Porsche 997 Carrera S Coupe | exact, chassis code | exact, 14 sales, $45,500 to $64,500 |
+| 4 | 2008 Porsche 997 Carrera S Coupe | exact, chassis code, last twelve months, US and Canada | exact, 11 sales, $58,500 to $69,000 |
 | 5 | 1969 Chevrolet Camaro | exact, halo aside (Z/28, SS, COPO, Yenko) | exact, 21 sales, $45,500 to $78,500 |
-| 6 | 2006 Mercedes-Benz CLK DTM | thin: house sales do not make an online range | year_widened, 2005 to 2007, 12 sales, no band |
+| 6 | 2006 Mercedes-Benz CLK DTM | thin: house sales do not make an online range; US and Canada only | year_widened, 2005 to 2006, 6 sales, no band |
 | 7 | 2008 Mercedes-Benz CLK63 AMG Black Series | Black Series is the pool asked for | exact, 35 sales, $95,000 to $146,000 |
 | 8 | 1957 Porsche 356 Speedster | exact at the threshold, online sales only | exact, 8 sales, $282,000 to $363,000 |
 | 9 | 1997 Land Rover Defender 110 | wheelbase carried | exact, 10 sales, $30,500 to $56,000 |
@@ -77,13 +77,14 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 11 | 1989 Merkur XR4Ti | thin model, no rung reaches eight | thin, no band |
 | 12 | 2024 Porsche 911 GT3 | halo trim asked for, window before years | year_widened, 2023 to 2024, 14 sales, $243,000 to $269,000 |
 | 13 | 2018 Ford Mustang GT | exactly eight, aftermarket package still counts | exact, 8 sales, $30,000 to $35,500 |
-| 14 | 1966 Ferrari 275 GTB | its own model (the 275 GTB/4 is out), blends across models | year_widened, 1965 to 1966, 10 sales, thin, no band |
+| 14 | 1966 Ferrari 275 GTB | its own model (the 275 GTB/4, GTS and GTB/C are out), blends across models, US and Canada only | year_widened, 1965 to 1966, 9 sales, thin, no band |
 | 15 | 1987 Buick Regal Grand National | typed words carried | exact, 55 sales, $35,500 to $56,000 |
-| 16 | 2005 Saab 9-2X | exact year, five-year window | exact, 20 sales, $9,000 to $13,500 |
+| 16 | 2005 Saab 9-2X | exact year, five-year window, modified cars fenced | exact, 16 sales, $9,000 to $13,000 |
 | 17 | 1931 Bugatti Type 41 | not enough data | not_enough_data, nothing on record |
 | 18 | 2011 Honda S2000 | year outside the production run, span clamped to 2009 | year_widened, 2009, 15 sales, $36,500 to $64,000 |
 | 19 | 1963 Chevrolet Corvette Split Window | typed word carried (the split window is the coupe) | exact, 38 coupes, $140,000 to $214,000 |
 | 20 | 1995 Acura NSX | exact, odd-sale fence (a Honda NSX-R set aside) | exact, 15 sales, $86,000 to $136,000 |
+| 21 | 1965 Ford Mustang (bare) | the identity question: every option opens the pool it counts, and the options add up to Any | each option count equals the count its page shows, options sum to Any |
 
 Per car, in the words of the derivation:
 
@@ -92,9 +93,9 @@ Per car, in the words of the derivation:
    Targa, Turbo and GT3 sales in those years are outside a bare 911. Label must say Carrera and Carrera S and 2024 to 2026.
 2. **2024 Carrera S Coupe.** 2024 alone holds 6. Adding 2023 (1) and 2025 (1) makes 8: stop at 2023 to 2025. Band p25 $144,875 and p75 $163,375.
 3. **1995 Carrera.** 37 sales in the twelve months, all 1995, Carrera 4 and RS excluded. Band $64,000 to $107,000.
-4. **2008 997 Carrera S Coupe.** 14 in the model-year window (twelve months holds fewer than eight). Band $45,500 to $64,500.
+4. **2008 997 Carrera S Coupe.** (Re-derived Oct 15 on e40 from poolrows, US and Canada only.) The last twelve months (since 15 Oct 2025) hold 11 coupes that pass every fence: Bring a Trailer 2026-04-16 $66,000, 2026-04-02 $59,500, 2026-01-02 $57,500, 2025-12-15 $70,000, 2025-12-01 $29,000, 2025-11-02 $60,000, 2025-10-28 $71,288 and $67,500; Cars & Bids 2026-08-19 $66,000 and 2025-12-02 $42,500; PCarMarket 2025-12-17 $76,000. Set aside: two modified coupes (2026-09-21, 2026-04-09), the cabriolets (a different body), and the Collecting Cars sales in Great Britain, Sweden and New Zealand (outside the US and Canada). Eleven is eight or more, so the window is the twelve months and the exact year is the rung. p25 $58,500 (halfway between $57,500 and $59,500) and p75 $68,750 (halfway between $67,500 and $70,000), so $58,500 to $69,000. No sale is above 1.35 times p75. The old 14 and $45,500 to $64,500 was an earlier window and included rows now outside the country rule; the count will fall as the two 28 Oct 2025 sales leave the window, so tol is 2.
 5. **1969 Camaro.** 21 base-trim sales (2 modified set aside). Band $45,500 to $78,500.
-6. **CLK DTM.** 2006 alone holds 6; 2005 to 2007 holds 12, all house sales. Online sales: 0, so the tier is thin and there is no band. The facts line
+6. **CLK DTM.** (Re-derived Oct 15 on e40, US and Canada only.) 2006 alone holds 3 (Broad Arrow 2026-03-07 $500,000, RM 2025-01-24 $575,000, Gooding 2022-08-20 $415,000; five-year window); 2005 adds 3 (RM 2024-08-17 coupe and cabriolet, RM 2023-11-17 coupe), 2007 none. the ladder widens to 2005 to 2007 but 2007 holds no sale in the pool, so the label names the years the pool really holds, 2005 to 2006, and holds 6, fewer than eight: the Broad Arrow, Bonhams and RM sales sold in Europe, the prototypes, the modified Bring a Trailer car and the no-photo rows are out. All six are house sales. Old reading was 12 (the earlier derivation counted the European sales). Online sales: 0, so the tier is thin and there is no band. Online sales: 0, so the tier is thin and there is no band. The facts line
    may state the lowest and highest real sale. Basis note: cards carry the all-in figure and the thin span carries hammer; pick one before printing.
 7. **CLK63 AMG Black Series.** Every one of the 35 titles says Black Series. Band $95,000 to $146,000.
 8. **356 Speedster.** (Settled Oct 14 from poolrows.) 1957 Speedster rows that are not replicas, re-creations, conversions or Carrera/Zagato cars: 33 since Feb 2022, 18 of them house sales and 15 online. House sales do not make the online range, so the pool is the online sales: the last twelve months hold 1, so the window looks back (five years, from 1 Feb 2022). Fifteen online rows less the Collecting Cars rows with no photo, one modified car and one odd sale leaves 8 to 10. The ladder stops on the exact year at eight. Band: p25 and p75 of the eight cards, $282,000 to $363,000 (tolPct 5, because the exact set depends on the photo and modified fences).
@@ -104,30 +105,31 @@ Per car, in the words of the derivation:
 12. **2024 GT3.** (Re-derived Oct 14 from poolrows, 300 rows of 2022 to 2026 GT3 sales; the old 25 counted the 2022 cars from a 12 month window.) The pool is the plain GT3: Touring, RS, Weissach, Manthey and Clubsport are other tiers, and Tribute and race cars are fenced. Plain GT3 by year on record: 2022 40, 2023 10, 2024 6, 2026 5, 2025 none. Exact 2024: 2 in twelve months, 6 over five years, never eight. Plus and minus one year (2023 to 2025): 6 in twelve months, so the window looks back: 9 in 18 months, 14 in 24 months. Eight reached, stop. The pool holds 2023 and 2024 (no plain 2025 sale), 14 sales since Oct 2024, p25 $243,125 and p75 $269,000: $243,000 to $269,000. The ladder stops at the first span that reaches eight, and the window rule extends the window inside the rung, so the whole generation (rung 3) is never needed. The label must read years, not the generation: "911 GT3, 2023 to 2024" (the whole-generation label would say a 2022 to 2026 pool).
 13. **2018 Mustang GT.** Eight sales, band $30,000 to $35,500. One is a Steeda Q500 Enforcer; an aftermarket package does not change the car, so it counts. (A Roush
     Jackhammer is set aside as an odd sale on price, not for the package.) Exactly eight, so the ladder stops on the exact year.
-14. **275 GTB.** The 275 GTB/4 (1966 to 1968, four-cam) is its own model and is out. What is left is the two-cam 275 GTB, including GTB/6C and Alloy: 1966 alone holds 7,
+14. **275 GTB.** (Re-derived Oct 15 on e40: US and Canada only; the GTB/C, GTB/4 and GTS are their own cars.) 1966 alone holds 4 (RM 2026-08-15 Alloy, RM 2024-08-17 GTB/6C Alloy, Broad Arrow 2024-08-15, Gooding 2023-08-19), 1965 adds 5 (RM 2026-08-15, Gooding 2023-03-02, RM 2022-08-20 GTB/6C, Gooding 2022-03-04, RM 2022-01-27), so 1965 to 1966 holds 9 and nine is the pool; the GTB/6C Alloy that is a project and the sales in Europe, Monaco, London and Switzerland are out. The last twelve months hold 2 and the window is five years. Every one is a house sale: thin, no band. Old reading was 10 (it counted a European sale). The text of the first derivation follows. The 275 GTB/4 (1966 to 1968, four-cam) is its own model and is out. What is left is the two-cam 275 GTB, including GTB/6C and Alloy: 1966 alone holds 7,
     1965 adds 3, so 1965 to 1966 holds 10 and the ladder stops. Every one is a house sale, so the tier is thin: the sales themselves, no band. (The engine pools 19: nine
     of them 1967 GTB/4.)
 15. **Grand National.** "Regal Grand National" and "Grand National" are one car. 55 sales (4 odd sales set aside), band $35,500 to $56,000. The label must say Grand National.
-16. **Saab 9-2X.** (Settled Oct 14 from poolrows; the one derivation that rests on the window reading.) 33 rows on record, all 2005 and 2006. Exact 2005: 4 in 36 months, 20 in the five-year window since 15 Oct 2021. The written window rule is "the last twelve months when it holds eight, otherwise back up to five years", so the exact year is the rung: 20 sales, p25 $9,000 and p75 $13,262, $9,000 to $13,500. The engine stops widening the window at 36 months for this car and lands on 2005 to 2006 with 6 sales and no band; that is the difference goldenTruth reports (Lane B's window).
+16. **Saab 9-2X.** (Re-derived Oct 15 on e40: the four modified Aero cars are now fenced, which is why 20 became 16.) 33 rows on record, all 2005 and 2006. Exact 2005: 16 in the five-year window since 15 Oct 2021 once the four modified cars are out ($6,900 to $17,750; the last twelve months hold none). p25 $8,992 and p75 $12,929: $9,000 to $13,000. DISPUTED WITH THE ENGINE: the engine reads 15 and $9,000 to $12,500 because its price-outlier fence (p75 times 1.35, high side) sets aside the $17,750 Cars & Bids sale of 2021-12-10 as an odd sale; the fence this file used for the Merkur (p75 plus 1.5 times the middle range, $18,835 here) keeps it. The row stays at the hand reading, so goldenTruth reports the difference until Sam picks the odd-sale rule. Earlier text: exact 2005: 4 in 36 months, 20 in the five-year window since 15 Oct 2021. The written window rule is "the last twelve months when it holds eight, otherwise back up to five years", so the exact year is the rung: 20 sales, p25 $9,000 and p75 $13,262, $9,000 to $13,500. The engine stops widening the window at 36 months for this car and lands on 2005 to 2006 with 6 sales and no band; that is the difference goldenTruth reports (Lane B's window).
 17. **Bugatti Type 41.** No sale on record: not enough data, say so.
 18. **Honda S2000, 2011.** (Re-derived Oct 14 from poolrows.) The S2000 was built 2000 to 2009. Exact 2011: none. Plus and minus two years is 2009 to 2013, but the ladder never goes past the curated production run, so the span is 2009 alone. 2009 holds 5 in twelve months to 24 months (9), and 18 in the five-year window since 23 Apr 2022; two CR cars ($170,000, $200,000) are odd sales, one more is below the floor or no photo: 15 to 16 sales (the engine used 14). p25 $36,375 and p75 $64,000: $36,500 to $64,000. The rung is year_widened, and the label must name the years the pool holds (2009). The old "model any year" reading assumed the widened span held no sale; it holds 2009.
 19. **Split Window.** The 1963 split-window is the coupe; the convertible is a different car. Re-derived Oct 14 from poolrows (1963 Corvette rows since 24 Oct 2025, convertibles fenced as a different body): 58 coupes, 39 of them online sales (house sales do not make the online range), less one odd sale ($312,500): 38, p25 $140,000 and p75 $213,500, so $140,000 to $214,000. The old 32 and $135,000 to $197,000 were the pool in October's first window; new BaT sales have moved it.
 20. **1995 NSX.** 15 NSX-T sales; a Honda NSX-R is set aside as an odd sale. Band $86,000 to $136,000.
+21. **1965 Ford Mustang, bare.** An identity check, not a range check (Oct 15). The page asks "Which Mustang?" and prints a count beside each body. Rule: (a) each printed option count equals the count the Market Check page shows when that option is typed ("1965 Ford Mustang coupe"); (b) the option counts add up to the Any count on the bare page, or an "Other" option carries the rest. goldenTruth reads the bare page, then each option's page, and reports every number. Until Lane B's next push the live page prints Convertible (33) and Coupe (19) against Any (69), and the Coupe page shows another count.
 
 ## 5. Machine-readable block (read by scripts/goldenTruth.mjs)
 
 Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRung`; `labelHas` words every product's label must contain;
 `count`, `countMin`, `tol`; `low`, `high` (null = no band, thin); `tolPct`; `empty` = nothing on record; `quick` = in the prePush subset;
-`page` = also check the Market Check page heading.
+`page` = also check the Market Check page heading; `identity` = the options-add-up check above (row 21), no range compared.
 
 ```json golden
 [
  {"id":1,"q":"2025 Porsche 911","status":"ready","rung":"year_widened","labelHas":["Carrera and Carrera S","2024 to 2026"],"count":12,"tol":2,"low":143000,"high":163000,"tolPct":3,"quick":true,"page":true},
  {"id":2,"q":"2024 Porsche 911 Carrera S Coupe","status":"ready","rung":"year_widened","labelHas":["Carrera S Coupe","2023 to 2025"],"count":8,"tol":2,"low":145000,"high":163000,"tolPct":3},
  {"id":3,"q":"1995 Porsche 911 Carrera","status":"ready","rung":"exact","labelHas":["1995","911 Carrera"],"count":37,"tol":3,"low":64000,"high":107000,"tolPct":3,"quick":true},
- {"id":4,"q":"2008 Porsche 997 Carrera S Coupe","status":"ready","rung":"exact","labelHas":["2008","997 Carrera S Coupe"],"count":14,"tol":0,"low":45500,"high":64500,"tolPct":0},
+ {"id":4,"q":"2008 Porsche 997 Carrera S Coupe","status":"ready","rung":"exact","labelHas":["2008","997 Carrera S Coupe"],"count":11,"tol":2,"low":58500,"high":69000,"tolPct":3},
  {"id":5,"q":"1969 Chevrolet Camaro","status":"ready","rung":"exact","labelHas":["1969 Camaro"],"count":21,"tol":3,"low":45500,"high":78500,"tolPct":3},
- {"id":6,"q":"2006 Mercedes-Benz CLK DTM","status":"ready","rung":"year_widened","labelHas":["CLK DTM","2005 to 2007"],"count":12,"tol":0,"low":null,"high":null,"thin":true},
+ {"id":6,"q":"2006 Mercedes-Benz CLK DTM","status":"ready","rung":"year_widened","labelHas":["CLK DTM","2005 to 2006"],"count":6,"tol":0,"low":null,"high":null,"thin":true},
  {"id":7,"q":"2008 Mercedes-Benz CLK63 AMG Black Series","status":"ready","rung":"exact","labelHas":["CLK63","Black Series"],"count":35,"tol":0,"low":95000,"high":146000,"tolPct":0},
  {"id":8,"q":"1957 Porsche 356 Speedster","status":"ready","rung":"exact","labelHas":["1957","356 Speedster"],"count":8,"tol":2,"low":282000,"high":363000,"tolPct":5},
  {"id":9,"q":"1997 Land Rover Defender 110","status":"ready","rung":"exact","labelHas":["1997","Defender 110"],"count":10,"tol":2,"low":30500,"high":56000,"tolPct":3},
@@ -135,12 +137,13 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":11,"q":"1989 Merkur XR4Ti","status":"ready","labelHas":["XR4Ti"],"low":null,"high":null,"thin":true},
  {"id":12,"q":"2024 Porsche 911 GT3","status":"ready","rung":"year_widened","labelHas":["GT3","2023 to 2024"],"count":14,"tol":2,"low":243000,"high":269000,"tolPct":3,"quick":true},
  {"id":13,"q":"2018 Ford Mustang GT","status":"ready","rung":"exact","labelHas":["2018","Mustang GT"],"count":8,"tol":0,"low":30000,"high":35500,"tolPct":0},
- {"id":14,"q":"1966 Ferrari 275 GTB","status":"ready","rung":"year_widened","labelHas":["275 GTB","1965 to 1966"],"count":10,"tol":0,"low":null,"high":null,"thin":true},
+ {"id":14,"q":"1966 Ferrari 275 GTB","status":"ready","rung":"year_widened","labelHas":["275 GTB","1965 to 1966"],"count":9,"tol":0,"low":null,"high":null,"thin":true},
  {"id":15,"q":"1987 Buick Regal Grand National","status":"ready","rung":"exact","labelHas":["1987","Grand National"],"count":55,"tol":0,"low":35500,"high":56000,"tolPct":0},
- {"id":16,"q":"2005 Saab 9-2X","status":"ready","rung":"exact","labelHas":["2005","9-2X"],"count":20,"tol":3,"low":9000,"high":13500,"tolPct":5},
+ {"id":16,"q":"2005 Saab 9-2X","status":"ready","rung":"exact","labelHas":["2005","9-2X"],"count":16,"tol":0,"low":9000,"high":13000,"tolPct":0},
  {"id":17,"q":"1931 Bugatti Type 41","status":"ready","rung":"not_enough_data","labelHas":[],"empty":true},
  {"id":18,"q":"2011 Honda S2000","status":"ready","rung":"year_widened","labelHas":["S2000","2009"],"count":15,"tol":2,"low":36500,"high":64000,"tolPct":3},
  {"id":19,"q":"1963 Chevrolet Corvette Split Window","status":"ready","rung":"exact","labelHas":["1963"],"count":38,"tol":3,"low":140000,"high":214000,"tolPct":3},
- {"id":20,"q":"1995 Acura NSX","status":"ready","rung":"exact","labelHas":["1995","NSX"],"count":15,"tol":2,"low":86000,"high":136000,"tolPct":3}
+ {"id":20,"q":"1995 Acura NSX","status":"ready","rung":"exact","labelHas":["1995","NSX"],"count":15,"tol":2,"low":86000,"high":136000,"tolPct":3},
+ {"id":21,"q":"1965 Ford Mustang","status":"ready","identity":true,"labelHas":["Mustang"]}
 ]
 ```
