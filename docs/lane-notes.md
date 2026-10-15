@@ -7766,3 +7766,162 @@ Search check: no public page touched.
 - STILL OPEN (Lane C, not changed): on the first cold view after e42, five 997 cards came back "pending" from enrich after two minutes and stayed blank; a reload a few minutes later showed all six. The page asks enrich once.
 - PROOFS (~/Desktop/goasksam-proofs/buy/e42/, 1440 and 390, JSON in json/): black Porsche 911 (with the GT2 card), red Porsche 911, red BMW, 997 Carrera, E46 M3, "2014 black Porsche 911", 1997 Porsche 911 Targa (card 100494), the Canadian Mustang card. Every card: one photo, chips only as stated, the pill outlined level with the name, View auction the only dark button, no banned word, no first person, no dash ("worth" matched only the town Fort Worth, TX). ENGINE: 46 distinct cars, count and range the same on Market Check, Buy, Tasks and Sell (keyed enginecheck task, e42). E46 M3 now shows five M3s (no 325ci or 330i).
 Search check: no public page touched; /buy result views are noindex.
+
+## Lane A, Oct 15 2026: thin-tile treatment, variant_choice, tester cookie, 275 GTB and Speedster notes
+
+JOB 1, thin-tile treatment. Replaces "There are too few sales in each quarter to chart how this
+market has moved." with the mockup's own treatment whenever the engine returns a pool with no
+quarter trend (candleChartHtml empty): a left-column serif sentence always ("{Count} sales. Too
+few to show movement, enough to show where they landed."); a right-column grid, one tile per sale
+in the pool actually rendered (3-16 sales, highest price first, each tile a new-tab link to the
+sale, no tracking redirect), with a trust line and any set-aside sentence. Above 16 sales or an
+identityQuestion pending or a VIN/chassis page with its own sale history (d.ownSales): unchanged,
+old single line. Below 3 (only reachable on the labelled-rung "thin" tier): serif line only, no
+tiles. Shared by the result tier (pool = d.cards) and the labelled-rung tier (pool = that render's
+own newestFirst array) via one function, thinTileTreatment(d, m, pool) - every printed number is
+pool.length or an engine count field, nothing computed from a second source. "Sales behind this
+answer" (three cards + its own foot links) is suppressed only when tiles actually render, since
+every sale is already on screen; the full "All N comparable sales" table below is untouched.
+Two real bugs found and fixed while proving this against live cars, both pre-existing, not
+introduced this round: (1) the exact-rung scope line had no reader for the engine's own variant-
+market clause (lib/onebox.js variantSuffix, ", pushrod cars") - only body-style words - so "1957
+Porsche 356 Speedster" read "1957" instead of "Pushrod cars, 1957"; new variantTailOf reads the
+same clause structurally (ends in "cars", "cars (...)" or "cars mixed"), wired into both scope-line
+builders. (2) the thin tier's own pool (thinCardsFrom) builds its month field with full month names
+(monthYear, client) while the result tier's pool (shapeCards) builds it with three letters (server
+monthYear) - tiles now read monShort(c.date) directly so every tile prints "Mon YYYY" the same way
+regardless of which tier supplied the pool.
+PROVEN LIVE, every number listed against its engine field:
+- 1957 Porsche 356 Speedster (car=1957-porsche-356-speedster): d.tier result, d.soldCount "eight",
+  d.cluster [282000,363000], d.cards.length 8, d.counts {used:8, setAside.total:2, qualifying:10,
+  reasons:{modified:1,"odd sale":1}}. Page: H1 "1957 Porsche 356 Speedster"; scope "Pushrod cars,
+  1957 · eight sales · latest Apr 15" (variantTailOf fix); range "$282,000 to $363,000"; serif line
+  "Eight sales. Too few to show movement, enough to show where they landed."; eyebrow "The eight
+  sales"; 8 tiles, $491,000 down to $198,000 (ordered by price, highest first - the cluster is the
+  middle half of this same 8, so individual sales legitimately sit outside it on both ends); trust
+  line "...Two sales set aside: a modification and an odd sale." (2 = d.counts.setAside.total,
+  reasons from d.setAsideReasons); "Sales behind this answer" absent. Screenshots: 356-speedster-
+  {1440,390}-{light,dark}.png.
+- 2023 Porsche 911 GT3 (car=2023-porsche-911-gt3): d.tier result, d.soldCount "nine", d.cluster
+  [241000,265000], d.cards.length 9, d.counts.setAside.total 0. Page: H1 "2023 Porsche 911 GT3";
+  scope "2023 · nine sales · latest Aug 19"; range "$241,000 to $265,000"; serif line "Nine
+  sales...."; eyebrow "The nine sales"; 9 tiles, $270,000 down to $233,000; trust line with no set-
+  aside sentence (correct - nothing was set aside). Screenshots: gt3-2023-{1440,390}-{light,dark}.png.
+- 2006 Mercedes-Benz CLK DTM (car=2006-mercedes-benz-clk-dtm): d.tier thin (labelled rung, not the
+  result tier), d.cards.length 6, d.factsBlock {count:6, lowest/highest absent - below the 8-sale
+  "Where they sold" gate}. Page: H1 "2006 Mercedes-Benz CLK DTM"; scope "CLK DTM, 2005 to 2006,
+  cabriolets and coupes · Six sales since August 2022..."; no range line (honest - the facts gate
+  needs 8+, this pool has 6); serif line "Six sales...."; eyebrow "The six sales"; 6 tiles, $720,000
+  down to $461,500, each reading "Nov 2023 · RM Sotheby's" etc. (month-format fix confirmed - was
+  "November 2023" before); trust line with no set-aside sentence (d.counts does not exist on this
+  tier - correct, nothing to reconcile). Screenshots: clk-dtm-{1440,390}-{light,dark}.png.
+- 1993 Porsche 911 Carrera RS Targa (car=1993-porsche-911-carrera-rs-targa): d.tier not_tracked,
+  zero evidence ("We haven't tracked a sale of this car yet"), confirmed against the e40 sweep's own
+  finding ("nothing on record"). This tier never reaches heroRangeHtml/thinHeroHtml at all - outside
+  Job 1's scope by construction, no page change needed. Screenshots: 911-rs-targa-{1440,390}-
+  {light,dark}.png (the plain no-evidence card).
+- 1965 Ford Mustang (car=1965-ford-mustang), the count-check Sam asked for: d.tier result,
+  d.soldCount 69, d.trend PRESENT (candle chart, correctly outside Job 1's scope - trend exists, the
+  old "too few sales" line was never the issue here). d.bodyOptions sums to 65 (Convertible 33 +
+  Coupe 20 + Fastback 12) against a 69 total - a 4-car gap, not the originally reported pattern
+  ("18 sales" scope vs "Coupe (19)" identity-line, a total SMALLER than one category, which would be
+  impossible arithmetically and read as a genuine bug). The severe mismatch Sam described appears
+  resolved by Lane B's intervening pushes (e42-e45, including the body/trim-chip-never-widens fix,
+  d25cdfa). The residual 69-vs-65 gap is consistent with an honest unclassified remainder (some rows
+  with no identifiable body style, correctly excluded from the body breakdown while still counted in
+  the total) rather than a bug, but flagged for Lane B to confirm rather than assumed. Screenshots:
+  1965-mustang-{1440,390}-{light,dark}.png.
+- 2005 Porsche 911 (car=2005-porsche-911), candle regression check: d.tier result, d.soldCount 39,
+  d.trend present, d.cards.length 39, d.counts.setAside.total 0. Page byte-for-byte the same shape
+  as before this round: H1, scope "Coupes, cabriolets and targas, 2005 · 39 sales · latest Oct 7",
+  range "$36,500 to $51,500", real candle chart, "Sales behind this answer" present. No thin-tile
+  code fired (serif line/eyebrow/tiles all absent) - confirmed unchanged. Screenshots: 2005-911-
+  candle-{1440,390}-{light,dark}.png.
+DARK SCREENSHOTS: Market Check carries no dark-mode CSS at all today (confirmed: grepped
+public/onebox.html for prefers-color-scheme, none; only public/onebox-preview.html - a DIFFERENT
+page - has one). Every "dark" screenshot above is rendered with Puppeteer's own
+emulateMediaFeatures(prefers-color-scheme: dark) and reads pixel-identical to its light
+counterpart, proving the page does not break under a dark OS preference rather than asserting it.
+Did not add dark CSS scoped to only the new tiles - that would make the new chrome switch themes
+while the surrounding hero/table/rail stayed light, a worse result than no dark mode at all. Full
+page dark-mode support is a real, standing product decision outside this job's three-file scope;
+flagged rather than decided unilaterally.
+
+JOB 2, variant_choice. d.tier "variant_choice" with the richer d.variantChoices shape (Lane B's e41
+FOR LANE A note: key/label/count/refine chip objects, separate-markets split like 1957 356
+Speedster Pushrod vs Carrera four-cam) now renders its own takeover screen (variantChoiceTakeoverHtml/
+renderVariantChoice) instead of falling through to the generic identityTakeoverHtml: every option as
+a chip plus a new "Any (N)" chip (N = the sum of the engine's own two given counts, since this pre-
+answer screen carries no separate combined total to read) that clears the variant refine - same chip-
+plus-Any pattern as the in-result "Which 911?" identity line, applied to this pre-answer context. The
+existing Competition Package question (variant_choice with plain variantOptions strings, no
+variantChoices) is untouched, confirmed by the dispatch's own && guard. "It fires on no live spec
+today" (Lane B's own note) held - no real car currently reaches this tier, so PROVEN via a mocked
+sellerDecision response (Puppeteer request interception, Chrome only, never touching the real
+engine) matching Lane B's exact documented shape verbatim: H1 "1957 Porsche 356 Speedster", question
+"Which 1957 Porsche 356 Speedster? The Carrera four-cam cars and the pushrod cars sell in different
+markets.", three links "Pushrod cars (14 sales) →", "Carrera four-cam cars (9 sales) →", "Any (23)
+→". Screenshots: job2-variant-choice-{1440,390}.png. FOR LANE B: no live spec to prove this against
+yet - flag the same spec Sam gave (1957 356 Speedster or any other variant-market car) here once one
+exists, so it can be proven for real.
+
+JOB 3, tester cookie. public/onebox.html's pre-launch browser gate checked the old plain
+gas_tester=ok shape; changed to gas_tester=t1. (the signed shape prefix, same check the gas_crew=v1.
+branch beside it already used) - one tester gate, matching lib/_tester.js's own mintTesterCookieValue
+format. Browser-side shape check only, never the HMAC (unlock happens server-side, isTesterRequest).
+PROVEN: a plain gas_tester=ok cookie gets no access before AND after this fix (redirected to /sell on
+every test) - the server-side launch-stage gate (api/marketCheck.js) already rejects the old shape
+independently, so there is no observable behavior change from this specific fix alone, but it removes
+the inconsistency (one page reading a format the server never accepts) and matches the crew cookie's
+own already-corrected pattern.
+
+NOTE 1 (Sam, "find why the 275 GTB page drops its count and range"). "1966 Ferrari 275 GTB"
+(car=1966-ferrari-275-gtb): d.tier thin, d.factsBlock {count:9, lowest:1215000, highest:3481000,
+onlineLiquidityN:0}, d.thin.houseSteer true. NOT a refusal and not a rendering drop - the FIRST
+LOAD correctly shows the EXISTING price-split intake screen ("Before the numbers, one thing about
+the 1966 Ferrari 275 GTB. One thing separates these on price: whether it is pro restoration." with
+chips Pro restoration / Not pro restoration / Just show what sold), a deliberate, pre-existing
+mechanism (thinHtml's own ht.intake + htChoice===null gate) that blocks the hero until answered or
+skipped - and it already has its own reversible skip (product rule 2, "Just show what sold"), which
+I clicked to verify the content underneath. After the skip: H1 "1966 Ferrari 275 GTB", scope "275
+GTB, 1965 to 1966, road cars · Nine sales since January 2022...", "Where they sold $1,215,000 to
+$3,481,000" (the 8+ facts-block gate), serif line "Nine sales. Too few to show movement...", eyebrow
+"The nine sales", 9 tiles (Job 1's own treatment, correctly firing for this 9-sale thin-tier pool),
+trust line with no set-aside sentence (d.counts absent on this tier, as designed). Screenshots: 275-
+gtb-post-skip-{1440,390}.png. goldenTruth's automated page-scrape sees the FIRST-LOAD intake
+question (accurately - that really is what renders before any click), which reads as "no count, no
+range" to a script that never clicks past it; this is NOT a Market Check bug. Whether the intake
+gate itself should be reconsidered (skip it outright, or show the range first with the split offered
+as a secondary refinement) is a product decision affecting every car with a genuine bimodal price
+intake, not scoped to this one car - did not change it without being asked to; flagging for Sam's
+call rather than deciding unilaterally.
+
+NOTE 2 (Sam, "screenshot the new Did you mean the 1986 Porsche 911 Cabriolet? question"). Found a
+real, separate gap while testing this: the engine's fix landed mid-round (91166e2, "One Box returns
+a typo confirmation to the page instead of running the engine on the guessed car") but the page had
+no branch for it at all - d.status "needs_confirmation" (a DIFFERENT string than the existing
+"needs_clarification" the page already handled) fell through to the generic calm-line error ("Sam's
+catching his breath"), confirmed live before the fix. Added typoConfirmHtml/renderTypoConfirm (same
+no-box question shell every other screen uses) plus a runPool branch and a [data-typo-chip] click
+handler: each car-name chip re-runs a fresh search (run()), "Change car" clears back to the search
+box, "Not sure" runs the clarification's own baseVehicle text (never a dead end, rule 8). PROVEN LIVE
+on "1986 Porsche 911 Carrera Speedster" (q param): question "The factory 911 Speedster was built for
+1989 and for 1993 to 1994, so there is no 1986 one. Did you mean the 1986 Porsche 911 Cabriolet?",
+five chips exactly as the engine gave them ("1986 Porsche 911 Cabriolet", "1989 Porsche 911
+Speedster", "1994 Porsche 911 Speedster", "Change car", "Not sure"). Screenshots: 1986-carrera-
+speedster-confirm-{1440,390}.png.
+
+Commits: a18c27f (job 1/2/3 initial), 2e11288 (scope-line variant fix), 477954d (tile month-format
+fix), 2134c6b (typo confirmation render) - all on main, Vercel Ready after each push. prePush: every
+push 0 FAIL, 6 SKIP (archive checks, no local Supabase credentials), 22 PASS; speed reads 2.7s to
+9.5s against budgets of 8-18s on every run.
+
+Copy check: read every new sentence top to bottom - no worth/value/valuation/estimate/appraisal/
+pricing/median/percentile/alert/watch, no "your car" (ownership-neutral throughout, matches rule
+20), no first-person Sam, no em or en dashes, number words one to ten in sentences (digits inside
+tiles only, per the brief), thousands separators from 1,000 (usd()/toLocaleString, unchanged shared
+helpers). Nothing read unnatural on a top-to-bottom pass.
+
+Search check: no title/H1/canonical/meta changed on any page; the new tile grid, variant_choice
+screen and typo-confirmation screen are all within the existing Market Check template (noindex,
+nofollow unchanged, public/onebox.html line 7). Result pages stay noindex.
