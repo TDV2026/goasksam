@@ -4366,6 +4366,28 @@ async function handleOps(req, res) {
     const { liveSpecKeyCounts } = await import("../lib/live/search.js");
     return res.status(200).json({ task: "liveSpecKeys", ...(await liveSpecKeyCounts(env)) });
   }
+  // task=warmStale&q=<car> (stage 4 proof, credentialed): marks one car's stored Market Check row as if an ingest had
+  // moved the epoch since it was stored, so the next public read serves it stale (with the dated line) and recomputes.
+  // Changes no answer: the row keeps its stored answer; only its epoch stamp is replaced.
+  if (task === "warmStale" || task === "warmstale") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const q = String(req.query?.q || "").trim();
+    if (!q) return res.status(400).json({ error: "q required" });
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { warmAnswerKeyFor } = await import("../lib/live/search.js");
+    const { supabaseSelect } = await import("../lib/_supabase.js");
+    const rv = await resolveVehicle(q, {}); const vehicle = rv && rv.vehicle;
+    if (!vehicle || !vehicle.make) return res.status(200).json({ task: "warmStale", q, error: "unresolved" });
+    const generation = await findGeneration(vehicle, env).catch(() => null);
+    const key = warmAnswerKeyFor(vehicle, generation, null);
+    const rows = await supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent(key)}&select=market,computed_at`);
+    const row = rows && rows[0];
+    if (!(row && row.market && row.market.raw)) return res.status(200).json({ task: "warmStale", q, key, found: false });
+    const market = { ...row.market, warmEpoch: "stale-test-" + Date.now() };
+    await fetch(`${env.supabaseUrl}/rest/v1/spec_market_cache?on_conflict=spec_key`, { method: "POST", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify([{ spec_key: key, market, computed_at: row.computed_at }]) });
+    return res.status(200).json({ task: "warmStale", q, key, found: true, storedAt: row.computed_at, previousEpoch: row.market.warmEpoch || null });
+  }
   if (task === "warmHeld" || task === "warmheld") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { heldLiveSpecs } = await import("../lib/live/search.js");

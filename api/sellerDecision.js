@@ -49,7 +49,7 @@ import {
 } from "../lib/_classify.js";
 import { hammerUsd, ensureFxReady } from "../lib/_houseComps.js";
 import { buildSharedAnalysis, isRoutableVenue, ROUTABLE_VENUES, SHORT_AUCTION_VENUES, US_ROUTE_VENUES } from "../lib/platformPick.js";
-import { specKeyFor, coreOf, persistCore, warmAnswerKeyFor, readWarmAnswer, writeWarmAnswer, answerCacheable } from "../lib/live/search.js";
+import { specKeyFor, coreOf, persistCore, warmAnswerKeyFor, readWarmAnswer, readWarmAnswerDetailed, writeWarmAnswer, answerCacheable } from "../lib/live/search.js";
 
 import { isCrewRequest } from "../lib/_crew.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
@@ -3491,17 +3491,23 @@ async function handler(req, res) {
       // OWN warm row (specKeyFor carries refine.body/trim/variant), so "2005 Porsche 911" and "2005 Porsche 911, Coupe"
       // can never share an entry whichever runs first. A mileage, gearbox, driver, observable or document refine
       // still computes live, as before.
-      const identityRefine = obRefine && (obRefine.body || obRefine.trim || obRefine.variant) && !(obRefine.miMin != null || obRefine.miMax != null || obRefine.tx || obRefine.driver || obRefine.observe || obRefine.docHistory)
-        ? { body: obRefine.body || null, trim: obRefine.trim || null, variant: obRefine.variant || null } : null;
-      // fresh (credentialed only, stripped otherwise): skip the warm row so a cold answer can be timed stage by stage.
-      const wantsWarm = (!obRefine || !!identityRefine) && !exactSale && vehicle && vehicle.make && !vehicle.vin && !vehicle.chassis && Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) === 0 && !req.body?.fresh;
+      // MARKET REFINE (stage 4, Sam's OK Oct 15 2026): a body, trim or variant chip and the gearbox chip name a MARKET
+      // (they are in specKeyFor), so their answers are stored and read like the bare page's; a mileage, driver,
+      // observable or document refine is not a market and still computes live.
+      const identityRefine = obRefine && (obRefine.body || obRefine.trim || obRefine.variant || obRefine.tx) && !(obRefine.miMin != null || obRefine.miMax != null || obRefine.driver || obRefine.observe || obRefine.docHistory)
+        ? { body: obRefine.body || null, trim: obRefine.trim || null, variant: obRefine.variant || null, tx: obRefine.tx || null } : null;
+      const askedN = Math.max(0, Math.min(9, Number(req.body?.asked) || 0));
+      // The bare page's stored row is the asked-0 answer; a refined market's row is read whatever the ask count (the
+      // refine answered the question), so a chip page reads its stored row too.
+      const wantsWarm = (!obRefine || !!identityRefine) && !exactSale && vehicle && vehicle.make && !vehicle.vin && !vehicle.chassis && (identityRefine ? true : askedN === 0) && !req.body?.fresh;
       const warmKey = wantsWarm ? warmAnswerKeyFor(vehicle, generation, identityRefine) : null;
+      let staleInfo = null;   // { storedAt } when a stale stored answer is being served; the recompute runs after the response
       if (wantsWarm) {
         try {
           const tw = Date.now();
-          const warmed = await readWarmAnswer({ supabaseUrl, supabaseKey }, warmKey);
+          const w = await readWarmAnswerDetailed({ supabaseUrl, supabaseKey }, warmKey);
           obTimes.warmReadMs = Date.now() - tw;
-          if (warmed) { oneBox = warmed; warmHit = true; }
+          if (w && w.raw) { oneBox = w.raw; warmHit = true; if (w.stale) staleInfo = { storedAt: w.storedAt }; }
         } catch { /* fall through to the live path below */ }
       }
       try {
@@ -3513,7 +3519,7 @@ async function handler(req, res) {
           ]);
           oneBox = engineAnswer.raw;
           obTimes.engineMs = Date.now() - te;
-          if (wantsWarm && answerCacheable(oneBox)) {
+          if (wantsWarm && answerCacheable(oneBox) && !/_choice$/.test(String(oneBox && oneBox.tier || ""))) {
             await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, oneBox).catch(() => {});
           }
         }
@@ -3597,8 +3603,23 @@ async function handler(req, res) {
       }
       // timings (speed job): where a Market Check answer's time went, stage by stage; diagnostics, never read by a page.
       const dd = oneBox && oneBox.dedup;
-      const timings = { ...obTimes, warmHit, totalMs: Date.now() - reqStart, marks: dd && Array.isArray(dd.marks) ? dd.marks : null, fetchMs: dd && Array.isArray(dd.fetches) ? dd.fetches.map(f => Number(f.ms) || 0) : null };
-      return res.status(200).json({ status: "one_box", ...oneBox, snapshotId: snapshotId || undefined, timings });
+      const timings = { ...obTimes, warmHit, stale: !!staleInfo, totalMs: Date.now() - reqStart, marks: dd && Array.isArray(dd.marks) ? dd.marks : null, fetchMs: dd && Array.isArray(dd.fetches) ? dd.fetches.map(f => Number(f.ms) || 0) : null };
+      // STALE STORED ANSWER (stage 4): served exactly as stored (its counts, range and cards), with the dated line in
+      // Sam's exact form; the recompute starts the moment this response is sent (awaited after it, so the function
+      // stays alive to finish and write the fresh row), and the line is gone on the next read.
+      const staleFields = staleInfo ? { stale: true, storedAt: staleInfo.storedAt, staleLine: `Sales read on ${new Date(staleInfo.storedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "America/Los_Angeles" })}. Sales since then are not in yet. Updating now.` } : {};
+      res.status(200).json({ status: "one_box", ...oneBox, ...staleFields, snapshotId: snapshotId || undefined, timings });
+      if (staleInfo) {
+        try {
+          const fresh = await oneEngineAnswer(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, asked: askedN }, obRefine);
+          const fr = fresh && fresh.raw;
+          if (fr && answerCacheable(fr) && !/_choice$/.test(String(fr.tier || ""))) {
+            await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, fr).catch(() => {});
+            if (fr.tier === "result" && vehicle.model) { const core = coreOf(fr, { v: vehicle, generation, refine: null }); if (core) await persistCore({ supabaseUrl, supabaseKey }, specKeyFor(vehicle, generation, identityRefine), core).catch(() => {}); }
+          }
+        } catch (e) { console.error(`stale recompute failed: ${(e && e.message) || e}`); }
+      }
+      return;
     }
 
     // Price-step transparency (#68): a seller who DEFERS the asking price gets THE RECORD
