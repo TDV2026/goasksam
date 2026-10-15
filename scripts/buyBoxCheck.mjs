@@ -25,6 +25,7 @@ ok(/\[60, 400\]\.forEach/.test(client), "the box is cleared again if the phone's
 const ph = (client.match(/PH_FOLLOW = "([^"]+)"/) || [])[1] || "";
 ok(ph === "Follow up, like only manuals", `the follow-up line is the one proved live ("${ph}")`);
 ok(!/[–—]/.test(ph) && !/\b(I|I'm|I'll|me|my)\b/.test(ph) && ph.length <= 30, "the follow-up line: no dash, no first person, fits a phone");
-ok(/var res = log\.querySelector\("\.msg\.results:not\(\[hidden\]\)"\), want = res \? PH_FOLLOW : PH_FIRST;/.test(client), "the follow-up line only while a result is on the page");
+ok(/var res = log\.querySelector\("\.msg\.results:not\(\[hidden\]\)"\), want = res \? PH_FOLLOW : phFirst\(\);/.test(client), "the follow-up line only while a result is on the page");
+ok(/PH_NARROW = "Change the search, or ask\."/.test(client) && /matchMedia\("\(max-width: 520px\)"\)/.test(client), "a phone's first-search line is the short one that fits at 360");
 console.log(`buyBoxCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
