@@ -862,7 +862,12 @@
     var chosen = obLastRefine && obLastRefine.body;
     var orig = obIdOrigBody;
     var opts = (d && d.bodyOptions) || (chosen && orig ? orig.options : []);
-    var shown = opts.filter(function (o) { return Number(o.n) >= 8 || (chosen && String(o.value) === String(chosen)); });
+    // Found live (Sam's table run, e54): a stale >= 8 floor dropped "Body not stated" on the Mustang
+    // (4) and the Camaro (1) - not an unknown-label issue and not a zero-count filter (there was none
+    // here before), just this threshold. Sam's decision: every option the engine returns with a real
+    // count renders, in the same chip style, no per-option floor - "Body not stated" is an honest
+    // bucket, not a choice to be hidden for being small.
+    var shown = opts.filter(function (o) { return Number(o.n) > 0 || (chosen && String(o.value) === String(chosen)); });
     if (!chosen && shown.length < 2) return "";
     var items = shown.map(function (o) {
       var isChosen = chosen && String(o.value) === String(chosen);
