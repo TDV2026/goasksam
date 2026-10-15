@@ -234,6 +234,21 @@ button{font:inherit}
 .thin-tile-price{margin:0;font:600 17px/1.2 var(--serif);color:var(--ink);font-variant-numeric:tabular-nums}
 .thin-tile-meta{margin:2px 0 0;font:400 13px/1.35 var(--sans);color:var(--sec)}
 .thin-trust{margin-top:14px;font:400 14px/1.5 var(--sans);color:var(--sec)}
+/* Round four (Sam's review, too much white space): set-aside sales get their own block, never the
+   sales grid - .thin-tiles-aside is always two across (both widths, no media override needed).
+   9-16 sales move the sales grid out of hero-right into its own full-width section below the hero
+   (.thin-tiles-full), six across at this width; the aside block (if any) sits under that grid. All
+   three modifier rules sit after the base .thin-tiles rule on purpose - equal specificity, source
+   order decides, and a rule declared earlier in the file has already lost that exact fight once this
+   round (the no-photo fallback fix two commits back). */
+.thin-tiles-aside{grid-template-columns:repeat(2,minmax(0,1fr))}
+.thin-tiles-wide{grid-template-columns:repeat(6,minmax(0,1fr))}
+/* .hero-left's own flex gap (10px) already separates every child; this block gets a bit more, same
+   pattern as .hero-label-range above a secondary heading. */
+.thin-aside-block{margin-top:16px}
+.thin-aside-eyebrow{margin:0}
+.thin-tiles-full{margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+.thin-tiles-full .eyebrow{margin:0}
 
 /* ---- question screens (item 4, mockup match round, Oct 2026): VIN confirm, generation, model,
    body, typo-clarification, the identity takeover (gearbox/competition/documented-history) and the
@@ -630,6 +645,9 @@ a.sb-line:hover{color:var(--green)}
   .hero2col .range{font-size:28px;white-space:normal}
   .hero-idline,.hero-idlink,.hero-idlink-chosen{font-size:16px}
   .thin-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  /* Round four: .thin-tiles-aside stays two across (the base, unconditional rule already covers
+     phone width); .thin-tiles-wide (9-16 sales, full width under the hero) drops to three across. */
+  .thin-tiles-wide{grid-template-columns:repeat(3,minmax(0,1fr))}
   /* Job 2 (round two): phone's .hc-svg scales down further than desktop's (measured live: ~0.41 vs
      ~0.56 - the chart is full width here but a shorter box, a bigger scale drop than the half-width
      desktop column), so the same real-13px target needs a bigger SVG-unit base at this width. */

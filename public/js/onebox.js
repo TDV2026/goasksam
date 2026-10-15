@@ -1046,52 +1046,21 @@
   // excluded (null) - both keep today's single-line treatment, unchanged. variant_choice/refusal
   // pages never reach this function at all (separate tiers, separate render paths), so they need no
   // extra gate here.
-  var THIN_ASIDE_LABEL = { modified: ["a modification", "modifications"], project: ["a project car", "project cars"], replica: ["a replica", "replicas"], "odd sale": ["an odd sale", "odd sales"], variant: ["a different variant", "different variants"] };
   // Job 5 (round two): the small label printed ON a set-aside tile - a known reason key reads its
   // established short word; any OTHER reason the engine returns (the brief's "and any other reason
   // the engine returns") reads back exactly as given, first letter capitalised, never invented or
-  // guessed at. Deliberately a different (shorter) wording than THIN_ASIDE_LABEL above, which builds
-  // the trust-line SENTENCE ("a modification") - this builds a tile OVERLAY word ("Modified").
+  // guessed at.
   var THIN_ASIDE_TILE_LABEL = { modified: "Modified", project: "Project car", replica: "Replica", "odd sale": "Odd sale", variant: "Different variant", restoration: "Professional restoration", "professional restoration": "Professional restoration" };
   function thinAsideTileLabel(reason) {
     var key = String(reason || "").toLowerCase();
     if (THIN_ASIDE_TILE_LABEL[key]) return THIN_ASIDE_TILE_LABEL[key];
     return reason ? cap(String(reason)) : "";
   }
-  // "Use only the reason words the engine supplies": d.setAsideCount/d.qualifyingTotal (e47, Lane B)
-  // are now uniform across every tier (result AND the labelled-rung thin tier both carry them,
-  // unlike the older d.counts object, which is result-tier only), so this reads those instead of
-  // d.counts - the same reconciliation, now available everywhere the tile grid is. Reason words are
-  // aggregated straight off asideRows[i].reason (the same field the tile labels read), never a
-  // separate summary object that might not exist on every tier - one source for both. Prints nothing
-  // when the arithmetic does not reconcile against the pool actually rendered here - silently, per
-  // the brief; any real mismatch observed live is reported under FOR LANE B instead of guessed at.
-  var THIN_ASIDE_LABEL = { modified: ["a modification", "modifications"], project: ["a project car", "project cars"], replica: ["a replica", "replicas"], "odd sale": ["an odd sale", "odd sales"], variant: ["a different variant", "different variants"], restoration: ["a professionally restored car", "professionally restored cars"], "professional restoration": ["a professionally restored car", "professionally restored cars"] };
-  function thinAsideSentence(d, poolLen, asideRows) {
-    var aside = Array.isArray(asideRows) ? asideRows : [];
-    var total = aside.length;
-    if (!total) return "";
-    var qualifying = Number(d && d.qualifyingTotal);
-    if (!Number.isFinite(qualifying) || poolLen + total !== qualifying) return "";
-    var counts = {};
-    aside.forEach(function (c) { var k = String((c && c.reason) || "").toLowerCase(); if (k) counts[k] = (counts[k] || 0) + 1; });
-    var bits = [];
-    Object.keys(counts).forEach(function (k) {
-      var n = counts[k];
-      var lbl = THIN_ASIDE_LABEL[k];
-      if (lbl) { bits.push(n === 1 ? lbl[0] : (obNumWordLow(n) + " " + lbl[1])); return; }
-      // An unrecognised reason key still gets a plain, honest word, never dropped silently.
-      var word = cap(k);
-      bits.push((n === 1 ? "a " : (obNumWordLow(n) + " ")) + (n === 1 ? word : word + "s"));
-    });
-    var head = " " + obNumWord(total) + (total === 1 ? " sale set aside" : " sales set aside");
-    if (!bits.length) return head + ".";
-    var joined = bits.length === 1 ? bits[0] : (bits.slice(0, -1).join(", ") + " and " + bits[bits.length - 1]);
-    return head + ": " + joined + ".";
-  }
-  function thinTrustLineHtml(d, poolLen, asideRows) {
-    var sentence = "Hammer prices, premiums taken out. No asking prices, no failed bids. Every tile opens the sale." + thinAsideSentence(d, poolLen, asideRows);
-    return '<p class="thin-trust">' + lint(esc(sentence), "hero.thintiles.trust") + "</p>";
+  // Round four (Sam's review): the trust line no longer states the set-aside count/reasons in prose -
+  // the "Set aside, not in the range" block (thinTileTreatment) now carries that fact, with each
+  // tile's own reason label, so the sentence would only repeat it.
+  function thinTrustLineHtml() {
+    return '<p class="thin-trust">' + lint("Hammer prices, premiums taken out. No asking prices, no failed bids. Every tile opens the sale.", "hero.thintiles.trust") + "</p>";
   }
   // Reuses the existing .ph/.noimg/.none photo-box pattern (photoHtml's own CSS, not its fixed "No
   // photo" text) - a missing photo shows the car's own title instead, per the brief; a stock image
@@ -1129,8 +1098,17 @@
   // the result tier - shapeCards(aside) plus each row's own `reason` key, lib/onebox.js
   // setAsideReasonFor; the labelled-rung "thin" tier has no fence/aside concept at all today, so this
   // is simply absent there - nothing invented, see the FOR LANE B note if Sam expects one on that
-  // tier). Appended to the SAME grid after the in-range tiles, each carrying its own reason label;
-  // never a second section, never hidden.
+  // tier).
+  // Round four (Sam's review, too much white space): set-aside sales no longer share the sales grid -
+  // they get their OWN labelled block ("Set aside, not in the range," two tiles across at every
+  // width), shown only when the engine actually reports some. Layout is chosen by tile count alone:
+  // 8 or fewer keeps the two-column hero shell (sales grid in hero-right, the aside block under the
+  // "said" sentence in hero-left); 9 to 16 would run the right column three to four rows against a
+  // much shorter left column, so the sales grid instead goes full width BELOW the hero (six across at
+  // 1440, three across at 390), with the aside block under that grid instead of in hero-left. `right`
+  // and `full` are mutually exclusive (whichever the caller does not use is null); `asideBlock` is
+  // "" in the wide case (it is already folded into `full` there), so appending it in hero-left is
+  // always safe, a no-op when there is nothing to add or when it belongs in `full` instead.
   function thinTileTreatment(d, m, pool, asideRows) {
     if (d && d.identityQuestion) return null;
     if (m && d && d.ownSales && Array.isArray(d.ownSales.sales) && d.ownSales.sales.length) return null;
@@ -1139,14 +1117,22 @@
     if (!n || n > 16) return null;
     var said = '<p class="hero-noband" data-stage="answer">' + lint(esc(obNumWord(n) + " sales. Too few to show movement, enough to show where they landed."), "hero.thintiles.said") + "</p>";
     var sorted = list.slice().sort(function (a, b) { return Number(b.price) - Number(a.price); });
-    var tiles = sorted.map(function (c) { return thinTileHtml(c, null); }).join("");
+    var wide = n >= 9;
+    var tiles = '<div class="thin-tiles' + (wide ? " thin-tiles-wide" : "") + '">' + sorted.map(function (c) { return thinTileHtml(c, null); }).join("") + "</div>";
     var aside = Array.isArray(asideRows) ? asideRows : [];
-    var asideTiles = aside.length
-      ? aside.slice().sort(function (a, b) { return Number(b.price) - Number(a.price); }).map(function (c) { return thinTileHtml(c, thinAsideTileLabel(c.reason)); }).join("")
-      : "";
+    var asideBlock = "";
+    if (aside.length) {
+      var asideTiles = aside.slice().sort(function (a, b) { return Number(b.price) - Number(a.price); }).map(function (c) { return thinTileHtml(c, thinAsideTileLabel(c.reason)); }).join("");
+      asideBlock = '<div class="thin-aside-block" data-stage="answer"><p class="eyebrow thin-aside-eyebrow">' + lint(esc("Set aside, not in the range"), "hero.thintiles.asideeyebrow") + '</p><div class="thin-tiles thin-tiles-aside">' + asideTiles + "</div></div>";
+    }
     var eyebrow = '<div class="eyebrow">' + lint(esc("The " + obNumWordLow(n) + " sales"), "hero.thintiles.eyebrow") + "</div>";
-    var right = eyebrow + '<div class="thin-tiles">' + tiles + asideTiles + "</div>" + thinTrustLineHtml(d, n, aside);
-    return { said: said, right: right, suppressSalesRow: true };
+    var trust = thinTrustLineHtml();
+    if (wide) {
+      var full = '<div class="thin-tiles-full" data-stage="answer">' + eyebrow + tiles + trust + asideBlock + "</div>";
+      return { said: said, right: null, full: full, asideBlock: "", suppressSalesRow: true };
+    }
+    var right = eyebrow + tiles + trust;
+    return { said: said, right: right, full: null, asideBlock: asideBlock, suppressSalesRow: true };
   }
   // HOVER (desktop) / TAP (phone) TOOLTIPS (mockup match round, Oct 2026): the typical figure is
   // the ONLY chart number never printed permanently - shown beside the dot, matching the mockup's
@@ -1211,12 +1197,13 @@
     left += heroMileageLineHtml(d, m);
     left += heroIdentityLineHtml(d);
     var right = heroChartHtml(d);
+    var full = "";
     if (!right) {
-      if (thinTile) { left += thinTile.said; right = thinTile.right; }
+      if (thinTile) { left += thinTile.said; left += thinTile.asideBlock; right = thinTile.right; full = thinTile.full || ""; }
       else left += noChartLineHtml();
     }
     return '<section class="hero2col" data-stage="answer"><div class="hero-left">' + left + "</div>" +
-      (right ? ('<div class="hero-right">' + right + "</div>") : "") + "</section>";
+      (right ? ('<div class="hero-right">' + right + "</div>") : "") + "</section>" + full;
   }
   // SALES ROW (task #41): "Sales behind this answer" - the same representative trio (d.representative
   // closest/high/low), now as three borderless cards. Prefers d.contextRoles (dormant, not yet sent by
@@ -2174,12 +2161,13 @@
     // Candles only (engine's own d.trend quarters) - same rule as the result tier, no scope-filtered
     // fallback any more.
     var right = heroChartHtml(d);
+    var full = "";
     if (!right) {
-      if (thinTile) { left += thinTile.said; right = thinTile.right; }
+      if (thinTile) { left += thinTile.said; left += thinTile.asideBlock; right = thinTile.right; full = thinTile.full || ""; }
       else left += noChartLineHtml();
     }
     return '<section class="hero2col" data-stage="answer"><div class="hero-left">' + left + "</div>" +
-      (right ? ('<div class="hero-right">' + right + "</div>") : "") + "</section>";
+      (right ? ('<div class="hero-right">' + right + "</div>") : "") + "</section>" + full;
   }
   // thinReasonHtml (the thin tier's own "None sold through live online marketplaces..." sentence)
   // was deleted this round (job 1, round two) - it duplicated the new unified scope line's own
