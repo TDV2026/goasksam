@@ -637,6 +637,26 @@
     var mm = VARIANT_TAIL_RE.exec(String(label || ""));
     return mm ? mm[1] : "";
   }
+  // rungLabelYearSpan (found live, Sam's review: the scope line dropped the years on widened thin-
+  // tier answers - 275 GTB read "Road cars" with no "1965 to 1967"). d.poolYears is only ever set on
+  // the engine's PRE-widening candidate pool (lib/onebox.js `base`), which is empty on exactly the
+  // cars that land on the thin tier - that absence is WHY they widened. The widened span is never
+  // lost, though: thinLabel (lib/onebox.js) always builds d.rungLabel as "{nameplate}, {Y1} to {Y2}"
+  // (or a bare "{Y1} {nameplate}" when the rung never widened past one year), so this reads the SAME
+  // engine text bodyMixTailOf/variantTailOf already read back, never a second-sourced or computed
+  // year. A "(997 generation)"-style label has no literal year in it and returns null here - the
+  // generation code is printed as part of the body/variant text already; inventing years for it
+  // would be a guess, not a read-back.
+  var YEAR_SPAN_RE = /\b(\d{4})\s+to\s+(\d{4})\b/;
+  var YEAR_SINGLE_RE = /\b(\d{4})\b/;
+  function rungLabelYearSpan(label) {
+    var s = String(label || "");
+    var span = YEAR_SPAN_RE.exec(s);
+    if (span) return [Number(span[1]), Number(span[2])];
+    var one = YEAR_SINGLE_RE.exec(s);
+    if (one) { var y = Number(one[1]); return [y, y]; }
+    return null;
+  }
   // The scope segment of the hero's one grey line. Prints d.rungLabel verbatim (never "Matched to
   // ..."), EXCEPT on a genuinely exact, nothing-widened rung (d.fallbackRung === "exact"): there the
   // car's own name already carries the year+nameplate (the heading just above), so repeating the
@@ -719,7 +739,7 @@
         if (vtail) bodies = cap(vtail);
       }
     }
-    var py = Array.isArray(d.poolYears) && d.poolYears.length === 2 && Number.isFinite(d.poolYears[0]) && Number.isFinite(d.poolYears[1]) ? d.poolYears : null;
+    var py = Array.isArray(d.poolYears) && d.poolYears.length === 2 && Number.isFinite(d.poolYears[0]) && Number.isFinite(d.poolYears[1]) ? d.poolYears : rungLabelYearSpan(d.rungLabel);
     var yearSpan = py ? (py[0] === py[1] ? String(py[0]) : (py[0] + " to " + py[1])) : "";
     var bodyYear = bodies && yearSpan ? (bodies + ", " + yearSpan) : (bodies || yearSpan);
     var count = poolLenOverride != null ? poolLenOverride : d.soldCount, countTxt = "";
@@ -2146,14 +2166,15 @@
       left += '<p class="hero-noband" data-stage="answer">' + lint("These sell online and at the auction houses. The recorded sales are below.", "hero.thin.mix") + "</p>";
     }
     var gpat = gearboxPatternLine(scope); if (gpat) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(gpat), "hero.thin.gpat") + "</p>";
-    var fb = d && d.factsBlock;
-    // Job 3 (round two): never the big range face under eight sales - gated on poolLen, the SAME
-    // array the tiles below are built from (the 275 GTB bug: a different, larger count had passed
-    // this gate - heroPoolSizeNum(d) - while the actually-visible pool was far smaller).
-    if (poolLen >= 8 && fb && fb.lowest != null && fb.highest != null) {
-      left += '<p class="eyebrow hero-label hero-label-range">Where they sold</p>' +
-        '<h2 class="range ink">' + esc(usd(fb.lowest)) + ' <span class="to">to</span> ' + esc(usd(fb.highest)) + "</h2>";
-    }
+    // REMOVED (Sam's review, found live on the 275 GTB): this used to print an "ink" headline range
+    // from d.factsBlock.lowest/highest once poolLen reached 8, regardless of whether the engine ever
+    // decided there was a real cluster for this car - the thin tier exists precisely BECAUSE there is
+    // no cluster (d.cluster, the result tier's own gate, is never set here), so factsBlock's lowest/
+    // highest are just the raw min/max of a price-diverse, non-clustered pool (275 GTB: $1,215,000 to
+    // $3,481,000 across nine very different cars), not a typical band. Rule 24 ("no headline dollar
+    // figure without a band") applies on this tier exactly as it does on the result tier; the only
+    // legitimate range headline lives in heroRangeHtml, gated on d.cluster. The individual sale
+    // prices are unaffected - they are still every tile's own price, right below.
     // Job 7 (round two): d.variantOptionsLine reaches the labelled-rung thin tier too (confirmed
     // live, 275 GTB) - the result tier's own identity-line wrapper (body/trim/gearbox) does not
     // apply here, so this calls the variant line directly rather than the full heroIdentityLineHtml.
