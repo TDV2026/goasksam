@@ -191,6 +191,14 @@ for (const [make, model, trim, want] of [
 {
   const r = await resolveVehicle("1986 Porsche 911 Carrera Speedster", {});
   if (!r || r.status !== "needs_confirmation" || !/1986 Porsche 911 Cabriolet/.test(String(r.clarification && r.clarification.suggestion))) fail(`1986 911 Carrera Speedster: wanted a confirmation of the 1986 Cabriolet, got ${JSON.stringify(r && r.status)} ${JSON.stringify(r && r.clarification && r.clarification.suggestion)}`);
+  for (const form of ["1986 Porsche Speedster", "86 911 Speedster", "86 porsche speedster"]) {
+    const x = await resolveVehicle(form, {});
+    if (!x || x.status !== "needs_confirmation" || !/1986 Porsche 911 Cabriolet/.test(String(x.clarification && x.clarification.suggestion))) fail(`${form}: wanted a confirmation of the 1986 Cabriolet, got ${JSON.stringify(x && x.status)}`);
+  }
+  for (const form of ["1957 Porsche Speedster", "1989 Porsche Speedster"]) {
+    const x = await resolveVehicle(form, {});
+    if (!x || x.status !== "valid") fail(`${form}: a factory Speedster year stays valid, got ${JSON.stringify(x && x.status)}`);
+  }
   const c = await resolveVehicle("1979 Porsche 911 SC Speedster", {});
   if (!c || c.status !== "needs_confirmation" || !/1979 Porsche 911 Targa/.test(String(c.clarification && c.clarification.suggestion))) fail(`1979 911 SC Speedster: wanted a confirmation of the 1979 Targa`);
   const k = await resolveVehicle("1986 Porsche 911 Carrera Speedster Conversion", {});
