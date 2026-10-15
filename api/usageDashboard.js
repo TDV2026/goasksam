@@ -4359,6 +4359,13 @@ async function handleOps(req, res) {
   // 270000) and width= (parallel engine reads, at most 8). scripts/postDeployWarm.mjs calls it until done.
   // task=warmHeld&version=<ENGINE_VERSION> (Oct 15 2026): the live specs whose warm reads did not come back for that
   // version, with titles, spec keys and live listing ids. Read-only.
+  // task=liveSpecKeys (speed job, stage 3): distinct engine reads Buy's live listings need, and the counts if
+  // listings sharing a market shared one read. Read-only, one table read.
+  if (task === "liveSpecKeys" || task === "livespeckeys") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { liveSpecKeyCounts } = await import("../lib/live/search.js");
+    return res.status(200).json({ task: "liveSpecKeys", ...(await liveSpecKeyCounts(env)) });
+  }
   if (task === "warmHeld" || task === "warmheld") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { heldLiveSpecs } = await import("../lib/live/search.js");
