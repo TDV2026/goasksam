@@ -12,6 +12,7 @@ import { track, withTracking } from "../lib/track/log.js";
 import { callOldCarsData } from "../lib/_ocd.js";
 import { isTesterRequest } from "../lib/_tester.js";
 import { VARIANT_MARKETS } from "../lib/modelRules.js";
+import { BODY_LABEL } from "../lib/onebox.js";
 // Every variant value a chip may carry (e51): the M-car pair plus each variant market's key and its other side.
 // Restoration is never an option or a question (e52, Sam's decision): the generic entries' keys (restoration,
 // unrestored) are not accepted from a client, so a stale refine for them is ignored and the base page answers.
@@ -3405,7 +3406,10 @@ async function handler(req, res) {
         tx: rawRefine.tx === "manual" ? "manual" : rawRefine.tx === "auto" ? "auto" : null,
         // Body style refine (Oct 2026, Market Check): same small, known vocabulary lib/onebox.js's
         // detectBodyStyle()/BODY_LABEL use - anything else is dropped, never passed through raw.
-        body: ["targa", "coupe", "cabriolet", "convertible", "roadster", "wagon", "sedan"].includes(rawRefine.body) ? rawRefine.body : null,
+        // e53 (Sam's table run): every body word the engine's own options can name (BODY_LABEL: the old list lacked
+        // "fastback", so the Mustang's Fastback chip reached the engine as no refine and opened the base page), plus
+        // "unspecified", the option for the sales whose titles name no body.
+        body: (Object.prototype.hasOwnProperty.call(BODY_LABEL, String(rawRefine.body || "")) || rawRefine.body === "unspecified") ? String(rawRefine.body) : null,
         // Trim question refine (item 2, Oct 2026, Market Check): a slug lib/onebox.js's own
         // trimSlug() produced (e.g. "carrera-s", "turbo-s") - shape-checked only, the engine itself
         // looks it up against the family's real fence names and ignores anything that doesn't match.
