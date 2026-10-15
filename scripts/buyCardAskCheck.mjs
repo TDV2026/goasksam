@@ -163,7 +163,10 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   ok(/esc\(qp \? "Have Sam keep looking for " \+ qp \+ " →" : "Have Sam keep looking"\)/.test(client) && /keepHtml\(cards\.length, q, qp\)/.test(client), "the keep looking box names the search");
   ok(/'<span class="nw">' \+ esc\(num\(l\.miles\) \+ " miles"\)/.test(client) && /\.car \.meta \.nw\{white-space:nowrap\}/.test(page), "a mileage never splits from miles");
   ok(/askHtml\(a, d\.meta \|\| \{\}, qp\) \+ more/.test(client) && !/right \+ "<\/div><\/div><\/div>" \+ unstatedHtml/.test(client), "the question comes before the don't say and either generation lines");
-  ok(/enrichThen\(first, function\(\)\{ if \(done\) redrawCards\(block, first, false\); else go\(\); \}\)/.test(client) && /function redrawCards\(block, list, onlyHidden\)/.test(client), "a market that comes back after the 12 seconds fills the cards already on screen");
+  // Sam, Oct 15 2026: the cards draw at once; each of the six on screen is asked for alone and filled as it lands.
+  ok(/    go\(\);\n    first\.forEach\(function\(l\)\{ enrichThen\(\[l\], function\(\)\{ if \(block\.isConnected && !isPend\(l\)\) redrawCards\(block, \[l\], false\); \}\); \}\);/.test(client) && !/setTimeout\(go, 12000\)/.test(client) && /function redrawCards\(block, list, onlyHidden\)/.test(client), "cards draw at once and fill card by card, never waiting on a market");
+  ok(/\.car \.sl:has\(> p\.reading\)\{min-height:/.test(page), "a card still being read holds its note's room");
+  ok(/"Sam is finding live " \+ label \+ "\."/.test(client) && !/Matching what similar cars sold for/.test(client), "one waiting line names the search");
 }
 
 // ---- 7. Sam, Oct 15 2026: one retry for pending markets, three lines that read oddly

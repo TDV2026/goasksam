@@ -520,7 +520,11 @@ async function handler(req, res) {
       for (const bd of f.bodies || []) chips.push(bd);
       if (f.priceMax) chips.push("under $" + Number(f.priceMax).toLocaleString("en-US"));
       if (f.miMax) chips.push("under " + Number(f.miMax).toLocaleString("en-US") + " miles");
-      return res.status(200).json({ chips: [...new Set(chips.map(String))].slice(0, 8) });
+      // label: the search in plain words for the page's one waiting line ("Sam is finding live red Porsche 911s."),
+      // colours, the make and the engine's own plural noun; null when the words don't name a car.
+      let label = null;
+      if (v && v.make) { const noun = nounFor(v, { gens: f.gens || [], bodies: f.bodies || [] }); label = [...(f.colours || []), new RegExp("^" + String(v.make).replace(/[^a-z0-9]/gi, "."), "i").test(noun) ? "" : v.make, noun].filter(Boolean).join(" "); }
+      return res.status(200).json({ chips: [...new Set(chips.map(String))].slice(0, 8), label });
     }
     // A result address reloaded or pasted (/buy?q=...&make=...): the same search from its filters, no model call.
     if (b.action === "rerun") {
