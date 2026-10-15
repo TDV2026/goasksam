@@ -6,12 +6,14 @@
 // answer, a missing count, a gate refusal, an option whose page opens a different count, a zero-count option, or options
 // that do not sum to Any. e53 would have failed here: its gate refused every bare page with no-body titles.
 //   node scripts/identityLocalCheck.mjs
-import { buildResult, runOutputInvariants } from "../lib/onebox.js";
+import { buildResult, runOutputInvariants, isQualifying } from "../lib/onebox.js";
 
 const now = Date.now(), DAY = 864e5;
 const iso = days => new Date(now - days * DAY).toISOString();
 let seq = 0;
-const row = (make, model, year, title, usd, daysAgo) => ({ id: ++seq, _usd: usd, raw_title: title, rtitle: title, make, model, year, auction_end_date: new Date(now - daysAgo * DAY).toISOString().slice(0, 10), source: "bringatrailer", mods: "", transmission: "Manual (4-Speed)", mileage: String(40000 + seq * 100) });
+// price + image: the typed path's qualifier (isQualifying) wants a sale price above the car floor and a photo; the stored
+// body field is set to a DIFFERENT body on purpose (the Cars & Bids contradiction), so a typed body must ignore it.
+const row = (make, model, year, title, usd, daysAgo) => ({ id: ++seq, _usd: usd, price: usd, image: "x", body: "sedan", raw_title: title, rtitle: title, make, model, year, auction_end_date: new Date(now - daysAgo * DAY).toISOString().slice(0, 10), source: "bringatrailer", mods: "", transmission: "Manual (4-Speed)", mileage: String(40000 + seq * 100) });
 const pool = (make, model, year, bodies, usdBase = 30000) => {
   const rows = []; let i = 0;
   for (const [word, n] of bodies) for (let k = 0; k < n; k++, i++) rows.push(row(make, model, year, `${year} ${make} ${model}${word ? " " + word : ""}${k % 3 === 0 ? " 4-Speed" : ""}`, usdBase + (i % 11) * 900, 10 + (i * 7) % 300));
@@ -56,13 +58,19 @@ for (const c of CASES) {
     const bodyNull = o.value === "unspecified" ? (pg && pg.resolvedCar && pg.resolvedCar.bodyStyle == null) : true;
     const same = opened === Number(o.n) && cards === Number(o.n);
     if (!same || gate.length || !bodyNull) { ok = false; console.log(`      ${o.label} (${o.n}) opens ${opened} with ${cards} card(s)${gate.length ? ", gate: " + gate.map(x => x.name).join(",") : ""}${bodyNull ? "" : ", bodyStyle not null on Body not stated"}`); }
+    // TYPED = CHIP (Sam, Oct 15 2026, option 2): typing the body word ("1965 Ford Mustang coupe" -> spec.bodyStyle) must
+    // qualify exactly the rows the chip opens: one classifier, title words only, no stored field, no default body.
+    if (o.value !== "unspecified") {
+      const typed = rows.filter(r => isQualifying(r, { ...spec, bodyStyle: o.value })).length;
+      if (typed !== Number(o.n)) { ok = false; console.log(`      typed "${o.value}" qualifies ${typed} rows, the chip opens ${o.n}`); }
+    }
   }
   const covered = opts.some(o => o.value === "unspecified");
   const total = sum + (covered ? 0 : (Number(d.bodyUnspecified) || 0));
   if (total !== poolN) { ok = false; console.log(`      options sum ${sum}${covered ? "" : " + unspecified " + (d.bodyUnspecified || 0)} != Any ${poolN}`); }
   const noBody = c.bodies.find(([w]) => !w);
   if (noBody && noBody[1] > 0 && !covered) { ok = false; console.log(`      ${noBody[1]} row(s) with no body word are in no option (silent gap)`); }
-  if (ok) console.log(`PASS  ${c.name}: bare ${d.tier} ${poolN}; ${opts.map(o => `${o.label} ${o.n}`).join(", ")} = ${sum}`);
+  if (ok) console.log(`PASS  ${c.name}: bare ${d.tier} ${poolN}; ${opts.map(o => `${o.label} ${o.n}`).join(", ")} = ${sum}; typed body words qualify the chip's rows`);
   else failed++;
 }
 console.log(failed ? `\nidentityLocalCheck: ${failed} case(s) FAILED.` : "\nidentityLocalCheck: every option equals its page and the options sum to Any, on the code being pushed.");
