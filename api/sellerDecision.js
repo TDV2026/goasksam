@@ -11,6 +11,9 @@ import { readVisitorId } from "../lib/_visitor.js";
 import { track, withTracking } from "../lib/track/log.js";
 import { callOldCarsData } from "../lib/_ocd.js";
 import { isTesterRequest } from "../lib/_tester.js";
+import { VARIANT_MARKETS } from "../lib/modelRules.js";
+// Every variant value a chip may carry (e51): the M-car pair plus each variant market's key and its other side.
+const VARIANT_REFINE_VALUES = new Set(["competition", "standard", ...VARIANT_MARKETS.flatMap(v => [v.key, v.nonKey].filter(Boolean))]);
 import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
 import { findGeneration, generationModelToken, generationsForModel } from "../lib/generations.js";
 import { sourceCoverage } from "../lib/desk/coverage.js";
@@ -3406,7 +3409,11 @@ async function handler(req, res) {
         // looks it up against the family's real fence names and ignores anything that doesn't match.
         trim: typeof rawRefine.trim === "string" && /^[a-z0-9-]{1,30}$/.test(rawRefine.trim) ? rawRefine.trim : null,
         // Competition-variant refine (Part 1 change 1): Competition Package vs standard.
-        variant: rawRefine.variant === "competition" ? "competition" : rawRefine.variant === "standard" ? "standard" : null,
+        // Variant refine (e51, Lane A's find): any variant-market key or its other side (lib/modelRules.js
+        // VARIANT_MARKETS: carrera, competizione, lightweight, gta, restoration/unrestored...) plus the M-car
+        // competition/standard pair. The old line kept only competition/standard, so a variant-market chip reached
+        // the engine as no refine and the base page came back for every zero-count option.
+        variant: VARIANT_REFINE_VALUES.has(String(rawRefine.variant || "")) ? String(rawRefine.variant) : null,
         // Item 7/8 dictionary-driver refine + item 9 observable-fact refine (both re-scope the pool).
         driver: typeof rawRefine.driver === "string" ? rawRefine.driver.slice(0, 40) : null,
         driverVal: rawRefine.driverVal === "no" ? "no" : rawRefine.driverVal === "yes" ? "yes" : null,
