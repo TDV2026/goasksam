@@ -58,6 +58,29 @@ function judge(g, lane) {
       if (!near(L.high, g.high, g.tolPct)) diffs.push(`high ${money(L.high)} != ${money(g.high)}`);
     }
   }
+  // Set-aside and option checks (rows 22 and 23, Oct 15 2026): the set-aside count and its reasons, and no option with zero sales anywhere.
+  if (g.setAside) {
+    const sa = (L.counts && L.counts.setAside) || {};
+    const reasons = Object.entries(sa.reasons || {}).filter(([, n]) => n > 0).map(([k, n]) => k + " " + n);
+    if (sa.total !== g.setAside.total) diffs.push(`set aside ${sa.total == null ? "none reported" : sa.total} != ${g.setAside.total}`);
+    for (const w of g.setAside.reasons || []) if (!(sa.reasons && sa.reasons[w] > 0)) diffs.push(`set-aside reason "${w}" missing (reasons given: ${reasons.join(", ") || "none"})`);
+  }
+  if (g.noZeroOptions) {
+    for (const inv of L.outputInvariants || []) {
+      const m = /^options (.*?)(?: \+ \d+ unspecified)? = pool/.exec(String(inv.detail || ""));
+      const zero = m ? m[1].split(", ").filter(x => /\s0$/.test(x)) : [];
+      if (zero.length) diffs.push(`option with zero sales shown: ${zero.join(", ")}`);
+    }
+  }
+  // Rule 2 (variant-market options, Sam Oct 15 2026): Pushrod, Carrera four-cam, Road, Competizione show only when both sides hold 8 or more
+  // sales and sit 25 percent apart; a smaller variant is set aside and named in the scope line, never offered as an option.
+  if (g.variantRule) {
+    for (const inv of L.outputInvariants || []) {
+      const m = /^options (.*?)(?: \+ \d+ unspecified)? = pool/.exec(String(inv.detail || ""));
+      const small = m ? m[1].split(", ").filter(x => { const n = Number((/\s(\d+)$/.exec(x) || [])[1]); return Number.isFinite(n) && n < 8; }) : [];
+      if (small.length) diffs.push(`variant option under 8 sales offered: ${small.join(", ")}`);
+    }
+  }
   if (g.status === "pending") return { cell: "PENDING", diffs, shown: `${L.fallbackRung} ${L.count} ${money(L.low)}-${money(L.high)}` };
   return { cell: diffs.length ? "FAIL" : "PASS", diffs };
 }
@@ -84,14 +107,22 @@ try {
   const ops = async (url) => { try { return await ops1(url); } catch (e) { await openHome(); return await ops1(url); } };
 
   
-  for (let i = 0; i < GOLDEN.length; i += BATCH) {
-    const chunk = GOLDEN.slice(i, i + BATCH);
+  const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read the same car as rows 8 and 14: one engine read each
+  for (let i = 0; i < GOLDEN_QS.length; i += BATCH) {
+    const chunk = GOLDEN_QS.slice(i, i + BATCH).map(q => ({ q }));
     const url = `/api/usageDashboard?view=ops&task=enginecheck&buypaths=0&livefences=0&representative=0&splitpools=0&overtime=0&livelisting=0&cacheconsistency=0&specs=${encodeURIComponent(chunk.map(g => g.q).join("|"))}`;
     const r = await ops(url);
     let j = null; try { j = JSON.parse(r.text); } catch (e) {}
     if (r.status === 401) { console.log("goldenTruth: the ops key was rejected (401). Nothing compared."); process.exit(flag("strict") ? 1 : 0); }
     for (const row of (j && j.rows) || []) byQ[row.q] = row;
-    if (!j) for (const g of chunk) byQ[g.q] = { q: g.q, error: `ops task returned HTTP ${r.status}` };
+    // A chunk that comes back empty (HTTP 0 from a read that ran long under load) is asked again one car at a time, so a slow archive
+    // costs time and not a false FAIL on three cars.
+    if (!j) for (const g of chunk) {
+      const r1 = await ops(`/api/usageDashboard?view=ops&task=enginecheck&buypaths=0&livefences=0&representative=0&splitpools=0&overtime=0&livelisting=0&cacheconsistency=0&specs=${encodeURIComponent(g.q)}`);
+      let j1 = null; try { j1 = JSON.parse(r1.text); } catch (e) {}
+      const row1 = j1 && j1.rows && j1.rows[0];
+      byQ[g.q] = row1 || { q: g.q, error: `ops task returned HTTP ${r1.status}` };
+    }
   }
 
   for (const g of GOLDEN) {
@@ -112,6 +143,14 @@ try {
   // and, when the page agrees with its engine, the engine's verdict against the golden line stands for the page.
   // Every page is opened in its own browser context (a fresh visitor, so no per-visitor car limit) and the key goes only in the
   // x-ops-key header of requests to goasksam's own address.
+  // Rows 22 and 23: no option with zero sales on the page, no restoration option line.
+  const textDiffs = (g, text) => {
+    const out = [];
+    if (g.noZeroOptions) { const z = [...String(text).matchAll(/([A-Za-z][A-Za-z0-9 \/-]{1,40}?)\s*\(0\)/g)].map(x => x[1].trim()); if (z.length) out.push(`option with zero sales shown on the page: ${z.join(", ")}`); }
+    if (g.variantRule) { const small = [...String(text).matchAll(/([A-Za-z][A-Za-z0-9 \/-]{1,40}?)\s*\(([1-7])\)/g)].map(x => x[1].trim() + " (" + x[2] + ")"); if (small.length) out.push(`variant option under 8 sales offered on the page: ${small.join(", ")}`); }
+    if (g.noRestoration && /professional restoration|restoration option/i.test(text)) out.push("a restoration option line appears on the page");
+    return out;
+  };
   const WORDS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
   const num = w => { const t = String(w || "").toLowerCase().replace(/,/g, ""); return /^\d+$/.test(t) ? Number(t) : (WORDS[t] || null); };
   const parseRange = t => { const m = /\$([\d,]+)\s+to\s+\$([\d,]+)/.exec(t); return m ? { low: Number(m[1].replace(/,/g, "")), high: Number(m[2].replace(/,/g, "")) } : null; };
@@ -212,11 +251,13 @@ try {
       r.pages = r.pages || {};
       if (!rd.path.startsWith("/" + ({ marketCheck: "market-check", buy: "buy", sell: "sell" })[pr])) { r.pages[pr] = { cell: "FAIL", diffs: [rd.path.startsWith("/sell") && pr !== "sell" ? "redirected to /sell: key rejected" : `ended on ${rd.path || "nothing"}`] }; continue; }
       const parsed = PARSERS[pr](rd.text);
+      const tx = textDiffs(g, rd.text);
       if (pr === "buy") { r.buyListings = parsed.listings; r.pages.buy = { cell: parsed.listings.length ? "PENDING" : "N/A", diffs: [], shown: parsed.listings.length ? `${parsed.listings.length} live car(s)` : "no live car" }; continue; }
       const lane = (byQ[g.q] && byQ[g.q].lanes || {})[pr];
       const dr = drift(pr, parsed, lane, facts[g.q]);
       if (dr.length) r.pages[pr] = { cell: "DRIFT", diffs: dr.map(d => "RENDER DRIFT, " + d) };
       else r.pages[pr] = { cell: engineCell.cell, diffs: [] };
+      if (tx.length && r.pages[pr].cell !== "DRIFT") r.pages[pr] = { cell: "FAIL", diffs: tx };
       r.pages[pr].shown = `${parsed.count == null ? "-" : parsed.count} ${parsed.range ? money(parsed.range.low) + "-" + money(parsed.range.high) : "no range"}`;
     }
   };
@@ -260,7 +301,9 @@ try {
     const rung = src.rung || src.step || null, label = src.family || src.short || "";
     const asLane = { ok: count != null, fallbackRung: rung, rungLabel: label, count, low, high, reason: count == null ? "nothing on record" : null };
     // The Task email names the car by its family noun ("992s", "E46 M3s"), so the label words are not compared; rung, count and range are.
-    const j = judge({ ...r.g, labelHas: [] }, asLane);
+    const j = judge({ ...r.g, labelHas: [], setAside: null, noZeroOptions: false }, asLane);
+    for (const d of textDiffs(r.g, o.text)) j.diffs.push(d);
+    if (j.diffs.length && j.cell === "PASS") j.cell = "FAIL";
     const lane = (byQ[r.g.q] && byQ[r.g.q].lanes || {}).tasks;
     const dr = lane && lane.ok ? drift("tasks", { count, range: low != null ? { low, high } : null, scope: "" }, lane) : [];
     r.pages.tasks = { cell: dr.length ? "DRIFT" : j.cell, diffs: [...dr.map(d => "RENDER DRIFT, " + d), ...j.diffs.map(d => "Task email: " + d)], shown: `${count == null ? "-" : count} ${low != null ? money(low) + "-" + money(high) : "no range"} (${out.email}${rung ? ", " + rung : ""})` };
@@ -296,6 +339,7 @@ try {
       const ok = pg.count === op.n;
       checks.push({ name: `option ${op.label}`, cell: ok ? "PASS" : "FAIL", diffs: ok ? [] : [`the question prints ${op.label} (${op.n}); the page it opens shows ${pg.count == null ? "no count" : pg.count} sales`], shown: `${op.n} vs ${pg.count == null ? "-" : pg.count}` });
     }
+    for (const op of any.options.filter(o => o.n === 0)) checks.push({ name: `option ${op.label}`, cell: "FAIL", diffs: [`rule 1: an option with zero sales is never shown, the question prints ${op.label} (0)`], shown: "0" });
     const sum = any.options.reduce((a, b) => a + b.n, 0);
     const okSum = any.options.length > 0 && any.count != null && sum === any.count;
     checks.push({ name: "options add up to Any", cell: okSum ? "PASS" : "FAIL", diffs: okSum ? [] : [any.options.length ? `${any.options.map(x => x.n).join(" + ")} = ${sum}, the bare page shows ${any.count == null ? "no count" : any.count} (Any)` : "the bare page prints no identity question"], shown: `${any.options.map(x => x.n).join("+") || "-"} vs ${any.count == null ? "-" : any.count}` });

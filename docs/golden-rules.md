@@ -49,6 +49,9 @@ Under eight sales on every rung: show the nearest real sales, count only, name t
   nearest $500 below $100,000 and the nearest $1,000 from $100,000. The same pool gives the count, the cards and the band.
 - **Thin.** Fewer than eight ONLINE sales (house sales do not count toward the online range) is the thin tier: the sales
   themselves, no band. Eight or more sales of any kind let the facts line state the lowest and highest real sale.
+- **Options, rule 1: body and identity options** (Coupe, Cabriolet, Targa, Fastback and similar) show whenever they hold at least one qualifying sale, each count equals the count of the page it opens, and the counts sum to Any, on all four products (Sam, Oct 15 2026). Checked by the identity rows (the 1965 Ford Mustang).
+- **Options, rule 2: variant-market options** (Pushrod, Carrera four-cam, Road, Competizione) show only when both sides hold 8 or more sales and the two sides sit 25 percent apart; a smaller variant is set aside and named in the scope line. Checked by rows 22 (1957 Porsche 356 Speedster) and 23 (1966 Ferrari 275 GTB).
+- **Never a zero option.** An option with zero sales never shows under either rule, and no restoration option line appears (restoration is a labelled set-aside).
 - **Same answer everywhere.** Market Check, Buy, Sell and Tasks agree on rung, label, count, low and high for the same words.
 
 - **A page says what its engine said.** What a product's page prints (the scope line, the sales count, the range or sold-between range) is the same pool as that
@@ -90,6 +93,8 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 19 | 1963 Chevrolet Corvette Split Window | typed word carried (the split window is the coupe) | exact, 38 coupes, $140,000 to $214,000 |
 | 20 | 1995 Acura NSX | exact, odd-sale fence (a Honda NSX-R set aside) | exact, 15 sales, $86,000 to $136,000 |
 | 21 | 1965 Ford Mustang (bare) | the identity question: every option opens the pool it counts, and the options add up to Any | each option count equals the count its page shows, options sum to Any |
+| 22 | 1957 Porsche 356 Speedster (set-aside and options) | same car as row 8; replicas, recreations and the odd sale set aside with their reasons; Sam, Oct 15 2026: an option with zero sales is never shown, on any product, and no restoration option line appears | exact, 8 sales in range plus 2 set aside (odd sale, modified), $282,000 to $363,000, no option shown at zero; variant-market rule: a variant shows only with 8 or more sales on both sides, 25 percent apart, else set aside and named |
+| 23 | 1966 Ferrari 275 GTB (thin, no zero option) | same car as row 14; nine sales, thin, no range, no question screen, set-aside sales listed with their reasons; no option at zero, no restoration line | year_widened, 9 sales, no range, same answer on all four products |
 
 Per car, in the words of the derivation:
 
@@ -149,6 +154,8 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":18,"q":"2011 Honda S2000","status":"ready","rung":"year_widened","labelHas":["S2000","2009"],"count":15,"tol":2,"low":36500,"high":64000,"tolPct":3},
  {"id":19,"q":"1963 Chevrolet Corvette Split Window","status":"ready","rung":"exact","labelHas":["1963"],"count":38,"tol":3,"low":140000,"high":214000,"tolPct":3},
  {"id":20,"q":"1995 Acura NSX","status":"ready","rung":"exact","labelHas":["1995","NSX"],"count":15,"tol":2,"low":86000,"high":136000,"tolPct":3},
- {"id":21,"q":"1965 Ford Mustang","status":"ready","identity":true,"labelHas":["Mustang"]}
+ {"id":21,"q":"1965 Ford Mustang","status":"ready","identity":true,"labelHas":["Mustang"]},
+ {"id":22,"q":"1957 Porsche 356 Speedster","status":"ready","rung":"exact","labelHas":["1957","356 Speedster"],"count":8,"tol":0,"low":282000,"high":363000,"tolPct":5,"setAside":{"total":2,"reasons":["odd sale","modified"]},"noZeroOptions":true,"variantRule":true,"noRestoration":true},
+ {"id":23,"q":"1966 Ferrari 275 GTB","status":"ready","rung":"year_widened","labelHas":["275 GTB","1965 to 1966"],"count":9,"tol":0,"low":null,"high":null,"thin":true,"noZeroOptions":true,"variantRule":true,"noRestoration":true}
 ]
 ```
