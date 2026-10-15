@@ -952,6 +952,90 @@
     // sliding the heading itself away from the top.
     return '<div class="hero-chart"><h2>How this market has moved</h2><div class="hc-body">' + inner + "</div></div>";
   }
+  // ============ THIN-TILE TREATMENT (Sam's review round, Oct 2026) =========================
+  // Replaces "too few sales in each quarter to chart" with the mockup's own treatment on any pool
+  // that has no quarter trend (candleChartHtml returns nothing): a left-column serif sentence
+  // always; a right-column grid, one tile per sale in the pool actually rendered, when that pool
+  // holds 3-16 sales. Below 3 (only reachable on a labelled rung, d.tier==="thin") the serif line
+  // prints alone, no tiles - and above 16 this returns null so the caller falls back to
+  // noChartLineHtml exactly as before. Shared by heroRangeHtml (result tier) and thinHeroHtml
+  // (thin/labelled-rung tier): both already carry a pool array shaped the same way (shapeCards), so
+  // one function serves both - the caller passes its OWN pool (d.cards for the result tier, the
+  // thin tier's own newestFirst array), never re-derived here, so the tiles and the printed count
+  // always match exactly what the rest of that render already shows (poolLen = pool.length, the
+  // array actually iterated, never a second-sourced count field). A VIN/chassis page with its own
+  // sale history (d.ownSales, exactCarSalesHtml) and any page still carrying an identityQuestion are
+  // excluded (null) - both keep today's single-line treatment, unchanged. variant_choice/refusal
+  // pages never reach this function at all (separate tiers, separate render paths), so they need no
+  // extra gate here.
+  var THIN_ASIDE_LABEL = { modified: ["a modification", "modifications"], project: ["a project car", "project cars"], replica: ["a replica", "replicas"], "odd sale": ["an odd sale", "odd sales"], variant: ["a different variant", "different variants"] };
+  // "Use only the reason words the engine supplies": d.setAsideReasons is the engine's own per-
+  // reason count object (lib/onebox.js setAsideReasonFor); d.counts is the engine's own plain-number
+  // reconciliation (qualifying = used + setAside.total, always, per that file's own comment). Prints
+  // nothing when d.counts is absent (the thin/labelled-rung tier has no fence/aside concept at all -
+  // every qualifying sale there is already shown, nothing set aside) or when the arithmetic does not
+  // reconcile against the pool actually rendered here - silently, per the brief; any real mismatch
+  // observed live is reported under FOR LANE B instead of guessed at in markup.
+  function thinAsideSentence(d, poolLen) {
+    var counts = d && d.counts;
+    if (!counts || !counts.setAside || !(Number(counts.setAside.total) > 0)) return "";
+    var total = Number(counts.setAside.total), qualifying = Number(counts.qualifying), used = Number(counts.used);
+    if (!Number.isFinite(total) || !Number.isFinite(qualifying) || !Number.isFinite(used)) return "";
+    if (used !== poolLen || used + total !== qualifying) return "";
+    var bits = [], reasons = d.setAsideReasons;
+    if (reasons) {
+      Object.keys(reasons).forEach(function (k) {
+        var n = Number(reasons[k]) || 0;
+        if (n <= 0) return;
+        var lbl = THIN_ASIDE_LABEL[k];
+        if (!lbl) return;
+        bits.push(n === 1 ? lbl[0] : (obNumWordLow(n) + " " + lbl[1]));
+      });
+    }
+    var head = " " + obNumWord(total) + (total === 1 ? " sale set aside" : " sales set aside");
+    if (!bits.length) return head + ".";
+    var joined = bits.length === 1 ? bits[0] : (bits.slice(0, -1).join(", ") + " and " + bits[bits.length - 1]);
+    return head + ": " + joined + ".";
+  }
+  function thinTrustLineHtml(d, poolLen) {
+    var sentence = "Hammer prices, premiums taken out. No asking prices, no failed bids. Every tile opens the sale." + thinAsideSentence(d, poolLen);
+    return '<p class="thin-trust">' + lint(esc(sentence), "hero.thintiles.trust") + "</p>";
+  }
+  // Reuses the existing .ph/.noimg/.none photo-box pattern (photoHtml's own CSS, not its fixed "No
+  // photo" text) - a missing photo shows the car's own title instead, per the brief; a stock image
+  // is never used.
+  function thinTilePhotoHtml(image, title) {
+    var img = image ? ('<img src="' + esc(image) + '" alt="' + esc(title || "") + '" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()">') : "";
+    return '<div class="ph' + (image ? "" : " noimg") + '">' + img + '<span class="none">' + esc(title || "") + "</span></div>";
+  }
+  function thinTileHtml(c) {
+    var href = utmUrl(c.url);
+    var title = cleanReceiptTitle(c.title);
+    var miles = Number(c.mi) > 0 ? (Number(c.mi).toLocaleString("en-US") + " miles") : "";
+    var venue = (c.platform && c.platform !== "others") ? c.platform : "";
+    var meta = [c.month, venue, miles].filter(Boolean).join(" · ");
+    var gasAttrs = (href && c.id != null) ? (' data-gas-event="receipt_click" data-gas-source="' + esc(c.platformSlug || "") + '" data-gas-listing-id="' + esc(c.id) + '"') : "";
+    var tag = href ? "a" : "div";
+    var attrs = href ? (' href="' + esc(href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(c.platformSlug || "") + '"' + gasAttrs) : "";
+    return "<" + tag + ' class="thin-tile"' + attrs + ">" + thinTilePhotoHtml(c.image, title) +
+      '<div class="thin-tile-body"><p class="thin-tile-price">' + esc(usd(c.price)) + "</p>" +
+      (meta ? ('<p class="thin-tile-meta">' + esc(meta) + "</p>") : "") +
+      "</div></" + tag + ">";
+  }
+  function thinTileTreatment(d, m, pool) {
+    if (d && d.identityQuestion) return null;
+    if (m && d && d.ownSales && Array.isArray(d.ownSales.sales) && d.ownSales.sales.length) return null;
+    var list = Array.isArray(pool) ? pool : [];
+    var n = list.length;
+    if (!n || n > 16) return null;
+    var said = '<p class="hero-noband" data-stage="answer">' + lint(esc(obNumWord(n) + " sales. Too few to show movement, enough to show where they landed."), "hero.thintiles.said") + "</p>";
+    if (n < 3) return { said: said, right: "", suppressSalesRow: false };
+    var sorted = list.slice().sort(function (a, b) { return Number(b.price) - Number(a.price); });
+    var tiles = sorted.map(thinTileHtml).join("");
+    var eyebrow = '<div class="eyebrow">' + lint(esc("The " + obNumWordLow(n) + " sales"), "hero.thintiles.eyebrow") + "</div>";
+    var right = eyebrow + '<div class="thin-tiles">' + tiles + "</div>" + thinTrustLineHtml(d, n);
+    return { said: said, right: right, suppressSalesRow: true };
+  }
   // HOVER (desktop) / TAP (phone) TOOLTIPS (mockup match round, Oct 2026): the typical figure is
   // the ONLY chart number never printed permanently - shown beside the dot, matching the mockup's
   // own position, but only on hover or tap (a deliberate simplification the mockup itself does not
@@ -996,7 +1080,7 @@
   // RANGE-TIER HERO (task #38). The rule-24 no-band fallback is unchanged copy, just inside the new
   // shell: no cluster means no dollar headline of any kind, ever (STANDING CHECK: the only <h2
   // class="range"> with the green band class lives inside the `if (d.cluster)` branch below).
-  function heroRangeHtml(d, m) {
+  function heroRangeHtml(d, m, thinTile) {
     var left = '<p class="eyebrow hero-label">Market Check</p>' +
       '<h1 class="hero-carname">' + esc(m ? (m.displayName || appendChosenLabel(carLabel(d.resolvedCar))) : appendChosenLabel(carLabel(d.resolvedCar))) + "</h1>" +
       heroMetaLine(d);
@@ -1015,7 +1099,10 @@
     left += heroMileageLineHtml(d, m);
     left += heroIdentityLineHtml(d);
     var right = heroChartHtml(d);
-    if (!right) left += noChartLineHtml();
+    if (!right) {
+      if (thinTile) { left += thinTile.said; right = thinTile.right; }
+      else left += noChartLineHtml();
+    }
     return '<section class="hero2col" data-stage="answer"><div class="hero-left">' + left + "</div>" +
       (right ? ('<div class="hero-right">' + right + "</div>") : "") + "</section>";
   }
@@ -1722,9 +1809,13 @@
   // opening in place"), but a VIN/chassis match no longer gets its own card on this page. A real
   // behavior change, not an oversight - flagged plainly in docs/lane-notes.md.
   function resultHtml(d, m) {
-    var body = heroRangeHtml(d, m);
+    var thinTile = thinTileTreatment(d, m, d.cards);
+    var body = heroRangeHtml(d, m, thinTile);
     body += exactCarSalesHtml(d);
-    body += salesRowHtml(d, m);
+    // Item (d), Sam's review round: every sale is already on screen as a tile, so the "Sales behind
+    // this answer" teaser (three cards + its own "see all" link) is redundant - suppressed only when
+    // tiles actually rendered (suppressSalesRow), never on the serif-line-only <3 case.
+    if (!(thinTile && thinTile.suppressSalesRow)) body += salesRowHtml(d, m);
     body += livePanelSlot();
     body += moreComparableSalesHtml(d, m, d.cards);
     body += distributionHtml(d);
@@ -1926,7 +2017,7 @@
   // brief. The chart's dots are thinCardsFrom(scope) (the hammer-shaped receipts, adapted) - never
   // d.cards, a different, unscoped array an intake split never narrows. No mileage line, no identity
   // line, ever, on this tier.
-  function thinHeroHtml(d, name, scope, scopedLabel, ht, m) {
+  function thinHeroHtml(d, name, scope, scopedLabel, ht, m, thinTile) {
     var who = (scopedLabel ? cap(scopedLabel) + " " + name : cap(name));
     // The year comes from the sale itself, never the typed year (a "1902 Pierce Motorette" whose
     // only sale is a 1904 reads "a 1904").
@@ -1972,7 +2063,10 @@
     // Candles only (engine's own d.trend quarters) - same rule as the result tier, no scope-filtered
     // fallback any more.
     var right = heroChartHtml(d);
-    if (!right) left += noChartLineHtml();
+    if (!right) {
+      if (thinTile) { left += thinTile.said; right = thinTile.right; }
+      else left += noChartLineHtml();
+    }
     return '<section class="hero2col" data-stage="answer"><div class="hero-left">' + left + "</div>" +
       (right ? ('<div class="hero-right">' + right + "</div>") : "") + "</section>";
   }
@@ -2063,9 +2157,10 @@
     htGearboxSplit = (function () { var man = 0, non = 0; (scope || []).forEach(function (rc) { if (rc.isHouse) return; var g = gearboxLabel(rc); if (!g) return; if (/^manual/i.test(g)) man++; else non++; }); return man > 0 && non > 0; })();
     // Newest first (the honest evidence order); the engine's hammer-desc order is for its own math.
     var newestFirst = thinCardsFrom(scope).sort(function (a, b) { return String(b.date || "").localeCompare(String(a.date || "")); });
-    var body = thinHeroHtml(d, name, scope, scopedLabel, ht, m);
+    var thinTile = thinTileTreatment(d, m, newestFirst);
+    var body = thinHeroHtml(d, name, scope, scopedLabel, ht, m, thinTile);
     body += exactCarSalesHtml(d);
-    body += salesRowHtml(d, m, newestFirst);
+    if (!(thinTile && thinTile.suppressSalesRow)) body += salesRowHtml(d, m, newestFirst);
     body += livePanelSlot();
     // id="more-sales" (hero-rebuild round, kept): the sales row's "See all N sales" link scrolls
     // here, the same [data-scrollto] mechanism the range tier uses.
@@ -2371,6 +2466,32 @@
     var iq = d.identityQuestion;
     renderQuestion(identityTakeoverHtml(d));
     if (typeof gasTrack === "function" && iq) gasTrack("identity_question_shown", { dimension: iq.dimension, option_count: (iq.options || []).length });
+  }
+  // VARIANT-CHOICE TAKEOVER (job 2, Sam's review round, Oct 2026): d.variantChoices is the engine's
+  // own real per-market chip list (key/label/count/refine - Lane B's FOR LANE A note), a genuinely
+  // separate-markets split, not the Competition Package's plain variantOptions strings. Same chip
+  // shape as every other takeover screen (idqScreenHtml) plus an Any chip (this screen family had
+  // none before) - the same "every option, plus the unsplit total" pattern the in-result "Which
+  // 911?" identity line uses, applied here pre-answer: there is no "chosen" state yet (nothing has
+  // been answered), so every option is always a live link, never plain text. Any's own count is the
+  // sum of the engine's own two (or more) given counts - both are the engine's own numbers, just
+  // added together, since this pre-answer screen carries no separate combined-pool total to read.
+  function variantChoiceTakeoverHtml(d) {
+    var choices = (d && d.variantChoices) || [];
+    var counts = choices.map(function (c) { return digitOf(c.count); });
+    var totalKnown = counts.every(function (n) { return Number.isFinite(n); });
+    var total = totalKnown ? counts.reduce(function (sum, n) { return sum + n; }, 0) : null;
+    var links = choices.map(function (c, i) {
+      var n = counts[i];
+      var countTxt = Number.isFinite(n) ? (" (" + idLineNum(n) + (n === 1 ? " sale" : " sales") + ")") : "";
+      return '<button type="button" class="linkbtn idq-opt" data-variantopt="' + esc(c.key) + '" data-mlabel="' + esc(c.label) + '">' + esc(c.label) + countTxt + " &#8594;</button>";
+    }).join("") + (total != null ? ('<button type="button" class="linkbtn idq-opt" data-variantopt-any="1">Any (' + idLineNum(total) + ") &#8594;</button>") : "");
+    return idqScreenHtml({ headName: carLabel(d.resolvedCar), question: d.prompt || "Which is it?", subline: "The range changes with the answer.", links: links, lintKey: "variantq" });
+  }
+  function renderVariantChoice(d) {
+    obLastD = d;
+    renderQuestion(variantChoiceTakeoverHtml(d));
+    if (typeof gasTrack === "function") gasTrack("identity_question_shown", { dimension: "competition", option_count: (d.variantChoices || []).length });
   }
   function renderError(msg) {
     root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + samMsgHtml([esc(msg)], "", "big") + footHtml();
@@ -2709,6 +2830,13 @@
       // body_choice stays on its existing renderChoice/chipAnswer path (appends to the query text
       // and fully re-resolves, rather than refine.body on the same pool) - not touched here, so no
       // number or mechanism it already relies on moves; a candidate for the same upgrade later.
+      // JOB 2 (Sam's review round, Oct 2026): a variant_choice answer carrying the richer
+      // d.variantChoices shape (real per-market chips: key/label/count/refine, Lane B's FOR LANE A
+      // note) is a genuinely separate-markets split (e.g. 356 Speedster Pushrod vs Carrera four-cam),
+      // not the binary Competition Package question - routed to its own renderer so it can offer an
+      // Any chip (this screen family never had one before). variant_choice with NO variantChoices
+      // (the Competition Package case) falls through to the unchanged generic renderer below.
+      if (d.tier === "variant_choice" && Array.isArray(d.variantChoices) && d.variantChoices.length) { if (d.askIndex) obAsked = d.askIndex; renderVariantChoice(d); return; }
       if (d.tier === "gearbox_choice" || d.tier === "variant_choice" || d.tier === "dochistory_choice") { if (d.askIndex) obAsked = d.askIndex; renderIdentityQuestion(d); return; }
       if (vinAnchor) obEvent("onebox_vin_anchor_shown");
       obSnapshotId = d.snapshotId || null; obAsOf = null; // live result: shareable, no as-of line
@@ -3100,6 +3228,22 @@
       b.addEventListener("click", function () {
         if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "body", value: "any" });
         runPool(lastQuery, obLastVehicle, mergeRefine({ body: null, label: null }));
+      });
+    });
+    // Job 2 (variant_choice takeover, Sam's review round): same refine mechanism the generic
+    // gearbox/competition/documented-history takeover's [data-idq-dim="competition"] chips already
+    // use (mergeRefine key "variant"), plus the new Any chip this screen family did not have before.
+    Array.prototype.forEach.call(root.querySelectorAll("[data-variantopt]"), function (b) {
+      b.addEventListener("click", function () {
+        var key = b.getAttribute("data-variantopt"), label = b.getAttribute("data-mlabel");
+        if (typeof gasTrack === "function") gasTrack("identity_question_answered", { dimension: "competition", choice: label || key || "", skipped: false });
+        runPool(lastQuery, obLastVehicle, mergeRefine({ variant: key, label: label }));
+      });
+    });
+    Array.prototype.forEach.call(root.querySelectorAll("[data-variantopt-any]"), function (b) {
+      b.addEventListener("click", function () {
+        if (typeof gasTrack === "function") gasTrack("identity_question_answered", { dimension: "competition", choice: "any", skipped: true });
+        runPool(lastQuery, obLastVehicle, mergeRefine({ variant: null, label: null }));
       });
     });
     // Identity question answer (either the original blocking screen or the "switch sides" chip
