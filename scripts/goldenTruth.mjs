@@ -332,6 +332,23 @@ try {
       const options = wm ? [...wm[1].matchAll(/([A-Za-z][A-Za-z \/-]*?)\s*\((\d+)\)/g)].map(x => ({ label: x[1].trim(), n: Number(x[2]) })) : [];
       return { count: p.count, options, scope: p.scope };
     };
+    // The chip as a visitor uses it: open the bare page, click the option, read the count the page then shows (the same car typed in words must give the same count).
+    const chipCount = async (q, label) => {
+      const ctx = await browser.createBrowserContext(); const page = await ctx.newPage();
+      try {
+        if (CREW) await page.setCookie({ name: "gas_crew", value: CREW, domain: new URL(BASE).hostname, path: "/" });
+        await page.setRequestInterception(true);
+        const host = new URL(BASE).host;
+        page.on("request", rq => { let own = false; try { own = new URL(rq.url()).host === host; } catch (e) {} rq.continue(own ? { headers: { ...rq.headers(), "x-ops-key": KEY, "x-launch-stage-test": "2" } } : undefined); });
+        await page.goto(pageUrl.marketCheck(q), { waitUntil: "domcontentloaded", timeout: 60000 }).catch(() => {});
+        const wait = async () => { let t = ""; const until = Date.now() + 50000; while (Date.now() < until) { t = await page.evaluate(() => document.body ? document.body.innerText : "").catch(() => ""); if (/\d+ sales?\b/.test(t) && /MARKET CHECK/.test(t)) break; await new Promise(x => setTimeout(x, 1000)); } return t; };
+        await wait();
+        const hit = await page.evaluate(lbl => { const e = [...document.querySelectorAll("a,button,[role=button]")].find(x => (x.innerText || "").trim().toLowerCase().startsWith(lbl.toLowerCase())); if (!e) return false; e.click(); return true; }, label);
+        if (!hit) return null;
+        await new Promise(x => setTimeout(x, 4000));
+        return PARSERS.marketCheck(await wait()).count;
+      } finally { await ctx.close().catch(() => {}); }
+    };
     const any = await facts(g.q);
     const checks = [];
     for (const op of any.options) {
@@ -339,6 +356,9 @@ try {
       if (/^body not stated$/i.test(op.label)) { checks.push({ name: `option ${op.label}`, cell: "PASS", diffs: [], shown: `${op.n} (counted in the sum, opens by chip only)` }); continue; }
       const pg = await facts(`${g.q} ${op.label.toLowerCase()}`);
       const ok = pg.count === op.n;
+      const ch = await chipCount(g.q, op.label);
+      const same = ch != null && pg.count != null && ch === pg.count;
+      checks.push({ name: `${op.label}: chip equals typed words`, cell: same ? "PASS" : "FAIL", diffs: same ? [] : [`two answers for one car: clicking ${op.label} shows ${ch == null ? "no chip found" : ch} sales, typing "${g.q} ${op.label.toLowerCase()}" shows ${pg.count == null ? "no count" : pg.count}`], shown: `chip ${ch == null ? "-" : ch} vs typed ${pg.count == null ? "-" : pg.count}` });
       checks.push({ name: `option ${op.label}`, cell: ok ? "PASS" : "FAIL", diffs: ok ? [] : [`the question prints ${op.label} (${op.n}); the page it opens shows ${pg.count == null ? "no count" : pg.count} sales`], shown: `${op.n} vs ${pg.count == null ? "-" : pg.count}` });
     }
     for (const op of any.options.filter(o => o.n === 0)) checks.push({ name: `option ${op.label}`, cell: "FAIL", diffs: [`rule 1: an option with zero sales is never shown, the question prints ${op.label} (0)`], shown: "0" });
