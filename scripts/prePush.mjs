@@ -301,6 +301,13 @@ try {
 } catch (e) {
   record("Set-aside sales labelled, never placed (scripts/setAsideCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The applied choice (Lane C, Oct 15 2026): a Task from a Buy page names the body the engine applied. No network.
+try {
+  const out = execSync("node scripts/engineChoiceCheck.mjs", { encoding: "utf8" });
+  record("Task from Buy reads the applied choice (scripts/engineChoiceCheck.mjs)", "PASS", (out.match(/engineChoiceCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Task from Buy reads the applied choice (scripts/engineChoiceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 
 // ---- 3 & 4. BROWSER CHECK (Lane C's pushCheck.mjs) + BASELINE ----
 console.log(`\n-- browser check via scripts/pushCheck.mjs (${BASE}) --`);
