@@ -10,6 +10,7 @@ const { resolveVehicle } = await import("../lib/vehicle.js");
 const { resolveForBuy, parseQuery, parseQueryResolved } = await import("../lib/live/search.js");
 const { sanitizeResolvedVehicle } = await import("../lib/vehicle.js");
 let bad = 0, gaps = 0;
+let slowest = { ms: 0, words: "" };   // the longest single resolveVehicle across the names (printed at the end)
 const fail = m => { bad++; console.log("FAIL " + m); };
 // [typed words, expected {year, make, model, trim}] (a key left out is not checked)
 const CASES = [
@@ -43,6 +44,13 @@ const CASES = [
   ["2004 Land Rover Defender 110", { year: 2004, make: "Land Rover", model: "Defender", wheelbase: "110" }],
   ["2012 Toyota Land Cruiser 200", { year: 2012, model: "Land Cruiser", series: "200" }],
   ["Toyota Land Cruiser 200", { model: "Land Cruiser", series: "200" }],
+  ["Toyota Land Cruiser 80 Series", { make: "Toyota", model: "Land Cruiser", series: "80" }],   // no year: the 80 is the series, not 1980, and the ask keeps it
+  ["Land Cruiser 60", { model: "Land Cruiser", series: "60" }],
+  // A power-adder word the factory never sold on that car is a modification, not a trim (it narrowed the pool to nothing); where the factory sold it, it stays a trim.
+  ["Supercharged Dart 363-Powered 1965 Ford Mustang Fastback", { year: 1965, make: "Ford", model: "Mustang", trim: "Fastback" }],
+  ["1967 Chevrolet Camaro Supercharged", { year: 1967, model: "Camaro", trim: null }],
+  ["2013 Ford Mustang Shelby GT500 Supercharged", { year: 2013, model: "Mustang", trim: "Shelby GT500 Supercharged" }],
+  ["2016 Jaguar F-Type Supercharged", { year: 2016, model: "F-TYPE", trim: "Supercharged" }],
   ["2005 Land Rover Range Rover LWB", { year: 2005, model: "Range Rover", variant: "LWB" }],
   ["2015 Jeep Wrangler Unlimited", { year: 2015, model: "Wrangler", variant: "Unlimited" }],
   ["2008 Porsche 911 Carrera 4S", { year: 2008, model: "911", trim: "Carrera 4S" }],
@@ -159,7 +167,7 @@ const CASES = [
 const norm = v => v ? { year: v.year || null, make: v.make || null, model: v.model || null, trim: v.trim || null, trimNumber: v.trimNumber || null, bodyStyle: v.bodyStyle || null, edition: v.edition || null, wheelbase: v.wheelbase || null, variant: v.variant || null, series: v.series || null } : null;
 for (const [words, want, buyGap = []] of CASES) {
   let mc = null, buy = null;
-  try { const r = await resolveVehicle(words, {}); mc = r && r.vehicle ? norm(r.vehicle) : null; } catch (e) { fail(`${words}: resolveVehicle threw ${e.message}`); continue; }
+  try { const t0 = Date.now(); const r = await resolveVehicle(words, {}); if (Date.now() - t0 > slowest.ms) slowest = { ms: Date.now() - t0, words }; mc = r && r.vehicle ? norm(r.vehicle) : null; } catch (e) { fail(`${words}: resolveVehicle threw ${e.message}`); continue; }
   try { const r = await parseQueryResolved(words, {}); buy = norm(r.vehicle); } catch (e) { fail(`${words}: resolveForBuy threw ${e.message}`); continue; }
   for (const k of Object.keys(want)) {
     if (!mc || mc[k] !== want[k]) fail(`${words}: Market Check ${k} = ${JSON.stringify(mc && mc[k])}, wanted ${JSON.stringify(want[k])}`);
@@ -199,6 +207,8 @@ for (const [make, model, trim, want] of [
     const x = await resolveVehicle(form, {});
     if (!x || x.status !== "valid") fail(`${form}: a factory Speedster year stays valid, got ${JSON.stringify(x && x.status)}`);
   }
+  const lc = await resolveVehicle("Toyota Land Cruiser 80 Series", {});
+  if (!lc || lc.status !== "needs_clarification" || !/Land Cruiser 80\. What year is it\?/.test(String(lc.clarification && lc.clarification.question))) fail(`Toyota Land Cruiser 80 Series: wanted the year ask to keep the 80, got ${JSON.stringify(lc && lc.clarification && lc.clarification.question)}`);
   const c = await resolveVehicle("1979 Porsche 911 SC Speedster", {});
   if (!c || c.status !== "needs_confirmation" || !/1979 Porsche 911 Targa/.test(String(c.clarification && c.clarification.suggestion))) fail(`1979 911 SC Speedster: wanted a confirmation of the 1979 Targa`);
   const k = await resolveVehicle("1986 Porsche 911 Carrera Speedster Conversion", {});
@@ -207,4 +217,5 @@ for (const [make, model, trim, want] of [
   if (!f || !f.vehicle || /Speedster\s+Speedster/i.test(String(f.vehicle.canonicalLabel))) fail(`1989 911 Carrera Speedster: label prints the body twice: ${JSON.stringify(f && f.vehicle && f.vehicle.canonicalLabel)}`);
 }
 console.log(bad ? `resolverLanesCheck: ${bad} failure(s)` : `resolverLanesCheck: ${CASES.length} names, one car on every lane` + (gaps ? ` (${gaps} known Buy parseQuery gaps listed for Lane B)` : ""));
+console.log(`resolverLanesCheck: longest single resolve ${(slowest.ms / 1000).toFixed(2)} s ("${slowest.words}")`);
 process.exit(bad ? 1 : 0);

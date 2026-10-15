@@ -207,7 +207,7 @@ try {
 // One car for one name on every lane (Oct 2026, Lane B2): the same words through Market Check's resolver and Buy/Tasks'
 // resolveForBuy must give the same car, with its casing and hyphens. No vendor request.
 try {
-  const out = execSync("node scripts/resolverLanesCheck.mjs && node scripts/resolverOfflineCheck.mjs", { encoding: "utf8" });
+  const out = execSync("node scripts/resolverLanesCheck.mjs && node scripts/resolverOfflineCheck.mjs && node scripts/resolverHangCheck.mjs", { encoding: "utf8" });
   record("one car per name on every lane (scripts/resolverLanesCheck.mjs)", "PASS", (out.match(/resolverLanesCheck: .*/) || [""])[0] + " | " + (out.match(/resolverOfflineCheck: .*/) || [""])[0]);
 } catch (e) {
   record("one car per name on every lane (scripts/resolverLanesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));

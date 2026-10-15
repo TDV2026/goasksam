@@ -10,6 +10,7 @@
 // x-ops-key header of in-page requests to goasksam's own address and is never printed. Without PROBE_KEY it says so and exits 0.
 import fs from "node:fs";
 import puppeteer from "puppeteer-core";
+import { crewCookie } from "./_crewCookie.mjs";
 
 const arg = n => { const i = process.argv.indexOf("--" + n); return i > 0 ? process.argv[i + 1] : null; };
 const flag = n => process.argv.includes("--" + n);
@@ -61,6 +62,7 @@ function judge(g, lane) {
   return { cell: diffs.length ? "FAIL" : "PASS", diffs };
 }
 
+const CREW = flag("pages") ? await crewCookie() : null;
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", protocolTimeout: 600000, args: ["--no-sandbox"] });
 const rows = [];
 const byQ = {};
@@ -158,6 +160,7 @@ try {
   async function readPage(product, q) {
     const ctx = await browser.createBrowserContext();
     const page = await ctx.newPage();
+    if (CREW) await page.setCookie({ name: "gas_crew", value: CREW, domain: new URL(BASE).hostname, path: "/" });
     try {
       await page.setViewport({ width: 1280, height: 900 });
       await page.setRequestInterception(true);

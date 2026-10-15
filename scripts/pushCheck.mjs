@@ -11,6 +11,7 @@
 // Without PROBE_KEY the gated pages load as the public sees them (a redirect to Sell), which still proves no
 // 5xx or console error but not the result itself; the script says so. Exit 0 = all clear, 1 = a failure.
 import puppeteer from "puppeteer-core";
+import { crewCookie } from "./_crewCookie.mjs";
 
 const arg = n => { const i = process.argv.indexOf("--" + n); return i > 0 ? process.argv[i + 1] : null; };
 const BASE = (arg("base") || "https://goasksam.com").replace(/\/$/, "");
@@ -25,11 +26,15 @@ const PAGES = [
 ];
 
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
+const CREW = await crewCookie();
+const withCrew = async page => { if (CREW) await page.setCookie({ name: "gas_crew", value: CREW, domain: new URL(BASE).hostname, path: "/" }); };
+console.log(CREW ? "crew cookie: minted for the gated pages (page speed is measured without the visitor ceiling)" : "crew cookie: none (no Keychain item); the visitor ceiling can apply");
 let failed = 0;
 try {
   for (const pg of PAGES) {
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 900 });
+    if (pg.gated) await withCrew(page);
     const errors = [], fivexx = [];
     if (pg.gated && KEY) {
       await page.setRequestInterception(true);
@@ -137,6 +142,7 @@ try {
     if (!KEY) { console.log(`SKIP  Market Check perf: "${car}"  (no PROBE_KEY: public view, nothing to time)`); continue; }
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 900 });
+    await withCrew(page);
     await page.setRequestInterception(true);
     page.on("request", r => {
       let own = false; try { own = new URL(r.url()).host === HOST; } catch (e) {}
