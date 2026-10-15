@@ -1207,7 +1207,15 @@ export async function checkIdentityCounts(env, specs = DEFAULT_SPECS) {
     const options = [];
     for (const o of d.bodyOptions) {
       const opened = await oneEngineAnswer(vehicle, generation, q, { ...env, exactSale: null, asked: 2 }, { body: o.value });
-      options.push({ label: o.label, n: o.n, opened: opened.poolSize, same: opened.poolSize === o.n, openedLabel: opened.rungLabel, openedBody: opened.raw && opened.raw.resolvedCar ? opened.raw.resolvedCar.bodyStyle : null });
+      // ONE ENGINE (e53, Sam's addition 1): the same option through engineAnswer, the path Buy's cards and Tasks read
+      // (rangeCache + the stored row, keyed on the refine since e49), must open the same count; the "Body not stated"
+      // page must leave the car's bodyStyle null on both paths.
+      const buy = await engineAnswer(vehicle, generation, q, env, { body: o.value }).catch(() => undefined);
+      const buyN = buy && Number.isFinite(buy.poolN) ? buy.poolN : (buy && Array.isArray(buy.cards) ? buy.cards.length : null);
+      const openedBody = opened.raw && opened.raw.resolvedCar ? opened.raw.resolvedCar.bodyStyle : null;
+      const buyBody = buy && buy.resolvedCar ? buy.resolvedCar.bodyStyle : null;
+      const bodyOk = o.value === "unspecified" ? (openedBody == null && buyBody == null) : true;
+      options.push({ label: o.label, value: o.value, n: o.n, opened: opened.poolSize, buyOpened: buyN, same: opened.poolSize === o.n && buyN === o.n && bodyOk && o.n >= 1, openedLabel: opened.rungLabel, openedBody, buyBody });
     }
     cases.push({ q, poolN, sum, unspecified: Number(d.bodyUnspecified) || 0, sumOk: sum === poolN, options, ok: sum === poolN && options.every(x => x.same) });
   }
