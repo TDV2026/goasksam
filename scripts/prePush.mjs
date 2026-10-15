@@ -99,6 +99,10 @@ console.log("\n-- deterministic engine checks --");
   record("output gate fixtures (synthetic, no DB)", g.ok ? "PASS" : "FAIL", g.ok ? `${g.cases.length} cases` : JSON.stringify(g.cases.filter(c => !c.pass)));
   const fw = checkFenceWordFixtures();
   record("replica fence words (synthetic, no DB)", fw.ok ? "PASS" : "FAIL", fw.ok ? `${fw.cases.length} cases` : JSON.stringify(fw.cases.filter(c => !c.pass)));
+  // Refine key isolation (e49, Sam's item 13): pure, no DB - the applied body/trim/variant refine is in every cache key.
+  const { checkRefineKeyIsolation } = await import("./crossProductCheck.js");
+  const rk = checkRefineKeyIsolation();
+  record("refine key isolation (synthetic, no DB)", rk.ok ? "PASS" : "FAIL", rk.ok ? `${rk.cases.length} cases` : JSON.stringify(rk.cases.filter(c => !c.pass)));
 }
 {
   // buildPoolSmoke (job 3 addendum): no DB, no network - synthetic rows through every real branch of

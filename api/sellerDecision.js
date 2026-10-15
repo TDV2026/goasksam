@@ -3471,8 +3471,14 @@ async function handler(req, res) {
       // blocker): the warm key is the resolved spec (make, model, trim, year, body...), with no identity in
       // it, so a VIN search could be served the car's plain warm answer, which carries no ownSales, and a
       // VIN search's own answer could be written as the plain one. Identity searches compute live.
-      const wantsWarm = !obRefine && !exactSale && vehicle && vehicle.make && !vehicle.vin && !vehicle.chassis && Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) === 0;
-      const warmKey = wantsWarm ? warmAnswerKeyFor(vehicle, generation) : null;
+      // IDENTITY REFINE (e49, Sam's item 13): a body, trim or variant chip is part of the car's identity and keys its
+      // OWN warm row (specKeyFor carries refine.body/trim/variant), so "2005 Porsche 911" and "2005 Porsche 911, Coupe"
+      // can never share an entry whichever runs first. A mileage, gearbox, driver, observable or document refine
+      // still computes live, as before.
+      const identityRefine = obRefine && (obRefine.body || obRefine.trim || obRefine.variant) && !(obRefine.miMin != null || obRefine.miMax != null || obRefine.tx || obRefine.driver || obRefine.observe || obRefine.docHistory)
+        ? { body: obRefine.body || null, trim: obRefine.trim || null, variant: obRefine.variant || null } : null;
+      const wantsWarm = (!obRefine || !!identityRefine) && !exactSale && vehicle && vehicle.make && !vehicle.vin && !vehicle.chassis && Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) === 0;
+      const warmKey = wantsWarm ? warmAnswerKeyFor(vehicle, generation, identityRefine) : null;
       if (wantsWarm) {
         try {
           const warmed = await readWarmAnswer({ supabaseUrl, supabaseKey }, warmKey);
@@ -3542,9 +3548,11 @@ async function handler(req, res) {
       // of them, and never slowing or failing this response (fire-and-forget). Skipped on a refine
       // answer (obRefine) - a refined pool is narrower than the base spec the cache key names, and
       // would otherwise overwrite the card's base-spec row with a mileage/gearbox-filtered one.
-      if (oneBox && oneBox.tier === "result" && !obRefine && vehicle && vehicle.make && vehicle.model) {
+      // e49: an identity-refined answer (body/trim/variant chip) is written under its OWN key (specKeyFor carries the
+      // refine), never over the base spec's row; a mileage/gearbox/driver refine is still never written.
+      if (oneBox && oneBox.tier === "result" && (!obRefine || identityRefine) && vehicle && vehicle.make && vehicle.model) {
         try {
-          const cacheKey = specKeyFor(vehicle, generation, null);
+          const cacheKey = specKeyFor(vehicle, generation, identityRefine);
           const core = coreOf(oneBox, { v: vehicle, generation, refine: null });
           if (core) persistCore({ supabaseUrl, supabaseKey }, cacheKey, core).catch(() => {});
         } catch { /* best-effort only, never blocks the response */ }

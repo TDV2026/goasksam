@@ -15,7 +15,11 @@
 // visitor (or the speed check right after this script) hits warm instead of paying the cold-compute
 // cost itself.
 //
-// TWO STEPS:
+// THREE STEPS (step 0 added e49, Sam's item 14: after e47 Buy's 997 Carrera page had all eleven markets pending for
+// over four minutes while a sweep ran):
+//   0. task=warmLive - the distinct resolved specs of EVERY car currently live on Buy (read the live listings,
+//      resolve, warm in parallel through the path a Buy card reads), repeated until done. Prints how many live
+//      specs there are and how long the warm took. No sweep or identity-count run starts until this has finished.
 //   1. task=warmMC (the existing curated bare-nameplate nightly list, api/usageDashboard.js) - a
 //      direct, fast engine call + write, no browser needed, archive-only (zero vendor spend).
 //   2. Each of the 20 golden cars (docs/golden-rules.md), loaded through the REAL public page
@@ -43,19 +47,34 @@ const GOLDEN = gm ? JSON.parse(gm[1]) : [];
 if (!GOLDEN.length) console.log("postDeployWarm: no golden-cars JSON block found in docs/golden-rules.md - step 2 has nothing to load.");
 
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", protocolTimeout: 600000, args: ["--no-sandbox"] });
-let warmed = 0, failed = 0;
+let warmed = 0, failed = 0, liveWarm = null;
 try {
   const home = await browser.newPage();
   await home.goto(BASE + "/", { waitUntil: "networkidle2", timeout: 60000 }).catch(() => {});
   await new Promise(r => setTimeout(r, 2000));
 
-  // ---- step 1: task=warmMC (the curated bare-nameplate list, direct engine call + write) ----
-  console.log(`-- step 1: task=warmMC (${BASE}) --`);
-  const opsResult = await home.evaluate(async (u, k) => {
-    const ac = new AbortController(); const t = setTimeout(() => ac.abort(), 290000);
+  const opsGet = url => home.evaluate(async (u, k) => {
+    const ac = new AbortController(); const t = setTimeout(() => ac.abort(), 295000);
     try { const r = await fetch(u, { headers: { "x-ops-key": k }, signal: ac.signal }); return { status: r.status, text: await r.text() }; }
     catch (e) { return { status: 0, text: String(e && e.message || e) }; } finally { clearTimeout(t); }
-  }, `${BASE}/api/usageDashboard?view=ops&task=warmMC`, KEY);
+  }, url, KEY);
+
+  // ---- step 0: task=warmLive (every car live on Buy, distinct resolved specs, warmed in parallel) ----
+  console.log(`-- step 0: task=warmLive (${BASE}) --`);
+  const liveT0 = Date.now();
+  for (let call = 1; call <= 8; call++) {
+    const r = await opsGet(`${BASE}/api/usageDashboard?view=ops&task=warmLive&budget=240000&width=6`);
+    let j = null; try { j = JSON.parse(r.text); } catch {}
+    if (r.status !== 200 || !j) { console.log(`task=warmLive call ${call}: HTTP ${r.status} ${String(r.text).slice(0, 160)}`); break; }
+    console.log(`task=warmLive call ${call}: ${j.liveRows} live cars, ${j.distinctSpecs} distinct specs (${j.unresolved} unresolved, resolve ${Math.round(j.resolveMs / 1000)}s), already warm ${j.alreadyWarm}, warmed ${j.warmed}, failed ${j.failed}, not reached ${j.notReached}, ${Math.round(j.ms / 1000)}s`);
+    liveWarm = j;
+    if (j.done) break;
+  }
+  console.log(`live Buy warm: ${liveWarm ? `${liveWarm.distinctSpecs} distinct specs over ${liveWarm.liveRows} live cars` : "no result"}, ${Math.round((Date.now() - liveT0) / 1000)}s${liveWarm && !liveWarm.done ? " (NOT finished: some specs not reached, run again before any sweep)" : liveWarm ? " (done)" : ""}`);
+
+  // ---- step 1: task=warmMC (the existing curated bare-nameplate list, direct engine call + write) ----
+  console.log(`\n-- step 1: task=warmMC (${BASE}) --`);
+  const opsResult = await opsGet(`${BASE}/api/usageDashboard?view=ops&task=warmMC`);
   if (opsResult.status === 401) {
     console.log("postDeployWarm: the ops key was rejected (401) - step 1 skipped, step 2 still runs through the public page (no key needed for the warm side-effect itself, only for the gated page's real result).");
   } else {
@@ -94,5 +113,5 @@ try {
   }
 } finally { await browser.close(); }
 
-console.log(`\npostDeployWarm: ${warmed} loaded, ${failed} failed. Run the speed check (scripts/pushCheck.mjs, or prePush.mjs) next.`);
+console.log(`\npostDeployWarm: live Buy ${liveWarm ? `${liveWarm.distinctSpecs} specs ${liveWarm.done ? "warm" : "NOT all warm"}` : "not warmed"}; golden ${warmed} loaded, ${failed} failed. Run the speed check (scripts/pushCheck.mjs, or prePush.mjs) next.`);
 process.exit(0);

@@ -1173,7 +1173,8 @@ async function handleOps(req, res) {
       buyPaths: req.query?.buypaths !== "0", liveFences: req.query?.livefences !== "0",
       representative: req.query?.representative !== "0", splitPools: req.query?.splitpools !== "0",
       overTime: req.query?.overtime !== "0", liveListing: req.query?.livelisting !== "0",
-      cacheConsistency: req.query?.cacheconsistency !== "0", formPairs: req.query?.formpairs !== "0", identityCounts: req.query?.identitycounts !== "0"
+      cacheConsistency: req.query?.cacheconsistency !== "0", formPairs: req.query?.formpairs !== "0", identityCounts: req.query?.identitycounts !== "0",
+      refineIsolation: req.query?.refineisolation !== "0"
     });
     if (batchSize) { result.batchOffset = batchOffset; result.batchSize = batchSize; result.batchTotal = (req.query?.specs ? String(req.query.specs).split("|").filter(Boolean) : DEFAULT_SPECS).length; }
     return res.status(200).json(result);
@@ -4352,6 +4353,15 @@ async function handleOps(req, res) {
     "1968 Chevrolet Camaro", "1973 Porsche 911", "1966 Ford Mustang", "1972 Datsun 240Z",
     "1957 Chevrolet Bel Air", "1985 Porsche 911"
   ];
+  // task=warmLive (e49, Sam's item 14): warm the distinct resolved specs of every car live on Buy through the path a
+  // Buy card reads (lib/live/search.js warmLiveSpecs). Archive-only, zero vendor spend, idempotent; budget= (ms, at most
+  // 270000) and width= (parallel engine reads, at most 8). scripts/postDeployWarm.mjs calls it until done.
+  if (task === "warmLive" || task === "warmlive") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { warmLiveSpecs } = await import("../lib/live/search.js");
+    const r = await warmLiveSpecs(env, { budgetMs: Math.min(270000, Number(req.query?.budget) || 240000), concurrency: Math.min(8, Number(req.query?.width) || 6) });
+    return res.status(200).json({ task: "warmLive", ...r });
+  }
   if (task === "warmMC") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle } = await import("../lib/vehicle.js");

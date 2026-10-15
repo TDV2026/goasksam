@@ -41,7 +41,7 @@ import { resolveVehicle } from "../lib/vehicle.js";
 import { findGeneration } from "../lib/generations.js";
 import { runOneBox, buildSpec, titleFenceReason, TIER_DIMENSION, isQualifying, oneEngineAnswer, runOutputInvariants } from "../lib/onebox.js";
 import { resolveSellCar, placesFor } from "../lib/sell/sellFacts.js";
-import { familyMarket, liveForFamily, emptyFilters, resolveForBuy, engineAnswer, specKeyFor } from "../lib/live/search.js";
+import { familyMarket, liveForFamily, emptyFilters, resolveForBuy, engineAnswer, specKeyFor, warmAnswerKeyFor } from "../lib/live/search.js";
 import { converse } from "../lib/live/converse.js";
 import { fetchOnlinePool, buildSharedAnalysis, pickPlatform, depthWins } from "../lib/platformPick.js";
 import { decide, getSellerCriteria } from "../api/sellerDecision.js";
@@ -656,6 +656,54 @@ export function checkSpecKeyYearIsolation() {
   return { ok: cases.every(c => c.pass), cases };
 }
 
+// REFINE KEY ISOLATION (e49, Sam's item 13): pure, no DB. The applied refine (body, trim, variant) is part of every
+// cache key an answer is stored under, so a chip page and the bare page can never share an entry. Six refines of one
+// car must be six keys, on specKeyFor and on the Market Check warm key alike.
+export function checkRefineKeyIsolation() {
+  const v = { make: "Porsche", model: "911", trim: "", year: 2005, bodyStyle: null }, gen = { code: "997" };
+  const forms = { plain: null, coupe: { body: "coupe" }, carreraS: { trim: "carrera-s" }, carrera: { variant: "carrera" }, manual: { tx: "manual" }, coupeManual: { tx: "manual", body: "coupe" } };
+  const keys = Object.fromEntries(Object.entries(forms).map(([n, r]) => [n, specKeyFor(v, gen, r)]));
+  const warm = Object.fromEntries(Object.entries(forms).map(([n, r]) => [n, warmAnswerKeyFor(v, gen, r)]));
+  const distinct = o => new Set(Object.values(o)).size === Object.keys(o).length;
+  const m = { make: "Ford", model: "Mustang", trim: "", year: 1965, bodyStyle: null }, mg = { code: "first" };
+  const cases = [
+    { name: "2005 911: plain, coupe, carrera-s, carrera, manual, coupe+manual are six specKeyFor keys", pass: distinct(keys), keys },
+    { name: "2005 911: the same six are six warm rows", pass: distinct(warm) },
+    { name: "1965 Mustang: the Coupe chip's key is not the bare key", pass: specKeyFor(m, mg, { body: "coupe" }) !== specKeyFor(m, mg, null) },
+    { name: "a refine with none of the four fields keys as plain", pass: specKeyFor(v, gen, { miMin: 20000 }) === specKeyFor(v, gen, null) }
+  ];
+  return { ok: cases.every(c => c.pass), cases };
+}
+// REFINE ISOLATION, LIVE (e49, Sam's item 13): plain, then the Coupe chip, then plain again, and the chip first the other
+// way round, through engineAnswer (rangeCache + the stored row, the path Buy, Tasks and the Market Check panel read).
+// Every plain answer must agree with every other plain answer, every chip answer with every other chip answer, and the
+// chip's pool must be smaller than the bare pool (a coupe pool is a part of the car's pool).
+export const REFINE_ISOLATION_SPECS = [["2005 Porsche 911", { body: "coupe" }], ["1965 Ford Mustang", { body: "coupe" }]];
+export async function checkRefineIsolation(env, specs = REFINE_ISOLATION_SPECS) {
+  const out = { ok: true, cases: [] };
+  const shape = d => ({ tier: (d && d.tier) || null, poolN: d && d.poolN != null ? d.poolN : null, rungLabel: (d && d.rungLabel) || null, applied: d && d.resolvedCar && d.resolvedCar.applied ? d.resolvedCar.applied : null });
+  for (const [q, refine] of specs) {
+    const row = { q, refine };
+    try {
+      const rv = await resolveVehicle(q, {}), vehicle = rv && rv.vehicle;
+      if (!vehicle || !vehicle.make) throw new Error("unresolved");
+      const generation = await findGeneration(vehicle, env).catch(() => null);
+      const call = async r => shape(await engineAnswer(vehicle, generation, q, env, r));
+      row.plainFirst = [await call(null), await call(refine), await call(null)];
+      row.chipFirst = [await call(refine), await call(null), await call(refine)];
+      const p = [row.plainFirst[0], row.plainFirst[2], row.chipFirst[1]], c = [row.plainFirst[1], row.chipFirst[0], row.chipFirst[2]];
+      row.plainAgree = p.every(x => x.poolN === p[0].poolN && x.tier === p[0].tier && x.rungLabel === p[0].rungLabel);
+      row.chipAgree = c.every(x => x.poolN === c[0].poolN && x.tier === c[0].tier && x.rungLabel === c[0].rungLabel);
+      row.chipNarrower = p[0].poolN != null && c[0].poolN != null && c[0].poolN < p[0].poolN;
+      row.keysDiffer = specKeyFor(vehicle, generation, null) !== specKeyFor(vehicle, generation, refine);
+      row.pass = row.plainAgree && row.chipAgree && row.chipNarrower && row.keysDiffer;
+    } catch (e) { row.error = String(e && e.message || e); row.pass = false; }
+    if (!row.pass) out.ok = false;
+    out.cases.push(row);
+  }
+  return out;
+}
+
 // OUTPUT GATE FIXTURES (Lane B job, Oct 13 2026, Job 1): pure, no DB - the exact shapes the live gate
 // wrongly refused, as synthetic answers through the REAL runOutputInvariants, so the refusal can never
 // come back on a push without this failing first. Plus one genuinely swapped pool that MUST still fail,
@@ -1179,9 +1227,11 @@ export async function runEngineCheck(env, specs = DEFAULT_SPECS, opts = {}) {
   const urgentOct2026 = opts.urgentOct2026 === false ? null : await checkUrgentOct2026Guards(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const cacheConsistency = opts.cacheConsistency === false ? null : await checkCacheConsistency(env, specs).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const specKeyYearIsolation = opts.specKeyYearIsolation === false ? null : checkSpecKeyYearIsolation();
+  const refineKeyIsolation = opts.refineKeyIsolation === false ? null : checkRefineKeyIsolation();
+  const refineIsolation = opts.refineIsolation === false ? null : await checkRefineIsolation(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const formPairs = opts.formPairs === false ? null : await checkFormPairs(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const identityCounts = opts.identityCounts === false ? null : await checkIdentityCounts(env, specs).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  return { task: "crossproductcheck", formPairs, identityCounts, total: rows.length, mismatchSpecs: totalMismatches, singlePick, buyPaths, liveFences, representative, splitPools, overTime, liveListing, urgentOct2026, cacheConsistency, specKeyYearIsolation, rows };
+  return { task: "crossproductcheck", formPairs, identityCounts, total: rows.length, mismatchSpecs: totalMismatches, singlePick, buyPaths, liveFences, representative, splitPools, overTime, liveListing, urgentOct2026, cacheConsistency, refineKeyIsolation, refineIsolation, specKeyYearIsolation, rows };
 }
 
 // ---- CLI ----
@@ -1212,6 +1262,8 @@ function printTable(result) {
   if (result.overTime) console.log(`OVER TIME: ${result.overTime.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.overTime)}`);
   if (result.liveListing) console.log(`LIVE LISTING: ${result.liveListing.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.liveListing)}`);
   if (result.cacheConsistency) console.log(`CACHE CONSISTENCY: ${result.cacheConsistency.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.cacheConsistency)}`);
+  if (result.refineKeyIsolation) console.log(`REFINE KEY ISOLATION: ${result.refineKeyIsolation.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.refineKeyIsolation.cases.map(c => [c.name, c.pass]))}`);
+  if (result.refineIsolation) console.log(`REFINE ISOLATION (live): ${result.refineIsolation.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.refineIsolation)}`);
 }
 
 const isMain = import.meta.url === `file://${process.argv[1]}`;
