@@ -206,7 +206,9 @@ export const checkOutputInvariants = runOutputInvariants;
 // question itself is Market Check's frontend's own concern (already live, confirmed elsewhere in
 // this session) and is intentionally NOT what this harness is checking.
 async function marketCheckLane(vehicle, generation, searchText, env) {
-  const d = await runOneBox(vehicle, generation, searchText, { ...env, asked: 2 }, null);
+  // THE PUBLIC PATH (Oct 15 2026, the e53 Camaro split): read through oneEngineAnswer, the shared entry the public API,
+  // Buy, Sell and Tasks all use, which applies the output gate; runOneBox alone had hidden a gate refusal from this lane.
+  const d = (await oneEngineAnswer(vehicle, generation, searchText, { ...env, exactSale: null, asked: 2 }, null)).raw;
   if (!d || !d.tier) return { ok: false, reason: "no tier" };
   // Part 4, the five output checks: run against the raw answer before anything below reduces it.
   const outputInvariants = checkOutputInvariants(d, vehicle);
