@@ -19,10 +19,14 @@ if (!KEY) { console.log("variantChipProof: no PROBE_KEY in the environment - not
 
 // The page's own payload shape (Lane A's trace): refine { variant, variantLabel }.
 const CASES = [
-  { q: "1957 Porsche 356 Speedster", tier: "result", refine: { variant: "carrera", variantLabel: "Carrera four-cam" }, chip: /^Carrera four-cam \(0\)/, expectLine: /No Carrera four-cam 1957 Porsche 356 Speedster sale on record/ },
-  { q: "1966 Ferrari 275 GTB", tier: "thin", refine: { variant: "competizione", variantLabel: "Competizione" }, chip: /^Competizione \(0\)/, expectLine: /No Competizione 1966 Ferrari 275 GTB sale on record/ },
-  { q: "1961 Jaguar E-Type Roadster", tier: "thin", refine: { variant: "lightweight", variantLabel: "Lightweight or Low Drag" }, chip: /^Lightweight or Low Drag \(0\)/, expectLine: /No Lightweight or Low Drag 1961 Jaguar E-Type Roadster sale on record/ },
-  { q: "1965 Ford Mustang", tier: "result", refine: { variant: "restoration", variantLabel: "Professional restoration" }, chip: /^Professional restoration \(0\)/, expectLine: /No professional restoration 1965 Ford Mustang sale on record/i }
+  // guard: a refine for a variant with no sales -> the nothing-on-record answer, on the full tier and the thin tier
+  { q: "1957 Porsche 356 Speedster", tier: "result", refine: { variant: "carrera", variantLabel: "Carrera four-cam" }, expectLine: /No Carrera four-cam 1957 Porsche 356 Speedster sale on record/ },
+  { q: "1967 Alfa Romeo Giulia Sprint GT Veloce", tier: "result", refine: { variant: "gta", variantLabel: "GTA or TZ" }, expectLine: /No GTA or TZ 1967 Alfa Romeo Giulia Sprint GT Veloce sale on record/ },
+  { q: "1969 Jaguar E-Type Coupe", tier: "result", refine: { variant: "lightweight", variantLabel: "Lightweight or Low Drag" }, expectLine: /No Lightweight or Low Drag 1969 Jaguar E-Type Coupe sale on record/ },
+  { q: "1966 Ferrari 275 GTB", tier: "thin", refine: { variant: "competizione", variantLabel: "Competizione" }, expectLine: /No Competizione 1966 Ferrari 275 GTB sale on record/ },
+  { q: "1961 Jaguar E-Type Roadster", tier: "thin", refine: { variant: "lightweight", variantLabel: "Lightweight or Low Drag" }, expectLine: /No Lightweight or Low Drag 1961 Jaguar E-Type Roadster sale on record/ },
+  // restoration is never an option (e52): a stale refine for it is ignored and the base page answers
+  { q: "1965 Ford Mustang", tier: "result", refine: { variant: "restoration", variantLabel: "Professional restoration" }, expectBase: true }
 ];
 
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", protocolTimeout: 600000, args: ["--no-sandbox"] });
@@ -42,10 +46,10 @@ try {
   console.log("-- public API, the page's refine payload --");
   for (const c of CASES) {
     const base = await ask(c.q, null), chip = await ask(c.q, c.refine);
-    const ok = chip.status === 200 && chip.d && chip.d.tier === "not_tracked" && c.expectLine.test(String(chip.d.samLine || ""));
     const sameAsBase = chip.d && base.d && chip.d.tier === base.d.tier && chip.d.cards === base.d.cards && chip.d.rungLabel === base.d.rungLabel;
+    const ok = chip.status === 200 && chip.d && (c.expectBase ? sameAsBase && !chip.d.applied : (chip.d.tier === "not_tracked" && c.expectLine.test(String(chip.d.samLine || ""))));
     if (!ok) bad++;
-    console.log(`${ok ? "PASS" : "FAIL"}  ${c.q.padEnd(28)} base ${base.d && base.d.tier}/${base.d && base.d.cards} "${base.d && base.d.rungLabel}"  |  chip ${JSON.stringify(c.refine)} -> ${chip.d && chip.d.tier}/${chip.d && chip.d.cards} "${chip.d && (chip.d.samLine || chip.d.rungLabel)}" applied ${JSON.stringify(chip.d && chip.d.applied)}${sameAsBase ? "  [IDENTICAL TO THE BASE PAGE]" : ""}`);
+    console.log(`${ok ? "PASS" : "FAIL"}  ${c.q.padEnd(28)} base ${base.d && base.d.tier}/${base.d && base.d.cards} "${base.d && base.d.rungLabel}"  |  chip ${JSON.stringify(c.refine)} -> ${chip.d && chip.d.tier}/${chip.d && chip.d.cards} "${chip.d && (chip.d.samLine || chip.d.rungLabel)}" applied ${JSON.stringify(chip.d && chip.d.applied)}${sameAsBase ? (c.expectBase ? "  [base page, the stale restoration refine ignored]" : "  [IDENTICAL TO THE BASE PAGE]") : ""}`);
   }
   if (!API_ONLY) {
     console.log("\n-- live page: a zero-count option is never offered (the page renders, the option is absent) --");

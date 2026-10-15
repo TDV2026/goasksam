@@ -13,7 +13,9 @@ import { callOldCarsData } from "../lib/_ocd.js";
 import { isTesterRequest } from "../lib/_tester.js";
 import { VARIANT_MARKETS } from "../lib/modelRules.js";
 // Every variant value a chip may carry (e51): the M-car pair plus each variant market's key and its other side.
-const VARIANT_REFINE_VALUES = new Set(["competition", "standard", ...VARIANT_MARKETS.flatMap(v => [v.key, v.nonKey].filter(Boolean))]);
+// Restoration is never an option or a question (e52, Sam's decision): the generic entries' keys (restoration,
+// unrestored) are not accepted from a client, so a stale refine for them is ignored and the base page answers.
+const VARIANT_REFINE_VALUES = new Set(["competition", "standard", ...VARIANT_MARKETS.filter(v => !v.generic).flatMap(v => [v.key, v.nonKey].filter(Boolean))]);
 import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
 import { findGeneration, generationModelToken, generationsForModel } from "../lib/generations.js";
 import { sourceCoverage } from "../lib/desk/coverage.js";
