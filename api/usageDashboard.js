@@ -2354,6 +2354,25 @@ async function handleOps(req, res) {
   // see exactly which sales a pool holds (and, with fence=1, why the engine kept or dropped each one)
   // without any read-only task having to reconstruct a fence by hand. Settles the "pending" golden
   // cars (356 Speedster, Merkur XR4Ti, Mustang GT, 275 GTB, Saab 9-2X) and anything like them later.
+  // task=livesearch (Lane B, Oct 15 2026, Sam's Job 3a, read-only): the Buy live search exactly as api/buySearch.js
+  // runs it (parseQueryResolved, then searchLive with the parsed filters and gens), with searchLive's own trace of why
+  // each make row was left out. ?q=E46 M3. Live listings only, zero OldCarsData.
+  if (task === "livesearch") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const q = String(req.query?.q || "E46 M3").slice(0, 200).trim();
+    const { parseQueryResolved, searchLive, gensNamed, nounFor } = await import("../lib/live/search.js");
+    const parsed = await parseQueryResolved(q, env);
+    const v = parsed.vehicle;
+    if (!v) return res.status(200).json({ task: "livesearch", q, status: "unresolved" });
+    const f = parsed.filters;
+    const named = gensNamed(parsed.text, v.make); if (named.length > 1 || (named.length === 1 && !v.genCode)) f.gens = named;
+    const trace = [];
+    const { rows } = await searchLive(env, v, f, parsed.text, { trace });
+    const why = {}; for (const t of trace) why[t.why] = (why[t.why] || 0) + 1;
+    return res.status(200).json({ task: "livesearch", q, vehicle: { make: v.make, model: v.model, parentModel: v.parentModel || null, trim: v.trim || null, genCode: v.genCode || null, year: v.year || null }, gens: f.gens, noun: nounFor(v, f), count: rows.length,
+      cards: rows.map(x => ({ id: x.r.id, title: x.r.listing_title, year: x.r.year, model: x.r.model || null, source: x.r.source, country: x.r.country || null, unknown: x.unknown })),
+      leftOut: why, modelWordLeftOut: trace.filter(t => t.why === "model word not in title").slice(0, 40).map(t => t.title) });
+  }
   // task=bodyaudit (Lane B, Oct 15 2026, Sam's Job 1c, read-only): for one venue since a date, how the stored
   // body_style relates to the listing's own title and to the model's own facts (lib/modelRules.js). Zero OCD.
   if (task === "bodyaudit") {
