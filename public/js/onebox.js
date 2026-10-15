@@ -71,6 +71,12 @@
   // bodyOptions/trimQuestion never overwrites what is already stored); reset alongside obLastRefine
   // at every new-search point.
   var obIdOrigBody = null, obIdOrigTrim = null;
+  // Job 7 (round two): d.variantOptionsLine (Lane B, e47) - an array of independent variant-market
+  // entries (e.g. "carrera" four-cam vs pushrod, "restoration" professional-restoration vs
+  // unrestored), each with both sides' own counts, zero allowed. Same survive-the-refine pattern as
+  // obIdOrigBody/obIdOrigTrim above (never overwritten by a null/absent variantOptionsLine once a
+  // refine lands).
+  var obIdOrigVariantLines = null;
   // Typo-confirmation "Not sure" fallback (Sam's review round): the clarification's own baseVehicle
   // text (e.g. "1986 Porsche"), so a reader who cannot pick between the suggested car and the
   // alternates still gets a real answer, never a dead end - set only while a typo confirmation
@@ -865,8 +871,40 @@
     }).join(" · ");
     return '<p class="hero-idline" data-stage="answer">' + links + "</p>";
   }
+  // Job 7 (round two, Lane B's e47 d.variantOptionsLine): one line per independent variant-market
+  // entry ("carrera" four-cam vs pushrod; "restoration" professional-restoration vs unrestored),
+  // same chip-plus-Any pattern as heroBodyLineHtml above, generalised to a LIST of entries instead of
+  // one. Every entry shares the SAME refine key ("variant" - confirmed live: both the carrera and
+  // restoration entries' options carry refine:{variant:...}), so choosing a side on ONE entry is the
+  // single active choice across ALL of them; an entry whose own side was not the one chosen just
+  // shows its two options plain, no chosen state, no Any (obLastRefine.variant cannot equal two
+  // different values at once). The zero-count side is always a live link, never disabled or greyed -
+  // clicking it opens its own real page (a real pool on a wider rung, or an honest nothing on
+  // record), never a dead end.
+  function variantOptionsLineHtml(d) {
+    var entries = (d && Array.isArray(d.variantOptionsLine) && d.variantOptionsLine.length) ? d.variantOptionsLine : obIdOrigVariantLines;
+    if (!Array.isArray(entries) || !entries.length) return "";
+    var np = nameplateOf(d);
+    var chosen = obLastRefine && obLastRefine.variant;
+    return entries.map(function (entry) {
+      var opts = entry && entry.options;
+      if (!Array.isArray(opts) || opts.length < 2) return "";
+      var total = 0, chosenHere = false;
+      opts.forEach(function (o) { var n = digitOf(o.n); if (Number.isFinite(n)) total += n; if (chosen && String(o.value) === String(chosen)) chosenHere = true; });
+      var items = opts.map(function (o) {
+        var isChosen = chosenHere && String(o.value) === String(chosen);
+        var n = digitOf(o.n);
+        var label = esc(o.label) + " (" + idLineNum(Number.isFinite(n) ? n : 0) + ")";
+        return isChosen ? ('<span class="hero-idlink hero-idlink-chosen">' + label + "</span>")
+          : ('<button type="button" class="linkbtn hero-idlink" data-varopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + label + "</button>");
+      });
+      if (chosenHere) items.push('<button type="button" class="linkbtn hero-idlink" data-varopt-any="1">Any (' + idLineNum(total) + ")</button>");
+      var lead = np ? (lint("Which " + esc(np) + "?", "hero.idq.variant") + " ") : "";
+      return '<p class="hero-idline" data-stage="answer">' + lead + items.join(" · ") + "</p>";
+    }).filter(Boolean).join("");
+  }
   function heroIdentityLineHtml(d) {
-    var lines = heroTrimLineHtml(d) + heroBodyLineHtml(d) + heroGearboxLineHtml(d);
+    var lines = heroTrimLineHtml(d) + heroBodyLineHtml(d) + heroGearboxLineHtml(d) + variantOptionsLineHtml(d);
     return lines ? ('<div class="hero-divider"></div>' + lines) : "";
   }
   // ================= HERO CHART (Market Check result-page spec, Oct 2026) =================
@@ -1010,42 +1048,45 @@
   // the engine returns") reads back exactly as given, first letter capitalised, never invented or
   // guessed at. Deliberately a different (shorter) wording than THIN_ASIDE_LABEL above, which builds
   // the trust-line SENTENCE ("a modification") - this builds a tile OVERLAY word ("Modified").
-  var THIN_ASIDE_TILE_LABEL = { modified: "Modified", project: "Project car", replica: "Replica", "odd sale": "Odd sale", variant: "Different variant" };
+  var THIN_ASIDE_TILE_LABEL = { modified: "Modified", project: "Project car", replica: "Replica", "odd sale": "Odd sale", variant: "Different variant", restoration: "Professional restoration", "professional restoration": "Professional restoration" };
   function thinAsideTileLabel(reason) {
     var key = String(reason || "").toLowerCase();
     if (THIN_ASIDE_TILE_LABEL[key]) return THIN_ASIDE_TILE_LABEL[key];
     return reason ? cap(String(reason)) : "";
   }
-  // "Use only the reason words the engine supplies": d.setAsideReasons is the engine's own per-
-  // reason count object (lib/onebox.js setAsideReasonFor); d.counts is the engine's own plain-number
-  // reconciliation (qualifying = used + setAside.total, always, per that file's own comment). Prints
-  // nothing when d.counts is absent (the thin/labelled-rung tier has no fence/aside concept at all -
-  // every qualifying sale there is already shown, nothing set aside) or when the arithmetic does not
-  // reconcile against the pool actually rendered here - silently, per the brief; any real mismatch
-  // observed live is reported under FOR LANE B instead of guessed at in markup.
-  function thinAsideSentence(d, poolLen) {
-    var counts = d && d.counts;
-    if (!counts || !counts.setAside || !(Number(counts.setAside.total) > 0)) return "";
-    var total = Number(counts.setAside.total), qualifying = Number(counts.qualifying), used = Number(counts.used);
-    if (!Number.isFinite(total) || !Number.isFinite(qualifying) || !Number.isFinite(used)) return "";
-    if (used !== poolLen || used + total !== qualifying) return "";
-    var bits = [], reasons = d.setAsideReasons;
-    if (reasons) {
-      Object.keys(reasons).forEach(function (k) {
-        var n = Number(reasons[k]) || 0;
-        if (n <= 0) return;
-        var lbl = THIN_ASIDE_LABEL[k];
-        if (!lbl) return;
-        bits.push(n === 1 ? lbl[0] : (obNumWordLow(n) + " " + lbl[1]));
-      });
-    }
+  // "Use only the reason words the engine supplies": d.setAsideCount/d.qualifyingTotal (e47, Lane B)
+  // are now uniform across every tier (result AND the labelled-rung thin tier both carry them,
+  // unlike the older d.counts object, which is result-tier only), so this reads those instead of
+  // d.counts - the same reconciliation, now available everywhere the tile grid is. Reason words are
+  // aggregated straight off asideRows[i].reason (the same field the tile labels read), never a
+  // separate summary object that might not exist on every tier - one source for both. Prints nothing
+  // when the arithmetic does not reconcile against the pool actually rendered here - silently, per
+  // the brief; any real mismatch observed live is reported under FOR LANE B instead of guessed at.
+  var THIN_ASIDE_LABEL = { modified: ["a modification", "modifications"], project: ["a project car", "project cars"], replica: ["a replica", "replicas"], "odd sale": ["an odd sale", "odd sales"], variant: ["a different variant", "different variants"], restoration: ["a professionally restored car", "professionally restored cars"], "professional restoration": ["a professionally restored car", "professionally restored cars"] };
+  function thinAsideSentence(d, poolLen, asideRows) {
+    var aside = Array.isArray(asideRows) ? asideRows : [];
+    var total = aside.length;
+    if (!total) return "";
+    var qualifying = Number(d && d.qualifyingTotal);
+    if (!Number.isFinite(qualifying) || poolLen + total !== qualifying) return "";
+    var counts = {};
+    aside.forEach(function (c) { var k = String((c && c.reason) || "").toLowerCase(); if (k) counts[k] = (counts[k] || 0) + 1; });
+    var bits = [];
+    Object.keys(counts).forEach(function (k) {
+      var n = counts[k];
+      var lbl = THIN_ASIDE_LABEL[k];
+      if (lbl) { bits.push(n === 1 ? lbl[0] : (obNumWordLow(n) + " " + lbl[1])); return; }
+      // An unrecognised reason key still gets a plain, honest word, never dropped silently.
+      var word = cap(k);
+      bits.push((n === 1 ? "a " : (obNumWordLow(n) + " ")) + (n === 1 ? word : word + "s"));
+    });
     var head = " " + obNumWord(total) + (total === 1 ? " sale set aside" : " sales set aside");
     if (!bits.length) return head + ".";
     var joined = bits.length === 1 ? bits[0] : (bits.slice(0, -1).join(", ") + " and " + bits[bits.length - 1]);
     return head + ": " + joined + ".";
   }
-  function thinTrustLineHtml(d, poolLen) {
-    var sentence = "Hammer prices, premiums taken out. No asking prices, no failed bids. Every tile opens the sale." + thinAsideSentence(d, poolLen);
+  function thinTrustLineHtml(d, poolLen, asideRows) {
+    var sentence = "Hammer prices, premiums taken out. No asking prices, no failed bids. Every tile opens the sale." + thinAsideSentence(d, poolLen, asideRows);
     return '<p class="thin-trust">' + lint(esc(sentence), "hero.thintiles.trust") + "</p>";
   }
   // Reuses the existing .ph/.noimg/.none photo-box pattern (photoHtml's own CSS, not its fixed "No
@@ -1098,7 +1139,7 @@
       ? aside.slice().sort(function (a, b) { return Number(b.price) - Number(a.price); }).map(function (c) { return thinTileHtml(c, thinAsideTileLabel(c.reason)); }).join("")
       : "";
     var eyebrow = '<div class="eyebrow">' + lint(esc("The " + obNumWordLow(n) + " sales"), "hero.thintiles.eyebrow") + "</div>";
-    var right = eyebrow + '<div class="thin-tiles">' + tiles + asideTiles + "</div>" + thinTrustLineHtml(d, n);
+    var right = eyebrow + '<div class="thin-tiles">' + tiles + asideTiles + "</div>" + thinTrustLineHtml(d, n, aside);
     return { said: said, right: right, suppressSalesRow: true };
   }
   // HOVER (desktop) / TAP (phone) TOOLTIPS (mockup match round, Oct 2026): the typical figure is
@@ -2095,6 +2136,10 @@
       left += '<p class="eyebrow hero-label hero-label-range">Where they sold</p>' +
         '<h2 class="range ink">' + esc(usd(fb.lowest)) + ' <span class="to">to</span> ' + esc(usd(fb.highest)) + "</h2>";
     }
+    // Job 7 (round two): d.variantOptionsLine reaches the labelled-rung thin tier too (confirmed
+    // live, 275 GTB) - the result tier's own identity-line wrapper (body/trim/gearbox) does not
+    // apply here, so this calls the variant line directly rather than the full heroIdentityLineHtml.
+    var varLine = variantOptionsLineHtml(d); if (varLine) left += '<div class="hero-divider"></div>' + varLine;
     // Candles only (engine's own d.trend quarters) - same rule as the result tier, no scope-filtered
     // fallback any more.
     var right = heroChartHtml(d);
@@ -2317,6 +2362,8 @@
     // (the whole point is surviving past that). See heroBodyLineHtml/heroTrimLineHtml.
     if (d && Array.isArray(d.bodyOptions) && d.bodyOptions.length) obIdOrigBody = { options: d.bodyOptions, poolN: d.soldCount };
     if (d && d.trimQuestion && Array.isArray(d.trimQuestion.options) && d.trimQuestion.options.length) obIdOrigTrim = { model: d.trimQuestion.model, options: d.trimQuestion.options, poolN: d.soldCount };
+    // Job 7 (round two): same survive-the-refine capture, for d.variantOptionsLine.
+    if (d && Array.isArray(d.variantOptionsLine) && d.variantOptionsLine.length) obIdOrigVariantLines = d.variantOptionsLine;
     var m = vinAnchor;
     // The duplicate car line (Oct 2026, Sam's live review; extended to "thin" in the hero-rebuild
     // round): "result" and "thin" each render their own car-name heading at the top of the new hero
@@ -2686,7 +2733,7 @@
     // A brand-new search resets the question count; a chip answer (keepAsk) carries it forward so
     // the engine can enforce the two-question cap across generation/body re-queries (Part 3).
     if (!keepAsk) obAsked = 0;
-    lastQuery = text; obLastRefine = null; obIdOrigBody = null; obIdOrigTrim = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
+    lastQuery = text; obLastRefine = null; obIdOrigBody = null; obIdOrigTrim = null; obIdOrigVariantLines = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
     // Identifier-shaped input (VIN or chassis) routes through the shared resolver (decode +
     // confirm + exact-match + the honest VIN-invalid / chassis lines); everything else goes
     // straight to the archive pool.
@@ -2756,7 +2803,7 @@
     var vin = sp.get("vin"), car = sp.get("car");
     if (!vin && !car) { renderEmpty(); syncRailResults(); return; }
     var refine = mcRefineFromParams(sp);
-    obAsked = 0; lastQuery = vin || deslugifyQuery(car); obLastRefine = null; obIdOrigBody = null; obIdOrigTrim = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
+    obAsked = 0; lastQuery = vin || deslugifyQuery(car); obLastRefine = null; obIdOrigBody = null; obIdOrigTrim = null; obIdOrigVariantLines = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
     if (vin) { vinResolve(vin); return; }   // VIN re-decode is the full, tested path - refine on a VIN result is a rare combo and not threaded through it.
     runPool(lastQuery, null, refine);
   }
@@ -3284,6 +3331,23 @@
       b.addEventListener("click", function () {
         if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "body", value: "any" });
         runPool(lastQuery, obLastVehicle, mergeRefine({ body: null, label: null }));
+      });
+    });
+    // Job 7 (round two): the in-result variantOptionsLine chips - same mergeRefine key "variant" the
+    // blocking variant_choice screen's own [data-variantopt] chips use (job 2), a DIFFERENT attribute
+    // name so the two never collide (this fires inline on a result/thin page that already has an
+    // answer; job 2's fires on its own full-takeover question screen).
+    Array.prototype.forEach.call(root.querySelectorAll("[data-varopt]"), function (b) {
+      b.addEventListener("click", function () {
+        var val = b.getAttribute("data-varopt"), label = b.getAttribute("data-mlabel");
+        if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "variant", value: String(label || val || "").slice(0, 40) });
+        runPool(lastQuery, obLastVehicle, mergeRefine({ variant: val, label: label }));
+      });
+    });
+    Array.prototype.forEach.call(root.querySelectorAll("[data-varopt-any]"), function (b) {
+      b.addEventListener("click", function () {
+        if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "variant", value: "any" });
+        runPool(lastQuery, obLastVehicle, mergeRefine({ variant: null, label: null }));
       });
     });
     // Job 2 (variant_choice takeover, Sam's review round): same refine mechanism the generic
