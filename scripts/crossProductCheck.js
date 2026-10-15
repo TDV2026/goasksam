@@ -717,6 +717,21 @@ const GATE_FIXTURES = [
     vehicle: { make: "Porsche", model: "997", trim: "Carrera S", year: 2008 },
     d: { tier: "result", fallbackRung: "exact", rungLabel: "2008 997 Carrera S Coupe", resolvedCar: { trim: "Carrera S", genCode: "997" }, poolN: 4, cluster: [58500, 69000], rawPool: [{ _usd: 55000, year: 2008 }, { _usd: 60000, year: 2008 }, { _usd: 65000, year: 2008 }, { _usd: 70000, year: 2008 }],
       cards: [card("Porsche", "911", "2008 Porsche 911 Carrera S Coupe"), card("Porsche", "911", "2008 Porsche 911 Carrera S Coupe 6-Speed"), card("Porsche", "911", "2008 Porsche 911 Carrera S Coupe"), card("Porsche", "997", "2008 Porsche 997 Carrera S Coupe 6-Speed")] } },
+  // e54 (Oct 15 2026, the blank Camaro and Mustang pages): a bare answer whose options include "Body not stated" (and whose
+  // bodyUnspecified still counts those rows) must be ACCEPTED; e53's gate added the unspecified rows twice and refused it.
+  { name: "1969 Camaro: options Coupe 17, Convertible 3, Body not stated 1 sum to the pool of 21 (unspecified rows counted once)", expect: true,
+    vehicle: { make: "Chevrolet", model: "Camaro", trim: "", year: 1969 },
+    d: { tier: "result", fallbackRung: "exact", rungLabel: "1969 Camaro, coupes and convertibles", resolvedCar: { trim: "", genCode: "first" }, poolN: 21, cluster: [45500, 78500],
+      bodyOptions: [{ value: "coupe", label: "Coupe", n: 17, inPool: 17 }, { value: "convertible", label: "Convertible", n: 3, inPool: 3 }, { value: "unspecified", label: "Body not stated", n: 1, inPool: 1 }], bodyUnspecified: 1,
+      rawPool: Array.from({ length: 21 }, (_, i) => ({ _usd: 40000 + i * 2000, year: 1969 })),
+      cards: Array.from({ length: 21 }, (_, i) => card("Chevrolet", "Camaro", i < 17 ? "1969 Chevrolet Camaro Coupe" : i < 20 ? "1969 Chevrolet Camaro Convertible" : "1969 Chevrolet Camaro")) } },
+  // and the same answer with the unspecified rows in NO option (e51 to e52's shape) must still fail: a silent gap is a gap.
+  { name: "1969 Camaro: options Coupe 17, Convertible 3 against a pool of 21 with one row in no option is refused", expect: false,
+    vehicle: { make: "Chevrolet", model: "Camaro", trim: "", year: 1969 },
+    d: { tier: "result", fallbackRung: "exact", rungLabel: "1969 Camaro, coupes and convertibles", resolvedCar: { trim: "", genCode: "first" }, poolN: 21, cluster: [45500, 78500],
+      bodyOptions: [{ value: "coupe", label: "Coupe", n: 17, inPool: 17 }, { value: "convertible", label: "Convertible", n: 3, inPool: 3 }], bodyUnspecified: 0,
+      rawPool: Array.from({ length: 21 }, (_, i) => ({ _usd: 40000 + i * 2000, year: 1969 })),
+      cards: Array.from({ length: 21 }, (_, i) => card("Chevrolet", "Camaro", i < 17 ? "1969 Chevrolet Camaro Coupe" : i < 20 ? "1969 Chevrolet Camaro Convertible" : "1969 Chevrolet Camaro")) } },
   // Golden car 12 (Oct 14 2026): a generation label over receipts that hold only two of the generation's years must fail.
   { name: "GT3: '(992 generation)' label over a 2023 to 2024 pool names a wider span than the receipts", expect: false,
     vehicle: { make: "Porsche", model: "911", trim: "GT3", year: 2024 },

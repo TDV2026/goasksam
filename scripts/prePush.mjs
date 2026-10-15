@@ -351,6 +351,24 @@ try {
   console.log(String((e.stdout || "") + (e.stderr || "")).trim().slice(-1500) || "goldenTruth did not complete (report-only, not blocking).");
 }
 
+// ---- 6. IDENTITY PAGES THROUGH THE PUBLIC API (Sam, Oct 15 2026, after the e53 blank pages): BLOCKING. ----
+// The bare page and every identity option page of the 1965 Ford Mustang, the 1969 Chevrolet Camaro and the 2005 Porsche
+// 911, read through POST /api/sellerDecision exactly as the page reads them (scripts/identityPagesProof.mjs): fails on an
+// empty answer, a missing count, an option whose page opens a different count, a zero-count option, or options that do
+// not sum to Any. Needs PROBE_KEY (SKIP without one, stated in the summary). Reads the DEPLOYED site: it proves the
+// production the push lands on; the post-deploy chain runs the same check in its first minute for the candidate.
+console.log("\n-- identity pages through the public API (scripts/identityPagesProof.mjs) --");
+if (!process.env.PROBE_KEY) {
+  record("identity pages via public API (Mustang, Camaro, 2005 911)", "SKIP", "no PROBE_KEY in the environment");
+} else {
+  let idOut = "", idExit = 0;
+  try { idOut = execSync(`node scripts/identityPagesProof.mjs --base ${BASE}`, { encoding: "utf8", timeout: 900000 }); }
+  catch (e) { idExit = e.status || 1; idOut = (e.stdout || "") + (e.stderr || ""); }
+  console.log(idOut.trim().slice(-2500));
+  if (idExit === 0) record("identity pages via public API (Mustang, Camaro, 2005 911)", "PASS");
+  else record("identity pages via public API (Mustang, Camaro, 2005 911)", "FAIL", (idOut.split("\n").filter(l => /^(FAIL|   DIFF)/.test(l)).join(" | ") || "identityPagesProof exited " + idExit).slice(0, 600));
+}
+
 // ---- summary ----
 console.log("\n=== SUMMARY ===");
 const fails = results.filter(r => r.status === "FAIL");
