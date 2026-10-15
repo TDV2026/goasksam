@@ -3259,6 +3259,12 @@ async function handler(req, res) {
           /* Fix 7 resolved from the titles - proceed to the result, no ask */
         } else if (partial) {
           vehicle = partial;
+        } else if (req.body?.oneBox && resolution.status === "needs_confirmation" && resolution.clarification && resolution.clarification.kind === "typo_confirmation") {
+          // A CONFIRMATION IS RETURNED, NEVER PROCEEDED PAST (Lane B, Oct 15 2026, found on B2's Speedster ask dee1e44):
+          // the resolver's "Did you mean ...?" (product rule 6) carries a make and model, so the branch below used to
+          // run the engine on the guessed car instead of asking - the page never saw the question. The page branches
+          // on the clarification kind (typo_confirmation: suggestion + chips).
+          return res.status(200).json({ status: "needs_confirmation", vehicle: resolution.vehicle, clarification: resolution.clarification });
         } else if (req.body?.oneBox && resolution.vehicle?.make && resolution.vehicle?.model) {
           // One Box: make + model resolved, only the year is missing/ambiguous ("Miata",
           // "911", "Chevrolet Corvette") -> proceed YEAR-AGNOSTIC (comps across the model's
