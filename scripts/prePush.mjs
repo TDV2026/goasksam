@@ -308,6 +308,13 @@ try {
 } catch (e) {
   record("Prior listings say sold only when one sold (scripts/priorListingCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The Buy box and voice button (Lane C, Oct 15 2026): mic works on iPhone, box clears after a search. No network.
+try {
+  const out = execSync("node scripts/buyBoxCheck.mjs", { encoding: "utf8" });
+  record("Buy box clears and the mic answers one tap (scripts/buyBoxCheck.mjs)", "PASS", (out.match(/buyBoxCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Buy box clears and the mic answers one tap (scripts/buyBoxCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The applied choice (Lane C, Oct 15 2026): a Task from a Buy page names the body the engine applied. No network.
 try {
   const out = execSync("node scripts/engineChoiceCheck.mjs", { encoding: "utf8" });
