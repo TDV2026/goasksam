@@ -4360,7 +4360,7 @@ async function handleOps(req, res) {
   if (task === "warmLive" || task === "warmlive") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { warmLiveSpecs } = await import("../lib/live/search.js");
-    const r = await warmLiveSpecs(env, { budgetMs: Math.min(270000, Number(req.query?.budget) || 240000), concurrency: Math.min(8, Number(req.query?.width) || 6) });
+    const r = await warmLiveSpecs(env, { budgetMs: Math.min(230000, Number(req.query?.budget) || 200000), concurrency: Math.min(8, Number(req.query?.width) || 6), shard: req.query?.shard ? String(req.query.shard) : null });
     return res.status(200).json({ task: "warmLive", ...r });
   }
   if (task === "warmMC") {
