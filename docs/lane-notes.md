@@ -8118,3 +8118,8 @@ Search check: no public page touched; /buy result views are noindex.
 - POPUP: no live card on the scanned searches has a past sale the engine set aside (six cards with any past sale); the label was proved by marking the 1997 Targa's (100494) June 2023 sale set aside in the test browser's copy: "Sold for $79,500 / Set aside as modified", no placing (buy/e49/set-aside/popup-100494-*.png). Server matching is covered by scripts/setAsideCheck.mjs.
 - FOR LANE B (report only): (a) the 2018 911 Turbo S Coupe "Exclusive Series" sales (Bring a Trailer, Aug 13 $320,000 and Jun 26 $348,500) carry reason "modified"; Exclusive Series is a factory limited edition, so the reason word reads wrong (a variant name would fit). (b) The Sotheby's Motorsport row (2006 M5, Jul 14, $42,500) has no platform name on the card (houseName/platNamed), so the email reads "View the sale:" without the venue.
 Search check: no public page touched; /buy result views are noindex.
+
+## Lane C, Oct 15 2026: e50 real cold view and the venue name
+
+- Real cold first view of /buy?q=997 Carrera on e50 (4412164), run after Lane B reported its live-Buy warm done (01:57; 1,881 of 1,896 specs warm). Both widths drew six visible cards at 23s (390) and 24s (1440). All 11 cards came with a range in the search answer itself, so the page sent no enrich ask, no card showed "Sam is still reading the sales for this one.", and every card had Market Check. Screenshots in ~/Desktop/goasksam-proofs/buy/e50/cold/.
+- The sold Task email's "View the sale on {venue}" row now reads the engine's platformName (e50), so a Sotheby's Motorsport, Mecum or Bonhams sale names its venue instead of "View the sale" alone (lib/live/watches.js).
