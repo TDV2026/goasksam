@@ -8184,3 +8184,85 @@ A cleanup would likely: give the no-photo fallback caption one shared overflow-s
 The slow Market Check and Buy reads measured on Oct 15 (08:30 to 10:10 PDT: uncached single reads 7 to 13s, up to 52s, against 3 to 5s overnight) overlapped no nightly job; they overlapped LANE WORK: prePush runs (each loads the 20 golden cars plus the perf reads), a cold-view test, a results table and an engine chain all in the same hour, and a live-Buy warm. The rule: no two lanes run prePush, a results table, a cold test or a chain at the same time, and no lane runs any of them while a live-Buy warm is on. Before starting one, say so in your lane's inbox message or here, and wait for the lane that is running one to report it finished. Lane B posts warm-start and warm-done in every lane's inbox; a warm runs at a width the minute probe (scripts/minuteProbe.mjs, one public read a minute) keeps at "ok" every minute, and drops its width the moment a minute reads unavailable (item 0 of the speed job). Stop only the processes you started yourself, by their own PIDs, never by process name; if you need another lane to stop something, write it here and tell Sam.
 
 - 2026-10-15 (Lane B): THE ONE PREPUSH EXCEPTION (Sam, Oct 15 2026). e53 (0f46571) shipped a blank bare Market Check page for every car whose pool holds sales with no body word in the title (1965 Ford Mustang, 1969 Chevrolet Camaro): the new "Body not stated" option left the unspecified rows in bodyUnspecified as well, the output gate summed them twice (22 against a pool of 21), and the shared entry turned the answer into a cardless refusal; obdiag (runOneBox, no gate) still showed 21, which is how my proofs missed it. e54 (190d8ba) counts them once and makes a body page's refusal receipts its own rows. prePush against the live (e53) site failed on the identity-pages check and on the 1969 Camaro perf budgets (a cardless refusal cannot be warmed, so the Camaro page computed cold at 20s); Sam approved pushing e54 over those checks, this once, because the deployed site was the fault the push fixed. From here: prePush's identity check runs on the code being pushed (scripts/identityLocalCheck.mjs, synthetic rows through the real buildResult, options, option pages and gate, no network), the live-site check (scripts/identityPagesProof.mjs) runs in the post-deploy chain in its first minute, the sweep's Market Check lane reads through oneEngineAnswer (the gated entry), and nothing is ever again pushed over a failing prePush.
+
+## Lane A, Oct 15 2026 (round four): set-aside block replaces the shared grid, 9-16 sales go full width, no-range headline removed, scope-line years restored
+
+Sam's review of the live 1957 Porsche 356 Speedster page: too much white space. Four jobs plus two
+bugs found on the next table run (e51), both render-only, neither touches the engine. Commits: e8729fe
+(the layout restructure), 712815d (the two table-run fixes). All pushed, Vercel Ready after each,
+prePush 0 FAIL before both pushes (one run on the first commit failed with exit 144 - a kill, not a
+real failure - the very next run on the same commit was clean).
+
+JOBS 1-3, set-aside sales get their own block. thinTileTreatment's grid now holds only the sales
+behind the range ("The {count} sales," sorted price descending) - never set-aside rows. A set-aside
+sale (when the engine reports any) gets its own block under the "said" sentence: eyebrow "Set aside,
+not in the range," two tiles across at every width, same tile design with its own reason label on the
+photo. Absent entirely when there are none. The trust line drops its "{N} sales set aside: {reasons}"
+sentence (thinAsideSentence and its THIN_ASIDE_LABEL map deleted outright, unused once the sentence
+is gone) - the block now carries that fact, with each tile's own label (thinAsideTileLabel, unchanged).
+Counts reconcile by construction: the grid is exactly the pool array the tiles are built from, the
+block is exactly the asideRows array, no second-sourced total either way.
+
+JOB 4, 9 to 16 sales. The sales grid moves out of hero-right into its own full-width section below
+the hero (.thin-tiles-full, six across at 1440 via .thin-tiles-wide, three across at 390), with the
+set-aside block under that grid instead of in hero-left. hero-left becomes the hero2col row's only
+child at that point - the existing `:only-child{grid-column:1/-1}` rule already spans it full width,
+so there is no empty hero-right. Chosen by tile count alone (n >= 9). PROVEN LIVE on the 1966 Ferrari
+275 GTB (nine sales, no set-aside rows): six-across grid, no empty area, hero-left spans the full row.
+A true 9-16 car carrying BOTH the wide layout AND set-aside rows was not available live this round
+(275 GTB has none); the wide layout and the aside block are each proven live separately, not yet
+proven together on one page - flagged, not chased.
+
+BUG FOUND PROVING THIS LIVE, FIXED (712815d, part 1): the 275 GTB page printed $1,215,000 to
+$3,481,000 on its nine-sale answer even though the engine never decided this car has a real cluster
+(d.cluster, the result tier's own gate, is never set on the thin tier - that absence is WHY a car
+lands there). thinHeroHtml had its own separate "ink" headline (eyebrow "Where they sold") built
+straight from d.factsBlock.lowest/highest once poolLen reached 8 - factsBlockFrom's own comment
+already said this field is "NEVER a range or a middle (product rule 24)," meant for a plain fact
+sentence (the precedent: factsBlockHtml's "sold between $X and $Y"), not a prominent headline - this
+code rendered it as one anyway. Removed outright; the only legitimate range headline left anywhere is
+heroRangeHtml's, gated on d.cluster. PROVEN LIVE: 275 GTB (nine sales, a genuinely wide $1.2M-$3.5M
+spread) and 2006 Mercedes-Benz CLK DTM (six sales, under the old poolLen>=8 gate anyway, confirmed
+still null) both carry no range headline of any kind; every sale's own price is unaffected, still on
+its own tile.
+
+BUG FOUND PROVING THIS LIVE, FIXED (712815d, part 2): the scope line dropped the year span on every
+widened thin-tier car (275 GTB "Road cars" with no "1965 to 1966"; CLK DTM, Merkur XR4Ti the same).
+d.poolYears is only ever set from the engine's PRE-widening candidate pool (lib/onebox.js `base`),
+empty on exactly the cars that land on the thin tier - that absence is why they widened in the first
+place. The span was never actually lost: lib/onebox.js's thinLabel always builds d.rungLabel as
+"{nameplate}, {Y1} to {Y2}" (or a bare "{Y} {nameplate}" when the rung never widened past one year).
+New rungLabelYearSpan reads that same engine text back - the same read-back discipline
+bodyMixTailOf/variantTailOf already use for body/variant clauses - only when d.poolYears is unusable,
+inside heroScopeLineText (the one scope line shared by both tiers). A generation-code label with no
+literal year ("997 generation") returns null, same as before - never invented. PROVEN LIVE on the
+three widened cars Sam named: 275 GTB "Road cars, 1965 to 1966," CLK DTM "Cabriolets and coupes, 2005
+to 2006," 1989 Merkur XR4Ti "1987 to 1989." The Speedster (not widened past its own year) was already
+correct and reads unchanged: "Pushrod cars, 1957."
+
+ITEM 5, mockup check. Nothing below the trust line changed this round (sellHtml/samOnItHtml are
+untouched by either commit); already checked thoroughly two rounds ago (the h3->h2 fix). Re-confirmed
+the mockup file itself has not changed since (same timestamp) - no drift, no further change.
+
+ITEM 7, live proof pass gated on Lane B - STILL PENDING. No new "push live, warm done" report in
+lane-notes since the last check; e52 (6f63461, restoration-refine fix) landed mid-round with no
+accompanying status note. 2005 Porsche 911 and 1965 Ford Mustang's refine mechanism was already
+proven live two rounds ago (post-e51); CLK DTM is freshly proven this round (above). The one
+genuinely new, unmet part of item 7 is the specific one/two/three-sale cars Lane B would name - none
+named yet, so not attempted.
+
+PROOF SET this round (live, 1440 and 390 unless noted): 1957 Porsche 356 Speedster (eight sales, two
+set aside, narrow layout with the block), 1966 Ferrari 275 GTB (nine sales, no set aside, wide
+layout), 2006 Mercedes-Benz CLK DTM (six sales, no set aside, narrow layout with no block and no
+excess empty area), 1989 Merkur XR4Ti (six sales, 1440 only, the third named widened-year car). Read
+each top to bottom as a visitor: no repeated line, no unnatural phrasing, no question asked straight
+after another, on every page - none of these four pages ask a question at all (thin tier, no
+identity-question state on any of them).
+
+Screenshots in /Users/davidzysblat/Desktop/goasksam-proofs/market-check/ (session scratchpad moved
+on request last round, continuing that practice): r5-speedster-{1440,390}.png, r5-275gtb-{1440,390}.png,
+r5-clkdtm-{1440,390}.png, r5-merkur-1440.png.
+
+Search check: no title, H1, canonical or meta changed on any page; every change (the set-aside block,
+the wide layout, the removed no-range headline, the scope-line year fallback) sits inside the
+existing Market Check template.
