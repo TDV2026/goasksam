@@ -381,9 +381,12 @@ if (flag("pages")) {
   console.log("\nSell page count against the engine count (they must be equal):");
   for (const r of rows) { const lane = (byQ[r.g.q] && byQ[r.g.q].lanes || {}).sell; const sp = r.pages && r.pages.sell; const m = sp && /^(\d+|-)/.exec(sp.shown || ""); console.log(`  ${r.g.id}. ${pad(r.g.q, 42)} page ${m ? m[1] : "-"}   engine ${lane && lane.ok ? lane.count : "-"}`); }
 }
+// obdiag's included list is the engine's raw pool for the typed words (before a body or variant narrowing); when it is wider than the answer's count
+// the line says so, so a country read over more rows than the answer is never taken for the answer's own pool.
+const wide = r => { const ml = (byQ[r.g.q] && byQ[r.g.q].lanes || {}).marketCheck; return ml && ml.ok && ml.count != null && r.country.n !== ml.count ? ` (WIDER than the answer: ${ml.count} sales)` : ""; };
 if (rows.some(r => r.country)) {
   console.log("\nCountry on the pool rows (US and Canada only; basis shows where the country came from; unknown or outside rows are listed):");
-  for (const r of rows) if (r.country) console.log(`  ${r.g.id}. ${pad(r.g.q, 42)} ${r.country.n == null ? r.country.note : r.country.n + " rows  " + Object.entries(r.country.bases).map(([k, v]) => k + " " + v).join(", ") + (r.country.odd.length ? "  UNKNOWN OR OUTSIDE: " + r.country.odd.join("; ") : "")}`);
+  for (const r of rows) if (r.country) console.log(`  ${r.g.id}. ${pad(r.g.q, 42)} ${r.country.n == null ? r.country.note : r.country.n + " rows" + wide(r) + "  " + Object.entries(r.country.bases).map(([k, v]) => k + " " + v).join(", ") + (r.country.odd.length ? "  UNKNOWN OR OUTSIDE: " + r.country.odd.join("; ") : "")}`);
 }
 if (identityOut) {
   console.log(`\nIdentity row 21, ${identityOut.q}: the bare page shows ${identityOut.any.count == null ? "no count" : identityOut.any.count} sales (Any), options ${identityOut.any.options.map(x => x.label + " (" + x.n + ")").join(", ") || "none"}`);
