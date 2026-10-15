@@ -3536,6 +3536,7 @@ async function handleOps(req, res) {
           bodyOptions: ob.bodyOptions || null, bodyUnspecified: ob.bodyUnspecified ?? null, identityQuestion: ob.identityQuestion || null, resolvedCar: ob.resolvedCar || null,
           variantOptionsLine: ob.variantOptionsLine || null, variantAsides: ob.variantAsides || null, setAsideCount: ob.setAsideCount ?? null, qualifyingTotal: ob.qualifyingTotal ?? null, samLine: ob.samLine || null,
           setAsideRowsOut: Array.isArray(ob.setAsideRows) ? ob.setAsideRows.map(c => ({ title: c.title, price: c.price, date: c.date, reason: c.reason, setAside: c.setAside })) : null,
+          cardsOut: Array.isArray(ob.cards) ? ob.cards.slice(0, 8).map(c => ({ title: c.title, platform: c.platform, platformName: c.platformName, platformSlug: c.platformSlug, date: c.date })) : null,
           // mapped (e45, Sam's item 8): the standard shape every product reads (mapEngineAnswer), beside the raw tier.
           mapped: (() => { const m = mapEngineAnswer(ob, null); return { answerType: m.answerType, poolSize: m.poolSize, low: m.low, high: m.high, rungLabel: m.rungLabel, fallbackRung: m.fallbackRung, reasonFlag: m.reasonFlag, factsBlock: m.factsBlock, windowWords: ob.windowWords || null }; })(),
           cardTitles: req.query?.titles === "1" && Array.isArray(ob.cards) ? ob.cards.map(c => c.title) : null,
