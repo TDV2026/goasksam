@@ -58,5 +58,12 @@ ok(!/This car (has )?sold before/.test(client.replace(/\/\/[^\n]*/g, "")), "the 
 const landing = fs.readFileSync(new URL("../lib/live/buyLanding.js", import.meta.url), "utf8");
 ok(/priorSold\(apps\) \? "sold" : "was listed"/.test(landing) && !/This exact car sold before →/.test(landing.replace(/\/\/[^\n]*/g, "")), "the Buy landing example reads the rule");
 
+// ---- 5. the card foot (Sam, Oct 15 2026): the pill has its own reserved line above the action row, on every card
+// (an ended card included), and the foot sits at the card's bottom with 44px buttons
+ok(/'<div class="hrow">' \+ \(hist \? /.test(client) && !/"<\/a>" \+\s*\(hasMc[^\n]*\n[^\n]*data-hist/.test(client), "the pill is in its own line, never inside the action row");
+ok(/<div class="hrow"><\/div><div class="acts"><a class="vauc"[^"]*"[^>]*>See it on/.test(client.replace(/' \+ esc\(l\.url\) \+ '/g, "")), "an ended card keeps the same reserved line");
+ok(/tx\.querySelector\("\.hrow"\) \|\| tx\.querySelector\("\.acts"\)/.test(client), "a late Sam line goes above the reserved line");
+ok(/\.car \.tx \.hrow\{margin-top:auto;[^}]*min-height:44px/.test(page) && /\.car \.acts \.vauc,\.car \.acts \.act,\.car \.hrow \.act\{min-height:44px/.test(page), "the foot is pinned to the bottom with 44px buttons");
+
 console.log(`priorListingCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
