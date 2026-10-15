@@ -159,6 +159,9 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   ok(lib.rungShown(card, ["2014 911 Carrera S Coupe"]).length === 0, "the car name under SAM is dropped when it is the card's own car");
   ok(lib.rungShown({ make: "Porsche", title: "2008 Porsche 911 GT2 Coupe" }, ["2008 911 GT2"]).length === 0, "a line that differs only by the make or a body style word is a repeat (GT2)");
   ok(lib.rungShown({ make: "Porsche", title: "1997 Porsche 911 Carrera Targa" }, ["911 Carrera, 1994 to 1997"]).length === 1 && lib.rungShown(card, ["Closest: 911 Carrera 4S"]).length === 1 && lib.rungShown({ make: "Porsche", title: "2011 Porsche Boxster Spyder" }, ["2011 Boxster"]).length === 1, "a different car compared keeps its line");
+  ok(/if \(r\.kind === "sold"\) return cap\(r\.placing === "inside" \? "inside" : r\.placing\) \+ " the range similar cars have sold for\."/.test(client), "an ended sold card: Inside the range similar cars have sold for.");
+  ok(/esc\(qp \? "Have Sam keep looking for " \+ qp \+ " →" : "Have Sam keep looking"\)/.test(client) && /keepHtml\(cards\.length, q, qp\)/.test(client), "the keep looking box names the search");
+  ok(/'<span class="nw">' \+ esc\(num\(l\.miles\) \+ " miles"\)/.test(client) && /\.car \.meta \.nw\{white-space:nowrap\}/.test(page), "a mileage never splits from miles");
   ok(/askHtml\(a, d\.meta \|\| \{\}, qp\) \+ more/.test(client) && !/right \+ "<\/div><\/div><\/div>" \+ unstatedHtml/.test(client), "the question comes before the don't say and either generation lines");
   ok(/enrichThen\(first, function\(\)\{ if \(done\) redrawCards\(block, first, false\); else go\(\); \}\)/.test(client) && /function redrawCards\(block, list, onlyHidden\)/.test(client), "a market that comes back after the 12 seconds fills the cards already on screen");
 }

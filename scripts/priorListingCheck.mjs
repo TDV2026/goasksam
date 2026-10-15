@@ -14,8 +14,10 @@ const sold = [{ date: "2025-03-08", house: "Bring a Trailer", result: "sold", pr
 const mixed = [{ date: "2024-05-02", result: "sold", price: 150000 }, { date: "2026-02-20", result: "not_sold", price: 170000 }];
 
 // ---- 1. the rule
-ok(!priorSold(unsold) && priorWords(unsold).button === "This car was listed before" && priorWords(unsold).heading === "This car has been listed before", "every earlier listing unsold: listed wording");
-ok(priorSold(sold) && priorWords(sold).button === "This car sold before" && priorWords(sold).heading === "This car has sold before", "an earlier sale: sold wording");
+ok(!priorSold(unsold) && priorWords(unsold).button === "See its earlier listing" && priorWords(unsold).heading === "This car has been listed before", "every earlier listing unsold: listed wording");
+ok(priorSold(sold) && priorWords(sold).button === "See its earlier sale" && priorWords(sold).heading === "This car has sold before", "an earlier sale: sold wording");
+ok(priorWords(mixed).button === "See its earlier sale" && priorWords(unsold.concat(unsold)).button === "See its earlier listings" && priorWords(sold.concat(sold)).button === "See its earlier sales", "the button counts what it opens");
+ok(Object.values(priorWords(unsold)).every(t => !/\bsale|\bsold/i.test(t.replace("This car has been listed before", ""))), "an unsold car's button never says sale");
 ok(priorSold(mixed) && priorWords(mixed).heading === "This car has sold before", "one sold and one not: sold wins");
 for (const r of [undefined, null, "", "unknown", "withdrawn", "not_sold", "reserve_not_met", "Sold?"]) ok(!priorSold([{ date: "2026-01-01", result: r }]), `result ${JSON.stringify(r)} is not a sale`);
 ok(!priorSold([]) && !priorSold(null), "no earlier listing is not a sale");
