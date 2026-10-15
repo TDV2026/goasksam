@@ -347,7 +347,7 @@
   // itself - third person ("Sam would sell it") is allowed and reads like a person again, unlike the
   // content-free "Start here" that briefly replaced it.
   function sellHtml() {
-    return '<section class="sellbox" data-stage="note"><div class="st"><h3>Ready to sell?</h3><p>See where cars like this have sold and when.</p></div>' +
+    return '<section class="sellbox" data-stage="note"><div class="st"><h2>Ready to sell?</h2><p>See where cars like this have sold and when.</p></div>' +
       '<a id="ob-sell" href="' + esc(sellHref()) + '">See where Sam would sell it &#8594;</a></section>';
   }
   // ---------------------------------------------------------------- state renderers
@@ -729,7 +729,7 @@
       var isOne = isNum ? n === 1 : /^one$/i.test(String(count));
       countTxt = countWord + (isOne ? " sale" : " sales");
     }
-    var parts = [bodyYear, countTxt, heroLatestText(d)].filter(Boolean);
+    var parts = [bodyYear, countTxt, heroScopeLatestText(d)].filter(Boolean);
     return parts.length ? cap(parts.join(" · ")) : "";
   }
   function heroMetaLine(d, poolLenOverride) {
@@ -871,37 +871,41 @@
     }).join(" · ");
     return '<p class="hero-idline" data-stage="answer">' + links + "</p>";
   }
-  // Job 7 (round two, Lane B's e47 d.variantOptionsLine): one line per independent variant-market
-  // entry ("carrera" four-cam vs pushrod; "restoration" professional-restoration vs unrestored),
-  // same chip-plus-Any pattern as heroBodyLineHtml above, generalised to a LIST of entries instead of
-  // one. Every entry shares the SAME refine key ("variant" - confirmed live: both the carrera and
-  // restoration entries' options carry refine:{variant:...}), so choosing a side on ONE entry is the
-  // single active choice across ALL of them; an entry whose own side was not the one chosen just
-  // shows its two options plain, no chosen state, no Any (obLastRefine.variant cannot equal two
-  // different values at once). The zero-count side is always a live link, never disabled or greyed -
-  // clicking it opens its own real page (a real pool on a wider rung, or an honest nothing on
-  // record), never a dead end.
+  // Job 7 (round two, Lane B's e47 d.variantOptionsLine); round three (Sam's decision): at most ONE
+  // identity line from this field, never two stacked, and never a restoration line at all - the
+  // "Unrestored/Professional restoration" entry (key "restoration") is skipped outright, every time,
+  // regardless of its counts. A zero-count option is never rendered, even from a stale persisted
+  // snapshot (obIdOrigVariantLines) an older answer left behind - filtered out before anything else,
+  // so Lane B's own engine change (an option with zero sales is never returned at all, once live)
+  // changes nothing here: this was already defensive against exactly that case. An entry left with
+  // fewer than two real (non-zero) options after filtering is not a choice - same "needs 2 to be
+  // worth asking" rule heroBodyLineHtml already applies - so it is skipped too, and the search moves
+  // to the next entry; the first entry that still has a real two-sided choice is the one line
+  // rendered, and no others are considered.
   function variantOptionsLineHtml(d) {
     var entries = (d && Array.isArray(d.variantOptionsLine) && d.variantOptionsLine.length) ? d.variantOptionsLine : obIdOrigVariantLines;
     if (!Array.isArray(entries) || !entries.length) return "";
     var np = nameplateOf(d);
     var chosen = obLastRefine && obLastRefine.variant;
-    return entries.map(function (entry) {
-      var opts = entry && entry.options;
-      if (!Array.isArray(opts) || opts.length < 2) return "";
+    for (var i = 0; i < entries.length; i++) {
+      var entry = entries[i];
+      if (!entry || entry.key === "restoration") continue;
+      var opts = Array.isArray(entry.options) ? entry.options : [];
+      var real = opts.filter(function (o) { var n = digitOf(o.n); return Number.isFinite(n) && n > 0; });
+      if (real.length < 2) continue;
       var total = 0, chosenHere = false;
-      opts.forEach(function (o) { var n = digitOf(o.n); if (Number.isFinite(n)) total += n; if (chosen && String(o.value) === String(chosen)) chosenHere = true; });
-      var items = opts.map(function (o) {
+      real.forEach(function (o) { total += digitOf(o.n); if (chosen && String(o.value) === String(chosen)) chosenHere = true; });
+      var items = real.map(function (o) {
         var isChosen = chosenHere && String(o.value) === String(chosen);
-        var n = digitOf(o.n);
-        var label = esc(o.label) + " (" + idLineNum(Number.isFinite(n) ? n : 0) + ")";
+        var label = esc(o.label) + " (" + idLineNum(digitOf(o.n)) + ")";
         return isChosen ? ('<span class="hero-idlink hero-idlink-chosen">' + label + "</span>")
           : ('<button type="button" class="linkbtn hero-idlink" data-varopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + label + "</button>");
       });
       if (chosenHere) items.push('<button type="button" class="linkbtn hero-idlink" data-varopt-any="1">Any (' + idLineNum(total) + ")</button>");
       var lead = np ? (lint("Which " + esc(np) + "?", "hero.idq.variant") + " ") : "";
       return '<p class="hero-idline" data-stage="answer">' + lead + items.join(" · ") + "</p>";
-    }).filter(Boolean).join("");
+    }
+    return "";
   }
   function heroIdentityLineHtml(d) {
     var lines = heroTrimLineHtml(d) + heroBodyLineHtml(d) + heroGearboxLineHtml(d) + variantOptionsLineHtml(d);
@@ -1106,7 +1110,10 @@
     // builds it with the server's three-letter one - monShort reads the shared date field instead, so
     // every tile reads "Mon YYYY" the same way regardless of which tier supplied the pool.
     var mon = monShort(c.date);
-    var meta = [mon, venue, miles].filter(Boolean).join(" · ");
+    // Job 2 (round three): price, then date, then venue, then miles, each its OWN line - never a
+    // middle-dot-joined string (the old single .thin-tile-meta line). A missing piece (no venue, no
+    // miles) just drops that line entirely, never a dangling dot or an empty line.
+    var metaLines = [mon, venue, miles].filter(Boolean).map(function (t) { return '<p class="thin-tile-meta">' + esc(t) + "</p>"; }).join("");
     var gasAttrs = (href && c.id != null) ? (' data-gas-event="receipt_click" data-gas-source="' + esc(c.platformSlug || "") + '" data-gas-listing-id="' + esc(c.id) + '"') : "";
     var tag = href ? "a" : "div";
     var attrs = href ? (' href="' + esc(href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(c.platformSlug || "") + '"' + gasAttrs) : "";
@@ -1115,8 +1122,7 @@
     // different kind of thing.
     var label = asideLabel ? ('<span class="thin-tile-label">' + esc(asideLabel) + "</span>") : "";
     return "<" + tag + ' class="thin-tile' + (asideLabel ? " thin-tile-aside" : "") + '"' + attrs + ">" + thinTilePhotoHtml(c.image, title) + label +
-      '<div class="thin-tile-body"><p class="thin-tile-price">' + esc(usd(c.price)) + "</p>" +
-      (meta ? ('<p class="thin-tile-meta">' + esc(meta) + "</p>") : "") +
+      '<div class="thin-tile-body"><p class="thin-tile-price">' + esc(usd(c.price)) + "</p>" + metaLines +
       "</div></" + tag + ">";
   }
   // asideRows (job 5, round two): the engine's own set-aside cards for THIS pool (d.setAsideRows on
@@ -1445,6 +1451,31 @@
     if (!y || !mo || !dd) return "";
     var s = (FRESH_MONTHS_SHORT[mo - 1] || "") + " " + dd;
     return y === new Date().getFullYear() ? s : s + ", " + y;
+  }
+  // Job 3 (round three, Sam's review): freshDay drops the year in the current year ("Apr 15" alone,
+  // read in October, looks like it could be anything) - the hero's own scope line always needs the
+  // year, so this is a separate, always-year variant, used only there (freshDay itself is unchanged
+  // for its other callers - the all-sales caption, the fresh bullet, class-era - none of which Sam
+  // flagged this round).
+  function freshDayFull(dstr) {
+    var p = String(dstr || "").slice(0, 10).split("-");
+    var y = Number(p[0]), mo = Number(p[1]), dd = Number(p[2]);
+    if (!y || !mo || !dd) return "";
+    return (FRESH_MONTHS_SHORT[mo - 1] || "") + " " + dd + ", " + y;
+  }
+  // The hero scope line's own latest-sale clause, always with the year, always "latest sale" (not
+  // "the latest on") - same three branches countLatestPhrase already reads (the two-dates-apart
+  // case, a house-mode pool, the plain case), just every one of them with freshDayFull.
+  function heroScopeLatestText(d) {
+    var f = d && d.freshness; if (!f) return "";
+    var through = f.through, arch = f.archiveThrough;
+    if (through && arch && through < arch) return "latest sale " + freshDayFull(through);
+    // House pools never claim day-level precision (countLatestPhrase's own monthOnly rule) - the
+    // auction-house feed reports on its own cadence, so this reads "latest sale April 2026", not a
+    // specific day, same hedge as everywhere else house dates are shown.
+    if (f.mode === "house") return f.through ? ("latest sale " + monthYear(f.through)) : "";
+    if (f.through) return "latest sale " + freshDayFull(f.through);
+    return "";
   }
   function freshLine(d) {
     var f = d && d.freshness; if (!f) return "";
