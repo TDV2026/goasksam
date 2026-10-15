@@ -2360,7 +2360,8 @@ async function handleOps(req, res) {
   if (task === "livesearch") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const q = String(req.query?.q || "E46 M3").slice(0, 200).trim();
-    const { parseQueryResolved, searchLive, gensNamed, nounFor } = await import("../lib/live/search.js");
+    const { parseQueryResolved, searchLive, gensNamed, nounFor, liveForFamily, liveYearWindow } = await import("../lib/live/search.js");
+    const { findGeneration: fgLive } = await import("../lib/generations.js");
     const parsed = await parseQueryResolved(q, env);
     const v = parsed.vehicle;
     if (!v) return res.status(200).json({ task: "livesearch", q, status: "unresolved" });
@@ -2369,7 +2370,12 @@ async function handleOps(req, res) {
     const trace = [];
     const { rows } = await searchLive(env, v, f, parsed.text, { trace });
     const why = {}; for (const t of trace) why[t.why] = (why[t.why] || 0) + 1;
-    return res.status(200).json({ task: "livesearch", q, vehicle: { make: v.make, model: v.model, parentModel: v.parentModel || null, trim: v.trim || null, genCode: v.genCode || null, year: v.year || null }, gens: f.gens, noun: nounFor(v, f), count: rows.length,
+    // The Market Check panel's own count for the same resolved car (liveForFamily), to prove the three counts equal.
+    const gLive = await fgLive({ make: v.make, model: v.parentModel || v.model, year: v.year || null }, env).catch(() => null);
+    const panel = await liveForFamily(env, { make: v.make, model: v.parentModel || v.model, trim: v.trim || null, year: v.year || null, bodyStyle: v.bodyStyle || null }, gLive, null, 50, null).catch(e => ({ error: String(e && e.message || e) }));
+    const yearWindow = v.year ? await liveYearWindow(env, v).catch(() => null) : null;
+    return res.status(200).json({ task: "livesearch", q, vehicle: { make: v.make, model: v.model, parentModel: v.parentModel || null, trim: v.trim || null, genCode: v.genCode || null, year: v.year || null }, gens: f.gens, noun: nounFor(v, f), count: rows.length, yearWindow,
+      panel: panel && !panel.error ? { count: panel.total, yearWindow: panel.yearWindow, titles: (panel.rows || []).map(r => r.listing_title) } : panel,
       cards: rows.map(x => ({ id: x.r.id, title: x.r.listing_title, year: x.r.year, model: x.r.model || null, source: x.r.source, country: x.r.country || null, unknown: x.unknown })),
       leftOut: why, modelWordLeftOut: trace.filter(t => t.why === "model word not in title").slice(0, 40).map(t => t.title) });
   }
@@ -3410,7 +3416,7 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle, sanitizeResolvedVehicle, modelChipsForMakeYear } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
-    const { runOneBox, reserveInsightForVehicle, reserveDayInsightForVehicle, ENGINE_VERSION, listSalesForVehicle, __specEngine, runOutputInvariants } = await import("../lib/onebox.js");
+    const { runOneBox, reserveInsightForVehicle, reserveDayInsightForVehicle, ENGINE_VERSION, listSalesForVehicle, __specEngine, runOutputInvariants, mapEngineAnswer } = await import("../lib/onebox.js");
     const { specKeyFor } = await import("../lib/live/search.js");
     const qs = String(req.query?.qs || "458 Speciale coupe").split("|").map(s => s.trim()).filter(Boolean);
     const genOverrideRaw = req.query?.genOverride ? String(req.query.genOverride).split(",") : null;
@@ -3525,6 +3531,8 @@ async function handleOps(req, res) {
           yoyDirection: ob.yoyDirection ? { recentBand: ob.yoyDirection.recentBand, priorBand: ob.yoyDirection.priorBand, percent: ob.yoyDirection.percent, status: ob.yoyDirection.status, n: ob.yoyDirection.n } : null,
           cards: Array.isArray(ob.cards) ? ob.cards.length : null,
           bodyOptions: ob.bodyOptions || null, bodyUnspecified: ob.bodyUnspecified ?? null, identityQuestion: ob.identityQuestion || null, resolvedCar: ob.resolvedCar || null,
+          // mapped (e45, Sam's item 8): the standard shape every product reads (mapEngineAnswer), beside the raw tier.
+          mapped: (() => { const m = mapEngineAnswer(ob, null); return { answerType: m.answerType, poolSize: m.poolSize, low: m.low, high: m.high, rungLabel: m.rungLabel, fallbackRung: m.fallbackRung, reasonFlag: m.reasonFlag, factsBlock: m.factsBlock, windowWords: ob.windowWords || null }; })(),
           cardTitles: req.query?.titles === "1" && Array.isArray(ob.cards) ? ob.cards.map(c => c.title) : null,
           // detail=1 (trim-fence sweep job, Oct 2026): full per-card fields (price/mi/platform/date/
           // year parsed from title), read-only, for inspecting WHICH rows passed a pool without
