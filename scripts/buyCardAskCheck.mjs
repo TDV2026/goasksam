@@ -160,6 +160,7 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   ok(lib.rungShown({ make: "Porsche", title: "2008 Porsche 911 GT2 Coupe" }, ["2008 911 GT2"]).length === 0, "a line that differs only by the make or a body style word is a repeat (GT2)");
   ok(lib.rungShown({ make: "Porsche", title: "1997 Porsche 911 Carrera Targa" }, ["911 Carrera, 1994 to 1997"]).length === 1 && lib.rungShown(card, ["Closest: 911 Carrera 4S"]).length === 1 && lib.rungShown({ make: "Porsche", title: "2011 Porsche Boxster Spyder" }, ["2011 Boxster"]).length === 1, "a different car compared keeps its line");
   ok(/askHtml\(a, d\.meta \|\| \{\}, qp\) \+ more/.test(client) && !/right \+ "<\/div><\/div><\/div>" \+ unstatedHtml/.test(client), "the question comes before the don't say and either generation lines");
+  ok(/enrichThen\(first, function\(\)\{ if \(done\) redrawCards\(block, first, false\); else go\(\); \}\)/.test(client) && /function redrawCards\(block, list, onlyHidden\)/.test(client), "a market that comes back after the 12 seconds fills the cards already on screen");
   ok(/headerHtml\(d\.meta \|\| \{\}, q, qp, f \|\| \{\}, !!\(a && !d\._showAll && !a\.vague\)\)/.test(client) && /: n && asking \? ""/.test(client), "a question on screen carries the count; the right-hand line is left out");
 }
 
