@@ -71,6 +71,11 @@
   // bodyOptions/trimQuestion never overwrites what is already stored); reset alongside obLastRefine
   // at every new-search point.
   var obIdOrigBody = null, obIdOrigTrim = null;
+  // Typo-confirmation "Not sure" fallback (Sam's review round): the clarification's own baseVehicle
+  // text (e.g. "1986 Porsche"), so a reader who cannot pick between the suggested car and the
+  // alternates still gets a real answer, never a dead end - set only while a typo confirmation
+  // screen is on, read only by its own "Not sure" chip.
+  var obTypoBase = null;
   // Search box placeholder (Part 2, result-hero job, Oct 2026): one of these four per PAGE LOAD
   // (not a mid-session ticker - the old startPlaceholderRotation()/phTimer cycling was dead code,
   // never called), prefixed "Try". Lane B confirmed each of these answers on the exact rung with a
@@ -2828,6 +2833,10 @@
       body: JSON.stringify(payload)
     }, 25000).then(function (r) { return r.json(); }).then(function (d) {
       pushRecent(text, d);
+      // Typo confirmation (found this round, Sam's review): a typed year/body combination the
+      // resolver knows is wrong (product rule 6, e.g. a Speedster typed on a 911 year with no
+      // factory Speedster) - a real question, never proceeded past silently.
+      if (d && d.status === "needs_confirmation" && d.clarification && d.clarification.kind === "typo_confirmation") { renderTypoConfirm(d); return; }
       if (d && d.status === "needs_clarification") {
         // Rejected model chip (Oct 2026): the engine said this exact year+make+model combination
         // does not exist - record it so a later model_choice ask for the same year+make never
@@ -2964,6 +2973,27 @@
     var yes = document.getElementById("ob-vin-yes"), no = document.getElementById("ob-vin-no");
     if (yes) yes.addEventListener("click", function () { runPool(lastQuery, pendingVin); });
     if (no) no.addEventListener("click", function () { vinAnchor = null; pendingVin = null; renderEmpty(); });
+  }
+  // TYPO CONFIRMATION (found while screenshotting the 1986 Carrera Speedster ask, Sam's review
+  // round): d.status "needs_confirmation" with clarification.kind "typo_confirmation" (product rule
+  // 6 - the resolver typed a Speedster on a 911 year with no factory Speedster) reached runPool's
+  // response handler with no branch at all, so it fell through to the generic "status !== one_box"
+  // calm-line error - never a dead end exactly, but the wrong screen entirely, not the real
+  // question. clarification.chips is a plain array of strings (car names to re-run as a fresh
+  // search, plus the two action words "Change car" and "Not sure") - same no-box shell as every
+  // other question screen (idqScreenHtml), same full-search mechanism (run()) every car-name chip
+  // already uses elsewhere on this page.
+  function typoConfirmHtml(cl) {
+    var chips = Array.isArray(cl.chips) ? cl.chips : [];
+    var links = chips.map(function (c) {
+      return '<button type="button" class="linkbtn idq-opt" data-typo-chip="' + esc(c) + '">' + esc(c) + " &#8594;</button>";
+    }).join("");
+    return idqScreenHtml({ question: cl.question || "Did you mean a different car?", subline: "The range changes with the answer.", links: links, lintKey: "typoconfirm" });
+  }
+  function renderTypoConfirm(d) {
+    obLastD = null;
+    obTypoBase = (d.clarification && d.clarification.baseVehicle) || null;
+    renderQuestion(typoConfirmHtml(d.clarification || {}));
   }
 
   // ---------------------------------------------------------------- analytics (T1.7)
@@ -3269,6 +3299,18 @@
       b.addEventListener("click", function () {
         if (typeof gasTrack === "function") gasTrack("identity_question_answered", { dimension: "competition", choice: "any", skipped: true });
         runPool(lastQuery, obLastVehicle, mergeRefine({ variant: null, label: null }));
+      });
+    });
+    // Typo confirmation chips: each car name is a fresh full search (run(), the same mechanism any
+    // typed search uses); "Change car" clears back to the empty search box; "Not sure" runs the
+    // clarification's own baseVehicle text (never a dead end, product rule 8).
+    Array.prototype.forEach.call(root.querySelectorAll("[data-typo-chip]"), function (b) {
+      b.addEventListener("click", function () {
+        var text = b.getAttribute("data-typo-chip");
+        if (typeof gasTrack === "function") gasTrack("identity_question_answered", { dimension: "typo_confirmation", choice: text, skipped: text === "Not sure" });
+        if (text === "Change car") { renderEmpty(); return; }
+        if (text === "Not sure") { run(obTypoBase || text); return; }
+        run(text);
       });
     });
     // Identity question answer (either the original blocking screen or the "switch sides" chip
