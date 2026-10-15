@@ -2804,12 +2804,13 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
 // x-probe-key / x-ops-key, or the cron secret). Without it they are removed before anything reads them, so a
 // public request runs as an ordinary search. archiveOnly, ladderPreview, priceProbe and oneBox stay public:
 // each only ever reduces spend (archive or fetch-free).
-const SERVER_ONLY_FLAGS = ["warm", "bypassCache", "rerun", "poolDiag", "backfillCount", "archiveQuery", "oneBoxProof", "cacheStats", "reserveSim", "debug"];
+const SERVER_ONLY_FLAGS = ["warm", "bypassCache", "rerun", "poolDiag", "backfillCount", "archiveQuery", "oneBoxProof", "cacheStats", "reserveSim", "debug", "fresh"];
 async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   const reqStart = Date.now();
+  const obTimes = { reqStart };   // stage timings for the Market Check answer (speed job, Oct 15 2026; diagnostics only)
   const credentialed = hasServerCredential(req);
   if (!credentialed && req.body && typeof req.body === "object") for (const k of SERVER_ONLY_FLAGS) if (k in req.body) delete req.body[k];
 
@@ -3223,6 +3224,7 @@ async function handler(req, res) {
       // attach the exact archive match to. Only matters when nothing else resolves; a
       // recognizable car ("Cayman GT4") resolves first and never reaches the chassis path.
       const obVinActive = req.body?.oneBox ? await vinFeatureActive(req.headers.cookie, { supabaseUrl, supabaseKey }) : false;
+      obTimes.resolveStart = Date.now();
       const resolution = await resolveVehicle(rawSearch, obVinActive ? { vinConfirm: true } : {});
       if (resolution.status !== "valid") {
         // The caller already accepted a model-level read (the seller declined
@@ -3325,6 +3327,7 @@ async function handler(req, res) {
     // Generation mapping (Phase 4): null is safe and means the ladder keeps
     // its calendar +/- 2 rungs, exactly as unmapped models behave today.
     const generation = await findGeneration(vehicle, { supabaseUrl, supabaseKey });
+    if (obTimes.resolveStart) obTimes.resolveMs = Date.now() - obTimes.resolveStart;
 
     // One Box (archive-only, read-only): a single honest result tier from our own
     // records for "what have cars like yours sold for". Returns BEFORE the search
@@ -3490,21 +3493,26 @@ async function handler(req, res) {
       // still computes live, as before.
       const identityRefine = obRefine && (obRefine.body || obRefine.trim || obRefine.variant) && !(obRefine.miMin != null || obRefine.miMax != null || obRefine.tx || obRefine.driver || obRefine.observe || obRefine.docHistory)
         ? { body: obRefine.body || null, trim: obRefine.trim || null, variant: obRefine.variant || null } : null;
-      const wantsWarm = (!obRefine || !!identityRefine) && !exactSale && vehicle && vehicle.make && !vehicle.vin && !vehicle.chassis && Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) === 0;
+      // fresh (credentialed only, stripped otherwise): skip the warm row so a cold answer can be timed stage by stage.
+      const wantsWarm = (!obRefine || !!identityRefine) && !exactSale && vehicle && vehicle.make && !vehicle.vin && !vehicle.chassis && Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) === 0 && !req.body?.fresh;
       const warmKey = wantsWarm ? warmAnswerKeyFor(vehicle, generation, identityRefine) : null;
       if (wantsWarm) {
         try {
+          const tw = Date.now();
           const warmed = await readWarmAnswer({ supabaseUrl, supabaseKey }, warmKey);
+          obTimes.warmReadMs = Date.now() - tw;
           if (warmed) { oneBox = warmed; warmHit = true; }
         } catch { /* fall through to the live path below */ }
       }
       try {
         if (!warmHit) {
+          const te = Date.now();
           const engineAnswer = await Promise.race([
             oneEngineAnswer(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, asked: Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) }, obRefine),
             new Promise((_, rej) => setTimeout(() => rej(new Error("onebox_deadline")), Number(process.env.ONEBOX_DEADLINE_MS || 20000)))
           ]);
           oneBox = engineAnswer.raw;
+          obTimes.engineMs = Date.now() - te;
           if (wantsWarm && answerCacheable(oneBox)) {
             await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, oneBox).catch(() => {});
           }
@@ -3522,7 +3530,9 @@ async function handler(req, res) {
       // here (would need a flag threaded from the drawer's own caller). No userId: this branch returns
       // before any bearer/account check runs, so only the visitor id is available.
       if (oneBox) {
+        const tm = Date.now();
         const a = mapEngineAnswer(oneBox, Date.now() - obStart);
+        obTimes.mapMs = Date.now() - tm;
         mcRun({ answer_type: a.answerType, pool_size: a.poolSize ?? undefined, result_count: Array.isArray(oneBox.cards) ? oneBox.cards.length : undefined,
           range_low: a.low ?? undefined, range_high: a.high ?? undefined, year_widened: !!a.yearWidened,
           fallback_rung: a.fallbackRung ? String(a.fallbackRung).slice(0, 60) : undefined, reason_flag: a.reasonFlag ? String(a.reasonFlag).slice(0, 60) : undefined,
@@ -3585,7 +3595,10 @@ async function handler(req, res) {
           }, supabaseUrl, supabaseKey);
         } catch { snapshotId = null; }
       }
-      return res.status(200).json({ status: "one_box", ...oneBox, snapshotId: snapshotId || undefined });
+      // timings (speed job): where a Market Check answer's time went, stage by stage; diagnostics, never read by a page.
+      const dd = oneBox && oneBox.dedup;
+      const timings = { ...obTimes, warmHit, totalMs: Date.now() - reqStart, marks: dd && Array.isArray(dd.marks) ? dd.marks : null, fetchMs: dd && Array.isArray(dd.fetches) ? dd.fetches.map(f => Number(f.ms) || 0) : null };
+      return res.status(200).json({ status: "one_box", ...oneBox, snapshotId: snapshotId || undefined, timings });
     }
 
     // Price-step transparency (#68): a seller who DEFERS the asking price gets THE RECORD
