@@ -161,6 +161,23 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   ok(lib.rungShown({ make: "Porsche", title: "1997 Porsche 911 Carrera Targa" }, ["911 Carrera, 1994 to 1997"]).length === 1 && lib.rungShown(card, ["Closest: 911 Carrera 4S"]).length === 1 && lib.rungShown({ make: "Porsche", title: "2011 Porsche Boxster Spyder" }, ["2011 Boxster"]).length === 1, "a different car compared keeps its line");
   ok(/askHtml\(a, d\.meta \|\| \{\}, qp\) \+ more/.test(client) && !/right \+ "<\/div><\/div><\/div>" \+ unstatedHtml/.test(client), "the question comes before the don't say and either generation lines");
   ok(/enrichThen\(first, function\(\)\{ if \(done\) redrawCards\(block, first, false\); else go\(\); \}\)/.test(client) && /function redrawCards\(block, list, onlyHidden\)/.test(client), "a market that comes back after the 12 seconds fills the cards already on screen");
+}
+
+// ---- 7. Sam, Oct 15 2026: one retry for pending markets, three lines that read oddly
+{
+  const page = fs.readFileSync(new URL("../api/buy.js", import.meta.url), "utf8");
+  const client = JSON.parse(/^const CLIENT = (.*);$/m.exec(page)[1]);
+  const fnSrc = name => { const i = client.indexOf("function " + name + "("); let d = 0, j = client.indexOf("{", i); for (let k = j; k < client.length; k++) { if (client[k] === "{") d++; else if (client[k] === "}" && !--d) return client.slice(i, k + 1); } return ""; };
+  const everythingLine = new Function(fnSrc("everythingLine") + "; return everythingLine;")();
+  ok(everythingLine({ unstated: 5, unstatedWhat: "colour" }, { colour: "red" }) === "That’s everything that says red right now." && everythingLine({ unstated: 2, unstatedWhat: "body" }, { body: "Coupe" }) === "That’s everything that says coupe right now.", "with unstated cars, everything names the word they lack");
+  ok(everythingLine({ unstated: 0 }, { colour: "red" }) === "That’s everything matching your search right now." && /esc\(everythingLine\(m, f\)\)/.test(client), "with none, the line is as before");
+  ok(/" more doesn’t say " \+ String\(UNSTATED\[m\.unstatedWhat\] \|\| "every detail"\)\.replace\(\/\^their\\b\/, "its"\)/.test(client) && /replace\(\/\^don't\/, "doesn’t"\)\.replace\(\/\\btheir\\b\/, "its"\)/.test(client), "one car reads its, more read their");
+  const bodyWord = (f) => { const w = []; if (f.body) { const bw = String(f.body).toLowerCase(); w.push(f.make || f.model ? bw.charAt(0).toUpperCase() + bw.slice(1) : bw); } return w[0]; };
+  ok(/w\.push\(f\.make \|\| f\.model \? bw\.charAt\(0\)\.toUpperCase\(\) \+ bw\.slice\(1\) : bw\)/.test(client) && ["targa", "coupe", "cabriolet", "convertible", "speedster"].every(b => /^[A-Z]/.test(bodyWord({ make: "Porsche", body: b }))) && bodyWord({ body: "coupe" }) === "coupe", "a body word after the car keeps its capital (Targas, Coupes, Cabriolets, Convertibles, Speedsters)");
+  ok(/setTimeout\(retry, RETRY_MS\)/.test(client) && /var retry = function\(\)\{ var still = cards\.filter\(isPend\); if \(still\.length\) enrichThen\(still, function\(\)\{ redrawCards\(block, still, false\); \}\); \}/.test(client) && /var RETRY_MS = 15000/.test(client), "a pending market is asked for once more and filled on screen");
+  const bs = fs.readFileSync(new URL("../api/buySearch.js", import.meta.url), "utf8");
+  ok(/const body = BODY_WORD\[String\(v\.bodyStyle \|\| ""\)\.toLowerCase\(\)\] \|\| "";/.test(bs) && !/v\.bodyStyle \|\| x\.facts\.body/.test(bs), "the card's name carries only the body its market reads, never the feed's body field");
+  ok(/var hasMc = !l\.swap && !!\(l\.market && l\.market\.query\)/.test(client), "a card still pending has no Market Check button (a pending market has no query)");
   ok(/headerHtml\(d\.meta \|\| \{\}, q, qp, f \|\| \{\}, !!\(a && !d\._showAll && !a\.vague\)\)/.test(client) && /: n && asking \? ""/.test(client), "a question on screen carries the count; the right-hand line is left out");
 }
 

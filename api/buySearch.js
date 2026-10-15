@@ -20,7 +20,7 @@
 import { track, withTracking } from "../lib/track/log.js";
 import { historyEnv, houseName, normVin } from "./_historyData.js";
 import { isAbroadRow, parseQuery, parseQueryResolved, emptyFilters, gensNamed, resolveForBuy, searchLive, listingFacts, listingMarket, seenBefore, nounFor, liveForFamily, liveRows, familyMarket, COUNTRY_NAME, COLOURS } from "../lib/live/search.js";
-import { placingFor } from "../lib/onebox.js";
+import { placingFor, ENGINE_VERSION } from "../lib/onebox.js";
 import { findGeneration } from "../lib/generations.js";
 import { converse } from "../lib/live/converse.js";
 import { listingDetail, facetsOf, cardFlag, seenCount, listingSays, listingSamFacts, specOf, ladderSteps, walkLadder, panelOf } from "../lib/live/search.js";
@@ -159,7 +159,10 @@ const BODY_WORD = { coupe: "Coupe", cabriolet: "Cabriolet", convertible: "Conver
 export async function nameOf(env, x) {
   const sp = await specOf(env, x.r, x.facts).catch(() => null);
   const v = sp && sp.v; if (!v || !v.make || !v.model) return null;
-  const body = BODY_WORD[String(v.bodyStyle || x.facts.body || "").toLowerCase()] || "";
+  // The body only as the card's market reads it (the resolver's word from the listing's own title, specOf), never the
+  // feed's body field: a feed "coupe" named a 330 GT 2+2 "1965 Ferrari 330 GT2 Coupe" while its market read every 330
+  // GT2, so typing the card's own name into Market Check gave a different range (Oct 15 2026, B2's golden run).
+  const body = BODY_WORD[String(v.bodyStyle || "").toLowerCase()] || "";
   const parts = [x.r.year || v.year, v.make, v.model, v.trim, body].filter(Boolean).map(String);
   // A part already said in full is not repeated, compared by whole words: the trim "S" is not inside
   // "Porsche" (a letter-inside-a-word test dropped it, so a Boxster S read as a Boxster).
@@ -291,7 +294,8 @@ async function handler(req, res) {
       if (!ids.length) return res.status(200).json({ cards: [] });
       const rows = await liveRows(env, `id=in.(${ids.join(",")})`);
       const cards = await Promise.all(rows.map(r => { const facts = listingFacts(r); return Promise.all([listingMarket(env, r, facts), seenBefore(env, r.vin_norm), timelineOf(env, { r })]).then(async ([market, seen, timeline]) => { if (market && market.kind === "pending") market = await listingMarket(env, r, facts); const c = { ...cardOf({ r, facts, gen: null, unknown: [] }), market: await rungMarket(env, r, facts, market), seen_before: seen, timeline }; return { id: r.id, market: c.market, seen_before: seen, timeline, sam_lines: samLines(c) }; }); }));
-      return res.status(200).json({ cards });
+      // engineVersion: the engine this deploy reads, so a check can tie each card to the engine read it compares with.
+      return res.status(200).json({ cards, engineVersion: ENGINE_VERSION });
     }
     // The Market Check panel under a card: the card's own spec key and engine answer (lib/live/search.js panelOf).
     if (b.action === "panel") {
