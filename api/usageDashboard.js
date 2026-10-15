@@ -4357,6 +4357,13 @@ async function handleOps(req, res) {
   // task=warmLive (e49, Sam's item 14): warm the distinct resolved specs of every car live on Buy through the path a
   // Buy card reads (lib/live/search.js warmLiveSpecs). Archive-only, zero vendor spend, idempotent; budget= (ms, at most
   // 270000) and width= (parallel engine reads, at most 8). scripts/postDeployWarm.mjs calls it until done.
+  // task=warmHeld&version=<ENGINE_VERSION> (Oct 15 2026): the live specs whose warm reads did not come back for that
+  // version, with titles, spec keys and live listing ids. Read-only.
+  if (task === "warmHeld" || task === "warmheld") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { heldLiveSpecs } = await import("../lib/live/search.js");
+    return res.status(200).json({ task: "warmHeld", ...(await heldLiveSpecs(env, req.query?.version ? String(req.query.version) : null)) });
+  }
   if (task === "warmLive" || task === "warmlive") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { warmLiveSpecs } = await import("../lib/live/search.js");
