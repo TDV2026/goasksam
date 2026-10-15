@@ -84,7 +84,7 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
 // ---- 2. spec chips
 {
   const full = specChips({ listing_title: "42k-Mile 1997 Porsche 911 Carrera Targa", vin_norm: "WP0DA299XVS385140", description: "This Targa is finished in Black over Cashmere Beige leather. It is offered with a clean Carfax report and a clean Indiana title." }, { colour: "black", gearboxLabel: "Manual" });
-  ok(full.join(" | ") === "Manual | Black over cashmere beige | Clean title | VIN WP0DA2…5140", `all four chips (got ${full.join(" | ")})`);
+  ok(full.join(" | ") === "Manual | Black over Cashmere Beige | Clean title | VIN WP0DA2…5140", `all four chips (got ${full.join(" | ")})`);
   ok(specChips({ listing_title: "2004 BMW M3 Coupe" }, {}).length === 0, "nothing stated: no chips");
   ok(specChips({ listing_title: "1987 Porsche 911", vin_norm: "9117100123" }, { colour: "red" }).join("|") === "Red", "a chassis number is not a VIN chip; the paint alone when no interior is stated");
   ok(!specChips({ listing_title: "x", description: "It has never had a salvage title." }, {}).some(c => /title/i.test(c)), "a title status stated only in the negative is left out");
@@ -137,13 +137,15 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
 
 // ---- 6. Sam's review, Oct 14 2026: chip words, one count, the bid with its time, no repeated car name
 {
-  ok(colourChip({ listing_title: "2008 Porsche 911 GT2 Black over a Black" }, { colour: "black" }) === "Black over black", "a stray article and odd capitals leave the colour chip");
-  ok(colourChip({ listing_title: "2005 Porsche 911", description: "This car is finished in Dark Olive Metallic over Sand Beige full leather upholstery." }, { colour: "green" }) === "Dark olive metallic over sand beige" && colourChip({ listing_title: "2006 BMW M3 Titanium Silver over Black Nappa" }, { colour: "silver" }) === "Titanium silver over black", "an interior ends at its last colour word");
+  ok(colourChip({ listing_title: "2008 Porsche 911 GT2 Black over a Black" }, { colour: "black" }) === "Black over Black", "a stray article leaves the colour chip, the listing's capitals stay");
+  ok(colourChip({ listing_title: "1989 Porsche 911 Carrera Guards Red over black" }, { colour: "red" }) === "Guards Red over black" && colourChip({ listing_title: "x", description: "This car is finished in the Silver Gray Metallic over Imola Red leather." }, { colour: "silver" }) === "Silver Gray Metallic over Imola Red", "every word as the listing wrote it");
+  ok(colourChip({ listing_title: "x", description: "It is finished in guards red over black leather." }, { colour: "red" }) === "Guards red over black", "the chip's first letter is a capital");
+  ok(colourChip({ listing_title: "2005 Porsche 911", description: "This car is finished in Dark Olive Metallic over Sand Beige full leather upholstery." }, { colour: "green" }) === "Dark Olive Metallic over Sand Beige" && colourChip({ listing_title: "2006 BMW M3 Titanium Silver over Black Nappa" }, { colour: "silver" }) === "Titanium Silver over Black", "an interior ends at its last colour word");
   ok(colourChip({ listing_title: "1999 Porsche 911 Carrera" }, { colour: "Silver" }) === "Silver" && colourChip({ listing_title: "x" }, {}) === null, "one colour as stated; none stated, no chip");
   const page = fs.readFileSync(new URL("../api/buy.js", import.meta.url), "utf8");
   const client = JSON.parse(/^const CLIENT = (.*);$/m.exec(page)[1]);
   const fnSrc = name => { const i = client.indexOf("function " + name + "("); let d = 0, j = client.indexOf("{", i); for (let k = j; k < client.length; k++) { if (client[k] === "{") d++; else if (client[k] === "}" && !--d) return client.slice(i, k + 1); } return ""; };
-  const lib = new Function(`var TZ = "America/Los_Angeles"; ${["timePT", "sameDay", "bidAt", "bidText", "carWords", "rungShown"].map(fnSrc).join("\n")}; function carTitle(l){ return l.title; } return { bidText, rungShown };`)();
+  const lib = new Function(`var TZ = "America/Los_Angeles"; ${/var BODY_WORDS = [^;]*;/.exec(client)[0]} ${["timePT", "sameDay", "bidAt", "bidText", "carWords", "rungShown"].map(fnSrc).join("\n")}; function carTitle(l){ return l.title; } return { bidText, rungShown };`)();
   const t = Date.now() - 3 * 3600e3, want = new Date(t).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" }).replace(" AM", "am").replace(" PM", "pm");
   const recent = lib.bidText("$66,666", Date.now() - 5 * 60e3);
   ok(/^Last bid we saw \$66,666 at \d{1,2}:\d\d[ap]m PT( on \w+day)?$/.test(recent), `a fresh bid reads with its time (got ${recent})`);
@@ -155,7 +157,9 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   const card = cardOf({ r: { id: 1, make: "Porsche", listing_title: "2014 Porsche 911 Carrera S Coupe", source: "carsandbids" }, facts: {}, gen: null, unknown: [] });
   ok(card.make === "Porsche", "the card carries its make for the comparison");
   ok(lib.rungShown(card, ["2014 911 Carrera S Coupe"]).length === 0, "the car name under SAM is dropped when it is the card's own car");
-  ok(lib.rungShown({ make: "Porsche", title: "2008 Porsche 911 GT2 Coupe" }, ["2008 911 GT2"]).length === 1 && lib.rungShown(card, ["Closest: 911 Carrera 4S"]).length === 1, "a different car compared keeps its line");
+  ok(lib.rungShown({ make: "Porsche", title: "2008 Porsche 911 GT2 Coupe" }, ["2008 911 GT2"]).length === 0, "a line that differs only by the make or a body style word is a repeat (GT2)");
+  ok(lib.rungShown({ make: "Porsche", title: "1997 Porsche 911 Carrera Targa" }, ["911 Carrera, 1994 to 1997"]).length === 1 && lib.rungShown(card, ["Closest: 911 Carrera 4S"]).length === 1 && lib.rungShown({ make: "Porsche", title: "2011 Porsche Boxster Spyder" }, ["2011 Boxster"]).length === 1, "a different car compared keeps its line");
+  ok(/askHtml\(a, d\.meta \|\| \{\}, qp\) \+ more/.test(client) && !/right \+ "<\/div><\/div><\/div>" \+ unstatedHtml/.test(client), "the question comes before the don't say and either generation lines");
   ok(/headerHtml\(d\.meta \|\| \{\}, q, qp, f \|\| \{\}, !!\(a && !d\._showAll && !a\.vague\)\)/.test(client) && /: n && asking \? ""/.test(client), "a question on screen carries the count; the right-hand line is left out");
 }
 

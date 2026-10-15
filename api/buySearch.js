@@ -62,21 +62,22 @@ const titleCaseIfShouting = s => String(s || "").split(",").map(p => { const t =
 // when the listing states it; a field the listing doesn't state is left out, never guessed.
 const COLOUR_WORDS = new Set(Object.values(COLOURS).flat().concat(["gray", "tan", "cream", "ivory", "oxblood", "cinnamon", "saddle", "camel", "parchment", "stone", "biscuit", "magnolia", "natural"]));
 const isColourPhrase = s => String(s || "").toLowerCase().split(/[\s-]+/).some(w => COLOUR_WORDS.has(w));
-// A colour as the listing words it, cleaned for a chip: a leading article (a, an, the, in) dropped, lower case, so
-// "a Black" reads "black" (Sam, Oct 14 2026). The paint leads the chip with one capital ("Black over black").
-const colourWords = s => String(s || "").trim().replace(/\s+/g, " ").toLowerCase().replace(/^(?:(?:a|an|the|in)\s+)+/, "");
+// A colour exactly as the listing words it, capitals kept ("Guards Red over Black"); only a leading article (a, an, the)
+// is dropped, and "in" (the title's own "in Black over Tan"), so "A Black" reads "Black". The chip's first letter is a
+// capital (Sam, Oct 14 2026).
+const colourWords = s => String(s || "").trim().replace(/\s+/g, " ").replace(/^(?:(?:a|an|the|in)\s+)+/i, "");
 const sentenceCase = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 // An interior ends at its last colour word: "sand beige full" (from "full leather") reads "sand beige", "black nappa" "black".
-const toLastColour = s => { const w = String(s || "").split(" "); let i = w.length; while (i > 0 && !w[i - 1].split("-").some(x => COLOUR_WORDS.has(x))) i--; return w.slice(0, i).join(" ") || null; };
+const toLastColour = s => { const w = String(s || "").split(" "); let i = w.length; while (i > 0 && !w[i - 1].toLowerCase().split("-").some(x => COLOUR_WORDS.has(x))) i--; return w.slice(0, i).join(" ") || null; };
 const INTERIOR_NOUN = "(?:leather|leatherette|vinyl|cloth|upholstery|interior|alcantara|houndstooth|tartan|corduroy|velour|sport-?tex|suede|seats|trim)";
 const OVER_DESC = new RegExp("\\b(?:finished|painted|refinished|presented|is shown|done|wears)\\s+in\\s+([a-z][a-z -]{1,30}?)\\s+over\\s+([a-z][a-z -]{1,30}?)\\s+" + INTERIOR_NOUN + "\\b", "i");
 const OVER_TITLE = /\b([A-Za-z]+(?: [A-Za-z]+)?) over ([A-Za-z]+(?: [A-Za-z]+)?)\b/;
 export function colourChip(r, facts) {
-  const ext = facts && facts.colour ? colourWords(facts.colour) : null;
+  const ext = facts && facts.colour ? colourWords(facts.colour) : null, extKey = ext && ext.toLowerCase();
   const m = OVER_TITLE.exec(String(r.listing_title || "")) || OVER_DESC.exec(String(r.description || ""));
   const paint = m && isColourPhrase(m[1]) ? colourWords(m[1]) : null, trim = m && isColourPhrase(m[2]) ? toLastColour(colourWords(m[2])) : null;
   // The paint as the listing words it when it is the same colour the card reads; the interior only as stated.
-  const sameColour = paint && ext && paint.split(/[\s-]+/).some(w => (COLOURS[ext] || []).includes(w) || w === ext);
+  const sameColour = paint && ext && paint.toLowerCase().split(/[\s-]+/).some(w => (COLOURS[extKey] || []).includes(w) || w === extKey);
   const outside = sameColour ? paint : (ext || paint);
   if (!outside) return null;   // no paint stated: no colour chip (an interior alone says too little)
   return sentenceCase(trim ? `${outside} over ${trim}` : outside);
