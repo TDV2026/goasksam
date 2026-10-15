@@ -615,6 +615,17 @@
     var mm = BODY_MIX_TAIL_RE.exec(String(label || ""));
     return mm ? mm[1] : "";
   }
+  // variantTailOf (job 1, Sam's review round, Oct 2026): the same read-back, for the engine's own
+  // variant-market clause (lib/onebox.js variantSuffix, e40 - ", pushrod cars", ", pushrod cars (2
+  // Carrera four-cam set aside)" or ", Touring and Lightweight cars mixed") - a car split by MARKET
+  // rather than body (1957 356 Speedster: Pushrod vs Carrera four-cam). Open word list (unlike
+  // BODY_MIX_WORDS' fixed set), so matched structurally: the trailing comma-clause ending in "cars",
+  // "cars (...)" or "cars mixed".
+  var VARIANT_TAIL_RE = /,\s*([^,]+?\s+cars(?:\s*\([^)]*\)|\s+mixed)?)\s*$/i;
+  function variantTailOf(label) {
+    var mm = VARIANT_TAIL_RE.exec(String(label || ""));
+    return mm ? mm[1] : "";
+  }
   // The scope segment of the hero's one grey line. Prints d.rungLabel verbatim (never "Matched to
   // ..."), EXCEPT on a genuinely exact, nothing-widened rung (d.fallbackRung === "exact"): there the
   // car's own name already carries the year+nameplate (the heading just above), so repeating the
@@ -629,7 +640,9 @@
       var rc = d.resolvedCar || {};
       if (rc.bodyStyle) return cap(String(rc.bodyStyle));
       var tail = bodyMixTailOf(d.rungLabel);
-      return tail ? cap(tail) : "";
+      if (tail) return cap(tail);
+      var vtail = variantTailOf(d.rungLabel);
+      return vtail ? cap(vtail) : "";
     }
     return String(d.rungLabel);
   }
@@ -678,6 +691,13 @@
       else if (obLastRefine && obLastRefine.bodyLabel) {
         var bp = BODY_PLURAL[String(obLastRefine.bodyLabel).toLowerCase()];
         bodies = cap(bp || (String(obLastRefine.bodyLabel) + "s"));
+      }
+      // Job 1 fallback (Sam's review round): a car split by MARKET, not body (1957 356 Speedster),
+      // has nothing for bodyMixTailOf to match - variantTailOf reads the engine's own variant clause
+      // instead (", pushrod cars" etc., lib/onebox.js variantSuffix), same read-back discipline.
+      else {
+        var vtail = variantTailOf(d.rungLabel);
+        if (vtail) bodies = cap(vtail);
       }
     }
     var py = Array.isArray(d.poolYears) && d.poolYears.length === 2 && Number.isFinite(d.poolYears[0]) && Number.isFinite(d.poolYears[1]) ? d.poolYears : null;
