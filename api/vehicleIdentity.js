@@ -10,7 +10,7 @@ import { resolveVehicle, lastResolveDebug } from "../lib/vehicle.js";
 import { hasAskableTrim } from "../lib/modelRules.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { recordUsageEvent, anthropicCost } from "./_usage.js";
-import { testerCodeExpired } from "../lib/_tester.js";
+import { isTesterRequest } from "../lib/_tester.js";
 import { vinFeatureActive, findVinArchiveMatch } from "../lib/_flags.js";
 
 import { isCrewRequest } from "../lib/_crew.js";
@@ -118,7 +118,7 @@ export default async function handler(req, res) {
   // real tester-link visitor could never get past vehicle resolution while sealed.
   if (process.env.CURTAIN_SEALED === "1") {
     const cookie = req.headers.cookie || "";
-    const testerOk = cookie.indexOf("gas_tester=ok") !== -1 && !testerCodeExpired();
+    const testerOk = isTesterRequest(cookie);   // the signed tester cookie only (e41, Sam's Job 4)
     if (!isCrewRequest(cookie) && !testerOk) {
       return res.status(403).json({ status: "sealed", error: "Not open yet." });
     }

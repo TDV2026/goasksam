@@ -10,7 +10,7 @@ import { logEvent, EVENTS } from "../lib/events.js";
 import { readVisitorId } from "../lib/_visitor.js";
 import { track, withTracking } from "../lib/track/log.js";
 import { callOldCarsData } from "../lib/_ocd.js";
-import { testerCodeExpired } from "../lib/_tester.js";
+import { isTesterRequest } from "../lib/_tester.js";
 import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
 import { findGeneration, generationModelToken, generationsForModel } from "../lib/generations.js";
 import { sourceCoverage } from "../lib/desk/coverage.js";
@@ -2788,7 +2788,8 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
   if (req.headers.authorization) {
     try { const a = await validateBearer(req.headers.authorization); if (a) accountId = a.userId; } catch (e) {}
   }
-  const tester = cookies.gas_tester === "ok" && !testerCodeExpired() && !accountId;
+  // ONE tester gate (e41, Sam's Job 4): the signed gas_tester cookie Lane C mints (lib/_tester.js), never the old plain "ok".
+  const tester = isTesterRequest(req) && !accountId;
   return { ok: true, testerBypass: tester, accountId, anonSessionId, anonResult: !accountId };
 }
 
@@ -2814,7 +2815,7 @@ async function handler(req, res) {
   if (process.env.CURTAIN_SEALED === "1") {
     const sealCookies = parseCookies(req.headers.cookie);
     const internalSeal = req.body?.warm === true || req.body?.bypassCache === true;
-    const testerSeal = sealCookies.gas_tester === "ok" && !testerCodeExpired(); // expired testers are re-sealed
+    const testerSeal = isTesterRequest(req); // the signed tester cookie only; an expired or plain one is re-sealed
     if (!isCrewRequest(req) && !testerSeal && !internalSeal) {
       return res.status(403).json({ status: "sealed", error: "Not open yet." });
     }

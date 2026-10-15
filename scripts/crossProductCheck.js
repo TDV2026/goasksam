@@ -1142,6 +1142,29 @@ export async function checkFormPairs(env, pairs = FORM_PAIRS) {
   }
   return { ok: cases.every(c => c.same), cases };
 }
+// IDENTITY COUNTS (e41, Sam's Job 1b): for every spec whose bare answer carries body options, open each option the way
+// the page does (the same typed words with refine.body) and require the opened poolSize to equal the option's count,
+// and the options plus the unspecified rows to equal the bare pool.
+export async function checkIdentityCounts(env, specs = DEFAULT_SPECS) {
+  const cases = [];
+  for (const q of specs) {
+    const rv = await resolveVehicle(q, {}).catch(() => null), vehicle = rv && rv.vehicle;
+    if (!vehicle || !vehicle.make) continue;
+    const generation = await findGeneration(vehicle, env).catch(() => null);
+    const bare = await oneEngineAnswer(vehicle, generation, q, { ...env, exactSale: null, asked: 2 }, null);
+    const d = bare && bare.raw;
+    if (!d || !Array.isArray(d.bodyOptions) || !d.bodyOptions.length) continue;
+    const poolN = Number.isFinite(d.poolN) ? d.poolN : (d.rawPool || []).length;
+    const sum = d.bodyOptions.reduce((s, o) => s + (Number(o.inPool) || 0), 0) + (Number(d.bodyUnspecified) || 0);
+    const options = [];
+    for (const o of d.bodyOptions) {
+      const opened = await oneEngineAnswer(vehicle, generation, q, { ...env, exactSale: null, asked: 2 }, { body: o.value });
+      options.push({ label: o.label, n: o.n, opened: opened.poolSize, same: opened.poolSize === o.n, openedLabel: opened.rungLabel, openedBody: opened.raw && opened.raw.resolvedCar ? opened.raw.resolvedCar.bodyStyle : null });
+    }
+    cases.push({ q, poolN, sum, unspecified: Number(d.bodyUnspecified) || 0, sumOk: sum === poolN, options, ok: sum === poolN && options.every(x => x.same) });
+  }
+  return { ok: cases.every(c => c.ok), cases };
+}
 export async function runEngineCheck(env, specs = DEFAULT_SPECS, opts = {}) {
   const rows = [];
   for (const q of specs) rows.push(await checkOneSpec(q, env));
@@ -1157,7 +1180,8 @@ export async function runEngineCheck(env, specs = DEFAULT_SPECS, opts = {}) {
   const cacheConsistency = opts.cacheConsistency === false ? null : await checkCacheConsistency(env, specs).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const specKeyYearIsolation = opts.specKeyYearIsolation === false ? null : checkSpecKeyYearIsolation();
   const formPairs = opts.formPairs === false ? null : await checkFormPairs(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  return { task: "crossproductcheck", formPairs, total: rows.length, mismatchSpecs: totalMismatches, singlePick, buyPaths, liveFences, representative, splitPools, overTime, liveListing, urgentOct2026, cacheConsistency, specKeyYearIsolation, rows };
+  const identityCounts = opts.identityCounts === false ? null : await checkIdentityCounts(env, specs).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  return { task: "crossproductcheck", formPairs, identityCounts, total: rows.length, mismatchSpecs: totalMismatches, singlePick, buyPaths, liveFences, representative, splitPools, overTime, liveListing, urgentOct2026, cacheConsistency, specKeyYearIsolation, rows };
 }
 
 // ---- CLI ----

@@ -1173,7 +1173,7 @@ async function handleOps(req, res) {
       buyPaths: req.query?.buypaths !== "0", liveFences: req.query?.livefences !== "0",
       representative: req.query?.representative !== "0", splitPools: req.query?.splitpools !== "0",
       overTime: req.query?.overtime !== "0", liveListing: req.query?.livelisting !== "0",
-      cacheConsistency: req.query?.cacheconsistency !== "0", formPairs: req.query?.formpairs !== "0"
+      cacheConsistency: req.query?.cacheconsistency !== "0", formPairs: req.query?.formpairs !== "0", identityCounts: req.query?.identitycounts !== "0"
     });
     if (batchSize) { result.batchOffset = batchOffset; result.batchSize = batchSize; result.batchTotal = (req.query?.specs ? String(req.query.specs).split("|").filter(Boolean) : DEFAULT_SPECS).length; }
     return res.status(200).json(result);
@@ -2364,13 +2364,14 @@ async function handleOps(req, res) {
     const BODY = [["targa", ["targa"]], ["cabriolet", ["cabriolet", "cabrio"]], ["convertible", ["convertible", "drophead", "dhc"]], ["roadster", ["roadster", "spyder", "spider"]], ["coupe", ["coupe", "coupé", "berlinetta", "fastback", "hardtop", "notchback"]], ["sedan", ["sedan", "saloon", "berlina"]]];
     const bodyOf = t => { t = String(t || "").toLowerCase(); for (const [s, ws] of BODY) if (ws.some(w => t.includes(w))) return s; return null; };
     const fam = s => s === "targa" ? "targa" : s === "coupe" ? "coupe" : s === "sedan" ? "sedan" : "open";
-    const rows = (await supabaseSelectAll(env, `sales_archive?select=year,make,model,listing_title,body:raw_record->>body_style&source_slug=eq.${encodeURIComponent(slug)}&sale_price=not.is.null&vehicle_type=eq.car&sale_date=gte.${since}`)) || [];
+    const until = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.until || "")) ? String(req.query.until) : null;
+    const rows = (await supabaseSelectAll(env, `sales_archive?select=year,make,model,listing_title,body:raw_record->>body_style&source_slug=eq.${encodeURIComponent(slug)}&sale_price=not.is.null&vehicle_type=eq.car&sale_date=gte.${since}${until ? `&sale_date=lte.${until}` : ""}`)) || [];
     const c = { total: rows.length, titleNamesBody: 0, storedAgreesOrEmpty: 0, storedContradictsTitle: 0, titleNamesNone: 0, noneStoredEmpty: 0, noneStoredCoveredOffered: 0, noneStoredCoveredNotOffered: 0, noneStoredUncovered: 0 };
-    const byStored = {}; const notOfferedSample = [];
+    const byStored = {}; const notOfferedSample = []; const pairs = {};
     for (const r of rows) {
       const tb = bodyOf(r.listing_title), sb = bodyOf(r.body);
       const k = String(r.body || "(empty)"); byStored[k] = (byStored[k] || 0) + 1;
-      if (tb) { c.titleNamesBody++; if (!sb || fam(sb) === fam(tb)) c.storedAgreesOrEmpty++; else c.storedContradictsTitle++; continue; }
+      if (tb) { c.titleNamesBody++; if (!sb || fam(sb) === fam(tb)) c.storedAgreesOrEmpty++; else { c.storedContradictsTitle++; const pk = `title ${tb} / stored ${sb}`; pairs[pk] = (pairs[pk] || 0) + 1; } continue; }
       c.titleNamesNone++;
       if (!sb) { c.noneStoredEmpty++; continue; }
       const rule = rulesFor(r.make, r.model);
@@ -2379,7 +2380,7 @@ async function handleOps(req, res) {
       if (offered && offered.length && !offered.some(b => fam(bodyOf(b) || b) === fam(sb))) { c.noneStoredCoveredNotOffered++; if (notOfferedSample.length < 25) notOfferedSample.push({ year: r.year, make: r.make, model: r.model, title: r.listing_title, stored: r.body, offered }); }
       else c.noneStoredCoveredOffered++;
     }
-    return res.status(200).json({ task: "bodyaudit", source: slug, since, counts: c, byStoredBody: byStored, notOfferedSample });
+    return res.status(200).json({ task: "bodyaudit", source: slug, since, until, counts: c, contradictionPairs: pairs, byStoredBody: byStored, notOfferedSample });
   }
   // task=countrycov (Lane B, Oct 15 2026, Sam's Job 2a, read-only): per venue since a date, how many sold car rows carry
   // raw_record country_code and how many carry none, plus the distinct codes and currencies seen on a sample. Zero OCD.
@@ -3504,6 +3505,7 @@ async function handleOps(req, res) {
           inlineSplits: Array.isArray(ob.inlineSplits) ? ob.inlineSplits : null,
           yoyDirection: ob.yoyDirection ? { recentBand: ob.yoyDirection.recentBand, priorBand: ob.yoyDirection.priorBand, percent: ob.yoyDirection.percent, status: ob.yoyDirection.status, n: ob.yoyDirection.n } : null,
           cards: Array.isArray(ob.cards) ? ob.cards.length : null,
+          bodyOptions: ob.bodyOptions || null, bodyUnspecified: ob.bodyUnspecified ?? null, identityQuestion: ob.identityQuestion || null, resolvedCar: ob.resolvedCar || null,
           cardTitles: req.query?.titles === "1" && Array.isArray(ob.cards) ? ob.cards.map(c => c.title) : null,
           // detail=1 (trim-fence sweep job, Oct 2026): full per-card fields (price/mi/platform/date/
           // year parsed from title), read-only, for inspecting WHICH rows passed a pool without
