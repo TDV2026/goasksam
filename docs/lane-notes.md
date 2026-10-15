@@ -8266,3 +8266,6 @@ r5-clkdtm-{1440,390}.png, r5-merkur-1440.png.
 Search check: no title, H1, canonical or meta changed on any page; every change (the set-aside block,
 the wide layout, the removed no-range headline, the scope-line year fallback) sits inside the
 existing Market Check template.
+
+## Lane A, starting a prePush run now (one archive load at a time)
+Running prePush for three pending commits: the business.js proof-strip diagnostic scaffolding (archive-only reads, no engine/vendor calls), the Mustang/Camaro "Body not stated" render fix (public/js/onebox.js, a `>= 8` per-option display floor was dropping it), and a `--underline` token in lib/appShell.js's brandPaletteCss (Lane C's handoff for Buy's card-link colour). No table, cold test or chain alongside it. Will report done here.
