@@ -22,10 +22,10 @@ ok(/\.search \.mic\.on\{[^}]*background:var\(--red\)/.test(page), "listening is 
 // the box
 ok(/function send\(text\)\{\n\s*text = String\(text \|\| ""\)\.trim\(\); if \(!text\) return;[^\n]*\n[^\n]*\n\s*clearBoxes\(text\);/.test(client), "send clears the box first");
 ok(/\[60, 400\]\.forEach/.test(client), "the box is cleared again if the phone's keyboard puts the words back");
-const ph = (client.match(/PH_FOLLOW = "([^"]+)"/) || [])[1] || "";
-ok(ph === "Follow up, like only manuals", `the follow-up line is the one proved live ("${ph}")`);
-ok(!/[–—]/.test(ph) && !/\b(I|I'm|I'll|me|my)\b/.test(ph) && ph.length <= 30, "the follow-up line: no dash, no first person, fits a phone");
-ok(/var res = log\.querySelector\("\.msg\.results:not\(\[hidden\]\)"\), want = res \? PH_FOLLOW : phFirst\(\);/.test(client), "the follow-up line only while a result is on the page");
+const ph = (client.match(/PH_FOLLOW_WIDE = "([^"]+)"/) || [])[1] || "", phn = (client.match(/PH_FOLLOW_NARROW = "([^"]+)"/) || [])[1] || "";
+ok(ph === "Follow up, like only manuals" && phn === "Follow up: only manuals?", `the follow-up lines are the ones proved live ("${ph}", phone "${phn}")`);
+ok([ph, phn].every(t => !/[–—]/.test(t) && !/\b(I|I'm|I'll|me|my)\b/.test(t)) && phn.length <= 24, "the follow-up lines: no dash, no first person, the phone one short enough for 360");
+ok(/var res = log\.querySelector\("\.msg\.results:not\(\[hidden\]\)"\), want = res \? phFollow\(\) : phFirst\(\);/.test(client), "the follow-up line only while a result is on the page");
 ok(/PH_NARROW = "Change the search, or ask\."/.test(client) && /matchMedia\("\(max-width: 520px\)"\)/.test(client), "a phone's first-search line is the short one that fits at 360");
 console.log(`buyBoxCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
