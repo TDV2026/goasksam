@@ -12,6 +12,7 @@ import { heroHtml, HERO_CSS } from "../lib/heroImage.js";
 import { lastUpdatedDate } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { deskExample } from "../lib/live/deskExample.js";
+import { completedSalesCount, vinHistoryShare } from "../lib/live/deskProof.js";
 import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
@@ -201,10 +202,15 @@ function stepsHtml(ex) {
 async function page(req) {
   const crew = isCrewRequest(req);
   const env = supabaseEnv();
-  const [updated, ex] = await Promise.all([
+  const [updated, ex, soldCount, vinShare] = await Promise.all([
     lastUpdatedDate(env).catch(() => null),
-    deskExample(4000).catch(() => null)
+    deskExample(4000).catch(() => null),
+    completedSalesCount(env).catch(() => null),
+    vinHistoryShare(env).catch(() => null)
   ]);
+  // TEMP DIAGNOSTIC (removed once the real proof-strip numbers are confirmed and built): hidden HTML
+  // comment, never rendered, never visible text - read once via a probe-key page load, then deleted.
+  const diagComment = (isCrewRequest(req) || hasServerCredential(req)) ? `<!-- deskproof soldCount=${soldCount} vinShare=${vinShare ? JSON.stringify(vinShare) : "null"} -->` : "";
   const heroInner = `<p class="biz-eyebrow">SAM DESK${updated ? " · Updated " + esc(updated) : ""}</p>` +
     `<h1 class="biz-h1">Ask the whole collector car market.</h1>` +
     `<p class="biz-sub">Explore sales, compare platforms and slice the market by car, mileage, time period or almost any other question. Sam gives you the answer, the analysis and the cars behind it.</p>` +
@@ -280,6 +286,7 @@ ${FONT_LINKS}<style>${CSS}${AUTH_SIGNBAR_CSS}${SHELL_CSS}${CONSENT_BANNER_CSS}</
 ${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 ${railOpenHtml({ active: "business", pageExtra: YOUR_RESULTS_RAIL, crew, req, analytics: true })}
+${diagComment}
 ${body}
 ${CONSENT_BANNER_HTML}
 <script>${SHELL_JS}</script>
