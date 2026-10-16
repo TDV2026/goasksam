@@ -11,6 +11,7 @@ import { readVisitorId } from "../lib/_visitor.js";
 import { track, withTracking } from "../lib/track/log.js";
 import { callOldCarsData } from "../lib/_ocd.js";
 import { isTesterRequest } from "../lib/_tester.js";
+import { supabaseBytesSoFar } from "../lib/_supabase.js";
 import { VARIANT_MARKETS } from "../lib/modelRules.js";
 import { BODY_LABEL } from "../lib/onebox.js";
 // Every variant value a chip may carry (e51): the M-car pair plus each variant market's key and its other side.
@@ -2810,7 +2811,7 @@ async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   const reqStart = Date.now();
-  const obTimes = { reqStart };   // stage timings for the Market Check answer (speed job, Oct 15 2026; diagnostics only)
+  const obTimes = { reqStart, dbBytes0: supabaseBytesSoFar() };   // stage timings for the Market Check answer (speed job, Oct 15 2026; diagnostics only)
   const credentialed = hasServerCredential(req);
   if (!credentialed && req.body && typeof req.body === "object") for (const k of SERVER_ONLY_FLAGS) if (k in req.body) delete req.body[k];
 
@@ -3620,7 +3621,7 @@ async function handler(req, res) {
       }
       // timings (speed job): where a Market Check answer's time went, stage by stage; diagnostics, never read by a page.
       const dd = oneBox && oneBox.dedup;
-      const timings = { ...obTimes, warmHit, stale: !!staleInfo, totalMs: Date.now() - reqStart, marks: dd && Array.isArray(dd.marks) ? dd.marks : null, fetchMs: dd && Array.isArray(dd.fetches) ? dd.fetches.map(f => Number(f.ms) || 0) : null };
+      const timings = { ...obTimes, warmHit, stale: !!staleInfo, totalMs: Date.now() - reqStart, dbBytes: supabaseBytesSoFar() - obTimes.dbBytes0, marks: dd && Array.isArray(dd.marks) ? dd.marks : null, fetchMs: dd && Array.isArray(dd.fetches) ? dd.fetches.map(f => Number(f.ms) || 0) : null };
       // STALE STORED ANSWER (stage 4): served exactly as stored (its counts, range and cards), with the dated line in
       // Sam's exact form; the recompute starts the moment this response is sent (awaited after it, so the function
       // stays alive to finish and write the fresh row), and the line is gone on the next read.

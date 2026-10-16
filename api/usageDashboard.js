@@ -2363,6 +2363,8 @@ async function handleOps(req, res) {
     const q = String(req.query?.q || "E46 M3").slice(0, 200).trim();
     const { parseQueryResolved, searchLive, gensNamed, nounFor, liveForFamily, liveYearWindow } = await import("../lib/live/search.js");
     const { findGeneration: fgLive } = await import("../lib/generations.js");
+    const { supabaseBytesSoFar } = await import("../lib/_supabase.js");
+    const dbBytes0 = supabaseBytesSoFar();   // data pulled by this Buy-path read (one search at a time)
     const parsed = await parseQueryResolved(q, env);
     const v = parsed.vehicle;
     if (!v) return res.status(200).json({ task: "livesearch", q, status: "unresolved" });
@@ -2375,7 +2377,7 @@ async function handleOps(req, res) {
     const gLive = await fgLive({ make: v.make, model: v.parentModel || v.model, year: v.year || null }, env).catch(() => null);
     const panel = await liveForFamily(env, { make: v.make, model: v.parentModel || v.model, trim: v.trim || null, year: v.year || null, bodyStyle: v.bodyStyle || null, genCode: v.genCode || (f.gens && f.gens[0]) || null }, gLive, null, 50, null).catch(e => ({ error: String(e && e.message || e) }));
     const yearWindow = v.year ? await liveYearWindow(env, v).catch(() => null) : null;
-    return res.status(200).json({ task: "livesearch", q, vehicle: { make: v.make, model: v.model, parentModel: v.parentModel || null, trim: v.trim || null, genCode: v.genCode || null, year: v.year || null }, gens: f.gens, noun: nounFor(v, f), count: rows.length, yearWindow,
+    return res.status(200).json({ task: "livesearch", dbBytes: supabaseBytesSoFar() - dbBytes0, q, vehicle: { make: v.make, model: v.model, parentModel: v.parentModel || null, trim: v.trim || null, genCode: v.genCode || null, year: v.year || null }, gens: f.gens, noun: nounFor(v, f), count: rows.length, yearWindow,
       panel: panel && !panel.error ? { count: panel.total, yearWindow: panel.yearWindow, titles: (panel.rows || []).map(r => r.listing_title) } : panel,
       cards: rows.map(x => ({ id: x.r.id, title: x.r.listing_title, year: x.r.year, model: x.r.model || null, source: x.r.source, country: x.r.country || null, unknown: x.unknown })),
       leftOut: why, modelWordLeftOut: trace.filter(t => t.why === "model word not in title").slice(0, 40).map(t => t.title) });
