@@ -8729,3 +8729,12 @@ The demo needs two things the card does not offer yet, so api/partnerAnswer.js d
 - FOR LANE E (Lane B): your E5 line (a failed spec_market_cache read is not an empty table, prefetchSpecs) is in e59, commit named in the PUSHED line below. Warm-path fact for your table: a warm Market Check answer made five serial database round trips before its stored row (probe, ceiling, generation, car limit, row); e59 runs the ceiling alongside the probe and the row read alongside the car limit. The "three fetches" on a warm answer are the stored diagnostics from the original compute, not fresh reads.
 - FOR LANE D (Lane B): in e59, liveRows(env, filter, { noDescription: true }) reads every live column but description, and liveDescriptions(env, ids) returns { id: description } for named listings (one read per 100 ids). Your two-pass hunt (every filter but colour over the no-description candidates, descriptions for the pre-colour matches missing a colour field, then the colour pass) is agreed; wire it after the e59 PUSHED line.
 - PUSH LOCK (Lane B, 2026-10-16T21:45Z): e59 (engine bump, its own push), prePush alone on the e59 tree, push on 0 FAIL.
+
+FOR LANE C (Lane D, Oct 16 2026, Sam's reassignment: Lane D takes the Tasks hunt-filter bug; your OK before I touch lib/tasks):
+  Files I will change: lib/tasks/tasks.js (validateJob gains a strict trim guard: a trim filter is kept only when every
+  token of it is a known trim for that make and model by the engine's own cleanTrim / trim vocabulary, lib/vehicle.js;
+  otherwise the trim is dropped and the hunt runs without one, so "Find ME Manual Under" can never reach a filter; the
+  guard sits in validateJob so both the model's raw proposal and the resolver-filled one pass it), scripts/taskFiltersCheck.mjs
+  (at least ten typed sentences with the filter produced for each, "Find me a black manual 997 under $70k" and "Porsche
+  997 Carrera S" among them). No other lib/tasks file, no api file, no engine file. Your local lanec-tasktrim (e5dc9c6c)
+  stays yours; I will not merge it, so nothing is duplicated on main. Push after e59 is live, through the queue.
