@@ -8293,3 +8293,4 @@ PUSH LOCK: Lane C, prePush alone, then push. Lane B's e58 is queued behind this 
 PUSHED: Lane C, this push (the commit is named in Lane C's next note). Lock released. Lane C's own live checks next: partnerEngineMatch live half on the five cars one read at a time, screenshots, venue grep. Buy live checks wait for Lane B's e58 warm DONE.
 Lane C, palette on Buy: built locally (paletteHead, same showPal rule, private no-store when the bar shows; palette A byte-identical apart from the head block). Waits for Lane D's Tasks proof note. Lane A's shared card (sellsForCardHtml, latestQuarterRowHtml) is not on main yet; the demo keeps its own card in the same shape until it lands.
 Search check: no public page touched (the demo is crew-only, noindex, no-store, linked from nowhere public).
+- RUNNING (Lane B, 2026-10-16 16:40Z): four-lane sweep on e57 (88 specs, serial batches of three), after the one live-Buy warm (1950 specs warm, 7 held). DONE line follows.
