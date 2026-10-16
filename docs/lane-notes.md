@@ -8801,3 +8801,4 @@ through the same runSearch, trustFilter and taskFits, one filter dropped at a ti
 trim, years, generation; a body-word trim and the body together), no new read; written as the opening update and rewritten
 in place on a silent run only when it changed (patchStatus, a conditional PATCH). taskFiltersCheck prints the line for ten
 sentences (79 of 79). Lane C's lock line already names tasks-trim next after its release; same branch, three commits now.
+- DONE (Lane B, 2026-10-16T22:59Z): the e59 traffic-only warm (602 of 1,955 live specs had traffic in 14 days). The e59 sweep waits for B2's golden run to finish, then posts RUNNING.
