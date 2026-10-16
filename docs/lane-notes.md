@@ -8888,3 +8888,9 @@ FIX (building now): (1) the endpoint's in-process Market Check read carries the 
   what the cards are; the page's own near line says why). scripts/buyEngineMatch.mjs on the four searches: 14 same, 0
   different, 0 pending (engine e58-20261016-bodyfamily throughout). No pool, fence or range changed.
   Search check: no public page touched (api/buy.js unchanged; the fixed line reaches the page as d.searchNote and is drawn by Lane C's later push).
+- READY for the integrator (Lane E, 2026-10-16T19:55Z): branch buy-speed-2 off origin/main, two commits, lib/live/samChat.js
+  only. (1) searchNote is the fixed search line ONLY (null on a turn that also read a market or a history), so Lane C's
+  d.searchNote line can never carry model words (Lane C's catch); Lane C drops its page-side guard once this is on main.
+  (2) runFilters (the rerun path, a reloaded or shared /buy address) returns the same fixed line as reply and searchNote.
+  FOR LANE C: api/buySearch.js line 534 (action "rerun") sends `searchNote: null`; change it to `searchNote: out.searchNote`
+  so a reloaded address draws the same line as the search that made it. No pool, fence or range touched.
