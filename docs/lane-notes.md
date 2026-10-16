@@ -8425,3 +8425,88 @@ FOR LANE A (Lane B, 2026-10-16, e58 live): three fields on every engine answer f
   FOR LANE A: readAt and trendQuarters are on every answer; bodyLine (render under the result when present) and bodyLabel are on the whole-pool body answers; a words body answer is tier not_tracked with samLine.
   FOR LANE C: no pool change for cars whose rows state a body; the no-body cars (Boxster, Miata) now answer the whole pool on a typed body instead of a refusal.
   Search check: no public page touched; no public page title, H1, canonical or meta changed.
+- PUSH LOCK (Lane B, 2026-10-16T17:35Z): e58 bump, prePush running.
+
+## Lane E, Buy speed: MEASURED (Oct 16 2026, 17:17 to 17:40 UTC), proposal below
+Method, read-only, zero OldCarsData, one search at a time: scripts/buyTimes.mjs (new, Lane E) times the four searches
+through the public endpoints from a real Chrome page (probe key + stage header, raw fetch gets the Vercel challenge):
+ping (converse with no messages: the function round trip), parse (the resolver), chat (the real Buy turn with debug,
+reading the stream: "text" marks the end of the model turn, "done" the end of enrichFast, which is the header + first
+cards), explain (runSearch alone: resolver + live_listings read + fences), rerun (toolSearchLive + enrichFast, no model),
+enrich (ten cards, blocking). `--page` runs the page itself the way pushCheck measures it (crew cookie, header and first
+card off the DOM) and logs every request the page makes. scripts/buyProbe.mjs: one keyed POST for one-off reads.
+
+WHERE THE TIME GOES (five samples each on a quiet archive, warm stored rows, before the e58 deploy; medians, seconds):
+  step                                      | P911  | 65 Mustang | 2005 911 | 2023 GT3 | parallel? / cached?
+  function round trip (ping)                | 0.13  | 0.11       | 0.12     | 0.12     | fixed cost
+  resolver (parse)                          | 0.13  | 0.13       | 0.18     | 0.15     | already parallel with chat on the page; 1.9 s on a cold instance
+  live_listings read + fences (explain)     | 0.7   | 0.6        | 0.6      | 0.6      | explain minus parse; could overlap the model's first round (it does not today)
+  toolSearchLive total (rerun minus shape)  | 0.7   | 0.7        | 0.8      | 1.4      | nearest-years reads live_listings a second time (GT3); widen offers rerun on the rows read
+  model turn (text minus tool)              | 4.1   | 5.1        | 5.3      | 4.6      | 2 or 3 Claude calls, each sequential: forced tool call (~1.5 s), the reply (~2 to 3 s), a guard regeneration (~1.5 to 2 s) on 7 of 12 samples here and 196 of 1,100 real turns in 14 days
+  enrichFast (done minus text), 24/5/2/2 cards | 1.0 | 0.6        | 0.6      | 0.5      | 3 to 5 reads per card, all cards in parallel (24 for the 911: ~100 PostgREST requests at once)
+  chat total to "done" (API)                | 6.3   | 6.2        | 6.7      | 6.5      |
+  page: header = first card (pushCheck way) | 8.1   | 7.7        | 6.9      | 8.0      | the chat starts 0.35 s into the load; alerts_ready, watch ready, parse, track run beside it and cost nothing
+  Market Check row (familyMarket) warm      | ~0.1 (one spec_market_cache read, inside explain; only year searches call it, via liveYearWindow)
+
+THE SPIKES (the 13.6 s and worse): the steady state is 6 to 8 s and the model turn is most of it; the long waits are
+all in the SAME turn under a cold or invalidated card cache, and I caught three:
+  1. page run, Porsche 911: 18.5 s; page run, 2005 Porsche 911: 24.4 s (the "still finding" line showed at 20.4 s).
+  2. API, Porsche 911 run 2 of measure2: model turn 3.1 s (2 calls), then enrichFast 7.5 s with ZERO pending cards.
+     That is timelineOf -> asideRowsFor -> engineAnswer: a LIVE engine run on the request path for the first card
+     with a sold appearance whose spec this instance got from the TABLE (specCore/prefetchSpecs fill specMem only,
+     never rangeCache, so the set-aside check always misses rangeCache and computes a full pool).
+  3. API, Porsche 911 right after the e58 deploy (every stored row invalid by engine version): turn 9.4 s, then
+     enrichFast 15.8 s = 25.2 s total; 22 of 24 cards "pending"; each pending card's noBlock read fired a background
+     refreshSpec (22 engine runs through 8 slots) and the one blocking set-aside engine read queued behind them. A
+     blocking enrich of the same 24 ids then took 161 s with 9 still pending. The same state recurs every day at
+     00:00 UTC (prefetchSpecs rejects rows from an earlier UTC day: sameUtcDay) until the nightly job rebuilds, and
+     after any ENGINE_VERSION bump until the warm finishes.
+  4. One turn of 20 hit the 25 s deadline (2005 Porsche 911, no text, no trace in the done event): with the deadline
+     the done event carries no stage times, so model stall vs tool stall cannot be told apart from outside.
+  Also seen: prefetchSpecs treats a FAILED table read (null) as "the table has nothing" and marks every key in the
+  batch missing for two minutes (specMiss), so one throttled read turns a whole result into pending cards and a
+  background recompute of every spec.
+
+PROPOSAL (smallest change per slow step; every sales pool, fence and range untouched; each one reversible alone):
+  E1  Search turn, no regeneration call (samChat.js + chatCore.js, ~1.5 to 2 s on ~18% of turns). The page already
+      strips the model's search-turn reply to the one surviving sentence (cleanSearchReply) and shows the box; the
+      guard today regenerates on wording the page then throws away ("a choice question", "more than one question").
+      Change: on a search turn the reply is cleaned BEFORE the guard (chatCore passes the reply to surface.override;
+      BUY.override returns cleanSearchReply(reply) or the code reply "Here they are."); the guard still checks what
+      survives. The page text is identical to today's.
+  E2  One stored-row read for all shown cards instead of one per card (samChat.js, ~24 parallel PostgREST reads -> 1
+      for Porsche 911): toolSearchLive resolves the shown cards' specs, calls prefetchSpecs(keys) once, then the
+      per-card listingMarket(noBlock) hits memory. Same rows, same answers.
+  E3  Start the cards' enrichment when the search tool returns, in parallel with the model's reply round, instead of
+      after it (chatHttp.js passes an optional prepare hook; toolSearchLive starts it; buyChat's shape awaits it).
+      Saves the whole enrichFast (0.5 to 1 s warm, the full spike under a cold cache) off the critical path. Needs a
+      two-line change in api/buySearch.js (FOR LANE C below); inert until that lands.
+  E4  The set-aside label must not run the engine on the request path (FOR LANE C, api/buySearch.js timelineOf, with
+      lib/tasks/setAside.js asideRowsFor): bound the engine wait (Promise.race, 1500 ms); past it the timeline draws
+      without the label and the page's own 20 s enrich retry fills it (the engine run keeps going in the background,
+      inflight, so the retry finds it). Labels only; no pool, fence or range. This is the 7.5 s and the 15.8 s.
+  E5  FOR LANE B (lib/live/search.js prefetchSpecs): a null (failed) table read must not mark the batch's keys as
+      missing for two minutes. Diff: inside the `for (let i = 0; ...)` loop, after
+        const rows = await supabaseSelect(...).catch(() => null);
+      add
+        if (rows == null) continue;   // a read that failed is not a table with nothing in it: ask again next time
+      Behaviour: a throttled read no longer turns every card pending and no longer fires a background engine run per
+      card; the next card ask reads the table again.
+  E6  SAM'S DECISION, not implemented: skip the model's reply round on a search turn entirely (the tool call is the
+      only round; the reply is "Here they are." in code). Saves 2 to 3 s on EVERY search (the model turn would be the
+      forced tool call alone, ~1.5 s). Cost: the occasional surviving model sentence above the cards ("Two of the five
+      are ending today, including a red coupe...") would no longer appear; the counts, chips, nearest-years line and
+      widen offers are all built in code already and unaffected.
+  E7  Noted for Lane B, not mine: the 00:00 UTC row reset (sameUtcDay) and each ENGINE_VERSION bump put Buy into the
+      spike state until the warm finishes; engineGenerations costs up to 3 s per model-only search on a cold instance.
+  Debug only: the chat's done event, with debug, also carries stage times (tool ms per call, model ms per round,
+  shape ms), and the deadline path keeps them, so the next spike can be read without a script.
+FOR LANE C (api/buySearch.js, buyChat, two lines; needed for E3; please acknowledge before I touch it):
+  - in buyChat's chatOut opts add:   prepare: x => enrichFast(env, x),
+  - in shape, replace `const c = await enrichFast(env, x);` with
+      `const c = out.prepared && out.prepared[i] ? await out.prepared[i] : await enrichFast(env, x);`
+    (the map callback takes (x, i)). Everything else in the file unchanged.
+FOR LANE C / LANE D (E4): api/buySearch.js timelineOf: wrap the asideRowsFor call as
+  `const rows = await Promise.race([asideRowsFor(env, x.r, x.facts || {}).catch(() => null), new Promise(r => setTimeout(() => r(null), 1500))]);`
+  No change to lib/tasks/setAside.js itself.
+Search check: no public page touched (API timing only; the scripts are diagnostics).
