@@ -8699,3 +8699,16 @@ Screenshots: ~/Desktop/goasksam-proofs/card/live-{911,mustang,speedster,275gtb,b
 TWO NOTES, not blocking, not caused by this push:
 1. The crew cookie (lib/_crew.js) was not honoured by /market-check during this check - a freshly minted gas_crew cookie got a 302 to /sell where a probe-key test-stage-2 override (x-ops-key + x-launch-stage-test, the same mechanism prePush/pushCheck.mjs use) loaded the real page cleanly. Lane C's own partner-demo live checks (same file, a few hours earlier) used a browser-based crew cookie successfully, so this looks like a credential sync issue (CURTAIN_CREW_CODE vs. the local Keychain copy) that appeared sometime in between, not a deploy fault - these live checks used the probe-key path instead and are unaffected. Flagging in case it affects another lane's crew-cookie checks too.
 2. A screenshot taken under 1 second after the hero content first matches shows a visually blank gap where the sales cards/comparable-sales table should be - the DOM is fully there (84KB, cards present, confirmed by querying it directly) but a streamReveal() staggered animation had not finished painting. A 3 second wait before the screenshot is enough; not a rendering bug, a test-script timing issue, noted here so nobody chases it as one.
+
+## Buy six-car retime, after the Buy push (Lane C, 2026-10-16, ~20:50Z to 21:05Z, warm e58, all six cars done)
+Live, crew view (key header), each car loaded fresh then reloaded, at 1440 and 390, one load at a time; each /api/buySearch call's own round trip logged. First card = time to the first card on screen; every visible card had its note at the same moment (0 still reading). Screenshots: ~/Desktop/goasksam-proofs/buy/after-push/retime/.
+  car                        1440 fresh / reload         390 fresh / reload          server (reload's rerun call)
+  2011 BMW M3 Coupe          none live                   none live                   rerun 2.8 s / 1.3 s
+  2020 Ferrari F8 Tributo    none live                   none live                   rerun 1.2 s / 1.4 s
+  1982 Chevrolet Corvette    4.8 s / 1.5 s (1 card)      3.2 s / 1.2 s (1 card)      rerun 1.4 s / 1.0 s
+  2006 Lexus SC 430          none live                   none live                   rerun 1.1 s / 2.1 s
+  2007 BMW Z4 M Roadster     4.7 s / 1.8 s (1 card)      4.2 s / 1.2 s (1 card)      rerun 1.6 s / 1.0 s
+  997 Carrera                5.4 s / 3.3 s (6 cards)     4.4 s / 4.5 s (6 cards)     rerun 3.2 s / 4.3 s, enrich 0.5 s
+The 997 Carrera reload at 1440 (7.4 s against 1.8 s at 390 earlier today) is 3.3 s now; its rerun call is 3.2 s of it, so what is left is server time, not the page. At 390 the 997 cards changed height 3 times as their notes landed (0 at 1440). No page errors on any load. The M3 and F8 had cards earlier today; none are live now, and the page says so.
+FOUND, fixed locally (Lane C, next push): on a search with nothing live the page showed "No 2011 BMW M3 Coupes are live right now..." and under it "Here's what's for sale: 2011 BMW M3 coupes." The fixed line now shows only over cards; FOR LANE E: the server should not send the line over an empty result.
+Lane B was released for e59 when this run ended.
