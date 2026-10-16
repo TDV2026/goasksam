@@ -112,6 +112,7 @@ try {
   
   const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read the same car as rows 8 and 14: one engine read each
   for (let i = 0; i < GOLDEN_QS.length; i += BATCH) {
+    console.error(`progress engine ${Math.min(i + BATCH, GOLDEN_QS.length)}/${GOLDEN_QS.length} ${new Date().toISOString().slice(11, 19)}Z`);
     const chunk = GOLDEN_QS.slice(i, i + BATCH).map(q => ({ q }));
     const url = `/api/usageDashboard?view=ops&task=enginecheck&buypaths=0&livefences=0&representative=0&splitpools=0&overtime=0&livelisting=0&cacheconsistency=0&specs=${encodeURIComponent(chunk.map(g => g.q).join("|"))}`;
     const r = await ops(url);
@@ -279,6 +280,7 @@ try {
   const worker = async () => {
     while (next < jobs.length) {
       const { r, pr } = jobs[next++];
+      console.error(`progress pages ${next}/${jobs.length} row ${r.g.id} ${pr} ${new Date().toISOString().slice(11, 19)}Z`);
       const g = r.g, engineCell = r.cells[pr];
       let rd; try { rd = await readPage(pr, g.q); } catch (e) { rd = { path: "", text: "", err: String(e && e.message || e) }; }
       r.pages = r.pages || {};
