@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-16T23:42Z (Lane F; Sam's decisions folded in: cookie 14 days, SEO plan and llms.txt approved, firewall stays staged, watch read is Lane C's, e60 numeric siblings, Sam's own steps file).
+Last updated: 2026-10-16 (Lane F; Sam approved the numeric siblings and Black Series in e60, with the taxonomy-only trim-word list to come).
 
 ## 1. The four launch items
 
@@ -41,8 +41,9 @@ Last updated: 2026-10-16T23:42Z (Lane F; Sam's decisions folded in: cookie 14 da
 | Send-path read reductions (tasks-reads) | Lane D | live (8993b2fd) | nothing | lane-notes "Lane D, Oct 16 2026: Tasks send-path read reductions, DEPLOYED PROOF" (legacy 9,623 bytes to 8,098) |
 | Trim guard, hunt read without description, status line (tasks-trim, three commits ending 73fe6f75) | Lane D | live (deployed proof posted: hunt 1 now matches 9001, hunts 2 and 3 unchanged; exact 997 filter 0 live with status line "Nothing black yet. 9 other cars match the rest.", 9 without colour, 16 bare) | nothing; note that Lane D's prePush ran before Lane A's card adoption landed, so its 0 FAIL does not cover the combined tree | lane-notes "Lane D, Oct 16 2026: DEPLOYED PROOF of tasks-trim"; taskFiltersCheck 79 of 79; bytesRead before and after is one SQL for Sam in that note |
 | Cold-start watch event reads (13.5 MB per cold cron run; lib/live/watches.js eventsFor) | Lane C | building (Sam, 2026-10-16: Lane C's, not a launch blocker, after the tiered prePush; propose the narrowest fix and report before building) | the access code live and checked, then the tiered prePush | Lane C's proposal, then its proof |
-| Numeric siblings for the four word-ified count fields (soldCount, setAsideCount, didNotSellCount, period counts) | Lane B | building (in e60, siblings only, no existing field changed; field names to Sam before building) | Sam's OK on the names | Lane B's e60 READY line |
-| "Black Series" explicit in the vocabulary | Lane B | checking (in e60 only if provable with no other answer changed, shown by golden rows; else left) | the proof | the golden rows Lane B names |
+| Numeric siblings for the four word-ified count fields (soldCountN, setAsideCountN, didNotSellCountN, period countN) | Lane B | building (in e60, approved by Sam, additions only) | nothing | Lane B's e60 READY line |
+| "black series" in the curated trim vocabulary | Lane B | building (in e60, approved by Sam; two golden rows pinned: 2008 CLK63 AMG Black Series 35 sales exact 2008 $95,000 to $146,000, 2012 C63 AMG Black Series 19 sales exact 2012 $100,000 to $168,000; no-database resolver check in prePush) | the full golden set before and after, identical with the taxonomy loaded, shown before READY | Lane B's before-and-after table; the two golden rows; the prePush check |
+| Other trim words that survive only through the database taxonomy (dropped on lookup timeout) | Lane B | building (list to Sam through Lane F before any is added; none added without a golden row) | Lane B's list, then Sam | the list; a golden row per word added |
 
 ## 4b. The shared card on Sell and Buy (one engine, one card)
 
