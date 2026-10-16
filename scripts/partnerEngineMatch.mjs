@@ -76,7 +76,14 @@ ok(!/oldcarsdata|OLDCARSDATA|_ocd/i.test(src), "the endpoint never touches OldCa
 const COOKIE = process.env.GAS_CREW_COOKIE, HOST = process.env.PARTNER_HOST || "https://goasksam.com";
 if (!COOKIE) { skip++; console.log("SKIP live: GAS_CREW_COOKIE not set, the five cars were not compared on the live site"); }
 else {
-  const post = async (path, body) => { const r = await fetch(HOST + path, { method: "POST", headers: { "Content-Type": "application/json", Cookie: "gas_crew=" + COOKIE }, body: JSON.stringify(body) }); return { status: r.status, j: await r.json().catch(() => null) }; };
+  // From inside a real browser page on the site (Vercel's bot challenge answers a plain Node fetch with 429): the cookie
+  // is set on the site's own host only, and each read is one fetch from that page, awaited before the next.
+  const { default: puppeteer } = await import("puppeteer-core");
+  const br = await puppeteer.launch({ executablePath: process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", headless: "new" });
+  const pg = await br.newPage();
+  await pg.setCookie({ name: "gas_crew", value: COOKIE, domain: new URL(HOST).hostname, path: "/", secure: true });
+  await pg.goto(HOST + "/partner-demo", { waitUntil: "domcontentloaded" });
+  const post = (path, body) => pg.evaluate(async (path, body) => { const r = await fetch(path, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); return { status: r.status, j: await r.json().catch(() => null) }; }, path, body);
   for (const q of CARS) {
     // The same question count on both: Market Check's page asks first (asked 0); a question answered either way is compared as a question.
     // One read at a time (Sam, Oct 16 2026): the endpoint first, then Market Check, never both at once.
@@ -90,6 +97,7 @@ else {
     for (const [k, v] of Object.entries(fields)) ok(v, `${q}: ${k} differs (endpoint ${JSON.stringify(k === "sales" ? (p.j.sales || []).length + " sales" : p.j[k])}, Market Check ${JSON.stringify(k === "sales" ? mc.sales.length + " sales" : mc[k])})`);
     console.log(`  ${q}: ${mc.range ? "$" + mc.range.low + " to $" + mc.range.high : "no range"}, ${mc.count} sales, ${mc.window || "no window"}: ${Object.values(fields).every(Boolean) ? "SAME" : "DIFFERENT"}`);
   }
+  await br.close();
 }
 console.log(`partnerEngineMatch: ${pass} passed, ${fail} failed${skip ? ", live part skipped" : ""}`);
 process.exit(fail ? 1 : 0);
