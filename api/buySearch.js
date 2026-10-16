@@ -538,7 +538,7 @@ async function handler(req, res) {
       // zip: the buyer's zip for the distance question (kept by the page for the session), never a filter by itself.
       const out = await runFilters(env, b.filters || {}, { zip: /^\d{5}$/.test(String(b.zip || "")) ? String(b.zip) : null });
       const cards = await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; }));
-      return res.status(200).json({ reply: out.reply, searchNote: null, cards, noun: out.noun, meta: out.meta, state: out.state, turns: (Number(b.turns) || 0) + 1 });
+      return res.status(200).json({ reply: out.reply, searchNote: out.searchNote || null, cards, noun: out.noun, meta: out.meta, state: out.state, turns: (Number(b.turns) || 0) + 1 });
     }
     // The detail's live bid refresh can meter one upstream call: only our own jobs may trigger it, never a
     // public visitor (open-search policy: public answers come from the cache and the archive only).
