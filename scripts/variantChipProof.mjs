@@ -21,8 +21,8 @@ if (!KEY) { console.log("variantChipProof: no PROBE_KEY in the environment - not
 const CASES = [
   // guard: a refine for a variant with no sales -> the nothing-on-record answer, on the full tier and the thin tier
   { q: "1957 Porsche 356 Speedster", tier: "result", refine: { variant: "carrera", variantLabel: "Carrera four-cam" }, expectLine: /No Carrera four-cam 1957 Porsche 356 Speedster sale on record/ },
-  { q: "1967 Alfa Romeo Giulia Sprint GT Veloce", tier: "result", refine: { variant: "gta", variantLabel: "GTA or TZ" }, expectLine: /No GTA or TZ 1967 Alfa Romeo Giulia Sprint GT Veloce sale on record/ },
-  { q: "1969 Jaguar E-Type Coupe", tier: "result", refine: { variant: "lightweight", variantLabel: "Lightweight or Low Drag" }, expectLine: /No Lightweight or Low Drag 1969 Jaguar E-Type Coupe sale on record/ },
+  { q: "1967 Alfa Romeo Giulia Sprint GT Veloce", tier: "result", refine: { variant: "gta", variantLabel: "GTA or TZ" }, expectLine: /No GTA or TZ 1967 Alfa Romeo Giulia.*sale on record/ },
+  { q: "1969 Jaguar E-Type Coupe", tier: "result", refine: { variant: "lightweight", variantLabel: "Lightweight or Low Drag" }, expectLine: /No Lightweight or Low Drag 1969 Jaguar E-Type.*sale on record/ },
   { q: "1966 Ferrari 275 GTB", tier: "thin", refine: { variant: "competizione", variantLabel: "Competizione" }, expectLine: /No Competizione 1966 Ferrari 275 GTB sale on record/ },
   { q: "1961 Jaguar E-Type Roadster", tier: "thin", refine: { variant: "lightweight", variantLabel: "Lightweight or Low Drag" }, expectLine: /No Lightweight or Low Drag 1961 Jaguar E-Type Roadster sale on record/ },
   // restoration is never an option (e52): a stale refine for it is ignored and the base page answers

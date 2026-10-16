@@ -9,7 +9,8 @@ import puppeteer from "puppeteer-core";
 
 const arg = n => { const i = process.argv.indexOf("--" + n); return i > 0 ? process.argv[i + 1] : null; };
 const BASE = (arg("base") || "https://goasksam.com").replace(/\/$/, "");
-const OPS = (arg("ops") || "https://goasksam.vercel.app").replace(/\/$/, "");
+// the ops task is called on the SAME origin as the page (a cross-origin fetch from the page context is refused)
+const OPS = (arg("ops") || BASE).replace(/\/$/, "");
 const CAR = arg("car") || "1990 Mazda Miata";
 const KEY = process.env.PROBE_KEY || null;
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
