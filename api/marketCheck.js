@@ -24,6 +24,7 @@ import { landingHtml, LANDING_CSS } from "../lib/live/marketCheckLanding.js";
 import { marketCheckExample } from "../lib/live/marketCheckExample.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 import { SHELL_CSS, SHELL_JS, KEEPLOOK_CSS, railOpenHtml, brandPaletteCss, ALL_PALETTES_CSS, PALETTE_APPLY_JS, PALETTE_SWITCHER_CSS, PALETTE_SWITCHER_JS, paletteSwitcherHtml } from "../lib/appShell.js";
+import { SELLS_FOR_CARD_JS, SELLS_FOR_CARD_CSS } from "../lib/sellsForCard.js";
 import { isCrewRequest } from "./_chrome.js";
 import { isTesterRequest } from "../lib/_tester.js";
 import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
@@ -92,12 +93,12 @@ async function handler(req, res) {
     .replace(/<meta name="robots" content="[^"]*"\s*\/?>/, `<meta name="robots" content="${robots}" />`)
     // Earliest possible point in <head> - before first paint, no flash of the old colours.
     .replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />\n<script>${PALETTE_APPLY_JS}</script>`)
-    .replace("</head>", `<link rel="canonical" href="${SITE}/market-check" />\n<meta name="description" content="${esc(metaDesc)}" />\n<meta property="og:title" content="${TITLE}" />\n<meta property="og:description" content="${esc(metaDesc)}" />\n<meta property="og:type" content="website" />\n<meta property="og:url" content="${SITE}/market-check" />\n<style>${LANDING_CSS}\n${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}\n${KEEPLOOK_CSS}\n${brandPaletteCss(crew)}\n${ALL_PALETTES_CSS}\n${showPal ? PALETTE_SWITCHER_CSS : ""}\n${CONSENT_BANNER_CSS}</style>\n</head>`)
+    .replace("</head>", `<link rel="canonical" href="${SITE}/market-check" />\n<meta name="description" content="${esc(metaDesc)}" />\n<meta property="og:title" content="${TITLE}" />\n<meta property="og:description" content="${esc(metaDesc)}" />\n<meta property="og:type" content="website" />\n<meta property="og:url" content="${SITE}/market-check" />\n<style>${LANDING_CSS}\n${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}\n${KEEPLOOK_CSS}\n${SELLS_FOR_CARD_CSS}\n${brandPaletteCss(crew)}\n${ALL_PALETTES_CSS}\n${showPal ? PALETTE_SWITCHER_CSS : ""}\n${CONSENT_BANNER_CSS}</style>\n</head>`)
     .replace('<main class="wrap"><div id="ob"></div></main>',
       `<main class="wrap"><div id="ob">${landingHtml({ updated, example, h1Text: H1 })}</div></main>`)
     // Round D (app shell, Oct 2026): one shared rail/main/mobile-header, lib/appShell.js.
     .replace("<!--SHELL_RAIL-->", railOpenHtml({ active: "market-check", pageExtra: YOUR_RESULTS_RAIL, crew, req, analytics: true }))
-    .replace("<script>\nfunction obToggleResults", `<script>${SHELL_JS}</script>\n<script>\nfunction obToggleResults`)
+    .replace("<script>\nfunction obToggleResults", `<script>${SHELL_JS}</script>\n<script>${SELLS_FOR_CARD_JS}</script>\n<script>\nfunction obToggleResults`)
     // Item 9 (shared top bar, Oct 2026): "Sign in" / the account control, one shared file
     // (lib/authBar.js) - the same markup/CSS Buy now uses, GAS_AUTH_MODE="topbar" so js/auth.js
     // runs its lighter boot (no /sell-wizard upfront gate check, no homepage_view funnel stamp).

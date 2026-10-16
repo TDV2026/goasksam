@@ -1200,23 +1200,17 @@
     if (t && (!e.relatedTarget || !t.contains(e.relatedTarget))) hcHideTip();
   });
   document.addEventListener("click", function (e) { if (!root.contains(e.target)) hcHideTip(); });
-  // RANGE-TIER HERO (task #38). The rule-24 no-band fallback is unchanged copy, just inside the new
-  // shell: no cluster means no dollar headline of any kind, ever (STANDING CHECK: the only <h2
-  // class="range"> with the green band class lives inside the `if (d.cluster)` branch below).
+  // RANGE-TIER HERO (task #38, card job Oct 2026). The rule-24 no-band fallback is unchanged in
+  // spirit: no cluster means no dollar headline of any kind, ever - enforced now inside the ONE
+  // shared card function every product uses (lib/sellsForCard.js sellsForCardHtml, embedded here as
+  // window.sellsForCardHtml by api/marketCheck.js before this file loads - STANDING CHECK: the only
+  // place a dollar range headline can render from is that shared function, never a second one here).
   function heroRangeHtml(d, m, thinTile) {
     var left = '<p class="eyebrow hero-label">Market Check</p>' +
       '<h1 class="hero-carname">' + esc(m ? (m.displayName || appendChosenLabel(carLabel(d.resolvedCar))) : appendChosenLabel(carLabel(d.resolvedCar))) + "</h1>" +
       heroMetaLine(d);
-    if (d.cluster) {
-      var band = d.cluster;
-      left += '<p class="eyebrow hero-label hero-label-range">' + lint("Where the middle half sold", "hero.rangelbl") + infoDotHtml() + "</p>" +
-        '<h2 class="range band">' + esc(usd(band[0])) + ' <span class="to">to</span> ' + esc(usd(band[1])) + "</h2>";
-    } else {
-      var noun = carNoun(d), subj = noun || "cars like it";
-      var line = (d.poolN && d.poolN < 8)
-        ? ("Only " + obNumWordLow(d.poolN) + " " + subj + " ha" + (d.poolN === 1 ? "s" : "ve") + " sold " + windowText(d) + ", not enough for a range, so here are the sales themselves.")
-        : (subj.charAt(0).toUpperCase() + subj.slice(1) + " sold too spread out " + windowText(d) + " to call a typical price, so here are the sales themselves.");
-      left += '<p class="hero-noband" data-stage="answer">' + lint(line, "hero.noband") + "</p>";
+    left += (window.sellsForCardHtml ? window.sellsForCardHtml(d, {}) : "");
+    if (!d.cluster) {
       var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.older") + "</p>";
     }
     left += heroMileageLineHtml(d, m);
