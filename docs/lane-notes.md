@@ -8813,3 +8813,35 @@ The dummy 2015 Porsche 911 GT3 reads $120,000 to $143,000, "Based on 43 sales, t
 - PUSHED (Lane A, 2026-10-16, Vercel Ready pending): two commits, 9a75fea1 (Sell) and 1436f1de (Buy), on main. prePush alone 0 FAIL / 6 SKIP / 38 PASS on the stack; main moved by docs/lane-notes.md only in between (Lane C's partner demo live-check note), rebased without a rerun (docs-only rule, files checked: docs/lane-notes.md). LOCK RELEASED. Live checks (byte-identical card comparison against Market Check, screenshots at 1440 and 390, both products) follow once the deploy is Ready.
 - PUSHED (Lane D, 2026-10-16T23:29Z): tasks-trim, three code commits ending 73fe6f75 (a Task trim is a known trim or nothing; the hunt read pulls the description for the matched cars only; the hunt's status line). prePush alone: 0 FAIL, 6 SKIP (archive-backed checks and the partner live part, no local Supabase creds or crew cookie), 33 PASS; taskFiltersCheck 79 of 79 (the eighteen-sentence trim table and the ten-sentence status-line table), tasksReadsCheck 13 of 13, beforeItEndsCheck 99 of 99. Lock released. Deployed proofs follow here once Vercel is Ready: the three hunts rerun, the corrected 997 filters' live counts, a status-line scenario, tasks_run bytesRead.
 - STAGE (Lane B, 2026-10-16T23:35Z): e59 live and warm (demo, golden and resolver rows written; traffic-only warm DONE, 595 of 602 traffic specs, 7 held). Sweep parked on B2's golden run (RUNNING line follows its DONE), then the window-and-age table, then the SQL file for Sam (~/Desktop/goasksam-proofs/db/sql-for-sam.md: the project-flag dry run with counts and 20+20 examples via a read-only task, the re-stamp scope, the real-columns steps with rollbacks); nothing touches the database until Sam's OK and never during a warm or sweep. Sam's order: only Lane B runs sweeps, only after a bump; e60 is the last engine bump before launch (year-less badge rule, resolver timing contract, taxonomy refresh, latestSaleDate and oldestIncludedSaleDate on every answer, history-page family read, body-style exports, the 1973 Targa label; warm traffic, golden and demo cars only). Stage reports also go to Lane F.
+
+## Lane D, Oct 16 2026: DEPLOYED PROOF of tasks-trim (73fe6f75 live: trim guard, hunt read without description, status line)
+
+THREE HUNTS (in-memory test_scenario, the same six fixture rows, the real drafting model): hunt 1 "Find me a black manual 997
+under $70k" now comes out with the clean filter (make Porsche, model 911, generation 997, manual, black, 70000, NO trim) and
+matches 9001, the fixture's black manual 2008 Carrera S at $52,000 (before: trim "Find ME Manual Under", matched nothing);
+hunt 2 "Keep looking for a 1990s Mazda Miata under $15k" 9003 (unchanged); hunt 3 "Find me a 1965 Mustang fastback" 9005
+(unchanged).
+THE 997 FILTERS AGAINST THE LIVE TABLE (test_scenario with the checkpoint reset, so every live car counts): the exact
+corrected filter (997, manual, black, under $70,000) 0 live cars, and its status line reads "Nothing black yet. 9 other cars
+match the rest."; the same filter without colour 9 (8 at 19:40Z, the live inventory moved by one car in between); a bare 997
+16 (15 before). The status line's 9 is the SAME number the independent no-colour run returns: one read, one engine.
+THE OTHER WORDING: "Keep looking for a Ferrari F40" with no rows opens with "Nothing yet. Sam is watching." and a silent run
+keeps it.
+A STATUS-LINE SCENARIO WITH THE FIXTURE ROWS: "Find me a red manual 997 under $70k" opens with "Nothing red yet. 1 other car
+matches the rest." (the black 9001 is the one car) and the silent run rewrites the same line in place.
+tasks_run bytesRead BEFORE AND AFTER: every cron run since 8993b2fd logs bytesRead in app_usage_events (event_type
+tasks_run, metadata.bytesRead; task_email_run likewise). No ops task reads that table, so the comparison is one statement
+for Sam in the SQL editor: select created_at, metadata->>'bytesRead' as bytes, metadata->>'ran' as ran, metadata->>'matched'
+as matched from app_usage_events where event_type = 'tasks_run' and created_at > now() - interval '6 hours' order by
+created_at desc; rows before 23:31Z are the full-description read, rows after are the split (candidates without
+description, descriptions for the matched ids only). I did not trigger a run of my own: ?run=1 writes real updates and calls
+the model for real Tasks, so the cron's own rows are the honest record.
+NOTE ON THE PUSH: Lane A took a lock and pushed its Sell and Buy card adoption while my prePush was running (22:28Z lock
+release by Lane C, Lane A's lock and PUSHED, then my push rebased onto theirs). Files disjoint (lib/tasks/tasks.js and
+scripts/taskFiltersCheck.mjs against the Sell and Buy pages), the rebase was clean and the deploy is Ready, but prePush ran on
+my tree before theirs landed; stated so nobody reads "prePush 0 FAIL" as covering the combined tree.
+OPEN FOR LAUNCH FROM LANE D: nothing beyond tasks-reads (live) and tasks-trim (live). Posted observations, not mine to fix:
+FOR LANE B the 13.5 MB cold-instance watch event read per send run, and the four word-ified count fields; the "Black Series"
+trim relies on the Series-after-a-kept-word allowance because the engine's vocabulary excludes "series" by design.
+WAITING ON: nothing now (e59 landed 22:13Z, Lane C's OK given 20:20Z).
+Search check: no public page touched.
