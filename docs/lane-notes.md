@@ -8918,3 +8918,36 @@ FIX (building now): (1) the endpoint's in-process Market Check read carries the 
   rerun path the same. buySearchLineCheck gains an --empty case (default "2011 BMW M3 Coupe": one call, no "for sale", no
   searchNote, nothing drawn under the header). Eight stubbed-turn scenarios pass locally. Lane C's page-side "only with
   cards" guard can stay as belt and braces. No pool, fence or range touched.
+FOR LANE B (Lane E, 2026-10-16T22:10Z, Sam's order: two separate points; Lane E does not edit lib/vehicle.js):
+  (1) SPEED, the cold start of a Buy function. Import is not the cost: the Buy function's whole graph (56 files, 1.6 MB,
+  the 2.2 MB geo gazetteer lazy) imports in 68 ms. A fresh instance's function round trip is 0.9 to 1.2 s (cold pings;
+  one 4.8 s under today's load). The cost is the shared resolver's first call: loadTaxonomy reads taxonomy_makes (2,000
+  rows) THEN taxonomy_aliases (5,000 rows), then getModelsForMake reads the make's models, then getVpicModelsForMakeYear
+  calls vPIC, all in series on the request path. TAXONOMY_CACHE_TTL_MS is 10 minutes, so every instance reloads the whole
+  taxonomy on the request path every 10 minutes even when warm: on a quiet archive a cold parse was 1.9 s against 0.13 s
+  warm; under archive load the page's own parse took 7.8 s (the 1965 Mustang run at 19:41Z). A make+year the instance has
+  not seen cost 0.45 to 0.77 s on production (three rare pairs; the vPIC call is quick from Vercel's region, 1.2 to 5.2 s
+  from a Mac). Proposal, same rows and same answers: (a) a much longer time to live (the taxonomy changes only when the
+  seed runs) with a background refresh (serve the cached copy, refresh past TTL in the background, never on the request
+  path); (b) makes, aliases and the make's models read in parallel (Promise.all) and vPIC alongside, not after; (c) a
+  keep-warm ping (a cron GET every few minutes to a parse of "Porsche 911") so the common instance holds its taxonomy.
+  (2) CORRECTNESS, which matters more: the resolver changes PATH on timing. lookupRace gives every lookup LOOKUP_MS (4 s)
+  and after ONE timeout sets lookupDownUntil for 30 s, during which every store read returns null and every web read
+  throws at once (the typed-words path), so the same sentence resolves differently depending on load. Buy adds three
+  races on top (namesCar 2.5 s, parseQueryResolved 1.5 s twice): when the first loses, mustTool is false and the forced
+  tool call is dropped. REPRODUCTION (scratch, lib/vehicle.js resolveVehicle + lib/live/chatCore.js namesCar, a fresh
+  process per sentence, namesCar first as runChatTurn calls it; "allowed" = lookups answer (no Supabase env locally, so
+  OldCarsData /makes, /models and vPIC), "timed out" = RESOLVER_LOOKUP_MS=1, the path the 30 s cooldown takes):
+    sentence                      | lookups allowed                                   | lookups timed out
+    1987 Merkur XR4Ti             | valid, Merkur XR4Ti (6.1 s); namesCar FALSE       | needs_confirmation, make MERCER, "Did you mean the Mercer?"; namesCar true
+    Lamborghini Huracan LP610-4   | Huracán, trim LP610 4, "What year is it?"         | make Lamborghini, model NULL, "What year is it?"
+    2006 Lexus SC 430             | valid, Lexus SC (26.4 s); namesCar FALSE          | valid, Lexus SC (0.09 s); namesCar true
+    2020 Ferrari F8 Tributo       | valid (9.4 s); namesCar FALSE                     | valid (0.1 s); namesCar true
+    Honda S2000                   | S2000, "What year is it?" (26.5 s); namesCar FALSE| the same (0.1 s); namesCar true
+    2005 Porsche 911              | valid (18.5 s); namesCar FALSE                    | valid (0.09 s); namesCar true
+    1994 Dodge Viper RT/10        | valid, RT/10 (5.2 s); namesCar FALSE              | valid (0.09 s); namesCar true
+  So: a typed "1987 Merkur XR4Ti" equals the chip answer with a warm cache and asks "Did you mean the Mercer?" for 30 s
+  after one slow lookup; and on a cold instance Buy's forced tool call is dropped for every sentence whose resolve runs
+  past 2.5 s (all of the uncommon ones here). The resolver must never change path because of timing: wait longer, or
+  return the still-finding message, never the typed-words answer in place of the lookup answer. The Buy-side races are
+  mine to fix once the resolver's contract is fixed (one shared resolve per turn, no namesCar race dropping the tool).
