@@ -51,6 +51,13 @@
   --sec:#5E6B63; --div:#E2DED3; --take:#F1F5F1; --live:#2E8B57; --ph:#E6E2D8; --ph-ink:#4A564F;
   --soft:#3C4942; --chip:#C9D6CC; --tint:#EDF3EE; --tint-line:#D5E2D8;
   --vs-within:#2E7D4F; --vs-above:#D99A2B; --vs-below:#7A8794;
+  /* Palette switcher tokens (Sam, Oct 2026): on-accent is white text/icons on a green surface
+     (the buttons, the pill, the chart tooltip); num is the big dollar-figure colour (the range
+     headline, the chart's typical-sale dot) - a separate role from --green/--green-dk (buttons,
+     links, the chart band) so a palette can move the numbers without moving every action colour.
+     Both default to today's exact values so Palette A is unchanged; track is the distribution
+     bar's own background, previously a bare hex with no matching token anywhere. */
+  --on-accent:#FFFFFF; --num:#1E4D38; --track:#EFEDE6;
   --serif:"Newsreader",Georgia,"Times New Roman",serif;
   --sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   color-scheme:light;
@@ -97,7 +104,7 @@ button{font:inherit}
 .inbox{display:flex;gap:8px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:8px 8px 8px 20px}
 .inbox input{flex:1;min-width:0;border:0;outline:0;font:400 19px/1.4 var(--sans);color:var(--ink);background:transparent}
 .inbox input::placeholder{color:var(--sec)}
-.inbox .go{width:48px;height:48px;flex:none;border:0;border-radius:10px;background:var(--green);color:#fff;font-size:22px;cursor:pointer}
+.inbox .go{width:48px;height:48px;flex:none;border:0;border-radius:10px;background:var(--green);color:var(--on-accent);font-size:22px;cursor:pointer}
 .inbox .go:hover{background:var(--green-dk)}
 /* Sam's review round, Oct 2026: restored to the full-width box this page had before the mockup-
    match round's 30%-width experiment (.mc-bar carried max-width:30%/min-width:220px, which clipped
@@ -109,7 +116,7 @@ button{font:inherit}
 /* ---- resolved car line ---- */
 .carline{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font:400 15px/1.4 var(--sans);color:var(--sec);margin:-4px 0 -8px}
 .vinpill,.pill{display:inline-block;border-radius:999px;font:600 12px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase}
-.vinpill{padding:6px 10px;background:var(--green);color:#fff}
+.vinpill{padding:6px 10px;background:var(--green);color:var(--on-accent)}
 /* "Change" (result-hero job, Oct 2026): desktop drops it - the search box sits directly above the
    result, already editable - and keeps it on mobile, where that box has scrolled out of view. */
 .carline .ch{display:none}
@@ -173,8 +180,8 @@ button{font:inherit}
 .miles-inline input:focus{border-color:var(--green)}
 .miles-inline input::placeholder{color:var(--sec)}
 .mi-unit{color:var(--sec)}
-.mi-go{min-height:0;height:40px;padding:0 14px;border-radius:8px;background:var(--green);color:#fff;text-decoration:none}
-.mi-go:hover{background:var(--green-dk);color:#fff}
+.mi-go{min-height:0;height:40px;padding:0 14px;border-radius:8px;background:var(--green);color:var(--on-accent);text-decoration:none}
+.mi-go:hover{background:var(--green-dk);color:var(--on-accent)}
 .hero-dim{opacity:.4;pointer-events:none;transition:opacity .2s ease}
 /* Right column, hero: "How this market has moved" - candles when the engine answer carries trend,
    else the strip (every sale as a dot on a lowest-to-highest line). No card surface, no photo. */
@@ -202,12 +209,12 @@ button{font:inherit}
 .hc-legend{display:flex;flex-wrap:wrap;gap:16px;align-items:center;font:400 13px/1.3 var(--sans);color:var(--sec)}
 .hc-legend-sw{display:inline-flex;align-items:center;gap:6px}
 .hc-legend-box{width:12px;height:12px;border-radius:2px;background:var(--chip);display:inline-block}
-.hc-legend-dot{width:10px;height:10px;border-radius:50%;background:var(--green);display:inline-block}
+.hc-legend-dot{width:10px;height:10px;border-radius:50%;background:var(--num);display:inline-block}
 .hc-prioryear{margin:0;font:400 13px/1.4 var(--sans);color:var(--sec)}
 .hc-bar{cursor:pointer}
 .hc-bar:focus-visible{outline:2px solid var(--green);outline-offset:2px}
 /* Tap tooltip (item 1/8): js/onebox.js's hcShowTip positions this near the tapped bar. */
-.hc-tooltip{position:absolute;z-index:60;background:var(--ink);color:#fff;font:400 13px/1.4 var(--sans);padding:6px 10px;border-radius:6px;max-width:240px;pointer-events:none;box-shadow:0 4px 14px rgba(21,32,26,.22)}
+.hc-tooltip{position:absolute;z-index:60;background:var(--ink);color:var(--on-accent);font:400 13px/1.4 var(--sans);padding:6px 10px;border-radius:6px;max-width:240px;pointer-events:none;box-shadow:0 4px 14px rgba(21,32,26,.22)}
 
 /* ---- thin-tile treatment (Sam's review round, Oct 2026): the chart slot's replacement when the
    engine returns a small pool (3-16 sales) with no quarter trend - every sale the pool was built
@@ -303,7 +310,7 @@ a.salescard:hover .salescard-title{text-decoration:underline;text-underline-offs
 .ans-main{padding:23px 25px 21px;display:flex;flex-direction:column;gap:9px}
 .eyebrow{font:600 12px/1.4 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--sec)}
 .colhead{font:600 12px/1.3 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--sec)}
-.range{margin:0;font:600 36px/1.1 var(--serif);color:var(--green);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.range{margin:0;font:600 36px/1.1 var(--serif);color:var(--num);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 .range .to{font-weight:400;font-size:24px;color:var(--sec)}
 /* Thin tier and the identity-question takeover both use this same heading size, but never green -
    only a real cluster (the "Where the middle half sold" band) ever gets the green number. */
@@ -395,7 +402,7 @@ a.salescard:hover .salescard-title{text-decoration:underline;text-underline-offs
 .ph img+.none{display:none}
 .ph.noimg .none{display:flex}
 .hero .ph{aspect-ratio:16/9}
-.pill{position:absolute;top:14px;left:14px;padding:6px 12px;background:var(--green);color:#fff}
+.pill{position:absolute;top:14px;left:14px;padding:6px 12px;background:var(--green);color:var(--on-accent)}
 /* Job 8 (result-page-polish round, colour discipline): never green or red for a range position -
    the "neutral" class the JS already adds to an Above/Below range pill (photoHtml) had no matching
    rule here, so those pills were silently rendering in the same green fill as every other pill
@@ -464,7 +471,7 @@ a.sb-line:hover{color:var(--green)}
 .qtext{margin:0;font:400 28px/1.3 var(--serif);text-wrap:pretty}
 .chips{display:flex;gap:10px;flex-wrap:wrap}
 .chip{min-height:48px;padding:0 24px;border-radius:999px;border:1.5px solid var(--green);background:var(--card);color:var(--green);font:600 17px var(--sans);cursor:pointer}
-.chip:hover{background:var(--green);color:#fff}
+.chip:hover{background:var(--green);color:var(--on-accent)}
 .chip.ghost{border-style:dashed;border-color:var(--chip);color:var(--sec);font-weight:500}
 .chip.ghost:hover{background:var(--card);border-color:var(--green);color:var(--green)}
 .qsub{font:400 15px/1.4 var(--sans);color:var(--sec)}
@@ -546,7 +553,7 @@ a.sb-line:hover{color:var(--green)}
 .distrows .distrow:first-child .distrowbtn{border-top:0}
 .distrowbtn:hover{background:var(--tint)}
 .dist-label{font:400 15px/1.3 var(--sans);color:var(--sec);white-space:nowrap}
-.dist-track{position:relative;height:16px;background:#EFEDE6}
+.dist-track{position:relative;height:16px;background:var(--track)}
 .dist-bar{position:absolute;top:0;left:0;height:16px;background:var(--chip)}
 .dist-bar.typical{background:var(--green)}
 .dist-count{font:400 15px/1.3 var(--sans);color:var(--sec);text-align:right;white-space:nowrap}
@@ -565,11 +572,11 @@ a.sb-line:hover{color:var(--green)}
    same copy; only padding/type scale down (20->16px, 22px->22px top padding->18px, h3 22->18px).
    Flattened (follow-up round, Oct 2026): a full-width flat band, not a rounded floating card - the
    one green element left below the hero, per the brief's "one green action only". */
-.sellbox{background:var(--green);color:#fff;border-top:1px solid var(--border);padding:24px 18px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.sellbox{background:var(--green);color:var(--on-accent);border-top:1px solid var(--border);padding:24px 18px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .sellbox .st{display:flex;flex-direction:column;gap:4px}
 .sellbox h2{margin:0;font:600 28px/1.2 var(--serif)}
-.sellbox p{margin:0;font:400 16px/1.4 var(--sans);color:#D5E2D8}
-.sellbox a{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:2px;background:#fff;color:var(--green);font:600 15px var(--sans);text-decoration:none}
+.sellbox p{margin:0;font:400 16px/1.4 var(--sans);color:var(--tint-line)}
+.sellbox a{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:2px;background:var(--on-accent);color:var(--green);font:600 15px var(--sans);text-decoration:none}
 .sellbox a:hover{background:var(--tint);color:var(--green-dk)}
 
 /* ---- put Sam on it (item 9, Oct 2026): plain text, no box - follow-up round, Oct 2026 ---- */

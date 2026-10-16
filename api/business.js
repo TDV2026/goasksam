@@ -6,8 +6,9 @@
 // the public page is a cheap table read. "Sam Desk" the product is /desk, crew-only always (api/desk.js)
 // - this page markets it; the demo input here is not wired to a live query (see section 2).
 import { FONT_LINKS, isCrewRequest } from "./_chrome.js";
+import { isTesterRequest } from "../lib/_tester.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
-import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE } from "../lib/appShell.js";
+import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE, ALL_PALETTES_CSS, PALETTE_APPLY_JS, PALETTE_SWITCHER_CSS, PALETTE_SWITCHER_JS, paletteSwitcherHtml } from "../lib/appShell.js";
 import { heroHtml, HERO_CSS } from "../lib/heroImage.js";
 import { lastUpdatedDate } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
@@ -60,7 +61,7 @@ const ICON = {
 };
 
 const CSS = `
-:root{--ink:#15201A;--sec:#5E6B63;--soft:#3C4942;--green:#1E4D38;--green-dk:#15372A;--page:#F6F3EC;--card:#FFFFFF;--div:#E2DED3;--border:#DCD8CC;--tint:#EDF3EE;--tint-line:#D5E2D8;--chip:#C9D6CC;--sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--serif:"Newsreader",Georgia,"Times New Roman",serif}
+:root{--ink:#15201A;--sec:#5E6B63;--soft:#3C4942;--green:#1E4D38;--green-dk:#15372A;--page:#F6F3EC;--card:#FFFFFF;--div:#E2DED3;--border:#DCD8CC;--tint:#EDF3EE;--tint-line:#D5E2D8;--chip:#C9D6CC;--on-accent:#FFFFFF;--sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--serif:"Newsreader",Georgia,"Times New Roman",serif}
 *{box-sizing:border-box}html,body{margin:0}
 body{background:var(--main-bg,var(--page));color:var(--ink);font:400 17px/1.5 var(--sans)}
 a{color:var(--green)}a:hover{color:var(--green-dk)}
@@ -71,8 +72,8 @@ a{color:var(--green)}a:hover{color:var(--green-dk)}
 .biz-h1{margin:0 0 14px;font:600 clamp(34px,4.2vw,48px)/1.1 var(--serif);letter-spacing:-.02em;color:var(--ink);text-wrap:balance}
 .biz-sub{margin:0 0 26px;font:400 19px/1.5 var(--sans);color:var(--soft);max-width:60ch}
 .biz-ctas{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin:0 0 36px}
-.biz-btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 22px;border-radius:12px;background:var(--green);color:#fff;font:600 16px var(--sans);text-decoration:none;border:0;cursor:pointer}
-.biz-btn:hover{background:var(--green-dk);color:#fff}
+.biz-btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 22px;border-radius:12px;background:var(--green);color:var(--on-accent);font:600 16px var(--sans);text-decoration:none;border:0;cursor:pointer}
+.biz-btn:hover{background:var(--green-dk);color:var(--on-accent)}
 .biz-quiet{font:600 15px/1 var(--sans);color:var(--green);text-decoration:underline;text-underline-offset:3px}
 .biz-sec{padding:44px 0;border-top:1px solid var(--div)}
 .biz-sec h2{margin:0 0 10px;font:600 26px/1.3 var(--serif);color:var(--ink)}
@@ -82,9 +83,9 @@ a{color:var(--green)}a:hover{color:var(--green-dk)}
 .biz-desk-search{display:flex;gap:8px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:8px 8px 8px 20px;box-shadow:0 1px 2px rgba(21,32,26,.04);max-width:640px;margin:22px 0 10px}
 .biz-desk-search input{flex:1;min-width:0;border:0;outline:0;font:400 18px/1.4 var(--sans);color:var(--ink);background:transparent}
 .biz-desk-search input::placeholder{color:var(--sec)}
-.biz-desk-go{width:46px;height:46px;flex:none;border:0;border-radius:10px;background:var(--green);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.biz-desk-go{width:46px;height:46px;flex:none;border:0;border-radius:10px;background:var(--green);color:var(--on-accent);cursor:pointer;display:flex;align-items:center;justify-content:center}
 .biz-desk-go:hover{background:var(--green-dk)}
-.biz-desk-go svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.biz-desk-go svg{width:20px;height:20px;fill:none;stroke:var(--on-accent);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .biz-desk-exlabel{margin:0 0 30px;font:500 12px/1.4 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--sec)}
 .biz-answerformat{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:28px}
 .biz-af-h{margin:0 0 4px;font:600 16px/1.3 var(--sans);color:var(--ink)}
@@ -201,6 +202,9 @@ function stepsHtml(ex) {
 
 async function page(req) {
   const crew = isCrewRequest(req);
+  // PALETTE SWITCHER (Sam, Oct 2026, colours only): gated the same way as Market Check - a reviewer
+  // flag or a crew/tester cookie, never otherwise. See api/marketCheck.js for the full note.
+  const showPal = crew || isTesterRequest(req) || /[?&]palette=1\b/.test(String(req.url || ""));
   const env = supabaseEnv();
   const [updated, ex, soldCount, vinShare] = await Promise.all([
     lastUpdatedDate(env).catch(() => null),
@@ -278,11 +282,12 @@ async function page(req) {
     if(dgo) dgo.addEventListener("click", goToWalkthrough);
     if(dq) dq.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); goToWalkthrough(); } });
   })();`;
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><script>${PALETTE_APPLY_JS}</script><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>${esc(TITLE)}</title><meta name="description" content="${esc(DESC)}"><meta name="robots" content="index, follow"><link rel="canonical" href="${SITE}/business">
 <meta property="og:title" content="${esc(TITLE)}"><meta property="og:description" content="${esc(DESC)}"><meta property="og:url" content="${SITE}/business"><meta property="og:type" content="website">
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#F6F3EC">
-${FONT_LINKS}<style>${CSS}${AUTH_SIGNBAR_CSS}${SHELL_CSS}${CONSENT_BANNER_CSS}</style></head><body>
+${FONT_LINKS}<style>${CSS}${AUTH_SIGNBAR_CSS}${SHELL_CSS}${ALL_PALETTES_CSS}${showPal ? PALETTE_SWITCHER_CSS : ""}${CONSENT_BANNER_CSS}</style></head><body>
+${showPal ? paletteSwitcherHtml() : ""}
 ${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 ${railOpenHtml({ active: "business", pageExtra: YOUR_RESULTS_RAIL, crew, req, analytics: true })}
@@ -294,16 +299,16 @@ ${CONSENT_BANNER_HTML}
 <script>window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};window.GAS_AUTH_MODE="topbar";</script>
 <script src="/js/auth.js" defer></script>
 <script src="/api/track?js=1" defer></script>
-<script>${CONSENT_BANNER_JS}</script>
+<script>${CONSENT_BANNER_JS}</script>${showPal ? `<script>${PALETTE_SWITCHER_JS}</script>` : ""}
 </body></html>`;
-  return { html, crew };
+  return { html, crew, showPal };
 }
 
 export default async function handler(req, res) {
   // LAUNCH_BUSINESS (Oct 2026, Job 2): a public request to this address, while /business is off,
   // gets a TEMPORARY redirect to /sell before any of the work below runs. Crew passes through.
   if (!isReleased("business", req)) { res.setHeader("Cache-Control", "no-store"); res.setHeader("Location", "/sell"); return res.status(302).end(); }
-  const { html, crew } = await page(req);
+  const { html, crew, showPal } = await page(req);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", "index, follow");
   // Cache-poisoning fix (Oct 2026, reproduced live on Market Check, same pattern here): an INVALID
@@ -314,7 +319,9 @@ export default async function handler(req, res) {
   // LAUNCH-STAGE SAFETY (Oct 2026, production incident, api/marketCheck.js has the full writeup):
   // this page's own rail is filtered by isReleased() - public caching at all is only safe once
   // fullyLaunched() is true and the request carries no server credential (so an ops/probe stage
-  // override never seeds the shared cache with a simulated state).
-  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : "public, s-maxage=30");
+  // override never seeds the shared cache with a simulated state). showPal (Oct 2026 palette round)
+  // joins the list for the same reason Market Check's does: never let a shared edge cache hold a
+  // response carrying the switcher's markup.
+  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched() || showPal) ? "private, no-store" : "public, s-maxage=30");
   res.status(200).send(html);
 }

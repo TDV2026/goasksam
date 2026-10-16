@@ -1026,7 +1026,7 @@
           '<text class="hc-candlelabel" x="' + cx.toFixed(1) + '" y="' + (ylo + 20).toFixed(1) + '" text-anchor="middle">' + esc(usd(q.low)) + "</text>";
         if (Number.isFinite(Number(q.typical))) {
           var typTip = chartTip(["Typical " + usd(q.typical), Number.isFinite(count) ? (obNumWordLow(count) + " sales") : ""]);
-          box += '<circle class="hc-bar" tabindex="0" data-tip="' + typTip + '" cx="' + cx.toFixed(1) + '" cy="' + y(Number(q.typical)).toFixed(1) + '" r="6" fill="var(--green)"><title>' + typTip + "</title></circle>";
+          box += '<circle class="hc-bar" tabindex="0" data-tip="' + typTip + '" cx="' + cx.toFixed(1) + '" cy="' + y(Number(q.typical)).toFixed(1) + '" r="6" fill="var(--num)"><title>' + typTip + "</title></circle>";
         }
       }
       bars += '<g>' + box +

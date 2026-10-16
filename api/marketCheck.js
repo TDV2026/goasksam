@@ -23,8 +23,9 @@ import { supabaseEnv } from "../lib/_supabase.js";
 import { landingHtml, LANDING_CSS } from "../lib/live/marketCheckLanding.js";
 import { marketCheckExample } from "../lib/live/marketCheckExample.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
-import { SHELL_CSS, SHELL_JS, KEEPLOOK_CSS, railOpenHtml, brandPaletteCss } from "../lib/appShell.js";
+import { SHELL_CSS, SHELL_JS, KEEPLOOK_CSS, railOpenHtml, brandPaletteCss, ALL_PALETTES_CSS, PALETTE_APPLY_JS, PALETTE_SWITCHER_CSS, PALETTE_SWITCHER_JS, paletteSwitcherHtml } from "../lib/appShell.js";
 import { isCrewRequest } from "./_chrome.js";
+import { isTesterRequest } from "../lib/_tester.js";
 import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
@@ -79,11 +80,19 @@ async function handler(req, res) {
   // /market-check as canonical - never its own indexed URL.
   const hasQuery = /\?./.test(String(req.url || ""));
   const robots = hasQuery ? "noindex, follow" : "index, follow";
+  // PALETTE SWITCHER (Sam, Oct 2026, colours only): the bar's own markup/CSS/JS are included ONLY
+  // for a reviewer (?palette=1) or a crew/tester cookie - a normal visitor's or a crawler's HTML
+  // carries none of it. ALL_PALETTES_CSS and PALETTE_APPLY_JS are unconditional (inert CSS + a tiny
+  // localStorage read that is a silent no-op with nothing stored) so a palette chosen on one page
+  // survives navigation to any other, with the bar or without it.
+  const showPal = crew || isTesterRequest(req) || /[?&]palette=1\b/.test(String(req.url || ""));
 
   let html = stripLaunchGate(shell)
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${TITLE}</title>`)
     .replace(/<meta name="robots" content="[^"]*"\s*\/?>/, `<meta name="robots" content="${robots}" />`)
-    .replace("</head>", `<link rel="canonical" href="${SITE}/market-check" />\n<meta name="description" content="${esc(metaDesc)}" />\n<meta property="og:title" content="${TITLE}" />\n<meta property="og:description" content="${esc(metaDesc)}" />\n<meta property="og:type" content="website" />\n<meta property="og:url" content="${SITE}/market-check" />\n<style>${LANDING_CSS}\n${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}\n${KEEPLOOK_CSS}\n${brandPaletteCss(crew)}\n${CONSENT_BANNER_CSS}</style>\n</head>`)
+    // Earliest possible point in <head> - before first paint, no flash of the old colours.
+    .replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />\n<script>${PALETTE_APPLY_JS}</script>`)
+    .replace("</head>", `<link rel="canonical" href="${SITE}/market-check" />\n<meta name="description" content="${esc(metaDesc)}" />\n<meta property="og:title" content="${TITLE}" />\n<meta property="og:description" content="${esc(metaDesc)}" />\n<meta property="og:type" content="website" />\n<meta property="og:url" content="${SITE}/market-check" />\n<style>${LANDING_CSS}\n${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}\n${KEEPLOOK_CSS}\n${brandPaletteCss(crew)}\n${ALL_PALETTES_CSS}\n${showPal ? PALETTE_SWITCHER_CSS : ""}\n${CONSENT_BANNER_CSS}</style>\n</head>`)
     .replace('<main class="wrap"><div id="ob"></div></main>',
       `<main class="wrap"><div id="ob">${landingHtml({ updated, example, h1Text: H1 })}</div></main>`)
     // Round D (app shell, Oct 2026): one shared rail/main/mobile-header, lib/appShell.js.
@@ -92,8 +101,10 @@ async function handler(req, res) {
     // Item 9 (shared top bar, Oct 2026): "Sign in" / the account control, one shared file
     // (lib/authBar.js) - the same markup/CSS Buy now uses, GAS_AUTH_MODE="topbar" so js/auth.js
     // runs its lighter boot (no /sell-wizard upfront gate check, no homepage_view funnel stamp).
-    .replace("<body>", `<body>\n${AUTH_SIGNBAR_HTML}\n<script>${AUTH_SIGNBAR_MIRROR_JS}</script>\n<script>window.GAS_AUTH_MODE="topbar";</script>\n<script src="/js/auth.js" defer></script>`)
-    .replace("<script src=\"/api/track?js=1\" defer></script>", `${CONSENT_BANNER_HTML}\n<script src="/api/track?js=1" defer></script>\n<script>${CONSENT_BANNER_JS}</script>`);
+    // The switcher bar (gated) sits as the very first thing in <body>, above the auth bar, so it is
+    // sticky at the top of everything.
+    .replace("<body>", `<body>\n${showPal ? paletteSwitcherHtml() : ""}\n${AUTH_SIGNBAR_HTML}\n<script>${AUTH_SIGNBAR_MIRROR_JS}</script>\n<script>window.GAS_AUTH_MODE="topbar";</script>\n<script src="/js/auth.js" defer></script>`)
+    .replace("<script src=\"/api/track?js=1\" defer></script>", `${CONSENT_BANNER_HTML}\n<script src="/api/track?js=1" defer></script>\n<script>${CONSENT_BANNER_JS}</script>${showPal ? `\n<script>${PALETTE_SWITCHER_JS}</script>` : ""}`);
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", robots);
@@ -121,7 +132,10 @@ async function handler(req, res) {
   // gated product released for everyone, crew and public alike, nothing left that can differ) - and
   // only for a request with no server credential, so an ops/probe call carrying a test stage
   // override can never seed the shared cache with a simulated state nobody else is actually in.
-  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : "public, s-maxage=30");
+  // showPal joins the no-cache list (Sam, Oct 2026 palette round): a distinct query string already
+  // gets its own cache key, but a page carrying the switcher's markup is never a safe thing to let
+  // a shared edge cache hold onto regardless - same caution as crew/hasCrewCookie above.
+  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched() || showPal) ? "private, no-store" : "public, s-maxage=30");
   res.status(200).send(html);
 }
 

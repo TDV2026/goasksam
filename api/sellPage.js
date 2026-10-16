@@ -8,7 +8,8 @@ import path from "node:path";
 import { lastUpdatedDate } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { isCrewRequest } from "./_chrome.js";
-import { SHELL_TOKENS_CSS, brandPaletteCss } from "../lib/appShell.js";
+import { isTesterRequest } from "../lib/_tester.js";
+import { SHELL_TOKENS_CSS, brandPaletteCss, ALL_PALETTES_CSS, PALETTE_APPLY_JS, PALETTE_SWITCHER_CSS, PALETTE_SWITCHER_JS, paletteSwitcherHtml } from "../lib/appShell.js";
 import { gaBootstrapHtml } from "../lib/analytics.js";
 import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
@@ -44,13 +45,16 @@ export async function sellShellHtml(req) {
   // The real last-updated date, shared with Market Check (lib/asOf.js lastUpdatedDate). No count.
   const updated = await lastUpdatedDate(supabaseEnv()).catch(() => null);
   const crew = isCrewRequest(req);
+  const showPal = crew || isTesterRequest(req) || /[?&]palette=1\b/.test(String(req.url || ""));
   return stripUnreleasedNav(shell, req)
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${TITLE}</title>`)
     .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${TITLE}$2`)
     .replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${TITLE}$2`)
-    .replace("</head>", `<style>${SHELL_TOKENS_CSS}${brandPaletteCss(crew)}</style>\n</head>`)
-    .replace("</body>", `<style>${CONSENT_BANNER_CSS}</style>\n${CONSENT_BANNER_HTML}\n<script>${CONSENT_BANNER_JS}</script>\n${gaBootstrapHtml()}\n</body>`)
+    .replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />\n<script>${PALETTE_APPLY_JS}</script>`)
+    .replace("</head>", `<style>${SHELL_TOKENS_CSS}${brandPaletteCss(crew)}${ALL_PALETTES_CSS}${showPal ? PALETTE_SWITCHER_CSS : ""}</style>\n</head>`)
+    .replace("</body>", `<style>${CONSENT_BANNER_CSS}</style>\n${CONSENT_BANNER_HTML}\n<script>${CONSENT_BANNER_JS}</script>\n${gaBootstrapHtml()}${showPal ? `\n<script>${PALETTE_SWITCHER_JS}</script>` : ""}\n</body>`)
     .replace('<div id="msgs"></div>', `<div id="msgs">${HERO}</div>`)
+    .replace(/<body([^>]*)>/, `<body$1>\n${showPal ? paletteSwitcherHtml() : ""}`)
     .replace('<div class="hp-value-preview hp-home-only">Built for enthusiast, specialty and collector vehicles</div>',
       '<div class="hp-value-preview hp-home-only">Built for enthusiast, specialty and collector vehicles</div>' +
       (updated ? `\n    <div class="hp-value-preview hp-home-only hp-updated" style="margin-top:6px;font-size:12px;color:var(--faint,#8C877C)">Updated ${esc(updated)}</div>` : ""));
@@ -70,11 +74,12 @@ export default async function handler(req, res) {
   // URL (the same cache-poisoning gap fixed on Market Check/business/spec/publicConfig/history
   // this quarter - closing it here too now that this page also varies its palette by crew).
   const hasCrewCookie = /(?:^|;\s*)gas_crew=/.test(String(req.headers.cookie || ""));
+  const showPal = crew || isTesterRequest(req) || /[?&]palette=1\b/.test(String(req.url || ""));
   // LAUNCH-STAGE SAFETY (Oct 2026, production incident, api/marketCheck.js has the full writeup):
   // this page's own rail is filtered by isReleased() - public caching at all is only safe once
   // fullyLaunched() is true (every gated product released for crew and public alike) and the
   // request carries no server credential (so an ops/probe stage override never seeds the shared
   // cache with a simulated state).
-  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : "public, s-maxage=30");
+  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched() || showPal) ? "private, no-store" : "public, s-maxage=30");
   res.status(200).send(html);
 }
