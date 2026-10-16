@@ -27,11 +27,11 @@ try {
     try {
       const r = await fetch(u, { method: "POST", headers: { "Content-Type": "application/json", "x-ops-key": k, "x-launch-stage-test": "2" }, body: JSON.stringify(body), signal: ac.signal });
       const txt = await r.text(); let d = null; try { d = JSON.parse(txt); } catch {}
-      return { status: r.status, ms: Date.now() - t0, d: d ? { tier: d.tier, poolN: d.poolN, cluster: d.cluster || null, cards: Array.isArray(d.cards) ? d.cards.length : null, rungLabel: d.rungLabel || null, stale: !!d.stale, staleLine: d.staleLine || null, storedAt: d.storedAt || null, warmHit: d.timings ? d.timings.warmHit : null, selfCall: d.timings ? (d.timings.recompute || d.timings.selfCall || null) : null } : null };
+      return { status: r.status, ms: Date.now() - t0, d: d ? { tier: d.tier, poolN: d.poolN, cluster: d.cluster || null, cards: Array.isArray(d.cards) ? d.cards.length : null, rungLabel: d.rungLabel || null, stale: !!d.stale, staleLine: d.staleLine || null, storedAt: d.storedAt || null, recompute: d.timings ? d.timings.recompute : null, warmHit: d.timings ? d.timings.warmHit : null, selfCall: d.timings ? (d.timings.recompute || d.timings.selfCall || null) : null } : null };
     } catch (e) { return { status: 0, ms: Date.now() - t0, error: String(e && e.message || e) }; } finally { clearTimeout(t); }
   }, BASE + "/api/sellerDecision", KEY, { oneBox: true, anonId: "staleproof", car: { raw: CAR }, asked: 0 });
   const ops = (task, q) => page.evaluate(async (u, k) => { const r = await fetch(u, { headers: { "x-ops-key": k } }); return { status: r.status, text: await r.text() }; }, `${OPS}/api/usageDashboard?view=ops&task=${task}&q=${encodeURIComponent(q)}`, KEY);
-  const show = (label, r) => console.log(`${label.padEnd(26)} HTTP ${r.status} ${String(r.ms).padStart(6)}ms ${r.d ? `${r.d.tier}/${r.d.poolN} ${JSON.stringify(r.d.cluster)} "${r.d.rungLabel}" warm ${r.d.warmHit} stale ${r.d.stale}${r.d.selfCall ? ` selfCall ${r.d.selfCall}` : ""}${r.d.staleLine ? ` line "${r.d.staleLine}"` : ""}` : (r.error || "")}`);
+  const show = (label, r) => console.log(`${label.padEnd(26)} HTTP ${r.status} ${String(r.ms).padStart(6)}ms ${r.d ? `${r.d.tier}/${r.d.poolN} ${JSON.stringify(r.d.cluster)} "${r.d.rungLabel}" warm ${r.d.warmHit} stale ${r.d.stale}${r.d.selfCall ? ` selfCall ${r.d.selfCall}` : ""}${r.d.recompute ? ` recompute ${JSON.stringify(r.d.recompute)}` : ""}${r.d.staleLine ? ` line "${r.d.staleLine}"` : ""}` : (r.error || "")}`);
   const a = await ask(); show("1. warm read", a);
   const b = await ask(); show("2. warm read again", b);
   const m = await ops("warmStale", CAR); console.log(`   warmStale: HTTP ${m.status} ${m.text.slice(0, 200)}`);
