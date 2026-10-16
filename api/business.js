@@ -79,6 +79,8 @@ a{color:var(--green)}a:hover{color:var(--green-dk)}
 .biz-proof-item{display:flex;flex-direction:column;gap:2px}
 .biz-proof-n{font:600 30px/1 var(--serif);color:var(--green)}
 .biz-proof-l{font:400 13px/1.3 var(--sans);color:var(--sec)}
+.biz-proof-phrase{justify-content:center;max-width:260px}
+.biz-proof-phrase .biz-proof-n{font:600 20px/1.3 var(--serif)}
 .biz-btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 22px;border-radius:12px;background:var(--green);color:var(--on-accent);font:600 16px var(--sans);text-decoration:none;border:0;cursor:pointer}
 .biz-btn:hover{background:var(--green-dk);color:var(--on-accent)}
 .biz-quiet{font:600 15px/1 var(--sans);color:var(--green);text-decoration:underline;text-underline-offset:3px}
@@ -183,17 +185,26 @@ function trustHtml() {
 }
 function stepArrow() { return `<div class="biz-step-arrow" aria-hidden="true">${ICON.rarrow}</div>`; }
 
-// Proof strip (section 2c): real archive counts, zero vendor cost (lib/live/deskProof.js, sales_archive
-// reads only). Never partial - either both real reads came back or the whole strip is skipped, so a
-// transient Supabase miss never shows a half-built row. "Nightly" needs no read: the ingest schedule
-// (docs/nightly-workflow.yml) is an architectural fact, not a number pulled from this request.
-function proofStripHtml(soldCount, vinShare) {
-  if (!(Number(soldCount) > 0) || !vinShare || !(vinShare.share > 0)) return "";
-  const soldFloor = Math.floor(Number(soldCount) / 1000) * 1000;
-  const sharePct = Math.round(vinShare.share * 100);
+// Proof strip (section 2c, Sam's revision): a PHRASE chosen by the real count, never the exact
+// number - thresholds named and tunable. VIN-history coverage is deliberately NOT on this public
+// strip (Sam: readers should assume we cover the whole market, no public number that implies less);
+// vinHistoryShare still computes and stays behind the crew gate only (the diagComment below). Zero
+// vendor cost (lib/live/deskProof.js, sales_archive reads only). "Nightly" needs no read: the ingest
+// schedule (docs/nightly-workflow.yml) is an architectural fact, not a number pulled from this request.
+const SOLD_COUNT_HUNDREDS_OF_THOUSANDS_MAX = 900000;
+const SOLD_COUNT_MILLION_MIN = 1000000;
+function soldCountPhrase(soldCount) {
+  const n = Number(soldCount);
+  if (!(n > 0)) return null;
+  if (n >= SOLD_COUNT_MILLION_MIN) return "Over a million completed sales";
+  if (n >= SOLD_COUNT_HUNDREDS_OF_THOUSANDS_MAX) return "Close to a million completed sales";
+  return "Hundreds of thousands of completed sales";
+}
+function proofStripHtml(soldCount) {
+  const phrase = soldCountPhrase(soldCount);
+  if (!phrase) return "";
   return `<div class="biz-proof">` +
-    `<div class="biz-proof-item"><span class="biz-proof-n">${esc(bigNum(soldFloor))}+</span><span class="biz-proof-l">completed sales tracked</span></div>` +
-    `<div class="biz-proof-item"><span class="biz-proof-n">${esc(sharePct)}%</span><span class="biz-proof-l">carry a VIN history</span></div>` +
+    `<div class="biz-proof-item biz-proof-phrase"><span class="biz-proof-n">${esc(phrase)}</span></div>` +
     `<div class="biz-proof-item"><span class="biz-proof-n">Nightly</span><span class="biz-proof-l">archive refresh</span></div>` +
     `</div>`;
 }
@@ -281,7 +292,7 @@ async function page(req) {
     `</div>`;
   const followChips = `<div class="biz-followchips"><span class="biz-fchip">Now split that by mileage.</span><span class="biz-fchip">Only show no reserve sales.</span><span class="biz-fchip">Compare the last six months with the six before it.</span></div>`;
   const stepsSection = stepsHtml(ex);
-  const proofStrip = proofStripHtml(soldCount, vinShare);
+  const proofStrip = proofStripHtml(soldCount);
   const body = `<main><div class="biz-col">` +
     heroHtml(heroInner, { alt: "A collector car", layout: "banner" }) +
     proofStrip +
