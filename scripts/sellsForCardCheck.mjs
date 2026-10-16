@@ -61,9 +61,23 @@ ok(!/\$[\d,]+/.test(gtb), "house-steered: no dollar number anywhere (factsBlock.
 ok(!/\b9\b/.test(gtb), "house-steered: the real count (9) is never shown, no verified flat field for it yet");
 ok(!/\b(RM Sotheby|Sotheby|auction house|online)\b/i.test(gtb), "house-steered: no venue word");
 
-// Partner pill placement: directly under the range, nowhere else.
+// Partner pill placement: directly under the headline, every case, nowhere else.
 const withPill = sellsForCardHtml({ cluster: [100000, 120000], poolN: 20, windowMonths: 12, readAt: "2026-10-14T08:00:00Z" }, { partnerPillsHtml: '<div class="pill">Partner pill</div>' });
-ok(withPill.indexOf('class="sfc-range"') < withPill.indexOf('class="pill"') && withPill.indexOf('class="pill"') < withPill.indexOf('class="sfc-basis"'), "partner pill sits between the range and the basis line");
+ok(withPill.indexOf('class="sfc-range"') < withPill.indexOf('class="pill"') && withPill.indexOf('class="pill"') < withPill.indexOf('class="sfc-basis"'), "range case: partner pill sits between the range and the basis line");
+
+// Partner pill slot (Sam, Oct 2026, partner demo job): the no-range cases get the same slot, right
+// after the headline - under eight, spread-too-wide (8+, no cluster), and the house-steered shape
+// (qualifyingTotal only, no poolN) all need one, since partnerDemo.js has no other place to put it.
+const pillUnderEight = sellsForCardHtml({ cluster: null, poolN: 3, readAt: "2026-10-14T08:00:00Z" }, { partnerPillsHtml: '<div class="pill">P</div>' });
+ok(pillUnderEight.indexOf('class="sfc-thin"') < pillUnderEight.indexOf('class="pill"'), "under eight: partner pill sits right after the thin text");
+const pillSpread = sellsForCardHtml({ cluster: null, poolN: 40, readAt: "2026-10-14T08:00:00Z" }, { partnerPillsHtml: '<div class="pill">P</div>' });
+ok(pillSpread.indexOf('class="sfc-thin"') < pillSpread.indexOf('class="pill"'), "8+ no cluster: partner pill sits right after the spread-too-wide text");
+const pillHouseSteer = sellsForCardHtml(GTB_275, { partnerPillsHtml: '<div class="pill">P</div>' });
+ok(pillHouseSteer.indexOf('class="sfc-thin"') < pillHouseSteer.indexOf('class="pill"'), "house-steered (275 GTB): partner pill sits right after the spread-too-wide text");
+
+// No regression: every existing no-pill case is byte-identical to before this change.
+ok(sellsForCardHtml({ cluster: null, poolN: 3 }) === "<div class=\"sfc-card\"><h3 class=\"sfc-heading\">What these sell for</h3><p class=\"sfc-thin\">3 sales found, not enough for a range.</p><div class=\"sfc-footer\"><span class=\"sfc-footer-left\">Powered by GoAskSam</span><a class=\"sfc-footer-link\" href=\"/how-sam-decides\">How Sam decides</a></div></div>", "no opts passed: thin case output unchanged, byte for byte");
+ok(gtb === sellsForCardHtml(GTB_275), "no opts passed: house-steered case output unchanged, byte for byte");
 
 // latestQuarterRowHtml - the trendQuarters shape (Lane B's e58), oldest first, latest is the last element.
 const shown = latestQuarterRowHtml({
