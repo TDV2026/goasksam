@@ -3527,6 +3527,13 @@ async function handler(req, res) {
         }
       } catch (e) {
         console.error(`One Box unavailable (${(e && e.message) || e}), ${Date.now() - obStart}ms.`);
+        // FIX 4 (speed job, Sam's wording, Oct 15 2026): the 20-second deadline returns a clear card that says what
+        // happened, never a count ("not enough sales" is a data claim, rule 1) and never a stored row (nothing is
+        // written on this path). The health-probe failure keeps its own line below.
+        if (e && e.message === "onebox_deadline") {
+          mcRun({ answer_type: "failed", failure_state: "still_reading" });
+          return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: "Sam is still reading the sales for this one. Try again in a minute." });
+        }
         mcRun({ answer_type: "failed", failure_state: "catching_breath" });
         return res.status(200).json({ status: "one_box", tier: "unavailable", samLine: OB_CALM });
       }
