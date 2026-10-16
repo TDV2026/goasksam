@@ -42,12 +42,16 @@ try {
       const label = typeof o === "string" ? o : o.label, n = typeof o === "string" ? null : o.n;
       const r = await ask(q, { body: value });
       const got = r.d && r.d.poolN != null ? r.d.poolN : (r.d && r.d.cards);
+      // TYPED = CHIP (Sam's option 2, e55): typing the body word after the car must read the chip's rows exactly.
+      let typedN = null;
+      if (value !== "unspecified") { const tr = await ask(`${q} ${value}`, null); typedN = tr.d && tr.d.poolN != null ? tr.d.poolN : (tr.d && tr.d.cards); }
+      const typedOk = typedN == null ? value === "unspecified" : typedN === Number(n);
       const zero = !(Number(n) >= 1);   // a zero-count option must never be returned
       const bodyNull = value === "unspecified" ? (r.d && r.d.bodyStyle == null) : true;   // "Body not stated" leaves bodyStyle null
-      const same = n != null && got === n && !zero && bodyNull;
+      const same = n != null && got === n && !zero && bodyNull && typedOk;
       if (!same) ok = false;
       sum += Number(n) || 0;
-      console.log(`   ${same ? "ok  " : "DIFF"} ${String(label).padEnd(16)} option says ${n}, page opens ${got} (HTTP ${r.status} ${r.ms}ms, tier ${r.d && r.d.tier}, "${r.d && r.d.rungLabel}", applied ${JSON.stringify(r.d && r.d.applied)}, bodyStyle ${JSON.stringify(r.d && r.d.bodyStyle)})${zero ? "  [ZERO-COUNT OPTION]" : ""}${bodyNull ? "" : "  [bodyStyle not null on the Body not stated page]"}`);
+      console.log(`   ${same ? "ok  " : "DIFF"} ${String(label).padEnd(16)} option says ${n}, page opens ${got} (HTTP ${r.status} ${r.ms}ms, tier ${r.d && r.d.tier}, "${r.d && r.d.rungLabel}", applied ${JSON.stringify(r.d && r.d.applied)}, bodyStyle ${JSON.stringify(r.d && r.d.bodyStyle)})${zero ? "  [ZERO-COUNT OPTION]" : ""}${bodyNull ? "" : "  [bodyStyle not null on the Body not stated page]"}${typedN == null ? "" : `, typed "${q} ${value}" reads ${typedN}${typedOk ? "" : "  [TYPED DIFFERS FROM THE CHIP]"}`}`);
     }
     const any = Number(d.poolN);
     const sumOk = sum === any;
