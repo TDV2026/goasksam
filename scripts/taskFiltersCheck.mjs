@@ -2,7 +2,7 @@
 // from the one resolver's read of the buyer's words when it is the same car. Fixtures are the resolver's own output
 // for each phrase (parseQueryResolved, checked by hand Oct 13 2026). No network.
 //   node scripts/taskFiltersCheck.mjs
-const { typedCar, validateJob, summaryFor, taskRow, knownTrim } = await import("../lib/tasks/tasks.js");
+const { typedCar, validateJob, summaryFor, taskRow, knownTrim, statusLine, looseStatus, LOOSE_ORDER } = await import("../lib/tasks/tasks.js");
 let fails = 0, passes = 0;
 const ok = (c, what) => { if (c) passes++; else { fails++; console.log("FAIL  " + what); } };
 const V = (make, model, extra = {}) => ({ make, model, trim: null, edition: null, variant: null, wheelbase: null, series: null, bodyStyle: null, year: null, ...extra });
@@ -79,6 +79,65 @@ for (const [sentence, proposed, want] of SENTENCES) {
 { const p = validateJob("hunt", typedCar({ make: "Porsche", model: "911", generation: "997", gearbox: "manual", colour: "black", budget_max: 70000 }, V("Porsche", "997", { parentModel: "911", trim: "Find ME Manual Under", year: null }))).filters;
   ok(p.trim === undefined && p.gearbox === "manual" && p.colour === "black" && p.budget_max === 70000 && p.generation === "997", `the resolver's sentence trim is dropped after typedCar too (got ${JSON.stringify(p)})`); }
 ok(knownTrim("Carrera S", { make: "Porsche", model: "911" }) === "Carrera S" && knownTrim("Find ME Manual Under", { make: "Porsche", model: "911" }) === null && knownTrim("Black", { make: "BMW", model: "M3" }) === null && knownTrim("Black Series", { make: "Mercedes-Benz", model: "C63" }) === "Black Series" && knownTrim("2016", { make: "Porsche", model: "911" }) === null && knownTrim("70k", { make: "Porsche", model: "911" }) === null && knownTrim("AMG Black Series", { make: "Mercedes-Benz", model: "C63" }) === "AMG Black Series" && knownTrim("Series", { make: "BMW", model: "3 Series" }) === null, "knownTrim: known kept, sentence, colour alone, year and money dropped, Black Series and AMG Black Series kept, a bare Series dropped");
+
+// THE STATUS LINE (Sam, Oct 16 2026; lib/tasks/tasks.js statusLine + looseStatus): the wording for ten typed sentences, with a
+// fixture of live rows searched through an injected search (the chooser's order and the counts are what is proved here;
+// the live chooser runs the same runSearch, trustFilter and taskFits as the hunt). The table is printed on every run.
+console.log("\nsentence -> filter -> status line when one filter is unmet (count from the fixture)");
+const F = (sentence, proposed) => [sentence, validateJob("hunt", proposed).filters];
+const TEN = [
+  F("Find me a black manual 997 under $70k", { make: "Porsche", model: "911", generation: "997", trim: "Find ME Manual Under", gearbox: "manual", colour: "black", budget_max: 70000 }),
+  F("Keep looking for a 1990s Mazda Miata under $15k", { make: "Mazda", model: "Miata", budget_max: 15000, year_min: 1990, year_max: 1999 }),
+  F("Find me a 1965 Mustang fastback", { make: "Ford", model: "Mustang", trim: "Fastback", body: "fastback", year_min: 1965, year_max: 1965 }),
+  F("Porsche 997 Carrera S", { make: "Porsche", model: "911", generation: "997", trim: "Carrera S" }),
+  F("Keep looking for a 964 within 500 miles of LA", { make: "Porsche", model: "911", generation: "964", trim: "Keep Looking Within", location: "Los Angeles, CA", radius_miles: 500 }),
+  F("a 1987 Buick Regal Grand National", { make: "Buick", model: "Regal", trim: "Grand National", year_min: 1987 }),
+  F("1997 Land Rover Defender 110", { make: "Land Rover", model: "Defender", trim: "110", year_min: 1997 }),
+  F("Looking for a red Miata, manual, under 15k", { make: "Mazda", model: "Miata", trim: "Looking Red Manual Under", gearbox: "manual", colour: "red", budget_max: 15000 }),
+  F("Mustang GT", { make: "Ford", model: "Mustang", trim: "GT" }),
+  F("any 911 under 60k, automatic is fine", { make: "Porsche", model: "911", trim: "Automatic Is Fine", budget_max: 60000 }),
+];
+// The injected search: a row matches when every filter it states agrees (colour, gearbox, body, trim word in the title,
+// generation word in the title, years, budget); the fixture holds cars that miss exactly one filter of each sentence.
+const ROWS = [
+  { id: 1, listing_title: "2008 Porsche 911 Carrera S Coupe", make: "Porsche", model: "911", year: 2008, gen: "997", colour: "silver", gearbox: "manual", body: "coupe", trim: "Carrera S", price: 52000 },
+  { id: 2, listing_title: "2007 Porsche 911 Carrera 4S Cabriolet", make: "Porsche", model: "911", year: 2007, gen: "997", colour: "black", gearbox: "automatic", body: "cabriolet", trim: "Carrera 4S", price: 41000 },
+  { id: 3, listing_title: "1994 Mazda MX-5 Miata", make: "Mazda", model: "Miata", year: 1994, colour: "red", gearbox: "manual", body: "roadster", trim: null, price: 19500 },
+  { id: 4, listing_title: "2019 Mazda MX-5 Miata Club", make: "Mazda", model: "Miata", year: 2019, colour: "white", gearbox: "manual", body: "roadster", trim: "Club", price: 21000 },
+  { id: 5, listing_title: "1965 Ford Mustang Coupe", make: "Ford", model: "Mustang", year: 1965, colour: "blue", gearbox: "manual", body: "coupe", trim: null, price: 28000 },
+  { id: 6, listing_title: "1966 Ford Mustang Convertible", make: "Ford", model: "Mustang", year: 1966, colour: "red", gearbox: "automatic", body: "convertible", trim: null, price: 29000 },
+  { id: 7, listing_title: "1986 Porsche 911 Carrera Coupe", make: "Porsche", model: "911", year: 1986, gen: "G-body", colour: "guards red", gearbox: "manual", body: "coupe", trim: "Carrera", price: 58000 },
+  { id: 8, listing_title: "1987 Buick Regal T-Type", make: "Buick", model: "Regal", year: 1987, colour: "black", gearbox: "automatic", body: "coupe", trim: "T-Type", price: 24000 },
+  { id: 9, listing_title: "1997 Land Rover Defender 90", make: "Land Rover", model: "Defender", year: 1997, colour: "green", gearbox: "manual", body: "suv", trim: "90", price: 60000 },
+  { id: 10, listing_title: "1993 Mazda MX-5 Miata", make: "Mazda", model: "Miata", year: 1993, colour: "red", gearbox: "automatic", body: "roadster", trim: null, price: 16000 },
+];
+const fits = (f, r) => (!f.make || r.make === f.make) && (!f.model || r.model === f.model) && (!f.generation || r.gen === f.generation) && (!f.colour || r.colour === f.colour) && (!f.gearbox || r.gearbox === (f.gearbox === "manual" ? "manual" : "automatic")) && (!f.body || r.body === f.body) && (!f.trim || (r.trim || "").toLowerCase() === String(f.trim).toLowerCase()) && (!f.year_min || r.year >= f.year_min) && (!f.year_max || r.year <= f.year_max) && (!f.budget_max || r.price <= f.budget_max);
+const search = async (filters, rows) => rows.filter(r => fits(filters, r)).map(r => ({ r }));
+const WANT = {
+  "Find me a black manual 997 under $70k": "Nothing black yet. 1 other car matches the rest.",
+  "Keep looking for a 1990s Mazda Miata under $15k": "Nothing under $15,000 yet. 2 other cars match the rest.",
+  "Find me a 1965 Mustang fastback": "No fastback yet. 1 other car matches the rest.",
+  "Porsche 997 Carrera S": "No 997 Carrera S yet. 2 other cars match the rest.",
+  "Keep looking for a 964 within 500 miles of LA": "No 964 yet. 3 other cars match the rest.",
+  "a 1987 Buick Regal Grand National": "No Regal Grand National yet. 1 other car matches the rest.",
+  "1997 Land Rover Defender 110": "No Defender 110 yet. 1 other car matches the rest.",
+  "Looking for a red Miata, manual, under 15k": "Nothing under $15,000 yet. 1 other car matches the rest.",
+  "Mustang GT": "No Mustang GT yet. 2 other cars match the rest.",
+  "any 911 under 60k, automatic is fine": "Nothing under $60,000 yet. 3 other cars match the rest.",
+};
+for (const [sentence, f] of TEN) {
+  const st = await looseStatus({}, { filters: f }, ROWS, { search });
+  console.log(`  ${sentence.padEnd(46)} ${JSON.stringify(f).slice(0, 70).padEnd(72)} ${st.text}`);
+  if (WANT[sentence] !== undefined) ok(st.text === WANT[sentence], `${sentence}: status "${st.text}" (wanted "${WANT[sentence]}")`);
+}
+// The red manual Miata under 15k: colour dropped finds nothing (3 is $19,500, 10 is automatic), so the chooser walks on;
+// gearbox dropped finds nothing either (both red Miatas are over $15,000); budget dropped finds the red manual 1994 car.
+{ const st = await looseStatus({}, { filters: TEN[7][1] }, ROWS, { search }); ok(st.text === "Nothing under $15,000 yet. 1 other car matches the rest." && st.dropped === "budget_max", `the chooser walks the order past filters whose removal finds nothing (got "${st.text}")`); }
+ok(statusLine({}, null, 0) === "Nothing yet. Sam is watching.", "nothing at all: Nothing yet. Sam is watching.");
+{ const st = await looseStatus({}, { filters: { make: "Ferrari", model: "F40" } }, ROWS, { search }); ok(st.text === "Nothing yet. Sam is watching." && st.dropped === null, "make and model only, nothing live: Nothing yet. Sam is watching."); }
+{ const st = await looseStatus({}, { filters: { make: "Porsche", model: "911", colour: "black", gearbox: "manual" } }, [], { search }); ok(st.text === "Nothing yet. Sam is watching.", "no candidate rows: Nothing yet. Sam is watching., never a count"); }
+ok(statusLine({ colour: "black" }, "colour", 8) === "Nothing black yet. 8 other cars match the rest." && statusLine({ colour: "black" }, "colour", 1) === "Nothing black yet. 1 other car matches the rest.", "Sam's wording exactly, singular and plural");
+ok(LOOSE_ORDER[0] === "colour" && LOOSE_ORDER[LOOSE_ORDER.length - 1] === "generation", "the order: colour first, generation last");
 
 console.log(`taskFiltersCheck: ${passes} passed, ${fails} failed`);
 process.exit(fails ? 1 : 0);
