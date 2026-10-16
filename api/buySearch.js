@@ -570,7 +570,7 @@ async function handler(req, res) {
       .sort((a, b2) => { const ab = c => (isAbroadRow(c.r) ? 2 : 0) + (c.unknown.length ? 1 : 0); return ab(a) - ab(b2); });
     const capped = ordered.slice(0, MAX);
     const first = await Promise.all(capped.slice(0, FIRST).map(x => enrich(env, x)));
-    const emptyMarket = rows.length ? null : applyRung(await familyMarket(env, v, f));
+    const emptyMarket = rows.length ? null : applyRung(await familyMarket(env, v, f, { noBlock: true }));
     const rest = capped.slice(FIRST).map(cardOf);
     logSearch(env, v, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
     buyRun({ answer_type: rows.length ? "range" : "zero_result", result_count: capped.length, live_count: rows.length,
