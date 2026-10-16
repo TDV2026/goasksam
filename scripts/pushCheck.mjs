@@ -17,6 +17,10 @@ const arg = n => { const i = process.argv.indexOf("--" + n); return i > 0 ? proc
 const BASE = (arg("base") || "https://goasksam.com").replace(/\/$/, "");
 const HOST = new URL(BASE).host;
 const KEY = process.env.PROBE_KEY || null;
+// A PREVIEW (Sam, Oct 16 2026): a branch's Vercel preview sits behind Deployment Protection, so with --base on a preview
+// address every page also sends Vercel's automation bypass (VERCEL_AUTOMATION_BYPASS_SECRET, from the environment only,
+// never printed), to that address only. Without it a preview loads Vercel's login page, and the script says so once.
+const BYPASS = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || process.env.VERCEL_PROTECTION_BYPASS || null;
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const PAGES = [
   { name: "Market Check result", path: "/market-check?q=" + encodeURIComponent("1995 Porsche 911 Carrera"), gated: true, base: "/market-check", freshVisitor: true, waitFor: 20000 },
@@ -36,13 +40,21 @@ try {
     await page.setViewport({ width: 1280, height: 900 });
     if (pg.gated) await withCrew(page);
     const errors = [], fivexx = [];
-    if (pg.gated && KEY) {
+    if ((pg.gated && KEY) || BYPASS) {
       await page.setRequestInterception(true);
       page.on("request", r => {
         let own = false; try { own = new URL(r.url()).host === HOST; } catch (e) {}
-        r.continue(own ? { headers: { ...r.headers(), "x-ops-key": KEY, "x-launch-stage-test": "2" } } : undefined);
+        const add = own ? { ...(pg.gated && KEY ? { "x-ops-key": KEY, "x-launch-stage-test": "2" } : {}), ...(BYPASS ? { "x-vercel-protection-bypass": BYPASS, "x-vercel-set-bypass-cookie": "samesitenone" } : {}) } : null;
+        r.continue(add ? { headers: { ...r.headers(), ...add } } : undefined);
       });
     }
+    // BUY TIMES (Sam, Oct 16 2026): from the start of the load, when the search header (the live count) is on screen and
+    // when the first car is, read off the page itself.
+    if (pg.name === "Buy result") await page.evaluateOnNewDocument(() => { const T0 = performance.now(); window.__buyT = {}; const tick = () => { const t = window.__buyT, now = Math.round(performance.now() - T0);
+      if (!t.header && document.querySelector(".msg.results:not(.stale) .shead, .msg.searching .sq-count .sc-1")) t.header = now;
+      if (!t.card && [...document.querySelectorAll(".msg.results:not(.stale) article.car:not(.skel)")].some(a => a.offsetParent)) t.card = now;
+      if (!t.still && /still finding the sales/.test(document.body ? document.body.innerText : "")) t.still = now;
+      if (!(t.header && t.card)) requestAnimationFrame(tick); }; requestAnimationFrame(tick); });
     page.on("console", m => { if (m.type() === "error") errors.push("console: " + m.text().slice(0, 200)); });
     page.on("pageerror", e => errors.push("page error: " + String(e && e.message || e).slice(0, 200)));
     page.on("response", r => { if (r.status() >= 500) fivexx.push(r.status() + " " + r.url().replace(/[?#].*$/, "")); });
@@ -71,6 +83,9 @@ try {
         if (!real) errors.push("no result on the page: no range, count line or identity question");
       }
     }
+    if (/(^|\.)vercel\.com$/.test(new URL(page.url()).hostname)) errors.push(BYPASS ? "Vercel's login page: the bypass was refused" : "Vercel's login page: a preview needs VERCEL_AUTOMATION_BYPASS_SECRET");
+    if (pg.name === "Buy result") { const t = await page.evaluate(() => window.__buyT || {}).catch(() => ({})); const sec = ms => ms ? (ms / 1000).toFixed(1) + " s" : "never";
+      console.log(`    Buy times for "Porsche 911": header ${sec(t.header)}, first card ${sec(t.card)}${t.still ? ", still finding line at " + sec(t.still) : ""}`); }
     const ok = status > 0 && status < 500 && !fivexx.length && !errors.length;
     if (!ok) failed++;
     console.log(`${ok ? "PASS" : "FAIL"}  ${pg.name}  HTTP ${status}  ${final}  h1 "${shown.h1 || ""}", ${shown.text || 0} chars, ${shown.money || 0} dollar figures` + (pg.gated && !KEY ? "  (no PROBE_KEY: public view)" : ""));
