@@ -14,10 +14,11 @@
 // eight or more sales, the VIN's own history (sold, or offered and not sold with the high bid), and updated (the
 // shared last-ingest date, lib/asOf.js lastUpdatedDate, the one Buy and Sell show; null when unread, never made up).
 // NEVER in any output: a venue name, a venue link, a listing id, a listing title.
-// Gate: the signed crew cookie, or the PARTNER_KEY header (x-partner-key) when that env var is set; anything else
+// Gate: the signed crew cookie, the partner demo cookie (lib/_partnerAccess.js gas_partner), or the PARTNER_KEY header (x-partner-key) when that env var is set; anything else
 // is a plain 404. Rate limited (lib/_ceilings.js partner_answer). Archive only: zero OldCarsData requests.
 import crypto from "node:crypto";
 import { isCrewRequest } from "../lib/_crew.js";
+import { isPartnerRequest } from "../lib/_partnerAccess.js";
 import { checkCeiling } from "../lib/_ceilings.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { vinAppearances, carIdentity, normVin } from "./_historyData.js";
@@ -61,7 +62,7 @@ function samePartnerKey(sent) {
 }
 export function partnerAllowed(req) {
   const h = (req && req.headers) || {};
-  return isCrewRequest(req) || samePartnerKey(h["x-partner-key"]);
+  return isCrewRequest(req) || isPartnerRequest(req) || samePartnerKey(h["x-partner-key"]);
 }
 
 // Market Check's own request handler, called in-process with the same body the Market Check page sends.

@@ -13,6 +13,9 @@
 //      before"; on a phone after the description.
 // Route: /partner-demo (vercel.json rewrite to /api/partnerDemo), ?view=a|b|c|d.
 import { isCrewRequest } from "../lib/_crew.js";
+import { isPartnerRequest, partnerCodeMatches, partnerSetCookies } from "../lib/_partnerAccess.js";
+import { checkCeiling } from "../lib/_ceilings.js";
+import { supabaseEnv } from "../lib/_supabase.js";
 import { SELLS_FOR_CARD_CSS } from "../lib/sellsForCard.js";
 import { HERO_JPEG_B64, HERO_W, HERO_H } from "./_partnerHero.js";
 
@@ -282,7 +285,7 @@ export function pageHtml(view) {
   const tab = (k, label) => `<a href="?view=${k}"${k === v ? ' aria-current="page"' : ""}>${label}</a>`;
   const d = DUMMY, miles = d.miles.toLocaleString("en-US");
   // The one hero image (views b and d), served by this handler behind the same crew gate (?img=hero).
-  const hero = `<img class="hero-img" src="/api/partnerDemo?img=hero" width="${HERO_W}" height="${HERO_H}" alt="A black 2015 Porsche 911 GT3 coupe in a white studio, seen from the front three-quarter, with its fixed rear wing and grey wheels" decoding="async">`;
+  const hero = `<img class="hero-img" src="/partner-demo?img=hero" width="${HERO_W}" height="${HERO_H}" alt="A black 2015 Porsche 911 GT3 coupe in a white studio, seen from the front three-quarter, with its fixed rear wing and grey wheels" decoding="async">`;
   const listing = (withRail, withHero) => `
   <div class="listing">
     <div>
@@ -327,10 +330,26 @@ export function pageHtml(view) {
 <script>${JS.replace("__DUMMY__", JSON.stringify(DUMMY))}</script></body></html>`;
 }
 
-export default function handler(req, res) {
+// The plain 404 every refused request gets (no cookie, a wrong, empty or missing code, too many attempts): the same body
+// and headers whatever the reason, so nothing says a code exists.
+const notFound = res => { res.setHeader("Content-Type", "text/plain; charset=utf-8"); return res.status(404).send("Not found"); };
+export default async function handler(req, res) {
   res.setHeader("Cache-Control", "private, no-store");
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
-  if (!isCrewRequest(req)) { res.setHeader("Content-Type", "text/plain; charset=utf-8"); return res.status(404).send("Not found"); }
+  res.setHeader("Referrer-Policy", "no-referrer");
+  const q = req.query || {};
+  // THE ACCESS CODE (lib/_partnerAccess.js): ?k= (or ?code=) is checked, never echoed or logged, and the address bar is
+  // cleared at once by the redirect; attempts are counted per address (lib/_ceilings.js partner_code).
+  if (q.k != null || q.code != null) {
+    if (isCrewRequest(req)) { res.setHeader("Location", "/partner-demo"); return res.status(302).end(); }
+    const lim = await checkCeiling(supabaseEnv(), req, "partner_code", { tool: "partner" }).catch(() => ({ ok: true }));
+    const cookies = lim.ok && partnerCodeMatches(q.k != null ? q.k : q.code) ? partnerSetCookies() : null;
+    if (!cookies) return notFound(res);
+    res.setHeader("Set-Cookie", cookies);
+    res.setHeader("Location", "/partner-demo");
+    return res.status(302).end();
+  }
+  if (!isCrewRequest(req) && !isPartnerRequest(req)) return notFound(res);
   if (req.query && req.query.img === "hero") {
     res.setHeader("Content-Type", "image/jpeg");
     res.setHeader("Cache-Control", "private, max-age=3600");

@@ -349,6 +349,14 @@ try {
 } catch (e) {
   record("Partner endpoint matches Market Check, no venues (scripts/partnerEngineMatch.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The partner demo's own access code (Lane C, Oct 16 2026; lib/_partnerAccess.js). No network.
+try {
+  const out = execSync("node scripts/partnerAccessCheck.mjs", { encoding: "utf8" });
+  const line = (out.match(/partnerAccessCheck: .*/) || [""])[0];
+  record("The partner demo code opens the demo and its data endpoint only (scripts/partnerAccessCheck.mjs)", "PASS", line);
+} catch (e) {
+  record("The partner demo code opens the demo and its data endpoint only (scripts/partnerAccessCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The applied choice (Lane C, Oct 15 2026): a Task from a Buy page names the body the engine applied. No network.
 try {
   const out = execSync("node scripts/engineChoiceCheck.mjs", { encoding: "utf8" });
