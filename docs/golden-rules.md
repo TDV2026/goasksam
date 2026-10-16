@@ -90,7 +90,7 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 16 | 2005 Saab 9-2X | exact year, five-year window, modified cars fenced | exact, 15 sales, $9,000 to $12,500 |
 | 17 | 1931 Bugatti Type 41 | not enough data | not_enough_data, nothing on record |
 | 18 | 2011 Honda S2000 | year outside the production run, span clamped to 2009 | year_widened, 2009, 15 sales, $36,500 to $64,000 |
-| 19 | 1963 Chevrolet Corvette Split Window | typed word carried (the split window is the coupe) | exact, 38 coupes, $140,000 to $214,000 |
+| 19 | 1963 Chevrolet Corvette Split Window | typed word carried (the split window is the coupe) | exact, 34 coupes, $136,000 to $204,000, label "1963 Corvette Coupe" (re-pinned Oct 16 2026 from the live read on all four products: since e56 the split window is the Coupe chip page, which sets the five 1963 Z06 sales aside as a halo, product rule 16; the earlier 38 and $214,000 came from the older typed path that let the Z06s in) |
 | 20 | 1995 Acura NSX | exact, odd-sale fence (a Honda NSX-R set aside) | exact, 15 sales, $86,000 to $136,000 |
 | 21 | 1965 Ford Mustang (bare) | the identity question: every option opens the pool it counts, and the options add up to Any | each option count equals the count its page shows, options sum to Any |
 | 22 | 1957 Porsche 356 Speedster (set-aside and options) | same car as row 8; replicas, recreations and the odd sale set aside with their reasons; Sam, Oct 15 2026: an option with zero sales is never shown, on any product, and no restoration option line appears | exact, 8 sales in range plus 2 set aside (odd sale, modified), $282,000 to $363,000, no option shown at zero; variant-market rule: a variant shows only with 8 or more sales on both sides, 25 percent apart, else set aside and named |
@@ -167,7 +167,7 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":16,"q":"2005 Saab 9-2X","status":"ready","rung":"exact","labelHas":["2005","9-2X"],"count":15,"tol":0,"low":9000,"high":12500,"tolPct":0},
  {"id":17,"q":"1931 Bugatti Type 41","status":"ready","rung":"not_enough_data","labelHas":[],"empty":true},
  {"id":18,"q":"2011 Honda S2000","status":"ready","rung":"year_widened","labelHas":["S2000","2009"],"count":15,"tol":2,"low":36500,"high":64000,"tolPct":3},
- {"id":19,"q":"1963 Chevrolet Corvette Split Window","status":"ready","rung":"exact","labelHas":["1963"],"count":38,"tol":3,"low":140000,"high":214000,"tolPct":3},
+ {"id":19,"q":"1963 Chevrolet Corvette Split Window","status":"ready","rung":"exact","labelHas":["1963 Corvette Coupe"],"count":34,"tol":0,"low":136000,"high":204000,"tolPct":3},
  {"id":20,"q":"1995 Acura NSX","status":"ready","rung":"exact","labelHas":["1995","NSX"],"count":15,"tol":2,"low":86000,"high":136000,"tolPct":3},
  {"id":21,"q":"1965 Ford Mustang","status":"ready","identity":true,"labelHas":["Mustang"]},
  {"id":24,"q":"1969 Chevrolet Camaro","status":"ready","identity":true,"labelHas":["Camaro"]},
