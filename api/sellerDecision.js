@@ -2811,6 +2811,19 @@ async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   const reqStart = Date.now();
+  // SLIM ANSWER ON THE WIRE AND IN THE STORED ROW (e59, Sam's egress job, Oct 16 2026): a warm 2005 911 answer was
+  // 1.86 MB on the wire and 2.0 MB read from its stored row, of which the diagnostics were 1.46 MB (dedup.excluded and
+  // dedup.abroad carry every set-aside row in full, dedup.fetchMemo the fetched rows) and htMeta 0.22 MB (the house
+  // pool's receipts, cards and rows); the answer itself (rawPool, cards, trend, distribution) was under 0.2 MB. No page
+  // reads the dropped lists (obdiag reads them from its own direct engine call, never from the stored row or the wire).
+  // The stage marks, fetch list and counts stay, so timings.marks and the ops views are unchanged.
+  const slimAnswerForWire = (ob) => {
+    if (!ob || typeof ob !== "object") return ob;
+    const out = { ...ob };
+    if (out.dedup && typeof out.dedup === "object") { const { excluded, abroad, fetchMemo, ...keep } = out.dedup; out.dedup = keep; }
+    if (out.htMeta && typeof out.htMeta === "object") { const { receipts, pairs, cards, rawPool, ...keep } = out.htMeta; out.htMeta = keep; }
+    return out;
+  };
   const obTimes = { reqStart, dbBytes0: supabaseBytesSoFar() };   // stage timings for the Market Check answer (speed job, Oct 15 2026; diagnostics only)
   const credentialed = hasServerCredential(req);
   if (!credentialed && req.body && typeof req.body === "object") for (const k of SERVER_ONLY_FLAGS) if (k in req.body) delete req.body[k];
@@ -3545,7 +3558,7 @@ async function handler(req, res) {
           oneBox = engineAnswer.raw;
           obTimes.engineMs = Date.now() - te;
           if (wantsWarm && answerCacheable(oneBox) && !/_choice$/.test(String(oneBox && oneBox.tier || ""))) {   // a recompute self-call lands here too and writes the fresh row
-            await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, oneBox).catch(() => {});
+            await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, slimAnswerForWire(oneBox)).catch(() => {});
           }
         }
       } catch (e) {
@@ -3653,7 +3666,7 @@ async function handler(req, res) {
             const fresh = await oneEngineAnswer(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, asked: askedN }, obRefine);
             const fr = fresh && fresh.raw;
             if (fr && answerCacheable(fr) && !/_choice$/.test(String(fr.tier || ""))) {
-              await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, fr);
+              await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, slimAnswerForWire(fr));
               if (fr.tier === "result" && vehicle.model) { const core = coreOf(fr, { v: vehicle, generation, refine: null }); if (core) await persistCore({ supabaseUrl, supabaseKey }, specKeyFor(vehicle, generation, identityRefine), core).catch(() => {}); }
             }
           } catch (e) { console.error(`stale recompute failed: ${(e && e.message) || e}`); }
@@ -3662,7 +3675,7 @@ async function handler(req, res) {
         else obTimes.recompute = "none_live_on_next_visit";
       }
       const timings = { ...obTimes, warmHit, stale: !!staleInfo, totalMs: Date.now() - reqStart, dbBytes: supabaseBytesSoFar() - obTimes.dbBytes0, marks: dd && Array.isArray(dd.marks) ? dd.marks : null, fetchMs: dd && Array.isArray(dd.fetches) ? dd.fetches.map(f => Number(f.ms) || 0) : null };
-      return res.status(200).json({ status: "one_box", ...oneBox, ...staleFields, snapshotId: snapshotId || undefined, timings });
+      return res.status(200).json({ status: "one_box", ...slimAnswerForWire(oneBox), ...staleFields, snapshotId: snapshotId || undefined, timings });
     }
 
     // Price-step transparency (#68): a seller who DEFERS the asking price gets THE RECORD
