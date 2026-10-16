@@ -8865,3 +8865,26 @@ Per car, data endpoint from a real browser with the crew cookie, one read each (
 View c drew the grey placeholder because its listing mock was kept on purpose (hero on b and d only, per the earlier brief); Sam now wants the hero on c too.
 FIX (building now): (1) the endpoint's in-process Market Check read carries the server's own internal credential from the environment (never sent anywhere, never printed), so a partner session reads exactly what crew reads; the partner gate and the partner_answer ceiling stay in front of it; no engine change, the same oneEngineAnswer path. FOR LANE B: a proper internal-caller flag in sellerDecision.js would be cleaner than borrowing the test path; Lane C uses the existing credential until then. (2) A failed or timed-out read never prints the no-sales text; it retries once after a few seconds, then prints the could-not-read line. (3) The endpoint keeps the last good answer per demo car verbatim with its readAt and shows it only if a live read fails and it is under a day old. (4) View c gets the hero in its main slot and thumbnails.
 - DONE (Lane B, 2026-10-17T00:07Z): demo cars warm, re-read after the 00:00 UTC day change. Every row was PRESENT before the reads (warmHit true on all); the day change had marked them stale, which serves the stored answer with the dated line and recomputes in the background. All seven are fresh now, readAt (UTC): 2015 Porsche 911 GT3 00:04:48 (43 sales, $120,000 to $143,000); 2005 Porsche 911 00:06:13 (38); 1965 Ford Mustang 00:06:30 (69); 1957 Porsche 356 Speedster 00:04:50 (8); 1966 Ferrari 275 GTB thin 9 (stale false; a thin answer carries no readAt yet, an e60 item); 2010 Porsche Boxster Convertible 00:02:23 (30); 2023 Porsche 911 GT3 00:03:04 (9). The demo's blank views were not a missing row: per Lane C, the demo mapped the 20-second card (tier unavailable, from live computes during the 23:46Z archive load) and a no-crew session's refused read to its error state; Lane C is fixing the demo page. B2 may restart the golden table now; the e59 sweep follows B2's DONE.
+- DONE (Lane E, 2026-10-16T19:45Z): Buy speed BEFORE AND AFTER, the pass or fail table. Before = the measurement table above
+  (17:17 to 17:40Z, pre-e58 deploy, warm stored rows; e58 warm DONE not applicable, Lane C PUSHED false). After = 19:36 to
+  19:44Z on Lane C's integrator stack 12cd6a7e (e58 warm DONE true, Lane C PUSHED true), scripts/buyTimes.mjs --runs 2
+  (API) and --page --runs 2, one search at a time, nothing RUNNING in lane-notes. Seconds.
+    stage                              | Porsche 911        | 1965 Mustang      | 2005 911          | 2023 GT3          | note
+    function round trip (ping)         | 0.13 -> 0.15       | 0.11 -> 0.20/0.58 | 0.12 -> 0.12      | 0.12 -> 0.13/0.19 | unchanged
+    resolver (parse)                   | 0.13 -> 0.16/0.12  | 0.13 -> 0.45/0.16 | 0.18 -> 0.13/0.21 | 0.15 -> 0.15/0.17 | unchanged; one cold page run named at 7.8 s (Mustang run 2)
+    live read + fences (explain)       | 0.7 -> 0.9         | 0.6 -> 0.6        | 0.6 -> 0.6        | 0.6 -> 0.6        | unchanged (E8 overlaps it with the model's tool round; derived tool time 0 on two runs = fully hidden)
+    toolSearchLive (rerun minus shape) | 0.7 -> 0/0.6       | 0.7 -> 1.0/0      | 0.8 -> 0.9/0.7    | 1.4 -> 1.2/1.3    | unchanged
+    model turn (text minus tool)       | 4.1 -> 3.5/1.3     | 5.1 -> 1.4/2.3    | 5.3 -> 1.7/2.0    | 4.6 -> 1.0/1.3    | E6: ONE model call every run (was 2 or 3); the forced tool call only
+    model calls per turn               | 2 to 3 -> 1        | 2 to 3 -> 1       | 3 -> 1            | 2 -> 1            | guard regenerations gone on search turns
+    enrichFast (done minus text)       | 1.0 -> 9.5/1.1     | 0.6 -> 0.5/1.8    | 0.6 -> 0.4/0.5    | 0.5 -> 0.5/0.4    | the 9.5 s is the set-aside engine read (E4, Lane C's, not shipped); E3 inert until Lane C's two lines
+    chat total to "done" (API)         | 6.3 -> 12.9/2.9    | 6.2 -> 2.8/4.0    | 6.7 -> 3.0/3.1    | 6.5 -> 2.7/3.0    |
+    page: header = first card          | 8.1 -> 14.7/5.0    | 7.7 -> 3.6/10.3   | 6.9 -> 3.5/3.6    | 8.0 -> 7.1/3.2    | before spikes seen: 18.5 and 24.4; after spikes: the E4 read (14.7) and a cold instance (10.3, parse 7.8)
+  PASS: six of eight after page runs draw the header and first card in 3.2 to 5.0 s against 6.9 to 8.1 s before; the model
+  turn is one call on every run (text at 1.8 to 3.5 s, was 4.1 to 6.1 s). The two remaining spikes are the blocking
+  set-aside engine read in enrichFast (E4, Lane C's diff, queued behind the partner demo) and a cold instance's resolver.
+  scripts/buySearchLineCheck.mjs: 4 of 4 pass (one model call, the fixed line, search_live only, no guard, nothing above the
+  cards): "Here's what's for sale: Porsche 911s." / "... 1965 Ford Mustangs." / "... 2005 Porsche 911s." / "... Porsche
+  911 GT3s from 2022 to 2024." (no 2023 GT3 live: the shared nearest-years rule widened the search, so the line names
+  what the cards are; the page's own near line says why). scripts/buyEngineMatch.mjs on the four searches: 14 same, 0
+  different, 0 pending (engine e58-20261016-bodyfamily throughout). No pool, fence or range changed.
+  Search check: no public page touched (api/buy.js unchanged; the fixed line reaches the page as d.searchNote and is drawn by Lane C's later push).
