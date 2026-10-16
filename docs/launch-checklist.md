@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-16T23:45Z (Lane F; Lane D's deployed proof and Lane A's card adoption push folded in).
+Last updated: 2026-10-16T23:55Z (Lane F; Lane C's access-code stage 1 folded in).
 
 ## 1. The four launch items
 
@@ -21,7 +21,7 @@ Last updated: 2026-10-16T23:45Z (Lane F; Lane D's deployed proof and Lane A's ca
 | Item | Owner | State | Blocked on | Proof |
 |---|---|---|---|---|
 | eBay partner demo (/partner-demo, four views, shared card) | Lane C | live (deploy 51da5743; partnerEngineMatch live half 62 passed, 0 failed) | nothing | lane-notes "Partner demo live on Sam's Oct 16 changes"; ~/Desktop/goasksam-proofs/partner/live/ |
-| Separate access code for the demo (PARTNER_DEMO_CODE, signed gas_partner cookie, 30 days, demo and data endpoint only, 404 otherwise) | Lane C | building (Sam's prompt forwarded 23:3xZ, first job ahead of the tiered prePush and SEO items) | Lane C's READY line naming when Sam can set PARTNER_DEMO_CODE in Vercel | Lane C's build, prePush and live-check reports; the seven listed live checks |
+| Separate access code for the demo (PARTNER_DEMO_CODE, signed gas_partner cookie scoped to /partner-demo and /api/partnerAnswer, 404 otherwise, rate limited 5 a minute, 20 an hour, 50 a day per address and device) | Lane C | built (1c536749, local, not pushed; partnerAccessCheck 30 passed, 0 failed; partnerEngineMatch offline 32 of 32) | prePush alone, then the push (demo first); Sam's decision on cookie lifetime (Lane C built 14 days from Sam's own message, the relayed prompt says 30); Sam sets PARTNER_DEMO_CODE in Vercel when the PUSHED line says so | lane-notes "Partner demo access code, stage 1: built"; scripts/partnerAccessCheck.mjs in prePush; the seven listed live checks after deploy |
 | Window used by the 2015 Porsche 911 GT3 answer (Sam's question, report only) | Lane B | answered (year scope is the exact 2015 rung; 59 months is the sale-date window, the standard five-year read, oldest sale December 2021; twelve months alone has 6 sales, 24 months has 15; no engine change) | nothing | Lane B's answer to Sam, 22:0xZ; obdiag read with counts by window |
 
 ## 3. Buy speed
