@@ -96,6 +96,7 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 22 | 1957 Porsche 356 Speedster (set-aside and options) | same car as row 8; replicas, recreations and the odd sale set aside with their reasons; Sam, Oct 15 2026: an option with zero sales is never shown, on any product, and no restoration option line appears | exact, 8 sales in range plus 2 set aside (odd sale, modified), $282,000 to $363,000, no option shown at zero; variant-market rule: a variant shows only with 8 or more sales on both sides, 25 percent apart, else set aside and named |
 | 23 | 1966 Ferrari 275 GTB (thin, no zero option) | same car as row 14; nine sales, thin, no range, no question screen, set-aside sales listed with their reasons; no option at zero, no restoration line | year_widened, 9 sales, no range, same answer on all four products |
 | 24 | 1969 Chevrolet Camaro (bare) | the identity question: "convertible" typed and the Convertible chip give one answer; every option opens the pool it counts, and the options add up to Any | chip count equals typed count, each option equals its page, options sum to Any (expected to fail until e56) |
+| 25 | 1969 Chevrolet Camaro convertible (typed) | the same answer as the Convertible chip on the bare 1969 Camaro page: label "1969 Camaro Convertible", the bare car's exact rung (never widened), 3 sales, no range (under the band) | on all four products; expected to fail until e56 (e55 reads 24, widened to 1967 to 1969) |
 
 Per car, in the words of the derivation:
 
@@ -157,6 +158,7 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":20,"q":"1995 Acura NSX","status":"ready","rung":"exact","labelHas":["1995","NSX"],"count":15,"tol":2,"low":86000,"high":136000,"tolPct":3},
  {"id":21,"q":"1965 Ford Mustang","status":"ready","identity":true,"labelHas":["Mustang"]},
  {"id":24,"q":"1969 Chevrolet Camaro","status":"ready","identity":true,"labelHas":["Camaro"]},
+ {"id":25,"q":"1969 Chevrolet Camaro convertible","status":"ready","rung":"exact","labelHas":["1969 Camaro Convertible"],"count":3,"tol":0,"low":null,"high":null,"thin":true},
  {"id":22,"q":"1957 Porsche 356 Speedster","status":"ready","rung":"exact","labelHas":["1957","356 Speedster"],"count":8,"tol":0,"low":282000,"high":363000,"tolPct":5,"setAside":{"total":2,"reasons":["odd sale","modified"]},"noZeroOptions":true,"variantRule":true,"noRestoration":true},
  {"id":23,"q":"1966 Ferrari 275 GTB","status":"ready","rung":"year_widened","labelHas":["275 GTB","1965 to 1966"],"count":9,"tol":0,"low":null,"high":null,"thin":true,"noZeroOptions":true,"variantRule":true,"noRestoration":true}
 ]
