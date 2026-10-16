@@ -11,7 +11,8 @@
 // Output: identity (year, make, model, body, variant), the engine's identity question with what each choice sends
 // next, a range only when the engine gives one, count, window, sales in price order (price and date only),
 // set-aside reasons, a thin line under eight sales (words only, never a range), a trend only for quarters with
-// eight or more sales, and the VIN's own history (sold, or offered and not sold with the high bid).
+// eight or more sales, the VIN's own history (sold, or offered and not sold with the high bid), and updated (the
+// shared last-ingest date, lib/asOf.js lastUpdatedDate, the one Buy and Sell show; null when unread, never made up).
 // NEVER in any output: a venue name, a venue link, a listing id, a listing title.
 // Gate: the signed crew cookie, or the PARTNER_KEY header (x-partner-key) when that env var is set; anything else
 // is a plain 404. Rate limited (lib/_ceilings.js partner_answer). Archive only: zero OldCarsData requests.
@@ -20,6 +21,7 @@ import { isCrewRequest } from "../lib/_crew.js";
 import { checkCeiling } from "../lib/_ceilings.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { vinAppearances, carIdentity, normVin } from "./_historyData.js";
+import { lastUpdatedDate } from "../lib/asOf.js";
 
 const RANGE_MIN = 8;   // the engine's own RANGE_THRESHOLD: under eight sales there is no range, only words
 const VIN_RE = /^[A-HJ-NPR-Z0-9]{17}$/;
@@ -235,10 +237,12 @@ export default async function handler(req, res) {
     }
   }
   if (!text) return res.status(400).json({ ok: false, error: "Type a car, or a VIN." });
+  const updatedP = lastUpdatedDate(env).catch(() => null);   // the shared last-ingest date; null shows no date
   let r;
   try { r = await marketCheckAnswer(req, text, refine, asked); } catch (e) { console.error("partnerAnswer:", (e && e.message) || e); return res.status(200).json({ ok: false, query: text, error: "unavailable", history }); }
   const out = partnerShape(r.d, text, asked, { history, id });
   if (vinIn) out.vin = vinIn;
+  out.updated = await updatedP;
   const leaks = venueLeak(out);
   if (leaks.length) { console.error("partnerAnswer venue leak blocked:", leaks.slice(0, 5).join(" | ")); return res.status(500).json({ ok: false, error: "blocked" }); }
   return res.status(200).json(out);

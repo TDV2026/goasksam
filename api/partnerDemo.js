@@ -5,18 +5,19 @@
 // Market Check's own answer for the same words; the page computes nothing but where a figure sits against a range.
 //   a. Before listing: one box (any car or VIN), the engine's identity chips and question, the range panel only when
 //      the engine gives a range, the VIN's history, a List it button that does nothing in the demo.
-//   b. Setting a reserve: a reserve field with a pill (inside the range green, above amber, no range grey).
+//   b. Setting a reserve: a reserve field with a pill (inside the range green, above amber, below slate, no range
+//      grey; grey means only "no range", Sam Oct 16 2026).
 //   c. On the listing: the dummy listing with "What these sell for" and "This car before" in the right rail and a
 //      pill for the current price against the range; on a phone they stack under the price and buy buttons.
 //   d. Under the listing: a full-width "What cars like this sold for" (sale tiles, lowest price first), then "This car
 //      before"; on a phone after the description.
-// Route: /api/partnerDemo (?view=a|b|c|d). A /partner-demo rewrite needs one vercel.json line (not this lane's file).
+// Route: /partner-demo (vercel.json rewrite to /api/partnerDemo), ?view=a|b|c|d.
 import { isCrewRequest } from "../lib/_crew.js";
 
 export const DUMMY = { title: "2015 Porsche 911 GT3", colour: "Black", miles: 20611, titleStatus: "Clean", price: 139900, priceKind: "Buy It Now", daysLeft: 13, vin: "WP0AC2A96FS189139", q: "2015 Porsche 911 GT3" };
 
 const CSS = `
-:root{--ink:#191919;--ink2:#707070;--rule:#e5e5e5;--soft:#f7f7f7;--blue:#3665f3;--blue2:#2b52c5;--green:#0b7a34;--greenbg:#e6f4ea;--amber:#8a5a00;--amberbg:#fdf3dc;--grey:#5c5c5c;--greybg:#efefef;--r:16px;color-scheme:light}
+:root{--ink:#191919;--ink2:#707070;--rule:#e5e5e5;--soft:#f7f7f7;--blue:#3665f3;--blue2:#2b52c5;--green:#0b7a34;--greenbg:#e6f4ea;--amber:#8a5a00;--amberbg:#fdf3dc;--grey:#5c5c5c;--greybg:#efefef;--slate:#334b66;--slatebg:#e3eaf3;--r:16px;color-scheme:light}
 *{box-sizing:border-box}
 body{margin:0;background:#fff;color:var(--ink);font:400 16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
 .wrap{max-width:1280px;margin:0 auto;padding:0 24px}
@@ -46,6 +47,10 @@ h3{font-size:18px;line-height:1.3;margin:0 0 10px;font-weight:700}
 .gas-foot b{color:var(--ink);font-weight:600}
 .gas-foot a{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
 .range{font-size:26px;font-weight:700;margin:2px 0 4px}
+.pillrow{margin:6px 0 10px}
+.note{color:var(--ink2);font-size:14px;margin:8px 0 0}
+.qrow{margin:0 0 16px;font-size:15px}
+.upd{font-weight:400}
 .facts{display:flex;gap:0;flex-wrap:wrap;margin:10px 0 0}
 .facts div{padding:0 16px;border-left:1px solid var(--rule)}
 .facts div:first-child{padding-left:0;border-left:0}
@@ -54,7 +59,7 @@ h3{font-size:18px;line-height:1.3;margin:0 0 10px;font-weight:700}
 .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 12px;font-size:14px;font-weight:600}
 .pill.in{background:var(--greenbg);color:var(--green)}
 .pill.above{background:var(--amberbg);color:var(--amber)}
-.pill.below{background:var(--greybg);color:var(--grey)}
+.pill.below{background:var(--slatebg);color:var(--slate)}
 .pill.none{background:var(--greybg);color:var(--grey)}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 0}
 .chip{border:1px solid var(--ink2);border-radius:999px;padding:6px 14px;font-size:14px;background:#fff}
@@ -91,7 +96,7 @@ h3{font-size:18px;line-height:1.3;margin:0 0 10px;font-weight:700}
 .specs dt{font-size:14px;color:var(--ink2)}.specs dd{margin:2px 0 0}
 .buy{display:grid;gap:10px;margin:16px 0}
 .time{display:flex;gap:24px;font-size:15px}
-.below{margin-top:40px}
+.desc.below{margin-top:40px}
 .desc h2{margin-bottom:8px}
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:20px}
 .tile .ph{aspect-ratio:4/3;margin-bottom:12px;border-radius:16px;background:var(--soft);border:12px solid var(--soft);background-image:linear-gradient(135deg,#d9d9d9,#bfbfbf);background-clip:content-box}
@@ -130,7 +135,9 @@ const JS = String.raw`
     return fetch("/api/partnerAnswer", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
       .then(function(r){ return r.json(); }).catch(function(){ return { ok: false, error: "unavailable" }; });
   }
-  var FOOT = '<div class="gas-foot"><span><b>Powered by GoAskSam</b></span><a href="/how-sam-decides" target="_blank" rel="noopener">How Sam decides</a></div>';
+  // The card's footer: the credit, the Updated date (the endpoint's shared last-ingest date, none when unread) and
+  // How Sam decides.
+  function foot(a){ return '<div class="gas-foot"><span><b>Powered by GoAskSam</b>' + (a && a.updated ? '<span class="upd"> · Updated ' + esc(a.updated) + "</span>" : "") + '</span><a href="/how-sam-decides" target="_blank" rel="noopener">How Sam decides</a></div>'; }
   // Where a figure sits against the engine's range. The only thing this page works out, and only from that range.
   function placing(x, a){
     if (!a || !a.range) return { cls: "none", text: "No range for cars like this yet" };
@@ -151,15 +158,14 @@ const JS = String.raw`
   }
   function rangePanel(a, opts){
     opts = opts || {};
-    if (!a || a.ok === false) return '<div class="panel"><h3>What these sell for</h3><p class="muted">Sam could not read the sales just now. Try again in a minute.</p>' + FOOT + "</div>";
-    if (a.question) return '<div class="panel"><h3>What these sell for</h3>' + idChips(a) + questionHtml(a, opts.slot || "") + FOOT + "</div>";
+    if (!a || a.ok === false) return '<div class="panel"><h3>What these sell for</h3><p class="muted">Sam could not read the sales just now. Try again in a minute.</p>' + foot(a) + "</div>";
+    if (a.question) return '<div class="panel"><h3>What these sell for</h3>' + idChips(a) + questionHtml(a, opts.slot || "") + foot(a) + "</div>";
+    var pill = opts.price != null ? '<p class="pillrow"><span class="pill ' + placing(opts.price, a).cls + '">' + esc(placing(opts.price, a).text) + "</span></p>" : "";
     var body = a.range
-      ? '<p class="range">' + usd(a.range.low) + " to " + usd(a.range.high) + '</p><p class="sub">The middle half of ' + a.count + " " + plural(a.count, "sale", "sales") + (a.window ? " " + esc(a.window) : "") + ".</p>"
-      : '<p class="sub">' + esc(a.thin || "No range for cars like this yet.") + "</p>";
-    var pill = opts.price != null ? '<p style="margin:12px 0 0"><span class="pill ' + placing(opts.price, a).cls + '">' + esc(placing(opts.price, a).text) + "</span></p>" : "";
-    var trend = a.range && a.trend ? '<p class="sub" style="margin-top:10px">' + a.trend.map(function(t){ return esc(t.period.replace("-", " ")) + ": " + usd(t.low) + " to " + usd(t.high) + " (" + t.count + " sales)"; }).join(" · ") + "</p>" : "";
-    var aside = a.setAside && a.setAside.total ? '<p class="sub" style="margin-top:8px;font-size:14px">' + a.setAside.total + " more set aside" + (a.setAside.reasons ? " (" + Object.keys(a.setAside.reasons).map(function(k){ return a.setAside.reasons[k] + " " + esc(k); }).join(", ") + ")" : "") + ".</p>" : "";
-    return '<div class="panel"><h3>What these sell for</h3>' + (opts.chips ? idChips(a) : "") + body + pill + trend + aside + FOOT + "</div>";
+      ? '<p class="range">' + usd(a.range.low) + " to " + usd(a.range.high) + "</p>" + pill + '<p class="sub">The middle half of ' + a.count + " " + plural(a.count, "sale", "sales") + (a.window ? " " + esc(a.window) : "") + ".</p>"
+      : '<p class="sub">' + esc(a.thin || "No range for cars like this yet.") + "</p>" + pill;
+    var aside = a.setAside && a.setAside.total ? '<p class="note">' + a.setAside.total + " more set aside" + (a.setAside.reasons ? " (" + Object.keys(a.setAside.reasons).map(function(k){ return a.setAside.reasons[k] + " " + esc(k); }).join(", ") + ")" : "") + ".</p>" : "";
+    return '<div class="panel"><h3>What these sell for</h3>' + (opts.chips ? idChips(a) : "") + body + aside + foot(a) + "</div>";
   }
   function historyPanel(a){
     var h = a && a.history;
@@ -167,7 +173,7 @@ const JS = String.raw`
       var right = r.result === "sold" ? (r.price ? "Sold for " + usd(r.price) : "Sold") : (r.highBid ? "Offered, not sold. High bid " + usd(r.highBid) : "Offered, not sold");
       return "<li><span>" + esc(monthYear(r.date)) + (r.miles ? '<br><span class="muted" style="font-size:14px">' + Number(r.miles).toLocaleString("en-US") + " miles</span>" : "") + '</span><span class="r">' + esc(right) + "</span></li>"; }).join("") + "</ul>"
       : '<p class="muted">No earlier sale or listing of this car on record.</p>';
-    return '<div class="panel"><h3>This car before</h3>' + rows + FOOT + "</div>";
+    return '<div class="panel"><h3>This car before</h3>' + rows + foot(a) + "</div>";
   }
   function tiles(a){
     if (!a || a.question || !a.sales || !a.sales.length) return '<p class="muted">' + esc((a && a.thin) || "No recorded sales of cars like this yet.") + "</p>";
@@ -187,16 +193,16 @@ const JS = String.raw`
     var v = Number(String($("b-res").value || "").replace(/[^\d]/g, ""));
     var a = bAns; if (!a) return;
     if (a.question) { $("b-out").innerHTML = rangePanel(a, { slot: "b" }); return; }
-    var p = v > 0 ? placing(v, a) : null;
-    $("b-pill").innerHTML = p ? '<span class="pill ' + p.cls + '">' + esc(p.text) + "</span>" : (a.range ? "" : '<span class="pill none">No range for cars like this yet</span>');
-    $("b-out").innerHTML = rangePanel(a);
+    $("b-out").innerHTML = rangePanel(a, { price: v > 0 || !a.range ? v : null });
   }
   // ---- views c and d: the listing
   var cAns = null;
   function drawListing(a){
     cAns = a;
     $("c-rail").innerHTML = rangePanel(a, { price: D.price, slot: "c" }) + historyPanel(a);
-    $("d-sales").innerHTML = '<h2>What cars like this sold for</h2>' + (a && a.range ? '<p class="sub" style="margin:-6px 0 16px">' + a.count + " " + plural(a.count, "sale", "sales") + (a.window ? " " + esc(a.window) : "") + ", lowest price first.</p>" : "") + tiles(a) + FOOT;
+    var lq = a && a.range && a.trend && a.trend.length ? a.trend.reduce(function(m, t){ return String(t.period) > String(m.period) ? t : m; }) : null;   // the latest quarter with eight or more sales, view d only
+    $("d-sales").innerHTML = '<h2>What cars like this sold for</h2>' + (a && a.range ? '<p class="sub" style="margin:-6px 0 16px">' + a.count + " " + plural(a.count, "sale", "sales") + (a.window ? " " + esc(a.window) : "") + ", lowest price first.</p>" : "") +
+      (lq ? '<p class="qrow"><b>' + esc(lq.period.replace("-", " ")) + "</b> " + usd(lq.low) + " to " + usd(lq.high) + ", " + lq.count + " sales</p>" : "") + tiles(a) + foot(a);
     $("d-hist").innerHTML = historyPanel(a);
   }
   document.addEventListener("click", function(e){
@@ -252,7 +258,7 @@ export function pageHtml(view) {
 </section>
 <section class="sec-view wrap" id="view-b"${v === "b" ? "" : " hidden"}>
   <div class="lead"><h1>Set your reserve</h1><p class="sub">${d.title}, ${miles} miles</p>
-  <div class="reserve"><label for="b-res">Reserve</label><span class="money">$<input id="b-res" inputmode="numeric" placeholder="0" aria-label="Reserve in dollars"></span><span id="b-pill"></span></div>
+  <div class="reserve"><label for="b-res">Reserve</label><span class="money">$<input id="b-res" inputmode="numeric" placeholder="0" aria-label="Reserve in dollars"></span></div>
   <div id="b-out"><p class="loading">Sam is reading the sales.</p></div></div>
 </section>
 <section class="sec-view wrap" id="view-c"${v === "c" ? "" : " hidden"}>${listing(true)}</section>
