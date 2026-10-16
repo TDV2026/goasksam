@@ -109,7 +109,7 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 35 | 1989 Porsche 911 Turbo Targa (typed) | words answer "No Targa 1989 Porsche 911 Turbo sale on record in the last five years.", no count or range, no market on Buy, Sell, Tasks | read live on e58 |
 | 36 | 2001 Porsche 911 Carrera 4S Cabriolet (typed) | words answer "No Cabriolet 2001 Porsche 911 Carrera 4S sale on record in the last five years.", no count or range | read live on e58 |
 | 37 | 2006 Porsche Boxster Convertible (typed) | PENDING e59: the whole 2006 Boxster pool (31) with the line "No listing of the 2006 Porsche Boxster states a body, so this reads every 2006 Boxster." | pending Lane B e59 (e58 gives a words answer) |
-| 38 | 2010 Porsche Boxster Convertible (typed) | the whole 2010 Boxster pool, equal to the bare page (30 sales, exact, 2010, $26,000 to $35,000) | read live on e58; the page prints "Convertibles, 2010", no states-a-body line |
+| 38 | 2010 Porsche Boxster Convertible (typed) | the whole 2010 Boxster pool, equal to the bare page (30 sales, exact, 2010, $26,000 to $35,000) | read live on e58; the engine carries the line as bodyLine; the page does not render it yet (Lane A shared card), so the page check is red until it does |
 
 Per car, in the words of the derivation:
 
@@ -186,6 +186,6 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":35,"q":"1989 Porsche 911 Turbo Targa","status":"ready","empty":true,"wordsHas":["No Targa 1989 Porsche 911 Turbo sale on record in the last five years."],"noCountRange":true},
  {"id":36,"q":"2001 Porsche 911 Carrera 4S Cabriolet","status":"ready","empty":true,"wordsHas":["No Cabriolet 2001 Porsche 911 Carrera 4S sale on record in the last five years."],"noCountRange":true},
  {"id":37,"q":"2006 Porsche Boxster Convertible","status":"pending","rung":"exact","labelHas":["2006 Boxster"],"count":31,"tol":0,"low":16500,"high":25000,"tolPct":5,"equalsBare":"2006 Porsche Boxster","statesBody":"No listing of the 2006 Porsche Boxster states a body, so this reads every 2006 Boxster."},
- {"id":38,"q":"2010 Porsche Boxster Convertible","status":"ready","rung":"exact","labelHas":["2010 Boxster Convertible"],"count":30,"tol":0,"low":26000,"high":35000,"tolPct":5,"equalsBare":"2010 Porsche Boxster"}
+ {"id":38,"q":"2010 Porsche Boxster Convertible","status":"ready","rung":"exact","labelHas":["2010 Boxster Convertible"],"count":30,"tol":0,"low":26000,"high":35000,"tolPct":5,"equalsBare":"2010 Porsche Boxster","statesBody":"No listing of the 2010 Porsche Boxster states a body, so this reads every 2010 Boxster."}
 ]
 ```
