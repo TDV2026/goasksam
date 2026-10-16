@@ -1,5 +1,6 @@
 // SEARCH TURN, NO MODEL SENTENCE (Lane E, E6, Sam's decision Oct 16 2026): a Buy search turn answers with the one fixed
-// line built from engine facts ("Here's what sold for {search}.") and runs ONE model call (the forced tool call), never a
+// line built from the same facts the cards use ("Here's what's for sale: {search}.": the cards are live listings, cars at
+// auction right now, so the line says for sale, never sold) and runs ONE model call (the forced tool call), never a
 // reply round, never a guard regeneration; the page shows the box and the cards with no model sentence above them.
 // Live, read-only, zero OldCarsData. Exits 1 on any search that breaks the rule.
 //   PROBE_KEY="$(security find-generic-password -s goasksam-probe -w)" node scripts/buySearchLineCheck.mjs [--cars "a|b"] [--base https://goasksam.com]
@@ -11,7 +12,7 @@ const CARS = (arg("cars") || "Porsche 911|1965 Ford Mustang|2005 Porsche 911|202
 const KEY = process.env.PROBE_KEY || null;
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 if (!KEY) { console.log("buySearchLineCheck: no PROBE_KEY in the environment."); process.exit(2); }
-const HOST = new URL(BASE).host, LINE = /^Here's what sold for .+\.$/;
+const HOST = new URL(BASE).host, LINE = /^Here's what's for sale: .+\.$/, SOLD = /\bsold\b/i;
 
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", protocolTimeout: 600000, args: ["--no-sandbox"] });
 let failed = 0;
@@ -31,6 +32,7 @@ try {
     if (api.error) reasons.push(api.error + " " + (api.head || ""));
     else {
       if (!LINE.test(String(api.reply || ""))) reasons.push(`reply is not the fixed line: "${api.reply}"`);
+      if (SOLD.test(String(api.reply || ""))) reasons.push(`the line says "sold" over live cards: "${api.reply}"`);
       if (api.searchNote !== api.reply) reasons.push(`searchNote differs from the reply: "${api.searchNote}"`);
       if (api.calls !== 1) reasons.push(`${api.calls} model calls (one expected: the tool call only)`);
       if (!api.tools.length || api.tools.some(t => t !== "search_live")) reasons.push(`tools ${JSON.stringify(api.tools)}`);
