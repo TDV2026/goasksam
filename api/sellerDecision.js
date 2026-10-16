@@ -3635,11 +3635,17 @@ async function handler(req, res) {
           // The alias, not the custom domain: goasksam.com's bot protection answers a server-side fetch with a challenge
           // (the row stayed stale on the first live proof); the ops key is accepted on the alias every ops call uses.
           const selfHost = process.env.SELF_HOST || "goasksam.vercel.app";
-          // The request must LEAVE before this function answers and is frozen: its send is awaited, bounded to 2.5 s (the
-          // receiving invocation runs on its own; an un-awaited fetch was never flushed and the row stayed stale).
+          // The recompute must not hold the visitor's response (Sam, Oct 16 2026). Vercel's waitUntil keeps the self-call
+          // alive after the response is sent; the project does not carry the @vercel/functions package, so the same
+          // request-context mechanism that package wraps is read directly (globalThis[Symbol.for("@vercel/request-
+          // context")]). Only when no waitUntil exists is the send awaited, bounded to 800 ms (an un-awaited fetch was
+          // never flushed before the function froze, and the row stayed stale). timings.selfCall says which was used.
           if (selfKey) {
-            const send = fetch(`https://${selfHost}/api/sellerDecision`, { method: "POST", headers: { "Content-Type": "application/json", "x-ops-key": selfKey }, body: JSON.stringify({ ...(req.body || {}), recompute: true, fresh: undefined }) }).then(r => { obTimes.selfCallStatus = r.status; }).catch(e => { obTimes.selfCallError = String(e && e.message || e).slice(0, 80); });
-            await Promise.race([send, new Promise(r => setTimeout(r, 2500))]);
+            const send = () => fetch(`https://${selfHost}/api/sellerDecision`, { method: "POST", headers: { "Content-Type": "application/json", "x-ops-key": selfKey }, body: JSON.stringify({ ...(req.body || {}), recompute: true, fresh: undefined }) }).then(r => { obTimes.selfCallStatus = r.status; }).catch(e => { obTimes.selfCallError = String(e && e.message || e).slice(0, 80); });
+            let waitUntil = null;
+            try { const ctx = globalThis[Symbol.for("@vercel/request-context")]; const got = ctx && typeof ctx.get === "function" ? ctx.get() : null; if (got && typeof got.waitUntil === "function") waitUntil = p => got.waitUntil(p); } catch { waitUntil = null; }
+            if (waitUntil) { obTimes.selfCall = "waitUntil"; waitUntil(send()); }
+            else { obTimes.selfCall = "awaited_800ms"; await Promise.race([send(), new Promise(r => setTimeout(r, 800))]); }
           }
           else console.error("stale recompute: no server credential in the environment, the row stays stale until the next warm");
         } catch (e) { console.error(`stale recompute self-call failed: ${(e && e.message) || e}`); }
