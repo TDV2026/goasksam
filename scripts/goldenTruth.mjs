@@ -90,6 +90,7 @@ const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new"
 const rows = [];
 const byQ = {};
 let chassisGuard = null;
+let chipPairOut = [];
 let identityOut = [];   // the identity rows: [{ id, q, any, checks: [{ name, cell, diffs, shown }] }]
 try {
   // The ops task is a keyed GET; plain curl is turned away by Vercel's bot protection, so the request is made from a real page
@@ -144,8 +145,15 @@ try {
   // Every page is opened in its own browser context (a fresh visitor, so no per-visitor car limit) and the key goes only in the
   // x-ops-key header of requests to goasksam's own address.
   // Rows 22 and 23: no option with zero sales on the page, no restoration option line.
-  const textDiffs = (g, text) => {
+  const textDiffs = (g, text, pr, parsed) => {
     const out = [];
+    // Typed-body rows (Oct 16 2026): a words answer prints its sentence and no count or range; a "states a body" count row prints its one line.
+    if (pr === "marketCheck") {
+      const flat = String(text).replace(/\s+/g, " ");
+      for (const w of g.wordsHas || []) if (!flat.includes(w)) out.push(`the page does not print the sentence: "${w}"`);
+      if (g.noCountRange && parsed && (parsed.count != null || parsed.range)) out.push(`a words answer must show no count or range; the page shows ${parsed.count == null ? "-" : parsed.count} ${parsed.range ? money(parsed.range.low) + " to " + money(parsed.range.high) : "no range"}`);
+      if (g.statesBody && !flat.includes(g.statesBody)) out.push(`the page does not print the line: "${g.statesBody}"`);
+    }
     if (g.noZeroOptions) { const z = [...String(text).matchAll(/([A-Za-z][A-Za-z0-9 \/-]{1,40}?)\s*\(0\)/g)].map(x => x[1].trim()); if (z.length) out.push(`option with zero sales shown on the page: ${z.join(", ")}`); }
     if (g.variantRule) { const small = [...String(text).matchAll(/([A-Za-z][A-Za-z0-9 \/-]{1,40}?)\s*\(([1-7])\)/g)].map(x => x[1].trim() + " (" + x[2] + ")"); if (small.length) out.push(`variant option under 8 sales offered on the page: ${small.join(", ")}`); }
     if (g.noRestoration && /professional restoration|restoration option/i.test(text)) out.push("a restoration option line appears on the page");
@@ -251,17 +259,25 @@ try {
       r.pages = r.pages || {};
       if (!rd.path.startsWith("/" + ({ marketCheck: "market-check", buy: "buy", sell: "sell" })[pr])) { r.pages[pr] = { cell: "FAIL", diffs: [rd.path.startsWith("/sell") && pr !== "sell" ? "redirected to /sell: key rejected" : `ended on ${rd.path || "nothing"}`] }; continue; }
       const parsed = PARSERS[pr](rd.text);
-      const tx = textDiffs(g, rd.text);
+      const tx = textDiffs(g, rd.text, pr, parsed);
       if (pr === "buy") { r.buyListings = parsed.listings; r.pages.buy = { cell: parsed.listings.length ? "PENDING" : "N/A", diffs: [], shown: parsed.listings.length ? `${parsed.listings.length} live car(s)` : "no live car" }; continue; }
       const lane = (byQ[g.q] && byQ[g.q].lanes || {})[pr];
       const dr = drift(pr, parsed, lane, facts[g.q]);
       if (dr.length) r.pages[pr] = { cell: "DRIFT", diffs: dr.map(d => "RENDER DRIFT, " + d) };
       else r.pages[pr] = { cell: engineCell.cell, diffs: [] };
       if (tx.length && r.pages[pr].cell !== "DRIFT") r.pages[pr] = { cell: "FAIL", diffs: tx };
+      r.pages[pr].count = parsed.count;
       r.pages[pr].shown = `${parsed.count == null ? "-" : parsed.count} ${parsed.range ? money(parsed.range.low) + "-" + money(parsed.range.high) : "no range"}`;
     }
   };
   await Promise.all(Array.from({ length: Math.min(3, jobs.length) }, worker));
+  // "equalsBare": the typed words must give the count of the bare car's page (the page then also prints the one "states a body" line).
+  for (const r of rows) {
+    if (!r.g.equalsBare || !r.pages || !r.pages.marketCheck) continue;
+    let bare = null; try { bare = PARSERS.marketCheck((await readPage("marketCheck", r.g.equalsBare)).text).count; } catch (e) {}
+    const typed = r.pages.marketCheck.count;
+    if (bare == null || typed == null || bare !== typed) { r.pages.marketCheck.cell = "FAIL"; r.pages.marketCheck.diffs = (r.pages.marketCheck.diffs || []).concat([`the typed words show ${typed == null ? "no count" : typed} sales, the bare page "${r.g.equalsBare}" shows ${bare == null ? "no count" : bare}: two answers for one car`]); }
+  }
 
   // BUY PAGE (Part 2b): each live car's line is compared with the engine's answer for THAT car (its own year, make and model, the title the
   // page shows), not with the typed car's answer. A difference is RENDER DRIFT with both figures.
@@ -324,6 +340,23 @@ try {
   }
   // IDENTITY ROW (bare 1965 Ford Mustang): (a) each option count the page prints equals the count the page shows when that option is typed;
   // (b) the option counts add up to the Any count on the bare page. A difference is a FAIL with both numbers.
+  // The chip as a visitor uses it: open the bare page, click the option, read the count the page then shows (the same car typed in words must give the same count).
+  const chipCount = async (q, label) => {
+    const ctx = await browser.createBrowserContext(); const page = await ctx.newPage();
+    try {
+      if (CREW) await page.setCookie({ name: "gas_crew", value: CREW, domain: new URL(BASE).hostname, path: "/" });
+      await page.setRequestInterception(true);
+      const host = new URL(BASE).host;
+      page.on("request", rq => { let own = false; try { own = new URL(rq.url()).host === host; } catch (e) {} rq.continue(own ? { headers: { ...rq.headers(), "x-ops-key": KEY, "x-launch-stage-test": "2" } } : undefined); });
+      await page.goto(pageUrl.marketCheck(q), { waitUntil: "domcontentloaded", timeout: 60000 }).catch(() => {});
+      const wait = async () => { let t = ""; const until = Date.now() + 50000; while (Date.now() < until) { t = await page.evaluate(() => document.body ? document.body.innerText : "").catch(() => ""); if (/\d+ sales?\b/.test(t) && /MARKET CHECK/.test(t)) break; await new Promise(x => setTimeout(x, 1000)); } return t; };
+      await wait();
+      const hit = await page.evaluate(lbl => { const e = [...document.querySelectorAll("a,button,[role=button]")].find(x => (x.innerText || "").trim().toLowerCase().startsWith(lbl.toLowerCase())); if (!e) return false; e.click(); return true; }, label);
+      if (!hit) return null;
+      await new Promise(x => setTimeout(x, 4000));
+      return PARSERS.marketCheck(await wait()).count;
+    } finally { await ctx.close().catch(() => {}); }
+  };
   for (const g of IDENT) {
     const facts = async (q) => {
       const rd = await readPage("marketCheck", q);
@@ -331,23 +364,6 @@ try {
       const wm = /Which [^?\n]+\?\s*([^\n]+)/.exec(rd.text);
       const options = wm ? [...wm[1].matchAll(/([A-Za-z][A-Za-z \/-]*?)\s*\((\d+)\)/g)].map(x => ({ label: x[1].trim(), n: Number(x[2]) })) : [];
       return { count: p.count, options, scope: p.scope };
-    };
-    // The chip as a visitor uses it: open the bare page, click the option, read the count the page then shows (the same car typed in words must give the same count).
-    const chipCount = async (q, label) => {
-      const ctx = await browser.createBrowserContext(); const page = await ctx.newPage();
-      try {
-        if (CREW) await page.setCookie({ name: "gas_crew", value: CREW, domain: new URL(BASE).hostname, path: "/" });
-        await page.setRequestInterception(true);
-        const host = new URL(BASE).host;
-        page.on("request", rq => { let own = false; try { own = new URL(rq.url()).host === host; } catch (e) {} rq.continue(own ? { headers: { ...rq.headers(), "x-ops-key": KEY, "x-launch-stage-test": "2" } } : undefined); });
-        await page.goto(pageUrl.marketCheck(q), { waitUntil: "domcontentloaded", timeout: 60000 }).catch(() => {});
-        const wait = async () => { let t = ""; const until = Date.now() + 50000; while (Date.now() < until) { t = await page.evaluate(() => document.body ? document.body.innerText : "").catch(() => ""); if (/\d+ sales?\b/.test(t) && /MARKET CHECK/.test(t)) break; await new Promise(x => setTimeout(x, 1000)); } return t; };
-        await wait();
-        const hit = await page.evaluate(lbl => { const e = [...document.querySelectorAll("a,button,[role=button]")].find(x => (x.innerText || "").trim().toLowerCase().startsWith(lbl.toLowerCase())); if (!e) return false; e.click(); return true; }, label);
-        if (!hit) return null;
-        await new Promise(x => setTimeout(x, 4000));
-        return PARSERS.marketCheck(await wait()).count;
-      } finally { await ctx.close().catch(() => {}); }
     };
     const any = await facts(g.q);
     const checks = [];
@@ -366,6 +382,13 @@ try {
     const okSum = any.options.length > 0 && any.count != null && sum === any.count;
     checks.push({ name: "options add up to Any", cell: okSum ? "PASS" : "FAIL", diffs: okSum ? [] : [any.options.length ? `${any.options.map(x => x.n).join(" + ")} = ${sum}, the bare page shows ${any.count == null ? "no count" : any.count} (Any)` : "the bare page prints no identity question"], shown: `${any.options.map(x => x.n).join("+") || "-"} vs ${any.count == null ? "-" : any.count}` });
     identityOut.push({ id: g.id, q: g.q, any, checks });
+  }
+  // CHIP PAIRS (Oct 16 2026): a question's chip, clicked on the bare page, and the same answer typed in words must show one count (row 5, the Cobra 289 or 427).
+  for (const r of rows) for (const cp of r.g.chipPairs || []) {
+    const ch = await chipCount(cp.bare, cp.label);
+    let ty = null; try { ty = PARSERS.marketCheck((await readPage("marketCheck", cp.typed)).text).count; } catch (e) {}
+    const same = ch != null && ty != null && ch === ty;
+    chipPairOut.push({ id: r.g.id, name: `${cp.label}: chip equals typed words`, cell: same ? "PASS" : "FAIL", shown: `chip ${ch == null ? "no chip found" : ch} vs typed ${ty == null ? "no count" : ty}`, diff: same ? null : `two answers for one car: clicking ${cp.label} on "${cp.bare}" shows ${ch == null ? "no chip found" : ch}, typing "${cp.typed}" shows ${ty == null ? "no count" : ty}` });
   }
   // CHASSIS-NUMBER GUARD (Oct 14 2026): a keyword is never read inside a chassis or lot number. The 1969 365 GT 2+2 whose chassis number is 12751
   // holds "275"; the engine's row fence must set it aside for a 275 GTB, not pool it. One read-only poolrows call, run with every full table.
@@ -414,6 +437,7 @@ for (const io of identityOut) {
   console.log(`\nIdentity row ${io.id}, ${io.q}: the bare page shows ${io.any.count == null ? "no count" : io.any.count} sales (Any), options ${io.any.options.map(x => x.label + " (" + x.n + ")").join(", ") || "none"}`);
   for (const c of io.checks) { console.log(`  ${pad(c.cell, 6)} ${pad(c.name, 26)} ${c.shown}`); for (const d of c.diffs) console.log(`         ${d}`); if (c.cell === "FAIL") nFail++; else if (c.cell === "PASS") nPass++; }
 }
+for (const c of chipPairOut) { console.log(`\nRow ${c.id}, ${c.name}: ${c.shown}`); if (c.diff) console.log(`  ${c.diff}`); if (c.cell === "FAIL") nFail++; else nPass++; }
 if (chassisGuard) console.log(`\nChassis-number guard (365 GT 2+2, chassis 12751, set aside from the 275 GTB pool): ${chassisGuard}`);
 console.log(`\n${nPass} PASS, ${nFail} FAIL, ${nDrift} RENDER DRIFT, ${nPend} PENDING (report-only; ${flag("strict") ? "strict: failures set the exit code" : "does not set the exit code"}).`);
 process.exit(flag("strict") && (nFail || nDrift) ? 1 : 0);
