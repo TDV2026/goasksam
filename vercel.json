@@ -45,6 +45,7 @@
     { "source": "/about", "destination": "/about.html" },
     { "source": "/how-sam-decides", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/howSamDecides?_crew=1" },
     { "source": "/how-sam-decides", "destination": "/api/howSamDecides" },
+    { "source": "/partner-demo", "destination": "/api/partnerDemo" },
     { "source": "/business", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/business?_crew=1" },
     { "source": "/business", "destination": "/api/business" },
     { "source": "/powersellers", "destination": "/powersellers.html" },
