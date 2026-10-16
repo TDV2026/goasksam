@@ -315,6 +315,17 @@ try {
 } catch (e) {
   record("Buy box clears and the mic answers one tap (scripts/buyBoxCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The partner demo (Lane C, Oct 15 2026): api/partnerAnswer.js gives Market Check's range, count, window and sales for
+// the same car, with no venue, link, title or listing id. The fixed answers run always; the five live cars only when
+// GAS_CREW_COOKIE is set, and are reported as SKIP otherwise, never as a pass.
+try {
+  const out = execSync("node scripts/partnerEngineMatch.mjs", { encoding: "utf8" });
+  const line = (out.match(/partnerEngineMatch: .*/) || [""])[0];
+  record("Partner endpoint matches Market Check, no venues (scripts/partnerEngineMatch.mjs)", "PASS", line);
+  if (/live part skipped/.test(line)) record("Partner endpoint, the five live cars", "SKIP", "GAS_CREW_COOKIE not set in this environment");
+} catch (e) {
+  record("Partner endpoint matches Market Check, no venues (scripts/partnerEngineMatch.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The applied choice (Lane C, Oct 15 2026): a Task from a Buy page names the body the engine applied. No network.
 try {
   const out = execSync("node scripts/engineChoiceCheck.mjs", { encoding: "utf8" });
