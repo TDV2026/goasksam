@@ -49,7 +49,7 @@ import {
 } from "../lib/_classify.js";
 import { hammerUsd, ensureFxReady } from "../lib/_houseComps.js";
 import { buildSharedAnalysis, isRoutableVenue, ROUTABLE_VENUES, SHORT_AUCTION_VENUES, US_ROUTE_VENUES } from "../lib/platformPick.js";
-import { specKeyFor, coreOf, persistCore, warmAnswerKeyFor, readWarmAnswer, readWarmAnswerDetailed, writeWarmAnswer, answerCacheable } from "../lib/live/search.js";
+import { specKeyFor, coreOf, persistCore, warmAnswerKeyFor, readWarmAnswer, readWarmAnswerDetailed, writeWarmAnswer, answerCacheable, markRecomputing } from "../lib/live/search.js";
 
 import { isCrewRequest } from "../lib/_crew.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
@@ -3509,7 +3509,15 @@ async function handler(req, res) {
           const tw = Date.now();
           const w = await readWarmAnswerDetailed({ supabaseUrl, supabaseKey }, warmKey);
           obTimes.warmReadMs = Date.now() - tw;
-          if (w && w.raw) { oneBox = w.raw; warmHit = true; if (w.stale) staleInfo = { storedAt: w.storedAt }; }
+          if (w && w.raw) {
+            if (w.stale && w.recomputingSince && (Date.now() - Date.parse(w.recomputingSince)) > 90000) {
+              // a recompute started over 90 s ago never landed: compute live now (one cold read), never serve stale twice
+              console.error(`stale row recompute did not land in 90s (${warmKey.slice(0, 80)}); computing live`);
+            } else {
+              oneBox = w.raw; warmHit = true;
+              if (w.stale) { staleInfo = { storedAt: w.storedAt }; markRecomputing({ supabaseUrl, supabaseKey }, warmKey).catch(() => {}); }
+            }
+          }
         } catch { /* fall through to the live path below */ }
       }
       try {
@@ -3624,8 +3632,10 @@ async function handler(req, res) {
         // awaited it after res.json and the row stayed stale), so nothing here waits on it.
         try {
           const selfKey = process.env.PROBE_KEY || process.env.OPS_KEY || null;
-          const host = String(req.headers["x-forwarded-host"] || req.headers.host || "goasksam.com");
-          if (selfKey) fetch(`https://${host}/api/sellerDecision`, { method: "POST", headers: { "Content-Type": "application/json", "x-ops-key": selfKey }, body: JSON.stringify({ ...(req.body || {}), recompute: true, fresh: undefined }) }).catch(() => {});
+          // The alias, not the custom domain: goasksam.com's bot protection answers a server-side fetch with a challenge
+          // (the row stayed stale on the first live proof); the ops key is accepted on the alias every ops call uses.
+          const selfHost = process.env.SELF_HOST || "goasksam.vercel.app";
+          if (selfKey) fetch(`https://${selfHost}/api/sellerDecision`, { method: "POST", headers: { "Content-Type": "application/json", "x-ops-key": selfKey }, body: JSON.stringify({ ...(req.body || {}), recompute: true, fresh: undefined }) }).catch(() => {});
           else console.error("stale recompute: no server credential in the environment, the row stays stale until the next warm");
         } catch (e) { console.error(`stale recompute self-call failed: ${(e && e.message) || e}`); }
       }
