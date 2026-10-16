@@ -8,7 +8,8 @@
 import { PAGE_CSS, FONT_LINKS, isCrewRequest } from "./_chrome.js";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
-import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE } from "../lib/appShell.js";
+import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE, paletteHead, paletteSwitcherHtml, PALETTE_SWITCHER_JS } from "../lib/appShell.js";
+import { isTesterRequest } from "../lib/_tester.js";
 import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
 import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
@@ -37,17 +38,18 @@ export async function exampleUpdate() {
 // (item 9, Oct 2026: lib/authBar.js) Market Check, Buy and Sell all use now - never a per-page
 // copy. On desktop the card centres in the content column, clear of the 240px rail.
 const AUTH_CSS = AUTH_SIGNBAR_CSS + "\n@media (min-width:861px){#auth-modal{padding-left:256px}}\n";
-const CSS = `:root{--red:#D7262C}
+const CSS = `:root{--red:#D7262C;--tk-quote:#D7262C;--tk-line:#D9D3C8;--tk-soft:#EFEBE4;--tk-text2:#3A3733;--tk-switch:#CFC8BC}
+:root[data-pal]{--tk-quote:var(--green);--tk-line:var(--border);--tk-soft:var(--tint);--tk-text2:var(--sec);--tk-switch:var(--border)}
 .col{max-width:880px}
 .tkhero h1{margin:8px 0 10px;font:500 46px/1.08 var(--serif);letter-spacing:-.015em}
 .tkhero .lead{margin:0;font:400 23px/1.45 var(--serif)}
 .tkhero .pos{margin:12px 0 0;font:500 14px/1.4 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--sec)}
-.cta{display:inline-flex;align-items:center;min-height:48px;margin-top:22px;padding:0 20px;border-radius:6px;background:var(--ink);color:#fff;font:500 16px/1 var(--sans);text-decoration:none;border:0;cursor:pointer}
+.cta{display:inline-flex;align-items:center;min-height:48px;margin-top:22px;padding:0 20px;border-radius:6px;background:var(--ink);color:var(--on-accent,#fff);font:500 16px/1 var(--sans);text-decoration:none;border:0;cursor:pointer}
 .sec{border-top:1px solid var(--div);margin-top:34px;padding-top:22px}
 .sec h2{margin:0 0 10px;font:500 26px/1.25 var(--serif)}
 .sec p{margin:0 0 12px;font:400 17px/1.55 var(--sans)}
-.example{border-left:2px solid var(--red);padding:2px 0 2px 16px;font:italic 400 20px/1.45 var(--serif)}
-.example .who{display:block;font:600 12px/1 var(--sans);font-style:normal;letter-spacing:.14em;text-transform:uppercase;color:var(--red);margin-bottom:8px}
+.example{border-left:2px solid var(--tk-quote);padding:2px 0 2px 16px;font:italic 400 20px/1.45 var(--serif)}
+.example .who{display:block;font:600 12px/1 var(--sans);font-style:normal;letter-spacing:.14em;text-transform:uppercase;color:var(--tk-quote);margin-bottom:8px}
 .steps{margin:0;padding:0 0 0 20px;font:400 17px/1.6 var(--sans)}
 .faq dt{margin-top:16px;font:500 19px/1.4 var(--serif)}
 .faq dd{margin:4px 0 0;font:400 16px/1.55 var(--sans)}
@@ -58,50 +60,50 @@ const APP_CSS = `
 .apph{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:8px 0 18px}
 .apph h1{margin:0;font:500 34px/1.15 var(--serif)}
 .apph a{font:400 15px var(--sans);color:var(--sec);text-decoration:underline;text-underline-offset:4px}
-.blocked{margin:0 0 18px;padding:12px 16px;border:1px solid var(--div);border-left:3px solid var(--red);background:#fff;font:400 16px/1.5 var(--sans)}.noteinfo{margin:0 0 14px;padding:10px 14px;border:1px solid var(--div);border-radius:10px;background:var(--card);font-size:15px;color:var(--soft)}
+.blocked{margin:0 0 18px;padding:12px 16px;border:1px solid var(--div);border-left:3px solid var(--red);background:var(--card);font:400 16px/1.5 var(--sans)}.noteinfo{margin:0 0 14px;padding:10px 14px;border:1px solid var(--div);border-radius:10px;background:var(--card);font-size:15px;color:var(--soft)}
 .blocked a{color:var(--red);font-weight:600}
-.limitbox{margin:0 0 18px;padding:16px 18px;border:1px solid var(--div);border-left:3px solid var(--green);border-radius:8px;background:#fff}
+.limitbox{margin:0 0 18px;padding:16px 18px;border:1px solid var(--div);border-left:3px solid var(--green);border-radius:8px;background:var(--card)}
 .limitbox p{margin:0 0 14px;font:400 17px/1.5 var(--sans);color:var(--ink)}
 .limitbox .go{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .pausedh{margin:22px 0 10px;font:600 12px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--sec)}
 .tcard + .pausedh{margin-top:26px}
-.tcard{border:1px solid var(--div);border-radius:8px;background:#fff;padding:18px 20px 20px}
+.tcard{border:1px solid var(--div);border-radius:8px;background:var(--card);padding:18px 20px 20px}
 .thead{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
 .thead .tline{flex:1;min-width:220px;margin:0;font:400 21px/1.35 var(--serif)}
 .pill{display:inline-block;font:600 11px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;padding:6px 8px;border-radius:4px;background:#EFEBE4;color:var(--ink);white-space:nowrap;margin-top:4px}
 .pill.running{background:#1A1A1A;color:#fff}.pill.paused{background:#EFEBE4}.pill.stopped,.pill.done{background:#F3F1EC;color:var(--sec)}.pill.draft{background:#fff;border:1px solid var(--div)}
 .tbtns{display:flex;gap:8px;margin-top:2px}
-.sbtn{border:1px solid #D9D3C8;background:#fff;color:var(--ink);border-radius:6px;min-height:36px;padding:0 12px;font:500 14px var(--sans);cursor:pointer}
+.sbtn{border:1px solid var(--tk-line);background:var(--card);color:var(--ink);border-radius:6px;min-height:36px;padding:0 12px;font:500 14px var(--sans);cursor:pointer}
 .sbtn:hover{border-color:var(--ink)}
 .readback{margin:14px 0 0;font:400 20px/1.4 var(--serif)}
 .go{display:flex;gap:16px;align-items:center;margin-top:14px}
-.pbtn{border:0;background:var(--ink);color:#fff;border-radius:6px;min-height:44px;padding:0 22px;font:600 16px var(--sans);cursor:pointer}
+.pbtn{border:0;background:var(--ink);color:var(--on-accent,#fff);border-radius:6px;min-height:44px;padding:0 22px;font:600 16px var(--sans);cursor:pointer}
 .pbtn[disabled],.sbtn[disabled],.plink[disabled]{opacity:.65;cursor:default}
 .plink{background:none;border:0;padding:0;color:var(--ink);font:500 15px var(--sans);text-decoration:underline;text-underline-offset:4px;cursor:pointer;min-height:44px}
 .boxlab{display:block;margin:18px 0 6px;font:500 14px var(--sans);color:var(--sec)}
-.tkbox{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #D9D3C8;border-radius:6px;padding:4px 6px 4px 14px}
+.tkbox{display:flex;gap:8px;align-items:center;background:var(--card);border:1px solid var(--tk-line);border-radius:6px;padding:4px 6px 4px 14px}
 .tkbox input{flex:1;min-width:0;border:0;outline:0;font:400 17px/1.4 var(--sans);background:transparent;padding:11px 0}
-.tkbox button{border:0;background:var(--ink);color:#fff;border-radius:6px;min-height:40px;padding:0 14px;font:500 15px var(--sans);cursor:pointer}
+.tkbox button{border:0;background:var(--ink);color:var(--on-accent,#fff);border-radius:6px;min-height:40px;padding:0 14px;font:500 15px var(--sans);cursor:pointer}
 .tkbox button[disabled]{opacity:.6}
-.samreply{margin:10px 0 0;font:400 17px/1.45 var(--serif);color:#3A3733}
+.samreply{margin:10px 0 0;font:400 17px/1.45 var(--serif);color:var(--tk-text2)}
 .feed{list-style:none;margin:20px 0 0;padding:0;border-top:1px solid var(--div)}
 .feed>li{padding:14px 0;border-bottom:1px solid var(--div)}
 .feed .when{display:block;font:500 12px/1 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--sec);margin-bottom:6px}
 .feed .ut{margin:0;font:400 18px/1.45 var(--serif)}
 .feed .ut.sys{font:400 15px/1.45 var(--sans);color:var(--sec)}
 .cars{list-style:none;margin:10px 0 0;padding:0}
-.cars li{padding:7px 0;border-top:1px solid #EFEBE4;font:400 15px/1.45 var(--sans)}
+.cars li{padding:7px 0;border-top:1px solid var(--tk-soft);font:400 15px/1.45 var(--sans)}
 .cars a.carlink{display:block;color:var(--ink);text-decoration:none}.cars a.carlink .t{font-weight:600}.cars a.carlink:hover .t{color:var(--green)}
 .cars .fx{display:block;color:var(--sec)}
 .cars .more{color:var(--sec)}
 .empty{margin:14px 0 0;font:400 15px var(--sans);color:var(--sec)}
 .notify{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:12px 2px 0;font:400 15px/1.5 var(--sans);color:var(--sec)}
-.notify b{font-weight:600;color:var(--ink)}.often{display:inline-flex;align-items:center;gap:8px;color:var(--ink)}.often select{min-height:36px;font:400 15px var(--sans);padding:0 8px;border:1px solid var(--div,#E6E1D8);border-radius:6px;background:#fff;color:var(--ink)}.oftenhelp{flex-basis:100%;font-size:14px;color:var(--sec)}
+.notify b{font-weight:600;color:var(--ink)}.often{display:inline-flex;align-items:center;gap:8px;color:var(--ink)}.often select{min-height:36px;font:400 15px var(--sans);padding:0 8px;border:1px solid var(--div,#E6E1D8);border-radius:6px;background:var(--card);color:var(--ink)}.oftenhelp{flex-basis:100%;font-size:14px;color:var(--sec)}
 .notify .plink{min-height:36px;font-size:15px}
 .sw{display:inline-flex;align-items:center;gap:8px;cursor:pointer;min-height:36px;color:var(--ink)}
 .sw input{position:absolute;opacity:0;width:1px;height:1px}
-.sw i{position:relative;width:38px;height:22px;border-radius:11px;background:#CFC8BC;transition:background .15s;flex:none}
-.sw i::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s}
+.sw i{position:relative;width:38px;height:22px;border-radius:11px;background:var(--tk-switch);transition:background .15s;flex:none}
+.sw i::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--card);transition:transform .15s}
 .sw input:checked+i{background:var(--ink)}.sw input:checked+i::after{transform:translateX(16px)}
 .sw input:focus-visible+i{outline:2px solid var(--ink);outline-offset:2px}
 .past{margin-top:22px}
@@ -130,12 +132,16 @@ export default async function handler(req, res) {
     { "@context": "https://schema.org", "@type": "WebPage", name: "Sam Tasks", url: "https://goasksam.com/tasks", description: desc }
   ];
   const crew = isCrewRequest(req);
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  // PALETTE SWITCHER (Sam, Oct 2026 palette round; lib/appShell.js paletteHead): shown for crew, testers or
+  // ?palette=1, computed the same way Market Check, Sell and the business page compute it. A page carrying the
+  // bar is never shared-cached (showPal joins the no-store condition below).
+  const showPal = crew || isTesterRequest(req) || /[?&]palette=1\b/.test(String(req.url || ""));
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">${paletteHead(showPal)}
 <title>${title}</title><meta name="description" content="${esc(desc)}"><meta name="robots" content="${robots}"><link rel="canonical" href="https://goasksam.com/tasks">
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:url" content="https://goasksam.com/tasks"><meta property="og:type" content="website"><meta property="og:image" content="https://goasksam.com/og-card.png">
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#F6F3EC">
 ${FONT_LINKS}<style>${PAGE_CSS}${CSS}${AUTH_CSS}${SHELL_CSS}${CONSENT_BANNER_CSS}</style>${ld.map(o => '<script type="application/ld+json">' + JSON.stringify(o).replace(/</g, "\\u003c") + "</script>").join("")}</head><body>
-${AUTH_SIGNBAR_HTML}
+${showPal ? paletteSwitcherHtml() : ""}${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 ${railOpenHtml({ active: "tasks", crew, req, analytics: true })}
 <main><div class="col">
@@ -153,7 +159,7 @@ ${CONSENT_BANNER_HTML}
 <script src="/js/auth.js" defer></script>
 <script>${EXPLAINER_JS}</script>
 <script src="/api/track?js=1" defer></script>
-<script>${CONSENT_BANNER_JS}</script></body></html>`;
+<script>${CONSENT_BANNER_JS}</script>${showPal ? `<script>${PALETTE_SWITCHER_JS}</script>` : ""}</body></html>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", robots);
   // Crew's full nav is never shared or stored. The public response (no crew cookie) is identical
@@ -165,7 +171,7 @@ ${CONSENT_BANNER_HTML}
   // fullyLaunched() is true and the request carries no server credential (so an ops/probe stage
   // override never seeds the shared cache with a simulated state).
   const hasCrewCookie = /(?:^|;\s*)gas_crew=/.test(String(req.headers.cookie || ""));
-  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : "public, s-maxage=30");
+  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched() || showPal) ? "private, no-store" : "public, s-maxage=30");
   res.status(200).send(html);
 }
 
@@ -195,11 +201,12 @@ const EXPLAINER_JS = String.raw`(function(){
 
 function appPage(req, res) {
   const crew = isCrewRequest(req);
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  const showPal = crew || isTesterRequest(req) || /[?&]palette=1\b/.test(String(req.url || ""));
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">${paletteHead(showPal)}
 <title>Your Tasks | GoAskSam</title><meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#F6F3EC">
 ${FONT_LINKS}<style>${PAGE_CSS}${CSS}${APP_CSS}${AUTH_CSS}${SHELL_CSS}${CONSENT_BANNER_CSS}</style></head><body>
-${AUTH_SIGNBAR_HTML}
+${showPal ? paletteSwitcherHtml() : ""}${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 ${railOpenHtml({ active: "tasks", crew, req, analytics: true })}
 <main><div class="col">
@@ -212,7 +219,7 @@ ${CONSENT_BANNER_HTML}
 <script src="/js/auth.js" defer></script>
 <script>${APP_JS}</script>
 <script src="/api/track?js=1" defer></script>
-<script>${CONSENT_BANNER_JS}</script></body></html>`;
+<script>${CONSENT_BANNER_JS}</script>${showPal ? `<script>${PALETTE_SWITCHER_JS}</script>` : ""}</body></html>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
   res.setHeader("Cache-Control", "private, no-store");
