@@ -73,7 +73,9 @@ else {
   const post = async (path, body) => { const r = await fetch(HOST + path, { method: "POST", headers: { "Content-Type": "application/json", Cookie: "gas_crew=" + COOKIE }, body: JSON.stringify(body) }); return { status: r.status, j: await r.json().catch(() => null) }; };
   for (const q of CARS) {
     // The same question count on both: Market Check's page asks first (asked 0); a question answered either way is compared as a question.
-    const [p, m] = await Promise.all([post("/api/partnerAnswer", { q }), post("/api/sellerDecision", { oneBox: true, car: { raw: q }, asked: 0 })]);
+    // One read at a time (Sam, Oct 16 2026): the endpoint first, then Market Check, never both at once.
+    const p = await post("/api/partnerAnswer", { q });
+    const m = await post("/api/sellerDecision", { oneBox: true, car: { raw: q }, asked: 0 });
     if (!p.j || !m.j) { ok(false, `${q}: no answer (partner ${p.status}, Market Check ${m.status})`); continue; }
     ok(venueLeak(p.j).length === 0, `${q}: no venue, link, title or id on the live answer (${venueLeak(p.j).slice(0, 3).join(", ")})`);
     if (m.j.status !== "one_box" || /_choice$/.test(String(m.j.tier || ""))) { ok(p.j.answerType === "identity_question", `${q}: Market Check asks (${m.j.tier || m.j.status}), the endpoint asks too (${p.j.answerType})`); console.log(`  ${q}: both ask`); continue; }
