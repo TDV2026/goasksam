@@ -23,6 +23,7 @@ const DESC = "Sam Desk: ask the whole collector car market in plain words. Real 
 const SITE = "https://goasksam.com";
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const usd = n => "$" + Math.round(Number(n)).toLocaleString("en-US");
+const bigNum = n => Math.round(Number(n)).toLocaleString("en-US");
 const mailHref = subject => `mailto:feedback@goasksam.com?subject=${encodeURIComponent(subject)}`;
 
 const YOUR_RESULTS_RAIL = '<a class="gas-navitem" id="gas-nav-results" href="#" style="display:none">Your results</a><div class="gas-submenu" id="gas-results-menu"></div>';
@@ -72,6 +73,12 @@ a{color:var(--green)}a:hover{color:var(--green-dk)}
 .biz-h1{margin:0 0 14px;font:600 clamp(34px,4.2vw,48px)/1.1 var(--serif);letter-spacing:-.02em;color:var(--ink);text-wrap:balance}
 .biz-sub{margin:0 0 26px;font:400 19px/1.5 var(--sans);color:var(--soft);max-width:60ch}
 .biz-ctas{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin:0 0 36px}
+
+/* proof strip (section 2c): real archive counts only, never rendered unless the read succeeded */
+.biz-proof{display:flex;gap:40px;flex-wrap:wrap;padding:20px 0 28px;margin-bottom:8px;border-bottom:1px solid var(--div)}
+.biz-proof-item{display:flex;flex-direction:column;gap:2px}
+.biz-proof-n{font:600 30px/1 var(--serif);color:var(--green)}
+.biz-proof-l{font:400 13px/1.3 var(--sans);color:var(--sec)}
 .biz-btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 22px;border-radius:12px;background:var(--green);color:var(--on-accent);font:600 16px var(--sans);text-decoration:none;border:0;cursor:pointer}
 .biz-btn:hover{background:var(--green-dk);color:var(--on-accent)}
 .biz-quiet{font:600 15px/1 var(--sans);color:var(--green);text-decoration:underline;text-underline-offset:3px}
@@ -111,6 +118,9 @@ a{color:var(--green)}a:hover{color:var(--green-dk)}
 .biz-step-cmp{display:flex;flex-direction:column;gap:6px;margin-top:2px}
 .biz-step-cmpitem{font:400 13px/1.4 var(--sans);color:var(--ink)}
 .biz-step-cmpitem b{display:block;font:600 16px/1.2 var(--serif);color:var(--green)}
+.biz-movechart{display:flex;justify-content:center;margin-top:4px}
+.biz-movechart-svg{width:100%;max-width:210px;height:auto}
+.biz-movechart-note{margin:10px 0 0;font:400 13px/1.5 var(--sans);color:var(--soft)}
 .biz-step-cards{display:flex;flex-direction:column;gap:8px;margin-top:2px}
 .biz-step-card{display:flex;gap:10px;align-items:center;text-decoration:none;min-width:0}
 .biz-step-card-ph{width:44px;height:34px;flex:none;border-radius:6px;background:var(--border);overflow:hidden}
@@ -173,6 +183,53 @@ function trustHtml() {
 }
 function stepArrow() { return `<div class="biz-step-arrow" aria-hidden="true">${ICON.rarrow}</div>`; }
 
+// Proof strip (section 2c): real archive counts, zero vendor cost (lib/live/deskProof.js, sales_archive
+// reads only). Never partial - either both real reads came back or the whole strip is skipped, so a
+// transient Supabase miss never shows a half-built row. "Nightly" needs no read: the ingest schedule
+// (docs/nightly-workflow.yml) is an architectural fact, not a number pulled from this request.
+function proofStripHtml(soldCount, vinShare) {
+  if (!(Number(soldCount) > 0) || !vinShare || !(vinShare.share > 0)) return "";
+  const soldFloor = Math.floor(Number(soldCount) / 1000) * 1000;
+  const sharePct = Math.round(vinShare.share * 100);
+  return `<div class="biz-proof">` +
+    `<div class="biz-proof-item"><span class="biz-proof-n">${esc(bigNum(soldFloor))}+</span><span class="biz-proof-l">completed sales tracked</span></div>` +
+    `<div class="biz-proof-item"><span class="biz-proof-n">${esc(sharePct)}%</span><span class="biz-proof-l">carry a VIN history</span></div>` +
+    `<div class="biz-proof-item"><span class="biz-proof-n">Nightly</span><span class="biz-proof-l">archive refresh</span></div>` +
+    `</div>`;
+}
+
+// Market movement chart (upgrades the Compare step from two text rows to an actual range chart,
+// the same visual idiom Market Check's own chart uses - a band, not a single figure). Built
+// entirely from the engine's own yoyDirection object (lib/onebox.js yearOverYearDirectionFor),
+// cached nightly in lib/live/deskExample.js - no new data source, no new engine call. Returns ""
+// (caller falls back to no chart) when the shape is not what is expected - never half a chart.
+function compareChartHtml(yoy) {
+  if (!yoy || !Array.isArray(yoy.recentBand) || !Array.isArray(yoy.priorBand)) return "";
+  const bands = [
+    { label: yoy.priorWindow || "The 12 months before that", lo: Number(yoy.priorBand[0]), hi: Number(yoy.priorBand[1]) },
+    { label: yoy.recentWindow || "The past 12 months", lo: Number(yoy.recentBand[0]), hi: Number(yoy.recentBand[1]) }
+  ];
+  if (bands.some(b => !(b.hi > 0) || !(b.lo >= 0) || b.hi < b.lo)) return "";
+  const allVals = bands.flatMap(b => [b.lo, b.hi]);
+  const max = Math.max(...allVals), min = Math.min(...allVals);
+  const pad = (max - min) * 0.2 || max * 0.1 || 1;
+  const top = max + pad, bottom = Math.max(0, min - pad);
+  const H = 150, barW = 56, gap = 70, x0 = 22;
+  const y = v => H - ((v - bottom) / (top - bottom || 1)) * H;
+  const bars = bands.map((b, i) => {
+    const x = x0 + i * (barW + gap);
+    const y1 = y(b.hi), y2 = y(b.lo);
+    return `<rect x="${x}" y="${y1.toFixed(1)}" width="${barW}" height="${Math.max(2, y2 - y1).toFixed(1)}" rx="6" fill="var(--tint,#EDF3EE)" stroke="var(--green,#1E4D38)" stroke-width="1.5"/>` +
+      `<text x="${(x + barW / 2).toFixed(1)}" y="${(y1 - 8).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink,#15201A)">${esc(usd(b.hi))}</text>` +
+      `<text x="${(x + barW / 2).toFixed(1)}" y="${(y2 + 16).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink,#15201A)">${esc(usd(b.lo))}</text>` +
+      `<text x="${(x + barW / 2).toFixed(1)}" y="${H + 20}" text-anchor="middle" font-size="11" fill="var(--sec,#5E6B63)">${esc(b.label)}</text>`;
+  }).join("");
+  const svgW = x0 * 2 + barW * 2 + gap;
+  const svg = `<svg viewBox="0 0 ${svgW} ${H + 36}" class="biz-movechart-svg" role="img" aria-label="Typical price range, ${esc(bands[0].label)} compared with ${esc(bands[1].label)}">${bars}</svg>`;
+  const note = yoy.sentence ? `<p class="biz-movechart-note">${esc(yoy.sentence)}</p>` : "";
+  return `<div class="biz-movechart">${svg}</div>${note}`;
+}
+
 // The ASK/REFINE/COMPARE/VERIFY steps, built ONLY from lib/live/deskExample.js's cached engine
 // output (itself produced by oneBoxFor -> runOneBox, three real Porsche 911 generations - see that
 // file's own header for why three year-pinned chassis-code queries, not one bare "911" query).
@@ -184,10 +241,7 @@ function stepsHtml(ex) {
   const ask = `<div class="biz-step"><p class="biz-step-lab">Ask</p><p class="biz-step-q">${esc(askQ)}</p><p class="biz-step-a">${esc(ex.totalSoldCount)}</p></div>`;
   const refineRows = ex.gens.map(g => `<div class="biz-step-trow"><span>${esc(g.label)}</span><b>${esc(g.soldCount)} sold</b></div>`).join("");
   const refine = `<div class="biz-step"><p class="biz-step-lab">Refine</p><p class="biz-step-q">Split them by generation.</p><div class="biz-step-table">${refineRows}</div></div>`;
-  const yoy = ex.compare.yoyDirection;
-  const compareHtml = yoy && Array.isArray(yoy.recentBand) && Array.isArray(yoy.priorBand)
-    ? `<div class="biz-step-cmp"><div class="biz-step-cmpitem">${esc(yoy.recentWindow || "The last twelve months")}<b>${esc(usd(yoy.recentBand[0]))} to ${esc(usd(yoy.recentBand[1]))}</b></div><div class="biz-step-cmpitem">${esc(yoy.priorWindow || "The twelve months before")}<b>${esc(usd(yoy.priorBand[0]))} to ${esc(usd(yoy.priorBand[1]))}</b></div></div>`
-    : "";
+  const compareHtml = compareChartHtml(ex.compare.yoyDirection);
   const compare = `<div class="biz-step"><p class="biz-step-lab">Compare</p><p class="biz-step-q">Typical price against the twelve months before, for the ${esc(ex.compare.genCode)}.</p>${compareHtml}</div>`;
   const cards = ex.verify.map(c => {
     const img = c.image ? `<img src="${esc(c.image)}" alt="" loading="lazy">` : "";
@@ -227,8 +281,10 @@ async function page(req) {
     `</div>`;
   const followChips = `<div class="biz-followchips"><span class="biz-fchip">Now split that by mileage.</span><span class="biz-fchip">Only show no reserve sales.</span><span class="biz-fchip">Compare the last six months with the six before it.</span></div>`;
   const stepsSection = stepsHtml(ex);
+  const proofStrip = proofStripHtml(soldCount, vinShare);
   const body = `<main><div class="biz-col">` +
     heroHtml(heroInner, { alt: "A collector car", layout: "banner" }) +
+    proofStrip +
     `<section class="biz-sec" id="how-it-works"><h2>Start with a question. Keep digging.</h2>` +
     `<div class="biz-desk-search" role="search"><label class="sr" for="desk-q">Ask Sam Desk a question</label>` +
     `<input id="desk-q" autocomplete="off" placeholder="${esc(DESK_QUESTIONS[0])}" data-ph='${deskPh}'>` +
