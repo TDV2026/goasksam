@@ -301,6 +301,14 @@ try {
 } catch (e) {
   record("Set-aside sales labelled, never placed (scripts/setAsideCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Shared "What these sell for" card (Lane A, Oct 16 2026): every piece from the engine's own answer,
+// the house-steered thin shape (answer.thin.*) never read directly, client/server byte-identical. No network.
+try {
+  const out = execSync("node scripts/sellsForCardCheck.mjs", { encoding: "utf8" });
+  record("Shared sells-for card (scripts/sellsForCardCheck.mjs)", "PASS", (out.match(/sellsForCardCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Shared sells-for card (scripts/sellsForCardCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
