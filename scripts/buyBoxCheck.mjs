@@ -30,5 +30,16 @@ ok(/PH_NARROW = "Change the search, or ask\."/.test(client) && /matchMedia\("\(m
 // A follow-up keeps its search (Sam, Oct 15 2026): while "only manuals" runs, the header names the search on screen
 // with the words, and the follow-up words are never parsed alone into the waiting line.
 ok(/searchingBlock\(prevQ && said \? prevQ \+ ", " \+ said : said\)/.test(client) && /if \(!rerun && said && !prevQ\) fetch\(/.test(client), "a follow-up's header keeps the search on screen and its words are not named alone");
+// The nearest-years line names the car as the keep looking button does (Sam, Oct 15 2026): run the page's own nearText.
+{
+  const m = /\n  function nearText\(m, qp\)\{[\s\S]*?\n  \}\n/.exec(client);
+  ok(!!m && /esc\(nearText\(m, qp\) \|\| m\.note\)/.test(client), "the header's nearest-years line comes from nearText with the button's name");
+  if (m) {
+    const nearText = new Function(m[0] + "; return nearText;")();
+    ok(nearText({ near: { asked: [2006, 2006], years: [], abroad: 0 } }, "2006 Lexus SC 430s") === "No 2006 Lexus SC 430s are live right now, and none from 2005 or 2007 either.", "no car near the year: the button's name, then the years either side");
+    ok(nearText({ near: { asked: [1999, 1999], years: [1998, 2000], abroad: 1 } }, "1999 red Porsche 911s") === "No 1999 red Porsche 911s are live right now in the US. These are the nearest, 1998 and 2000. 1 is live abroad.", "nearest years and a car abroad");
+    ok(nearText({ note: "x" }, "a") === "" && nearText({ near: { asked: [2006, 2006], years: [] } }, "") === "", "no fields or no name: the server's own sentence stands");
+  }
+}
 console.log(`buyBoxCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
