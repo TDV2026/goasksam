@@ -8910,3 +8910,11 @@ FIX (building now): (1) the endpoint's in-process Market Check read carries the 
   (engine e58-20261016-bodyfamily). What is left is the model's own response time (one slow call of 9.2 s seen) and cold
   instances (parse 0.3 to 0.6 s on a fresh one). Search check: no public page touched by Lane E (the d.searchNote line is
   Lane C's; the fixed line is server text from engine facts).
+- READY for the integrator (Lane E, 2026-10-16T20:35Z): branch buy-speed-3 off origin/main, one commit, lib/live/samChat.js +
+  scripts/buySearchLineCheck.mjs. Lane C's live catch: a search with nothing live ("2011 BMW M3 Coupe", "2020 Ferrari F8
+  Tributo", "2006 Lexus SC 430") drew "Here's what's for sale: ..." under a header saying none are live. Now the fixed line
+  exists only when the search found live cars; with none the turn still ends in code (one model call) with the engine's own
+  no-cars sentence (the nearest-years line, or "Nothing live matches ... right now.") as the reply and searchNote null; the
+  rerun path the same. buySearchLineCheck gains an --empty case (default "2011 BMW M3 Coupe": one call, no "for sale", no
+  searchNote, nothing drawn under the header). Eight stubbed-turn scenarios pass locally. Lane C's page-side "only with
+  cards" guard can stay as belt and braces. No pool, fence or range touched.
