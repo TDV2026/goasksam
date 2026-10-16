@@ -44,7 +44,11 @@ try {
       const got = r.d && r.d.poolN != null ? r.d.poolN : (r.d && r.d.cards);
       // TYPED = CHIP (Sam's option 2, e55): typing the body word after the car must read the chip's rows exactly.
       let typedN = null;
-      if (value !== "unspecified") { const tr = await ask(`${q} ${value}`, null); typedN = tr.d && tr.d.poolN != null ? tr.d.poolN : (tr.d && tr.d.cards); }
+      if (value !== "unspecified") {
+        let tr = await ask(`${q} ${value}`, null);
+        if (!(tr.d && (tr.d.poolN != null || tr.d.cards != null))) tr = await ask(`${q} ${value}`, null);   // one retry: a challenge page or a dropped read is not a count
+        typedN = tr.d && tr.d.poolN != null ? tr.d.poolN : (tr.d && tr.d.cards);
+      }
       const typedOk = typedN == null ? value === "unspecified" : typedN === Number(n);
       const zero = !(Number(n) >= 1);   // a zero-count option must never be returned
       const bodyNull = value === "unspecified" ? (r.d && r.d.bodyStyle == null) : true;   // "Body not stated" leaves bodyStyle null

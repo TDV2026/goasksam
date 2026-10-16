@@ -24,7 +24,7 @@ const CASES = [
   { q: "1967 Alfa Romeo Giulia Sprint GT Veloce", tier: "result", refine: { variant: "gta", variantLabel: "GTA or TZ" }, expectLine: /No GTA or TZ 1967 Alfa Romeo Giulia.*sale on record/ },
   { q: "1969 Jaguar E-Type Coupe", tier: "result", refine: { variant: "lightweight", variantLabel: "Lightweight or Low Drag" }, expectLine: /No Lightweight or Low Drag 1969 Jaguar E-Type.*sale on record/ },
   { q: "1966 Ferrari 275 GTB", tier: "thin", refine: { variant: "competizione", variantLabel: "Competizione" }, expectLine: /No Competizione 1966 Ferrari 275 GTB sale on record/ },
-  { q: "1961 Jaguar E-Type Roadster", tier: "thin", refine: { variant: "lightweight", variantLabel: "Lightweight or Low Drag" }, expectLine: /No Lightweight or Low Drag 1961 Jaguar E-Type Roadster sale on record/ },
+  { q: "1961 Jaguar E-Type Roadster", tier: "thin", refine: { variant: "lightweight", variantLabel: "Lightweight or Low Drag" }, expectLine: /No Lightweight or Low Drag 1961 Jaguar E-Type.*sale on record/ },
   // restoration is never an option (e52): a stale refine for it is ignored and the base page answers
   { q: "1965 Ford Mustang", tier: "result", refine: { variant: "restoration", variantLabel: "Professional restoration" }, expectBase: true }
 ];

@@ -3402,7 +3402,7 @@ async function handler(req, res) {
       // Round-4 earned question: an inline refinement (mileage band / transmission) narrows the
       // same pool without a re-typed query. Sanitized to numbers + a known transmission token.
       const rawRefine = req.body?.refine || (car && car.refine) || null;
-      const obRefine = rawRefine ? {
+      let obRefine = rawRefine ? {
         miMin: Number.isFinite(Number(rawRefine.miMin)) ? Number(rawRefine.miMin) : null,
         miMax: Number.isFinite(Number(rawRefine.miMax)) ? Number(rawRefine.miMax) : null,
         // Nearest-sales fallback (Part 3): the band center, so a too-thin band shows the closest sales.
@@ -3430,6 +3430,10 @@ async function handler(req, res) {
         observe: typeof rawRefine.observe === "string" ? rawRefine.observe.slice(0, 40) : null,
         label: typeof rawRefine.label === "string" ? rawRefine.label.slice(0, 40) : null
       } : null;
+      // An emptied refine (every field dropped by the sanitizer, e.g. a stale restoration chip) is NO refine, so the
+      // stored row is read and written as for the bare page (it had forced a live compute and, under load, the
+      // 20-second card).
+      if (obRefine && !Object.values(obRefine).some(v => v != null && v !== "")) obRefine = null;
       // #1 divergence rule: the exact-car sale is fetched by the frontend (vehicleIdentity ->
       // vinAnchor) and passed back in car.exactSale; the engine compares it to the cluster.
       const rawES = car && typeof car.exactSale === "object" ? car.exactSale : null;
