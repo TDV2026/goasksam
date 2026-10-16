@@ -8975,3 +8975,110 @@ FOR LANE B (Lane E, 2026-10-16T22:10Z, Sam's order: two separate points; Lane E 
   CONTEXT ONLY (Market Check's path, not touched by Lane E): stageTimes six cars, cold median engine 5.8 s / client 7.8 s,
   warm row read 0.47 s / client 3.3 s with 1.3 to 6.1 s of response time beyond the server on the loaded archive; the
   earlier quiet reading (18:53Z) is above. Search check: no public page touched by Lane E.
+
+## Lane E, SEO and AI-search AUDIT (read-only, Oct 16 2026, 22:10 to 22:40Z; nothing public changed)
+Method: scripts/seoAudit.mjs (branch seo-audit) fetches each URL as a crawler does (Googlebot user agent, no JavaScript,
+no cookies, redirects not followed) and reads the raw HTML; a second pass with the automation bypass reads the pages the
+edge challenges. Firewall config read through the Vercel API (read-only). Times are one crawler fetch, uncached.
+
+HOW A CRAWLER IS TREATED AT THE EDGE (the first finding, Sam's decision): Vercel's Bot Protection managed rule is ON with
+action "challenge" (since Aug 26 2026) and one custom bypass rule lists exactly: /, /sell, /about, /how-sam-decides,
+/powersellers, /privacy, /robots.txt, /sitemap.xml, /onebox, /onebox-preview, /api/signup and the asset prefixes. Every
+other public URL answers HTTP 429 + x-vercel-mitigated: challenge to a crawler Vercel cannot verify by IP: the sitemap
+INDEX that robots.txt points to (/sitemap-index.xml), every dynamic sitemap (-pages, -specs, -vins*, -motorcycles,
+-other, -hubs), every /history page, every /cars page, /mcp, /buy, /market-check, /tasks, /business, /llms.txt. Verified
+search crawlers (Googlebot, Bingbot) pass Bot Protection by Vercel's IP verification; an AI answer engine's fetcher, a link
+checker or any tool not on Vercel's verified list sees the challenge (20 of 30 URLs in this audit, from a residential IP).
+
+THE TABLE (title / H1 / canonical / description / structured data / no-JS text / crawler time and bytes / inbound links /
+quotable sentence). Owner = the lane whose file renders the page.
+  Home "/" (vercel.json 308 -> /sell; the registry's own Home title does not exist as a page). Nav links on every page
+    point to "/" (a 308 hop). Owner Lane A (vercel.json redirect, public/index.html nav).
+  /sell (api/sellPage.js + public/index.html, Lane A): 200, 174 to 524 ms, 28 KB, private no-store. Title "Where to sell
+    your collector car" / H1 "Tell me what vehicle you're selling. I'll tell you where I'd sell it, and why." (two <br>
+    inside the H1) / canonical ok / description ok / Organization JSON-LD valid / no-JS text 746 chars, "Updated October
+    16, 2026" present (the named rule-1 exception) / links only to /, /how-sam-decides, /privacy, /about: NO link to any
+    history, spec, MCP or PowerSellers page / quotable: the description sentence only.
+  /how-sam-decides (api/howSamDecides.js, Lane A): 200, 179 to 274 ms, 43 KB, private no-store, X-Robots-Tag index. Title,
+    H1, canonical, description ok / no JSON-LD / 3,472 chars no-JS / links to /sell, /privacy, /about / quotable: "Every
+    answer on GoAskSam starts with a real sale."
+  /about, /powersellers, /privacy (static HTML, Lane A): 200, 131 to 215 ms, 7 to 16 KB, public max-age=0 (edge MISS each
+    time). Titles and H1s ok; /privacy has NO canonical; none has og:title or JSON-LD; /powersellers and /mcp have NO
+    inbound link from any audited page; the sitemap holds out /powersellers by design.
+  /mcp (public/mcp.html, Lane A): 200 (35 ms, 4 KB, edge HIT) but CHALLENGED for unverified crawlers. Title/H1/canonical/
+    dated description ok / no JSON-LD / links to /sell and /buy (/buy 302s for the public today) / no inbound link.
+  /buy, /market-check, /tasks, /business: 302 -> /sell for the public (launch stage), challenged at the edge; the static
+    /sitemap.xml still lists /buy (lastmod Oct 7), a sitemap URL that redirects. Owners Lane C (buy, tasks), Lane A (others).
+  Spec pages /cars/porsche/911[/gen[/trim[/body-gearbox]]] (api/specPage.js Lane A, data lib/specPages.js Lane B): 200,
+    267 to 852 ms, 37 to 43 KB, private no-store, CHALLENGED. Titles unique ("997 Carrera S coupe, manual: what it's sold
+    for"), H1, canonical, robots index ok; dated lead = description ("In the 12 months to 16 October 2026, 57 Carrera S
+    coupes from the 997 generation with a manual gearbox sold at auction between $29,000 and $125,000. Most sold between
+    $52,500 and $71,500.") - the best quotable sentence on the site; BreadcrumbList + FAQPage valid; 18 to 29 links, up and
+    down the slug tree; BUT every VIN link is the legacy /vin/<VIN> (a 301 to /history/...), 20 redirecting links per page,
+    and no link to the matching /history/porsche-911 hub; inbound only from siblings and the specs sitemap (95 URLs).
+  VIN car page /history/<slug>/<VIN> (api/history.js Lane C, data api/_historyData.js Lane B/C): 200, 2.2 to 15.3 s, 47 to
+    53 KB, private no-store, CHALLENGED. Title "2018 BMW 750i M Sport, VIN WBA7F0C54JGM24131: auction history", H1, canonical,
+    robots index/noindex by the rule ok; description = dated lead ("This 2018 BMW 750i M Sport sold for $25,750 on Bring
+    a Trailer in September 2026 and for $23,750 there in October 2026, as of October 16, 2026."), quotable as is; Vehicle +
+    FAQPage JSON-LD valid; no og:title; links up to its hubs and sideways to family cars; inbound only from hubs and the
+    VIN sitemaps (20 files of 1,000). /vin/<VIN> 301s to the canonical (cache public).
+  History hub /history/<make-model> and /history/<year-make-model> (api/history.js Lane C): 200, 3.3 to 17.8 s, 213 KB,
+    private no-store, CHALLENGED. Title "Porsche 911 auction results and sale prices", H1, canonical, ItemList JSON-LD (200
+    items) valid; the lead "684 individual cars by VIN below, with 314 recorded sales." carries NO "as of" date (rule 1);
+    208 links (200 VINs, each thumbnail); the all-years hub is indexable, year hubs are noindex but linked from every car
+    page ("Every 2005 Porsche 911 ..."). No link to the /cars spec page for the same model.
+  Sitemaps: robots.txt (bypassed, 1.3 KB, allows the six named crawlers + training crawlers, Sitemap: /sitemap-index.xml);
+    /sitemap-index.xml (CHALLENGED; 6 children incl. the empty placeholder sitemap-hubs.xml); /sitemap.xml (static,
+    bypassed, 5 URLs: /sell, /buy (302), /privacy, /about, /how-sam-decides, lastmods Aug to Oct; a second, stale copy of
+    sitemap-pages.xml); /sitemap-pages.xml (dynamic, 5 URLs, stage-aware); /sitemap-specs.xml (95 URLs); /sitemap-vins.xml
+    (20 child sitemaps, no lastmod on the index entries; each child 1,000 URLs, 119 KB, 3.3 s to build, edge-cached a day);
+    /sitemap-motorcycles.xml (289), /sitemap-other.xml (58). /llms.txt: none (404, behind the challenge).
+
+THE HISTORY PAGE'S COST PER CRAWL (Server-Timing on the hub, measured): all-years hub /history/porsche-911 = hubvins 3.1 s
+(sales 3.1 s, attempts 1.9 s, in parallel), resolve 0.05 s, onebox 2 ms (a stored row), render 2 ms, total 3.2 s; year hub
+/history/1965-ford-mustang = hubvins 0.36 s (the "340 ms family list"), resolve 0.27 s, onebox 14.7 s (a LIVE engine run,
+no stored row), total 15.4 s; the car page /history/1965-ford-mustang/5F08C607450 = 15.3 s (the same engine run plus the
+200-row family list), the BMW car page 2.2 s (a stored row). Every one of these renders on every fetch: the handler's
+Cache-Control is "public, s-maxage=30" ONLY when fullyLaunched() (stage 2 + LAUNCH_BUSINESS=1) and the request carries no
+crew cookie or credential; today that is "private, no-store" for every visitor and crawler on every SSR page (history,
+spec, sell, how-sam-decides, business, buy, tasks, market-check). A Vercel deployment purges the edge cache, and a launch
+stage change needs a redeploy to take effect, so the fullyLaunched() gate buys no safety that the deploy does not already
+give. SHOULD THE PAGE BE CACHED: yes. Proposed: hubs and car pages "public, s-maxage=86400, stale-while-revalidate=86400"
+for anonymous requests (the nightly ingest changes them once a day; crew and credentialed requests stay private), and no
+live engine run on a crawl (below). Cost today per crawl of the 20,000 VIN pages at 2 to 15 s each is the archive's whole
+day; cached, the first fetch pays and the rest are free.
+
+PRIORITISED PLAN (exact change, owner; none touched by Lane E; items 1 and 2 need Sam's decision):
+  1. FIREWALL (Sam, Vercel firewall rule; staged with `vercel firewall rules edit "static-bypass-bot-protection"` adding
+     conditions, then Sam publishes): add path prefixes /history/, /cars/, /vin/, /sitemap- and the exact paths
+     /sitemap-index.xml, /mcp, /llms.txt to the bypass list, so every indexable page and every sitemap is readable by any
+     crawler or AI fetcher; keep the challenge on the search endpoints (/api/buySearch, /api/sellerDecision, /api/chat,
+     /api/sellChat) where the cost is. Alternative: switch the Bot Protection action to "log" and challenge only /api/.
+  2. PUBLIC CACHING (Lane A: api/specPage.js, api/sellPage.js, api/howSamDecides.js, api/marketCheck.js, api/business.js;
+     Lane C: api/history.js, api/buy.js, api/tasksPage.js): drop `|| !fullyLaunched()` from each Cache-Control condition
+     (crew, crew cookie, credential and the palette switch stay private); history hub and car pages "public,
+     s-maxage=86400, stale-while-revalidate=86400"; spec pages the same; the rest "public, s-maxage=3600". Rule 11.
+  3. NO LIVE ENGINE RUN ON A CRAWL (Lane B/C, api/_historyData.js oneBoxFor): for the history hub and car page, read the
+     stored Market Check row only (lib/live/search.js readWarmAnswerDetailed) and omit the "cars like it" block when there
+     is none (the nightly warm fills it); never a 14.7 s engine run to render a noindex year hub. One engine, same row
+     Market Check serves; a page never shows a number the stored answer does not hold.
+  4. LINKS (rule 6; Lane A, public/index.html via api/sellPage.js): the home page (/sell) links to /history/porsche-911,
+     /cars/porsche/911, /mcp and /powersellers in a short "Car histories and prices" section; nav "/" becomes "/sell".
+     (Lane A, api/specPage.js): VIN links to the canonical /history/<year-make-family>/<VIN> instead of /vin/<VIN> (the
+     slug is the same one api/history.js builds; lib/specPages.js can carry it, Lane B), and a link to the model's
+     /history hub. (Lane C, api/history.js): the hub links to /cars/porsche/911 when a spec page exists for the model.
+  5. SITEMAPS (Lane A): make /sitemap.xml the index (a rewrite to /api/history?sitemap=index-of-everything, or a copy of
+     sitemap-index.xml) and point robots.txt at it (it is already bypassed at the edge, which also answers item 1 for the
+     index); remove /buy from any sitemap while it 302s; drop the empty sitemap-hubs.xml from the index until hubs ship;
+     add lastmod to the sitemap-vins.xml index entries (api/history.js, Lane C).
+  6. HUB LEAD DATE (Lane C, api/history.js): the hub's answer sentence carries "as of [date]" like the car page does.
+  7. llms.txt (Lane A, public/llms.txt + a bypass path in item 1): what GoAskSam is, the page types with one URL each, the
+     MCP endpoint, the sitemap index; dated; no counts of sources, no "AI" claims (rule 9).
+  8. META AND STRUCTURED DATA (Lane A: /privacy canonical; og:title/og:description on /about, /powersellers, /privacy;
+     Lane C: og:title/og:description on VIN and hub pages = title and the dated lead; a WebSite + Organization block on
+     /sell is already there, keep it). No SearchAction markup (it would promise a search URL we do not serve publicly).
+  9. H1 markup (Lane A, public/index.html): the /sell H1 holds two <br>; keep the words, move the breaks to CSS so the H1
+     text node is one sentence.
+  Keep-one-engine check: every number in the audited pages comes from the engine's stored answers or the archive rows the
+  page lists (counts of cars and sales, a car's own sale prices and venue); no page shows a count of houses or sources.
+Search check: no public page touched (audit only; the script is diagnostics).
