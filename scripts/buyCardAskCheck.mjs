@@ -186,7 +186,7 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   ok(pend && /Sam is still reading the sales for this one\./.test(pend.html) && undef && /still reading/.test(undef.html) && none === null && ready && !/still reading/.test(ready.html), "a pending card says Sam is still reading; a card with no market says nothing; a card with its market shows it");
   ok(/var RETRY_MS = 20000, RETRY_FOR_MS = 180000;/.test(client) && /setTimeout\(retry, RETRY_MS\)/.test(client) && /if \(cards\.some\(isPend\) && Date\.now\(\) - drawnAt \+ RETRY_MS <= RETRY_FOR_MS\) setTimeout\(retry, RETRY_MS\);/.test(client) && /\(asks === 0 && l\.market === null\)/.test(client), "asks every 20 seconds while a market is pending, for up to three minutes; a card with none is asked once");
   const bs = fs.readFileSync(new URL("../api/buySearch.js", import.meta.url), "utf8");
-  ok(/const body = BODY_WORD\[String\(v\.bodyStyle \|\| ""\)\.toLowerCase\(\)\] \|\| "";/.test(bs) && !/v\.bodyStyle \|\| x\.facts\.body/.test(bs), "the card's name carries only the body its market reads, never the feed's body field");
+  ok(/const body = bodyWordFor\(v\.bodyStyle\);/.test(bs) && !/v\.bodyStyle \|\| x\.facts\.body/.test(bs) && !/bodyWordFor\([^)]*facts/.test(bs), "the card's name carries only the body its market reads, never the feed's body field");
   ok(/var hasMc = !l\.swap && !!\(l\.market && l\.market\.query\)/.test(client), "a card still pending has no Market Check button (a pending market has no query)");
   ok(/headerHtml\(d\.meta \|\| \{\}, q, qp, f \|\| \{\}, !!\(a && !d\._showAll && !a\.vague\)\)/.test(client) && /: n && asking \? ""/.test(client), "a question on screen carries the count; the right-hand line is left out");
 }

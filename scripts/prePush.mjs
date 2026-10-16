@@ -332,6 +332,12 @@ try {
 } catch (e) {
   record("Buy box clears and the mic answers one tap (scripts/buyBoxCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+try {
+  const out = execSync("node scripts/buyNameBodyCheck.mjs", { encoding: "utf8" });
+  record("A Buy card names its body (every resolver body word reads back as the same pool) (scripts/buyNameBodyCheck.mjs)", "PASS", (out.match(/buyNameBodyCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("A Buy card names its body (every resolver body word reads back as the same pool) (scripts/buyNameBodyCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The partner demo (Lane C, Oct 15 2026): api/partnerAnswer.js gives Market Check's range, count, window and sales for
 // the same car, with no venue, link, title or listing id. The fixed answers run always; the five live cars only when
 // GAS_CREW_COOKIE is set, and are reported as SKIP otherwise, never as a pass.

@@ -174,15 +174,30 @@ const BODY_WORD = { coupe: "Coupe", cabriolet: "Cabriolet", convertible: "Conver
   // Every body word the shared resolver can give (lib/vehicle.js BODY_STYLE_WORDS) and the engine's own fastback: a body
   // missing here was silently left off the card's name, so "1965 Ford Mustang V8" read every body in Market Check while
   // its card's market read the hardtops (Lane E's buyEngineMatch find, Oct 16 2026).
-  hardtop: "Hardtop", fastback: "Fastback", "t top": "T-Top", "targa top": "Targa", sportbrake: "Sportbrake" };
+  hardtop: "Hardtop", fastback: "Fastback", "t top": "T Top", "targa top": "Targa Top", sportbrake: "Sportbrake" }
+// FOR LANE B (asked Oct 16 2026): lib/vehicle.js keeps the resolver's body list (BODY_STYLE_WORDS, BODY_STYLE_CANONICAL)
+// unexported; once it is exported this list is built from it. Until then a body word missing here is still named (its own
+// word, title-cased), never dropped, and scripts/buyNameBodyCheck.mjs reads the resolver's list to prove every word reaches
+// the card's name and reads back as the same body.
+const titleWord = w => String(w).split(/\s+/).filter(Boolean).map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(" ");
+export function bodyWordFor(bodyStyle) {
+  const k = String(bodyStyle || "").toLowerCase().trim();
+  if (!k) return "";
+  return Object.prototype.hasOwnProperty.call(BODY_WORD, k) ? BODY_WORD[k] : titleWord(k);
+};
 export async function nameOf(env, x) {
   const sp = await specOf(env, x.r, x.facts).catch(() => null);
   const v = sp && sp.v; if (!v || !v.make || !v.model) return null;
+  return nameFromSpec(v, x.r.year);
+}
+// The card's name from its resolved spec alone (pure, no network; nameOf above and scripts/buyNameBodyCheck.mjs use it).
+export function nameFromSpec(v, year) {
+  if (!v || !v.make || !v.model) return null;
   // The body only as the card's market reads it (the resolver's word from the listing's own title, specOf), never the
   // feed's body field: a feed "coupe" named a 330 GT 2+2 "1965 Ferrari 330 GT2 Coupe" while its market read every 330
   // GT2, so typing the card's own name into Market Check gave a different range (Oct 15 2026, B2's golden run).
-  const body = BODY_WORD[String(v.bodyStyle || "").toLowerCase()] || "";
-  const parts = [x.r.year || v.year, v.make, v.model, v.trim, body].filter(Boolean).map(String);
+  const body = bodyWordFor(v.bodyStyle);
+  const parts = [year || v.year, v.make, v.model, v.trim, body].filter(Boolean).map(String);
   // A part already said in full is not repeated, compared by whole words: the trim "S" is not inside
   // "Porsche" (a letter-inside-a-word test dropped it, so a Boxster S read as a Boxster).
   const out = [], said = () => new Set(out.join(" ").toLowerCase().split(/[\s-]+/));
