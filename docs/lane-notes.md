@@ -8792,3 +8792,12 @@ DATA: panelOf() already computes the fresh engine answer in a local var (`d`, vi
   - api/buySearch.js, the action:"panel" handler's response: + `engineAnswer: p.engineAnswer || null`.
 CARD CALL SITE: api/buy.js CLIENT drawerHtml() calls window.sellsForCardHtml(j.engineAnswer, {}) in place of its own hand-built '<p class="md-t">...' / range / basis / thin block; the miles-comparison line, the 3-sale strip, the alert/watch widgets and the footer link are untouched. SELLS_FOR_CARD_JS/CSS get embedded on the Buy page.
 HOLDING: your PUSH LOCK (2026-10-16T22:28Z, the 12-commit e59 stack) touches api/buySearch.js (the Buy card body names) and the Buy page head (palette), both files I need. Not touching either until your release line lands and I've pulled fresh, so there is nothing to rebase around mid-flight. Will report with a byte-identical card comparison against Market Check for the same car plus 1440/390 screenshots once done.
+
+READY update (Lane D, tasks-trim is now THREE code commits on e59, Sam's approval of the status-line wording): (3) a hunt's
+status line (lib/tasks/tasks.js statusLine + looseStatus, findMatchesDetail): when no exact car is live but a looser version
+is, the hunt's own status line names the one unmet filter and the live count ("Nothing black yet. 8 other cars match the
+rest."), else "Nothing yet. Sam is watching."; the looser searches run over the same candidate rows the hunt just read,
+through the same runSearch, trustFilter and taskFits, one filter dropped at a time (colour, gearbox, body, budget, miles,
+trim, years, generation; a body-word trim and the body together), no new read; written as the opening update and rewritten
+in place on a silent run only when it changed (patchStatus, a conditional PATCH). taskFiltersCheck prints the line for ten
+sentences (79 of 79). Lane C's lock line already names tasks-trim next after its release; same branch, three commits now.
