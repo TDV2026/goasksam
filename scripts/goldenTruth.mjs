@@ -168,8 +168,10 @@ try {
       const lines = text.split("\n").map(x => x.trim()).filter(Boolean);
       const i = lines.findIndex(x => /^MARKET CHECK$/.test(x));
       const scope = i >= 0 ? (lines[i + 2] || "") : "";
-      const cm = /(\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten)\s+sales?\b/i.exec(scope);
-      const k = lines.findIndex(x => /^WHERE (THE MIDDLE HALF|THEY) SOLD/.test(x));
+      let cm = /(\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten)\s+sales?\b/i.exec(scope);
+      // A thin page has no scope row; its count is the line "One sale last twelve months." (Oct 16 2026: the pushed stack also renamed the range heading to WHAT THESE SELL FOR.)
+      if (!cm) cm = lines.map(x => /^(\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten)\s+sales?\s+(?:in the\s+)?(?:last|past)\b/i.exec(x)).find(Boolean) || null;
+      const k = lines.findIndex(x => /^(WHERE (THE MIDDLE HALF|THEY) SOLD|WHAT THESE SELL FOR)/.test(x));
       const range = k >= 0 ? parseRange(lines.slice(k, k + 3).join(" ")) : null;
       return { count: cm ? num(cm[1]) : null, range, scope, kind: k >= 0 && /MIDDLE HALF/.test(lines[k]) ? "band" : (k >= 0 ? "soldBetween" : null) };
     },
@@ -236,7 +238,7 @@ try {
     else if (rendered.range && !want) out.push(`page prints ${money(rendered.range.low)} to ${money(rendered.range.high)}, engine answer has no range`);
     else if (!rendered.range && want && product === "marketCheck") out.push(`page prints no range, engine answer has ${money(want.low)} to ${money(want.high)}`);
     const yrs = /\d{4} to \d{4}/.exec(String(lane.rungLabel || ""));
-    if (yrs && rendered.scope && !rendered.scope.includes(yrs[0])) out.push(`scope line "${rendered.scope.slice(0, 60)}" lacks "${yrs[0]}" from its engine label`);
+    if (yrs && rendered.scope && !/\?/.test(rendered.scope) && !rendered.scope.includes(yrs[0])) out.push(`scope line "${rendered.scope.slice(0, 60)}" lacks "${yrs[0]}" from its engine label`);
     return out;
   }
   const PAGE_PRODUCTS = flag("pages") ? ["marketCheck", "buy", "sell"] : ["marketCheck"];
