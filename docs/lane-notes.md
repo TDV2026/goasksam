@@ -9210,3 +9210,44 @@ person; dated; rule 9 words avoided):
   - A car page describes one car by VIN; a model page describes recorded sales of that model in the last twelve months.
   - "Sam" is the name of the service's voice, not a person.
 Search check: no public page touched (plan and drafts only; the firewall draft is staged, not published).
+
+## Lane E, SEO PLAN REVISED TO SAM'S SIX CHANGES (Oct 16 2026, 23:40Z; nothing published; the plain-language file for Sam is
+## ~/Desktop/goasksam-proofs/seo/plan-and-llms.md with the home page before/after pictures beside it)
+FOR LANE A:
+  A1 CACHE, SAM'S RULE: edge cache ONLY for requests with no cookie at all; any cookie (session, crew, tester, analytics),
+     any personalised page, Tasks and everything under it, Buy and crew-only pages: never. Mechanism (Vercel's cache key is
+     the public URL and ignores cookies; a Vary: Cookie response is never cached): for each cacheable page add a vercel.json
+     rewrite ABOVE the existing one with `"has": [{ "type": "header", "key": "cookie" }]` to the same handler with `&_c=1`
+     (the crew rewrites already use this layer); the handler answers `_c=1` (or any crew cookie, credential, showPal) with
+     "private, no-store" and the plain address with "public, s-maxage=86400, stale-while-revalidate=86400" (spec pages)
+     or "public, s-maxage=3600, stale-while-revalidate=86400" (sell, how-sam-decides, market-check, business); drop
+     `|| !fullyLaunched()`. Buy stays private. The eight page handlers set no cookie (verified), so the anonymous copy holds
+     no session, crew or visitor state by construction. Proof (Lane E, live): two cookieless fetches, the second HIT; the
+     same URL with a dummy cookie is private/no-store and never HIT; the cached copy contains no sign-in state, crew mark
+     or visitor id and matches a fresh cookieless render. If the cookied fetch ever HITs, the same check moves to Routing
+     Middleware (runs before the cache); same proof.
+  A4 HOME BLOCK: pictures delivered (home-before/after at 1440 and 390 on the Desktop; the after is a local mock); ship only
+     after Sam approves them. Logo href="/sell". A5, A2, A3, A8 as before. A6 llms.txt: Sam's own text, word for word, no
+     dashes, no dates (pending).
+FOR LANE B:
+  B1 NO LIVE ENGINE RUN ON A CRAWL, SAM'S CHANGE: the car page's placing of its last sale is computed from the STORED
+     answer's band (d.cluster) and the car's own recorded sale, no engine run (the page's cmp block already compares
+     lastSale.priceUsd with d.cluster); the exactSale live variant is dropped. If a case must stay live: at most two in
+     flight per instance (an in-process gate like engineSlot), each bounded to 4 s, the block left out when the gate is
+     full. The hub list joins the nightly warm (your addition). Proof: Server-Timing onebox under 100 ms on every fetch
+     including an uncached car page; the block equals the stored Market Check answer.
+  B2 as before (vin_index year on the select; /history/<year>-<make>-<family>/<VIN>).
+FOR LANE C:
+  C1 CACHE as A1 for api/history.js: the `has: header cookie` rewrite variants for /history/:slug and /history/:slug/:vin
+     and /vin/:vin, `_c=1` private, plain address "public, s-maxage=86400, stale-while-revalidate=86400" on 200 only;
+     Tasks (api/tasksPage.js) and Buy (api/buy.js) stay private, no change there.
+  C2 HUB LEAD, SAM'S CHANGE: keep the "as of" date and the sales count, DROP the VIN count: "314 recorded sales, as of
+     October 16, 2026." (preceded by the engine's "N family sales at auction in <window>." when a stored answer exists);
+     the hub's meta description is the same sentence. Proof: every hub lead reads "as of" and none contains "by VIN".
+  C3, C4, C5 as before.
+FIREWALL: draft unchanged (/mcp is the static page mcp.html only; tool calls are /api/mcp, which is not exempt and stays
+  challenged). NEW FINDING for Sam: a plain client's GET or POST to /api/mcp gets the challenge today (HTTP 429), so an
+  MCP client Vercel does not recognise cannot reach the tools; Sam's options: keep it (today), or stored rows only + a rate
+  limit + exempt the path.
+LLMS.TXT: the earlier draft is withdrawn; waiting for Sam's text (word for word, no dashes, no dates).
+Search check: no public page touched (plan, pictures from a local mock, and the staged, unpublished firewall draft).
