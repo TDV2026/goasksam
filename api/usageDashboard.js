@@ -3440,7 +3440,10 @@ async function handleOps(req, res) {
     for (const q of qs) {
       try {
         // Mirror the page path (api/sellerDecision): resolve with VIN confirm, then sanitize.
-        const rv = await resolveVehicle(q, { vinConfirm: true });
+        // vehicle=<json> (Oct 15 2026, read-only): a pre-resolved car ({make, model, trim, year, bodyStyle}) read as the
+        // engine would read it once the resolver resolves it, for golden rows whose typed words do not resolve yet.
+        let vehicleQ = null; try { vehicleQ = req.query?.vehicle ? JSON.parse(String(req.query.vehicle)) : null; } catch (e) { vehicleQ = null; }
+        const rv = vehicleQ ? { status: "valid", vehicle: { ...vehicleQ, raw: q } } : await resolveVehicle(q, { vinConfirm: true });
         const v = sanitizeResolvedVehicle(rv && rv.vehicle) || (rv && rv.vehicle);
         if (!v || !v.make) { out.push({ q, status: (rv && rv.status) || "unresolved", clarify: (rv && rv.clarify) || null }); continue; }
         const g = await findGeneration(v, env);
