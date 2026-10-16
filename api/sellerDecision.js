@@ -3375,6 +3375,10 @@ async function handler(req, res) {
           year: Number(vehicle && vehicle.year) || undefined, model_used: false, cost_usd: 0, ...props },
           { product: "market_check", surface: "market_check_page", engine_version: engineVersion || ENGINE_VERSION, vin: vehicle && (vehicle.vin || null) });
       };
+      // e59 (warm-path speed, Lane E's measurement): the ceiling read runs alongside the health probe instead of after
+      // it; the car-limit read runs alongside the stored-row read below. A warm answer was five serial database round
+      // trips before its row (probe, ceiling, car limit, then the row); it is now two.
+      const obCeilingP = checkCeiling({ supabaseUrl, supabaseKey }, req, "market_check_search", { tool: "market_check" }).catch(() => ({ ok: true }));
       let obHealthy = await obProbeOnce();
       let obProbeRetried = false;
       if (!obHealthy) { obProbeRetried = true; obHealthy = await obProbeOnce(); }
@@ -3393,7 +3397,7 @@ async function handler(req, res) {
       // ceiling (lib/_ceilings.js checkCeiling), the SAME mechanism Buy and Sell search already call,
       // never a second implementation. Fail open (an unreadable ledger never blocks a real search); a
       // genuine hit logs rate_limit_hit itself and shows one calm line, no sign-in demand, no number.
-      const obCeiling = await checkCeiling({ supabaseUrl, supabaseKey }, req, "market_check_search", { tool: "market_check" });
+      const obCeiling = await obCeilingP;
       if (!obCeiling.ok) {
         mcRun({ answer_type: "failed", failure_state: "rate_limited" });
         return res.status(200).json({ status: "one_box", tier: "rate_limited", resolvedCar: null, samLine: CALM.search });
@@ -3448,6 +3452,18 @@ async function handler(req, res) {
       // identity key reuses lib/live/search.js specKeyFor, the SAME key the spec cache already
       // builds from this vehicle/generation pair, so a device that looks up the identical car twice
       // today (even via two separate fresh searches, not a UI refine) never spends a second slot.
+      const identityRefine = obRefine && (obRefine.body || obRefine.trim || obRefine.variant || obRefine.tx) && !(obRefine.miMin != null || obRefine.miMax != null || obRefine.driver || obRefine.observe || obRefine.docHistory)
+        ? { body: obRefine.body || null, trim: obRefine.trim || null, variant: obRefine.variant || null, tx: obRefine.tx || null } : null;
+      const askedN = Math.max(0, Math.min(9, Number(req.body?.asked) || 0));
+      // The bare page's stored row is the asked-0 answer; a refined market's row is read whatever the ask count (the
+      // refine answered the question), so a chip page reads its stored row too.
+      // recompute (credentialed only, the stale path's own self-call): skip the stored row, compute, write it fresh.
+      const recompute = !!req.body?.recompute;
+      const wantsWarm = (!obRefine || !!identityRefine) && !exactSale && vehicle && vehicle.make && !vehicle.vin && !vehicle.chassis && (identityRefine ? true : askedN === 0) && !req.body?.fresh;
+      const warmKey = wantsWarm ? warmAnswerKeyFor(vehicle, generation, identityRefine) : null;
+      // e59: the stored-row read starts here, alongside the car-limit read; the hit is evaluated below in the same order.
+      const tWarm0 = Date.now();
+      const warmP = (wantsWarm && !recompute) ? readWarmAnswerDetailed({ supabaseUrl, supabaseKey }, warmKey).catch(() => null) : null;
       if (vehicle && vehicle.make && !obRefine) {
         const carKey = specKeyFor(vehicle, generation, null);
         const carLimit = await checkMarketCheckCarLimit({ supabaseUrl, supabaseKey }, req, carKey);
@@ -3499,21 +3515,11 @@ async function handler(req, res) {
       // MARKET REFINE (stage 4, Sam's OK Oct 15 2026): a body, trim or variant chip and the gearbox chip name a MARKET
       // (they are in specKeyFor), so their answers are stored and read like the bare page's; a mileage, driver,
       // observable or document refine is not a market and still computes live.
-      const identityRefine = obRefine && (obRefine.body || obRefine.trim || obRefine.variant || obRefine.tx) && !(obRefine.miMin != null || obRefine.miMax != null || obRefine.driver || obRefine.observe || obRefine.docHistory)
-        ? { body: obRefine.body || null, trim: obRefine.trim || null, variant: obRefine.variant || null, tx: obRefine.tx || null } : null;
-      const askedN = Math.max(0, Math.min(9, Number(req.body?.asked) || 0));
-      // The bare page's stored row is the asked-0 answer; a refined market's row is read whatever the ask count (the
-      // refine answered the question), so a chip page reads its stored row too.
-      // recompute (credentialed only, the stale path's own self-call): skip the stored row, compute, write it fresh.
-      const recompute = !!req.body?.recompute;
-      const wantsWarm = (!obRefine || !!identityRefine) && !exactSale && vehicle && vehicle.make && !vehicle.vin && !vehicle.chassis && (identityRefine ? true : askedN === 0) && !req.body?.fresh;
-      const warmKey = wantsWarm ? warmAnswerKeyFor(vehicle, generation, identityRefine) : null;
       let staleInfo = null;   // { storedAt } when a stale stored answer is being served; the recompute is a self-call
       if (wantsWarm && !recompute) {
         try {
-          const tw = Date.now();
-          const w = await readWarmAnswerDetailed({ supabaseUrl, supabaseKey }, warmKey);
-          obTimes.warmReadMs = Date.now() - tw;
+          const w = await warmP;
+          obTimes.warmReadMs = Date.now() - tWarm0;
           if (w && w.raw) {
             if (w.stale && w.recomputingSince && (Date.now() - Date.parse(w.recomputingSince)) > 90000) {
               // a recompute started over 90 s ago never landed: compute live now (one cold read), never serve stale twice
