@@ -9,6 +9,7 @@ import { lastUpdatedDate } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { stripLaunchGate } from "./marketCheck.js";
 import { SELL_MC_CSS, SELL_MC_CLIENT } from "../lib/sell/sellMcClient.js";
+import { SELLS_FOR_CARD_JS, SELLS_FOR_CARD_CSS } from "../lib/sellsForCard.js";
 import { sellLandingHtml, SELL_LANDING_CSS } from "../lib/sell/sellLanding.js";
 import { sellExample } from "../lib/sell/sellExample.js";
 import sellPage from "./sellPage.js";
@@ -56,13 +57,15 @@ export default async function handler(req, res) {
     .replace(/<title>[\s\S]*?<\/title>/, () => "<title>Sell your car | GoAskSam</title>")
     .replace(/<meta name="robots" content="[^"]*"\s*\/?>/, () => "")
     // Every new Sell address is noindex with the Sell landing as its canonical (result addresses included).
-    .replace("</head>", () => `<meta name="robots" content="noindex, nofollow">\n<link rel="canonical" href="https://goasksam.com/sell">\n<style>${cardCss}\n${SELL_MC_CSS}\n${SELL_LANDING_CSS}\n${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}</style>\n</head>`)
+    .replace("</head>", () => `<meta name="robots" content="noindex, nofollow">\n<link rel="canonical" href="https://goasksam.com/sell">\n<style>${cardCss}\n${SELL_MC_CSS}\n${SELLS_FOR_CARD_CSS}\n${SELL_LANDING_CSS}\n${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}</style>\n</head>`)
     // Round D (app shell, Oct 2026): the same shared rail as every other product - the full page
     // list, current page ("sell") marked - replacing the old Sell-only stripped-down rail.
     .replace("<!--SHELL_RAIL-->", () => railOpenHtml({ active: "sell", pageExtra: YOUR_RESULTS_RAIL, logoHref: "/sell", crew, req }))
     .replace("<script>\nfunction obToggleResults", () => `<script>${SHELL_JS}</script>\n<script>\nfunction obToggleResults`)
     // The Sell hook must exist before js/onebox.js boots, so the client goes in ahead of it.
-    .replace(/<script src="\/obx\.[^"]+\/onebox\.js"><\/script>/, m => `<script>window.GAS_SELL_CFG=${cfg};</script>\n<script>${SELL_MC_CLIENT}</script>\n${m}`)
+    // SELLS_FOR_CARD_JS goes in first so window.sellsForCardHtml exists before sellMcClient.js's
+    // draw() runs (same ordering api/marketCheck.js uses ahead of js/onebox.js).
+    .replace(/<script src="\/obx\.[^"]+\/onebox\.js"><\/script>/, m => `<script>${SELLS_FOR_CARD_JS}</script>\n<script>window.GAS_SELL_CFG=${cfg};</script>\n<script>${SELL_MC_CLIENT}</script>\n${m}`)
     // Item 9 (shared top bar): same control as Market Check/Buy, one file (lib/authBar.js).
     // window.GAS_SELL is already set above (SELL_MC_CLIENT), so js/onebox.js's own address-bar
     // code correctly skips this page either way; GAS_AUTH_MODE="topbar" is this page's own,
