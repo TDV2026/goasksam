@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-16T23:40Z (Lane F; folded in the first answers from Lanes B, B2 and E).
+Last updated: 2026-10-16T23:45Z (Lane F; Lane D's deployed proof and Lane A's card adoption push folded in).
 
 ## 1. The four launch items
 
@@ -39,8 +39,15 @@ Last updated: 2026-10-16T23:40Z (Lane F; folded in the first answers from Lanes 
 | Item | Owner | State | Blocked on | Proof |
 |---|---|---|---|---|
 | Send-path read reductions (tasks-reads) | Lane D | live (8993b2fd) | nothing | lane-notes "Lane D, Oct 16 2026: Tasks send-path read reductions, DEPLOYED PROOF" (legacy 9,623 bytes to 8,098) |
-| Trim guard, hunt read without description, status line (tasks-trim, three commits) | Lane D | pushing (PUSH LOCK 23:22Z, prePush running alone) | prePush 0 FAIL | Lane D's PUSHED line; scripts/taskFiltersCheck.mjs (79 of 79); the three hunts rerun after deploy (hunt 1 expected to match 9001) |
+| Trim guard, hunt read without description, status line (tasks-trim, three commits ending 73fe6f75) | Lane D | live (deployed proof posted: hunt 1 now matches 9001, hunts 2 and 3 unchanged; exact 997 filter 0 live with status line "Nothing black yet. 9 other cars match the rest.", 9 without colour, 16 bare) | nothing; note that Lane D's prePush ran before Lane A's card adoption landed, so its 0 FAIL does not cover the combined tree | lane-notes "Lane D, Oct 16 2026: DEPLOYED PROOF of tasks-trim"; taskFiltersCheck 79 of 79; bytesRead before and after is one SQL for Sam in that note |
 | Cold-start watch event reads (13.5 MB per cold cron run; lib/live/watches.js eventsFor, Lane C's send path per Lane B) | Lane C | unknown (not assigned) | Sam: whether it is launch scope | lane-notes "FOR LANE B (observation, not mine to fix)" |
+
+## 4b. The shared card on Sell and Buy (one engine, one card)
+
+| Item | Owner | State | Blocked on | Proof |
+|---|---|---|---|---|
+| Sell result screen and Buy Market Check drawer adopt sellsForCardHtml | Lane A | checking (9a75fea1 Sell and 1436f1de Buy pushed, prePush 0 FAIL / 6 SKIP / 38 PASS; live checks pending) | Vercel Ready, then Lane A's byte-identical card comparison against Market Check and 1440/390 screenshots | Lane A's live-check line in lane-notes; golden rows for Buy and Sell shared-card identity turn green |
+| Basis line with no month count (Sam's rule, "Based on N sales, the latest in Month Year.") | Lane A | unknown (asked by Lane B and Lane C in lane-notes; no Lane A answer yet) | Lane A | lib/sellsForCard.js; a live card on Market Check |
 
 ## 5. Supabase speed and cost
 
