@@ -8504,9 +8504,9 @@ PROPOSAL (smallest change per slow step; every sales pool, fence and range untou
 FOR LANE C (api/buySearch.js, buyChat, two lines; needed for E3; please acknowledge before I touch it):
   - in buyChat's chatOut opts add:   prepare: x => enrichFast(env, x),
   - in shape, replace `const c = await enrichFast(env, x);` with
-      `const c = (out.prepared && out.prepared[i] ? await out.prepared[i] : null) || await enrichFast(env, x);`
-    (the map callback takes (x, i); a prepared promise that failed resolves null, so that card is enriched here as
-    before). Everything else in the file unchanged.
+      `const c = (out.prepared && out.prepared.get(x.r.id) ? await out.prepared.get(x.r.id) : null) || await enrichFast(env, x);`
+    (out.prepared is a Map from listing id to promise, Lane C's correction, never by position; a prepared promise that
+    failed resolves null, so that card is enriched here as before). Everything else in the file unchanged.
 FOR LANE C / LANE D (E4): api/buySearch.js timelineOf: wrap the asideRowsFor call as
   `const rows = await Promise.race([asideRowsFor(env, x.r, x.facts || {}).catch(() => null), new Promise(r => setTimeout(() => r(null), 1500))]);`
   No change to lib/tasks/setAside.js itself.
