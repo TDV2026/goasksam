@@ -9,7 +9,7 @@
 // body, trim, variant, tx, miMin, miMax, miTarget) and asked (the question count). A VIN is named from that car's
 // own records (the history page's rule, api/_historyData.js carIdentity) and those words go to Market Check.
 // Output: identity (year, make, model, body, variant), the engine's identity question with what each choice sends
-// next, a range only when the engine gives one, count, window, sales in price order (price and date only),
+// next, a range only when the engine gives one, count, window, sales in price order (price, date and mileage only),
 // set-aside reasons, a thin line under eight sales (words only, never a range), a trend only for quarters with
 // eight or more sales, the VIN's own history (sold, or offered and not sold with the high bid), and updated (the
 // shared last-ingest date, lib/asOf.js lastUpdatedDate, the one Buy and Sell show; null when unread, never made up).
@@ -31,6 +31,24 @@ import { mapEngineAnswer } from "../lib/onebox.js";
 // the card's one pill placement (directly under the range). The latest-quarter row (view d only) is the card's own
 // latestQuarterRowHtml over the engine's own trendQuarters mapping (lib/onebox.js mapEngineAnswer), never recomputed.
 export const PILL_SLOT = '<div class="gas-pill-slot"></div>';
+// THE DEMO'S COPY OF THE CARD (Sam, Oct 16 2026), two edits on the shared card's own output, nothing else: (1) the basis
+// line states no month count: "Based on {count} sales, the latest in {Month Year}." (the count in words under ten, the
+// latest from the engine's own sale dates; the engine's window is unchanged); (2) "How Sam decides" is plain text, not a
+// link. Everything else is the card Market Check draws (scripts/partnerEngineMatch.mjs proves it byte for byte).
+const WORD = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+export function basisLine(d) {
+  const n = countOf(d), dates = salesOf(d).map(s => s.date).filter(Boolean).sort();
+  if (!n || !dates.length) return null;
+  const last = dates[dates.length - 1].split("-"), mon = MONTHS[Number(last[1]) - 1];
+  return "Based on " + (n < 10 ? WORD[n] : n.toLocaleString("en-US")) + " " + (n === 1 ? "sale" : "sales") + (mon ? ", the latest in " + mon + " " + last[0] : "") + ".";
+}
+export function demoCard(html, d) {
+  if (!html) return html;
+  const b = basisLine(d);
+  return html.replace(/<p class="sfc-basis">[\s\S]*?<\/p>/, b ? '<p class="sfc-basis">' + b.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])) + "</p>" : "")
+    .replace(/<a class="sfc-footer-link"[^>]*>How Sam decides<\/a>/, '<span class="sfc-footer-link">How Sam decides</span>');
+}
 
 const RANGE_MIN = 8;   // the engine's own RANGE_THRESHOLD: under eight sales there is no range, only words
 const VIN_RE = /^[A-HJ-NPR-Z0-9]{17}$/;
@@ -86,8 +104,8 @@ const day = v => (v ? String(v).slice(0, 10) : null);
 export function salesOf(d) {
   if (!d) return [];
   let rows;
-  if (d.tier === "thin" && d.thin && Array.isArray(d.thin.receipts)) rows = d.thin.receipts.map(r => ({ price: num(r.allIn) || num(r.hammer), date: day(r.date) }));
-  else rows = (Array.isArray(d.cards) ? d.cards : []).map(c => ({ price: num(c.price), date: day(c.date) }));
+  if (d.tier === "thin" && d.thin && Array.isArray(d.thin.receipts)) rows = d.thin.receipts.map(r => ({ price: num(r.allIn) || num(r.hammer), date: day(r.date), miles: num(r.mileage) }));
+  else rows = (Array.isArray(d.cards) ? d.cards : []).map(c => ({ price: num(c.price), date: day(c.date), miles: num(c.mi) }));
   return rows.filter(r => r.price).sort((a, b) => a.price - b.price || String(a.date || "").localeCompare(String(b.date || "")));
 }
 // The count Market Check's page heads its answer with (heroPoolSizeNum: poolSize, then poolN, then the facts block).
@@ -143,7 +161,7 @@ function thinTextOf(d, count) {
   if (!d || rangeOf(d)) return null;
   const tier = String(d.tier || "");
   if (!/^(thin|refusal|not_tracked|body_unavailable)$/.test(tier) && count == null) return null;
-  const n = Number(count) || 0, w = d.windowLabel ? " " + d.windowLabel : "";
+  const n = Number(count) || 0, w = "";   // no window words: the demo states no month count (Sam, Oct 16 2026)
   if (!n) return "No recorded sales of cars like this" + w + " yet, so there is no range to show.";
   if (n < RANGE_MIN) return cap(n + " " + plural(n, "recorded sale", "recorded sales") + " of cars like this" + w + ". Too few to show a range.");
   return "The recorded sales of cars like this" + w + " are too spread out to show a range.";
@@ -197,7 +215,7 @@ export function partnerShape(d, text, asked, extra = {}) {
     sales: salesOf(d), setAside: setAsideOf(d),
     thin: range ? null : thinTextOf(d, count),
     trend: range ? trendOf(d) : null,
-    card: sellsForCardHtml(d, { partnerPillsHtml: PILL_SLOT }) || null,
+    card: demoCard(sellsForCardHtml(d, { partnerPillsHtml: PILL_SLOT }), d) || null,
     quarter: latestQuarterRowHtml({ ...d, trendQuarters: mapEngineAnswer(d).trendQuarters }) || null,
     narrow: narrowOf(d, text),
     history: extra.history || null

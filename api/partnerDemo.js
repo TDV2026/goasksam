@@ -14,6 +14,7 @@
 // Route: /partner-demo (vercel.json rewrite to /api/partnerDemo), ?view=a|b|c|d.
 import { isCrewRequest } from "../lib/_crew.js";
 import { SELLS_FOR_CARD_CSS } from "../lib/sellsForCard.js";
+import { HERO_JPEG_B64, HERO_W, HERO_H } from "./_partnerHero.js";
 
 export const DUMMY = { title: "2015 Porsche 911 GT3", colour: "Black", miles: 20611, titleStatus: "Clean", price: 139900, priceKind: "Buy It Now", daysLeft: 13, vin: "WP0AC2A96FS189139", q: "2015 Porsche 911 GT3" };
 
@@ -103,11 +104,31 @@ h3{font-size:18px;line-height:1.3;margin:0 0 10px;font-weight:700}
 .desc h2{margin-bottom:8px}
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:20px}
 .tile .ph{aspect-ratio:4/3;margin-bottom:12px;border-radius:16px;background:var(--soft);border:12px solid var(--soft);background-image:linear-gradient(135deg,#d9d9d9,#bfbfbf);background-clip:content-box}
+.tile{background:var(--soft);border-radius:var(--r);padding:16px 18px}
 .tile .p{font-size:18px;font-weight:700}
 .tile .d{color:var(--ink2);font-size:14px}
 .full{margin-top:36px}
+.hero-img{display:block;width:100%;height:auto;aspect-ratio:1600/1058;object-fit:cover;border-radius:12px;background:#d9d9d9}
+.gal-hero{grid-template-columns:1fr}
+.b-hero{max-width:760px;margin:0 0 22px}
+.full-a{margin-top:26px}
+.full-a h2{font-size:20px;margin-bottom:8px}
+.stable{width:100%;border-collapse:collapse;font-size:15px}
+.stable th{text-align:left;font-size:13px;font-weight:600;color:var(--ink2);padding:0 8px 8px;border-bottom:1px solid var(--rule)}
+.stable td{padding:10px 8px;border-bottom:1px solid var(--rule)}
+.stable th:first-child,.stable td:first-child{padding-left:0}
+.stable .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;padding-right:0}
+.stable .res-row td{padding:8px 12px;background:var(--soft);border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);font-weight:700}
+.res-sum{margin:12px 0 0;font-size:15px}
+.hsd{color:var(--ink)}
+/* "How Sam decides" is plain static text on the demo (Sam): the card's own link styling is undone here only */
+.sfc-card span.sfc-footer-link{color:var(--ink2);font-weight:400;text-decoration:none}
+.tile .d+.d{margin-top:2px}
 .phone-only{display:none}
 @media (max-width:760px){
+  .gal-hero .hero-img{border-radius:0;margin:0 -16px;width:calc(100% + 32px);max-width:none}
+  .stable{font-size:14px}
+  .stable td,.stable th{padding-left:6px;padding-right:6px}
   .wrap{padding-left:16px;padding-right:16px}
   .listing{grid-template-columns:1fr;gap:0}
   .gal{grid-template-columns:1fr}
@@ -142,7 +163,24 @@ const JS = String.raw`
   // How Sam decides.
   // Panels around the shared card (This car before, the sales section): the credit and How Sam decides only; the one
   // Updated date on a view is the card's own (its read time), never a second, different date beside it.
-  function foot(a){ return '<div class="gas-foot"><span><b>Powered by GoAskSam</b></span><a href="/how-sam-decides" target="_blank" rel="noopener">How Sam decides</a></div>'; }
+  function foot(a){ return '<div class="gas-foot"><span><b>Powered by GoAskSam</b></span><span class="hsd">How Sam decides</span></div>'; }
+  // A sale's mileage as the engine read it, or the plain words when the listing stated none.
+  var milesOf = function(s){ return s && s.miles ? Number(s.miles).toLocaleString("en-US") + " miles" : "Mileage not stated"; };
+  var dayLabel = function(d){ var p = String(d || "").split("-"); return p.length === 3 && MON[Number(p[1]) - 1] ? MON[Number(p[1]) - 1].slice(0, 3) + " " + Number(p[2]) + ", " + p[0] : (monthYear(d) || ""); };
+  // The sales table (views a and b): date, mileage, price per row, from the endpoint's own sales (the engine's pool,
+  // never a set-aside row). opts.reserve inserts the one divider row at the reserve (rows sorted by price, high first).
+  function salesTable(rows, opts){
+    opts = opts || {};
+    var body = "", placed = false, r = opts.reserve > 0 ? opts.reserve : null;
+    var divider = function(){ return '<tr class="res-row"><td colspan="3">Your reserve ' + usd(r) + "</td></tr>"; };
+    rows.forEach(function(s){
+      if (r != null && !placed && s.price < r) { body += divider(); placed = true; }
+      body += "<tr><td>" + esc(dayLabel(s.date)) + "</td><td>" + esc(milesOf(s)) + '</td><td class="num">' + usd(s.price) + "</td></tr>";
+    });
+    if (r != null && !placed) body += divider();
+    return '<table class="stable"><thead><tr><th scope="col">Date</th><th scope="col">Mileage</th><th scope="col" class="num">Price</th></tr></thead><tbody>' + body + "</tbody></table>";
+  }
+  var newest = function(a){ return (a && a.sales || []).slice().sort(function(x, y){ return String(y.date || "").localeCompare(String(x.date || "")) || y.price - x.price; }); };
   // Where a figure sits against the engine's range. The only thing this page works out, and only from that range.
   function placing(x, a){
     if (!a || !a.range) return { cls: "none", text: "No range for cars like this yet" };
@@ -173,7 +211,7 @@ const JS = String.raw`
     }
     var pill = opts.price != null ? '<p class="pillrow"><span class="pill ' + placing(opts.price, a).cls + '">' + esc(placing(opts.price, a).text) + "</span></p>" : "";
     var body = a.range
-      ? '<p class="range">' + usd(a.range.low) + " to " + usd(a.range.high) + "</p>" + pill + '<p class="sub">The middle half of ' + a.count + " " + plural(a.count, "sale", "sales") + (a.window ? " " + esc(a.window) : "") + ".</p>"
+      ? '<p class="range">' + usd(a.range.low) + " to " + usd(a.range.high) + "</p>" + pill + '<p class="sub">The middle half of ' + a.count + " " + plural(a.count, "sale", "sales") + "" + ".</p>"
       : '<p class="sub">' + esc(a.thin || "No range for cars like this yet.") + "</p>" + pill;
     var aside = a.setAside && a.setAside.total ? '<p class="note">' + a.setAside.total + " more set aside" + (a.setAside.reasons ? " (" + Object.keys(a.setAside.reasons).map(function(k){ return a.setAside.reasons[k] + " " + esc(k); }).join(", ") + ")" : "") + ".</p>" : "";
     return '<div class="panel"><h3>What these sell for</h3>' + (opts.chips ? idChips(a) : "") + body + aside + foot(a) + "</div>";
@@ -188,13 +226,14 @@ const JS = String.raw`
   }
   function tiles(a){
     if (!a || a.question || !a.sales || !a.sales.length) return '<p class="muted">' + esc((a && a.thin) || "No recorded sales of cars like this yet.") + "</p>";
-    return '<div class="tiles">' + a.sales.map(function(s){ return '<div class="tile"><div class="ph" aria-hidden="true">Photo</div><div class="p">' + usd(s.price) + '</div><div class="d">Sold ' + esc(monthYear(s.date)) + "</div></div>"; }).join("") + "</div>";
+    return '<div class="tiles">' + a.sales.map(function(s){ return '<div class="tile"><div class="p">' + usd(s.price) + '</div><div class="d">Sold ' + esc(dayLabel(s.date)) + '</div><div class="d">' + esc(milesOf(s)) + "</div></div>"; }).join("") + "</div>";
   }
   // ---- view a: before listing
   var aLast = null;
   function drawA(a){
     aLast = a;
     $("a-out").innerHTML = (a.question ? rangePanel(a, { slot: "a", chips: true }) : (idChips(a) ? '<div style="margin:0 0 16px">' + idChips(a) + "</div>" : "") + (a.range || a.thin ? rangePanel(a) : "")) + (a.vin || (a.history && a.history.length) ? historyPanel(a) : "") +
+      (!a.question && a.sales && a.sales.length ? '<section class="full-a"><h2>What cars like this sold for</h2><p class="sub" style="margin:-6px 0 12px">The most recent ' + Math.min(8, a.sales.length) + " " + plural(Math.min(8, a.sales.length), "sale", "sales") + " behind this answer, newest first.</p>" + salesTable(newest(a).slice(0, 8)) + "</section>" : "") +
       '<div style="margin-top:20px"><button type="button" class="btn pri" id="a-list">List it</button></div>';
   }
   function runA(body){ $("a-out").innerHTML = '<p class="loading">Sam is reading the sales.</p>'; ask(body).then(drawA); }
@@ -204,7 +243,11 @@ const JS = String.raw`
     var v = Number(String($("b-res").value || "").replace(/[^\d]/g, ""));
     var a = bAns; if (!a) return;
     if (a.question) { $("b-out").innerHTML = rangePanel(a, { slot: "b" }); return; }
-    $("b-out").innerHTML = rangePanel(a, { price: v > 0 || !a.range ? v : null });
+    var last = newest(a).slice(0, 10).sort(function(x, y){ return y.price - x.price; });
+    var at = v > 0 ? last.filter(function(s){ return s.price >= v; }).length : null;
+    $("b-out").innerHTML = rangePanel(a, { price: v > 0 || !a.range ? v : null }) + (last.length ?
+      '<section class="full-a"><h2>What cars like this sold for</h2><p class="sub" style="margin:-6px 0 12px">The last ' + (last.length === 1 ? "sale" : last.length + " sales") + ", highest price first.</p>" + salesTable(last, { reserve: v }) +
+      (at != null ? '<p class="res-sum">' + at + " of the last " + last.length + " sold at or above this.</p>" : "") + "</section>" : "");
   }
   // ---- views c and d: the listing
   var cAns = null;
@@ -212,7 +255,7 @@ const JS = String.raw`
     cAns = a;
     $("c-rail").innerHTML = rangePanel(a, { price: D.price, slot: "c" }) + historyPanel(a);
     var lq = a && a.range && a.trend && a.trend.length ? a.trend.reduce(function(m, t){ return String(t.period) > String(m.period) ? t : m; }) : null;   // the latest quarter with eight or more sales, view d only
-    $("d-sales").innerHTML = '<h2>What cars like this sold for</h2>' + (a && a.range ? '<p class="sub" style="margin:-6px 0 16px">' + a.count + " " + plural(a.count, "sale", "sales") + (a.window ? " " + esc(a.window) : "") + ", lowest price first.</p>" : "") +
+    $("d-sales").innerHTML = '<h2>What cars like this sold for</h2>' + (a && a.range ? '<p class="sub" style="margin:-6px 0 16px">' + a.count + " " + plural(a.count, "sale", "sales") + ", lowest price first.</p>" : "") +
       (a && a.card ? (a.quarter ? '<div class="qrow">' + a.quarter + "</div>" : "") : (lq ? '<p class="qrow"><b>' + esc(lq.period.replace("-", " ")) + "</b> " + usd(lq.low) + " to " + usd(lq.high) + ", " + lq.count + " sales</p>" : "")) + tiles(a) + foot(a);
     $("d-hist").innerHTML = historyPanel(a);
   }
@@ -228,7 +271,7 @@ const JS = String.raw`
   $("b-res").addEventListener("input", function(){ var d = String(this.value || "").replace(/[^\d]/g, "").slice(0, 9); this.value = d ? Number(d).toLocaleString("en-US") : ""; drawB(); });
   ask({ q: D.q }).then(function(a){ bAns = a; drawB(); });
   ask({ q: D.q, vin: D.vin }).then(drawListing);
-  var pre = new URLSearchParams(location.search).get("q"); if (pre) { $("a-q").value = pre; runA({ q: pre }); }
+  var pre = new URLSearchParams(location.search).get("q") || D.q; $("a-q").value = pre; runA({ q: pre });
 })();
 `;
 
@@ -238,10 +281,12 @@ export function pageHtml(view) {
   const v = /^[abcd]$/.test(view || "") ? view : "a";
   const tab = (k, label) => `<a href="?view=${k}"${k === v ? ' aria-current="page"' : ""}>${label}</a>`;
   const d = DUMMY, miles = d.miles.toLocaleString("en-US");
-  const listing = (withRail) => `
+  // The one hero image (views b and d), served by this handler behind the same crew gate (?img=hero).
+  const hero = `<img class="hero-img" src="/api/partnerDemo?img=hero" width="${HERO_W}" height="${HERO_H}" alt="A black 2015 Porsche 911 GT3 coupe in a white studio, seen from the front three-quarter, with its fixed rear wing and grey wheels" decoding="async">`;
+  const listing = (withRail, withHero) => `
   <div class="listing">
     <div>
-      <div class="gal"><div class="thumbs">${phs(5)}</div><div class="ph main-ph" aria-hidden="true">Placeholder photo</div></div>
+      ${withHero ? `<div class="gal gal-hero">${hero}</div>` : `<div class="gal"><div class="thumbs">${phs(5)}</div><div class="ph main-ph" aria-hidden="true">Placeholder photo</div></div>`}
       <div class="phone-only"></div>
     </div>
     <div class="rail">
@@ -268,12 +313,13 @@ export function pageHtml(view) {
   <div id="a-out" style="margin-top:22px"></div></div>
 </section>
 <section class="sec-view wrap" id="view-b"${v === "b" ? "" : " hidden"}>
+  <div class="b-hero">${hero}</div>
   <div class="lead"><h1>Set your reserve</h1><p class="sub">${d.title}, ${miles} miles</p>
   <div class="reserve"><label for="b-res">Reserve</label><span class="money">$<input id="b-res" inputmode="numeric" placeholder="0" aria-label="Reserve in dollars"></span></div>
   <div id="b-out"><p class="loading">Sam is reading the sales.</p></div></div>
 </section>
 <section class="sec-view wrap" id="view-c"${v === "c" ? "" : " hidden"}>${listing(true)}</section>
-<section class="sec-view wrap" id="view-d"${v === "d" ? "" : " hidden"}>${listing(false)}${desc}
+<section class="sec-view wrap" id="view-d"${v === "d" ? "" : " hidden"}>${listing(false, true)}${desc}
   <div class="full" id="d-sales"><p class="loading">Sam is reading the sales.</p></div>
   <div class="full" id="d-hist"></div>
 </section>
@@ -285,6 +331,11 @@ export default function handler(req, res) {
   res.setHeader("Cache-Control", "private, no-store");
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
   if (!isCrewRequest(req)) { res.setHeader("Content-Type", "text/plain; charset=utf-8"); return res.status(404).send("Not found"); }
+  if (req.query && req.query.img === "hero") {
+    res.setHeader("Content-Type", "image/jpeg");
+    res.setHeader("Cache-Control", "private, max-age=3600");
+    return res.status(200).send(Buffer.from(HERO_JPEG_B64, "base64"));
+  }
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   return res.status(200).send(pageHtml(String((req.query && req.query.view) || "a")));
 }

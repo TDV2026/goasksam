@@ -11,11 +11,11 @@
 // the cookie part 2 is SKIPPED, said so, never counted as a pass. Read only, zero OldCarsData requests.
 //   node scripts/partnerEngineMatch.mjs            part 1, part 2 when the cookie is set
 import fs from "node:fs";
-import { partnerShape, venueLeak, historyOf, PILL_SLOT } from "../api/partnerAnswer.js";
+import { partnerShape, venueLeak, historyOf, PILL_SLOT, demoCard, basisLine } from "../api/partnerAnswer.js";
 import { sellsForCardHtml } from "../lib/sellsForCard.js";
 // The card Market Check draws for an answer (public/js/onebox.js: window.sellsForCardHtml(d, {})); the partner card is
 // the same card with the pill slot, so with the slot taken out the two must be byte-identical.
-const sameCard = (partnerCard, d) => String(partnerCard || "").replace(PILL_SLOT, "") === (sellsForCardHtml(d, {}) || "");
+const sameCard = (partnerCard, d) => String(partnerCard || "").replace(PILL_SLOT, "") === (demoCard(sellsForCardHtml(d, {}), d) || "");
 
 let pass = 0, fail = 0, skip = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
@@ -34,7 +34,7 @@ const asKeys = sales => sales.map(s => s.price + "|" + s.date).sort();
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 // ---- part 1: fixed engine answers
-const card = (price, date, extra) => ({ price, date, title: "1965 Ford Mustang Fastback", url: "https://bringatrailer.com/listing/x", platform: "Bring a Trailer", platformName: "Bring a Trailer", id: 12, vinNorm: "X", ...extra });
+const card = (price, date, extra) => ({ price, date, mi: 24000, title: "1965 Ford Mustang Fastback", url: "https://bringatrailer.com/listing/x", platform: "Bring a Trailer", platformName: "Bring a Trailer", id: 12, vinNorm: "X", ...extra });
 const FIX = {
   range: { status: "one_box", tier: "result", cluster: [41500, 58000], poolN: 14, windowMonths: 12, readAt: "2026-10-16T12:00:00Z", setAsideReasons: { project: 1, replica: 1, modified: 0 }, windowLabel: "in the last twelve months", engineVersion: "fixture",
     resolvedCar: { year: 1965, make: "Ford", model: "Mustang", bodyStyle: "Fastback" }, cards: [card(61000, "2026-02-01"), card(39000, "2026-04-11"), card(52000, "2025-12-30", { platform: "others", platformName: "Mecum" }), card(0, "2026-01-01")],
@@ -53,12 +53,16 @@ for (const [name, d] of Object.entries(FIX)) {
     ok(out.window === mc.window, `${name}: window ${out.window} vs ${mc.window}`);
     ok(same(asKeys(out.sales), mc.sales), `${name}: the same sales as Market Check`);
     ok(out.sales.every((s, i, a) => !i || a[i - 1].price <= s.price), `${name}: sales lowest price first`);
-    ok(out.sales.every(s => Object.keys(s).sort().join() === "date,price"), `${name}: a sale is its price and date only`);
+    ok(out.sales.every(s => Object.keys(s).sort().join() === "date,miles,price"), `${name}: a sale is its price, date and mileage only`);
     ok(sameCard(out.card, d), `${name}: the shared card, byte-identical to Market Check's card for the same answer`);
   }
   if (name === "thin") ok(out.range === null && /Too few to show a range/.test(out.thin || "") && !/\$/.test(out.thin), "thin: words only, never a range or a dollar figure");
   if (name === "range") {
-    ok(/Middle half of 14 sales, last 12 months/.test(out.card || "") && /1 project, 1 replica/.test(out.card || "") && out.card.indexOf(PILL_SLOT) > out.card.indexOf("sfc-range"), "range: the card carries the basis, the set-aside footnote and the pill slot under the range");
+    ok(basisLine(d) === "Based on 14 sales, the latest in April 2026." && /Based on 14 sales, the latest in April 2026\./.test(out.card) && !/\d+ months|twelve months|Middle half of/.test(out.card), `range: the card's basis line states no month count (got ${basisLine(d)})`);
+    ok(!/<a [^>]*>How Sam decides/.test(out.card) && /<span class="sfc-footer-link">How Sam decides<\/span>/.test(out.card), "range: How Sam decides is plain text, not a link");
+    ok(out.sales.every(s => s.miles === 24000 || s.miles === null), "range: each sale carries the engine's mileage");
+    ok(basisLine({ ...d, poolN: 3 }) === "Based on three sales, the latest in April 2026.", "a count under ten is written in words");
+    ok(/Based on 14 sales, the latest in April 2026/.test(out.card || "") && /1 project, 1 replica/.test(out.card || "") && out.card.indexOf(PILL_SLOT) > out.card.indexOf("sfc-range"), "range: the card carries the basis, the set-aside footnote and the pill slot under the range");
     ok(out.trend && out.trend.length === 1 && out.trend[0].count >= 8, "range: only quarters with eight or more sales");
     ok(out.setAside && out.setAside.total === 2 && !("modified" in out.setAside.reasons), "range: set-aside reasons, zero counts dropped");
     ok(out.history[0].result === "not_sold" && out.history[0].highBid === 128000 && out.history[1].price === 151000, "history: sold with its price, not sold with its high bid, newest first");
