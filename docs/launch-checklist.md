@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-16 (Lane F; Sam approved the numeric siblings and Black Series in e60, with the taxonomy-only trim-word list to come).
+Last updated: 2026-10-16 23:5xZ (Lane F; partner access code live, ba6560b5).
 
 ## 1. The four launch items
 
@@ -21,7 +21,7 @@ Last updated: 2026-10-16 (Lane F; Sam approved the numeric siblings and Black Se
 | Item | Owner | State | Blocked on | Proof |
 |---|---|---|---|---|
 | eBay partner demo (/partner-demo, four views, shared card) | Lane C | live (deploy 51da5743; partnerEngineMatch live half 62 passed, 0 failed) | nothing | lane-notes "Partner demo live on Sam's Oct 16 changes"; ~/Desktop/goasksam-proofs/partner/live/ |
-| Separate access code for the demo (PARTNER_DEMO_CODE, signed gas_partner cookie scoped to /partner-demo and /api/partnerAnswer, 404 otherwise, rate limited 5 a minute, 20 an hour, 50 a day per address and device) | Lane C | built (1c536749, local, not pushed; partnerAccessCheck 30 passed, 0 failed; partnerEngineMatch offline 32 of 32) | prePush alone, then the push (demo first); Sam sets PARTNER_DEMO_CODE in Vercel when the PUSHED line says so (lifetime decided: 14 days) | lane-notes "Partner demo access code, stage 1: built"; scripts/partnerAccessCheck.mjs in prePush; the seven listed live checks after deploy |
+| Separate access code for the demo (PARTNER_DEMO_CODE, signed gas_partner cookie, 14 days, scoped to /partner-demo and /api/partnerAnswer, 404 otherwise, rate limited) | Lane C | live (ba6560b5, Vercel Ready 23:48Z; prePush alone 0 FAIL / 6 SKIP / 37 PASS, partnerAccessCheck 30 of 30, prePush about ten minutes, no archive read over the 10-second line; live without the code: no code, wrong code, empty code all 404 on page and data endpoint, crew cookie 200 on both, headers noindex/no-referrer/no-store) | the right code proven live: Sam opens /partner-demo?k=<PARTNER_DEMO_CODE> in a private window (lands on /partner-demo with no ?k=, demo drawn; /market-check in that window goes to /sell), or stores the code in the Keychain (service goasksam-partner-code, account goasksam) for Lane C's full live check | lane-notes PUSHED (Lane C, 2026-10-16T23:48Z); scripts/partnerAccessCheck.mjs; Sam's or Lane C's live confirmation |
 | Window used by the 2015 Porsche 911 GT3 answer (Sam's question, report only) | Lane B | answered (year scope is the exact 2015 rung; 59 months is the sale-date window, the standard five-year read, oldest sale December 2021; twelve months alone has 6 sales, 24 months has 15; no engine change) | nothing | Lane B's answer to Sam, 22:0xZ; obdiag read with counts by window |
 
 ## 3. Buy speed
