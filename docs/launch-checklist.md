@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-16 (Lane F, first cut, built from docs/lane-notes.md and the lanes' first reports).
+Last updated: 2026-10-16T23:40Z (Lane F; folded in the first answers from Lanes B, B2 and E).
 
 ## 1. The four launch items
 
@@ -13,7 +13,7 @@ Last updated: 2026-10-16 (Lane F, first cut, built from docs/lane-notes.md and t
 |---|---|---|---|---|
 | Market Check matches the mockup | Lane A | checking (zero gaps on the four named cars, Oct 16) | Sam's sign-off on the cited approved differences | lane-notes "Job 1 (Lane A, Sam's four-car mockup check, 2026-10-16)"; ~/Desktop/goasksam-proofs/card/audit-{911,mustang,speedster,275gtb}-{1440,390}.png |
 | Every car returns a range | Lane B | building (e59 live; e60 is the last engine bump before launch; 1971 Mercedes-Benz 280SE 3.5 Cabriolet still hits the 20-second deadline card, an e60 item) | e60 push; the e59 four-lane sweep (parked until B2's golden run is DONE) | lane-notes Lane B RUNNING/DONE lines; e59 sweep DONE line when posted |
-| Golden table zero mismatches across Market Check, Buy, Sell and Tasks | Lane B2 | checking (full table rows 1 to 46 RUNNING on e59 since 22:48Z) | the run finishing; rows pending e60 (280SE 3.5 Cabriolet) | docs/golden-rules.md; scripts/goldenTruth.mjs; B2's DONE line |
+| Golden table zero mismatches across Market Check, Buy, Sell and Tasks | Lane B2 | checking (full table rows 1 to 46 RUNNING on e59 since 22:48Z; rows 1 to 45 pinned, row 46 waits on e60; expected red until others act: rows 32, 37, 38 states-a-body lines and the Buy and Sell shared-card identity (Lane A adopting the card), Sell count rows 8, 10, 14, 22, 23, 39 to 41) | the run finishing; Lane A's card adoption on Buy and Sell; e60 for row 46; two unpushed B2 commits wait for Lane C's next stack | docs/golden-rules.md; scripts/goldenTruth.mjs; B2's DONE line with per-product counts; the final launch run renders all 46 pages |
 | Sam's own review | Sam | decision | the three rows above | Sam's note in lane-notes |
 
 ## 2. Partner demo
@@ -21,17 +21,18 @@ Last updated: 2026-10-16 (Lane F, first cut, built from docs/lane-notes.md and t
 | Item | Owner | State | Blocked on | Proof |
 |---|---|---|---|---|
 | eBay partner demo (/partner-demo, four views, shared card) | Lane C | live (deploy 51da5743; partnerEngineMatch live half 62 passed, 0 failed) | nothing | lane-notes "Partner demo live on Sam's Oct 16 changes"; ~/Desktop/goasksam-proofs/partner/live/ |
-| Separate access code for the demo | Lane C | decision (today crew cookie only; PARTNER_KEY unset) | Sam: whether the partner gets its own code (PARTNER_KEY) and its value | api/partnerAnswer.js, api/partnerDemo.js; the env listing once set |
-| Window used by the 2015 Porsche 911 GT3 answer (Sam's question, report only) | Lane B | unknown (asked) | Lane B's answer | lane-notes "FOR LANE B: which window did the 2015 Porsche 911 GT3 answer use?" |
+| Separate access code for the demo (PARTNER_DEMO_CODE, signed gas_partner cookie, 30 days, demo and data endpoint only, 404 otherwise) | Lane C | building (Sam's prompt forwarded 23:3xZ, first job ahead of the tiered prePush and SEO items) | Lane C's READY line naming when Sam can set PARTNER_DEMO_CODE in Vercel | Lane C's build, prePush and live-check reports; the seven listed live checks |
+| Window used by the 2015 Porsche 911 GT3 answer (Sam's question, report only) | Lane B | answered (year scope is the exact 2015 rung; 59 months is the sale-date window, the standard five-year read, oldest sale December 2021; twelve months alone has 6 sales, 24 months has 15; no engine change) | nothing | Lane B's answer to Sam, 22:0xZ; obdiag read with counts by window |
 
 ## 3. Buy speed
 
 | Item | Owner | State | Blocked on | Proof |
 |---|---|---|---|---|
-| E1 to E4 (no regeneration call, prepared enrichment, set-aside label cap, fixed line) | Lane E | live (buy-speed, buy-speed-2, buy-speed-3 pushed by Lane C) | nothing | lane-notes "Lane E, Buy speed: MEASURED"; "Buy six-car retime" (first card 3.2 to 5.4 s fresh, 1.2 to 4.5 s reload); buySearchLineCheck 4 of 4 |
+| E1, E2, E3, E4, E6, E8 (no regeneration call, one stored-row read, enrichment beside the model round, set-aside wait bounded, one model call plus the fixed line, live read beside the tool round) | Lane E | live (12cd6a7e, 2a74a162, fddb9b6a) | nothing | scripts/buyTimes.mjs after-table in lane-notes (header and first card 2.9 to 6.7 s, median 3.6 s, against 6.9 to 8.1 s before and 18.5 to 24.4 s spikes); buySearchLineCheck 4 of 4; buyEngineMatch 14 same 0 different; "Buy six-car retime" |
 | E5 (a failed spec_market_cache read is not an empty table) | Lane B | live (in e59) | nothing | e59 PUSHED line |
-| E7 (00:00 UTC row reset and ENGINE_VERSION bumps put Buy cold) | Lane B | unknown (asked) | Lane B to say whether it is in e60 | lane-notes Lane E proposal, E7 |
-| Empty-result line not sent by the server over no cards | Lane E | live (buy-speed-3) | nothing | Lane C's 23:10Z PUSHED line |
+| E7 (00:00 UTC row reset and ENGINE_VERSION bumps put Buy cold) | Lane B | parked for launch (mitigated by the traffic-only warm, e59: 602 specs, and the demo-cars-warm-first order, not by code) | nothing | Lane B's answer to Lane F |
+| Empty-result line not sent by the server over no cards (buy-speed-3) and the card 136132 naming fix | Lane E (server), Lane C (page, names) | live (be1f06a8, 24e5b7c4, d81a2bcb, 0fcae7e7 in Lane C's 23:10Z push) | Lane E's reruns of buySearchLineCheck's empty case and buyEngineMatch on the Mustang | Lane C's 23:10Z PUSHED line; Lane E's rerun lines |
+| Resolver cold start and path-on-timing (speed and correctness) | Lane B | building (in e60) | e60 | Lane B's e60 READY line |
 
 ## 4. Tasks fixes
 
@@ -39,29 +40,29 @@ Last updated: 2026-10-16 (Lane F, first cut, built from docs/lane-notes.md and t
 |---|---|---|---|---|
 | Send-path read reductions (tasks-reads) | Lane D | live (8993b2fd) | nothing | lane-notes "Lane D, Oct 16 2026: Tasks send-path read reductions, DEPLOYED PROOF" (legacy 9,623 bytes to 8,098) |
 | Trim guard, hunt read without description, status line (tasks-trim, three commits) | Lane D | pushing (PUSH LOCK 23:22Z, prePush running alone) | prePush 0 FAIL | Lane D's PUSHED line; scripts/taskFiltersCheck.mjs (79 of 79); the three hunts rerun after deploy (hunt 1 expected to match 9001) |
-| Cold-start watch event reads (13.5 MB per cold cron run) | Lane B | unknown (observation by Lane D, not assigned) | Sam: whether it is launch scope | lane-notes "FOR LANE B (observation, not mine to fix)" |
+| Cold-start watch event reads (13.5 MB per cold cron run; lib/live/watches.js eventsFor, Lane C's send path per Lane B) | Lane C | unknown (not assigned) | Sam: whether it is launch scope | lane-notes "FOR LANE B (observation, not mine to fix)" |
 
 ## 5. Supabase speed and cost
 
 | Item | Owner | State | Blocked on | Proof |
 |---|---|---|---|---|
-| project_flag backfill | Lane B | building (dry run queued after the e59 sweep and the window-rule measurement) | Sam's OK before anything touches the database | ~/Desktop/goasksam-proofs/db/sql-for-sam.md (one file, Lane B) |
-| Count removal | unknown (asked) | unknown | | |
-| Real-columns migration | Lane B | building (SQL for Sam, same file) | Sam runs it in the SQL editor | ~/Desktop/goasksam-proofs/db/sql-for-sam.md |
-| Window and age rule decision | Lane B measures, Sam decides | building (measurement queued after the e59 sweep) | the measurement, then Sam | Lane B's report |
+| project_flag backfill | Lane B | building (read-only dry run: counts by outcome, 20 flagged and 20 unflagged examples from the engine's own rule, the re-stamp scope, the rows flagged bodyshell by the pre-Oct 6 rule; queued after the e59 sweep and the window-rule table) | Sam's OK before anything touches the database; never during a warm or sweep | ~/Desktop/goasksam-proofs/db/sql-for-sam.md (one file, Lane B) |
+| Count removal | Lane B | live (in e59, behind the sweep) | the e59 sweep result | e59 PUSHED line; sweep DONE |
+| Real-columns migration | Lane B | building (ten added columns, an in-database batched fill, a 10,000-row and an all-rows verification, the ingest and pool-select changes, a rollback per step) | Sam runs it in the SQL editor after reading the file | ~/Desktop/goasksam-proofs/db/sql-for-sam.md |
+| Window and age rule decision | Lane B measures, Sam decides | building (the table waits on the e59 sweep, which waits on B2's golden run, one load at a time) | the sweep, then Sam | Lane B's report |
 
 ## 6. SEO plan and firewall
 
 | Item | Owner | State | Blocked on | Proof |
 |---|---|---|---|---|
-| SEO plan items | unknown (asked) | unknown | | docs/search-rules.md is the rule set; the plan's open items are not in lane-notes under that name |
-| Firewall publish (the staged WAF rules) | unknown (asked; Sam edits the firewall by hand) | unknown | | Vercel > goasksam > Firewall |
+| SEO plan items (the plan, the llms.txt text) | Lane E | blocked (waiting on Sam's approval of the plan and the llms.txt text, per Lane E since 23:40Z) | Sam | Lane E's docs-only laneE-notes branch (unpushed, needs a push prompt on Lane E's side) |
+| Firewall publish (the staged WAF rules) | Sam publishes; Lane E holds the ask | blocked (waiting on Sam, per Lane E) | Sam | Vercel > goasksam > Firewall |
 
 ## 7. e60 (last engine bump before launch)
 
 | Item | Owner | State | Blocked on | Proof |
 |---|---|---|---|---|
-| e60 batch: year-less badge rule, resolver timing contract, taxonomy refresh, latest-sale and oldest-included-sale fields, history-page family read, body-style exports (Lane C's ask), the 1973 Targa label; warm only traffic, golden and demo cars | Lane B | building | the e59 sweep DONE, then the queue | Lane B's READY, PUSH LOCK and PUSHED lines; the e60 warm DONE |
+| e60 batch: year-less badge rule, resolver timing contract (a lookup timeout never changes an answer), taxonomy refresh off the request path, latestSaleDate and oldestIncludedSaleDate fields, history-page family read by the archive's columns behind a flag, body-style exports for the Buy card, the 1973 Targa label, a pure-decimal trim never pre-filtering titles (the 280SE 3.5 row), the golden loader counting words answers; warm only traffic, golden and demo cars | Lane B | building | the e59 sweep DONE (which waits on B2's golden run), then the queue | Lane B's READY, PUSH LOCK and PUSHED lines; the e60 warm DONE |
 
 ## 8. Pre-launch items
 
