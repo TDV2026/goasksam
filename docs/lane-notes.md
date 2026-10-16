@@ -8529,3 +8529,26 @@ Search check: no public page touched (API timing only; the scripts are diagnosti
   (year leads, then colour, gearbox, make, the engine's plural noun, a range, budget, miles, place). It says "for sale"
   because the cards are live listings; never "sold". Nothing else on the page changes; the box and the cards stay.
 - READY for the integrator (Lane E, 2026-10-16, Sam's order: Lane C stacks and pushes buy-speed after the e58 warm DONE; Lane E takes no lock and runs no prePush for this push): worktree goasksam-laneE, branch buy-speed, rebased on origin/main at f146ca9, six commits (E1 to E3 and stage times; prepared as a Map; E6 + E8 + buySearchLineCheck; E6 wording "Here's what's for sale: {search}."; the timing scripts; these notes). Files: lib/live/chatCore.js, lib/live/chatHttp.js, lib/live/samChat.js, scripts/buyTimes.mjs, scripts/buyProbe.mjs, scripts/buySearchLineCheck.mjs, docs/lane-notes.md. No pool, fence or range touched; api/buy.js and api/buySearch.js untouched. Local proof: module load of chatCore/chatHttp/samChat/buySearch/sellChat; a stubbed-model test of the turn (seven scenarios: no regeneration on a choice question, regeneration still when a surviving sentence breaks a rule, prepared cards keyed by id awaited by shape, times kept on the deadline, a search turn ends in code with one model call and the fixed line, a market turn keeps the model reply, sameSearch on the four searches). The moment Lane C posts PUSHED: scripts/buySearchLineCheck.mjs (four searches), scripts/buyTimes.mjs --runs 2 and --page (four searches), scripts/buyEngineMatch.mjs, then the before and after table here.
+- CONTEXT ONLY, NOT EVIDENCE FOR LANE E'S CHANGE (Lane E, 2026-10-16T18:53Z, Sam's ruling): scripts/stageTimes.mjs on six cars
+  (2003 BMW M3 Coupe, 2005 Porsche 911, 1965 Ford Mustang, 1957 Porsche 356 Speedster, 1966 Ferrari 275 GTB, 2023 Porsche 911
+  GT3), warm e58 DONE true, Lane C PUSHED false. It times Market Check's path (sellerDecision, onebox, search.js), which the
+  buy-speed branch does not touch, so it cannot show the change; kept here as a reading of the archive that day.
+    car | cold engine / server / client | warm row read / server / client (seconds)
+    2003 BMW M3 Coupe        | 4.7 / 6.6 / 6.9   | 0.5 / 2.1 / 2.5
+    2005 Porsche 911         | 7.5 / 9.7 / 10.2  | 0.7 / 3.1 / 3.6
+    1965 Ford Mustang        | 9.3 / 10.9 / 11.3 | 0.7 / 2.1 / 2.9
+    1957 Porsche 356 Speedster | 1.5 / 2.7 / 2.9 | 0.3 / 1.5 / 1.7
+    1966 Ferrari 275 GTB     | 0.6 / 1.7 / 2.1   | 0.6 / 1.4 / 1.7
+    2023 Porsche 911 GT3     | 3.6 / 4.7 / 5.0   | 0.3 / 1.7 / 2.0
+    medians                  | 4.7 / 6.6 / 6.9   | 0.6 / 2.1 / 2.5
+  The slowest cold stage was the archive read on five of six cars.
+  THE PASS OR FAIL TABLE for buy-speed is buyTimes (API and page) on the four searches plus the Buy header and first-car
+  time, before and after, each line marked with the e58 warm DONE and Lane C PUSHED state at run time (posted after deploy).
+FOR LANE B (from the stageTimes reading above; please say which of these two you own):
+  1. Cold archive reads on big pools: the engine's fetches took 4.7 s (2003 BMW M3 Coupe, 3 fetches, longest 2.4 s), 7.5 s
+     (2005 Porsche 911, 3 fetches, longest 4.8 s) and 9.3 s (1965 Ford Mustang, 3 fetches, longest 5.6 s) on the warm e58
+     deploy, with the pool and extras stages at 1 to 69 ms. The cold answer is the archive read.
+  2. The warm Market Check path spends about 1 to 2.4 s of server time beyond the stored-row read: server 1.4 to 3.1 s
+     against a row read of 0.3 to 0.7 s (M3 Coupe 2.1 vs 0.5, 2005 911 3.1 vs 0.7, Mustang 2.1 vs 0.7, Speedster 1.5 vs 0.3,
+     275 GTB 1.4 vs 0.6, GT3 1.7 vs 0.3). The stage marks on those warm answers still show 3 fetches summing 0.8 to 6.0 s,
+     so something on the warm path reads the archive after the row hit.
