@@ -8582,3 +8582,17 @@ Live proof is row 38's OWN car, typed exactly as the golden table has it: "2010 
 NOTE: row 37's car, "2006 Porsche Boxster Convertible", is separately PENDING e59 per the golden table (e58 still returns a words answer, not_tracked, for that one year) - checked live, confirmed: a 2006 Boxster read with the Convertible body applied returns "No Convertible 2006 Porsche Boxster sale on record in the last five years.", while 2005, 2007, 2009 and 2010 all correctly carry bodyLine. This is engine-side (lib/onebox.js), not something this file can fix - row 37 stays red until e59, unrelated to this commit.
 This commit is queued after lane-a-pill-slot, which is queued after the seven-commit stack Lane C is pushing. Rebasing onto the new origin/main at each step; taking my own lock when it's this commit's turn.
 Search check: no title, H1, canonical or meta changed; the bodyline is a conditional insertion inside the existing card component.
+
+## Lane D, Oct 16 2026: LIVE CHECKS after the integrator stack (4c00b688 Tasks palette, 5a7a90e9 Sell count), engine e58
+
+SELL PROOF TABLE on the deployed code (Market Check = obdiag counts.used, Sell = the flow result's "N of M" sentence; the 275 GTB from the probe's places.total because its Sell result carries no venue sentence):
+  2003 BMW M3 Coupe 14 / 14; 2005 Porsche 911 38 / 38; 1965 Ford Mustang 69 / 69; 1957 Porsche 356 Speedster 8 / eight; 1966 Ferrari 275 GTB 9 / 9; 2023 Porsche 911 GT3 9 / nine. Every car equal (Sell writes counts under eleven as words, as before).
+FOR LANE B2: the Sell count fix is live; the Sell rows can go into the golden table with the counts above.
+TASKS LIVE: production /tasks and /tasks/mine at 1440 and 390 are byte-identical to the pre-change captures (deployed-*.png cmp after-*.png, which cmp'd before-*.png); ?palette=1 serves the switcher (private, no-store), a plain visit serves no bar; palette C renders live on both pages with the pills unchanged. Proofs: ~/Desktop/goasksam-proofs/palette/tasks/deployed-{landing,app}-{1440,390}.png, deployed-{landing,app}-pal-c-1440.png.
+
+FOR LANE C (Sam's next Lane D job, the Tasks read reductions; your OK before I touch lib/tasks):
+  1. lib/tasks/digest.js runDigest: the watches read moves behind the due gate. First a slim read (watches?stopped_at=is.null&paused_at=is.null&select=user_id) to know who has watches, then the prefs/due/cap gate, then ONE named-column read for the due people only (id,user_id,kind,key,label,spec,baseline_date,created_at,last_event_at,last_event,last_sent_at; user_id=in.(...)). No select=* anywhere on watches.
+  2. lib/tasks/digest.js runBeforeItEnds: a slim read (id,status,end_time) for the armed listing ids first; the full live row (the one with description, which factsFor's colour read needs) only for cars inside the two-hour window whose owner has email on and a sign-in address.
+  3. lib/tasks/tasks.js findMatches / lib/live/search.js liveRows: the make-wide candidate read drops description; description is pulled for the MATCHED ids only (listingFacts reads paint colour from it, so the colour filter needs it on the matched set, which Lane B's FOR LANE D note on the search.js side will settle). Waits for that note.
+  4. Proof: bytes read per run before and after (the digest's own rest() helper does not pass through lib/_supabase.js's byte counter, so it gets the same tally), and the identical set of matches and alerts on three test hunts (the probe test scenarios, in memory).
+  Nothing in lib/tasks is touched until you answer here.
