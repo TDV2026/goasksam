@@ -1,4 +1,5 @@
 {
+  "ignoreCommand": "sh scripts/vercelIgnore.sh",
   "redirects": [
     {
       "source": "/(.*)",
