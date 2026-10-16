@@ -100,6 +100,16 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 26 | 2005 Porsche 911 (bare) | the identity question: every option, Targa included, equals its typed words and its page, and the options add up to Any | chip count equals typed count for each option (expected to fail on Targa until e57) |
 | 27 | 2005 Porsche 911 targa (typed) | the same answer as the Targa chip on the bare 2005 911 page: the chip page reads 1 sale, exact rung, 2005 only, no range (read live Oct 16 2026) | on all four products; expected to fail until e57 (e56 reads 9, the body word is filed as a trim) |
 | 28 | 1965 Ford Mustang fastback (typed) | the same answer as the Fastback chip on the bare 1965 Mustang page: the chip page reads 12 sales, exact rung, 1965 only, $37,000 to $50,000 (read live Oct 16 2026) | on all four products; expected to fail until e57 (e56 reads 15) |
+| 29 | 2012 BMW M3 Competition Coupe (typed) | a typed body never fenced to sedans; equals the bare "2012 BMW M3 Competition" page (13 sales, exact, 2012, $38,500 to $79,500) | read live on e58, Oct 16 2026 |
+| 30 | 1973 Porsche 911 Targa (typed) | PENDING e59: Targa rows exist but all are set aside; the page must not say no Targa sale on record while Targa rows exist | pending Lane B e59 |
+| 31 | 1963 Chevrolet Corvette Roadster (typed) | Roadster = Convertible: equals the Convertible chip on the bare 1963 Corvette (18 sales, exact, 1963, $48,500 to $77,000) | read live on e58 |
+| 32 | 1989 Mazda Miata Roadster (typed) | PENDING e59: no title states a body, so the whole pool is read with the one "states a body" line; equals the bare 1989 Miata | pending Lane B e59 |
+| 33 | 1967 Shelby Cobra Roadster (typed) | the 289 or 427 question, no count or range; each answer typed equals its chip | read live on e58 |
+| 34 | 1955 Mercedes-Benz 300SL Roadster (typed) | PENDING e59: expected words "No Roadster 1955 Mercedes-Benz 300SL sale on record in the last five years." and no count or range; e58 reads 9 roadsters over 1954 to 1956 | pending Lane B e59 |
+| 35 | 1989 Porsche 911 Turbo Targa (typed) | words answer "No Targa 1989 Porsche 911 Turbo sale on record in the last five years.", no count or range, no market on Buy, Sell, Tasks | read live on e58 |
+| 36 | 2001 Porsche 911 Carrera 4S Cabriolet (typed) | words answer "No Cabriolet 2001 Porsche 911 Carrera 4S sale on record in the last five years.", no count or range | read live on e58 |
+| 37 | 2006 Porsche Boxster Convertible (typed) | PENDING e59: the whole 2006 Boxster pool (31) with the line "No listing of the 2006 Porsche Boxster states a body, so this reads every 2006 Boxster." | pending Lane B e59 (e58 gives a words answer) |
+| 38 | 2010 Porsche Boxster Convertible (typed) | the whole 2010 Boxster pool, equal to the bare page (30 sales, exact, 2010, $26,000 to $35,000) | read live on e58; the page prints "Convertibles, 2010", no states-a-body line |
 
 Per car, in the words of the derivation:
 
@@ -166,6 +176,16 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":27,"q":"2005 Porsche 911 targa","status":"ready","rung":"exact","labelHas":["2005","Targa"],"count":1,"tol":0,"low":null,"high":null,"thin":true},
  {"id":28,"q":"1965 Ford Mustang fastback","status":"ready","rung":"exact","labelHas":["1965","Fastback"],"count":12,"tol":0,"low":37000,"high":50000,"tolPct":5},
  {"id":22,"q":"1957 Porsche 356 Speedster","status":"ready","rung":"exact","labelHas":["1957","356 Speedster"],"count":8,"tol":0,"low":282000,"high":363000,"tolPct":5,"setAside":{"total":2,"reasons":["odd sale","modified"]},"noZeroOptions":true,"variantRule":true,"noRestoration":true},
- {"id":23,"q":"1966 Ferrari 275 GTB","status":"ready","rung":"year_widened","labelHas":["275 GTB","1965 to 1966"],"count":9,"tol":0,"low":null,"high":null,"thin":true,"noZeroOptions":true,"variantRule":true,"noRestoration":true}
+ {"id":23,"q":"1966 Ferrari 275 GTB","status":"ready","rung":"year_widened","labelHas":["275 GTB","1965 to 1966"],"count":9,"tol":0,"low":null,"high":null,"thin":true,"noZeroOptions":true,"variantRule":true,"noRestoration":true},
+ {"id":29,"q":"2012 BMW M3 Competition Coupe","status":"ready","rung":"exact","labelHas":["2012 M3 Competition Coupe"],"count":13,"tol":0,"low":38500,"high":79500,"tolPct":5,"equalsBare":"2012 BMW M3 Competition"},
+ {"id":30,"q":"1973 Porsche 911 Targa","status":"pending","countMin":1},
+ {"id":31,"q":"1963 Chevrolet Corvette Roadster","status":"ready","rung":"exact","labelHas":["1963 Corvette Roadster"],"count":18,"tol":0,"low":48500,"high":77000,"tolPct":5,"chipPairs":[{"bare":"1963 Chevrolet Corvette","label":"Convertible","typed":"1963 Chevrolet Corvette Roadster"}]},
+ {"id":32,"q":"1989 Mazda Miata Roadster","status":"pending","equalsBare":"1989 Mazda Miata"},
+ {"id":33,"q":"1967 Shelby Cobra Roadster","status":"ready","question":true,"wordsHas":["Which is it, the 289 or the 427?"],"noCountRange":true,"chipPairs":[{"bare":"1967 Shelby Cobra","label":"289","typed":"1967 Shelby Cobra 289"},{"bare":"1967 Shelby Cobra","label":"427","typed":"1967 Shelby Cobra 427"}]},
+ {"id":34,"q":"1955 Mercedes-Benz 300SL Roadster","status":"pending","empty":true,"wordsHas":["No Roadster 1955 Mercedes-Benz 300SL sale on record in the last five years."],"noCountRange":true},
+ {"id":35,"q":"1989 Porsche 911 Turbo Targa","status":"ready","empty":true,"wordsHas":["No Targa 1989 Porsche 911 Turbo sale on record in the last five years."],"noCountRange":true},
+ {"id":36,"q":"2001 Porsche 911 Carrera 4S Cabriolet","status":"ready","empty":true,"wordsHas":["No Cabriolet 2001 Porsche 911 Carrera 4S sale on record in the last five years."],"noCountRange":true},
+ {"id":37,"q":"2006 Porsche Boxster Convertible","status":"pending","rung":"exact","labelHas":["2006 Boxster"],"count":31,"tol":0,"low":16500,"high":25000,"tolPct":5,"equalsBare":"2006 Porsche Boxster","statesBody":"No listing of the 2006 Porsche Boxster states a body, so this reads every 2006 Boxster."},
+ {"id":38,"q":"2010 Porsche Boxster Convertible","status":"ready","rung":"exact","labelHas":["2010 Boxster Convertible"],"count":30,"tol":0,"low":26000,"high":35000,"tolPct":5,"equalsBare":"2010 Porsche Boxster"}
 ]
 ```

@@ -39,6 +39,7 @@ const near = (got, want, pct) => got != null && want != null && Math.abs(got - w
 // One lane against one golden car. Returns { cell, diffs[] }.
 function judge(g, lane) {
   const L = lane || {};
+  if (g.question) { const asked = !L.ok || (L.count === 0 && L.low == null); return asked ? { cell: "PASS", diffs: [] } : { cell: g.status === "pending" ? "PENDING" : "FAIL", diffs: [`expected a question and no count, got ${L.count} ${money(L.low)} to ${money(L.high)}`] }; }
   if (g.empty) {
     const none = !L.ok && /not_tracked|no market read|empty pool|nothing|no pool/i.test(String(L.reason || ""));
     return none ? { cell: "PASS", diffs: [] } : { cell: g.status === "pending" ? "PENDING" : "FAIL", diffs: [`expected nothing on record, got ${L.ok ? (L.fallbackRung + " " + L.count) : "an error: " + String(L.reason || "").slice(0, 40)}`] };
