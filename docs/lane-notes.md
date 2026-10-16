@@ -8951,3 +8951,27 @@ FOR LANE B (Lane E, 2026-10-16T22:10Z, Sam's order: two separate points; Lane E 
   past 2.5 s (all of the uncommon ones here). The resolver must never change path because of timing: wait longer, or
   return the still-finding message, never the typed-words answer in place of the lookup answer. The Buy-side races are
   mine to fix once the resolver's contract is fixed (one shared resolve per turn, no namesCar race dropping the tool).
+- DONE (Lane E, 2026-10-16T22:05Z): THE BEFORE AND AFTER TABLE, final (Sam's order, after both Buy pushes). State at run
+  time: engine e58-20261016-bodyfamily on every row (read from each enrich answer), e58 warm DONE true, Lane C PUSHED true
+  (2a74a162 + fddb9b6a: E1 to E3, E6, E8, E3/E4 and the d.searchNote line live), buy-speed-3 NOT live, e59 NOT live (Lane
+  B's e59 prePush and push ran during this chain, so the archive was loaded: cold pings up to 4.8 s, explain up to 3.6 s).
+  21:46 to 22:04Z, one search at a time: buyTimes API --runs 2, buyTimes --page --runs 2, buySearchLineCheck, buyEngineMatch,
+  then stageTimes (context only). Seconds; before = the measurement table (pre-e58, warm rows, quiet archive); after = run 1 / run 2.
+    stage                        | Porsche 911       | 1965 Mustang      | 2005 911          | 2023 GT3          | note
+    function round trip (ping)   | 0.13 -> 0.13/0.12 | 0.11 -> 0.19/0.14 | 0.12 -> 0.22/0.14 | 0.12 -> 0.12/4.8  | the 4.8 is a fresh instance under load
+    resolver (parse)             | 0.13 -> 0.66/0.13 | 0.13 -> 0.78/0.48 | 0.18 -> 0.52/0.86 | 0.15 -> 0.37/1.6  | first-call taxonomy loads (FOR LANE B above)
+    live read + fences (explain) | 0.7 -> 0.8/0.8    | 0.6 -> 1.8/0.6    | 0.6 -> 0.7/3.6    | 0.6 -> 0.6/3.2    | archive under e59 load on run 2
+    model turn (one call)        | 4.1 -> 4.4/0.2    | 5.1 -> 1.4/2.0    | 5.3 -> 1.6/0      | 4.6 -> 1.4/1.3    | one Claude call every run (no prompt-cache read on the first 911 call: a fresh instance)
+    enrichFast after the turn    | 1.0 -> 2.6/2.4    | 0.6 -> 0.5/0.6    | 0.6 -> 0.4/0.4    | 0.5 -> 0.4/0.4    | E3 live: the 911's 24 cards' reads overlap the model; 3 cards pending on run 1
+    chat total to "done" (API)   | 6.3 -> 7.3/6.9    | 6.2 -> 3.5/3.3    | 6.7 -> 2.9/3.2    | 6.5 -> 3.0/3.3    |
+    page: header = first card    | 8.1 -> 4.8/6.7    | 7.7 -> 4.6/3.4    | 6.9 -> 3.3/5.3    | 8.0 -> 8.6/5.0    | before spikes 18.5 and 24.4 s; after: no run above 8.6 s under load, median 4.9 s
+  PASS on the rule (not slower, and faster on every search): header and first card 3.3 to 8.6 s under a loaded archive
+  (median 4.9 s) against 6.9 to 8.1 s typical on a quiet one before; on the quiet run at 20:15Z it was 2.9 to 6.7 s
+  (median 3.6 s). The model turn is one call on every run. The 911's remaining cost is its 24 cards' reads under load.
+  buySearchLineCheck: the four live searches PASS (one call, the fixed line, nothing above the cards); the empty-search case
+  ("2011 BMW M3 Coupe") FAILS by design until buy-speed-3 and Lane C's page guard ship (the "for sale" line still draws
+  over "No ... are live"). buyEngineMatch: 13 same, 1 different (card 136132 "1965 Ford Mustang V8": the card name drops
+  "hardtop" while its spec keeps it; Lane C fixed it by naming, 3c902bfe in their waiting stack; rerun after that push).
+  CONTEXT ONLY (Market Check's path, not touched by Lane E): stageTimes six cars, cold median engine 5.8 s / client 7.8 s,
+  warm row read 0.47 s / client 3.3 s with 1.3 to 6.1 s of response time beyond the server on the loaded archive; the
+  earlier quiet reading (18:53Z) is above. Search check: no public page touched by Lane E.
