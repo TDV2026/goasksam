@@ -9,7 +9,8 @@ import { lastUpdatedDate } from "../lib/asOf.js";
 import { exampleBand } from "../lib/live/buyExample.js";
 import { landingHtml, LANDING_CSS, KEEP_ICON } from "../lib/live/buyLanding.js";
 import { priorSold, priorWords, priorTake } from "../lib/live/priorListing.js";
-import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE, brandPaletteCss } from "../lib/appShell.js";
+import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE, brandPaletteCss, paletteHead, paletteSwitcherHtml, PALETTE_SWITCHER_JS } from "../lib/appShell.js";
+import { isTesterRequest } from "../lib/_tester.js";
 import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
 import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
@@ -104,6 +105,9 @@ export default async function handler(req, res) {
   // Crew (gas_crew=ok, the One Box crew gate's cookie) only changes caching below and window.GAS_CREW; the
   // rail is the same full page list for everyone (Round D lifted the Oct 7 public nav lockdown).
   const crew = isCrewRequest(req);
+  // The palette switcher (Sam, Oct 2026 palette round; Lane A's lib/appShell.js paletteHead): the same showPal rule as
+  // Market Check, Business and Tasks. The bar is never shared-cached (showPal joins the private, no-store list below).
+  const showPal = crew || isTesterRequest(req) || /[?&]palette=1\b/.test(String(req.url || ""));
   // THE RAIL: the shared app shell (lib/appShell.js, Oct 2026), the same rail, page list, tokens and phone
   // header row as Market Check, Sell and Tasks. Buy's own block in it is "Your searches" (and Saved
   // searches when signed in, and Before it ends), filled by the client into #searches exactly as before.
@@ -116,12 +120,12 @@ export default async function handler(req, res) {
   const rel = { mc: isReleased("market-check", req), tasks: isReleased("tasks", req) };
   const railFinal = '<script>window.GAS_CREW=' + (crew ? "true" : "false") + ';window.GAS_REL=' + JSON.stringify(rel) + ';</script>' + shell +
     '<div class="mvlist" id="mvlist" hidden><div class="vlist"></div><button type="button" class="mvnew" data-newsearch>+ New search</button></div>';
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">${paletteHead(showPal)}<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>${TITLE}</title><meta name="description" content="${esc(lead)}">
 <meta name="robots" content="${robots}"><link rel="canonical" href="https://goasksam.com/buy">
 <meta property="og:title" content="${TITLE}"><meta property="og:description" content="${esc(lead)}"><meta property="og:url" content="https://goasksam.com/buy"><meta property="og:type" content="website"><link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#FAF8F4">
 ${FONT_LINKS}<style>${PAGE_CSS}${AUTH_SIGNBAR_CSS}${SHELL_CSS}${BUY_CSS}${CARD_RULES_CSS}${RUNG_CSS}${BUY_CARD_CSS}${LANDING_CSS}${brandPaletteCss(crew)}${CONSENT_BANNER_CSS}</style></head><body>
-${AUTH_SIGNBAR_HTML}
+${showPal ? paletteSwitcherHtml() + "\n" : ""}${AUTH_SIGNBAR_HTML}
 ${railFinal}
 <main class="buymain">
 <div class="scroll" id="scroll"><div class="col">${late ? landingHtml({ updated, band, tasks: rel.tasks }).replace('<div id="lead" class="lk">', '<div id="lead" class="lk" data-late>') : landingHtml({ updated, band, tasks: rel.tasks })}<div id="convo" aria-live="polite"></div></div></div>
@@ -138,7 +142,7 @@ ${CONSENT_BANNER_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 <script>${CLIENT.replace("__KEEP_ICON__", () => JSON.stringify(KEEP_ICON)).replace("/*__PRIOR__*/", () => PRIOR_JS)}</script>
 <script src="/api/track?js=1" defer></script>
-<script>${CONSENT_BANNER_JS}</script></body></html>`;
+<script>${CONSENT_BANNER_JS}</script>${showPal ? `<script>${PALETTE_SWITCHER_JS}</script>` : ""}</body></html>`;
   // Referrer logging (search measurement). Runs on a cache MISS only (the page is edge-cached 10 min),
   // so this samples origin hits, which includes crawlers that bypass the edge; cached hits are not seen.
   // Never holds the page: queued, written in a batch after the response.
@@ -164,7 +168,7 @@ ${CONSENT_BANNER_HTML}
   // risk at a smaller scale - removed, and public caching of EITHER branch now also requires
   // fullyLaunched() (every gated product released for crew and public alike), not just "no server
   // credential", so a stage rollback can never be outlived by a cached entry here either.
-  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : late || band === undefined ? "public, s-maxage=30" : "public, s-maxage=600");
+  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched() || showPal) ? "private, no-store" : late || band === undefined ? "public, s-maxage=30" : "public, s-maxage=600");
   res.status(200).send(html);
 }
 export { BUY_CSS };
