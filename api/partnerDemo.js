@@ -28,6 +28,7 @@ body{margin:0;background:#fff;color:var(--ink);font:400 16px/1.45 -apple-system,
 .top{border-bottom:1px solid var(--rule)}
 .top .wrap{display:flex;gap:20px;align-items:center;padding-block:16px}
 .logo{width:110px;height:40px;border-radius:8px;background:repeating-linear-gradient(45deg,#ececec,#ececec 6px,#f6f6f6 6px,#f6f6f6 12px);color:#999;font-size:11px;display:grid;place-items:center;flex:none}
+.sbtn{flex:none;min-width:150px}
 .sbox{flex:1;display:flex;border:2px solid var(--ink);border-radius:999px;height:48px;align-items:center;padding:0 18px;color:#767676;min-width:0}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:999px;font-family:inherit;font-weight:600;font-size:17px;line-height:1;cursor:pointer;border:1px solid var(--blue);text-decoration:none}
 .btn.pri{background:var(--blue);color:#fff}
@@ -61,6 +62,7 @@ h3{font-size:18px;line-height:1.3;margin:0 0 10px;font-weight:700}
 .hist{list-style:none;margin:0;padding:0}
 .hist li{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--rule)}
 .hist li:first-child{border-top:0;padding-top:0}
+.hist li>span:first-child{flex:none;white-space:nowrap}
 .hist .r{text-align:right}
 .loading{color:var(--ink2);font-size:14px}
 .sec-view{padding-block:28px 48px}
@@ -92,7 +94,7 @@ h3{font-size:18px;line-height:1.3;margin:0 0 10px;font-weight:700}
 .below{margin-top:40px}
 .desc h2{margin-bottom:8px}
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:20px}
-.tile .ph{aspect-ratio:4/3;margin-bottom:10px}
+.tile .ph{aspect-ratio:4/3;margin-bottom:12px;border-radius:16px;background:var(--soft);border:12px solid var(--soft);background-image:linear-gradient(135deg,#d9d9d9,#bfbfbf);background-clip:content-box}
 .tile .p{font-size:18px;font-weight:700}
 .tile .d{color:var(--ink2);font-size:14px}
 .full{margin-top:36px}
@@ -109,6 +111,7 @@ h3{font-size:18px;line-height:1.3;margin:0 0 10px;font-weight:700}
   .sbox{height:44px}
   .top .wrap{gap:12px}
   .logo{width:72px}
+  .sbtn{display:none}
   h1,.rail h1{font-size:24px}
 }
 `;
@@ -205,7 +208,7 @@ const JS = String.raw`
   });
   document.addEventListener("click", function(e){ if (e.target && e.target.id === "a-list") e.preventDefault(); });   // the demo's List it does nothing
   $("a-form").addEventListener("submit", function(e){ e.preventDefault(); var v = String($("a-q").value || "").trim(); if (v) runA({ q: v }); });
-  $("b-res").addEventListener("input", drawB);
+  $("b-res").addEventListener("input", function(){ var d = String(this.value || "").replace(/[^\d]/g, "").slice(0, 9); this.value = d ? Number(d).toLocaleString("en-US") : ""; drawB(); });
   ask({ q: D.q }).then(function(a){ bAns = a; drawB(); });
   ask({ q: D.q, vin: D.vin }).then(drawListing);
   var pre = new URLSearchParams(location.search).get("q"); if (pre) { $("a-q").value = pre; runA({ q: pre }); }
@@ -240,7 +243,7 @@ export function pageHtml(view) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><title>Partner demo</title><style>${CSS}</style></head><body>
 <div class="demo-bar"><div class="wrap"><span>Closed demo. What these sell for, powered by GoAskSam.</span><nav class="tabs" aria-label="Views">${tab("a", "a. Before listing")}${tab("b", "b. Setting a reserve")}${tab("c", "c. On the listing")}${tab("d", "d. Under the listing")}</nav></div></div>
-<header class="top"><div class="wrap"><div class="logo">Partner logo</div><div class="sbox">Search</div></div></header>
+<header class="top"><div class="wrap"><div class="logo">Partner logo</div><div class="sbox">Search</div><button type="button" class="btn sec sbtn">Search</button></div></header>
 <main>
 <section class="sec-view wrap" id="view-a"${v === "a" ? "" : " hidden"}>
   <div class="lead"><h1>What these sell for</h1><p class="sub">Type any car or paste a VIN.</p>
