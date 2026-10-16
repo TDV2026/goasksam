@@ -97,6 +97,9 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 23 | 1966 Ferrari 275 GTB (thin, no zero option) | same car as row 14; nine sales, thin, no range, no question screen, set-aside sales listed with their reasons; no option at zero, no restoration line | year_widened, 9 sales, no range, same answer on all four products |
 | 24 | 1969 Chevrolet Camaro (bare) | the identity question: "convertible" typed and the Convertible chip give one answer; every option opens the pool it counts, and the options add up to Any | chip count equals typed count, each option equals its page, options sum to Any (expected to fail until e56) |
 | 25 | 1969 Chevrolet Camaro convertible (typed) | the same answer as the Convertible chip on the bare 1969 Camaro page: label "1969 Camaro Convertible", the bare car's exact rung (never widened), 3 sales, no range (under the band) | on all four products; expected to fail until e56 (e55 reads 24, widened to 1967 to 1969) |
+| 26 | 2005 Porsche 911 (bare) | the identity question: every option, Targa included, equals its typed words and its page, and the options add up to Any | chip count equals typed count for each option (expected to fail on Targa until e57) |
+| 27 | 2005 Porsche 911 targa (typed) | the same answer as the Targa chip on the bare 2005 911 page: the chip reads 1 sale | on all four products; expected to fail until e57 (e56 reads 9, the body word is filed as a trim) |
+| 28 | 1965 Ford Mustang fastback (typed) | the same answer as the Fastback chip on the bare 1965 Mustang page: the chip reads 12 sales | on all four products; expected to fail until e57 (e56 reads 15) |
 
 Per car, in the words of the derivation:
 
@@ -159,6 +162,9 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":21,"q":"1965 Ford Mustang","status":"ready","identity":true,"labelHas":["Mustang"]},
  {"id":24,"q":"1969 Chevrolet Camaro","status":"ready","identity":true,"labelHas":["Camaro"]},
  {"id":25,"q":"1969 Chevrolet Camaro convertible","status":"ready","rung":"exact","labelHas":["1969 Camaro Convertible"],"count":3,"tol":0,"low":null,"high":null,"thin":true},
+ {"id":26,"q":"2005 Porsche 911","status":"ready","identity":true,"labelHas":["911"]},
+ {"id":27,"q":"2005 Porsche 911 targa","status":"ready","labelHas":["Targa"],"count":1,"tol":0,"low":null,"high":null,"thin":true},
+ {"id":28,"q":"1965 Ford Mustang fastback","status":"ready","labelHas":["Fastback"],"count":12,"tol":0,"low":null,"high":null,"thin":true},
  {"id":22,"q":"1957 Porsche 356 Speedster","status":"ready","rung":"exact","labelHas":["1957","356 Speedster"],"count":8,"tol":0,"low":282000,"high":363000,"tolPct":5,"setAside":{"total":2,"reasons":["odd sale","modified"]},"noZeroOptions":true,"variantRule":true,"noRestoration":true},
  {"id":23,"q":"1966 Ferrari 275 GTB","status":"ready","rung":"year_widened","labelHas":["275 GTB","1965 to 1966"],"count":9,"tol":0,"low":null,"high":null,"thin":true,"noZeroOptions":true,"variantRule":true,"noRestoration":true}
 ]
