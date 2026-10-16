@@ -3515,7 +3515,7 @@ async function handler(req, res) {
               console.error(`stale row recompute did not land in 90s (${warmKey.slice(0, 80)}); computing live`);
             } else {
               oneBox = w.raw; warmHit = true;
-              if (w.stale) { staleInfo = { storedAt: w.storedAt }; markRecomputing({ supabaseUrl, supabaseKey }, warmKey).catch(() => {}); }
+              if (w.stale) { staleInfo = { storedAt: w.storedAt, recomputingSince: w.recomputingSince || null }; await markRecomputing({ supabaseUrl, supabaseKey }, warmKey).catch(e => console.error(`markRecomputing failed: ${(e && e.message) || e}`)); }
             }
           }
         } catch { /* fall through to the live path below */ }
@@ -3624,7 +3624,7 @@ async function handler(req, res) {
       // STALE STORED ANSWER (stage 4): served exactly as stored (its counts, range and cards), with the dated line in
       // Sam's exact form; the recompute starts the moment this response is sent (awaited after it, so the function
       // stays alive to finish and write the fresh row), and the line is gone on the next read.
-      const staleFields = staleInfo ? { stale: true, storedAt: staleInfo.storedAt, staleLine: `Sales read on ${new Date(staleInfo.storedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "America/Los_Angeles" })}. Sales since then are not in yet. Updating now.` } : {};
+      const staleFields = staleInfo ? { stale: true, storedAt: staleInfo.storedAt, recomputingSince: staleInfo.recomputingSince || null, staleLine: `Sales read on ${new Date(staleInfo.storedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "America/Los_Angeles" })}. Sales since then are not in yet. Updating now.` } : {};
       if (staleInfo) {
         // THE RECOMPUTE IS A SELF-CALL, started before this response leaves (stage 4): this same endpoint, the same
         // body, with the credentialed recompute flag, so a separate invocation computes and writes the fresh row while
@@ -3635,7 +3635,12 @@ async function handler(req, res) {
           // The alias, not the custom domain: goasksam.com's bot protection answers a server-side fetch with a challenge
           // (the row stayed stale on the first live proof); the ops key is accepted on the alias every ops call uses.
           const selfHost = process.env.SELF_HOST || "goasksam.vercel.app";
-          if (selfKey) fetch(`https://${selfHost}/api/sellerDecision`, { method: "POST", headers: { "Content-Type": "application/json", "x-ops-key": selfKey }, body: JSON.stringify({ ...(req.body || {}), recompute: true, fresh: undefined }) }).catch(() => {});
+          // The request must LEAVE before this function answers and is frozen: its send is awaited, bounded to 2.5 s (the
+          // receiving invocation runs on its own; an un-awaited fetch was never flushed and the row stayed stale).
+          if (selfKey) {
+            const send = fetch(`https://${selfHost}/api/sellerDecision`, { method: "POST", headers: { "Content-Type": "application/json", "x-ops-key": selfKey }, body: JSON.stringify({ ...(req.body || {}), recompute: true, fresh: undefined }) }).then(r => { obTimes.selfCallStatus = r.status; }).catch(e => { obTimes.selfCallError = String(e && e.message || e).slice(0, 80); });
+            await Promise.race([send, new Promise(r => setTimeout(r, 2500))]);
+          }
           else console.error("stale recompute: no server credential in the environment, the row stays stale until the next warm");
         } catch (e) { console.error(`stale recompute self-call failed: ${(e && e.message) || e}`); }
       }
