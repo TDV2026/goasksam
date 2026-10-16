@@ -170,7 +170,11 @@ export async function timelineOf(env, x, opts = {}) {
 }
 // The card's name from the resolved spec: year, make, model, trim, body. Never the seller's copy
 // ("With Less Than 73k Miles", "Restored", "No Reserve"); null when the title doesn't resolve.
-const BODY_WORD = { coupe: "Coupe", cabriolet: "Cabriolet", convertible: "Convertible", targa: "Targa", roadster: "Roadster", sedan: "Sedan", spider: "Spider", spyder: "Spyder", speedster: "Speedster", wagon: "Wagon", suv: "", hatchback: "Hatchback" };
+const BODY_WORD = { coupe: "Coupe", cabriolet: "Cabriolet", convertible: "Convertible", targa: "Targa", roadster: "Roadster", sedan: "Sedan", spider: "Spider", spyder: "Spyder", speedster: "Speedster", wagon: "Wagon", suv: "", hatchback: "Hatchback",
+  // Every body word the shared resolver can give (lib/vehicle.js BODY_STYLE_WORDS) and the engine's own fastback: a body
+  // missing here was silently left off the card's name, so "1965 Ford Mustang V8" read every body in Market Check while
+  // its card's market read the hardtops (Lane E's buyEngineMatch find, Oct 16 2026).
+  hardtop: "Hardtop", fastback: "Fastback", "t top": "T-Top", "targa top": "Targa", sportbrake: "Sportbrake" };
 export async function nameOf(env, x) {
   const sp = await specOf(env, x.r, x.facts).catch(() => null);
   const v = sp && sp.v; if (!v || !v.make || !v.model) return null;
