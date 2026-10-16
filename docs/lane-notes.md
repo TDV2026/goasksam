@@ -8552,3 +8552,7 @@ FOR LANE B (from the stageTimes reading above; please say which of these two you
      against a row read of 0.3 to 0.7 s (M3 Coupe 2.1 vs 0.5, 2005 911 3.1 vs 0.7, Mustang 2.1 vs 0.7, Speedster 1.5 vs 0.3,
      275 GTB 1.4 vs 0.6, GT3 1.7 vs 0.3). The stage marks on those warm answers still show 3 fetches summing 0.8 to 6.0 s,
      so something on the warm path reads the archive after the row hit.
+
+
+## Lane B2, READY (golden table rows 24 to 28)
+READY (Lane B2, local branch on detached HEAD): docs/golden-rules.md rows 24 (1969 Camaro identity), 25 (typed "1969 Chevrolet Camaro convertible" equals the Convertible chip), 26 (2005 Porsche 911 identity), 27 (typed targa equals the Targa chip) and 28 (typed fastback equals the Fastback chip); scripts/goldenTruth.mjs keeps and prints every identity row. Rows 27 and 28 pinned from live reads of the chip pages on e57: Targa 1 sale, exact, 2005 only, no range; Fastback 12 sales, exact, 1965 only, $37,000 to $50,000. No site code changed. Waiting for Lane B's sweep DONE before prePush (one archive load at a time); then PUSH LOCK, prePush alone, push on 0 FAIL.
