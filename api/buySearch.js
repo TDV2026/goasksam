@@ -145,7 +145,11 @@ export function cardOf(x) {
 // The car's own past appearances, oldest first, for the card's timeline: vin_index, falling back to the
 // archive exactly as the Sam line's history does (vinAppearances), so the two never disagree. This
 // live listing itself is never one of them (it is the "Now" dot).
-export async function timelineOf(env, x) {
+// opts.asideWaitMs (Lane E's E4, Oct 16 2026): the most the set-aside labels may hold the card. asideRowsFor runs an
+// engine read when this instance has no stored range for the spec; past the wait the timeline goes out with its sold rows
+// marked set_aside_pending (no label yet, the read keeps running), and the page fetches that card again (action enrich,
+// no wait) so the label is never silently missing. Labels only: no pool, fence or range depends on it.
+export async function timelineOf(env, x, opts = {}) {
   const vin = x.r.vin_norm; if (!vin || String(vin).length < 6) return null;
   const data = await vinAppearances(env, vin).catch(() => null);
   if (!data || !data.ok) return null;
@@ -156,7 +160,10 @@ export async function timelineOf(env, x) {
   // A past sale the engine set aside for this car's own market carries the engine's reason as its label ("Set aside
   // as modified"); nothing here judges a sale against the range (Sam, Oct 15 2026).
   if (list.some(a => a.result === "sold")) {
-    const rows = await asideRowsFor(env, x.r, x.facts || {}).catch(() => null);
+    const wait = Number(opts.asideWaitMs), LATE = Symbol("late");
+    const read = asideRowsFor(env, x.r, x.facts || {}).catch(() => null);
+    const rows = Number.isFinite(wait) ? await Promise.race([read, new Promise(r => setTimeout(() => r(LATE), wait))]) : await read;
+    if (rows === LATE) { for (const a of list) if (a.result === "sold") a.set_aside_pending = true; return list; }
     for (const a of list) { const hit = a.result === "sold" ? asideMatch(rows, { url: a.url, vin: vin, date: a.date, price: a.price }) : null; if (hit) { a.set_aside = String(hit.reason || ""); a.set_aside_label = setAsideLabel(hit.reason); } }
   }
   return list;
@@ -188,7 +195,7 @@ async function enrich(env, x) {
   return { ...c, sam_lines: samLines(c) };
 }
 async function enrichFast(env, x) {
-  const [market, seen, timeline, name] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts, { noBlock: true }), seenBefore(env, x.r.vin_norm), timelineOf(env, x), nameOf(env, x)]);
+  const [market, seen, timeline, name] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts, { noBlock: true }), seenBefore(env, x.r.vin_norm), timelineOf(env, x, { asideWaitMs: 1500 }), nameOf(env, x)]);
   const c = { ...cardOf(x), market: await rungMarket(env, x.r, x.facts, market), seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name };
   return { ...c, sam_lines: samLines(c) };
 }
@@ -805,7 +812,12 @@ function buyChat(res, env, b, visitorId, req) {
   return chatOut(res, env, b, { surface: "buy", run: runTurn, visitorId,
     // After the turn: a ledger row when the model was called (the device ceiling), and the heavy-use note.
     afterTurn: async (usage, out) => { if (usage && usage.calls > 0) await recordBuyModelTurn(env, req); await noteBuySearch(env, req, out && out.state && out.state.filters); },
-    shape: async out => ({ cards: await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; })), noun: out.noun, meta: out.meta || null, searchNote: out.searchNote }) });
+    // Lane E's E3 (Oct 16 2026): the cards' enrichment may start the moment search_live returns, alongside the model's
+    // reply (chatOut calls prepare per card; out.prepared is a Map from the listing id to that promise). A card takes
+    // its prepared result only by its own listing id, never by position, so a re-sort or a second search can never
+    // give one car another's market; anything not prepared is enriched here as before.
+    prepare: x => enrichFast(env, x),
+    shape: async out => ({ cards: await Promise.all(out.cards.map(async x => { const pre = out.prepared instanceof Map && x && x.r ? out.prepared.get(x.r.id) : null; const c = (pre ? await pre.catch(() => null) : null) || await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; })), noun: out.noun, meta: out.meta || null, searchNote: out.searchNote }) });
 }
 
 // Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
