@@ -2,6 +2,7 @@
 // ONE lookup function (vinAppearances) reads sales_archive by vin_norm and auction_attempts by
 // chassis_vin_norm, with the SAME normalisation as findVinArchiveMatch (lib/_flags.js): strip every
 // non-alphanumeric, upper-case. When Lane A's vin_index table lands, only vinAppearances changes.
+import { appConfigFlag } from "../lib/_flags.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { findGeneration } from "../lib/generations.js";
 import { oneEngineAnswer } from "../lib/onebox.js";
@@ -48,10 +49,10 @@ export async function vinAppearances(env, vin) {
       kind: sold ? "sale" : "attempt", date: String(r.appearance_date || "").slice(0, 10) || null,
       priceUsd: sold ? p : null, bidUsd: sold ? null : p, nativePrice: null, nativeBid: null, currency: null,
       status: r.result || null, house: houseName(r.source), url: r.url || null, mileage: num(r.mileage), title: r.listing_title || "", image: r.photo_url || null,
-      year: Number(r.year) || null, make: r.make || null, model: r.model || null, body: null, color: null }; });
+      year: Number(r.year) || null, make: r.make || null, model: r.model || null, body: null, color: null, familyKey: r.model_family || null }; });
     return { vinNorm: want, appearances: apps, ok: true, source: "vin_index", summary: Array.isArray(summary) && summary[0] ? summary[0] : null };
   }
-  const sSel = (usd) => "vin_norm,sale_date,sale_price," + (usd ? "sale_price_usd," : "") + "platform,listing_title,year,make,model,mileage," +
+  const sSel = (usd) => "vin_norm,sale_date,sale_price," + (usd ? "sale_price_usd," : "") + "platform,listing_title,year,make,model,model_family,mileage," +
     "img:raw_record->>featured_image_url,url:raw_record->>url,url2:raw_record->>source_url,currency:raw_record->>currency," +
     "body:raw_record->>body_style,color:raw_record->>exterior_color,rtitle:raw_record->>title";
   let sales = await supabaseSelect(env, `sales_archive?vin_norm=eq.${encodeURIComponent(want)}&select=${sSel(true)}&order=sale_date.desc.nullslast&limit=60`);
@@ -71,7 +72,7 @@ export async function vinAppearances(env, vin) {
     out.push({ kind: "sale", date: day || null, priceUsd: p.usd, nativePrice: p.native, currency: p.currency,
       house: houseName(r.platform), url: r.url || r.url2 || null, mileage: num(r.mileage),
       title: r.listing_title || r.rtitle || "", image: r.img || null, year: Number(r.year) || null,
-      make: r.make || null, model: r.model || null, body: r.body || null, color: r.color || null });
+      make: r.make || null, model: r.model || null, body: r.body || null, color: r.color || null, familyKey: r.model_family || null });
   }
   const aSeen = new Set();
   for (const a of atts || []) {
@@ -175,7 +176,12 @@ export async function carIdentity(apps, vin) {
   const stored = Number(newest.year) || null;
   const year = (stored && new RegExp("\\b" + stored + "\\b").test(String(newest.title || "")) ? stored : null) || Number(v.year) || stored || Number((cleanTitle(newest.title).match(/\b(18|19|20)\d{2}\b/) || [])[0]) || null;
   const family = familyOf(v);
-  const id = { year, make: v.make, model: v.model, trim: v.trim || null, family, genCode: v.genCode || null,
+  // e59 (Sam's decision, Oct 16 2026): the archive's own family key (model_family) and make spelling for this VIN, the
+  // most common across its appearances, so the family list can be read by the (make, model_family, sale_date) index
+  // instead of a title scan. Null when no appearance carries one (the title path then serves, as before).
+  const modeOf = arr => { const c = new Map(); for (const x of arr) if (x) c.set(x, (c.get(x) || 0) + 1); return [...c.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || null; };
+  const familyKey = modeOf(apps.map(a => a.familyKey)), makeKey = modeOf(apps.map(a => a.make));
+  const id = { year, make: v.make, model: v.model, trim: v.trim || null, family, genCode: v.genCode || null, familyKey, makeKey,
     bodyStyle: v.bodyStyle || (apps.find(a => a.body) || {}).body || null, vehicle: { ...v, year } };
   id.slug = carSlug(id);
   return id;
@@ -305,10 +311,22 @@ export async function listingSaid(env, vinNorm) {
 // ---------------------------------------------------------------- other cars of the same family that sold
 // Same make + family tokens in the title (any year), one row per VIN, newest first. Rows link to that
 // car's own VIN page; the slug uses this family, the same as carIdentity would give it.
-export async function familySales(env, id, excludeVin, limit = 25) {
-  const toks = [...slugify(id.make).split("-"), ...slugify(id.family).split("-")].filter(Boolean);
-  const pat = encodeURIComponent("*" + toks.join("*") + "*");
-  const rows = await supabaseSelect(env, `sales_archive?listing_title=ilike.${pat}&vin_norm=not.is.null&select=vin_norm,year,sale_date,sale_price,sale_price_usd,platform,listing_title,mileage,currency:raw_record->>currency&order=sale_date.desc&limit=200`);
+// e59: the same list read by the archive's columns (make equals, model_family equals, vin_norm not null, newest first,
+// early stop at the limit: the (make, model_family, sale_date DESC) index, 71 ms against 827 ms for the title scan in
+// Sam's EXPLAIN). Dark until app_config history_family_column is "1"; a car with no family key keeps the title path.
+// opts.path forces one path ("title" | "column") for the compare task.
+const FAMILY_SEL = "vin_norm,year,sale_date,sale_price,sale_price_usd,platform,listing_title,mileage,currency:raw_record->>currency";
+export async function familySales(env, id, excludeVin, limit = 25, opts = {}) {
+  let path = opts.path || "title";
+  if (!opts.path && id.familyKey && id.makeKey) { try { if (await appConfigFlag("history_family_column", env)) path = "column"; } catch { path = "title"; } }
+  let rows;
+  if (path === "column" && id.familyKey && id.makeKey) {
+    rows = await supabaseSelect(env, `sales_archive?make=eq.${encodeURIComponent(id.makeKey)}&model_family=eq.${encodeURIComponent(id.familyKey)}&vin_norm=not.is.null&select=${FAMILY_SEL}&order=sale_date.desc&limit=200`);
+  } else {
+    const toks = [...slugify(id.make).split("-"), ...slugify(id.family).split("-")].filter(Boolean);
+    const pat = encodeURIComponent("*" + toks.join("*") + "*");
+    rows = await supabaseSelect(env, `sales_archive?listing_title=ilike.${pat}&vin_norm=not.is.null&select=${FAMILY_SEL}&order=sale_date.desc&limit=200`);
+  }
   if (!rows) return null;
   const out = [], seen = new Set([excludeVin]);
   for (const r of rows) {
@@ -330,7 +348,21 @@ export async function familySales(env, id, excludeVin, limit = 25) {
     const same = out.filter(r => { const g = r.year ? genFor(id.make, id.model, r.year, [r.year, id.make, id.family].join(" ")) : null; return g && g.code === carGen.code; });
     if (same.length >= 3) { list = same; gen = /^[a-z]\d/i.test(carGen.code) ? String(carGen.code).toUpperCase() : carGen.code; }
   }
-  return { rows: list.slice(0, limit), more: list.length > limit, gen, allHref: `/history/${slugify(id.make)}-${slugify(id.family)}` };
+  return { rows: list.slice(0, limit), more: list.length > limit, gen, allHref: `/history/${slugify(id.make)}-${slugify(id.family)}`, path };
+}
+// e59 compare (ops task=histfam): both paths for one VIN, and what differs, so the column path ships only when the
+// ten sample pages show an identical list or the difference is named.
+export async function familySalesCompare(env, vin) {
+  const vinNorm = normVin(vin);
+  const { appearances } = await vinAppearances(env, vinNorm);
+  const id = await carIdentity(appearances, vinNorm);
+  if (!id) return { vin: vinNorm, error: "no identity" };
+  const [a, b] = await Promise.all([familySales(env, id, vinNorm, 200, { path: "title" }), familySales(env, id, vinNorm, 200, { path: "column" })]);
+  const key = r => r.vin; const A = new Set((a && a.rows || []).map(key)), B = new Set((b && b.rows || []).map(key));
+  return { vin: vinNorm, make: id.make, family: id.family, makeKey: id.makeKey, familyKey: id.familyKey,
+    title: a ? { n: a.rows.length, gen: a.gen } : null, column: b ? { n: b.rows.length, gen: b.gen } : null,
+    onlyTitle: [...A].filter(v => !B.has(v)).slice(0, 50), onlyColumn: [...B].filter(v => !A.has(v)).slice(0, 50),
+    sameOrder: JSON.stringify((a && a.rows || []).map(key)) === JSON.stringify((b && b.rows || []).map(key)) };
 }
 
 // ---------------------------------------------------------------- sitemap rows: VINs with a sale that has a photo

@@ -4366,6 +4366,15 @@ async function handleOps(req, res) {
   // version, with titles, spec keys and live listing ids. Read-only.
   // task=liveSpecKeys (speed job, stage 3): distinct engine reads Buy's live listings need, and the counts if
   // listings sharing a market shared one read. Read-only, one table read.
+  // task=histfam&vin=<vin> (e59, Sam's history-list decision): the family list by the title scan and by the
+  // (make, model_family) columns for one car, with what differs. Read-only.
+  if (task === "histfam") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { familySalesCompare } = await import("./_historyData.js");
+    const vins = String(req.query?.vin || "").split("|").map(v => v.trim()).filter(Boolean).slice(0, 12);
+    const out = []; for (const v of vins) out.push(await familySalesCompare(env, v).catch(e => ({ vin: v, error: String(e && e.message || e) })));
+    return res.status(200).json({ task: "histfam", cars: out });
+  }
   if (task === "liveSpecKeys" || task === "livespeckeys") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { liveSpecKeyCounts } = await import("../lib/live/search.js");
