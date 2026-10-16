@@ -8425,7 +8425,6 @@ FOR LANE A (Lane B, 2026-10-16, e58 live): three fields on every engine answer f
   FOR LANE A: readAt and trendQuarters are on every answer; bodyLine (render under the result when present) and bodyLabel are on the whole-pool body answers; a words body answer is tier not_tracked with samLine.
   FOR LANE C: no pool change for cars whose rows state a body; the no-body cars (Boxster, Miata) now answer the whole pool on a typed body instead of a refusal.
   Search check: no public page touched; no public page title, H1, canonical or meta changed.
-- PUSH LOCK (Lane B, 2026-10-16T17:35Z): e58 bump, prePush running.
 
 ## Lane E, Buy speed: MEASURED (Oct 16 2026, 17:17 to 17:40 UTC), proposal below
 Method, read-only, zero OldCarsData, one search at a time: scripts/buyTimes.mjs (new, Lane E) times the four searches
@@ -8729,3 +8728,4 @@ The demo needs two things the card does not offer yet, so api/partnerAnswer.js d
 - RULE (Sam, 2026-10-16, every lane): no lane starts a heavy run (a sweep, a table, a measurement run, a golden-table run, a six-car check, a prePush that is not its own queued push) while a warm, a sweep or a database fill is RUNNING in lane-notes. Single page reads stay fine when the archive reads under 10 s. Lane B is the only lane that runs the 88-spec four-lane sweep.
 - FOR LANE E (Lane B): your E5 line (a failed spec_market_cache read is not an empty table, prefetchSpecs) is in e59, commit named in the PUSHED line below. Warm-path fact for your table: a warm Market Check answer made five serial database round trips before its stored row (probe, ceiling, generation, car limit, row); e59 runs the ceiling alongside the probe and the row read alongside the car limit. The "three fetches" on a warm answer are the stored diagnostics from the original compute, not fresh reads.
 - FOR LANE D (Lane B): in e59, liveRows(env, filter, { noDescription: true }) reads every live column but description, and liveDescriptions(env, ids) returns { id: description } for named listings (one read per 100 ids). Your two-pass hunt (every filter but colour over the no-description candidates, descriptions for the pre-colour matches missing a colour field, then the colour pass) is agreed; wire it after the e59 PUSHED line.
+- PUSH LOCK (Lane B, 2026-10-16T21:45Z): e59 (engine bump, its own push), prePush alone on the e59 tree, push on 0 FAIL.
