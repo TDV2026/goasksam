@@ -33,7 +33,9 @@ try {
   }, BASE + "/api/sellerDecision", KEY, { oneBox: true, anonId: "stagetimes", car: { raw: q }, asked: 0, ...(extra || {}) });
   const stages = r => {
     const t = (r.d && r.d.timings) || {};
-    const marks = Object.fromEntries((t.marks || []).map(([n, ms]) => [n, ms]));
+    const marks = {};
+    for (const [n, ms] of (t.marks || [])) { if (marks[n] == null) marks[n] = ms; if (n === "pool_built" && marks.pool_chosen != null && ms >= marks.pool_chosen && (marks._pb == null)) { marks._pb = ms; } }
+    if (marks._pb != null) marks.pool_built = marks._pb;
     const fetches = t.fetchMs || [];
     const fetchSum = fetches.reduce((a, b) => a + b, 0), fetchMax = fetches.length ? Math.max(...fetches) : 0;
     const pool = marks.pool_built != null && marks.pool_chosen != null ? marks.pool_built - marks.pool_chosen : null;

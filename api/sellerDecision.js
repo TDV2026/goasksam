@@ -2804,7 +2804,7 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
 // x-probe-key / x-ops-key, or the cron secret). Without it they are removed before anything reads them, so a
 // public request runs as an ordinary search. archiveOnly, ladderPreview, priceProbe and oneBox stay public:
 // each only ever reduces spend (archive or fetch-free).
-const SERVER_ONLY_FLAGS = ["warm", "bypassCache", "rerun", "poolDiag", "backfillCount", "archiveQuery", "oneBoxProof", "cacheStats", "reserveSim", "debug", "fresh"];
+const SERVER_ONLY_FLAGS = ["warm", "bypassCache", "rerun", "poolDiag", "backfillCount", "archiveQuery", "oneBoxProof", "cacheStats", "reserveSim", "debug", "fresh", "recompute"];
 async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -3499,10 +3499,12 @@ async function handler(req, res) {
       const askedN = Math.max(0, Math.min(9, Number(req.body?.asked) || 0));
       // The bare page's stored row is the asked-0 answer; a refined market's row is read whatever the ask count (the
       // refine answered the question), so a chip page reads its stored row too.
+      // recompute (credentialed only, the stale path's own self-call): skip the stored row, compute, write it fresh.
+      const recompute = !!req.body?.recompute;
       const wantsWarm = (!obRefine || !!identityRefine) && !exactSale && vehicle && vehicle.make && !vehicle.vin && !vehicle.chassis && (identityRefine ? true : askedN === 0) && !req.body?.fresh;
       const warmKey = wantsWarm ? warmAnswerKeyFor(vehicle, generation, identityRefine) : null;
-      let staleInfo = null;   // { storedAt } when a stale stored answer is being served; the recompute runs after the response
-      if (wantsWarm) {
+      let staleInfo = null;   // { storedAt } when a stale stored answer is being served; the recompute is a self-call
+      if (wantsWarm && !recompute) {
         try {
           const tw = Date.now();
           const w = await readWarmAnswerDetailed({ supabaseUrl, supabaseKey }, warmKey);
@@ -3519,7 +3521,7 @@ async function handler(req, res) {
           ]);
           oneBox = engineAnswer.raw;
           obTimes.engineMs = Date.now() - te;
-          if (wantsWarm && answerCacheable(oneBox) && !/_choice$/.test(String(oneBox && oneBox.tier || ""))) {
+          if (wantsWarm && answerCacheable(oneBox) && !/_choice$/.test(String(oneBox && oneBox.tier || ""))) {   // a recompute self-call lands here too and writes the fresh row
             await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, oneBox).catch(() => {});
           }
         }
@@ -3608,18 +3610,19 @@ async function handler(req, res) {
       // Sam's exact form; the recompute starts the moment this response is sent (awaited after it, so the function
       // stays alive to finish and write the fresh row), and the line is gone on the next read.
       const staleFields = staleInfo ? { stale: true, storedAt: staleInfo.storedAt, staleLine: `Sales read on ${new Date(staleInfo.storedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "America/Los_Angeles" })}. Sales since then are not in yet. Updating now.` } : {};
-      res.status(200).json({ status: "one_box", ...oneBox, ...staleFields, snapshotId: snapshotId || undefined, timings });
       if (staleInfo) {
+        // THE RECOMPUTE IS A SELF-CALL, started before this response leaves (stage 4): this same endpoint, the same
+        // body, with the credentialed recompute flag, so a separate invocation computes and writes the fresh row while
+        // this one answers at once. Work left running after a response is not guaranteed on Vercel (the first build
+        // awaited it after res.json and the row stayed stale), so nothing here waits on it.
         try {
-          const fresh = await oneEngineAnswer(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, asked: askedN }, obRefine);
-          const fr = fresh && fresh.raw;
-          if (fr && answerCacheable(fr) && !/_choice$/.test(String(fr.tier || ""))) {
-            await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, fr).catch(() => {});
-            if (fr.tier === "result" && vehicle.model) { const core = coreOf(fr, { v: vehicle, generation, refine: null }); if (core) await persistCore({ supabaseUrl, supabaseKey }, specKeyFor(vehicle, generation, identityRefine), core).catch(() => {}); }
-          }
-        } catch (e) { console.error(`stale recompute failed: ${(e && e.message) || e}`); }
+          const selfKey = process.env.PROBE_KEY || process.env.OPS_KEY || null;
+          const host = String(req.headers["x-forwarded-host"] || req.headers.host || "goasksam.com");
+          if (selfKey) fetch(`https://${host}/api/sellerDecision`, { method: "POST", headers: { "Content-Type": "application/json", "x-ops-key": selfKey }, body: JSON.stringify({ ...(req.body || {}), recompute: true, fresh: undefined }) }).catch(() => {});
+          else console.error("stale recompute: no server credential in the environment, the row stays stale until the next warm");
+        } catch (e) { console.error(`stale recompute self-call failed: ${(e && e.message) || e}`); }
       }
-      return;
+      return res.status(200).json({ status: "one_box", ...oneBox, ...staleFields, snapshotId: snapshotId || undefined, timings });
     }
 
     // Price-step transparency (#68): a seller who DEFERS the asking price gets THE RECORD

@@ -1220,7 +1220,8 @@ export async function checkIdentityCounts(env, specs = DEFAULT_SPECS) {
     const d = bare && bare.raw;
     if (!d || !Array.isArray(d.bodyOptions) || !d.bodyOptions.length) continue;
     const poolN = Number.isFinite(d.poolN) ? d.poolN : (d.rawPool || []).length;
-    const sum = d.bodyOptions.reduce((s, o) => s + (Number(o.inPool) || 0), 0) + (Number(d.bodyUnspecified) || 0);
+    const covered = d.bodyOptions.some(o => o && o.value === "unspecified");
+    const sum = d.bodyOptions.reduce((s, o) => s + (Number(o.inPool) || 0), 0) + (covered ? 0 : (Number(d.bodyUnspecified) || 0));
     const options = [];
     for (const o of d.bodyOptions) {
       const opened = await oneEngineAnswer(vehicle, generation, q, { ...env, exactSale: null, asked: 2 }, { body: o.value });
