@@ -8603,3 +8603,49 @@ FOR LANE C (Sam's next Lane D job, the Tasks read reductions; your OK before I t
 prePush on 198ac7ec printed 1 RENDER DRIFT (report-only): "2025 Porsche 911, marketCheck page: page prints no range, engine answer has $143,000 to $163,000". Not a page fault: a live load at 19:45Z shows the shared card "WHAT THESE SELL FOR $143,000 to $163,000 / Middle half of 12 sales, last 12 months." The parser in scripts/goldenTruth.mjs PARSERS.marketCheck (line 171 on main) finds the range under a line matching /^WHERE (THE MIDDLE HALF|THEY) SOLD/, the old hero label; the shared card's heading is "WHAT THESE SELL FOR". Suggested: also accept /^WHAT THESE SELL FOR$/ as the range label (band kind when the next lines carry "Middle half of"), and read the thin card's "N sales found, not enough for a range." as a words answer. Your file, so not edited here.
 - PUSH LOCK (Lane C, 2026-10-16T19:46Z): Lane A's held business.js diagnostic-comment removal ac49f76 as its own small push (Sam's go, after the Business crew check passed: 0 hits outside the diagnostic comment), prePush alone; release line follows.
 - PUSH LOCK (Lane C, 2026-10-16T19:54Z, still held, order per Sam): first the Buy push (E3, E4: the set-aside labels cap, and the d.searchNote line, api/buy.js + api/buySearch.js), then Lane A's ac49f76 (prePush already 0 FAIL on it, held), then Lane A's next two commits, then Lane B's e59.
+
+## Lane D, Oct 16 2026: Tasks read reductions, send path (branch tasks-reads, one code commit), Lane C's OK given
+
+WHAT CHANGES (lib/tasks/digest.js, api/tasks.js, scripts/tasksReadsCheck.mjs, scripts/prePush.mjs):
+  1. runDigest reads the watches table as ONE column (user_id, active and unpaused) before the due gate, builds the people
+     from that plus the queued updates, and reads a person's watch rows (named columns: id, user_id, kind, key, label, spec,
+     baseline_date, created_at, last_event_at, last_event, last_sent_at, paused_at) only once they are due and under the
+     cap. select=* on watches is gone from the cron path.
+  2. runBeforeItEnds reads the armed cars' id, end_time and status first (liveSlim), decides ended / not yet / email off
+     from that, and reads the full live row (description included, which the facts need) only for the cars inside the
+     two-hour window whose owner is emailed. Same marks, same outcomes, same order of decisions.
+  3. api/tasks.js: ?send=1 and ?run=1 answer with bytesRead (lib/_supabase.js reads plus the digest's own helper, per
+     process, exact for one run at a time) and write it into their usage events (task_email_run, tasks_run), so every
+     cron run from now on logs what it pulled. A dry run may ask for the old reads (&legacy=1&dry=1) so before and
+     after are measured back to back on the same data; the cron never takes that path.
+  4. scripts/tasksReadsCheck.mjs (in prePush after beforeItEndsCheck): one fixture day (96 quarter-hour runs, four people,
+     ten armed alerts, four watches) through the legacy io and the slim io: identical emails, alert marks, watch marks
+     and report lines; full live ids read 184 to 5; whole-table watch reads 96 to 0; no watch rows read for the
+     emails-off or paused person; the once-a-day person's rows read only on due runs. beforeItEndsCheck.mjs still 99 of 99.
+  NOT in this push: the run path's description split (lib/tasks/tasks.js findMatches via lib/live/search.js liveRows),
+  which waits for Lane B's FOR LANE D note on the search.js side.
+PROOF PLAN after deploy: /api/tasks?send=1&dry=1&legacy=1 then &dry=1 (bytesRead before and after, same minute); the
+three test hunts (in-memory test_scenario: black manual 997 under $70k, 1990s Miata under $15k, 1965 Mustang fastback)
+recorded before (hunt 2 matched 9003, hunt 3 matched 9005, hunt 1 none: the draft put "Find ME Manual Under" in the trim
+filter, a model quirk noted FOR LANE C) and rerun after.
+READY (Lane D, tasks-reads): lib/tasks/digest.js, api/tasks.js, scripts/tasksReadsCheck.mjs, scripts/prePush.mjs.
+Search check: no public page touched.
+
+FOR LANE C (Lane D, Oct 16 2026): LAUNCH-RELEVANT TASKS BUG, needs a fix and a regression case. The test user typed,
+as the first message of a new Task (in-memory test_scenario, the real draftTurn with the real model):
+  "Find me a black manual 997 under $70k"
+The drafting model's propose_task filter came back as:
+  {"vehicle":"car","make":"Porsche","model":"911","generation":"997","trim":"Find ME Manual Under","gearbox":"manual","colour":"black","budget_max":70000}
+and the read-back said "Sam is looking for black manual Porsche 997 Find ME Manual Unders under $70,000." The words
+"Find me ... manual under" (the sentence's verb, pronoun and preposition, case-mangled) landed in the trim filter, so
+the hunt's title check can never pass and the Task matches nothing, ever. The filter should have been the same object
+WITHOUT trim (trim null): make Porsche, model 911, generation 997, gearbox manual, colour black, budget 70000.
+Live counts through the same probe with the checkpoint reset (so every live car counts): the correct filter matches 0
+live listings right now (no black manual 997 under $70,000 is live today), the same filter without the colour matches
+8, and a bare 997 matches 15; the wrong filter matches 0 against every row, including the fixture row "2008 Porsche 911
+Carrera S Coupe 6-Speed", black, manual, $52,000, which the correct filter matches. So a buyer who typed this gets a
+running Task that stays silent when the right car comes up. Suggested regression case: a propose_task filter whose
+trim is not a known trim word for the make/model (or contains a verb, "me", "under", "find", "looking") is rejected
+or the trim dropped and the read-back re-done; the probe scenario above is the test. Same shape likely for any
+"Find me ..." / "Keep looking for ..." opening with words after the car; the Miata and Mustang hunts from the same run
+parsed cleanly (no trim leak), so it is not every sentence.
