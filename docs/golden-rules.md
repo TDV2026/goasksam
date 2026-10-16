@@ -113,7 +113,7 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 39 | 2005 Porsche 911 | Sell's printed count equals Market Check's for the same car (one engine) | Sell page count = Market Check page count |
 | 40 | 1965 Ford Mustang | Sell's printed count equals Market Check's for the same car | Sell page count = Market Check page count |
 | 41 | 2023 Porsche 911 GT3 | Sell's printed count equals Market Check's for the same car | Sell page count = Market Check page count |
-| | shared card (rows 3, 5, 8, 14, 20) | the "What these sell for" card, pill slot removed, is byte-identical on Market Check, Buy and Sell, and the partner demo's card equals Market Check's | a product that does not render the shared card yet is PENDING, not a failure; the Sell count check is also set on rows 8, 10, 14, 22 and 23 |
+| | shared card (rows 3, 5, 8, 14, 20) | the "What these sell for" card, pill slot removed, is byte-identical on Market Check, Buy and Sell, and the partner demo's card equals Market Check's apart from the two differences the demo is built with (the basis line "Based on N sales, the latest in Month Year" and the footer link as a span), which are dropped on both sides for that comparison | a product that does not render the shared card yet is PENDING, not a failure; the Sell count check is also set on rows 8, 10, 14, 22 and 23 |
 
 Per car, in the words of the derivation:
 

@@ -226,8 +226,8 @@ try {
       await new Promise(x => setTimeout(x, 1500));
       text = await page.evaluate(() => document.body ? document.body.innerText : "").catch(() => text);
       // The shared "What these sell for" card (lib/sellsForCard.js, root .sfc-card), the pill slot and any pill row taken out, as the browser serializes it.
-      const card = await page.evaluate(() => { const c = document.querySelector(".sfc-card"); if (!c) return null; const k = c.cloneNode(true); k.querySelectorAll(".gas-pill-slot,.pillrow").forEach(e => e.remove()); return k.outerHTML; }).catch(() => null);
-      return { path: new URL(page.url()).pathname, text, card };
+      const card = await page.evaluate(() => { const c = document.querySelector(".sfc-card"); if (!c) return null; const k = c.cloneNode(true); k.querySelectorAll(".gas-pill-slot,.pillrow").forEach(e => e.remove()); const full = k.outerHTML; k.querySelectorAll(".sfc-basis,.sfc-footer-link").forEach(e => e.remove()); return { full, demoNorm: k.outerHTML }; }).catch(() => null);
+      return { path: new URL(page.url()).pathname, text, card: card && card.full, cardDemoNorm: card && card.demoNorm };
     } finally { await ctx.close().catch(() => {}); }
   }
   // The partner demo's card for the same words: the endpoint's own card string (crew gate), pill slot removed, serialized by the same browser so the two compare byte for byte.
@@ -243,7 +243,7 @@ try {
           if (!r.ok) return { err: "HTTP " + r.status };
           const j = await r.json(); if (!j || !j.card) return { err: "no card in the answer" };
           const d = document.createElement("div"); d.innerHTML = j.card;
-          d.querySelectorAll(".gas-pill-slot,.pillrow").forEach(e => e.remove());
+          d.querySelectorAll(".gas-pill-slot,.pillrow,.sfc-basis,.sfc-footer-link").forEach(e => e.remove());
           return { html: d.firstElementChild ? d.firstElementChild.outerHTML : null };
         } catch (e) { return { err: String(e && e.message || e).slice(0, 80) }; }
       }, q);
@@ -291,7 +291,7 @@ try {
       if (dr.length) r.pages[pr] = { cell: "DRIFT", diffs: dr.map(d => "RENDER DRIFT, " + d) };
       else r.pages[pr] = { cell: engineCell.cell, diffs: [] };
       if (tx.length && r.pages[pr].cell !== "DRIFT") r.pages[pr] = { cell: "FAIL", diffs: tx };
-      r.pages[pr].count = parsed.count; r.pages[pr].card = rd.card || null;
+      r.pages[pr].count = parsed.count; r.pages[pr].card = rd.card || null; r.pages[pr].cardDemoNorm = rd.cardDemoNorm || null;
       r.pages[pr].shown = `${parsed.count == null ? "-" : parsed.count} ${parsed.range ? money(parsed.range.low) + "-" + money(parsed.range.high) : "no range"}`;
     }
   };
@@ -316,7 +316,7 @@ try {
     let pc = null; try { pc = await partnerCard(r.g.q); } catch (e) { pc = { err: String(e && e.message || e).slice(0, 80) }; }
     if (pc && pc.err) lines.push({ name: "partner demo", cell: "FAIL", diff: "partner answer unreadable: " + pc.err });
     else if (!ref) lines.push({ name: "partner demo", cell: "FAIL", diff: "Market Check renders no shared card to compare with" });
-    else lines.push(pc.html === ref ? { name: "partner demo", cell: "PASS", diff: null } : { name: "partner demo", cell: "FAIL", diff: firstDiff(ref, pc.html || "") });
+    else { const dn = r.pages.marketCheck.cardDemoNorm; lines.push(pc.html === dn ? { name: "partner demo", cell: "PASS", diff: "identical to Market Check apart from the two designed differences (basis line, footer link)" } : { name: "partner demo", cell: "FAIL", diff: firstDiff(dn || "", pc.html || "") }); }
     cardOut.push({ id: r.g.id, q: r.g.q, lines });
   }
   // "equalsBare": the typed words must give the count of the bare car's page (the page then also prints the one "states a body" line).
