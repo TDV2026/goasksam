@@ -4,7 +4,7 @@
 import { PAGE_CSS, FONT_LINKS, isCrewRequest } from "./_chrome.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 import { supabaseEnv } from "../lib/_supabase.js";
-import { logPageView } from "../lib/_pageview.js";
+import { classifyReferrer } from "../lib/_pageview.js";
 import { lastUpdatedDate } from "../lib/asOf.js";
 import { exampleBand } from "../lib/live/buyExample.js";
 import { landingHtml, LANDING_CSS, KEEP_ICON } from "../lib/live/buyLanding.js";
@@ -22,6 +22,28 @@ const PAGE_WAIT_MS = 150;
 // A read the page stopped waiting for keeps running to the end of its own work after the response (Vercel's waitUntil,
 // the same request context lib/track/log.js uses), so the instance caches it; outside Vercel it simply runs on.
 function afterResponse(p) { try { const c = globalThis[Symbol.for("@vercel/request-context")]; const x = c && c.get && c.get(); if (x && x.waitUntil) x.waitUntil(Promise.resolve(p).catch(() => {})); } catch { /* best effort */ } return p; }
+// PAGE VIEWS IN BATCHES (Sam, Oct 16 2026): one database write for up to VIEW_BATCH views, not one per view. Each view
+// is the same app_usage_events row lib/_pageview.js logPageView writes (classifyReferrer, the same fields); the queue
+// is written at once when it is full, otherwise VIEW_FLUSH_MS after its first view (kept alive past the response by
+// waitUntil). Best effort, like the one-row write it replaces: a failed write is logged and never fails a page.
+const VIEW_BATCH = 20, VIEW_FLUSH_MS = 5000;
+let viewQueue = [], viewTimer = null;
+function flushViews(env) {
+  if (viewTimer) { clearTimeout(viewTimer); viewTimer = null; }
+  const rows = viewQueue; viewQueue = [];
+  if (!rows.length || !env) return Promise.resolve();
+  return fetch(`${env.supabaseUrl}/rest/v1/app_usage_events`, { method: "POST", headers: { "Content-Type": "application/json", apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "return=minimal" }, body: JSON.stringify(rows) })
+    .then(async r => { if (!r.ok) console.error(`page view batch write failed (${r.status}, ${rows.length} rows): ${(await r.text()).slice(0, 200)}`); })
+    .catch(e => console.error("page view batch write failed:", String(e && e.message || e).slice(0, 200)));
+}
+function queueView(env, { path, referer, userAgent }) {
+  if (!env) return;
+  const { source, kind } = classifyReferrer(referer, userAgent);
+  viewQueue.push({ created_at: new Date().toISOString(), event_type: "page_view", route: path || null, status: kind, oldcarsdata_metered_requests: 0,
+    metadata: { path: path || null, source, kind, ref: String(referer || "").slice(0, 200), ua: String(userAgent || "").slice(0, 160) } });
+  if (viewQueue.length >= VIEW_BATCH) return afterResponse(flushViews(env));
+  if (!viewTimer) afterResponse(new Promise(res => { viewTimer = setTimeout(() => { viewTimer = null; flushViews(env).then(res); }, VIEW_FLUSH_MS); }));
+}
 function inTime(p, late) { afterResponse(p); return Promise.race([Promise.resolve(p).catch(() => null), new Promise(r => setTimeout(() => r(late), PAGE_WAIT_MS))]); }
 async function countLive() {
   if (liveCount.n != null && Date.now() - liveCount.at < 600e3) return liveCount.n;
@@ -119,8 +141,8 @@ ${CONSENT_BANNER_HTML}
 <script>${CONSENT_BANNER_JS}</script></body></html>`;
   // Referrer logging (search measurement). Runs on a cache MISS only (the page is edge-cached 10 min),
   // so this samples origin hits, which includes crawlers that bypass the edge; cached hits are not seen.
-  // Never holds the page: the log write finishes after the response.
-  afterResponse(logPageView(supabaseEnv(), { path: "/buy", referer: req.headers["referer"] || req.headers["referrer"], userAgent: req.headers["user-agent"] }));
+  // Never holds the page: queued, written in a batch after the response.
+  queueView(supabaseEnv(), { path: "/buy", referer: req.headers["referer"] || req.headers["referrer"], userAgent: req.headers["user-agent"] });
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", robots);
   // Crew's full nav (and, Oct 2026, the brand palette override) is never shared or stored. The
