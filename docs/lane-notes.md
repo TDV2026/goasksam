@@ -8894,3 +8894,19 @@ FIX (building now): (1) the endpoint's in-process Market Check read carries the 
   (2) runFilters (the rerun path, a reloaded or shared /buy address) returns the same fixed line as reply and searchNote.
   FOR LANE C: api/buySearch.js line 534 (action "rerun") sends `searchNote: null`; change it to `searchNote: out.searchNote`
   so a reloaded address draws the same line as the search that made it. No pool, fence or range touched.
+- DONE (Lane E, 2026-10-16T20:20Z): FINAL AFTER TABLE, with E3, E4 and the d.searchNote line live too (Lane C's 2a74a162 +
+  fddb9b6a, which carries buy-speed-2). 20:15 to 20:19Z, e58 warm DONE true, Lane C PUSHED true, nothing RUNNING, one
+  search at a time; Lane C held its own Buy timing checks during the run. Seconds; before = the measurement table (pre-e58,
+  warm rows); after = run 1 / run 2.
+    stage                        | Porsche 911       | 1965 Mustang     | 2005 911         | 2023 GT3          | note
+    model turn (one call)        | 4.1 -> 0.9/1.9    | 5.1 -> 1.5/4.3   | 5.3 -> 1.3/1.9   | 4.6 -> 9.2/1.2    | one Claude call every run; the 9.2 is one slow model response (server turn 10.2 s, tool 1.0 s)
+    toolSearchLive               | 0.7 -> 3.6/0.4    | 0.7 -> 0.8/1.1   | 0.8 -> 0.8/0.5   | 1.4 -> 1.0/1.1    | the 3.6 is a rerun that paid the 911's card reads cold on a fresh instance
+    enrichFast after the turn    | 1.0 -> 2.3/1.0    | 0.6 -> 0.5/0.006 | 0.6 -> 0.5/0.7   | 0.5 -> 0.7/0.5    | E3 live: the enrichment now runs during the model round (a 6 ms shape on Mustang run 2)
+    chat total to "done" (API)   | 6.3 -> 6.8/3.2    | 6.2 -> 2.8/5.3   | 6.7 -> 2.6/3.1   | 6.5 -> 11.0/2.7   |
+    page: header = first card    | 8.1 -> 2.9/6.7    | 7.7 -> 3.1/3.3   | 6.9 -> 3.4/3.7   | 8.0 -> 6.7/4.7    | before spikes 18.5 and 24.4 s; after: no run above 6.7 s, median 3.6 s
+  PASS: header and first card 2.9 to 6.7 s on all eight page runs (median 3.6 s) against 6.9 to 8.1 s typical and 18.5 to
+  24.4 s spikes before; the model turn is one call on every run; the blocking set-aside engine read is gone from the
+  path (E4). scripts/buySearchLineCheck.mjs 4 of 4 PASS; scripts/buyEngineMatch.mjs 14 same, 0 different, 0 pending
+  (engine e58-20261016-bodyfamily). What is left is the model's own response time (one slow call of 9.2 s seen) and cold
+  instances (parse 0.3 to 0.6 s on a fresh one). Search check: no public page touched by Lane E (the d.searchNote line is
+  Lane C's; the fixed line is server text from engine facts).
