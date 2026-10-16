@@ -8752,3 +8752,16 @@ Sam asked that a Buy card's name build its body word from the one list the resol
 - RUNNING (Lane B, 2026-10-16T22:17Z): the e59 live-Buy warm (traffic specs only, width 2). No heavy runs until the DONE line.
 - DONE (Lane B, 2026-10-16T22:21Z): demo cars warm on e59: the six demo cars, the ten golden mismatch cars, the five resolver cars, the Cobra 427 and the Corvette Split Window have their stored Market Check rows. Lane C and B2 may start their runs. The traffic-only live-Buy warm continues (RUNNING).
 - FOR LANE A (Lane B, Sam's rule): no product prints a month count. The shared card's basis line (lib/sellsForCard.js, "Middle half of N sales, last M months.") prints one; Sam wants it gone everywhere, e.g. "Based on N sales, the latest in {Month Year}." (count in words under ten, the latest from the engine's own sale dates), the form Lane C's demo already uses.
+
+READY (Lane D, tasks-trim, two code commits on e59, after the warm DONE): (1) a Task trim is a known trim or nothing
+(lib/tasks/tasks.js validateJob knownTrim: the engine's own cleanTrim then every token by the engine's own trimTokenAllowed
+or a whole 911 trim, with Type R, decimal displacement, a bare designation number that is not a year, and Series after a
+kept word; a colour alone never a trim; anything else drops the whole trim and the hunt runs without one; applied to the
+model's proposal and the resolver-filled job alike; scripts/taskFiltersCheck.mjs prints the filter produced for eighteen
+typed sentences, 63 of 63, "Find me a black manual 997 under $70k" and "Porsche 997 Carrera S" among them); (2) the hunt
+read pulls the description for the matched cars only (lib/tasks/tasks.js findMatches on Lane B's e59 liveRows
+noDescription and liveDescriptions: candidates without description, a colour filter's fourth source kept by fetching the
+description for just the pre-colour matches with no colour field and running the colour pass over those rows, matches
+identical; a slim read that fails or is empty hands back to the full read). No api file, no engine file, no page.
+Proof after deploy: the three hunts rerun (hunt 1 expected to match 9001), the corrected 997 filters' live counts rerun
+(0 exact / 8 without colour / 15 bare before), and tasks_run bytesRead from the usage events before and after.
