@@ -277,9 +277,6 @@ async function page(req) {
     completedSalesCount(env).catch(() => null),
     vinHistoryShare(env).catch(() => null)
   ]);
-  // TEMP DIAGNOSTIC (removed once the real proof-strip numbers are confirmed and built): hidden HTML
-  // comment, never rendered, never visible text - read once via a probe-key page load, then deleted.
-  const diagComment = (isCrewRequest(req) || hasServerCredential(req)) ? `<!-- deskproof soldCount=${soldCount} vinShare=${vinShare ? JSON.stringify(vinShare) : "null"} -->` : "";
   const heroInner = `<p class="biz-eyebrow">SAM DESK${updated ? " · Updated " + esc(updated) : ""}</p>` +
     `<h1 class="biz-h1">Ask the whole collector car market.</h1>` +
     `<p class="biz-sub">Explore sales, compare platforms and slice the market by car, mileage, time period or almost any other question. Sam gives you the answer, the analysis and the cars behind it.</p>` +
@@ -358,7 +355,6 @@ ${showPal ? paletteSwitcherHtml() : ""}
 ${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 ${railOpenHtml({ active: "business", pageExtra: YOUR_RESULTS_RAIL, crew, req, analytics: true })}
-${diagComment}
 ${body}
 ${CONSENT_BANNER_HTML}
 <script>${SHELL_JS}</script>
