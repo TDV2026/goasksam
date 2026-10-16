@@ -90,7 +90,7 @@ const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new"
 const rows = [];
 const byQ = {};
 let chassisGuard = null;
-let identityOut = null;   // the identity row: { q, checks: [{ name, cell, diffs, shown }] }
+let identityOut = [];   // the identity rows: [{ id, q, any, checks: [{ name, cell, diffs, shown }] }]
 try {
   // The ops task is a keyed GET; plain curl is turned away by Vercel's bot protection, so the request is made from a real page
   // on the site's own address. The key travels only in the x-ops-key header.
@@ -365,7 +365,7 @@ try {
     const sum = any.options.reduce((a, b) => a + b.n, 0);
     const okSum = any.options.length > 0 && any.count != null && sum === any.count;
     checks.push({ name: "options add up to Any", cell: okSum ? "PASS" : "FAIL", diffs: okSum ? [] : [any.options.length ? `${any.options.map(x => x.n).join(" + ")} = ${sum}, the bare page shows ${any.count == null ? "no count" : any.count} (Any)` : "the bare page prints no identity question"], shown: `${any.options.map(x => x.n).join("+") || "-"} vs ${any.count == null ? "-" : any.count}` });
-    identityOut = { q: g.q, any, checks };
+    identityOut.push({ id: g.id, q: g.q, any, checks });
   }
   // CHASSIS-NUMBER GUARD (Oct 14 2026): a keyword is never read inside a chassis or lot number. The 1969 365 GT 2+2 whose chassis number is 12751
   // holds "275"; the engine's row fence must set it aside for a 275 GTB, not pool it. One read-only poolrows call, run with every full table.
@@ -410,9 +410,9 @@ if (rows.some(r => r.country)) {
   console.log("\nCountry on the pool rows (US and Canada only; basis shows where the country came from; unknown or outside rows are listed):");
   for (const r of rows) if (r.country) console.log(`  ${r.g.id}. ${pad(r.g.q, 42)} ${r.country.n == null ? r.country.note : r.country.n + " rows" + wide(r) + "  " + Object.entries(r.country.bases).map(([k, v]) => k + " " + v).join(", ") + (r.country.odd.length ? "  UNKNOWN OR OUTSIDE: " + r.country.odd.join("; ") : "")}`);
 }
-if (identityOut) {
-  console.log(`\nIdentity row 21, ${identityOut.q}: the bare page shows ${identityOut.any.count == null ? "no count" : identityOut.any.count} sales (Any), options ${identityOut.any.options.map(x => x.label + " (" + x.n + ")").join(", ") || "none"}`);
-  for (const c of identityOut.checks) { console.log(`  ${pad(c.cell, 6)} ${pad(c.name, 26)} ${c.shown}`); for (const d of c.diffs) console.log(`         ${d}`); if (c.cell === "FAIL") nFail++; else if (c.cell === "PASS") nPass++; }
+for (const io of identityOut) {
+  console.log(`\nIdentity row ${io.id}, ${io.q}: the bare page shows ${io.any.count == null ? "no count" : io.any.count} sales (Any), options ${io.any.options.map(x => x.label + " (" + x.n + ")").join(", ") || "none"}`);
+  for (const c of io.checks) { console.log(`  ${pad(c.cell, 6)} ${pad(c.name, 26)} ${c.shown}`); for (const d of c.diffs) console.log(`         ${d}`); if (c.cell === "FAIL") nFail++; else if (c.cell === "PASS") nPass++; }
 }
 if (chassisGuard) console.log(`\nChassis-number guard (365 GT 2+2, chassis 12751, set aside from the 275 GTB pool): ${chassisGuard}`);
 console.log(`\n${nPass} PASS, ${nFail} FAIL, ${nDrift} RENDER DRIFT, ${nPend} PENDING (report-only; ${flag("strict") ? "strict: failures set the exit code" : "does not set the exit code"}).`);
