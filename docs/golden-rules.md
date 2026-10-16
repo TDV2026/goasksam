@@ -181,7 +181,7 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":30,"q":"1973 Porsche 911 Targa","status":"pending","countMin":1},
  {"id":31,"q":"1963 Chevrolet Corvette Roadster","status":"ready","rung":"exact","labelHas":["1963 Corvette Roadster"],"count":18,"tol":0,"low":48500,"high":77000,"tolPct":5,"chipPairs":[{"bare":"1963 Chevrolet Corvette","label":"Convertible","typed":"1963 Chevrolet Corvette Roadster"}]},
  {"id":32,"q":"1989 Mazda Miata Roadster","status":"pending","equalsBare":"1989 Mazda Miata"},
- {"id":33,"q":"1967 Shelby Cobra Roadster","status":"ready","question":true,"wordsHas":["Which is it, the 289 or the 427?"],"noCountRange":true,"chipPairs":[{"bare":"1967 Shelby Cobra","label":"289","typed":"1967 Shelby Cobra 289"},{"bare":"1967 Shelby Cobra","label":"427","typed":"1967 Shelby Cobra 427"}]},
+ {"id":33,"q":"1967 Shelby Cobra Roadster","status":"pending","question":true,"wordsHas":["Which is it, the 289 or the 427?"],"noCountRange":true,"chipPairs":[{"bare":"1967 Shelby Cobra","label":"289","typed":"1967 Shelby Cobra 289"},{"bare":"1967 Shelby Cobra","label":"427","typed":"1967 Shelby Cobra 427"}]},
  {"id":34,"q":"1955 Mercedes-Benz 300SL Roadster","status":"pending","empty":true,"wordsHas":["No Roadster 1955 Mercedes-Benz 300SL sale on record in the last five years."],"noCountRange":true},
  {"id":35,"q":"1989 Porsche 911 Turbo Targa","status":"ready","empty":true,"wordsHas":["No Targa 1989 Porsche 911 Turbo sale on record in the last five years."],"noCountRange":true},
  {"id":36,"q":"2001 Porsche 911 Carrera 4S Cabriolet","status":"ready","empty":true,"wordsHas":["No Cabriolet 2001 Porsche 911 Carrera 4S sale on record in the last five years."],"noCountRange":true},
