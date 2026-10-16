@@ -196,6 +196,15 @@ try {
   record("before it ends fixture day (scripts/beforeItEndsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 
+// Tasks read reductions (Oct 2026, Lane D): the same fixture day through the legacy io and the slim io must give the
+// same emails, marks and report lines, and the slim io must read only the people due and the cars inside the window.
+try {
+  const out = execSync("node scripts/tasksReadsCheck.mjs", { encoding: "utf8" });
+  record("tasks read reductions (scripts/tasksReadsCheck.mjs)", "PASS", (out.match(/tasksReadsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("tasks read reductions (scripts/tasksReadsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+
 // The engine's fallback rung (Oct 2026, Lane C): Lane B's new fields faked on fixtures through the real Buy, Task door
 // and Task email renderers; fails if a fields-absent render changes or a rung line breaks a copy rule. No network.
 try {

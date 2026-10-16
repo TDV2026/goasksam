@@ -18,7 +18,7 @@
 // Probe-keyed tests (PROBE_KEY, in the x-ops-key or x-probe-key header): act as a test user, seed listing rows instead of the live table, mock
 // the clock; test runs never send email (email_status "test").
 import { withTracking } from "../lib/track/log.js";
-import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
+import { supabaseEnv, supabaseSelect, supabaseBytesSoFar } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { readVisitorId } from "../lib/_visitor.js";
 import { jobPhrase, notifyPrefs, setNotifyPrefs, taskTurn, draftTurn, startDraft, applyEdit, slotTask, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore, notify, oneTap, sendStartEmail } from "../lib/tasks/tasks.js";
@@ -110,15 +110,21 @@ async function handler(req, res) {
     if (req.method === "GET" && q.send) {
       const isCron = process.env.CRON_SECRET && req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
       if (!isCron && !probeOk(req)) return res.status(401).json({ error: "Unauthorized." });
-      const { runDigest, runBeforeItEnds } = await import("../lib/tasks/digest.js");
+      const { runDigest, runBeforeItEnds, digestBytesSoFar } = await import("../lib/tasks/digest.js");
+      // bytesRead (Lane D, Oct 2026): the PostgREST bodies this run pulled (lib/_supabase.js reads plus the digest's own
+      // helper); a per-process tally, so it is exact for one run at a time and an approximation under overlap.
+      const b0 = supabaseBytesSoFar() + digestBytesSoFar();
       // The limits ledger keeps nothing past 24 hours (its address keys are daily salted hashes, lib/_addr.js).
       if (isCron) { const { pruneLedger } = await import("../lib/_ceilings.js"); await pruneLedger(env).catch(() => {}); }
       // Before it ends first: its own email two hours before the end, never waiting on the daily email.
       const dry = !isCron && q.dry === "1";
-      const bie = await runBeforeItEnds(env, { dry }).catch(e => ({ error: String(e && e.message || e).slice(0, 120), sent: 0, ended: 0, failed: 0 }));
-      const out = await runDigest(env, { dry });
-      if (!dry) await recordUsageEvent({ event_type: "task_email_run", route: "tasks_send", status: "ok", oldcarsdata_metered_requests: 0, metadata: { people: out.people, sent: out.sent + (bie.sent || 0), capped: out.capped, notDue: out.notDue, emailOff: out.emailOff, matches: out.matches + (bie.sent || 0), endedBeforeSend: bie.ended || 0, failed: out.failed + (bie.failed || 0), beforeItEnds: { sent: bie.sent || 0, off: bie.off || 0, ended: bie.ended || 0, failed: bie.failed || 0, error: bie.error } } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
-      return res.status(200).json({ ...out, beforeItEnds: bie });
+      // &legacy=1 (dry runs only): the reads as they were before the Tasks read reductions, for the before/after bytes.
+      const legacy = dry && q.legacy === "1";
+      const bie = await runBeforeItEnds(env, { dry, legacy }).catch(e => ({ error: String(e && e.message || e).slice(0, 120), sent: 0, ended: 0, failed: 0 }));
+      const out = await runDigest(env, { dry, legacy });
+      const bytesRead = supabaseBytesSoFar() + digestBytesSoFar() - b0;
+      if (!dry) await recordUsageEvent({ event_type: "task_email_run", route: "tasks_send", status: "ok", oldcarsdata_metered_requests: 0, metadata: { bytesRead, people: out.people, sent: out.sent + (bie.sent || 0), capped: out.capped, notDue: out.notDue, emailOff: out.emailOff, matches: out.matches + (bie.sent || 0), endedBeforeSend: bie.ended || 0, failed: out.failed + (bie.failed || 0), beforeItEnds: { sent: bie.sent || 0, off: bie.off || 0, ended: bie.ended || 0, failed: bie.failed || 0, error: bie.error } } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
+      return res.status(200).json({ ...out, beforeItEnds: bie, bytesRead, legacy: legacy || undefined });
     }
     if (req.method === "GET" && q.run) {
       const isCron = process.env.CRON_SECRET && req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
@@ -136,13 +142,15 @@ async function handler(req, res) {
         if (fresh && !fresh.length && !stale) return res.status(200).json({ ran: 0, nothingNew: true, since });
       }
       let out;
+      const b0 = supabaseBytesSoFar();
       try { out = await runTasks(env, { apiKey, model: CHAT_MODEL }); }
       catch (e) {   // a failed run leaves a row too, so a silent cron failure is queryable
         await recordUsageEvent({ event_type: "tasks_run", route: "tasks_run", status: "error", oldcarsdata_metered_requests: 0, metadata: { error: String((e && e.message) || e).slice(0, 300), ms: Date.now() - t0 } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
         throw e;
       }
-      await recordUsageEvent({ event_type: "tasks_run", route: "tasks_run", status: "ok", oldcarsdata_metered_requests: 0, metadata: { ran: out.ran, matched: out.report.reduce((k, r) => k + (r.matched || 0), 0), ms: Date.now() - t0 } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
-      return res.status(200).json(out);
+      const bytesRead = supabaseBytesSoFar() - b0;
+      await recordUsageEvent({ event_type: "tasks_run", route: "tasks_run", status: "ok", oldcarsdata_metered_requests: 0, metadata: { ran: out.ran, matched: out.report.reduce((k, r) => k + (r.matched || 0), 0), ms: Date.now() - t0, bytesRead } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
+      return res.status(200).json({ ...out, bytesRead });
     }
     // Probe: how many accounts carry a stored Task email address (accounts.task_email, no longer read since Task emails
     // go only to the sign-in address, lib/tasks/delivery.js), and how many of those differ from the account's email.
