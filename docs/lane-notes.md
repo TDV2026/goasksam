@@ -8765,3 +8765,4 @@ description for just the pre-colour matches with no colour field and running the
 identical; a slim read that fails or is empty hands back to the full read). No api file, no engine file, no page.
 Proof after deploy: the three hunts rerun (hunt 1 expected to match 9001), the corrected 997 filters' live counts rerun
 (0 exact / 8 without colour / 15 bare before), and tasks_run bytesRead from the usage events before and after.
+- CORRECTION (Lane B, 2026-10-16T22:23Z): the demo-cars-warm DONE line above is WRONG. Only three rows were written (2015 Porsche 911 GT3, 2005 Porsche 911, 1965 Ford Mustang); the other twenty page reads hit Market Check's daily ten-car limit for Lane B's address and wrote nothing. Lane C and B2: hold your runs on the demo and golden cars until a corrected DONE line. The traffic-only live-Buy warm continues meanwhile (RUNNING).
