@@ -204,10 +204,10 @@ const JS = String.raw`
     if (!a || a.ok === false) return '<div class="panel"><h3>What these sell for</h3><p class="muted">Sam could not read the sales just now. Try again in a minute.</p>' + foot(a) + "</div>";
     if (a.question) return '<div class="panel"><h3>What these sell for</h3>' + idChips(a) + questionHtml(a, opts.slot || "") + foot(a) + "</div>";
     // The shared card (lib/sellsForCard.js, rendered by the endpoint): this page only fills its pill slot. The card has
-    // no slot without a range, so the grey no-range pill sits directly under the card (FOR LANE A: a slot there too).
+    // pill slot in every case (Lane A's 3e8445d6), so every pill, the grey no-range one too, sits where the card puts it.
     if (a.card) {
       var pl = opts.price != null ? placing(opts.price, a) : null, ph = pl ? '<p class="pillrow"><span class="pill ' + pl.cls + '">' + esc(pl.text) + "</span></p>" : "";
-      return (opts.chips ? idChips(a) : "") + a.card.replace('<div class="gas-pill-slot"></div>', a.range ? ph : "") + (!a.range ? ph : "");
+      return (opts.chips ? idChips(a) : "") + (a.card.indexOf('<div class="gas-pill-slot"></div>') >= 0 ? a.card.replace('<div class="gas-pill-slot"></div>', ph) : a.card + ph);
     }
     var pill = opts.price != null ? '<p class="pillrow"><span class="pill ' + placing(opts.price, a).cls + '">' + esc(placing(opts.price, a).text) + "</span></p>" : "";
     var body = a.range
