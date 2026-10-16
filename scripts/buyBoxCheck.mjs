@@ -27,5 +27,8 @@ ok(ph === "Follow up, like only manuals" && phn === "Follow up: only manuals?", 
 ok([ph, phn].every(t => !/[–—]/.test(t) && !/\b(I|I'm|I'll|me|my)\b/.test(t)) && phn.length <= 24, "the follow-up lines: no dash, no first person, the phone one short enough for 360");
 ok(/var res = log\.querySelector\("\.msg\.results:not\(\[hidden\]\)"\), want = res \? phFollow\(\) : phFirst\(\);/.test(client), "the follow-up line only while a result is on the page");
 ok(/PH_NARROW = "Change the search, or ask\."/.test(client) && /matchMedia\("\(max-width: 520px\)"\)/.test(client), "a phone's first-search line is the short one that fits at 360");
+// A follow-up keeps its search (Sam, Oct 15 2026): while "only manuals" runs, the header names the search on screen
+// with the words, and the follow-up words are never parsed alone into the waiting line.
+ok(/searchingBlock\(prevQ && said \? prevQ \+ ", " \+ said : said\)/.test(client) && /if \(!rerun && said && !prevQ\) fetch\(/.test(client), "a follow-up's header keeps the search on screen and its words are not named alone");
 console.log(`buyBoxCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
