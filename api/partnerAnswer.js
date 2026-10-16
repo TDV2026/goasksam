@@ -22,6 +22,15 @@ import { checkCeiling } from "../lib/_ceilings.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { vinAppearances, carIdentity, normVin } from "./_historyData.js";
 import { lastUpdatedDate } from "../lib/asOf.js";
+import { sellsForCardHtml, latestQuarterRowHtml } from "../lib/sellsForCard.js";
+import { mapEngineAnswer } from "../lib/onebox.js";
+
+// THE SHARED CARD (Sam, Oct 16 2026; Lane A's lib/sellsForCard.js): the "What these sell for" card is rendered here by
+// the one function every product uses, from the very answer Market Check's page hands it (its raw answer), so the
+// partner card and the Market Check card for the same words are the same card. The page puts its pill in PILL_SLOT,
+// the card's one pill placement (directly under the range). The latest-quarter row (view d only) is the card's own
+// latestQuarterRowHtml over the engine's own trendQuarters mapping (lib/onebox.js mapEngineAnswer), never recomputed.
+export const PILL_SLOT = '<div class="gas-pill-slot"></div>';
 
 const RANGE_MIN = 8;   // the engine's own RANGE_THRESHOLD: under eight sales there is no range, only words
 const VIN_RE = /^[A-HJ-NPR-Z0-9]{17}$/;
@@ -188,6 +197,8 @@ export function partnerShape(d, text, asked, extra = {}) {
     sales: salesOf(d), setAside: setAsideOf(d),
     thin: range ? null : thinTextOf(d, count),
     trend: range ? trendOf(d) : null,
+    card: sellsForCardHtml(d, { partnerPillsHtml: PILL_SLOT }) || null,
+    quarter: latestQuarterRowHtml({ ...d, trendQuarters: mapEngineAnswer(d).trendQuarters }) || null,
     narrow: narrowOf(d, text),
     history: extra.history || null
   };

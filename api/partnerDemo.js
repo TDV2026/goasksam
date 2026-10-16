@@ -13,11 +13,14 @@
 //      before"; on a phone after the description.
 // Route: /partner-demo (vercel.json rewrite to /api/partnerDemo), ?view=a|b|c|d.
 import { isCrewRequest } from "../lib/_crew.js";
+import { SELLS_FOR_CARD_CSS } from "../lib/sellsForCard.js";
 
 export const DUMMY = { title: "2015 Porsche 911 GT3", colour: "Black", miles: 20611, titleStatus: "Clean", price: 139900, priceKind: "Buy It Now", daysLeft: 13, vin: "WP0AC2A96FS189139", q: "2015 Porsche 911 GT3" };
 
 const CSS = `
-:root{--ink:#191919;--ink2:#707070;--rule:#e5e5e5;--soft:#f7f7f7;--blue:#3665f3;--blue2:#2b52c5;--green:#0b7a34;--greenbg:#e6f4ea;--amber:#8a5a00;--amberbg:#fdf3dc;--grey:#5c5c5c;--greybg:#efefef;--slate:#334b66;--slatebg:#e3eaf3;--r:16px;color-scheme:light}
+:root{--ink:#191919;--ink2:#707070;--rule:#e5e5e5;--soft:#f7f7f7;--blue:#3665f3;--blue2:#2b52c5;--green:#0b7a34;--greenbg:#e6f4ea;--amber:#8a5a00;--amberbg:#fdf3dc;--grey:#5c5c5c;--greybg:#efefef;--slate:#334b66;--slatebg:#e3eaf3;--r:16px;color-scheme:light;
+  /* the shared card reads these tokens: the partner mirror's own type and lines, so the card sits in its layout */
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;--serif:var(--sans);--sec:var(--ink2);--div:var(--rule);--card:#fff}
 *{box-sizing:border-box}
 body{margin:0;background:#fff;color:var(--ink);font:400 16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
 .wrap{max-width:1280px;margin:0 auto;padding:0 24px}
@@ -137,7 +140,9 @@ const JS = String.raw`
   }
   // The card's footer: the credit, the Updated date (the endpoint's shared last-ingest date, none when unread) and
   // How Sam decides.
-  function foot(a){ return '<div class="gas-foot"><span><b>Powered by GoAskSam</b>' + (a && a.updated ? '<span class="upd"> · Updated ' + esc(a.updated) + "</span>" : "") + '</span><a href="/how-sam-decides" target="_blank" rel="noopener">How Sam decides</a></div>'; }
+  // Panels around the shared card (This car before, the sales section): the credit and How Sam decides only; the one
+  // Updated date on a view is the card's own (its read time), never a second, different date beside it.
+  function foot(a){ return '<div class="gas-foot"><span><b>Powered by GoAskSam</b></span><a href="/how-sam-decides" target="_blank" rel="noopener">How Sam decides</a></div>'; }
   // Where a figure sits against the engine's range. The only thing this page works out, and only from that range.
   function placing(x, a){
     if (!a || !a.range) return { cls: "none", text: "No range for cars like this yet" };
@@ -160,6 +165,12 @@ const JS = String.raw`
     opts = opts || {};
     if (!a || a.ok === false) return '<div class="panel"><h3>What these sell for</h3><p class="muted">Sam could not read the sales just now. Try again in a minute.</p>' + foot(a) + "</div>";
     if (a.question) return '<div class="panel"><h3>What these sell for</h3>' + idChips(a) + questionHtml(a, opts.slot || "") + foot(a) + "</div>";
+    // The shared card (lib/sellsForCard.js, rendered by the endpoint): this page only fills its pill slot. The card has
+    // no slot without a range, so the grey no-range pill sits directly under the card (FOR LANE A: a slot there too).
+    if (a.card) {
+      var pl = opts.price != null ? placing(opts.price, a) : null, ph = pl ? '<p class="pillrow"><span class="pill ' + pl.cls + '">' + esc(pl.text) + "</span></p>" : "";
+      return (opts.chips ? idChips(a) : "") + a.card.replace('<div class="gas-pill-slot"></div>', a.range ? ph : "") + (!a.range ? ph : "");
+    }
     var pill = opts.price != null ? '<p class="pillrow"><span class="pill ' + placing(opts.price, a).cls + '">' + esc(placing(opts.price, a).text) + "</span></p>" : "";
     var body = a.range
       ? '<p class="range">' + usd(a.range.low) + " to " + usd(a.range.high) + "</p>" + pill + '<p class="sub">The middle half of ' + a.count + " " + plural(a.count, "sale", "sales") + (a.window ? " " + esc(a.window) : "") + ".</p>"
@@ -202,7 +213,7 @@ const JS = String.raw`
     $("c-rail").innerHTML = rangePanel(a, { price: D.price, slot: "c" }) + historyPanel(a);
     var lq = a && a.range && a.trend && a.trend.length ? a.trend.reduce(function(m, t){ return String(t.period) > String(m.period) ? t : m; }) : null;   // the latest quarter with eight or more sales, view d only
     $("d-sales").innerHTML = '<h2>What cars like this sold for</h2>' + (a && a.range ? '<p class="sub" style="margin:-6px 0 16px">' + a.count + " " + plural(a.count, "sale", "sales") + (a.window ? " " + esc(a.window) : "") + ", lowest price first.</p>" : "") +
-      (lq ? '<p class="qrow"><b>' + esc(lq.period.replace("-", " ")) + "</b> " + usd(lq.low) + " to " + usd(lq.high) + ", " + lq.count + " sales</p>" : "") + tiles(a) + foot(a);
+      (a && a.card ? (a.quarter ? '<div class="qrow">' + a.quarter + "</div>" : "") : (lq ? '<p class="qrow"><b>' + esc(lq.period.replace("-", " ")) + "</b> " + usd(lq.low) + " to " + usd(lq.high) + ", " + lq.count + " sales</p>" : "")) + tiles(a) + foot(a);
     $("d-hist").innerHTML = historyPanel(a);
   }
   document.addEventListener("click", function(e){
@@ -247,7 +258,7 @@ export function pageHtml(view) {
   </div>`;
   const desc = `<div class="desc below"><h2>About this car</h2><dl class="specs"><div><dt>Year</dt><dd>2015</dd></div><div><dt>VIN</dt><dd>${d.vin}</dd></div><div><dt>Mileage</dt><dd>${miles}</dd></div></dl><p class="muted" style="margin-top:14px">Placeholder description. The seller's own words sit here.</p></div>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="robots" content="noindex,nofollow"><title>Partner demo</title><style>${CSS}</style></head><body>
+<meta name="robots" content="noindex,nofollow"><title>Partner demo</title><style>${CSS}${SELLS_FOR_CARD_CSS}</style></head><body>
 <div class="demo-bar"><div class="wrap"><span>Closed demo. What these sell for, powered by GoAskSam.</span><nav class="tabs" aria-label="Views">${tab("a", "a. Before listing")}${tab("b", "b. Setting a reserve")}${tab("c", "c. On the listing")}${tab("d", "d. Under the listing")}</nav></div></div>
 <header class="top"><div class="wrap"><div class="logo">Partner logo</div><div class="sbox">Search</div><button type="button" class="btn sec sbtn">Search</button></div></header>
 <main>

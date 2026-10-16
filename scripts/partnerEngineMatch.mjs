@@ -11,7 +11,11 @@
 // the cookie part 2 is SKIPPED, said so, never counted as a pass. Read only, zero OldCarsData requests.
 //   node scripts/partnerEngineMatch.mjs            part 1, part 2 when the cookie is set
 import fs from "node:fs";
-import { partnerShape, venueLeak, historyOf } from "../api/partnerAnswer.js";
+import { partnerShape, venueLeak, historyOf, PILL_SLOT } from "../api/partnerAnswer.js";
+import { sellsForCardHtml } from "../lib/sellsForCard.js";
+// The card Market Check draws for an answer (public/js/onebox.js: window.sellsForCardHtml(d, {})); the partner card is
+// the same card with the pill slot, so with the slot taken out the two must be byte-identical.
+const sameCard = (partnerCard, d) => String(partnerCard || "").replace(PILL_SLOT, "") === (sellsForCardHtml(d, {}) || "");
 
 let pass = 0, fail = 0, skip = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
@@ -32,7 +36,7 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 // ---- part 1: fixed engine answers
 const card = (price, date, extra) => ({ price, date, title: "1965 Ford Mustang Fastback", url: "https://bringatrailer.com/listing/x", platform: "Bring a Trailer", platformName: "Bring a Trailer", id: 12, vinNorm: "X", ...extra });
 const FIX = {
-  range: { status: "one_box", tier: "result", cluster: [41500, 58000], poolN: 14, windowLabel: "in the last twelve months", engineVersion: "fixture",
+  range: { status: "one_box", tier: "result", cluster: [41500, 58000], poolN: 14, windowMonths: 12, readAt: "2026-10-16T12:00:00Z", setAsideReasons: { project: 1, replica: 1, modified: 0 }, windowLabel: "in the last twelve months", engineVersion: "fixture",
     resolvedCar: { year: 1965, make: "Ford", model: "Mustang", bodyStyle: "Fastback" }, cards: [card(61000, "2026-02-01"), card(39000, "2026-04-11"), card(52000, "2025-12-30", { platform: "others", platformName: "Mecum" }), card(0, "2026-01-01")],
     counts: { setAside: { total: 2, reasons: { project: 1, replica: 1, modified: 0 } } }, trend: { quarters: [{ period: "2026-Q2", low: 40000, high: 57000, count: 8 }, { period: "2026-Q3", low: 1, high: 2, count: 3, thin: true }] } },
   thin: { status: "one_box", tier: "thin", poolN: 4, windowLabel: "since 2022", thin: { receipts: [{ allIn: 1250000, date: "2024-08-17", venue: "RM Sotheby's", url: "u", title: "t" }, { hammer: 980000, date: "2023-03-02", venue: "Gooding" }] } },
@@ -50,9 +54,11 @@ for (const [name, d] of Object.entries(FIX)) {
     ok(same(asKeys(out.sales), mc.sales), `${name}: the same sales as Market Check`);
     ok(out.sales.every((s, i, a) => !i || a[i - 1].price <= s.price), `${name}: sales lowest price first`);
     ok(out.sales.every(s => Object.keys(s).sort().join() === "date,price"), `${name}: a sale is its price and date only`);
+    ok(sameCard(out.card, d), `${name}: the shared card, byte-identical to Market Check's card for the same answer`);
   }
   if (name === "thin") ok(out.range === null && /Too few to show a range/.test(out.thin || "") && !/\$/.test(out.thin), "thin: words only, never a range or a dollar figure");
   if (name === "range") {
+    ok(/Middle half of 14 sales, last 12 months/.test(out.card || "") && /1 project, 1 replica/.test(out.card || "") && out.card.indexOf(PILL_SLOT) > out.card.indexOf("sfc-range"), "range: the card carries the basis, the set-aside footnote and the pill slot under the range");
     ok(out.trend && out.trend.length === 1 && out.trend[0].count >= 8, "range: only quarters with eight or more sales");
     ok(out.setAside && out.setAside.total === 2 && !("modified" in out.setAside.reasons), "range: set-aside reasons, zero counts dropped");
     ok(out.history[0].result === "not_sold" && out.history[0].highBid === 128000 && out.history[1].price === 151000, "history: sold with its price, not sold with its high bid, newest first");
@@ -80,7 +86,7 @@ else {
     ok(venueLeak(p.j).length === 0, `${q}: no venue, link, title or id on the live answer (${venueLeak(p.j).slice(0, 3).join(", ")})`);
     if (m.j.status !== "one_box" || /_choice$/.test(String(m.j.tier || ""))) { ok(p.j.answerType === "identity_question", `${q}: Market Check asks (${m.j.tier || m.j.status}), the endpoint asks too (${p.j.answerType})`); console.log(`  ${q}: both ask`); continue; }
     const mc = mcReads(m.j);
-    const fields = { range: same(p.j.range, mc.range), count: p.j.count === mc.count, window: p.j.window === mc.window, sales: same(asKeys(p.j.sales || []), mc.sales) };
+    const fields = { range: same(p.j.range, mc.range), count: p.j.count === mc.count, window: p.j.window === mc.window, sales: same(asKeys(p.j.sales || []), mc.sales), card: sameCard(p.j.card, m.j) };
     for (const [k, v] of Object.entries(fields)) ok(v, `${q}: ${k} differs (endpoint ${JSON.stringify(k === "sales" ? (p.j.sales || []).length + " sales" : p.j[k])}, Market Check ${JSON.stringify(k === "sales" ? mc.sales.length + " sales" : mc[k])})`);
     console.log(`  ${q}: ${mc.range ? "$" + mc.range.low + " to $" + mc.range.high : "no range"}, ${mc.count} sales, ${mc.window || "no window"}: ${Object.values(fields).every(Boolean) ? "SAME" : "DIFFERENT"}`);
   }
