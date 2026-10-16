@@ -3516,7 +3516,11 @@ async function handler(req, res) {
               console.error(`stale row recompute did not land in 90s (${warmKey.slice(0, 80)}); computing live`);
             } else {
               oneBox = w.raw; warmHit = true;
-              if (w.stale) { staleInfo = { storedAt: w.storedAt, recomputingSince: w.recomputingSince || null }; await markRecomputing({ supabaseUrl, supabaseKey }, warmKey).catch(e => console.error(`markRecomputing failed: ${(e && e.message) || e}`)); }
+              if (w.stale) {
+                staleInfo = { storedAt: w.storedAt, recomputingSince: w.recomputingSince || null };
+                // the marker is written once per recompute window, never on every stale serve (that reset the 90 s clock)
+                if (!w.recomputingSince || (Date.now() - Date.parse(w.recomputingSince)) > 90000) await markRecomputing({ supabaseUrl, supabaseKey }, warmKey).catch(e => console.error(`markRecomputing failed: ${(e && e.message) || e}`));
+              }
             }
           }
         } catch { /* fall through to the live path below */ }
@@ -3621,36 +3625,33 @@ async function handler(req, res) {
       }
       // timings (speed job): where a Market Check answer's time went, stage by stage; diagnostics, never read by a page.
       const dd = oneBox && oneBox.dedup;
-      const timings = { ...obTimes, warmHit, stale: !!staleInfo, totalMs: Date.now() - reqStart, dbBytes: supabaseBytesSoFar() - obTimes.dbBytes0, marks: dd && Array.isArray(dd.marks) ? dd.marks : null, fetchMs: dd && Array.isArray(dd.fetches) ? dd.fetches.map(f => Number(f.ms) || 0) : null };
       // STALE STORED ANSWER (stage 4): served exactly as stored (its counts, range and cards), with the dated line in
       // Sam's exact form; the recompute starts the moment this response is sent (awaited after it, so the function
       // stays alive to finish and write the fresh row), and the line is gone on the next read.
       const staleFields = staleInfo ? { stale: true, storedAt: staleInfo.storedAt, recomputingSince: staleInfo.recomputingSince || null, staleLine: `Sales read on ${new Date(staleInfo.storedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "America/Los_Angeles" })}. Sales since then are not in yet. Updating now.` } : {};
       if (staleInfo) {
-        // THE RECOMPUTE IS A SELF-CALL, started before this response leaves (stage 4): this same endpoint, the same
-        // body, with the credentialed recompute flag, so a separate invocation computes and writes the fresh row while
-        // this one answers at once. Work left running after a response is not guaranteed on Vercel (the first build
-        // awaited it after res.json and the row stayed stale), so nothing here waits on it.
-        try {
-          const selfKey = process.env.PROBE_KEY || process.env.OPS_KEY || null;
-          // The alias, not the custom domain: goasksam.com's bot protection answers a server-side fetch with a challenge
-          // (the row stayed stale on the first live proof); the ops key is accepted on the alias every ops call uses.
-          const selfHost = process.env.SELF_HOST || "goasksam.vercel.app";
-          // The recompute must not hold the visitor's response (Sam, Oct 16 2026). Vercel's waitUntil keeps the self-call
-          // alive after the response is sent; the project does not carry the @vercel/functions package, so the same
-          // request-context mechanism that package wraps is read directly (globalThis[Symbol.for("@vercel/request-
-          // context")]). Only when no waitUntil exists is the send awaited, bounded to 800 ms (an un-awaited fetch was
-          // never flushed before the function froze, and the row stayed stale). timings.selfCall says which was used.
-          if (selfKey) {
-            const send = () => fetch(`https://${selfHost}/api/sellerDecision`, { method: "POST", headers: { "Content-Type": "application/json", "x-ops-key": selfKey }, body: JSON.stringify({ ...(req.body || {}), recompute: true, fresh: undefined }) }).then(r => { obTimes.selfCallStatus = r.status; }).catch(e => { obTimes.selfCallError = String(e && e.message || e).slice(0, 80); });
-            let waitUntil = null;
-            try { const ctx = globalThis[Symbol.for("@vercel/request-context")]; const got = ctx && typeof ctx.get === "function" ? ctx.get() : null; if (got && typeof got.waitUntil === "function") waitUntil = p => got.waitUntil(p); } catch { waitUntil = null; }
-            if (waitUntil) { obTimes.selfCall = "waitUntil"; waitUntil(send()); }
-            else { obTimes.selfCall = "awaited_800ms"; await Promise.race([send(), new Promise(r => setTimeout(r, 800))]); }
-          }
-          else console.error("stale recompute: no server credential in the environment, the row stays stale until the next warm");
-        } catch (e) { console.error(`stale recompute self-call failed: ${(e && e.message) || e}`); }
+        // THE RECOMPUTE RUNS IN THIS PROCESS, after the response, under Vercel's waitUntil (stage 4, Oct 16 2026). An HTTP
+        // self-call cannot land: the site's bot protection answers a server-side POST to this endpoint with a challenge
+        // (HTTP 429 in 0.14 s; the ops-key bypass covers the ops endpoint only). waitUntil is read from the request
+        // context the @vercel/functions package wraps (the package is not in the project). Without waitUntil nothing
+        // is started here and the row is recomputed live on the first stale visit more than 90 s after this one
+        // (recomputingSince, below). timings.recompute names which happened.
+        let waitUntil = null;
+        try { const ctx = globalThis[Symbol.for("@vercel/request-context")]; const got = ctx && typeof ctx.get === "function" ? ctx.get() : null; if (got && typeof got.waitUntil === "function") waitUntil = pr => got.waitUntil(pr); } catch { waitUntil = null; }
+        const recomputeNow = async () => {
+          try {
+            const fresh = await oneEngineAnswer(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, asked: askedN }, obRefine);
+            const fr = fresh && fresh.raw;
+            if (fr && answerCacheable(fr) && !/_choice$/.test(String(fr.tier || ""))) {
+              await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, fr);
+              if (fr.tier === "result" && vehicle.model) { const core = coreOf(fr, { v: vehicle, generation, refine: null }); if (core) await persistCore({ supabaseUrl, supabaseKey }, specKeyFor(vehicle, generation, identityRefine), core).catch(() => {}); }
+            }
+          } catch (e) { console.error(`stale recompute failed: ${(e && e.message) || e}`); }
+        };
+        if (waitUntil) { obTimes.recompute = "waitUntil"; waitUntil(recomputeNow()); }
+        else obTimes.recompute = "none_live_on_next_visit";
       }
+      const timings = { ...obTimes, warmHit, stale: !!staleInfo, totalMs: Date.now() - reqStart, dbBytes: supabaseBytesSoFar() - obTimes.dbBytes0, marks: dd && Array.isArray(dd.marks) ? dd.marks : null, fetchMs: dd && Array.isArray(dd.fetches) ? dd.fetches.map(f => Number(f.ms) || 0) : null };
       return res.status(200).json({ status: "one_box", ...oneBox, ...staleFields, snapshotId: snapshotId || undefined, timings });
     }
 

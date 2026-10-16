@@ -27,7 +27,7 @@ try {
     try {
       const r = await fetch(u, { method: "POST", headers: { "Content-Type": "application/json", "x-ops-key": k, "x-launch-stage-test": "2" }, body: JSON.stringify(body), signal: ac.signal });
       const txt = await r.text(); let d = null; try { d = JSON.parse(txt); } catch {}
-      return { status: r.status, ms: Date.now() - t0, d: d ? { tier: d.tier, poolN: d.poolN, cluster: d.cluster || null, cards: Array.isArray(d.cards) ? d.cards.length : null, rungLabel: d.rungLabel || null, stale: !!d.stale, staleLine: d.staleLine || null, storedAt: d.storedAt || null, warmHit: d.timings ? d.timings.warmHit : null, selfCall: d.timings ? d.timings.selfCall || null : null } : null };
+      return { status: r.status, ms: Date.now() - t0, d: d ? { tier: d.tier, poolN: d.poolN, cluster: d.cluster || null, cards: Array.isArray(d.cards) ? d.cards.length : null, rungLabel: d.rungLabel || null, stale: !!d.stale, staleLine: d.staleLine || null, storedAt: d.storedAt || null, warmHit: d.timings ? d.timings.warmHit : null, selfCall: d.timings ? (d.timings.recompute || d.timings.selfCall || null) : null } : null };
     } catch (e) { return { status: 0, ms: Date.now() - t0, error: String(e && e.message || e) }; } finally { clearTimeout(t); }
   }, BASE + "/api/sellerDecision", KEY, { oneBox: true, anonId: "staleproof", car: { raw: CAR }, asked: 0 });
   const ops = (task, q) => page.evaluate(async (u, k) => { const r = await fetch(u, { headers: { "x-ops-key": k } }); return { status: r.status, text: await r.text() }; }, `${OPS}/api/usageDashboard?view=ops&task=${task}&q=${encodeURIComponent(q)}`, KEY);
