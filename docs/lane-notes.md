@@ -9082,3 +9082,131 @@ PRIORITISED PLAN (exact change, owner; none touched by Lane E; items 1 and 2 nee
   Keep-one-engine check: every number in the audited pages comes from the engine's stored answers or the archive rows the
   page lists (counts of cars and sales, a car's own sale prices and venue); no page shows a count of houses or sources.
 Search check: no public page touched (audit only; the script is diagnostics).
+
+## Lane E, SEO PLAN FOR SAM'S APPROVAL (Oct 16 2026, 23:00Z; nothing published, no public page changed; Sam's order: the
+## firewall bypass opens ONLY after the caching items below are live)
+Every item: the exact change, the owning lane, and how Lane E proves it live (scripts/seoAudit.mjs as Googlebot, raw HTML,
+no bypass once the firewall opens; until then the bypass pass). Keep one engine: no item adds a number; counts of sources
+or venues are never shown.
+
+FOR LANE A (api/sellPage.js, api/specPage.js, api/howSamDecides.js, api/marketCheck.js, api/business.js, public/index.html,
+public/privacy.html, public/about.html, public/powersellers.html, public/sitemap.xml, public/sitemap-index.xml, public/robots.txt):
+  A1 CACHE GATE. In each page handler's Cache-Control line, remove `|| !fullyLaunched()` from the private condition; keep
+     crew, crew cookie, server credential and showPal private. Values: api/specPage.js line 201 ->
+     "public, s-maxage=86400, stale-while-revalidate=86400" (the spec rows are rebuilt nightly); api/sellPage.js line 83,
+     api/howSamDecides.js line 100, api/marketCheck.js line 139, api/business.js line 392 -> "public, s-maxage=3600,
+     stale-while-revalidate=86400". Why it is safe: a LAUNCH_STAGE change needs a redeploy to take effect, and every
+     deployment purges the edge cache, so a cached page can never outlive the stage it was rendered under.
+     Proof: seoAudit as Googlebot shows "cache public" and x-vercel-cache HIT on the second fetch of each page; a crew
+     cookie fetch still shows private, no-store.
+  A2 STATIC SITEMAP DUPLICATE. public/sitemap.xml lists /sell, /buy (302 for the public), /privacy, /about,
+     /how-sam-decides with stale lastmods, a second copy of the dynamic /sitemap-pages.xml. Change: make /sitemap.xml serve
+     the INDEX (vercel.json rewrite `{ "source": "/sitemap.xml", "destination": "/sitemap-index.xml" }` and delete
+     public/sitemap.xml), and point robots.txt's Sitemap: line at https://goasksam.com/sitemap.xml (already bypassed at
+     the edge today, so the index is readable by every crawler even before item F1). In public/sitemap-index.xml drop the
+     empty placeholder <sitemap> for sitemap-hubs.xml until hubs ship (rule 7: never listed and empty).
+     Proof: /sitemap.xml returns the sitemapindex with 5 children; /sitemap-pages.xml carries no /buy while it 302s.
+  A3 PRIVACY CANONICAL + OG. public/privacy.html head: add `<link rel="canonical" href="https://goasksam.com/privacy">`,
+     `<meta property="og:title" content="Privacy Policy - GoAskSam">` and og:description = the meta description; the same
+     two og tags on public/about.html and public/powersellers.html (their canonicals exist).
+     Proof: seoAudit shows canonical and og:title on all three.
+  A4 HOME LINKS (rule 6). public/index.html: the rail logo `<a class="hp-logo" href="/">` becomes href="/sell" (today a
+     308 hop on every page); add one short section under the hero, "Car histories and prices", with four plain links:
+     /history/porsche-911 (every 911 by VIN), /cars/porsche/911 (what a 911 sells for), /mcp (GoAskSam in ChatGPT and
+     Claude), /powersellers. Copy for Sam: "Every car by VIN, and what each model sells for, from real auction results."
+     Proof: seoAudit's inbound-links table shows /history/porsche-911, /cars/porsche/911, /mcp and /powersellers each with
+     an inbound link from /sell; no "/" link left in the raw HTML.
+  A5 SPEC PAGE LINKS. api/specPage.js: VIN links go to the canonical /history/<year>-<make>-<family>/<VIN> instead of
+     /vin/<VIN> (20 redirecting links per page today). lib/specPages.js line 150 builds historyUrl: `/vin/${vin}`; Lane B
+     adds the year from the vin_index row (appearance year is not the model year: use the row's `year` column, add it to
+     the select) and the make/family slug the spec already knows, so historyUrl = `/history/${year}-porsche-911/${vin}`
+     (falls back to /vin/ when the year is null). Plus one link on every spec hub to its history hub
+     (/cars/porsche/911 -> /history/porsche-911; a generation hub -> the same).
+     Proof: seoAudit shows zero /vin/ links on spec pages and the /history link present; each linked VIN URL answers 200
+     with no redirect.
+  A6 llms.txt. public/llms.txt with the text below once Sam approves it; vercel.json needs no rewrite (a static file);
+     the edge bypass for /llms.txt is in the staged firewall draft (F1).
+     Proof: /llms.txt answers 200 text/plain as Googlebot with the approved text.
+
+FOR LANE B (api/_historyData.js oneBoxFor; lib/specPages.js for A5):
+  B1 NO LIVE ENGINE RUN ON A CRAWL. oneBoxFor (api/_historyData.js line 187) runs oneEngineAnswer with a 15 s deadline on
+     every history hub and car render; a year hub with no stored row ran 14.7 s. Change: oneBoxFor reads the STORED Market
+     Check row first (lib/live/search.js readWarmAnswerDetailed(env, warmAnswerKeyFor(vehicle, generation))) and returns
+     it when present; when absent it returns null and the page omits the "cars like it" block (the car page keeps its own
+     record: the sale lines and the family list are archive rows, not engine answers), and the nightly warm fills the row
+     for the next render. The exact-sale variant (exactSale set, the car page's own placing) is the one caller that may
+     still run live, bounded to 4 s, since it cannot come from a stored row; say which in the code comment. One engine:
+     the row IS Market Check's answer; the page never shows a number the stored answer does not hold.
+     Proof: the hub's Server-Timing shows onebox under 100 ms on every fetch; a year hub with no row renders without the
+     block and says nothing in its place (no filler); scripts/buyEngineMatch.mjs-style check: the hub block's count and
+     range equal Market Check's stored answer for the same car.
+  B2 (with A5) lib/specPages.js line 150: historyUrl built from the row's year + the spec's make/family slug, as above.
+
+FOR LANE C (api/history.js, api/buy.js, api/tasksPage.js):
+  C1 CACHE. api/history.js line 183: remove `|| !fullyLaunched()`; hub and car pages "public, s-maxage=86400,
+     stale-while-revalidate=86400" (status 200 only; 404/503 stay no-store); the VIN sitemaps already carry a day. api/buy.js
+     line 167 and api/tasksPage.js line 174: remove the gate, "public, s-maxage=3600, stale-while-revalidate=86400" (the
+     live count on /buy is already a 10-minute cached lead by Sam's accepted alternative, so the page itself can be edge
+     cached an hour; a stage change redeploys and purges).
+     Proof: second Googlebot fetch of /history/porsche-911 is an edge HIT under 200 ms; the Server-Timing header is absent
+     on a HIT (no render ran).
+  C2 HUB LEAD DATE (rule 1). api/history.js line 614: the hub's answer sentence ends ", as of October 16, 2026" built from
+     the same date helper the car page uses (its description already reads "as of October 16, 2026").
+     Proof: seoAudit's lead for every hub contains "as of".
+  C3 OG TAGS ON VIN AND HUB PAGES. api/history.js page() (line 140): add og:title = the page title, og:description = the
+     description, og:url = the canonical, og:type website.
+     Proof: seoAudit shows og:title on a car page and a hub.
+  C4 VIN SITEMAP INDEX lastmod. api/history.js line 876: each <sitemap> entry carries <lastmod> = the newest appearance
+     date in that page's 1,000 VINs (or today's ingest date), so a crawler can skip unchanged pages.
+     Proof: /sitemap-vins.xml shows 20 lastmod values.
+  C5 HUB -> SPEC LINK. The all-years hub links to /cars/porsche/911 when the spec page exists for the model (today only
+     Porsche 911: a lookup against lib/specPages.js slugForSpec, or a one-line map until hubs grow).
+     Proof: seoAudit shows /cars/porsche/911 with an inbound link from /history/porsche-911.
+  C6 (already in Lane C's waiting stack) the empty-result Buy line and the card-name body words.
+
+F1 FIREWALL (Sam publishes; opens ONLY after A1 and C1 are live). STAGED AS A DRAFT with the Vercel CLI (64.4.0 via npx,
+   nothing published): rule "static-bypass-bot-protection" keeps all 18 existing conditions and adds seven. The draft diff,
+   verbatim from `vercel firewall diff`:
+     ~ Modified rule "static-bypass-bot-protection"
+       + Condition: path starts with /history/
+       + Condition: path starts with /cars/
+       + Condition: path starts with /vin/
+       + Condition: path starts with /sitemap-
+       + Condition: path equals /sitemap-index.xml
+       + Condition: path equals /mcp
+       + Condition: path equals /llms.txt
+   What stays challenged: everything not in the bypass list, so every /api/ route that runs the engine or the model on
+   demand (/api/buySearch, /api/sellerDecision, /api/chat, /api/sellChat, /api/vehicleIdentity, /api/desk, /api/tasks),
+   the gated product pages (/buy, /market-check, /tasks, /business, /partner-demo) and /desk. Managed rules today: Bot
+   Protection = Challenge, AI Bots = Allow (recognised AI crawlers already pass), BotID = Basic; the draft changes none of
+   them. To publish (Sam, in the Terminal, from a linked checkout): `vercel firewall publish --yes`. ROLLBACK: before
+   publishing, `vercel firewall discard --yes` drops the draft; after publishing, re-run the same `vercel firewall rules
+   edit static-bypass-bot-protection` with the original 18 conditions only (the list is in the audit above: /, /sell,
+   /js., /styles., /robots.txt, /sitemap.xml, /obx., /onebox, /onebox-preview, /favicon.ico, /icon-,
+   /apple-touch-icon.png, /site.webmanifest, /about, /how-sam-decides, /powersellers, /privacy, /api/signup) and
+   publish, or disable the rule from the dashboard. Note: a staged draft can be published by anyone with dashboard
+   access; it is visible under Firewall > drafts until published or discarded.
+   Proof after publish: seoAudit as Googlebot (no bypass) answers 200 on /sitemap-index.xml, a VIN page, a spec page,
+   /mcp and /llms.txt, and still 429 (challenge) on /api/buySearch.
+
+LLMS.TXT, DRAFT FOR SAM'S APPROVAL (no venue names, no source counts, no competitors, Sam is the product's voice, not a
+person; dated; rule 9 words avoided):
+  # GoAskSam
+  > Where collector cars actually sell: real auction results, one car at a time, as of October 2026.
+  GoAskSam answers three questions from recorded auction sales: what a collector car has sold for, the full auction
+  history of one car by its VIN, and where a car like it is most likely to sell well. Every figure on the site comes
+  from a recorded sale. There are no appraisals and no guesses; when the record is thin, the page says so.
+  ## Pages
+  - Where to sell: https://goasksam.com/sell
+  - What a model has sold for (Porsche 911 first): https://goasksam.com/cars/porsche/911
+  - Every car by VIN, with each car's own auction history: https://goasksam.com/history/porsche-911
+  - How Sam decides (the method, written plainly): https://goasksam.com/how-sam-decides
+  - GoAskSam in ChatGPT and Claude (the MCP server): https://goasksam.com/mcp
+  - About: https://goasksam.com/about
+  ## Sitemaps
+  - https://goasksam.com/sitemap.xml
+  ## Terms of use for answer engines
+  - Quote a page's dated lead sentence and link the page; the date on each page is the date of the record it was built from.
+  - A car page describes one car by VIN; a model page describes recorded sales of that model in the last twelve months.
+  - "Sam" is the name of the service's voice, not a person.
+Search check: no public page touched (plan and drafts only; the firewall draft is staged, not published).
