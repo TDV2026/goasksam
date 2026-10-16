@@ -8673,3 +8673,23 @@ FOR LANE A (report only): on the dummy GT3 the card's basis reads "Middle half o
 - PUSHED (Lane A, 2026-10-16, Vercel Ready): branch lane-a-bodyline, two commits on main - 3e8445d6 the pill slot (every card case, not just the range) and 268d9826 the body line (row 38). prePush alone, rebased twice more for main's own docs-only moves in between (the ac49f76 diagnostic removal, then the Business before/after note) and pushed without a rerun each time (docs-only, files checked both times). Final run before the push: 0 FAIL, 6 SKIP, 31 PASS (scripts/sellsForCardCheck.mjs 33 cases, scripts/partnerEngineMatch.mjs 28, both green; the five archive checks and the partner live five skipped, no Supabase keys or crew cookie here). LOCK RELEASED. Live checks next (four cars plus the 2010 Boxster, 1440 and 390; confirming the 2006 Boxster still shows no body line, pending e59) - report follows.
 - PUSH LOCK (Lane D, 2026-10-16T20:34Z): tasks-reads, the Tasks send-path read reductions (one code commit, after Lane A's PUSHED per Sam's order), prePush running alone, then push.
 - PUSHED (Lane D, 2026-10-16T20:41Z): 8993b2fd, the Tasks send-path read reductions (lib/tasks/digest.js, api/tasks.js bytesRead, scripts/tasksReadsCheck.mjs in prePush). prePush alone: 0 FAIL, 6 SKIP (the archive-backed checks and the partner endpoint, no local Supabase creds or crew cookie), 33 PASS; tasksReadsCheck 13 of 13 (full live ids read 184 to 5 over a fixture day, whole-table watch reads 96 to 0), beforeItEndsCheck 99 of 99. Lock released. Next from Lane D, posted here: the deployed bytesRead before and after (one dry send run with &legacy=1, one without, same minute) and the three hunts rerun; not while anything is RUNNING.
+
+## Lane D, Oct 16 2026: Tasks send-path read reductions, DEPLOYED PROOF (8993b2fd live)
+
+BYTES PER SEND RUN, same data, same minute, dry runs (nothing sent or marked), the old reads (&legacy=1) against the new,
+twice each, interleaved: legacy 9,623 then 9,585 bytes; new 8,098 then 8,098 bytes (16% less). Today's production data is
+small (three people with watches, one not due, zero armed alerts, nothing queued), so the whole watches table against
+one user_id column plus two people's rows is the only difference live right now; the fixture day in
+scripts/tasksReadsCheck.mjs shows the shape at scale (full live ids read 184 to 5, whole-table watch reads 96 to 0). The
+four runs' reports are identical line for line (people 3, notDue 1, "nothing new" twice, Before it ends 0 armed).
+THREE HUNTS, in-memory test_scenario, same six fixture rows, before (pre-push) and after (8993b2fd): identical matched
+ids and filters. Hunt 1 "Find me a black manual 997 under $70k": none, both times (the trim-leak bug above). Hunt 2
+"Keep looking for a 1990s Mazda Miata under $15k": 9003 both times. Hunt 3 "Find me a 1965 Mustang fastback": 9005
+both times. The run path is unchanged by this push by design; its description split follows e59.
+FOR LANE B (observation, not mine to fix): the FIRST dry send run on a fresh instance read 13,528,841 bytes with the
+same three people (every later run under 10 KB), so the watch event reads (lib/live/watches.js eventsFor, the archive
+read behind a spec watch) are memory-cached per instance after the first run and paid in full on every cold start of
+the quarter-hour cron. With three watches that is 13.5 MB per cold run; it grows with watches. Worth a stored or
+narrower read if the cron lands on cold instances often (the usage events now carry bytesRead per run, so the
+frequency can be read from app_usage_events task_email_run metadata).
+Search check: no public page touched.
