@@ -110,6 +110,10 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 36 | 2001 Porsche 911 Carrera 4S Cabriolet (typed) | words answer "No Cabriolet 2001 Porsche 911 Carrera 4S sale on record in the last five years.", no count or range | read live on e58 |
 | 37 | 2006 Porsche Boxster Convertible (typed) | PENDING e59: the whole 2006 Boxster pool (31) with the line "No listing of the 2006 Porsche Boxster states a body, so this reads every 2006 Boxster." | pending Lane B e59 (e58 gives a words answer) |
 | 38 | 2010 Porsche Boxster Convertible (typed) | the whole 2010 Boxster pool, equal to the bare page (30 sales, exact, 2010, $26,000 to $35,000) | read live on e58; the engine carries the line as bodyLine; the page does not render it yet (Lane A shared card), so the page check is red until it does |
+| 39 | 2005 Porsche 911 | Sell's printed count equals Market Check's for the same car (one engine) | Sell page count = Market Check page count |
+| 40 | 1965 Ford Mustang | Sell's printed count equals Market Check's for the same car | Sell page count = Market Check page count |
+| 41 | 2023 Porsche 911 GT3 | Sell's printed count equals Market Check's for the same car | Sell page count = Market Check page count |
+| | shared card (rows 3, 5, 8, 14, 20) | the "What these sell for" card, pill slot removed, is byte-identical on Market Check, Buy and Sell, and the partner demo's card equals Market Check's | a product that does not render the shared card yet is PENDING, not a failure; the Sell count check is also set on rows 8, 10, 14, 22 and 23 |
 
 Per car, in the words of the derivation:
 
@@ -151,32 +155,32 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
 [
  {"id":1,"q":"2025 Porsche 911","status":"ready","rung":"year_widened","labelHas":["Carrera and Carrera S","2024 to 2026"],"count":12,"tol":2,"low":143000,"high":163000,"tolPct":3,"quick":true,"page":true},
  {"id":2,"q":"2024 Porsche 911 Carrera S Coupe","status":"ready","rung":"year_widened","labelHas":["Carrera S Coupe","2023 to 2025"],"count":8,"tol":2,"low":145000,"high":163000,"tolPct":3},
- {"id":3,"q":"1995 Porsche 911 Carrera","status":"ready","rung":"exact","labelHas":["1995","911 Carrera"],"count":37,"tol":3,"low":64000,"high":107000,"tolPct":3,"quick":true},
+ {"id":3,"q":"1995 Porsche 911 Carrera","status":"ready","rung":"exact","labelHas":["1995","911 Carrera"],"count":37,"tol":3,"low":64000,"high":107000,"tolPct":3,"quick":true,"sharedCard":true},
  {"id":4,"q":"2008 Porsche 997 Carrera S Coupe","status":"ready","rung":"exact","labelHas":["2008","997 Carrera S Coupe"],"count":11,"tol":2,"low":58500,"high":69000,"tolPct":3},
- {"id":5,"q":"1969 Chevrolet Camaro","status":"ready","rung":"exact","labelHas":["1969 Camaro"],"count":21,"tol":3,"low":45500,"high":78500,"tolPct":3},
+ {"id":5,"q":"1969 Chevrolet Camaro","status":"ready","rung":"exact","labelHas":["1969 Camaro"],"count":21,"tol":3,"low":45500,"high":78500,"tolPct":3,"sharedCard":true},
  {"id":6,"q":"2006 Mercedes-Benz CLK DTM","status":"ready","rung":"year_widened","labelHas":["CLK DTM","2005 to 2006"],"count":6,"tol":0,"low":null,"high":null,"thin":true},
  {"id":7,"q":"2008 Mercedes-Benz CLK63 AMG Black Series","status":"ready","rung":"exact","labelHas":["CLK63","Black Series"],"count":35,"tol":0,"low":95000,"high":146000,"tolPct":0},
- {"id":8,"q":"1957 Porsche 356 Speedster","status":"ready","rung":"exact","labelHas":["1957","356 Speedster"],"count":8,"tol":2,"low":282000,"high":363000,"tolPct":5},
+ {"id":8,"q":"1957 Porsche 356 Speedster","status":"ready","rung":"exact","labelHas":["1957","356 Speedster"],"count":8,"tol":2,"low":282000,"high":363000,"tolPct":5,"sellEqualsMC":true,"sharedCard":true},
  {"id":9,"q":"1997 Land Rover Defender 110","status":"ready","rung":"exact","labelHas":["1997","Defender 110"],"count":10,"tol":2,"low":30500,"high":56000,"tolPct":3},
- {"id":10,"q":"2003 BMW M3 Coupe","status":"ready","rung":"exact","labelHas":["2003","M3 Coupe"],"count":14,"tol":2,"low":23500,"high":35500,"tolPct":3},
+ {"id":10,"q":"2003 BMW M3 Coupe","status":"ready","rung":"exact","labelHas":["2003","M3 Coupe"],"count":14,"tol":2,"low":23500,"high":35500,"tolPct":3,"sellEqualsMC":true},
  {"id":11,"q":"1989 Merkur XR4Ti","status":"ready","labelHas":["XR4Ti"],"low":null,"high":null,"thin":true},
  {"id":12,"q":"2024 Porsche 911 GT3","status":"ready","rung":"year_widened","labelHas":["GT3","2023 to 2024"],"count":14,"tol":2,"low":243000,"high":269000,"tolPct":3,"quick":true},
  {"id":13,"q":"2018 Ford Mustang GT","status":"ready","rung":"exact","labelHas":["2018","Mustang GT"],"count":8,"tol":0,"low":30000,"high":35500,"tolPct":0},
- {"id":14,"q":"1966 Ferrari 275 GTB","status":"ready","rung":"year_widened","labelHas":["275 GTB","1965 to 1966"],"count":9,"tol":0,"low":null,"high":null,"thin":true},
+ {"id":14,"q":"1966 Ferrari 275 GTB","status":"ready","rung":"year_widened","labelHas":["275 GTB","1965 to 1966"],"count":9,"tol":0,"low":null,"high":null,"thin":true,"sellEqualsMC":true,"sharedCard":true},
  {"id":15,"q":"1987 Buick Regal Grand National","status":"ready","rung":"exact","labelHas":["1987","Grand National"],"count":55,"tol":0,"low":35500,"high":56000,"tolPct":0},
  {"id":16,"q":"2005 Saab 9-2X","status":"ready","rung":"exact","labelHas":["2005","9-2X"],"count":15,"tol":0,"low":9000,"high":12500,"tolPct":0},
  {"id":17,"q":"1931 Bugatti Type 41","status":"ready","rung":"not_enough_data","labelHas":[],"empty":true},
  {"id":18,"q":"2011 Honda S2000","status":"ready","rung":"year_widened","labelHas":["S2000","2009"],"count":15,"tol":2,"low":36500,"high":64000,"tolPct":3},
  {"id":19,"q":"1963 Chevrolet Corvette Split Window","status":"ready","rung":"exact","labelHas":["1963 Corvette Coupe"],"count":34,"tol":0,"low":136000,"high":204000,"tolPct":3},
- {"id":20,"q":"1995 Acura NSX","status":"ready","rung":"exact","labelHas":["1995","NSX"],"count":15,"tol":2,"low":86000,"high":136000,"tolPct":3},
+ {"id":20,"q":"1995 Acura NSX","status":"ready","rung":"exact","labelHas":["1995","NSX"],"count":15,"tol":2,"low":86000,"high":136000,"tolPct":3,"sharedCard":true},
  {"id":21,"q":"1965 Ford Mustang","status":"ready","identity":true,"labelHas":["Mustang"]},
  {"id":24,"q":"1969 Chevrolet Camaro","status":"ready","identity":true,"labelHas":["Camaro"]},
  {"id":25,"q":"1969 Chevrolet Camaro convertible","status":"ready","rung":"exact","labelHas":["1969 Camaro Convertible"],"count":3,"tol":0,"low":null,"high":null,"thin":true},
  {"id":26,"q":"2005 Porsche 911","status":"ready","identity":true,"labelHas":["911"]},
  {"id":27,"q":"2005 Porsche 911 targa","status":"ready","rung":"exact","labelHas":["2005","Targa"],"count":1,"tol":0,"low":null,"high":null,"thin":true},
  {"id":28,"q":"1965 Ford Mustang fastback","status":"ready","rung":"exact","labelHas":["1965","Fastback"],"count":12,"tol":0,"low":37000,"high":50000,"tolPct":5},
- {"id":22,"q":"1957 Porsche 356 Speedster","status":"ready","rung":"exact","labelHas":["1957","356 Speedster"],"count":8,"tol":0,"low":282000,"high":363000,"tolPct":5,"setAside":{"total":2,"reasons":["odd sale","modified"]},"noZeroOptions":true,"variantRule":true,"noRestoration":true},
- {"id":23,"q":"1966 Ferrari 275 GTB","status":"ready","rung":"year_widened","labelHas":["275 GTB","1965 to 1966"],"count":9,"tol":0,"low":null,"high":null,"thin":true,"noZeroOptions":true,"variantRule":true,"noRestoration":true},
+ {"id":22,"q":"1957 Porsche 356 Speedster","status":"ready","rung":"exact","labelHas":["1957","356 Speedster"],"count":8,"tol":0,"low":282000,"high":363000,"tolPct":5,"setAside":{"total":2,"reasons":["odd sale","modified"]},"noZeroOptions":true,"variantRule":true,"noRestoration":true,"sellEqualsMC":true},
+ {"id":23,"q":"1966 Ferrari 275 GTB","status":"ready","rung":"year_widened","labelHas":["275 GTB","1965 to 1966"],"count":9,"tol":0,"low":null,"high":null,"thin":true,"noZeroOptions":true,"variantRule":true,"noRestoration":true,"sellEqualsMC":true},
  {"id":29,"q":"2012 BMW M3 Competition Coupe","status":"ready","rung":"exact","labelHas":["2012 M3 Competition Coupe"],"count":13,"tol":0,"low":38500,"high":79500,"tolPct":5,"equalsBare":"2012 BMW M3 Competition"},
  {"id":30,"q":"1973 Porsche 911 Targa","status":"pending","countMin":1},
  {"id":31,"q":"1963 Chevrolet Corvette Roadster","status":"ready","rung":"exact","labelHas":["1963 Corvette Roadster"],"count":18,"tol":0,"low":48500,"high":77000,"tolPct":5,"chipPairs":[{"bare":"1963 Chevrolet Corvette","label":"Convertible","typed":"1963 Chevrolet Corvette Roadster"}]},
@@ -186,6 +190,9 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":35,"q":"1989 Porsche 911 Turbo Targa","status":"ready","empty":true,"wordsHas":["No Targa 1989 Porsche 911 Turbo sale on record in the last five years."],"noCountRange":true},
  {"id":36,"q":"2001 Porsche 911 Carrera 4S Cabriolet","status":"ready","empty":true,"wordsHas":["No Cabriolet 2001 Porsche 911 Carrera 4S sale on record in the last five years."],"noCountRange":true},
  {"id":37,"q":"2006 Porsche Boxster Convertible","status":"pending","rung":"exact","labelHas":["2006 Boxster"],"count":31,"tol":0,"low":16500,"high":25000,"tolPct":5,"equalsBare":"2006 Porsche Boxster","statesBody":"No listing of the 2006 Porsche Boxster states a body, so this reads every 2006 Boxster."},
- {"id":38,"q":"2010 Porsche Boxster Convertible","status":"ready","rung":"exact","labelHas":["2010 Boxster Convertible"],"count":30,"tol":0,"low":26000,"high":35000,"tolPct":5,"equalsBare":"2010 Porsche Boxster","statesBody":"No listing of the 2010 Porsche Boxster states a body, so this reads every 2010 Boxster."}
+ {"id":38,"q":"2010 Porsche Boxster Convertible","status":"ready","rung":"exact","labelHas":["2010 Boxster Convertible"],"count":30,"tol":0,"low":26000,"high":35000,"tolPct":5,"equalsBare":"2010 Porsche Boxster","statesBody":"No listing of the 2010 Porsche Boxster states a body, so this reads every 2010 Boxster."},
+ {"id":39,"q":"2005 Porsche 911","status":"ready","page":true,"sellEqualsMC":true},
+ {"id":40,"q":"1965 Ford Mustang","status":"ready","page":true,"sellEqualsMC":true},
+ {"id":41,"q":"2023 Porsche 911 GT3","status":"ready","page":true,"sellEqualsMC":true}
 ]
 ```

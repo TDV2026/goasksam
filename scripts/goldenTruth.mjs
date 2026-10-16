@@ -92,6 +92,7 @@ const rows = [];
 const byQ = {};
 let chassisGuard = null;
 let chipPairOut = [];
+let cardOut = [];
 let identityOut = [];   // the identity rows: [{ id, q, any, checks: [{ name, cell, diffs, shown }] }]
 try {
   // The ops task is a keyed GET; plain curl is turned away by Vercel's bot protection, so the request is made from a real page
@@ -224,7 +225,28 @@ try {
       while (Date.now() < until) { text = await page.evaluate(() => document.body ? document.body.innerText : "").catch(() => ""); if (READY[product].test(text)) break; await new Promise(x => setTimeout(x, 1000)); }
       await new Promise(x => setTimeout(x, 1500));
       text = await page.evaluate(() => document.body ? document.body.innerText : "").catch(() => text);
-      return { path: new URL(page.url()).pathname, text };
+      // The shared "What these sell for" card (lib/sellsForCard.js, root .sfc-card), the pill slot and any pill row taken out, as the browser serializes it.
+      const card = await page.evaluate(() => { const c = document.querySelector(".sfc-card"); if (!c) return null; const k = c.cloneNode(true); k.querySelectorAll(".gas-pill-slot,.pillrow").forEach(e => e.remove()); return k.outerHTML; }).catch(() => null);
+      return { path: new URL(page.url()).pathname, text, card };
+    } finally { await ctx.close().catch(() => {}); }
+  }
+  // The partner demo's card for the same words: the endpoint's own card string (crew gate), pill slot removed, serialized by the same browser so the two compare byte for byte.
+  async function partnerCard(q) {
+    const ctx = await browser.createBrowserContext();
+    const page = await ctx.newPage();
+    if (CREW) await page.setCookie({ name: "gas_crew", value: CREW, domain: new URL(BASE).hostname, path: "/" });
+    try {
+      await page.goto(BASE + "/", { waitUntil: "domcontentloaded", timeout: 60000 }).catch(() => {});
+      return await page.evaluate(async (q) => {
+        try {
+          const r = await fetch("/api/partnerAnswer?q=" + encodeURIComponent(q), { credentials: "same-origin" });
+          if (!r.ok) return { err: "HTTP " + r.status };
+          const j = await r.json(); if (!j || !j.card) return { err: "no card in the answer" };
+          const d = document.createElement("div"); d.innerHTML = j.card;
+          d.querySelectorAll(".gas-pill-slot,.pillrow").forEach(e => e.remove());
+          return { html: d.firstElementChild ? d.firstElementChild.outerHTML : null };
+        } catch (e) { return { err: String(e && e.message || e).slice(0, 80) }; }
+      }, q);
     } finally { await ctx.close().catch(() => {}); }
   }
   // Compare one rendered page with the same product's engine lane. Returns drift strings.
@@ -263,17 +285,40 @@ try {
       if (!rd.path.startsWith("/" + ({ marketCheck: "market-check", buy: "buy", sell: "sell" })[pr])) { r.pages[pr] = { cell: "FAIL", diffs: [rd.path.startsWith("/sell") && pr !== "sell" ? "redirected to /sell: key rejected" : `ended on ${rd.path || "nothing"}`] }; continue; }
       const parsed = PARSERS[pr](rd.text);
       const tx = textDiffs(g, rd.text, pr, parsed);
-      if (pr === "buy") { r.buyListings = parsed.listings; r.pages.buy = { cell: parsed.listings.length ? "PENDING" : "N/A", diffs: [], shown: parsed.listings.length ? `${parsed.listings.length} live car(s)` : "no live car" }; continue; }
+      if (pr === "buy") { r.buyListings = parsed.listings; r.pages.buy = { cell: parsed.listings.length ? "PENDING" : "N/A", diffs: [], shown: parsed.listings.length ? `${parsed.listings.length} live car(s)` : "no live car", card: rd.card || null }; continue; }
       const lane = (byQ[g.q] && byQ[g.q].lanes || {})[pr];
       const dr = drift(pr, parsed, lane, facts[g.q]);
       if (dr.length) r.pages[pr] = { cell: "DRIFT", diffs: dr.map(d => "RENDER DRIFT, " + d) };
       else r.pages[pr] = { cell: engineCell.cell, diffs: [] };
       if (tx.length && r.pages[pr].cell !== "DRIFT") r.pages[pr] = { cell: "FAIL", diffs: tx };
-      r.pages[pr].count = parsed.count;
+      r.pages[pr].count = parsed.count; r.pages[pr].card = rd.card || null;
       r.pages[pr].shown = `${parsed.count == null ? "-" : parsed.count} ${parsed.range ? money(parsed.range.low) + "-" + money(parsed.range.high) : "no range"}`;
     }
   };
   await Promise.all(Array.from({ length: Math.min(3, jobs.length) }, worker));
+  // "sellEqualsMC" (Oct 16 2026, one engine): the count Sell prints for a car must be the count Market Check prints for the same words.
+  for (const r of rows) {
+    if (!r.g.sellEqualsMC || !r.pages || !r.pages.sell || !r.pages.marketCheck) continue;
+    const mc = r.pages.marketCheck.count, sl = r.pages.sell.count;
+    if (mc == null || sl == null || mc !== sl) { r.pages.sell.cell = "FAIL"; r.pages.sell.diffs = (r.pages.sell.diffs || []).concat([`Sell prints ${sl == null ? "no count" : sl} sales, Market Check prints ${mc == null ? "no count" : mc} for the same car: two answers for one car`]); }
+  }
+  // "sharedCard": the "What these sell for" card, pill slot removed, must be byte-identical on Market Check, Buy and Sell, and the partner demo's card must equal Market Check's. A product that does not render the shared card yet is PENDING, never a failure.
+  for (const r of rows) {
+    if (!r.g.sharedCard || !r.pages || !r.pages.marketCheck) continue;
+    const ref = r.pages.marketCheck.card, lines = [];
+    const firstDiff = (a, b) => { let i = 0; while (i < a.length && i < b.length && a[i] === b[i]) i++; return `first difference at character ${i}: MC "${a.slice(Math.max(0, i - 20), i + 50)}" against "${b.slice(Math.max(0, i - 20), i + 50)}"`; };
+    for (const pr of ["buy", "sell"]) {
+      const c = r.pages[pr] && r.pages[pr].card;
+      if (!ref) lines.push({ name: pr, cell: "FAIL", diff: "Market Check renders no shared card (.sfc-card)" });
+      else if (!c) lines.push({ name: pr, cell: "PENDING", diff: "not yet adopted (no .sfc-card on the page)" });
+      else lines.push(c === ref ? { name: pr, cell: "PASS", diff: null } : { name: pr, cell: "FAIL", diff: firstDiff(ref, c) });
+    }
+    let pc = null; try { pc = await partnerCard(r.g.q); } catch (e) { pc = { err: String(e && e.message || e).slice(0, 80) }; }
+    if (pc && pc.err) lines.push({ name: "partner demo", cell: "FAIL", diff: "partner answer unreadable: " + pc.err });
+    else if (!ref) lines.push({ name: "partner demo", cell: "FAIL", diff: "Market Check renders no shared card to compare with" });
+    else lines.push(pc.html === ref ? { name: "partner demo", cell: "PASS", diff: null } : { name: "partner demo", cell: "FAIL", diff: firstDiff(ref, pc.html || "") });
+    cardOut.push({ id: r.g.id, q: r.g.q, lines });
+  }
   // "equalsBare": the typed words must give the count of the bare car's page (the page then also prints the one "states a body" line).
   for (const r of rows) {
     if (!r.g.equalsBare || !r.pages || !r.pages.marketCheck) continue;
@@ -440,6 +485,7 @@ for (const io of identityOut) {
   console.log(`\nIdentity row ${io.id}, ${io.q}: the bare page shows ${io.any.count == null ? "no count" : io.any.count} sales (Any), options ${io.any.options.map(x => x.label + " (" + x.n + ")").join(", ") || "none"}`);
   for (const c of io.checks) { console.log(`  ${pad(c.cell, 6)} ${pad(c.name, 26)} ${c.shown}`); for (const d of c.diffs) console.log(`         ${d}`); if (c.cell === "FAIL") nFail++; else if (c.cell === "PASS") nPass++; }
 }
+for (const c of cardOut) { console.log(`\nShared card, row ${c.id}, ${c.q}:`); for (const l of c.lines) { console.log(`  ${pad(l.cell, 8)} ${pad(l.name, 14)} ${l.diff || "identical to Market Check"}`); if (l.cell === "FAIL") nFail++; else if (l.cell === "PENDING") nPend++; else nPass++; } }
 for (const c of chipPairOut) { console.log(`\nRow ${c.id}, ${c.name}: ${c.shown}`); if (c.diff) console.log(`  ${c.diff}`); if (c.cell === "FAIL") nFail++; else nPass++; }
 if (chassisGuard) console.log(`\nChassis-number guard (365 GT 2+2, chassis 12751, set aside from the 275 GTB pool): ${chassisGuard}`);
 console.log(`\n${nPass} PASS, ${nFail} FAIL, ${nDrift} RENDER DRIFT, ${nPend} PENDING (report-only; ${flag("strict") ? "strict: failures set the exit code" : "does not set the exit code"}).`);
