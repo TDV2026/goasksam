@@ -79,6 +79,18 @@ ok(pillHouseSteer.indexOf('class="sfc-thin"') < pillHouseSteer.indexOf('class="p
 ok(sellsForCardHtml({ cluster: null, poolN: 3 }) === "<div class=\"sfc-card\"><h3 class=\"sfc-heading\">What these sell for</h3><p class=\"sfc-thin\">3 sales found, not enough for a range.</p><div class=\"sfc-footer\"><span class=\"sfc-footer-left\">Powered by GoAskSam</span><a class=\"sfc-footer-link\" href=\"/how-sam-decides\">How Sam decides</a></div></div>", "no opts passed: thin case output unchanged, byte for byte");
 ok(gtb === sellsForCardHtml(GTB_275), "no opts passed: house-steered case output unchanged, byte for byte");
 
+// "No listing states a body" (2006 Porsche Boxster Convertible, e58, Sam's golden row 38): the
+// engine's own bodyLine, printed verbatim, never reconstructed, in the same spot - before the
+// range line - whether the whole pool lands a range or stays thin.
+const boxsterLine = "No listing of the 2006 Porsche Boxster states a body, so this reads every 2006 Boxster.";
+const boxsterRange = sellsForCardHtml({ cluster: [21000, 31000], poolN: 18, windowMonths: 12, bodyLine: boxsterLine, bodyLabel: "Convertible", readAt: "2026-10-16T08:00:00Z" });
+ok(boxsterRange.includes(boxsterLine), "bodyLine prints the engine's own sentence verbatim (range case)");
+ok(boxsterRange.indexOf('class="sfc-bodyline"') < boxsterRange.indexOf('class="sfc-range"'), "bodyLine sits before the range");
+const boxsterThin = sellsForCardHtml({ cluster: null, poolN: 5, bodyLine: boxsterLine, bodyLabel: "Convertible", readAt: "2026-10-16T08:00:00Z" });
+ok(boxsterThin.includes(boxsterLine), "bodyLine prints the engine's own sentence verbatim (thin case)");
+ok(boxsterThin.indexOf('class="sfc-bodyline"') < boxsterThin.indexOf('class="sfc-thin"'), "bodyLine sits before the thin text, same relative spot as the range case");
+ok(!sellsForCardHtml({ cluster: [21000, 31000], poolN: 18, windowMonths: 12, readAt: "2026-10-16T08:00:00Z" }).includes("sfc-bodyline"), "no bodyLine on the answer: no bodyline paragraph, no regression");
+
 // latestQuarterRowHtml - the trendQuarters shape (Lane B's e58), oldest first, latest is the last element.
 const shown = latestQuarterRowHtml({
   cluster: [100000, 120000],
