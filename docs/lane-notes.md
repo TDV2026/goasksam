@@ -8492,7 +8492,7 @@ PROPOSAL (smallest change per slow step; every sales pool, fence and range untou
         if (rows == null) continue;   // a read that failed is not a table with nothing in it: ask again next time
       Behaviour: a throttled read no longer turns every card pending and no longer fires a background engine run per
       card; the next card ask reads the table again.
-  E6  SAM'S DECISION, not implemented: skip the model's reply round on a search turn entirely (the tool call is the
+  E6  SAM'S DECISION: YES (Oct 16 2026), IMPLEMENTED (see the READY line): skip the model's reply round on a search turn entirely (the tool call is the
       only round; the reply is "Here they are." in code). Saves 2 to 3 s on EVERY search (the model turn would be the
       forced tool call alone, ~1.5 s). Cost: the occasional surviving model sentence above the cards ("Two of the five
       are ending today, including a red coupe...") would no longer appear; the counts, chips, nearest-years line and
@@ -8512,3 +8512,15 @@ FOR LANE C / LANE D (E4): api/buySearch.js timelineOf: wrap the asideRowsFor cal
   No change to lib/tasks/setAside.js itself.
 Search check: no public page touched (API timing only; the scripts are diagnostics).
 - READY (Lane E, worktree goasksam-laneE, branch buy-speed, 41b4647 + a093b58): Buy speed E1 to E3 and debug stage times. lib/live/chatCore.js (override receives the reply; per-round and per-tool ms; times kept on the deadline error), lib/live/chatHttp.js (prepare option passed to run; times + shapeMs on the done event with debug), lib/live/samChat.js (search-turn reply cleaned before the guard, one prefetchSpecs for the shown cards, prepare hook started when search_live returns), scripts/buyTimes.mjs + scripts/buyProbe.mjs (diagnostics). No pool, fence or range touched; module load + a stubbed-model test of the turn (2 calls on a choice question, 3 when a surviving sentence breaks a rule, prepared cards awaited by shape, times on the deadline) pass locally. E3 is inert until Lane C's two lines land (FOR LANE C above); E5 is Lane B's (acknowledged, in their next push). Waits for Lane B's e58 PUSHED, then prePush alone, then push. The push to main from this session needs Sam's permission prompt (a push is a production deploy).
+- READY, amended (Lane E, buy-speed): E6 built (Sam's yes). A turn whose tools were search_live only ends in code with the
+  fixed line "Here's what sold for {search}." built from the engine's facts (lib/live/samChat.js searchLineFor: year leads,
+  colour, gearbox, make, the engine's plural noun, range, budget, miles, place), ONE model call (the forced tool call), no
+  reply round, no guard (chatCore endAfterTools). A turn that also read a market or a history keeps the model's reply.
+  The reply AND searchNote carry the line. E8 built too: the live read starts beside the model's tool round from the
+  words alone (speculativeSearch) and is reused ONLY when the model asked for exactly that search (sameSearch on the
+  fields runSearch reads), else dropped. New check scripts/buySearchLineCheck.mjs (one model call, the fixed line,
+  search_live only, no guard; and on the page no model sentence above the cards) runs on the four searches after deploy.
+  FOR LANE C, for Sam's "show one fixed line": the page today never draws d.reply on a search turn (finish() goes to
+  showCount/drawSearch when d.meta is set), so the line reaches the page only as d.reply / d.searchNote; if Sam wants it
+  visible above the cards, drawSearch would render esc(d.searchNote) once, where the "Sam is finding live ..." status
+  line stood. Without that, the page is already free of any model sentence on a search turn, which the check proves.
