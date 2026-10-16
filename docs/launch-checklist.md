@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-16T23:55Z (Lane F; Lane C's access-code stage 1 folded in).
+Last updated: 2026-10-17T00:05Z (Lane F; Sam's decisions of 00:00Z folded in: cookie 14 days, SEO plan and llms.txt approved, firewall stays staged, watch read is Lane C's, e60 numeric siblings, Sam's own steps file).
 
 ## 1. The four launch items
 
@@ -21,7 +21,7 @@ Last updated: 2026-10-16T23:55Z (Lane F; Lane C's access-code stage 1 folded in)
 | Item | Owner | State | Blocked on | Proof |
 |---|---|---|---|---|
 | eBay partner demo (/partner-demo, four views, shared card) | Lane C | live (deploy 51da5743; partnerEngineMatch live half 62 passed, 0 failed) | nothing | lane-notes "Partner demo live on Sam's Oct 16 changes"; ~/Desktop/goasksam-proofs/partner/live/ |
-| Separate access code for the demo (PARTNER_DEMO_CODE, signed gas_partner cookie scoped to /partner-demo and /api/partnerAnswer, 404 otherwise, rate limited 5 a minute, 20 an hour, 50 a day per address and device) | Lane C | built (1c536749, local, not pushed; partnerAccessCheck 30 passed, 0 failed; partnerEngineMatch offline 32 of 32) | prePush alone, then the push (demo first); Sam's decision on cookie lifetime (Lane C built 14 days from Sam's own message, the relayed prompt says 30); Sam sets PARTNER_DEMO_CODE in Vercel when the PUSHED line says so | lane-notes "Partner demo access code, stage 1: built"; scripts/partnerAccessCheck.mjs in prePush; the seven listed live checks after deploy |
+| Separate access code for the demo (PARTNER_DEMO_CODE, signed gas_partner cookie scoped to /partner-demo and /api/partnerAnswer, 404 otherwise, rate limited 5 a minute, 20 an hour, 50 a day per address and device) | Lane C | built (1c536749, local, not pushed; partnerAccessCheck 30 passed, 0 failed; partnerEngineMatch offline 32 of 32) | prePush alone, then the push (demo first); Sam sets PARTNER_DEMO_CODE in Vercel when the PUSHED line says so (lifetime decided: 14 days) | lane-notes "Partner demo access code, stage 1: built"; scripts/partnerAccessCheck.mjs in prePush; the seven listed live checks after deploy |
 | Window used by the 2015 Porsche 911 GT3 answer (Sam's question, report only) | Lane B | answered (year scope is the exact 2015 rung; 59 months is the sale-date window, the standard five-year read, oldest sale December 2021; twelve months alone has 6 sales, 24 months has 15; no engine change) | nothing | Lane B's answer to Sam, 22:0xZ; obdiag read with counts by window |
 
 ## 3. Buy speed
@@ -40,7 +40,9 @@ Last updated: 2026-10-16T23:55Z (Lane F; Lane C's access-code stage 1 folded in)
 |---|---|---|---|---|
 | Send-path read reductions (tasks-reads) | Lane D | live (8993b2fd) | nothing | lane-notes "Lane D, Oct 16 2026: Tasks send-path read reductions, DEPLOYED PROOF" (legacy 9,623 bytes to 8,098) |
 | Trim guard, hunt read without description, status line (tasks-trim, three commits ending 73fe6f75) | Lane D | live (deployed proof posted: hunt 1 now matches 9001, hunts 2 and 3 unchanged; exact 997 filter 0 live with status line "Nothing black yet. 9 other cars match the rest.", 9 without colour, 16 bare) | nothing; note that Lane D's prePush ran before Lane A's card adoption landed, so its 0 FAIL does not cover the combined tree | lane-notes "Lane D, Oct 16 2026: DEPLOYED PROOF of tasks-trim"; taskFiltersCheck 79 of 79; bytesRead before and after is one SQL for Sam in that note |
-| Cold-start watch event reads (13.5 MB per cold cron run; lib/live/watches.js eventsFor, Lane C's send path per Lane B) | Lane C | unknown (not assigned) | Sam: whether it is launch scope | lane-notes "FOR LANE B (observation, not mine to fix)" |
+| Cold-start watch event reads (13.5 MB per cold cron run; lib/live/watches.js eventsFor) | Lane C | building (Sam, 00:00Z: Lane C's, not a launch blocker, after the tiered prePush; propose the narrowest fix and report before building) | the access code live and checked, then the tiered prePush | Lane C's proposal, then its proof |
+| Numeric siblings for the four word-ified count fields (soldCount, setAsideCount, didNotSellCount, period counts) | Lane B | building (in e60, siblings only, no existing field changed; field names to Sam before building) | Sam's OK on the names | Lane B's e60 READY line |
+| "Black Series" explicit in the vocabulary | Lane B | checking (in e60 only if provable with no other answer changed, shown by golden rows; else left) | the proof | the golden rows Lane B names |
 
 ## 4b. The shared card on Sell and Buy (one engine, one card)
 
@@ -62,8 +64,8 @@ Last updated: 2026-10-16T23:55Z (Lane F; Lane C's access-code stage 1 folded in)
 
 | Item | Owner | State | Blocked on | Proof |
 |---|---|---|---|---|
-| SEO plan items (the plan, the llms.txt text) | Lane E | blocked (waiting on Sam's approval of the plan and the llms.txt text, per Lane E since 23:40Z) | Sam | Lane E's docs-only laneE-notes branch (unpushed, needs a push prompt on Lane E's side) |
-| Firewall publish (the staged WAF rules) | Sam publishes; Lane E holds the ask | blocked (waiting on Sam, per Lane E) | Sam | Vercel > goasksam > Firewall |
+| SEO plan items (cookie-free caching only, never Tasks or personalised pages, the /mcp check, no live engine call on a crawl, home page block screenshots, VIN count dropped) and the revised llms.txt | Lane E | building (approved by Sam 00:00Z) | nothing; the push prompt for laneE-notes in Lane E's window | Lane E's READY and PUSHED lines; the caching live |
+| Firewall publish (the staged WAF rules) | Sam | held (stays staged and unpublished until the caching is live and e60 is live; Sam publishes it himself) | caching live, e60 live | Vercel > goasksam > Firewall |
 
 ## 7. e60 (last engine bump before launch)
 
@@ -79,11 +81,12 @@ Last updated: 2026-10-16T23:55Z (Lane F; Lane C's access-code stage 1 folded in)
 | Rotate CURTAIN_CREW_CODE | Sam | decision | Sam, in Vercel, plus a redeploy; every crew cookie ends at once, lanes need a fresh crew link | lane-notes "The crew cookie: lifetime, what ends it" |
 | Tester code and tester cookie proof | Lane C (code from env with a signed cookie, d77bb921) | checking (not yet proven live: Lane A could not mint a gas_tester cookie, no CURTAIN_TESTER_CODE held) | Sam's tester code, or launch day | a live load of a gated page with the tester cookie |
 | Palette choice | Sam | decision (switcher live on Market Check, Buy and Tasks via ?palette=1, crew only; A is the current look) | Sam | ~/Desktop/goasksam-proofs/palette/ |
-| Turnstile | Sam | decision (proven end to end locally by Lane C, Oct 12; nothing changes until SIGNUP_TURNSTILE=1) | Sam: Cloudflare widget for goasksam.com, TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY, SIGNUP_TURNSTILE=1, redeploy | lane-notes 2026-10-12 (Lane C) TURNSTILE PROVEN |
-| Supabase hook, URLs, session and SMTP | unknown (asked) | unknown | | Supabase dashboard |
+| Sam's click-by-click steps file (Turnstile, Supabase auth settings, Resend click tracking, LAUNCH_STAGE and LAUNCH_BUSINESS, GA tag and consent; placeholders only) | Lane C | building (asked by Sam 00:00Z) | the access-code push | ~/Desktop/goasksam-proofs/launch/sam-steps.md |
+| Turnstile | Sam | decision (proven end to end locally by Lane C, Oct 12; nothing changes until SIGNUP_TURNSTILE=1) | Sam: Cloudflare widget for goasksam.com, TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY, SIGNUP_TURNSTILE=1, redeploy; the steps file | lane-notes 2026-10-12 (Lane C) TURNSTILE PROVEN |
+| Supabase hook, URLs, session and SMTP | Sam, steps from Lane C | decision | the steps file | Supabase dashboard |
 | Resend click tracking off | Sam | decision | Sam, in the Resend dashboard | a test email whose links are not rewritten |
 | Launch stage | Sam | decision (LAUNCH_STAGE=0 today; Market Check, Buy, Tasks and Business crew only) | Sam: LAUNCH_STAGE and LAUNCH_BUSINESS in Vercel, then a redeploy | lib/_launchStage.js; a signed-out load of /market-check staying on the page |
-| GA tag and consent | unknown (asked) | decision (EEA, UK and CH visitors load nothing today; a consent banner or a consent-mode tag is an open decision) | Sam | lane-notes ~line 1876 |
+| GA tag and consent | Sam, state written up by Lane C | decision (EEA, UK and CH visitors load nothing today; a consent banner or a consent-mode tag is an open decision) | the steps file, then Sam | lane-notes ~line 1876 |
 | Company name, address and privacy email | Sam | unknown (asked) | | docs/privacy-paragraph.md; /privacy and /about live text |
 | QA | every lane | building | the rows above | prePush, pushCheck, golden table, the live proofs |
 | Partner data-feed message | Sam | unknown (asked) | | the sent message |
