@@ -2152,6 +2152,12 @@
     var left = '<p class="eyebrow hero-label">Market Check</p>' +
       '<h1 class="hero-carname">' + esc(m ? (m.displayName || appendChosenLabel(carLabel(d.resolvedCar))) : appendChosenLabel(cap(name))) + "</h1>";
     left += heroMetaLine(d, poolLen);
+    // Shared card (Sam, Oct 2026, card job): the thin tier has its own separate hero function (this
+    // one) - never routes through heroRangeHtml - so it needs its own call to the same shared card.
+    // The house-steered shape (most/all sales at auction houses) carries no top-level cluster/poolN;
+    // the card gates on qualifyingTotal instead (detection only, never displayed) and shows its own
+    // spread-too-wide line rather than staying silent - see lib/sellsForCard.js's own FOR LANE B note.
+    left += (window.sellsForCardHtml ? window.sellsForCardHtml(d, {}) : "");
     var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.thin.older") + "</p>";
     // Job 1: the old three-way house/online framing collapses to ONE new sentence for the all-house
     // case (the brief's literal replacement, "All {count} sold at the auction houses, none online.")
