@@ -109,11 +109,11 @@ try {
   const openHome = async () => { home = await browser.newPage(); await home.goto(BASE + "/", { waitUntil: "networkidle2", timeout: 60000 }).catch(() => {}); await new Promise(r => setTimeout(r, 2000)); };
   await home.goto(BASE + "/", { waitUntil: "networkidle2", timeout: 60000 }).catch(() => {});
   await new Promise(r => setTimeout(r, 2000));
-  const ops1 = (url) => home.evaluate(async (u, k) => {
-    const ac = new AbortController(); const t = setTimeout(() => ac.abort(), DEADLINE * 1000);
+  const ops1 = (url) => home.evaluate(async (u, k, dl) => {
+    const ac = new AbortController(); const t = setTimeout(() => ac.abort(), dl * 1000);
     try { const r = await fetch(u, { headers: { "x-ops-key": k }, signal: ac.signal }); const text = await r.text(); return { status: r.status, text }; }
     catch (e) { return { status: 0, text: String(e && e.message || e) }; } finally { clearTimeout(t); }
-  }, url, KEY);
+  }, url, KEY, DEADLINE);
   // The page can navigate itself (a detached frame); open a fresh one and ask again, once.
   const ops = async (url) => { try { return await ops1(url); } catch (e) { await openHome(); return await ops1(url); } };
 
