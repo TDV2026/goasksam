@@ -15,7 +15,7 @@ p.on("request", r => { let own = false; try { own = new URL(r.url()).host === HO
 const asTyped = t => String(t || "").replace(/^\s*[\d,.]+\s*k?\s*-?\s*mile[s]?\b/i, "").replace(/\s+\d+[- ]speed\b/ig, "").trim();
 const enrich = ids => p.evaluate(async ids => (await fetch("/api/buySearch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "enrich", ids }) })).json(), ids);
 const engine = specs => p.evaluate(async u => { const r = await fetch(u); /* the key header is added by the request handler above */ return r.ok ? r.json() : { error: r.status }; },
-  "/api/usageDashboard?view=ops&task=enginecheck&buypaths=0&livefences=0&representative=0&splitpools=0&overtime=0&livelisting=0&cacheconsistency=0&specs=" + encodeURIComponent(specs.join("|")));
+  "/api/usageDashboard?view=ops&task=enginecheck&buypaths=0&livefences=0&representative=0&splitpools=0&overtime=0&livelisting=0&cacheconsistency=0&formpairs=0&identitycounts=0&specs=" + encodeURIComponent(specs.join("|")));
 let same = 0, diff = 0, pend = 0;
 for (const q of qs) {
   await p.goto(`https://${HOST}/buy?q=` + encodeURIComponent(q), { waitUntil: "networkidle2", timeout: 90000 }).catch(() => {});
