@@ -3,6 +3,8 @@
 // "PREPUSH RULE".
 //   node scripts/prePush.mjs                 # browser check against https://goasksam.com
 //   node scripts/prePush.mjs --base <url>     # browser check against a specific deploy
+//   node scripts/prePush.mjs --tier full|fast  # force the full tier (fast is refused when an engine-and-data file changed)
+//   node scripts/prePush.mjs --tier-only      # print which tier this branch gets, and why, then stop
 //
 // What it checks, in order, and why:
 //   1. MODULE LOAD - every lib/** and api/** file in this branch's own COMMITTED history since it
@@ -45,6 +47,27 @@ import path from "node:path";
 
 const argBase = (() => { const i = process.argv.indexOf("--base"); return i >= 0 ? process.argv[i + 1] : null; })();
 const BASE = argBase || process.env.BASE || "https://goasksam.com";
+
+// ---- 0. THE TIER (Sam, Oct 17 2026; scripts/engineDataFiles.mjs) ----
+// FULL when this branch changes an engine-and-data file (the list, its folders, or any file whose text reads the market
+// tables or imports the engine); FAST otherwise: module load, every offline unit check and the identity pages, the search
+// check report-only, and NO archive read, no browser check against the live site and no golden truth; the owning lane
+// runs its live check after the deploy and posts it. --tier full forces FULL; --tier fast is refused (FULL is run) when
+// an engine-and-data file changed.
+const { engineDataTouched } = await import("./engineDataFiles.mjs");
+const tierArg = (() => { const i = process.argv.indexOf("--tier"); return i >= 0 ? String(process.argv[i + 1] || "") : "auto"; })();
+let allChanged = [];
+try { allChanged = execSync("git diff --name-only origin/main...HEAD", { encoding: "utf8" }).trim().split("\n").filter(Boolean); } catch { allChanged = null; }
+const committedText = f => { try { return execSync(`git show HEAD:${JSON.stringify(f).slice(1, -1)}`, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }); } catch { return null; } };
+const touched = allChanged ? engineDataTouched(allChanged, committedText) : null;
+const TIER = tierArg === "full" || !touched || touched.length ? "full" : "fast";
+console.log(`-- tier: ${TIER.toUpperCase()} --`);
+if (!touched) console.log("   the changed files could not be read, so FULL is run");
+else if (touched.length) console.log(`   engine-and-data files changed: ${touched.map(t => t.file + " (" + t.why + ")").join(", ")}${tierArg === "fast" ? "; --tier fast refused" : ""}`);
+else console.log(`   no engine-and-data file changed (${allChanged.length} file(s): ${allChanged.join(", ") || "none"})${tierArg === "full" ? "; --tier full asked, so FULL is run" : ""}`);
+const FAST_WHY = "fast tier: no engine-and-data file changed; the owning lane runs its live check after the deploy";
+// --tier-only: print the decision above and stop (no check runs; for proving the rule without loading the site).
+if (process.argv.includes("--tier-only")) process.exit(0);
 
 // BASELINE_FAILURES (dated, Oct 2026): known pushCheck console-error signatures that predate this
 // script and are not yet fixed. Empty right now - the one known entry (the Sam's Take "averaged"
@@ -130,13 +153,14 @@ console.log("\n-- deterministic engine checks --");
 }
 {
   const { supabaseEnv } = await import("../lib/_supabase.js");
-  const env = supabaseEnv();
+  const env = TIER === "fast" ? null : supabaseEnv();
+  const noArchive = TIER === "fast" ? FAST_WHY : "SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set in this environment";
   if (!env) {
-    record("representative invariants (archive)", "SKIP", "SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set in this environment");
-    record("live-comparable fence check (archive)", "SKIP", "SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set in this environment");
-    record("split-pool invariants (archive)", "SKIP", "SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set in this environment");
-    record("live-listing disclosure (archive)", "SKIP", "SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set in this environment");
-    record("63-spec cross-product sweep (archive)", "SKIP", "SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set in this environment");
+    record("representative invariants (archive)", "SKIP", noArchive);
+    record("live-comparable fence check (archive)", "SKIP", noArchive);
+    record("split-pool invariants (archive)", "SKIP", noArchive);
+    record("live-listing disclosure (archive)", "SKIP", noArchive);
+    record("63-spec cross-product sweep (archive)", "SKIP", noArchive);
   } else {
     const { checkRepresentativeInvariants, checkLiveComparableFences, checkSplitPoolInvariants, checkOverTimeInvariants, checkLiveListingDisclosure, runEngineCheck, DEFAULT_SPECS } = await import("./crossProductCheck.js");
     const rep = await checkRepresentativeInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
@@ -365,6 +389,15 @@ try {
   record("Task from Buy reads the applied choice (scripts/engineChoiceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 
+if (TIER === "fast") {
+  record("browser check (pushCheck.mjs)", "SKIP", FAST_WHY);
+  console.log("\n-- golden truth: not run in the fast tier (it reads the archive) --");
+  // The search check (scripts/searchCheck.js, docs/search-rules.md): titles, H1s, lead sentences and canonicals on the
+  // live public pages, REPORT-ONLY here (it reads the live site, not the code being pushed).
+  console.log("\n-- search check, report-only (scripts/searchCheck.js --report) --");
+  try { console.log(execSync("node scripts/searchCheck.js --report", { encoding: "utf8", timeout: 180000 }).trim().split("\n").slice(-12).join("\n")); }
+  catch (e) { console.log(String((e.stdout || "") + (e.stderr || "")).trim().slice(-1200) || "searchCheck did not complete (report-only, not blocking)."); }
+} else {
 // ---- 3 & 4. BROWSER CHECK (Lane C's pushCheck.mjs) + BASELINE ----
 console.log(`\n-- browser check via scripts/pushCheck.mjs (${BASE}) --`);
 let browserOutput = "";
@@ -400,6 +433,7 @@ try {
   console.log(String((e.stdout || "") + (e.stderr || "")).trim().slice(-1500) || "goldenTruth did not complete (report-only, not blocking).");
 }
 
+}
 // ---- 6. IDENTITY PAGES ON THE CODE BEING PUSHED (Sam, Oct 15 2026, after the e53 blank pages): BLOCKING, LOCAL. ----
 // scripts/identityLocalCheck.mjs runs the pushed code (buildResult, the body options, every option's own page, and the
 // output gate the shared entry applies) on synthetic sold rows, with no network and no database, so it can never fail
@@ -421,7 +455,8 @@ console.log("\n=== SUMMARY ===");
 const fails = results.filter(r => r.status === "FAIL");
 const skips = results.filter(r => r.status === "SKIP");
 for (const r of results) console.log(`${r.status.padEnd(4)}  ${r.name}`);
-console.log(`\n${fails.length} FAIL, ${skips.length} SKIP, ${results.length - fails.length - skips.length} PASS`);
+console.log(`\nTier: ${TIER.toUpperCase()}${touched && touched.length ? " (engine-and-data files changed)" : TIER === "fast" ? " (no engine-and-data file changed)" : ""}`);
+console.log(`${fails.length} FAIL, ${skips.length} SKIP, ${results.length - fails.length - skips.length} PASS`);
 if (skips.length) console.log("SKIPPED checks are not a pass - state them plainly in the push report, per docs/lane-notes.md PREPUSH RULE.");
 if (BASELINE_FAILURES.length) console.log(`${BASELINE_FAILURES.length} baseline (known, pre-existing) failure(s) tracked - see the list at the top of this file.`);
 process.exit(fails.length ? 1 : 0);
