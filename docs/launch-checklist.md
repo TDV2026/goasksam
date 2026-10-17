@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-17 ~00:22Z (Lane F; demo cars warm DONE, golden table RUNNING in API mode).
+Last updated: 2026-10-17 ~00:28Z (Lane F; Sam's demo-fix decisions: internal credential, no engine flag in e60, partner-code live checks, partner endpoint daily limit).
 
 ## 1. The four launch items
 
@@ -20,7 +20,7 @@ Last updated: 2026-10-17 ~00:22Z (Lane F; demo cars warm DONE, golden table RUNN
 
 | Item | Owner | State | Blocked on | Proof |
 |---|---|---|---|---|
-| eBay partner demo (/partner-demo, four views, shared card) | Lane C | INCIDENT, cause found (b): the data endpoint calls Market Check's handler in-process with the visitor's headers; Market Check is sealed before launch (CURTAIN_SEALED, isReleased) and refused a gas_partner session with no crew cookie, so the page drew could-not-read and view d fell to the false no-sales text. Not a cold read (all six demo cars 200 in 0.9 to 4.0 s with the crew cookie at 00:05Z; Lane B: all seven stored rows present before the warm, the 00:00 UTC gate only marked them stale, all seven fresh by 00:06Z, 2015 GT3 readAt 00:04:48 with 43 sales $120,000 to $143,000). Lane C's crew-cookie live checks missed it. | the fix push: the in-process read carries the server's own internal credential; FOR LANE B an internal-caller flag in sellerDecision.js would be cleaner | Lane C's live checks on all four views at 1440 and 390 from a partner-code session; Desktop/goasksam-proofs/partner/live/ |
+| eBay partner demo (/partner-demo, four views, shared card) | Lane C | INCIDENT, cause found (b): the data endpoint calls Market Check's handler in-process with the visitor's headers; Market Check is sealed before launch (CURTAIN_SEALED, isReleased) and refused a gas_partner session with no crew cookie, so the page drew could-not-read and view d fell to the false no-sales text. Not a cold read (all six demo cars 200 in 0.9 to 4.0 s with the crew cookie at 00:05Z; Lane B: all seven stored rows present before the warm, the 00:00 UTC gate only marked them stale, all seven fresh by 00:06Z, 2015 GT3 readAt 00:04:48 with 43 sales $120,000 to $143,000). Lane C's crew-cookie live checks missed it. | the fix push (Sam approved: the in-process read carries the server's internal credential, no engine change; the credential must never reach a body, header, log, error, test output or note; the partner endpoint gets its own daily car limit per address and device, demo cars within it; a stale row renders as an engine answer, never an error) | live checks on all four views at 1440 and 390 first from a partner-code session (Keychain goasksam-partner-code, private browser, no crew cookie; /market-check still goes to /sell) then from the crew cookie; wrong code still 404; PUSHED only when the partner-code session shows data on all four views; Desktop/goasksam-proofs/partner/live/ |
 | Demo never prints the no-sales text on a failed read; one automatic retry; demo-path deadline; last good engine answer kept verbatim with readAt, shown under a day old | Lane C | building (Sam's order, after the cause report) | the cause report | the live checks; partnerEngineMatch still 0 failed |
 | View c hero in the main photo slot and the thumbnails, same path-scoped cookie | Lane C | building (Sam's order) | nothing | screenshots of view c at 1440 and 390 |
 | Separate access code for the demo (PARTNER_DEMO_CODE, signed gas_partner cookie, 14 days, scoped to /partner-demo and /api/partnerAnswer, 404 otherwise, rate limited) | Lane C | live (ba6560b5, Vercel Ready 23:48Z; prePush alone 0 FAIL / 6 SKIP / 37 PASS, partnerAccessCheck 30 of 30, prePush about ten minutes, no archive read over the 10-second line; live without the code: no code, wrong code, empty code all 404 on page and data endpoint, crew cookie 200 on both, headers noindex/no-referrer/no-store) | Sam proves the right code live himself in a private window (option a; nobody stores the code for a lane) | lane-notes PUSHED (Lane C, 2026-10-16T23:48Z); scripts/partnerAccessCheck.mjs; Sam's or Lane C's live confirmation |
@@ -77,7 +77,14 @@ Last updated: 2026-10-17 ~00:22Z (Lane F; demo cars warm DONE, golden table RUNN
 
 | Item | Owner | State | Blocked on | Proof |
 |---|---|---|---|---|
-| e60 batch: year-less badge rule, resolver timing contract (a lookup timeout never changes an answer), taxonomy refresh off the request path, latestSaleDate and oldestIncludedSaleDate fields, history-page family read by the archive's columns behind a flag, body-style exports for the Buy card, the 1973 Targa label, a pure-decimal trim never pre-filtering titles (the 280SE 3.5 row), the golden loader counting words answers, an internal-caller flag for in-process reads (Lane C's ask, on Lane B's list), readAt on every tier (a thin answer carries none today, the 275 GTB row); warm only traffic, golden and demo cars | Lane B | building | the e59 sweep DONE (which waits on B2's golden run), then the queue | Lane B's READY, PUSH LOCK and PUSHED lines; the e60 warm DONE |
+| e60 batch: year-less badge rule, resolver timing contract (a lookup timeout never changes an answer), taxonomy refresh off the request path, latestSaleDate and oldestIncludedSaleDate fields, history-page family read by the archive's columns behind a flag, body-style exports for the Buy card, the 1973 Targa label, a pure-decimal trim never pre-filtering titles (the 280SE 3.5 row), the golden loader counting words answers, readAt on every tier (a thin answer carries none today, the 275 GTB row); warm only traffic, golden and demo cars | Lane B | building | the e59 sweep DONE (which waits on B2's golden run), then the queue | Lane B's READY, PUSH LOCK and PUSHED lines; the e60 warm DONE |
+
+## 7b. After launch (notes, not built)
+
+| Item | Owner | State | Blocked on | Proof |
+|---|---|---|---|---|
+| Internal-caller flag in sellerDecision.js for in-process reads | Lane B | note for after launch (Sam's decision) | launch | |
+| Traffic-only warm also just after 00:00 UTC each day (the day change marks every stored row stale) | Lane B | report only, not built (Sam's order) | Lane B's report | Lane B's e60 notes |
 
 ## 8. Pre-launch items
 
