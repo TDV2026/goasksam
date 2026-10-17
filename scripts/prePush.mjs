@@ -394,8 +394,11 @@ if (TIER === "fast") {
   console.log("\n-- golden truth: not run in the fast tier (it reads the archive) --");
   // The search check (scripts/searchCheck.js, docs/search-rules.md): titles, H1s, lead sentences and canonicals on the
   // live public pages, REPORT-ONLY here (it reads the live site, not the code being pushed).
-  console.log("\n-- search check, report-only (scripts/searchCheck.js --report) --");
-  try { console.log(execSync("node scripts/searchCheck.js --report", { encoding: "utf8", timeout: 180000 }).trim().split("\n").slice(-12).join("\n")); }
+  // A plain fetch gets Vercel's bot challenge (HTTP 429) unless the automation bypass secret is in the environment, so
+  // without it the same rules run from a real browser (scripts/searchCheckBrowser.mjs), which is never challenged.
+  const sc = process.env.VERCEL_AUTOMATION_BYPASS_SECRET ? "scripts/searchCheck.js --report" : "scripts/searchCheckBrowser.mjs";
+  console.log(`\n-- search check, report-only (${sc}) --`);
+  try { console.log(execSync("node " + sc, { encoding: "utf8", timeout: 240000 }).trim().split("\n").slice(-14).join("\n")); }
   catch (e) { console.log(String((e.stdout || "") + (e.stderr || "")).trim().slice(-1200) || "searchCheck did not complete (report-only, not blocking)."); }
 } else {
 // ---- 3 & 4. BROWSER CHECK (Lane C's pushCheck.mjs) + BASELINE ----
