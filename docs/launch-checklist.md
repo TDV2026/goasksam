@@ -5,7 +5,27 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-17T00:4xZ (Lane F; Sam: option 1, B2 pauses for the demo fix push; session default, sender hello@goasksam.com, Buy palette tokens after the palette pick; Lane C's tiered prePush built).
+Last updated: 2026-10-17T01:01Z (Lane F; AWAY MODE: Sam is away for 25 hours from 01:01Z; the rules below are in force).
+
+## 0. Away mode (Sam away 25 hours from 2026-10-17T01:01Z)
+
+Sam's rules, forwarded word for word to Lanes B, B2, C, D and E at 01:01Z (Lane A unreachable by the Desk; the rules are also here for it): keep working your own queue to the end, wait with long intervals; push only when every gate is green (prePush alone 0 FAIL, golden zero mismatches where it applies, live checks) and the push protocol is followed; live checks after every push, a failed live check means revert your own last push at once and stop pushing; two failed deploys in a row or an unhealthy production means every lane stops pushing and posts to Lane F; HELD FOR SAM: pushing e60, SEO edge caching (C1) going live, publishing the firewall change, any database SQL or backfill, any environment variable or secret change, launch stage settings, enabling the Supabase hook, sending anything to Cameron or any partner, changing the crew or partner codes (build to READY, then post what Sam must decide); never ask Sam in your window, post numbered questions with a recommendation to Lane F; stop when your queue is finished or you are blocked on Sam.
+
+Lane F in away mode: no reports sent; every change, failure and blocked lane is recorded in this file as it happens (docs-only commits pushed alone); one tick six hours in writes its report into this file; the recurring 20-minute tick is cancelled. The full report goes to Sam when he returns and asks.
+
+### Production health and stop-pushing events (newest first)
+- none recorded since 01:01Z.
+
+### Needs Sam (ordered by what blocks the launch list)
+1. Window and age rule decision (blocks e60 push, which blocks row 46 of the golden table and "every car returns a range"); Lane B's table follows the e59 sweep.
+2. Lane B's suggestion for tonight's prePush: page loads one at a time, warm prePush's perf cars with a crew read each first, add them to the e60 warm list.
+3. GA tag and consent: keep or change (state proven, consent mode plus banner for EEA, UK, CH).
+4. Golden truth in the fast prePush tier (Lane C left it out; it reads the archive).
+5. Post-midnight warm scope (Lane B recommends demo cars and golden rows at 00:05 UTC).
+6. Sam's own checks when back: prove the partner code live in a private window; read ~/Desktop/goasksam-proofs/launch/sam-steps.md and ~/Desktop/goasksam-proofs/db/sql-for-sam.md; look at ~/Desktop/goasksam-proofs/seo/llms.txt.
+
+### Lane questions posted to Lane F while Sam is away (numbered, with the lane's recommendation)
+- none yet.
 
 ## 1. The four launch items
 
