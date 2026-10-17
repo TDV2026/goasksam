@@ -4,7 +4,8 @@
 // no archive read), and the owning lane runs its own live check after the deploy and posts it.
 // A file counts when it is on the fixed list below, OR when its own committed text reads one of the market tables or
 // imports the engine (ENGINE_DATA_CONTENT_RE), so a file that starts reading the archive counts without anyone updating
-// this list. A deleted file is judged by its path alone.
+// this list. Only deployed code (api/, lib/) is read for that; scripts/ and docs/ never deploy. A deleted file is judged
+// by its path alone.
 export const ENGINE_DATA_PREFIXES = ["lib/live/", "lib/desk/", "lib/sell/", "lib/tasks/", "lib/tools/"];
 export const ENGINE_DATA_FILES = [
   // named by Sam
@@ -26,7 +27,8 @@ export function engineDataTouched(files, readText) {
   for (const f of files) {
     if (ENGINE_DATA_FILES.includes(f)) { out.push({ file: f, why: "listed" }); continue; }
     if (ENGINE_DATA_PREFIXES.some(p => f.startsWith(p))) { out.push({ file: f, why: "folder" }); continue; }
-    if (/\.(m?js|sql)$/.test(f) && !f.startsWith("docs/")) { const t = readText(f); if (t && ENGINE_DATA_CONTENT_RE.test(t)) out.push({ file: f, why: "reads the archive or imports the engine" }); }
+    // Only deployed code (api/, lib/) can change what the site reads; scripts and docs never deploy.
+    if (/^(api|lib)\/.*\.m?js$/.test(f)) { const t = readText(f); if (t && ENGINE_DATA_CONTENT_RE.test(t)) out.push({ file: f, why: "reads the archive or imports the engine" }); }
   }
   return out;
 }
