@@ -14,6 +14,12 @@ import { crewCookie } from "./_crewCookie.mjs";
 
 const arg = n => { const i = process.argv.indexOf("--" + n); return i > 0 ? process.argv[i + 1] : null; };
 const flag = n => process.argv.includes("--" + n);
+// MODES (Oct 16 2026, Sam): "pages" (--pages) renders the Market Check, Buy and Sell page of every row (the final launch run); the default "api" reads every
+// engine answer through the keyed enginecheck path and renders a page only for a row whose check needs the printed text (needsPage below).
+const MODE = process.argv.includes("--pages") ? "pages" : "api";
+const DEADLINE = Math.max(20, Number((process.argv.find(a => a.startsWith("--deadline=")) || "").split("=")[1]) || 120);   // seconds one read may take before the row is marked re-read
+const stamp = () => new Date().toISOString().slice(11, 19) + "Z";
+const needsPage = g => !!(g.page || g.wordsHas || g.statesBody || g.equalsBare || g.chipPairs || g.sharedCard || g.sellEqualsMC || g.noZeroOptions || g.variantRule || g.noRestoration || g.question);
 const BASE = (arg("base") || "https://goasksam.com").replace(/\/$/, "");
 const KEY = process.env.PROBE_KEY || null;
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
@@ -25,11 +31,12 @@ const m = /```json golden\n([\s\S]*?)```/.exec(doc);
 if (!m) { console.log("goldenTruth: no ```json golden block in docs/golden-rules.md"); process.exit(flag("strict") ? 1 : 0); }
 let GOLDEN = JSON.parse(m[1]);
 const ids = (arg("ids") || "").split(",").filter(Boolean).map(Number);
-if (ids.length) GOLDEN = GOLDEN.filter(g => ids.includes(g.id));
+if (ids.length) { GOLDEN = GOLDEN.filter(g => ids.includes(g.id)); IDENT = IDENT.filter(g => ids.includes(g.id)); }   // an identity row runs only when asked for by --ids
 else if (flag("quick")) GOLDEN = GOLDEN.filter(g => g.quick);
 // An identity row (the bare 1965 Mustang) checks the question's option counts, not a range; it has its own block below.
-const IDENT = GOLDEN.filter(g => g.identity);
+let IDENT = GOLDEN.filter(g => g.identity);
 GOLDEN = GOLDEN.filter(g => !g.identity);
+const TOTAL_ALL = GOLDEN.length + IDENT.length;   // every row of the table, identity rows included
 
 if (!KEY) { console.log("goldenTruth: SKIP, no PROBE_KEY in the environment (report-only, nothing compared)."); process.exit(0); }
 
@@ -44,6 +51,7 @@ function judge(g, lane) {
     const none = !L.ok && /not_tracked|no market read|empty pool|nothing|no pool/i.test(String(L.reason || ""));
     return none ? { cell: "PASS", diffs: [] } : { cell: g.status === "pending" ? "PENDING" : "FAIL", diffs: [`expected nothing on record, got ${L.ok ? (L.fallbackRung + " " + L.count) : "an error: " + String(L.reason || "").slice(0, 40)}`] };
   }
+  if (!L.ok && /HTTP 0|timed out|abort/i.test(String(L.reason || ""))) return { cell: "RE-READ", diffs: ["re-read: " + String(L.reason).slice(0, 60)] };
   if (!L.ok) return { cell: g.status === "pending" ? "PENDING" : "FAIL", diffs: ["no answer: " + String(L.reason || "?").slice(0, 60)] };
   const diffs = [];
   if (g.rung && L.fallbackRung !== g.rung) diffs.push(`rung ${L.fallbackRung} != ${g.rung}`);
@@ -86,7 +94,7 @@ function judge(g, lane) {
   return { cell: diffs.length ? "FAIL" : "PASS", diffs };
 }
 
-const CREW = flag("pages") ? await crewCookie() : null;
+const CREW = await crewCookie();
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", protocolTimeout: 600000, args: ["--no-sandbox"] });
 const rows = [];
 const byQ = {};
@@ -102,7 +110,7 @@ try {
   await home.goto(BASE + "/", { waitUntil: "networkidle2", timeout: 60000 }).catch(() => {});
   await new Promise(r => setTimeout(r, 2000));
   const ops1 = (url) => home.evaluate(async (u, k) => {
-    const ac = new AbortController(); const t = setTimeout(() => ac.abort(), 290000);
+    const ac = new AbortController(); const t = setTimeout(() => ac.abort(), DEADLINE * 1000);
     try { const r = await fetch(u, { headers: { "x-ops-key": k }, signal: ac.signal }); const text = await r.text(); return { status: r.status, text }; }
     catch (e) { return { status: 0, text: String(e && e.message || e) }; } finally { clearTimeout(t); }
   }, url, KEY);
@@ -110,9 +118,9 @@ try {
   const ops = async (url) => { try { return await ops1(url); } catch (e) { await openHome(); return await ops1(url); } };
 
   
-  const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read the same car as rows 8 and 14: one engine read each
+const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read the same car as rows 8 and 14: one engine read each
   for (let i = 0; i < GOLDEN_QS.length; i += BATCH) {
-    console.error(`progress engine ${Math.min(i + BATCH, GOLDEN_QS.length)}/${GOLDEN_QS.length} ${new Date().toISOString().slice(11, 19)}Z`);
+    console.error(`progress mode ${MODE}: rows done ${GOLDEN.filter(g => GOLDEN_QS.indexOf(g.q) < i).length} of ${TOTAL_ALL} (engine reads), reading cars ${i + 1} to ${Math.min(i + BATCH, GOLDEN_QS.length)}, read started ${stamp()}`);
     const chunk = GOLDEN_QS.slice(i, i + BATCH).map(q => ({ q }));
     const url = `/api/usageDashboard?view=ops&task=enginecheck&buypaths=0&livefences=0&representative=0&splitpools=0&overtime=0&livelisting=0&cacheconsistency=0&specs=${encodeURIComponent(chunk.map(g => g.q).join("|"))}`;
     const r = await ops(url);
@@ -264,25 +272,31 @@ try {
     if (yrs && rendered.scope && !/\?/.test(rendered.scope) && !rendered.scope.includes(yrs[0])) out.push(`scope line "${rendered.scope.slice(0, 60)}" lacks "${yrs[0]}" from its engine label`);
     return out;
   }
-  const PAGE_PRODUCTS = flag("pages") ? ["marketCheck", "buy", "sell"] : ["marketCheck"];
+  const PAGE_PRODUCTS = ["marketCheck", "buy", "sell"];
+  const pagesFor = g => MODE === "pages" ? PAGE_PRODUCTS : (g.sharedCard ? PAGE_PRODUCTS : (g.sellEqualsMC ? ["marketCheck", "sell"] : ["marketCheck"]));
   // factsBlock lowest and highest for a pool with 8+ sales and no band (the thin tier): the cards' lowest and highest price (lib/live/search.js
   // factsBlockFrom reads exactly this), taken from obdiag's cards.
   const facts = {};
   for (const r of rows) {
     const lane = (byQ[r.g.q] && byQ[r.g.q].lanes || {}).marketCheck;
-    if (!(flag("pages") || r.g.page) || !lane || !lane.ok || lane.low != null || !(lane.count >= 8)) continue;
+    if (!(MODE === "pages" || needsPage(r.g)) || !lane || !lane.ok || lane.low != null || !(lane.count >= 8)) continue;
     const o = await ops(`/api/usageDashboard?view=ops&task=obdiag&detail=1&qs=${encodeURIComponent(r.g.q)}`);
     try { const c = JSON.parse(o.text).cars[0]; const pr = (c.cardDetail || []).map(x => x.price).filter(Number.isFinite); if (pr.length >= 8) facts[r.g.q] = { low: Math.min(...pr), high: Math.max(...pr) }; } catch (e) {}
   }
   const jobs = [];
-  for (const r of rows) if (flag("pages") || r.g.page) for (const pr of PAGE_PRODUCTS) jobs.push({ r, pr });
+  for (const r of rows) if (MODE === "pages" || needsPage(r.g)) for (const pr of pagesFor(r.g)) jobs.push({ r, pr });
+  const TOTAL_ROWS = GOLDEN.length + IDENT.length, pageRowsDone = new Set();
   let next = 0;
   const worker = async () => {
     while (next < jobs.length) {
       const { r, pr } = jobs[next++];
-      console.error(`progress pages ${next}/${jobs.length} row ${r.g.id} ${pr} ${new Date().toISOString().slice(11, 19)}Z`);
+      const tRead = Date.now();
+      console.error(`progress mode ${MODE}: rows done ${pageRowsDone.size} of ${new Set(jobs.map(j => j.r.g.id)).size} with a page (${TOTAL_ALL} in the table), page read ${next} of ${jobs.length}, row ${r.g.id}, ${pr}, read started ${stamp()}`);
       const g = r.g, engineCell = r.cells[pr];
       let rd; try { rd = await readPage(pr, g.q); } catch (e) { rd = { path: "", text: "", err: String(e && e.message || e) }; }
+      pageRowsDone.add(g.id);
+      const secs = (Date.now() - tRead) / 1000;
+      if (rd.err || !rd.text || secs > DEADLINE) { r.pages = r.pages || {}; r.pages[pr] = { cell: "RE-READ", diffs: [`re-read: the ${pr} page read ${rd.err ? "failed (" + rd.err.slice(0, 40) + ")" : !rd.text ? "returned no text" : "took " + secs.toFixed(0) + " s, over the " + DEADLINE + " s line"}, started ${new Date(tRead).toISOString().slice(11, 19)}Z`], shown: "re-read" }; continue; }
       r.pages = r.pages || {};
       if (!rd.path.startsWith("/" + ({ marketCheck: "market-check", buy: "buy", sell: "sell" })[pr])) { r.pages[pr] = { cell: "FAIL", diffs: [rd.path.startsWith("/sell") && pr !== "sell" ? "redirected to /sell: key rejected" : `ended on ${rd.path || "nothing"}`] }; continue; }
       const parsed = PARSERS[pr](rd.text);
@@ -355,7 +369,7 @@ try {
   // no cache row, no setup model turn, zero OldCarsData. It returns the line a Task email would state for the typed words: the stored
   // spec_market_cache line when listingMarket would serve it, else a fresh engine read. Count and range come from that one line, are
   // judged against the golden answer like any engine lane, and are compared with the Tasks lane of the same run (a difference is RENDER DRIFT).
-  if (flag("pages") || flag("tasks")) for (const r of rows) {
+  if ((MODE === "pages" || flag("tasks") || !flag("quick"))) for (const r of rows) {
     const o = await ops(`/api/tasks?emailpreview=1&q=${encodeURIComponent(r.g.q)}`);
     let out = null; try { out = JSON.parse(o.text); } catch (e) {}
     r.pages = r.pages || {};
@@ -376,7 +390,7 @@ try {
   }
   // COUNTRY (Oct 15 2026, e39 country rule): every pool row carries country and countryBasis (obdiag rows=1, considered.included). The pool is the
   // United States and Canada; a row whose country is missing, outside both, or only assumed from the venue is listed per car. Read only.
-  if (flag("pages") || flag("country")) for (const r of rows) {
+  if ((MODE === "pages" || flag("country") || !flag("quick"))) for (const r of rows) {
     const o = await ops(`/api/usageDashboard?view=ops&task=obdiag&detail=1&rows=1&qs=${encodeURIComponent(r.g.q)}`);
     let inc = null; try { inc = JSON.parse(o.text).cars[0].considered.included; } catch (e) {}
     if (!inc) { r.country = { n: null, note: "no rows read" }; continue; }
@@ -453,12 +467,13 @@ const pad = (s, n) => String(s).padEnd(n);
 const PAGEHEAD = ["MC page", "Buy page", "Sell page", "Task email"];
 console.log(`\nGOLDEN TRUTH  ${new Date().toISOString().slice(0, 10)}  (${BASE})  ${rows.length} cars, expected answers from docs/golden-rules.md\n`);
 console.log(pad("#", 3) + pad("Car", 44) + pad("MC", 9) + pad("Buy", 9) + pad("Sell", 9) + pad("Tasks", 9) + PAGEHEAD.map(h => pad(h, 11)).join(""));
-let nFail = 0, nPend = 0, nPass = 0, nDrift = 0;
+let nFail = 0, nPend = 0, nPass = 0, nDrift = 0, nRe = 0;
+const rereads = [];
 for (const r of rows) {
   const eng = PRODUCTS.map(p => r.cells[p].cell);
   const pg = ["marketCheck", "buy", "sell", "tasks"].map(p => r.pages && r.pages[p] ? (r.pages[p].cell === "NOREACH" ? "NOT REACHED" : r.pages[p].cell) : "-");
   console.log(pad(r.g.id, 3) + pad(r.g.q, 44) + eng.map(c => pad(c, 9)).join("") + pad(pg[0], 11) + pad(pg[1], 11) + pad(pg[2], 11) + pad(pg[3], 11));
-  for (const c of [...PRODUCTS.map(p => r.cells[p]), ...Object.values(r.pages || {})]) { if (c.cell === "FAIL" || c.cell === "NOREACH") nFail++; else if (c.cell === "DRIFT") nDrift++; else if (c.cell === "PENDING") nPend++; else if (c.cell === "PASS") nPass++; }
+  for (const c of [...PRODUCTS.map(p => r.cells[p]), ...Object.values(r.pages || {})]) { if (c.cell === "RE-READ") { nRe++; rereads.push(`${r.g.id} ${r.g.q}: ${(c.diffs || [])[0] || ""}`); } else if (c.cell === "FAIL" || c.cell === "NOREACH") nFail++; else if (c.cell === "DRIFT") nDrift++; else if (c.cell === "PENDING") nPend++; else if (c.cell === "PASS") nPass++; }
 }
 console.log("\nDifferences (same text on several products is shown once; page lines name the page):");
 for (const r of rows) {
@@ -470,7 +485,7 @@ for (const r of rows) {
   console.log(`  ${r.g.id}. ${r.g.q}${r.g.status === "pending" ? "  [PENDING: " + r.g.pending + "]" : ""}`);
   for (const [d, ps] of seen) console.log(`      ${ps.length === 4 && !ps.some(x => /page/.test(x)) ? "all four" : ps.join(", ")}: ${d}`);
 }
-if (flag("pages")) {
+if (rows.some(r => r.pages)) {
   console.log("\nRendered, per page (count, range as the page prints them):");
   for (const r of rows) console.log(`  ${r.g.id}. ${pad(r.g.q, 42)}` + ["marketCheck", "buy", "sell", "tasks"].map(p => `${p}: ${r.pages && r.pages[p] ? r.pages[p].shown : "-"}`).join("   |   "));
   console.log("\nSell page count against the engine count (they must be equal):");
@@ -490,5 +505,6 @@ for (const io of identityOut) {
 for (const c of cardOut) { console.log(`\nShared card, row ${c.id}, ${c.q}:`); for (const l of c.lines) { console.log(`  ${pad(l.cell, 8)} ${pad(l.name, 14)} ${l.diff || "identical to Market Check"}`); if (l.cell === "FAIL") nFail++; else if (l.cell === "PENDING") nPend++; else nPass++; } }
 for (const c of chipPairOut) { console.log(`\nRow ${c.id}, ${c.name}: ${c.shown}`); if (c.diff) console.log(`  ${c.diff}`); if (c.cell === "FAIL") nFail++; else nPass++; }
 if (chassisGuard) console.log(`\nChassis-number guard (365 GT 2+2, chassis 12751, set aside from the 275 GTB pool): ${chassisGuard}`);
-console.log(`\n${nPass} PASS, ${nFail} FAIL, ${nDrift} RENDER DRIFT, ${nPend} PENDING (report-only; ${flag("strict") ? "strict: failures set the exit code" : "does not set the exit code"}).`);
+if (rereads.length) { console.log("\nRE-READ (a read errored or ran over the " + DEADLINE + " s line; not a mismatch; rerun these rows alone with --ids):"); for (const x of rereads) console.log("  " + x); }
+console.log(`\nmode ${MODE}, ${TOTAL_ALL} rows. ${nPass} PASS, ${nFail} FAIL, ${nDrift} RENDER DRIFT, ${nPend} PENDING, ${nRe} RE-READ (report-only; ${flag("strict") ? "strict: failures set the exit code" : "does not set the exit code"}).`);
 process.exit(flag("strict") && (nFail || nDrift) ? 1 : 0);
