@@ -123,7 +123,7 @@ Last updated: 2026-10-17T00:4xZ (Lane F; Sam: option 1, B2 pauses for the demo f
 
 | Item | Owner | State | Blocked on | Proof |
 |---|---|---|---|---|
-| Archive fresh computes slow with every lane load paused (Market Check 18 to 24 s, /cars/porsche/911 HTTP 504 at ~00:40Z); cause unknown | Lane B (asked by Lane C) | open, no answer yet | Lane B's reading of what is on the archive | a fresh compute under 10 s and the 911 hub page 200 |
+| Database slow with every lane load paused (readings 42 s 23:46Z, 23 s 00:01Z, 48 s 00:17Z, 9 s 00:32Z, a one-row ops read 21 s at 00:45Z; Market Check fresh computes 18 to 24 s; /cars/porsche/911 HTTP 504 ~00:40Z) | Lane B read it | reported (Lane B: nothing of Lane B's running; cold buffer cache after the evening's full-table scans on Small compute, so every fresh compute pays disk reads; Lane C's prePush loads several pages in parallel and its perf cars without a stored row are fresh computes, four or more cold computes at once; the after-midnight recompute adds one per stored row visited) | Sam's decision on Lane B's suggestion: prePush page loads one at a time tonight, warm prePush's perf cars with a crew read each before the run, add them to the e60 warm list | a fresh compute under 10 s; /cars/porsche/911 200 |
 
 ## 9. Items carried from the earlier launch-day checklist (Oct 2026, still open unless struck)
 
