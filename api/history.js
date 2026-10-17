@@ -880,7 +880,11 @@ async function sitemap(res, env, which) {
   const urlset = list => `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${list.map(u => `<url><loc>${xmlEsc(u.loc)}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ""}</url>`).join("")}</urlset>`;
   if (which === "index") {
     const pages = Math.max(1, Math.ceil(r.vins.length / SITEMAP_PAGE));   // (dead-photo pages are dropped inside each page)
-    const items = [`<sitemap><loc>${SITE}/sitemap-vins-hubs.xml</loc></sitemap>`].concat(Array.from({ length: pages }, (_, k) => `<sitemap><loc>${SITE}/sitemap-vins-${k + 1}.xml</loc></sitemap>`)).join("");
+    // <lastmod> per entry (C4, Lane E's SEO plan): the newest appearance date among that page's VINs, so a crawler can
+    // skip a page that has not changed; the hubs entry carries the newest date of all (hubs change when any VIN does).
+    const newest = list => list.reduce((m, u) => (u && u.lastmod && String(u.lastmod) > m ? String(u.lastmod) : m), "");
+    const lm = d => (d ? `<lastmod>${xmlEsc(String(d).slice(0, 10))}</lastmod>` : "");
+    const items = [`<sitemap><loc>${SITE}/sitemap-vins-hubs.xml</loc>${lm(newest(r.vins))}</sitemap>`].concat(Array.from({ length: pages }, (_, k) => `<sitemap><loc>${SITE}/sitemap-vins-${k + 1}.xml</loc>${lm(newest(r.vins.slice(k * SITEMAP_PAGE, (k + 1) * SITEMAP_PAGE)))}</sitemap>`)).join("");
     return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${items}</sitemapindex>`);
   }
   const dead = await deadPhotos(env);
