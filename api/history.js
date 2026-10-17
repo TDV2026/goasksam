@@ -6,6 +6,7 @@
 // Indexing (Oct 2026): a car page is indexable when the car has at least two appearances that each carry a price (a sale or a bid), a real VIN, a make and model family, and live photos, and is
 // listed in /sitemap-vins.xml; every other page (single priced appearance, hubs, 404s) stays noindex.
 //   GET /sitemap-vins.xml -> sitemap index (?sitemap=index);  /sitemap-vins-N.xml -> page N (?sitemap=N)
+import { asOfDate } from "../lib/asOf.js";
 import { withTracking } from "../lib/track/log.js";
 import { vinsForUrls } from "./_historyData.js";
 import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor, parseHubSlug, hubVins, liveListing, addWatch, carSlug, familyOf, slugify, listingSaid, familySales, SITEMAP_PAGE, resolveText, cleanTitle, canonicalHub } from "./_historyData.js";
@@ -615,7 +616,9 @@ async function hubPage(req, res, env, slug) {
   profMark("oneBoxDone");
   const n = poolCount(d);
   const salesN = list.reduce((k, g) => k + g.apps.filter(a => a.kind === "sale").length, 0);
-  const ctx = (n ? `${n} ${id.family} sales at auction in ${poolWindow(d)}. ` : "") + `${list.length} individual ${list.length === 1 ? "car" : "cars"} by VIN below, with ${salesN} recorded sale${salesN === 1 ? "" : "s"}.`;
+  // The hub's answer and meta description (C2, Sam's change, Oct 2026): the engine's family line when it has one, then
+  // the recorded sales and the date the page read them (search rule 1); no VIN count (Sam: no VIN coverage figure implied).
+  const ctx = (n ? `${n} ${id.family} sales at auction in ${poolWindow(d)}. ` : "") + `${salesN.toLocaleString("en-US")} recorded sale${salesN === 1 ? "" : "s"}, as of ${asOfDate()}.`;
   const canonical = `${SITE}/history/${slug}`;
   profMark("renderStart");
   const rows = list.slice(0, 200).map(g => {
