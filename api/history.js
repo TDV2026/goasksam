@@ -148,6 +148,10 @@ function page({ title, description, canonical, body, ld, index, crew, req }) {
 ${description ? `<meta name="description" content="${esc(description)}">` : ""}
 ${index ? '<meta name="robots" content="index, follow">' : '<meta name="robots" content="noindex, follow">'}
 ${canonical ? `<link rel="canonical" href="${esc(canonical)}">` : ""}
+<meta property="og:type" content="website">
+<meta property="og:title" content="${esc(title)}">
+${description ? `<meta property="og:description" content="${esc(description)}">` : ""}
+${canonical ? `<meta property="og:url" content="${esc(canonical)}">` : ""}
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#FAF8F4">
 ${FONT_LINKS}
 <style>${CSS}${STYLE}${KEEPLOOK_CSS}${AUTH_SIGNBAR_CSS}${CONSENT_BANNER_CSS}</style>${(ld || []).map(jsonLd).join("")}</head><body>
