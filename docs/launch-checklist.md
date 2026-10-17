@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-17T00:26Z (Lane F; Lane C's demo fix built, prePush FAILED on live-site speed, push held; B2 and Lane C both waiting for the archive to read under 10 s).
+Last updated: 2026-10-17T00:3xZ (Lane F; Lane C's launch-checklist answers folded in: steps file done, SEO C1 to C5 and tiered prePush not started, Supabase hook secret before enabling, CURTAIN_SEALED=0 for public Market Check, GA consent-mode note).
 
 ## 1. The four launch items
 
@@ -71,6 +71,8 @@ Last updated: 2026-10-17T00:26Z (Lane F; Lane C's demo fix built, prePush FAILED
 | Item | Owner | State | Blocked on | Proof |
 |---|---|---|---|---|
 | SEO plan items (cookie-free caching only, never Tasks or personalised pages, the /mcp check, no live engine call on a crawl, home page block screenshots, VIN count dropped) and llms.txt | Lane E (llms.txt placed by Lane A at public/llms.txt) | ready for Lane A (llms.txt approved by Sam in Lane E's window; the text is on main word for word as a FOR LANE A line, 439c066d; challenged at the edge until Sam publishes the firewall draft, so it can ship now and becomes readable then) | Lane A's next push (no Lane A session running, lane-notes is the channel); the caching items for Lanes A, C and B's e60; then Lane E's live proofs | /llms.txt answers 200 text/plain as Googlebot with exactly those bytes |
+| SEO C1 to C5 (C1 cookie-free edge caching of VIN and hub pages via a has-cookie rewrite, C2 hub lead "N recorded sales, as of date" with no VIN count, C3 og tags on VIN and hub pages, C4 lastmod in sitemap-vins.xml, C5 hub link to the spec page; api/history.js) | Lane C builds, Lane E proves (scripts/seoAudit.mjs) | not started (queued behind the demo fix and the tiered prePush) | the demo fix push | Lane E's seoAudit proofs |
+| SEO A1 to A4 and the Lane B items (lane-notes FOR LANE A and FOR LANE B under the SEO plan) | Lane A, Lane B | not started (Lane A unreachable by the Desk) | Lane A's and Lane B's pushes | Lane E's seoAudit proofs |
 | Firewall publish (the staged WAF rules) | Sam | held (stays staged and unpublished until the caching is live and e60 is live; Sam publishes it himself) | caching live, e60 live | Vercel > goasksam > Firewall |
 
 ## 7. e60 (last engine bump before launch)
@@ -78,6 +80,17 @@ Last updated: 2026-10-17T00:26Z (Lane F; Lane C's demo fix built, prePush FAILED
 | Item | Owner | State | Blocked on | Proof |
 |---|---|---|---|---|
 | e60 batch: year-less badge rule, resolver timing contract (a lookup timeout never changes an answer), taxonomy refresh off the request path, latestSaleDate and oldestIncludedSaleDate fields, history-page family read by the archive's columns behind a flag, body-style exports for the Buy card, the 1973 Targa label, a pure-decimal trim never pre-filtering titles (the 280SE 3.5 row), the golden loader counting words answers, readAt on every tier (a thin answer carries none today, the 275 GTB row); warm only traffic, golden and demo cars | Lane B | building | the e59 sweep DONE (which waits on B2's golden run), then the queue | Lane B's READY, PUSH LOCK and PUSHED lines; the e60 warm DONE |
+
+## 7a. Lane C queue after the demo fix (Sam's order)
+
+| Item | Owner | State | Blocked on | Proof |
+|---|---|---|---|---|
+| Tiered prePush | Lane C | not started | the demo fix push | its READY line |
+| Watch-read proposal (13.5 MB eventsFor on a cold cron instance) | Lane C | not started (propose before building) | the tiered prePush | Lane C's proposal |
+| scripts/buyEngineMatch.mjs needs formpairs=0 and identitycounts=0 and batches of 3 or fewer on e59 (else NO ENGINE READ) | Lane C (Lane E's find) | open | Lane C's next push | the script's run |
+| Buy card names from lib/vehicle.js's body list | Lane C | waits on Lane B's e60 body-style exports | e60 | buyNameBodyCheck |
+| Lane A's card options for the demo's basis line and static How Sam decides | Lane A | asked, not landed | Lane A | the demo dropping its own edit |
+| Buy palette: head only today, Buy's own hard-coded colours not on tokens | Sam decides, Lane C builds | decision (asked earlier by Lane C, unanswered) | Sam | a palette B to H render on Buy |
 
 ## 7b. After launch (notes, not built)
 
@@ -92,14 +105,14 @@ Last updated: 2026-10-17T00:26Z (Lane F; Lane C's demo fix built, prePush FAILED
 |---|---|---|---|---|
 | Rotate the Vercel bypass secret | Sam | decision | Sam, in Vercel; every lane's Keychain copy (goasksam-bypass) then goes stale | the new value working in a lane's pushCheck |
 | Rotate CURTAIN_CREW_CODE | Sam | decision | Sam, in Vercel, plus a redeploy; every crew cookie ends at once, lanes need a fresh crew link | lane-notes "The crew cookie: lifetime, what ends it" |
-| Tester code and tester cookie proof | Lane C (code from env with a signed cookie, d77bb921) | checking (not yet proven live: Lane A could not mint a gas_tester cookie, no CURTAIN_TESTER_CODE held) | Sam's tester code, or launch day | a live load of a gated page with the tester cookie |
+| Tester code and tester cookie proof | Lane C | checking (signed tester cookie checked offline in every prePush, scripts/testerCheck.mjs PASS; NO live tester proof this session) | Sam's tester code, or launch day | a live load of a gated page with the tester cookie |
 | Palette choice | Sam | decision (switcher live on Market Check, Buy and Tasks via ?palette=1, crew only; A is the current look) | Sam | ~/Desktop/goasksam-proofs/palette/ |
-| Sam's click-by-click steps file (Turnstile, Supabase auth settings, Resend click tracking, LAUNCH_STAGE and LAUNCH_BUSINESS, GA tag and consent; placeholders only) | Lane C | building (asked by Sam, 2026-10-16) | the access-code push | ~/Desktop/goasksam-proofs/launch/sam-steps.md |
+| Sam's click-by-click steps file (Turnstile, Supabase hook, URLs, sessions, SMTP, Resend click tracking, LAUNCH_STAGE and LAUNCH_BUSINESS, GA and consent; placeholders only; each with what Sam sees when it worked and how to undo) | Lane C | done | Sam reads it | ~/Desktop/goasksam-proofs/launch/sam-steps.md |
 | Turnstile | Sam | decision (proven end to end locally by Lane C, Oct 12; nothing changes until SIGNUP_TURNSTILE=1) | Sam: Cloudflare widget for goasksam.com, TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY, SIGNUP_TURNSTILE=1, redeploy; the steps file | lane-notes 2026-10-12 (Lane C) TURNSTILE PROVEN |
-| Supabase hook, URLs, session and SMTP | Sam, steps from Lane C | decision | the steps file | Supabase dashboard |
-| Resend click tracking off | Sam | decision | Sam, in the Resend dashboard | a test email whose links are not rewritten |
-| Launch stage | Sam | decision (LAUNCH_STAGE=0 today; Market Check, Buy, Tasks and Business crew only) | Sam: LAUNCH_STAGE and LAUNCH_BUSINESS in Vercel, then a redeploy | lib/_launchStage.js; a signed-out load of /market-check staying on the page |
-| GA tag and consent | Sam, state written up by Lane C | decision (EEA, UK and CH visitors load nothing today; a consent banner or a consent-mode tag is an open decision) | the steps file, then Sam | lane-notes ~line 1876 |
+| Supabase hook, URLs, sessions and SMTP | Sam, steps from Lane C | decision (hook code live at POST /api/signup?hook=before_user_created; Sam must set SUPABASE_AUTH_HOOK_SECRET and redeploy BEFORE enabling the hook or every new sign-up is refused; Site URL https://goasksam.com, Redirect URLs https://goasksam.com/** and https://www.goasksam.com/**; session length is Sam's choice, no recorded decision; SMTP is Resend, smtp.resend.com 465, user resend, a dedicated key, sender address Sam's pick on the verified domain; the lib/_signup.js comment still says /api/account, out of date) | the steps file, then Sam | Supabase dashboard; a test sign-up |
+| Resend click tracking off | Sam | decision (off in the Resend domain settings) | Sam | a test email whose links start https://goasksam.com/ |
+| Launch stage | Sam | decision (LAUNCH_STAGE 1 opens Market Check and Tasks, 2 adds Buy; LAUNCH_BUSINESS=1 opens /business; CURTAIN_SEALED must be 0 for public Market Check, its API seal refuses non-crew whatever the stage; each needs a redeploy) | Sam, in Vercel, then a redeploy | a signed-out load of /market-check staying on the page |
+| GA tag and consent | Sam, state written up by Lane C | decision (Lane C: one GA4 tag, GA_MEASUREMENT_ID env or the code's default, crew never counted; EEA, UK and CH get the tag in consent mode with analytics storage denied and an Allow / No thanks banner, everyone else no banner. The older lane-notes line ~1876 said EEA/UK/CH load nothing; Lane C says the code now has consent mode plus banner; a live load from an EEA address would settle which is current) | the steps file, then Sam | a live load from an EEA address |
 | Company name, address and privacy email | Sam | unknown (asked) | | docs/privacy-paragraph.md; /privacy and /about live text |
 | QA | every lane | building | the rows above | prePush, pushCheck, golden table, the live proofs |
 | Partner data-feed message | Sam | unknown (asked) | | the sent message |
