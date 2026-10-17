@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-17T01:01Z (Lane F; AWAY MODE: Sam is away for 25 hours from 01:01Z; the rules below are in force).
+Last updated: 2026-10-17T07:01Z (Lane F; the single away-mode tick; no further ticks are scheduled).
 
 ## 0. Away mode (Sam away 25 hours from 2026-10-17T01:01Z)
 
@@ -42,6 +42,63 @@ Lane F in away mode: no reports sent; every change, failure and blocked lane is 
 - Lane C, 01:1xZ: "STATE: the partner demo fix (54ec8f99 + a9960b18: the internal read past Market Check's seal, the last good answer, no false no-sales text, the hero on view c, the demo's own daily car limit) is built and offline-green (partnerEngineMatch 40/40, partnerAccessCheck 30/30) but NOT pushed: four prePush runs alone (17:11, 17:33, 17:46, 17:53 PDT) each ended 1 FAIL, always the browser check of the LIVE site: fresh Market Check computes 16.7 to 24.6 s against budgets of 8 to 18 s, the 'catching his breath' health line, Buy's header slow or absent, once a 504 on the public /cars/porsche/911 hub page. Lane B measured the database itself slow (a trivial read 21 s at 00:45Z, 1.2 s at 00:52Z). The live demo therefore still shows no sales to a partner-code session, and view d still says 'No recorded sales of cars like this yet.' on a failed read. B2 and Lane B are released (I won't hold the archive); I retry the demo fix once after Lane B's sweep DONE, in a quiet window. ... Rest of my queue: the tiered prePush and the GA consent test are built (scripts only); the watch-read proposal is posted (390fcb8c) and waits on two answers from Lane B; Lane E's SEO C1 to C5 are next to build up to READY (C1 going live is held for Sam)."
 - Lane B, 01:0xZ: "Lane B to Lane F: acknowledged, all six points. My queue while Sam is away, in order, one load at a time: (1) the e59 sweep after B2's DONE (my chain waits on it at five-minute intervals, up to 14 hours), (2) the window-and-age table, (3) the sampled project-flag dry run (read-only, the existing projscan task over 5,000 rows), (4) the SQL file for Sam at ~/Desktop/goasksam-proofs/db/sql-for-sam.md (dry-run counts and examples, the re-stamp scope, the real-columns steps with rollbacks), (5) e60 built to READY on its own branch with local checks green and the before/after on the golden set, NOT pushed. Nothing touches the database, no environment or secret changes, no e60 push. HELD FOR SAM, with my recommendation each: (a) the window and age rule, decide after the table; (b) the real-columns fill and the project-flag re-stamp, run only after his OK, never during a warm or sweep; (c) e60's push. Reports to you at each DONE; then I stop."
 - Lane D, 01:0xZ: "LANE D state: queue finished, stopping per item 6. Nothing unpushed, nothing held for Sam, no open questions. Live on main and accepted: Tasks palette (4c00b688), Sell sales count (5a7a90e9), Tasks send-path reads (8993b2fd), tasks-trim with the hunt status line (73fe6f75). Worktree goasksam-laneD: branch tasks-trim equals its pushed state; origin/main..HEAD is empty; only untracked proofs/ remains. Open notes for others, already in docs/lane-notes.md: FOR LANE B (word-ified count fields; cold-instance watch eventsFor read on the first Tasks run), the bytesRead SQL for Sam. I will not push, run heavy jobs or check in further unless new work is assigned. Search check: no public page touched."
+
+## Away-mode tick, 2026-10-17T07:01Z (the only tick; Lane F)
+
+### Production health and stop-pushing events
+- No deploy has failed since away mode began at 01:01Z. One code push happened in that window: Lane C's scripts-only 878d3ef8 at 01:07Z (tiered prePush, GA consent test, buyEngineMatch flags), Vercel Ready, live search check 5 pages PASS. No two-failed-deploys stop was posted by any lane.
+- Production latency, recorded earlier tonight: Market Check fresh computes 16.7 to 30.4 s and one HTTP 504 on /cars/porsche/911 between 23:46Z and 01:15Z, with the database itself slow (a one-row read 21 s at 00:45Z, 1.2 s at 00:52Z). Lane B's reading: cold buffer cache on Small compute after the evening's full-table scans, parallel cold computes from prePush, and the after-midnight stale recomputes. Four Lane C prePush runs and one Lane E prePush run failed on that speed alone; nothing was pushed over them. No lane has measured the site since 01:15Z, so its current state is unknown to the Desk.
+
+### Since 01:56Z: no change
+- origin/main has not moved since Lane F's 4b657fd0 at about 01:57Z. No lane-notes line, no code push, no lane message reached the Desk between 01:57Z and 07:01Z.
+- Lane B's e59 sweep has posted neither RUNNING nor DONE. B2's golden DONE (01:36Z) reached origin/main only through Lane F's relay line in docs/lane-notes.md (8ed91894) because four Desk sends and B2's own sends to Lane B failed. Whether Lane B's watcher saw that line is unknown. If the sweep did not start, the whole chain behind it (Lane B's window-and-age table and SQL file, e60 to READY, B2's 14-row re-read, Lane C's demo-fix retry and SEO C2 to C5 push, Lane E's E9 retry) is still waiting on it. Sam: Lane B's session shows as a background session ("bg") in the peer list; a message from Sam's own window may reach it where the Desk's could not.
+
+### Needs Sam (ordered by what blocks the launch list)
+1. Lane C item (1): the partner demo fix (branch partner-fix, 54ec8f99 + a9960b18) cannot pass the full prePush while the live site's cold computes run slow; four runs each ended 1 FAIL on the live-site browser check only. Lane C's recommendation: a one-time exception for THIS push only, recorded in lane-notes like Lane B's e53 exception, push when every check except the browser check's Market Check and Buy timing lines passes, then the partner-code live checks at once and an immediate revert if any fails. Until then a partner-code session sees no sales on the demo, and view d can still print the false no-sales text on a failed read.
+2. The golden table is NOT at zero mismatches (B2's DONE 01:36Z: 218 PASS, 58 FAIL of which 8 are over-deadline re-reads, 3 RENDER DRIFT, 12 PENDING). The real or unclear rows need owners' answers: rows 16 Saab 9-2X and 17 Bugatti Type 41 needs_clarification on all four products (passed on e58) and row 9 Defender 110 count 10 to 9, both for Lane B; row 11 Merkur XR4Ti Market Check label empty and Sell empty pool; rows 14 and 23 275 GTB Sell prints no count against Market Check 9; row 10 M3 Coupe Market Check page no count against Sell 14; the shared-card checker needs the demo's new access path from Lane C; Buy and Sell shared-card identity rows wait on Lane A's live checks (Lane A's card adoption 9a75fea1 and 1436f1de pushed, live checks never posted).
+3. Window and age rule decision (blocks the e60 push, which blocks golden row 46 and "every car returns a range"); Lane B's table follows the e59 sweep, which has not been seen to start.
+4. Lane B's suggestion for prePush under a cold database: page loads one at a time, warm prePush's perf cars with a crew read each first, add them to the e60 warm list.
+5. GA tag and consent: keep or change (proven: consent mode plus an Allow / No thanks banner for the 32 EEA, UK and Swiss countries, no banner elsewhere, nothing for crew).
+6. Golden truth in the fast prePush tier (Lane C left it out because it reads the archive).
+7. Post-midnight warm scope (Lane B recommends the demo cars and the golden rows at 00:05 UTC).
+8. Lane B2 (1): re-pin Defender 110 only after Lane B confirms the 9-sale read is intended.
+9. HELD FOR SAM, built or building to READY: SEO C1 edge cache (lanec-seo-c1, built); e60 (Lane B, to READY on its branch); the firewall publish; the database SQL file (~/Desktop/goasksam-proofs/db/sql-for-sam.md, after the sweep); llms.txt placement by Lane A; the launch stage, Supabase hook and all env or secret changes (~/Desktop/goasksam-proofs/launch/sam-steps.md); the partner code proof in Sam's own private window; anything to Cameron.
+
+### Each lane's latest words (verbatim; the full text of each is in section 0 above)
+- Lane B (01:0xZ): "acknowledged, all six points. My queue while Sam is away, in order, one load at a time: (1) the e59 sweep after B2's DONE (my chain waits on it at five-minute intervals, up to 14 hours), (2) the window-and-age table, (3) the sampled project-flag dry run (read-only, the existing projscan task over 5,000 rows), (4) the SQL file for Sam ... (5) e60 built to READY on its own branch with local checks green and the before/after on the golden set, NOT pushed. Nothing touches the database, no environment or secret changes, no e60 push." Nothing since.
+- Lane B2 (01:5xZ): "I am not pushing a docs-only commit by myself ... Nothing of mine is running, and I take no further action until Lane B's sweep DONE." Its DONE line (01:36Z) is in section 0 and in docs/lane-notes.md.
+- Lane C (01:2xZ): "1. PUSHED 878d3ef8 at 01:07Z, Vercel Ready, scripts only ... 2. READY, partner-fix (demo fix): blocked by the live site's speed ... 3. READY, lanec-seo ... 4. HELD FOR SAM, lanec-seo-c1 ... 5. WAITING: the watch-read fix (needs Lane B's two answers), card body names (e60 export), Buy palette tokens (after Sam picks the palette). Lane C is now blocked on the quiet window and on Sam; stopping until Lane B's sweep DONE."
+- Lane D (01:0xZ): "queue finished, stopping per item 6. Nothing unpushed, nothing held for Sam, no open questions."
+- Lane E (01:1xZ): "Built to READY: buy-speed-4 = E9 ... Nothing pushed, lock released 01:15Z, no revert needed ... Plan: one more prePush alone later when a single light Market Check read is under 10 s, no loop; if that fails, E9 waits for Sam ... Stopping now per the relay."
+- Lane A: unreachable by the Desk all night; its last lane-notes line is the PUSHED of the Sell and Buy card adoption (9a75fea1, 1436f1de) with live checks promised and not posted.
+
+### Status table at 07:01Z
+| Item | Owner | State | Blocked on | Proof |
+|---|---|---|---|---|
+| Market Check matches the mockup | Lane A | checking (zero gaps on four cars, Oct 16) | Sam's sign-off | proofs/card/audit-* |
+| Every car returns a range | Lane B | building (e60, held for Sam's push) | the sweep, the window and age rule | e60 READY line |
+| Golden table zero mismatches | Lane B2 | NOT at zero (DONE 01:36Z, breakdown above) | re-reads after the sweep; Lane B, Lane A, Lane C answers; e60 for row 46 | B2's DONE; the re-read results; the final pages run |
+| Sam's own review | Sam | decision | the rows above | Sam's note |
+| Partner demo | Lane C | INCIDENT, fix READY not pushed | Sam's exception or a quiet window | partner-code live checks |
+| Partner access code | Lane C | live (ba6560b5); right code unproven live | Sam's private-window check | the demo drawn with no ?k= |
+| Buy speed E1 to E8 | Lanes E, B, C | live | nothing | buyTimes after-table; reruns pass |
+| Buy speed E9 | Lane E | READY not pushed | a quiet window; else Sam | nine scenarios pass |
+| Tasks fixes | Lane D | live, accepted | nothing | deployed proofs |
+| Shared card on Sell and Buy | Lane A | pushed, live checks not posted | Lane A | its live-check line |
+| Supabase cost work (dry run, SQL file, real columns, window and age) | Lane B | queued behind the sweep; SQL held for Sam | the sweep; Sam's OK | sql-for-sam.md |
+| Tiered prePush | Lane C | live (878d3ef8) | Sam on golden in the fast tier | PUSHED line |
+| SEO C2 to C5 | Lane C | READY | a quiet window | seoAudit proofs |
+| SEO C1 edge cache | Lane C | READY, HELD FOR SAM | Sam | seoAudit cache HIT |
+| SEO A1 to A4, llms.txt placement | Lane A | not started; text on main | Lane A | /llms.txt 200 as Googlebot |
+| Firewall publish | Sam | held | caching live, e60 live | Vercel firewall |
+| e60 | Lane B | building to READY, push HELD FOR SAM | the sweep; Sam | READY with golden before/after |
+| Pre-launch settings (Turnstile, Supabase, Resend, launch stage, GA, codes, secrets) | Sam | decisions, steps written | Sam | sam-steps.md; QA checks |
+| Sam's steps file | Lane C | done | Sam reads it | ~/Desktop/goasksam-proofs/launch/sam-steps.md |
+
+### Queue watch at 07:01Z
+- Lane B's sweep: waiting on B2's DONE since 22:59Z on Oct 16; the DONE has been on origin/main since about 01:57Z; no RUNNING line in five hours.
+- Lanes B2, C and E: waiting on Lane B's sweep DONE since about 01:36Z to 01:57Z.
+- Lane D: finished. Lane A: unknown.
 
 ## 1. The four launch items
 
