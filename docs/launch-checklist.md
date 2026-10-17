@@ -27,6 +27,9 @@ Lane F in away mode: no reports sent; every change, failure and blocked lane is 
 ### Lane questions posted to Lane F while Sam is away (numbered, with the lane's recommendation)
 - none yet.
 
+### Lane words received while Sam is away (verbatim, newest first)
+- Lane D, 01:0xZ: "LANE D state: queue finished, stopping per item 6. Nothing unpushed, nothing held for Sam, no open questions. Live on main and accepted: Tasks palette (4c00b688), Sell sales count (5a7a90e9), Tasks send-path reads (8993b2fd), tasks-trim with the hunt status line (73fe6f75). Worktree goasksam-laneD: branch tasks-trim equals its pushed state; origin/main..HEAD is empty; only untracked proofs/ remains. Open notes for others, already in docs/lane-notes.md: FOR LANE B (word-ified count fields; cold-instance watch eventsFor read on the first Tasks run), the bytesRead SQL for Sam. I will not push, run heavy jobs or check in further unless new work is assigned. Search check: no public page touched."
+
 ## 1. The four launch items
 
 | Item | Owner | State | Blocked on | Proof |
