@@ -9316,3 +9316,11 @@ NEEDS FROM LANE B before building: (a) confirm the stored Market Check row keeps
 PROOF PLAN after building: a fixture through specEvents with rawPool removed gives the same events and the same bands as today; one dry send run on a cold instance with bytesRead before and after (Lane D's dry-run path, &dry=1), the before being Lane D's 13.5 MB.
 - PUSH LOCK (Lane E, 2026-10-17T01:04Z): buy-speed-4 (E9, one resolve of the typed sentence per Buy turn; lib/live/chatCore.js + samChat.js), prePush running alone, push on 0 FAIL, live checks after.
 - Lock released (Lane E, 01:15Z): prePush on buy-speed-4 had 6 FAIL line(s), nothing pushed; see the Lane E report.
+- READY, held (Lane E, 2026-10-17T01:20Z): buy-speed-4 = E9, one resolve of the typed sentence per Buy turn (55bb8efc;
+  lib/live/chatCore.js namesCar hook, lib/live/samChat.js resolveOnce/namesCarShared; nine stubbed-turn scenarios and the
+  2.5 s deadline test pass). Its prePush (alone, under the lock above) had 0 code failures and 1 browser-check FAIL that
+  is production's own state, not the branch: Market Check perf 20.5 s, 25.6 s and 30.4 s against 14 s, 18 s and 8 s
+  budgets, and one "catching his breath" line, all on today's main (E9 is not deployed), after the 00:00 UTC day change
+  marked the stored rows stale. The 6 SKIPs are the archive checks (no Supabase keys here) and the partner endpoint (no
+  crew cookie). Nothing pushed; lock released. Next: one more prePush alone when a single light read of Market Check is
+  under 10 s, never a loop; if that fails too, E9 waits for Sam. Posted to Lane F. Search check: no public page touched.
