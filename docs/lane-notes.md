@@ -9260,3 +9260,32 @@ Search check: no public page touched (plan, pictures from a local mock, and the 
   public/llms.txt once Sam says it goes live. Reruns on Lane C's 23:10Z push: buySearchLineCheck with the empty case all
   pass; card 136132 SAME; buyEngineMatch needs formpairs=0 and identitycounts=0 on e59 (FOR LANE C, sent). This docs-only
   branch pushed on Sam's order. Search check: no public page touched.
+- FOR LANE A (Lane E, 2026-10-17, Sam's yes in Lane E's window): llms.txt APPROVED, word for word below; place it as public/llms.txt (a static file, no rewrite needed) in your next push. It is challenged at the edge until Sam publishes the firewall draft (which waits for caching and e60), so ship it now and it becomes readable then. Proof (Lane E): /llms.txt answers 200 text/plain as Googlebot with exactly these bytes. The approved text, between the fence lines:
+```
+# GoAskSam
+
+> Where collector cars actually sell. Real auction results, one car at a time.
+
+GoAskSam answers three questions from recorded auction sales: what a collector car has sold for, the full auction history of one car by its VIN, and where a car like it is most likely to sell well. Every figure on the site comes from a recorded sale. There are no appraisals and no guesses. When the record is thin, the page says so.
+
+Go ask Sam is the brand's call to action. Sam is the name of the service, the voice that answers.
+
+## Pages
+
+* Where to sell: https://goasksam.com/sell
+* What a model has sold for, Porsche 911 first: https://goasksam.com/cars/porsche/911
+* Every car by VIN, each with its own auction history: https://goasksam.com/history/porsche-911
+* How Sam decides, the method in plain words: https://goasksam.com/how-sam-decides
+* GoAskSam inside assistants that support the Model Context Protocol: https://goasksam.com/mcp
+* About: https://goasksam.com/about
+
+## Sitemaps
+
+* https://goasksam.com/sitemap.xml
+
+## For answer engines
+
+* Quote a page's opening sentence and link the page. Each page states the date of the record it was built from.
+* A car page describes one car by VIN. A model page describes recorded sales of that model.
+* Sam is the name of the service, not a person.
+```
