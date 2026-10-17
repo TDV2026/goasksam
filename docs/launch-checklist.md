@@ -33,7 +33,8 @@ Last updated: 2026-10-17 ~00:12Z (Lane F; demo incident cause found by Lane C: c
 | E1, E2, E3, E4, E6, E8 (no regeneration call, one stored-row read, enrichment beside the model round, set-aside wait bounded, one model call plus the fixed line, live read beside the tool round) | Lane E | live (12cd6a7e, 2a74a162, fddb9b6a) | nothing | scripts/buyTimes.mjs after-table in lane-notes (header and first card 2.9 to 6.7 s, median 3.6 s, against 6.9 to 8.1 s before and 18.5 to 24.4 s spikes); buySearchLineCheck 4 of 4; buyEngineMatch 14 same 0 different; "Buy six-car retime" |
 | E5 (a failed spec_market_cache read is not an empty table) | Lane B | live (in e59) | nothing | e59 PUSHED line |
 | E7 (00:00 UTC row reset and ENGINE_VERSION bumps put Buy cold) | Lane B | parked for launch (mitigated by the traffic-only warm, e59: 602 specs, and the demo-cars-warm-first order, not by code) | nothing | Lane B's answer to Lane F |
-| Empty-result line not sent by the server over no cards (buy-speed-3) and the card 136132 naming fix | Lane E (server), Lane C (page, names) | live (be1f06a8, 24e5b7c4, d81a2bcb, 0fcae7e7 in Lane C's 23:10Z push) | Lane E's reruns of buySearchLineCheck's empty case and buyEngineMatch on the Mustang | Lane C's 23:10Z PUSHED line; Lane E's rerun lines |
+| Empty-result line not sent by the server over no cards (buy-speed-3) and the card 136132 naming fix | Lane E (server), Lane C (page, names) | live and rerun (buySearchLineCheck with the empty case all pass; buyEngineMatch on the Mustang: card 136132 SAME, count 4, no range both sides; "1965 Ford Mustang" 69 sales, $22,000 to $38,500) | nothing | Lane E's rerun report |
+| Keyed enginecheck task overruns 300 s on e59 unless formpairs=0 and identitycounts=0 are passed (first buyEngineMatch read showed NO ENGINE READ on all four cards) | Lane E found; Lane C's script; Lane B's task | reported (Lane E sent the flags to Lane C) | whether B2's restarted runner passes the same flags | Lane E's report; B2's progress lines |
 | Resolver cold start and path-on-timing (speed and correctness) | Lane B | building (in e60) | e60 | Lane B's e60 READY line |
 
 ## 4. Tasks fixes
@@ -69,7 +70,7 @@ Last updated: 2026-10-17 ~00:12Z (Lane F; demo incident cause found by Lane C: c
 
 | Item | Owner | State | Blocked on | Proof |
 |---|---|---|---|---|
-| SEO plan items (cookie-free caching only, never Tasks or personalised pages, the /mcp check, no live engine call on a crawl, home page block screenshots, VIN count dropped) and the revised llms.txt | Lane E | building (approved by Sam, 2026-10-16) | nothing; the push prompt for laneE-notes in Lane E's window | Lane E's READY and PUSHED lines; the caching live |
+| SEO plan items (cookie-free caching only, never Tasks or personalised pages, the /mcp check, no live engine call on a crawl, home page block screenshots, VIN count dropped) and the revised llms.txt | Lane E | building (approved by Sam, 2026-10-16; Lane E's 00:1xZ report says the approval was not yet received, so Lane F re-sent it and asked for a receipt) | Lane E's receipt; the push prompt for laneE-notes in Lane E's window | Lane E's READY and PUSHED lines; the caching live |
 | Firewall publish (the staged WAF rules) | Sam | held (stays staged and unpublished until the caching is live and e60 is live; Sam publishes it himself) | caching live, e60 live | Vercel > goasksam > Firewall |
 
 ## 7. e60 (last engine bump before launch)
