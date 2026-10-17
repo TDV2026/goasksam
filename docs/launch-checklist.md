@@ -16,6 +16,9 @@ Lane F in away mode: no reports sent; every change, failure and blocked lane is 
 ### Production health and stop-pushing events (newest first)
 - none recorded since 01:01Z.
 
+### Desk delivery notes
+- 01:2xZ: two sends from Lane F to Lane B (the relay of Lane C's release and the watch-read proposal pointer) returned "Failed to send" while Lane B's session was busy; a third try by ref followed. Lane B's own plan does not depend on the relay: its chain waits on B2's DONE at five-minute intervals. B2 received the release relay.
+
 ### Needs Sam (ordered by what blocks the launch list)
 1. Lane C item (1): the partner demo fix (54ec8f99 + a9960b18) cannot pass the full prePush while the live site's cold computes run slow; four runs each ended 1 FAIL on the live-site browser check only (fresh computes 16.7 to 24.6 s, once a 504 on /cars/porsche/911). The change touches only api/partnerAnswer.js, api/partnerDemo.js, lib/_ceilings.js and a test; offline checks green. Lane C's recommendation: a one-time exception for THIS push only, recorded in lane-notes like Lane B's e53 exception: push when every check except the browser check's Market Check and Buy timing lines passes, then run the partner-code live checks at once and revert immediately if any fails. Until Sam says so, Lane C does not push it; it retries once after Lane B's sweep DONE in a quiet window. Meanwhile a partner-code session still sees no sales on the demo.
 2. Window and age rule decision (blocks e60 push, which blocks row 46 of the golden table and "every car returns a range"); Lane B's table follows the e59 sweep.
