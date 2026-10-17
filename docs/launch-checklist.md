@@ -84,7 +84,7 @@ Last updated: 2026-10-17T00:12Z by the machine clock (Lane F; Lane E's SEO plan 
 | Item | Owner | State | Blocked on | Proof |
 |---|---|---|---|---|
 | Internal-caller flag in sellerDecision.js for in-process reads | Lane B | note for after launch (Sam's decision) | launch | |
-| Traffic-only warm also just after 00:00 UTC each day (the day change marks every stored row stale) | Lane B | report only, not built (Sam's order) | Lane B's report | Lane B's e60 notes |
+| Warm just after 00:00 UTC each day (the day change marks every stored row stale; a stale row is served at once with the dated line and recomputes on first visit) | Lane B | reported (recommendation: yes, small and targeted, the seven demo cars and the 38 golden rows at 00:05 UTC, about 45 page reads and 150 MB, a crew-cookie read loop from the nightly jobs' place; not the 602-spec traffic warm, 2 to 4 GB a day for a line that disappears on the second visit) | Sam's decision | Lane B's report to Lane F |
 
 ## 8. Pre-launch items
 
