@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-17 ~00:28Z (Lane F; Sam's demo-fix decisions: internal credential, no engine flag in e60, partner-code live checks, partner endpoint daily limit).
+Last updated: 2026-10-17T00:12Z by the machine clock (Lane F; Lane E's SEO plan approved directly by Sam, llms.txt built for review, laneE-notes pushed). Earlier ~00:2xZ stamps above this line ran ahead of the clock.
 
 ## 1. The four launch items
 
@@ -70,7 +70,7 @@ Last updated: 2026-10-17 ~00:28Z (Lane F; Sam's demo-fix decisions: internal cre
 
 | Item | Owner | State | Blocked on | Proof |
 |---|---|---|---|---|
-| SEO plan items (cookie-free caching only, never Tasks or personalised pages, the /mcp check, no live engine call on a crawl, home page block screenshots, VIN count dropped) and the revised llms.txt | Lane E | building (approved by Sam, 2026-10-16; Lane E's 00:1xZ report says the approval was not yet received, so Lane F re-sent it and asked for a receipt) | Lane E's receipt; the push prompt for laneE-notes in Lane E's window | Lane E's READY and PUSHED lines; the caching live |
+| SEO plan items (cookie-free caching only, never Tasks or personalised pages, the /mcp check, no live engine call on a crawl, home page block screenshots, VIN count dropped) and llms.txt | Lane E (llms.txt placed by Lane A at public/llms.txt) | building (Sam's approval given directly in Lane E's window; llms.txt built under Sam's rules at ~/Desktop/goasksam-proofs/seo/llms.txt, shown to Sam before it goes live; laneE-notes docs branch pushed to main, df0f993f) | Sam's review of the llms.txt file; Lane A placing it; the caching items (FOR LANE A, B, C notes in lane-notes) | lane-notes "Lane E, SEO PLAN REVISED TO SAM'S SIX CHANGES"; ~/Desktop/goasksam-proofs/seo/plan-and-llms.md |
 | Firewall publish (the staged WAF rules) | Sam | held (stays staged and unpublished until the caching is live and e60 is live; Sam publishes it himself) | caching live, e60 live | Vercel > goasksam > Firewall |
 
 ## 7. e60 (last engine bump before launch)
