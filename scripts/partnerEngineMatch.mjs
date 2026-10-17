@@ -70,6 +70,16 @@ for (const [name, d] of Object.entries(FIX)) {
   if (name === "question") ok(out.question && out.question.options.length === 2 && out.question.options[0].send.q === "2015 Porsche 991 GT3" && out.range === null, "question: the engine's own options, what each sends, no range");
   if (name === "clarify") ok(out.answerType === "identity_question" && out.range === null, "clarification: a question, no range");
 }
+// The last good answer (Oct 17 2026): shown only while the engine's readAt is under a day old, and only a good answer.
+{ const { lastGoodUsable, DEMO_CARS } = await import("../api/partnerAnswer.js");
+  const good = { readAt: new Date(Date.now() - 3600e3).toISOString(), out: { ok: true, answerType: "range" } };
+  ok(lastGoodUsable(good) === true, "last good: an hour-old good answer is shown when a live read fails");
+  ok(lastGoodUsable({ ...good, readAt: new Date(Date.now() - 25 * 3600e3).toISOString() }) === false, "last good: past a day it is never shown (the page says it could not read)");
+  ok(lastGoodUsable({ ...good, out: { ok: false } }) === false && lastGoodUsable(null) === false, "last good: a failed answer is never kept as good");
+  ok(DEMO_CARS.length === 6 && DEMO_CARS.includes("2015 Porsche 911 GT3"), "last good: kept for the demo's own six cars"); }
+// A failed read never says the car has no sales (Sam, Oct 17 2026): the page's sales section draws the could-not-read line.
+{ const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
+  ok(/if \(!a \|\| a\.ok === false\) return '<p class="muted">' \+ COULD_NOT/.test(pageSrc) && /setTimeout\(function\(\)\{ ask1\(body\)/.test(pageSrc), "a failed read: one retry, then the could-not-read line, never the no-sales text"); }
 // The endpoint reads no market of its own: Market Check's handler is its only source of figures.
 const src = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8").replace(/\/\/[^\n]*/g, "");
 ok(/import\("\.\/sellerDecision\.js"\)/.test(src) && /oneBox: true/.test(src), "the endpoint asks Market Check's own handler");

@@ -113,6 +113,7 @@ h3{font-size:18px;line-height:1.3;margin:0 0 10px;font-weight:700}
 .full{margin-top:36px}
 .hero-img{display:block;width:100%;height:auto;aspect-ratio:1600/1058;object-fit:cover;border-radius:12px;background:#d9d9d9}
 .gal-hero{grid-template-columns:1fr}
+.thumb-img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:12px;background:#d9d9d9}
 .b-hero{max-width:760px;margin:0 0 22px}
 .full-a{margin-top:26px}
 .full-a h2{font-size:20px;margin-bottom:8px}
@@ -158,10 +159,15 @@ const JS = String.raw`
   var MON = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var monthYear = function(d){ var p = String(d || "").split("-"); return p.length >= 2 && MON[Number(p[1]) - 1] ? MON[Number(p[1]) - 1] + " " + p[0] : ""; };
   var plural = function(n, one, many){ return n === 1 ? one : many; };
-  function ask(body){
+  // One read; a failed one is retried once, a few seconds later, before the page says it could not read the sales.
+  function ask1(body){
     return fetch("/api/partnerAnswer", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
       .then(function(r){ return r.json(); }).catch(function(){ return { ok: false, error: "unavailable" }; });
   }
+  function ask(body){
+    return ask1(body).then(function(a){ return a && a.ok !== false ? a : new Promise(function(res){ setTimeout(function(){ ask1(body).then(res); }, 4000); }); });
+  }
+  var COULD_NOT = "Sam could not read the sales just now. Try again in a minute.";
   // The card's footer: the credit, the Updated date (the endpoint's shared last-ingest date, none when unread) and
   // How Sam decides.
   // Panels around the shared card (This car before, the sales section): the credit and How Sam decides only; the one
@@ -228,7 +234,8 @@ const JS = String.raw`
     return '<div class="panel"><h3>This car before</h3>' + rows + foot(a) + "</div>";
   }
   function tiles(a){
-    if (!a || a.question || !a.sales || !a.sales.length) return '<p class="muted">' + esc((a && a.thin) || "No recorded sales of cars like this yet.") + "</p>";
+    if (!a || a.ok === false) return '<p class="muted">' + COULD_NOT + "</p>";
+    if (a.question || !a.sales || !a.sales.length) return '<p class="muted">' + esc((a && a.thin) || "No recorded sales of cars like this yet.") + "</p>";
     return '<div class="tiles">' + a.sales.map(function(s){ return '<div class="tile"><div class="p">' + usd(s.price) + '</div><div class="d">Sold ' + esc(dayLabel(s.date)) + '</div><div class="d">' + esc(milesOf(s)) + "</div></div>"; }).join("") + "</div>";
   }
   // ---- view a: before listing
@@ -286,10 +293,12 @@ export function pageHtml(view) {
   const d = DUMMY, miles = d.miles.toLocaleString("en-US");
   // The one hero image (views b and d), served by this handler behind the same crew gate (?img=hero).
   const hero = `<img class="hero-img" src="/partner-demo?img=hero" width="${HERO_W}" height="${HERO_H}" alt="A black 2015 Porsche 911 GT3 coupe in a white studio, seen from the front three-quarter, with its fixed rear wing and grey wheels" decoding="async">`;
+  // View c (Sam, Oct 17 2026): the hero in the main photo slot and the same image as the thumbnails (decorative copies).
+  const heroThumbs = Array.from({ length: 5 }, () => `<img class="thumb-img" src="/partner-demo?img=hero" alt="" aria-hidden="true" decoding="async">`).join("");
   const listing = (withRail, withHero) => `
   <div class="listing">
     <div>
-      ${withHero ? `<div class="gal gal-hero">${hero}</div>` : `<div class="gal"><div class="thumbs">${phs(5)}</div><div class="ph main-ph" aria-hidden="true">Placeholder photo</div></div>`}
+      ${withHero === "gallery" ? `<div class="gal"><div class="thumbs">${heroThumbs}</div>${hero}</div>` : withHero ? `<div class="gal gal-hero">${hero}</div>` : `<div class="gal"><div class="thumbs">${phs(5)}</div><div class="ph main-ph" aria-hidden="true">Placeholder photo</div></div>`}
       <div class="phone-only"></div>
     </div>
     <div class="rail">
@@ -321,7 +330,7 @@ export function pageHtml(view) {
   <div class="reserve"><label for="b-res">Reserve</label><span class="money">$<input id="b-res" inputmode="numeric" placeholder="0" aria-label="Reserve in dollars"></span></div>
   <div id="b-out"><p class="loading">Sam is reading the sales.</p></div></div>
 </section>
-<section class="sec-view wrap" id="view-c"${v === "c" ? "" : " hidden"}>${listing(true)}</section>
+<section class="sec-view wrap" id="view-c"${v === "c" ? "" : " hidden"}>${listing(true, "gallery")}</section>
 <section class="sec-view wrap" id="view-d"${v === "d" ? "" : " hidden"}>${listing(false, true)}${desc}
   <div class="full" id="d-sales"><p class="loading">Sam is reading the sales.</p></div>
   <div class="full" id="d-hist"></div>
