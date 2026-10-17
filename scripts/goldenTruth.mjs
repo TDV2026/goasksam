@@ -145,7 +145,7 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
     const row = byQ[g.q] || { error: "no row returned" };
     const lanes = row.lanes || {};
     const cells = {};
-    for (const p of PRODUCTS) cells[p] = row.error && !row.lanes ? { cell: g.status === "pending" ? "PENDING" : "FAIL", diffs: ["resolver: " + String(row.error).slice(0, 50)] } : judge(g, lanes[p]);
+    for (const p of PRODUCTS) cells[p] = row.error && !row.lanes ? (/HTTP 0/.test(String(row.error)) ? { cell: "RE-READ", diffs: ["re-read: " + String(row.error).slice(0, 110)] } : { cell: g.status === "pending" ? "PENDING" : "FAIL", diffs: ["resolver: " + String(row.error).slice(0, 50)] }) : judge(g, lanes[p]);
     rows.push({ g, cells, page: null });
   }
 
