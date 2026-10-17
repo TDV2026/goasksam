@@ -17,7 +17,7 @@ const flag = n => process.argv.includes("--" + n);
 // MODES (Oct 16 2026, Sam): "pages" (--pages) renders the Market Check, Buy and Sell page of every row (the final launch run); the default "api" reads every
 // engine answer through the keyed enginecheck path and renders a page only for a row whose check needs the printed text (needsPage below).
 const MODE = process.argv.includes("--pages") ? "pages" : "api";
-const DEADLINE = Math.max(20, Number((process.argv.find(a => a.startsWith("--deadline=")) || "").split("=")[1]) || 120);   // seconds one read may take before the row is marked re-read
+const DEADLINE = Math.max(20, Number((process.argv.find(a => a.startsWith("--deadline=")) || "").split("=")[1]) || 240);   // seconds one read may take before the row is marked re-read
 const stamp = () => new Date().toISOString().slice(11, 19) + "Z";
 const needsPage = g => !!(g.page || g.wordsHas || g.statesBody || g.equalsBare || g.chipPairs || g.sharedCard || g.sellEqualsMC || g.noZeroOptions || g.variantRule || g.noRestoration || g.question);
 const BASE = (arg("base") || "https://goasksam.com").replace(/\/$/, "");
@@ -123,13 +123,17 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
     console.error(`progress mode ${MODE}: rows done ${GOLDEN.filter(g => GOLDEN_QS.indexOf(g.q) < i).length} of ${TOTAL_ALL} (engine reads), reading cars ${i + 1} to ${Math.min(i + BATCH, GOLDEN_QS.length)}, read started ${stamp()}`);
     const chunk = GOLDEN_QS.slice(i, i + BATCH).map(q => ({ q }));
     const url = `/api/usageDashboard?view=ops&task=enginecheck&buypaths=0&livefences=0&representative=0&splitpools=0&overtime=0&livelisting=0&cacheconsistency=0&specs=${encodeURIComponent(chunk.map(g => g.q).join("|"))}`;
+    const tChunk = Date.now();
     const r = await ops(url);
+    const ranOver = Date.now() - tChunk >= DEADLINE * 900;
     let j = null; try { j = JSON.parse(r.text); } catch (e) {}
     if (r.status === 401) { console.log("goldenTruth: the ops key was rejected (401). Nothing compared."); process.exit(flag("strict") ? 1 : 0); }
     for (const row of (j && j.rows) || []) byQ[row.q] = row;
     // A chunk that comes back empty (HTTP 0 from a read that ran long under load) is asked again one car at a time, so a slow archive
     // costs time and not a false FAIL on three cars.
-    if (!j) for (const g of chunk) {
+    // A read that ran over the deadline is NOT asked again (the server is still working on the first ask; a second ask adds load while the archive is slow): the cars are marked re-read.
+    if (!j && ranOver) for (const g of chunk) byQ[g.q] = { q: g.q, error: `ops task returned HTTP 0 (read ran over the ${DEADLINE} s line, started ${new Date(tChunk).toISOString().slice(11, 19)}Z)` };
+    else if (!j) for (const g of chunk) {
       const r1 = await ops(`/api/usageDashboard?view=ops&task=enginecheck&buypaths=0&livefences=0&representative=0&splitpools=0&overtime=0&livelisting=0&cacheconsistency=0&specs=${encodeURIComponent(g.q)}`);
       let j1 = null; try { j1 = JSON.parse(r1.text); } catch (e) {}
       const row1 = j1 && j1.rows && j1.rows[0];
