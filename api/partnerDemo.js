@@ -165,9 +165,11 @@ const JS = String.raw`
       .then(function(r){ return r.json(); }).catch(function(){ return { ok: false, error: "unavailable" }; });
   }
   function ask(body){
-    return ask1(body).then(function(a){ return a && a.ok !== false ? a : new Promise(function(res){ setTimeout(function(){ ask1(body).then(res); }, 4000); }); });
+    return ask1(body).then(function(a){ return a && (a.ok !== false || a.error === "rate_limited") ? a : new Promise(function(res){ setTimeout(function(){ ask1(body).then(res); }, 4000); }); });
   }
   var COULD_NOT = "Sam could not read the sales just now. Try again in a minute.";
+  var LIMIT = "That is today's limit for other cars on this demo. The demo's own cars still open.";
+  var notRead = function(a){ return a && a.error === "rate_limited" ? LIMIT : COULD_NOT; };
   // The card's footer: the credit, the Updated date (the endpoint's shared last-ingest date, none when unread) and
   // How Sam decides.
   // Panels around the shared card (This car before, the sales section): the credit and How Sam decides only; the one
@@ -210,7 +212,7 @@ const JS = String.raw`
   }
   function rangePanel(a, opts){
     opts = opts || {};
-    if (!a || a.ok === false) return '<div class="panel"><h3>What these sell for</h3><p class="muted">Sam could not read the sales just now. Try again in a minute.</p>' + foot(a) + "</div>";
+    if (!a || a.ok === false) return '<div class="panel"><h3>What these sell for</h3><p class="muted">' + notRead(a) + "</p>" + foot(a) + "</div>";
     if (a.question) return '<div class="panel"><h3>What these sell for</h3>' + idChips(a) + questionHtml(a, opts.slot || "") + foot(a) + "</div>";
     // The shared card (lib/sellsForCard.js, rendered by the endpoint): this page only fills its pill slot. The card has
     // pill slot in every case (Lane A's 3e8445d6), so every pill, the grey no-range one too, sits where the card puts it.
@@ -234,7 +236,7 @@ const JS = String.raw`
     return '<div class="panel"><h3>This car before</h3>' + rows + foot(a) + "</div>";
   }
   function tiles(a){
-    if (!a || a.ok === false) return '<p class="muted">' + COULD_NOT + "</p>";
+    if (!a || a.ok === false) return '<p class="muted">' + notRead(a) + "</p>";
     if (a.question || !a.sales || !a.sales.length) return '<p class="muted">' + esc((a && a.thin) || "No recorded sales of cars like this yet.") + "</p>";
     return '<div class="tiles">' + a.sales.map(function(s){ return '<div class="tile"><div class="p">' + usd(s.price) + '</div><div class="d">Sold ' + esc(dayLabel(s.date)) + '</div><div class="d">' + esc(milesOf(s)) + "</div></div>"; }).join("") + "</div>";
   }

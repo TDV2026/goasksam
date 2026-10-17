@@ -305,6 +305,12 @@ export default async function handler(req, res) {
   }
   if (!text) return res.status(400).json({ ok: false, error: "Type a car, or a VIN." });
   const updatedP = lastUpdatedDate(env).catch(() => null);   // the shared last-ingest date; null shows no date
+  // The demo's own daily car limit (lib/_ceilings.js partner_cars): any car other than the demo's six counts; past it the
+  // answer is a 429 the page shows as today's limit, never as a car with no sales.
+  if (!demoKey(text)) {
+    const cars = await checkCeiling(env, req, "partner_cars", { tool: "partner" }).catch(() => ({ ok: true }));
+    if (!cars.ok) return res.status(429).json({ ok: false, query: text, error: "rate_limited" });
+  }
   let r;
   try { r = await marketCheckAnswer(req, text, refine, asked); } catch (e) {
     console.error("partnerAnswer:", (e && e.message) || e);

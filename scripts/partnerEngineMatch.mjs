@@ -79,7 +79,15 @@ for (const [name, d] of Object.entries(FIX)) {
   ok(DEMO_CARS.length === 6 && DEMO_CARS.includes("2015 Porsche 911 GT3"), "last good: kept for the demo's own six cars"); }
 // A failed read never says the car has no sales (Sam, Oct 17 2026): the page's sales section draws the could-not-read line.
 { const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
-  ok(/if \(!a \|\| a\.ok === false\) return '<p class="muted">' \+ COULD_NOT/.test(pageSrc) && /setTimeout\(function\(\)\{ ask1\(body\)/.test(pageSrc), "a failed read: one retry, then the could-not-read line, never the no-sales text"); }
+  ok(/if \(!a \|\| a\.ok === false\) return '<p class="muted">' \+ notRead\(a\)/.test(pageSrc) && /var notRead = function\(a\)\{ return a && a\.error === "rate_limited" \? LIMIT : COULD_NOT; \}/.test(pageSrc) && /setTimeout\(function\(\)\{ ask1\(body\)/.test(pageSrc), "a failed read: one retry, then the could-not-read line, never the no-sales text"); }
+// A stale answer (the engine's stored row past its day, served with stale: true and its dated line while it recomputes)
+// renders like any engine answer: ok, the range, the card with the engine's own staleLine, never an error.
+{ const st = partnerShape({ ...FIX.range, stale: true, staleLine: "Sales read October 15, 2026, refreshing now." }, "fixture stale", 0, {});
+  ok(st.ok === true && st.answerType === "range" && st.range && /Sales read October 15, 2026, refreshing now\./.test(st.card || "") && venueLeak(st).length === 0, "a stale answer renders as the engine's answer with its own dated line, not an error"); }
+// The demo's daily car limit and its line (lib/_ceilings.js partner_cars; the demo's six cars never count).
+{ const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8"), apiSrc = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
+  ok(/if \(!demoKey\(text\)\) \{[\s\S]{0,200}checkCeiling\(env, req, "partner_cars"/.test(apiSrc) && /status\(429\)[^\n]*rate_limited/.test(apiSrc), "other cars count against the demo's daily car limit; the demo's six never do; over it is a 429");
+  ok(/That is today's limit for other cars on this demo\./.test(pageSrc) && /a\.error === "rate_limited"\) \? a/.test(pageSrc), "over the limit the page says so (no retry), never that the car has no sales"); }
 // The endpoint reads no market of its own: Market Check's handler is its only source of figures.
 const src = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8").replace(/\/\/[^\n]*/g, "");
 ok(/import\("\.\/sellerDecision\.js"\)/.test(src) && /oneBox: true/.test(src), "the endpoint asks Market Check's own handler");
