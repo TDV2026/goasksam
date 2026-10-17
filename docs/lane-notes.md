@@ -9251,3 +9251,12 @@ FIREWALL: draft unchanged (/mcp is the static page mcp.html only; tool calls are
   limit + exempt the path.
 LLMS.TXT: the earlier draft is withdrawn; waiting for Sam's text (word for word, no dashes, no dates).
 Search check: no public page touched (plan, pictures from a local mock, and the staged, unpublished firewall draft).
+- STAGE (Lane E, 2026-10-17): Sam's approval given directly: the SEO plan with the six revisions, llms.txt in principle
+  (rules: no em or en dashes, no dates, no month windows, no source or house counts, no other tool or competitor, no digs,
+  "AI" never a selling word; the final file shown to Sam before it goes live), the firewall draft stays staged and
+  unpublished until caching and e60 are live and Sam publishes it himself. Built: the llms.txt text (proofs/seo/llms.txt in
+  the Lane E worktree and ~/Desktop/goasksam-proofs/seo/llms.txt; checked by script for every rule above; the /mcp line
+  reads "GoAskSam inside assistants that support the Model Context Protocol", naming no other tool), for Lane A to place at
+  public/llms.txt once Sam says it goes live. Reruns on Lane C's 23:10Z push: buySearchLineCheck with the empty case all
+  pass; card 136132 SAME; buyEngineMatch needs formpairs=0 and identitycounts=0 on e59 (FOR LANE C, sent). This docs-only
+  branch pushed on Sam's order. Search check: no public page touched.
