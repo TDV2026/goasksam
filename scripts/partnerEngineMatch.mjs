@@ -184,7 +184,7 @@ for (const [name, d] of Object.entries(FIX)) {
     const seen = ["a", "b", "c", "d"].map(v => { const h = pageHtml(v, param), j = jsCar(h);
       const main = h.split("<main>")[1].split("</main>")[0];
       ok(j && j.car === car, `${car} (car=${param}), view ${v}: the page reads this car`);
-      ok(h.includes('<input id="car-in" name="car" value="' + escH(car) + '"') && (main0(h).match(/class="qp( on)?"/g) || []).length === 6 && (DEMO_CARS.includes(car) ? (main0(h).match(/class="qp on"/g) || []).length === 1 : !/class="qp on"/.test(main0(h))), `${car}, view ${v}: the car box holds this car; the six quick picks show, the chosen one marked`);
+      ok(h.includes('<input id="car-in" name="car" value="' + escH(car) + '"') && !/class="qp|class="picks/.test(h) && !/<a [^>]*>(2015 Porsche 911 GT3|2005 Porsche 911|1965 Ford Mustang|1957 Porsche 356 Speedster|1966 Ferrari 275 GTB|2023 Porsche 911 GT3)<\/a>/.test(main0(h)), `${car}, view ${v}: the car box holds this car; no example car chips at any width`);
       ok((h.match(/<a href="\?view=[abc][^"]*"/g) || []).every(t => car === DEMO_CARS[0] ? !t.includes("car=") : t.includes("&amp;car=" + encodeURIComponent(car))), `${car}, view ${v}: every tab keeps the car`);
       if (car === DUMMY.q) ok(j.listing && /US \$139,900/.test(main) && /hero-img/.test(main), `${car}, view ${v}: the listing detail stays with the 2015 GT3`);
       else ok(!j.listing && !/\$\d/.test(main) && !/hero-img|thumb-img/.test(main) && !/<dt>VIN<\/dt>|\bmiles\b|Buy It Now/.test(main) && /Recent sales of cars like this one\./.test(main), `${car}, view ${v}: no invented listing, price, mileage or photo; it says what it is`);

@@ -38,9 +38,6 @@ body{margin:0;background:#fff;color:var(--ink);font:400 16px/1.45 -apple-system,
 .carpick label{font-weight:600}
 .carpick input{flex:1;min-width:0;height:40px;border:1px solid var(--ink2);border-radius:999px;padding:0 14px;font:inherit;background:#fff}
 .carpick .btn{min-height:40px;font-size:15px;padding:0 16px}
-.picks{display:flex;gap:6px;flex-wrap:wrap}
-.qp{border:1px solid var(--rule);border-radius:999px;padding:4px 10px;color:var(--ink);text-decoration:none;background:#fff;font-size:13px}
-.qp.on{border-color:var(--ink);font-weight:600}
 .tabs a{color:#fff;text-decoration:none;border:1px solid #555;border-radius:999px;padding:4px 12px}
 .tabs a[aria-current=page]{background:#fff;color:#111;border-color:#fff}
 .top{border-bottom:1px solid var(--rule)}
@@ -223,7 +220,7 @@ const JS = String.raw`
   // THE CHOSEN CAR FOLLOWS EVERY VIEW (Sam, Oct 18 2026: a car typed into the first screen's own box did not reach the
   // second screen). Any read that names a new car, in any view (the first screen's box, a pasted VIN, an identity
   // chip), makes it the chosen car at once: car= in the address (replaced in place), every tab, the car bar and the
-  // quick picks. The listing detail belongs to the 2015 GT3 only, so another car drops it. Nothing else changes.
+  // car bar. The listing detail belongs to the 2015 GT3 only, so another car drops it. Nothing else changes.
   var VIEW = (document.querySelector('#car-form input[name="view"]') || {}).value || "a";
   function setCar(q){
     q = String(q || "").replace(/\s+/g, " ").trim();
@@ -233,8 +230,6 @@ const JS = String.raw`
     try { var u = new URL(location.href); if (tail) u.searchParams.set("car", CAR); else u.searchParams.delete("car"); u.searchParams.delete("q"); history.replaceState(history.state, "", u.pathname + u.search); } catch (e) {}
     [].forEach.call(document.querySelectorAll(".tabs a"), function(a){ var k = (String(a.getAttribute("href")).match(/view=([abc])/) || [])[1]; if (k) a.setAttribute("href", "?view=" + k + tail); });
     var ci = $("car-in"); if (ci) ci.value = CAR;
-    var pk = document.querySelector(".picks");
-    if (pk) pk.innerHTML = CARS.map(function(c){ return c === CAR ? '<span class="qp on" aria-current="true">' + esc(c) + "</span>" : '<a class="qp" href="?view=' + VIEW + (c === CARS[0] ? "" : "&car=" + encodeURIComponent(c)) + '">' + esc(c) + "</a>"; }).join("");
   }
   // Only a view's latest read draws (Oct 18 2026: the page's first read of the default car could land after the
   // visitor's own typed car and draw over it); an older answer is dropped, never drawn.
@@ -468,10 +463,10 @@ export function pageHtml(view, carIn) {
   const car = carOf(carIn), hasListing = car === DUMMY.q;
   const carQ = k => `?view=${k}${car === DEMO_CARS[0] ? "" : "&car=" + encodeURIComponent(car)}`;
   const tab = (k, label) => `<a href="${escHtml(carQ(k))}"${k === v ? ' aria-current="page"' : ""}>${label}</a>`;
-  // The car bar, on every view: any year, make and model, with the demo's six cars as quick picks. A new car reopens the
+  // The car bar, on every view: any year, make and model. A new car reopens the
   // same view for that car (a plain form, no script needed).
-  const picks = DEMO_CARS.map(c => c === car ? `<span class="qp on" aria-current="true">${escHtml(c)}</span>` : `<a class="qp" href="?view=${v}${c === DEMO_CARS[0] ? "" : "&car=" + encodeURIComponent(c)}">${escHtml(c)}</a>`).join("");
-  const carBar = `<div class="carbar"><div class="wrap"><form class="carpick" id="car-form" method="get" action="/partner-demo"><input type="hidden" name="view" value="${v}"><label for="car-in">Car</label><input id="car-in" name="car" value="${escHtml(car)}" autocomplete="off" maxlength="60" placeholder="Year, make and model"><button class="btn sec" type="submit">Show</button></form><div class="picks" aria-label="Quick picks">${picks}</div></div></div>`;
+  // (Sam, Oct 18 2026, for the eBay showing: the six example chips are gone at every width; the car box stays.)
+  const carBar = `<div class="carbar"><div class="wrap"><form class="carpick" id="car-form" method="get" action="/partner-demo"><input type="hidden" name="view" value="${v}"><label for="car-in">Car</label><input id="car-in" name="car" value="${escHtml(car)}" autocomplete="off" maxlength="60" placeholder="Year, make and model"><button class="btn sec" type="submit">Show</button></form></div></div>`;
   const d = DUMMY, miles = d.miles.toLocaleString("en-US");
   // The one hero image (views b and d), served by this handler behind the same crew gate (?img=hero).
   const hero = `<img class="hero-img" src="/partner-demo?img=hero" width="${HERO_W}" height="${HERO_H}" alt="A black 2015 Porsche 911 GT3 coupe in a white studio, seen from the front three-quarter, with its fixed rear wing and grey wheels" decoding="async">`;
