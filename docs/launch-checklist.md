@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T16:57Z (Lane F tick, batched push; the e61 chain runs again toward the 17:04Z gap after a cosmetic vercel.json check failure; then B2's pins, E9 and --rows (closing the Market Check item), Lane D).
+Last updated: 2026-10-18T17:0xZ (Lane F; Sam approved the single-flight read (Lane B, shared path) and one read per demo page load (Lane C) ahead of c9; order after e61: B2's pins, single-flight, E9, Lane D, Lane C's batch, c9).
+
+## 0al. Sam's decision 17:0xZ Oct 18: shared read per demo page load, APPROVED ahead of c9 (forwarded word for word to Lanes B and C)
+
+Two parts, one engine. 1. Lane B (shared path, after e61 DONE and B2's push, in a gap the Desk names): identical in-flight reads of the same car, same engine version and same key, share one compute; later calls wait on the first and return its result; a failure or timeout is shared too and never stored as a full result; no per-product logic; Market Check, Buy, Sell and Tasks all get it; the same before-and-after check as e60 and e61, every golden row identical, timings posted. 2. Lane C (its next batch, after Lane B's push): one read per page load, held on the page and shared by all three views and the car bar; the page draws what the engine's answer asks for; no demo-only rule. Check: a cold car opened on the demo causes one compute in the logs, not three; Lane C reads the logs for one cold car in a gap the Desk names. ORDER after e61: B2's pins push, Lane B's single-flight, E9, Lane D, Lane C's one-read batch, then c9 (after Lane B's GT3 pool check and Sam's confirmation).
 
 ## 0ak. Sam's decisions 16:3xZ Oct 18 from the 16:37Z tick (forwarded word for word to Lane B and B2; the order to Lane E)
 
