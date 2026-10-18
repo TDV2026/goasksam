@@ -51,8 +51,8 @@ ok(!/(partner-demo|preview)\?photo=/.test(page) && !/\/api\/salePhoto/.test(page
 { const { pageHtml } = await import("../api/partnerDemo.js"), { DEMO_CARS } = await import("../api/partnerAnswer.js");
   [...DEMO_CARS, "1972 Datsun 240Z", "2001 BMW M3"].forEach((car, i) => ["a", "b", "c", "d"].forEach(v => {
     const h = pageHtml(v, car), all = [...h.matchAll(/src="([^"']*)/g)].map(m => m[1]);
-    ok(all.every(x => x === "/preview?img=hero" || x === "/preview?img=logo" || x === "/api/partnerAnswer?photo="), `${car}, view ${v}: only the sales' photo path, the logo and the listing hero (${[...new Set(all)].join(" ")})`);
-    ok(i === 0 ? all.includes("/preview?img=hero") : !all.includes("/preview?img=hero"), `${car}, view ${v}: the hero ${i === 0 ? "stays with the 2015 GT3 listing" : "is never shown for another car"}`);
+    ok(all.every(x => x === "/preview?img=logo" || x === "/api/partnerAnswer?photo="), `${car}, view ${v}: only the sales' photo path and the logo (${[...new Set(all)].join(" ")})`);
+    ok(!all.includes("/preview?img=hero") && !all.includes("/partner-demo?img=hero"), `${car}, view ${v}: no studio photo of another car (c9: the listing car shows its own sales' photos)`);
     ok(/'<img data-ph src="\/api\/partnerAnswer\?photo=' \+ encodeURIComponent\(s\.photo\)/.test(h), `${car}, view ${v}: the sales list draws each sale's own photo by id`);
   })); }
 // An exact car's earlier sale (stage 4): only "<VIN or chassis>-<n>", nothing else.

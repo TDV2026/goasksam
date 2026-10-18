@@ -76,7 +76,7 @@ for (const [name, d] of Object.entries(FIX)) {
   ok(lastGoodUsable(good) === true, "last good: an hour-old good answer is shown when a live read fails");
   ok(lastGoodUsable({ ...good, readAt: new Date(Date.now() - 25 * 3600e3).toISOString() }) === false, "last good: past a day it is never shown (the page says it could not read)");
   ok(lastGoodUsable({ ...good, out: { ok: false } }) === false && lastGoodUsable(null) === false, "last good: a failed answer is never kept as good");
-  ok(DEMO_CARS.length === 6 && DEMO_CARS.includes("2015 Porsche 911 GT3"), "last good: kept for the demo's own six cars"); }
+  ok(DEMO_CARS.length === 7 && DEMO_CARS[0] === "2014 Porsche 911 GT3" && DEMO_CARS.includes("2015 Porsche 911 GT3"), "last good: kept for the demo's own cars, the 2014 GT3 listing car first (c9)"); }
 // A failed read never says the car has no sales (Sam, Oct 17 2026): the page's sales section draws the could-not-read line.
 { const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
   ok(/if \(!a \|\| a\.ok === false\) return '<p class="muted">' \+ notRead\(a\)/.test(pageSrc) && /return a && a\.error === "car_limit" \? LIMIT : a && a\.error === "rate_limited" \? BUSY : COULD_NOT;/.test(pageSrc) && !/setTimeout\(function\(\)\{ ask1\(body\)/.test(pageSrc), "a failed read: the could-not-read line (no retry rule of the page's own), never the no-sales text"); }
@@ -186,7 +186,7 @@ for (const [name, d] of Object.entries(FIX)) {
       ok(j && j.car === car, `${car} (car=${param}), view ${v}: the page reads this car`);
       ok(h.includes('<input id="car-in" name="car" value="' + escH(car) + '"') && !/class="qp|class="picks/.test(h) && !/<a [^>]*>(2015 Porsche 911 GT3|2005 Porsche 911|1965 Ford Mustang|1957 Porsche 356 Speedster|1966 Ferrari 275 GTB|2023 Porsche 911 GT3)<\/a>/.test(main0(h)), `${car}, view ${v}: the car box holds this car; no example car chips at any width`);
       ok((h.match(/<a href="\?view=[abc][^"]*"/g) || []).every(t => car === DEMO_CARS[0] ? !t.includes("car=") : t.includes("&amp;car=" + encodeURIComponent(car))), `${car}, view ${v}: every tab keeps the car`);
-      if (car === DUMMY.q) ok(j.listing && /US \$139,900/.test(main) && /hero-img/.test(main), `${car}, view ${v}: the listing detail stays with the 2015 GT3`);
+      if (car === DUMMY.q) ok(j.listing && (v === "b" || (/US \$139,900/.test(main) && /<dd>30,400<\/dd>/.test(main) && /<dd>2014<\/dd>/.test(main) && /<dd>WP0AC2A9XES183617<\/dd>/.test(main))) && !/hero-img|img=hero|Black|clean title|Time left|Condition/.test(main) && /id="own-gal"|id="b-photo"/.test(main), `${car}, view ${v}: the 2014 GT3's own listing detail (30,400 miles, $139,900), its own photos only, nothing invented`);
       else ok(!j.listing && !/\$\d/.test(main) && !/hero-img|thumb-img/.test(main) && !/<dt>VIN<\/dt>|\bmiles\b|Buy It Now/.test(main) && /Recent sales of cars like this one\./.test(main), `${car}, view ${v}: no invented listing, price, mileage or photo; it says what it is`);
       return JSON.stringify(j); });
     ok(seen.every(x => x === seen[0]), `${car}: the same car identically in every view`);
@@ -300,6 +300,13 @@ for (const [name, d] of Object.entries(FIX)) {
     await br.close();
   }
 }
+// c9 (Sam, Oct 18 2026): the real 2014 GT3 is the listing car. Its listed mileage is never below its last recorded
+// sale; its photos are its own sales' photos (by VIN), newest the main one; no other car's photo.
+{ const { DUMMY } = await import("../api/partnerDemo.js");
+  ok(DUMMY.q === "2014 Porsche 911 GT3" && DUMMY.vin === "WP0AC2A9XES183617" && DUMMY.miles === 30400 && DUMMY.price === 139900 && DUMMY.miles >= 29000, "the listing car is the 2014 GT3 at 30,400 miles (not below its last sale at 29,000) and $139,900");
+  const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
+  ok(/var ph = \(\(a && a\.history\) \|\| \[\]\)\.filter\(function\(r\)\{ return r\.photo; \}\);/.test(pageSrc) && /img\(ph\[0\], "hero-img"\)/.test(pageSrc) && !/_partnerHero|HERO_JPEG_B64|img === "hero"/.test(pageSrc), "the listing car's photos are its own sales' photos, the newest first; the old studio photo is gone");
+  ok(/rangePanel\(a, D \? \{ price: D\.price, slot: "c", lines: "c" \}/.test(pageSrc) && (pageSrc.match(/function placing\(/g) || []).length === 1, "the asking price's pill is the one placing() against the engine's range"); }
 // The endpoint reads no market of its own: Market Check's handler is its only source of figures.
 const src = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8").replace(/\/\/[^\n]*/g, "");
 ok(/import\("\.\/sellerDecision\.js"\)/.test(src) && /oneBox: true/.test(src), "the endpoint asks Market Check's own handler");

@@ -17,11 +17,13 @@ import { isPartnerRequest, partnerCodeMatches, partnerSetCookies } from "../lib/
 import { checkCeiling } from "../lib/_ceilings.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { SELLS_FOR_CARD_CSS } from "../lib/sellsForCard.js";
-import { HERO_JPEG_B64, HERO_W, HERO_H } from "./_partnerHero.js";
 import { PARTNER_LOGO_SVG_B64 } from "./_partnerLogo.js";
 import { DEMO_CARS } from "./partnerAnswer.js";
 
-export const DUMMY = { title: "2015 Porsche 911 GT3", colour: "Black", miles: 20611, titleStatus: "Clean", price: 139900, priceKind: "Buy It Now", daysLeft: 13, vin: "WP0AC2A96FS189139", q: "2015 Porsche 911 GT3" };
+// THE LISTING CAR (c9, Sam, Oct 18 2026): the real 2014 Porsche 911 GT3, VIN WP0AC2A9XES183617, listed at 30,400 miles
+// (never below its last recorded sale, 29,000) and $139,900. Its photo and its earlier sales are its own stored records
+// (the endpoint's VIN history, venue-blind); nothing else about it is stated (no colour, title status or time left).
+export const DUMMY = { title: "2014 Porsche 911 GT3", year: 2014, miles: 30400, price: 139900, priceKind: "Buy It Now", vin: "WP0AC2A9XES183617", q: "2014 Porsche 911 GT3" };
 
 const CSS = `
 :root{--ink:#191919;--ink2:#707070;--rule:#e5e5e5;--soft:#f7f7f7;--blue:#3665f3;--blue2:#2b52c5;--green:#0b7a34;--greenbg:#e6f4ea;--amber:#8a5a00;--amberbg:#fdf3dc;--grey:#5c5c5c;--greybg:#efefef;--slate:#334b66;--slatebg:#e3eaf3;--r:16px;color-scheme:light;
@@ -133,6 +135,8 @@ h3{font-size:18px;line-height:1.3;margin:0 0 10px;font-weight:700}
 .full{margin-top:36px}
 .hero-img{display:block;width:100%;height:auto;aspect-ratio:1600/1058;object-fit:cover;border-radius:12px;background:#d9d9d9}
 .gal-hero{grid-template-columns:1fr}
+.gal-own:empty{display:none}
+.gal-own:not(:has(.thumbs)){grid-template-columns:1fr}
 .thumb-img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:12px;background:#d9d9d9}
 .b-hero{max-width:760px;margin:0 0 22px}
 .b-hero:empty{display:none}
@@ -316,6 +320,14 @@ const JS = String.raw`
     var p = a && a.ok !== false && a.carPhoto && a.carPhoto.photo;
     return p ? '<div class="car-photo"><img class="hero-img" data-ph src="/api/partnerAnswer?photo=' + encodeURIComponent(p) + '" alt="' + esc(CAR) + '" decoding="async"><p class="photo-note">Photo from a recent sale of a car like this one.</p></div>' : "";
   }
+  // The listing car's own photos (c9): its earlier sales' own photos, newest first, by "<VIN>-<n>" through the photo
+  // path; the newest is the main photo, the rest small beside it. None stored: no gallery, never another car's photo.
+  function ownPhotos(a, thumbs){
+    var ph = ((a && a.history) || []).filter(function(r){ return r.photo; });
+    if (!ph.length) return "";
+    var img = function(r, cls){ return '<img class="' + cls + '" data-ph src="/api/partnerAnswer?photo=' + encodeURIComponent(r.photo) + '" alt="' + esc(D ? D.title : CAR) + '" decoding="async">'; };
+    return (thumbs && ph.length > 1 ? '<div class="thumbs">' + ph.map(function(r){ return img(r, "thumb-img"); }).join("") + "</div>" : "") + img(ph[0], "hero-img");
+  }
   function idChips(a){
     var id = a && a.identity; if (!id) return "";
     var parts = [id.year, id.make, id.generation && id.model ? id.model + " (" + id.generation + ")" : (id.model || id.generation), id.body, id.variant].filter(Boolean);
@@ -439,7 +451,7 @@ const JS = String.raw`
   function runA(body){ $("a-out").innerHTML = '<p class="loading">Sam is reading the sales for this one.</p>'; run("a", body, drawA); }
   // ---- view b: setting a reserve
   var bAns = null;
-  function gotB(a){ bAns = a; noteLines("b", a); if (!D && $("b-photo")) $("b-photo").innerHTML = carPhotoHtml(a); drawB(); }
+  function gotB(a){ bAns = a; noteLines("b", a); if ($("b-photo")) $("b-photo").innerHTML = D ? ownPhotos(a, false) : carPhotoHtml(a); drawB(); }
   function drawB(){
     var v = Number(String($("b-res").value || "").replace(/[^\d]/g, ""));
     var a = bAns; if (!a) return;
@@ -459,6 +471,7 @@ const JS = String.raw`
   function drawListing(a){
     cAns = a; noteLines("c", a);
     if (!D && $("c-photo")) $("c-photo").innerHTML = carPhotoHtml(a);
+    if (D && $("own-gal")) $("own-gal").innerHTML = ownPhotos(a, true);
     $("c-rail").innerHTML = priorPanel(a, !!D) + rangePanel(a, D ? { price: D.price, slot: "c", lines: "c" } : { slot: "c", lines: "c" });
     var lq = a && a.range && a.trend && a.trend.length ? a.trend.reduce(function(m, t){ return String(t.period) > String(m.period) ? t : m; }) : null;   // the latest quarter with eight or more sales, view d only
     $("d-sales").innerHTML = '<h2>What cars like this sold for</h2>' +
@@ -506,24 +519,19 @@ export function pageHtml(view, carIn) {
   // (Sam, Oct 18 2026, for the eBay showing: the six example chips are gone at every width; the car box stays.)
   const carBar = `<div class="carbar"><div class="wrap"><form class="carpick" id="car-form" method="get" action="/preview"><input type="hidden" name="view" value="${v}"><label for="car-in">Car</label><input id="car-in" name="car" value="${escHtml(car)}" autocomplete="off" maxlength="60" placeholder="Year, make and model"><button class="btn sec" type="submit">Show</button></form></div></div>`;
   const d = DUMMY, miles = d.miles.toLocaleString("en-US");
-  // The one hero image (views b and d), served by this handler behind the same crew gate (?img=hero).
-  const hero = `<img class="hero-img" src="/preview?img=hero" width="${HERO_W}" height="${HERO_H}" alt="A black 2015 Porsche 911 GT3 coupe in a white studio, seen from the front three-quarter, with its fixed rear wing and grey wheels" decoding="async">`;
-  // View c (Sam, Oct 17 2026): the hero in the main photo slot and the same image as the thumbnails (decorative copies).
-  const heroThumbs = Array.from({ length: 5 }, () => `<img class="thumb-img" src="/preview?img=hero" alt="" aria-hidden="true" decoding="async">`).join("");
+  // The listing car's own photos (c9): drawn by the page from its earlier sales' own photos once the answer is in.
   const listing = (withRail, withHero, below) => `
   <div class="listing${below ? " with-below" : ""}">
     <div>
-      ${withHero === "gallery" ? `<div class="gal"><div class="thumbs">${heroThumbs}</div>${hero}</div>` : withHero ? `<div class="gal gal-hero">${hero}</div>` : `<div class="gal"><div class="thumbs">${phs(5)}</div><div class="ph main-ph" aria-hidden="true">Placeholder photo</div></div>`}
+      <div class="gal gal-own" id="own-gal"></div>
       <div class="phone-only"></div>
     </div>
     <div class="rail">
       <h1>${d.title}</h1>
-      <p class="sub">${d.colour}, ${miles} miles, ${d.titleStatus.toLowerCase()} title</p>
+      <p class="sub">${miles} miles</p>
       <hr>
       <div class="price">US ${"$" + d.price.toLocaleString("en-US")}</div>
-      <dl class="specs" style="margin:14px 0 0"><div><dt>Condition</dt><dd>Used</dd></div><div><dt>Title</dt><dd>${d.titleStatus}</dd></div><div><dt>Mileage</dt><dd>${miles}</dd></div></dl>
-      <hr>
-      <div class="time"><span>Time left:</span><b>${d.daysLeft}d</b></div>
+      <dl class="specs" style="margin:14px 0 0"><div><dt>Mileage</dt><dd>${miles}</dd></div></dl>
       <div class="buy"><button type="button" class="btn pri blk">${d.priceKind}</button><button type="button" class="btn sec blk">Make offer</button><button type="button" class="btn sec blk">Save</button></div>
       ${withRail ? '<div id="c-rail"><p class="loading">Sam is reading the sales for this one.</p></div>' : ""}
     </div>
@@ -537,7 +545,7 @@ export function pageHtml(view, carIn) {
     <div class="rail"><div id="c-rail"><p class="loading">Sam is reading the sales for this one.</p></div></div>
     <div class="below-gal"><div class="full" id="d-sales"><p class="loading">Sam is reading the sales for this one.</p></div><div class="full" id="d-hist"></div></div>
   </div>`;
-  const desc = `<div class="desc below"><h2>About this car</h2><dl class="specs"><div><dt>Year</dt><dd>2015</dd></div><div><dt>VIN</dt><dd>${d.vin}</dd></div><div><dt>Mileage</dt><dd>${miles}</dd></div></dl></div>`;
+  const desc = `<div class="desc below"><h2>About this car</h2><dl class="specs"><div><dt>Year</dt><dd>${d.year}</dd></div><div><dt>VIN</dt><dd>${d.vin}</dd></div><div><dt>Mileage</dt><dd>${miles}</dd></div></dl></div>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><title>What these sell for</title><style>${CSS}${SELLS_FOR_CARD_CSS}</style></head><body>
 <div class="demo-bar"><div class="wrap"><span>What these sell for, powered by GoAskSam.</span><nav class="tabs" aria-label="Views">${tab("a", "a. Before listing")}${tab("b", "b. Setting a reserve")}${tab("c", "c. On the listing")}</nav></div></div>
@@ -550,7 +558,7 @@ ${carBar}
   <div id="a-out" style="margin-top:22px"></div></div>
 </section>
 <section class="sec-view wrap" id="view-b"${v === "b" ? "" : " hidden"}>
-  ${hasListing ? `<div class="b-hero">${hero}</div>` : `<div class="b-hero" id="b-photo"></div>`}
+  <div class="b-hero" id="b-photo"></div>
   <div class="lead"><h1>Set your reserve</h1><p class="sub">${hasListing ? `${d.title}, ${miles} miles` : escHtml(car)}</p>
   <div class="reserve"><label for="b-res">Reserve</label><span class="money">$<input id="b-res" inputmode="numeric" placeholder="0" aria-label="Reserve in dollars"></span></div>
   <div id="b-out"><p class="loading">Sam is reading the sales for this one.</p></div></div>
@@ -588,11 +596,6 @@ export default async function handler(req, res) {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Cache-Control", "private, max-age=3600");
     return res.status(200).send(Buffer.from(PARTNER_LOGO_SVG_B64, "base64"));
-  }
-  if (req.query && req.query.img === "hero") {
-    res.setHeader("Content-Type", "image/jpeg");
-    res.setHeader("Cache-Control", "private, max-age=3600");
-    return res.status(200).send(Buffer.from(HERO_JPEG_B64, "base64"));
   }
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   return res.status(200).send(pageHtml(String((req.query && req.query.view) || "a"), req.query && req.query.car));

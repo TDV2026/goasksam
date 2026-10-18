@@ -34,7 +34,8 @@ const good = cookieFrom(await call({ k: C() }));
 // 2. what the cookie opens
 const page = await call({}, good);
 ok(page.status === 200 && /What these sell for/.test(page.body), "gas_partner opens /preview");
-ok((await call({ img: "hero" }, good)).status === 200, "gas_partner opens the demo's hero image (served under /prever-demo)");
+{ const lg = await call({ img: "logo" }, good), lv = await call({ img: "logo" }, "");
+  ok(lg.status === 200 && lg.h["content-type"] === "image/svg+xml" && lv.status === 404, "gas_partner opens the partner's logo (served under /preview); a visitor without the code gets the plain 404"); }
 ok(partnerAllowed({ headers: { cookie: good } }) === true, "gas_partner opens the partner data endpoint (api/partnerAnswer.js)");
 ok(isCrewRequest({ headers: { cookie: good } }) === false, "gas_partner is never crew: every crew-gated page (Market Check, Business, Buy, Sell, Tasks, Desk, One Box, the VIN and spec crew views) still refuses it");
 const readers = fs.readdirSync(new URL("../api/", import.meta.url)).filter(f => f.endsWith(".js") && /_partnerAccess|gas_partner|isPartnerRequest/.test(fs.readFileSync(new URL("../api/" + f, import.meta.url), "utf8")));
