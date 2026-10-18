@@ -5,9 +5,26 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T05:2xZ (Lane F; batch c7 live 05:18Z: list correct, photo path refuses correctly, but no photos loaded because the id check took digits only and ids are UUIDs; fix-forward in prePush; Lane C says not a revert case).
+Last updated: 2026-10-18T05:2xZ (Lane F; Sam: photos fix forward no revert; thin tier prints no range anywhere, B2's checker compares to the tier decision; order: Lane C's PUSHED, run-0 v2 window, e60 push on Sam's standing go, E9 and the after-rate, Lane D's Sell line; Lane B runs the live before and after after e60; no re-stamp or migration without a separate go).
 
-## 0m. Queue state at 04:4xZ Oct 18 (one archive load at a time; the Desk keeps this block current)
+## 0n. Sam's decisions 05:2xZ Oct 18 (forwarded word for word to Lanes B2, B, C, E, D)
+
+1. Photos: fix forward, no revert; Lane C's UUID fix through prePush alone and the exception, then PUSHED with the photo proof. 2. The 275 GTB thin-tier rule: the product rule wins; under eight sales every page prints no range even where the engine carries a low and high; B2's checker compares each page to the engine's tier decision, not the raw low and high; B2 pins rows 14 and 23 so. 3. Order: Lane C's PUSHED, then Sam's run-0 v2 quiet window (the Desk announces it; no other lane reads the archive or pushes during it), then the e60 push (Sam's go STANDS), then Lane E's E9 and the Crawl-delay after-rate read, then Lane D's Sell line. Lane B2: pin rows 14 and 23 to the tier decision, the 1991 NSX from Lane B's values, row 46 waits on e60. Lane B: after the e60 push, the golden and demo before and after on the live site, the table, the pins to B2; no project-flag re-stamp or real-columns migration without a separate go.
+
+## 0m. Queue state at 05:2xZ Oct 18 (one archive load at a time; the Desk keeps this block current)
+
+| Slot | Owner | State | Gate |
+|---|---|---|---|
+| 1. Lane C: the UUID fix-forward, prePush alone, push under the exception, the photo proof, PUSHED | Lane C | prePush running | its PUSHED |
+| 2. Sam's run-0 v2 quiet window (seven parts) | Sam | the Desk announces it on Lane C's PUSHED | Sam's done line closes it |
+| 3. e60 push (Sam's go stands): rebase onto main, PUSH LOCK with the tier, prePush alone, push, then the live golden and demo before and after, the pins to B2 | Lane B | READY | window 2 CLOSED |
+| 4. E9, then the Crawl-delay after-rate read, then the audit runs | Lane E | holding | e60 live |
+| 5. The Sell line (branch sell-count, rebased onto main after e60) | Lane D | holding, READY | E9 |
+| 6. Lane C's C1 and crawler rule, then C2 to C5 | Lane C | READY | Lane D |
+| 7. Basis line everywhere, then SEO A1 to A8 | Lane A | holding (lane-notes only) | the order reaching it |
+| Held for a separate go: project-flag re-stamp, real-columns migration (run-1 to run-5) | Lane B writes, Sam runs | after run-0 v2 results | Sam |
+
+## 0m-old. Queue state at 04:4xZ Oct 18
 
 | Slot | Owner | State | Gate |
 |---|---|---|---|
@@ -253,7 +270,7 @@ Lane F in away mode (ended 01:55Z Oct 18; the 20-minute tick is back on as job 1
 |---|---|---|---|---|
 | Market Check matches the mockup | Lane A | checking (zero gaps on the four named cars, Oct 16) | Sam's sign-off on the cited approved differences | lane-notes "Job 1 (Lane A, Sam's four-car mockup check, 2026-10-16)"; ~/Desktop/goasksam-proofs/card/audit-{911,mustang,speedster,275gtb}-{1440,390}.png |
 | Every car returns a range | Lane B | building (e59 live; e60 is the last engine bump before launch; 1971 Mercedes-Benz 280SE 3.5 Cabriolet still hits the 20-second deadline card, an e60 item) | e60 push; the e59 four-lane sweep (parked until B2's golden run is DONE) | lane-notes Lane B RUNNING/DONE lines; e59 sweep DONE line when posted |
-| Golden table zero mismatches across Market Check, Buy, Sell and Tasks | Lane B2 | RE-READ DONE 05:01Z: ENGINE 0 mismatches on 13 of 14 re-read rows across all four products (rows 16, 17, 11, 10, 20 match Lane B's reads; NSX 15 sales $86,000 to $136,000 everywhere); row 46 (280SE 3.5 Cabriolet) over the 240 s line again, re-read not retried, waits on e60; totals as printed 72 PASS, 6 FAIL, 2 RENDER DRIFT, 3 PENDING, 4 RE-READ. OPEN page checks: rows 14 and 23 (275 GTB) Market Check page prints no range against engine low and high $1,215,000 to $3,481,000 (the thin tier prints no range by product rule; B2's rule reads page equals engine), Sell page no count against 9 (Lane D's sell-count fix pending); Buy page rows 14 and 20 ended on /market-check with no live car (checker to mark N/A); partner demo card unread (404 with the crew cookie until Lane C's cookie helper lands); Buy card not adopted on the drawer path the checker uses. NSX cross-lane row: Lane B posted the values (1991 NSX, 21 sales, $71,000 to $101,000, exact rung, latest sale 2026-09-17, 2 set aside as odd sales; unchanged on e60); B2's row 20 is the 1995 NSX, a different car. | Lane D's Sell push; Lane C's cookie helper; e60 for row 46; Sam's word on the 275 GTB page-equals-engine rule for the thin tier | B2's DONE; the final launch run in pages mode |
+| Golden table zero mismatches across Market Check, Buy, Sell and Tasks | Lane B2 | RE-READ DONE 05:01Z: ENGINE 0 mismatches on 13 of 14 re-read rows across all four products (rows 16, 17, 11, 10, 20 match Lane B's reads; NSX 15 sales $86,000 to $136,000 everywhere); row 46 (280SE 3.5 Cabriolet) over the 240 s line again, re-read not retried, waits on e60; totals as printed 72 PASS, 6 FAIL, 2 RENDER DRIFT, 3 PENDING, 4 RE-READ. OPEN page checks: rows 14 and 23 (275 GTB) Market Check page prints no range against engine low and high $1,215,000 to $3,481,000 (the thin tier prints no range by product rule; B2's rule reads page equals engine), Sell page no count against 9 (Lane D's sell-count fix pending); Buy page rows 14 and 20 ended on /market-check with no live car (checker to mark N/A); partner demo card unread (404 with the crew cookie until Lane C's cookie helper lands); Buy card not adopted on the drawer path the checker uses. NSX cross-lane row: Lane B posted the values (1991 NSX, 21 sales, $71,000 to $101,000, exact rung, latest sale 2026-09-17, 2 set aside as odd sales; unchanged on e60); B2's row 20 is the 1995 NSX, a different car. | Lane D's Sell push; the demo card read now that the cookie helper is live; e60 for row 46; rows 14 and 23 DECIDED by Sam (the thin tier prints no range anywhere, the checker compares to the tier decision) | B2's DONE; the final launch run in pages mode |
 | Sam's own review | Sam | decision | the three rows above | Sam's note in lane-notes |
 
 ## 2. Partner demo
