@@ -95,7 +95,8 @@ for (const [name, d] of Object.entries(FIX)) {
   ok(/const lim = await checkCeiling\(env, req, "partner_demo", \{ tool: "partner" \}\)/.test(apiSrc), "every demo read, any car, uses the partner_demo ceiling");
   const { CEILINGS } = await import("../lib/_ceilings.js");
   const pd = CEILINGS.partner_demo, minute = pd && (pd.device || []).find(([w]) => w === 60e3);
-  ok(pd && !pd.address && minute && minute[1] >= 90, "partner_demo is per device only and allows a cold walk of the four views and six cars (about 30 reads) three times in a minute");
+  ok(pd && minute && minute[1] >= 90, "partner_demo allows a cold walk of the views and six cars (about 30 reads) three times in a minute per device");
+  ok(pd && pd.address && pd.device.every(([w, n]) => { const a = pd.address.find(([x]) => x === w); return a && a[1] >= 10 * n; }), "partner_demo's address backstop is at least ten times the device window in every window (Sam, Oct 18 2026)");
   ok(/const who = demo \? \{\} : \{ "user-agent": base\["user-agent"\], "x-forwarded-for": base\["x-forwarded-for"\] \}/.test(apiSrc) && /r = await marketCheckAnswer\(req, text, refine, asked, true\);/.test(apiSrc), "no demo read carries a visitor address or browser into Market Check, so its visitor ceilings are untouched");
   ok(/const lk = !refine \? demoKey\(text\) : null;/.test(apiSrc) && /out = vinIn \? \{ \.\.\.last\.out, history, lastGood: true \}/.test(apiSrc) && /if \(!vinIn && fullResult\(out\)\) writeLast/.test(apiSrc), "the VIN views fall back to the car's last good answer with their own VIN history; only plain reads write it"); }
 // Neither side waits for good (Sam, Oct 18 2026): the endpoint has no deadline of its own (the engine's whole-path bound
