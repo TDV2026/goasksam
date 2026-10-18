@@ -8,6 +8,8 @@
 # Oct 2026, recorded in docs/search-rules.md); revisit there to change it.
 # VIN history pages are indexable when the car qualifies (listed in the VIN sitemaps); every other
 # /history page carries its own noindex.
+# ClaudeBot keeps every allow; it carries Crawl-delay: 10 (Sam, Oct 18 2026: it fetched about five /history pages a
+# second, each one running the engine). Crawl-delay is a non-standard line that ClaudeBot honours; no other crawler changes.
 
 # --- search crawlers ---
 User-agent: Googlebot
@@ -35,6 +37,7 @@ Allow: /
 
 User-agent: ClaudeBot
 Allow: /
+Crawl-delay: 10
 
 User-agent: Google-Extended
 Allow: /
