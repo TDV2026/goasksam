@@ -133,6 +133,7 @@ h3{font-size:18px;line-height:1.3;margin:0 0 10px;font-weight:700}
 .car-photo{margin:0 0 18px;max-width:760px}
 .photo-note{margin:6px 0 0;font-size:13px;color:var(--ink2)}
 .prior{margin:0 0 18px}
+.prior-none{margin:0 0 14px;font-size:14px;color:var(--ink2)}
 .prior h3{margin-bottom:8px}
 #c-photo .car-photo{max-width:none}
 .full-a{margin-top:26px}
@@ -338,8 +339,11 @@ const JS = String.raw`
   // in the archive (the endpoint's history), every sale, newest first, at the top of the answer: its own photo, the
   // month and year, the price and the mileage at that sale. Venue-blind: no venue name and no link (Sam's answer).
   var soldRows = function(a){ return ((a && a.history) || []).filter(function(r){ return r.result === "sold" && r.price; }); };
-  function priorPanel(a){
-    var sold = soldRows(a); if (!sold.length) return "";
+  // (Sam, Oct 18 2026) On the listing view it sits directly under the car's own listing details, above the range card;
+  // when the exact car has no earlier sale it is one plain line that takes no room. Never an invented row.
+  function priorPanel(a, exact){
+    var sold = soldRows(a);
+    if (!sold.length) return exact && a && a.ok !== false && !a.question ? '<p class="prior-none">No earlier sale of this car on record.</p>' : "";
     var last = sold[0], my = monthYear(last.date);
     return '<div class="panel prior"><h3>This car last sold for ' + usd(last.price) + (my ? " in " + esc(my) : "") + ".</h3>" + '<div class="slist">' +
       sold.map(function(r){ return '<div class="srow">' + photoSlot(r) + '<div class="sinfo"><div class="st">Sold ' + esc(monthYear(r.date) || "") + '</div><div class="sd">' + esc(r.miles ? Number(r.miles).toLocaleString("en-US") + " miles at that sale" : "Mileage not stated at that sale") + '</div></div><div class="sp">' + usd(r.price) + "</div></div>"; }).join("") +
@@ -419,7 +423,7 @@ const JS = String.raw`
     noteLines("a", a);
     aLast = a;
     if (a.ok === false) { $("a-out").innerHTML = rangePanel(a, { slot: "a" }); return; }
-    $("a-out").innerHTML = (a.question ? "" : priorPanel(a)) + (a.question ? "" : carPhotoHtml(a)) + (a.question ? rangePanel(a, { slot: "a", chips: true }) : (idChips(a) ? '<div style="margin:0 0 16px">' + idChips(a) + "</div>" : "") + (a.range || a.thin ? rangePanel(a, { lines: "a" }) : "")) + ((a.vin || (a.history && a.history.length)) && !soldRows(a).length ? historyPanel(a) : "") +
+    $("a-out").innerHTML = (a.question ? "" : priorPanel(a, !!a.vin)) + (a.question ? "" : carPhotoHtml(a)) + (a.question ? rangePanel(a, { slot: "a", chips: true }) : (idChips(a) ? '<div style="margin:0 0 16px">' + idChips(a) + "</div>" : "") + (a.range || a.thin ? rangePanel(a, { lines: "a" }) : "")) + ((a.vin || (a.history && a.history.length)) && !soldRows(a).length ? historyPanel(a) : "") +
       (!a.question && a.sales && a.sales.length ? '<section class="full-a"><h2>What cars like this sold for</h2>' + salesList(a, "a") + "</section>" : "") +
       '<div style="margin-top:20px"><button type="button" class="btn pri" id="a-list">List it</button></div>';
   }
@@ -446,11 +450,12 @@ const JS = String.raw`
   function drawListing(a){
     cAns = a; noteLines("c", a);
     if (!D && $("c-photo")) $("c-photo").innerHTML = carPhotoHtml(a);
-    $("c-rail").innerHTML = priorPanel(a) + rangePanel(a, D ? { price: D.price, slot: "c", lines: "c" } : { slot: "c", lines: "c" });
+    $("c-rail").innerHTML = priorPanel(a, !!D) + rangePanel(a, D ? { price: D.price, slot: "c", lines: "c" } : { slot: "c", lines: "c" });
     var lq = a && a.range && a.trend && a.trend.length ? a.trend.reduce(function(m, t){ return String(t.period) > String(m.period) ? t : m; }) : null;   // the latest quarter with eight or more sales, view d only
     $("d-sales").innerHTML = '<h2>What cars like this sold for</h2>' +
       (a && a.card ? (a.quarter ? '<div class="qrow">' + a.quarter + "</div>" : "") : (lq ? '<p class="qrow"><b>' + esc(lq.period.replace("-", " ")) + "</b> " + usd(lq.low) + " to " + usd(lq.high) + ", " + lq.count + " sales</p>" : "")) + salesList(a, "d") + foot(a);
-    $("d-hist").innerHTML = D && !soldRows(a).length ? historyPanel(a) : "";
+    // Offered but never sold: those appearances stay in This car before, lower down; a car that sold shows them nowhere twice.
+    $("d-hist").innerHTML = D && !soldRows(a).length && (a.history || []).some(function(r){ return r.result === "not_sold"; }) ? historyPanel(a) : "";
   }
   document.addEventListener("click", function(e){
     var b = e.target.closest && e.target.closest("[data-send]"); if (!b) return;

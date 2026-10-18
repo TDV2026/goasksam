@@ -129,7 +129,7 @@ for (const [name, d] of Object.entries(FIX)) {
   const c = pageHtml("c"), d = pageHtml("d");
   ok(((c.match(/<nav class="tabs"[\s\S]*?<\/nav>/) || [""])[0].match(/href="\?view=/g) || []).length === 3 && !/Under the listing/.test(c) && /id="view-c"(?! hidden)/.test(d), "three tabs; the old d address opens the merged listing");
   ok(!/Placeholder description/.test(c) && /<dt>Year<\/dt>/.test(c) && /<dt>VIN<\/dt>/.test(c) && /<dt>Mileage<\/dt>/.test(c), "no placeholder description; Year, VIN and Mileage kept");
-  ok((c.match(/id="d-hist"/g) || []).length === 1 && /\$\("c-rail"\)\.innerHTML = priorPanel\(a\) \+ rangePanel\(a, D \? \{ price: D\.price, slot: "c", lines: "c" \} : \{ slot: "c", lines: "c" \}\);/.test(c) && /class="below-gal"/.test(c), "the card in the rail, the list and This car before under the gallery, once");
+  ok((c.match(/id="d-hist"/g) || []).length === 1 && /\$\("c-rail"\)\.innerHTML = priorPanel\(a, !!D\) \+ rangePanel\(a, D \? \{ price: D\.price, slot: "c", lines: "c" \} : \{ slot: "c", lines: "c" \}\);/.test(c) && /class="below-gal"/.test(c), "the card in the rail, the list and This car before under the gallery, once");
   ok(/function reserveList\(rows, opts\)/.test(c) && /body \+= saleRow\(s\)/.test(c) && /reserveList\(last, \{ reserve: v \}\)/.test(c) && !/salesTable\(/.test(c), "view b: the same rows, highest price first, the reserve line at its place, no Show more");
   ok((c.match(/function placing\(/g) || []).length === 1 && /placing\(opts\.price, a, opts\.who\)/.test(c) && /"Your reserve is " : "Asking price is "/.test(c) && /who: "reserve"/.test(c), "one comparison against the engine's range, shared by views b and c"); }
 // The narrowing lines (Sam, Oct 18 2026: "2001 bmw", M3): Market Check's own lines from the engine's fields, same
@@ -263,13 +263,43 @@ for (const [name, d] of Object.entries(FIX)) {
   const out = ps({ status: "one_box", tier: "result", cluster: [111000, 133000], poolN: 10, cards: [] }, "2014 Porsche 911 GT3", 0, { history: h });
   ok(venueLeak(out).length === 0, "the answer with this car's history passes the venue guard");
   const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
-  ok(/'<div class="panel prior"><h3>This car last sold for ' \+ usd\(last\.price\)/.test(pageSrc) && /" miles at that sale"/.test(pageSrc) && /priorPanel\(a\)\) \+ \(a\.question \? "" : carPhotoHtml\(a\)\)/.test(pageSrc.replace("(a.question ? \"\" : priorPanel(a))", "priorPanel(a))")) && !/your car/i.test(pageSrc), "the prior sales sit at the top: \"This car last sold for\", newest first, mileage at that sale; never \"your car\"");
+  ok(/'<div class="panel prior"><h3>This car last sold for ' \+ usd\(last\.price\)/.test(pageSrc) && /" miles at that sale"/.test(pageSrc) && /\$\("a-out"\)\.innerHTML = \(a\.question \? "" : priorPanel\(a, !!a\.vin\)\) \+ \(a\.question \? "" : carPhotoHtml\(a\)\)/.test(pageSrc) && /'<p class="prior-none">No earlier sale of this car on record\.<\/p>'/.test(pageSrc) && !/your car/i.test(pageSrc), "the prior sales sit at the top: \"This car last sold for\", newest first, mileage at that sale; never \"your car\"");
   const block = pageSrc.slice(pageSrc.indexOf("function priorPanel("), pageSrc.indexOf("function historyPanel("));
   ok(!/href|<a |house|venue|url/i.test(block), "the prior-sale panel has no link and no venue");
   ok(/<p class="photo-note">Photo from a recent sale of a car like this one\.<\/p>/.test(pageSrc), "the car photo carries its caption");
   const apiSrc = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
   const pb = apiSrc.slice(apiSrc.indexOf("req.query.photo != null"), apiSrc.indexOf("return res.status(200).send(img.body);"));
   ok(/const vk = vinPhotoKey\(req\.query\.photo\)/.test(pb) && /safeImageUrl\(a\.image\)/.test(pb) && /checkCeiling\(env, req, "partner_photo"/.test(pb) && !/setHeader\("(Location|Link|Content-Disposition)"/.test(pb), "an earlier sale's photo is looked up again server side, safe-fetched, under the photo ceiling, with no address out"); }
+// THE LISTING VIEW'S ORDER (Sam, Oct 18 2026): the car's own listing details, then "this car sold before" directly
+// beneath, then the range card, then the sales list. In a local browser (fake answers, no network): the panel comes
+// before the card in the page, is in view without scrolling at 1440, and follows the listing details within one
+// screen at 390; with no earlier sale it is one plain line.
+{ let puppeteer = null; try { ({ default: puppeteer } = await import("puppeteer-core")); } catch {}
+  const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+  if (!puppeteer || !fs.existsSync(CHROME)) { skip++; console.log("SKIP listing order: no local Chrome"); }
+  else {
+    const { pageHtml } = await import("../api/partnerDemo.js");
+    const card = '<div class="sfc-card"><p class="sfc-range">$111,000 to $133,000</p><div class="gas-pill-slot"></div><p class="sfc-basis">Based on 10 sales.</p></div>';
+    const sales = Array.from({ length: 10 }, (_, i) => ({ photo: null, name: "2014 Porsche 911 GT3", price: 111000 + i * 2000, date: "2026-0" + (1 + (i % 9)) + "-10", miles: 20000 + i * 1000 }));
+    const hist = [{ result: "sold", date: "2025-07-20", price: 124000, miles: 29000, photo: null }, { result: "sold", date: "2024-03-09", price: 110000, miles: 26000, photo: null }];
+    const br = await puppeteer.launch({ executablePath: CHROME, headless: "new" });
+    for (const [w, hgt] of [[1440, 900], [390, 844]]) for (const withHist of [true, false]) {
+      const pg = await br.newPage(); await pg.setViewport({ width: w, height: hgt, isMobile: w < 600 }); await pg.setRequestInterception(true);
+      pg.on("request", r => { const u = new URL(r.url());
+        if (u.pathname === "/partner-demo" && !u.searchParams.get("img")) return r.respond({ status: 200, contentType: "text/html; charset=utf-8", body: pageHtml("c") });
+        if (u.pathname === "/api/partnerAnswer" && r.method() === "POST") return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, query: "q", answerType: "range", range: { low: 111000, high: 133000 }, count: 10, sales, card, history: withHist ? hist : [] }) });
+        return r.respond({ status: 204, body: "" }); });
+      await pg.goto("https://goasksam.com/partner-demo?view=c", { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 600));
+      const m = await pg.evaluate(() => { const pn = document.querySelector("#view-c .prior, #view-c .prior-none"), cd = document.querySelector("#view-c .sfc-card"), buy = document.querySelector("#view-c .buy"), h1 = document.querySelector("#view-c .rail h1");
+        const r = el => el ? el.getBoundingClientRect() : null;
+        return { panel: !!pn, kind: pn ? pn.className : "", before: !!(pn && cd && (pn.compareDocumentPosition(cd) & 4)), top: pn ? Math.round(r(pn).top) : null, h: pn ? Math.round(r(pn).height) : null, buyBottom: Math.round(r(buy).bottom), h1Top: Math.round(r(h1).top), rows: pn ? pn.querySelectorAll(".srow").length : 0 }; });
+      const where = w === 1440 ? m.top != null && m.top < hgt : m.top != null && m.top - m.buyBottom < 60 && m.top - m.h1Top < hgt;
+      ok(m.panel && m.before && where && (withHist ? m.kind === "panel prior" && m.rows === 2 : m.kind === "prior-none" && m.h < 40), `listing view ${w}, ${withHist ? "two earlier sales" : "no earlier sale"}: the panel sits under the listing details and before the range card, ${w === 1440 ? "in view without scrolling" : "within one screen of the details"} (${JSON.stringify(m)})`);
+      await pg.close();
+    }
+    await br.close();
+  }
+}
 // The endpoint reads no market of its own: Market Check's handler is its only source of figures.
 const src = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8").replace(/\/\/[^\n]*/g, "");
 ok(/import\("\.\/sellerDecision\.js"\)/.test(src) && /oneBox: true/.test(src), "the endpoint asks Market Check's own handler");
