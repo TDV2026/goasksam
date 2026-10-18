@@ -3240,6 +3240,11 @@ async function handler(req, res) {
       const obVinActive = req.body?.oneBox ? await vinFeatureActive(req.headers.cookie, { supabaseUrl, supabaseKey }) : false;
       obTimes.resolveStart = Date.now();
       const resolution = await resolveVehicle(rawSearch, obVinActive ? { vinConfirm: true } : {});
+      // e60 timing contract: a resolver lookup that timed out is the deadline card (the same words as the 20-second
+      // card), never a car resolved from the typed words alone.
+      if (resolution && resolution.status === "lookup_timeout") {
+        return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: "Sam is still reading the sales for this one. Try again in a minute." });
+      }
       if (resolution.status !== "valid") {
         // The caller already accepted a model-level read (the seller declined
         // the year in the wizard). Proceed with the partial make/model through
