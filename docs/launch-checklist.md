@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T21:33Z (Lane F tick; view fixes live-check 21:35Z; Lane B's 2014 GT3 warm at 21:50Z; then B2's pins, singleflight, E9, Lane D, one-read).
+Last updated: 2026-10-18T21:34Z (Lane F; Sam: the 2014 GT3 warm at 21:50Z, Lane B acknowledges every Desk message, a seven-car warm with ages before any partner look).
+
+## 0ay. Sam's decisions 21:3xZ Oct 18 on the missed 2014 GT3 warm (forwarded word for word to Lane B)
+
+No harm: the stored answer reads normally and Lane C's checks passed. 1. Lane B runs task=warmDemo for the 2014 GT3 alone in the 21:50Z gap (after Lane C's 21:35Z check, before the "before" Buy reads), writing the stored answer and partner_last through Lane C's single write path, and reports one line: the car, the answer (sales, range), the seconds, both rows present. 2. Lane B posts a one-line acknowledgement on receiving any Desk message and confirms a named gap in one line, so an idle session is visible. 3. Before any partner look the Desk names a manual warm of all seven cars (the six and the 2014 GT3) with a per-car line and the age of each stored row. Order unchanged: B2's pins, Lane B's before Buy reads and the single-flight chain, E9 with the --rows reads, Lane D's Sell line, Lane C's one-read batch.
 
 ## 0ax. Sam's live review 21:0xZ Oct 18 (14:03 PT) of /preview: two fixes (forwarded word for word to Lane C)
 
