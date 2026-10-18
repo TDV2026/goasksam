@@ -9594,3 +9594,9 @@ Add the middle-half explanation to /how-sam-decides in plain words: the range pr
   Crawl-delay (10 s allows up to six a minute; it is now well under one); the crawler also had quiet spells before the
   push (05:20Z to 05:40Z), so the evidence is the sustained low, not the first minutes. Search check: no public page
   touched.
+
+## STANDING RULE from Sam (posted by Lane F word for word, 2026-10-18 ~14:0xZ; FOR LANE A and every lane)
+1. Standing rule from now: a quiet order or a held decision never waits on Sam for more than 60 minutes while he is away. If Sam has not answered within 60 minutes, lift the quiet, tell every lane, and proceed in the agreed order, one archive load at a time, skipping the minutes of the 15-minute pullLive episodes (about :00 to :04, :15 to :19, :30 to :34 and :45 to :49 past the hour, UTC). Post what was lifted and why, so Sam sees it on return.
+2. Sam is accepting the permission prompt in Lane B's session now (the chain script, job 412aab8f). When Lane B reports e60 running, keep the quiet for the other lanes until e60 is PUSHED and its before and after table is posted. If the prompt is not accepted within 30 minutes of this message, lift the quiet under decision 1.
+3. Everything else stands: e60 under Option A with its five conditions, c8 after e60's PUSHED, the one-at-a-time prePush after c8, E9 and Lane D's Sell line after that, no index, no compute change.
+(Lane F: the quiet still holds for every lane but Lane B; the Desk posts the lift here and by message when it comes.)

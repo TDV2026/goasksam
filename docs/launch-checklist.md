@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T07:57Z (Lane F tick, batched push; Crawl-delay working; e60 still waits on Sam's permission prompt in Lane B's session; the quiet holds for every other lane).
+Last updated: 2026-10-18T14:0xZ (Lane F; Sam's standing 60-minute rule; Sam accepting Lane B's permission prompt now; the quiet holds until e60's PUSHED and table, or lifts at about 14:30Z if the prompt is not accepted).
+
+## 0x. Sam's STANDING RULE and decisions, 14:0xZ Oct 18 (forwarded word for word to every reachable lane; Lane A in lane-notes)
+
+1. STANDING RULE: a quiet order or a held decision never waits on Sam for more than 60 minutes while he is away; after 60 minutes the Desk lifts the quiet, tells every lane, and the lanes proceed in the agreed order, one archive load at a time, skipping the pullLive episode minutes (about :00 to :04, :15 to :19, :30 to :34 and :45 to :49 UTC); the Desk posts what was lifted and why. 2. Sam is accepting the permission prompt in Lane B's session now; when Lane B reports e60 running, the quiet holds for the other lanes until e60 is PUSHED and its table posted; if the prompt is not accepted within 30 minutes of 14:0xZ, the Desk lifts the quiet under rule 1. 3. Everything else stands: e60 under Option A with five conditions, c8 after e60's PUSHED, the one-at-a-time prePush after c8, E9 and Lane D's Sell line after that, no index, no compute change. Lane C: confirm after c8 that the photos load on the live demo, with one fresh-session screenshot of the sold list at 1440 and 390 (Lane C's 05:45Z PUSHED already reported the id fix d7564986 live with ten of ten photos).
 
 ## 0w. Sam's decisions 07:1xZ Oct 18 (REPLACES his two earlier index messages; forwarded word for word to Lane B)
 
