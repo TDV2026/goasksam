@@ -128,7 +128,7 @@ for (const [name, d] of Object.entries(FIX)) {
 { const { pageHtml } = await import("../api/partnerDemo.js");
   const c = pageHtml("c"), d = pageHtml("d");
   ok(((c.match(/<nav class="tabs"[\s\S]*?<\/nav>/) || [""])[0].match(/href="\?view=/g) || []).length === 3 && !/Under the listing/.test(c) && /id="view-c"(?! hidden)/.test(d), "three tabs; the old d address opens the merged listing");
-  ok(!/Placeholder description/.test(c) && /<dt>Year<\/dt>/.test(c) && /<dt>VIN<\/dt>/.test(c) && /<dt>Mileage<\/dt>/.test(c), "no placeholder description; Year, VIN and Mileage kept");
+  ok(!/Placeholder description/.test(c) && /<dt>Year<\/dt>/.test(c) && !/<dt>VIN<\/dt>/.test(c) && /<dt>Mileage<\/dt>/.test(c), "no placeholder description; About this car keeps Year and Mileage (the VIN shows once, under the title)");
   ok((c.match(/id="d-hist"/g) || []).length === 1 && /\$\("c-rail"\)\.innerHTML = priorPanel\(a, !!D\) \+ rangePanel\(a, D \? \{ price: D\.price, slot: "c", lines: "c" \} : \{ slot: "c", lines: "c" \}\);/.test(c) && /class="below-gal"/.test(c), "the card in the rail, the list and This car before under the gallery, once");
   ok(/function reserveList\(rows, opts\)/.test(c) && /body \+= saleRow\(s, null, opts\.keys\)/.test(c) && /reserveList\(last, \{ reserve: v, keys: keysOf\(a\) \}\)/.test(c) && !/salesTable\(/.test(c), "view b: the same rows, highest price first, the reserve line at its place, no Show more");
   ok((c.match(/function placing\(/g) || []).length === 1 && /placing\(opts\.price, a, opts\.who\)/.test(c) && /"Your reserve is " : "Asking price is "/.test(c) && /who: "reserve"/.test(c), "one comparison against the engine's range, shared by views b and c"); }
@@ -186,7 +186,7 @@ for (const [name, d] of Object.entries(FIX)) {
       ok(j && j.car === car, `${car} (car=${param}), view ${v}: the page reads this car`);
       ok(h.includes('<input id="car-in" name="car" value="' + escH(car) + '"') && !/class="qp|class="picks/.test(h) && !/<a [^>]*>(2015 Porsche 911 GT3|2005 Porsche 911|1965 Ford Mustang|1957 Porsche 356 Speedster|1966 Ferrari 275 GTB|2023 Porsche 911 GT3)<\/a>/.test(main0(h)), `${car}, view ${v}: the car box holds this car; no example car chips at any width`);
       ok((h.match(/<a href="\?view=[abc][^"]*"/g) || []).every(t => car === DEMO_CARS[0] ? !t.includes("car=") : t.includes("&amp;car=" + encodeURIComponent(car))), `${car}, view ${v}: every tab keeps the car`);
-      if (car === DUMMY.q) ok(j.listing && (v === "b" || (/US \$139,900/.test(main) && /<dd>30,400<\/dd>/.test(main) && /<dd>2014<\/dd>/.test(main) && /<dd>WP0AC2A9XES183617<\/dd>/.test(main))) && !/hero-img|img=hero|Black|clean title|Time left|Condition/.test(main) && /id="own-gal"|id="b-photo"/.test(main), `${car}, view ${v}: the 2014 GT3's own listing detail (30,400 miles, $139,900), its own photos only, nothing invented`);
+      if (car === DUMMY.q) ok(j.listing && (v === "b" || (/US \$139,900/.test(main) && /<dd>30,400<\/dd>/.test(main) && /<dd>2014<\/dd>/.test(main) && (main.match(/WP0AC2A9XES183617/g) || []).length === 1)) && !/hero-img|img=hero|Black|clean title|Time left|Condition/.test(main) && /id="own-gal"|id="b-photo"/.test(main), `${car}, view ${v}: the 2014 GT3's own listing detail (30,400 miles, $139,900), its own photos only, nothing invented`);
       else ok(!j.listing && !/\$\d/.test(main) && !/hero-img|thumb-img/.test(main) && !/<dt>VIN<\/dt>|\bmiles\b|Buy It Now/.test(main) && /Recent sales of cars like this one\./.test(main), `${car}, view ${v}: no invented listing, price, mileage or photo; it says what it is`);
       return JSON.stringify(j); });
     ok(seen.every(x => x === seen[0]), `${car}: the same car identically in every view`);
@@ -380,6 +380,36 @@ for (const [name, d] of Object.entries(FIX)) {
       pg.on("request", r => { const u = new URL(r.url()); if (u.pathname === "/preview") return r.respond({ status: 200, contentType: "text/html; charset=utf-8", body: pageHtml(v) }); if (u.pathname === "/api/partnerAnswer" && r.method() === "POST") { asked.push(JSON.parse(r.postData() || "{}").q); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, query: "q", answerType: "zero_result", sales: [], history: [] }) }); } return r.respond({ status: 204, body: "" }); });
       await pg.goto("https://goasksam.com/preview?view=" + v, { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 500));
       ok(asked.length >= 1 && asked.every(q => q === "2014 Porsche 911 GT3"), `view ${v} with nothing chosen starts on the 2014 GT3 (${JSON.stringify(asked)})`); await pg.close(); }
+    await br.close();
+  }
+}
+// NO REPEATED DETAIL ON THE LISTING; THE PANEL ON VIEW B (Sam, Oct 18 2026): the listing view shows the VIN once (small,
+// under the title) and the mileage only in the title line and About this car (no separate Mileage block under the
+// price); view b shows "This car last sold for" under its heading line and above the reserve box for the 2014 GT3,
+// and nothing for a car with no earlier sale; at 1440 and 390.
+{ const { pageHtml } = await import("../api/partnerDemo.js");
+  let puppeteer = null; try { ({ default: puppeteer } = await import("puppeteer-core")); } catch {}
+  const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+  if (!puppeteer || !fs.existsSync(CHROME)) { skip++; console.log("SKIP view fixes: no local Chrome"); }
+  else {
+    const hist = [{ result: "sold", date: "2025-07-20", price: 124000, miles: 29000, photo: null }, { result: "sold", date: "2024-03-09", price: 110000, miles: 26000, photo: null }];
+    const br = await puppeteer.launch({ executablePath: CHROME, headless: "new" });
+    for (const w of [1440, 390]) for (const [v, car, withHist] of [["c", undefined, true], ["b", undefined, true], ["b", "1965 Ford Mustang", false]]) {
+      const pg = await br.newPage(); await pg.setViewport({ width: w, height: 900, isMobile: w < 600 }); await pg.setRequestInterception(true);
+      pg.on("request", r => { const u = new URL(r.url());
+        if (u.pathname === "/preview") return r.respond({ status: 200, contentType: "text/html; charset=utf-8", body: pageHtml(v, car) });
+        if (u.pathname === "/api/partnerAnswer" && r.method() === "POST") return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, query: "q", answerType: "range", range: { low: 111000, high: 133000 }, count: 10, sales: [], history: withHist ? hist : [], card: '<div class="sfc-card"><p class="sfc-range">$111,000 to $133,000</p><div class="gas-pill-slot"></div></div>' }) });
+        return r.respond({ status: 204, body: "" }); });
+      await pg.goto("https://goasksam.com/preview?view=" + v, { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 600));
+      if (v === "c") {
+        const m = await pg.evaluate(() => { const t = document.querySelector("#view-c").innerText; return { vin: (t.match(/WP0AC2A9XES183617/g) || []).length, miles: (t.match(/30,400/g) || []).length, specsUnderPrice: !!document.querySelector("#view-c .rail .specs") }; });
+        ok(m.vin === 1 && m.miles === 2 && !m.specsUnderPrice, `listing view ${w}: the VIN once, the mileage only in the title line and About this car, no Mileage block under the price (${JSON.stringify(m)})`);
+      } else {
+        const m = await pg.evaluate(() => { const pn = document.querySelector("#view-b .prior"), sub = document.getElementById("b-name"), res = document.querySelector("#view-b .reserve"); return { panel: !!pn, head: pn ? (pn.querySelector("h3") || {}).textContent : "", afterHeading: !!(pn && sub && (sub.compareDocumentPosition(pn) & 4)), beforeReserve: !!(pn && res && (pn.compareDocumentPosition(res) & 4)), none: !!document.querySelector("#view-b .prior-none") }; });
+        ok(withHist ? m.panel && m.head === "This car last sold for $124,000 in July 2025." && m.afterHeading && m.beforeReserve && !m.none : !m.panel && !m.none, `reserve view ${w}, ${withHist ? "the 2014 GT3" : "a car with no earlier sale"}: ${withHist ? "the panel under the heading line, above the reserve box" : "no panel and no line"} (${JSON.stringify(m)})`);
+      }
+      await pg.close();
+    }
     await br.close();
   }
 }

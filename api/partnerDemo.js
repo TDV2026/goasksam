@@ -486,7 +486,9 @@ const JS = String.raw`
   function runA(body){ $("a-out").innerHTML = '<p class="loading">Sam is reading the sales for this one.</p>'; run("a", body, drawA); }
   // ---- view b: setting a reserve
   var bAns = null;
-  function gotB(a){ bAns = a; noteLines("b", a); if ($("b-photo")) $("b-photo").innerHTML = D ? ownPhotos(a, false) : mainPhotoHtml(a); if (!D && $("b-name") && VIN_RE.test(CAR)) $("b-name").innerHTML = vinHead(a, "span"); drawB(); }
+  // (Sam, Oct 18 2026) View b shows the same "This car last sold for" panel under its heading line, above the reserve
+  // box, when the car sold before; nothing when it did not.
+  function gotB(a){ bAns = a; noteLines("b", a); if ($("b-prior")) $("b-prior").innerHTML = priorPanel(a, false); if ($("b-photo")) $("b-photo").innerHTML = D ? ownPhotos(a, false) : mainPhotoHtml(a); if (!D && $("b-name") && VIN_RE.test(CAR)) $("b-name").innerHTML = vinHead(a, "span"); drawB(); }
   function drawB(){
     var v = Number(String($("b-res").value || "").replace(/[^\d]/g, ""));
     var a = bAns; if (!a) return;
@@ -573,7 +575,6 @@ export function pageHtml(view, carIn) {
       <p class="sub">${miles} miles</p>
       <hr>
       <div class="price">US ${"$" + d.price.toLocaleString("en-US")}</div>
-      <dl class="specs" style="margin:14px 0 0"><div><dt>Mileage</dt><dd>${miles}</dd></div></dl>
       <div class="buy"><button type="button" class="btn pri blk">${d.priceKind}</button><button type="button" class="btn sec blk">Make offer</button><button type="button" class="btn sec blk">Save</button></div>
       ${withRail ? '<div id="c-rail"><p class="loading">Sam is reading the sales for this one.</p></div>' : ""}
     </div>
@@ -587,7 +588,7 @@ export function pageHtml(view, carIn) {
     <div class="rail"><div id="c-rail"><p class="loading">Sam is reading the sales for this one.</p></div></div>
     <div class="below-gal"><div class="full" id="d-sales"><p class="loading">Sam is reading the sales for this one.</p></div><div class="full" id="d-hist"></div></div>
   </div>`;
-  const desc = `<div class="desc below"><h2>About this car</h2><dl class="specs"><div><dt>Year</dt><dd>${d.year}</dd></div><div><dt>VIN</dt><dd>${d.vin}</dd></div><div><dt>Mileage</dt><dd>${miles}</dd></div></dl></div>`;
+  const desc = `<div class="desc below"><h2>About this car</h2><dl class="specs"><div><dt>Year</dt><dd>${d.year}</dd></div><div><dt>Mileage</dt><dd>${miles}</dd></div></dl></div>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><title>What these sell for</title><style>${CSS}${SELLS_FOR_CARD_CSS}</style></head><body>
 <div class="demo-bar"><div class="wrap"><span>What these sell for, powered by GoAskSam.</span><nav class="tabs" aria-label="Views">${tab("a", "a. Before listing")}${tab("b", "b. Setting a reserve")}${tab("c", "c. On the listing")}</nav></div></div>
@@ -602,6 +603,7 @@ ${carBar}
 <section class="sec-view wrap" id="view-b"${v === "b" ? "" : " hidden"}>
   <div class="b-hero" id="b-photo"></div>
   <div class="lead"><h1>Set your reserve</h1><p class="sub" id="b-name">${hasListing ? `${d.title}, ${miles} miles` : escHtml(car)}</p>
+  <div id="b-prior"></div>
   <div class="reserve"><label for="b-res">Reserve</label><span class="money">$<input id="b-res" inputmode="numeric" placeholder="0" aria-label="Reserve in dollars"></span></div>
   <div id="b-out"><p class="loading">Sam is reading the sales for this one.</p></div></div>
 </section>
