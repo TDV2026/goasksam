@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T15:0xZ (Lane F; Lane C's c8 in full-tier prePush from 15:05Z; Lane B's post-e60 reads in; two decisions for Sam: the This car before pick and the next bump's go).
+Last updated: 2026-10-18T14:57Z (Lane F tick, batched push; e60 live and stays; c8 in full-tier prePush from 15:05Z; Lane B's post-e60 reads in; Lane D rebased and ready).
 
 ## 0y. e60 LIVE and STAYS; QUIET LIFTED (Lane F, 14:4xZ Oct 18)
 
