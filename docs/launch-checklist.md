@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T14:57Z (Lane F tick, batched push; e60 live and stays; c8 in full-tier prePush from 15:05Z; Lane B's post-e60 reads in; Lane D rebased and ready).
+Last updated: 2026-10-18T15:18Z (Lane F tick; c8's five code commits are on main, PUSHED line and live checks pending; e60 live and stays).
 
 ## 0y. e60 LIVE and STAYS; QUIET LIFTED (Lane F, 14:4xZ Oct 18)
 
@@ -65,7 +65,7 @@ Partner demo only. 1. Pills in placing(): listing view "Asking price is inside /
 | Periodic database load (CPU busy and idle in alternation, no visitors, disk idle; the episodes sit on the pullLive cron's archive steps at 06:30 and 06:45) | Lane B | the missing-index explanation is WITHDRAWN by Sam's pg_indexes check (idx_sales_archive_vin_norm and the url indexes exist live, about 34 indexes in all); the real cause is open: Lane B gives Sam a pg_stat_statements top-ten paste to run just after a pullLive run, with what each reading would mean (a statement that cannot use the vin_norm index, the update cost of about 30 indexes on the rows the pull rewrites, liveStats counts, autovacuum), and reads each pull statement's form from code | Sam's two pastes of Lane B's pg_stat_statements query (at about :13 and :19 past the hour; the statement whose total_ms grows most is the pull's CPU); Lane B's code reading says none of the pull's statements is written in a form that prevents index use, so the pull's lookups are not the CPU by construction | the statement table |
 | 4. E9, then the Crawl-delay after-rate read, then the audit runs | Lane E | holding | e60 live |
 | 5. The Sell line (branch sell-count, rebased onto main after e60) | Lane D | holding, READY | E9 |
-| 6. Lane C batch c8: layout, M3 narrowing lines, card bump (Half of these sold in this range, usual-range pills), the outside-feedback demo wording, the demo footer line, the /cars H1 fix; then the prePush one-at-a-time fix; then C1 and the crawler rule; then C2 to C5 | Lane C | c8 PUSH LOCK 89ce25d6, FULL tier, rebased onto e60 main, prePush alone from 15:05Z in a pullLive gap; pushes on 0 FAIL (Lane C also names Sam's one-time exception, which Sam has not granted for c8) | the prePush result; Sam's review live after the push |
+| 6. Lane C batch c8 | Lane C | ON MAIN at about 15:1xZ: e2912410 the layout (c and d one listing page), f07d886e the narrowing lines on the demo, ea244c9b the card wording (Half of these sold in this range, usual-range pills, demo footer line), d1a5fdf1 the /cars H1 fix, f1fa90f7 the demo pill and reserve wording; PUSHED line and live checks pending (whether the prePush passed clean or on timing lines, Lane C will say) | Lane C's PUSHED with the live results and Sam's review; then Lane E's E9 |
 | 7. Basis line everywhere, then SEO A1 to A8 | Lane A | holding (lane-notes only) | the order reaching it |
 | Held for a separate go: project-flag re-stamp, real-columns migration (run-1 to run-5) | Lane B writes, Sam runs | after run-0 v2 results | Sam |
 
