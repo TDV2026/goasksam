@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T21:37Z (Lane F; Lane B's e62 trim-question rule and wording proposed for Sam's approval; read-only a at 22:20Z; golden and demo rows hit it zero times).
+Last updated: 2026-10-18T21:38Z (Lane F tick; Lane B's 2014 GT3 warm 21:50Z; B2's pins 22:05Z; trim-split reads 22:20Z; then singleflight, e62, E9, Lane D, one-read).
 
 ## 0az. Sam 21:4xZ Oct 18: trim-split defect in the shared engine (2019 BMW 3-Series) and e62 (forwarded word for word to Lane B)
 
