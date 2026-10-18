@@ -93,6 +93,13 @@ for (const [name, d] of Object.entries(FIX)) {
 { const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8"), apiSrc = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
   ok(/\(!a \|\| a\.ok === false\) && !\(a && a\.history && a\.history\.length\)\) return '<div class="panel"><h3>This car before<\/h3><p class="muted">' \+ notRead\(a\)/.test(pageSrc), "a failed read: This car before says it could not read, never that there is no earlier sale");
   ok(/if \(!demoKey\(text\)\) \{\s*const lim = await checkCeiling\(env, req, "partner_answer"/.test(apiSrc), "the demo's own six cars are never held by the per-minute ceiling"); }
+// Neither side waits for good (Oct 18 2026): the server read has a deadline and falls back to the last good answer,
+// and every page attempt aborts at its own deadline and shows the could-not-read line.
+{ const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8"), apiSrc = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
+  const { READ_DEADLINE_MS } = await import("../api/partnerAnswer.js");
+  ok(READ_DEADLINE_MS > 0 && READ_DEADLINE_MS <= 25000 && /Promise\.race\(\[marketCheckAnswer\(/.test(apiSrc), "the server read races a deadline of at most 25 s");
+  const m = pageSrc.match(/var ASK_DEADLINE_MS = (\d+);/);
+  ok(m && Number(m[1]) > READ_DEADLINE_MS && Number(m[1]) <= 30000 && /ctl\.abort\(\)/.test(pageSrc) && /Promise\.race\(\[read, late\]\)/.test(pageSrc), "each page attempt aborts after the server deadline and resolves to could-not-read"); }
 // The endpoint reads no market of its own: Market Check's handler is its only source of figures.
 const src = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8").replace(/\/\/[^\n]*/g, "");
 ok(/import\("\.\/sellerDecision\.js"\)/.test(src) && /oneBox: true/.test(src), "the endpoint asks Market Check's own handler");

@@ -94,6 +94,8 @@ export function partnerAllowed(req) {
 }
 
 // Market Check's own request handler, called in-process with the same body the Market Check page sends.
+export const READ_DEADLINE_MS = 20000;
+
 export async function marketCheckAnswer(req, text, refine, asked) {
   const { default: mc } = await import("./sellerDecision.js");
   const body = { oneBox: true, car: { raw: text }, asked: Math.max(0, Math.min(9, Number(asked) || 0)) };
@@ -316,8 +318,10 @@ export default async function handler(req, res) {
     const cars = await checkCeiling(env, req, "partner_cars", { tool: "partner" }).catch(() => ({ ok: true }));
     if (!cars.ok) return res.status(429).json({ ok: false, query: text, error: "car_limit" });
   }
+  // The read has its own deadline (Oct 18 2026: a read that never returned left the page saying "Sam is reading the
+  // sales." for good): past READ_DEADLINE_MS the demo answers from the last good answer, or says it could not read.
   let r;
-  try { r = await marketCheckAnswer(req, text, refine, asked); } catch (e) {
+  try { r = await Promise.race([marketCheckAnswer(req, text, refine, asked), new Promise((_, rej) => setTimeout(() => rej(new Error("read deadline")), READ_DEADLINE_MS).unref?.())]); } catch (e) {
     console.error("partnerAnswer:", (e && e.message) || e);
     const lk0 = !refine && !vinIn ? demoKey(text) : null, last = lk0 && env ? await readLast(env, lk0) : null;
     if (lastGoodUsable(last)) return res.status(200).json({ ...last.out, lastGood: true });

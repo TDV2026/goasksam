@@ -160,9 +160,15 @@ const JS = String.raw`
   var monthYear = function(d){ var p = String(d || "").split("-"); return p.length >= 2 && MON[Number(p[1]) - 1] ? MON[Number(p[1]) - 1] + " " + p[0] : ""; };
   var plural = function(n, one, many){ return n === 1 ? one : many; };
   // One read; a failed one is retried once, a few seconds later, before the page says it could not read the sales.
+  // Each attempt has its own deadline, so the loading line never stays for good (Oct 18 2026).
+  var ASK_DEADLINE_MS = 25000;
   function ask1(body){
-    return fetch("/api/partnerAnswer", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+    var ctl = typeof AbortController === "function" ? new AbortController() : null;
+    var t = ctl ? setTimeout(function(){ ctl.abort(); }, ASK_DEADLINE_MS) : null;
+    var read = fetch("/api/partnerAnswer", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: ctl ? ctl.signal : undefined })
       .then(function(r){ return r.json(); }).catch(function(){ return { ok: false, error: "unavailable" }; });
+    var late = new Promise(function(res){ setTimeout(function(){ res({ ok: false, error: "unavailable" }); }, ASK_DEADLINE_MS + 1000); });
+    return Promise.race([read, late]).then(function(a){ if (t) clearTimeout(t); return a; });
   }
   function ask(body){
     return ask1(body).then(function(a){ return a && (a.ok !== false || a.error === "rate_limited" || a.error === "car_limit") ? a : new Promise(function(res){ setTimeout(function(){ ask1(body).then(res); }, 4000); }); });
