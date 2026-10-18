@@ -337,7 +337,8 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
     const firstDiff = (a, b) => { let i = 0; while (i < a.length && i < b.length && a[i] === b[i]) i++; return `first difference at character ${i}: MC "${a.slice(Math.max(0, i - 20), i + 50)}" against "${b.slice(Math.max(0, i - 20), i + 50)}"`; };
     for (const pr of ["buy", "sell"]) {
       const c = r.pages[pr] && r.pages[pr].card;
-      if (!ref) lines.push({ name: pr, cell: "FAIL", diff: "Market Check renders no shared card (.sfc-card)" });
+      if (pr === "buy" && r.pages.buy && r.pages.buy.cell === "N/A") lines.push({ name: pr, cell: "N/A", diff: "no live car on Buy for this search, so there is no Market Check drawer to open" });
+      else if (!ref) lines.push({ name: pr, cell: "FAIL", diff: "Market Check renders no shared card (.sfc-card)" });
       else if (!c) lines.push({ name: pr, cell: "PENDING", diff: "not yet adopted (no .sfc-card on the page)" });
       else lines.push(c === ref ? { name: pr, cell: "PASS", diff: null } : { name: pr, cell: "FAIL", diff: firstDiff(ref, c) });
     }
@@ -514,7 +515,7 @@ for (const io of identityOut) {
   console.log(`\nIdentity row ${io.id}, ${io.q}: the bare page shows ${io.any.count == null ? "no count" : io.any.count} sales (Any), options ${io.any.options.map(x => x.label + " (" + x.n + ")").join(", ") || "none"}`);
   for (const c of io.checks) { console.log(`  ${pad(c.cell, 6)} ${pad(c.name, 26)} ${c.shown}`); for (const d of c.diffs) console.log(`         ${d}`); if (c.cell === "FAIL") nFail++; else if (c.cell === "PASS") nPass++; }
 }
-for (const c of cardOut) { console.log(`\nShared card, row ${c.id}, ${c.q}:`); for (const l of c.lines) { console.log(`  ${pad(l.cell, 8)} ${pad(l.name, 14)} ${l.diff || "identical to Market Check"}`); if (l.cell === "FAIL") nFail++; else if (l.cell === "PENDING") nPend++; else nPass++; } }
+for (const c of cardOut) { console.log(`\nShared card, row ${c.id}, ${c.q}:`); for (const l of c.lines) { console.log(`  ${pad(l.cell, 8)} ${pad(l.name, 14)} ${l.diff || "identical to Market Check"}`); if (l.cell === "FAIL") nFail++; else if (l.cell === "PENDING") nPend++; else if (l.cell !== "N/A") nPass++; } }
 for (const c of chipPairOut) { console.log(`\nRow ${c.id}, ${c.name}: ${c.shown}`); if (c.diff) console.log(`  ${c.diff}`); if (c.cell === "FAIL") nFail++; else nPass++; }
 if (chassisGuard) console.log(`\nChassis-number guard (365 GT 2+2, chassis 12751, set aside from the 275 GTB pool): ${chassisGuard}`);
 if (rereads.length) { console.log("\nRE-READ (a read errored or ran over the " + DEADLINE + " s line; not a mismatch; rerun these rows alone with --ids):"); for (const x of rereads) console.log("  " + x); }
