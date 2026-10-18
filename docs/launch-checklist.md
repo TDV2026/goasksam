@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T07:5xZ (Lane F; the ClaudeBot Crawl-delay is working: 0.42 renders a minute over 80 minutes against 6.2 baseline; e60 still waits on Sam's permission prompt; the quiet holds).
+Last updated: 2026-10-18T07:57Z (Lane F tick, batched push; Crawl-delay working; e60 still waits on Sam's permission prompt in Lane B's session; the quiet holds for every other lane).
 
 ## 0w. Sam's decisions 07:1xZ Oct 18 (REPLACES his two earlier index messages; forwarded word for word to Lane B)
 
