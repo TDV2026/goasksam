@@ -62,7 +62,7 @@ for (const [name, d] of Object.entries(FIX)) {
     ok(!/<a [^>]*>How Sam decides/.test(out.card) && /<span class="sfc-footer-link">How Sam decides<\/span>/.test(out.card), "range: How Sam decides is plain text, not a link");
     ok(out.sales.every(s => s.miles === 24000 || s.miles === null), "range: each sale carries the engine's mileage");
     ok(basisLine({ ...d, poolN: 3 }) === "Based on three sales, the latest in April 2026.", "a count under ten is written in words");
-    ok(/Based on 14 sales, the latest in April 2026/.test(out.card || "") && /Two sales set aside, one as a project and one as a replica\./.test(out.card || "") && !/set aside:/.test(out.card || "") && out.card.indexOf(PILL_SLOT) > out.card.indexOf("sfc-range"), "range: the card carries the basis, the set-aside sentence (words under ten, no colon) and the pill slot under the range");
+    ok(/Based on 14 sales, the latest in April 2026/.test(out.card || "") && !/sfc-aside/.test(out.card || "") && !/set aside/.test(out.card || "") && /<p class="sfc-howline">The range is the middle half of the sales: a quarter sold below it, a quarter above it\.<\/p>/.test(out.card || "") && out.card.indexOf(PILL_SLOT) > out.card.indexOf("sfc-range"), "range: the demo card carries the basis, no set-aside line (the group under the list carries it), the middle-half line under the footer, and the pill slot under the range");
     ok(out.trend && out.trend.length === 1 && out.trend[0].count >= 8, "range: only quarters with eight or more sales");
     ok(out.setAside && out.setAside.total === 2 && !("modified" in out.setAside.reasons), "range: set-aside reasons, zero counts dropped");
     ok(out.history[0].result === "not_sold" && out.history[0].highBid === 128000 && out.history[1].price === 151000, "history: sold with its price, not sold with its high bid, newest first");
@@ -127,7 +127,7 @@ for (const [name, d] of Object.entries(FIX)) {
   ok(!/Placeholder description/.test(c) && /<dt>Year<\/dt>/.test(c) && /<dt>VIN<\/dt>/.test(c) && /<dt>Mileage<\/dt>/.test(c), "no placeholder description; Year, VIN and Mileage kept");
   ok((c.match(/id="d-hist"/g) || []).length === 1 && /\$\("c-rail"\)\.innerHTML = rangePanel\(a, \{ price: D\.price, slot: "c", lines: "c" \}\);/.test(c) && /class="below-gal"/.test(c), "the card in the rail, the list and This car before under the gallery, once");
   ok(/function reserveList\(rows, opts\)/.test(c) && /body \+= saleRow\(s\)/.test(c) && /reserveList\(last, \{ reserve: v \}\)/.test(c) && !/salesTable\(/.test(c), "view b: the same rows, highest price first, the reserve line at its place, no Show more");
-  ok((c.match(/function placing\(/g) || []).length === 1 && /placing\(opts\.price, a\)/.test(c), "one comparison against the engine's range, shared by views b and c"); }
+  ok((c.match(/function placing\(/g) || []).length === 1 && /placing\(opts\.price, a, opts\.who\)/.test(c) && /"Your reserve is " : "Asking price is "/.test(c) && /who: "reserve"/.test(c), "one comparison against the engine's range, shared by views b and c"); }
 // The narrowing lines (Sam, Oct 18 2026: "2001 bmw", M3): Market Check's own lines from the engine's fields, same
 // filters, same order, each option the refine Market Check sends; the page draws them under the card in a, b and c.
 { const { linesOf, partnerShape: ps } = await import("../api/partnerAnswer.js");
@@ -140,7 +140,14 @@ for (const [name, d] of Object.entries(FIX)) {
   ok(linesOf({ tier: "identity_question", bodyOptions: m3.bodyOptions }).length === 0 && linesOf({ ...m3, bodyOptions: [m3.bodyOptions[0]] }).length === 0, "no line on a question, none with a single option");
   ok(venueLeak(ps(m3, "2001 bmw M3", 1, {})).length === 0 && ps(m3, "2001 bmw M3", 1, {}).lines.length === 1, "the lines ride the answer and pass the venue-leak guard");
   const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
-  ok(/send\.refine = \{\}; send\.refine\[key\] = val;/.test(pageSrc) && /rangePanel\(a, \{ lines: "a" \}\)/.test(pageSrc) && /lines: "b" \}/.test(pageSrc) && /Any \(' \+ Number\(l\.any\)/.test(pageSrc), "views a, b and c draw the lines; an option reruns the same query with its refine; Any goes back"); }
+  ok(/send\.refine = \{\}; send\.refine\[key\] = val;/.test(pageSrc) && /rangePanel\(a, \{ lines: "a" \}\)/.test(pageSrc) && /lines: "b", who: "reserve"/.test(pageSrc) && /Any \(' \+ Number\(l\.any\)/.test(pageSrc), "views a, b and c draw the lines; an option reruns the same query with its refine; Any goes back"); }
+// Sam's demo wording (Oct 18 2026): the pills name whose figure it is; the reserve line under the pill is counted from
+// exactly the rows the page shows; the thin card carries no middle-half line.
+{ const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
+  ok(/w \+ "below the usual range"/.test(pageSrc) && /w \+ "above the usual range"/.test(pageSrc) && /w \+ "inside the usual range"/.test(pageSrc) && !/good deal|great price|bargain|overpriced/i.test(pageSrc), "the pills: Asking price is / Your reserve is inside, above or below the usual range; no deal words");
+  ok(/var at = v > 0 \? last\.filter\(function\(s\)\{ return s\.price >= v; \}\)\.length : null;/.test(pageSrc) && /"None of the " \+ last\.length \+ " most recent sales reached " \+ usd\(v\) \+ "\."/.test(pageSrc) && /at \+ " of the " \+ last\.length \+ " most recent sales reached " \+ usd\(v\) \+ " or more\."/.test(pageSrc) && /underPill: resLine/.test(pageSrc), "the reserve line is counted from the rows shown, under the pill, None when zero");
+  const { demoCard: dc } = await import("../api/partnerAnswer.js");
+  ok(!/sfc-howline/.test(dc('<div class="sfc-card"><p class="sfc-thin">3 sales found, not enough for a range.</p><div class="sfc-footer"><span>x</span><a class="sfc-footer-link" href="/how-sam-decides">How Sam decides</a></div></div>', { poolN: 3 })), "a thin card carries no middle-half line"); }
 // The endpoint reads no market of its own: Market Check's handler is its only source of figures.
 const src = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8").replace(/\/\/[^\n]*/g, "");
 ok(/import\("\.\/sellerDecision\.js"\)/.test(src) && /oneBox: true/.test(src), "the endpoint asks Market Check's own handler");

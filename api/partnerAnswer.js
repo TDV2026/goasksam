@@ -91,12 +91,16 @@ export function asideSentence(d) {
   return text.charAt(0).toUpperCase() + text.slice(1) + ".";
 }
 const escHtml = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+// (4, Sam, Oct 18 2026, demo only) the set-aside line comes off the demo's card (the set-aside group under the list
+// carries it, worded by asideSentence); (5) under the footer, the plain middle-half line (a range card only).
+// The shared card (lib/sellsForCard.js) and every other product keep their own lines.
+export const HOW_LINE = "The range is the middle half of the sales: a quarter sold below it, a quarter above it.";
 export function demoCard(html, d) {
   if (!html) return html;
-  const b = basisLine(d), a = asideSentence(d);
+  const b = basisLine(d), ranged = /class="sfc-range"/.test(html);
   return html.replace(/<p class="sfc-basis">[\s\S]*?<\/p>/, b ? '<p class="sfc-basis">' + escHtml(b) + "</p>" : "")
-    .replace(/<p class="sfc-aside">[\s\S]*?<\/p>/, a ? '<p class="sfc-aside">' + escHtml(a) + "</p>" : "")
-    .replace(/<a class="sfc-footer-link"[^>]*>How Sam decides<\/a>/, '<span class="sfc-footer-link">How Sam decides</span>');
+    .replace(/<p class="sfc-aside">[\s\S]*?<\/p>/, "")
+    .replace(/<a class="sfc-footer-link"[^>]*>How Sam decides<\/a><\/div>/, '<span class="sfc-footer-link">How Sam decides</span></div>' + (ranged ? '<p class="sfc-howline">' + escHtml(HOW_LINE) + "</p>" : ""));
 }
 
 const RANGE_MIN = 8;   // the engine's own RANGE_THRESHOLD: under eight sales there is no range, only words

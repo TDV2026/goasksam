@@ -147,7 +147,8 @@ h3{font-size:18px;line-height:1.3;margin:0 0 10px;font-weight:700}
 .stable th:first-child,.stable td:first-child{padding-left:0}
 .stable .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;padding-right:0}
 .stable .res-row td{padding:8px 12px;background:var(--soft);border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);font-weight:700}
-.res-sum{margin:12px 0 0;font-size:15px}
+.res-line-big{margin:4px 0 12px;font-size:18px;font-weight:700;line-height:1.35}
+.sfc-howline{margin:8px 0 0;font-size:13px;color:var(--ink2,#666);line-height:1.45}
 .hsd{color:var(--ink)}
 /* "How Sam decides" is plain static text on the demo (Sam): the card's own link styling is undone here only */
 .sfc-card span.sfc-footer-link{color:var(--ink2);font-weight:400;text-decoration:none}
@@ -228,11 +229,14 @@ const JS = String.raw`
   }
   var newest = function(a){ return (a && a.sales || []).slice().sort(function(x, y){ return String(y.date || "").localeCompare(String(x.date || "")) || y.price - x.price; }); };
   // Where a figure sits against the engine's range. The only thing this page works out, and only from that range.
-  function placing(x, a){
+  // The pill names whose figure it is (Sam, Oct 18 2026): the listing's asking price, or the seller's reserve. Neutral,
+  // no deal words, no advice.
+  function placing(x, a, who){
     if (!a || !a.range) return { cls: "none", text: "No range for cars like this yet" };
-    if (x < a.range.low) return { cls: "below", text: "Below the usual range" };
-    if (x > a.range.high) return { cls: "above", text: "Above the usual range" };
-    return { cls: "in", text: "Inside the usual range" };
+    var w = who === "reserve" ? "Your reserve is " : "Asking price is ";
+    if (x < a.range.low) return { cls: "below", text: w + "below the usual range" };
+    if (x > a.range.high) return { cls: "above", text: w + "above the usual range" };
+    return { cls: "in", text: w + "inside the usual range" };
   }
   function idChips(a){
     var id = a && a.identity; if (!id) return "";
@@ -252,10 +256,10 @@ const JS = String.raw`
     // The shared card (lib/sellsForCard.js, rendered by the endpoint): this page only fills its pill slot. The card has
     // pill slot in every case (Lane A's 3e8445d6), so every pill, the grey no-range one too, sits where the card puts it.
     if (a.card) {
-      var pl = opts.price != null ? placing(opts.price, a) : null, ph = pl ? '<p class="pillrow"><span class="pill ' + pl.cls + '">' + esc(pl.text) + "</span></p>" : "";
+      var pl = opts.price != null ? placing(opts.price, a, opts.who) : null, ph = (pl ? '<p class="pillrow"><span class="pill ' + pl.cls + '">' + esc(pl.text) + "</span></p>" : "") + (opts.underPill || "");
       return (opts.chips ? idChips(a) : "") + (a.card.indexOf('<div class="gas-pill-slot"></div>') >= 0 ? a.card.replace('<div class="gas-pill-slot"></div>', ph) : a.card + ph) + (opts.lines ? linesHtml(opts.lines) : "");
     }
-    var pill = opts.price != null ? '<p class="pillrow"><span class="pill ' + placing(opts.price, a).cls + '">' + esc(placing(opts.price, a).text) + "</span></p>" : "";
+    var pill = opts.price != null ? '<p class="pillrow"><span class="pill ' + placing(opts.price, a, opts.who).cls + '">' + esc(placing(opts.price, a, opts.who).text) + "</span></p>" : "";
     var body = a.range
       ? '<p class="range">' + usd(a.range.low) + " to " + usd(a.range.high) + "</p>" + pill + '<p class="sub">The middle half of ' + a.count + " " + plural(a.count, "sale", "sales") + "" + ".</p>"
       : '<p class="sub">' + esc(a.thin || "No range for cars like this yet.") + "</p>" + pill;
@@ -347,10 +351,13 @@ const JS = String.raw`
     var a = bAns; if (!a) return;
     if (a.question) { $("b-out").innerHTML = rangePanel(a, { slot: "b" }); return; }
     var last = newest(a).slice(0, 10).sort(function(x, y){ return y.price - x.price; });
+    // (Sam, Oct 18 2026) one prominent line under the pill, counted from exactly the rows shown below against the reserve
+    // as typed; no other claim.
     var at = v > 0 ? last.filter(function(s){ return s.price >= v; }).length : null;
-    $("b-out").innerHTML = rangePanel(a, { price: v > 0 || !a.range ? v : null, lines: "b" }) + (last.length ?
+    var resLine = at == null || !last.length ? "" : '<p class="res-line-big">' + (at === 0 ? "None of the " + last.length + " most recent sales reached " + usd(v) + "." : at + " of the " + last.length + " most recent sales reached " + usd(v) + " or more.") + "</p>";
+    $("b-out").innerHTML = rangePanel(a, { price: v > 0 || !a.range ? v : null, lines: "b", who: "reserve", underPill: resLine }) + (last.length ?
       '<section class="full-a"><h2>What cars like this sold for</h2><p class="sub" style="margin:-6px 0 12px">The last ' + (last.length === 1 ? "sale" : last.length + " sales") + ", highest price first.</p>" + reserveList(last, { reserve: v }) +
-      (at != null ? '<p class="res-sum">' + at + " of the last " + last.length + " sold at or above this.</p>" : "") + "</section>" : "");
+      "</section>" : "");
   }
   // ---- view c: the listing (Sam, Oct 18 2026: c and d are one page; the card under the buy box, the sales list and
   // "This car before" under the gallery, once)
