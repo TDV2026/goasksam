@@ -263,7 +263,7 @@ for (const [name, d] of Object.entries(FIX)) {
   const out = ps({ status: "one_box", tier: "result", cluster: [111000, 133000], poolN: 10, cards: [] }, "2014 Porsche 911 GT3", 0, { history: h });
   ok(venueLeak(out).length === 0, "the answer with this car's history passes the venue guard");
   const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
-  ok(/'<div class="panel prior"><h3>This car last sold for ' \+ usd\(last\.price\)/.test(pageSrc) && /" miles at that sale"/.test(pageSrc) && /\$\("a-out"\)\.innerHTML = \(a\.vin \? vinHead\(a, "h2"\) : ""\) \+ \(a\.question \? "" : priorPanel\(a, !!a\.vin\)\) \+ \(a\.question \? "" : mainPhotoHtml\(a\)\)/.test(pageSrc) && /'<p class="prior-none">No earlier sale of this car on record\.<\/p>'/.test(pageSrc) && !/your car/i.test(pageSrc), "the prior sales sit at the top: \"This car last sold for\", newest first, mileage at that sale; never \"your car\"");
+  ok(/'<div class="panel prior"><h3>This car last sold for ' \+ usd\(last\.price\)/.test(pageSrc) && /" miles at that sale"/.test(pageSrc) && /\$\("a-out"\)\.innerHTML = \(a\.question \? "" : priorPanel\(a, !!a\.vin\)\) \+ \(a\.question \? "" : mainPhotoHtml\(a\)\)/.test(pageSrc) && /'<p class="prior-none">No earlier sale of this car on record\.<\/p>'/.test(pageSrc) && !/your car/i.test(pageSrc.replace(/Type your car or paste a VIN/g, "")), "the prior sales sit at the top: \"This car last sold for\", newest first, mileage at that sale; never \"your car\" (Sam's own box wording \"Type your car or paste a VIN\" aside)");
   const block = pageSrc.slice(pageSrc.indexOf("function priorPanel("), pageSrc.indexOf("function historyPanel("));
   ok(!/href|<a |house|venue|url/i.test(block), "the prior-sale panel has no link and no venue");
   ok(/<p class="photo-note">Photo from a recent sale of a car like this one\.<\/p>/.test(pageSrc), "the car photo carries its caption");
@@ -332,14 +332,53 @@ for (const [name, d] of Object.entries(FIX)) {
         if (u.searchParams.get("photo")) return r.respond({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") });
         return r.respond({ status: 204, body: "" }); });
       await pg.goto("https://goasksam.com/preview?view=" + v, { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 700));
-      const m = await pg.evaluate(v => { const root = document.querySelector("#view-" + v); const nm = root.querySelector(".car-name"), vl = root.querySelector(".vin-line"), notes = [...root.querySelectorAll(".photo-note")].map(e => e.textContent);
+      const m = await pg.evaluate(v => { const root = document.querySelector("#view-" + v); const nm = v === "a" ? document.getElementById("a-head") : root.querySelector(".car-name"), vl = v === "a" ? (document.getElementById("a-vin").hidden ? null : document.getElementById("a-vin")) : root.querySelector(".vin-line"), notes = [...root.querySelectorAll(".photo-note")].map(e => e.textContent);
         return { name: nm ? nm.textContent : null, vinLine: vl ? vl.textContent : null, notes, tags: root.querySelectorAll(".tag-this").length }; }, v);
       const want = label === "the VIN" ? { name: "2014 Porsche 911 GT3", vinLine: "VIN " + V, note: "Photo from this car's sale in July 2025.", tags: 1 }
         : label === "a VIN the engine cannot name" ? { name: V, vinLine: null, note: "Photo from a recent sale of a car like this one.", tags: 0 }
-        : { name: null, vinLine: null, note: "Photo from a recent sale of a car like this one.", tags: 0 };
+        : { name: v === "a" ? "q" : null, vinLine: null, note: "Photo from a recent sale of a car like this one.", tags: 0 };
       ok(m.name === want.name && m.vinLine === want.vinLine && m.notes.length === 1 && m.notes[0] === want.note && m.tags === want.tags, `${label}, view ${v} ${w}: heading, VIN line, photo caption and "This car" tag (${JSON.stringify(m)})`);
       await pg.close();
     }
+    await br.close();
+  }
+}
+// VIEW A, THE PRE-LISTING PAGE (Sam, Oct 18 2026): with no car chosen it opens empty (the heading "What have cars like
+// yours sold for?", one box "Type your car or paste a VIN", no range, photo, list or chips) and reads nothing; a typed
+// car (one of the warmed six, or a cold one) is read and named in the heading, at 1440 and 390. No banned word in any view.
+{ const { pageHtml } = await import("../api/partnerDemo.js"), { DEMO_CARS } = await import("../api/partnerAnswer.js");
+  const BANNED_V = /\b(value|values|valuation|worth|estimate|estimates|demo)\b/i;
+  for (const car of [undefined, ...DEMO_CARS, "1987 Buick Grand National"]) for (const v of ["a", "b", "c"]) {
+    const h = pageHtml(v, car), shown = h.replace(/<script>[\s\S]*?<\/script>/g, "").replace(/<style>[\s\S]*?<\/style>/g, "").replace(/\s(class|id|src|href|action)="[^"]*"/g, ""), js = (h.split("<script>")[1] || "").split("</script>")[0].replace(/\/\/[^\n]*/g, "");
+    const strs = (js.match(/"[^"\n]*"|'[^'\n]*'/g) || []).filter(x => BANNED_V.test(x));
+    ok(!BANNED_V.test(shown.replace(/<[^>]+>/g, " ")) && !strs.length, `${car || "no car"}, view ${v}: no "value", "worth", "estimate" or "demo" a viewer can see (${(shown.replace(/<[^>]+>/g, " ").match(/[^.]{0,20}\b(value|values|valuation|worth|estimate|estimates|demo)\b[^.]{0,20}/i) || [""])[0]}${strs.join(" ")})`);
+  }
+  const e = pageHtml("a");
+  ok(/<h1 id="a-head">What have cars like yours sold for\?<\/h1>/.test(e) && /<input id="a-q" name="q" autocomplete="off" placeholder="Type your car or paste a VIN"/.test(e) && /<input id="car-in" name="car" value="" [^>]*placeholder="Type your car or paste a VIN"/.test(e) && /CHOSEN = false/.test(e), "view a with no car: the heading, one empty box with its placeholder, an empty car bar");
+  let puppeteer = null; try { ({ default: puppeteer } = await import("puppeteer-core")); } catch {}
+  const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+  if (!puppeteer || !fs.existsSync(CHROME)) { skip++; console.log("SKIP view a empty: no local Chrome"); }
+  else {
+    const br = await puppeteer.launch({ executablePath: CHROME, headless: "new" });
+    for (const w of [1440, 390]) for (const typed of [null, "1965 Ford Mustang", "1987 Buick Grand National"]) {
+      const pg = await br.newPage(); await pg.setViewport({ width: w, height: 900, isMobile: w < 600 }); await pg.setRequestInterception(true);
+      const asked = [];
+      pg.on("request", r => { const u = new URL(r.url());
+        if (u.pathname === "/preview") return r.respond({ status: 200, contentType: "text/html; charset=utf-8", body: pageHtml(u.searchParams.get("view") || "a", u.searchParams.get("car")) });
+        if (u.pathname === "/api/partnerAnswer" && r.method() === "POST") { const q = JSON.parse(r.postData() || "{}").q; asked.push(q); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, query: q, answerType: "zero_result", range: null, count: 0, sales: [], history: [], identity: { year: Number(q.slice(0, 4)), make: q.split(" ")[1], model: q.split(" ").slice(2).join(" ") } }) }); }
+        return r.respond({ status: 204, body: "" }); });
+      await pg.goto("https://goasksam.com/preview?view=a", { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 600));
+      const before = await pg.evaluate(() => ({ head: document.getElementById("a-head").textContent, out: document.getElementById("a-out").innerHTML.trim(), box: document.getElementById("a-q").value, bar: document.getElementById("car-in").value }));
+      if (!typed) { ok(before.head === "What have cars like yours sold for?" && before.out === "" && before.box === "" && before.bar === "" && asked.length === 0, `view a ${w}, nothing chosen: empty, and no read at all (${JSON.stringify({ ...before, asked })})`); await pg.close(); continue; }
+      await pg.type("#a-q", typed); await pg.click('#a-form button[type="submit"]'); await new Promise(r => setTimeout(r, 500));
+      const after = await pg.evaluate(() => ({ head: document.getElementById("a-head").textContent, car: new URL(location.href).searchParams.get("car"), bar: document.getElementById("car-in").value }));
+      ok(asked.length === 1 && asked[0] === typed && after.head === typed && after.car === typed && after.bar === typed, `view a ${w}, typed "${typed}": one read, the heading names the car, the address and the car bar carry it (${JSON.stringify({ ...after, asked })})`);
+      await pg.close();
+    }
+    for (const v of ["b", "c"]) { const pg = await br.newPage(); await pg.setRequestInterception(true); const asked = [];
+      pg.on("request", r => { const u = new URL(r.url()); if (u.pathname === "/preview") return r.respond({ status: 200, contentType: "text/html; charset=utf-8", body: pageHtml(v) }); if (u.pathname === "/api/partnerAnswer" && r.method() === "POST") { asked.push(JSON.parse(r.postData() || "{}").q); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, query: "q", answerType: "zero_result", sales: [], history: [] }) }); } return r.respond({ status: 204, body: "" }); });
+      await pg.goto("https://goasksam.com/preview?view=" + v, { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 500));
+      ok(asked.length >= 1 && asked.every(q => q === "2014 Porsche 911 GT3"), `view ${v} with nothing chosen starts on the 2014 GT3 (${JSON.stringify(asked)})`); await pg.close(); }
     await br.close();
   }
 }

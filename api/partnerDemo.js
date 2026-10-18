@@ -213,7 +213,7 @@ const JS = String.raw`
 (function(){
   // THE SELECTED CAR (Sam, Oct 18 2026): one car for the whole demo, chosen in the bar on every view and carried in the
   // address (car=), so every view reads the same car. Only the 2015 GT3 has listing detail (D); any other car has none.
-  var CAR = __CAR__, D = __LISTING__, CARS = __CARS__;
+  var CAR = __CAR__, D = __LISTING__, CARS = __CARS__, CHOSEN = __CHOSEN__;
   var $ = function(id){ return document.getElementById(id); };
   var esc = function(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
   var usd = function(n){ return "$" + Math.round(Number(n)).toLocaleString("en-US"); };
@@ -474,7 +474,12 @@ const JS = String.raw`
     noteLines("a", a);
     aLast = a;
     if (a.ok === false) { $("a-out").innerHTML = rangePanel(a, { slot: "a" }); return; }
-    $("a-out").innerHTML = (a.vin ? vinHead(a, "h2") : "") + (a.question ? "" : priorPanel(a, !!a.vin)) + (a.question ? "" : mainPhotoHtml(a)) + (a.question ? rangePanel(a, { slot: "a", chips: true }) : (idChips(a) ? '<div style="margin:0 0 16px">' + idChips(a) + "</div>" : "") + (a.range || a.thin ? rangePanel(a, { lines: "a" }) : "")) + ((a.vin || (a.history && a.history.length)) && !soldRows(a).length ? historyPanel(a) : "") +
+    // (Sam, Oct 18 2026) Once a car is in, the page's heading names it: the engine's name for a VIN (the VIN small
+    // beneath), else the engine's identity of the car, else the words as typed.
+    var idn = a.identity ? [a.identity.year, a.identity.make, a.identity.model, a.identity.variant].filter(Boolean).join(" ") : "";
+    $("a-head").textContent = a.vin ? (nameOf(a) || a.vin) : (idn || a.query || CAR);
+    $("a-vin").hidden = !(a.vin && nameOf(a)); $("a-vin").textContent = a.vin && nameOf(a) ? "VIN " + a.vin : "";
+    $("a-out").innerHTML = (a.question ? "" : priorPanel(a, !!a.vin)) + (a.question ? "" : mainPhotoHtml(a)) + (a.question ? rangePanel(a, { slot: "a", chips: true }) : (idChips(a) ? '<div style="margin:0 0 16px">' + idChips(a) + "</div>" : "") + (a.range || a.thin ? rangePanel(a, { lines: "a" }) : "")) + ((a.vin || (a.history && a.history.length)) && !soldRows(a).length ? historyPanel(a) : "") +
       (!a.question && a.sales && a.sales.length ? '<section class="full-a"><h2>What cars like this sold for</h2>' + salesList(a, "a") + "</section>" : "") +
       '<div style="margin-top:20px"><button type="button" class="btn pri" id="a-list">List it</button></div>';
   }
@@ -520,9 +525,14 @@ const JS = String.raw`
   document.addEventListener("click", function(e){ if (e.target && e.target.id === "a-list") e.preventDefault(); });   // the demo's List it does nothing
   $("a-form").addEventListener("submit", function(e){ e.preventDefault(); var v = String($("a-q").value || "").trim(); if (v) runA({ q: v }); });
   $("b-res").addEventListener("input", function(){ var d = String(this.value || "").replace(/[^\d]/g, "").slice(0, 9); this.value = d ? Number(d).toLocaleString("en-US") : ""; drawB(); });
-  run("b", { q: CAR }, gotB);
-  run("c", D ? { q: CAR, vin: D.vin } : { q: CAR }, drawListing);
-  var pre = new URLSearchParams(location.search).get("q") || CAR; $("a-q").value = pre; runA({ q: pre });
+  // (Sam, Oct 18 2026) View a opens empty when no car has been chosen: no read until the visitor submits one. Views b and
+  // c start on the listing car (the 2014 GT3) when none has been chosen, and follow the chosen car when one has.
+  var pre = new URLSearchParams(location.search).get("q") || (CHOSEN ? CAR : ""); $("a-q").value = pre;
+  if (VIEW !== "a" || CHOSEN || pre) {
+    run("b", { q: CAR }, gotB);
+    run("c", D ? { q: CAR, vin: D.vin } : { q: CAR }, drawListing);
+    if (pre) runA({ q: pre });
+  }
 })();
 `;
 
@@ -542,13 +552,14 @@ export function carOf(v) {
 const escHtml = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 export function pageHtml(view, carIn) {
   const v = view === "d" ? "c" : (/^[abc]$/.test(view || "") ? view : "a");   // the old d address opens the merged listing
+  const chosen = String(carIn == null ? "" : carIn).trim() !== "";   // a car the visitor chose; else view a opens empty
   const car = carOf(carIn), hasListing = car === DUMMY.q;
   const carQ = k => `?view=${k}${car === DEMO_CARS[0] ? "" : "&car=" + encodeURIComponent(car)}`;
   const tab = (k, label) => `<a href="${escHtml(carQ(k))}"${k === v ? ' aria-current="page"' : ""}>${label}</a>`;
   // The car bar, on every view: any year, make and model. A new car reopens the
   // same view for that car (a plain form, no script needed).
   // (Sam, Oct 18 2026, for the eBay showing: the six example chips are gone at every width; the car box stays.)
-  const carBar = `<div class="carbar"><div class="wrap"><form class="carpick" id="car-form" method="get" action="/preview"><input type="hidden" name="view" value="${v}"><label for="car-in">Car</label><input id="car-in" name="car" value="${escHtml(car)}" autocomplete="off" maxlength="60" placeholder="Year, make and model"><button class="btn sec" type="submit">Show</button></form></div></div>`;
+  const carBar = `<div class="carbar"><div class="wrap"><form class="carpick" id="car-form" method="get" action="/preview"><input type="hidden" name="view" value="${v}"><label for="car-in">Car</label><input id="car-in" name="car" value="${chosen ? escHtml(car) : ""}" autocomplete="off" maxlength="60" placeholder="Type your car or paste a VIN"><button class="btn sec" type="submit">Show</button></form></div></div>`;
   const d = DUMMY, miles = d.miles.toLocaleString("en-US");
   // The listing car's own photos (c9): drawn by the page from its earlier sales' own photos once the answer is in.
   const listing = (withRail, withHero, below) => `
@@ -584,8 +595,8 @@ ${carBar}
 <header class="top"><div class="wrap"><div class="plogo"><span class="plogo-frame"><img src="/preview?img=logo" alt="eBay" width="150" height="150" decoding="async"></span><span class="prep">Prepared for eBay</span></div><div class="sbox">Search</div><button type="button" class="btn sec sbtn">Search</button></div></header>
 <main>
 <section class="sec-view wrap" id="view-a"${v === "a" ? "" : " hidden"}>
-  <div class="lead"><h1>What these sell for</h1><p class="sub">Type any car or paste a VIN.</p>
-  <form class="ask" id="a-form"><input id="a-q" name="q" autocomplete="off" placeholder="Year, make and model, or a VIN" aria-label="Car or VIN"><button class="btn pri" type="submit">Check</button></form>
+  <div class="lead"><h1 id="a-head">What have cars like yours sold for?</h1><p class="vin-line" id="a-vin" hidden></p>
+  <form class="ask" id="a-form"><input id="a-q" name="q" autocomplete="off" placeholder="Type your car or paste a VIN" aria-label="Car or VIN"><button class="btn pri" type="submit">Check</button></form>
   <div id="a-out" style="margin-top:22px"></div></div>
 </section>
 <section class="sec-view wrap" id="view-b"${v === "b" ? "" : " hidden"}>
@@ -598,7 +609,7 @@ ${carBar}
   <div class="full" id="d-sales"><p class="loading">Sam is reading the sales for this one.</p></div>
   <div class="full" id="d-hist"></div>`) : noListing}</section>
 </main>
-<script>${JS.replace("__CAR__", JSON.stringify(car)).replace("__LISTING__", JSON.stringify(hasListing ? DUMMY : null)).replace("__CARS__", JSON.stringify(DEMO_CARS))}</script></body></html>`;
+<script>${JS.replace("__CAR__", JSON.stringify(car)).replace("__LISTING__", JSON.stringify(hasListing ? DUMMY : null)).replace("__CARS__", JSON.stringify(DEMO_CARS)).replace("__CHOSEN__", JSON.stringify(chosen))}</script></body></html>`;
 }
 
 // The plain 404 every refused request gets (no cookie, a wrong, empty or missing code, too many attempts): the same body
