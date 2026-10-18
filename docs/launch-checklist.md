@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T03:58Z (Lane F tick, one batched push of five commits; incident still open, Lane C's third demo fix in prePush, Lane B's photo report in, Sam's photo-proxy decision open).
+Last updated: 2026-10-18T04:18Z (Lane F tick; third demo fix live 0acbd51f since 03:58Z with proof; waiting on Sam's home-desktop test and incident-clear call; no lane activity since 04:0xZ).
 
 ## 0i. Sam's decisions 03:5xZ Oct 18 (forwarded word for word to Lanes B and C)
 
