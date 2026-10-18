@@ -84,27 +84,30 @@ for (const [name, d] of Object.entries(FIX)) {
 // renders like any engine answer: ok, the range, the card with the engine's own staleLine, never an error.
 { const st = partnerShape({ ...FIX.range, stale: true, staleLine: "Sales read October 15, 2026, refreshing now." }, "fixture stale", 0, {});
   ok(st.ok === true && st.answerType === "range" && st.range && /Sales read October 15, 2026, refreshing now\./.test(st.card || "") && venueLeak(st).length === 0, "a stale answer renders as the engine's answer with its own dated line, not an error"); }
-// The demo's daily car limit and its line (lib/_ceilings.js partner_cars; the demo's six cars never count).
+// Any car (Sam, Oct 18 2026): every demo read, the six and any other car, uses the demo's own per-device ceiling only.
 { const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8"), apiSrc = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
-  ok(/if \(!demoKey\(text\)\) \{[\s\S]{0,200}checkCeiling\(env, req, "partner_cars"/.test(apiSrc) && /status\(429\)[^\n]*car_limit/.test(apiSrc), "other cars count against the demo's daily car limit; the demo's six never do; over it is a 429");
+  ok(!/checkCeiling\(env, req, "partner_cars"/.test(apiSrc) && !/"partner_answer"/.test(apiSrc) && (apiSrc.match(/checkCeiling\(env, req, "partner_demo"/g) || []).length === 1, "any car reads under the demo's per-device ceiling only; no daily car cap and no per-address window on the demo");
   ok(/That is today's limit for other cars on this demo\./.test(pageSrc) && /a && a\.error === "car_limit" \? LIMIT/.test(pageSrc) && !/setTimeout\(runs\[view\], (?!a\.retryAfterMs)/.test(pageSrc), "over the limit the page says so (no retry), never that the car has no sales"); }
 // A refused or failed read never claims the car has no history, and the per-minute ceiling never applies to the demo's
 // own six cars (Oct 17 2026: ten view loads in a minute tripped it on the GT3 and the page said two wrong things).
 { const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8"), apiSrc = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
   ok(/\(!a \|\| a\.ok === false\) && !\(a && a\.history && a\.history\.length\)\) return '<div class="panel"><h3>This car before<\/h3><p class="muted">' \+ notRead\(a\)/.test(pageSrc), "a failed read: This car before says it could not read, never that there is no earlier sale");
-  ok(/checkCeiling\(env, req, demoKey\(text\) \? "partner_demo" : "partner_answer"/.test(apiSrc), "the demo's six cars use their own partner_demo ceiling, other cars partner_answer");
+  ok(/const lim = await checkCeiling\(env, req, "partner_demo", \{ tool: "partner" \}\)/.test(apiSrc), "every demo read, any car, uses the partner_demo ceiling");
   const { CEILINGS } = await import("../lib/_ceilings.js");
   const pd = CEILINGS.partner_demo, minute = pd && (pd.device || []).find(([w]) => w === 60e3);
   ok(pd && !pd.address && minute && minute[1] >= 90, "partner_demo is per device only and allows a cold walk of the four views and six cars (about 30 reads) three times in a minute");
-  ok(/const who = demo \? \{\} : \{ "user-agent": base\["user-agent"\], "x-forwarded-for": base\["x-forwarded-for"\] \}/.test(apiSrc) && /marketCheckAnswer\(req, text, refine, asked, !!demoKey\(text\)\)/.test(apiSrc), "a demo car's read carries no visitor address or browser into Market Check; any other car keeps them");
+  ok(/const who = demo \? \{\} : \{ "user-agent": base\["user-agent"\], "x-forwarded-for": base\["x-forwarded-for"\] \}/.test(apiSrc) && /r = await marketCheckAnswer\(req, text, refine, asked, true\);/.test(apiSrc), "no demo read carries a visitor address or browser into Market Check, so its visitor ceilings are untouched");
   ok(/const lk = !refine \? demoKey\(text\) : null;/.test(apiSrc) && /out = vinIn \? \{ \.\.\.last\.out, history, lastGood: true \}/.test(apiSrc) && /if \(!vinIn && fullResult\(out\)\) writeLast/.test(apiSrc), "the VIN views fall back to the car's last good answer with their own VIN history; only plain reads write it"); }
-// Neither side waits for good (Oct 18 2026): the server read has a deadline and falls back to the last good answer,
-// and every page attempt aborts at its own deadline and shows the could-not-read line.
+// Neither side waits for good (Sam, Oct 18 2026): the endpoint has no deadline of its own (the engine's whole-path bound
+// answers still reading, with its retry); the page's abort is a safety net only, later than the engine's bound.
 { const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8"), apiSrc = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
-  const { READ_DEADLINE_MS } = await import("../api/partnerAnswer.js");
-  ok(READ_DEADLINE_MS > 0 && READ_DEADLINE_MS <= 25000 && /Promise\.race\(\[marketCheckAnswer\(/.test(apiSrc), "the server read races a deadline of at most 25 s");
+  const mod = await import("../api/partnerAnswer.js");
+  ok(!("READ_DEADLINE_MS" in mod) && !/Promise\.race\(\[marketCheckAnswer\(/.test(apiSrc) && !/setTimeout\(/.test(apiSrc.replace(/\/\/[^\n]*/g, "")), "the endpoint has no timeout of its own");
+  const engSrc = fs.readFileSync(new URL("../lib/onebox.js", import.meta.url), "utf8") + fs.readFileSync(new URL("../api/sellerDecision.js", import.meta.url), "utf8");
+  const bm = engSrc.match(/process\.env\.ONEBOX_DEADLINE_MS \|\| (\d+)\)/), BOUND = bm ? Number(bm[1]) : NaN;
+  ok(BOUND > 0, "the engine's whole-path bound is found (" + BOUND + " ms)");
   const m = pageSrc.match(/var ASK_DEADLINE_MS = (\d+);/);
-  ok(m && Number(m[1]) > READ_DEADLINE_MS && Number(m[1]) <= 30000 && /ctl\.abort\(\)/.test(pageSrc) && /Promise\.race\(\[read, late\]\)/.test(pageSrc), "each page attempt aborts after the server deadline and resolves to could-not-read"); }
+  ok(m && Number(m[1]) > BOUND && Number(m[1]) <= 30000 && /ctl\.abort\(\)/.test(pageSrc) && /Promise\.race\(\[read, late\]\)/.test(pageSrc), "the page's abort (a safety net) comes after the engine's own bound"); }
 // The demo's sales list (Sam, Oct 18 2026): included sales only (the engine's cards), the set-aside sales apart with the
 // engine's own reason words, the set-aside sentence from the numeric counts; views a and d, ten then Show more.
 { const { asideSentence, asideRowsOf, salesOf } = await import("../api/partnerAnswer.js");
@@ -123,7 +126,7 @@ for (const [name, d] of Object.entries(FIX)) {
 // same row layout with "Your reserve" at its place, no Show more.
 { const { pageHtml } = await import("../api/partnerDemo.js");
   const c = pageHtml("c"), d = pageHtml("d");
-  ok((c.match(/href="\?view=/g) || []).length === 3 && !/Under the listing/.test(c) && /id="view-c"(?! hidden)/.test(d), "three tabs; the old d address opens the merged listing");
+  ok(((c.match(/<nav class="tabs"[\s\S]*?<\/nav>/) || [""])[0].match(/href="\?view=/g) || []).length === 3 && !/Under the listing/.test(c) && /id="view-c"(?! hidden)/.test(d), "three tabs; the old d address opens the merged listing");
   ok(!/Placeholder description/.test(c) && /<dt>Year<\/dt>/.test(c) && /<dt>VIN<\/dt>/.test(c) && /<dt>Mileage<\/dt>/.test(c), "no placeholder description; Year, VIN and Mileage kept");
   ok((c.match(/id="d-hist"/g) || []).length === 1 && /\$\("c-rail"\)\.innerHTML = rangePanel\(a, D \? \{ price: D\.price, slot: "c", lines: "c" \} : \{ slot: "c", lines: "c" \}\);/.test(c) && /class="below-gal"/.test(c), "the card in the rail, the list and This car before under the gallery, once");
   ok(/function reserveList\(rows, opts\)/.test(c) && /body \+= saleRow\(s\)/.test(c) && /reserveList\(last, \{ reserve: v \}\)/.test(c) && !/salesTable\(/.test(c), "view b: the same rows, highest price first, the reserve line at its place, no Show more");
@@ -169,21 +172,25 @@ for (const [name, d] of Object.entries(FIX)) {
   ok(/if \(a && a\.stillReading && a\.retryAfterMs > 0\) setTimeout\(runs\[view\], a\.retryAfterMs\);/.test(pageSrc) && (pageSrc.match(/setTimeout\(runs\[view\]/g) || []).length === 1, "the page asks again only after the engine's own retryAfterMs");
   ok(/esc\(a\.line \|\| STILL_LINE\)/.test(pageSrc) && /data-retry>Try again<\/button>/.test(pageSrc), "the still-reading state draws the engine's line, and Try again when no wait is named");
   ok(/fetch\("\/api\/partnerAnswer\?last=" \+ encodeURIComponent\(body\.q\)/.test(pageSrc) && /if \(!a \|\| !a\.aborted\) return a;/.test(pageSrc), "after the page's abort (a safety net only): the stored last good answer, else the still-reading state");
-  // ONE CAR ACROSS THE VIEWS (Sam, Oct 18 2026): every car in every view reads the same car; only the 2015 GT3 has listing detail.
-  const { pageHtml, DUMMY } = await import("../api/partnerDemo.js");
-  const jsCar = h => { const m = /var CAR = ("[^"]*"), D = (null|\{[^\n]*?\}), CARS = /.exec(h); return m ? { car: JSON.parse(m[1]), listing: m[2] !== "null" } : null; };
-  DEMO_CARS.forEach((car, i) => {
-    const seen = ["a", "b", "c", "d"].map(v => { const h = pageHtml(v, i), j = jsCar(h);
+  // ONE CAR ACROSS THE VIEWS, ANY CAR (Sam, Oct 18 2026): the car box takes any year, make and model, the six are quick
+  // picks; every view reads the same car; only the 2015 GT3 has listing detail; nothing invented for any other car.
+  const { pageHtml, DUMMY, carOf } = await import("../api/partnerDemo.js");
+  const jsCar = h => { const m = /var CAR = ("(?:[^"\\]|\\.)*"), D = (null|\{[^\n]*?\}), CARS = /.exec(h); return m ? { car: JSON.parse(m[1]), listing: m[2] !== "null" } : null; };
+  const escH = t => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const ANY = ["1972 Datsun 240Z", "2001 BMW M3", "1988 Ferrari Testarossa"];
+  [...DEMO_CARS.map((c, i) => [c, String(i)]), ...DEMO_CARS.map(c => [c, c]), ...ANY.map(c => [c, c])].forEach(([car, param]) => {
+    const seen = ["a", "b", "c", "d"].map(v => { const h = pageHtml(v, param), j = jsCar(h);
       const main = h.split("<main>")[1].split("</main>")[0];
-      ok(j && j.car === car, `${car}, view ${v}: the page reads this car`);
-      ok(new RegExp('<option selected>' + car.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "</option>").test(h) && (h.match(/<option/g) || []).length === 6, `${car}, view ${v}: the picker shows the six cars with this one chosen`);
-      ok((h.match(/href="\?view=[abc]([^"]*)"/g) || []).every(t => i ? t.includes("&car=" + i) : !t.includes("car=")), `${car}, view ${v}: every tab keeps the car`);
+      ok(j && j.car === car, `${car} (car=${param}), view ${v}: the page reads this car`);
+      ok(h.includes('<input id="car-in" name="car" value="' + escH(car) + '"') && (h.match(/class="qp( on)?"/g) || []).length === 6 && (DEMO_CARS.includes(car) ? (h.match(/class="qp on"/g) || []).length === 1 : !/class="qp on"/.test(h)), `${car}, view ${v}: the car box holds this car; the six quick picks show, the chosen one marked`);
+      ok((h.match(/<a href="\?view=[abc][^"]*"/g) || []).every(t => car === DEMO_CARS[0] ? !t.includes("car=") : t.includes("&amp;car=" + encodeURIComponent(car))), `${car}, view ${v}: every tab keeps the car`);
       if (car === DUMMY.q) ok(j.listing && /US \$139,900/.test(main) && /hero-img/.test(main), `${car}, view ${v}: the listing detail stays with the 2015 GT3`);
       else ok(!j.listing && !/\$\d/.test(main) && !/hero-img|thumb-img/.test(main) && !/<dt>VIN<\/dt>|\bmiles\b|Buy It Now/.test(main) && /There is no listing for this car in the demo\. These are the recent sales of cars like it\./.test(main), `${car}, view ${v}: no invented listing, price, mileage or photo; it says what it is`);
       return JSON.stringify(j); });
     ok(seen.every(x => x === seen[0]), `${car}: the same car identically in every view`);
   });
-  ok(pageHtml("c", 9).includes('var CAR = "2015 Porsche 911 GT3"') && pageHtml("c", "x").includes('var CAR = "2015 Porsche 911 GT3"'), "an unknown car= opens the 2015 GT3"); }
+  ok(carOf("9") === DEMO_CARS[0] && carOf("") === DEMO_CARS[0] && carOf("<script>") === DEMO_CARS[0] && carOf("x".repeat(80)) === DEMO_CARS[0] && carOf("1965 ford mustang") === "1965 Ford Mustang", "an unknown or unsafe car= opens the 2015 GT3; a quick pick in any case is that car");
+  ok(!/Sam is reading the sales\.</.test(pageHtml("c", "1")) && /Sam is reading the sales for this one\./.test(pageHtml("c", "1")), "the loading line reads \"Sam is reading the sales for this one.\""); }
 // The endpoint reads no market of its own: Market Check's handler is its only source of figures.
 const src = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8").replace(/\/\/[^\n]*/g, "");
 ok(/import\("\.\/sellerDecision\.js"\)/.test(src) && /oneBox: true/.test(src), "the endpoint asks Market Check's own handler");

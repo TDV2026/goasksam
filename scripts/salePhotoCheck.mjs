@@ -49,8 +49,8 @@ ok(!/partner-demo\?photo=/.test(page) && !/\/api\/salePhoto/.test(page), "no oth
 // Every demo car in every view (Sam, Oct 18 2026): the only images are the sales' photos through ?photo=<id> and, for the
 // 2015 GT3 with its listing detail only, the listing's own hero; no other car shows a photo that is not its sales'.
 { const { pageHtml } = await import("../api/partnerDemo.js"), { DEMO_CARS } = await import("../api/partnerAnswer.js");
-  DEMO_CARS.forEach((car, i) => ["a", "b", "c", "d"].forEach(v => {
-    const h = pageHtml(v, i), all = [...h.matchAll(/src="([^"']*)/g)].map(m => m[1]);
+  [...DEMO_CARS, "1972 Datsun 240Z", "2001 BMW M3"].forEach((car, i) => ["a", "b", "c", "d"].forEach(v => {
+    const h = pageHtml(v, car), all = [...h.matchAll(/src="([^"']*)/g)].map(m => m[1]);
     ok(all.every(x => x === "/partner-demo?img=hero" || x === "/api/partnerAnswer?photo="), `${car}, view ${v}: only the sales' photo path and the listing hero (${[...new Set(all)].join(" ")})`);
     ok(i === 0 ? all.includes("/partner-demo?img=hero") : !all.includes("/partner-demo?img=hero"), `${car}, view ${v}: the hero ${i === 0 ? "stays with the 2015 GT3 listing" : "is never shown for another car"}`);
     ok(/'<img data-ph src="\/api\/partnerAnswer\?photo=' \+ encodeURIComponent\(s\.photo\)/.test(h), `${car}, view ${v}: the sales list draws each sale's own photo by id`);

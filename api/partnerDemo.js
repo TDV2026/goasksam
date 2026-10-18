@@ -32,9 +32,15 @@ body{margin:0;background:#fff;color:var(--ink);font:400 16px/1.45 -apple-system,
 .demo-bar{background:#111;color:#fff;font-size:13px}
 .demo-bar .wrap{display:flex;gap:12px;align-items:center;justify-content:space-between;padding-block:8px;flex-wrap:wrap}
 .tabs{display:flex;gap:6px;flex-wrap:wrap}
-.bar-r{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.carpick{display:flex;gap:8px;align-items:center}
-.carpick select{font:inherit;font-size:13px;color:#111;background:#fff;border:1px solid #555;border-radius:999px;padding:4px 10px;max-width:100%}
+.carbar{background:var(--soft);border-bottom:1px solid var(--rule);font-size:14px}
+.carbar .wrap{display:flex;gap:10px 18px;align-items:center;flex-wrap:wrap;padding-block:10px}
+.carpick{display:flex;gap:8px;align-items:center;flex:1 1 320px;min-width:0}
+.carpick label{font-weight:600}
+.carpick input{flex:1;min-width:0;height:40px;border:1px solid var(--ink2);border-radius:999px;padding:0 14px;font:inherit;background:#fff}
+.carpick .btn{min-height:40px;font-size:15px;padding:0 16px}
+.picks{display:flex;gap:6px;flex-wrap:wrap}
+.qp{border:1px solid var(--rule);border-radius:999px;padding:4px 10px;color:var(--ink);text-decoration:none;background:#fff;font-size:13px}
+.qp.on{border-color:var(--ink);font-weight:600}
 .tabs a{color:#fff;text-decoration:none;border:1px solid #555;border-radius:999px;padding:4px 12px}
 .tabs a[aria-current=page]{background:#fff;color:#111;border-color:#fff}
 .top{border-bottom:1px solid var(--rule)}
@@ -364,7 +370,7 @@ const JS = String.raw`
     st.chosen = val ? { key: key, value: val } : null; st.refining = true;
     var send = { q: st.q }; if (val) { send.refine = {}; send.refine[key] = val; }
     if (slot === "a") return runA(send);
-    if (slot === "b") { $("b-out").innerHTML = '<p class="loading">Sam is reading the sales.</p>'; return run("b", send, gotB); }
+    if (slot === "b") { $("b-out").innerHTML = '<p class="loading">Sam is reading the sales for this one.</p>'; return run("b", send, gotB); }
     if (slot === "c") return run("c", D ? Object.assign({ vin: D.vin }, send) : send, drawListing);
   });
   // ---- view a: before listing
@@ -377,7 +383,7 @@ const JS = String.raw`
       (!a.question && a.sales && a.sales.length ? '<section class="full-a"><h2>What cars like this sold for</h2>' + salesList(a, "a") + "</section>" : "") +
       '<div style="margin-top:20px"><button type="button" class="btn pri" id="a-list">List it</button></div>';
   }
-  function runA(body){ $("a-out").innerHTML = '<p class="loading">Sam is reading the sales.</p>'; run("a", body, drawA); }
+  function runA(body){ $("a-out").innerHTML = '<p class="loading">Sam is reading the sales for this one.</p>'; run("a", body, drawA); }
   // ---- view b: setting a reserve
   var bAns = null;
   function gotB(a){ bAns = a; noteLines("b", a); drawB(); }
@@ -409,20 +415,12 @@ const JS = String.raw`
     var b = e.target.closest && e.target.closest("[data-send]"); if (!b) return;
     var send = JSON.parse(b.getAttribute("data-send")), slot = b.getAttribute("data-slot");
     if (slot === "a") return runA(send);
-    if (slot === "b") { $("b-out").innerHTML = '<p class="loading">Sam is reading the sales.</p>'; return run("b", send, gotB); }
+    if (slot === "b") { $("b-out").innerHTML = '<p class="loading">Sam is reading the sales for this one.</p>'; return run("b", send, gotB); }
     if (slot === "c") return run("c", D ? Object.assign({ vin: D.vin }, send) : send, drawListing);
   });
   document.addEventListener("click", function(e){ if (e.target && e.target.id === "a-list") e.preventDefault(); });   // the demo's List it does nothing
   $("a-form").addEventListener("submit", function(e){ e.preventDefault(); var v = String($("a-q").value || "").trim(); if (v) runA({ q: v }); });
   $("b-res").addEventListener("input", function(){ var d = String(this.value || "").replace(/[^\d]/g, "").slice(0, 9); this.value = d ? Number(d).toLocaleString("en-US") : ""; drawB(); });
-  // The car picker: the same car on every view; changing it reopens this view for that car.
-  var pick = $("car-pick");
-  if (pick) pick.addEventListener("change", function(){
-    var u = new URL(location.href); u.searchParams.set("car", String(this.selectedIndex)); u.searchParams.delete("q");
-    try { sessionStorage.setItem("demo-car", String(this.selectedIndex)); } catch (e) {}
-    location.href = u.pathname + u.search;
-  });
-  try { sessionStorage.setItem("demo-car", String(CARS.indexOf(CAR))); } catch (e) {}
   run("b", { q: CAR }, gotB);
   run("c", D ? { q: CAR, vin: D.vin } : { q: CAR }, drawListing);
   var pre = new URLSearchParams(location.search).get("q") || CAR; $("a-q").value = pre; runA({ q: pre });
@@ -431,16 +429,25 @@ const JS = String.raw`
 
 function phs(n) { let s = ""; for (let i = 0; i < n; i++) s += '<div class="ph" aria-hidden="true">Photo</div>'; return s; }
 
-// The selected car (Sam, Oct 18 2026): car=<0..5>, one of the demo's six cars (api/partnerAnswer.js DEMO_CARS), the 2015
-// GT3 when absent or not one of them. Only the 2015 GT3 carries listing detail (DUMMY); no other car gets an invented
-// listing, mileage, price or photo.
-export function carIndex(v) { const n = Number(v); return Number.isInteger(n) && n >= 0 && n < DEMO_CARS.length ? n : 0; }
+// The selected car (Sam, Oct 18 2026): car=<any year, make and model>, or a quick pick's number (0 to 5, the demo's six
+// cars, api/partnerAnswer.js DEMO_CARS); the 2015 GT3 when absent or not plain car words. Only the 2015 GT3 carries
+// listing detail (DUMMY); no other car gets an invented listing, mileage, price or photo.
+export function carOf(v) {
+  const t = String(v == null ? "" : v).replace(/\s+/g, " ").trim();
+  if (/^\d$/.test(t) && Number(t) < DEMO_CARS.length) return DEMO_CARS[Number(t)];
+  const hit = DEMO_CARS.find(c => c.toLowerCase() === t.toLowerCase());
+  return hit || (/^[A-Za-z0-9][A-Za-z0-9 .'&/-]{1,59}$/.test(t) && /[A-Za-z]/.test(t) ? t : DEMO_CARS[0]);
+}
 const escHtml = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-export function pageHtml(view, carIdx = 0) {
+export function pageHtml(view, carIn) {
   const v = view === "d" ? "c" : (/^[abc]$/.test(view || "") ? view : "a");   // the old d address opens the merged listing
-  const ci = carIndex(carIdx), car = DEMO_CARS[ci], hasListing = car === DUMMY.q;
-  const tab = (k, label) => `<a href="?view=${k}${ci ? "&car=" + ci : ""}"${k === v ? ' aria-current="page"' : ""}>${label}</a>`;
-  const picker = `<label class="carpick">Car <select id="car-pick" aria-label="Car">${DEMO_CARS.map((c, i) => `<option${i === ci ? " selected" : ""}>${escHtml(c)}</option>`).join("")}</select></label>`;
+  const car = carOf(carIn), hasListing = car === DUMMY.q;
+  const carQ = k => `?view=${k}${car === DEMO_CARS[0] ? "" : "&car=" + encodeURIComponent(car)}`;
+  const tab = (k, label) => `<a href="${escHtml(carQ(k))}"${k === v ? ' aria-current="page"' : ""}>${label}</a>`;
+  // The car bar, on every view: any year, make and model, with the demo's six cars as quick picks. A new car reopens the
+  // same view for that car (a plain form, no script needed).
+  const picks = DEMO_CARS.map(c => c === car ? `<span class="qp on" aria-current="true">${escHtml(c)}</span>` : `<a class="qp" href="?view=${v}${c === DEMO_CARS[0] ? "" : "&car=" + encodeURIComponent(c)}">${escHtml(c)}</a>`).join("");
+  const carBar = `<div class="carbar"><div class="wrap"><form class="carpick" id="car-form" method="get" action="/partner-demo"><input type="hidden" name="view" value="${v}"><label for="car-in">Car</label><input id="car-in" name="car" value="${escHtml(car)}" autocomplete="off" maxlength="60" placeholder="Year, make and model"><button class="btn sec" type="submit">Show</button></form><div class="picks" aria-label="Quick picks">${picks}</div></div></div>`;
   const d = DUMMY, miles = d.miles.toLocaleString("en-US");
   // The one hero image (views b and d), served by this handler behind the same crew gate (?img=hero).
   const hero = `<img class="hero-img" src="/partner-demo?img=hero" width="${HERO_W}" height="${HERO_H}" alt="A black 2015 Porsche 911 GT3 coupe in a white studio, seen from the front three-quarter, with its fixed rear wing and grey wheels" decoding="async">`;
@@ -461,7 +468,7 @@ export function pageHtml(view, carIdx = 0) {
       <hr>
       <div class="time"><span>Time left:</span><b>${d.daysLeft}d</b></div>
       <div class="buy"><button type="button" class="btn pri blk">${d.priceKind}</button><button type="button" class="btn sec blk">Make offer</button><button type="button" class="btn sec blk">Save</button></div>
-      ${withRail ? '<div id="c-rail"><p class="loading">Sam is reading the sales.</p></div>' : ""}
+      ${withRail ? '<div id="c-rail"><p class="loading">Sam is reading the sales for this one.</p></div>' : ""}
     </div>
     ${below ? `<div class="below-gal">${below}</div>` : ""}
   </div>`;
@@ -470,13 +477,14 @@ export function pageHtml(view, carIdx = 0) {
   const noListing = `
   <div class="listing with-below">
     <div><h1>${escHtml(car)}</h1><p class="sub">There is no listing for this car in the demo. These are the recent sales of cars like it.</p></div>
-    <div class="rail"><div id="c-rail"><p class="loading">Sam is reading the sales.</p></div></div>
-    <div class="below-gal"><div class="full" id="d-sales"><p class="loading">Sam is reading the sales.</p></div><div class="full" id="d-hist"></div></div>
+    <div class="rail"><div id="c-rail"><p class="loading">Sam is reading the sales for this one.</p></div></div>
+    <div class="below-gal"><div class="full" id="d-sales"><p class="loading">Sam is reading the sales for this one.</p></div><div class="full" id="d-hist"></div></div>
   </div>`;
   const desc = `<div class="desc below"><h2>About this car</h2><dl class="specs"><div><dt>Year</dt><dd>2015</dd></div><div><dt>VIN</dt><dd>${d.vin}</dd></div><div><dt>Mileage</dt><dd>${miles}</dd></div></dl></div>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><title>Partner demo</title><style>${CSS}${SELLS_FOR_CARD_CSS}</style></head><body>
-<div class="demo-bar"><div class="wrap"><span>Closed demo. What these sell for, powered by GoAskSam.</span><div class="bar-r">${picker}<nav class="tabs" aria-label="Views">${tab("a", "a. Before listing")}${tab("b", "b. Setting a reserve")}${tab("c", "c. On the listing")}</nav></div></div></div>
+<div class="demo-bar"><div class="wrap"><span>Closed demo. What these sell for, powered by GoAskSam.</span><nav class="tabs" aria-label="Views">${tab("a", "a. Before listing")}${tab("b", "b. Setting a reserve")}${tab("c", "c. On the listing")}</nav></div></div>
+${carBar}
 <header class="top"><div class="wrap"><div class="logo">Partner logo</div><div class="sbox">Search</div><button type="button" class="btn sec sbtn">Search</button></div></header>
 <main>
 <section class="sec-view wrap" id="view-a"${v === "a" ? "" : " hidden"}>
@@ -488,10 +496,10 @@ export function pageHtml(view, carIdx = 0) {
   ${hasListing ? `<div class="b-hero">${hero}</div>` : ""}
   <div class="lead"><h1>Set your reserve</h1><p class="sub">${hasListing ? `${d.title}, ${miles} miles` : escHtml(car)}</p>
   <div class="reserve"><label for="b-res">Reserve</label><span class="money">$<input id="b-res" inputmode="numeric" placeholder="0" aria-label="Reserve in dollars"></span></div>
-  <div id="b-out"><p class="loading">Sam is reading the sales.</p></div></div>
+  <div id="b-out"><p class="loading">Sam is reading the sales for this one.</p></div></div>
 </section>
 <section class="sec-view wrap" id="view-c"${v === "c" ? "" : " hidden"}>${hasListing ? listing(true, "gallery", `${desc}
-  <div class="full" id="d-sales"><p class="loading">Sam is reading the sales.</p></div>
+  <div class="full" id="d-sales"><p class="loading">Sam is reading the sales for this one.</p></div>
   <div class="full" id="d-hist"></div>`) : noListing}</section>
 </main>
 <script>${JS.replace("__CAR__", JSON.stringify(car)).replace("__LISTING__", JSON.stringify(hasListing ? DUMMY : null)).replace("__CARS__", JSON.stringify(DEMO_CARS))}</script></body></html>`;

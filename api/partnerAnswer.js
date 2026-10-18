@@ -138,8 +138,9 @@ export function partnerAllowed(req) {
   return isCrewRequest(req) || isPartnerRequest(req) || samePartnerKey(h["x-partner-key"]);
 }
 
-// Market Check's own request handler, called in-process with the same body the Market Check page sends.
-export const READ_DEADLINE_MS = 20000;
+// Market Check's own request handler, called in-process with the same body the Market Check page sends. The read has no
+// deadline of its own (Sam, Oct 18 2026: no demo-only timeout): the engine's own whole-path bound answers "still reading"
+// with its retry, and the page draws that.
 
 export async function marketCheckAnswer(req, text, refine, asked, demo = false) {
   const { default: mc } = await import("./sellerDecision.js");
@@ -425,11 +426,11 @@ export default async function handler(req, res) {
   const asked = Math.max(0, Math.min(9, Number(b.asked) || 0));
   const vinIn = normVin(b.vin || (VIN_RE.test(normVin(b.q)) ? b.q : ""));
   let text = String(b.q || [b.year, b.make, b.model].filter(Boolean).join(" ") || "").replace(/\s+/g, " ").trim().slice(0, 120);
-  // The per-minute ceiling (lib/_ceilings.js partner_answer) bounds reads of any OTHER car; the demo's own six cars are
-  // stored answers, and each view loads three reads of them, so a partner flipping views never trips it (Oct 17 2026:
-  // ten view loads in a minute tripped it and the page showed the wrong line).
+  // ANY CAR (Sam, Oct 18 2026): every read on the demo, its six cars and any other car, is bounded by the demo's own
+  // per-device ceiling (lib/_ceilings.js partner_demo) and reads Market Check's engine with no visitor address or
+  // browser, so Market Check's own visitor ceilings are neither used nor changed by the demo.
   {
-    const lim = await checkCeiling(env, req, demoKey(text) ? "partner_demo" : "partner_answer", { tool: "partner" }).catch(() => ({ ok: true }));
+    const lim = await checkCeiling(env, req, "partner_demo", { tool: "partner" }).catch(() => ({ ok: true }));
     if (!lim.ok) return res.status(429).json({ ok: false, query: text, error: "rate_limited" });
   }
   let history = null, id = null;
@@ -447,16 +448,10 @@ export default async function handler(req, res) {
   }
   if (!text) return res.status(400).json({ ok: false, error: "Type a car, or a VIN." });
   const updatedP = lastUpdatedDate(env).catch(() => null);   // the shared last-ingest date; null shows no date
-  // The demo's own daily car limit (lib/_ceilings.js partner_cars): any car other than the demo's six counts; past it the
-  // answer is a 429 the page shows as today's limit, never as a car with no sales.
-  if (!demoKey(text)) {
-    const cars = await checkCeiling(env, req, "partner_cars", { tool: "partner" }).catch(() => ({ ok: true }));
-    if (!cars.ok) return res.status(429).json({ ok: false, query: text, error: "car_limit" });
-  }
-  // The read has its own deadline (Oct 18 2026: a read that never returned left the page saying "Sam is reading the
-  // sales." for good): past READ_DEADLINE_MS the demo answers from the last good answer, or says it could not read.
+  // The read goes through Market Check's own handler and its own bound; a read that throws answers from the last good
+  // answer (a demo car) or the plain still-reading state.
   let r;
-  try { r = await Promise.race([marketCheckAnswer(req, text, refine, asked, !!demoKey(text)), new Promise((_, rej) => setTimeout(() => rej(new Error("read deadline")), READ_DEADLINE_MS).unref?.())]); } catch (e) {
+  try { r = await marketCheckAnswer(req, text, refine, asked, true); } catch (e) {
     console.error("partnerAnswer:", (e && e.message) || e);
     const lk0 = !refine ? demoKey(text) : null, last = lk0 && env ? await readLast(env, lk0) : null;
     if (lastGoodUsable(last)) return res.status(200).json(vinIn ? { ...last.out, history, vin: vinIn, lastGood: true } : { ...last.out, lastGood: true });
