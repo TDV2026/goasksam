@@ -9400,3 +9400,4 @@ Search check: no public page touched by this push (scripts only). The READY SEO 
 Push protocol followed: prePush alone on the llms.txt commit, fast tier (no engine-and-data file touched), 0 FAIL, 8 SKIP, 33
 PASS. PUSH LOCK line and the push itself follow as separate docs-only/code commits per the lock rule.
 - PUSH LOCK (Lane A, 2026-10-18): public/llms.txt (6abcaaf8), the approved text at line 439c066d, byte-for-byte. prePush alone, fast tier (static file only, no engine-and-data file touched), 0 FAIL / 8 SKIP / 33 PASS. Push follows.
+- PUSHED (Lane A, 2026-10-18, Vercel Ready pending): d01a7949, public/llms.txt. prePush alone 0 FAIL / 8 SKIP / 33 PASS; main moved by docs/lane-notes.md only in between, rebased without a rerun (docs-only rule, files checked: docs/lane-notes.md). LOCK RELEASED. Live /llms.txt 200-as-Googlebot proof follows once deployed.
