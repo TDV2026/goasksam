@@ -142,6 +142,12 @@ h3{font-size:18px;line-height:1.3;margin:0 0 10px;font-weight:700}
 .b-hero:empty{display:none}
 .car-photo{margin:0 0 18px;max-width:760px}
 .photo-note{margin:6px 0 0;font-size:13px;color:var(--ink2)}
+.vin-line{display:block;margin:2px 0 10px;font-size:13px;color:var(--ink2);letter-spacing:.02em}
+h2.car-name{font-size:22px;margin:0 0 2px}
+#c-name .car-name,#b-name .car-name{display:block}
+#c-name .vin-line,#b-name .vin-line{font-weight:400}
+.tag-this{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;background:var(--ink);color:#fff;font-size:11px;font-weight:600;vertical-align:2px}
+.own-main .car-photo{margin:0;max-width:none}
 .prior{margin:0 0 18px}
 .prior-none{margin:0 0 14px;font-size:14px;color:var(--ink2)}
 .prior h3{margin-bottom:8px}
@@ -298,7 +304,7 @@ const JS = String.raw`
     var line = function(){ return '<div class="res-line">Your reserve ' + usd(r) + "</div>"; };
     rows.forEach(function(s){
       if (r != null && !placed && s.price < r) { body += line(); placed = true; }
-      body += saleRow(s);
+      body += saleRow(s, null, opts.keys);
     });
     if (r != null && !placed) body += line();
     return '<div class="slist">' + body + "</div>";
@@ -322,11 +328,30 @@ const JS = String.raw`
   }
   // The listing car's own photos (c9): its earlier sales' own photos, newest first, by "<VIN>-<n>" through the photo
   // path; the newest is the main photo, the rest small beside it. None stored: no gallery, never another car's photo.
+  // THE MAIN PHOTO (Sam, Oct 18 2026): when this exact car has an earlier sale with a photo, its newest such sale's photo,
+  // captioned "Photo from this car's sale in {Month Year}."; otherwise the photo of a car like it, captioned as such. A
+  // photo of another car is never captioned as this car.
+  var ownSold = function(a){ return ((a && a.history) || []).filter(function(r){ return r.result === "sold" && r.photo; }); };
+  function mainPhotoHtml(a){
+    var own = ownSold(a)[0];
+    if (!own) return carPhotoHtml(a);
+    var my = monthYear(own.date);
+    return '<div class="car-photo"><img class="hero-img" data-ph src="/api/partnerAnswer?photo=' + encodeURIComponent(own.photo) + '" alt="' + esc(nameOf(a) || CAR) + '" decoding="async"><p class="photo-note">' + (my ? "Photo from this car's sale in " + esc(my) + "." : "Photo from this car's earlier sale.") + "</p></div>";
+  }
   function ownPhotos(a, thumbs){
-    var ph = ((a && a.history) || []).filter(function(r){ return r.photo; });
-    if (!ph.length) return "";
+    var ph = ownSold(a);
+    if (!ph.length) return carPhotoHtml(a);
     var img = function(r, cls){ return '<img class="' + cls + '" data-ph src="/api/partnerAnswer?photo=' + encodeURIComponent(r.photo) + '" alt="' + esc(D ? D.title : CAR) + '" decoding="async">'; };
-    return (thumbs && ph.length > 1 ? '<div class="thumbs">' + ph.map(function(r){ return img(r, "thumb-img"); }).join("") + "</div>" : "") + img(ph[0], "hero-img");
+    return (thumbs && ph.length > 1 ? '<div class="thumbs">' + ph.map(function(r){ return img(r, "thumb-img"); }).join("") + "</div>" : "") + '<div class="own-main">' + mainPhotoHtml(a) + "</div>";
+  }
+  // THE HEADING FOR A CAR GIVEN BY VIN (Sam, Oct 18 2026): the engine's name for it, the VIN small beneath; when the
+  // engine cannot name it, the VIN alone.
+  var VIN_RE = /^[A-HJ-NPR-Z0-9]{17}$/i;
+  var nameOf = function(a){ return (a && a.carName) || null; };
+  function vinHead(a, tag){
+    var vin = (a && a.vin) || (VIN_RE.test(CAR) ? CAR.toUpperCase() : ""); if (!vin) return "";
+    var nm = nameOf(a);
+    return "<" + tag + ' class="car-name">' + esc(nm || vin) + "</" + tag + ">" + (nm ? (tag === "span" ? '<span class="vin-line">VIN ' + esc(vin) + "</span>" : '<p class="vin-line">VIN ' + esc(vin) + "</p>") : "");
   }
   function idChips(a){
     var id = a && a.identity; if (!id) return "";
@@ -386,19 +411,24 @@ const JS = String.raw`
   // sit in their own small group below with the engine's own reason words.
   var LIST_STEP = 10, lists = {};
   function photoSlot(s){ return '<div class="sph">' + (s && s.photo ? '<img data-ph src="/api/partnerAnswer?photo=' + encodeURIComponent(s.photo) + '" alt="" width="160" height="120" loading="lazy" decoding="async">' : "") + "</div>"; }
-  function saleRow(s, reason){
-    return '<div class="srow">' + photoSlot(s) + '<div class="sinfo"><div class="st">' + esc(s.name || "") + '</div><div class="sd">Sold ' + esc(dayLabel(s.date)) + '</div><div class="sd">' + esc(milesOf(s)) + "</div>" +
+  // "This car" (Sam, Oct 18 2026): a row of the sales list that is one of this exact car's own earlier sales, matched on
+  // date and price against the same history rows the earlier-sales panel draws (no second lookup).
+  var thisKeys = {};
+  var keysOf = function(a){ var k = {}; ((a && a.history) || []).forEach(function(r){ if (r.result === "sold" && r.price && r.date) k[r.date + "|" + Math.round(r.price)] = 1; }); return k; };
+  function saleRow(s, reason, keys){
+    var mine = keys && s.date && keys[s.date + "|" + Math.round(s.price)];
+    return '<div class="srow">' + photoSlot(s) + '<div class="sinfo"><div class="st">' + esc(s.name || "") + (mine ? ' <span class="tag-this">This car</span>' : "") + '</div><div class="sd">Sold ' + esc(dayLabel(s.date)) + '</div><div class="sd">' + esc(milesOf(s)) + "</div>" +
       (reason ? '<div class="sr">' + esc(reason.charAt(0).toUpperCase() + reason.slice(1)) + "</div>" : "") + '</div><div class="sp">' + usd(s.price) + "</div></div>";
   }
   function listHead(slot){ var n = $("sl-" + slot) ? $("sl-" + slot).children.length : 0; return "The most recent " + (n < 10 ? ["zero","one","two","three","four","five","six","seven","eight","nine"][n] : n) + " " + plural(n, "sale", "sales") + " behind this answer, newest first."; }
   function salesList(a, slot){
     if (!a || a.ok === false) return '<p class="muted">' + notRead(a) + "</p>";
     if (a.question || !a.sales || !a.sales.length) return '<p class="muted">' + esc((a && a.thin) || "No recorded sales of cars like this yet.") + "</p>";
-    var rows = newest(a); lists[slot] = rows;
+    var rows = newest(a); lists[slot] = rows; thisKeys[slot] = keysOf(a);
     var shown = rows.slice(0, LIST_STEP), n = shown.length;
     var aside = (a.asideRows || []).slice().sort(function(x, y){ return String(y.date || "").localeCompare(String(x.date || "")); });
     return '<p class="sub sl-head" id="slh-' + slot + '">The most recent ' + (n < 10 ? ["zero","one","two","three","four","five","six","seven","eight","nine"][n] : n) + " " + plural(n, "sale", "sales") + " behind this answer, newest first.</p>" +
-      '<div class="slist" id="sl-' + slot + '">' + shown.map(function(s){ return saleRow(s); }).join("") + "</div>" +
+      '<div class="slist" id="sl-' + slot + '">' + shown.map(function(s){ return saleRow(s, null, thisKeys[slot]); }).join("") + "</div>" +
       (rows.length > LIST_STEP ? '<p class="morewrap"><button type="button" class="more" data-more="' + slot + '">Show more</button></p>' : "") +
       (aside.length ? '<details class="aside-grp"><summary>' + esc(a.asideLine || ((aside.length < 10 ? ["zero","one","two","three","four","five","six","seven","eight","nine"][aside.length] : aside.length) + " " + plural(aside.length, "sale", "sales") + " set aside")) + '</summary><p class="sub">Not part of the answer above.</p><div class="slist">' + aside.map(function(s){ return saleRow(s, s.reason); }).join("") + "</div></details>" : "");
   }
@@ -406,7 +436,7 @@ const JS = String.raw`
     var m = e.target.closest && e.target.closest("[data-more]"); if (!m) return;
     var slot = m.getAttribute("data-more"), box = $("sl-" + slot), rows = lists[slot] || []; if (!box) return;
     var have = box.children.length;
-    box.insertAdjacentHTML("beforeend", rows.slice(have, have + LIST_STEP).map(function(s){ return saleRow(s); }).join(""));
+    box.insertAdjacentHTML("beforeend", rows.slice(have, have + LIST_STEP).map(function(s){ return saleRow(s, null, thisKeys[slot]); }).join(""));
     $("slh-" + slot).textContent = listHead(slot);
     if (box.children.length >= rows.length) m.parentNode.removeChild(m);
   });
@@ -444,14 +474,14 @@ const JS = String.raw`
     noteLines("a", a);
     aLast = a;
     if (a.ok === false) { $("a-out").innerHTML = rangePanel(a, { slot: "a" }); return; }
-    $("a-out").innerHTML = (a.question ? "" : priorPanel(a, !!a.vin)) + (a.question ? "" : carPhotoHtml(a)) + (a.question ? rangePanel(a, { slot: "a", chips: true }) : (idChips(a) ? '<div style="margin:0 0 16px">' + idChips(a) + "</div>" : "") + (a.range || a.thin ? rangePanel(a, { lines: "a" }) : "")) + ((a.vin || (a.history && a.history.length)) && !soldRows(a).length ? historyPanel(a) : "") +
+    $("a-out").innerHTML = (a.vin ? vinHead(a, "h2") : "") + (a.question ? "" : priorPanel(a, !!a.vin)) + (a.question ? "" : mainPhotoHtml(a)) + (a.question ? rangePanel(a, { slot: "a", chips: true }) : (idChips(a) ? '<div style="margin:0 0 16px">' + idChips(a) + "</div>" : "") + (a.range || a.thin ? rangePanel(a, { lines: "a" }) : "")) + ((a.vin || (a.history && a.history.length)) && !soldRows(a).length ? historyPanel(a) : "") +
       (!a.question && a.sales && a.sales.length ? '<section class="full-a"><h2>What cars like this sold for</h2>' + salesList(a, "a") + "</section>" : "") +
       '<div style="margin-top:20px"><button type="button" class="btn pri" id="a-list">List it</button></div>';
   }
   function runA(body){ $("a-out").innerHTML = '<p class="loading">Sam is reading the sales for this one.</p>'; run("a", body, drawA); }
   // ---- view b: setting a reserve
   var bAns = null;
-  function gotB(a){ bAns = a; noteLines("b", a); if ($("b-photo")) $("b-photo").innerHTML = D ? ownPhotos(a, false) : carPhotoHtml(a); drawB(); }
+  function gotB(a){ bAns = a; noteLines("b", a); if ($("b-photo")) $("b-photo").innerHTML = D ? ownPhotos(a, false) : mainPhotoHtml(a); if (!D && $("b-name") && VIN_RE.test(CAR)) $("b-name").innerHTML = vinHead(a, "span"); drawB(); }
   function drawB(){
     var v = Number(String($("b-res").value || "").replace(/[^\d]/g, ""));
     var a = bAns; if (!a) return;
@@ -462,7 +492,7 @@ const JS = String.raw`
     var at = v > 0 ? last.filter(function(s){ return s.price >= v; }).length : null;
     var resLine = at == null || !last.length ? "" : '<p class="res-line-big">' + (at === 0 ? "None of the " + last.length + " most recent sales reached " + usd(v) + "." : at + " of the " + last.length + " most recent sales reached " + usd(v) + " or more.") + "</p>";
     $("b-out").innerHTML = rangePanel(a, { price: v > 0 || !a.range ? v : null, lines: "b", who: "reserve", underPill: resLine }) + (last.length ?
-      '<section class="full-a"><h2>What cars like this sold for</h2><p class="sub" style="margin:-6px 0 12px">The last ' + (last.length === 1 ? "sale" : last.length + " sales") + ", highest price first.</p>" + reserveList(last, { reserve: v }) +
+      '<section class="full-a"><h2>What cars like this sold for</h2><p class="sub" style="margin:-6px 0 12px">The last ' + (last.length === 1 ? "sale" : last.length + " sales") + ", highest price first.</p>" + reserveList(last, { reserve: v, keys: keysOf(a) }) +
       "</section>" : "");
   }
   // ---- view c: the listing (Sam, Oct 18 2026: c and d are one page; the card under the buy box, the sales list and
@@ -470,7 +500,8 @@ const JS = String.raw`
   var cAns = null;
   function drawListing(a){
     cAns = a; noteLines("c", a);
-    if (!D && $("c-photo")) $("c-photo").innerHTML = carPhotoHtml(a);
+    if (!D && $("c-photo")) $("c-photo").innerHTML = mainPhotoHtml(a);
+    if (!D && $("c-name") && VIN_RE.test(CAR)) $("c-name").innerHTML = vinHead(a, "span");
     if (D && $("own-gal")) $("own-gal").innerHTML = ownPhotos(a, true);
     $("c-rail").innerHTML = priorPanel(a, !!D) + rangePanel(a, D ? { price: D.price, slot: "c", lines: "c" } : { slot: "c", lines: "c" });
     var lq = a && a.range && a.trend && a.trend.length ? a.trend.reduce(function(m, t){ return String(t.period) > String(m.period) ? t : m; }) : null;   // the latest quarter with eight or more sales, view d only
@@ -527,7 +558,7 @@ export function pageHtml(view, carIn) {
       <div class="phone-only"></div>
     </div>
     <div class="rail">
-      <h1>${d.title}</h1>
+      <h1>${d.title}</h1><p class="vin-line">VIN ${d.vin}</p>
       <p class="sub">${miles} miles</p>
       <hr>
       <div class="price">US ${"$" + d.price.toLocaleString("en-US")}</div>
@@ -541,7 +572,7 @@ export function pageHtml(view, carIn) {
   // recent sales with photos. No gallery, price, mileage, buy buttons or "This car before".
   const noListing = `
   <div class="listing with-below">
-    <div><div id="c-photo"></div><h1>${escHtml(car)}</h1><p class="sub">Recent sales of cars like this one.</p></div>
+    <div><div id="c-photo"></div><h1 id="c-name">${escHtml(car)}</h1><p class="sub">Recent sales of cars like this one.</p></div>
     <div class="rail"><div id="c-rail"><p class="loading">Sam is reading the sales for this one.</p></div></div>
     <div class="below-gal"><div class="full" id="d-sales"><p class="loading">Sam is reading the sales for this one.</p></div><div class="full" id="d-hist"></div></div>
   </div>`;
@@ -559,7 +590,7 @@ ${carBar}
 </section>
 <section class="sec-view wrap" id="view-b"${v === "b" ? "" : " hidden"}>
   <div class="b-hero" id="b-photo"></div>
-  <div class="lead"><h1>Set your reserve</h1><p class="sub">${hasListing ? `${d.title}, ${miles} miles` : escHtml(car)}</p>
+  <div class="lead"><h1>Set your reserve</h1><p class="sub" id="b-name">${hasListing ? `${d.title}, ${miles} miles` : escHtml(car)}</p>
   <div class="reserve"><label for="b-res">Reserve</label><span class="money">$<input id="b-res" inputmode="numeric" placeholder="0" aria-label="Reserve in dollars"></span></div>
   <div id="b-out"><p class="loading">Sam is reading the sales for this one.</p></div></div>
 </section>

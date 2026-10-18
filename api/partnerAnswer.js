@@ -341,6 +341,12 @@ function identityOf(d, idFromVin) {
   return { year: num(rc.year) || null, make: rc.make || null, model: rc.model || null, generation: rc.genCode || null, body: rc.bodyStyle || null, variant };
 }
 // The VIN's own appearances: sold (price), or offered and not sold (high bid). Never the venue, link or title.
+// The car's name from the engine's identity of a VIN (year, make, model, trim); null when it cannot name the car.
+export function carNameOf(id) {
+  if (!id || !id.make || !id.model) return null;
+  const trim = id.trim && !String(id.model).toLowerCase().includes(String(id.trim).toLowerCase()) ? id.trim : null;
+  return [id.year, id.make, id.model, trim].filter(Boolean).join(" ");
+}
 export function historyOf(apps, vin) {
   if (!Array.isArray(apps) || !apps.length) return null;
   // Each sale's own photo by "<VIN>-<n>" (n its place among the car's appearances), served by ?photo= (stage 4).
@@ -485,7 +491,12 @@ export default async function handler(req, res) {
     if (!vinIn && fullResult(out)) writeLast(env, lk, out).catch(() => {});
     else if (!out.ok) { const last = await readLast(env, lk); if (lastGoodUsable(last)) out = vinIn ? { ...last.out, history, lastGood: true } : { ...last.out, lastGood: true }; }
   }
-  if (vinIn) out.vin = vinIn;
+  if (vinIn) {
+    out.vin = vinIn;
+    // The car's name for a VIN (Sam, Oct 18 2026): the engine's own identity of this VIN (carIdentity: year, make, model,
+    // trim), null when it cannot name the car; the page then shows the VIN and nothing else.
+    out.carName = carNameOf(id);
+  }
   out.updated = await updatedP;
   const leaks = venueLeak(out);
   if (leaks.length) { console.error("partnerAnswer venue leak blocked:", leaks.slice(0, 5).join(" | ")); return res.status(500).json({ ok: false, error: "blocked" }); }

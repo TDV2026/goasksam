@@ -130,7 +130,7 @@ for (const [name, d] of Object.entries(FIX)) {
   ok(((c.match(/<nav class="tabs"[\s\S]*?<\/nav>/) || [""])[0].match(/href="\?view=/g) || []).length === 3 && !/Under the listing/.test(c) && /id="view-c"(?! hidden)/.test(d), "three tabs; the old d address opens the merged listing");
   ok(!/Placeholder description/.test(c) && /<dt>Year<\/dt>/.test(c) && /<dt>VIN<\/dt>/.test(c) && /<dt>Mileage<\/dt>/.test(c), "no placeholder description; Year, VIN and Mileage kept");
   ok((c.match(/id="d-hist"/g) || []).length === 1 && /\$\("c-rail"\)\.innerHTML = priorPanel\(a, !!D\) \+ rangePanel\(a, D \? \{ price: D\.price, slot: "c", lines: "c" \} : \{ slot: "c", lines: "c" \}\);/.test(c) && /class="below-gal"/.test(c), "the card in the rail, the list and This car before under the gallery, once");
-  ok(/function reserveList\(rows, opts\)/.test(c) && /body \+= saleRow\(s\)/.test(c) && /reserveList\(last, \{ reserve: v \}\)/.test(c) && !/salesTable\(/.test(c), "view b: the same rows, highest price first, the reserve line at its place, no Show more");
+  ok(/function reserveList\(rows, opts\)/.test(c) && /body \+= saleRow\(s, null, opts\.keys\)/.test(c) && /reserveList\(last, \{ reserve: v, keys: keysOf\(a\) \}\)/.test(c) && !/salesTable\(/.test(c), "view b: the same rows, highest price first, the reserve line at its place, no Show more");
   ok((c.match(/function placing\(/g) || []).length === 1 && /placing\(opts\.price, a, opts\.who\)/.test(c) && /"Your reserve is " : "Asking price is "/.test(c) && /who: "reserve"/.test(c), "one comparison against the engine's range, shared by views b and c"); }
 // The narrowing lines (Sam, Oct 18 2026: "2001 bmw", M3): Market Check's own lines from the engine's fields, same
 // filters, same order, each option the refine Market Check sends; the page draws them under the card in a, b and c.
@@ -263,7 +263,7 @@ for (const [name, d] of Object.entries(FIX)) {
   const out = ps({ status: "one_box", tier: "result", cluster: [111000, 133000], poolN: 10, cards: [] }, "2014 Porsche 911 GT3", 0, { history: h });
   ok(venueLeak(out).length === 0, "the answer with this car's history passes the venue guard");
   const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
-  ok(/'<div class="panel prior"><h3>This car last sold for ' \+ usd\(last\.price\)/.test(pageSrc) && /" miles at that sale"/.test(pageSrc) && /\$\("a-out"\)\.innerHTML = \(a\.question \? "" : priorPanel\(a, !!a\.vin\)\) \+ \(a\.question \? "" : carPhotoHtml\(a\)\)/.test(pageSrc) && /'<p class="prior-none">No earlier sale of this car on record\.<\/p>'/.test(pageSrc) && !/your car/i.test(pageSrc), "the prior sales sit at the top: \"This car last sold for\", newest first, mileage at that sale; never \"your car\"");
+  ok(/'<div class="panel prior"><h3>This car last sold for ' \+ usd\(last\.price\)/.test(pageSrc) && /" miles at that sale"/.test(pageSrc) && /\$\("a-out"\)\.innerHTML = \(a\.vin \? vinHead\(a, "h2"\) : ""\) \+ \(a\.question \? "" : priorPanel\(a, !!a\.vin\)\) \+ \(a\.question \? "" : mainPhotoHtml\(a\)\)/.test(pageSrc) && /'<p class="prior-none">No earlier sale of this car on record\.<\/p>'/.test(pageSrc) && !/your car/i.test(pageSrc), "the prior sales sit at the top: \"This car last sold for\", newest first, mileage at that sale; never \"your car\"");
   const block = pageSrc.slice(pageSrc.indexOf("function priorPanel("), pageSrc.indexOf("function historyPanel("));
   ok(!/href|<a |house|venue|url/i.test(block), "the prior-sale panel has no link and no venue");
   ok(/<p class="photo-note">Photo from a recent sale of a car like this one\.<\/p>/.test(pageSrc), "the car photo carries its caption");
@@ -305,8 +305,44 @@ for (const [name, d] of Object.entries(FIX)) {
 { const { DUMMY } = await import("../api/partnerDemo.js");
   ok(DUMMY.q === "2014 Porsche 911 GT3" && DUMMY.vin === "WP0AC2A9XES183617" && DUMMY.miles === 30400 && DUMMY.price === 139900 && DUMMY.miles >= 29000, "the listing car is the 2014 GT3 at 30,400 miles (not below its last sale at 29,000) and $139,900");
   const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
-  ok(/var ph = \(\(a && a\.history\) \|\| \[\]\)\.filter\(function\(r\)\{ return r\.photo; \}\);/.test(pageSrc) && /img\(ph\[0\], "hero-img"\)/.test(pageSrc) && !/_partnerHero|HERO_JPEG_B64|img === "hero"/.test(pageSrc), "the listing car's photos are its own sales' photos, the newest first; the old studio photo is gone");
+  ok(/var ownSold = function\(a\)\{ return \(\(a && a\.history\) \|\| \[\]\)\.filter\(function\(r\)\{ return r\.result === "sold" && r\.photo; \}\); \};/.test(pageSrc) && /'<div class="own-main">' \+ mainPhotoHtml\(a\)/.test(pageSrc) && !/_partnerHero|HERO_JPEG_B64|img === "hero"/.test(pageSrc), "the listing car's photos are its own sales' photos, the newest first; the old studio photo is gone");
   ok(/rangePanel\(a, D \? \{ price: D\.price, slot: "c", lines: "c" \}/.test(pageSrc) && (pageSrc.match(/function placing\(/g) || []).length === 1, "the asking price's pill is the one placing() against the engine's range"); }
+// A CAR GIVEN BY VIN (Sam, Oct 18 2026): the engine's name as the heading with the VIN small beneath (the VIN alone
+// when it cannot name the car); the main photo is this car's own newest sale photo captioned with its month and year,
+// else a car like it captioned as such; the sales-list rows that are this car's own sales carry "This car".
+{ const { carNameOf } = await import("../api/partnerAnswer.js");
+  ok(carNameOf({ year: 2014, make: "Porsche", model: "911", trim: "GT3" }) === "2014 Porsche 911 GT3" && carNameOf({ year: 2015, make: "Porsche", model: "911 GT3", trim: "GT3" }) === "2015 Porsche 911 GT3" && carNameOf(null) === null && carNameOf({ year: 2014, make: "Porsche" }) === null, "the car's name comes from the engine's identity of the VIN, none when it cannot name it");
+  let puppeteer = null; try { ({ default: puppeteer } = await import("puppeteer-core")); } catch {}
+  const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+  if (!puppeteer || !fs.existsSync(CHROME)) { skip++; console.log("SKIP VIN heading: no local Chrome"); }
+  else {
+    const { pageHtml } = await import("../api/partnerDemo.js");
+    const V = "WP0AB2A99ES100001";   // a VIN that is not the listing car's, so views a and c both draw the plain car
+    const sales = [{ photo: "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c51", name: "2014 Porsche 911 GT3", price: 124000, date: "2025-07-20", miles: 29000 }, { photo: null, name: "2014 Porsche 911 GT3", price: 130000, date: "2026-02-01", miles: 9000 }];
+    const hist = [{ result: "sold", date: "2025-07-20", price: 124000, miles: 29000, photo: V + "-1" }, { result: "sold", date: "2024-03-09", price: 110000, miles: 26000, photo: V + "-0" }];
+    const cases = [["the VIN", { vin: V, carName: "2014 Porsche 911 GT3", history: hist, sales, carPhoto: { photo: "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c59" } }, V],
+      ["a VIN the engine cannot name", { vin: V, carName: null, history: [], sales, carPhoto: { photo: "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c59" } }, V],
+      ["a car with no earlier sale", { carName: null, history: [], sales, carPhoto: { photo: "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c59" } }, "1965 Ford Mustang"]];
+    const br = await puppeteer.launch({ executablePath: CHROME, headless: "new" });
+    for (const [label, ans, car] of cases) for (const w of [1440, 390]) for (const v of ["a", "c"]) {
+      const pg = await br.newPage(); await pg.setViewport({ width: w, height: 900, isMobile: w < 600 }); await pg.setRequestInterception(true);
+      pg.on("request", r => { const u = new URL(r.url());
+        if (u.pathname === "/preview" && !u.searchParams.get("img")) return r.respond({ status: 200, contentType: "text/html; charset=utf-8", body: pageHtml(v, car) });
+        if (u.pathname === "/api/partnerAnswer" && r.method() === "POST") return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, query: "q", answerType: "range", range: { low: 111000, high: 133000 }, count: 10, ...ans }) });
+        if (u.searchParams.get("photo")) return r.respond({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") });
+        return r.respond({ status: 204, body: "" }); });
+      await pg.goto("https://goasksam.com/preview?view=" + v, { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 700));
+      const m = await pg.evaluate(v => { const root = document.querySelector("#view-" + v); const nm = root.querySelector(".car-name"), vl = root.querySelector(".vin-line"), notes = [...root.querySelectorAll(".photo-note")].map(e => e.textContent);
+        return { name: nm ? nm.textContent : null, vinLine: vl ? vl.textContent : null, notes, tags: root.querySelectorAll(".tag-this").length }; }, v);
+      const want = label === "the VIN" ? { name: "2014 Porsche 911 GT3", vinLine: "VIN " + V, note: "Photo from this car's sale in July 2025.", tags: 1 }
+        : label === "a VIN the engine cannot name" ? { name: V, vinLine: null, note: "Photo from a recent sale of a car like this one.", tags: 0 }
+        : { name: null, vinLine: null, note: "Photo from a recent sale of a car like this one.", tags: 0 };
+      ok(m.name === want.name && m.vinLine === want.vinLine && m.notes.length === 1 && m.notes[0] === want.note && m.tags === want.tags, `${label}, view ${v} ${w}: heading, VIN line, photo caption and "This car" tag (${JSON.stringify(m)})`);
+      await pg.close();
+    }
+    await br.close();
+  }
+}
 // The endpoint reads no market of its own: Market Check's handler is its only source of figures.
 const src = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8").replace(/\/\/[^\n]*/g, "");
 ok(/import\("\.\/sellerDecision\.js"\)/.test(src) && /oneBox: true/.test(src), "the endpoint asks Market Check's own handler");
