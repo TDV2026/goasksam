@@ -46,6 +46,15 @@ ok(!/setHeader\("(Location|Content-Disposition|X-Source|Link)"/.test(block) && /
 const srcs = [...page.matchAll(/src="\/[^"']*/g)].map(m => m[0]);
 ok(srcs.every(x => /^src="\/(partner-demo\?img=hero|api\/partnerAnswer\?photo=)$/.test(x)), "the page names only the hero and /api/partnerAnswer?photo=<id> (" + [...new Set(srcs)].join(" ") + ")");
 ok(!/partner-demo\?photo=/.test(page) && !/\/api\/salePhoto/.test(page), "no other photo path and no new public path");
+// Every demo car in every view (Sam, Oct 18 2026): the only images are the sales' photos through ?photo=<id> and, for the
+// 2015 GT3 with its listing detail only, the listing's own hero; no other car shows a photo that is not its sales'.
+{ const { pageHtml } = await import("../api/partnerDemo.js"), { DEMO_CARS } = await import("../api/partnerAnswer.js");
+  DEMO_CARS.forEach((car, i) => ["a", "b", "c", "d"].forEach(v => {
+    const h = pageHtml(v, i), all = [...h.matchAll(/src="([^"']*)/g)].map(m => m[1]);
+    ok(all.every(x => x === "/partner-demo?img=hero" || x === "/api/partnerAnswer?photo="), `${car}, view ${v}: only the sales' photo path and the listing hero (${[...new Set(all)].join(" ")})`);
+    ok(i === 0 ? all.includes("/partner-demo?img=hero") : !all.includes("/partner-demo?img=hero"), `${car}, view ${v}: the hero ${i === 0 ? "stays with the 2015 GT3 listing" : "is never shown for another car"}`);
+    ok(/'<img data-ph src="\/api\/partnerAnswer\?photo=' \+ encodeURIComponent\(s\.photo\)/.test(h), `${car}, view ${v}: the sales list draws each sale's own photo by id`);
+  })); }
 const { CEILINGS } = await import("../lib/_ceilings.js");
 const pp = CEILINGS.partner_photo, m = pp && pp.device.find(([w]) => w === 60e3);
 ok(pp && m && m[1] >= 40 && pp.address, "partner_photo allows a view plus Show more several times a minute, per device and per address");

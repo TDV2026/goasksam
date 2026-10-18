@@ -18,6 +18,7 @@ import { checkCeiling } from "../lib/_ceilings.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { SELLS_FOR_CARD_CSS } from "../lib/sellsForCard.js";
 import { HERO_JPEG_B64, HERO_W, HERO_H } from "./_partnerHero.js";
+import { DEMO_CARS } from "./partnerAnswer.js";
 
 export const DUMMY = { title: "2015 Porsche 911 GT3", colour: "Black", miles: 20611, titleStatus: "Clean", price: 139900, priceKind: "Buy It Now", daysLeft: 13, vin: "WP0AC2A96FS189139", q: "2015 Porsche 911 GT3" };
 
@@ -31,6 +32,9 @@ body{margin:0;background:#fff;color:var(--ink);font:400 16px/1.45 -apple-system,
 .demo-bar{background:#111;color:#fff;font-size:13px}
 .demo-bar .wrap{display:flex;gap:12px;align-items:center;justify-content:space-between;padding-block:8px;flex-wrap:wrap}
 .tabs{display:flex;gap:6px;flex-wrap:wrap}
+.bar-r{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.carpick{display:flex;gap:8px;align-items:center}
+.carpick select{font:inherit;font-size:13px;color:#111;background:#fff;border:1px solid #555;border-radius:999px;padding:4px 10px;max-width:100%}
 .tabs a{color:#fff;text-decoration:none;border:1px solid #555;border-radius:999px;padding:4px 12px}
 .tabs a[aria-current=page]{background:#fff;color:#111;border-color:#fff}
 .top{border-bottom:1px solid var(--rule)}
@@ -178,32 +182,61 @@ h3{font-size:18px;line-height:1.3;margin:0 0 10px;font-weight:700}
 // The client: asks the endpoint, draws each view from its answer. Every figure on screen is the endpoint's.
 const JS = String.raw`
 (function(){
-  var D = __DUMMY__;
+  // THE SELECTED CAR (Sam, Oct 18 2026): one car for the whole demo, chosen in the bar on every view and carried in the
+  // address (car=), so every view reads the same car. Only the 2015 GT3 has listing detail (D); any other car has none.
+  var CAR = __CAR__, D = __LISTING__, CARS = __CARS__;
   var $ = function(id){ return document.getElementById(id); };
   var esc = function(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
   var usd = function(n){ return "$" + Math.round(Number(n)).toLocaleString("en-US"); };
   var MON = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var monthYear = function(d){ var p = String(d || "").split("-"); return p.length >= 2 && MON[Number(p[1]) - 1] ? MON[Number(p[1]) - 1] + " " + p[0] : ""; };
   var plural = function(n, one, many){ return n === 1 ? one : many; };
-  // One read; a failed one is retried once, a few seconds later, before the page says it could not read the sales.
-  // Each attempt has its own deadline, so the loading line never stays for good (Oct 18 2026).
+  // One read. The page has no wait or retry rule of its own (Sam, Oct 18 2026): when the engine answers that it is still
+  // reading, the page draws the engine's line and asks again after the engine's own retryAfterMs. The abort below is a
+  // safety net only (Sam's approval): past it the page shows the stored last good answer for a demo car (GET ?last=, no
+  // engine read), otherwise the plain still-reading state with Try again. Nothing on the page is timed for a number.
   var ASK_DEADLINE_MS = 25000;
   function ask1(body){
     var ctl = typeof AbortController === "function" ? new AbortController() : null;
     var t = ctl ? setTimeout(function(){ ctl.abort(); }, ASK_DEADLINE_MS) : null;
     var read = fetch("/api/partnerAnswer", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: ctl ? ctl.signal : undefined })
-      .then(function(r){ return r.json(); }).catch(function(){ return { ok: false, error: "unavailable" }; });
-    var late = new Promise(function(res){ setTimeout(function(){ res({ ok: false, error: "unavailable" }); }, ASK_DEADLINE_MS + 1000); });
+      .then(function(r){ return r.json(); }).catch(function(){ return { aborted: true }; });
+    var late = new Promise(function(res){ setTimeout(function(){ res({ aborted: true }); }, ASK_DEADLINE_MS + 1000); });
     return Promise.race([read, late]).then(function(a){ if (t) clearTimeout(t); return a; });
   }
+  var STILL = { ok: false, error: "unavailable", stillReading: true, line: null, retryAfterMs: null };
   function ask(body){
-    return ask1(body).then(function(a){ return a && (a.ok !== false || a.error === "rate_limited" || a.error === "car_limit") ? a : new Promise(function(res){ setTimeout(function(){ ask1(body).then(res); }, 4000); }); });
+    return ask1(body).then(function(a){
+      if (!a || !a.aborted) return a;
+      if (body.refine || CARS.indexOf(String(body.q || "")) < 0) return STILL;
+      return fetch("/api/partnerAnswer?last=" + encodeURIComponent(body.q), { credentials: "include" }).then(function(r){ return r.json(); }).catch(function(){ return STILL; });
+    });
+  }
+  // A read and its drawing, kept per view so Try again (and the engine's own retry) reruns exactly that read.
+  var runs = {};
+  function run(view, body, draw){
+    runs[view] = function(){ run(view, body, draw); };
+    return ask(body).then(function(a){
+      draw(a);
+      if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(runs[view], a.retryAfterMs);
+      return a;
+    });
   }
   var COULD_NOT = "Sam could not read the sales just now. Try again in a minute.";
   // Each refusal says what it is: the demo's daily limit for other cars, the per-minute limit, or a read that failed.
   var LIMIT = "That is today's limit for other cars on this demo. The demo's own cars still open.";
   var BUSY = "Lots of reads just now. Try again in a minute.";
-  var notRead = function(a){ return a && a.error === "car_limit" ? LIMIT : a && a.error === "rate_limited" ? BUSY : COULD_NOT; };
+  // The still-reading state draws the engine's own line; when the engine named no wait, a Try again button reruns the read.
+  var STILL_LINE = "Sam is still reading the sales for this one.";
+  var notRead = function(a){
+    if (a && a.stillReading) return esc(a.line || STILL_LINE) + (a.retryAfterMs > 0 ? "" : ' <button type="button" class="idl" data-retry>Try again</button>');
+    return a && a.error === "car_limit" ? LIMIT : a && a.error === "rate_limited" ? BUSY : COULD_NOT;
+  };
+  document.addEventListener("click", function(e){
+    var b = e.target.closest && e.target.closest("[data-retry]"); if (!b) return;
+    var sec = b.closest(".sec-view"), v = sec && sec.id.replace("view-", "");
+    if (v && runs[v]) { b.disabled = true; runs[v](); }
+  });
   // The card's footer: the credit, the Updated date (the endpoint's shared last-ingest date, none when unread) and
   // How Sam decides.
   // Panels around the shared card (This car before, the sales section): the credit and How Sam decides only; the one
@@ -331,25 +364,27 @@ const JS = String.raw`
     st.chosen = val ? { key: key, value: val } : null; st.refining = true;
     var send = { q: st.q }; if (val) { send.refine = {}; send.refine[key] = val; }
     if (slot === "a") return runA(send);
-    if (slot === "b") { $("b-out").innerHTML = '<p class="loading">Sam is reading the sales.</p>'; return ask(send).then(function(a){ bAns = a; noteLines("b", a); drawB(); }); }
-    if (slot === "c") return ask(Object.assign({ vin: D.vin }, send)).then(drawListing);
+    if (slot === "b") { $("b-out").innerHTML = '<p class="loading">Sam is reading the sales.</p>'; return run("b", send, gotB); }
+    if (slot === "c") return run("c", D ? Object.assign({ vin: D.vin }, send) : send, drawListing);
   });
   // ---- view a: before listing
   var aLast = null;
   function drawA(a){
     noteLines("a", a);
     aLast = a;
+    if (a.ok === false) { $("a-out").innerHTML = rangePanel(a, { slot: "a" }); return; }
     $("a-out").innerHTML = (a.question ? rangePanel(a, { slot: "a", chips: true }) : (idChips(a) ? '<div style="margin:0 0 16px">' + idChips(a) + "</div>" : "") + (a.range || a.thin ? rangePanel(a, { lines: "a" }) : "")) + (a.vin || (a.history && a.history.length) ? historyPanel(a) : "") +
       (!a.question && a.sales && a.sales.length ? '<section class="full-a"><h2>What cars like this sold for</h2>' + salesList(a, "a") + "</section>" : "") +
       '<div style="margin-top:20px"><button type="button" class="btn pri" id="a-list">List it</button></div>';
   }
-  function runA(body){ $("a-out").innerHTML = '<p class="loading">Sam is reading the sales.</p>'; ask(body).then(drawA); }
+  function runA(body){ $("a-out").innerHTML = '<p class="loading">Sam is reading the sales.</p>'; run("a", body, drawA); }
   // ---- view b: setting a reserve
   var bAns = null;
+  function gotB(a){ bAns = a; noteLines("b", a); drawB(); }
   function drawB(){
     var v = Number(String($("b-res").value || "").replace(/[^\d]/g, ""));
     var a = bAns; if (!a) return;
-    if (a.question) { $("b-out").innerHTML = rangePanel(a, { slot: "b" }); return; }
+    if (a.question || a.ok === false) { $("b-out").innerHTML = rangePanel(a, { slot: "b" }); return; }
     var last = newest(a).slice(0, 10).sort(function(x, y){ return y.price - x.price; });
     // (Sam, Oct 18 2026) one prominent line under the pill, counted from exactly the rows shown below against the reserve
     // as typed; no other claim.
@@ -364,33 +399,48 @@ const JS = String.raw`
   var cAns = null;
   function drawListing(a){
     cAns = a; noteLines("c", a);
-    $("c-rail").innerHTML = rangePanel(a, { price: D.price, slot: "c", lines: "c" });
+    $("c-rail").innerHTML = rangePanel(a, D ? { price: D.price, slot: "c", lines: "c" } : { slot: "c", lines: "c" });
     var lq = a && a.range && a.trend && a.trend.length ? a.trend.reduce(function(m, t){ return String(t.period) > String(m.period) ? t : m; }) : null;   // the latest quarter with eight or more sales, view d only
     $("d-sales").innerHTML = '<h2>What cars like this sold for</h2>' +
       (a && a.card ? (a.quarter ? '<div class="qrow">' + a.quarter + "</div>" : "") : (lq ? '<p class="qrow"><b>' + esc(lq.period.replace("-", " ")) + "</b> " + usd(lq.low) + " to " + usd(lq.high) + ", " + lq.count + " sales</p>" : "")) + salesList(a, "d") + foot(a);
-    $("d-hist").innerHTML = historyPanel(a);
+    $("d-hist").innerHTML = D ? historyPanel(a) : "";
   }
   document.addEventListener("click", function(e){
     var b = e.target.closest && e.target.closest("[data-send]"); if (!b) return;
     var send = JSON.parse(b.getAttribute("data-send")), slot = b.getAttribute("data-slot");
     if (slot === "a") return runA(send);
-    if (slot === "b") { $("b-out").innerHTML = '<p class="loading">Sam is reading the sales.</p>'; return ask(send).then(function(a){ bAns = a; noteLines("b", a); drawB(); }); }
-    if (slot === "c") return ask(Object.assign({ vin: D.vin }, send)).then(drawListing);
+    if (slot === "b") { $("b-out").innerHTML = '<p class="loading">Sam is reading the sales.</p>'; return run("b", send, gotB); }
+    if (slot === "c") return run("c", D ? Object.assign({ vin: D.vin }, send) : send, drawListing);
   });
   document.addEventListener("click", function(e){ if (e.target && e.target.id === "a-list") e.preventDefault(); });   // the demo's List it does nothing
   $("a-form").addEventListener("submit", function(e){ e.preventDefault(); var v = String($("a-q").value || "").trim(); if (v) runA({ q: v }); });
   $("b-res").addEventListener("input", function(){ var d = String(this.value || "").replace(/[^\d]/g, "").slice(0, 9); this.value = d ? Number(d).toLocaleString("en-US") : ""; drawB(); });
-  ask({ q: D.q }).then(function(a){ bAns = a; noteLines("b", a); drawB(); });
-  ask({ q: D.q, vin: D.vin }).then(drawListing);
-  var pre = new URLSearchParams(location.search).get("q") || D.q; $("a-q").value = pre; runA({ q: pre });
+  // The car picker: the same car on every view; changing it reopens this view for that car.
+  var pick = $("car-pick");
+  if (pick) pick.addEventListener("change", function(){
+    var u = new URL(location.href); u.searchParams.set("car", String(this.selectedIndex)); u.searchParams.delete("q");
+    try { sessionStorage.setItem("demo-car", String(this.selectedIndex)); } catch (e) {}
+    location.href = u.pathname + u.search;
+  });
+  try { sessionStorage.setItem("demo-car", String(CARS.indexOf(CAR))); } catch (e) {}
+  run("b", { q: CAR }, gotB);
+  run("c", D ? { q: CAR, vin: D.vin } : { q: CAR }, drawListing);
+  var pre = new URLSearchParams(location.search).get("q") || CAR; $("a-q").value = pre; runA({ q: pre });
 })();
 `;
 
 function phs(n) { let s = ""; for (let i = 0; i < n; i++) s += '<div class="ph" aria-hidden="true">Photo</div>'; return s; }
 
-export function pageHtml(view) {
+// The selected car (Sam, Oct 18 2026): car=<0..5>, one of the demo's six cars (api/partnerAnswer.js DEMO_CARS), the 2015
+// GT3 when absent or not one of them. Only the 2015 GT3 carries listing detail (DUMMY); no other car gets an invented
+// listing, mileage, price or photo.
+export function carIndex(v) { const n = Number(v); return Number.isInteger(n) && n >= 0 && n < DEMO_CARS.length ? n : 0; }
+const escHtml = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+export function pageHtml(view, carIdx = 0) {
   const v = view === "d" ? "c" : (/^[abc]$/.test(view || "") ? view : "a");   // the old d address opens the merged listing
-  const tab = (k, label) => `<a href="?view=${k}"${k === v ? ' aria-current="page"' : ""}>${label}</a>`;
+  const ci = carIndex(carIdx), car = DEMO_CARS[ci], hasListing = car === DUMMY.q;
+  const tab = (k, label) => `<a href="?view=${k}${ci ? "&car=" + ci : ""}"${k === v ? ' aria-current="page"' : ""}>${label}</a>`;
+  const picker = `<label class="carpick">Car <select id="car-pick" aria-label="Car">${DEMO_CARS.map((c, i) => `<option${i === ci ? " selected" : ""}>${escHtml(c)}</option>`).join("")}</select></label>`;
   const d = DUMMY, miles = d.miles.toLocaleString("en-US");
   // The one hero image (views b and d), served by this handler behind the same crew gate (?img=hero).
   const hero = `<img class="hero-img" src="/partner-demo?img=hero" width="${HERO_W}" height="${HERO_H}" alt="A black 2015 Porsche 911 GT3 coupe in a white studio, seen from the front three-quarter, with its fixed rear wing and grey wheels" decoding="async">`;
@@ -415,10 +465,18 @@ export function pageHtml(view) {
     </div>
     ${below ? `<div class="below-gal">${below}</div>` : ""}
   </div>`;
+  // A car with no listing detail (Sam, Oct 18 2026): its name, a plain line saying what the page is, the card and the
+  // recent sales with photos. No gallery, price, mileage, buy buttons or "This car before".
+  const noListing = `
+  <div class="listing with-below">
+    <div><h1>${escHtml(car)}</h1><p class="sub">There is no listing for this car in the demo. These are the recent sales of cars like it.</p></div>
+    <div class="rail"><div id="c-rail"><p class="loading">Sam is reading the sales.</p></div></div>
+    <div class="below-gal"><div class="full" id="d-sales"><p class="loading">Sam is reading the sales.</p></div><div class="full" id="d-hist"></div></div>
+  </div>`;
   const desc = `<div class="desc below"><h2>About this car</h2><dl class="specs"><div><dt>Year</dt><dd>2015</dd></div><div><dt>VIN</dt><dd>${d.vin}</dd></div><div><dt>Mileage</dt><dd>${miles}</dd></div></dl></div>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><title>Partner demo</title><style>${CSS}${SELLS_FOR_CARD_CSS}</style></head><body>
-<div class="demo-bar"><div class="wrap"><span>Closed demo. What these sell for, powered by GoAskSam.</span><nav class="tabs" aria-label="Views">${tab("a", "a. Before listing")}${tab("b", "b. Setting a reserve")}${tab("c", "c. On the listing")}</nav></div></div>
+<div class="demo-bar"><div class="wrap"><span>Closed demo. What these sell for, powered by GoAskSam.</span><div class="bar-r">${picker}<nav class="tabs" aria-label="Views">${tab("a", "a. Before listing")}${tab("b", "b. Setting a reserve")}${tab("c", "c. On the listing")}</nav></div></div></div>
 <header class="top"><div class="wrap"><div class="logo">Partner logo</div><div class="sbox">Search</div><button type="button" class="btn sec sbtn">Search</button></div></header>
 <main>
 <section class="sec-view wrap" id="view-a"${v === "a" ? "" : " hidden"}>
@@ -427,16 +485,16 @@ export function pageHtml(view) {
   <div id="a-out" style="margin-top:22px"></div></div>
 </section>
 <section class="sec-view wrap" id="view-b"${v === "b" ? "" : " hidden"}>
-  <div class="b-hero">${hero}</div>
-  <div class="lead"><h1>Set your reserve</h1><p class="sub">${d.title}, ${miles} miles</p>
+  ${hasListing ? `<div class="b-hero">${hero}</div>` : ""}
+  <div class="lead"><h1>Set your reserve</h1><p class="sub">${hasListing ? `${d.title}, ${miles} miles` : escHtml(car)}</p>
   <div class="reserve"><label for="b-res">Reserve</label><span class="money">$<input id="b-res" inputmode="numeric" placeholder="0" aria-label="Reserve in dollars"></span></div>
   <div id="b-out"><p class="loading">Sam is reading the sales.</p></div></div>
 </section>
-<section class="sec-view wrap" id="view-c"${v === "c" ? "" : " hidden"}>${listing(true, "gallery", `${desc}
+<section class="sec-view wrap" id="view-c"${v === "c" ? "" : " hidden"}>${hasListing ? listing(true, "gallery", `${desc}
   <div class="full" id="d-sales"><p class="loading">Sam is reading the sales.</p></div>
-  <div class="full" id="d-hist"></div>`)}</section>
+  <div class="full" id="d-hist"></div>`) : noListing}</section>
 </main>
-<script>${JS.replace("__DUMMY__", JSON.stringify(DUMMY))}</script></body></html>`;
+<script>${JS.replace("__CAR__", JSON.stringify(car)).replace("__LISTING__", JSON.stringify(hasListing ? DUMMY : null)).replace("__CARS__", JSON.stringify(DEMO_CARS))}</script></body></html>`;
 }
 
 // The plain 404 every refused request gets (no cookie, a wrong, empty or missing code, too many attempts): the same body
@@ -465,5 +523,5 @@ export default async function handler(req, res) {
     return res.status(200).send(Buffer.from(HERO_JPEG_B64, "base64"));
   }
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  return res.status(200).send(pageHtml(String((req.query && req.query.view) || "a")));
+  return res.status(200).send(pageHtml(String((req.query && req.query.view) || "a"), req.query && req.query.car));
 }

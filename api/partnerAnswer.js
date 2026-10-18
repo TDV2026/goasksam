@@ -48,12 +48,33 @@ async function readLast(env, key) {
     return v && typeof v === "object" ? v : (typeof v === "string" ? JSON.parse(v) : null);
   } catch { return null; }
 }
-async function writeLast(env, key, out) {
-  if (Date.now() - (lastWrote.get(key) || 0) < LAST_WRITE_EVERY_MS) return;
+async function writeLast(env, key, out, { force = false } = {}) {
+  if (!fullResult(out)) return false;
+  if (!force && Date.now() - (lastWrote.get(key) || 0) < LAST_WRITE_EVERY_MS) return false;
   lastWrote.set(key, Date.now());
   try {
-    await fetch(`${env.supabaseUrl}/rest/v1/app_config?on_conflict=key`, { method: "POST", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ key, value: { readAt: out.readAt || new Date().toISOString(), savedAt: new Date().toISOString(), out } }), signal: AbortSignal.timeout(3000) });
-  } catch { /* best effort: a missed write only means an older last good answer */ }
+    const w = await fetch(`${env.supabaseUrl}/rest/v1/app_config?on_conflict=key`, { method: "POST", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ key, value: { readAt: out.readAt || new Date().toISOString(), savedAt: new Date().toISOString(), out } }), signal: AbortSignal.timeout(3000) });
+    return w.ok;
+  } catch { return false; /* best effort: a missed write only means an older last good answer */ }
+}
+// A full result only (Sam, Oct 18 2026): the engine's finished answer for the car, a range, a thin answer (its count
+// and sales without a range) or its zero-sales answer. Never a question, a still-reading answer, a refusal or a failed
+// read; then the older good answer stays as it is.
+export const fullResult = out => !!(out && out.ok === true && /^(range|not_enough_data|zero_result)$/.test(String(out.answerType)) && !out.stillReading);
+// THE ONE WRITE PATH for partner_last:<car> (Sam, Oct 18 2026): the endpoint's own reads and task=warmDemo (api/usageDashboard.js)
+// both store through here. warmDemo calls refreshDemoAnswer(env, car) for each demo car: the same in-process read the
+// page gets, shaped by the same partnerShape, stored only when it is a full result. Writes nothing for any other car.
+export async function refreshDemoAnswer(env, car, { host = "goasksam.com" } = {}) {
+  const key = demoKey(car);
+  if (!key || !env) return { car, stored: false, why: key ? "no env" : "not a demo car" };
+  const t0 = Date.now();
+  let r;
+  try { r = await marketCheckAnswer({ headers: { host } }, car, null, 0, true); } catch (e) { return { car, stored: false, why: "read failed", ms: Date.now() - t0 }; }
+  const out = partnerShape(r && r.d, car, 0, {});
+  if (!fullResult(out)) return { car, stored: false, why: out && out.stillReading ? "still reading" : (out && (out.error || out.answerType)) || "no answer", ms: Date.now() - t0 };
+  if (venueLeak(out).length) return { car, stored: false, why: "blocked", ms: Date.now() - t0 };
+  const ok = await writeLast(env, key, out, { force: true });
+  return { car, stored: ok, readAt: out.readAt || null, answerType: out.answerType, ms: Date.now() - t0 };
 }
 export function lastGoodUsable(v, nowMs = Date.now()) {
   const t = v && Date.parse(v.readAt);
@@ -323,7 +344,13 @@ export function partnerShape(d, text, asked, extra = {}) {
       range: null, count: null, window: null, sales: [], setAside: null, thin: null, trend: null, narrow: null, history: extra.history || null };
   }
   if (d.status !== "one_box") return { ok: false, query: text, error: "unavailable", history: extra.history || null };
-  if (/^(unavailable|rate_limited|business_limit|non_road)$/.test(String(d.tier || ""))) return { ok: false, query: text, error: d.tier, history: extra.history || null };
+  if (/^(unavailable|rate_limited|business_limit|non_road)$/.test(String(d.tier || ""))) {
+    // The engine's still-reading answer (Lane B, Oct 18 2026: tier "unavailable", stillReading, samLine, retry,
+    // retryAfterMs) passes through as it is: the page draws the engine's line and asks again after the engine's wait.
+    const still = d.tier === "unavailable" && d.stillReading === true;
+    return { ok: false, query: text, error: d.tier, history: extra.history || null,
+      ...(still ? { stillReading: true, line: typeof d.samLine === "string" ? d.samLine : null, retryAfterMs: d.retry === true && Number.isFinite(d.retryAfterMs) && d.retryAfterMs > 0 ? d.retryAfterMs : null } : {}) };
+  }
   const question = questionOf(d, text, asked);
   if (question) return { ok: true, query: text, engineVersion, answerType: "identity_question", identity: identityOf(d, extra.id), question, range: null, count: null, window: null, sales: [], setAside: null, thin: null, trend: null, narrow: null, history: extra.history || null };
   const range = rangeOf(d), count = countOf(d);
@@ -368,6 +395,15 @@ export default async function handler(req, res) {
   // same crew-or-partner gate as above, on this path so the demo cookie's paths never widen. The address is looked up
   // server side by one primary-key read and never returned; the image comes back with no venue header, name or address.
   // Its own ceiling (partner_photo), never Market Check's. Any failure is a plain 404 and the page shows its neutral tile.
+  // The demo page's safety net (Sam, Oct 18 2026): after its own abort the page asks GET ?last=<demo car> for the stored
+  // last good answer only (no engine read, nothing computed): the answer if under a day old, else the plain still-reading
+  // state with no wait of its own, so the page offers Try again. Demo cars only; any other words get the same state.
+  if (req.method === "GET" && req.query && req.query.last != null) {
+    const car = String(req.query.last).replace(/\s+/g, " ").trim().slice(0, 120), lk = demoKey(car);
+    const last = lk && env ? await readLast(env, lk) : null;
+    if (lastGoodUsable(last)) return res.status(200).json({ ...last.out, lastGood: true });
+    return res.status(200).json({ ok: false, query: car, error: "unavailable", stillReading: true, line: null, retryAfterMs: null });
+  }
   if (req.method === "GET" && req.query && req.query.photo != null) {
     const pid = photoId(req.query.photo);
     const no = () => { res.setHeader("Content-Type", "text/plain; charset=utf-8"); res.setHeader("Cache-Control", "private, no-store"); return res.status(404).send("Not found"); };
@@ -424,14 +460,15 @@ export default async function handler(req, res) {
     console.error("partnerAnswer:", (e && e.message) || e);
     const lk0 = !refine ? demoKey(text) : null, last = lk0 && env ? await readLast(env, lk0) : null;
     if (lastGoodUsable(last)) return res.status(200).json(vinIn ? { ...last.out, history, vin: vinIn, lastGood: true } : { ...last.out, lastGood: true });
-    return res.status(200).json({ ok: false, query: text, error: "unavailable", history });
+    // No answer and no usable stored one: the plain still-reading state, with no wait of its own (the page offers Try again).
+    return res.status(200).json({ ok: false, query: text, error: "unavailable", history, stillReading: true, line: null, retryAfterMs: null });
   }
   let out = partnerShape(r.d, text, asked, { history, id });
   // The last good answer is stored from a plain read of the car and serves the VIN views too (Oct 18 2026: the listing
   // views send the VIN, had no fallback, and showed the limit line); a VIN view keeps its own VIN history.
   const lk = !refine ? demoKey(text) : null;
   if (lk && env) {
-    if (!vinIn && out.ok && out.answerType !== "identity_question") writeLast(env, lk, out).catch(() => {});
+    if (!vinIn && fullResult(out)) writeLast(env, lk, out).catch(() => {});
     else if (!out.ok) { const last = await readLast(env, lk); if (lastGoodUsable(last)) out = vinIn ? { ...last.out, history, lastGood: true } : { ...last.out, lastGood: true }; }
   }
   if (vinIn) out.vin = vinIn;
