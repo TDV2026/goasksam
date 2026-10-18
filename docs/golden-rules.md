@@ -165,18 +165,18 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":4,"q":"2008 Porsche 997 Carrera S Coupe","status":"ready","rung":"exact","labelHas":["2008","997 Carrera S Coupe"],"count":11,"tol":2,"low":58500,"high":69000,"tolPct":3},
  {"id":5,"q":"1969 Chevrolet Camaro","status":"ready","rung":"exact","labelHas":["1969 Camaro"],"count":21,"tol":3,"low":45500,"high":78500,"tolPct":3,"sharedCard":true},
  {"id":6,"q":"2006 Mercedes-Benz CLK DTM","status":"ready","rung":"year_widened","labelHas":["CLK DTM","2005 to 2006"],"count":6,"tol":0,"low":null,"high":null,"thin":true},
- {"id":7,"q":"2008 Mercedes-Benz CLK63 AMG Black Series","status":"ready","rung":"exact","labelHas":["CLK63","Black Series"],"count":35,"tol":0,"low":95000,"high":146000,"tolPct":0},
+ {"id":7,"q":"2008 Mercedes-Benz CLK63 AMG Black Series","status":"ready","rung":"exact","labelHas":["CLK63","Black Series"],"count":15,"tol":0,"low":91500,"high":158000,"tolPct":0},
  {"id":8,"q":"1957 Porsche 356 Speedster","status":"ready","rung":"exact","labelHas":["1957","356 Speedster"],"count":8,"tol":2,"low":282000,"high":363000,"tolPct":5,"sellEqualsMC":true,"sharedCard":true},
- {"id":9,"q":"1997 Land Rover Defender 110","status":"ready","rung":"exact","labelHas":["1997","Defender 110"],"count":10,"tol":2,"low":30500,"high":56000,"tolPct":3},
+ {"id":9,"q":"1997 Land Rover Defender 110","status":"ready","rung":"exact","labelHas":["1997","Defender 110"],"count":9,"tol":0,"low":27000,"high":50000,"tolPct":3},
  {"id":10,"q":"2003 BMW M3 Coupe","status":"ready","rung":"exact","labelHas":["2003","M3 Coupe"],"count":14,"tol":2,"low":23500,"high":35500,"tolPct":3,"sellEqualsMC":true},
  {"id":11,"q":"1989 Merkur XR4Ti","status":"ready","labelHas":["XR4Ti"],"low":null,"high":null,"thin":true},
- {"id":12,"q":"2024 Porsche 911 GT3","status":"ready","rung":"year_widened","labelHas":["GT3","2023 to 2024"],"count":14,"tol":2,"low":243000,"high":269000,"tolPct":3,"quick":true},
+ {"id":12,"q":"2024 Porsche 911 GT3","status":"ready","rung":"year_widened","labelHas":["GT3","2023 to 2024"],"count":11,"tol":0,"low":247000,"high":270000,"tolPct":3,"quick":true},
  {"id":13,"q":"2018 Ford Mustang GT","status":"ready","rung":"exact","labelHas":["2018","Mustang GT"],"count":8,"tol":0,"low":30000,"high":35500,"tolPct":0},
  {"id":14,"q":"1966 Ferrari 275 GTB","status":"ready","rung":"year_widened","labelHas":["275 GTB","1965 to 1966"],"count":9,"tol":0,"low":null,"high":null,"thin":true,"sellEqualsMC":true,"sharedCard":true},
- {"id":15,"q":"1987 Buick Regal Grand National","status":"ready","rung":"exact","labelHas":["1987","Grand National"],"count":55,"tol":0,"low":35500,"high":56000,"tolPct":0},
+ {"id":15,"q":"1987 Buick Regal Grand National","status":"ready","rung":"exact","labelHas":["1987","Grand National"],"count":21,"tol":0,"low":38500,"high":52500,"tolPct":0},
  {"id":16,"q":"2005 Saab 9-2X","status":"ready","rung":"exact","labelHas":["2005","9-2X"],"count":15,"tol":0,"low":9000,"high":12500,"tolPct":0},
  {"id":17,"q":"1931 Bugatti Type 41","status":"ready","rung":"not_enough_data","labelHas":[],"empty":true},
- {"id":18,"q":"2011 Honda S2000","status":"ready","rung":"year_widened","labelHas":["S2000","2009"],"count":15,"tol":2,"low":36500,"high":64000,"tolPct":3},
+ {"id":18,"q":"2011 Honda S2000","status":"ready","rung":"year_widened","labelHas":["S2000","2009"],"count":8,"tol":0,"low":37000,"high":74500,"tolPct":3},
  {"id":19,"q":"1963 Chevrolet Corvette Split Window","status":"ready","rung":"exact","labelHas":["1963 Corvette Coupe"],"count":34,"tol":0,"low":136000,"high":204000,"tolPct":3},
  {"id":20,"q":"1995 Acura NSX","status":"ready","rung":"exact","labelHas":["1995","NSX"],"count":15,"tol":2,"low":86000,"high":136000,"tolPct":3,"sharedCard":true},
  {"id":21,"q":"1965 Ford Mustang","status":"ready","identity":true,"labelHas":["Mustang"]},
@@ -195,8 +195,8 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":34,"q":"1955 Mercedes-Benz 300SL Roadster","status":"ready","empty":true,"wordsHas":["No Roadster 1955 Mercedes-Benz 300SL sale on record in the last five years."],"noCountRange":true},
  {"id":35,"q":"1989 Porsche 911 Turbo Targa","status":"ready","empty":true,"wordsHas":["Every Targa 1989 Porsche 911 Turbo sale on record in the last five years was set aside (4), so there is no Targa read to show."],"noCountRange":true},
  {"id":36,"q":"2001 Porsche 911 Carrera 4S Cabriolet","status":"ready","empty":true,"wordsHas":["No Cabriolet 2001 Porsche 911 Carrera 4S sale on record in the last five years."],"noCountRange":true},
- {"id":37,"q":"2006 Porsche Boxster Convertible","status":"ready","rung":"exact","labelHas":["2006 Boxster Convertible"],"count":31,"tol":0,"low":16500,"high":25000,"tolPct":5,"equalsBare":"2006 Porsche Boxster","statesBody":"No listing of the 2006 Porsche Boxster states a body, so this reads every 2006 Boxster."},
- {"id":38,"q":"2010 Porsche Boxster Convertible","status":"ready","rung":"exact","labelHas":["2010 Boxster Convertible"],"count":30,"tol":0,"low":26000,"high":35000,"tolPct":5,"equalsBare":"2010 Porsche Boxster","statesBody":"No listing of the 2010 Porsche Boxster states a body, so this reads every 2010 Boxster."},
+ {"id":37,"q":"2006 Porsche Boxster Convertible","status":"ready","rung":"exact","labelHas":["2006 Boxster Convertible"],"count":30,"tol":0,"low":16500,"high":25500,"tolPct":5,"equalsBare":"2006 Porsche Boxster","statesBody":"No listing of the 2006 Porsche Boxster states a body, so this reads every 2006 Boxster."},
+ {"id":38,"q":"2010 Porsche Boxster Convertible","status":"ready","rung":"exact","labelHas":["2010 Boxster Convertible"],"count":17,"tol":0,"low":26000,"high":31500,"tolPct":5,"equalsBare":"2010 Porsche Boxster","statesBody":"No listing of the 2010 Porsche Boxster states a body, so this reads every 2010 Boxster."},
  {"id":39,"q":"2005 Porsche 911","status":"ready","page":true,"sellEqualsMC":true},
  {"id":40,"q":"1965 Ford Mustang","status":"ready","page":true,"sellEqualsMC":true},
  {"id":41,"q":"2023 Porsche 911 GT3","status":"ready","page":true,"sellEqualsMC":true},
@@ -208,3 +208,5 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":47,"q":"1991 Acura NSX","status":"ready","rung":"exact","labelHas":["1991","NSX"],"count":21,"tol":0,"low":71000,"high":101000,"tolPct":3}
 ]
 ```
+
+E60 RE-PINS (Oct 18 2026, from Lane B's live e60 after column; window rule: shortest window reaching eight sales at 12, 24, 36, 60 months): row 7 CLK63 Black Series 15 on 24 months $91,500 to $158,000; row 9 Defender 110 9 on 12 months $27,000 to $50,000; row 12 2024 GT3 11 on 24 months $247,000 to $270,000; row 15 Grand National 21 on 36 months $38,500 to $52,500; row 18 S2000 8 on 36 months $37,000 to $74,500; row 37 2006 Boxster Convertible 30 $16,500 to $25,500; row 38 2010 Boxster Convertible 17 on 24 months $26,000 to $31,500. Row 27 (2005 911 targa) read a refusal on e60 and waits on a live read; row 46 waits on a live read.

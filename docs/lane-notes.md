@@ -9677,3 +9677,6 @@ Row 47 pinned from Lane B's live read: all four products 21 sales, $71,000 to $1
 
 ## Lane B2, rows 14 and 23 pinned to the engine tier (Oct 18 2026)
 Per Sam: a thin tier prints no range on any page, and the engine's low and high appear nowhere on the page. The checker now compares a Market Check page of a no-band pool to that tier decision, not to a raw low and high: it fails if the page prints a range or shows the cards' lowest or highest price. File work only, no archive read; first live pass is the next api-mode run. Row 46 waits on e60.
+
+## Lane B2, e60 re-pins (Oct 18 2026)
+Pinned from Lane B's e60 after column (file work, no archive read): rows 7, 9 (Defender 110 now 9, $27,000 to $50,000), 12, 15, 18, 37, 38; rows 1, 3 and the rest sit inside their tolerance. Row 27 (2005 911 targa) read a refusal on e60 and row 46 have no after read; both wait on a live read in a gap. Expect label/wording lines (`since {Month Year}`) to need `--wording` checks on the first live run. Next live run: api mode, one load at a time, skipping the pullLive minutes, after Lane C's c8, E9 and Lane D's Sell line; the final pages-mode run takes its own slot after those.
