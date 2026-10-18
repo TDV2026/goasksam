@@ -9667,3 +9667,7 @@ Open, none adjusted to pass: row 9 Land Rover Defender 110 reads 9 sales $27,000
 
 ## Lane B2, RUNNING (14-row re-read, mode api, started 04:47Z Oct 17 2026)
 RUNNING: rows 19, 20, 25, 27, 28, 29, 45, 46, 16, 17, 11, 10, 14, 23, single reads, one load at a time, deadline 240 s. Nothing else of mine is running.
+
+## Lane B2, DONE (14-row re-read, mode api, e59, 04:49Z to 05:01Z, Oct 18 2026)
+DONE: nothing of mine running. Engine lanes (Market Check, Buy, Sell, Tasks) match the pin on 13 of 14 rows: 19, 20, 25, 27, 28, 29, 45, 16, 17, 11, 10, 14, 23. Row 46 (1971 280SE 3.5 Cabriolet) RE-READ on all four: engine read over the 240 s line, started 04:55:52Z; not a mismatch, not retried. Rows 16 and 17 read as pinned, row 11 as 6 sales, row 10 as 14 sales $23,500 to $35,500 (own reads).
+Open, none adjusted: rows 14 and 23 (275 GTB), Market Check page prints no range (engine $1,215,000 to $3,481,000) and Sell page prints no count against 9 (Lane D's sell-count fix). Rows 14 and 20 Buy page ended on /market-check (no live car to open a drawer; checker reads it FAIL, I will make it N/A). Partner demo card: /partner-demo answered 404 with the crew cookie, so the shared-card partner check is unread; waiting on Lane C's cookie helper repair. Buy card not yet adopted.
