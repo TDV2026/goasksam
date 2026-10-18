@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T05:0xZ (Lane F; B2's re-read DONE, engine 0 mismatches on 13 of 14, row 46 waits on e60; Lane C's batch released; e60 READY for Sam's go).
+Last updated: 2026-10-18T05:17Z (Lane F tick; B2's re-read DONE and the NSX pin values posted; Lane C's batch released 05:0xZ, its lock line not yet on main; e60 READY for Sam's go).
 
 ## 0m. Queue state at 04:4xZ Oct 18 (one archive load at a time; the Desk keeps this block current)
 
