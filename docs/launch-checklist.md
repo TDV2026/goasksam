@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T20:06Z (Lane F; stages 1 to 5 live; c9 prePush 20:20Z; the three VIN-view fixes push alone in the 20:50Z gap, check 21:05Z, ahead of B2's pins).
+Last updated: 2026-10-18T20:12Z (Lane F; Sam: view a opens empty with nothing preloaded, b and c start on the 2014 GT3; with the VIN fixes at 20:50Z or the 21:20Z gap; c9 prePush 20:20Z).
+
+## 0aw. Sam's decision 20:1xZ Oct 18 (13:11 PT): view a opens empty (forwarded word for word to Lane C)
+
+View a on a fresh open with no car in the address shows an empty car box with the placeholder "Type any car or paste a VIN", the eBay header and search area, and no range card, photo, sales list or chips; no engine read until the visitor submits a car. A submitted car (typed, pasted VIN or identity chip) behaves as built. Views b and c keep the 2014 GT3 as the starting car when none has been chosen, and follow the visitor's choice if one was made on view a. The top car bar shows the chosen car or is empty with the same placeholder. The empty state has no "demo" wording; partnerEngineMatch covers the empty view a, a typed warmed car and a typed cold car at 1440 and 390. Pushed with the three VIN fixes (20:50Z) if ready, else its own push in a Desk gap.
 
 ## 0av. Sam's live review 20:0xZ Oct 18 (13:04 PT) of /preview with the VIN: three fixes (forwarded word for word to Lane C)
 
