@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T16:0xZ (Lane F; Lane C's step 2 is BUILT locally on lanec-step2 and waits for Lane B's DONE; one confirmation for Sam on the demo ceilings reading).
+Last updated: 2026-10-18T16:1xZ (Lane F; Sam approved Lane C's step 2 ceilings as built plus a per-address demo backstop Lane C picks; keep-warm approved in principle, schedule after 16:34Z; Lane B's chain on the archive alone).
+
+## 0ai. Sam's decisions 16:1xZ Oct 18 on Lane C's step 2 (forwarded word for word to Lane C; the keep-warm part to Lane B)
+
+1. Demo ceilings APPROVED as built (every demo read on the demo's per-device ceiling partner_demo; Market Check's ceilings neither used nor changed; the old partner_cars and partner_answer definitions stay unused). ADDITION: a per-address backstop for demo reads, many times above the per-device ceiling, so a leaked code from many devices on one address is still bounded while the office address and a live call never come near it; Lane C picks the value, records it in lib/_ceilings.js with a one-line reason, tells the Desk the number (not a secret), and adds it before the FULL-tier prePush so it ships in the same push. 2. Accepted: the endpoint's own 20 s timer removed, the 25 s page abort stays as the safety net, partner_last stores a range, a thin answer or the engine's zero answer as full results only. 3. Keep-warm approved in principle; the Desk decides the schedule after Lane B's ages at 16:34Z; task=warmDemo calls Lane C's single write path once per car, no other writer. 4. PARTNER_DEMO_CODE is rotated by Sam after Cameron's review; nothing about the code in chat, files or logs. Order unchanged: Lane C pushes only on Lane B's DONE, FULL-tier prePush alone, then live checks one at a time in the Desk's minute.
 
 ## 0ah. Sam 16:0xZ Oct 18: the key question is closed; two read-only checks added to Lane B's chain (forwarded word for word)
 
