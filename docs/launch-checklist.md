@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T18:2xZ (Lane F; eBay stages 1 and 2 PUSHED and live; the path, stages 3 and 4, and stage 5 are built with minutes named through 20:05Z; then B2, singleflight, E9, Lane D, one-read, c9).
+Last updated: 2026-10-18T18:2xZ (Lane F; Sam moved c9 to straight after stage 5 (20:20Z push, 20:38Z check, Lane B's manual warm of the 2014 GT3 before it); then B2, singleflight, E9, Lane D, one-read).
+
+## 0at. Sam's order change 18:2xZ Oct 18: c9 moves up (forwarded word for word to Lane C and Lane B; the order to B2, Lane E, Lane D)
+
+c9 runs straight after Lane C's stage 5 (the 20:05Z check), ahead of B2's pins, Lane B's single-flight, E9, Lane D and the one-read batch: it depends on none of them, the 2014 GT3's answer is stored under e61, and it is the first car Sam shows, so the demo is not partner-ready until it is live. Lane B adds a manual task=warmDemo for the 2014 GT3 alone in a Desk gap just before c9's check (one extra read, Lane C's single write path; the singleflight branch keeps its list line). c9 content unchanged; stages 1 to 5 stand where they differ from the c9 text. After c9: B2's pins, Lane B's before reads and the single-flight chain (Sam accepts the prompt then), E9 and --rows, Lane D's Sell line, Lane C's one-read batch. Desk minutes: c9 prePush and push in the 20:20Z gap; Lane B's manual warm 20:35 to 20:37Z; Lane C's c9 check from 20:38Z.
 
 ## 0as. Sam's live review 18:14Z Oct 18 (11:14 PT): the old no-listing line still shows (forwarded word for word to Lane C)
 
