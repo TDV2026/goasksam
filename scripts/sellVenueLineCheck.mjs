@@ -40,6 +40,21 @@ for (const [what, pl, i, opts, want] of cases) {
 // The landing example (no venue named).
 { const pl = pool(1, [{ ...BAT, sales: 1 }]); ok((await pickFacts({}, car, pl, pl.places[0], {})).whyAnon === "The one sale in the last 12 months was on an auction site. One sale is too few to compare venues.", "one sale, venue unnamed"); }
 { const pl = pool(2, [{ ...RM, sales: 2 }]); ok((await pickFacts({}, car, pl, pl.places[0], {})).whyAnon === "Both sales in the last 12 months were at the same auction house. Two sales are too few to compare venues.", "two sales at one house, venue unnamed"); }
+// No pick, sales on record (Lane D, Oct 17 2026, lib/sell/sellFlow.js noPickLine): the 1966 Ferrari 275 GTB's live shape (nine
+// sales, RM Sotheby's 5, Gooding 3, Broad Arrow 1, all houses, window "since January 2022") prints Market Check's own sentence;
+// a pool the pick could not place prints its count; an empty pool prints nothing (the "has not seen" line stays for it).
+{ const { noPickLine } = await import("../lib/sell/sellFlow.js");
+  const GD = { name: "Gooding & Co", slug: "gooding", house: true }, BA = { name: "Broad Arrow", slug: "broadarrow", house: true };
+  const gtb = { total: 9, window_label: "since January 2022", places: [{ ...RM, sales: 5 }, { ...GD, sales: 3 }, { ...BA, sales: 1 }], others: [] };
+  const want = "All nine sold at the auction houses, none online.";
+  ok(noPickLine(gtb) === want, `275 GTB, nine house sales: ${JSON.stringify(want)} (got ${JSON.stringify(noPickLine(gtb))})`);
+  out["no pick, nine house sales (275 GTB)"] = noPickLine(gtb);
+  ok(noPickLine({ ...gtb, total: 14, places: [{ ...RM, sales: 9 }, { ...GD, sales: 5 }] }) === "All 14 sold at the auction houses, none online.", "no pick, 14 house sales: digits from 11");
+  ok(noPickLine({ ...gtb, places: [{ ...RM, sales: 5 }, { ...GD, sales: 3 }], others: [{ name: "Car & Classic", sales: 1 }] }) === "Nine sales since January 2022, none on a site Sam can point to.", "no pick, a fourth venue unaccounted for: never 'all at the houses'");
+  ok(noPickLine({ total: 3, window_label: "in the last 12 months", places: [{ name: "Car & Classic", slug: "carandclassic", house: false, sales: 3 }], others: [] }) === "Three sales in the last 12 months, none on a site Sam can point to.", "no pick, sales on a site the pick cannot use");
+  ok(noPickLine({ total: 1, window_label: "in the last 12 months", places: [{ name: "Collecting Cars", slug: "collectingcars", house: false, sales: 1 }], others: [] }) === "One sale in the last 12 months, none on a site Sam can point to.", "no pick, one sale: singular");
+  ok(noPickLine({ total: 0, places: [], others: [] }) === null && noPickLine(null) === null, "empty pool: no line (the has-not-seen line stays)");
+  for (const l of [noPickLine(gtb), noPickLine({ ...gtb, total: 14 })]) ok(!/[\u2013\u2014]/.test(l || ""), "no dash in the count line"); }
 if (process.argv.includes("--print")) for (const [k, v] of Object.entries(out)) console.log(k.padEnd(48), v);
 console.log(`sellVenueLineCheck: ${passes} passed, ${fails} failed`);
 process.exit(fails ? 1 : 0);
