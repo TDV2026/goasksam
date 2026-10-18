@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T15:3xZ (Lane F; Buy 'Porsche 911' on live e60 is an open question (no response in 90 s for Lane B too, across a pull episode), Lane B re-reading before e61; Lane C's partnerShape fields held for e61).
+Last updated: 2026-10-18T15:37Z (Lane F tick; Sam's conditional decision on the Buy no-answer: a pull-episode effect closes it, a reproduction is a production defect ahead of e61; Lane B's gap read awaited).
+
+## 0ab. Sam's conditional decision 15:3xZ Oct 18 on the Buy "Porsche 911" no-answer (forwarded word for word to Lanes B and C)
+
+Conditional on Lane B's 15:34 gap read. If it answers at normal speed: the question closes as a pull-episode effect and e61 proceeds. If it reproduces no answer (outside a pull episode, or on a second try): NOT a revert ground, e60 stays live, but a production defect at the front of Lane B's queue ahead of e61; e61 does not push until it is explained and fixed. Lane B: trace where the time goes (resolver, family lookup, the sales read, card shaping, the response) and name the unbounded step, one credentialed search per read in a gap; compare a narrower car (2015 GT3) and a broader one; fix in lib only on a branch so every Buy step gets the Market Check bound and the whole-path deadline returns "Sam is still reading the sales for this one." within 20 s, never silence; a late or partial read never produces a number; the before and after as e60 plus the Buy rows for Porsche 911, 911 Carrera, 911 Turbo and the GT3, any changed row with a one-line reason; push after c8 under the same prePush terms, then e61. One-engine rule: the Buy path calls oneEngineAnswer, no Buy-only timeout, cache or resolver; the bound lives in shared code. Lane C: the cards' still-reading state must show a retry after the deadline, not sit forever; wording held until Lane B's trace names the step.
 
 ## 0aa. Sam's decisions 15:3xZ Oct 18 (forwarded word for word to Lanes B and C)
 
