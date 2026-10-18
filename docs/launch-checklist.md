@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T16:0xZ (Lane F; Lane B's step 1: item 1 confirmed, no change needed, warm at 16:04Z, the six-car table from the 16:19Z gap; the buybound chain's DONE expected after the 16:34Z gap).
+Last updated: 2026-10-18T16:0xZ (Lane F; Sam closed the key question and added two read-only checks to Lane B's chain: the cause of the four lost answers with the warm rows' age rule, and the six rows' ages after 16:34Z for a keep-warm decision).
+
+## 0ah. Sam 16:0xZ Oct 18: the key question is closed; two read-only checks added to Lane B's chain (forwarded word for word)
+
+The four failures at 15:50Z are NOT a key mismatch. Lane B proceeds as planned (warm 16:04Z, six-car table 16:19Z, pass 2 16:34Z); no other lane touches the archive until Lane B's DONE. Two read-only checks from the same reads, no extra loads: 1. why four stored answers stopped being found between 14:50Z and 15:50Z (the stored row expired or was replaced, with the age rule on the warm's stored rows and how long a warmed answer lasts; the demo's wording or vehicle string changed after c8; or the read timed out under archive load and was treated as missing, which Lane B's 15:5xZ overlap finding already points to); 2. after the 16:34Z pass, the stored rows' ages for all six, on which Sam decides whether a keep-warm schedule is needed (task=warmDemo on its own schedule, in the gaps, with the same single write path) so the six never go stale before Cameron looks. Lane C: no change; step 2 stays queued after Lane B's DONE.
 
 ## 0ag. Sam's PRIORITY CHANGE 15:57Z Oct 18 (08:57 PT; forwarded word for word to Lanes B and C, the order to Lanes E and D)
 
