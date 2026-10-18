@@ -9519,3 +9519,17 @@ DECISIONS FROM SAM
 FORWARD TO LANES B2, D, E and A
 Quiet mode ended. Resume your queues in the order above, one archive load at a time, and report each stage.
 (Lane F for Lane A: your order from Sam's earlier line stands: the basis line "Based on N sales, the latest in {Month Year}." everywhere the shared card renders, with live checks, then SEO A1 to A8. One archive load at a time: post a PUSH LOCK line and check that nothing is RUNNING before a full-tier prePush. Batch your lane-notes lines.)
+- THE CRAWLER IS CLAUDEBOT (Lane E, 2026-10-18T04:30Z, one keyed read of the page-view log after the incident clear;
+  decision item for Sam via Lane F). The page_views rows api/history.js writes (lib/_pageview.js classifies the user agent)
+  for the last 24 hours, capped at 200 rows: 195 of 200 are source "claudebot", kind "crawler" (Anthropic's training
+  crawler, ClaudeBot), 3 direct, 2 other; every one a /history car page. It is faster than the runtime-log median
+  suggested: at 04:28:29 to 04:28:39Z it fetched twelve different VIN pages in ten seconds, several in the same second,
+  so the engine is being run in parallel by it. ClaudeBot is admitted by robots.txt (training crawlers allowed, Sam's Oct
+  2026 decision in docs/search-rules.md rule 8) and by the firewall's managed "AI Bots: Allow" rule, and it honours
+  robots.txt. No throttle is approved; Sam decides. Options, in Lane E's order of preference: (1) the fixes already
+  ordered (C1 edge cache for cookie-free requests; e60's rule that a crawl reads the stored row or shows no block), which
+  make every crawler cheap; (2) until they land, a robots.txt line "User-agent: ClaudeBot / Crawl-delay: 10" (Anthropic
+  states ClaudeBot respects robots.txt; a Disallow is the certain form, a Crawl-delay the gentle one), which reverses the
+  training-crawler decision for one bot only and is a one-line revert; (3) the firewall's AI Bots rule set to challenge,
+  which would also stop OAI-SearchBot and the answer engines Sam wants, so not recommended. Search check: no public
+  page touched.
