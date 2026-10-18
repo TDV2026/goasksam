@@ -27,6 +27,23 @@ const money = n => n == null ? null : "$" + Math.round(n).toLocaleString("en-US"
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const fmtDate = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || "")); return m ? `${Number(m[3])} ${MONTHS[Number(m[2]) - 1]} ${m[1]}` : iso || ""; };
 
+// The children table's spacing (this page only): the right-aligned Sales column keeps a clear gap before the range, in
+// the cells and in the headers, so "100" and "$72,500" never run together.
+const SPEC_CSS = `.spectbl td.r,.spectbl th.r{padding-right:32px}.spectbl td,.spectbl th{white-space:nowrap}.spectbl td:first-child{white-space:normal}`;
+// A REAL range (Sam, Oct 17 2026): every figure a positive number. A family hub spanning generations has none, and
+// nothing that prints a range (the headline card, the FAQ, the table) may render null, NaN, an empty range or $0.
+const pos = n => Number.isFinite(Number(n)) && Number(n) > 0;
+const realRange = d => !!(d && d.indexable && Array.isArray(d.middleHalf) && d.middleHalf.length === 2 && pos(d.middleHalf[0]) && pos(d.middleHalf[1]));
+// A child row's label: the engine's own generation name (lib/generations.js: "G-Body", "911SC", "3.2 Carrera", the same
+// names Market Check shows), the trim, or the body and gearbox, from the parsed slug; never the slug's own words.
+function childLabelFor(slug) {
+  const c = parseSlug(slug);
+  if (!c) return slug.split("/").pop();
+  if (c.level === "gen") return c.gen.code;
+  if (c.level === "trim") return c.trim;
+  if (c.level === "leaf" || c.body) return `${c.body ? c.body.charAt(0).toUpperCase() + c.body.slice(1) : ""}, ${c.gearbox === "manual" ? "manual" : "automatic"}`;
+  return labelFor(c);
+}
 // A readable label for any slug level, from parseSlug's parts (never the raw slug string).
 function labelFor(parsed) {
   if (!parsed) return null;
@@ -64,11 +81,11 @@ function repeatVinsHtml(reps) {
 function childrenTableHtml(children, label) {
   if (!children || !children.length) return "";
   const rows = children.map(c => {
-    const name = c.slug.split("/").pop().replace(/-/g, " ");
-    const rangeTxt = c.indexable ? `${esc(money(c.middleHalf[0]))} to ${esc(money(c.middleHalf[1]))}` : (c.count ? `${c.count} sale${c.count === 1 ? "" : "s"}, too few for a typical band` : "No recorded sales in the last 12 months");
-    return `<tr><td data-l="Spec"><a href="${esc(c.slug)}">${esc(name)}</a></td><td data-l="Sales" class="r">${c.count}</td><td data-l="Typical range">${rangeTxt}</td></tr>`;
+    const name = childLabelFor(c.slug);
+    const rangeTxt = realRange(c) ? `${esc(money(c.middleHalf[0]))} to ${esc(money(c.middleHalf[1]))}` : (c.count ? `${c.count} sale${c.count === 1 ? "" : "s"}, too few for a typical band` : "No recorded sales in the last 12 months");
+    return `<tr><td data-l="Spec"><a href="${esc(c.slug)}">${esc(name)}</a></td><td data-l="Sales" class="r">${Number(c.count) || 0}</td><td data-l="Typical range">${rangeTxt}</td></tr>`;
   }).join("");
-  return `<section class="card"><div class="sh"><h2>${esc(label)}</h2></div><table class="stack"><thead><tr><th>Spec</th><th class="r">Sales</th><th>Typical range</th></tr></thead><tbody>${rows}</tbody></table></section>`;
+  return `<section class="card"><div class="sh"><h2>${esc(label)}</h2></div><table class="stack spectbl"><thead><tr><th>Spec</th><th class="r">Sales</th><th>Typical range</th></tr></thead><tbody>${rows}</tbody></table></section>`;
 }
 function siblingsHtml(siblings) {
   if (!siblings || !siblings.length) return "";
@@ -126,12 +143,16 @@ async function handler(req, res) {
   const marketCheckLink = `${SITE}/market-check?q=${encodeURIComponent("Porsche " + label)}`;
   const buyLink = `${SITE}/buy`;
 
-  const headline = data.indexable
+  const ranged = realRange(data);
+  const asOfTxt = fmtDate(data.asOf);
+  const headline = ranged
     ? `<p class="range">${esc(money(data.low))} <span class="to">to</span> ${esc(money(data.high))}</p><p class="landed">Most sold between ${esc(money(data.middleHalf[0]))} and ${esc(money(data.middleHalf[1]))}.</p>`
     : "";
   const faq = [];
   if (data.count) faq.push(["How many have sold in the last 12 months?", `${data.count} recorded sale${data.count === 1 ? "" : "s"}.`]);
-  if (data.indexable) faq.push([`What does a ${esc(label)} typically sell for?`, `Most sold between ${money(data.middleHalf[0])} and ${money(data.middleHalf[1])} in the 12 months to ${fmtDate(data.asOf)}.`]);
+  const hubWord = parsed.level === "model" ? "generation" : parsed.level === "gen" ? "trim" : null;
+  if (ranged) faq.push([`What does a ${label} typically sell for?`, `Most sold between ${money(data.middleHalf[0])} and ${money(data.middleHalf[1])}${asOfTxt ? ` in the 12 months to ${asOfTxt}` : ""}.`]);
+  else if (hubWord && (data.children || []).some(realRange)) faq.push([`What does a ${label} typically sell for?`, `It depends on the ${hubWord}. The table shows the typical range for each.`]);
   else if (data.indexReason) faq.push(["Why is there no typical range shown?", data.indexReason]);
 
   const parentLink = data.parent ? `<a href="${esc(data.parent)}">&#8592; ${esc(labelFor(parseSlug(data.parent)))}</a>` : "";
@@ -142,10 +163,10 @@ async function handler(req, res) {
 <h1>${esc(label)}</h1>
 <p class="answer" data-lead-sentence>${esc(data.lead)}</p></div></div>
 ${parentLink ? `<nav class="links">${parentLink}</nav>` : ""}
-<section class="card anscard solo"><div class="ans-main">
-${headline || `<p class="landed">${esc(data.indexReason || "No recorded sales in the last 12 months.")}</p>`}
-<p class="muted">${data.count} sale${data.count === 1 ? "" : "s"} in the 12 months to ${esc(fmtDate(data.asOf))}.</p>
-</div></section>
+${ranged ? `<section class="card anscard solo"><div class="ans-main">
+${headline}
+<p class="muted">${Number(data.count) || 0} sale${Number(data.count) === 1 ? "" : "s"}${asOfTxt ? ` in the 12 months to ${esc(asOfTxt)}` : ""}.</p>
+</div></section>` : ""}
 ${rowsTableHtml(data.recentSales)}
 ${repeatVinsHtml(data.repeatVins)}
 ${childrenTableHtml(data.children, childLabel)}
@@ -171,7 +192,7 @@ ${whyResultHtml(crew)}
 ${index ? '<meta name="robots" content="index, follow">' : '<meta name="robots" content="noindex, follow">'}
 <link rel="canonical" href="${esc(canonical)}">
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(data.lead)}"><meta property="og:type" content="website"><meta property="og:url" content="${esc(canonical)}">
-${FONT_LINKS}<style>${PAGE_CSS}${KEEPLOOK_CSS}${AUTH_SIGNBAR_CSS}${CONSENT_BANNER_CSS}</style>${ld.map(o => `<script type="application/ld+json">${JSON.stringify(o)}</script>`).join("")}</head><body>
+${FONT_LINKS}<style>${PAGE_CSS}${KEEPLOOK_CSS}${AUTH_SIGNBAR_CSS}${CONSENT_BANNER_CSS}${SPEC_CSS}</style>${ld.map(o => `<script type="application/ld+json">${JSON.stringify(o)}</script>`).join("")}</head><body>
 ${railHtml("history", undefined, crew, req)}
 <main><div class="col">${body}</div></main>
 ${CONSENT_BANNER_HTML}
