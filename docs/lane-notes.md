@@ -9683,3 +9683,5 @@ Pinned from Lane B's e60 after column (file work, no archive read): rows 7, 9 (D
 
 ## Lane B2, e61 pins local, branch rebased (Oct 18 2026)
 Rebased b2-golden onto main a1a1535e (e61 on it). Pinned from Lane B's e61 after column, data only, no archive read: row 48 2001 BMW M3 bare (blocking body question, Coupe 3, Convertible 9), row 49 Coupe (3 sales, thin, lowest $23,250, highest $76,000), row 50 Convertible (9 sales, $20,000 to $41,000, wideSpread), row 51 1972 Datsun 240Z (15, $16,500 to $35,500, wideSpread); wideSpread and lowest/highest also on rows 18 and 29. The checker does not read those new fields yet. Push waits for Lane C's typed-car fix DONE and the gap Lane F names; prePush alone first.
+
+- PUSH LOCK (Lane B2, 21:36Z Oct 18 2026): golden pins, docs/golden-rules.md, scripts/goldenTruth.mjs, docs/lane-notes.md only (e60 rows from 161df3a2 and the e61 rows 48 to 51). prePush alone picks the FAST tier (no engine-and-data file), starting 22:05Z, not before.
