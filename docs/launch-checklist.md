@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T17:1xZ (Lane F; Lane C's typed-car fix built (88f88a5f), proven to fail on main and pass on the fix, held for its turn after Lane B's DONE; its read-only reproduction 17:23 to 17:29Z).
+Last updated: 2026-10-18T17:17Z (Lane F tick, batched push; e61 live, Lane B's warm and after-reads to DONE; Lane C's typed-car fix built and held for second; its read-only reproduction 17:23 to 17:29Z; then B2, single-flight, E9, Lane D, one-read, c9).
 
 ## 0an. Sam's push order 17:1xZ Oct 18 after e61 (forwarded word for word to Lane C, the order to Lanes B, B2, E and D)
 
