@@ -18,6 +18,7 @@ import { checkCeiling } from "../lib/_ceilings.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { SELLS_FOR_CARD_CSS } from "../lib/sellsForCard.js";
 import { HERO_JPEG_B64, HERO_W, HERO_H } from "./_partnerHero.js";
+import { PARTNER_LOGO_SVG_B64 } from "./_partnerLogo.js";
 import { DEMO_CARS } from "./partnerAnswer.js";
 
 export const DUMMY = { title: "2015 Porsche 911 GT3", colour: "Black", miles: 20611, titleStatus: "Clean", price: 139900, priceKind: "Buy It Now", daysLeft: 13, vin: "WP0AC2A96FS189139", q: "2015 Porsche 911 GT3" };
@@ -42,7 +43,12 @@ body{margin:0;background:#fff;color:var(--ink);font:400 16px/1.45 -apple-system,
 .tabs a[aria-current=page]{background:#fff;color:#111;border-color:#fff}
 .top{border-bottom:1px solid var(--rule)}
 .top .wrap{display:flex;gap:20px;align-items:center;padding-block:16px}
-.logo{width:110px;height:40px;border-radius:8px;background:repeating-linear-gradient(45deg,#ececec,#ececec 6px,#f6f6f6 6px,#f6f6f6 12px);color:#999;font-size:11px;display:grid;place-items:center;flex:none}
+/* eBay's own logo file, unedited (api/_partnerLogo.js), framed by CSS only: the 288 by 288 file is scaled so its
+   wordmark is 40px tall (32px on a phone) and the frame shows the wordmark with clear space, level with the Search box. */
+.plogo{display:flex;align-items:center;gap:10px;flex:none}
+.plogo-frame{position:relative;display:block;width:116px;height:48px;overflow:hidden;flex:none}
+.plogo-frame img{position:absolute;width:150.2px;height:150.2px;left:-17.5px;top:-51.1px;max-width:none}
+.prep{font-size:12px;line-height:1.2;color:var(--ink2);white-space:nowrap}
 .sbtn{flex:none;min-width:150px}
 .sbox{flex:1;display:flex;border:2px solid var(--ink);border-radius:999px;height:48px;align-items:center;padding:0 18px;color:#767676;min-width:0}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:999px;font-family:inherit;font-weight:600;font-size:17px;line-height:1;cursor:pointer;border:1px solid var(--blue);text-decoration:none}
@@ -183,7 +189,10 @@ h3{font-size:18px;line-height:1.3;margin:0 0 10px;font-weight:700}
   .tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
   .sbox{height:44px}
   .top .wrap{gap:12px}
-  .logo{width:72px}
+  .plogo{flex-direction:column;align-items:flex-start;gap:0}
+  .plogo-frame{width:88px;height:44px}
+  .plogo-frame img{width:120.1px;height:120.1px;left:-16.4px;top:-38.1px}
+  .prep{font-size:11px}
   .sbtn{display:none}
   h1,.rail h1{font-size:24px}
 }
@@ -533,7 +542,7 @@ export function pageHtml(view, carIn) {
 <meta name="robots" content="noindex,nofollow"><title>What these sell for</title><style>${CSS}${SELLS_FOR_CARD_CSS}</style></head><body>
 <div class="demo-bar"><div class="wrap"><span>What these sell for, powered by GoAskSam.</span><nav class="tabs" aria-label="Views">${tab("a", "a. Before listing")}${tab("b", "b. Setting a reserve")}${tab("c", "c. On the listing")}</nav></div></div>
 ${carBar}
-<header class="top"><div class="wrap"><div class="logo">Partner logo</div><div class="sbox">Search</div><button type="button" class="btn sec sbtn">Search</button></div></header>
+<header class="top"><div class="wrap"><div class="plogo"><span class="plogo-frame"><img src="/preview?img=logo" alt="eBay" width="150" height="150" decoding="async"></span><span class="prep">Prepared for eBay</span></div><div class="sbox">Search</div><button type="button" class="btn sec sbtn">Search</button></div></header>
 <main>
 <section class="sec-view wrap" id="view-a"${v === "a" ? "" : " hidden"}>
   <div class="lead"><h1>What these sell for</h1><p class="sub">Type any car or paste a VIN.</p>
@@ -573,6 +582,13 @@ export default async function handler(req, res) {
     return res.status(302).end();
   }
   if (!isCrewRequest(req) && !isPartnerRequest(req)) return notFound(res);
+  // eBay's own logo, byte for byte, behind the same gate as the page.
+  if (req.query && req.query.img === "logo") {
+    res.setHeader("Content-Type", "image/svg+xml");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Cache-Control", "private, max-age=3600");
+    return res.status(200).send(Buffer.from(PARTNER_LOGO_SVG_B64, "base64"));
+  }
   if (req.query && req.query.img === "hero") {
     res.setHeader("Content-Type", "image/jpeg");
     res.setHeader("Cache-Control", "private, max-age=3600");
