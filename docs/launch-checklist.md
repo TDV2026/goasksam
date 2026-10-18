@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T18:3xZ (Lane F; eBay stages 1 and 2 DONE and checked live; the panel order folded into stages 3 and 4 (7ff86777) ready for 19:20Z; the /preview path push at 18:50Z).
+Last updated: 2026-10-18T18:38Z (Lane F tick; eBay stages 1 and 2 live; the /preview path push at 18:50Z; stages 3 and 4 with the panel order at 19:20Z; stage 5 19:50Z; c9 20:20Z).
 
 ## 0au. Sam 18:3xZ Oct 18: the exact-car "sold before" panel moves up, folded into the stages 3 and 4 push (forwarded word for word to Lane C)
 
