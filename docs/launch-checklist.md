@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T17:3xZ (Lane F; e61 chain DONE 17:36Z, 41 rows identical, the six warmed with partner_last; FINAL DONE after one gap of Buy rows, split list and the GT3 re-read; Lane C's fix push next on FINAL DONE).
+Last updated: 2026-10-18T17:38Z (Lane F tick, batched push; e61 chain DONE, FINAL DONE after one gap of single reads; Lane C's typed-car fix push next, then its five eBay-ready stages (Sam to confirm the slot), B2, single-flight, E9, Lane D, one-read, c9).
 
 ## 0ao. Sam 17:2xZ Oct 18: fix the eBay demo page so it can be shown to eBay today (no lane named; the Desk routed it to Lane C as the demo's owner and asked Sam to confirm the lane and the slot)
 
