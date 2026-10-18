@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T16:3xZ (Lane F; e61 ready again with the Buy request clock line; the four Buy rows in its after-read; the e61 after column for B2 at engine/e61-before-after.md; waits for Lane C's DONE and Sam's prompt).
+Last updated: 2026-10-18T16:37Z (Lane F tick, batched push; Lane C's step 2 live checks running from 16:35Z; e61 ready with the Buy request clock line and waits for Lane C's DONE and Sam's prompt; B2's one golden push follows e61; then E9, Lane D, the rest).
 
 ## 0ak. Sam's decisions 16:3xZ Oct 18 from the 16:37Z tick (forwarded word for word to Lane B and B2; the order to Lane E)
 
