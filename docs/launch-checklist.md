@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T03:0xZ (Lane F; Sam found rendering defects on the public 911 hub page; fix order to Lane C ahead of C2 to C5; seoAudit null/empty-value and hub-row checks to Lane E, zero defects a condition for the firewall publish).
+Last updated: 2026-10-18T03:0xZ (Lane F; Lane C's demo fix is ON MAIN, f705b29b + b28aa81f at about 03:07Z by the commit clock; PUSHED line and partner-code live checks pending; Sam's run-0 quiet window follows them).
+
+## 0c. Decisions 03:0xZ Oct 18 (Sam)
+
+SQL scratch proof run-0: approved in a Desk-announced quiet window right after Lane C's PUSHED and its partner-code live checks, before B2's re-read; no heavy run in the window; the Desk tells Sam the file, how to run it and what to send back, then announces the close. Lane C's order stands (demo fix, hub template fix, C2 to C5). Lane B's one-at-a-time browser-check suggestion approved; Lane C builds it into prePush after the current pushes. Forwarded word for word to Lanes C, B, B2, E and D.
 
 ## 0b. Supabase upgrade DONE, 2026-10-18T02:4xZ (Sam)
 
