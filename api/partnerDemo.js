@@ -529,7 +529,7 @@ const JS = String.raw`
   // c start on the listing car (the 2014 GT3) when none has been chosen, and follow the chosen car when one has.
   var pre = new URLSearchParams(location.search).get("q") || (CHOSEN ? CAR : ""); $("a-q").value = pre;
   if (VIEW !== "a" || CHOSEN || pre) {
-    run("b", { q: CAR }, gotB);
+    run("b", D ? { q: CAR, vin: D.vin } : { q: CAR }, gotB);   // the listing car's VIN brings its own sale photos to view b too
     run("c", D ? { q: CAR, vin: D.vin } : { q: CAR }, drawListing);
     if (pre) runA({ q: pre });
   }

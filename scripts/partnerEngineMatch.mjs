@@ -306,7 +306,8 @@ for (const [name, d] of Object.entries(FIX)) {
   ok(DUMMY.q === "2014 Porsche 911 GT3" && DUMMY.vin === "WP0AC2A9XES183617" && DUMMY.miles === 30400 && DUMMY.price === 139900 && DUMMY.miles >= 29000, "the listing car is the 2014 GT3 at 30,400 miles (not below its last sale at 29,000) and $139,900");
   const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
   ok(/var ownSold = function\(a\)\{ return \(\(a && a\.history\) \|\| \[\]\)\.filter\(function\(r\)\{ return r\.result === "sold" && r\.photo; \}\); \};/.test(pageSrc) && /'<div class="own-main">' \+ mainPhotoHtml\(a\)/.test(pageSrc) && !/_partnerHero|HERO_JPEG_B64|img === "hero"/.test(pageSrc), "the listing car's photos are its own sales' photos, the newest first; the old studio photo is gone");
-  ok(/rangePanel\(a, D \? \{ price: D\.price, slot: "c", lines: "c" \}/.test(pageSrc) && (pageSrc.match(/function placing\(/g) || []).length === 1, "the asking price's pill is the one placing() against the engine's range"); }
+  ok(/rangePanel\(a, D \? \{ price: D\.price, slot: "c", lines: "c" \}/.test(pageSrc) && (pageSrc.match(/function placing\(/g) || []).length === 1, "the asking price's pill is the one placing() against the engine's range");
+  ok(/run\("b", D \? \{ q: CAR, vin: D\.vin \} : \{ q: CAR \}, gotB\);/.test(pageSrc), "the reserve view reads the listing car with its VIN, so its own sale photo shows there too"); }
 // A CAR GIVEN BY VIN (Sam, Oct 18 2026): the engine's name as the heading with the VIN small beneath (the VIN alone
 // when it cannot name the car); the main photo is this car's own newest sale photo captioned with its month and year,
 // else a car like it captioned as such; the sales-list rows that are this car's own sales carry "This car".
