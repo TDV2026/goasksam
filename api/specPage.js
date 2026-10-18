@@ -39,14 +39,17 @@ function childLabelFor(slug) {
   if (c.level === "leaf" || c.body) return `${c.body ? c.body.charAt(0).toUpperCase() + c.body.slice(1) : ""}, ${c.gearbox === "manual" ? "manual" : "automatic"}`;
   return labelFor(c);
 }
+// A generation's own name (Sam, Oct 18 2026): a chassis number or a name that already says 911 stands alone ("997",
+// "911SC"); a named era carries the 911 ("911 G-Body", "911 3.2 Carrera"). Never "911SC 911".
+const genName = code => /911/.test(code) || /^\d{3}$/.test(code) ? code : `911 ${code}`;
 // A readable label for any slug level, from parseSlug's parts (never the raw slug string).
 function labelFor(parsed) {
   if (!parsed) return null;
   if (parsed.level === "model") return "Porsche 911";
-  const gen = `${parsed.gen.code} 911`;
+  const gen = genName(parsed.gen.code);
   if (parsed.level === "gen") return gen;
-  if (parsed.level === "trim") return `${parsed.gen.code} ${parsed.trim}`;
-  return `${parsed.gen.code} ${parsed.trim} ${parsed.body}, ${parsed.gearbox === "manual" ? "manual" : "automatic"}`;
+  if (parsed.level === "trim") return `${gen} ${parsed.trim}`;
+  return `${gen} ${parsed.trim} ${parsed.body}, ${parsed.gearbox === "manual" ? "manual" : "automatic"}`;
 }
 // Breadcrumb chain (up to 4 deep: model -> gen -> trim -> leaf), built from the slug's own parts -
 // never a guess, always re-derivable from parseSlug.
@@ -54,10 +57,10 @@ function breadcrumbChain(slug, parsed) {
   const chain = [{ name: "GoAskSam", url: SITE }, { name: "Porsche 911", url: `${SITE}/cars/porsche/911` }];
   if (parsed.level === "model") return chain;
   const genSlug = `${SITE}/cars/porsche/911/${parsed.gen.slug}`;
-  chain.push({ name: `${parsed.gen.code} 911`, url: genSlug });
+  chain.push({ name: genName(parsed.gen.code), url: genSlug });
   if (parsed.level === "gen") return chain;
   const trimSlug = `${genSlug}/${slug.split("/")[5]}`;
-  chain.push({ name: `${parsed.gen.code} ${parsed.trim}`, url: trimSlug });
+  chain.push({ name: `${genName(parsed.gen.code)} ${parsed.trim}`, url: trimSlug });
   if (parsed.level === "trim") return chain;
   chain.push({ name: labelFor(parsed), url: `${SITE}${slug}` });
   return chain;
@@ -71,8 +74,8 @@ function linksHtml(title, slugs) {
 function leadFor(parsed, label, mcOn) {
   const tail = mcOn ? " For what cars like a specific one sold for, check it on Market Check." : "";
   if (parsed.level === "model") return `Every Porsche 911 generation, from the 901 to the 992. Pick one to see its trims.${tail}`;
-  if (parsed.level === "gen") return `The ${parsed.gen.code} 911 by trim. Pick a trim to see its body and gearbox combinations.${tail}`;
-  if (parsed.level === "trim") return `The ${parsed.gen.code} ${parsed.trim} by body and gearbox.${tail}`;
+  if (parsed.level === "gen") return `The ${genName(parsed.gen.code)} by trim. Pick a trim to see its body and gearbox combinations.${tail}`;
+  if (parsed.level === "trim") return `The ${genName(parsed.gen.code)} ${parsed.trim} by body and gearbox.${tail}`;
   return `The ${label}.${tail}`;
 }
 
@@ -111,7 +114,7 @@ async function handler(req, res) {
 
   const body = `
 <div class="top"><div><span class="eyebrow">Porsche 911 &middot; Market Check</span>
-<h1>${esc(label)}</h1>
+<h1>${esc(porscheLabel)}</h1>
 <p class="answer" data-lead-sentence>${esc(lead)}</p></div></div>
 ${parent ? `<nav class="links"><a href="${esc(parent)}">&#8592; ${esc(labelFor(parseSlug(parent)))}</a></nav>` : ""}
 ${linksHtml(childLabel, children)}
