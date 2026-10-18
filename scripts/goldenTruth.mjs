@@ -221,7 +221,7 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
     buy: /landed at \$|sold between \$|That.s everything matching|Nothing else right now|No live|0 live|live .* right now/i,
     sell: /SAM.S PICK|WHO SAM WOULD RECOMMEND|not enough|couldn.t/i
   };
-  async function readPage(product, q) {
+  async function readPage(product, q, opts = {}) {
     const ctx = await browser.createBrowserContext();
     const page = await ctx.newPage();
     if (CREW) await page.setCookie({ name: "gas_crew", value: CREW, domain: new URL(BASE).hostname, path: "/" });
@@ -239,6 +239,11 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
       await new Promise(x => setTimeout(x, 1500));
       text = await page.evaluate(() => document.body ? document.body.innerText : "").catch(() => text);
       // The shared "What these sell for" card (lib/sellsForCard.js, root .sfc-card), the pill slot and any pill row taken out, as the browser serializes it.
+      // Buy keeps the card in the Market Check drawer of a listing: open the first one (the link named Market Check) and wait for the card, as a visitor would.
+      if (product === "buy" && opts.openDrawer && !(await page.evaluate(() => !!document.querySelector(".sfc-card")).catch(() => false))) {
+        const opened = await page.evaluate(() => { const e = [...document.querySelectorAll("a,button,[role=button]")].find(x => /^market check\b/i.test((x.innerText || "").trim())); if (!e) return false; e.click(); return true; }).catch(() => false);
+        if (opened) { const until2 = Date.now() + 10000; while (Date.now() < until2 && !(await page.evaluate(() => !!document.querySelector(".sfc-card")).catch(() => false))) await new Promise(x => setTimeout(x, 500)); }
+      }
       const card = await page.evaluate(() => { const c = document.querySelector(".sfc-card"); if (!c) return null; const k = c.cloneNode(true); k.querySelectorAll(".gas-pill-slot,.pillrow").forEach(e => e.remove()); const full = k.outerHTML; k.querySelectorAll(".sfc-basis,.sfc-footer-link").forEach(e => e.remove()); return { full, demoNorm: k.outerHTML }; }).catch(() => null);
       return { path: new URL(page.url()).pathname, text, card: card && card.full, cardDemoNorm: card && card.demoNorm };
     } finally { await ctx.close().catch(() => {}); }
@@ -300,7 +305,7 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
       const tRead = Date.now();
       console.error(`progress mode ${MODE}: rows done ${pageRowsDone.size} of ${new Set(jobs.map(j => j.r.g.id)).size} with a page (${TOTAL_ALL} in the table), page read ${next} of ${jobs.length}, row ${r.g.id}, ${pr}, read started ${stamp()}`);
       const g = r.g, engineCell = r.cells[pr];
-      let rd; try { rd = await readPage(pr, g.q); } catch (e) { rd = { path: "", text: "", err: String(e && e.message || e) }; }
+      let rd; try { rd = await readPage(pr, g.q, { openDrawer: !!g.sharedCard }); } catch (e) { rd = { path: "", text: "", err: String(e && e.message || e) }; }
       pageRowsDone.add(g.id);
       const secs = (Date.now() - tRead) / 1000;
       if (rd.err || !rd.text || secs > DEADLINE) { r.pages = r.pages || {}; r.pages[pr] = { cell: "RE-READ", diffs: [`re-read: the ${pr} page read ${rd.err ? "failed (" + rd.err.slice(0, 40) + ")" : !rd.text ? "returned no text" : "took " + secs.toFixed(0) + " s, over the " + DEADLINE + " s line"}, started ${new Date(tRead).toISOString().slice(11, 19)}Z`], shown: "re-read" }; continue; }
