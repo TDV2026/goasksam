@@ -4446,6 +4446,43 @@ async function handleOps(req, res) {
     const r = await warmLiveSpecs(env, { budgetMs: Math.min(230000, Number(req.query?.budget) || 200000), concurrency: Math.min(8, Number(req.query?.width) || 6), shard: req.query?.shard ? String(req.query.shard) : null });
     return res.status(200).json({ task: "warmLive", ...r });
   }
+  // task=warmDemo (e60, Sam: the 00:05 UTC warm of the demo cars, the golden rows and prePush's perf cars, and the
+  // first warm after a database restart). In-process: resolve, run the engine, write the stored Market Check row under
+  // the same key the page reads, the same path task=warmMC takes, trims allowed. list=a|b overrides the list. Credentialed.
+  if (task === "warmDemo") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { runOneBox } = await import("../lib/onebox.js");
+    const { warmAnswerKeyFor, writeWarmAnswer } = await import("../lib/live/search.js");
+    const DEMO = ["2015 Porsche 911 GT3", "2005 Porsche 911", "1965 Ford Mustang", "1957 Porsche 356 Speedster", "1966 Ferrari 275 GTB", "2010 Porsche Boxster Convertible", "2023 Porsche 911 GT3"];
+    const PERF = ["2008 Porsche 997 Carrera S Coupe", "1995 Porsche 911 Carrera", "1969 Chevrolet Camaro"];
+    let golden = [];
+    try { const fs = await import("node:fs"); const doc = fs.readFileSync(new URL("../docs/golden-rules.md", import.meta.url), "utf8"); const gm = /```json golden\n([\s\S]*?)```/.exec(doc); golden = gm ? JSON.parse(gm[1]).map(g => g.q).filter(Boolean) : []; } catch { golden = []; }
+    const list = req.query?.list ? String(req.query.list).split("|").filter(Boolean) : [...new Set([...DEMO, ...PERF, ...golden])];
+    const budgetMs = Math.min(280000, Number(req.query?.budget) || 240000), t0 = Date.now();
+    const result = { task: "warmDemo", listed: list.length, warmed: 0, failed: 0, notReached: 0, rows: [] };
+    for (const q of list) {
+      if (Date.now() - t0 > budgetMs) { result.notReached++; continue; }
+      const row = { q };
+      try {
+        const rv = await resolveVehicle(q, {});
+        const vehicle = rv && rv.vehicle;
+        if (!vehicle || !vehicle.make) throw new Error(rv && rv.status === "lookup_timeout" ? "lookup_timeout" : "unresolved");
+        const generation = await findGeneration(vehicle, env).catch(() => null);
+        const tr = Date.now();
+        const d = await runOneBox(vehicle, generation, q, env, null);
+        row.ms = Date.now() - tr;
+        if (!d || !d.tier) throw new Error("engine returned no tier");
+        row.tier = d.tier; row.readAt = d.readAt || null;
+        if (/^(result|thin|refusal|not_tracked)$/.test(String(d.tier))) { await writeWarmAnswer(env, warmAnswerKeyFor(vehicle, generation), d); row.stored = true; result.warmed++; }
+        else { row.stored = false; result.warmed++; }
+      } catch (e) { row.error = String(e && e.message || e); result.failed++; }
+      result.rows.push(row);
+    }
+    result.ms = Date.now() - t0;
+    return res.status(200).json(result);
+  }
   if (task === "warmMC") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle } = await import("../lib/vehicle.js");
