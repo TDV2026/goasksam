@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T03:1xZ (Lane F; demo fix b28aa81f live, a live check FAILED on the endpoint's per-minute ceiling under Lane C's own test load, Lane C has NOT reverted and asks Sam revert or fix forward; Sam ordered Lane B to profile the perf cars read-only in a quiet window).
+Last updated: 2026-10-18T03:1xZ (Lane F; Sam: keep b28aa81f and fix forward after proving the seal holds, revert at once if anything gated answers a non-crew visitor; windows after Lane C's fix: Lane B's profiling first, then run-0).
+
+## 0e. Sam's decisions 03:1xZ Oct 18: the demo stays live, two quiet windows in order
+
+Lane C's urgent question, answered by Sam in Lane C's own window: keep b28aa81f and fix forward, after proving the seal holds; revert at once if anything gated answers a non-crew visitor. After Lane C's fix-forward PUSHED: window 1, Lane B's read-only profiling of the Market Check perf cars; window 2, Sam's run-0 scratch proof. The Desk announces each window's open and close to every lane; no heavy run starts in a window. Then the order resumes: B2's 14-row re-read (3), Lane E's E9 (4), Lane D's Sell line (5), Lane C's hub fix then C2 to C5 then C1 (6), Lane B's e60 (7).
 
 ## 0d. Sam's order 03:1xZ Oct 18: Lane B profiles the Market Check perf cars
 
@@ -56,7 +60,7 @@ Lane F in away mode (ended 01:55Z Oct 18; the 20-minute tick is back on as job 1
 8. Sam's own checks when back: prove the partner code live in a private window; read ~/Desktop/goasksam-proofs/launch/sam-steps.md and ~/Desktop/goasksam-proofs/db/sql-for-sam.md; look at ~/Desktop/goasksam-proofs/seo/llms.txt.
 
 ### Lane questions posted to Lane F while Sam is away (numbered, with the lane's recommendation)
-- Lane C, 03:1xZ Oct 18, URGENT: keep b28aa81f live and fix forward (per-minute ceiling raised for the demo's six cars, a separate per-minute line, no history claim on a failed read) under the same one-time exception scope, or revert at once. Lane C recommends keep and fix forward.
+- Lane C, 03:1xZ Oct 18, URGENT: keep b28aa81f live and fix forward, or revert. ANSWERED by Sam in Lane C's window: keep and fix forward after proving the seal holds; revert at once if anything gated answers a non-crew visitor.
 - Lane D (1), 02:2xZ Oct 18: APPROVED by Sam 02:4xZ (window phrase in the basis-line form, count equals Market Check's). Was: approve the new Sell wording for a pool the pick cannot place, "{Nine} sales {window}, none on a site Sam can point to." (the all-house case reuses Market Check's sentence verbatim). Recommendation: approve as drafted; ships with the 275 GTB fix (branch sell-count, 1657988f).
 - Lane D (2), 02:2xZ Oct 18: the invariant_failed engine shape is Lane B's. ANSWERED by Lane B 02:3xZ: both of Lane D's options are in e60 (one option per body family so the cars answer again, and a refusal clears the counts with the receipts). No Sam decision needed beyond the e60 push itself.
 - Lane A (3), 02:2xZ Oct 18: APPROVED by Sam 02:4xZ, Lane A ships it after Lane C's PUSHED. Was: the basis line "Based on N sales, the latest in {Month Year}." everywhere the shared card renders is a wording change awaiting Sam's word; Lane A ships it in one pass on a yes.
