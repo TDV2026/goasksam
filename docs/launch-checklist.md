@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T06:0xZ (Lane F; Sam: exact lowest and highest siblings in the bump after e60, hub years as the map has them, layout OK pending his look; Lane B's M3 part 1 filed).
+Last updated: 2026-10-18T06:0xZ (Lane F; Sam: no wide-range threshold set blind, Lane B prepares an impact table at ratios 1.5 to 3 from stored answers after e60's DONE; siblings planned for the bump after e60).
 
 ## 0q. Sam's decisions 06:0xZ Oct 18 (forwarded word for word to Lanes B and C)
 
@@ -397,7 +397,7 @@ Lane F in away mode (ended 01:55Z Oct 18; the 20-minute tick is back on as job 1
 | Item | Owner | State | Blocked on | Proof |
 |---|---|---|---|---|
 | lowestSaleN and highestSaleN: the included sales' exact min and max in USD, computed once in lib/onebox.js from the same solid rows soldCountN counts; on the result tier beside span and cluster, on the thin tier from the sales it shows, null on refusal and not_tracked, absent on a question; carried through coreOf and listingMarket (Buy, Tasks), the stored Market Check row, Sell's facts object, the partner layer's partnerShape; invariants lowestSaleN <= cluster[0], highestSaleN >= cluster[1], both inside span, both equal to the min and max of the cards list | Lane B | PLANNED (Sam's decision 1, 06:0xZ); report again before building after e60's DONE | e60 live and checked; Sam's go for the bump | the check scripts' invariants; Lane E's --rows on every page |
-| A wide-range product rule (a question or no range when the high is more than double the low on fewer than about twenty sales) | Sam to set; Lane B builds | proposed by Lane B from the M3 case | Sam's rule and thresholds | the next sweep |
+| A wide-range product rule | Sam decides after an impact table; Lane B prepares it | DECIDED 06:0xZ: no threshold set blind. Principle: when a body style or trim splits the range, the question is asked before any number; when no question explains a very wide spread, either the range with one plain note or no range, Sam's pick after the table. Lane B's table, read-only from the stored answers and the golden table (no scans; any read waits for e60's DONE): for ratios 1.5, 2, 2.5 and 3 (high over low on the printed range), how many stored cars exceed each, split by thin, result and refusal, how many already carry a split question (body, trim, generation), ten example cars per ratio with count, range and the split, the 2001 M3 e46 included | Lane B's table, then Sam | the table |
 | The inline body question mapped in the partner layer (refine { body }) | Lane C | named by Lane B; Lane C to build with screenshots | Sam's screenshots OK | the demo showing the same chips as Market Check |
 
 ## 7b. After launch (notes, not built)
