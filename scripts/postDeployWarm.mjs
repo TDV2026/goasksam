@@ -85,7 +85,7 @@ try {
 
   // ---- step 2: each golden car, through the real public page ----
   console.log(`\n-- step 2: ${GOLDEN.length} golden car(s) through the public /market-check page --`);
-  const READY = /\$\d[\d,]{2,}|catching his breath|limit of \d+ cars|which (one|generation|body|model|year|trim)|did you mean/i;
+  const READY = /\$\d[\d,]{2,}|catching his breath|limit of \d+ cars|which (one|generation|body|model|year|trim)|did you mean|sale on record|was set aside|states a body|what year is it|which is it|the 289 or the 427/i;
   for (const g of GOLDEN) {
     const ctx = await browser.createBrowserContext();
     const page = await ctx.newPage();

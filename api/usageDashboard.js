@@ -4375,6 +4375,39 @@ async function handleOps(req, res) {
     const out = []; for (const v of vins) out.push(await familySalesCompare(env, v).catch(e => ({ vin: v, error: String(e && e.message || e) })));
     return res.status(200).json({ task: "histfam", cars: out });
   }
+  // task=projdry&rows=N (e60, Sam's dry run, READ-ONLY): applies the engine's own project rule (projectFlagReason, the
+  // same function filterProjectRows and the ingest stamp use) to a sample of rows whose project_flag is null, and reports
+  // how many it would flag and not flag, by keyword, with 20 flagged examples (title, price, the phrase that triggered
+  // it) and 20 unflagged examples. Also counts rows still flagged "bodyshell" that the current rule no longer flags (the
+  // Oct 6 narrowing), the one re-stamp candidate. Pages by source_id over the null rows; rows=N caps the sample.
+  if (task === "projdry") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { projectFlagReason } = await import("../lib/_classify.js");
+    const limitRows = Math.min(Number(req.query?.rows) || 5000, 60000);
+    const LIMIT = 1000; let cursor = "", scanned = 0, wouldFlag = 0, stamped = 0;
+    const byKeyword = {}, flagged = [], unflagged = [];
+    for (let page = 0; page * LIMIT < limitRows; page++) {
+      const q = `sales_archive?select=source_id,source_slug,sale_price,listing_title,desc_facts,d:raw_record->>description&project_flag=is.null&order=source_id.asc&limit=${LIMIT}` + (cursor ? `&source_id=gt.${encodeURIComponent(cursor)}` : "");
+      const batch = await supabaseSelect(env, q);
+      if (!batch || !batch.length) break;
+      for (const r of batch) {
+        scanned++; if (r.desc_facts) stamped++;
+        const title = String(r.listing_title || ""), desc = String(r.d || "");
+        const f = projectFlagReason(title, desc);
+        if (f) {
+          wouldFlag++; byKeyword[f] = (byKeyword[f] || 0) + 1;
+          if (flagged.length < 20) { const hay = (title + " " + desc).toLowerCase(); const idx = hay.indexOf(String(f).split(" ")[0].toLowerCase()); flagged.push({ src: r.source_slug, price: r.sale_price, title, keyword: f, phrase: idx >= 0 ? (title + " " + desc).slice(Math.max(0, idx - 60), idx + 80).replace(/\s+/g, " ") : null }); }
+        } else if (unflagged.length < 20 && scanned % 97 === 0) unflagged.push({ src: r.source_slug, price: r.sale_price, title });
+      }
+      cursor = batch[batch.length - 1].source_id;
+      if (batch.length < LIMIT) break;
+    }
+    const bodyshell = (await supabaseSelect(env, `sales_archive?select=source_id,source_slug,sale_price,listing_title,d:raw_record->>description&project_flag=eq.bodyshell&limit=1000`)) || [];
+    const staleBodyshell = bodyshell.filter(r => !projectFlagReason(String(r.listing_title || ""), String(r.d || "")));
+    return res.status(200).json({ task: "projdry", scanned, stampedWithDescFacts: stamped, wouldFlag, wouldNotFlag: scanned - wouldFlag, wouldFlagPct: scanned ? Math.round((wouldFlag / scanned) * 1000) / 10 : 0, byKeyword,
+      flaggedExamples: flagged, unflaggedExamples: unflagged,
+      bodyshellRows: bodyshell.length, bodyshellNowUnflagged: staleBodyshell.length, bodyshellExamples: staleBodyshell.slice(0, 10).map(r => ({ src: r.source_slug, price: r.sale_price, title: r.listing_title })) });
+  }
   if (task === "liveSpecKeys" || task === "livespeckeys") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { liveSpecKeyCounts } = await import("../lib/live/search.js");
