@@ -207,7 +207,10 @@ export function nameFromSpec(v, year) {
 }
 useNamer(nameOf);   // Before it ends names a car the way its card does
 async function enrich(env, x, deadlineAt) {   // deadlineAt (e61, Sam's item 3): the request's own clock, so every card's market read is bounded by what is left of the request's 20 s
-  let [market, seen, timeline] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts, { deadlineAt }), seenBefore(env, x.r.vin_norm), timelineOf(env, x)]);
+  // the card's seen-before and timeline reads run under the same clock (singleflight bump, Sam's Buy timing note): a read
+  // that is not back by the request's deadline is null for this response and the retry fills it; no second rule
+  const late = p => Number(deadlineAt) > 0 ? Promise.race([p, new Promise(res => setTimeout(() => res(null), Math.max(250, Number(deadlineAt) - Date.now())))]) : p;
+  let [market, seen, timeline] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts, { deadlineAt }), late(seenBefore(env, x.r.vin_norm)), late(timelineOf(env, x))]);
   if (market && market.kind === "pending") market = await listingMarket(env, x.r, x.facts, { deadlineAt });   // one more go, warm now (the same clock; a key still computing answers at once)
   market = await rungMarket(env, x.r, x.facts, market);   // the engine's fallback rung, when it names one; else unchanged
   const c = { ...cardOf(x), market, seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name: await nameOf(env, x) };
