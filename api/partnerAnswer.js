@@ -153,9 +153,10 @@ export async function marketCheckAnswer(req, text, refine, asked, demo = false) 
 function cleanRefine(r) {
   if (!r || typeof r !== "object") return null;
   const o = {};
-  if (typeof r.body === "string" && /^[a-z -]{2,20}$/.test(r.body)) o.body = r.body;
-  if (typeof r.trim === "string" && /^[a-z0-9-]{1,30}$/.test(r.trim)) o.trim = r.trim;
-  if (typeof r.variant === "string" && /^[a-z0-9_-]{1,30}$/.test(r.variant)) o.variant = r.variant;
+  const word = v => typeof v === "string" && /^[A-Za-z0-9 ._/-]{1,40}$/.test(v) && !VENUE_RE.test(v);   // the engine's own option values
+  if (word(r.body)) o.body = r.body;
+  if (word(r.trim)) o.trim = r.trim;
+  if (word(r.variant)) o.variant = r.variant;
   if (r.tx === "manual" || r.tx === "auto") o.tx = r.tx;
   if (r.docHistory === "has" || r.docHistory === "nohas") o.docHistory = r.docHistory;
   for (const k of ["miMin", "miMax", "miTarget"]) if (Number.isFinite(Number(r[k])) && r[k] !== null && r[k] !== "") o[k] = Number(r[k]);
@@ -226,12 +227,43 @@ function questionOf(d, text, asked) {
   }
   return null;
 }
-// Answered, but the engine offers to narrow by body (d.bodyOptions on a result): the same body refine Market Check's
-// chips send, with each option's own count.
-function narrowOf(d, text) {
-  const opts = d && Array.isArray(d.bodyOptions) ? d.bodyOptions : null;
-  if (!opts || opts.length < 2 || !/^(result|thin)$/.test(String(d.tier || ""))) return null;
-  return { dimension: "body", options: opts.filter(o => o && (o.value || o.label)).map(o => ({ label: o.label || String(o.value), count: Number.isFinite(o.n) ? o.n : null, send: { q: text, refine: { body: String(o.value || o.label).toLowerCase() } } })) };
+// THE NARROWING LINES (Sam, Oct 18 2026: "2001 bmw", M3 showed no body question on the demo while Market Check showed
+// "Which M3? Convertible (9) · Coupe (3)"). Market Check's answer page draws up to four lines from the engine's own
+// fields (public/js/onebox.js heroTrimLineHtml, heroBodyLineHtml, heroGearboxLineHtml, variantOptionsLineHtml); this is
+// the same four, same order, same filters, same wording, each option the same refine Market Check sends. Nothing is
+// computed: every label and count is the engine's. `any` is the engine's own count for the unsplit answer.
+const WORDNUM = { zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9 };
+const digitOf = n => typeof n === "string" && WORDNUM[n.toLowerCase()] != null ? WORDNUM[n.toLowerCase()] : Number(n);
+function nameplateOf(d) {
+  const rc = (d && d.resolvedCar) || {}, cl = rc.canonicalLabel;
+  if (cl && rc.year && rc.make) { const pre = rc.year + " " + rc.make + " "; if (String(cl).indexOf(pre) === 0) return String(cl).slice(pre.length).split(" ")[0] || ""; }
+  return rc.model || "";
+}
+export function linesOf(d) {
+  if (!d || !/^(result|thin)$/.test(String(d.tier || ""))) return [];
+  const out = [], any = countOf(d), np = nameplateOf(d);
+  const tq = d.trimQuestion;
+  if (tq && Array.isArray(tq.options)) {
+    const shown = tq.options.filter(o => o && !o.thin);
+    if (shown.length >= 2) out.push({ key: "trim", lead: tq.model ? "Which " + tq.model + "?" : null, any, options: shown.map(o => ({ label: String(o.label), value: String(o.value), n: digitOf(o.n) })) });
+  }
+  if (Array.isArray(d.bodyOptions)) {
+    const shown = d.bodyOptions.filter(o => o && Number(digitOf(o.n)) > 0);
+    if (shown.length >= 2) out.push({ key: "body", lead: np ? "Which " + np + "?" : null, any, options: shown.map(o => ({ label: String(o.label || o.value), value: String(o.value || o.label), n: digitOf(o.n) })) });
+  }
+  const gb = (Array.isArray(d.inlineSplits) ? d.inlineSplits : []).find(x => x && x.key === "gearbox");
+  if (gb && Array.isArray(gb.sides)) {
+    const shown = gb.sides.filter(x => x && !x.thin);
+    if (shown.length >= 2) out.push({ key: "tx", lead: null, any, options: shown.map(x => { const label = String(x.label || "").replace(/s$/, ""); return { label, value: /manual/i.test(label) ? "manual" : "auto", n: digitOf(x.n) }; }) });
+  }
+  for (const e of Array.isArray(d.variantOptionsLine) ? d.variantOptionsLine : []) {
+    if (!e || e.key === "restoration") continue;
+    const real = (Array.isArray(e.options) ? e.options : []).filter(o => Number.isFinite(digitOf(o.n)) && digitOf(o.n) > 0);
+    if (real.length < 2) continue;
+    out.push({ key: "variant", lead: np ? "Which " + np + "?" : null, any: real.reduce((t, o) => t + digitOf(o.n), 0), options: real.map(o => ({ label: String(o.label), value: String(o.value), n: digitOf(o.n) })) });
+    break;
+  }
+  return out;
 }
 // Under eight sales: words only, never a range.
 function thinTextOf(d, count) {
@@ -301,7 +333,7 @@ export function partnerShape(d, text, asked, extra = {}) {
     trend: range ? trendOf(d) : null,
     card: demoCard(sellsForCardHtml(d, { partnerPillsHtml: PILL_SLOT }), d) || null,
     quarter: latestQuarterRowHtml({ ...d, trendQuarters: mapEngineAnswer(d).trendQuarters }) || null,
-    narrow: narrowOf(d, text),
+    lines: linesOf(d),
     history: extra.history || null
   };
 }

@@ -91,6 +91,9 @@ h3{font-size:18px;line-height:1.3;margin:0 0 10px;font-weight:700}
 .listing.with-below{row-gap:0}
 .listing.with-below>.rail{grid-column:2;grid-row:1 / span 2}
 .below-gal{grid-column:1;min-width:0}
+.idline{margin:12px 2px 0;font-size:14px;color:var(--ink2,#555);line-height:1.7}
+.idl{font:inherit;background:none;border:0;padding:0;color:var(--ink,#111);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.idl.chosen{text-decoration:none;font-weight:600}
 .res-line{padding:10px 0;border-top:2px solid var(--ink,#111);border-bottom:2px solid var(--ink,#111);font-weight:700;font-size:15px}
 .gal{display:grid;grid-template-columns:88px 1fr;gap:12px}
 .thumbs{display:grid;gap:10px;align-content:start}
@@ -250,7 +253,7 @@ const JS = String.raw`
     // pill slot in every case (Lane A's 3e8445d6), so every pill, the grey no-range one too, sits where the card puts it.
     if (a.card) {
       var pl = opts.price != null ? placing(opts.price, a) : null, ph = pl ? '<p class="pillrow"><span class="pill ' + pl.cls + '">' + esc(pl.text) + "</span></p>" : "";
-      return (opts.chips ? idChips(a) : "") + (a.card.indexOf('<div class="gas-pill-slot"></div>') >= 0 ? a.card.replace('<div class="gas-pill-slot"></div>', ph) : a.card + ph);
+      return (opts.chips ? idChips(a) : "") + (a.card.indexOf('<div class="gas-pill-slot"></div>') >= 0 ? a.card.replace('<div class="gas-pill-slot"></div>', ph) : a.card + ph) + (opts.lines ? linesHtml(opts.lines) : "");
     }
     var pill = opts.price != null ? '<p class="pillrow"><span class="pill ' + placing(opts.price, a).cls + '">' + esc(placing(opts.price, a).text) + "</span></p>" : "";
     var body = a.range
@@ -301,11 +304,38 @@ const JS = String.raw`
   });
   // A photo that does not load leaves the plain neutral tile, never a broken image.
   document.addEventListener("error", function(e){ var t = e.target; if (t && t.tagName === "IMG" && t.hasAttribute("data-ph")) t.parentNode.removeChild(t); }, true);
+  // THE NARROWING LINES (Sam, Oct 18 2026): Market Check's own "Which M3? Convertible (9) · Coupe (3)" lines, from the
+  // engine's fields (a.lines, api/partnerAnswer.js linesOf). An option reruns the same query with that refine; once
+  // chosen, the line stays, the choice in plain ink, with "Any (N)" back to the unsplit answer (N the engine's count).
+  var idState = { a: null, b: null, c: null };
+  function noteLines(slot, a){ var st = idState[slot]; if (st && st.refining) { st.refining = false; return; } idState[slot] = { q: a && a.query, lines: (a && a.lines) || [], chosen: null }; }
+  function linesHtml(slot){
+    var st = idState[slot]; if (!st || !st.lines.length) return "";
+    return st.lines.map(function(l){
+      var hasChosen = st.chosen && st.chosen.key === l.key;
+      var items = l.options.map(function(o){
+        var lab = esc(o.label) + " (" + Number(o.n).toLocaleString("en-US") + ")";
+        return hasChosen && String(st.chosen.value) === String(o.value) ? '<span class="idl chosen">' + lab + "</span>" : '<button type="button" class="idl" data-idopt="' + slot + '" data-key="' + esc(l.key) + '" data-val="' + esc(o.value) + '">' + lab + "</button>";
+      });
+      if (hasChosen && l.any != null) items.push('<button type="button" class="idl" data-idopt="' + slot + '" data-key="' + esc(l.key) + '" data-val="">Any (' + Number(l.any).toLocaleString("en-US") + ")</button>");
+      return '<p class="idline">' + (l.lead ? esc(l.lead) + " " : "") + items.join(" &middot; ") + "</p>";
+    }).join("");
+  }
+  document.addEventListener("click", function(e){
+    var b = e.target.closest && e.target.closest("[data-idopt]"); if (!b) return;
+    var slot = b.getAttribute("data-idopt"), key = b.getAttribute("data-key"), val = b.getAttribute("data-val"), st = idState[slot]; if (!st) return;
+    st.chosen = val ? { key: key, value: val } : null; st.refining = true;
+    var send = { q: st.q }; if (val) { send.refine = {}; send.refine[key] = val; }
+    if (slot === "a") return runA(send);
+    if (slot === "b") { $("b-out").innerHTML = '<p class="loading">Sam is reading the sales.</p>'; return ask(send).then(function(a){ bAns = a; noteLines("b", a); drawB(); }); }
+    if (slot === "c") return ask(Object.assign({ vin: D.vin }, send)).then(drawListing);
+  });
   // ---- view a: before listing
   var aLast = null;
   function drawA(a){
+    noteLines("a", a);
     aLast = a;
-    $("a-out").innerHTML = (a.question ? rangePanel(a, { slot: "a", chips: true }) : (idChips(a) ? '<div style="margin:0 0 16px">' + idChips(a) + "</div>" : "") + (a.range || a.thin ? rangePanel(a) : "")) + (a.vin || (a.history && a.history.length) ? historyPanel(a) : "") +
+    $("a-out").innerHTML = (a.question ? rangePanel(a, { slot: "a", chips: true }) : (idChips(a) ? '<div style="margin:0 0 16px">' + idChips(a) + "</div>" : "") + (a.range || a.thin ? rangePanel(a, { lines: "a" }) : "")) + (a.vin || (a.history && a.history.length) ? historyPanel(a) : "") +
       (!a.question && a.sales && a.sales.length ? '<section class="full-a"><h2>What cars like this sold for</h2>' + salesList(a, "a") + "</section>" : "") +
       '<div style="margin-top:20px"><button type="button" class="btn pri" id="a-list">List it</button></div>';
   }
@@ -318,7 +348,7 @@ const JS = String.raw`
     if (a.question) { $("b-out").innerHTML = rangePanel(a, { slot: "b" }); return; }
     var last = newest(a).slice(0, 10).sort(function(x, y){ return y.price - x.price; });
     var at = v > 0 ? last.filter(function(s){ return s.price >= v; }).length : null;
-    $("b-out").innerHTML = rangePanel(a, { price: v > 0 || !a.range ? v : null }) + (last.length ?
+    $("b-out").innerHTML = rangePanel(a, { price: v > 0 || !a.range ? v : null, lines: "b" }) + (last.length ?
       '<section class="full-a"><h2>What cars like this sold for</h2><p class="sub" style="margin:-6px 0 12px">The last ' + (last.length === 1 ? "sale" : last.length + " sales") + ", highest price first.</p>" + reserveList(last, { reserve: v }) +
       (at != null ? '<p class="res-sum">' + at + " of the last " + last.length + " sold at or above this.</p>" : "") + "</section>" : "");
   }
@@ -326,8 +356,8 @@ const JS = String.raw`
   // "This car before" under the gallery, once)
   var cAns = null;
   function drawListing(a){
-    cAns = a;
-    $("c-rail").innerHTML = rangePanel(a, { price: D.price, slot: "c" });
+    cAns = a; noteLines("c", a);
+    $("c-rail").innerHTML = rangePanel(a, { price: D.price, slot: "c", lines: "c" });
     var lq = a && a.range && a.trend && a.trend.length ? a.trend.reduce(function(m, t){ return String(t.period) > String(m.period) ? t : m; }) : null;   // the latest quarter with eight or more sales, view d only
     $("d-sales").innerHTML = '<h2>What cars like this sold for</h2>' +
       (a && a.card ? (a.quarter ? '<div class="qrow">' + a.quarter + "</div>" : "") : (lq ? '<p class="qrow"><b>' + esc(lq.period.replace("-", " ")) + "</b> " + usd(lq.low) + " to " + usd(lq.high) + ", " + lq.count + " sales</p>" : "")) + salesList(a, "d") + foot(a);
@@ -337,13 +367,13 @@ const JS = String.raw`
     var b = e.target.closest && e.target.closest("[data-send]"); if (!b) return;
     var send = JSON.parse(b.getAttribute("data-send")), slot = b.getAttribute("data-slot");
     if (slot === "a") return runA(send);
-    if (slot === "b") { $("b-out").innerHTML = '<p class="loading">Sam is reading the sales.</p>'; return ask(send).then(function(a){ bAns = a; drawB(); }); }
+    if (slot === "b") { $("b-out").innerHTML = '<p class="loading">Sam is reading the sales.</p>'; return ask(send).then(function(a){ bAns = a; noteLines("b", a); drawB(); }); }
     if (slot === "c") return ask(Object.assign({ vin: D.vin }, send)).then(drawListing);
   });
   document.addEventListener("click", function(e){ if (e.target && e.target.id === "a-list") e.preventDefault(); });   // the demo's List it does nothing
   $("a-form").addEventListener("submit", function(e){ e.preventDefault(); var v = String($("a-q").value || "").trim(); if (v) runA({ q: v }); });
   $("b-res").addEventListener("input", function(){ var d = String(this.value || "").replace(/[^\d]/g, "").slice(0, 9); this.value = d ? Number(d).toLocaleString("en-US") : ""; drawB(); });
-  ask({ q: D.q }).then(function(a){ bAns = a; drawB(); });
+  ask({ q: D.q }).then(function(a){ bAns = a; noteLines("b", a); drawB(); });
   ask({ q: D.q, vin: D.vin }).then(drawListing);
   var pre = new URLSearchParams(location.search).get("q") || D.q; $("a-q").value = pre; runA({ q: pre });
 })();

@@ -125,9 +125,22 @@ for (const [name, d] of Object.entries(FIX)) {
   const c = pageHtml("c"), d = pageHtml("d");
   ok((c.match(/href="\?view=/g) || []).length === 3 && !/Under the listing/.test(c) && /id="view-c"(?! hidden)/.test(d), "three tabs; the old d address opens the merged listing");
   ok(!/Placeholder description/.test(c) && /<dt>Year<\/dt>/.test(c) && /<dt>VIN<\/dt>/.test(c) && /<dt>Mileage<\/dt>/.test(c), "no placeholder description; Year, VIN and Mileage kept");
-  ok((c.match(/id="d-hist"/g) || []).length === 1 && /\$\("c-rail"\)\.innerHTML = rangePanel\(a, \{ price: D\.price, slot: "c" \}\);/.test(c) && /class="below-gal"/.test(c), "the card in the rail, the list and This car before under the gallery, once");
+  ok((c.match(/id="d-hist"/g) || []).length === 1 && /\$\("c-rail"\)\.innerHTML = rangePanel\(a, \{ price: D\.price, slot: "c", lines: "c" \}\);/.test(c) && /class="below-gal"/.test(c), "the card in the rail, the list and This car before under the gallery, once");
   ok(/function reserveList\(rows, opts\)/.test(c) && /body \+= saleRow\(s\)/.test(c) && /reserveList\(last, \{ reserve: v \}\)/.test(c) && !/salesTable\(/.test(c), "view b: the same rows, highest price first, the reserve line at its place, no Show more");
   ok((c.match(/function placing\(/g) || []).length === 1 && /placing\(opts\.price, a\)/.test(c), "one comparison against the engine's range, shared by views b and c"); }
+// The narrowing lines (Sam, Oct 18 2026: "2001 bmw", M3): Market Check's own lines from the engine's fields, same
+// filters, same order, each option the refine Market Check sends; the page draws them under the card in a, b and c.
+{ const { linesOf, partnerShape: ps } = await import("../api/partnerAnswer.js");
+  const m3 = { status: "one_box", tier: "result", cluster: [20000, 47000], poolN: 12, soldCount: 12, resolvedCar: { year: 2001, make: "BMW", model: "M3", canonicalLabel: "2001 BMW M3" }, bodyOptions: [{ value: "convertible", label: "Convertible", n: 9, inPool: 9 }, { value: "coupe", label: "Coupe", n: 3, inPool: 3 }], cards: [] };
+  const L = linesOf(m3);
+  ok(L.length === 1 && L[0].key === "body" && L[0].lead === "Which M3?" && L[0].options.map(o => o.label + " (" + o.n + ")").join(" · ") === "Convertible (9) · Coupe (3)" && L[0].any === 12, "2001 BMW M3: the demo carries Market Check's own line, Which M3? Convertible (9) · Coupe (3), Any (12)");
+  const L2 = linesOf({ tier: "result", poolN: 30, resolvedCar: { year: 2015, make: "Porsche", model: "911" }, trimQuestion: { model: "911", options: [{ value: "Carrera S", label: "Carrera S", n: 9 }, { value: "GT3", label: "GT3", n: 15 }, { value: "R", label: "R", n: 2, thin: true }] },
+    inlineSplits: [{ key: "gearbox", sides: [{ label: "Manuals", n: 10 }, { label: "PDKs", n: 20 }] }], variantOptionsLine: [{ key: "restoration", options: [{ label: "A", value: "a", n: 3 }, { label: "B", value: "b", n: 4 }] }, { key: "tour", options: [{ label: "Touring", value: "touring", n: "three" }, { label: "Wing", value: "wing", n: 5 }] }] });
+  ok(L2.map(l => l.key).join() === "trim,tx,variant" && L2[0].options.length === 2 && L2[1].options.map(o => o.label + ":" + o.value).join() === "Manual:manual,PDK:auto" && L2[2].options[0].n === 3 && L2[2].any === 8, "trim (thin options hidden), gearbox (singular labels, manual or auto) and one variant line (restoration skipped, counts in words read as numbers), Market Check's order");
+  ok(linesOf({ tier: "identity_question", bodyOptions: m3.bodyOptions }).length === 0 && linesOf({ ...m3, bodyOptions: [m3.bodyOptions[0]] }).length === 0, "no line on a question, none with a single option");
+  ok(venueLeak(ps(m3, "2001 bmw M3", 1, {})).length === 0 && ps(m3, "2001 bmw M3", 1, {}).lines.length === 1, "the lines ride the answer and pass the venue-leak guard");
+  const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
+  ok(/send\.refine = \{\}; send\.refine\[key\] = val;/.test(pageSrc) && /rangePanel\(a, \{ lines: "a" \}\)/.test(pageSrc) && /lines: "b" \}/.test(pageSrc) && /Any \(' \+ Number\(l\.any\)/.test(pageSrc), "views a, b and c draw the lines; an option reruns the same query with its refine; Any goes back"); }
 // The endpoint reads no market of its own: Market Check's handler is its only source of figures.
 const src = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8").replace(/\/\/[^\n]*/g, "");
 ok(/import\("\.\/sellerDecision\.js"\)/.test(src) && /oneBox: true/.test(src), "the endpoint asks Market Check's own handler");
