@@ -1,7 +1,9 @@
 // GOLDEN TRUTH (Lane B2, Oct 2026): compares all four product paths to the hand-derived answers in docs/golden-rules.md.
 //
 //   export PROBE_KEY="$(security find-generic-password -s goasksam-probe -w)"   # per command, never printed
-//   node scripts/goldenTruth.mjs [--quick] [--ids 1,3] [--pages] [--base https://goasksam.com] [--strict]
+//   node scripts/goldenTruth.mjs [--quick] [--ids 1,3] [--pages] [--deadline=240] [--wording] [--base https://goasksam.com] [--strict]
+//   default = mode api (engine answers through the keyed enginecheck path; a page only for rows whose check needs the printed text);
+//   --pages = mode pages (every row's Market Check, Buy and Sell page: the launch run); --wording = the e60 launch wording checks (no month count anywhere).
 //
 // For every golden car: the keyed READ-ONLY enginecheck ops task (Market Check, Buy, Sell and Tasks lanes), and, for cars
 // marked "page", the public Market Check page heading. Compares rung, label, count, low and high. One table: car by product,
@@ -163,6 +165,15 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
   const textDiffs = (g, text, pr, parsed) => {
     const out = [];
     // Typed-body rows (Oct 16 2026): a words answer prints its sentence and no count or range; a "states a body" count row prints its one line.
+    // LAUNCH WORDING (Sam, Oct 17 2026; run with --wording once e60 is live): no month count on any product; the shared card says "Latest sale: {Month Year}." and its basis
+    // line reads "Based on N sales, the latest in {Month Year}." (a count under ten as a word). Off by default: today's pages still say "last 12 months".
+    if (flag("wording") && (pr === "marketCheck" || pr === "sell")) {
+      const flat0 = String(text).replace(/\s+/g, " ");
+      const mc = /\b(?:last|past|within)\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|twelve|twenty-four|thirty-six|sixty)\s+months?\b/i.exec(flat0);
+      if (mc) out.push(`the page prints a month count: "${mc[0]}"`);
+      if (pr === "marketCheck" && parsed && parsed.count != null && parsed.count > 0 && !/Latest sale: [A-Z][a-z]+ \d{4}\./.test(flat0)) out.push('the card does not say "Latest sale: {Month Year}."');
+      if (pr === "marketCheck" && parsed && parsed.count != null && parsed.count > 0 && !/Based on (\d+|[A-Za-z]+) sales?, the latest in [A-Z][a-z]+ \d{4}\./.test(flat0)) out.push('the card basis line does not read "Based on N sales, the latest in {Month Year}."');
+    }
     if (pr === "marketCheck") {
       const flat = String(text).replace(/\s+/g, " ");
       for (const w of g.wordsHas || []) if (!flat.includes(w)) out.push(`the page does not print the sentence: "${w}"`);
