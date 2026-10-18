@@ -3,12 +3,7 @@
   "redirects": [
     {
       "source": "/(.*)",
-      "has": [
-        {
-          "type": "host",
-          "value": "goasksam.vercel.app"
-        }
-      ],
+      "has": [{ "type": "host", "value": "goasksam.vercel.app" }],
       "destination": "https://goasksam.com/$1",
       "permanent": true
     },
@@ -29,466 +24,95 @@
     }
   ],
   "rewrites": [
-    {
-      "source": "/api/task-link",
-      "destination": "/api/watch"
-    },
-    {
-      "source": "/sell",
-      "has": [
-        {
-          "type": "query",
-          "key": "car"
-        }
-      ],
-      "destination": "/api/sellNext"
-    },
-    {
-      "source": "/sell",
-      "has": [
-        {
-          "type": "cookie",
-          "key": "gas_crew",
-          "value": "v1\\..*"
-        }
-      ],
-      "destination": "/api/sellPage?_crew=1"
-    },
-    {
-      "source": "/sell",
-      "destination": "/api/sellPage"
-    },
-    {
-      "source": "/tasks",
-      "has": [
-        {
-          "type": "cookie",
-          "key": "gas_crew",
-          "value": "v1\\..*"
-        }
-      ],
-      "destination": "/api/tasksPage?_crew=1"
-    },
-    {
-      "source": "/tasks",
-      "destination": "/api/tasksPage"
-    },
-    {
-      "source": "/tasks/mine",
-      "has": [
-        {
-          "type": "cookie",
-          "key": "gas_crew",
-          "value": "v1\\..*"
-        }
-      ],
-      "destination": "/api/tasksPage?app=1&_crew=1"
-    },
-    {
-      "source": "/tasks/mine",
-      "destination": "/api/tasksPage?app=1"
-    },
-    {
-      "source": "/market-check",
-      "has": [
-        {
-          "type": "cookie",
-          "key": "gas_crew",
-          "value": "v1\\..*"
-        }
-      ],
-      "destination": "/api/marketCheck?_crew=1"
-    },
-    {
-      "source": "/market-check",
-      "destination": "/api/marketCheck"
-    },
-    {
-      "source": "/sitemap-specs.xml",
-      "destination": "/api/specPage?sitemap=1"
-    },
-    {
-      "source": "/sitemap-pages.xml",
-      "destination": "/api/sitemapPages"
-    },
-    {
-      "source": "/cars/porsche/911",
-      "has": [
-        {
-          "type": "cookie",
-          "key": "gas_crew",
-          "value": "v1\\..*"
-        }
-      ],
-      "destination": "/api/specPage?slug=/cars/porsche/911&_crew=1"
-    },
-    {
-      "source": "/cars/porsche/911",
-      "destination": "/api/specPage?slug=/cars/porsche/911"
-    },
-    {
-      "source": "/cars/porsche/911/:path*",
-      "has": [
-        {
-          "type": "cookie",
-          "key": "gas_crew",
-          "value": "v1\\..*"
-        }
-      ],
-      "destination": "/api/specPage?slug=/cars/porsche/911/:path*&_crew=1"
-    },
-    {
-      "source": "/cars/porsche/911/:path*",
-      "destination": "/api/specPage?slug=/cars/porsche/911/:path*"
-    },
-    {
-      "source": "/o/:id",
-      "destination": "/api/publicConfig?obShare=:id"
-    },
-    {
-      "source": "/onebox-preview",
-      "destination": "/onebox-preview.html"
-    },
-    {
-      "source": "/privacy",
-      "destination": "/privacy.html"
-    },
-    {
-      "source": "/about",
-      "destination": "/about.html"
-    },
-    {
-      "source": "/how-sam-decides",
-      "has": [
-        {
-          "type": "cookie",
-          "key": "gas_crew",
-          "value": "v1\\..*"
-        }
-      ],
-      "destination": "/api/howSamDecides?_crew=1"
-    },
-    {
-      "source": "/how-sam-decides",
-      "destination": "/api/howSamDecides"
-    },
-    {
-      "source": "/partner-demo",
-      "destination": "/api/partnerDemo"
-    },
-    {
-      "source": "/business",
-      "has": [
-        {
-          "type": "cookie",
-          "key": "gas_crew",
-          "value": "v1\\..*"
-        }
-      ],
-      "destination": "/api/business?_crew=1"
-    },
-    {
-      "source": "/business",
-      "destination": "/api/business"
-    },
-    {
-      "source": "/powersellers",
-      "destination": "/powersellers.html"
-    },
-    {
-      "source": "/mcp",
-      "destination": "/mcp.html"
-    },
-    {
-      "source": "/(google[A-Za-z0-9_-]+\\.html)",
-      "destination": "/api/gsc?file=$1"
-    },
-    {
-      "source": "/out",
-      "destination": "/api/out"
-    },
-    {
-      "source": "/styles.20260907a.css",
-      "destination": "/styles.css"
-    },
-    {
-      "source": "/js.20261009a/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/js.20261009b/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/js.20261009c/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/js.20261009d/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/js.20261009e/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/js.20261009f/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/js.20261009g/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/js.20261009h/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/js.20261009i/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/js.20261009j/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/js.20261009k/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/js.20261009l/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/js.20261009m/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/js.20261009n/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/js.20261009o/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/js.20261009p/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/js.20261009q/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/js.20261009r/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/js.20261010a/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/js.20261010b/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/obx.20261012a/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/obx.20261012b/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/obx.20261013a/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/obx.20261013b/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/obx.20261014a/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/obx.20261014b/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/obx.20261014c/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/obx.20261014d/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/obx.20261014e/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/obx.20261014f/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/obx.20261014g/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/obx.20261014h/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/obx.20261014i/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/obx.20261014j/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/obx.20261014k/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/obx.20261014l/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/obx.20261014m/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/obx.20261014n/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/admin",
-      "destination": "/api/admin?page=1"
-    },
-    {
-      "source": "/desk",
-      "has": [
-        {
-          "type": "cookie",
-          "key": "gas_crew",
-          "value": "v1\\..*"
-        }
-      ],
-      "destination": "/desk.html"
-    },
-    {
-      "source": "/desk",
-      "has": [
-        {
-          "type": "cookie",
-          "key": "gas_tester",
-          "value": "t1\\..*"
-        }
-      ],
-      "destination": "/desk.html"
-    },
-    {
-      "source": "/history/:slug/:vin",
-      "has": [
-        {
-          "type": "cookie",
-          "key": "gas_crew",
-          "value": "v1\\..*"
-        }
-      ],
-      "destination": "/api/history?slug=:slug&vin=:vin&_crew=1"
-    },
-    {
-      "source": "/history/:slug/:vin",
-      "destination": "/api/history?slug=:slug&vin=:vin"
-    },
-    {
-      "source": "/history/:slug",
-      "has": [
-        {
-          "type": "cookie",
-          "key": "gas_crew",
-          "value": "v1\\..*"
-        }
-      ],
-      "destination": "/api/history?slug=:slug&_crew=1"
-    },
-    {
-      "source": "/history/:slug",
-      "destination": "/api/history?slug=:slug"
-    },
-    {
-      "source": "/vin/:vin",
-      "has": [
-        {
-          "type": "cookie",
-          "key": "gas_crew",
-          "value": "v1\\..*"
-        }
-      ],
-      "destination": "/api/history?vin=:vin&go=1&_crew=1"
-    },
-    {
-      "source": "/vin/:vin",
-      "destination": "/api/history?vin=:vin&go=1"
-    },
-    {
-      "source": "/sitemap-vins.xml",
-      "destination": "/api/history?sitemap=index"
-    },
-    {
-      "source": "/sitemap-vins-hubs.xml",
-      "destination": "/api/history?sitemap=hubs"
-    },
-    {
-      "source": "/sitemap-vins-(\\d+).xml",
-      "destination": "/api/history?sitemap=$1"
-    },
-    {
-      "source": "/sitemap-motorcycles.xml",
-      "destination": "/api/history?sitemap=motorcycles"
-    },
-    {
-      "source": "/sitemap-other.xml",
-      "destination": "/api/history?sitemap=other"
-    },
-    {
-      "source": "/buy",
-      "has": [
-        {
-          "type": "cookie",
-          "key": "gas_crew",
-          "value": "v1\\..*"
-        }
-      ],
-      "destination": "/api/buy?_crew=1"
-    },
-    {
-      "source": "/buy",
-      "destination": "/api/buy"
-    },
-    {
-      "source": "/dsk.20260928k/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/dsk.20261006a/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/dsk.20261006b/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/dsk.20261006c/(.*)",
-      "destination": "/js/$1"
-    },
-    {
-      "source": "/dsk.20261006d/(.*)",
-      "destination": "/js/$1"
-    }
+    { "source": "/api/task-link", "destination": "/api/watch" },
+    { "source": "/sell", "has": [{ "type": "query", "key": "car" }], "destination": "/api/sellNext" },
+    { "source": "/sell", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/sellPage?_crew=1" },
+    { "source": "/sell", "destination": "/api/sellPage" },
+    { "source": "/tasks", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/tasksPage?_crew=1" },
+    { "source": "/tasks", "destination": "/api/tasksPage" },
+    { "source": "/tasks/mine", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/tasksPage?app=1&_crew=1" },
+    { "source": "/tasks/mine", "destination": "/api/tasksPage?app=1" },
+    { "source": "/market-check", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/marketCheck?_crew=1" },
+    { "source": "/market-check", "destination": "/api/marketCheck" },
+    { "source": "/sitemap-specs.xml", "destination": "/api/specPage?sitemap=1" },
+    { "source": "/sitemap-pages.xml", "destination": "/api/sitemapPages" },
+    { "source": "/cars/porsche/911", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/specPage?slug=/cars/porsche/911&_crew=1" },
+    { "source": "/cars/porsche/911", "destination": "/api/specPage?slug=/cars/porsche/911" },
+    { "source": "/cars/porsche/911/:path*", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/specPage?slug=/cars/porsche/911/:path*&_crew=1" },
+    { "source": "/cars/porsche/911/:path*", "destination": "/api/specPage?slug=/cars/porsche/911/:path*" },
+    { "source": "/o/:id", "destination": "/api/publicConfig?obShare=:id" },
+    { "source": "/onebox-preview", "destination": "/onebox-preview.html" },
+    { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/about", "destination": "/about.html" },
+    { "source": "/how-sam-decides", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/howSamDecides?_crew=1" },
+    { "source": "/how-sam-decides", "destination": "/api/howSamDecides" },
+    { "source": "/partner-demo", "destination": "/api/partnerDemo" },
+    { "source": "/business", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/business?_crew=1" },
+    { "source": "/business", "destination": "/api/business" },
+    { "source": "/powersellers", "destination": "/powersellers.html" },
+    { "source": "/mcp", "destination": "/mcp.html" },
+    { "source": "/(google[A-Za-z0-9_-]+\\.html)", "destination": "/api/gsc?file=$1" },
+    { "source": "/out", "destination": "/api/out" },
+    { "source": "/styles.20260907a.css", "destination": "/styles.css" },
+    { "source": "/js.20261009a/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20261009b/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20261009c/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20261009d/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20261009e/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20261009f/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20261009g/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20261009h/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20261009i/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20261009j/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20261009k/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20261009l/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20261009m/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20261009n/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20261009o/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20261009p/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20261009q/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20261009r/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20261010a/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20261010b/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261012a/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261012b/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261013a/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261013b/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261014a/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261014b/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261014c/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261014d/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261014e/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261014f/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261014g/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261014h/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261014i/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261014j/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261014k/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261014l/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261014m/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261014n/(.*)", "destination": "/js/$1" },
+    { "source": "/admin", "destination": "/api/admin?page=1" },
+    { "source": "/desk", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/desk.html" },
+    { "source": "/desk", "has": [{ "type": "cookie", "key": "gas_tester", "value": "t1\\..*" }], "destination": "/desk.html" },
+    { "source": "/history/:slug/:vin", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/history?slug=:slug&vin=:vin&_crew=1" },
+    { "source": "/history/:slug/:vin", "destination": "/api/history?slug=:slug&vin=:vin" },
+    { "source": "/history/:slug", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/history?slug=:slug&_crew=1" },
+    { "source": "/history/:slug", "destination": "/api/history?slug=:slug" },
+    { "source": "/vin/:vin", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/history?vin=:vin&go=1&_crew=1" },
+    { "source": "/vin/:vin", "destination": "/api/history?vin=:vin&go=1" },
+    { "source": "/sitemap-vins.xml", "destination": "/api/history?sitemap=index" },
+    { "source": "/sitemap-vins-hubs.xml", "destination": "/api/history?sitemap=hubs" },
+    { "source": "/sitemap-vins-(\\d+).xml", "destination": "/api/history?sitemap=$1" },
+    { "source": "/sitemap-motorcycles.xml", "destination": "/api/history?sitemap=motorcycles" },
+    { "source": "/sitemap-other.xml", "destination": "/api/history?sitemap=other" },
+    { "source": "/buy", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/buy?_crew=1" },
+    { "source": "/buy", "destination": "/api/buy" },
+    { "source": "/dsk.20260928k/(.*)", "destination": "/js/$1" },
+    { "source": "/dsk.20261006a/(.*)", "destination": "/js/$1" },
+    { "source": "/dsk.20261006b/(.*)", "destination": "/js/$1" },
+    { "source": "/dsk.20261006c/(.*)", "destination": "/js/$1" },
+    { "source": "/dsk.20261006d/(.*)", "destination": "/js/$1" }
   ],
   "functions": {
     "api/usageDashboard.js": {
@@ -521,53 +145,17 @@
     }
   },
   "crons": [
-    {
-      "path": "/api/usageDashboard?view=ops&task=depth",
-      "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/usageDashboard?view=ops&task=fill",
-      "schedule": "0 12 * * *"
-    },
-    {
-      "path": "/api/pullLive?mode=auto",
-      "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/refreshSpecLiveCounts",
-      "schedule": "35 */4 * * *"
-    },
-    {
-      "path": "/api/tasks?run=1&ifnew=1",
-      "schedule": "5,20,35,50 * * * *"
-    },
-    {
-      "path": "/api/tasks?send=1",
-      "schedule": "10,25,40,55 * * * *"
-    },
-    {
-      "path": "/api/history?photocheck=vins",
-      "schedule": "40 9 * * *"
-    },
-    {
-      "path": "/api/history?photocheck=hubs",
-      "schedule": "50 9 * * *"
-    },
-    {
-      "path": "/api/admin?refresh=hour",
-      "schedule": "7 * * * *"
-    },
-    {
-      "path": "/api/admin?refresh=night",
-      "schedule": "20 10 * * *"
-    },
-    {
-      "path": "/api/usageDashboard?view=ops&task=warmDemo",
-      "schedule": "5 0 * * *"
-    },
-    {
-      "path": "/api/usageDashboard?view=ops&task=warmDemo",
-      "schedule": "5 12 * * *"
-    }
+    { "path": "/api/usageDashboard?view=ops&task=depth", "schedule": "0 8 * * *" },
+    { "path": "/api/usageDashboard?view=ops&task=fill", "schedule": "0 12 * * *" },
+    { "path": "/api/pullLive?mode=auto", "schedule": "*/15 * * * *" },
+    { "path": "/api/refreshSpecLiveCounts", "schedule": "35 */4 * * *" },
+    { "path": "/api/tasks?run=1&ifnew=1", "schedule": "5,20,35,50 * * * *" },
+    { "path": "/api/tasks?send=1", "schedule": "10,25,40,55 * * * *" },
+    { "path": "/api/history?photocheck=vins", "schedule": "40 9 * * *" },
+    { "path": "/api/history?photocheck=hubs", "schedule": "50 9 * * *" },
+    { "path": "/api/admin?refresh=hour", "schedule": "7 * * * *" },
+    { "path": "/api/admin?refresh=night", "schedule": "20 10 * * *" },
+    { "path": "/api/usageDashboard?view=ops&task=warmDemo", "schedule": "5 0 * * *" },
+    { "path": "/api/usageDashboard?view=ops&task=warmDemo", "schedule": "5 12 * * *" }
   ]
 }
