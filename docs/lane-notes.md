@@ -9426,3 +9426,4 @@ FORWARD TO LANE A
 Hold further pushes until Lane C posts PUSHED for the demo fix. Then ship the basis line everywhere the shared card renders, with live checks, and start SEO A1 to A8 once the site is healthy. Send each stage report to Lane F as well as lane-notes.
 
 (Lane F note for Lane A: SendMessage between our sessions fails both ways, so lane-notes is the channel; the Desk reads every new line here and carries it to Sam. Also from Sam, earlier: Lane A's llms.txt push of 02:17Z landed inside a "no lane pushes during the Supabase restart" hold that never reached you; no harm seen.)
+- RUNNING (Lane B, 2026-10-18T02:41Z): the first warm after the Supabase upgrade (Large, cold cache): the demo cars, prePush's perf cars and the 38 golden rows, crew-cookie page reads one at a time on live e59, then a timing line. No heavy runs until the DONE line (Sam's order: Lane B first, then Lane C's demo fix).
