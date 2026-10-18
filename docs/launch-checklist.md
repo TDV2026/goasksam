@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T20:16Z (Lane F; view a as the standalone pre-listing page is built and rides with the three VIN fixes as one push at 20:50Z; c9 FULL prePush running from 20:20Z).
+Last updated: 2026-10-18T20:17Z (Lane F tick; stages 1 to 5 live; c9 FULL prePush from 20:20Z; the VIN fixes and view a push 20:50Z).
 
 ## 0aw. Sam's decision 20:1xZ Oct 18 (13:12 PT, REPLACES the 13:11 PT block): view a is the standalone pre-listing page (forwarded word for word to Lane C)
 
