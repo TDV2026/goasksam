@@ -129,6 +129,9 @@ h3{font-size:18px;line-height:1.3;margin:0 0 10px;font-weight:700}
 .gal-hero{grid-template-columns:1fr}
 .thumb-img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:12px;background:#d9d9d9}
 .b-hero{max-width:760px;margin:0 0 22px}
+.b-hero:empty{display:none}
+.car-photo{margin:0 0 18px;max-width:760px}
+#c-photo .car-photo{max-width:none}
 .full-a{margin-top:26px}
 .full-a h2{font-size:20px;margin-bottom:8px}
 .sl-head{margin:-6px 0 12px}
@@ -294,6 +297,12 @@ const JS = String.raw`
     if (x > a.range.high) return { cls: "above", text: w + "above the usual range" };
     return { cls: "in", text: w + "inside the usual range" };
   }
+  // The car's photo (Sam, Oct 18 2026): the endpoint's carPhoto, a photo from the engine's own included sales of this
+  // car, served by id; none when the engine has none, and a photo that fails to load leaves nothing behind.
+  function carPhotoHtml(a){
+    var p = a && a.ok !== false && a.carPhoto && a.carPhoto.photo;
+    return p ? '<div class="car-photo"><img class="hero-img" data-ph src="/api/partnerAnswer?photo=' + encodeURIComponent(p) + '" alt="' + esc(CAR) + '" decoding="async"></div>' : "";
+  }
   function idChips(a){
     var id = a && a.identity; if (!id) return "";
     var parts = [id.year, id.make, id.generation && id.model ? id.model + " (" + id.generation + ")" : (id.model || id.generation), id.body, id.variant].filter(Boolean);
@@ -396,14 +405,14 @@ const JS = String.raw`
     noteLines("a", a);
     aLast = a;
     if (a.ok === false) { $("a-out").innerHTML = rangePanel(a, { slot: "a" }); return; }
-    $("a-out").innerHTML = (a.question ? rangePanel(a, { slot: "a", chips: true }) : (idChips(a) ? '<div style="margin:0 0 16px">' + idChips(a) + "</div>" : "") + (a.range || a.thin ? rangePanel(a, { lines: "a" }) : "")) + (a.vin || (a.history && a.history.length) ? historyPanel(a) : "") +
+    $("a-out").innerHTML = (a.question ? "" : carPhotoHtml(a)) + (a.question ? rangePanel(a, { slot: "a", chips: true }) : (idChips(a) ? '<div style="margin:0 0 16px">' + idChips(a) + "</div>" : "") + (a.range || a.thin ? rangePanel(a, { lines: "a" }) : "")) + (a.vin || (a.history && a.history.length) ? historyPanel(a) : "") +
       (!a.question && a.sales && a.sales.length ? '<section class="full-a"><h2>What cars like this sold for</h2>' + salesList(a, "a") + "</section>" : "") +
       '<div style="margin-top:20px"><button type="button" class="btn pri" id="a-list">List it</button></div>';
   }
   function runA(body){ $("a-out").innerHTML = '<p class="loading">Sam is reading the sales for this one.</p>'; run("a", body, drawA); }
   // ---- view b: setting a reserve
   var bAns = null;
-  function gotB(a){ bAns = a; noteLines("b", a); drawB(); }
+  function gotB(a){ bAns = a; noteLines("b", a); if (!D && $("b-photo")) $("b-photo").innerHTML = carPhotoHtml(a); drawB(); }
   function drawB(){
     var v = Number(String($("b-res").value || "").replace(/[^\d]/g, ""));
     var a = bAns; if (!a) return;
@@ -422,6 +431,7 @@ const JS = String.raw`
   var cAns = null;
   function drawListing(a){
     cAns = a; noteLines("c", a);
+    if (!D && $("c-photo")) $("c-photo").innerHTML = carPhotoHtml(a);
     $("c-rail").innerHTML = rangePanel(a, D ? { price: D.price, slot: "c", lines: "c" } : { slot: "c", lines: "c" });
     var lq = a && a.range && a.trend && a.trend.length ? a.trend.reduce(function(m, t){ return String(t.period) > String(m.period) ? t : m; }) : null;   // the latest quarter with eight or more sales, view d only
     $("d-sales").innerHTML = '<h2>What cars like this sold for</h2>' +
@@ -495,7 +505,7 @@ export function pageHtml(view, carIn) {
   // recent sales with photos. No gallery, price, mileage, buy buttons or "This car before".
   const noListing = `
   <div class="listing with-below">
-    <div><h1>${escHtml(car)}</h1><p class="sub">Recent sales of cars like this one.</p></div>
+    <div><div id="c-photo"></div><h1>${escHtml(car)}</h1><p class="sub">Recent sales of cars like this one.</p></div>
     <div class="rail"><div id="c-rail"><p class="loading">Sam is reading the sales for this one.</p></div></div>
     <div class="below-gal"><div class="full" id="d-sales"><p class="loading">Sam is reading the sales for this one.</p></div><div class="full" id="d-hist"></div></div>
   </div>`;
@@ -512,7 +522,7 @@ ${carBar}
   <div id="a-out" style="margin-top:22px"></div></div>
 </section>
 <section class="sec-view wrap" id="view-b"${v === "b" ? "" : " hidden"}>
-  ${hasListing ? `<div class="b-hero">${hero}</div>` : ""}
+  ${hasListing ? `<div class="b-hero">${hero}</div>` : `<div class="b-hero" id="b-photo"></div>`}
   <div class="lead"><h1>Set your reserve</h1><p class="sub">${hasListing ? `${d.title}, ${miles} miles` : escHtml(car)}</p>
   <div class="reserve"><label for="b-res">Reserve</label><span class="money">$<input id="b-res" inputmode="numeric" placeholder="0" aria-label="Reserve in dollars"></span></div>
   <div id="b-out"><p class="loading">Sam is reading the sales for this one.</p></div></div>

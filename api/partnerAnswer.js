@@ -212,6 +212,19 @@ export function salesOf(d) {
   else rows = (Array.isArray(d.cards) ? d.cards : []).map(c => ({ photo: rowId(c), name: rowTitle(c), price: num(c.price), date: day(c.date), miles: num(c.mi) }));
   return rows.filter(r => r.price).sort((a, b) => a.price - b.price || String(a.date || "").localeCompare(String(b.date || "")));
 }
+// THE CAR'S PHOTO (Sam, Oct 18 2026, for the eBay showing: always a photo of the same car when there is one, never a
+// wrong one). Taken only from the engine's own included sales for this answer (never a set-aside row): the engine's pool
+// is already that car's generation and trim, with halo trims set aside. A sale of the same year first, newest first;
+// then any included sale. No photo on any included sale means no photo. The id is served by the same ?photo= path.
+export function carPhotoOf(d, year) {
+  const rows = salesOf(d).filter(r => r.photo);
+  if (!rows.length) return null;
+  const yr = r => { const m = /^(\d{4})\b/.exec(String(r.name || "")); return m ? Number(m[1]) : null; };
+  const newest = (a, b) => String(b.date || "").localeCompare(String(a.date || ""));
+  const same = year ? rows.filter(r => yr(r) === Number(year)).sort(newest) : [];
+  const pick = same[0] || rows.slice().sort(newest)[0];
+  return { photo: pick.photo, sameYear: !!same[0] };
+}
 // The count Market Check's page heads its answer with (heroPoolSizeNum: poolSize, then poolN, then the facts block).
 export function countOf(d) {
   if (!d) return null;
@@ -366,6 +379,7 @@ export function partnerShape(d, text, asked, extra = {}) {
     card: demoCard(sellsForCardHtml(d, { partnerPillsHtml: PILL_SLOT }), d) || null,
     quarter: latestQuarterRowHtml({ ...d, trendQuarters: mapEngineAnswer(d).trendQuarters }) || null,
     lines: linesOf(d),
+    carPhoto: carPhotoOf(d, (identityOf(d, extra.id) || {}).year || (/^(\d{4})\b/.exec(String(text || "")) || [])[1] || null),
     history: extra.history || null
   };
 }

@@ -234,6 +234,22 @@ for (const [name, d] of Object.entries(FIX)) {
     ok(!/demo/i.test(shown) && !strs.length, `${car}, view ${v}: no "demo" a viewer can see (${(shown.match(/[^<>]{0,20}demo[^<>]{0,20}/i) || [""])[0]}${strs.join(" ")})`);
   }
   ok(/<title>What these sell for<\/title>/.test(pageHtml("a")) && />What these sell for, powered by GoAskSam\.</.test(pageHtml("a")), "the title and the top line read \"What these sell for\""); }
+// THE CAR'S PHOTO (Sam, Oct 18 2026): from the engine's own included sales only (never a set-aside row), the same
+// year first and newest first, then any included sale; none when no included sale has a photo.
+{ const { carPhotoOf, partnerShape: ps } = await import("../api/partnerAnswer.js");
+  const U = n => "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5" + n;
+  const d = { status: "one_box", tier: "result", cluster: [38000, 51000], poolN: 3, resolvedCar: { year: 2005, make: "Porsche", model: "911" },
+    cards: [{ price: 40000, date: "2026-09-01", title: "2006 Porsche 911 Carrera", id: U(1) }, { price: 45000, date: "2026-05-01", title: "2005 Porsche 911 Carrera", id: U(2) }, { price: 47000, date: "2026-08-01", title: "2005 Porsche 911 Carrera S", id: U(3) }],
+    setAsideRows: [{ price: 190000, date: "2026-10-01", title: "2005 Porsche 911 GT3", id: U(9), reason: "odd sale", setAside: true }] };
+  const cp = carPhotoOf(d, 2005);
+  ok(cp && cp.photo === U(3) && cp.sameYear === true, "the photo is the newest included sale of the same year (" + JSON.stringify(cp) + ")");
+  ok(carPhotoOf(d, 2004).photo === U(1) && carPhotoOf(d, 2004).sameYear === false, "no same-year sale: the newest included sale of the engine's pool");
+  ok(![2005, 2004, null].some(y => (carPhotoOf(d, y) || {}).photo === U(9)), "never a set-aside row's photo (a GT3 set aside from a base 911)");
+  ok(carPhotoOf({ ...d, cards: d.cards.map(c => ({ ...c, id: null })) }, 2005) === null && carPhotoOf(null, 2005) === null, "no photo on any included sale: no photo");
+  const out = ps(d, "2005 Porsche 911", 0, {});
+  ok(out.carPhoto && out.carPhoto.photo === U(3) && venueLeak(out).length === 0, "the endpoint answer carries the photo id only, with no venue or link");
+  const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
+  ok(/var p = a && a\.ok !== false && a\.carPhoto && a\.carPhoto\.photo;/.test(pageSrc) && /'<div class="car-photo"><img class="hero-img" data-ph src="\/api\/partnerAnswer\?photo=' \+ encodeURIComponent\(p\)/.test(pageSrc), "the page draws only the endpoint's photo, by id, and a failed photo leaves nothing"); }
 // The endpoint reads no market of its own: Market Check's handler is its only source of figures.
 const src = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8").replace(/\/\/[^\n]*/g, "");
 ok(/import\("\.\/sellerDecision\.js"\)/.test(src) && /oneBox: true/.test(src), "the endpoint asks Market Check's own handler");
