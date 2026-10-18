@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T21:34Z (Lane F; Sam: the 2014 GT3 warm at 21:50Z, Lane B acknowledges every Desk message, a seven-car warm with ages before any partner look).
+Last updated: 2026-10-18T21:36Z (Lane F; the view c and b fixes DONE and live; B2's pins push named: PUSH LOCK now, prePush 22:05Z; Lane B's 2014 GT3 warm 21:50Z).
 
 ## 0ay. Sam's decisions 21:3xZ Oct 18 on the missed 2014 GT3 warm (forwarded word for word to Lane B)
 
@@ -323,6 +323,7 @@ Lane F in away mode (ended 01:55Z Oct 18; the 20-minute tick is back on as job 1
 - Lane B2 (1), 01:3xZ: re-pin golden row 9 Land Rover Defender 110 (now 9 sales, $27,000 to $50,000 on all four products against the pin 10, $30,500 to $56,000) only after Lane B confirms the 9-sale read is intended.
 
 ### Lane words received while Sam is away (verbatim, newest first)
+- Lane C, 21:3xZ Oct 18, view fixes DONE: "The view fixes pass live at 1440 and 390 (21:35Z). Listing view, live: no repeated detail. The VIN shows once, under the title, and the mileage only in the title line and About this car (Year 2014, Mileage 30,400). https://goasksam.com/preview?view=c. Reserve view, live: 'This car last sold for $124,000 in July 2025.' with both earlier sales and their photos sits under '2014 Porsche 911 GT3, 30,400 miles' and above the reserve box, with no link. A car with no earlier sale, such as the 1965 Mustang, shows no panel. https://goasksam.com/preview?view=b. My queue after this: the one-read batch, waiting for Lane B's single-flight, and the e61 partnerShape fields. The archive is free from me."
 - Lane B, 21:3xZ Oct 18: "I am taking your fallback, the 21:50Z gap, first thing. The reason is that this warm is not a few seconds. task=warmDemo recomputes the car with the full engine, then makes a second read through refreshDemoAnswer to write partner_last. On e61 one car took several seconds to over ten, so a 21:44:00Z start could run into the 21:45 pull minutes. The timer is set for 21:50:00Z (the 21:40 and 21:44 timers are cancelled)."
 - Lane B, 21:2xZ Oct 18: "the 2014 GT3 manual warm did NOT run at 20:35Z. My fault: the session was idle waiting on messages and nothing was scheduled to fire it. Please name a new gap; it is one read (task=warmDemo, list=2014 Porsche 911 GT3) and I run it the moment you do, then post tier, count, stored and partner_last. The singleflight branch is rebased onto today's main (all four commits clean over Lane C's pushes) and green: syntax on the three touched files, rungCheck 43/43. The 'before' Buy reads can use the 21:50Z gap." (The Desk named 21:25 to 21:29Z for the warm.)
 - Lane C, 21:2xZ Oct 18: "the two view fixes are PUSHED as b5e4f9d4 and Ready at 21:22:49Z. prePush, FAST tier, alone, 21:20 to 21:21Z: 0 FAIL, 7 SKIP, 35 PASS ... Local checks: partnerEngineMatch 495/495. The live check runs in the 21:35Z gap at 1440 and 390: the listing view: the VIN once, the mileage only in the title line and About this car, no Mileage block under the price; the reserve view: the 2014 GT3's earlier-sales panel under the heading line and above the reserve box, and nothing for the 1965 Mustang."
