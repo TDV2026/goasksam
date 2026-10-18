@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T17:5xZ (Lane F; the typed-car fix is PUSHED and live (7e9dc090, 59cf1c2e) on a clean FULL prePush; reproduction of Sam's path at 18:05Z; eBay stages 1 and 2 next).
+Last updated: 2026-10-18T18:0xZ (Lane F; Sam answered the four eBay questions: /preview path (Lane C's own vercel.json push), caption yes, venue-blind kept, official logo fetched with 'Prepared for eBay'; stages 3 to 5 unblocked; c9 waits for Sam's word).
+
+## 0aq. Sam's answers 18:0xZ Oct 18 to Lane C's four eBay questions (forwarded word for word to Lane C)
+
+1. Address: a neutral path, /preview; /partner-demo redirects to it so saved links work; Lane C adds the vercel.json rewrite itself in its own push in the file's one-line style (testerCheck must pass); the access cookie paths move to the new path and the API path; noindex, unlinked and code-only unchanged; nothing about the code in chat, files or logs. 2. Stage 3 caption YES: "Photo from a recent sale of a car like this one." (from the engine's included sales; no venue in the caption). 3. Exact-car prior-sale panel KEEPS VENUE-BLIND: date, price, mileage and photo; no venue name, no link; the photo proxy and venue-leak guard stay; lifting it needs a separate instruction. 4. eBay logo: Lane C fetches it from eBay's own official brand page, unmodified, served from our site, with a small "Prepared for eBay" line beside it; Sam's file wins if supplied; no co-branding claim elsewhere. Stages 3 to 5 proceed; stages 1 and 2 stay one push. c9 waits for Sam's word (the e61 read is healthy). The photo, the prior sale and the pills all come from the engine's answer.
 
 ## 0ap. Sam's decisions 17:4xZ Oct 18 (forwarded word for word to Lane B; item 3 to Lane C and B2)
 
