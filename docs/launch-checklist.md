@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T18:1xZ (Lane F; the typed-car defect is CLOSED on live, 12 of 12; eBay stages 1 and 2 push at 18:20Z, the /preview path at 18:50Z; then stages 3 to 5, B2, singleflight, E9, Lane D, one-read, c9).
+Last updated: 2026-10-18T18:1xZ (Lane F; Sam's 18:14Z live review saw the pre-stage-1 wording, expected until the 18:20Z push; stage 1's scope restated (bar, no-listing line, every visible 'demo', build-failing check); Lane C's slot stands).
+
+## 0as. Sam's live review 18:14Z Oct 18 (11:14 PT): the old no-listing line still shows (forwarded word for word to Lane C)
+
+On live (2005 Porsche 911, view c) the car carries through but the wording is still "There is no listing for this car in the demo. These are the recent sales of cars like it." (expected: live main at 18:14Z carries the typed-car fix, not yet stages 1 and 2, which push at 18:20Z). For stage 1, "demo" must not appear anywhere a visitor can see it on any view, desktop and phone: 1. the no-listing line becomes "Recent sales of cars like this one."; 2. the black top bar loses "Closed demo." (Lane C proposes the bar's wording in its report, no em or en dashes), the view tabs stay; 3. the whole page output, title, headings, tab labels, empty states, error and retry lines, alt text and the visible address are searched and every "demo" removed or replaced, with a partnerEngineMatch check that FAILS the build if "demo" appears in any view's rendered text (the /preview path comes in its own push); 4. the "Partner logo" placeholder stays until stage 5.
 
 ## 0ar. c9 CONFIRMED by Sam 18:00Z Oct 18 (11:00 PT; forwarded word for word to Lane C, the warm line to Lane B)
 
