@@ -9443,3 +9443,29 @@ Hold further pushes until Lane C posts PUSHED for the demo fix. Then ship the ba
 - DONE (Lane B, 2026-10-18T02:48Z): the first warm after the Supabase upgrade (Large, cold cache), on live e59: 36 cars have their stored Market Check rows written and read back (the seven demo cars, prePush's three perf cars, the golden rows), crew-cookie page reads one at a time. readAt (UTC): 2015 GT3 02:01, 2005 911 02:12, 1965 Mustang 02:14, 356 Speedster 02:01, 2010 Boxster Convertible 15:21 (Oct 17), 2023 GT3 02:01, 997 Carrera S Coupe 15:21, 1995 911 Carrera 02:02, 1969 Camaro 11:34, 2025 911 02:10, 2024 911 Carrera S Coupe 15:27, CLK63 Black Series 15:30, Defender 110 02:44, 2003 M3 Coupe 02:14, 2024 GT3 02:11, 2018 Mustang GT 02:45, Buick Grand National 15:28, Saab 9-2X 02:45, Honda S2000 02:45, Corvette Split Window 02:45, 1995 NSX 02:45, Camaro convertible 02:46, Mustang fastback 02:46, M3 Competition Coupe 15:08, 1973 911 Targa 15:11, Corvette Roadster 15:11, Miata Roadster 15:12, 2006 Boxster Convertible 15:20; thin or words answers (no readAt until e60): 275 GTB, CLK DTM, Merkur XR4Ti, Bugatti Type 41, Cobra Roadster, 300SL Roadster, 911 Turbo Targa, C4S Cabriolet; 2005 Porsche 911 targa hit the 20-second card once and read as a refusal on the re-read (11 s). TIMING on the new compute: a light Market Check read of a warm row 1.6 to 2.0 s; a single-row database read 1.4 to 1.6 s; a cold engine compute 3.1 to 4.5 s; page reads median 2.7 s, max 14.5 s. Lane C may start (Sam's order).
 - FOR LANE C (Lane B, e60, the 00:05 UTC warm Sam approved): one cron line for vercel.json when e60 is live: { "path": "/api/usageDashboard?view=ops&task=warmDemo", "schedule": "5 0 * * *" }. task=warmDemo (api/usageDashboard.js, e60) warms in-process the seven demo cars, prePush's three perf cars and every golden row from docs/golden-rules.md, writing each stored Market Check row under the key the page reads; no cookie, the ops endpoint's cron secret. FOR LANE B2: the rows whose window changes under the shortest-eight rule are listed with their expected e60 counts and bands in ~/Desktop/goasksam-proofs/engine/e60-pins-for-b2.md (20 sweep rows; the 2015 GT3 goes 43 to 15 sales, the 2023 GT3 keeps 9); pin from the live e60 read after the push, not from the file's middle-half bands.
 - PUSH LOCK (Lane C, 2026-10-18T02:53Z): the partner demo fix (branch partner-fix, d44e115a + 3c003879: the internal read past Market Check's seal, the last good answer, no false no-sales text, the hero on view c, the demo's own daily car limit), Sam's order (2) after Lane B's warm DONE. Full-tier prePush alone started 19:50 PDT, in its browser check now; push under Sam's one-time exception only if the Market Check and Buy timing lines are the only failures, then the partner-code live checks at once, revert on any failure. B2's re-reads wait for the PUSHED line.
+- STAGE (Lane E, 2026-10-18T03:20Z): Sam's two spec-page checks are built into scripts/seoAudit.mjs (branch seo-audit,
+  3 commits): --defects (every spec, hub and VIN URL from the sitemaps through the keyed path; null, undefined, NaN,
+  "between and", an empty range, $0, a number run into a dollar figure, glued headers, slug-like labels; counts per
+  template) and --rows (every hub row against its child page's lead and against Market Check for the same spec: a year
+  inside the generation from the page's own slug data, the gearbox as the engine's refine.tx, the engine's window words
+  printed on every difference). Light validation on three pages and three hubs, one call at a time:
+  (a) the defect scan reproduces all four of Sam's defects on /cars/porsche/911 (null in the text and in the FAQ JSON-LD,
+  "between and", the count run into the range, "g body" and "3 2 carrera"), and the same glue and lowercase trim labels
+  on /cars/porsche/911/997;
+  (b) ONE-ENGINE FINDING, for Sam and Lane C's lib/specPages.js fix order: the spec pages compute their numbers in
+  lib/specPages.js (poolFor + statsFor, a fixed 365-day window), not through oneEngineAnswer, and every row read so far
+  differs from Market Check for the same spec: 997 Carrera S row 125 sales $44,500 to $67,000 against Market Check
+  "2008 Porsche 911 Carrera S" 19 sales $44,500 to $68,500; 997 Carrera S coupe manual 57 against 11; 997 Turbo 91
+  against 15; 997 GT3 8 against 33 (the engine widened to January 2022); the 901 row 100 against 36 (since January
+  2022). A generation row aggregates every trim while a year query reads the base car with halo trims set aside, so the
+  trim and leaf rows are the apples-to-apples test, and they differ too. The page and the child page agree with each
+  other on every row (the same second source).
+  (c) Two tooling facts: the Keychain item goasksam-crew holds the signed cookie VALUE (valid to Oct 2027), while
+  scripts/_crewCookie.mjs treats it as the crew code and re-mints a cookie the server refuses (Market Check's daily
+  distinct-car cap then applies to every keyed engine call); seoAudit uses the stored value as is. FOR LANE C: pushCheck
+  and buyEngineMatch mint through that helper, so their "crew" reads are not crew.
+  (d) Production health at 03:1xZ: two chassis-code engine reads answered tier "unavailable" and the next call returned
+  Vercel's "An error occurred with your deployment" page; probing stopped there.
+  Next, in Lane E's slot after E9 (one load at a time, RUNNING/DONE announced): the full --defects scan (95 spec URLs,
+  hubs, VINs sampled 10 per sitemap file; --all for every VIN) and the full --rows comparison. Zero defects on both is
+  the stated condition for Sam publishing the firewall change. Search check: no public page touched.
