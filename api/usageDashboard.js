@@ -4510,7 +4510,11 @@ async function handleOps(req, res) {
         row.ms = Date.now() - tr;
         if (!d || !d.tier) throw new Error("engine returned no tier");
         row.tier = d.tier; row.readAt = d.readAt || null;
-        if (/^(result|thin|refusal|not_tracked)$/.test(String(d.tier))) { await writeWarmAnswer(env, warmAnswerKeyFor(vehicle, generation), d); row.stored = true; result.warmed++; }
+        if (/^(result|thin|refusal|not_tracked)$/.test(String(d.tier))) { await writeWarmAnswer(env, warmAnswerKeyFor(vehicle, generation), d); row.stored = true; result.warmed++;
+          // keep-warm (Sam, Oct 18 2026): the demo's own stored answer through Lane C's SINGLE write path, once per car,
+          // only after a full result; refreshDemoAnswer re-reads the row just stored (a hit) and writes partner_last
+          // itself, or returns why it did not (not a demo car, still reading, blocked). This task writes nothing of its own.
+          if (d.tier === "result") { try { const { refreshDemoAnswer } = await import("./partnerAnswer.js"); const dr = await refreshDemoAnswer(env, q); row.demoStored = !!(dr && dr.stored); if (dr && !dr.stored) row.demoWhy = dr.why || null; } catch (e) { row.demoStored = false; row.demoWhy = "call failed"; } } }
         else { row.stored = false; result.warmed++; }
       } catch (e) { row.error = String(e && e.message || e); result.failed++; }
       result.rows.push(row);
