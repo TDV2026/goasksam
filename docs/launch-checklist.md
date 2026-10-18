@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T21:36Z (Lane F; the view c and b fixes DONE and live; B2's pins push named: PUSH LOCK now, prePush 22:05Z; Lane B's 2014 GT3 warm 21:50Z).
+Last updated: 2026-10-18T21:37Z (Lane F; Sam's trim-split defect (2019 BMW 3-Series) added as a Market Check launch item; e62 after the single-flight chain; Lane B's read-only a, b, c first; B2's pins 22:05Z).
+
+## 0az. Sam 21:4xZ Oct 18: trim-split defect in the shared engine (2019 BMW 3-Series) and e62 (forwarded word for word to Lane B)
+
+"2019 bmw" asked "Which BMW?" and Sam picked 3-Series (the make-only point is withdrawn); the engine then answered "Sales too spread out for a range." with no further question: the g20 pool mixes trims that price very differently and a trim split has no blocking question today (e61 covers body only; the known e61 limit). Lane B, read-only first, one archive load at a time in Desk gaps: (a) what makes the 2019 3-Series (g20) pool too spread out (the trims, sales counts and price bands); (b) how many stored cars and golden or demo rows hit the same case (a family with a trim split that would give a range if asked first); (c) propose the rule and question wording (counts under ten as words, no month counts, no em or en dashes) for the Desk's approval before building: when the pool is wide and a trim split exists the engine asks which trim before any range, and refuses with "Sales too spread out for a range." only if the answer is still too spread out or too thin. Build as e62 after the single-flight chain, with the e60/e61 before-and-after check (41 golden rows twice, identical except rows changed by the rule, each with a one-line reason); B2's pins follow; Lane C draws the engine's question on every page, no page-side rule; question and refusal come from oneEngineAnswer only.
 
 ## 0ay. Sam's decisions 21:3xZ Oct 18 on the missed 2014 GT3 warm (forwarded word for word to Lane B)
 
