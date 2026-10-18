@@ -27,7 +27,7 @@ try {
       try {
         const res = await fetch(u, { method: "POST", headers: { "Content-Type": "application/json", "x-ops-key": k, "x-launch-stage-test": "2" }, body: JSON.stringify(body), signal: ac.signal });
         const txt = await res.text(); let d = null; try { d = JSON.parse(txt); } catch {}
-        return { status: res.status, ms: Date.now() - t0, bytes: txt.length, d: d ? { tier: d.tier, poolN: d.poolN, cluster: d.cluster || null, rungLabel: d.rungLabel || null, samLine: d.samLine || null, stale: !!d.stale, readAt: d.readAt || null, storedAt: d.storedAt || null, warmHit: d.timings ? d.timings.warmHit : null, totalMs: d.timings ? d.timings.totalMs : null } : null };
+        return { status: res.status, ms: Date.now() - t0, bytes: txt.length, d: d ? { tier: d.tier, poolN: d.poolN, cluster: d.cluster || null, rungLabel: d.rungLabel || null, samLine: d.samLine || null, stale: !!d.stale, readAt: d.readAt || null, storedAt: d.storedAt || null, windowMonthsChosen: d.windowMonthsChosen === undefined ? null : d.windowMonthsChosen, windowWords: d.windowWords || null, basisLine: d.basisLine || null, warmHit: d.timings ? d.timings.warmHit : null, totalMs: d.timings ? d.timings.totalMs : null } : null };
       } catch (e) { return { status: 0, ms: Date.now() - t0, error: String(e && e.message || e) }; } finally { clearTimeout(t); }
     }, BASE + "/api/sellerDecision", KEY, { oneBox: true, anonId: (arg("anon") || "readonecrew"), car: { raw: CAR }, asked: 0 });
     console.log(`${CAR}: HTTP ${r.status} ${r.ms}ms ${r.bytes || 0}b ${JSON.stringify(r.d || r.error)}`);
