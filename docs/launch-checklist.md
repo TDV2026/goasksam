@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T17:1xZ (Lane F; e61 PUSHED 1cb8cb5d on 0 FAIL and LIVE at 17:10Z; Lane B's warm 17:19Z then after-reads to DONE; Lane C's typed-car reproduction 17:23 to 17:29Z, fix built locally; push order after DONE is Sam's call).
+Last updated: 2026-10-18T17:1xZ (Lane F; Sam's order after e61: Lane C's typed-car fix alone, B2's pins, Lane B's single-flight, E9, Lane D, Lane C's one-read batch, c9; e61 after-reads running).
+
+## 0an. Sam's push order 17:1xZ Oct 18 after e61 (forwarded word for word to Lane C, the order to Lanes B, B2, E and D)
+
+One archive load at a time, each released on the previous DONE: 1. Lane B: e61 after-reads and DONE. 2. Lane C: the typed-car defect fix, pushed ALONE: FULL-tier prePush alone, push, then the live reproduction of Sam's exact path in a Desk minute (type a car in view a's own box, open the second screen, check the address, the tab links and the car bar; also an identity chip, a typed accented name "Citroën DS", a comma "1965 Ford Mustang, coupe", and a typo, at 1440 and 390); the typed-path check joins partnerEngineMatch. 3. B2: the golden pins push (e60 and e61 rows). 4. Lane B: single-flight. 5. Lane E: E9, --rows and the three health reads. 6. Lane D: Sell line. 7. Lane C: the one-read-per-page-load batch, after single-flight is live. 8. Lane C: c9, after Lane B's GT3 pool check and Sam's confirmation. Lane C does not fold the one-read batch into the fix push. The chosen car is page state only; every view draws the engine's answer for it.
 
 ## 0am. Sam 17:0xZ Oct 18 (10:07 PT): DEMO DEFECT on live step 2, a typed car does not carry to the second screen (forwarded word for word to Lane C)
 
