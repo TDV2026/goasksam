@@ -9401,3 +9401,14 @@ Push protocol followed: prePush alone on the llms.txt commit, fast tier (no engi
 PASS. PUSH LOCK line and the push itself follow as separate docs-only/code commits per the lock rule.
 - PUSH LOCK (Lane A, 2026-10-18): public/llms.txt (6abcaaf8), the approved text at line 439c066d, byte-for-byte. prePush alone, fast tier (static file only, no engine-and-data file touched), 0 FAIL / 8 SKIP / 33 PASS. Push follows.
 - PUSHED (Lane A, 2026-10-18, Vercel Ready pending): d01a7949, public/llms.txt. prePush alone 0 FAIL / 8 SKIP / 33 PASS; main moved by docs/lane-notes.md only in between, rebased without a rerun (docs-only rule, files checked: docs/lane-notes.md). LOCK RELEASED. Live /llms.txt 200-as-Googlebot proof follows once deployed.
+
+## Lane A: llms.txt live verification (2026-10-18)
+Deployed Ready. Real-browser read (credential header, the established method past the edge challenge): HTTP 200, content-type
+text/plain; charset=utf-8, body 1300 bytes, verbatim match against public/llms.txt (and against the approved text in
+439c066d - zero-byte diff all three ways). A PLAIN request (spoofed Googlebot UA, no credential) still gets the Vercel edge
+"Security Checkpoint" 429 on this path, same as every other non-bypass-list route tonight - /llms.txt is not yet in the
+firewall draft's bypass list (F1, this file, HELD FOR SAM: "opens ONLY after A1 and C1 are live"), so this is the expected
+state per Lane E's own note on the approved text, not a deploy problem. Whether Google's OWN crawler (vs. a spoofed UA)
+already passes today under the existing "AI Bots = Allow" managed rule is unverified here - I have no way to send a
+cryptographically-real Googlebot request; Sam publishing the firewall draft is the only way to guarantee every crawler
+reaches it. File itself: done, correct, live, proven.
