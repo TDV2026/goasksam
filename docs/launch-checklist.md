@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T18:0xZ (Lane F; Sam answered the four eBay questions: /preview path (Lane C's own vercel.json push), caption yes, venue-blind kept, official logo fetched with 'Prepared for eBay'; stages 3 to 5 unblocked; c9 waits for Sam's word).
+Last updated: 2026-10-18T18:0xZ (Lane F; c9 CONFIRMED by Sam, builds after the eBay stages; Lane B adds the 2014 GT3 to warmDemo; the four eBay answers in; Lane C's typed-car fix reproduction at 18:05Z).
+
+## 0ar. c9 CONFIRMED by Sam 18:00Z Oct 18 (11:00 PT; forwarded word for word to Lane C, the warm line to Lane B)
+
+The real 2014 Porsche 911 GT3 becomes the demo's "This car before" listing car on the e61 read (10 sales, $111,000 to $133,000, result tier, 0.5 s). Lane C builds c9 at its slot after the eBay stages 1 to 5: listing detail (2014 GT3, mileage 30,400, asking price $139,900, its own photo, two earlier sales shown); the asking-price pill from placing() against the engine's range, no second rule, no new number; the photo, mileage and earlier sales from stored records, nothing invented, venue-blind; if the 2014 GT3's stored answer is missing or over 24 h the page uses partner_last under 24 h, else the still-reading tile with a retry; Lane B adds the 2014 GT3 to task=warmDemo; partnerEngineMatch and salePhotoCheck extended to the 2014 GT3 in every view; the Desk names the minutes. (Two lines in the text predate the eBay stages, which stand: stage 2 removes the quick picks; stage 1 changes the no-listing line.)
 
 ## 0aq. Sam's answers 18:0xZ Oct 18 to Lane C's four eBay questions (forwarded word for word to Lane C)
 
