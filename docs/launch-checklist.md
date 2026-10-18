@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T22:21Z (Lane F; the 2019 3-Series refusal is a label_span invariant failure, not a trim case; e62 fix proposed for Sam; before Buy reads done; chain starts 22:40Z).
+Last updated: 2026-10-18T22:37Z (Lane F tick; singleflight chain starts 22:40Z, FULL prePush 22:50Z; e62 fix (label span, refusal line) awaits Sam).
 
 ## 0bb. e62 APPROVED by Sam 21:4xZ Oct 18, choice A (forwarded word for word to Lane B; the shape note to Lane C)
 
