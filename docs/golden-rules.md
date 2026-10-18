@@ -118,6 +118,7 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 44 | 2007 BMW Z4 3.0si Coupe | the 3.0si trim and the coupe body: 4 sales, exact, 2007, no range; equals the Coupe chip on the bare 2007 Z4 3.0si | read live on e59 |
 | 45 | 1986 Renault Alpine V6 GT | the Alpine nameplate kept: 3 sales, model_any_year, "Alpine, all years", no range | read live on e59 |
 | 46 | 1971 Mercedes-Benz 280SE 3.5 Cabriolet | PENDING e60: the read hits the deadline card (read_failed) | pending Lane B e60 |
+| 47 | 1991 Acura NSX | exact '1991 NSX', 2 odd sales set aside; cross-lane guard so a recurrence of the 94 against 21 fails on every product | exact, 21 sales, $71,000 to $101,000 (Lane B live read, e59; unchanged on e60 since 21 is above eight) |
 | | shared card (rows 3, 5, 8, 14, 20) | the "What these sell for" card, pill slot removed, is byte-identical on Market Check, Buy and Sell, and the partner demo's card equals Market Check's apart from the two differences the demo is built with (the basis line "Based on N sales, the latest in Month Year" and the footer link as a span), which are dropped on both sides for that comparison | a product that does not render the shared card yet is PENDING, not a failure; the Sell count check is also set on rows 8, 10, 14, 22 and 23 |
 
 Per car, in the words of the derivation:
@@ -203,6 +204,7 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":43,"q":"2001 BMW Z3 2.5i","status":"ready","rung":"exact","labelHas":["2001 Z3 2.5i"],"count":13,"tol":0,"low":5500,"high":9000,"tolPct":5},
  {"id":44,"q":"2007 BMW Z4 3.0si Coupe","status":"ready","rung":"exact","labelHas":["2007 Z4 3.0si Coupe"],"count":4,"tol":0,"low":null,"high":null,"thin":true,"chipPairs":[{"bare":"2007 BMW Z4 3.0si","label":"Coupe","typed":"2007 BMW Z4 3.0si Coupe"}]},
  {"id":45,"q":"1986 Renault Alpine V6 GT","status":"ready","rung":"model_any_year","labelHas":["Alpine"],"count":3,"tol":0,"low":null,"high":null,"thin":true},
- {"id":46,"q":"1971 Mercedes-Benz 280SE 3.5 Cabriolet","status":"pending","labelHas":["280SE"],"countMin":1}
+ {"id":46,"q":"1971 Mercedes-Benz 280SE 3.5 Cabriolet","status":"pending","labelHas":["280SE"],"countMin":1},
+ {"id":47,"q":"1991 Acura NSX","status":"ready","rung":"exact","labelHas":["1991","NSX"],"count":21,"tol":0,"low":71000,"high":101000,"tolPct":3}
 ]
 ```
