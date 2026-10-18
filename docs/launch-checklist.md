@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T03:1xZ (Lane F; INCIDENT QUIET MODE declared by Sam: demo view c stuck on 'Sam is reading the sales.', deployment error page seen; Lane B diagnosing read-only, Lane C fixing the page wait and the ceiling; every other lane stopped; spec and hub pages to go noindex and onto the engine's stored answers).
+Last updated: 2026-10-18T03:3xZ (Lane F; Sam's decisions: incident clear only on Lane C's PUSHED and live checks; Lane B's reliability fix into e60; docs commits batched to the 20-minute tick; after the clear, C1 and the no-live-compute-for-crawlers rule before C2 to C5; Lane C to prove why docs-only commits built; Lane E to identify the crawler).
+
+## 0g. Sam's decisions 03:3xZ Oct 18 (forwarded word for word to Lanes C, E, B, B2, D; Lane A gets them in lane-notes at the Desk's tick)
+
+1. Incident clear: Sam declares it when Lane C posts PUSHED and its live checks pass; the Desk does not announce it before. 2. Lane B's reliability fix (8 s abort timeout on every lib/_supabase.js fetch, the 20 s deadline widened to the whole Market Check path so a stall returns the still-reading card and never a Vercel kill, the health probe cached 30 s per instance) approved, folded into e60, not a separate push. 3. Docs commits batched: the Desk pushes checklist updates only at its 20-minute tick; every lane batches lane-notes lines into as few docs commits as possible. 4. Order after the clear: C1 (cookie-free edge cache) and the rule that a crawler never triggers a live engine compute come before C2 to C5, then the hub fix with noindex on every /cars page. Lane C: prove from the Vercel deployments list which docs-only commits were Canceled and which built, fix the ignore rule if it is not working; a crawler (any bot user agent) is answered from stored data and never triggers a live engine compute on /history, /vin or /cars. Lane E: identify the crawler Lane B saw on /history VIN pages (user agent, verified bot or not, URLs, frequency) from the logs, no production probing while the incident is open.
 
 ## 0f. INCIDENT, QUIET MODE (Sam, 2026-10-18 ~03:15Z) until the Desk announces it clear
 
