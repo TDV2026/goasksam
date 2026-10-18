@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T15:4xZ (Lane F; Lane C holds the demo reproduction for BUYTRACE_DONE; two stored answers (Market Check row vs the demo's partner_last) told apart by lastGood:true; the demo's own timeouts stay until the engine shape is recorded, Sam to confirm the end state).
+Last updated: 2026-10-18T15:57Z (Lane F tick, batched push; the Buy no-answer is a production defect under trace by Lane B; the demo reproduction waits for BUYTRACE_DONE; e61 and the rest wait behind the fix).
 
 ## 0ad. Sam's ownership decision 15:4xZ Oct 18 for the Buy no-answer fix (forwarded word for word to Lanes B and C)
 
