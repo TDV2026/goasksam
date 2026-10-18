@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T21:40Z (Lane F; Lane B's e62 'Other trims' recommendation awaits Sam's choice with the rule and wording approval).
+Last updated: 2026-10-18T21:42Z (Lane F; e62 APPROVED with choice A, build after the single-flight chain; Lane C adds trim_choice to its queue).
+
+## 0bb. e62 APPROVED by Sam 21:4xZ Oct 18, choice A (forwarded word for word to Lane B; the shape note to Lane C)
+
+When the pool is wide and a trim split exists the engine asks which trim before any range; chips come only from the included sales of that exact car and year, each with its count (words under ten, no month counts); no fixed trim list per model; no chip for a trim with no included sales. Trims with fewer than three included sales fold into one chip "Other trims ({count})", shown only when the folded sales total at least one, answered as one pool by the same rules (a range at eight or more and not too spread out, the sales with no range under eight, "Sales too spread out for a range." if too spread out); the chips add up to the whole pool. The refusal appears only if the visitor's answer is still too spread out. Before and after as e60 and e61 (41 golden rows twice, each changed row with a one-line reason); B2's pins follow; Lane C draws the engine's question on every page with no page-side rule. Order: B2 22:05Z, the 3-Series read 22:20Z, the single-flight chain, then e62.
 
 ## 0ba. Sam's condition for the e62 approval 21:4xZ Oct 18 (forwarded word for word to Lane B)
 
