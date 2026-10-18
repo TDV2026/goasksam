@@ -9565,3 +9565,20 @@ DECISIONS FROM SAM
 FORWARD TO LANE A (lane-notes only)
 Add the middle-half explanation to /how-sam-decides in plain words: the range printed on every card is the middle half of the included sales, a quarter sold below it and a quarter above it, and what "set aside" means in one sentence. No numbers, no venue names, no competitor mention, no "AI" selling word. Ship it as a small docs-safe push and report.
 (Lane F for Lane A: the quiet for e60's perf-row rerun is in force; your push waits for the Desk's quiet-lifted line and e60's PUSHED, then takes its place in the order; a fast-tier prePush alone with the tier named in the PUSH LOCK line. Report in lane-notes; the Desk carries it to Sam. Sam's preamble: stage reports as you go, no time estimates, no secrets anywhere. One-engine rule: every number comes from oneEngineAnswer, no second source, fence or rule.)
+- REQUESTS PER MINUTE AROUND THE BUSY CPU PERIOD (Lane E, 2026-10-18T07:05Z, Sam's ask via Lane F; Vercel runtime logs
+  through the API, no production traffic; a request appears only when it logged a line, so counts are a floor; the
+  runtime logs carry no user agent, so ClaudeBot's share is the page-view read at 04:30Z: 195 of 200 /history views).
+  05:40 to 07:00Z, requests by path family (history = /history and /vin pages; engine = /api/sellerDecision; ops =
+  /api/usageDashboard tasks; partner = the demo's data endpoint):
+    05:45 to 05:52 (the eight minutes after Lane C's robots.txt deploy, BEFORE the busy period): history 86 (8, 27, 11,
+      13, 2, 8, 8, 9 per minute), partner 5, buySearch 8, engine 1: the crawler's burst, up to 27 renders a minute.
+    05:53 to 06:33, THE BUSY CPU PERIOD (41 min): history 45 (0 to 5 a minute, 1.1 average), engine 20, partner 34
+      (16 in the minute 06:01, 9 at 06:14), buySearch 33, ops tasks 7, tasks 5, pages 6, other 20; requests logging a
+      deadline or unavailable line: 37.
+    06:34 to 07:00 (after): history 25, engine 16, buySearch 24, partner 20, ops 1; deadline/unavailable lines: 40.
+  Reading: no minute of the busy period lines up with a crawler burst; the crawler's one burst (86 renders, each a
+  live engine compute with a 15 s deadline) sits in the eight minutes immediately before the CPU climb and is the
+  likeliest trigger of its start, after which the sustained load was engine calls, the partner demo checks, Buy searches
+  and ops tasks (Lane B's perf-row rerun and e60 chain, Lane C's checks) with the crawler at about one page a minute.
+  The deadline/unavailable count did not fall after the busy period (37 against 40), so the slow single-row reads
+  continued past it. Search check: no public page touched.
