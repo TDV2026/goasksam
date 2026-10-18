@@ -92,7 +92,12 @@ for (const [name, d] of Object.entries(FIX)) {
 // own six cars (Oct 17 2026: ten view loads in a minute tripped it on the GT3 and the page said two wrong things).
 { const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8"), apiSrc = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
   ok(/\(!a \|\| a\.ok === false\) && !\(a && a\.history && a\.history\.length\)\) return '<div class="panel"><h3>This car before<\/h3><p class="muted">' \+ notRead\(a\)/.test(pageSrc), "a failed read: This car before says it could not read, never that there is no earlier sale");
-  ok(/if \(!demoKey\(text\)\) \{\s*const lim = await checkCeiling\(env, req, "partner_answer"/.test(apiSrc), "the demo's own six cars are never held by the per-minute ceiling"); }
+  ok(/checkCeiling\(env, req, demoKey\(text\) \? "partner_demo" : "partner_answer"/.test(apiSrc), "the demo's six cars use their own partner_demo ceiling, other cars partner_answer");
+  const { CEILINGS } = await import("../lib/_ceilings.js");
+  const pd = CEILINGS.partner_demo, minute = pd && (pd.device || []).find(([w]) => w === 60e3);
+  ok(pd && !pd.address && minute && minute[1] >= 90, "partner_demo is per device only and allows a cold walk of the four views and six cars (about 30 reads) three times in a minute");
+  ok(/const who = demo \? \{\} : \{ "user-agent": base\["user-agent"\], "x-forwarded-for": base\["x-forwarded-for"\] \}/.test(apiSrc) && /marketCheckAnswer\(req, text, refine, asked, !!demoKey\(text\)\)/.test(apiSrc), "a demo car's read carries no visitor address or browser into Market Check; any other car keeps them");
+  ok(/const lk = !refine \? demoKey\(text\) : null;/.test(apiSrc) && /out = vinIn \? \{ \.\.\.last\.out, history, lastGood: true \}/.test(apiSrc) && /if \(!vinIn && out\.ok/.test(apiSrc), "the VIN views fall back to the car's last good answer with their own VIN history; only plain reads write it"); }
 // Neither side waits for good (Oct 18 2026): the server read has a deadline and falls back to the last good answer,
 // and every page attempt aborts at its own deadline and shows the could-not-read line.
 { const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8"), apiSrc = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");

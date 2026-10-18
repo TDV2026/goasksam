@@ -96,7 +96,7 @@ export function partnerAllowed(req) {
 // Market Check's own request handler, called in-process with the same body the Market Check page sends.
 export const READ_DEADLINE_MS = 20000;
 
-export async function marketCheckAnswer(req, text, refine, asked) {
+export async function marketCheckAnswer(req, text, refine, asked, demo = false) {
   const { default: mc } = await import("./sellerDecision.js");
   const body = { oneBox: true, car: { raw: text }, asked: Math.max(0, Math.min(9, Number(asked) || 0)) };
   if (refine) body.refine = refine;
@@ -108,7 +108,13 @@ export async function marketCheckAnswer(req, text, refine, asked) {
   // api/sellerDecision.js would be cleaner than the test-stage path.
   const internalKey = process.env.OPS_KEY || process.env.PROBE_KEY || "";
   const base = { ...(req.headers || {}) };
-  const headers = internalKey ? { host: base.host, "user-agent": base["user-agent"], "x-forwarded-for": base["x-forwarded-for"], "x-ops-key": internalKey, "x-launch-stage-test": "2" } : base;
+  // A read of one of the demo's six cars carries no visitor address or browser (Oct 18 2026): Market Check's visitor
+  // ceilings counted every demo read against the founder's office address and browser (cookies are never passed, so even
+  // a crew browser counted), and a cold demo load answered "Lots of reads". The six cars are bounded by this endpoint's
+  // own partner_demo ceiling instead. Any other car keeps the visitor's address and browser, so Market Check's limits
+  // apply to it exactly as before.
+  const who = demo ? {} : { "user-agent": base["user-agent"], "x-forwarded-for": base["x-forwarded-for"] };
+  const headers = internalKey ? { host: base.host, ...who, "x-ops-key": internalKey, "x-launch-stage-test": "2" } : base;
   const sub = { method: "POST", url: "/api/sellerDecision", headers, query: {}, body };
   let out = null, code = 200;
   const res = {
@@ -293,8 +299,8 @@ export default async function handler(req, res) {
   // The per-minute ceiling (lib/_ceilings.js partner_answer) bounds reads of any OTHER car; the demo's own six cars are
   // stored answers, and each view loads three reads of them, so a partner flipping views never trips it (Oct 17 2026:
   // ten view loads in a minute tripped it and the page showed the wrong line).
-  if (!demoKey(text)) {
-    const lim = await checkCeiling(env, req, "partner_answer", { tool: "partner" }).catch(() => ({ ok: true }));
+  {
+    const lim = await checkCeiling(env, req, demoKey(text) ? "partner_demo" : "partner_answer", { tool: "partner" }).catch(() => ({ ok: true }));
     if (!lim.ok) return res.status(429).json({ ok: false, query: text, error: "rate_limited" });
   }
   let history = null, id = null;
@@ -321,17 +327,19 @@ export default async function handler(req, res) {
   // The read has its own deadline (Oct 18 2026: a read that never returned left the page saying "Sam is reading the
   // sales." for good): past READ_DEADLINE_MS the demo answers from the last good answer, or says it could not read.
   let r;
-  try { r = await Promise.race([marketCheckAnswer(req, text, refine, asked), new Promise((_, rej) => setTimeout(() => rej(new Error("read deadline")), READ_DEADLINE_MS).unref?.())]); } catch (e) {
+  try { r = await Promise.race([marketCheckAnswer(req, text, refine, asked, !!demoKey(text)), new Promise((_, rej) => setTimeout(() => rej(new Error("read deadline")), READ_DEADLINE_MS).unref?.())]); } catch (e) {
     console.error("partnerAnswer:", (e && e.message) || e);
-    const lk0 = !refine && !vinIn ? demoKey(text) : null, last = lk0 && env ? await readLast(env, lk0) : null;
-    if (lastGoodUsable(last)) return res.status(200).json({ ...last.out, lastGood: true });
+    const lk0 = !refine ? demoKey(text) : null, last = lk0 && env ? await readLast(env, lk0) : null;
+    if (lastGoodUsable(last)) return res.status(200).json(vinIn ? { ...last.out, history, vin: vinIn, lastGood: true } : { ...last.out, lastGood: true });
     return res.status(200).json({ ok: false, query: text, error: "unavailable", history });
   }
   let out = partnerShape(r.d, text, asked, { history, id });
-  const lk = !refine && !vinIn ? demoKey(text) : null;
+  // The last good answer is stored from a plain read of the car and serves the VIN views too (Oct 18 2026: the listing
+  // views send the VIN, had no fallback, and showed the limit line); a VIN view keeps its own VIN history.
+  const lk = !refine ? demoKey(text) : null;
   if (lk && env) {
-    if (out.ok && out.answerType !== "identity_question") writeLast(env, lk, out).catch(() => {});
-    else if (!out.ok) { const last = await readLast(env, lk); if (lastGoodUsable(last)) out = { ...last.out, lastGood: true }; }
+    if (!vinIn && out.ok && out.answerType !== "identity_question") writeLast(env, lk, out).catch(() => {});
+    else if (!out.ok) { const last = await readLast(env, lk); if (lastGoodUsable(last)) out = vinIn ? { ...last.out, history, lastGood: true } : { ...last.out, lastGood: true }; }
   }
   if (vinIn) out.vin = vinIn;
   out.updated = await updatedP;
