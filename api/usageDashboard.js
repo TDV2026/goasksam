@@ -4490,7 +4490,7 @@ async function handleOps(req, res) {
     const { findGeneration } = await import("../lib/generations.js");
     const { runOneBox } = await import("../lib/onebox.js");
     const { warmAnswerKeyFor, writeWarmAnswer } = await import("../lib/live/search.js");
-    const DEMO = ["2015 Porsche 911 GT3", "2005 Porsche 911", "1965 Ford Mustang", "1957 Porsche 356 Speedster", "1966 Ferrari 275 GTB", "2010 Porsche Boxster Convertible", "2023 Porsche 911 GT3"];
+    const DEMO = ["2015 Porsche 911 GT3", "2005 Porsche 911", "1965 Ford Mustang", "1957 Porsche 356 Speedster", "1966 Ferrari 275 GTB", "2010 Porsche Boxster Convertible", "2023 Porsche 911 GT3", "2014 Porsche 911 GT3"];   // the 2014 GT3: the demo's "This car before" listing car (Sam, c9, Oct 18 2026)
     const PERF = ["2008 Porsche 997 Carrera S Coupe", "1995 Porsche 911 Carrera", "1969 Chevrolet Camaro"];
     let golden = [];
     try { const fs = await import("node:fs"); const doc = fs.readFileSync(new URL("../docs/golden-rules.md", import.meta.url), "utf8"); const gm = /```json golden\n([\s\S]*?)```/.exec(doc); golden = gm ? JSON.parse(gm[1]).map(g => g.q).filter(Boolean) : []; } catch { golden = []; }
