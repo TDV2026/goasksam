@@ -245,14 +245,17 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
   }
   // The partner demo's card for the same words: the endpoint's own card string (crew gate), pill slot removed, serialized by the same browser so the two compare byte for byte.
   async function partnerCard(q) {
+    // Lane C's path (Oct 17 2026): a real page on goasksam.com with the signed crew cookie (secure, domain goasksam.com), /partner-demo must answer 200 first,
+    // then the answer is asked for from inside the page with the cookie included, one read at a time. The cookie value is never printed.
     const ctx = await browser.createBrowserContext();
     const page = await ctx.newPage();
-    if (CREW) await page.setCookie({ name: "gas_crew", value: CREW, domain: new URL(BASE).hostname, path: "/" });
+    if (CREW) await page.setCookie({ name: "gas_crew", value: String(CREW).trim(), domain: new URL(BASE).hostname, path: "/", secure: true });
     try {
-      await page.goto(BASE + "/", { waitUntil: "domcontentloaded", timeout: 60000 }).catch(() => {});
+      const resp = await page.goto(BASE + "/partner-demo", { waitUntil: "domcontentloaded", timeout: 60000 }).catch(() => null);
+      if (!resp || resp.status() !== 200) return { err: "/partner-demo answered " + (resp ? resp.status() : "nothing") + " (the crew cookie did not verify there)" };
       return await page.evaluate(async (q) => {
         try {
-          const r = await fetch("/api/partnerAnswer?q=" + encodeURIComponent(q), { credentials: "same-origin" });
+          const r = await fetch("/api/partnerAnswer", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ q }) });
           if (!r.ok) return { err: "HTTP " + r.status };
           const j = await r.json(); if (!j || !j.card) return { err: "no card in the answer" };
           const d = document.createElement("div"); d.innerHTML = j.card;
