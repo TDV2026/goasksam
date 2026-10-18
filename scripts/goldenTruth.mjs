@@ -33,11 +33,11 @@ const m = /```json golden\n([\s\S]*?)```/.exec(doc);
 if (!m) { console.log("goldenTruth: no ```json golden block in docs/golden-rules.md"); process.exit(flag("strict") ? 1 : 0); }
 let GOLDEN = JSON.parse(m[1]);
 const ids = (arg("ids") || "").split(",").filter(Boolean).map(Number);
-if (ids.length) { GOLDEN = GOLDEN.filter(g => ids.includes(g.id)); IDENT = IDENT.filter(g => ids.includes(g.id)); }   // an identity row runs only when asked for by --ids
-else if (flag("quick")) GOLDEN = GOLDEN.filter(g => g.quick);
 // An identity row (the bare 1965 Mustang) checks the question's option counts, not a range; it has its own block below.
 let IDENT = GOLDEN.filter(g => g.identity);
 GOLDEN = GOLDEN.filter(g => !g.identity);
+if (ids.length) { GOLDEN = GOLDEN.filter(g => ids.includes(g.id)); IDENT = IDENT.filter(g => ids.includes(g.id)); }   // an identity row runs only when asked for by --ids
+else if (flag("quick")) GOLDEN = GOLDEN.filter(g => g.quick);
 const TOTAL_ALL = GOLDEN.length + IDENT.length;   // every row of the table, identity rows included
 
 if (!KEY) { console.log("goldenTruth: SKIP, no PROBE_KEY in the environment (report-only, nothing compared)."); process.exit(0); }
