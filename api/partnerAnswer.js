@@ -20,6 +20,7 @@ import crypto from "node:crypto";
 import { isCrewRequest } from "../lib/_crew.js";
 import { isPartnerRequest } from "../lib/_partnerAccess.js";
 import { checkCeiling } from "../lib/_ceilings.js";
+import { photoId, photoUrlFor, fetchPhoto } from "../lib/_salePhoto.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { vinAppearances, carIdentity, normVin } from "./_historyData.js";
 import { lastUpdatedDate } from "../lib/asOf.js";
@@ -72,10 +73,29 @@ export function basisLine(d) {
   const last = dates[dates.length - 1].split("-"), mon = MONTHS[Number(last[1]) - 1];
   return "Based on " + (n < 10 ? WORD[n] : n.toLocaleString("en-US")) + " " + (n === 1 ? "sale" : "sales") + (mon ? ", the latest in " + mon + " " + last[0] : "") + ".";
 }
+// (3, Sam, Oct 18 2026) the set-aside line reads as one plain sentence from the engine's own numeric reason counts
+// (setAsideReasons): the count in words under ten, singular and plural right, no colon ("Four sales set aside as odd
+// sales.", "Five sales set aside, four as odd sales and one as modified.").
+const ASIDE_AS = { "odd sale": ["an odd sale", "odd sales"], project: ["a project", "projects"], replica: ["a replica", "replicas"], modified: ["modified", "modified"] };
+const numWord = n => n < 10 ? WORD[n] : n.toLocaleString("en-US");
+export function asideSentence(d) {
+  const r = d && d.setAsideReasons && typeof d.setAsideReasons === "object" ? d.setAsideReasons : null;
+  if (!r) return null;
+  const parts = Object.keys(r).map(k => [k, Number(r[k]) || 0]).filter(([, n]) => n > 0);
+  const k = parts.reduce((t, [, n]) => t + n, 0);
+  if (!k) return null;
+  const as = ([key, n]) => "as " + (ASIDE_AS[key] ? ASIDE_AS[key][n === 1 ? 0 : 1] : key);
+  const head = numWord(k) + " " + (k === 1 ? "sale" : "sales") + " set aside";
+  const text = parts.length === 1 ? head + " " + as(parts[0])
+    : head + ", " + parts.map(([key, n], i) => (i && i === parts.length - 1 ? "and " : "") + numWord(n) + " " + as([key, n])).join(parts.length > 2 ? ", " : " ");
+  return text.charAt(0).toUpperCase() + text.slice(1) + ".";
+}
+const escHtml = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 export function demoCard(html, d) {
   if (!html) return html;
-  const b = basisLine(d);
-  return html.replace(/<p class="sfc-basis">[\s\S]*?<\/p>/, b ? '<p class="sfc-basis">' + b.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])) + "</p>" : "")
+  const b = basisLine(d), a = asideSentence(d);
+  return html.replace(/<p class="sfc-basis">[\s\S]*?<\/p>/, b ? '<p class="sfc-basis">' + escHtml(b) + "</p>" : "")
+    .replace(/<p class="sfc-aside">[\s\S]*?<\/p>/, a ? '<p class="sfc-aside">' + escHtml(a) + "</p>" : "")
     .replace(/<a class="sfc-footer-link"[^>]*>How Sam decides<\/a>/, '<span class="sfc-footer-link">How Sam decides</span>');
 }
 
@@ -147,11 +167,22 @@ const day = v => (v ? String(v).slice(0, 10) : null);
 
 // The sales Market Check lists for this answer, reduced to price and date, lowest first: the range tier's own
 // d.cards, the thin tier's own receipts (public/js/onebox.js moreComparableSalesHtml / thinCardsFrom read the same).
+// A sale row's name (Sam, Oct 18 2026): the engine row's own title; if it carries a venue word, the row's own year,
+// make and model instead; never a venue, never a URL. It travels as `name`, and the archive row's own id as `photo`
+// (used only by the demo's photo slot, /api/partnerAnswer?photo=<id>, which looks the photo up server side), so the
+// venue-leak guard below stays exactly as it is (it refuses any key called id or title, anywhere).
+export function rowTitle(r) {
+  const t = String((r && r.title) || "").trim();
+  if (t && !VENUE_RE.test(t)) return t;
+  const f = [r && r.year, r && r.make, r && r.model].filter(Boolean).join(" ").trim();
+  return f && !VENUE_RE.test(f) ? f : "";
+}
+const rowId = r => r && r.id != null && /^\d{1,15}$/.test(String(r.id)) ? String(r.id) : null;
 export function salesOf(d) {
   if (!d) return [];
   let rows;
-  if (d.tier === "thin" && d.thin && Array.isArray(d.thin.receipts)) rows = d.thin.receipts.map(r => ({ price: num(r.allIn) || num(r.hammer), date: day(r.date), miles: num(r.mileage) }));
-  else rows = (Array.isArray(d.cards) ? d.cards : []).map(c => ({ price: num(c.price), date: day(c.date), miles: num(c.mi) }));
+  if (d.tier === "thin" && d.thin && Array.isArray(d.thin.receipts)) rows = d.thin.receipts.map(r => ({ photo: rowId(r), name: rowTitle(r), price: num(r.allIn) || num(r.hammer), date: day(r.date), miles: num(r.mileage) }));
+  else rows = (Array.isArray(d.cards) ? d.cards : []).map(c => ({ photo: rowId(c), name: rowTitle(c), price: num(c.price), date: day(c.date), miles: num(c.mi) }));
   return rows.filter(r => r.price).sort((a, b) => a.price - b.price || String(a.date || "").localeCompare(String(b.date || "")));
 }
 // The count Market Check's page heads its answer with (heroPoolSizeNum: poolSize, then poolN, then the facts block).
@@ -218,6 +249,13 @@ function trendOf(d) {
   const rows = q.filter(r => Number(r.count) >= RANGE_MIN && num(r.low) && num(r.high)).map(r => ({ period: r.period, low: num(r.low), high: num(r.high), count: Number(r.count) }));
   return rows.length ? rows : null;
 }
+// The set-aside sales themselves (Sam, Oct 18 2026): the engine's own setAsideRows, each with its own reason words
+// (setAsideReasonFor: modified, project, replica, odd sale); never mixed into the sales the answer is based on.
+export function asideRowsOf(d) {
+  const rows = d && Array.isArray(d.setAsideRows) ? d.setAsideRows : (d && d.thin && Array.isArray(d.thin.setAsideRows) ? d.thin.setAsideRows : []);
+  return rows.filter(r => r && r.setAside !== false).map(r => ({ photo: rowId(r), name: rowTitle(r), price: num(r.price) || num(r.allIn) || num(r.hammer), date: day(r.date), miles: num(r.mi) || num(r.mileage), reason: typeof r.reason === "string" && !VENUE_RE.test(r.reason) ? r.reason : null }))
+    .filter(r => r.price && r.reason);
+}
 function setAsideOf(d) {
   const s = d && d.counts && d.counts.setAside;
   if (!s || !Number(s.total)) return null;
@@ -258,7 +296,7 @@ export function partnerShape(d, text, asked, extra = {}) {
     answerType: range ? "range" : (count ? "not_enough_data" : "zero_result"),
     identity: identityOf(d, extra.id), question: null,
     range, count, window: d.windowLabel || null,
-    sales: salesOf(d), setAside: setAsideOf(d),
+    sales: salesOf(d), asideRows: asideRowsOf(d), asideLine: asideSentence(d), setAside: setAsideOf(d),
     thin: range ? null : thinTextOf(d, count),
     trend: range ? trendOf(d) : null,
     card: demoCard(sellsForCardHtml(d, { partnerPillsHtml: PILL_SLOT }), d) || null,
@@ -290,6 +328,25 @@ export default async function handler(req, res) {
   if (!partnerAllowed(req)) return res.status(404).json({ error: "Not found" });
   if (req.method !== "GET" && req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   const env = supabaseEnv();
+  // A sale's photo (Sam, Oct 18 2026; demo only; lib/_salePhoto.js): GET ?photo=<archive id> and nothing else, behind the
+  // same crew-or-partner gate as above, on this path so the demo cookie's paths never widen. The address is looked up
+  // server side by one primary-key read and never returned; the image comes back with no venue header, name or address.
+  // Its own ceiling (partner_photo), never Market Check's. Any failure is a plain 404 and the page shows its neutral tile.
+  if (req.method === "GET" && req.query && req.query.photo != null) {
+    const pid = photoId(req.query.photo);
+    const no = () => { res.setHeader("Content-Type", "text/plain; charset=utf-8"); res.setHeader("Cache-Control", "private, no-store"); return res.status(404).send("Not found"); };
+    if (!pid || !env) return no();
+    const lim = await checkCeiling(env, req, "partner_photo", { tool: "partner" }).catch(() => ({ ok: true }));
+    if (!lim.ok) return no();
+    const url = await photoUrlFor(env, pid).catch(() => null);
+    const img = url ? await fetchPhoto(url) : null;
+    if (!img) return no();
+    res.setHeader("Content-Type", img.type);
+    res.setHeader("Content-Length", String(img.body.length));
+    res.setHeader("Cache-Control", "private, max-age=2592000, immutable");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    return res.status(200).send(img.body);
+  }
   const b = req.method === "POST" && req.body && typeof req.body === "object" ? req.body : (req.query || {});
   let refine = null;
   try { refine = cleanRefine(typeof b.refine === "string" ? JSON.parse(b.refine) : b.refine); } catch { refine = null; }

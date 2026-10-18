@@ -117,6 +117,23 @@ h3{font-size:18px;line-height:1.3;margin:0 0 10px;font-weight:700}
 .b-hero{max-width:760px;margin:0 0 22px}
 .full-a{margin-top:26px}
 .full-a h2{font-size:20px;margin-bottom:8px}
+.sl-head{margin:-6px 0 12px}
+.slist{display:flex;flex-direction:column}
+.srow{display:flex;align-items:center;gap:16px;padding:12px 0;border-top:1px solid var(--line,#e5e5e5)}
+.srow:first-child{border-top:0}
+.sph{flex:none;width:128px;aspect-ratio:4/3;border-radius:10px;background:#ececec;overflow:hidden}
+.sph img{display:block;width:100%;height:100%;object-fit:cover}
+.sinfo{flex:1;min-width:0}
+.st{font-weight:600;font-size:15px;line-height:1.3;overflow-wrap:anywhere}
+.sd{color:var(--ink2);font-size:14px}
+.sr{color:var(--ink2);font-size:13px;margin-top:2px}
+.sp{flex:none;font-weight:700;font-size:17px;text-align:right}
+.morewrap{margin-top:16px;text-align:center}
+.more{font:inherit;font-size:15px;font-weight:600;padding:12px 28px;border-radius:999px;border:1px solid #d0d0d0;background:#fff;color:inherit;cursor:pointer}
+.aside-grp{margin-top:28px}
+.aside-grp summary{cursor:pointer;font-weight:600;font-size:15px;padding:8px 0}
+.aside-grp[open] summary{margin-bottom:4px}
+@media (max-width:600px){.sph{width:88px}.srow{gap:12px}.sp{font-size:15px}}
 .stable{width:100%;border-collapse:collapse;font-size:15px}
 .stable th{text-align:left;font-size:13px;font-weight:600;color:var(--ink2);padding:0 8px 8px;border-bottom:1px solid var(--rule)}
 .stable td{padding:10px 8px;border-bottom:1px solid var(--rule)}
@@ -244,17 +261,45 @@ const JS = String.raw`
       : '<p class="muted">No earlier sale or listing of this car on record.</p>';
     return '<div class="panel"><h3>This car before</h3>' + rows + foot(a) + "</div>";
   }
-  function tiles(a){
+  // THE SALES LIST (Sam, Oct 18 2026), views a and d: the answer's own included sales (the engine's cards, never a
+  // set-aside one), newest first, ten at a time with Show more from the same answer (no request, no new number). Each
+  // row: a photo in a fixed slot (/api/partnerAnswer?photo=<id>, lazy; a neutral tile when there is none or it fails), the
+  // engine row's own title, the sale date, mileage and price. Rows are not links. Set-aside sales, if the engine sent any,
+  // sit in their own small group below with the engine's own reason words.
+  var LIST_STEP = 10, lists = {};
+  function photoSlot(s){ return '<div class="sph">' + (s && s.photo ? '<img data-ph src="/api/partnerAnswer?photo=' + encodeURIComponent(s.photo) + '" alt="" width="160" height="120" loading="lazy" decoding="async">' : "") + "</div>"; }
+  function saleRow(s, reason){
+    return '<div class="srow">' + photoSlot(s) + '<div class="sinfo"><div class="st">' + esc(s.name || "") + '</div><div class="sd">Sold ' + esc(dayLabel(s.date)) + '</div><div class="sd">' + esc(milesOf(s)) + "</div>" +
+      (reason ? '<div class="sr">' + esc(reason.charAt(0).toUpperCase() + reason.slice(1)) + "</div>" : "") + '</div><div class="sp">' + usd(s.price) + "</div></div>";
+  }
+  function listHead(slot){ var n = $("sl-" + slot) ? $("sl-" + slot).children.length : 0; return "The most recent " + (n < 10 ? ["zero","one","two","three","four","five","six","seven","eight","nine"][n] : n) + " " + plural(n, "sale", "sales") + " behind this answer, newest first."; }
+  function salesList(a, slot){
     if (!a || a.ok === false) return '<p class="muted">' + notRead(a) + "</p>";
     if (a.question || !a.sales || !a.sales.length) return '<p class="muted">' + esc((a && a.thin) || "No recorded sales of cars like this yet.") + "</p>";
-    return '<div class="tiles">' + a.sales.map(function(s){ return '<div class="tile"><div class="p">' + usd(s.price) + '</div><div class="d">Sold ' + esc(dayLabel(s.date)) + '</div><div class="d">' + esc(milesOf(s)) + "</div></div>"; }).join("") + "</div>";
+    var rows = newest(a); lists[slot] = rows;
+    var shown = rows.slice(0, LIST_STEP), n = shown.length;
+    var aside = (a.asideRows || []).slice().sort(function(x, y){ return String(y.date || "").localeCompare(String(x.date || "")); });
+    return '<p class="sub sl-head" id="slh-' + slot + '">The most recent ' + (n < 10 ? ["zero","one","two","three","four","five","six","seven","eight","nine"][n] : n) + " " + plural(n, "sale", "sales") + " behind this answer, newest first.</p>" +
+      '<div class="slist" id="sl-' + slot + '">' + shown.map(function(s){ return saleRow(s); }).join("") + "</div>" +
+      (rows.length > LIST_STEP ? '<p class="morewrap"><button type="button" class="more" data-more="' + slot + '">Show more</button></p>' : "") +
+      (aside.length ? '<details class="aside-grp"><summary>' + esc(a.asideLine || ((aside.length < 10 ? ["zero","one","two","three","four","five","six","seven","eight","nine"][aside.length] : aside.length) + " " + plural(aside.length, "sale", "sales") + " set aside")) + '</summary><p class="sub">Not part of the answer above.</p><div class="slist">' + aside.map(function(s){ return saleRow(s, s.reason); }).join("") + "</div></details>" : "");
   }
+  document.addEventListener("click", function(e){
+    var m = e.target.closest && e.target.closest("[data-more]"); if (!m) return;
+    var slot = m.getAttribute("data-more"), box = $("sl-" + slot), rows = lists[slot] || []; if (!box) return;
+    var have = box.children.length;
+    box.insertAdjacentHTML("beforeend", rows.slice(have, have + LIST_STEP).map(function(s){ return saleRow(s); }).join(""));
+    $("slh-" + slot).textContent = listHead(slot);
+    if (box.children.length >= rows.length) m.parentNode.removeChild(m);
+  });
+  // A photo that does not load leaves the plain neutral tile, never a broken image.
+  document.addEventListener("error", function(e){ var t = e.target; if (t && t.tagName === "IMG" && t.hasAttribute("data-ph")) t.parentNode.removeChild(t); }, true);
   // ---- view a: before listing
   var aLast = null;
   function drawA(a){
     aLast = a;
     $("a-out").innerHTML = (a.question ? rangePanel(a, { slot: "a", chips: true }) : (idChips(a) ? '<div style="margin:0 0 16px">' + idChips(a) + "</div>" : "") + (a.range || a.thin ? rangePanel(a) : "")) + (a.vin || (a.history && a.history.length) ? historyPanel(a) : "") +
-      (!a.question && a.sales && a.sales.length ? '<section class="full-a"><h2>What cars like this sold for</h2><p class="sub" style="margin:-6px 0 12px">The most recent ' + Math.min(8, a.sales.length) + " " + plural(Math.min(8, a.sales.length), "sale", "sales") + " behind this answer, newest first.</p>" + salesTable(newest(a).slice(0, 8)) + "</section>" : "") +
+      (!a.question && a.sales && a.sales.length ? '<section class="full-a"><h2>What cars like this sold for</h2>' + salesList(a, "a") + "</section>" : "") +
       '<div style="margin-top:20px"><button type="button" class="btn pri" id="a-list">List it</button></div>';
   }
   function runA(body){ $("a-out").innerHTML = '<p class="loading">Sam is reading the sales.</p>'; ask(body).then(drawA); }
@@ -276,8 +321,8 @@ const JS = String.raw`
     cAns = a;
     $("c-rail").innerHTML = rangePanel(a, { price: D.price, slot: "c" }) + historyPanel(a);
     var lq = a && a.range && a.trend && a.trend.length ? a.trend.reduce(function(m, t){ return String(t.period) > String(m.period) ? t : m; }) : null;   // the latest quarter with eight or more sales, view d only
-    $("d-sales").innerHTML = '<h2>What cars like this sold for</h2>' + (a && a.range ? '<p class="sub" style="margin:-6px 0 16px">' + a.count + " " + plural(a.count, "sale", "sales") + ", lowest price first.</p>" : "") +
-      (a && a.card ? (a.quarter ? '<div class="qrow">' + a.quarter + "</div>" : "") : (lq ? '<p class="qrow"><b>' + esc(lq.period.replace("-", " ")) + "</b> " + usd(lq.low) + " to " + usd(lq.high) + ", " + lq.count + " sales</p>" : "")) + tiles(a) + foot(a);
+    $("d-sales").innerHTML = '<h2>What cars like this sold for</h2>' +
+      (a && a.card ? (a.quarter ? '<div class="qrow">' + a.quarter + "</div>" : "") : (lq ? '<p class="qrow"><b>' + esc(lq.period.replace("-", " ")) + "</b> " + usd(lq.low) + " to " + usd(lq.high) + ", " + lq.count + " sales</p>" : "")) + salesList(a, "d") + foot(a);
     $("d-hist").innerHTML = historyPanel(a);
   }
   document.addEventListener("click", function(e){

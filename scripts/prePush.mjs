@@ -389,6 +389,15 @@ try {
 } catch (e) {
   record("The partner demo code opens the demo and its data endpoint only (scripts/partnerAccessCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The demo's sale photo proxy (Lane C, Oct 18 2026; lib/_salePhoto.js): an id only, a public https image only, same-host
+// redirects, size and type caps, no address or venue header, behind the demo gate. No network.
+try {
+  const out = execSync("node scripts/salePhotoCheck.mjs", { encoding: "utf8" });
+  const line = (out.match(/salePhotoCheck: .*/) || [""])[0];
+  record("The demo's sale photo takes an id only and never shows where it came from (scripts/salePhotoCheck.mjs)", "PASS", line);
+} catch (e) {
+  record("The demo's sale photo takes an id only and never shows where it came from (scripts/salePhotoCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The applied choice (Lane C, Oct 15 2026): a Task from a Buy page names the body the engine applied. No network.
 try {
   const out = execSync("node scripts/engineChoiceCheck.mjs", { encoding: "utf8" });

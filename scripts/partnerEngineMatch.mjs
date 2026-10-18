@@ -53,7 +53,7 @@ for (const [name, d] of Object.entries(FIX)) {
     ok(out.window === mc.window, `${name}: window ${out.window} vs ${mc.window}`);
     ok(same(asKeys(out.sales), mc.sales), `${name}: the same sales as Market Check`);
     ok(out.sales.every((s, i, a) => !i || a[i - 1].price <= s.price), `${name}: sales lowest price first`);
-    ok(out.sales.every(s => Object.keys(s).sort().join() === "date,miles,price"), `${name}: a sale is its price, date and mileage only`);
+    ok(out.sales.every(s => Object.keys(s).sort().join() === "date,miles,name,photo,price" && (s.photo === null || /^\d{1,15}$/.test(s.photo)) && !venueLeak({ n: s.name }).length), `${name}: a sale is its price, date, mileage, the engine row's own name (venue-safe) and its archive id for the photo only`);
     ok(sameCard(out.card, d), `${name}: the shared card, byte-identical to Market Check's card for the same answer`);
   }
   if (name === "thin") ok(out.range === null && /Too few to show a range/.test(out.thin || "") && !/\$/.test(out.thin), "thin: words only, never a range or a dollar figure");
@@ -62,7 +62,7 @@ for (const [name, d] of Object.entries(FIX)) {
     ok(!/<a [^>]*>How Sam decides/.test(out.card) && /<span class="sfc-footer-link">How Sam decides<\/span>/.test(out.card), "range: How Sam decides is plain text, not a link");
     ok(out.sales.every(s => s.miles === 24000 || s.miles === null), "range: each sale carries the engine's mileage");
     ok(basisLine({ ...d, poolN: 3 }) === "Based on three sales, the latest in April 2026.", "a count under ten is written in words");
-    ok(/Based on 14 sales, the latest in April 2026/.test(out.card || "") && /1 project, 1 replica/.test(out.card || "") && out.card.indexOf(PILL_SLOT) > out.card.indexOf("sfc-range"), "range: the card carries the basis, the set-aside footnote and the pill slot under the range");
+    ok(/Based on 14 sales, the latest in April 2026/.test(out.card || "") && /Two sales set aside, one as a project and one as a replica\./.test(out.card || "") && !/set aside:/.test(out.card || "") && out.card.indexOf(PILL_SLOT) > out.card.indexOf("sfc-range"), "range: the card carries the basis, the set-aside sentence (words under ten, no colon) and the pill slot under the range");
     ok(out.trend && out.trend.length === 1 && out.trend[0].count >= 8, "range: only quarters with eight or more sales");
     ok(out.setAside && out.setAside.total === 2 && !("modified" in out.setAside.reasons), "range: set-aside reasons, zero counts dropped");
     ok(out.history[0].result === "not_sold" && out.history[0].highBid === 128000 && out.history[1].price === 151000, "history: sold with its price, not sold with its high bid, newest first");
@@ -105,6 +105,19 @@ for (const [name, d] of Object.entries(FIX)) {
   ok(READ_DEADLINE_MS > 0 && READ_DEADLINE_MS <= 25000 && /Promise\.race\(\[marketCheckAnswer\(/.test(apiSrc), "the server read races a deadline of at most 25 s");
   const m = pageSrc.match(/var ASK_DEADLINE_MS = (\d+);/);
   ok(m && Number(m[1]) > READ_DEADLINE_MS && Number(m[1]) <= 30000 && /ctl\.abort\(\)/.test(pageSrc) && /Promise\.race\(\[read, late\]\)/.test(pageSrc), "each page attempt aborts after the server deadline and resolves to could-not-read"); }
+// The demo's sales list (Sam, Oct 18 2026): included sales only (the engine's cards), the set-aside sales apart with the
+// engine's own reason words, the set-aside sentence from the numeric counts; views a and d, ten then Show more.
+{ const { asideSentence, asideRowsOf, salesOf } = await import("../api/partnerAnswer.js");
+  ok(asideSentence({ setAsideReasons: { "odd sale": 4, modified: 0 } }) === "Four sales set aside as odd sales." && asideSentence({ setAsideReasons: { "odd sale": 1 } }) === "One sale set aside as an odd sale." && asideSentence({ setAsideReasons: { "odd sale": 4, modified: 1 } }) === "Five sales set aside, four as odd sales and one as modified." && asideSentence({ setAsideReasons: {} }) === null, "the set-aside sentence: words under ten, singular and plural, no colon");
+  const d = { tier: "result", cards: [{ id: 11, title: "2005 BMW 330i Sedan", price: 6500, date: "2026-10-10", mi: 85000 }, { id: 12, title: "2005 BMW 330ci on Bring a Trailer", year: 2005, make: "BMW", model: "3-Series", price: 12705, date: "2026-09-16", mi: 71962 }],
+    setAsideRows: [{ id: 21, title: "2005 BMW 330ci ZHP Coupe", price: 16500, date: "2026-08-21", mi: 150000, reason: "odd sale", setAside: true }, { id: 22, title: "x", price: 9000, date: "2026-01-01", mi: 1, reason: "Mecum", setAside: true }] };
+  const inc = salesOf(d), as = asideRowsOf(d);
+  ok(inc.length === 2 && inc.every(r => [11, 12].map(String).includes(r.photo)) && !inc.some(r => r.price === 16500), "the list is the engine's included sales only, never a set-aside one");
+  ok(inc.find(r => r.photo === "12").name === "2005 BMW 3-Series", "a title carrying a venue word falls back to the row's own year, make and model");
+  ok(as.length === 1 && as[0].reason === "odd sale" && as[0].photo === "21", "set-aside rows carry the engine's own reason; a reason with a venue word is dropped");
+  const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
+  ok(/var LIST_STEP = 10/.test(pageSrc) && /salesList\(a, "a"\)/.test(pageSrc) && /salesList\(a, "d"\)/.test(pageSrc) && /<details class="aside-grp">/.test(pageSrc) && /The most recent /.test(pageSrc) && /newest first\./.test(pageSrc), "views a and d: ten rows, Show more, the set-aside group closed by default, the heading counts what is shown");
+  ok(/loading="lazy"/.test(pageSrc) && /\.sph\{flex:none;width:128px;aspect-ratio:4\/3/.test(pageSrc) && /hasAttribute\("data-ph"\)\) t\.parentNode\.removeChild\(t\)/.test(pageSrc), "photos lazy, in a fixed slot; a failed photo leaves the neutral tile"); }
 // The endpoint reads no market of its own: Market Check's handler is its only source of figures.
 const src = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8").replace(/\/\/[^\n]*/g, "");
 ok(/import\("\.\/sellerDecision\.js"\)/.test(src) && /oneBox: true/.test(src), "the endpoint asks Market Check's own handler");
