@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T14:0xZ (Lane F; the e60 chain is RUNNING after Sam accepted the prompt; the quiet holds for every other lane until e60's PUSHED and table).
+Last updated: 2026-10-18T14:17Z (Lane F tick, batched push; the e60 chain running under option A in the pullLive gaps; the quiet holds for every other lane until its PUSHED and table).
 
 ## 0x. Sam's STANDING RULE and decisions, 14:0xZ Oct 18 (forwarded word for word to every reachable lane; Lane A in lane-notes)
 
