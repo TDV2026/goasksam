@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T19:57Z (Lane F tick; stage 5 live; scenario e 20:05Z; c9 20:20Z).
+Last updated: 2026-10-18T20:05Z (Lane F; Sam's three VIN-view fixes (decoded heading, own-sale main photo, 'This car' tag) sent to Lane C, folded into c9 or pushed right after; scenario e 20:05Z; c9 20:20Z).
+
+## 0av. Sam's live review 20:0xZ Oct 18 (13:04 PT) of /preview with the VIN: three fixes (forwarded word for word to Lane C)
+
+Works: the earlier-sales panel on top, the reserve line splitting the sales list, the reserve pill and line, the eBay logo, the chips, the range card. Fixes for a car identified by VIN: 1. the heading is the decoded car name ("2014 Porsche 911 GT3", from the engine's identity answer) on every view with the VIN small beneath; if the engine cannot name it, the VIN alone. 2. the main photo is the exact car's own most recent sale photo when one exists, captioned "Photo from this car's sale in {Month Year}.", no venue, no link; else the current photo with "Photo from a recent sale of a car like this one."; a different car's photo is never captioned as this car. 3. rows in the sales list that are this car's own earlier sales carry a small tag "This car", matched from the same stored records as the earlier-sales panel. c9 uses the same rules; fold into c9 if it costs no delay, else a separate push right after in a Desk gap, before B2's pins. partnerEngineMatch covers heading, caption and tag for this VIN and for a car with no earlier sale.
 
 ## 0au. Sam 18:3xZ Oct 18: the exact-car "sold before" panel moves up, folded into the stages 3 and 4 push (forwarded word for word to Lane C)
 
