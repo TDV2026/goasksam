@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T04:18Z (Lane F tick; third demo fix live 0acbd51f since 03:58Z with proof; waiting on Sam's home-desktop test and incident-clear call; no lane activity since 04:0xZ).
+Last updated: 2026-10-18T04:2xZ (Lane F; INCIDENT CLEAR declared by Sam, quiet mode ended, announced to every lane; window 1 OPEN for Lane B's profiling; photo proxy NO; new order).
+
+## 0j. INCIDENT CLEAR (Sam, 2026-10-18 ~04:20Z); quiet mode ended; announced to every lane (B, C, B2, D, E by message; A in lane-notes)
+
+Sam tested the demo from his home desktop and it shows data. The view d photo proxy is NO (the no-photo build was sent to Lane C). Order from now: Lane C first, the /cars hub and spec page template fix (the 911 page still looks wrong to Sam) together with noindex on every /cars page in one push, a row with no stored engine answer shows no number and never one from poolFor or statsFor, live screenshots at 1440 and 390 after; then the crew cookie helper repair; then the view d list without photos (10 rows, Show more); then C1; then C2 to C5. Lane B: window 1 OPEN now, profile the slow perf cars (the 2015 GT3 and the Market Check cars at 12 to 23 s) read-only, cause per car; then e60 to READY with part 9, before and after on the golden cars and the demo's six. Then window 2 (Sam's run-0), B2's 14-row re-read, Lane E's E9, Lane D's Sell items, then e60 on Sam's go. Sam still owes the Vercel Logs screenshot of /history/ for the crawler's user agent; no throttle approved; C1 and the e60 crawler rule are the fix.
 
 ## 0i. Sam's decisions 03:5xZ Oct 18 (forwarded word for word to Lanes B and C)
 
@@ -224,9 +228,9 @@ Lane F in away mode (ended 01:55Z Oct 18; the 20-minute tick is back on as job 1
 
 | Item | Owner | State | Blocked on | Proof |
 |---|---|---|---|---|
-| Photo fields in the archive and the engine answer; share of sales with one; URL hosts; venue identification; rights | Lane B | REPORTED (one read): one field per sale, OldCarsData's featured_image_url, already on every row of the engine's full sales list (cards: id, title, price, date, miles, platform, url, image; count soldCountN/poolN), so no engine addition is needed; the URLs are the venues' own servers (bringatrailer.com, media.carsandbids.com seen), hotlinked, no copy or licence of ours beyond what embedding allows; the host and Bring a Trailer's file names identify the venue, and the partner answer's venue-leak guard would block a raw image URL by design. Coverage count needs two archive count reads after the clear. | Sam's decision on a photo proxy on our domain keyed by sale id (/api/salePhoto?id=...) streaming the venue image with a cache header, so no venue appears in the markup; costs Vercel bandwidth and a venue fetch per uncached image; does not change whose images they are | Lane B's report; the coverage table after the clear |
+| Photo fields in the archive and the engine answer; share of sales with one; URL hosts; venue identification; rights | Lane B | REPORTED (one read): one field per sale, OldCarsData's featured_image_url, already on every row of the engine's full sales list (cards: id, title, price, date, miles, platform, url, image; count soldCountN/poolN), so no engine addition is needed; the URLs are the venues' own servers (bringatrailer.com, media.carsandbids.com seen), hotlinked, no copy or licence of ours beyond what embedding allows; the host and Bring a Trailer's file names identify the venue, and the partner answer's venue-leak guard would block a raw image URL by design. Coverage count needs two archive count reads after the clear. | DECIDED: photo proxy NO (Sam, 04:2xZ); the view d list ships without photos | Lane B's report; the coverage table after the clear |
 | e60: photo reference, full list and count on every product's answer | Lane B | NOT NEEDED: already in oneEngineAnswer (Lane B's report); the partner layer's salesOf drops image, id and title, which is Lane C's change | nothing | Lane B's report |
-| View d design: photo, price, date, mileage per row; 10 rows then Show more from the same answer; neutral tile for no photo, lazy-loaded; basis line and thin rule unchanged; screenshots 1440 and 390 before live | Lane C | design after its current PUSHED; no build until Lane B's report and Sam's confirmation | Lane C's PUSHED; Lane B's report; Sam | screenshots to Sam |
+| View d list: 10 rows then Show more from the same engine answer, price, date, mileage per row, NO photos (Sam: proxy is NO), basis line and thin rule unchanged, screenshots 1440 and 390 before live | Lane C | ordered, third in Lane C's queue after the hub fix with noindex and the crew cookie helper repair | its turn | screenshots to Sam |
 
 ## 3. Buy speed
 
