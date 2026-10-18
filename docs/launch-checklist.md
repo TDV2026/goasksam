@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T21:07Z (Lane F; the VIN fixes, empty view a and the reserve photo are DONE and live; the view c and view b fixes are built (lanec-viewfix) for the 21:20Z push, check 21:35Z).
+Last updated: 2026-10-18T21:17Z (Lane F tick; view c and view b fixes push 21:20Z, check 21:35Z; then B2, singleflight, E9, Lane D, one-read).
 
 ## 0ax. Sam's live review 21:0xZ Oct 18 (14:03 PT) of /preview: two fixes (forwarded word for word to Lane C)
 
