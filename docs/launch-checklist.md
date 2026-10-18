@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T06:5xZ (Lane F; Sam's database report: CPU-bound for 40 minutes, idle now; e60 perf rerun released on three sub-2 s reads; Lane B to attribute the CPU load and judge Large for launch; Lane E to table the request logs for the window).
+Last updated: 2026-10-18T06:57Z (Lane F tick; Sam: OPTION A, e60 pushes now under four conditions; Lane B also hunts the periodic database load; Lane E tables the request logs).
+
+## 0v. Sam's decision 06:5xZ Oct 18: OPTION A for e60 (forwarded word for word to Lane B)
+
+Push e60 now under the exception, on four conditions: 1. nothing failed in the prePush except the Market Check and Buy timing lines (as on the 06:15Z run) and the lock line names the check fix; 2. the live before and after reads are taken twice, five minutes apart, every still-reading, catching-his-breath or still-finding row retried once after 60 seconds, e60 and e59 compared on the same cars back to back in the same minute where possible; 3. revert at once on a worse golden row, an erroring answer, a wrong number, the resolver returning a curated car where it should say still reading (or the reverse), or a gated page answering a non-crew visitor; a timing difference alone, matched by e59 in the same minute, is not a revert reason; 4. post the before and after table and the cold-read column either way. Separately, Lane B hunts the periodic database load read-only: every scheduled job that can touch the database (vercel.json crons, Supabase pg_cron or webhooks, internal task= warm or watch loops, the ingest, Lane C's checks) with schedule and reads; which lines up with the 06:34 to 06:47Z episodes; which should be moved, thinned or bounded before launch; nothing changed yet. Sam's report: CPU alternated busy (75 to 100%) and idle all hour with no lane and no visitors, disk IO near zero.
 
 ## 0u. Sam's decisions 06:2xZ Oct 18 (Lane C by message; Lane A in lane-notes)
 
@@ -45,7 +49,8 @@ Partner demo only. 1. Pills in placing(): listing view "Asking price is inside /
 |---|---|---|---|
 | 1. Lane C batch c7 and the photo id fix | Lane C | PUSHED 05:45Z, DONE | nothing |
 | 2. Sam's run-0 v2 quiet window | Sam | CLOSED 05:52Z without running it (not tonight; a new window later on Sam's say-so; not a launch blocker) | Sam |
-| 3. e60 push (Sam's go, exception on five conditions) | Lane B | Sam's answer to A or B (06:5xZ): the CPU is idle now, release the perf rerun on three single-row reads under two seconds; a pass pushes normally, a fail follows the granted exception path; then conditions 3 and 5; then the CPU-load attribution and the Large-is-enough question | Lane B's watch and rerun |
+| 3. e60 push | Lane B | OPTION A (Sam, 06:5xZ): push now under the exception on four conditions (timing lines only, the check fix named in the lock; before and after twice five minutes apart with a 60 s retry on any still-reading row, e60 against e59 same minute; revert on a worse row, an error, a wrong number, a resolver curated-vs-still-reading mistake or a gate breach, not on timing alone; the tables posted either way) | Lane B's PUSHED and DONE |
+| Periodic database load (CPU busy and idle in alternation all hour, no lane, no visitors, disk idle) | Lane B hunts read-only | ordered 06:5xZ: every scheduled job that can touch the database with schedule and reads, which lines up with 06:34 to 06:47Z, which to move, thin or bound before launch; nothing changed | Lane B's report; Lane E's request-log table | the job list |
 | 4. E9, then the Crawl-delay after-rate read, then the audit runs | Lane E | holding | e60 live |
 | 5. The Sell line (branch sell-count, rebased onto main after e60) | Lane D | holding, READY | E9 |
 | 6. Lane C batch c8: layout, M3 narrowing lines, card bump (Half of these sold in this range, usual-range pills), the outside-feedback demo wording, the demo footer line, the /cars H1 fix; then the prePush one-at-a-time fix; then C1 and the crawler rule; then C2 to C5 | Lane C | c8 BUILT and stacked (partnerEngineMatch 66/66, sellsForCardCheck 33/33); Sam reviews live after the push | the quiet lifted; e60's PUSHED; Lane D's turn in the load order |
