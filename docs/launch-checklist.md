@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T06:16Z (Lane F; e60's second prePush failed on the timing lines only, condition 1 met; QUIET re-announced for Lane B's perf-row rerun; Lane C's card bump screenshots and a How Sam decides question for Sam).
+Last updated: 2026-10-18T06:2xZ (Lane F; Sam's outside-feedback demo round: neutral pill wording, a reserve count line, the set-aside line off the demo card only, a real same-VIN earlier sale; e60's perf rerun running under the quiet).
+
+## 0t. Sam's demo decisions 06:2xZ Oct 18, from outside feedback (forwarded word for word to Lanes B and C)
+
+Partner demo only. 1. Pills in placing(): listing view "Asking price is inside / above / below the usual range"; reserve view "Your reserve is inside / above / below the usual range"; neutral, no good-deal wording, no recommendation. 2. Reserve view: one prominent line under the pill, "N of the 10 most recent sales reached {reserve} or more." with N counted from exactly the 10 rows shown, the reserve as typed; if N is 0, "None of the 10 most recent sales reached {reserve}." 3. The "One sale set aside" line comes off the demo's main card only; the set-aside group and the How Sam decides text carry it; the shared card and every other product keep it; if the demo cannot drop it without editing lib/sellsForCard.js, Lane C says so and stops. 4. "This car before" must show a REAL earlier sale of the same VIN, never invented. Lane B (after e60's DONE, read-only, one read at a time, no scans): genuine same-VIN candidates among the six demo cars first, then any 2013 to 2016 991 GT3; VIN, earlier and later sales (date, mileage, price, no venue), whether a photo exists; the list to Sam. Lane C: decisions 1 to 3 with the layout batch, screenshots before live; decision 4 waits for Lane B's candidates and Sam's choice.
 
 ## 0s. Sam's decisions 06:1xZ Oct 18 (forwarded word for word to Lanes B and C)
 
@@ -333,6 +337,15 @@ Lane F in away mode (ended 01:55Z Oct 18; the 20-minute tick is back on as job 1
 | Photo fields in the archive and the engine answer; share of sales with one; URL hosts; venue identification; rights | Lane B | REPORTED (one read): one field per sale, OldCarsData's featured_image_url, already on every row of the engine's full sales list (cards: id, title, price, date, miles, platform, url, image; count soldCountN/poolN), so no engine addition is needed; the URLs are the venues' own servers (bringatrailer.com, media.carsandbids.com seen), hotlinked, no copy or licence of ours beyond what embedding allows; the host and Bring a Trailer's file names identify the venue, and the partner answer's venue-leak guard would block a raw image URL by design. Coverage count needs two archive count reads after the clear. | REVERSED 04:4xZ: photo proxy YES for the demo only (crew or partner session), no venue anywhere; rights for the public launch stay Sam's open question | Lane B's report; the coverage table after the clear |
 | e60: photo reference, full list and count on every product's answer | Lane B | NOT NEEDED: already in oneEngineAnswer (Lane B's report); the partner layer's salesOf drops image, id and title, which is Lane C's change | nothing | Lane B's report |
 | Demo sales list WITH photos | Lane C | LIVE and PROVEN (0548537a plus the photo id fix d7564986, PUSHED 05:45Z): ten of ten photos load from the live archive on the 2005 BMW 3-Series list at 1440 and 390, none broken; the photo path answers a real id in session and 404s no-session, 'abc', '12abc', a URL and '//host'; four views and six cars live with data | Sam tests the demo; Lane C hands off until then | live-bmw-1440.png and live-bmw-390.png; the PUSHED line |
+
+## 2c. Partner demo, outside-feedback round (Sam, 06:2xZ Oct 18)
+
+| Item | Owner | State | Blocked on | Proof |
+|---|---|---|---|---|
+| Pills reworded (Asking price is / Your reserve is inside, above, below the usual range), neutral | Lane C | ordered, rides with the layout batch | screenshots OK; e60's PUSHED | screenshots; live |
+| Reserve view line: N of the 10 most recent sales reached {reserve} or more (or None ...), counted from the ten rows shown | Lane C | ordered | same | same |
+| The One sale set aside line off the demo's main card only (shared card untouched; stop and say so if impossible without lib/sellsForCard.js) | Lane C | ordered | same | same |
+| This car before shows a REAL earlier sale of the same VIN | Lane B finds candidates (after e60's DONE); Sam picks; Lane C builds | ordered | Lane B's candidate list | the list; the live view |
 
 ## 3. Buy speed
 
