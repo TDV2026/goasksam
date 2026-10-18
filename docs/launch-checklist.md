@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T18:3xZ (Lane F; the manual warm of the 2014 GT3 needs no engine change (list= on live warmDemo) and must follow c9's Ready; minutes stand; scenario (a) at 18:35Z).
+Last updated: 2026-10-18T18:3xZ (Lane F; Sam's panel-order change folded into Lane C's stages 3 and 4 push (19:20Z, or 19:35Z if not ready); scenario (a) at 18:35Z; the path push at 18:50Z).
+
+## 0au. Sam 18:3xZ Oct 18: the exact-car "sold before" panel moves up, folded into the stages 3 and 4 push (forwarded word for word to Lane C)
+
+On the listing view the order is: the car and its own listing details (price, mileage, photo), then the "this car sold before" panel directly beneath, then the range card, then the "cars like this one" sales list (which does NOT move: under the range card, ten at a time with the button for more), then everything else. At 1440 the panel is visible without scrolling; at 390 it follows the listing details within one screen. No earlier sale: one plain line, no space taken, no invented rows. Venue-blind: date, price, mileage and photo only. partnerEngineMatch checks the panel precedes the range card in page order, plus a browser check at 1440 (above the fold) and 390 (within one screen). c9 uses the same order; Lane C tells the Desk if the panel sits low on any other view. The layout draws the engine's answer and stored records only.
 
 ## 0at. Sam's order change 18:2xZ Oct 18: c9 moves up (forwarded word for word to Lane C and Lane B; the order to B2, Lane E, Lane D)
 
