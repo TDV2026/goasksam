@@ -4384,8 +4384,8 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { projectFlagReason } = await import("../lib/_classify.js");
     const limitRows = Math.min(Number(req.query?.rows) || 5000, 60000);
-    const LIMIT = 1000; let cursor = "", scanned = 0, wouldFlag = 0, stamped = 0;
-    const byKeyword = {}, flagged = [], unflagged = [];
+    const LIMIT = 1000; let cursor = "", scanned = 0, wouldFlag = 0, stamped = 0, wouldFlagLoose = 0;
+    const byKeyword = {}, byKeywordLoose = {}, flagged = [], unflagged = [], looseOnly = [];
     for (let page = 0; page * LIMIT < limitRows; page++) {
       const q = `sales_archive?select=source_id,source_slug,sale_price,listing_title,desc_facts,d:raw_record->>description&project_flag=is.null&order=source_id.asc&limit=${LIMIT}` + (cursor ? `&source_id=gt.${encodeURIComponent(cursor)}` : "");
       const batch = await supabaseSelect(env, q);
@@ -4394,6 +4394,9 @@ async function handleOps(req, res) {
         scanned++; if (r.desc_facts) stamped++;
         const title = String(r.listing_title || ""), desc = String(r.d || "");
         const f = projectFlagReason(title, desc);
+        const fl = projectFlagReason(title, desc, { rule: "loose" });
+        if (fl) { wouldFlagLoose++; byKeywordLoose[fl] = (byKeywordLoose[fl] || 0) + 1; }
+        if (fl && !f && looseOnly.length < 40) { const hay = (title + " " + desc).toLowerCase(); const idx = hay.indexOf(String(fl).split(" ")[0].toLowerCase()); looseOnly.push({ src: r.source_slug, price: r.sale_price, title, keyword: fl, phrase: idx >= 0 ? (title + " " + desc).slice(Math.max(0, idx - 60), idx + 80).replace(/\s+/g, " ") : null }); }
         if (f) {
           wouldFlag++; byKeyword[f] = (byKeyword[f] || 0) + 1;
           if (flagged.length < 20) { const hay = (title + " " + desc).toLowerCase(); const idx = hay.indexOf(String(f).split(" ")[0].toLowerCase()); flagged.push({ src: r.source_slug, price: r.sale_price, title, keyword: f, phrase: idx >= 0 ? (title + " " + desc).slice(Math.max(0, idx - 60), idx + 80).replace(/\s+/g, " ") : null }); }
@@ -4405,6 +4408,7 @@ async function handleOps(req, res) {
     const bodyshell = (await supabaseSelect(env, `sales_archive?select=source_id,source_slug,sale_price,listing_title,d:raw_record->>description&project_flag=eq.bodyshell&limit=1000`)) || [];
     const staleBodyshell = bodyshell.filter(r => !projectFlagReason(String(r.listing_title || ""), String(r.d || "")));
     return res.status(200).json({ task: "projdry", scanned, stampedWithDescFacts: stamped, wouldFlag, wouldNotFlag: scanned - wouldFlag, wouldFlagPct: scanned ? Math.round((wouldFlag / scanned) * 1000) / 10 : 0, byKeyword,
+      looseRule: { wouldFlag: wouldFlagLoose, byKeyword: byKeywordLoose, flaggedByLooseOnly: looseOnly.length, examples: looseOnly },
       flaggedExamples: flagged, unflaggedExamples: unflagged,
       bodyshellRows: bodyshell.length, bodyshellNowUnflagged: staleBodyshell.length, bodyshellExamples: staleBodyshell.slice(0, 10).map(r => ({ src: r.source_slug, price: r.sale_price, title: r.listing_title })) });
   }
