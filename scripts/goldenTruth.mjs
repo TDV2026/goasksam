@@ -286,11 +286,17 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
     const out = [];
     if (!lane || !lane.ok) return out;
     if (rendered.count != null && lane.count != null && rendered.count !== lane.count) out.push(`count ${rendered.count} on the page, ${lane.count} in its engine answer`);
-    // The Market Check page of a pool with no band prints the engine's factsBlock lowest and highest (all-in, the real sales), not the thin span (hammer).
-    const want = lane.low != null ? { low: lane.low, high: lane.high } : (product === "marketCheck" && facts ? facts : (product === "marketCheck" ? null : (Array.isArray(lane.span) ? { low: lane.span[0], high: lane.span[1] } : null)));
-    if (rendered.range && want && (rendered.range.low !== want.low || rendered.range.high !== want.high)) out.push(`range ${money(rendered.range.low)} to ${money(rendered.range.high)} on the page, ${money(want.low)} to ${money(want.high)} in its engine answer${lane.low == null ? " (factsBlock)" : ""}`);
-    else if (rendered.range && !want) out.push(`page prints ${money(rendered.range.low)} to ${money(rendered.range.high)}, engine answer has no range`);
-    else if (!rendered.range && want && product === "marketCheck") out.push(`page prints no range, engine answer has ${money(want.low)} to ${money(want.high)}`);
+    // Thin tier (the engine carries no band): the product rule is that no page prints a range, and the low and high appear nowhere on the page
+    // (Sam, Oct 18 2026, rows 14 and 23). The page is judged against the engine's tier decision, not against a raw low and high.
+    if (product === "marketCheck" && lane.low == null) {
+      if (rendered.range) out.push(`page prints ${money(rendered.range.low)} to ${money(rendered.range.high)}, the engine tier is thin (no range on any page)`);
+      for (const v of facts ? [facts.low, facts.high] : []) if (rendered.text && rendered.text.includes(money(v))) out.push(`${money(v)} appears on the page, the engine tier is thin (low and high appear nowhere)`);
+    } else {
+      const want = lane.low != null ? { low: lane.low, high: lane.high } : (product === "marketCheck" && facts ? facts : (product === "marketCheck" ? null : (Array.isArray(lane.span) ? { low: lane.span[0], high: lane.span[1] } : null)));
+      if (rendered.range && want && (rendered.range.low !== want.low || rendered.range.high !== want.high)) out.push(`range ${money(rendered.range.low)} to ${money(rendered.range.high)} on the page, ${money(want.low)} to ${money(want.high)} in its engine answer${lane.low == null ? " (factsBlock)" : ""}`);
+      else if (rendered.range && !want) out.push(`page prints ${money(rendered.range.low)} to ${money(rendered.range.high)}, engine answer has no range`);
+      else if (!rendered.range && want && product === "marketCheck") out.push(`page prints no range, engine answer has ${money(want.low)} to ${money(want.high)}`);
+    }
     const yrs = /\d{4} to \d{4}/.exec(String(lane.rungLabel || ""));
     if (yrs && rendered.scope && !/\?/.test(rendered.scope) && !rendered.scope.includes(yrs[0])) out.push(`scope line "${rendered.scope.slice(0, 60)}" lacks "${yrs[0]}" from its engine label`);
     return out;
@@ -326,7 +332,7 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
       const tx = textDiffs(g, rd.text, pr, parsed);
       if (pr === "buy") { r.buyListings = parsed.listings; r.pages.buy = { cell: parsed.listings.length ? "PENDING" : "N/A", diffs: [], shown: parsed.listings.length ? `${parsed.listings.length} live car(s)` : "no live car", card: rd.card || null }; continue; }
       const lane = (byQ[g.q] && byQ[g.q].lanes || {})[pr];
-      const dr = drift(pr, parsed, lane, facts[g.q]);
+      const dr = drift(pr, { ...parsed, text: rd.text }, lane, facts[g.q]);
       if (dr.length) r.pages[pr] = { cell: "DRIFT", diffs: dr.map(d => "RENDER DRIFT, " + d) };
       else r.pages[pr] = { cell: engineCell.cell, diffs: [] };
       if (tx.length && r.pages[pr].cell !== "DRIFT") r.pages[pr] = { cell: "FAIL", diffs: tx };

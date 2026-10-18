@@ -9674,3 +9674,6 @@ Open, none adjusted: rows 14 and 23 (275 GTB), Market Check page prints no range
 
 ## Lane B2, row 47 added (1991 Acura NSX, Oct 18 2026)
 Row 47 pinned from Lane B's live read: all four products 21 sales, $71,000 to $101,000, rung exact "1991 NSX". Row 20 (1995 NSX, 15 sales $86,000 to $136,000) is a different car. Rows 14 and 23 (275 GTB) page-prints-no-range pin held for Sam's rule answer. Not read live yet; first run is the next api-mode pass.
+
+## Lane B2, rows 14 and 23 pinned to the engine tier (Oct 18 2026)
+Per Sam: a thin tier prints no range on any page, and the engine's low and high appear nowhere on the page. The checker now compares a Market Check page of a no-band pool to that tier decision, not to a raw low and high: it fails if the page prints a range or shows the cards' lowest or highest price. File work only, no archive read; first live pass is the next api-mode run. Row 46 waits on e60.

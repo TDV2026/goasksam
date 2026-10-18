@@ -85,7 +85,7 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 11 | 1989 Merkur XR4Ti | thin model, no rung reaches eight | thin, no band |
 | 12 | 2024 Porsche 911 GT3 | halo trim asked for, window before years | year_widened, 2023 to 2024, 14 sales, $243,000 to $269,000 |
 | 13 | 2018 Ford Mustang GT | exactly eight, aftermarket package still counts | exact, 8 sales, $30,000 to $35,500 |
-| 14 | 1966 Ferrari 275 GTB | its own model (the 275 GTB/4, GTS and GTB/C are out), blends across models, US and Canada only | year_widened, 1965 to 1966, 9 sales, thin, no band |
+| 14 | 1966 Ferrari 275 GTB | its own model (the 275 GTB/4, GTS and GTB/C are out), blends across models, US and Canada only | year_widened, 1965 to 1966, 9 sales, thin, no band; the thin tier prints no range on any page and the engine's low and high appear nowhere on the page (Sam, Oct 18 2026) |
 | 15 | 1987 Buick Regal Grand National | typed words carried | exact, 55 sales, $35,500 to $56,000 |
 | 16 | 2005 Saab 9-2X | exact year, five-year window, modified cars fenced | exact, 15 sales, $9,000 to $12,500 |
 | 17 | 1931 Bugatti Type 41 | not enough data | not_enough_data, nothing on record |
