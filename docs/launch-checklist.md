@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T06:3xZ (Lane F; the database slowness is internal (no requests, single-row reads improving), Sam can confirm autovacuum; Lane C's c8 carries every demo wording decision; e60 held until the site answers normally).
+Last updated: 2026-10-18T06:37Z (Lane F tick, batched push; e60 held while the database recovers from an internal load; c8 built and stacked; the quiet holds).
 
 ## 0u. Sam's decisions 06:2xZ Oct 18 (Lane C by message; Lane A in lane-notes)
 
