@@ -230,9 +230,9 @@ const JS = String.raw`
   // Where a figure sits against the engine's range. The only thing this page works out, and only from that range.
   function placing(x, a){
     if (!a || !a.range) return { cls: "none", text: "No range for cars like this yet" };
-    if (x < a.range.low) return { cls: "below", text: "Below the range cars like this sold for" };
-    if (x > a.range.high) return { cls: "above", text: "Above the range cars like this sold for" };
-    return { cls: "in", text: "Inside the range cars like this sold for" };
+    if (x < a.range.low) return { cls: "below", text: "Below the usual range" };
+    if (x > a.range.high) return { cls: "above", text: "Above the usual range" };
+    return { cls: "in", text: "Inside the usual range" };
   }
   function idChips(a){
     var id = a && a.identity; if (!id) return "";
