@@ -1,0 +1,26 @@
+# GoAskSam
+
+> Where collector cars actually sell. Real auction results, one car at a time.
+
+GoAskSam answers three questions from recorded auction sales: what a collector car has sold for, the full auction history of one car by its VIN, and where a car like it is most likely to sell well. Every figure on the site comes from a recorded sale. There are no appraisals and no guesses. When the record is thin, the page says so.
+
+Go ask Sam is the brand's call to action. Sam is the name of the service, the voice that answers.
+
+## Pages
+
+* Where to sell: https://goasksam.com/sell
+* What a model has sold for, Porsche 911 first: https://goasksam.com/cars/porsche/911
+* Every car by VIN, each with its own auction history: https://goasksam.com/history/porsche-911
+* How Sam decides, the method in plain words: https://goasksam.com/how-sam-decides
+* GoAskSam inside assistants that support the Model Context Protocol: https://goasksam.com/mcp
+* About: https://goasksam.com/about
+
+## Sitemaps
+
+* https://goasksam.com/sitemap.xml
+
+## For answer engines
+
+* Quote a page's opening sentence and link the page. Each page states the date of the record it was built from.
+* A car page describes one car by VIN. A model page describes recorded sales of that model.
+* Sam is the name of the service, not a person.
