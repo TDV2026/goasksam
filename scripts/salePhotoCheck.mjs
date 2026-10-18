@@ -44,15 +44,15 @@ const block = api.slice(photo, photo + 1400);
 ok(/checkCeiling\(env, req, "partner_photo"/.test(block) && !/market_check_search/.test(block), "the photo has its own ceiling, never Market Check's");
 ok(!/setHeader\("(Location|Content-Disposition|X-Source|Link)"/.test(block) && /Cache-Control", "private, max-age=2592000/.test(block) && !/res\.json\(|url\.href|\.href\)/.test(block.replace("photoUrlFor", "")), "no address, filename or venue header; a long private cache");
 const srcs = [...page.matchAll(/src="\/[^"']*/g)].map(m => m[0]);
-ok(srcs.every(x => /^src="\/(partner-demo\?img=hero|api\/partnerAnswer\?photo=)$/.test(x)), "the page names only the hero and /api/partnerAnswer?photo=<id> (" + [...new Set(srcs)].join(" ") + ")");
-ok(!/partner-demo\?photo=/.test(page) && !/\/api\/salePhoto/.test(page), "no other photo path and no new public path");
+ok(srcs.every(x => /^src="\/(preview\?img=hero|api\/partnerAnswer\?photo=)$/.test(x)), "the page names only the hero and /api/partnerAnswer?photo=<id> (" + [...new Set(srcs)].join(" ") + ")");
+ok(!/(partner-demo|preview)\?photo=/.test(page) && !/\/api\/salePhoto/.test(page), "no other photo path and no new public path");
 // Every demo car in every view (Sam, Oct 18 2026): the only images are the sales' photos through ?photo=<id> and, for the
 // 2015 GT3 with its listing detail only, the listing's own hero; no other car shows a photo that is not its sales'.
 { const { pageHtml } = await import("../api/partnerDemo.js"), { DEMO_CARS } = await import("../api/partnerAnswer.js");
   [...DEMO_CARS, "1972 Datsun 240Z", "2001 BMW M3"].forEach((car, i) => ["a", "b", "c", "d"].forEach(v => {
     const h = pageHtml(v, car), all = [...h.matchAll(/src="([^"']*)/g)].map(m => m[1]);
-    ok(all.every(x => x === "/partner-demo?img=hero" || x === "/api/partnerAnswer?photo="), `${car}, view ${v}: only the sales' photo path and the listing hero (${[...new Set(all)].join(" ")})`);
-    ok(i === 0 ? all.includes("/partner-demo?img=hero") : !all.includes("/partner-demo?img=hero"), `${car}, view ${v}: the hero ${i === 0 ? "stays with the 2015 GT3 listing" : "is never shown for another car"}`);
+    ok(all.every(x => x === "/preview?img=hero" || x === "/api/partnerAnswer?photo="), `${car}, view ${v}: only the sales' photo path and the listing hero (${[...new Set(all)].join(" ")})`);
+    ok(i === 0 ? all.includes("/preview?img=hero") : !all.includes("/preview?img=hero"), `${car}, view ${v}: the hero ${i === 0 ? "stays with the 2015 GT3 listing" : "is never shown for another car"}`);
     ok(/'<img data-ph src="\/api\/partnerAnswer\?photo=' \+ encodeURIComponent\(s\.photo\)/.test(h), `${car}, view ${v}: the sales list draws each sale's own photo by id`);
   })); }
 const { CEILINGS } = await import("../lib/_ceilings.js");

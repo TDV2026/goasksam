@@ -14,7 +14,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
 async function call(query, cookie) {
   const h = {}; let status = 200, body = "";
   const res = { setHeader(k, v) { h[k.toLowerCase()] = v; }, status(c) { status = c; return this; }, send(b) { body = String(b); return this; }, end() { return this; } };
-  await demo({ method: "GET", url: "/partner-demo", query, headers: { host: "goasksam.com", cookie: cookie || "" } }, res);
+  await demo({ method: "GET", url: "/preview", query, headers: { host: "goasksam.com", cookie: cookie || "" } }, res);
   return { status, h, body };
 }
 const C = () => process.env.PARTNER_DEMO_CODE;
@@ -25,16 +25,16 @@ ok(visitor.status === 404 && visitor.body === "Not found", "no cookie, no code: 
 for (const p of ["k", "code"]) {
   const r = await call({ [p]: C() });
   const sc = [].concat(r.h["set-cookie"] || []);
-  ok(r.status === 302 && r.h.location === "/partner-demo", `?${p}= right code: 302 to /partner-demo with no query string`);
-  ok(sc.length === 2 && sc.some(s => /; Path=\/partner-demo;/.test(s)) && sc.some(s => /; Path=\/api\/partnerAnswer;/.test(s)), `?${p}=: gas_partner set for exactly the demo path and the data endpoint`);
+  ok(r.status === 302 && r.h.location === "/preview", `?${p}= right code: 302 to /preview with no query string`);
+  ok(sc.length === 2 && sc.some(s => /; Path=\/preview;/.test(s)) && sc.some(s => /; Path=\/api\/partnerAnswer;/.test(s)), `?${p}=: gas_partner set for exactly the demo path and the data endpoint`);
   ok(sc.every(s => /HttpOnly/.test(s) && /Secure/.test(s) && /SameSite=Lax/.test(s) && /Max-Age=1209600/.test(s) && !/Domain=/.test(s)), `?${p}=: HttpOnly, Secure, SameSite=Lax, 14 days, host-only`);
   ok(!sc.join(" ").includes(C()) && !String(r.h.location).includes(C()), `?${p}=: the code is in no header`);
 }
 const good = cookieFrom(await call({ k: C() }));
 // 2. what the cookie opens
 const page = await call({}, good);
-ok(page.status === 200 && /What these sell for/.test(page.body), "gas_partner opens /partner-demo");
-ok((await call({ img: "hero" }, good)).status === 200, "gas_partner opens the demo's hero image (served under /partner-demo)");
+ok(page.status === 200 && /What these sell for/.test(page.body), "gas_partner opens /preview");
+ok((await call({ img: "hero" }, good)).status === 200, "gas_partner opens the demo's hero image (served under /prever-demo)");
 ok(partnerAllowed({ headers: { cookie: good } }) === true, "gas_partner opens the partner data endpoint (api/partnerAnswer.js)");
 ok(isCrewRequest({ headers: { cookie: good } }) === false, "gas_partner is never crew: every crew-gated page (Market Check, Business, Buy, Sell, Tasks, Desk, One Box, the VIN and spec crew views) still refuses it");
 const readers = fs.readdirSync(new URL("../api/", import.meta.url)).filter(f => f.endsWith(".js") && /_partnerAccess|gas_partner|isPartnerRequest/.test(fs.readFileSync(new URL("../api/" + f, import.meta.url), "utf8")));
@@ -64,5 +64,12 @@ ok(A.isPartnerCookieValue("p1." + (Date.now() + 1e9) + "." + "A".repeat(43)) ===
 const fresh = cookieFrom(await call({ k: C() }));
 delete process.env.PARTNER_DEMO_CODE;
 ok((await call({ k: "" })).status === 404 && (await call({ k: rnd() })).status === 404 && (await call({}, fresh)).status === 404, "no PARTNER_DEMO_CODE set: no code opens anything, no cookie works, the same 404");
+// THE ADDRESS (Sam, Oct 18 2026, for the eBay showing): /preview serves the page, the old /partner-demo redirects to it
+// (its query kept, so a saved link still enters), and the cookie is set for /preview and the data path only.
+{ const vj = JSON.parse(fs.readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
+  ok((vj.rewrites || []).some(r => r.source === "/preview" && r.destination === "/api/partnerDemo") && !(vj.rewrites || []).some(r => r.source === "/partner-demo"), "vercel.json: /preview serves the page; /partner-demo is not served directly");
+  ok((vj.redirects || []).some(r => r.source === "/partner-demo" && r.destination === "/preview" && r.permanent === false && !/\?/.test(r.destination)), "vercel.json: /partner-demo redirects to /preview, keeping the query");
+  const { PARTNER_PATHS } = await import("../lib/_partnerAccess.js");
+  ok(PARTNER_PATHS.join() === "/preview,/api/partnerAnswer", "the access cookie's paths are /preview and the data path only"); }
 console.log(`partnerAccessCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

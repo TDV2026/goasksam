@@ -11,7 +11,7 @@
 //      pill for the current price against the range; on a phone they stack under the price and buy buttons.
 //   d. Under the listing: a full-width "What cars like this sold for" (sale tiles, lowest price first), then "This car
 //      before"; on a phone after the description.
-// Route: /partner-demo (vercel.json rewrite to /api/partnerDemo), ?view=a|b|c|d.
+// Route: /preview (vercel.json rewrite to /api/partnerDemo; Sam, Oct 18 2026: the old /partner-demo redirects there), ?view=a|b|c|d.
 import { isCrewRequest } from "../lib/_crew.js";
 import { isPartnerRequest, partnerCodeMatches, partnerSetCookies } from "../lib/_partnerAccess.js";
 import { checkCeiling } from "../lib/_ceilings.js";
@@ -466,12 +466,12 @@ export function pageHtml(view, carIn) {
   // The car bar, on every view: any year, make and model. A new car reopens the
   // same view for that car (a plain form, no script needed).
   // (Sam, Oct 18 2026, for the eBay showing: the six example chips are gone at every width; the car box stays.)
-  const carBar = `<div class="carbar"><div class="wrap"><form class="carpick" id="car-form" method="get" action="/partner-demo"><input type="hidden" name="view" value="${v}"><label for="car-in">Car</label><input id="car-in" name="car" value="${escHtml(car)}" autocomplete="off" maxlength="60" placeholder="Year, make and model"><button class="btn sec" type="submit">Show</button></form></div></div>`;
+  const carBar = `<div class="carbar"><div class="wrap"><form class="carpick" id="car-form" method="get" action="/preview"><input type="hidden" name="view" value="${v}"><label for="car-in">Car</label><input id="car-in" name="car" value="${escHtml(car)}" autocomplete="off" maxlength="60" placeholder="Year, make and model"><button class="btn sec" type="submit">Show</button></form></div></div>`;
   const d = DUMMY, miles = d.miles.toLocaleString("en-US");
   // The one hero image (views b and d), served by this handler behind the same crew gate (?img=hero).
-  const hero = `<img class="hero-img" src="/partner-demo?img=hero" width="${HERO_W}" height="${HERO_H}" alt="A black 2015 Porsche 911 GT3 coupe in a white studio, seen from the front three-quarter, with its fixed rear wing and grey wheels" decoding="async">`;
+  const hero = `<img class="hero-img" src="/preview?img=hero" width="${HERO_W}" height="${HERO_H}" alt="A black 2015 Porsche 911 GT3 coupe in a white studio, seen from the front three-quarter, with its fixed rear wing and grey wheels" decoding="async">`;
   // View c (Sam, Oct 17 2026): the hero in the main photo slot and the same image as the thumbnails (decorative copies).
-  const heroThumbs = Array.from({ length: 5 }, () => `<img class="thumb-img" src="/partner-demo?img=hero" alt="" aria-hidden="true" decoding="async">`).join("");
+  const heroThumbs = Array.from({ length: 5 }, () => `<img class="thumb-img" src="/preview?img=hero" alt="" aria-hidden="true" decoding="async">`).join("");
   const listing = (withRail, withHero, below) => `
   <div class="listing${below ? " with-below" : ""}">
     <div>
@@ -535,12 +535,12 @@ export default async function handler(req, res) {
   // THE ACCESS CODE (lib/_partnerAccess.js): ?k= (or ?code=) is checked, never echoed or logged, and the address bar is
   // cleared at once by the redirect; attempts are counted per address (lib/_ceilings.js partner_code).
   if (q.k != null || q.code != null) {
-    if (isCrewRequest(req)) { res.setHeader("Location", "/partner-demo"); return res.status(302).end(); }
+    if (isCrewRequest(req)) { res.setHeader("Location", "/preview"); return res.status(302).end(); }
     const lim = await checkCeiling(supabaseEnv(), req, "partner_code", { tool: "partner" }).catch(() => ({ ok: true }));
     const cookies = lim.ok && partnerCodeMatches(q.k != null ? q.k : q.code) ? partnerSetCookies() : null;
     if (!cookies) return notFound(res);
     res.setHeader("Set-Cookie", cookies);
-    res.setHeader("Location", "/partner-demo");
+    res.setHeader("Location", "/preview");
     return res.status(302).end();
   }
   if (!isCrewRequest(req) && !isPartnerRequest(req)) return notFound(res);

@@ -1,5 +1,5 @@
 // PARTNER ANSWER (Lane C, Oct 15 2026; closed demo, crew-only): "What these sell for, powered by GoAskSam" for a
-// partner's own listing layout (/partner-demo). ONE ENGINE: every number here is Market Check's own answer for the
+// partner's own listing layout (/preview). ONE ENGINE: every number here is Market Check's own answer for the
 // same words. This file never reads the archive for a market itself: it calls Market Check's request handler
 // (api/sellerDecision.js, the oneBox branch, the same resolver, stored answer, engine call and output gate the
 // Market Check page gets) in-process and only reshapes that answer. If this and Market Check ever disagree for the
