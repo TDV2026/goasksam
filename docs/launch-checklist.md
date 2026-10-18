@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T06:0xZ (Lane F; e60's first prePush FAILED (a check relying on the pre-e60 curated-fallback, and the perf rows on a cold live site), not pushed, chain re-queued after a one-line check fix).
+Last updated: 2026-10-18T06:0xZ (Lane F; Sam granted e60's one-time exception on five conditions; Lane C's M3 fix and layout await Sam's screenshot OK; e60 chain re-queued).
+
+## 0r. Sam's decision 06:0xZ Oct 18: the e60 one-time exception, GRANTED on conditions (forwarded word for word to Lane B)
+
+1. The only failures in the full-tier prePush are the Market Check and Buy timing lines; any golden, resolver, check-script or correctness FAIL means no push. 2. Before using the exception, rerun the slow Market Check and Buy perf rows alone with every other lane quiet and no other archive load; if they pass, push normally with no exception; if they still fail, single credentialed reads of the same cars must show stored-row hits at about two seconds. 3. On the same cold reads, e60's times are no worse than e59's; post both columns. 4. The fix to scripts/resolverLanesCheck.mjs (no database configured, as resolverOfflineCheck does) is the only change to the check and is stated in the PUSH LOCK line. 5. After the push, the golden and demo before and after on the live site at once; revert immediately if any golden or demo row is worse, if any answer errors, or if any gated page answers a non-crew visitor; post the table either way.
 
 ## 0q. Sam's decisions 06:0xZ Oct 18 (forwarded word for word to Lanes B and C)
 
@@ -29,7 +33,7 @@ Last updated: 2026-10-18T06:0xZ (Lane F; e60's first prePush FAILED (a check rel
 |---|---|---|---|
 | 1. Lane C batch c7 and the photo id fix | Lane C | PUSHED 05:45Z, DONE | nothing |
 | 2. Sam's run-0 v2 quiet window | Sam | CLOSED 05:52Z without running it (not tonight; a new window later on Sam's say-so; not a launch blocker) | Sam |
-| 3. e60 push (Sam's go) | Lane B | first prePush FAILED 06:01Z, not pushed, lock released: (1) scripts/resolverLanesCheck.mjs relied on the behaviour e60 replaces (an unreachable configured database used to fall to the curated universe; e60 returns still reading), one-line check fix on the branch, no engine change; (2) the four Market Check perf rows read 20 to 24 s, the live e59 site serving cold misses right after Lane C's deploy with golden truth computing thirty rows beside it, a Camaro hit 1.8 s after; chain re-queued; if the rerun fails on the perf rows alone with single reads at about 2 s Lane B asks Sam for the exception rather than push | the rerun's 0 FAIL, or Sam's exception |
+| 3. e60 push (Sam's go) | Lane B | first prePush FAILED 06:01Z, not pushed, lock released: (1) scripts/resolverLanesCheck.mjs relied on the behaviour e60 replaces (an unreachable configured database used to fall to the curated universe; e60 returns still reading), one-line check fix on the branch, no engine change; (2) the four Market Check perf rows read 20 to 24 s, the live e59 site serving cold misses right after Lane C's deploy with golden truth computing thirty rows beside it, a Camaro hit 1.8 s after; chain re-queued; if the rerun fails on the perf rows alone with single reads at about 2 s Lane B asks Sam for the exception rather than push | the rerun's 0 FAIL, or Sam's exception GRANTED 06:0xZ on five conditions (section 0r: timing lines only; perf rows rerun alone first; hits at about 2 s; e60 no worse than e59 on cold reads, both columns; the check fix the only check change, named in the lock; live before and after at once with an immediate revert on any worse row, error or gate breach) |
 | 4. E9, then the Crawl-delay after-rate read, then the audit runs | Lane E | holding | e60 live |
 | 5. The Sell line (branch sell-count, rebased onto main after e60) | Lane D | holding, READY | E9 |
 | 6. Lane C: the card wording bump (after e60 checked), the H1 fix, the demo layout (on Sam's screenshot OK), then C1 and crawler rule, then C2 to C5 | Lane C | wording bump ordered; H1 and layout built local | e60 PUSHED and checked; Sam's layout OK; Lane D's turn in the load order |
