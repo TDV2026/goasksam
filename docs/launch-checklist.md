@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T05:2xZ (Lane F; Sam: photos fix forward no revert; thin tier prints no range anywhere, B2's checker compares to the tier decision; order: Lane C's PUSHED, run-0 v2 window, e60 push on Sam's standing go, E9 and the after-rate, Lane D's Sell line; Lane B runs the live before and after after e60; no re-stamp or migration without a separate go).
+Last updated: 2026-10-18T05:37Z (Lane F tick, batched push; Lane C's UUID fix-forward in prePush, PUSHED pending; Sam's run-0 v2 window next, then e60 on Sam's standing go; Sam's /cars links order to Lane C).
 
 ## 0n. Sam's decisions 05:2xZ Oct 18 (forwarded word for word to Lanes B2, B, C, E, D)
 
