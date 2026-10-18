@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-17T07:01Z (Lane F; the single away-mode tick; no further ticks are scheduled).
+Last updated: 2026-10-18T01:55Z (Lane F; Sam back; Lane B's sweep and window-rule DONE lines landed 08:02 to 08:36Z Oct 17 by the commit clock, results not yet received by the Desk).
 
 ## 0. Away mode (Sam away 25 hours from 2026-10-17T01:01Z)
 
@@ -49,7 +49,12 @@ Lane F in away mode: no reports sent; every change, failure and blocked lane is 
 - No deploy has failed since away mode began at 01:01Z. One code push happened in that window: Lane C's scripts-only 878d3ef8 at 01:07Z (tiered prePush, GA consent test, buyEngineMatch flags), Vercel Ready, live search check 5 pages PASS. No two-failed-deploys stop was posted by any lane.
 - Production latency, recorded earlier tonight: Market Check fresh computes 16.7 to 30.4 s and one HTTP 504 on /cars/porsche/911 between 23:46Z and 01:15Z, with the database itself slow (a one-row read 21 s at 00:45Z, 1.2 s at 00:52Z). Lane B's reading: cold buffer cache on Small compute after the evening's full-table scans, parallel cold computes from prePush, and the after-midnight stale recomputes. Four Lane C prePush runs and one Lane E prePush run failed on that speed alone; nothing was pushed over them. No lane has measured the site since 01:15Z, so its current state is unknown to the Desk.
 
-### Since 01:56Z: no change
+### Since the 07:01Z tick (read at 01:55Z Oct 18)
+- Three Lane B docs-only lines landed on origin/main (commit clock 08:02Z, 08:30Z, 08:36Z Oct 17; Lane B's own stamps read 15:02Z, 15:30Z, 15:36Z, seven hours ahead of the commit clock): "RUNNING: the e59 four-lane sweep (88 specs, serial)", "DONE: the e59 four-lane sweep (result in Lane B's report to Lane F). The window-rule measurement (read-only, 94 specs) is RUNNING next", "DONE: the window-rule measurement reads and the sampled project-flag dry run. Heavy runs may resume." The results themselves have NOT reached the Desk: no Lane B message arrived after its 01:0xZ acknowledgement. Lane F asked Lane B for them at 01:55Z Oct 18.
+- Nothing else landed: no B2 re-read, no Lane C retry (demo fix, SEO C2 to C5), no Lane E E9 retry, no Lane A line. Those lanes were waiting on Lane B's sweep DONE by message; the message path to and from Lane B failed overnight, so they most likely never saw it. Their sessions show idle or shell.
+- FOR LANE B (ask from the Desk, 01:55Z Oct 18): send the sweep result, the window-and-age finding with a recommendation, the project-flag dry run counts, whether sql-for-sam.md is written, e60's state, and answers on golden rows 16, 17 and 9.
+
+### Since 01:56Z Oct 17 (as written at the 07:01Z tick)
 - origin/main has not moved since Lane F's 4b657fd0 at about 01:57Z. No lane-notes line, no code push, no lane message reached the Desk between 01:57Z and 07:01Z.
 - Lane B's e59 sweep has posted neither RUNNING nor DONE. B2's golden DONE (01:36Z) reached origin/main only through Lane F's relay line in docs/lane-notes.md (8ed91894) because four Desk sends and B2's own sends to Lane B failed. Whether Lane B's watcher saw that line is unknown. If the sweep did not start, the whole chain behind it (Lane B's window-and-age table and SQL file, e60 to READY, B2's 14-row re-read, Lane C's demo-fix retry and SEO C2 to C5 push, Lane E's E9 retry) is still waiting on it. Sam: Lane B's session shows as a background session ("bg") in the peer list; a message from Sam's own window may reach it where the Desk's could not.
 
