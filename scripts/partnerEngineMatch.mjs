@@ -87,7 +87,7 @@ for (const [name, d] of Object.entries(FIX)) {
 // Any car (Sam, Oct 18 2026): every demo read, the six and any other car, uses the demo's own per-device ceiling only.
 { const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8"), apiSrc = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
   ok(!/checkCeiling\(env, req, "partner_cars"/.test(apiSrc) && !/"partner_answer"/.test(apiSrc) && (apiSrc.match(/checkCeiling\(env, req, "partner_demo"/g) || []).length === 1, "any car reads under the demo's per-device ceiling only; no daily car cap and no per-address window on the demo");
-  ok(/That is today's limit for other cars on this demo\./.test(pageSrc) && /a && a\.error === "car_limit" \? LIMIT/.test(pageSrc) && !/setTimeout\(runs\[view\], (?!a\.retryAfterMs)/.test(pageSrc), "over the limit the page says so (no retry), never that the car has no sales"); }
+  ok(/That is today's limit for other cars here\./.test(pageSrc) && /a && a\.error === "car_limit" \? LIMIT/.test(pageSrc) && !/setTimeout\(runs\[view\], (?!a\.retryAfterMs)/.test(pageSrc), "over the limit the page says so (no retry), never that the car has no sales"); }
 // A refused or failed read never claims the car has no history, and the per-minute ceiling never applies to the demo's
 // own six cars (Oct 17 2026: ten view loads in a minute tripped it on the GT3 and the page said two wrong things).
 { const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8"), apiSrc = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
@@ -187,7 +187,7 @@ for (const [name, d] of Object.entries(FIX)) {
       ok(h.includes('<input id="car-in" name="car" value="' + escH(car) + '"') && (main0(h).match(/class="qp( on)?"/g) || []).length === 6 && (DEMO_CARS.includes(car) ? (main0(h).match(/class="qp on"/g) || []).length === 1 : !/class="qp on"/.test(main0(h))), `${car}, view ${v}: the car box holds this car; the six quick picks show, the chosen one marked`);
       ok((h.match(/<a href="\?view=[abc][^"]*"/g) || []).every(t => car === DEMO_CARS[0] ? !t.includes("car=") : t.includes("&amp;car=" + encodeURIComponent(car))), `${car}, view ${v}: every tab keeps the car`);
       if (car === DUMMY.q) ok(j.listing && /US \$139,900/.test(main) && /hero-img/.test(main), `${car}, view ${v}: the listing detail stays with the 2015 GT3`);
-      else ok(!j.listing && !/\$\d/.test(main) && !/hero-img|thumb-img/.test(main) && !/<dt>VIN<\/dt>|\bmiles\b|Buy It Now/.test(main) && /There is no listing for this car in the demo\. These are the recent sales of cars like it\./.test(main), `${car}, view ${v}: no invented listing, price, mileage or photo; it says what it is`);
+      else ok(!j.listing && !/\$\d/.test(main) && !/hero-img|thumb-img/.test(main) && !/<dt>VIN<\/dt>|\bmiles\b|Buy It Now/.test(main) && /Recent sales of cars like this one\./.test(main), `${car}, view ${v}: no invented listing, price, mileage or photo; it says what it is`);
       return JSON.stringify(j); });
     ok(seen.every(x => x === seen[0]), `${car}: the same car identically in every view`);
   });
@@ -225,6 +225,15 @@ for (const [name, d] of Object.entries(FIX)) {
     await br.close();
   }
 }
+// NO "DEMO" A VIEWER CAN SEE (Sam, Oct 18 2026, for the eBay showing): not in the page's text, title, meta or script strings.
+{ const { pageHtml } = await import("../api/partnerDemo.js"), { DEMO_CARS } = await import("../api/partnerAnswer.js");
+  for (const car of [...DEMO_CARS, "1972 Datsun 240Z"]) for (const v of ["a", "b", "c"]) {
+    const h = pageHtml(v, car), js = h.split("<script>")[1].split("</script>")[0].replace(/\/\/[^\n]*/g, "");
+    const shown = h.replace(/<script>[\s\S]*?<\/script>/g, "").replace(/<style>[\s\S]*?<\/style>/g, "").replace(/\s(class|id|src|href|action)="[^"]*"/g, "");
+    const strs = (js.match(/"[^"\n]*"|'[^'\n]*'/g) || []).filter(x => /demo/i.test(x));
+    ok(!/demo/i.test(shown) && !strs.length, `${car}, view ${v}: no "demo" a viewer can see (${(shown.match(/[^<>]{0,20}demo[^<>]{0,20}/i) || [""])[0]}${strs.join(" ")})`);
+  }
+  ok(/<title>What these sell for<\/title>/.test(pageHtml("a")) && />What these sell for, powered by GoAskSam\.</.test(pageHtml("a")), "the title and the top line read \"What these sell for\""); }
 // The endpoint reads no market of its own: Market Check's handler is its only source of figures.
 const src = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8").replace(/\/\/[^\n]*/g, "");
 ok(/import\("\.\/sellerDecision\.js"\)/.test(src) && /oneBox: true/.test(src), "the endpoint asks Market Check's own handler");

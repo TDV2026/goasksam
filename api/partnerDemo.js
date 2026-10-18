@@ -252,7 +252,7 @@ const JS = String.raw`
   }
   var COULD_NOT = "Sam could not read the sales just now. Try again in a minute.";
   // Each refusal says what it is: the demo's daily limit for other cars, the per-minute limit, or a read that failed.
-  var LIMIT = "That is today's limit for other cars on this demo. The demo's own cars still open.";
+  var LIMIT = "That is today's limit for other cars here.";
   var BUSY = "Lots of reads just now. Try again in a minute.";
   // The still-reading state draws the engine's own line; when the engine named no wait, a Try again button reruns the read.
   var STILL_LINE = "Sam is still reading the sales for this one.";
@@ -500,14 +500,14 @@ export function pageHtml(view, carIn) {
   // recent sales with photos. No gallery, price, mileage, buy buttons or "This car before".
   const noListing = `
   <div class="listing with-below">
-    <div><h1>${escHtml(car)}</h1><p class="sub">There is no listing for this car in the demo. These are the recent sales of cars like it.</p></div>
+    <div><h1>${escHtml(car)}</h1><p class="sub">Recent sales of cars like this one.</p></div>
     <div class="rail"><div id="c-rail"><p class="loading">Sam is reading the sales for this one.</p></div></div>
     <div class="below-gal"><div class="full" id="d-sales"><p class="loading">Sam is reading the sales for this one.</p></div><div class="full" id="d-hist"></div></div>
   </div>`;
   const desc = `<div class="desc below"><h2>About this car</h2><dl class="specs"><div><dt>Year</dt><dd>2015</dd></div><div><dt>VIN</dt><dd>${d.vin}</dd></div><div><dt>Mileage</dt><dd>${miles}</dd></div></dl></div>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="robots" content="noindex,nofollow"><title>Partner demo</title><style>${CSS}${SELLS_FOR_CARD_CSS}</style></head><body>
-<div class="demo-bar"><div class="wrap"><span>Closed demo. What these sell for, powered by GoAskSam.</span><nav class="tabs" aria-label="Views">${tab("a", "a. Before listing")}${tab("b", "b. Setting a reserve")}${tab("c", "c. On the listing")}</nav></div></div>
+<meta name="robots" content="noindex,nofollow"><title>What these sell for</title><style>${CSS}${SELLS_FOR_CARD_CSS}</style></head><body>
+<div class="demo-bar"><div class="wrap"><span>What these sell for, powered by GoAskSam.</span><nav class="tabs" aria-label="Views">${tab("a", "a. Before listing")}${tab("b", "b. Setting a reserve")}${tab("c", "c. On the listing")}</nav></div></div>
 ${carBar}
 <header class="top"><div class="wrap"><div class="logo">Partner logo</div><div class="sbox">Search</div><button type="button" class="btn sec sbtn">Search</button></div></header>
 <main>
