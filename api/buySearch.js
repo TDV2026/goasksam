@@ -206,9 +206,9 @@ export function nameFromSpec(v, year) {
   return humanTitle(out.join(" "));
 }
 useNamer(nameOf);   // Before it ends names a car the way its card does
-async function enrich(env, x) {
-  let [market, seen, timeline] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts), seenBefore(env, x.r.vin_norm), timelineOf(env, x)]);
-  if (market && market.kind === "pending") market = await listingMarket(env, x.r, x.facts);   // one more go, warm now
+async function enrich(env, x, deadlineAt) {   // deadlineAt (e61, Sam's item 3): the request's own clock, so every card's market read is bounded by what is left of the request's 20 s
+  let [market, seen, timeline] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts, { deadlineAt }), seenBefore(env, x.r.vin_norm), timelineOf(env, x)]);
+  if (market && market.kind === "pending") market = await listingMarket(env, x.r, x.facts, { deadlineAt });   // one more go, warm now (the same clock; a key still computing answers at once)
   market = await rungMarket(env, x.r, x.facts, market);   // the engine's fallback rung, when it names one; else unchanged
   const c = { ...cardOf(x), market, seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name: await nameOf(env, x) };
   return { ...c, sam_lines: samLines(c) };
@@ -312,6 +312,7 @@ async function handler(req, res) {
     // point and never reach here.
     if (!isReleased("buy", req)) return notReleasedJson(res);
     const b = req.body || {};
+    const deadlineAt = Date.now() + Number(process.env.ONEBOX_DEADLINE_MS || 20000);   // e61 (Sam): the whole Buy request's clock, the same 20 s bound Market Check has; the shared card read (lib/live/search.js listingMarket) bounds itself against it
     if (b.action === "watch") {
       const raw = String(b.key || "").trim();
       const key = /^(family|live):/i.test(raw) ? raw.toLowerCase().replace(/[^a-z0-9:._-]/g, "").slice(0, 120) : normVin(raw);
@@ -595,7 +596,7 @@ async function handler(req, res) {
     const ordered = [...rows.filter(x => !isAbroadRow(x.r)), ...rows.filter(x => isAbroadRow(x.r))]
       .sort((a, b2) => { const ab = c => (isAbroadRow(c.r) ? 2 : 0) + (c.unknown.length ? 1 : 0); return ab(a) - ab(b2); });
     const capped = ordered.slice(0, MAX);
-    const first = await Promise.all(capped.slice(0, FIRST).map(x => enrich(env, x)));
+    const first = await Promise.all(capped.slice(0, FIRST).map(x => enrich(env, x, deadlineAt)));
     const emptyMarket = rows.length ? null : applyRung(await familyMarket(env, v, f, { noBlock: true }));
     const rest = capped.slice(FIRST).map(cardOf);
     logSearch(env, v, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
