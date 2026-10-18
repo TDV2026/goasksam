@@ -1530,6 +1530,32 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "specialscount", total, withFlag, pctFlagged: total > 0 ? Math.round((withFlag / total) * 1000) / 10 : null, byFlagSample: byFlag, sampleSize: (sample || []).length });
   }
 
+  // PHOTO COVERAGE (e60, Sam's view-d photo ask, Oct 18 2026): how many sold rows carry OldCarsData's featured_image_url.
+  // Two EXACT counts (the whole archive, then photo present), then per-source planner estimates (cheap) unless
+  // ?exact=1. Read-only, zero OldCarsData spend. The photo field lives in raw_record only until the real-columns
+  // migration fills image_url.
+  if (task === "photocov") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const exact = req.query?.exact === "1";
+    const countOf = async (filter, mode) => {
+      try {
+        const r = await fetch(`${env.supabaseUrl}/rest/v1/sales_archive?${filter}&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: mode === "exact" ? "count=exact" : "count=planned", Range: "0-0", "Range-Unit": "items" } });
+        const cr = r.headers.get("content-range") || ""; const m = cr.match(/\/(\d+)$/); return m ? Number(m[1]) : (r.ok ? 0 : null);
+      } catch { return null; }
+    };
+    const t0 = Date.now();
+    const sold = "sale_price=not.is.null";
+    const total = await countOf(`${sold}&select=id`, "exact");
+    const withPhoto = await countOf(`${sold}&raw_record->>featured_image_url=not.is.null&select=id`, "exact");
+    const SRC = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
+    const bySource = {};
+    if (req.query?.sources === "1") for (const src of SRC) {
+      const t = await countOf(`${sold}&source_slug=eq.${src}&select=id`, exact ? "exact" : "planned");
+      const w = t ? await countOf(`${sold}&source_slug=eq.${src}&raw_record->>featured_image_url=not.is.null&select=id`, exact ? "exact" : "planned") : 0;
+      bySource[src] = { total: t, withPhoto: w, pct: t ? Math.round((w / t) * 1000) / 10 : null };
+    }
+    return res.status(200).json({ task: "photocov", ocdSpend: 0, total, withPhoto, pct: total ? Math.round((withPhoto / total) * 1000) / 10 : null, bySource, sourceCountMode: exact ? "exact" : "planner-estimate", ms: Date.now() - t0 });
+  }
   if (task === "fieldcov") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const FIELDS = ["description", "known_flaws", "recent_service_history", "modifications"];
