@@ -88,6 +88,10 @@ h3{font-size:18px;line-height:1.3;margin:0 0 10px;font-weight:700}
 .money input{border:0;font:inherit;width:140px;outline:none}
 /* the listing (views c and d) */
 .listing{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:40px;align-items:start}
+.listing.with-below{row-gap:0}
+.listing.with-below>.rail{grid-column:2;grid-row:1 / span 2}
+.below-gal{grid-column:1;min-width:0}
+.res-line{padding:10px 0;border-top:2px solid var(--ink,#111);border-bottom:2px solid var(--ink,#111);font-weight:700;font-size:15px}
 .gal{display:grid;grid-template-columns:88px 1fr;gap:12px}
 .thumbs{display:grid;gap:10px;align-content:start}
 .ph{border-radius:12px;background:linear-gradient(135deg,#d9d9d9,#bfbfbf);display:grid;place-items:center;color:#7a7a7a;font-size:13px;aspect-ratio:4/3}
@@ -152,6 +156,7 @@ h3{font-size:18px;line-height:1.3;margin:0 0 10px;font-weight:700}
   .stable td,.stable th{padding-left:6px;padding-right:6px}
   .wrap{padding-left:16px;padding-right:16px}
   .listing{grid-template-columns:1fr;gap:0}
+  .listing.with-below>.rail,.below-gal{grid-column:1;grid-row:auto}
   .gal{grid-template-columns:1fr}
   .thumbs{display:none}
   .main-ph{border-radius:0;margin:0 -16px}
@@ -205,16 +210,18 @@ const JS = String.raw`
   var dayLabel = function(d){ var p = String(d || "").split("-"); return p.length === 3 && MON[Number(p[1]) - 1] ? MON[Number(p[1]) - 1].slice(0, 3) + " " + Number(p[2]) + ", " + p[0] : (monthYear(d) || ""); };
   // The sales table (views a and b): date, mileage, price per row, from the endpoint's own sales (the engine's pool,
   // never a set-aside row). opts.reserve inserts the one divider row at the reserve (rows sorted by price, high first).
-  function salesTable(rows, opts){
+  // View b's list (Sam, Oct 18 2026): the same rows as the other lists (photo, name, date, mileage, price), highest price
+  // first, with "Your reserve" placed where the reserve falls among the prices; no Show more.
+  function reserveList(rows, opts){
     opts = opts || {};
     var body = "", placed = false, r = opts.reserve > 0 ? opts.reserve : null;
-    var divider = function(){ return '<tr class="res-row"><td colspan="3">Your reserve ' + usd(r) + "</td></tr>"; };
+    var line = function(){ return '<div class="res-line">Your reserve ' + usd(r) + "</div>"; };
     rows.forEach(function(s){
-      if (r != null && !placed && s.price < r) { body += divider(); placed = true; }
-      body += "<tr><td>" + esc(dayLabel(s.date)) + "</td><td>" + esc(milesOf(s)) + '</td><td class="num">' + usd(s.price) + "</td></tr>";
+      if (r != null && !placed && s.price < r) { body += line(); placed = true; }
+      body += saleRow(s);
     });
-    if (r != null && !placed) body += divider();
-    return '<table class="stable"><thead><tr><th scope="col">Date</th><th scope="col">Mileage</th><th scope="col" class="num">Price</th></tr></thead><tbody>' + body + "</tbody></table>";
+    if (r != null && !placed) body += line();
+    return '<div class="slist">' + body + "</div>";
   }
   var newest = function(a){ return (a && a.sales || []).slice().sort(function(x, y){ return String(y.date || "").localeCompare(String(x.date || "")) || y.price - x.price; }); };
   // Where a figure sits against the engine's range. The only thing this page works out, and only from that range.
@@ -312,14 +319,15 @@ const JS = String.raw`
     var last = newest(a).slice(0, 10).sort(function(x, y){ return y.price - x.price; });
     var at = v > 0 ? last.filter(function(s){ return s.price >= v; }).length : null;
     $("b-out").innerHTML = rangePanel(a, { price: v > 0 || !a.range ? v : null }) + (last.length ?
-      '<section class="full-a"><h2>What cars like this sold for</h2><p class="sub" style="margin:-6px 0 12px">The last ' + (last.length === 1 ? "sale" : last.length + " sales") + ", highest price first.</p>" + salesTable(last, { reserve: v }) +
+      '<section class="full-a"><h2>What cars like this sold for</h2><p class="sub" style="margin:-6px 0 12px">The last ' + (last.length === 1 ? "sale" : last.length + " sales") + ", highest price first.</p>" + reserveList(last, { reserve: v }) +
       (at != null ? '<p class="res-sum">' + at + " of the last " + last.length + " sold at or above this.</p>" : "") + "</section>" : "");
   }
-  // ---- views c and d: the listing
+  // ---- view c: the listing (Sam, Oct 18 2026: c and d are one page; the card under the buy box, the sales list and
+  // "This car before" under the gallery, once)
   var cAns = null;
   function drawListing(a){
     cAns = a;
-    $("c-rail").innerHTML = rangePanel(a, { price: D.price, slot: "c" }) + historyPanel(a);
+    $("c-rail").innerHTML = rangePanel(a, { price: D.price, slot: "c" });
     var lq = a && a.range && a.trend && a.trend.length ? a.trend.reduce(function(m, t){ return String(t.period) > String(m.period) ? t : m; }) : null;   // the latest quarter with eight or more sales, view d only
     $("d-sales").innerHTML = '<h2>What cars like this sold for</h2>' +
       (a && a.card ? (a.quarter ? '<div class="qrow">' + a.quarter + "</div>" : "") : (lq ? '<p class="qrow"><b>' + esc(lq.period.replace("-", " ")) + "</b> " + usd(lq.low) + " to " + usd(lq.high) + ", " + lq.count + " sales</p>" : "")) + salesList(a, "d") + foot(a);
@@ -344,15 +352,15 @@ const JS = String.raw`
 function phs(n) { let s = ""; for (let i = 0; i < n; i++) s += '<div class="ph" aria-hidden="true">Photo</div>'; return s; }
 
 export function pageHtml(view) {
-  const v = /^[abcd]$/.test(view || "") ? view : "a";
+  const v = view === "d" ? "c" : (/^[abc]$/.test(view || "") ? view : "a");   // the old d address opens the merged listing
   const tab = (k, label) => `<a href="?view=${k}"${k === v ? ' aria-current="page"' : ""}>${label}</a>`;
   const d = DUMMY, miles = d.miles.toLocaleString("en-US");
   // The one hero image (views b and d), served by this handler behind the same crew gate (?img=hero).
   const hero = `<img class="hero-img" src="/partner-demo?img=hero" width="${HERO_W}" height="${HERO_H}" alt="A black 2015 Porsche 911 GT3 coupe in a white studio, seen from the front three-quarter, with its fixed rear wing and grey wheels" decoding="async">`;
   // View c (Sam, Oct 17 2026): the hero in the main photo slot and the same image as the thumbnails (decorative copies).
   const heroThumbs = Array.from({ length: 5 }, () => `<img class="thumb-img" src="/partner-demo?img=hero" alt="" aria-hidden="true" decoding="async">`).join("");
-  const listing = (withRail, withHero) => `
-  <div class="listing">
+  const listing = (withRail, withHero, below) => `
+  <div class="listing${below ? " with-below" : ""}">
     <div>
       ${withHero === "gallery" ? `<div class="gal"><div class="thumbs">${heroThumbs}</div>${hero}</div>` : withHero ? `<div class="gal gal-hero">${hero}</div>` : `<div class="gal"><div class="thumbs">${phs(5)}</div><div class="ph main-ph" aria-hidden="true">Placeholder photo</div></div>`}
       <div class="phone-only"></div>
@@ -368,11 +376,12 @@ export function pageHtml(view) {
       <div class="buy"><button type="button" class="btn pri blk">${d.priceKind}</button><button type="button" class="btn sec blk">Make offer</button><button type="button" class="btn sec blk">Save</button></div>
       ${withRail ? '<div id="c-rail"><p class="loading">Sam is reading the sales.</p></div>' : ""}
     </div>
+    ${below ? `<div class="below-gal">${below}</div>` : ""}
   </div>`;
-  const desc = `<div class="desc below"><h2>About this car</h2><dl class="specs"><div><dt>Year</dt><dd>2015</dd></div><div><dt>VIN</dt><dd>${d.vin}</dd></div><div><dt>Mileage</dt><dd>${miles}</dd></div></dl><p class="muted" style="margin-top:14px">Placeholder description. The seller's own words sit here.</p></div>`;
+  const desc = `<div class="desc below"><h2>About this car</h2><dl class="specs"><div><dt>Year</dt><dd>2015</dd></div><div><dt>VIN</dt><dd>${d.vin}</dd></div><div><dt>Mileage</dt><dd>${miles}</dd></div></dl></div>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><title>Partner demo</title><style>${CSS}${SELLS_FOR_CARD_CSS}</style></head><body>
-<div class="demo-bar"><div class="wrap"><span>Closed demo. What these sell for, powered by GoAskSam.</span><nav class="tabs" aria-label="Views">${tab("a", "a. Before listing")}${tab("b", "b. Setting a reserve")}${tab("c", "c. On the listing")}${tab("d", "d. Under the listing")}</nav></div></div>
+<div class="demo-bar"><div class="wrap"><span>Closed demo. What these sell for, powered by GoAskSam.</span><nav class="tabs" aria-label="Views">${tab("a", "a. Before listing")}${tab("b", "b. Setting a reserve")}${tab("c", "c. On the listing")}</nav></div></div>
 <header class="top"><div class="wrap"><div class="logo">Partner logo</div><div class="sbox">Search</div><button type="button" class="btn sec sbtn">Search</button></div></header>
 <main>
 <section class="sec-view wrap" id="view-a"${v === "a" ? "" : " hidden"}>
@@ -386,11 +395,9 @@ export function pageHtml(view) {
   <div class="reserve"><label for="b-res">Reserve</label><span class="money">$<input id="b-res" inputmode="numeric" placeholder="0" aria-label="Reserve in dollars"></span></div>
   <div id="b-out"><p class="loading">Sam is reading the sales.</p></div></div>
 </section>
-<section class="sec-view wrap" id="view-c"${v === "c" ? "" : " hidden"}>${listing(true, "gallery")}</section>
-<section class="sec-view wrap" id="view-d"${v === "d" ? "" : " hidden"}>${listing(false, true)}${desc}
+<section class="sec-view wrap" id="view-c"${v === "c" ? "" : " hidden"}>${listing(true, "gallery", `${desc}
   <div class="full" id="d-sales"><p class="loading">Sam is reading the sales.</p></div>
-  <div class="full" id="d-hist"></div>
-</section>
+  <div class="full" id="d-hist"></div>`)}</section>
 </main>
 <script>${JS.replace("__DUMMY__", JSON.stringify(DUMMY))}</script></body></html>`;
 }

@@ -118,6 +118,16 @@ for (const [name, d] of Object.entries(FIX)) {
   const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
   ok(/var LIST_STEP = 10/.test(pageSrc) && /salesList\(a, "a"\)/.test(pageSrc) && /salesList\(a, "d"\)/.test(pageSrc) && /<details class="aside-grp">/.test(pageSrc) && /The most recent /.test(pageSrc) && /newest first\./.test(pageSrc), "views a and d: ten rows, Show more, the set-aside group closed by default, the heading counts what is shown");
   ok(/loading="lazy"/.test(pageSrc) && /\.sph\{flex:none;width:128px;aspect-ratio:4\/3/.test(pageSrc) && /hasAttribute\("data-ph"\)\) t\.parentNode\.removeChild\(t\)/.test(pageSrc), "photos lazy, in a fixed slot; a failed photo leaves the neutral tile"); }
+// The merged listing (Sam, Oct 18 2026): views a, b and c only (the old ?view=d opens c); the listing's card under the buy
+// box, the sales list and "This car before" under the gallery, once; no placeholder description; view b's list in the
+// same row layout with "Your reserve" at its place, no Show more.
+{ const { pageHtml } = await import("../api/partnerDemo.js");
+  const c = pageHtml("c"), d = pageHtml("d");
+  ok((c.match(/href="\?view=/g) || []).length === 3 && !/Under the listing/.test(c) && /id="view-c"(?! hidden)/.test(d), "three tabs; the old d address opens the merged listing");
+  ok(!/Placeholder description/.test(c) && /<dt>Year<\/dt>/.test(c) && /<dt>VIN<\/dt>/.test(c) && /<dt>Mileage<\/dt>/.test(c), "no placeholder description; Year, VIN and Mileage kept");
+  ok((c.match(/id="d-hist"/g) || []).length === 1 && /\$\("c-rail"\)\.innerHTML = rangePanel\(a, \{ price: D\.price, slot: "c" \}\);/.test(c) && /class="below-gal"/.test(c), "the card in the rail, the list and This car before under the gallery, once");
+  ok(/function reserveList\(rows, opts\)/.test(c) && /body \+= saleRow\(s\)/.test(c) && /reserveList\(last, \{ reserve: v \}\)/.test(c) && !/salesTable\(/.test(c), "view b: the same rows, highest price first, the reserve line at its place, no Show more");
+  ok((c.match(/function placing\(/g) || []).length === 1 && /placing\(opts\.price, a\)/.test(c), "one comparison against the engine's range, shared by views b and c"); }
 // The endpoint reads no market of its own: Market Check's handler is its only source of figures.
 const src = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8").replace(/\/\/[^\n]*/g, "");
 ok(/import\("\.\/sellerDecision\.js"\)/.test(src) && /oneBox: true/.test(src), "the endpoint asks Market Check's own handler");
