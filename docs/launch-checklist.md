@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T18:1xZ (Lane F; Lane C confirms stage 1 covers every item with a build-failing 'demo' check; the top bar's proposed wording is 'What these sell for, powered by GoAskSam.'; the /preview push is built; eBay's official logo package is in hand for stage 5).
+Last updated: 2026-10-18T18:17Z (Lane F tick, batched push; typed-car defect closed; eBay stages 1 and 2 prePush at 18:20Z, the /preview push at 18:50Z, then stages 3 to 5, B2, singleflight, E9, Lane D, one-read, c9).
 
 ## 0as. Sam's live review 18:14Z Oct 18 (11:14 PT): the old no-listing line still shows (forwarded word for word to Lane C)
 
