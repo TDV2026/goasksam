@@ -165,11 +165,13 @@ const JS = String.raw`
       .then(function(r){ return r.json(); }).catch(function(){ return { ok: false, error: "unavailable" }; });
   }
   function ask(body){
-    return ask1(body).then(function(a){ return a && (a.ok !== false || a.error === "rate_limited") ? a : new Promise(function(res){ setTimeout(function(){ ask1(body).then(res); }, 4000); }); });
+    return ask1(body).then(function(a){ return a && (a.ok !== false || a.error === "rate_limited" || a.error === "car_limit") ? a : new Promise(function(res){ setTimeout(function(){ ask1(body).then(res); }, 4000); }); });
   }
   var COULD_NOT = "Sam could not read the sales just now. Try again in a minute.";
+  // Each refusal says what it is: the demo's daily limit for other cars, the per-minute limit, or a read that failed.
   var LIMIT = "That is today's limit for other cars on this demo. The demo's own cars still open.";
-  var notRead = function(a){ return a && a.error === "rate_limited" ? LIMIT : COULD_NOT; };
+  var BUSY = "Lots of reads just now. Try again in a minute.";
+  var notRead = function(a){ return a && a.error === "car_limit" ? LIMIT : a && a.error === "rate_limited" ? BUSY : COULD_NOT; };
   // The card's footer: the credit, the Updated date (the endpoint's shared last-ingest date, none when unread) and
   // How Sam decides.
   // Panels around the shared card (This car before, the sales section): the credit and How Sam decides only; the one
@@ -228,6 +230,7 @@ const JS = String.raw`
     return '<div class="panel"><h3>What these sell for</h3>' + (opts.chips ? idChips(a) : "") + body + aside + foot(a) + "</div>";
   }
   function historyPanel(a){
+    if ((!a || a.ok === false) && !(a && a.history && a.history.length)) return '<div class="panel"><h3>This car before</h3><p class="muted">' + notRead(a) + "</p>" + foot(a) + "</div>";   // a failed read never claims the car has no history
     var h = a && a.history;
     var rows = h && h.length ? '<ul class="hist">' + h.map(function(r){
       var right = r.result === "sold" ? (r.price ? "Sold for " + usd(r.price) : "Sold") : (r.highBid ? "Offered, not sold. High bid " + usd(r.highBid) : "Offered, not sold");

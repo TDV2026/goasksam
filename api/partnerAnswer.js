@@ -282,14 +282,19 @@ export default async function handler(req, res) {
   if (!partnerAllowed(req)) return res.status(404).json({ error: "Not found" });
   if (req.method !== "GET" && req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   const env = supabaseEnv();
-  const lim = await checkCeiling(env, req, "partner_answer", { tool: "partner" }).catch(() => ({ ok: true }));
-  if (!lim.ok) return res.status(429).json({ ok: false, error: "rate_limited" });
   const b = req.method === "POST" && req.body && typeof req.body === "object" ? req.body : (req.query || {});
   let refine = null;
   try { refine = cleanRefine(typeof b.refine === "string" ? JSON.parse(b.refine) : b.refine); } catch { refine = null; }
   const asked = Math.max(0, Math.min(9, Number(b.asked) || 0));
   const vinIn = normVin(b.vin || (VIN_RE.test(normVin(b.q)) ? b.q : ""));
   let text = String(b.q || [b.year, b.make, b.model].filter(Boolean).join(" ") || "").replace(/\s+/g, " ").trim().slice(0, 120);
+  // The per-minute ceiling (lib/_ceilings.js partner_answer) bounds reads of any OTHER car; the demo's own six cars are
+  // stored answers, and each view loads three reads of them, so a partner flipping views never trips it (Oct 17 2026:
+  // ten view loads in a minute tripped it and the page showed the wrong line).
+  if (!demoKey(text)) {
+    const lim = await checkCeiling(env, req, "partner_answer", { tool: "partner" }).catch(() => ({ ok: true }));
+    if (!lim.ok) return res.status(429).json({ ok: false, query: text, error: "rate_limited" });
+  }
   let history = null, id = null;
   if (vinIn && VIN_RE.test(vinIn)) {
     const h = env ? await vinAppearances(env, vinIn).catch(() => null) : null;
@@ -309,7 +314,7 @@ export default async function handler(req, res) {
   // answer is a 429 the page shows as today's limit, never as a car with no sales.
   if (!demoKey(text)) {
     const cars = await checkCeiling(env, req, "partner_cars", { tool: "partner" }).catch(() => ({ ok: true }));
-    if (!cars.ok) return res.status(429).json({ ok: false, query: text, error: "rate_limited" });
+    if (!cars.ok) return res.status(429).json({ ok: false, query: text, error: "car_limit" });
   }
   let r;
   try { r = await marketCheckAnswer(req, text, refine, asked); } catch (e) {
