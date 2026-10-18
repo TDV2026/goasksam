@@ -5,11 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T20:12Z (Lane F; Sam: view a opens empty with nothing preloaded, b and c start on the 2014 GT3; with the VIN fixes at 20:50Z or the 21:20Z gap; c9 prePush 20:20Z).
+Last updated: 2026-10-18T20:13Z (Lane F; Sam's 13:12 PT block replaces the 13:11 one: view a is the standalone pre-listing page with a heading and one box; c9 prePush 20:20Z).
 
-## 0aw. Sam's decision 20:1xZ Oct 18 (13:11 PT): view a opens empty (forwarded word for word to Lane C)
+## 0aw. Sam's decision 20:1xZ Oct 18 (13:12 PT, REPLACES the 13:11 PT block): view a is the standalone pre-listing page (forwarded word for word to Lane C)
 
-View a on a fresh open with no car in the address shows an empty car box with the placeholder "Type any car or paste a VIN", the eBay header and search area, and no range card, photo, sales list or chips; no engine read until the visitor submits a car. A submitted car (typed, pasted VIN or identity chip) behaves as built. Views b and c keep the 2014 GT3 as the starting car when none has been chosen, and follow the visitor's choice if one was made on view a. The top car bar shows the chosen car or is empty with the same placeholder. The empty state has no "demo" wording; partnerEngineMatch covers the empty view a, a typed warmed car and a typed cold car at 1440 and 390. Pushed with the three VIN fixes (20:50Z) if ready, else its own push in a Desk gap.
+View a, fresh open with no car in the address: the eBay header and search area, the heading "What have cars like yours sold for?", and one box with the placeholder "Type your car or paste a VIN"; no range card, photo, sales list or chips; no engine read until a car is submitted; no "value", "worth", "estimate" or "demo" wording. A submitted car (typed, pasted VIN or identity chip) behaves as built, and the heading becomes the decoded car name with the VIN small beneath (the VIN fix). Views b and c keep the 2014 GT3 as the starting car unless a car was chosen on view a. The top car bar shows the chosen car or is empty with the same placeholder; no chips for the six or the 2014 GT3. partnerEngineMatch covers the empty view a, a typed warmed car and a typed cold car at 1440 and 390, and FAILS on any banned word in the rendered text of any view. "yours" in the heading is Sam's explicit wording for this page (a rule 20 exception of the Market Check kind). Pushed with the three VIN fixes (20:50Z) if ready, else a Desk gap.
 
 ## 0av. Sam's live review 20:0xZ Oct 18 (13:04 PT) of /preview with the VIN: three fixes (forwarded word for word to Lane C)
 
