@@ -177,7 +177,7 @@ export function rowTitle(r) {
   const f = [r && r.year, r && r.make, r && r.model].filter(Boolean).join(" ").trim();
   return f && !VENUE_RE.test(f) ? f : "";
 }
-const rowId = r => r && r.id != null && /^\d{1,15}$/.test(String(r.id)) ? String(r.id) : null;
+const rowId = r => r && r.id != null ? photoId(r.id) : null;   // the archive's UUID (lib/_salePhoto.js photoId)
 export function salesOf(d) {
   if (!d) return [];
   let rows;

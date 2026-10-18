@@ -7,6 +7,8 @@ import { photoId, safeImageUrl, fetchPhoto } from "../lib/_salePhoto.js";
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 ok(photoId("123456") === "123456" && photoId(42) === "42", "a plain archive id is accepted");
+ok(photoId("1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d") === "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d" && photoId("1A2B3C4D-5E6F-4A7B-8C9D-0E1F2A3B4C5D") === "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d", "the archive's UUID id is accepted (lower-cased)");
+for (const bad of ["1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5", "1a2b3c4d5e6f4a7b8c9d0e1f2a3b4c5d", "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d/x", "g a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"]) ok(photoId(bad) === null, "refused as an id: " + JSON.stringify(bad));
 for (const bad of ["https://example.com/a.jpg", "12a", "-1", "1 2", "", null, "../1", "1;drop", "1".repeat(16), "//evil.test/x"]) ok(photoId(bad) === null, "refused as an id: " + JSON.stringify(bad));
 ok(!!safeImageUrl("https://images.example.com/a/b.jpg"), "a public https image address passes");
 for (const bad of ["http://images.example.com/a.jpg", "https://127.0.0.1/a.jpg", "https://[::1]/a.jpg", "https://10.0.0.5/x", "https://localhost/x", "https://user:pw@images.example.com/a.jpg", "https://images.example.com:8443/a.jpg", "https://intranet/x", "https://box.internal/x", "file:///etc/passwd", "javascript:alert(1)"]) ok(!safeImageUrl(bad), "refused address: " + bad);
