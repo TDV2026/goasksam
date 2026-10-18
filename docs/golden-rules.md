@@ -119,6 +119,10 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 45 | 1986 Renault Alpine V6 GT | the Alpine nameplate kept: 3 sales, model_any_year, "Alpine, all years", no range | read live on e59 |
 | 46 | 1971 Mercedes-Benz 280SE 3.5 Cabriolet | PENDING e60: the read hits the deadline card (read_failed) | pending Lane B e60 |
 | 47 | 1991 Acura NSX | exact '1991 NSX', 2 odd sales set aside; cross-lane guard so a recurrence of the 94 against 21 fails on every product | exact, 21 sales, $71,000 to $101,000 (Lane B live read, e59; unchanged on e60 since 21 is above eight) |
+| 48 | 2001 BMW M3 (bare) | blocking body question, Coupe 3 and Convertible 9, no count and no range on the bare page | read live on e61 (Lane B) |
+| 49 | 2001 BMW M3 Coupe | thin, 3 sales, no range; lowest $23,250, highest $76,000 | read live on e61 |
+| 50 | 2001 BMW M3 Convertible | 9 sales, $20,000 to $41,000, wideSpread true; lowest $13,750, highest $63,000 | read live on e61 |
+| 51 | 1972 Datsun 240Z | 15 sales, $16,500 to $35,500, wideSpread true; lowest $12,000, highest $48,000 | read live on e61 |
 | | shared card (rows 3, 5, 8, 14, 20) | the "What these sell for" card, pill slot removed, is byte-identical on Market Check, Buy and Sell, and the partner demo's card equals Market Check's apart from the two differences the demo is built with (the basis line "Based on N sales, the latest in Month Year" and the footer link as a span), which are dropped on both sides for that comparison | a product that does not render the shared card yet is PENDING, not a failure; the Sell count check is also set on rows 8, 10, 14, 22 and 23 |
 
 Per car, in the words of the derivation:
@@ -176,7 +180,7 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":15,"q":"1987 Buick Regal Grand National","status":"ready","rung":"exact","labelHas":["1987","Grand National"],"count":21,"tol":0,"low":38500,"high":52500,"tolPct":0},
  {"id":16,"q":"2005 Saab 9-2X","status":"ready","rung":"exact","labelHas":["2005","9-2X"],"count":15,"tol":0,"low":9000,"high":12500,"tolPct":0},
  {"id":17,"q":"1931 Bugatti Type 41","status":"ready","rung":"not_enough_data","labelHas":[],"empty":true},
- {"id":18,"q":"2011 Honda S2000","status":"ready","rung":"year_widened","labelHas":["S2000","2009"],"count":8,"tol":0,"low":37000,"high":74500,"tolPct":3},
+ {"id":18,"q":"2011 Honda S2000","status":"ready","rung":"year_widened","labelHas":["S2000","2009"],"count":8,"tol":0,"low":37000,"high":74500,"tolPct":3,"wideSpread":true,"lowestSale":30000,"highestSale":110000},
  {"id":19,"q":"1963 Chevrolet Corvette Split Window","status":"ready","rung":"exact","labelHas":["1963 Corvette Coupe"],"count":34,"tol":0,"low":136000,"high":204000,"tolPct":3},
  {"id":20,"q":"1995 Acura NSX","status":"ready","rung":"exact","labelHas":["1995","NSX"],"count":15,"tol":2,"low":86000,"high":136000,"tolPct":3,"sharedCard":true},
  {"id":21,"q":"1965 Ford Mustang","status":"ready","identity":true,"labelHas":["Mustang"]},
@@ -187,7 +191,7 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":28,"q":"1965 Ford Mustang fastback","status":"ready","rung":"exact","labelHas":["1965","Fastback"],"count":12,"tol":0,"low":37000,"high":50000,"tolPct":5},
  {"id":22,"q":"1957 Porsche 356 Speedster","status":"ready","rung":"exact","labelHas":["1957","356 Speedster"],"count":8,"tol":0,"low":282000,"high":363000,"tolPct":5,"setAside":{"total":2,"reasons":["odd sale","modified"]},"noZeroOptions":true,"variantRule":true,"noRestoration":true,"sellEqualsMC":true},
  {"id":23,"q":"1966 Ferrari 275 GTB","status":"ready","rung":"year_widened","labelHas":["275 GTB","1965 to 1966"],"count":9,"tol":0,"low":null,"high":null,"thin":true,"noZeroOptions":true,"variantRule":true,"noRestoration":true,"sellEqualsMC":true},
- {"id":29,"q":"2012 BMW M3 Competition Coupe","status":"ready","rung":"exact","labelHas":["2012 M3 Competition Coupe"],"count":13,"tol":0,"low":38500,"high":79500,"tolPct":5,"equalsBare":"2012 BMW M3 Competition"},
+ {"id":29,"q":"2012 BMW M3 Competition Coupe","status":"ready","rung":"exact","labelHas":["2012 M3 Competition Coupe"],"count":13,"tol":0,"low":38500,"high":79500,"tolPct":5,"equalsBare":"2012 BMW M3 Competition","wideSpread":true,"lowestSale":31750,"highestSale":109500},
  {"id":30,"q":"1973 Porsche 911 Targa","status":"ready","rung":"exact","labelHas":["1973","Targa"],"count":4,"tol":0,"low":null,"high":null,"thin":true},
  {"id":31,"q":"1963 Chevrolet Corvette Roadster","status":"ready","rung":"exact","labelHas":["1963 Corvette Roadster"],"count":18,"tol":0,"low":48500,"high":77000,"tolPct":5,"chipPairs":[{"bare":"1963 Chevrolet Corvette","label":"Convertible","typed":"1963 Chevrolet Corvette Roadster"}]},
  {"id":32,"q":"1989 Mazda Miata Roadster","status":"ready","equalsBare":"1989 Mazda Miata","rung":"year_widened","labelHas":["MX-5 Roadster models, 1990"],"count":24,"tol":0,"low":8000,"high":11000,"tolPct":5,"statesBody":"No listing of the 1989 Mazda MX-5 states a body, so this reads every 1989 MX-5."},
@@ -205,8 +209,14 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":44,"q":"2007 BMW Z4 3.0si Coupe","status":"ready","rung":"exact","labelHas":["2007 Z4 3.0si Coupe"],"count":4,"tol":0,"low":null,"high":null,"thin":true,"chipPairs":[{"bare":"2007 BMW Z4 3.0si","label":"Coupe","typed":"2007 BMW Z4 3.0si Coupe"}]},
  {"id":45,"q":"1986 Renault Alpine V6 GT","status":"ready","rung":"model_any_year","labelHas":["Alpine"],"count":3,"tol":0,"low":null,"high":null,"thin":true},
  {"id":46,"q":"1971 Mercedes-Benz 280SE 3.5 Cabriolet","status":"pending","labelHas":["280SE"],"countMin":1},
- {"id":47,"q":"1991 Acura NSX","status":"ready","rung":"exact","labelHas":["1991","NSX"],"count":21,"tol":0,"low":71000,"high":101000,"tolPct":3}
+ {"id":47,"q":"1991 Acura NSX","status":"ready","rung":"exact","labelHas":["1991","NSX"],"count":21,"tol":0,"low":71000,"high":101000,"tolPct":3},
+ {"id":48,"q":"2001 BMW M3","status":"ready","question":true,"noCountRange":true,"chipPairs":[{"bare":"2001 BMW M3","label":"Coupe","typed":"2001 BMW M3 Coupe"},{"bare":"2001 BMW M3","label":"Convertible","typed":"2001 BMW M3 Convertible"}]},
+ {"id":49,"q":"2001 BMW M3 Coupe","status":"ready","rung":"exact","labelHas":["2001","M3","Coupe"],"count":3,"tol":0,"low":null,"high":null,"thin":true,"lowestSale":23250,"highestSale":76000},
+ {"id":50,"q":"2001 BMW M3 Convertible","status":"ready","rung":"exact","labelHas":["2001","M3","Convertible"],"count":9,"tol":0,"low":20000,"high":41000,"tolPct":0,"wideSpread":true,"lowestSale":13750,"highestSale":63000},
+ {"id":51,"q":"1972 Datsun 240Z","status":"ready","count":15,"tol":0,"low":16500,"high":35500,"tolPct":0,"wideSpread":true,"lowestSale":12000,"highestSale":48000}
 ]
 ```
 
 E60 RE-PINS (Oct 18 2026, from Lane B's live e60 after column; window rule: shortest window reaching eight sales at 12, 24, 36, 60 months): row 7 CLK63 Black Series 15 on 24 months $91,500 to $158,000; row 9 Defender 110 9 on 12 months $27,000 to $50,000; row 12 2024 GT3 11 on 24 months $247,000 to $270,000; row 15 Grand National 21 on 36 months $38,500 to $52,500; row 18 S2000 8 on 36 months $37,000 to $74,500; row 37 2006 Boxster Convertible 30 $16,500 to $25,500; row 38 2010 Boxster Convertible 17 on 24 months $26,000 to $31,500. Row 27 (2005 911 targa) read a refusal on e60 and waits on a live read; row 46 waits on a live read.
+
+E61 PINS (Oct 18 2026, from Lane B's e61 after column): rows 48 to 51 added; wideSpread, lowestSale and highestSale pinned as data on rows 18, 29, 50 and 51 (the checker does not read them yet; the card lines that print them are the next wording bump).

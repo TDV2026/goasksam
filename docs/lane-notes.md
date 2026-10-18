@@ -9680,3 +9680,6 @@ Per Sam: a thin tier prints no range on any page, and the engine's low and high 
 
 ## Lane B2, e60 re-pins (Oct 18 2026)
 Pinned from Lane B's e60 after column (file work, no archive read): rows 7, 9 (Defender 110 now 9, $27,000 to $50,000), 12, 15, 18, 37, 38; rows 1, 3 and the rest sit inside their tolerance. Row 27 (2005 911 targa) read a refusal on e60 and row 46 have no after read; both wait on a live read in a gap. Expect label/wording lines (`since {Month Year}`) to need `--wording` checks on the first live run. Next live run: api mode, one load at a time, skipping the pullLive minutes, after Lane C's c8, E9 and Lane D's Sell line; the final pages-mode run takes its own slot after those.
+
+## Lane B2, e61 pins local, branch rebased (Oct 18 2026)
+Rebased b2-golden onto main a1a1535e (e61 on it). Pinned from Lane B's e61 after column, data only, no archive read: row 48 2001 BMW M3 bare (blocking body question, Coupe 3, Convertible 9), row 49 Coupe (3 sales, thin, lowest $23,250, highest $76,000), row 50 Convertible (9 sales, $20,000 to $41,000, wideSpread), row 51 1972 Datsun 240Z (15, $16,500 to $35,500, wideSpread); wideSpread and lowest/highest also on rows 18 and 29. The checker does not read those new fields yet. Push waits for Lane C's typed-car fix DONE and the gap Lane F names; prePush alone first.
