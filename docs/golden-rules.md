@@ -80,7 +80,7 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 6 | 2006 Mercedes-Benz CLK DTM | thin: house sales do not make an online range; US and Canada only | year_widened, 2005 to 2006, 6 sales, no band |
 | 7 | 2008 Mercedes-Benz CLK63 AMG Black Series | Black Series is the pool asked for | exact, 35 sales, $95,000 to $146,000 |
 | 8 | 1957 Porsche 356 Speedster | exact at the threshold, online sales only | exact, 8 sales, $282,000 to $363,000 |
-| 9 | 1997 Land Rover Defender 110 | wheelbase carried | exact, 9 sales, $27,000 to $50,000 (re-pinned Oct 17 2026: the tenth sale aged out of the last-twelve-months window; oldest included sale 2025-11-12; Lane B confirmed intended and my table read agreed on all four products) |
+| 9 | 1997 Land Rover Defender 110 | wheelbase carried | exact, 10 sales, $30,500 to $56,000 |
 | 10 | 2003 BMW M3 Coupe | exact, E46 | exact, 14 sales, $23,500 to $35,500 |
 | 11 | 1989 Merkur XR4Ti | thin model, no rung reaches eight | thin, no band |
 | 12 | 2024 Porsche 911 GT3 | halo trim asked for, window before years | year_widened, 2023 to 2024, 14 sales, $243,000 to $269,000 |
@@ -166,7 +166,7 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":6,"q":"2006 Mercedes-Benz CLK DTM","status":"ready","rung":"year_widened","labelHas":["CLK DTM","2005 to 2006"],"count":6,"tol":0,"low":null,"high":null,"thin":true},
  {"id":7,"q":"2008 Mercedes-Benz CLK63 AMG Black Series","status":"ready","rung":"exact","labelHas":["CLK63","Black Series"],"count":35,"tol":0,"low":95000,"high":146000,"tolPct":0},
  {"id":8,"q":"1957 Porsche 356 Speedster","status":"ready","rung":"exact","labelHas":["1957","356 Speedster"],"count":8,"tol":2,"low":282000,"high":363000,"tolPct":5,"sellEqualsMC":true,"sharedCard":true},
- {"id":9,"q":"1997 Land Rover Defender 110","status":"ready","rung":"exact","labelHas":["1997","Defender 110"],"count":9,"tol":0,"low":27000,"high":50000,"tolPct":3},
+ {"id":9,"q":"1997 Land Rover Defender 110","status":"ready","rung":"exact","labelHas":["1997","Defender 110"],"count":10,"tol":2,"low":30500,"high":56000,"tolPct":3},
  {"id":10,"q":"2003 BMW M3 Coupe","status":"ready","rung":"exact","labelHas":["2003","M3 Coupe"],"count":14,"tol":2,"low":23500,"high":35500,"tolPct":3,"sellEqualsMC":true},
  {"id":11,"q":"1989 Merkur XR4Ti","status":"ready","labelHas":["XR4Ti"],"low":null,"high":null,"thin":true},
  {"id":12,"q":"2024 Porsche 911 GT3","status":"ready","rung":"year_widened","labelHas":["GT3","2023 to 2024"],"count":14,"tol":2,"low":243000,"high":269000,"tolPct":3,"quick":true},
