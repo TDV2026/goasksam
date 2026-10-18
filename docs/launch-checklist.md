@@ -7,6 +7,19 @@ row with no proof is not done whatever its state says.
 
 Last updated: 2026-10-18T04:4xZ (Lane F; window 2 CLOSED by Sam, run-0 failed on max(uuid) on the scratch copy only; new resume order: Lane C first, then Lane B, then B2, E, D; Lane C's findings on the included list, setAsideRows and the proxy path await Sam).
 
+## 0m. Queue state at 04:4xZ Oct 18 (one archive load at a time; the Desk keeps this block current)
+
+| Slot | Owner | State | Gate |
+|---|---|---|---|
+| 1. /cars fix full-tier prePush and push, live screenshots; then the crew cookie helper repair (7a6a0418); then the view d list with photos and the proxy; then C1; then C2 to C5 | Lane C | prePush due now (told 04:4xZ) | its PUSH LOCK and PUSHED lines |
+| 2. One live Buy diagnostic read for the 1991 NSX family fallback; the run-0 fix (file work, no database); e60 to READY (window 1 profiling already DONE) | Lane B | run-0 fix in progress; NSX read after Lane C's PUSHED | Lane C's PUSHED |
+| 3. The 14-row re-read (API mode, single reads) | Lane B2 | HOLDING (Desk's 04:35Z start withdrawn at 04:4xZ) | Lane C's PUSHED and Lane B's NSX read |
+| 3. E9, then the audit runs (--defects, --rows) | Lane E | holding | B2's DONE |
+| 3. The Sell items (branch sell-count) | Lane D | holding, READY | Lane E's E9 |
+| 3. Basis line everywhere, then SEO A1 to A8 | Lane A | holding (lane-notes only) | the order reaching it |
+| New quiet window for Sam's run-0 v2 | Sam | after Lane B posts the v2 file | the Desk announces it |
+| e60 push | Lane B | held for Sam's go after the before and after | Sam |
+
 ## 0l. Window 2 CLOSED by Sam, run-0 failed; new resume order (Sam, ~04:40Z Oct 18; forwarded word for word to Lanes C, B, B2, E, D; Lane A in lane-notes)
 
 Sam's run-0 scratch proof failed at the first batch: ERROR 42883 function max(uuid) does not exist (the procedure took max(id) over a uuid column). Scratch copy only, the real sales table never touched, clean-up run. Lane B fixes run-0 and the same pattern in run-2 and every run file, checks every statement against the project's Postgres version and the editor's last-statement-only output, and posts run-0-scratch-proof-v2.sql in numbered paste-one-at-a-time parts; Sam runs it in a new quiet window the Desk announces. Resume order, one archive load at a time: 1. Lane C: full-tier prePush for the /cars fix (no numbers, noindex, empty specs sitemap), push, live screenshots at 1440 and 390 of /cars/porsche/911 and one spec page, then the crew cookie helper repair (7a6a0418), then the view d list with photos, then C1, then C2 to C5. 2. Lane B: the one live Buy diagnostic read for the 1991 NSX family fallback, the run-0 fix, then e60 to READY (the profiling is already DONE). 3. Lane B2: the 14-row re-read; Lane E: E9 and the audit runs; Lane D: the Sell items; Lane A: lane-notes as before. The Desk had told B2 to start at 04:35Z under the earlier order and corrected it at 04:4xZ: B2 holds for Lane C's PUSHED.
