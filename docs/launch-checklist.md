@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T15:4xZ (Lane F; PRODUCTION DEFECT: the demo shows no data for Sam at 15:34Z on live e60 with c8, linked to the Buy 'Porsche 911' no-answer; Lane C reproducing, Lane B tracing; nothing to Cameron).
+Last updated: 2026-10-18T15:4xZ (Lane F; Sam's ownership for the Buy fix: Lane B the shared bound and the stillReading answer incl. its part of api/sellerDecision.js, Lane C the Buy client and demo retry drawing from Lane B's recorded shape; the demo no-data defect and the Buy no-answer open; Lane B's gap read awaited).
+
+## 0ad. Sam's ownership decision 15:4xZ Oct 18 for the Buy no-answer fix (forwarded word for word to Lanes B and C)
+
+Lane B owns the deadline bound in the shared engine path and the engine's stillReading answer, including the part in api/sellerDecision.js that returns it (Lane B may edit api/sellerDecision.js for this and nothing else). Lane C owns the Buy client's retry drawing (the CLIENT string in api/buy.js) and the demo's retry state. Lane A is not involved. Order: 1. Lane B's trace names the unbounded step; 2. Lane B fixes the bound in the shared path and records the exact shape of the stillReading answer in lane-notes (field names, the line, whether a retry is asked for); 3. Lane C builds the retry drawing from that shape only, no wording or rule of its own; 4. Lane C does not load Buy again until Lane B's gap read is reported. One-engine rule: the Buy client and the demo contain no timeout, no retry rule and no number of their own.
 
 ## 0ac. Sam's order 15:4xZ Oct 18: the demo shows no data on live e60 with c8 (forwarded word for word to Lanes C and B)
 
