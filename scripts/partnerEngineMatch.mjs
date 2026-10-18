@@ -207,12 +207,15 @@ for (const [name, d] of Object.entries(FIX)) {
       const asked = [];
       pg.on("request", r => { const u = new URL(r.url());
         if (u.pathname === "/partner-demo") return r.respond({ status: 200, contentType: "text/html; charset=utf-8", body: pageHtml(u.searchParams.get("view") || "a", u.searchParams.get("car")) });
-        if (u.pathname === "/api/partnerAnswer" && r.method() === "POST") { const q = JSON.parse(r.postData() || "{}").q; asked.push(q); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, query: q, answerType: "zero_result", range: null, count: 0, sales: [], history: [] }) }); }
+        // The default car's first reads answer late (1.2 s), after the typed car's (0.1 s), as on a busy day.
+      if (u.pathname === "/api/partnerAnswer" && r.method() === "POST") { const q = JSON.parse(r.postData() || "{}").q; asked.push(q); const body = JSON.stringify({ ok: true, query: q, answerType: "zero_result", range: null, count: 0, sales: [], history: [], thin: "SHOWN " + q }); setTimeout(() => r.respond({ status: 200, contentType: "application/json", body }).catch(() => {}), q === "2015 Porsche 911 GT3" ? 1200 : 100); return; }
         return r.respond({ status: 204, body: "" }); });
       await pg.goto("https://goasksam.com/partner-demo?view=a", { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 300));
       await pg.$eval("#a-q", el => { el.value = ""; }); await pg.type("#a-q", typed); await pg.click('#a-form button[type="submit"]'); await new Promise(r => setTimeout(r, 300));
-      const a = await pg.evaluate(() => ({ car: new URL(location.href).searchParams.get("car"), tab: new URLSearchParams(document.querySelector('.tabs a[href*="view=b"]').getAttribute("href").slice(1)).get("car"), bar: document.getElementById("car-in").value }));
+      await new Promise(r => setTimeout(r, 1500));
+      const a = await pg.evaluate(() => ({ car: new URL(location.href).searchParams.get("car"), tab: new URLSearchParams(document.querySelector('.tabs a[href*="view=b"]').getAttribute("href").slice(1)).get("car"), bar: document.getElementById("car-in").value, shown: (document.getElementById("a-out").innerText.match(/SHOWN [^\n]*/) || [""])[0] }));
       ok(a.car === typed && a.tab === typed && a.bar === typed, `typed "${typed}" ${w}: after submit the address, the tab and the car bar carry it (${JSON.stringify(a)})`);
+      ok(a.shown === "SHOWN " + typed, `typed "${typed}" ${w}: the first screen keeps the typed car's answer when the default car's first read lands later (${a.shown})`);
       asked.length = 0;
       await Promise.all([pg.waitForNavigation({ waitUntil: "domcontentloaded" }), pg.click('.tabs a[href*="view=b"]')]); await new Promise(r => setTimeout(r, 300));
       const b = await pg.evaluate(() => ({ sub: document.querySelector("#view-b .sub").textContent, bar: document.getElementById("car-in").value }));

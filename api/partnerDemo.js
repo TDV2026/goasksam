@@ -236,10 +236,15 @@ const JS = String.raw`
     var pk = document.querySelector(".picks");
     if (pk) pk.innerHTML = CARS.map(function(c){ return c === CAR ? '<span class="qp on" aria-current="true">' + esc(c) + "</span>" : '<a class="qp" href="?view=' + VIEW + (c === CARS[0] ? "" : "&car=" + encodeURIComponent(c)) + '">' + esc(c) + "</a>"; }).join("");
   }
+  // Only a view's latest read draws (Oct 18 2026: the page's first read of the default car could land after the
+  // visitor's own typed car and draw over it); an older answer is dropped, never drawn.
+  var seqs = {};
   function run(view, body, draw){
     if (view !== "all" && body && body.q && !body.refine && !body.vin) setCar(body.q);
     runs[view] = function(){ run(view, body, draw); };
+    var my = seqs[view] = (seqs[view] || 0) + 1;
     return ask(body).then(function(a){
+      if (seqs[view] !== my) return a;
       draw(a);
       if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(runs[view], a.retryAfterMs);
       return a;
