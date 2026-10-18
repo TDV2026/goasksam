@@ -177,13 +177,14 @@ for (const [name, d] of Object.entries(FIX)) {
   // picks; every view reads the same car; only the 2015 GT3 has listing detail; nothing invented for any other car.
   const { pageHtml, DUMMY, carOf } = await import("../api/partnerDemo.js");
   const jsCar = h => { const m = /var CAR = ("(?:[^"\\]|\\.)*"), D = (null|\{[^\n]*?\}), CARS = /.exec(h); return m ? { car: JSON.parse(m[1]), listing: m[2] !== "null" } : null; };
+  const main0 = h => h.replace(/<script>[\s\S]*?<\/script>/g, "");
   const escH = t => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const ANY = ["1972 Datsun 240Z", "2001 BMW M3", "1988 Ferrari Testarossa"];
   [...DEMO_CARS.map((c, i) => [c, String(i)]), ...DEMO_CARS.map(c => [c, c]), ...ANY.map(c => [c, c])].forEach(([car, param]) => {
     const seen = ["a", "b", "c", "d"].map(v => { const h = pageHtml(v, param), j = jsCar(h);
       const main = h.split("<main>")[1].split("</main>")[0];
       ok(j && j.car === car, `${car} (car=${param}), view ${v}: the page reads this car`);
-      ok(h.includes('<input id="car-in" name="car" value="' + escH(car) + '"') && (h.match(/class="qp( on)?"/g) || []).length === 6 && (DEMO_CARS.includes(car) ? (h.match(/class="qp on"/g) || []).length === 1 : !/class="qp on"/.test(h)), `${car}, view ${v}: the car box holds this car; the six quick picks show, the chosen one marked`);
+      ok(h.includes('<input id="car-in" name="car" value="' + escH(car) + '"') && (main0(h).match(/class="qp( on)?"/g) || []).length === 6 && (DEMO_CARS.includes(car) ? (main0(h).match(/class="qp on"/g) || []).length === 1 : !/class="qp on"/.test(main0(h))), `${car}, view ${v}: the car box holds this car; the six quick picks show, the chosen one marked`);
       ok((h.match(/<a href="\?view=[abc][^"]*"/g) || []).every(t => car === DEMO_CARS[0] ? !t.includes("car=") : t.includes("&amp;car=" + encodeURIComponent(car))), `${car}, view ${v}: every tab keeps the car`);
       if (car === DUMMY.q) ok(j.listing && /US \$139,900/.test(main) && /hero-img/.test(main), `${car}, view ${v}: the listing detail stays with the 2015 GT3`);
       else ok(!j.listing && !/\$\d/.test(main) && !/hero-img|thumb-img/.test(main) && !/<dt>VIN<\/dt>|\bmiles\b|Buy It Now/.test(main) && /There is no listing for this car in the demo\. These are the recent sales of cars like it\./.test(main), `${car}, view ${v}: no invented listing, price, mileage or photo; it says what it is`);
@@ -192,6 +193,35 @@ for (const [name, d] of Object.entries(FIX)) {
   });
   ok(carOf("9") === DEMO_CARS[0] && carOf("") === DEMO_CARS[0] && carOf("<script>") === DEMO_CARS[0] && carOf("x".repeat(80)) === DEMO_CARS[0] && carOf("1965 ford mustang") === "1965 Ford Mustang", "an unknown or unsafe car= opens the 2015 GT3; a quick pick in any case is that car");
   ok(!/Sam is reading the sales\.</.test(pageHtml("c", "1")) && /Sam is reading the sales for this one\./.test(pageHtml("c", "1")), "the loading line reads \"Sam is reading the sales for this one.\""); }
+// THE TYPED PATH (Sam, Oct 18 2026: a car typed into the first screen's own box did not reach the second screen). In a
+// local browser with every request answered here (no network, fake answers): type a car into view a's box, submit, then
+// open view b by its tab, at 1440 and 390; the address, the tab, the car bar and view b's read all carry the typed car.
+{ let puppeteer = null; try { ({ default: puppeteer } = await import("puppeteer-core")); } catch {}
+  const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+  if (!puppeteer || !fs.existsSync(CHROME)) { skip++; console.log("SKIP typed path: no local Chrome"); }
+  else {
+    const { pageHtml } = await import("../api/partnerDemo.js");
+    const br = await puppeteer.launch({ executablePath: CHROME, headless: "new" });
+    for (const typed of ["1965 Ford Mustang", "1987 Buick Grand National", "porshe 911", "Citroën DS 21"]) for (const w of [1440, 390]) {
+      const pg = await br.newPage(); await pg.setViewport({ width: w, height: 900, isMobile: w < 600 }); await pg.setRequestInterception(true);
+      const asked = [];
+      pg.on("request", r => { const u = new URL(r.url());
+        if (u.pathname === "/partner-demo") return r.respond({ status: 200, contentType: "text/html; charset=utf-8", body: pageHtml(u.searchParams.get("view") || "a", u.searchParams.get("car")) });
+        if (u.pathname === "/api/partnerAnswer" && r.method() === "POST") { const q = JSON.parse(r.postData() || "{}").q; asked.push(q); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, query: q, answerType: "zero_result", range: null, count: 0, sales: [], history: [] }) }); }
+        return r.respond({ status: 204, body: "" }); });
+      await pg.goto("https://goasksam.com/partner-demo?view=a", { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 300));
+      await pg.$eval("#a-q", el => { el.value = ""; }); await pg.type("#a-q", typed); await pg.click('#a-form button[type="submit"]'); await new Promise(r => setTimeout(r, 300));
+      const a = await pg.evaluate(() => ({ car: new URL(location.href).searchParams.get("car"), tab: new URLSearchParams(document.querySelector('.tabs a[href*="view=b"]').getAttribute("href").slice(1)).get("car"), bar: document.getElementById("car-in").value }));
+      ok(a.car === typed && a.tab === typed && a.bar === typed, `typed "${typed}" ${w}: after submit the address, the tab and the car bar carry it (${JSON.stringify(a)})`);
+      asked.length = 0;
+      await Promise.all([pg.waitForNavigation({ waitUntil: "domcontentloaded" }), pg.click('.tabs a[href*="view=b"]')]); await new Promise(r => setTimeout(r, 300));
+      const b = await pg.evaluate(() => ({ sub: document.querySelector("#view-b .sub").textContent, bar: document.getElementById("car-in").value }));
+      ok(b.sub === typed && b.bar === typed && asked.length >= 1 && asked.every(q => q === typed), `typed "${typed}" ${w}: the second screen opens on it and reads it (${JSON.stringify({ ...b, asked })})`);
+      await pg.close();
+    }
+    await br.close();
+  }
+}
 // The endpoint reads no market of its own: Market Check's handler is its only source of figures.
 const src = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8").replace(/\/\/[^\n]*/g, "");
 ok(/import\("\.\/sellerDecision\.js"\)/.test(src) && /oneBox: true/.test(src), "the endpoint asks Market Check's own handler");

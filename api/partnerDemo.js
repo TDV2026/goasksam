@@ -220,7 +220,24 @@ const JS = String.raw`
   }
   // A read and its drawing, kept per view so Try again (and the engine's own retry) reruns exactly that read.
   var runs = {};
+  // THE CHOSEN CAR FOLLOWS EVERY VIEW (Sam, Oct 18 2026: a car typed into the first screen's own box did not reach the
+  // second screen). Any read that names a new car, in any view (the first screen's box, a pasted VIN, an identity
+  // chip), makes it the chosen car at once: car= in the address (replaced in place), every tab, the car bar and the
+  // quick picks. The listing detail belongs to the 2015 GT3 only, so another car drops it. Nothing else changes.
+  var VIEW = (document.querySelector('#car-form input[name="view"]') || {}).value || "a";
+  function setCar(q){
+    q = String(q || "").replace(/\s+/g, " ").trim();
+    if (!q || q === CAR) return;
+    CAR = q; if (CAR !== CARS[0]) D = null;
+    var tail = CAR === CARS[0] ? "" : "&car=" + encodeURIComponent(CAR);
+    try { var u = new URL(location.href); if (tail) u.searchParams.set("car", CAR); else u.searchParams.delete("car"); u.searchParams.delete("q"); history.replaceState(history.state, "", u.pathname + u.search); } catch (e) {}
+    [].forEach.call(document.querySelectorAll(".tabs a"), function(a){ var k = (String(a.getAttribute("href")).match(/view=([abc])/) || [])[1]; if (k) a.setAttribute("href", "?view=" + k + tail); });
+    var ci = $("car-in"); if (ci) ci.value = CAR;
+    var pk = document.querySelector(".picks");
+    if (pk) pk.innerHTML = CARS.map(function(c){ return c === CAR ? '<span class="qp on" aria-current="true">' + esc(c) + "</span>" : '<a class="qp" href="?view=' + VIEW + (c === CARS[0] ? "" : "&car=" + encodeURIComponent(c)) + '">' + esc(c) + "</a>"; }).join("");
+  }
   function run(view, body, draw){
+    if (view !== "all" && body && body.q && !body.refine && !body.vin) setCar(body.q);
     runs[view] = function(){ run(view, body, draw); };
     return ask(body).then(function(a){
       draw(a);
@@ -435,8 +452,10 @@ function phs(n) { let s = ""; for (let i = 0; i < n; i++) s += '<div class="ph" 
 export function carOf(v) {
   const t = String(v == null ? "" : v).replace(/\s+/g, " ").trim();
   if (/^\d$/.test(t) && Number(t) < DEMO_CARS.length) return DEMO_CARS[Number(t)];
-  const hit = DEMO_CARS.find(c => c.toLowerCase() === t.toLowerCase());
-  return hit || (/^[A-Za-z0-9][A-Za-z0-9 .'&/-]{1,59}$/.test(t) && /[A-Za-z]/.test(t) ? t : DEMO_CARS[0]);
+  const hit = DEMO_CARS.find(c => c.toLowerCase() === t.toLowerCase()) || (t.toUpperCase() === DUMMY.vin ? DUMMY.q : null);
+  // Any letters (accented too), digits and the usual punctuation of a car name (Sam, Oct 18 2026: "Citroën DS" or a
+  // comma fell back to the GT3); anything else opens the 2015 GT3. The text is escaped wherever it is shown.
+  return hit || (/^[\p{L}\p{N}][\p{L}\p{N} .,'&/()+-]{1,59}$/u.test(t) && /\p{L}/u.test(t) ? t : DEMO_CARS[0]);
 }
 const escHtml = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 export function pageHtml(view, carIn) {
