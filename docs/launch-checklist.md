@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T20:58Z (Lane F; the VIN fixes, view a empty page and the reserve photo fix PUSHED and Ready 20:57Z; live check 21:05Z).
+Last updated: 2026-10-18T21:06Z (Lane F; Sam's 14:03 PT review: all four screens read well; two fixes (view c repeats, view b sold-before panel) slotted 21:20Z push, 21:35Z check, before B2's pins).
+
+## 0ax. Sam's live review 21:0xZ Oct 18 (14:03 PT) of /preview: two fixes (forwarded word for word to Lane C)
+
+All four screens read well (view a empty, view a with the VIN, view b at a $145,000 reserve, view c on the listing). 1. View c: remove the repeated detail (mileage shows three times, the VIN twice): keep the title line with the mileage and the "About this car" block, remove the separate "Mileage" block under the price, show the VIN once, small, under the title; same listing record. 2. View b: add the "This car last sold for {price} in {Month Year}" panel with its earlier sales (each with its photo) directly under the heading line and above the reserve box, from the same stored records, no venue, no link, absent when the car has no earlier sale. partnerEngineMatch covers view c (no repeated mileage or VIN) and view b (panel present for the 2014 GT3, absent for a car with no earlier sale) at 1440 and 390. Push alone after c9's check and before B2's pins: prePush 21:20Z gap, check 21:35Z gap.
 
 ## 0aw. Sam's decision 20:1xZ Oct 18 (13:12 PT, REPLACES the 13:11 PT block): view a is the standalone pre-listing page (forwarded word for word to Lane C)
 
