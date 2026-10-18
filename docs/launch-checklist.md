@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T23:38Z (Lane F tick; singleflight live; e62 scope and the 2019 3-Series fix await Sam; 00:05Z keep-warm of the seven demo cars).
+Last updated: 2026-10-18T23:57Z (Lane F tick; e62 scope and the 2019 3-Series fix await Sam; 00:05Z keep-warm next).
 
 ## 0bb. e62 APPROVED by Sam 21:4xZ Oct 18, choice A (forwarded word for word to Lane B; the shape note to Lane C)
 
