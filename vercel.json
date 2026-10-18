@@ -1,5 +1,5 @@
 {
-  "ignoreCommand": "p=$VERCEL_GIT_PREVIOUS_SHA; [ -n \"$p\" ] && git cat-file -e \"$p^{commit}\" 2>/dev/null && git diff --quiet \"$p\" HEAD -- . \":!docs\" && exit 0; exit 1",
+  "ignoreCommand": "p=$VERCEL_GIT_PREVIOUS_SHA;[ -n \"$p\" ]||exit 1;git cat-file -e \"$p^{commit}\" 2>/dev/null||git fetch -q --deepen=300 2>/dev/null;git cat-file -e \"$p^{commit}\" 2>/dev/null&&git diff --quiet \"$p\" HEAD -- . \":!docs\"&&exit 0;exit 1",
   "redirects": [
     {
       "source": "/(.*)",
