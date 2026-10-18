@@ -4,8 +4,10 @@
 // casing and hyphens ("CLK DTM", "SRT-10", "CCXR"; never "Dtm", "Ccxr").
 //   node scripts/resolverLanesCheck.mjs     exit 1 on any failure. No vendor request (vPIC/taxonomy reads only).
 // Run by scripts/prePush.mjs.
-process.env.SUPABASE_URL = "http://127.0.0.1:9";   // nothing listens here: the resolver uses its curated data
-process.env.SUPABASE_SERVICE_ROLE_KEY = "test-not-a-key";
+// NO DATABASE CONFIGURED (e60): the resolver answers from its curated data only when no database is configured at all;
+// a configured address that cannot be read is "still reading" by contract (never the curated universe), so this check
+// must not point at a dead address. Same mode as scripts/resolverOfflineCheck.mjs mode 2.
+delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY; delete process.env.SUPABASE_ANON_KEY;
 const { resolveVehicle } = await import("../lib/vehicle.js");
 const { resolveForBuy, parseQuery, parseQueryResolved } = await import("../lib/live/search.js");
 const { sanitizeResolvedVehicle } = await import("../lib/vehicle.js");
