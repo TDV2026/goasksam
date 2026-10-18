@@ -3250,7 +3250,7 @@ async function handler(req, res) {
       // e60 timing contract: a resolver lookup that timed out is the deadline card (the same words as the 20-second
       // card), never a car resolved from the typed words alone.
       if (resolution && resolution.status === "lookup_timeout") {
-        return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: "Sam is still reading the sales for this one. Try again in a minute." });
+        return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: "Sam is still reading the sales for this one. Try again in a minute.", retry: true, retryAfterMs: 15000 });
       }
       if (resolution.status !== "valid") {
         // The caller already accepted a model-level read (the seller declined
@@ -3375,7 +3375,7 @@ async function handler(req, res) {
       const obStillReading = () => {
         console.error(`One Box deadline on the path before the engine, ${Date.now() - obStart}ms.`);
         mcRun({ answer_type: "failed", failure_state: "still_reading" });
-        return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: "Sam is still reading the sales for this one. Try again in a minute." });
+        return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: "Sam is still reading the sales for this one. Try again in a minute.", retry: true, retryAfterMs: 15000 });
       };
       // Graceful failure (reliability pass): if Supabase is slow or DOWN, fail FAST to one calm line
       // rather than a hung spinner or a misleading "not enough sales" from empty reads. A cheap probe
@@ -3595,7 +3595,7 @@ async function handler(req, res) {
         // written on this path). The health-probe failure keeps its own line below.
         if (e && e.message === "onebox_deadline") {
           mcRun({ answer_type: "failed", failure_state: "still_reading" });
-          return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: "Sam is still reading the sales for this one. Try again in a minute." });
+          return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: "Sam is still reading the sales for this one. Try again in a minute.", retry: true, retryAfterMs: 15000 });
         }
         mcRun({ answer_type: "failed", failure_state: "catching_breath" });
         return res.status(200).json({ status: "one_box", tier: "unavailable", samLine: OB_CALM });
