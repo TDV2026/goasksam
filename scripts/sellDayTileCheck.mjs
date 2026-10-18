@@ -36,6 +36,13 @@ for (const [what, rows, w] of cases) {
 }
 // Undated rows are counted in the total and never invented a day.
 { const rows = [...mk([[SUN, 8, 50000]]), { auction_end_date: null, _hv: 1000 }]; const bd = dayBuckets(rows); ok(bd && bd.undated === 1 && bd.days[0].count === 8 && bd.total === 9, "undated rows are counted apart"); }
+// The engine decides whether a range exists (Sam, Oct 18 2026, decision 2): with no cluster on the engine's answer, the day
+// groups carry counts and no range, however many sales each holds; the tile then prints its counts alone.
+{ const rows = mk([[SUN, 11, 50000], [MON, 6, 40000], [WED, 8, 42000], [SAT, 5, 45000]]);
+  const bd = dayBuckets(rows, false), t = dayTile({ by_day: bd, window_label: "in the last 12 months", total: rows.length });
+  ok(bd && bd.top.count === 11 && bd.other.count === 19 && !bd.top.most_sold_between && !bd.other.most_sold_between && bd.days.every(g => !g.most_sold_between), "no engine cluster: day groups carry no range");
+  ok(t && t.line === "11 of the 30 sales in the last 12 months" && !t.line2, "no engine cluster: the tile prints its counts and no range");
+  ok(dayBuckets(rows).top.most_sold_between && dayBuckets(rows, true).top.most_sold_between, "with the engine's cluster the range stands as before"); }
 // The scope line carries the span the engine label carries (golden cars 6 and 14).
 ok(scopeWithSpan({ scopeLabel: "2006 Mercedes-Benz CLK DTM", rungLabel: "CLK DTM, 2005 to 2007" }) === "CLK DTM, 2005 to 2007", "thin CLK DTM scope names 2005 to 2007");
 ok(scopeWithSpan({ scopeLabel: "1966 Ferrari 275 GTB", rungLabel: "275 GTB, 1965 to 1966" }) === "275 GTB, 1965 to 1966", "thin 275 GTB scope names 1965 to 1966");

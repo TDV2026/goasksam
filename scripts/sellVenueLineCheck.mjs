@@ -60,6 +60,13 @@ for (const [what, pl, i, opts, want] of cases) {
   for (const l of [noPickLine(gtb), noPickLine({ ...gtb, total: 3, places: [{ ...BAT, sales: 3 }] }, "2026-08-15")]) ok(!/\b\d+ months?\b|twelve months|two years/i.test(l || ""), "no month count in any count line");
   ok(noPickLine({ total: 0, places: [], others: [] }) === null && noPickLine(null) === null, "empty pool: no line (the has-not-seen line stays)");
   for (const l of [noPickLine(gtb), noPickLine({ ...gtb, total: 14 })]) ok(!/[\u2013\u2014]/.test(l || ""), "no dash in the count line"); }
+// The engine decides whether a range exists (Sam, Oct 18 2026, decision 2): Sell's own middle halves render only when the
+// engine's answer carries a cluster. The 275 GTB's thin shape (nine house sales, a low and a high in thin.span, no cluster)
+// has no range; a result tier with a cluster has one; a result tier of eight or more too spread out for a cluster has none.
+{ const { engineHasRange } = await import("../lib/sell/sellFacts.js");
+  ok(engineHasRange({ tier: "thin", thin: { n: 9, span: [250000, 3000000] }, qualifyingTotal: 9 }) === false, "275 GTB thin tier: no range on Sell, whatever low and high the engine carries");
+  ok(engineHasRange({ tier: "result", poolN: 14, cluster: [23500, 35500], windowMonths: 12 }) === true, "M3 Coupe result tier with a cluster: the range stands");
+  ok(engineHasRange({ tier: "result", poolN: 12, cluster: null }) === false && engineHasRange({ cluster: [0, 0] }) === false && engineHasRange(null) === false && engineHasRange({}) === false, "eight or more too spread out, or no answer: no range"); }
 if (process.argv.includes("--print")) for (const [k, v] of Object.entries(out)) console.log(k.padEnd(48), v);
 console.log(`sellVenueLineCheck: ${passes} passed, ${fails} failed`);
 process.exit(fails ? 1 : 0);
