@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T22:58Z (Lane F; the singleflight chain is running: prePush since 22:49Z, browser check passed, golden step in progress; no stall; the Desk's earlier stall flag was wrong).
+Last updated: 2026-10-18T23:17Z (Lane F tick; singleflight chain running; e62 fix awaits Sam).
 
 ## 0bb. e62 APPROVED by Sam 21:4xZ Oct 18, choice A (forwarded word for word to Lane B; the shape note to Lane C)
 
