@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T16:5xZ (Lane F; the e61 chain is running again after the vercel.json style fix; prePush in the next gap; the archive stays Lane B's until DONE).
+Last updated: 2026-10-18T16:57Z (Lane F tick, batched push; the e61 chain runs again toward the 17:04Z gap after a cosmetic vercel.json check failure; then B2's pins, E9 and --rows (closing the Market Check item), Lane D).
 
 ## 0ak. Sam's decisions 16:3xZ Oct 18 from the 16:37Z tick (forwarded word for word to Lane B and B2; the order to Lane E)
 
