@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T22:08Z (Lane F; B2's golden pins PUSHED 9d9ca6d5 (data only); Lane B's 3-Series read and before Buy reads at 22:20Z; singleflight chain on Sam's prompt, prePush 22:50Z gap).
+Last updated: 2026-10-18T22:17Z (Lane F tick; B2's pins live; Lane B's 3-Series and before Buy reads 22:20Z; singleflight chain starts 22:40Z on Sam's prompt, prePush 22:50Z).
 
 ## 0bb. e62 APPROVED by Sam 21:4xZ Oct 18, choice A (forwarded word for word to Lane B; the shape note to Lane C)
 
