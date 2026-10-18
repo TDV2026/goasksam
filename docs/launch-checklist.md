@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T16:3xZ (Lane F; e61 rebased with the keep-warm crons, the shared deadlineAt half and the warmDemo call into Lane C's write path; waits for Lane C's DONE and Sam's chain_e61.sh prompt).
+Last updated: 2026-10-18T16:3xZ (Lane F; Sam: the whole Buy request bound approved with the buySearch line in e61; B2's one golden push after e61 before E9; e61 prompt on Lane C's DONE).
+
+## 0ak. Sam's decisions 16:3xZ Oct 18 from the 16:37Z tick (forwarded word for word to Lane B and B2; the order to Lane E)
+
+1. Whole Buy request inside 20 s APPROVED: Lane B writes the one api/buySearch.js line that starts the request clock (opts.deadlineAt; the shared half already in e61), riding in e61 so both halves go live together; this edit only in that file; the bound covers search, card shaping and the response; unfinished cards return the engine's still-reading line with their computes finishing behind for the retry; no Buy-only timeout, no second rule in the Buy client. e61's after-read adds the four Buy rows (Porsche 911, 911 Carrera, 911 Turbo, GT3) each within the bound plus a small margin, timings posted. 2. B2's golden pins: ONE push after e61 DONE and before E9, carrying the e60 after-column pins (161df3a2: rows 7, 9, 12, 15, 18, 37, 38) AND the e61 changes (the 2001 BMW M3 E46 bare row with the blocking question Coupe 3 / Convertible 9, the Coupe thin with two numbers, the Convertible 9 sales $20,000 to $41,000 wideSpread true, the 1972 Datsun 240Z and 2012 M3 Competition Coupe flags); data only; B2 rebases after e61, tier as the files choose, prePush alone, in a gap the Desk names; until it lands every golden line is report-only. 3. e61 chain prompt on Lane C's DONE; the Desk says when.
 
 ## 0aj. Sam's decisions 16:2xZ Oct 18 on the Buy fix DONE (forwarded word for word to Lane B; the relevant parts to Lanes E and C)
 
