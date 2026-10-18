@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T21:38Z (Lane F tick; Lane B's 2014 GT3 warm 21:50Z; B2's pins 22:05Z; trim-split reads 22:20Z; then singleflight, e62, E9, Lane D, one-read).
+Last updated: 2026-10-18T21:39Z (Lane F; Sam's condition for e62 (chips from included sales for the exact car and year, no fixed trim list) sent to Lane B; the full proposal pasted for Sam).
+
+## 0ba. Sam's condition for the e62 approval 21:4xZ Oct 18 (forwarded word for word to Lane B)
+
+The trim chips come from the included sales for that exact car and year, each with its sales count (words under ten, no month counts). No fixed list of trims per model. A trim with no included sales is not offered. A trim too thin to answer on its own is folded into "other" or left out. The question and the refusal come from oneEngineAnswer only. No em or en dashes in the wording. The Desk asked for the full proposal in one block for Sam; order unchanged (B2 22:05Z, 3-Series read 22:20Z, singleflight chain, then e62).
 
 ## 0az. Sam 21:4xZ Oct 18: trim-split defect in the shared engine (2019 BMW 3-Series) and e62 (forwarded word for word to Lane B)
 
