@@ -286,10 +286,10 @@ for (const [name, d] of Object.entries(FIX)) {
     for (const [w, hgt] of [[1440, 900], [390, 844]]) for (const withHist of [true, false]) {
       const pg = await br.newPage(); await pg.setViewport({ width: w, height: hgt, isMobile: w < 600 }); await pg.setRequestInterception(true);
       pg.on("request", r => { const u = new URL(r.url());
-        if (u.pathname === "/partner-demo" && !u.searchParams.get("img")) return r.respond({ status: 200, contentType: "text/html; charset=utf-8", body: pageHtml("c") });
+        if (u.pathname === "/preview" && !u.searchParams.get("img")) return r.respond({ status: 200, contentType: "text/html; charset=utf-8", body: pageHtml("c") });
         if (u.pathname === "/api/partnerAnswer" && r.method() === "POST") return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, query: "q", answerType: "range", range: { low: 111000, high: 133000 }, count: 10, sales, card, history: withHist ? hist : [] }) });
         return r.respond({ status: 204, body: "" }); });
-      await pg.goto("https://goasksam.com/partner-demo?view=c", { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 600));
+      await pg.goto("https://goasksam.com/preview?view=c", { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 600));
       const m = await pg.evaluate(() => { const pn = document.querySelector("#view-c .prior, #view-c .prior-none"), cd = document.querySelector("#view-c .sfc-card"), buy = document.querySelector("#view-c .buy"), h1 = document.querySelector("#view-c .rail h1");
         const r = el => el ? el.getBoundingClientRect() : null;
         return { panel: !!pn, kind: pn ? pn.className : "", before: !!(pn && cd && (pn.compareDocumentPosition(cd) & 4)), top: pn ? Math.round(r(pn).top) : null, h: pn ? Math.round(r(pn).height) : null, buyBottom: Math.round(r(buy).bottom), h1Top: Math.round(r(h1).top), rows: pn ? pn.querySelectorAll(".srow").length : 0 }; });
