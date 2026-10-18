@@ -2806,6 +2806,9 @@ async function computeSearchGate(req, vehicle, supabaseUrl, supabaseKey) {
 // public request runs as an ordinary search. archiveOnly, ladderPreview, priceProbe and oneBox stay public:
 // each only ever reduces spend (archive or fetch-free).
 const SERVER_ONLY_FLAGS = ["warm", "bypassCache", "rerun", "poolDiag", "backfillCount", "archiveQuery", "oneBoxProof", "cacheStats", "reserveSim", "debug", "fresh", "recompute"];
+// e60 (incident, Oct 18 2026): the archive health probe's success is remembered for 30 s per instance, so a warm
+// instance answers without re-probing (the probe itself was two 3.5 s tries in the worst case).
+let obProbeOkUntil = 0;
 async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -2852,7 +2855,11 @@ async function handler(req, res) {
   const apiKey = process.env.OLDCARSDATA_API_KEY;
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-  try { await ensureFxReady({ supabaseUrl, supabaseKey }); } catch (e) {}   // item 1: arm sale-date FX for every USD conversion in this request
+  // item 1: arm sale-date FX for every USD conversion in this request. e60 (incident, Oct 18 2026): the wait is
+  // bounded (FX_WAIT_MS, 6 s): this read ran before every deadline and, on a stalled connection, held the request to
+  // Vercel's 60 s kill. On a stall the load keeps going in the background and arms the instance for the next request;
+  // this request converts on the static table, as every request did before dated FX existed.
+  try { await Promise.race([ensureFxReady({ supabaseUrl, supabaseKey }), new Promise(r => setTimeout(r, Number(process.env.FX_WAIT_MS || 6000)))]); } catch (e) {}
   // One Box empty-state proof line: recent real sales for the storefront. Archive-only,
   // no OCD, no gate, no car needed -> answered before every other check.
   if (req.body?.oneBoxProof) {
@@ -3358,6 +3365,18 @@ async function handler(req, res) {
       // LOGGING was considered here too and deliberately dropped - see docs/lane-notes.md, Lane C
       // owns the event layer.)
       const obStart = Date.now();
+      // WHOLE-PATH DEADLINE (e60, incident, Oct 18 2026): the 20 s deadline used to race only the engine compute; the
+      // ceiling read, the car-limit read and the stored-row read before it ran untimed, so a stalled connection held
+      // the function to Vercel's 60 s kill (the deployment error page, nothing logged). Now every await on the Market
+      // Check path races the SAME clock from the request's start; a stall anywhere returns the still-reading card.
+      const obDeadlineAt = reqStart + Number(process.env.ONEBOX_DEADLINE_MS || 20000);   // from the REQUEST's start: the FX wait and the generation-map read before this block count too
+      const obRemaining = () => Math.max(250, obDeadlineAt - Date.now());
+      const obWithin = p => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("onebox_deadline")), obRemaining()))]);
+      const obStillReading = () => {
+        console.error(`One Box deadline on the path before the engine, ${Date.now() - obStart}ms.`);
+        mcRun({ answer_type: "failed", failure_state: "still_reading" });
+        return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: "Sam is still reading the sales for this one. Try again in a minute." });
+      };
       // Graceful failure (reliability pass): if Supabase is slow or DOWN, fail FAST to one calm line
       // rather than a hung spinner or a misleading "not enough sales" from empty reads. A cheap probe
       // with a short abort catches the down/slow case before the heavy compute.
@@ -3397,9 +3416,10 @@ async function handler(req, res) {
       // it; the car-limit read runs alongside the stored-row read below. A warm answer was five serial database round
       // trips before its row (probe, ceiling, car limit, then the row); it is now two.
       const obCeilingP = checkCeiling({ supabaseUrl, supabaseKey }, req, "market_check_search", { tool: "market_check" }).catch(() => ({ ok: true }));
-      let obHealthy = await obProbeOnce();
+      let obHealthy = Date.now() < obProbeOkUntil ? true : await obProbeOnce();
       let obProbeRetried = false;
       if (!obHealthy) { obProbeRetried = true; obHealthy = await obProbeOnce(); }
+      if (obHealthy) obProbeOkUntil = Date.now() + 30000;
       if (!obHealthy) {
         console.error(`One Box unavailable: Supabase health probe failed twice (slow/down), ${Date.now() - obStart}ms.`);
         mcRun({ answer_type: "failed", failure_state: "catching_breath" });
@@ -3415,7 +3435,8 @@ async function handler(req, res) {
       // ceiling (lib/_ceilings.js checkCeiling), the SAME mechanism Buy and Sell search already call,
       // never a second implementation. Fail open (an unreadable ledger never blocks a real search); a
       // genuine hit logs rate_limit_hit itself and shows one calm line, no sign-in demand, no number.
-      const obCeiling = await obCeilingP;
+      let obCeiling;
+      try { obCeiling = await obWithin(obCeilingP); } catch (e) { if (e && e.message === "onebox_deadline") return obStillReading(); throw e; }
       if (!obCeiling.ok) {
         mcRun({ answer_type: "failed", failure_state: "rate_limited" });
         return res.status(200).json({ status: "one_box", tier: "rate_limited", resolvedCar: null, samLine: CALM.search });
@@ -3484,7 +3505,8 @@ async function handler(req, res) {
       const warmP = (wantsWarm && !recompute) ? readWarmAnswerDetailed({ supabaseUrl, supabaseKey }, warmKey).catch(() => null) : null;
       if (vehicle && vehicle.make && !obRefine) {
         const carKey = specKeyFor(vehicle, generation, null);
-        const carLimit = await checkMarketCheckCarLimit({ supabaseUrl, supabaseKey }, req, carKey);
+        let carLimit;
+        try { carLimit = await obWithin(checkMarketCheckCarLimit({ supabaseUrl, supabaseKey }, req, carKey)); } catch (e) { if (e && e.message === "onebox_deadline") return obStillReading(); throw e; }
         if (!carLimit.ok) {
           mcRun({ answer_type: "failed", failure_state: "daily_limit" });
           // Reworded (Oct 2026, evidence-block job): this is Market Check's OWN daily limit, not a
@@ -3536,7 +3558,7 @@ async function handler(req, res) {
       let staleInfo = null;   // { storedAt } when a stale stored answer is being served; the recompute is a self-call
       if (wantsWarm && !recompute) {
         try {
-          const w = await warmP;
+          const w = await obWithin(warmP);
           obTimes.warmReadMs = Date.now() - tWarm0;
           if (w && w.raw) {
             if (w.stale && w.recomputingSince && (Date.now() - Date.parse(w.recomputingSince)) > 90000) {
@@ -3551,14 +3573,14 @@ async function handler(req, res) {
               }
             }
           }
-        } catch { /* fall through to the live path below */ }
+        } catch (e) { if (e && e.message === "onebox_deadline") return obStillReading(); /* otherwise fall through to the live path below */ }
       }
       try {
         if (!warmHit) {
           const te = Date.now();
           const engineAnswer = await Promise.race([
             oneEngineAnswer(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, asked: Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) }, obRefine),
-            new Promise((_, rej) => setTimeout(() => rej(new Error("onebox_deadline")), Number(process.env.ONEBOX_DEADLINE_MS || 20000)))
+            new Promise((_, rej) => setTimeout(() => rej(new Error("onebox_deadline")), obRemaining()))   // the remainder of the whole-path clock
           ]);
           oneBox = engineAnswer.raw;
           obTimes.engineMs = Date.now() - te;
