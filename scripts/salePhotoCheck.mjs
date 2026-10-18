@@ -55,6 +55,10 @@ ok(!/(partner-demo|preview)\?photo=/.test(page) && !/\/api\/salePhoto/.test(page
     ok(i === 0 ? all.includes("/preview?img=hero") : !all.includes("/preview?img=hero"), `${car}, view ${v}: the hero ${i === 0 ? "stays with the 2015 GT3 listing" : "is never shown for another car"}`);
     ok(/'<img data-ph src="\/api\/partnerAnswer\?photo=' \+ encodeURIComponent\(s\.photo\)/.test(h), `${car}, view ${v}: the sales list draws each sale's own photo by id`);
   })); }
+// An exact car's earlier sale (stage 4): only "<VIN or chassis>-<n>", nothing else.
+{ const { vinPhotoKey } = await import("../lib/_salePhoto.js");
+  ok(JSON.stringify(vinPhotoKey("wp0ac2a9xes183617-1")) === '{"vin":"WP0AC2A9XES183617","n":1}' && JSON.stringify(vinPhotoKey("AM0123-0")) === '{"vin":"AM0123","n":0}', "a VIN or chassis number with its place is accepted");
+  for (const bad of ["https://x.com/a.jpg", "WP0AC2A9XES183617", "WP0AC2A9XES183617-100", "WP0/AC2-1", "-1", "ABCD-1", "WP0AC2A9XES1836171-1", "", null]) ok(vinPhotoKey(bad) === null, "refused as an earlier-sale photo: " + JSON.stringify(bad)); }
 const { CEILINGS } = await import("../lib/_ceilings.js");
 const pp = CEILINGS.partner_photo, m = pp && pp.device.find(([w]) => w === 60e3);
 ok(pp && m && m[1] >= 40 && pp.address, "partner_photo allows a view plus Show more several times a minute, per device and per address");

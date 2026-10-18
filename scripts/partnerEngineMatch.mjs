@@ -121,7 +121,7 @@ for (const [name, d] of Object.entries(FIX)) {
   ok(as.length === 1 && as[0].reason === "odd sale" && as[0].photo === "21", "set-aside rows carry the engine's own reason; a reason with a venue word is dropped");
   const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
   ok(/var LIST_STEP = 10/.test(pageSrc) && /salesList\(a, "a"\)/.test(pageSrc) && /salesList\(a, "d"\)/.test(pageSrc) && /<details class="aside-grp">/.test(pageSrc) && /The most recent /.test(pageSrc) && /newest first\./.test(pageSrc), "views a and d: ten rows, Show more, the set-aside group closed by default, the heading counts what is shown");
-  ok(/loading="lazy"/.test(pageSrc) && /\.sph\{flex:none;width:128px;aspect-ratio:4\/3/.test(pageSrc) && /hasAttribute\("data-ph"\)\) t\.parentNode\.removeChild\(t\)/.test(pageSrc), "photos lazy, in a fixed slot; a failed photo leaves the neutral tile"); }
+  ok(/loading="lazy"/.test(pageSrc) && /\.sph\{flex:none;width:128px;aspect-ratio:4\/3/.test(pageSrc) && /hasAttribute\("data-ph"\)\) \{ var box = t\.closest\("\.car-photo"\); \(box \|\| t\)\.parentNode\.removeChild\(box \|\| t\); \}/.test(pageSrc), "photos lazy, in a fixed slot; a failed photo leaves the neutral tile (a failed car photo leaves nothing, caption included)"); }
 // The merged listing (Sam, Oct 18 2026): views a, b and c only (the old ?view=d opens c); the listing's card under the buy
 // box, the sales list and "This car before" under the gallery, once; no placeholder description; view b's list in the
 // same row layout with "Your reserve" at its place, no Show more.
@@ -129,7 +129,7 @@ for (const [name, d] of Object.entries(FIX)) {
   const c = pageHtml("c"), d = pageHtml("d");
   ok(((c.match(/<nav class="tabs"[\s\S]*?<\/nav>/) || [""])[0].match(/href="\?view=/g) || []).length === 3 && !/Under the listing/.test(c) && /id="view-c"(?! hidden)/.test(d), "three tabs; the old d address opens the merged listing");
   ok(!/Placeholder description/.test(c) && /<dt>Year<\/dt>/.test(c) && /<dt>VIN<\/dt>/.test(c) && /<dt>Mileage<\/dt>/.test(c), "no placeholder description; Year, VIN and Mileage kept");
-  ok((c.match(/id="d-hist"/g) || []).length === 1 && /\$\("c-rail"\)\.innerHTML = rangePanel\(a, D \? \{ price: D\.price, slot: "c", lines: "c" \} : \{ slot: "c", lines: "c" \}\);/.test(c) && /class="below-gal"/.test(c), "the card in the rail, the list and This car before under the gallery, once");
+  ok((c.match(/id="d-hist"/g) || []).length === 1 && /\$\("c-rail"\)\.innerHTML = priorPanel\(a\) \+ rangePanel\(a, D \? \{ price: D\.price, slot: "c", lines: "c" \} : \{ slot: "c", lines: "c" \}\);/.test(c) && /class="below-gal"/.test(c), "the card in the rail, the list and This car before under the gallery, once");
   ok(/function reserveList\(rows, opts\)/.test(c) && /body \+= saleRow\(s\)/.test(c) && /reserveList\(last, \{ reserve: v \}\)/.test(c) && !/salesTable\(/.test(c), "view b: the same rows, highest price first, the reserve line at its place, no Show more");
   ok((c.match(/function placing\(/g) || []).length === 1 && /placing\(opts\.price, a, opts\.who\)/.test(c) && /"Your reserve is " : "Asking price is "/.test(c) && /who: "reserve"/.test(c), "one comparison against the engine's range, shared by views b and c"); }
 // The narrowing lines (Sam, Oct 18 2026: "2001 bmw", M3): Market Check's own lines from the engine's fields, same
@@ -250,6 +250,26 @@ for (const [name, d] of Object.entries(FIX)) {
   ok(out.carPhoto && out.carPhoto.photo === U(3) && venueLeak(out).length === 0, "the endpoint answer carries the photo id only, with no venue or link");
   const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
   ok(/var p = a && a\.ok !== false && a\.carPhoto && a\.carPhoto\.photo;/.test(pageSrc) && /'<div class="car-photo"><img class="hero-img" data-ph src="\/api\/partnerAnswer\?photo=' \+ encodeURIComponent\(p\)/.test(pageSrc), "the page draws only the endpoint's photo, by id, and a failed photo leaves nothing"); }
+// STAGE 3 CAPTION AND STAGE 4, THIS EXACT CAR SOLD BEFORE (Sam, Oct 18 2026): the car photo carries its caption; an
+// exact car's earlier sales (the endpoint's VIN history) sit at the top, newest first, each with its own photo by
+// "<VIN>-<n>", the month and year, price and mileage at that sale; venue-blind (no venue, no link, no address).
+{ const { historyOf, partnerShape: ps } = await import("../api/partnerAnswer.js");
+  const apps = [{ kind: "sale", date: "2024-03-09", priceUsd: 110000, mileage: 26000, image: "https://img.example.com/a.jpg", house: "Some House", url: "https://example.com/lot/1" },
+    { kind: "sale", date: "2025-07-20", priceUsd: 124000, mileage: 29000, image: "https://img.example.com/b.jpg", house: "Some House", url: "https://example.com/lot/2" },
+    { kind: "attempt", date: "2023-01-05", bidUsd: 98000, mileage: 24000, image: null }];
+  const h = historyOf(apps, "wp0ac2a9xes183617");
+  ok(h.map(r => r.date).join() === "2025-07-20,2024-03-09,2023-01-05" && h[0].photo === "WP0AC2A9XES183617-1" && h[1].photo === "WP0AC2A9XES183617-0" && h[2].photo === null, "each earlier sale names its own photo by VIN and place, newest first (" + JSON.stringify(h.map(r => r.photo)) + ")");
+  ok(!JSON.stringify(h).match(/example\.com|Some House|https?:/), "the history carries no venue, link or address");
+  const out = ps({ status: "one_box", tier: "result", cluster: [111000, 133000], poolN: 10, cards: [] }, "2014 Porsche 911 GT3", 0, { history: h });
+  ok(venueLeak(out).length === 0, "the answer with this car's history passes the venue guard");
+  const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
+  ok(/'<div class="panel prior"><h3>This car last sold for ' \+ usd\(last\.price\)/.test(pageSrc) && /" miles at that sale"/.test(pageSrc) && /priorPanel\(a\)\) \+ \(a\.question \? "" : carPhotoHtml\(a\)\)/.test(pageSrc.replace("(a.question ? \"\" : priorPanel(a))", "priorPanel(a))")) && !/your car/i.test(pageSrc), "the prior sales sit at the top: \"This car last sold for\", newest first, mileage at that sale; never \"your car\"");
+  const block = pageSrc.slice(pageSrc.indexOf("function priorPanel("), pageSrc.indexOf("function historyPanel("));
+  ok(!/href|<a |house|venue|url/i.test(block), "the prior-sale panel has no link and no venue");
+  ok(/<p class="photo-note">Photo from a recent sale of a car like this one\.<\/p>/.test(pageSrc), "the car photo carries its caption");
+  const apiSrc = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
+  const pb = apiSrc.slice(apiSrc.indexOf("req.query.photo != null"), apiSrc.indexOf("return res.status(200).send(img.body);"));
+  ok(/const vk = vinPhotoKey\(req\.query\.photo\)/.test(pb) && /safeImageUrl\(a\.image\)/.test(pb) && /checkCeiling\(env, req, "partner_photo"/.test(pb) && !/setHeader\("(Location|Link|Content-Disposition)"/.test(pb), "an earlier sale's photo is looked up again server side, safe-fetched, under the photo ceiling, with no address out"); }
 // The endpoint reads no market of its own: Market Check's handler is its only source of figures.
 const src = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8").replace(/\/\/[^\n]*/g, "");
 ok(/import\("\.\/sellerDecision\.js"\)/.test(src) && /oneBox: true/.test(src), "the endpoint asks Market Check's own handler");

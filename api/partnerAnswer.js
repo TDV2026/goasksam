@@ -20,7 +20,7 @@ import crypto from "node:crypto";
 import { isCrewRequest } from "../lib/_crew.js";
 import { isPartnerRequest } from "../lib/_partnerAccess.js";
 import { checkCeiling } from "../lib/_ceilings.js";
-import { photoId, photoUrlFor, fetchPhoto } from "../lib/_salePhoto.js";
+import { photoId, photoUrlFor, fetchPhoto, vinPhotoKey, safeImageUrl } from "../lib/_salePhoto.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { vinAppearances, carIdentity, normVin } from "./_historyData.js";
 import { lastUpdatedDate } from "../lib/asOf.js";
@@ -340,11 +340,13 @@ function identityOf(d, idFromVin) {
   return { year: num(rc.year) || null, make: rc.make || null, model: rc.model || null, generation: rc.genCode || null, body: rc.bodyStyle || null, variant };
 }
 // The VIN's own appearances: sold (price), or offered and not sold (high bid). Never the venue, link or title.
-export function historyOf(apps) {
+export function historyOf(apps, vin) {
   if (!Array.isArray(apps) || !apps.length) return null;
-  const rows = apps.map(a => a.kind === "sale"
-    ? { result: "sold", date: day(a.date), price: num(a.priceUsd), miles: num(a.mileage) }
-    : { result: "not_sold", date: day(a.date), highBid: num(a.bidUsd), miles: num(a.mileage) });
+  // Each sale's own photo by "<VIN>-<n>" (n its place among the car's appearances), served by ?photo= (stage 4).
+  const ph = (a, i) => a.image && vin ? normVin(vin) + "-" + i : null;
+  const rows = apps.map((a, i) => a.kind === "sale"
+    ? { result: "sold", date: day(a.date), price: num(a.priceUsd), miles: num(a.mileage), photo: ph(a, i) }
+    : { result: "not_sold", date: day(a.date), highBid: num(a.bidUsd), miles: num(a.mileage), photo: ph(a, i) });
   return rows.sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
 }
 
@@ -420,12 +422,14 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: false, query: car, error: "unavailable", stillReading: true, line: null, retryAfterMs: null });
   }
   if (req.method === "GET" && req.query && req.query.photo != null) {
-    const pid = photoId(req.query.photo);
+    const vk = vinPhotoKey(req.query.photo), pid = vk ? null : photoId(req.query.photo);
     const no = () => { res.setHeader("Content-Type", "text/plain; charset=utf-8"); res.setHeader("Cache-Control", "private, no-store"); return res.status(404).send("Not found"); };
-    if (!pid || !env) return no();
+    if ((!pid && !vk) || !env) return no();
     const lim = await checkCeiling(env, req, "partner_photo", { tool: "partner" }).catch(() => ({ ok: true }));
     if (!lim.ok) return no();
-    const url = await photoUrlFor(env, pid).catch(() => null);
+    // An earlier sale of this exact car (stage 4): the car's own appearance, looked up again here; never the address out.
+    const url = vk ? await vinAppearances(env, vk.vin).then(h => { const a = h && h.appearances && h.appearances[vk.n]; return a && a.image ? safeImageUrl(a.image) : null; }).catch(() => null)
+      : await photoUrlFor(env, pid).catch(() => null);
     const img = url ? await fetchPhoto(url) : null;
     if (!img) return no();
     res.setHeader("Content-Type", img.type);
@@ -450,7 +454,7 @@ export default async function handler(req, res) {
   let history = null, id = null;
   if (vinIn && VIN_RE.test(vinIn)) {
     const h = env ? await vinAppearances(env, vinIn).catch(() => null) : null;
-    history = historyOf(h && h.appearances);
+    history = historyOf(h && h.appearances, vinIn);
     id = h && h.appearances && h.appearances.length ? await carIdentity(h.appearances, vinIn).catch(() => null) : null;
     if (!text || VIN_RE.test(normVin(text))) text = id ? [id.year, id.make, id.family || id.model].filter(Boolean).join(" ") : "";
     if (!text) {

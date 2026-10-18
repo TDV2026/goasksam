@@ -131,6 +131,9 @@ h3{font-size:18px;line-height:1.3;margin:0 0 10px;font-weight:700}
 .b-hero{max-width:760px;margin:0 0 22px}
 .b-hero:empty{display:none}
 .car-photo{margin:0 0 18px;max-width:760px}
+.photo-note{margin:6px 0 0;font-size:13px;color:var(--ink2)}
+.prior{margin:0 0 18px}
+.prior h3{margin-bottom:8px}
 #c-photo .car-photo{max-width:none}
 .full-a{margin-top:26px}
 .full-a h2{font-size:20px;margin-bottom:8px}
@@ -301,7 +304,7 @@ const JS = String.raw`
   // car, served by id; none when the engine has none, and a photo that fails to load leaves nothing behind.
   function carPhotoHtml(a){
     var p = a && a.ok !== false && a.carPhoto && a.carPhoto.photo;
-    return p ? '<div class="car-photo"><img class="hero-img" data-ph src="/api/partnerAnswer?photo=' + encodeURIComponent(p) + '" alt="' + esc(CAR) + '" decoding="async"></div>' : "";
+    return p ? '<div class="car-photo"><img class="hero-img" data-ph src="/api/partnerAnswer?photo=' + encodeURIComponent(p) + '" alt="' + esc(CAR) + '" decoding="async"><p class="photo-note">Photo from a recent sale of a car like this one.</p></div>' : "";
   }
   function idChips(a){
     var id = a && a.identity; if (!id) return "";
@@ -330,6 +333,17 @@ const JS = String.raw`
       : '<p class="sub">' + esc(a.thin || "No range for cars like this yet.") + "</p>" + pill;
     var aside = a.setAside && a.setAside.total ? '<p class="note">' + a.setAside.total + " more set aside" + (a.setAside.reasons ? " (" + Object.keys(a.setAside.reasons).map(function(k){ return a.setAside.reasons[k] + " " + esc(k); }).join(", ") + ")" : "") + ".</p>" : "";
     return '<div class="panel"><h3>What these sell for</h3>' + (opts.chips ? idChips(a) : "") + body + aside + foot(a) + "</div>";
+  }
+  // THIS EXACT CAR SOLD BEFORE (Sam, Oct 18 2026, stage 4): when the car's VIN or chassis number matched earlier sales
+  // in the archive (the endpoint's history), every sale, newest first, at the top of the answer: its own photo, the
+  // month and year, the price and the mileage at that sale. Venue-blind: no venue name and no link (Sam's answer).
+  var soldRows = function(a){ return ((a && a.history) || []).filter(function(r){ return r.result === "sold" && r.price; }); };
+  function priorPanel(a){
+    var sold = soldRows(a); if (!sold.length) return "";
+    var last = sold[0], my = monthYear(last.date);
+    return '<div class="panel prior"><h3>This car last sold for ' + usd(last.price) + (my ? " in " + esc(my) : "") + ".</h3>" + '<div class="slist">' +
+      sold.map(function(r){ return '<div class="srow">' + photoSlot(r) + '<div class="sinfo"><div class="st">Sold ' + esc(monthYear(r.date) || "") + '</div><div class="sd">' + esc(r.miles ? Number(r.miles).toLocaleString("en-US") + " miles at that sale" : "Mileage not stated at that sale") + '</div></div><div class="sp">' + usd(r.price) + "</div></div>"; }).join("") +
+      "</div>" + foot(a) + "</div>";
   }
   function historyPanel(a){
     if ((!a || a.ok === false) && !(a && a.history && a.history.length)) return '<div class="panel"><h3>This car before</h3><p class="muted">' + notRead(a) + "</p>" + foot(a) + "</div>";   // a failed read never claims the car has no history
@@ -372,7 +386,7 @@ const JS = String.raw`
     if (box.children.length >= rows.length) m.parentNode.removeChild(m);
   });
   // A photo that does not load leaves the plain neutral tile, never a broken image.
-  document.addEventListener("error", function(e){ var t = e.target; if (t && t.tagName === "IMG" && t.hasAttribute("data-ph")) t.parentNode.removeChild(t); }, true);
+  document.addEventListener("error", function(e){ var t = e.target; if (t && t.tagName === "IMG" && t.hasAttribute("data-ph")) { var box = t.closest(".car-photo"); (box || t).parentNode.removeChild(box || t); } }, true);
   // THE NARROWING LINES (Sam, Oct 18 2026): Market Check's own "Which M3? Convertible (9) · Coupe (3)" lines, from the
   // engine's fields (a.lines, api/partnerAnswer.js linesOf). An option reruns the same query with that refine; once
   // chosen, the line stays, the choice in plain ink, with "Any (N)" back to the unsplit answer (N the engine's count).
@@ -405,7 +419,7 @@ const JS = String.raw`
     noteLines("a", a);
     aLast = a;
     if (a.ok === false) { $("a-out").innerHTML = rangePanel(a, { slot: "a" }); return; }
-    $("a-out").innerHTML = (a.question ? "" : carPhotoHtml(a)) + (a.question ? rangePanel(a, { slot: "a", chips: true }) : (idChips(a) ? '<div style="margin:0 0 16px">' + idChips(a) + "</div>" : "") + (a.range || a.thin ? rangePanel(a, { lines: "a" }) : "")) + (a.vin || (a.history && a.history.length) ? historyPanel(a) : "") +
+    $("a-out").innerHTML = (a.question ? "" : priorPanel(a)) + (a.question ? "" : carPhotoHtml(a)) + (a.question ? rangePanel(a, { slot: "a", chips: true }) : (idChips(a) ? '<div style="margin:0 0 16px">' + idChips(a) + "</div>" : "") + (a.range || a.thin ? rangePanel(a, { lines: "a" }) : "")) + ((a.vin || (a.history && a.history.length)) && !soldRows(a).length ? historyPanel(a) : "") +
       (!a.question && a.sales && a.sales.length ? '<section class="full-a"><h2>What cars like this sold for</h2>' + salesList(a, "a") + "</section>" : "") +
       '<div style="margin-top:20px"><button type="button" class="btn pri" id="a-list">List it</button></div>';
   }
@@ -432,11 +446,11 @@ const JS = String.raw`
   function drawListing(a){
     cAns = a; noteLines("c", a);
     if (!D && $("c-photo")) $("c-photo").innerHTML = carPhotoHtml(a);
-    $("c-rail").innerHTML = rangePanel(a, D ? { price: D.price, slot: "c", lines: "c" } : { slot: "c", lines: "c" });
+    $("c-rail").innerHTML = priorPanel(a) + rangePanel(a, D ? { price: D.price, slot: "c", lines: "c" } : { slot: "c", lines: "c" });
     var lq = a && a.range && a.trend && a.trend.length ? a.trend.reduce(function(m, t){ return String(t.period) > String(m.period) ? t : m; }) : null;   // the latest quarter with eight or more sales, view d only
     $("d-sales").innerHTML = '<h2>What cars like this sold for</h2>' +
       (a && a.card ? (a.quarter ? '<div class="qrow">' + a.quarter + "</div>" : "") : (lq ? '<p class="qrow"><b>' + esc(lq.period.replace("-", " ")) + "</b> " + usd(lq.low) + " to " + usd(lq.high) + ", " + lq.count + " sales</p>" : "")) + salesList(a, "d") + foot(a);
-    $("d-hist").innerHTML = D ? historyPanel(a) : "";
+    $("d-hist").innerHTML = D && !soldRows(a).length ? historyPanel(a) : "";
   }
   document.addEventListener("click", function(e){
     var b = e.target.closest && e.target.closest("[data-send]"); if (!b) return;
