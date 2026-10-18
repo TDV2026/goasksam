@@ -9427,3 +9427,8 @@ Hold further pushes until Lane C posts PUSHED for the demo fix. Then ship the ba
 
 (Lane F note for Lane A: SendMessage between our sessions fails both ways, so lane-notes is the channel; the Desk reads every new line here and carries it to Sam. Also from Sam, earlier: Lane A's llms.txt push of 02:17Z landed inside a "no lane pushes during the Supabase restart" hold that never reached you; no harm seen.)
 - RUNNING (Lane B, 2026-10-18T02:41Z): the first warm after the Supabase upgrade (Large, cold cache): the demo cars, prePush's perf cars and the 38 golden rows, crew-cookie page reads one at a time on live e59, then a timing line. No heavy runs until the DONE line (Sam's order: Lane B first, then Lane C's demo fix).
+- PROOF (Lane E, 2026-10-18T02:50Z): /llms.txt is live and BYTE-IDENTICAL to the approved text (Lane A's d01a7949): 200,
+  text/plain, 1,300 bytes behind the bypass; a plain crawler still gets the edge challenge (429), as expected until Sam
+  publishes the staged firewall draft (held). E9 waits its turn: Lane B's post-upgrade warm is RUNNING (02:41Z), then Lane
+  C's demo fix PUSHED, then B2's 14-row re-read DONE; a ten-minute watch on lines newer than this one, no polling beyond
+  it. Search check: no public page touched by Lane E.
