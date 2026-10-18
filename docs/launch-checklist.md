@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T03:37Z (Lane F tick; Lane C's fix-forward LIVE since 03:31Z with passing partner-code and crew live checks; incident clear is Sam's call; Lane C found why docs-only commits build: Vercel's 10-commit clone depth).
+Last updated: 2026-10-18T03:5xZ (Lane F; Sam: the demo works from his phone on mobile data and not from his home desktop, so an address-keyed counter blocks it, Lane C's current block stays first; new demo ask: photos in the view d sales list, 10 rows and Show more; Lane B to report on photo fields and rights; Lane C to design view d after PUSHED).
+
+## 0i. Sam's decisions 03:5xZ Oct 18 (forwarded word for word to Lanes B and C)
+
+1. The demo works from Sam's phone on mobile data and not from his home desktop, so a counter keyed to his home address blocks it; Lane C's current block (reason code, address and device counters, clear, prove from another network) is the fix and stays first; nothing else starts before its PUSHED. 2. New demo ask, view d "What cars like this sold for": a photo of each sold car, 10 rows at a time, then a Show more button for the next 10. Lane B (read-only until the clear, no scans): which sale photo fields exist in the archive and the engine answer, how many sales have one, where the URLs point (host only, never a full URL in chat), whether any URL, filename or watermark identifies a venue, whether the images are ours to show a partner; for e60, the sale's photo reference on every row of the sales list in every product's answer as an addition, the full list of included sales (not only the first eight) and the count, report before building. Lane C (after PUSHED, no build until Lane B's photo report and Sam's confirmation): each row photo, price, date, mileage, no venue words or venue-identifying URLs; first 10 then Show more from the same engine answer, no second request, no new numbers; a neutral tile for a missing photo, never another car's, lazy-loaded; basis line and thin-text rule unchanged; screenshots at 1440 and 390 before live.
 
 ## 0g. Sam's decisions 03:3xZ Oct 18 (forwarded word for word to Lanes C, E, B, B2, D; Lane A gets them in lane-notes at the Desk's tick)
 
@@ -213,6 +217,14 @@ Lane F in away mode (ended 01:55Z Oct 18; the 20-minute tick is back on as job 1
 | View c hero in the main photo slot and the thumbnails, same path-scoped cookie | Lane C | building (Sam's order) | nothing | screenshots of view c at 1440 and 390 |
 | Separate access code for the demo (PARTNER_DEMO_CODE, signed gas_partner cookie, 14 days, scoped to /partner-demo and /api/partnerAnswer, 404 otherwise, rate limited) | Lane C | live (ba6560b5, Vercel Ready 23:48Z; prePush alone 0 FAIL / 6 SKIP / 37 PASS, partnerAccessCheck 30 of 30, prePush about ten minutes, no archive read over the 10-second line; live without the code: no code, wrong code, empty code all 404 on page and data endpoint, crew cookie 200 on both, headers noindex/no-referrer/no-store) | Sam proves the right code live himself in a private window (option a; nobody stores the code for a lane) | lane-notes PUSHED (Lane C, 2026-10-16T23:48Z); scripts/partnerAccessCheck.mjs; Sam's or Lane C's live confirmation |
 | Window used by the 2015 Porsche 911 GT3 answer (Sam's question, report only) | Lane B | answered (year scope is the exact 2015 rung; 59 months is the sale-date window, the standard five-year read, oldest sale December 2021; twelve months alone has 6 sales, 24 months has 15; no engine change) | nothing | Lane B's answer to Sam, 22:0xZ; obdiag read with counts by window |
+
+## 2b. Partner demo view d: sold-car photos, 10 rows and Show more (Sam's ask 03:5xZ Oct 18)
+
+| Item | Owner | State | Blocked on | Proof |
+|---|---|---|---|---|
+| Photo fields in the archive and the engine answer; share of sales with one; URL hosts; venue identification in URL, filename or watermark; rights to show a partner | Lane B | ordered (read-only, at most one single-row read, after the incident clears) | the clear | Lane B's report, hosts only |
+| e60: photo reference on every sales-list row in every product's answer (addition), the full list of included sales, the count | Lane B | report before building | Lane B's photo report, Sam's confirmation | e60 READY line |
+| View d design: photo, price, date, mileage per row; 10 rows then Show more from the same answer; neutral tile for no photo, lazy-loaded; basis line and thin rule unchanged; screenshots 1440 and 390 before live | Lane C | design after its current PUSHED; no build until Lane B's report and Sam's confirmation | Lane C's PUSHED; Lane B's report; Sam | screenshots to Sam |
 
 ## 3. Buy speed
 
