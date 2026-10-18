@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T07:1xZ (Lane F; Lane B withdrew the index cause, gave Sam the pg_stat_statements paste and the one permission prompt to accept in its session for the e60 chain).
+Last updated: 2026-10-18T07:17Z (Lane F tick, batched push; e60 waits on Sam accepting one permission prompt in Lane B's session; the periodic CPU cause waits on Sam's two pg_stat_statements pastes; the quiet holds for every other lane).
 
 ## 0w. Sam's decisions 07:1xZ Oct 18 (REPLACES his two earlier index messages; forwarded word for word to Lane B)
 
