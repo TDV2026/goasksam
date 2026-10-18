@@ -9412,3 +9412,17 @@ state per Lane E's own note on the approved text, not a deploy problem. Whether 
 already passes today under the existing "AI Bots = Allow" managed rule is unverified here - I have no way to send a
 cryptographically-real Googlebot request; Sam publishing the firewall draft is the only way to guarantee every crawler
 reaches it. File itself: done, correct, live, proven.
+
+## FOR LANE A (from Sam, posted by Lane F word for word, 2026-10-18; lane-notes is Lane A's channel)
+SUPABASE UPGRADE DONE. Sam upgraded the compute from Small to Large (8 GB, dedicated 2 vCPUs) and the project has restarted. The cache is cold. Heavy runs resume now, one archive load at a time, in this order: (1) Lane B warm of the demo cars, the perf cars and the golden rows, then a timing line (one light Market Check read, one single-row read); (2) Lane C demo fix under Sam's one-time exception, normal full-tier prePush first; (3) Lane B2 14-row re-read, API mode, after Lane C's PUSHED; (4) Lane E E9; (5) Lane D's Sell items, full-tier prePush; (6) Lane C SEO C2 to C5, then C1 once Lane E's cache proof passes; (7) Lane B e60.
+
+DECISIONS FROM SAM
+1. Window and age rule: approved as Lane B recommends, the shortest window that reaches eight sales (12, 24, 36, then 60 months). Wording: "Latest sale: {Month Year}." and "Includes sales from {Year}." when the oldest included sale is more than three years old. No month count on any product.
+2. Basis line everywhere the shared card renders: "Based on N sales, the latest in {Month Year}." Counts under ten as words, N from the engine.
+3. Lane D's Sell wording "{Nine} sales {window}, none on a site Sam can point to." is approved. The window phrase uses the same form as the basis line (no month counts) and the count equals Market Check's.
+4. The SQL file is not approved yet. Sam is reviewing it. Nothing touches the database.
+
+FORWARD TO LANE A
+Hold further pushes until Lane C posts PUSHED for the demo fix. Then ship the basis line everywhere the shared card renders, with live checks, and start SEO A1 to A8 once the site is healthy. Send each stage report to Lane F as well as lane-notes.
+
+(Lane F note for Lane A: SendMessage between our sessions fails both ways, so lane-notes is the channel; the Desk reads every new line here and carries it to Sam. Also from Sam, earlier: Lane A's llms.txt push of 02:17Z landed inside a "no lane pushes during the Supabase restart" hold that never reached you; no harm seen.)
