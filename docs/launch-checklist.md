@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T05:37Z (Lane F tick; B2's extent measure 05:35Z; e64 FULL prePush 05:50Z; then e64 after-reads, spot-check read, Lane C's thin-wording push).
+Last updated: 2026-10-19T05:58Z (Lane F tick; e64 prePush and push 05:50Z; then e64 after-reads, spot-check read, Lane C's thin-wording push).
 
 ## 0bz. Sam 05:2xZ Oct 19: gap order "FASTER" and the house-rule wording (forwarded word for word to Lane B)
 
