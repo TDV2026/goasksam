@@ -44,5 +44,17 @@ ok(/var onPh = moneyHtml\(l, true\); if \(onPh\) ph = ph\.replace\(\/<\\\/a>\$\/
 ok(moneyHtml({ current_bid_usd: 42500, source: "Bring a Trailer", url: "https://x/1" }, true) === '<span class="mlab nobid">See the bid on Bring a Trailer</span>' && !/<a /.test(moneyHtml({ current_bid_usd: 42500, source: "Bring a Trailer", url: "https://x/1" }, true)), "on the photo (itself a link), the figure carries no link of its own");
 const order = ["photoHtml(l, eager)", "<h3>", "metaLine(l)", "chipsHtml(l)", '<div class="sl">', 'class="hrow"', 'class="acts"'].map(x => card.indexOf(x));
 ok(order.every((x, k) => x > 0 && (k === 0 || x > order[k - 1])), "the order: photo (with the money), car, meta, specs, Sam block, history, actions");
+// STAGE 1b, NUMBER FIRST: a range card reads as the shared card does; every figure and line is the engine's.
+const rf = new Function("esc", "usd", block("  function rangeFirst(l, x){", "  function samLine(l){") + "\nfunction rungHtml(){ return ''; } function rungShown(){ return []; }\nreturn rangeFirst;")(
+  s0 => String(s0 == null ? "" : s0).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch])), n => "$" + Math.round(Number(n)).toLocaleString("en-US"));
+const RM = { kind: "range", low: 55000, high: 78000, count: 24, basisLine: "Based on 24 sales, the latest in October 2026." };
+const r1 = rf({ market: RM }, { kind: "range", rung: [], placing: "below the range", text: "The middle half of 1M sales landed at $55,000 to $78,000 since December 2025. The bid is below the range." });
+const t1 = text(r1);
+ok(t1 === "$55,000 to $78,000 Half of these sold in this range. The bid is below the range. Based on 24 sales, the latest in October 2026.", "number first: the engine's low to high, the shared card's line, the bid's placing, the engine's basis line, in that order");
+ok(text(rf({ market: { ...RM, includesFromLine: "Includes sales from 2022." } }, { kind: "range", rung: [] })) === "$55,000 to $78,000 Half of these sold in this range. Based on 24 sales, the latest in October 2026. Includes sales from 2022.", "no placing: no placing line; the includes-from line follows the basis line");
+ok(rf({ market: { ...RM, basisLine: undefined } }, { kind: "range", rung: [] }) === "", "no engine basis line: the server's sentence stays (nothing rebuilt here)");
+ok(rf({ market: { kind: "none", cardListsSales: true, rows: [] } }, { kind: "range", rung: [] }) === "" && rf({ market: null }, { kind: "range" }) === "", "a thin card or no market: unchanged");
+ok(/x\.kind === "range" \? \(rangeFirst\(l, x\) \|\| "<p>"/.test(c), "the card uses number first only where the engine gives a range and its basis line");
+
 console.log(`buyStage1Check: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
