@@ -4576,6 +4576,44 @@ async function handleOps(req, res) {
     result.ms = Date.now() - t0;
     return res.status(200).json(result);
   }
+  // task=warmBuy (Sam, Oct 19 2026, approved list): the broad Buy searches a visitor is likely to type, kept warm after the
+  // demo cars (cron 00:10Z and 12:10Z, right after the 00:05Z and 12:05Z warmDemo). Each search runs the Buy page's own path
+  // (parseQueryResolved, searchLive) and reads every in-market card's market answer through listingMarket, the same per-card
+  // call the page makes, with a long clock so each compute finishes and fills its stored row. Archive only, nothing new is
+  // computed and no figure changes: a visitor's first read finds the cards stored. ?list=a|b overrides; ?budget= in ms.
+  if (task === "warmBuy") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { parseQueryResolved, searchLive, listingMarket, listingFacts, isAbroadRow, gensNamed } = await import("../lib/live/search.js");
+    const BUY_WARM = ["Porsche 911", "Porsche 911 Carrera", "Porsche 911 Turbo", "Porsche 911 GT3", "2024 Porsche 911", "Porsche Cayman", "Porsche Boxster", "Chevrolet Corvette", "Ford Mustang", "Ford Bronco", "BMW M3", "Mercedes-Benz SL", "Ferrari", "Lamborghini", "Land Rover Defender", "Toyota Land Cruiser", "Toyota Supra", "Nissan Skyline", "Chevrolet Camaro", "Jeep Wrangler"];
+    const list = req.query?.list ? String(req.query.list).split("|").filter(Boolean) : BUY_WARM;
+    const budgetMs = Math.min(280000, Number(req.query?.budget) || 270000), t0 = Date.now();
+    const result = { task: "warmBuy", listed: list.length, searched: 0, cards: 0, filled: 0, stillReading: 0, none: 0, notReached: 0, rows: [] };
+    for (const q of list) {
+      if (Date.now() - t0 > budgetMs) { result.notReached++; continue; }
+      const row = { q };
+      try {
+        const parsed = await parseQueryResolved(q, env);
+        const v = parsed && parsed.vehicle;
+        if (!v) throw new Error("unresolved");
+        const f = parsed.filters;
+        const named = gensNamed(parsed.text, v.make); if (named.length > 1 || (named.length === 1 && !v.genCode)) f.gens = named;
+        const tr = Date.now();
+        const { rows } = await searchLive(env, v, f, parsed.text);
+        const inMkt = (rows || []).filter(x => !isAbroadRow(x.r));
+        row.cards = inMkt.length; row.filled = 0; row.stillReading = 0;
+        for (const x of inMkt) {
+          if (Date.now() - t0 > budgetMs) break;
+          const m = await listingMarket(env, x.r, listingFacts(x.r), { deadlineAt: Math.min(t0 + budgetMs, Date.now() + 60000) }).catch(() => null);
+          if (m && m.kind === "pending") row.stillReading++; else if (m && m.kind) row.filled++; else result.none++;
+        }
+        row.ms = Date.now() - tr;
+        result.searched++; result.cards += row.cards; result.filled += row.filled; result.stillReading += row.stillReading;
+      } catch (e) { row.error = String(e && e.message || e); }
+      result.rows.push(row);
+    }
+    result.ms = Date.now() - t0;
+    return res.status(200).json(result);
+  }
   if (task === "warmMC") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle } = await import("../lib/vehicle.js");
