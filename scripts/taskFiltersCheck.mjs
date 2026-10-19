@@ -80,6 +80,11 @@ for (const [sentence, proposed, want] of SENTENCES) {
 // Task reads and hunts the Mach 1 (the engine's 18 sales), never the plain 1969 Mustang; a digit on its own, or after a
 // sentence word, is still dropped.
 ok(knownTrim("Mach 1", { make: "Ford", model: "Mustang" }) === "Mach 1", "knownTrim keeps Mach 1");
+// A hyphenated trim word is kept when every part is in the resolver's vocabulary (Lane D, Oct 19 2026, B2's golden row 62):
+// "IROC-Z" was dropped, so the Task read a plain 1989 Camaro (8 sales) where Market Check reads the IROC-Z (10). Kept as typed.
+ok(knownTrim("IROC-Z", { make: "Chevrolet", model: "Camaro" }) === "IROC-Z" && knownTrim("IROC Z", { make: "Chevrolet", model: "Camaro" }) === "IROC Z", "knownTrim keeps IROC-Z as typed, and IROC Z");
+ok(validateJob("hunt", { make: "Chevrolet", model: "Camaro", trim: "IROC-Z", year_min: 1989 }).filters.trim === "IROC-Z", "a 1989 Camaro IROC-Z Task keeps its trim");
+ok(knownTrim("Find-Me-Under", { make: "Chevrolet", model: "Camaro" }) === null && knownTrim("Black-Manual", { make: "Porsche", model: "911" }) === null, "a hyphenated sentence fragment is still not a trim");
 ok(knownTrim("1", { make: "Ford", model: "Mustang" }) === null && knownTrim("Under 1", { make: "Ford", model: "Mustang" }) === null, "a lone digit, or one after a sentence word, is not a trim");
 { const f = validateJob("hunt", typedCar({ make: "Ford", model: "Mustang", year_min: 1969 }, V("Ford", "Mustang", { trim: "Mach 1", year: 1969 }))).filters; ok(taskRow(f, f.year_min).listing_title === "1969 Ford Mustang Mach 1", "Mach 1: the Task's row reads the Mach 1"); }
 // The guard reads the typedCar output too (the resolver-filled job passes validateJob a second time in execSetup).
