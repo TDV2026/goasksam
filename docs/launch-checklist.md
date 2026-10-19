@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T03:52Z (Lane F; B2's windows analysis DONE: 14 cars x 12, 6 and 3 months, files written; Desk and engine pools differ, both shown side by side; Sam to choose which columns to publish).
+Last updated: 2026-10-19T03:58Z (Lane F tick; windows analysis done; Lane B's e63 after-reads 04:35Z; Lane C's small push then e64; Sam to pick the pool and the page-wording items).
 
 ## 0bp. Sam 03:4xZ Oct 19: thin-card follow-ups decided (forwarded word for word to Lane C and Lane B)
 
