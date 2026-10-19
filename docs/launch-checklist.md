@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-18T23:57Z (Lane F tick; e62 scope and the 2019 3-Series fix await Sam; 00:05Z keep-warm next).
+Last updated: 2026-10-19T00:02Z (Lane F; e62 APPROVED with scope (3-Series label and refusal line, trim question, thin data without a lowest-to-highest card line, Cobra R own pool, read-only count task); Lane B's Lancia diagnosis at 00:20Z first).
+
+## 0bc. e62 APPROVED WITH SCOPE by Sam 00:0xZ Oct 19 (forwarded word for word to Lane B; the thin-card rule to Lane C)
+
+After Lane B's read-only diagnosis of the "1989 Lancia Delta Integrale" refusal. Scope: 1. the 2019 BMW 3-Series fix (the label names the years the pool holds; the engine carries its own refusal line, no page picks a refusal wording); 2. the trim question as approved (choice A, "Other trims ({count})"); 3. thin answers carry the latest-sale line and the exact lowest and highest as data, but NO card prints lowest and highest on a thin answer (under eight sales we show words and no range, and "lowest to highest" is a range): a thin card prints only the latest-sale line, with a check that fails if a thin card shows a lowest-to-highest line; 4. the 2001 Ford Mustang Cobra R wrong pool: the typed trim must not be silently dropped, the Cobra R gets its own pool and answer, under eight sales a thin answer in words, never the pooled range of every 2001 Mustang; Lane B lists any other stored car where a typed trim is dropped the same way; 5. a read-only count task over the stored answers (no writes, one archive load, a Desk gap, counts only). Same before and after as e60 and e61 (41 golden rows twice, each changed row with a one-line reason), then B2's pins. Lane C draws the engine's question, chips, refusal and latest-sale line with no page-side rule. Order: the Lancia diagnosis, e62's build, E9 with the health reads, Lane D's Sell line, Lane C's one-read batch, partnerShape fields and trim question drawing; B2's live pass of rows 27 and 46 waits for a gap.
 
 ## 0bb. e62 APPROVED by Sam 21:4xZ Oct 18, choice A (forwarded word for word to Lane B; the shape note to Lane C)
 
