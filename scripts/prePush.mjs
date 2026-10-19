@@ -448,12 +448,12 @@ try {
 } catch (e) {
   record("Buy Stage 2 search state (scripts/buyStage2Check.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
-// hubSlugCheck
+// A hub slug never carries a leading or doubled dash (Lane C, Oct 19 2026, Lane E's audit). No network.
 try {
   const out = execSync("node scripts/hubSlugCheck.mjs", { encoding: "utf8" });
-  record("hubSlugCheck (scripts/hubSlugCheck.mjs)", "PASS", (out.match(/hubSlugCheck: .*/) || [""])[0]);
+  record("A hub slug never carries a leading dash (scripts/hubSlugCheck.mjs)", "PASS", (out.match(/hubSlugCheck: .*/) || [""])[0]);
 } catch (e) {
-  record("hubSlugCheck (scripts/hubSlugCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+  record("A hub slug never carries a leading dash (scripts/hubSlugCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 // a car page links its model and year hubs only when the hub has a car on it, trying the archive family name next
 try {
