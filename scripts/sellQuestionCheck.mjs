@@ -28,7 +28,7 @@ ok(choiceOf(null) === null && choiceOf(undefined) === null, "no answer: no quest
 // 2. buildResult: the question returns before the facts, the pick or the partner are read.
 const flow = fs.readFileSync(new URL("../lib/sell/sellFlow.js", import.meta.url), "utf8");
 const br = flow.slice(flow.indexOf("export async function buildResult("));
-ok(br.indexOf("engineQuestion(car)") > 0 && br.indexOf("if (question) return") < br.indexOf("sellFactsFor(car)") && br.indexOf("if (question) return") < br.indexOf("pickPlatform("), "buildResult: the question returns before any range, pick or partner read");
+ok(br.indexOf("engineFirst(car)") > 0 && br.indexOf("if (question) return") < br.indexOf("sellFactsFor(car)") && br.indexOf("if (question) return") < br.indexOf("pickPlatform("), "buildResult: the question returns before any range, pick or partner read");
 
 // 3. The client on a stubbed page.
 const listeners = {}, calls = [], addr = [];

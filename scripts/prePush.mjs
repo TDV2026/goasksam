@@ -382,6 +382,13 @@ try {
 } catch (e) {
   record("Sell asks the engine's question first (scripts/sellQuestionCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A builder car is never compared on Sell (Lane C, Oct 19 2026, Sam's Singer rule, e68): the engine's line alone. No network.
+try {
+  const out = execSync("node scripts/sellBuilderCheck.mjs", { encoding: "utf8" });
+  record("Sell shows a builder car's refusal alone (scripts/sellBuilderCheck.mjs)", "PASS", (out.match(/sellBuilderCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Sell shows a builder car's refusal alone (scripts/sellBuilderCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
