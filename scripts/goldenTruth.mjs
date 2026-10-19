@@ -312,6 +312,8 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
     const o = await ops(`/api/usageDashboard?view=ops&task=obdiag&detail=1&qs=${encodeURIComponent(r.g.q)}`);
     try { const c = JSON.parse(o.text).cars[0]; const pr = (c.cardDetail || []).map(x => x.price).filter(Number.isFinite); if (pr.length >= 8) facts[r.g.q] = { low: Math.min(...pr), high: Math.max(...pr) }; } catch (e) {}
   }
+  // Interim engine result, to stderr, before any page is read: a page-step crash can no longer lose the engine reads.
+  for (const r of rows) console.error(`engine row ${r.g.id} ${r.g.q}: ` + ["marketCheck", "buy", "sell", "tasks"].map(k => `${k} ${r.cells && r.cells[k] ? r.cells[k].cell : "-"}${r.cells && r.cells[k] && r.cells[k].diffs && r.cells[k].diffs.length ? " (" + r.cells[k].diffs[0].slice(0, 90) + ")" : ""}`).join(", "));
   const jobs = [];
   for (const r of rows) if (MODE === "pages" || needsPage(r.g)) for (const pr of pagesFor(r.g)) jobs.push({ r, pr });
   const TOTAL_ROWS = GOLDEN.length + IDENT.length, pageRowsDone = new Set();
