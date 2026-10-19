@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T12:34Z (Lane F; Sell builder_car handling built (lanec-builder 6a498f82); Sell's other refusal kinds show a pick and venue counts beside the refusal: Sam's call).
+Last updated: 2026-10-19T12:34Z (Lane F; Singer wording approved; e68 plus Sell fix under one push lock, prePush 14:20Z).
+
+## 0ci. Sam 12:4xZ Oct 19: e68, the SINGER no-comparison answer: WORDING APPROVED (routed word for word to Lane B; Lane C, Lane E and B2 told the new minutes)
+
+1. EXACT WORDING, approved by Sam, character for character: 'Singer cars are not compared with standard 911s, so Sam shows no range for this car.' (replaces the placeholder constant BUILDER_CAR_LINE). 2. SCOPE: Singer only, as built; no other builder marks added; the Singer Gazelle and every plain Porsche 911 stay byte-identical to e67. 3. SELL: Sam approves Lane C's narrow fix (the Sell flow returns the engine's own line before any read when the first answer is the 'builder car' refusal; the client draws only that line, no counts, no why-line, no pick, no partner card). Lane C's report on what Sell prints beside the other refusal kinds (invariant failure, too few in window, thin) goes in the Desk's list as a possible second-source defect; NOT fixed yet. 4. SHIP: e68 on top of e67 in a gap named by Lane F, full prePush alone, one archive load at a time; Lane B and Lane C ship together under ONE PUSH LOCK. After-reads: the Singer Carrera 4 on the Market Check page, the Sell screen, the Task email and the Buy card; the Reimagined 911; a plain 1992 Carrera 4 (range must not change); a Singer Gazelle and a plain 911 (must not change); the golden table. Revert conditions: any change to a car without the Singer mark, or the Singer answer found stored under the plain car's row. 5. Everything else in the queue unchanged. NEW GAPS: e68 FULL prePush alone 14:20:00Z (the Singer diagnosis reads cancelled), after-reads 14:35 to 14:44Z; Lane E SEO audit 14:50 to 14:59Z and 15:05 to 15:14Z; Lane C C2 to C4 prePush about 15:20Z; B2 golden pass about 15:50 and 16:05Z (rows 71 and 72, the Singer pair, join it).
 
 ## 0ch. Sam 12:3xZ Oct 19: ARTICLE WORK STOPS; NEW SINGER RULE; queue order restated (routed word for word to Lane B; the others told their new minutes)
 
