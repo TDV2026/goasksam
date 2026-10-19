@@ -2000,18 +2000,16 @@
       var card = window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false }) : "";
       return '<div class="refusal">' + card + (follow ? samMsgHtml([lint(esc(follow), "thin.follow")], "Sam’s read") : "") + factsBlockHtml(d, false) + "</div>" + exactCarSalesHtml(d) + poolGridHtml(cards, "What has sold") + sellHtml();
     }
-    var listJoin = function (a) { return a.length <= 1 ? (a[0] || "") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]; };
-    // Only claim a YEAR spread when there genuinely is one (>= 2 years, so no "across 1 years").
-    var yspan = rf.yearSpanPhrase ? (" across " + esc(rf.yearSpanPhrase)) : "";
-    var reason = (rf.variants && rf.variants.length >= 2)
-      ? "The " + esc(model) + "s that have sold span the " + esc(listJoin(rf.variants)) + yspan + ". Cars this different do not trade as one market, so a single range would invent a pattern that is not there."
-      : "The " + esc(model) + "s that have sold range too widely in spec and condition to trade as one market" + yspan + ". A single range would invent a pattern that is not there.";
     var follow2 = "Say which " + esc(model) + " it is and Sam compares it to the ones that match.";
     var chips = (rf.variants && rf.variants.length)
       ? '<div class="wayfwd">' + rf.variants.map(function (v) { return '<button type="button" class="chip" data-model="' + esc(v) + '">' + esc(v) + "</button>"; }).join("") + '<button type="button" class="linkbtn" data-change>Or add the year and engine &#8594;</button></div>'
       : "";
-    var head = '<div class="refusal" data-stage="answer"><p class="ans">' + lint(esc("No range on this one. It would be a guess."), "refuse") + "</p>" +
-      samMsgHtml([lint(reason, "refuse.reason"), lint(esc(follow2), "refuse.follow")], "Sam’s read") + factsBlockHtml(d, false) + chips + "</div>";
+    // The spread refusal (Sam, Oct 19 2026; Lane C as integrator, Lane A away): the shared card carries the engine's own
+    // line (its samLine, "Sales too spread out for a range.") and latest sale, the only explanation; no reason of the
+    // page's own. The ask to name the car and the engine's own variant chips stay; the grid below carries the sales.
+    var card = window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false }) : "";
+    var head = '<div class="refusal" data-stage="answer">' + card +
+      samMsgHtml([lint(esc(follow2), "refuse.follow")], "Sam’s read") + factsBlockHtml(d, false) + chips + "</div>";
     return head + exactCarSalesHtml(d) + poolGridHtml(cards, "What has sold") + sellHtml();
   }
   // ============ THIN MODE render (Sep 2026, revised) ====================================

@@ -358,6 +358,14 @@ try {
 } catch (e) {
   record("Shared sells-for card (scripts/sellsForCardCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// No page-written thin wording (Lane C, Oct 19 2026, Sam): the engine's line and latest sale, drawn by the shared card, are
+// the only explanation under a thin card and on the refusals. No network.
+try {
+  const out = execSync("node scripts/thinWordsCheck.mjs", { encoding: "utf8" });
+  record("No page-written thin wording (scripts/thinWordsCheck.mjs)", "PASS", (out.match(/thinWordsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("No page-written thin wording (scripts/thinWordsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
