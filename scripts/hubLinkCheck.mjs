@@ -1,8 +1,8 @@
 // A CAR PAGE LINKS ONLY TO HUBS THAT EXIST (Lane C, Oct 19 2026, from Lane E's scan: 25 hubs linked from car pages
 // answered 404, most of them Mercedes "-Class" families whose titles say "SL500", never "SL-Class"). titleInHub reads a
 // record into a hub exactly as hubVins does (its words in order, any case; the hub's year; no parts or memorabilia lot);
-// hubHasRows asks the archive for a few rows the same way; the car page tries the family's hub, then the archive's own
-// family name, and links neither when both are empty (an unreadable archive keeps the link). No network (fetch stubbed).
+// hubHasRows asks the archive for a few rows the same way; the car page links the family's own hub only when it has a
+// car on it, its words unchanged (an unreadable or slow read keeps the link). No network (fetch stubbed).
 //   node scripts/hubLinkCheck.mjs     exit 1 on any failure.
 import fs from "node:fs";
 import { parseHubSlug, hubTokens, titleInHub, hubHasRows } from "../api/_historyData.js";
@@ -38,7 +38,7 @@ globalThis.fetch = realFetch;
 // The car page.
 const h = fs.readFileSync(new URL("../api/history.js", import.meta.url), "utf8");
 ok(/if \(appearances\.some\(a => titleInHub\(hub, a\.title, a\.year\)\)\) return s;\n\s*const has = await hubHasRows\(env, hub\);\n\s*return has === false \? null : s;/.test(h), "the car's own records answer first; the archive only when none is in the hub; unreadable keeps the link");
-ok(/const fams = \[id\.family, id\.familyKey\]/.test(h) && /for \(const f of fams\) \{ const s = await hubLink\(year, f\); if \(s\) return/.test(h), "the family's hub first, then the archive's family name");
+ok(/const fams = \[id\.family\]\.filter/.test(h) && !/id\.familyKey\]/.test(h), "drop only: the family's own hub or no link, never another family's hub (Sam: no wording changes)");
 ok(/\$\{modelHubL \? `<a href="\$\{esc\(modelHubL\.href\)\}">All \$\{esc\(id\.make \+ " " \+ modelHubL\.family\)\} auction results<\/a>` : ""\}/.test(h) && /\$\{yearHubL \? `<a href="\$\{esc\(yearHubL\.href\)\}">Every \$\{esc\(id\.year \+ " " \+ id\.make \+ " " \+ yearHubL\.family\)\} by VIN<\/a>` : ""\}/.test(h), "each link only when its hub exists, named by the family it links");
 ok(!/const modelHub = /.test(h) && !/const hubHref = /.test(h), "no unconditional hub link is left");
 console.log(`hubLinkCheck: ${pass} passed, ${fail} failed`);

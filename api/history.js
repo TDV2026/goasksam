@@ -355,8 +355,8 @@ async function carPage(req, res, env, slug, vin) {
   const altPhotos = [...new Set(appearances.map(a => a.image).filter(Boolean))].filter(u => !photo || u !== photo.image);
   // Up to the model (the all-years hub) as well as this year's, each linked only when that hub has a car on it (Lane E's
   // scan found 25 linked hubs answering 404). The car's own records answer it at no cost; only when none of them is in
-  // the hub is the archive asked. When the family's hub is empty, the hub of the archive's own family name is tried
-  // (the Mercedes "-Class" cases: titles say "SL500"); with neither, no link. An unreadable archive keeps the link.
+  // the hub is the archive asked. An empty hub gets no link; an unreadable or slow read keeps the link, as before. The
+  // link's words are unchanged (Sam: no wording changes; pointing at another family's hub is his call, held).
   const hubLink = async (year, family) => {
     const s = (year ? year + "-" : "") + hubSlug(id.make, family), hub = parseHubSlug(s);
     if (!hub) return null;
@@ -364,7 +364,7 @@ async function carPage(req, res, env, slug, vin) {
     const has = await hubHasRows(env, hub);
     return has === false ? null : s;
   };
-  const fams = [id.family, id.familyKey].filter((f, i, a) => f && saneLinkFamily(f) && a.findIndex(x => slugify(x) === slugify(f)) === i);
+  const fams = [id.family].filter(f => f && saneLinkFamily(f));
   const pickHub = async year => { for (const f of fams) { const s = await hubLink(year, f); if (s) return { href: `/history/${s}`, family: f }; } return null; };
   const [modelHubL, yearHubL] = await Promise.all([pickHub(null), id.year ? pickHub(id.year) : null]);
   const body = `
