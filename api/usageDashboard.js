@@ -4582,7 +4582,7 @@ async function handleOps(req, res) {
     const { findGeneration } = await import("../lib/generations.js");
     const { runOneBox, ENGINE_VERSION } = await import("../lib/onebox.js");
     const { warmAnswerKeyFor, writeWarmAnswer, readWarmAnswerDetailed } = await import("../lib/live/search.js");
-    const { DEMO_CARS, refreshDemoAnswer } = await import("./partnerAnswer.js");
+    const { DEMO_CARS, refreshDemoAnswer, readDemoLast, lastGoodUsable, questionResult } = await import("./partnerAnswer.js");
     const t0 = Date.now(), budgetMs = 240000;
     const result = { task: "warmDemoCheck", engineVersion: ENGINE_VERSION, checked: 0, fresh: 0, warmed: 0, failed: 0, notReached: 0, rows: [] };
     for (const q of DEMO_CARS) {
@@ -4597,10 +4597,14 @@ async function handleOps(req, res) {
         const have = await readWarmAnswerDetailed(env, key);
         result.checked++;
         if (have && have.raw) { row.fresh = true; row.reason = have.stale ? have.reason : null; result.fresh++; result.rows.push(row); continue; }
+        // (c): a car whose first answer is the engine's question has no Market Check row; its stored question answer in the
+        // demo's own store, under this engine version, counts as fresh (one read, nothing computed)
+        { const dl = await readDemoLast(env, q).catch(() => null); if (lastGoodUsable(dl) && questionResult(dl.out)) { row.fresh = true; row.reason = "stored question"; result.fresh++; result.rows.push(row); continue; } }
         row.missing = (have && have.reason) || "no_row";
         const d = await runOneBox(vehicle, generation, q, env, null);
-        if (!d || !/^(result|thin|refusal|not_tracked)$/.test(String(d.tier || ""))) throw new Error("engine returned " + (d && d.tier));
-        await writeWarmAnswer(env, key, d);
+        if (!d || !d.tier || /^(read_failed|unavailable)$/.test(String(d.tier))) throw new Error("engine returned " + (d && d.tier));
+        // a full answer goes to the Market Check store as warmDemo writes it; a question answer is kept by the demo's own store only (c)
+        if (/^(result|thin|refusal|not_tracked)$/.test(String(d.tier))) await writeWarmAnswer(env, key, d);
         const dr = await refreshDemoAnswer(env, q).catch(() => null);
         row.tier = d.tier; row.demoStored = !!(dr && dr.stored); result.warmed++;
       } catch (e) { row.error = String(e && e.message || e); result.failed++; }

@@ -49,8 +49,12 @@ async function readLast(env, key) {
     return v && typeof v === "object" ? v : (typeof v === "string" ? JSON.parse(v) : null);
   } catch { return null; }
 }
+// (c) (Sam's demo orders, Oct 19 2026): the demo's own store also keeps the engine's QUESTION answer (a car whose first
+// answer is the body or model question, the 1965 Mustang's "Which Mustang?"), exactly as the engine returned it, stamped
+// with ENGINE_VERSION and readAt like a full result, so the page serves the stored question and never computes it live.
+export const questionResult = out => !!(out && out.ok === true && out.answerType === "identity_question" && out.question && Array.isArray(out.question.options) && out.question.options.length > 0 && !out.stillReading);
 async function writeLast(env, key, out, { force = false } = {}) {
-  if (!fullResult(out)) return false;
+  if (!fullResult(out) && !questionResult(out)) return false;
   if (!force && Date.now() - (lastWrote.get(key) || 0) < LAST_WRITE_EVERY_MS) return false;
   lastWrote.set(key, Date.now());
   try {
@@ -72,7 +76,7 @@ export async function refreshDemoAnswer(env, car, { host = "goasksam.com" } = {}
   let r;
   try { r = await marketCheckAnswer({ headers: { host } }, car, null, 0, true); } catch (e) { return { car, stored: false, why: "read failed", ms: Date.now() - t0 }; }
   const out = partnerShape(r && r.d, car, 0, {});
-  if (!fullResult(out)) return { car, stored: false, why: out && out.stillReading ? "still reading" : (out && (out.error || out.answerType)) || "no answer", ms: Date.now() - t0 };
+  if (!fullResult(out) && !questionResult(out)) return { car, stored: false, why: out && out.stillReading ? "still reading" : (out && (out.error || out.answerType)) || "no answer", ms: Date.now() - t0 };
   if (venueLeak(out).length) return { car, stored: false, why: "blocked", ms: Date.now() - t0 };
   const ok = await writeLast(env, key, out, { force: true });
   return { car, stored: ok, readAt: out.readAt || null, answerType: out.answerType, ms: Date.now() - t0 };
@@ -80,6 +84,7 @@ export async function refreshDemoAnswer(env, car, { host = "goasksam.com" } = {}
 // Lane B (Sam's demo orders, Oct 19 2026): the last good answer carries the ENGINE_VERSION it was read under and is
 // never served under another version (an answer kept from before an engine push is an older engine's answer). A row
 // stored before this change carries no version and is not served either; the next warm or live read stores a new one.
+export async function readDemoLast(env, car) { const key = demoKey(car); return key && env ? readLast(env, key) : null; }
 export function lastGoodUsable(v, nowMs = Date.now()) {
   const t = v && Date.parse(v.readAt);
   return !!(v && v.out && v.out.ok && v.engineVersion === ENGINE_VERSION && Number.isFinite(t) && nowMs - t < LAST_MAX_MS);
@@ -483,6 +488,12 @@ export default async function handler(req, res) {
   const updatedP = lastUpdatedDate(env).catch(() => null);   // the shared last-ingest date; null shows no date
   // The read goes through Market Check's own handler and its own bound; a read that throws answers from the last good
   // answer (a demo car) or the plain still-reading state.
+  // (c): a demo car whose stored answer is the engine's question (current version, under a day old) is answered from that
+  // store, never computed on the page (the engine never stores a question in the Market Check store).
+  if (!refine && !vinIn && !(Number(asked) > 0)) {
+    const qk = demoKey(text), qlast = qk && env ? await readLast(env, qk) : null;
+    if (lastGoodUsable(qlast) && questionResult(qlast.out)) return res.status(200).json({ ...qlast.out, history, storedQuestion: true });
+  }
   let r;
   try { r = await marketCheckAnswer(req, text, refine, asked, true); } catch (e) {
     console.error("partnerAnswer:", (e && e.message) || e);
@@ -496,7 +507,7 @@ export default async function handler(req, res) {
   // views send the VIN, had no fallback, and showed the limit line); a VIN view keeps its own VIN history.
   const lk = !refine ? demoKey(text) : null;
   if (lk && env) {
-    if (!vinIn && fullResult(out)) writeLast(env, lk, out).catch(() => {});
+    if (!vinIn && (fullResult(out) || (questionResult(out) && !(Number(asked) > 0)))) writeLast(env, lk, out).catch(() => {});   // (c): a question answer too
     else if (!out.ok) { const last = await readLast(env, lk); if (lastGoodUsable(last)) out = vinIn ? { ...last.out, history, lastGood: true } : { ...last.out, lastGood: true }; }
   }
   if (vinIn) {
