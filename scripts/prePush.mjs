@@ -396,6 +396,7 @@ try {
   record("Sell shows the engine's own card on a refusal (scripts/sellRefusalCheck.mjs)", "PASS", (out.match(/sellRefusalCheck: .*/) || [""])[0]);
 } catch (e) {
   record("Sell shows the engine's own card on a refusal (scripts/sellRefusalCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The partner demo's listing frame and reads (Lane C, Oct 19 2026, Sam's demo orders): the six sample cars' frame, the
 // sample price inside the engine's range, one read per page, photos at a width. Local browser, fixture answers.
 try {
