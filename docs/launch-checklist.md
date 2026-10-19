@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T06:12Z (Lane F; GATE CLEARED: e64 is LIVE (engine e64-20261019-readsafe since 06:01:54Z); Ford GT confirmation read, after-reads and the spot-check read follow; the Ford GT row moves from held to re-read after those).
+Last updated: 2026-10-19T06:17Z (Lane F tick; e64 live; Lane B's warm, after-read pass, cold column, Ford GT read, spot-check read; B2's rows 47 to 52 rerun 06:20Z).
 
 ## 0ca. Sam 06:0xZ Oct 19: DEMO CARS omission candidates; the partner demo HELD (forwarded word for word to Lane B; the list request to B2)
 
