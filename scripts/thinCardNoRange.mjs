@@ -9,7 +9,7 @@ const fixtures = [
   { tier: "thin", poolN: 3, soldCount: "three", soldCountN: 3, lowestSaleN: 33000, highestSaleN: 56500, latestSaleLine: "Latest sale: June 2026.", cluster: null, rungLabel: "1969 Camaro Convertible", cards: [] },
   { tier: "result", poolN: 4, soldCount: "four", soldCountN: 4, spanOnly: true, lowestSaleN: 57000, highestSaleN: 150911, latestSaleLine: "Latest sale: May 2026.", cluster: null, rungLabel: "1973 911 Targa", cards: [] },
   // e63 (Sam): a thin answer WITH its sales (the Cobra R shape, house share): the card must show the sale rows and no range
-  { tier: "thin", poolN: 8, soldCount: 8, soldCountN: 8, span: [47000, 133000], thin: { isThin: true, houseSteer: true, span: [47000, 133000], totalN: 8, receipts: [] }, lowestSaleN: 47300, highestSaleN: 132500, latestSaleLine: "Latest sale: October 2025.", rungLabel: "Mustang Cobra R, 1995 to 2000", mustShowSales: true,
+  { tier: "thin", poolN: 8, soldCount: 8, soldCountN: 8, span: [47000, 133000], thin: { isThin: true, houseSteer: true, span: [47000, 133000], totalN: 8, receipts: [] }, lowestSaleN: 47300, highestSaleN: 132500, latestSaleLine: "Latest sale: October 2025.", rungLabel: "Mustang Cobra R, 1995 to 2000", mustShowSales: true, thinReason: "house_share", thinLine: "The sales of this car are too one-sided to mark a range from. These are the sales we found.",
     cards: [{ price: 47300, date: "2025-10-01", title: "2000 Ford Mustang SVT Cobra R" }, { price: 132500, date: "2024-01-01", title: "2000 Ford Mustang SVT Cobra R" }] }
 ];
 const money = n => "$" + Number(n).toLocaleString("en-US");
@@ -22,6 +22,8 @@ for (const f of fixtures) {
   const pair = text.includes(money(f.lowestSaleN)) && text.includes(money(f.highestSaleN));
   const noSales = f.mustShowSales && !(f.cards || []).every(c => text.includes(money(c.price)));
   const tooFewClaim = (f.soldCountN || 0) >= 8 && /not enough sales/i.test(text);
+  const noLine = f.thinLine && !text.includes(f.thinLine);
+  if (noLine) { console.log(`FAIL  ${f.rungLabel}: the card does not draw the engine thin line`); bad++; continue; }
   if (noSales) { console.log(`FAIL  ${f.rungLabel}: a thin card shows no sale rows (the sales were in the answer)`); bad++; continue; }
   if (tooFewClaim) { console.log(`FAIL  ${f.rungLabel}: a pool of ${f.soldCountN} is told "not enough sales"`); bad++; continue; }
   if (rangeLine || pair) { console.log(`FAIL  ${f.rungLabel}: a thin card shows a lowest-to-highest line: "${(text.match(/\$[\d,]+\s*(?:to|-)\s*\$[\d,]+/) || [""])[0]}"`); bad++; }
