@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T02:17Z (Lane F tick; thin-card push FULL prePush 03:05Z; B2's pins 02:20Z and first five cars 02:35Z; Lane B's Ford GT and Carrera GT load 02:50Z).
+Last updated: 2026-10-19T02:21Z (Lane F; Sam needs the weekend article results tonight: B2 reads cars 3 to 15 in the 02:35Z gap, remainder 03:20Z; Lane B's Ford GT and Carrera GT load 02:50Z; thin-card push 03:05Z).
 
 ## 0bl. Sam 02:2xZ Oct 19: the spread refusal gets {rows:false} too (forwarded word for word to Lane C)
 
