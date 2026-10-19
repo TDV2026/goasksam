@@ -9,7 +9,7 @@ import { refusalOf } from "../lib/sell/sellFacts.js";
 import { SELL_MC_CLIENT } from "../lib/sell/sellMcClient.js";
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
-const LINE = "Singer cars are not compared with standard 911s. Sam shows no range for this car.";
+const LINE = "Singer cars are not compared with standard 911s, so Sam shows no range for this car.";   // Sam approved, Oct 19 2026
 const SINGER = { tier: "refusal", refusal: { kind: "builder_car", builder: "Singer" }, samLine: LINE, poolN: 0, soldCount: null, soldCountN: 0 };
 
 // 1. refusalOf: builder_car only, the engine's own line.
