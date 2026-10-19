@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T00:57Z (Lane F tick; e62 built and ready, chain_e62.sh awaits Sam's prompt).
+Last updated: 2026-10-19T01:02Z (Lane F; Sam approved the e62 refusal wording with one change ('Sam could not verify this one, so no figures are shown.'); the chain prompt is held until Lane B confirms).
+
+## 0bd. Sam 01:0xZ Oct 19: e62 refusal wording APPROVED with one change; the chain prompt is HELD until Lane B confirms (forwarded word for word to Lane B)
+
+The invariant-refusal line becomes "Sam could not verify this one, so no figures are shown." (one place in the engine, carried in the answer); Lane B reruns its local checks and confirms in one line; only then does the Desk release the chain prompt, and Sam does NOT accept chain_e62.sh before that confirmation. Everything else in the e62 report is approved as written (year labels, engine-carried refusal lines, thin data with the no-range card check, typed trims kept, the trim question with "Other trims", the read-only count task). Chain: full-tier prePush in a Desk gap outside a pullLive episode, push on 0 FAIL, warm, 51 rows twice, and the before and after table with a one-line reason per changed row, including the 2001 Ford Mustang Cobra R (own answer or a thin answer, never the pooled range of every 2001 Mustang), the 1989 Lancia Delta Integrale, the 2019 BMW 3-Series and the seven demo cars unchanged.
 
 ## 0bc. e62 APPROVED WITH SCOPE by Sam 00:0xZ Oct 19 (forwarded word for word to Lane B; the thin-card rule to Lane C)
 
