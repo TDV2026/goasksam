@@ -455,7 +455,7 @@ try {
 } catch (e) {
   record("A hub slug never carries a leading dash (scripts/hubSlugCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
-// a car page links its model and year hubs only when the hub has a car on it, trying the archive family name next
+// A car page links its model and year hubs only when the hub has a car on it (drop only; Lane C, Oct 19 2026). No network.
 try {
   const out = execSync("node scripts/hubLinkCheck.mjs", { encoding: "utf8" });
   record("Car pages link only hubs that exist (scripts/hubLinkCheck.mjs)", "PASS", (out.match(/hubLinkCheck: .*/) || [""])[0]);
