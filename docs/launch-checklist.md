@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T06:28Z (Lane F; Sam approved the single-body lock fix on e65 with conditions (27-row before and after, ten in and ten out for three groups, B2 pins) and added the Ford GT modified-rule counts by category to the spot check).
+Last updated: 2026-10-19T06:32Z (Lane F; the launch gates table for Market Check and Buy delivered; the spot check read 06:35Z; Lane C's thin-wording push 06:50Z).
+
+## 0cc. Sam 06:3xZ Oct 19: LAUNCH GATES table asked (Market Check and Buy; one ranked table in Lane F's next report)
+
+The Desk asked for ONE table of every launch gate for Market Check and Buy, ranked by what blocks launch first, from this checklist as it stands: gate, product, owner, state now, what unblocks it, whether it needs Sam; three groups (engine and data correctness; page and infrastructure; Sam-only items); which items could slip past launch without harm and which cannot; Buy gets its own lines (cold first-read speed on broad searches, its golden rows, its share of E9); only what the checklist and lane reports support. Delivered in Lane F's 06:3xZ report. NOTE: sections 1 to 9 below carry rows last updated Oct 16 to 17 (for example the four launch items table still names e59 and e60); where a lane report since then supersedes a row, the report governs.
 
 ## 0cb. Sam 06:3xZ Oct 19: the BODY-LOCK FIX approved on e65 with conditions (forwarded word for word to Lane B)
 
