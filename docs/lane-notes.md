@@ -10014,3 +10014,50 @@ Search check: the Buy chat's count words only ("one sale", "three sales"); no ti
 Search check: no public page touched.
 - PUSH LOCK (Lane C, 2026-10-19T22:35:11Z): BUY REDESIGN STAGE 1b, number first (lanec-buy1b: Lane B f5ee37a6 adds the engine basisLine, includesFromLine and placing to a range card; mine 7d3773c6 prints the range first, then the shared lines verbatim; api/buy.js, api/buySearch.js, lib/live/search.js plus checks), tier FULL, FULL prePush alone from 22:35Z. Push only on 0 FAIL or timing lines. Revert on any COUNT or RANGE change, a bare money number, a card losing its photo or actions, or a broken search.
 - PUSHED (Lane C, 2026-10-19T22:49:08Z): BUY REDESIGN STAGE 1b, number first, debe38e5 at 22:47:19Z (rebased over Lane B's e73 files, no overlap), Vercel Ready 22:47:52Z. FULL prePush 0 FAIL, 50 PASS, 5 SKIP (the five archive checks; no Supabase service key here). First look 22:48:04 to 22:48:52Z (white BMW 1440, black manual Porsche 390): every range card reads the range first, then 'Half of these sold in this range.', the placing, the engine's basis line; ranges equal to the 22:15Z read where both read one (1M, M5 Competition, Cayman S, Boxster, Boxster S); live counts unchanged (15, 15); thin cards unchanged; no bare money; 0 console errors; still reading at first paint 0 and 2 (was 15 and 10 at 22:15Z). Lock released.
+- FOR SAM (Lane E, the hub lead with two counts; plain text, nothing ships until Sam answers). Read live 22:45Z, copied exactly. The lead and the meta description are the same text today; the list heading below the lead carries no number ("Every {car} by VIN").
+  HUB 1, /history/2009-porsche-911-carrera-s
+    Today: 12 911 Carrera S sales at auction in the last twelve months. 159 recorded sales, as of October 19, 2026.
+    Recommended: 12 911 Carrera S sales at auction in the last twelve months, as of October 19, 2026.
+    Alternative: In the last twelve months, 12 911 Carrera S cars sold at auction. As of October 19, 2026.
+  HUB 2, /history/cadillac-deville
+    Today: 90 DeVille sales at auction in the last twelve months. 396 recorded sales, as of October 19, 2026.
+    Recommended: 90 DeVille sales at auction in the last twelve months, as of October 19, 2026.
+    Alternative: In the last twelve months, 90 DeVille cars sold at auction. As of October 19, 2026.
+  HUB 3, a hub with no engine figure (its lead today carries only the recorded-sales count): none was found among the 6 hubs tried in the gap, so no exact copy yet. The template today prints "{n} recorded sales, as of {date}." Rendered offline from the template:
+    Recommended: Each car below by VIN, with its auction results, as of {date}.
+    Alternative: Auction results for each car below, by VIN, as of {date}.
+    I copy a real one exactly in the next gap Lane F names (one read).
+  The single number kept: n, the engine's own pool for the hub's car in the engine's window (api/history.js hubPage: poolCount of the oneBoxFor answer; the window words from poolWindow, "the last twelve months" or "the past two years", or "the past three years" when thin). The number that goes: salesN, a count the hub computes from its own VIN list, all-time. Per Sam it appears nowhere else on the hub either; the list heading stays without a number. My recommendation is the first wording on each hub: one number, its window, the date, in the order a reader checks them. Same text in the meta description. Copy rules checked: no source counts, no "our data", no "AI", no tools named, no dashes.
+- FOR LANE C (Lane E, from the 22:45Z gap): THE 25 BROKEN HUBS, each with one VIN page that links it:
+    /history/1997-ford-f250-xlt  <-  /history/1997-ford-f250-xlt/1FTHX26F0VEC47261
+    /history/2005-mercedes-benz-sl-class-sl600  <-  /history/2005-mercedes-benz-sl-class-sl600/WDBSK76F55F091924
+    /history/mercedes-benz-sl-class-sl600  <-  /history/2005-mercedes-benz-sl-class-sl600/WDBSK76F55F091924
+    /history/2004-mercedes-benz-sl-class-sl55-amg  <-  /history/2004-mercedes-benz-sl-class-sl55-amg/WDBSK74F94F071077
+    /history/mercedes-benz-sl-class-sl55-amg  <-  /history/2004-mercedes-benz-sl-class-sl55-amg/WDBSK74F94F071077
+    /history/2003-mercedes-benz-sl-class-sl500  <-  /history/2003-mercedes-benz-sl-class-sl500/WDBSK75F93F054194
+    /history/mercedes-benz-sl-class-sl500  <-  /history/2003-mercedes-benz-sl-class-sl500/WDBSK75F93F054194
+    /history/2006-mercedes-benz-sl-class-sl55-amg-p30-performance  <-  /history/2006-mercedes-benz-sl-class-sl55-amg-p30-performance/WDBSK74F96F114917
+    /history/mercedes-benz-sl-class-sl55-amg-p30-performance  <-  /history/2006-mercedes-benz-sl-class-sl55-amg-p30-performance/WDBSK74F96F114917
+    /history/1978-ford-ranger-s-f250-xlt  <-  /history/1978-ford-ranger-s-f250-xlt/F26SCBJ0638
+    /history/ford-ranger-s-f250-xlt  <-  /history/1978-ford-ranger-s-f250-xlt/F26SCBJ0638
+    /history/1993-ford-festiva  <-  /history/1993-ford-festiva/KNJPT06H1P6144602
+    /history/2013-mercedes-benz-s-class-s550  <-  /history/2013-mercedes-benz-s-class-s550/WDDNG7DB9DA504347
+    /history/mercedes-benz-s-class-s550  <-  /history/2013-mercedes-benz-s-class-s550/WDDNG7DB9DA504347
+    /history/2004-mercedes-benz-e-class-e55-amg  <-  /history/2004-mercedes-benz-e-class-e55-amg/WDBUF76J54A399009
+    /history/mercedes-benz-e-class-e55-amg  <-  /history/2004-mercedes-benz-e-class-e55-amg/WDBUF76J54A399009
+    /history/2008-mercedes-benz-cl-class-cl65-amg  <-  /history/2008-mercedes-benz-cl-class-cl65-amg/WDDEJ79X58A012250
+    /history/mercedes-benz-cl-class-cl65-amg  <-  /history/2008-mercedes-benz-cl-class-cl65-amg/WDDEJ79X58A012250
+    /history/1970-dodge-charger-hellcat  <-  /history/1970-dodge-charger-hellcat/XP29G0G229187
+    /history/1968-mercedes-benz-s-class  <-  /history/1968-mercedes-benz-s-class/11102110087051
+    /history/1999-mercedes-benz-sl-class-sl500  <-  /history/1999-mercedes-benz-sl-class-sl500/WDBFA68F8XF179154
+    /history/2005-mercedes-benz-e-class-e320  <-  /history/2005-mercedes-benz-e-class-e320/WDBUF26JX5A739081
+    /history/mercedes-benz-e-class-e320  <-  /history/2005-mercedes-benz-e-class-e320/WDBUF26JX5A739081
+    /history/1960-bentley-continental-s2  <-  /history/1960-bentley-continental-s2/BC54LAR
+    /history/1917-mack-cf  <-  /history/1917-mack-cf/579334
+  WHY: these hubs exist under the hub's own family slug. /history/mercedes-benz-sl600, -sl500, -sl55-amg, -sl, -s550 and -e55-amg, /history/ford-f-250, /history/ford-f250 and /history/dodge-charger all answer 200. The VIN page builds its links from its own resolved family ("SL-Class SL600"), not the slug the hub page uses. Fix (not built): build the two hub links with the hub page's own slug rule, and link only a hub that exists (the okHubs test, api/history.js:847).
+  TEN VIN PAGES WITH WORKING HUBS: NOT DELIVERED. My script read the VIN sitemap index, which also lists hub URLs, and picked 10 hubs instead of VIN pages (a bug in my script, not the site). The corrected list comes in the next gap Lane F names (no extra reads beyond the sitemaps).
+  VIN PAGES, the before picture (22:46 to 22:53:30Z, 160 of 200 sampled VIN pages read, then stopped at the deadline; resume with --from 160):
+    6 VIN URLs listed in the VIN sitemap answer 301 (the sitemap lists a redirecting address; a sitemap defect): /history/1993-ferrari-348-speciale/ZFFRG36A6P0095809, /history/1993-chevrolet-silverado/1GNFK16K2PJ402195, /history/1997-ford-f250-xlt/1FTHX26F0VEC47261, /history/2007-aston-martin-v8-vantage/SCFBB03B27GC03798, /history/1984-toyota-sr5/JT4RN65SXE5027979, /history/1969-ford-f250/F25YRE03838.
+    One candidate real defect: /history/meyers-manx/115488827 has the word "null" in its visible text. Unconfirmed until one read of that page.
+    95 pages were flagged "a number runs into a dollar figure". I believe this is the same detector flaw as the header glue (tags stripped with no space, so separate elements read as one), not on the pages. It stays UNCONFIRMED and is NOT counted as zero until it is re-tested on the spaced text.
+Search check: no public page touched.
