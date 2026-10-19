@@ -3553,6 +3553,22 @@ async function handleOps(req, res) {
             r.cause = (windowStart && d0 && d0 < windowStart) ? "window" : (modelTok && storedModel && !storedModel.includes(modelTok) && !modelTok.includes(storedModel)) ? "label" : "not fetched";
           }
           const causeCounts = {}; for (const r of [...excluded, ...abroad, ...notFetched]) causeCounts[r.cause] = (causeCounts[r.cause] || 0) + 1;
+          // e65 (Sam item 5, diagnosis only): a sale fenced as a project, replica or tribute from its DESCRIPTION carries the exact
+          // sentence that set the flag, so Sam reads the words before any flag rule changes. One small read of those rows only.
+          try {
+            const projRows = excluded.filter(r => /^project or incomplete car/.test(String(r.reason || "")) && r.id != null).slice(0, 60);
+            if (projRows.length) {
+              const descs = (await supabaseSelect(env, `sales_archive?select=id,d:raw_record->>description&id=in.(${projRows.map(r => encodeURIComponent(r.id)).join(",")})`)) || [];
+              const byId = new Map(descs.map(x => [String(x.id), String(x.d || "")]));
+              for (const r of projRows) {
+                const kw = (/\(([^)]+)\)/.exec(String(r.reason)) || [])[1] || "";
+                const d = byId.get(String(r.id)) || "";
+                const sentences = d.split(/(?<=[.!?])\s+/);
+                const hit = kw ? sentences.find(x => x.toLowerCase().includes(kw.toLowerCase().split(" ")[0])) : null;
+                r.flagSentence = hit ? hit.slice(0, 400) : (String(r.title || "").toLowerCase().includes(kw.toLowerCase()) ? "(the word is in the title)" : null);
+              }
+            }
+          } catch (e) { /* diagnostic only */ }
           considered = { windowStart, causeCounts, includedCount: included.length, excludedCount: excluded.length, abroadCount: abroad.length, notFetchedCount: notFetched.length, included, excluded, abroad, notFetched };
         }
         // reserve=1 (Oct 2026, Job 3 verify): the two reserve-tile labels, read-only, archive-only.
