@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T04:32Z (Lane F; B2's e63 golden pass crashed on a checker bug (fixed locally), no results, rows 47 to 56 still to run after the coverage DONE; article files marked held and void).
+Last updated: 2026-10-19T04:37Z (Lane F tick; Lane B's coverage check 04:35 to 04:44Z; then the e63 after-reads, Lane C's thin-wording push, e64, e65).
 
 ## 0bs. Sam 04:2xZ Oct 19: TOP PRIORITY read-only COVERAGE CHECK, are recent sales missing from the pool or the read? (forwarded word for word to Lane B; B2 holds)
 
