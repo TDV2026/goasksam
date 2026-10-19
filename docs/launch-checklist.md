@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T04:57Z (Lane F; Sam HELD the re-ingest and set the article order (spot-check list, e64, e65 after the spot check, B2 re-reads, then the Desk drafts); Lane B explained the house drop (every main-ladder rung, three or more online sales); e64 must be live before the spot check can run).
+Last updated: 2026-10-19T04:57Z (Lane F tick; Lane B's e63 after-reads running; B2 golden pass 05:20Z and extent measure 05:35Z; e64 then the spot check; re-ingest held).
 
 ## 0bw. Sam 04:5xZ Oct 19: the re-ingest HELD and the article order (forwarded word for word to Lane B; the re-read order to B2)
 
