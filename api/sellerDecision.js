@@ -13,7 +13,7 @@ import { callOldCarsData } from "../lib/_ocd.js";
 import { isTesterRequest } from "../lib/_tester.js";
 import { supabaseBytesSoFar } from "../lib/_supabase.js";
 import { VARIANT_MARKETS } from "../lib/modelRules.js";
-import { BODY_LABEL } from "../lib/onebox.js";
+import { BODY_LABEL, isSingerPorsche } from "../lib/onebox.js";
 // Every variant value a chip may carry (e51): the M-car pair plus each variant market's key and its other side.
 // Restoration is never an option or a question (e52, Sam's decision): the generic entries' keys (restoration,
 // unrestored) are not accepted from a client, so a stale refine for them is ignored and the base page answers.
@@ -3498,7 +3498,9 @@ async function handler(req, res) {
       // refine answered the question), so a chip page reads its stored row too.
       // recompute (credentialed only, the stale path's own self-call): skip the stored row, compute, write it fresh.
       const recompute = !!req.body?.recompute;
-      const wantsWarm = (!obRefine || !!identityRefine) && !exactSale && vehicle && vehicle.make && !vehicle.vin && !vehicle.chassis && (identityRefine ? true : askedN === 0) && !req.body?.fresh;
+      const wantsWarm = (!obRefine || !!identityRefine) && !exactSale && vehicle && vehicle.make && !vehicle.vin && !vehicle.chassis && (identityRefine ? true : askedN === 0) && !req.body?.fresh
+        // e68: a Singer car never reads the plain car's stored row (it resolves to the same key); it goes to the one engine, which answers it
+        && !isSingerPorsche(oneBoxText, vehicle);
       const warmKey = wantsWarm ? warmAnswerKeyFor(vehicle, generation, identityRefine) : null;
       // e59: the stored-row read starts here, alongside the car-limit read; the hit is evaluated below in the same order.
       const tWarm0 = Date.now();
