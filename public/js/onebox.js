@@ -1994,12 +1994,11 @@
     var model = (m && m.displayName) ? m.displayName.replace(/^\d{4}\s+/, "") : (rf.model || carLabel(d.resolvedCar) || "car");
     var cards = d.cards || [];
     if (rf.kind === "thin") {
-      var lead = cards.length
-        ? "Too few recent " + esc(model) + " sales to show an honest spread. Here’s what there is."
-        : "There are no recent " + esc(model) + " sales in the window needed for a spread.";
+      // A thin answer (e63, Sam, Oct 19 2026; Lane C as integrator, Lane A away): the shared card carries the engine's
+      // thinLine and latest-sale line, the only explanation; the grid below carries the sales. No lead of the page's own.
       var follow = m ? "" : "A bit more detail, or a different car, and Sam pulls what actually sold.";
-      var paras = [lint(esc(lead), "thin")]; if (follow) paras.push(lint(esc(follow), "thin.follow"));
-      return '<div class="refusal">' + samMsgHtml(paras, "Sam’s read") + factsBlockHtml(d, false) + "</div>" + exactCarSalesHtml(d) + poolGridHtml(cards, "What has sold") + sellHtml();
+      var card = window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false }) : "";
+      return '<div class="refusal">' + card + (follow ? samMsgHtml([lint(esc(follow), "thin.follow")], "Sam’s read") : "") + factsBlockHtml(d, false) + "</div>" + exactCarSalesHtml(d) + poolGridHtml(cards, "What has sold") + sellHtml();
     }
     var listJoin = function (a) { return a.length <= 1 ? (a[0] || "") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]; };
     // Only claim a YEAR spread when there genuinely is one (>= 2 years, so no "across 1 years").
@@ -2163,17 +2162,8 @@
     // card draws the engine's line and latest sale without its own rows; no sale prints twice.
     left += (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false }) : "");
     var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.thin.older") + "</p>";
-    // Job 1: the old three-way house/online framing collapses to ONE new sentence for the all-house
-    // case (the brief's literal replacement, "All {count} sold at the auction houses, none online.")
-    // - the two OTHER cases (mostly house with a few online; a genuine online/house mix) are not named
-    // for removal, unchanged.
-    if (ht.houseSteer && !ht.onlineReceiptsN) {
-      left += '<p class="hero-noband" data-stage="answer">' + lint(esc("All " + obNumWordLow(poolLen) + " sold at the auction houses, none online."), "hero.thin.allhouse") + "</p>";
-    } else if (ht.houseSteer) {
-      left += '<p class="hero-noband" data-stage="answer">' + lint("These mostly trade at the auction houses; a few sell online. Both are below.", "hero.thin.steer") + "</p>";
-    } else if (ht.houseN && ht.onlineReceiptsN) {
-      left += '<p class="hero-noband" data-stage="answer">' + lint("These sell online and at the auction houses. The recorded sales are below.", "hero.thin.mix") + "</p>";
-    }
+    // The page's own house/online lines are gone (Sam, Oct 19 2026; Lane C as integrator, Lane A away): the engine's line
+    // and latest-sale line on the card are the only explanation under a thin card.
     var gpat = gearboxPatternLine(scope); if (gpat) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(gpat), "hero.thin.gpat") + "</p>";
     // REMOVED (Sam's review, found live on the 275 GTB): this used to print an "ink" headline range
     // from d.factsBlock.lowest/highest once poolLen reached 8, regardless of whether the engine ever

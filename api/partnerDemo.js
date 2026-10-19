@@ -314,7 +314,7 @@ const JS = String.raw`
   // The pill names whose figure it is (Sam, Oct 18 2026): the listing's asking price, or the seller's reserve. Neutral,
   // no deal words, no advice.
   function placing(x, a, who){
-    if (!a || !a.range) return { cls: "none", text: "No range for cars like this yet" };
+    if (!a || !a.range) return null;   // no range: no pill; the engine's line on the card says why (Sam, Oct 19 2026)
     var w = who === "reserve" ? "Your reserve is " : "Asking price is ";
     if (x < a.range.low) return { cls: "below", text: w + "below the usual range" };
     if (x > a.range.high) return { cls: "above", text: w + "above the usual range" };
@@ -374,10 +374,10 @@ const JS = String.raw`
       var pl = opts.price != null ? placing(opts.price, a, opts.who) : null, ph = (pl ? '<p class="pillrow"><span class="pill ' + pl.cls + '">' + esc(pl.text) + "</span></p>" : "") + (opts.underPill || "");
       return (opts.chips ? idChips(a) : "") + (a.card.indexOf('<div class="gas-pill-slot"></div>') >= 0 ? a.card.replace('<div class="gas-pill-slot"></div>', ph) : a.card + ph) + (opts.lines ? linesHtml(opts.lines) : "");
     }
-    var pill = opts.price != null ? '<p class="pillrow"><span class="pill ' + placing(opts.price, a, opts.who).cls + '">' + esc(placing(opts.price, a, opts.who).text) + "</span></p>" : "";
+    var pl0 = opts.price != null ? placing(opts.price, a, opts.who) : null, pill = pl0 ? '<p class="pillrow"><span class="pill ' + pl0.cls + '">' + esc(pl0.text) + "</span></p>" : "";
     var body = a.range
       ? '<p class="range">' + usd(a.range.low) + " to " + usd(a.range.high) + "</p>" + pill + '<p class="sub">The middle half of ' + a.count + " " + plural(a.count, "sale", "sales") + "" + ".</p>"
-      : '<p class="sub">' + esc(a.thin || "No range for cars like this yet.") + "</p>" + pill;
+      : (a.thin ? '<p class="sub">' + esc(a.thin) + "</p>" : "") + pill;
     var aside = a.setAside && a.setAside.total ? '<p class="note">' + a.setAside.total + " more set aside" + (a.setAside.reasons ? " (" + Object.keys(a.setAside.reasons).map(function(k){ return a.setAside.reasons[k] + " " + esc(k); }).join(", ") + ")" : "") + ".</p>" : "";
     return '<div class="panel"><h3>What these sell for</h3>' + (opts.chips ? idChips(a) : "") + body + aside + foot(a) + "</div>";
   }
