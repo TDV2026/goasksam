@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T05:17Z (Lane F tick; e63 pass 1 done; B2's golden pass 05:20Z and extent measure 05:35Z; gap order for e64 awaits Sam).
+Last updated: 2026-10-19T05:21Z (Lane F; Sam chose FASTER: e63 pass 2 dropped; B2's golden pass (started 05:20Z) finishes; extent measure 05:35Z; e64's full prePush and push in the 05:50Z gap; the 15 per-car reads move behind e64).
+
+## 0bz. Sam 05:2xZ Oct 19: gap order "FASTER" and the house-rule wording (forwarded word for word to Lane B)
+
+1. GAP ORDER "FASTER": drop e63 pass 2 for good (e63 stays live as verified by pass 1: 51 cars, all 200, no failed read, thin card correct on the Cobra R, 275 GTB and Lancia Integrale). B2's golden pass HAS started (05:20:00Z, stops itself at 05:29Z, not interrupted), so e64's full prePush and push take the next free gap after B2's extent measure: 05:50Z; B2's extent measure stays at 05:35Z (measuring on e63 gives the before-fixes baseline); B2's golden pass runs on e64 afterwards and again on e65; after e64 is live: usual after-reads and cold column, then the spot-check lists for Sam. Lane B's 15 per-car abroad and house reads, previously on a timer for 05:50Z, move behind e64. 2. HOUSE RULE WORDING for the header of the keepHouse side-by-side, quoted exactly: Sep 1: live-auction-house comps (RM Sotheby's, Gooding, Barrett-Jackson, Mecum, Broad Arrow, Bonhams) are in the pool per Sam's decision, prices ranked on the hammer with the buyer's premium backed out, and "houses only supplement slots online comps can't fill". Sep 14: all 19 sources ingested and used by Market Check and Sell at launch, per-house premium schedules verified before any house enters pool math; houses may lead a pool when the online platforms cannot fill it (backed out, labelled); Gooding, RM US, Broad Arrow US and Bonhams USD approved for math. Sep 18: RM EU, Barrett-Jackson and Mecum approved for math. Oct 14: sold pools, ranges and counts include the United States and Canada only. 3. 'Based on one sales' fixed in e65 ('Based on one sale, in October 2026.'); every count word checked for the singular. 4. Everything else stands.
 
 ## 0by. Sam 05:0xZ Oct 19: rebuild and change-words decided, house drop side-by-side planned (forwarded word for word to Lane B)
 
