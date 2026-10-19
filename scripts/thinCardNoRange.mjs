@@ -7,7 +7,10 @@ import { sellsForCardHtml } from "../lib/sellsForCard.js";
 const fixtures = [
   { tier: "thin", poolN: 6, soldCount: "six", soldCountN: 6, lowestSaleN: 23250, highestSaleN: 76000, latestSaleLine: "Latest sale: September 2026.", basisLine: "Based on six sales, the latest in September 2026.", cluster: null, span: null, rungLabel: "2001 Mustang Cobra R", cards: [] },
   { tier: "thin", poolN: 3, soldCount: "three", soldCountN: 3, lowestSaleN: 33000, highestSaleN: 56500, latestSaleLine: "Latest sale: June 2026.", cluster: null, rungLabel: "1969 Camaro Convertible", cards: [] },
-  { tier: "result", poolN: 4, soldCount: "four", soldCountN: 4, spanOnly: true, lowestSaleN: 57000, highestSaleN: 150911, latestSaleLine: "Latest sale: May 2026.", cluster: null, rungLabel: "1973 911 Targa", cards: [] }
+  { tier: "result", poolN: 4, soldCount: "four", soldCountN: 4, spanOnly: true, lowestSaleN: 57000, highestSaleN: 150911, latestSaleLine: "Latest sale: May 2026.", cluster: null, rungLabel: "1973 911 Targa", cards: [] },
+  // e63 (Sam): a thin answer WITH its sales (the Cobra R shape, house share): the card must show the sale rows and no range
+  { tier: "thin", poolN: 8, soldCount: 8, soldCountN: 8, span: [47000, 133000], thin: { isThin: true, houseSteer: true, span: [47000, 133000], totalN: 8, receipts: [] }, lowestSaleN: 47300, highestSaleN: 132500, latestSaleLine: "Latest sale: October 2025.", rungLabel: "Mustang Cobra R, 1995 to 2000", mustShowSales: true,
+    cards: [{ price: 47300, date: "2025-10-01", title: "2000 Ford Mustang SVT Cobra R" }, { price: 132500, date: "2024-01-01", title: "2000 Ford Mustang SVT Cobra R" }] }
 ];
 const money = n => "$" + Number(n).toLocaleString("en-US");
 let bad = 0;
@@ -17,6 +20,10 @@ for (const f of fixtures) {
   const text = html.replace(/<[^>]+>/g, " ").replace(/&nbsp;|&#160;/g, " ").replace(/\s+/g, " ");
   const rangeLine = /\$[\d,]+\s*(?:to|-)\s*\$[\d,]+/.test(text);
   const pair = text.includes(money(f.lowestSaleN)) && text.includes(money(f.highestSaleN));
+  const noSales = f.mustShowSales && !(f.cards || []).every(c => text.includes(money(c.price)));
+  const tooFewClaim = (f.soldCountN || 0) >= 8 && /not enough sales/i.test(text);
+  if (noSales) { console.log(`FAIL  ${f.rungLabel}: a thin card shows no sale rows (the sales were in the answer)`); bad++; continue; }
+  if (tooFewClaim) { console.log(`FAIL  ${f.rungLabel}: a pool of ${f.soldCountN} is told "not enough sales"`); bad++; continue; }
   if (rangeLine || pair) { console.log(`FAIL  ${f.rungLabel}: a thin card shows a lowest-to-highest line: "${(text.match(/\$[\d,]+\s*(?:to|-)\s*\$[\d,]+/) || [""])[0]}"`); bad++; }
   else console.log(`PASS  ${f.rungLabel}: no range on a ${f.poolN}-sale answer`);
 }
