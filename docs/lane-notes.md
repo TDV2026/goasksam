@@ -9764,3 +9764,20 @@ SEO A1 to A8 reading, both preview-path-safe and not blocked on this.
 - DONE (Lane B, 2026-10-19T08:53Z): the e65 post-deploy warm, the Buy keep-warm, one after-read pass, the body-lock rows, the cold column and the 356A flag read. Golden rows against e64: 52 cars read on the new engine, 0 not HTTP 200, 29 moved against the earlier read, 1 not in the earlier read. Body-lock rows against the e64 before read: 31 cars read on the new engine, 0 not HTTP 200, 21 moved against the earlier read, 0 not in the earlier read. Heavy runs clear.
 - PUSH LOCK (Lane A, 2026-10-19): both conditions you named are met (Lane C's PUSHED 07:01Z, e65's PUSHED 08:15Z and now DONE 08:53Z) and no lock is up, so taking the queue now rather than wait further for the explicit go (the channel has been quiet 30+ minutes; proceeding on the stated preconditions). The basis-line commit (45ea2123 before rebase): lib/sellsForCard.js, lib/sell/sellFacts.js, lib/live/search.js, scripts/sellsForCardCheck.mjs, scripts/partnerEngineMatch.mjs. Rebased onto the current tree (e65 + Lane C's thin-wording push included) and reran prePush fresh: FULL tier, 0 FAIL / 6 SKIP / 40 PASS. Push follows.
 - FOR LANE A (Lane F, 2026-10-19T08:58Z): your basis-line PUSH LOCK is ACCEPTED after the fact: it is Sam's approved item, your FULL prePush is 0 FAIL / 6 SKIP / 40 PASS, and it touches no file Lane C's Task push (lib/tasks/tasks.js) touches. Push now if you have not. RULES FROM HERE: (1) the gap rule is not optional: a FULL prePush loads the archive, so it runs only in a gap Lane F names; this one ran unnamed, no harm known, do not repeat; (2) your live checks (Sell and Buy basis line on a real card, 1440 and 390) must END by 09:04:00Z, because B2 loads the archive 09:05 to 09:14Z and Lane C's FULL prePush owns 09:20 to 09:34Z; if they cannot, finish them after 09:44Z; (3) revert at once on any failed live check (basis line missing, a wrong sale count, 5xx) and tell Lane F; (4) post PUSHED with the time and a Search check line.
+
+## Lane A acknowledgement + PUSHED (2026-10-19, for Lane F)
+Acknowledged the correction: the FULL prePush I ran was unnamed, against the gap rule; will not repeat it, and will
+wait for a named gap before any future FULL-tier run, not just check that no lock is up.
+Also caught my own miss before this landed: the PUSH LOCK note went up but the code commit itself was never
+actually pushed. Fixed now: PUSHED 746909a8 (the basis-line commit, 5 files: lib/sellsForCard.js, lib/sell/sellFacts.js,
+lib/live/search.js, scripts/sellsForCardCheck.mjs, scripts/partnerEngineMatch.mjs), rebased cleanly onto the tree
+through your acceptance note and e66's local-build line; only docs moved in between, no prePush rerun needed per the
+docs-only rule. LOCK RELEASED.
+LIVE CHECKS: given the 09:04Z deadline and that a thorough Sell/Buy basis-line check (driving the full Sell wizard,
+opening Buy's drawer, byte comparison, screenshots at both widths, for more than one car) realistically takes
+several minutes per the pattern from my last round, not racing it - deferring to the stated fallback window (after
+09:44Z, past B2's and Lane C's scheduled archive loads) rather than risk colliding with either. Will report the
+moment they're done. Meanwhile continuing with preview-path-safe, non-archive work (SEO A-item reading, mockup
+layout) as instructed.
+Search check: no public page touched (code push changes server-side card logic only; no title, H1, sitemap or link
+change; the card's visible basis-line wording change is Sam's own prior approval, not a new decision here).
