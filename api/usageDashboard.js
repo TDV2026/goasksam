@@ -3505,7 +3505,8 @@ async function handleOps(req, res) {
         const g = await findGeneration(v, env);
         // refine=<json> (e47, read-only): run the same words with a chip's refine object ({"variant":"carrera"}, {"body":"coupe"}).
         let refineQ = null; try { refineQ = req.query?.refine ? JSON.parse(String(req.query.refine)) : null; } catch (e) { refineQ = null; }
-        const ob = asOfQ ? await runWithAsOf(asOfQ, () => runOneBox(v, g, q, wantRows ? { ...env, collectExcluded: true } : env, refineQ)) : await runOneBox(v, g, q, wantRows ? { ...env, collectExcluded: true } : env, refineQ);
+        const keepHouseQ = req.query?.keepHouse === "1";   // e65, Sam item 5, diagnosis only: the answer with house sales kept in the band
+        const ob = (asOfQ || keepHouseQ) ? await runWithAsOf(asOfQ, () => runOneBox(v, g, q, wantRows ? { ...env, collectExcluded: true } : env, refineQ), { keepHouse: keepHouseQ }) : await runOneBox(v, g, q, wantRows ? { ...env, collectExcluded: true } : env, refineQ);
         const d = ob.dedup || {};
         let considered = null;
         if (wantRows) {
@@ -3611,7 +3612,7 @@ async function handleOps(req, res) {
           // year parsed from title), read-only, for inspecting WHICH rows passed a pool without
           // guessing from the title string alone.
           // detail=1 (e65, Sam item 3): the answer's own spread flag, refusal text and reason code on every answer, and the as-of date
-          ...(req.query?.detail === "1" ? { answerDetail: { asOf: asOfQ, wideSpread: ob.wideSpread ?? null, samLine: ob.samLine || null, refusalKind: (ob.refusal && ob.refusal.kind) || null, refusalText: (ob.refusal && (ob.refusal.line || ob.refusal.samLine)) || (ob.tier === "refusal" ? ob.samLine || null : null), thinReason: ob.thinReason || null, thinLine: ob.thinLine || null, reasonFlag: (() => { try { return mapEngineAnswer(ob, null).reasonFlag || null; } catch (e) { return null; } })(), lowestSale: ob.lowestSaleN ?? null, highestSale: ob.highestSaleN ?? null } } : {}),
+          ...(req.query?.detail === "1" ? { answerDetail: { asOf: asOfQ, keepHouse: req.query?.keepHouse === "1", wideSpread: ob.wideSpread ?? null, samLine: ob.samLine || null, refusalKind: (ob.refusal && ob.refusal.kind) || null, refusalText: (ob.refusal && (ob.refusal.line || ob.refusal.samLine)) || (ob.tier === "refusal" ? ob.samLine || null : null), thinReason: ob.thinReason || null, thinLine: ob.thinLine || null, reasonFlag: (() => { try { return mapEngineAnswer(ob, null).reasonFlag || null; } catch (e) { return null; } })(), lowestSale: ob.lowestSaleN ?? null, highestSale: ob.highestSaleN ?? null } } : {}),
           cardDetail: req.query?.detail === "1" && Array.isArray(ob.cards) ? ob.cards.map(c => ({ title: c.title, price: c.price, mi: c.mi, platform: c.platform, date: c.date })).sort((a, b) => (b.price || 0) - (a.price || 0)) : null,
           recent3: Array.isArray(ob.recent3) ? ob.recent3.map(c => ({ title: c.title, mi: c.mi, date: c.date, again: !!c.again })) : null,
           exactSale: ob.exactSale ? { price: ob.exactSale.price, date: ob.exactSale.soldDate || ob.exactSale.date || null, mileage: ob.exactSale.mileage } : null,
