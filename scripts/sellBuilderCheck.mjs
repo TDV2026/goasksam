@@ -47,6 +47,14 @@ ok(singer.includes(`<sam big>${LINE}</sam>`), "Singer: the engine's line, in the
 ok(!/\$\d/.test(singer) && !/\b\d+ (sales|of)\b/.test(singer), "Singer: no figure, no count");
 ok(!/<card|<sale>|pcard|Ask Sam about this|data-sellchip/.test(singer), "Singer: no card, no sales list, no pick or partner card, no follow-up box, no chips");
 ok(singer.includes("<inbox>") && singer.includes("<foot>"), "Singer: the search bar stays, so another car can be typed");
+// Typed on the Sell landing: Market Check's engine answers the Singer words with the refusal, and the resolved car's name
+// drops the mark, so Sell shows the engine's line at once and never reads the plain car.
+const before = calls.length;
+S.onCar({ tier: "refusal", refusal: { kind: "builder_car", builder: "Singer" }, samLine: LINE, resolvedCar: { year: 1992, make: "Porsche", model: "911", trim: "Carrera 4" } }, "1992 Porsche 911 Carrera 4 by Singer");
+await tick();
+const typed = OBX.root.innerHTML;
+ok(typed.includes(`<sam big>${LINE}</sam>`) && !/\$\d|<card|Ask Sam about this|data-sellchip|<q>/.test(typed), "typed Singer: the engine's line alone, no question, no figure");
+ok(calls.length === before, "typed Singer: no Sell read of the plain car");
 // A plain 1992 Carrera 4: unchanged, the result draws its cards, the shared card and the follow-up box.
 const plain = await run({ year: 1992, make: "Porsche", model: "911", trim: "Carrera 4" }, "1992 Porsche 911 Carrera 4",
   { label: "1992 Porsche 911 Carrera 4", make: "Porsche", order: ["platform"], platform: { slug: "bringatrailer", name: "Bring a Trailer", why: "x", boxes: [], meta: [] }, marketAnswer: { cluster: [70000, 95000], poolN: 24 } });
