@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T02:37Z (Lane F tick; weekend results done; Lane B's Ford GT and Carrera GT load 02:50Z; thin-card push FULL prePush 03:05Z).
+Last updated: 2026-10-19T02:42Z (Lane F; Sam approved the 3, 6 and 12 month window analysis for the article cars (B2 via the Sam Desk, from 03:20Z); Lane B's 02:50Z load; thin-card prePush 03:05Z).
+
+## 0bm. Sam 02:4xZ Oct 19: the 3, 6 and 12 month window analysis for the article cars (B2 via the Sam Desk; approved with "yes")
+
+For each of the 15 weekend cars, the last 3, 6 and 12 months of sales against the weekend results, read-only via the Sam Desk (same One Box engine), one car at a time in Desk gaps starting 03:20Z after Lane B's 02:50Z load and Lane C's 03:05Z thin-card prePush; output ~/Desktop/goasksam-proofs/article/windows-3-6-12.md and .csv. Per window: count (words under ten); range, exact lowest and highest and a MEDIAN only where eight or more included sales, else the sales with the count and no range or median headline; the weekend result below, inside or above only where a range prints; the weekend's own sale marked where it is in the pool; a trend only with 10 or more sales in each window; same pools as the weekend table (dropped-trim cars labelled as the broader car; the Ford GT held until Lane B reports); no bargain, overpay, worth, estimate or fair-price words.
 
 ## 0bl. Sam 02:2xZ Oct 19: the spread refusal gets {rows:false} too (forwarded word for word to Lane C)
 
