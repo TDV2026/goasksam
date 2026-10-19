@@ -434,6 +434,13 @@ try {
 } catch (e) {
   record("A thin Buy card lists its sales (scripts/buyRowsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Buy redesign Stage 1, the card (Lane C, Oct 19 2026, Sam's order): a labelled money figure, one meta line, no VIN pill, no keep pill, the order. No network.
+try {
+  const out = execSync("node scripts/buyStage1Check.mjs", { encoding: "utf8" });
+  record("Buy redesign Stage 1 card markup (scripts/buyStage1Check.mjs)", "PASS", (out.match(/buyStage1Check: .*/) || [""])[0]);
+} catch (e) {
+  record("Buy redesign Stage 1 card markup (scripts/buyStage1Check.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
