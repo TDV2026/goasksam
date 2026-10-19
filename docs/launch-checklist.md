@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T03:11Z (Lane F; e64 BUILT on branch e64 (engine e64-20261019-readsafe): failed reads show still-reading and are never stored or called not_tracked, resolver fixes, guard refuses 0 of 71 golden, demo, perf and pair rows; chain after the thin-card push settles).
+Last updated: 2026-10-19T03:17Z (Lane F tick; thin-card prePush running; window analysis 03:20Z; e64 built, chain after the thin-card push settles).
 
 ## 0bn. Sam 03:0xZ Oct 19: e64 APPROVED with conditions (forwarded word for word to Lane B; the pins and article parts to B2)
 
