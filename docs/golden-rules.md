@@ -128,6 +128,12 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 54 | 2001 Ford Mustang Bullitt | 10 sales, $14,000 to $18,500 | read live on e62 |
 | 55 | 2003 Ford Mustang SVT Cobra | 9 sales, $29,000 to $45,500 | read live on e62 |
 | 56 | 2019 BMW 3-Series | thin, 6 sales, no range | read live on e62 |
+| 57 | 2005 Ford GT | PENDING e64: pinned from Lane B's e64 after column | pending Lane B e64 |
+| 58 | 2004 Porsche Carrera GT | PENDING e64: pinned from Lane B's e64 after column | pending Lane B e64 |
+| 59 | 1959 Ferrari 250 GT California | PENDING e64: pinned from Lane B's e64 after column | pending Lane B e64 |
+| 60 | 2009 Ferrari California | PENDING e64: pinned from Lane B's e64 after column | pending Lane B e64 |
+| 61 | 1971 Nissan Skyline GT-R | PENDING e64: pinned from Lane B's e64 after column | pending Lane B e64 |
+| 62 | 1989 Chevrolet Camaro IROC-Z | PENDING e64: pinned from Lane B's e64 after column | pending Lane B e64 |
 | | shared card (rows 3, 5, 8, 14, 20) | the "What these sell for" card, pill slot removed, is byte-identical on Market Check, Buy and Sell, and the partner demo's card equals Market Check's apart from the two differences the demo is built with (the basis line "Based on N sales, the latest in Month Year" and the footer link as a span), which are dropped on both sides for that comparison | a product that does not render the shared card yet is PENDING, not a failure; the Sell count check is also set on rows 8, 10, 14, 22 and 23 |
 
 Per car, in the words of the derivation:
@@ -223,7 +229,13 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":53,"q":"1969 Ford Mustang Mach 1","status":"ready","count":18,"tol":0,"low":75000,"high":107000,"tolPct":0,"lowestSale":33750,"highestSale":133000},
  {"id":54,"q":"2001 Ford Mustang Bullitt","status":"ready","count":10,"tol":0,"low":14000,"high":18500,"tolPct":0,"lowestSale":8700,"highestSale":22000},
  {"id":55,"q":"2003 Ford Mustang SVT Cobra","status":"ready","count":9,"tol":0,"low":29000,"high":45500,"tolPct":0,"lowestSale":24350,"highestSale":62000},
- {"id":56,"q":"2019 BMW 3-Series","status":"ready","count":6,"tol":0,"low":null,"high":null,"thin":true,"lowestSale":14400,"highestSale":29777}
+ {"id":56,"q":"2019 BMW 3-Series","status":"ready","count":6,"tol":0,"low":null,"high":null,"thin":true,"lowestSale":14400,"highestSale":29777},
+ {"id":57,"q":"2005 Ford GT","status":"pending","labelHas":["Ford GT"],"countMin":1},
+ {"id":58,"q":"2004 Porsche Carrera GT","status":"pending","labelHas":["Carrera GT"],"countMin":1},
+ {"id":59,"q":"1959 Ferrari 250 GT California","status":"pending","labelHas":["250 GT California"],"countMin":1},
+ {"id":60,"q":"2009 Ferrari California","status":"pending","labelHas":["California"],"countMin":1},
+ {"id":61,"q":"1971 Nissan Skyline GT-R","status":"pending","labelHas":["Skyline GT-R"],"countMin":1},
+ {"id":62,"q":"1989 Chevrolet Camaro IROC-Z","status":"pending","labelHas":["IROC-Z"],"countMin":1}
 ]
 ```
 
@@ -232,3 +244,5 @@ E60 RE-PINS (Oct 18 2026, from Lane B's live e60 after column; window rule: shor
 E61 PINS (Oct 18 2026, from Lane B's e61 after column): rows 48 to 51 added; wideSpread, lowestSale and highestSale pinned as data on rows 18, 29, 50 and 51 (the checker does not read them yet; the card lines that print them are the next wording bump).
 
 E62 PINS (Oct 19 2026, from Lane B's e62 after column): every existing golden row read identical on e62, so no row changed; rows 52 to 56 added for the cars e62 changed (Lancia Delta Integrale, Mach 1, Bullitt, SVT Cobra, 2019 3-Series). The 2001 Mustang Cobra R is not pinned: the table gives no sale count for its thin answer.
+
+E64 PENDING ROWS (Oct 19 2026): rows 57 to 62 (2005 Ford GT, 2004 Porsche Carrera GT, 1959 Ferrari 250 GT California, 2009 Ferrari California which e64 refuses as invalid_vehicle on its year, 1971 Nissan Skyline GT-R, 1989 Chevrolet Camaro IROC-Z) are held as pending until Lane B's e64 after column is posted. Pairs that must not cross, checked once pinned: Ford GT and Mustang GT; Carrera GT and 911 Carrera; 250 GT California and the California models; Skyline GT-R and Skyline. The pairs are a rule here; the checker enforcement comes with the pins.
