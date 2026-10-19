@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T12:43Z (Lane F; Sell refusal handling built (patch updated, 35/35 checks); route recommendation dropped on refusals under Sam's fallback).
+Last updated: 2026-10-19T12:46Z (Lane F; Sell patch approved as built; typed-path edge ordered as a diagnosis for e69).
+
+## 0ck. Sam 12:5xZ Oct 19: Sell patch APPROVED AS BUILT; the typed-path edge ordered as a diagnosis for e69 (routed word for word to Lane B; Lane C told)
+
+1. APPROVED: the Sell refusal patch as built (f9302606; refusals return early from the Sell flow and draw only the shared card and the engine's line); the route recommendation stays dropped for launch; no policy pick and no policy label; no new wording is approved or needed. 2. LANE B, diagnosis only, no build: the typed-path edge (Sell reads the resolver's car name, so an invariant refusal triggered by the typed words may not repeat on Sell; same name-drop class as Singer): which refusal kinds depend on the typed words rather than the resolved car (invariant, body, trim, builder marks); for each, what Sell returns today against what Market Check returns on the same typed input (the cars named for the 14:35Z reads plus any car where the typed words changed the pool: Lexus LC 500 with 'Coupe', SLR with 'Coupe', 750S with 'Spider'); whether the fix is a single change in how Sell passes the typed words to the one engine; if so propose it as part of e69 with its own revert condition; not in e68; a short table for Sam. Sell must never show a range where the same typed words get a refusal on Market Check. 3. The 14:35Z reads by Lane C stand (the Singer Carrera 4 by address and typed; the plain 1992 Carrera 4 range must not change). 4. Everything else unchanged; five parked items still wait for Sam (356A flag, typed 'Coupe', row 48, the 1969 Camaro, SEO C5). Lane F added: three typed cars read on Sell by Lane C and on Market Check by Lane B in the 14:35 to 14:44Z gap (SLR McLaren Coupe, Lexus LC 500 Inspiration Series Coupe, 750S Spider); Lane B posts the table by 15:00Z.
 
 ## 0cj. Sam 12:4xZ Oct 19: SELL ON EVERY REFUSAL decided (routed word for word to Lane C; Lane B told, one live car per refusal kind asked)
 
