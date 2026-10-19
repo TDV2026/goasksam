@@ -4,7 +4,7 @@
 // plain 1992 Carrera 4 Task is unchanged. No network.
 //   node scripts/taskSingerCheck.mjs     exit 1 on any failure.
 import fs from "node:fs";
-import { validateJob, builderOf, builderMarket, taskRow, blockLines, setupQuestion } from "../lib/tasks/tasks.js";
+import { validateJob, builderOf, builderMarket, taskRow, blockLines, setupQuestion, taskFits } from "../lib/tasks/tasks.js";
 import { BUILDER_CAR_LINE } from "../lib/onebox.js";
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
@@ -38,5 +38,16 @@ const src = fs.readFileSync(new URL("../lib/tasks/tasks.js", import.meta.url), "
 const ep = src.slice(src.indexOf("export async function emailPreview("));
 ok(ep.indexOf("builderMarket(row.listing_title, f.make)") > 0 && ep.indexOf("builderMarket(row.listing_title, f.make)") < ep.indexOf("specOf(env, row"), "email preview: the builder answer before the spec or the stored line is read");
 ok(/builderMarket\(r\.listing_title, r\.make\) \|\| await listingMarket\(env, r, listingFacts\(r\)\)/.test(src), "per-listing alert: a listing whose words carry the mark gets the builder answer, no read");
+// A Singer hunt MATCHES Singer cars only (Lane D, Oct 19 2026): taskFits keeps a plain car out when the builder is Singer,
+// and a hunt without the builder matches exactly as before.
+{ const sing = { filters: { make: "Porsche", model: "911", trim: "Carrera 4", year_min: 1990, year_max: 1994, builder: "Singer" } };
+  const plainT = { filters: { make: "Porsche", model: "911", trim: "Carrera 4", year_min: 1990, year_max: 1994 } };
+  const L = (title, extra = {}) => ({ listing_title: title, make: "Porsche", model: "911", year: 1992, ...extra });
+  const singerCar = L("1992 Porsche 911 Carrera 4 Reimagined by Singer"), plainCar = L("1992 Porsche 911 Carrera 4 Coupe"), plainNoMake = L("1992 Porsche 911 Carrera 4", { make: null });
+  ok(taskFits(sing, singerCar) === true, "Singer hunt: a Singer listing fits");
+  ok(taskFits(sing, plainCar) === false && taskFits(sing, plainNoMake) === false, "Singer hunt: a plain Carrera 4 listing never fits");
+  ok(taskFits(sing, L("1993 Porsche 911 by Singer", { year: 1997 })) === false, "Singer hunt: the year gate still applies");
+  ok(taskFits(plainT, plainCar) === true && taskFits(plainT, singerCar) === true && taskFits(plainT, plainNoMake) === true, "a hunt without the builder: matches exactly as before (the Singer listing is still left to the specials filter)");
+  ok(taskFits({ filters: { make: "Ford", model: "Mustang", year_min: 1969, year_max: 1969 } }, { listing_title: "1969 Ford Mustang Mach 1", make: "Ford", model: "Mustang", year: 1969 }) === true, "a plain non-Porsche hunt: unchanged"); }
 console.log(`taskSingerCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
