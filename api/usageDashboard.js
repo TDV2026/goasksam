@@ -4569,6 +4569,47 @@ async function handleOps(req, res) {
   // task=warmDemo (e60, Sam: the 00:05 UTC warm of the demo cars, the golden rows and prePush's perf cars, and the
   // first warm after a database restart). In-process: resolve, run the engine, write the stored Market Check row under
   // the same key the page reads, the same path task=warmMC takes, trims allowed. list=a|b overrides the list. Credentialed.
+  // task=warmDemoCheck (Sam's demo orders, Oct 19 2026; Lane B for Lane C): every quarter hour, outside the pull minutes,
+  // the seven partner-demo cars (api/partnerAnswer.js DEMO_CARS), ONE AT A TIME: the stored Market Check answer is read
+  // first (one cheap read); only when it is missing, from an older ENGINE_VERSION or past 24 hours does the engine run once
+  // and store it (the same write warmDemo makes), then refreshDemoAnswer keeps the demo's last good answer. A fresh row
+  // costs that one read and nothing else. Archive only, no OldCarsData spend. After any engine push the next quarter hour
+  // fills the demo before a visitor can trigger a live compute. (The warmDemo list also carries the 2010 Porsche Boxster
+  // Convertible, not a demo car; left as it is, harmless.)
+  if (task === "warmDemoCheck") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { runOneBox, ENGINE_VERSION } = await import("../lib/onebox.js");
+    const { warmAnswerKeyFor, writeWarmAnswer, readWarmAnswerDetailed } = await import("../lib/live/search.js");
+    const { DEMO_CARS, refreshDemoAnswer } = await import("./partnerAnswer.js");
+    const t0 = Date.now(), budgetMs = 240000;
+    const result = { task: "warmDemoCheck", engineVersion: ENGINE_VERSION, checked: 0, fresh: 0, warmed: 0, failed: 0, notReached: 0, rows: [] };
+    for (const q of DEMO_CARS) {
+      if (Date.now() - t0 > budgetMs) { result.notReached++; continue; }
+      const row = { q };
+      try {
+        const rv = await resolveVehicle(q, {});
+        const vehicle = rv && rv.vehicle;
+        if (!vehicle || !vehicle.make) throw new Error("unresolved");
+        const generation = await findGeneration(vehicle, env).catch(() => null);
+        const key = warmAnswerKeyFor(vehicle, generation);
+        const have = await readWarmAnswerDetailed(env, key);
+        result.checked++;
+        if (have && have.raw) { row.fresh = true; row.reason = have.stale ? have.reason : null; result.fresh++; result.rows.push(row); continue; }
+        row.missing = (have && have.reason) || "no_row";
+        const d = await runOneBox(vehicle, generation, q, env, null);
+        if (!d || !/^(result|thin|refusal|not_tracked)$/.test(String(d.tier || ""))) throw new Error("engine returned " + (d && d.tier));
+        await writeWarmAnswer(env, key, d);
+        const dr = await refreshDemoAnswer(env, q).catch(() => null);
+        row.tier = d.tier; row.demoStored = !!(dr && dr.stored); result.warmed++;
+      } catch (e) { row.error = String(e && e.message || e); result.failed++; }
+      result.rows.push(row);
+    }
+    result.ms = Date.now() - t0;
+    try { console.log(JSON.stringify({ tag: "warm_demo_check", engineVersion: result.engineVersion, checked: result.checked, fresh: result.fresh, warmed: result.warmed, failed: result.failed, notReached: result.notReached, ms: result.ms })); } catch (e) { /* log only */ }
+    return res.status(200).json(result);
+  }
   if (task === "warmDemo") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle } = await import("../lib/vehicle.js");

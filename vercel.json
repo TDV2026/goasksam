@@ -162,6 +162,7 @@
     { "path": "/api/admin?refresh=night", "schedule": "20 10 * * *" },
     { "path": "/api/usageDashboard?view=ops&task=warmDemo", "schedule": "5 0 * * *" },
     { "path": "/api/usageDashboard?view=ops&task=warmDemo", "schedule": "5 12 * * *" },
+    { "path": "/api/usageDashboard?view=ops&task=warmDemoCheck", "schedule": "7,22,37,52 * * * *" },
     { "path": "/api/usageDashboard?view=ops&task=warmBuy&part=1", "schedule": "10 0 * * *" },
     { "path": "/api/usageDashboard?view=ops&task=warmBuy&part=2", "schedule": "21 0 * * *" },
     { "path": "/api/usageDashboard?view=ops&task=warmBuy&part=3", "schedule": "36 0 * * *" },
