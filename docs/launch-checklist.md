@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T12:35Z (Lane F; e68 combined tree via a patch file, one lock, one push).
+Last updated: 2026-10-19T12:41Z (Lane F; Sell on every refusal approved, ships with e68; Lane C's patch by 14:05Z).
+
+## 0cj. Sam 12:4xZ Oct 19: SELL ON EVERY REFUSAL decided (routed word for word to Lane C; Lane B told, one live car per refusal kind asked)
+
+1. APPROVED: when the engine's answer is a refusal of any kind (thin, spread, could not verify, invariant failure, too few in window, builder car), Sell shows the engine's own line and the engine's own sales rows where the engine shows them, exactly as Market Check does. Keep the route recommendation but label it as policy; every number shown comes from the engine's own answer; no venue counts, no 'why' line with counts, no partner card on a refusal; if the recommendation cannot be shown without a number the engine did not produce, drop it for that refusal and show only the engine's line; Sell's behaviour on a normal range answer is unchanged. 2. Lane C builds it locally in the same patch family as the Singer fix and ships it with e68 under the one PUSH LOCK. After-reads: one case for each refusal kind, a Singer case, a thin card (the Cobra R), a spread refusal, and a plain 1992 Carrera 4 and a normal range answer, which must not change. Revert condition: any change on a normal range answer. 3. STILL PARKED FOR SAM: the 356A replica flag, typed 'Coupe', row 48, the 1969 Camaro, SEO C5. 4. Everything else stands. Lane F added: Lane C's updated patch at ~/Desktop/goasksam-proofs/handoff/ by 14:05Z (else tell Lane F); Sell's tiles (specPool 730) must not show numbers the engine did not produce on a refusal; Lane B names one live car per refusal kind by 13:40Z from saved reads.
 
 ## 0ci. Sam 12:4xZ Oct 19: e68, the SINGER no-comparison answer: WORDING APPROVED (routed word for word to Lane B; Lane C, Lane E and B2 told the new minutes)
 
