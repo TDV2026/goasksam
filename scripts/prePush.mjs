@@ -419,6 +419,14 @@ try {
 } catch (e) {
   record("Sell reads the visitor's own words (scripts/sellTypedCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A Singer car is never compared in a Task email (Lane C, Oct 19 2026, Sam's Singer rule): the mark kept, the engine's
+// line only, a plain Task unchanged. No network.
+try {
+  const out = execSync("node scripts/taskSingerCheck.mjs", { encoding: "utf8" });
+  record("A Task email never compares a Singer car (scripts/taskSingerCheck.mjs)", "PASS", (out.match(/taskSingerCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("A Task email never compares a Singer car (scripts/taskSingerCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
