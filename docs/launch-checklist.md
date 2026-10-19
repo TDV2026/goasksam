@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T00:03Z (Lane F; the dropped-trim class is in the shared resolver (SVT Cobra, Cobra R, Bullitt, Mach 1, Integrale); e62 adds the curated trim aliases on the year-prefixed path with a golden row each; Lancia diagnosis 00:20Z).
+Last updated: 2026-10-19T00:17Z (Lane F tick; e62 approved with scope, Lancia diagnosis at 00:20Z, build next).
 
 ## 0bc. e62 APPROVED WITH SCOPE by Sam 00:0xZ Oct 19 (forwarded word for word to Lane B; the thin-card rule to Lane C)
 
