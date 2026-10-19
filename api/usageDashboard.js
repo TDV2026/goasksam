@@ -4491,6 +4491,39 @@ async function handleOps(req, res) {
   // how many it would flag and not flag, by keyword, with 20 flagged examples (title, price, the phrase that triggered
   // it) and 20 unflagged examples. Also counts rows still flagged "bodyshell" that the current rule no longer flags (the
   // Oct 6 narrowing), the one re-stamp candidate. Pages by source_id over the null rows; rows=N caps the sample.
+  // modprefixdry (Lane B, Oct 19 2026, Sam's held item (2), READ-ONLY, archive only, writes nothing): every "Modified"-titled
+  // car sale with its FULL modifications text, read by the live rule (modSetAsideReason) and by the proposed rule (BaT's own
+  // "Modified" title word never sets a sale aside by itself; a builder mark like "RUF Modified" or "-Modified" is untouched).
+  // Lists the sales that would come back, grouped by make and model: title, year, price, the live trigger. No ids or links.
+  if (task === "modprefixdry") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { modSetAsideReason } = await import("../lib/onebox.js");
+    const limitRows = Math.min(Number(req.query?.rows) || 20000, 60000);
+    const LIMIT = 1000; let cursor = "", scanned = 0, liveOut = 0, comesBack = 0;
+    const byCar = {};
+    const strip = t => /ruf\s+modified|-modified/i.test(t) ? t : t.replace(/\bmodified\b/ig, " ");
+    for (let page = 0; page * LIMIT < limitRows; page++) {
+      const q = `sales_archive?select=source_id,make,model,year,sale_price,listing_title,mods:raw_record->>modifications&listing_title=ilike.${encodeURIComponent("*modified*")}&vehicle_type=eq.car&sale_price=not.is.null&order=source_id.asc&limit=${LIMIT}` + (cursor ? `&source_id=gt.${encodeURIComponent(cursor)}` : "");
+      const batch = await supabaseSelect(env, q);
+      if (!batch || !batch.length) break;
+      for (const r of batch) {
+        scanned++;
+        const title = String(r.listing_title || "");
+        const live = modSetAsideReason({ raw_title: title, mods: r.mods }, { make: r.make, model: r.model });
+        if (!live) continue;
+        liveOut++;
+        const proposed = modSetAsideReason({ raw_title: strip(title), mods: r.mods }, { make: r.make, model: r.model });
+        if (proposed) continue;
+        comesBack++;
+        const k = `${r.make || "?"} ${r.model || "?"}`;
+        (byCar[k] = byCar[k] || []).push({ year: r.year, price: r.sale_price, title, liveTrigger: live, mods: String(r.mods || "").slice(0, 400) });
+      }
+      cursor = batch[batch.length - 1].source_id;
+      if (batch.length < LIMIT) break;
+    }
+    const cars = Object.entries(byCar).sort((a, b) => b[1].length - a[1].length).map(([car, rows]) => ({ car, n: rows.length, rows: rows.slice(0, 30) }));
+    return res.status(200).json({ task: "modprefixdry", scanned, setAsideByLiveRule: liveOut, wouldComeBack: comesBack, cars });
+  }
   if (task === "projdry") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { projectFlagReason } = await import("../lib/_classify.js");
