@@ -19,7 +19,8 @@ for (const f of fixtures) {
   try { html = String(sellsForCardHtml(f, {}) || ""); } catch (e) { console.log(`FAIL  ${f.rungLabel}: the card threw (${String(e.message).slice(0, 80)})`); bad++; continue; }
   const text = html.replace(/<[^>]+>/g, " ").replace(/&nbsp;|&#160;/g, " ").replace(/\s+/g, " ");
   const rangeLine = /\$[\d,]+\s*(?:to|-)\s*\$[\d,]+/.test(text);
-  const pair = text.includes(money(f.lowestSaleN)) && text.includes(money(f.highestSaleN));
+  // the two figures as a PAIR only matter on a card that draws no rows; a card that draws its sales shows them as rows
+  const pair = !f.mustShowSales && text.includes(money(f.lowestSaleN)) && text.includes(money(f.highestSaleN));
   const noSales = f.mustShowSales && !(f.cards || []).every(c => text.includes(money(c.price)));
   const tooFewClaim = (f.soldCountN || 0) >= 8 && /not enough sales/i.test(text);
   const noLine = f.thinLine && !text.includes(f.thinLine);
