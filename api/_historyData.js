@@ -253,17 +253,21 @@ export function titleInHub(hub, title, year) {
   if (!hub || !title || (hub.year && Number(year) !== hub.year) || isMemorabilia(title) || isPartsListing(title, null)) return false;
   return new RegExp(hubTokens(hub).map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(".*"), "i").test(String(title));
 }
-// Does the hub have a car on it (hubPage 404s on none)? The same reads as hubVins, a few rows: true, false, or null when
-// neither table could be read (the caller keeps the link then, as before).
-export async function hubHasRows(env, hub) {
+// Does the hub have a car on it (hubPage 404s on none)? The same reads as hubVins, a few rows, each capped at
+// HUB_READ_MS (a pattern with no match scans the table): true when either read shows a car, false only when BOTH reads
+// answered with none, null otherwise (unreadable or slow: the caller keeps the link, as before).
+export const HUB_READ_MS = 1500;
+export async function hubHasRows(env, hub, capMs = HUB_READ_MS) {
   const pat = encodeURIComponent("*" + hubTokens(hub).join("*") + "*"), y = hub.year ? "year=eq." + hub.year + "&" : "";
+  const capped = q => Promise.race([supabaseSelect(env, q), new Promise(r => setTimeout(() => r(null), capMs))]);
   const [sales, atts] = await Promise.all([
-    supabaseSelect(env, `sales_archive?${y}listing_title=ilike.${pat}&vin_norm=not.is.null&select=vin_norm,listing_title,mileage&limit=20`),
-    supabaseSelect(env, `auction_attempts?${y}raw_record->>title=ilike.${pat}&chassis_vin_norm=not.is.null&select=chassis_vin_norm,title:raw_record->>title,mileage:raw_record->>mileage&limit=20`)
+    capped(`sales_archive?${y}listing_title=ilike.${pat}&vin_norm=not.is.null&select=vin_norm,listing_title,mileage&limit=20`),
+    capped(`auction_attempts?${y}raw_record->>title=ilike.${pat}&chassis_vin_norm=not.is.null&select=chassis_vin_norm,title:raw_record->>title,mileage:raw_record->>mileage&limit=20`)
   ]);
-  if (sales == null && atts == null) return null;
-  return (sales || []).some(r => r.vin_norm && r.vin_norm.length >= 6 && !isMemorabilia(r.listing_title) && !isPartsListing(r.listing_title, r.mileage))
+  const has = (sales || []).some(r => r.vin_norm && r.vin_norm.length >= 6 && !isMemorabilia(r.listing_title) && !isPartsListing(r.listing_title, r.mileage))
     || (atts || []).some(a => a.chassis_vin_norm && a.chassis_vin_norm.length >= 6 && !isMemorabilia(a.title) && !isPartsListing(a.title, a.mileage));
+  if (has) return true;
+  return sales == null || atts == null ? null : false;
 }
 export async function hubVins(env, hub, timing) {
   const toks = hubTokens(hub);

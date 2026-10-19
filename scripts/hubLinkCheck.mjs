@@ -28,6 +28,13 @@ answer = { sales: [{ vin_norm: "ABC", listing_title: "2003 Mercedes-Benz SL500",
 ok(await hubHasRows(env, H("2003-mercedes-benz-sl500")) === false, "a short VIN or a brochure lot alone: empty, as hubVins reads it");
 answer = { sales: null, atts: null };
 ok(await hubHasRows(env, H("2003-mercedes-benz-sl500")) === null, "unreadable: null (the link stays)");
+answer = { sales: [], atts: null };
+ok(await hubHasRows(env, H("2003-mercedes-benz-sl500")) === null, "one table unreadable and the other empty: null (the link stays)");
+// A slow read (a no-match pattern scanning the table) is capped: null, the link stays, the page does not wait.
+const realFetch = globalThis.fetch; globalThis.fetch = () => new Promise(() => {});
+const t0 = Date.now(), slow = await hubHasRows(env, H("mercedes-benz-sl-class"), 120);
+ok(slow === null && Date.now() - t0 < 1000, `a slow read is capped and treated as unreadable (${Date.now() - t0} ms)`);
+globalThis.fetch = realFetch;
 // The car page.
 const h = fs.readFileSync(new URL("../api/history.js", import.meta.url), "utf8");
 ok(/if \(appearances\.some\(a => titleInHub\(hub, a\.title, a\.year\)\)\) return s;\n\s*const has = await hubHasRows\(env, hub\);\n\s*return has === false \? null : s;/.test(h), "the car's own records answer first; the archive only when none is in the hub; unreadable keeps the link");
