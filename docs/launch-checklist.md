@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T03:58Z (Lane F tick; windows analysis done; Lane B's e63 after-reads 04:35Z; Lane C's small push then e64; Sam to pick the pool and the page-wording items).
+Last updated: 2026-10-19T04:02Z (Lane F; Sam: article numbers come from the engine columns only (Desk columns a private cross-check); D joins Lane C's small push; /cars spec pages are a one-engine breach, nothing goes public until fixed; the Desk gets both article files in full).
+
+## 0bq. Sam 03:5xZ Oct 19: the article pool and the thin wording list decided (forwarded word for word to B2 and Lane C; the Cayman R question to Lane B)
+
+1. ARTICLE POOL: every published article number comes from the ENGINE columns (what Market Check prints for that car), so a reader typing the car into GoAskSam sees the same number; the Desk columns are a private cross-check and never appear in article text; the label "Sam Desk pool" is not used in public copy; B2 adds one line per car where the two columns differ materially, saying why, and flags any gap that looks like an engine problem (a fence, a label, a model match) to Lane B by name before the article uses that car. 2. PAGE-WRITTEN THIN WORDING: yes to D (the spread refusal draws the shared card); keep E and F; defer G, H, H2; item I (the /cars spec pages computing their own band) is a one-engine breach recorded as its own item with its owner to be named by the Desk, and no /cars page goes public until it reads the engine's range and refusal; the /cars hub proposal waits; Lane C's small thin-wording push (A, B, C, D2, now plus D) goes after Lane B's e63 DONE in a gap. 3. The Desk drafts the article from the two files pasted in full in the next report; the Ford GT row stays "pending resolver check" until e64 is live and B2 has re-read it. 4. Order: Lane B's e63 after-reads, the seven-car warm and the Cobra R split at 04:35Z; Lane C's small push; the e64 chain; then B2's Ford GT re-read and the e64 golden pins.
 
 ## 0bp. Sam 03:4xZ Oct 19: thin-card follow-ups decided (forwarded word for word to Lane C and Lane B)
 
