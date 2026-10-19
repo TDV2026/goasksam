@@ -159,6 +159,7 @@ export function partnerAllowed(req) {
 export async function marketCheckAnswer(req, text, refine, asked, demo = false) {
   const { default: mc } = await import("./sellerDecision.js");
   const body = { oneBox: true, car: { raw: text }, asked: Math.max(0, Math.min(9, Number(asked) || 0)) };
+  if (demo) body.demoRead = true;   // Lane B (demo2): Market Check skips the public share snapshot for the demo's own read (honoured only with the server credential)
   if (refine) body.refine = refine;
   // The read goes in as the server's own internal call (Oct 17 2026): Market Check is sealed before launch, and a partner
   // session (gas_partner, no crew cookie) was refused by its seal, so the demo drew no sales. The credential comes from

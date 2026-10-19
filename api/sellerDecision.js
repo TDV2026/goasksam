@@ -3667,14 +3667,21 @@ async function handler(req, res) {
       // payload, no seller PII, so it is safe to expose. Best-effort: a persist failure never
       // fails the lookup (the result just isn't shareable). Only real answers get a snapshot.
       let snapshotId = null;
-      if (oneBox && oneBox.tier === "result" && !obRefine) {
+      // demo2 (Lane B, Sam's demo speed order): the partner demo's own internal read (api/partnerAnswer.js, body.demoRead,
+      // honoured ONLY with the server credential, so no visitor request can set it) skips this share snapshot: the demo never
+      // shows its share link, and the awaited write of the whole answer was the largest part of a stored read. Nothing else
+      // in the answer changes. obTimes.snapshotMs times the write wherever it runs.
+      const demoRead = !!(req.body && req.body.demoRead === true && hasServerCredential(req));
+      if (oneBox && oneBox.tier === "result" && !obRefine && !demoRead) {
+        const tSnap = Date.now();
         try {
           snapshotId = await persistSavedResult(null, {
             obShare: true, savedAt: new Date().toISOString(),
             query: oneBoxText, oneBox
           }, supabaseUrl, supabaseKey);
         } catch { snapshotId = null; }
-      }
+        obTimes.snapshotMs = Date.now() - tSnap;
+      } else if (demoRead) obTimes.snapshotMs = 0;
       // timings (speed job): where a Market Check answer's time went, stage by stage; diagnostics, never read by a page.
       const dd = oneBox && oneBox.dedup;
       // STALE STORED ANSWER (stage 4): served exactly as stored (its counts, range and cards), with the dated line in
