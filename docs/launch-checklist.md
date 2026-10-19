@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T01:17Z (Lane F tick; e62 chain running, prePush in progress; B2's weekend-results run waits for e62 DONE).
+Last updated: 2026-10-19T01:33Z (Lane F; B2's pool check approved via obdiag detail=1; Lane B asked to confirm the refusal wording is in the pushed e62 and who accepted the chain).
+
+## 0bf. Sam 01:2xZ Oct 19: B2's pool check approved via obdiag detail=1; Lane B asked to confirm the refusal wording is in the pushed e62 (forwarded word for word)
+
+B2's weekend-results pool check may use obdiag with detail=1 for each car's stored sales rows (date and price): one read per car, through the shared engine path, read-only, no archive scan, no writes; B2 tests one car first and reports whether the rows appear, else tells the Desk which read it needs and waits. Lane B must reply in one line whether "Sam could not verify this one, so no figures are shown." is in the e62 code the chain is pushing (yes or no and the commit; if no, a tiny follow-up after the push, engine version unchanged, and a reread of the refusal rows) and who accepted chain_e62.sh and when, so the record is straight. Order unchanged: e62 prePush result, PUSHED, 51-row warm and table, DONE; B2's pins; B2's weekend-results run; E9; Lane D's Sell line; Lane C's queue.
 
 ## 0be. Sam 01:1xZ Oct 19: weekend-results analysis run for a newsletter article (routed to B2, read-only; forwarded word for word)
 
