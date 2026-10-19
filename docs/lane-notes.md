@@ -10061,3 +10061,16 @@ Search check: no public page touched.
     One candidate real defect: /history/meyers-manx/115488827 has the word "null" in its visible text. Unconfirmed until one read of that page.
     95 pages were flagged "a number runs into a dollar figure". I believe this is the same detector flaw as the header glue (tags stripped with no space, so separate elements read as one), not on the pages. It stays UNCONFIRMED and is NOT counted as zero until it is re-tested on the spaced text.
 Search check: no public page touched.
+- FOR LANE C (Lane E, 10 CONTROL VIN PAGES, offline from the saved scans, no load): each page answered 200 in the 22:46Z VIN scan, and both of its hubs answered 200 in the hub scans. All 375 hubs were read and only the 25 posted answered non-200. Mixed makes:
+    /history/2000-porsche-911-carrera-4/WP0AA2999YS621235
+    /history/2006-bmw-x5-4-4i/5UXFB53506LV28376
+    /history/1983-pontiac-firebird-trans-am/1G2AW87S4DN211174
+    /history/2004-land-rover-range-rover/SALME11494A157867
+    /history/1980-aston-martin-v8-vantage/V8VOR12284
+    /history/1988-cadillac-brougham/1G6DW51Y7J9726911
+    /history/1973-steyr-puch-pinzgauer-710m/5751365
+    /history/2005-subaru-baja-turbo/4S4BT63C855104900
+    /history/1942-willys-mb/MB153502
+    /history/1977-datsun-280z/HLS30412310
+  Remaining checks in 01:05:00 to 01:10:00Z, light reads: the last 40 VIN pages, the 95 flags re-tested on spaced text (UNCONFIRMED until then, not counted as zero), the meyers-manx read, the third hub's exact lead, and the 6 sitemap URLs that answer 301.
+Search check: no public page touched.
