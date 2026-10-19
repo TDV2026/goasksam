@@ -194,7 +194,9 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   const bs = fs.readFileSync(new URL("../api/buySearch.js", import.meta.url), "utf8");
   ok(/const body = bodyWordFor\(v\.bodyStyle\);/.test(bs) && !/v\.bodyStyle \|\| x\.facts\.body/.test(bs) && !/bodyWordFor\([^)]*facts/.test(bs), "the card's name carries only the body its market reads, never the feed's body field");
   ok(/var hasMc = !l\.swap && !!\(l\.market && l\.market\.query\)/.test(client), "a card still pending has no Market Check button (a pending market has no query)");
-  ok(/headerHtml\(d\.meta \|\| \{\}, q, qp, f \|\| \{\}, !!\(a && !d\._showAll && !a\.vague\)\)/.test(client) && /: n && asking \? ""/.test(client), "a question on screen carries the count; the right-hand line is left out");
+  // STAGE 2 (Sam's Buy redesign, Oct 19 2026): the count is said once, in the header, with or without a question; the
+  // question no longer repeats it, and the "everything" line is left out while a question shows.
+  ok(/headerHtml\(d\.meta \|\| \{\}, q, qp, f \|\| \{\}, !!\(a && !d\._showAll && !a\.vague\)\)/.test(client) && /esc\(matchesLine\(n, true\)\) \+ "<\/p>" \+ \(asking \? "" :/.test(client) && /var lead = "";/.test(client), "the count stays in the header while a question shows; the question does not repeat it");
 }
 
 console.log(`buyCardAskCheck: ${passes} passed, ${fails} failed`);
