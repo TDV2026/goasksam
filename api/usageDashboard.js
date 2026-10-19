@@ -1540,7 +1540,7 @@ async function handleOps(req, res) {
   // (a too-spread-out refusal or a wide result); the invariant cases are refusal kind invariant_failed. No writes.
   if (task === "storedcount") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const t0 = Date.now(); const counts = { rows: 0, byEngine: {}, byTier: {}, byRefusalKind: {}, wideSpread: 0, trimQuestionCandidates: 0, invariantFailed: 0 };
+    const t0 = Date.now(); const counts = { rows: 0, byEngine: {}, byTier: {}, byRefusalKind: {}, wideSpread: 0, trimQuestionCandidates: 0, invariantFailed: 0, notTrackedKeys: [] };
     let cursor = "";
     for (let page = 0; page < 200; page++) {
       const q = `spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,ev:market->>engineVersion,t:market->raw->>tier,k:market->raw->refusal->>kind,w:market->raw->>wideSpread&order=spec_key.asc&limit=1000` + (cursor ? `&spec_key=gt.${encodeURIComponent(cursor)}` : "");
@@ -1553,6 +1553,7 @@ async function handleOps(req, res) {
         if (r.w === "true") counts.wideSpread++;
         if (r.k === "invariant_failed") counts.invariantFailed++;
         if ((r.t === "refusal" && r.k === "varied") || (r.t === "result" && r.w === "true")) counts.trimQuestionCandidates++;
+        if (r.t === "not_tracked" && counts.notTrackedKeys.length < 500) counts.notTrackedKeys.push(String(r.spec_key).replace(/^MCWARM:/, ""));   // e64 (Sam): every stored not_tracked answer, by key, to check which are genuine
       }
       cursor = rows[rows.length - 1].spec_key;
       if (rows.length < 1000) break;
