@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T12:47Z (Lane F; Lane B's typed-words diagnosis (code): e69 proposal for Sam; Carrera GT typed case added to the 14:35Z reads).
+Last updated: 2026-10-19T12:47Z (Lane F; e69 design caution from Lane C: the chosen option must replace the typed words too).
 
 ## 0ck. Sam 12:5xZ Oct 19: Sell patch APPROVED AS BUILT; the typed-path edge ordered as a diagnosis for e69 (routed word for word to Lane B; Lane C told)
 
