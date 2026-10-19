@@ -10,14 +10,21 @@ const ok = (c, m) => { if (c) passes++; else { fails++; console.log("FAIL " + m)
 // Normal range, readAt present, set-aside present.
 const normal = sellsForCardHtml({
   cluster: [121000, 134000], poolN: 42, windowMonths: 12,
+  basisLine: "Based on 42 sales, the latest in September 2026.",
   setAsideCount: 2, setAsideReasons: { modified: 1, "odd sale": 1 },
   readAt: "2026-10-14T08:00:00Z"
 });
 ok(normal.includes('<h3 class="sfc-heading">What these sell for</h3>'), "heading, exact text");
 ok(normal.includes('$121,000 <span class="sfc-to">to</span> $134,000'), "range, the big line");
-ok(normal.includes("Middle half of 42 sales, last 12 months."), "basis line from the engine's own numbers");
+ok(normal.includes("Based on 42 sales, the latest in September 2026."), "basis line: the engine's own sentence, verbatim, no month count");
+ok(!normal.includes("Middle half of") && !normal.includes("last 12 months"), "basis line: the old window-months wording is gone");
 ok(normal.includes("2 set aside: 1 modified, 1 odd sale."), "set-aside footnote, engine's own reasons");
 ok(normal.includes("Powered by GoAskSam &middot; Updated Oct 14") && normal.includes('href="/how-sam-decides"'), "footer: Powered by, Updated date, How Sam decides link");
+
+// includesFromLine: only when the oldest included sale is over three years old, same decision as basisLine, right after it.
+const oldPool = sellsForCardHtml({ cluster: [15000, 22000], poolN: 11, basisLine: "Based on 11 sales, the latest in August 2026.", includesFromLine: "Includes sales from 2021.", readAt: "2026-10-16T08:00:00Z" });
+ok(oldPool.indexOf("Based on 11 sales") < oldPool.indexOf("Includes sales from 2021."), "includesFromLine follows basisLine, same decision, same spot");
+ok(!sellsForCardHtml({ cluster: [15000, 22000], poolN: 11, basisLine: "Based on 11 sales, the latest in August 2026.", readAt: "2026-10-16T08:00:00Z" }).includes("Includes sales from"), "no includesFromLine on the answer: no line, no regression");
 
 // setAsideCount WORD-IFIED under ten (confirmed live on the 1957 Porsche 356 Speedster: "two", not 2)
 // - the footnote must still show, counted from setAsideReasons' own real numbers, never from this field.
@@ -68,7 +75,7 @@ const partner = sellsForCardHtml(COBRA, { rowTitles: false, rowPhoto: c => c.ima
 ok(!partner.includes("Cobra R</span>") && partner.includes('src="/api/partnerAnswer?photo=a1"') && !partner.includes("img.example"), "partner rows: no title, gated photo path only");
 
 // Partner pill placement: directly under the headline, every case, nowhere else.
-const withPill = sellsForCardHtml({ cluster: [100000, 120000], poolN: 20, windowMonths: 12, readAt: "2026-10-14T08:00:00Z" }, { partnerPillsHtml: '<div class="pill">Partner pill</div>' });
+const withPill = sellsForCardHtml({ cluster: [100000, 120000], poolN: 20, windowMonths: 12, basisLine: "Based on 20 sales, the latest in September 2026.", readAt: "2026-10-14T08:00:00Z" }, { partnerPillsHtml: '<div class="pill">Partner pill</div>' });
 ok(withPill.indexOf('class="sfc-range"') < withPill.indexOf('class="pill"') && withPill.indexOf('class="pill"') < withPill.indexOf('class="sfc-basis"'), "range case: partner pill sits between the range and the basis line");
 const pillThin = sellsForCardHtml(COBRA, { partnerPillsHtml: '<div class="pill">P</div>' });
 ok(pillThin.indexOf('class="sfc-thin"') < pillThin.indexOf('class="pill"') && pillThin.indexOf('class="pill"') < pillThin.indexOf('class="sfc-latest"'), "thin: partner pill sits right after the engine's line");
