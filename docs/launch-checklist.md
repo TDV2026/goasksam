@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T03:39Z (Lane F; the thin-card push (e63) is LIVE and stays; 275 GTB and Cobra R read right, partnerEngineMatch live 526 passed 0 failed; one question for Sam: Market Check's thin hero still prints its own 'sold at the auction houses' line).
+Last updated: 2026-10-19T03:42Z (Lane F; Sam: drop the page-written thin line on Market Check (Lane C, small push after the e63 after-reads); Cobra R few_comparable accepted; B2 03:50Z, Lane B 04:35Z, then Lane C's push, then e64).
+
+## 0bp. Sam 03:4xZ Oct 19: thin-card follow-ups decided (forwarded word for word to Lane C and Lane B)
+
+1. DROP the page's own thin-hero line in public/js/onebox.js ("All {N} sold at the auction houses, none online." and any variant): the engine's line and the latest-sale line are the only explanation under a thin card everywhere; Lane C makes the edit as integrator (Lane A unreachable) in a small push of its own after Lane B's e63 after-reads, with a gap and PUSH LOCK, no archive load; the Desk records it in lane-notes for Lane A (done); search check: visible thin text is the engine's dated line and the sales, no title, H1, sitemap or link change, no new venue or channel wording; Lane E confirms with E9. Lane C also searches Buy, Sell, /cars and /preview for similar page-written thin wording and reports it by file and line; fixes only the same defect, anything else only with Sam's say. 2. The Cobra R reading few_comparable (eight sales, too few comparable) is accepted as true to the engine's rule; Lane B's read-only house and online split, in a Desk gap, confirms which side of the test it fails and whether any other car expected as house_share reads few_comparable; no rule change. 3. Order: B2's window analysis 03:50Z; Lane B's e63 after-reads and seven-car warm 04:35Z; Lane C's small push; then e64 (resolver fixes, guard, failed-read fix, six golden rows). 4. Checklist: thin card fix live (done); page-written thin wording dropped (open, Lane C); e64 queued.
 
 ## 0bo. Sam 03:1xZ Oct 19: the thin-card exception GRANTED, one failed check only, with conditions (forwarded word for word to Lane C; the after-reads to Lane B)
 
