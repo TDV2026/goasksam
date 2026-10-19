@@ -2550,7 +2550,7 @@ async function handleOps(req, res) {
         id: r.id, year: r.year, make: r.make, model: r.model, listing_title: r.raw_title, source_slug: r.source_slug, platform: r.platform,
         sale_date: r.sale_date, currency: r.currency, sale_price: r.price, sale_price_usd: r.price_usd,
         hammerUsd: Number.isFinite(hammer) ? Math.round(hammer) : null, allInUsd: Number.isFinite(allIn) ? Math.round(allIn) : null,
-        mileage: r.mileage || null, vin_norm: r.vin_norm || null, has_photo: !!r.image, project_flag: r.project_flag || null, vehicle_type: r.vehicle_type,
+        mileage: r.mileage || null, vin_norm: r.vin_norm || null, has_photo: !!r.image, project_flag: r.project_flag || null, vehicle_type: r.vehicle_type, mods: r.mods ? String(r.mods).slice(0, 400) : null,   // e64: the modifications text the substantial-mod fence reads
         body_style: r.body || null, country_code: r.cc || null, city: r.city || null, state: r.state || null,
         country: prCountry(r).country, countryBasis: prCountry(r).basis, inMarket: prInMarket(r),
         engineVerdict: fenceSpec ? qualifyReason(engineRow, fenceSpec) : null
