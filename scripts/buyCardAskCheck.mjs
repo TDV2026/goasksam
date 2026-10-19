@@ -150,8 +150,9 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   const recent = lib.bidText("$66,666", Date.now() - 5 * 60e3);
   ok(/^Last bid we saw \$66,666 at \d{1,2}:\d\d[ap]m PT( on \w+day)?$/.test(recent), `a fresh bid reads with its time (got ${recent})`);
   ok(lib.bidText("$66,666", t).startsWith("Last bid we saw $66,666 at " + want + " PT"), "an older bid reads with its own time in Pacific time");
-  ok(lib.bidText("$1", NaN) === "Bid $1", "a bid with no time reads Bid $X, a $1 bid as stored");
-  ok(/k === "untimed" \? esc\("Bid " \+ amt\)/.test(client) && /!amt \? \(l\.bid_unknown \? "" : esc\("No bids yet"\)\)/.test(client), "No bids yet only with no bid record");
+  // Lane E, Oct 19 2026 (one auction feed, stored snapshots): a bid with no time has no bare number; the card shows the way to the bid.
+  ok(lib.bidText("$1", NaN) === "", "a bid with no time has no bare number (Lane E's rule)");
+  ok(/if \(!amt\) return l\.bid_unknown \|\| !live \? "" : '<p class="mlab nobid">' \+ esc\("No bids yet"\)/.test(client) && !/esc\("Bid " \+ amt\)/.test(client), "No bids yet only with no bid record (Buy Stage 1 money figure); never a bare 'Bid $X'");
   // The card as the server builds it (cardOf), so the make the comparison drops is the one the page really has.
   const { cardOf } = await import("../api/buySearch.js");
   const card = cardOf({ r: { id: 1, make: "Porsche", listing_title: "2014 Porsche 911 Carrera S Coupe", source: "carsandbids" }, facts: {}, gen: null, unknown: [] });
@@ -161,7 +162,7 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   ok(lib.rungShown({ make: "Porsche", title: "1997 Porsche 911 Carrera Targa" }, ["911 Carrera, 1994 to 1997"]).length === 1 && lib.rungShown(card, ["Closest: 911 Carrera 4S"]).length === 1 && lib.rungShown({ make: "Porsche", title: "2011 Porsche Boxster Spyder" }, ["2011 Boxster"]).length === 1, "a different car compared keeps its line");
   ok(/if \(r\.kind === "sold"\) return cap\(r\.placing === "inside" \? "inside" : r\.placing\) \+ " the range similar cars have sold for\."/.test(client), "an ended sold card: Inside the range similar cars have sold for.");
   ok(/esc\(qp \? "Have Sam keep looking for " \+ qp \+ " →" : "Have Sam keep looking"\)/.test(client) && /keepHtml\(cards\.length, q, qp\)/.test(client), "the keep looking box names the search");
-  ok(/'<span class="nw">' \+ esc\(num\(l\.miles\) \+ " miles"\)/.test(client) && /\.car \.meta \.nw\{white-space:nowrap\}/.test(page), "a mileage never splits from miles");
+  ok(/var miles = l\.miles \? num\(l\.miles\) \+ " miles"/.test(client) && /'<span class="nw">' \+ esc\(b\) \+ "<\/span>"/.test(client) && /\.car \.meta \.nw\{white-space:nowrap\}/.test(page), "a mileage never splits from miles (Buy Stage 1 meta line)");
   ok(/askHtml\(a, d\.meta \|\| \{\}, qp\) \+ more/.test(client) && !/right \+ "<\/div><\/div><\/div>" \+ unstatedHtml/.test(client), "the question comes before the don't say and either generation lines");
   // Sam, Oct 15 2026: the cards draw at once; each of the six on screen is asked for alone and filled as it lands.
   ok(/    go\(\);\n    first\.forEach\(function\(l\)\{ enrichThen\(\[l\], function\(\)\{ if \(block\.isConnected && !isPend\(l\)\) redrawCards\(block, \[l\], false\); nextAsk\(\); \}\); \}\);/.test(client) && !/setTimeout\(go, 12000\)/.test(client) && /function redrawCards\(block, list, onlyHidden\)/.test(client), "cards draw at once and fill card by card, never waiting on a market");
