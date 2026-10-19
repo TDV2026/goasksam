@@ -101,7 +101,7 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 27 | 2005 Porsche 911 targa (typed) | the same answer as the Targa chip on the bare 2005 911 page: the chip page reads 1 sale, exact rung, 2005 only, no range (read live Oct 16 2026) | on all four products; expected to fail until e57 (e56 reads 9, the body word is filed as a trim) |
 | 28 | 1965 Ford Mustang fastback (typed) | 11 sales, $43,500 to $56,500 | re-pinned on e65 (Lane B after column, was 12 sales, $37,000 to $50,000) |
 | 29 | 2012 BMW M3 Competition Coupe (typed) | a typed body never fenced to sedans; equals the bare "2012 BMW M3 Competition" page (13 sales, exact, 2012, $38,500 to $79,500) | read live on e58, Oct 16 2026 |
-| 30 | 1973 Porsche 911 Targa (typed) | the Targa pool of 1973: 4 sales, exact, 1973, no range (under eight); the bare 1973 911 reads 17 | read live on e59 |
+| 30 | 1973 Porsche 911 Targa (typed) | the Targa pool of 1973: 4 sales, exact, 1973, no range (under eight); the bare 1973 911 reads 17 | 15 sales, exact, 2001, $6,000 to $11,000 (re-pinned on e72) |
 | 31 | 1963 Chevrolet Corvette Roadster (typed) | 15 sales, $48,500 to $80,000 | re-pinned on e65 (Lane B after column, was 18 sales, $48,500 to $77,000) |
 | 32 | 1989 Mazda Miata Roadster (typed) | no title states a body, so the whole pool is read with the line "No listing of the 1989 Mazda MX-5 states a body, so this reads every 1989 MX-5."; 24 sales, $8,000 to $11,000, year_widened to 1990, equal to the bare 1989 Miata | read live on e59 |
 | 33 | 1967 Shelby Cobra Roadster (typed) | the 289 or 427 question, no count or range; each answer typed equals its chip | read live on e59 (typed 427: 7 sales, Cobra 427 1966 to 1967; typed 289: 3 sales) |
@@ -118,7 +118,7 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 44 | 2007 BMW Z4 3.0si Coupe | the 3.0si trim and the coupe body: 4 sales, exact, 2007, no range; equals the Coupe chip on the bare 2007 Z4 3.0si | read live on e59 |
 | 45 | 1986 Renault Alpine V6 GT | the Alpine nameplate kept: 3 sales, model_any_year, "Alpine, all years", no range | read live on e59 |
 | 46 | 1971 Mercedes-Benz 280SE 3.5 Cabriolet | PENDING e60: the read hits the deadline card (read_failed) | pending Lane B e60 |
-| 47 | 1991 Acura NSX | exact '1991 NSX', 2 odd sales set aside; cross-lane guard so a recurrence of the 94 against 21 fails on every product | exact, 21 sales, $71,000 to $101,000 (Lane B live read, e59; unchanged on e60 since 21 is above eight) |
+| 47 | 1991 Acura NSX | exact '1991 NSX', 2 odd sales set aside; cross-lane guard so a recurrence of the 94 against 21 fails on every product | exact, 21 sales, $74,000 to $101,000 (re-pinned on e72, the e66 body-lock move) (Lane B live read, e59; unchanged on e60 since 21 is above eight) |
 | 48 | 2001 BMW M3 (bare) | blocking body question, Coupe 3 and Convertible 9, no count and no range on the bare page | read live on e61 (Lane B) |
 | 49 | 2001 BMW M3 Coupe | 8 sales, $22,500 to $44,000 | re-pinned on e65 (Lane B after column, was thin with 3 sales) |
 | 50 | 2001 BMW M3 Convertible | 9 sales, $20,000 to $41,000, wideSpread true; lowest $13,750, highest $63,000 | read live on e61 |
@@ -226,11 +226,11 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":40,"q":"1965 Ford Mustang","status":"ready","page":true,"sellEqualsMC":true},
  {"id":41,"q":"2023 Porsche 911 GT3","status":"ready","page":true,"sellEqualsMC":true},
  {"id":42,"expectedToMove":"e73 +5, about 26 to 31","q":"1979 Porsche 911 SC","status":"ready","rung":"exact","labelHas":["1979 911 SC"],"count":55,"tol":0,"low":48000,"high":67500,"tolPct":5},
- {"id":43,"q":"2001 BMW Z3 2.5i","status":"ready","rung":"exact","labelHas":["2001 Z3 2.5i"],"count":13,"tol":0,"low":5500,"high":9000,"tolPct":5},
+ {"id":43,"q":"2001 BMW Z3 2.5i","status":"ready","rung":"exact","labelHas":["2001 Z3 2.5i"],"count":15,"tol":0,"low":6000,"high":11000,"tolPct":5},
  {"id":44,"q":"2007 BMW Z4 3.0si Coupe","status":"ready","rung":"exact","labelHas":["2007 Z4 3.0si Coupe"],"count":4,"tol":0,"low":null,"high":null,"thin":true,"chipPairs":[{"bare":"2007 BMW Z4 3.0si","label":"Coupe","typed":"2007 BMW Z4 3.0si Coupe"}]},
  {"id":45,"q":"1986 Renault Alpine V6 GT","status":"ready","rung":"model_any_year","labelHas":["Alpine"],"count":3,"tol":0,"low":null,"high":null,"thin":true},
  {"id":46,"q":"1971 Mercedes-Benz 280SE 3.5 Cabriolet","status":"pending","labelHas":["280SE"],"countMin":1},
- {"id":47,"q":"1991 Acura NSX","status":"ready","rung":"exact","labelHas":["1991","NSX"],"count":21,"tol":0,"low":71000,"high":101000,"tolPct":3},
+ {"id":47,"q":"1991 Acura NSX","status":"ready","rung":"exact","labelHas":["1991","NSX"],"count":21,"tol":0,"low":74000,"high":101000,"tolPct":3},
  {"id":48,"expectedToMove":"e73 +1","q":"2001 BMW M3","status":"ready","question":true,"noCountRange":true,"chipPairs":[{"bare":"2001 BMW M3","label":"Coupe","typed":"2001 BMW M3 Coupe"},{"bare":"2001 BMW M3","label":"Convertible","typed":"2001 BMW M3 Convertible"}]},
  {"id":49,"expectedToMove":"e73 +1","q":"2001 BMW M3 Coupe","status":"ready","rung":"exact","labelHas":["2001","M3","Coupe"],"count":8,"tol":0,"low":22500,"high":44000,"tolPct":3},
  {"id":50,"expectedToMove":"e73 +1","q":"2001 BMW M3 Convertible","status":"ready","rung":"exact","labelHas":["2001","M3","Convertible"],"count":9,"tol":0,"low":20000,"high":41000,"tolPct":0,"wideSpread":true,"lowestSale":13750,"highestSale":63000},
