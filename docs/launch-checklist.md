@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T04:57Z (Lane F tick; Lane B's e63 after-reads running; B2 golden pass 05:20Z and extent measure 05:35Z; e64 then the spot check; re-ingest held).
+Last updated: 2026-10-19T05:00Z (Lane F; Sam approved the modified rule to build as e65 (ships only after his spot check) with his steer on induction part (added boost only, not bolt-on intake or exhaust); the house drop explanation to be pasted in full in the next report).
+
+## 0bx. Sam 05:0xZ Oct 19: the modified rule APPROVED TO BUILD (ships only after Sam's spot check) and the house drop (forwarded word for word to Lane B)
+
+1. MODIFIED RULE (three signals, model-prevalence guard, 'aftermarket' counts only with an engine, induction or body part): APPROVED TO BUILD as e65, shipping ONLY AFTER Sam's spot check passes. Sam's steer on 'induction part': added forced-induction hardware (turbo, supercharger, turbo kit), NOT a bolt-on intake or exhaust; exhaust, intake, wheels, suspension, brakes, stereo and cosmetic items never set a sale aside by themselves; only an engine swap or rebuild, added boost, or a body conversion sets a sale aside; Lane B states this in the rule text and in the spot-check lists. 2. SPOT-CHECK LISTS after e64 is live in a Desk gap; F presents them as plain text one car group at a time with the three signals and the prevalence guard in plain words above; any wrong flip changes the rule before it ships. 3. HOUSE-SALE DROP: no change; F pastes Lane B's explanation in full as text in the next report so the Desk can give Sam a recommendation (why it drops house rows at three or more online sales, which golden cars it affects by name, and each car's answer with those rows kept). 4. Everything else stands (e64 right after the e63 after-reads, e65 after the spot check, B2's golden pass, extent measure and per-car reads at their timers, re-ingest held, article rows held, one archive load at a time, nothing public changes). Desk note to Lane B: reconcile 'rebuilt engine' (maintenance) against the steer's 'engine swap or rebuild' and the change words 'built' and 'tuned' against 'stage-numbered or big tune', and show the final words list in the spot-check header.
 
 ## 0bw. Sam 04:5xZ Oct 19: the re-ingest HELD and the article order (forwarded word for word to Lane B; the re-read order to B2)
 
