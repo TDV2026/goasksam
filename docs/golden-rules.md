@@ -108,18 +108,18 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 34 | 1955 Mercedes-Benz 300SL Roadster (typed) | words "No Roadster 1955 Mercedes-Benz 300SL sale on record in the last five years.", no count or range | read live on e59 |
 | 35 | 1989 Porsche 911 Turbo Targa (typed) | words "Every Targa 1989 Porsche 911 Turbo sale on record in the last five years was set aside (4), so there is no Targa read to show.", no count or range, no market on Buy, Sell, Tasks | read live on e59 (the e58 wording changed to this form) |
 | 36 | 2001 Porsche 911 Carrera 4S Cabriolet (typed) | words answer "No Cabriolet 2001 Porsche 911 Carrera 4S sale on record in the last five years.", no count or range | read live on e58 |
-| 37 | 2006 Porsche Boxster Convertible (typed) | 31 sales, $16,500 to $25,000 | re-pinned on e65 (Lane B after column, was 30 sales, $16,500 to $25,500) |
+| 37 | 2006 Porsche Boxster Convertible (typed) | 30 sales, $16,500 to $26,500 | moved on e73 as predicted (Cayman S sales left; Lane B offline figure, confirm on the next read) |
 | 38 | 2010 Porsche Boxster Convertible (typed) | the whole 2010 Boxster pool, equal to the bare page (30 sales, exact, 2010, $26,000 to $35,000) | read live on e58; the engine carries the line as bodyLine; the page does not render it yet (Lane A shared card), so the page check is red until it does |
 | 39 | 2005 Porsche 911 | Sell's printed count equals Market Check's for the same car (one engine) | Sell page count = Market Check page count |
 | 40 | 1965 Ford Mustang | Sell's printed count equals Market Check's for the same car | Sell page count = Market Check page count |
 | 41 | 2023 Porsche 911 GT3 | Sell's printed count equals Market Check's for the same car | Sell page count = Market Check page count |
-| 42 | 1979 Porsche 911 SC | the SC trim kept: 55 sales, exact, 1979, $48,000 to $67,500, "1979 911 SC, coupes, targas and cabriolets" | read live on e59 (1980 reads 13 sales, $70,000 to $82,000, coupes and targas) |
+| 42 | 1979 Porsche 911 SC | the SC trim kept: 26 sales, exact, 1979, $54,500 to $74,000, "1979 911 SC, coupes, targas and cabriolets" | re-pinned on e72 (no move on e73, corrected); was read live on e59 (1980 reads 13 sales, $70,000 to $82,000, coupes and targas) |
 | 43 | 2001 BMW Z3 2.5i | the 2.5i trim kept: 13 sales, exact, 2001, $5,500 to $9,000 | read live on e59 |
 | 44 | 2007 BMW Z4 3.0si Coupe | the 3.0si trim and the coupe body: 4 sales, exact, 2007, no range; equals the Coupe chip on the bare 2007 Z4 3.0si | read live on e59 |
 | 45 | 1986 Renault Alpine V6 GT | the Alpine nameplate kept: 3 sales, model_any_year, "Alpine, all years", no range | read live on e59 |
 | 46 | 1971 Mercedes-Benz 280SE 3.5 Cabriolet | refusal today (not_tracked): the read resolves to the S-Class cabriolet and every cabriolet sale is set aside (house-sold ones have no photo, the rest projects or sub-floor). Sam question open: photo rule drops this house-sold car | refusal on every product, pinned on e72 |
 | 47 | 1991 Acura NSX | exact '1991 NSX', 2 odd sales set aside; cross-lane guard so a recurrence of the 94 against 21 fails on every product | exact, 21 sales, $74,000 to $101,000 (re-pinned on e72, the e66 body-lock move) (Lane B live read, e59; unchanged on e60 since 21 is above eight) |
-| 48 | 2001 BMW M3 (bare) | blocking body question, Coupe 3 and Convertible 9, no count and no range on the bare page | read live on e61 (Lane B) |
+| 48 | 2001 BMW M3 (bare) | 17 sales, $22,500 to $41,000 as the engine reads it (Sam: rule kept as built, the pin follows the range; chip counts still equal the typed words) | re-pinned on e72 |
 | 49 | 2001 BMW M3 Coupe | 8 sales, $22,500 to $44,000 | re-pinned on e65 (Lane B after column, was thin with 3 sales) |
 | 50 | 2001 BMW M3 Convertible | 9 sales, $20,000 to $41,000, wideSpread true; lowest $13,750, highest $63,000 | read live on e61 |
 | 51 | 1972 Datsun 240Z | 14 sales, $18,000 to $35,500 | re-pinned on e65 (Lane B after column, was 15 sales, $16,500 to $35,500) |
@@ -127,7 +127,7 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 53 | 1969 Ford Mustang Mach 1 | 17 sales, $65,500 to $108,000 | re-pinned on e65 (Lane B after column, was 18 sales, $75,000 to $107,000) |
 | 54 | 2001 Ford Mustang Bullitt | 10 sales, $14,000 to $18,500 | read live on e62 |
 | 55 | 2003 Ford Mustang SVT Cobra | 11 sales, $27,000 to $49,000 | re-pinned on e65 (Lane B after column, was 9 sales, $29,000 to $45,500) |
-| 56 | 2019 BMW 3-Series | thin, 6 sales, no range | read live on e62 |
+| 56 | 2019 BMW 3-Series | 12 sales, $30,000 to $35,500 (M340i in) | moved on e73 as predicted (Lane B offline figure, confirm on the next read) |
 | 57 | 2005 Ford GT | 22 sales, $477,000 to $601,000, scope "2005 GT Coupe" | Lane B e65 after column |
 | 58 | 2004 Porsche Carrera GT | PENDING e64: pinned from Lane B's e64 after column | pending Lane B e64 |
 | 59 | 1959 Ferrari 250 GT California | PENDING e64: pinned from Lane B's e64 after column | pending Lane B e64 |
@@ -191,9 +191,9 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":5,"q":"1969 Chevrolet Camaro","status":"ready","rung":"exact","labelHas":["1969 Camaro"],"count":8,"tol":0,"low":32000,"high":48000,"tolPct":3,"sharedCard":true},
  {"id":6,"q":"2006 Mercedes-Benz CLK DTM","status":"ready","rung":"year_widened","labelHas":["CLK DTM","2005 to 2006"],"count":7,"tol":0,"low":null,"high":null,"thin":true},
  {"id":7,"q":"2008 Mercedes-Benz CLK63 AMG Black Series","status":"ready","rung":"exact","labelHas":["CLK63","Black Series"],"count":16,"tol":0,"low":91000,"high":156000,"tolPct":0},
- {"id":8,"q":"1957 Porsche 356 Speedster","status":"ready","rung":"year_widened","labelHas":["356 Speedster","1956 to 1958"],"count":10,"tol":2,"low":259000,"high":389000,"tolPct":5,"sellEqualsMC":true,"sharedCard":true},
+ {"id":8,"e74Note":"waits for Sams re-stamp decision, not approved","q":"1957 Porsche 356 Speedster","status":"ready","rung":"year_widened","labelHas":["356 Speedster","1956 to 1958"],"count":10,"tol":2,"low":259000,"high":389000,"tolPct":5,"sellEqualsMC":true,"sharedCard":true},
  {"id":9,"q":"1997 Land Rover Defender 110","status":"ready","rung":"exact","labelHas":["1997","Defender 110"],"count":10,"tol":0,"low":30500,"high":56000,"tolPct":3},
- {"id":10,"expectedToMove":"e73 +1","q":"2003 BMW M3 Coupe","status":"ready","rung":"exact","labelHas":["2003","M3 Coupe"],"count":17,"tol":2,"low":25500,"high":36000,"tolPct":3,"sellEqualsMC":true},
+ {"id":10,"e73Note":"no move on e73, corrected","q":"2003 BMW M3 Coupe","status":"ready","rung":"exact","labelHas":["2003","M3 Coupe"],"count":17,"tol":2,"low":25500,"high":36000,"tolPct":3,"sellEqualsMC":true},
  {"id":11,"q":"1989 Merkur XR4Ti","status":"ready","labelHas":["XR4Ti"],"low":null,"high":null,"thin":true},
  {"id":12,"q":"2024 Porsche 911 GT3","status":"ready","rung":"year_widened","labelHas":["GT3","2023 to 2024"],"count":12,"tol":0,"low":248000,"high":270000,"tolPct":3,"quick":true},
  {"id":13,"q":"2018 Ford Mustang GT","status":"ready","rung":"exact","labelHas":["2018","Mustang GT"],"count":10,"tol":0,"low":29000,"high":36000,"tolPct":0},
@@ -207,39 +207,39 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":21,"q":"1965 Ford Mustang","status":"ready","identity":true,"labelHas":["Mustang"]},
  {"id":24,"q":"1969 Chevrolet Camaro","status":"ready","identity":true,"labelHas":["Camaro"]},
  {"id":25,"q":"1969 Chevrolet Camaro convertible","status":"ready","rung":"exact","labelHas":["1969 Camaro Convertible"],"count":3,"tol":0,"low":null,"high":null,"thin":true},
- {"id":26,"expectedToMove":"e73 +3 (2005 911)","q":"2005 Porsche 911","status":"ready","identity":true,"labelHas":["911"]},
- {"id":27,"expectedToMove":"e73 rows likely held out on body (2005 911 targa)","q":"2005 Porsche 911 targa","status":"ready","rung":"exact","labelHas":["2005","Targa"],"count":1,"tol":0,"low":null,"high":null,"thin":true},
+ {"id":26,"e73Note":"no move on e73, corrected","q":"2005 Porsche 911","status":"ready","identity":true,"labelHas":["911"]},
+ {"id":27,"e73Note":"no move on e73, corrected","q":"2005 Porsche 911 targa","status":"ready","rung":"exact","labelHas":["2005","Targa"],"count":1,"tol":0,"low":null,"high":null,"thin":true},
  {"id":28,"q":"1965 Ford Mustang fastback","status":"ready","rung":"exact","labelHas":["1965","Fastback"],"count":11,"tol":0,"low":43500,"high":56500,"tolPct":5},
- {"id":22,"q":"1957 Porsche 356 Speedster","status":"ready","rung":"year_widened","labelHas":["356 Speedster","1956 to 1958"],"count":10,"tol":0,"low":259000,"high":389000,"tolPct":5,"setAside":{"total":0,"reasons":[]},"noZeroOptions":true,"variantRule":true,"noRestoration":true,"sellEqualsMC":true},
+ {"id":22,"e74Note":"waits for Sams re-stamp decision, not approved","q":"1957 Porsche 356 Speedster","status":"ready","rung":"year_widened","labelHas":["356 Speedster","1956 to 1958"],"count":10,"tol":0,"low":259000,"high":389000,"tolPct":5,"setAside":{"total":0,"reasons":[]},"noZeroOptions":true,"variantRule":true,"noRestoration":true,"sellEqualsMC":true},
  {"id":23,"q":"1966 Ferrari 275 GTB","status":"ready","rung":"year_widened","labelHas":["275 GTB","1965 to 1966"],"count":9,"tol":0,"low":null,"high":null,"thin":true,"noZeroOptions":true,"variantRule":true,"noRestoration":true,"sellEqualsMC":true},
  {"id":29,"q":"2012 BMW M3 Competition Coupe","status":"ready","rung":"exact","labelHas":["2012 M3 Competition Coupe"],"count":13,"tol":0,"low":38500,"high":79500,"tolPct":5,"equalsBare":"2012 BMW M3 Competition","wideSpread":true,"lowestSale":31750,"highestSale":109500},
- {"id":30,"expectedToMove":"e73 +4, likely held out on body","q":"1973 Porsche 911 Targa","status":"ready","rung":"exact","labelHas":["1973","Targa"],"count":4,"tol":0,"low":null,"high":null,"thin":true},
+ {"id":30,"e73Note":"no move on e73, corrected","q":"1973 Porsche 911 Targa","status":"ready","rung":"exact","labelHas":["1973","Targa"],"count":4,"tol":0,"low":null,"high":null,"thin":true},
  {"id":31,"q":"1963 Chevrolet Corvette Roadster","status":"ready","rung":"exact","labelHas":["1963 Corvette Roadster"],"count":15,"tol":0,"low":48500,"high":80000,"tolPct":5,"chipPairs":[{"bare":"1963 Chevrolet Corvette","label":"Convertible","typed":"1963 Chevrolet Corvette Roadster"}]},
- {"id":32,"expectedToMove":"the e73 +4 prediction did not appear; Lane B says which move is e74","q":"1989 Mazda Miata Roadster","status":"ready","equalsBare":"1989 Mazda Miata","rung":"year_widened","labelHas":["MX-5 Roadster models, 1990"],"count":30,"tol":0,"low":8000,"high":12500,"tolPct":5,"statesBody":"No listing of the 1989 Mazda MX-5 states a body, so this reads every 1989 MX-5."},
+ {"id":32,"e73Note":"no move on e73, corrected","q":"1989 Mazda Miata Roadster","status":"ready","equalsBare":"1989 Mazda Miata","rung":"year_widened","labelHas":["MX-5 Roadster models, 1990"],"count":30,"tol":0,"low":8000,"high":12500,"tolPct":5,"statesBody":"No listing of the 1989 Mazda MX-5 states a body, so this reads every 1989 MX-5."},
  {"id":33,"q":"1967 Shelby Cobra Roadster","status":"ready","question":true,"wordsHas":["Which is it, the 289 or the 427?"],"noCountRange":true,"chipPairs":[{"bare":"1967 Shelby Cobra","label":"289","typed":"1967 Shelby Cobra 289"},{"bare":"1967 Shelby Cobra","label":"427","typed":"1967 Shelby Cobra 427"}]},
  {"id":34,"q":"1955 Mercedes-Benz 300SL Roadster","status":"ready","empty":true,"wordsHas":["No Roadster 1955 Mercedes-Benz 300SL sale on record in the last five years."],"noCountRange":true},
  {"id":35,"q":"1989 Porsche 911 Turbo Targa","status":"ready","empty":true,"wordsHas":["Every Targa 1989 Porsche 911 Turbo sale on record in the last five years was set aside (4), so there is no Targa read to show."],"noCountRange":true},
  {"id":36,"q":"2001 Porsche 911 Carrera 4S Cabriolet","status":"ready","empty":true,"wordsHas":["No Cabriolet 2001 Porsche 911 Carrera 4S sale on record in the last five years."],"noCountRange":true},
- {"id":37,"expectedToMove":"Cayman S leaves, 31 to 29","q":"2006 Porsche Boxster Convertible","status":"ready","rung":"exact","labelHas":["2006 Boxster Convertible"],"count":31,"tol":0,"low":16500,"high":25000,"tolPct":5,"equalsBare":"2006 Porsche Boxster","statesBody":"No listing of the 2006 Porsche Boxster states a body, so this reads every 2006 Boxster."},
+ {"id":37,"e73Note":"moved on e73 as predicted (Cayman S sales left, 31 to 30)","q":"2006 Porsche Boxster Convertible","status":"ready","rung":"exact","labelHas":["2006 Boxster Convertible"],"count":30,"tol":0,"low":16500,"high":26500,"tolPct":5,"equalsBare":"2006 Porsche Boxster","statesBody":"No listing of the 2006 Porsche Boxster states a body, so this reads every 2006 Boxster."},
  {"id":38,"q":"2010 Porsche Boxster Convertible","status":"ready","rung":"exact","labelHas":["2010 Boxster Convertible"],"count":17,"tol":0,"low":26000,"high":31500,"tolPct":5,"equalsBare":"2010 Porsche Boxster","statesBody":"No listing of the 2010 Porsche Boxster states a body, so this reads every 2010 Boxster."},
- {"id":39,"expectedToMove":"e73 +3 (demo car)","q":"2005 Porsche 911","status":"ready","page":true,"sellEqualsMC":true},
+ {"id":39,"e73Note":"no move on e73, corrected","q":"2005 Porsche 911","status":"ready","page":true,"sellEqualsMC":true},
  {"id":40,"q":"1965 Ford Mustang","status":"ready","page":true,"sellEqualsMC":true},
  {"id":41,"q":"2023 Porsche 911 GT3","status":"ready","page":true,"sellEqualsMC":true},
- {"id":42,"expectedToMove":"e73 +5, about 26 to 31","q":"1979 Porsche 911 SC","status":"ready","rung":"exact","labelHas":["1979 911 SC"],"count":55,"tol":0,"low":48000,"high":67500,"tolPct":5},
+ {"id":42,"e73Note":"no move on e73, corrected","q":"1979 Porsche 911 SC","status":"ready","rung":"exact","labelHas":["1979 911 SC"],"count":26,"tol":0,"low":54500,"high":74000,"tolPct":5},
  {"id":43,"q":"2001 BMW Z3 2.5i","status":"ready","rung":"exact","labelHas":["2001 Z3 2.5i"],"count":15,"tol":0,"low":6000,"high":11000,"tolPct":5},
  {"id":44,"q":"2007 BMW Z4 3.0si Coupe","status":"ready","rung":"exact","labelHas":["2007 Z4 3.0si Coupe"],"count":4,"tol":0,"low":null,"high":null,"thin":true,"chipPairs":[{"bare":"2007 BMW Z4 3.0si","label":"Coupe","typed":"2007 BMW Z4 3.0si Coupe"}]},
  {"id":45,"q":"1986 Renault Alpine V6 GT","status":"ready","rung":"model_any_year","labelHas":["Alpine"],"count":3,"tol":0,"low":null,"high":null,"thin":true},
  {"id":46,"q":"1971 Mercedes-Benz 280SE 3.5 Cabriolet","status":"ready","empty":true,"samQuestionOpen":"photo rule drops this house-sold car"},
  {"id":47,"q":"1991 Acura NSX","status":"ready","rung":"exact","labelHas":["1991","NSX"],"count":21,"tol":0,"low":74000,"high":101000,"tolPct":3},
- {"id":48,"expectedToMove":"e73 +1","q":"2001 BMW M3","status":"ready","question":true,"noCountRange":true,"chipPairs":[{"bare":"2001 BMW M3","label":"Coupe","typed":"2001 BMW M3 Coupe"},{"bare":"2001 BMW M3","label":"Convertible","typed":"2001 BMW M3 Convertible"}]},
- {"id":49,"expectedToMove":"e73 +1","q":"2001 BMW M3 Coupe","status":"ready","rung":"exact","labelHas":["2001","M3","Coupe"],"count":8,"tol":0,"low":22500,"high":44000,"tolPct":3},
- {"id":50,"expectedToMove":"e73 +1","q":"2001 BMW M3 Convertible","status":"ready","rung":"exact","labelHas":["2001","M3","Convertible"],"count":9,"tol":0,"low":20000,"high":41000,"tolPct":0,"wideSpread":true,"lowestSale":13750,"highestSale":63000},
+ {"id":48,"e73Note":"no move on e73, corrected","q":"2001 BMW M3","status":"ready","count":17,"tol":0,"low":22500,"high":41000,"tolPct":3,"chipPairs":[{"bare":"2001 BMW M3","label":"Coupe","typed":"2001 BMW M3 Coupe"},{"bare":"2001 BMW M3","label":"Convertible","typed":"2001 BMW M3 Convertible"}]},
+ {"id":49,"e73Note":"no move on e73, corrected","q":"2001 BMW M3 Coupe","status":"ready","rung":"exact","labelHas":["2001","M3","Coupe"],"count":8,"tol":0,"low":22500,"high":44000,"tolPct":3},
+ {"id":50,"e73Note":"no move on e73, corrected","q":"2001 BMW M3 Convertible","status":"ready","rung":"exact","labelHas":["2001","M3","Convertible"],"count":9,"tol":0,"low":20000,"high":41000,"tolPct":0,"wideSpread":true,"lowestSale":13750,"highestSale":63000},
  {"id":51,"q":"1972 Datsun 240Z","status":"ready","count":14,"tol":0,"low":18000,"high":35500,"tolPct":0,"wideSpread":true},
  {"id":52,"q":"1989 Lancia Delta Integrale","status":"ready","count":8,"tol":0,"low":45000,"high":66000,"tolPct":0},
  {"id":53,"q":"1969 Ford Mustang Mach 1","status":"ready","count":17,"tol":0,"low":65500,"high":108000,"tolPct":0,"lowestSale":33750,"highestSale":133000},
  {"id":54,"q":"2001 Ford Mustang Bullitt","status":"ready","count":10,"tol":0,"low":14000,"high":18500,"tolPct":0,"lowestSale":8700,"highestSale":22000},
- {"id":55,"expectedToMove":"e73 +1","q":"2003 Ford Mustang SVT Cobra","status":"ready","count":11,"tol":0,"low":27000,"high":49000,"tolPct":0,"lowestSale":24350,"highestSale":62000},
- {"id":56,"expectedToMove":"M340i in, 4 to about 34, a range appears","q":"2019 BMW 3-Series","status":"ready","count":6,"tol":0,"low":null,"high":null,"thin":true,"lowestSale":14400,"highestSale":29777},
+ {"id":55,"e73Note":"no move on e73, corrected","q":"2003 Ford Mustang SVT Cobra","status":"ready","count":11,"tol":0,"low":27000,"high":49000,"tolPct":0,"lowestSale":24350,"highestSale":62000},
+ {"id":56,"e73Note":"moved on e73 as predicted (M340i in, 12 sales, range appears)","q":"2019 BMW 3-Series","status":"ready","count":12,"tol":0,"low":30000,"high":35500,"tolPct":3},
  {"id":57,"q":"2005 Ford GT","status":"ready","labelHas":["GT Coupe"],"count":22,"tol":0,"low":477000,"high":601000,"tolPct":3},
  {"id":58,"q":"2004 Porsche Carrera GT","status":"pending","labelHas":["Carrera GT"],"countMin":1},
  {"id":59,"q":"1959 Ferrari 250 GT California","status":"pending","labelHas":["250 GT California"],"countMin":1},
