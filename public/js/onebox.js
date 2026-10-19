@@ -2157,7 +2157,9 @@
     // The house-steered shape (most/all sales at auction houses) carries no top-level cluster/poolN;
     // the card gates on qualifyingTotal instead (detection only, never displayed) and shows its own
     // spread-too-wide line rather than staying silent - see lib/sellsForCard.js's own FOR LANE B note.
-    left += (window.sellsForCardHtml ? window.sellsForCardHtml(d, {}) : "");
+    // e63 (Sam, Oct 19 2026; Lane C as integrator, Lane A away): ONE list. The sale tiles below are this tier's list, so the
+    // card draws the engine's line and latest sale without its own rows; no sale prints twice.
+    left += (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false }) : "");
     var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.thin.older") + "</p>";
     // Job 1: the old three-way house/online framing collapses to ONE new sentence for the all-house
     // case (the brief's literal replacement, "All {count} sold at the auction houses, none online.")
