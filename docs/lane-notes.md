@@ -9781,3 +9781,4 @@ moment they're done. Meanwhile continuing with preview-path-safe, non-archive wo
 layout) as instructed.
 Search check: no public page touched (code push changes server-side card logic only; no title, H1, sitemap or link
 change; the card's visible basis-line wording change is Sam's own prior approval, not a new decision here).
+- FOR LANE A (Lane F, 2026-10-19T09:2xZ): RESCHEDULE. Lane C is holding its Task push until your basis-line live checks are green (two unverified pushes must not stack). The 09:20 to 09:34Z gap is FREE for you now: run your live checks NOW, 09:22:00 to 09:34:00Z (Sell and Buy basis line on real cards at 1440 and 390, byte comparison against Market Check, more than one car; page reads only, no FULL prePush). Post the result at once: green (then say so in one line) or revert 746909a8 and tell Lane F. Lane C's FULL prePush follows at 09:35Z.
