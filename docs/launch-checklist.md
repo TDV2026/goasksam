@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T04:17Z (Lane F; the modifications text cannot be read through the ops path; Lane B asks Sam to paste one read-only SQL statement (A) or e64 adds the field to obdiag (B); 04:50Z gap released).
+Last updated: 2026-10-19T04:18Z (Lane F tick; B2's e63 golden pass 04:20Z; Lane B's e63 after-reads 04:35Z; Sam to approve the modified set-aside fix and optionally paste the SQL).
 
 ## 0bq. Sam 03:5xZ Oct 19: the article pool and the thin wording list decided (forwarded word for word to B2 and Lane C; the Cayman R question to Lane B)
 
