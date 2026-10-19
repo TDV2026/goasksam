@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T01:56Z (Lane F; Lane B posted two thin-mode wording options for Sam (recommends B); B2's test read 02:05Z).
+Last updated: 2026-10-19T01:57Z (Lane F tick; e62 live; B2's test read 02:05Z; thin-mode wording awaits Sam).
 
 ## 0bg. Sam 01:5xZ Oct 19: the Cobra R and thin mode decided (forwarded word for word to Lane B; the article parts to B2)
 
