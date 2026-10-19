@@ -122,7 +122,7 @@ export function samLines(c, now = Date.now()) {
     // never new wording; the full line returns once the card lists the sales.
     const firstOnly = m.noCluster && m.thinLine && m.soldLine === m.thinLine && !m.cardListsSales;
     const said = firstOnly ? (String(m.thinLine).match(/^.*?\.(?=\s|$)/) || [String(m.thinLine)])[0] : m.soldLine;
-    out.push({ kind: "range", rung: m.rungLines || [], text: said + (pl ? ` The bid is ${pl}.` : "") });
+    out.push({ kind: "range", rung: m.rungLines || [], text: said + (pl ? ` The bid is ${pl}.` : ""), ...(pl ? { placing: pl } : {}) });   // placing: the same word, as its own field (Buy redesign 1b)
   }
   const t = (c.timeline || []).filter(a => a && a.date);
   const s0 = c.seen_before;
