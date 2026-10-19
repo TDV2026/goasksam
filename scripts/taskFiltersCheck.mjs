@@ -58,6 +58,7 @@ const SENTENCES = [
   ["a 1987 Buick Regal Grand National", { make: "Buick", model: "Regal", trim: "Grand National", year_min: 1987 }, { trim: "Grand National" }],
   ["2016 Porsche 911 R", { make: "Porsche", model: "911", trim: "R", year_min: 2016 }, { trim: "R" }],
   ["1997 Land Rover Defender 110", { make: "Land Rover", model: "Defender", trim: "110", year_min: 1997 }, { trim: "110" }],
+  ["Find me a 1969 Ford Mustang Mach 1", { make: "Ford", model: "Mustang", trim: "Mach 1", year_min: 1969, year_max: 1969 }, { trim: "Mach 1" }],
   ["2019 Porsche 911 GT3 RS", { make: "Porsche", model: "911", trim: "GT3 RS", year_min: 2019 }, { trim: "GT3 RS" }],
   ["1979 Porsche 930 Turbo", { make: "Porsche", model: "911", generation: "930", trim: "930 Turbo", year_min: 1979 }, { trim: "930 Turbo" }],
   ["Looking for a red Miata, manual, under 15k", { make: "Mazda", model: "Miata", trim: "Looking Red Manual Under", gearbox: "manual", colour: "red", budget_max: 15000 }, { trim: undefined, gearbox: "manual", colour: "red", budget_max: 15000 }],
@@ -75,6 +76,12 @@ for (const [sentence, proposed, want] of SENTENCES) {
   ok(Object.entries(want).every(([k, x]) => f[k] === x), `${sentence}: ${JSON.stringify(want)} (got ${JSON.stringify(f)})`);
   ok(!("trim" in f) || f.trim === want.trim, `${sentence}: no partial trim ever (got ${JSON.stringify(f.trim)})`);
 }
+// MACH 1 (Lane C as integrator, Oct 19 2026, Lane F's decision): one digit after a kept trim word stays in the trim, so the
+// Task reads and hunts the Mach 1 (the engine's 18 sales), never the plain 1969 Mustang; a digit on its own, or after a
+// sentence word, is still dropped.
+ok(knownTrim("Mach 1", { make: "Ford", model: "Mustang" }) === "Mach 1", "knownTrim keeps Mach 1");
+ok(knownTrim("1", { make: "Ford", model: "Mustang" }) === null && knownTrim("Under 1", { make: "Ford", model: "Mustang" }) === null, "a lone digit, or one after a sentence word, is not a trim");
+{ const f = validateJob("hunt", typedCar({ make: "Ford", model: "Mustang", year_min: 1969 }, V("Ford", "Mustang", { trim: "Mach 1", year: 1969 }))).filters; ok(taskRow(f, f.year_min).listing_title === "1969 Ford Mustang Mach 1", "Mach 1: the Task's row reads the Mach 1"); }
 // The guard reads the typedCar output too (the resolver-filled job passes validateJob a second time in execSetup).
 { const p = validateJob("hunt", typedCar({ make: "Porsche", model: "911", generation: "997", gearbox: "manual", colour: "black", budget_max: 70000 }, V("Porsche", "997", { parentModel: "911", trim: "Find ME Manual Under", year: null }))).filters;
   ok(p.trim === undefined && p.gearbox === "manual" && p.colour === "black" && p.budget_max === 70000 && p.generation === "997", `the resolver's sentence trim is dropped after typedCar too (got ${JSON.stringify(p)})`); }
