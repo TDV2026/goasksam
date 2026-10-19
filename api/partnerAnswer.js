@@ -20,6 +20,7 @@ import crypto from "node:crypto";
 import { isCrewRequest } from "../lib/_crew.js";
 import { isPartnerRequest } from "../lib/_partnerAccess.js";
 import { checkCeiling } from "../lib/_ceilings.js";
+import { currentEpoch } from "../lib/_epoch.js";
 import { photoId, photoUrlFor, fetchPhoto, vinPhotoKey, safeImageUrl, sizedPhotoUrl } from "../lib/_salePhoto.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { vinAppearances, carIdentity, normVin } from "./_historyData.js";
@@ -88,6 +89,13 @@ export async function readDemoLast(env, car) { const key = demoKey(car); return 
 export function lastGoodUsable(v, nowMs = Date.now()) {
   const t = v && Date.parse(v.readAt);
   return !!(v && v.out && v.out.ok && v.engineVersion === ENGINE_VERSION && Number.isFinite(t) && nowMs - t < LAST_MAX_MS);
+}
+
+// FIX 2's one rule, pure (scripts/demoStoredCheck.mjs): a stored demo answer is served before Market Check's handler only
+// when it is a full result of the current ENGINE_VERSION, under a day old, and read after the current sales epoch.
+export function storedDemoServable(v, epoch, nowMs = Date.now()) {
+  const epMs = epoch ? Date.parse(epoch) : NaN, readMs = v ? Date.parse(v.readAt) : NaN;
+  return !!(lastGoodUsable(v, nowMs) && fullResult(v.out) && Number.isFinite(epMs) && Number.isFinite(readMs) && readMs > epMs);
 }
 
 export const PILL_SLOT = '<div class="gas-pill-slot"></div>';
@@ -494,9 +502,21 @@ export default async function handler(req, res) {
   // answer (a demo car) or the plain still-reading state.
   // (c): a demo car whose stored answer is the engine's question (current version, under a day old) is answered from that
   // store, never computed on the page (the engine never stores a question in the Market Check store).
-  if (!refine && !vinIn && !(Number(asked) > 0)) {
+  // FIX 2 (Sam's demo speed order, Oct 19 2026; Lane C): a demo car's stored full answer is served straight away, before
+  // Market Check's handler, ONLY when it carries the current ENGINE_VERSION and is under a day old (lastGoodUsable) AND
+  // was read after the current sales epoch (the last ingest that added sales, lib/_epoch.js), so it is never older than
+  // what Market Check itself would serve. Anything else reads through the handler as before. A VIN view gets its own VIN
+  // history and name, as the existing fallback does.
+  if (!refine && !(Number(asked) > 0)) {
     const qk = demoKey(text), qlast = qk && env ? await readLast(env, qk) : null;
-    if (lastGoodUsable(qlast) && questionResult(qlast.out)) return res.status(200).json({ ...qlast.out, history, storedQuestion: true });
+    if (!vinIn && lastGoodUsable(qlast) && questionResult(qlast.out)) return res.status(200).json({ ...qlast.out, history, storedQuestion: true });
+    if (lastGoodUsable(qlast) && fullResult(qlast.out)) {
+      if (storedDemoServable(qlast, await currentEpoch(env).catch(() => null))) {
+        const out = vinIn ? { ...qlast.out, history, vin: vinIn, carName: carNameOf(id), storedDemo: true } : { ...qlast.out, storedDemo: true };
+        out.updated = await updatedP;
+        if (!venueLeak(out).length) return res.status(200).json(out);
+      }
+    }
   }
   let r;
   try { r = await marketCheckAnswer(req, text, refine, asked, true); } catch (e) {
