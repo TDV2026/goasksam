@@ -2,7 +2,7 @@
 // from the one resolver's read of the buyer's words when it is the same car. Fixtures are the resolver's own output
 // for each phrase (parseQueryResolved, checked by hand Oct 13 2026). No network.
 //   node scripts/taskFiltersCheck.mjs
-const { typedCar, validateJob, summaryFor, taskRow, knownTrim, statusLine, looseStatus, LOOSE_ORDER } = await import("../lib/tasks/tasks.js");
+const { typedCar, validateJob, summaryFor, taskRow, knownTrim, statusLine, looseStatus, LOOSE_ORDER, engineAsks, setupQuestion, blockLines } = await import("../lib/tasks/tasks.js");
 let fails = 0, passes = 0;
 const ok = (c, what) => { if (c) passes++; else { fails++; console.log("FAIL  " + what); } };
 const V = (make, model, extra = {}) => ({ make, model, trim: null, edition: null, variant: null, wheelbase: null, series: null, bodyStyle: null, year: null, ...extra });
@@ -145,6 +145,26 @@ ok(statusLine({}, null, 0) === "Nothing yet. Sam is watching.", "nothing at all:
 { const st = await looseStatus({}, { filters: { make: "Porsche", model: "911", colour: "black", gearbox: "manual" } }, [], { search }); ok(st.text === "Nothing yet. Sam is watching.", "no candidate rows: Nothing yet. Sam is watching., never a count"); }
 ok(statusLine({ colour: "black" }, "colour", 8) === "Nothing black yet. 8 other cars match the rest." && statusLine({ colour: "black" }, "colour", 1) === "Nothing black yet. 1 other car matches the rest.", "Sam's wording exactly, singular and plural");
 ok(LOOSE_ORDER[0] === "colour" && LOOSE_ORDER[LOOSE_ORDER.length - 1] === "generation", "the order: colour first, generation last");
+
+// THE ENGINE ASKS FIRST (e65 escalatedFrom; Lane C as integrator, Oct 19 2026, Lane F's decision): a bare 2001 M3 is a body
+// question on Market Check. The pooled read the shared card escalates to carries escalatedFrom; the Task's setup asks the
+// engine's question in its words, and the email prints no count or range from that read. Fixtures are the shapes e65 returns.
+{ const PROMPT = "Coupe or convertible? They sell in different markets.";
+  const pooled = { kind: "range", low: 20000, high: 47000, count: 12, family: "2001 M3s", escalatedFrom: { tier: "body_choice", options: ["Coupe", "Convertible"], prompt: PROMPT } };
+  const conv = { kind: "range", low: 20000, high: 41000, count: 9, family: "2001 M3 convertibles", escalatedFrom: null };
+  const a = engineAsks(pooled);
+  ok(a && a.prompt === PROMPT && a.options.join("|") === "Coupe|Convertible", "engineAsks: the engine's own prompt and options");
+  ok(engineAsks(conv) === null && engineAsks(null) === null && engineAsks({ escalatedFrom: { tier: "body_choice", prompt: null } }) === null, "engineAsks: nothing when the engine asked nothing");
+  const rows = [];
+  const read = row => { rows.push(row.listing_title); return Promise.resolve(/Convertible|convertible/.test(row.listing_title) ? conv : pooled); };
+  const q = await setupQuestion({}, { make: "BMW", model: "M3", year_min: 2001, year_max: 2001 }, read);
+  ok(q && q.prompt === PROMPT && rows[0] === "2001 BMW M3", `setup: a bare 2001 M3 asks the engine's body question (got ${JSON.stringify(q)})`);
+  ok(await setupQuestion({}, { make: "BMW", model: "M3", body: "convertible", year_min: 2001, year_max: 2001 }, read) === null && rows.length === 1, "setup: a named body asks nothing and reads nothing");
+  ok(await setupQuestion({}, { make: "BMW", model: "M3", year_min: 2001, year_max: 2001 }, () => Promise.reject(new Error("x"))) === null, "setup: a read that fails asks nothing");
+  const marked = blockLines(pooled, 30000, "", "Current bid $30,000.");
+  ok(marked.rangeLine === null && marked.lines.join(" ") === "Current bid $30,000." && !/\b12\b|\$20,000|\$47,000|sales/.test(marked.lines.join(" ")), `email: a marked read prints the bid only, no count or range (got ${JSON.stringify(marked.lines)})`);
+  const placed = blockLines(conv, 30000, "", "Current bid $30,000.");
+  ok(placed.rangeLine && /Current bid \$30,000/.test(placed.rangeLine), `email: an unmarked read is placed as before (got ${JSON.stringify(placed)})`); }
 
 console.log(`taskFiltersCheck: ${passes} passed, ${fails} failed`);
 process.exit(fails ? 1 : 0);
