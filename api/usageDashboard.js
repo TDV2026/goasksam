@@ -3527,6 +3527,14 @@ async function handleOps(req, res) {
             const broad = (await supabaseSelect(env, `sales_archive?select=${cols}&make=ilike.${encodeURIComponent("*" + v.make + "*")}&sale_price=not.is.null&sale_date=gte.${since5}${yq}&or=(model.ilike.${mdl},listing_title.ilike.${mdl})&order=sale_date.desc&limit=1000`)) || [];
             notFetched = broad.filter(r => !known.has(r.id)).map(r => rowOut(r, { reason: "not returned by any fetch (outside the fetch filters: model/title scope, year bound, window or venue hold-out)" }));
           }
+          // e65 (the Cayman R and Defender 90 reads): a row the answer SET ASIDE after the fetch (an odd sale, a modified or
+          // project car shown in the set-aside count) is fetched, not missing. It was listed as "not returned by any fetch"
+          // because the set-aside rows are neither in the pool nor in the fence list; it now reads as set aside, with the reason.
+          const asideKey = x => `${String(x.title || "").toLowerCase().trim()}|${String(x.date || "").slice(0, 10)}|${Math.round(Number(x.price) || 0)}`;
+          const asideBy = new Map((Array.isArray(ob.setAsideRows) ? ob.setAsideRows : []).map(a => [asideKey(a), a]));
+          const setAside = [];
+          notFetched = notFetched.filter(r => { const a = asideBy.get(asideKey(r)); if (!a) return true; setAside.push({ ...r, reason: `set aside after the fetch (${a.reason || "odd sale"})` }); return false; });
+          excluded.push(...setAside);
           considered = { includedCount: included.length, excludedCount: excluded.length, abroadCount: abroad.length, notFetchedCount: notFetched.length, included, excluded, abroad, notFetched };
         }
         // reserve=1 (Oct 2026, Job 3 verify): the two reserve-tile labels, read-only, archive-only.
