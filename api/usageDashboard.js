@@ -3525,7 +3525,10 @@ async function handleOps(req, res) {
           if (v.model) {
             const since5 = new Date(Date.now() - 1825 * 864e5).toISOString().slice(0, 10);
             const cols = "id,year,make,model,raw_title:listing_title,source:platform,auction_end_date:sale_date,price:sale_price,currency:raw_record->>currency,body:raw_record->>body_style,cc:raw_record->>country_code,city:raw_record->>city,state:raw_record->>state";
-            const yq = v.year ? `&year=eq.${Number(v.year)}` : "";
+            // e67: the lookup covers the years the answer's own pool spans (poolYears), with the typed year, not the typed year alone
+            const py = Array.isArray(ob.poolYears) && ob.poolYears.length === 2 ? ob.poolYears.map(Number) : null;
+            const yLo = Math.min(...[py && py[0], v.year && Number(v.year)].filter(Number.isFinite)), yHi = Math.max(...[py && py[1], v.year && Number(v.year)].filter(Number.isFinite));
+            const yq = Number.isFinite(yLo) && Number.isFinite(yHi) ? (yLo === yHi ? `&year=eq.${yLo}` : `&year=gte.${yLo}&year=lte.${yHi}`) : "";
             const mdl = encodeURIComponent("*" + String(v.model).trim() + "*");
             const broad = (await supabaseSelect(env, `sales_archive?select=${cols}&make=ilike.${encodeURIComponent("*" + v.make + "*")}&sale_price=not.is.null&sale_date=gte.${since5}${yq}&or=(model.ilike.${mdl},listing_title.ilike.${mdl})&order=sale_date.desc&limit=1000`)) || [];
             notFetched = broad.filter(r => !known.has(r.id)).map(r => rowOut(r, { reason: "not returned by any fetch (outside the fetch filters: model/title scope, year bound, window or venue hold-out)" }));
@@ -3547,7 +3550,19 @@ async function handleOps(req, res) {
           const modelTok = String(v.model || "").toLowerCase().replace(/[^a-z0-9]/g, "");
           for (const r of excluded) r.cause = "fence";
           for (const r of abroad) r.cause = "market";
+          // e67 (Sam's approved diagnosis change): a sale the fetch DID return but no list holds was dropped by a later step;
+          // it carries that cause and, when known, which step (the halo or variant set-aside, else the rung, body or trim step).
+          // "not fetched" stays only for a sale the fetch's own filter did not return.
+          const fetchedIds = d && d.fetchedIds instanceof Set ? d.fetchedIds : null;
+          const asideIds = new Set((Array.isArray(ob.asideCards) ? ob.asideCards : []).map(c => c && c.id != null ? String(c.id) : null).filter(Boolean));
           for (const r of notFetched) {
+            if (fetchedIds && r.id != null && fetchedIds.has(String(r.id))) {
+              r.cause = "dropped after the fetch";
+              r.reason = asideIds.has(String(r.id)) ? "set aside as a halo or other variant (the answer's aside)" : "dropped by a later step (the rung, body or trim step)";
+            }
+          }
+          for (const r of notFetched) {
+            if (r.cause) continue;
             const d0 = String(r.date || "").slice(0, 10);
             const storedModel = String(r.model || "").toLowerCase().replace(/[^a-z0-9]/g, "");
             r.cause = (windowStart && d0 && d0 < windowStart) ? "window" : (modelTok && storedModel && !storedModel.includes(modelTok) && !modelTok.includes(storedModel)) ? "label" : "not fetched";
