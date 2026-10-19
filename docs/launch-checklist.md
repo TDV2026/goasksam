@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T05:00Z (Lane F; Sam approved the modified rule to build as e65 (ships only after his spot check) with his steer on induction part (added boost only, not bolt-on intake or exhaust); the house drop explanation to be pasted in full in the next report).
+Last updated: 2026-10-19T05:04Z (Lane F; Sam decided the rebuild and change-words wording and planned the keepHouse side-by-side (ten cars, with and without, after e65); the house drop is unchanged).
+
+## 0by. Sam 05:0xZ Oct 19: rebuild and change-words decided, house drop side-by-side planned (forwarded word for word to Lane B)
+
+1. REBUILD: a rebuild of the car's own engine in stock specification is maintenance and NEVER sets a sale aside; a rebuild to a different specification (stroker, built engine, forged internals, larger displacement) does; stated in the rule text and the spot-check header. 2. CHANGE WORDS: a light software tune or a bolt-on on a stock car never sets a sale aside by itself; a stage-numbered tune (stage 1 and up), a big or custom tune with added boost or a bigger turbo, a built engine, an engine swap, a conversion kit or a widebody conversion does; the final words list goes at the top of the spot-check lists in plain words. 3. HOUSE-SALE DROP: NO CHANGE; when e65 is live Lane B runs one read per car with and without keepHouse=1 for ten cars (1999 Ferrari 360, 1995 911 Turbo, 2005 Ford GT, 2006 SLR McLaren, 2023 Huracan Tecnica, 1966 Ferrari 275 GTB, 1992 Carrera 4, 2012 Cayman R, 2023 Carrera T, 2022 GT500 Heritage Edition): the answer as it is today, the answer with house sales kept, the number of house sales in the pool, and whether the range moves, by how much and in which direction; F presents it to Sam as plain text. 4. The header of that comparison carries Sam's Sep 1 rule (houses only fill slots online sales cannot) and his later decisions (houses approved for math; readers assume the whole market), so the choice is stated in his own terms: keep the rule and say so on the page, or count house sales in the range. 5. Checklist: house-sale drop, Sam decides after the keepHouse side-by-side (open, after e65).
 
 ## 0bx. Sam 05:0xZ Oct 19: the modified rule APPROVED TO BUILD (ships only after Sam's spot check) and the house drop (forwarded word for word to Lane B)
 
