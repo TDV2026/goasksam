@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T09:22Z (Lane F; typed 'Coupe' shrinks pools (SLR 16 to 1, Lexus LC 8 to 2): single-body gap, to Lane B for e66; B2 re-reads rows 11 and 14 on short names 09:50Z).
+Last updated: 2026-10-19T09:22Z (Lane F; Lane B: SLR and Lexus Coupe refusals are the Oct 15 title-word rule on two-body cars, not the lock; proposal parked for Sam).
 
 ## 0cf. Sam 06:5xZ Oct 19: STANDING AUTHORITY while Sam sleeps (about eight hours from now; routed to every lane)
 
