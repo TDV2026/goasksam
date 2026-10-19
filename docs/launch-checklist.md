@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T05:10Z (Lane F; e63 pass 1 DONE: 51 cars, all HTTP 200, thin lines read right (Cobra R few_comparable, 275 GTB house_share, Lancia Integrale a result); one copy defect (one sales) fixed in e65; pass 2 needs a gap; Sam's choice on the e64 gap order is open).
+Last updated: 2026-10-19T05:17Z (Lane F tick; e63 pass 1 done; B2's golden pass 05:20Z and extent measure 05:35Z; gap order for e64 awaits Sam).
 
 ## 0by. Sam 05:0xZ Oct 19: rebuild and change-words decided, house drop side-by-side planned (forwarded word for word to Lane B)
 
