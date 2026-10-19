@@ -1209,7 +1209,9 @@
     var left = '<p class="eyebrow hero-label">Market Check</p>' +
       '<h1 class="hero-carname">' + esc(m ? (m.displayName || appendChosenLabel(carLabel(d.resolvedCar))) : appendChosenLabel(carLabel(d.resolvedCar))) + "</h1>" +
       heroMetaLine(d);
-    left += (window.sellsForCardHtml ? window.sellsForCardHtml(d, {}) : "");
+    // e63 (Sam, Oct 19 2026; Lane C as integrator, Lane A away): ONE list on the spread refusal too. The card carries the
+    // engine's line ("Sales too spread out for a range."), the tiles below carry the sales; no sale prints twice.
+    left += (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false }) : "");
     if (!d.cluster) {
       var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.older") + "</p>";
     }
