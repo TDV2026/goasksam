@@ -333,6 +333,14 @@ try {
 } catch (e) {
   record("thin card shows no range (scripts/thinCardNoRange.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The Buy card's sold-prices sentence prints the engine's own thin line (e66, Lane C's live find, Sam's rule): "not
+// enough" wording only under few_sales. No network.
+try {
+  const out = execSync("node scripts/thinSoldLine.mjs", { encoding: "utf8" });
+  record("Buy card thin line is the engine's (scripts/thinSoldLine.mjs)", "PASS", (out.match(/thinSoldLine: .*/) || [""])[0]);
+} catch (e) {
+  record("Buy card thin line is the engine's (scripts/thinSoldLine.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Buy's card and its one question (Oct 14 2026, Lane C): the question rule on three fixtures, the no-question case, spec
 // chips left out when the listing doesn't state them, both Sam lines when the car has a history, the Task from the page's
 // spec. No network.
