@@ -10369,3 +10369,13 @@ Search check: no public page wording changed beyond the gearbox chip on the 43 c
 
 ## Lane B2, e64 rows held pending (Oct 19 2026)
 Rows 57 to 62 added as pending (Ford GT, Carrera GT, 250 GT California, 2009 California, Skyline GT-R, IROC-Z) plus the four must-not-cross pairs written as a rule; pins and the pair check follow Lane B's e64 after column. Local commit, file work only.
+
+## Lane B2, row 48 FAIL, bare "2001 BMW M3" (Oct 19 2026, read 06:22Z, api mode, e63)
+Pin: a question and no count (the car has coupe and convertible bodies). What each product returned, exact words from the run:
+- marketCheck: expected a question and no count, got 12 $20,000 to $47,000
+- buy: expected a question and no count, got 12 $20,000 to $47,000
+- sell: expected a question and no count, got 12 $20,000 to $47,000
+- tasks: expected a question and no count, got 12 $20,000 to $47,000
+- Task email: expected a question and no count, got 12 $20,000 to $47,000
+- Market Check page: render drift against the engine answer (page read 06:22:54Z)
+Rows 49 (2001 M3 Coupe, 3 sales, thin) and 50 (2001 M3 Convertible, 9 sales) pass on all four products and the chips match the typed counts (3 and 9). Not rerun, per Lane F. For Lane B: the bare answer returns a pool of twelve instead of asking the body question.
