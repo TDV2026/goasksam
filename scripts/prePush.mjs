@@ -374,6 +374,14 @@ try {
 } catch (e) {
   record("No page-written thin wording (scripts/thinWordsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Sell asks the engine's question first (Lane C, Oct 19 2026, Sam's rule): a bare "1965 Ford Mustang" asks the body, as
+// Market Check does, before any range. No network.
+try {
+  const out = execSync("node scripts/sellQuestionCheck.mjs", { encoding: "utf8" });
+  record("Sell asks the engine's question first (scripts/sellQuestionCheck.mjs)", "PASS", (out.match(/sellQuestionCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Sell asks the engine's question first (scripts/sellQuestionCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
