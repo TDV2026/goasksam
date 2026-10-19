@@ -9814,3 +9814,41 @@ Search check: no public page touched.
   No console errors and no 5xx in either. The first pass of (2) missed because my script did not wait out "Pulling the real sales"; the rerun at 11:34Z passed.
 Search check: no public page touched (the new Sell is behind SELL_NEXT_ON).
 - PUSHED (Lane B, 2026-10-19T13:16Z): e67 2efa0996, pushed on 0 FAIL. Lock released. Engine e67-20261019-raretrims; the warm and the after-reads run in the 13:20Z and 13:35Z gaps; tonight 00:10Z runs the keep-warm in six parts. Revert rule armed.
+
+## FROM SAM (via Lane F, 2026-10-19 13:3xZ): PARTNER DEMO ORDERS, two priorities in parallel (replaces the earlier demo-page blocks; verbatim)
+Order for Lane C (the demo is theirs), with Lane B and Lane E assisting where named.
+
+SAM'S REPORT: on the demo, the 2023 Porsche 911 GT3 and the 1965 Ford Mustang do not show the full listing page; they show the range card, the title and the sales list only. Only the 2014 GT3 (the real listing) shows the full page. Those are two of the seven demo cars Sam tried. He wants all seven to show the full listing page, and he wants the load time cut hard because it is too slow for the demo. Both are priorities. Do whatever it takes within the rules below.
+
+THE SEVEN: 2015 Porsche 911 GT3, 2005 Porsche 911, 1965 Ford Mustang, 1957 Porsche 356 Speedster, 1966 Ferrari 275 GTB, 2023 Porsche 911 GT3, and the 2014 Porsche 911 GT3 (the listing car). Confirm this list from the code and tell the Desk if the current seven differ.
+
+PRIORITY 1, FULL LISTING PAGE FOR ALL SEVEN
+Stage 1, diagnosis, no push: for each of the seven, which sections render and which do not, and why (by design or defect). Report it as soon as done.
+Stage 2, build, under these rules:
+- Each of the seven shows the full listing frame in the same layout as the 2014 GT3: title, photo, year, "About this car", the Buy It Now, Make offer and Save buttons, then the sales list and range card.
+- The frame is a sample listing and says so, with a visible "Sample listing" label near the title, so a screenshot cannot be taken for a real eBay listing. The 2014 GT3 stays as it is.
+- No VIN and no "This car last sold" panel on the six sample cars. Mileage shown only if it comes from a real sale in the engine's own answer, labelled as that sale's.
+- The sample asking price is a round figure inside the engine's range, labelled "Sample asking price". It is demo chrome only and never feeds the range card or any engine output. The 1966 Ferrari 275 GTB is thin with no range: show the sample frame with no price and no buttons, and the engine's own line and its sales.
+- The photo caption stays honest: "Photo from a recent sale of a car like this one."
+- The page computes nothing itself. Every range, count, sale row and line comes from the one engine's answer (partnerAnswer). No second source. The body question ("Which Mustang?") stays as the engine asks it, wording unchanged.
+- Venue-blind stays: date, price, mileage and photo only, nothing that names a venue. noindex stays. The page stays code-gated.
+
+PRIORITY 2, LOAD TIME
+Stage 1, measurement, in the next free gap, one archive load at a time: for each of the seven, time to first paint, time to the range card and time to the sales list, cold and warm, from outside as a visitor would see it. State where the time goes: the answer read, a cold stored answer, images, the page code, or the body question.
+Check this first: each engine bump (e65, e66, e67) changed the version the demo's stored answers are keyed under, so the warm answers for the seven may be cold until re-warmed. If that is the cause, fix it for good: after every engine push, warmDemo for the seven runs automatically in the next gap and the demo serves only the stored answer for the current engine version.
+Stage 2, fix, whatever the measurement shows, within these rules:
+- The page shell appears at once and the answer fills in. No blank page. No spinner that hides a result already available.
+- Serve the stored answer for the current engine version for the seven, never a stale one from an older version. If the stored answer is missing or old, read the engine once, store it, and never compute on the page.
+- Images: right-sized thumbnails and the main photo, lazy-load below the fold, preload only the main photo.
+- Keep-warm for the seven at a steady rhythm inside the gaps, one archive load at a time, no overlap with pullLive.
+- Target: each of the seven shows its full page in about two seconds on a first visit. Report what each actually reads, before and after.
+- No spend: no re-ingest, no metered requests. The warm reads use the existing archive only.
+
+ORDER OF WORK: the read-only diagnosis and measurement go first, in the next free gaps. The e67 push at 13:05Z and the e68 push at 14:20Z keep their places. The demo page build and the speed fix then take the next named full-tier gap after e68, under one PUSH LOCK with a full prePush alone, ahead of the SEO audit, the C2 to C4 crawler branch and the golden pass. Lane B names the gap. If the speed fix alone is smaller and ready earlier, it may ship first on its own lock.
+After-reads: all seven cars, a plain GT3 listing (must not change), a refusal case, a thin case and a normal range case. Revert on any change outside the demo page or any engine number changing.
+
+The partner demo stays HELD from any partner look until the seven are re-read clean and the page is fast. Nothing goes to Cameron or any partner. No secrets: do not print the demo address or the code in chat, files or logs.
+
+One-engine rule applies. Report stage by stage. No time estimates. No em or en dashes in any drafted copy.
+
+LANE F SCHEDULE for this order (the gaps; Lane F names them, not Lane B): diagnosis and code reading now (no load). Measurement, warm, from outside in a browser page, one car at a time: 13:45:00 to 13:49:30Z (after Lane B's 13:20Z e67 warm). Measurement, cold (forced fresh read per car): 14:45:00 to 14:49:30Z. Demo page build and speed fix FULL prePush alone, ONE PUSH LOCK, Lane C: 14:50:00Z (after e68 and its after-reads); after-reads 15:05 to 15:14Z. SEO audit, C2 to C4, e69 and the golden pass move later (see the checklist).
