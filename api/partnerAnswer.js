@@ -25,7 +25,7 @@ import { supabaseEnv } from "../lib/_supabase.js";
 import { vinAppearances, carIdentity, normVin } from "./_historyData.js";
 import { lastUpdatedDate } from "../lib/asOf.js";
 import { sellsForCardHtml, latestQuarterRowHtml } from "../lib/sellsForCard.js";
-import { mapEngineAnswer } from "../lib/onebox.js";
+import { mapEngineAnswer, ENGINE_VERSION } from "../lib/onebox.js";
 
 // THE SHARED CARD (Sam, Oct 16 2026; Lane A's lib/sellsForCard.js): the "What these sell for" card is rendered here by
 // the one function every product uses, from the very answer Market Check's page hands it (its raw answer), so the
@@ -54,7 +54,7 @@ async function writeLast(env, key, out, { force = false } = {}) {
   if (!force && Date.now() - (lastWrote.get(key) || 0) < LAST_WRITE_EVERY_MS) return false;
   lastWrote.set(key, Date.now());
   try {
-    const w = await fetch(`${env.supabaseUrl}/rest/v1/app_config?on_conflict=key`, { method: "POST", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ key, value: { readAt: out.readAt || new Date().toISOString(), savedAt: new Date().toISOString(), out } }), signal: AbortSignal.timeout(3000) });
+    const w = await fetch(`${env.supabaseUrl}/rest/v1/app_config?on_conflict=key`, { method: "POST", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ key, value: { readAt: out.readAt || new Date().toISOString(), savedAt: new Date().toISOString(), engineVersion: ENGINE_VERSION, out } }), signal: AbortSignal.timeout(3000) });
     return w.ok;
   } catch { return false; /* best effort: a missed write only means an older last good answer */ }
 }
@@ -77,9 +77,12 @@ export async function refreshDemoAnswer(env, car, { host = "goasksam.com" } = {}
   const ok = await writeLast(env, key, out, { force: true });
   return { car, stored: ok, readAt: out.readAt || null, answerType: out.answerType, ms: Date.now() - t0 };
 }
+// Lane B (Sam's demo orders, Oct 19 2026): the last good answer carries the ENGINE_VERSION it was read under and is
+// never served under another version (an answer kept from before an engine push is an older engine's answer). A row
+// stored before this change carries no version and is not served either; the next warm or live read stores a new one.
 export function lastGoodUsable(v, nowMs = Date.now()) {
   const t = v && Date.parse(v.readAt);
-  return !!(v && v.out && v.out.ok && Number.isFinite(t) && nowMs - t < LAST_MAX_MS);
+  return !!(v && v.out && v.out.ok && v.engineVersion === ENGINE_VERSION && Number.isFinite(t) && nowMs - t < LAST_MAX_MS);
 }
 
 export const PILL_SLOT = '<div class="gas-pill-slot"></div>';
