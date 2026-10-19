@@ -4598,13 +4598,28 @@ async function handleOps(req, res) {
   // call the page makes, with a long clock so each compute finishes and fills its stored row. Archive only, nothing new is
   // computed and no figure changes: a visitor's first read finds the cards stored. ?list=a|b overrides; ?budget= in ms.
   if (task === "warmBuy") {
+    // e66 (Lane F under Sam's standing authority; the e65 run warmed only the first search): THREE cards at a time (the
+    // engine's slot count), a card already read in this run is skipped (the same listing sits under several searches), a
+    // stored answer comes back at once, and the list is split into parts so one quiet window's four cron calls (part=1..4)
+    // carry the work. It stops at once when the day's archive guard has tripped (an ocd_budget_guard event today) or when
+    // the archive reads start failing (five in a row). Archive only, no figure changes.
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { parseQueryResolved, searchLive, listingMarket, listingFacts, isAbroadRow, gensNamed } = await import("../lib/live/search.js");
     const BUY_WARM = ["Porsche 911", "Porsche 911 Carrera", "Porsche 911 Turbo", "Porsche 911 GT3", "2024 Porsche 911", "Porsche Cayman", "Porsche Boxster", "Chevrolet Corvette", "Ford Mustang", "Ford Bronco", "BMW M3", "Mercedes-Benz SL", "Ferrari", "Lamborghini", "Land Rover Defender", "Toyota Land Cruiser", "Toyota Supra", "Nissan Skyline", "Chevrolet Camaro", "Jeep Wrangler"];
-    const list = req.query?.list ? String(req.query.list).split("|").filter(Boolean) : BUY_WARM;
+    const parts = Math.max(1, Math.min(8, Number(req.query?.parts) || 4)), part = Math.max(1, Math.min(parts, Number(req.query?.part) || 1));
+    const all = req.query?.list ? String(req.query.list).split("|").filter(Boolean) : BUY_WARM;
+    const list = req.query?.list ? all : all.filter((_, i) => i % parts === part - 1);
     const budgetMs = Math.min(280000, Number(req.query?.budget) || 270000), t0 = Date.now();
-    const result = { task: "warmBuy", listed: list.length, searched: 0, cards: 0, filled: 0, stillReading: 0, none: 0, notReached: 0, rows: [] };
+    const result = { task: "warmBuy", part, parts, listed: list.length, searched: 0, cards: 0, filled: 0, stillReading: 0, none: 0, skippedSeen: 0, notReached: 0, stopped: null, rows: [] };
+    try {
+      const dayStart = new Date().toISOString().slice(0, 10) + "T00:00:00Z";
+      const trips = await supabaseSelect(env, `app_usage_events?event_type=eq.ocd_budget_guard&created_at=gte.${dayStart}&select=created_at&limit=1`);
+      if (trips && trips.length) { result.stopped = "the daily archive guard tripped today"; return res.status(200).json(result); }
+    } catch (e) { /* an unreadable guard log never blocks the warm; the failure streak below still stops it */ }
+    const seen = new Set();
+    let failStreak = 0;
     for (const q of list) {
+      if (result.stopped) break;
       if (Date.now() - t0 > budgetMs) { result.notReached++; continue; }
       const row = { q };
       try {
@@ -4616,12 +4631,19 @@ async function handleOps(req, res) {
         const tr = Date.now();
         const { rows } = await searchLive(env, v, f, parsed.text);
         const inMkt = (rows || []).filter(x => !isAbroadRow(x.r));
+        const todo = inMkt.filter(x => { const k = String(x.r && x.r.id); if (seen.has(k)) { result.skippedSeen++; return false; } seen.add(k); return true; });
         row.cards = inMkt.length; row.filled = 0; row.stillReading = 0;
-        for (const x of inMkt) {
-          if (Date.now() - t0 > budgetMs) break;
-          const m = await listingMarket(env, x.r, listingFacts(x.r), { deadlineAt: Math.min(t0 + budgetMs, Date.now() + 60000) }).catch(() => null);
-          if (m && m.kind === "pending") row.stillReading++; else if (m && m.kind) row.filled++; else result.none++;
-        }
+        let next = 0;
+        const worker = async () => {
+          while (next < todo.length && !result.stopped && Date.now() - t0 <= budgetMs) {
+            const x = todo[next++];
+            const m = await listingMarket(env, x.r, listingFacts(x.r), { deadlineAt: Math.min(t0 + budgetMs, Date.now() + 60000) }).catch(() => undefined);
+            if (m === undefined) { if (++failStreak >= 5) result.stopped = "five archive reads failed in a row"; continue; }
+            failStreak = 0;
+            if (m && m.kind === "pending") row.stillReading++; else if (m && m.kind) row.filled++; else result.none++;
+          }
+        };
+        await Promise.all([worker(), worker(), worker()]);
         row.ms = Date.now() - tr;
         result.searched++; result.cards += row.cards; result.filled += row.filled; result.stillReading += row.stillReading;
       } catch (e) { row.error = String(e && e.message || e); }
