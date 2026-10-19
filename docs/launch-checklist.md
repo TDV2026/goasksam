@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T01:57Z (Lane F tick; e62 live; B2's test read 02:05Z; thin-mode wording awaits Sam).
+Last updated: 2026-10-19T01:59Z (Lane F; Sam's thin-mode update: thin cards must still show the sales found with one engine line saying why; Lane B reads the code first, then proposes wording with reason codes; B2's thin cars read 'no range, sales shown').
+
+## 0bh. Sam 02:0xZ Oct 19: update to the thin-mode decision, REPLACES item 2 (Options A and B superseded; forwarded word for word to Lane B; the table wording to B2)
+
+When an answer is thin (no range) the card MUST still show the sales found for that exact car (e62 rules: that exact car and year only, no similar cars), with the latest-sale line, and ONE engine-carried line above them saying plainly why no range is shown. Lane B first confirms from code, read-only, that every thin path (too few online sales with a photo, the two-thirds house share) returns the sale rows to the card and reports any that does not (that is the defect to fix first); then proposes the wording in oneEngineAnswer, not the page, with a reason code per thin cause, never claiming an untrue count (a car with eight or more sales is never told "not enough sales"). Starting drafts: "Not enough sales of this exact car to give a reliable range. These are the sales we found." and "Sam can't give a reliable range for this car yet. These are the sales we found." Constraints: no house named, no source counts, no "AI", no month counts, counts under ten as words, no dashes; Sam approves final wording before anything is built. After approval it ships in a normal engine bump with after-reads, and prePush gets a check that fails if a thin card prints a range, prints "not enough sales" for a pool of eight or more, or shows no sale rows. B2's weekend run: a thin car is recorded "no range, sales shown" with the reason code if carried. Items 1 (Lane B's Cobra R split read), 3 and 4 stand; the rule question stays closed (thin mode first).
 
 ## 0bg. Sam 01:5xZ Oct 19: the Cobra R and thin mode decided (forwarded word for word to Lane B; the article parts to B2)
 
