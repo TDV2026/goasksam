@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T01:52Z (Lane F; the Cobra R is thin by the older thin-mode rule (houses two thirds or more), not the eight-sale gate; a Sam question on which rule wins; B2's test read 02:05Z).
+Last updated: 2026-10-19T01:55Z (Lane F; Sam closed the thin-mode rule question (thin mode first) and opened the wording; Lane B's Cobra R split read after B2; B2's article run keeps current behaviour and records the thin reason).
+
+## 0bg. Sam 01:5xZ Oct 19: the Cobra R and thin mode decided (forwarded word for word to Lane B; the article parts to B2)
+
+KEEP THIN MODE FIRST: a pool carried mostly by house sales stays receipts with no range; the eight-sale rule does not override it; no rule is changed now. Lane B takes one read-only crew read of the 2001 Mustang Cobra R's house and online split (counts as words under ten, the share, which side of the thin-mode test it fails) in a Desk gap after B2's turn. A thin card saying "Based on {N} sales" with no range reads like a bug, so Lane B proposes ONE engine-carried line (in oneEngineAnswer, not the page) saying plainly why no range is shown, as two options for Sam's approval: no auction house named, no source counts, no "AI", no month counts, counts under ten as words, no dashes; nothing built until Sam approves one. B2's weekend-results run keeps the current behaviour (thin cars recorded as "no range, none shown") and records per thin car whether the engine's reason is the house share or too few online sales if the answer carries it; no rule change mixed into the article data. Rule question CLOSED: thin mode first. Thin-mode wording OPEN, Sam to approve.
 
 ## 0bf. Sam 01:2xZ Oct 19: B2's pool check approved via obdiag detail=1; Lane B asked to confirm the refusal wording is in the pushed e62 (forwarded word for word)
 
