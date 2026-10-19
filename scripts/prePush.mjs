@@ -389,6 +389,14 @@ try {
 } catch (e) {
   record("Sell shows a builder car's refusal alone (scripts/sellBuilderCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Sell on a refusal (Lane C, Oct 19 2026, Sam): every refusal kind and a thin answer draw only the engine's own card;
+// a normal range answer is unchanged. No network.
+try {
+  const out = execSync("node scripts/sellRefusalCheck.mjs", { encoding: "utf8" });
+  record("Sell shows the engine's own card on a refusal (scripts/sellRefusalCheck.mjs)", "PASS", (out.match(/sellRefusalCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Sell shows the engine's own card on a refusal (scripts/sellRefusalCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
