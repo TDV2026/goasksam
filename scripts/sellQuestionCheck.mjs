@@ -68,5 +68,15 @@ replies = [{ question: body }]; await tick(); await tick(); await tick();
 replies = [{}]; S.onSubmit("GT fastback 2+2"); await tick(); await tick();
 ok(calls[calls.length - 1].car === "1965 Ford Mustang GT fastback 2+2", "other words are added to the car");
 
+// A car whose body was already answered in Market Check's own question screen: Sell names it with the body and
+// asks nothing more (the engine answers that car with its range, no question).
+S.onCar({ resolvedCar: { year: 1965, make: "Ford", model: "Mustang", bodyStyle: "Fastback" } }, "1965 Ford Mustang Fastback");
+const before = calls.length;
+chip("California", "California"); chip("self", "x"); chip("none", "x");
+replies = [{ label: "1965 Ford Mustang Fastback", order: ["platform"], platform: null, marketAnswer: { cluster: [43500, 56500], poolN: 11 } }];
+await tick(); await tick(); await tick();
+ok(calls.length === before + 1 && calls[before].car === "1965 Ford Mustang Fastback", "answered in Market Check: the result reads the car with its body, once");
+ok(!OBX.root.innerHTML.includes("<q>") && !/data-sellchip="\d"/.test(OBX.root.innerHTML), "answered in Market Check: no second question");
+
 console.log(`sellQuestionCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
