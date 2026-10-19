@@ -11,11 +11,14 @@
 // the cookie part 2 is SKIPPED, said so, never counted as a pass. Read only, zero OldCarsData requests.
 //   node scripts/partnerEngineMatch.mjs            part 1, part 2 when the cookie is set
 import fs from "node:fs";
-import { partnerShape, venueLeak, historyOf, PILL_SLOT, demoCard, basisLine } from "../api/partnerAnswer.js";
+import { partnerShape, venueLeak, historyOf, PILL_SLOT, PARTNER_CARD_OPTS, demoCard, basisLine } from "../api/partnerAnswer.js";
 import { sellsForCardHtml } from "../lib/sellsForCard.js";
 // The card Market Check draws for an answer (public/js/onebox.js: window.sellsForCardHtml(d, {})); the partner card is
-// the same card with the pill slot, so with the slot taken out the two must be byte-identical.
-const sameCard = (partnerCard, d) => String(partnerCard || "").replace(PILL_SLOT, "") === (demoCard(sellsForCardHtml(d, {}), d) || "");
+// the same card with the pill slot and without the sale rows (the partner page lists those same sales itself, e63), so
+// with the slot taken out it must be byte-identical to Market Check's card with its rows list taken out.
+const noRows = h => String(h || "").replace(/<ul class="sfc-rows">[\s\S]*?<\/ul>/, "");
+const sameCard = (partnerCard, d) => String(partnerCard || "").replace(PILL_SLOT, "") === noRows(demoCard(sellsForCardHtml(d, {}), d) || "") &&
+  String(partnerCard || "") === (demoCard(sellsForCardHtml(d, PARTNER_CARD_OPTS), d) || "");
 
 let pass = 0, fail = 0, skip = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
@@ -39,7 +42,7 @@ const FIX = {
   range: { status: "one_box", tier: "result", cluster: [41500, 58000], poolN: 14, windowMonths: 12, readAt: "2026-10-16T12:00:00Z", setAsideReasons: { project: 1, replica: 1, modified: 0 }, windowLabel: "in the last twelve months", engineVersion: "fixture",
     resolvedCar: { year: 1965, make: "Ford", model: "Mustang", bodyStyle: "Fastback" }, cards: [card(61000, "2026-02-01"), card(39000, "2026-04-11"), card(52000, "2025-12-30", { platform: "others", platformName: "Mecum" }), card(0, "2026-01-01")],
     counts: { setAside: { total: 2, reasons: { project: 1, replica: 1, modified: 0 } } }, trend: { quarters: [{ period: "2026-Q2", low: 40000, high: 57000, count: 8 }, { period: "2026-Q3", low: 1, high: 2, count: 3, thin: true }] } },
-  thin: { status: "one_box", tier: "thin", poolN: 4, windowLabel: "since 2022", thin: { receipts: [{ allIn: 1250000, date: "2024-08-17", venue: "RM Sotheby's", url: "u", title: "t" }, { hammer: 980000, date: "2023-03-02", venue: "Gooding" }] } },
+  thin: { status: "one_box", tier: "thin", poolN: 4, windowLabel: "since 2022", thinReason: "few_sales", thinLine: "Not enough sales of this exact car to give a reliable range. These are the sales we found.", latestSaleLine: "Latest sale: August 2024.", thin: { receipts: [{ allIn: 1250000, date: "2024-08-17", venue: "RM Sotheby's", url: "u", title: "t" }, { hammer: 980000, date: "2023-03-02", venue: "Gooding" }] } },
   question: { status: "one_box", tier: "generation_choice", prompt: "Which generation is it?", askIndex: 1, generationOptions: [{ label: "991", query: "2015 Porsche 991 GT3" }, { label: "992", query: "2023 Porsche 992 GT3" }] },
   clarify: { status: "needs_clarification", clarification: { question: "What year, make and model?" } }
 };
@@ -56,7 +59,8 @@ for (const [name, d] of Object.entries(FIX)) {
     ok(out.sales.every(s => Object.keys(s).sort().join() === "date,miles,name,photo,price" && (s.photo === null || /^(\d{1,15}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/.test(s.photo)) && !venueLeak({ n: s.name }).length), `${name}: a sale is its price, date, mileage, the engine row's own name (venue-safe) and its archive id for the photo only`);
     ok(sameCard(out.card, d), `${name}: the shared card, byte-identical to Market Check's card for the same answer`);
   }
-  if (name === "thin") ok(out.range === null && /Too few to show a range/.test(out.thin || "") && !/\$/.test(out.thin), "thin: words only, never a range or a dollar figure");
+  if (name === "thin") ok(out.range === null && out.thin === d.thinLine && !/\$/.test(out.thin), "thin: the engine's own thinLine, words only, never a range or a dollar figure");
+  if (name === "thin") ok(String(out.card || "").includes(d.thinLine) && String(out.card || "").includes(d.latestSaleLine) && !/\$[\d,]+\s*(?:to|-)\s*\$[\d,]+/.test(String(out.card).replace(/<[^>]+>/g, " ")) && !/sales found, not enough|too spread out/i.test(out.card), "thin: the partner card draws the engine's line and latest sale, no range, no wording of its own");
   if (name === "range") {
     ok(basisLine(d) === "Based on 14 sales, the latest in April 2026." && /Based on 14 sales, the latest in April 2026\./.test(out.card) && !/\d+ months|twelve months|Middle half of/.test(out.card), `range: the card's basis line states no month count (got ${basisLine(d)})`);
     ok(!/<a [^>]*>How Sam decides/.test(out.card) && /<span class="sfc-footer-link">How Sam decides<\/span>/.test(out.card), "range: How Sam decides is plain text, not a link");

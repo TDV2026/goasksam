@@ -83,6 +83,11 @@ export function lastGoodUsable(v, nowMs = Date.now()) {
 }
 
 export const PILL_SLOT = '<div class="gas-pill-slot"></div>';
+// The shared card on the partner views (Sam, Oct 19 2026, e63): the engine's line and latest-sale line as on every
+// product; its sale rows are left to the page's own sales list, which every /preview view draws from the same engine
+// sales right below the card (date, price, mileage, photo through the gated ?photo= path, venue-blind), so no sale
+// shows twice.
+export const PARTNER_CARD_OPTS = { partnerPillsHtml: PILL_SLOT, rows: false };
 // THE DEMO'S COPY OF THE CARD (Sam, Oct 16 2026), two edits on the shared card's own output, nothing else: (1) the basis
 // line states no month count: "Based on {count} sales, the latest in {Month Year}." (the count in words under ten, the
 // latest from the engine's own sale dates; the engine's window is unchanged); (2) "How Sam decides" is plain text, not a
@@ -306,14 +311,14 @@ export function linesOf(d) {
   return out;
 }
 // Under eight sales: words only, never a range.
+// The no-range line (Sam, Oct 19 2026, e63): the engine's own thinLine, else a refusal's or a no-record answer's own
+// samLine. No wording of this file's own; "too spread out" only when the engine's refusal says so.
 function thinTextOf(d, count) {
   if (!d || rangeOf(d)) return null;
   const tier = String(d.tier || "");
-  if (!/^(thin|refusal|not_tracked|body_unavailable)$/.test(tier) && count == null) return null;
-  const n = Number(count) || 0, w = "";   // no window words: the demo states no month count (Sam, Oct 16 2026)
-  if (!n) return "No recorded sales of cars like this" + w + " yet, so there is no range to show.";
-  if (n < RANGE_MIN) return cap(n + " " + plural(n, "recorded sale", "recorded sales") + " of cars like this" + w + ". Too few to show a range.");
-  return "The recorded sales of cars like this" + w + " are too spread out to show a range.";
+  if (typeof d.thinLine === "string" && d.thinLine) return d.thinLine;
+  if (/^(refusal|not_tracked|body_unavailable)$/.test(tier) && typeof d.samLine === "string" && d.samLine) return d.samLine;
+  return null;
 }
 // Trend: only the quarters with eight or more sales.
 function trendOf(d) {
@@ -385,7 +390,7 @@ export function partnerShape(d, text, asked, extra = {}) {
     sales: salesOf(d), asideRows: asideRowsOf(d), asideLine: asideSentence(d), setAside: setAsideOf(d),
     thin: range ? null : thinTextOf(d, count),
     trend: range ? trendOf(d) : null,
-    card: demoCard(sellsForCardHtml(d, { partnerPillsHtml: PILL_SLOT }), d) || null,
+    card: demoCard(sellsForCardHtml(d, PARTNER_CARD_OPTS), d) || null,
     quarter: latestQuarterRowHtml({ ...d, trendQuarters: mapEngineAnswer(d).trendQuarters }) || null,
     lines: linesOf(d),
     carPhoto: carPhotoOf(d, (identityOf(d, extra.id) || {}).year || (/^(\d{4})\b/.exec(String(text || "")) || [])[1] || null),
