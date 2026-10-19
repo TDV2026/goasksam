@@ -4612,6 +4612,37 @@ async function handleOps(req, res) {
   // (parseQueryResolved, searchLive) and reads every in-market card's market answer through listingMarket, the same per-card
   // call the page makes, with a long clock so each compute finishes and fills its stored row. Archive only, nothing new is
   // computed and no figure changes: a visitor's first read finds the cards stored. ?list=a|b overrides; ?budget= in ms.
+  // task=buyqueries (Sam, Oct 19 2026, item 8; READ-ONLY, no write, no spend): the last 30 days of Buy searches as SEARCH
+  // STRINGS with a count each, for the keep-warm list review. Only the query text is selected (no user, IP, session, account
+  // or anonymous id field is read), internal and bot traffic excluded. Strings that look like a VIN, an email address, a
+  // phone number or a person's name are DROPPED server-side and only their number is returned, never the strings.
+  if (task === "buyqueries") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { MAKE_ALIASES, MODEL_ALIASES, MODEL_OWNERSHIP, EXTRA_MAKES } = await import("../lib/vehicleData.js");
+    const days = Math.min(60, Number(req.query?.days) || 30);
+    const since = new Date(Date.now() - days * 864e5).toISOString();
+    const rows = (await supabaseSelectAll(env, `analytics_events?name=eq.search_run&product=eq.buy&internal=is.false&is_bot=is.false&ts=gte.${encodeURIComponent(since)}&select=q:props->>query_text`)) || [];
+    const carWords = new Set();
+    const addW = t => String(t || "").toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length >= 2).forEach(w => carWords.add(w));
+    for (const a of MAKE_ALIASES || []) { addW(a.alias); addW(a.make); }
+    for (const a of MODEL_ALIASES || []) { addW(a.alias); addW(a.make); addW(a.model); }
+    for (const o of MODEL_OWNERSHIP || []) { addW(o.model); (o.makes || []).forEach(addW); (o.aliases || []).forEach(addW); }
+    (EXTRA_MAKES || []).forEach(addW);
+    const looksVin = q => /\b[a-hj-npr-z0-9]{17}\b/i.test(q) || /\b[a-z0-9]{11,17}\b/i.test(q) && /\d/.test(q) && /[a-z]/i.test(q) && q.replace(/[^a-z0-9]/gi, "").length >= 11 && !/\s/.test(q.trim());
+    const looksEmail = q => /\S+@\S+/.test(q);
+    const looksPhone = q => (q.match(/\d/g) || []).length >= 10 && /^[\d\s+().-]+$/.test(q.trim());
+    const looksName = q => { const w = q.trim().split(/\s+/); return w.length >= 2 && w.length <= 3 && w.every(x => /^[A-Za-z][a-z'.-]+$/.test(x)) && !w.some(x => carWords.has(x.toLowerCase())); };
+    const counts = new Map(), shown = new Map(); let total = 0, droppedEvents = 0; const droppedKeys = new Set();
+    for (const r of rows) {
+      const q = String(r.q || "").replace(/\s+/g, " ").trim().slice(0, 120);
+      if (!q) continue; total++;
+      const k = q.toLowerCase();
+      if (looksVin(q) || looksEmail(q) || looksPhone(q) || looksName(q)) { droppedEvents++; droppedKeys.add(k); continue; }
+      counts.set(k, (counts.get(k) || 0) + 1); if (!shown.has(k)) shown.set(k, q);
+    }
+    const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, Math.min(500, Number(req.query?.top) || 200)).map(([k, n]) => ({ q: shown.get(k), n }));
+    return res.status(200).json({ task: "buyqueries", days, searches: total, distinctKept: counts.size, droppedDistinct: droppedKeys.size, droppedSearches: droppedEvents, top });
+  }
   if (task === "warmBuy") {
     // e66 (Lane F under Sam's standing authority; the e65 run warmed only the first search): THREE cards at a time (the
     // engine's slot count), a card already read in this run is skipped (the same listing sits under several searches), a
