@@ -3538,7 +3538,22 @@ async function handleOps(req, res) {
           const setAside = [];
           notFetched = notFetched.filter(r => { const a = asideBy.get(asideKey(r)); if (!a) return true; setAside.push({ ...r, reason: `set aside after the fetch (${a.reason || "odd sale"})` }); return false; });
           excluded.push(...setAside);
-          considered = { includedCount: included.length, excludedCount: excluded.length, abroadCount: abroad.length, notFetchedCount: notFetched.length, included, excluded, abroad, notFetched };
+          // e65 (Sam item 4): every sale outside the answer carries ONE cause class: fence (a rule set it aside, the reason says
+          // which), window (older than the window the answer used, by design), market (sold outside the United States and Canada),
+          // not fetched (inside the window but no fetch returned it), or label (stored under a model the read did not look for).
+          const MONTHS_ = { january: 1, february: 2, march: 3, april: 4, may: 5, june: 6, july: 7, august: 8, september: 9, october: 10, november: 11, december: 12 };
+          const wm = /since (\w+) (\d{4})/i.exec(String(ob.windowWords || ""));
+          const windowStart = wm && MONTHS_[wm[1].toLowerCase()] ? `${wm[2]}-${String(MONTHS_[wm[1].toLowerCase()]).padStart(2, "0")}-01` : null;
+          const modelTok = String(v.model || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+          for (const r of excluded) r.cause = "fence";
+          for (const r of abroad) r.cause = "market";
+          for (const r of notFetched) {
+            const d0 = String(r.date || "").slice(0, 10);
+            const storedModel = String(r.model || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+            r.cause = (windowStart && d0 && d0 < windowStart) ? "window" : (modelTok && storedModel && !storedModel.includes(modelTok) && !modelTok.includes(storedModel)) ? "label" : "not fetched";
+          }
+          const causeCounts = {}; for (const r of [...excluded, ...abroad, ...notFetched]) causeCounts[r.cause] = (causeCounts[r.cause] || 0) + 1;
+          considered = { windowStart, causeCounts, includedCount: included.length, excludedCount: excluded.length, abroadCount: abroad.length, notFetchedCount: notFetched.length, included, excluded, abroad, notFetched };
         }
         // reserve=1 (Oct 2026, Job 3 verify): the two reserve-tile labels, read-only, archive-only.
         const reserve = wantReserve ? {
