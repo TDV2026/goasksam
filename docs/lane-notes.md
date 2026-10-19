@@ -10074,3 +10074,10 @@ Search check: no public page touched.
     /history/1977-datsun-280z/HLS30412310
   Remaining checks in 01:05:00 to 01:10:00Z, light reads: the last 40 VIN pages, the 95 flags re-tested on spaced text (UNCONFIRMED until then, not counted as zero), the meyers-manx read, the third hub's exact lead, and the 6 sitemap URLs that answer 301.
 Search check: no public page touched.
+- STAGE (Lane E, owed proofs, 22:55:00 to 23:04:01Z, one at a time, zero OldCarsData):
+  (1) WIDENINGS BEFORE, done 22:55:17Z (scripts/buyWidenSnapshot.mjs, 9 fixed filter sets through the no-model rerun path, saved byte for byte): live counts 1, 2, 4, 0, 1, 2, 0, 8 and 9 cars. Five sets have 0 to 2 cars with widenings (BMW M3 2011 coupe, 911 GT3 2023, F40, Mustang 1965 red, SL 1963 manual), and those must match after the change.
+  (2) BUYTIMES BEFORE, done 22:57:11Z, one model call per search turn: header and cards ("done") Porsche 911 5.6 s, 1965 Ford Mustang 3.5 s, 2005 Porsche 911 3.0 s, 2023 Porsche 911 GT3 3.1 s. Seen, not mine: the blocking enrich of the first 10 Porsche 911 cards took 78.3 s. That is the stored-row reset after the e73 version bump, the known spike, and not on the visible path.
+  (3) BUYENGINEMATCH on engine e73-20261019-bundle, STOPPED at the deadline after "Porsche 911" (6 cards compared): 5 SAME, 1 DIFF. The 1997 Porsche 911 Carrera Targa card (listing 100494) shows 2 sales on Buy, but Market Check ("1997 911 Carrera Targa") reads 1. Both have no range and both read the same engine version, so this is a one-engine count difference on a live card. It is not from a Lane E change (the Buy card count comes from the stored spec row). FOR LANE B and LANE C. The other three searches were not reached.
+  (4) The count words on a card's market answer: not reached.
+  Owed still: buyEngineMatch on "1965 Ford Mustang", "2005 Porsche 911" and "2023 Porsche 911 GT3", and the count words. Lane F names the gap.
+Search check: no public page touched.
