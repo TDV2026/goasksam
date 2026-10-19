@@ -128,12 +128,20 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 54 | 2001 Ford Mustang Bullitt | 10 sales, $14,000 to $18,500 | read live on e62 |
 | 55 | 2003 Ford Mustang SVT Cobra | 9 sales, $29,000 to $45,500 | read live on e62 |
 | 56 | 2019 BMW 3-Series | thin, 6 sales, no range | read live on e62 |
-| 57 | 2005 Ford GT | PENDING e64: pinned from Lane B's e64 after column | pending Lane B e64 |
+| 57 | 2005 Ford GT | 22 sales, $477,000 to $601,000, scope "2005 GT Coupe" | Lane B e65 after column |
 | 58 | 2004 Porsche Carrera GT | PENDING e64: pinned from Lane B's e64 after column | pending Lane B e64 |
 | 59 | 1959 Ferrari 250 GT California | PENDING e64: pinned from Lane B's e64 after column | pending Lane B e64 |
 | 60 | 2009 Ferrari California | PENDING e64: pinned from Lane B's e64 after column | pending Lane B e64 |
 | 61 | 1971 Nissan Skyline GT-R | PENDING e64: pinned from Lane B's e64 after column | pending Lane B e64 |
 | 62 | 1989 Chevrolet Camaro IROC-Z | PENDING e64: pinned from Lane B's e64 after column | pending Lane B e64 |
+| 63 | 2018 Ford GT | 10 sales, $791,000 to $882,000, scope "GT Coupe models, 2017 to 2019" | Lane B e65 after column |
+| 64 | 2006 Ford GT Heritage Edition | 11 sales, $676,000 to $840,000; Sam's three sales ($793,500, $725,000, $742,500) must be in the pool | Lane B e65 after column and Sam's note |
+| 65 | 1999 Ferrari 550 Maranello | 11 sales, $164,000 to $370,000 | Lane B e65 after column |
+| 66 | 2003 Mercedes-Benz S-Class | 14 sales, $7,500 to $10,000, scope "2003 S-Class Sedan" | Lane B e65 after column |
+| 67 | 2009 Mercedes-Benz S-Class | 9 sales, $9,000 to $14,500 | Lane B e65 after column |
+| 68 | 2022 Mercedes-Benz S-Class | 9 sales, $66,000 to $90,000, scope "S-Class Sedan models, 2021 to 2023" | Lane B e65 after column |
+| 69 | 2016 BMW M3 | 11 sales, $40,500 to $52,000, scope "2016 M3 Sedan" | Lane B e65 after column |
+| 70 | 2026 Lexus LC 500 | 8 sales, $138,000 to $154,000 | Lane B e65 after column |
 | | shared card (rows 3, 5, 8, 14, 20) | the "What these sell for" card, pill slot removed, is byte-identical on Market Check, Buy and Sell, and the partner demo's card equals Market Check's apart from the two differences the demo is built with (the basis line "Based on N sales, the latest in Month Year" and the footer link as a span), which are dropped on both sides for that comparison | a product that does not render the shared card yet is PENDING, not a failure; the Sell count check is also set on rows 8, 10, 14, 22 and 23 |
 
 Per car, in the words of the derivation:
@@ -230,12 +238,20 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":54,"q":"2001 Ford Mustang Bullitt","status":"ready","count":10,"tol":0,"low":14000,"high":18500,"tolPct":0,"lowestSale":8700,"highestSale":22000},
  {"id":55,"q":"2003 Ford Mustang SVT Cobra","status":"ready","count":9,"tol":0,"low":29000,"high":45500,"tolPct":0,"lowestSale":24350,"highestSale":62000},
  {"id":56,"q":"2019 BMW 3-Series","status":"ready","count":6,"tol":0,"low":null,"high":null,"thin":true,"lowestSale":14400,"highestSale":29777},
- {"id":57,"q":"2005 Ford GT","status":"pending","labelHas":["Ford GT"],"countMin":1},
+ {"id":57,"q":"2005 Ford GT","status":"ready","labelHas":["GT Coupe"],"count":22,"tol":0,"low":477000,"high":601000,"tolPct":3},
  {"id":58,"q":"2004 Porsche Carrera GT","status":"pending","labelHas":["Carrera GT"],"countMin":1},
  {"id":59,"q":"1959 Ferrari 250 GT California","status":"pending","labelHas":["250 GT California"],"countMin":1},
  {"id":60,"q":"2009 Ferrari California","status":"pending","labelHas":["California"],"countMin":1},
  {"id":61,"q":"1971 Nissan Skyline GT-R","status":"pending","labelHas":["Skyline GT-R"],"countMin":1},
- {"id":62,"q":"1989 Chevrolet Camaro IROC-Z","status":"pending","labelHas":["IROC-Z"],"countMin":1}
+ {"id":62,"q":"1989 Chevrolet Camaro IROC-Z","status":"pending","labelHas":["IROC-Z"],"countMin":1},
+ {"id":63,"q":"2018 Ford GT","status":"ready","labelHas":["GT Coupe"],"count":10,"tol":0,"low":791000,"high":882000,"tolPct":3},
+ {"id":64,"q":"2006 Ford GT Heritage Edition","status":"ready","labelHas":["Heritage"],"count":11,"tol":0,"low":676000,"high":840000,"tolPct":3,"mustInclude":[793500,725000,742500]},
+ {"id":65,"q":"1999 Ferrari 550 Maranello","status":"ready","labelHas":["550"],"count":11,"tol":0,"low":164000,"high":370000,"tolPct":3},
+ {"id":66,"q":"2003 Mercedes-Benz S-Class","status":"ready","labelHas":["S-Class Sedan"],"count":14,"tol":0,"low":7500,"high":10000,"tolPct":3},
+ {"id":67,"q":"2009 Mercedes-Benz S-Class","status":"ready","labelHas":["S-Class"],"count":9,"tol":0,"low":9000,"high":14500,"tolPct":3},
+ {"id":68,"q":"2022 Mercedes-Benz S-Class","status":"ready","labelHas":["S-Class"],"count":9,"tol":0,"low":66000,"high":90000,"tolPct":3},
+ {"id":69,"q":"2016 BMW M3","status":"ready","labelHas":["M3 Sedan"],"count":11,"tol":0,"low":40500,"high":52000,"tolPct":3},
+ {"id":70,"q":"2026 Lexus LC 500","status":"ready","labelHas":["LC"],"count":8,"tol":0,"low":138000,"high":154000,"tolPct":3}
 ]
 ```
 
@@ -244,5 +260,7 @@ E60 RE-PINS (Oct 18 2026, from Lane B's live e60 after column; window rule: shor
 E61 PINS (Oct 18 2026, from Lane B's e61 after column): rows 48 to 51 added; wideSpread, lowestSale and highestSale pinned as data on rows 18, 29, 50 and 51 (the checker does not read them yet; the card lines that print them are the next wording bump).
 
 E62 PINS (Oct 19 2026, from Lane B's e62 after column): every existing golden row read identical on e62, so no row changed; rows 52 to 56 added for the cars e62 changed (Lancia Delta Integrale, Mach 1, Bullitt, SVT Cobra, 2019 3-Series). The 2001 Mustang Cobra R is not pinned: the table gives no sale count for its thin answer.
+
+E65 PINS (Oct 19 2026, from Lane B's e65 after column for the body-lock rows, DONE 08:53Z): row 57 (2005 Ford GT) pinned, 22 sales, $477,000 to $601,000. Rows 63 to 70 added: 2018 Ford GT, 2006 Ford GT Heritage Edition, 1999 550 Maranello, 2003, 2009 and 2022 S-Class, 2016 BMW M3, 2026 Lexus LC 500. Row 64 carries "mustInclude": the three Heritage Edition sales Sam named ($793,500, $725,000, $742,500); the checker does not read mustInclude yet, it is data until the checker can see the sales list. NOT PINNED, because Lane B's after column gives no range for them: 2012 M3 CRT (20 sales), F430 Scuderia Spider 16M (67), Gallardo Superleggera (29), 2008 F430 Scuderia (body question), 1995 S-Class and 2022 M3 (question first), 1966 GT40 and the S65 AMG pair (thin), and the rare M3 and D50 rows (could not verify or not tracked). They wait for a golden pass on e65. KNOWN CONFLICTS, listed and not resolved: row 48 (bare 2001 BMW M3 pins a question and no count; e65 reads 17 sales, $22,500 to $41,000; PARKED for Sam), the 1969 Camaro (21 to 8 sales, window and range moved), the 2010 Boxster Convertible (17 to 8), the 1965 Ford Mustang demo car (now asks the body question first), the 1989 Miata Roadster (25 to 1, a title-word body gap, fix in e66), the 1969 Camaro Convertible (thin refusal). Rows 1 to 56 are not re-pinned until a golden pass reads them on e65.
 
 E64 PENDING ROWS (Oct 19 2026): rows 57 to 62 (2005 Ford GT, 2004 Porsche Carrera GT, 1959 Ferrari 250 GT California, 2009 Ferrari California which e64 refuses as invalid_vehicle on its year, 1971 Nissan Skyline GT-R, 1989 Chevrolet Camaro IROC-Z) are held as pending until Lane B's e64 after column is posted. Pairs that must not cross, checked once pinned: Ford GT and Mustang GT; Carrera GT and 911 Carrera; 250 GT California and the California models; Skyline GT-R and Skyline. The pairs are a rule here; the checker enforcement comes with the pins.
