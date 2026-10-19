@@ -123,6 +123,11 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 49 | 2001 BMW M3 Coupe | thin, 3 sales, no range; lowest $23,250, highest $76,000 | read live on e61 |
 | 50 | 2001 BMW M3 Convertible | 9 sales, $20,000 to $41,000, wideSpread true; lowest $13,750, highest $63,000 | read live on e61 |
 | 51 | 1972 Datsun 240Z | 15 sales, $16,500 to $35,500, wideSpread true; lowest $12,000, highest $48,000 | read live on e61 |
+| 52 | 1989 Lancia Delta Integrale | 8 sales, $42,000 to $76,500 (e62: a typed trim now reads its pool) | read live on e62 (Lane B) |
+| 53 | 1969 Ford Mustang Mach 1 | 18 sales, $75,000 to $107,000 | read live on e62 |
+| 54 | 2001 Ford Mustang Bullitt | 10 sales, $14,000 to $18,500 | read live on e62 |
+| 55 | 2003 Ford Mustang SVT Cobra | 9 sales, $29,000 to $45,500 | read live on e62 |
+| 56 | 2019 BMW 3-Series | thin, 6 sales, no range | read live on e62 |
 | | shared card (rows 3, 5, 8, 14, 20) | the "What these sell for" card, pill slot removed, is byte-identical on Market Check, Buy and Sell, and the partner demo's card equals Market Check's apart from the two differences the demo is built with (the basis line "Based on N sales, the latest in Month Year" and the footer link as a span), which are dropped on both sides for that comparison | a product that does not render the shared card yet is PENDING, not a failure; the Sell count check is also set on rows 8, 10, 14, 22 and 23 |
 
 Per car, in the words of the derivation:
@@ -213,10 +218,17 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":48,"q":"2001 BMW M3","status":"ready","question":true,"noCountRange":true,"chipPairs":[{"bare":"2001 BMW M3","label":"Coupe","typed":"2001 BMW M3 Coupe"},{"bare":"2001 BMW M3","label":"Convertible","typed":"2001 BMW M3 Convertible"}]},
  {"id":49,"q":"2001 BMW M3 Coupe","status":"ready","rung":"exact","labelHas":["2001","M3","Coupe"],"count":3,"tol":0,"low":null,"high":null,"thin":true,"lowestSale":23250,"highestSale":76000},
  {"id":50,"q":"2001 BMW M3 Convertible","status":"ready","rung":"exact","labelHas":["2001","M3","Convertible"],"count":9,"tol":0,"low":20000,"high":41000,"tolPct":0,"wideSpread":true,"lowestSale":13750,"highestSale":63000},
- {"id":51,"q":"1972 Datsun 240Z","status":"ready","count":15,"tol":0,"low":16500,"high":35500,"tolPct":0,"wideSpread":true,"lowestSale":12000,"highestSale":48000}
+ {"id":51,"q":"1972 Datsun 240Z","status":"ready","count":15,"tol":0,"low":16500,"high":35500,"tolPct":0,"wideSpread":true,"lowestSale":12000,"highestSale":48000},
+ {"id":52,"q":"1989 Lancia Delta Integrale","status":"ready","count":8,"tol":0,"low":42000,"high":76500,"tolPct":0,"lowestSale":34000,"highestSale":80000},
+ {"id":53,"q":"1969 Ford Mustang Mach 1","status":"ready","count":18,"tol":0,"low":75000,"high":107000,"tolPct":0,"lowestSale":33750,"highestSale":133000},
+ {"id":54,"q":"2001 Ford Mustang Bullitt","status":"ready","count":10,"tol":0,"low":14000,"high":18500,"tolPct":0,"lowestSale":8700,"highestSale":22000},
+ {"id":55,"q":"2003 Ford Mustang SVT Cobra","status":"ready","count":9,"tol":0,"low":29000,"high":45500,"tolPct":0,"lowestSale":24350,"highestSale":62000},
+ {"id":56,"q":"2019 BMW 3-Series","status":"ready","count":6,"tol":0,"low":null,"high":null,"thin":true,"lowestSale":14400,"highestSale":29777}
 ]
 ```
 
 E60 RE-PINS (Oct 18 2026, from Lane B's live e60 after column; window rule: shortest window reaching eight sales at 12, 24, 36, 60 months): row 7 CLK63 Black Series 15 on 24 months $91,500 to $158,000; row 9 Defender 110 9 on 12 months $27,000 to $50,000; row 12 2024 GT3 11 on 24 months $247,000 to $270,000; row 15 Grand National 21 on 36 months $38,500 to $52,500; row 18 S2000 8 on 36 months $37,000 to $74,500; row 37 2006 Boxster Convertible 30 $16,500 to $25,500; row 38 2010 Boxster Convertible 17 on 24 months $26,000 to $31,500. Row 27 (2005 911 targa) read a refusal on e60 and waits on a live read; row 46 waits on a live read.
 
 E61 PINS (Oct 18 2026, from Lane B's e61 after column): rows 48 to 51 added; wideSpread, lowestSale and highestSale pinned as data on rows 18, 29, 50 and 51 (the checker does not read them yet; the card lines that print them are the next wording bump).
+
+E62 PINS (Oct 19 2026, from Lane B's e62 after column): every existing golden row read identical on e62, so no row changed; rows 52 to 56 added for the cars e62 changed (Lancia Delta Integrale, Mach 1, Bullitt, SVT Cobra, 2019 3-Series). The 2001 Mustang Cobra R is not pinned: the table gives no sale count for its thin answer.
