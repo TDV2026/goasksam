@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T03:36Z (Lane F; Sam wants the window analysis done within the hour: B2 has the 03:50, 04:05 and 04:20Z gaps; Lane B's e63 after-reads move to 04:35Z; Lane C's thin-card push 03:35Z).
+Last updated: 2026-10-19T03:37Z (Lane F tick; thin-card push in its 03:35Z gap; B2's window analysis from 03:50Z; Lane B's e63 after-reads 04:35Z).
 
 ## 0bo. Sam 03:1xZ Oct 19: the thin-card exception GRANTED, one failed check only, with conditions (forwarded word for word to Lane C; the after-reads to Lane B)
 
