@@ -9813,3 +9813,4 @@ Search check: no public page touched.
   (2) Typed on the Sell landing, Market Check's own body screen asks first; after Fastback, then state, how and rush, Sell reads the car once ("1965 Ford Mustang fastback") with no second question, and shows the same range and basis line.
   No console errors and no 5xx in either. The first pass of (2) missed because my script did not wait out "Pulling the real sales"; the rerun at 11:34Z passed.
 Search check: no public page touched (the new Sell is behind SELL_NEXT_ON).
+- PUSH LOCK (Lane B, 2026-10-19T13:16Z): e67 (diagnosis only: every post-fetch drop recorded with its reason, not fetched only on a fetch-filter failure, the lookup over the pool years; the Buy keep-warm in six parts; the three rare-trim parts D50, M3 curated trims and S-Class W126; ENGINE_VERSION e67). FULL prePush passed on 0 FAIL. Pushing now.
