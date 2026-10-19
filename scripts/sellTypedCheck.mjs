@@ -105,5 +105,17 @@ ok(calls.length === before && !leaks("123 4567"), "a phone number typed at the e
 replies = [RANGE(30000, 41000, 30)]; S.onSubmit("Coupe"); await tick();
 ok(last().car === "1965 ford mustang Coupe", "then a real answer still reads the answered car");
 
+// 7. The state box (pre-existing leak, same class): a VIN, an email address or a phone number typed as the state is
+//    dropped and the state question stays; real state names, including two-word ones, are kept as typed.
+for (const [what, t, secret] of [["a phone number", "555-123-4567 0", "123-4567"], ["an email address", "me@example.net", "example.net"], ["a VIN", "WP0AC2A9XES183617", "WP0AC2A9XES183617"]]) {
+  S.onCar({ resolvedCar: MUSTANG }, "1965 Ford Mustang");
+  const n1 = calls.length; S.onSubmit(t); await tick();
+  ok(!leaks(secret) && calls.length === n1 && /Which state is it in\?/.test(OBX.root.innerHTML), `state box, ${what}: dropped, the state question stays`);
+}
+for (const st of ["New York", "California", "New Mexico", "Rhode Island", "Ontario"]) {
+  S.onCar({ resolvedCar: MUSTANG }, "1965 Ford Mustang"); S.onSubmit(st); await tick();
+  ok(states.some(x => x && x.state === st) && addr.some(a => a.includes("state=" + encodeURIComponent(st).replace(/%20/g, "+"))), `state box, "${st}": kept as typed`);
+}
+
 console.log(`sellTypedCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
