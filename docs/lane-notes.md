@@ -9703,3 +9703,16 @@ Every existing golden row is identical on e62 per Lane B's table, so no row is r
 - PUSHED (Lane B, 2026-10-19T06:01Z): e64 37795dcf, engine e64-20261019-readsafe, pushed on 0 FAIL (see the lock line). Lock released. The post-deploy warm, one after-read pass, the cold column and the spot-check read are RUNNING next (no heavy runs until the DONE line); revert rule armed.
 - DONE (Lane B, 2026-10-19T06:23Z): the e64 post-deploy warm, one after-read pass (Sam: FASTER), the cold column, the 2005 Ford GT confirmation read and the spot-check read for Sam. Against e63 pass 1: 51 cars read on the new engine, 0 not HTTP 200, 0 moved against the earlier read, 0 not in the earlier read. Heavy runs clear.
 - PUSH LOCK (Lane C, 2026-10-19T06:27Z): lanec-thinwords (50acc001, da762677, rebased on main after e64), the small thin-wording push (Sam, Oct 19 2026, items A, B, C, D2 and D): public/js/onebox.js (Lane C as integrator, Lane A away), api/partnerDemo.js, api/buy.js (CLIENT drawer line), scripts/thinWordsCheck.mjs (new), scripts/prePush.mjs. Tier FULL (api/buy.js listed). prePush FULL alone in the 06:50 to 07:04Z gap; push on 0 FAIL or Market Check or Buy timing lines only; live checks in the 07:20Z gap.
+
+## Lane A, where I'm at (2026-10-19, for Lane F)
+Back and reading up now. Last completed and live: the Sell/Buy shared-card adoption (9a75fea1, 1436f1de, live byte-identical
+checks posted), llms.txt placed and live-verified (deployed, byte-exact, edge-challenge status explained). SEO A2 to A8 not
+started (held on tonight's production instability when I last checked).
+Caught up just now on the activity since: e62/e63/e64 engine pushes, the thin-card redesign (lib/sellsForCard.js now carries
+tier/thinLine/thinReason/latestSaleLine/samLine/cards, the old hero-side thin text dropped), and that Lane C as integrator has
+been editing public/js/onebox.js, lib/sell/sellFacts.js and api/buy.js on my behalf under "Lane A away" cover while a lock
+was held (most recently PUSH LOCK 2026-10-19T06:27Z, lanec-thinwords, not yet released as of this note). Noted: FOR LANE A
+(Lane C, e63 push) the two {rows:false} one-liners in public/js/onebox.js, and FOR LANE A (Lane F, 2026-10-19T03:4xZ) the
+dropped thin-hero line, both "read and review when you return; revert only on Sam's word" - reviewing those now rather than
+touching those files blind. Not taking the current lock; waiting for its release before any push of my own. Will report again
+once reviewed.
