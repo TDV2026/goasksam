@@ -77,5 +77,33 @@ ok(typedEntry && last().car === "2004 Porsche 911 Carrera GT", "Back to a typed 
 popstate({ state: { sell: true, car: "1973 Porsche 911 Carrera RS", state: "California", how: "self", rush: "none" } }); replies = [{}]; await tick();
 ok(last().car === "1973 Porsche 911 Carrera RS", "Back to an entry with no typed words: no stale words from another car");
 
+// 6. PRIVACY (Lane F's condition, Sam's analytics filter): a VIN, an email address, a phone number or a person's name
+//    typed in the car box is never kept as the typed words, so it is in no request, address or history entry; the
+//    resolver's name for the car is read instead. Free words at the engine's question that fail the filter are dropped.
+const leaks = secret => { const lc = secret.toLowerCase(); return calls.some(c => JSON.stringify(c).toLowerCase().includes(lc)) || addr.some(a => decodeURIComponent(a.replace(/\+/g, " ")).toLowerCase().includes(lc)) || states.some(x => JSON.stringify(x || {}).toLowerCase().includes(lc)); };
+const MUSTANG = { year: 1965, make: "Ford", model: "Mustang" };
+for (const [what, typed, secret, rc] of [
+  ["a VIN", "WP0AC2A9XES183617", "WP0AC2A9XES183617", { year: 2014, make: "Porsche", model: "911", trim: "GT3" }],
+  ["a VIN with spaces around it", "  1FAFP42X65F100001 ", "1FAFP42X65F100001", MUSTANG],
+  ["an email address", "1965 Ford Mustang jo.smith@example.com", "example.com", MUSTANG],
+  ["a phone number", "(555) 123-4567 89", "123-4567", MUSTANG],
+  ["a person's name", "Joan Smithers", "Smithers", MUSTANG]]) {
+  S.onCar({ resolvedCar: rc }, typed); three(); replies = [RANGE(1000, 2000, 9)]; await tick();
+  ok(!leaks(secret), `${what}: in no request, address or history entry`);
+  ok(last().car === [rc.year, rc.make, rc.model, rc.trim].filter(Boolean).join(" "), `${what}: the resolver's name for the car is read instead`);
+}
+// Typed words that are a car keep working (the filter does not catch car words).
+S.onCar({ resolvedCar: { year: 1990, make: "Porsche", model: "911", trim: "Carrera 4" } }, "Porsche Carrera"); three(); replies = [RANGE(1000, 2000, 9)]; await tick();
+ok(last().car === "Porsche Carrera", "car words that look like two capitalised words are kept (they are the car's own words)");
+// Free words at the engine's question that fail the filter: not added anywhere, the same question stays.
+S.onCar({ resolvedCar: MUSTANG }, "1965 ford mustang"); three(); replies = [{ question: BODYQ }]; await tick();
+const before = calls.length;
+S.onSubmit("me@example.org"); await tick();
+ok(calls.length === before && !leaks("example.org") && OBX.root.innerHTML.includes(`<q>${PROMPT}</q>`), "an email typed at the engine's question: dropped, the same question stays");
+S.onSubmit("555 123 4567 0"); await tick();
+ok(calls.length === before && !leaks("123 4567"), "a phone number typed at the engine's question: dropped");
+replies = [RANGE(30000, 41000, 30)]; S.onSubmit("Coupe"); await tick();
+ok(last().car === "1965 ford mustang Coupe", "then a real answer still reads the answered car");
+
 console.log(`sellTypedCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
