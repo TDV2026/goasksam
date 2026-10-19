@@ -76,15 +76,15 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 2 | 2024 Porsche 911 Carrera S Coupe | widen, trim + body kept | year_widened, 2023 to 2025, 8 sales, $145,000 to $163,000 |
 | 3 | 1995 Porsche 911 Carrera | 42 sales, $64,500 to $106,000 | re-pinned on e65 (Lane B after column, was 37 sales, $64,000 to $107,000) |
 | 4 | 2008 Porsche 997 Carrera S Coupe | 13 sales, $44,500 to $67,500 | re-pinned on e65 (Lane B after column, was 11 sales, $58,500 to $69,000) |
-| 5 | 1969 Chevrolet Camaro | exact, halo aside (Z/28, SS, COPO, Yenko) | exact, 21 sales, $45,500 to $78,500 |
-| 6 | 2006 Mercedes-Benz CLK DTM | thin: house sales do not make an online range; US and Canada only | year_widened, 2005 to 2006, 6 sales, no band |
+| 5 | 1969 Chevrolet Camaro | exact, halo aside (Z/28, SS, COPO, Yenko) | exact, 8 sales, $32,000 to $48,000 (re-pinned on e72, Sam accepted the e65 move) |
+| 6 | 2006 Mercedes-Benz CLK DTM | thin: house sales do not make an online range; US and Canada only | year_widened, 2005 to 2006, 7 sales, no band (re-pinned on e72) |
 | 7 | 2008 Mercedes-Benz CLK63 AMG Black Series | 16 sales, $91,000 to $156,000 | re-pinned on e65 (Lane B after column, was 15 sales, $91,500 to $158,000) |
-| 8 | 1957 Porsche 356 Speedster | 10 sales, $259,000 to $389,000 | re-pinned on e65 (Lane B after column, was 8 sales, $282,000 to $363,000) |
+| 8 | 1957 Porsche 356 Speedster | 10 sales, $259,000 to $389,000 | year_widened, "356 Speedster models, 1956 to 1958, pushrod cars", 10 sales, $259,000 to $389,000 (re-pinned on e72) |
 | 9 | 1997 Land Rover Defender 110 | 10 sales, $30,500 to $56,000 | re-pinned on e65 (Lane B after column, was 9 sales, $27,000 to $50,000) |
 | 10 | 2003 BMW M3 Coupe | 17 sales, $25,500 to $36,000 | re-pinned on e65 (Lane B after column, was 14 sales, $23,500 to $35,500) |
 | 11 | 1989 Merkur XR4Ti | thin model, no rung reaches eight | thin, no band |
 | 12 | 2024 Porsche 911 GT3 | 12 sales, $248,000 to $270,000 | re-pinned on e65 (Lane B after column, was 11 sales, $247,000 to $270,000) |
-| 13 | 2018 Ford Mustang GT | exactly eight, aftermarket package still counts | exact, 8 sales, $30,000 to $35,500 |
+| 13 | 2018 Ford Mustang GT | exactly eight, aftermarket package still counts | exact, 10 sales, $29,000 to $36,000 (re-pinned on e72, the e66 Supercharger sale is out) |
 | 14 | 1966 Ferrari 275 GTB | its own model (the 275 GTB/4, GTS and GTB/C are out), blends across models, US and Canada only | year_widened, 1965 to 1966, 9 sales, thin, no band; the thin tier prints no range on any page and the engine's low and high appear nowhere on the page (Sam, Oct 18 2026) |
 | 15 | 1987 Buick Regal Grand National | typed words carried | exact, 55 sales, $35,500 to $56,000 |
 | 16 | 2005 Saab 9-2X | 17 sales, $9,000 to $13,500 | re-pinned on e65 (Lane B after column, was 15 sales, $9,000 to $12,500) |
@@ -93,7 +93,7 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 19 | 1963 Chevrolet Corvette Split Window | 29 sales, $135,000 to $205,000 | re-pinned on e65 (Lane B after column, was 34 sales, $136,000 to $204,000) |
 | 20 | 1995 Acura NSX | exact, odd-sale fence (a Honda NSX-R set aside) | exact, 15 sales, $86,000 to $136,000 |
 | 21 | 1965 Ford Mustang (bare) | the identity question: every option opens the pool it counts, and the options add up to Any | each option count equals the count its page shows, options sum to Any |
-| 22 | 1957 Porsche 356 Speedster (set-aside and options) | 10 sales, $259,000 to $389,000 | re-pinned on e65 (Lane B after column, was 8 sales, $282,000 to $363,000) |
+| 22 | 1957 Porsche 356 Speedster (set-aside and options) | 10 sales, $259,000 to $389,000 | year_widened, 1956 to 1958, 10 sales, $259,000 to $389,000 (re-pinned on e72; the set-aside words wait for an obdiag read) |
 | 23 | 1966 Ferrari 275 GTB (thin, no zero option) | same car as row 14; nine sales, thin, no range, no question screen, set-aside sales listed with their reasons; no option at zero, no restoration line | year_widened, 9 sales, no range, same answer on all four products |
 | 24 | 1969 Chevrolet Camaro (bare) | the identity question: "convertible" typed and the Convertible chip give one answer; every option opens the pool it counts, and the options add up to Any | chip count equals typed count, each option equals its page, options sum to Any (expected to fail until e56) |
 | 25 | 1969 Chevrolet Camaro convertible (typed) | the same answer as the Convertible chip on the bare 1969 Camaro page: label "1969 Camaro Convertible", the bare car's exact rung (never widened), 3 sales, no range (under the band) | on all four products; expected to fail until e56 (e55 reads 24, widened to 1967 to 1969) |
@@ -188,15 +188,15 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":2,"q":"2024 Porsche 911 Carrera S Coupe","status":"ready","rung":"year_widened","labelHas":["Carrera S Coupe","2023 to 2025"],"count":8,"tol":2,"low":145000,"high":163000,"tolPct":3},
  {"id":3,"q":"1995 Porsche 911 Carrera","status":"ready","rung":"exact","labelHas":["1995","911 Carrera"],"count":42,"tol":3,"low":64500,"high":106000,"tolPct":3,"quick":true,"sharedCard":true},
  {"id":4,"q":"2008 Porsche 997 Carrera S Coupe","status":"ready","rung":"exact","labelHas":["2008","997 Carrera S Coupe"],"count":13,"tol":2,"low":44500,"high":67500,"tolPct":3},
- {"id":5,"q":"1969 Chevrolet Camaro","status":"ready","rung":"exact","labelHas":["1969 Camaro"],"count":21,"tol":3,"low":45500,"high":78500,"tolPct":3,"sharedCard":true},
- {"id":6,"q":"2006 Mercedes-Benz CLK DTM","status":"ready","rung":"year_widened","labelHas":["CLK DTM","2005 to 2006"],"count":6,"tol":0,"low":null,"high":null,"thin":true},
+ {"id":5,"q":"1969 Chevrolet Camaro","status":"ready","rung":"exact","labelHas":["1969 Camaro"],"count":8,"tol":0,"low":32000,"high":48000,"tolPct":3,"sharedCard":true},
+ {"id":6,"q":"2006 Mercedes-Benz CLK DTM","status":"ready","rung":"year_widened","labelHas":["CLK DTM","2005 to 2006"],"count":7,"tol":0,"low":null,"high":null,"thin":true},
  {"id":7,"q":"2008 Mercedes-Benz CLK63 AMG Black Series","status":"ready","rung":"exact","labelHas":["CLK63","Black Series"],"count":16,"tol":0,"low":91000,"high":156000,"tolPct":0},
- {"id":8,"q":"1957 Porsche 356 Speedster","status":"ready","rung":"exact","labelHas":["1957","356 Speedster"],"count":10,"tol":2,"low":259000,"high":389000,"tolPct":5,"sellEqualsMC":true,"sharedCard":true},
+ {"id":8,"q":"1957 Porsche 356 Speedster","status":"ready","rung":"year_widened","labelHas":["356 Speedster","1956 to 1958"],"count":10,"tol":2,"low":259000,"high":389000,"tolPct":5,"sellEqualsMC":true,"sharedCard":true},
  {"id":9,"q":"1997 Land Rover Defender 110","status":"ready","rung":"exact","labelHas":["1997","Defender 110"],"count":10,"tol":0,"low":30500,"high":56000,"tolPct":3},
  {"id":10,"expectedToMove":"e73 +1","q":"2003 BMW M3 Coupe","status":"ready","rung":"exact","labelHas":["2003","M3 Coupe"],"count":17,"tol":2,"low":25500,"high":36000,"tolPct":3,"sellEqualsMC":true},
  {"id":11,"q":"1989 Merkur XR4Ti","status":"ready","labelHas":["XR4Ti"],"low":null,"high":null,"thin":true},
  {"id":12,"q":"2024 Porsche 911 GT3","status":"ready","rung":"year_widened","labelHas":["GT3","2023 to 2024"],"count":12,"tol":0,"low":248000,"high":270000,"tolPct":3,"quick":true},
- {"id":13,"q":"2018 Ford Mustang GT","status":"ready","rung":"exact","labelHas":["2018","Mustang GT"],"count":8,"tol":0,"low":30000,"high":35500,"tolPct":0},
+ {"id":13,"q":"2018 Ford Mustang GT","status":"ready","rung":"exact","labelHas":["2018","Mustang GT"],"count":10,"tol":0,"low":29000,"high":36000,"tolPct":0},
  {"id":14,"q":"1966 Ferrari 275 GTB","status":"ready","rung":"year_widened","labelHas":["275 GTB","1965 to 1966"],"count":9,"tol":0,"low":null,"high":null,"thin":true,"sellEqualsMC":true,"sharedCard":true},
  {"id":15,"q":"1987 Buick Regal Grand National","status":"ready","rung":"exact","labelHas":["1987","Grand National"],"count":21,"tol":0,"low":38500,"high":52500,"tolPct":0},
  {"id":16,"q":"2005 Saab 9-2X","status":"ready","rung":"exact","labelHas":["2005","9-2X"],"count":17,"tol":0,"low":9000,"high":13500,"tolPct":0},
@@ -210,7 +210,7 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":26,"expectedToMove":"e73 +3 (2005 911)","q":"2005 Porsche 911","status":"ready","identity":true,"labelHas":["911"]},
  {"id":27,"expectedToMove":"e73 rows likely held out on body (2005 911 targa)","q":"2005 Porsche 911 targa","status":"ready","rung":"exact","labelHas":["2005","Targa"],"count":1,"tol":0,"low":null,"high":null,"thin":true},
  {"id":28,"q":"1965 Ford Mustang fastback","status":"ready","rung":"exact","labelHas":["1965","Fastback"],"count":11,"tol":0,"low":43500,"high":56500,"tolPct":5},
- {"id":22,"q":"1957 Porsche 356 Speedster","status":"ready","rung":"exact","labelHas":["1957","356 Speedster"],"count":10,"tol":0,"low":259000,"high":389000,"tolPct":5,"setAside":{"total":2,"reasons":["odd sale","modified"]},"noZeroOptions":true,"variantRule":true,"noRestoration":true,"sellEqualsMC":true},
+ {"id":22,"q":"1957 Porsche 356 Speedster","status":"ready","rung":"year_widened","labelHas":["356 Speedster","1956 to 1958"],"count":10,"tol":0,"low":259000,"high":389000,"tolPct":5,"setAside":{"total":2,"reasons":["odd sale","modified"]},"noZeroOptions":true,"variantRule":true,"noRestoration":true,"sellEqualsMC":true},
  {"id":23,"q":"1966 Ferrari 275 GTB","status":"ready","rung":"year_widened","labelHas":["275 GTB","1965 to 1966"],"count":9,"tol":0,"low":null,"high":null,"thin":true,"noZeroOptions":true,"variantRule":true,"noRestoration":true,"sellEqualsMC":true},
  {"id":29,"q":"2012 BMW M3 Competition Coupe","status":"ready","rung":"exact","labelHas":["2012 M3 Competition Coupe"],"count":13,"tol":0,"low":38500,"high":79500,"tolPct":5,"equalsBare":"2012 BMW M3 Competition","wideSpread":true,"lowestSale":31750,"highestSale":109500},
  {"id":30,"expectedToMove":"e73 +4, likely held out on body","q":"1973 Porsche 911 Targa","status":"ready","rung":"exact","labelHas":["1973","Targa"],"count":4,"tol":0,"low":null,"high":null,"thin":true},
