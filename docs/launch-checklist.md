@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T13:58Z (Lane F; demo build ready locally (46/46 checks); one blocker: Lane B's patch fails 3 partnerEngineMatch assertions, fourth commit asked by 14:30Z).
+Last updated: 2026-10-19T14:05Z (Lane F; Buy search query ran: zero real visitor searches yet (Buy is gated); option to include internal traffic for Sam).
 
 ## 0cm. Sam 13:3xZ Oct 19: PARTNER DEMO ORDERS, two priorities in parallel (full text verbatim in docs/lane-notes.md; routed to Lane C (owner), Lane B assisting; Lane E and B2 rescheduled)
 
