@@ -10,8 +10,9 @@ const arg = n => { const i = process.argv.indexOf("--" + n); if (i < 0) return n
 const BASE = (arg("base") || "https://goasksam.com").replace(/\/$/, "");
 const CARS = (arg("cars") || "Porsche 911|1965 Ford Mustang|2005 Porsche 911|2023 Porsche 911 GT3").split("|").map(s => s.trim()).filter(Boolean);
 // Searches with nothing live (Lane C's catch, Oct 16 2026): one model call, NO "for sale" line, searchNote null, and the page
-// draws no line under its "No ... are live right now" header. --empty "a|b" overrides the list.
-const EMPTY = (arg("empty") || "2011 BMW M3 Coupe").split("|").map(s => s.trim()).filter(Boolean);
+// draws no line under its "No ... are live right now" header. --empty "a|b" overrides the list. Default car (Oct 19 2026): the
+// 1937 Bugatti, the zero-live turn where the model also read a market by name (the 2011 BMW M3 Coupe went live).
+const EMPTY = (arg("empty") || "1937 Bugatti Type 57SC Atlantic").split("|").map(s => s.trim()).filter(Boolean);
 const KEY = process.env.PROBE_KEY || null;
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 if (!KEY) { console.log("buySearchLineCheck: no PROBE_KEY in the environment."); process.exit(2); }
