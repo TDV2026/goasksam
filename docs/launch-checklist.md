@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T13:17Z (Lane F; e67 PUSHED 2efa0996 at 13:16:33Z on 0 FAIL; warm 13:20Z, after-reads 13:35Z).
+Last updated: 2026-10-19T13:25Z (Lane F; Sam: 'approved', read as e69; Lane C builds, prePush tentatively 15:35Z).
+
+## 0cl. Sam 13:2xZ Oct 19: "approved" (answer to the top item of Lane F's 13:17Z report: e69)
+
+Read by Lane F as approval of e69 ONLY: Sell sends the visitor's own words to the one engine on every step (car: S.typed || S.label; the chosen option appended to S.typed so no question repeats); Lane C's file (sellMcClient.js), own commit, built locally after e68, FULL prePush tentatively 15:35:00Z (after C2 to C4 at 15:20Z, before B2's golden pass). Checks: typed bare 1965 Ford Mustang answers Fastback and lands on the 11-sale range; typed '2004 Porsche 911 Carrera GT' refusal case; the Singer typed case; an unchanged plain case. Revert conditions: any Sell answer that changes for typed words carrying no refusal-triggering word, or any question that repeats after it is answered. The five parked items (356A flag, typed 'Coupe', row 48, the 1969 Camaro, SEO C5) STAY PARKED unless Sam says otherwise. If Sam meant something else, undo: do not ship e69.
 
 ## 0ck. Sam 12:5xZ Oct 19: Sell patch APPROVED AS BUILT; the typed-path edge ordered as a diagnosis for e69 (routed word for word to Lane B; Lane C told)
 
