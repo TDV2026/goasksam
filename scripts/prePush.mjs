@@ -427,6 +427,13 @@ try {
 } catch (e) {
   record("A Task email never compares a Singer car (scripts/taskSingerCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A thin Buy card shows its sales (Lane C, Oct 19 2026, Sam's rule): the engine's own rows when the engine flags cardListsSales; no rows on a range card. No network.
+try {
+  const out = execSync("node scripts/buyRowsCheck.mjs", { encoding: "utf8" });
+  record("A thin Buy card lists its sales (scripts/buyRowsCheck.mjs)", "PASS", (out.match(/buyRowsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("A thin Buy card lists its sales (scripts/buyRowsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
