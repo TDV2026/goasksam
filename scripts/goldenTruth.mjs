@@ -124,7 +124,7 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
   for (let i = 0; i < GOLDEN_QS.length; i += BATCH) {
     console.error(`progress mode ${MODE}: rows done ${GOLDEN.filter(g => GOLDEN_QS.indexOf(g.q) < i).length} of ${TOTAL_ALL} (engine reads), reading cars ${i + 1} to ${Math.min(i + BATCH, GOLDEN_QS.length)}, read started ${stamp()}`);
     const chunk = GOLDEN_QS.slice(i, i + BATCH).map(q => ({ q }));
-    const url = `/api/usageDashboard?view=ops&task=enginecheck&buypaths=0&livefences=0&representative=0&splitpools=0&overtime=0&livelisting=0&cacheconsistency=0&specs=${encodeURIComponent(chunk.map(g => g.q).join("|"))}`;
+    const url = `/api/usageDashboard?view=ops&task=enginecheck&buypaths=0&livefences=0&representative=0&splitpools=0&overtime=0&livelisting=0&cacheconsistency=0&formpairs=0&identitycounts=0&specs=${encodeURIComponent(chunk.map(g => g.q).join("|"))}`;
     const tChunk = Date.now();
     const r = await ops(url);
     const ranOver = Date.now() - tChunk >= DEADLINE * 900;
@@ -136,7 +136,7 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
     // A read that ran over the deadline is NOT asked again (the server is still working on the first ask; a second ask adds load while the archive is slow): the cars are marked re-read.
     if (!j && ranOver) for (const g of chunk) byQ[g.q] = { q: g.q, error: `ops task returned HTTP 0 (read ran over the ${DEADLINE} s line, started ${new Date(tChunk).toISOString().slice(11, 19)}Z)` };
     else if (!j) for (const g of chunk) {
-      const r1 = await ops(`/api/usageDashboard?view=ops&task=enginecheck&buypaths=0&livefences=0&representative=0&splitpools=0&overtime=0&livelisting=0&cacheconsistency=0&specs=${encodeURIComponent(g.q)}`);
+      const r1 = await ops(`/api/usageDashboard?view=ops&task=enginecheck&buypaths=0&livefences=0&representative=0&splitpools=0&overtime=0&livelisting=0&cacheconsistency=0&formpairs=0&identitycounts=0&specs=${encodeURIComponent(g.q)}`);
       let j1 = null; try { j1 = JSON.parse(r1.text); } catch (e) {}
       const row1 = j1 && j1.rows && j1.rows[0];
       byQ[g.q] = row1 || { q: g.q, error: `ops task returned HTTP ${r1.status}` };
@@ -308,14 +308,14 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
   const facts = {};
   for (const r of rows) {
     const lane = (byQ[r.g.q] && byQ[r.g.q].lanes || {}).marketCheck;
-    if (!(MODE === "pages" || needsPage(r.g)) || !lane || !lane.ok || lane.low != null || !(lane.count >= 8)) continue;
+    if (!(!flag("engineonly") && (MODE === "pages" || needsPage(r.g))) || !lane || !lane.ok || lane.low != null || !(lane.count >= 8)) continue;
     const o = await ops(`/api/usageDashboard?view=ops&task=obdiag&detail=1&qs=${encodeURIComponent(r.g.q)}`);
     try { const c = JSON.parse(o.text).cars[0]; const pr = (c.cardDetail || []).map(x => x.price).filter(Number.isFinite); if (pr.length >= 8) facts[r.g.q] = { low: Math.min(...pr), high: Math.max(...pr) }; } catch (e) {}
   }
   // Interim engine result, to stderr, before any page is read: a page-step crash can no longer lose the engine reads.
   for (const r of rows) console.error(`engine row ${r.g.id} ${r.g.q}: ` + ["marketCheck", "buy", "sell", "tasks"].map(k => `${k} ${r.cells && r.cells[k] ? r.cells[k].cell : "-"}${r.cells && r.cells[k] && r.cells[k].diffs && r.cells[k].diffs.length ? " (" + r.cells[k].diffs[0].slice(0, 90) + ")" : ""}`).join(", "));
   const jobs = [];
-  for (const r of rows) if (MODE === "pages" || needsPage(r.g)) for (const pr of pagesFor(r.g)) jobs.push({ r, pr });
+  for (const r of rows) if (!flag("engineonly") && (MODE === "pages" || needsPage(r.g))) for (const pr of pagesFor(r.g)) jobs.push({ r, pr });
   const TOTAL_ROWS = GOLDEN.length + IDENT.length, pageRowsDone = new Set();
   let next = 0;
   const worker = async () => {
@@ -381,7 +381,7 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
   const listingLane = {};
   for (let i = 0; i < titles.length; i += BATCH) {
     const chunk = titles.slice(i, i + BATCH);
-    const o = await ops(`/api/usageDashboard?view=ops&task=enginecheck&buypaths=0&livefences=0&representative=0&splitpools=0&overtime=0&livelisting=0&cacheconsistency=0&specs=${encodeURIComponent(chunk.join("|"))}`);
+    const o = await ops(`/api/usageDashboard?view=ops&task=enginecheck&buypaths=0&livefences=0&representative=0&splitpools=0&overtime=0&livelisting=0&cacheconsistency=0&formpairs=0&identitycounts=0&specs=${encodeURIComponent(chunk.join("|"))}`);
     let j = null; try { j = JSON.parse(o.text); } catch (e) {}
     for (const row of (j && j.rows) || []) listingLane[row.q] = row.lanes && row.lanes.buy;
   }
