@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T06:58Z (Lane F tick; Lane D silent at 60 minutes: Lane C takes the Task email read).
+Last updated: 2026-10-19T07:02Z (Lane F; Lane C's thin-wording push LIVE d84e6cab 07:02:11Z, lock released; e65 prePush 08:05Z confirmed; live checks 07:20Z).
 
 ## 0cf. Sam 06:5xZ Oct 19: STANDING AUTHORITY while Sam sleeps (about eight hours from now; routed to every lane)
 
@@ -422,6 +422,7 @@ Sam's rules, forwarded word for word to Lanes B, B2, C, D and E at 01:01Z (Lane 
 Lane F in away mode (ended 01:55Z Oct 18; the 20-minute tick is back on as job 1515e8f0): no reports sent; every change, failure and blocked lane is recorded in this file as it happens (docs-only commits pushed alone); one tick six hours in writes its report into this file; the recurring 20-minute tick is cancelled. The full report goes to Sam when he returns and asks.
 
 ### Production health and stop-pushing events (newest first)
+- 07:02:11Z Oct 19: Lane C's thin-wording push LIVE (d84e6cab, Ready 07:02:11Z): FULL prePush 0 FAIL / 39 PASS / 5 SKIP (the 5 are the archive checks that need Supabase keys, skipped not passed); code byte-identical to the tree prePush ran on; lock released; live checks 07:20Z; FOR LANE A note naming every onebox.js edit (0f5ab3df). Lane C started the Task email code read (read only).
 - 06:23:39Z Oct 19: e64 DONE: one after-read pass over 51 cars, all HTTP 200, none moved against e63 pass 1 on tier, count, range or label; Buy answered within the 20-second clock with still-reading cards on broad searches, the repeat Turbo read 1.5 s; cold column matches. The Ford GT still reads not tracked and the cause is FOUND (not a failed read, not the fetch): the model rules silently lock the 2005 to 2006 Ford GT to one body (coupe) and the Oct 15 title-word body rule then needs a body word in the title, which no Ford GT title carries (439 fetched, 264 fenced for no body word, 96 other GT variants, the rest tributes, salvage or modified). The same single-body lock sits on 27 generations and trims. Fix is built on e65. Spot check not yet run (a hidden import error, fixed offline, no archive reads); needs one gap.
 - 06:01:54Z Oct 19: e64 is LIVE: the engine reads e64-20261019-readsafe (Lane B). GATE CLEARED: e64 live. Its warm, one after-read pass, cold column, the Ford GT confirmation read and the spot-check read (with the twelve demo-car residual sales) follow.
 - 06:01Z Oct 19: e64 PUSHED 37795dcf on 0 FAIL (FULL prePush alone 05:50:03Z to 06:01:17Z: 41 PASS, 6 SKIP): the failed-read fix (a failed pool read retries once, then shows still-reading, is never stored and never reads as not tracked; not_tracked carries its fetch trace), the resolver fixes (Carrera GT, 250 GT California, Skyline GT-R, IROC-Z), the guard, and the modifications text in the diagnosis read. Deploy polling; the warm, one after-read pass, cold column, Ford GT read and the spot-check read follow.
