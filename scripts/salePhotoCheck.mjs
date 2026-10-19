@@ -40,7 +40,7 @@ const page = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), 
 const gate = api.indexOf("if (!partnerAllowed(req)) return res.status(404)"), photo = api.indexOf("if (req.method === \"GET\" && req.query && req.query.photo != null)");
 ok(gate > 0 && photo > gate, "the photo branch sits behind the crew-or-partner gate (no session: 404)");
 ok(api.indexOf('res.setHeader("X-Robots-Tag", "noindex, nofollow")') > 0 && api.indexOf('res.setHeader("X-Robots-Tag", "noindex, nofollow")') < photo, "the photo response is noindex");
-const block = api.slice(photo, photo + 1400);
+const block = api.slice(photo, photo + 2000);   // Oct 19 2026: the handler grew by the right-sized photo lines (sizedPhotoUrl)
 ok(/checkCeiling\(env, req, "partner_photo"/.test(block) && !/market_check_search/.test(block), "the photo has its own ceiling, never Market Check's");
 ok(!/setHeader\("(Location|Content-Disposition|X-Source|Link)"/.test(block) && /Cache-Control", "private, max-age=2592000/.test(block) && !/res\.json\(|url\.href|\.href\)/.test(block.replace("photoUrlFor", "")), "no address, filename or venue header; a long private cache");
 const srcs = [...page.matchAll(/src="\/[^"']*/g)].map(m => m[0]);

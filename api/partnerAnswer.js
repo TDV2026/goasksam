@@ -20,7 +20,7 @@ import crypto from "node:crypto";
 import { isCrewRequest } from "../lib/_crew.js";
 import { isPartnerRequest } from "../lib/_partnerAccess.js";
 import { checkCeiling } from "../lib/_ceilings.js";
-import { photoId, photoUrlFor, fetchPhoto, vinPhotoKey, safeImageUrl } from "../lib/_salePhoto.js";
+import { photoId, photoUrlFor, fetchPhoto, vinPhotoKey, safeImageUrl, sizedPhotoUrl } from "../lib/_salePhoto.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { vinAppearances, carIdentity, normVin } from "./_historyData.js";
 import { lastUpdatedDate } from "../lib/asOf.js";
@@ -450,7 +450,10 @@ export default async function handler(req, res) {
     // An earlier sale of this exact car (stage 4): the car's own appearance, looked up again here; never the address out.
     const url = vk ? await vinAppearances(env, vk.vin).then(h => { const a = h && h.appearances && h.appearances[vk.n]; return a && a.image ? safeImageUrl(a.image) : null; }).catch(() => null)
       : await photoUrlFor(env, pid).catch(() => null);
-    const img = url ? await fetchPhoto(url) : null;
+    // The same photo, smaller, when the page asks a width (?w=320|640|960) and the host resizes; else, or on any failure,
+    // the original (lib/_salePhoto.js sizedPhotoUrl).
+    const small = url ? sizedPhotoUrl(url, Number(req.query.w)) : null;
+    const img = small ? (await fetchPhoto(small)) || (await fetchPhoto(url)) : url ? await fetchPhoto(url) : null;
     if (!img) return no();
     res.setHeader("Content-Type", img.type);
     res.setHeader("Content-Length", String(img.body.length));

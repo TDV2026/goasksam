@@ -118,6 +118,8 @@ h3{font-size:18px;line-height:1.3;margin:0 0 10px;font-weight:700}
 .rail h1{font-size:28px}
 .rail hr{border:0;border-top:1px solid var(--rule);margin:16px 0}
 .price{font-size:28px;font-weight:700}
+.sample-tag{display:inline-block;margin:6px 0 0;padding:3px 10px;border-radius:999px;background:#fff3cd;color:#6b4e00;font-size:13px;font-weight:600}
+.price-kind{font-size:13px;color:var(--ink2);margin:2px 0 0}
 .price small{font-size:15px;font-weight:400;color:var(--ink2)}
 .specs{display:flex;flex-wrap:wrap}
 .specs div{padding:0 18px;border-left:1px solid var(--rule)}
@@ -234,7 +236,17 @@ const JS = String.raw`
     return Promise.race([read, late]).then(function(a){ if (t) clearTimeout(t); return a; });
   }
   var STILL = { ok: false, error: "unavailable", stillReading: true, line: null, retryAfterMs: null };
+  // ONE READ PER PAGE (Sam's demo orders, Oct 19 2026): views a, b and c ask for the same car with the same words; an
+  // identical body shares the one answer already asked for, never a second read. A failed or still-reading answer is
+  // dropped from the share, so Try again and the engine's own retry read again.
+  var shared = {};
   function ask(body){
+    var k = JSON.stringify(body || {});
+    if (shared[k]) return shared[k];
+    var p = shared[k] = ask0(body).then(function(a){ if (!a || a.ok === false || a.stillReading) delete shared[k]; return a; });
+    return p;
+  }
+  function ask0(body){
     return ask1(body).then(function(a){
       if (!a || !a.aborted) return a;
       if (body.refine || CARS.indexOf(String(body.q || "")) < 0) return STILL;
@@ -324,7 +336,7 @@ const JS = String.raw`
   // car, served by id; none when the engine has none, and a photo that fails to load leaves nothing behind.
   function carPhotoHtml(a){
     var p = a && a.ok !== false && a.carPhoto && a.carPhoto.photo;
-    return p ? '<div class="car-photo"><img class="hero-img" data-ph src="/api/partnerAnswer?photo=' + encodeURIComponent(p) + '" alt="' + esc(CAR) + '" decoding="async"><p class="photo-note">Photo from a recent sale of a car like this one.</p></div>' : "";
+    return p ? '<div class="car-photo"><img class="hero-img" data-ph src="/api/partnerAnswer?photo=' + encodeURIComponent(p) + '&w=960" alt="' + esc(CAR) + '" decoding="async" fetchpriority="high"><p class="photo-note">Photo from a recent sale of a car like this one.</p></div>' : "";
   }
   // The listing car's own photos (c9): its earlier sales' own photos, newest first, by "<VIN>-<n>" through the photo
   // path; the newest is the main photo, the rest small beside it. None stored: no gallery, never another car's photo.
@@ -336,12 +348,12 @@ const JS = String.raw`
     var own = ownSold(a)[0];
     if (!own) return carPhotoHtml(a);
     var my = monthYear(own.date);
-    return '<div class="car-photo"><img class="hero-img" data-ph src="/api/partnerAnswer?photo=' + encodeURIComponent(own.photo) + '" alt="' + esc(nameOf(a) || CAR) + '" decoding="async"><p class="photo-note">' + (my ? "Photo from this car's sale in " + esc(my) + "." : "Photo from this car's earlier sale.") + "</p></div>";
+    return '<div class="car-photo"><img class="hero-img" data-ph src="/api/partnerAnswer?photo=' + encodeURIComponent(own.photo) + '&w=960" alt="' + esc(nameOf(a) || CAR) + '" decoding="async" fetchpriority="high"><p class="photo-note">' + (my ? "Photo from this car's sale in " + esc(my) + "." : "Photo from this car's earlier sale.") + "</p></div>";
   }
   function ownPhotos(a, thumbs){
     var ph = ownSold(a);
     if (!ph.length) return carPhotoHtml(a);
-    var img = function(r, cls){ return '<img class="' + cls + '" data-ph src="/api/partnerAnswer?photo=' + encodeURIComponent(r.photo) + '" alt="' + esc(D ? D.title : CAR) + '" decoding="async">'; };
+    var img = function(r, cls){ return '<img class="' + cls + '" data-ph src="/api/partnerAnswer?photo=' + encodeURIComponent(r.photo) + '&w=320" alt="' + esc(D ? D.title : CAR) + '" loading="lazy" decoding="async">'; };
     return (thumbs && ph.length > 1 ? '<div class="thumbs">' + ph.map(function(r){ return img(r, "thumb-img"); }).join("") + "</div>" : "") + '<div class="own-main">' + mainPhotoHtml(a) + "</div>";
   }
   // THE HEADING FOR A CAR GIVEN BY VIN (Sam, Oct 18 2026): the engine's name for it, the VIN small beneath; when the
@@ -410,7 +422,7 @@ const JS = String.raw`
   // engine row's own title, the sale date, mileage and price. Rows are not links. Set-aside sales, if the engine sent any,
   // sit in their own small group below with the engine's own reason words.
   var LIST_STEP = 10, lists = {};
-  function photoSlot(s){ return '<div class="sph">' + (s && s.photo ? '<img data-ph src="/api/partnerAnswer?photo=' + encodeURIComponent(s.photo) + '" alt="" width="160" height="120" loading="lazy" decoding="async">' : "") + "</div>"; }
+  function photoSlot(s){ return '<div class="sph">' + (s && s.photo ? '<img data-ph src="/api/partnerAnswer?photo=' + encodeURIComponent(s.photo) + '&w=320" alt="" width="160" height="120" loading="lazy" decoding="async">' : "") + "</div>"; }
   // "This car" (Sam, Oct 18 2026): a row of the sales list that is one of this exact car's own earlier sales, matched on
   // date and price against the same history rows the earlier-sales panel draws (no second lookup).
   var thisKeys = {};
@@ -505,12 +517,28 @@ const JS = String.raw`
   // ---- view c: the listing (Sam, Oct 18 2026: c and d are one page; the card under the buy box, the sales list and
   // "This car before" under the gallery, once)
   var cAns = null;
+  // THE SAMPLE ASKING PRICE (Sam's demo orders, Oct 19 2026): demo chrome on a sample listing only, never fed into the
+  // card or any engine output. A round figure inside the engine's own range: the range's low end rounded up to the next
+  // $10,000, else $5,000, else $1,000, the first that stays inside. No range (thin, or the engine asks a question first):
+  // no price and no buttons.
+  function samplePrice(a){
+    if (!a || a.ok === false || a.question || !a.range || !(a.range.low > 0) || !(a.range.high >= a.range.low)) return null;
+    var steps = [10000, 5000, 1000];
+    for (var i = 0; i < steps.length; i++) { var p = Math.ceil(a.range.low / steps[i]) * steps[i]; if (p <= a.range.high) return p; }
+    return null;
+  }
+  function sampleBuy(a){
+    var p = samplePrice(a); if (p == null) return "";
+    return '<div class="price">US ' + usd(p) + '</div><p class="price-kind">Sample asking price</p>' +
+      '<div class="buy"><button type="button" class="btn pri blk">Buy It Now</button><button type="button" class="btn sec blk">Make offer</button><button type="button" class="btn sec blk">Save</button></div>';
+  }
   function drawListing(a){
     cAns = a; noteLines("c", a);
+    if (!D && $("c-sample")) $("c-sample").innerHTML = sampleBuy(a);
     if (!D && $("c-photo")) $("c-photo").innerHTML = mainPhotoHtml(a);
     if (!D && $("c-name") && VIN_RE.test(CAR)) $("c-name").innerHTML = vinHead(a, "span");
     if (D && $("own-gal")) $("own-gal").innerHTML = ownPhotos(a, true);
-    $("c-rail").innerHTML = priorPanel(a, !!D) + rangePanel(a, D ? { price: D.price, slot: "c", lines: "c" } : { slot: "c", lines: "c" });
+    $("c-rail").innerHTML = (D ? priorPanel(a, true) : "") + rangePanel(a, D ? { price: D.price, slot: "c", lines: "c" } : { slot: "c", lines: "c" });
     var lq = a && a.range && a.trend && a.trend.length ? a.trend.reduce(function(m, t){ return String(t.period) > String(m.period) ? t : m; }) : null;   // the latest quarter with eight or more sales, view d only
     $("d-sales").innerHTML = '<h2>What cars like this sold for</h2>' +
       (a && a.card ? (a.quarter ? '<div class="qrow">' + a.quarter + "</div>" : "") : (lq ? '<p class="qrow"><b>' + esc(lq.period.replace("-", " ")) + "</b> " + usd(lq.low) + " to " + usd(lq.high) + ", " + lq.count + " sales</p>" : "")) + salesList(a, "d") + foot(a);
@@ -580,13 +608,23 @@ export function pageHtml(view, carIn) {
     </div>
     ${below ? `<div class="below-gal">${below}</div>` : ""}
   </div>`;
-  // A car with no listing detail (Sam, Oct 18 2026): its name, a plain line saying what the page is, the card and the
-  // recent sales with photos. No gallery, price, mileage, buy buttons or "This car before".
+  // THE SAMPLE LISTING (Sam's demo orders, Oct 19 2026; replaces the Oct 18 "no listing detail" layout): every other car
+  // shows the same listing frame as the 2014 GT3, labelled "Sample listing" beside the title so a screenshot cannot pass
+  // for a real listing. No VIN, no mileage, no "This car last sold". Its photo is a recent sale's, captioned as such. The
+  // sample asking price and the buttons are drawn by the client from the engine's range (#c-sample, demo chrome that feeds
+  // nothing); a car with no range (thin, or a question first) shows no price and no buttons.
+  const sy = /^(\d{4})\b/.exec(car), sampleYear = sy ? sy[1] : null;
+  const sampleDesc = sampleYear ? `<div class="desc below"><h2>About this car</h2><dl class="specs"><div><dt>Year</dt><dd>${sampleYear}</dd></div></dl></div>` : "";
   const noListing = `
   <div class="listing with-below">
-    <div><div id="c-photo"></div><h1 id="c-name">${escHtml(car)}</h1><p class="sub">Recent sales of cars like this one.</p></div>
-    <div class="rail"><div id="c-rail"><p class="loading">Sam is reading the sales for this one.</p></div></div>
-    <div class="below-gal"><div class="full" id="d-sales"><p class="loading">Sam is reading the sales for this one.</p></div><div class="full" id="d-hist"></div></div>
+    <div><div id="c-photo"></div></div>
+    <div class="rail">
+      <h1 id="c-name">${escHtml(car)}</h1><p class="sample-tag">Sample listing</p>
+      <hr>
+      <div id="c-sample"></div>
+      <div id="c-rail"><p class="loading">Sam is reading the sales for this one.</p></div>
+    </div>
+    <div class="below-gal">${sampleDesc}<div class="full" id="d-sales"><p class="loading">Sam is reading the sales for this one.</p></div><div class="full" id="d-hist"></div></div>
   </div>`;
   const desc = `<div class="desc below"><h2>About this car</h2><dl class="specs"><div><dt>Year</dt><dd>${d.year}</dd></div><div><dt>Mileage</dt><dd>${miles}</dd></div></dl></div>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
