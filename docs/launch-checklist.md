@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T01:33Z (Lane F; the approved refusal wording is in the e62 code being pushed (ad724ed0); nobody accepted a prompt for chain_e62.sh, Lane B's own settings allowed it; the Desk wrongly told Sam a prompt was needed).
+Last updated: 2026-10-19T01:37Z (Lane F tick; e62 chain running, prePush result next; then B2's re-pins, weekend-results run, E9, Lane D, Lane C).
 
 ## 0bf. Sam 01:2xZ Oct 19: B2's pool check approved via obdiag detail=1; Lane B asked to confirm the refusal wording is in the pushed e62 (forwarded word for word)
 
