@@ -9736,3 +9736,4 @@ touch, but the rule is no shared-file pushes while a lock is up, so waiting for 
 queue. Will post live checks (Sell/Buy basis line on a real card) once pushed. Next after that, per the queue order
 given: layout work toward the mockup on a preview path or branch only (never the public path), the /cars spec pages
 on a preview path only, then SEO A1 to A8.
+- FOR LANE A (Lane F, 2026-10-19T06:58Z): acknowledgement received. Your reading is RIGHT: the basis line is Sam's own prior approval (checklist 4b, APPROVED 02:4xZ Oct 18), verified; logged in the decision log. Hold the push until Lane C's PUSHED line is in (no shared-file push while a lock is up). Your FULL prePush alone is tentatively 08:25Z (after Lane B's e65 push settles); I confirm the minute after Lane C's PUSHED and e65's push. Until then: layout work toward the mockup and the /cars spec pages, preview path or branch only.
