@@ -214,7 +214,7 @@ h2.car-name{font-size:22px;margin:0 0 2px}
 const JS = String.raw`
 (function(){
   // THE SELECTED CAR (Sam, Oct 18 2026): one car for the whole demo, chosen in the bar on every view and carried in the
-  // address (car=), so every view reads the same car. Only the 2015 GT3 has listing detail (D); any other car has none.
+  // address (car=), so every view reads the same car. Only the 2014 GT3 has real listing detail (D); every other car shows the sample listing frame.
   var CAR = __CAR__, D = __LISTING__, CARS = __CARS__, CHOSEN = __CHOSEN__;
   var $ = function(id){ return document.getElementById(id); };
   var esc = function(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
@@ -258,7 +258,7 @@ const JS = String.raw`
   // THE CHOSEN CAR FOLLOWS EVERY VIEW (Sam, Oct 18 2026: a car typed into the first screen's own box did not reach the
   // second screen). Any read that names a new car, in any view (the first screen's box, a pasted VIN, an identity
   // chip), makes it the chosen car at once: car= in the address (replaced in place), every tab, the car bar and the
-  // car bar. The listing detail belongs to the 2015 GT3 only, so another car drops it. Nothing else changes.
+  // car bar. The real listing detail belongs to the 2014 GT3 only, so another car drops it. Nothing else changes.
   var VIEW = (document.querySelector('#car-form input[name="view"]') || {}).value || "a";
   function setCar(q){
     q = String(q || "").replace(/\s+/g, " ").trim();
