@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T06:49Z (Lane F; STANDING AUTHORITY while Sam sleeps recorded; decision log opened).
+Last updated: 2026-10-19T06:51Z (Lane F; e65 built and ready; Lane B's 28 before reads 07:50Z; e65 prePush 08:05Z; decision log extended).
 
 ## 0cf. Sam 06:5xZ Oct 19: STANDING AUTHORITY while Sam sleeps (about eight hours from now; routed to every lane)
 
@@ -14,8 +14,13 @@ Sam: make decisions based on what the launch needs; take the most reasonable rea
 ## DECISIONS MADE WHILE SAM SLEPT (Lane F; each: decision | reading taken | Sam's rule relied on | how to undo)
 
 - 06:5xZ | Lane D silent at the 60 minute mark (06:59Z): Lane C takes the Task email code read, read only | Sam's item 2 (launch gates decision) | Lane C stops; Lane D resumes its read.
-- 06:5xZ | e65 FULL prePush alone named for 07:50Z, after Lane C's push and 07:20Z live checks, B2's 07:05Z and 07:35Z loads; minute confirmed after Lane C's PUSHED line | Sam's judgment 06:4xZ ("Lane B may build and ship e65") and one archive load at a time | move the minute; no push has happened.
+- 06:5xZ (SUPERSEDED by the next lines) | e65 FULL prePush alone named for 07:50Z, after Lane C's push and 07:20Z live checks, B2's 07:05Z and 07:35Z loads; minute confirmed after Lane C's PUSHED line | Sam's judgment 06:4xZ ("Lane B may build and ship e65") and one archive load at a time | move the minute; no push has happened.
 - 06:5xZ | Analytics query of Buy search strings held: item 8 arrived truncated at "drop any"; the keep-warm of the 20 approved searches proceeds | Sam: 'must not decide' list (privacy condition unread) | send the rest of item 8 and Lane B runs the query.
+
+- 06:5xZ | Lane B's 28 e64 BEFORE reads (27 body-lock rows plus the 2006 Ford GT Heritage Edition) 07:50:00 to 07:59:00Z; e65 FULL prePush alone moved to 08:05Z | Sam's condition 2(a) (golden table before and after for the 27 rows) and one archive load at a time; B2 07:05Z and 07:35Z, Lane C live checks about 07:20Z | move either minute; no push has happened.
+- 06:5xZ | Accepted Lane B's three decisions: (1) Buy keep-warm runs as its own task warmBuy at 00:10Z and 12:10Z, right after the 00:05Z and 12:05Z warms, because warmDemo already uses its whole budget (undo: delete the two warmBuy cron lines in vercel.json); (2) the replica/project/tribute flag sentence is a diagnosis-only field in obdiag (undo: revert that commit); (3) two words added to the standalone triggers only to rule Sam's borderlines his way ('power pack' and 'power upgrade package' as added boost; 'gtx' plus four digits then 'turbo' as a bigger aftermarket turbo) | Sam's spot-check judgment items 1 and 2 | drop the first alternative of MOD_STANDALONE.
+- 06:5xZ | Lane B item 7 reading taken: the extent measure compared the Desk pool with the live engine's answer without the sellers' modifications text, so it counted every 'substantially modified' set-aside as a correct exclusion; by Lane B's list 7 (not 8) of the twelve demo sales sit under the modified fence, 6 of those come back in with Sam's roll-cage ruling, only the 356A rebuilt to 1,720cc stays out; B2 reruns on e65 | Sam's item 7 | none (reading only).
+- 06:5xZ | e65 ROLLBACK ready: revert the e65 commit range and push; the engine returns to e64; stored answers keyed on e65 stop being read.
 
 ## 0ce. Sam 06:4xZ Oct 19: SPOT-CHECK JUDGMENT, e65 approved to build and ship (forwarded word for word to Lane B; items 3 and 7 to B2; the block arrived TRUNCATED at item 8, "drop any")
 
