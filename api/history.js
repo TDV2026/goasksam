@@ -9,7 +9,7 @@
 import { asOfDate } from "../lib/asOf.js";
 import { withTracking } from "../lib/track/log.js";
 import { vinsForUrls } from "./_historyData.js";
-import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor, parseHubSlug, hubVins, liveListing, addWatch, carSlug, hubSlug, familyOf, slugify, listingSaid, familySales, SITEMAP_PAGE, resolveText, cleanTitle, canonicalHub } from "./_historyData.js";
+import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor, parseHubSlug, hubVins, titleInHub, hubHasRows, liveListing, addWatch, carSlug, hubSlug, familyOf, slugify, listingSaid, familySales, SITEMAP_PAGE, resolveText, cleanTitle, canonicalHub } from "./_historyData.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { PAGE_CSS as CSS, FONT_LINKS, railHtml, whyResultHtml, isCrewRequest } from "./_chrome.js";
 import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
@@ -256,6 +256,8 @@ function sellHref(id) {
   const p = { src: "history", car: [id.year, id.make, id.family].filter(Boolean).join(" "), year: id.year, make: id.make, model: id.model, family: id.family, gen: id.genCode, body: id.bodyStyle };
   return "/sell?" + Object.keys(p).filter(k => p[k] != null && p[k] !== "").map(k => encodeURIComponent(k) + "=" + encodeURIComponent(p[k])).join("&");
 }
+// A family name a hub link may carry (the archive's family key can be a placeholder).
+function saneLinkFamily(f) { const t = String(f || "").trim(); return !!slugify(t) && !/^(unknown|other|n\/?a|none)$/i.test(t); }
 async function carPage(req, res, env, slug, vin) {
   const crew = isCrewRequest(req);
   const { appearances, vinNorm, ok, source: dataSource } = await vinAppearances(env, vin);
@@ -351,9 +353,20 @@ async function carPage(req, res, env, slug, vin) {
   ].filter(Boolean);
   const photo = appearances.find(a => a.image) || null;
   const altPhotos = [...new Set(appearances.map(a => a.image).filter(Boolean))].filter(u => !photo || u !== photo.image);
-  const hubHref = `/history/${id.slug}`;
-  // Up to the model (the all-years hub) as well as this year's.
-  const modelHub = `/history/${hubSlug(id.make, id.family)}`;
+  // Up to the model (the all-years hub) as well as this year's, each linked only when that hub has a car on it (Lane E's
+  // scan found 25 linked hubs answering 404). The car's own records answer it at no cost; only when none of them is in
+  // the hub is the archive asked. When the family's hub is empty, the hub of the archive's own family name is tried
+  // (the Mercedes "-Class" cases: titles say "SL500"); with neither, no link. An unreadable archive keeps the link.
+  const hubLink = async (year, family) => {
+    const s = (year ? year + "-" : "") + hubSlug(id.make, family), hub = parseHubSlug(s);
+    if (!hub) return null;
+    if (appearances.some(a => titleInHub(hub, a.title, a.year))) return s;
+    const has = await hubHasRows(env, hub);
+    return has === false ? null : s;
+  };
+  const fams = [id.family, id.familyKey].filter((f, i, a) => f && saneLinkFamily(f) && a.findIndex(x => slugify(x) === slugify(f)) === i);
+  const pickHub = async year => { for (const f of fams) { const s = await hubLink(year, f); if (s) return { href: `/history/${s}`, family: f }; } return null; };
+  const [modelHubL, yearHubL] = await Promise.all([pickHub(null), id.year ? pickHub(id.year) : null]);
   const body = `
 <header class="vhead"><div><span class="eyebrow">Auction history</span>
 <h1>${esc(name)}</h1><div class="vinline">VIN ${esc(vinNorm)}</div>
@@ -365,7 +378,7 @@ ${live ? liveCardHtml(live, name, noun) : ""}
 ${saidHtml(said)}
 ${groupListsHtml(d, id, vinNorm, poolCards, urlVins, others, noun)}
 <section class="sec"><h2>Questions</h2><dl class="faq">${faq.map(([q, a]) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join("")}</dl></section>
-<nav class="vlinks" aria-label="More"><a href="${esc(modelHub)}">All ${esc(id.make + " " + id.family)} auction results</a><a href="${esc(hubHref)}">Every ${esc(id.year + " " + id.make + " " + id.family)} by VIN</a><a class="red" href="${esc(sellHref(id))}">Where to sell it</a></nav>
+<nav class="vlinks" aria-label="More">${modelHubL ? `<a href="${esc(modelHubL.href)}">All ${esc(id.make + " " + modelHubL.family)} auction results</a>` : ""}${yearHubL ? `<a href="${esc(yearHubL.href)}">Every ${esc(id.year + " " + id.make + " " + yearHubL.family)} by VIN</a>` : ""}<a class="red" href="${esc(sellHref(id))}">Where to sell it</a></nav>
 
 ${keepLookingHtml({ context: "spec", subject: name, href: keepLookingHref({ subject: name, vin: vinNorm }) })}
 ${whyResultHtml(crew)}

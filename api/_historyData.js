@@ -238,11 +238,35 @@ export function parseHubSlug(slug) {
 // and rows without a VIN are left out. Grouped per VIN, newest sale first.
 // `timing`, when passed, is filled in with {sales, attempts} ms (profiling only, Oct 2026; never
 // changes the query or its result - both legs still run in the same Promise.all).
-export async function hubVins(env, hub, timing) {
-  // Titles name these cars without the full make: "Mercedes-AMG GT R" (no "Benz"), "RUF CTR" or
-  // "Alpina B7" (no "Porsche"/"BMW"), so an aliased hub matches on its distinctive words.
+// The title words a hub reads, in order (the ilike "*a*b*c*" pattern below). Titles name these cars without the full
+// make: "Mercedes-AMG GT R" (no "Benz"), "RUF CTR" or "Alpina B7" (no "Porsche"/"BMW"), so an aliased hub matches on its
+// distinctive words.
+export function hubTokens(hub) {
   const makeToks = /^(ruf|alpina|amg)-/.test(hub.modelSlug) ? [] : hub.makeSlug === "mercedes-benz" ? ["mercedes"] : hub.makeSlug.split("-");
-  const toks = [...makeToks, ...hub.modelSlug.split("-")].filter(Boolean);
+  return [...makeToks, ...hub.modelSlug.split("-")].filter(Boolean);
+}
+// HUB LINKS ONLY TO HUBS THAT EXIST (Lane C, Oct 19 2026, from Lane E's scan: 25 hubs linked from car pages answered
+// 404, most of them Mercedes "-Class" families whose titles say "SL500", never "SL-Class"). A record is in a hub when
+// hubVins would read it: its title matches the hub's words in order (ilike, any case), its year is the hub's year, and
+// it is not a parts or memorabilia lot.
+export function titleInHub(hub, title, year) {
+  if (!hub || !title || (hub.year && Number(year) !== hub.year) || isMemorabilia(title) || isPartsListing(title, null)) return false;
+  return new RegExp(hubTokens(hub).map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(".*"), "i").test(String(title));
+}
+// Does the hub have a car on it (hubPage 404s on none)? The same reads as hubVins, a few rows: true, false, or null when
+// neither table could be read (the caller keeps the link then, as before).
+export async function hubHasRows(env, hub) {
+  const pat = encodeURIComponent("*" + hubTokens(hub).join("*") + "*"), y = hub.year ? "year=eq." + hub.year + "&" : "";
+  const [sales, atts] = await Promise.all([
+    supabaseSelect(env, `sales_archive?${y}listing_title=ilike.${pat}&vin_norm=not.is.null&select=vin_norm,listing_title,mileage&limit=20`),
+    supabaseSelect(env, `auction_attempts?${y}raw_record->>title=ilike.${pat}&chassis_vin_norm=not.is.null&select=chassis_vin_norm,title:raw_record->>title,mileage:raw_record->>mileage&limit=20`)
+  ]);
+  if (sales == null && atts == null) return null;
+  return (sales || []).some(r => r.vin_norm && r.vin_norm.length >= 6 && !isMemorabilia(r.listing_title) && !isPartsListing(r.listing_title, r.mileage))
+    || (atts || []).some(a => a.chassis_vin_norm && a.chassis_vin_norm.length >= 6 && !isMemorabilia(a.title) && !isPartsListing(a.title, a.mileage));
+}
+export async function hubVins(env, hub, timing) {
+  const toks = hubTokens(hub);
   const pat = encodeURIComponent("*" + toks.join("*") + "*");
   const sSel = "vin_norm,year,sale_date,sale_price,sale_price_usd,platform,listing_title,mileage,img:raw_record->>featured_image_url,url:raw_record->>url,url2:raw_record->>source_url,currency:raw_record->>currency";
   const aSel = "chassis_vin_norm,attempt_date,high_bid,high_bid_usd,source_slug,title:raw_record->>title,img:raw_record->>featured_image_url,url:raw_record->>url,url2:raw_record->>source_url,mileage:raw_record->>mileage,currency:raw_record->>currency";

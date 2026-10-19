@@ -455,6 +455,13 @@ try {
 } catch (e) {
   record("hubSlugCheck (scripts/hubSlugCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// a car page links its model and year hubs only when the hub has a car on it, trying the archive family name next
+try {
+  const out = execSync("node scripts/hubLinkCheck.mjs", { encoding: "utf8" });
+  record("Car pages link only hubs that exist (scripts/hubLinkCheck.mjs)", "PASS", (out.match(/hubLinkCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Car pages link only hubs that exist (scripts/hubLinkCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
