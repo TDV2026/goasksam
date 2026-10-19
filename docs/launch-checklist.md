@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T06:43Z (Lane F; Lane B's corrected spot-check lists received (938 of 2,433 come back in under e65); presented to Sam group by group; Heritage Edition tribute false positive found).
+Last updated: 2026-10-19T06:43Z (Lane F; Buy keep-warm proposal received for Sam's approval; spot-check lists presented).
 
 ## 0cd. Sam 06:3xZ Oct 19: decisions on the launch gates (REPLACES the earlier launch-gates block; routed word for word)
 
