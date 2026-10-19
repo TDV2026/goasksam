@@ -93,7 +93,7 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 19 | 1963 Chevrolet Corvette Split Window | 29 sales, $135,000 to $205,000 | re-pinned on e65 (Lane B after column, was 34 sales, $136,000 to $204,000) |
 | 20 | 1995 Acura NSX | exact, odd-sale fence (a Honda NSX-R set aside) | exact, 15 sales, $86,000 to $136,000 |
 | 21 | 1965 Ford Mustang (bare) | the identity question: every option opens the pool it counts, and the options add up to Any | each option count equals the count its page shows, options sum to Any |
-| 22 | 1957 Porsche 356 Speedster (set-aside and options) | 10 sales, $259,000 to $389,000 | year_widened, 1956 to 1958, 10 sales, $259,000 to $389,000 (re-pinned on e72; the set-aside words wait for an obdiag read) |
+| 22 | 1957 Porsche 356 Speedster (set-aside and options) | 10 sales, $259,000 to $389,000 | year_widened, 1956 to 1958, 10 sales, $259,000 to $389,000 (re-pinned on e72; set aside 0 on e72, every non-pool row is a fence exclusion before the set-aside step) |
 | 23 | 1966 Ferrari 275 GTB (thin, no zero option) | same car as row 14; nine sales, thin, no range, no question screen, set-aside sales listed with their reasons; no option at zero, no restoration line | year_widened, 9 sales, no range, same answer on all four products |
 | 24 | 1969 Chevrolet Camaro (bare) | the identity question: "convertible" typed and the Convertible chip give one answer; every option opens the pool it counts, and the options add up to Any | chip count equals typed count, each option equals its page, options sum to Any (expected to fail until e56) |
 | 25 | 1969 Chevrolet Camaro convertible (typed) | the same answer as the Convertible chip on the bare 1969 Camaro page: label "1969 Camaro Convertible", the bare car's exact rung (never widened), 3 sales, no range (under the band) | on all four products; expected to fail until e56 (e55 reads 24, widened to 1967 to 1969) |
@@ -117,7 +117,7 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 43 | 2001 BMW Z3 2.5i | the 2.5i trim kept: 13 sales, exact, 2001, $5,500 to $9,000 | read live on e59 |
 | 44 | 2007 BMW Z4 3.0si Coupe | the 3.0si trim and the coupe body: 4 sales, exact, 2007, no range; equals the Coupe chip on the bare 2007 Z4 3.0si | read live on e59 |
 | 45 | 1986 Renault Alpine V6 GT | the Alpine nameplate kept: 3 sales, model_any_year, "Alpine, all years", no range | read live on e59 |
-| 46 | 1971 Mercedes-Benz 280SE 3.5 Cabriolet | PENDING e60: the read hits the deadline card (read_failed) | pending Lane B e60 |
+| 46 | 1971 Mercedes-Benz 280SE 3.5 Cabriolet | refusal today (not_tracked): the read resolves to the S-Class cabriolet and every cabriolet sale is set aside (house-sold ones have no photo, the rest projects or sub-floor). Sam question open: photo rule drops this house-sold car | refusal on every product, pinned on e72 |
 | 47 | 1991 Acura NSX | exact '1991 NSX', 2 odd sales set aside; cross-lane guard so a recurrence of the 94 against 21 fails on every product | exact, 21 sales, $74,000 to $101,000 (re-pinned on e72, the e66 body-lock move) (Lane B live read, e59; unchanged on e60 since 21 is above eight) |
 | 48 | 2001 BMW M3 (bare) | blocking body question, Coupe 3 and Convertible 9, no count and no range on the bare page | read live on e61 (Lane B) |
 | 49 | 2001 BMW M3 Coupe | 8 sales, $22,500 to $44,000 | re-pinned on e65 (Lane B after column, was thin with 3 sales) |
@@ -210,7 +210,7 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":26,"expectedToMove":"e73 +3 (2005 911)","q":"2005 Porsche 911","status":"ready","identity":true,"labelHas":["911"]},
  {"id":27,"expectedToMove":"e73 rows likely held out on body (2005 911 targa)","q":"2005 Porsche 911 targa","status":"ready","rung":"exact","labelHas":["2005","Targa"],"count":1,"tol":0,"low":null,"high":null,"thin":true},
  {"id":28,"q":"1965 Ford Mustang fastback","status":"ready","rung":"exact","labelHas":["1965","Fastback"],"count":11,"tol":0,"low":43500,"high":56500,"tolPct":5},
- {"id":22,"q":"1957 Porsche 356 Speedster","status":"ready","rung":"year_widened","labelHas":["356 Speedster","1956 to 1958"],"count":10,"tol":0,"low":259000,"high":389000,"tolPct":5,"setAside":{"total":2,"reasons":["odd sale","modified"]},"noZeroOptions":true,"variantRule":true,"noRestoration":true,"sellEqualsMC":true},
+ {"id":22,"q":"1957 Porsche 356 Speedster","status":"ready","rung":"year_widened","labelHas":["356 Speedster","1956 to 1958"],"count":10,"tol":0,"low":259000,"high":389000,"tolPct":5,"setAside":{"total":0,"reasons":[]},"noZeroOptions":true,"variantRule":true,"noRestoration":true,"sellEqualsMC":true},
  {"id":23,"q":"1966 Ferrari 275 GTB","status":"ready","rung":"year_widened","labelHas":["275 GTB","1965 to 1966"],"count":9,"tol":0,"low":null,"high":null,"thin":true,"noZeroOptions":true,"variantRule":true,"noRestoration":true,"sellEqualsMC":true},
  {"id":29,"q":"2012 BMW M3 Competition Coupe","status":"ready","rung":"exact","labelHas":["2012 M3 Competition Coupe"],"count":13,"tol":0,"low":38500,"high":79500,"tolPct":5,"equalsBare":"2012 BMW M3 Competition","wideSpread":true,"lowestSale":31750,"highestSale":109500},
  {"id":30,"expectedToMove":"e73 +4, likely held out on body","q":"1973 Porsche 911 Targa","status":"ready","rung":"exact","labelHas":["1973","Targa"],"count":4,"tol":0,"low":null,"high":null,"thin":true},
@@ -229,7 +229,7 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":43,"q":"2001 BMW Z3 2.5i","status":"ready","rung":"exact","labelHas":["2001 Z3 2.5i"],"count":15,"tol":0,"low":6000,"high":11000,"tolPct":5},
  {"id":44,"q":"2007 BMW Z4 3.0si Coupe","status":"ready","rung":"exact","labelHas":["2007 Z4 3.0si Coupe"],"count":4,"tol":0,"low":null,"high":null,"thin":true,"chipPairs":[{"bare":"2007 BMW Z4 3.0si","label":"Coupe","typed":"2007 BMW Z4 3.0si Coupe"}]},
  {"id":45,"q":"1986 Renault Alpine V6 GT","status":"ready","rung":"model_any_year","labelHas":["Alpine"],"count":3,"tol":0,"low":null,"high":null,"thin":true},
- {"id":46,"q":"1971 Mercedes-Benz 280SE 3.5 Cabriolet","status":"pending","labelHas":["280SE"],"countMin":1},
+ {"id":46,"q":"1971 Mercedes-Benz 280SE 3.5 Cabriolet","status":"ready","empty":true,"samQuestionOpen":"photo rule drops this house-sold car"},
  {"id":47,"q":"1991 Acura NSX","status":"ready","rung":"exact","labelHas":["1991","NSX"],"count":21,"tol":0,"low":74000,"high":101000,"tolPct":3},
  {"id":48,"expectedToMove":"e73 +1","q":"2001 BMW M3","status":"ready","question":true,"noCountRange":true,"chipPairs":[{"bare":"2001 BMW M3","label":"Coupe","typed":"2001 BMW M3 Coupe"},{"bare":"2001 BMW M3","label":"Convertible","typed":"2001 BMW M3 Convertible"}]},
  {"id":49,"expectedToMove":"e73 +1","q":"2001 BMW M3 Coupe","status":"ready","rung":"exact","labelHas":["2001","M3","Coupe"],"count":8,"tol":0,"low":22500,"high":44000,"tolPct":3},
