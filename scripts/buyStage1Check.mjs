@@ -11,7 +11,7 @@ const i = s.indexOf("const CLIENT = ") + "const CLIENT = ".length, c = JSON.pars
 const line = from => { const a = c.indexOf(from); if (a < 0) throw new Error("missing " + from); return c.slice(a, c.indexOf("\n", a)) + "\n"; };
 const block = (from, to) => { const a = c.indexOf(from), b = c.indexOf(to, a); if (a < 0 || b < 0) throw new Error("missing " + from); return c.slice(a, b); };
 const env = ["  function esc(s)", "  function usd(n)", "  function num(n)", "  var TZ = ", "  function timePT(d)", "  function sameDay(a,b)", "  function bidAt(iso)", "  var SYM = ", "  function localMoney(n, cur)", "  function notUS(l)"].map(line).join("") +
-  "var CPHRASE = {}; function cityOf(l){ return l.location || ''; }\n" + line("  function awayWords(d)") + block("  function moneyHtml(l){", "  function bidAge(ms)") + line("  function localTime(t)") + block("  function bidLine(l){", "  var CUR_F = null;") + block("  // The VIN pill is not shown", "  // HAVE SAM KEEP LOOKING");
+  "var CPHRASE = {}; function cityOf(l){ return l.location || ''; }\n" + line("  function awayWords(d)") + block("  // onPhoto: drawn inside the photo", "  function bidAge(ms)") + line("  function localTime(t)") + block("  function bidLine(l){", "  var CUR_F = null;") + block("  // The VIN pill is not shown", "  // HAVE SAM KEEP LOOKING");
 const { moneyHtml, metaLine, chipsHtml, bidLine } = new Function(env + "\nreturn { moneyHtml: moneyHtml, metaLine: metaLine, chipsHtml: chipsHtml, bidLine: bidLine };")();
 const text = h => h.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 // The money figure: labelled, with the bid's own time; never a bare number.
@@ -40,7 +40,8 @@ ok(ch.includes("Automatic") && ch.includes("Alpine White over Saddle Brown") && 
 const card = block("  function card(l, big, eager){", "  // THE ADAPTIVE GRID");
 ok(!/keepPill\(\)/.test(card), "no 'Have Sam keep looking' on a card");
 ok(!/priceLine\(l\)|placeLine\(l\)/.test(card) && /metaLine\(l\) \+ chipsHtml\(l\)/.test(card), "one meta line, then the specs");
-ok(/ph = ph\.replace\(\/<\\\/div>\$\/, money \+ "<\/div>"\)/.test(card) && /'<div class="tx">' \+ \(ph \? "" : money\)/.test(card), "the money figure sits on the photo, or at the top of the card when there is no photo");
+ok(/var onPh = moneyHtml\(l, true\); if \(onPh\) ph = ph\.replace\(\/<\\\/a>\$\/, onPh \+ "<\/a>"\)/.test(card) && /money = ph \? "" : moneyHtml\(l, false\)/.test(card) && /'<div class="tx">' \+ \(ph \? "" : money\)/.test(card), "the money figure sits on the photo (inside its link), or at the top of the card when there is no photo");
+ok(moneyHtml({ current_bid_usd: 42500, source: "Bring a Trailer", url: "https://x/1" }, true) === '<span class="mlab nobid">See the bid on Bring a Trailer</span>' && !/<a /.test(moneyHtml({ current_bid_usd: 42500, source: "Bring a Trailer", url: "https://x/1" }, true)), "on the photo (itself a link), the figure carries no link of its own");
 const order = ["photoHtml(l, eager)", "<h3>", "metaLine(l)", "chipsHtml(l)", '<div class="sl">', 'class="hrow"', 'class="acts"'].map(x => card.indexOf(x));
 ok(order.every((x, k) => x > 0 && (k === 0 || x > order[k - 1])), "the order: photo (with the money), car, meta, specs, Sam block, history, actions");
 console.log(`buyStage1Check: ${pass} passed, ${fail} failed`);

@@ -152,7 +152,7 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   ok(lib.bidText("$66,666", t).startsWith("Last bid we saw $66,666 at " + want + " PT"), "an older bid reads with its own time in Pacific time");
   // Lane E, Oct 19 2026 (one auction feed, stored snapshots): a bid with no time has no bare number; the card shows the way to the bid.
   ok(lib.bidText("$1", NaN) === "", "a bid with no time has no bare number (Lane E's rule)");
-  ok(/if \(!amt\) return l\.bid_unknown \|\| !live \? "" : '<p class="mlab nobid">' \+ esc\("No bids yet"\)/.test(client) && !/esc\("Bid " \+ amt\)/.test(client), "No bids yet only with no bid record (Buy Stage 1 money figure); never a bare 'Bid $X'");
+  ok(/if \(!amt\) return l\.bid_unknown \|\| !live \? "" : "<" \+ tag \+ ' class="mlab nobid">' \+ esc\("No bids yet"\)/.test(client) && !/esc\("Bid " \+ amt\)/.test(client), "No bids yet only with no bid record (Buy Stage 1 money figure); never a bare 'Bid $X'");
   // The card as the server builds it (cardOf), so the make the comparison drops is the one the page really has.
   const { cardOf } = await import("../api/buySearch.js");
   const card = cardOf({ r: { id: 1, make: "Porsche", listing_title: "2014 Porsche 911 Carrera S Coupe", source: "carsandbids" }, facts: {}, gen: null, unknown: [] });
