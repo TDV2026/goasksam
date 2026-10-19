@@ -4696,6 +4696,8 @@ async function handleOps(req, res) {
       result.rows.push(row);
     }
     result.ms = Date.now() - t0;
+    // e67: one summary line per run, so a cron run reports its own coverage in the request log (no identifiers in it)
+    try { console.log(JSON.stringify({ tag: "warm_buy", part: result.part, parts: result.parts, searched: result.searched, cards: result.cards, filled: result.filled, stillReading: result.stillReading, skippedSeen: result.skippedSeen, notReached: result.notReached, stopped: result.stopped, ms: result.ms, rows: result.rows.map(r => ({ q: r.q, cards: r.cards, filled: r.filled, error: r.error || undefined })) })); } catch (e) { /* log only */ }
     return res.status(200).json(result);
   }
   if (task === "warmMC") {
