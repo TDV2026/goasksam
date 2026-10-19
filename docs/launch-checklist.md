@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T04:04Z (Lane F; B2's per-car difference lines added to the windows files; four engine-side pool suspects (Cayman R, 911 Turbo, Carrera 4, F-150) go to Lane B's 04:35Z diagnosis and hold those article ranges; Lane C added D to the small push).
+Last updated: 2026-10-19T04:15Z (Lane F; B2's e63 api-mode golden pass (rows 47 to 56) in the 04:20Z gap; Lane B's four diagnosis reads then warm at 04:35Z; Lane C's small push after e63 DONE).
 
 ## 0bq. Sam 03:5xZ Oct 19: the article pool and the thin wording list decided (forwarded word for word to B2 and Lane C; the Cayman R question to Lane B)
 
