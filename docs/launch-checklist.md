@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T06:58Z (Lane F tick; Lane A acknowledged, basis line built local, waiting for Lane C's lock to release; Lane A push tentatively 08:25Z).
+Last updated: 2026-10-19T06:58Z (Lane F tick; Lane D silent at 60 minutes: Lane C takes the Task email read).
 
 ## 0cf. Sam 06:5xZ Oct 19: STANDING AUTHORITY while Sam sleeps (about eight hours from now; routed to every lane)
 
@@ -13,7 +13,7 @@ Sam: make decisions based on what the launch needs; take the most reasonable rea
 
 ## DECISIONS MADE WHILE SAM SLEPT (Lane F; each: decision | reading taken | Sam's rule relied on | how to undo)
 
-- 06:5xZ | Lane D silent at the 60 minute mark (06:59Z): Lane C takes the Task email code read, read only | Sam's item 2 (launch gates decision) | Lane C stops; Lane D resumes its read.
+- 06:59Z DONE | Lane D silent at the 60 minute mark (06:59Z; asked 05:59Z, chased 06:38Z): Lane C ordered to take the Task email code read, read only, after its prePush; Lane D to be told by Lane C | Sam's item 2 (launch gates decision) | Lane C stops; Lane D resumes its read.
 - 06:5xZ (SUPERSEDED by the next lines) | e65 FULL prePush alone named for 07:50Z, after Lane C's push and 07:20Z live checks, B2's 07:05Z and 07:35Z loads; minute confirmed after Lane C's PUSHED line | Sam's judgment 06:4xZ ("Lane B may build and ship e65") and one archive load at a time | move the minute; no push has happened.
 - 06:5xZ | Analytics query of Buy search strings held: item 8 arrived truncated at "drop any"; the keep-warm of the 20 approved searches proceeds | Sam: 'must not decide' list (privacy condition unread) | send the rest of item 8 and Lane B runs the query.
 
