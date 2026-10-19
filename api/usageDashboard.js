@@ -3508,7 +3508,7 @@ async function handleOps(req, res) {
         let considered = null;
         if (wantRows) {
           const { marketCountry: mcOf } = await import("../lib/_classify.js");
-          const rowOut = (r, extra) => { const mc = mcOf(r); return { id: r.id, title: r.raw_title || r.rtitle || null, year: r.year ?? null, model: r.model || null, body_style: r.body || null, source: r.source || r.platform || null, date: String(r.auction_end_date || r.sale_date || "").slice(0, 10) || null, price: r.price ?? null, currency: r.currency || null, country_code: r.cc || null, city: r.city || null, state: r.state || null, country: r.country || mc.country, countryBasis: r.countryBasis || mc.basis, ...extra }; };
+          const rowOut = (r, extra) => { const mc = mcOf(r); return { id: r.id, title: r.raw_title || r.rtitle || null, year: r.year ?? null, model: r.model || null, mods: r.mods ? String(r.mods).slice(0, 300) : null, body_style: r.body || null, source: r.source || r.platform || null, date: String(r.auction_end_date || r.sale_date || "").slice(0, 10) || null, price: r.price ?? null, currency: r.currency || null, country_code: r.cc || null, city: r.city || null, state: r.state || null, country: r.country || mc.country, countryBasis: r.countryBasis || mc.basis, ...extra }; };
           const included = (ob.rawPool || []).map(r => rowOut(r, {}));
           const inIds = new Set(included.map(r => r.id));
           // A row in the final pool is never listed as excluded (an earlier, wider fetch may have rejected it
