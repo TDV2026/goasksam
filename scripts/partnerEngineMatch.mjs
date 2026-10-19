@@ -75,9 +75,13 @@ for (const [name, d] of Object.entries(FIX)) {
   if (name === "clarify") ok(out.answerType === "identity_question" && out.range === null, "clarification: a question, no range");
 }
 // The last good answer (Oct 17 2026): shown only while the engine's readAt is under a day old, and only a good answer.
-{ const { lastGoodUsable, DEMO_CARS } = await import("../api/partnerAnswer.js");
-  const good = { readAt: new Date(Date.now() - 3600e3).toISOString(), out: { ok: true, answerType: "range" } };
-  ok(lastGoodUsable(good) === true, "last good: an hour-old good answer is shown when a live read fails");
+{ const { lastGoodUsable, DEMO_CARS, questionResult } = await import("../api/partnerAnswer.js");
+  const { ENGINE_VERSION: EV } = await import("../lib/onebox.js");
+  const good = { readAt: new Date(Date.now() - 3600e3).toISOString(), engineVersion: EV, out: { ok: true, answerType: "range" } };
+  ok(lastGoodUsable(good) === true, "last good: an hour-old good answer of this engine version is shown when a live read fails");
+  ok(lastGoodUsable({ ...good, engineVersion: "e00-older" }) === false && lastGoodUsable({ readAt: good.readAt, out: good.out }) === false, "last good: an answer from another engine version, or with none, is never shown (Sam's demo orders, b)");
+  const q = { ok: true, answerType: "identity_question", question: { dimension: "body", text: "Which Mustang?", options: [{ label: "Coupe" }, { label: "Fastback" }] } };
+  ok(questionResult(q) && lastGoodUsable({ ...good, out: q }) === true && !questionResult({ ...q, stillReading: true }) && !questionResult({ ok: true, answerType: "range" }), "a demo car's stored QUESTION answer of this version is usable; a still-reading answer and a range are not questions (c)");
   ok(lastGoodUsable({ ...good, readAt: new Date(Date.now() - 25 * 3600e3).toISOString() }) === false, "last good: past a day it is never shown (the page says it could not read)");
   ok(lastGoodUsable({ ...good, out: { ok: false } }) === false && lastGoodUsable(null) === false, "last good: a failed answer is never kept as good");
   ok(DEMO_CARS.length === 7 && DEMO_CARS[0] === "2014 Porsche 911 GT3" && DEMO_CARS.includes("2015 Porsche 911 GT3"), "last good: kept for the demo's own cars, the 2014 GT3 listing car first (c9)"); }
@@ -102,7 +106,7 @@ for (const [name, d] of Object.entries(FIX)) {
   ok(pd && minute && minute[1] >= 90, "partner_demo allows a cold walk of the views and six cars (about 30 reads) three times in a minute per device");
   ok(pd && pd.address && pd.device.every(([w, n]) => { const a = pd.address.find(([x]) => x === w); return a && a[1] >= 10 * n; }), "partner_demo's address backstop is at least ten times the device window in every window (Sam, Oct 18 2026)");
   ok(/const who = demo \? \{\} : \{ "user-agent": base\["user-agent"\], "x-forwarded-for": base\["x-forwarded-for"\] \}/.test(apiSrc) && /r = await marketCheckAnswer\(req, text, refine, asked, true\);/.test(apiSrc), "no demo read carries a visitor address or browser into Market Check, so its visitor ceilings are untouched");
-  ok(/const lk = !refine \? demoKey\(text\) : null;/.test(apiSrc) && /out = vinIn \? \{ \.\.\.last\.out, history, lastGood: true \}/.test(apiSrc) && /if \(!vinIn && fullResult\(out\)\) writeLast/.test(apiSrc), "the VIN views fall back to the car's last good answer with their own VIN history; only plain reads write it"); }
+  ok(/const lk = !refine \? demoKey\(text\) : null;/.test(apiSrc) && /out = vinIn \? \{ \.\.\.last\.out, history, lastGood: true \}/.test(apiSrc) && /if \(!vinIn && \(fullResult\(out\) \|\| \(questionResult\(out\) && !\(Number\(asked\) > 0\)\)\)\) writeLast/.test(apiSrc), "the VIN views fall back to the car's last good answer with their own VIN history; only plain reads write it"); }
 // Neither side waits for good (Sam, Oct 18 2026): the endpoint has no deadline of its own (the engine's whole-path bound
 // answers still reading, with its retry); the page's abort is a safety net only, later than the engine's bound.
 { const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8"), apiSrc = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
@@ -170,7 +174,7 @@ for (const [name, d] of Object.entries(FIX)) {
   const r0 = await refreshDemoAnswer({ supabaseUrl: "x", supabaseKey: "y" }, "1999 Honda Civic");
   ok(r0.stored === false && r0.why === "not a demo car", "the write path stores the demo's six cars only");
   const apiSrc = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
-  ok((apiSrc.match(/\/rest\/v1\/app_config\?on_conflict=key/g) || []).length === 1 && /async function writeLast\(env, key, out, \{ force = false \} = \{\}\) \{\n  if \(!fullResult\(out\)\) return false;/.test(apiSrc), "one write path for partner_last, and it refuses anything but a full result");
+  ok((apiSrc.match(/\/rest\/v1\/app_config\?on_conflict=key/g) || []).length === 1 && /async function writeLast\(env, key, out, \{ force = false \} = \{\}\) \{\n  if \(!fullResult\(out\) && !questionResult\(out\)\) return false;/.test(apiSrc), "one write path for partner_last, and it refuses anything but a full result");
   const lastBlock = apiSrc.slice(apiSrc.indexOf("req.query.last != null"), apiSrc.indexOf("req.query.photo != null"));
   ok(lastBlock.length > 0 && /readLast\(env, lk\)/.test(lastBlock) && !/marketCheckAnswer|writeLast|partnerShape/.test(lastBlock), "GET ?last= returns the stored answer only: no engine read, no write");
   const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
