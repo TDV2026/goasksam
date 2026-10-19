@@ -116,7 +116,13 @@ export function samLines(c, now = Date.now()) {
   const out = [], m = c.market;
   if (m && m.kind !== "pending" && m.soldLine) {
     const pl = bidPlacing(c, now);
-    out.push({ kind: "range", rung: m.rungLines || [], text: m.soldLine + (pl ? ` The bid is ${pl}.` : "") });
+    // e71b (Sam, Oct 19 2026): until the grid card lists the sales the engine found (Lane C's build, the market flag m.cardListsSales), a
+    // no-range answer prints only the FIRST sentence of the engine's own thin line ("Not enough sales of this exact car to
+    // give a reliable range."): its second sentence promises sales the card does not show. Cut from the engine's line,
+    // never new wording; the full line returns once the card lists the sales.
+    const firstOnly = m.noCluster && m.thinLine && m.soldLine === m.thinLine && !m.cardListsSales;
+    const said = firstOnly ? (String(m.thinLine).match(/^.*?\.(?=\s|$)/) || [String(m.thinLine)])[0] : m.soldLine;
+    out.push({ kind: "range", rung: m.rungLines || [], text: said + (pl ? ` The bid is ${pl}.` : "") });
   }
   const t = (c.timeline || []).filter(a => a && a.date);
   const s0 = c.seen_before;
