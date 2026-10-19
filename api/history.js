@@ -9,7 +9,7 @@
 import { asOfDate } from "../lib/asOf.js";
 import { withTracking } from "../lib/track/log.js";
 import { vinsForUrls } from "./_historyData.js";
-import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor, parseHubSlug, hubVins, liveListing, addWatch, carSlug, familyOf, slugify, listingSaid, familySales, SITEMAP_PAGE, resolveText, cleanTitle, canonicalHub } from "./_historyData.js";
+import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor, parseHubSlug, hubVins, liveListing, addWatch, carSlug, hubSlug, familyOf, slugify, listingSaid, familySales, SITEMAP_PAGE, resolveText, cleanTitle, canonicalHub } from "./_historyData.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { PAGE_CSS as CSS, FONT_LINKS, railHtml, whyResultHtml, isCrewRequest } from "./_chrome.js";
 import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
@@ -353,7 +353,7 @@ async function carPage(req, res, env, slug, vin) {
   const altPhotos = [...new Set(appearances.map(a => a.image).filter(Boolean))].filter(u => !photo || u !== photo.image);
   const hubHref = `/history/${id.slug}`;
   // Up to the model (the all-years hub) as well as this year's.
-  const modelHub = `/history/${[slugify(id.make), slugify(id.family)].join("-")}`;
+  const modelHub = `/history/${hubSlug(id.make, id.family)}`;
   const body = `
 <header class="vhead"><div><span class="eyebrow">Auction history</span>
 <h1>${esc(name)}</h1><div class="vinline">VIN ${esc(vinNorm)}</div>
@@ -625,7 +625,7 @@ async function hubPage(req, res, env, slug) {
     const a = g.last, ph = g.apps.find(x => x.image) || null;
     // An all-years list links each VIN to its own year's page; the car page 301s if the year differs.
     const cy = hub.year || (g.apps.find(x => x.year) || {}).year;
-    const carHref = hub.year ? `/history/${slug}/${g.vin}` : (cy && id.family ? `/history/${[cy, slugify(id.make), slugify(id.family)].join("-")}/${g.vin}` : `/vin/${g.vin}`);
+    const carHref = hub.year ? `/history/${slug}/${g.vin}` : (cy && id.family ? `/history/${[cy, hubSlug(id.make, id.family)].filter(Boolean).join("-")}/${g.vin}` : `/vin/${g.vin}`);
     return `<tr><td class="thumbcell">${ph ? photoHtml(ph.image, ph.url, ph.house, g.vin, "thumb") : '<span class="thumb"></span>'}</td><td data-l="VIN"><a href="${esc(carHref)}">${esc(g.vin)}</a></td><td data-l="Appearances" class="r">${g.apps.length}</td><td data-l="Last result" class="${a.kind === "sale" ? "sold" : "muted"}">${esc(resultText(a))}</td><td data-l="Date">${esc(monShort(a.date))}</td><td data-l="Miles" class="r">${esc(miles(a.mileage))}</td></tr>`;
   }).join("");
   const body = `
@@ -787,10 +787,11 @@ async function rollout(env, opts = {}) {
     const bucket = classifyRoad({ title: g.title, vehicleType: g.type, make: g.make });
     if (bucket === "nonroad") { counts.non_vehicle++; continue; }
     if (bucket !== "car") { if (g.n >= 2) (bucket === "motorcycle" ? motoMulti : otherMulti).push({ vin, g }); continue; }
-    if (!g.make || !saneFamily(g.family)) { counts.no_proper_title++; continue; }
+    // A make with no usable letters or digits (it slugifies to nothing) is no proper title either: no hub, no sitemap entry.
+    if (!g.make || !slugify(g.make) || !saneFamily(g.family)) { counts.no_proper_title++; continue; }
     if (!g.photo) counts.no_photo++;   // tracked for reporting; a photoless car is still indexable (priced-appearance gate below)
     const c = canonicalHub(g.make, g.family);
-    const raw = slugify(g.make) + "-" + slugify(g.family), hk = slugify(c.make) + "-" + slugify(c.family);
+    const raw = hubSlug(g.make, g.family), hk = hubSlug(c.make, c.family);
     if (raw !== hk) { merged.set(raw, hk); }
     const h = hubs.get(hk) || { vins: 0, sales: 0, make: c.make, photos: [] }; h.vins++; h.sales += g.sold; if (h.photos.length < 3 && g.photos[0]) h.photos.push(g.photos[0]); hubs.set(hk, h);
     if (g.n >= 2) { counts.multi_candidates++; multi.push({ vin, g }); } else counts.single_noindex++;

@@ -107,6 +107,10 @@ export function familyOf(v) {
   if (squash(trim).includes(squash(model))) return trim;
   return model + " " + trim;
 }
+// A hub's slug (Lane C, Oct 19 2026): the make's and the family's slugs, joined, never with an empty part. A make that
+// slugifies to nothing (a dash, a symbol, non-Latin text) gave "/history/-ford-falcon-sprint-v8"; every hub link and key
+// is built here so none can carry a leading or doubled dash.
+export function hubSlug(make, family) { return [slugify(make), slugify(family)].filter(Boolean).join("-"); }
 export function carSlug(id) { return [id.year, slugify(id.make), slugify(id.family)].filter(Boolean).join("-"); }
 
 async function resolveText(text) {
@@ -348,7 +352,7 @@ export async function familySales(env, id, excludeVin, limit = 25, opts = {}) {
     const same = out.filter(r => { const g = r.year ? genFor(id.make, id.model, r.year, [r.year, id.make, id.family].join(" ")) : null; return g && g.code === carGen.code; });
     if (same.length >= 3) { list = same; gen = /^[a-z]\d/i.test(carGen.code) ? String(carGen.code).toUpperCase() : carGen.code; }
   }
-  return { rows: list.slice(0, limit), more: list.length > limit, gen, allHref: `/history/${slugify(id.make)}-${slugify(id.family)}`, path };
+  return { rows: list.slice(0, limit), more: list.length > limit, gen, allHref: `/history/${hubSlug(id.make, id.family)}`, path };
 }
 // e59 compare (ops task=histfam): both paths for one VIN, and what differs, so the column path ships only when the
 // ten sample pages show an identical list or the difference is named.
