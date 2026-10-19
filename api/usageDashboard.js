@@ -4621,7 +4621,7 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { parseQueryResolved, searchLive, listingMarket, listingFacts, isAbroadRow, gensNamed } = await import("../lib/live/search.js");
     const BUY_WARM = ["Porsche 911", "Porsche 911 Carrera", "Porsche 911 Turbo", "Porsche 911 GT3", "2024 Porsche 911", "Porsche Cayman", "Porsche Boxster", "Chevrolet Corvette", "Ford Mustang", "Ford Bronco", "BMW M3", "Mercedes-Benz SL", "Ferrari", "Lamborghini", "Land Rover Defender", "Toyota Land Cruiser", "Toyota Supra", "Nissan Skyline", "Chevrolet Camaro", "Jeep Wrangler"];
-    const parts = Math.max(1, Math.min(8, Number(req.query?.parts) || 4)), part = Math.max(1, Math.min(parts, Number(req.query?.part) || 1));
+    const parts = Math.max(1, Math.min(8, Number(req.query?.parts) || 6))   // e67: six parts (Lane F under Sam's standing authority), part = Math.max(1, Math.min(parts, Number(req.query?.part) || 1));
     const all = req.query?.list ? String(req.query.list).split("|").filter(Boolean) : BUY_WARM;
     const list = req.query?.list ? all : all.filter((_, i) => i % parts === part - 1);
     const budgetMs = Math.min(280000, Number(req.query?.budget) || 270000), t0 = Date.now();
