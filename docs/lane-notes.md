@@ -9873,3 +9873,27 @@ LANE F SCHEDULE for this order (the gaps; Lane F names them, not Lane B): diagno
   275 GTB (thin) 2.8 / 1.0 / 1.1 (FIX 2 both)
   2023 GT3 4.9 / 2.9 / 3.0 (FIX 2 both: its answer arrives 0.7 to 0.9 s after paint, but the page's own HTML takes 1.9 to 2.2 s, the remaining slow item)
   First paint is 160 to 310 ms on the other six. STORED VERSUS LIVE: no live compute in either pass; every answer was the demo store (FIX 2) or the stored question, except the 2014 GT3's first-visit read through Market Check's stored row. PHOTOS: still the largest late item (last photo at 1.9 to 5.4 s; a 948 KB own-sale photo on the 2014 GT3 and a 1.29 MB photo on the 2023 GT3 are from hosts without a resizer). ENGINE NUMBERS UNCHANGED (Market Check, 15:40Z): 2015 GT3 17 sales, $115,000 to $130,000; 2005 911 40 sales, $38,000 to $50,500; Cobra R thin (few_comparable, October 2025). No console errors, no 5xx, no revert. Next speed items, for Lane F: the 2023 GT3 page's own 2 s server render, and photos from hosts with no resizer.
+
+## FROM SAM (via Lane F, 2026-10-19 15:4xZ): THE "2022 BMW 3-Series" DEMO PAGE, A BIGGER ISSUE IN WHAT CARS THE ENGINE PULLS? (verbatim)
+Order for Lane B (diagnosis first), with Lane C and B2 where named. Report stage by stage.
+
+WHAT SAM SAW (his screenshot is saved with the Desk), on the demo's "Set your reserve" view for the typed car "2022 BMW 3-Series": no range, and the card says only "Latest sale: May 2026." with no engine line. The list reads "The last 6 sales, highest price first", and it holds: 2019 BMW 330i xDrive Sports Wagon $29,777; 2020 BMW 330i xDrive $25,000; 2019 BMW 330i xDrive $24,750; 2023 BMW M1000R Competition $23,000 (a motorcycle); 2020 BMW R1250GS Adventure $17,250 (a motorcycle); 2019 BMW 330i xDrive Sports Wagon $14,400. The photo shown is a white wagon.
+
+DO NOT ASSUME this is demo-only. The demo reads the one engine.
+
+STAGE 1, DIAGNOSIS, read-only, no push, no spend. Answer each question from code and existing reads, and use the next free gap for any live read:
+1. Why does the pool for "2022 BMW 3-Series" contain motorcycles? Which step let them in (the widening ladder dropping the model, a make-level fallback, a missing vehicle-type fence, or the thin path skipping a check)? Name the rung and the code.
+2. Why are the years 2019 and 2020 in a 2022 pool, and why does it mix the sedan and the Sports Wagon? State what the engine's window and body rules say should happen.
+3. Why is there no range, and why does the card show no engine line? Which reason code does the engine return for this car, and why did this card not print the thin line Lane C shipped? Is this the demo's view (a) only, or does Market Check and Sell show the same?
+4. Is the e64 guard (a wrong car must not print a range) applied to the thin path, where sales are shown without a range? If not, say so.
+
+STAGE 2, EXTENT, read-only. Sweep for the same defect across what the engine already holds, using existing reads or the next free gap with one archive load at a time:
+- All 71 golden rows, the seven demo cars and the fifteen article cars: any sale in a pool that is a different vehicle type (motorcycle, scooter, tractor, boat, trailer, parts or memorabilia) or a different model from the resolved car.
+- The Buy keep-warm list's 20 broad searches and the most-searched cars from the analytics query: the same check.
+- Makes that sell both cars and motorcycles first (BMW, Triumph, Ducati, Honda, Harley, Indian, Vespa, Moto Guzzi, Suzuki, Kawasaki, Yamaha).
+Report: how many pools are affected, which cars, whether any printed a range with a non-car sale inside it, and how many sales are involved.
+
+STAGE 3, PROPOSAL, no build until Sam sees it unless the rule below allows: a fix in the one engine, never per page, so Market Check, Sell, Buy, Task emails and the demo all get it. The proposal covers a vehicle-type fence so a car pool never contains a motorcycle or other non-car; the thin path and the widening ladder honouring the same fences as the range path; and the missing thin line on the card if the engine does return one.
+You may build and ship the vehicle-type fence only if (a) it removes non-car sales from car pools and changes nothing else, (b) the golden table and the seven demo cars are byte-identical except for rows you name with before and after, and (c) it ships in a named gap with a full prePush alone and an immediate revert on any other change. Anything that changes which cars or years a pool may widen to is a rule change: park it for Sam, with the before and after on the affected cars.
+
+The demo stays HELD. No secrets. No spend. Nothing public changes except an approved push. One-engine rule applies. Report stage by stage. No time estimates. No em or en dashes in any drafted copy.
