@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T01:06Z (Lane F; the e62 chain is RUNNING (no prompt was needed: the command was already allowed); prePush waits for the 01:19Z gap).
+Last updated: 2026-10-19T01:17Z (Lane F; Sam's weekend-results analysis run for a newsletter article routed to B2, read-only, after e62 DONE; e62 chain running).
+
+## 0be. Sam 01:1xZ Oct 19: weekend-results analysis run for a newsletter article (routed to B2, read-only; forwarded word for word)
+
+15 weekend collection-auction results (2005 Ford GT, 1992 Porsche 911 Carrera 4 by Singer, 2001 Renault Clio V6, 2022 Mustang Shelby GT500 Heritage Edition, 1995 Porsche 911 Turbo, 2023 Lamborghini Huracan Tecnica, 1999 Ferrari 360 Modena, 2019 Ford F-150 HM Elite Prerunner, 2012 Porsche Cayman R, 1993 Lancia Delta HF Integrale Evo 2, 2026 Lexus LC 500 Inspiration Series Coupe, 1975 Porsche 911 Carrera Coupe, 2023 Porsche 911 Carrera T Coupe, 2006 Mercedes-Benz SLR McLaren Coupe, 2024 McLaren 750S Spider) are read one per car through oneEngineAnswer with no writes, after Lane B's e62 chain DONE in Desk gaps, one archive load at a time. Per car: the question and options if the engine asks (answer with the matching option and say why), tier, sales used, printed range, exact lowest and highest, latest sale, window, wideSpread, any refusal line verbatim; position (below, inside, above) only where a range printed, else "no range, none shown"; a pool check on whether the weekend sale is already in the engine's sales (then not independent); a summary from the engine's outputs only. No new numbers, no bargain, overpay or fair-price words, a range is the middle half so outside it is normal, nothing public, no venue names beyond Sam's, no source counts. Deliver ~/Desktop/goasksam-proofs/article/weekend-results.md and .csv; report stage by stage, first five cars first.
 
 ## 0bd. Sam 01:0xZ Oct 19: e62 refusal wording APPROVED with one change; the chain prompt is HELD until Lane B confirms (forwarded word for word to Lane B)
 
