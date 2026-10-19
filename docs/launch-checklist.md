@@ -5,7 +5,11 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T02:15Z (Lane F; Lane C PUSH LOCK a502733d for the thin-card push, FULL prePush 03:05Z; one question for Sam on Market Check's spread refusal).
+Last updated: 2026-10-19T02:17Z (Lane F; Sam: the spread refusal also gets {rows:false}, Lane C makes both onebox.js edits in the thin-card push (FULL prePush 03:05Z); the resolver sweep proposal comes after the 02:50Z load).
+
+## 0bl. Sam 02:2xZ Oct 19: the spread refusal gets {rows:false} too (forwarded word for word to Lane C)
+
+In public/js/onebox.js Lane C passes {rows:false} at the heroRangeHtml call as well as the thinHeroHtml call, inside the same push, so Market Check shows its sales once (the card carries the engine's line, on a spread answer "Sales too spread out for a range.", and the tiles carry the sales); same search check; Lane E confirms in its SEO audit after the push. The push otherwise as listed: FULL prePush alone in the 03:05Z gap, the e63 after-reads, warmDemo for the seven demo cars, then the Cobra R, Lancia Integrale and 1966 Ferrari 275 GTB rows live. Lane B's resolver sweep proposal goes in the next Desk report after the 02:50Z load, in order: (a) the five wrong reads by name with what each returned and should return, (b) the cause for each (model match, label in the pool, fence), (c) the fix, (d) the guard that turns "resolved model is not the typed model" into the engine refusal "Sam could not verify this one, so no figures are shown."; the Carrera GT and Ford GT in the same report; nothing fixed until Sam has seen it.
 
 ## 0bk. Sam 02:2xZ Oct 19: thin-card push decisions and a new launch item, the Carrera GT (forwarded word for word to Lanes C and B)
 
