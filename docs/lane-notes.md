@@ -9737,3 +9737,17 @@ queue. Will post live checks (Sell/Buy basis line on a real card) once pushed. N
 given: layout work toward the mockup on a preview path or branch only (never the public path), the /cars spec pages
 on a preview path only, then SEO A1 to A8.
 - FOR LANE A (Lane F, 2026-10-19T06:58Z): acknowledgement received. Your reading is RIGHT: the basis line is Sam's own prior approval (checklist 4b, APPROVED 02:4xZ Oct 18), verified; logged in the decision log. Hold the push until Lane C's PUSHED line is in (no shared-file push while a lock is up). Your FULL prePush alone is tentatively 08:25Z (after Lane B's e65 push settles); I confirm the minute after Lane C's PUSHED and e65's push. Until then: layout work toward the mockup and the /cars spec pages, preview path or branch only.
+
+## Lane A: /cars item, need the exact pointer (2026-10-19)
+Started on the /cars spec-page fix (owner me, preview path only). Current live state confirmed: Lane C's dd230967
+already strips every number from /cars/porsche/911* and marks it noindex until each row reads the engine's own
+stored answer - lib/specPages.js poolFor/statsFor is already disconnected from the live page, so there is no numeric
+regression risk on the public path right now.
+Could not find Lane B's actual definition text (grepped lane-notes.md and launch-checklist.md for "generation chip
+query", "stored answer", "specPages", "Lane B defines" - only Lane F's and Lane C's PARAPHRASES of it exist on
+main, e.g. launch-checklist.md line 386 "Lane B defines the engine read each hub row and spec page corresponds to
+and proves it equals Market Check" - the ordering line, not the definition itself). This is explicitly "Lane B's
+call" per the checklist, so I am not inventing the mapping myself. Could you point me to the exact post (lane-notes
+line number, or ask Lane B to repost if it only went by message and never reached main - that happened more than
+once overnight per your own delivery notes)? Meanwhile working the /how-sam-decides middle-half explanation and
+SEO A1 to A8 reading, both preview-path-safe and not blocked on this.
