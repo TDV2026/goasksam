@@ -5,7 +5,19 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T04:23Z (Lane F; e65 BUILT on branch e65 (modified set-aside fix, F-150 guard); the Cayman R gap still unexplained (same class as the Ford GT), e65's trace will name it; e63 after-reads 04:35Z).
+Last updated: 2026-10-19T04:31Z (Lane F; Sam's TOP PRIORITY coverage check (are recent sales missing from the pool or the read? Defender 90 as the test case) goes to Lane B at 04:35Z ahead of the e63 after-reads, e64 and e65; running coverage list started).
+
+## 0bs. Sam 04:2xZ Oct 19: TOP PRIORITY read-only COVERAGE CHECK, are recent sales missing from the pool or the read? (forwarded word for word to Lane B; B2 holds)
+
+Evidence: Sam's /preview screen for the 1996 Land Rover Defender 90 shows nine sales, range $29,500 to $56,500, "the latest in February 2025" and "Two sales set aside as odd sales"; two public listings: a stock-looking 1996 Defender 90 300Tdi 5-Speed that sold $30,000 on 2026-08-28 (slug 1996-land-rover-defender-90-86), not in the answer; a modified one (roll cage, snorkel, aftermarket bumper, camo wrap), no reserve, $22,000 on 2025-09-18, possibly one of the two odd sales set aside. Same family as the Cayman R and the Ford GT. Lane B, ONE archive load ahead of e64 and e65 in a Desk gap (04:35 to 04:44Z, overrun 04:50 to 04:59Z), read-only: (1) look up in the archive by title, price and date the two Defender sales, the eleven 2005 Ford GT sales, the fifteen weekend results and the running coverage list, giving stored make, model, year, vehicle_type and title labels and, if missing from the answer, why (ingest gap, a label the resolver does not look for, a fence, not fetched, other); (2) name the two Defender sales set aside as odd and why, then a count by month of Land Rover Defender sales January 2023 to October 2026 with the labels used, and whether post-February 2025 sales exist under another label; (3) archive row counts by month for 24 months across everything, and what pullLive covers or skips; (4) a one-paragraph conclusion (INGEST gap, LABEL gap, FENCE or READ PATH) with evidence, whether it explains the Ford GT and Cayman R, and who owns it if the feed or ingest; nothing fixed until Sam sees the cause and a proposal naming the carrying bump and how many golden rows and warm cars change, by name; (5) B2 holds the Defender row and any affected car; public pages and /preview keep running as they are; if the demo cars are affected F tells Sam in the same report. Linked to launch item 2 (every car returns a range) and item 3 (golden table). Lane B's e63 after-reads, warm and Cobra R split move to after the coverage DONE.
+
+## RUNNING COVERAGE LIST (every public sale Sam shows or mentions as missing or suspicious; each entry joins Lane B's test set at the next gap)
+| Title | Price | Date | What Sam saw |
+|---|---|---|---|
+| 1996 Land Rover Defender 90 300Tdi 5-Speed, stock looking (slug 1996-land-rover-defender-90-86) | $30,000 | 2026-08-28 | not in the /preview answer for the 1996 Defender 90 (nine sales, $29,500 to $56,500, latest February 2025) |
+| 1996 Land Rover Defender 90 300Tdi 5-Speed, modified (roll cage, snorkel, aftermarket bumper, camo wrap), no reserve | $22,000 | 2025-09-18 | possibly one of the two sales set aside as odd; Lane B confirms |
+| the eleven 2005 Ford GT sales (see section 0bj) | $398,000 to $802,000 | 2026-02-01 to 2026-10-12 | the engine returned not tracked |
+| 2012 Porsche Cayman R | $117,000 | 2026-10-17 | in the archive, not in the engine pool |
 
 ## 0br. Sam 04:2xZ Oct 19: e65 APPROVED (modified set-aside, F-150 guard, Cayman R fetch gap) and the article rows held or void (forwarded word for word to Lane B and B2)
 
