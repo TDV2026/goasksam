@@ -1534,6 +1534,31 @@ async function handleOps(req, res) {
   // Two EXACT counts (the whole archive, then photo present), then per-source planner estimates (cheap) unless
   // ?exact=1. Read-only, zero OldCarsData spend. The photo field lives in raw_record only until the real-columns
   // migration fills image_url.
+  // STORED-ANSWER COUNT (e62, Sam's item 5): read-only, counts only. Pages the stored Market Check answers (MCWARM rows in
+  // spec_market_cache) once, selecting only a few JSON paths per row (no answer bodies), and counts them by engine
+  // version, tier, refusal kind and wideSpread. The trim-question candidates are the rows a trim question could reach
+  // (a too-spread-out refusal or a wide result); the invariant cases are refusal kind invariant_failed. No writes.
+  if (task === "storedcount") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const t0 = Date.now(); const counts = { rows: 0, byEngine: {}, byTier: {}, byRefusalKind: {}, wideSpread: 0, trimQuestionCandidates: 0, invariantFailed: 0 };
+    let cursor = "";
+    for (let page = 0; page < 200; page++) {
+      const q = `spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,ev:market->>engineVersion,t:market->raw->>tier,k:market->raw->refusal->>kind,w:market->raw->>wideSpread&order=spec_key.asc&limit=1000` + (cursor ? `&spec_key=gt.${encodeURIComponent(cursor)}` : "");
+      const rows = await supabaseSelect(env, q);
+      if (!Array.isArray(rows) || !rows.length) break;
+      for (const r of rows) {
+        counts.rows++;
+        const inc = (o, k) => { o[k || "none"] = (o[k || "none"] || 0) + 1; };
+        inc(counts.byEngine, r.ev); inc(counts.byTier, r.t); if (r.t === "refusal") inc(counts.byRefusalKind, r.k);
+        if (r.w === "true") counts.wideSpread++;
+        if (r.k === "invariant_failed") counts.invariantFailed++;
+        if ((r.t === "refusal" && r.k === "varied") || (r.t === "result" && r.w === "true")) counts.trimQuestionCandidates++;
+      }
+      cursor = rows[rows.length - 1].spec_key;
+      if (rows.length < 1000) break;
+    }
+    return res.status(200).json({ task: "storedcount", ocdSpend: 0, writes: 0, ...counts, ms: Date.now() - t0 });
+  }
   if (task === "photocov") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const exact = req.query?.exact === "1";

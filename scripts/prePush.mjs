@@ -325,6 +325,14 @@ try {
 } catch (e) {
   record("Tester cookie signed (scripts/testerCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Thin cards never print a range (e62, Sam): a thin answer carries the exact lowest and highest sale as data, and the
+// shared card must not show them as "lowest to highest". No network.
+try {
+  const out = execSync("node scripts/thinCardNoRange.mjs", { encoding: "utf8" });
+  record("thin card shows no range (scripts/thinCardNoRange.mjs)", "PASS", (out.match(/thinCardNoRange: .*/) || [""])[0]);
+} catch (e) {
+  record("thin card shows no range (scripts/thinCardNoRange.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Buy's card and its one question (Oct 14 2026, Lane C): the question rule on three fixtures, the no-question case, spec
 // chips left out when the listing doesn't state them, both Sam lines when the car has a history, the Task from the page's
 // spec. No network.
