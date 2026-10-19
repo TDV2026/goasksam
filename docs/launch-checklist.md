@@ -5,7 +5,7 @@ a state and a proof. States: building, ready, pushing, live, checking, blocked, 
 not yet answered). "Proof" names where the evidence sits (a lane-notes section, a script, a screenshot folder); a
 row with no proof is not done whatever its state says.
 
-Last updated: 2026-10-19T02:54Z (Lane F; the Ford GT sales are in the archive and the fetch returns them, so not_tracked is most likely a failed fetch read as an empty pool; Lane B proposes still-reading on any failed pool read, a fetch trace on not_tracked, and one confirming read).
+Last updated: 2026-10-19T02:57Z (Lane F tick; thin-card prePush 03:05Z; window analysis from 03:20Z; Sam to approve the resolver proposal, the guard and the failed-read fix).
 
 ## 0bm. Sam 02:4xZ Oct 19: the 3, 6 and 12 month window analysis for the article cars (B2 via the Sam Desk; approved with "yes")
 
