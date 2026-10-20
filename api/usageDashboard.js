@@ -4742,6 +4742,26 @@ async function handleOps(req, res) {
     });
     return res.status(200).json({ task: "vindecodedry", cursor: cursor || "(top)", nextCursor: r.cursor || "(end: back to the top)", scanned: r.scanned, candidates: r.candidates, decoded: r.decoded, failed: r.failed, batches: r.batches, stoppedOn: r.stoppedOn || null, changes: items.filter(x => x.changes).length, ms: Date.now() - t0, items });
   }
+  // bodychanges (Lane B, Oct 20 2026, Sam: "Sweep: yes, build bodychanges as proposed, read-only"; READ-ONLY, key-gated,
+  // OldCarsData zero, writes nothing): the body changes the archive's own titles name (lib/_bodyChanges.js). Per make (?makes=,
+  // comma list; default every make with a code shape) it reads make, model, year and title from sales_archive and returns the
+  // ranked candidate boundaries on models with no curated generation: the two codes, their year spans and counts, and the typed
+  // years whose calendar window (year +/- 2) would pool both bodies. Sees only codes the titles name (stated on the output).
+  if (task === "bodychanges") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { findBodyChanges, BODY_CHANGE_MAKES } = await import("../lib/_bodyChanges.js");
+    const want = String(req.query?.makes || "").toLowerCase().split(",").map(m => m.trim()).filter(m => BODY_CHANGE_MAKES.includes(m));
+    const makes = want.length ? want : BODY_CHANGE_MAKES;
+    const minSales = Math.max(2, Math.min(20, Number(req.query?.minSales) || 3));
+    const t0 = Date.now(), rows = [], read = {}, skipped = [];
+    for (const m of makes) {
+      if (Date.now() - t0 > 230000) { skipped.push(m); continue; }
+      const got = (await supabaseSelectAll(env, `sales_archive?select=make,model,year,listing_title&make=ilike.${encodeURIComponent(m)}&order=id.asc`)) || [];
+      read[m] = got.length; for (const r of got) rows.push(r);
+    }
+    const r = findBodyChanges(rows, { minSales });
+    return res.status(200).json({ task: "bodychanges", minSales, rowsRead: read, skippedForTime: skipped, ms: Date.now() - t0, ...r, candidates: r.candidates.slice(0, 200) });
+  }
   // getragcount (Lane B, Oct 20 2026, Sam's strict gearbox rule; READ-ONLY, key-gated, OldCarsData zero, writes nothing): the stored
   // description facts whose transmission reads "Manual" ONLY because the description says Getrag (Getrag also makes dual-clutch
   // gearboxes). Rows with desc_facts.transmission = Manual and "getrag" in the description, re-read by today's transmissionFromText
