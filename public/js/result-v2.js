@@ -342,8 +342,14 @@ function v2Reserve(ev){
 // claim. Reads ev.reserveDay (backend: BaT sold vs reserve-not-met, two buckets). Null unless each
 // bucket cleared 30 auctions and the rates differ by >=5 points (backend gates), so the tile hides on
 // noise. Leads with the winning bucket. Scope is the generation label (uppercased).
+// Sam's floor (Oct 20 2026): the tile shows only when EACH side has at least 10 auctions, read from the server's own
+// bucket counts (weekendN, weekdayN; the server's gate is stricter today), otherwise no best-day line at all. The
+// paired layout's compact line is Sam's wording, within the card's 70 characters: "Weekends: 62% sold, midweek 48% (40
+// auctions)." and its mirror when midweek wins.
+var V2_BESTDAY_SIDE_MIN=10;
 function v2ReserveDay(ev){
   var rd=ev&&ev.reserveDay; if(!rd||!rd.ok)return null;
+  if(!(Number(rd.weekendN)>=V2_BESTDAY_SIDE_MIN&&Number(rd.weekdayN)>=V2_BESTDAY_SIDE_MIN))return null;
   var scope=(rd.scopeLabel||"these")+"s";
   var we=Number(rd.weekendPct), wd=Number(rd.weekdayPct), n=Number(rd.sample)||0;
   if(!isFinite(we)||!isFinite(wd))return null;
@@ -351,7 +357,10 @@ function v2ReserveDay(ev){
   var body=weekendWins
     ? scope+" with a reserve sold "+we+"% of the time when the auction ended on a weekend, and "+wd+"% midweek ("+n+" auctions)."
     : scope+" with a reserve sold "+wd+"% of the time when the auction ended midweek, and "+we+"% on a weekend ("+n+" auctions).";
-  return { headline:weekendWins?"Weekends":"Midweek", n:n, body:body, compact:body };
+  var compact=weekendWins
+    ? "Weekends: "+we+"% sold, midweek "+wd+"% ("+n+" auctions)."
+    : "Midweek: "+wd+"% sold, weekends "+we+"% ("+n+" auctions).";
+  return { headline:weekendWins?"Weekends":"Midweek", n:n, body:body, compact:compact };
 }
 
 // ---------- 9-platform muted accent map ----------

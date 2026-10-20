@@ -307,6 +307,12 @@ try {
 } catch (e) {
   record("/sell thin sentence, Sam's wording, no buyers (scripts/sellThinLineCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+try {
+  const out = execSync("node scripts/sellBestDayCheck.mjs", { encoding: "utf8" });
+  record("/sell best-day line, Sam's wording, 10 per side (scripts/sellBestDayCheck.mjs)", "PASS", (out.match(/sellBestDayCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("/sell best-day line, Sam's wording, 10 per side (scripts/sellBestDayCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The Sell day-of-week tile (Oct 2026, Lane B2, lib/sell/sellFacts.js dayBuckets + sellFlow.js dayTile). No network.
 try {
   const out = execSync("node scripts/sellDayTileCheck.mjs", { encoding: "utf8" });
