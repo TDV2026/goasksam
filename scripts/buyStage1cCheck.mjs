@@ -41,5 +41,7 @@ ok(!/\+ rowsHtml\(l\)/.test(c), "no grid card lists its sales inline");
 ok(/querySelectorAll\('\[data-mc="' \+ x\.getAttribute\("data-for"\) \+ '"\]'\)/.test(c), "closing the panel resets both openers (the link and the action)");
 const dr = block("  function drawerHtml(l, j){", "  function openDrawer(btn){");
 ok(/var sfc = j && j\.engineAnswer && window\.sellsForCardHtml \? window\.sellsForCardHtml\(j\.engineAnswer, \{\}\) : "";\n\s*if \(sfc\) \{ out\.push\(sfc\); \} else \{/.test(dr) && /else if \(m && m\.soldLine\) out\.push/.test(dr), "the inline panel draws the engine's own card (its line and its sales) and, if that read fails, the card's own line: never blank");
+// ---- Item 4c: no big gap under the shorter cards (actions follow the content; each card its own height).
+ok(/\.cgrid\{align-items:start\}\n\.cgrid \.car \.acts\{margin-top:0;padding-top:14px\}/.test(css), "the actions follow the card's content; no empty band above them on a short card");
 console.log(`buyStage1cCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
