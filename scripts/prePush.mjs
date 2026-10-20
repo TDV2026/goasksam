@@ -532,6 +532,13 @@ try {
 } catch (e) {
   record("The Amazon pilot scope (scripts/amazonScopeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// buyComposerClientCheck (Lane C). No network.
+try {
+  const out = execSync("node scripts/buyComposerClientCheck.mjs", { encoding: "utf8" });
+  record("buyComposerClientCheck (scripts/buyComposerClientCheck.mjs)", "PASS", (out.match(/buyComposerClientCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("buyComposerClientCheck (scripts/buyComposerClientCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
