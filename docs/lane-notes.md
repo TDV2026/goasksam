@@ -10158,3 +10158,11 @@ Search check: no public page touched (design only).
   THE ZIP: it is kept only for the visit, in the page, sent with each request and never stored by the server, and it is asked at most once per visit. A saved location on a signed-in account does not exist today; adding one needs Sam's yes.
   THE EVENTS (text only; no visitor, account, address or time of day beyond the event's own timestamp): buy_input_distance { text }, buy_input_new_search { text }, buy_input_unsupported { text }.
 Search check: no public page touched (wording proposal only).
+- PUSHED (Lane D, 2026-10-20T00:23:44Z): 6b0731e7, a Task keeps a hyphenated trim the engine reads (lib/tasks/tasks.js knownTrim, scripts/taskFiltersCheck.mjs 94 of 94; B2's golden row 62). Lock released. FULL prePush alone 00:20:02 to 00:23:28Z: 0 FAIL, 49 PASS, 6 SKIP (five archive checks, no Supabase keys here; the partner five live cars, no GAS_CREW_COOKIE; the perf rows and goldenTruth also skipped, no PROBE_KEY in env). Live Ready as goasksam-eex3g7f60. AFTER probes 00:32:05 to 00:32:20Z, each Task against Market Check for the same typed words:
+  (1) '1989 Chevrolet Camaro IROC-Z': Task row '1989 Chevrolet Camaro IROC-Z', trim IROC-Z, 10 sales, $14,500 to $28,500; Market Check poolN 10, [14,500, 28,500], '1989 Camaro IROC-Z, coupes and convertibles'. EQUAL (before: Task 8, $7,000 to $13,000).
+  (2) '1989 Chevrolet Camaro IROC Z': the same, 10, $14,500 to $28,500, EQUAL to Market Check (before: Task 8; the resolver gives trim IROC-Z for the spaced form, Lane F's equality rule).
+  (3) '1989 Chevrolet Camaro': Task 8, $7,000 to $13,000; Market Check poolN 8, [7,000, 13,000]. Unchanged, EQUAL.
+  (4) '1973 Ferrari 365 GTB/4 Daytona-spec': Task kind none; Market Check not_tracked. Unchanged, EQUAL.
+  (5) '1995 Porsche 911 Carrera RSR-SPEC': Task kind none; Market Check not_tracked. Unchanged, EQUAL.
+  task_match_audit 00:32:21Z: 3 hunts, 34 matches, 0 mismatches (as before). No revert.
+Search check: no public page touched (Task email market line only, the engine's own sentence).
