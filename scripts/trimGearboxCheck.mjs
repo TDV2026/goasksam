@@ -28,5 +28,19 @@ const bmw = trimGroupsFromSales(rows([
   "2021 BMW 3 Series M340i", "2021 BMW 3 Series M340i Automatic", "2021 BMW 3 Series M340i"
 ]), { make: "BMW", model: "3 Series", year: 2021 }).named.map(x => x.label);
 ok(bmw.includes("330i") && bmw.includes("M340i"), `real trim words still group (named: ${JSON.stringify(bmw)})`);
+// Generic words (Oct 20 2026): "Edition" and "Anniversary" are never a chip on their own; those sales fold into "Other trims"
+// with their count. Titles from the archive sample (the 2004/2005 Viper Mamba Edition, the 1969 Camaro Pace Car Edition).
+const viper = trimGroupsFromSales(rows([
+  "2004 Dodge Viper Mamba Edition", "2004 Dodge Viper Mamba Edition", "2004 Dodge Viper Mamba Edition",
+  "2004 Dodge Viper SRT-10", "2004 Dodge Viper SRT-10", "2004 Dodge Viper SRT-10",
+  "2004 Dodge Viper 10th Anniversary Edition", "2004 Dodge Viper 10th Anniversary Edition", "2004 Dodge Viper 10th Anniversary Edition"
+]), { make: "Dodge", model: "Viper", year: 2004 });
+const vl = viper.named.map(x => x.label.toLowerCase());
+ok(!vl.includes("edition") && !vl.includes("anniversary"), `Edition and Anniversary are never a chip (named: ${JSON.stringify(vl)})`);
+ok(viper.other === 6, `the Edition and Anniversary sales fold into Other trims with their count (${viper.other})`);
+const camaro = trimGroupsFromSales(rows(["1969 Chevrolet Camaro Pace Car Edition Convertible", "1969 Chevrolet Camaro Pace Car Edition Convertible", "1969 Chevrolet Camaro Pace Car Edition Convertible"]), { make: "Chevrolet", model: "Camaro", year: 1969 });
+ok(!camaro.named.some(x => /edition|car/i.test(x.label)), `no invented "Car Edition" or "Edition" (named: ${JSON.stringify(camaro.named.map(x => x.label))})`);
+const gt = trimGroupsFromSales(rows(["2006 Ford GT Heritage Edition", "2006 Ford GT Heritage Edition", "2006 Ford GT Heritage Edition"]), { make: "Ford", model: "GT", year: 2006 });
+ok(gt.named.some(x => x.label.toLowerCase() === "heritage"), `Heritage stays a trim word (named: ${JSON.stringify(gt.named.map(x => x.label))})`);
 console.log(bad ? `trimGearboxCheck: ${bad} failed` : "trimGearboxCheck: all passed");
 process.exit(bad ? 1 : 0);
