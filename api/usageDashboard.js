@@ -3479,6 +3479,9 @@ async function handleOps(req, res) {
     const { oneEngineAnswer, ENGINE_VERSION, RANGE_RULES } = await import("../lib/onebox.js");
     const qs = String(req.query?.qs || "").split("|").map(x => x.trim()).filter(Boolean).slice(0, 12);
     const on = { blendOneFamily: true, gearboxFirst: true, houseOnlyBody: true };
+    const { parsePreviewBind } = await import("../lib/_bodyChanges.js");
+    const bindGens = parsePreviewBind(req.query?.bind);
+    if (req.query?.bind && !bindGens) return res.status(400).json({ error: "bind must read Make|Model|code:YYYY-YYYY[,code:YYYY-YYYY]" });
     const brief = d => {
       if (!d) return null;
       const cards = Array.isArray(d.cards) ? d.cards : [];
@@ -3497,6 +3500,16 @@ async function handleOps(req, res) {
         if (!v || !v.make) { out.push({ q, status: (rv && rv.status) || "unresolved" }); continue; }
         const g = await findGeneration(v, env);
         const before = (await oneEngineAnswer(v, g, q, env, null)).raw;
+        // bind= (Lane B, Oct 20 2026, the C63 W205 preview): "after" is today's rules plus a PROPOSED generation entry
+        // ("Make|Model|code:YYYY-YYYY,code:YYYY-YYYY"), visible only inside this call (lib/generations.js previewGenerations)
+        // and given its own in-flight key, so no public read shares or sees it; nothing is stored. Without bind=, unchanged.
+        if (bindGens) {
+          const { previewGenerations } = await import("../lib/generations.js");
+          const gp = { ...(g || {}), code: "preview:" + bindGens.map(x => x.code).join("+") };
+          const after = (await previewGenerations.run(bindGens, () => oneEngineAnswer(v, gp, q, env, null))).raw;
+          out.push({ q, bind: bindGens.map(x => `${x.code} ${x.yearStart}-${x.yearEnd}`), before: brief(before), after: brief(after) });
+          continue;
+        }
         const envOn = { ...env, rangeRules: on };
         const after = (await oneEngineAnswer(v, g, q, envOn, null)).raw;
         const row = { q, before: brief(before), after: brief(after) };
