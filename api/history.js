@@ -283,7 +283,7 @@ async function carPage(req, res, env, slug, vin) {
   const { appearances, vinNorm, ok, source: dataSource } = await vinAppearances(env, vin);
   if (!ok) return send(res, 503, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>`, req }), {}, false, crew, req);
   if (!appearances.length) return notFound(req, res, "VIN " + vinNorm);
-  const id = await carIdentity(appearances, vinNorm);
+  const id = await identityFor(env, appearances, vinNorm);
   if (!id) return notFound(req, res, "VIN " + vinNorm);
   if (slug !== id.slug || vin !== vinNorm) { res.setHeader("Location", `/history/${id.slug}/${vinNorm}`); return res.status(301).end(); }
 
@@ -714,7 +714,7 @@ async function handler(req, res) {
       // /vin/{VIN}: 301 to the canonical car URL (404 when the VIN has no appearance or is not a car).
       const { appearances, ok } = await vinAppearances(env, vin);
       if (!ok) return send(res, 503, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>`, req }), {}, false, crew, req);
-      const id = appearances.length ? await carIdentity(appearances, vin) : null;
+      const id = appearances.length ? await identityFor(env, appearances, vin) : null;
       if (!id) return notFound(req, res, "VIN " + vin);
       res.setHeader("Location", `/history/${id.slug}/${vin}`);
       res.setHeader("Cache-Control", "public, s-maxage=3600");
@@ -858,7 +858,7 @@ async function rollout(env, opts = {}) {
         // Photos in the order the page tries them: the page's own hero first, then the others. Only
         // cars carry photos into the sitemap (motorcycles/other never needed them downstream).
         const photos = kind === "car" ? [...new Set(appearances.map(a => a.image).filter(Boolean).concat(g.photos))].slice(0, 4) : undefined;
-        return { kind, vin, loc: `${SITE}/history/${id.slug}/${vin}`, lastmod: (g.date || "").slice(0, 10), photos };
+        return { kind, vin, loc: `${SITE}/history/${id.slug}/${vin}`, lastmod: (g.date || "").slice(0, 10), photos, ident: identOf(id) };
       } catch { return null; }
     }));
     validatedCandidates += part.length;
@@ -899,6 +899,44 @@ export { rollout };
 // it is one cheap query - no scan, no per-VIN validation - so the sitemaps are always fast regardless
 // of vin_index size. Falls back to the live, time-budgeted rollout() (the stopgap above) only when the
 // table has no row yet (before the DDL/first nightly run land).
+// ONE IDENTITY FOR THE SITEMAP AND THE PAGE (Lane C, Oct 20 2026; the 9 VIN-sitemap redirects). carIdentity names a car
+// through a resolver whose answer can depend on which source answers (a title naming two models, Silverado or Suburban),
+// so the nightly sitemap and the live page could name one VIN differently and the page 301'd away from its own sitemap
+// address. The nightly rollout now stores the identity it computed beside each address (identOf), and the page and the
+// /vin/ redirect read that stored identity first (identityFor): the address, the page, its canonical and its title are
+// one answer. A VIN the cache does not hold (or an unreadable cache) uses today's live path. The live carIdentity still
+// runs, so a VIN that is no longer a car (parts, memorabilia, another make) still 404s.
+export function identOf(id) { return id ? { year: id.year || null, make: id.make || null, model: id.model || null, trim: id.trim || null, family: id.family || null, genCode: id.genCode || null, bodyStyle: id.bodyStyle || null, slug: id.slug || null } : null; }
+export function mergeIdentity(live, ident, vehicle) {
+  if (!live) return null;
+  if (!ident || !ident.slug || !ident.make || !ident.family) return live;
+  return { ...live, year: ident.year, make: ident.make, model: ident.model, trim: ident.trim, family: ident.family, genCode: ident.genCode,
+    bodyStyle: ident.bodyStyle || live.bodyStyle || null, vehicle: vehicle || live.vehicle, slug: ident.slug, identSource: "sitemap" };
+}
+let IDENT = null, IDENT_AT = 0;
+const IDENT_READ_MS = 1500;
+async function cachedIdent(env, vin) {
+  if (!env) return null;
+  if (!IDENT || Date.now() - IDENT_AT > 6 * 3600e3) {
+    const rows = await Promise.race([supabaseSelectSafe(env, `vin_rollout_cache?key=eq.current&select=data&limit=1`), new Promise(r => setTimeout(() => r(null), IDENT_READ_MS))]);
+    const d = Array.isArray(rows) && rows[0] && rows[0].data;
+    if (!d) return null;   // unreadable or slow: the live path this time; asked again on the next request
+    const m = new Map(); for (const u of [...(d.vins || []), ...(d.motos || []), ...(d.others || [])]) if (u && u.vin && u.ident) m.set(u.vin, u.ident);
+    IDENT = m; IDENT_AT = Date.now();
+  }
+  return IDENT.get(vin) || null;
+}
+export async function identityFor(env, appearances, vin) {
+  const live = await carIdentity(appearances, vin);
+  if (!live) return null;
+  const ident = await cachedIdent(env, vin).catch(() => null);
+  if (!ident) return live;
+  const same = slugify(ident.make) === slugify(live.make) && slugify(ident.family) === slugify(live.family) && Number(ident.year) === Number(live.year);
+  // Another name than the live read: the engine reads the stored name too (its own words, resolved once), so the page's
+  // title and its market read name the same car.
+  const vehicle = same ? live.vehicle : ((await resolveText([ident.year, ident.make, ident.family].filter(Boolean).join(" ")).catch(() => null)) || live.vehicle);
+  return mergeIdentity(live, ident, vehicle && ident.year ? { ...vehicle, year: ident.year } : vehicle);
+}
 async function rolloutCached(env) {
   if (ROLL && Date.now() - ROLL_AT < 6 * 3600e3) return ROLL;
   if (env) {
