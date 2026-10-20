@@ -359,7 +359,7 @@ async function send(){
         } else if(sellState.resolvedVehicle&&sellState.resolvedVehicle.vin){
           // VIN entered, NO prior sale matched. The capability EXISTS (we matched the VIN, there is
           // just no prior sale on record for this exact car); never let the chat deny VIN search.
-          sellContext+=`\nVIN note (the seller pasted a VIN and we resolved the exact car, but found NO prior sale on record for it): VIN and chassis matching IS a capability - never say "VIN-level search isn't something GoAskSam does" or that the analysis is "only make, model, year and price band". If the seller asks whether this car has sold before, say plainly "I don't have a prior sale on record for this VIN" and, only then, suggest they can check the venue's own search. Then answer their selling question from the current recommendation.`;
+          sellContext+=`\nVIN note (the seller pasted a VIN and we resolved the exact car, but found NO prior sale on record for it): VIN and chassis matching IS a capability - never say "VIN-level search isn't something GoAskSam does" or that the analysis is "only make, model, year and price band". If the seller asks whether this car has sold before, say plainly "Sam doesn't have a prior sale on record for this VIN" and, only then, suggest they can check the venue's own search. Then answer their selling question from the current recommendation.`;
         }
         // Rendered destinations = what actually rendered (never the raw route
         // list). The chat may name ONLY these. Framing follows the composition.

@@ -1086,7 +1086,7 @@ async function handleVehicleValidationAnswer(q){
         chips.push(`Keep ${desig} as typed`,"Change car");
         sellState.pendingVehicleIdentity={type:"model",baseVehicle:[make].filter(Boolean).join(" "),rawInput:candidate,suggestion:suggestion||null,keepDesignation:desig};
         sellState.step=17;
-        addMsg("sam",`${desig} isn't a ${make||"model"} Sam can match to a known listing.${suggestion?` The closest I have is ${suggestion}.`:""} Double-check the badge, or keep it as typed and Sam will run a broader read.`,"",chipsHTML(chips));
+        addMsg("sam",`${desig} isn't a ${make||"model"} Sam can match to a known listing.${suggestion?` The closest Sam has is ${suggestion}.`:""} Double-check the badge, or keep it as typed and Sam will run a broader read.`,"",chipsHTML(chips));
         return true;
       }catch(e){ if(typeof hideVehicleLookup==="function")hideVehicleLookup(); /* fall through to normal handling */ }
     }

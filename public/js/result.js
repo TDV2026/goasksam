@@ -1294,7 +1294,7 @@ function renderThinDecisionSell(msgs,thin,decisionData){
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${body}
     ${askLine}
     <div class="pcard-note" style="margin-top:14px">Real completed sales from GoAskSam's archive, hammer prices with the buyer premium backed out.</div>
-    <div class="sam-text after-results">Ask me anything about the recommendation, or tell me more about the car.</div>
+    <div class="sam-text after-results">Ask Sam anything about the recommendation, or tell Sam more about the car.</div>
   </div></div>`;
   msgs.appendChild(row);
   row.scrollIntoView({behavior:"smooth",block:"start"});
@@ -1544,7 +1544,7 @@ function renderHouseComparisonSell(msgs,hc,decisionData,opts){
     ${askLine}
     ${opts.onlineCardHtml?`<div class="pv2-bridge" style="margin-top:18px">If you'd rather run the sale yourself instead of consigning, here's where Sam would go.</div>${opts.onlineCardHtml}`:""}
     <p style="font-size:12px;color:#928b7a;margin-top:16px;line-height:1.5">${hasPick?`Ranked by the record: how often ${esc(modelLabel)}s have gone to each house, how recently, and the hammer results shown.`:`The record for each house: when ${esc(modelLabel)}s have sold and the hammer results shown, in date order.`} Consignment windows are approximate, confirm with the house. Real completed sales, hammer prices with the buyer premium backed out. No estimates, no valuations.</p>
-    <div class="sam-text after-results">Ask me anything about the recommendation, or tell me more about the car.</div>
+    <div class="sam-text after-results">Ask Sam anything about the recommendation, or tell Sam more about the car.</div>
   </div></div>`;
   sellState.sellOptions=[];
   // Record what actually rendered so the post-result chat has the SAME facts on screen (items 1-2):
@@ -1721,12 +1721,12 @@ function renderNoEvidenceFallback(fallback){
       <div class="pcard-left">
         <div class="pcard-script">Here's the honest read for your</div>
         <h1 class="pcard-name">${esc(carLbl||v.make||car||"car")}</h1>
-        <p class="pcard-lead">I don't have comparable recent sales for this exact car in Sam's data, so Sam can't point you to a venue on evidence yet, and I won't guess one.</p>
+        <p class="pcard-lead">Sam doesn't have comparable recent sales for this exact car yet, so Sam can't point you to a venue on evidence, and won't guess one.</p>
         ${dirNote?`<p class="pcard-lead">${dirNote}</p>`:""}
-        <p class="pcard-lead" style="opacity:.7;font-size:12.5px;margin-top:10px">The moment one like it sells, I can read it directly and back a recommendation with real sales.</p>
+        <p class="pcard-lead" style="opacity:.7;font-size:12.5px;margin-top:10px">The moment one like it sells, Sam can read it directly and back a recommendation with real sales.</p>
       </div>
     </div>
-    <div class="sam-text after-results">Tell me more about the car, or try another and I'll pull what actually sold.</div>
+    <div class="sam-text after-results">Tell Sam more about the car, or try another and Sam will pull what actually sold.</div>
   </div></div>`;
 }
 
@@ -1753,7 +1753,7 @@ function renderNoEvidenceFallbackLegacy(fallback){
   return `<div class="row-inner"><div class="msg-wrap">
     <div class="sam-label">Sam</div>
     <div class="sell-rec-header">
-      <div class="sell-rec-kicker">What I’d do</div>
+      <div class="sell-rec-kicker">What Sam would do</div>
       <div class="sell-rec-title">${escapeHtml(fallback.title||`Here’s what Sam would do with ${sellState.carName||"this car"}.`)}</div>
       <div class="sell-rec-subtitle">${escapeHtml(fallback.subtitle||fallback.primaryReason)}</div>
     </div>
@@ -1762,7 +1762,7 @@ function renderNoEvidenceFallbackLegacy(fallback){
         <div class="sell-rec-card-head">
           <div>
             <div class="sell-rec-badge top">Sam's pick</div>
-            <div style="margin-top:10px"><div class="sell-rec-name">${escapeHtml(fallback.primary)}</div><div class="sell-rec-type">Where I’d start</div></div>
+            <div style="margin-top:10px"><div class="sell-rec-name">${escapeHtml(fallback.primary)}</div><div class="sell-rec-type">Where Sam would start</div></div>
           </div>
           <div class="platform-logo ${escapeHtml(logo.cls)}">${escapeHtml(logo.text)}</div>
         </div>
@@ -1775,7 +1775,7 @@ function renderNoEvidenceFallbackLegacy(fallback){
       </div>
     ${secondary}
     </div>
-    <div class="sam-text after-results">Ask me anything about the recommendation, or tell me more about the car.</div>
+    <div class="sam-text after-results">Ask Sam anything about the recommendation, or tell Sam more about the car.</div>
   </div></div>`;
 }
 
