@@ -11072,3 +11072,38 @@ Search check: Buy's visitor words "{N} don't say which model" (Sam approved); no
   NOT IN THE BATCH: the Desk (crew-only) lines; the privacy policy (legal); comments (lib/marketStats.js:12 is a code comment).
   NOTE: with Sam's "company we only", every line above that keeps a company "we" with no "our records/data" is "no change". The lines that change are the possessives ("our records", "our data", "our own ...") and the one first-person Sam.
 Search check: no public page touched (lists only); the owners' commits touch rule 9 (public copy).
+- THE COMPANY-VOICE BATCH, PER OWNER, CORRECTED (Lane E; Lane F's reading: Sam said yes to MY ORIGINAL PROPOSALS, source 54e025a0; "company we only, never first-person Sam" limits any voice that remains). THIS REPLACES my 17:39Z per-owner list. Line numbers re-read on main at 17:2xZ. Each: file:line, the words today, the text to build. A company "we" that a proposal below does not touch stays.
+  FOR LANE C, GROUP A (the visible bid label):
+    api/buy.js:74 (Buy CLIENT bidText "Last bid we saw " + amt + time, and bidLine "Last bid we saw: {amount} at {time}."): "Last bid seen: {amount} at {time}." (bidText: "Last bid seen " + amt + time).
+    public/js/onebox.js:339 "Last bid we saw": "Last bid seen".
+    api/history.js:512 "Last bid we saw: ": "Last bid seen: ".
+    api/tasksPage.js:262 area (the Tasks page bid line): "Last bid seen".
+  FOR LANE C, GROUP D (home, About, PowerSellers, Tasks):
+    public/js/homepage.js:17 "The recommendation itself comes from our own algorithm. We built the ranking rules, the evidence thresholds, and the honesty gates ourselves.": "The recommendation comes from rules-based ranking: the ranking rules, the evidence thresholds and the honesty gates are built in house."
+    public/js/homepage.js:18 "We never value your vehicle, and we never invent a number. Every figure you see comes from real records. We hold no platform fee data and never state fees as fact. If the data is thin, we tell you plainly ...": "GoAskSam never values a vehicle and never invents a number. Every figure comes from real records. No platform fee data is held, and fees are never stated as fact. If the data is thin, the page says so plainly ..."
+    public/js/homepage.js:24 "... across the online auction platforms we track.": "... across the tracked online auction platforms."
+    public/js/homepage.js:26 to :32 (seven platform notes) "We track its sold results.": "Its sold results are tracked." (:32 keeps "... for Mercedes-Benz vehicles.").
+    public/js/homepage.js:34 "More online platforms are being added as we widen the data we track.": "More online platforms are being added."
+    public/about.html:49 "... from the auction platforms we track ...": "... from the tracked auction platforms ..."
+    public/about.html:52 "Every figure you see comes from a real sale in our records.": "Every figure you see comes from a real recorded sale."
+    public/powersellers.html:47 "And where we have the data, we show it.": "And where the data exists, it is shown."
+    api/tasksPage.js:18 HOW (Lane F's draft for Sam): "The cars Sam shows you come from a rules-based matching algorithm. Sam helps understand the question and explain the results, but never invents the cars, the matches or the numbers. Every number comes from real market evidence."
+    api/tasksPage.js:23 FAQ (Lane F's draft): question "Who chooses the cars?"; answer "A rules-based matching algorithm decides which live cars match your Task, the same one behind the GoAskSam search. Sam understands what you asked for and writes each update, but never invents the cars, the matches or the numbers."
+  FOR LANE D, GROUP C (/sell) AND THE EMAIL LINES:
+    public/js/result-copy.js:128 and :443 "across everything we've tracked": "across every recorded sale".
+    public/js/result-copy.js:156 "We analyzed {scope} across everything we've tracked to build a reliable picture.": "{Scope} across every recorded sale gives a reliable picture."
+    public/js/result-copy.js:796 "in our tracked records" and "is computed from our own sales data": "in the recorded sales" and "is computed from recorded sales".
+    public/js/result-copy.js:846 "Tracked sales in our records": "Tracked sales on record".
+    public/js/result-copy.js:915 "We've tracked too few of {name}'s sales in our own records to compute his numbers fairly yet.": "Too few of {name}'s sales are on record to compute his numbers fairly yet."
+    public/js/result-copy.js:1254 "{leader} holds most of the recent {scope} sales we track.": "{leader} holds most of the recent {scope} sales on record."
+    public/js/result-copy.js:1283 "... higher than the other platforms we track ...": "... higher than the other tracked platforms ..."
+    public/js/result.js:1512, :1514, :1515 "No {car} has sold on the online platforms we track.": "No {car} has sold on the tracked online platforms."
+    api/sellerDecision.js:2176 "... the stronger price signal in our data.": "... the stronger price signal in the recorded sales."
+    public/js/chat-core.js:169 "... traded {n} in our records ...": "... traded {n} on record ..."
+    public/js/wizard.js:216 (the chat model's instruction; the model repeats it): 'say plainly "we track this data"': 'say plainly "this is tracked sales data"'; each "in our data" and "in our records" in that instruction: "in the recorded sales".
+    public/js/wizard.js:1314 "... and I'll work with what we have." (first-person Sam): "... and Sam will work with what there is."
+    public/js/entry.js:31 "We have commercial arrangements with some of the PowerSellers we work with, and nobody can pay to be recommended": "GoAskSam has commercial arrangements with some of the PowerSellers it works with, and nobody can pay to be recommended."
+    lib/tasks/bidTime.js:29 (lastBidLine, every Task and Before it ends email) and lib/tasks/tasks.js:725 "Last bid we saw: {amount} at {time}.": "Last bid seen: {amount} at {time}."
+  FOR LANE B, GROUP B (the engine's line): lib/onebox.js:5329, :5330, :5331 "... These are the sales we found.": "... These are the sales on record."
+  NOT IN THE BATCH: the Desk (crew-only), the privacy policy (legal), code comments.
+Search check: no public page touched (lists only); the owners' commits touch rule 9 (public copy).
