@@ -14,7 +14,14 @@ ok(/if \(!core\) \{ const nt = opts\.notTracked \? notTrackedMem\.get\(spec\.key
 const buy = fs.readFileSync(new URL("../api/buySearch.js", import.meta.url), "utf8");
 const calls = (buy.match(/notTracked: true/g) || []).length;
 ok(calls === 4, `only Buy's card reads ask for it (${calls} call sites in api/buySearch.js)`);
-for (const f of ["../lib/tasks/tasks.js", "../lib/live/samChat.js", "../lib/live/buyAlerts.js", "../lib/live/watches.js", "../lib/live/converse.js"]) {
+// the chat search's own cards ask too (Oct 20 2026, the Bugatti card on the chat path), and its facts still read no market
+const chat = fs.readFileSync(new URL("../lib/live/samChat.js", import.meta.url), "utf8"), conv = fs.readFileSync(new URL("../lib/live/converse.js", import.meta.url), "utf8");
+ok(/listingMarket\(env, x\.r, x\.facts, \{ noBlock: true, notTracked: true \}\)/.test(chat), "the chat search's cards ask for the not-tracked line");
+ok(/listingMarket\(env, x\.r, x\.facts, \{ noBlock: true, notTracked: true \}\)/.test(conv), "the chat search's price-filtered cards ask too");
+const { applyRung } = await import("../lib/live/rung.js");
+ok(JSON.stringify(applyRung(nt)) === JSON.stringify(nt), "the rung step passes a not_tracked market through untouched");
+ok(!applyRung(nt).family, "a not_tracked market has no family, so the chat's facts read it as no market (as before)");
+for (const f of ["../lib/tasks/tasks.js", "../lib/live/buyAlerts.js", "../lib/live/watches.js"]) {
   ok(!/notTracked: true/.test(fs.readFileSync(new URL(f, import.meta.url), "utf8")), `${f.replace("../", "")} does not ask (keeps reading null)`);
 }
 console.log(bad ? `notTrackedCardCheck: ${bad} failed` : "notTrackedCardCheck: all passed");
