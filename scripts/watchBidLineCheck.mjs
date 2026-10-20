@@ -1,7 +1,7 @@
 // The VIN-watch (Keep Looking) match email's bid line (Oct 2026, Lane D, Sam's '5 yes'). A stored bid is a snapshot,
 // so the email never calls it current: a bid under an hour old reads "The last bid seen was {amount} at {time}." with
 // the bid's own Pacific time and "on {weekday}" when it is not today (Lane C's lastBidSeenLine, lib/tasks/bidTime.js,
-// the Before it ends wording); an older bid keeps "Last bid we saw: ..."; an untimed bid prints no bid; every other
+// the Before it ends wording); an older bid keeps "Last bid seen: ..."; an untimed bid prints no bid; every other
 // line of the email stays as it was. No network, no email.
 //   node scripts/watchBidLineCheck.mjs
 // Run by scripts/prePush.mjs.
@@ -19,9 +19,9 @@ const head = "The 1988 Porsche 911 Carrera in your Task (VIN WP0AB0911JS120001) 
 const fresh = first(61500, "2026-10-14T18:40:00Z");
 ok(fresh === `${head} The last bid seen was $61,500 at 11:40am PT.`, `fresh bid: ${fresh}`);
 const old = first(61500, "2026-10-14T15:12:00Z");
-ok(old === `${head} Last bid we saw: $61,500 at 8:12am PT.`, `old bid today: ${old}`);
+ok(old === `${head} Last bid seen: $61,500 at 8:12am PT.`, `old bid today: ${old}`);
 const tue = first(61500, "2026-10-13T23:05:00Z");
-ok(tue === `${head} Last bid we saw: $61,500 at 4:05pm PT on Tuesday.`, `old bid another day: ${tue}`);
+ok(tue === `${head} Last bid seen: $61,500 at 4:05pm PT on Tuesday.`, `old bid another day: ${tue}`);
 ok(first(61500, null) === head, `untimed bid prints no bid: ${first(61500, null)}`);
 ok(first(0, null) === head, `no bid: ${first(0, null)}`);
 for (const [n, t] of [["fresh", fresh], ["old", old], ["tue", tue]]) ok(!/current bid/i.test(t), `${n}: never 'current bid'`);

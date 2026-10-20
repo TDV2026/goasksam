@@ -15,8 +15,8 @@ const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL", m); } }
 const NOW = new Date("2026-10-14T10:30:00-07:00");   // a Wednesday, Pacific daylight time
 const CASES = {
   fresh: { o: { mins: 10 }, bid: "The last bid seen was $61,500 at 10:20am PT, inside the range of recent sales.", keep: " The last bid seen was $61,500 at 10:20am PT." },
-  old_today: { o: { mins: 300 }, bid: "Last bid we saw: $61,500 at 5:30am PT, inside the range of recent sales.", keep: " Last bid we saw: $61,500 at 5:30am PT." },
-  another_day: { o: { mins: 780 }, bid: "Last bid we saw: $61,500 at 9:30pm PT on Tuesday, inside the range of recent sales.", keep: " Last bid we saw: $61,500 at 9:30pm PT on Tuesday." },
+  old_today: { o: { mins: 300 }, bid: "Last bid seen: $61,500 at 5:30am PT, inside the range of recent sales.", keep: " Last bid seen: $61,500 at 5:30am PT." },
+  another_day: { o: { mins: 780 }, bid: "Last bid seen: $61,500 at 9:30pm PT on Tuesday, inside the range of recent sales.", keep: " Last bid seen: $61,500 at 9:30pm PT on Tuesday." },
   untimed: { o: { mins: null }, bid: null, keep: "" },
   none: { o: { mins: null, bid: 0 }, bid: "No bids yet.", keep: "" },
 };
@@ -24,7 +24,9 @@ const BID_AT = 2, KEEP_AT = 13;
 const KEEP_HEAD = "The 2005 Mercedes-Benz CLK DTM in your Task (VIN WDB2093421F000000) is live on Bring a Trailer, ending today at 12:15pm PT.";
 const skeletons = {};
 for (const [c, x] of Object.entries(CASES)) {
-  const { daily } = bidEmails("fresh", NOW, x.o);
+  const { daily, before } = bidEmails("fresh", NOW, x.o);
+  // Sam, Oct 20 2026: company "we" only, never first-person; the bid line reads "Last bid seen: ...".
+  ok(!/\bwe saw\b/i.test(daily.text + daily.html + before.text + before.html), `${c}: neither email says "we saw"`);
   const lines = daily.text.split("\n");
   ok(daily.subject === "Two updates from your Tasks", `${c}: subject (${daily.subject})`);
   if (x.bid) ok(lines[BID_AT] === x.bid, `${c}: digest bid line ${JSON.stringify(x.bid)} (got ${JSON.stringify(lines[BID_AT])})`);
@@ -44,7 +46,7 @@ ok(/\nView it on Bring a Trailer: https:\/\/bringatrailer\.com\/\n/.test(base) &
 // bidBlock alone (no range): the bid line by itself, and a fresh bid just past midnight PT names its day.
 const row = (mins, bid = 61500, now = NOW) => ({ id: 1, current_bid_usd: bid, bid_at: mins == null ? null : new Date(now.getTime() - mins * 60e3).toISOString() });
 ok(bidBlock(row(10), null, NOW).lines.join("|") === "The last bid seen was $61,500 at 10:20am PT.", `fresh, no range: ${bidBlock(row(10), null, NOW).lines.join("|")}`);
-ok(bidBlock(row(300), null, NOW).lines.join("|") === "Last bid we saw: $61,500 at 5:30am PT.", "old, no range: unchanged");
+ok(bidBlock(row(300), null, NOW).lines.join("|") === "Last bid seen: $61,500 at 5:30am PT.", "old, no range: unchanged");
 ok(bidBlock(row(null), null, NOW).lines.length === 0, "untimed, no range: no line");
 ok(bidBlock(row(null, 0), null, NOW).lines.join("|") === "No bids yet.", "none, no range: No bids yet.");
 const edge = new Date("2026-10-15T00:20:00-07:00");

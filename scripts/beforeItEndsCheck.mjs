@@ -87,7 +87,7 @@ ok(one && /ends today at 6:30am PT\./.test(one.text) && /The last bid seen was \
 ok(one && /two hours before bidding ends, once for each car/.test(one.text) && /Stop all Task emails: /.test(one.text), "the email says when it comes and carries the stop link");
 
 // A stored bid by its own time (Oct 2026, lib/tasks/bidTime.js), on every email that prints a live bid: within the hour
-// as before; 61 minutes and 5 hours old, only with its own time in Pacific ("Last bid we saw: $61,500 at 9:29am PT."),
+// as before; 61 minutes and 5 hours old, only with its own time in Pacific ("Last bid seen: $61,500 at 9:29am PT."),
 // never as current; no bid time (last_seen alone is not one), no bid at all, and the end line stays.
 {
   const { messageFor: bieMessage } = await import("../lib/live/buyAlerts.js");
@@ -98,9 +98,9 @@ ok(one && /two hours before bidding ends, once for each car/.test(one.text) && /
   const RANGE = { kind: "range", low: 52000, high: 68000, count: 23, window: "the past year", family: "CLK DTM coupes", familyOne: "CLK DTM coupe", soldLine: "The middle half of CLK DTM coupes sold between $52,000 and $68,000 in the past year.", bodyScoped: null };
   const CASES = [
     { k: "fresh (10 minutes)", bidAt: ago(10), bie: "The last bid seen was $61,500 at 10:20am PT.", place: "That bid is inside the range.", daily: "The last bid seen was $61,500 at 10:20am PT, inside the range of recent sales.", dailyOnly: "The last bid seen was $61,500 at 10:20am PT.", keep: "The last bid seen was $61,500 at 10:20am PT." },
-    { k: "61 minutes", bidAt: ago(61), bie: "Last bid we saw: $61,500 at 9:29am PT.", place: "That bid is inside the range.", daily: "Last bid we saw: $61,500 at 9:29am PT, inside the range of recent sales.", dailyOnly: "Last bid we saw: $61,500 at 9:29am PT.", keep: "Last bid we saw: $61,500 at 9:29am PT." },
-    { k: "5 hours", bidAt: ago(300), bie: "Last bid we saw: $61,500 at 5:30am PT.", place: "That bid is inside the range.", daily: "Last bid we saw: $61,500 at 5:30am PT, inside the range of recent sales.", dailyOnly: "Last bid we saw: $61,500 at 5:30am PT.", keep: "Last bid we saw: $61,500 at 5:30am PT." },
-    { k: "another day (a bid from 13 hours ago)", bidAt: ago(780), bie: "Last bid we saw: $61,500 at 9:30pm PT on Tuesday.", place: "That bid is inside the range.", daily: null, dailyOnly: "Last bid we saw: $61,500 at 9:30pm PT on Tuesday.", keep: "Last bid we saw: $61,500 at 9:30pm PT on Tuesday." },
+    { k: "61 minutes", bidAt: ago(61), bie: "Last bid seen: $61,500 at 9:29am PT.", place: "That bid is inside the range.", daily: "Last bid seen: $61,500 at 9:29am PT, inside the range of recent sales.", dailyOnly: "Last bid seen: $61,500 at 9:29am PT.", keep: "Last bid seen: $61,500 at 9:29am PT." },
+    { k: "5 hours", bidAt: ago(300), bie: "Last bid seen: $61,500 at 5:30am PT.", place: "That bid is inside the range.", daily: "Last bid seen: $61,500 at 5:30am PT, inside the range of recent sales.", dailyOnly: "Last bid seen: $61,500 at 5:30am PT.", keep: "Last bid seen: $61,500 at 5:30am PT." },
+    { k: "another day (a bid from 13 hours ago)", bidAt: ago(780), bie: "Last bid seen: $61,500 at 9:30pm PT on Tuesday.", place: "That bid is inside the range.", daily: null, dailyOnly: "Last bid seen: $61,500 at 9:30pm PT on Tuesday.", keep: "Last bid seen: $61,500 at 9:30pm PT on Tuesday." },
     { k: "no bid time", bidAt: null, bie: null, place: null, daily: null, dailyOnly: null, keep: null }
   ];
   const STALE_WORDS = /\bcurrent(ly)?\b|\bnow\b|bidding is at/i;
