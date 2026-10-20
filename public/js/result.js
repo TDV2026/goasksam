@@ -1860,7 +1860,7 @@ function regionalPlatformFollowup(platform,fallback){
   const name=String(platform||"that platform");
   if(mentionsBringATrailer(name)){
     const primaryAudience=primary==="Collecting Cars" ? "Collecting Cars’ international buyer base" : `${primary}’s buyer base`;
-    return `Because I don’t think Bring a Trailer is the right starting point for this sale. It is an excellent platform, but its audience is still predominantly US based. For a ${car} being sold from ${region}, I’d rather put it in front of ${primaryAudience}. If this were my car, that’s where I’d list it.`;
+    return `Because Sam doesn’t think Bring a Trailer is the right starting point for this sale. It is an excellent platform, but its audience is still predominantly US based. For a ${car} being sold from ${region}, Sam would rather put it in front of ${primaryAudience}. That’s where Sam would list it.`;
   }
   if(mentionsCarsAndBids(name)){
     const primaryAudience=primary==="Collecting Cars" ? "Collecting Cars’ international audience" : `${primary}’s buyer pool`;

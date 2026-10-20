@@ -2,8 +2,8 @@
 // every string and template literal in the files that render /sell (plain /sell's public/js and index.html, the
 // /sell?car= new Sell's lib/sell/*, the server-rendered hero api/sellPage.js) and fails on any I, I'd, I'll, I'm, I've,
 // my, me, mine or myself that is not on the allowlist below. Each allowed phrase is named with why it stays: the
-// visitor's own words (chips, buttons, typed questions), quoted bans inside a chat prompt, or a line HELD for Sam
-// (docs/sell-first-person-inventory.md A1 to A3; "we" and "our" are also his to answer, so they are not checked here).
+// visitor's own words (chips, buttons, typed questions) or quoted bans inside a chat prompt. Sam answered the three
+// held lines (docs/sell-first-person-inventory.md A1 to A3) on Oct 20 2026, so none is held any more.
 // A small tokenizer, not a parser: comments, regex literals and ${} expressions are code. No network.
 //   node scripts/sellVoiceCheck.mjs
 // Run by scripts/prePush.mjs.
@@ -47,11 +47,9 @@ const ALLOW = [
   // quoted bans inside a chat prompt (the model is told never to say them)
   ["ban", "I wish I could"], ["ban", "I don't have that data"], ["ban", "I don't have the data"], ["ban", "I want to be straight"], ["ban", "I need to be honest"],
   ["ban", 'never "I", "we" or "our"'], ["ban", 'never "I", "me" or "my"'], ["ban", 'never "I", "me", "my"'], ["ban", "if this were my car"],
-  // HELD for Sam (docs/sell-first-person-inventory.md A1 to A3): unchanged until his answer
   
-  ["held A3", "Because I don’t think Bring a Trailer is the right starting point for this sale. It is an excellent platform, but its audience is still predominantly US based. For a X being sold from X, I’d rather put it in front of X. If this were my car, that’s where I’d list it."],
 ];
-// Longest first, so a held sentence is matched whole before a shorter phrase inside it.
+// Longest first, so a long allowed phrase is matched whole before a shorter phrase inside it.
 const BY_LENGTH = [...ALLOW].sort((x, y) => y[1].length - x[1].length);
 const FP = /(^|[^A-Za-z'’\\])(I|I'd|I’d|I'm|I’m|I've|I’ve|I'll|I’ll|my|My|me|Me|mine|myself)(?=[^A-Za-z'’]|$)/g;
 let pass = 0, fail = 0;
