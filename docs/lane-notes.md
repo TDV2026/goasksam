@@ -10149,3 +10149,12 @@ Search check: no public page touched.
   FILES: lib/live/samChat.js (outcome classifier, the distance pre-check, the sort "nearest", the instruction at line 67), lib/live/narrow.js (suggestions), lib/live/chatHttp.js (outcome in the done event), api/buy.js CLIENT (the line, the zip box, the chip; Lane C), lib/track/catalog.js (3 events). CHECK: scripts/buyOutcomeCheck.mjs, one input of each kind, asserting the outcome kind and that a no-op never returns without a line; zero model calls for (b).
   FOR SAM: (1) a saved profile location (new account field) yes or no; (2) the five outcome lines above are new public wording ("Now showing ...", "Which zip should I use?", "New search: ...", "Sam can't do that here yet. You can ... or ..."), and two of them are his words already.
 Search check: no public page touched (design only).
+- FOR SAM (Lane E, the composer's five messages, new wording for approval; plain text; the full design is the note above, 07b4ed3d). {braces} are filled in code from the search itself.
+  1. A change to the search: "Now showing {what changed}: {N} live matches." Examples: "Now showing manual cars only: 4 live matches." "Now showing cars under $80,000: 6 live matches."
+  2. Near me with no zip yet: "Which zip should I use?" with a five-digit box.
+  3. A question the listings cannot answer: "I can't tell that from these listings." followed by one thing Sam can do, for example "You can ask which have sold before."
+  4. A different car: "New search: {the car}. Your last search is in the list on the left."
+  5. Something Sam cannot do: "Sam can't do that here yet. You can {suggestion one} or {suggestion two}."
+  THE ZIP: it is kept only for the visit, in the page, sent with each request and never stored by the server, and it is asked at most once per visit. A saved location on a signed-in account does not exist today; adding one needs Sam's yes.
+  THE EVENTS (text only; no visitor, account, address or time of day beyond the event's own timestamp): buy_input_distance { text }, buy_input_new_search { text }, buy_input_unsupported { text }.
+Search check: no public page touched (wording proposal only).
