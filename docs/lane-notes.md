@@ -10356,3 +10356,5 @@ Search check: no public page touched.
   Client option, if wanted after that: a card whose FIRST enrich comes back null while the chat answer is still streaming keeps its still-reading line until the chat answer's own cards land, instead of drawing empty in between. That is a small change in enrichThen and drawSearch; I build it only if the 04:48Z look still shows the gap.
   PROPOSAL: in the 04:48 to 04:53Z look, trace the Bentley's enrich requests and answers (status, the market object, timing) as I did for the Cobra search, so the cause is read, not guessed.
   Search check: no public page touched.
+- DONE (Lane E, meyers-manx second read, 03:34:30 to 03:34:32Z, one page): /history/meyers-manx/115488827 answers 200, CLEAN ("null" 0 times in visible text, 0 in JSON-LD), as at 02:27Z. The third read is after the nightly build, at 07:30Z, with the 9 sitemap-redirect URLs.
+Search check: no public page touched.
