@@ -259,7 +259,7 @@ const APP_JS = String.raw`(function(){
   function money(n){ return "$" + Number(n).toLocaleString("en-US"); }
   // A stored bid by its own time, as on Buy's cards (lib/tasks/bidTime.js): within the hour "Bid $42,500"; older, "Last
   // bid we saw: $42,500 at 4:12am" in the reader's clock; no bid time, no bid.
-  function bidFx(c){ var t = Date.parse(c.bid_at || ""); if (!c.bid_usd || isNaN(t)) return null; if (Date.now() - t <= 3600e3) return "Bid " + money(c.bid_usd); var d = new Date(t), s = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(" AM", "am").replace(" PM", "pm"); return "Last bid we saw: " + money(c.bid_usd) + " at " + s + (d.toDateString() === new Date().toDateString() ? "" : " on " + d.toLocaleDateString("en-US", { weekday: "long" })); }
+  function bidFx(c){ var t = Date.parse(c.bid_at || ""); if (!c.bid_usd || isNaN(t)) return null; if (Date.now() - t <= 3600e3) return "Bid " + money(c.bid_usd); var d = new Date(t), s = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(" AM", "am").replace(" PM", "pm"); return "Last bid seen: " + money(c.bid_usd) + " at " + s + (d.toDateString() === new Date().toDateString() ? "" : " on " + d.toLocaleDateString("en-US", { weekday: "long" })); }
   function cars(u){
     var cs = (u.data && u.data.cards) || []; if (!cs.length) return "";
     var more = u.data.total > cs.length ? '<li class="more">' + (u.data.total - cs.length) + " more match.</li>" : "";

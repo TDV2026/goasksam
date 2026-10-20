@@ -336,7 +336,7 @@
       slot.className = "livepanel";
       slot.innerHTML = '<div class="sec-head"><div><h2>Live right now</h2></div></div>' +
         '<p class="lp-summary">' + lint(esc(scopeSentence), "live.summary") + "</p>" +
-        '<table class="lptable"><thead><tr><th class="colhead">Car</th><th class="colhead">Venue</th><th class="colhead">Last bid we saw</th><th class="colhead">Vs. range</th></tr></thead><tbody>' + rows + "</tbody></table>" +
+        '<table class="lptable"><thead><tr><th class="colhead">Car</th><th class="colhead">Venue</th><th class="colhead">Last bid seen</th><th class="colhead">Vs. range</th></tr></thead><tbody>' + rows + "</tbody></table>" +
         '<a class="linkbtn" href="/buy?q=' + encodeURIComponent(q) + '">' + esc(seeAll) + " &#8594;</a>";
       slot.hidden = false;
     }).catch(function () {});

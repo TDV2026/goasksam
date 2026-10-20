@@ -150,8 +150,8 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   const lib = new Function(`var TZ = "America/Los_Angeles"; ${/var BODY_WORDS = [^;]*;/.exec(client)[0]} ${["timePT", "sameDay", "bidAt", "bidText", "carWords", "rungShown"].map(fnSrc).join("\n")}; function carTitle(l){ return l.title; } return { bidText, rungShown };`)();
   const t = Date.now() - 3 * 3600e3, want = new Date(t).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" }).replace(" AM", "am").replace(" PM", "pm");
   const recent = lib.bidText("$66,666", Date.now() - 5 * 60e3);
-  ok(/^Last bid we saw \$66,666 at \d{1,2}:\d\d[ap]m PT( on \w+day)?$/.test(recent), `a fresh bid reads with its time (got ${recent})`);
-  ok(lib.bidText("$66,666", t).startsWith("Last bid we saw $66,666 at " + want + " PT"), "an older bid reads with its own time in Pacific time");
+  ok(/^Last bid seen \$66,666 at \d{1,2}:\d\d[ap]m PT( on \w+day)?$/.test(recent), `a fresh bid reads with its time (got ${recent})`);
+  ok(lib.bidText("$66,666", t).startsWith("Last bid seen $66,666 at " + want + " PT"), "an older bid reads with its own time in Pacific time");
   // Lane E, Oct 19 2026 (one auction feed, stored snapshots): a bid with no time has no bare number; the card shows the way to the bid.
   ok(lib.bidText("$1", NaN) === "", "a bid with no time has no bare number (Lane E's rule)");
   ok(/if \(!amt\) return l\.bid_unknown \|\| !live \? "" : "<" \+ tag \+ ' class="mlab nobid">' \+ esc\("No bids yet"\)/.test(client) && !/esc\("Bid " \+ amt\)/.test(client), "No bids yet only with no bid record (Buy Stage 1 money figure); never a bare 'Bid $X'");

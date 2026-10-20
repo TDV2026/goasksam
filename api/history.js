@@ -510,7 +510,7 @@ const BID_AGE_JS = `(function(){
     Array.prototype.forEach.call(document.querySelectorAll("[data-bidat]"), function(el){
       var t = Date.parse(el.getAttribute("data-bidat"));
       if (isNaN(t) || Date.now() - t <= FRESH_MS) return;
-      el.textContent = "Last bid we saw: " + el.getAttribute("data-bidamt") + " at " + bidTimePT(el.getAttribute("data-bidat")) + ".";
+      el.textContent = "Last bid seen: " + el.getAttribute("data-bidamt") + " at " + bidTimePT(el.getAttribute("data-bidat")) + ".";
       el.removeAttribute("data-bidat");
     });
   }

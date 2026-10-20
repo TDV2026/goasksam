@@ -678,6 +678,20 @@ try {
 } catch (e) {
   record("Buy Stage 1d item 3, the card grid (scripts/buyGridCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The visible bid label reads Last bid seen on Buy, Market Check, VIN pages and Tasks (Sam, Oct 20 2026; Lane C). No network.
+try {
+  const out = execSync("node scripts/voiceGroupACheck.mjs", { encoding: "utf8" });
+  record("Company voice, group A (scripts/voiceGroupACheck.mjs)", "PASS", (out.match(/voiceGroupACheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Company voice, group A (scripts/voiceGroupACheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// Every model with a car gets its own chip; the leftover line (Sam, Oct 20 2026; Lane E). No network.
+try {
+  const out = execSync("node scripts/modelChipsCheck.mjs", { encoding: "utf8" });
+  record("Buy, a chip for every model (scripts/modelChipsCheck.mjs)", "PASS", (out.match(/modelChipsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Buy, a chip for every model (scripts/modelChipsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
