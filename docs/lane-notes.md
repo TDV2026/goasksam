@@ -10601,4 +10601,4 @@ Search check: no public page touched (wording proposal only).
   Samples read right, e.g. "The Cadillac Brougham sold 14 times at auction since October 2024, as of October 20, 2026." and "The Bentley Continental S2 sold 4 times at auction, as of October 20, 2026." (all years on record: no clause, nothing invented).
   The 8fca16c7 retarget and the e636c58d 301 are not copy changes and are not part of this copy review.
 Search check: no public page touched (review only); for the push itself, rule 1 (dated lead), rule 5 (meta from the lead), rule 9 (copy rules).
-- PUSH LOCK (Lane B, 2026-10-20T07:14Z): partnerAnswer additive field cardWithRows (Market Check card with its sale rows, gated photos, venue-safe; existing fields unchanged; the demo stays HELD). FULL prePush alone now; push on 0 FAIL.
+- PUSHED (Lane B, 2026-10-20T07:25Z): partnerAnswer cardWithRows, 7b7eddae, pushed on 0 FAIL. Lock released. warmDemo run once after the deploy so the seven stored demo answers carry the field. Revert on any change to an existing field.
