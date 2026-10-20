@@ -25,7 +25,7 @@ const noRows = h => String(h || "").replace(/<ul class="sfc-rows">[\s\S]*?<\/ul>
 // footer is checked on its own to be one of the two engine forms (never invented, never empty of its brand).
 const FOOTER_LEFT = /<span class="sfc-footer-left">([\s\S]*?)<\/span>/;
 const noTime = h => String(h || "").replace(FOOTER_LEFT, '<span class="sfc-footer-left">(read time)</span>');
-const footerOk = h => { const m = FOOTER_LEFT.exec(String(h || "")); return !!m && /^Powered by GoAskSam( &middot; (Updated [A-Z][a-z]+ \d{1,2}(, \d{4})?|Sales read [^<]*refreshing now\.))?$/.test(m[1]); };
+const footerOk = h => { const m = FOOTER_LEFT.exec(String(h || "")); return !!m && /^Powered by GoAskSam( &middot; (Updated [A-Z][a-z]+ \d{1,2}(, \d{4})?|Sales read [^<]*refreshing now\.|Sales read on [A-Z][a-z]+ \d{1,2}\. Sales since then are not in yet\. Updating now\.))?$/.test(m[1]); };
 const firstDiff = (a, b) => { a = String(a || ""); b = String(b || ""); let i = 0; while (i < a.length && a[i] === b[i]) i++; return i >= a.length && i >= b.length ? null : `at ${i}: endpoint "${a.slice(Math.max(0, i - 40), i + 80)}" / Market Check "${b.slice(Math.max(0, i - 40), i + 80)}"`; };
 let lastCardDiff = null;
 const sameCard = (partnerCard, d) => {
@@ -91,6 +91,10 @@ for (const [name, d] of Object.entries(FIX)) {
     ok(sameCard(out.card, otherDay), "thin: the same card read on another day still matches (the footer's read time is set aside)");
     const staleDay = { ...d, stale: true, staleLine: "Sales read October 19, 2026, refreshing now." };
     ok(sameCard(out.card, staleDay), "thin: the same card served stale with the dated line still matches");
+    // the engine's own stale line (api/sellerDecision.js staleLine, Oct 15 2026), as the 14:05Z FULL run met it live
+    const engStale = String(out.card).replace(/<span class="sfc-footer-left">[\s\S]*?<\/span>/, '<span class="sfc-footer-left">Powered by GoAskSam &middot; Sales read on October 20. Sales since then are not in yet. Updating now.</span>');
+    ok(sameCard(engStale, d), "thin: the card with the engine's own stale line ('Sales read on <date>. Sales since then are not in yet. Updating now.') still matches");
+    ok(!sameCard(engStale.replace(d.latestSaleLine, "Latest sale: May 2021."), d), "thin: with the engine's stale line, a changed line is still a difference");
     ok(!sameCard(String(out.card).replace(d.latestSaleLine, "Latest sale: May 2021."), d), "thin: a changed line is still a difference");
     ok(!sameCard(String(out.card).replace(/<span class="sfc-footer-left">[\s\S]*?<\/span>/, '<span class="sfc-footer-left">Powered by GoAskSam &middot; Updated whenever</span>'), d), "thin: a footer that is not an engine form is a difference");
   }
