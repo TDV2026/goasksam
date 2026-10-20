@@ -1306,7 +1306,8 @@ function composerHonestHeadline(vehicle,rungWord){
   const yr=vehicle&&vehicle.year?`${vehicle.year} `:"";
   const car=vehicle&&vehicle.model?`the ${yr}${[vehicle.make,vehicle.model].filter(Boolean).join(" ")}`:`this ${vehicle&&vehicle.make?vehicle.make:"car"}`;
   const word=rungWord||"model";
-  return { text:`Recent sales for ${car} are limited, so I widened to the ${word} to reach the buyers for it.`, provenance:`ladder.landed(${word})` };
+  // Sam's wording (Oct 20 2026): widening changes which sales are read; it never claims to reach a buyer.
+  return { text:`Recent sales for ${car} are limited, so Sam widened the search to the ${word}.`, provenance:`ladder.landed(${word})` };
 }
 // Generation code for the landed rung, when the ladder mapped one.
 function composerLandedGenerationCode(){
