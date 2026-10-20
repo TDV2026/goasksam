@@ -123,7 +123,9 @@ check("M3: composition = PS leads, secondary suppressed", comp.psLead===true&&co
 // Card-identical: the pick CARD tile and v2PickFacts agree on the weekday number/scope.
 const pf=v2PickFacts(bat);
 const cardHTML=renderPickCardV2(bat)||"";
-check("M3 card-identical: v2PickFacts weekday = 15% Monday, scope 'M3s'", pf.weekday&&pf.weekday.pct===15&&pf.weekday.day==="Monday"&&pf.weekday.scope==="M3s", JSON.stringify(pf.weekday));
+// No weekday fact (Oct 20 2026): the price-median weekday left the card on Sep 29 as wrong, so v2PickFacts, the
+// follow-up answer and the chat never state it, whatever dayAdvantage the server still sends.
+check("M3: v2PickFacts carries no weekday fact (dayAdvantage present on the evidence)", pf.weekday===undefined&&!!bat.marketEvidence.dayAdvantage, JSON.stringify(pf.weekday));
 // The card's best-day tile reads the reserve sell-through (v2ReserveDay, Sep 29 2026: the price-median weekday was
 // wrong), so the card shows no weekday price figure at all, never the raw 17 nor the rounded 15.
 check("M3 card: no price-median weekday figure on the card (best day reads reserve sell-through)", !/% above other days/.test(cardHTML)&&!/17%/.test(cardHTML), (cardHTML.match(/[^>]*% above other days/)||[""])[0].slice(0,80));
@@ -144,13 +146,12 @@ check("intent: 'how would you run the listing' -> runlisting", v2FollowupIntent(
 const runListing=v2ComposeRunListing()||"";
 check("M3 run-listing (PS-led): follows Ingo (the lead), BaT as where he lists, not a DIY pivot", /I'd have Ingo run it\./.test(runListing)&&/Bring a Trailer/.test(runListing)&&!/^I would list your/.test(runListing), runListing.slice(0,140));
 check("M3 run-listing (PS-led): lint-clean (no hedge/dash/dollar)", cleanC(runListing).ok, cleanC(runListing).detail);
-// DIY context: the SELF-MANAGED answer still quotes the card's weekday fact (Monday 15%,
-// scope M3s) - the platform-led path is unchanged by the fix.
+// DIY context: the SELF-MANAGED answer, with no weekday claim (the card states none).
 {
   const savedPref=globalThis.sellState.sellerPreference;
   Object.assign(globalThis.sellState,{sellerPreference:"diy"});
   const diyRunListing=v2ComposeRunListing()||"";
-  check("M3 run-listing (DIY): self-managed on BaT, quotes Monday at 15% (not 17), scope M3s", /I would list your .*Bring a Trailer/.test(diyRunListing)&&/M3s have closed strongest on Mondays, 15% above other days/.test(diyRunListing)&&!/17%/.test(diyRunListing), diyRunListing.slice(0,180));
+  check("M3 run-listing (DIY): self-managed on BaT, no weekday claim, the rest of the answer as before", diyRunListing==="I would list your 2005 BMW M3 on Bring a Trailer. Lead with honest, well lit photos and a straight writeup of history and condition, and let the platform's audience do the rest."&&!/closed strongest|above other days|close strongest|%/.test(diyRunListing), diyRunListing.slice(0,180));
   check("M3 run-listing (DIY): lint-clean", cleanC(diyRunListing).ok, cleanC(diyRunListing).detail);
   Object.assign(globalThis.sellState,{sellerPreference:savedPref});
 }
@@ -180,7 +181,8 @@ check("scope label (2a): prose scope reads 'BMW M3s from 2018' at the exact rung
 
 // OUTPUT GUARD (4d): contradictory LLM answers are replaced by a safe fallback.
 Object.assign(globalThis.sellState,{sellerPreference:"unsure", partnerReferral:{partner:ingo, eligible:false, secondary:true, matchType:"specialty", leadOnValue:true}, sellOptions:[{key:"specialist",name:"Ingo Schmoldt"},bat,cb]});
-check("guard: clean card-true answer passes", v2GuardChatAnswer("Bring a Trailer is the platform, and 2005 M3s closed 15% higher on Mondays.").ok===true);
+check("guard: clean card-true answer passes", v2GuardChatAnswer("Bring a Trailer is the platform for a 2005 M3.").ok===true);
+check("guard: a weekday percentage is refused (no longer one of the card's numbers)", v2GuardChatAnswer("Bring a Trailer is the platform, and 2005 M3s closed 15% higher on Mondays.").ok===false);
 check("guard: internal jargon -> replaced", v2GuardChatAnswer("The value gate was below threshold so it is only a secondary.").ok===false);
 check("guard: hedged number -> replaced", v2GuardChatAnswer("Mondays close around 17% higher.").ok===false);
 check("guard: re-derived % (17 not the card's 15) -> replaced", v2GuardChatAnswer("2005 M3s closed 17% higher on Mondays.").ok===false);

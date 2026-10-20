@@ -1013,9 +1013,9 @@ function v2PickFacts(option){
       scope:v2ScopePlural(v), scopeAttr:v2ScopeAttr(v), rungNoun:v2RungNoun(), window:v2WindowLabel(v2Window(ev)), mode:v2Mode(ev) };
     var p=ev.pricePremium;
     if(facts.mode==="modeA"&&p&&isFinite(p.percent))facts.pricePremium={ delta:Math.abs(Math.round(p.percent)), direction:(p.percent>=0?"higher":"lower") };
-    var wk=v2Weekday(ev,v);
-    if(wk){ var dA=ev.dayAdvantage||{}; var hasPct=/%/.test(wk.body);
-      facts.weekday={ day:wk.headline, pct:hasPct?Math.round(Math.abs(Number(dA.liftPercent))/5)*5:null, scope:facts.scope }; }
+    // No weekday fact (Oct 20 2026, Lane F's decision): the price-median best weekday was dropped from the card as
+    // wrong in the Sep 29 rebuild (weekend and weekday prices sit within about 1% matched; the best-day tile reads the
+    // reserve sell-through, v2ReserveDay), so the follow-up answer and the chat never state it either.
     var rv=v2Reserve(ev);
     // The chat gets the tile's own sentence (v2Reserve), so the two can never differ (it read a field the
     // tile does not use and sent "NaN%").
@@ -1094,8 +1094,6 @@ function v2ComposeRunListing(){
       return "I'd have "+first+" run it. He assesses the car and takes care of any prep that's genuinely worth doing, photographs it himself, writes the listing, handles the buyer questions and manages the auction from start to finish. He'd most likely list your "+carLabel+" on "+f.platform+", so your side of it stays light.";
     }
     var parts=["I would list your "+carLabel+" on "+f.platform+"."];
-    if(f.weekday&&f.weekday.pct!=null)parts.push("If your timing is flexible, "+f.weekday.scope+" have closed strongest on "+f.weekday.day+"s, "+f.weekday.pct+"% above other days.");
-    else if(f.weekday)parts.push("If your timing is flexible, "+f.weekday.scope+" have tended to close strongest on "+f.weekday.day+"s.");
     parts.push("Lead with honest, well lit photos and a straight writeup of history and condition, and let the platform's audience do the rest.");
     return parts.join(" ");
   }catch(e){ return null; }
@@ -1200,7 +1198,7 @@ function v2GuardChatAnswer(text){
     if(/\b(around|about|roughly|approximately)\s+~?\d|~\s*\d/i.test(t))return { ok:false, text:v2SafeFallback() };
     // 3. re-derived percentages: any N% that is not one of the card's own numbers.
     var allowed={};
-    if(f){ if(f.pricePremium)allowed[f.pricePremium.delta]=1; if(f.weekday&&f.weekday.pct!=null)allowed[f.weekday.pct]=1; if(f.reserve&&f.reserve.pct!=null)allowed[f.reserve.pct]=1; }
+    if(f){ if(f.pricePremium)allowed[f.pricePremium.delta]=1; if(f.reserve&&f.reserve.pct!=null)allowed[f.reserve.pct]=1; }
     var pcts=t.match(/\b(\d{1,3})\s*%/g)||[];
     for(var i=0;i<pcts.length;i++){ var n=Number(String(pcts[i]).replace(/[^\d]/g,"")); if(!allowed[n])return { ok:false, text:v2SafeFallback() }; }
     // 4. an unshown tracked auction platform named as a place to sell/list.

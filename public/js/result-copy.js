@@ -1907,9 +1907,6 @@ function sellChatEvidenceSummary(){
   if(!f)return "";
   const bits=[];
   if(f.pricePremium)bits.push(`${f.scope} have closed ${f.pricePremium.delta}% ${f.pricePremium.direction} on ${f.platform} than the other platforms tracked over the past ${f.window}`);
-  if(f.weekday)bits.push(f.weekday.pct!=null
-    ?`${f.weekday.scope} have closed strongest on ${f.weekday.day}s, ${f.weekday.pct}% above other days`
-    :`${f.weekday.scope} have tended to close strongest on ${f.weekday.day}s`);
   if(f.reserve&&f.reserve.body)bits.push(`${f.reserve.body.replace(/,? from [\d,]+ sales\.?$/,"").replace(/\.$/,"")} (observational only; never say a reserve caused, boosts or earns anything, the choice is the seller's)`);
   let out=bits.length
     ?`Card facts for ${f.platform}, the pick (these are the EXACT figures and scope labels shown on the card; quote them verbatim, never re-derive, round, or hedge them, never add "about" or "around", never cite a statistic or platform not listed here; sample size is qualitative only, NEVER a count of sales, comps or records): ${bits.join("; ")}.`
