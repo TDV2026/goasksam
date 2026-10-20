@@ -19,6 +19,8 @@ import { supabaseEnv } from "../lib/_supabase.js";
 import { SELLS_FOR_CARD_CSS } from "../lib/sellsForCard.js";
 import { PARTNER_LOGO_SVG_B64 } from "./_partnerLogo.js";
 import { DEMO_CARS } from "./partnerAnswer.js";
+import { amazonPageHtml } from "./_amazonDemo.js";
+import { AMAZON_LOGO_SVG_B64 } from "./_amazonLogo.js";
 
 // THE LISTING CAR (c9, Sam, Oct 18 2026): the real 2014 Porsche 911 GT3, VIN WP0AC2A9XES183617, listed at 30,400 miles
 // (never below its last recorded sale, 29,000) and $139,900. Its photo and its earlier sales are its own stored records
@@ -679,6 +681,15 @@ export default async function handler(req, res) {
     res.setHeader("Cache-Control", "private, max-age=3600");
     return res.status(200).send(Buffer.from(PARTNER_LOGO_SVG_B64, "base64"));
   }
+  // The Amazon Autos logo (api/_amazonLogo.js), byte for byte, behind the same gate; used only in its demo's header.
+  if (req.query && req.query.img === "amazon-logo") {
+    res.setHeader("Content-Type", "image/svg+xml");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Cache-Control", "private, max-age=3600");
+    return res.status(200).send(Buffer.from(AMAZON_LOGO_SVG_B64, "base64"));
+  }
   res.setHeader("Content-Type", "text/html; charset=utf-8");
+  // THE AMAZON AUTOS DEMO (Sam, Oct 20 2026): the same gate, the same answer path, its own profile (api/_amazonDemo.js).
+  if (req.query && req.query.p === "amazon") return res.status(200).send(amazonPageHtml(String(req.query.view || "c"), req.query.car, { carOf, listing: DUMMY }));
   return res.status(200).send(pageHtml(String((req.query && req.query.view) || "a"), req.query && req.query.car));
 }
