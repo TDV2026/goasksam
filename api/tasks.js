@@ -340,6 +340,15 @@ async function handler(req, res) {
       });
       return res.status(200).json({ to: "nobody, rendered only", emails });
     }
+    // The combined Task email (the digest) with one live car and one VIN-watch event (Lane D, Oct 2026): rendered on
+    // fixture data only through lib/tasks/bidFixture.js, never sent, nothing read or written. One per bid state.
+    if (req.method === "POST" && req.body && req.body.action === "task_email_tests" && req.body.fixture === "digest" && probeOk(req)) {
+      const { bidEmails } = await import("../lib/tasks/bidFixture.js");
+      const now = new Date();
+      const cases = { fresh: { mins: 20 }, old: { mins: 180 }, another_day: { mins: 1800 }, untimed: { mins: null }, none: { mins: null, bid: 0 } };
+      const emails = Object.entries(cases).map(([c, o]) => { const { daily, bidAt } = bidEmails("fresh", now, o); return { case: c, bid_at: bidAt, subject: `[Fixture: digest ${c}] ${daily.subject}`, sent: "not sent", text: daily.text, html: daily.html }; });
+      return res.status(200).json({ to: "nobody, rendered only", emails });
+    }
     if (req.method === "POST" && req.body && req.body.action === "task_email_tests" && probeOk(req)) {
       const { taskEmailBlocks, taskEmailBody, taskEmailSubject, cardOfMatch } = await import("../lib/tasks/tasks.js");
       const { listingFacts } = await import("../lib/live/search.js");
