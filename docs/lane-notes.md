@@ -10805,3 +10805,21 @@ Search check: /sell copy only (sentences removed from the follow-up answer, the 
 Sam answered the open question 'The trim stack, one yes' with: "yes"
 
 LANE F READING: the question on the table was Lane B's six-commit trim stack (gearbox words de58b6f7, notTrims 2cd3d1de, a chip opens its count c2adb922, trim-chip pool marker bd43b1e3, generic words + ordinals 0703f44e, the phrase skip). Slot: Lane B FULL prePush alone 17:00:00Z, look after Ready. If Sam meant a different item, he tells Lane F and the push stops.
+
+## FROM SAM, relayed verbatim by Lane F (2026-10-20T16:12Z)
+
+Answers from Sam.
+1. Yes to both, the 512 and the Viper. Show me the ranges the engine actually prints in the report.
+2. Yes.
+3. Yes with new wording: "...so Sam widened the search to {rungWord}." No first-person Sam anywhere on /sell.
+4. Yes, the best-day line ships as worded: "Weekends: 62% sold, midweek 48% (40 auctions)." Floor: show it only when each side has at least 10 auctions, otherwise no best-day line.
+5. "color".
+6. No. The F430 F1 and the Gallardo e-gear are also six-speeds, so a bare "6-Speed" says nothing about the gearbox. Only "manual", "gated" or "stick" in the listing mean manual.
+7. I decide after I see the 16:35 list.
+8. Yes, delete it.
+9. Before I copy the workflow, confirm it contains no secret, key or code, and name any GitHub secret it needs.
+Held items (Lane C's cached identity, sitemap sample, model hub): give me one plain line each on what changes for a visitor, then I answer.
+The trim stack yes stands.
+One-engine rule applies. Report stage by stage. No em or en dashes.
+
+LANE F NOTE (owners and slots, in order; each starts at its time or after the previous lane's look-done line, whichever is later): LANE B: item 1 and 2 and the item 6 audit; FULL prePush alone 17:30:00Z with rule1year 95066a52, asideline 4aeb2c41, w111 7067722a (each its own commit), then the rule 1 switch flip as named by Lane B. LANE D: items 3 and 4 and a first-person inventory of /sell copy; FULL prePush alone from 17:55:00Z. LANE C: items 5 and 8 and the one plain line each for the three held items; FULL prePush alone from 18:15:00Z. LANE E: the Buy gearbox audit under Sam's item 6.
