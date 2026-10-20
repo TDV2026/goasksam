@@ -21,16 +21,41 @@ export const AMAZON_PROFILE = {
   moduleName: "Market Check",
   attribution: "Powered by GoAskSam",
   historyDisplay: { a: "inline", b: "inline", c: "link" },
-  makeScope: [
-    ["Porsche", ["911", "996", "997", "991", "992", "356", "Boxster", "Cayman"]], ["Ferrari", ["*"]],
-    ["BMW", ["M2", "M3", "M4", "M5"]],
-    ["Chevrolet", ["Corvette", "Camaro", "Chevelle", "Nova", "El Camino", "C10", "K5 Blazer", "Impala", "Bel Air"]],
-    ["Pontiac", ["GTO", "Firebird"]], ["Ford", ["Mustang", "Bronco", "Thunderbird", "F-100"]], ["Dodge", ["Charger", "Challenger"]],
-    ["Mercedes-Benz", ["SL-Class", "SL"]], ["Jaguar", ["E-Type", "XKE"]], ["Nissan", ["Skyline", "300ZX"]], ["Toyota", ["Supra", "Land Cruiser"]],
-    ["Mazda", ["RX-7", "MX-5"]], ["Honda", ["S2000"]], ["Volkswagen", ["Beetle", "Bus"]], ["MG", ["MGB"]], ["Land Rover", ["Range Rover"]], ["Jeep", ["Wrangler"]]
-  ]
+  // THE PILOT SCOPE, APPROVED BY SAM (Oct 20 2026): rules, not a list (amazonInScope below).
+  scopeRule: "Sam, Oct 20 2026: (a) 25 years old or older, any make; (b) any year, the listed makes; (c) any year, the listed models"
 };
 
+// THE PILOT SCOPE, APPROVED BY SAM (Oct 20 2026). In scope if any one is true, from the answer's own identity (year, make,
+// model, trim) and never from price or sales: (a) a car SCOPE_AGE_YEARS or more years old (model year at least that many
+// years before the current year), any make; (b) any year, the makes in SCOPE_MAKES; (c) any year, the models in
+// SCOPE_MODELS (a make, and a pattern over its model and trim words). Presentation only: it decides where the module shows,
+// never what the engine answers. One function, run on the page (its source is sent as is) and by scripts/amazonScopeCheck.mjs.
+export const SCOPE_AGE_YEARS = 25;
+export const SCOPE_MAKES = ["Porsche", "Ferrari", "Lamborghini", "McLaren", "Aston Martin", "Bentley", "Rolls-Royce", "Bugatti", "Maserati", "Lotus", "Alfa Romeo", "De Tomaso", "Pagani", "Koenigsegg", "Lancia", "Shelby"];
+export const SCOPE_MODELS = [
+  ["Lexus", "^LFA\\b"],
+  ["Mercedes-Benz", "\\bAMG\\b|^SL(S|R)?\\b|^SL-Class|^SL ?\\d|^SLS|^SLR|^G-Class|^G-Wagen|^G ?\\d{2,3}\\b"],
+  ["BMW", "(^|\\s)(1M|M[1-8])\\b|^X[3-7] ?M\\b|^Z[34] ?M\\b|^M (Coupe|Roadster)\\b"],
+  ["Audi", "(^|\\s)RS ?\\d|^RS\\b|^R8\\b"],
+  ["Land Rover", "^Defender\\b"],
+  ["Ford", "^GT\\b|^Ford GT\\b|^Mustang\\b.*\\b(Shelby|GT350|GT500|Boss|Mach 1)\\b|^Bronco\\b"],
+  ["Chevrolet", "^Corvette\\b|^Camaro\\b.*\\b(Z\\/?28|SS|ZL1)\\b"],
+  ["Dodge", "^Viper\\b|^(Challenger|Charger)\\b.*\\b(Hellcat|Demon)\\b"],
+  ["Jeep", "^Wrangler\\b.*\\bRubicon 392\\b"],
+  ["Nissan", "^(Skyline )?GT-?R\\b|^\\d{3}ZX?\\b|^Z\\b"],
+  ["Toyota", "^Supra\\b|^Land Cruiser\\b"],
+  ["Honda", "^NSX\\b|^S2000\\b|^Civic\\b.*\\bType R\\b"],
+  ["Acura", "^NSX\\b"],
+  ["Mazda", "^MX-5\\b|^Miata\\b"],
+  ["Jaguar", "^E-Type\\b|^XKE\\b|^F-Type\\b.*\\bR\\b(?!-)"]
+];
+export function amazonInScope(id, nowYear, rules) {
+  if (!id || !id.make) return false;
+  var mk = String(id.make).toLowerCase(), words = [id.model, id.variant].filter(Boolean).join(" ");
+  if (Number(id.year) > 0 && nowYear - Number(id.year) >= rules.age) return true;
+  if (rules.makes.some(function(m){ return m.toLowerCase() === mk; })) return true;
+  return rules.models.some(function(r){ return r[0].toLowerCase() === mk && new RegExp(r[1], "i").test(words); });
+}
 const escHtml = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 // The partner's look, CSS only: a dark navy header, white page, the partner's yellow and orange buttons and its type
@@ -133,11 +158,9 @@ const JS = String.raw`
         return fetch("/api/partnerAnswer?last=" + encodeURIComponent(body.q), { credentials: "include" }).then(function(r){ return r.json(); }).catch(function(){ return { ok: false, stillReading: true }; }); });
   }
   // THE PILOT SCOPE (the profile's makeScope): the answer's own make and model against the list; outside it, no module.
-  function inScope(a){
-    var id = a && a.identity; if (!id || !id.make) return false;
-    var mk = String(id.make).toLowerCase(), md = String(id.model || "").toLowerCase();
-    return SCOPE.some(function(e){ return e[0].toLowerCase() === mk && (e[1][0] === "*" || e[1].some(function(m){ return m.toLowerCase() === md; })); });
-  }
+  // Sam's approved rules, the same function the server's check runs (amazonInScope), relative to this year.
+  var amazonInScope = __INSCOPE__;
+  function inScope(a){ return amazonInScope(a && a.identity, new Date().getFullYear(), SCOPE); }
   // The shared card, as the partner answer draws it (cardWithRows: the engine's own sale rows, in the engine's order,
   // when the path sends them; else the card without its rows). The page adds nothing to it.
   function cardHtml(a){
@@ -248,5 +271,5 @@ ${later("a", "What's your car going for?")}
 ${later("b", "List a car")}
 ${viewC}
 </main>
-<script>${JS.replace("__CAR__", JSON.stringify(car)).replace("__CARS__", JSON.stringify(DEMO_CARS)).replace("__SCOPE__", JSON.stringify(P.makeScope)).replace("__VIEW__", JSON.stringify(v)).replace("__LIST__", JSON.stringify(hasListing ? { vin: listing.vin } : null))}</script></body></html>`;
+<script>${JS.replace("__CAR__", JSON.stringify(car)).replace("__CARS__", JSON.stringify(DEMO_CARS)).replace("__SCOPE__", JSON.stringify({ age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS })).replace("__INSCOPE__", amazonInScope.toString()).replace("__VIEW__", JSON.stringify(v)).replace("__LIST__", JSON.stringify(hasListing ? { vin: listing.vin } : null))}</script></body></html>`;
 }

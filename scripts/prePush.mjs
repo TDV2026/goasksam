@@ -525,6 +525,13 @@ try {
 } catch (e) {
   record("partnerDemoInertCheck (scripts/partnerDemoInertCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The Amazon Autos pilot scope, Sam's approved rules (a) 25 years or older, (b) the makes, (c) the models (Lane C). No network.
+try {
+  const out = execSync("node scripts/amazonScopeCheck.mjs", { encoding: "utf8" });
+  record("The Amazon pilot scope (scripts/amazonScopeCheck.mjs)", "PASS", (out.match(/amazonScopeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("The Amazon pilot scope (scripts/amazonScopeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
