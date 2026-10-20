@@ -70,6 +70,19 @@ for(const [name,x] of Object.entries(CARS)){
     ok(!WEEKDAY.test(a), `${name}: old composer ${which} states no weekday (${(a.match(new RegExp(".{0,60}("+WEEKDAY.source+").{0,30}","i"))||[""])[0]})`);
   }
 }
+// weekdayInsightLine (result-copy.js; read by primaryInsightSentence and compareSellOptions, both uncalled today): the
+// strongestWeekday pattern is gone; the strongest single sale's own weekday stays (one sale's fact, not a pattern).
+ok(weekdayInsightLine({ strongestWeekday:"Monday", strongestWeekdaySales:4, strongestWeekdayLiftPercent:12 })===null, "weekdayInsightLine: the strongestWeekday pattern states nothing");
+ok(weekdayInsightLine({ strongestWeekday:"Monday", highestResultWeekday:"Friday" })==="The strongest recent comparable sale ended on a Friday.", "weekdayInsightLine: the single strongest sale's own weekday stays");
+ok(typeof weekdayTag==="undefined", "weekdayTag (uncalled) is gone");
+{
+  const v={year:2005,make:"BMW",model:"M3"};
+  const opt=(k,withDay)=>({ key:k, name:k==="bringatrailer"?"Bring a Trailer":"Cars & Bids", platformSlug:k, label:k, platform:k, marketEvidence:{ evidenceSales:12, windowDays:180, ...(withDay?{ strongestWeekday:"Monday", strongestWeekdaySales:4, strongestWeekdayLiftPercent:12 }:{}) } });
+  const cmp=withDay=>{ Object.assign(globalThis.sellState,{ resolvedVehicle:v, sellOptions:[opt("bringatrailer",withDay),opt("carsandbids",withDay)], powerSellerProfiles:[] }); return compareSellOptions(); };
+  const a=cmp(true), b=cmp(false);
+  ok(a===b && !/endings have looked strongest/.test(a), `compareSellOptions: the same with and without strongestWeekday, no weekday pattern (${a.slice(0,120)})`);
+  ok(primaryInsightSentence(opt("bringatrailer",true))===primaryInsightSentence(opt("bringatrailer",false)), "primaryInsightSentence: the same with and without strongestWeekday");
+}
 // The chat's number guard no longer accepts a weekday percentage as one of the card's numbers.
 ok(v2GuardChatAnswer("Bring a Trailer is the platform, and 2005 M3s closed 15% higher on Mondays.").ok===false, "the chat guard refuses a weekday percentage");
 console.log(`sellWeekdayCheck: ${pass} passed, ${fail} failed`);

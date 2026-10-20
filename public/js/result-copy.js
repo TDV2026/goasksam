@@ -1566,19 +1566,12 @@ function evidenceOnlyBullets(bullets){
 // year, plural make, the platform's real segment band.
 // (1b) deleted dead helper: segmentCategoryDesc
 
+// One sale's own fact only (Oct 20 2026, Lane F's decision): the strongestWeekday pattern ("recent Monday endings have
+// looked strongest") is the price-weekday claim the Sep 29 rebuild dropped from the card as wrong, so it is gone.
 function weekdayInsightLine(evidence){
-  if(evidence?.strongestWeekday){
-    return `Overall, recent ${evidence.strongestWeekday} endings have looked strongest here.`;
-  }
   if(evidence?.highestResultWeekday){
     return `The strongest recent comparable sale ended on a ${evidence.highestResultWeekday}.`;
   }
-  return null;
-}
-
-function weekdayTag(evidence){
-  if(evidence?.strongestWeekday)return `${evidence.strongestWeekday} endings have been strongest`;
-  if(evidence?.highestResultWeekday)return `Strongest sale ended ${evidence.highestResultWeekday}`;
   return null;
 }
 
