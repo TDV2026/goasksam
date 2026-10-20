@@ -437,6 +437,9 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
   // IDENTITY ROW (bare 1965 Ford Mustang): (a) each option count the page prints equals the count the page shows when that option is typed;
   // (b) the option counts add up to the Any count on the bare page. A difference is a FAIL with both numbers.
   // The chip as a visitor uses it: open the bare page, click the option, read the count the page then shows (the same car typed in words must give the same count).
+  // Oct 20: a thin page lists its sales and says "Based on N sales" (or "N sales shown"), never a range or a count line; a chip pair takes the count from that line.
+  const thinBasis = text => { const m = /Based on (\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten) sales?\b/i.exec(text) || /(\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten) sales? shown\b/i.exec(text); return m ? num(m[1]) : null; };
+  const pageCount = text => { const n = PARSERS.marketCheck(text).count; return n != null ? n : thinBasis(text); };
   const chipCount = async (q, label) => {
     const ctx = await browser.createBrowserContext(); const page = await ctx.newPage();
     try {
@@ -447,10 +450,10 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
       await page.goto(pageUrl.marketCheck(q), { waitUntil: "domcontentloaded", timeout: 60000 }).catch(() => {});
       const wait = async () => { let t = ""; const until = Date.now() + 50000; while (Date.now() < until) { t = await page.evaluate(() => document.body ? document.body.innerText : "").catch(() => ""); if (/\d+ sales?\b/.test(t) && /MARKET CHECK/.test(t)) break; await new Promise(x => setTimeout(x, 1000)); } return t; };
       await wait();
-      const hit = await page.evaluate(lbl => { const e = [...document.querySelectorAll("a,button,[role=button]")].find(x => (x.innerText || "").trim().toLowerCase().startsWith(lbl.toLowerCase())); if (!e) return false; e.click(); return true; }, label).catch(e => /detached|context was destroyed|navigat/i.test(String(e && e.message || e)));   // a click that navigates the page ends the evaluate; that is a hit, not a failure
+      const hit = await page.evaluate(lbl => { const e = [...document.querySelectorAll("a,button,[role=button],[onclick],[class*=chip]")].find(x => (x.innerText || "").trim().toLowerCase().startsWith(lbl.toLowerCase())); if (!e) return false; e.click(); return true; }, label).catch(e => /detached|context was destroyed|navigat/i.test(String(e && e.message || e)));   // a click that navigates the page ends the evaluate; that is a hit, not a failure
       if (!hit) return null;
       await new Promise(x => setTimeout(x, 4000));
-      const n = PARSERS.marketCheck(await wait()).count;
+      const n = pageCount(await wait());
       return n == null ? "no count line" : n;   // a one-sale page prints the sale, never a count line: a hit with no count is told apart from no chip
     } finally { await ctx.close().catch(() => {}); }
   };
@@ -494,7 +497,7 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
   // CHIP PAIRS (Oct 16 2026): a question's chip, clicked on the bare page, and the same answer typed in words must show one count (row 5, the Cobra 289 or 427).
   for (const r of rows) for (const cp of r.g.chipPairs || []) {
     let ch = null; try { ch = await chipCount(cp.bare, cp.label); } catch (e) { console.error(`progress: chip read for row ${r.g.id} (${cp.label}) failed: ${String(e && e.message || e).slice(0, 80)}`); }
-    let ty = null; try { ty = PARSERS.marketCheck((await readPage("marketCheck", cp.typed)).text).count; } catch (e) {}
+    let ty = null; try { ty = pageCount((await readPage("marketCheck", cp.typed)).text); } catch (e) {}
     const same = typeof ch === "number" && ty != null && ch === ty;
     chipPairOut.push({ id: r.g.id, name: `${cp.label}: chip equals typed words`, cell: same ? "PASS" : "FAIL", shown: `chip ${ch == null ? "no chip found" : ch} vs typed ${ty == null ? "no count" : ty}`, diff: same ? null : `two answers for one car: clicking ${cp.label} on "${cp.bare}" shows ${ch == null ? "no chip found" : ch}, typing "${cp.typed}" shows ${ty == null ? "no count" : ty}` });
   }
