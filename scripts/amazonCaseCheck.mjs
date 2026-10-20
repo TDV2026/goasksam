@@ -32,8 +32,14 @@ const ns = t(mk.caseHtml({ ok: true, answerType: "zero_result", identity: { year
 ok(ns === "No sales of this car yet. 1999 Porsche 911", `(b) read with no sales: the engine's own line and the car's name (got "${ns}")`);
 ok(mk.caseHtml(m3) === "", "an answer draws the card as before, no case line");
 ok(t(mk.wordsCaseHtml("2015 Toyota Corolla")) === "Market Check covers enthusiast and specialty cars in this pilot. 2015 Toyota Corolla", "an out-of-scope car known from its words gets the line too, with no read");
-ok(/var cs = caseHtml\(a\); if \(cs\) \{ out\.innerHTML = cs; return; \}/.test(grab("drawA")) && /var cs = caseHtml\(a\); if \(cs\) \{ out\.innerHTML = cs; return; \}/.test(grab("drawB")) && /\$\("c-case"\)\.innerHTML = scope \? "" : caseHtml\(a\);/.test(grab("drawC")), "tabs a, b and c all draw the case line");
+ok(/var cs = caseHtml\(a\); if \(cs\) \{ out\.innerHTML = cs; return; \}/.test(grab("drawA")) && /var cs = caseHtml\(a\); if \(cs\) \{ out\.innerHTML = cs; return; \}/.test(grab("drawB")) && /\$\("c-case"\)\.innerHTML = scope \? "" : \(ok \? caseHtml\(a\) :/.test(grab("drawC")), "tabs a, b and c all draw the case line");
 ok(/<div id="c-case"><div class="case"><p class="case-l">Market Check covers enthusiast and specialty cars in this pilot\.<\/p><p class="case-n">2015 Toyota Corolla<\/p><\/div><\/div>/.test(amazonPageHtml("c", "2015 Toyota Corolla", { carOf, listing: DUMMY })), "tab c, an out-of-scope listing: the line from the first frame, no module, no read");
+// SAM: "any VIN and any YMM" (Oct 20 2026): an engine question is always drawn (it names no car, so no scope applies);
+// a VIN never titles the page; a read that failed draws the could-not line on tab c, never a blank rail.
+ok((js.match(/if \(a && a\.ok !== false && !a\.question && !inScope\(a\)\) \{ out\.innerHTML = ""; return; \}/g) || []).length === 2 && /var scope = ok && \(inScope\(a\) \|\| !!a\.question\)/.test(js), "an engine question is drawn on tabs a, b and c whatever the scope");
+ok(/<h1 id="c-title"><\/h1>/.test(amazonPageHtml("c", "WP0AA0944LN450001", { carOf, listing: DUMMY })) && /<h1 id="c-title">Used 1995 BMW M3<\/h1>/.test(amazonPageHtml("c", "1995 BMW M3", { carOf, listing: DUMMY })), "a typed VIN gives no title until the decode or identity names the car; typed words read 'Used ...'");
+ok(/\$\("c-case"\)\.innerHTML = scope \? "" : \(ok \? caseHtml\(a\) : '<div class="case">' \+ cardHtml\(a\) \+ "<\/div>"\);/.test(js), "tab c: a failed read draws the could-not (or still-reading) line, never a blank rail");
+ok(!Object.keys((await import("../api/_amazonDemo.js")).AMAZON_PROFILE.sampleListings).includes("1995 BMW M3"), "a typed car outside the profile's list has no sample price or monthly figure");
 ok(!/[–—]/.test(js), "no dashes");
 console.log(`amazonCaseCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

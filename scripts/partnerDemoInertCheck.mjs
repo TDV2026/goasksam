@@ -43,7 +43,7 @@ const js = fs.readFileSync(new URL("../api/_amazonDemo.js", import.meta.url), "u
   ok(/class="btn yel blk" data-inert>Estimate payments</.test(sj), "Estimate payments is drawn inert"); }
 ok(/if \(t\.closest\("\[data-inert\]"\)\) \{ e\.preventDefault\(\); return; \}/.test(js) && /document\.addEventListener\("submit", function\(e\)\{ if \(e\.target\.closest\("\[data-inert\]"\)\) e\.preventDefault\(\); \}\);/.test(js), "the page's script stops every inert control's default");
 ok(/fetch\("\/api\/partnerAnswer"/.test(js) && !/fetch\("(?!\/api\/partnerAnswer)/.test(js), "the page reads only the partner answer path");
-ok(/var scope = ok && inScope\(a\), sl = scope \? sampleOf\(a\) : null;/.test(js) && /\$\("c-mc"\)\.hidden = !scope;/.test(js) && /\$\("c-pcard"\)\.innerHTML = scope \? mcCard\(a\) : "";/.test(js), "outside the pilot scope: no module, no Pricing card and no sample figures (revision 2)");
+ok(/var scope = ok && \(inScope\(a\) \|\| !!a\.question\), sl = scope \? sampleOf\(a\) : null;/.test(js) && /\$\("c-mc"\)\.hidden = !scope;/.test(js) && /\$\("c-pcard"\)\.innerHTML = scope \? mcCard\(a\) : "";/.test(js), "outside the pilot scope: no module, no Pricing card and no sample figures (revision 2)");
 ok(/Sample asking price/.test(js) && /if \(!sl \|\| !a \|\| a\.ok === false \|\| a\.question \|\| !a\.range \|\| !\(sl\.price >= a\.range\.low && sl\.price <= a\.range\.high\)\) return null;/.test(js), "the sample asking price only inside an engine range, labelled exactly");
 // Revision 2 (Sam, Oct 20 2026): the sample price, the sample monthly figure and the mileage are FIXED profile constants,
 // never computed in the browser: no arithmetic on a price or a range anywhere in the Amazon page's script.

@@ -232,6 +232,7 @@ main{padding-block:22px 48px}
 .case{margin-top:12px;border:1px solid var(--rule);border-radius:var(--r);padding:14px 16px;background:var(--soft)}
 .case-l{margin:0;font-size:15px}
 .case-n{margin:6px 0 0;font-size:13px;color:var(--ink2)}
+.rail h1:empty{display:none}
 `;
 
 const JS = String.raw`
@@ -352,11 +353,12 @@ const JS = String.raw`
     var th = [photo ? "/api/partnerAnswer?photo=" + encodeURIComponent(photo) + "&w=320" : null].concat(((a && a.history) || []).filter(function(r){ return r.photo; }).map(function(r){ return "/api/partnerAnswer?photo=" + encodeURIComponent(r.photo) + "&w=320"; })).filter(Boolean);
     $("c-thumbs").innerHTML = th.slice(0, 6).map(function(u, k){ return '<img src="' + esc(u) + '" alt="" loading="lazy"' + (k === 0 ? ' class="on"' : "") + ">"; }).join("");
     var t = amazonTitle(a); if (t) $("c-title").textContent = t;
-    var scope = ok && inScope(a), sl = scope ? sampleOf(a) : null;
+    var scope = ok && (inScope(a) || !!a.question), sl = scope ? sampleOf(a) : null;   // an engine question is always drawn
     $("c-price").innerHTML = sl ? '<div class="price">' + usd(sl.price) + '</div><p class="price-kind">Sample asking price</p>' + (sl.miles ? '<p class="miles">' + esc(Number(sl.miles).toLocaleString("en-US")) + " miles</p>" : "") : "";
     $("c-fin").innerHTML = sl ? '<div class="fin"><span class="fin-l">Finance</span><div class="fin-b"><p class="fin-m">' + usd(sl.monthly) + '<span>/mo</span></p><p class="fin-s">Sample</p><button type="button" class="btn yel blk" data-inert>Estimate payments</button></div></div><div class="cash"><span>Cash</span><b>' + usd(sl.price) + "</b></div>" : "";
     if ($("c-mc")) { $("c-mc").hidden = !scope; if (scope) $("mc-body").innerHTML = mcCard(a); }
-    $("c-case").innerHTML = scope ? "" : caseHtml(a);
+    // A read that failed (ok:false) draws the page's own "could not be read" or still-reading line, never a blank rail.
+    $("c-case").innerHTML = scope ? "" : (ok ? caseHtml(a) : '<div class="case">' + cardHtml(a) + "</div>");
     $("c-pcard").innerHTML = scope ? mcCard(a) : "";
     var kf = kfHtml(ok ? a : null); $("c-kf").innerHTML = kf; $("c-kfsec").hidden = !kf;
     HIST = (a && a.history) || [];
@@ -379,7 +381,7 @@ const JS = String.raw`
   function drawA(a){
     var out = $("a-out"); if (!out) return;
     var cs = caseHtml(a); if (cs) { out.innerHTML = cs; return; }
-    if (a && a.ok !== false && !inScope(a)) { out.innerHTML = ""; return; }
+    if (a && a.ok !== false && !a.question && !inScope(a)) { out.innerHTML = ""; return; }
     out.innerHTML = inlineHist((a && a.history) || []) + cardHtml(a);
     if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ goA(); }, a.retryAfterMs);
   }
@@ -389,7 +391,7 @@ const JS = String.raw`
   function drawB(a){
     var out = $("b-out"); if (!out) return;
     var cs = caseHtml(a); if (cs) { out.innerHTML = cs; return; }
-    if (a && a.ok !== false && !inScope(a)) { out.innerHTML = ""; return; }
+    if (a && a.ok !== false && !a.question && !inScope(a)) { out.innerHTML = ""; return; }
     out.innerHTML = inlineHist((a && a.history) || []) + cardHtml(a);
     if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ goB(); }, a.retryAfterMs);
   }
@@ -424,7 +426,8 @@ export function amazonPageHtml(view, carIn, { carOf, listing }) {
   // Cash row (fixed sample figures); Market Check collapsed directly under the Cash row; "See price details"; the dealer
   // line; the section tabs; Key features from the answer's own decode (a field left out when unknown); History and
   // condition. No VIN printed, nothing beside the price from the engine, no verdict words. Every partner control inert.
-  const initTitle = /^\d{4}\s/.test(listCar) ? "Used " + listCar : listCar;
+  const vinLike = /^[A-Za-z0-9]{11,17}$/.test(listCar) && /\d.*\d.*\d/.test(listCar) && !/\s/.test(listCar);
+  const initTitle = vinLike ? "" : /^\d{4}\s/.test(listCar) ? "Used " + listCar : listCar;   // never the VIN (item 7)
   const viewC = `
 <section class="wrap" id="view-c"${v === "c" ? "" : " hidden"}>
   <p class="back"><button type="button" class="linkbtn back-l" data-inert>&lsaquo; Back to search results</button></p>
