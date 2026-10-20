@@ -29,6 +29,7 @@ ok(rowsHtml({ market: { kind: "none", rows: R650 } }) === "", "no engine flag: n
 ok(rowsHtml({ market: { cardListsSales: true, rows: [] } }) === "" && rowsHtml({ market: null }) === "" && rowsHtml({}) === "", "no rows or no market: nothing");
 ok(rowsHtml({ swap: true, market: { cardListsSales: true, rows: R650 } }) === "", "an engine-swapped card: no rows");
 // The card puts the rows inside its Sam block, under the line.
-ok(c.includes(`'<span class="who">Sam</span>' + (line ? line.html : "") + rowsHtml(l)`) && c.includes(`(sl ? '<div class="sl">' + sl + "</div>" : "")`), "the rows sit in the card's Sam block, under the Sam line");
+// Stage 1c item 4b (Sam): a grid card no longer lists its sales; they open in the card's inline Market Check.
+ok(!/\+ rowsHtml\(l\)/.test(c) && c.includes(`(sl ? '<div class="sl">' + sl + "</div>" : "")`), "a grid card lists no sale rows (Stage 1c: they show in its inline Market Check)");
 console.log(`buyRowsCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
