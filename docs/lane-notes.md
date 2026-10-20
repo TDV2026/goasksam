@@ -10300,3 +10300,48 @@ Search check: no public page touched.
     41k-Mile 2008 Aston Martin V8 Vantage Roadster | (6-speed) | bringatrailer 162622
   So, of the 72: 32 motorcycles, 3 older cars that are plausibly real manuals, and 37 cars from 1995 on, most of them automatics. Reading all 72 as "not stated" claims nothing either way.
 Search check: no public page touched.
+- LANE E, the motorcycle question (Lane F, before 03:30Z): YES, Buy's path has a motorcycle test, lib/live/search.js isMotorcycle (the shared classifier lib/_unknownClassify.js, the same one the car or bike search fence uses). The change is now SCOPED TO CARS: a motorcycle card reads exactly as today (Manual from its "(5-speed)"). The commit is amended, unpushed (branch buy-gearbox-bare, gearboxCheck 29 cases pass, including a Honda CB750 and a Ducati 748 that stay manual). Live before and after on Lane B's read: manual 819 to 776, automatic 788 unchanged, not stated 11 to 54; exactly 43 cards change. That is 40 cars plus 3 Honda motorcycles the classifier does NOT recognise as motorcycles: 118102 "Modified JDM 1992 Honda NSR250", 126863 "1975 Honda CB500T", 136021 "1982 Honda CB750F Super Sport". Those 3 read not stated (harmless). FOR LANE B: the classifier misses these Honda model names (NSR, CB500T, CB750F), so Buy treats them as CARS and they can show in a car search for Honda. REVERT RULE for 03:50Z: only these 43 cards may change chip and market. The 43, by id:
+    98460 4,600-Mile 2019 Porsche 718 Cayman
+    98481 Original-Owner 2013 BMW M3 Coupe Competition Package
+    100494 42k-Mile 1997 Porsche 911 Carrera Targa
+    100562 1972 Plymouth Road Runner
+    100565 1962 Chevrolet Impala SS
+    100590 2023 Mercedes-AMG GT2 Race Car
+    100594 1,800-Mile 2018 Porsche 911 GT2 RS Weissach
+    107061 16k-Mile 2006 Ferrari 612 Scaglietti
+    107091 42k-Mile 2014 Porsche Boxster S
+    107128 917-Mile 2022 Porsche 911 Turbo S Coupe
+    109068 21k-Mile 2013 BMW M3 Coupe Competition Package
+    109234 25k-Mile 2011 Porsche 911 Carrera S Coupe
+    109254 30k-Mile 2006 Ferrari F430 Spider
+    109258 2010 Porsche 911 Carrera 4S Cabriolet
+    118020 2009 BMW M3 Coupe
+    118102 Modified JDM 1992 Honda NSR250
+    118122 Supercharged 1937 Cord 812 Sportsman Convertible Coupe
+    120014 16k-Mile 2021 Porsche 911 Turbo S Coupe
+    120073 32k-Mile 2018 Porsche Panamera Turbo
+    120128 21k-Mile 2015 Aston Martin V8 Vantage GT
+    120193 2007 Ferrari F430 Challenge Race Car
+    120195 32k-Mile Voodoo Blue 2016 Porsche 911 Turbo S Coupe
+    126825 Euro 2001 Ferrari 360 Spider
+    126836 28k-Mile 2009 Porsche 911 Carrera S Coupe
+    126863 1975 Honda CB500T
+    128965 16k-Mile 2011 Porsche 911 Turbo S Coupe
+    129085 2026 Porsche 911 Targa 4S
+    129142 2015 BMW M4 Track Build
+    129146 2,700-Mile 2018 Porsche 911 GT2 RS Weissach
+    136019 35k-Mile 2001 Ferrari 360 Spider
+    136021 1982 Honda CB750F Super Sport
+    136055 11k-Mile 2014 Porsche 911 Turbo S Cabriolet
+    136111 28k-Mile 2012 Porsche 911 Turbo S Coupe
+    136130 8k-Mile 2013 Porsche 911 Carrera 4S Cabriolet
+    138240 20k-Kilometer 2011 BMW M3 Coupe
+    138367 973-Mile 2023 Porsche 911 GT3 Manthey Racing Package
+    138377 2026 Ford Mustang Dark Horse SC Coupe
+    138516 12k-Mile 2012 Lamborghini Gallardo LP570-4 Super Trofeo Stradale
+    146889 2019 Porsche 911 Targa 4S
+    146900 Original-Owner 2019 Porsche Macan
+    162556 21k-Mile 2006 Maserati GranSport Spyder
+    162585 2018 Porsche 911 Turbo Cabriolet
+    162622 41k-Mile 2008 Aston Martin V8 Vantage Roadster
+Search check: no public page touched.
