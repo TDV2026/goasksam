@@ -109,7 +109,7 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 35 | 1989 Porsche 911 Turbo Targa (typed) | words "Every Targa 1989 Porsche 911 Turbo sale on record in the last five years was set aside (4), so there is no Targa read to show.", no count or range, no market on Buy, Sell, Tasks | read live on e59 (the e58 wording changed to this form) |
 | 36 | 2001 Porsche 911 Carrera 4S Cabriolet (typed) | words answer "No Cabriolet 2001 Porsche 911 Carrera 4S sale on record in the last five years.", no count or range | read live on e58 |
 | 37 | 2006 Porsche Boxster Convertible (typed) | 30 sales, $16,500 to $26,500 | moved on e73 as predicted (Cayman S sales left; Lane B offline figure, confirm on the next read) |
-| 38 | 2010 Porsche Boxster Convertible (typed) | the whole 2010 Boxster pool, equal to the bare page (30 sales, exact, 2010, $26,000 to $35,000) | read live on e58; the engine carries the line as bodyLine; the page does not render it yet (Lane A shared card), so the page check is red until it does |
+| 38 | 2010 Porsche Boxster Convertible (typed) | the whole 2010 Boxster pool, equal to the bare page (8 sales, exact, 2010, $28,000 to $39,500) | re-pinned from Lane B reads (8 sales at every read on Oct 19; the old pin of 17 predated the e65 engine), to confirm on the 03:40Z detail read; read live on e58; the engine carries the line as bodyLine; the page does not render it yet (Lane A shared card), so the page check is red until it does |
 | 39 | 2005 Porsche 911 | Sell's printed count equals Market Check's for the same car (one engine) | Sell page count = Market Check page count |
 | 40 | 1965 Ford Mustang | Sell's printed count equals Market Check's for the same car | Sell page count = Market Check page count |
 | 41 | 2023 Porsche 911 GT3 | Sell's printed count equals Market Check's for the same car | Sell page count = Market Check page count |
@@ -126,7 +126,7 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 52 | 1989 Lancia Delta Integrale | 8 sales, $45,000 to $66,000 | re-pinned on e65 (Lane B after column, was 8 sales, $42,000 to $76,500) |
 | 53 | 1969 Ford Mustang Mach 1 | 17 sales, $65,500 to $108,000 | re-pinned on e65 (Lane B after column, was 18 sales, $75,000 to $107,000) |
 | 54 | 2001 Ford Mustang Bullitt | 10 sales, $14,000 to $18,500 | read live on e62 |
-| 55 | 2003 Ford Mustang SVT Cobra | 11 sales, $27,000 to $49,000 | re-pinned on e65 (Lane B after column, was 9 sales, $29,000 to $45,500) |
+| 55 | 2003 Ford Mustang SVT Cobra | 12 sales, $28,000 to $47,500 | re-pinned on e65 (Lane B after column, was 9 sales, $29,000 to $45,500) |
 | 56 | 2019 BMW 3-Series | 12 sales, $30,000 to $35,500 (M340i in) | moved on e73 as predicted (Lane B offline figure, confirm on the next read) |
 | 57 | 2005 Ford GT | 22 sales, $477,000 to $601,000, scope "2005 GT Coupe" | Lane B e65 after column |
 | 58 | 2004 Porsche Carrera GT | PENDING e64: pinned from Lane B's e64 after column | pending Lane B e64 |
@@ -221,7 +221,7 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":35,"q":"1989 Porsche 911 Turbo Targa","status":"ready","empty":true,"wordsHas":["Every Targa 1989 Porsche 911 Turbo sale on record in the last five years was set aside (4), so there is no Targa read to show."],"noCountRange":true},
  {"id":36,"q":"2001 Porsche 911 Carrera 4S Cabriolet","status":"ready","empty":true,"wordsHas":["No Cabriolet 2001 Porsche 911 Carrera 4S sale on record in the last five years."],"noCountRange":true},
  {"id":37,"e73Note":"moved on e73 as predicted (Cayman S sales left, 31 to 30)","q":"2006 Porsche Boxster Convertible","status":"ready","rung":"exact","labelHas":["2006 Boxster Convertible"],"count":30,"tol":0,"low":16500,"high":26500,"tolPct":5,"equalsBare":"2006 Porsche Boxster","statesBody":"No listing of the 2006 Porsche Boxster states a body, so this reads every 2006 Boxster."},
- {"id":38,"q":"2010 Porsche Boxster Convertible","status":"ready","rung":"exact","labelHas":["2010 Boxster Convertible"],"count":17,"tol":0,"low":26000,"high":31500,"tolPct":5,"equalsBare":"2010 Porsche Boxster","statesBody":"No listing of the 2010 Porsche Boxster states a body, so this reads every 2010 Boxster."},
+ {"id":38,"q":"2010 Porsche Boxster Convertible","status":"ready","rung":"exact","labelHas":["2010 Boxster Convertible"],"count":8,"tol":0,"low":28000,"high":39500,"e73Note":"not an e73 move: the pin of 17 predated the e65 engine, 8 sales at every read on Oct 19","tolPct":5,"equalsBare":"2010 Porsche Boxster","statesBody":"No listing of the 2010 Porsche Boxster states a body, so this reads every 2010 Boxster."},
  {"id":39,"e73Note":"no move on e73, corrected","q":"2005 Porsche 911","status":"ready","page":true,"sellEqualsMC":true},
  {"id":40,"q":"1965 Ford Mustang","status":"ready","page":true,"sellEqualsMC":true},
  {"id":41,"q":"2023 Porsche 911 GT3","status":"ready","page":true,"sellEqualsMC":true},
@@ -238,7 +238,7 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":52,"q":"1989 Lancia Delta Integrale","status":"ready","count":8,"tol":0,"low":45000,"high":66000,"tolPct":0},
  {"id":53,"q":"1969 Ford Mustang Mach 1","status":"ready","count":17,"tol":0,"low":65500,"high":108000,"tolPct":0,"lowestSale":33750,"highestSale":133000},
  {"id":54,"q":"2001 Ford Mustang Bullitt","status":"ready","count":10,"tol":0,"low":14000,"high":18500,"tolPct":0,"lowestSale":8700,"highestSale":22000},
- {"id":55,"e73Note":"no move on e73, corrected","q":"2003 Ford Mustang SVT Cobra","status":"ready","count":11,"tol":0,"low":27000,"high":49000,"tolPct":0,"lowestSale":24350,"highestSale":62000},
+ {"id":55,"e73Note":"market move, one new sale before e72","q":"2003 Ford Mustang SVT Cobra","status":"ready","count":12,"tol":0,"low":28000,"high":47500,"tolPct":0,"lowestSale":24350,"highestSale":62000},
  {"id":56,"e73Note":"moved on e73 as predicted (M340i in, 12 sales, range appears)","q":"2019 BMW 3-Series","status":"ready","count":12,"tol":0,"low":30000,"high":35500,"tolPct":3},
  {"id":57,"q":"2005 Ford GT","status":"ready","labelHas":["GT Coupe"],"count":22,"tol":0,"low":477000,"high":601000,"tolPct":3},
  {"id":58,"q":"2004 Porsche Carrera GT","status":"pending","labelHas":["Carrera GT"],"countMin":1},
