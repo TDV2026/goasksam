@@ -35,3 +35,11 @@ const row = { key: "current", data: r, computed_at: new Date().toISOString() };
 const res = await supabaseInsert("vin_rollout_cache", [row], env.supabaseUrl, env.supabaseKey, "resolution=merge-duplicates,return=minimal", "?on_conflict=key");
 if (res.error) { console.error("vin_rollout_cache write failed:", res.error); process.exit(1); }
 console.log("vin_rollout_cache written. DONE.");
+// VIN DECODE STEP (Lane B, Oct 20 2026, the decode-first identity rule's index-time decodes; lib/_vinDecodeStore.js): behind
+// VIN_DECODE_NIGHTLY, OFF. With it off this job does exactly what it did before (nothing is called, nothing printed). With it on:
+// up to 40 paced vPIC batch calls (2,000 VINs) a night, the cursor kept, a stop on any HTTP error; a failure here never fails
+// the job (the rollout cache above is already written).
+const { VIN_DECODE_NIGHTLY, runNightlyDecode } = await import("../lib/_vinDecodeStore.js");
+if (VIN_DECODE_NIGHTLY) {
+  try { await runNightlyDecode(env); } catch (e) { console.error("::warning::vin decode step failed: " + String((e && e.message) || e).slice(0, 200)); }
+}

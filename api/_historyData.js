@@ -4,6 +4,7 @@
 // non-alphanumeric, upper-case. When Lane A's vin_index table lands, only vinAppearances changes.
 import { appConfigFlag } from "../lib/_flags.js";
 import { resolveVehicle, sanitizeResolvedVehicle, otherModelsNamed } from "../lib/vehicle.js";
+import { storedDecodeFor } from "../lib/_vinDecodeStore.js";
 import { findGeneration } from "../lib/generations.js";
 import { oneEngineAnswer } from "../lib/onebox.js";
 import { supabaseSelect } from "../lib/_supabase.js";
@@ -149,27 +150,32 @@ export function canonicalHub(make, family) {
 // possible); the make changes only when the decoded make is named in the title too; everything else stays as resolved.
 export const IDENTITY_RULES = { decodeFirst: false };
 const idWord = w => new RegExp("(^|[^a-z0-9])" + String(w).toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/[\s-]+/g, "[\\s-]?") + "([^a-z0-9]|$)", "i");
-const idPretty = w => /^[A-Z]{4,}$/.test(String(w)) ? String(w).charAt(0) + String(w).slice(1).toLowerCase() : String(w);
+const idPretty = w => String(w).split(/([\s-]+)/).map(p => /^[A-Z]{4,}$/.test(p) ? p.charAt(0) + p.slice(1).toLowerCase() : p).join("");
+// vPIC files some cars under a make we spell differently, one car either way (Lane F, Oct 20 2026: "AM General Hummer H1" decodes
+// HUMMER); never a make change between these
+const ID_MAKE_GROUPS = [["hummer", "amgeneral"]];
+const idSameMake = (a, b) => sameMakeGroup(a, b) || ID_MAKE_GROUPS.some(g => g.includes(squash(a)) && g.includes(squash(b)));
 export function decodeIdentityFix(v, title, decoded) {
   if (!v || !v.model || !decoded || !decoded.model) return null;
   const t = String(title || ""), dm = String(decoded.model).trim();
   if (!dm || !idWord(dm).test(t) || squash(dm) === squash(v.model)) return null;
-  const decodedMakeInTitle = decoded.make && idWord(String(decoded.make).split(/[\s-]/)[0]).test(t);
-  const make = decodedMakeInTitle && !sameMakeGroup(decoded.make, v.make) && squash(decoded.make) !== squash(v.make) ? decoded.make : v.make;
+  // a decoded model today's name already carries ("AM General Hummer H1", vPIC's model "H1") changes nothing: same car, no rename
+  if (idWord(dm).test(familyOf(v))) return null;
+  // the make changes only when the decoded make is named in the title, and then in the TITLE's own spelling (prettied when the
+  // title is in capitals), never vPIC's ("DODGE"); one car under two make names (Ford/Shelby, Hummer/AM General) never changes
+  const mkHit = decoded.make ? idWord(String(decoded.make).split(/[\s-]/)[0]).exec(t) : null;
+  const titleMake = mkHit ? idPretty(mkHit[0].replace(/^[^a-z0-9]+|[^a-z0-9]+$/gi, "")) : null;
+  const make = titleMake && !idSameMake(decoded.make, v.make) && squash(decoded.make) !== squash(v.make) ? (squash(titleMake) === squash(String(decoded.make).split(/[\s-]/)[0]) && /[\s-]/.test(String(decoded.make)) ? idPretty(String(decoded.make)) : titleMake) : v.make;
   const drop = new Set([v.model, dm, make].flatMap(x => String(x || "").split(/[\s-]+/)).map(squash).filter(Boolean));
   // a replaced make that the title names is a real variant (the "Shelby" of a 1989 Dodge Shelby Dakota): it stays, as the trim
   const keptMake = make !== v.make && idWord(String(v.make).split(/[\s-]/)[0]).test(t) ? [String(v.make)] : [];
   const trimWords = [...keptMake, ...String(v.trim || "").split(/\s+/)].filter(w => w && !drop.has(squash(w)));
-  return { ...v, make, model: idPretty(dm), trim: trimWords.length ? trimWords.join(" ") : null };
-}
-const decodeMem = new Map();
-export async function decodeVinCached(vin) {
-  if (decodeMem.has(vin)) return decodeMem.get(vin);
-  let dv = null;
-  try { const r = await resolveVehicle(vin, { vinConfirm: true }); dv = r && r.vehicle && r.vehicle.make ? r.vehicle : null; } catch { dv = null; }
-  if (decodeMem.size >= 5000) decodeMem.delete(decodeMem.keys().next().value);
-  decodeMem.set(vin, dv);
-  return dv;
+  const out = { ...v, make, model: idPretty(dm), trim: trimWords.length ? trimWords.join(" ") : null };
+  // the same words in another order ("Dodge Charger Shelby" -> "Dodge Shelby Charger", vPIC's model reading "Shelby Charger") is
+  // a rename with no new information: no change (Lane F, Oct 20 2026)
+  const words = x => [String(x.make || ""), familyOf(x)].join(" ").toLowerCase().split(/[\s-]+/).map(squash).filter(Boolean).sort().join(" ");
+  if (words(out) === words(v)) return null;
+  return out;
 }
 export async function carIdentity(apps, vin) {
   if (!apps.length) return null;
@@ -196,11 +202,12 @@ export async function carIdentity(apps, vin) {
   if (!v) return null;
   if (IDENTITY_RULES.decodeFirst && titled.length && /^[A-HJ-NPR-Z0-9]{17}$/.test(normVin(vin))) {
     // cost (Lane F, Oct 20 2026): decode ONLY when the title names another known model of the make (the Suburban title also
-    // names Silverado); every other VIN keeps its identity with no decode. A decode is kept per instance by VIN.
+    // names Silverado); every other VIN keeps its identity with no decode. The decode is vPIC's RAW make and model, made at INDEX
+    // time by the nightly job and stored (lib/_vinDecodeStore.js); a page request never calls vPIC.
     try {
       const t0 = cleanTitle(titled[0].title);
       const others = await otherModelsNamed(v.make, v.model, t0);
-      if (others && others.length) { const dv = await decodeVinCached(normVin(vin)); const fx = decodeIdentityFix(v, t0, dv); if (fx) v = sanitizeResolvedVehicle(fx) || fx; }
+      if (others && others.length) { const dv = await storedDecodeFor(normVin(vin)); const fx = decodeIdentityFix(v, t0, dv); if (fx) v = sanitizeResolvedVehicle(fx) || fx; }
     } catch {}
   }
   // Same car = same VIN and same MAKE. Reject only when an appearance names a different make (a
