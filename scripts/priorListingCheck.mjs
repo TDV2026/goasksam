@@ -62,9 +62,10 @@ ok(/priorSold\(apps\) \? "sold" : "was listed"/.test(landing) && !/This exact ca
 
 // ---- 5. the card foot (Sam, Oct 15 2026): the pill has its own reserved line above the action row, on every card
 // (an ended card included), and the foot sits at the card's bottom with 44px buttons
-ok(/'<div class="hrow">' \+ \(hist \? /.test(client) && !/"<\/a>" \+\s*\(hasMc[^\n]*\n[^\n]*data-hist/.test(client), "the pill is in its own line, never inside the action row");
+// Stage 1c item 1 (Sam): the history button sits inside the Sam area under "Sam has seen this exact car before.", never in the action row.
+ok(/function seenHtml\(l\)\{ return '<div class="seen"><p class="seen-l">' \+ esc\("Sam has seen this exact car before\."\) \+ '<\/p><button type="button" class="act hact" data-hist="/.test(client) && !/"<\/a>" \+\s*\(hasMc[^\n]*\n[^\n]*data-hist/.test(client), "the pill is in the Sam area, never inside the action row");
 ok(/<div class="hrow"><\/div><div class="acts"><a class="vauc"[^"]*"[^>]*>See it on/.test(client.replace(/' \+ esc\(l\.url\) \+ '/g, "")), "an ended card keeps the same reserved line");
-ok(/tx\.querySelector\("\.hrow"\) \|\| tx\.querySelector\("\.acts"\)/.test(client), "a late Sam line goes above the reserved line");
+ok(/var h = slInner\(l\), sl = tx\.querySelector\("\.sl"\);/.test(client) && /if \(sl\) \{ sl\.innerHTML = h; return; \}/.test(client), "a late Sam line rebuilds the whole Sam area (line, rows, history) above the actions");
 ok(/\.car \.tx \.hrow\{margin-top:auto;[^}]*min-height:44px/.test(page) && /\.car \.acts \.vauc,\.car \.acts \.act,\.car \.hrow \.act\{min-height:44px/.test(page), "the foot is pinned to the bottom with 44px buttons");
 
 console.log(`priorListingCheck: ${pass} passed, ${fail} failed`);

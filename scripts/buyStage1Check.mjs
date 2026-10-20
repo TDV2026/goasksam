@@ -42,8 +42,9 @@ ok(!/keepPill\(\)/.test(card), "no 'Have Sam keep looking' on a card");
 ok(!/priceLine\(l\)|placeLine\(l\)/.test(card) && /metaLine\(l\) \+ chipsHtml\(l\)/.test(card), "one meta line, then the specs");
 ok(/var onPh = moneyHtml\(l, true\); if \(onPh\) ph = ph\.replace\(\/<\\\/a>\$\/, onPh \+ "<\/a>"\)/.test(card) && /money = ph \? "" : moneyHtml\(l, false\)/.test(card) && /'<div class="tx">' \+ \(ph \? "" : money\)/.test(card), "the money figure sits on the photo (inside its link), or at the top of the card when there is no photo");
 ok(moneyHtml({ current_bid_usd: 42500, source: "Bring a Trailer", url: "https://x/1" }, true) === '<span class="mlab nobid">See the bid on Bring a Trailer</span>' && !/<a /.test(moneyHtml({ current_bid_usd: 42500, source: "Bring a Trailer", url: "https://x/1" }, true)), "on the photo (itself a link), the figure carries no link of its own");
-const order = ["photoHtml(l, eager)", "<h3>", "metaLine(l)", "chipsHtml(l)", '<div class="sl">', 'class="hrow"', 'class="acts"'].map(x => card.indexOf(x));
-ok(order.every((x, k) => x > 0 && (k === 0 || x > order[k - 1])), "the order: photo (with the money), car, meta, specs, Sam block, history, actions");
+// Stage 1c item 1: the history button lives inside the Sam block (slInner), after the line and the rows.
+const order = ["photoHtml(l, eager)", "<h3>", "metaLine(l)", "chipsHtml(l)", '<div class="sl">', 'class="acts"'].map(x => card.indexOf(x));
+ok(order.every((x, k) => x > 0 && (k === 0 || x > order[k - 1])) && /\(line \? line\.html : ""\) \+ rowsHtml\(l\) \+ \(hist \? seenHtml\(l\) : ""\)/.test(c), "the order: photo (with the money), car, meta, specs, Sam block (line, rows, history), actions");
 // STAGE 1b, NUMBER FIRST: a range card reads as the shared card does; every figure and line is the engine's.
 const rf = new Function("esc", "usd", block("  function rangeFirst(l, x){", "  function samLine(l){") + "\nfunction rungHtml(){ return ''; } function rungShown(){ return []; }\nreturn rangeFirst;")(
   s0 => String(s0 == null ? "" : s0).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch])), n => "$" + Math.round(Number(n)).toLocaleString("en-US"));

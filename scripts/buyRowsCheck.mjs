@@ -29,6 +29,6 @@ ok(rowsHtml({ market: { kind: "none", rows: R650 } }) === "", "no engine flag: n
 ok(rowsHtml({ market: { cardListsSales: true, rows: [] } }) === "" && rowsHtml({ market: null }) === "" && rowsHtml({}) === "", "no rows or no market: nothing");
 ok(rowsHtml({ swap: true, market: { cardListsSales: true, rows: R650 } }) === "", "an engine-swapped card: no rows");
 // The card puts the rows inside its Sam block, under the line.
-ok(c.includes(`'<div class="sl"><span class="who">Sam</span>' + line.html + rowsHtml(l) + "</div>"`), "the rows sit in the card's Sam block, under the Sam line");
+ok(c.includes(`'<span class="who">Sam</span>' + (line ? line.html : "") + rowsHtml(l)`) && c.includes(`(sl ? '<div class="sl">' + sl + "</div>" : "")`), "the rows sit in the card's Sam block, under the Sam line");
 console.log(`buyRowsCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

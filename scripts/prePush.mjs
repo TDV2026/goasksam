@@ -462,6 +462,20 @@ try {
 } catch (e) {
   record("Car pages link only hubs that exist (scripts/hubLinkCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Buy Stage 1c (Sam's review, Oct 20 2026; Lane C): history once in the Sam area, compact no-range cards, the grid. No network.
+try {
+  const out = execSync("node scripts/buyStage1cCheck.mjs", { encoding: "utf8" });
+  record("Buy Stage 1c (scripts/buyStage1cCheck.mjs)", "PASS", (out.match(/buyStage1cCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Buy Stage 1c (scripts/buyStage1cCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// The palette picker is for the crew only (Sam, Buy Stage 1c item 8a; Lane C). No network.
+try {
+  const out = execSync("node scripts/paletteCrewOnlyCheck.mjs", { encoding: "utf8" });
+  record("The palette picker is crew only (scripts/paletteCrewOnlyCheck.mjs)", "PASS", (out.match(/paletteCrewOnlyCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("The palette picker is crew only (scripts/paletteCrewOnlyCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
