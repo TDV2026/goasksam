@@ -21,5 +21,9 @@ const src = fs.readFileSync(new URL("../api/usageDashboard.js", import.meta.url)
 const blk = src.slice(src.indexOf('if (task === "vinidentitydry")'), src.indexOf('if (task === "projdry")'));
 const okD = /decodeIdentityFix\(v, title, dv\)/.test(blk) && /resolveVehicle\(vin, \{ vinConfirm: true \}\)/.test(blk) && !/basis = "stored"/.test(blk);
 if (!okD) { bad++; console.log("FAIL decode-first rule not found in the task"); } else console.log("ok   the dry run runs the rule itself: decodeIdentityFix on the VIN decoded as carIdentity decodes it (no stored-model fallback)");
-console.log(bad ? `vinIdentityDryCheck: ${bad} failed` : "vinIdentityDryCheck: 3 passed, 0 failed");
+// the exact count (Oct 20 2026): the dry run uses the rule's own prefilter (otherModelsNamed), never the stored model column,
+// and a slice that stops early points nextOffset at the first VIN it did not read, so no VIN is skipped
+const okP = /const others = await otherModelsNamed\(v\.make, v\.model, title\)/.test(blk) && !/list\.map\(a => a\.model\)/.test(blk) && /nextOffset: off \+ done/.test(blk);
+if (!okP) { bad++; console.log("FAIL the rule's own prefilter and the no-skip offset"); } else console.log("ok   the rule's own prefilter (no stored column) and a no-skip offset");
+console.log(bad ? `vinIdentityDryCheck: ${bad} failed` : "vinIdentityDryCheck: 4 passed, 0 failed");
 process.exit(bad ? 1 : 0);

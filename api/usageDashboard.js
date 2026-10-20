@@ -4587,7 +4587,7 @@ async function handleOps(req, res) {
   // slug; for up to `market` of them (default 0) the engine's market line for the old and the new car (count and range).
   if (task === "vinidentitydry") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { resolveVehicle, sanitizeResolvedVehicle } = await import("../lib/vehicle.js");
+    const { resolveVehicle, sanitizeResolvedVehicle, otherModelsNamed } = await import("../lib/vehicle.js");
     const { cleanTitle, familyOf, carSlug, decodeIdentityFix } = await import("./_historyData.js");
     const off = Math.max(0, Number(req.query?.offset) || 0), want = Math.min(1000, Math.max(1, Number(req.query?.n) || 1000));   // one read is capped at 1000 rows; the caller pages with offset
     const marketN = Math.min(20, Math.max(0, Number(req.query?.market) || 0));
@@ -4604,9 +4604,12 @@ async function handleOps(req, res) {
     const word = w => new RegExp("(^|[^a-z0-9])" + String(w).toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/[\s-]+/g, "[\\s-]?") + "([^a-z0-9]|$)", "i");
     const squash = x => String(x || "").toLowerCase().replace(/[^a-z0-9]/g, "");
     const modeOf = arr => { const c = new Map(); for (const x of arr) if (x) c.set(x, (c.get(x) || 0) + 1); return [...c.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || null; };
-    const changes = []; let read = 0, resolved = 0, decodes = 0;
+    const changes = []; let read = 0, resolved = 0, decodes = 0, done = 0;
+    // a slice that runs out of time or decodes stops at the first VIN it has not read, and nextOffset points there, so a
+    // paged run never skips a VIN (the count is exact, not a lower bound)
     for (const vin of vins) {
-      if (Date.now() - t0 > 240000) break;
+      if (Date.now() - t0 > 200000 || decodes >= 400) break;
+      done++;
       const list = (apps.get(vin) || []).filter(a => a.listing_title);
       if (!list.length) continue;
       read++;
@@ -4615,11 +4618,13 @@ async function handleOps(req, res) {
       try { const r = await resolveVehicle(title, {}); v = r && r.vehicle ? (sanitizeResolvedVehicle(r.vehicle) || r.vehicle) : null; } catch { v = null; }
       if (!v || !v.make || !v.model) continue;
       resolved++;
-      const others = [...new Set(list.map(a => a.model).filter(m => m && !/^unknown$/i.test(String(m))))].filter(m => squash(m) !== squash(v.model) && word(m).test(title));
-      if (!others.length) continue;   // the title names no second stored model: nothing to decide
+      // THE RULE'S OWN PREFILTER (Lane F, Oct 20 2026, the exact count): a decode only when the title names another known model of
+      // the make (lib/vehicle.js otherModelsNamed, the same call carIdentity makes), so the count is the rule's, not a lower bound.
+      const others = await otherModelsNamed(v.make, v.model, title);
+      if (!others || !others.length) continue;
       // THE RULE ITSELF (api/_historyData.js decodeIdentityFix, the code carIdentity runs when IDENTITY_RULES.decodeFirst is on):
       // the VIN decoded the same way carIdentity decodes it (the resolver's VIN path), the same function names the new car.
-      if (!/^[A-HJ-NPR-Z0-9]{17}$/i.test(vin) || decodes >= 400 || Date.now() - t0 > 200000) continue;
+      if (!/^[A-HJ-NPR-Z0-9]{17}$/i.test(vin)) continue;
       decodes++;
       let dv = null;
       try { const r = await resolveVehicle(vin, { vinConfirm: true }); dv = r && r.vehicle && r.vehicle.make ? r.vehicle : null; } catch { dv = null; }
@@ -4644,7 +4649,7 @@ async function handleOps(req, res) {
       }
     }
     for (const c of changes) { delete c._v; delete c._nv; }
-    return res.status(200).json({ task: "vinidentitydry", offset: off, asked: want, vinsInSlice: vins.length, titledRead: read, resolved, decodes, wouldChange: changes.length, byBasis: { decode: changes.filter(c => c.basis === "decode").length, stored: changes.filter(c => c.basis === "stored").length }, ms: Date.now() - t0, nextOffset: off + vins.length, changes });
+    return res.status(200).json({ task: "vinidentitydry", offset: off, asked: want, vinsInSlice: vins.length, titledRead: read, resolved, decodes, wouldChange: changes.length, byBasis: { decode: changes.filter(c => c.basis === "decode").length, stored: changes.filter(c => c.basis === "stored").length }, ms: Date.now() - t0, nextOffset: off + done, stoppedEarly: done < vins.length, changes });
   }
   // trimwordcount (Lane B, Oct 20 2026, Lane F's question on Sport and Touring; READ-ONLY, key-gated, OldCarsData zero,
   // writes nothing): for each word asked (default sport, touring, super, classic, standard), the archive's sales of the last
