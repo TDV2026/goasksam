@@ -73,7 +73,8 @@ export const SCOPE_AGE_YEARS = 25;
 export const SCOPE_MAKES = ["Porsche", "Ferrari", "Lamborghini", "McLaren", "Aston Martin", "Bentley", "Rolls-Royce", "Bugatti", "Maserati", "Lotus", "Alfa Romeo", "De Tomaso", "Pagani", "Koenigsegg", "Lancia", "Shelby"];
 export const SCOPE_MODELS = [
   ["Lexus", "^LFA\\b"],
-  ["Mercedes-Benz", "\\bAMG\\b|^SL(S|R)?\\b|^SL-Class|^SL ?\\d|^SLS|^SLR|^G-Class|^G-Wagen|^G ?\\d{2,3}\\b"],
+  // the numbered AMG models count as AMG (Sam's list says "Mercedes AMG"; a C63, E63 S, G63 or CLS 63 IS one): Oct 20 2026
+  ["Mercedes-Benz", "\\bAMG\\b|^SL(S|R)?\\b|^SL-Class|^SL ?\\d|^SLS|^SLR|^G-Class|^G-Wagen|^G ?\\d{2,3}\\b|(^|\\s)(C|E|S|CL|CLK|CLS|SL|SLK|ML|GL|GLE|GLS|G|A|CLA|GLA|GLC)[ -]?(43|45|53|55|63|65)\\b"],
   ["BMW", "(^|\\s)(1M|M[1-8])\\b|^X[3-7] ?M\\b|^Z[34] ?M\\b|^M (Coupe|Roadster)\\b"],
   ["Audi", "(^|\\s)RS ?\\d|^RS\\b|^R8\\b"],
   ["Land Rover", "^Defender\\b"],

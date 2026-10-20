@@ -62,5 +62,9 @@ ok(!/price|range|sales|count/i.test(amazonInScope.toString()), "the scope reads 
   ok(/if \(wordsOut\(q\)\) \{ \$\("a-out"\)\.innerHTML = wordsCaseHtml\(q\); return; \} \$\("a-out"\)\.innerHTML = '<p class="loading">/.test(ha) && /if \(wordsOut\(q\)\) \{ \$\("b-out"\)\.innerHTML = wordsCaseHtml\(q\); return; \} \$\("b-out"\)\.innerHTML = '<p class="loading">/.test(ha), "an out-of-scope typed car makes no read and says so in Sam's line with its name (revision 2 item 8c), before the Reading line");
   const m = /var KNOWN_MAKES = (.*?), MAKE_WORDS = (.*?), scopeFromWords = /.exec(ha);
   ok(m && JSON.parse(m[1]).length > 40 && JSON.parse(m[2]).length > 3, "the page carries the known makes and the make words"); }
+// THE NUMBERED AMG MODELS (Lane F, Oct 20 2026; it implements Sam's "Mercedes AMG", it does not change the list): a
+// typed C63, E63 S, G63 or CLS 63 is an AMG and in scope; a plain C300, E350, S550 or E-Class is not (a young one).
+for (const [model, variant] of [["C63", null], ["E63", "S"], ["G63", null], ["CLS 63", null], ["C-Class", "C 63"], ["S-Class", "S65"], ["GLE", "GLE 43"]]) IN({ year: 2017, make: "Mercedes-Benz", model, variant }, `numbered AMG ${model}${variant ? " " + variant : ""}`);
+for (const [model, variant] of [["C300", null], ["E350", null], ["S550", null], ["E-Class", null], ["C-Class", "C300"], ["GLE", "GLE 350"]]) OUT({ year: 2017, make: "Mercedes-Benz", model, variant }, `a plain ${model}${variant ? " " + variant : ""}`);
 console.log(`amazonScopeCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
