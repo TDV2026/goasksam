@@ -2606,6 +2606,23 @@
     }).join("") + (total != null ? ('<button type="button" class="linkbtn idq-opt" data-variantopt-any="1">Any (' + idLineNum(total) + ") &#8594;</button>") : "");
     return idqScreenHtml({ headName: carLabel(d.resolvedCar), question: d.prompt || "Which is it?", subline: "The range changes with the answer.", links: links, lintKey: "variantq" });
   }
+  // TRIM-CHOICE TAKEOVER (Lane F, Oct 20 2026; the 1965 Mustang Coupe dead end): the engine's tier "trim_choice" had no
+  // branch here, so it fell to the generic fallback and read "Not enough real ... sales", a claim the engine never made.
+  // It now draws like the other question tiers: the engine's own prompt and its own chip words (trimChips, each with its
+  // count), each a button that re-asks with that option's own refine (trimOptions[i].value, and for "Other trims" the
+  // named trims it leaves out). No wording of the page's own.
+  function trimChoiceTakeoverHtml(d) {
+    var opts = (d && d.trimOptions) || [], chips = (d && d.trimChips) || [];
+    var links = opts.map(function (o, i) {
+      return '<button type="button" class="linkbtn idq-opt" data-trimopt="' + esc(o.value) + '" data-trimnot="' + esc((o.notTrims || []).join(",")) + '" data-mlabel="' + esc(o.label) + '">' + esc(chips[i] || o.label) + " &#8594;</button>";
+    }).join("");
+    return idqScreenHtml({ headName: carLabel(d.resolvedCar), question: d.prompt || "", links: links, lintKey: "trimq" });
+  }
+  function renderTrimChoice(d) {
+    obLastD = d;
+    renderQuestion(trimChoiceTakeoverHtml(d));
+    if (typeof gasTrack === "function") gasTrack("identity_question_shown", { dimension: "trim", option_count: (d.trimOptions || []).length });
+  }
   function renderVariantChoice(d) {
     obLastD = d;
     renderQuestion(variantChoiceTakeoverHtml(d));
@@ -2958,6 +2975,7 @@
       // Any chip (this screen family never had one before). variant_choice with NO variantChoices
       // (the Competition Package case) falls through to the unchanged generic renderer below.
       if (d.tier === "variant_choice" && Array.isArray(d.variantChoices) && d.variantChoices.length) { if (d.askIndex) obAsked = d.askIndex; renderVariantChoice(d); return; }
+      if (d.tier === "trim_choice" && Array.isArray(d.trimOptions) && d.trimOptions.length) { if (d.askIndex) obAsked = d.askIndex; renderTrimChoice(d); return; }
       if (d.tier === "gearbox_choice" || d.tier === "variant_choice" || d.tier === "dochistory_choice") { if (d.askIndex) obAsked = d.askIndex; renderIdentityQuestion(d); return; }
       if (vinAnchor) obEvent("onebox_vin_anchor_shown");
       obSnapshotId = d.snapshotId || null; obAsOf = null; // live result: shareable, no as-of line
@@ -3395,6 +3413,15 @@
         var key = b.getAttribute("data-variantopt"), label = b.getAttribute("data-mlabel");
         if (typeof gasTrack === "function") gasTrack("identity_question_answered", { dimension: "competition", choice: label || key || "", skipped: false });
         runPool(lastQuery, obLastVehicle, mergeRefine({ variant: key, label: label }));
+      });
+    });
+    // The trim_choice takeover's chips: the engine's own trim refine (lib/onebox.js refine.trim / refine.notTrims).
+    Array.prototype.forEach.call(root.querySelectorAll("[data-trimopt]"), function (b) {
+      b.addEventListener("click", function () {
+        var key = b.getAttribute("data-trimopt"), not = b.getAttribute("data-trimnot") || "", label = b.getAttribute("data-mlabel");
+        if (typeof gasTrack === "function") gasTrack("identity_question_answered", { dimension: "trim", choice: label || key || "", skipped: false });
+        var part = { trim: key, label: label }; if (not) part.notTrims = not;
+        runPool(lastQuery, obLastVehicle, mergeRefine(part));
       });
     });
     Array.prototype.forEach.call(root.querySelectorAll("[data-variantopt-any]"), function (b) {

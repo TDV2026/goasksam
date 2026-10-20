@@ -558,6 +558,13 @@ try {
 } catch (e) {
   record("buySearchLineCycleCheck (scripts/buySearchLineCycleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A trim_choice answer draws the engine's own prompt and chips, each re-asking with its trim refine, never the fallback (Lane F, Oct 20 2026; Lane C). No network.
+try {
+  const out = execSync("node scripts/trimChoiceDrawCheck.mjs", { encoding: "utf8" });
+  record("Market Check draws trim_choice as a question (scripts/trimChoiceDrawCheck.mjs)", "PASS", (out.match(/trimChoiceDrawCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Market Check draws trim_choice as a question (scripts/trimChoiceDrawCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
