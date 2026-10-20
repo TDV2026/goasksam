@@ -269,7 +269,7 @@ async function page(req) {
   const crew = isCrewRequest(req);
   // PALETTE SWITCHER (Sam, Oct 2026, colours only): gated the same way as Market Check - a reviewer
   // flag or a crew/tester cookie, never otherwise. See api/marketCheck.js for the full note.
-  const showPal = crew || isTesterRequest(req) || /[?&]palette=1\b/.test(String(req.url || ""));
+  const showPal = crew;   // Sam, Stage 1c item 8a: the palette picker is for the crew only (no tester, no ?palette=1); removed before launch
   const env = supabaseEnv();
   const [updated, ex, soldCount, vinShare] = await Promise.all([
     lastUpdatedDate(env).catch(() => null),

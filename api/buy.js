@@ -108,7 +108,7 @@ export default async function handler(req, res) {
   const crew = isCrewRequest(req);
   // The palette switcher (Sam, Oct 2026 palette round; Lane A's lib/appShell.js paletteHead): the same showPal rule as
   // Market Check, Business and Tasks. The bar is never shared-cached (showPal joins the private, no-store list below).
-  const showPal = crew || isTesterRequest(req) || /[?&]palette=1\b/.test(String(req.url || ""));
+  const showPal = crew;   // Sam, Stage 1c item 8a: the palette picker is for the crew only (no tester, no ?palette=1); removed before launch
   // THE RAIL: the shared app shell (lib/appShell.js, Oct 2026), the same rail, page list, tokens and phone
   // header row as Market Check, Sell and Tasks. Buy's own block in it is "Your searches" (and Saved
   // searches when signed in, and Before it ends), filled by the client into #searches exactly as before.

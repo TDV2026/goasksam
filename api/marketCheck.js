@@ -86,7 +86,7 @@ async function handler(req, res) {
   // carries none of it. ALL_PALETTES_CSS and PALETTE_APPLY_JS are unconditional (inert CSS + a tiny
   // localStorage read that is a silent no-op with nothing stored) so a palette chosen on one page
   // survives navigation to any other, with the bar or without it.
-  const showPal = crew || isTesterRequest(req) || /[?&]palette=1\b/.test(String(req.url || ""));
+  const showPal = crew;   // Sam, Stage 1c item 8a: the palette picker is for the crew only (no tester, no ?palette=1); removed before launch
 
   let html = stripLaunchGate(shell)
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${TITLE}</title>`)

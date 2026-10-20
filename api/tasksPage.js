@@ -135,7 +135,7 @@ export default async function handler(req, res) {
   // PALETTE SWITCHER (Sam, Oct 2026 palette round; lib/appShell.js paletteHead): shown for crew, testers or
   // ?palette=1, computed the same way Market Check, Sell and the business page compute it. A page carrying the
   // bar is never shared-cached (showPal joins the no-store condition below).
-  const showPal = crew || isTesterRequest(req) || /[?&]palette=1\b/.test(String(req.url || ""));
+  const showPal = crew;   // Sam, Stage 1c item 8a: the palette picker is for the crew only (no tester, no ?palette=1); removed before launch
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">${paletteHead(showPal)}
 <title>${title}</title><meta name="description" content="${esc(desc)}"><meta name="robots" content="${robots}"><link rel="canonical" href="https://goasksam.com/tasks">
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:url" content="https://goasksam.com/tasks"><meta property="og:type" content="website"><meta property="og:image" content="https://goasksam.com/og-card.png">
@@ -201,7 +201,7 @@ const EXPLAINER_JS = String.raw`(function(){
 
 function appPage(req, res) {
   const crew = isCrewRequest(req);
-  const showPal = crew || isTesterRequest(req) || /[?&]palette=1\b/.test(String(req.url || ""));
+  const showPal = crew;   // Sam, Stage 1c item 8a: the palette picker is for the crew only (no tester, no ?palette=1); removed before launch
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">${paletteHead(showPal)}
 <title>Your Tasks | GoAskSam</title><meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#F6F3EC">

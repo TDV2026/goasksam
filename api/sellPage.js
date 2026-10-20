@@ -45,7 +45,7 @@ export async function sellShellHtml(req) {
   // The real last-updated date, shared with Market Check (lib/asOf.js lastUpdatedDate). No count.
   const updated = await lastUpdatedDate(supabaseEnv()).catch(() => null);
   const crew = isCrewRequest(req);
-  const showPal = crew || isTesterRequest(req) || /[?&]palette=1\b/.test(String(req.url || ""));
+  const showPal = crew;   // Sam, Stage 1c item 8a: the palette picker is for the crew only (no tester, no ?palette=1); removed before launch
   return stripUnreleasedNav(shell, req)
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${TITLE}</title>`)
     .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${TITLE}$2`)
@@ -74,7 +74,7 @@ export default async function handler(req, res) {
   // URL (the same cache-poisoning gap fixed on Market Check/business/spec/publicConfig/history
   // this quarter - closing it here too now that this page also varies its palette by crew).
   const hasCrewCookie = /(?:^|;\s*)gas_crew=/.test(String(req.headers.cookie || ""));
-  const showPal = crew || isTesterRequest(req) || /[?&]palette=1\b/.test(String(req.url || ""));
+  const showPal = crew;   // Sam, Stage 1c item 8a: the palette picker is for the crew only (no tester, no ?palette=1); removed before launch
   // LAUNCH-STAGE SAFETY (Oct 2026, production incident, api/marketCheck.js has the full writeup):
   // this page's own rail is filtered by isReleased() - public caching at all is only safe once
   // fullyLaunched() is true (every gated product released for crew and public alike) and the
