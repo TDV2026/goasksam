@@ -10358,3 +10358,4 @@ Search check: no public page touched.
   Search check: no public page touched.
 - DONE (Lane E, meyers-manx second read, 03:34:30 to 03:34:32Z, one page): /history/meyers-manx/115488827 answers 200, CLEAN ("null" 0 times in visible text, 0 in JSON-LD), as at 02:27Z. The third read is after the nightly build, at 07:30Z, with the 9 sitemap-redirect URLs.
 Search check: no public page touched.
+- PUSH LOCK (Lane E, 2026-10-20T03:50:00Z): buy-gearbox-bare rebased on main: a CAR whose transmission field is only a gear count ("(8-speed)") with no gearbox word in the title reads NOT STATED, never Manual; motorcycles keep today's read. lib/live/search.js plus scripts/gearboxCheck.mjs; tier FULL, FULL prePush alone from 03:50Z. Push only on 0 FAIL; live look 04:03:00 to 04:08:00Z. Revert at once if any card outside the 43 posted changes chip, count, range or line.
