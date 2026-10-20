@@ -96,8 +96,9 @@ export function lastGoodUsable(v, nowMs = Date.now()) {
 export function storedDemoServable(v, epoch, nowMs = Date.now()) {
   const epMs = epoch ? Date.parse(epoch) : NaN, readMs = v ? Date.parse(v.readAt) : NaN;
   // a stored answer made before the card carried its sale rows (cardWithRows, Oct 20 2026) is never served: the Amazon
-  // tab c would draw "These are the sales we found." with no sales under it (the 08:43Z look); it reads through instead
-  return !!(lastGoodUsable(v, nowMs) && fullResult(v.out) && typeof v.out.cardWithRows === "string" && Number.isFinite(epMs) && Number.isFinite(readMs) && readMs > epMs);
+  // tab c would draw "These are the sales we found." with no sales under it (the 08:43Z look); it reads through instead.
+  // Likewise one stored before its row photos asked a width (12:32Z look: the 275 GTB's nine rows still full size).
+  return !!(lastGoodUsable(v, nowMs) && fullResult(v.out) && typeof v.out.cardWithRows === "string" && !/\?photo=[^"&]+"/.test(v.out.cardWithRows) && Number.isFinite(epMs) && Number.isFinite(readMs) && readMs > epMs);
 }
 
 export const PILL_SLOT = '<div class="gas-pill-slot"></div>';

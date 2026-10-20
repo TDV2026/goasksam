@@ -18,6 +18,8 @@ ok(storedDemoServable(row({ readAt: "2026-10-18T15:00:00Z" }), "2026-10-18T07:00
 ok(storedDemoServable(row({ out: { ok: true, answerType: "identity_question", question: { options: [{}] } } }), EP, now) === false, "a stored question is not a full result here (the question path answers it)");
 ok(storedDemoServable(row({ out: { ok: false, stillReading: true } }), EP, now) === false && storedDemoServable(null, EP, now) === false, "a still-reading answer or no row: never served");
 { const r = row(); delete r.out.cardWithRows; ok(storedDemoServable(r, EP, now) === false, "a stored answer made before cardWithRows (no sale rows): never served, it reads through"); }
+{ const r = row(); r.out.cardWithRows = '<img class="sfc-row-img" src="/api/partnerAnswer?photo=abc">'; ok(storedDemoServable(r, EP, now) === false, "a stored card whose row photos ask no width: never served, it reads through"); }
+{ const r = row(); r.out.cardWithRows = '<img class="sfc-row-img" src="/api/partnerAnswer?photo=abc&amp;w=320">'; ok(storedDemoServable(r, EP, now) === true, "a stored card whose row photos ask a width: served"); }
 // The handler asks this before Market Check's handler, and only for a plain (unrefined, unasked) read.
 const src = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
 const at = src.indexOf("storedDemoServable(qlast"), mc = src.indexOf("r = await marketCheckAnswer(req, text, refine, asked, true)");
