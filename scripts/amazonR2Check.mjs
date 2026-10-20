@@ -11,7 +11,7 @@ const c = pages[2][1], js = c.slice(c.indexOf("<script>"));
 // item 2: the shell, the sub-nav, the layout
 for (const [v, h] of pages) ok(/<span class="prep">Prepared for Amazon<\/span><span class="demo-lab">Demo<\/span>/.test(h) && /class="demo-bar"/.test(h), `tab ${v}: the demo bar, "Prepared for Amazon" and "Demo" on the screen`);
 ok(P.subnav.join("|") === "New Cars|Used Cars|Certified Pre-Owned|Trade|Body Type|Make|Fuel Type" && P.subnav.every(t => c.includes(`<button type="button" class="snav" data-inert>${t}</button>`)), "the white Autos sub-nav, every item inert");
-ok(/<button type="button" class="linkbtn back-l" data-inert>&lsaquo; Back to search results<\/button>/.test(c), "Back to search results (inert until tab d exists)");
+ok(/<a class="back-l" href="\?p=amazon&amp;view=d">&lsaquo; Back to search results<\/a>/.test(c), "Back to search results opens tab d (Sam's word: the only navigation besides the tabs)");
 ok(/<div class="galwrap"><div class="gal" id="c-photo"><\/div><div class="thumbs" id="c-thumbs" aria-hidden="true"><\/div><\/div>/.test(c), "the large photo with a thumbnail strip beside it");
 ok(/<h1 id="c-title">Used 1965 Ford Mustang Fastback<\/h1>/.test(c) && /return "Used " \+ out\.join\(" "\);/.test(js), "the title in Amazon form, from the VIN's decode or the answer's identity (never the VIN)");
 ok(P.sectionTabs.join("|") === "Overview|Condition|Coverage|Benefits|Pricing" && /data-stab="overview"/.test(c) && /data-stab="pricing"/.test(c) && (c.match(/class="stab" data-inert/g) || []).length === 3, "the section tabs: Overview and Pricing switch, the other three inert");

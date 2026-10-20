@@ -18,7 +18,7 @@ export const AMAZON_PROFILE = {
   logoPath: "/preview?img=amazon-logo",
   logoAlt: "Amazon Autos",
   preparedFor: "Prepared for Amazon",
-  tabs: [["a", "a. Before shopping"], ["b", "b. Dealer lists a car"], ["c", "c. On the listing"]],
+  tabs: [["a", "a. Before shopping"], ["b", "b. Dealer lists a car"], ["c", "c. On the listing"], ["d", "d. In search results"]],
   moduleName: "Market Check",
   attribution: "Powered by GoAskSam",
   // REVISION 2 (Sam, Oct 20 2026): the Amazon Autos listing layout. The sub-nav and the section tabs are the partner's
@@ -233,11 +233,23 @@ main{padding-block:22px 48px}
 .case-l{margin:0;font-size:15px}
 .case-n{margin:6px 0 0;font-size:13px;color:var(--ink2)}
 .rail h1:empty{display:none}
+/* TAB d, the results grid */
+.dhead{margin:0;font:700 22px/1.3 var(--sans)}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px;margin-top:16px}
+.dcard{display:flex;flex-direction:column;border:1px solid var(--rule);border-radius:var(--r);overflow:hidden;color:var(--ink);text-decoration:none;background:#fff}
+.dcard:hover{box-shadow:0 2px 10px rgba(15,17,17,.12)}
+.dph{aspect-ratio:4/3;background:#eaeded;display:block}.dph img{width:100%;height:100%;object-fit:cover;display:block}
+.dtx{display:flex;flex-direction:column;gap:4px;padding:12px 14px 14px}
+.dtitle{font:700 15px/1.35 var(--sans)}.dmiles{font-size:13px;color:var(--ink2)}
+.dchips{display:flex;gap:6px;flex-wrap:wrap}.dchips:empty{display:none}
+.dchip{border:1px solid var(--rule);border-radius:999px;padding:2px 8px;font-size:12px;color:var(--ink2)}
+.dprice{margin-top:4px;font:700 20px/1.2 var(--sans)}.dfin{font-size:13px;color:var(--ink2)}
+.dmark{align-self:flex-start;margin-top:6px;border-radius:4px;padding:2px 8px;background:#f0f2f2;font:700 11px/1.5 var(--sans);letter-spacing:.04em;text-transform:uppercase;color:var(--ink2)}
 `;
 
 const JS = String.raw`
 (function(){
-  var LISTCAR = __LISTCAR__, CAR = __CAR__, CARS = __CARS__, SCOPE = __SCOPE__, VIEW = __VIEW__, LIST = __LIST__, OUT_OF_SCOPE = __OUTSCOPE__, CHOSEN = __CHOSEN__, SAMPLES = __SAMPLES__, CONTEXT = __CONTEXT__;
+  var LISTCAR = __LISTCAR__, CAR = __CAR__, CARS = __CARS__, SCOPE = __SCOPE__, VIEW = __VIEW__, LIST = __LIST__, OUT_OF_SCOPE = __OUTSCOPE__, CHOSEN = __CHOSEN__, SAMPLES = __SAMPLES__, CONTEXT = __CONTEXT__, LISTBODY = __LISTBODY__;
   // THE ANSWER CASES (Sam's revision 2, item 8; Lane E's lib/amazonDemoCase.js, sent to the page as is): an unreadable VIN,
   // read with no sales, outside the pilot scope, or an answer. Never a silent empty box.
   var OUT_OF_SCOPE_LINE = __OOSLINE__, SCOPE_AGE_YEARS = SCOPE.age, SCOPE_MAKES = SCOPE.makes, SCOPE_MODELS = SCOPE.models;
@@ -374,6 +386,20 @@ const JS = String.raw`
     Array.prototype.forEach.call(document.querySelectorAll(".stab"), function(x){ var on = x === b; x.classList.toggle("on", on); x.setAttribute("aria-selected", on ? "true" : "false"); });
     $("c-overview").hidden = k !== "overview"; $("c-pricing").hidden = k !== "pricing";
   });
+  // TAB d: each card's photo, chip and marker from that car's STORED partner answer only (?last=), never a live read.
+  function drawD(){
+    Array.prototype.forEach.call(document.querySelectorAll("[data-dcar]"), function(card){
+      var q = card.getAttribute("data-dcar"), qq = (LISTBODY[q] ? q + " " + LISTBODY[q] : q);
+      fetch("/api/partnerAnswer?last=" + encodeURIComponent(qq), { credentials: "include" }).then(function(r){ return r.json(); }).catch(function(){ return null; }).then(function(a){
+        if (!a || a.ok === false || a.lastGood !== true) return;
+        var ph = a.carPhoto && a.carPhoto.photo; if (ph) card.querySelector("[data-dph]").innerHTML = '<img src="/api/partnerAnswer?photo=' + encodeURIComponent(ph) + '&w=320" alt="" loading="lazy">';
+        var id = a.identity || {}; if (id.body) card.querySelector("[data-dchips]").innerHTML = '<span class="dchip">' + esc(id.body) + "</span>";
+        if (!inScope(a)) return;
+        var m = card.querySelector("[data-dmark]"); m.textContent = anySold(a.history) ? "Sold before" : "Market Check"; m.hidden = false;
+      });
+    });
+  }
+  if (VIEW === "d") drawD();
   var body = LIST && LIST.vin ? { q: CAR, vin: LIST.vin } : { q: LISTCAR || CAR };
   if (VIEW === "c" && !OUT_OF_SCOPE) ask(body).then(drawC);   // an out-of-scope listing (from its own words) makes no read
   // TAB a, BEFORE SHOPPING: any car or a VIN returns the same shared card; with a VIN, this car's history inline above it.
@@ -407,7 +433,7 @@ const JS = String.raw`
 
 export function amazonPageHtml(view, carIn, { carOf, listing }) {
   const P = AMAZON_PROFILE;
-  const v = /^[abc]$/.test(view || "") ? view : "c";
+  const v = /^[abcd]$/.test(view || "") ? view : "c";
   const car = carOf(carIn), chosen = String(carIn == null ? "" : carIn).trim() !== "";
   const hasListing = listing && car === listing.q;
   const listCar = P.listingBody[car] ? car + " " + P.listingBody[car] : car;
@@ -430,7 +456,7 @@ export function amazonPageHtml(view, carIn, { carOf, listing }) {
   const initTitle = vinLike ? "" : /^\d{4}\s/.test(listCar) ? "Used " + listCar : listCar;   // never the VIN (item 7)
   const viewC = `
 <section class="wrap" id="view-c"${v === "c" ? "" : " hidden"}>
-  <p class="back"><button type="button" class="linkbtn back-l" data-inert>&lsaquo; Back to search results</button></p>
+  <p class="back"><a class="back-l" href="${escHtml(`?p=amazon&view=d`)}">&lsaquo; Back to search results</a></p>
   <div class="listing">
     <div class="galwrap"><div class="gal" id="c-photo"></div><div class="thumbs" id="c-thumbs" aria-hidden="true"></div></div>
     <div class="rail">
@@ -455,6 +481,17 @@ export function amazonPageHtml(view, carIn, { carOf, listing }) {
     </div>
   </div>
 </section>`;
+  // TAB d, IN SEARCH RESULTS (revision 2, item 5): an Amazon Autos results grid of the demo cars. Each card: the photo,
+  // "Used {year} {make} {model}", the mileage and a spec chip, the fixed sample price and finance line (profile
+  // constants), and ONE neutral marker read from that car's STORED partner answer ("Sold before" when its VIN has sold,
+  // else "Market Check"); no range, no verdict, no live engine call from the page. A card opens its tab c page.
+  const dCard = (c, i) => { const sl = P.sampleListings[c] || null, body = P.listingBody[c] ? " " + P.listingBody[c] : "";
+    return `<a class="dcard" href="${escHtml(`?p=amazon&view=c${i === 0 ? "" : "&car=" + i}`)}" data-dcar="${escHtml(c)}"><span class="dph" data-dph></span><span class="dtx"><span class="dtitle">${escHtml("Used " + c + body)}</span>${sl && sl.miles ? `<span class="dmiles">${sl.miles.toLocaleString("en-US")} miles</span>` : ""}<span class="dchips" data-dchips></span>${sl ? `<span class="dprice">${"$" + sl.price.toLocaleString("en-US")}</span><span class="dfin">${"$" + sl.monthly.toLocaleString("en-US")}/mo, Sample</span>` : ""}<span class="dmark" data-dmark hidden></span></span></a>`; };
+  const viewD = `
+<section class="wrap" id="view-d"${v === "d" ? "" : " hidden"}>
+  <h1 class="dhead">Used cars</h1><p class="sample-tag">Sample results</p>
+  <div class="dgrid">${DEMO_CARS.map(dCard).join("")}</div>
+</section>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><title>What these sell for</title><style>${CSS}${SELLS_FOR_CARD_CSS}</style></head><body>
 <div class="demo-bar"><div class="wrap"><span>What these sell for, powered by GoAskSam.</span><nav class="tabs" aria-label="Views">${P.tabs.map(([k, l]) => tab(k, l)).join("")}</nav></div></div>
@@ -478,6 +515,7 @@ ${carBar}
   </div>
 </section>
 ${viewC}
+${viewD}
 </main>
-<script>${JS.replace("__LISTCAR__", JSON.stringify(listCar)).replace("__SAMPLES__", JSON.stringify(P.sampleListings)).replace("__OOSLINE__", JSON.stringify(OUT_OF_SCOPE_LINE)).replace("__CASEFN__", () => demoAnswerCase.toString()).replace("__CONTEXT__", JSON.stringify(P.cardContext)).replace("__CAR__", JSON.stringify(car)).replace("__OUTSCOPE__", JSON.stringify(outC)).replace("__CARS__", JSON.stringify(DEMO_CARS)).replace("__SCOPE__", JSON.stringify({ age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS })).replace("__KNOWNMAKES__", JSON.stringify(KNOWN_MAKES)).replace("__MAKEWORDS__", JSON.stringify(MAKE_WORDS)).replace("__FROMWORDS__", scopeFromWords.toString()).replace("__INSCOPE__", amazonInScope.toString()).replace("__VIEW__", JSON.stringify(v)).replace("__LIST__", JSON.stringify(hasListing ? { vin: listing.vin } : null)).replace("__CHOSEN__", JSON.stringify(chosen))}</script></body></html>`;
+<script>${JS.replace("__LISTCAR__", JSON.stringify(listCar)).replace("__SAMPLES__", JSON.stringify(P.sampleListings)).replace("__LISTBODY__", JSON.stringify(P.listingBody)).replace("__OOSLINE__", JSON.stringify(OUT_OF_SCOPE_LINE)).replace("__CASEFN__", () => demoAnswerCase.toString()).replace("__CONTEXT__", JSON.stringify(P.cardContext)).replace("__CAR__", JSON.stringify(car)).replace("__OUTSCOPE__", JSON.stringify(outC)).replace("__CARS__", JSON.stringify(DEMO_CARS)).replace("__SCOPE__", JSON.stringify({ age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS })).replace("__KNOWNMAKES__", JSON.stringify(KNOWN_MAKES)).replace("__MAKEWORDS__", JSON.stringify(MAKE_WORDS)).replace("__FROMWORDS__", scopeFromWords.toString()).replace("__INSCOPE__", amazonInScope.toString()).replace("__VIEW__", JSON.stringify(v)).replace("__LIST__", JSON.stringify(hasListing ? { vin: listing.vin } : null)).replace("__CHOSEN__", JSON.stringify(chosen))}</script></body></html>`;
 }

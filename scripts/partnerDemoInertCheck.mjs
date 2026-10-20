@@ -21,7 +21,8 @@ for (const view of ["a", "b", "c"]) for (const car of [...DEMO_CARS, "1965 Ford 
   ok(names.every(n => ["p", "view", "car", "robots", "viewport"].includes(n)), `${tag}: no input collects anything but the car box (${names.join(",")})`);
   ok(!/method="post"/i.test(body), `${tag}: nothing posts`);
   const hrefs = (body.match(/\bhref="([^"]*)"/g) || []).map(x => x.slice(6, -1));
-  ok(hrefs.every(u => /^\?p=amazon&amp;view=[abc](&amp;car=[^"]*)?$/.test(u)), `${tag}: the only links are the demo's own tabs (${hrefs.filter(u => !/^\?p=amazon/.test(u)).join(" ")})`);
+  // revision 2 adds tab d (the results grid, each card opening its tab c page) and Back to search results (tab c to d)
+  ok(hrefs.every(u => /^\?p=amazon&amp;view=[abcd](&amp;car=[^"]*)?$/.test(u)), `${tag}: the only links are the demo's own tabs (${hrefs.filter(u => !/^\?p=amazon/.test(u)).join(" ")})`);
   ok(!/target="_blank"|javascript:/i.test(body), `${tag}: nothing opens elsewhere`);
   const buttons = body.match(/<button\b[^>]*>/g) || [];
   // Revision 2 (Sam, Oct 20 2026): the Overview and Pricing section tabs switch the page between its own sections (the
