@@ -122,7 +122,7 @@ Expected counts for cars on the "last twelve months" window drift as old sales l
 | 48 | 2001 BMW M3 (bare) | 17 sales, $22,500 to $41,000 as the engine reads it (Sam: rule kept as built, the pin follows the range; chip counts still equal the typed words) | re-pinned on e72 |
 | 49 | 2001 BMW M3 Coupe | 8 sales, $22,500 to $44,000 | re-pinned on e65 (Lane B after column, was thin with 3 sales) |
 | 50 | 2001 BMW M3 Convertible | 9 sales, $20,000 to $41,000, wideSpread true; lowest $13,750, highest $63,000 | read live on e61 |
-| 51 | 1972 Datsun 240Z | 14 sales, $18,000 to $35,500 | re-pinned on e65 (Lane B after column, was 15 sales, $16,500 to $35,500) |
+| 51 | 1972 Datsun 240Z | 14 sales, $16,500 to $33,500 | re-pinned on e65 (Lane B after column, was 15 sales, $16,500 to $35,500) |
 | 52 | 1989 Lancia Delta Integrale | 8 sales, $45,000 to $66,000 | re-pinned on e65 (Lane B after column, was 8 sales, $42,000 to $76,500) |
 | 53 | 1969 Ford Mustang Mach 1 | 17 sales, $65,500 to $108,000 | re-pinned on e65 (Lane B after column, was 18 sales, $75,000 to $107,000) |
 | 54 | 2001 Ford Mustang Bullitt | 10 sales, $14,000 to $18,500 | read live on e62 |
@@ -234,7 +234,7 @@ Fields: `q` typed words; `status` ready or pending; `rung` expected `fallbackRun
  {"id":48,"e73Note":"no move on e73, corrected","q":"2001 BMW M3","status":"ready","count":17,"tol":0,"low":22500,"high":41000,"tolPct":3,"chipPairs":[{"bare":"2001 BMW M3","label":"Coupe","typed":"2001 BMW M3 Coupe"},{"bare":"2001 BMW M3","label":"Convertible","typed":"2001 BMW M3 Convertible"}]},
  {"id":49,"e73Note":"no move on e73, corrected","q":"2001 BMW M3 Coupe","status":"ready","rung":"exact","labelHas":["2001","M3","Coupe"],"count":8,"tol":0,"low":22500,"high":44000,"tolPct":3},
  {"id":50,"e73Note":"no move on e73, corrected","q":"2001 BMW M3 Convertible","status":"ready","rung":"exact","labelHas":["2001","M3","Convertible"],"count":9,"tol":0,"low":20000,"high":41000,"tolPct":0,"wideSpread":true,"lowestSale":13750,"highestSale":63000},
- {"id":51,"q":"1972 Datsun 240Z","status":"ready","count":14,"tol":0,"low":18000,"high":35500,"tolPct":0,"wideSpread":true},
+ {"id":51,"e73Note":"moved on e73 (live 14 sales, $16,500 to $33,500, three set aside)","q":"1972 Datsun 240Z","status":"ready","count":14,"tol":0,"low":16500,"high":33500,"tolPct":0,"wideSpread":true},
  {"id":52,"q":"1989 Lancia Delta Integrale","status":"ready","count":8,"tol":0,"low":45000,"high":66000,"tolPct":0},
  {"id":53,"q":"1969 Ford Mustang Mach 1","status":"ready","count":17,"tol":0,"low":65500,"high":108000,"tolPct":0,"lowestSale":33750,"highestSale":133000},
  {"id":54,"q":"2001 Ford Mustang Bullitt","status":"ready","count":10,"tol":0,"low":14000,"high":18500,"tolPct":0,"lowestSale":8700,"highestSale":22000},
