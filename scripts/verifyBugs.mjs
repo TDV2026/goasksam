@@ -124,7 +124,9 @@ check("M3: composition = PS leads, secondary suppressed", comp.psLead===true&&co
 const pf=v2PickFacts(bat);
 const cardHTML=renderPickCardV2(bat)||"";
 check("M3 card-identical: v2PickFacts weekday = 15% Monday, scope 'M3s'", pf.weekday&&pf.weekday.pct===15&&pf.weekday.day==="Monday"&&pf.weekday.scope==="M3s", JSON.stringify(pf.weekday));
-check("M3 card-identical: the rendered card tile shows the SAME 15% (not raw 17)", /15% above other days/.test(cardHTML)&&!/17%/.test(cardHTML), (cardHTML.match(/[^>]*% above other days/)||[""])[0].slice(0,80));
+// The card's best-day tile reads the reserve sell-through (v2ReserveDay, Sep 29 2026: the price-median weekday was
+// wrong), so the card shows no weekday price figure at all, never the raw 17 nor the rounded 15.
+check("M3 card: no price-median weekday figure on the card (best day reads reserve sell-through)", !/% above other days/.test(cardHTML)&&!/17%/.test(cardHTML), (cardHTML.match(/[^>]*% above other days/)||[""])[0].slice(0,80));
 
 // "compare the tradeoffs" -> Ingo vs DIY-on-BaT, NEVER platform vs platform, NEVER C&B.
 check("intent: 'compare the tradeoffs' -> tradeoffs", v2FollowupIntent("compare the tradeoffs")==="tradeoffs");
@@ -168,7 +170,8 @@ check("M3 recommend: no fee talk / price claims / jargon", psClean(recommend).ok
   Object.assign(globalThis.sellState,{resolvedVehicle:{year:2018,make:"BMW",model:"M3"},sellDecision:{resultId:"m3e",vehicle:{year:2018,make:"BMW",model:"M3"},evidence:{windowDays:180,ladder:{landed:{key:"exact_year_model",thresholdMet:true}}}},sellOptions:[batExact]});
   const exactScope=v2PickFacts(batExact).scope;
   const exactCard=renderPickCardV2(batExact)||"";
-  check("scope label (2a): prose scope reads '2018 M3s' at the exact rung", exactScope==="2018 M3s", exactScope);
+  // 3c356d05 (Oct 2 2026, item 2): never a count directly before a model year, so the exact rung reads "BMW M3s from 2018".
+check("scope label (2a): prose scope reads 'BMW M3s from 2018' at the exact rung", exactScope==="BMW M3s from 2018", exactScope);
   check("scope label (2a): v2RungLabel exact rung = 'This exact year' (H mapping)", v2RungLabel(globalThis.sellState.resolvedVehicle)==="This exact year", v2RungLabel(globalThis.sellState.resolvedVehicle));
   check("scope label (2a): tile label = 'This exact year', subtext 'Analysis scope'", /pcard-mp">This exact year<\/div><div class="pcard-ms">Analysis scope/.test(exactCard), (exactCard.match(/pcard-mp">[^<]*<\/div><div class="pcard-ms">Analysis[^<]*/)||[""])[0].slice(0,90));
   // restore the model-level M3 scenario for the remaining checks
@@ -329,8 +332,18 @@ function ROSTER_NAMES_RE(){ return /\b(howS|Howard Silvers|GenauAutoWerks|Ingo S
   const allChips=rendered.map(r=>r.chips).join(" || ");
   check("Item1: a non-curated make at step 17 has NO detail to clarify (missing===null)", missingNull, "currentMissingVehicleDetail() did not return null");
   check("Item1: step-17 re-ask for a non-curated make renders NO marque model chips", !MARQUE_CHIPS.test(allChips), allChips.slice(0,200));
-  check("Item1: the wizard ADVANCES off step 17 (does not re-render the vehicle clarification)",
-    advancedStep!==17 && !/Which model or trim is it/.test(allText), JSON.stringify({step:advancedStep, firstText:(rendered[0]&&rendered[0].text||"").slice(0,80)}));
+  // 03de8588 (Aug 31 2026): an unverified nameplate gets ONE badge/model-code re-check as its own step 17 (Skip and
+  // Not sure only), never the vehicle clarification; the next ask leaves step 17.
+  check("Item1: the one-time badge re-check, not the vehicle clarification (Skip / Not sure, no marque chips)",
+    advancedStep===17 && globalThis.sellState.awaitingBadge===true && /exact badge or model code/.test(allText) && /Duesenberg-level read/.test(allText) && !/Which model or trim is it/.test(allText) && /Skip/.test(allChips) && /Not sure/.test(allChips), JSON.stringify({step:advancedStep, firstText:(rendered[0]&&rendered[0].text||"").slice(0,80)}));
+  {
+    const again=[]; const was=globalThis.addMsg; globalThis.addMsg=(role,text,html,chips)=>{ again.push({text:String(text||""),chips:String(chips||"")}); };
+    globalThis.sellState.awaitingBadge=false;
+    try{ askNextSellQuestion(); }catch(e){ again.push({text:"THREW:"+e.message,chips:""}); }
+    globalThis.addMsg=was;
+    check("Item1: the wizard ADVANCES off step 17 once the badge was asked (does not re-render the vehicle clarification)",
+      globalThis.sellState.step!==17 && !/Which model or trim is it|exact badge or model code/.test(again.map(r=>r.text).join(" ")) && !MARQUE_CHIPS.test(again.map(r=>r.chips).join(" ")), JSON.stringify({step:globalThis.sellState.step, firstText:(again[0]&&again[0].text||"").slice(0,80)}));
+  }
 }
 
 // ===== RARITY: mainstream-classic suppression must win over the age>25 gate =====

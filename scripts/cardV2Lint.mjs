@@ -76,10 +76,11 @@ for(const mode of ["modeA","modeB","concentration","thin"]){
 // number and there is NO N=0 "active audience" fallback (deleted, not dormant).
 globalThis.sellState.resolvedVehicle = { make: "Porsche", model: "911", year: 2011 };
 globalThis.sellState.sellDecision = { vehicle: { make: "Porsche", model: "911", year: 2011 }, evidence: { windowDays: 180, ladder: { landed: { key: "generation_trim" } } } };
-const spPick = { name: "Cars & Bids", platformSlug: "carsandbids", marketEvidence: { evidenceSales: 7, windowDays: 180 } };
+// The count is genuine same-model sales (modelSales, never evidenceSales) and prints only at 6+ AND 2+/month (Aug 2026).
+const spPick = { name: "Cars & Bids", platformSlug: "carsandbids", marketEvidence: { evidenceSales: 20, modelSales: 14, windowDays: 180 } };
 const spPrice = { name: "Bring a Trailer", platformSlug: "bringatrailer", marketEvidence: { evidenceSales: 20, windowDays: 180, pricePremium: { gateType: "symmetric", percent: 12 } } };
 const sw1 = v2SpeedWhy(spPick, null, false);
-check("speed WHY: sentences 1-2, real count, NO disclosure", /Since you'd like to sell quickly, I'd list your 911 on Cars & Bids\./.test(sw1) && /sold 7 911s over the past 180 days/.test(sw1) && !/closed higher/.test(sw1), sw1);
+check("speed WHY: sentences 1-2, real count, NO disclosure", /Since you'd like to sell quickly, I'd list your 911 on Cars & Bids\./.test(sw1) && /it.s sold 14 911s there over the past 180 days, so buyers are already there\./.test(sw1) && !/closed higher/.test(sw1), sw1);
 check("speed WHY: lint-clean", clean(sw1).ok, clean(sw1).detail);
 const sw2 = v2SpeedWhy(spPick, spPrice, true);
 check("speed WHY: sentence-3 discloses the price leader", /Bring a Trailer has closed higher for 911s over this period, if getting the top price matters more than speed\./.test(sw2), sw2);
@@ -98,9 +99,15 @@ check("speed WHY: the 'active audience' N=0 fallback is GONE (no unsourced colou
   globalThis.sellState.sellOptions = [batEv, hemNoEv];
   let cc = v2Composition();
   check("speed pick: no non-BaT EVIDENCE route -> no speed elevation, BaT (leader) leads", cc.speedMode === false && cc.pick && cc.pick.platformSlug === "bringatrailer", JSON.stringify({ speedMode: cc.speedMode, pick: cc.pick && cc.pick.platformSlug }));
+  // The rush pick is the SERVER's (decision.speedPick, rule 3: lib/platformPick.js onlinePicks over the short-auction
+  // venues, which exclude Bring a Trailer; 5cdf4897). The page finds that card and never chooses one itself.
+  const savedDecision = globalThis.sellState.sellDecision;
+  const withSpeed = sp => { globalThis.sellState.sellDecision = { ...savedDecision, decision: { speedPick: sp } }; };
   globalThis.sellState.sellOptions = [batEv, cbEv];
-  cc = v2Composition();
-  check("speed pick: a non-BaT evidence route present -> it leads as the speed pick", cc.speedMode === true && cc.pick && cc.pick.platformSlug === "carsandbids", JSON.stringify({ speedMode: cc.speedMode, pick: cc.pick && cc.pick.platformSlug }));
+  withSpeed(null); cc = v2Composition();
+  check("speed pick: no server speedPick -> no speed elevation, the leader (BaT) leads", cc.speedMode === false && cc.pick && cc.pick.platformSlug === "bringatrailer", JSON.stringify({ speedMode: cc.speedMode, pick: cc.pick && cc.pick.platformSlug }));
+  withSpeed("carsandbids"); cc = v2Composition();
+  check("speed pick: the server's speedPick (Cars & Bids) leads as the speed pick", cc.speedMode === true && cc.pick && cc.pick.platformSlug === "carsandbids", JSON.stringify({ speedMode: cc.speedMode, pick: cc.pick && cc.pick.platformSlug }));
   // FAIL #5: a non-BaT route with 1-2 sales (below the N>=3 evidence floor) must NOT
   // win the speed slot - it would render a countless "generally quicker" pick. No
   // route clears the floor -> no speed elevation, BaT leads (same as the #6 case).
@@ -110,8 +117,11 @@ check("speed WHY: the 'active audience' N=0 fallback is GONE (no unsourced colou
   check("speed pick: a non-BaT route with N<3 does NOT get the speed slot (no countless pick)", cc.speedMode === false && cc.pick && cc.pick.platformSlug === "bringatrailer", JSON.stringify({ speedMode: cc.speedMode, pick: cc.pick && cc.pick.platformSlug }));
   const cbThreshold = { key: "r2", name: "Cars & Bids", platformSlug: "carsandbids", marketEvidence: { evidenceSales: 3, windowDays: 180, pricePremium: { gateType: "symmetric", percent: 4 } } };
   globalThis.sellState.sellOptions = [batEv, cbThreshold];
-  cc = v2Composition();
-  check("speed pick: a non-BaT route at exactly N=3 DOES get the speed slot", cc.speedMode === true && cc.pick && cc.pick.platformSlug === "carsandbids", JSON.stringify({ speedMode: cc.speedMode, pick: cc.pick && cc.pick.platformSlug }));
+  withSpeed("carsandbids"); cc = v2Composition();
+  check("speed pick: the server's speedPick leads, the BaT price leader becomes the alternative (divergence)", cc.speedMode === true && cc.pick && cc.pick.platformSlug === "carsandbids" && cc.speedDiverges === true, JSON.stringify({ speedMode: cc.speedMode, pick: cc.pick && cc.pick.platformSlug, diverges: cc.speedDiverges }));
+  withSpeed("pcarmarket"); cc = v2Composition();
+  check("speed pick: a server speedPick with no card on the page -> no speed elevation", cc.speedMode === false && cc.pick && cc.pick.platformSlug === "bringatrailer", JSON.stringify({ speedMode: cc.speedMode, pick: cc.pick && cc.pick.platformSlug }));
+  globalThis.sellState.sellDecision = savedDecision;
   globalThis.sellState.timeline = savedTimeline; globalThis.sellState.sellerPreference = savedPref; globalThis.sellState.region = savedRegion; globalThis.sellState.partnerReferral = savedRef; globalThis.sellState.sellOptions = [];
 }
 // MIN-EVIDENCE FLOOR (N>=3): below the floor a single sale can't back "buyers are
@@ -122,8 +132,15 @@ const swFloor1 = v2SpeedWhy({ name: "Cars & Bids", platformSlug: "carsandbids", 
 check("speed WHY: N=1 (below floor) DROPS the count clause, keeps the speed benefit", !/\bsold 1\b|buyers are already there/.test(swFloor1) && /quicker to get a listing live/.test(swFloor1), swFloor1);
 const swFloor2 = v2SpeedWhy({ name: "Cars & Bids", platformSlug: "carsandbids", marketEvidence: { evidenceSales: 2, windowDays: 90 } }, null, false);
 check("speed WHY: N=2 (below floor) DROPS the count clause too", !/\bsold 2\b|buyers are already there/.test(swFloor2), swFloor2);
-const swFloor3 = v2SpeedWhy({ name: "Cars & Bids", platformSlug: "carsandbids", marketEvidence: { evidenceSales: 3, windowDays: 90 } }, null, false);
-check("speed WHY: N=3 (at floor) RENDERS the count clause (plural)", /sold 3 Cayennes over the past \d+ days, so buyers are already there/.test(swFloor3), swFloor3);
+// The window is the landed one (v2Window: the price premium's, else the decision's 180 days here).
+const swFloor3 = v2SpeedWhy({ name: "Cars & Bids", platformSlug: "carsandbids", marketEvidence: { modelSales: 12 } }, null, false);
+check("speed WHY: 12 in 180 days (the volume tier: 6+ and 2+/month) RENDERS the count clause (plural)", /sold 12 Cayennes there over the past 180 days, so buyers are already there/.test(swFloor3), swFloor3);
+const swTier5 = v2SpeedWhy({ name: "Cars & Bids", platformSlug: "carsandbids", marketEvidence: { modelSales: 5, pricePremium: { windowDays: 45 } } }, null, false);
+check("speed WHY: 5 in 45 days (over 2 a month, but below 6) DROPS the count clause", !/\bsold 5\b|buyers are already there/.test(swTier5) && /quicker to get a listing live/.test(swTier5), swTier5);
+const swRate = v2SpeedWhy({ name: "Cars & Bids", platformSlug: "carsandbids", marketEvidence: { modelSales: 11 } }, null, false);
+check("speed WHY: 11 in 180 days (under 2 a month) DROPS the count clause", !/\bsold 11\b|buyers are already there/.test(swRate), swRate);
+const swEvOnly = v2SpeedWhy({ name: "Cars & Bids", platformSlug: "carsandbids", marketEvidence: { evidenceSales: 30, windowDays: 90 } }, null, false);
+check("speed WHY: evidenceSales alone (other models at a broad rung) never prints a model count", !/\bsold 30\b/.test(swEvOnly), swEvOnly);
 globalThis.sellState.resolvedVehicle = { make: "Porsche", model: "911", year: 2011 };
 
 // WEEKDAY: tier1 rounds to 5, no "around"; tier2 direction-only
@@ -136,14 +153,20 @@ check("weekday tier2 direction-only (no %)", wk2&&/tended to close strongest/.te
 const wk3=v2Weekday({dayAdvantage:{weekday:"Monday",liftPercent:9,scope:"generation",window:180,sample:6,sales:2}},v);
 check("weekday tier3 absent (thin sample)", wk3===null, JSON.stringify(wk3));
 
-// RESERVE: percentage, no dollars, gated
-const rvOK=v2Reserve({label:"bringatrailer",platform:"bringatrailer",reserveContext:{delta_pct:6.8,n_with:47,n_without:14,data_month:"2026-06"}});
-check("reserve renders a percentage, no dollar sign", rvOK&&/7% higher/.test(rvOK.headline)&&!/\$/.test(rvOK.body+rvOK.headline), rvOK&&JSON.stringify(rvOK));
+// RESERVE: percentage, no dollars, gated. The tile reads the server's ev.reserveInsight (api/sellerDecision.js,
+// lib/sell/sellFlow.js; rebuilt 8318d558, Sep 29 2026): scoped, counted, 8+ sales on each side.
+const RI = (o) => ({ marketEvidence: null, reserveInsight: { ok: true, scopeLabel: "911s", ...o } });
+const rvOK=v2Reserve(RI({deltaPct:6.8,nReserve:47,nNoReserve:14}));
+check("reserve renders a percentage, no dollar sign", rvOK&&rvOK.headline==="+7%"&&/911s with a reserve sold 7% higher than those without over the last 12 months, from 61 sales\./.test(rvOK.body)&&!/\$/.test(rvOK.body+rvOK.headline), rvOK&&JSON.stringify(rvOK));
 check("reserve lint-clean (no causal, no dollar)", rvOK&&clean(rvOK.body).ok, rvOK&&clean(rvOK.body).detail);
-const rvGate=v2Reserve({label:"bringatrailer",platform:"bringatrailer",reserveContext:{delta_pct:9,n_with:8,n_without:20,data_month:"2026-06"}});
-check("reserve hidden when n_with < 10", rvGate===null, JSON.stringify(rvGate));
-const rvSim=v2Reserve({label:"bringatrailer",platform:"bringatrailer",reserveContext:{delta_pct:1.5,n_with:40,n_without:30,data_month:"2026-06"}});
-check("reserve <3% uses similarity wording (within three points)", rvSim&&/within three points/.test(rvSim.body)&&!/\$/.test(rvSim.body), rvSim&&rvSim.body);
+const rvLow=v2Reserve(RI({deltaPct:-5.2,nReserve:20,nNoReserve:20}));
+check("reserve below: '-5%' and 'lower'", rvLow&&rvLow.headline==="-5%"&&/sold 5% lower than those without/.test(rvLow.body), rvLow&&JSON.stringify(rvLow));
+const rvGate=v2Reserve(RI({deltaPct:9,nReserve:7,nNoReserve:20}));
+check("reserve hidden when either side has under 8 sales", rvGate===null&&v2Reserve(RI({deltaPct:9,nReserve:20,nNoReserve:7}))===null, JSON.stringify(rvGate));
+check("reserve shown at exactly 8 on each side", !!v2Reserve(RI({deltaPct:9,nReserve:8,nNoReserve:8})), "hidden at 8/8");
+check("reserve hidden when the server's insight is not ok", v2Reserve({ reserveInsight: { ok: false, deltaPct: 9, nReserve: 40, nNoReserve: 40 } })===null, "rendered");
+const rvSim=v2Reserve(RI({deltaPct:1.5,nReserve:40,nNoReserve:30}));
+check("reserve under 3% reads 'About even' with similarity wording (within a few points)", rvSim&&rvSim.headline==="About even"&&/within a few points of each other/.test(rvSim.body)&&!/\$|%/.test(rvSim.body), rvSim&&rvSim.body);
 
 // ---- STAGE 4: PowerSeller copy across all three match-reason variants ----
 for(const mt of ["specialty","region","generalist"]){
@@ -296,16 +319,26 @@ try{ cardHtml=renderPowerSellerCardV2({lead:true})||""; }catch(e){ cardHtml="__E
 check("PS card renders (no throw)", cardHtml.indexOf("__ERR__")!==0, cardHtml);
 
 // ---- Premium tile (Track Record): IDENTICAL treatment for every magnitude ----
+// THE PREMIUM TILE IS SWITCHED OFF on /sell (PSV_PREMIUM_TILE_ON=false since 24282213, Oct 9 2026: no PowerSeller
+// track record premium tile until Lane B settles the stored figure). LIVE: every card below must show no premium tile.
+// TEMPLATE: the tile's own checks run with the flag switched on inside this script only (premiumOn), so the template
+// stays proven for the day the figure returns. FRESH: the stored figure's computedAt, which psvPremium needs (3 days).
+const FRESH=new Date().toISOString(), LIVE_PREMIUM_ON=globalThis.PSV_PREMIUM_TILE_ON===true;
+const premiumOn=fn=>{ const was=globalThis.PSV_PREMIUM_TILE_ON; globalThis.PSV_PREMIUM_TILE_ON=true; try{ return fn(); } finally{ globalThis.PSV_PREMIUM_TILE_ON=was; } };
+const noPremium=h=>!/pcard-tnum green">\+\d+%/.test(h)&&!/higher sale prices on cars/.test(h);
+check("premium tile: switched OFF on live /sell (PSV_PREMIUM_TILE_ON is false)", LIVE_PREMIUM_ON===false, "the flag is on: Sam's decision changed, update these checks");
 function premiumCard(pct,pron){
-  const p={slug:"pm",name:"PM",display_name:"P M",specialties:{makes:["Porsche"],wheelhouse:{marques:["Porsche"]},pronoun:pron||{subj:"he",obj:"him",poss:"his"},premium:{pct,n:99,source:"data_verified"},profile_stats:[{text:"400+ auctions represented"}]},regions:["Nationwide"],serviceClaims:[{text:"Based in California"}],platforms:[]};
+  const p={slug:"pm",name:"PM",display_name:"P M",specialties:{makes:["Porsche"],wheelhouse:{marques:["Porsche"]},pronoun:pron||{subj:"he",obj:"him",poss:"his"},premium:{pct,n:99,source:"data_verified",computedAt:FRESH},profile_stats:[{text:"400+ auctions represented"}]},regions:["Nationwide"],serviceClaims:[{text:"Based in California"}],platforms:[]};
   globalThis.sellState.resolvedVehicle={make:"Porsche",model:"911",year:2019};
   globalThis.sellState.partnerReferral={eligible:true,partner:p}; globalThis.psvPartner=()=>p;
   return (renderPowerSellerCardV2({lead:true})||"").replace(/&#39;/g,"'");
 }
-const pmHi=premiumCard(20), pmLo=premiumCard(4);
+check("premium tile: ABSENT on the live card while the flag is off (+20% stored)", noPremium(premiumCard(20)), "a premium tile rendered");
+check("premium tile: a stale stored figure (over 3 days) never renders, flag on or off", noPremium(premiumOn(()=>{ const p={slug:"st",name:"ST",display_name:"S T",specialties:{wheelhouse:{marques:["Porsche"]},pronoun:{subj:"he",obj:"him",poss:"his"},premium:{pct:20,n:99,source:"data_verified",computedAt:new Date(Date.now()-4*864e5).toISOString()}},regions:["Nationwide"],serviceClaims:[],platforms:[]}; globalThis.sellState.partnerReferral={eligible:true,partner:p}; globalThis.psvPartner=()=>p; return renderPowerSellerCardV2({lead:true})||""; })), "a stale figure rendered");
+const pmHi=premiumOn(()=>premiumCard(20)), pmLo=premiumOn(()=>premiumCard(4));
 const pmSub="higher sale prices on cars he's represented, compared with similar cars";
-check("premium tile: label + figure + exact sentence (+20%)", /Track record/i.test(pmHi)&&/\+20%/.test(pmHi)&&pmHi.includes(pmSub), pmHi.slice(0,60));
-check("premium tile: same template renders a small number (+4%)", /\+4%/.test(pmLo)&&pmLo.includes(pmSub), pmLo.slice(0,60));
+check("premium tile TEMPLATE (flag on): label + figure + exact sentence (+20%)", /Track record/i.test(pmHi)&&/\+20%/.test(pmHi)&&pmHi.includes(pmSub), pmHi.slice(0,60));
+check("premium tile TEMPLATE (flag on): same template renders a small number (+4%)", /\+4%/.test(pmLo)&&pmLo.includes(pmSub), pmLo.slice(0,60));
 const stripPct=h=>h.replace(/\+\d+%/g,"+N%");
 check("premium tile: BYTE-IDENTICAL regardless of magnitude (no prominence/format variation)", stripPct(pmHi)===stripPct(pmLo), "differ");
 check("premium tile: NO sample size / n / comparisons count", !/\bn\s*=|across \d|\bcomparisons\b|\bcomps\b/i.test(pmHi), "");
@@ -313,17 +346,20 @@ check("premium tile: NO matched-date range", !/(19|20)\d{2}\s*(to|\.\.|–|-)\s*
 check("premium tile: NO rung words", !/generation|yearband|\brung\b/i.test(pmHi), "");
 check("premium tile: NO asterisk", !/\*/.test(pmHi), "");
 check("premium tile: NO fee figure (item 5)", clean(pmHi).ok, lintText(pmHi).join(" ; "));
-check("premium tile: pronoun respected (she's)", premiumCard(12,{subj:"she",obj:"her",poss:"her"}).includes("cars she's represented"), "");
+check("premium tile TEMPLATE (flag on): pronoun respected (she's)", premiumOn(()=>premiumCard(12,{subj:"she",obj:"her",poss:"her"})).includes("cars she's represented"), "");
 check("card footnote present: 'recalculated as new sales close'", /All numbers recalculated as new sales close\./.test(pmHi), "");
 
 // ---- Rail height budget: the tall premium tile drops the weakest (service/prep) ----
-const chrisRail={slug:"cr",name:"Chris",display_name:"Chris Carbine",specialties:{makes:["Mercedes-Benz"],wheelhouse:{marques:["Mercedes-Benz"],models:[]},pronoun:{subj:"he",obj:"him",poss:"his"},premium:{pct:5,n:34,source:"data_verified"}},regions:["Nationwide"],serviceClaims:[{text:"Based in the South"},{text:"Serves Louisiana, Mississippi, Alabama, Florida, Georgia and Texas"},{text:"Full-service preparation: PDR, detailing and reconditioning handled in-house"}],platforms:[]};
+const chrisRail={slug:"cr",name:"Chris",display_name:"Chris Carbine",specialties:{makes:["Mercedes-Benz"],wheelhouse:{marques:["Mercedes-Benz"],models:[]},pronoun:{subj:"he",obj:"him",poss:"his"},premium:{pct:5,n:34,source:"data_verified",computedAt:FRESH}},regions:["Nationwide"],serviceClaims:[{text:"Based in the South"},{text:"Serves Louisiana, Mississippi, Alabama, Florida, Georgia and Texas"},{text:"Full-service preparation: PDR, detailing and reconditioning handled in-house"}],platforms:[]};
 globalThis.sellState.resolvedVehicle={make:"Mercedes-Benz",model:"E-Class",year:2018};
 globalThis.sellState.partnerReferral={eligible:true,partner:chrisRail}; globalThis.psvPartner=()=>chrisRail;
 const chrisCard=(renderPowerSellerCardV2({lead:true})||"").replace(/&#39;/g,"'");
 const chrisTiles=(chrisCard.match(/pcard-ttile/g)||[]).length;
-check("premium present -> service/prep tile DROPS on height (Chris rail = 3 tiles)", chrisTiles===3&&!/Preparation/.test(chrisCard)&&/Track record/.test(chrisCard), "tiles="+chrisTiles+" prep="+/Preparation/.test(chrisCard));
-check("location list >3 states collapses to ONE line (label carries the region)", /Serves six states, Louisiana to Texas\./.test(chrisCard)&&!/Mississippi/.test(chrisCard), (chrisCard.match(/Serves[^<]*/)||[""])[0]);
+check("live Chris rail (no premium tile): the prep tile stays, within the height budget", noPremium(chrisCard)&&/Preparation/.test(chrisCard)&&chrisTiles<=4, "tiles="+chrisTiles+" prep="+/Preparation/.test(chrisCard));
+const chrisOn=premiumOn(()=>(renderPowerSellerCardV2({lead:true})||"").replace(/&#39;/g,"'")), chrisOnTiles=(chrisOn.match(/pcard-ttile/g)||[]).length;
+check("TEMPLATE (flag on): premium present -> service/prep tile DROPS on height (Chris rail = 3 tiles)", chrisOnTiles===3&&!/Preparation/.test(chrisOn)&&/Track record/.test(chrisOn), "tiles="+chrisOnTiles+" prep="+/Preparation/.test(chrisOn));
+// 3f0ec0f4 (Sep 13 2026, Defect 6): a long state list names two and counts the rest, on ONE line.
+check("location list >3 states collapses to ONE line ('Serves Louisiana, Mississippi and four more states.')", /Serves Louisiana, Mississippi and four more states\./.test(chrisCard)&&(chrisCard.match(/Serves /g)||[]).length===1&&!/Alabama|Texas/.test(chrisCard), (chrisCard.match(/Serves[^<]*/)||[""])[0]);
 const shortP={slug:"sp",name:"SP",display_name:"S P",specialties:{wheelhouse:{marques:["Porsche"],models:[]},pronoun:{subj:"he",obj:"him",poss:"his"}},regions:["Nationwide"],serviceClaims:[{text:"Based in Texas"},{text:"Serves Texas and Louisiana"}],platforms:[]};
 globalThis.sellState.resolvedVehicle={make:"Porsche",model:"911",year:2019};
 globalThis.sellState.partnerReferral={eligible:true,partner:shortP}; globalThis.psvPartner=()=>shortP;
@@ -336,12 +372,13 @@ function specCard(partner,car){
   globalThis.sellState.partnerReferral={eligible:true,partner}; globalThis.psvPartner=()=>partner;
   return (renderPowerSellerCardV2({lead:true})||"").replace(/&#39;/g,"'");
 }
-const howardCtx={slug:"hw",name:"Howard",display_name:"Howard Silvers",specialties:{wheelhouse:{marques:["Porsche"],models:[{label:"Vintage Mustangs",make:"Ford",model:"Mustang"}],display:["911s"]},pronoun:{subj:"he",obj:"him",poss:"his"},premium:{pct:20,n:142,source:"data_verified"},profile_stats:[{text:"400+ enthusiast auctions represented",source:"partner_provided"}]},regions:["Pennsylvania","Nationwide"],serviceClaims:[{text:"Based in Upper Makefield PA"},{text:"Manages the entire auction end to end"}]};
+const howardCtx={slug:"hw",name:"Howard",display_name:"Howard Silvers",specialties:{wheelhouse:{marques:["Porsche"],models:[{label:"Vintage Mustangs",make:"Ford",model:"Mustang"}],display:["911s"]},pronoun:{subj:"he",obj:"him",poss:"his"},premium:{pct:20,n:142,source:"data_verified",computedAt:FRESH},profile_stats:[{text:"400+ enthusiast auctions represented",source:"partner_provided"}]},regions:["Pennsylvania","Nationwide"],serviceClaims:[{text:"Based in Upper Makefield PA"},{text:"Manages the entire auction end to end"}]};
 const noMatchCard=specCard(howardCtx,{make:"Mercedes-Benz",model:"E-Class",year:2018});
 const matchCard=specCard(howardCtx,{make:"Porsche",model:"911",year:2018});
-check("NO-MATCH card (Howard/Mercedes) SUPPRESSES the specialty tile", !/Specialises in/i.test(noMatchCard)&&/Track record/.test(noMatchCard), (noMatchCard.match(/Specialises in[^<]*/i)||[""])[0]);
+check("NO-MATCH card (Howard/Mercedes) SUPPRESSES the specialty tile (and no premium tile live)", !/Specialises in/i.test(noMatchCard)&&noPremium(noMatchCard), (noMatchCard.match(/Specialises in[^<]*/i)||[""])[0]);
 check("no-match card names no non-matching specialty (roster-truth)", !/Specialises in/i.test(noMatchCard)&&!/Air-cooled Porsche|911s|Vintage Mustangs/.test(noMatchCard.replace(/pcard-tnum[^>]*>\+?\d+%/g,"")), "");
-check("MATCH card (Howard/911) KEEPS the specialty tile", /Specialises in/i.test(matchCard)&&/Track record/.test(matchCard), "");
+check("MATCH card (Howard/911) KEEPS the specialty tile (and no premium tile live)", /Specialises in/i.test(matchCard)&&noPremium(matchCard), "");
+check("TEMPLATE (flag on): Howard's cards carry the premium tile beside the specialty logic", premiumOn(()=>{ const a=specCard(howardCtx,{make:"Mercedes-Benz",model:"E-Class",year:2018}), b=specCard(howardCtx,{make:"Porsche",model:"911",year:2018}); return !/Specialises in/i.test(a)&&/Track record/.test(a)&&/Specialises in/i.test(b)&&/Track record/.test(b); }), "");
 
 // ---- Fifth partner: Spencer's ALWAYS-ON curated identity tile (category, not marque) ----
 // His lane is not a marque, so specialties.identity renders on EVERY car (the correct
@@ -350,7 +387,7 @@ check("MATCH card (Howard/911) KEEPS the specialty tile", /Specialises in/i.test
 // displayName (camelCase) is the key the real frontend object carries (evaluatePartnerReferral
 // maps display_name -> displayName), so the full-name headline reads from it, not from `name`.
 const spencerCtx={slug:"specwerks-ltd",name:"SpecWerksLTD",displayName:"Spencer Bailey",
-  specialties:{identity:"Original and preserved enthusiast cars",wheelhouse:{marques:[],models:[]},pronoun:{subj:"he",obj:"him",poss:"his"},premium:{pct:5,n:18,source:"data_verified"}},
+  specialties:{identity:"Original and preserved enthusiast cars",wheelhouse:{marques:[],models:[]},pronoun:{subj:"he",obj:"him",poss:"his"},premium:{pct:5,n:18,source:"data_verified",computedAt:FRESH}},
   regions:["Colorado","Denver","Mountain West","Nationwide","International"],
   serviceClaims:[{text:"Based in Colorado"},{text:"Full-service preparation: assessment, mechanical and cosmetic repairs, return-to-stock, detailing and photography handled personally, with paint and body coordinated through outside specialists"},{text:"Ships cars nationwide and works with sellers internationally"}],platforms:[]};
 // psvSpecTile is car-independent for Spencer: same identity string regardless of marque.
@@ -365,9 +402,12 @@ const spencerCard2=specCard(spencerCtx,{make:"Toyota",model:"Land Cruiser",year:
 check("Spencer card: 'Specialises in' tile renders the identity on a BMW", /Specialises in/i.test(spencerCard)&&/Original and preserved enthusiast cars/.test(spencerCard), (spencerCard.match(/Specialises in[^<]*<[^>]*>[^<]*/i)||[""])[0]);
 check("Spencer card: identity tile ALSO renders on an unrelated Toyota (always-on)", /Specialises in/i.test(spencerCard2)&&/Original and preserved enthusiast cars/.test(spencerCard2), "");
 check("Spencer card: full-name headline 'Spencer Bailey' (not first-name-only, not the handle)", /I'd ask <span[^>]*>Spencer Bailey<\/span> to represent/.test(spencerCard)&&!/represent[^.]*SpecWerksLTD/.test(spencerCard), (spencerCard.match(/I'd ask[^<]*<span[^>]*>[^<]*/)||[""])[0]);
-check("Spencer card: premium tile present alongside identity (no dimension regression)", /Track record/.test(spencerCard)&&/\+5%/.test(spencerCard), "");
+check("Spencer card (live): identity tile and no premium tile", /Specialises in/i.test(spencerCard)&&noPremium(spencerCard), "");
 const spencerTiles=(spencerCard.match(/pcard-ttile/g)||[]).length;
-check("Spencer card density: within budget (premium present -> weakest prep tile drops, 3 tiles)", spencerTiles===3&&/Specialises in/i.test(spencerCard)&&!/Preparation/.test(spencerCard), "tiles="+spencerTiles);
+check("Spencer card density (live): within the height budget", spencerTiles<=4&&/Specialises in/i.test(spencerCard), "tiles="+spencerTiles);
+const spencerOn=premiumOn(()=>specCard(spencerCtx,{make:"BMW",model:"M3",year:1990})), spencerOnTiles=(spencerOn.match(/pcard-ttile/g)||[]).length;
+check("TEMPLATE (flag on): Spencer's premium tile beside the identity (+5%)", /Track record/.test(spencerOn)&&/\+5%/.test(spencerOn), "");
+check("TEMPLATE (flag on): Spencer density, premium present -> the prep tile drops, 3 tiles", spencerOnTiles===3&&/Specialises in/i.test(spencerOn)&&!/Preparation/.test(spencerOn), "tiles="+spencerOnTiles);
 
 // ---- Post-result chat: "how would you run it" follows the LEAD recommendation ----
 // Bug (Aug 2026): v2ComposeRunListing always described the DIY platform path even when a
@@ -418,7 +458,7 @@ for(const t of tileBodies) check("tile-body copy <=110 chars: "+t.slice(0,22), t
 // ---- Platform TRACK RECORD dedupe (delta renders, concentration suppressed) ----
 globalThis.sellState.resolvedVehicle={make:"Porsche",model:"911",year:2020};
 globalThis.sellState.sellDecision={vehicle:{make:"Porsche",model:"911",year:2020},evidence:{windowDays:180,ladder:{landed:{key:"exact_year_model"}}}};
-const mkPick=(pp,withTiles=true)=>{ const ev={evidenceSales:12,windowDays:180,pricePremium:pp}; if(withTiles){ ev.dayAdvantage={weekday:"Wednesday",liftPercent:25,scope:"model",sample:34,sales:11}; ev.reserveContext={delta_pct:7,n_with:14,n_without:16}; } const opt={key:"bringatrailer",name:"Bring a Trailer",platformSlug:"bringatrailer",marketEvidence:ev}; globalThis.sellState.sellOptions=[opt]; return renderPickCardV2(opt)||""; };
+const mkPick=(pp,withTiles=true)=>{ const ev={evidenceSales:12,windowDays:180,pricePremium:pp}; if(withTiles){ ev.reserveDay={ok:true,scopeLabel:"911",weekendPct:62,weekdayPct:48,sample:40,winner:"weekend"}; ev.reserveInsight={ok:true,scopeLabel:"911s",deltaPct:7,nReserve:14,nNoReserve:16}; } const opt={key:"bringatrailer",name:"Bring a Trailer",platformSlug:"bringatrailer",marketEvidence:ev}; globalThis.sellState.sellOptions=[opt]; return renderPickCardV2(opt)||""; };
 const trackSlots=(card)=>{ const parts=card.split('class="pcard-right"'); const left=parts[0], right=parts.slice(1).join(''); return { count:(card.match(/pcard-trackblock/g)||[]).length, inLeft:/pcard-trackblock/.test(left), inRight:/pcard-trackblock/.test(right) }; };
 const cardDelta=mkPick({type:"premium",gateType:"symmetric",percent:22,windowDays:180},true);   // delta WITH stat tiles
 const cardDeltaBare=mkPick({type:"premium",gateType:"symmetric",percent:22,windowDays:180},false);// delta WITHOUT stat tiles
@@ -432,8 +472,9 @@ check("delta WITHOUT stat tiles -> TRACK in RAIL (not left), exactly one", (()=>
 
 // ---- Paired stat-tile compact support copy <=70 chars ----
 check("compact BEST DAY support present + <=70 chars", (()=>{ const m=cardDelta.match(/pcard-ts-c">([^<]*)</g)||[]; return m.length>=2 && m.every(x=>{const t=x.replace(/^[^>]*>/,'').replace(/<$/,''); return t.length<=70;}); })(), (cardDelta.match(/pcard-ts-c">([^<]*)</g)||[]).join(" | "));
-check("compact RESERVE copy names the car ('...911s with a reserve closed 7% higher.')", /911s with a reserve closed 7% higher\./.test(cardDelta), "missing");
-check("full RESERVE copy names the car ('...911s listings with a reserve have closed 7% higher...')", /911s listings with a reserve have closed 7% higher than those without\./.test(cardDelta), "missing");
+check("compact RESERVE copy names the car ('911s with a reserve sold 7% higher than those without (30 sales).')", /911s with a reserve sold 7% higher than those without \(30 sales\)\./.test(cardDelta), (cardDelta.match(/Reserve position[\s\S]{0,300}/)||[""])[0].replace(/<[^>]+>/g," ").slice(0,200));
+check("full RESERVE copy names the car ('911s with a reserve sold 7% higher than those without over the last 12 months, from 30 sales.')", /911s with a reserve sold 7% higher than those without over the last 12 months, from 30 sales\./.test(cardDelta), "missing");
+check("BEST DAY tile reads the reserve sell-through by weekend vs midweek ('Weekends')", /Best day to sell[\s\S]{0,200}Weekends/.test(cardDelta)&&/911s with a reserve sold 62% of the time when the auction ended on a weekend, and 48% midweek \(40 auctions\)\./.test(cardDelta), "missing");
 check("RESERVE copy never says 'Reserved cars' (typo)", !/Reserved cars/i.test(cardDelta), "found 'Reserved cars'");
 
 // bridge lines between the two cards (order-aware, locked)
