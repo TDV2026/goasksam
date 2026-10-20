@@ -476,6 +476,20 @@ try {
 } catch (e) {
   record("The palette picker is crew only (scripts/paletteCrewOnlyCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The narrowing question by set size and the hierarchy first (Lane E, Buy Stage 1c item 2). No network.
+try {
+  const out = execSync("node scripts/narrowCheck.mjs", { encoding: "utf8" });
+  record("Buy narrowing by set size (scripts/narrowCheck.mjs)", "PASS", (out.match(/narrowCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Buy narrowing by set size (scripts/narrowCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// A listing's gearbox read by gearboxOf (Lane E, Buy Stage 1c item 3). No network.
+try {
+  const out = execSync("node scripts/gearboxCheck.mjs", { encoding: "utf8" });
+  record("A listing's gearbox read (scripts/gearboxCheck.mjs)", "PASS", (out.match(/gearboxCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("A listing's gearbox read (scripts/gearboxCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });

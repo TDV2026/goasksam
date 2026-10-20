@@ -33,9 +33,11 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   const xs = [...many(6, { body: "coupe", gearbox: "manual" }), ...many(5, { body: "coupe", gearbox: "auto" }), car({ body: "coupe" }),
     ...many(3, { body: "cabriolet", gearbox: "manual" }), ...many(3, { body: "cabriolet", gearbox: "auto" }), car({ body: "targa", gearbox: "auto" }), car({ body: "targa" })];
   const a = askRule(xs, { p: { make: "Porsche", model: "911", generation: "997", trim: "Carrera" }, v: { make: "Porsche", model: "911", genCode: "997", trim: "Carrera" } });
-  ok(a.map(q => q.dim).join(",") === "gearbox,body", `997 Carrera: gearbox, then body (got ${a.map(q => q.dim + ":" + q.why.removes).join(",")})`);
-  ok(a[0] && a[0].why.removes === 11 && a[1] && a[1].why.removes === 10.8, "997 Carrera: removal by the rule's own arithmetic");
-  ok(a[0] && a[0].unstated === 2 && /gearbox/.test(a[0].unstatedWhat || ""), "the cars that don't say are counted, never put in a chip");
+  // Sam's Stage 1c item 2 (Lane E, narrow.js): the hierarchy first (model, generation, body), then the rest by cars removed.
+  const g = a.find(q => q.dim === "gearbox"), bq = a.find(q => q.dim === "body");
+  ok(a.map(q => q.dim).join(",") === "body,gearbox", `997 Carrera: body (the hierarchy) before gearbox (got ${a.map(q => q.dim + ":" + q.why.removes).join(",")})`);
+  ok(g && g.why.removes === 11 && bq && bq.why.removes === 10.8, "997 Carrera: removal by the rule's own arithmetic");
+  ok(g && g.unstated === 2 && /gearbox/.test(g.unstatedWhat || ""), "the cars that don't say are counted, never put in a chip");
 }
 { // E46 M3: body 9/7; gearbox 13 manual of 16 (81%, over three quarters: skipped).
   const xs = [...many(8, { body: "coupe", gearbox: "manual" }), car({ body: "coupe", gearbox: "auto" }), ...many(5, { body: "convertible", gearbox: "manual" }), ...many(2, { body: "convertible", gearbox: "auto" })];
@@ -196,7 +198,7 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   ok(/var hasMc = !l\.swap && !!\(l\.market && l\.market\.query\)/.test(client), "a card still pending has no Market Check button (a pending market has no query)");
   // STAGE 2 (Sam's Buy redesign, Oct 19 2026): the count is said once, in the header, with or without a question; the
   // question no longer repeats it, and the "everything" line is left out while a question shows.
-  ok(/headerHtml\(d\.meta \|\| \{\}, q, qp, f \|\| \{\}, !!\(a && !d\._showAll && !a\.vague\)\)/.test(client) && /esc\(matchesLine\(n, true\)\) \+ "<\/p>" \+ \(asking \? "" :/.test(client) && /var lead = "";/.test(client), "the count stays in the header while a question shows; the question does not repeat it");
+  ok(/headerHtml\(d\.meta \|\| \{\}, q, qp, f \|\| \{\}, !!\(a && !d\._showAll && !a\.vague && !quiet\)\)/.test(client) && /esc\(matchesLine\(n, true\)\) \+ "<\/p>" \+ \(asking \? "" :/.test(client) && /var lead = "";/.test(client), "the count stays in the header while a question shows; the question does not repeat it");
 }
 
 console.log(`buyCardAskCheck: ${passes} passed, ${fails} failed`);
