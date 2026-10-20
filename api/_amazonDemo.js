@@ -149,6 +149,22 @@ main{padding-block:22px 48px}
 .lead h1{margin:0 0 8px;font:400 28px/1.25 var(--sans)}
 .foot{margin-top:10px;font-size:12px;color:var(--ink2)}
 .foot a{color:var(--link)}
+.entry{max-width:760px}
+.entry .ask{display:flex;gap:8px;margin:14px 0 0;flex-wrap:wrap}
+.entry .ask input{flex:1 1 260px;min-width:0;height:44px;border:1px solid #888c8c;border-radius:var(--r);padding:0 12px;font:inherit}
+.nexts{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.inline-hist{margin:0 0 16px}
+.inline-hist h3{margin:0 0 8px;font:700 16px/1.3 var(--sans)}
+.inline-hist ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.inline-hist li{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:12px;align-items:center}
+.inline-hist .ph{width:72px;height:54px;border-radius:4px;background:#eaeded;object-fit:cover;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--ink2)}
+.inline-hist .pr{font-weight:700}
+.dealer-form{max-width:760px;border:1px solid var(--rule);border-radius:var(--r);padding:18px}
+.dealer-form h2{margin:0 0 4px;font:700 20px/1.3 var(--sans)}
+.field{margin-top:14px}
+.field label{display:block;font-weight:700;margin-bottom:6px}
+.field input{width:100%;max-width:360px;height:40px;border:1px solid #888c8c;border-radius:var(--r);padding:0 12px;font:inherit;background:#fff}
+.field input[disabled]{background:#f7fafa;color:var(--ink2)}
 /* "How Sam decides" is plain static text on the demo (as on the eBay demo): the card's own link styling is undone here only */
 .sfc-card span.sfc-footer-link{color:var(--ink2);font-weight:400;text-decoration:none}
 @media (max-width:860px){.listing{grid-template-columns:1fr}.rail h1{font-size:22px}.price{font-size:24px}}
@@ -156,7 +172,7 @@ main{padding-block:22px 48px}
 
 const JS = String.raw`
 (function(){
-  var LISTCAR = __LISTCAR__, CAR = __CAR__, CARS = __CARS__, SCOPE = __SCOPE__, VIEW = __VIEW__, LIST = __LIST__, OUT_OF_SCOPE = __OUTSCOPE__;
+  var LISTCAR = __LISTCAR__, CAR = __CAR__, CARS = __CARS__, SCOPE = __SCOPE__, VIEW = __VIEW__, LIST = __LIST__, OUT_OF_SCOPE = __OUTSCOPE__, CHOSEN = __CHOSEN__;
   var $ = function(id){ return document.getElementById(id); };
   var esc = function(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
   var usd = function(n){ return "$" + Math.round(Number(n)).toLocaleString("en-US"); };
@@ -207,6 +223,7 @@ const JS = String.raw`
       return '<li>' + ph + '<span>' + esc(what) + (r.miles ? '<br><span class="muted">' + esc(Number(r.miles).toLocaleString("en-US")) + " miles</span>" : "") + '</span><span class="pr">' + esc(amt) + "</span></li>";
     }).join("") + "</ul>";
   }
+  function inlineHist(h){ return h && h.length ? '<div class="inline-hist"><h3>' + (anySold(h) ? "This car has sold before" : "This car was listed before") + "</h3>" + histRows(h).replace(/^<ul>/, "<ul>") + "</div>" : ""; }
   function openHist(h){
     var s = document.createElement("div"); s.className = "pop-scrim"; s.setAttribute("data-close", "");
     s.innerHTML = '<div class="pop" role="dialog" aria-modal="true" aria-label="Previous market history"><button type="button" class="linkbtn x" data-close>Close</button><h3>' + (anySold(h) ? "This car has sold before" : "This car was listed before") + "</h3>" + histRows(h) + "</div>";
@@ -249,6 +266,30 @@ const JS = String.raw`
   }
   var body = LIST && LIST.vin ? { q: CAR, vin: LIST.vin } : { q: LISTCAR || CAR };
   if (VIEW === "c" && !OUT_OF_SCOPE) ask(body).then(drawC);   // an out-of-scope listing (from its own words) makes no read
+  // TAB a, BEFORE SHOPPING: any car or a VIN returns the same shared card; with a VIN, this car's history inline above it.
+  // Outside the pilot scope, no module. The two next steps are inert; no trade-in number is ever shown.
+  function drawA(a){
+    var out = $("a-out"); if (!out) return;
+    if (a && a.ok !== false && !inScope(a)) { out.innerHTML = ""; return; }
+    out.innerHTML = inlineHist((a && a.history) || []) + cardHtml(a);
+    if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ goA(); }, a.retryAfterMs);
+  }
+  function goA(){ var q = String(($("a-q") || {}).value || "").trim(); if (!q) return; $("a-out").innerHTML = '<p class="loading">Reading the sales for this one.</p>'; ask({ q: q }).then(drawA); }
+  // TAB b, DEALER LISTS A CAR: VIN in; this car's history inline and the same shared card, ABOVE the asking price field.
+  // No pricing advice, no suggested price: the price field is the dealer's and stays empty.
+  function drawB(a){
+    var out = $("b-out"); if (!out) return;
+    if (a && a.ok !== false && !inScope(a)) { out.innerHTML = ""; return; }
+    out.innerHTML = inlineHist((a && a.history) || []) + cardHtml(a);
+    if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ goB(); }, a.retryAfterMs);
+  }
+  // The listing car opens by its name; its VIN goes with the read (for its history) and is never printed.
+  function goB(){ var q = String(($("b-vin") || {}).value || "").trim(); if (!q) return; $("b-out").innerHTML = '<p class="loading">Reading the sales for this one.</p>'; ask(LIST && LIST.vin && q === CAR ? { q: q, vin: LIST.vin } : { q: q }).then(drawB); }
+  document.addEventListener("click", function(e){ if (e.target.closest("[data-a-go]")) goA(); if (e.target.closest("[data-b-go]")) goB(); });
+  document.addEventListener("keydown", function(e){ if (e.key !== "Enter") return; if (e.target.id === "a-q") { e.preventDefault(); goA(); } if (e.target.id === "b-vin") { e.preventDefault(); goB(); } });
+  // A car chosen in the bar opens on tabs a and b already read (the same one read per page as tab c).
+  if (VIEW === "a" && CHOSEN) { $("a-q").value = CAR; goA(); }
+  if (VIEW === "b" && CHOSEN) { $("b-vin").value = CAR; goB(); }
 })();
 `;
 
@@ -291,7 +332,6 @@ export function amazonPageHtml(view, carIn, { carOf, listing }) {
     </div>
   </div>
 </section>`;
-  const later = (k, h) => `<section class="wrap" id="view-${k}"${v === k ? "" : " hidden"}><div class="lead"><h1>${h}</h1><p class="muted">This view is being prepared for the demo.</p></div></section>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><title>What these sell for</title><style>${CSS}${SELLS_FOR_CARD_CSS}</style></head><body>
 <div class="demo-bar"><div class="wrap"><span>What these sell for, powered by GoAskSam.</span><nav class="tabs" aria-label="Views">${P.tabs.map(([k, l]) => tab(k, l)).join("")}</nav></div></div>
@@ -299,9 +339,22 @@ ${carBar}
 <header class="top"><div class="wrap"><div class="plogo"><span class="chip"><img src="${P.logoPath}" alt="${escHtml(P.logoAlt)}" width="138" height="21" decoding="async"></span><span class="prep">${escHtml(P.preparedFor)}</span></div><div class="sbox" aria-hidden="true">Search Amazon Autos</div><button type="button" class="btn nav" data-inert>Sign in</button></div></header>
 <nav class="subnav" aria-label="Sample navigation"><div class="wrap"><button type="button" class="btn nav" data-inert>Shop cars</button><button type="button" class="btn nav" data-inert>Trade in</button><button type="button" class="btn nav" data-inert>Financing</button></div></nav>
 <main>
-${later("a", "What's your car going for?")}
-${later("b", "List a car")}
+<section class="wrap" id="view-a"${v === "a" ? "" : " hidden"}>
+  <div class="entry lead"><h1>What's your car going for?</h1>
+    <div class="ask"><input id="a-q" autocomplete="off" maxlength="60" placeholder="Type your car or paste a VIN" aria-label="Car or VIN"><button type="button" class="btn yel" data-a-go>Check</button></div>
+    <div id="a-out" style="margin-top:20px"></div>
+    <div class="nexts"><button type="button" class="btn out" data-inert>Shop these cars</button><button type="button" class="btn out" data-inert>See your trade-in offer</button></div>
+  </div>
+</section>
+<section class="wrap" id="view-b"${v === "b" ? "" : " hidden"}>
+  <div class="dealer-form"><h2>List a car</h2><p class="sample-tag">Sample listing</p>
+    <div class="field"><label for="b-vin">VIN</label><div class="ask" style="display:flex;gap:8px;flex-wrap:wrap"><input id="b-vin" autocomplete="off" maxlength="60" placeholder="Paste a VIN or type the car" aria-label="VIN or car"><button type="button" class="btn yel" data-b-go>Look up</button></div></div>
+    <div id="b-out" style="margin-top:16px"></div>
+    <div class="field"><label for="b-price">Asking price</label><input id="b-price" disabled placeholder="Set by the dealer" aria-label="Asking price"></div>
+    <div class="nexts"><button type="button" class="btn org" data-inert>Continue</button></div>
+  </div>
+</section>
 ${viewC}
 </main>
-<script>${JS.replace("__LISTCAR__", JSON.stringify(listCar)).replace("__CAR__", JSON.stringify(car)).replace("__OUTSCOPE__", JSON.stringify(outC)).replace("__CARS__", JSON.stringify(DEMO_CARS)).replace("__SCOPE__", JSON.stringify({ age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS })).replace("__INSCOPE__", amazonInScope.toString()).replace("__VIEW__", JSON.stringify(v)).replace("__LIST__", JSON.stringify(hasListing ? { vin: listing.vin } : null))}</script></body></html>`;
+<script>${JS.replace("__LISTCAR__", JSON.stringify(listCar)).replace("__CAR__", JSON.stringify(car)).replace("__OUTSCOPE__", JSON.stringify(outC)).replace("__CARS__", JSON.stringify(DEMO_CARS)).replace("__SCOPE__", JSON.stringify({ age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS })).replace("__INSCOPE__", amazonInScope.toString()).replace("__VIEW__", JSON.stringify(v)).replace("__LIST__", JSON.stringify(hasListing ? { vin: listing.vin } : null)).replace("__CHOSEN__", JSON.stringify(chosen))}</script></body></html>`;
 }
