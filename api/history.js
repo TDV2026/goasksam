@@ -706,6 +706,9 @@ async function handler(req, res) {
   if (q.photocheck) return photoCheck(req, res, env, String(q.photocheck));
   const slug = String(q.slug || "").toLowerCase().replace(/[^a-z0-9-]/g, "");
   const vin = q.vin ? normVin(q.vin) : "";
+  // A leading, trailing or doubled dash (the old empty-make hub links) 301s to the tidy address of the same page.
+  const tidy = tidySlug(slug);
+  if (slug && tidy && tidy !== slug) { res.setHeader("Location", `/history/${tidy}` + (vin ? `/${vin}` : "")); res.setHeader("Cache-Control", "public, s-maxage=3600"); return res.status(301).end(); }
   try {
     if (q.go && vin) {
       // /vin/{VIN}: 301 to the canonical car URL (404 when the VIN has no appearance or is not a car).
@@ -995,4 +998,5 @@ async function photoCheck(req, res, env, kind) {
 }
 
 // Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
+export function tidySlug(slug) { return String(slug || "").replace(/-+/g, "-").replace(/^-|-$/g, ""); }
 export default withTracking("/api/history", handler, "site");
