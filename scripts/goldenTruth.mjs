@@ -460,10 +460,20 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
       const p = PARSERS.marketCheck(rd.text);
       const wm = /Which [^?\n]+\?\s*([^\n]+)/.exec(rd.text);
       const options = wm ? [...wm[1].matchAll(/([A-Za-z][A-Za-z \/-]*?)\s*\((\d+)\)/g)].map(x => ({ label: x[1].trim(), n: Number(x[2]) })) : [];
-      return { count: p.count, options, scope: p.scope };
+      // Oct 20: a bare page can ask a BODY question (tier body_choice, "Convertible (30) Coupe (18) ..."); a question page has no pool total, so Any prints "-".
+      const bodyQ = !options.length && p.count == null ? [...rd.text.matchAll(/(Convertible|Coupe|Fastback|Cabriolet|Targa|Sedan|Wagon|Roadster|Hatchback|Spider|Spyder)\s*\((\d+)\)/g)].map(x => ({ label: x[1], n: Number(x[2]) })) : [];
+      if (!options.length && p.count == null && !bodyQ.length) console.error(`progress: row question not parsed, page text begins: ${rd.text.replace(/\s+/g, " ").slice(0, 300)}`);
+      return { count: p.count, options, scope: p.scope, bodyQ };
     };
     const any = await facts(g.q);
     const checks = [];
+    if (any.bodyQ && any.bodyQ.length >= 2) {   // a body_choice question: accept it, check the options sum and each option page; there is no pool total to add up to
+      const sumQ = any.bodyQ.reduce((a, b) => a + b.n, 0);
+      checks.push({ name: "body question (no pool total on a question page)", cell: "PASS", diffs: [], shown: `${any.bodyQ.map(x => x.label + " " + x.n).join(", ")} = ${sumQ}` });
+      for (const op of any.bodyQ) { const pg = await facts(`${g.q} ${op.label.toLowerCase()}`); const ok = pg.count === op.n; checks.push({ name: `option ${op.label}`, cell: ok ? "PASS" : "FAIL", diffs: ok ? [] : [`the question prints ${op.label} (${op.n}); the page it opens shows ${pg.count == null ? "no count" : pg.count} sales`], shown: `${op.n} vs ${pg.count == null ? "-" : pg.count}` }); }
+      identityOut.push({ id: g.id, q: g.q, any: { count: sumQ, options: any.bodyQ, scope: any.scope }, checks });
+      continue;
+    }
     for (const op of any.options) {
       // e53: the last option "Body not stated" has no typed form (the chip sends refine body "unspecified"); its count is checked in the sum to Any only.
       if (/^body not stated$/i.test(op.label)) { checks.push({ name: `option ${op.label}`, cell: "PASS", diffs: [], shown: `${op.n} (counted in the sum, opens by chip only)` }); continue; }
