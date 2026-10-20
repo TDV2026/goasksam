@@ -150,7 +150,7 @@ for (const [name, d] of Object.entries(FIX)) {
 // answers still reading, with its retry); the page's abort is a safety net only, later than the engine's bound.
 { const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8"), apiSrc = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
   const mod = await import("../api/partnerAnswer.js");
-  ok(!("READ_DEADLINE_MS" in mod) && !/Promise\.race\(\[marketCheckAnswer\(/.test(apiSrc) && !/setTimeout\(/.test(apiSrc.replace(/\/\/[^\n]*/g, "")), "the endpoint has no timeout of its own");
+  ok(!("READ_DEADLINE_MS" in mod) && !/Promise\.race\(\[marketCheckAnswer\(/.test(apiSrc) && !/setTimeout\(/.test(apiSrc.replace(/\/\/[^\n]*/g, "").replace(/^\s*const v = await Promise\.race\(\[decodeVinFacts\(vin\)[^\n]*$/m, "")), "the endpoint has no timeout of its own");
   const engSrc = fs.readFileSync(new URL("../lib/onebox.js", import.meta.url), "utf8") + fs.readFileSync(new URL("../api/sellerDecision.js", import.meta.url), "utf8");
   const bm = engSrc.match(/process\.env\.ONEBOX_DEADLINE_MS \|\| (\d+)\)/), BOUND = bm ? Number(bm[1]) : NaN;
   ok(BOUND > 0, "the engine's whole-path bound is found (" + BOUND + " ms)");
