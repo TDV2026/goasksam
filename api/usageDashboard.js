@@ -3467,6 +3467,48 @@ async function handleOps(req, res) {
   // the internal pool diagnostics (tier, generation chips, earned question, pool counts, transmission
   // split, driver candidates, widening path) so a question/widening decision can be inspected.
   //   ?view=ops&task=obdiag&qs=458 Speciale coupe|JTHMPAAY3TA113218|911|718 Cayman S coupe
+  // rangepreview (Lane B, Oct 20 2026, Sam: "show me the ranges the engine actually prints before anything goes public").
+  // READ-ONLY, key-gated like every ops task, OldCarsData zero, nothing stored: for each typed car (qs=a|b|c), the one engine's
+  // answer (oneEngineAnswer, the page path) with the range-rule switches OFF (what the pages print today) and ON for this
+  // request only (env.rangeRules), side by side. A question answer also shows what each gearbox chip prints. The module
+  // switches are never touched.
+  if (task === "rangepreview") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle, sanitizeResolvedVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { oneEngineAnswer, ENGINE_VERSION, RANGE_RULES } = await import("../lib/onebox.js");
+    const qs = String(req.query?.qs || "").split("|").map(x => x.trim()).filter(Boolean).slice(0, 12);
+    const on = { blendOneFamily: true, gearboxFirst: true };
+    const brief = d => {
+      if (!d) return null;
+      const cards = Array.isArray(d.cards) ? d.cards : [];
+      return { tier: d.tier || null, label: d.rungLabel || d.scopeLabel || null, count: Number(d.poolN) || cards.length || null,
+        range: Array.isArray(d.cluster) ? d.cluster : null,
+        line: d.samLine || d.thinLine || d.prompt || null,
+        options: d.gearboxOptions || d.bodyOptions || d.generationOptions || d.variantOptions || null, optionCounts: d.optionCounts || null,
+        sales: cards.slice(0, 20).map(c => ({ date: String(c.date || "").slice(0, 10), price: Number(c.price) || null, title: c.title || null })) };
+    };
+    const out = [];
+    for (const q of qs) {
+      try {
+        const rv = await resolveVehicle(q, { vinConfirm: true });
+        const v = sanitizeResolvedVehicle(rv && rv.vehicle) || (rv && rv.vehicle);
+        if (!v || !v.make) { out.push({ q, status: (rv && rv.status) || "unresolved" }); continue; }
+        const g = await findGeneration(v, env);
+        const before = (await oneEngineAnswer(v, g, q, env, null)).raw;
+        const envOn = { ...env, rangeRules: on };
+        const after = (await oneEngineAnswer(v, g, q, envOn, null)).raw;
+        const row = { q, before: brief(before), after: brief(after) };
+        if (after && after.tier === "gearbox_choice") {
+          row.afterChips = {};
+          for (const tx of ["manual", "auto"]) row.afterChips[tx] = brief((await oneEngineAnswer(v, g, q, envOn, { tx })).raw);
+        }
+        row.moved = JSON.stringify(row.before) !== JSON.stringify(row.after);
+        out.push(row);
+      } catch (e) { out.push({ q, error: String((e && e.message) || e).slice(0, 200) }); }
+    }
+    return res.status(200).json({ task: "rangepreview", engineVersion: ENGINE_VERSION, switchesShipped: RANGE_RULES, previewSwitches: on, cars: out });
+  }
   if (task === "obdiag") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle, sanitizeResolvedVehicle, modelChipsForMakeYear } = await import("../lib/vehicle.js");
