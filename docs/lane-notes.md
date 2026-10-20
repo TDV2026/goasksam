@@ -10799,3 +10799,9 @@ Search check: /sell copy only (sentences removed from the follow-up answer, the 
 - LOOK DONE (Lane C, 2026-10-20T14:40:02Z): f4346fa3 look 14:38:30 to 14:39:53Z, read only, NO REVERT CONDITION. 275 GTB row photos ask w=320 on tabs a, b and c: 9 of 9 each, 0 with none; its stored card was rewritten (read 14:07:15Z, 9 rows, 0 without a width). The other six cars carry no sale rows on their range cards (0 photos, nothing to size). History pages for the 2006 BMW X5 (modern VIN) and the 1977 Datsun 280Z (chassis number): unchanged against the 08:25Z reads, date stamp aside, so Lane B's idrule (switch off) changed no page. /sitemap-vins.xml: 200 application/xml, a sitemap index of 21 (a plain curl got the bot challenge's 429; the browser read is the real one). 0 console errors, answers 0.4 to 3.7 s.
 - (Lane B, 2026-10-20T14:50Z): idrule cost lock released, rebase conflict, not pushed.
 - PUSHED (Lane B, 2026-10-20T15:02Z): VIN identity rule cost + task=vinidentitydry exact count + task=bodyaside (switch OFF, read-only tasks, no page change), 44f0ee88, pushed on 0 FAIL. Lock released. Exact-count reads 15:05, 15:20 and 15:35Z; bodyaside read 15:50Z.
+
+## FROM SAM, relayed verbatim by Lane F (2026-10-20T16:07Z)
+
+Sam answered the open question 'The trim stack, one yes' with: "yes"
+
+LANE F READING: the question on the table was Lane B's six-commit trim stack (gearbox words de58b6f7, notTrims 2cd3d1de, a chip opens its count c2adb922, trim-chip pool marker bd43b1e3, generic words + ordinals 0703f44e, the phrase skip). Slot: Lane B FULL prePush alone 17:00:00Z, look after Ready. If Sam meant a different item, he tells Lane F and the push stops.
