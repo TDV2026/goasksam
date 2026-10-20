@@ -43,5 +43,7 @@ const dr = block("  function drawerHtml(l, j){", "  function openDrawer(btn){");
 ok(/var sfc = j && j\.engineAnswer && window\.sellsForCardHtml \? window\.sellsForCardHtml\(j\.engineAnswer, \{\}\) : "";\n\s*if \(sfc\) \{ out\.push\(sfc\); \} else \{/.test(dr) && /else if \(m && m\.soldLine\) out\.push/.test(dr), "the inline panel draws the engine's own card (its line and its sales) and, if that read fails, the card's own line: never blank");
 // ---- Item 4c: no big gap under the shorter cards (actions follow the content; each card its own height).
 ok(/\.cgrid\{align-items:start\}\n\.cgrid \.car \.acts\{margin-top:0;padding-top:14px\}/.test(css), "the actions follow the card's content; no empty band above them on a short card");
+// ---- Item 8b: rail names told apart (wrap up to three lines; the full name as the tooltip; one row per name).
+ok(/#gas-rail \.srch,\.vlist \.srch\{white-space:normal;overflow:visible;overflow-wrap:anywhere;text-overflow:clip\}/.test(css) && /title="' \+ esc\(label\) \+ '"/.test(c) && /String\(v\.label \|\| ""\)\.replace\(\/\\s\+\/g, " "\)\.trim\(\)\.toLowerCase\(\) !== key/.test(c), "saved searches show the whole name, wrapping, with the full name as the tooltip, one row per name");
 console.log(`buyStage1cCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
