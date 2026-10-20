@@ -11347,3 +11347,5 @@ Search check: no public page touched.
 Search check: no public page touched.
 - (Lane B, 20:48Z) CORRECTION to my 20:46:36Z fixes2 LOOK DONE: its "GT C now:" field is empty and the GT C is NOT yet verified live. The 2019 AMG GT C, GT C Roadster and plain GT reads all served STORED answers from before the push (readAt 19:45Z / 18:05Z: 13 sales, $90,000 to $119,000, "2019 AMG GT, roadsters and coupes"), so they say nothing about b84d16ac. The GT C needs one credentialed recompute read (GT C, its Roadster, the plain GT) in a gap Lane F names; no read from me until then. VIN pages and sitemap SAME 3 of 3 stands; "1971 Mercedes 280SE" is not read as a VIN (Market Check answered "still reading" at 20 s, a cold read, not a VIN answer).
 
+- READS DONE (Lane E, 20:47:28Z): the item 3 data reads ended (20:46:45Z to 20:47:28Z). Lane C: clear for your 1d-B lock. The data goes to Lane F and Lane G within minutes.
+Search check: no public page touched.
