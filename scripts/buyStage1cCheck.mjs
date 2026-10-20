@@ -30,7 +30,9 @@ ok(/@media \(min-width:1100px\)\{\.cgrid\.n5 > article\.car:nth-of-type\(4\)\{gr
 const thin = { id: 7, market: { kind: "count", query: "1982 Ferrari 512", noCluster: true }, sam_lines: [{ kind: "range", rung: ["512 models, 1981 to 1983"], text: "Sales of cars like it vary too widely to show one range. These are the sales we found." }] };
 const tl = (samLine(thin) || {}).html || "";
 ok(/<p class="nr-line">Sales of cars like it vary too widely to show one range\.<\/p>/.test(tl) && !/These are the sales we found/.test(tl), "a no-range card prints the engine's line, first sentence only");
-ok(/<button type="button" class="mclink" data-mc="7" aria-expanded="false"[^>]*>See the sales in Market Check<\/button>/.test(tl), "with 'See the sales in Market Check', which opens the card's own inline Market Check (data-mc, the same as its action)");
+// STAGE 1d ITEM 4 (Sam, Oct 20 2026): the thin card's "See the sales in Market Check" link is gone (it sat under the
+// card's stretched title link and opened the auction site); the card's own Market Check action opens its panel.
+ok(!/mclink|See the sales/.test(tl), "the thin card carries no 'See the sales in Market Check' link (Stage 1d item 4)");
 ok(/function compactNoRange\(l, x\)\{[\s\S]*'<p class="nr-scope">' \+ rungHtml\(\{ rungLines: rungShown\(l, x\.rung\) \}\)/.test(c), "the scope label when the engine gives one");
 const rg = { id: 8, market: { kind: "range", low: 55000, high: 78000, query: "q" }, sam_lines: [{ kind: "range", rung: [], text: "The middle half of 1M sales landed at $55,000 to $78,000. These are recent." }] };
 ok(!/nr-line|mclink/.test((samLine(rg) || {}).html || ""), "a card with a range is not the compact card");

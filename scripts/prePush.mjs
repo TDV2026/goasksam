@@ -706,6 +706,13 @@ try {
 } catch (e) {
   record("Company voice, group D (scripts/voiceGroupDCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Buy Stage 1d (Sam, Oct 20 2026; Lane C). No network.
+try {
+  const out = execSync("node scripts/buyActionsCheck.mjs", { encoding: "utf8" });
+  record("buyActionsCheck (scripts/buyActionsCheck.mjs)", "PASS", (out.match(/buyActionsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("buyActionsCheck (scripts/buyActionsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
