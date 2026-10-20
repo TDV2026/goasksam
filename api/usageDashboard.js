@@ -4678,6 +4678,55 @@ async function handleOps(req, res) {
     }
     return res.status(200).json({ task: "trimwordcount", since, words, ms: Date.now() - t0, out });
   }
+  // bodyaside (Lane B, Oct 20 2026, Lane F's sizing of the "No <body> ... sale on record" line; READ-ONLY, key-gated, OldCarsData
+  // zero, writes nothing): for each typed car with a body (qs, up to 12, "|"-separated), today's answer from the one engine and
+  // the engine's own five-year fetch for the car with its set-aside rows kept: the body's rows in the qualifying pool, the body's
+  // real sales held back by reason (no photo, project, modified: a row counts only if it passes every other fence for the car
+  // once the photo rule is waived, so never a different car), and whether today's line says "no sale on record" while such rows
+  // exist (the false line). Uses only exported engine functions; changes no answer.
+  if (task === "bodyaside") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle, sanitizeResolvedVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const ob = await import("../lib/onebox.js");
+    const qs = String(req.query?.qs || "").split("|").map(x => x.trim()).filter(Boolean).slice(0, 12);
+    const since5 = new Date(Date.now() - 1825 * 864e5).toISOString();
+    const out = [], t0 = Date.now();
+    for (const q of qs) {
+      if (Date.now() - t0 > 240000) { out.push({ q, skipped: "time budget" }); continue; }
+      try {
+        const r = await resolveVehicle(q, {});
+        const v = r && r.vehicle ? (sanitizeResolvedVehicle(r.vehicle) || r.vehicle) : null;
+        if (!v || !v.make || !v.model) { out.push({ q, resolved: null }); continue; }
+        const body = v.bodyStyle || null;
+        const g = await findGeneration(v, env).catch(() => null);
+        const today = (await ob.oneEngineAnswer(v, g, q, env, null)).raw || {};
+        const line = today.samLine || today.thinLine || null;
+        const row = { q, resolved: [v.year, v.make, v.model, v.trim].filter(Boolean).join(" "), body, today: { tier: today.tier || null, count: Number(today.poolN) || (Array.isArray(today.cards) ? today.cards.length : null), line } };
+        if (body) {
+          const spec = ob.buildSpec(v, g, q);
+          const dx = { collectExcluded: true };
+          const pool = (await ob.fetchQualifying(spec, since5, env, dx)) || [];
+          const held = new Map();
+          for (const e of (dx.excluded || [])) {
+            const reason = String(e.reason || "");
+            if (!/^no photo$|^project or incomplete|modified/i.test(reason)) continue;
+            const r2 = ob.qualifyReason(e.row, { ...spec, houseTier: true });
+            if (r2 && !/^project or incomplete|modified/i.test(String(r2))) continue;   // a different car, another body, a part
+            const k = /^no photo$/i.test(reason) ? "no photo" : /^project/i.test(reason) ? "project" : "modified";
+            if (!held.has(k)) held.set(k, new Set()); held.get(k).add(String(e.row.id));
+          }
+          const heldBy = Object.fromEntries([...held.entries()].map(([k, ids]) => [k, ids.size]));
+          const heldN = Object.values(heldBy).reduce((a, n) => a + n, 0);
+          row.bodyInPool = pool.length;
+          row.heldBack = heldBy;
+          row.falseNoSaleLine = !!(line && /sale on record in the last five years\.$/.test(line) && !/was set aside/.test(line) && heldN > 0);
+        }
+        out.push(row);
+      } catch (e) { out.push({ q, error: String((e && e.message) || e).slice(0, 160) }); }
+    }
+    return res.status(200).json({ task: "bodyaside", since: since5.slice(0, 10), ms: Date.now() - t0, cars: out });
+  }
   if (task === "projdry") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { projectFlagReason } = await import("../lib/_classify.js");
