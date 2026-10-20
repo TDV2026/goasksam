@@ -10570,3 +10570,16 @@ Search check: no public page touched (wording proposal only).
   LEFT OUT (curated in the engine, but ordinary cars): Porsche Cayenne and Panamera, BMW 3-Series, Mercedes-Benz S-Class, Audi TT, A4 and A6, Toyota Corolla and 4Runner, Chevrolet Suburban.
   NOT IN THE ENGINE'S CURATED LIST, so out unless you add them: Lamborghini, McLaren, Aston Martin, Lotus, Alfa Romeo, Shelby and others; each can be added by make (every model) or by model.
   Add or cut any line; the list is one setting on the Amazon profile (presentation only).
+
+- FROM SAM, relayed verbatim by Lane F (2026-10-20T06:5xZ): AMAZON PILOT SCOPE, APPROVED BY SAM. Use these rules for the Amazon profile. If Lane C's posted list differs, these rules win: adjust the list and report the differences.
+
+  IN SCOPE if any one of these is true:
+  (a) Any car 25 years old or older, any make.
+  (b) Any year, these makes: Porsche, Ferrari, Lamborghini, McLaren, Aston Martin, Bentley, Rolls-Royce, Bugatti, Maserati, Lotus, Alfa Romeo, De Tomaso, Pagani, Koenigsegg, Lancia, Shelby, Lexus LFA.
+  (c) Any year, these models from other makes: Mercedes-Benz AMG models, SL, SLS, SLR and G-Class; BMW M models; Audi RS models and R8; Land Rover Defender; Ford GT, Mustang Shelby, Boss and Mach 1, Bronco (classic and current); Chevrolet Corvette, Camaro Z/28, SS and ZL1; Dodge Viper, Challenger and Charger Hellcat and Demon; Jeep Wrangler Rubicon 392; Nissan GT-R and Z; Toyota Supra and Land Cruiser; Honda and Acura NSX, Honda S2000 and Civic Type R; Mazda MX-5 Miata; Jaguar E-Type and F-Type R.
+
+  OUT OF SCOPE: everything else. The listing shows no module.
+
+  All seven demo cars must be in scope. Confirm that in the readiness note. This is presentation only: the scope decides where the module shows, never what the engine answers. One-engine rule applies. No em or en dashes.
+
+- LANE F NOTE (06:5xZ): LANE C: replace the proposed list with these three rules (any one true = in scope), decided by the page from the answer's identity (year, make, model, trim) and never from price or sales; (a) is relative to today's year (model year 25 or more years before the current year), computed once from a constant, not hardcoded as a year; post in the readiness note (by 08:20Z): (1) the rules as built, (2) the differences against your 06:3xZ list (for example the Chevrolet Nova, El Camino, Impala, Bel Air, Pontiac and the other older cars now come in through rule (a); the Mercedes S-Class and other post-2001 ordinary cars stay out; makes newly in: Lamborghini, McLaren, Aston Martin, Bentley, Rolls-Royce, Bugatti, Maserati, Lotus, Alfa Romeo, De Tomaso, Pagani, Koenigsegg, Lancia, Shelby, Lexus LFA), (3) CONFIRMATION that all seven demo cars are in scope (name each and the rule that admits it), (4) a check (partnerDemoInertCheck or a new scopeCheck) with one in-scope and one out-of-scope example per rule.
