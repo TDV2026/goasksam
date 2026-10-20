@@ -20,8 +20,9 @@ const sg = { hidden: true, innerHTML: "" }, bar = { parentNode: { insertBefore()
 const document = { querySelector: q => (q === ".search[role=search]" ? bar : null) };
 const $ = id => (id === "sugg" ? sg : null);
 const drawSuggest = new Function("document", "$", "function esc(x){ return String(x).replace(/\"/g, '&quot;'); }\n" + block("  function drawSuggest(list){", "  function zipAskRow(") + "\nreturn drawSuggest;")(document, $);
-drawSuggest(["only 911", "which have sold before?", "within 100 miles", "a fourth"]);
-ok((sg.innerHTML.match(/class="sg" data-send=/g) || []).length === 3 && /data-send="only 911">only 911</.test(sg.innerHTML) && sg.hidden === false, "at most three suggestions, each sends its own words (data-send)");
+// Stage 1d item 7 (Sam, Oct 20 2026): up to six real chips, each sending its own words.
+drawSuggest(["only 911", "which have sold before?", "within 100 miles", "a fourth", "a fifth", "a sixth", "a seventh"]);
+ok((sg.innerHTML.match(/<button type="button" class="rchip sgc" data-send=/g) || []).length === 6 && /data-send="only 911">only 911</.test(sg.innerHTML) && sg.hidden === false, "up to six suggestion chips, each sends its own words (data-send)");
 drawSuggest([]); ok(sg.innerHTML === "" && sg.hidden === true, "none: the row is hidden");
 const zr = block("  function zipAskRow(line, words){", "  function searchingBlock(said){");
 ok(/<form class="ask-zip" data-zipresend><input name="zip" inputmode="numeric" maxlength="5" pattern="\[0-9\]\{5\}"/.test(zr) && /esc\(line \|\| "Which zip should I use\?"\)/.test(zr), "the zip row: the server's line and a five-digit box");
