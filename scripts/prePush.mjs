@@ -502,6 +502,13 @@ try {
 } catch (e) {
   record("A listing's gearbox read (scripts/gearboxCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A card shows the record's own title, never the typed words (product rule 25; Lane E, cardTitleCheck). No network.
+try {
+  const out = execSync("node scripts/cardTitleCheck.mjs", { encoding: "utf8" });
+  record("A card shows its own title, rule 25 (scripts/cardTitleCheck.mjs)", "PASS", (out.match(/cardTitleCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("A card shows its own title, rule 25 (scripts/cardTitleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Keep Looking's sentence trimmed and the Before it ends email's last bid seen line (Sam's decision 8; Lane C). No network.
 try {
   const out = execSync("node scripts/keepLookingLineCheck.mjs", { encoding: "utf8" });
