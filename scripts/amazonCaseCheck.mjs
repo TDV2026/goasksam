@@ -19,6 +19,8 @@ const t = s => String(s || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").tri
 // item 7: the title from the VIN's decode, never the VIN
 const m3 = { ok: true, answerType: "range", identity: { year: 1995, make: "BMW", model: "M3" }, vinDecode: { year: 1995, make: "BMW", model: "M3", trim: null, body: "Coupe", features: { drivetrain: "Rear Wheel Drive", engine: "6 cylinders, 3.0 L", fuel: "Gasoline", transmission: "Manual, 5-speed" } }, range: { low: 21500, high: 36500 } };
 ok(mk.amazonTitle(m3) === "Used 1995 BMW M3 Coupe", `WBSBF932XSEH00621's decode titles it "Used 1995 BMW M3 Coupe" (got "${mk.amazonTitle(m3)}")`);
+{ const gt3 = { ok: true, identity: { year: 2014, make: "Porsche", model: "911", variant: "GT3", body: "coupe" }, vinDecode: { year: 2014, make: "Porsche", model: "911", trim: null, body: null, features: {} } };
+  ok(mk.amazonTitle(gt3) === "Used 2014 Porsche 911 GT3 Coupe", `the engine's trim fills in when the decode has none, the body title-cased (got "${mk.amazonTitle(gt3)}")`); }
 ok(!/WBSBF932XSEH00621/.test(mk.amazonTitle(m3)) && mk.amazonTitle({ ok: true, identity: null, vinDecode: null }) === null, "never the VIN; no name, no title change");
 const kf = t(mk.kfHtml(m3));
 ok(/Drivetrain Rear Wheel Drive/.test(kf) && /Engine 6 cylinders, 3\.0 L/.test(kf) && /Fuel type Gasoline/.test(kf) && /Transmission Manual, 5-speed/.test(kf) && !/Seating|Interior|Exterior/.test(kf), "Key features from the decode only, unknown fields left out");

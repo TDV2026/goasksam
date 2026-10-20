@@ -50,8 +50,8 @@ ok(/Sample asking price/.test(js) && /if \(!sl \|\| !a \|\| a\.ok === false \|\|
 // never computed in the browser: no arithmetic on a price or a range anywhere in the Amazon page's script.
 ok(!/Math\.(ceil|round|floor)\([^)]*(range|price|low|high)/.test(js) && !/samplePrice\(/.test(js), "no sample figure is computed in the browser (fixed constants only)");
 { const { AMAZON_PROFILE } = await import("../api/_amazonDemo.js"); const sl = AMAZON_PROFILE.sampleListings;
-  ok(Object.values(sl).every(x => Number.isInteger(x.price) && Number.isInteger(x.monthly) && (x.miles === null || Number.isInteger(x.miles))), "every sample listing constant is a fixed whole number (or no mileage)");
-  ok(!("1966 Ferrari 275 GTB" in sl), "the thin car has no sample figures (no range to sit inside)"); }
+  ok(Object.values(sl).every(x => ((Number.isInteger(x.price) && Number.isInteger(x.monthly)) || (x.price === null && x.monthly === null)) && (x.miles === null || Number.isInteger(x.miles))), "every sample listing constant is a fixed whole number, or none at all (the thin car), mileage or none");
+  ok(sl["2016 Mercedes-Benz C63 AMG"] && sl["2016 Mercedes-Benz C63 AMG"].price === null, "the thin car has no sample price or monthly (no range to sit inside)"); }
 ok(/"This car has sold before" : "This car was listed before"/.test(js), "the history popup heading: sold before only when a prior listing sold");
 const d = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
 ok(/if \(!isCrewRequest\(req\) && !isPartnerRequest\(req\)\) return notFound\(res\);[\s\S]*req\.query\.img === "amazon-logo"[\s\S]*req\.query\.p === "amazon"/.test(d), "the Amazon page and its logo sit behind the same gate (crew cookie or partner cookie)");

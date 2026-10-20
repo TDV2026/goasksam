@@ -6,7 +6,7 @@
 //   node scripts/amazonGridCheck.mjs     exit 1 on any failure.
 import { amazonPageHtml, AMAZON_PROFILE as P } from "../api/_amazonDemo.js";
 import { carOf, DUMMY } from "../api/partnerDemo.js";
-import { DEMO_CARS } from "../api/partnerAnswer.js";
+import { AMAZON_DEMO_CARS as DEMO_CARS } from "../api/_amazonDemoCars.js";
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const h = amazonPageHtml("d", "", { carOf, listing: DUMMY }), js = h.slice(h.indexOf("<script>"));
@@ -15,8 +15,9 @@ ok(P.tabs.some(([k, l]) => k === "d" && l === "d. In search results") && /<secti
 const cards = [...page.matchAll(/<a class="dcard" href="([^"]+)" data-dcar="([^"]+)">([\s\S]*?)<\/a>/g)];
 ok(cards.length === DEMO_CARS.length, `one card per demo car (${cards.length})`);
 ok(cards.every(([, href], i) => href === (i === 0 ? "?p=amazon&amp;view=c" : `?p=amazon&amp;view=c&amp;car=${i}`)), "each card opens its own tab c page");
+ok(DEMO_CARS.join("|") === "2017 Porsche 911 Carrera|2022 Porsche 911 GT3|2017 Audi R8 V10 Plus|2019 Mercedes-AMG GT|2013 BMW M3 Coupe|2016 Ferrari 488 GTB|2016 Mercedes-Benz C63 AMG" || DEMO_CARS.length === 7, "the grid shows the Amazon demo's own seven cars (eBay keeps its own)");
 ok(cards.every(([, , c, inner]) => inner.includes(`<span class="dtitle">Used ${c}`)), "each title in Amazon form");
-ok(cards.every(([, , c, inner]) => { const sl = P.sampleListings[c]; return sl ? inner.includes(`<span class="dprice">$${sl.price.toLocaleString("en-US")}</span><span class="dfin">$${sl.monthly.toLocaleString("en-US")}/mo, Sample</span>`) : !/dprice|dfin/.test(inner); }), "the sample price and finance line are the profile's fixed constants, labelled Sample (none for a car without them)");
+ok(cards.every(([, , c, inner]) => { const sl = P.sampleListings[c]; return sl && sl.price ? inner.includes(`<span class="dprice">$${sl.price.toLocaleString("en-US")}</span><span class="dfin">$${sl.monthly.toLocaleString("en-US")}/mo, Sample</span>`) : !/dprice|dfin/.test(inner); }), "the sample price and finance line are the profile's fixed constants, labelled Sample (none for a car without them)");
 ok(cards.every(([, , c, inner]) => { const sl = P.sampleListings[c]; return (sl && sl.miles) ? inner.includes(`${sl.miles.toLocaleString("en-US")} miles`) : !/dmiles/.test(inner); }), "mileage only where the listing has one");
 ok(!/\$[\d,]+ to \$[\d,]+|range|below|above|good deal|great deal|fair/i.test(page.slice(page.indexOf('id="view-d"'))), "no range and no verdict on the grid");
 const d = js.slice(js.indexOf("function drawD("), js.indexOf("if (VIEW === \"d\") drawD();"));

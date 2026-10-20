@@ -7,11 +7,34 @@
 // only links are the demo's own tabs and "How Sam decides". Served by api/partnerDemo.js at /preview?p=amazon, behind
 // the same gate (the signed crew cookie or the partner cookie), noindex.
 import { SELLS_FOR_CARD_CSS } from "../lib/sellsForCard.js";
-import { DEMO_CARS } from "./partnerAnswer.js";
+import { AMAZON_DEMO_CARS } from "./_amazonDemoCars.js";   // the Amazon demo's own seven (Sam approved); eBay keeps DEMO_CARS
 import { demoAnswerCase, OUT_OF_SCOPE_LINE } from "../lib/amazonDemoCase.js";
 
 // THE PROFILE (presentation only). makeScope: the pilot's enthusiast and specialty cars (Sam approves the list); a car
 // outside it shows no module. Each entry: a make, and the models in scope (["*"] for every model of the make).
+// THE SAMPLE LISTING FIGURES (Sam, Oct 20 2026; approved with the seven cars): FIXED, hand-set per-car constants, in the
+// order of AMAZON_DEMO_CARS, labelled Sample; never computed in the browser and never from an engine figure. price: a
+// round dealer-style sample asking price set inside the car's own engine range (shown only inside it); monthly: one fixed
+// formula ($3,500 down, 72 months, 7.98% APR), rounded; miles: the car's own last sale (null until confirmed). The thin
+// car has no price and no monthly (no range to sit inside).
+const SAMPLE_BY_CAR = [
+  { price: 84900, monthly: 1426, miles: 14800 },    // 2017 Porsche 911 Carrera
+  { price: 249900, monthly: 4318, miles: 7000 },    // 2022 Porsche 911 GT3
+  { price: 154900, monthly: 2653, miles: 24000 },   // 2017 Audi R8 V10 Plus
+  { price: 104900, monthly: 1777, miles: null },    // 2019 Mercedes-AMG GT (mileage from the plain GT, after Lane E's read)
+  { price: 49900, monthly: 813, miles: 57000 },     // 2013 BMW M3 Coupe
+  { price: 229900, monthly: 3967, miles: 18000 },   // 2016 Ferrari 488 GTB
+  { price: null, monthly: null, miles: 70600 }      // 2016 Mercedes-Benz C63 AMG (thin: no price)
+];
+function sampleListingsOf() { const o = {}; AMAZON_DEMO_CARS.forEach((c, i) => { if (SAMPLE_BY_CAR[i]) o[c] = SAMPLE_BY_CAR[i]; }); return o; }
+// The Amazon page's own car word: a digit opens that demo car, a demo car's name opens it, and ANY other VIN or car typed
+// opens as typed (Sam: "any VIN and any YMM"); anything else opens the first demo car.
+export function amazonCarOf(v) {
+  const t = String(v == null ? "" : v).replace(/\s+/g, " ").trim();
+  if (/^\d$/.test(t) && Number(t) < AMAZON_DEMO_CARS.length) return AMAZON_DEMO_CARS[Number(t)];
+  const hit = AMAZON_DEMO_CARS.find(c => c.toLowerCase() === t.toLowerCase());
+  return hit || (/^[\p{L}\p{N}][\p{L}\p{N} .,'&/()+-]{1,59}$/u.test(t) && /\p{L}/u.test(t) ? t : AMAZON_DEMO_CARS[0]);
+}
 export const AMAZON_PROFILE = {
   key: "amazon",
   name: "Amazon Autos",
@@ -32,14 +55,7 @@ export const AMAZON_PROFILE = {
   // never computed in the browser and never from an engine figure. price: the sample asking price (shown only when it
   // sits inside the engine's own range); monthly: the sample finance figure, from one fixed formula ($3,500 down,
   // 72 months, 7.98% APR), rounded; miles: the listing's own mileage, only where the listing has one (else no line).
-  sampleListings: {
-    "2014 Porsche 911 GT3": { price: 120000, monthly: 2041, miles: 30400 },
-    "2015 Porsche 911 GT3": { price: 120000, monthly: 2041, miles: null },
-    "2005 Porsche 911": { price: 40000, monthly: 640, miles: null },
-    "1965 Ford Mustang": { price: 50000, monthly: 815, miles: null },
-    "1957 Porsche 356 Speedster": { price: 260000, monthly: 4495, miles: null },
-    "2023 Porsche 911 GT3": { price: 250000, monthly: 4320, miles: null }
-  },
+  sampleListings: sampleListingsOf(),
   historyDisplay: { a: "inline", b: "inline", c: "link" },
   // A LISTING is one specific car, so its body is known: a demo car the engine reads by body is listed with one (the
   // sample listing's own body, read by the engine as that car). Tabs a and b keep the engine's question, with its options.
@@ -335,10 +351,12 @@ const JS = String.raw`
   // The car's title in Amazon form, from the answer's own identity (never the VIN): "Used {year} {make} {model}".
   function amazonTitle(a){
     var d = a && a.vinDecode, id = a && a.identity, words = [];
-    if (d && d.year && d.make && d.model) { words = [d.year, d.make, d.model]; if (d.trim) words.push(d.trim); if (d.body) words.push(d.body); }
+    // The decode names the car; the engine's own trim fills in when the decode has none (a 2014 911 GT3's decode says "911").
+    if (d && d.year && d.make && d.model) { words = [d.year, d.make, d.model]; var tr = d.trim || (id && id.variant); if (tr) words.push(tr); if (d.body || (id && id.body)) words.push(d.body || id.body); }
     else if (id && id.year && id.make && id.model) { words = [id.year, id.make, id.model]; if (id.variant) words.push(id.variant); if (id.body) words.push(id.body); }
     else if (a && a.carName) words = [a.carName];
     if (!words.length) return null;
+    words = words.map(function(w){ w = String(w); return /^[a-z]/.test(w) ? w.charAt(0).toUpperCase() + w.slice(1) : w; });   // "coupe" reads "Coupe"
     var seen = [], out = [];
     words.forEach(function(w){ w = String(w); var low = w.toLowerCase(); if (seen.join(" ").indexOf(low) < 0) { out.push(w); seen.push(low); } });
     return "Used " + out.join(" ");
@@ -434,12 +452,12 @@ const JS = String.raw`
 export function amazonPageHtml(view, carIn, { carOf, listing }) {
   const P = AMAZON_PROFILE;
   const v = /^[abcd]$/.test(view || "") ? view : "c";
-  const car = carOf(carIn), chosen = String(carIn == null ? "" : carIn).trim() !== "";
+  const car = amazonCarOf(carIn), chosen = String(carIn == null ? "" : carIn).trim() !== "";
   const hasListing = listing && car === listing.q;
   const listCar = P.listingBody[car] ? car + " " + P.listingBody[car] : car;
   // tab c: an out-of-scope listing, known from its own words, draws no Market Check module and makes no read
   const outC = v === "c" && scopeFromWords(car, new Date().getFullYear(), { age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS }) === false;
-  const carQ = k => `?p=amazon&view=${k}${car === DEMO_CARS[0] ? "" : "&car=" + encodeURIComponent(car)}`;
+  const carQ = k => `?p=amazon&view=${k}${car === AMAZON_DEMO_CARS[0] ? "" : "&car=" + encodeURIComponent(car)}`;
   const tab = (k, label) => `<a href="${escHtml(carQ(k))}"${k === v ? ' aria-current="page"' : ""}>${label}</a>`;
   const carBar = `<div class="carbar"><div class="wrap"><form class="carpick" id="car-form" method="get" action="/preview"><input type="hidden" name="p" value="amazon"><input type="hidden" name="view" value="${v}"><label for="car-in">Car</label><input id="car-in" name="car" value="${chosen ? escHtml(car) : ""}" autocomplete="off" maxlength="60" placeholder="Type your car or paste a VIN"><button class="btn out" type="submit">Show</button></form></div></div>`;
   const sy = /^(\d{4})\b/.exec(car), year = sy ? sy[1] : null;
@@ -486,11 +504,11 @@ export function amazonPageHtml(view, carIn, { carOf, listing }) {
   // constants), and ONE neutral marker read from that car's STORED partner answer ("Sold before" when its VIN has sold,
   // else "Market Check"); no range, no verdict, no live engine call from the page. A card opens its tab c page.
   const dCard = (c, i) => { const sl = P.sampleListings[c] || null, body = P.listingBody[c] ? " " + P.listingBody[c] : "";
-    return `<a class="dcard" href="${escHtml(`?p=amazon&view=c${i === 0 ? "" : "&car=" + i}`)}" data-dcar="${escHtml(c)}"><span class="dph" data-dph></span><span class="dtx"><span class="dtitle">${escHtml("Used " + c + body)}</span>${sl && sl.miles ? `<span class="dmiles">${sl.miles.toLocaleString("en-US")} miles</span>` : ""}<span class="dchips" data-dchips></span>${sl ? `<span class="dprice">${"$" + sl.price.toLocaleString("en-US")}</span><span class="dfin">${"$" + sl.monthly.toLocaleString("en-US")}/mo, Sample</span>` : ""}<span class="dmark" data-dmark hidden></span></span></a>`; };
+    return `<a class="dcard" href="${escHtml(`?p=amazon&view=c${i === 0 ? "" : "&car=" + i}`)}" data-dcar="${escHtml(c)}"><span class="dph" data-dph></span><span class="dtx"><span class="dtitle">${escHtml("Used " + c + body)}</span>${sl && sl.miles ? `<span class="dmiles">${sl.miles.toLocaleString("en-US")} miles</span>` : ""}<span class="dchips" data-dchips></span>${sl && sl.price ? `<span class="dprice">${"$" + sl.price.toLocaleString("en-US")}</span><span class="dfin">${"$" + sl.monthly.toLocaleString("en-US")}/mo, Sample</span>` : ""}<span class="dmark" data-dmark hidden></span></span></a>`; };
   const viewD = `
 <section class="wrap" id="view-d"${v === "d" ? "" : " hidden"}>
   <h1 class="dhead">Used cars</h1><p class="sample-tag">Sample results</p>
-  <div class="dgrid">${DEMO_CARS.map(dCard).join("")}</div>
+  <div class="dgrid">${AMAZON_DEMO_CARS.map(dCard).join("")}</div>
 </section>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><title>What these sell for</title><style>${CSS}${SELLS_FOR_CARD_CSS}</style></head><body>
@@ -517,5 +535,5 @@ ${carBar}
 ${viewC}
 ${viewD}
 </main>
-<script>${JS.replace("__LISTCAR__", JSON.stringify(listCar)).replace("__SAMPLES__", JSON.stringify(P.sampleListings)).replace("__LISTBODY__", JSON.stringify(P.listingBody)).replace("__OOSLINE__", JSON.stringify(OUT_OF_SCOPE_LINE)).replace("__CASEFN__", () => demoAnswerCase.toString()).replace("__CONTEXT__", JSON.stringify(P.cardContext)).replace("__CAR__", JSON.stringify(car)).replace("__OUTSCOPE__", JSON.stringify(outC)).replace("__CARS__", JSON.stringify(DEMO_CARS)).replace("__SCOPE__", JSON.stringify({ age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS })).replace("__KNOWNMAKES__", JSON.stringify(KNOWN_MAKES)).replace("__MAKEWORDS__", JSON.stringify(MAKE_WORDS)).replace("__FROMWORDS__", scopeFromWords.toString()).replace("__INSCOPE__", amazonInScope.toString()).replace("__VIEW__", JSON.stringify(v)).replace("__LIST__", JSON.stringify(hasListing ? { vin: listing.vin } : null)).replace("__CHOSEN__", JSON.stringify(chosen))}</script></body></html>`;
+<script>${JS.replace("__LISTCAR__", JSON.stringify(listCar)).replace("__SAMPLES__", JSON.stringify(P.sampleListings)).replace("__LISTBODY__", JSON.stringify(P.listingBody)).replace("__OOSLINE__", JSON.stringify(OUT_OF_SCOPE_LINE)).replace("__CASEFN__", () => demoAnswerCase.toString()).replace("__CONTEXT__", JSON.stringify(P.cardContext)).replace("__CAR__", JSON.stringify(car)).replace("__OUTSCOPE__", JSON.stringify(outC)).replace("__CARS__", JSON.stringify(AMAZON_DEMO_CARS)).replace("__SCOPE__", JSON.stringify({ age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS })).replace("__KNOWNMAKES__", JSON.stringify(KNOWN_MAKES)).replace("__MAKEWORDS__", JSON.stringify(MAKE_WORDS)).replace("__FROMWORDS__", scopeFromWords.toString()).replace("__INSCOPE__", amazonInScope.toString()).replace("__VIEW__", JSON.stringify(v)).replace("__LIST__", JSON.stringify(hasListing ? { vin: listing.vin } : null)).replace("__CHOSEN__", JSON.stringify(chosen))}</script></body></html>`;
 }
