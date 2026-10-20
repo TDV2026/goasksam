@@ -10652,3 +10652,26 @@ Search check: no public page wording changed by the server alone; the client shi
 - PUSH LOCK (Lane C, 2026-10-20T09:20:06Z): BUY COMPOSER CLIENT, THE SEARCHING LINE and TWO AMAZON DEMO FIXES, one FULL prePush, five commits each revertable alone (lanec-slcomp, on Lane E's re-pushed composer server: the composer client, the outcome line, the zip box kept for the visit, the server's unsupported line, up to three suggestions, then 'N more don't say where they are' from meta.unstatedPlace; the searching line, 'Sam is searching {site} for your car' over the sixteen live sites, stopping the moment the answer is here; the demo serves a stored answer only when it carries its sale rows (the 275 GTB card's missing sales); tab c decides scope from the listing's own words, so an out-of-scope listing draws no module and makes no read (the Corolla)), Sam's decisions 9 and 10, tier FULL, FULL prePush alone from 09:20Z. Push only on 0 FAIL or timing lines. Revert on a delayed result, an input with no visible outcome, any count, range or line changing, a bare money number, or a broken search.
 - PUSHED (Lane C, 2026-10-20T09:32:17Z): BUY COMPOSER CLIENT, THE SEARCHING LINE and TWO AMAZON DEMO FIXES, five commits each revertable alone, tip 07825748 at 09:31:26Z, Vercel Ready 09:31:57Z: the composer client (on Lane E's second-ship server), the 'N more don't say where they are' line, the searching line (Sam's decision 10), the stored demo answer served only with its sale rows, tab c scope from the listing's own words (no module and no read outside scope). FULL prePush 0 FAIL, 65 PASS, 5 SKIP. Looks 09:33 to 09:34:50Z and 09:56 to 10:00Z. Lock released.
 - PUSHED (Lane B, 2026-10-20T09:46Z): range rules (switches OFF) and task=rangepreview, 83a53a3e, pushed on 0 FAIL. Lock released. Live look and one preview read 09:48 to 09:55Z. Revert on any change to a count, range or line while the switches are off.
+- FOR SAM (Lane B, 2026-10-20T09:55Z), the F430 gearbox question, the archive as it reads (Market Check's own sales, read 09:54Z; full table at ~/Desktop/goasksam-proofs/handoff/f430-gearbox-rows.txt).
+  CORRECTION FIRST: my 09:50Z line to Lane F ("a Manual refinement on a 2006 F430 finds ZERO manuals") was WRONG. The engine reads the archive's stored gearbox field as well as the title, and Bring a Trailer and Cars & Bids store "Manual (6-speed)" on the manual cars. So today a Manual refinement finds 5 manual 2006 F430 Spiders. What is true: only ONE sale reads as F1 today (its stored field says "Automatic (6-speed)"), so the manual/F1 split is 5 against 1, the existing split gate needs 5 on each side, and rule 2 (gearbox first) cannot fire.
+  2006 F430 SPIDER, 16 sales, newest first (price, date, title gearbox words, stored field, today, under the inference):
+    $143,000 Oct 13 2026, none, none, unknown, F1 (unstated)
+    $600,000 Oct 2 2026, 6-Speed, Manual (6-speed), manual, manual
+    $200,000 Sep 24 2026, none, (6-speed), unknown, F1 (unstated)
+    $207,500 Sep 10 2026, none, (6-speed), unknown, F1 (unstated)
+    $485,000 Aug 31 2026, 6-Speed, Manual (6-speed), manual, manual
+    $440,000 Aug 27 2026, 6-Speed, Manual (6-speed), manual, manual
+    $208,000 Aug 17 2026, none, (6-speed), unknown, F1 (unstated)
+    $177,000 Aug 5 2026, none, (6-speed), unknown, F1 (unstated)
+    $210,000 Aug 4 2026, none, none, unknown, F1 (unstated)
+    $123,000 Jul 19 2026, none, Automatic (6-speed), F1, F1
+    $220,000 Jun 24 2026, none, (6-speed), unknown, F1 (unstated)
+    $485,000 May 12 2026, 6-Speed, Manual (6-speed), manual, manual
+    $376,000 Apr 21 2026, 6-Speed, none, unknown, manual (the bare "6-Speed" title)
+    $292,000 Apr 20 2026 (Cars & Bids), none, Manual (6-speed), manual, manual
+    $180,000 Apr 9 2026, none, (6-speed), unknown, F1 (unstated)
+    $116,000 Dec 10 2025, none, (6-speed), unknown, F1 (unstated)
+  COUNTS: today manual 5, F1 1, unknown 10. Under the inference: manual 6, F1 10, and 9 of those 10 rest ONLY on "an unstated box is F1".
+  2002 360 SPIDER, 8 sales: today manual 1, F1 0, unknown 7; under the inference manual 1, F1 7 (all 7 on "unstated"). 2006 GALLARDO (coupe and Spyder together), 8 sales: today manual 0, E-Gear 3 (stored "Automatic (6-speed)"), unknown 5; under the inference E-Gear 8 (5 on "unstated"). The 2002 360 Modena read 0 sales (refused, label "2002 360, roadsters and coupes"), a separate oddity I note and do not chase now.
+  THE RISK, named: the inference rests mostly on the stored field "(6-speed)" with NO type word. On every one of these listings the manuals carry "Manual (6-speed)" and the one stated F1 carries "Automatic (6-speed)", so a bare "(6-speed)" is most likely an F1 car whose type word the listing left blank, but that is an inference, not a stated fact: a manual whose listing left the type word blank would be counted as F1, and its price would then sit in the F1 group. A narrower, safer form for Sam to consider: read only a TITLE "6-Speed" as manual (1 more manual, the $376,000 Apr 21 car) and leave every unstated car unknown. That does not open the split either (6 against 1).
+
