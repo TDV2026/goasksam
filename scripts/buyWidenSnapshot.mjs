@@ -28,20 +28,36 @@ for (const f of SETS) {
   let j = null, status = 0;
   try { const r = await fetch(BASE + "/api/buySearch", { method: "POST", headers: { "Content-Type": "application/json", "x-ops-key": KEY, "x-launch-stage-test": "2" }, body: JSON.stringify({ action: "rerun", filters: f, turns: 1 }) }); status = r.status; j = await r.json().catch(() => null); } catch (e) { status = 0; }
   const meta = (j && j.meta) || {}, ids = ((j && j.cards) || []).map(c => c.id).sort((a, b) => a - b);
-  const row = { key: JSON.stringify(f), status, ms: Date.now() - t0, live: meta.live ?? null, ids, widen: JSON.stringify(meta.widen ?? null) };
+  // THE POOL BEHIND EACH WIDENING (Lane F, Oct 20 2026): for a set of 0 to 2 cars, each widening's own wider search read
+  // directly (the same filters with the year, colour, gearbox or body dropped), so a widening whose count moved only
+  // because the live pool moved reads as a market move, not a code change.
+  const pools = {};
+  if ((meta.live ?? 0) <= 2) for (const w of meta.widen || []) {
+    const drop = { anyyear: ["year_min", "year_max"], anycolour: ["colour"], anygearbox: ["gearbox"], anybody: ["body"] }[w.kind];
+    if (!drop) continue;
+    const g = { ...f }; for (const k of drop) delete g[k];
+    try { const r2 = await fetch(BASE + "/api/buySearch", { method: "POST", headers: { "Content-Type": "application/json", "x-ops-key": KEY, "x-launch-stage-test": "2" }, body: JSON.stringify({ action: "rerun", filters: g, turns: 1 }) }); const j2 = await r2.json().catch(() => null); pools[w.kind] = j2 && j2.meta ? j2.meta.live ?? null : null; } catch { pools[w.kind] = null; }
+  }
+  const row = { key: JSON.stringify(f), status, ms: Date.now() - t0, live: meta.live ?? null, ids, widen: JSON.stringify(meta.widen ?? null), pools };
   rows.push(row);
   console.log(`${status} ${String(row.ms).padStart(6)} ms  live ${row.live}  widen ${row.widen.length > 160 ? row.widen.slice(0, 160) + "..." : row.widen}  ${row.key}`);
 }
 if (arg("out")) writeFileSync(arg("out"), JSON.stringify(rows, null, 1));
 if (arg("compare")) {
   const before = new Map(JSON.parse(readFileSync(arg("compare"), "utf8")).map(r => [r.key, r]));
-  let bad = 0, same = 0, nc = 0, big = 0;
+  let bad = 0, same = 0, nc = 0, big = 0, moved = 0;
   for (const a of rows) {
     const b = before.get(a.key); if (!b) continue;
     if (b.live > 2 && a.live > 2) { big++; console.log(`  LARGER SET (widen not shown): before ${b.live} cars, ${b.widen.length} bytes of widenings; after ${a.live} cars, ${a.widen}  ${a.key}`); continue; }
     if (JSON.stringify(a.ids) !== JSON.stringify(b.ids)) { nc++; console.log(`  NOT COMPARABLE (cars changed: before ${b.live}, after ${a.live})  ${a.key}`); continue; }
-    if (a.widen === b.widen) { same++; console.log(`  SAME  ${a.key}`); } else { bad++; console.log(`  CHANGED  ${a.key}\n    before ${b.widen}\n    after  ${a.widen}`); }
+    if (a.widen === b.widen) { same++; console.log(`  SAME  ${a.key}`); continue; }
+    // Only the counts moved, and each moved count equals the pool read directly at that moment: a market move.
+    const wa = JSON.parse(a.widen || "[]"), wb = JSON.parse(b.widen || "[]"), strip = w => JSON.stringify({ ...w, label: String(w.label).replace(/\s*\(\d+\)$/, ""), added: null, total: null });
+    const sameShape = wa.length === wb.length && wa.every((w, i) => strip(w) === strip(wb[i]));
+    const poolsMatch = wa.every((w, i) => JSON.stringify(w) === JSON.stringify(wb[i]) || (a.pools && a.pools[w.kind] === w.total && b.pools && b.pools[w.kind] === wb[i].total));
+    if (sameShape && poolsMatch) { moved++; console.log(`  MARKET MOVED (same widenings, each count equals its pool read directly)  ${a.key}`); continue; }
+    bad++; console.log(`  CHANGED  ${a.key}\n    before ${b.widen} pools ${JSON.stringify(b.pools || {})}\n    after  ${a.widen} pools ${JSON.stringify(a.pools || {})}`);
   }
-  console.log(`compare: ${same} same, ${bad} changed, ${nc} not comparable, ${big} larger sets`);
+  console.log(`compare: ${same} same, ${moved} market moved, ${bad} changed, ${nc} not comparable, ${big} larger sets`);
   process.exit(bad ? 1 : 0);
 }
