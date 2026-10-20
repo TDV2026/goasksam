@@ -21,6 +21,9 @@ export const AMAZON_PROFILE = {
   moduleName: "Market Check",
   attribution: "Powered by GoAskSam",
   historyDisplay: { a: "inline", b: "inline", c: "link" },
+  // A LISTING is one specific car, so its body is known: a demo car the engine reads by body is listed with one (the
+  // sample listing's own body, read by the engine as that car). Tabs a and b keep the engine's question, with its options.
+  listingBody: { "1965 Ford Mustang": "Fastback" },
   // THE PILOT SCOPE, APPROVED BY SAM (Oct 20 2026): rules, not a list (amazonInScope below).
   scopeRule: "Sam, Oct 20 2026: (a) 25 years old or older, any make; (b) any year, the listed makes; (c) any year, the listed models"
 };
@@ -138,7 +141,7 @@ main{padding-block:22px 48px}
 
 const JS = String.raw`
 (function(){
-  var CAR = __CAR__, CARS = __CARS__, SCOPE = __SCOPE__, VIEW = __VIEW__, LIST = __LIST__;
+  var LISTCAR = __LISTCAR__, CAR = __CAR__, CARS = __CARS__, SCOPE = __SCOPE__, VIEW = __VIEW__, LIST = __LIST__;
   var $ = function(id){ return document.getElementById(id); };
   var esc = function(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
   var usd = function(n){ return "$" + Math.round(Number(n)).toLocaleString("en-US"); };
@@ -165,7 +168,10 @@ const JS = String.raw`
   // when the path sends them; else the card without its rows). The page adds nothing to it.
   function cardHtml(a){
     if (!a || a.ok === false) return '<p class="muted">' + esc(a && a.stillReading ? (a.line || STILL_LINE) : COULD_NOT) + "</p>";
-    if (a.question) return '<p>' + esc(a.question.text || "") + "</p>";
+    if (a.question) {
+      var q = a.question, opts = (q.options || []).concat(q.skip ? [q.skip] : []);
+      return '<p>' + esc(q.text || "") + '</p><div class="nexts">' + opts.map(function(o){ return '<button type="button" class="btn out" data-qsend="' + esc(JSON.stringify(o.send || {})) + '">' + esc(o.label) + "</button>"; }).join("") + "</div>";
+    }
     var c = a.cardWithRows || a.card || ""; return c.replace('<div class="gas-pill-slot"></div>', "");
   }
   // The demo's sample asking price: a round figure inside the engine's range (the eBay demo's rule), none without a range,
@@ -202,6 +208,14 @@ const JS = String.raw`
   });
   document.addEventListener("keydown", function(e){ if (e.key === "Escape") { var sc = document.querySelector(".pop-scrim"); if (sc) sc.remove(); } });
   document.addEventListener("submit", function(e){ if (e.target.closest("[data-inert]")) e.preventDefault(); });
+  // The engine's own question: an option asks the engine again with that option's own words (the partner answer's send).
+  document.addEventListener("click", function(e){
+    var o = e.target.closest("[data-qsend]"); if (!o) return;
+    var send = {}; try { send = JSON.parse(o.getAttribute("data-qsend")); } catch (x) {}
+    var sec = o.closest("section"), v = sec ? sec.id.replace("view-", "") : "c";
+    var draw = v === "a" ? (typeof drawA === "function" ? drawA : drawC) : v === "b" ? (typeof drawB === "function" ? drawB : drawC) : drawC;
+    ask(send).then(draw);
+  });
   // TAB c: the vehicle page.
   function drawC(a){
     var ok = a && a.ok !== false;
@@ -218,7 +232,7 @@ const JS = String.raw`
     $("c-histsec").hidden = !HIST.length;
     if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ ask(body).then(drawC); }, a.retryAfterMs);
   }
-  var body = LIST && LIST.vin ? { q: CAR, vin: LIST.vin } : { q: CAR };
+  var body = LIST && LIST.vin ? { q: CAR, vin: LIST.vin } : { q: LISTCAR || CAR };
   if (VIEW === "c") ask(body).then(drawC);
 })();
 `;
@@ -228,6 +242,7 @@ export function amazonPageHtml(view, carIn, { carOf, listing }) {
   const v = /^[abc]$/.test(view || "") ? view : "c";
   const car = carOf(carIn), chosen = String(carIn == null ? "" : carIn).trim() !== "";
   const hasListing = listing && car === listing.q;
+  const listCar = P.listingBody[car] ? car + " " + P.listingBody[car] : car;
   const carQ = k => `?p=amazon&view=${k}${car === DEMO_CARS[0] ? "" : "&car=" + encodeURIComponent(car)}`;
   const tab = (k, label) => `<a href="${escHtml(carQ(k))}"${k === v ? ' aria-current="page"' : ""}>${label}</a>`;
   const carBar = `<div class="carbar"><div class="wrap"><form class="carpick" id="car-form" method="get" action="/preview"><input type="hidden" name="p" value="amazon"><input type="hidden" name="view" value="${v}"><label for="car-in">Car</label><input id="car-in" name="car" value="${chosen ? escHtml(car) : ""}" autocomplete="off" maxlength="60" placeholder="Type your car or paste a VIN"><button class="btn out" type="submit">Show</button></form></div></div>`;
@@ -240,7 +255,7 @@ export function amazonPageHtml(view, carIn, { carOf, listing }) {
   <div class="listing">
     <div><div class="gal" id="c-photo"></div></div>
     <div class="rail">
-      <h1>${escHtml(hasListing ? listing.title : car)}</h1><p class="sample-tag">Sample listing</p>
+      <h1>${escHtml(hasListing ? listing.title : listCar)}</h1><p class="sample-tag">Sample listing</p>
       <div id="c-price"></div>
       <div class="buybox">
         <button type="button" class="btn yel blk" data-inert>Check availability</button>
@@ -271,5 +286,5 @@ ${later("a", "What's your car going for?")}
 ${later("b", "List a car")}
 ${viewC}
 </main>
-<script>${JS.replace("__CAR__", JSON.stringify(car)).replace("__CARS__", JSON.stringify(DEMO_CARS)).replace("__SCOPE__", JSON.stringify({ age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS })).replace("__INSCOPE__", amazonInScope.toString()).replace("__VIEW__", JSON.stringify(v)).replace("__LIST__", JSON.stringify(hasListing ? { vin: listing.vin } : null))}</script></body></html>`;
+<script>${JS.replace("__LISTCAR__", JSON.stringify(listCar)).replace("__CAR__", JSON.stringify(car)).replace("__CARS__", JSON.stringify(DEMO_CARS)).replace("__SCOPE__", JSON.stringify({ age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS })).replace("__INSCOPE__", amazonInScope.toString()).replace("__VIEW__", JSON.stringify(v)).replace("__LIST__", JSON.stringify(hasListing ? { vin: listing.vin } : null))}</script></body></html>`;
 }
