@@ -154,6 +154,33 @@ export function demoCard(html, d) {
 
 const RANGE_MIN = 8;   // the engine's own RANGE_THRESHOLD: under eight sales there is no range, only words
 const VIN_RE = /^[A-HJ-NPR-Z0-9]{17}$/;
+// WHAT A TYPED INPUT IS (Lane C's R2-A look, Oct 20 2026): the VIN field (b.vin) is always a VIN, spaces and dashes
+// stripped; the free car box (b.q) is a VIN or a VIN attempt ONLY when it was typed as ONE token. "1971 Mercedes 280SE"
+// with its spaces stripped is 17 VIN-legal characters, and "BMW M3 E30 1988" looked like a short VIN attempt: a typed
+// year, make and model always goes to the engine as text. Returns the VIN to read, or the attempt that cannot be one.
+export function vinOfInput(b) {
+  const field = b && b.vin != null && String(b.vin).trim() !== "";
+  const raw = String(field ? b.vin : (b && b.q) || "").trim();
+  const oneToken = field || (raw !== "" && !/\s/.test(raw));
+  if (!oneToken) return { vin: "", attempt: "" };
+  const v = normVin(raw);
+  if (VIN_RE.test(v)) return { vin: v, attempt: "" };
+  const t = raw.replace(/\s+/g, "").toUpperCase();
+  return { vin: "", attempt: /^[A-Z0-9]{11,17}$/.test(t) && (t.match(/\d/g) || []).length >= 3 && !/^(19|20)\d\d[A-Z]/.test(t) ? t : "" };
+}
+// THE CHECK DIGIT (49 CFR 565.15, every 1981 and later VIN for a car sold in the US): position 9 is computed from the
+// other sixteen. A VIN that fails it is mistyped; the free decode still names the car from its first eleven characters
+// (WBSBF932XSEH0062Z read as the 1995 M3), so the check is what tells a typo from the car.
+const VIN_VAL = { A: 1, B: 2, C: 3, D: 4, E: 5, F: 6, G: 7, H: 8, J: 1, K: 2, L: 3, M: 4, N: 5, P: 7, R: 9, S: 2, T: 3, U: 4, V: 5, W: 6, X: 7, Y: 8, Z: 9 };
+const VIN_W = [8, 7, 6, 5, 4, 3, 2, 10, 0, 9, 8, 7, 6, 5, 4, 3, 2];
+export function vinCheckDigitOk(vin) {
+  const v = normVin(vin);
+  if (!VIN_RE.test(v)) return false;
+  let sum = 0;
+  for (let i = 0; i < 17; i++) { const c = v[i]; sum += (/\d/.test(c) ? Number(c) : VIN_VAL[c]) * VIN_W[i]; }
+  const r = sum % 11;
+  return v[8] === (r === 10 ? "X" : String(r));
+}
 // Sam's words (Amazon demo, revision 2, item 8a, Oct 20 2026).
 export const VIN_UNREADABLE_LINE = "We couldn't read that VIN. Check it, or type the year, make and model.";
 
@@ -495,7 +522,7 @@ export default async function handler(req, res) {
   let refine = null;
   try { refine = cleanRefine(typeof b.refine === "string" ? JSON.parse(b.refine) : b.refine); } catch { refine = null; }
   const asked = Math.max(0, Math.min(9, Number(b.asked) || 0));
-  const vinIn = normVin(b.vin || (VIN_RE.test(normVin(b.q)) ? b.q : ""));
+  const inputKind = vinOfInput(b), vinIn = inputKind.vin;
   let text = String(b.q || [b.year, b.make, b.model].filter(Boolean).join(" ") || "").replace(/\s+/g, " ").trim().slice(0, 120);
   // ANY CAR (Sam, Oct 18 2026): every read on the demo, its six cars and any other car, is bounded by the demo's own
   // per-device ceiling (lib/_ceilings.js partner_demo) and reads Market Check's engine with no visitor address or
@@ -508,8 +535,8 @@ export default async function handler(req, res) {
   // A VIN THAT CANNOT BE READ (Sam's Amazon demo, revision 2, item 8a; Lane E, Oct 20 2026): a typed run of 11 to 17
   // letters and digits with three or more digits and no space is a VIN attempt; one that is not a valid 17-character VIN
   // gets Sam's line, never a silent empty page and never a car search on the raw characters.
-  const typed = String(b.vin || b.q || "").replace(/\s+/g, "").toUpperCase();
-  if (!(vinIn && VIN_RE.test(vinIn)) && /^[A-Z0-9]{11,17}$/.test(typed) && (typed.match(/\d/g) || []).length >= 3 && !/^(19|20)\d\d[A-Z]/.test(typed)) {
+  if (inputKind.attempt) {
+    const typed = inputKind.attempt;
     return res.status(200).json({ ok: true, query: typed, engineVersion: null, answerType: "vin_unreadable", line: VIN_UNREADABLE_LINE, identity: null, range: null, count: null, window: null, sales: [], history: null });
   }
   if (vinIn && VIN_RE.test(vinIn)) {
@@ -520,6 +547,12 @@ export default async function handler(req, res) {
     // auction appearance) and gives its key features, only the fields the decode holds. The archive's identity, when it
     // exists, still names the car; the decode then only adds the features.
     vinDecode = await decodeVinFacts(vinIn).catch(() => null);
+    // A MISTYPED VIN (Lane C's R2-A look; Sam's option A): no EXACT archive record of this VIN (an exact record is the
+    // proof the VIN is real, so a recorded car whose check digit fails is still read as that exact car, with its
+    // history), the decode names a 1981 or later car (only cars sold in the US decode, and those all carry the check digit), position 9 is a digit or X (a European-market VIN often carries
+    // a filler such as Z there and is never checked), and the check digit fails: Sam's unreadable line, never the
+    // car the first eleven characters happen to name.
+    if (!(h && h.appearances && h.appearances.length) && vinDecode && vinDecode.readable && Number(vinDecode.year) >= 1981 && /[0-9X]/.test(vinIn[8]) && !vinCheckDigitOk(vinIn)) return res.status(200).json({ ok: true, query: vinIn, engineVersion: null, answerType: "vin_unreadable", line: VIN_UNREADABLE_LINE, identity: null, range: null, count: null, window: null, sales: [], history: null });
     if (!id && vinDecode && vinDecode.readable && vinDecode.make && vinDecode.model) id = { year: vinDecode.year, make: vinDecode.make, model: vinDecode.model, family: vinDecode.model, trim: vinDecode.trim || null, fromDecode: true };
     if (vinDecode && vinDecode.readable === false && !id) return res.status(200).json({ ok: true, query: vinIn, engineVersion: null, answerType: "vin_unreadable", line: VIN_UNREADABLE_LINE, identity: null, range: null, count: null, window: null, sales: [], history });
     if (!text || VIN_RE.test(normVin(text))) text = id ? [id.year, id.make, id.family || id.model].filter(Boolean).join(" ") : "";
