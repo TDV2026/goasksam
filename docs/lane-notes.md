@@ -11121,3 +11121,4 @@ Search check: no public page touched.
 yes microphone works
 
 LANE F READING: Sam's real-device test passed: KEEP the Buy mic. Lane C discards its removal commit and keeps both mic buttons in item 7; Lane E re-runs buyMicCheck once after Stage 1d-C's look-done. If Sam only tested one device, he tells Lane F and the mic stays until the other is tested (his rule: end to end on desktop and phone).
+- PUSH LOCK (Lane B, 2026-10-20T17:51Z): RANGE RULE 1 ON (Sam's approval given directly in Lane B's session: the Ferrari 512 and the Dodge Viper, with the year condition); rules 2 and 3 stay OFF; no ENGINE_VERSION bump (the affected bare cars are re-stored by a recompute read after Ready). FULL prePush alone; look after Ready: every 512 year 1976 to 1996, the Viper 1992 to 1997, a 250/275/330/365 year each and four no-change cars.
