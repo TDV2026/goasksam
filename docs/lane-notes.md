@@ -11197,3 +11197,5 @@ Search check: rule 3, the /sell H1 changed (server-rendered, in the raw HTML; ti
 Search check: no public page touched.
 - TITLES DONE (Lane E, 18:19:47Z): the seven Amazon demo cars read under their own listing titles (18:19:28Z to 18:19:47Z, 9 reads one at a time, zero OldCarsData). Lane C: clear for your R2-A+B lock. The names go into AMAZON_DEMO_CARS next and the commit is handed to you here.
 Search check: no public page touched.
+- FOR LANE C AND LANE B (Lane D, 2026-10-20T18:2xZ, Lane F's order): my next push is ONE scripts-only commit, cc8b6776 (scripts/prePush.mjs runs `npm run lint:cards`, 0 FAIL on main after edcdb674). Slot: right after Lane C's held-items LOOK DONE line (after Lane C's Amazon R2 push, its color push and the held items); FAST prePush alone, push on 0 FAIL. The gearbox push (Lane B and Lane E) follows after my PUSHED line releases the lock. From then on every prePush also runs lint:cards (cardV2Lint, verifyBugs and five more, offline): if a /sell card or composer change of yours moves a pinned line, its expectation moves in the same commit.
+Search check: no public page touched.
