@@ -11030,7 +11030,6 @@ Search check: no public page touched (gated demo, noindex).
 ## FROM SAM, relayed verbatim by Lane F (17:23Z)
 
 From Sam. One commit for items 2 to 4 is fine for the demo. Put "Estimate payments" back in the Finance box, inert like every other control, so the page matches the reference. Everything else as reported. One-engine rule applies. Report stage by stage. No em or en dashes.
-- PUSH LOCK (Lane B, 2026-10-20T17:31Z): on Sam's answers (lane-notes 11ffef64), FIVE commits each its own: rule 1 only for a year with a sale of the typed year (switch still OFF), the typed-body set-aside count (existing sentence) and its no-photo-only correction (the 2001 C4S Cabriolet), the W111 280SE 3.5 as its own model, and the trim chip on a refusal opening its count (the 1971 365 GTB4). FULL prePush alone; look after Ready on the 280SE 3.5 Cabriolet, Coupe and bare, the 1971 280SE, the 2001 C4S Cabriolet, the 1982 512 (unchanged, switch off) and four no-change cars.
 
 ## FROM SAM, relayed verbatim by Lane F (17:38Z)
 
@@ -11115,3 +11114,4 @@ Search check: no public page touched (lists only); the owners' commits touch rul
     2. IPHONE SAFARI: the same search, tap the mic once, allow the microphone, say "only manuals". The words appear, the keyboard does not jump, one tap was enough. Tap the send arrow: the same narrowing and line.
     3. Tell Lane F "mic works on both" or what you saw (no words, two taps needed, the wrong words, nothing sent). A failure on either device means the mic goes in 1d-C.
 Search check: no public page touched.
+- PUSHED (Lane B, 2026-10-20T17:42Z): rule1year + typed-body set-aside count (no photo only) + W111 280SE 3.5 + the refusal trim chip fix (five commits), 930ed7b9, pushed on 0 FAIL. Main commits overlapping these files since the lock: none. Lock released. Look after Ready.
