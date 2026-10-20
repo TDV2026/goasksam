@@ -56,5 +56,11 @@ ok(!/price|range|sales|count/i.test(amazonInScope.toString()), "the scope reads 
   ok(/id="c-mc"/.test(inn) && /OUT_OF_SCOPE = false/.test(inn), "the 275 GTB listing: the module is there and the page reads");
   ok(/if \(VIEW === "c" && !OUT_OF_SCOPE\) ask\(body\)\.then\(drawC\)/.test(out), "tab c reads only when the listing is not out of scope");
   ok(/OUT_OF_SCOPE = false/.test(amazonPageHtml("c", "Citroen DS", { carOf, listing: DUMMY })), "an undecided listing still reads, and the answer decides"); }
+// TABS a AND b (Lane F, Oct 20 2026): typed words decide the same way before any read; undecided words read as before.
+{ const ha = amazonPageHtml("a", "", { carOf, listing: DUMMY });
+  ok(ha.includes("scopeFromWords = " + scopeFromWords.toString()) && /function wordsOut\(q\)\{ return scopeFromWords\(q, new Date\(\)\.getFullYear\(\), SCOPE\) === false; \}/.test(ha), "tabs a and b run scopeFromWords itself on the typed words");
+  ok(/if \(wordsOut\(q\)\) \{ \$\("a-out"\)\.innerHTML = ""; return; \} \$\("a-out"\)\.innerHTML = '<p class="loading">/.test(ha) && /if \(wordsOut\(q\)\) \{ \$\("b-out"\)\.innerHTML = ""; return; \} \$\("b-out"\)\.innerHTML = '<p class="loading">/.test(ha), "an out-of-scope typed car draws nothing and makes no read, before the Reading line");
+  const m = /var KNOWN_MAKES = (.*?), MAKE_WORDS = (.*?), scopeFromWords = /.exec(ha);
+  ok(m && JSON.parse(m[1]).length > 40 && JSON.parse(m[2]).length > 3, "the page carries the known makes and the make words"); }
 console.log(`amazonScopeCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -194,6 +194,9 @@ const JS = String.raw`
   // THE PILOT SCOPE (the profile's makeScope): the answer's own make and model against the list; outside it, no module.
   // Sam's approved rules, the same function the server's check runs (amazonInScope), relative to this year.
   var amazonInScope = __INSCOPE__;
+  // the same scope on typed words (scopeFromWords): an out-of-scope car named by year and a known make reads nothing
+  var KNOWN_MAKES = __KNOWNMAKES__, MAKE_WORDS = __MAKEWORDS__, scopeFromWords = __FROMWORDS__;
+  function wordsOut(q){ return scopeFromWords(q, new Date().getFullYear(), SCOPE) === false; }
   function inScope(a){ return amazonInScope(a && a.identity, new Date().getFullYear(), SCOPE); }
   // The shared card, as the partner answer draws it (cardWithRows: the engine's own sale rows, in the engine's order,
   // when the path sends them; else the card without its rows). The page adds nothing to it.
@@ -274,7 +277,7 @@ const JS = String.raw`
     out.innerHTML = inlineHist((a && a.history) || []) + cardHtml(a);
     if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ goA(); }, a.retryAfterMs);
   }
-  function goA(){ var q = String(($("a-q") || {}).value || "").trim(); if (!q) return; $("a-out").innerHTML = '<p class="loading">Reading the sales for this one.</p>'; ask({ q: q }).then(drawA); }
+  function goA(){ var q = String(($("a-q") || {}).value || "").trim(); if (!q) return; if (wordsOut(q)) { $("a-out").innerHTML = ""; return; } $("a-out").innerHTML = '<p class="loading">Reading the sales for this one.</p>'; ask({ q: q }).then(drawA); }
   // TAB b, DEALER LISTS A CAR: VIN in; this car's history inline and the same shared card, ABOVE the asking price field.
   // No pricing advice, no suggested price: the price field is the dealer's and stays empty.
   function drawB(a){
@@ -284,7 +287,7 @@ const JS = String.raw`
     if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ goB(); }, a.retryAfterMs);
   }
   // The listing car opens by its name; its VIN goes with the read (for its history) and is never printed.
-  function goB(){ var q = String(($("b-vin") || {}).value || "").trim(); if (!q) return; $("b-out").innerHTML = '<p class="loading">Reading the sales for this one.</p>'; ask(LIST && LIST.vin && q === CAR ? { q: q, vin: LIST.vin } : { q: q }).then(drawB); }
+  function goB(){ var q = String(($("b-vin") || {}).value || "").trim(); if (!q) return; if (wordsOut(q)) { $("b-out").innerHTML = ""; return; } $("b-out").innerHTML = '<p class="loading">Reading the sales for this one.</p>'; ask(LIST && LIST.vin && q === CAR ? { q: q, vin: LIST.vin } : { q: q }).then(drawB); }
   document.addEventListener("click", function(e){ if (e.target.closest("[data-a-go]")) goA(); if (e.target.closest("[data-b-go]")) goB(); });
   document.addEventListener("keydown", function(e){ if (e.key !== "Enter") return; if (e.target.id === "a-q") { e.preventDefault(); goA(); } if (e.target.id === "b-vin") { e.preventDefault(); goB(); } });
   // A car chosen in the bar opens on tabs a and b already read (the same one read per page as tab c).
@@ -356,5 +359,5 @@ ${carBar}
 </section>
 ${viewC}
 </main>
-<script>${JS.replace("__LISTCAR__", JSON.stringify(listCar)).replace("__CAR__", JSON.stringify(car)).replace("__OUTSCOPE__", JSON.stringify(outC)).replace("__CARS__", JSON.stringify(DEMO_CARS)).replace("__SCOPE__", JSON.stringify({ age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS })).replace("__INSCOPE__", amazonInScope.toString()).replace("__VIEW__", JSON.stringify(v)).replace("__LIST__", JSON.stringify(hasListing ? { vin: listing.vin } : null)).replace("__CHOSEN__", JSON.stringify(chosen))}</script></body></html>`;
+<script>${JS.replace("__LISTCAR__", JSON.stringify(listCar)).replace("__CAR__", JSON.stringify(car)).replace("__OUTSCOPE__", JSON.stringify(outC)).replace("__CARS__", JSON.stringify(DEMO_CARS)).replace("__SCOPE__", JSON.stringify({ age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS })).replace("__KNOWNMAKES__", JSON.stringify(KNOWN_MAKES)).replace("__MAKEWORDS__", JSON.stringify(MAKE_WORDS)).replace("__FROMWORDS__", scopeFromWords.toString()).replace("__INSCOPE__", amazonInScope.toString()).replace("__VIEW__", JSON.stringify(v)).replace("__LIST__", JSON.stringify(hasListing ? { vin: listing.vin } : null)).replace("__CHOSEN__", JSON.stringify(chosen))}</script></body></html>`;
 }
