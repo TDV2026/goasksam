@@ -20,6 +20,25 @@ export const AMAZON_PROFILE = {
   tabs: [["a", "a. Before shopping"], ["b", "b. Dealer lists a car"], ["c", "c. On the listing"]],
   moduleName: "Market Check",
   attribution: "Powered by GoAskSam",
+  // REVISION 2 (Sam, Oct 20 2026): the Amazon Autos listing layout. The sub-nav and the section tabs are the partner's
+  // own navigation, drawn inert; "Demo" sits on every screen.
+  subnav: ["New Cars", "Used Cars", "Certified Pre-Owned", "Trade", "Body Type", "Make", "Fuel Type"],
+  sectionTabs: ["Overview", "Condition", "Coverage", "Benefits", "Pricing"],
+  demoLabel: "Demo",
+  // Under the shared card, on the Amazon profile only (Sam's words).
+  cardContext: "These are completed auction sales. Dealer prices can include reconditioning, warranty and delivery.",
+  // THE SAMPLE LISTING FIGURES (Sam, Oct 20 2026): FIXED per-car demo constants, written once here and labelled Sample;
+  // never computed in the browser and never from an engine figure. price: the sample asking price (shown only when it
+  // sits inside the engine's own range); monthly: the sample finance figure, from one fixed formula ($3,500 down,
+  // 72 months, 7.98% APR), rounded; miles: the listing's own mileage, only where the listing has one (else no line).
+  sampleListings: {
+    "2014 Porsche 911 GT3": { price: 120000, monthly: 2041, miles: 30400 },
+    "2015 Porsche 911 GT3": { price: 120000, monthly: 2041, miles: null },
+    "2005 Porsche 911": { price: 40000, monthly: 640, miles: null },
+    "1965 Ford Mustang": { price: 50000, monthly: 815, miles: null },
+    "1957 Porsche 356 Speedster": { price: 260000, monthly: 4495, miles: null },
+    "2023 Porsche 911 GT3": { price: 250000, monthly: 4320, miles: null }
+  },
   historyDisplay: { a: "inline", b: "inline", c: "link" },
   // A LISTING is one specific car, so its body is known: a demo car the engine reads by body is listed with one (the
   // sample listing's own body, read by the engine as that car). Tabs a and b keep the engine's question, with its options.
@@ -168,11 +187,52 @@ main{padding-block:22px 48px}
 /* "How Sam decides" is plain static text on the demo (as on the eBay demo): the card's own link styling is undone here only */
 .sfc-card span.sfc-footer-link{color:var(--ink2);font-weight:400;text-decoration:none}
 @media (max-width:860px){.listing{grid-template-columns:1fr}.rail h1{font-size:22px}.price{font-size:24px}}
+
+/* REVISION 2 (Sam, Oct 20 2026): the Amazon Autos listing layout, inside the demo shell. */
+.demo-lab{display:inline-block;padding:2px 8px;border-radius:4px;background:#febd69;color:#111;font:700 11px/1.4 var(--sans);letter-spacing:.06em;text-transform:uppercase}
+.subnav{background:#fff;color:var(--ink);border-bottom:1px solid var(--rule)}
+.subnav .wrap{gap:4px 26px;padding-block:12px}
+.snav{all:unset;cursor:default;font:500 14px/1.2 var(--sans);color:var(--ink)}
+.back{margin:0 0 14px;font-size:13px}
+.back .linkbtn{color:var(--ink2);text-decoration:none}
+.galwrap{display:grid;grid-template-columns:minmax(0,1fr) 64px;gap:12px;align-items:start}
+.galwrap .photo-note{grid-column:1}
+.thumbs{display:flex;flex-direction:column;gap:8px}
+.thumbs img{width:64px;height:48px;object-fit:cover;border-radius:4px;border:1px solid var(--rule);display:block}
+.thumbs img.on{border:2px solid #007185}
+.rail h1{font:700 24px/1.3 var(--sans)}
+.price{margin:12px 0 2px;font:700 28px/1.1 var(--sans)}
+.miles{margin:0 0 12px;font-size:13px;color:var(--ink2)}
+.fin{display:flex;border:2px solid #2162a1;border-radius:var(--r);overflow:hidden;margin-top:12px}
+.fin-l{flex:0 0 74px;display:flex;align-items:center;justify-content:center;background:#2162a1;color:#fff;font:700 13px/1 var(--sans)}
+.fin-b{flex:1;padding:12px 14px;text-align:right}
+.fin-m{margin:0;font:700 26px/1.1 var(--sans)}
+.fin-m span{font-weight:400;font-size:20px}
+.fin-s{margin:2px 0 10px;font-size:12px;color:var(--ink2)}
+.cash{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--rule);border-radius:var(--r);padding:12px 14px;margin-top:10px;font-size:14px}
+.cash b{font-weight:700}
+.rail .mc{margin-top:10px}
+.mc-row{font:700 15px/1.3 var(--sans)}
+.mc-row .attr{font:400 15px/1.3 var(--sans);color:var(--ink)}
+.mc-ctx{margin:10px 2px 0;font-size:12.5px;line-height:1.45;color:var(--ink2)}
+.pdet{margin:12px 0 0;text-align:center;font-size:14px}
+.pdet .linkbtn{color:#007185;text-decoration:none}
+.stabs{display:flex;border-bottom:1px solid var(--rule);margin-top:26px;overflow-x:auto}
+.stab{all:unset;cursor:default;flex:1 0 auto;text-align:center;padding:12px 18px;font:400 14px/1.2 var(--sans);color:var(--ink);border-bottom:3px solid transparent}
+.stab[data-stab]{cursor:pointer}
+.stab.on{background:#e7f0f9;border-bottom-color:#2162a1;color:#2162a1}
+.kf{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:18px 24px}
+.kfi{display:flex;gap:10px;align-items:flex-start}
+.kfi svg{flex:0 0 22px;width:22px;height:22px;color:var(--ink2)}
+.kfl{display:block;font-size:12px;color:var(--ink2)}.kfv{display:block;font-size:15px}
+.listing>*{min-width:0}
+.stabs{min-width:0;max-width:100%}
+@media (max-width:760px){.galwrap{grid-template-columns:1fr}.thumbs{flex-direction:row;overflow-x:auto}}
 `;
 
 const JS = String.raw`
 (function(){
-  var LISTCAR = __LISTCAR__, CAR = __CAR__, CARS = __CARS__, SCOPE = __SCOPE__, VIEW = __VIEW__, LIST = __LIST__, OUT_OF_SCOPE = __OUTSCOPE__, CHOSEN = __CHOSEN__;
+  var LISTCAR = __LISTCAR__, CAR = __CAR__, CARS = __CARS__, SCOPE = __SCOPE__, VIEW = __VIEW__, LIST = __LIST__, OUT_OF_SCOPE = __OUTSCOPE__, CHOSEN = __CHOSEN__, SAMPLES = __SAMPLES__, CONTEXT = __CONTEXT__;
   var $ = function(id){ return document.getElementById(id); };
   var esc = function(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
   var usd = function(n){ return "$" + Math.round(Number(n)).toLocaleString("en-US"); };
@@ -207,14 +267,6 @@ const JS = String.raw`
       return '<p>' + esc(q.text || "") + '</p><div class="nexts">' + opts.map(function(o){ return '<button type="button" class="btn out" data-qsend="' + esc(JSON.stringify(o.send || {})) + '">' + esc(o.label) + "</button>"; }).join("") + "</div>";
     }
     var c = a.cardWithRows || a.card || ""; return c.replace('<div class="gas-pill-slot"></div>', "");
-  }
-  // The demo's sample asking price: a round figure inside the engine's range (the eBay demo's rule), none without a range,
-  // labelled exactly "Sample asking price". It feeds nothing.
-  function samplePrice(a){
-    if (!a || a.ok === false || a.question || !a.range || !(a.range.low > 0) || !(a.range.high >= a.range.low)) return null;
-    var steps = [10000, 5000, 1000];
-    for (var i = 0; i < steps.length; i++) { var p = Math.ceil(a.range.low / steps[i]) * steps[i]; if (p <= a.range.high) return p; }
-    return null;
   }
   // This exact car's history (the answer's VIN history, newest first): "sold before" only when a prior listing sold.
   var anySold = function(h){ return (h || []).some(function(r){ return r.result === "sold"; }); };
@@ -252,21 +304,57 @@ const JS = String.raw`
     ask(send).then(draw);
   });
   // TAB c: the vehicle page.
+  // The fixed sample listing figures for this car (the profile's constants; nothing computed here). The price shows only
+  // inside the engine's own range, and the finance and cash rows only with it.
+  function sampleOf(a){
+    var sl = SAMPLES[CAR] || null;
+    if (!sl || !a || a.ok === false || a.question || !a.range || !(sl.price >= a.range.low && sl.price <= a.range.high)) return null;
+    return sl;
+  }
+  // The car's title in Amazon form, from the answer's own identity (never the VIN): "Used {year} {make} {model}".
+  function amazonTitle(a){
+    var id = a && a.identity; if (!id || !id.year || !id.make || !id.model) return null;
+    var words = [id.year, id.make, id.model], v = id.variant && String(id.variant);
+    if (v && String(id.model).toLowerCase().indexOf(v.toLowerCase()) < 0) words.push(v);
+    var bd = id.body && String(id.body); if (bd && words.join(" ").toLowerCase().indexOf(bd.toLowerCase()) < 0) words.push(bd);
+    return "Used " + words.join(" ");
+  }
+  // Key features from the answer's own decode (a.features), each only when known; the section hides when none is.
+  var KF = [["drivetrain", "Drivetrain"], ["seating", "Seating"], ["engine", "Engine"], ["fuel", "Fuel type"], ["transmission", "Transmission"], ["interior", "Interior"], ["exterior", "Exterior"]];
+  var KF_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="1.6"/></svg>';
+  function kfHtml(a){
+    var f = (a && a.features) || {};
+    return KF.filter(function(k){ return f[k[0]] != null && String(f[k[0]]).trim(); }).map(function(k){ return '<div class="kfi">' + KF_ICON + '<span><span class="kfl">' + esc(k[1]) + '</span><span class="kfv">' + esc(f[k[0]]) + "</span></span></div>"; }).join("");
+  }
+  function mcCard(a){ return cardHtml(a) + (a && a.ok !== false && !a.question ? '<p class="mc-ctx">' + esc(CONTEXT) + "</p>" : ""); }
   function drawC(a){
     var ok = a && a.ok !== false;
     var photo = ok && a.carPhoto && a.carPhoto.photo;
     $("c-photo").innerHTML = photo ? '<img src="/api/partnerAnswer?photo=' + encodeURIComponent(photo) + '&w=960" alt="' + esc(CAR) + '" decoding="async"><p class="photo-note"></p>' : "";
     var gal = $("c-photo"); if (photo) { gal.classList.add("has"); var n = gal.querySelector(".photo-note"); if (n) { n.textContent = "Photo of a car like it from a recent sale."; gal.parentNode.appendChild(n); } }
-    var scope = ok && inScope(a), p = scope ? samplePrice(a) : null;
-    $("c-price").innerHTML = p != null ? '<div class="price">' + usd(p) + '</div><p class="price-kind">Sample asking price</p>' : "";
-    $("c-mc").hidden = !scope;
-    if (scope) $("mc-body").innerHTML = cardHtml(a);
+    // The thumbnail strip: the same photo, then this exact car's own earlier photos (its history), never another car's.
+    var th = [photo ? "/api/partnerAnswer?photo=" + encodeURIComponent(photo) + "&w=320" : null].concat(((a && a.history) || []).filter(function(r){ return r.photo; }).map(function(r){ return "/api/partnerAnswer?photo=" + encodeURIComponent(r.photo) + "&w=320"; })).filter(Boolean);
+    $("c-thumbs").innerHTML = th.slice(0, 6).map(function(u, k){ return '<img src="' + esc(u) + '" alt="" loading="lazy"' + (k === 0 ? ' class="on"' : "") + ">"; }).join("");
+    var t = amazonTitle(a); if (t) $("c-title").textContent = t;
+    var scope = ok && inScope(a), sl = scope ? sampleOf(a) : null;
+    $("c-price").innerHTML = sl ? '<div class="price">' + usd(sl.price) + '</div><p class="price-kind">Sample asking price</p>' + (sl.miles ? '<p class="miles">' + esc(Number(sl.miles).toLocaleString("en-US")) + " miles</p>" : "") : "";
+    $("c-fin").innerHTML = sl ? '<div class="fin"><span class="fin-l">Finance</span><div class="fin-b"><p class="fin-m">' + usd(sl.monthly) + '<span>/mo</span></p><p class="fin-s">Sample</p><button type="button" class="btn yel blk" data-inert>Estimate payments</button></div></div><div class="cash"><span>Cash</span><b>' + usd(sl.price) + "</b></div>" : "";
+    if ($("c-mc")) { $("c-mc").hidden = !scope; if (scope) $("mc-body").innerHTML = mcCard(a); }
+    $("c-pcard").innerHTML = scope ? mcCard(a) : "";
+    var kf = kfHtml(ok ? a : null); $("c-kf").innerHTML = kf; $("c-kfsec").hidden = !kf;
     HIST = (a && a.history) || [];
-    // The vehicle history section shows only when this exact car has an earlier listing on record.
+    // History and condition shows only when this exact car has an earlier listing on record.
     $("c-hist").innerHTML = HIST.length ? '<p class="hist-l">This car has previous market history</p><button type="button" class="linkbtn" data-hist>See earlier sales</button>' : "";
     $("c-histsec").hidden = !HIST.length;
     if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ ask(body).then(drawC); }, a.retryAfterMs);
   }
+  // The two working section tabs: Overview and Pricing (the same card); the others are inert.
+  document.addEventListener("click", function(e){
+    var b = e.target.closest("[data-stab]"); if (!b) return;
+    var k = b.getAttribute("data-stab");
+    Array.prototype.forEach.call(document.querySelectorAll(".stab"), function(x){ var on = x === b; x.classList.toggle("on", on); x.setAttribute("aria-selected", on ? "true" : "false"); });
+    $("c-overview").hidden = k !== "overview"; $("c-pricing").hidden = k !== "pricing";
+  });
   var body = LIST && LIST.vin ? { q: CAR, vin: LIST.vin } : { q: LISTCAR || CAR };
   if (VIEW === "c" && !OUT_OF_SCOPE) ask(body).then(drawC);   // an out-of-scope listing (from its own words) makes no read
   // TAB a, BEFORE SHOPPING: any car or a VIN returns the same shared card; with a VIN, this car's history inline above it.
@@ -311,27 +399,36 @@ export function amazonPageHtml(view, carIn, { carOf, listing }) {
   // TAB c, ON THE LISTING: photos, title, "Sample listing", the sample asking price (inside the range only), the purchase box
   // (inert), the dealer line, then Market Check below the purchase box (a collapsed row opening the shared card), the
   // vehicle features and the vehicle history. No VIN printed, no "last sold" near the price, no verdict words.
+  // TAB c, ON THE LISTING (revision 2, Sam, Oct 20 2026): the Amazon Autos listing layout. "Back to search results"; the
+  // large photo with a thumbnail strip; the title in Amazon form ("Used {year} {make} {model}", from the answer's own
+  // identity, never the VIN); "Sample listing"; the fixed sample price and the listing's own mileage; a Finance box and a
+  // Cash row (fixed sample figures); Market Check collapsed directly under the Cash row; "See price details"; the dealer
+  // line; the section tabs; Key features from the answer's own decode (a field left out when unknown); History and
+  // condition. No VIN printed, nothing beside the price from the engine, no verdict words. Every partner control inert.
+  const initTitle = /^\d{4}\s/.test(listCar) ? "Used " + listCar : listCar;
   const viewC = `
 <section class="wrap" id="view-c"${v === "c" ? "" : " hidden"}>
+  <p class="back"><button type="button" class="linkbtn back-l" data-inert>&lsaquo; Back to search results</button></p>
   <div class="listing">
-    <div><div class="gal" id="c-photo"></div></div>
+    <div class="galwrap"><div class="gal" id="c-photo"></div><div class="thumbs" id="c-thumbs" aria-hidden="true"></div></div>
     <div class="rail">
-      <h1>${escHtml(hasListing ? listing.title : listCar)}</h1><p class="sample-tag">Sample listing</p>
+      <h1 id="c-title">${escHtml(hasListing ? "Used " + listing.title : initTitle)}</h1><p class="sample-tag">Sample listing</p>
       <div id="c-price"></div>
-      <div class="buybox">
-        <button type="button" class="btn yel blk" data-inert>Check availability</button>
-        <button type="button" class="btn org blk" data-inert>Get pre-qualified</button>
-        <button type="button" class="btn out blk" data-inert>Value your trade-in</button>
-      </div>
-      <p class="dealer">Sold by <b>Sample dealer</b></p>
+      <div id="c-fin"></div>
       ${outC ? "" : `<div class="mc" id="c-mc" hidden>
-        <button type="button" class="mc-row" data-mc-toggle aria-expanded="false" aria-controls="mc-body"><span>${escHtml(P.moduleName)}<br><span class="attr">${escHtml(P.attribution)}</span></span><span class="chev">Show</span></button>
+        <button type="button" class="mc-row" data-mc-toggle aria-expanded="false" aria-controls="mc-body"><span>${escHtml(P.moduleName)}, <span class="attr">${escHtml(P.attribution.replace(/^Powered/, "powered"))}</span></span><span class="chev">Show</span></button>
         <div class="mc-body" id="mc-body" hidden><p class="loading">Reading the sales for this one.</p></div>
       </div>`}
+      <p class="pdet"><button type="button" class="linkbtn" data-inert>See price details</button></p>
+      <p class="dealer">Sold by <b>Sample dealer</b></p>
     </div>
     <div class="below">
-      <div class="sec"><h2>Vehicle features</h2><dl class="specs">${year ? `<div><dt>Year</dt><dd>${year}</dd></div>` : ""}${hasListing ? `<div><dt>Mileage</dt><dd>${listing.miles.toLocaleString("en-US")}</dd></div>` : ""}</dl></div>
-      <div class="sec" id="c-histsec" hidden><h2>Vehicle history</h2><div id="c-hist"></div></div>
+      <div class="stabs" role="tablist" aria-label="Listing sections">${P.sectionTabs.map((t, k) => `<button type="button" class="stab${k === 0 ? " on" : ""}"${t === "Overview" || t === "Pricing" ? ` data-stab="${t.toLowerCase()}"` : " data-inert"} role="tab" aria-selected="${k === 0}">${escHtml(t)}</button>`).join("")}</div>
+      <div id="c-overview">
+        <div class="sec" id="c-kfsec" hidden><h2>Key features</h2><div class="kf" id="c-kf"></div></div>
+        <div class="sec" id="c-histsec" hidden><h2>History and condition</h2><div id="c-hist"></div></div>
+      </div>
+      <div id="c-pricing" hidden><div class="sec"><h2>Pricing</h2><div id="c-pcard"></div></div></div>
     </div>
   </div>
 </section>`;
@@ -339,8 +436,8 @@ export function amazonPageHtml(view, carIn, { carOf, listing }) {
 <meta name="robots" content="noindex,nofollow"><title>What these sell for</title><style>${CSS}${SELLS_FOR_CARD_CSS}</style></head><body>
 <div class="demo-bar"><div class="wrap"><span>What these sell for, powered by GoAskSam.</span><nav class="tabs" aria-label="Views">${P.tabs.map(([k, l]) => tab(k, l)).join("")}</nav></div></div>
 ${carBar}
-<header class="top"><div class="wrap"><div class="plogo"><span class="chip"><img src="${P.logoPath}" alt="${escHtml(P.logoAlt)}" width="138" height="21" decoding="async"></span><span class="prep">${escHtml(P.preparedFor)}</span></div><div class="sbox" aria-hidden="true">Search Amazon Autos</div><button type="button" class="btn nav" data-inert>Sign in</button></div></header>
-<nav class="subnav" aria-label="Sample navigation"><div class="wrap"><button type="button" class="btn nav" data-inert>Shop cars</button><button type="button" class="btn nav" data-inert>Trade in</button><button type="button" class="btn nav" data-inert>Financing</button></div></nav>
+<header class="top"><div class="wrap"><div class="plogo"><span class="chip"><img src="${P.logoPath}" alt="${escHtml(P.logoAlt)}" width="138" height="21" decoding="async"></span><span class="prep">${escHtml(P.preparedFor)}</span><span class="demo-lab">${escHtml(P.demoLabel)}</span></div><div class="sbox" aria-hidden="true">Search Amazon Autos</div><button type="button" class="btn nav" data-inert>Sign in</button></div></header>
+<nav class="subnav" aria-label="Sample navigation"><div class="wrap">${P.subnav.map(t => `<button type="button" class="snav" data-inert>${escHtml(t)}</button>`).join("")}</div></nav>
 <main>
 <section class="wrap" id="view-a"${v === "a" ? "" : " hidden"}>
   <div class="entry lead"><h1>What's your car going for?</h1>
@@ -359,5 +456,5 @@ ${carBar}
 </section>
 ${viewC}
 </main>
-<script>${JS.replace("__LISTCAR__", JSON.stringify(listCar)).replace("__CAR__", JSON.stringify(car)).replace("__OUTSCOPE__", JSON.stringify(outC)).replace("__CARS__", JSON.stringify(DEMO_CARS)).replace("__SCOPE__", JSON.stringify({ age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS })).replace("__KNOWNMAKES__", JSON.stringify(KNOWN_MAKES)).replace("__MAKEWORDS__", JSON.stringify(MAKE_WORDS)).replace("__FROMWORDS__", scopeFromWords.toString()).replace("__INSCOPE__", amazonInScope.toString()).replace("__VIEW__", JSON.stringify(v)).replace("__LIST__", JSON.stringify(hasListing ? { vin: listing.vin } : null)).replace("__CHOSEN__", JSON.stringify(chosen))}</script></body></html>`;
+<script>${JS.replace("__LISTCAR__", JSON.stringify(listCar)).replace("__SAMPLES__", JSON.stringify(P.sampleListings)).replace("__CONTEXT__", JSON.stringify(P.cardContext)).replace("__CAR__", JSON.stringify(car)).replace("__OUTSCOPE__", JSON.stringify(outC)).replace("__CARS__", JSON.stringify(DEMO_CARS)).replace("__SCOPE__", JSON.stringify({ age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS })).replace("__KNOWNMAKES__", JSON.stringify(KNOWN_MAKES)).replace("__MAKEWORDS__", JSON.stringify(MAKE_WORDS)).replace("__FROMWORDS__", scopeFromWords.toString()).replace("__INSCOPE__", amazonInScope.toString()).replace("__VIEW__", JSON.stringify(v)).replace("__LIST__", JSON.stringify(hasListing ? { vin: listing.vin } : null)).replace("__CHOSEN__", JSON.stringify(chosen))}</script></body></html>`;
 }

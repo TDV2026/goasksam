@@ -24,7 +24,9 @@ for (const view of ["a", "b", "c"]) for (const car of [...DEMO_CARS, "1965 Ford 
   ok(hrefs.every(u => /^\?p=amazon&amp;view=[abc](&amp;car=[^"]*)?$/.test(u)), `${tag}: the only links are the demo's own tabs (${hrefs.filter(u => !/^\?p=amazon/.test(u)).join(" ")})`);
   ok(!/target="_blank"|javascript:/i.test(body), `${tag}: nothing opens elsewhere`);
   const buttons = body.match(/<button\b[^>]*>/g) || [];
-  ok(buttons.every(b => /type="button"/.test(b) ? /data-inert|data-mc-toggle|data-hist|data-close|data-a-go|data-b-go|data-qsend/.test(b) : /type="submit"/.test(b)), `${tag}: every partner control is an inert button`);
+  // Revision 2 (Sam, Oct 20 2026): the Overview and Pricing section tabs switch the page between its own sections (the
+  // shared card under Pricing); every other partner control stays inert.
+  ok(buttons.every(b => /type="button"/.test(b) ? /data-inert|data-mc-toggle|data-hist|data-close|data-a-go|data-b-go|data-qsend|data-stab="(overview|pricing)"/.test(b) : /type="submit"/.test(b)), `${tag}: every partner control is an inert button`);
   const sub = buttons.filter(b => /type="submit"/.test(b)); ok(sub.length === 1, `${tag}: one submit, the car box's Show`);
   ok(!/WP0AC2A9XES183617|\b[A-HJ-NPR-Z0-9]{17}\b/.test(body), `${tag}: no VIN printed`);
   const text = body.replace(/<[^>]+>/g, " ");
@@ -33,10 +35,22 @@ for (const view of ["a", "b", "c"]) for (const car of [...DEMO_CARS, "1965 Ford 
   ok(/Prepared for Amazon/.test(body) && /src="\/preview\?img=amazon-logo"/.test(body) && /Sample listing/.test(body), `${tag}: the partner header, the logo from the gated demo, Sample listing on the listing frame`);
 }
 const js = fs.readFileSync(new URL("../api/_amazonDemo.js", import.meta.url), "utf8");
+// Revision 2 (Sam, Oct 20 2026): the buttons the Amazon page's own script draws are inert too ("Estimate payments" in the
+// Finance box), apart from the history popup's own controls.
+{ const { amazonPageHtml } = await import("../api/_amazonDemo.js"); const { carOf, DUMMY } = await import("../api/partnerDemo.js");
+  const sj = amazonPageHtml("c", "1965 Ford Mustang", { carOf, listing: DUMMY }); const drawn = (sj.slice(sj.indexOf("<script>")).match(/<button type=\\?"button\\?"[^>]*>/g) || []);
+  ok(drawn.length > 0 && drawn.every(b => /data-inert|data-hist|data-close|data-qsend/.test(b)), "every button the Amazon page's script draws is inert (Estimate payments included) or a popup control");
+  ok(/class="btn yel blk" data-inert>Estimate payments</.test(sj), "Estimate payments is drawn inert"); }
 ok(/if \(t\.closest\("\[data-inert\]"\)\) \{ e\.preventDefault\(\); return; \}/.test(js) && /document\.addEventListener\("submit", function\(e\)\{ if \(e\.target\.closest\("\[data-inert\]"\)\) e\.preventDefault\(\); \}\);/.test(js), "the page's script stops every inert control's default");
 ok(/fetch\("\/api\/partnerAnswer"/.test(js) && !/fetch\("(?!\/api\/partnerAnswer)/.test(js), "the page reads only the partner answer path");
-ok(/var scope = ok && inScope\(a\), p = scope \? samplePrice\(a\) : null;/.test(js) && /\$\("c-mc"\)\.hidden = !scope;/.test(js), "outside the pilot scope: no module and no sample price");
-ok(/Sample asking price/.test(js) && /if \(!a \|\| a\.ok === false \|\| a\.question \|\| !a\.range/.test(js), "the sample asking price only inside an engine range, labelled exactly");
+ok(/var scope = ok && inScope\(a\), sl = scope \? sampleOf\(a\) : null;/.test(js) && /\$\("c-mc"\)\.hidden = !scope;/.test(js) && /\$\("c-pcard"\)\.innerHTML = scope \? mcCard\(a\) : "";/.test(js), "outside the pilot scope: no module, no Pricing card and no sample figures (revision 2)");
+ok(/Sample asking price/.test(js) && /if \(!sl \|\| !a \|\| a\.ok === false \|\| a\.question \|\| !a\.range \|\| !\(sl\.price >= a\.range\.low && sl\.price <= a\.range\.high\)\) return null;/.test(js), "the sample asking price only inside an engine range, labelled exactly");
+// Revision 2 (Sam, Oct 20 2026): the sample price, the sample monthly figure and the mileage are FIXED profile constants,
+// never computed in the browser: no arithmetic on a price or a range anywhere in the Amazon page's script.
+ok(!/Math\.(ceil|round|floor)\([^)]*(range|price|low|high)/.test(js) && !/samplePrice\(/.test(js), "no sample figure is computed in the browser (fixed constants only)");
+{ const { AMAZON_PROFILE } = await import("../api/_amazonDemo.js"); const sl = AMAZON_PROFILE.sampleListings;
+  ok(Object.values(sl).every(x => Number.isInteger(x.price) && Number.isInteger(x.monthly) && (x.miles === null || Number.isInteger(x.miles))), "every sample listing constant is a fixed whole number (or no mileage)");
+  ok(!("1966 Ferrari 275 GTB" in sl), "the thin car has no sample figures (no range to sit inside)"); }
 ok(/"This car has sold before" : "This car was listed before"/.test(js), "the history popup heading: sold before only when a prior listing sold");
 const d = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
 ok(/if \(!isCrewRequest\(req\) && !isPartnerRequest\(req\)\) return notFound\(res\);[\s\S]*req\.query\.img === "amazon-logo"[\s\S]*req\.query\.p === "amazon"/.test(d), "the Amazon page and its logo sit behind the same gate (crew cookie or partner cookie)");
@@ -54,7 +68,7 @@ const hb = amazonPageHtml("b", DEMO_CARS[0], { carOf, listing: DUMMY }); ok(hb.i
 ok(/See your trade-in offer/.test(hb) && /Shop these cars/.test(hb), "tab a: the two inert next steps");
 // A listing is one car: the Mustang demo listing is a Fastback and reads as one; the engine's question elsewhere has working options.
 const hm = amazonPageHtml("c", "1965 Ford Mustang", { carOf, listing: DUMMY });
-ok(/<h1>1965 Ford Mustang Fastback<\/h1>/.test(hm) && /var LISTCAR = "1965 Ford Mustang Fastback"/.test(hm) && /\{ q: LISTCAR \|\| CAR \}/.test(js), "tab c: the Mustang sample listing is a Fastback and the engine reads it as one (no body question on a listing)");
+ok(/<h1 id="c-title">Used 1965 Ford Mustang Fastback<\/h1>/.test(hm) && /var LISTCAR = "1965 Ford Mustang Fastback"/.test(hm) && /\{ q: LISTCAR \|\| CAR \}/.test(js), "tab c: the Mustang sample listing is a Fastback and the engine reads it as one (no body question on a listing)");
 ok(/data-qsend="' \+ esc\(JSON\.stringify\(o\.send \|\| \{\}\)\)/.test(js) && /ask\(send\)\.then\(draw\)/.test(js), "the engine's question shows its own options; one asks the engine again with that option's own words");
 console.log(`partnerDemoInertCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
