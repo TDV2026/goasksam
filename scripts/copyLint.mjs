@@ -246,10 +246,11 @@ globalThis.__weekdayBulletUsed = false;
 const absurdWk = composeCard(gtVeh, mkRoute({ evidenceSales: 8, pricePremium: null, dayAdvantage: { weekday: "Wednesday", liftPercent: 1049, sample: 30, sales: 8, scope: "model", window: 180 } }), { isPick: true, landedScope: "model" });
 check("plausibility: an absurd 1049% weekday renders nothing", !/1049|above other days/i.test(cardText(absurdWk)), cardText(absurdWk));
 check("plausibility: absurd weekday leaves the card lint-clean", lintText(cardText(absurdWk)).length === 0, lintText(cardText(absurdWk)).join(" ; "));
-// 2. A PLAUSIBLE weekday (12%) renders, ROUNDED to the nearest 5 (10%).
+// 2. A PLAUSIBLE weekday (12%) renders no weekday claim either (Oct 20 2026, Lane F's decision: the price-median
+// weekday left the V2 card on Sep 29 as wrong, and the old composer's weekday bullet went with it).
 globalThis.__weekdayBulletUsed = false;
 const okWk = composeCard(gtVeh, mkRoute({ evidenceSales: 25, pricePremium: null, dayAdvantage: { weekday: "Friday", liftPercent: 12, sample: 25, sales: 6, scope: "model", window: 180 } }), { isPick: true, landedScope: "model" });
-check("plausibility: a 12% weekday renders rounded to 10% (nearest 5)", /around 10% above other days/.test(cardText(okWk)) && !/around 12%/.test(cardText(okWk)), cardText(okWk));
+check("plausibility: a plausible 12% weekday renders no weekday claim (the weekday drop)", !/above other days|closed strongest on|close strongest on/i.test(cardText(okWk)), cardText(okWk));
 check("plausibility: the rounded weekday is lint-clean", lintText(cardText(okWk)).length === 0, lintText(cardText(okWk)).join(" ; "));
 // 3. An injected ABSURD premium (400%) never becomes a delta headline.
 globalThis.__weekdayBulletUsed = false;
