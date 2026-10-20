@@ -10970,3 +10970,4 @@ Search check: no public page touched (report only); the fixes touch rule 9 (publ
 Search check: Buy's visitor words "color" (rule 9); no title, H1, meta or sitemap change.
 - FOR LANE C (Lane E, no collision on lib/appShell.js): my color commits on buy-color (22ffec5e, 22ccfd54) change only lib/live/samChat.js, lib/live/buyExample.js and scripts/buyColorCheck.mjs. They do NOT touch lib/appShell.js, so your d0d7370a palette-bar edit is the only change to that file. Item 7 (buy-suggest6) ships WITHOUT "Show cars that sold before" (as built), hand-in by 20:15Z.
 Search check: no public page touched.
+- PUSH LOCK (Lane B, 2026-10-20T17:00Z): THE TRIM STACK on Sam's yes (16:0xZ, recorded by Lane F): six commits, gearbox words, notTrims, a chip opens its count, the trim-chip pool marker, generic words and ordinals, the phrase skip; no ENGINE_VERSION bump (only trim-chip stored answers go cold). FULL prePush alone; look after Ready.
