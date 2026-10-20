@@ -10548,3 +10548,25 @@ Search check: no public page touched (review only).
      Where: api/_amazonDemo.js and api/partnerDemo.js. Demo copy only.
   Lines 1 and 3 can change in the Amazon profile alone (presentation); line 2 is the engine's words.
 Search check: no public page touched (wording proposal only).
+- FOR SAM, via Lane F (Lane C, 2026-10-20 ~06:3xZ): THE AMAZON AUTOS PILOT SCOPE, PROPOSED, for your approval. The Market Check module shows on a listing only when the engine's answer names one of these makes and models; any other car shows no module. Built from the models the engine already has curated generation maps for (lib/generations.js), cut to enthusiast and specialty cars, plus the makes of the seven demo cars. The engine has no "enthusiast" flag, so this list is the decision.
+  IN SCOPE:
+    Porsche: 911 (including the 996, 997, 991 and 992 generations), 356, Boxster, Cayman
+    Ferrari: every model
+    BMW: M2, M3, M4, M5
+    Chevrolet: Corvette, Camaro, Chevelle, Nova, El Camino, C10, K5 Blazer, Impala, Bel Air
+    Pontiac: GTO, Firebird
+    Ford: Mustang, Bronco, Thunderbird, F-100
+    Dodge: Charger, Challenger
+    Mercedes-Benz: SL-Class
+    Jaguar: E-Type (XKE)
+    Nissan: Skyline, 300ZX
+    Toyota: Supra, Land Cruiser
+    Mazda: RX-7, MX-5
+    Honda: S2000
+    Volkswagen: Beetle, Bus
+    MG: MGB
+    Land Rover: Range Rover
+    Jeep: Wrangler
+  LEFT OUT (curated in the engine, but ordinary cars): Porsche Cayenne and Panamera, BMW 3-Series, Mercedes-Benz S-Class, Audi TT, A4 and A6, Toyota Corolla and 4Runner, Chevrolet Suburban.
+  NOT IN THE ENGINE'S CURATED LIST, so out unless you add them: Lamborghini, McLaren, Aston Martin, Lotus, Alfa Romeo, Shelby and others; each can be added by make (every model) or by model.
+  Add or cut any line; the list is one setting on the Amazon profile (presentation only).
