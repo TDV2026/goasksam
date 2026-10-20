@@ -667,6 +667,20 @@ try {
 } catch (e) {
   record("Amazon revision 3, one current car (scripts/amazonCarStateCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// amazonR3ListingCheck (Lane G, Amazon revision 3 item R3-B). No network.
+try {
+  const out = execSync("node scripts/amazonR3ListingCheck.mjs", { encoding: "utf8" });
+  record("Amazon revision 3, the listing block and the Market Check row (scripts/amazonR3ListingCheck.mjs)", "PASS", (out.match(/amazonR3ListingCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Amazon revision 3, the listing block and the Market Check row (scripts/amazonR3ListingCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// amazonSalesListCheck (Lane G, Amazon revision 3 item R3-B). No network.
+try {
+  const out = execSync("node scripts/amazonSalesListCheck.mjs", { encoding: "utf8" });
+  record("Amazon revision 3, the sales list (scripts/amazonSalesListCheck.mjs)", "PASS", (out.match(/amazonSalesListCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Amazon revision 3, the sales list (scripts/amazonSalesListCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // vinIdentityCheck (Lane E, Buy Stage 1c). No network.
 try {
   const out = execSync("node scripts/vinIdentityCheck.mjs", { encoding: "utf8" });

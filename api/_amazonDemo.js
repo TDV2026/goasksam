@@ -16,15 +16,16 @@ import { demoAnswerCase, OUT_OF_SCOPE_LINE } from "../lib/amazonDemoCase.js";
 // order of AMAZON_DEMO_CARS, labelled Sample; never computed in the browser and never from an engine figure. price: a
 // round dealer-style sample asking price set inside the car's own engine range (shown only inside it); monthly: one fixed
 // formula ($3,500 down, 72 months, 7.98% APR), rounded; miles: the car's own last sale (null until confirmed). The thin
-// car has no price and no monthly (no range to sit inside).
+// thin car's fixed sample price is $54,900 (Sam, Oct 20 2026), $901 a month by the same formula. total: the total payments
+// line (the 72 payments plus the $3,500 down), a fixed constant like the rest; the page adds up nothing.
 const SAMPLE_BY_CAR = [   // each car's mileage is its OWN sample sale's (Lane E's 18:19Z read, named in AMAZON_DEMO_CARS)
-  { price: 84900, monthly: 1426, miles: 14800, saleDate: "2026-10-12", sale: "2017 Porsche 911 Carrera Coupe, Oct 12 2026" },
-  { price: 249900, monthly: 4318, miles: 7000, saleDate: "2026-08-14", sale: "2022 Porsche 911 GT3 6-Speed, Aug 14 2026" },
-  { price: 154900, monthly: 2653, miles: 24000, saleDate: "2026-09-29", sale: "2017 Audi R8 V10 Plus Coupe, Sep 29 2026" },
-  { price: 104900, monthly: 1777, miles: 38000, saleDate: "2024-07-10", sale: "2019 Mercedes-AMG GT Roadster, Jul 10 2024 (its own record's stated mileage)" },
-  { price: 49900, monthly: 813, miles: 57000, saleDate: "2026-10-19", sale: "2013 BMW M3 Coupe Competition Package, Oct 19 2026" },
-  { price: 229900, monthly: 3967, miles: 18000, saleDate: "2026-10-19", sale: "2016 Ferrari 488 GTB, Oct 19 2026" },
-  { price: null, monthly: null, miles: 13800, saleDate: "2026-03-27", sale: "2016 Mercedes-AMG C63 Sedan, Mar 27 2026 (thin: no price)" }
+  { price: 84900, monthly: 1426, total: 106202, miles: 14800, saleDate: "2026-10-12", sale: "2017 Porsche 911 Carrera Coupe, Oct 12 2026" },
+  { price: 249900, monthly: 4318, total: 314380, miles: 7000, saleDate: "2026-08-14", sale: "2022 Porsche 911 GT3 6-Speed, Aug 14 2026" },
+  { price: 154900, monthly: 2653, total: 194520, miles: 24000, saleDate: "2026-09-29", sale: "2017 Audi R8 V10 Plus Coupe, Sep 29 2026" },
+  { price: 104900, monthly: 1777, total: 131435, miles: 38000, saleDate: "2024-07-10", sale: "2019 Mercedes-AMG GT Roadster, Jul 10 2024 (its own record's stated mileage)" },
+  { price: 49900, monthly: 813, total: 62042, miles: 57000, saleDate: "2026-10-19", sale: "2013 BMW M3 Coupe Competition Package, Oct 19 2026" },
+  { price: 229900, monthly: 3967, total: 289147, miles: 18000, saleDate: "2026-10-19", sale: "2016 Ferrari 488 GTB, Oct 19 2026" },
+  { price: 54900, monthly: 901, total: 68351, miles: 13800, saleDate: "2026-03-27", sale: "2016 Mercedes-AMG C63 Sedan, Mar 27 2026 (thin: a fixed sample price, Sam Oct 20 2026)" }
 ];
 function sampleListingsOf() { const o = {}; AMAZON_DEMO_CARS.forEach((c, i) => { if (SAMPLE_BY_CAR[i]) o[c] = SAMPLE_BY_CAR[i]; }); return o; }
 // The Amazon page's own car word: a digit opens that demo car, a demo car's name opens it, and ANY other VIN or car typed
@@ -43,6 +44,8 @@ export const AMAZON_PROFILE = {
   preparedFor: "Prepared for Amazon",
   tabs: [["a", "a. Before shopping"], ["b", "b. Dealer lists a car"], ["c", "c. On the listing"], ["d", "d. In search results"]],
   moduleName: "Market Check",
+  moduleLine: "See what cars like this actually sold for.",   // APPROVED by Sam (Oct 20 2026): the inviting Market Check row
+  financeTerms: "$3,500 down \u2022 72 months \u2022 7.98% APR",
   attribution: "Powered by GoAskSam",
   // REVISION 2 (Sam, Oct 20 2026): the Amazon Autos listing layout. The sub-nav and the section tabs are the partner's
   // own navigation, drawn inert; "Demo" sits on every screen.
@@ -117,7 +120,7 @@ const escHtml = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": 
 // stack. The shared card reads the --sans, --sec and --div tokens so it sits in this layout.
 const CSS = `
 :root{--ink:#0f1111;--ink2:#565959;--rule:#d5d9d9;--soft:#f7fafa;--navy:#131921;--navy2:#232f3e;--yellow:#ffd814;--yellow2:#f7ca00;--orange:#ffa41c;--link:#007185;--r:8px;color-scheme:light;
-  --sans:"Amazon Ember",Arial,"Helvetica Neue",Helvetica,sans-serif;--serif:var(--sans);--sec:var(--ink2);--div:var(--rule);--card:#fff}
+  --sans:Arial,Helvetica,sans-serif;--serif:var(--sans);--sec:var(--ink2);--div:var(--rule);--card:#fff}
 *{box-sizing:border-box}
 body{margin:0;background:#fff;color:var(--ink);font:400 15px/1.45 var(--sans);-webkit-font-smoothing:antialiased}
 .wrap{max-width:1280px;margin:0 auto;padding:0 20px}
@@ -265,11 +268,70 @@ main{padding-block:22px 48px}
 .dchip{border:1px solid var(--rule);border-radius:999px;padding:2px 8px;font-size:12px;color:var(--ink2)}
 .dprice{margin-top:4px;font:700 20px/1.2 var(--sans)}.dfin{font-size:13px;color:var(--ink2)}
 .dmark{align-self:flex-start;margin-top:6px;border-radius:4px;padding:2px 8px;background:#f0f2f2;font:700 11px/1.5 var(--sans);letter-spacing:.04em;text-transform:uppercase;color:var(--ink2)}
+/* REVISION 3 (Sam, Oct 20 2026): the listing block like the Amazon Autos reference (Arial and Helvetica only), item R3-B. */
+.rail h1{font:700 26px/1.25 var(--sans)}
+.ptop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-top:14px}
+.ptop .pl{min-width:0}
+.price{margin:0;font:700 38px/1.1 var(--sans);letter-spacing:-.01em}
+.price.dset{font-size:28px}
+.price-kind{margin:4px 0 0;font-size:13px;color:var(--ink2)}
+.miles{margin:6px 0 0;font-size:16px;color:var(--ink2)}
+.icos{display:flex;flex-direction:column;gap:12px;padding-top:2px}
+.ico{all:unset;cursor:default;width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--ink)}
+.ico svg{width:26px;height:26px}
+.fin{border-radius:14px;margin-top:18px;border-width:2px}
+.fin-l{flex:0 0 78px;font:400 16px/1 var(--sans)}
+.fin-b{padding:14px 16px 16px;text-align:left}
+.fin-u{display:flex;justify-content:flex-end;align-items:center;gap:6px;margin:0;font-size:14px;color:var(--ink2)}
+.fin-u svg{width:18px;height:18px}
+.fin-m{margin:2px 0 0;text-align:right;font:700 38px/1.15 var(--sans)}
+.fin-m span{font-weight:400;font-size:32px}
+.fin-t{margin:2px 0 12px;text-align:right;font-size:13px;color:var(--ink2)}
+.fin-b .btn.blk{min-height:46px;font:400 17px/1 var(--sans);background:#f8d84a;border-color:#f8d84a;margin-top:12px}
+.fin-b .btn.blk:first-child{margin-top:6px}
+.fin-x{margin:12px 0 0;font-size:14px;line-height:1.4;color:var(--ink)}
+.cash{padding:0;overflow:hidden;border:2px solid var(--rule);border-radius:14px;margin-top:12px;align-items:stretch}
+.cash-l{display:flex;align-items:center;padding:14px 18px;background:#e7f0f9;font:400 16px/1 var(--sans)}
+.cash-r{flex:1;display:flex;align-items:center;justify-content:flex-end;padding:14px 18px;font:400 20px/1 var(--sans)}
+.pdet{margin-top:14px;font-size:17px}
+.mc{margin-top:12px;border:1px solid var(--rule);border-radius:12px;background:#fff}
+.mc:hover{background:var(--soft);border-color:#a2a6a6}
+.mc-row{box-sizing:border-box;display:flex;gap:12px;align-items:center;width:100%;padding:14px 16px;cursor:pointer;font:700 16px/1.3 var(--sans);text-align:left;color:var(--ink)}
+.mc-ico{flex:0 0 36px;width:36px;height:36px;border-radius:50%;background:#e7f4f6;color:#007185;display:flex;align-items:center;justify-content:center}
+.mc-ico svg{width:20px;height:20px;fill:currentColor}
+.mc-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mc-n{font:700 16px/1.25 var(--sans)}
+.mc-row .attr{font:400 12px/1.25 var(--sans);color:var(--ink2);margin-left:4px}
+.mc-s{font:400 14px/1.35 var(--sans);color:var(--ink)}
+.mc-row .chev{display:flex;align-items:center;gap:4px;flex:none;margin:0;font:700 14px/1 var(--sans);color:#007185}
+.mc-row .chev svg{width:20px;height:20px;transition:transform .15s}
+.mc-row.open .chev svg{transform:rotate(180deg)}
+.mc-body{margin:22px 0 0;border:1px solid var(--rule);border-radius:12px;padding:20px 22px;background:#fff}
+.mc-body[hidden]{display:none}
+.mc-body .sfc-card{border:0;border-radius:0;padding:0;margin:0;background:transparent}
+.gal{position:relative}
+.gal .arr{all:unset;cursor:default;position:absolute;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;background:#fff;border:1px solid #888c8c;display:flex;align-items:center;justify-content:center}
+.gal .arr.l{left:10px}.gal .arr.r{right:10px}.gal .arr svg{width:20px;height:20px}
+/* the sales list (item 5): a clean list like Buy's drawer, the card's own rows restyled; text and order untouched */
+main .sfc-card{border:1px solid var(--rule);border-radius:12px;padding:20px 22px;margin:16px 0}
+main .sfc-heading{font:700 13px/1 var(--sans);letter-spacing:.06em;color:var(--ink2)}
+main .sfc-range{font:700 clamp(28px,4vw,36px)/1.15 var(--sans);color:var(--ink)}
+main .sfc-range .sfc-to{font:400 .5em/1 var(--sans);color:var(--ink2)}
+main .sfc-rows{gap:0;margin:16px 0 0;border-top:1px solid var(--rule)}
+main .sfc-row{gap:14px;padding:12px 0;border-bottom:1px solid var(--rule);align-items:center}
+main .sfc-row[hidden]{display:none}
+main .sfc-row-img,main .sfc-row-nophoto{flex:0 0 96px;width:96px;height:72px;border-radius:6px}
+main .sfc-row-text{flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:16px;row-gap:3px;align-items:center}
+main .sfc-row-title{grid-column:1;grid-row:1;font:700 15px/1.3 var(--sans)}
+main .sfc-row-price{grid-column:2;grid-row:1/span 2;text-align:right;font:700 18px/1.2 var(--sans)}
+main .sfc-row-meta{grid-column:1;grid-row:2;font:400 13px/1.3 var(--sans);color:var(--ink2)}
+.more{margin-top:14px;min-height:40px}
+@media (max-width:560px){.fin-m{font-size:32px}.price{font-size:32px}.mc-body{padding:16px}main .sfc-row-img,main .sfc-row-nophoto{flex-basis:76px;width:76px;height:57px}}
 `;
 
 const JS = String.raw`
 (function(){
-  var LISTCAR = __LISTCAR__, CAR = __CAR__, CARS = __CARS__, SCOPE = __SCOPE__, VIEW = __VIEW__, LIST = __LIST__, OUT_OF_SCOPE = __OUTSCOPE__, CHOSEN = __CHOSEN__, SAMPLES = __SAMPLES__, CONTEXT = __CONTEXT__, LISTBODY = __LISTBODY__;
+  var LISTCAR = __LISTCAR__, CAR = __CAR__, CARS = __CARS__, SCOPE = __SCOPE__, VIEW = __VIEW__, LIST = __LIST__, OUT_OF_SCOPE = __OUTSCOPE__, CHOSEN = __CHOSEN__, SAMPLES = __SAMPLES__, CONTEXT = __CONTEXT__, TERMS = __TERMS__, LISTBODY = __LISTBODY__;
   // THE ANSWER CASES (Sam's revision 2, item 8; Lane E's lib/amazonDemoCase.js, sent to the page as is): an unreadable VIN,
   // read with no sales, outside the pilot scope, or an answer. Never a silent empty box.
   var OUT_OF_SCOPE_LINE = __OOSLINE__, SCOPE_AGE_YEARS = SCOPE.age, SCOPE_MAKES = SCOPE.makes, SCOPE_MODELS = SCOPE.models;
@@ -360,7 +422,7 @@ const JS = String.raw`
     if (t.closest("[data-hist]")) { e.preventDefault(); return openHist(HIST); }
     if (t.closest("[data-close]") && (t.hasAttribute("data-close") || t.closest(".pop") === null || t.classList.contains("x"))) { var sc = document.querySelector(".pop-scrim"); if (sc && (t === sc || t.closest("[data-close]") !== sc)) sc.remove(); return; }
     var mc = t.closest("[data-mc-toggle]");
-    if (mc) { var b = $("mc-body"), open = b.hidden; b.hidden = !open; mc.setAttribute("aria-expanded", open ? "true" : "false"); var ch = mc.querySelector(".chev"); if (ch) ch.textContent = open ? "Hide" : "Show"; }
+    if (mc) { var b = $("mc-body"), open = b.hidden; b.hidden = !open; mc.setAttribute("aria-expanded", open ? "true" : "false"); var ch = mc.querySelector(".chev-t"); if (ch) ch.textContent = open ? "Hide" : "Show"; mc.classList.toggle("open", open); if (open) tidyRows(); }
   });
   document.addEventListener("keydown", function(e){ if (e.key === "Escape") { var sc = document.querySelector(".pop-scrim"); if (sc) sc.remove(); } });
   document.addEventListener("submit", function(e){ if (e.target.closest("[data-inert]")) e.preventDefault(); });
@@ -382,9 +444,12 @@ const JS = String.raw`
     for (var i = 0; i < rows.length; i++) { var r = rows[i]; if (r.photo && String(r.date || "").slice(0, 10) === sl.saleDate && (sl.miles == null || Number(r.miles) === sl.miles)) return r.photo; }
     return null;
   }
+  // The fixed sample figures for this demo car (every one of the seven has them, thin or ranged). Where the answer has a range, the
+  // fixed price must sit inside it (a comparison, never arithmetic); a typed car has no constants and gets none.
   function sampleOf(a){
     var sl = SAMPLES[CAR] || null;
-    if (!sl || !a || a.ok === false || a.question || !a.range || !(sl.price >= a.range.low && sl.price <= a.range.high)) return null;
+    if (!sl || sl.price == null || !a || a.ok === false || a.question) return null;
+    if (a.range && !(sl.price >= a.range.low && sl.price <= a.range.high)) return null;
     return sl;
   }
   // The car's title in Amazon form, from the answer's own identity (never the VIN): "Used {year} {make} {model}".
@@ -404,7 +469,10 @@ const JS = String.raw`
   var KF = [["drivetrain", "Drivetrain"], ["seats", "Seating"], ["engine", "Engine"], ["fuel", "Fuel type"], ["transmission", "Transmission"], ["interior", "Interior"], ["exterior", "Exterior"]];
   var KF_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="1.6"/></svg>';
   function kfHtml(a){
-    var f = (a && a.vinDecode && a.vinDecode.features) || {};   // the VIN's own decode only (item 7)
+    // Lane E's keyFeatures field (an array of {label, value}, or an object keyed as KF) first; else the VIN's own decode (item 7).
+    var kfs = a && a.keyFeatures;
+    if (Array.isArray(kfs)) return kfs.filter(function(k){ return k && k.label && k.value != null && String(k.value).trim(); }).map(function(k){ return '<div class="kfi">' + KF_ICON + '<span><span class="kfl">' + esc(k.label) + '</span><span class="kfv">' + esc(k.value) + "</span></span></div>"; }).join("");
+    var f = (kfs && typeof kfs === "object" ? kfs : a && a.vinDecode && a.vinDecode.features) || {};
     return KF.filter(function(k){ return f[k[0]] != null && String(f[k[0]]).trim(); }).map(function(k){ return '<div class="kfi">' + KF_ICON + '<span><span class="kfl">' + esc(k[1]) + '</span><span class="kfv">' + esc(f[k[0]]) + "</span></span></div>"; }).join("");
   }
   function caseHtml(a){
@@ -413,24 +481,52 @@ const JS = String.raw`
   }
   function wordsCaseHtml(q){ return '<div class="case"><p class="case-l">' + esc(OUT_OF_SCOPE_LINE) + '</p><p class="case-n">' + esc(q) + "</p></div>"; }
   function mcCard(a){ return cardHtml(a) + (a && a.ok !== false && !a.question ? '<p class="mc-ctx">' + esc(CONTEXT) + "</p>" : ""); }
+  // "Last updated": the stored answer's own read date (M/D/YY), never a made-up time; nothing when the answer carries none.
+  function readDate(a){ var m = /^(\d{4})-(\d\d)-(\d\d)/.exec(String((a && a.readAt) || "")); return m ? Number(m[2]) + "/" + Number(m[3]) + "/" + m[1].slice(2) : ""; }
+  // THE SALES LIST (item 5): at most 10 sales show, in the card's own order (newest first); "Show more" only reveals rows the
+  // card already holds. The card's text is never changed or reordered.
+  var MORE_AT = 10;
+  function tidyRows(){
+    Array.prototype.forEach.call(document.querySelectorAll(".sfc-rows"), function(ul){
+      var rows = ul.querySelectorAll(".sfc-row"); if (ul.hasAttribute("data-tidy") || rows.length <= MORE_AT) return;
+      ul.setAttribute("data-tidy", "");
+      Array.prototype.forEach.call(rows, function(r, i){ if (i >= MORE_AT) r.hidden = true; });
+      var b = document.createElement("button"); b.type = "button"; b.className = "btn out more"; b.setAttribute("data-more", ""); b.textContent = "Show more";
+      ul.parentNode.insertBefore(b, ul.nextSibling);
+    });
+  }
+  document.addEventListener("click", function(e){
+    var m = e.target.closest("[data-more]"); if (!m) return;
+    var ul = m.previousElementSibling; if (ul) Array.prototype.forEach.call(ul.querySelectorAll(".sfc-row"), function(r){ r.hidden = false; });
+    m.remove();
+  });
   function drawC(a){
     var ok = a && a.ok !== false;
     setName(a);
     var photo = ok && (SAMPLES[CAR] ? ownSalePhoto(a, SAMPLES[CAR]) : (a.carPhoto && a.carPhoto.photo));
-    $("c-photo").innerHTML = photo ? '<img src="/api/partnerAnswer?photo=' + encodeURIComponent(photo) + '&w=960" alt="' + esc(CAR) + '" decoding="async"><p class="photo-note"></p>' : "";
+    var ARR = '<button type="button" class="arr l" data-inert aria-label="Previous photo"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button type="button" class="arr r" data-inert aria-label="Next photo"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
+    $("c-photo").innerHTML = photo ? '<img src="/api/partnerAnswer?photo=' + encodeURIComponent(photo) + '&w=960" alt="' + esc(CAR) + '" decoding="async">' + ARR + '<p class="photo-note"></p>' : "";
     var gal = $("c-photo"); if (photo) { gal.classList.add("has"); var n = gal.querySelector(".photo-note"); if (n) { n.textContent = "Photo of a car like it from a recent sale."; gal.parentNode.appendChild(n); } }
-    // The thumbnail strip: the same photo, then this exact car's own earlier photos (its history), never another car's.
-    var th = [photo ? "/api/partnerAnswer?photo=" + encodeURIComponent(photo) + "&w=320" : null].concat(((a && a.history) || []).filter(function(r){ return r.photo; }).map(function(r){ return "/api/partnerAnswer?photo=" + encodeURIComponent(r.photo) + "&w=320"; })).filter(Boolean);
-    $("c-thumbs").innerHTML = th.slice(0, 6).map(function(u, k){ return '<img src="' + esc(u) + '" alt="" loading="lazy"' + (k === 0 ? ' class="on"' : "") + ">"; }).join("");
+    // The thumbnail strip: the sample sale's photo first, then Lane E's gallery (this exact car's own other photos, newest
+    // first, up to six), else this exact car's earlier listings' photos; never another car's. One photo when that is all there is.
+    var ids = [photo].concat((a && Array.isArray(a.gallery) ? a.gallery : ((a && a.history) || []).map(function(r){ return r.photo; }))).filter(Boolean), seen = {};
+    ids = ids.filter(function(i){ if (seen[i]) return false; seen[i] = 1; return true; }).slice(0, 6);
+    $("c-thumbs").innerHTML = ids.map(function(i, k){ return '<img src="/api/partnerAnswer?photo=' + encodeURIComponent(i) + '&w=320" alt="" loading="lazy"' + (k === 0 ? ' class="on"' : "") + ">"; }).join("");
     // A demo car keeps its own listing name (the grid's name); only a typed car or a VIN is titled from the answer.
     var t = CARS.indexOf(CAR) >= 0 ? null : amazonTitle(a); if (t) $("c-title").textContent = t;
     var scope = ok && (inScope(a) || !!a.question), sl = scope ? sampleOf(a) : null;   // an engine question is always drawn
-    $("c-price").innerHTML = sl ? '<div class="price">' + usd(sl.price) + '</div><p class="price-kind">Sample asking price</p>' + (sl.miles ? '<p class="miles">' + esc(Number(sl.miles).toLocaleString("en-US")) + " miles</p>" : "") : "";
-    $("c-fin").innerHTML = sl ? '<div class="fin"><span class="fin-l">Finance</span><div class="fin-b"><p class="fin-m">' + usd(sl.monthly) + '<span>/mo</span></p><p class="fin-s">Sample</p><button type="button" class="btn yel blk" data-inert>Estimate payments</button></div></div><div class="cash"><span>Cash</span><b>' + usd(sl.price) + "</b></div>" : "";
+    // THE FULL LISTING BLOCK for every car (revision 3): a demo car has its fixed sample figures; a typed car shows "Price set by
+    // dealer", an inert Finance box and button with NO figures, and no Cash row. Nothing here is computed.
+    var block = ok && !a.question, ru = readDate(a);
+    var HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5l-1.2-1.1C6.4 15.4 3.5 12.8 3.5 9.5 3.5 7 5.5 5 8 5c1.5 0 2.9.7 4 2 1.1-1.3 2.5-2 4-2 2.5 0 4.5 2 4.5 4.5 0 3.3-2.9 5.9-7.3 9.9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
+    var SHARE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4M6 12v7h12v-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    $("c-price").innerHTML = block ? '<div class="ptop"><div class="pl">' + (sl ? '<div class="price">' + usd(sl.price) + '</div><p class="price-kind">Sample asking price</p>' + (sl.miles ? '<p class="miles">' + esc(Number(sl.miles).toLocaleString("en-US")) + " miles</p>" : "") : '<div class="price dset">Price set by dealer</div>') + '</div><div class="icos"><button type="button" class="ico" data-inert aria-label="Save">' + HEART + '</button><button type="button" class="ico" data-inert aria-label="Share">' + SHARE + "</button></div></div>" : "";
+    var wand = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l9-9M14 4v3M12.5 5.5h3M19 9v3M17.5 10.5h3M10 7l1.5 1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+    $("c-fin").innerHTML = !block ? "" : '<div class="fin"><span class="fin-l">Finance</span><div class="fin-b">' + (sl && ru ? '<p class="fin-u">' + wand + "Last updated " + esc(ru) + "</p>" : "") + (sl ? '<p class="fin-m">' + usd(sl.monthly) + '<span>/mo</span></p><p class="fin-t">' + esc(TERMS) + " \u00b7 Sample</p>" : "") + '<button type="button" class="btn yel blk" data-inert>Estimate payments</button>' + (sl ? '<p class="fin-x">Total payments ' + usd(sl.total) + ". Sample figures for this demo.</p>" : '<p class="fin-x">Payments depend on the price the dealer sets.</p>') + "</div></div>" + (sl ? '<div class="cash"><span class="cash-l">Cash</span><b class="cash-r">' + usd(sl.price) + "</b></div>" : "");
     if ($("c-mc")) { $("c-mc").hidden = !scope; if (scope) $("mc-body").innerHTML = mcCard(a); }
     // A read that failed (ok:false) draws the page's own "could not be read" or still-reading line, never a blank rail.
     $("c-case").innerHTML = scope ? "" : (ok ? caseHtml(a) : '<div class="case">' + cardHtml(a) + "</div>");
-    $("c-pcard").innerHTML = scope ? mcCard(a) : "";
+    $("c-pcard").innerHTML = scope ? mcCard(a) : ""; tidyRows();
     var kf = kfHtml(ok ? a : null); $("c-kf").innerHTML = kf; $("c-kfsec").hidden = !kf;
     HIST = (a && a.history) || [];
     // History and condition shows only when this exact car has an earlier listing on record.
@@ -468,7 +564,7 @@ const JS = String.raw`
       $("c-title").textContent = CAR === ORIGCAR ? ORIGTITLE : vinLike ? "" : /^\d{4}\s/.test(lc) ? "Used " + lc : lc;
       ["c-photo", "c-thumbs", "c-price", "c-fin", "c-case", "c-pcard", "c-kf", "c-hist"].forEach(function(id){ $(id).innerHTML = ""; });
       $("c-kfsec").hidden = true; $("c-histsec").hidden = true; $("c-mc").hidden = true; $("mc-body").hidden = true; $("mc-body").innerHTML = '<p class="loading">Reading the sales for this one.</p>';
-      var tg = document.querySelector("[data-mc-toggle]"); if (tg) { tg.setAttribute("aria-expanded", "false"); var ch = tg.querySelector(".chev"); if (ch) ch.textContent = "Show"; }
+      var tg = document.querySelector("[data-mc-toggle]"); if (tg) { tg.setAttribute("aria-expanded", "false"); tg.classList.remove("open"); var ch = tg.querySelector(".chev-t"); if (ch) ch.textContent = "Show"; }
       HIST = [];
     }
     if (wordsOut(CAR)) { $("c-case").innerHTML = wordsCaseHtml(CAR); return; }
@@ -482,7 +578,7 @@ const JS = String.raw`
     setName(a);
     var cs = caseHtml(a); if (cs) { out.innerHTML = cs; return; }
     if (a && a.ok !== false && !a.question && !inScope(a)) { out.innerHTML = ""; return; }
-    out.innerHTML = inlineHist((a && a.history) || []) + cardHtml(a);
+    out.innerHTML = inlineHist((a && a.history) || []) + cardHtml(a); tidyRows();
     if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ goA(); }, a.retryAfterMs);
   }
   function goA(){ var q = String(($("a-q") || {}).value || "").trim(); if (!q) return; q = setCar(q) || q; if (wordsOut(q)) { $("a-out").innerHTML = wordsCaseHtml(q); return; } $("a-out").innerHTML = '<p class="loading">Reading the sales for this one.</p>'; read({ q: q }, drawA); }
@@ -493,7 +589,7 @@ const JS = String.raw`
     setName(a);
     var cs = caseHtml(a); if (cs) { out.innerHTML = cs; return; }
     if (a && a.ok !== false && !a.question && !inScope(a)) { out.innerHTML = ""; return; }
-    out.innerHTML = inlineHist((a && a.history) || []) + cardHtml(a);
+    out.innerHTML = inlineHist((a && a.history) || []) + cardHtml(a); tidyRows();
     if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ goB(); }, a.retryAfterMs);
   }
   // The listing car opens by its name; its VIN goes with the read (for its history) and is never printed.
@@ -553,14 +649,14 @@ export function amazonPageHtml(view, carIn, { carOf, listing }) {
       <div id="c-price"></div>
       <div id="c-fin"></div>
       <div class="mc" id="c-mc" hidden>
-        <button type="button" class="mc-row" data-mc-toggle aria-expanded="false" aria-controls="mc-body"><span>${escHtml(P.moduleName)}, <span class="attr">${escHtml(P.attribution.replace(/^Powered/, "powered"))}</span></span><span class="chev">Show</span></button>
-        <div class="mc-body" id="mc-body" hidden></div>
+        <button type="button" class="mc-row" data-mc-toggle aria-expanded="false" aria-controls="mc-body"><span class="mc-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="12" width="4" height="8" rx="1"/><rect x="10" y="7" width="4" height="13" rx="1"/><rect x="17" y="3" width="4" height="17" rx="1"/></svg></span><span class="mc-t"><span class="mc-n">${escHtml(P.moduleName)} <span class="attr">${escHtml(P.attribution.replace(/^Powered/, "powered"))}</span></span><span class="mc-s">${escHtml(P.moduleLine)}</span></span><span class="chev"><span class="chev-t">Show</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
       </div>
       <div id="c-case">${outC ? `<div class="case"><p class="case-l">${escHtml(OUT_OF_SCOPE_LINE)}</p><p class="case-n">${escHtml(listCar)}</p></div>` : ""}</div>
       <p class="pdet"><button type="button" class="linkbtn" data-inert>See price details</button></p>
       <p class="dealer">Sold by <b>Sample dealer</b></p>
     </div>
     <div class="below">
+      <div class="mc-body" id="mc-body" hidden></div>
       <div class="stabs" role="tablist" aria-label="Listing sections">${P.sectionTabs.map((t, k) => `<button type="button" class="stab${k === 0 ? " on" : ""}"${t === "Overview" || t === "Pricing" ? ` data-stab="${t.toLowerCase()}"` : " data-inert"} role="tab" aria-selected="${k === 0}">${escHtml(t)}</button>`).join("")}</div>
       <div id="c-overview">
         <div class="sec" id="c-kfsec" hidden><h2>Key features</h2><div class="kf" id="c-kf"></div></div>
@@ -606,5 +702,5 @@ ${carBar}
 ${viewC}
 ${viewD}
 </main>
-<script>${JS.replace("__LISTCAR__", JSON.stringify(listCar)).replace("__SAMPLES__", JSON.stringify(P.sampleListings)).replace("__LISTBODY__", JSON.stringify(P.listingBody)).replace("__OOSLINE__", JSON.stringify(OUT_OF_SCOPE_LINE)).replace("__CASEFN__", () => demoAnswerCase.toString()).replace("__CONTEXT__", JSON.stringify(P.cardContext)).replace("__CAR__", JSON.stringify(car)).replace("__OUTSCOPE__", JSON.stringify(outC)).replace("__CARS__", JSON.stringify(AMAZON_DEMO_CARS)).replace("__SCOPE__", JSON.stringify({ age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS })).replace("__KNOWNMAKES__", JSON.stringify(KNOWN_MAKES)).replace("__MAKEWORDS__", JSON.stringify(MAKE_WORDS)).replace("__FROMWORDS__", scopeFromWords.toString()).replace("__INSCOPE__", amazonInScope.toString()).replace("__VIEW__", JSON.stringify(v)).replace("__LIST__", JSON.stringify(hasListing ? { vin: listing.vin } : null)).replace("__CHOSEN__", JSON.stringify(chosen))}</script></body></html>`;
+<script>${JS.replace("__LISTCAR__", JSON.stringify(listCar)).replace("__SAMPLES__", JSON.stringify(P.sampleListings)).replace("__LISTBODY__", JSON.stringify(P.listingBody)).replace("__OOSLINE__", JSON.stringify(OUT_OF_SCOPE_LINE)).replace("__CASEFN__", () => demoAnswerCase.toString()).replace("__CONTEXT__", JSON.stringify(P.cardContext)).replace("__TERMS__", JSON.stringify(P.financeTerms)).replace("__CAR__", JSON.stringify(car)).replace("__OUTSCOPE__", JSON.stringify(outC)).replace("__CARS__", JSON.stringify(AMAZON_DEMO_CARS)).replace("__SCOPE__", JSON.stringify({ age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS })).replace("__KNOWNMAKES__", JSON.stringify(KNOWN_MAKES)).replace("__MAKEWORDS__", JSON.stringify(MAKE_WORDS)).replace("__FROMWORDS__", scopeFromWords.toString()).replace("__INSCOPE__", amazonInScope.toString()).replace("__VIEW__", JSON.stringify(v)).replace("__LIST__", JSON.stringify(hasListing ? { vin: listing.vin } : null)).replace("__CHOSEN__", JSON.stringify(chosen))}</script></body></html>`;
 }

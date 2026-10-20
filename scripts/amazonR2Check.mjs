@@ -17,13 +17,13 @@ ok(/<h1 id="c-title">Used 1965 Ford Mustang Fastback<\/h1>/.test(c) && /return "
 ok(P.sectionTabs.join("|") === "Overview|Condition|Coverage|Benefits|Pricing" && /data-stab="overview"/.test(c) && /data-stab="pricing"/.test(c) && (c.match(/class="stab" data-inert/g) || []).length === 3, "the section tabs: Overview and Pricing switch, the other three inert");
 ok(/<h2>Key features<\/h2>/.test(c) && /KF\.filter\(function\(k\)\{ return f\[k\[0\]\] != null && String\(f\[k\[0\]\]\)\.trim\(\); \}\)/.test(js) && /\$\("c-kfsec"\)\.hidden = !kf;/.test(js), "Key features from the answer's own decode, a field left out when unknown, the section hidden when none is");
 ok(/<h2>History and condition<\/h2>/.test(c) && /This car has previous market history/.test(js) && /See earlier sales/.test(js), "History and condition: the car's own earlier sales");
-ok(/<span class="fin-l">Finance<\/span>/.test(js) && /<p class="fin-s">Sample<\/p>/.test(js) && /usd\(sl\.monthly\)/.test(js) && /<span>Cash<\/span><b>' \+ usd\(sl\.price\)/.test(js), "the Finance box and the Cash row from the fixed constants, labelled Sample");
+ok(/<span class="fin-l">Finance<\/span>/.test(js) && /\\u00b7 Sample<\/p>/.test(js) && /usd\(sl\.monthly\)/.test(js) && /<span class="cash-l">Cash<\/span><b class="cash-r">' \+ usd\(sl\.price\)/.test(js), "the Finance box and the Cash row from the fixed constants, labelled Sample");
 ok(/sl\.miles \? '<p class="miles">'/.test(js), "the mileage only when the listing has one");
 ok(/<button type="button" class="btn yel blk" data-inert>Estimate payments<\/button>/.test(js) && (js.match(/Estimate payments/g) || []).length === 1, "'Estimate payments' in the Finance box, an inert button like the reference (Sam's word)");
 // item 3: where Market Check sits
 const fin = c.indexOf('<div id="c-fin">'), mc = c.indexOf('<div class="mc" id="c-mc"'), pd = c.indexOf('class="pdet"'), pr = c.indexOf('<div id="c-price">');
 ok(pr > 0 && fin > pr && mc > fin && pd > mc, "Market Check directly under the Cash row, never beside the price");
-ok(/<span>Market Check, <span class="attr">powered by GoAskSam<\/span><\/span>/.test(c), "the collapsed row reads 'Market Check, powered by GoAskSam'");
+ok(/<span class="mc-n">Market Check <span class="attr">powered by GoAskSam<\/span><\/span><span class="mc-s">See what cars like this actually sold for\.<\/span>/.test(c), "the row reads 'Market Check powered by GoAskSam' with Sam's approved line");
 ok(/\$\("c-pcard"\)\.innerHTML = scope \? mcCard\(a\) : "";/.test(js), "the same card in the Pricing tab");
 ok(P.cardContext === "These are completed auction sales. Dealer prices can include reconditioning, warranty and delivery." && /'<p class="mc-ctx">' \+ esc\(CONTEXT\)/.test(js), "the Amazon-only context line under the card, in Sam's words");
 // item 4: sales shown, not linked
