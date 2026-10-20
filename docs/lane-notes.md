@@ -11184,3 +11184,9 @@ Search check: no public page touched.
   5. 2013 BMW M3 Coupe: $49,900; $813/mo; 57,000 miles (range $37,000 to $66,000).
   6. 2016 Ferrari 488 GTB: $229,900; $3,967/mo; 18,000 miles (range $194,000 to $257,000).
   7. 2016 Mercedes-Benz C63 AMG (the thin one): NO price and NO monthly figure, because it has no range to sit inside. Its mileage, 70,600, shows on the results grid only.
+
+## FROM SAM, relayed verbatim by Lane F (18:17Z)
+
+yes, but ensure that we can still type in any vin and any YMM
+
+LANE F READING: Sam approves Lane C's sample prices and monthly figures for the seven cars; AND the Amazon demo must still accept ANY typed VIN and ANY typed year-make-model (not only the seven) with a visible answer on tabs a, b and c; typed cars outside the seven have no fixed sample constants and show no invented price. Lane C proves it in the harness before the push and in the look; Lane E in its item 9 re-check (typed matrix of nine cases).
