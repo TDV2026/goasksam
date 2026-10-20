@@ -2173,7 +2173,7 @@ export function decide(analysis, criteria, vehicle) {
       // a deeper, price-stronger track record over a small recent-window sample. No money
       // claim (rule 11): it names the depth and the strong-price signal, not a "more money".
       ? [
-          `${bestRoute.platform} has the deeper track record for this car and the stronger price signal in our data.`,
+          `${bestRoute.platform} has the deeper track record for this car and the stronger price signal in the sales data.`,
           `Recent comparable sales are thin right now, so the pick weighs the broader record over a small recent sample.`,
           wideningFact(analysis),
           sellerActivityExplanation(analysis.sellerActivity, bestRoute.platform)

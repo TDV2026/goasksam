@@ -793,7 +793,7 @@ function powerSellerProcessChips(){
 
 function powerSellerProfileSummary(profile){
   const name=profile?.name||"the consignor";
-  return `Auction consignor. The service claims below were provided by ${name}; anything marked "in our tracked records" is computed from our own sales data.`;
+  return `Auction consignor. The service claims below were provided by ${name}; anything marked tracked is computed from the sale records.`;
 }
 
 function powerSellerClientChips(profile){
@@ -843,7 +843,7 @@ function powerSellerProofItems(profile){
   }
   const rows=[];
   if(v.belowCareerMinimum)return rows;
-  rows.push(["Tracked sales in our records",`${v.trackedSales} completed sale${v.trackedSales===1?"":"s"}${v.latestSaleDate&&dateShort(v.latestSaleDate)?`, most recent ${dateShort(v.latestSaleDate)}`:""}`]);
+  rows.push(["Tracked sales on record",`${v.trackedSales} completed sale${v.trackedSales===1?"":"s"}${v.latestSaleDate&&dateShort(v.latestSaleDate)?`, most recent ${dateShort(v.latestSaleDate)}`:""}`]);
   if(v.medianSaleValue)rows.push(["Median sale across those records",`${moneyShort(v.medianSaleValue.value)} over ${v.medianSaleValue.sample} sales`]);
   if((v.makeMix||[]).length)rows.push(["Make mix in those records",v.makeMix.map(m=>`${m.make} ${m.percent}%`).join(", ")]);
   return rows;
@@ -912,7 +912,7 @@ function renderFeaturedPowerSellerProfile(profile,platformFirst,plateHTML){
   const proofHTML=powerSellerProofHTML(profile);
   const v=profile.verified||{};
   const honestyNote=v.belowCareerMinimum
-    ?`<div class="sell-rec-reason">We've tracked too few of ${escapeHtml(firstName)}'s sales in our own records to compute his numbers fairly yet. His history below is his own account.</div>`
+    ?`<div class="sell-rec-reason">Too few of ${escapeHtml(firstName)}'s sales are on record to compute his numbers fairly yet. His history below is his own account.</div>`
     :"";
   // The why-line is the card's hero (locked hierarchy): serif voice, the
   // make-scoped numbers when he genuinely has the make (3+ tracked),

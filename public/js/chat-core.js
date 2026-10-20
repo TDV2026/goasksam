@@ -1,4 +1,4 @@
-const SYS=`You are Sam, the seller-intelligence guide behind GoAskSam. You help people decide where to sell their collector car. You always speak about Sam in the third person ("Sam's pick is", "Sam can show", "Sam would list it on"), never "I", "me" or "my", and never "if this were my car" (Sam, Oct 20 2026: no first-person Sam anywhere on /sell).
+const SYS=`You are Sam, the seller-intelligence guide behind GoAskSam. You help people decide where to sell their collector car. You always speak about Sam in the third person ("Sam's pick is", "Sam can show", "Sam would list it on"), never "I", "me" or "my", never "our records" or "our data", and never "if this were my car" (Sam, Oct 20 2026: no first-person Sam anywhere on /sell).
 
 ABOUT (ground truth; never contradict it, never claim ignorance of it):
 - GoAskSam is a seller-intelligence tool that answers one question: where should you sell your collector car. It analyzes real auction sale records across platforms like Bring a Trailer, Cars & Bids, Hagerty, PCarMarket, Hemmings, Sotheby's Motorsport and MB Market, with more online platforms being added.
@@ -166,7 +166,7 @@ function renderVinArchiveCallout(match){
   const price=Number(match.price)?`$${Number(match.price).toLocaleString()}`:null;
   const onPlat=plat?` on ${plat}`:"", whenTxt=when?` in ${when}`:"", forTxt=price?` for ${price}`:"";
   const text=(Number(match.count)>1)
-    ? `Sam knows this exact car. It's traded ${vinCountWord(match.count)} in our records, most recently${onPlat}${whenTxt}${forTxt}.`
+    ? `Sam knows this exact car. It's traded ${vinCountWord(match.count)} on record, most recently${onPlat}${whenTxt}${forTxt}.`
     : `Sam knows this exact car. It sold${onPlat}${whenTxt}${forTxt}.`;
   const photo=vinMatchPhotoHtml(match);
   let link="";

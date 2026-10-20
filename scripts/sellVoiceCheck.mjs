@@ -5,6 +5,7 @@
 // visitor's own words (chips, buttons, typed questions) or quoted bans inside a chat prompt. Sam answered the three
 // held lines (docs/sell-first-person-inventory.md A1 to A3) on Oct 20 2026, so none is held any more.
 // A small tokenizer, not a parser: comments, regex literals and ${} expressions are code. No network.
+// It also fails on "our records" or "our data" (and "our own sales data", "our archive"), Sam's rule of the same day.
 //   node scripts/sellVoiceCheck.mjs
 // Run by scripts/prePush.mjs.
 import fs from "node:fs";
@@ -51,6 +52,7 @@ const ALLOW = [
 ];
 // Longest first, so a long allowed phrase is matched whole before a shorter phrase inside it.
 const BY_LENGTH = [...ALLOW].sort((x, y) => y[1].length - x[1].length);
+const OUR = /\bour (own )?(records?|data|sold-records|tracked records|sales data|archive)\b/gi;
 const FP = /(^|[^A-Za-z'’\\])(I|I'd|I’d|I'm|I’m|I've|I’ve|I'll|I’ll|my|My|me|Me|mine|myself)(?=[^A-Za-z'’]|$)/g;
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL", m); } };
@@ -60,6 +62,8 @@ function checkText(f, line, raw) {
   // Blank out every allowed phrase, then nothing first-person may remain.
   let rest = t;
   for (const [why, p] of BY_LENGTH) if (rest.includes(p)) { used.add(p); rest = rest.split(p).join(" ".repeat(p.length)); }
+  // Sam, Oct 20 2026: no "our records" or "our data" anywhere public (the quoted ban in a prompt is the only one).
+  for (const m of t.split('never "our records" or "our data"').join(" ").matchAll(OUR)) ok(false, `${f}:${line} possessive record line: "${t.slice(Math.max(0, m.index - 50), m.index + 60).replace(/\s+/g, " ")}"`);
   for (const m of rest.matchAll(FP)) ok(false, `${f}:${line} first-person Sam: "${t.slice(Math.max(0, m.index - 50), m.index + 60).replace(/\s+/g, " ")}"`);
 }
 for (const f of FILES) {
