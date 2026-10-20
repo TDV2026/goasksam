@@ -262,7 +262,7 @@ check("oos preTrim: escape model with no trim waits (not refused pre-trim)", (el
 // locked copy
 const copy=outOfScopeCopy({year:2016,make:"Toyota",model:"Camry"});
 check("oos copy: names the car + CarMax + Carvana + Facebook Marketplace", /2016 Toyota Camry/.test(copy)&&/CarMax/.test(copy)&&/Carvana/.test(copy)&&/Facebook Marketplace/.test(copy), copy.slice(0,80));
-check("oos copy: no em/en dash, ends on the Marketplace line (no escape hatch)", !/[—–]/.test(copy)&&/there myself\.$/.test(copy.trim()), copy.slice(-60));
+check("oos copy: no em/en dash, ends on the Marketplace line (no escape hatch)", !/[—–]/.test(copy)&&/plenty of cars there\.$/.test(copy.trim()), copy.slice(-60));
 
 // ============ RARITY WORDING RULE ============
 const rarity=(v,c)=>{ Object.assign(globalThis.sellState,{resolvedVehicle:v,archiveModelCount:c,sellDecision:null}); return v2RarityAllowed(); };

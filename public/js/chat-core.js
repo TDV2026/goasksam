@@ -40,7 +40,7 @@ function whichModelAsk(partialVehicle,chips){
   const make=partialVehicle&&partialVehicle.make;
   if(!make||partialVehicle.model)return null;
   const models=(chips||[]).filter(c=>!/^(not sure|change car|other|skip)$/i.test(String(c))).slice(0,2);
-  return `Which ${make}? Tell me the model${models.length===2?`, for example ${models[0]} or ${models[1]}`:models.length?`, for example ${models[0]}`:""}.`;
+  return `Which ${make}? Tell Sam the model${models.length===2?`, for example ${models[0]} or ${models[1]}`:models.length?`, for example ${models[0]}`:""}.`;
 }
 // Rejected models (Oct 2026): when the resolver says a model did not exist that year (invalid_vehicle), that
 // model, and the chip the visitor picked for it, never come back as a chip for the same year and make in this
@@ -79,16 +79,16 @@ function askVehicleIdentityClarification(clarification,status,partialVehicle){
     const alt=sellState.vehicleClarifyRepeats%2===0;
     if(clarification.suggestion){
       ask=alt
-        ?`If it's not the ${clarification.suggestion}, type the exact model name and I'll take it from there.`
-        :`My best guess is ${clarification.suggestion}. Tap it below if that's right, or type the full year, make and model.`;
+        ?`If it's not the ${clarification.suggestion}, type the exact model name and Sam will take it from there.`
+        :`Sam's best guess is ${clarification.suggestion}. Tap it below if that's right, or type the full year, make and model.`;
     }else if(understood){
       ask=alt
         ?`Still missing the ${missing} for the ${understood}. The badge or the registration usually settles it. What does it say?`
-        :`So far I have ${understood}. I just need the ${missing}. You can also type the whole thing, like '${exampleCarText(partialVehicle)}'.`;
+        :`So far Sam has ${understood}. Sam just needs the ${missing}. You can also type the whole thing, like '${exampleCarText(partialVehicle)}'.`;
     }else{
       ask=alt
-        ?`Let's build it up instead. Give me just the make to start, like 'Porsche' or 'Chevrolet'.`
-        :`I still couldn't match that to a car I know. Try the year, make and model together, like '1972 VW Beetle' or '2005 Mazda MX-5'.`;
+        ?`Let's build it up instead. Give Sam just the make to start, like 'Porsche' or 'Chevrolet'.`
+        :`Sam still couldn't match that to a car Sam knows. Try the year, make and model together, like '1972 VW Beetle' or '2005 Mazda MX-5'.`;
     }
     if(sellState.vehicleClarifyRepeats>=2&&!chips.includes("Not sure"))chips=[...chips,"Not sure"];
   }else{
@@ -166,8 +166,8 @@ function renderVinArchiveCallout(match){
   const price=Number(match.price)?`$${Number(match.price).toLocaleString()}`:null;
   const onPlat=plat?` on ${plat}`:"", whenTxt=when?` in ${when}`:"", forTxt=price?` for ${price}`:"";
   const text=(Number(match.count)>1)
-    ? `I know this exact car. It's traded ${vinCountWord(match.count)} in our records, most recently${onPlat}${whenTxt}${forTxt}.`
-    : `I know this exact car. It sold${onPlat}${whenTxt}${forTxt}.`;
+    ? `Sam knows this exact car. It's traded ${vinCountWord(match.count)} in our records, most recently${onPlat}${whenTxt}${forTxt}.`
+    : `Sam knows this exact car. It sold${onPlat}${whenTxt}${forTxt}.`;
   const photo=vinMatchPhotoHtml(match);
   let link="";
   if(match.url){ const a=document.createElement("a"); a.href=match.url; a.target="_blank"; a.rel="noopener noreferrer"; a.className="vin-receipt-link"; a.textContent="View that sale"; link=a.outerHTML; }

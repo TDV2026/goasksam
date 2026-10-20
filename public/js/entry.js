@@ -3,7 +3,7 @@ function showPowerSellerExplainer(){
   addMsg("sam",powerSellerExplainerText(), "", chipsHTML(["Sell my car"]));
 }
 function powerSellerExplainerText(){
-  return "A PowerSeller is someone who regularly manages auction sales for other people. A good one can prep the car, write or shape the listing, answer buyer questions, live in the comments, handle logistics and choose the platform they think gives the car the best shot.\n\nThey are not automatically better than selling it yourself. For some cars I’d keep it simple and go straight to a platform. For higher-value or specialist cars, I may suggest speaking to one before deciding.\n\nNobody is paying to be recommended here. You hand off the car and they manage the process start to finish. How they’re paid varies, some work on a percentage of the sale, some a flat amount, sometimes a mix, and the terms get agreed directly with the PowerSeller. Each case is a little different.";
+  return "A PowerSeller is someone who regularly manages auction sales for other people. A good one can prep the car, write or shape the listing, answer buyer questions, live in the comments, handle logistics and choose the platform they think gives the car the best shot.\n\nThey are not automatically better than selling it yourself. For some cars Sam would keep it simple and go straight to a platform. For higher-value or specialist cars, Sam may suggest speaking to one before deciding.\n\nNobody is paying to be recommended here. You hand off the car and they manage the process start to finish. How they’re paid varies, some work on a percentage of the sale, some a flat amount, sometimes a mix, and the terms get agreed directly with the PowerSeller. Each case is a little different.";
 }
 // Curated answer for "how does GoAskSam make money / is this free / who pays"
 // questions. Locked copy, no partner names, no figures, no platform claims. Used
@@ -45,7 +45,7 @@ function canadaPowerSellerReply(q){
 }
 function showRecommendationExplainer(){
   hideHero();
-  addMsg("sam","I start with recent market activity. If there is enough recent data, I use that. If the signal is too thin, I widen the window rather than pretending the answer is stronger than it is.\n\nThen I weigh your car, timing, location and how much of the sale you want to manage yourself. Sometimes that points straight to a platform. Sometimes I’d speak to a PowerSeller first. Either way, nobody is paying to be recommended and nothing gets sent until you approve it.","",chipsHTML(["Sell my car"]));
+  addMsg("sam","Sam starts with recent market activity. If there is enough recent data, Sam uses that. If the signal is too thin, Sam widens the window rather than pretending the answer is stronger than it is.\n\nThen Sam weigh your car, timing, location and how much of the sale you want to manage yourself. Sometimes that points straight to a platform. Sometimes Sam would speak to a PowerSeller first. Either way, nobody is paying to be recommended and nothing gets sent until you approve it.","",chipsHTML(["Sell my car"]));
 }
 function newConversation(){
   chatHistory.length=0;
@@ -78,14 +78,14 @@ function localPreRoute(q){
   if(/\b(i have|i've got|my car is)\b/i.test(lower)&&looksLikeVehicleText(q))return{sellTrigger:true,initialCar:q};
   if(looksLikeVehicleText(q))return{sellTrigger:true,initialCar:q};
   if(/\b(the daily vroom|daily vroom|sam gold|who owns|owner|ownership|who is sam|who's sam|who runs|behind goasksam|behind this)\b/i.test(lower))
-    return{reply:"GoAskSam is part of The Daily Vroom, the collector car newsletter that's been running for years with tens of thousands of readers. Sam Gold owns it, and the tools include the Import Calculator and this seller-intelligence tool, built on real auction sale records. If you're selling a car, tell me what it is and I'll work out where I'd take it.",chips:["Sell my car"]};
+    return{reply:"GoAskSam is part of The Daily Vroom, the collector car newsletter that's been running for years with tens of thousands of readers. Sam Gold owns it, and the tools include the Import Calculator and this seller-intelligence tool, built on real auction sale records. If you're selling a car, tell Sam what it is and Sam will work out where to take it.",chips:["Sell my car"]};
   if(/^(u there|you there|hello|hey|hi|yo|are you there)\??$/.test(lower))
-    return{reply:"Yep, here. Tell me what we're selling today and I'll work out what I’d do.",chips:["Sell my car"]};
+    return{reply:"Yep, here. Tell Sam the car you're selling and Sam will work out what to do.",chips:["Sell my car"]};
   if(/dump a body|dead body|outrun the cops/i.test(lower))
     return{reply:"Let's keep this legal. What are you actually trying to do with the car?",chips:["Hauling stuff","Camping","Daily driver","Fun car"]};
   if(/^start the questions$/i.test(lower))return{sellTrigger:true,initialCar:null};
   if(/^(show me a car|find me a car|help me find|i need a car|looking for a car|want a car|need a car|browse auctions|browse listings|browse|find a car)$/i.test(lower))
-    return{reply:"This version is focused on sellers. Tell me what we're selling today and I'll check where I'd take it.",chips:["Sell my car"]};
+    return{reply:"This version is focused on sellers. Tell Sam the car you're selling and Sam will check where to take it.",chips:["Sell my car"]};
   // Unmatched cold input: probe the resolver, then fall through to real chat.
   return{entryProbe:true};
 }
@@ -174,7 +174,7 @@ async function maybeRerunOnCarCorrection(q){
     // Item 3: the correction NAMES the car already shown. Never a bare "got it, noted" - confirm it IS
     // the car the result ran on, so the reply reflects that nothing on screen changes.
     var shown=cur.canonicalLabel||[cur.year,cur.make,cur.model,cur.trim].filter(Boolean).join(" ")||(nv.canonicalLabel||full);
-    addMsg("sam","That's the car I ran this on: "+shown+".");
+    addMsg("sam","That's the car Sam ran this on: "+shown+".");
     return true;
   }
   // Commit the corrected car and re-run the decision, REPLACING the rendered result in place. Drop the
@@ -224,7 +224,7 @@ async function send(){
       startSellFlow(pre.initialCar,false);
       document.getElementById("btn").disabled=false;return;
     }
-    addMsg("sam","For this one I'd genuinely go the mainstream route, it'll do better there than anywhere I'd send you. Got another car? Type it and I'll take a look.");
+    addMsg("sam","For this one Sam would genuinely go the mainstream route, it'll do better there than anywhere Sam would send you. Got another car? Type it and Sam will take a look.");
     document.getElementById("btn").disabled=false;return;
   }
 
@@ -398,7 +398,7 @@ async function send(){
         }else if(!res.ok||data.error||!data.text){
           // No silent fallbacks: the server logged the error to app_usage_events.
           console.error("chat layer failed",res.status,data.error||"empty text");
-          addMsg("sam","Good question. I'm having trouble answering it right now, so ask me again in a moment if it matters to you. It doesn't affect the market check itself.");
+          addMsg("sam","Good question. Sam is having trouble answering it right now, so ask Sam again in a moment if it matters to you. It doesn't affect the market check itself.");
         }else{
           // Output guard: a post-result free-text answer is checked against the
           // rendered composition. A wrong lead, an unshown platform, a hedged or
@@ -411,7 +411,7 @@ async function send(){
           }
           addMsg("sam",answer);
         }
-      }catch(e){hideTyping();addMsg("sam","Good question. I'm having trouble answering it right now because of a connection issue. Ask me again in a moment.");}
+      }catch(e){hideTyping();addMsg("sam","Good question. Sam is having trouble answering it right now because of a connection issue. Ask Sam again in a moment.");}
       // Never dead-end (locked): after ANY chat outcome, success OR a thrown/failed
       // request, always leave the seller with a next action. This re-ask used to sit
       // INSIDE the try, so a chat fetch that threw (network/timeout) dead-ended with an
@@ -480,7 +480,7 @@ async function send(){
         // never inferred from the chassis). No match -> the honest chassis line as before.
         if(probe.clarification.kind==="chassis_hint"&&probe.vinArchiveMatch&&typeof renderVinArchiveCallout==="function"){
           renderVinArchiveCallout(probe.vinArchiveMatch);
-          addMsg("sam","Tell me the year, make and model and I'll pull what similar ones have done.");
+          addMsg("sam","Tell Sam the year, make and model and Sam will pull what similar ones have done.");
         }else{
           addMsg("sam",probe.clarification.question);
         }
@@ -511,7 +511,7 @@ async function send(){
     if(!res.ok||data.error||!data.text){
       console.error("chat layer failed",res.status,data.error||"empty text");
       hideTyping();
-      addMsg("sam","I'm having trouble answering right now. Give it a moment and ask again.");
+      addMsg("sam","Sam is having trouble answering right now. Give it a moment and ask again.");
       document.getElementById("btn").disabled=false;
       return;
     }

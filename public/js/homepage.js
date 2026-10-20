@@ -3,7 +3,7 @@
 // to today's entry path. Stage B items are stubbed and tagged STAGE_B in code.
 
 // Hero supporting line (no dash; the global no-dash rule now has zero exceptions).
-const HERO_SUPPORTING = "I'll recommend where I'd sell your vehicle and show you exactly why.";
+const HERO_SUPPORTING = "Sam will recommend where to sell your vehicle and show you exactly why.";
 
 // Rotating placeholder: real, resolver-parseable examples.
 const PLACEHOLDER_EXAMPLES = ["Type your car, or paste a VIN."];
@@ -263,7 +263,7 @@ async function showSavedResults() {
   msgs.scrollTop = 0;
   let out = null;
   try { out = await fetchSavedResultsList(); }
-  catch (e) { msgs.innerHTML = shell(`<section class="hd-sec"><p>I couldn't load your results right now. Try again in a moment.</p></section>`); return; }
+  catch (e) { msgs.innerHTML = shell(`<section class="hd-sec"><p>Sam couldn't load your results right now. Try again in a moment.</p></section>`); return; }
   if (out.status === "auth") { msgs.innerHTML = shell(`<section class="hd-sec"><p>Sign in to see your saved results.</p></section>`); return; }
   const results = out.results;
   if (!results.length) {
@@ -344,7 +344,7 @@ async function reopenSavedResult(id) {
     if (data.__noToken) { if (seq === __reopenSeq) { msgs.innerHTML = ""; addMsg("sam", "Sign in to see your saved results."); } return; }
     payload = data.payload; createdAt = data.createdAt;
   } catch (e) {
-    if (seq === __reopenSeq) { msgs.innerHTML = ""; addMsg("sam", "I couldn't open that result right now. Try again in a moment."); }
+    if (seq === __reopenSeq) { msgs.innerHTML = ""; addMsg("sam", "Sam couldn't open that result right now. Try again in a moment."); }
     return;
   }
   if (seq !== __reopenSeq) return;
@@ -456,11 +456,11 @@ async function submitHunt() {
     const r = await fetch(apiPath("/api/hunts"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
     if (r.status === 401) { if (typeof openSignInCard === "function") openSignInCard("Sign in to tell Sam what you're hunting."); if (btn) { btn.disabled = false; btn.textContent = "Tell Sam"; } return; }
     if (!r.ok) throw new Error("failed");
-    renderArticleShell(`<h1>Noted.</h1><p>You'll hear from me when this goes live. Want to add another? <button class="gate-inline-link" onclick="renderHuntForm()">Tell me about another vehicle</button>.</p>`);
+    renderArticleShell(`<h1>Noted.</h1><p>You'll hear from Sam when this goes live. Want to add another? <button class="gate-inline-link" onclick="renderHuntForm()">Tell Sam about another vehicle</button>.</p>`);
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = "Tell Sam"; }
     const page = document.querySelector(".hp-article");
-    if (page) { const err = document.createElement("div"); err.className = "hunt-confirm"; err.textContent = "I couldn't save that just now. Try again in a moment."; page.appendChild(err); }
+    if (page) { const err = document.createElement("div"); err.className = "hunt-confirm"; err.textContent = "Sam couldn't save that just now. Try again in a moment."; page.appendChild(err); }
   }
 }
 

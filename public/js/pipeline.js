@@ -87,10 +87,10 @@ function escalateStep(step){
   // unrecognized. Ask for a clear figure rather than a generic re-ask, so it is
   // never silently dropped to "no price".
   const variants=(step===6)?[
-    `I want to get the number right. Roughly what are you hoping for? You can say something like 65k, $65,000, or 'not sure'.`,
-    `Still on price: give me a rough figure like 65k or $65,000, or say 'not sure'.`
+    `Sam wants to get the number right. Roughly what are you hoping for? You can say something like 65k, $65,000, or 'not sure'.`,
+    `Still on price: give Sam a rough figure like 65k or $65,000, or say 'not sure'.`
   ]:[
-    `I didn't catch that as an answer to this one. ${stepQ.ask}`,
+    `Sam didn't catch that as an answer to this one. ${stepQ.ask}`,
     `Still on this question: ${stepQ.ask} 'Not sure' works too.`
   ];
   addMsg("sam",variants[(n-1)%2],step===6&&typeof priceWhyHtml==="function"?priceWhyHtml():"",stepQ.chips&&stepQ.chips.length?chipsHTML(stepQ.chips):"");

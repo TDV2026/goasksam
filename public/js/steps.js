@@ -35,20 +35,20 @@ async function showPriceRecord(){
   sellState.priceDeferShown=true;
   sellState.awaitingPriceDefer=true;
   if(typeof gasJourneyEventOnce==="function")gasJourneyEventOnce("price_record_shown",{vehicle:sellState.resolvedVehicle});
-  addMsg("sam","Let me pull the record on cars like this.");
+  addMsg("sam","Sam will pull the record on cars like this.");
   let band=null;
   try{
     const res=await fetch(apiPath("/api/sellerDecision"),{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({priceProbe:true,car:{vehicle:sellState.resolvedVehicle,region:sellState.region,state:sellState.state}})});
     const j=await res.json(); band=j&&j.band;
   }catch(e){ band=null; }
-  const tail="Where you set the ask is your call, and it matters for where I'd send it, so give me a number when you're ready, or skip it and I'll route on the evidence alone.";
+  const tail="Where you set the ask is your call, and it matters for where Sam would send it, so give a number when you're ready, or skip it and Sam will route on the evidence alone.";
   const chips=chipsHTML(["Set my price","Skip the price"]);
   if(band&&band.ok&&band.high>band.low){
     const lo="$"+Number(band.low).toLocaleString("en-US"),hi="$"+Number(band.high).toLocaleString("en-US");
-    addMsg("sam",`I don't put a number on any specific car, that's the honest answer. What I can show you is the record: cars like this sold between ${lo} and ${hi} in ${priceWindowLabel(band.windowMonths)}. ${tail}`,"",chips);
+    addMsg("sam",`Sam doesn't put a number on any specific car, that's the honest answer. What Sam can show you is the record: cars like this sold between ${lo} and ${hi} in ${priceWindowLabel(band.windowMonths)}. ${tail}`,"",chips);
   }else{
-    addMsg("sam",`I don't put a number on any specific car, that's the honest answer, and I don't have enough recent sales of cars like this to show you an honest spread yet. ${tail}`,"",chips);
+    addMsg("sam",`Sam doesn't put a number on any specific car, that's the honest answer, and Sam doesn't have enough recent sales of cars like this to show you an honest spread yet. ${tail}`,"",chips);
   }
   return true;
 }
@@ -115,7 +115,7 @@ async function handleSellStep(q){
       if(!(await validateVehicleIdentityPreflight(sellState.carName,{chatFallback:true}))){
         if(sellState.lastIdentityVerdict==="not_vehicle"){
           sellState.step=1;
-          addMsg("sam","I couldn't read that as a car. Year, make and model?");
+          addMsg("sam","Sam couldn't read that as a car. Year, make and model?");
         }
         return true;
       }
@@ -164,7 +164,7 @@ async function handleSellStep(q){
     // (item 3): "no 2018 audi tt and its worth 55" -> car 2018 Audi TT, price $55,000.
     { const ps=extractPriceSignal(q); if(ps){ sellState.price=ps.formatted; if(ps.cleaned&&ps.cleaned!==String(q).trim()){ q=ps.cleaned; lower=q.toLowerCase().trim(); } } }
     if(/later|not sure|don.t know|skip|tell you later|can i give|give it later/i.test(lower)&&!looksLikeVehicleText(q)){
-      addMsg("sam","Of course. Whenever you're ready, just tell me the year, make, and model.");
+      addMsg("sam","Of course. Whenever you're ready, just tell Sam the year, make, and model.");
       return true;
     }
     const sameCarPhrase=/\b(same car|(that|this) (one|car)|no change|keep it|it'?s? (is )?(right|correct|the same|(this|that) (car|one))|is (this|that) (car|one))\b/i.test(lower)&&lower.split(/\s+/).length<=7&&!looksLikeVehicleText(q);
@@ -238,7 +238,7 @@ async function handleSellStep(q){
     // the chips. Prompt for it and STAY on this step; do NOT append "other" to
     // the car name and skip to broad (the old behavior sidestepped the user).
     if(/^(other|others|different|something\s+else|not\s+(listed|shown|there|here|on there)|it'?s\s+not\s+(listed|shown|there|here|above|an option))\.?$/i.test(lower.trim())){
-      addMsg("sam","Sure, type the exact model or trim and I'll use it, like GTS, Competition or Alpina B3.");
+      addMsg("sam","Sure, type the exact model or trim and Sam will use it, like GTS, Competition or Alpina B3.");
       return true;
     }
     // Chip answers and explicit skip/move-on always advance (chip labels can
@@ -270,7 +270,7 @@ async function handleSellStep(q){
       // missing, so it reads "without the exact trim", not "model".
       const _mk=(sellState.resolvedVehicle&&sellState.resolvedVehicle.model)||null;
       const _missing=_mk?"trim":"model";
-      addMsg("sam",`No problem. I'll keep it broad for now, but the recommendation may be more directional without the exact ${_missing}.`);
+      addMsg("sam",`No problem. Sam will keep it broad for now, but the recommendation may be more directional without the exact ${_missing}.`);
     }else{
       // Context reset: a different make at the trim question is a new car,
       // not a trim answer appended to the old one.
@@ -321,7 +321,7 @@ async function handleSellStep(q){
           // Not a usable trim: drop the input and proceed broad, never re-ask.
           sellState.carName=prevCar;sellState.carRaw=prevCar;
           sellState.vehicleDetailSkipped=true;sellState.lastMissingAsk=null;
-          resumeWizardAfterVehicle(`I'll take the ${prevCar} as-is and keep the read broad rather than keep asking.`);
+          resumeWizardAfterVehicle(`Sam will take the ${prevCar} as-is and keep the read broad rather than keep asking.`);
           return true;
         }
         askMissingVehicleDetail(missing);
@@ -371,7 +371,7 @@ async function handleSellStep(q){
       // signal. (typeof gasFunnel guard keeps the smoke harness, which stubs it, safe.)
       if((resolved.kind==="country"&&resolved.name!=="US")||(typeof looksNonUS==="function"&&looksNonUS(q))){
         if(typeof gasFunnel==="function")gasFunnel("non_us_attempt");
-        addMsg("sam","Right now I work with US sales data, with the UK and Europe next on the list. If the car is in the States, tell me which state.");
+        addMsg("sam","Right now Sam works with US sales data, with the UK and Europe next on the list. If the car is in the States, tell Sam which state.");
         return true;
       }
       // A curated city that needs confirmation (a fuzzy typo like "san fransisco", or
@@ -424,7 +424,7 @@ async function handleSellStep(q){
       sellState.step=8; askPowerSellerStep(); return true;
     }
     if(isQuestionInput(q))return false; // off-script -> chat; the record still stands
-    addMsg("sam","Give me a number when you're ready, or say skip and I'll route on the evidence alone.",typeof priceWhyHtml==="function"?priceWhyHtml():"",chipsHTML(["Set my price","Skip the price"]));
+    addMsg("sam","Give Sam a number when you're ready, or say skip and Sam will route on the evidence alone.",typeof priceWhyHtml==="function"?priceWhyHtml():"",chipsHTML(["Set my price","Skip the price"]));
     return true;
   }
   // First deferral at the price step: pull the record (US, scopable cars only; everything
@@ -538,7 +538,7 @@ async function handleSellStep(q){
     // answer (returning false -> handleSellStep false -> chat), never a canned
     // deflection. Only empty/one-word noise gets the guidance line. (rule 12)
     if(isQuestionInput(q)||String(q||"").trim().split(/\s+/).filter(Boolean).length>=2)return false;
-    addMsg("sam","Ask me about any choice above, or choose the one you'd like to explore.");
+    addMsg("sam","Ask Sam about any choice above, or choose the one you'd like to explore.");
     return true;
   }
 

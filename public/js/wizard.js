@@ -149,7 +149,7 @@ function outOfScopeCopy(v){
   const car=[v&&v.year,v&&v.make,v&&v.model].filter(Boolean).join(" ")||"car like this";
   // LOCKED copy (Sam). This is the only surface that may name CarMax, Carvana and
   // Facebook Marketplace. No escape-hatch sentence; ends on the Marketplace line.
-  return `I'll be straight with you: a ${car} isn't really my patch. My data covers the enthusiast auction world, and a car like yours sells best through the mainstream channels. CarMax or Carvana will give you a fast, clean sale. Facebook Marketplace usually gets you more if you don't mind fielding the messages, I've bought and sold plenty of cars there myself.`;
+  return `Sam will be straight with you: a ${car} isn't really Sam's patch. Sam's data covers the enthusiast auction world, and a car like yours sells best through the mainstream channels. CarMax or Carvana will give you a fast, clean sale. Facebook Marketplace usually gets you more if you don't mind fielding the messages, Sam has bought and sold plenty of cars there.`;
 }
 function renderOutOfScope(v){
   hideHero();
@@ -916,7 +916,7 @@ function applyMatchedConfig(v,m){
 // one thought after the callout, not a cold restart. Year is templated, never hardcoded.
 function matchedBridgeLine(v,m){
   const yr=(v&&v.year)||(m&&m.year);
-  return `The listing didn't record the engine, and on a ${yr||"car like this"} the VIN doesn't carry it either, so tell me which it is. On these, the engine sets the value.`;
+  return `The listing didn't record the engine, and on a ${yr||"car like this"} the VIN doesn't carry it either, so tell Sam which it is. On these, the engine sets the value.`;
 }
 
 function currentMissingVehicleDetail(){
@@ -950,8 +950,8 @@ function askMissingVehicleDetail(missing){
     sellState.trimAskAttempts=0;
     const mk=(sellState.resolvedVehicle&&sellState.resolvedVehicle.make)||extractVehicleMake(sellState.carName||"")||"make";
     resumeWizardAfterVehicle(missing.type==="model"
-      ?`No problem. I couldn't pin the exact model down, so I'll run a broader ${mk}-level read.`
-      :`I'll take the ${sellState.carName||"car"} as-is and keep the read broad.`);
+      ?`No problem. Sam couldn't pin the exact model down, so Sam will run a broader ${mk}-level read.`
+      :`Sam will take the ${sellState.carName||"car"} as-is and keep the read broad.`);
     return;
   }
   sellState.step=17;
@@ -1027,7 +1027,7 @@ async function handleVehicleValidationAnswer(q){
       // Journey analytics: the decode was corrected, not confirmed.
       sellState.vinConfirmed=false;
       sellState.pendingVehicleIdentity=null;sellState.pendingVinMatch=null;sellState.step=1;
-      addMsg("sam","No problem. Tell me the car instead, like the year, make and model.");
+      addMsg("sam","No problem. Tell Sam the car instead, like the year, make and model.");
       return true;
     }
     // They typed a car instead of yes/no: drop the VIN context and resolve it fresh.
@@ -1048,7 +1048,7 @@ async function handleVehicleValidationAnswer(q){
       if(res.ok&&data.vehicle?.canonicalLabel){
         sellState.resolvedVehicle=data.vehicle;sellState.carName=data.vehicle.canonicalLabel;sellState.carRaw=data.vehicle.canonicalLabel;
         sellState.vehicleIdentityValidated=!data.vehicle.unverified;sellState.vehicleDetailSkipped=false;sellState.notSureRepeats=0;
-        resumeWizardAfterVehicle(`Got it, I'll run the ${sellState.carName} as typed and keep the read broad.`);
+        resumeWizardAfterVehicle(`Got it, Sam will run the ${sellState.carName} as typed and keep the read broad.`);
         return true;
       }
     }catch(e){ if(typeof hideVehicleLookup==="function")hideVehicleLookup(); /* fall through */ }
@@ -1086,7 +1086,7 @@ async function handleVehicleValidationAnswer(q){
         chips.push(`Keep ${desig} as typed`,"Change car");
         sellState.pendingVehicleIdentity={type:"model",baseVehicle:[make].filter(Boolean).join(" "),rawInput:candidate,suggestion:suggestion||null,keepDesignation:desig};
         sellState.step=17;
-        addMsg("sam",`${desig} isn't a ${make||"model"} I can match to a known listing.${suggestion?` The closest I have is ${suggestion}.`:""} Double-check the badge, or keep it as typed and I'll run a broader read.`,"",chipsHTML(chips));
+        addMsg("sam",`${desig} isn't a ${make||"model"} Sam can match to a known listing.${suggestion?` The closest I have is ${suggestion}.`:""} Double-check the badge, or keep it as typed and Sam will run a broader read.`,"",chipsHTML(chips));
         return true;
       }catch(e){ if(typeof hideVehicleLookup==="function")hideVehicleLookup(); /* fall through to normal handling */ }
     }
@@ -1169,7 +1169,7 @@ async function handleVehicleValidationAnswer(q){
     sellState.carName=baseVehicle;sellState.carRaw=baseVehicle;
     sellState.vehicleDetailSkipped=true;sellState.pendingVehicleIdentity=null;
     sellState.vehicleIdentityValidated=false;sellState.notSureRepeats=0;
-    resumeWizardAfterVehicle(`Moving on with the ${baseVehicle}. The read will be broader than model-specific, and I'll say so in the result.`);
+    resumeWizardAfterVehicle(`Moving on with the ${baseVehicle}. The read will be broader than model-specific, and Sam will say so in the result.`);
     return true;
   }
   if(detectIntent(lower)==="refusal"||/\bskip\b/i.test(lower)){
@@ -1182,7 +1182,7 @@ async function handleVehicleValidationAnswer(q){
       sellState.carName=baseVehicle;sellState.carRaw=baseVehicle;
       sellState.vehicleDetailSkipped=true;sellState.pendingVehicleIdentity=null;
       sellState.vehicleIdentityValidated=false;sellState.notSureRepeats=0;
-      resumeWizardAfterVehicle(`No problem, I'll work with the ${baseVehicle} at the model level. The read will be broader than year-specific, and I'll say so in the result.`);
+      resumeWizardAfterVehicle(`No problem, Sam will work with the ${baseVehicle} at the model level. The read will be broader than year-specific, and Sam will say so in the result.`);
       return true;
     }
     // ONE "not sure" is enough (item 5): acknowledge once and proceed with the broader read. No
@@ -1194,7 +1194,7 @@ async function handleVehicleValidationAnswer(q){
     sellState.carName=baseVehicle;
     sellState.vehicleDetailSkipped=true;sellState.pendingVehicleIdentity=null;
     sellState.vehicleIdentityValidated=false;sellState.notSureRepeats=0;
-    askLocationStep(`No problem, I'll work with the ${baseVehicle} at that level. The read will be broader than model-specific, and I'll say so in the result.`);
+    askLocationStep(`No problem, Sam will work with the ${baseVehicle} at that level. The read will be broader than model-specific, and Sam will say so in the result.`);
     return true;
   }
   if(currentIssue?.suggestion&&(affirmationPhrase||detectIntent(lower)==="affirmation")){
@@ -1308,20 +1308,20 @@ async function handleVehicleValidationAnswer(q){
   // Locked rule 12: this fallback also never repeats verbatim and only asks
   // for what is genuinely missing.
   sellState.demandRepeats=(sellState.demandRepeats||0)+1;
-  const knownBits=base?` I have the ${base} so far.`:"";
+  const knownBits=base?` Sam has the ${base} so far.`:"";
   const demandVariants=base?[
-    `I just need the missing piece for the ${base}. Type it, or 'Not sure' and I'll analyse at that level.`,
-    `Whatever detail you have on the ${base} works, even a badge or a guess. 'Not sure' is fine too and I'll work with what we have.`
+    `Sam just needs the missing piece for the ${base}. Type it, or 'Not sure' and Sam will analyse at that level.`,
+    `Whatever detail you have on the ${base} works, even a badge or a guess. 'Not sure' is fine too and Sam will work with what you have.`
   ]:[
-    `I need the year, make and model before I can keep going. Something like '2014 Jaguar F-Type' or '1965 VW Bus'.${knownBits}`,
-    `Give me whatever you know: even just the make is a start, like 'Porsche' or 'Volkswagen'.`
+    `Sam needs the year, make and model to keep going. Something like '2014 Jaguar F-Type' or '1965 VW Bus'.${knownBits}`,
+    `Give Sam whatever you know: even just the make is a start, like 'Porsche' or 'Volkswagen'.`
   ];
   addMsg("sam",demandVariants[(sellState.demandRepeats-1)%2]);
   return true;
 }
 
 function sellerFunnelReply(){
-  return "Tell me the car and I’ll compare recent platform performance, timing patterns and PowerSeller fit before recommending what I’d do. A few quick questions, under a minute.";
+  return "Tell Sam the car and Sam will compare recent platform performance, timing patterns and PowerSeller fit before recommending what to do. A few quick questions, under a minute.";
 }
 
 async function startSellFlow(initialCar, showUserBubble=true, preresolved=null){
@@ -1400,7 +1400,7 @@ async function startSellFlow(initialCar, showUserBubble=true, preresolved=null){
   }
   if(showUserBubble)addMsg("user","Sell my car");
   setTimeout(()=>{
-    addMsg("sam","Answer a few quick questions, under a minute, and I'll compare the market properly. What are we selling today?");
+    addMsg("sam","Answer a few quick questions, under a minute, and Sam will compare the market properly. What are you selling today?");
   },400);
 }
 
@@ -1433,7 +1433,7 @@ function vehicleAcceptPrefix(){
     // resumeWizardAfterVehicle), so a supplied code is captured instead of being parsed
     // as a state. This line only sets the make-level context; it no longer invites a
     // badge inline (which used to collide with the very next question).
-    return `I don't have tracked sales for ${label} specifically, so this is a broader ${v.make||"make"}-level read.`;
+    return `Sam doesn't have tracked sales for ${label} specifically, so this is a broader ${v.make||"make"}-level read.`;
   }
   return `Got it. ${sellState.carName}.`;
 }
@@ -1475,7 +1475,7 @@ async function handleBadgeAnswer(q){
     resumeWizardAfterVehicle(`Got it, that matches the ${sellState.carName}.`);
   }else{
     if(sellState.resolvedVehicle)sellState.resolvedVehicle.badgeNote=code;
-    resumeWizardAfterVehicle(`Got it, noting ${escapeHtml(code)}. It's still not a designation I track, so the read stays at the ${mk} level.`);
+    resumeWizardAfterVehicle(`Got it, noting ${escapeHtml(code)}. It's still not a designation Sam tracks, so the read stays at the ${mk} level.`);
   }
   return true;
 }
@@ -1555,7 +1555,7 @@ function resumeWizardAfterVehicle(prefix){
     const mk=sellState.resolvedVehicle.make||"make";
     if(prefix)addMsg("sam",prefix);
     sellState.step=17; sellState.lastMissingAsk=null; sellState.trimAskAttempts=0;
-    addMsg("sam",`If you have the exact badge or model code from the car (data plate, engine bay, or the paperwork), type it and I'll try to match it. Otherwise say skip and I'll run the ${mk}-level read.`,"",chipsHTML(["Skip","Not sure"]));
+    addMsg("sam",`If you have the exact badge or model code from the car (data plate, engine bay, or the paperwork), type it and Sam will try to match it. Otherwise say skip and Sam will run the ${mk}-level read.`,"",chipsHTML(["Skip","Not sure"]));
     return;
   }
   // Intake (US-only launch): car -> state(18) -> price(6) -> preference(8) ->
