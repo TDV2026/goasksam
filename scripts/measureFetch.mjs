@@ -6,6 +6,10 @@ const BASE = process.env.FLOW_BASE || "https://goasksam.vercel.app";
 const label = process.argv[2] || "before";
 const OUT = `/private/tmp/claude-501/-Users-davidzysblat-Documents-GitHub-goasksam/ca33290f-26cb-4830-84de-21c1500cd74a/scratchpad/fetch-${label}.json`;
 import fs from "node:fs";
+// THE LIVE GUARD (Lane F's rule, Oct 20 2026): this script POSTs to PRODUCTION /api/sellerDecision (the full Sell path,
+// which can spend OldCarsData on a cache miss). It refuses without --live and says what it would call; run it only in a
+// gap the lanes name, with the protection-bypass header.
+if (!process.argv.includes("--live")) { console.log("measureFetch: REFUSED. This script POSTs to production /api/sellerDecision (the full Sell path). Run it only in a gap the lanes name, with --live."); process.exit(2); }
 
 // Mix: dense/common, thin/low-volume, and oddly-named/unmapped.
 const CARS = [

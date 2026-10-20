@@ -5,6 +5,10 @@
 //   node scripts/coverageFull.mjs        (run the next batch)
 //   node scripts/coverageFull.mjs report (print current aggregate report)
 import fs from "node:fs";
+// THE LIVE GUARD (Lane F's rule, Oct 20 2026): this script POSTs to PRODUCTION /api/sellerDecision (the full Sell path,
+// which can spend OldCarsData on a cache miss). It refuses without --live and says what it would call; run it only in a
+// gap the lanes name, with the protection-bypass header.
+if (!process.argv.includes("--live")) { console.log("coverageFull: REFUSED. This script POSTs to production /api/sellerDecision (the full Sell path). Run it only in a gap the lanes name, with --live."); process.exit(2); }
 const BASE=process.env.FLOW_BASE||"https://goasksam.vercel.app";
 const BATCH=Number(process.env.COVERAGE_BATCH||12);
 const PROGRESS="scripts/coverage-progress.json";

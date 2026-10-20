@@ -8,6 +8,10 @@ import fs from "node:fs";
 import { resolveVehicle } from "../lib/vehicle.js";
 import { buildLadder } from "../api/sellerDecision.js";
 import { buildHouseComparison, nextSaleForHouse, eventFromRecord } from "../lib/houseCalendar.js";
+// THE LIVE GUARD (Lane F's rule, Oct 20 2026): this script POSTs to PRODUCTION /api/sellerDecision (the full Sell path,
+// which can spend OldCarsData on a cache miss). It refuses without --live and says what it would call; run it only in a
+// gap the lanes name, with the protection-bypass header.
+if (!process.argv.includes("--live")) { console.log("goldenPath: REFUSED. This script POSTs to production /api/sellerDecision (the full Sell path). Run it only in a gap the lanes name, with --live."); process.exit(2); }
 const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const BASE = "https://goasksam.com";
 const sleep = ms => new Promise(r => setTimeout(r, ms));

@@ -1,5 +1,9 @@
 import puppeteer from "puppeteer-core";
 import { withProbeKey } from "./_probeKey.mjs";
+// THE LIVE GUARD (Lane F's rule, Oct 20 2026): this script POSTs to PRODUCTION /api/sellerDecision (the full Sell path,
+// which can spend OldCarsData on a cache miss). It refuses without --live and says what it would call; run it only in a
+// gap the lanes name, with the protection-bypass header.
+if (!process.argv.includes("--live")) { console.log("probeOnline: REFUSED. This script POSTs to production /api/sellerDecision (the full Sell path). Run it only in a gap the lanes name, with --live."); process.exit(2); }
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
 const p = await b.newPage(); await withProbeKey(p);

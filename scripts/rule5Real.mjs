@@ -4,6 +4,10 @@
 import puppeteer from "puppeteer-core";
 import { buildSpec, rule5PoolGuard } from "../lib/onebox.js";
 import { findGeneration } from "../lib/generations.js";
+// THE LIVE GUARD (Lane F's rule, Oct 20 2026): this script POSTs to PRODUCTION /api/sellerDecision (the full Sell path,
+// which can spend OldCarsData on a cache miss). It refuses without --live and says what it would call; run it only in a
+// gap the lanes name, with the protection-bypass header.
+if (!process.argv.includes("--live")) { console.log("rule5Real: REFUSED. This script POSTs to production /api/sellerDecision (the full Sell path). Run it only in a gap the lanes name, with --live."); process.exit(2); }
 
 const BASE = process.env.BASE || "https://goasksam.com";
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
