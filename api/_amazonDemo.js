@@ -22,7 +22,7 @@ const SAMPLE_BY_CAR = [   // each car's mileage is its OWN sample sale's (Lane E
   { price: 84900, monthly: 1426, total: 106202, miles: 14800, saleDate: "2026-10-12", sale: "2017 Porsche 911 Carrera Coupe, Oct 12 2026" },
   { price: 249900, monthly: 4318, total: 314380, miles: 7000, saleDate: "2026-08-14", sale: "2022 Porsche 911 GT3 6-Speed, Aug 14 2026" },
   { price: 154900, monthly: 2653, total: 194520, miles: 24000, saleDate: "2026-09-29", sale: "2017 Audi R8 V10 Plus Coupe, Sep 29 2026" },
-  { price: 104900, monthly: 1777, total: 131435, miles: 38000, saleDate: "2024-07-10", sale: "2019 Mercedes-AMG GT Roadster, Jul 10 2024 (its own record's stated mileage)" },
+  { price: 139900, monthly: 2390, total: 175595, miles: 7400, saleDate: "2026-09-15", sale: "2012 Mercedes-Benz SLS AMG Roadster, Sep 15 2026 (Sam's pick, Oct 20 2026; its sale price is not shown)" },
   { price: 49900, monthly: 813, total: 62042, miles: 57000, saleDate: "2026-10-19", sale: "2013 BMW M3 Coupe Competition Package, Oct 19 2026" },
   { price: 229900, monthly: 3967, total: 289147, miles: 18000, saleDate: "2026-10-19", sale: "2016 Ferrari 488 GTB, Oct 19 2026" },
   { price: 54900, monthly: 901, total: 68351, miles: 13800, saleDate: "2026-03-27", sale: "2016 Mercedes-AMG C63 Sedan, Mar 27 2026 (thin: a fixed sample price, Sam Oct 20 2026)" }

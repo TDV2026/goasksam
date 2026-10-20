@@ -38,7 +38,7 @@ ok(/if \(!a \|\| a\.ok === false \|\| a\.lastGood !== true\) return;/.test(d), "
 ok(/m\.querySelector\("\.dm-t"\)\.textContent = anySold\(a\.history\) \? "Sold before" : "Market Check";/.test(d) && /if \(!inScope\(a\)\) return;/.test(d), "one neutral marker for in-scope cars: Sold before when its VIN has sold, else Market Check");
 // RULE 25 (Lane E's flag, Oct 20 2026): every car's mileage is its OWN sample sale's, the one named in AMAZON_DEMO_CARS
 // (Lane E's 18:19Z read), never another car's; the C63 is its 2016 sedan's 13,800, not the 2017 cabriolet's 70,600.
-{ const want = [14800, 7000, 24000, 38000, 57000, 18000, 13800];   // the AMG: its plain GT Roadster's own 38,000 (Jul 10 2024)
+{ const want = [14800, 7000, 24000, 7400, 57000, 18000, 13800];   // the AMG slot: the 2012 SLS AMG Roadster's own 7,400 (Sep 15 2026, Sam's pick)
   ok(DEMO_CARS.every((c, i) => (P.sampleListings[c] || {}).miles === want[i]), "each car's mileage is its own sample sale's (the C63: 13,800)");
   ok(DEMO_CARS.every(c => /, [A-Z][a-z]{2} \d{1,2} 20\d\d/.test((P.sampleListings[c] || {}).sale || "")), "each car names its sample sale and date"); }
 ok(/function ownSalePhoto\(a, sl\)\{/.test(js) && /String\(r\.date \|\| ""\)\.slice\(0, 10\) === sl\.saleDate && \(sl\.miles == null \|\| Number\(r\.miles\) === sl\.miles\)/.test(js), "a demo car's photo is its own sample sale's (matched by that sale's date and mileage)");
