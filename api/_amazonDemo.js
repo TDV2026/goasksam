@@ -279,17 +279,18 @@ main{padding-block:22px 48px}
 .icos{display:flex;flex-direction:column;gap:12px;padding-top:2px}
 .ico{all:unset;cursor:default;width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--ink)}
 .ico svg{width:26px;height:26px}
-.fin{border-radius:14px;margin-top:18px;border-width:2px}
-.fin-l{flex:0 0 78px;font:400 16px/1 var(--sans)}
-.fin-b{padding:14px 16px 16px;text-align:left}
+/* the Finance box as the reference: the blue label is a corner tab above the figures; the yellow button is a short, squarer button inset in the box */
+.fin{display:grid;grid-template-columns:78px minmax(0,1fr);border-radius:14px;margin-top:18px;border-width:2px;overflow:hidden}
+.fin-l{grid-column:1;grid-row:1;flex:none;font:400 16px/1 var(--sans);border-bottom-right-radius:14px}
+.fin-top{grid-column:2;grid-row:1;min-height:64px;padding:12px 16px 4px}
+.fin-b{grid-column:1/-1;grid-row:2;padding:4px 16px 16px;text-align:left}
 .fin-u{display:flex;justify-content:flex-end;align-items:center;gap:6px;margin:0;font-size:14px;color:var(--ink2)}
 .fin-u svg{width:18px;height:18px}
 .fin-m{margin:2px 0 0;text-align:right;font:700 38px/1.15 var(--sans)}
 .fin-m span{font-weight:400;font-size:32px}
-.fin-t{margin:2px 0 12px;text-align:right;font-size:13px;color:var(--ink2)}
-.fin-b .btn.blk{min-height:46px;font:400 17px/1 var(--sans);background:#f8d84a;border-color:#f8d84a;margin-top:12px}
-.fin-b .btn.blk:first-child{margin-top:6px}
-.fin-x{margin:12px 0 0;font-size:14px;line-height:1.4;color:var(--ink)}
+.fin-t{margin:2px 0 0;text-align:right;font-size:13px;color:var(--ink2)}
+.fin-b .btn.blk{min-height:34px;height:34px;padding:0 16px;border-radius:8px;font:400 16px/1 var(--sans);background:#f8d84a;border-color:#f8d84a;margin-top:10px}
+.fin-x{margin:14px 0 0;font-size:14px;line-height:1.4;color:var(--ink)}
 .cash{padding:0;overflow:hidden;border:2px solid var(--rule);border-radius:14px;margin-top:12px;align-items:stretch}
 .cash-l{display:flex;align-items:center;padding:14px 18px;background:#e7f0f9;font:400 16px/1 var(--sans)}
 .cash-r{flex:1;display:flex;align-items:center;justify-content:flex-end;padding:14px 18px;font:400 20px/1 var(--sans)}
@@ -522,7 +523,7 @@ const JS = String.raw`
     var SHARE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4M6 12v7h12v-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     $("c-price").innerHTML = block ? '<div class="ptop"><div class="pl">' + (sl ? '<div class="price">' + usd(sl.price) + '</div><p class="price-kind">Sample asking price</p>' + (sl.miles ? '<p class="miles">' + esc(Number(sl.miles).toLocaleString("en-US")) + " miles</p>" : "") : '<div class="price dset">Price set by dealer</div>') + '</div><div class="icos"><button type="button" class="ico" data-inert aria-label="Save">' + HEART + '</button><button type="button" class="ico" data-inert aria-label="Share">' + SHARE + "</button></div></div>" : "";
     var wand = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l9-9M14 4v3M12.5 5.5h3M19 9v3M17.5 10.5h3M10 7l1.5 1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
-    $("c-fin").innerHTML = !block ? "" : '<div class="fin"><span class="fin-l">Finance</span><div class="fin-b">' + (sl && ru ? '<p class="fin-u">' + wand + "Last updated " + esc(ru) + "</p>" : "") + (sl ? '<p class="fin-m">' + usd(sl.monthly) + '<span>/mo</span></p><p class="fin-t">' + esc(TERMS) + " \u00b7 Sample</p>" : "") + '<button type="button" class="btn yel blk" data-inert>Estimate payments</button>' + (sl ? '<p class="fin-x">Total payments ' + usd(sl.total) + ". Sample figures for this demo.</p>" : '<p class="fin-x">Payments depend on the price the dealer sets.</p>') + "</div></div>" + (sl ? '<div class="cash"><span class="cash-l">Cash</span><b class="cash-r">' + usd(sl.price) + "</b></div>" : "");
+    $("c-fin").innerHTML = !block ? "" : '<div class="fin"><span class="fin-l">Finance</span><div class="fin-top">' + (sl && ru ? '<p class="fin-u">' + wand + "Last updated " + esc(ru) + "</p>" : "") + (sl ? '<p class="fin-m">' + usd(sl.monthly) + '<span>/mo</span></p><p class="fin-t">' + esc(TERMS) + " \u00b7 Sample</p>" : "") + '</div><div class="fin-b"><button type="button" class="btn yel blk" data-inert>Estimate payments</button>' + (sl ? '<p class="fin-x">Total payments ' + usd(sl.total) + ". Sample figures for this demo.</p>" : '<p class="fin-x">Payments depend on the price the dealer sets.</p>') + "</div></div>" + (sl ? '<div class="cash"><span class="cash-l">Cash</span><b class="cash-r">' + usd(sl.price) + "</b></div>" : "");
     if ($("c-mc")) { $("c-mc").hidden = !scope; if (scope) $("mc-body").innerHTML = mcCard(a); }
     // A read that failed (ok:false) draws the page's own "could not be read" or still-reading line, never a blank rail.
     $("c-case").innerHTML = scope ? "" : (ok ? caseHtml(a) : '<div class="case">' + cardHtml(a) + "</div>");

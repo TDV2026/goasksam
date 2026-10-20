@@ -33,6 +33,7 @@ ok(below > 0 && body > below && body < stabs, "the open card sits FULL WIDTH und
 ok(/mc\.classList\.toggle\("open", open\)/.test(js) && /\.querySelector\("\.chev-t"\)/.test(js), "Show and Hide still work");
 // the look
 ok(!/Amazon Ember/.test(h) && !/@font-face|@import|<link\b/.test(h) && /--sans:Arial,Helvetica,sans-serif/.test(h), "Arial and Helvetica only; no font file loaded");
+ok(/\.fin-b \.btn\.blk\{min-height:34px;height:34px;padding:0 16px;border-radius:8px;/.test(h) && /\.fin-b\{grid-column:1\/-1;grid-row:2;padding:4px 16px 16px/.test(h) && /<div class="fin-b"><button type="button" class="btn yel blk" data-inert>Estimate payments<\/button>/.test(h), "Estimate payments is a short, squarer-cornered button inset in the Finance box (34 px high, 8 px radius, 16 px inset), inert, on every car including a typed car (Sam's measured reference)");
 ok(!/[–—]/.test(h), "no dashes");
 console.log(`amazonR3ListingCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
