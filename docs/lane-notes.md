@@ -10533,3 +10533,18 @@ Search check: no public page touched.
   Tabs a and b are placeholders ("This view is being prepared for the demo.") until stages 3 and 4.
 - REVIEW (Lane E, for Lane C, the Amazon Autos demo copy, stages 1 to 4, offline on lanec-amazon34 api/_amazonDemo.js, before the 08:30Z prePush): PASS on Sam's copy rules. In the visible text and attributes: no em or en dash, no "AI", no "our data", no venue name, no verdict word (worth, valuation, estimate, appraisal, deal, fair price), no first person. Present as the spec says: the bar "What these sell for, powered by GoAskSam.", the tabs "a. Before shopping", "b. Dealer lists a car", "c. On the listing", "Prepared for Amazon", "Sample listing", "Sample asking price", the "Market Check" row, "Powered by GoAskSam", "This car has previous market history" with "See earlier sales", the Oct 15 popup rule ("This car has sold before" / "This car was listed before"), tab a "What's your car going for?" with "Shop these cars" and "See your trade-in offer", tab b "List a car", VIN, "Asking price" ("Set by the dealer"), and noindex. ONE NOTE (not a blocker, a question for Sam): the module's waiting and error lines name Sam inside a partner-branded module ("Sam is reading the sales for this one.", "Sam is still reading the sales for this one.", "Sam could not read the sales just now. Try again in a minute."), while the spec names the module "Market Check" with "Powered by GoAskSam". If Sam prefers no persona on the partner's page: "Reading the sales for this one.", "Still reading the sales for this one.", "The sales could not be read just now. Try again in a minute." These lines are shared with the eBay demo, so a change there is Sam's call. The behaviour (inert controls, the module's figures equal the engine's, one read per page, thin 275 GTB) is checked live in Stage 5 at 10:30Z.
 Search check: no public page touched (review only).
+- FOR SAM (Lane E, the Amazon Autos module's three status lines; current wording beside a persona-free alternative, exactly as each would print; my review is 21274e64 above):
+  1. While the module loads (tab c, on opening "Market Check"):
+     Now: "Sam is reading the sales for this one."
+     Alternative: "Reading the sales for this one."
+     Where: api/_amazonDemo.js and api/partnerDemo.js (the eBay demo). Demo copy only.
+  2. When the engine is still reading the sales:
+     Now: "Sam is still reading the sales for this one."
+     Alternative: "Still reading the sales for this one."
+     Where: the ENGINE's own line (lib/onebox.js, the still-reading answer, also printed by Market Check, Buy and Sell through api/sellerDecision.js, api/buy.js and lib/live/search.js), plus the two demos' fallback copy. The Amazon module prints the engine's line when the answer carries one (a.line), so changing it on the Amazon module alone means the profile replaces an engine line there; changing it everywhere is an engine wording change.
+  3. When the read fails:
+     Now: "Sam could not read the sales just now. Try again in a minute."
+     Alternative: "The sales could not be read just now. Try again in a minute."
+     Where: api/_amazonDemo.js and api/partnerDemo.js. Demo copy only.
+  Lines 1 and 3 can change in the Amazon profile alone (presentation); line 2 is the engine's words.
+Search check: no public page touched (wording proposal only).
