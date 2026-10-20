@@ -127,7 +127,10 @@ body{margin:0;background:#fff;color:var(--ink);font:400 15px/1.45 var(--sans);-w
 .tabs a{color:#fff;text-decoration:none;border:1px solid #555;border-radius:999px;padding:4px 12px}
 .tabs a[aria-current=page]{background:#fff;color:#111;border-color:#fff}
 .carbar{background:var(--soft);border-bottom:1px solid var(--rule);font-size:14px}
-.carbar .wrap{display:flex;gap:10px 18px;align-items:center;flex-wrap:wrap;padding-block:10px}
+.carbar .wrap{display:flex;gap:6px 18px;align-items:center;flex-wrap:wrap;padding-block:10px}
+.carname{flex:1 0 100%;margin:0;font:700 14px/1.3 var(--sans);color:var(--ink)}
+.carname[hidden]{display:none}
+.entry .carname,.dealer-form .carname{margin-top:8px;font-size:14px}
 .carpick{display:flex;gap:8px;align-items:center;flex:1 1 320px;min-width:0}
 .carpick label{font-weight:700}
 .carpick input{flex:1;min-width:0;height:38px;border:1px solid #888c8c;border-radius:var(--r);padding:0 12px;font:inherit;background:#fff}
@@ -272,6 +275,34 @@ const JS = String.raw`
   var OUT_OF_SCOPE_LINE = __OOSLINE__, SCOPE_AGE_YEARS = SCOPE.age, SCOPE_MAKES = SCOPE.makes, SCOPE_MODELS = SCOPE.models;
   var demoAnswerCase = __CASEFN__;
   var $ = function(id){ return document.getElementById(id); };
+  // ONE CURRENT CAR (revision 3, items 1 and 2): any entry (the top box, tab a's box, tab b's box) sets CAR, rewrites the
+  // address without a reload, and every tab link and box carries it. The name and VIN line under every box is drawn from
+  // the answer's own car field {name, vin, from}, never guessed here.
+  var CAR_OK = /^[\p{L}\p{N}][\p{L}\p{N} .,'&/()+-]{1,59}$/u;
+  function carWord(t){
+    t = String(t == null ? "" : t).replace(/\s+/g, " ").trim();
+    if (/^\d$/.test(t) && Number(t) < CARS.length) return CARS[Number(t)];
+    for (var i = 0; i < CARS.length; i++) if (CARS[i].toLowerCase() === t.toLowerCase()) return CARS[i];
+    return CAR_OK.test(t) && /\p{L}/u.test(t) ? t : null;
+  }
+  function setCar(t){
+    var c = carWord(t); if (!c) return null;
+    CAR = c; CHOSEN = true; LISTCAR = c + (LISTBODY[c] ? " " + LISTBODY[c] : "");
+    var enc = encodeURIComponent(c);
+    try { history.replaceState(null, "", "?p=amazon&view=" + VIEW + "&car=" + enc); } catch (x) {}
+    Array.prototype.forEach.call(document.querySelectorAll(".tabs a[data-view]"), function(a){ a.setAttribute("href", "?p=amazon&view=" + a.getAttribute("data-view") + "&car=" + enc); });
+    var bk = document.querySelector(".back-l"); if (bk) bk.setAttribute("href", "?p=amazon&view=d&car=" + enc);
+    ["car-in", "a-q", "b-vin"].forEach(function(id){ if ($(id)) $(id).value = c; });
+    setName(null);
+    return c;
+  }
+  function nameLine(a){ var k = a && a.car; return k && k.name ? String(k.name) + (k.vin ? " \u00b7 VIN " + String(k.vin) : "") : ""; }
+  function setName(a){
+    var line = nameLine(a);
+    Array.prototype.forEach.call(document.querySelectorAll("[data-carname]"), function(n){ n.textContent = line; n.hidden = !line; });
+  }
+  var GEN = 0;
+  function read(b, draw){ var g = ++GEN; return ask(b).then(function(a){ if (g === GEN) draw(a); }); }
   var esc = function(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
   var usd = function(n){ return "$" + Math.round(Number(n)).toLocaleString("en-US"); };
   var MON = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -339,7 +370,7 @@ const JS = String.raw`
     var send = {}; try { send = JSON.parse(o.getAttribute("data-qsend")); } catch (x) {}
     var sec = o.closest("section"), v = sec ? sec.id.replace("view-", "") : "c";
     var draw = v === "a" ? (typeof drawA === "function" ? drawA : drawC) : v === "b" ? (typeof drawB === "function" ? drawB : drawC) : drawC;
-    ask(send).then(draw);
+    read(send, draw);
   });
   // TAB c: the vehicle page.
   // The fixed sample listing figures for this car (the profile's constants; nothing computed here). The price shows only
@@ -384,6 +415,7 @@ const JS = String.raw`
   function mcCard(a){ return cardHtml(a) + (a && a.ok !== false && !a.question ? '<p class="mc-ctx">' + esc(CONTEXT) + "</p>" : ""); }
   function drawC(a){
     var ok = a && a.ok !== false;
+    setName(a);
     var photo = ok && (SAMPLES[CAR] ? ownSalePhoto(a, SAMPLES[CAR]) : (a.carPhoto && a.carPhoto.photo));
     $("c-photo").innerHTML = photo ? '<img src="/api/partnerAnswer?photo=' + encodeURIComponent(photo) + '&w=960" alt="' + esc(CAR) + '" decoding="async"><p class="photo-note"></p>' : "";
     var gal = $("c-photo"); if (photo) { gal.classList.add("has"); var n = gal.querySelector(".photo-note"); if (n) { n.textContent = "Photo of a car like it from a recent sale."; gal.parentNode.appendChild(n); } }
@@ -404,7 +436,7 @@ const JS = String.raw`
     // History and condition shows only when this exact car has an earlier listing on record.
     $("c-hist").innerHTML = HIST.length ? '<p class="hist-l">This car has previous market history</p><button type="button" class="linkbtn" data-hist>See earlier sales</button>' : "";
     $("c-histsec").hidden = !HIST.length;
-    if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ ask(body).then(drawC); }, a.retryAfterMs);
+    if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ read(bodyOf(), drawC); }, a.retryAfterMs);
   }
   // The two working section tabs: Overview and Pricing (the same card); the others are inert.
   document.addEventListener("click", function(e){
@@ -427,34 +459,64 @@ const JS = String.raw`
     });
   }
   if (VIEW === "d") drawD();
-  var body = LIST && LIST.vin ? { q: CAR, vin: LIST.vin } : { q: LISTCAR || CAR };
-  if (VIEW === "c" && !OUT_OF_SCOPE) ask(body).then(drawC);   // an out-of-scope listing (from its own words) makes no read
+  var ORIGCAR = CAR, ORIGTITLE = ($("c-title") || {}).textContent || "";
+  function bodyOf(){ return LIST && LIST.vin && CAR === ORIGCAR ? { q: CAR, vin: LIST.vin } : { q: LISTCAR || CAR }; }
+  // Tab c for the current car: after a change of car the page clears its own panes and reads once (never a second read).
+  function startC(changed){
+    if (changed) {
+      var lc = LISTCAR, vinLike = /^[A-Za-z0-9]{11,17}$/.test(lc) && /\d.*\d.*\d/.test(lc) && !/\s/.test(lc);
+      $("c-title").textContent = CAR === ORIGCAR ? ORIGTITLE : vinLike ? "" : /^\d{4}\s/.test(lc) ? "Used " + lc : lc;
+      ["c-photo", "c-thumbs", "c-price", "c-fin", "c-case", "c-pcard", "c-kf", "c-hist"].forEach(function(id){ $(id).innerHTML = ""; });
+      $("c-kfsec").hidden = true; $("c-histsec").hidden = true; $("c-mc").hidden = true; $("mc-body").hidden = true; $("mc-body").innerHTML = '<p class="loading">Reading the sales for this one.</p>';
+      var tg = document.querySelector("[data-mc-toggle]"); if (tg) { tg.setAttribute("aria-expanded", "false"); var ch = tg.querySelector(".chev"); if (ch) ch.textContent = "Show"; }
+      HIST = [];
+    }
+    if (wordsOut(CAR)) { $("c-case").innerHTML = wordsCaseHtml(CAR); return; }
+    read(bodyOf(), drawC);
+  }
+  if (VIEW === "c" && !OUT_OF_SCOPE) startC(false);   // an out-of-scope listing (from its own words) makes no read
   // TAB a, BEFORE SHOPPING: any car or a VIN returns the same shared card; with a VIN, this car's history inline above it.
   // Outside the pilot scope, no module. The two next steps are inert; no trade-in number is ever shown.
   function drawA(a){
     var out = $("a-out"); if (!out) return;
+    setName(a);
     var cs = caseHtml(a); if (cs) { out.innerHTML = cs; return; }
     if (a && a.ok !== false && !a.question && !inScope(a)) { out.innerHTML = ""; return; }
     out.innerHTML = inlineHist((a && a.history) || []) + cardHtml(a);
     if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ goA(); }, a.retryAfterMs);
   }
-  function goA(){ var q = String(($("a-q") || {}).value || "").trim(); if (!q) return; if (wordsOut(q)) { $("a-out").innerHTML = wordsCaseHtml(q); return; } $("a-out").innerHTML = '<p class="loading">Reading the sales for this one.</p>'; ask({ q: q }).then(drawA); }
+  function goA(){ var q = String(($("a-q") || {}).value || "").trim(); if (!q) return; q = setCar(q) || q; if (wordsOut(q)) { $("a-out").innerHTML = wordsCaseHtml(q); return; } $("a-out").innerHTML = '<p class="loading">Reading the sales for this one.</p>'; read({ q: q }, drawA); }
   // TAB b, DEALER LISTS A CAR: VIN in; this car's history inline and the same shared card, ABOVE the asking price field.
   // No pricing advice, no suggested price: the price field is the dealer's and stays empty.
   function drawB(a){
     var out = $("b-out"); if (!out) return;
+    setName(a);
     var cs = caseHtml(a); if (cs) { out.innerHTML = cs; return; }
     if (a && a.ok !== false && !a.question && !inScope(a)) { out.innerHTML = ""; return; }
     out.innerHTML = inlineHist((a && a.history) || []) + cardHtml(a);
     if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ goB(); }, a.retryAfterMs);
   }
   // The listing car opens by its name; its VIN goes with the read (for its history) and is never printed.
-  function goB(){ var q = String(($("b-vin") || {}).value || "").trim(); if (!q) return; if (wordsOut(q)) { $("b-out").innerHTML = wordsCaseHtml(q); return; } $("b-out").innerHTML = '<p class="loading">Reading the sales for this one.</p>'; ask(LIST && LIST.vin && q === CAR ? { q: q, vin: LIST.vin } : { q: q }).then(drawB); }
+  function goB(){ var q = String(($("b-vin") || {}).value || "").trim(); if (!q) return; q = setCar(q) || q; if (wordsOut(q)) { $("b-out").innerHTML = wordsCaseHtml(q); return; } $("b-out").innerHTML = '<p class="loading">Reading the sales for this one.</p>'; read(LIST && LIST.vin && q === ORIGCAR ? { q: q, vin: LIST.vin } : { q: q }, drawB); }
   document.addEventListener("click", function(e){ if (e.target.closest("[data-a-go]")) goA(); if (e.target.closest("[data-b-go]")) goB(); });
   document.addEventListener("keydown", function(e){ if (e.key !== "Enter") return; if (e.target.id === "a-q") { e.preventDefault(); goA(); } if (e.target.id === "b-vin") { e.preventDefault(); goB(); } });
   // A car chosen in the bar opens on tabs a and b already read (the same one read per page as tab c).
   if (VIEW === "a" && CHOSEN) { $("a-q").value = CAR; goA(); }
   if (VIEW === "b" && CHOSEN) { $("b-vin").value = CAR; goB(); }
+  // Tab d names the current car under the box too: a demo car from its stored answer, a typed one from one read.
+  function nameD(){
+    if (!CHOSEN) return;
+    if (CARS.indexOf(CAR) >= 0) { var qq = LISTBODY[CAR] ? CAR + " " + LISTBODY[CAR] : CAR; fetch("/api/partnerAnswer?last=" + encodeURIComponent(qq), { credentials: "include" }).then(function(r){ return r.json(); }).catch(function(){ return null; }).then(function(a){ if (a && a.car) setName(a); }); }
+    else read({ q: CAR }, setName);
+  }
+  if (VIEW === "d") nameD();
+  // The top box: the same one current car on every tab, set in the page (no reload); the address carries it.
+  document.addEventListener("submit", function(e){
+    if (!e.target.closest || !e.target.closest("#car-form")) return;
+    var q = String(($("car-in") || {}).value || "").trim(), c = q ? carWord(q) : null; if (!c) return;   // an unreadable word falls back to the form's own GET
+    e.preventDefault(); setCar(c);
+    if (VIEW === "a") { goA(); } else if (VIEW === "b") { goB(); } else if (VIEW === "c") { startC(true); } else { nameD(); }
+  });
 })();
 `;
 
@@ -466,9 +528,9 @@ export function amazonPageHtml(view, carIn, { carOf, listing }) {
   const listCar = P.listingBody[car] ? car + " " + P.listingBody[car] : car;
   // tab c: an out-of-scope listing, known from its own words, draws no Market Check module and makes no read
   const outC = v === "c" && scopeFromWords(car, new Date().getFullYear(), { age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS }) === false;
-  const carQ = k => `?p=amazon&view=${k}${car === AMAZON_DEMO_CARS[0] ? "" : "&car=" + encodeURIComponent(car)}`;
-  const tab = (k, label) => `<a href="${escHtml(carQ(k))}"${k === v ? ' aria-current="page"' : ""}>${label}</a>`;
-  const carBar = `<div class="carbar"><div class="wrap"><form class="carpick" id="car-form" method="get" action="/preview"><input type="hidden" name="p" value="amazon"><input type="hidden" name="view" value="${v}"><label for="car-in">Car</label><input id="car-in" name="car" value="${chosen ? escHtml(car) : ""}" autocomplete="off" maxlength="60" placeholder="Type your car or paste a VIN"><button class="btn out" type="submit">Show</button></form></div></div>`;
+  const carQ = k => `?p=amazon&view=${k}${chosen || car !== AMAZON_DEMO_CARS[0] ? "&car=" + encodeURIComponent(car) : ""}`;
+  const tab = (k, label) => `<a href="${escHtml(carQ(k))}" data-view="${k}"${k === v ? ' aria-current="page"' : ""}>${label}</a>`;
+  const carBar = `<div class="carbar"><div class="wrap"><form class="carpick" id="car-form" method="get" action="/preview"><input type="hidden" name="p" value="amazon"><input type="hidden" name="view" value="${v}"><label for="car-in">Car</label><input id="car-in" name="car" value="${chosen ? escHtml(car) : ""}" autocomplete="off" maxlength="60" placeholder="Type your car or paste a VIN"><button class="btn out" type="submit">Show</button></form><p class="carname" data-carname hidden></p></div></div>`;
   const sy = /^(\d{4})\b/.exec(car), year = sy ? sy[1] : null;
   // TAB c, ON THE LISTING: photos, title, "Sample listing", the sample asking price (inside the range only), the purchase box
   // (inert), the dealer line, then Market Check below the purchase box (a collapsed row opening the shared card), the
@@ -490,10 +552,10 @@ export function amazonPageHtml(view, carIn, { carOf, listing }) {
       <h1 id="c-title">${escHtml(hasListing ? "Used " + listing.title : initTitle)}</h1><p class="sample-tag">Sample listing</p>
       <div id="c-price"></div>
       <div id="c-fin"></div>
-      ${outC ? "" : `<div class="mc" id="c-mc" hidden>
+      <div class="mc" id="c-mc" hidden>
         <button type="button" class="mc-row" data-mc-toggle aria-expanded="false" aria-controls="mc-body"><span>${escHtml(P.moduleName)}, <span class="attr">${escHtml(P.attribution.replace(/^Powered/, "powered"))}</span></span><span class="chev">Show</span></button>
-        <div class="mc-body" id="mc-body" hidden><p class="loading">Reading the sales for this one.</p></div>
-      </div>`}
+        <div class="mc-body" id="mc-body" hidden></div>
+      </div>
       <div id="c-case">${outC ? `<div class="case"><p class="case-l">${escHtml(OUT_OF_SCOPE_LINE)}</p><p class="case-n">${escHtml(listCar)}</p></div>` : ""}</div>
       <p class="pdet"><button type="button" class="linkbtn" data-inert>See price details</button></p>
       <p class="dealer">Sold by <b>Sample dealer</b></p>
@@ -528,14 +590,14 @@ ${carBar}
 <main>
 <section class="wrap" id="view-a"${v === "a" ? "" : " hidden"}>
   <div class="entry lead"><h1>What's your car going for?</h1>
-    <div class="ask"><input id="a-q" autocomplete="off" maxlength="60" placeholder="Type your car or paste a VIN" aria-label="Car or VIN"><button type="button" class="btn yel" data-a-go>Check</button></div>
+    <div class="ask"><input id="a-q" autocomplete="off" maxlength="60" value="${chosen ? escHtml(car) : ""}" placeholder="Type your car or paste a VIN" aria-label="Car or VIN"><button type="button" class="btn yel" data-a-go>Check</button></div><p class="carname" data-carname hidden></p>
     <div id="a-out" style="margin-top:20px"></div>
     <div class="nexts"><button type="button" class="btn out" data-inert>Shop these cars</button><button type="button" class="btn out" data-inert>See your trade-in offer</button></div>
   </div>
 </section>
 <section class="wrap" id="view-b"${v === "b" ? "" : " hidden"}>
   <div class="dealer-form"><h2>List a car</h2><p class="sample-tag">Sample listing</p>
-    <div class="field"><label for="b-vin">VIN</label><div class="ask" style="display:flex;gap:8px;flex-wrap:wrap"><input id="b-vin" autocomplete="off" maxlength="60" placeholder="Paste a VIN or type the car" aria-label="VIN or car"><button type="button" class="btn yel" data-b-go>Look up</button></div></div>
+    <div class="field"><label for="b-vin">VIN or year, make and model</label><div class="ask" style="display:flex;gap:8px;flex-wrap:wrap"><input id="b-vin" autocomplete="off" maxlength="60" value="${chosen ? escHtml(car) : ""}" placeholder="Paste a VIN or type the car" aria-label="VIN or year, make and model"><button type="button" class="btn yel" data-b-go>Look up</button></div><p class="carname" data-carname hidden></p></div>
     <div id="b-out" style="margin-top:16px"></div>
     <div class="field"><label for="b-price">Asking price</label><input id="b-price" disabled placeholder="Set by the dealer" aria-label="Asking price"></div>
     <div class="nexts"><button type="button" class="btn org" data-inert>Continue</button></div>

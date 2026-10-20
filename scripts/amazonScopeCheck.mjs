@@ -52,9 +52,9 @@ ok(!/price|range|sales|count/i.test(amazonInScope.toString()), "the scope reads 
   ok(W("2015 Ford Mustang") === false && W("2019 Honda Accord") === false, "words: ordinary young cars of a listed make are out");
   ok(W("Citroen DS") === null && W("2015 Citroen DS") === null && W("Toyota Corolla") === null, "words with no year or no known make: undecided, the answer decides after the read");
   const out = amazonPageHtml("c", "2015 Toyota Corolla", { carOf, listing: DUMMY }), inn = amazonPageHtml("c", "1966 Ferrari 275 GTB", { carOf, listing: DUMMY });
-  ok(!/id="c-mc"/.test(out) && !/id="mc-body"/.test(out) && !/Reading the sales/.test(out.replace(/<script>[\s\S]*<\/script>/, "")) && /OUT_OF_SCOPE = true/.test(out), "the Corolla listing: no module element, no Reading line, and the page knows it is out (no read)");
+  ok(/<div class="mc" id="c-mc" hidden>/.test(out) && /<div class="mc-body" id="mc-body" hidden><\/div>/.test(out) && !/Reading the sales/.test(out.replace(/<script>[\s\S]*<\/script>/, "")) && /OUT_OF_SCOPE = true/.test(out), "the Corolla listing: no module element, no Reading line, and the page knows it is out (no read)");
   ok(/id="c-mc"/.test(inn) && /OUT_OF_SCOPE = false/.test(inn), "the 275 GTB listing: the module is there and the page reads");
-  ok(/if \(VIEW === "c" && !OUT_OF_SCOPE\) ask\(body\)\.then\(drawC\)/.test(out), "tab c reads only when the listing is not out of scope");
+  ok(/if \(VIEW === "c" && !OUT_OF_SCOPE\) startC\(false\)/.test(out), "tab c reads only when the listing is not out of scope");
   ok(/OUT_OF_SCOPE = false/.test(amazonPageHtml("c", "Citroen DS", { carOf, listing: DUMMY })), "an undecided listing still reads, and the answer decides"); }
 // TABS a AND b (Lane F, Oct 20 2026): typed words decide the same way before any read; undecided words read as before.
 { const ha = amazonPageHtml("a", "", { carOf, listing: DUMMY });

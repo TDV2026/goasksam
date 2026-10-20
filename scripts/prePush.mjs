@@ -657,6 +657,13 @@ try {
 } catch (e) {
   record("amazonTypedCheck (scripts/amazonTypedCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// amazonCarStateCheck (Lane G, Amazon revision 3 item R3-A). No network.
+try {
+  const out = execSync("node scripts/amazonCarStateCheck.mjs", { encoding: "utf8" });
+  record("Amazon revision 3, one current car (scripts/amazonCarStateCheck.mjs)", "PASS", (out.match(/amazonCarStateCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Amazon revision 3, one current car (scripts/amazonCarStateCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // vinIdentityCheck (Lane E, Buy Stage 1c). No network.
 try {
   const out = execSync("node scripts/vinIdentityCheck.mjs", { encoding: "utf8" });
