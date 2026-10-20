@@ -30,6 +30,12 @@ ok(q && q.unstated === unread && q.unstatedWhat === "don't say which model", `th
 const slow = partitionModels(rows, null);
 ok(slow.chips.find(c => c.label === "911").n === 14 && slow.chips.length === 7, `slow reads: the rows' own models give the same 7 chips (911 ${slow.chips.find(c => c.label === "911").n})`);
 ok(parentModelOf("Porsche", "997") === "911" && parentModelOf("Porsche", "Cayman") === "Cayman", "a chassis code maps to its parent model; a model name stays itself");
+// Lane C's flag (Oct 20 2026): the archive files the 991.1 and 991.2 cars as plain "991"; they fold into the 911 chip
+ok(parentModelOf("Porsche", "991") === "911", "991 (a split generation filed under its base code) folds into 911");
+ok(["996", "997", "992", "993", "964"].every(c => parentModelOf("Porsche", c) === "911"), "996, 997, 992, 993, 964 still fold into 911");
+ok(parentModelOf("Porsche", "991.2") === "911" && parentModelOf("Porsche", "3") === "3" && parentModelOf("Porsche", "Cayman") === "Cayman" && parentModelOf("BMW", "991") === "991", "exact codes unchanged; a short base never folds; another make never folds");
+{ const P = partitionModels([{ make: "Porsche", model: "911" }, { make: "Porsche", model: "991" }, { make: "Porsche", model: "991" }, { make: "Porsche", model: "Cayman" }], [null, null, null, null]);
+  ok(JSON.stringify(P).includes("911") && !/"991"/.test(JSON.stringify(P.models || P)), `partition: the 991 cars count under the 911 chip (${JSON.stringify(P).slice(0, 160)})`); }
 // Seeded violation: a cap of six would hide the Cayman.
 ok(partitionModels(rows, specs).chips.slice(0, 6).every(c => c.label !== "Cayman"), "seeded violation: a top-six cap WOULD hide the Cayman (so this check bites)");
 console.log(`modelChipsCheck: ${pass} pass, ${fail} fail`);
