@@ -352,7 +352,7 @@ main .sfc-row-meta{grid-column:1;grid-row:2;font:400 13px/1.3 var(--sans);color:
 .dph img{width:100%;height:100%;object-fit:cover;display:block}
 .dtx{display:flex;flex-direction:column;gap:6px;padding:12px 14px 14px;flex:1}
 .dtitle{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.7em;font:700 16px/1.35 var(--sans);color:var(--ink);text-decoration:none}
-.dchips{display:flex;gap:6px;flex-wrap:nowrap;overflow:hidden;min-height:24px}
+.dchips{display:flex;gap:6px;flex-wrap:wrap;align-content:flex-start;overflow:hidden;height:54px}
 .dchip{flex:none;border-radius:4px;padding:3px 8px;background:#f0f2f2;font:400 12px/1.2 var(--sans);color:var(--ink)}
 .dmiles{font:400 14px/1.3 var(--sans);color:var(--ink2)}
 .dprice{font:400 28px/1.1 var(--sans);color:var(--ink)}
