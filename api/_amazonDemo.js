@@ -269,7 +269,7 @@ main{padding-block:22px 48px}
 .dph{aspect-ratio:4/3;background:#eaeded;display:block}.dph img{width:100%;height:100%;object-fit:cover;display:block}
 .dtx{display:flex;flex-direction:column;gap:4px;padding:12px 14px 14px}
 .dtitle{font:700 15px/1.35 var(--sans)}.dmiles{font-size:13px;color:var(--ink2)}
-.dchips{display:flex;gap:6px;flex-wrap:wrap}.dchips:empty{display:none}
+.dchips{display:flex;gap:6px;flex-wrap:wrap}
 .dchip{border:1px solid var(--rule);border-radius:999px;padding:2px 8px;font-size:12px;color:var(--ink2)}
 .dprice{margin-top:4px;font:700 20px/1.2 var(--sans)}.dfin{font-size:13px;color:var(--ink2)}
 .dmark{align-self:flex-start;margin-top:6px;border-radius:4px;padding:2px 8px;background:#f0f2f2;font:700 11px/1.5 var(--sans);letter-spacing:.04em;text-transform:uppercase;color:var(--ink2)}

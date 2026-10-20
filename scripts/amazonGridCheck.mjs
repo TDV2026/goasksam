@@ -44,6 +44,7 @@ ok(/m\.querySelector\("\.dm-t"\)\.textContent = anySold\(a\.history\) \? "Sold b
 ok(/function ownSalePhoto\(a, sl\)\{/.test(js) && /String\(r\.date \|\| ""\)\.slice\(0, 10\) === sl\.saleDate && \(sl\.miles == null \|\| Number\(r\.miles\) === sl\.miles\)/.test(js), "a demo car's photo is its own sample sale's (matched by that sale's date and mileage)");
 ok(/var sl = SAMPLES\[q\], ph = sl \? ownSalePhoto\(a, sl\) : null;/.test(d) && /SAMPLES\[CAR\] \? ownSalePhoto\(a, SAMPLES\[CAR\]\) :/.test(js), "tab d and tab c use that photo or none, never another car's");
 ok(DEMO_CARS.every(c => /^20\d\d-\d\d-\d\d$/.test((P.sampleListings[c] || {}).saleDate || "")), "each car carries its sale's own date");
+ok(!/\.dchips:empty\{display:none\}/.test(h) && /\.dchips\{display:flex;gap:6px;flex-wrap:nowrap;overflow:hidden;min-height:24px\}/.test(h), "the chip slot is a fixed-height slot even with no chip, so every Market Check marker sits level across a row (measured equal at 1440 and 390 in the local harness)");
 ok(!/[–—]/.test(h), "no dashes");
 console.log(`amazonGridCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
