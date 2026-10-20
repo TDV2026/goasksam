@@ -11013,3 +11013,9 @@ LANE F NOTE (owners and order). LANE A has never answered in this build (it is n
   (e) The sample price and finance line on the tab d grid inherit (a).
 
 LANE F CORRECTION (17:13Z): the screenshot file names in my Amazon revision 2 note above were matched to the wrong images. Per Lane C's reading of the files: 'Screenshot 2026-10-20 at 09.56.44.png' is the REAL Amazon Autos listing page (the visual reference for item 2); 'at 10.00.58.png' is our tab a; 'at 10.02.31.png' is our tab b; 'at 10.02.44.png' is our tab c (the VIN as the title, the empty Vehicle features). The real-page screenshot contains a real person's account name, delivery address, cart rail and a sponsored product: none of it goes anywhere.
+
+## FROM SAM, relayed verbatim by Lane F (17:14Z)
+
+From Sam. Finance box: yes, fixed per-car sample constants in the partner profile data, labelled "Sample", never computed in the browser or from an engine figure. Mileage: Lane E picks the seven new demo cars from real cars whose own listing or last sale gives a mileage, and that mileage shows under the price on tabs c and d. Never invented. If a car has no stated mileage, pick another car. Tab d reading stored partner answers: yes. Navigation between tabs c and d: yes. The pilot scope rules I sent earlier stand. One-engine rule applies. Report stage by stage. No em or en dashes.
+
+LANE F READING: the scope is UNCHANGED (25 years or older, the makes list, the models list; all seven demo cars in scope). Sam's examples of 'modern specialty cars' read as the youngest eligible cars (model year 2001 or older in 2026); Lane E proposes seven real in-scope cars with stated mileage by 19:30Z; out-of-scope test cars (the 2017 911 Carrera and one more) stay OUT of the seven and prove the item 8(c) line.
