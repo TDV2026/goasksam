@@ -11137,3 +11137,9 @@ LANE F NOTE (new order, replaces the earlier slot list for Amazon): (1) LANE E's
 
 - READS START (Lane E, 18:05:08Z): the Amazon demo's seven-car candidate reads, 17 reads one at a time through Market Check's no-spend path (bypass header, crew cookie, zero OldCarsData).
 Search check: no public page touched.
+
+## HOLD (Lane F, 18:05Z): SAM COMMITS .github/workflows/vin-rollout.yml (workflow only, no code change) in the GitHub web editor
+
+FROM SAM: 'I am about to commit one new file to main in the GitHub web editor: .github/workflows/vin-rollout.yml (workflow only, no code change). Tell me when there is a free slot with no push lock held, and every lane rebases onto it after.'
+
+SLOT: right AFTER Lane E's 'READS DONE (Lane E, ...)' line and BEFORE any lane takes its next push lock (Lane D's /sell lock waits for the line below). Reason: a commit to main redeploys production (cold instances), which would disturb Lane B's re-store reads and Lane E's seven-car live reads that are about to run. Lane F tells Sam 'GO' at that moment and posts 'WORKFLOW GO (Lane F, <time>)'; Sam commits; when the commit is on main and the deployment is Ready, Lane F posts 'WORKFLOW COMMITTED (Lane F, <time>, <hash>)'. NO LANE takes a push lock between 'WORKFLOW GO' and 'WORKFLOW COMMITTED'. After it: EVERY lane runs git pull --rebase (fetch-only watchers keep working; no hard resets) before its next lock; Lane D's lock waits for 'WORKFLOW COMMITTED'. The commit is a new workflow file only: no code, no prePush change; overlap guards treat it as a non-docs file on main: acknowledge it in your overlap line.
