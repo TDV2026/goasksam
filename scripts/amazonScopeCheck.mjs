@@ -4,7 +4,7 @@
 // out-of-scope example per rule, the seven demo cars, and the page running the very same function. No network.
 //   node scripts/amazonScopeCheck.mjs     exit 1 on any failure.
 import fs from "node:fs";
-import { amazonInScope, SCOPE_AGE_YEARS, SCOPE_MAKES, SCOPE_MODELS, amazonPageHtml } from "../api/_amazonDemo.js";
+import { scopeFromWords, amazonInScope, SCOPE_AGE_YEARS, SCOPE_MAKES, SCOPE_MODELS, amazonPageHtml } from "../api/_amazonDemo.js";
 import { carOf, DUMMY } from "../api/partnerDemo.js";
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
@@ -44,5 +44,17 @@ const h = amazonPageHtml("c", "1965 Ford Mustang", { carOf, listing: DUMMY });
 ok(h.includes("var amazonInScope = " + amazonInScope.toString()) && /amazonInScope\(a && a\.identity, new Date\(\)\.getFullYear\(\), SCOPE\)/.test(h), "the page runs amazonInScope itself, with this year");
 const js = fs.readFileSync(new URL("../api/_amazonDemo.js", import.meta.url), "utf8");
 ok(!/price|range|sales|count/i.test(amazonInScope.toString()), "the scope reads the identity only, never price or sales");
+// SCOPE FROM THE LISTING'S OWN WORDS (Lane F, Oct 20 2026): an out-of-scope listing draws no module and makes no read.
+{ const W = t => scopeFromWords(t, Y, R);
+  ok(W("2015 Toyota Corolla") === false, "words: a 2015 Toyota Corolla is out at once");
+  ok(["2014 Porsche 911 GT3", "2015 Porsche 911 GT3", "2005 Porsche 911", "1965 Ford Mustang Fastback", "1957 Porsche 356 Speedster", "1966 Ferrari 275 GTB", "2023 Porsche 911 GT3"].every(c => W(c) === true), "words: the seven demo cars are in at once");
+  ok(W("2018 Chevy Corvette") === true && W("2017 Mercedes G550") === true && W("2016 Nissan 370Z") === true && W("2019 Ford Mustang GT350") === true, "words: aliases and model rules (Chevy Corvette, Mercedes G550, 370Z, Mustang GT350) are in");
+  ok(W("2015 Ford Mustang") === false && W("2019 Honda Accord") === false, "words: ordinary young cars of a listed make are out");
+  ok(W("Citroen DS") === null && W("2015 Citroen DS") === null && W("Toyota Corolla") === null, "words with no year or no known make: undecided, the answer decides after the read");
+  const out = amazonPageHtml("c", "2015 Toyota Corolla", { carOf, listing: DUMMY }), inn = amazonPageHtml("c", "1966 Ferrari 275 GTB", { carOf, listing: DUMMY });
+  ok(!/id="c-mc"/.test(out) && !/id="mc-body"/.test(out) && !/Reading the sales/.test(out.replace(/<script>[\s\S]*<\/script>/, "")) && /OUT_OF_SCOPE = true/.test(out), "the Corolla listing: no module element, no Reading line, and the page knows it is out (no read)");
+  ok(/id="c-mc"/.test(inn) && /OUT_OF_SCOPE = false/.test(inn), "the 275 GTB listing: the module is there and the page reads");
+  ok(/if \(VIEW === "c" && !OUT_OF_SCOPE\) ask\(body\)\.then\(drawC\)/.test(out), "tab c reads only when the listing is not out of scope");
+  ok(/OUT_OF_SCOPE = false/.test(amazonPageHtml("c", "Citroen DS", { carOf, listing: DUMMY })), "an undecided listing still reads, and the answer decides"); }
 console.log(`amazonScopeCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

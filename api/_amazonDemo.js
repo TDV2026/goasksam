@@ -59,6 +59,21 @@ export function amazonInScope(id, nowYear, rules) {
   if (rules.makes.some(function(m){ return m.toLowerCase() === mk; })) return true;
   return rules.models.some(function(r){ return r[0].toLowerCase() === mk && new RegExp(r[1], "i").test(words); });
 }
+// SCOPE FROM THE LISTING'S OWN WORDS (Lane F on Sam's spec, Oct 20 2026: "outside scope the listing shows no module"):
+// a listing's year and make are known before any read, so when the words name a year and a known make the same rules
+// decide at once, and an out-of-scope listing draws no module and makes no read. Words without a year or a known make
+// return null: the answer's own identity decides after the read, as before.
+export const KNOWN_MAKES = ["Acura", "Alfa Romeo", "Aston Martin", "Audi", "Bentley", "BMW", "Bugatti", "Buick", "Cadillac", "Chevrolet", "Chrysler", "De Tomaso", "Dodge", "Ferrari", "Fiat", "Ford", "Genesis", "GMC", "Honda", "Hyundai", "Infiniti", "Jaguar", "Jeep", "Kia", "Koenigsegg", "Lamborghini", "Lancia", "Land Rover", "Lexus", "Lincoln", "Lotus", "Lucid", "Maserati", "Mazda", "McLaren", "Mercedes-Benz", "Mercury", "Mini", "Mitsubishi", "Nissan", "Pagani", "Polestar", "Pontiac", "Porsche", "Ram", "Rivian", "Rolls-Royce", "Saab", "Saturn", "Scion", "Shelby", "Subaru", "Suzuki", "Tesla", "Toyota", "Volkswagen", "Volvo"];
+const MAKE_WORDS = [["chevy", "Chevrolet"], ["vw", "Volkswagen"], ["mercedes benz", "Mercedes-Benz"], ["mercedes", "Mercedes-Benz"], ["benz", "Mercedes-Benz"], ["rolls royce", "Rolls-Royce"], ["land rover", "Land Rover"], ["range rover", "Land Rover"]];
+export function scopeFromWords(text, nowYear, rules) {
+  const m = /^(\d{4})\s+(.+)$/.exec(String(text || "").replace(/\s+/g, " ").trim());
+  if (!m) return null;
+  const rest = m[2], low = rest.toLowerCase();
+  const forms = KNOWN_MAKES.map(k => [k.toLowerCase(), k]).concat(MAKE_WORDS).sort((a, b) => b[0].length - a[0].length);
+  const hit = forms.find(([w]) => low === w || low.startsWith(w + " "));
+  if (!hit) return null;
+  return amazonInScope({ year: Number(m[1]), make: hit[1], model: rest.slice(hit[0].length).trim() }, nowYear, rules);
+}
 const escHtml = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 // The partner's look, CSS only: a dark navy header, white page, the partner's yellow and orange buttons and its type
@@ -141,7 +156,7 @@ main{padding-block:22px 48px}
 
 const JS = String.raw`
 (function(){
-  var LISTCAR = __LISTCAR__, CAR = __CAR__, CARS = __CARS__, SCOPE = __SCOPE__, VIEW = __VIEW__, LIST = __LIST__;
+  var LISTCAR = __LISTCAR__, CAR = __CAR__, CARS = __CARS__, SCOPE = __SCOPE__, VIEW = __VIEW__, LIST = __LIST__, OUT_OF_SCOPE = __OUTSCOPE__;
   var $ = function(id){ return document.getElementById(id); };
   var esc = function(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
   var usd = function(n){ return "$" + Math.round(Number(n)).toLocaleString("en-US"); };
@@ -233,7 +248,7 @@ const JS = String.raw`
     if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ ask(body).then(drawC); }, a.retryAfterMs);
   }
   var body = LIST && LIST.vin ? { q: CAR, vin: LIST.vin } : { q: LISTCAR || CAR };
-  if (VIEW === "c") ask(body).then(drawC);
+  if (VIEW === "c" && !OUT_OF_SCOPE) ask(body).then(drawC);   // an out-of-scope listing (from its own words) makes no read
 })();
 `;
 
@@ -243,6 +258,8 @@ export function amazonPageHtml(view, carIn, { carOf, listing }) {
   const car = carOf(carIn), chosen = String(carIn == null ? "" : carIn).trim() !== "";
   const hasListing = listing && car === listing.q;
   const listCar = P.listingBody[car] ? car + " " + P.listingBody[car] : car;
+  // tab c: an out-of-scope listing, known from its own words, draws no Market Check module and makes no read
+  const outC = v === "c" && scopeFromWords(car, new Date().getFullYear(), { age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS }) === false;
   const carQ = k => `?p=amazon&view=${k}${car === DEMO_CARS[0] ? "" : "&car=" + encodeURIComponent(car)}`;
   const tab = (k, label) => `<a href="${escHtml(carQ(k))}"${k === v ? ' aria-current="page"' : ""}>${label}</a>`;
   const carBar = `<div class="carbar"><div class="wrap"><form class="carpick" id="car-form" method="get" action="/preview"><input type="hidden" name="p" value="amazon"><input type="hidden" name="view" value="${v}"><label for="car-in">Car</label><input id="car-in" name="car" value="${chosen ? escHtml(car) : ""}" autocomplete="off" maxlength="60" placeholder="Type your car or paste a VIN"><button class="btn out" type="submit">Show</button></form></div></div>`;
@@ -263,10 +280,10 @@ export function amazonPageHtml(view, carIn, { carOf, listing }) {
         <button type="button" class="btn out blk" data-inert>Value your trade-in</button>
       </div>
       <p class="dealer">Sold by <b>Sample dealer</b></p>
-      <div class="mc" id="c-mc" hidden>
+      ${outC ? "" : `<div class="mc" id="c-mc" hidden>
         <button type="button" class="mc-row" data-mc-toggle aria-expanded="false" aria-controls="mc-body"><span>${escHtml(P.moduleName)}<br><span class="attr">${escHtml(P.attribution)}</span></span><span class="chev">Show</span></button>
         <div class="mc-body" id="mc-body" hidden><p class="loading">Reading the sales for this one.</p></div>
-      </div>
+      </div>`}
     </div>
     <div class="below">
       <div class="sec"><h2>Vehicle features</h2><dl class="specs">${year ? `<div><dt>Year</dt><dd>${year}</dd></div>` : ""}${hasListing ? `<div><dt>Mileage</dt><dd>${listing.miles.toLocaleString("en-US")}</dd></div>` : ""}</dl></div>
@@ -286,5 +303,5 @@ ${later("a", "What's your car going for?")}
 ${later("b", "List a car")}
 ${viewC}
 </main>
-<script>${JS.replace("__LISTCAR__", JSON.stringify(listCar)).replace("__CAR__", JSON.stringify(car)).replace("__CARS__", JSON.stringify(DEMO_CARS)).replace("__SCOPE__", JSON.stringify({ age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS })).replace("__INSCOPE__", amazonInScope.toString()).replace("__VIEW__", JSON.stringify(v)).replace("__LIST__", JSON.stringify(hasListing ? { vin: listing.vin } : null))}</script></body></html>`;
+<script>${JS.replace("__LISTCAR__", JSON.stringify(listCar)).replace("__CAR__", JSON.stringify(car)).replace("__OUTSCOPE__", JSON.stringify(outC)).replace("__CARS__", JSON.stringify(DEMO_CARS)).replace("__SCOPE__", JSON.stringify({ age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS })).replace("__INSCOPE__", amazonInScope.toString()).replace("__VIEW__", JSON.stringify(v)).replace("__LIST__", JSON.stringify(hasListing ? { vin: listing.vin } : null))}</script></body></html>`;
 }
