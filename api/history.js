@@ -248,6 +248,26 @@ function oneBoxBlock(d, id, oneboxHref, ctx) {
   return `<section class="card anscard solo" aria-label="Cars like it"><div class="ans-main"><div class="eyebrow">${esc(nounOf(d, id))}</div><p class="landed">${esc(line)}</p>${freshLine(d)}${ctx ? `<p class="ctx">${esc(ctx)}</p>` : ""}${link}</div></section>`;
 }
 function poolCount(d) { return d ? (d.tier === "thin" ? (d.thin && d.thin.receipts ? d.thin.receipts.length : 0) : (d.poolN || 0)) : 0; }
+// "The {make} {model} sold {n} times at auction in the last twelve months, as of {date}." (once with one sale); a year hub
+// names the year too ("The 2009 Porsche 911 Carrera S sold ..."); the make is not repeated when the model label already
+// starts with it. n is the engine's (poolCount). The window clause is the engine's own (hubWindow): Sam's words for the
+// engine's twelve-month window, otherwise the engine's own windowWords ("since October 2025"), otherwise none. With no
+// engine pool: "Each car below by VIN, with its auction results, as of {date}."
+export function hubLead({ year, make, family, n, win, date }) {
+  n = Number(n) || 0;
+  if (!n || !family) return `Each car below by VIN, with its auction results, as of ${date}.`;
+  const lead = make && !String(family).toLowerCase().startsWith(String(make).toLowerCase()) ? `${make} ${family}` : family;
+  const name = year ? `The ${year} ${lead}` : `The ${lead}`;
+  return `${name} sold ${n === 1 ? "once" : n.toLocaleString("en-US") + " times"} at auction${win ? " " + win : ""}, as of ${date}.`;
+}
+// The engine's own window for the hub lead (Lane F's decision on Sam's rule, Oct 20 2026): its twelve-month window in Sam's
+// words, every other window in the engine's own windowWords, and no clause where the engine has no plain window. Never
+// a window the engine did not state.
+export function hubWindow(d) {
+  if (!d) return "";
+  if (/^(last|past) (twelve|12) months$/.test(String(d.windowLabel || "").trim())) return "in the last twelve months";
+  return d.windowWords ? String(d.windowWords) : "";
+}
 function poolWindow(d) { return d && d.tier === "thin" ? "the past three years" : (d ? windowText(d) : ""); }
 function windowStartIso(d) { const days = d && d.tier === "thin" ? 1096 : (/twelve|12 months/.test((d && d.windowLabel) || "") ? 365 : 730); return new Date(Date.now() - days * 864e5).toISOString().slice(0, 10); }
 
@@ -629,9 +649,10 @@ async function hubPage(req, res, env, slug) {
   profMark("oneBoxDone");
   const n = poolCount(d);
   const salesN = list.reduce((k, g) => k + g.apps.filter(a => a.kind === "sale").length, 0);
-  // The hub's answer and meta description (C2, Sam's change, Oct 2026): the engine's family line when it has one, then
-  // the recorded sales and the date the page read them (search rule 1); no VIN count (Sam: no VIN coverage figure implied).
-  const ctx = (n ? `${n} ${id.family} sales at auction in ${poolWindow(d)}. ` : "") + `${salesN.toLocaleString("en-US")} recorded sale${salesN === 1 ? "" : "s"}, as of ${asOfDate()}.`;
+  // The hub's answer and meta description (search rule 1: dated).
+  // THE HUB LEAD, ONE COUNT (Sam's decision 1, Oct 20 2026): the engine's own count and window (poolCount, poolWindow), one
+  // sentence that never starts with a number; no VIN-list count anywhere. No engine pool: the list's own sentence.
+  const ctx = hubLead({ year: hub.year, make: id.make, family: id.family, n, win: hubWindow(d), date: asOfDate() });
   const canonical = `${SITE}/history/${slug}`;
   profMark("renderStart");
   const rows = list.slice(0, 200).map(g => {

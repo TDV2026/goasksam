@@ -497,6 +497,20 @@ try {
 } catch (e) {
   record("Keep Looking sentence and the email's bid line (scripts/keepLookingLineCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// hubLeadCheck (Lane C). No network.
+try {
+  const out = execSync("node scripts/hubLeadCheck.mjs", { encoding: "utf8" });
+  record("hubLeadCheck (scripts/hubLeadCheck.mjs)", "PASS", (out.match(/hubLeadCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("hubLeadCheck (scripts/hubLeadCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// hubDashRedirectCheck (Lane C). No network.
+try {
+  const out = execSync("node scripts/hubDashRedirectCheck.mjs", { encoding: "utf8" });
+  record("hubDashRedirectCheck (scripts/hubDashRedirectCheck.mjs)", "PASS", (out.match(/hubDashRedirectCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("hubDashRedirectCheck (scripts/hubDashRedirectCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
