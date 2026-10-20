@@ -55,5 +55,11 @@ const qh = quietAskHtml(qa, "quiet"), lh = quietAskHtml(qa, "light");
 ok(/^<p class="narrowq"[^>]*><span class="nq-t">Want to narrow it\?<\/span>/.test(qh) && (qh.match(/data-askpatch/g) || []).length === 3, "3 to 8 cars: 'Want to narrow it?' with at most three options");
 ok(/<span class="nq-t">Which model\?<\/span>/.test(lh) && (lh.match(/data-askpatch/g) || []).length === 4 && !/section class="ask"/.test(lh), "9 to 24: the question's own words with its options as light suggestions, no panel");
 ok(!/\(\d/.test(qh) && !/any/i.test(qh.replace(/narrow it/i, "")), "no count and no Any chip on the quiet line");
+// ---- A NOT-TRACKED MARKET (Lane B bb8715f6, Lane F's ask): until the card draws market.notTrackedLine, a card whose
+// market is { kind: "not_tracked" } draws nothing new: no Sam line, no Market Check (it has no query), no placing, no basis.
+const nt = { id: 11, market: { kind: "not_tracked", notTrackedLine: "Sam doesn't track this one." }, sam_lines: [] };
+ok(samLine(nt) === null, "a not-tracked card gets no Sam line from the client (no range, no placing, no basis, not 'still reading')");
+ok(!(nt.market && nt.market.query) && /var hasMc = !l\.swap && !!\(l\.market && l\.market\.query\);/.test(c), "and no Market Check button (the button needs the market's query, which a not-tracked market has none of)");
+ok(/var isPend = function\(l\)\{ return l\.market === undefined \|\| \(l\.market && l\.market\.kind === "pending"\); \};/.test(c), "a not-tracked card is not pending, so the page never waits or asks again for it");
 console.log(`buyStage1cCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
