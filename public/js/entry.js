@@ -41,7 +41,7 @@ function canadaPowerSellerReply(q){
   if(!/\bcanad(?:a|ian)\b/i.test(lower))return null;
   const psContext=/\b(power\s?sellers?|consignors?|specialist sellers?|represent(?:ative|ed|ing)?|handle (?:the|my|it|this) sale|someone to (?:sell|handle)|hand(?:le)? (?:it|the car|the keys)|sell (?:it |my car )?for me|do (?:it|this) for me)\b/i.test(lower);
   if(!psContext)return null;
-  return "Not yet. Our PowerSellers are US-based today, and we're careful about who we add.";
+  return "Not yet. PowerSellers on GoAskSam are US-based today, and we're careful about who we add.";
 }
 function showRecommendationExplainer(){
   hideHero();
@@ -338,7 +338,7 @@ async function send(){
           const _askN=(function(){const n=parseInt(String(sellState.price||"").replace(/[^0-9]/g,""),10);return (isFinite(n)&&n>0)?n:null;})();
           const _ask=_askN?("$"+_askN.toLocaleString()):null;
           if(_cond.valueMet===false&&_cond.segmentMet!==false&&_cond.regionMet!==false){
-            sellContext+=`\nPowerSeller note (this is the honest, COMPLETE answer; deliver it in full and do NOT just repeat the platform): ${_ask?`At your ${_ask} target, `:""}our PowerSellers focus on higher-value cars, where their fee is worth what it costs. On a car in this range, that fee would eat into more of what you'd take home, so listing it yourself on ${pickNm} likely puts more in your pocket. Give this whole answer whenever the seller asks why no PowerSeller, or says they'd rather not run their own auction - acknowledge the wish to have it handled, then explain this plainly. Never state a fee percentage or dollar amount, never imply the car itself lacks value, never use internal words like value gate, threshold or floor.`;
+            sellContext+=`\nPowerSeller note (this is the honest, COMPLETE answer; deliver it in full and do NOT just repeat the platform): ${_ask?`At your ${_ask} target, `:""}PowerSellers on GoAskSam focus on higher-value cars, where their fee is worth what it costs. On a car in this range, that fee would eat into more of what you'd take home, so listing it yourself on ${pickNm} likely puts more in your pocket. Give this whole answer whenever the seller asks why no PowerSeller, or says they'd rather not run their own auction - acknowledge the wish to have it handled, then explain this plainly. Never state a fee percentage or dollar amount, never imply the car itself lacks value, never use internal words like value gate, threshold or floor.`;
           }else{
             sellContext+=`\nPowerSeller note: no PowerSeller is shown for this car. If asked why, say a PowerSeller fits when the car and a specialist's focus line up, and this one is better served by listing on ${pickNm}. Never imply the car lacks value, never state a number it missed, never use internal words like value gate or threshold.`;
           }

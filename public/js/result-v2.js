@@ -1369,7 +1369,7 @@ function renderResultV2Page(){
         var _n=parseInt(String(sellState.price||"").replace(/[^0-9]/g,""),10);
         var _ask=(isFinite(_n)&&_n>0)?("$"+_n.toLocaleString()):null;
         var _plat=platformDisplayName(pick.name||pick.platformSlug);
-        var _vf=(_ask?("At your "+_ask+" target, "):"")+"our PowerSellers focus on higher-value cars, where their fee is worth what it costs. On a car in this range, that fee would eat into more of what you'd take home, so listing it yourself on "+_plat+" likely puts more in your pocket.";
+        var _vf=(_ask?("At your "+_ask+" target, "):"")+"PowerSellers on GoAskSam focus on higher-value cars, where their fee is worth what it costs. On a car in this range, that fee would eat into more of what you'd take home, so listing it yourself on "+_plat+" likely puts more in your pocket.";
         valueFloorNote='<div class="pv2-vfnote">'+esc(_vf)+'</div>';
       }
     }
