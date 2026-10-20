@@ -4730,7 +4730,7 @@ async function handleOps(req, res) {
           // keep-warm (Sam, Oct 18 2026): the demo's own stored answer through Lane C's SINGLE write path, once per car,
           // only after a full result; refreshDemoAnswer re-reads the row just stored (a hit) and writes partner_last
           // itself, or returns why it did not (not a demo car, still reading, blocked). This task writes nothing of its own.
-          if (d.tier === "result") { try { const { refreshDemoAnswer } = await import("./partnerAnswer.js"); const dr = await refreshDemoAnswer(env, q); row.demoStored = !!(dr && dr.stored); if (dr && !dr.stored) row.demoWhy = dr.why || null; } catch (e) { row.demoStored = false; row.demoWhy = "call failed"; } } }
+          if (/^(result|thin)$/.test(String(d.tier))) { try { const { refreshDemoAnswer } = await import("./partnerAnswer.js"); const dr = await refreshDemoAnswer(env, q); row.demoStored = !!(dr && dr.stored); if (dr && !dr.stored) row.demoWhy = dr.why || null; } catch (e) { row.demoStored = false; row.demoWhy = "call failed"; } } }
         else { row.stored = false; result.warmed++; }
       } catch (e) { row.error = String(e && e.message || e); result.failed++; }
       result.rows.push(row);

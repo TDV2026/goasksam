@@ -19,5 +19,9 @@ const { default: handler } = await import("../api/usageDashboard.js");
 let code = 0; const res = { setHeader() {}, getHeader() {}, status(c) { code = c; return this; }, json() { return this; }, send() { return this; }, end() { return this; } };
 await handler({ method: "GET", url: "/api/usageDashboard?view=ops&task=rangepreview", query: { view: "ops", task: "rangepreview" }, headers: {} }, res);
 ok(code === 401, "task=rangepreview refuses without the ops key");
+// warmDemo keeps the demo's thin answers too (Oct 20 2026, the 1966 275 GTB): the demo row is refreshed for tier result AND thin
+const fs = await import("fs");
+const ud = fs.readFileSync(new URL("../api/usageDashboard.js", import.meta.url), "utf8");
+ok(/if \(\/\^\(result\|thin\)\$\/\.test\(String\(d\.tier\)\)\) \{ try \{ const \{ refreshDemoAnswer \}/.test(ud), "warmDemo refreshes the demo's stored answer for thin answers as well as ranges");
 console.log(bad ? `rangeRulesCheck: ${bad} failed` : "rangeRulesCheck: all passed");
 process.exit(bad ? 1 : 0);
