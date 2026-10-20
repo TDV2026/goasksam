@@ -24,6 +24,14 @@ const d = js.slice(js.indexOf("function drawD("), js.indexOf("if (VIEW === \"d\"
 ok(/fetch\("\/api\/partnerAnswer\?last=" \+ encodeURIComponent\(qq\)/.test(d) && !/method: "POST"|ask\(/.test(d), "the grid reads each car's STORED answer only (?last=), never a live read");
 ok(/if \(!a \|\| a\.ok === false \|\| a\.lastGood !== true\) return;/.test(d), "nothing drawn without a stored answer");
 ok(/m\.textContent = anySold\(a\.history\) \? "Sold before" : "Market Check";/.test(d) && /if \(!inScope\(a\)\) return;/.test(d), "one neutral marker for in-scope cars: Sold before when its VIN has sold, else Market Check");
+// RULE 25 (Lane E's flag, Oct 20 2026): every car's mileage is its OWN sample sale's, the one named in AMAZON_DEMO_CARS
+// (Lane E's 18:19Z read), never another car's; the C63 is its 2016 sedan's 13,800, not the 2017 cabriolet's 70,600.
+{ const want = [14800, 7000, 24000, 38000, 57000, 18000, 13800];   // the AMG: its plain GT Roadster's own 38,000 (Jul 10 2024)
+  ok(DEMO_CARS.every((c, i) => (P.sampleListings[c] || {}).miles === want[i]), "each car's mileage is its own sample sale's (the C63: 13,800)");
+  ok(DEMO_CARS.every(c => /, [A-Z][a-z]{2} \d{1,2} 20\d\d/.test((P.sampleListings[c] || {}).sale || "")), "each car names its sample sale and date"); }
+ok(/function ownSalePhoto\(a, sl\)\{/.test(js) && /String\(r\.date \|\| ""\)\.slice\(0, 10\) === sl\.saleDate && \(sl\.miles == null \|\| Number\(r\.miles\) === sl\.miles\)/.test(js), "a demo car's photo is its own sample sale's (matched by that sale's date and mileage)");
+ok(/var sl = SAMPLES\[q\], ph = sl \? ownSalePhoto\(a, sl\) : null;/.test(d) && /SAMPLES\[CAR\] \? ownSalePhoto\(a, SAMPLES\[CAR\]\) :/.test(js), "tab d and tab c use that photo or none, never another car's");
+ok(DEMO_CARS.every(c => /^20\d\d-\d\d-\d\d$/.test((P.sampleListings[c] || {}).saleDate || "")), "each car carries its sale's own date");
 ok(!/[–—]/.test(h), "no dashes");
 console.log(`amazonGridCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

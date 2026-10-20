@@ -17,14 +17,14 @@ import { demoAnswerCase, OUT_OF_SCOPE_LINE } from "../lib/amazonDemoCase.js";
 // round dealer-style sample asking price set inside the car's own engine range (shown only inside it); monthly: one fixed
 // formula ($3,500 down, 72 months, 7.98% APR), rounded; miles: the car's own last sale (null until confirmed). The thin
 // car has no price and no monthly (no range to sit inside).
-const SAMPLE_BY_CAR = [
-  { price: 84900, monthly: 1426, miles: 14800 },    // 2017 Porsche 911 Carrera
-  { price: 249900, monthly: 4318, miles: 7000 },    // 2022 Porsche 911 GT3
-  { price: 154900, monthly: 2653, miles: 24000 },   // 2017 Audi R8 V10 Plus
-  { price: 104900, monthly: 1777, miles: null },    // 2019 Mercedes-AMG GT (mileage from the plain GT, after Lane E's read)
-  { price: 49900, monthly: 813, miles: 57000 },     // 2013 BMW M3 Coupe
-  { price: 229900, monthly: 3967, miles: 18000 },   // 2016 Ferrari 488 GTB
-  { price: null, monthly: null, miles: 70600 }      // 2016 Mercedes-Benz C63 AMG (thin: no price)
+const SAMPLE_BY_CAR = [   // each car's mileage is its OWN sample sale's (Lane E's 18:19Z read, named in AMAZON_DEMO_CARS)
+  { price: 84900, monthly: 1426, miles: 14800, saleDate: "2026-10-12", sale: "2017 Porsche 911 Carrera Coupe, Oct 12 2026" },
+  { price: 249900, monthly: 4318, miles: 7000, saleDate: "2026-08-14", sale: "2022 Porsche 911 GT3 6-Speed, Aug 14 2026" },
+  { price: 154900, monthly: 2653, miles: 24000, saleDate: "2026-09-29", sale: "2017 Audi R8 V10 Plus Coupe, Sep 29 2026" },
+  { price: 104900, monthly: 1777, miles: 38000, saleDate: "2024-07-10", sale: "2019 Mercedes-AMG GT Roadster, Jul 10 2024 (its own record's stated mileage)" },
+  { price: 49900, monthly: 813, miles: 57000, saleDate: "2026-10-19", sale: "2013 BMW M3 Coupe Competition Package, Oct 19 2026" },
+  { price: 229900, monthly: 3967, miles: 18000, saleDate: "2026-10-19", sale: "2016 Ferrari 488 GTB, Oct 19 2026" },
+  { price: null, monthly: null, miles: 13800, saleDate: "2026-03-27", sale: "2016 Mercedes-AMG C63 Sedan, Mar 27 2026 (thin: no price)" }
 ];
 function sampleListingsOf() { const o = {}; AMAZON_DEMO_CARS.forEach((c, i) => { if (SAMPLE_BY_CAR[i]) o[c] = SAMPLE_BY_CAR[i]; }); return o; }
 // The Amazon page's own car word: a digit opens that demo car, a demo car's name opens it, and ANY other VIN or car typed
@@ -343,6 +343,13 @@ const JS = String.raw`
   // TAB c: the vehicle page.
   // The fixed sample listing figures for this car (the profile's constants; nothing computed here). The price shows only
   // inside the engine's own range, and the finance and cash rows only with it.
+  // RULE 25 (Oct 20 2026): a demo car's photo is its OWN sample sale's (the sale named in the profile, found in the
+  // answer's own sales by its date and mileage); with no such sale, no photo, never another car's.
+  function ownSalePhoto(a, sl){
+    var rows = (a && a.sales) || [];
+    for (var i = 0; i < rows.length; i++) { var r = rows[i]; if (r.photo && String(r.date || "").slice(0, 10) === sl.saleDate && (sl.miles == null || Number(r.miles) === sl.miles)) return r.photo; }
+    return null;
+  }
   function sampleOf(a){
     var sl = SAMPLES[CAR] || null;
     if (!sl || !a || a.ok === false || a.question || !a.range || !(sl.price >= a.range.low && sl.price <= a.range.high)) return null;
@@ -376,7 +383,7 @@ const JS = String.raw`
   function mcCard(a){ return cardHtml(a) + (a && a.ok !== false && !a.question ? '<p class="mc-ctx">' + esc(CONTEXT) + "</p>" : ""); }
   function drawC(a){
     var ok = a && a.ok !== false;
-    var photo = ok && a.carPhoto && a.carPhoto.photo;
+    var photo = ok && (SAMPLES[CAR] ? ownSalePhoto(a, SAMPLES[CAR]) : (a.carPhoto && a.carPhoto.photo));
     $("c-photo").innerHTML = photo ? '<img src="/api/partnerAnswer?photo=' + encodeURIComponent(photo) + '&w=960" alt="' + esc(CAR) + '" decoding="async"><p class="photo-note"></p>' : "";
     var gal = $("c-photo"); if (photo) { gal.classList.add("has"); var n = gal.querySelector(".photo-note"); if (n) { n.textContent = "Photo of a car like it from a recent sale."; gal.parentNode.appendChild(n); } }
     // The thumbnail strip: the same photo, then this exact car's own earlier photos (its history), never another car's.
@@ -411,7 +418,7 @@ const JS = String.raw`
       var q = card.getAttribute("data-dcar"), qq = (LISTBODY[q] ? q + " " + LISTBODY[q] : q);
       fetch("/api/partnerAnswer?last=" + encodeURIComponent(qq), { credentials: "include" }).then(function(r){ return r.json(); }).catch(function(){ return null; }).then(function(a){
         if (!a || a.ok === false || a.lastGood !== true) return;
-        var ph = a.carPhoto && a.carPhoto.photo; if (ph) card.querySelector("[data-dph]").innerHTML = '<img src="/api/partnerAnswer?photo=' + encodeURIComponent(ph) + '&w=320" alt="" loading="lazy">';
+        var sl = SAMPLES[q], ph = sl ? ownSalePhoto(a, sl) : null; if (ph) card.querySelector("[data-dph]").innerHTML = '<img src="/api/partnerAnswer?photo=' + encodeURIComponent(ph) + '&w=320" alt="" loading="lazy">';
         var id = a.identity || {}; if (id.body) card.querySelector("[data-dchips]").innerHTML = '<span class="dchip">' + esc(id.body) + "</span>";
         if (!inScope(a)) return;
         var m = card.querySelector("[data-dmark]"); m.textContent = anySold(a.history) ? "Sold before" : "Market Check"; m.hidden = false;
