@@ -17,8 +17,22 @@ import { sellsForCardHtml } from "../lib/sellsForCard.js";
 // the same card with the pill slot and without the sale rows (the partner page lists those same sales itself, e63), so
 // with the slot taken out it must be byte-identical to Market Check's card with its rows list taken out.
 const noRows = h => String(h || "").replace(/<ul class="sfc-rows">[\s\S]*?<\/ul>/, "");
-const sameCard = (partnerCard, d) => String(partnerCard || "").replace(PILL_SLOT, "") === noRows(demoCard(sellsForCardHtml(d, {}), d) || "") &&
-  String(partnerCard || "") === (demoCard(sellsForCardHtml(d, PARTNER_CARD_OPTS), d) || "");
+// THE FOOTER'S READ TIME (Lane B, Oct 20 2026, the 275 GTB "card differs" after 00:00 UTC): the demo endpoint serves its own
+// stored answer (partner_last, under a day old and on the current engine), while this check reads Market Check fresh, so the
+// two reads carry different read times and the footer's "Updated <date>" or "Sales read <date>, refreshing now." can name
+// different days although every number and line is the same. The card is compared with that footer text set aside; the
+// footer is checked on its own to be one of the two engine forms (never invented, never empty of its brand).
+const FOOTER_LEFT = /<span class="sfc-footer-left">([\s\S]*?)<\/span>/;
+const noTime = h => String(h || "").replace(FOOTER_LEFT, '<span class="sfc-footer-left">(read time)</span>');
+const footerOk = h => { const m = FOOTER_LEFT.exec(String(h || "")); return !!m && /^Powered by GoAskSam( &middot; (Updated [A-Z][a-z]+ \d{1,2}(, \d{4})?|Sales read [^<]*refreshing now\.))?$/.test(m[1]); };
+const firstDiff = (a, b) => { a = String(a || ""); b = String(b || ""); let i = 0; while (i < a.length && a[i] === b[i]) i++; return i >= a.length && i >= b.length ? null : `at ${i}: endpoint "${a.slice(Math.max(0, i - 40), i + 80)}" / Market Check "${b.slice(Math.max(0, i - 40), i + 80)}"`; };
+let lastCardDiff = null;
+const sameCard = (partnerCard, d) => {
+  const p = String(partnerCard || ""), mcNoRows = noRows(demoCard(sellsForCardHtml(d, {}), d) || ""), mcPartner = demoCard(sellsForCardHtml(d, PARTNER_CARD_OPTS), d) || "";
+  const same = noTime(p.replace(PILL_SLOT, "")) === noTime(mcNoRows) && noTime(p) === noTime(mcPartner) && footerOk(p);
+  lastCardDiff = same ? null : (firstDiff(noTime(p), noTime(mcPartner)) || (footerOk(p) ? "pill slot or rows" : "the endpoint footer is not an engine form"));
+  return same;
+};
 
 let pass = 0, fail = 0, skip = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
@@ -58,6 +72,16 @@ for (const [name, d] of Object.entries(FIX)) {
     ok(out.sales.every((s, i, a) => !i || a[i - 1].price <= s.price), `${name}: sales lowest price first`);
     ok(out.sales.every(s => Object.keys(s).sort().join() === "date,miles,name,photo,price" && (s.photo === null || /^(\d{1,15}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/.test(s.photo)) && !venueLeak({ n: s.name }).length), `${name}: a sale is its price, date, mileage, the engine row's own name (venue-safe) and its archive id for the photo only`);
     ok(sameCard(out.card, d), `${name}: the shared card, byte-identical to Market Check's card for the same answer`);
+  }
+  if (name === "thin") {
+    // the 275 GTB fix (Oct 20 2026): a card read on another day (the endpoint's stored answer against a fresh Market Check
+    // read) still matches; a changed line or number never does
+    const otherDay = { ...d, readAt: "2026-01-02T03:04:05.000Z", stale: false };
+    ok(sameCard(out.card, otherDay), "thin: the same card read on another day still matches (the footer's read time is set aside)");
+    const staleDay = { ...d, stale: true, staleLine: "Sales read October 19, 2026, refreshing now." };
+    ok(sameCard(out.card, staleDay), "thin: the same card served stale with the dated line still matches");
+    ok(!sameCard(String(out.card).replace(d.latestSaleLine, "Latest sale: May 2021."), d), "thin: a changed line is still a difference");
+    ok(!sameCard(String(out.card).replace(/<span class="sfc-footer-left">[\s\S]*?<\/span>/, '<span class="sfc-footer-left">Powered by GoAskSam &middot; Updated whenever</span>'), d), "thin: a footer that is not an engine form is a difference");
   }
   if (name === "thin") ok(out.range === null && out.thin === d.thinLine && !/\$/.test(out.thin), "thin: the engine's own thinLine, words only, never a range or a dollar figure");
   if (name === "thin") ok(String(out.card || "").includes(d.thinLine) && String(out.card || "").includes(d.latestSaleLine) && !/\$[\d,]+\s*(?:to|-)\s*\$[\d,]+/.test(String(out.card).replace(/<[^>]+>/g, " ")) && !/sales found, not enough|too spread out/i.test(out.card), "thin: the partner card draws the engine's line and latest sale, no range, no wording of its own");
@@ -449,6 +473,7 @@ else {
     if (m.j.status !== "one_box" || /_choice$/.test(String(m.j.tier || ""))) { ok(p.j.answerType === "identity_question", `${q}: Market Check asks (${m.j.tier || m.j.status}), the endpoint asks too (${p.j.answerType})`); console.log(`  ${q}: both ask`); continue; }
     const mc = mcReads(m.j);
     const fields = { range: same(p.j.range, mc.range), count: p.j.count === mc.count, window: p.j.window === mc.window, sales: same(asKeys(p.j.sales || []), mc.sales), card: sameCard(p.j.card, m.j) };
+    if (!fields.card && lastCardDiff) console.log(`  ${q}: card difference ${lastCardDiff}`);
     for (const [k, v] of Object.entries(fields)) ok(v, `${q}: ${k} differs (endpoint ${JSON.stringify(k === "sales" ? (p.j.sales || []).length + " sales" : p.j[k])}, Market Check ${JSON.stringify(k === "sales" ? mc.sales.length + " sales" : mc[k])})`);
     console.log(`  ${q}: ${mc.range ? "$" + mc.range.low + " to $" + mc.range.high : "no range"}, ${mc.count} sales, ${mc.window || "no window"}: ${Object.values(fields).every(Boolean) ? "SAME" : "DIFFERENT"}`);
   }
