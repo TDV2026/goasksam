@@ -602,7 +602,7 @@ const JS = String.raw`
   // Tab d names the current car under the box too: a demo car from its stored answer, a typed one from one read.
   function nameD(){
     if (!CHOSEN) return;
-    if (CARS.indexOf(CAR) >= 0) { var qq = LISTBODY[CAR] ? CAR + " " + LISTBODY[CAR] : CAR; fetch("/api/partnerAnswer?last=" + encodeURIComponent(qq), { credentials: "include" }).then(function(r){ return r.json(); }).catch(function(){ return null; }).then(function(a){ if (a && a.car) setName(a); }); }
+    if (CARS.indexOf(CAR) >= 0) { var qq = LISTBODY[CAR] ? CAR + " " + LISTBODY[CAR] : CAR; fetch("/api/partnerAnswer?last=" + encodeURIComponent(qq), { credentials: "include" }).then(function(r){ return r.json(); }).catch(function(){ return null; }).then(function(a){ setName(a && a.car ? a : { car: { name: CAR } }); }); }   // a stored answer without the car field (before the warm) falls back to the demo car's own name
     else read({ q: CAR }, setName);
   }
   if (VIEW === "d") nameD();
