@@ -1,0 +1,36 @@
+# FOR SAM (Lane B, Oct 20 2026): a one-step rebuild of the VIN sitemap cache (vin_rollout_cache), the same step the
+# nightly runs at 07:11 UTC. COPY this file to .github/workflows/vin-rollout.yml (our CI token cannot write workflows).
+# RUN IT after an engine version bump that changes car names: GitHub, Actions, "Rebuild VIN rollout cache", Run workflow.
+# It uses the same two secrets as the nightly (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY), makes no OldCarsData calls and
+# takes a few minutes (a 20-minute budget inside the script). YOU SHOULD SEE "vin_rollout_cache written. DONE." and then a
+# line "sitemap-vins: N VIN URLs, M redirect (301)": M should be 0 or close to it once the cache matches the live pages.
+name: Rebuild VIN rollout cache
+on:
+  workflow_dispatch:
+jobs:
+  rollout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Rebuild VIN index first (the rollout reads it; the same order as the nightly)
+        run: node scripts/buildVinIndex.js
+      - name: Precompute VIN rollout cache (sitemap-vins/motorcycles/other)
+        run: node scripts/buildVinRolloutCache.js
+      - name: Check sitemap-vins.xml for redirects (a sample of up to 200 VIN pages)
+        env:
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          set -e
+          H="x-vercel-protection-bypass: ${VERCEL_AUTOMATION_BYPASS_SECRET:-none}"
+          first=$(curl -s -H "$H" https://goasksam.com/sitemap-vins.xml | grep -o '<loc>[^<]*</loc>' | sed 's/<[^>]*>//g' | head -1)
+          urls=$(curl -s -H "$H" "$first" | grep -o '<loc>[^<]*</loc>' | sed 's/<[^>]*>//g' | head -200)
+          n=0; r=0
+          for u in $urls; do n=$((n+1)); c=$(curl -s -o /dev/null -w "%{http_code}" -H "$H" "$u"); [ "$c" = "301" ] && r=$((r+1)); done
+          echo "sitemap-vins: $n VIN URLs checked, $r redirect (301)"
