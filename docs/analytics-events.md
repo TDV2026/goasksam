@@ -57,8 +57,7 @@ Store: `analytics_events` (SQL in `docs/supabase-analytics.sql`). Dashboard: `/a
   restricted-region visitor who declined. For a declined visitor they carry no `anon_id`,
   `session_id` or `user_id`, so nothing links one visit to another:
   `search_run`, `model_call`, `error`, `pull_run`, `task_match_sent`, `limit_hit`,
-  `signup_completed`, `signup_refused`, `buy_input_distance`, `buy_input_new_search`,
-  `buy_input_unsupported`.
+  `signup_completed`, `signup_refused`.
 - **Journey events** are everything else. A declined visitor gets none of them: the helper drops
   them on the server before the write, and the browser helper does not send them.
 
@@ -296,9 +295,3 @@ Sent by the helper or by `public/js/auth.js` already, so a page must NOT send th
 
 - A per-session funnel view on the dashboard (today it shows step totals per day).
 - Task email opens and clicks (needs Resend's open and click tracking and a webhook; click tracking rewrites every link).
-
-**`buy_input_distance`, `buy_input_new_search`, `buy_input_unsupported`** (service; Lane E, Oct 20 2026, Sam's Buy
-Stage 1c item 6). One per Buy composer input that asked for a distance with no zip yet, started a search for a
-different car, or asked for something Sam cannot do here yet. Carries ONLY `text` (what was typed, scrubbed like every
-text field), written by `trackSystem`: no visitor, session, account or address. So Sam can read what people type and
-which requests Buy cannot handle yet.

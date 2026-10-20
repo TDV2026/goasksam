@@ -48,9 +48,7 @@ import { freshnessOn, underReserve, ocdWithRetry } from "../lib/live/ocdGuard.js
 import { callOldCarsData, configureOcdUsage, flushOcdUsage } from "../lib/_ocd.js";
 import { mapLiveRecord, upsertLive } from "../lib/live/feed.js";
 import { listingCoord } from "../lib/live/geo.js";
-import { runTurn, runFilters, runSearch, suggestFor } from "../lib/live/samChat.js";
-// The composer's suggestions (Stage 1c item 6), from the shaped cards (seen_before exists only after shaping).
-const withSuggest = (out, r) => ({ ...r, suggest: suggestFor({ meta: out.meta, filters: out.state && out.state.filters, seenAny: (r.cards || []).some(c => c && c.seen_before) }) });
+import { runTurn, runFilters, runSearch } from "../lib/live/samChat.js";
 import { humanTitle } from "../lib/carTitle.js";
 import { supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { chatOut } from "../lib/live/chatHttp.js";
@@ -848,7 +846,7 @@ function buyChat(res, env, b, visitorId, req) {
     // its prepared result only by its own listing id, never by position, so a re-sort or a second search can never
     // give one car another's market; anything not prepared is enriched here as before.
     prepare: x => enrichFast(env, x),
-    shape: async out => withSuggest(out, { cards: await Promise.all(out.cards.map(async x => { const pre = out.prepared instanceof Map && x && x.r ? out.prepared.get(x.r.id) : null; const c = (pre ? await pre.catch(() => null) : null) || await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; })), noun: out.noun, meta: out.meta || null, searchNote: out.searchNote }) });
+    shape: async out => ({ cards: await Promise.all(out.cards.map(async x => { const pre = out.prepared instanceof Map && x && x.r ? out.prepared.get(x.r.id) : null; const c = (pre ? await pre.catch(() => null) : null) || await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; })), noun: out.noun, meta: out.meta || null, searchNote: out.searchNote }) });
 }
 
 // Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
