@@ -697,7 +697,7 @@ function renderDecision(decisionData,renderOpts){
     const n=parseInt(String(sellState.price||"").replace(/[^0-9]/g,""),10);
     const ask=(isFinite(n)&&n>0)?("$"+n.toLocaleString()):null;
     const plat=platformDisplayName((primaryPlatform&&(primaryPlatform.name||primaryPlatform.platformSlug))||sellState.displayedRecommendedPath||"");
-    const line=`${ask?`At your ${ask} target, `:""}PowerSellers on GoAskSam focus on higher-value cars, where their fee is worth what it costs. On a car in this range, that fee would eat into more of what you'd take home, so listing it yourself on ${plat} likely puts more in your pocket.`;
+    const line=`${ask?`At your ${ask} target, `:""}PowerSellers on GoAskSam focus on higher-value cars, so for this one, listing it yourself on ${plat} is the route.`;
     return `<div class="sell-section-note" style="margin-top:12px">${escapeHtml(line)}</div>`;
   })();
   const platformGrid=primaryPlatform

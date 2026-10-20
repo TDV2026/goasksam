@@ -1357,8 +1357,8 @@ function renderResultV2Page(){
     // Value-floor note (Sep 2026): a seller who leaned toward having it handled but
     // whose car is below the PowerSeller value floor (segment + region matched, only
     // value failed) gets the honest reason on the card instead of a silent platform-
-    // only result. Approved wording: about the seller's proceeds and the PowerSellers'
-    // focus, never a fee figure, never a judgment on the car's value. Only when NO
+    // only result. Wording (Lane F's decision, Oct 20 2026): the PowerSellers' focus and the route only; the old
+    // fee-value clause and money-outcome clause (CLAUDE.md fee-value ban, rule 11) were removed. Never a fee figure, never a judgment on the car's value. Only when NO
     // PowerSeller renders (so the TT secondary + PS-lead paths are untouched).
     var valueFloorNote="";
     if(!c.psRendered){
@@ -1369,7 +1369,7 @@ function renderResultV2Page(){
         var _n=parseInt(String(sellState.price||"").replace(/[^0-9]/g,""),10);
         var _ask=(isFinite(_n)&&_n>0)?("$"+_n.toLocaleString()):null;
         var _plat=platformDisplayName(pick.name||pick.platformSlug);
-        var _vf=(_ask?("At your "+_ask+" target, "):"")+"PowerSellers on GoAskSam focus on higher-value cars, where their fee is worth what it costs. On a car in this range, that fee would eat into more of what you'd take home, so listing it yourself on "+_plat+" likely puts more in your pocket.";
+        var _vf=(_ask?("At your "+_ask+" target, "):"")+"PowerSellers on GoAskSam focus on higher-value cars, so for this one, listing it yourself on "+_plat+" is the route.";
         valueFloorNote='<div class="pv2-vfnote">'+esc(_vf)+'</div>';
       }
     }
