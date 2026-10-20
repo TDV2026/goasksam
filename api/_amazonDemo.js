@@ -466,7 +466,7 @@ const JS = String.raw`
     return "Used " + out.join(" ");
   }
   // Key features from the answer's own decode (a.features), each only when known; the section hides when none is.
-  var KF = [["drivetrain", "Drivetrain"], ["seats", "Seating"], ["engine", "Engine"], ["fuel", "Fuel type"], ["transmission", "Transmission"], ["interior", "Interior"], ["exterior", "Exterior"]];
+  var KF = [["body", "Body"], ["drivetrain", "Drivetrain"], ["seats", "Seating"], ["engine", "Engine"], ["fuel", "Fuel type"], ["transmission", "Transmission"], ["interior", "Interior"], ["exterior", "Exterior"]];
   var KF_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="1.6"/></svg>';
   function kfHtml(a){
     // Lane E's keyFeatures field (an array of {label, value}, or an object keyed as KF) first; else the VIN's own decode (item 7).
