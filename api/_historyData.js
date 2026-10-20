@@ -142,6 +142,26 @@ export function canonicalHub(make, family) {
   else if (m === "alpina") { mk = "BMW"; if (!/^alpina\b/i.test(f)) f = "Alpina " + f; }
   return { make: mk, family: f };
 }
+// DECODE FIRST (rule behind a switch, OFF; Lane F's wording for Sam, Oct 20 2026; the 1990 Suburban 1GNGR26N2LF151255 named
+// Silverado because its title names both). Only a decoded 17-character VIN can change the name, never a chassis number or the
+// archive's stored model column (the dry run: 2,114 wrong renames from the column in the first 10,000). The decoded model wins
+// when the title itself names it; the old model word is DROPPED, never kept as a trim ("1989 Shelby Dakota Dodge" must not be
+// possible); the make changes only when the decoded make is named in the title too; everything else stays as resolved.
+export const IDENTITY_RULES = { decodeFirst: false };
+const idWord = w => new RegExp("(^|[^a-z0-9])" + String(w).toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/[\s-]+/g, "[\\s-]?") + "([^a-z0-9]|$)", "i");
+const idPretty = w => /^[A-Z]{4,}$/.test(String(w)) ? String(w).charAt(0) + String(w).slice(1).toLowerCase() : String(w);
+export function decodeIdentityFix(v, title, decoded) {
+  if (!v || !v.model || !decoded || !decoded.model) return null;
+  const t = String(title || ""), dm = String(decoded.model).trim();
+  if (!dm || !idWord(dm).test(t) || squash(dm) === squash(v.model)) return null;
+  const decodedMakeInTitle = decoded.make && idWord(String(decoded.make).split(/[\s-]/)[0]).test(t);
+  const make = decodedMakeInTitle && !sameMakeGroup(decoded.make, v.make) && squash(decoded.make) !== squash(v.make) ? decoded.make : v.make;
+  const drop = new Set([v.model, dm, make].flatMap(x => String(x || "").split(/[\s-]+/)).map(squash).filter(Boolean));
+  // a replaced make that the title names is a real variant (the "Shelby" of a 1989 Dodge Shelby Dakota): it stays, as the trim
+  const keptMake = make !== v.make && idWord(String(v.make).split(/[\s-]/)[0]).test(t) ? [String(v.make)] : [];
+  const trimWords = [...keptMake, ...String(v.trim || "").split(/\s+/)].filter(w => w && !drop.has(squash(w)));
+  return { ...v, make, model: idPretty(dm), trim: trimWords.length ? trimWords.join(" ") : null };
+}
 export async function carIdentity(apps, vin) {
   if (!apps.length) return null;
   const titled = apps.filter(a => a.title);
@@ -165,6 +185,9 @@ export async function carIdentity(apps, vin) {
     if (wm) v = { make: wm.make, model: wm.model, year: Number(wm.year) || null };
   }
   if (!v) return null;
+  if (IDENTITY_RULES.decodeFirst && titled.length && /^[A-HJ-NPR-Z0-9]{17}$/.test(normVin(vin))) {
+    try { const r = await resolveVehicle(normVin(vin), { vinConfirm: true }); const dv = r && r.vehicle; const fx = decodeIdentityFix(v, cleanTitle(titled[0].title), dv); if (fx) v = sanitizeResolvedVehicle(fx) || fx; } catch {}
+  }
   // Same car = same VIN and same MAKE. Reject only when an appearance names a different make (a
   // polluted VIN shared by unrelated lots); an appearance that doesn't state its make is accepted.
   const mkTok = squash(String(v.make).split(/[\s-]/)[0]);
