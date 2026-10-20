@@ -69,15 +69,18 @@ const e3 = T.enforceSamsTake(clean);
 truthy("clean short take passes", e3.ok);
 eq("clean take unchanged", e3.sentence, clean.sentence);
 
-console.log("\n== Sam's Take plain pattern (higher half / lower half, no doubled 'stronger') ==");
+// Wording of record since 88178689 (Oct 11 2026, Sam's Take wording + flaws removal): the clauses name "higher-priced
+// sales" / "lower-priced sales", and the reported-issues comparison is removed (its item count conflates how a seller lists
+// with the car's condition), so the flaws clause returns null. These expectations were not updated then (Lane B, Oct 20 2026).
+console.log("\n== Sam's Take plain pattern (higher-priced / lower-priced sales, no doubled 'stronger') ==");
 const PA = { mileage: { strongerMedian: 1000, weakerMedian: 5000 }, transmission: { strongerManualShare: 70, weakerManualShare: 30 }, flaws: { strongerMedian: 0, weakerMedian: 3 }, service: { strongerShare: 80, weakerShare: 20 }, modifications: { strongerShare: 20, weakerShare: 60 } };
-eq("mileage plain", T.stPlainClause("mileage", PA), "The higher half of sales had around 1,000 miles; the lower half around 5,000.");
-eq("transmission plain", T.stPlainClause("transmission", PA), "The higher half were 7 in 10 manual; the lower half 3 in 10.");
-eq("flaws plain (zero side)", T.stPlainClause("flaws", PA), "The higher half had no reported issues; the lower half averaged three reported issues.");
-eq("flaws plain (both nonzero keeps noun)", T.stPlainClause("flaws", { flaws: { strongerMedian: 1, weakerMedian: 3 } }), "The higher half averaged one reported issue; the lower half three.");
+eq("mileage plain", T.stPlainClause("mileage", PA), "Higher-priced sales were typically around 1,000 miles; lower-priced sales around 5,000.");
+eq("transmission plain", T.stPlainClause("transmission", PA), "Higher-priced sales were 7 in 10 manual; lower-priced sales 3 in 10.");
+eq("flaws comparison removed (zero side)", T.stPlainClause("flaws", PA), null);
+eq("flaws comparison removed (both nonzero)", T.stPlainClause("flaws", { flaws: { strongerMedian: 1, weakerMedian: 3 } }), null);
 truthy("flaws never reads a bare 'averaged N'", !/averaged (one|two|three|four|five|\d+)[;.]/.test(T.stPlainClause("flaws", { flaws: { strongerMedian: 1, weakerMedian: 3 } }) || ""));
-eq("service plain", T.stPlainClause("service", PA), "The higher half had a recent service record 8 in 10; the lower half 2 in 10.");
-eq("mods plain", T.stPlainClause("modifications", PA), "Most of the lower sales had been modified; some of the higher ones had.");
+eq("service plain", T.stPlainClause("service", PA), "Higher-priced sales had a recent service record 8 in 10; lower-priced sales 2 in 10.");
+eq("mods plain", T.stPlainClause("modifications", PA), "Most of the lower-priced sales had been modified; some of the higher-priced ones had.");
 truthy("no doubled 'stronger' in any template", !["mileage","transmission","flaws","service","modifications"].some(k => /stronger/i.test(T.stPlainClause(k, PA) || "")));
 
 console.log("\n== backlog: vehicle_type filter + badge-twin siblings ==");
