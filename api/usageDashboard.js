@@ -4524,6 +4524,17 @@ async function handleOps(req, res) {
     const cars = Object.entries(byCar).sort((a, b) => b[1].length - a[1].length).map(([car, rows]) => ({ car, n: rows.length, rows: rows.slice(0, 30) }));
     return res.status(200).json({ task: "modprefixdry", scanned, setAsideByLiveRule: liveOut, wouldComeBack: comesBack, cars });
   }
+  // livegearbox (Lane B, Oct 20 2026, Buy Stage 1c item 3, for Lane E's gearbox fix; READ-ONLY, key-gated like every ops
+  // task, no write, no OldCarsData): every LIVE live_listings row whose title or transmission text names a gearbox word
+  // (speed, manual, clutch, PDK, automatic, Tiptronic), returned untransformed: title, transmission, source, id.
+  if (task === "livegearbox") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const WORDS = /speed|manual|clutch|pdk|automatic|tiptronic/i;
+    const rows = (await supabaseSelectAll(env, "live_listings?status=eq.live&select=id,listing_title,transmission,source&order=id.asc")) || [];
+    const hits = rows.filter(r => WORDS.test(String(r.listing_title || "")) || WORDS.test(String(r.transmission || "")))
+      .map(r => ({ title: r.listing_title ?? null, transmission: r.transmission ?? null, source: r.source ?? null, id: r.id }));
+    return res.status(200).json({ task: "livegearbox", live: rows.length, matched: hits.length, rows: hits });
+  }
   if (task === "projdry") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { projectFlagReason } = await import("../lib/_classify.js");
