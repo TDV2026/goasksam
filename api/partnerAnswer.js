@@ -40,8 +40,10 @@ import { mapEngineAnswer, ENGINE_VERSION } from "../lib/onebox.js";
 // lastGood: true, only while its readAt is under a day old; past that the page says it could not read the sales. Not a
 // second source: the same answer, kept, never edited.
 // c9 (Sam, Oct 18 2026): the real 2014 Porsche 911 GT3 is the listing car and the page's first car.
+// the Amazon demo's own cars share this store (same key shape); DEMO_CARS stays the eBay list (Amazon revision 2 item 6)
+import { AMAZON_DEMO_CARS } from "./_amazonDemoCars.js";
 export const DEMO_CARS = ["2014 Porsche 911 GT3", "2015 Porsche 911 GT3", "2005 Porsche 911", "1965 Ford Mustang", "1957 Porsche 356 Speedster", "1966 Ferrari 275 GTB", "2023 Porsche 911 GT3"];
-const demoKey = q => { const n = String(q || "").toLowerCase().replace(/\s+/g, " ").trim(); return DEMO_CARS.some(c => c.toLowerCase() === n) ? "partner_last:" + n.replace(/[^a-z0-9]+/g, "_") : null; };
+const demoKey = q => { const n = String(q || "").toLowerCase().replace(/\s+/g, " ").trim(); return (DEMO_CARS.some(c => c.toLowerCase() === n) || AMAZON_DEMO_CARS.some(c => c.toLowerCase() === n)) ? "partner_last:" + n.replace(/[^a-z0-9]+/g, "_") : null; };
 const LAST_MAX_MS = 24 * 3600e3, LAST_WRITE_EVERY_MS = 30 * 60e3;
 const lastWrote = new Map();
 async function readLast(env, key) {

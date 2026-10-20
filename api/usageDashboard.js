@@ -4836,7 +4836,9 @@ async function handleOps(req, res) {
     const { DEMO_CARS, refreshDemoAnswer, readDemoLast, lastGoodUsable, questionResult } = await import("./partnerAnswer.js");
     const t0 = Date.now(), budgetMs = 240000;
     const result = { task: "warmDemoCheck", engineVersion: ENGINE_VERSION, checked: 0, fresh: 0, warmed: 0, failed: 0, notReached: 0, rows: [] };
-    for (const q of DEMO_CARS) {
+    const amazon = req.query?.profile === "amazon";   // Amazon revision 2 item 6: the Amazon demo's own list, same budget and tiers
+    if (amazon) { result.profile = "amazon"; }
+    for (const q of (amazon ? (await import("./_amazonDemoCars.js")).AMAZON_DEMO_CARS : DEMO_CARS)) {
       if (Date.now() - t0 > budgetMs) { result.notReached++; continue; }
       const row = { q };
       try {
@@ -4875,9 +4877,11 @@ async function handleOps(req, res) {
     const PERF = ["2008 Porsche 997 Carrera S Coupe", "1995 Porsche 911 Carrera", "1969 Chevrolet Camaro"];
     let golden = [];
     try { const fs = await import("node:fs"); const doc = fs.readFileSync(new URL("../docs/golden-rules.md", import.meta.url), "utf8"); const gm = /```json golden\n([\s\S]*?)```/.exec(doc); golden = gm ? JSON.parse(gm[1]).map(g => g.q).filter(Boolean) : []; } catch { golden = []; }
-    const list = req.query?.list ? String(req.query.list).split("|").filter(Boolean) : [...new Set([...DEMO, ...PERF, ...golden])];
+    // profile=amazon (Amazon revision 2 item 6): the Amazon demo's own cars only, same budget, tiers and both writes; the default list is unchanged
+    const list = req.query?.list ? String(req.query.list).split("|").filter(Boolean) : req.query?.profile === "amazon" ? [...(await import("./_amazonDemoCars.js")).AMAZON_DEMO_CARS] : [...new Set([...DEMO, ...PERF, ...golden])];
     const budgetMs = Math.min(280000, Number(req.query?.budget) || 240000), t0 = Date.now();
     const result = { task: "warmDemo", listed: list.length, warmed: 0, failed: 0, notReached: 0, rows: [] };
+    if (req.query?.profile === "amazon") result.profile = "amazon";
     for (const q of list) {
       if (Date.now() - t0 > budgetMs) { result.notReached++; continue; }
       const row = { q };
