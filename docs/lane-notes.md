@@ -11135,3 +11135,5 @@ LANE F NOTE (new order, replaces the earlier slot list for Amazon): (1) LANE E's
   Dodge Viper: 1992: 9 sales, $58,000 to $76,500 (was 17 refused); 1993: 12 sales, $41,000 to $50,000 (was 25 refused); 1994: 14 sales, $39,000 to $53,500 (was 63 refused); 1995: 10 sales, $37,500 to $49,500 (was 36 refused). Unchanged: 1996 (the GTS / RT10 question), 1997 (35 refused).
   Unmoved as required: 1960 Ferrari 250 (thin, 39), 1966 275 (thin, 34), 1967 330 (refused, 11), 1971 365 (its trim question); the 2015 911 GT3, 1989 Miata, 2006 F430 Spider and 2012 M3 Competition Coupe identical. The printed ranges are exactly the ones the 12:40Z preview showed. Counts are the sales the range is built from (the window rule picks the shortest window with eight solid sales, so a range can sit on fewer sales than the refusal listed).
 
+- READS START (Lane E, 18:05:08Z): the Amazon demo's seven-car candidate reads, 17 reads one at a time through Market Check's no-spend path (bypass header, crew cookie, zero OldCarsData).
+Search check: no public page touched.
