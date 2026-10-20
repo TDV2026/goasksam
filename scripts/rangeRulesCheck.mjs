@@ -14,6 +14,12 @@ ok(ob.blendOneFamily(F512, [r("1992 Ferrari 512 TR"), r("1993 Ferrari 512 TR Spi
 ok(ob.blendOneFamily(F512, [r("1982 Ferrari 512 BBi"), r("1992 Ferrari 512 TR")]) === null, "BB with TR is two families");
 ok(ob.blendOneFamily(VIP, [r("1997 Dodge Viper GTS"), r("1997 Dodge Viper RT/10")]) === null, "a GTS with an RT/10 is two families");
 ok(ob.blendOneFamily(VIP, [r("1994 Dodge Viper RT/10"), r("1994 Dodge Viper")]) === null, "a title naming no family keeps the refusal");
+// a year with a record (Oct 20 2026): a typed year with no sale of the car in the pool keeps today's answer (the 1985 512)
+const ry = (t, y) => ({ raw_title: t, year: y });
+const bbPool = [ry("1984 Ferrari 512 BBi", 1984), ry("1983 Ferrari 512 BBi", 1983), ry("1984 Ferrari 512 BBi", 1984)];
+ok(ob.blendOneFamily({ ...F512, year: 1984 }, bbPool) === "512 BB", "a typed year with its own sale in the pool gets the family");
+ok(ob.blendOneFamily({ ...F512, year: 1985 }, bbPool) === null, "a typed year with no sale of the car on record (1985 512) keeps today's answer");
+ok(ob.blendOneFamily({ ...F512, year: 1990 }, [ry("1992 Ferrari 512 TR", 1992), ry("1993 Ferrari 512 TR", 1993)]) === null, "the 1990 512, read from the 512 TR pool, keeps today's answer");
 ok(ob.blendOneFamily({ make: "Ferrari", model: "F430" }, [r("2006 Ferrari F430 Spider")]) === null, "a name outside the blend list is never touched");
 const { default: handler } = await import("../api/usageDashboard.js");
 let code = 0; const res = { setHeader() {}, getHeader() {}, status(c) { code = c; return this; }, json() { return this; }, send() { return this; }, end() { return this; } };
