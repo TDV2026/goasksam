@@ -104,10 +104,30 @@ for (const r of ROWS) {
   r = await call({ q: "WBSBF932XSEH0062Y" });
   ok(r.j && r.j.answerType === "vin_unreadable" && !r.j.history, `a mistyped VIN with NO record (the archive read, nothing found): the unreadable line (got ${r.j && (r.j.answerType || r.j.error)})`);
   for (const k of ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]) delete process.env[k];
+  // REVISION 3, items 1 and 2: EVERY handler answer carries the current car {name, vin, from}; an unreadable VIN carries none
+  { const carOf = async body => (await call(body)).j;
+    let j = await carOf({ q: "WBSBF932XSEH0062Y" }); ok(j && "car" in j && j.car === null, `unreadable VIN: car is null (${JSON.stringify(j && j.car)})`);
+    process.env.SUPABASE_URL = "https://stub.supabase.invalid"; process.env.SUPABASE_SERVICE_ROLE_KEY = "stub-only";
+    j = await carOf({ q: "WBSBF932XSEH0062Z" });
+    for (const k of ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]) delete process.env[k];
+    ok(j && j.car && j.car.vin === "WBSBF932XSEH0062Z" && j.car.from === "record" && /1995 BMW M3/.test(j.car.name || ""), `a recorded VIN: the record's name with the VIN (${JSON.stringify(j && j.car)})`);
+    j = await carOf({ q: "1971 Mercedes 280SE" }); ok(j && j.car && j.car.name && !j.car.vin, `typed words: a name, no VIN (${JSON.stringify(j && j.car)})`);
+    j = await carOf({ q: "WBSBF932XSEH006" }); ok(j && j.car === null, "a garbage VIN attempt: car is null"); }
   // (the engine's own name lookups for a typed car are blocked by the stub too; only a VIN DECODE of typed words is wrong)
   ok(!outside.some(u => /DecodeVinValues/.test(u)), `no VIN decode of a typed year, make and model (blocked outside lookups: ${outside.length}, none sent)`);
   globalThis.fetch = realFetch;
 }
+// carFieldOf, pure: the name order (record, decode, identity, typed), a venue never echoed, the eBay fields untouched
+{ const { carFieldOf } = await import("../api/partnerAnswer.js");
+  const d = { readable: true, year: 2003, make: "Chevrolet", model: "Corvette", trim: "Z06" };
+  ok(JSON.stringify(carFieldOf({ ok: true }, { vin: "1G1YY12S035102964", vinDecode: d, typed: "1G1YY12S035102964" }).car) === JSON.stringify({ name: "2003 Chevrolet Corvette Z06", vin: "1G1YY12S035102964", from: "decode" }), "Sam's example: 2003 Chevrolet Corvette Z06 with its VIN, from the decode");
+  ok(carFieldOf({ ok: true }, { vin: "X", id: { year: 1995, make: "BMW", model: "M3" }, vinDecode: d }).car.from === "record", "a recorded VIN's own name wins over the decode");
+  ok(carFieldOf({ ok: true, identity: { year: 1995, make: "BMW", model: "M3" } }, { typed: "95 bmw m3" }).car.name === "1995 BMW M3", "the engine's identity wins over the typed words");
+  ok(carFieldOf({ ok: true }, { typed: "Bring a Trailer 911" }).car === null, "a typed name naming a venue is never echoed");
+  ok(carFieldOf({ ok: true }, { typed: "1971 Mercedes 280SE" }).car.name === "1971 Mercedes 280SE", "typed words that squash to 17 VIN characters are still words (the one-token rule)");
+  const body = { ok: true, answerType: "range", range: { low: 1, high: 2 }, sales: [1] }, out = carFieldOf(body, { typed: "1995 BMW M3" });
+  ok(Object.keys(out).filter(k => k !== "car").every(k => out[k] === body[k]) && Object.keys(out).length === Object.keys(body).length + 1, "additive: only the car field is added");
+  ok(carFieldOf({ ok: false, error: "rate_limited" }, { typed: "x" }).car === undefined, "a rate-limit answer is untouched"); }
 // the still-reading state (engine busy) is the plain retry state, not an error page
 { const out = partnerShape({ status: "one_box", tier: "unavailable", stillReading: true, samLine: "Still reading the sales.", retry: true, retryAfterMs: 4000 }, "1995 BMW M3", 0, {});
   ok(out.stillReading === true && out.line === "Still reading the sales." && demoAnswerCase(out, NOW).kind === "error", "engine busy: the still-reading state with the engine's own line and retry (the page's Try again)"); }

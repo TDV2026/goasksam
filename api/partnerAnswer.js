@@ -399,6 +399,25 @@ function identityOf(d, idFromVin) {
 }
 // The VIN's own appearances: sold (price), or offered and not sold (high bid). Never the venue, link or title.
 // The car's name from the engine's identity of a VIN (year, make, model, trim); null when it cannot name the car.
+// THE CURRENT CAR (Sam's Amazon revision 3, items 1 and 2; Lane E, Oct 20 2026): every answer carries "car" {name, vin,
+// from}, so a page can say what the car is under its box ("2003 Chevrolet Corvette Z06 · VIN 1G1YY12S035102964", or the
+// name alone). The name, in this order: the archive's own name for a recorded VIN, else the free decode's (year, make,
+// model, trim), else the engine's identity, else the words as typed. A name that would carry a venue falls to the next.
+// An unreadable VIN carries no car. Additive: no other field changes, and the eBay page ignores it.
+export function carFieldOf(body, { vin = null, id = null, vinDecode = null, typed = "" } = {}) {
+  if (!body || typeof body !== "object" || Array.isArray(body) || body.error === "rate_limited" || "car" in body) return body;
+  if (body.answerType === "vin_unreadable") return { ...body, car: null };
+  const join = (...p) => { const out = []; for (const x of p.filter(Boolean).map(String)) if (!out.some(o => o.toLowerCase().includes(x.toLowerCase()))) out.push(x); return out.join(" ").replace(/\s+/g, " ").trim(); };
+  const idn = body.identity;
+  const cands = [
+    ["record", id && !id.fromDecode ? carNameOf(id) : null],
+    ["decode", vinDecode && vinDecode.readable && vinDecode.make ? join(vinDecode.year, vinDecode.make, vinDecode.model, vinDecode.trim) : null],
+    ["identity", idn && idn.make && idn.model ? join(idn.year, idn.make, idn.model, idn.variant) : null],
+    ["typed", typed && !(!/\s/.test(String(typed).trim()) && VIN_RE.test(normVin(typed))) ? String(typed).trim() : null]   // a VIN only as one token (vinOfInput's rule)
+  ];
+  const hit = cands.find(([, n]) => n && !VENUE_RE.test(n));
+  return { ...body, car: hit ? { name: hit[1], vin: vin || null, from: hit[0] } : (vin ? { name: null, vin, from: "vin" } : null) };
+}
 export function carNameOf(id) {
   if (!id || !id.make || !id.model) return null;
   const trim = id.trim && !String(id.model).toLowerCase().includes(String(id.trim).toLowerCase()) ? id.trim : null;
@@ -532,6 +551,8 @@ export default async function handler(req, res) {
     if (!lim.ok) return res.status(429).json({ ok: false, query: text, error: "rate_limited" });
   }
   let history = null, id = null, vinDecode = null;
+  // every answer from here on carries the current car (carFieldOf); the typed words are kept before a VIN replaces them
+  { const typedWords = text, sendJson = res.json.bind(res); res.json = body => sendJson(carFieldOf(body, { vin: vinIn || null, id, vinDecode, typed: typedWords })); }
   // A VIN THAT CANNOT BE READ (Sam's Amazon demo, revision 2, item 8a; Lane E, Oct 20 2026): a typed run of 11 to 17
   // letters and digits with three or more digits and no space is a VIN attempt; one that is not a valid 17-character VIN
   // gets Sam's line, never a silent empty page and never a car search on the raw characters.
