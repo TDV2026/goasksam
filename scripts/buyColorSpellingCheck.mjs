@@ -19,5 +19,12 @@ const code = client.split("\n").filter(l => !/^\s*\/\//.test(l)).join("\n");
 const lits = (code.match(/"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'/g) || []).filter(l => / /.test(l) && /\bcolours?\b/i.test(l));
 ok(client.length > 1000, "the Buy client was read");
 ok(lits.length === 0, "Buy client: no visible string still says 'colour' " + JSON.stringify(lits.slice(0, 3)));
+// The server (Lane E's samChat) now sends unstatedWhat "color"; the page reads both keys so neither line goes blank.
+{ const fn = name => { const i = client.indexOf("function " + name + "("); const j = client.indexOf("\n  function ", i + 1); return client.slice(i, j); };
+  const uv = /var UNSTATED = \{[^}]*\};/.exec(client), numWord = n => String(n), esc = x => x;
+  const everythingLine = new Function(fn("everythingLine") + "\nreturn everythingLine;")();
+  for (const k of ["colour", "color"]) ok(everythingLine({ unstated: 3, unstatedWhat: k }, { colour: "red" }) === "That\u2019s everything that says red right now.", `everythingLine reads unstatedWhat "${k}"`);
+  const U = uv ? new Function(uv[0] + " return UNSTATED;")() : {};
+  ok(U.colour === "their color" && U.color === "their color", "the unstated line's words exist for both keys: 'their color'"); }
 console.log(`buyColorSpellingCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
