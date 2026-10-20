@@ -216,14 +216,14 @@ async function enrich(env, x, deadlineAt) {   // deadlineAt (e61, Sam's item 3):
   // the card's seen-before and timeline reads run under the same clock (singleflight bump, Sam's Buy timing note): a read
   // that is not back by the request's deadline is null for this response and the retry fills it; no second rule
   const late = p => Number(deadlineAt) > 0 ? Promise.race([p, new Promise(res => setTimeout(() => res(null), Math.max(250, Number(deadlineAt) - Date.now())))]) : p;
-  let [market, seen, timeline] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts, { deadlineAt }), late(seenBefore(env, x.r.vin_norm)), late(timelineOf(env, x))]);
-  if (market && market.kind === "pending") market = await listingMarket(env, x.r, x.facts, { deadlineAt });   // one more go, warm now (the same clock; a key still computing answers at once)
+  let [market, seen, timeline] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts, { deadlineAt, notTracked: true }), late(seenBefore(env, x.r.vin_norm)), late(timelineOf(env, x))]);
+  if (market && market.kind === "pending") market = await listingMarket(env, x.r, x.facts, { deadlineAt, notTracked: true });   // one more go, warm now (the same clock; a key still computing answers at once)
   market = await rungMarket(env, x.r, x.facts, market);   // the engine's fallback rung, when it names one; else unchanged
   const c = { ...cardOf(x), market, seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name: await nameOf(env, x) };
   return { ...c, sam_lines: samLines(c) };
 }
 async function enrichFast(env, x) {
-  const [market, seen, timeline, name] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts, { noBlock: true }), seenBefore(env, x.r.vin_norm), timelineOf(env, x, { asideWaitMs: 1500 }), nameOf(env, x)]);
+  const [market, seen, timeline, name] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts, { noBlock: true, notTracked: true }), seenBefore(env, x.r.vin_norm), timelineOf(env, x, { asideWaitMs: 1500 }), nameOf(env, x)]);
   const c = { ...cardOf(x), market: await rungMarket(env, x.r, x.facts, market), seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name };
   return { ...c, sam_lines: samLines(c) };
 }
@@ -337,7 +337,7 @@ async function handler(req, res) {
       const ids = (Array.isArray(b.ids) ? b.ids : []).map(Number).filter(Number.isFinite).slice(0, 60);
       if (!ids.length) return res.status(200).json({ cards: [] });
       const rows = await liveRows(env, `id=in.(${ids.join(",")})`);
-      const cards = await Promise.all(rows.map(r => { const facts = listingFacts(r); return Promise.all([listingMarket(env, r, facts), seenBefore(env, r.vin_norm), timelineOf(env, { r })]).then(async ([market, seen, timeline]) => { if (market && market.kind === "pending") market = await listingMarket(env, r, facts); const c = { ...cardOf({ r, facts, gen: null, unknown: [] }), market: await rungMarket(env, r, facts, market), seen_before: seen, timeline }; return { id: r.id, market: c.market, seen_before: seen, timeline, sam_lines: samLines(c) }; }); }));
+      const cards = await Promise.all(rows.map(r => { const facts = listingFacts(r); return Promise.all([listingMarket(env, r, facts, { notTracked: true }), seenBefore(env, r.vin_norm), timelineOf(env, { r })]).then(async ([market, seen, timeline]) => { if (market && market.kind === "pending") market = await listingMarket(env, r, facts); const c = { ...cardOf({ r, facts, gen: null, unknown: [] }), market: await rungMarket(env, r, facts, market), seen_before: seen, timeline }; return { id: r.id, market: c.market, seen_before: seen, timeline, sam_lines: samLines(c) }; }); }));
       // engineVersion: the engine this deploy reads, so a check can tie each card to the engine read it compares with.
       return res.status(200).json({ cards, engineVersion: ENGINE_VERSION });
     }
