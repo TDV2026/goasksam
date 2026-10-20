@@ -380,6 +380,18 @@ export function historyOf(apps, vin) {
 }
 
 // Market Check's answer, reshaped. Pure: no network; scripts/partnerEngineMatch.mjs runs it on fixed answers too.
+// THE SHARED CARD WITH ITS SALE ROWS (Lane F's order, Oct 20 2026, the Amazon demo's tab c "sales newest first"): Market
+// Check's own card call (sellsForCardHtml(d, {}) through demoCard), so the rows come in the engine's own order (newest first,
+// the order Market Check draws), with two venue-safe swaps only: each row's photo goes through this endpoint's gated
+// ?photo=<archive id> path (never the source image address, which names the venue), and a row title that names a venue
+// reads as its own year, make and model (rowTitle, the rule the sales list already uses). Additive: the existing card,
+// sales and every other field are unchanged, and the eBay page ignores this field.
+export function cardWithRowsOf(d) {
+  if (!d || !Array.isArray(d.cards)) return demoCard(sellsForCardHtml(d || {}, {}), d || {}) || null;
+  const cards = d.cards.map(c => ({ ...c, title: rowTitle(c) }));
+  const photo = c => { const id = c && c.image ? rowId(c) : null; return id ? "/api/partnerAnswer?photo=" + encodeURIComponent(id) : null; };   // a sale with no photo keeps the card's "No photo" slot, as on Market Check
+  return demoCard(sellsForCardHtml({ ...d, cards }, { rowPhoto: photo }), d) || null;
+}
 export function partnerShape(d, text, asked, extra = {}) {
   const engineVersion = d && d.engineVersion || null;
   if (!d || d.status === "needs_clarification" || d.status === "needs_confirmation") {
@@ -408,6 +420,7 @@ export function partnerShape(d, text, asked, extra = {}) {
     thin: range ? null : thinTextOf(d, count),
     trend: range ? trendOf(d) : null,
     card: demoCard(sellsForCardHtml(d, PARTNER_CARD_OPTS), d) || null,
+    cardWithRows: cardWithRowsOf(d),   // additive (Oct 20 2026, the Amazon demo's tab c): Market Check's own card WITH its sale rows
     quarter: latestQuarterRowHtml({ ...d, trendQuarters: mapEngineAnswer(d).trendQuarters }) || null,
     lines: linesOf(d),
     carPhoto: carPhotoOf(d, (identityOf(d, extra.id) || {}).year || (/^(\d{4})\b/.exec(String(text || "")) || [])[1] || null),

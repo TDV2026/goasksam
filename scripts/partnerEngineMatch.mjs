@@ -72,6 +72,16 @@ for (const [name, d] of Object.entries(FIX)) {
     ok(out.sales.every((s, i, a) => !i || a[i - 1].price <= s.price), `${name}: sales lowest price first`);
     ok(out.sales.every(s => Object.keys(s).sort().join() === "date,miles,name,photo,price" && (s.photo === null || /^(\d{1,15}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/.test(s.photo)) && !venueLeak({ n: s.name }).length), `${name}: a sale is its price, date, mileage, the engine row's own name (venue-safe) and its archive id for the photo only`);
     ok(sameCard(out.card, d), `${name}: the shared card, byte-identical to Market Check's card for the same answer`);
+    // cardWithRows (Oct 20 2026, additive, the Amazon demo's tab c): Market Check's own card WITH its sale rows, in the engine's
+    // order, with only the photo address (the gated ?photo= path) and venue-naming titles swapped; no venue anywhere
+    const mcRows = demoCard(sellsForCardHtml(d, {}), d) || "";
+    const norm = h => String(h || "").replace(/<img class="sfc-row-img" src="[^"]*"/g, '<img class="sfc-row-img" src=""').replace(/<span class="sfc-row-title">[^<]*<\/span>/g, "");
+    ok(typeof out.cardWithRows === "string" && /<ul class="sfc-rows">/.test(out.cardWithRows) === /<ul class="sfc-rows">/.test(mcRows), `${name}: cardWithRows carries the sale rows exactly when Market Check's card does`);
+    ok(norm(out.cardWithRows) === norm(mcRows), `${name}: cardWithRows is Market Check's card (same lines, prices, dates, miles, order), photo address and titles aside`);
+    const rowDates = [...String(out.cardWithRows).matchAll(/<span class="sfc-row-meta">([^<]*)<\/span>/g)].map(m => m[1]);
+    const mcDates = [...String(mcRows).matchAll(/<span class="sfc-row-meta">([^<]*)<\/span>/g)].map(m => m[1]);
+    ok(JSON.stringify(rowDates) === JSON.stringify(mcDates), `${name}: cardWithRows lists the sales in Market Check's order (the engine's own, newest first)`);
+    ok(venueLeak({ cardWithRows: out.cardWithRows }).length === 0 && !/https?:\/\//.test(out.cardWithRows), `${name}: no venue name or outside address in cardWithRows`);
   }
   if (name === "thin") {
     // the 275 GTB fix (Oct 20 2026): a card read on another day (the endpoint's stored answer against a fresh Market Check
@@ -450,6 +460,7 @@ const src = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url),
 ok(/import\("\.\/sellerDecision\.js"\)/.test(src) && /oneBox: true/.test(src), "the endpoint asks Market Check's own handler");
 ok(!/sales_archive|runOneBox|oneEngineAnswer|supabaseSelect|fetchOnlinePool|familyMarket/.test(src), "the endpoint has no sales read or engine call of its own");
 ok(!/oldcarsdata|OLDCARSDATA|_ocd/i.test(src), "the endpoint never touches OldCarsData");
+ok(!/cardWithRows/.test(fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8")), "the eBay demo page does not read cardWithRows (it renders exactly as before)");
 
 // ---- part 2: live, the five cars
 const COOKIE = process.env.GAS_CREW_COOKIE, HOST = process.env.PARTNER_HOST || "https://goasksam.com";
