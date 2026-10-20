@@ -382,7 +382,8 @@ const JS = String.raw`
     // The thumbnail strip: the same photo, then this exact car's own earlier photos (its history), never another car's.
     var th = [photo ? "/api/partnerAnswer?photo=" + encodeURIComponent(photo) + "&w=320" : null].concat(((a && a.history) || []).filter(function(r){ return r.photo; }).map(function(r){ return "/api/partnerAnswer?photo=" + encodeURIComponent(r.photo) + "&w=320"; })).filter(Boolean);
     $("c-thumbs").innerHTML = th.slice(0, 6).map(function(u, k){ return '<img src="' + esc(u) + '" alt="" loading="lazy"' + (k === 0 ? ' class="on"' : "") + ">"; }).join("");
-    var t = amazonTitle(a); if (t) $("c-title").textContent = t;
+    // A demo car keeps its own listing name (the grid's name); only a typed car or a VIN is titled from the answer.
+    var t = CARS.indexOf(CAR) >= 0 ? null : amazonTitle(a); if (t) $("c-title").textContent = t;
     var scope = ok && (inScope(a) || !!a.question), sl = scope ? sampleOf(a) : null;   // an engine question is always drawn
     $("c-price").innerHTML = sl ? '<div class="price">' + usd(sl.price) + '</div><p class="price-kind">Sample asking price</p>' + (sl.miles ? '<p class="miles">' + esc(Number(sl.miles).toLocaleString("en-US")) + " miles</p>" : "") : "";
     $("c-fin").innerHTML = sl ? '<div class="fin"><span class="fin-l">Finance</span><div class="fin-b"><p class="fin-m">' + usd(sl.monthly) + '<span>/mo</span></p><p class="fin-s">Sample</p><button type="button" class="btn yel blk" data-inert>Estimate payments</button></div></div><div class="cash"><span>Cash</span><b>' + usd(sl.price) + "</b></div>" : "";

@@ -42,6 +42,9 @@ ok((js.match(/if \(a && a\.ok !== false && !a\.question && !inScope\(a\)\) \{ ou
 ok(/<h1 id="c-title"><\/h1>/.test(amazonPageHtml("c", "WP0AA0944LN450001", { carOf, listing: DUMMY })) && /<h1 id="c-title">Used 1995 BMW M3<\/h1>/.test(amazonPageHtml("c", "1995 BMW M3", { carOf, listing: DUMMY })), "a typed VIN gives no title until the decode or identity names the car; typed words read 'Used ...'");
 ok(/\$\("c-case"\)\.innerHTML = scope \? "" : \(ok \? caseHtml\(a\) : '<div class="case">' \+ cardHtml\(a\) \+ "<\/div>"\);/.test(js), "tab c: a failed read draws the could-not (or still-reading) line, never a blank rail");
 ok(!Object.keys((await import("../api/_amazonDemo.js")).AMAZON_PROFILE.sampleListings).includes("1995 BMW M3"), "a typed car outside the profile's list has no sample price or monthly figure");
+ok(/var t = CARS\.indexOf\(CAR\) >= 0 \? null : amazonTitle\(a\); if \(t\) \$\("c-title"\)\.textContent = t;/.test(grab("drawC")), "a demo car keeps its listing name on tab c (the grid's name); only a typed car or a VIN is retitled");
+{ const { AMAZON_DEMO_CARS } = await import("../api/_amazonDemoCars.js"); const hc = amazonPageHtml("c", "3", { carOf, listing: DUMMY });
+  ok(hc.includes(`<h1 id="c-title">Used ${AMAZON_DEMO_CARS[3]}</h1>`), `tab c for a demo car opens with its listing name ("Used ${AMAZON_DEMO_CARS[3]}")`); }
 ok(!/[–—]/.test(js), "no dashes");
 console.log(`amazonCaseCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
