@@ -24,5 +24,7 @@ ok(!/class="hrow"/.test(card) && !/data-hist/.test(card) && /\(sl \? '<div class
 ok(/var h = slInner\(l\), sl = tx\.querySelector\("\.sl"\);/.test(c), "a line that arrives later rebuilds the same Sam area, history included");
 ok(/priorSold|sold before|listed before/.test(c), "the popup and its Oct 15 heading rule are untouched");
 ok(/\.cgrid \.car \.sl \.seen\{/.test(css) && !/[–—]/.test(seen), "styled inside the Sam area; no dashes in the copy");
+// ---- Item 4a: the last row left-aligned (five cards: three, then two in the first two columns, on a wide screen).
+ok(/@media \(min-width:1100px\)\{\.cgrid\.n5 > article\.car:nth-of-type\(4\)\{grid-column:1\/3\}\.cgrid\.n5 > article\.car:nth-of-type\(5\)\{grid-column:3\/5\}\}/.test(css), "five cards: the last two start in the first column (left-aligned), wide screens only");
 console.log(`buyStage1cCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
