@@ -117,6 +117,26 @@ for (const r of ROWS) {
   ok(!outside.some(u => /DecodeVinValues/.test(u)), `no VIN decode of a typed year, make and model (blocked outside lookups: ${outside.length}, none sent)`);
   globalThis.fetch = realFetch;
 }
+// REVISION 3, items 3 and 6: the car's own facts (keyFeatures, chips, gallery) under Sam's gearbox rule; offline
+{ const { keyFeaturesOf, chipsOf, withCarFacts } = await import("../api/partnerAnswer.js");
+  const dec = f => ({ readable: true, bodyStyle: "coupe", features: f });
+  const gt3 = keyFeaturesOf({ title: "2022 Porsche 911 GT3 6-Speed", listingTx: "Manual (6-speed)", decode: dec({ drivetrain: "Rear-wheel drive", transmission: "Automatic, 8-speed", engine: "6 cylinders, 4.0 L, 502 hp" }) });
+  ok(gt3.transmission === "Manual, 6-speed" && JSON.stringify(chipsOf(gt3)) === JSON.stringify(["Coupe", "Rear Wheel Drive", "6-Speed Manual"]), `GT3: the listing's manual wins; the decode's "Automatic, 8-speed" is never shown (${JSON.stringify(gt3)})`);
+  ok(keyFeaturesOf({ title: "2016 Ferrari 488 GTB", listingTx: "(7-speed)", decode: dec({ transmission: "Automatic, 7-speed" }) }).transmission === "Automatic, 7-speed", "488: no style in the listing, the decode's agrees on 7 speeds: Automatic, 7-speed");
+  ok(!("transmission" in keyFeaturesOf({ title: "2013 BMW M3 Coupe", listingTx: "(7-speed)", decode: dec({}) })), "M3: a bare 7-speed with no decode style is not stated (omitted)");
+  ok(!("transmission" in keyFeaturesOf({ title: "x", listingTx: "(6-speed)", decode: dec({ transmission: "Automatic, 8-speed" }) })), "the decode's style never shows when its speed count disagrees with the listing");
+  ok(!("transmission" in keyFeaturesOf({ title: "x", listingTx: "", decode: dec({ transmission: "Automatic, 8-speed" }) })), "the decode alone (no listing words) never sets the gearbox");
+  ok(keyFeaturesOf({ title: "x", listingTx: "Getrag 5-speed", decode: dec({}) }).transmission === undefined, "Getrag alone is not manual (Sam's rule)");
+  ok(keyFeaturesOf({ title: "x", listingTx: "G50 five-speed", decode: dec({}) }).transmission === "Manual", "G50 is manual");
+  ok(keyFeaturesOf({ title: "2012 Mercedes-Benz SLS AMG Roadster - 7,400 Miles", listingTx: "Automatic", decode: { readable: true, bodyStyle: "convertible", features: {} } }).body === "Roadster", "the listing's body word wins over the decode's");
+  ok(JSON.stringify(keyFeaturesOf({ title: "", listingTx: "", decode: null })) === "{}", "nothing known: every field omitted");
+  const full = { ok: true, answerType: "range", carPhoto: { photo: "p-1" }, range: { low: 1, high: 2 } };
+  let o = await withCarFacts(full, { cards: [{ id: "x", price: 10, title: "2017 Porsche 911 Carrera Coupe", transmission: "Manual (7-speed)" }] }, {});
+  ok(Array.isArray(o.gallery) && o.gallery.length === 1 && o.gallery[0] === "p-1", `a typed name with no VIN on the sale: its ONE photo (${JSON.stringify(o.gallery)})`);
+  o = await withCarFacts({ ok: true, answerType: "range" }, null, { vin: "WBSBF932XSEH00621", history: [{ photo: "WBSBF932XSEH00621-0" }, { photo: null }, { photo: "WBSBF932XSEH00621-2" }], vinDecode: { readable: true, bodyStyle: "coupe", features: { transmission: "Manual/Standard, 5-speed" } } });
+  ok(JSON.stringify(o.gallery) === JSON.stringify(["WBSBF932XSEH00621-0", "WBSBF932XSEH00621-2"]) && !("transmission" in o.keyFeatures), `a typed VIN: its own appearances' photos only; the decode alone never sets the gearbox (${JSON.stringify(o)})`);
+  for (const q of [{ ok: true, answerType: "identity_question" }, { ok: false, error: "unavailable" }, { ok: true, answerType: "vin_unreadable" }]) { const r = await withCarFacts(q, null, {}); ok(!("gallery" in r) && !("keyFeatures" in r), `${q.answerType || q.error}: untouched (no car facts)`); }
+}
 // carFieldOf, pure: the name order (record, decode, identity, typed), a venue never echoed, the eBay fields untouched
 { const { carFieldOf } = await import("../api/partnerAnswer.js");
   const d = { readable: true, year: 2003, make: "Chevrolet", model: "Corvette", trim: "Z06" };

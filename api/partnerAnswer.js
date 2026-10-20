@@ -79,7 +79,7 @@ export async function refreshDemoAnswer(env, car, { host = "goasksam.com" } = {}
   const t0 = Date.now();
   let r;
   try { r = await marketCheckAnswer({ headers: { host } }, car, null, 0, true); } catch (e) { return { car, stored: false, why: "read failed", ms: Date.now() - t0 }; }
-  const out = partnerShape(r && r.d, car, 0, {});
+  const out = await withCarFacts(partnerShape(r && r.d, car, 0, {}), r && r.d, { env });
   if (!fullResult(out) && !questionResult(out)) return { car, stored: false, why: out && out.stillReading ? "still reading" : (out && (out.error || out.answerType)) || "no answer", ms: Date.now() - t0 };
   if (venueLeak(out).length) return { car, stored: false, why: "blocked", ms: Date.now() - t0 };
   const ok = await writeLast(env, key, out, { force: true });
@@ -399,6 +399,72 @@ function identityOf(d, idFromVin) {
 }
 // The VIN's own appearances: sold (price), or offered and not sold (high bid). Never the venue, link or title.
 // The car's name from the engine's identity of a VIN (year, make, model, trim); null when it cannot name the car.
+// THE CAR'S OWN FACTS (Sam's Amazon revision 3, items 3 and 6; Lane E, Oct 20 2026). For the car the answer shows (a typed
+// VIN: that VIN; a typed name: the sale whose photo the answer carries, carPhotoOf), from that car's OWN record only:
+//   gallery: photo ids for the gated ?photo= path, the car's own appearances by VIN, newest first, at most six; one photo
+//     when the car appears once (the archive holds one photo per sale), never another car's.
+//   keyFeatures: { body, drivetrain, engine, fuel, seats, transmission }, each only when the listing or the free decode of
+//     the car's own VIN states it; an unknown field is omitted. Body: the listing title's word, else the decode's.
+//     TRANSMISSION (Sam's rule, Lane F Oct 20): the listing's own words first ("Manual" only on manual, stick, gated, G50
+//     or MT); the decode only when the listing names no style AND the speed counts agree (the decode holds one pattern
+//     per model: it reads the 6-speed manual GT3 as "Automatic, 8-speed"); a bare "7-speed" is not stated.
+//   chips: the same facts as Amazon-style labels ("Coupe", "Rear Wheel Drive", "6-Speed Manual"), nothing else.
+const MANUAL_WORDS = /\b(?:manual|stick|gated|g50|\d?-?mt)\b/i, AUTO_WORDS = /\bautomatic\b/i;
+const BODY_WORDS = /\b(coupe|roadster|convertible|cabriolet|spider|spyder|targa|sedan|saloon|wagon|estate|hatchback|speedster|suv)\b/i;
+const capWords = w => String(w).toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase());
+export function keyFeaturesOf({ title = "", listingTx = "", decode = null } = {}) {
+  const f = {}, df = (decode && decode.readable && decode.features) || {};
+  const bw = BODY_WORDS.exec(String(title)); if (bw) f.body = capWords(bw[1]); else if (decode && decode.readable && decode.bodyStyle) f.body = capWords(decode.bodyStyle);
+  if (df.drivetrain) f.drivetrain = capWords(String(df.drivetrain).replace(/-/g, " "));
+  if (df.engine) f.engine = df.engine;
+  if (df.fuel) f.fuel = df.fuel;
+  if (df.seats) f.seats = df.seats;
+  const sp = s => { const m = /(\d+)[- ]?speed/i.exec(String(s || "")); return m ? Number(m[1]) : null; };
+  const lt = String(listingTx || ""), lsp = sp(lt), dsp = sp(df.transmission);
+  const style = MANUAL_WORDS.test(lt) ? "Manual" : AUTO_WORDS.test(lt) ? "Automatic" : null;
+  if (style) f.transmission = style + (lsp ? `, ${lsp}-speed` : "");
+  else if (df.transmission && lsp && dsp === lsp) {   // the decode only when the listing names no style and the speeds agree
+    const ds = /manual/i.test(df.transmission) ? "Manual" : /automatic/i.test(df.transmission) ? "Automatic" : null;
+    if (ds) f.transmission = `${ds}, ${lsp}-speed`;
+  }
+  return f;
+}
+export function chipsOf(kf) {
+  if (!kf) return [];
+  const out = [];
+  if (kf.body) out.push(kf.body);
+  if (kf.drivetrain) out.push(kf.drivetrain);
+  if (kf.transmission) { const m = /^(Manual|Automatic)(?:, (\d+)-speed)?$/.exec(kf.transmission); if (m) out.push((m[2] ? `${m[2]}-Speed ` : "") + m[1]); }
+  return out;
+}
+const decodeCache = new Map();
+async function decodeQuick(vin) {
+  if (!vin) return null;
+  if (decodeCache.has(vin)) return decodeCache.get(vin);
+  const v = await Promise.race([decodeVinFacts(vin).catch(() => null), new Promise(r => setTimeout(() => r(null), 3000))]);
+  if (v) decodeCache.set(vin, v);
+  return v;
+}
+// Adds gallery, keyFeatures and chips to a full answer (additive; the eBay page ignores them). Never throws.
+export async function withCarFacts(out, d, { env = null, vin = null, vinDecode = null, history = null } = {}) {
+  try {
+    if (!out || out.ok !== true || !/^(range|not_enough_data|zero_result)$/.test(String(out.answerType))) return out;
+    if (vin) {
+      const g = (Array.isArray(history) ? history : []).map(h => h && h.photo).filter(Boolean).slice(0, 6);
+      const kf = keyFeaturesOf({ title: "", listingTx: "", decode: vinDecode });
+      return { ...out, gallery: g, keyFeatures: kf, chips: chipsOf(kf) };
+    }
+    const pick = out.carPhoto && out.carPhoto.photo;
+    const rows = d ? (d.tier === "thin" && d.thin && Array.isArray(d.thin.receipts) ? d.thin.receipts : (Array.isArray(d.cards) ? d.cards : [])) : [];
+    const card = pick ? rows.find(c => rowId(c) === pick) : null;
+    if (!card) return { ...out, gallery: pick ? [pick] : [], keyFeatures: {}, chips: [] };
+    const cv = normVin(card.vinNorm || card.vin || "");
+    let gallery = [pick];
+    if (cv && env) { const h = await vinAppearances(env, cv).catch(() => null); const g = historyOf(h && h.appearances, cv); const ids = (g || []).map(x => x.photo).filter(Boolean).slice(0, 6); if (ids.length) gallery = ids; }
+    const kf = keyFeaturesOf({ title: rowTitle(card), listingTx: card.transmission || "", decode: await decodeQuick(cv) });
+    return { ...out, gallery, keyFeatures: kf, chips: chipsOf(kf) };
+  } catch { return out; }
+}
 // THE CURRENT CAR (Sam's Amazon revision 3, items 1 and 2; Lane E, Oct 20 2026): every answer carries "car" {name, vin,
 // from}, so a page can say what the car is under its box ("2003 Chevrolet Corvette Z06 · VIN 1G1YY12S035102964", or the
 // name alone). The name, in this order: the archive's own name for a recorded VIN, else the free decode's (year, make,
@@ -614,7 +680,7 @@ export default async function handler(req, res) {
     // No answer and no usable stored one: the plain still-reading state, with no wait of its own (the page offers Try again).
     return res.status(200).json({ ok: false, query: text, error: "unavailable", history, stillReading: true, line: null, retryAfterMs: null });
   }
-  let out = partnerShape(r.d, text, asked, { history, id });
+  let out = await withCarFacts(partnerShape(r.d, text, asked, { history, id }), r.d, { env, vin: vinIn || null, vinDecode, history });
   // The last good answer is stored from a plain read of the car and serves the VIN views too (Oct 18 2026: the listing
   // views send the VIN, had no fallback, and showed the limit line); a VIN view keeps its own VIN history.
   const lk = !refine ? demoKey(text) : null;
