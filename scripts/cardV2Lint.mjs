@@ -26,8 +26,10 @@ try{Object.defineProperty(globalThis,"navigator",{value:{language:"en-US"},confi
 globalThis.location={hostname:"localhost",protocol:"file:",search:""};
 globalThis.localStorage={getItem:()=>null,setItem:noop,removeItem:noop};
 globalThis.fetch=async()=>({ok:true,json:async()=>({})});
-const html=fs.readFileSync("index.html","utf8");
-const files=[...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m=>"js/"+m[1]);
+// The site moved into public/ (2609f308): the page is public/index.html and its script tags read "js.<stamp>/x.js",
+// served from public/js/x.js (Lane E, Oct 20 2026; lint:cards had been failing on the missing root index.html).
+const html=fs.readFileSync("public/index.html","utf8");
+const files=[...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m=>"public/js/"+m[1]);
 (0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;globalThis.v2Because=v2Because;globalThis.v2Why=v2Why;globalThis.v2Weekday=v2Weekday;globalThis.v2Reserve=v2Reserve;globalThis.v2Audience=v2Audience;globalThis.v2ScopePlural=v2ScopePlural;globalThis.v2RungRef=v2RungRef;globalThis.v2FailedRungRef=v2FailedRungRef;globalThis.v2RungNoun=v2RungNoun;globalThis.CLAUSE_A=CLAUSE_A;globalThis.CLAUSE_B=CLAUSE_B;globalThis.CLAUSE_C=CLAUSE_C;globalThis.v2WindowLabel=v2WindowLabel;globalThis.psvReasonNote=psvReasonNote;globalThis.psvPara=psvPara;globalThis.psvWhyBullets=psvWhyBullets;globalThis.psvValueLine=psvValueLine;globalThis.psvPoss=psvPoss;globalThis.psvIntro=psvIntro;globalThis.psvSpecTile=psvSpecTile;globalThis.psvClaim=psvClaim;globalThis.psvWheelhouse=psvWheelhouse;globalThis.psvWheelhouseList=psvWheelhouseList;globalThis.psvPron=psvPron;globalThis.psvTrustLines=psvTrustLines;globalThis.v2CarDisplay=v2CarDisplay;globalThis.v2ScopeAttr=v2ScopeAttr;globalThis.renderPowerSellerCardV2=renderPowerSellerCardV2;globalThis.renderPickCardV2=renderPickCardV2;globalThis.v2GuardChatAnswer=v2GuardChatAnswer;globalThis.v2SpeedWhy=typeof v2SpeedWhy==='function'?v2SpeedWhy:function(){return '';};globalThis.v2Composition=typeof v2Composition==='function'?v2Composition:function(){return null};globalThis.v2FollowupIntent=v2FollowupIntent;globalThis.v2ComposeRunListing=v2ComposeRunListing;globalThis.v2ComposeRecommend=v2ComposeRecommend;");
 
 let failures=0;
