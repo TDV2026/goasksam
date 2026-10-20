@@ -3461,6 +3461,10 @@ async function handler(req, res) {
         // trimSlug() produced (e.g. "carrera-s", "turbo-s") - shape-checked only, the engine itself
         // looks it up against the family's real fence names and ignores anything that doesn't match.
         trim: typeof rawRefine.trim === "string" && /^[a-z0-9-]{1,30}$/.test(rawRefine.trim) ? rawRefine.trim : null,
+        // The "Other trims" chip (e62) names the trims it is NOT (lib/onebox.js reads refine.notTrims); the sanitizer dropped it,
+        // so that chip read the whole pool (Lane C's check, Oct 20 2026). Same shape check as trim: a comma list (or an
+        // array) of up to 12 such words; anything else is dropped.
+        notTrims: (() => { const a = (Array.isArray(rawRefine.notTrims) ? rawRefine.notTrims : String(rawRefine.notTrims || "").split(",")).map(x => String(x).trim()).filter(x => /^[a-z0-9-]{1,30}$/.test(x)).slice(0, 12); return a.length ? a.join(",") : null; })(),
         // Competition-variant refine (Part 1 change 1): Competition Package vs standard.
         // Variant refine (e51, Lane A's find): any variant-market key or its other side (lib/modelRules.js
         // VARIANT_MARKETS: carrera, competizione, lightweight, gta, restoration/unrestored...) plus the M-car
