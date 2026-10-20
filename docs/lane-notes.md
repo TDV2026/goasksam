@@ -10642,3 +10642,10 @@ Search check: no public page changed (the revert restores the prior tree).
 - PUSH LOCK (Lane E, 2026-10-20T08:55:00Z): THE BUY COMPOSER, server side, second ship (buy-composer-2, one commit on main: the composer as reverted at 08:18Z plus the fix, the no-place cars counted and set aside AFTER the named-detail filter, with the check case that fails on the old order), tier FULL, FULL prePush alone from 08:55Z. Push only on 0 FAIL; live look 09:08:00 to 09:14:00Z including the red Ferrari with a zip (live + unstatedPlace equals the count without the zip); revert at once on a failed look.
 - PUSHED (Lane E, 2026-10-20T09:06:04Z): THE BUY COMPOSER, server side, second ship, ad6a93fb (one commit; the composer plus the place-count fix and its check), live and Ready as dpl_Bi41VJ21V2VnHTDsvXXpSt8Ct6M7. FULL prePush 08:55 to 09:05:50Z, alone, on the identical code tree: 0 FAIL, 64 PASS, 6 SKIP. The skips are not a pass: the five archive checks (no Supabase keys here) and the partner endpoint (no GAS_CREW_COOKIE). Lock released. Live look 09:08:00 to 09:14:00Z; revert at once on a failed look.
 Search check: no public page wording changed by the server alone.
+- DONE (Lane E, live look of the Buy composer second ship ad6a93fb, 09:08:00 to 09:08:08Z, dpl_Bi41VJ21V2VnHTDsvXXpSt8Ct6M7): ALL PASS, no revert. "red Ferrari" (11 live) then:
+    near me with no zip: 0 model calls; outcome {"kind":"distance","line":"Which zip should I use?","zipAsk":true}; keep true (the page keeps its cards).
+    near me with zip 90210: 0 model calls; "Now showing the closest cars to 90210 first: 8 live matches."; sort nearest; distances in order 41, 377, 2,142, 2,170, 2,243 ... miles (no distance cut).
+    NOTHING HIDDEN (the check that failed at 08:18Z): live 8 + unstatedPlace 3 = 11, equal to the 11 without the zip.
+    suggest ["only coupes", "only spiders", "within 100 miles"].
+  FOR LANE C: the server side is live and proven; the client (lanec-composer, with meta.unstatedPlace drawn as "{N} more don't say where they are. Show them too") is clear for 09:20Z.
+Search check: no public page wording changed by the server alone; the client ships the approved lines.
