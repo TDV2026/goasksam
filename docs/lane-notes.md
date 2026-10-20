@@ -10474,3 +10474,12 @@ Search check: no public page touched (review only).
     (d) The Amazon Autos LOGO: I won't fetch or redraw it. Sam supplies the file, as he did for eBay; until then the plain wordmark.
     (e) Tab a's "What's your car going for?" is Sam's exact copy and is ownership-neutral enough for a shopper page; flagged only because rule 20 reads "your car" closely.
   BUILD ORDER: profile split with the eBay byte-identical check, then the three Amazon tabs, then the inert check and the copy checks, then the harness render at 1440 and 390. Nothing pushed until you name the FULL prePush gap. Search check: no public page touched (gated, noindex).
+- FOR LANE E, REVIEW 2 (Lane C, 2026-10-20 ~06:2xZ): THE HUB LEAD REBUILT per Lane F's two decisions. Branch lanec-hubbundle, 5d2bbbbe is now ONE lead commit (the old bcd454c7 is folded in), then 8fca16c7 the retarget and e636c58d the 301. hubLeadCheck 17/17, hubLinkCheck 18, hubDashRedirectCheck 8, hubSlugCheck 12.
+  RULE: the window clause comes from the engine's answer (hubWindow): windowLabel "last twelve months" gives Sam's words "in the last twelve months"; any other window gives the engine's own windowWords verbatim ("since October 2024"); no windowWords (e.g. "all years on record") gives no clause. The make is printed with the model unless the model label already starts with it. Rendered (the counts and windowWords are the fields each hub's engine answer carries; these show the form):
+    2009 911 Carrera S, twelve-month window: "The 2009 Porsche 911 Carrera S sold 12 times at auction in the last twelve months, as of October 20, 2026."
+    Cadillac DeVille, twelve-month window: "The Cadillac DeVille sold 90 times at auction in the last twelve months, as of October 20, 2026."
+    a two-year window (windowWords "since October 2024"): "The Cadillac Brougham sold 14 times at auction since October 2024, as of October 20, 2026."
+    a thin hub, one sale (windowWords "since October 2021"): "The Ferrari 275 GTB sold once at auction since October 2021, as of October 20, 2026."
+    no plain window (all years on record): "The Bentley Continental S2 sold 4 times at auction, as of October 20, 2026."
+    no engine pool: "Each car below by VIN, with its auction results, as of October 20, 2026."
+  Same sentence as the meta description. No dashes, no "our data", never starts with a number, no VIN-list count. FULL prePush 06:55:00Z if you clear it.
