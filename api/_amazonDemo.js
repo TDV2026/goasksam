@@ -220,7 +220,7 @@ const JS = String.raw`
   var anySold = function(h){ return (h || []).some(function(r){ return r.result === "sold"; }); };
   function histRows(h){
     return '<ul>' + h.map(function(r){
-      var ph = r.photo ? '<img class="ph" src="/api/partnerAnswer?photo=' + encodeURIComponent(r.photo) + '&w=160" alt="" loading="lazy">' : '<span class="ph">No photo</span>';
+      var ph = r.photo ? '<img class="ph" src="/api/partnerAnswer?photo=' + encodeURIComponent(r.photo) + '&w=320" alt="" loading="lazy">' : '<span class="ph">No photo</span>';
       var what = r.result === "sold" ? "Sold " + monthYear(r.date) : "Listed " + monthYear(r.date) + ", did not sell";
       var amt = r.result === "sold" ? (r.price ? usd(r.price) : "") : (r.highBid ? "High bid " + usd(r.highBid) : "");
       return '<li>' + ph + '<span>' + esc(what) + (r.miles ? '<br><span class="muted">' + esc(Number(r.miles).toLocaleString("en-US")) + " miles</span>" : "") + '</span><span class="pr">' + esc(amt) + "</span></li>";
