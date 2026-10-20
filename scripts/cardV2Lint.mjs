@@ -80,7 +80,7 @@ globalThis.sellState.sellDecision = { vehicle: { make: "Porsche", model: "911", 
 const spPick = { name: "Cars & Bids", platformSlug: "carsandbids", marketEvidence: { evidenceSales: 20, modelSales: 14, windowDays: 180 } };
 const spPrice = { name: "Bring a Trailer", platformSlug: "bringatrailer", marketEvidence: { evidenceSales: 20, windowDays: 180, pricePremium: { gateType: "symmetric", percent: 12 } } };
 const sw1 = v2SpeedWhy(spPick, null, false);
-check("speed WHY: sentences 1-2, real count, NO disclosure", /Since you'd like to sell quickly, I'd list your 911 on Cars & Bids\./.test(sw1) && /it.s sold 14 911s there over the past 180 days, so buyers are already there\./.test(sw1) && !/closed higher/.test(sw1), sw1);
+check("speed WHY: sentences 1-2, real count, NO disclosure", /Since you'd like to sell quickly, Sam would list your 911 on Cars & Bids\./.test(sw1) && /it.s sold 14 911s there over the past 180 days, so buyers are already there\./.test(sw1) && !/closed higher/.test(sw1), sw1);
 check("speed WHY: lint-clean", clean(sw1).ok, clean(sw1).detail);
 const sw2 = v2SpeedWhy(spPick, spPrice, true);
 check("speed WHY: sentence-3 discloses the price leader", /Bring a Trailer has closed higher for 911s over this period, if getting the top price matters more than speed\./.test(sw2), sw2);
@@ -229,7 +229,7 @@ check("intro (Chris/Porsche) leads with Porsche + Chris's", /^Porsche is one of 
 check("tile (Chris/Porsche) = Porsche", psvSpecTile(chris,{make:"Porsche",model:"911"})==="Porsche", psvSpecTile(chris,{make:"Porsche"}));
 check("intro (Chris/Porsche) roster-truth", rosterTruth(introP,chris.specialties.wheelhouse), introP);
 // Intro reason copy (locked): nationwide + locality variants.
-const TAIL=(obj="him")=>" I'd trust "+obj+" to run the whole sale, from choosing the platform to the final paperwork.";
+const TAIL=(obj="him")=>" Sam would trust "+obj+" to run the whole sale, from choosing the platform to the final paperwork.";
 const NAT=(f,obj="him",hook="")=>f+" works with sellers across the country."+(hook?" "+hook:"")+TAIL(obj);
 const LOC=(car,state,poss,obj="him",hook="")=>"Your "+car+" is in "+state+", right in "+poss+" patch."+(hook?" "+hook:"")+TAIL(obj);
 const prevState=sellState.state;
@@ -283,10 +283,10 @@ check("pronoun default = him", psvPron({})?.obj==="him", JSON.stringify(psvPron(
 check("pronoun override = her", psvPron({specialties:{pronoun:{obj:"her",poss:"her",subj:"she"}}}).obj==="her", "");
 const herP={specialties:{pronoun:{obj:"her",subj:"she",poss:"her"},wheelhouse:{marques:["Porsche"]}}};
 const introHer=psvIntro(herP,"Robin",psvClaim(herP,{make:"Porsche",model:"911"}),"Porsche 911");
-check("intro threads pronoun (marque match, I'd trust her)", /I'd trust her to/.test(introHer), introHer);
+check("intro threads pronoun (marque match, I'd trust her)", /Sam would trust her to/.test(introHer), introHer);
 // locality pronoun: "she handles"
 const herLocP={specialties:{pronoun:{obj:"her",subj:"she",poss:"her"},wheelhouse:{marques:[]}},regions:["Texas"]};
-{ const ps=sellState.state; sellState.state="Texas"; check("intro (locality) threads object pronoun (I'd trust her)", /I'd trust her to run the whole sale/.test(psvIntro(herLocP,"Robin",null,"Audi TT")), psvIntro(herLocP,"Robin",null,"Audi TT")); sellState.state=ps; }
+{ const ps=sellState.state; sellState.state="Texas"; check("intro (locality) threads object pronoun (I'd trust her)", /Sam would trust her to run the whole sale/.test(psvIntro(herLocP,"Robin",null,"Audi TT")), psvIntro(herLocP,"Robin",null,"Audi TT")); sellState.state=ps; }
 
 // ---- Item 3a: an unfilled {placeholder} must never render ----
 const phPartner={slug:"ph",name:"PH",display_name:"P H",specialties:{makes:["Porsche"],wheelhouse:{marques:["Porsche"]},
@@ -425,12 +425,12 @@ check("TEMPLATE (flag on): Spencer density, premium present -> the prep tile dro
   // PS-LED: the answer follows Spencer (the lead), never pivots to the DIY platform path.
   globalThis.sellState.sellerPreference = "powerseller";
   const psRun = v2ComposeRunListing() || "";
-  check("runlisting PS-led: follows Spencer (the lead), not a DIY pivot", /I'd have Spencer run it\./.test(psRun) && /Bring a Trailer/.test(psRun) && !/^I would list your/.test(psRun), psRun);
+  check("runlisting PS-led: follows Spencer (the lead), not a DIY pivot", /Sam would have Spencer run it\./.test(psRun) && /Bring a Trailer/.test(psRun) && !/^Sam would list your/.test(psRun), psRun);
   check("runlisting PS-led: service framing only, no fee/price figure", clean(psRun).ok && !/\d+%|\$/.test(psRun), psRun);
   // DIY / platform-led: the self-managed answer is unchanged (never claims Spencer runs it).
   globalThis.sellState.sellerPreference = "diy";
   const diyRun = v2ComposeRunListing() || "";
-  check("runlisting DIY: self-managed platform answer, not Spencer-runs-it", /I would list your 2005 BMW M3 on Bring a Trailer\./.test(diyRun) && !/have Spencer run it/.test(diyRun), diyRun);
+  check("runlisting DIY: self-managed platform answer, not Spencer-runs-it", /Sam would list your 2005 BMW M3 on Bring a Trailer\./.test(diyRun) && !/have Spencer run it/.test(diyRun), diyRun);
   globalThis.sellState.region = sv.region; globalThis.sellState.sellerPreference = sv.pref; globalThis.sellState.partnerReferral = sv.ref; globalThis.sellState.sellOptions = sv.opts; globalThis.sellState.resolvedVehicle = sv.rv; globalThis.sellState.sellDecision = sv.sd; globalThis.sellState.timeline = sv.tl;
 }
 
@@ -478,8 +478,8 @@ check("BEST DAY tile reads the reserve sell-through by weekend vs midweek ('Week
 check("RESERVE copy never says 'Reserved cars' (typo)", !/Reserved cars/i.test(cardDelta), "found 'Reserved cars'");
 
 // bridge lines between the two cards (order-aware, locked)
-const bridgePS="If you'd rather run the sale yourself, here's where I'd go.";
-const bridgePlat="Want it handled end to end instead? Here's who I'd trust with it.";
+const bridgePS="If you'd rather run the sale yourself, here's where Sam would go.";
+const bridgePlat="Want it handled end to end instead? Here's who Sam would trust with it.";
 check("bridge (PS leads) lint-clean", clean(bridgePS).ok, clean(bridgePS).detail);
 check("bridge (platform leads) lint-clean", clean(bridgePlat).ok, clean(bridgePlat).detail);
 

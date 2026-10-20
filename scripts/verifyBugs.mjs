@@ -137,21 +137,21 @@ check("M3 tradeoffs: Ingo-vs-DIY-on-BaT (names Ingo + Bring a Trailer)", /Ingo/.
 check("M3 tradeoffs: NEVER names Cars & Bids (the unrendered alt)", !/Cars ?&? ?Bids|carsandbids/i.test(tradeoffs), tradeoffs);
 check("M3 tradeoffs: effort + control + presentation framing", /hands on/.test(tradeoffs)&&/control/.test(tradeoffs)&&/present/.test(tradeoffs), tradeoffs.slice(0,200));
 check("M3 tradeoffs: NO fee talk, NO price claims (re-voice)", psClean(tradeoffs).ok, psClean(tradeoffs).detail);
-check("M3 tradeoffs: closes on the exact locked line", /Well presented listings, with great photography, videos, descriptions, and importantly great answers to all questions can have a significant impact on a listing\. A good PowerSeller often knows exactly what's worth fixing before you list, and what isn't, which can matter as much as the platform itself\. That's why I highly recommend the right PowerSeller for the right listing\.$/.test(tradeoffs), tradeoffs.slice(-160));
+check("M3 tradeoffs: closes on the exact locked line", /Well presented listings, with great photography, videos, descriptions, and importantly great answers to all questions can have a significant impact on a listing\. A good PowerSeller often knows exactly what's worth fixing before you list, and what isn't, which can matter as much as the platform itself\. That's why Sam highly recommends the right PowerSeller for the right listing\.$/.test(tradeoffs), tradeoffs.slice(-160));
 
 // "how I'd run the listing" FOLLOWS THE LEAD (Aug 2026 fix): PS-led here (Ingo leads),
 // so it describes how Ingo runs it, NOT a pivot to the DIY platform path. (Previously it
 // hardcoded the self-managed answer even when a PowerSeller was the recommendation.)
 check("intent: 'how would you run the listing' -> runlisting", v2FollowupIntent("how would you run the listing")==="runlisting");
 const runListing=v2ComposeRunListing()||"";
-check("M3 run-listing (PS-led): follows Ingo (the lead), BaT as where he lists, not a DIY pivot", /I'd have Ingo run it\./.test(runListing)&&/Bring a Trailer/.test(runListing)&&!/^I would list your/.test(runListing), runListing.slice(0,140));
+check("M3 run-listing (PS-led): follows Ingo (the lead), BaT as where he lists, not a DIY pivot", /Sam would have Ingo run it\./.test(runListing)&&/Bring a Trailer/.test(runListing)&&!/^Sam would list your/.test(runListing), runListing.slice(0,140));
 check("M3 run-listing (PS-led): lint-clean (no hedge/dash/dollar)", cleanC(runListing).ok, cleanC(runListing).detail);
 // DIY context: the SELF-MANAGED answer, with no weekday claim (the card states none).
 {
   const savedPref=globalThis.sellState.sellerPreference;
   Object.assign(globalThis.sellState,{sellerPreference:"diy"});
   const diyRunListing=v2ComposeRunListing()||"";
-  check("M3 run-listing (DIY): self-managed on BaT, no weekday claim, the rest of the answer as before", diyRunListing==="I would list your 2005 BMW M3 on Bring a Trailer. Lead with honest, well lit photos and a straight writeup of history and condition, and let the platform's audience do the rest."&&!/closed strongest|above other days|close strongest|%/.test(diyRunListing), diyRunListing.slice(0,180));
+  check("M3 run-listing (DIY): self-managed on BaT, no weekday claim, the rest of the answer as before", diyRunListing==="Sam would list your 2005 BMW M3 on Bring a Trailer. Lead with honest, well lit photos and a straight writeup of history and condition, and let the platform's audience do the rest."&&!/closed strongest|above other days|close strongest|%/.test(diyRunListing), diyRunListing.slice(0,180));
   check("M3 run-listing (DIY): lint-clean", cleanC(diyRunListing).ok, cleanC(diyRunListing).detail);
   Object.assign(globalThis.sellState,{sellerPreference:savedPref});
 }
@@ -209,7 +209,7 @@ const compPlat=v2Composition();
 const tradeoffsPlat=v2ComposeTradeoffs()||"";
 check("Mode B platform-led: secondary renders, tradeoffs compares the two platforms", compPlat.secondaryRendered===true&&/Bring a Trailer/.test(tradeoffsPlat)&&/Cars &(amp;)? Bids/.test(tradeoffsPlat), tradeoffsPlat.slice(0,160));
 check("Mode B platform-led: tradeoffs lint-clean", cleanC(tradeoffsPlat).ok, cleanC(tradeoffsPlat).detail);
-check("Mode B platform-led recommend: answer IS the platform", /Bring a Trailer is where I would sell it/.test(v2ComposeRecommend()||""), v2ComposeRecommend());
+check("Mode B platform-led recommend: answer IS the platform", /Bring a Trailer is where Sam would sell it/.test(v2ComposeRecommend()||""), v2ComposeRecommend());
 
 // ============ #2 COUNTRY REGISTRY (single source of truth) ============
 check("registry: chips = registry labels + 'Somewhere else' last", JSON.stringify(countryChips())===JSON.stringify(COUNTRY_REGISTRY.map(c=>c.chip).concat(["Somewhere else"]))&&countryChips().at(-1)==="Somewhere else", JSON.stringify(countryChips()));

@@ -53,7 +53,7 @@ for(const [name,x] of Object.entries(CARS)){
     ok(a[k]===b[k], `${name}: ${k} is the same with and without dayAdvantage`);
     ok(!WEEKDAY.test(String(a[k]).replace(/<[^>]+>/g," ")), `${name}: ${k} states no weekday (${(String(a[k]).replace(/<[^>]+>/g," ").match(new RegExp(".{0,60}("+WEEKDAY.source+").{0,30}","i"))||[""])[0]})`);
   }
-  ok(a.runListing.length>0 && /^I would list your .+ on Bring a Trailer\. Lead with honest, well lit photos and a straight writeup of history and condition, and let the platform's audience do the rest\.$/.test(a.runListing), `${name}: the run-the-listing answer is the platform line and the listing advice (${a.runListing.slice(0,160)})`);
+  ok(a.runListing.length>0 && /^Sam would list your .+ on Bring a Trailer\. Lead with honest, well lit photos and a straight writeup of history and condition, and let the platform's audience do the rest\.$/.test(a.runListing), `${name}: the run-the-listing answer is the platform line and the listing advice (${a.runListing.slice(0,160)})`);
 }
 // The OLD card composer (composeCard, result-copy.js): the one source of every non-primary option card's headline and
 // bullets, and of the primary card too when gas_cardv2 is "0" (result.js renderOptionCard). Same rule: with or without

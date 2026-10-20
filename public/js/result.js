@@ -145,14 +145,14 @@ async function showSellRecommendationRun(opts){
     }else{
       const missing=currentMissingVehicleDetail();
       if(missing){sellState.returnToConfirm=true;askMissingVehicleDetail(missing);}
-      else{addMsg("sam",decisionData.clarification?.question||"I need a little more on the car before I can check the market.");}
+      else{addMsg("sam",decisionData.clarification?.question||"Sam needs a little more on the car to check the market.");}
     }
     document.getElementById("btn").disabled=false;
     return;
   }
 
   if(decisionData?.status==="error"||decisionData?.error){
-    addMsg("sam",`I couldn't reach the live market check from this page: ${decisionData.error||"connection issue"}. Try the live GoAskSam site, or try again in a moment. I don't want to invent a recommendation without evidence.`);
+    addMsg("sam",`Sam couldn't reach the live market check from this page: ${decisionData.error||"connection issue"}. Try the live GoAskSam site, or try again in a moment. Sam doesn't want to invent a recommendation without evidence.`);
     document.getElementById("btn").disabled=false;
     return;
   }
@@ -160,7 +160,7 @@ async function showSellRecommendationRun(opts){
   // Data unavailable (starved fetch): the data pull failed (rate limit or budget),
   // so we never render market-thinness copy or a rarity pick. Honest hold.
   if(decisionData?.status==="data_unavailable"){
-    addMsg("sam","I couldn't pull the full picture for your car right now. This is on my end, not a shortage of sales. Give it a moment and try again.");
+    addMsg("sam","Sam couldn't pull the full picture for your car right now. This is on Sam's end, not a shortage of sales. Give it a moment and try again.");
     document.getElementById("btn").disabled=false;
     return;
   }
@@ -365,7 +365,7 @@ function renderDecision(decisionData,renderOpts){
   if(sellState.sellerPreference==="auction_house"){
     // Honest house answer when no house has sold this car (item 1): say so plainly, then route online.
     var _hcCar=(sellState.resolvedVehicle&&[sellState.resolvedVehicle.make,sellState.resolvedVehicle.model].filter(Boolean).join(" "))||"this car";
-    addMsg("sam",`No auction house has a recent sale of a ${_hcCar} on record, so I can't point you to one honestly. These trade online, so here's where I'd sell it instead.`);
+    addMsg("sam",`No auction house has a recent sale of a ${_hcCar} on record, so Sam can't point you to one honestly. These trade online, so here's where Sam would sell it instead.`);
   }
   // RANKING-LADDER-START (platform-agnostic: no platform name may appear in the
   // ranking region below; every crown is re-derived from data or read via
@@ -459,11 +459,11 @@ function renderDecision(decisionData,renderOpts){
       // here" badge + "Worth comparing" type + "Why it's worth comparing"
       // header). The badge is the single positioning label now; this subtitle is
       // dropped for the alt so it does not render "Worth comparing" a second time.
-      type:index===0?"Platform I’d use":"",
+      type:index===0?"Platform Sam would use":"",
       // The "If selling yourself" demotion is gone. The pick badge belongs to
       // the evidence platform unless the PowerSeller leads (powerseller pref),
       // where the platform reads as the neutral self-run option, not the pick.
-      badge:leadWithPartner?(index===0?"Platform I’d use":"Also strong here"):(twoRouteMode?(index===0?"Sam's lean":"Also strong here"):(index===0?"Sam's pick":"Also strong here")),
+      badge:leadWithPartner?(index===0?"Platform Sam would use":"Also strong here"):(twoRouteMode?(index===0?"Sam's lean":"Also strong here"):(index===0?"Sam's pick":"Also strong here")),
       badgeClass:index===0?"top":"alt",
       cardClass:index===0&&!leadWithPartner?"primary-rec":"",
       // The verdict plate follows the pick (locked): only when the PowerSeller
@@ -496,7 +496,7 @@ function renderDecision(decisionData,renderOpts){
 
   const powerSellerOption=leadWithPartner?{
       key:"specialist",
-      name:"People I’d call first",
+      name:"People Sam would call first",
       type:"PowerSeller conversation",
       badge:"Worth speaking to",
       badgeClass:"specialist",
@@ -659,7 +659,7 @@ function renderDecision(decisionData,renderOpts){
   // are deleted: no unbacked claim about fee worth. We say what a PowerSeller
   // does and who I'd call, nothing more.
   const handledIntro=featuredPowerSeller
-    ?`If you'd rather hand the whole thing to someone, ${escapeHtml(featuredPowerSellerName)} is who I'd call. He takes on the entire sale: prep, photos, listing, buyer questions, paperwork and platform choice.`
+    ?`If you'd rather hand the whole thing to someone, ${escapeHtml(featuredPowerSellerName)} is who Sam would call. He takes on the entire sale: prep, photos, listing, buyer questions, paperwork and platform choice.`
     :"";
   // The PowerSeller block, positioned by the seller's step-8 preference (no
   // post-result re-ask). "lead" carries the track-record plate and heads the
@@ -681,7 +681,7 @@ function renderDecision(decisionData,renderOpts){
   // competing for attention, keeping the layout to one clear axis.
   const secondaryPlatforms=featuredPowerSeller?[]:platformOptions.slice(1,2);
   const diySecondaryLine=(!featuredPowerSeller&&sellState.partnerReferral?.eligible&&sellerWantsToManageSelf())
-    ?`<div class="sell-section-note" style="margin-top:10px">You said you’d rather run it yourself, so that’s the plan. If you’d rather have someone handle the whole sale, I know who I’d call. Just ask.</div>`
+    ?`<div class="sell-section-note" style="margin-top:10px">You said you’d rather run it yourself, so that’s the plan. If you’d rather have someone handle the whole sale, Sam knows who to call. Just ask.</div>`
     :"";
   // Value-floor note (Sep 2026): a seller who leaned toward having it handled but whose
   // car sits below the PowerSeller value floor (segment + region matched, only value
@@ -732,8 +732,8 @@ function renderDecision(decisionData,renderOpts){
   // Recommendation closes are declarative (locked): a period, never a
   // question, never an escape hatch.
   const afterText=featuredPowerSeller
-    ?"Both are real options and the choice is yours. Pick one, or ask me to compare the tradeoffs."
-    :(secondaryPlatforms.length?"Pick either, or ask me to compare the tradeoffs.":"Ask me anything about the pick, or how I'd run the listing.");
+    ?"Both are real options and the choice is yours. Pick one, or ask Sam to compare the tradeoffs."
+    :(secondaryPlatforms.length?"Pick either, or ask Sam to compare the tradeoffs.":"Ask Sam anything about the pick, or how Sam would run the listing.");
   sellState.generatedPrimaryName=sellState.sellOptions[0]?.name||null;
   sellState.generatedSecondaryName=sellState.sellOptions[1]?.name||null;
 
@@ -810,7 +810,7 @@ function handleSellRecommendationFollowup(q){
     }
     if(detectIntent(lower)==="negation"||/^(no|keep|nevermind|never mind|cancel|leave it)\b/i.test(lower.trim())){
       sellState.pendingRerun=null;
-      addMsg("sam","Kept the current analysis. Ask me anything about it.");
+      addMsg("sam","Kept the current analysis. Ask Sam anything about it.");
       return true;
     }
     // anything else falls through (question -> chat)
@@ -854,7 +854,7 @@ function handleSellRecommendationFollowup(q){
   // (even a bare designation) routes to the re-run offer (Defect 2).
   if(/\bchange (the )?(car|vehicle)\b|^(different|wrong) car$|^different vehicle$/i.test(lower)){
     sellState.awaitingReplacementCar=true;
-    addMsg("sam","Sure. What's the car instead? Give me the year, make and model and I'll re-run with everything else you've told me.");
+    addMsg("sam","Sure. What's the car instead? Give Sam the year, make and model, and Sam will re-run with everything else you've already answered.");
     return true;
   }
   // Show the recommendation / a card again (explicit request only).
@@ -864,7 +864,7 @@ function handleSellRecommendationFollowup(q){
       row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${sellState.lastResultHTML}</div></div>`;
       msgs.appendChild(row);row.scrollIntoView({behavior:"smooth",block:"start"});
     }else{
-      addMsg("sam","The recommendation is just above. Ask me anything about it.");
+      addMsg("sam","The recommendation is just above. Ask Sam anything about it.");
     }
     return true;
   }
@@ -894,7 +894,7 @@ async function offerReRun(rawText){
     .replace(/^.*?\b(actually|it'?s|its|the model is|the car is|really a|change (it |the car )?to a?|run (a |the )?(new|different|another) car( as| based on| with)?|new model( is)?|re-?run (as|with|it as)?|analy[sz]e (a )?different( car)?( as)?)\b[:,]?\s*/i,"")
     .trim()||String(rawText||"").trim();
   if(!cleaned||!looksLikeVehicleText(cleaned)&&!/\b[a-z]*\d/i.test(cleaned)){
-    addMsg("sam","Sure, I can re-run for a different car. Give me the year, make and model and I'll keep your other answers.");
+    addMsg("sam","Sure, Sam can re-run for a different car. Give Sam the year, make and model and Sam will keep your other answers.");
     return;
   }
   if(typeof showVehicleLookup==="function")showVehicleLookup();
@@ -905,14 +905,14 @@ async function offerReRun(rawText){
     if(res.ok&&data.status==="needs_confirmation"&&data.clarification?.suggestion){
       const sug=data.clarification.suggestion;
       sellState.pendingRerun={rawText:sug};
-      addMsg("sam",`I don't have that exact model on record. Did you mean ${sug}? Want me to re-run the analysis as ${sug}?`,"",chipsHTML([`Yes, re-run as ${sug}`,"No, keep current"]));
+      addMsg("sam",`Sam doesn't have that exact model on record. Did you mean ${sug}? Want Sam to re-run the analysis as ${sug}?`,"",chipsHTML([`Yes, re-run as ${sug}`,"No, keep current"]));
       return;
     }
     if(res.ok&&data.status==="valid"&&data.vehicle?.canonicalLabel){
       const label=data.vehicle.canonicalLabel;
       sellState.pendingRerun={vehicle:data.vehicle};
-      const tag=data.vehicle.unverified?` I can't verify that model, so it would be a make-level read, but I'll run it.`:"";
-      addMsg("sam",`Want me to re-run the analysis as ${label}?${tag}`,"",chipsHTML([`Yes, re-run as ${label}`,"No, keep current"]));
+      const tag=data.vehicle.unverified?` Sam can't verify that model, so it would be a make-level read, but Sam will run it.`:"";
+      addMsg("sam",`Want Sam to re-run the analysis as ${label}?${tag}`,"",chipsHTML([`Yes, re-run as ${label}`,"No, keep current"]));
       return;
     }
     // Part of the car was understood (the resolver's own needs_clarification, lib/vehicle.js): ask for what is
@@ -936,14 +936,14 @@ async function offerReRun(rawText){
         sellState.lastRerunChips=models;
         addMsg("sam",whichModelAsk(pv,models),"",models.length?chipsHTML(models):"");
       }else{
-        addMsg("sam",`Which car from ${pv.year}? Tell me the make and model.`);
+        addMsg("sam",`Which car from ${pv.year}? Tell Sam the make and model.`);
       }
       return;
     }
-    addMsg("sam","I couldn't read that as a car. Year, make and model?");
+    addMsg("sam","Sam couldn't read that as a car. Year, make and model?");
   }catch(e){
     if(typeof hideVehicleLookup==="function")hideVehicleLookup();
-    addMsg("sam","I had trouble reading that model just now. Give me the year, make and model and I'll re-run.");
+    addMsg("sam","Sam had trouble reading that model just now. Give Sam the year, make and model and Sam will re-run.");
   }
 }
 // Commit the offered re-run: only the vehicle changes; every other wizard answer
@@ -1015,8 +1015,8 @@ function regionalNoEvidenceFallback(){
         primarySlug:"collectingcars",
         secondary:"Car & Classic",
         secondarySlug:"carandclassic",
-        title:`Here’s what I’d do with the ${car}.`,
-        subtitle:`Collecting Cars is where I’d sell this.`,
+        title:`Here’s what Sam would do with the ${car}.`,
+        subtitle:`Collecting Cars is where Sam would sell this.`,
         primaryReason:collectingCarsReason(),
         bullets:["24,000+ lots sold, $1.5B+ generated for sellers."],
         secondaryReason:carAndClassicReason(),
@@ -1028,8 +1028,8 @@ function regionalNoEvidenceFallback(){
       primary:"Car & Classic",
       primarySlug:"carandclassic",
       secondary:null,
-      title:`Here’s what I’d do with the ${car}.`,
-      subtitle:`Car & Classic is where I’d sell this.`,
+      title:`Here’s what Sam would do with the ${car}.`,
+      subtitle:`Car & Classic is where Sam would sell this.`,
       primaryReason:carAndClassicReason(),
       secondaryReason:"",
       bullets:[]
@@ -1041,8 +1041,8 @@ function regionalNoEvidenceFallback(){
       primary:"Collecting Cars",
       primarySlug:"collectingcars",
       secondary:null,
-      title:`Here’s what I’d do with the ${car}.`,
-      subtitle:`I’d list it on Collecting Cars for a seller in your region.`,
+      title:`Here’s what Sam would do with the ${car}.`,
+      subtitle:`Sam would list it on Collecting Cars for a seller in your region.`,
       primaryReason:"Global platform with 350,000+ members in 100+ countries. Specialists in sourcing top-quality collectibles. 24,000+ lots sold, $1.5B+ generated for sellers.",
       secondaryReason:"",
       bullets:CC_MAKE_PROOF[String(sellState.resolvedVehicle?.make||"").toLowerCase()]
@@ -1081,22 +1081,22 @@ function genericNoEvidenceFallback(){
   const modelUnknown=!!makeName&&(!rv.model||rv.unverified);
   const carNamed=modelUnknown?`${[rv.year,makeName].filter(Boolean).join(" ")}, model not confirmed`:car;
   const reason=modelUnknown
-    ?`I couldn't pin down which ${makeName} this is, so I can't pull comparable sales. ${primaryName} is where I'd start for a car like this, but that's a fit, not a read from sales data.`
+    ?`Sam couldn't pin down which ${makeName} this is, so Sam can't pull comparable sales. ${primaryName} is where Sam would start for a car like this, but that's a fit, not a read from sales data.`
     :preWar
-    ?`I don't have enough tracked auction sales on ${car} to back a specific data-led call. ${primaryName} is where I'd start: it's the specialist home for prewar and classic collector cars, and cars like this most often trade through marque specialists and collector auctions. That's a fit for the car, not a read from sales data.`
+    ?`Sam doesn't have enough tracked auction sales on ${car} to back a specific data-led call. ${primaryName} is where Sam would start: it's the specialist home for prewar and classic collector cars, and cars like this most often trade through marque specialists and collector auctions. That's a fit for the car, not a read from sales data.`
     :classic
-    ?`I don't have enough tracked auction sales on ${car} to back a specific data-led call. ${primaryName} is the specialist home for classic and collector cars like this, so that's where I'd start. That's a fit for the car, not a read from sales data.`
-    :`I don't have enough tracked auction sales on ${car} to back a specific data-led call. ${primaryName} is where I'd start for a car like this. That's a fit for the car, not a read from sales data.`;
+    ?`Sam doesn't have enough tracked auction sales on ${car} to back a specific data-led call. ${primaryName} is the specialist home for classic and collector cars like this, so that's where Sam would start. That's a fit for the car, not a read from sales data.`
+    :`Sam doesn't have enough tracked auction sales on ${car} to back a specific data-led call. ${primaryName} is where Sam would start for a car like this. That's a fit for the car, not a read from sales data.`;
   return {
     region:"generic",
     primary:primaryName,
     primarySlug,
     secondary:null,
-    title:modelUnknown?`Here's the honest read on ${carNamed}.`:`Here's what I'd do with ${car}.`,
-    subtitle:`${primaryName} is where I'd start.`,
+    title:modelUnknown?`Here's the honest read on ${carNamed}.`:`Here's what Sam would do with ${car}.`,
+    subtitle:`${primaryName} is where Sam would start.`,
     primaryReason:reason,
     bullets:[],
-    caveat:"When comparable sales show up in my data, I can back this with real evidence.",
+    caveat:"When comparable sales show up in Sam's data, Sam can back this with real evidence.",
     secondaryReason:"",
     secondaryBullets:[]
   };
@@ -1110,7 +1110,7 @@ function showHonestNoRouting(msgs){
   const country=sellState.country||sellState.region||"your country";
   sellState.sellOptions=[];
   sellState.step=12;
-  addMsg("sam",`Here's the honest read for the ${car}. I route sellers to the auction platforms where I hold real sales data, and I don't yet have that coverage for ${country}, so I won't point you at a US platform as if it were the answer. That coverage is expanding. If the car could realistically sell into the US or UK markets, tell me and I'll run it there.`);
+  addMsg("sam",`Here's the honest read for the ${car}. Sam routes sellers to the auction platforms with real sales data behind them, and that coverage isn't there yet for ${country}, so Sam won't point you at a US platform as if it were the answer. That coverage is expanding. If the car could realistically sell into the US or UK markets, tell Sam and Sam will run it there.`);
 }
 
 // THIN MODE + HOUSE STEER on /sell (Sep 2026). Mirrors One Box: the online market is too thin for
@@ -1147,7 +1147,7 @@ function _thinPickCardHtml(o){
   // the other door = "Sam's Pick"; intro "I'd sell your {make} on/through {name}" (house keeps the
   // consign verb "through", online "on"). Was drifted to the thin card's own strings.
   const badge=o.isLead?"+ Sam's Recommendation":"+ Sam's Pick";
-  const script=isHouse?`I'd sell your ${esc(o.make)} through`:`I'd sell your ${esc(o.make)} on`;
+  const script=isHouse?`Sam would sell your ${esc(o.make)} through`:`Sam would sell your ${esc(o.make)} on`;
   // No small-sample counts as headlines (CLAUDE.md decision coherence, locked): drop "has sold N"
   // and the per-house "(N)". Receipts below carry the evidence (receipts over claims); the price
   // range stays. This also removes the claimed-N-vs-shown-3 mismatch (no N is claimed).
@@ -1252,7 +1252,7 @@ function renderThinDecisionSell(msgs,thin,decisionData){
     const pn=esc(thin.consignPartner.name);
     partnerCard=`<div class="pcard pcard-platform"><div class="pcard-left"><span class="pcard-badge">+ Have it handled end to end</span><div class="pcard-script">For your ${esc(make)}, if you'd rather someone handled everything</div><h1 class="pcard-name">${pn}</h1><div class="pcard-whyl pcard-whyl-main">Why</div><p class="pcard-lead">${pn} places cars like this into the auction houses and handles the consignment on your behalf.</p></div></div><div class="pv2-bridge">Or take it to a house yourself:</div>`;
   }
-  const bridgeOnline=`<div class="pv2-bridge">If you'd rather run the sale yourself, here's where I'd go.</div>`;
+  const bridgeOnline=`<div class="pv2-bridge">If you'd rather run the sale yourself, here's where Sam would go.</div>`;
   const bridgeHouse=`<div class="pv2-bridge">If you'd rather have it handled at a house, here's where its results are strongest.</div>`;
   // Locked ASAP line (Sam-approved, Sep 2026): cite the house result plainly with its number,
   // then pin the pick elsewhere on the rush ALONE, never on house weakness. Venue names and the
@@ -1261,7 +1261,7 @@ function renderThinDecisionSell(msgs,thin,decisionData){
   const houseName=hp?((typeof platformDisplayName==="function"&&platformDisplayName(hp.pick.slug))||hp.pick.venue):"";
   const onlineName=op?((typeof platformDisplayName==="function"&&platformDisplayName(op.pick.slug))||op.pick.venue):"";
   const houseRange=hp?(hp.pick.count===1?`${moneyShort(hp.pick.hi)}`:`from ${moneyShort(hp.pick.lo)} to ${moneyShort(hp.pick.hi)}`):"";
-  const rushBridge=`<div class="pv2-bridge">The strongest results for this car are at ${esc(houseName)}, ${esc(houseRange)}, so that's the number to keep in mind. It isn't the pick here only because a house consignment takes months to schedule and settle, and you told me you want to move fast. For that timeline, ${esc(onlineName)} is where I'd list it now, and it still reaches serious buyers.</div>`;
+  const rushBridge=`<div class="pv2-bridge">The strongest results for this car are at ${esc(houseName)}, ${esc(houseRange)}, so that's the number to keep in mind. It isn't the pick here only because a house consignment takes months to schedule and settle, and you told Sam you want to move fast. For that timeline, ${esc(onlineName)} is where Sam would list it now, and it still reaches serious buyers.</div>`;
   let body;
   if(houseLeads){
     body=houseCard+(onlineCard?bridgeOnline+onlineCard:"");
@@ -1514,7 +1514,7 @@ function renderHouseComparisonSell(msgs,hc,decisionData,opts){
         ? `No ${esc(headLbl)} has sold on the online platforms we track. ${esc(pickName)} is where ${esc(modelLabel)}s have gone instead${recency}.${hammerClause}${othersClause}`
         : `No ${esc(headLbl)} has sold on the online platforms we track. ${auctionSentence}`;
   } else if(asap){
-    lead=`You told me you want to move quickly, so I'm leading with the soonest sale, not the strongest record. Every house below has taken ${esc(modelLabel)}s; here's the record, and when each one next runs.`;
+    lead=`You told Sam you want to move quickly, so Sam is leading with the soonest sale, not the strongest record. Every house below has taken ${esc(modelLabel)}s; here's the record, and when each one next runs.`;
   } else if(oneSale){
     lead=`The only recent ${esc(headLbl)} to sell went to ${esc(pickName)}${recency1}.`;
   } else if(hasPick){
@@ -1542,7 +1542,7 @@ function renderHouseComparisonSell(msgs,hc,decisionData,opts){
     ${timing}
     ${blocks}
     ${askLine}
-    ${opts.onlineCardHtml?`<div class="pv2-bridge" style="margin-top:18px">If you'd rather run the sale yourself instead of consigning, here's where I'd go.</div>${opts.onlineCardHtml}`:""}
+    ${opts.onlineCardHtml?`<div class="pv2-bridge" style="margin-top:18px">If you'd rather run the sale yourself instead of consigning, here's where Sam would go.</div>${opts.onlineCardHtml}`:""}
     <p style="font-size:12px;color:#928b7a;margin-top:16px;line-height:1.5">${hasPick?`Ranked by the record: how often ${esc(modelLabel)}s have gone to each house, how recently, and the hammer results shown.`:`The record for each house: when ${esc(modelLabel)}s have sold and the hammer results shown, in date order.`} Consignment windows are approximate, confirm with the house. Real completed sales, hammer prices with the buyer premium backed out. No estimates, no valuations.</p>
     <div class="sam-text after-results">Ask me anything about the recommendation, or tell me more about the car.</div>
   </div></div>`;
@@ -1601,7 +1601,7 @@ function renderClassEraSell(msgs,ce,decisionData){
   }
   // Item 4: state the fact only, never call the exact car "rare". Item 5: the "none sold" fact is
   // already in `line` above, so it is NOT repeated here.
-  const read=`Treat these as the neighborhood it sits in, not a figure for it. The moment one like yours sells, I can read it directly.`;
+  const read=`Treat these as the neighborhood it sits in, not a figure for it. The moment one like yours sells, Sam can read it directly.`;
   // Item 3 (self-sell = online only): a self-seller lists it themselves, so the SHOWN cards are ONLINE
   // sales only, matching the "houses left out" line below. Auction-house receipts never appear here.
   const onlineRecs=recs.filter(r=>!r.isHouse);
@@ -1628,7 +1628,7 @@ function renderClassEraSell(msgs,ce,decisionData){
     venueBlock=`<div class="pcard-whyl pcard-whyl-main" style="margin-top:16px">Where to list it yourself</div>`
       +`<p class="pcard-lead">Since you're selling it yourself, here are the online platforms that have actually sold ${esc(ce.era)} ${esc(ce.make)} ${esc(bodyClassPlural(v))}, most active first.</p>`
       +`<ul style="list-style:none;margin:8px 0 0;padding:0">${rows}</ul>`
-      +(houseN>0?`<p class="pcard-lead" style="opacity:.7;font-size:12.5px;margin-top:8px">Auction houses have taken ${houseN} of these too; I've left them out here since you told me you'll run the sale yourself.</p>`:"");
+      +(houseN>0?`<p class="pcard-lead" style="opacity:.7;font-size:12.5px;margin-top:8px">Auction houses have taken ${houseN} of these too; Sam has left them out here since you told Sam you'll run the sale yourself.</p>`:"");
   }
   // Asking-price fact (item 5), from the sales SHOWN.
   const askLine=(typeof _askingVsSalesLine==="function")?_askingVsSalesLine(shown.map(r=>r.hammer)):"";
@@ -1680,11 +1680,11 @@ function noEvidenceMessage(fallback){
   const car=sellState.carName||"this car";
   const recommended=sellState.sellDecision?.decision?.recommendedPath;
   if(!fallback){
-    const start=recommended?`${platformDisplayName(recommended)} is the call here. That's fit for the car and your region, not sales data.`:`Bring a Trailer is the call for a US collector car with no recent comparable sales in my data. That's fit, not sales data.`;
-    return `I checked recent sales for your ${car} and the market is genuinely quiet right now, so I won't quote numbers. ${start} When comparable sales show up, I can back this with real evidence.`;
+    const start=recommended?`${platformDisplayName(recommended)} is the call here. That's fit for the car and your region, not sales data.`:`Bring a Trailer is the call for a US collector car with no recent comparable sales in Sam's data. That's fit, not sales data.`;
+    return `Sam checked recent sales for your ${car} and the market is genuinely quiet right now, so Sam won't quote numbers. ${start} When comparable sales show up, Sam can back this with real evidence.`;
   }
-  const extra=fallback.secondary?` If this is a particularly valuable example, I’d also compare ${fallback.secondary}.`:"";
-  return `I checked recent sales for your ${car}, but there isn't enough model-specific activity to make a proper data-led platform call. ${fallback.primaryReason}${extra}`;
+  const extra=fallback.secondary?` If this is a particularly valuable example, Sam would also compare ${fallback.secondary}.`:"";
+  return `Sam checked recent sales for your ${car}, but there isn't enough model-specific activity to make a proper data-led platform call. ${fallback.primaryReason}${extra}`;
 }
 
 // Zero-evidence card in the CURRENT V2 design (Aug 2026). Shares the pcard chrome
@@ -1721,7 +1721,7 @@ function renderNoEvidenceFallback(fallback){
       <div class="pcard-left">
         <div class="pcard-script">Here's the honest read for your</div>
         <h1 class="pcard-name">${esc(carLbl||v.make||car||"car")}</h1>
-        <p class="pcard-lead">I don't have comparable recent sales for this exact car in my data, so I can't point you to a venue on evidence yet, and I won't guess one.</p>
+        <p class="pcard-lead">I don't have comparable recent sales for this exact car in Sam's data, so Sam can't point you to a venue on evidence yet, and I won't guess one.</p>
         ${dirNote?`<p class="pcard-lead">${dirNote}</p>`:""}
         <p class="pcard-lead" style="opacity:.7;font-size:12.5px;margin-top:10px">The moment one like it sells, I can read it directly and back a recommendation with real sales.</p>
       </div>
@@ -1754,7 +1754,7 @@ function renderNoEvidenceFallbackLegacy(fallback){
     <div class="sam-label">Sam</div>
     <div class="sell-rec-header">
       <div class="sell-rec-kicker">What I’d do</div>
-      <div class="sell-rec-title">${escapeHtml(fallback.title||`Here’s what I’d do with ${sellState.carName||"this car"}.`)}</div>
+      <div class="sell-rec-title">${escapeHtml(fallback.title||`Here’s what Sam would do with ${sellState.carName||"this car"}.`)}</div>
       <div class="sell-rec-subtitle">${escapeHtml(fallback.subtitle||fallback.primaryReason)}</div>
     </div>
     <div class="sell-rec-grid">
@@ -1786,7 +1786,7 @@ function fallbackSellOption(fallback){
     // Slug marks this as a PLATFORM destination so a confirm (card, button, or typed
     // chat) routes straight to the platform via outboundGo, never the lead form.
     platformSlug:fallback.primarySlug||null,
-    type:"Platform I’d use",
+    type:"Platform Sam would use",
     badge:"Sam's pick",
     badgeClass:"top",
     cardClass:"primary-rec",
@@ -1850,12 +1850,12 @@ function regionalPlatformFollowup(platform,fallback){
   const isPrimary=normalizedPlatformText(platform)===normalizedPlatformText(primary);
   if(isPrimary){
     if(primary==="Collecting Cars"){
-      return `Collecting Cars is where I’d sell this. For a ${car} in ${region}, it puts the car in front of an international buyer base first.`;
+      return `Collecting Cars is where Sam would sell this. For a ${car} in ${region}, it puts the car in front of an international buyer base first.`;
     }
     if(primary==="Car & Classic"){
-      return `Car & Classic is where I’d start for a ${car} in the UK or Europe. It is the practical regional fit: buyers are already shopping there, and it keeps the sale in the market where the car actually sits.`;
+      return `Car & Classic is where Sam would start for a ${car} in the UK or Europe. It is the practical regional fit: buyers are already shopping there, and it keeps the sale in the market where the car actually sits.`;
     }
-    return `${primary} is where I’d start for this car. The reason is simple: it fits the car, the seller’s region and the way this sale needs to happen.`;
+    return `${primary} is where Sam would start for this car. The reason is simple: it fits the car, the seller’s region and the way this sale needs to happen.`;
   }
   const name=String(platform||"that platform");
   if(mentionsBringATrailer(name)){
@@ -1864,21 +1864,21 @@ function regionalPlatformFollowup(platform,fallback){
   }
   if(mentionsCarsAndBids(name)){
     const primaryAudience=primary==="Collecting Cars" ? "Collecting Cars’ international audience" : `${primary}’s buyer pool`;
-    return `Cars & Bids can be great for newer enthusiast cars, especially in North America. I just don’t think it’s the right first call for this one. From ${region}, I’d rather put the car in front of ${primaryAudience} and only look at Cars & Bids if there was a very specific reason.`;
+    return `Cars & Bids can be great for newer enthusiast cars, especially in North America. Sam just doesn’t think it’s the right first call for this one. From ${region}, Sam would rather put the car in front of ${primaryAudience} and only look at Cars & Bids if there was a very specific reason.`;
   }
   if(mentionsPCarMarket(name)){
-    return `PCarMarket is worth knowing about, especially on Porsche-heavy searches, but I wouldn’t start there for this car and region. I’d use ${primary} first because the buyer pool makes more sense for where the car is being sold from.`;
+    return `PCarMarket is worth knowing about, especially on Porsche-heavy searches, but Sam wouldn’t start there for this car and region. Sam would use ${primary} first because the buyer pool makes more sense for where the car is being sold from.`;
   }
   if(mentionsHemmings(name)){
-    return `Hemmings is useful for the right car, especially older American or traditional collector cars. This isn’t where I’d start for a ${car} in ${region}. I’d rather use ${primary}.`;
+    return `Hemmings is useful for the right car, especially older American or traditional collector cars. This isn’t where Sam would start for a ${car} in ${region}. Sam would rather use ${primary}.`;
   }
   if(mentionsCarAndClassic(name)){
-    return `Car & Classic is exactly the kind of platform I’d consider for a UK or European seller. If the car is in the Middle East or Australia and it is high-value, I’d usually start with Collecting Cars first because the buyer pool is broader.`;
+    return `Car & Classic is exactly the kind of platform Sam would consider for a UK or European seller. If the car is in the Middle East or Australia and it is high-value, Sam would usually start with Collecting Cars first because the buyer pool is broader.`;
   }
   if(mentionsCollectingCars(name)){
-    return `Collecting Cars is strongest in my mind when the car is high-value, European or international. If I recommend something else first, it is usually because the car is more naturally suited to a local UK/Europe marketplace or the seller needs a simpler route.`;
+    return `Collecting Cars is strongest in Sam's mind when the car is high-value, European or international. If Sam recommends something else first, it is usually because the car is more naturally suited to a local UK/Europe marketplace or the seller needs a simpler route.`;
   }
-  return `I’d compare ${name} only if it gives this car a clearer buyer fit than ${primary}. My starting point is ${primary} because it fits the region and the kind of buyer I’d want looking at this car.`;
+  return `Sam would compare ${name} only if it gives this car a clearer buyer fit than ${primary}. Sam's starting point is ${primary} because it fits the region and the kind of buyer Sam would want looking at this car.`;
 }
 
 function sellingRegionPhrase(){
@@ -2101,7 +2101,7 @@ async function submitLead(seller){
     setTimeout(()=>showSubmission(data),600);
   }catch(e){
     sellState.leadSubmitting=false;
-    setTimeout(()=>addMsg("sam",`I couldn't submit this yet: ${e.message}. Your recommendation is still here, but I don't want to pretend the lead went through.`),500);
+    setTimeout(()=>addMsg("sam",`Sam couldn't submit this yet: ${e.message}. Your recommendation is still here, but Sam doesn't want to pretend the lead went through.`),500);
   }
 }
 

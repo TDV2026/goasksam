@@ -135,7 +135,7 @@ function v2Mode(ev){
 }
 
 // ---------- canonical clauses (locked) ----------
-function CLAUSE_A(s){ return v2Fill("{scope} have closed {delta}% higher on {platform} than the other platforms I track over the past {window}",s); }
+function CLAUSE_A(s){ return v2Fill("{scope} have closed {delta}% higher on {platform} than the other platforms Sam tracks over the past {window}",s); }
 // Matched pick reason (item 1, Sep 2026): the plain cross-venue median (CLAUSE_A) is inflated by
 // mileage mix (the pick venue's cars carry fewer miles). This states the MATCHED comparison (same
 // model year + same mileage band, ev.matchedPremium from the backend), with the window and the
@@ -174,12 +174,12 @@ function v2MatchedWhy(ev,v,name){
     return name+" has sold "+n+" "+scope+(usingEvidence?"":(" in the past "+months+" months"))+rec+".";
   }
   var pct=Number(mp.percent), N=Number(mp.sales)||0;
-  var lead=(pct>=3)?(scope+" have closed about "+pct+"% higher on "+name+" than the other platforms I track")
-          :(pct<=-3)?(scope+" have closed about "+Math.abs(pct)+"% lower on "+name+" than the other platforms I track")
-          :(scope+" closed level with the other platforms I track on "+name);
+  var lead=(pct>=3)?(scope+" have closed about "+pct+"% higher on "+name+" than the other platforms Sam tracks")
+          :(pct<=-3)?(scope+" have closed about "+Math.abs(pct)+"% lower on "+name+" than the other platforms Sam tracks")
+          :(scope+" closed level with the other platforms Sam tracks on "+name);
   return lead+", matched on "+matchOn+", over the past "+months+" months, from "+N+" sales.";
 }
-function CLAUSE_B(s){ return v2Fill("prices for {scope} have run close across the platforms I track over the past {window}",s); }
+function CLAUSE_B(s){ return v2Fill("prices for {scope} have run close across the platforms Sam tracks over the past {window}",s); }
 function CLAUSE_C(s){ return v2Fill("recent {scopeAttr} sales have concentrated on {platform}, with too few on other platforms to compare prices over the past {window}",s); }
 
 // Rarity wording is allowed only for cars that are genuinely old or genuinely
@@ -213,8 +213,8 @@ function v2Because(mode,s){
     modeA:["Because {platform} is where {scope} have consistently delivered the strongest results for cars like yours over the past {window}."],
     modeB:["Because {scopeAttr} prices run close across platforms, and this is where they've been trading.","Because prices are close everywhere, so recent sales decide, and {platform} has the most.","Because {platform} has the most recent {scopeAttr} sales when prices are this close."],
     concentration:["Because recent {scopeAttr} activity has concentrated on {platform}.","Because {platform} is where the {scopeAttr} market actually trades right now.","Because the {scopeAttr} market has gathered on {platform}, where buyers are looking."],
-    thin:["Because recent {scopeAttr} sales are limited, so {platform} is where the few that trade tend to surface.","Because with little recent {scopeAttr} data, {platform} is where I'd start.","Because {platform} holds the recent {scopeAttr} sales I can see."],
-    thinNeutral:["Because recent {scopeAttr} sales are limited, so {platform} is where the few that trade tend to surface.","Because with little recent {scopeAttr} data, {platform} is where I'd start.","Because {platform} holds the recent {scopeAttr} sales I can see."]
+    thin:["Because recent {scopeAttr} sales are limited, so {platform} is where the few that trade tend to surface.","Because with little recent {scopeAttr} data, {platform} is where Sam would start.","Because {platform} holds the recent {scopeAttr} sales Sam can see."],
+    thinNeutral:["Because recent {scopeAttr} sales are limited, so {platform} is where the few that trade tend to surface.","Because with little recent {scopeAttr} data, {platform} is where Sam would start.","Because {platform} holds the recent {scopeAttr} sales Sam can see."]
   };
   var key=(mode||"thin"); if(key==="thin")key="thinNeutral";   // thin-data widening is NEVER described as the car being "rare"; always neutral data-thinness copy (Aug 2026)
   return v2Fill(v2Pick(pools[key],"because"),s);
@@ -271,7 +271,7 @@ function v2SpeedWhy(pick, priceAlt, includeDisclose){
   var modelCounted=(n===1)?model:modelPl;
   var winDays=(typeof v2Window==="function")?Number(v2Window(ev)):90;
   var win=(typeof v2WindowLabel==="function")?v2WindowLabel(winDays):"period";
-  var s1="Since you'd like to sell quickly, I'd list your "+model+" on "+plat+".";
+  var s1="Since you'd like to sell quickly, Sam would list your "+model+" on "+plat+".";
   // Volume-proportionate count clause (Aug 2026, two tiers). The "buyers are already
   // there" conclusion renders ONLY when the model actually sells at a volume that
   // supports it: at least 6 in the landed window AND an average of 2+/month. Below
@@ -496,7 +496,7 @@ function renderPickCardV2(option,over){
     return '<div class="pcard pcard-platform" onclick="chooseSellOption(\''+esc(option.key)+'\')">'
       + '<div class="pcard-left">'
         + '<span class="pcard-badge">'+esc(over.badge||"+ Sam's Pick")+'</span>'
-        + '<div class="pcard-script">'+esc(over.script||("I'd sell your "+(v.make||"car")+" on"))+'</div>'
+        + '<div class="pcard-script">'+esc(over.script||("Sam would sell your "+(v.make||"car")+" on"))+'</div>'
         + '<h1 class="pcard-name">'+esc(name)+'</h1>'
         + '<div class="pcard-whyl pcard-whyl-main">'+esc(over.whyLabel||"Why Sam Picked This")+'<button type="button" class="methodology-info" aria-label="How Sam decides" title="How Sam decides" onclick="event.stopPropagation();openMethodologyModal()"><svg viewBox="0 0 20 20" width="13" height="13" aria-hidden="true"><circle cx="10" cy="10" r="8.4" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="6.4" r="1.05" fill="currentColor"/><rect x="9.05" y="8.7" width="1.9" height="6" rx="0.95" fill="currentColor"/></svg></button></div>'
         + '<p class="pcard-lead">'+esc(leadMain)+'</p>'
@@ -630,10 +630,10 @@ function psvIntro(p,first,claim,carShort){
   var pron=psvPron(p);
   if(claim){
     var verb=claim.level==="marque"?"is":"are";
-    return claim.label+" "+verb+" one of "+psvPoss(first)+" strongest areas. For this "+carShort+", I'd trust "+pron.obj+" to choose the right platform, present it professionally and manage the sale from start to finish.";
+    return claim.label+" "+verb+" one of "+psvPoss(first)+" strongest areas. For this "+carShort+", Sam would trust "+pron.obj+" to choose the right platform, present it professionally and manage the sale from start to finish.";
   }
   var hook=psvIntroHook(p); var hookPart=hook?(" "+hook):"";
-  var tail=" I'd trust "+pron.obj+" to run the whole sale, from choosing the platform to the final paperwork.";
+  var tail=" Sam would trust "+pron.obj+" to run the whole sale, from choosing the platform to the final paperwork.";
   var locState=psvLocalityState(p);
   if(locState){
     return "Your "+carShort+" is in "+locState+", right in "+psvPoss(first)+" patch."+hookPart+tail;
@@ -781,7 +781,7 @@ function psvPara(matchType,make,first,spec,hasRecord){
     region:first+" covers your area and takes on the whole sale himself.",
     generalist:first+" has represented a deep bench of enthusiast cars over his career."
   }[matchType]||"";
-  return opener+" For this "+make+", I'd trust him to choose the right platform, present it professionally and manage the sale from start to finish.";
+  return opener+" For this "+make+", Sam would trust him to choose the right platform, present it professionally and manage the sale from start to finish.";
 }
 function psvWhyBullets(matchType,make,first){
   var lead={
@@ -798,7 +798,7 @@ function psvWhyBullets(matchType,make,first){
 // Value-preference line (Stage 4, PENDING APPROVAL). Renders when the card LEADS
 // because the seller is unsure and the car's value clears the dial. Declarative,
 // no money figure, service framing only (never "gets you more").
-function psvValueLine(first){ return "For a car of this value, "+first+" is who I'd hand it to."; }
+function psvValueLine(first){ return "For a car of this value, "+first+" is who Sam would hand it to."; }
 
 var PSV2_ICON={
   person:'<circle cx="12" cy="8" r="3.6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5 20c0-3.6 3-6 7-6s7 2.4 7 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
@@ -889,8 +889,8 @@ function renderPowerSellerCardV2(opts){
     return '<div class="pcard pcard-ps pcard-ps-failed">'
       + '<div class="pcard-left"><div class="pcard-hero">'
         + '<span class="pcard-badge">+ Sam\'s Recommendation</span>'
-        + '<h1 class="pcard-name pcard-name-ps">I couldn\'t put together a partner recommendation for this car right now.</h1>'
-        + '<p class="pcard-lead">Something went wrong assembling it'+(_who?(' for '+_who):'')+'. The platform call below stands on its own; if you\'d like a specialist to handle the sale, ask me and I\'ll try again.</p>'
+        + '<h1 class="pcard-name pcard-name-ps">Sam couldn\'t put together a partner recommendation for this car right now.</h1>'
+        + '<p class="pcard-lead">Something went wrong assembling it'+(_who?(' for '+_who):'')+'. The platform call below stands on its own; if you\'d like a specialist to handle the sale, ask Sam to try again.</p>'
       + '</div></div></div>';
   }
 }
@@ -1056,10 +1056,10 @@ function v2ComposeRecommend(){
     var f=v2PickFacts(c.pick); if(!f)return null;
     if(c.psRendered&&c.referral.partner){
       var first=(typeof psvFirst==="function")?psvFirst(c.referral.partner):(c.referral.partner.displayName||c.referral.partner.name||"a PowerSeller");
-      if(c.psLead)return "I would hand it to "+first+", and "+f.platform+" is where he would most likely run it. If you would rather keep it in your own hands, "+f.platform+" is the platform I would use.";
-      return f.platform+" is where I would sell it, and "+first+" is right there if you would rather have it handled for you.";
+      if(c.psLead)return "Sam would hand it to "+first+", and "+f.platform+" is where he would most likely run it. If you would rather keep it in your own hands, "+f.platform+" is the platform Sam would use.";
+      return f.platform+" is where Sam would sell it, and "+first+" is right there if you would rather have it handled for you.";
     }
-    return f.platform+" is where I would sell it.";
+    return f.platform+" is where Sam would sell it.";
   }catch(e){ return null; }
 }
 function v2ComposeTradeoffs(){
@@ -1074,15 +1074,15 @@ function v2ComposeTradeoffs(){
       return "Two real paths, and it comes down to how hands on you want to be. "
         +first+" runs the whole sale for you: photography, the writeup, buyer questions and the auction itself, so your effort is minimal. "
         +"Running it yourself on "+f.platform+" keeps you in full control of the timing and how the car is presented, but the work is yours. "
-        +"Well presented listings, with great photography, videos, descriptions, and importantly great answers to all questions can have a significant impact on a listing. A good PowerSeller often knows exactly what's worth fixing before you list, and what isn't, which can matter as much as the platform itself. That's why I highly recommend the right PowerSeller for the right listing.";
+        +"Well presented listings, with great photography, videos, descriptions, and importantly great answers to all questions can have a significant impact on a listing. A good PowerSeller often knows exactly what's worth fixing before you list, and what isn't, which can matter as much as the platform itself. That's why Sam highly recommends the right PowerSeller for the right listing.";
     }
     if(c.secondaryRendered&&f.mode==="modeB"){
       // Prices close: a genuine platform vs platform call.
       var altName=platformDisplayName(c.alt.name||c.alt.platformSlug||"");
-      return "With prices running close across the platforms I track, this comes down to reach and recent activity. "
-        +f.platform+" holds the most recent "+f.scopeAttr+" sales I track, so it is the surer read. "
+      return "With prices running close across the platforms Sam tracks, this comes down to reach and recent activity. "
+        +f.platform+" holds the most recent "+f.scopeAttr+" sales Sam tracks, so it is the surer read. "
         +altName+" is a genuine alternative on price if you would rather list there. "
-        +f.platform+" is my call.";
+        +f.platform+" is Sam's call.";
     }
     return null; // one clear pick, nothing to compare: corrected-context chat handles it
   }catch(e){ return null; }
@@ -1101,9 +1101,9 @@ function v2ComposeRunListing(){
     // claims. Platform-led (incl. a stated DIY preference) keeps the self-managed answer.
     if(c.psLead&&c.referral&&c.referral.partner){
       var first=(typeof psvFirst==="function")?psvFirst(c.referral.partner):(c.referral.partner.displayName||c.referral.partner.name||"the PowerSeller");
-      return "I'd have "+first+" run it. He assesses the car and takes care of any prep that's genuinely worth doing, photographs it himself, writes the listing, handles the buyer questions and manages the auction from start to finish. He'd most likely list your "+carLabel+" on "+f.platform+", so your side of it stays light.";
+      return "Sam would have "+first+" run it. He assesses the car and takes care of any prep that's genuinely worth doing, photographs it himself, writes the listing, handles the buyer questions and manages the auction from start to finish. He'd most likely list your "+carLabel+" on "+f.platform+", so your side of it stays light.";
     }
-    var parts=["I would list your "+carLabel+" on "+f.platform+"."];
+    var parts=["Sam would list your "+carLabel+" on "+f.platform+"."];
     parts.push("Lead with honest, well lit photos and a straight writeup of history and condition, and let the platform's audience do the rest.");
     return parts.join(" ");
   }catch(e){ return null; }
@@ -1117,11 +1117,11 @@ function v2ComposeRunListing(){
 var V2_TRACKED_PLATFORMS=["Bring a Trailer","Cars & Bids","PCarMarket","Hagerty"];
 function v2SafeFallback(){
   try{
-    var c=v2Composition(); if(!c.pick)return "Let me stick to what is on the card. Ask me about the pick or how I would run the listing.";
+    var c=v2Composition(); if(!c.pick)return "Sam sticks to what is on the card. Ask Sam about the pick or how Sam would run the listing.";
     var f=v2PickFacts(c.pick); var pickNm=f?f.platform:platformDisplayName(c.pick.name||c.pick.platformSlug);
-    if(c.psLead&&c.referral.partner){ var first=(typeof psvFirst==="function")?psvFirst(c.referral.partner):(c.referral.partner.displayName||c.referral.partner.name); return "Let me stick to what is on the card: I would hand it to "+first+", with "+pickNm+" as the platform to run it yourself."; }
-    return "Let me stick to what is on the card: the pick is "+pickNm+".";
-  }catch(e){ return "Let me stick to what is on the card. Ask me about the pick."; }
+    if(c.psLead&&c.referral.partner){ var first=(typeof psvFirst==="function")?psvFirst(c.referral.partner):(c.referral.partner.displayName||c.referral.partner.name); return "Sam sticks to what is on the card: Sam would hand it to "+first+", with "+pickNm+" as the platform to run it yourself."; }
+    return "Sam sticks to what is on the card: the pick is "+pickNm+".";
+  }catch(e){ return "Sam sticks to what is on the card. Ask Sam about the pick."; }
 }
 // The set of actions that ACTUALLY exist, derived from the composition. This is
 // the whitelist: continue with {platform} (list it yourself), request an
@@ -1132,9 +1132,9 @@ function v2ActionFallback(){
     var c=v2Composition(); var f=c&&c.pick?v2PickFacts(c.pick):null;
     var plat=f?f.platform:(c&&c.pick?platformDisplayName(c.pick.name||c.pick.platformSlug):"the platform");
     if(c&&c.psLead&&c.referral.partner){ var first=(typeof psvFirst==="function")?psvFirst(c.referral.partner):(c.referral.partner.displayName||c.referral.partner.name);
-      return "Here is what actually happens. You can request an introduction to "+first+" and he contacts you directly, or continue with "+plat+" to list it yourself. Nothing is sent anywhere until you choose, and you can edit your answers or ask me anything first."; }
-    return "Here is what actually happens. You continue with "+plat+" to start your listing yourself, and nothing is sent anywhere until you choose. You can edit your answers or ask me anything first.";
-  }catch(e){ return "Nothing is sent anywhere until you choose. You can continue with the pick, edit your answers, or ask me anything."; }
+      return "Here is what actually happens. You can request an introduction to "+first+" and he contacts you directly, or continue with "+plat+" to list it yourself. Nothing is sent anywhere until you choose, and you can edit your answers or ask Sam anything first."; }
+    return "Here is what actually happens. You continue with "+plat+" to start your listing yourself, and nothing is sent anywhere until you choose. You can edit your answers or ask Sam anything first.";
+  }catch(e){ return "Nothing is sent anywhere until you choose. You can continue with the pick, edit your answers, or ask Sam anything."; }
 }
 // Allowed-actions vocabulary guard: flags any answer describing an action or
 // data-flow OUTSIDE the real set. The real actions never submit, forward, share,
@@ -1184,10 +1184,10 @@ function v2RosterFallback(){
     var c=(typeof v2Composition==="function")?v2Composition():null;
     if(c&&c.psRendered&&c.referral&&c.referral.partner){
       var first=(typeof psvFirst==="function")?psvFirst(c.referral.partner):(c.referral.partner.displayName||c.referral.partner.name);
-      return "The only specialist I would point you to for this car is "+first+", shown above. I do not name others unless the data points to them.";
+      return "The only specialist Sam would point you to for this car is "+first+", shown above. Sam does not name others unless the data points to them.";
     }
-    return "I only point to a specific PowerSeller once I have seen your car and the data supports one. Tell me what you are selling and I will take a look.";
-  }catch(e){ return "Tell me what you are selling and I will take a look."; }
+    return "Sam only points to a specific PowerSeller once Sam has seen your car and the data supports one. Tell Sam what you are selling and Sam will take a look.";
+  }catch(e){ return "Tell Sam what you are selling and Sam will take a look."; }
 }
 function v2GuardChatAnswer(text){
   try{
@@ -1252,7 +1252,7 @@ function v2TransmissionRefine(){
     if(!active&&split&&split.auto){
       sellState.txSplitLabels={manual:"manual",auto:split.auto};
       var autoLbl=split.auto;
-      return '<div class="pv2-txrefine"><div class="pv2-txlead">Transmission can move this market. I can narrow the read to just the manual or just the automatic cars.</div>'
+      return '<div class="pv2-txrefine"><div class="pv2-txlead">Transmission can move this market. Sam can narrow the read to just the manual or just the automatic cars.</div>'
         +'<div class="pv2-txchips">'
         +'<button type="button" class="pv2-txchip" onclick="v2ApplyTxRefine(\'manual\')">Manual</button>'
         +'<button type="button" class="pv2-txchip" onclick="v2ApplyTxRefine(\'auto\')">'+esc(autoLbl.charAt(0).toUpperCase()+autoLbl.slice(1))+'</button>'
@@ -1342,7 +1342,7 @@ function renderResultV2Page(){
     var speedPre="";
     if(c.speedMode&&(psHTML||secHTML)){
       var pickNm=platformDisplayName(pick.name||pick.platformSlug);
-      speedPre='<div class="pv2-bridge">For the fastest path to a sale, I\'d list on '+esc(pickNm)+'.</div>';
+      speedPre='<div class="pv2-bridge">For the fastest path to a sale, Sam would list on '+esc(pickNm)+'.</div>';
     }
     // PS<->platform transition (unchanged for NON-speed; in speed mode the speed
     // preamble already introduces the platform section, so the generic bridge is
@@ -1350,8 +1350,8 @@ function renderResultV2Page(){
     var bridge="";
     if(psHTML&&pickHTML&&!c.speedMode){
       bridge=psLead
-        ? '<div class="pv2-bridge">If you\'d rather run the sale yourself, here\'s where I\'d go.</div>'
-        : '<div class="pv2-bridge">Want it handled end to end instead? Here\'s who I\'d trust with it.</div>';
+        ? '<div class="pv2-bridge">If you\'d rather run the sale yourself, here\'s where Sam would go.</div>'
+        : '<div class="pv2-bridge">Want it handled end to end instead? Here\'s who Sam would trust with it.</div>';
     }
     var platformBlock=speedPre+pickHTML+secHTML;
     var body=psLead?(psHTML+bridge+platformBlock):(platformBlock+bridge+psHTML);
@@ -1375,8 +1375,8 @@ function renderResultV2Page(){
       }
     }
     var after=c.psRendered
-      ?'<div class="pv2-after">Both are real options and the choice is yours. Ask me to compare the tradeoffs, or how I\'d run the listing.</div>'
-      :'<div class="pv2-after">Ask me anything about the pick, or how I\'d run the listing.</div>';
+      ?'<div class="pv2-after">Both are real options and the choice is yours. Ask Sam to compare the tradeoffs, or how Sam would run the listing.</div>'
+      :'<div class="pv2-after">Ask Sam anything about the pick, or how Sam would run the listing.</div>';
     var txRefine=v2TransmissionRefine();
     return '<div class="pv2-page">'+body+v2AskingLine()+valueFloorNote+txRefine+caveat+after+'</div>';
   }catch(e){ if(typeof console!=="undefined")console.warn("renderResultV2Page failed",e); return null; }

@@ -231,7 +231,7 @@ function unverifiedModelNote(){
   const v=sellState.resolvedVehicle;
   if(!v||!v.unverified)return null;
   const label=v.model?`the ${v.make} ${v.model}`:"that exact model";
-  return `I couldn't verify ${label} against the models I track, so this read is at the ${v.make||"make"} level and broader than model-specific. If the exact model matters, tell me the badge on the car and I'll tighten it.`;
+  return `Sam couldn't verify ${label} against the models Sam tracks, so this read is at the ${v.make||"make"} level and broader than model-specific. If the exact model matters, tell Sam the badge on the car and Sam will tighten it.`;
 }
 
 // Modified matched-car note (THE RULE, comp read): when a VIN/chassis match shows the car is
@@ -325,25 +325,25 @@ function comparableModelLabel(){
 function comparisonScopeSentence(){
   const landed=sellState.sellDecision?.evidence?.ladder?.landed;
   if(!landed)return "";
-  if(/trim/.test(landed.key))return `I looked at recent ${landed.label} rather than the whole model line because trims behave very differently.`;
+  if(/trim/.test(landed.key))return `Sam looked at recent ${landed.label} rather than the whole model line because trims behave very differently.`;
   return "";
 }
 
 function powerSellerAdviceReason(hasNamedSellers){
   if(hasNamedSellers){
     return pickCopy([
-      `I’d start with these names because they show up in recent seller activity for cars like this${sellState.state?`, and ${sellState.state} is close enough to matter`:""}. A good one should take the auction noise, buyer questions and logistics off your plate.`,
-      `These are the names I’d check first. They appear around cars like this and are the best PowerSeller signals I can see from the current search.`,
-      `I picked these because they are the closest PowerSeller signals I can see for this car. They should be able to explain platform choice, prep, comments and logistics clearly.`
+      `Sam would start with these names because they show up in recent seller activity for cars like this${sellState.state?`, and ${sellState.state} is close enough to matter`:""}. A good one should take the auction noise, buyer questions and logistics off your plate.`,
+      `These are the names Sam would check first. They appear around cars like this and are the best PowerSeller signals Sam can see from the current search.`,
+      `Sam picked these because they are the closest PowerSeller signals Sam can see for this car. They should be able to explain platform choice, prep, comments and logistics clearly.`
     ],sellState.carName,sellState.state,hasNamedSellers);
   }
   if(sellerWantsToManageSelf()){
-    return "You said you’d rather run it yourself, so that’s the plan. If you ever want the whole sale handled instead, ask me and I’ll tell you who I’d call.";
+    return "You said you’d rather run it yourself, so that’s the plan. If you ever want the whole sale handled instead, ask Sam who to call.";
   }
   return pickCopy([
-    "For this car, I’d speak to one or two PowerSellers before deciding where it goes live. If they can show you they’ll genuinely improve the outcome, they’re worth considering. If not, I’d sell it myself.",
-    "This is the kind of car where who runs the auction can matter almost as much as where it runs. I’d hear the PowerSeller case before making the call.",
-    "I’d speak to a PowerSeller first. A good one can prep the car, handle the auction noise and help choose the platform with the best shot."
+    "For this car, Sam would speak to one or two PowerSellers before deciding where it goes live. If they can show you they’ll genuinely improve the outcome, they’re worth considering. If not, Sam would sell it Sam.",
+    "This is the kind of car where who runs the auction can matter almost as much as where it runs. Sam would hear the PowerSeller case before making the call.",
+    "Sam would speak to a PowerSeller first. A good one can prep the car, handle the auction noise and help choose the platform with the best shot."
   ],sellState.carName,sellState.state);
 }
 
@@ -382,7 +382,7 @@ function powerSellerAdviceBullets(hasNamedSellers){
       ],
       [
         "This only works if the person is genuinely strong for this kind of car.",
-        "If they can’t make a convincing case, I’d sell it yourself and keep control."
+        "If they can’t make a convincing case, sell it yourself and keep control."
       ]
     ],sellState.carName,sellState.state).slice(0,2);
   }
@@ -393,14 +393,14 @@ function powerSellerAdviceBullets(hasNamedSellers){
     ],
     [
       "They can take the heavy lifting off you, especially the buyer questions and comment-section pressure that most first-time sellers underestimate.",
-      "I’m not telling you to use one. I’m saying this is the kind of car where I’d hear the case before deciding."
+      "Sam is not telling you to use one, only that this is the kind of car where Sam would hear the case before deciding."
     ],
     [
       "The right one may know which platform gives this exact car the best shot.",
       "If the case is not convincing, keep it simple and sell it yourself."
     ]
   ],sellState.carName,sellState.involvement);
-  if(sellerWantsToManageSelf())bullets.unshift("You can still sell it yourself; this is just the sanity check I’d do first.");
+  if(sellerWantsToManageSelf())bullets.unshift("You can still sell it yourself; this is just the sanity check Sam would do first.");
   return bullets.slice(0,3);
 }
 
@@ -1008,7 +1008,7 @@ function powerSellerWhyBullets(seller,index){
     sellState.state?`They can take the buyer questions, comments and logistics off your plate in ${sellState.state}.`:"They can take buyer questions, comments and logistics off your plate.",
     "You still choose whether to make contact; nothing is sent without your approval."
   ];
-  if(index===0)bullets[0]=`This is the first call I’d make ahead of any platform decision.`;
+  if(index===0)bullets[0]=`This is the first call Sam would make ahead of any platform decision.`;
   return bullets;
 }
 
@@ -1648,7 +1648,7 @@ function compactPlatformCopy(option){
 
 function marketEvidenceSentence(option){
   const evidence=option.marketEvidence;
-  if(!evidence)return `I don't have enough recent comparable sales to give you a data-led answer for this car, so this is a fit call.`;
+  if(!evidence)return `Sam doesn't have enough recent comparable sales to give you a data-led answer for this car, so this is a fit call.`;
   if(Number.isFinite(evidence.performanceDeltaPercent)&&evidence.performanceDeltaPercent>=5){
     return `Recent comparable ${comparableModelLabel()} have consistently favoured ${option.name}.`;
   }
@@ -1689,7 +1689,7 @@ function medianDeltaSentence(option, other){
       `${other.name} has the edge, but ${optionName} remains close enough to keep in the conversation.`
     ],sellState.carName,optionName,other.name,a,b);
     return pickCopy([
-      `${other.name} has the clearer recent sales signal; I’d only choose ${optionName} if the process fits you better.`,
+      `${other.name} has the clearer recent sales signal; Sam would only choose ${optionName} if the process fits you better.`,
       `${optionName} stays in the conversation for practical reasons, but ${other.name} looks stronger on recent sales.`,
       `${other.name} is the stronger market choice right now; ${optionName} is mainly a process or timing comparison.`
     ],sellState.carName,optionName,other.name,a,b);
@@ -1710,12 +1710,12 @@ function rankingReason(option,index,options){
     const compare=bestAlt?medianDeltaSentence(option,bestAlt):null;
     if(compare)return compare;
     return (sellState.sellOptions||[]).some(o=>o.key==="specialist")
-      ?`If you decide to manage the auction yourself, this is the platform I'd look at first.`
+      ?`If you decide to manage the auction yourself, this is the platform Sam would look at first.`
       :`The recent ${comparableSalesLabel()} results land here.`;
   }
   if(!primaryMarket)return marketEvidenceSentence(option);
   const compare=medianDeltaSentence(option,primaryMarket);
-  if(!evidence)return `${option.name} is only worth checking if the practical fit is better; I would not put it ahead of the platform choice on the sales data.`;
+  if(!evidence)return `${option.name} is only worth checking if the practical fit is better; Sam would not put it ahead of the platform choice on the sales data.`;
   return compare
     ? compare
     : `${primaryMarket.name} looks stronger on recent comparable sales.`;
@@ -1740,10 +1740,10 @@ function compareSellOptions(){
   const primaryPowerSeller=(sellState.powerSellerProfiles||[])[0];
   if(specialist&&primaryPowerSeller&&primaryPlatform){
     const sellerName=powerSellerFirstName(primaryPowerSeller);
-    return `Here’s how I’d think about it.\n\n${sellerName}: you’ll probably pay a fee, but he can handle photography, listing prep, buyer questions, comments, scheduling, paperwork and platform choice. If you’re busy, or you haven’t sold on auction before, this is the lower-stress route.\n\n${primaryPlatform.name}: you keep more control, but you’re responsible for building the listing, answering every buyer question and choosing the right timing. With a car at this level, I’d only go this route if you’re comfortable running the auction yourself.`;
+    return `Here’s how Sam would think about it.\n\n${sellerName}: you’ll probably pay a fee, but he can handle photography, listing prep, buyer questions, comments, scheduling, paperwork and platform choice. If you’re busy, or you haven’t sold on auction before, this is the lower-stress route.\n\n${primaryPlatform.name}: you keep more control, but you’re responsible for building the listing, answering every buyer question and choosing the right timing. With a car at this level, Sam would only go this route if you’re comfortable running the auction yourself.`;
   }
   const options=(sellState.sellOptions||[]).filter(o=>o.key!=="specialist").slice(0,2);
-  if(!options.length)return "I do not have enough platform data to compare yet.";
+  if(!options.length)return "Sam does not have enough platform data to compare yet.";
   if(options.length===1)return routeAnswer(options[0]);
 
   const [first,second]=options;
@@ -1756,16 +1756,16 @@ function compareSellOptions(){
   const secondDelta=Number(secondEvidence.performanceDeltaPercent);
 
   if(Number.isFinite(firstDelta)&&firstDelta>=5){
-    lines.push(`I’d lean ${first.name} because similar cars have recently finished ${performancePercentLabel(firstDelta)} stronger there than the rest of the tracked market ${marketWindowPhrase()}.`);
+    lines.push(`Sam would lean ${first.name} because similar cars have recently finished ${performancePercentLabel(firstDelta)} stronger there than the rest of the tracked market ${marketWindowPhrase()}.`);
   }else if(Number.isFinite(secondDelta)&&secondDelta>=5){
-    lines.push(`I’d lean ${second.name} because similar cars have recently finished ${performancePercentLabel(secondDelta)} stronger there than the rest of the tracked market ${marketWindowPhrase()}.`);
+    lines.push(`Sam would lean ${second.name} because similar cars have recently finished ${performancePercentLabel(secondDelta)} stronger there than the rest of the tracked market ${marketWindowPhrase()}.`);
   }else{
     lines.push(`${first.name} and ${second.name} are close enough that buyer fit, speed and how much work you want to do should drive the choice.`);
   }
 
   const topRoute=[first,second].find(option=>(option.marketEvidence?.topThreeSales||0)>=2);
   if(topRoute){
-    lines.push(`The strongest recent comparable sales came through ${topRoute.name}. That matters more to me than raw platform volume.`);
+    lines.push(`The strongest recent comparable sales came through ${topRoute.name}. That matters more to Sam than raw platform volume.`);
   }
 
   const dayLine=weekdayInsightLine(firstEvidence)||weekdayInsightLine(secondEvidence);
@@ -1780,7 +1780,7 @@ function compareSellOptions(){
   }
 
   if(firstRoute&&secondRoute&&hasTwoRouteTradeoff([firstRoute,secondRoute])){
-    lines.push(`My read: start with ${first.name}, but keep ${second.name} on the table if its buyer fit, speed or workload feels better.`);
+    lines.push(`Sam's read: start with ${first.name}, but keep ${second.name} on the table if its buyer fit, speed or workload feels better.`);
   }
 
   return lines.filter(Boolean).join(" ");
