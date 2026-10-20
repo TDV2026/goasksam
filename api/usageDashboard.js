@@ -4623,7 +4623,7 @@ async function handleOps(req, res) {
         try { const r = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/${encodeURIComponent(vin)}?format=json`, { signal: AbortSignal.timeout(6000) }); if (r.ok) { const j = await r.json(); decoded = String((j.Results && j.Results[0] && j.Results[0].Model) || "").trim() || null; } } catch { decoded = null; }
       }
       if (decoded) { if (!word(decoded).test(title) || squash(decoded) === squash(v.model)) continue; stored = decoded; basis = "decode"; }
-      else { stored = modeOf(list.map(a => a.model).filter(m => others.includes(m))); basis = "stored"; }
+      else continue;   // no decode: the car keeps its identity (Lane F, Oct 20 2026: the stored column is the house's own wording, 2,114 wrong renames in the first 10,000)
       if (!stored) continue;
       const year = Number(list[0].year) || Number(v.year) || null;
       const oldId = { year, make: v.make, family: familyOf(v) };

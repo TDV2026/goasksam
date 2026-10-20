@@ -19,7 +19,7 @@ if (!(b.code === 500 && /Supabase env not set/.test(JSON.stringify(b.body)))) { 
 const fs = await import("fs");
 const src = fs.readFileSync(new URL("../api/usageDashboard.js", import.meta.url), "utf8");
 const blk = src.slice(src.indexOf('if (task === "vinidentitydry")'), src.indexOf('if (task === "projdry")'));
-const okD = /if \(decoded\) \{ if \(!word\(decoded\)\.test\(title\)/.test(blk) && /else \{ stored = modeOf/.test(blk) && /DecodeVinValues/.test(blk);
-if (!okD) { bad++; console.log("FAIL decode-first rule not found in the task"); } else console.log("ok   decode first: the decoded model wins when in the title, the stored model only without a decode");
+const okD = /if \(decoded\) \{ if \(!word\(decoded\)\.test\(title\)/.test(blk) && /else continue;   \/\/ no decode/.test(blk) && !/basis = "stored"/.test(blk) && /DecodeVinValues/.test(blk);
+if (!okD) { bad++; console.log("FAIL decode-first rule not found in the task"); } else console.log("ok   decode only: the decoded model wins when in the title; without a decode nothing changes (no stored-model fallback)");
 console.log(bad ? `vinIdentityDryCheck: ${bad} failed` : "vinIdentityDryCheck: 3 passed, 0 failed");
 process.exit(bad ? 1 : 0);
