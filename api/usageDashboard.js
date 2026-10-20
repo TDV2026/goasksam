@@ -4647,6 +4647,33 @@ async function handleOps(req, res) {
     for (const c of changes) { delete c._v; delete c._nv; }
     return res.status(200).json({ task: "vinidentitydry", offset: off, asked: want, vinsInSlice: vins.length, titledRead: read, resolved, decodes, wouldChange: changes.length, byBasis: { decode: changes.filter(c => c.basis === "decode").length, stored: changes.filter(c => c.basis === "stored").length }, ms: Date.now() - t0, nextOffset: off + vins.length, changes });
   }
+  // trimwordcount (Lane B, Oct 20 2026, Lane F's question on Sport and Touring; READ-ONLY, key-gated, OldCarsData zero,
+  // writes nothing): for each word asked (default sport, touring, super, classic, standard), the archive's sales of the last
+  // five years whose title holds the word, read by the trim question's own reader (lib/onebox.js trimGroupsFromSales); a
+  // sale counts when that word is the FIRST trim word the reader takes. Grouped by make, model and year (the scope a trim
+  // question reads); every car with 3 or more such sales (the size of a chip), with its count and two sample titles.
+  if (task === "trimwordcount") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { trimGroupsFromSales } = await import("../lib/onebox.js");
+    const words = String(req.query?.words || "sport,touring,super,classic,standard").toLowerCase().split(",").map(w => w.trim()).filter(w => /^[a-z]{3,15}$/.test(w)).slice(0, 8);
+    const since = new Date(Date.now() - 1825 * 864e5).toISOString().slice(0, 10);
+    const t0 = Date.now(), out = {};
+    for (const w of words) {
+      if (Date.now() - t0 > 240000) { out[w] = { skipped: "time budget" }; continue; }
+      const rows = (await supabaseSelectAll(env, `sales_archive?select=make,model,year,listing_title&listing_title=ilike.*${encodeURIComponent(w)}*&sale_date=gte.${since}&sale_price=not.is.null&order=id.asc`)) || [];
+      const by = new Map();
+      for (const r of rows) {
+        const g = trimGroupsFromSales([{ title: r.listing_title, raw_title: r.listing_title }], { make: r.make, model: r.model });
+        if ((g.foldedValues || [])[0] !== w) continue;
+        const k = [r.make, r.model, r.year].join("|");
+        const e = by.get(k) || { make: r.make, model: r.model, year: r.year, n: 0, titles: [] };
+        e.n++; if (e.titles.length < 2) e.titles.push(r.listing_title); by.set(k, e);
+      }
+      const cars = [...by.values()].filter(e => e.n >= 3).sort((a, b) => b.n - a.n);
+      out[w] = { titlesWithWord: rows.length, salesWhereFirstTrimWord: [...by.values()].reduce((a, e) => a + e.n, 0), carsWithChip: cars.length, cars: cars.slice(0, 150) };
+    }
+    return res.status(200).json({ task: "trimwordcount", since, words, ms: Date.now() - t0, out });
+  }
   if (task === "projdry") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { projectFlagReason } = await import("../lib/_classify.js");
