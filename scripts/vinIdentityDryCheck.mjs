@@ -15,5 +15,11 @@ const a = await call({});
 if (a.code !== 401) { bad++; console.log("FAIL no key:", a.code, JSON.stringify(a.body).slice(0, 120)); } else console.log("ok   no key -> 401");
 const b = await call({ "x-ops-key": "local-check-key" });
 if (!(b.code === 500 && /Supabase env not set/.test(JSON.stringify(b.body)))) { bad++; console.log("FAIL with key:", b.code, JSON.stringify(b.body).slice(0, 160)); } else console.log("ok   with key, no database -> stops at the env check before any read");
-console.log(bad ? `vinIdentityDryCheck: ${bad} failed` : "vinIdentityDryCheck: 2 passed, 0 failed");
+// decode first (Lane F, Oct 20 2026): the decoded model wins when it is in the title; the stored model only without a decode
+const fs = await import("fs");
+const src = fs.readFileSync(new URL("../api/usageDashboard.js", import.meta.url), "utf8");
+const blk = src.slice(src.indexOf('if (task === "vinidentitydry")'), src.indexOf('if (task === "projdry")'));
+const okD = /if \(decoded\) \{ if \(!word\(decoded\)\.test\(title\)/.test(blk) && /else \{ stored = modeOf/.test(blk) && /DecodeVinValues/.test(blk);
+if (!okD) { bad++; console.log("FAIL decode-first rule not found in the task"); } else console.log("ok   decode first: the decoded model wins when in the title, the stored model only without a decode");
+console.log(bad ? `vinIdentityDryCheck: ${bad} failed` : "vinIdentityDryCheck: 3 passed, 0 failed");
 process.exit(bad ? 1 : 0);

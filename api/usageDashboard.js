@@ -4579,8 +4579,10 @@ async function handleOps(req, res) {
   }
   // vinidentitydry (Lane B, Oct 20 2026, the Silverado/Suburban sitemap redirects; READ-ONLY, key-gated, OldCarsData zero,
   // writes nothing): over a slice of vin_index (offset, n VINs), each VIN's newest titled appearance is read by the resolver
-  // exactly as carIdentity reads it today, and against the PROPOSED rule (the archive's own stored model wins when it is in
-  // the title and differs from the resolver's pick). Lists the VINs whose model would change, with old and new name and
+  // exactly as carIdentity reads it today, and against the PROPOSED rule (Lane F, Oct 20 2026, DECODE FIRST): when a title
+  // names a second model the archive stored for this VIN, a 17-character VIN is decoded (vPIC, free) and the DECODED model
+  // wins when it appears in the title; the stored model is used only when the VIN gives no decode (short chassis numbers, a
+  // failed decode). A decode naming a model not in the title changes nothing. Lists the VINs whose model would change, with old and new name and
   // slug; for up to `market` of them (default 0) the engine's market line for the old and the new car (count and range).
   if (task === "vinidentitydry") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
@@ -4601,7 +4603,7 @@ async function handleOps(req, res) {
     const word = w => new RegExp("(^|[^a-z0-9])" + String(w).toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/[\s-]+/g, "[\\s-]?") + "([^a-z0-9]|$)", "i");
     const squash = x => String(x || "").toLowerCase().replace(/[^a-z0-9]/g, "");
     const modeOf = arr => { const c = new Map(); for (const x of arr) if (x) c.set(x, (c.get(x) || 0) + 1); return [...c.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || null; };
-    const changes = []; let read = 0, resolved = 0;
+    const changes = []; let read = 0, resolved = 0, decodes = 0;
     for (const vin of vins) {
       if (Date.now() - t0 > 240000) break;
       const list = (apps.get(vin) || []).filter(a => a.listing_title);
@@ -4612,14 +4614,21 @@ async function handleOps(req, res) {
       try { const r = await resolveVehicle(title, {}); v = r && r.vehicle ? (sanitizeResolvedVehicle(r.vehicle) || r.vehicle) : null; } catch { v = null; }
       if (!v || !v.make || !v.model) continue;
       resolved++;
-      const stored = modeOf(list.map(a => a.model).filter(m => m && !/^unknown$/i.test(String(m))));
-      if (!stored || squash(stored) === squash(v.model)) continue;
-      if (!word(stored).test(title)) continue;   // the stored model must be in the title itself
+      const others = [...new Set(list.map(a => a.model).filter(m => m && !/^unknown$/i.test(String(m))))].filter(m => squash(m) !== squash(v.model) && word(m).test(title));
+      if (!others.length) continue;   // the title names no second stored model: nothing to decide
+      let stored = null, basis = null, decoded = null;
+      if (/^[A-HJ-NPR-Z0-9]{17}$/i.test(vin) && decodes < 400 && Date.now() - t0 < 200000) {
+        decodes++;
+        try { const r = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/${encodeURIComponent(vin)}?format=json`, { signal: AbortSignal.timeout(6000) }); if (r.ok) { const j = await r.json(); decoded = String((j.Results && j.Results[0] && j.Results[0].Model) || "").trim() || null; } } catch { decoded = null; }
+      }
+      if (decoded) { if (!word(decoded).test(title) || squash(decoded) === squash(v.model)) continue; stored = decoded; basis = "decode"; }
+      else { stored = modeOf(list.map(a => a.model).filter(m => others.includes(m))); basis = "stored"; }
+      if (!stored) continue;
       const year = Number(list[0].year) || Number(v.year) || null;
       const oldId = { year, make: v.make, family: familyOf(v) };
       const nv = { ...v, model: stored, trim: squash(stored).includes(squash(v.model)) ? (v.trim || null) : [v.model, v.trim].filter(Boolean).join(" ") };
       const newId = { year, make: v.make, family: familyOf(nv) };
-      changes.push({ vin, title: list[0].listing_title, storedModel: stored, old: { name: [year, v.make, oldId.family].filter(Boolean).join(" "), slug: carSlug(oldId) }, new: { name: [year, v.make, newId.family].filter(Boolean).join(" "), slug: carSlug(newId) }, _v: v, _nv: nv });
+      changes.push({ vin, title: list[0].listing_title, newModel: stored, basis, decoded, old: { name: [year, v.make, oldId.family].filter(Boolean).join(" "), slug: carSlug(oldId) }, new: { name: [year, v.make, newId.family].filter(Boolean).join(" "), slug: carSlug(newId) }, _v: v, _nv: nv });
     }
     if (marketN && changes.length) {
       const { findGeneration } = await import("../lib/generations.js");
@@ -4635,7 +4644,7 @@ async function handleOps(req, res) {
       }
     }
     for (const c of changes) { delete c._v; delete c._nv; }
-    return res.status(200).json({ task: "vinidentitydry", offset: off, asked: want, vinsInSlice: vins.length, titledRead: read, resolved, wouldChange: changes.length, ms: Date.now() - t0, nextOffset: off + vins.length, changes });
+    return res.status(200).json({ task: "vinidentitydry", offset: off, asked: want, vinsInSlice: vins.length, titledRead: read, resolved, decodes, wouldChange: changes.length, byBasis: { decode: changes.filter(c => c.basis === "decode").length, stored: changes.filter(c => c.basis === "stored").length }, ms: Date.now() - t0, nextOffset: off + vins.length, changes });
   }
   if (task === "projdry") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
