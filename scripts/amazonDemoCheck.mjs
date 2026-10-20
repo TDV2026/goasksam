@@ -22,7 +22,9 @@ const carIdx = pick(arg("cars"), CARS.map((_, i) => String(i))).map(Number), vie
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const OWN = { "x-ops-key": KEY, "x-launch-stage-test": "2", ...(BYP ? { "x-vercel-protection-bypass": BYP } : {}) };
 const usd = n => "$" + Math.round(Number(n)).toLocaleString("en-US");
-const BAD_TEXT = [["en or em dash", /[–—]/], ["AI", /\bAI\b/], ["our data", /our data/i], ["venue name", /Bring a Trailer|Cars & Bids|RM Sotheby|Mecum|Bonhams|Gooding|Hagerty|PCAR|Barrett|Collecting Cars|PistonHeads/i], ["verdict word", /\b(worth|valuation|estimate|appraisal|undervalued|overvalued|good deal|great deal|fair price)\b/i]];
+const BAD_TEXT = [["en or em dash", /[–—]/], ["AI", /\bAI\b/], ["our data", /our data/i], ["venue name", /Bring a Trailer|Cars & Bids|RM Sotheby|Mecum|Bonhams|Gooding|Hagerty|PCAR|Barrett|Collecting Cars|PistonHeads/i], ["verdict word", /\b(worth|valuation|estimate(?! payments)|appraisal|undervalued|overvalued|good deal|great deal|fair price)\b/i]];
+// "Estimate payments" is the sample dealer listing's finance widget (Amazon's chrome, not our voice) and is allowed;
+// any other "estimate" fails. The R2-C demo navigation (the tab d cards, Back to search results) navigates by design.
 // Market Check for the same car (the engine's own answer through the One Box path).
 async function marketCheck(q) {
   const r = await fetch(BASE + "/api/sellerDecision", { method: "POST", headers: { ...OWN, "Content-Type": "application/json", Cookie: "gas_crew=" + CREW }, body: JSON.stringify({ oneBox: true, anonId: "amazoncheck", car: { raw: q }, asked: 0 }) });
@@ -74,7 +76,7 @@ try {
     }
     // Inert: every partner control does nothing (no navigation, no request of its own).
     const before = pg.url(), n0 = reqs.length;
-    const clicked = await pg.evaluate(() => { const ok = el => !el.closest(".demo-bar, .tabs, .carbar, .carpick, [data-mc-toggle], .pop, .inline-hist, .sfc-card") && !/How Sam decides/.test(el.innerText || "") && !/^(Check|Look up|Show|Close)$/.test((el.innerText || "").trim()) && !el.closest(".ask, .chips, [data-chip], .sfc-question, .qchips"); const els = [...document.querySelectorAll("button, a, input[type=submit]")].filter(ok); els.forEach(el => { try { el.click(); } catch {} }); return els.map(el => (el.innerText || el.getAttribute("aria-label") || el.tagName).trim().slice(0, 30)); });
+    const clicked = await pg.evaluate(() => { const ok = el => !el.closest(".demo-bar, .tabs, .carbar, .carpick, [data-mc-toggle], .pop, .inline-hist, .sfc-card, .dcard, .back, [data-back]") && !/Back to search results/.test(el.innerText || "") && !/How Sam decides/.test(el.innerText || "") && !/^(Check|Look up|Show|Close)$/.test((el.innerText || "").trim()) && !el.closest(".ask, .chips, [data-chip], .sfc-question, .qchips"); const els = [...document.querySelectorAll("button, a, input[type=submit]")].filter(ok); els.forEach(el => { try { el.click(); } catch {} }); return els.map(el => (el.innerText || el.getAttribute("aria-label") || el.tagName).trim().slice(0, 30)); });
     await new Promise(r => setTimeout(r, 1200));
     const after = pg.url(), extra = reqs.slice(n0).filter(r => !/\.(png|jpe?g|webp|svg|ico)(\?|$)|[?&](photo|img)=/.test(r.url));
     if (after !== before) fail(where, `a control navigated to ${after}`);

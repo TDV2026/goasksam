@@ -68,6 +68,7 @@ try {
     if (want === "unread" && !T.includes(UNREAD)) fail(where, "not the unreadable line");
     if (want !== "unread" && T.includes(UNREAD)) fail(where, "the unreadable line on a readable input");
     if (want === "out" && !T.includes(OUTSCOPE)) fail(where, "not the out-of-scope line");
+    if (want !== "out" && T.includes(OUTSCOPE)) fail(where, "the out-of-scope line on an in-scope car");
     if (want === "question" && !(a && a.answerType === "identity_question" && a.question && (a.question.options || []).length)) fail(where, "no engine question with options");
     if (want === "history" && !(a && Array.isArray(a.history) && a.history.length)) fail(where, "no history for the recorded VIN");
     if (/for this VIN/.test(T) && !/^[A-HJ-NPR-Z0-9]{17}$/.test(q)) fail(where, "a VIN line for typed words");
