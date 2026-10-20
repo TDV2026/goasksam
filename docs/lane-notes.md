@@ -11107,3 +11107,11 @@ Search check: no public page touched (lists only); the owners' commits touch rul
   FOR LANE B, GROUP B (the engine's line): lib/onebox.js:5329, :5330, :5331 "... These are the sales we found.": "... These are the sales on record."
   NOT IN THE BATCH: the Desk (crew-only), the privacy policy (legal), code comments.
 Search check: no public page touched (lists only); the owners' commits touch rule 9 (public copy).
+- FOR SAM (Lane E, THE BUY MIC, Stage 1d item 7: keep it only if it works end to end; Lane C removes both mic buttons in 1d-C unless it is confirmed by 20:45Z).
+  WHAT THE CODE DOES (api/buy.js CLIENT, "voice in"): the mic shows only when the browser offers speech recognition (desktop Chrome yes; iPhone Safari yes on iOS 14.5 and later; desktop Firefox no, so it is hidden there, never a dead button). One tap starts, a second tap stops; the heard words land in the box; SENDING IS YOUR TAP (the arrow, or Enter): the mic never sends on its own. A refused microphone says "Microphone blocked. Please type." in the box.
+  WHAT A HEADLESS BROWSER CAN PROVE: scripts/buyMicCheck.mjs (LIVE, refuses without --live) runs a speech-recognition stand-in at 1440 and 390: the mic shows, one tap starts once, the words land in the box, the mic returns to idle, the send carries the words to the Buy chat. It needs one page load and one chat turn per width in a gap Lane F names. A real microphone cannot be tested headless.
+  YOUR REAL-DEVICE TEST, about two minutes, on goasksam.com/buy:
+    1. DESKTOP CHROME: search "Porsche 911", tap the mic in the box at the bottom, allow the microphone, say "only manuals". The words "only manuals" appear in the box. Press Enter: the results narrow to manual cars and the line reads "Now showing manual cars only: N live matches."
+    2. IPHONE SAFARI: the same search, tap the mic once, allow the microphone, say "only manuals". The words appear, the keyboard does not jump, one tap was enough. Tap the send arrow: the same narrowing and line.
+    3. Tell Lane F "mic works on both" or what you saw (no words, two taps needed, the wrong words, nothing sent). A failure on either device means the mic goes in 1d-C.
+Search check: no public page touched.
