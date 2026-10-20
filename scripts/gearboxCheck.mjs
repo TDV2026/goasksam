@@ -6,7 +6,7 @@
 import { gearboxOf, listingFacts } from "../lib/live/search.js";
 const cases = [
   ["Six-Speed Manual Transaxle 1995 Porsche 911 Carrera", "manual"],
-  ["1995 Porsche 911 Carrera 6-Speed", "manual"],
+  ["1995 Porsche 911 Carrera 6-Speed", null],   // Sam, strict: a bare "6-Speed" says nothing
   ["Five-Speed Manual 1972 Porsche 911T Coupe", "manual"],
   ["Eight-Speed PDK Transaxle 2018 Porsche Panamera Turbo", "auto"],
   ["Eight-Speed Dual-Clutch Transaxle 2018 Porsche Panamera Turbo", "auto"],
@@ -15,6 +15,14 @@ const cases = [
   ["Seven-Speed F1 Dual-Clutch 2015 Ferrari 458 Speciale", "auto"],
   ["Six-Speed Doppelkupplung 2013 Porsche 911 Carrera S", "auto"],
   ["Seven-Speed ISR 2014 Lamborghini Aventador", "auto"],
+  ["Six-Speed Manual Transaxle 1997 Porsche 911 Carrera", "manual"],
+  ["Gated Six-Speed 2006 Ferrari F430", "manual"],
+  ["1972 Chevrolet Corvette Stick Shift", "manual"],
+  ["G50 Five-Speed 1989 Porsche 911 Carrera", "manual"],
+  ["2012 Toyota 86 6MT", "manual"],
+  ["2019 Honda Civic Type R MT", "manual"],
+  ["Getrag Five-Speed 1988 BMW M3", null],   // Sam: "Getrag" alone is a maker, not manual
+  ["1967 Shelby Mustang GT500 Fastback 4-Speed", null],
   ["Seven-Speed SpeedShift MCT 2012 Mercedes-Benz SL63 AMG", "auto"],
   ["Three-Speed TorqueFlite 1970 Dodge Challenger R/T", "auto"],
   ["Two-Speed Powerglide 1962 Chevrolet Corvette", "auto"],
@@ -32,13 +40,13 @@ const rows = [
   [{ transmission: "(8-speed)", listing_title: "32k-Mile 2018 Porsche Panamera Turbo" }, null],
   [{ transmission: "(4-speed)", listing_title: "42k-Mile 1997 Porsche 911 Carrera Targa" }, null],
   [{ transmission: "(7-speed)", listing_title: "2009 BMW M3 Coupe" }, null],
-  [{ transmission: "(6-speed)", listing_title: "1995 Porsche 911 Carrera 6-Speed" }, "manual"],
+  [{ transmission: "(6-speed)", listing_title: "1995 Porsche 911 Carrera 6-Speed" }, null],
   [{ transmission: "Manual (3-speed)", listing_title: "1951 Ford Custom Sedan" }, "manual"],
   [{ transmission: "Six-Speed Manual Transaxle", listing_title: "2005 Porsche 911 Carrera S Coupe" }, "manual"],
   [{ transmission: "Seven-Speed PDK Transaxle", listing_title: "2019 Porsche 911 Targa 4S" }, "auto"],
-  [{ transmission: "", listing_title: "1966 Ford Mustang Coupe 4-Speed" }, "manual"],
-  [{ transmission: "(5-speed)", listing_title: "1974 Honda CB750" }, "manual"],
-  [{ transmission: "(6-speed)", listing_title: "2000 Ducati 748" }, "manual"],
+  [{ transmission: "", listing_title: "1966 Ford Mustang Coupe 4-Speed" }, null],
+  [{ transmission: "(5-speed)", listing_title: "1974 Honda CB750" }, null],   // motorcycles too (Sam)
+  [{ transmission: "(6-speed)", listing_title: "2000 Ducati 748" }, null],
 ];
 for (const [r, want] of rows) { let got; try { got = listingFacts({ ...r, mileage: null, currency: "USD", source: "bringatrailer" }).gearbox; } catch (e) { got = "ERROR " + e.message; } const ok = got === want; if (!ok) failed++; console.log(`${ok ? "PASS" : "FAIL"}  listing ${JSON.stringify(r.transmission)} + ${JSON.stringify(r.listing_title)} -> ${got}${ok ? "" : " (want " + want + ")"}`); }
 console.log(failed ? `gearboxCheck: ${failed} FAIL` : "gearboxCheck: all pass");
