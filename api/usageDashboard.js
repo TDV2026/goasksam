@@ -3485,7 +3485,8 @@ async function handleOps(req, res) {
       return { tier: d.tier || null, label: d.rungLabel || d.scopeLabel || null, count: Number(d.poolN) || cards.length || null,
         range: Array.isArray(d.cluster) ? d.cluster : null,
         line: d.samLine || d.thinLine || d.prompt || null,
-        options: d.gearboxOptions || d.bodyOptions || d.generationOptions || d.variantOptions || null, optionCounts: d.optionCounts || null,
+        options: d.gearboxOptions || d.bodyOptions || d.generationOptions || d.variantOptions || (Array.isArray(d.trimOptions) ? d.trimOptions.map(o => o && (o.label || o.value) || o) : null) || null, optionCounts: d.optionCounts || null,
+        houseOnlyBody: (d.dedup && d.dedup.houseOnlyBody) || undefined,
         sales: cards.slice(0, 20).map(c => ({ date: String(c.date || "").slice(0, 10), price: Number(c.price) || null, title: c.title || null })) };
     };
     const out = [];

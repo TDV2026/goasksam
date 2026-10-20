@@ -23,5 +23,8 @@ ok(code === 401, "task=rangepreview refuses without the ops key");
 const fs = await import("fs");
 const ud = fs.readFileSync(new URL("../api/usageDashboard.js", import.meta.url), "utf8");
 ok(/if \(\/\^\(result\|thin\)\$\/\.test\(String\(d\.tier\)\)\) \{ try \{ const \{ refreshDemoAnswer \}/.test(ud), "warmDemo refreshes the demo's stored answer for thin answers as well as ranges");
+// rule 3's one-line diagnostic (Oct 20 2026): written only when the switch is on, shown by task=rangepreview
+const obSrc = fs.readFileSync(new URL("../lib/onebox.js", import.meta.url), "utf8");
+ok(/diag\.houseOnlyBody = \{ read: /.test(obSrc) && /else if \(rangeRuleOn\(env, "houseOnlyBody"\)\) diag\.houseOnlyBody = \{ skipped:/.test(obSrc) && /houseOnlyBody: \(d\.dedup && d\.dedup\.houseOnlyBody\)/.test(ud), "rule 3 writes its diagnostic only with the switch on, and the preview shows it");
 console.log(bad ? `rangeRulesCheck: ${bad} failed` : "rangeRulesCheck: all passed");
 process.exit(bad ? 1 : 0);
