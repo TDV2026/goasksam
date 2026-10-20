@@ -4742,6 +4742,28 @@ async function handleOps(req, res) {
     });
     return res.status(200).json({ task: "vindecodedry", cursor: cursor || "(top)", nextCursor: r.cursor || "(end: back to the top)", scanned: r.scanned, candidates: r.candidates, decoded: r.decoded, failed: r.failed, batches: r.batches, stoppedOn: r.stoppedOn || null, changes: items.filter(x => x.changes).length, ms: Date.now() - t0, items });
   }
+  // getragcount (Lane B, Oct 20 2026, Sam's strict gearbox rule; READ-ONLY, key-gated, OldCarsData zero, writes nothing): the stored
+  // description facts whose transmission reads "Manual" ONLY because the description says Getrag (Getrag also makes dual-clutch
+  // gearboxes). Rows with desc_facts.transmission = Manual and "getrag" in the description, re-read by today's transmissionFromText
+  // (Getrag removed): a row counts when it no longer reads Manual. By make, with how many also carry "Manual" in the transmission
+  // column only from that fact (no transmission field of their own). The backfill itself is a data write and waits for Sam.
+  if (task === "getragcount") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { transmissionFromText } = await import("../lib/_descFacts.js");
+    const t0 = Date.now();
+    const rows = (await supabaseSelectAll(env, "sales_archive?select=id,make,listing_title,transmission,ocdtx:raw_record->>transmission,desc:raw_record->>description&desc_facts->>transmission=eq.Manual&raw_record->>description=ilike.*getrag*&order=id.asc")) || [];
+    const byMake = {}, sample = [];
+    let only = 0, columnToo = 0;
+    for (const r of rows) {
+      if (transmissionFromText(r.listing_title, r.desc) === "Manual") continue;   // another manual word still says manual
+      only++;
+      const col = !r.ocdtx && /^manual$/i.test(String(r.transmission || ""));
+      if (col) columnToo++;
+      byMake[r.make || "(none)"] = (byMake[r.make || "(none)"] || 0) + 1;
+      if (sample.length < 15) sample.push({ id: r.id, make: r.make, title: r.listing_title, column: r.transmission || null, ocdField: r.ocdtx || null });
+    }
+    return res.status(200).json({ task: "getragcount", read: rows.length, onlyFromGetrag: only, alsoInTransmissionColumn: columnToo, byMake: Object.fromEntries(Object.entries(byMake).sort((a, b) => b[1] - a[1])), sample, ms: Date.now() - t0 });
+  }
   if (task === "projdry") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { projectFlagReason } = await import("../lib/_classify.js");
