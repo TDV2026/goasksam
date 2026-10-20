@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // BUY PROBE (Lane E, Oct 16 2026): one keyed POST to /api/buySearch from a real page (raw fetch gets the Vercel challenge).
 // Read-only diagnostics. The key comes from the environment and goes only in the x-ops-key / x-probe-key headers of same-origin
 // requests, never printed. Prints {status, ms} then the raw body (an SSE stream for a chat turn).

@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // Deployed-page verification for One Box. Drives the REAL gated /onebox page in a
 // headless browser against production: the tier layouts (3+/2/1/0), the single-result
 // invariant (no see-more/pagination), and the sell handoff. Requires a local Chrome

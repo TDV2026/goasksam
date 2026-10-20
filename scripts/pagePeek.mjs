@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // PAGE PEEK (Lane B, Oct 15 2026): load one Market Check page in a real browser with the test-stage header, wait for a
 // result or a question, and print the page's first lines plus every console error and failed request, so a page that
 // renders nothing can be told apart from an API that answers (B2's probe saw "1969 Chevrolet Camaro: no answer in 45s").

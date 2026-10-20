@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // engineCheck: run the same rows through every SURFACE and fail when two surfaces disagree on the
 // car, the tier, or halo exclusion. The goal of the consolidation work is one engine behind every
 // screen; this is the net that catches a surface drifting off it.

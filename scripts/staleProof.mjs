@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // STALE-THEN-FRESH PROOF (Lane B, speed job stage 4, Oct 15 2026): one car read warm, its stored row marked as if an
 // ingest had moved the epoch (task=warmStale, credentialed), read again -> served stale with the exact dated line and the
 // stored counts, then read again after the background recompute -> fresh, no line, same counts (nothing changed in the

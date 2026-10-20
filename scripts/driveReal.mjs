@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // Real-page verifier (standing rule: visual checks run against the DEPLOYED page,
 // never a local reconstruction). Drives goasksam.com through the wizard to a live
 // 2018 M3 result, screenshots the platform card, and dumps the WHY-label node with

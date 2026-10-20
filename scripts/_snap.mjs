@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 import puppeteer from "puppeteer-core";
 const BASE="https://goasksam.com", CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const Q=["ZHWBU37M47LA02229","2004 BMW M3 E46 coupe","E46 M3","2006 Mercedes S65 AMG","2018 Jaguar XF Sportbrake S","1991 Porsche 964 Carrera 2 Cabriolet 45,000 miles","2021 Porsche 911","1995 Ferrari F355 GTS","1967 Chevrolet Corvette 427","2005 Ford GT","1970 Chevrolet Chevelle SS 454","1957 Mercedes 300SL Roadster","1997 Land Rover Defender 90","1988 BMW E30 M3","1987 Dodge D50","1972 Datsun 240Z","Eagle Talon","Singer Gazelle","ram 50","Ram 50 1990"];

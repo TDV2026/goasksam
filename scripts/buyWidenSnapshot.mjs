@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // BUY WIDENINGS SNAPSHOT (Lane E, Oct 19 2026): the engine's widening chips (searchMeta.widen) for fixed filter sets,
 // read through the no-model rerun path (POST /api/buySearch {action:"rerun"}), so a run before and a run after a change
 // compare byte for byte. Live, read-only, zero OldCarsData, no model call. The probe key goes only in the x-ops-key

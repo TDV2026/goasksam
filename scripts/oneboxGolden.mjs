@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // One Box golden-set regression guard. Drives the real gated /onebox page for ~20 inputs that
 // cover every result state, captures the RENDERED text, and diffs it against a stored snapshot
 // (scripts/onebox-golden.json). Dollar/mileage/year figures are masked to $N / Nk / YYYY so the

@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // VARIANT CHIP PROOF (Lane B, Oct 2026, e51): (1) the GUARD, through the public path the page uses (POST
 // /api/sellerDecision with the page's own refine payload): a refine for a variant with no sales returns the "No {variant}
 // {car} sale on record in the last five years." answer, never the base page, on both tiers (Lane A's find after e49: the

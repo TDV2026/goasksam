@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // SEARCH TURN, NO MODEL SENTENCE (Lane E, E6, Sam's decision Oct 16 2026): a Buy search turn answers with the one fixed
 // line built from the same facts the cards use ("Here's what's for sale: {search}.": the cards are live listings, cars at
 // auction right now, so the line says for sale, never sold) and runs ONE model call (the forced tool call), never a

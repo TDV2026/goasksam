@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // Rolling nightly warm (7E). Warms ~30 nameplates/night against the live search
 // engine, cycling the top list roughly every 10 days. Each warm is a normal
 // sellerDecision call with warm:true, so it reuses the exact fetch + persist +

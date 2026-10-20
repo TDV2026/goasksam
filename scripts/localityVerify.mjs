@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // Deployed-page check for the locality confirmation (Part 2 + the state-typo extension).
 // Drives the wizard to the state step and types a misspelled locality; asserts the "Did
 // you mean ...?" confirm + chips render, only the confirm chips are active (prior state

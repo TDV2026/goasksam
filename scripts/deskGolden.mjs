@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // Sam Desk golden / regression checks (production). Run: node scripts/deskGolden.mjs
 import puppeteer from "puppeteer-core";
 const CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";

@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // REFINE CACHE PROOF (Lane B, e49, Sam's item 13): through the public path (POST /api/sellerDecision, the call the
 // Market Check page makes), ask for a car plain, then with its Coupe chip, then plain again, and the chip first the
 // other way round on a second car. Every plain answer must agree with every other plain answer, every chip answer

@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // Part 6 smoke: the tracked outbound redirect and the authenticated read path.
 // Runs against prod (or FLOW_BASE). The click-log TABLE is a manual step
 // (docs/supabase-outbound-clicks.sql); /out still 302s before it exists, so these

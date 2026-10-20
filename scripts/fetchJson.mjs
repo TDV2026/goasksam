@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // FETCH JSON (Lane B, Oct 2026): GET one of the site's own endpoints from a real browser context (the bot protection
 // answers plain curl with a challenge page) and print the JSON, with any secret-looking value masked.
 //   export PROBE_KEY="$(security find-generic-password -s goasksam-probe -w)"

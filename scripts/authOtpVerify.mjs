@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // Deployed-page check for the code-only OTP sign-in UI. Opens the sign-in card, asserts
 // the "code" copy, sends an OTP to a test address, and asserts the 6-digit code-entry
 // screen renders (input + Verify + Resend). It CANNOT verify the final code exchange

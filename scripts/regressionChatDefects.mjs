@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // Live chat regression for D1 (unverified consistency) and D3 (powerseller
 // absence). Sends the CURRENT SELL_SYS + an unverified/gate context to prod
 // /api/chat and asserts the model never validates a fake model or repeats, and

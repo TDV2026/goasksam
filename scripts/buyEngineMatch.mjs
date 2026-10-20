@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // BUY CARD vs ENGINE (Lane C, Oct 15 2026): every Buy card's range and count against a fresh engine read of the
 // listing's own car, its title as typed into Market Check, on the same engine version. Exits 1 on any difference.
 // Live and read-only: the Buy page and its enrich answer, and the keyed enginecheck ops task (zero writes, zero

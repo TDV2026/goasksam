@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // GOLDEN TRUTH (Lane B2, Oct 2026): compares all four product paths to the hand-derived answers in docs/golden-rules.md.
 //
 //   export PROBE_KEY="$(security find-generic-password -s goasksam-probe -w)"   # per command, never printed

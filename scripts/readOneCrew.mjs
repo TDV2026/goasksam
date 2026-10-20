@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // READ MANY, CREW (Lane B, Oct 16 2026): Market Check page reads for a list of cars with the crew cookie set, so the
 // reads are exempt from the daily distinct-car limit (lib/_ceilings.js checkMarketCheckCarLimit skips crew). Used to
 // write the stored rows of the demo, golden and resolver cars after an engine bump ("demo cars warm"). Prints one

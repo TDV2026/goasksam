@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // MINUTE PROBE (Lane B, speed job item 0, Oct 15 2026): one public Market Check API read a minute, logged with the
 // tier and the time, so a warm's effect on visitors is measured directly ("ok" = HTTP 200 and a real tier, never
 // "unavailable" / "Sam's catching his breath"). Stand-in for B2's minuteprobe.mjs on the API path.

@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // PUSH CHECK (Lane C, Oct 2026): before every push, load one Market Check result, one Buy result, one spec page
 // and the Sell first step in a real browser, and fail on any 5xx response (page or API call) or any console
 // error or uncaught page error, or a page that shows a failure line instead of its result. Production went

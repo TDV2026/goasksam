@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // Sam Desk Stage A gate report (spec item 6). Runs the five failed questions and the
 // 30-question test set (spec s11) through the dictionary LOOKUP + VALIDATOR only, on
 // production (read-only ops task=deskgate), and prints for each question: scope, filters,

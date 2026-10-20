@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // D3 regression: the follow-up chat must answer the question actually asked,
 // tolerate typos, and (for powerseller-vs-platform) name BOTH sides. Runs against
 // prod /api/chat with the current SELL_SYS extracted from the frontend.

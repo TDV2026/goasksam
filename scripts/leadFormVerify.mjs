@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // Deployed-page check for the PowerSeller lead-capture copy (pre-submit personalized
 // intro + post-submit confirmation). Drives to Spencer's card (Colorado 1988 BMW M3),
 // requests the intro, fills a TEST email, submits, and asserts both copy states. NOTE:

@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // Stage C gate audit + p95 (production, crew cookie). For each of the five gate questions:
 //  - PARITY: cube-first answer vs noCube (indexed fast) answer - identical medians + counts.
 //  - NO-DROP: noCube (model_family fast) pool count vs noCube+noFast (old title-scan) count per member.

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // searchCheckBrowser.mjs (Oct 2026, checks-that-can-actually-run job): a real-browser rebuild of
 // scripts/searchCheck.js's own rule set (docs/search-rules.md: title/h1/lead/canonical/noindex),
 // for the one case searchCheck.js itself cannot clear on its own: Vercel's Bot Protection answers a

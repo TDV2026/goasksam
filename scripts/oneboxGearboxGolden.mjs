@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // One Box gearbox golden (items 3 & 4 + the >=3-per-side pattern threshold).
 // FAILS if the manual-vs-E-gear pattern line appears when either side has fewer than 3 sales
 // (the reported bug: a line resting on a single manual, the searched car itself), or if the

@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // Phase 1.5 live chat test: reserves are answered observationally (correlation
 // only) from the context, and honestly (no generalizing) when no cell exists.
 import fs from "node:fs";

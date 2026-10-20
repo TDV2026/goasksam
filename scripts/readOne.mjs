@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // READ ONE (Lane B, Oct 2026): one public Market Check API read of a car, printed with tier, count, range, label, the
 // stored-row flags (warm hit, stale, the stale line) and the server timings. Optional refine as JSON.
 //   export PROBE_KEY="$(security find-generic-password -s goasksam-probe -w)"

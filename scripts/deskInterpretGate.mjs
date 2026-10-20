@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // Sam Desk Stage B gate: the 30 test questions (spec s11) through the REAL interpreter (Claude),
 // 3 runs each (determinism), matching the Stage A readings; plus the follow-up and clarification
 // tests; plus reading-step timing (median + slowest). Runs in a real browser (Attack-Challenge safe).

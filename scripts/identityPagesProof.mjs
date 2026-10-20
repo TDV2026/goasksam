@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // IDENTITY PAGES PROOF (Lane B, Oct 15 2026, Sam's table run): through the public path the page uses (POST
 // /api/sellerDecision), read a car's bare page, then every identity option's page one at a time, and check that each
 // option's count equals the page it opens and that the options sum to Any (with the rows that name no body counted

@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // Desk comparison golden (Stage C): a comparison must NEVER drop a named trim/badge (no silent
 // substitution). "Z28 vs Trans Am WS6" must compare the Z28 and the Trans Am WS6, scoped to the
 // WS6 period - not the whole Camaro vs the whole Firebird. Production, crew cookie.

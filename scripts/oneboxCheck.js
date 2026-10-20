@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // One Box reliability check. Runs a fixed set of advisor searches against PRODUCTION through the real
 // One Box code path (the archive-only /api/sellerDecision oneBox branch; VINs via the two-hop through
 // /api/vehicleIdentity), and marks PASS/FAIL on checks a-h. ZERO OldCarsData: One Box is archive-only,

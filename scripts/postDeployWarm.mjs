@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // POST-DEPLOY WARM (Lane B, Oct 2026, Part 1c): run this once, by hand, after an ENGINE_VERSION bump
 // (lib/onebox.js) has reached production - every lane, not just the one that bumped it, since the
 // warm cache is shared across every caller of api/sellerDecision.js's Market Check branch.

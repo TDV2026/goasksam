@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // THE PULL REPORT (Lane C, Oct 2026): how the live pull schedule did, from stored records only (no vendor call,
 // no write). Calls GET /api/pullLive?report=1 (lib/live/pullReport.js) with the probe key in the x-ops-key header.
 //

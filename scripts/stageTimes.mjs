@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // STAGE TIMES (Lane B, speed job, Oct 15 2026): where a Market Check answer's time goes, stage by stage, cold and
 // warm, through the public path (POST /api/sellerDecision). For each car: one ordinary call (fills the warm row if
 // it was missing), one COLD call (fresh: true, credentialed: the warm row is skipped and the engine computes), then

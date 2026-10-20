@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 import puppeteer from "puppeteer-core";
 import { withProbeKey } from "./_probeKey.mjs";
 const BASE=(process.argv.find(a=>a.startsWith("http"))||"https://goasksam.com").replace(/\/$/,"");

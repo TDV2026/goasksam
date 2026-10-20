@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // Deployed-page check that the OTP code screen accepts an 8-digit code (the reported
 // blocker was a maxlength=6 cutoff + "6-digit" copy while Supabase sends 8). Renders the
 // code screen and confirms: no "6-digit" copy, the input holds all 8 typed digits (no

@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // Tasks scenarios (Lane C, Oct 2026): the 13 named Tasks tests, on the draft flow (a task row exists only
 // after Start; one task holds the slot). 1-10 run through the deployed /api/tasks probe test_scenario (an
 // in-memory store, seeded listing rows, no email), 9 also runs the shared guard locally, 11-12 load the

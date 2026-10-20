@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // Deployed-page E2E for the Beehiiv bhs link auto-signin. Visits /api/crew?bhs=<real id>,
 // follows the 302, and asserts the reader lands SIGNED IN (topbar shows their email),
 // the curtain is lifted, the account stores the real Beehiiv email (masked here), the

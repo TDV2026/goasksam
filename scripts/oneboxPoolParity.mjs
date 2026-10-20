@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // One Box typed-vs-VIN pool parity golden (Sep 2026).
 // The SAME car asked two ways - a typed nameplate and a resolved (VIN-style) vehicle - must read
 // the SAME pool. Fails if the two pools differ, or if a known model-level sale set is missing from

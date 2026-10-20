@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // Deployed-page verification for the fifth PowerSeller (Spencer Bailey / SpecWerksLTD).
 // Drives goasksam.com through the REAL sell wizard as a Colorado seller with an 80s
 // German car (1988 BMW M3, E30 - well above his $35k floor), where Spencer is the only

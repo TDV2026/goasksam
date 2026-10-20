@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // PARTNER vs MARKET CHECK (Lane C, Oct 15 2026): the partner demo's endpoint (api/partnerAnswer.js) must give the
 // same range, count, window and sales as Market Check for the same car. If they disagree, the endpoint is wrong.
 //

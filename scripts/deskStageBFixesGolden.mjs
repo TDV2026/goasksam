@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // Sam Desk golden for the two pre-Stage-C fixes (production, browser = Attack-Challenge safe):
 //   Fix 1 — the all-time RECORD returns a correct in-model receipt in under 3s for cheap models on
 //           pricey marques (944 Turbo etc.), not empty / a wrong model / a 24-month fallback.

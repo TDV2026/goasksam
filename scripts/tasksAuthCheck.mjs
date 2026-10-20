@@ -1,3 +1,4 @@
+// LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the protection-bypass header (Lane F's rule, Oct 20 2026).
 // Tasks sign-in check (Lane C, Oct 2026): the real sign-in path, no stubbed account.
 //   PROBE_KEY=... node scripts/tasksAuthCheck.mjs [--shots DIR]
 // 1. Signed out on the live /tasks at 1440, 1024 and 390: "Give Sam a task" opens the shared sign-in card,
