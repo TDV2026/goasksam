@@ -114,6 +114,11 @@ export function scopeFromWords(text, nowYear, rules) {
   if (!hit) return null;
   return amazonInScope({ year: Number(m[1]), make: hit[1], model: rest.slice(hit[0].length).trim() }, nowYear, rules);
 }
+// A listing title never names the gearbox (Sam, Oct 20 2026, item 6): "6-Speed", "Manual", "Automatic" leave the title; the
+// gearbox is a spec chip, from the record's own words. One function, run on the server and sent to the page as is.
+export function stripGearbox(t) {
+  return String(t == null ? "" : t).replace(/\s+(\d{1,2}-Speed|Manual|Automatic|Dual-Clutch|PDK)\b/gi, "").replace(/\s+/g, " ").trim();
+}
 const escHtml = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 // The partner's look, CSS only: a dark navy header, white page, the partner's yellow and orange buttons and its type
@@ -328,6 +333,40 @@ main .sfc-row-price{grid-column:2;grid-row:1/span 2;text-align:right;font:700 18
 main .sfc-row-meta{grid-column:1;grid-row:2;font:400 13px/1.3 var(--sans);color:var(--ink2)}
 .more{margin-top:14px;min-height:40px}
 @media (max-width:560px){.fin-m{font-size:32px}.price{font-size:32px}.mc-body{padding:16px}main .sfc-row-img,main .sfc-row-nophoto{flex-basis:76px;width:76px;height:57px}}
+/* R3-C (Sam, Oct 20 2026): tab d as the reference: an inert filter column, the count, Sort by, a strict grid */
+.dlayout{display:grid;grid-template-columns:240px minmax(0,1fr);gap:28px;align-items:start}
+.dfil{border-right:1px solid var(--rule);padding-right:18px}
+.fgrp{padding:14px 0;border-bottom:1px solid var(--rule)}
+.fgrp:last-child{border-bottom:0}
+.fh{all:unset;cursor:default;display:flex;width:100%;justify-content:space-between;align-items:center;font:700 15px/1.3 var(--sans);margin-bottom:6px}
+.fc{font-size:11px;color:var(--ink2)}
+.fo{all:unset;cursor:default;display:flex;align-items:center;gap:8px;width:100%;padding:4px 0;font:400 14px/1.3 var(--sans)}
+.fbx{flex:0 0 16px;width:16px;height:16px;border:1px solid #888c8c;border-radius:3px;background:#fff}
+.dtop{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.dhead{margin:0;font:700 20px/1.3 var(--sans)}
+.dsort{all:unset;cursor:default;display:inline-flex;gap:8px;align-items:center;border:1px solid #888c8c;border-radius:8px;padding:8px 12px;font:400 14px/1 var(--sans);background:#fff}
+.dgrid{grid-template-columns:repeat(auto-fill,minmax(236px,1fr));gap:20px;align-items:stretch}
+.dcard{display:flex;flex-direction:column;border:1px solid var(--rule);border-radius:12px;overflow:hidden;background:#fff;color:var(--ink)}
+.dcard:hover{box-shadow:0 2px 10px rgba(15,17,17,.12)}
+.dph{display:block;aspect-ratio:4/3;background:#eaeded;flex:none}
+.dph img{width:100%;height:100%;object-fit:cover;display:block}
+.dtx{display:flex;flex-direction:column;gap:6px;padding:12px 14px 14px;flex:1}
+.dtitle{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.7em;font:700 16px/1.35 var(--sans);color:var(--ink);text-decoration:none}
+.dchips{display:flex;gap:6px;flex-wrap:nowrap;overflow:hidden;min-height:24px}
+.dchip{flex:none;border-radius:4px;padding:3px 8px;background:#f0f2f2;font:400 12px/1.2 var(--sans);color:var(--ink)}
+.dmiles{font:400 14px/1.3 var(--sans);color:var(--ink2)}
+.dprice{font:400 28px/1.1 var(--sans);color:var(--ink)}
+.dprice sup{font-size:.5em;vertical-align:top;position:relative;top:.1em;margin-left:1px}
+.dfees{font:400 12px/1.3 var(--sans);color:var(--ink2)}
+.dest{font:400 13px/1.3 var(--sans)}
+.dlink{color:#007185}
+.dsm{color:var(--ink2);font-size:12px}
+.dmark{margin-top:auto;align-self:stretch;display:flex;align-items:center;gap:8px;border:1px solid var(--rule);border-radius:8px;padding:8px 10px;background:#fff;font:700 13px/1.2 var(--sans);letter-spacing:0;text-transform:none;color:#007185;text-decoration:none}
+.dmark[hidden]{display:none}
+.dmark:hover{background:var(--soft);border-color:#a2a6a6}
+.dmark svg{flex:0 0 18px;width:18px;height:18px;fill:currentColor}
+.dmark .dm-t{flex:1}.dmark .dm-c{font-size:18px;line-height:1}
+@media (max-width:860px){.dlayout{grid-template-columns:1fr}.dfil{display:none}}
 `;
 
 const JS = String.raw`
@@ -385,7 +424,7 @@ const JS = String.raw`
   }
   // THE PILOT SCOPE (the profile's makeScope): the answer's own make and model against the list; outside it, no module.
   // Sam's approved rules, the same function the server's check runs (amazonInScope), relative to this year.
-  var amazonInScope = __INSCOPE__;
+  var amazonInScope = __INSCOPE__, stripGearbox = __STRIPGB__;
   // the same scope on typed words (scopeFromWords): an out-of-scope car named by year and a known make reads nothing
   var KNOWN_MAKES = __KNOWNMAKES__, MAKE_WORDS = __MAKEWORDS__, scopeFromWords = __FROMWORDS__;
   function wordsOut(q){ return scopeFromWords(q, new Date().getFullYear(), SCOPE) === false; }
@@ -524,7 +563,7 @@ const JS = String.raw`
     $("c-price").innerHTML = block ? '<div class="ptop"><div class="pl">' + (sl ? '<div class="price">' + usd(sl.price) + '</div><p class="price-kind">Sample asking price</p>' + (sl.miles ? '<p class="miles">' + esc(Number(sl.miles).toLocaleString("en-US")) + " miles</p>" : "") : '<div class="price dset">Price set by dealer</div>') + '</div><div class="icos"><button type="button" class="ico" data-inert aria-label="Save">' + HEART + '</button><button type="button" class="ico" data-inert aria-label="Share">' + SHARE + "</button></div></div>" : "";
     var wand = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l9-9M14 4v3M12.5 5.5h3M19 9v3M17.5 10.5h3M10 7l1.5 1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
     $("c-fin").innerHTML = !block ? "" : '<div class="fin"><span class="fin-l">Finance</span><div class="fin-top">' + (sl && ru ? '<p class="fin-u">' + wand + "Last updated " + esc(ru) + "</p>" : "") + (sl ? '<p class="fin-m">' + usd(sl.monthly) + '<span>/mo</span></p><p class="fin-t">' + esc(TERMS) + " \u00b7 Sample</p>" : "") + '</div><div class="fin-b"><button type="button" class="btn yel blk" data-inert>Estimate payments</button>' + (sl ? '<p class="fin-x">Total payments ' + usd(sl.total) + ". Sample figures for this demo.</p>" : '<p class="fin-x">Payments depend on the price the dealer sets.</p>') + "</div></div>" + (sl ? '<div class="cash"><span class="cash-l">Cash</span><b class="cash-r">' + usd(sl.price) + "</b></div>" : "");
-    if ($("c-mc")) { $("c-mc").hidden = !scope; if (scope) $("mc-body").innerHTML = mcCard(a); }
+    if ($("c-mc")) { $("c-mc").hidden = !scope; if (scope) { $("mc-body").innerHTML = mcCard(a); openMc(); } }
     // A read that failed (ok:false) draws the page's own "could not be read" or still-reading line, never a blank rail.
     $("c-case").innerHTML = scope ? "" : (ok ? caseHtml(a) : '<div class="case">' + cardHtml(a) + "</div>");
     $("c-pcard").innerHTML = scope ? mcCard(a) : ""; tidyRows();
@@ -549,20 +588,28 @@ const JS = String.raw`
       fetch("/api/partnerAnswer?last=" + encodeURIComponent(qq), { credentials: "include" }).then(function(r){ return r.json(); }).catch(function(){ return null; }).then(function(a){
         if (!a || a.ok === false || a.lastGood !== true) return;
         var sl = SAMPLES[q], ph = sl ? ownSalePhoto(a, sl) : null; if (ph) card.querySelector("[data-dph]").innerHTML = '<img src="/api/partnerAnswer?photo=' + encodeURIComponent(ph) + '&w=320" alt="" loading="lazy">';
-        var id = a.identity || {}; if (id.body) card.querySelector("[data-dchips]").innerHTML = '<span class="dchip">' + esc(id.body) + "</span>";
+        // the spec chips: Lane E's chips field (the record's own facts, capitalised), at most three; none when the field is absent
+        var chips = Array.isArray(a.chips) ? a.chips.filter(function(c){ return c && String(c).trim(); }).slice(0, 3) : [];
+        card.querySelector("[data-dchips]").innerHTML = chips.map(function(c){ return '<span class="dchip">' + esc(c) + "</span>"; }).join("");
         if (!inScope(a)) return;
-        var m = card.querySelector("[data-dmark]"); m.textContent = anySold(a.history) ? "Sold before" : "Market Check"; m.hidden = false;
+        var m = card.querySelector("[data-dmark]"); m.querySelector(".dm-t").textContent = anySold(a.history) ? "Sold before" : "Market Check"; m.hidden = false;
       });
     });
   }
   if (VIEW === "d") drawD();
+  var OPENMC = /[?&]mc=1(&|$)/.test(location.search);
+  function openMc(){
+    if (!OPENMC) return; OPENMC = false;
+    var tg = document.querySelector("[data-mc-toggle]"); if (tg && $("mc-body").hidden) tg.click();
+    var bd = $("mc-body"); if (bd && bd.scrollIntoView) bd.scrollIntoView({ block: "start" });
+  }
   var ORIGCAR = CAR, ORIGTITLE = ($("c-title") || {}).textContent || "";
   function bodyOf(){ return LIST && LIST.vin && CAR === ORIGCAR ? { q: CAR, vin: LIST.vin } : { q: LISTCAR || CAR }; }
   // Tab c for the current car: after a change of car the page clears its own panes and reads once (never a second read).
   function startC(changed){
     if (changed) {
       var lc = LISTCAR, vinLike = /^[A-Za-z0-9]{11,17}$/.test(lc) && /\d.*\d.*\d/.test(lc) && !/\s/.test(lc);
-      $("c-title").textContent = CAR === ORIGCAR ? ORIGTITLE : vinLike ? "" : /^\d{4}\s/.test(lc) ? "Used " + lc : lc;
+      $("c-title").textContent = CAR === ORIGCAR ? ORIGTITLE : vinLike ? "" : /^\d{4}\s/.test(lc) ? "Used " + stripGearbox(lc) : lc;
       ["c-photo", "c-thumbs", "c-price", "c-fin", "c-case", "c-pcard", "c-kf", "c-hist"].forEach(function(id){ $(id).innerHTML = ""; });
       $("c-kfsec").hidden = true; $("c-histsec").hidden = true; $("c-mc").hidden = true; $("mc-body").hidden = true; $("mc-body").innerHTML = '<p class="loading">Reading the sales for this one.</p>';
       var tg = document.querySelector("[data-mc-toggle]"); if (tg) { tg.setAttribute("aria-expanded", "false"); tg.classList.remove("open"); var ch = tg.querySelector(".chev-t"); if (ch) ch.textContent = "Show"; }
@@ -639,7 +686,7 @@ export function amazonPageHtml(view, carIn, { carOf, listing }) {
   // line; the section tabs; Key features from the answer's own decode (a field left out when unknown); History and
   // condition. No VIN printed, nothing beside the price from the engine, no verdict words. Every partner control inert.
   const vinLike = /^[A-Za-z0-9]{11,17}$/.test(listCar) && /\d.*\d.*\d/.test(listCar) && !/\s/.test(listCar);
-  const initTitle = vinLike ? "" : /^\d{4}\s/.test(listCar) ? "Used " + listCar : listCar;   // never the VIN (item 7)
+  const initTitle = vinLike ? "" : /^\d{4}\s/.test(listCar) ? "Used " + stripGearbox(listCar) : listCar;   // never the VIN (item 7)
   const viewC = `
 <section class="wrap" id="view-c"${v === "c" ? "" : " hidden"}>
   <p class="back"><a class="back-l" href="${escHtml(`?p=amazon&view=d`)}">&lsaquo; Back to search results</a></p>
@@ -671,12 +718,23 @@ export function amazonPageHtml(view, carIn, { carOf, listing }) {
   // "Used {year} {make} {model}", the mileage and a spec chip, the fixed sample price and finance line (profile
   // constants), and ONE neutral marker read from that car's STORED partner answer ("Sold before" when its VIN has sold,
   // else "Market Check"); no range, no verdict, no live engine call from the page. A card opens its tab c page.
-  const dCard = (c, i) => { const sl = P.sampleListings[c] || null, body = P.listingBody[c] ? " " + P.listingBody[c] : "";
-    return `<a class="dcard" href="${escHtml(`?p=amazon&view=c${i === 0 ? "" : "&car=" + i}`)}" data-dcar="${escHtml(c)}"><span class="dph" data-dph></span><span class="dtx"><span class="dtitle">${escHtml("Used " + c + body)}</span>${sl && sl.miles ? `<span class="dmiles">${sl.miles.toLocaleString("en-US")} miles</span>` : ""}<span class="dchips" data-dchips></span>${sl && sl.price ? `<span class="dprice">${"$" + sl.price.toLocaleString("en-US")}</span><span class="dfin">${"$" + sl.monthly.toLocaleString("en-US")}/mo, Sample</span>` : ""}<span class="dmark" data-dmark hidden></span></span></a>`; };
+  const n = AMAZON_DEMO_CARS.length, money = x => "$" + Number(x).toLocaleString("en-US");
+  const dCard = (c, i) => { const sl = P.sampleListings[c] || null, body = P.listingBody[c] ? " " + P.listingBody[c] : "", to = `?p=amazon&view=c${i === 0 ? "" : "&car=" + i}`;
+    return `<div class="dcard" data-dcar="${escHtml(c)}"><a class="dph" href="${escHtml(to)}" data-dph aria-label="${escHtml("Used " + stripGearbox(c + body))}"></a><div class="dtx"><a class="dtitle" href="${escHtml(to)}">${escHtml("Used " + stripGearbox(c + body))}</a><div class="dchips" data-dchips></div>${sl && sl.miles ? `<div class="dmiles">${sl.miles.toLocaleString("en-US")} miles</div>` : ""}${sl && sl.price ? `<div class="dprice">${money(sl.price)}<sup>00</sup></div><div class="dfees">Plus taxes and fees</div><div class="dest"><span class="dlink">Est. ${money(sl.monthly)}/mo financing</span> <span class="dsm">Sample</span></div>` : ""}<a class="dmark" href="${escHtml(to + (i === 0 ? "&car=0" : "") + "&mc=1")}" data-dmark hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="12" width="4" height="8" rx="1"/><rect x="10" y="7" width="4" height="13" rx="1"/><rect x="17" y="3" width="4" height="17" rx="1"/></svg><span class="dm-t">Market Check</span><span class="dm-c">&rsaquo;</span></a></div></div>`; };
+  const filt = (t, opts) => `<div class="fgrp"><button type="button" class="fh" data-inert>${t}<span class="fc">&#9662;</span></button>${opts.map(o => `<button type="button" class="fo" data-inert><span class="fbx"></span>${escHtml(o)}</button>`).join("")}</div>`;
+  const makes = [...new Set(AMAZON_DEMO_CARS.map(c => /^\d{4}\s+(\S+)/.exec(c)[1]))], years = AMAZON_DEMO_CARS.map(c => Number(/^(\d{4})/.exec(c)[1]));
   const viewD = `
 <section class="wrap" id="view-d"${v === "d" ? "" : " hidden"}>
-  <h1 class="dhead">Used cars</h1><p class="sample-tag">Sample results</p>
-  <div class="dgrid">${AMAZON_DEMO_CARS.map(dCard).join("")}</div>
+  <div class="dlayout">
+    <aside class="dfil" aria-label="Filters (sample)">
+      ${filt("Distance", ["Nationwide"])}${filt("Condition", ["Used", "Certified Pre-Owned", "New"])}${filt("Make", makes)}${filt("Model", ["All models"])}${filt("Model year", [Math.min(...years) + " to " + Math.max(...years)])}${filt("Exterior color", ["Black", "White", "Gray", "Silver", "Blue", "Red"])}${filt("Body style", ["Coupe", "Convertible", "Sedan"])}
+    </aside>
+    <div class="dmain">
+      <div class="dtop"><h1 class="dhead">1-${n} of ${n} results</h1><button type="button" class="dsort" data-inert>Sort by: Featured<span class="fc">&#9662;</span></button></div>
+      <p class="sample-tag">Sample results</p>
+      <div class="dgrid">${AMAZON_DEMO_CARS.map(dCard).join("")}</div>
+    </div>
+  </div>
 </section>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><title>What these sell for</title><style>${CSS}${SELLS_FOR_CARD_CSS}</style></head><body>
@@ -703,5 +761,5 @@ ${carBar}
 ${viewC}
 ${viewD}
 </main>
-<script>${JS.replace("__LISTCAR__", JSON.stringify(listCar)).replace("__SAMPLES__", JSON.stringify(P.sampleListings)).replace("__LISTBODY__", JSON.stringify(P.listingBody)).replace("__OOSLINE__", JSON.stringify(OUT_OF_SCOPE_LINE)).replace("__CASEFN__", () => demoAnswerCase.toString()).replace("__CONTEXT__", JSON.stringify(P.cardContext)).replace("__TERMS__", JSON.stringify(P.financeTerms)).replace("__CAR__", JSON.stringify(car)).replace("__OUTSCOPE__", JSON.stringify(outC)).replace("__CARS__", JSON.stringify(AMAZON_DEMO_CARS)).replace("__SCOPE__", JSON.stringify({ age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS })).replace("__KNOWNMAKES__", JSON.stringify(KNOWN_MAKES)).replace("__MAKEWORDS__", JSON.stringify(MAKE_WORDS)).replace("__FROMWORDS__", scopeFromWords.toString()).replace("__INSCOPE__", amazonInScope.toString()).replace("__VIEW__", JSON.stringify(v)).replace("__LIST__", JSON.stringify(hasListing ? { vin: listing.vin } : null)).replace("__CHOSEN__", JSON.stringify(chosen))}</script></body></html>`;
+<script>${JS.replace("__LISTCAR__", JSON.stringify(listCar)).replace("__SAMPLES__", JSON.stringify(P.sampleListings)).replace("__LISTBODY__", JSON.stringify(P.listingBody)).replace("__OOSLINE__", JSON.stringify(OUT_OF_SCOPE_LINE)).replace("__CASEFN__", () => demoAnswerCase.toString()).replace("__CONTEXT__", JSON.stringify(P.cardContext)).replace("__TERMS__", JSON.stringify(P.financeTerms)).replace("__CAR__", JSON.stringify(car)).replace("__OUTSCOPE__", JSON.stringify(outC)).replace("__CARS__", JSON.stringify(AMAZON_DEMO_CARS)).replace("__SCOPE__", JSON.stringify({ age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS })).replace("__KNOWNMAKES__", JSON.stringify(KNOWN_MAKES)).replace("__MAKEWORDS__", JSON.stringify(MAKE_WORDS)).replace("__FROMWORDS__", scopeFromWords.toString()).replace("__INSCOPE__", amazonInScope.toString()).replace("__STRIPGB__", stripGearbox.toString()).replace("__VIEW__", JSON.stringify(v)).replace("__LIST__", JSON.stringify(hasListing ? { vin: listing.vin } : null)).replace("__CHOSEN__", JSON.stringify(chosen))}</script></body></html>`;
 }
