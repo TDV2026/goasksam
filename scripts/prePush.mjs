@@ -713,6 +713,13 @@ try {
 } catch (e) {
   record("buyActionsCheck (scripts/buyActionsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Title and X on top, the shared card, no snippets, actions in Sam's order (Sam, Oct 20 2026; Lane C). No network.
+try {
+  const out = execSync("node scripts/buyPanelCheck.mjs", { encoding: "utf8" });
+  record("Buy Stage 1d item 5, the inline Market Check panel (scripts/buyPanelCheck.mjs)", "PASS", (out.match(/buyPanelCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Buy Stage 1d item 5, the inline Market Check panel (scripts/buyPanelCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
