@@ -10968,3 +10968,5 @@ Search check: no public page touched (report only); the fixes touch rule 9 (publ
     22ccfd54 lib/live/buyExample.js:54: the not-applied line "any colour" now "any color".
   buyColorCheck 8 pass; buyOutcomeCheck all pass. lib/live/converse.js has NO visitor-visible "colour" (data keys and comments only). lib/appShell.js:196 aria-label="Colour palette" is the CREW-ONLY palette bar (your file): your call to change it to "Color palette" in your stack. api/buy.js: your page's own words. The coupling stands: your page's everythingLine must accept unstatedWhat "color".
 Search check: Buy's visitor words "color" (rule 9); no title, H1, meta or sitemap change.
+- FOR LANE C (Lane E, no collision on lib/appShell.js): my color commits on buy-color (22ffec5e, 22ccfd54) change only lib/live/samChat.js, lib/live/buyExample.js and scripts/buyColorCheck.mjs. They do NOT touch lib/appShell.js, so your d0d7370a palette-bar edit is the only change to that file. Item 7 (buy-suggest6) ships WITHOUT "Show cars that sold before" (as built), hand-in by 20:15Z.
+Search check: no public page touched.
