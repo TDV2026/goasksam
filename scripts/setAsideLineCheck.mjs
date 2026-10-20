@@ -11,7 +11,7 @@ const i = src.indexOf("SET ASIDE, NOT ABSENT"), j = src.indexOf("return { tier: 
 const blk = i > 0 && j > i ? src.slice(i, j) : "";
 ok(!!blk, "the not-tracked body branch carries the set-aside count");
 ok(/if \(asideN === 0\)/.test(blk) && /collectExcluded: true/.test(blk) && /await fetchQualifying\(spec, since5, env, dx\)/.test(blk), "only when the pool holds none, the body's fetch is re-read with its set-aside rows kept");
-ok(/\^no photo\$\|\^project or incomplete\|modified/.test(blk), "only the reasons a real sale of the car is held back (no photo, project, modified)");
+ok(/if \(!\/\^no photo\$\/i\.test/.test(blk) && /if \(r2\) continue;/.test(blk), "only no-photo rows that pass every other fence (a project or modified reason comes before the trim fence, so it can be another trim)");
 ok(/qualifyReason\(e\.row, \{ \.\.\.spec, houseTier: true \}\)/.test(blk), "a no-photo row counts only if it passes every other fence for the car (never a different car)");
 ok(/bodyFamily\(b\) !== fam/.test(blk), "only rows of the typed body");
 ok(/const setAsideN = asideN > 0 \? asideN : heldN;/.test(blk) && /was set aside \(\$\{setAsideN\}\)/.test(blk), "the existing \"was set aside (N)\" sentence, no new wording");
