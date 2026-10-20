@@ -10483,3 +10483,36 @@ Search check: no public page touched (review only).
     no plain window (all years on record): "The Bentley Continental S2 sold 4 times at auction, as of October 20, 2026."
     no engine pool: "Each car below by VIN, with its auction results, as of October 20, 2026."
   Same sentence as the meta description. No dashes, no "our data", never starts with a number, no VIN-list count. FULL prePush 06:55:00Z if you clear it.
+
+- FROM SAM, relayed verbatim by Lane F (2026-10-20T06:0xZ): NEW BUILD, MARKET CHECK PARTNER DEMO FOR AMAZON AUTOS (PILOT). Route it to the lanes now, alongside the open work. Lane C builds the shell from the eBay demo and integrates, Lane A builds the screens, Lane E checks speed and data, Lane B is called on for engine questions only. Report stage by stage. (This version replaces the 05:5xZ copy of the spec above: it adds the LOGO paragraph, the staging, and says Tab b's engine card sits ABOVE the asking price field.)
+
+  PURPOSE. Amazon Autos asked for market intelligence and wants a demo that shows how it fits their current pages. Build it the same way as the eBay demo: their layout, colours, buttons and logo inside our demo shell, so they see exactly where it sits. Presentation only. Integration (embed or API) is undecided, so the module reads from the existing partner answer path so either can follow later. Name shown: "Market Check", with small attribution "Powered by GoAskSam".
+
+  LOGO. Take the Amazon Autos logo from the Amazon Autos website (the official logo as it appears on their autos pages). Save it as a local asset in the demo's own files, served from goasksam.com. Do not hotlink it from Amazon's servers. Use it only in the partner header of this gated demo, next to "Prepared for Amazon", exactly as the eBay logo is used in the eBay demo. Do not alter it, and do not use it anywhere else on the site.
+
+  DEMO SHELL (same as eBay). Black demo bar on every screen: "What these sell for, powered by GoAskSam." with three tabs: "a. Before shopping", "b. Dealer lists a car", "c. On the listing". Under it the car box ("Type your car or paste a VIN", Show). Partner header with the Amazon Autos logo and "Prepared for Amazon". "Sample listing" label on every listing frame.
+
+  SAFEGUARDS. Code-gated with the partner demo gate, noindex, goasksam.com only, never an address resembling the partner's. Every buy, finance, trade-in, sign-in and search control is inert: no form collects anything, no link leaves the demo except our own "How Sam decides". No VIN printed on the sample listing. The partner code lives only in Vercel and Sam's Keychain, never in chat, files or logs. No secrets, no spend.
+
+  ONE ENGINE. Every figure, line, range and sale comes from oneEngineAnswer through the partner answer path. No partner logic, no new numbers, no wording beyond the shared card. A partner profile controls presentation only: logo and header, attribution, history display ("link" or "inline"), make scope.
+
+  PILOT SCOPE. Enthusiast and specialty makes and models only. Outside scope the listing shows no module. Thin answers inside scope show exactly as the engine words them, with the sales found.
+
+  TAB c. ON THE LISTING. Amazon Autos vehicle page layout: photos, title, sample asking price labelled "Sample asking price" (inside the range, none on thin cars), finance and purchase box, dealer line, vehicle features, vehicle history. Market Check sits below the purchase box, never beside the price: collapsed row "Market Check" opening the shared card (range, engine line, sales newest first). Exact-car history sits in the vehicle history section as "This car has previous market history" with "See earlier sales", opening the existing popup (heading "sold before" only when a prior listing of that VIN actually sold, otherwise "listed before"). No "last sold" panel near the price. No verdict words anywhere: no overpriced, good deal, above or below market, fair price, score.
+
+  TAB a. BEFORE SHOPPING. Entry page "What's your car going for?" Any car or a VIN returns the same shared card, with exact-car history inline when a VIN is given. Two inert next steps: "Shop these cars" and "See your trade-in offer". The partner's trade-in number is never shown or compared.
+
+  TAB b. DEALER LISTS A CAR. Dealer listing screen in the partner's style: VIN in, then exact-car history inline plus the same shared card, above the asking price field. No pricing advice, no suggested price. The dealer sets the price.
+
+  DEMO CARS. The seven existing demo cars, including the thin 1966 Ferrari 275 GTB (no range, no sample price). Reuse the demo speed tree: version-keyed stored answers, one read per page, right-sized photos, keep-warm.
+
+  COPY RULES. No source counts, no "our data", no "AI" label, no mention of other tools, no first-person Sam, no em or en dashes.
+
+  REVERT AT ONCE on any changed count, range or line, any bare money number, a blank module, a broken search, any venue name appearing, or any control that does something.
+
+  OUT OF SCOPE. Real integration, inventory feeds, dealer accounts, dealer inventory dashboards, ordinary-car coverage.
+
+  Stages, each reported when done: (1) shell and logo in place behind the gate; (2) tab c on the seven cars; (3) tab a; (4) tab b; (5) Lane E speed and data check on all seven cars across all three tabs. Tell Sam when stage 2 is viewable so he can review it live. Nothing public changes. The eBay partner demo stays held.
+  One-engine rule applies. Report stage by stage. No time estimates.
+
+- LANE F NOTE ON THE ABOVE (06:0xZ): OWNERS. Lane C builds the shell from the eBay demo and integrates and pushes (the profile split and the inert check already planned); LANE A's screens: Lane A is not reachable by message and has not answered lane-notes since the start: LANE A, if you read this, post here; otherwise Lane C writes the screens (as it wrote the Buy CSS); the LOGO: Lane C takes it as Sam instructs (the official logo as it appears on the Amazon Autos pages, saved as a local asset served from goasksam.com, never hotlinked, unaltered, used only in this demo's partner header next to 'Prepared for Amazon'; record the source page and the date in the commit message); Lane E checks speed and data (stage 5; also reviews copy for the verdict words, source counts, dashes); Lane B engine questions only. SLOTS (FULL prePush each, alone; after the Buy queue that runs to 08:55Z): STAGE 1 (shell and logo behind the gate) and STAGE 2 (tab c on the seven cars) may ship in ONE prePush if both are ready: 09:20:00Z, look 09:33:00 to 09:40:00Z, then I tell Sam it is viewable; STAGE 3 (tab a) 10:00:00Z; STAGE 4 (tab b) 10:40:00Z; STAGE 5 (Lane E's check) 11:20:00Z. Sam reviews with the partner code he holds (in his Keychain and Vercel); nothing is sent to Amazon; the eBay partner demo stays held.
