@@ -4707,18 +4707,12 @@ async function handleOps(req, res) {
           const spec = ob.buildSpec(v, g, q);
           const dx = { collectExcluded: true };
           const pool = (await ob.fetchQualifying(spec, since5, env, dx)) || [];
-          const held = new Map();
-          for (const e of (dx.excluded || [])) {
-            const reason = String(e.reason || "");
-            if (!/^no photo$|^project or incomplete|modified/i.test(reason)) continue;
-            const r2 = ob.qualifyReason(e.row, { ...spec, houseTier: true });
-            if (r2 && !/^project or incomplete|modified/i.test(String(r2))) continue;   // a different car, another body, a part
-            const k = /^no photo$/i.test(reason) ? "no photo" : /^project/i.test(reason) ? "project" : "modified";
-            if (!held.has(k)) held.set(k, new Set()); held.get(k).add(String(e.row.id));
-          }
-          const heldBy = Object.fromEntries([...held.entries()].map(([k, ids]) => [k, ids.size]));
+          // the body's OWN rows only, of the typed year (lib/_bodyAside.js; Lane F's fix after the 15:50 read)
+          const { heldBodyRows } = await import("../lib/_bodyAside.js");
+          const { rulesFor } = await import("../lib/modelRules.js");
+          const heldBy = heldBodyRows(dx.excluded, spec, { body, year: v.year, rowBodyWordOf: ob.obRowBodyWordOf, bodyFamily: ob.obBodyFamily, qualifyReason: ob.qualifyReason, rule: rulesFor(v.make, v.model) });
           const heldN = Object.values(heldBy).reduce((a, n) => a + n, 0);
-          row.bodyInPool = pool.length;
+          row.bodyInPool = pool.filter(r => { const b = ob.obRowBodyWordOf(r, rulesFor(v.make, v.model)); return b && ob.obBodyFamily(b) === ob.obBodyFamily(String(body).toLowerCase()) && (!v.year || !Number(r.year) || Number(r.year) === Number(v.year)); }).length;
           row.heldBack = heldBy;
           row.falseNoSaleLine = !!(line && /sale on record in the last five years\.$/.test(line) && !/was set aside/.test(line) && heldN > 0);
         }
