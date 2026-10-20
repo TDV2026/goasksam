@@ -9,16 +9,6 @@ const HERO_SUPPORTING = "Sam will recommend where to sell your vehicle and show 
 const PLACEHOLDER_EXAMPLES = ["Type your car, or paste a VIN."];
 
 // ---- Learn page copy (prose, Paddock system, no dashes) ----
-const LEARN_HOW = {
-  title: "How Sam works",
-  sections: [
-    { h: "What we look at", body: "Sam analyzes recent auction results, platform performance and timing patterns before making a recommendation. For your exact vehicle, we look at where comparable vehicles have actually sold and how those results compare across platforms. We never value your vehicle and never predict a price. Every claim states the scope it was measured at and the time window it covers, so you always know what a number is based on." },
-    { h: "How the comparison works", body: "We start narrow, at your exact year and trim, and only widen the scope when the close data is too thin to be useful. When we widen, we say so. The recommendation is the platform where vehicles like yours have found the strongest, most consistent results, judged on recent sold records rather than opinion." },
-    { h: "Where the recommendation comes from", body: "The recommendation itself comes from our own algorithm. We built the ranking rules, the evidence thresholds, and the honesty gates ourselves. The sales data informs it, but the judgement of where your vehicle should sell is ours." },
-    { h: "What we never do", body: "We never value your vehicle, and we never invent a number. Every figure you see comes from real records. We hold no platform fee data and never state fees as fact. If the data is thin, we tell you plainly and give an honest read rather than a confident guess." },
-    { h: "Platform or PowerSeller", body: "Sometimes the answer is a platform you list on yourself. For some vehicles, we may suggest speaking to a PowerSeller, someone who runs the whole sale for you for a fee. A PowerSeller is a hands off choice, not a way to get more money, and the platform read stands either way. Nobody pays to be recommended here." }
-  ]
-};
 const LEARN_PLATFORMS = {
   title: "Selling Platforms",
   intro: "Sam compares recent sold results across the online auction platforms we track. Here is a short note on each, with more online platforms being added.",

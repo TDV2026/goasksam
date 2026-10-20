@@ -61,7 +61,7 @@ globalThis.fetch = async () => ({ ok:true, json:async()=>({}) });
 const html = fs.readFileSync("public/index.html","utf8");
 const files = [...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m=>"public/js/"+m[1]);
 const script = files.map(f=>fs.readFileSync(f,"utf8")).join("\n");
-(0, eval)(script + "\nglobalThis.sellState=sellState;globalThis.composeCard=composeCard;globalThis.v2Reserve=v2Reserve;globalThis.powerSellerIntroLine=powerSellerIntroLine;globalThis.powerSellerServiceLine=powerSellerServiceLine;globalThis.vehicleAcceptPrefix=vehicleAcceptPrefix;globalThis.SYS=SYS;globalThis.SELL_SYS=SELL_SYS;globalThis.platformDisplayName=platformDisplayName;globalThis.HERO_SUPPORTING=HERO_SUPPORTING;globalThis.PLACEHOLDER_EXAMPLES=PLACEHOLDER_EXAMPLES;globalThis.LEARN_HOW=LEARN_HOW;globalThis.LEARN_PLATFORMS=LEARN_PLATFORMS;globalThis.HP_REASSURANCE=HP_REASSURANCE;");
+(0, eval)(script + "\nglobalThis.sellState=sellState;globalThis.composeCard=composeCard;globalThis.v2Reserve=v2Reserve;globalThis.powerSellerIntroLine=powerSellerIntroLine;globalThis.powerSellerServiceLine=powerSellerServiceLine;globalThis.vehicleAcceptPrefix=vehicleAcceptPrefix;globalThis.SYS=SYS;globalThis.SELL_SYS=SELL_SYS;globalThis.platformDisplayName=platformDisplayName;globalThis.HERO_SUPPORTING=HERO_SUPPORTING;globalThis.PLACEHOLDER_EXAMPLES=PLACEHOLDER_EXAMPLES;globalThis.LEARN_PLATFORMS=LEARN_PLATFORMS;globalThis.HP_REASSURANCE=HP_REASSURANCE;");
 
 let failures = 0;
 const check = (name, ok, detail="") => { console.log(`${ok?"PASS":"FAIL"}  ${name}${ok?"":"  ->  "+detail}`); if(!ok)failures++; };
@@ -203,7 +203,6 @@ const homepageCopy = [
   HERO_SUPPORTING,
   HP_REASSURANCE,
   ...PLACEHOLDER_EXAMPLES,
-  LEARN_HOW.title, ...LEARN_HOW.sections.flatMap(s => [s.h, s.body]),
   LEARN_PLATFORMS.title, LEARN_PLATFORMS.intro, LEARN_PLATFORMS.outro, ...LEARN_PLATFORMS.platforms.flatMap(p => [p.name, p.body])
 ].join("\n");
 check("homepage: no en/em dashes in ANY homepage copy (zero exceptions, hero line included)", !/[–—]/.test(homepageCopy), (homepageCopy.match(/[^\n]*[–—][^\n]*/) || [""])[0]);
@@ -219,7 +218,6 @@ for (const name of ["Hemmings", "Sotheby's Motorsport (SOMO)"]) {
 // user-facing copy. It must NOT appear on the Selling Platforms page or the SYS source list.
 check("homepage: Selling Platforms does NOT list AutoHunter (defunct)", !LEARN_PLATFORMS.platforms.some(p => /autohunter/i.test(p.name)), "AutoHunter still listed");
 // The algorithm-ownership sentence renders on How Recommendations Work.
-check("homepage: How-it-works states the algorithm is ours", LEARN_HOW.sections.some(s => /The recommendation itself comes from our own algorithm\./.test(s.body) && /the judgement of where your car should sell is ours\./.test(s.body)), "algorithm sentence missing");
 // Dashboard card lines (from the committed lib/dailyPulse.json): observation only.
 const pulseJson = JSON.parse(fs.readFileSync("lib/dailyPulse.json", "utf8"));
 const pulseLines = pulseJson.cards.map(c => c.line).join("\n");
