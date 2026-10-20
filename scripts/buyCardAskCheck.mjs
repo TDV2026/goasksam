@@ -169,7 +169,8 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   // Sam, Oct 15 2026: the cards draw at once; each of the six on screen is asked for alone and filled as it lands.
   ok(/    go\(\);\n    first\.forEach\(function\(l\)\{ enrichThen\(\[l\], function\(\)\{ if \(block\.isConnected && !isPend\(l\)\) redrawCards\(block, \[l\], false\); nextAsk\(\); \}\); \}\);/.test(client) && !/setTimeout\(go, 12000\)/.test(client) && /function redrawCards\(block, list, onlyHidden\)/.test(client), "cards draw at once and fill card by card, never waiting on a market");
   ok(/\.car \.sl:has\(> p\.reading\)\{min-height:/.test(page), "a card still being read holds its note's room");
-  ok(/"Sam is finding live " \+ label \+ "\."/.test(client) && !/Matching what similar cars sold for/.test(client), "one waiting line names the search");
+  // Sam's decision 10 (Oct 20 2026): the waiting line cycles the live sites in Sam's form (buySearchLineCycleCheck).
+  ok(/var SEARCH_LINE = "Sam is searching \{site\} for your car";/.test(client) && !/Matching what similar cars sold for/.test(client), "one waiting line, Sam's searching form");
 }
 
 // ---- 7. Sam, Oct 15 2026: one retry for pending markets, three lines that read oddly

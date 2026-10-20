@@ -79,7 +79,7 @@ if (arg("page")) {
       if (!t.header && document.querySelector(".msg.results:not(.stale) .shead, .msg.searching .sq-count .sc-1")) t.header = now;
       if (!t.card && [...document.querySelectorAll(".msg.results:not(.stale) article.car:not(.skel)")].some(a => a.offsetParent)) t.card = now;
       if (!t.still && /still finding the sales/.test(document.body ? document.body.innerText : "")) t.still = now;
-      if (!t.named && /Sam is finding live/.test(document.body ? document.body.innerText : "")) t.named = now;
+      if (!t.named && /Sam is (finding live|searching )/.test(document.body ? document.body.innerText : "")) t.named = now;
       if (!(t.header && t.card)) requestAnimationFrame(tick); }; requestAnimationFrame(tick); });
     T0 = Date.now();
     await pg.goto(BASE + "/buy?q=" + encodeURIComponent(q), { waitUntil: "domcontentloaded", timeout: 60000 }).catch(e => console.log("load error " + e.message));
