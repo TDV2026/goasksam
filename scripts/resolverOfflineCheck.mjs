@@ -29,7 +29,7 @@ const CASES = [
   ["2010 BMW M 3", { year: 2010, make: "BMW", model: "M3" }],
   ["1980 Porsche 911 SC", { make: "Porsche", model: "911", trim: "SC" }],
   ["2001 BMW Z3 2.5i", { make: "BMW", model: "Z3", trim: "2.5i" }],
-  ["Mercedes 280SE 3.5", { make: "Mercedes-Benz", model: "280SE", trim: "3.5" }],
+  ["Mercedes 280SE 3.5", { make: "Mercedes-Benz", model: "280SE 3.5", trim: null }],   // its own model since Oct 20 2026 (the W111 3.5 coupe and cabriolet)
   ["Mercedes 220SE", { make: "Mercedes-Benz", model: "220SE" }],
   ["Mercedes 300SL", { make: "Mercedes-Benz", model: "300SL" }],
   ["Find me a black manual 997 under $70k", { make: "Porsche", model: "997", trim: null }],
