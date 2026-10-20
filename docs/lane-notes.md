@@ -10883,3 +10883,18 @@ Rules unchanged: the page computes nothing, every count, range and line comes fr
 One-engine rule applies. Report stage by stage. No time estimates. No em or en dashes in any drafted copy.
 
 LANE F NOTE (owners and order; each push starts at its time or after the previous lane's look-done line, whichever is later). LANE A has never answered in this build, so LANE C writes the visuals as before and integrates and ships; LANE E owns behaviour and data checks (item 2's chip data and item 7's context-aware suggestions come from the engine side, lib/live, never computed on the page) and re-measures Buy's cold read speed (scripts/buyTimes.mjs) after each push. One commit per item. STAGES: 1d-A = items 1, 2, 3; 1d-B = items 4, 5; 1d-C = items 6, 7. Item 8 ('color') is already in the 18:15:00Z push (Lane C d0d7370a, 3c9c4802, 09f7a556 and Lane E 156fce90). SLOTS (FULL prePush alone; Lane C proposes exact times if these are wrong): 1d-A from 18:45:00Z, 1d-B from 19:15:00Z, 1d-C from 19:45:00Z. Lane E hands engine-side commits to Lane C in lane-notes at least 20 minutes before each slot. Search check line on every push (Buy is a public page).
+
+## FROM SAM, relayed verbatim by Lane F (2026-10-20T16:45Z)
+
+Answers from Sam.
+2. Strict, yes. "G50" and "MT" count as manual. "Getrag" alone does not, because Getrag also makes dual-clutch gearboxes. Manual only when the listing says manual, stick, gated, G50 or MT.
+3. I decide after the 16:35 list.
+4. Yes to all three held items.
+5. Yes to the headline, the PowerSeller card and result.js line 1863. "our records" goes too: no "our records" or "our data" anywhere public. Reword it without a possessive.
+6. Change "colour" to "color" everywhere, including Market Check and the engine's lines.
+7. Yes, keep "the".
+8. The workflow: name the three GitHub secrets, and say whether each already exists in GitHub Actions or would be a new copy of a key. I decide before copying.
+Item 1 I typed in Lane B's session myself.
+One-engine rule applies. Report stage by stage. No em or en dashes.
+
+LANE F NOTE (owners and order). GEARBOXES (answer 2): Lane E builds Buy (lib/live/search.js :340, :1212, :1313 and specQuery, motorcycles included: a bare N-speed is no longer manual anywhere; manual only for manual, stick, gated, G50, MT; Getrag alone is not manual); Lane B builds the engine (lib/onebox.js :92 pre-2005 rule off, the stale comment, and lib/_descFacts.js transmissionFromText: remove Getrag as a manual code, keep G50; MT stays) and says whether answer text changes need a stored-answer refresh. HELD ITEMS (answer 4): Lane C ships the saved car name (lanec-vinid), the sitemap sample and the own-model link. SELL (answer 5): Lane D adds A1 (H1), A2 (PowerSeller card), A3 (result.js:1863) to its 17:55 stack; the possessive sweep: no "our records" and no "our data" (and no possessive "our" standing for the company's data) on ANY public surface: Lane E inventories the repo offline FIRST, then the owners fix. COLOR (answer 6): everywhere, Market Check page and the engine's lines too: Lane C (public/js/onebox.js, public/onebox.html) and Lane B (lib/onebox.js lines). SLOTS (FULL prePush alone, each starting at its time or after the previous look-done line): Lane B 17:00 trim stack, 17:30 bundle then the rule 1 flip, Lane D 17:55, Lane C 18:15 (color Buy + homepage), Lane C 18:40 HELD ITEMS, Lane B 19:05 GEARBOXES (Lane B and Lane E commits together), then Buy Stage 1d: 1d-A 19:35, 1d-B 20:05, 1d-C 20:35 (Lane C). The 'colour' in Market Check and the engine rides Lane C's and Lane B's next pushes after the inventory.
