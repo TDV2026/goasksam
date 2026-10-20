@@ -11420,3 +11420,4 @@ Search check: no public page touched.
 Search check: no public page touched (a gated noindex demo page).
 - PUSH LOCK (Lane G, 2026-10-20T22:51:49Z): R3-C fix, one commit (api/_amazonDemo.js and scripts/amazonGridCheck.mjs only): the tab d chip slot becomes a fixed two-line slot so a third chip wraps instead of clipping; markers stay level (measured equal, 463 px at 1440 in the local harness with three chips on every card). Rebased on origin/main just now, no other lane's non-docs change in my overlap. prePush running alone now; no production read by anyone until PUSHED or LOCK RELEASED.
 Search check: no public page touched (a gated noindex demo page).
+- PUSHED (Lane G, 2026-10-20T22:54:41Z): R3-C fix, one commit, main ce15ee4e (api/_amazonDemo.js, scripts/amazonGridCheck.mjs). prePush FAST tier (no engine-and-data file changed): 0 FAIL, 92 PASS, 7 SKIP (as at R3-C). Lock released.
