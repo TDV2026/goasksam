@@ -3478,7 +3478,7 @@ async function handleOps(req, res) {
     const { findGeneration } = await import("../lib/generations.js");
     const { oneEngineAnswer, ENGINE_VERSION, RANGE_RULES } = await import("../lib/onebox.js");
     const qs = String(req.query?.qs || "").split("|").map(x => x.trim()).filter(Boolean).slice(0, 12);
-    const on = { blendOneFamily: true, gearboxFirst: true };
+    const on = { blendOneFamily: true, gearboxFirst: true, houseOnlyBody: true };
     const brief = d => {
       if (!d) return null;
       const cards = Array.isArray(d.cards) ? d.cards : [];

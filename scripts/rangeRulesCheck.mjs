@@ -5,7 +5,7 @@ process.env.PROBE_KEY = "local-check-key"; process.env.OLDCARSDATA_API_KEY = "un
 delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY; delete process.env.SUPABASE_ANON_KEY;
 const ob = await import("../lib/onebox.js");
 let bad = 0; const ok = (c, m) => { if (!c) bad++; console.log(`${c ? "ok  " : "FAIL"} ${m}`); };
-ok(ob.RANGE_RULES.blendOneFamily === false && ob.RANGE_RULES.gearboxFirst === false, "both range rules ship OFF");
+ok(ob.RANGE_RULES.blendOneFamily === false && ob.RANGE_RULES.gearboxFirst === false && ob.RANGE_RULES.houseOnlyBody === false, "all three range rules ship OFF");
 ok(!ob.rangeRuleOn({}, "blendOneFamily") && !ob.rangeRuleOn(null, "gearboxFirst"), "no request turns a rule on by default");
 ok(ob.rangeRuleOn({ rangeRules: { blendOneFamily: true } }, "blendOneFamily") && !ob.rangeRuleOn({ rangeRules: { blendOneFamily: true } }, "gearboxFirst"), "env.rangeRules turns on only the named rule");
 const r = t => ({ raw_title: t }), F512 = { make: "Ferrari", model: "512" }, VIP = { make: "Dodge", model: "Viper" };
