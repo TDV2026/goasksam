@@ -38,8 +38,17 @@ globalThis.fetch = realFetch;
 // The car page.
 const h = fs.readFileSync(new URL("../api/history.js", import.meta.url), "utf8");
 ok(/if \(appearances\.some\(a => titleInHub\(hub, a\.title, a\.year\)\)\) return s;\n\s*const has = await hubHasRows\(env, hub\);\n\s*return has === false \? null : s;/.test(h), "the car's own records answer first; the archive only when none is in the hub; unreadable keeps the link");
-ok(/const fams = \[id\.family, id\.familyKey\]/.test(h) && /for \(const f of fams\) \{ const s = await hubLink\(year, f\); if \(s\) return/.test(h), "the family's hub first, then the archive's family name");
+ok(/const fams = \[id\.family, id\.trim, id\.familyKey\]/.test(h) && /for \(const f of fams\) \{ const s = await hubLink\(year, f\); if \(s\) return/.test(h), "the family's hub first, then the archive's family name");
 ok(/\$\{modelHubL \? `<a href="\$\{esc\(modelHubL\.href\)\}">All \$\{esc\(id\.make \+ " " \+ modelHubL\.family\)\} auction results<\/a>` : ""\}/.test(h) && /\$\{yearHubL \? `<a href="\$\{esc\(yearHubL\.href\)\}">Every \$\{esc\(id\.year \+ " " \+ id\.make \+ " " \+ yearHubL\.family\)\} by VIN<\/a>` : ""\}/.test(h), "each link only when its hub exists, named by the family it links");
 ok(!/const modelHub = /.test(h) && !/const hubHref = /.test(h), "no unconditional hub link is left");
+// The car's own model hub before the broader family hub (Lane F's order, Oct 20 2026): family, then the car's own model
+// (its trim), then the archive's family name. A 2005 SL600 (family "SL-Class SL600", trim "SL600", archive family
+// "SL-Class") tries sl-class-sl600 (empty), then sl600 (exists), and links /history/mercedes-benz-sl600.
+ok(/const fams = \[id\.family, id\.trim, id\.familyKey\]\.filter/.test(h), "the order: the family's hub, the car's own model hub, then the archive family's hub");
+{ const { hubSlug } = await import("../api/_historyData.js");
+  const order = id => [id.family, id.trim, id.familyKey].filter((f, i, a) => f && a.findIndex(x => String(x).toLowerCase() === String(f).toLowerCase()) === i).map(f => hubSlug(id.make, f));
+  ok(JSON.stringify(order({ make: "Mercedes-Benz", family: "SL-Class SL600", trim: "SL600", familyKey: "SL-Class" })) === JSON.stringify(["mercedes-benz-sl-class-sl600", "mercedes-benz-sl600", "mercedes-benz-sl-class"]), "SL600: sl-class-sl600, then sl600, then sl-class");
+  ok(JSON.stringify(order({ make: "Mercedes-Benz", family: "S-Class S550", trim: "S550", familyKey: "S-Class" })) === JSON.stringify(["mercedes-benz-s-class-s550", "mercedes-benz-s550", "mercedes-benz-s-class"]), "S550: s-class-s550, then s550, then s-class");
+  ok(JSON.stringify(order({ make: "Ford", family: "Festiva", trim: null, familyKey: "Festiva" })) === JSON.stringify(["ford-festiva"]), "Festiva: its own family hub, unchanged"); }
 console.log(`hubLinkCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
