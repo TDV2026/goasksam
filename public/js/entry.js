@@ -28,7 +28,7 @@ function moneyQuestionReply(q){
     // control) still routes to the LLM.
     ||/\b(?:you|goasksam|go\s?ask\s?sam|guys|sam)\b[\s\S]{0,32}\b(?:referral fee|referral fees|referral|commission|kickback|finder'?s? fee|take a cut|get a cut|getting a cut|take a percentage)\b/i.test(lower);
   if(!hit)return null;
-  return "GoAskSam is free for sellers. We have commercial arrangements with some of the PowerSellers we work with, and nobody can pay to be recommended. The recommendation always comes first.";
+  return "GoAskSam is free for sellers. GoAskSam has commercial arrangements with some of the PowerSellers it works with, and nobody can pay to be recommended. The recommendation always comes first.";
 }
 // Curated answer for "do you have a PowerSeller in Canada" style questions.
 // Locked copy, nothing more (no routing promise). US-based-partner reality,

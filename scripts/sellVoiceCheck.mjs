@@ -58,7 +58,7 @@ const OUR = /\bour (own )?(records?|data|sold-records|tracked records|sales data
 // context notes are instructions to the model, not page copy, so they are not read for "we".
 const WE = /(^|[^A-Za-z'’\/_-])(we|We|we've|We've|we're|We're|we'll|We'll|us|our|Our)(?=[^A-Za-z'’_-]|$)/g;
 const COMPANY = [
-  "We're submitting your", "It helps us send the strongest possible submission", "We have commercial arrangements with some of the PowerSellers we work with",
+  "We're submitting your", "It helps us send the strongest possible submission",   // the PowerSeller disclosure now reads "GoAskSam has ..." (group D)
   "we're careful about who we add", "email us at feedback@goasksam.com",
 ];
 const MODEL_FACING = t => /You are Sam|NEVER say|Hold this position|VIN note \(|VIN exact-match note|seller pasted a VIN/.test(t);

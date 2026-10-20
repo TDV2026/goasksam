@@ -11,17 +11,17 @@ const PLACEHOLDER_EXAMPLES = ["Type your car, or paste a VIN."];
 // ---- Learn page copy (prose, Paddock system, no dashes) ----
 const LEARN_PLATFORMS = {
   title: "Selling Platforms",
-  intro: "Sam compares recent sold results across the online auction platforms we track. Here is a short note on each, with more online platforms being added.",
+  intro: "Sam compares recent sold results across the tracked online auction platforms. Here is a short note on each, with more online platforms being added.",
   platforms: [
-    { name: "Bring a Trailer", body: "One of the largest online enthusiast auction audiences, strong across a wide range of collector and enthusiast vehicles. We track its sold results." },
-    { name: "Cars & Bids", body: "An online auction platform with a particularly strong audience for late model performance and enthusiast vehicles. We track its sold results." },
-    { name: "Hagerty Marketplace", body: "An online marketplace connected to the wider classic car world, spanning classics and modern collectibles. We track its sold results." },
-    { name: "PCarMarket", body: "An online auction platform with a deep Porsche and enthusiast following. We track its sold results." },
-    { name: "Hemmings", body: "A long-established US marketplace for classic and collector vehicles, with deep roots in classic American and vintage vehicles. We track its sold results." },
-    { name: "Sotheby's Motorsport (SOMO)", body: "An online marketplace carrying the Sotheby's Motorsport name, for collector and enthusiast vehicles. We track its sold results." },
-    { name: "MB Market", body: "An online marketplace dedicated to Mercedes-Benz, from classics to modern collectibles. We track its sold results for Mercedes-Benz vehicles." }
+    { name: "Bring a Trailer", body: "One of the largest online enthusiast auction audiences, strong across a wide range of collector and enthusiast vehicles. Its sold results are tracked." },
+    { name: "Cars & Bids", body: "An online auction platform with a particularly strong audience for late model performance and enthusiast vehicles. Its sold results are tracked." },
+    { name: "Hagerty Marketplace", body: "An online marketplace connected to the wider classic car world, spanning classics and modern collectibles. Its sold results are tracked." },
+    { name: "PCarMarket", body: "An online auction platform with a deep Porsche and enthusiast following. Its sold results are tracked." },
+    { name: "Hemmings", body: "A long-established US marketplace for classic and collector vehicles, with deep roots in classic American and vintage vehicles. Its sold results are tracked." },
+    { name: "Sotheby's Motorsport (SOMO)", body: "An online marketplace carrying the Sotheby's Motorsport name, for collector and enthusiast vehicles. Its sold results are tracked." },
+    { name: "MB Market", body: "An online marketplace dedicated to Mercedes-Benz, from classics to modern collectibles. Its sold results are tracked for Mercedes-Benz vehicles." }
   ],
-  outro: "More online platforms are being added as we widen the data we track."
+  outro: "More online platforms are being added."
 };
 const HP_REASSURANCE = "Recommendations are based on recent auction results and platform performance.";
 

@@ -15,12 +15,12 @@ import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 
 export const TASKS_PITCH = { lead: "A free collector car finder.", sub: "Tell Sam what you want and he keeps searching, then emails you when one fits." };
-const HOW = "The cars Sam shows you come from our rules-based matching algorithm. AI helps understand the question and explain the results, but it does not invent the cars, the matches or the numbers. Every number comes from real market evidence.";
+const HOW = "The cars Sam shows you come from a rules-based matching algorithm. Sam helps understand the question and explain the results, but never invents the cars, the matches or the numbers. Every number comes from real market evidence.";
 const FAQ = [
   ["Is it free?", "Yes. Every GoAskSam account gets one active Task free. Sign in, tell Sam what you're looking for, and Sam keeps checking."],
   ["How is it different from a saved search?", "You describe the car in plain words, the way you'd tell a friend, and Sam confirms exactly what it will look for before it starts. When a car matches, the update says what came up, how far away it is and, when the same car has been to auction before, what happened then."],
   ["How will I be told?", "Each update appears in your Task on GoAskSam, with a badge on Tasks. By email, Sam sends one email a day with everything new from all your Tasks. You can choose twice a day, three times a day, or as soon as one comes, up to six emails a day. A car you asked to hear about before bidding ends gets its own email two hours before the end. When nothing new matches, Sam stays quiet."],
-  ["Does AI choose the cars?", "No. Which live cars match your Task is decided by our rules-based matching algorithm, the same one behind the GoAskSam search. AI helps understand what you asked for and write each update, but it does not invent the cars, the matches or the numbers."],
+  ["Who chooses the cars?", "A rules-based matching algorithm decides which live cars match your Task, the same one behind the GoAskSam search. Sam understands what you asked for and writes each update, but never invents the cars, the matches or the numbers."],
   ["Can I change or stop a Task?", "Yes, at any time. Type the change in the Task, or use the pause and stop links in any update. A task keeps running after a match until you pause or stop it."],
   ["What can I ask Sam to do?", "Look for a car (\"Find me a black manual 997 under $70k\", \"Keep looking for a 964 within 500 miles of LA\"), or research one car (\"Research this car and tell me if it has sold before\" with its VIN or a listing link)."]
 ];

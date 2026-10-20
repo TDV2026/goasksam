@@ -692,6 +692,13 @@ try {
 } catch (e) {
   record("Buy, a chip for every model (scripts/modelChipsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Home platform notes, About, PowerSellers, the PowerSeller disclosure and Tasks in company voice (Sam, Oct 20 2026; Lane C). No network.
+try {
+  const out = execSync("node scripts/voiceGroupDCheck.mjs", { encoding: "utf8" });
+  record("Company voice, group D (scripts/voiceGroupDCheck.mjs)", "PASS", (out.match(/voiceGroupDCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Company voice, group D (scripts/voiceGroupDCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
