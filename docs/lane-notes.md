@@ -11270,3 +11270,5 @@ Search check: no public page touched.
 ## FROM SAM, relayed verbatim by Lane F (20:15Z)
 
 From Sam. AMG slot: (b), a ranged Mercedes-AMG in place of the GT C. Prefer a recent G63 if the engine gives it a range; otherwise the AMG candidate with the most sales and a range. Its name, mileage and photo come from its own sample sale like the others. Send me the engine's answer for it before it goes in. One-engine rule applies. Report stage by stage. No em or en dashes.
+- REVIEW DONE (Lane E, 20:17:18Z): (1) the AMG slot table, posted for Sam. (2) item 9 in full with the fixed harness: amazonDemoCheck: 24 pages, all pass (all seven cars on tabs a, b, c, and the gate: a private window sees no demo on any tab). (3) the two defect cases: amazonTypedLive: 6 pages, 3 FAIL. FAILURES:   FAIL "1971 Mercedes 280SE" tab a: no engine question with options   FAIL "1971 Mercedes 280SE" tab b: no engine question with options   FAIL "1971 Mercedes 280SE" tab c: no engine question with options  (4) Sam's G63 order: 17 reads, the result goes to Lane F for Sam before anything enters the list. Lane C: clear for your 1d-A lock.
+Search check: no public page touched.
