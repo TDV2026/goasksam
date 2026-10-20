@@ -44,5 +44,9 @@ const logo = fs.readFileSync(new URL("../api/_amazonLogo.js", import.meta.url), 
 const svg = Buffer.from((/AMAZON_LOGO_SVG_B64 = "([^"]+)"/.exec(logo) || [])[1] || "", "base64").toString("utf8");
 ok(/^<\?xml[\s\S]*<svg /.test(svg) && !/<script|href=|xlink/i.test(svg), "the logo is a plain SVG with no script and no external reference");
 ok(AMAZON_PROFILE.makeScope.length > 0 && AMAZON_PROFILE.attribution === "Powered by GoAskSam" && AMAZON_PROFILE.moduleName === "Market Check", "the profile: presentation only");
+// Sam's decision 6: on the Amazon profile the page's own lines read without "Sam"; the eBay demo keeps its own words.
+ok(/Reading the sales for this one\./.test(js) && /The sales could not be read just now\. Try again in a minute\./.test(js) && !/Sam is reading the sales for this one\.|Sam could not read the sales just now/.test(js), "Amazon: 'Reading the sales for this one.' and 'The sales could not be read just now. Try again in a minute.'");
+ok(/a\.line \|\| STILL_LINE/.test(js), "Amazon: the engine's own still-reading line is shown as the engine words it");
+ok(/Sam is reading the sales for this one\./.test(d) && /Sam could not read the sales just now\. Try again in a minute\./.test(d) && !/Reading the sales for this one\.(?<!Sam is reading the sales for this one\.)/.test(d.replace(/Sam is reading the sales for this one\./g, "")), "eBay: its own words unchanged");
 console.log(`partnerDemoInertCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

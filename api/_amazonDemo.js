@@ -119,7 +119,9 @@ const JS = String.raw`
   var usd = function(n){ return "$" + Math.round(Number(n)).toLocaleString("en-US"); };
   var MON = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var monthYear = function(d){ var p = String(d || "").split("-"); return p.length >= 2 && MON[Number(p[1]) - 1] ? MON[Number(p[1]) - 1] + " " + p[0] : ""; };
-  var STILL_LINE = "Sam is still reading the sales for this one.", COULD_NOT = "Sam could not read the sales just now. Try again in a minute.";
+  // Sam's decision 6 (Oct 20 2026), the Amazon profile only: the page's own lines without "Sam"; the engine's own
+  // still-reading line (a.line) is shown as the engine words it.
+  var STILL_LINE = "Sam is still reading the sales for this one.", COULD_NOT = "The sales could not be read just now. Try again in a minute.";
   // ONE READ PER PAGE through the partner answer path (the same path and stored answers as the eBay demo); the engine's own
   // retryAfterMs is the only retry, and past the safety deadline a demo car falls back to its stored answer.
   var DEADLINE = 25000;
@@ -225,7 +227,7 @@ export function amazonPageHtml(view, carIn, { carOf, listing }) {
       <p class="dealer">Sold by <b>Sample dealer</b></p>
       <div class="mc" id="c-mc" hidden>
         <button type="button" class="mc-row" data-mc-toggle aria-expanded="false" aria-controls="mc-body"><span>${escHtml(P.moduleName)}<br><span class="attr">${escHtml(P.attribution)}</span></span><span class="chev">Show</span></button>
-        <div class="mc-body" id="mc-body" hidden><p class="loading">Sam is reading the sales for this one.</p></div>
+        <div class="mc-body" id="mc-body" hidden><p class="loading">Reading the sales for this one.</p></div>
       </div>
     </div>
     <div class="below">
