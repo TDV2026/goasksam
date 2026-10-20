@@ -10682,3 +10682,32 @@ Search check: no public page wording changed by the server alone; the client shi
   FLAG 2, COVERAGE: the preview read 12 typed cars, not "every car the fix would move" (Sam's words). For the 512 alone a sweep of every model year 1976 to 1996, and for the other five names their years, would list every mover. Proposal for Lane B: run task=rangepreview over that year list in batches of 12 (read-only, zero OldCarsData), and post the movers only.
   NOT A BLOCKER: the 1992 512 is a 512 TR year, and "1992 512" reads 17 then 10, as the rule intends.
 Search check: no public page touched (review only).
+- LANE E, lint:cards (Lane F's ask, offline; fix built, not pushed). CAUSE: the chain did not fail on a card defect. It failed BEFORE any check ran: scripts/cardV2Lint.mjs and scripts/verifyBugs.mjs read the root index.html and its js/ files, and the site moved into public/ (2609f308). FIX BUILT, one commit 268e1482 on branch scripts-lint-cards (scripts only, nothing deploys): both read public/index.html and load its "js.<stamp>/x.js" scripts from public/js/x.js. With it the chain RUNS: verifyGtoGen 9 PASS, verifyDeskSetAside 20 PASS, verifyValueGate 9 PASS, verifyPrewarVeto 12 PASS, verifyLocality 17 PASS; cardV2Lint 215 PASS, 20 FAIL; verifyBugs 186 PASS, 3 FAIL.
+  IT GUARDS LIVE CODE: /sell still serves public/index.html (api/sellPage.js:44), which loads the old wizard result code these two scripts test (public/js/result.js, result-v2.js). So the 23 failures are NOT safely "drift" the way smokeWizard's are. Each is either a dated product decision the test never caught up with, or a real regression on /sell. The 23, for triage (owner Lane C, the /sell page):
+    verifyBugs M3 card-identical: the rendered card tile shows the SAME 15% (not raw 17)  ->  
+    verifyBugs scope label (2a): prose scope reads '2018 M3s' at the exact rung  ->  BMW M3s from 2018
+    verifyBugs Item1: the wizard ADVANCES off step 17 (does not re-render the vehicle clarification)  ->  {"step":17,"firstText":"If you have the exact badge or model code fr
+    cardV2Lint speed WHY: sentences 1-2, real count, NO disclosure  ->  Since you'd like to sell quickly, I'd list your 911 on Cars & Bids. It's generally quicker to get a li
+    cardV2Lint speed pick: a non-BaT evidence route present -> it leads as the speed pick  ->  {"speedMode":false,"pick":"bringatrailer"}
+    cardV2Lint speed pick: a non-BaT route at exactly N=3 DOES get the speed slot  ->  {"speedMode":false,"pick":"bringatrailer"}
+    cardV2Lint speed WHY: N=3 (at floor) RENDERS the count clause (plural)  ->  Since you'd like to sell quickly, I'd list your Cayenne on Cars & Bids. It's generally quicker
+    cardV2Lint reserve renders a percentage, no dollar sign  ->  null
+    cardV2Lint reserve lint-clean (no causal, no dollar)  ->  null
+    cardV2Lint reserve <3% uses similarity wording (within three points)  ->  null
+    cardV2Lint premium tile: label + figure + exact sentence (+20%)  ->  <div class="pcard pcard-ps" onclick="choosePowerSeller('pm')
+    cardV2Lint premium tile: same template renders a small number (+4%)  ->  <div class="pcard pcard-ps" onclick="choosePowerSeller('pm')
+    cardV2Lint premium tile: pronoun respected (she's)  ->  
+    cardV2Lint premium present -> service/prep tile DROPS on height (Chris rail = 3 tiles)  ->  tiles=3 prep=true
+    cardV2Lint location list >3 states collapses to ONE line (label carries the region)  ->  Serves Louisiana, Mississippi and four more states.
+    cardV2Lint NO-MATCH card (Howard/Mercedes) SUPPRESSES the specialty tile  ->  
+    cardV2Lint MATCH card (Howard/911) KEEPS the specialty tile  ->  
+    cardV2Lint Spencer card: premium tile present alongside identity (no dimension regression)  ->  
+    cardV2Lint Spencer card density: within budget (premium present -> weakest prep tile drops, 3 tiles)  ->  tiles=3
+    cardV2Lint delta WITH stat tiles -> TRACK in LEFT (not rail), exactly one  ->  {"count":1,"inLeft":false,"inRight":true}
+    cardV2Lint compact BEST DAY support present + <=70 chars  ->  
+    cardV2Lint compact RESERVE copy names the car ('...911s with a reserve closed 7% higher.')  ->  missing
+    cardV2Lint full RESERVE copy names the car ('...911s listings with a reserve have closed 7% higher...')  ->  missing
+  Two that look like real behaviour, not wording: the speed pick ("a non-BaT evidence route present: it leads as the speed pick" got {"speedMode":false,"pick":"bringatrailer"}; Sam's Part 1 rule excludes BaT from the speed pick) and the wizard not advancing off step 17 (verifyBugs Item1). The premium-tile and reserve copy failures may follow Sam's rule 11 change (no partner note printed) and later tile work.
+  RULE 25 (a card shows the car's OWN title) is NOT what lint:cards checks: none of the seven scripts tests a card title. Lane F's note assumed it did. PROPOSAL, a new check scripts/cardTitleCheck.mjs, offline: render each card from a listing or sale whose own title differs from the typed search ("D50 D350" against a "Ramcharger" record): the Buy card (api/buy.js CLIENT carTitle), the Market Check receipt rows (public/js/onebox.js), the shared sells-for card's sale rows (the partner demo and Sell). Assert each shows the record's title and never the typed words, with a seeded violation (a renderer fed the typed name) that must FAIL. I build it on Lane F's word.
+  PUSH: the path fix is scripts only (no deploy), FAST tier. Do NOT add lint:cards to prePush until the 23 are triaged, or every push reds.
+Search check: no public page touched.
