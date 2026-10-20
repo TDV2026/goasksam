@@ -7,8 +7,8 @@ const elem=()=>new Proxy(function(){},{get:(t,p)=>{if(p==="style")return{};if(p=
 globalThis.window=globalThis;globalThis.document={getElementById:()=>elem(),querySelector:()=>elem(),querySelectorAll:()=>[],createElement:()=>elem(),addEventListener:noop,body:elem()};
 try{Object.defineProperty(globalThis,"navigator",{value:{language:"en-US"},configurable:true});}catch{}
 globalThis.location={hostname:"localhost",protocol:"file:"};globalThis.localStorage={getItem:()=>null,setItem:noop};globalThis.fetch=async()=>({ok:true,json:async()=>({})});
-const html=fs.readFileSync("index.html","utf8");
-const files=[...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m=>"js/"+m[1]);
+const html=fs.readFileSync("public/index.html","utf8");
+const files=[...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m=>"public/js/"+m[1]);
 const script=files.map(f=>fs.readFileSync(f,"utf8")).join("\n");
 const bootstrap="globalThis.sellState=sellState;globalThis.composeCard=composeCard;";
 (0,eval)(script+"\n"+bootstrap);
@@ -74,7 +74,7 @@ const inj=composeCard(V06,{label:"carsandbids",platform:"carsandbids",marketEvid
 inj.bullets.push({text:"Cars & Bids remains a strong option for a car like this",provenance:"injected-filler"});
 const gated=evidenceOnlyBullets(inj.bullets); // identical gate to result.js render site
 check("3.10 filler injected into a composed card does NOT survive the render gate", !gated.some(b=>/strong option|a car like this/.test(b.text))&&gated.length===inj.bullets.length-1, JSON.stringify(gated.map(b=>b.text)));
-check("3.10 render site (result.js) is wired to the filler gate", /evidenceOnlyBullets\(c\.bullets\)/.test(fs.readFileSync("js/result.js","utf8")));
+check("3.10 render site (result.js) is wired to the filler gate", /evidenceOnlyBullets\(c\.bullets\)/.test(fs.readFileSync("public/js/result.js","utf8")));
 
 // (Part 3, July 2026) Evidence-allowlist SOURCE NAMING: no raw slug ever
 // reaches a user, SOMO is always named in full, excluded consignment houses

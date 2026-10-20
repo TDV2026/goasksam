@@ -1,17 +1,22 @@
+// LIVE, NOT OFFLINE (Lane E, Oct 20 2026): this POSTs every car to PRODUCTION /api/sellerDecision (the full Sell
+// path, which can spend OldCarsData on a cache miss). Run it only in a gap the lanes name, never in an offline sweep.
 // 1b live validation: runs the deployed evidence pipeline (prod sellerDecision)
 // and the local composeCard for each car, dumping the composed cards and the
 // coverage metrics. Usage: node scripts/coverage1b.mjs [audit|coverage]
 import fs from "node:fs";
 const BASE=process.env.FLOW_BASE||"https://goasksam.vercel.app";
-const MODE=process.argv[2]||"audit";
+// THE LIVE GUARD (Lane F, Oct 20 2026): this script calls production. It refuses to run without --live, and says what it
+// would call, so it can never run by accident in an offline sweep again.
+if (!process.argv.includes("--live")) { console.log(`coverage1b: REFUSED. This script POSTs to ${BASE}/api/sellerDecision (production, the full Sell path) once per car. Run it only in a gap the lanes name, with --live.`); process.exit(2); }
+const MODE=process.argv.slice(2).find(a => !a.startsWith("--"))||"audit";
 const noop=()=>{};
 const elem=()=>new Proxy(function(){},{get:(t,p)=>{if(p==="style")return{};if(p==="classList")return{add:noop,remove:noop,toggle:noop,contains:()=>false};if(["value","textContent","id","className","innerHTML"].includes(p))return"";if(["appendChild","setAttribute","addEventListener","remove","append","scrollIntoView","focus"].includes(p))return noop;if(p==="querySelector")return()=>elem();if(p==="querySelectorAll")return()=>[];return elem();},apply:()=>elem()});
 globalThis.window=globalThis;globalThis.document={getElementById:()=>elem(),querySelector:()=>elem(),querySelectorAll:()=>[],createElement:()=>elem(),addEventListener:noop,body:elem()};
 try{Object.defineProperty(globalThis,"navigator",{value:{language:"en-US"},configurable:true});}catch{}
 globalThis.location={hostname:"localhost",protocol:"file:"};globalThis.localStorage={getItem:()=>null,setItem:noop};
 const realFetch=globalThis.fetch;globalThis.fetch=async()=>({ok:true,json:async()=>({})});
-const html=fs.readFileSync("index.html","utf8");
-const files=[...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m=>"js/"+m[1]);
+const html=fs.readFileSync("public/index.html","utf8");
+const files=[...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m=>"public/js/"+m[1]);
 const script=files.map(f=>fs.readFileSync(f,"utf8")).join("\n");
 (0,eval)(script+"\nglobalThis.sellState=sellState;globalThis.composeCard=composeCard;globalThis.composerLandedScope=composerLandedScope;globalThis.sellerWantsSpeed=sellerWantsSpeed;");
 

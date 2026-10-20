@@ -58,8 +58,8 @@ try { Object.defineProperty(globalThis,"navigator",{value:{language:"en-US"},con
 globalThis.location = { hostname:"localhost", protocol:"file:" };
 globalThis.localStorage = { getItem:()=>null, setItem:noop };
 globalThis.fetch = async () => ({ ok:true, json:async()=>({}) });
-const html = fs.readFileSync("index.html","utf8");
-const files = [...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m=>"js/"+m[1]);
+const html = fs.readFileSync("public/index.html","utf8");
+const files = [...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m=>"public/js/"+m[1]);
 const script = files.map(f=>fs.readFileSync(f,"utf8")).join("\n");
 (0, eval)(script + "\nglobalThis.sellState=sellState;globalThis.composeCard=composeCard;globalThis.powerSellerIntroLine=powerSellerIntroLine;globalThis.powerSellerServiceLine=powerSellerServiceLine;globalThis.vehicleAcceptPrefix=vehicleAcceptPrefix;globalThis.SYS=SYS;globalThis.SELL_SYS=SELL_SYS;globalThis.platformDisplayName=platformDisplayName;globalThis.HERO_SUPPORTING=HERO_SUPPORTING;globalThis.PLACEHOLDER_EXAMPLES=PLACEHOLDER_EXAMPLES;globalThis.LEARN_HOW=LEARN_HOW;globalThis.LEARN_PLATFORMS=LEARN_PLATFORMS;globalThis.HP_REASSURANCE=HP_REASSURANCE;");
 
@@ -232,7 +232,7 @@ check("1d lint: still bans a bare 'Sotheby's' reference (not Motorsport)", lintT
 // (Layout round, July 2026) The own-voice PowerSeller value claims are deleted
 // from LIVE copy (they may only survive in code comments). Strip full-line
 // comments, then assert the phrases are gone from what can render.
-const liveResultJs = fs.readFileSync("js/result.js", "utf8").split("\n").filter(l => !/^\s*\/\//.test(l)).join("\n");
+const liveResultJs = fs.readFileSync("public/js/result.js", "utf8").split("\n").filter(l => !/^\s*\/\//.test(l)).join("\n");
 check("layout: 'fee earns its keep' deleted from live copy", !/fee earns its keep/.test(liveResultJs));
 check("layout: PowerSeller 'my personal preference' claim deleted from live copy", !/my personal preference is generally/.test(liveResultJs));
 check("layout: 'If selling yourself' demotion badge deleted from live copy", !/["']If selling yourself["']/.test(liveResultJs));
