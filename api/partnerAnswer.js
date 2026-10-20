@@ -25,6 +25,7 @@ import { photoId, photoUrlFor, fetchPhoto, vinPhotoKey, safeImageUrl, sizedPhoto
 import { supabaseEnv } from "../lib/_supabase.js";
 import { vinAppearances, carIdentity, normVin } from "./_historyData.js";
 import { lastUpdatedDate } from "../lib/asOf.js";
+import { decodeVinFacts } from "../lib/vehicle.js";
 import { sellsForCardHtml, latestQuarterRowHtml } from "../lib/sellsForCard.js";
 import { mapEngineAnswer, ENGINE_VERSION } from "../lib/onebox.js";
 
@@ -151,6 +152,8 @@ export function demoCard(html, d) {
 
 const RANGE_MIN = 8;   // the engine's own RANGE_THRESHOLD: under eight sales there is no range, only words
 const VIN_RE = /^[A-HJ-NPR-Z0-9]{17}$/;
+// Sam's words (Amazon demo, revision 2, item 8a, Oct 20 2026).
+export const VIN_UNREADABLE_LINE = "We couldn't read that VIN. Check it, or type the year, make and model.";
 
 function samePartnerKey(sent) {
   const want = process.env.PARTNER_KEY;
@@ -499,11 +502,24 @@ export default async function handler(req, res) {
     const lim = await checkCeiling(env, req, "partner_demo", { tool: "partner" }).catch(() => ({ ok: true }));
     if (!lim.ok) return res.status(429).json({ ok: false, query: text, error: "rate_limited" });
   }
-  let history = null, id = null;
+  let history = null, id = null, vinDecode = null;
+  // A VIN THAT CANNOT BE READ (Sam's Amazon demo, revision 2, item 8a; Lane E, Oct 20 2026): a typed run of 11 to 17
+  // letters and digits with three or more digits and no space is a VIN attempt; one that is not a valid 17-character VIN
+  // gets Sam's line, never a silent empty page and never a car search on the raw characters.
+  const typed = String(b.vin || b.q || "").replace(/\s+/g, "").toUpperCase();
+  if (!(vinIn && VIN_RE.test(vinIn)) && /^[A-Z0-9]{11,17}$/.test(typed) && (typed.match(/\d/g) || []).length >= 3 && !/^(19|20)\d\d[A-Z]/.test(typed)) {
+    return res.status(200).json({ ok: true, query: typed, engineVersion: null, answerType: "vin_unreadable", line: VIN_UNREADABLE_LINE, identity: null, range: null, count: null, window: null, sales: [], history: null });
+  }
   if (vinIn && VIN_RE.test(vinIn)) {
     const h = env ? await vinAppearances(env, vinIn).catch(() => null) : null;
     history = historyOf(h && h.appearances, vinIn);
     id = h && h.appearances && h.appearances.length ? await carIdentity(h.appearances, vinIn).catch(() => null) : null;
+    // THE VIN'S OWN DECODE (item 7): the free vPIC decode names a car the archive has never seen (a 2015 S550 coupe with no
+    // auction appearance) and gives its key features, only the fields the decode holds. The archive's identity, when it
+    // exists, still names the car; the decode then only adds the features.
+    vinDecode = await decodeVinFacts(vinIn).catch(() => null);
+    if (!id && vinDecode && vinDecode.readable && vinDecode.make && vinDecode.model) id = { year: vinDecode.year, make: vinDecode.make, model: vinDecode.model, family: vinDecode.model, trim: vinDecode.trim || null, fromDecode: true };
+    if (vinDecode && vinDecode.readable === false && !id) return res.status(200).json({ ok: true, query: vinIn, engineVersion: null, answerType: "vin_unreadable", line: VIN_UNREADABLE_LINE, identity: null, range: null, count: null, window: null, sales: [], history });
     if (!text || VIN_RE.test(normVin(text))) text = id ? [id.year, id.make, id.family || id.model].filter(Boolean).join(" ") : "";
     if (!text) {
       const out = { ok: true, query: vinIn, engineVersion: null, answerType: "identity_question", identity: null,
@@ -555,6 +571,11 @@ export default async function handler(req, res) {
     // The car's name for a VIN (Sam, Oct 18 2026): the engine's own identity of this VIN (carIdentity: year, make, model,
     // trim), null when it cannot name the car; the page then shows the VIN and nothing else.
     out.carName = carNameOf(id);
+    // The VIN's decoded name and features for the page's title and Key features (item 7): only what the decode holds.
+    out.vinDecode = vinDecode && vinDecode.readable ? { year: vinDecode.year || null, make: vinDecode.make, model: vinDecode.model || null, trim: vinDecode.trim || null, body: vinDecode.bodyStyle || null, features: vinDecode.features || {} } : null;
+    // The car's identity for the pilot scope: the engine's own, else the archive's or the decode's (so a decoded car
+    // outside the pilot reads "outside the pilot", never an empty page).
+    if (!out.identity && id) out.identity = { year: id.year || null, make: id.make, model: id.model, variant: id.trim || null };
   }
   out.updated = await updatedP;
   const leaks = venueLeak(out);
