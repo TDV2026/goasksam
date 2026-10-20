@@ -4588,7 +4588,7 @@ async function handleOps(req, res) {
   if (task === "vinidentitydry") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle, sanitizeResolvedVehicle } = await import("../lib/vehicle.js");
-    const { cleanTitle, familyOf, carSlug } = await import("./_historyData.js");
+    const { cleanTitle, familyOf, carSlug, decodeIdentityFix } = await import("./_historyData.js");
     const off = Math.max(0, Number(req.query?.offset) || 0), want = Math.min(1000, Math.max(1, Number(req.query?.n) || 1000));   // one read is capped at 1000 rows; the caller pages with offset
     const marketN = Math.min(20, Math.max(0, Number(req.query?.market) || 0));
     const t0 = Date.now();
@@ -4617,19 +4617,18 @@ async function handleOps(req, res) {
       resolved++;
       const others = [...new Set(list.map(a => a.model).filter(m => m && !/^unknown$/i.test(String(m))))].filter(m => squash(m) !== squash(v.model) && word(m).test(title));
       if (!others.length) continue;   // the title names no second stored model: nothing to decide
-      let stored = null, basis = null, decoded = null;
-      if (/^[A-HJ-NPR-Z0-9]{17}$/i.test(vin) && decodes < 400 && Date.now() - t0 < 200000) {
-        decodes++;
-        try { const r = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/${encodeURIComponent(vin)}?format=json`, { signal: AbortSignal.timeout(6000) }); if (r.ok) { const j = await r.json(); decoded = String((j.Results && j.Results[0] && j.Results[0].Model) || "").trim() || null; } } catch { decoded = null; }
-      }
-      if (decoded) { if (!word(decoded).test(title) || squash(decoded) === squash(v.model)) continue; stored = decoded; basis = "decode"; }
-      else continue;   // no decode: the car keeps its identity (Lane F, Oct 20 2026: the stored column is the house's own wording, 2,114 wrong renames in the first 10,000)
-      if (!stored) continue;
+      // THE RULE ITSELF (api/_historyData.js decodeIdentityFix, the code carIdentity runs when IDENTITY_RULES.decodeFirst is on):
+      // the VIN decoded the same way carIdentity decodes it (the resolver's VIN path), the same function names the new car.
+      if (!/^[A-HJ-NPR-Z0-9]{17}$/i.test(vin) || decodes >= 400 || Date.now() - t0 > 200000) continue;
+      decodes++;
+      let dv = null;
+      try { const r = await resolveVehicle(vin, { vinConfirm: true }); dv = r && r.vehicle && r.vehicle.make ? r.vehicle : null; } catch { dv = null; }
+      const nv = decodeIdentityFix(v, title, dv);
+      if (!nv) continue;
       const year = Number(list[0].year) || Number(v.year) || null;
       const oldId = { year, make: v.make, family: familyOf(v) };
-      const nv = { ...v, model: stored, trim: squash(stored).includes(squash(v.model)) ? (v.trim || null) : [v.model, v.trim].filter(Boolean).join(" ") };
-      const newId = { year, make: v.make, family: familyOf(nv) };
-      changes.push({ vin, title: list[0].listing_title, newModel: stored, basis, decoded, old: { name: [year, v.make, oldId.family].filter(Boolean).join(" "), slug: carSlug(oldId) }, new: { name: [year, v.make, newId.family].filter(Boolean).join(" "), slug: carSlug(newId) }, _v: v, _nv: nv });
+      const newId = { year, make: nv.make, family: familyOf(nv) };
+      changes.push({ vin, title: list[0].listing_title, newModel: nv.model, basis: "decode", decoded: dv ? [dv.make, dv.model].join(" ") : null, old: { name: [year, v.make, oldId.family].filter(Boolean).join(" "), slug: carSlug(oldId) }, new: { name: [year, nv.make, newId.family].filter(Boolean).join(" "), slug: carSlug(newId) }, _v: v, _nv: nv });
     }
     if (marketN && changes.length) {
       const { findGeneration } = await import("../lib/generations.js");
