@@ -179,7 +179,7 @@ async function handleSellStep(q){
       return true;
     }
     if(/^(ok|okay|ready|ok im ready|i.m ready|im ready|go ahead|let.s go|lets go|sure|yep|yes|yeah|ok ready|i have it|got it)$/i.test(lower)){
-      addMsg("sam","Great. What are we selling today? Year, make, and model.");
+      addMsg("sam","Great. What are you selling today? Year, make, and model.");
       return true;
     }
     // Question-shaped input with no car in it goes straight to the chat layer

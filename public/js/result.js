@@ -1509,10 +1509,10 @@ function renderHouseComparisonSell(msgs,hc,decisionData,opts){
     // that leads on the record; without a pick, state the count and name each house (single-sale wording
     // on one sale: never "have gone" / "has sold them too"). Item 2.
     lead=oneSale
-      ? `No ${esc(headLbl)} has sold on the online platforms we track. The only one to sell at auction went to ${esc(pickName)}${recency1}.`
+      ? `No ${esc(headLbl)} has sold on the tracked online platforms. The only one to sell at auction went to ${esc(pickName)}${recency1}.`
       : hasPick
-        ? `No ${esc(headLbl)} has sold on the online platforms we track. ${esc(pickName)} is where ${esc(modelLabel)}s have gone instead${recency}.${hammerClause}${othersClause}`
-        : `No ${esc(headLbl)} has sold on the online platforms we track. ${auctionSentence}`;
+        ? `No ${esc(headLbl)} has sold on the tracked online platforms. ${esc(pickName)} is where ${esc(modelLabel)}s have gone instead${recency}.${hammerClause}${othersClause}`
+        : `No ${esc(headLbl)} has sold on the tracked online platforms. ${auctionSentence}`;
   } else if(asap){
     lead=`You told Sam you want to move quickly, so Sam is leading with the soonest sale, not the strongest record. Every house below has taken ${esc(modelLabel)}s; here's the record, and when each one next runs.`;
   } else if(oneSale){

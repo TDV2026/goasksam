@@ -53,6 +53,15 @@ const ALLOW = [
 // Longest first, so a long allowed phrase is matched whole before a shorter phrase inside it.
 const BY_LENGTH = [...ALLOW].sort((x, y) => y[1].length - x[1].length);
 const OUR = /\bour (own )?(records?|data|sold-records|tracked records|sales data|archive)\b/gi;
+// Sam, Oct 20 2026: "company 'we' only, never first-person Sam". Sam's own voice never says we, us or our; the company
+// may, where a sentence needs a subject. Each company line kept is named here. The chat prompts and the model-facing
+// context notes are instructions to the model, not page copy, so they are not read for "we".
+const WE = /(^|[^A-Za-z'’\/_-])(we|We|we've|We've|we're|We're|we'll|We'll|us|our|Our)(?=[^A-Za-z'’_-]|$)/g;
+const COMPANY = [
+  "We're submitting your", "It helps us send the strongest possible submission", "We have commercial arrangements with some of the PowerSellers we work with",
+  "Our PowerSellers are US-based today, and we're careful about who we add", "our PowerSellers focus on higher-value cars", "email us at feedback@goasksam.com",
+];
+const MODEL_FACING = t => /You are Sam|NEVER say|Hold this position|VIN note \(|VIN exact-match note|seller pasted a VIN/.test(t);
 const FP = /(^|[^A-Za-z'’\\])(I|I'd|I’d|I'm|I’m|I've|I’ve|I'll|I’ll|my|My|me|Me|mine|myself)(?=[^A-Za-z'’]|$)/g;
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL", m); } };
@@ -62,6 +71,9 @@ function checkText(f, line, raw) {
   // Blank out every allowed phrase, then nothing first-person may remain.
   let rest = t;
   for (const [why, p] of BY_LENGTH) if (rest.includes(p)) { used.add(p); rest = rest.split(p).join(" ".repeat(p.length)); }
+  // homepage.js is group D of Lane E's sweep, Lane C's to change; it joins this rule once that push lands.
+  if (!MODEL_FACING(t) && !/homepage\.js$/.test(f)) { let r2 = t; for (const p of COMPANY) { if (r2.includes(p)) used.add(p); r2 = r2.split(p).join(" ".repeat(p.length)); }
+    for (const m of r2.matchAll(WE)) ok(false, `${f}:${line} "we/us/our" outside a named company line: "${t.slice(Math.max(0, m.index - 50), m.index + 60).replace(/\s+/g, " ")}"`); }
   // Sam, Oct 20 2026: no "our records" or "our data" anywhere public (the quoted ban in a prompt is the only one).
   for (const m of t.split('never "our records" or "our data"').join(" ").matchAll(OUR)) ok(false, `${f}:${line} possessive record line: "${t.slice(Math.max(0, m.index - 50), m.index + 60).replace(/\s+/g, " ")}"`);
   for (const m of rest.matchAll(FP)) ok(false, `${f}:${line} first-person Sam: "${t.slice(Math.max(0, m.index - 50), m.index + 60).replace(/\s+/g, " ")}"`);
@@ -73,13 +85,14 @@ for (const f of FILES) {
     // index.html: its inline scripts as code, its markup text as text.
     for (const m of src.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)) for (const x of literals(m[1])) checkText(f, x.line, x.text);
     const text = src.replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<style[\s\S]*?<\/style>/g, " ").replace(/<[^>]+>/g, " ");
-    checkText(f, 0, text);
+    checkText(f, 0, text.replace(/\s+/g, " "));
     continue;
   }
   for (const x of literals(src)) checkText(f, x.line, x.text);
   pass++;
 }
 // A stale allowlist entry is a fail too: every allowed phrase must still be on the page (so the list cannot rot).
+for (const p of COMPANY) ok(used.has(p), `company line no longer found: "${p}"`);
 for (const [why, p] of ALLOW) ok(used.has(p), `allowlist entry no longer found (${why}): "${p}"`);
 // The rule itself must be in both old chat prompts.
 ok(/You always speak about Sam in the third person/.test(fs.readFileSync("public/js/wizard.js", "utf8")), "wizard.js SELL_SYS carries the third-person rule");

@@ -125,7 +125,7 @@ function analysisWindowInfo(bullets){
     Number(String(sellState.sellDecision?.evidence?.earliestSaleDate||"").slice(0,4))
   ].filter(Number.isFinite);
   const since=years.length?Math.min(...years):null;
-  return since?{label:`Since ${since}`,phrase:`since ${since}`}:{label:"All-time",phrase:"across everything we've tracked"};
+  return since?{label:`Since ${since}`,phrase:`since ${since}`}:{label:"All-time",phrase:"across every recorded sale"};
 }
 
 // Old-data transparency (locked): when the card's claims reach back more
@@ -145,15 +145,15 @@ function lookbackLine(option){
     const carYear=sellState.resolvedVehicle?.year;
     const openScope=carYear?`${carYear} exact-year sales`:"the exact car";
     const range=descent.range?` (${descent.range})`:"";
-    return `We analyzed ${openScope}, then broadened to ${descent.to}${range} to identify the platform advantage. Here's what the market shows.`;
+    return `Sam analyzed ${openScope}, then broadened to ${descent.to}${range} to identify the platform advantage. Here's what the market shows.`;
   }
   const info=analysisWindowInfo(bullets);
   const landed=sellState.sellDecision?.evidence?.ladder?.landed;
   const segLabel=bullets[0]?.segmentLabel;
   const scope=segLabel?`${segLabel} sales`:(landed?String(landed.label):"comparable sales");
   const sinceYear=(String(info.label||"").match(/^Since (\d{4})$/)||[])[1];
-  if(sinceYear)return `We went back to ${sinceYear} to get enough comparable ${scope}.`;
-  if(info.label==="All-time")return `We analyzed ${scope} across everything we've tracked to build a reliable picture.`;
+  if(sinceYear)return `Sam went back to ${sinceYear} to get enough comparable ${scope}.`;
+  if(info.label==="All-time")return `${String(scope).charAt(0).toUpperCase()+String(scope).slice(1)} across every recorded sale gives a reliable picture.`;
   return "";
 }
 
@@ -440,7 +440,7 @@ function supportedRouteDelta(route, routes){
 function marketWindowPhrase(){
   const days=sellState.sellDecision?.evidence?.windowDays;
   if(!days)return "recently";
-  if(days>=3650)return "across everything we've tracked";
+  if(days>=3650)return "across every recorded sale";
   if(days>=85&&days<=100)return "over the past 90 days";
   if(days>=115&&days<=130)return "over the past 120 days";
   return `over the past ${days} days`;
@@ -1221,7 +1221,7 @@ function composerSpecializationBullet(ev){
   // Read the cell's real window (currently 180d) rather than a hardcoded literal,
   // so the copy can never silently go stale if the backend window changes.
   const winClause=Number.isFinite(Number(sc.window))?` over the past ${Number(sc.window)} days`:"";
-  return { text:`${sc.scope_label} make up around ${sc.lift_rounded} times the share of ${platformPossessive(name)} sales that they do of the rest of the market we track${winClause}.`, provenance:`specialization(${sc.scope},${sc.lift_rounded}x,${sc.window||"?"}d)` };
+  return { text:`${sc.scope_label} make up around ${sc.lift_rounded} times the share of ${platformPossessive(name)} sales that they do of the rest of the tracked market${winClause}.`, provenance:`specialization(${sc.scope},${sc.lift_rounded}x,${sc.window||"?"}d)` };
 }
 // Branch-5 specialist headline: the specialist (not the depth leader) crowns
 // Card 1, so the headline states that reason from the computed cell.
@@ -1231,7 +1231,7 @@ function composerSpecialistHeadline(ev){
   if(!metricGate(sc.lift_rounded,"specialization",{scope:sc.scope,platform:ev.platform}).ok)return null;
   const name=platformDisplayName(ev.label||ev.platform);
   const winClause=Number.isFinite(Number(sc.window))?` over the past ${Number(sc.window)} days`:"";
-  return { text:`${name} specializes in ${sc.scope_label}: they make up around ${sc.lift_rounded} times the share of its sales that they do of the rest of the market we track${winClause}.`, provenance:`specialistPick(${sc.scope},${sc.lift_rounded}x,${sc.window||"?"}d)` };
+  return { text:`${name} specializes in ${sc.scope_label}: they make up around ${sc.lift_rounded} times the share of its sales that they do of the rest of the tracked market${winClause}.`, provenance:`specialistPick(${sc.scope},${sc.lift_rounded}x,${sc.window||"?"}d)` };
 }
 // Speed copy (agnostic + accurate): the advantage is TIME TO LIST -- how fast a
 // submitted car gets listed and in front of buyers -- NOT auction length (live
@@ -1251,7 +1251,7 @@ function composerDepthHonestyBullet(vehicle,ev,opts){
   if(!opts.isPick||opts.routingReason!=="speed_unknown"||!opts.depthLeaderName)return null;
   // Landed-scope aware: the requested year appears only at an exact-year rung (3.5).
   const scope=composerScopePhrase(vehicle,composerLandedYearScope(),composerLandedGenerationCode(),null,true)||(vehicle&&vehicle.model);
-  return { text:`${opts.depthLeaderName} holds most of the recent ${scope} sales we track. If market depth matters more than timing, start there instead.`, provenance:"depthHonesty" };
+  return { text:`${opts.depthLeaderName} holds most of the recent ${scope} sales on record. If market depth matters more than timing, start there instead.`, provenance:"depthHonesty" };
 }
 // Branch-4 speed-preference headline: the rank came from the seller's PREFERENCE
 // (unknown spread), so the headline states that true reason plus the platform's
@@ -1280,7 +1280,7 @@ function composerDeltaHeadline(vehicle,ev){
     return { text:`Recent ${phraseSingular} sales${span} have concentrated on ${name}, with too few on other platforms to compare prices ${win}.`, provenance:`pricePremium.concentration(${p.scope},${p.windowDays}d)` };
   }
   if(p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10){
-    return { text:`${name} has closed ${phrase}${span} around ${p.percent}% higher than the other platforms we track ${win}.`, provenance:`pricePremium(${p.scope},${p.windowDays}d,${p.percent}%)` };
+    return { text:`${name} has closed ${phrase}${span} around ${p.percent}% higher than the other tracked platforms ${win}.`, provenance:`pricePremium(${p.scope},${p.windowDays}d,${p.percent}%)` };
   }
   return null;
 }

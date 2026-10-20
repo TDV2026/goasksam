@@ -110,7 +110,7 @@ check("1d lint: the stronger-non-routable callout never renders a removed house 
 const domCard = composeCard({make:"Porsche",model:"911",year:1995}, { label:"bringatrailer", platform:"bringatrailer", marketEvidence:{ evidenceSales:32, pricePremium:{type:"market_dominance",gateType:"asymmetric",percent:null,marketShare:84,windowDays:90,scope:"generation",generationCode:"993",platformSales:32,othersSales:3} } }, { isPick:true, landedScope:"generation" });
 check("1d lint: concentration headline (others<5) uses no volume language", lintText(domCard.headline.text).length === 0 && /concentrated on|too few on other platforms/i.test(domCard.headline.text), domCard.headline.text);
 const deltaCard = composeCard({make:"Porsche",model:"911",year:1995}, { label:"bringatrailer", platform:"bringatrailer", marketEvidence:{ evidenceSales:32, pricePremium:{type:"premium",gateType:"symmetric",percent:35,windowDays:90,scope:"generation",generationCode:"993",platformSales:32,othersSales:6} } }, { isPick:true, landedScope:"generation" });
-check("1d lint: delta-winning headline states the delta, not volume", /has closed .* around 35% higher than the other platforms we track over the past 90 days/i.test(deltaCard.headline.text) && lintText(deltaCard.headline.text).length === 0, deltaCard.headline.text);
+check("1d lint: delta-winning headline states the delta, not volume", /has closed .* around 35% higher than the other tracked platforms over the past 90 days/i.test(deltaCard.headline.text) && lintText(deltaCard.headline.text).length === 0, deltaCard.headline.text);
 check("1d lint: detects volume language in a headline", lintText("Bring a Trailer is where most 911 sales have closed over the past 90 days.").some(v=>/volume-headline/.test(v)));
 
 // RUNG LADDER CASCADE: below the 5+/5+ delta gate, the headline states the
@@ -140,7 +140,7 @@ const b4text = [branch4.headline.text, ...branch4.bullets.map(b=>b.text)].join("
 check("1d lint: branch-4 pick headline states the speed reason (time to list), clean",
   /You said speed matters\. Hagerty Marketplace generally gets your listing live faster and has closed recent 1967 Camaro sales\./.test(branch4.headline.text) && lintText(branch4.headline.text).length === 0, branch4.headline.text);
 check("1d lint: branch-4 pick renders the REQUIRED depth-honesty bullet naming the depth leader",
-  /Bring a Trailer holds most of the recent 1967 Camaro sales we track\. If market depth matters more than timing, start there instead\./.test(b4text), b4text);
+  /Bring a Trailer holds most of the recent 1967 Camaro sales on record\. If market depth matters more than timing, start there instead\./.test(b4text), b4text);
 check("1d lint: branch-4 card carries no banned 'auction cycle' wording and is clean", !/auction cycle/i.test(b4text) && lintText(b4text).length === 0, b4text);
 check("1d lint: detects the banned 'quicker auction cycle' phrase", lintText("Hagerty runs the quicker auction cycle.").some(v=>/auction-cycle/.test(v)));
 check("1d lint: detects the banned 'quicker cycle' phrase", lintText("Hagerty runs a quicker cycle.").some(v=>/auction-cycle/.test(v)));
@@ -155,13 +155,13 @@ const SPEC_CELL={platform:"bringatrailer",scope:"model",scope_key:"model|chevrol
 const specBulletCard=composeCard({ make:"Chevrolet", model:"Camaro", year:1967 }, { label:"bringatrailer", platform:"bringatrailer", marketEvidence:{ evidenceSales:8, pricePremium:null, specializationCell:SPEC_CELL } }, { isPick:false, landedScope:"model" });
 const specBullet=(specBulletCard.bullets.find(b=>/specialization/.test(b.provenance||""))||{}).text||"";
 check("1d lint: specialization bullet states scope label + 'share' + 180-day window, clean",
-  /Camaros make up around 7 times the share of Bring a Trailer's sales that they do of the rest of the market we track over the past 180 days\./.test(specBullet) && /\bshare\b/.test(specBullet) && /over the past 180 days/.test(specBullet) && lintText(specBullet).length===0, specBullet);
+  /Camaros make up around 7 times the share of Bring a Trailer's sales that they do of the rest of the tracked market over the past 180 days\./.test(specBullet) && /\bshare\b/.test(specBullet) && /over the past 180 days/.test(specBullet) && lintText(specBullet).length===0, specBullet);
 check("1d lint: specialization REPLACES the generic audience line for that platform",
   !specBulletCard.bullets.some(b=>/built a strong audience/i.test(b.text)) && !!specBullet,
   JSON.stringify(specBulletCard.bullets.map(b=>b.text)));
 const specPickCard=composeCard({ make:"Chevrolet", model:"Camaro", year:1967 }, { label:"bringatrailer", platform:"bringatrailer", marketEvidence:{ evidenceSales:8, pricePremium:null, specializationCell:SPEC_CELL } }, { isPick:true, routingReason:"specialist", landedScope:"model" });
 check("1d lint: branch-5 specialist headline states the specialization reason, clean",
-  /Bring a Trailer specializes in Camaros: they make up around 7 times the share of its sales that they do of the rest of the market we track over the past 180 days\./.test(specPickCard.headline.text) && lintText(specPickCard.headline.text).length===0, specPickCard.headline.text);
+  /Bring a Trailer specializes in Camaros: they make up around 7 times the share of its sales that they do of the rest of the tracked market over the past 180 days\./.test(specPickCard.headline.text) && lintText(specPickCard.headline.text).length===0, specPickCard.headline.text);
 check("1d lint: detects specialization hype ('best place' / 'the home of')", lintText("Bring a Trailer is the best place for Camaros.").some(v=>/specialization-hype/.test(v)) && lintText("Cars & Bids is the home of these cars.").some(v=>/specialization-hype/.test(v)));
 check("1d lint: no specialization bullet when no cell exists", (()=>{const c=composeCard({ make:"Chevrolet", model:"Camaro", year:1967 }, { label:"bringatrailer", platform:"bringatrailer", marketEvidence:{ evidenceSales:8, pricePremium:null } }, { isPick:false, landedScope:"model" });return !c.bullets.some(b=>/times larger a share/.test(b.text));})(), "no cell must render no specialization");
 

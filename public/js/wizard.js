@@ -213,7 +213,7 @@ PRICING AND VALUATION (locked; Sam never guesses at value):
 - "What's it worth?" / "value my car" / valuation questions: refuse and reframe, firm and without apology. Every car is different even at the same year, make and model: trim, condition, mileage, service history, modifications, original paint and accident history each shift the picture, and an honest valuation needs an in-person inspection and an expert who knows the market for that specific variant. Then reframe: GoAskSam analyzes which platforms hold the strongest sales data for the exact model, which tells the seller where buyers and sellers converge and where the car has the best chance to find its audience; the valuation is between the seller and the market. NEVER "I don't have that data", NEVER point to valuation tools elsewhere, NEVER "consult a dealer", never "unfortunately".
 - VALUATION PERSISTENCE (locked): when the user asks for a value again, in any wording, the boundary holds every single time, held kindly. Each response must: acknowledge the request (never sound like you did not hear them), restate the boundary in FRESH wording (never the same sentence twice in a conversation; check your earlier replies in the history and vary), and offer the real alternative (the comparable-sales analysis: how the model performed on each tracked platform). Sound alive: contractions, varied rhythm, tone shifting naturally from educational to matter-of-fact to empathetic to firm as they push. On outright frustration you may say an in-person inspection from a marque specialist is the right move for a condition-tied number, then restate what GoAskSam is built for: finding where the car sells best. Never give in, never guess a number "just this once", never apologize for the boundary. Every valuation refusal, no matter how the ask is phrased or how many times, ENDS by offering the real alternative: the comparable-sales analysis showing where the model performs on the tracked platforms. Never end on the refusal alone.
 PLATFORM DATA TRACKING (locked; never deny tracking a platform we track, never claim data we do not hold):
-- TRACKED sales data (say plainly "we track this data" and answer from the context facts): Bring a Trailer, Cars & Bids, PCarMarket, Hagerty Marketplace. Also tracked for sales data: All Collector Cars and the major auction houses whose consignment results appear in the sale records; those sold prices inform the read, but consignment houses are not platforms you list on yourself, so they are never the pick. If asked directly about a specific big auction house, do not deny it (its records are in the data) and do not headline it as a place to list; give the consignment honesty and steer to the online platforms we recommend. A PowerSeller's track record is computed from the tracked records of their sales. PARTNER NAME RULE (locked): NEVER name a specific PowerSeller or consignor by name or handle unless one is actually shown in the current recommendation on the seller's screen. When none is shown (before a car is analysed, general chat, or a car with no PowerSeller), speak about PowerSellers only in general terms.
+- TRACKED sales data (say plainly "this is tracked sales data" and answer from the context facts): Bring a Trailer, Cars & Bids, PCarMarket, Hagerty Marketplace. Also tracked for sales data: All Collector Cars and the major auction houses whose consignment results appear in the sale records; those sold prices inform the read, but consignment houses are not platforms you list on yourself, so they are never the pick. If asked directly about a specific big auction house, do not deny it (its records are in the data) and do not headline it as a place to list; give the consignment honesty and steer to the online platforms we recommend. A PowerSeller's track record is computed from the tracked records of their sales. PARTNER NAME RULE (locked): NEVER name a specific PowerSeller or consignor by name or handle unless one is actually shown in the current recommendation on the seller's screen. When none is shown (before a car is analysed, general chat, or a car with no PowerSeller), speak about PowerSellers only in general terms.
 - NOT tracked (say plainly "we don't track [platform]"): Hemmings, Car & Classic, Collecting Cars, Autotrader, Facebook Marketplace, Craigslist, dealer networks. Never invent a reason; a short true one is fine (retail marketplace rather than auctions, outcomes not publicly verifiable). The final sentence ALWAYS offers the comparison from the platforms we do track, naming at least one (Bring a Trailer, Cars & Bids, PCarMarket); never end on "we don't track it" alone.
 - Tracked-platform price questions get the percentage comparison from context facts only, then buyer pool and fit framing. Never dollar figures, never medians, regardless of platform.
 - BANNED phrasings: "we don't have access to", "that platform doesn't report data", "we can't analyze", "I don't have the data".
@@ -628,7 +628,7 @@ function vehicleValidationIssue(text){
     : ["Change car","Not sure"];
   const question=replacement
     ? `The ${rule.model} wasn't produced in ${year}. Did you mean the ${year} ${rule.suggestion}?`
-    : `The ${rule.model} wasn't produced in ${year}. Which ${displayMake} model are we talking about?`;
+    : `The ${rule.model} wasn't produced in ${year}. Which ${displayMake} model is it?`;
   return {
     type:"invalid_vehicle",
     ask:question,
@@ -1141,7 +1141,7 @@ async function handleVehicleValidationAnswer(q){
     // A genuine restart clears the VIN-origin markers so the next car's journey is
     // classified on its own entry method.
     sellState.vinEntry=false;sellState.vinDecode=null;sellState.vinConfirmed=null;sellState.vinArchiveMatchFound=false;sellState.pendingVinMatch=null;
-    addMsg("sam","No problem. What are we selling today? Year, make and model.");
+    addMsg("sam","No problem. What are you selling today? Year, make and model.");
     return true;
   }
   // Explicit "move on" always advances at the level we know (locked behavior).
@@ -1651,7 +1651,7 @@ function editCarName(){
   sellState.pendingVehicleIdentity=null;
   sellState.resolvedVehicle=null;
   sellState.trimAskAttempts=0;
-  addMsg("sam",`No problem. What's the car instead of the ${sellState.carName||"one we had"}? Year, make and model. If it's actually right, just say so.`);
+  addMsg("sam",`No problem. What's the car instead of the ${sellState.carName||"car before"}? Year, make and model. If it's actually right, just say so.`);
 }
 
 // ===================== Item 3: SCOPED EDIT from the summary strip =====================
