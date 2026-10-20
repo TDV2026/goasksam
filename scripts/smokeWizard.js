@@ -1214,7 +1214,7 @@ check("confirm: self-correction suffix still confirms and advances", (sellState.
   const lusso={label:"2020 Ferrari GTC4Lusso",vehicle:{raw:"2020 Ferrari GTC4Lusso",year:2020,make:"Ferrari",model:"GTC4Lusso",trim:null,confidence:"high",canonicalLabel:"2020 Ferrari GTC4Lusso"}};
   const ah=await runResult("US","California","180k",lusso,{sellerPreference:"auction_house",involvement:"Take it through an auction house"});
   if(/trade mostly online/i.test(ah)){ // only assert when the bridge actually fires (not house-tier)
-    const partnerShown=/If this were my car|Also worth considering|power-seller-(feature|mini)|'s track record/i.test(ah);
+    const partnerShown=/If this were my car|Sam would ask |Also worth considering|power-seller-(feature|mini)|'s track record/i.test(ah);
     check("auction-house bridge: platform pick alone, no uninvited PowerSeller",
       !partnerShown, `partnerShown=${partnerShown} :: ${ah.replace(/<[^>]+>/g," ").replace(/\s+/g," ").slice(0,220)}`);
   }

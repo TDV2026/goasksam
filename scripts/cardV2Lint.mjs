@@ -401,7 +401,7 @@ const spencerCard=specCard(spencerCtx,{make:"BMW",model:"M3",year:1990});
 const spencerCard2=specCard(spencerCtx,{make:"Toyota",model:"Land Cruiser",year:1994});
 check("Spencer card: 'Specialises in' tile renders the identity on a BMW", /Specialises in/i.test(spencerCard)&&/Original and preserved enthusiast cars/.test(spencerCard), (spencerCard.match(/Specialises in[^<]*<[^>]*>[^<]*/i)||[""])[0]);
 check("Spencer card: identity tile ALSO renders on an unrelated Toyota (always-on)", /Specialises in/i.test(spencerCard2)&&/Original and preserved enthusiast cars/.test(spencerCard2), "");
-check("Spencer card: full-name headline 'Spencer Bailey' (not first-name-only, not the handle)", /I'd ask <span[^>]*>Spencer Bailey<\/span> to represent/.test(spencerCard)&&!/represent[^.]*SpecWerksLTD/.test(spencerCard), (spencerCard.match(/I'd ask[^<]*<span[^>]*>[^<]*/)||[""])[0]);
+check("Spencer card: full-name headline 'Spencer Bailey' (not first-name-only, not the handle)", /Sam would ask <span[^>]*>Spencer Bailey<\/span> to represent this /.test(spencerCard)&&!/represent[^.]*SpecWerksLTD/.test(spencerCard), (spencerCard.match(/I'd ask[^<]*<span[^>]*>[^<]*/)||[""])[0]);
 check("Spencer card (live): identity tile and no premium tile", /Specialises in/i.test(spencerCard)&&noPremium(spencerCard), "");
 const spencerTiles=(spencerCard.match(/pcard-ttile/g)||[]).length;
 check("Spencer card density (live): within the height budget", spencerTiles<=4&&/Specialises in/i.test(spencerCard), "tiles="+spencerTiles);

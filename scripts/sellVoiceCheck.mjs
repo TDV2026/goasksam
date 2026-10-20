@@ -48,7 +48,7 @@ const ALLOW = [
   ["ban", "I wish I could"], ["ban", "I don't have that data"], ["ban", "I don't have the data"], ["ban", "I want to be straight"], ["ban", "I need to be honest"],
   ["ban", 'never "I", "we" or "our"'], ["ban", 'never "I", "me" or "my"'], ["ban", 'never "I", "me", "my"'], ["ban", "if this were my car"],
   // HELD for Sam (docs/sell-first-person-inventory.md A1 to A3): unchanged until his answer
-  ["held A2", "If this were my car,"], ["held A2", "I'd ask "], ["held A2", " to represent my "],
+  
   ["held A3", "Because I don’t think Bring a Trailer is the right starting point for this sale. It is an excellent platform, but its audience is still predominantly US based. For a X being sold from X, I’d rather put it in front of X. If this were my car, that’s where I’d list it."],
 ];
 // Longest first, so a held sentence is matched whole before a shorter phrase inside it.

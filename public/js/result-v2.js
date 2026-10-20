@@ -864,8 +864,7 @@ function renderPowerSellerCardV2(opts){
         // and the CTA + reassurance always sit at the base regardless of tile count.
         + '<div class="pcard-hero">'
           + '<span class="pcard-badge">+ Sam\'s Recommendation</span>'
-          + '<div class="pcard-script">If this were my car,</div>'
-          + '<h1 class="pcard-name pcard-name-ps">I\'d ask <span class="pcard-hl">'+esc(display)+'</span> to represent my '+esc(carLabel)+'.</h1>'
+          + '<h1 class="pcard-name pcard-name-ps">Sam would ask <span class="pcard-hl">'+esc(display)+'</span> to represent this '+esc(carLabel)+'.</h1>'
           + '<p class="pcard-lead">'+esc(psvIntro(p,first,claim,carShort))+'</p>'
         + '</div>'
         + '<div class="pcard-foot">'
