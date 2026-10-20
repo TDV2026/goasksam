@@ -8,6 +8,7 @@
 // the same gate (the signed crew cookie or the partner cookie), noindex.
 import { SELLS_FOR_CARD_CSS } from "../lib/sellsForCard.js";
 import { DEMO_CARS } from "./partnerAnswer.js";
+import { demoAnswerCase, OUT_OF_SCOPE_LINE } from "../lib/amazonDemoCase.js";
 
 // THE PROFILE (presentation only). makeScope: the pilot's enthusiast and specialty cars (Sam approves the list); a car
 // outside it shows no module. Each entry: a make, and the models in scope (["*"] for every model of the make).
@@ -228,11 +229,18 @@ main{padding-block:22px 48px}
 .listing>*{min-width:0}
 .stabs{min-width:0;max-width:100%}
 @media (max-width:760px){.galwrap{grid-template-columns:1fr}.thumbs{flex-direction:row;overflow-x:auto}}
+.case{margin-top:12px;border:1px solid var(--rule);border-radius:var(--r);padding:14px 16px;background:var(--soft)}
+.case-l{margin:0;font-size:15px}
+.case-n{margin:6px 0 0;font-size:13px;color:var(--ink2)}
 `;
 
 const JS = String.raw`
 (function(){
   var LISTCAR = __LISTCAR__, CAR = __CAR__, CARS = __CARS__, SCOPE = __SCOPE__, VIEW = __VIEW__, LIST = __LIST__, OUT_OF_SCOPE = __OUTSCOPE__, CHOSEN = __CHOSEN__, SAMPLES = __SAMPLES__, CONTEXT = __CONTEXT__;
+  // THE ANSWER CASES (Sam's revision 2, item 8; Lane E's lib/amazonDemoCase.js, sent to the page as is): an unreadable VIN,
+  // read with no sales, outside the pilot scope, or an answer. Never a silent empty box.
+  var OUT_OF_SCOPE_LINE = __OOSLINE__, SCOPE_AGE_YEARS = SCOPE.age, SCOPE_MAKES = SCOPE.makes, SCOPE_MODELS = SCOPE.models;
+  var demoAnswerCase = __CASEFN__;
   var $ = function(id){ return document.getElementById(id); };
   var esc = function(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
   var usd = function(n){ return "$" + Math.round(Number(n)).toLocaleString("en-US"); };
@@ -313,19 +321,27 @@ const JS = String.raw`
   }
   // The car's title in Amazon form, from the answer's own identity (never the VIN): "Used {year} {make} {model}".
   function amazonTitle(a){
-    var id = a && a.identity; if (!id || !id.year || !id.make || !id.model) return null;
-    var words = [id.year, id.make, id.model], v = id.variant && String(id.variant);
-    if (v && String(id.model).toLowerCase().indexOf(v.toLowerCase()) < 0) words.push(v);
-    var bd = id.body && String(id.body); if (bd && words.join(" ").toLowerCase().indexOf(bd.toLowerCase()) < 0) words.push(bd);
-    return "Used " + words.join(" ");
+    var d = a && a.vinDecode, id = a && a.identity, words = [];
+    if (d && d.year && d.make && d.model) { words = [d.year, d.make, d.model]; if (d.trim) words.push(d.trim); if (d.body) words.push(d.body); }
+    else if (id && id.year && id.make && id.model) { words = [id.year, id.make, id.model]; if (id.variant) words.push(id.variant); if (id.body) words.push(id.body); }
+    else if (a && a.carName) words = [a.carName];
+    if (!words.length) return null;
+    var seen = [], out = [];
+    words.forEach(function(w){ w = String(w); var low = w.toLowerCase(); if (seen.join(" ").indexOf(low) < 0) { out.push(w); seen.push(low); } });
+    return "Used " + out.join(" ");
   }
   // Key features from the answer's own decode (a.features), each only when known; the section hides when none is.
-  var KF = [["drivetrain", "Drivetrain"], ["seating", "Seating"], ["engine", "Engine"], ["fuel", "Fuel type"], ["transmission", "Transmission"], ["interior", "Interior"], ["exterior", "Exterior"]];
+  var KF = [["drivetrain", "Drivetrain"], ["seats", "Seating"], ["engine", "Engine"], ["fuel", "Fuel type"], ["transmission", "Transmission"], ["interior", "Interior"], ["exterior", "Exterior"]];
   var KF_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="1.6"/></svg>';
   function kfHtml(a){
-    var f = (a && a.features) || {};
+    var f = (a && a.vinDecode && a.vinDecode.features) || {};   // the VIN's own decode only (item 7)
     return KF.filter(function(k){ return f[k[0]] != null && String(f[k[0]]).trim(); }).map(function(k){ return '<div class="kfi">' + KF_ICON + '<span><span class="kfl">' + esc(k[1]) + '</span><span class="kfv">' + esc(f[k[0]]) + "</span></span></div>"; }).join("");
   }
+  function caseHtml(a){
+    var k = demoAnswerCase(a); if (!k || k.kind === "answer" || k.kind === "error" || !k.line) return "";
+    return '<div class="case"><p class="case-l">' + esc(k.line) + "</p>" + (k.name ? '<p class="case-n">' + esc(k.name) + "</p>" : "") + "</div>";
+  }
+  function wordsCaseHtml(q){ return '<div class="case"><p class="case-l">' + esc(OUT_OF_SCOPE_LINE) + '</p><p class="case-n">' + esc(q) + "</p></div>"; }
   function mcCard(a){ return cardHtml(a) + (a && a.ok !== false && !a.question ? '<p class="mc-ctx">' + esc(CONTEXT) + "</p>" : ""); }
   function drawC(a){
     var ok = a && a.ok !== false;
@@ -340,6 +356,7 @@ const JS = String.raw`
     $("c-price").innerHTML = sl ? '<div class="price">' + usd(sl.price) + '</div><p class="price-kind">Sample asking price</p>' + (sl.miles ? '<p class="miles">' + esc(Number(sl.miles).toLocaleString("en-US")) + " miles</p>" : "") : "";
     $("c-fin").innerHTML = sl ? '<div class="fin"><span class="fin-l">Finance</span><div class="fin-b"><p class="fin-m">' + usd(sl.monthly) + '<span>/mo</span></p><p class="fin-s">Sample</p><button type="button" class="btn yel blk" data-inert>Estimate payments</button></div></div><div class="cash"><span>Cash</span><b>' + usd(sl.price) + "</b></div>" : "";
     if ($("c-mc")) { $("c-mc").hidden = !scope; if (scope) $("mc-body").innerHTML = mcCard(a); }
+    $("c-case").innerHTML = scope ? "" : caseHtml(a);
     $("c-pcard").innerHTML = scope ? mcCard(a) : "";
     var kf = kfHtml(ok ? a : null); $("c-kf").innerHTML = kf; $("c-kfsec").hidden = !kf;
     HIST = (a && a.history) || [];
@@ -361,21 +378,23 @@ const JS = String.raw`
   // Outside the pilot scope, no module. The two next steps are inert; no trade-in number is ever shown.
   function drawA(a){
     var out = $("a-out"); if (!out) return;
+    var cs = caseHtml(a); if (cs) { out.innerHTML = cs; return; }
     if (a && a.ok !== false && !inScope(a)) { out.innerHTML = ""; return; }
     out.innerHTML = inlineHist((a && a.history) || []) + cardHtml(a);
     if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ goA(); }, a.retryAfterMs);
   }
-  function goA(){ var q = String(($("a-q") || {}).value || "").trim(); if (!q) return; if (wordsOut(q)) { $("a-out").innerHTML = ""; return; } $("a-out").innerHTML = '<p class="loading">Reading the sales for this one.</p>'; ask({ q: q }).then(drawA); }
+  function goA(){ var q = String(($("a-q") || {}).value || "").trim(); if (!q) return; if (wordsOut(q)) { $("a-out").innerHTML = wordsCaseHtml(q); return; } $("a-out").innerHTML = '<p class="loading">Reading the sales for this one.</p>'; ask({ q: q }).then(drawA); }
   // TAB b, DEALER LISTS A CAR: VIN in; this car's history inline and the same shared card, ABOVE the asking price field.
   // No pricing advice, no suggested price: the price field is the dealer's and stays empty.
   function drawB(a){
     var out = $("b-out"); if (!out) return;
+    var cs = caseHtml(a); if (cs) { out.innerHTML = cs; return; }
     if (a && a.ok !== false && !inScope(a)) { out.innerHTML = ""; return; }
     out.innerHTML = inlineHist((a && a.history) || []) + cardHtml(a);
     if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ goB(); }, a.retryAfterMs);
   }
   // The listing car opens by its name; its VIN goes with the read (for its history) and is never printed.
-  function goB(){ var q = String(($("b-vin") || {}).value || "").trim(); if (!q) return; if (wordsOut(q)) { $("b-out").innerHTML = ""; return; } $("b-out").innerHTML = '<p class="loading">Reading the sales for this one.</p>'; ask(LIST && LIST.vin && q === CAR ? { q: q, vin: LIST.vin } : { q: q }).then(drawB); }
+  function goB(){ var q = String(($("b-vin") || {}).value || "").trim(); if (!q) return; if (wordsOut(q)) { $("b-out").innerHTML = wordsCaseHtml(q); return; } $("b-out").innerHTML = '<p class="loading">Reading the sales for this one.</p>'; ask(LIST && LIST.vin && q === CAR ? { q: q, vin: LIST.vin } : { q: q }).then(drawB); }
   document.addEventListener("click", function(e){ if (e.target.closest("[data-a-go]")) goA(); if (e.target.closest("[data-b-go]")) goB(); });
   document.addEventListener("keydown", function(e){ if (e.key !== "Enter") return; if (e.target.id === "a-q") { e.preventDefault(); goA(); } if (e.target.id === "b-vin") { e.preventDefault(); goB(); } });
   // A car chosen in the bar opens on tabs a and b already read (the same one read per page as tab c).
@@ -419,6 +438,7 @@ export function amazonPageHtml(view, carIn, { carOf, listing }) {
         <button type="button" class="mc-row" data-mc-toggle aria-expanded="false" aria-controls="mc-body"><span>${escHtml(P.moduleName)}, <span class="attr">${escHtml(P.attribution.replace(/^Powered/, "powered"))}</span></span><span class="chev">Show</span></button>
         <div class="mc-body" id="mc-body" hidden><p class="loading">Reading the sales for this one.</p></div>
       </div>`}
+      <div id="c-case">${outC ? `<div class="case"><p class="case-l">${escHtml(OUT_OF_SCOPE_LINE)}</p><p class="case-n">${escHtml(listCar)}</p></div>` : ""}</div>
       <p class="pdet"><button type="button" class="linkbtn" data-inert>See price details</button></p>
       <p class="dealer">Sold by <b>Sample dealer</b></p>
     </div>
@@ -456,5 +476,5 @@ ${carBar}
 </section>
 ${viewC}
 </main>
-<script>${JS.replace("__LISTCAR__", JSON.stringify(listCar)).replace("__SAMPLES__", JSON.stringify(P.sampleListings)).replace("__CONTEXT__", JSON.stringify(P.cardContext)).replace("__CAR__", JSON.stringify(car)).replace("__OUTSCOPE__", JSON.stringify(outC)).replace("__CARS__", JSON.stringify(DEMO_CARS)).replace("__SCOPE__", JSON.stringify({ age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS })).replace("__KNOWNMAKES__", JSON.stringify(KNOWN_MAKES)).replace("__MAKEWORDS__", JSON.stringify(MAKE_WORDS)).replace("__FROMWORDS__", scopeFromWords.toString()).replace("__INSCOPE__", amazonInScope.toString()).replace("__VIEW__", JSON.stringify(v)).replace("__LIST__", JSON.stringify(hasListing ? { vin: listing.vin } : null)).replace("__CHOSEN__", JSON.stringify(chosen))}</script></body></html>`;
+<script>${JS.replace("__LISTCAR__", JSON.stringify(listCar)).replace("__SAMPLES__", JSON.stringify(P.sampleListings)).replace("__OOSLINE__", JSON.stringify(OUT_OF_SCOPE_LINE)).replace("__CASEFN__", () => demoAnswerCase.toString()).replace("__CONTEXT__", JSON.stringify(P.cardContext)).replace("__CAR__", JSON.stringify(car)).replace("__OUTSCOPE__", JSON.stringify(outC)).replace("__CARS__", JSON.stringify(DEMO_CARS)).replace("__SCOPE__", JSON.stringify({ age: SCOPE_AGE_YEARS, makes: SCOPE_MAKES, models: SCOPE_MODELS })).replace("__KNOWNMAKES__", JSON.stringify(KNOWN_MAKES)).replace("__MAKEWORDS__", JSON.stringify(MAKE_WORDS)).replace("__FROMWORDS__", scopeFromWords.toString()).replace("__INSCOPE__", amazonInScope.toString()).replace("__VIEW__", JSON.stringify(v)).replace("__LIST__", JSON.stringify(hasListing ? { vin: listing.vin } : null)).replace("__CHOSEN__", JSON.stringify(chosen))}</script></body></html>`;
 }

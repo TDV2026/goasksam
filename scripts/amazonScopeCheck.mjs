@@ -59,7 +59,7 @@ ok(!/price|range|sales|count/i.test(amazonInScope.toString()), "the scope reads 
 // TABS a AND b (Lane F, Oct 20 2026): typed words decide the same way before any read; undecided words read as before.
 { const ha = amazonPageHtml("a", "", { carOf, listing: DUMMY });
   ok(ha.includes("scopeFromWords = " + scopeFromWords.toString()) && /function wordsOut\(q\)\{ return scopeFromWords\(q, new Date\(\)\.getFullYear\(\), SCOPE\) === false; \}/.test(ha), "tabs a and b run scopeFromWords itself on the typed words");
-  ok(/if \(wordsOut\(q\)\) \{ \$\("a-out"\)\.innerHTML = ""; return; \} \$\("a-out"\)\.innerHTML = '<p class="loading">/.test(ha) && /if \(wordsOut\(q\)\) \{ \$\("b-out"\)\.innerHTML = ""; return; \} \$\("b-out"\)\.innerHTML = '<p class="loading">/.test(ha), "an out-of-scope typed car draws nothing and makes no read, before the Reading line");
+  ok(/if \(wordsOut\(q\)\) \{ \$\("a-out"\)\.innerHTML = wordsCaseHtml\(q\); return; \} \$\("a-out"\)\.innerHTML = '<p class="loading">/.test(ha) && /if \(wordsOut\(q\)\) \{ \$\("b-out"\)\.innerHTML = wordsCaseHtml\(q\); return; \} \$\("b-out"\)\.innerHTML = '<p class="loading">/.test(ha), "an out-of-scope typed car makes no read and says so in Sam's line with its name (revision 2 item 8c), before the Reading line");
   const m = /var KNOWN_MAKES = (.*?), MAKE_WORDS = (.*?), scopeFromWords = /.exec(ha);
   ok(m && JSON.parse(m[1]).length > 40 && JSON.parse(m[2]).length > 3, "the page carries the known makes and the make words"); }
 console.log(`amazonScopeCheck: ${pass} passed, ${fail} failed`);

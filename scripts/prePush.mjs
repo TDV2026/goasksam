@@ -622,6 +622,20 @@ try {
 } catch (e) {
   record("Amazon demo revision 2, tab c (scripts/amazonR2Check.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Titles from the VIN's decode, Key features from the decode only, the three case lines in Sam's words (Sam, Oct 20 2026; Lane C on Lane E). No network.
+try {
+  const out = execSync("node scripts/amazonCaseCheck.mjs", { encoding: "utf8" });
+  record("Amazon demo revision 2, the answer cases (scripts/amazonCaseCheck.mjs)", "PASS", (out.match(/amazonCaseCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Amazon demo revision 2, the answer cases (scripts/amazonCaseCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// Lane E's demo-vin checks (Sam's revision 2 items 7 and 8). No network.
+try {
+  const out = execSync("node scripts/demoVinCheck.mjs", { encoding: "utf8" });
+  record("Amazon demo VIN decode and cases, server side (scripts/demoVinCheck.mjs)", "PASS", (out.match(/demoVinCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Amazon demo VIN decode and cases, server side (scripts/demoVinCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
