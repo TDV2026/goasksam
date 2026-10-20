@@ -25,5 +25,17 @@ ok(kept.length === 6 && kept.every(t => /GT C\b/.test(t)), `the GT C scope keeps
 ok(!ob.qualifyReason(row("2019 Mercedes-AMG GT C Coupe"), spec), "a GT C Coupe title matches");
 ok(!!ob.qualifyReason(row("2017 Mercedes-AMG GT Coupe"), spec), "\"GT Coupe\" never matches \"GT C\"");
 ok(!!ob.qualifyReason(row("2019 Mercedes-AMG GT R"), spec), "a GT R does not match");
+// THE ENGINE STEP (the 19:45Z live read showed the typed GT C still printing the whole pool): buildSpec makes "AMG GT" a performance
+// badge and reads its variant from the resolved model and trim; "C" is now a variant like "R", so the spec scopes to GT C titles
+const spec2 = async t => { const r = await resolveVehicle(t, {}); return ob.buildSpec(r.vehicle, null, t); };
+const sc = await spec2("2019 Mercedes-AMG GT C");
+ok(sc.badge === "AMG GT" && sc.trim === "C", `the engine's spec for the GT C carries the variant C (${JSON.stringify({ badge: sc.badge, trim: sc.trim })})`);
+const sp = await spec2("2019 Mercedes-AMG GT");
+ok(sp.badge === "AMG GT" && !sp.trim, "the plain AMG GT's spec carries no variant (unchanged)");
+const sr = await spec2("2019 Mercedes-AMG GT R");
+ok(sr.trim === "R", "the GT R's spec keeps variant R (unchanged)");
+const varSpec = { make: "Mercedes-Benz", model: "AMG GT", titleContains: "C", year: 2019, houseTier: true };
+const keptC = pool.filter(t => !ob.qualifyReason(row(t), varSpec));
+ok(keptC.length === 6 && keptC.every(t => /GT C\b/.test(t)), `the variant C keeps exactly the 6 GT C sales of the 13 (kept ${keptC.length})`);
 console.log(bad ? `amgGtcCheck: ${bad} failed` : "amgGtcCheck: all passed");
 process.exit(bad ? 1 : 0);
