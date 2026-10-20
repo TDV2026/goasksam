@@ -21,5 +21,16 @@ ok(decodeIdentityFix({ make: "Chevrolet", model: "Camaro", trim: "SS" }, "1969 C
 ok(decodeIdentityFix({ make: "Chevrolet", model: "Camaro" }, "1969 Chevrolet Camaro", null) === null, "no decode changes nothing");
 const keepMake = decodeIdentityFix({ make: "Ford", model: "Mustang", trim: "Shelby" }, "1967 Shelby GT500 Mustang", { make: "Shelby", model: "GT500" });
 ok(keepMake && keepMake.make === "Ford", `a make of the same group stays (Ford/Shelby): ${keepMake && name(keepMake, 1967)}`);
+// cost (Oct 20 2026): with the switch on, carIdentity decodes ONLY when the title names another known model of the make
+// (otherModelsNamed, the resolver's cached model list), and keeps a decode per instance by VIN (decodeVinCached).
+const fs = await import("fs");
+const src = fs.readFileSync(new URL("../api/_historyData.js", import.meta.url), "utf8");
+const blk = src.slice(src.indexOf("if (IDENTITY_RULES.decodeFirst"), src.indexOf("// Same car = same VIN and same MAKE."));
+ok(/const others = await otherModelsNamed\(v\.make, v\.model, t0\)/.test(blk) && /if \(others && others\.length\) \{ const dv = await decodeVinCached/.test(blk) && !/resolveVehicle\(/.test(blk), "the rule decodes only after the prefilter, through the per-VIN cache");
+const { otherModelsNamed } = await import("../lib/vehicle.js");
+const realFetch = globalThis.fetch; globalThis.fetch = async () => { throw new Error("blocked"); };
+const om = await otherModelsNamed("Chevrolet", "Suburban", "1990 Chevrolet Suburban 2500");
+globalThis.fetch = realFetch;
+ok(om === null || Array.isArray(om), "an unreadable model list returns null (no decode), never throws");
 console.log(bad ? `idDecodeRuleCheck: ${bad} failed` : "idDecodeRuleCheck: all passed");
 process.exit(bad ? 1 : 0);

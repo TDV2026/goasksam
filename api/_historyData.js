@@ -3,7 +3,7 @@
 // chassis_vin_norm, with the SAME normalisation as findVinArchiveMatch (lib/_flags.js): strip every
 // non-alphanumeric, upper-case. When Lane A's vin_index table lands, only vinAppearances changes.
 import { appConfigFlag } from "../lib/_flags.js";
-import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
+import { resolveVehicle, sanitizeResolvedVehicle, otherModelsNamed } from "../lib/vehicle.js";
 import { findGeneration } from "../lib/generations.js";
 import { oneEngineAnswer } from "../lib/onebox.js";
 import { supabaseSelect } from "../lib/_supabase.js";
@@ -162,6 +162,15 @@ export function decodeIdentityFix(v, title, decoded) {
   const trimWords = [...keptMake, ...String(v.trim || "").split(/\s+/)].filter(w => w && !drop.has(squash(w)));
   return { ...v, make, model: idPretty(dm), trim: trimWords.length ? trimWords.join(" ") : null };
 }
+const decodeMem = new Map();
+export async function decodeVinCached(vin) {
+  if (decodeMem.has(vin)) return decodeMem.get(vin);
+  let dv = null;
+  try { const r = await resolveVehicle(vin, { vinConfirm: true }); dv = r && r.vehicle && r.vehicle.make ? r.vehicle : null; } catch { dv = null; }
+  if (decodeMem.size >= 5000) decodeMem.delete(decodeMem.keys().next().value);
+  decodeMem.set(vin, dv);
+  return dv;
+}
 export async function carIdentity(apps, vin) {
   if (!apps.length) return null;
   const titled = apps.filter(a => a.title);
@@ -186,7 +195,13 @@ export async function carIdentity(apps, vin) {
   }
   if (!v) return null;
   if (IDENTITY_RULES.decodeFirst && titled.length && /^[A-HJ-NPR-Z0-9]{17}$/.test(normVin(vin))) {
-    try { const r = await resolveVehicle(normVin(vin), { vinConfirm: true }); const dv = r && r.vehicle; const fx = decodeIdentityFix(v, cleanTitle(titled[0].title), dv); if (fx) v = sanitizeResolvedVehicle(fx) || fx; } catch {}
+    // cost (Lane F, Oct 20 2026): decode ONLY when the title names another known model of the make (the Suburban title also
+    // names Silverado); every other VIN keeps its identity with no decode. A decode is kept per instance by VIN.
+    try {
+      const t0 = cleanTitle(titled[0].title);
+      const others = await otherModelsNamed(v.make, v.model, t0);
+      if (others && others.length) { const dv = await decodeVinCached(normVin(vin)); const fx = decodeIdentityFix(v, t0, dv); if (fx) v = sanitizeResolvedVehicle(fx) || fx; }
+    } catch {}
   }
   // Same car = same VIN and same MAKE. Reject only when an appearance names a different make (a
   // polluted VIN shared by unrelated lots); an appearance that doesn't state its make is accepted.
