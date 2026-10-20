@@ -490,6 +490,13 @@ try {
 } catch (e) {
   record("A listing's gearbox read (scripts/gearboxCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Keep Looking's sentence trimmed and the Before it ends email's last bid seen line (Sam's decision 8; Lane C). No network.
+try {
+  const out = execSync("node scripts/keepLookingLineCheck.mjs", { encoding: "utf8" });
+  record("Keep Looking sentence and the email's bid line (scripts/keepLookingLineCheck.mjs)", "PASS", (out.match(/keepLookingLineCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Keep Looking sentence and the email's bid line (scripts/keepLookingLineCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });

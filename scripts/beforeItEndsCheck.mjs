@@ -83,7 +83,7 @@ ok(alerts.filter(a => a.user_id !== U.off).every(a => a.send_status === "sent"),
 ok(digests.length === 0, "the daily email carries none of them (nothing else was queued, so it sent nothing)");
 ok(sends.filter(s => s.text.includes("/listing/103")).length === 2, "car 103's end moved later: still one email each, nothing extra");
 const one = sends.find(s => s.text.includes("/listing/101") && who(s.to) === U.daily);
-ok(one && /ends today at 6:30am PT\./.test(one.text) && /as of 4:30am PT\./.test(one.text) && /middle half of 911 Carrera Coupes/.test(one.text), "the email carries the end time in Pacific, the bid as of the pull, and the middle-half line");
+ok(one && /ends today at 6:30am PT\./.test(one.text) && /The last bid seen was \$[\d,]+ at 4:30am PT\./.test(one.text) && !/current bid/i.test(one.text) && /middle half of 911 Carrera Coupes/.test(one.text), "the email carries the end time in Pacific, 'The last bid seen was {amount} at {time}.' (Sam's decision 8), and the middle-half line");
 ok(one && /two hours before bidding ends, once for each car/.test(one.text) && /Stop all Task emails: /.test(one.text), "the email says when it comes and carries the stop link");
 
 // A stored bid by its own time (Oct 2026, lib/tasks/bidTime.js), on every email that prints a live bid: within the hour
@@ -97,7 +97,7 @@ ok(one && /two hours before bidding ends, once for each car/.test(one.text) && /
   const ago = m => new Date(NOW.getTime() - m * 60e3).toISOString();
   const RANGE = { kind: "range", low: 52000, high: 68000, count: 23, window: "the past year", family: "CLK DTM coupes", familyOne: "CLK DTM coupe", soldLine: "The middle half of CLK DTM coupes sold between $52,000 and $68,000 in the past year.", bodyScoped: null };
   const CASES = [
-    { k: "fresh (10 minutes)", bidAt: ago(10), bie: "The current bid is $61,500 as of 10:20am PT.", place: "The current bid is inside the range.", daily: "Current bid $61,500, inside the range of recent sales.", dailyOnly: "Current bid $61,500.", keep: "The current bid is $61,500." },
+    { k: "fresh (10 minutes)", bidAt: ago(10), bie: "The last bid seen was $61,500 at 10:20am PT.", place: "That bid is inside the range.", daily: "Current bid $61,500, inside the range of recent sales.", dailyOnly: "Current bid $61,500.", keep: "The current bid is $61,500." },
     { k: "61 minutes", bidAt: ago(61), bie: "Last bid we saw: $61,500 at 9:29am PT.", place: "That bid is inside the range.", daily: "Last bid we saw: $61,500 at 9:29am PT, inside the range of recent sales.", dailyOnly: "Last bid we saw: $61,500 at 9:29am PT.", keep: "Last bid we saw: $61,500 at 9:29am PT." },
     { k: "5 hours", bidAt: ago(300), bie: "Last bid we saw: $61,500 at 5:30am PT.", place: "That bid is inside the range.", daily: "Last bid we saw: $61,500 at 5:30am PT, inside the range of recent sales.", dailyOnly: "Last bid we saw: $61,500 at 5:30am PT.", keep: "Last bid we saw: $61,500 at 5:30am PT." },
     { k: "another day (a bid from 13 hours ago)", bidAt: ago(780), bie: "Last bid we saw: $61,500 at 9:30pm PT on Tuesday.", place: "That bid is inside the range.", daily: null, dailyOnly: "Last bid we saw: $61,500 at 9:30pm PT on Tuesday.", keep: "Last bid we saw: $61,500 at 9:30pm PT on Tuesday." },
