@@ -1054,25 +1054,6 @@ function platformLeadsEvidenceSet(route){
   return mine>Math.max(0,...others);
 }
 
-// Day advantage (locked): platform-scoped, weekdays only, never Saturday or
-// Sunday, never for Cars & Bids (no weekend auctions and no day edge to
-// claim). Gates unchanged: 3+ sales on the named day and a 10%+ lift.
-// "historically" is required wording because the window is all-time.
-function weekdayBullet(route){
-  if(/carsandbids/.test(String(route?.platform||""))||/cars\s*&\s*bids/i.test(String(route?.label||"")))return null;
-  const h=route?.marketEvidence?.dayAdvantage;
-  if(!h?.weekday)return null;
-  if(["Saturday","Sunday"].includes(h.weekday))return null;
-  if((h.sales||0)<3||(h.liftPercent||0)<10)return null;
-  // Only claim a specific weekday when the pattern is proven for THIS model, not
-  // merely the make (locked, generalized): a make-wide pattern is too coarse to
-  // attribute to the seller's exact car. Applies to any platform's day data.
-  if(h.scope!=="model")return null;
-  const name=platformDisplayName(route.label||route.platform);
-  const scopeLabel=comparableModelLabel();
-  return `On ${name}, ${h.weekday} endings have historically finished strongest for ${scopeLabel}, around ${h.liftPercent}% above other weekdays.`;
-}
-
 // Gated cross-platform price delta (Phase 2). Only when BOTH platforms carry a
 // real 5+ comparable sample, so the comparison is proven not invented (rule 1).
 // Negligible gaps (< $1,000) are dropped. Rounded to the nearest $100.
@@ -1220,56 +1201,9 @@ function premiumIsPlausible(p){
   if(p.gateType==="symmetric"&&Number.isFinite(p.percent)&&p.percent>=10)return metricGate(p.percent,"premium",{scope:p.scope}).ok;
   return false;
 }
-// Weekday bullet, TIERED by bucket sample (Ford GT round). At most one per result.
-//  TIER 1 (strong): winning-day bucket >= 5 AND total >= 20 AND lift in the
-//          plausibility band [5,40] -> renders the percentage, ROUNDED TO 5.
-//  TIER 2 (direction): winning-day bucket >= 3 AND total >= 12, lift in [5,60]
-//          -> "has tended to close strongest on Fridays", NO number.
-//  TIER 3 (below floor, or lift outside band) -> renders nothing (logged).
-// The make-scope line was always direction-only and maps to Tier 2.
-const WEEKDAY_TIER1_DAY=5, WEEKDAY_TIER1_TOTAL=20;
-const WEEKDAY_TIER2_DAY=3, WEEKDAY_TIER2_TOTAL=12, WEEKDAY_TIER2_MAX_LIFT=60;
-// PURE (no shared state): the "at most one weekday card per result" rule is
-// enforced by the caller (result.js dedupes across cards). An absent sample is
-// treated as sufficient (the backend already gated it), preserving prior recall.
-function composerWeekdayBullet(vehicle,ev){
-  const d=ev&&ev.dayAdvantage;
-  if(!d||!d.weekday||!d.scope||!Number.isFinite(Number(d.liftPercent)))return null;
-  const total=d.sample!=null?Number(d.sample):null;
-  const daySales=d.sales!=null?Number(d.sales):null;
-  const lift=Number(d.liftPercent);
-  // The stated window MUST be the real value the claim was computed on; never a
-  // guessed default. "all_time" is stated plainly; a missing/unusable window omits
-  // the whole day-specific claim rather than assert an unverified period.
-  const winNum=Number(d.window);
-  const win=(d.window==="all_time")?`across all recorded sales`
-    :((Number.isFinite(winNum)&&winNum>0)?(winNum>=365?`over the past year`:`over the past ${winNum} days`):null);
-  if(!win)return null;
-  const winTag=(d.window==="all_time")?"all_time":`${winNum}d`;
-  const prov=t=>`dayAdvantage(${d.scope},${winTag}${t})`;
-  // make scope is inherently coarse: ALWAYS direction only, established wording,
-  // gated to a directionally-sane lift so an absurd internal figure never routes.
-  if(d.scope==="make"){
-    if(!(Math.abs(lift)>=METRIC_BANDS.weekday.min&&Math.abs(lift)<=WEEKDAY_TIER2_MAX_LIFT))return null;
-    const make=vehicle&&vehicle.make?composerPlural(vehicle.make):"These cars";
-    return { text:`${make} as a whole have closed strongest on ${d.weekday}s ${win}.`, provenance:prov(",direction") };
-  }
-  const phrase=composerScopePhrase(vehicle,d.scope,d.generationCode);
-  if(!phrase)return null; // fail closed: generation rung with no code
-  // TIER 1: strong sample + gated, rounded, plausible lift -> percentage.
-  const tier1=(total==null||total>=WEEKDAY_TIER1_TOTAL)&&(daySales==null||daySales>=WEEKDAY_TIER1_DAY);
-  if(tier1){
-    const g=metricGate(lift,"weekday",{scope:d.scope,weekday:d.weekday,sample:total});
-    if(g.ok)return { text:`${phrase} have closed strongest on ${d.weekday}s, around ${g.value}% above other days, ${win}.`, provenance:prov(`,${g.value}%`) };
-    // outside the band: no number; fall through to a direction line if sane.
-  }
-  // TIER 2: direction only.
-  const tier2=(total==null||total>=WEEKDAY_TIER2_TOTAL)&&(daySales==null||daySales>=WEEKDAY_TIER2_DAY);
-  if(tier2&&Math.abs(lift)>=METRIC_BANDS.weekday.min&&Math.abs(lift)<=WEEKDAY_TIER2_MAX_LIFT){
-    return { text:`${phrase} have tended to close strongest on ${d.weekday}s ${win}.`, provenance:prov(",direction") };
-  }
-  return null; // TIER 3
-}
+// No weekday bullet (Oct 20 2026, Lane F's decision): the price-median best weekday left the V2 card on Sep 29 as
+// wrong (weekend and weekday prices sit within about 1% matched), so the old card composer states it nowhere either,
+// whatever dayAdvantage the server sends.
 // Curated audience/specialty fact from the platform copy library.
 function composerAudienceBullet(ev){
   const line=platformFitLine({label:ev.label,platform:ev.platform});
@@ -1528,7 +1462,6 @@ function composeCard(vehicle,route,opts={}){
   if(!headline&&opts.isPick&&!unverified){ headline=composerCascadeHeadline(vehicle,ev,opts,landedScope); }
   const branch4=opts.isPick&&opts.routingReason==="speed_unknown";
   const bullets=[];
-  if(!unverified){ const wk=composerWeekdayBullet(vehicle,ev); if(wk)bullets.push(wk); }
   // Branch 4 REQUIRES the depth-honesty bullet; place it high so the cap keeps it.
   if(branch4){ const dh=composerDepthHonestyBullet(vehicle,ev,opts); if(dh)bullets.push(dh); }
   // Specialization share (Stage 2): slots after the weekday line and REPLACES

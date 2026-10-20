@@ -55,6 +55,21 @@ for(const [name,x] of Object.entries(CARS)){
   }
   ok(a.runListing.length>0 && /^I would list your .+ on Bring a Trailer\. Lead with honest, well lit photos and a straight writeup of history and condition, and let the platform's audience do the rest\.$/.test(a.runListing), `${name}: the run-the-listing answer is the platform line and the listing advice (${a.runListing.slice(0,160)})`);
 }
+// The OLD card composer (composeCard, result-copy.js): the one source of every non-primary option card's headline and
+// bullets, and of the primary card too when gas_cardv2 is "0" (result.js renderOptionCard). Same rule: with or without
+// dayAdvantage, byte-identical and no weekday claim, for the pick and a non-primary card, each car.
+for(const [name,x] of Object.entries(CARS)){
+  const route=withDay=>({ key:"bringatrailer", label:"Bring a Trailer", platform:"bringatrailer", name:"Bring a Trailer", platformSlug:"bringatrailer",
+    marketEvidence:{ label:"Bring a Trailer", platform:"bringatrailer", evidenceSales:24, modelSales:24, relevantSales:24, windowDays:180, pricePremium:x.pp,
+      ...(withDay?{ dayAdvantage:{ ...day, liftPercent:22, sample:40, sales:12, window:180 } }:{}) } });
+  for(const isPick of [true,false]){
+    const opts={ isPick, isVolumeLeader:isPick, sellerWantsSpeed:false };
+    const a=JSON.stringify(composeCard(x.v,route(true),opts)), b=JSON.stringify(composeCard(x.v,route(false),opts));
+    const which=isPick?"pick (gas_cardv2=0)":"non-primary card";
+    ok(a===b, `${name}: old composer ${which} is the same with and without dayAdvantage`);
+    ok(!WEEKDAY.test(a), `${name}: old composer ${which} states no weekday (${(a.match(new RegExp(".{0,60}("+WEEKDAY.source+").{0,30}","i"))||[""])[0]})`);
+  }
+}
 // The chat's number guard no longer accepts a weekday percentage as one of the card's numbers.
 ok(v2GuardChatAnswer("Bring a Trailer is the platform, and 2005 M3s closed 15% higher on Mondays.").ok===false, "the chat guard refuses a weekday percentage");
 console.log(`sellWeekdayCheck: ${pass} passed, ${fail} failed`);
