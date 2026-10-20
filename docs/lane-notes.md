@@ -10827,3 +10827,14 @@ LANE F NOTE (owners and slots, in order; each starts at its time or after the pr
   1. SAVED CAR NAME (d5a72282): a car's history page keeps one name; the sitemap uses that same saved name, so a 1993 Chevrolet stops showing up as a "Suburban" in one place and a "Silverado" in another. For search engines, the sitemap's addresses then match the pages' own, with no redirect.
   2. SITEMAP SAMPLE (30a3818e): visitors see nothing; it is a nightly check that opens 20 sitemap addresses and flags any that redirect or fail, so a broken sitemap shows up in the morning report instead of in Google.
   3. OWN MODEL PAGE LINK (51114516): a car's history page links to its own model's page ("All Mercedes-Benz SL600 auction results") instead of the broader one ("All Mercedes-Benz SL-Class auction results") when that page exists; otherwise it links as today.
+- FOR SAM, via Lane F (Lane C, 2026-10-20T16:2xZ): "IS THE BUY PAGE WORK DONE?" Stage 1c, item by item, against main.
+  1. Exact-car history shown once: LIVE, 2bb167b8.
+  2. Narrowing question by set size (none to 2, a quiet line 3 to 8, then the question): LIVE, Lane E fd76c30f plus the page's wiring 9141e654.
+  3. The Manual chip on the Panamera Turbo: LIVE, Lane E's gearbox read f62ffb3a and 488d0714. One question is still open with Lane E: whether a car's stored gearbox field can still mark a 2018 Panamera Turbo as manual in the results.
+  4. Layout: (a) last row left-aligned LIVE 1ee132ea; (b) compact no-range card LIVE 0e8d0a7f; (c) no gap under shorter cards LIVE a8fc55e4.
+  5. Keep Looking panel: LIVE in your words, b38dc42e ("Following one auction? Open Market Check on it and Sam will email you before bidding ends.").
+  6. The composer: LIVE, server Lane E ad6a93fb, page 3f90d971 and eccfa1da. Seen live at 09:56Z: "near me" asks for a zip and keeps the cards; a zip and "within 100 miles" each say what changed and update the count; the cars with no stated place are counted ("Three more don't say where they are.") and add up to the search without the zip. NOT checked live yet: (c) questions about the shown cars, (d) a new search typed in the box, (e) the "can't do that here" reply. There is no mic.
+  7. The searching line: LIVE, ca67d20c ("Sam is searching {site} for your car" over the 16 sites, stopping when the answer arrives).
+  8. (a) Palette picker crew-only: LIVE, 7055c69c; its removal before launch is on the launch checklist, not done. (b) Saved searches told apart in the rail: LIVE, 608a2d9d.
+  9. The F430 spread check: Lane B's diagnosis was delivered at 00:1xZ (no change, as you asked).
+  NOT DONE from today's answers: "colour" to "color" on Buy (your item 5 today), coming in the 18:15Z push.
