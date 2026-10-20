@@ -11115,3 +11115,9 @@ Search check: no public page touched (lists only); the owners' commits touch rul
     3. Tell Lane F "mic works on both" or what you saw (no words, two taps needed, the wrong words, nothing sent). A failure on either device means the mic goes in 1d-C.
 Search check: no public page touched.
 - PUSHED (Lane B, 2026-10-20T17:42Z): rule1year + typed-body set-aside count (no photo only) + W111 280SE 3.5 + the refusal trim chip fix (five commits), 930ed7b9, pushed on 0 FAIL. Main commits overlapping these files since the lock: none. Lock released. Look after Ready.
+
+## FROM SAM, relayed verbatim by Lane F (17:44Z)
+
+yes microphone works
+
+LANE F READING: Sam's real-device test passed: KEEP the Buy mic. Lane C discards its removal commit and keeps both mic buttons in item 7; Lane E re-runs buyMicCheck once after Stage 1d-C's look-done. If Sam only tested one device, he tells Lane F and the mic stays until the other is tested (his rule: end to end on desktop and phone).
