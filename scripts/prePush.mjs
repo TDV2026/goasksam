@@ -319,6 +319,12 @@ try {
 } catch (e) {
   record("/sell has no first-person Sam (scripts/sellVoiceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+try {
+  const out = execSync("node scripts/sellReserveLineCheck.mjs", { encoding: "utf8" });
+  record("/sell reserve line, never a dollar figure (scripts/sellReserveLineCheck.mjs)", "PASS", (out.match(/sellReserveLineCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("/sell reserve line, never a dollar figure (scripts/sellReserveLineCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The Sell day-of-week tile (Oct 2026, Lane B2, lib/sell/sellFacts.js dayBuckets + sellFlow.js dayTile). No network.
 try {
   const out = execSync("node scripts/sellDayTileCheck.mjs", { encoding: "utf8" });

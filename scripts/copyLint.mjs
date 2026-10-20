@@ -61,7 +61,7 @@ globalThis.fetch = async () => ({ ok:true, json:async()=>({}) });
 const html = fs.readFileSync("public/index.html","utf8");
 const files = [...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m=>"public/js/"+m[1]);
 const script = files.map(f=>fs.readFileSync(f,"utf8")).join("\n");
-(0, eval)(script + "\nglobalThis.sellState=sellState;globalThis.composeCard=composeCard;globalThis.powerSellerIntroLine=powerSellerIntroLine;globalThis.powerSellerServiceLine=powerSellerServiceLine;globalThis.vehicleAcceptPrefix=vehicleAcceptPrefix;globalThis.SYS=SYS;globalThis.SELL_SYS=SELL_SYS;globalThis.platformDisplayName=platformDisplayName;globalThis.HERO_SUPPORTING=HERO_SUPPORTING;globalThis.PLACEHOLDER_EXAMPLES=PLACEHOLDER_EXAMPLES;globalThis.LEARN_HOW=LEARN_HOW;globalThis.LEARN_PLATFORMS=LEARN_PLATFORMS;globalThis.HP_REASSURANCE=HP_REASSURANCE;");
+(0, eval)(script + "\nglobalThis.sellState=sellState;globalThis.composeCard=composeCard;globalThis.v2Reserve=v2Reserve;globalThis.powerSellerIntroLine=powerSellerIntroLine;globalThis.powerSellerServiceLine=powerSellerServiceLine;globalThis.vehicleAcceptPrefix=vehicleAcceptPrefix;globalThis.SYS=SYS;globalThis.SELL_SYS=SELL_SYS;globalThis.platformDisplayName=platformDisplayName;globalThis.HERO_SUPPORTING=HERO_SUPPORTING;globalThis.PLACEHOLDER_EXAMPLES=PLACEHOLDER_EXAMPLES;globalThis.LEARN_HOW=LEARN_HOW;globalThis.LEARN_PLATFORMS=LEARN_PLATFORMS;globalThis.HP_REASSURANCE=HP_REASSURANCE;");
 
 let failures = 0;
 const check = (name, ok, detail="") => { console.log(`${ok?"PASS":"FAIL"}  ${name}${ok?"":"  ->  "+detail}`); if(!ok)failures++; };
@@ -169,15 +169,20 @@ check("1d lint: no specialization bullet when no cell exists", (()=>{const c=com
 const reserveDelta = { label:"bringatrailer", platform:"bringatrailer", marketEvidence:{ evidenceSales:12, pricePremium:{gateType:"symmetric",percent:16,windowDays:90,scope:"model"}, dayAdvantage:{weekday:"Friday",liftPercent:16,scope:"model",window:180,sample:20}, reserveContext:{platform:"Bring a Trailer",make:"Chevrolet",band_key:"$50k to $100k",avg_with_reserve:65144,avg_no_reserve:60000,delta_dollars:5144,delta_pct:8.6,n_with:14,n_without:22,data_month:"2026-06"} } };
 const pickR = composeCard(V, reserveDelta, { isPick:true, landedScope:"model" });
 const altR = composeCard(V, reserveDelta, { isPick:false, landedScope:"model" });
-const reserveLine = (pickR.bullets.find(b=>/reserve/i.test(b.text))||{}).text || "";
-check("1d lint: reserve bullet renders on the pick card, clean", reserveLine && lintText(reserveLine).length === 0, lintText(reserveLine).join(" ; ") || reserveLine);
-check("1d lint: reserve bullet uses the exact locked delta wording", /In June, Bring a Trailer auctions with reserves in your price band averaged \$5,144 higher than those without\. You'll need to decide: is a reserve right for your car's condition and positioning\?/.test(reserveLine), reserveLine);
-check("1d lint: reserve bullet contains 'decide' and the month name", /\bdecide\b/.test(reserveLine) && /\bJune\b/.test(reserveLine), reserveLine);
-check("1d lint: reserve bullet is the LAST bullet on the pick card", pickR.bullets.length>0 && /reserve/i.test(pickR.bullets[pickR.bullets.length-1].text), JSON.stringify(pickR.bullets.map(b=>b.text.slice(0,30))));
-check("1d lint: reserve renders on the alt card too when a cell exists (as the LAST bullet)", altR.bullets.length>0 && /is a reserve right for your car/i.test(altR.bullets[altR.bullets.length-1].text), JSON.stringify(altR.bullets.map(b=>b.text)));
+// The reserve line (Oct 20 2026, Lane F's decision): never a dollar figure. The old composer states the V2 tile's own
+// sentence from marketEvidence.reserveInsight, verbatim, or nothing; a reserveContext dollar cell alone prints nothing.
+const RI = { ok:true, scopeLabel:"Chevrolet Camaros", deltaPct:7, nReserve:14, nNoReserve:16 };
+const withRI = r => ({ ...r, marketEvidence: { ...r.marketEvidence, reserveInsight: RI } });
+const pickRI = composeCard(V, withRI(reserveDelta), { isPick:true, landedScope:"model" });
+const altRI = composeCard(V, withRI(reserveDelta), { isPick:false, landedScope:"model" });
+const reserveLine = (pickRI.bullets.find(b=>/reserve/i.test(b.text))||{}).text || "";
+check("1d lint: a reserveContext dollar cell alone renders no reserve line and no dollar figure", !pickR.bullets.some(b=>/reserve/i.test(b.text)) && !/\$\s?[\d,]+ (higher|lower)/.test(cardText(pickR)), cardText(pickR).slice(0,200));
+check("1d lint: the reserve line is the V2 tile's own sentence, clean, no dollar figure", reserveLine === v2Reserve({ reserveInsight: RI }).body && lintText(reserveLine).length === 0 && !/\$/.test(reserveLine), reserveLine);
+check("1d lint: the reserve line is the LAST bullet on the pick card", pickRI.bullets.length>0 && /reserve/i.test(pickRI.bullets[pickRI.bullets.length-1].text), JSON.stringify(pickRI.bullets.map(b=>b.text.slice(0,30))));
+check("1d lint: the reserve line renders on the alt card too (as the LAST bullet)", altRI.bullets.length>0 && altRI.bullets[altRI.bullets.length-1].text === reserveLine, JSON.stringify(altRI.bullets.map(b=>b.text)));
 const reserveSim = { label:"bringatrailer", platform:"bringatrailer", marketEvidence:{ evidenceSales:12, pricePremium:{gateType:"symmetric",percent:16,windowDays:90,scope:"model"}, reserveContext:{platform:"Bring a Trailer",make:"Chevrolet",band_key:"$50k to $100k",avg_with_reserve:60500,avg_no_reserve:60000,delta_dollars:500,delta_pct:0.8,n_with:14,n_without:22,data_month:"2026-06"} } };
-const simLine = (composeCard(V, reserveSim, { isPick:true, landedScope:"model" }).bullets.find(b=>/reserve/i.test(b.text))||{}).text || "";
-check("1d lint: similarity case (|delta|<3%) renders the similar-money wording", /averaged similar money with or without a reserve/.test(simLine) && /\bdecide\b/.test(simLine), simLine);
+const simLine = (composeCard(V, { ...reserveSim, marketEvidence: { ...reserveSim.marketEvidence, reserveInsight: { ...RI, deltaPct: 1.5 } } }, { isPick:true, landedScope:"model" }).bullets.find(b=>/reserve/i.test(b.text))||{}).text || "";
+check("1d lint: under 3 points, the V2 tile's 'within a few points' sentence (no 'similar money')", /within a few points of each other/.test(simLine) && !/similar money|\$/.test(simLine), simLine);
 check("1d lint: PowerSeller card carries no reserve copy", !/reserve/i.test(cardText(composeCard(V, {}, { powerSeller:true }))));
 check("1d lint: detects a reserve causation claim", lintText("the reserve boosts your price and will get you more").some(v=>/reserve-causation/.test(v)));
 

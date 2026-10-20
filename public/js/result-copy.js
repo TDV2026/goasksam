@@ -1354,13 +1354,6 @@ function composerCascadeHeadline(vehicle,ev,opts,landedScope){
   // year appears only when the landed rung is exact-year (3.5).
   return { text:`${name} has closed ${composerScopePhrase(vehicle,composerLandedYearScope(),genCode)||composerPlural(vehicle&&vehicle.model)} strongest among recent sales.${speedLine}`, provenance:`ladder.landed(model)` };
 }
-// Reserve-context bullet (Phase 1.5): CORRELATION ONLY. Rendered on ANY card
-// (pick or alt) with a cell, always last (context, not a reason). Locked
-// wording; the allowed verb is "averaged". Never a causation or outcome claim.
-function reserveMonthName(m){
-  const names=["","January","February","March","April","May","June","July","August","September","October","November","December"];
-  return names[Number(String(m||"").split("-")[1])]||"recent months";
-}
 // Exact-VIN match bullet (VIN feature 4b). Reads the decision's vinArchiveMatch
 // (attached by the backend only when the exact car matched). Copy: outcome verb
 // "sold", mono numbers, no valuation, no dashes, and NEVER a comparison of the
@@ -1386,18 +1379,14 @@ function composerVinMatchBullet(vehicle){
   const onPlat=name?` on ${name}`:"", whenTxt=when?` in ${when}`:"", forTxt=price?` for ${price}`:"";
   return { text:`This exact car sold${onPlat}${whenTxt}${forTxt}${delta}.`, receiptUrl:match.url||null, photoUrl:match.photoUrl||null, provenance:`vinExactMatch(${match.source||"?"})` };
 }
+// The reserve line on the old card (Oct 20 2026, Lane F's decision): the V2 tile's own sentence, verbatim, from the
+// same server field (marketEvidence.reserveInsight, through v2Reserve), so both cards state one percentage and never
+// a dollar figure for a reserve effect (lint:cards' reserve rule; rule 11). No insight, no reserve line. The old
+// reserveContext dollar line ("averaged $14,474 higher than those without") is gone.
 function composerReserveBullet(ev){
-  const rc=ev&&ev.reserveContext;
-  if(!rc)return null;
-  const month=reserveMonthName(rc.data_month);
-  const platform=platformDisplayName(ev.label||ev.platform);
-  const tail=" You'll need to decide: is a reserve right for your car's condition and positioning?";
-  if(Math.abs(Number(rc.delta_pct))>=3){
-    const dir=Number(rc.delta_dollars)>=0?"higher":"lower";
-    const dollars=Math.abs(Math.round(Number(rc.delta_dollars))).toLocaleString();
-    return { text:`In ${month}, ${platform} auctions with reserves in your price band averaged $${dollars} ${dir} than those without.${tail}`, provenance:`reserveContext(${rc.data_month},${rc.delta_pct}%)` };
-  }
-  return { text:`In ${month}, ${platform} auctions in your price band averaged similar money with or without a reserve.${tail}`, provenance:`reserveContext(${rc.data_month},similar)` };
+  const rv=(typeof v2Reserve==="function")?v2Reserve(ev):null;
+  if(!rv||!rv.body)return null;
+  return { text:rv.body, provenance:`reserveInsight(${rv.dir||"even"},${rv.N}%,n=${rv.n})` };
 }
 
 // Landed-rung scope word for the honest headline, from the evidence ladder.
