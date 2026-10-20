@@ -4727,6 +4727,27 @@ async function handleOps(req, res) {
     }
     return res.status(200).json({ task: "bodyaside", since: since5.slice(0, 10), ms: Date.now() - t0, cars: out });
   }
+  // vindecodedry (Lane B, Oct 20 2026, Lane F's list for Sam before the decode-first flip; READ-ONLY, key-gated, OldCarsData zero,
+  // writes NOTHING): the nightly decode step (lib/_vinDecodeStore.js runNightlyDecode) in dry-run mode from ?cursor (a vin_norm,
+  // default the top of the index), up to ?batches paced vPIC batch calls (default 5, at most 10 per request: 50 VINs a call, 2 s
+  // apart, a stop on any HTTP error), and for every candidate: the title, today's name, vPIC's raw make and model, the name the
+  // rule (decodeIdentityFix) would give and whether it changes. nextCursor pages on.
+  if (task === "vindecodedry") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { runNightlyDecode } = await import("../lib/_vinDecodeStore.js");
+    const { decodeIdentityFix, familyOf, cleanTitle } = await import("./_historyData.js");
+    const batches = Math.min(10, Math.max(1, Number(req.query?.batches) || 5));
+    const cursor = String(req.query?.cursor || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const t0 = Date.now();
+    const r = await runNightlyDecode(env, { dryRun: true, maxBatches: batches, startCursor: cursor, scanBudgetMs: 150e3, log: () => {} });
+    const name = (v, y) => [y, v.make, familyOf(v)].filter(Boolean).join(" ");
+    const items = (r.items || []).map(it => {
+      const y = it.v.year || null, dv = it.decoded || null;
+      const fx = dv ? decodeIdentityFix(it.v, cleanTitle(it.title), dv) : null;
+      return { vin: it.vin, title: it.title, today: name(it.v, y), vpic: dv ? { make: dv.make, model: dv.model, year: dv.year, err: dv.err } : null, rule: fx ? name(fx, y) : name(it.v, y), changes: !!fx };
+    });
+    return res.status(200).json({ task: "vindecodedry", cursor: cursor || "(top)", nextCursor: r.cursor || "(end: back to the top)", scanned: r.scanned, candidates: r.candidates, decoded: r.decoded, failed: r.failed, batches: r.batches, stoppedOn: r.stoppedOn || null, changes: items.filter(x => x.changes).length, ms: Date.now() - t0, items });
+  }
   if (task === "projdry") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { projectFlagReason } = await import("../lib/_classify.js");
