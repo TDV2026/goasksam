@@ -10222,3 +10222,81 @@ Search check: no public page touched.
   FOR LANE B: listing 100494 was read as MANUAL by Buy, so its card market was asked with the manual gearbox refine, while Market Check's typed question had no gearbox. That is a likely cause of the "Buy 2 vs Market Check 1": two different pools, not a second engine. With this fix the card asks without a gearbox and should match.
   Ships in a FULL prePush in a gap Lane F names (lib/live/search.js is an engine-and-data file). Revert rule: a card whose gearbox moves is EXPECTED to change its chip and its market (the refine goes); any other card's count, range or line changing is a revert.
 Search check: no public page touched.
+- FOR SAM (Lane E, the 72 live listings whose transmission field is ONLY a gear count; each title | field | source id; from Lane B's 02:58Z read). After the fix (buy-gearbox-bare, pushing 03:50Z) all 72 read NOT STATED instead of Manual. None is hidden: they show under "N more don't state their gearbox. Show them too". The groups are my reading of year, make and gear count, not data:
+  A. MOTORCYCLES (32; a motorcycle gearbox is a manual):
+    2003 Harley-Davidson Electra Glide Ultra Classic 100th Anniversary | (5-speed) | bringatrailer 98480
+    1980 Yamaha XS850 Special | (6-speed) | bringatrailer 100498
+    2025 Harley-Davidson Fat Boy Gray Ghost | (6-speed) | bringatrailer 100538
+    2000 Ducati 748 | (6-speed) | bringatrailer 107059
+    2006 BMW HP2 Enduro | (6-speed) | bringatrailer 107122
+    3,800-Mile 2015 Ducati 1299 Panigale S | (6-speed) | bringatrailer 109155
+    1975 Norton Commando 850 | (4-speed) | bringatrailer 109259
+    365-Mile 2021 Ducati Panigale V4 | (6-speed) | bringatrailer 118024
+    1965 BMW R60/2 | (4-speed) | bringatrailer 118045
+    2014 Harley-Davidson CVO Limited | (6-speed) | bringatrailer 118066
+    Modified JDM 1992 Honda NSR250 | (6-speed) | bringatrailer 118102
+    2016 Moto Guzzi Eldorado 1400 Touring | (6-speed) | bringatrailer 120159
+    2013 Ducati 1199 Panigale S | (6-speed) | bringatrailer 120205
+    32-Years-Owned 1971 Norton Commando 750 Roadster | (4-speed) | bringatrailer 126851
+    1975 Honda CB500T | (5-speed) | bringatrailer 126863
+    1978 Yamaha SR500 | (5-speed) | bringatrailer 126874
+    1976 Honda GL1000 Gold Wing Limited Edition | (5-speed) | bringatrailer 126881
+    Original-Owner 2013 Ducati Monster 1100 EVO Diesel Edition | (6-speed) | bringatrailer 126927
+    1966 BSA A65L Lightning | (4-speed) | bringatrailer 126938
+    1982 Harley-Davidson FXR Super Glide | (5-speed) | bringatrailer 126956
+    2002 Harley-Davidson Road King Classic | (5-speed) | bringatrailer 126964
+    352-Mile 1999 Harley-Davidson Heritage Springer Softail | (5-speed) | bringatrailer 129091
+    2001 Harley-Davidson Softail Fat Boy | (5-speed) | bringatrailer 136004
+    1982 Honda CB750F Super Sport | (5-speed) | bringatrailer 136021
+    95ci-Powered 2003 Harley-Davidson Road Glide 100th Anniversary Bagger | (5-speed) | bringatrailer 138243
+    1975 Kawasaki H2 Mach IV | (5-speed) | bringatrailer 138262
+    1991 Honda CBR600 F2 | (6-speed) | bringatrailer 138392
+    1974 Honda CB750 | (5-speed) | bringatrailer 144549
+    1968 BMW R60US | (4-speed) | bringatrailer 144563
+    1,800-Mile 2018 Harley-Davidson Softail Deluxe | (6-speed) | bringatrailer 144576
+    1979 Honda CB650 | (5-speed) | bringatrailer 144601
+    23-Years-Owned 1998 BMW R1200C | (5-speed) | bringatrailer 162527
+  B. CARS BEFORE 1995 (3; PLAUSIBLY REAL MANUALS: a 3 or 4 speed field on an older car is usually a manual, but a 3-speed can be an automatic):
+    1972 Plymouth Road Runner | (3-speed) | acc 100562
+    1962 Chevrolet Impala SS | (4-speed) | acc 100565
+    Supercharged 1937 Cord 812 Sportsman Convertible Coupe | (4-speed) | bringatrailer 118122
+  C. CARS FROM 1995 ON (37; mostly sold with PDK, DCT, Tiptronic or another automatic; a few could be manuals, for example a 6-speed Ferrari 360 or F430, an Aston Martin V8 Vantage, a 2014 Boxster S, a 2026 Mustang Dark Horse SC):
+    4,600-Mile 2019 Porsche 718 Cayman | (7-speed) | bringatrailer 98460
+    Original-Owner 2013 BMW M3 Coupe Competition Package | (7-speed) | bringatrailer 98481
+    42k-Mile 1997 Porsche 911 Carrera Targa | (4-speed) | bringatrailer 100494
+    2023 Mercedes-AMG GT2 Race Car | (6-speed) | bringatrailer 100590
+    1,800-Mile 2018 Porsche 911 GT2 RS Weissach | (7-speed) | bringatrailer 100594
+    16k-Mile 2006 Ferrari 612 Scaglietti | (6-speed) | bringatrailer 107061
+    42k-Mile 2014 Porsche Boxster S | (7-speed) | bringatrailer 107091
+    917-Mile 2022 Porsche 911 Turbo S Coupe | (8-speed) | bringatrailer 107128
+    21k-Mile 2013 BMW M3 Coupe Competition Package | (7-speed) | bringatrailer 109068
+    25k-Mile 2011 Porsche 911 Carrera S Coupe | (7-speed) | bringatrailer 109234
+    30k-Mile 2006 Ferrari F430 Spider | (6-speed) | bringatrailer 109254
+    2010 Porsche 911 Carrera 4S Cabriolet | (7-speed) | bringatrailer 109258
+    2009 BMW M3 Coupe | (7-speed) | bringatrailer 118020
+    16k-Mile 2021 Porsche 911 Turbo S Coupe | (8-speed) | bringatrailer 120014
+    32k-Mile 2018 Porsche Panamera Turbo | (8-speed) | bringatrailer 120073
+    21k-Mile 2015 Aston Martin V8 Vantage GT | (7-speed) | bringatrailer 120128
+    2007 Ferrari F430 Challenge Race Car | (6-speed) | bringatrailer 120193
+    32k-Mile Voodoo Blue 2016 Porsche 911 Turbo S Coupe | (7-speed) | bringatrailer 120195
+    Euro 2001 Ferrari 360 Spider | (6-speed) | bringatrailer 126825
+    28k-Mile 2009 Porsche 911 Carrera S Coupe | (7-speed) | bringatrailer 126836
+    16k-Mile 2011 Porsche 911 Turbo S Coupe | (7-speed) | bringatrailer 128965
+    2026 Porsche 911 Targa 4S | (8-speed) | bringatrailer 129085
+    2015 BMW M4 Track Build | (7-speed) | acc 129142
+    2,700-Mile 2018 Porsche 911 GT2 RS Weissach | (7-speed) | bringatrailer 129146
+    35k-Mile 2001 Ferrari 360 Spider | (6-speed) | bringatrailer 136019
+    11k-Mile 2014 Porsche 911 Turbo S Cabriolet | (7-speed) | bringatrailer 136055
+    28k-Mile 2012 Porsche 911 Turbo S Coupe | (7-speed) | bringatrailer 136111
+    8k-Mile 2013 Porsche 911 Carrera 4S Cabriolet | (7-speed) | bringatrailer 136130
+    20k-Kilometer 2011 BMW M3 Coupe | (7-speed) | bringatrailer 138240
+    973-Mile 2023 Porsche 911 GT3 Manthey Racing Package | (7-speed) | bringatrailer 138367
+    2026 Ford Mustang Dark Horse SC Coupe | (7-speed) | bringatrailer 138377
+    12k-Mile 2012 Lamborghini Gallardo LP570-4 Super Trofeo Stradale | (6-speed) | bringatrailer 138516
+    2019 Porsche 911 Targa 4S | (7-speed) | bringatrailer 146889
+    Original-Owner 2019 Porsche Macan | (7-speed) | bringatrailer 146900
+    21k-Mile 2006 Maserati GranSport Spyder | (6-speed) | bringatrailer 162556
+    2018 Porsche 911 Turbo Cabriolet | (7-speed) | bringatrailer 162585
+    41k-Mile 2008 Aston Martin V8 Vantage Roadster | (6-speed) | bringatrailer 162622
+  So, of the 72: 32 motorcycles, 3 older cars that are plausibly real manuals, and 37 cars from 1995 on, most of them automatics. Reading all 72 as "not stated" claims nothing either way.
+Search check: no public page touched.
