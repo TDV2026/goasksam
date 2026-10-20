@@ -15,6 +15,10 @@ ok(/PH_FOLLOW_WIDE = "Tell Sam what to change, like only manuals or near 90210"/
 const b = css.slice(css.indexOf("BUY STAGE 1d ITEM 7"));
 ok(/\.composer \.search\{border:1\.5px solid rgba\(21,32,26,\.28\);padding:6px 6px 6px 22px/.test(b) && /\.composer \.sendbtn\{width:44px;height:44px;opacity:\.7\}/.test(b), "a stronger bar and an obvious send button");
 ok(/<div class="composer"><div class="col">/.test(buy), "the bar is the page's footer (stays at the bottom)");
-ok(/\[\["mic", "q"\], \["hmic", "hq"\]\]\.forEach/.test(client), "the mic is untouched until Sam answers");
+// THE MIC STAYS (Sam, Oct 20 2026: "yes microphone works"): both buttons and their script, exactly as before.
+const landing = fs.readFileSync(new URL("../lib/live/buyLanding.js", import.meta.url), "utf8");
+ok(/<button type="button" class="mic" id="mic" aria-label="Speak instead of typing" aria-pressed="false">/.test(buy), "the composer's mic button is in the bar");
+ok(/<button type="button" class="lk-mic" id="hmic" aria-label="Speak instead of typing" aria-pressed="false">/.test(landing), "the header box's mic button is there");
+ok(/\[\["mic", "q"\], \["hmic", "hq"\]\]\.forEach/.test(client) && /var SR = window\.SpeechRecognition \|\| window\.webkitSpeechRecognition/.test(client) && /if \(!SR \|\| !mic \|\| !input\) \{ if \(mic\) mic\.hidden = true; return; \}/.test(client), "their script: shown only where speech recognition exists, the words land in the box");
 console.log(`buyBarCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
