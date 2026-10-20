@@ -450,7 +450,8 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
       const hit = await page.evaluate(lbl => { const e = [...document.querySelectorAll("a,button,[role=button]")].find(x => (x.innerText || "").trim().toLowerCase().startsWith(lbl.toLowerCase())); if (!e) return false; e.click(); return true; }, label).catch(e => /detached|context was destroyed|navigat/i.test(String(e && e.message || e)));   // a click that navigates the page ends the evaluate; that is a hit, not a failure
       if (!hit) return null;
       await new Promise(x => setTimeout(x, 4000));
-      return PARSERS.marketCheck(await wait()).count;
+      const n = PARSERS.marketCheck(await wait()).count;
+      return n == null ? "no count line" : n;   // a one-sale page prints the sale, never a count line: a hit with no count is told apart from no chip
     } finally { await ctx.close().catch(() => {}); }
   };
   for (const g of IDENT) {
@@ -469,8 +470,9 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
       const pg = await facts(`${g.q} ${op.label.toLowerCase()}`);
       const ok = pg.count === op.n;
       const ch = await chipCount(g.q, op.label);
-      const same = ch != null && pg.count != null && ch === pg.count;
-      checks.push({ name: `${op.label}: chip equals typed words`, cell: same ? "PASS" : "FAIL", diffs: same ? [] : [`two answers for one car: clicking ${op.label} shows ${ch == null ? "no chip found" : ch} sales, typing "${g.q} ${op.label.toLowerCase()}" shows ${pg.count == null ? "no count" : pg.count}`], shown: `chip ${ch == null ? "-" : ch} vs typed ${pg.count == null ? "-" : pg.count}` });
+      const oneSale = ch === "no count line" && op.n === 1 && pg.count === 1;   // a one-sale page is a refusal showing its single sale (Lane B, intended)
+      const same = oneSale || (typeof ch === "number" && pg.count != null && ch === pg.count);
+      checks.push({ name: `${op.label}: chip equals typed words`, cell: same ? "PASS" : "FAIL", diffs: same ? [] : [`two answers for one car: clicking ${op.label} shows ${ch == null ? "no chip found" : ch} sales, typing "${g.q} ${op.label.toLowerCase()}" shows ${pg.count == null ? "no count" : pg.count}`], shown: `chip ${ch == null ? "-" : oneSale ? "the single sale, no count line" : ch} vs typed ${pg.count == null ? "-" : pg.count}` });
       checks.push({ name: `option ${op.label}`, cell: ok ? "PASS" : "FAIL", diffs: ok ? [] : [`the question prints ${op.label} (${op.n}); the page it opens shows ${pg.count == null ? "no count" : pg.count} sales`], shown: `${op.n} vs ${pg.count == null ? "-" : pg.count}` });
     }
     for (const op of any.options.filter(o => o.n === 0)) checks.push({ name: `option ${op.label}`, cell: "FAIL", diffs: [`rule 1: an option with zero sales is never shown, the question prints ${op.label} (0)`], shown: "0" });
@@ -483,7 +485,7 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
   for (const r of rows) for (const cp of r.g.chipPairs || []) {
     let ch = null; try { ch = await chipCount(cp.bare, cp.label); } catch (e) { console.error(`progress: chip read for row ${r.g.id} (${cp.label}) failed: ${String(e && e.message || e).slice(0, 80)}`); }
     let ty = null; try { ty = PARSERS.marketCheck((await readPage("marketCheck", cp.typed)).text).count; } catch (e) {}
-    const same = ch != null && ty != null && ch === ty;
+    const same = typeof ch === "number" && ty != null && ch === ty;
     chipPairOut.push({ id: r.g.id, name: `${cp.label}: chip equals typed words`, cell: same ? "PASS" : "FAIL", shown: `chip ${ch == null ? "no chip found" : ch} vs typed ${ty == null ? "no count" : ty}`, diff: same ? null : `two answers for one car: clicking ${cp.label} on "${cp.bare}" shows ${ch == null ? "no chip found" : ch}, typing "${cp.typed}" shows ${ty == null ? "no count" : ty}` });
   }
   // CHASSIS-NUMBER GUARD (Oct 14 2026): a keyword is never read inside a chassis or lot number. The 1969 365 GT 2+2 whose chassis number is 12751
