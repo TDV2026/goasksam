@@ -227,6 +227,12 @@ try {
 } catch (e) {
   record("before it ends fixture day (scripts/beforeItEndsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+try {
+  const out = execSync("node scripts/watchBidLineCheck.mjs", { encoding: "utf8" });
+  record("VIN-watch email bid line (scripts/watchBidLineCheck.mjs)", "PASS", (out.match(/watchBidLineCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("VIN-watch email bid line (scripts/watchBidLineCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 
 // Tasks read reductions (Oct 2026, Lane D): the same fixture day through the legacy io and the slim io must give the
 // same emails, marks and report lines, and the slim io must read only the people due and the cars inside the window.

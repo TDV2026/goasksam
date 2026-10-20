@@ -327,6 +327,19 @@ async function handler(req, res) {
       }
       return res.status(200).json({ to: "our own address", emails: out });
     }
+    // The VIN-watch match email's bid line (Lane D, Oct 2026): rendered on fixture data only, never sent, nothing read or
+    // written. One live event per bid state (fresh, old today, old another day, untimed, none) on the real messageFor.
+    if (req.method === "POST" && req.body && req.body.action === "task_email_tests" && req.body.fixture === "watch" && probeOk(req)) {
+      const { messageFor } = await import("../lib/live/watches.js");
+      const now = new Date(), ago = ms => new Date(now.getTime() - ms).toISOString();
+      const w = { id: "00000000-0000-4000-8000-0000000000e2", kind: "vin", label: "1988 Porsche 911 Carrera", key: "WP0AB0911JS120001" };
+      const cases = { fresh: ago(20 * 60e3), old: ago(3 * 3600e3), another_day: ago(30 * 3600e3), untimed: null, none: null };
+      const emails = Object.entries(cases).map(([c, bidAt]) => {
+        const m = messageFor(w, [{ kind: "live", house: "Bring a Trailer", url: "https://bringatrailer.com/listing/fixture/", end: new Date(now.getTime() + 6 * 3600e3).toISOString(), date: now.toISOString().slice(0, 10), bid: c === "none" ? 0 : 61500, bidAt }], { now });
+        return { case: c, bid_at: bidAt, subject: `[Fixture: watch ${c}] ${m.subject}`, sent: "not sent", text: m.text, html: m.html };
+      });
+      return res.status(200).json({ to: "nobody, rendered only", emails });
+    }
     if (req.method === "POST" && req.body && req.body.action === "task_email_tests" && probeOk(req)) {
       const { taskEmailBlocks, taskEmailBody, taskEmailSubject, cardOfMatch } = await import("../lib/tasks/tasks.js");
       const { listingFacts } = await import("../lib/live/search.js");
