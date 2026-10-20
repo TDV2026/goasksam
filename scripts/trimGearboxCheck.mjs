@@ -42,5 +42,18 @@ const camaro = trimGroupsFromSales(rows(["1969 Chevrolet Camaro Pace Car Edition
 ok(!camaro.named.some(x => /edition|car/i.test(x.label)), `no invented "Car Edition" or "Edition" (named: ${JSON.stringify(camaro.named.map(x => x.label))})`);
 const gt = trimGroupsFromSales(rows(["2006 Ford GT Heritage Edition", "2006 Ford GT Heritage Edition", "2006 Ford GT Heritage Edition"]), { make: "Ford", model: "GT", year: 2006 });
 ok(gt.named.some(x => x.label.toLowerCase() === "heritage"), `Heritage stays a trim word (named: ${JSON.stringify(gt.named.map(x => x.label))})`);
+// Phrase-shaped body words (Oct 20 2026, the trim word count): Sport before Coupe/Spider and Touring before Sedan/Car are never a
+// chip; elsewhere Sport, Touring, Super and Classic stay real trims. Titles from the archive table.
+const named = (ts, spec) => trimGroupsFromSales(rows(ts), spec).named.map(x => x.label.toLowerCase());
+const x3 = t => [t, t, t];
+ok(!named(x3("1970 Chevrolet Chevelle Malibu Sport Coupe 4-Speed"), { make: "Chevrolet", model: "Chevelle", year: 1970 }).includes("sport"), "1970 Chevelle Malibu Sport Coupe: no Sport chip");
+ok(!named(x3("1972 Chevrolet Chevelle Malibu Sport Coupe"), { make: "Chevrolet", model: "Chevelle", year: 1972 }).includes("sport"), "1972 Chevelle Malibu Sport Coupe: no Sport chip");
+ok(!named(x3("1977 Fiat 124 Sport Spider"), { make: "Fiat", model: "124", year: 1977 }).includes("sport"), "Fiat 124 Sport Spider: no Sport chip");
+ok(!named(x3("1939 Buick Special Series 40 Touring Sedan"), { make: "Buick", model: "Special", year: 1939 }).includes("touring"), "1939 Buick Special Touring Sedan: no Touring chip");
+ok(!named(x3("1923 Ford Model T Touring Car"), { make: "Ford", model: "Model T", year: 1923 }).includes("touring"), "Ford Model T Touring Car: no Touring chip");
+ok(named(x3("2001 Jeep Wrangler Sport 5-Speed"), { make: "Jeep", model: "Wrangler", year: 2001 }).includes("sport"), "Jeep Wrangler Sport keeps its Sport chip");
+ok(named(x3("1993 Mazda RX-7 Touring 5-Speed"), { make: "Mazda", model: "RX-7", year: 1993 }).includes("touring"), "Mazda RX-7 Touring keeps its Touring chip");
+ok(named(x3("1960 Porsche 356 B 1600 Super 90 Cabriolet"), { make: "Porsche", model: "356", year: 1960 }).some(l => /super/.test(l)), "356 Super 90 keeps its Super chip");
+ok(named(x3("1996 Chevrolet Caprice Classic LT1"), { make: "Chevrolet", model: "Caprice", year: 1996 }).includes("classic"), "Caprice Classic keeps its Classic chip");
 console.log(bad ? `trimGearboxCheck: ${bad} failed` : "trimGearboxCheck: all passed");
 process.exit(bad ? 1 : 0);
