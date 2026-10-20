@@ -33,6 +33,7 @@ ok(/if \(VIEW === "d"\) nameD\(\);/.test(js) && /read\(\{ q: CAR \}, setName\)/.
 ok(/document\.addEventListener\("submit", function\(e\)\{\s*if \(!e\.target\.closest \|\| !e\.target\.closest\("#car-form"\)\) return;/.test(js) && /startC\(true\)/.test(js), "the top box sets the car in the page on every tab");
 ok(/q = setCar\(q\) \|\| q;/.test(js) && (js.match(/q = setCar\(q\) \|\| q;/g) || []).length === 2, "tab a's and tab b's boxes set the car before they read");
 ok(/var GEN = 0;[\s\S]*if \(g === GEN\) draw\(a\)/.test(js), "a late answer for an earlier car is never drawn");
+ok(/setName\(a && a\.car \? a : \{ car: \{ name: CAR \} \}\)/.test(js), "tab d: a demo car's stored answer without the car field falls back to the car's own listing name");
 ok(!/[–—]/.test(h), "no dashes");
 console.log(`amazonCarStateCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
