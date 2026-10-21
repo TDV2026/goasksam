@@ -547,3 +547,134 @@ const f = document.getElementById("auth-email"); if (f && __authPrefillEmail) f.
 Ask Sam to EXPORT the alert list: GitHub, repository, Security, Code scanning, set filter to `is:open`, then use "..." / Export (or ask Lane F to read it in a browser session) and give me either a CSV or the JSON of the alerts API for code scanning (fields wanted: number, rule id (rule.id), severity, state, file path, start line, message text, the commit sha it was found on, and the data-flow summary if shown). With that I triage the other 40 (P3 and below) the same way. Names and line numbers only; no secret appears in the export.
 
 Search check: no public page touched.
+
+## (a) BHS REMOVAL CHECK (Oct 21 2026)
+Confirmed from the code: Lane D can be released. api/crew.js handles ?bhs= in its own block (lines 55 to 76) that ends with a return; the crew link (?code=, line 116), the tester link (?tcode=, line 92) and the old guest/once redirect (line 107) are separate branches that never read bhs, and the normal sign-in code flow (public/js/auth.js to Supabase /auth/v1/otp, then /api/account) never touches /api/crew. Deleting the bhs block changes nothing for crew, testers or code sign-in. Only beehiivBySubscriberId (lib/_beehiiv.js) is used by that block and goes with it; beehiivTier (tier by email at sign-in) stays. Mentions of bhs in the repo, file names only: api/crew.js, lib/_beehiiv.js, scripts/beehiivSigninVerify.mjs (now env-only), public/index.html (a comment), docs/launch-checklist.md, docs/lane-notes.md, docs/lane-security.md. No bookmark, internal tool, script or doc builds a ?bhs= link; the only possible users are newsletter links outside the repo. How anyone can tell: every use writes funnel_events event beehiiv_link_signin (api/crew.js), so Sam runs (counts only) `select count(*), min(created_at), max(created_at) from funnel_events where event = 'beehiiv_link_signin';` and `select created_at::date d, count(*) from funnel_events where event = 'beehiiv_link_signin' group by 1 order by 1 desc limit 30;`. Ask Sam: (1) open the latest Daily Vroom issue and hover its buttons: does any link carry ?bhs= ; (2) the two counts above; (3) confirm no crew member signs in by a newsletter link (crew use /api/crew?code= or the signed cookie, which do not use bhs). Zero recent use and no live link: remove with no replacement. If readers use it: ship option 2 (welcome screen, normal code, then compare the typed email) in the same change.
+
+## (b) AFTER THE REMOVAL: are the ADMIN_EMAILS and Beehiiv steps still needed?
+No, once the branch ships. The id mints nothing in our system after removal, so (1) setting ADMIN_EMAILS to a non-subscriber address is no longer needed for this hole (it only closed the admin reach of the bhs path), and (2) re-creating the subscriber in Beehiiv to change the id is no longer needed to stop sign-in; the id still exists in Beehiiv and in git history but has no power here. One residual: sessions the path may already have minted for that subscriber stay valid until they expire. They concern the email address of the committed id (Sam knows it; it is the founder's address if he is the subscriber, and the only address that matters for /admin if it is in ADMIN_EMAILS). Close it by Supabase dashboard, Authentication, Users, that user, sign out / revoke sessions; the funnel count in (a) tells whether anyone but Sam ever used the path. If the count shows use by others, also review that account's Tasks and saved results.
+
+## (c) THE 45 CODEQL ALERTS (from Sam's two screenshots, branch main, all opened 1 hour before the screenshots). NO alert is dismissed until Sam reviews the whole table.
+One alert is NOT visible: #35 (the top row of each screenshot is hidden under the search dropdown, and #35 is the only id missing from 1 to 45). Ask Sam to open #35 or re-take page 2 with the dropdown closed.
+Dismissal reasons use GitHub's three choices: "Used in tests" (scripts and tests that only check our own output), "False positive", "Won't fix". Fix owners: Lane B lib/onebox.js, lib/vehicle.js, api/sellerDecision.js; Lane C pages, scripts for pages, chat and result JS, history; Lane D auth.js and workflows with Sam.
+
+| # | Rule | File:line | Verdict and reason | Fix (and owner) | If dismissed |
+|---|---|---|---|---|---|
+| 1 | Workflow does not contain permissions | build-desk-cube.yml:8 | REAL (low): token gets the repository default | Sam adds, between `workflow_dispatch:` (line 4) and `jobs:` (line 6): `permissions:` newline `  contents: read` | n/a |
+| 2 | Workflow does not contain permissions | vin-rollout.yml:14 | REAL (low) | Sam adds between `workflow_dispatch:` (line 11) and `jobs:` (line 12): `permissions:` newline `  contents: read` | n/a |
+| 3 | Bad HTML filtering regexp | scripts/amazonCarStateCheck.mjs:14 | FALSE POSITIVE: a check that strips tags from our own page HTML | none | Used in tests |
+| 4 | same | scripts/amazonGridCheck.mjs:13 | same | none | Used in tests |
+| 5 | same | scripts/amazonQuestionChipsCheck.mjs:13 | same | none | Used in tests |
+| 6 | same | scripts/amazonR2Check.mjs:31 | same | none | Used in tests |
+| 7 | same | scripts/amazonR3ListingCheck.mjs:11 | same | none | Used in tests |
+| 8 | same | scripts/amazonScopeCheck.mjs:55 | same | none | Used in tests |
+| 9 | same | scripts/partnerDemoInertCheck.mjs:17 | same | none | Used in tests |
+| 10 | same | scripts/partnerEngineMatch.mjs:227 | same | none | Used in tests |
+| 11 | same | scripts/partnerEngineMatch.mjs:279 | same | none | Used in tests |
+| 12 | same | scripts/partnerEngineMatch.mjs:400 | same | none | Used in tests |
+| 13 | same | scripts/sellVoiceCheck.mjs:87 | same (word check on our own pages) | none | Used in tests |
+| 14 | Incomplete HTML attribute sanitization | public/js/desk.js:1289 | REAL-LOW: xesc (line 1276) does not escape the double quote and is used inside the xlsx `name="..."` attribute; the sheet names are our own labels and the Desk is crew only | add `.replace(/"/g, "&quot;")` to xesc (Lane C) | n/a |
+| 15 | Incomplete string escaping | api/_historyData.js:465 | REAL-LOW: `in.("...")` list escapes only the quote, not a backslash; values are url_norm values from archive rows (third-party data) | escape backslash first: `.replace(/\\/g,"\\\\").replace(/"/g,'\\"')` (Lane C) | n/a |
+| 16 | Incomplete string escaping | api/sellPage.js:38 | FALSE POSITIVE: href is one of our fixed HIDDEN_FOR menu paths, never visitor text | none | False positive |
+| 17 | Incomplete string escaping | api/sellerDecision.js:2609 | REAL-LOW: same list pattern, ids are source record ids from auction feeds | same two-step escape (Lane B; no answer changes) | n/a |
+| 18 | Incomplete string escaping | api/usageDashboard.js:692 | FALSE POSITIVE: spec_cache keys are generated by our code, and the route is ops-key only | optional same fix | False positive |
+| 19 | Incomplete string escaping | lib/live/search.js:1129 | FALSE POSITIVE: spec keys are our own strings | optional same fix | False positive |
+| 20 | Incomplete string escaping | public/js/chat-core.js:327 | REAL (medium), F-30: model-influenced chip label put in an inline onclick | `data-chip="${escapeHtml(c)}" onclick="handleChip(this.dataset.chip)"` (Lane C) | n/a |
+| 21 | Incomplete string escaping | public/js/result-copy.js:1863 | REAL (medium), F-30: same pattern | same, with the step argument (Lane C) | n/a |
+| 22 | Incomplete string escaping | public/js/wizard.js:1241 | FALSE POSITIVE: strips one apostrophe of a two-digit year before Number() | optional `/'/g` | False positive |
+| 23 | Incomplete string escaping | scripts/authOtpVerify.mjs:38 | FALSE POSITIVE: builds a test regex from a test email | none | Used in tests |
+| 24 | Incomplete string escaping | scripts/ingest.js:444 | FALSE POSITIVE: our own spec keys in an ops job | optional same fix | False positive |
+| 25 | Incomplete string escaping | scripts/notTrackedCardCheck.mjs:25 | FALSE POSITIVE: a one-off replace of a path in a test label | none | Used in tests |
+| 26 | Incomplete string escaping | scripts/leadFormVerify.mjs:53 | FALSE POSITIVE: test regex from a test email | none | Used in tests |
+| 27 | Incomplete multi-character sanitization | scripts/buyStage1cCheck.mjs:62 | FALSE POSITIVE: strips tags from our own rendered markup in a check | none | Used in tests |
+| 28 | Incomplete multi-character sanitization | scripts/premiumFreshCheck.mjs:37 | FALSE POSITIVE: same | none | Used in tests |
+| 29 | Client-side cross-site scripting | public/js/auth.js:313 | REAL (HIGH), F-29: ?email= reaches innerHTML where authEsc does not escape when escapeHtml is not loaded | one fix covers #29 to #32 (see F-29: always-escaping authEsc, email-shaped check, set value by property) (Lane D) | n/a |
+| 30 | Client-side cross-site scripting | public/js/auth.js:360 | REAL, F-29 (topbar email; own account email, same helper) | same fix (Lane D) | n/a |
+| 31 | DOM text reinterpreted as HTML | public/js/auth.js:345 | REAL, F-29 (code screen email) | same fix | n/a |
+| 32 | DOM text reinterpreted as HTML | public/js/auth.js:360 | REAL, F-29 | same fix | n/a |
+| 33 | Insecure randomness | public/js/auth.js:513 (now 405 and 414) | REAL-LOW: Math.random makes an analytics id and a uuid fallback; not on the sign-in path | crypto.getRandomValues (Lane D) | Won't fix (acceptable: analytics id, not a secret) |
+| 34 | Insecure randomness | public/js/onebox.js:3122 (now 3109) | REAL-LOW: same, analytics id | crypto.getRandomValues (Lane C) | Won't fix |
+| 35 | not visible | unknown | needs Sam | n/a | n/a |
+| 36 | Incomplete URL substring sanitization | scripts/amazonTypedCheck.mjs:76 | FALSE POSITIVE: a test stub that routes by url.includes(host) | none | Used in tests |
+| 37 | same | scripts/amazonTypedCheck.mjs:99 | same | none | Used in tests |
+| 38 | same | scripts/buyMicCheck.mjs:20 | same (a browser test that tells its own requests apart) | none | Used in tests |
+| 39 | same | test/_ocdMock.mjs:15 | FALSE POSITIVE: test mock | none | Used in tests |
+| 40 | same | test/backfillGuardsTest.mjs:19 | FALSE POSITIVE: test mock | none | Used in tests |
+| 41 | Regular expression injection | lib/onebox.js:625 | FALSE POSITIVE: only letters and digits can reach it ([A-Z]{1,3} plus 63/65/45/43/55) | optional escapeRegExp | False positive |
+| 42 | same | lib/onebox.js:1121 | FALSE POSITIVE: one letter plus 2 to 3 digits by an anchored pattern | none | False positive |
+| 43 | same | lib/onebox.js:1131 | FALSE POSITIVE: 1 to 3 letters plus 2 to 4 digits by an anchored pattern | none | False positive |
+| 44 | same | lib/vehicle.js:2071 | REAL-LOW: the escape pattern closes its class early so `make` is not escaped | use escapeRegExp(String(make)) and for yearToken (Lane B; proof: the golden table before and after, no count, range, line or answer moved) | n/a |
+| 45 | Replacement of a substring with itself | scripts/engineCheck.js:123 | FALSE POSITIVE: `.replace("mercedes","mercedes")` is a harmless no-op in a check script | none | Used in tests |
+Totals: real 14 rows (#1, #2 workflows; #14, #15, #17 low; #20, #21 medium; #29 to #32 one high fix; #33, #34, #44 low), false positive 30, one hidden (#35). Highest value first: #29 to #32 (F-29), then #20 and #21 (F-30). Nothing dismissed yet.
+
+## (d) THE CALCULATOR (TDV2026/dailyvroom-calculator; cloned read-only to /Users/davidzysblat/Documents/GitHub/dailyvroom-calculator; nothing edited or pushed there)
+Facts from the code (api/share.js, index.html, README.md, .migration-backup/api/share.js):
+1. Access: the calculator's own Vercel function (api/share.js) talks to Supabase with SUPABASE_ANON_KEY (env var NAME; the README also lists SUPABASE_URL). The browser never talks to Supabase; it calls /api/share on the calculator's own origin. So every read and write can be moved behind two database functions with no browser change.
+2. Writes: POST /api/share validates the payload (strings 2000 characters or fewer, 100 keys, depth 4, and rejects `<` and `>`), makes a 6-character token from Math.random over a-z0-9, inserts {token, inputs, outputs} with `Prefer: return=representation` (so it reads the new row back: needs SELECT).
+3. Reads: GET /api/share?token=<token> selects the row by token (`select=*`), then PATCHes open_count and last_opened by id with the anon key (needs UPDATE), returns {inputs, outputs}. Columns used: id, token, inputs, outputs, open_count, last_opened.
+4. The share link is https://thedailyvroom.com/import-calculator/?c=<token>; the page (index.html, loadSharedCalc) fetches the row and renders it with innerHTML (showSharedHeader) and renderResults.
+5. No rate limit on /api/share POST. The old Express/Replit path is preserved in .migration-backup and not active.
+NEW SECURITY FINDING (F-31, HIGH): because the table has public INSERT and UPDATE, anyone can bypass the calculator's validation by calling Supabase directly with the public anon key, and write markup (`<` and `>` are only blocked by the calculator's own function) into a new row or overwrite an existing shared link's inputs and outputs. The share page then renders those values with innerHTML on thedailyvroom.com: stored cross-site scripting for anyone who opens that link. Closing the table's public writes closes this. Also: the 6-character random token is weak (about 2 billion combinations from Math.random) and the open SELECT lists every token today.
+
+### FINAL DRAFT SQL (fits the real code; Sam approves first; nothing runs until then)
+Design: two security-definer functions the calculator calls through RPC with its existing anon key (no new secret in the second app), then the public policies and table privileges are removed. Older 6-character tokens keep working; new ones are 16 characters.
+```sql
+-- 1. Read one by token and count the open. (Lookup by the stored token column.)
+create or replace function public.get_shared_calculation(p_token text)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare r public.shared_calculations;
+begin
+  if p_token is null or length(p_token) < 6 or length(p_token) > 64 or p_token !~ '^[a-z0-9]+$' then return null; end if;
+  update public.shared_calculations
+     set open_count = coalesce(open_count, 0) + 1, last_opened = now()
+   where token = p_token
+   returning * into r;
+  if not found then return null; end if;
+  return jsonb_build_object('inputs', r.inputs, 'outputs', r.outputs);
+end; $$;
+
+-- 2. Create one. Token made in the database (16 characters from a secure source); size and markup checked here as well.
+create or replace function public.create_shared_calculation(p_inputs jsonb, p_outputs jsonb)
+returns text language plpgsql security definer set search_path = public, pg_temp as $$
+declare t text;
+begin
+  if p_inputs is null or p_outputs is null or jsonb_typeof(p_inputs) <> 'object' or jsonb_typeof(p_outputs) <> 'object' then raise exception 'invalid'; end if;
+  if pg_column_size(p_inputs) > 32768 or pg_column_size(p_outputs) > 65536 then raise exception 'too large'; end if;
+  if p_inputs::text ~ '[<>]' or p_outputs::text ~ '[<>]' then raise exception 'invalid characters'; end if;
+  t := substr(replace(gen_random_uuid()::text, '-', ''), 1, 16);
+  insert into public.shared_calculations (token, inputs, outputs) values (t, p_inputs, p_outputs);
+  return t;
+end; $$;
+
+revoke execute on function public.get_shared_calculation(text) from public;
+revoke execute on function public.create_shared_calculation(jsonb, jsonb) from public;
+grant execute on function public.get_shared_calculation(text) to anon, authenticated, service_role;
+grant execute on function public.create_shared_calculation(jsonb, jsonb) to anon, authenticated, service_role;
+
+-- 3. ONLY AFTER the calculator code calls the functions (see order below): remove every public policy and the table privileges.
+do $$ declare p record; begin
+  for p in select policyname from pg_policies where schemaname = 'public' and tablename = 'shared_calculations' loop
+    execute format('drop policy %I on public.shared_calculations', p.policyname);
+  end loop;
+end $$;
+revoke all on public.shared_calculations from anon, authenticated;
+alter table public.shared_calculations enable row level security;
+```
+Assumptions to confirm in the SQL editor first (read-only): the token column is named token and is text; id is the primary key; created_at may or may not exist (the functions do not need it); and the columns inputs and outputs are jsonb (if they are json, change the casts). Run: `select column_name, data_type from information_schema.columns where table_schema = 'public' and table_name = 'shared_calculations' order by ordinal_position;`.
+Calculator code change (their repo, NOT done here; names only): in api/share.js replace the GET read plus PATCH with `POST ${SUPABASE_URL}/rest/v1/rpc/get_shared_calculation` body {"p_token": token} (returns {inputs, outputs} or null, null meaning 404), and replace the POST insert with `POST .../rpc/create_shared_calculation` body {"p_inputs": inputs, "p_outputs": outputs} (returns the token as a JSON string); keep the existing validatePayload; add a per-address limit; in index.html escape the shared values before innerHTML and use encodeURIComponent(token) in the fetch.
+Deployment order, so no link breaks: (1) run steps 1 and 2 (adds functions; breaks nothing); (2) deploy the calculator change; (3) test (below); (4) run step 3 last. If the calculator cannot change soon, stop after step 1 and 2.
+ROLLBACK for step 3 (exact policies from Sam's query: public SELECT using true, public INSERT with check true, public UPDATE using true; names were not shown, so these are equivalent new ones):
+```sql
+create policy shared_calculations_select_all on public.shared_calculations for select to public using (true);
+create policy shared_calculations_insert_all on public.shared_calculations for insert to public with check (true);
+create policy shared_calculations_update_all on public.shared_calculations for update to public using (true);
+grant select, insert, update on public.shared_calculations to anon, authenticated;
+```
+Rollback for steps 1 and 2: `drop function if exists public.get_shared_calculation(text); drop function if exists public.create_shared_calculation(jsonb, jsonb);` (the calculator would first need its old code back).
+BEFORE and AFTER TEST (each `set role` line on its own, then `reset role;`):
+- Before (now): open one real share link in a browser, note what it shows, and note that row's open_count (`select open_count from public.shared_calculations where token = '<token>';` as the owner). `set role anon; select count(*) from public.shared_calculations;` returns 87 (the open listing). `set role anon; update public.shared_calculations set open_count = open_count where token = 'lane-s-none';` answers UPDATE 0 (allowed).
+- After steps 1 and 2 and the calculator deploy: the same real link still loads; open_count rose by exactly 1; pressing Share creates a link (16 characters) and that link loads.
+- After step 3: the real old link and the new link both still load. `set role anon; select count(*) from public.shared_calculations;` fails with permission denied. `set role anon; update public.shared_calculations set open_count = 0 where token = 'lane-s-none';` fails with permission denied. `set role anon; select public.get_shared_calculation('<real token>');` returns the one row's inputs and outputs, and null for a wrong token. `set role anon; select public.create_shared_calculation('{"a":1}'::jsonb, '{"b":2}'::jsonb);` returns a 16-character token (this writes one test row; delete it afterwards as the owner) and `... ('{"a":"<b>"}'::jsonb, '{}'::jsonb)` raises "invalid characters".
+Personal data and stored-markup counts (read-only; Sam runs; counts only): the section 1b queries plus `select count(*) from public.shared_calculations where inputs::text ~ '[<>]' or outputs::text ~ '[<>]';` (any non-zero count means someone has already written markup: look at those rows as owner, delete them, and treat F-31 as exploited). Owner: Sam for the SQL; the calculator's repo owner for share.js and index.html. Severity: HIGH (F-31).
+
+Search check: no public page touched.
