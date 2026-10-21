@@ -373,6 +373,12 @@ try {
 } catch (e) {
   record("Task stopped page + Tasks probe key (scripts/taskStopCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+try {
+  const out = execSync("node scripts/answerWordsCheck.mjs", { encoding: "utf8" });
+  record("An answer like \"all\" takes the Any option; no question twice (item 9) (scripts/answerWordsCheck.mjs)", "PASS", (out.match(/answerWordsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("An answer like \"all\" takes the Any option; no question twice (item 9) (scripts/answerWordsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Task emails go to the sign-in address only, and no banned word reaches one (Oct 2026, Lane C). No network.
 try {
   const out = execSync("node scripts/emailWordsCheck.mjs", { encoding: "utf8" });

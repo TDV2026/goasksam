@@ -3244,11 +3244,41 @@
     var btn = root.querySelector("[data-share]"); if (btn) { var old = btn.innerHTML; btn.innerHTML = "Link copied."; setTimeout(function () { btn.innerHTML = old; }, 1400); }
   }
 
+  // ---------------------------------------------------------------- a typed answer to the question on screen
+  // (Sam's Buy 1f item 9, Oct 21 2026; Lane D). While a question screen is open, the search box reads an answer the same
+  // way Tasks and Buy do (lib/live/answerWords.js; OB_ANY_ANSWER is that reader's page copy, verbatim, and
+  // scripts/answerWordsCheck.mjs keeps it so): "all", "any", "doesn't matter" and the like take the screen's own Any (or
+  // skip) option; an answer that names one option takes that option. A screen with no Any option (which model, which
+  // generation) says so plainly and names the choices, instead of searching for the word "all". Any other words are a new
+  // search, as before.
+  var OB_ANY_ANSWER = (function(){var L=/^(?:(?:oh|um+|uh+|well|hmm+|just|honestly|i (?:guess|think)|i'?d say|i would say|i'?m|i am|we'?re|show me|give me|i want|i'?ll take|i will take|happy with|fine with|ok(?:ay)? with|open to|looking (?:at|for)|i|we)\s+)+/,T=/(?:\s+(?:of (?:them|those|these|it)|ones?|models?|kinds?|types?|styles?|body styles?|versions?|options?|choices?|years?|generations?|eras?|gearboxe?s?|colou?rs?|please|thanks|thank you|is fine|are fine|is ok(?:ay)?|are ok(?:ay)?|works|will do|is good|are good|really|at all|really))+$/,A=/^(?:all|any|every|everything|anything|either|either one|both|whatever|whichever|any one|any of|all of|no preference|no pref|doesn'?t matter|does not matter|don'?t mind|do not mind|don'?t care|do not care|not fussy|not bothered|no matter|it doesn'?t matter|it does not matter|anywhere|any is fine|all is fine|all good|show (?:me )?(?:them )?all|all please|the lot|every one|everyone)$/;return function(x){var t=String(x||"").toLowerCase().replace(/[\u2018\u2019]/g,"'").replace(/[^a-z0-9' ]+/g," ").replace(/\s+/g," ").trim();if(!t||t.length>60)return false;for(var i=0;i<3;i++){var u=t.replace(L,"").replace(T,"").trim();if(u===t)break;t=u;}return A.test(t);};})();
+  var OB_ANY_SEL = "[data-variantopt-any],[data-varopt-any],[data-trimopt-any],[data-bodyopt-any],.idqskip";
+  function obOptLabel(b) { return String(b.getAttribute("data-mlabel") || b.getAttribute("data-model") || b.getAttribute("data-body") || b.textContent || "").replace(/\u2192/g, "").toLowerCase().replace(/\(\d[\d,]*\)/g, "").replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim(); }
+  function obAnswerOpen(v) {
+    var q = root.querySelector(".idq-question"); if (!q) return false;
+    var text = String(v || "").trim(); if (!text) return false;
+    var opts = Array.prototype.filter.call(root.querySelectorAll(".idq-opt, .idqchip"), function (b) { return !b.matches(OB_ANY_SEL) && b.getAttribute("data-typo-chip") !== "Change car"; });
+    if (OB_ANY_ANSWER(text)) {
+      var any = root.querySelector(OB_ANY_SEL); if (any) { any.click(); return true; }
+      var labs = opts.map(function (b) { return String(b.getAttribute("data-mlabel") || b.getAttribute("data-model") || b.textContent || "").replace(/\u2192/g, "").trim(); }).filter(Boolean).slice(0, 8);
+      if (!labs.length) return false;
+      var line = "Sam needs one of these to read the sales. The choices are " + (labs.length === 1 ? labs[0] : labs.slice(0, -1).join(", ") + " or " + labs[labs.length - 1]) + ".";
+      var old = root.querySelector("[data-ob-answer]"); if (old) old.parentNode.removeChild(old);
+      var row = root.querySelector(".idq-options-row"), p = document.createElement("p");
+      p.className = "hero-scope"; p.setAttribute("data-ob-answer", ""); p.setAttribute("role", "status"); p.textContent = line;
+      if (row && row.parentNode) row.parentNode.insertBefore(p, row.nextSibling); else q.parentNode.appendChild(p);
+      return true;
+    }
+    var t = String(text).toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim(), hit = null, n = 0;
+    opts.forEach(function (b) { var l = obOptLabel(b); if (l && (l === t || l + "s" === t || l === t + "s")) { hit = b; n++; } });
+    if (n === 1) { hit.click(); return true; }
+    return false;
+  }
   // ---------------------------------------------------------------- wiring
   function wire() {
     var input = document.getElementById("ob-input");
     var go = document.getElementById("ob-go");
-    var submitText = function (v) { if (SELL && SELL.onSubmit && SELL.onSubmit(v)) return; run(v); };
+    var submitText = function (v) { if (SELL && SELL.onSubmit && SELL.onSubmit(v)) return; if (obAnswerOpen(v)) return; run(v); };
     if (go) go.addEventListener("click", function () { submitText(input && input.value); });
     if (input) input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); submitText(input.value); } });
     var edit = document.getElementById("ob-edit"); if (edit) edit.addEventListener("click", function () { renderEmpty(); if (input && lastQuery) { var i2 = document.getElementById("ob-input"); if (i2) { i2.value = lastQuery; i2.focus(); } } });
