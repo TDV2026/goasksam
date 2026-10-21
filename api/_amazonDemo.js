@@ -700,7 +700,11 @@ const JS = String.raw`
   function nameD(){
     if (!CHOSEN) return;
     if (CARS.indexOf(CAR) >= 0) { var qq = LISTBODY[CAR] ? CAR + " " + LISTBODY[CAR] : CAR; fetch("/api/partnerAnswer?last=" + encodeURIComponent(qq), { credentials: "include" }).then(function(r){ return r.json(); }).catch(function(){ return null; }).then(function(a){ setName(a && a.car ? a : { car: { name: CAR } }); }); }   // a stored answer without the car field (before the warm) falls back to the demo car's own name
-    else read(withAns({ q: CAR }), setName);
+    else {
+      // a typed car's live read can take several seconds: until it lands the name line reads the words as typed (a VIN waits for its decode), then the answer's own car field replaces it
+      if (!/^[A-Za-z0-9]{11,17}$/.test(CAR)) setName({ car: { name: CAR } });
+      read(withAns({ q: CAR }), setName);
+    }
   }
   if (VIEW === "d") nameD();
   // The top box: the same one current car on every tab, set in the page (no reload); the address carries it.
