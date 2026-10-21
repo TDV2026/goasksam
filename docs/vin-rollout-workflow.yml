@@ -1,16 +1,18 @@
-# FOR SAM (Lane B, Oct 20 2026): a one-step rebuild of the VIN sitemap cache (vin_rollout_cache), the same step the
-# nightly runs at 07:11 UTC. COPY this file to .github/workflows/vin-rollout.yml (our CI token cannot write workflows).
-# RUN IT after an engine version bump that changes car names: GitHub, Actions, "Rebuild VIN rollout cache", Run workflow.
-# It uses the same two secrets as the nightly (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY), makes no OldCarsData calls and
-# takes a few minutes (a 20-minute budget inside the script). YOU SHOULD SEE "vin_rollout_cache written. DONE." and then a
-# line "sitemap-vins: N VIN URLs, M redirect (301)": M should be 0 or close to it once the cache matches the live pages.
+# FOR SAM (Lane B, Oct 20 2026; timings and the redirect report Oct 21 2026): a one-step rebuild of the VIN sitemap cache
+# (vin_rollout_cache), the same step the nightly runs at 07:11 UTC. COPY this file to .github/workflows/vin-rollout.yml (our
+# CI token cannot write workflows). RUN IT after an engine version bump that changes car names: GitHub, Actions, "Rebuild VIN
+# rollout cache", Run workflow. It uses the same two secrets as the nightly (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY) and makes
+# no OldCarsData calls. IT TAKES ABOUT 25 MINUTES (run 1, Oct 21 2026: VIN index 8 min, rollout cache 13 min of its own
+# 20-minute budget, the redirect sample 4 min; the sample now runs 8 at a time, so expect about 22). YOU SHOULD SEE
+# "vin_rollout_cache written. DONE." and then "sitemap-vins: N VIN URLs checked, M redirect (301)", with one "redirect:" line
+# naming each redirecting URL and where it goes. M should be 0 or close to it once the cache matches the live pages.
 name: Rebuild VIN rollout cache
 on:
   workflow_dispatch:
 jobs:
   rollout:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -29,8 +31,14 @@ jobs:
         run: |
           set -e
           H="x-vercel-protection-bypass: ${VERCEL_AUTOMATION_BYPASS_SECRET:-none}"
-          first=$(curl -s -H "$H" https://goasksam.com/sitemap-vins.xml | grep -o '<loc>[^<]*</loc>' | sed 's/<[^>]*>//g' | head -1)
-          urls=$(curl -s -H "$H" "$first" | grep -o '<loc>[^<]*</loc>' | sed 's/<[^>]*>//g' | head -200)
-          n=0; r=0
-          for u in $urls; do n=$((n+1)); c=$(curl -s -o /dev/null -w "%{http_code}" -H "$H" "$u"); [ "$c" = "301" ] && r=$((r+1)); done
+          # each list is read whole and cut with sed (head closing the pipe early printed "Broken pipe")
+          index=$(curl -s -H "$H" https://goasksam.com/sitemap-vins.xml)
+          first=$(printf '%s\n' "$index" | grep -o '<loc>[^<]*</loc>' | sed 's/<[^>]*>//g' | grep -v -- '-hubs' | sed -n '1p')
+          page=$(curl -s -H "$H" "$first")
+          printf '%s\n' "$page" | grep -o '<loc>[^<]*</loc>' | sed 's/<[^>]*>//g' | sed -n '1,200p' > urls.txt
+          # 8 at a time; each line: status, URL, where it redirects (empty unless 3xx)
+          xargs -P 8 -I{} curl -s -o /dev/null -w '%{http_code} {} %{redirect_url}\n' -H "$H" {} < urls.txt > codes.txt
+          n=$(wc -l < codes.txt | tr -d ' '); r=$(grep -c '^301 ' codes.txt || true)
+          grep '^301 ' codes.txt | sed 's/^301 /redirect: /' || true
           echo "sitemap-vins: $n VIN URLs checked, $r redirect (301)"
+          [ "$n" -gt 0 ] || { echo "no VIN URLs found in the first VIN sitemap file"; exit 1; }
