@@ -982,29 +982,27 @@
   // (nothing to plot). No chart at all when the engine supplies no trend (see heroChartHtml/
   // noChartLineHtml) - trendFor itself withholds the whole field unless at least one of the four
   // clears eight sales.
+  // SAM'S MARKET CHECK CHART ORDER (Oct 21 2026, replacing the quarter chart): ONLY candles, each a typical-range box with its median
+  // mark, drawn from the engine's own buckets (d.trend.movement, lib/onebox.js movementFor: by quarter, else by half-year, else by year;
+  // only buckets with the engine's minimum of sales; none at all when fewer than two qualify). No single-sale dots, no single-sale labels,
+  // no zero: a bucket the engine did not return is not drawn. The chart computes nothing: the figures, the bucket labels, the counts and the
+  // bucket size's own words ("by quarter") are the engine's; this function only LAYS THEM OUT (the axis fit, the label places).
   function candleChartHtml(d) {
-    var trendObj = d && d.trend;
-    var all = (trendObj && Array.isArray(trendObj.quarters)) ? trendObj.quarters.filter(Boolean) : [];
-    if (!all.length) return "";
-    var qs = all.slice(-4);
-    var priced = qs.filter(function (q) { return Number.isFinite(Number(q.low)) && Number.isFinite(Number(q.high)); });
-    if (!priced.length) return "";
-    var dataLo = Math.min.apply(null, priced.map(function (q) { return Number(q.low); }));
-    var dataHi = Math.max.apply(null, priced.map(function (q) { return Number(q.high); }));
-    if (!(dataHi > dataLo)) return "";
-    var step = niceStep((dataHi - dataLo) / 4);
-    var axisLo = Math.floor(dataLo / step) * step - step;
-    var axisHi = Math.ceil(dataHi / step) * step + step;
+    var mv = d && d.trend && d.trend.movement;
+    var bs = (mv && Array.isArray(mv.buckets)) ? mv.buckets.filter(function (q) { return q && Number(q.low) > 0 && Number(q.high) > 0 && Number(q.high) >= Number(q.low) && digitOf(q.count) > 0; }) : [];
+    if (bs.length < 2) return "";   // the page's existing "Too few to show movement" line stands in
+    var dataLo = Math.min.apply(null, bs.map(function (q) { return Number(q.low); })), dataHi = Math.max.apply(null, bs.map(function (q) { return Number(q.high); }));
+    // The axis fits the data with modest padding (half a step each side) and never goes below $0.
+    var step = niceStep((dataHi - dataLo || dataHi * 0.2) / 4);
+    var axisLo = Math.max(0, Math.floor(dataLo / step) * step - (dataLo - Math.floor(dataLo / step) * step < step * 0.35 ? step : 0));
+    var axisHi = Math.ceil(dataHi / step) * step + (Math.ceil(dataHi / step) * step - dataHi < step * 0.35 ? step : 0);
     if (!(axisHi > axisLo)) return "";
-    // SAM'S MARKET CHECK CHART FIXES (Oct 21 2026; Lane C). Every figure is the engine's own (q.low, q.high, q.typical,
-    // q.count, q.thin, and q.prices / trend.minForRange when the engine sends them); the code below only LAYS THEM OUT.
-    // (e) the y-axis gets room for its widest label (measured in characters at this width's font), so "$190K" never clips.
     var phone = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width:700px)").matches;
     var FS = phone ? 32 : 23, CH = FS * 0.66;
     var axisVals = []; for (var av = axisLo; av <= axisHi + step * 0.01; av += step) axisVals.push(av);
     var axisChars = Math.max.apply(null, axisVals.map(function (v) { return usdK(v).length; }));
     var W = 880, H = 560, padL = Math.max(60, Math.ceil(axisChars * FS * 0.72 + 28)), padR = 20, padB = phone ? 84 : 64, padT = 44;
-    var plotW = W - padL - padR, slot = plotW / qs.length, barW = slot * 0.28;
+    var plotW = W - padL - padR, slot = plotW / bs.length, barW = Math.min(slot * 0.34, 90);
     var y = function (v) { return padT + (1 - (v - axisLo) / (axisHi - axisLo)) * (H - padT - padB); };
     var grid = "";
     axisVals.forEach(function (v) {
@@ -1012,49 +1010,23 @@
       grid += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + yy.toFixed(1) + '" y2="' + yy.toFixed(1) + '" stroke="var(--div)" stroke-width="1"/>' +
         '<text class="hc-axislabel" x="' + (padL - 10) + '" y="' + (yy + FS * 0.35).toFixed(1) + '" text-anchor="end">' + esc(usdK(v)) + "</text>";
     });
-    // (d) no label ever overlaps a box, a dot or another label: every drawn thing claims its rectangle, and each label takes
-    // the first free place in its own order of preference.
+    // No label overlaps a box, the median mark, the axis or another label; the high above and the low below when both fit, else
+    // "low to high" on ONE line beside the box; a figure with no free place stays in the box's tooltip.
     var taken = [];
     var hit = function (r) { return r.x1 < padL - 2 || r.x2 > W - 2 || taken.some(function (t) { return r.x1 < t.x2 && r.x2 > t.x1 && r.y1 < t.y2 && r.y2 > t.y1; }); };
     var claim = function (r) { taken.push(r); return r; };
     var textW = function (str) { return String(str).length * CH; };
     var spotRect = function (str, sp) { var w = textW(str), x1 = sp.anchor === "middle" ? sp.x - w / 2 : sp.anchor === "end" ? sp.x - w : sp.x; return { x1: x1 - 3, x2: x1 + w + 3, y1: sp.y - FS * 1.0, y2: sp.y + FS * 0.3 }; };
     var textAt = function (str, sp) { return '<text class="hc-candlelabel" x="' + sp.x.toFixed(1) + '" y="' + sp.y.toFixed(1) + '" text-anchor="' + sp.anchor + '">' + esc(str) + "</text>"; };
-    var place = function (str, spots) {
-      for (var k = 0; k < spots.length; k++) { var r = spotRect(str, spots[k]); if (!hit(r)) { claim(r); return textAt(str, spots[k]); } }
-      return "";   // no free place: the figure stays in the dot's or the box's tooltip, never drawn over something
-    };
-    var minN = Number(trendObj && trendObj.minForRange) || null;
-    var shapes = [], labels = [];
-    qs.forEach(function (q, i) {
-      var cx = padL + slot * i + slot / 2, count = digitOf(q.count);
-      var lo = Number(q.low), hi = Number(q.high), has = Number.isFinite(lo) && Number.isFinite(hi);
-      var thin = q.thin === true || (minN && Number.isFinite(count) && count < minN);
-      var tip = function (parts) { return chartTip(parts.concat([Number.isFinite(count) ? (count + (count === 1 ? " sale" : " sales")) : ""])); };
-      if (thin && Array.isArray(q.prices) && q.prices.length) {
-        // (b) under the engine's minimum for a range: its own sales as plain dots, no box, no printed figures.
-        q.prices.forEach(function (pr) { var py = y(Number(pr)); claim({ x1: cx - 7, x2: cx + 7, y1: py - 7, y2: py + 7 });
-          shapes.push('<circle class="hc-bar hc-sale" tabindex="0" data-tip="' + chartTip([usd(pr)]) + '" cx="' + cx.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="5" fill="var(--num)"><title>' + chartTip([usd(pr)]) + "</title></circle>"); });
-        return;
-      }
-      if (!has) return;
-      if (count === 1 || lo === hi || thin) {
-        // (a) one sale, or a low equal to its high (and a thin quarter without its sales): ONE dot, ONE label, no box.
-        var v1 = (count === 1 || lo === hi) ? lo : (Number.isFinite(Number(q.typical)) ? Number(q.typical) : lo), y1 = y(v1);
-        claim({ x1: cx - 8, x2: cx + 8, y1: y1 - 8, y2: y1 + 8 });
-        shapes.push('<circle class="hc-bar" tabindex="0" data-tip="' + tip([usd(v1)]) + '" cx="' + cx.toFixed(1) + '" cy="' + y1.toFixed(1) + '" r="7" fill="var(--num)"><title>' + tip([usd(v1)]) + "</title></circle>");
-        labels.push(function () { return (count === 1 || lo === hi) ? place(usd(v1), [{ x: cx, y: y1 - 16, anchor: "middle" }, { x: cx, y: y1 + 18 + FS, anchor: "middle" }, { x: cx + 14, y: y1 + FS * 0.35, anchor: "start" }, { x: cx - 14, y: y1 + FS * 0.35, anchor: "end" }]) : ""; });
-        return;
-      }
-      var ylo = y(lo), yhi = y(hi);
-      claim({ x1: cx - barW / 2, x2: cx + barW / 2, y1: yhi, y2: Math.max(yhi + 2, ylo) });
-      shapes.push('<rect x="' + (cx - barW / 2).toFixed(1) + '" y="' + yhi.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + Math.max(2, ylo - yhi).toFixed(1) + '" rx="2" fill="var(--chip)"/>');
-      if (Number.isFinite(Number(q.typical))) {
-        var ty = y(Number(q.typical)), typTip = tip(["Typical " + usd(q.typical)]);
-        shapes.push('<circle class="hc-bar" tabindex="0" data-tip="' + typTip + '" cx="' + cx.toFixed(1) + '" cy="' + ty.toFixed(1) + '" r="6" fill="var(--num)"><title>' + typTip + "</title></circle>");
-      }
+    var place = function (str, spots) { for (var k = 0; k < spots.length; k++) { var r = spotRect(str, spots[k]); if (!hit(r)) { claim(r); return textAt(str, spots[k]); } } return ""; };
+    var shapes = "", labels = [];
+    bs.forEach(function (q, i) {
+      var cx = padL + slot * i + slot / 2, lo = Number(q.low), hi = Number(q.high), ylo = y(lo), yhi = y(hi), count = digitOf(q.count);
+      claim({ x1: cx - barW / 2, x2: cx + barW / 2, y1: yhi, y2: Math.max(yhi + 3, ylo) });
+      var tip = chartTip(["Typical range " + usd(lo) + " to " + usd(hi), Number.isFinite(Number(q.typical)) ? "Median " + usd(q.typical) : "", count + (count === 1 ? " sale" : " sales")]);
+      shapes += '<g class="hc-candle" tabindex="0" data-tip="' + tip + '"><title>' + tip + '</title><rect x="' + (cx - barW / 2).toFixed(1) + '" y="' + yhi.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + Math.max(3, ylo - yhi).toFixed(1) + '" rx="2" fill="var(--chip)"/>' +
+        (Number.isFinite(Number(q.typical)) ? '<line x1="' + (cx - barW / 2).toFixed(1) + '" x2="' + (cx + barW / 2).toFixed(1) + '" y1="' + y(Number(q.typical)).toFixed(1) + '" y2="' + y(Number(q.typical)).toFixed(1) + '" stroke="var(--num)" stroke-width="3"/>' : "") + "</g>";
       labels.push(function () {
-        // the high above the box and the low below it when BOTH have room; otherwise (d) ONE line beside the box.
         var spHi = { x: cx, y: yhi - 10, anchor: "middle" }, spLo = { x: cx, y: ylo + FS * 1.1, anchor: "middle" };
         var rHi = spotRect(usd(hi), spHi), rLo = spotRect(usd(lo), spLo);
         if ((ylo - yhi) >= FS * 1.2 && !hit(rHi) && !hit(rLo) && !(rHi.y2 > rLo.y1)) { claim(rHi); claim(rLo); return textAt(usd(hi), spHi) + textAt(usd(lo), spLo); }
@@ -1062,18 +1034,20 @@
         return place(one, [{ x: cx + barW / 2 + 10, y: mid, anchor: "start" }, { x: cx - barW / 2 - 10, y: mid, anchor: "end" }, { x: cx, y: yhi - 10, anchor: "middle" }, { x: cx, y: ylo + FS * 1.1, anchor: "middle" }]);
       });
     });
-    var bars = shapes.join("") + labels.map(function (f) { return f(); }).join("");
-    // (c) under each quarter its name and, below it, the engine's sale count ("1 sale", "4 sales").
-    qs.forEach(function (q, i) {
+    var body = shapes + labels.map(function (f) { return f(); }).join("");
+    // Under each bucket: its engine label ("Q3 2026", "H2 2026", "2026") and its sale count ("9 sales").
+    bs.forEach(function (q, i) {
       var cx = padL + slot * i + slot / 2, count = digitOf(q.count);
-      bars += '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + FS + 2).toFixed(1) + '" text-anchor="middle" font-size="' + (phone ? 28 : 18) + '" fill="var(--ink)">' + esc(qtrLabel(q.period || q.label)) + "</text>" +
-        (Number.isFinite(count) ? '<text class="hc-count" x="' + cx.toFixed(1) + '" y="' + (H - padB + FS * 2 + 6).toFixed(1) + '" text-anchor="middle">' + esc(count + (count === 1 ? " sale" : " sales")) + "</text>" : "");
+      body += '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + FS + 2).toFixed(1) + '" text-anchor="middle" font-size="' + (phone ? 28 : 18) + '" fill="var(--ink)">' + esc(q.label || qtrLabel(q.period)) + "</text>" +
+        '<text class="hc-count" x="' + cx.toFixed(1) + '" y="' + (H - padB + FS * 2 + 6).toFixed(1) + '" text-anchor="middle">' + esc(count + (count === 1 ? " sale" : " sales")) + "</text>";
     });
-    var svg = '<svg class="hc-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Quarterly sale prices">' + grid + bars + "</svg>";
-    var legend = '<div class="hc-legend"><span class="hc-legend-sw"><span class="hc-legend-box"></span>Typical range (middle half of sales)</span><span class="hc-legend-sw"><span class="hc-legend-dot"></span>Typical sale (median)</span></div>';
+    var svg = '<svg class="hc-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Typical range by period">' + grid + body + "</svg>";
+    var size = mv.label ? '<p class="hc-size">' + esc(mv.label) + "</p>" : "";
+    var legend = '<div class="hc-legend"><span class="hc-legend-sw"><span class="hc-legend-box"></span>Typical range (middle half of sales)</span><span class="hc-legend-sw"><span class="hc-legend-tick"></span>Typical sale (median)</span></div>';
+    var trendObj = d.trend;
     var py = trendObj && trendObj.priorYear && Number(trendObj.priorYear.high) > 0
       ? ('<p class="hc-prioryear">' + lint(esc("The year before, the typical range was " + usd(trendObj.priorYear.low) + " to " + usd(trendObj.priorYear.high) + "."), "hc.prioryear") + "</p>") : "";
-    return svg + legend + py;
+    return size + svg + legend + py;
   }
   // No candle chart (the engine supplies no trend at all): no chart, no empty panel - the hero goes
   // full width instead (see heroRangeHtml/thinHeroHtml, :only-child CSS in onebox.html) and this one

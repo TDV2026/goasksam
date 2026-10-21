@@ -866,6 +866,13 @@ try {
 } catch (e) {
   record("buy1fCheck (scripts/buy1fCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Market Check movement buckets from the engine (Lane B, Oct 21 2026): bucket size, minimum, none under two. No network.
+try {
+  const out = execSync("node scripts/movementCheck.mjs", { encoding: "utf8" });
+  record("movementCheck (scripts/movementCheck.mjs)", "PASS", (out.match(/movementCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("movementCheck (scripts/movementCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
