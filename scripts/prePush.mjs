@@ -681,6 +681,13 @@ try {
 } catch (e) {
   record("Amazon revision 3, the sales list (scripts/amazonSalesListCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// amazonQuestionChipsCheck (Lane G, Amazon revision 4 item R4-B). No network.
+try {
+  const out = execSync("node scripts/amazonQuestionChipsCheck.mjs", { encoding: "utf8" });
+  record("Amazon revision 4, the engine's question as chips (scripts/amazonQuestionChipsCheck.mjs)", "PASS", (out.match(/amazonQuestionChipsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Amazon revision 4, the engine's question as chips (scripts/amazonQuestionChipsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // vinIdentityCheck (Lane E, Buy Stage 1c). No network.
 try {
   const out = execSync("node scripts/vinIdentityCheck.mjs", { encoding: "utf8" });

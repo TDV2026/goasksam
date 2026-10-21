@@ -367,6 +367,14 @@ main .sfc-row-meta{grid-column:1;grid-row:2;font:400 13px/1.3 var(--sans);color:
 .dmark svg{flex:0 0 18px;width:18px;height:18px;fill:currentColor}
 .dmark .dm-t{flex:1}.dmark .dm-c{font-size:18px;line-height:1}
 @media (max-width:860px){.dlayout{grid-template-columns:1fr}.dfil{display:none}}
+/* R4-B (Sam, Oct 20 2026): the engine's question as Amazon-styled chips under the car name */
+.qa{margin:6px 0 4px}
+.q-text{margin:0 0 10px;font:700 16px/1.35 var(--sans);color:var(--ink)}
+.q-row{display:flex;flex-wrap:wrap;gap:8px}
+.qchip{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;min-height:36px;padding:0 16px;border:1px solid #888c8c;border-radius:999px;background:#fff;font:400 14px/1.2 var(--sans);color:var(--ink)}
+.qchip:hover{background:var(--soft);border-color:#565959}
+.qchip:focus-visible{outline:2px solid #007185;outline-offset:2px}
+.qchip.skip{border-color:var(--rule);color:var(--ink2)}
 `;
 
 const JS = String.raw`
@@ -387,13 +395,24 @@ const JS = String.raw`
     for (var i = 0; i < CARS.length; i++) if (CARS[i].toLowerCase() === t.toLowerCase()) return CARS[i];
     return CAR_OK.test(t) && /\p{L}/u.test(t) ? t : null;
   }
+  // THE ENGINE'S OWN ANSWER TO ITS QUESTION (revision 4, item 2): the chosen option's send values (refine, asked) ride the
+  // address as ans=, so every tab reads the car with the same narrowing. The page writes none of them: they are the engine's.
+  var ANS = null;
+  try { var am = /[?&]ans=([^&]*)/.exec(location.search); if (am) { var aj = JSON.parse(decodeURIComponent(am[1])); ANS = {};
+    if (aj && typeof aj.asked === "number") ANS.asked = aj.asked;
+    if (aj && aj.refine && typeof aj.refine === "object") { ANS.refine = {}; Object.keys(aj.refine).forEach(function(k){ if (typeof aj.refine[k] === "string") ANS.refine[k] = aj.refine[k]; }); }
+    if (!Object.keys(ANS).length) ANS = null; } } catch (x) { ANS = null; }
+  function qs(view){ return "?p=amazon&view=" + view + "&car=" + encodeURIComponent(CAR) + (ANS ? "&ans=" + encodeURIComponent(JSON.stringify(ANS)) : ""); }
+  function syncAddress(){
+    try { history.replaceState(null, "", qs(VIEW)); } catch (x) {}
+    Array.prototype.forEach.call(document.querySelectorAll(".tabs a[data-view]"), function(a){ a.setAttribute("href", qs(a.getAttribute("data-view"))); });
+    var bk = document.querySelector(".back-l"); if (bk) bk.setAttribute("href", qs("d"));
+  }
+  function withAns(b){ if (ANS && b && (b.q === CAR || b.q === LISTCAR)) { if (ANS.refine) b.refine = ANS.refine; if (typeof ANS.asked === "number") b.asked = ANS.asked; } return b; }
   function setCar(t){
     var c = carWord(t); if (!c) return null;
     CAR = c; CHOSEN = true; LISTCAR = c + (LISTBODY[c] ? " " + LISTBODY[c] : "");
-    var enc = encodeURIComponent(c);
-    try { history.replaceState(null, "", "?p=amazon&view=" + VIEW + "&car=" + enc); } catch (x) {}
-    Array.prototype.forEach.call(document.querySelectorAll(".tabs a[data-view]"), function(a){ a.setAttribute("href", "?p=amazon&view=" + a.getAttribute("data-view") + "&car=" + enc); });
-    var bk = document.querySelector(".back-l"); if (bk) bk.setAttribute("href", "?p=amazon&view=d&car=" + enc);
+    ANS = null; syncAddress();
     ["car-in", "a-q", "b-vin"].forEach(function(id){ if ($(id)) $(id).value = c; });
     setName(null);
     return c;
@@ -450,7 +469,8 @@ const JS = String.raw`
     if (!a || a.ok === false) return '<p class="muted">' + esc(a && a.stillReading ? (a.line || STILL_LINE) : COULD_NOT) + "</p>";
     if (a.question) {
       var q = a.question, opts = (q.options || []).concat(q.skip ? [q.skip] : []);
-      return '<p>' + esc(q.text || "") + '</p><div class="nexts">' + opts.map(function(o){ return '<button type="button" class="btn out" data-qsend="' + esc(JSON.stringify(o.send || {})) + '">' + esc(o.label) + "</button>"; }).join("") + "</div>";
+      // the engine's question, its text and options and their order exactly as the engine returns them, drawn as chips; the skip option last
+      return '<div class="qa">' + (q.text ? '<p class="q-text">' + esc(q.text) + "</p>" : "") + '<div class="q-row">' + opts.map(function(o, i){ return '<button type="button" class="qchip' + (q.skip && i === opts.length - 1 ? " skip" : "") + '" data-qsend="' + esc(JSON.stringify(o.send || {})) + '">' + esc(o.label) + "</button>"; }).join("") + "</div></div>";
     }
     var c = a.cardWithRows || a.card || ""; return withRows(c.replace('<div class="gas-pill-slot"></div>', ""), a);
   }
@@ -487,6 +507,10 @@ const JS = String.raw`
     var send = {}; try { send = JSON.parse(o.getAttribute("data-qsend")); } catch (x) {}
     var sec = o.closest("section"), v = sec ? sec.id.replace("view-", "") : "c";
     var draw = v === "a" ? (typeof drawA === "function" ? drawA : drawC) : v === "b" ? (typeof drawB === "function" ? drawB : drawC) : drawC;
+    // the chosen option becomes the current car on every tab: its words (when it carries any) and its own send values ride the address
+    var words = send.q ? carWord(send.q) : null; if (words && words !== CAR) setCar(words);
+    var ns = {}; if (send.refine && typeof send.refine === "object") ns.refine = send.refine; if (typeof send.asked === "number") ns.asked = send.asked;
+    ANS = Object.keys(ns).length ? ns : null; syncAddress();
     read(send, draw);
   });
   // TAB c: the vehicle page.
@@ -612,6 +636,7 @@ const JS = String.raw`
     });
   }
   if (VIEW === "d") drawD();
+  if (ANS) syncAddress();
   var OPENMC = /[?&]mc=1(&|$)/.test(location.search);
   function openMc(){
     if (!OPENMC) return; OPENMC = false;
@@ -619,7 +644,7 @@ const JS = String.raw`
     var bd = $("mc-body"); if (bd && bd.scrollIntoView) bd.scrollIntoView({ block: "start" });
   }
   var ORIGCAR = CAR, ORIGTITLE = ($("c-title") || {}).textContent || "";
-  function bodyOf(){ return LIST && LIST.vin && CAR === ORIGCAR ? { q: CAR, vin: LIST.vin } : { q: LISTCAR || CAR }; }
+  function bodyOf(){ return withAns(LIST && LIST.vin && CAR === ORIGCAR ? { q: CAR, vin: LIST.vin } : { q: LISTCAR || CAR }); }
   // Tab c for the current car: after a change of car the page clears its own panes and reads once (never a second read).
   function startC(changed){
     if (changed) {
@@ -644,7 +669,7 @@ const JS = String.raw`
     out.innerHTML = inlineHist((a && a.history) || []) + cardHtml(a); tidyRows();
     if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ goA(); }, a.retryAfterMs);
   }
-  function goA(){ var q = String(($("a-q") || {}).value || "").trim(); if (!q) return; q = setCar(q) || q; if (wordsOut(q)) { $("a-out").innerHTML = wordsCaseHtml(q); return; } $("a-out").innerHTML = '<p class="loading">Reading the sales for this one.</p>'; read({ q: q }, drawA); }
+  function goA(){ var q = String(($("a-q") || {}).value || "").trim(); if (!q) return; q = setCar(q) || q; if (wordsOut(q)) { $("a-out").innerHTML = wordsCaseHtml(q); return; } $("a-out").innerHTML = '<p class="loading">Reading the sales for this one.</p>'; read(withAns({ q: q }), drawA); }
   // TAB b, DEALER LISTS A CAR: VIN in; this car's history inline and the same shared card, ABOVE the asking price field.
   // No pricing advice, no suggested price: the price field is the dealer's and stays empty.
   function drawB(a){
@@ -656,7 +681,7 @@ const JS = String.raw`
     if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ goB(); }, a.retryAfterMs);
   }
   // The listing car opens by its name; its VIN goes with the read (for its history) and is never printed.
-  function goB(){ var q = String(($("b-vin") || {}).value || "").trim(); if (!q) return; q = setCar(q) || q; if (wordsOut(q)) { $("b-out").innerHTML = wordsCaseHtml(q); return; } $("b-out").innerHTML = '<p class="loading">Reading the sales for this one.</p>'; read(LIST && LIST.vin && q === ORIGCAR ? { q: q, vin: LIST.vin } : { q: q }, drawB); }
+  function goB(){ var q = String(($("b-vin") || {}).value || "").trim(); if (!q) return; q = setCar(q) || q; if (wordsOut(q)) { $("b-out").innerHTML = wordsCaseHtml(q); return; } $("b-out").innerHTML = '<p class="loading">Reading the sales for this one.</p>'; read(withAns(LIST && LIST.vin && q === ORIGCAR ? { q: q, vin: LIST.vin } : { q: q }), drawB); }
   document.addEventListener("click", function(e){ if (e.target.closest("[data-a-go]")) goA(); if (e.target.closest("[data-b-go]")) goB(); });
   document.addEventListener("keydown", function(e){ if (e.key !== "Enter") return; if (e.target.id === "a-q") { e.preventDefault(); goA(); } if (e.target.id === "b-vin") { e.preventDefault(); goB(); } });
   // A car chosen in the bar opens on tabs a and b already read (the same one read per page as tab c).
@@ -666,7 +691,7 @@ const JS = String.raw`
   function nameD(){
     if (!CHOSEN) return;
     if (CARS.indexOf(CAR) >= 0) { var qq = LISTBODY[CAR] ? CAR + " " + LISTBODY[CAR] : CAR; fetch("/api/partnerAnswer?last=" + encodeURIComponent(qq), { credentials: "include" }).then(function(r){ return r.json(); }).catch(function(){ return null; }).then(function(a){ setName(a && a.car ? a : { car: { name: CAR } }); }); }   // a stored answer without the car field (before the warm) falls back to the demo car's own name
-    else read({ q: CAR }, setName);
+    else read(withAns({ q: CAR }), setName);
   }
   if (VIEW === "d") nameD();
   // The top box: the same one current car on every tab, set in the page (no reload); the address carries it.
