@@ -12105,3 +12105,22 @@ From Sam. Market Check small fixes, Lane C, next batch, fast checks.
 Test on 1995 Porsche 911 Carrera. Three-line report. One-engine rule applies. No em or en dashes.
 
 LANE F NOTE: OWNER LANE C (page only, fast checks, next batch with the 62dfd486 fallback line): (1) distribution: confirm what the dark bar marks (b.typicalBucket in lib/onebox.js distributionFor): if it is the band holding the typical sale, add the legend 'typical sale' beside it, else one colour; print the share with the engine's count ('31% (13)'; the page's own earlier item-5 comment removed the count: this order reinstates it; count is b.count from the engine, share only where the engine sends one); remove the gap under the subtitle; (2) Live right now rows: the Buy time format ('$25,250 at 11:21am PT', the day added when not today; reuse Buy's formatter, do not recompute), the word 'current' nowhere. If the engine does not carry what you need for either, say so and hand Lane B the one field. Test 1995 Porsche 911 Carrera; three lines.
+
+## FROM SAM, relayed verbatim by Lane F (21:09Z)
+
+From Sam. Buy and Market Check fixes, next batch. Lane C builds and integrates, Lane B the model grouping. One commit per item, fast checks unless an item touches the engine. Three-line report per item.
+
+1. NEW SEARCH, FOUR WAYS IN.
+   (a) The bottom bar placeholder on Buy becomes "Search any car, or tell Sam what to change". Typing a different car starts a new search (existing rule); keep the old search in Your searches.
+   (b) "+ New search" at the top of Your searches in the left rail on Buy, Market Check and Tasks. It opens that tool's own start page.
+   (c) Clicking Buy or Market Check in the left rail always opens that tool's start page (empty search box), never the homepage and never the last search.
+   (d) Removing the last search chip on Buy opens the Buy start page.
+   On Market Check, clicking into the top search box selects its text so typing replaces it.
+2. ONE QUESTION PANEL. A "near 90210" refinement drew the old layout with the "S" avatar and "Sam" label. Find every route that draws the question panel and make them all use the current pale green panel. No avatar anywhere.
+3. MODEL CHIPS, NO WALL. A plain "BMW" search shows 29 chips with duplicates ("M3 (6)", "M3 (E90/E92/E93) (5)", "E30 M3 (2)", "G80 M3 (1)", "M3 (G80) (1)"). Lane B: generations and chassis codes fold into their model, one chip per model ("M3 (15)"), and the generation question comes only after a model is chosen. Lane C: show the top 8 models by count, then "More models" to expand the rest inline, "Any BMW (72)" last. Counts come only from the engine. Test on BMW, Porsche, Mercedes-Benz and Ferrari.
+4. SAVED SEARCH NAMES. Your searches shows "white Porsche within 150 miles of California". Saved names use the chips as shown ("white Porsche near 90210"), never a sentence the user did not type.
+
+Rules unchanged: the page computes nothing, one engine, no new public wording beyond this block. Revert on any change to a count, range or line. No secrets, no spend.
+One-engine rule applies. No em or en dashes.
+
+LANE F NOTE: OWNERS: LANE C: items 1, 2, 4 and the page half of 3 (top 8 by count, 'More models' inline, 'Any BMW (72)' last); LANE B: the engine half of 3 (Buy's model question: fold generations and chassis codes into their model, one chip per model with the summed count, the generation question only after a model is chosen; ENGINE stamp if it touches the engine; hand Lane C a branch, no push); item 4: saved names come from the chips as shown (find where the 'within 150 miles of California' sentence is built: Buy's saved-search name or a Tasks line: say which and where). Lane C is the batch integrator: ONE batch with the earlier items (62dfd486 fallback line, distribution legend and counts, Live right now rows), one commit per item, fast checks except item 3's engine half (Lane B's checks), a look on Buy, Market Check and Tasks. Test item 3 on BMW, Porsche, Mercedes-Benz and Ferrari. Three-line report per item.
