@@ -15,6 +15,8 @@ ok(/var ASK_SUB = "Choose one, or tell Sam how else to narrow your search below\
 ok(/if \(light\) return samAskHtml\(a\.q, chips\.join\(""\)\);/.test(client) && /return samAskHtml\(lead \+ a\.q, chips\.join\(""\)/.test(client), "2: the panel and the light row both draw it; the quiet line stays");
 ok(!/Narrow your search</.test(client) && !/<img[^>]*sq-mark|sq-mark[^>]*><img/.test(client), "2: no 'Narrow your search' label, no image in the mark");
 ok(/\.ask\.samq \.rchip\.achip\.on\{background:var\(--green\)/.test(after(2)) && /if \(ap\) ap\.classList\.add\("on"\);/.test(client), "2: the applied chip fills deep green");
+// ITEM 3
+ok(/\.msg\.results p\.unst\{margin:0 0 16px;padding:12px 2px 0;border-top:1px solid var\(--div\)/.test(after(3)) && /data-send="Show the ones that don’t say too">Show them too<\/button>/.test(client), "3: the unknown-data row keeps its words and button, a quiet row under a thin rule");
 //__NEXT__
 console.log(`buyStage1fCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
