@@ -26,6 +26,23 @@ for (const d of [{ tier: "result", poolN: 9 }, { tier: "trim_choice", trimOption
   const back = await ob.exactTrimChipsForTest(d, {}, null, "x", {});
   ok(back === d, `exactTrimChips leaves a non-pending answer untouched (${d && d.tier})`);
 }
+// 1c: one read per request for the chips. With a memo the same query reads ONCE and every caller gets its OWN copy (a change
+// to one copy never reaches another); without a memo (the switch off, every page today) each call reads, exactly as before
+{
+  let calls = 0; const fake = async (env, q) => { calls++; return [{ id: 1, title: "x", q }]; };
+  const memo = new Map(); const env = { _readMemo: memo };
+  const [a1, a2] = await Promise.all([ob.memoReadForTest(fake, "all", env, "sales_archive?select=id", []), ob.memoReadForTest(fake, "all", env, "sales_archive?select=id", [])]);
+  ok(calls === 1, `with a memo, two runs asking the same query read it once (${calls})`);
+  a1[0].title = "changed";
+  ok(a2[0].title === "x" && a1 !== a2, "each run gets its own copy of the rows");
+  await ob.memoReadForTest(fake, "all", env, "sales_archive?select=other", []);
+  ok(calls === 2, "a different query reads on its own");
+  calls = 0;
+  await ob.memoReadForTest(fake, "all", {}, "sales_archive?select=id", []); await ob.memoReadForTest(fake, "all", {}, "sales_archive?select=id", []);
+  ok(calls === 2, "without a memo every call reads, as today");
+  const nul = async () => null; const m2 = { _readMemo: new Map() };
+  ok((await ob.memoReadForTest(nul, "one", m2, "q", [])) === null, "a failed read stays a failed read (null), never an empty list");
+}
 process.env.PROBE_KEY = "local-check-key"; process.env.OLDCARSDATA_API_KEY = "unused-local-check";
 const { default: handler } = await import("../api/usageDashboard.js");
 for (const task of ["trimmix", "rangepreview"]) {
