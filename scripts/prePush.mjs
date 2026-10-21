@@ -804,6 +804,13 @@ try {
 } catch (e) {
   record("hubGateCheck (scripts/hubGateCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Security job E/D (Sam approved, Oct 21 2026; Lane C): secHeadersCheck. No network.
+try {
+  const out = execSync("node scripts/secHeadersCheck.mjs", { encoding: "utf8" });
+  record("secHeadersCheck (scripts/secHeadersCheck.mjs)", "PASS", (out.match(/secHeadersCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("secHeadersCheck (scripts/secHeadersCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
