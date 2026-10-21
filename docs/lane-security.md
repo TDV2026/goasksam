@@ -499,3 +499,51 @@ After (the SQL applied and the calculator's code change deployed): (1) the same 
 Order of deployment (so no link breaks): apply 3a first (adds the function; breaks nothing), deploy the calculator code that calls it, test a link, and only then apply 3b and 3c. If the calculator code cannot change soon, stop after 3a and 3b (bounded insert) and leave SELECT/UPDATE for later.
 
 Severity: medium for the open write (anyone can rewrite any shared link), high if the personal-data check finds emails, phones or names in the 87 rows. Owner: Sam for the SQL, the calculator's own repo owner for the code change. Search check: no public page touched.
+
+## CODEQL TRIAGE, P1 AND P2 (Sam: 45 open alerts; Dependabot 0, secret scanning 0) (Oct 21 2026, from the code; report only)
+Method: read the code at and around the lines named; the alert line numbers differ from the current tree for some files (the file changed after the scan), so I matched each alert by its pattern and give the CURRENT line. I cannot see the alert text itself (private repo, no gh). Verdict meanings: REAL = a visitor-reachable weakness; REAL-LOW = real by the rule but not a security risk today; FALSE POSITIVE = the data cannot carry the dangerous characters.
+
+### P1-1 public/js/auth.js 313, 345, 360 (DOM text reinterpreted as HTML): REAL, HIGH. NEW FINDING F-29.
+- Rule: `innerHTML` built from a template with values that may be text from the page.
+- Data flow: openSignInCard (line 313 in the alert, current line 313) builds the sign-in card with `value="${prefill}"`, where prefill = authEsc(__authPrefillEmail) and __authPrefillEmail is read from the address query `?email=` (authScrubPrefill, line 216). So the source is VISITOR-CONTROLLED (anyone can craft a link). authEsc (line 19) is `typeof escapeHtml === "function" ? escapeHtml(...) : String(s)`: when escapeHtml is not defined the value passes through UNESCAPED. escapeHtml is defined only in public/js/chat-core.js (loaded on /sell). auth.js is also loaded on pages that do NOT load chat-core.js: Market Check (api/marketCheck.js), Buy (api/buy.js), Tasks (api/tasksPage.js), history pages, spec pages, how-sam-decides, business, sellNext. On those pages the fallback returns the raw `?email=` text into an HTML attribute.
+- Plain-words misuse: a crafted link such as goasksam.com/tasks?signin=1&email="><script-bearing markup> opens the sign-in card on its own (tasksPage auto-opens it when signin is in the address) and runs the attacker's script on goasksam.com, where it can read the session token in localStorage, act as the visitor, and read the Tasks they own. One click on a link in an email or message is enough. Lines 345 (`authEsc(email)` in the code screen; the email the visitor typed or the address from the server) and 360 (the signed-in account email) use the same authEsc, so they are unsafe in the same way on those pages, but their source is the visitor's own typing or their own account (self-reflection), lower risk.
+- Fix (code, public/js/auth.js): make authEsc self-contained so it always escapes, and stop putting the prefill into the template.
+```js
+function authEsc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+// in authScrubPrefill: accept only something shaped like an email
+const pre = u.searchParams.get("email"); if (pre && pre.length <= 254 && /^[^\s<>"'`\\]+@[^\s<>"'`\\]+$/.test(pre)) { __authPrefillEmail = pre; ... }
+// in openSignInCard: no ${prefill} in the template; after appendChild:
+const f = document.getElementById("auth-email"); if (f && __authPrefillEmail) f.value = __authPrefillEmail;   // property assignment, never parsed as HTML
+```
+- Owner: Lane D (auth.js and sign-in). Proof: the sign-in card looks and works the same with a normal email in `?email=`; add a check that `?email="><x>` renders as text on /tasks, /buy and /market-check. Severity HIGH; fix first.
+
+### P1-2 public/js/wizard.js 1241 (incomplete string escaping): FALSE POSITIVE
+`q.trim().replace(/'/, "")` strips the first apostrophe of a two-digit year like '88 so Number() can read it. The value goes only into the pattern `/^'?\d{2}$/` and Number(); it is never inserted into HTML or code. No fix needed; if the alert should be closed, change to `/'/g`.
+
+### P1-3 public/js/result-copy.js 1863 and public/js/chat-core.js 327 (incomplete string escaping in an inline handler): REAL, MEDIUM. NEW FINDING F-30.
+- Rule: a string is put inside a JS string inside an HTML attribute, escaping only the single quote.
+- Code: `onclick="handleChip('${String(c).replace(/'/g,"\\'")}',${step})"` (result-copy.js chipsHTML) and `onclick="handleChip('${c.replace(/'/g,"\\'")}')"` (chat-core.js parseResults). The visible label is escaped with escapeHtml, the handler text is not.
+- Data flow: c is a chip label. In chat-core.js it is parsed out of the chat reply text (`[CHIPS:a|b]`), which is model output; the model reads the visitor's words and, in the post-result chat, our context that includes listing text taken from auctions. In result-copy.js the chips come from the wizard step definitions and engine answers (our constants and engine text). So chat-core.js is influenced by a visitor or an auction listing through the model.
+- Plain-words misuse: a chip label containing a double quote ends the HTML attribute and lets extra attributes (an onmouseover handler) in; a label with a backslash before the quote (`\'`) becomes `\\'`, which closes the JS string and lets code follow. A visitor (or a poisoned listing title the model repeats) could get a chip that runs script when the page shows it or when it is clicked.
+- Fix (code, both files): no inline JS string building; carry the label in an escaped data attribute and read it in the handler.
+```js
+`<button class="chip" data-chip-step="${step}" data-chip="${escapeHtml(c)}" onclick="handleChip(this.dataset.chip,${step})"> ${escapeHtml(c)}</button>`
+// chat-core.js parseResults: the same, without ${step}: onclick="handleChip(this.dataset.chip)"
+```
+- Owner: Lane C (result and chat pages). Proof: the same chips display and fire the same text as before (compare the chip's dataset.chip with the old argument for a chip containing an apostrophe, e.g. "Don't know").
+
+### P1-4 Insecure randomness: public/js/auth.js (alert line 513), public/js/onebox.js 3122, lib/_journey.js 31
+- auth.js (current lines 405 and 414) and onebox.js (current line 3109): Math.random builds `gas_anon` / `gas_ob_anon` (an analytics visitor id kept in localStorage) and the fallback of gasUuid (journey id, used only when crypto.randomUUID is missing). REAL-LOW: the rule applies, the data is not a secret. It is NOT on the sign-in path: sign-in is Supabase's email code and Google; the browser generates no token, password or code. A guessable analytics id would let someone add false events to another visitor's journey, not read or take anything. Fix when convenient (Lane D for auth.js, Lane C for onebox.js): `const b = new Uint8Array(12); crypto.getRandomValues(b); id = "a_" + Array.from(b, x => x.toString(36).padStart(2, "0")).join("")`.
+- lib/_journey.js 31: I find no random call in the current file (the lines near 31 are the exported event list and recordJourneyEvent's parameters; there is no Math.random or randomUUID). Either the alert is on an older revision or it is a different rule at that line. Cannot triage without the alert text: it is in the export request below.
+
+### P2 Regular expression injection: lib/onebox.js 625, 1121, 1131; lib/vehicle.js 2071
+- lib/onebox.js 625 (`new RegExp(b, "ig")`): FALSE POSITIVE. b is built from the match `[A-Z]{1,3}` plus 63/65/45/43/55 of the visitor's text, then uppercased with the AMG prefix removed; it can only contain letters and digits.
+- lib/onebox.js 1121 and 1131 (`new RegExp(\`\\b${fam}[\\s-]?${num}\\b\`)` and the same with code[1], code[2]): FALSE POSITIVE. fam is one letter from `^([a-z])(\d{2,3})$` (or the fixed text "[DW]"), num is 2 to 3 digits, code[1] is 1 to 3 letters and code[2] 2 to 4 digits (both anchored patterns). No regex metacharacter can reach the RegExp. Optional hardening: none needed.
+- lib/vehicle.js 2071 and the next line (`new RegExp("\\b" + String(make).replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&") + "\\b")`): REAL-LOW, a genuine escaping bug. In the replace pattern the character class closes early: `[.*+?^${}()|[\\]` is the class, then `\\\\]` is extra literal text, so the pattern effectively never matches and `make` is NOT escaped (compare the correct pattern `/[.*+?^${}()|[\]\\]/g` used at lib/onebox.js 587 and the helper escapeRegExp at lib/vehicle.js line 194). `make` is the make name parsed from the visitor's typed text (the resolver's known-make matching, or an unverified token), so a make containing a metacharacter (a dot, a parenthesis, a plus) would be read as a pattern: wrong match or, for an unbalanced character, a thrown SyntaxError that fails the resolve. A catastrophic-backtracking attack is not reachable because the pattern around `make` has no repeated groups. yearToken (the second line) is digits only.
+  Fix (code, Lane B): `const mkRe = new RegExp("\\b" + escapeRegExp(String(make)) + "\\b", "i"); const ytRe = new RegExp("\\b" + escapeRegExp(String(yearToken)) + "\\b");`
+  Proof requirement (Lane B): this changes which text matches only for makes that contain a metacharacter; for every plain make the compiled pattern is identical. Run the golden table (scripts/oneboxGolden.mjs, the resolver checks and lint:cards) before and after and show no count, range, line or answer moved; add one check with a make such as "A.C." and "Mercedes-Benz (x" resolving without a throw.
+
+### What to do with the other alerts
+Ask Sam to EXPORT the alert list: GitHub, repository, Security, Code scanning, set filter to `is:open`, then use "..." / Export (or ask Lane F to read it in a browser session) and give me either a CSV or the JSON of the alerts API for code scanning (fields wanted: number, rule id (rule.id), severity, state, file path, start line, message text, the commit sha it was found on, and the data-flow summary if shown). With that I triage the other 40 (P3 and below) the same way. Names and line numbers only; no secret appears in the export.
+
+Search check: no public page touched.
