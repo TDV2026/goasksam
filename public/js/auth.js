@@ -16,7 +16,11 @@ let __authOtpEmail = "";        // the email a one-time code was sent to (for ve
 let __authTicket = { email: "", ticket: null }, __authTurnstileToken = null, __authTurnstileId = null;
 
 function authApiPath(p) { return (typeof apiPath === "function") ? apiPath(p) : p; }
-function authEsc(s) { return (typeof escapeHtml === "function") ? escapeHtml(String(s == null ? "" : s)) : String(s == null ? "" : s); }
+// Self-contained (F-29, Oct 21 2026): auth.js loads on pages without chat-core.js's escapeHtml (Market Check, Buy, Tasks,
+// history, spec and more), where the old fallback returned the text unescaped. Always escapes the five characters.
+function authEsc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+// A sign-in prefill is kept only when it looks like an email (F-29): at most 254 characters, no spaces, quotes or brackets.
+const authEmailShaped = e => typeof e === "string" && e.length <= 254 && /^[^\s@<>"'`()]{1,64}@[^\s@<>"'`()]{1,190}\.[A-Za-z]{2,24}$/.test(e);
 
 // ---------------- config ----------------
 async function authConfig() {
@@ -213,7 +217,7 @@ function authScrubPrefill() {
   try {
     const u = new URL(location.href);
     const pre = u.searchParams.get("email");
-    if (pre) { __authPrefillEmail = pre; u.searchParams.delete("email"); window.history.replaceState(null, "", u.pathname + (u.search || "") + (u.hash || "")); }
+    if (pre) { __authPrefillEmail = authEmailShaped(pre.trim()) ? pre.trim() : ""; u.searchParams.delete("email"); window.history.replaceState(null, "", u.pathname + (u.search || "") + (u.hash || "")); }
   } catch (e) {}
 }
 // A refused new account (the sign-up hook, lib/_signup.js) reaches the person in plain words (Oct 2026): our three
@@ -309,14 +313,15 @@ function openSignInCard(subtitle) {
   const scrim = document.createElement("div");
   scrim.className = "hp-dialog-scrim"; scrim.id = "auth-modal";
   scrim.onclick = e => { if (e.target === scrim) authCloseModal(); };
-  const prefill = authEsc(__authPrefillEmail || "");
+  // The prefill is set as the field's value property after the card is in the page, never written into HTML (F-29).
+  const prefill = authEmailShaped(__authPrefillEmail || "") ? __authPrefillEmail : "";
   scrim.innerHTML = `<div class="hp-dialog auth-dialog">
     <h3>Sign in to GoAskSam</h3>
     <p>${authEsc(subtitle || "Sign in free to keep your cars and pick up where you left off.")}</p>
     <button class="auth-google" onclick="authSignInGoogle()">Continue with Google</button>
     <div class="auth-or"><span>or</span></div>
     <label class="auth-label" for="auth-email">Email me a sign-in code</label>
-    <input id="auth-email" class="auth-input" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" value="${prefill}" />
+    <input id="auth-email" class="auth-input" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" />
     <div id="auth-turnstile" class="auth-turnstile"></div>
     <button class="auth-email-btn" onclick="authSignInEmail(this)">Email me a code</button>
     <label class="auth-consent-row"><input id="auth-consent" type="checkbox" /> <span>Send me Sam's market notes</span></label>
@@ -324,7 +329,9 @@ function openSignInCard(subtitle) {
     <div class="auth-fineprint">No passwords. We email you a one-time code. Marketing notes only if you tick the box.</div>
   </div>`;
   document.body.appendChild(scrim);
-  const f = document.getElementById("auth-email"); if (f && !prefill) { try { f.focus(); } catch (e) {} }
+  const f = document.getElementById("auth-email");
+  if (f && prefill) f.value = prefill;
+  if (f && !prefill) { try { f.focus(); } catch (e) {} }
   authMountTurnstile();
 }
 // Cloudflare Turnstile on the email sign-up form, only when switched on (SIGNUP_TURNSTILE, via publicConfig).
@@ -357,8 +364,9 @@ function authRenderTopbar() {
   if (!area) return;
   if (authIsSignedIn()) {
     const email = (__authAccount && __authAccount.email) || (authGetSession() && authGetSession().email) || "Signed in";
-    area.innerHTML = `<span class="hp-account-email" title="${authEsc(email)}">${authEsc(email)}</span>
+    area.innerHTML = `<span class="hp-account-email"></span>
       <button class="hp-signout" onclick="authSignOut()">Sign out</button>`;
+    const em = area.querySelector(".hp-account-email"); if (em) { em.textContent = String(email); em.title = String(email); }
   } else {
     area.innerHTML = `<button class="hp-signin" onclick="openSignInCard()">Sign in</button>`;
   }
@@ -401,8 +409,10 @@ async function authBoot() {
 // ===================== 2C: the account gate (client) =====================
 // Auth WRAPS the product: gate cards render into #msgs, none of the wizard,
 // #inp/#btn, or send() is touched. sellerDecision returns the gate statuses.
+// Analytics ids from crypto (F-29 follow-up), never Math.random.
+function authRandomId() { const b = new Uint8Array(10); try { crypto.getRandomValues(b); } catch (e) { return Date.now().toString(36); } return Array.from(b, x => x.toString(36).padStart(2, "0")).join(""); }
 function gasAnonId() {
-  try { let id = localStorage.getItem("gas_anon"); if (!id) { id = "a_" + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem("gas_anon", id); } return id; } catch (e) { return null; }
+  try { let id = localStorage.getItem("gas_anon"); if (!id) { id = "a_" + authRandomId() + Date.now().toString(36); localStorage.setItem("gas_anon", id); } return id; } catch (e) { return null; }
 }
 function gasStashResultId(id, isFirstFree) { try { if (isFirstFree && id) localStorage.setItem("gas_free_result", id); } catch (e) {} }
 // ---- Business journey tracking (deterministic per-vehicle journey id) ----
@@ -411,7 +421,9 @@ function gasStashResultId(id, isFirstFree) { try { if (isFirstFree && id) localS
 // same id is reused. journey_id is a real uuid (the analytics table PK).
 function gasUuid() {
   try { if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === "x" ? r : (r & 0x3 | 0x8)).toString(16); });
+  const b = new Uint8Array(16); try { crypto.getRandomValues(b); } catch (e) { for (let i = 0; i < 16; i++) b[i] = (Date.now() * (i + 1)) & 255; }
+  let i = 0;
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const r = b[i++] & 15; return (c === "x" ? r : (r & 0x3 | 0x8)).toString(16); });
 }
 function gasJourneyKey(v) {
   if (!v) return null;
