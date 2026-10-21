@@ -11558,3 +11558,57 @@ From Sam. VIN rollout workflow run #1 finished green after the C63 entry: sitema
 LANE F NOTE: WORKFLOW FINISHED. Sam's VIN rollout workflow run #1 finished green (the holds are lifted: every lane may read and lock again, by the lock rules and the tested lock reader). ORDER NOW: (1) LANE G: the R4-A live look, post '- LOOK DONE (Lane G' first, then take the R4-B lock (amazon-r4b) straight after; (2) LANE E: the R4 warm and the re-check after Lane G's look-done as ordered, offline work meanwhile; (3) LANE B: your chain (step 1b) waits out Lane G's R4-B lock to its PUSHED or LOCK RELEASED and its look-done, then proceeds; (4) LANE C: the Buy speed re-measure in a gap with no lock open. (5) LANE B, SAM'S WORKFLOW QUESTIONS (read only, offline first): (a) the run took 25m 41s against the 20-minute budget the file states (docs/vin-rollout-workflow.yml and .github/workflows/vin-rollout.yml: timeout-minutes and the comment): say where the time goes (buildVinIndex, buildVinRolloutCache, the redirect sample) from the scripts and the run log if Sam pastes it, and propose the number or the note to change (the workflow file is Sam's to commit: the CI PAT lacks workflow scope; draft the exact diff in lane-notes for Sam); (b) NAME THE ONE REDIRECTING VIN among the 200 checked (the sitemap-vins sample, a 301): the VIN, its saved name and slug, where it redirects, and whether that is expected (e.g. a name that changed with the C63 entry or a duplicate); (c) the two 'Broken pipe' lines come from head closing the pipe: if the tidy is cheap, include it in the same drafted diff, otherwise say leave. Do not run a production read in step (b) beyond one read-only curl of that VIN's page after a lane-clear check. No time estimates in any Desk text.
 - READER TESTED (Lane E, 03:02:22Z): my open-lock reader (a lane holds a lock when its latest '- PUSH LOCK (Lane X' line has no later '- PUSHED', '- LOCK RELEASED' or '- REVERTED' line from the same lane; a lock line older than six hours or with no time counts as stale bookkeeping), tested now: on today's lane-notes it reads NO open lock; on test lines it reads an open lock as open, a lock followed by PUSHED as closed, a lock followed by LOCK RELEASED as closed, and Lane A's undated Oct 19 lock as stale. It ran live earlier today: it refused my R3-A re-check under Lane C's 1d-B lock (21:18Z). Every live read of mine checks it before each page load and waits while any lock is open.
 Search check: no public page touched.
+
+- FOR SAM, THE VIN ROLLOUT RUN (Lane B, 03:04:15Z; read from the run's own step timings, GitHub run 39526281514, no production read):
+  (a) WHERE THE 25m 41s WENT: rebuilding the VIN index 8m 11s; precomputing the rollout cache 12m 59s; the redirect sample 4m 24s (200 VIN pages checked one at a time). The "20-minute budget" in the file's note is the rollout-cache SCRIPT's own budget (scripts/buildVinRolloutCache.js BUDGET_MS); that step used 13 of its 20 minutes and was never cut short, so nothing is wrong: the note wrongly read as the whole run's time. CHANGE: the note now gives the real timings (about 25 minutes; about 22 with the faster sample), the sample checks 8 pages at a time, and the job ceiling goes from 30 to 45 minutes (25m 41s was close to 30).
+  (b) THE ONE REDIRECTING VIN: the run cannot name it. The check step prints only the counts ("$n VIN URLs checked, $r redirect"), never the URL, so the VIN is in no log (the step logs also need repo admin to read through the API). CHANGE: the step now prints one "redirect: <url> <where it goes>" line per redirect. To name today's one now, the same 200-page sample must be re-read (about 200 light page requests, read only, about 40 s at 8 at a time) in a gap Lane F names; or your next run of the new file prints it.
+  (c) THE TWO "Broken pipe" LINES: head -1 and head -200 closed the pipe while sed was still writing. Cheap, so tidied in the same diff: each list is read whole and cut with sed -n (no early close).
+  THE EXACT DIFF (yours to commit to .github/workflows/vin-rollout.yml; tested offline: valid YAML, the step's shell parses, a redirect line and the count print correctly, and a run with zero redirects still passes under set -e):
+```diff
+--- .github/workflows/vin-rollout.yml (today)	2026-10-20 20:03:42
++++ .github/workflows/vin-rollout.yml (proposed)	2026-10-20 20:03:38
+@@ -1,16 +1,18 @@
+-# FOR SAM (Lane B, Oct 20 2026): a one-step rebuild of the VIN sitemap cache (vin_rollout_cache), the same step the
+-# nightly runs at 07:11 UTC. COPY this file to .github/workflows/vin-rollout.yml (our CI token cannot write workflows).
+-# RUN IT after an engine version bump that changes car names: GitHub, Actions, "Rebuild VIN rollout cache", Run workflow.
+-# It uses the same two secrets as the nightly (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY), makes no OldCarsData calls and
+-# takes a few minutes (a 20-minute budget inside the script). YOU SHOULD SEE "vin_rollout_cache written. DONE." and then a
+-# line "sitemap-vins: N VIN URLs, M redirect (301)": M should be 0 or close to it once the cache matches the live pages.
++# FOR SAM (Lane B, Oct 20 2026; timings and the redirect report Oct 21 2026): a one-step rebuild of the VIN sitemap cache
++# (vin_rollout_cache), the same step the nightly runs at 07:11 UTC. COPY this file to .github/workflows/vin-rollout.yml (our
++# CI token cannot write workflows). RUN IT after an engine version bump that changes car names: GitHub, Actions, "Rebuild VIN
++# rollout cache", Run workflow. It uses the same two secrets as the nightly (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY) and makes
++# no OldCarsData calls. IT TAKES ABOUT 25 MINUTES (run 1, Oct 21 2026: VIN index 8 min, rollout cache 13 min of its own
++# 20-minute budget, the redirect sample 4 min; the sample now runs 8 at a time, so expect about 22). YOU SHOULD SEE
++# "vin_rollout_cache written. DONE." and then "sitemap-vins: N VIN URLs checked, M redirect (301)", with one "redirect:" line
++# naming each redirecting URL and where it goes. M should be 0 or close to it once the cache matches the live pages.
+ name: Rebuild VIN rollout cache
+ on:
+   workflow_dispatch:
+ jobs:
+   rollout:
+     runs-on: ubuntu-24.04
+-    timeout-minutes: 30
++    timeout-minutes: 45
+     env:
+       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+@@ -29,8 +31,13 @@
+         run: |
+           set -e
+           H="x-vercel-protection-bypass: ${VERCEL_AUTOMATION_BYPASS_SECRET:-none}"
+-          first=$(curl -s -H "$H" https://goasksam.com/sitemap-vins.xml | grep -o '<loc>[^<]*</loc>' | sed 's/<[^>]*>//g' | head -1)
+-          urls=$(curl -s -H "$H" "$first" | grep -o '<loc>[^<]*</loc>' | sed 's/<[^>]*>//g' | head -200)
+-          n=0; r=0
+-          for u in $urls; do n=$((n+1)); c=$(curl -s -o /dev/null -w "%{http_code}" -H "$H" "$u"); [ "$c" = "301" ] && r=$((r+1)); done
++          # each list is read whole and cut with sed (head closing the pipe early printed "Broken pipe")
++          index=$(curl -s -H "$H" https://goasksam.com/sitemap-vins.xml)
++          first=$(printf '%s\n' "$index" | grep -o '<loc>[^<]*</loc>' | sed 's/<[^>]*>//g' | sed -n '1p')
++          page=$(curl -s -H "$H" "$first")
++          printf '%s\n' "$page" | grep -o '<loc>[^<]*</loc>' | sed 's/<[^>]*>//g' | sed -n '1,200p' > urls.txt
++          # 8 at a time; each line: status, URL, where it redirects (empty unless 3xx)
++          xargs -P 8 -I{} curl -s -o /dev/null -w '%{http_code} {} %{redirect_url}\n' -H "$H" {} < urls.txt > codes.txt
++          n=$(wc -l < codes.txt | tr -d ' '); r=$(grep -c '^301 ' codes.txt || true)
++          grep '^301 ' codes.txt | sed 's/^301 /redirect: /' || true
+           echo "sitemap-vins: $n VIN URLs checked, $r redirect (301)"
+```
