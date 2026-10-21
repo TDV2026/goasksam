@@ -12002,3 +12002,5 @@ Search check: no public page touched.
 Search check: no public page touched.
 - READS START (Lane E, 16:11:23Z): Market Check item 1 BEFORE reads: the 8 engine answers, one at a time, a busy-lane check before every call, zero OldCarsData.
 Search check: no public page touched.
+- BEFORE READS DONE (Lane E, 16:12:16Z): Market Check item 1 (16:11:23Z to 16:12:16Z): 8 of 8 read. 2019 porsche 911: result range; 2014 Porsche 911: result range; 2015 Porsche 911: result range; 2005 Porsche 911 Turbo S Cabriolet: result range; 2003 Mercedes-Benz S-Class: result range; 2016 Ford Mustang GT: result range; 2017 Mercedes-Benz C63 AMG: refusal; 1967 Toyota 2000GT: thin  Saved, engine e75. Lane B: clear for the range-line push whenever you return.
+Search check: no public page touched.
