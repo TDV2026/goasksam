@@ -6,7 +6,10 @@
 // Usage: node scripts/beehiivSigninVerify.mjs
 import puppeteer from "puppeteer-core";
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-const BHS = process.env.BHS || "sub_c3abce58-59b6-48d1-baa1-b687f8483207";
+// The reader's Beehiiv subscription id comes ONLY from the environment, by name (Sam, Oct 21 2026: treat it as live; it is
+// never written in this file, a commit, the lane notes or any output). Set BEEHIIV_TEST_SUBSCRIPTION_ID (BHS still accepted).
+const BHS = process.env.BEEHIIV_TEST_SUBSCRIPTION_ID || process.env.BHS || "";
+if (!/^sub_[A-Za-z0-9-]{8,}$/.test(BHS)) { console.log("beehiivSigninVerify: set BEEHIIV_TEST_SUBSCRIPTION_ID (a Beehiiv subscription id, sub_...) in the environment; it is never stored in this file."); process.exit(2); }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 let fails = 0; const ok = (c, m) => { console.log((c ? "PASS  " : "FAIL  ") + m); if (!c) fails++; };
 const mask = e => { if (!e || e.indexOf("@") < 0) return String(e); const [u, d] = e.split("@"); return (u[0] || "") + "***@" + d; };
