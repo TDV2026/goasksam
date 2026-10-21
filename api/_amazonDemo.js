@@ -431,13 +431,28 @@ const JS = String.raw`
   function inScope(a){ return amazonInScope(a && a.identity, new Date().getFullYear(), SCOPE); }
   // The shared card, as the partner answer draws it (cardWithRows: the engine's own sale rows, in the engine's order,
   // when the path sends them; else the card without its rows). The page adds nothing to it.
+  // REVISION 4, item 1: the sales behind a ranged answer, as the thin card draws them. Lane E's rows field carries the engine's
+  // included sales in the shared card's own order (newest first); the row wording is the card's own (sale month, miles at
+  // sale). The list sits directly under "Based on N sales"; the range, its lines and the context line are untouched.
+  function saleRow(r){
+    var ph = r.photo ? '<img class="sfc-row-img" src="/api/partnerAnswer?photo=' + encodeURIComponent(r.photo) + '&w=320" alt="" loading="lazy">' : '<span class="sfc-row-nophoto">No photo</span>';
+    var mi = Number(r.miles) > 0 ? Math.round(Number(r.miles)).toLocaleString("en-US") + " miles at sale" : "", when = monthYear(r.date);
+    return '<li class="sfc-row">' + ph + '<span class="sfc-row-text">' + (r.name ? '<span class="sfc-row-title">' + esc(r.name) + "</span>" : "") + '<span class="sfc-row-price">' + esc(usd(r.price)) + '</span><span class="sfc-row-meta">' + esc([when, mi].filter(Boolean).join(", ")) + "</span></span></li>";
+  }
+  function withRows(c, a){
+    var rows = a && Array.isArray(a.rows) ? a.rows : [];
+    if (!rows.length || c.indexOf('class="sfc-range"') < 0 || c.indexOf("sfc-rows") >= 0) return c;
+    var i = c.lastIndexOf('<p class="sfc-basis">'); if (i < 0) return c;
+    var j = c.indexOf("</p>", i) + 4;
+    return c.slice(0, j) + '<ul class="sfc-rows">' + rows.map(saleRow).join("") + "</ul>" + c.slice(j);
+  }
   function cardHtml(a){
     if (!a || a.ok === false) return '<p class="muted">' + esc(a && a.stillReading ? (a.line || STILL_LINE) : COULD_NOT) + "</p>";
     if (a.question) {
       var q = a.question, opts = (q.options || []).concat(q.skip ? [q.skip] : []);
       return '<p>' + esc(q.text || "") + '</p><div class="nexts">' + opts.map(function(o){ return '<button type="button" class="btn out" data-qsend="' + esc(JSON.stringify(o.send || {})) + '">' + esc(o.label) + "</button>"; }).join("") + "</div>";
     }
-    var c = a.cardWithRows || a.card || ""; return c.replace('<div class="gas-pill-slot"></div>', "");
+    var c = a.cardWithRows || a.card || ""; return withRows(c.replace('<div class="gas-pill-slot"></div>', ""), a);
   }
   // This exact car's history (the answer's VIN history, newest first): "sold before" only when a prior listing sold.
   var anySold = function(h){ return (h || []).some(function(r){ return r.result === "sold"; }); };

@@ -21,6 +21,18 @@ ok(/\.mc-body \.sfc-card\{border:0/.test(css) && /mc-body\{margin:22px 0 0/.test
 const d = { tier: "thin", poolN: 12, thinLine: "L", latestSaleLine: "S", cards: Array.from({ length: 12 }, (_, i) => ({ price: 1000 + i, date: "2026-10-" + String(20 - i).padStart(2, "0"), mi: 5000 + i, title: "Car " + i })) };
 const card = sellsForCardHtml(d, {}), rows = [...card.matchAll(/<li class="sfc-row">/g)].length;
 ok(rows === 12 && /sfc-row-title">Car 0</.test(card) && card.indexOf("Car 0") < card.indexOf("Car 11"), "the shared card builds every row in the engine's order (the page hides past the tenth, it never drops one)");
+// REVISION 4, R4-A (Sam, Oct 20 2026, item 1): a ranged answer shows the sales behind it, as a thin answer does, from Lane E's rows field
+{ const helpers = js.slice(js.indexOf("var esc = "), js.indexOf("// Sam's decision 6"));
+  const fn = js.slice(js.indexOf("function saleRow(r){"), js.indexOf("function cardHtml(a){"));
+  const { withRows } = new Function(helpers + "\n" + fn + "\nreturn { withRows: withRows };")();
+  const rows = Array.from({ length: 12 }, (_, i) => ({ photo: "p" + i, name: "Car " + i, price: 90000 + i, date: "2026-10-" + String(20 - i).padStart(2, "0"), miles: 1000 + i }));
+  const ranged = '<div class="sfc-card"><p class="sfc-range">$1 <span class="sfc-to">to</span> $2</p><p class="sfc-half">Half</p><p class="sfc-basis">Based on 12 sales, the latest in October 2026.</p><p class="sfc-basis">Includes sales from 2019.</p><div class="sfc-footer">F</div></div>';
+  const out = withRows(ranged, { rows });
+  ok(out.indexOf('Includes sales from 2019.</p><ul class="sfc-rows">') > 0 && out.indexOf('</ul><div class="sfc-footer">') > 0 && (out.match(/<li class="sfc-row">/g) || []).length === 12, "a ranged card's list sits directly under 'Based on N sales' (and its includes line), before the footer, one row per sale in the field's order");
+  ok(/<span class="sfc-row-meta">October 2026, 1,000 miles at sale<\/span>/.test(out) && /<span class="sfc-row-price">\$90,000<\/span>/.test(out) && /<img class="sfc-row-img" src="\/api\/partnerAnswer\?photo=p0&w=320"/.test(out), "the row wording is the shared card's own (sale month, miles at sale, the gated photo)");
+  ok(out.replace(/<ul class="sfc-rows">[\s\S]*?<\/ul>/, "") === ranged, "removing the list gives the unchanged card: the range, its lines, the footer are untouched");
+  ok(withRows(ranged, { rows: [] }) === ranged && withRows(ranged, {}) === ranged && withRows(out, { rows }) === out, "no rows, or a card that already carries rows (a thin card), is left exactly as it is"); }
+
 ok(!/[–—]/.test(h), "no dashes");
 console.log(`amazonSalesListCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
