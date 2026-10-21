@@ -337,7 +337,7 @@ function questionOf(d, text, asked) {
 // beside the unchanged question field (the eBay page reads question and stays byte-identical): Market Check's own wording
 // ("Which {make}?", the option words for an identity question, never a {placeholder}), the trim_choice and separate-market
 // variant_choice tiers question() never mapped, and each option's round trip exactly as Market Check sends it.
-export function engineQuestionOf(d, text, asked) {
+function engineQuestionCore(d, text, asked) {
   if (!d) return null;
   const tier = String(d.tier || ""), next = Number(d.askIndex) || (asked + 1);
   const rc = d.resolvedCar || {};
@@ -380,6 +380,16 @@ export function engineQuestionOf(d, text, asked) {
     if (key) return { dimension: iq.dimension, text: qtext, options: iq.options.map(o => ({ label: o.label, count: o.count ?? null, send: { q: text, refine: { [key]: val(o.label) }, asked: next } })), skip: { label: iq.skipLabel || skip.label, send: skip.send } };
   }
   return null;
+}
+// Each option also carries carWord, the words the other tabs carry for it (R4-B): a re-asking option's own words
+// (send.q, e.g. "2019 Porsche 992"); a refine option's car words plus its own label without the count ("1965 Ford Mustang
+// GT"), sent back with its refine, so every tab re-reads the same narrowed car; and send.label, which names it in car.name.
+export function engineQuestionOf(d, text, asked) {
+  const q = engineQuestionCore(d, text, asked);
+  if (!q) return q;
+  const bare = l => String(l || "").replace(/\s*\(\d[\d,]*\)\s*$/, "").trim();
+  const opt = o => !o || !o.send ? o : (o.send.refine ? { ...o, carWord: [text, bare(o.label)].filter(Boolean).join(" ").trim(), send: { ...o.send, label: bare(o.label) } } : { ...o, carWord: o.send.q || text });
+  return { ...q, options: (q.options || []).map(opt), skip: q.skip ? { ...q.skip, carWord: (q.skip.send && q.skip.send.q) || text } : q.skip };
 }
 // THE NARROWING LINES (Sam, Oct 18 2026: "2001 bmw", M3 showed no body question on the demo while Market Check showed
 // "Which M3? Convertible (9) · Coupe (3)"). Market Check's answer page draws up to four lines from the engine's own
@@ -527,7 +537,7 @@ export async function withCarFacts(out, d, { env = null, vin = null, vinDecode =
 // name alone). The name, in this order: the archive's own name for a recorded VIN, else the free decode's (year, make,
 // model, trim), else the engine's identity, else the words as typed. A name that would carry a venue falls to the next.
 // An unreadable VIN carries no car. Additive: no other field changes, and the eBay page ignores it.
-export function carFieldOf(body, { vin = null, id = null, vinDecode = null, typed = "" } = {}) {
+export function carFieldOf(body, { vin = null, id = null, vinDecode = null, typed = "", chosen = null } = {}) {
   if (!body || typeof body !== "object" || Array.isArray(body) || body.error === "rate_limited" || "car" in body) return body;
   if (body.answerType === "vin_unreadable") return { ...body, car: null };
   const join = (...p) => { const out = []; for (const x of p.filter(Boolean).map(String)) if (!out.some(o => o.toLowerCase().includes(x.toLowerCase()))) out.push(x); return out.join(" ").replace(/\s+/g, " ").trim(); };
@@ -539,6 +549,8 @@ export function carFieldOf(body, { vin = null, id = null, vinDecode = null, type
     ["typed", typed && !(!/\s/.test(String(typed).trim()) && VIN_RE.test(normVin(typed))) ? String(typed).trim() : null]   // a VIN only as one token (vinOfInput's rule)
   ];
   const hit = cands.find(([, n]) => n && !VENUE_RE.test(n));
+  // REVISION 4 (R4-B): a re-read narrowed by a chosen option (a trim, a market, a gearbox) names it: "1965 Ford Mustang GT"
+  if (hit && chosen && typeof chosen === "string" && /^[A-Za-z0-9 .,'&/+-]{1,40}$/.test(chosen) && !VENUE_RE.test(chosen) && !hit[1].toLowerCase().includes(chosen.toLowerCase())) hit[1] = hit[1] + " " + chosen;
   return { ...body, car: hit ? { name: hit[1], vin: vin || null, from: hit[0] } : (vin ? { name: null, vin, from: "vin" } : null) };
 }
 export function carNameOf(id) {
@@ -676,7 +688,7 @@ export default async function handler(req, res) {
   }
   let history = null, id = null, vinDecode = null;
   // every answer from here on carries the current car (carFieldOf); the typed words are kept before a VIN replaces them
-  { const typedWords = text, sendJson = res.json.bind(res); res.json = body => sendJson(carFieldOf(body, { vin: vinIn || null, id, vinDecode, typed: typedWords })); }
+  { const typedWords = text, sendJson = res.json.bind(res), chosen = refine && typeof b.label === "string" ? b.label.replace(/\s*\(\d[\d,]*\)\s*$/, "").trim().slice(0, 40) : null; res.json = body => sendJson(carFieldOf(body, { vin: vinIn || null, id, vinDecode, typed: typedWords, chosen })); }
   // A VIN THAT CANNOT BE READ (Sam's Amazon demo, revision 2, item 8a; Lane E, Oct 20 2026): a typed run of 11 to 17
   // letters and digits with three or more digits and no space is a VIN attempt; one that is not a valid 17-character VIN
   // gets Sam's line, never a silent empty page and never a car search on the raw characters.

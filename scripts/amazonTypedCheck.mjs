@@ -142,7 +142,7 @@ for (const r of ROWS) {
   const sh = (d, t) => partnerShape({ status: "one_box", ...d }, t, 0, {});
   const tc = sh({ tier: "trim_choice", prompt: "Which 1965 Mustang?", askIndex: 1, trimOptions: [{ value: "gt", label: "GT", n: 9 }, { value: "other", label: "Other trims", n: 20, notTrims: ["gt"] }], trimChips: ["GT (9)", "Other trims (20)"] }, "1965 Ford Mustang");
   ok(tc.engineQuestion && tc.engineQuestion.text === "Which 1965 Mustang?" && tc.engineQuestion.options.map(o => o.label).join("|") === "GT (9)|Other trims (20)", "trim_choice: the engine's prompt and chip words, in order");
-  ok(JSON.stringify(tc.engineQuestion.options[1].send) === JSON.stringify({ q: "1965 Ford Mustang", refine: { trim: "other", notTrims: "gt" }, asked: 1 }), "trim_choice round trip: Market Check's own refine (trim, and notTrims for Other trims)");
+  ok((({ label, ...x }) => JSON.stringify(x))(tc.engineQuestion.options[1].send) === JSON.stringify({ q: "1965 Ford Mustang", refine: { trim: "other", notTrims: "gt" }, asked: 1 }), "trim_choice round trip: Market Check's own refine (trim, and notTrims for Other trims)");
   ok(tc.question === null || tc.question === undefined, "trim_choice: the eBay question field is unchanged (still none)");
   const mc = sh({ tier: "model_choice", prompt: "Which model?", modelOptions: ["911", "Cayman"], resolvedCar: { make: "Porsche" } }, "porsche");
   ok(mc.engineQuestion.text === "Which Porsche?" && mc.question.text === "Which model?", "model_choice: engineQuestion says Market Check's 'Which Porsche?'; the eBay question text is unchanged");
@@ -151,11 +151,23 @@ for (const r of ROWS) {
   const vc = sh({ tier: "variant_choice", prompt: "Which 4½ Litre?", askIndex: 1, variantChoices: [{ key: "blower", label: "Blower", count: 3 }, { key: "standard", label: "Standard", count: 5 }] }, "1929 Bentley");
   ok(vc.engineQuestion && vc.engineQuestion.options.map(o => o.label).join("|") === "Blower|Standard|Any" && vc.engineQuestion.options[2].count === 8 && !vc.engineQuestion.options[2].send.refine, "variantChoices: each market by its key, plus Market Check's Any (every sale)");
   const gen = sh({ tier: "generation_choice", prompt: "The 911 spans generations that price very differently. Which is it?", askIndex: 1, generationOptions: [{ label: "991", query: "2019 Porsche 991" }, { label: "992", query: "2019 Porsche 992" }] }, "2019 porsche 911");
-  ok(gen.engineQuestion.text === gen.question.text && JSON.stringify(gen.engineQuestion.options) === JSON.stringify(gen.question.options), "generation_choice: engineQuestion equals the existing question (Market Check's own prompt and options)");
+  ok(gen.engineQuestion.text === gen.question.text && JSON.stringify(gen.engineQuestion.options.map(({ carWord, ...o }) => o)) === JSON.stringify(gen.question.options), "generation_choice: engineQuestion equals the existing question (Market Check's own prompt and options)");
   const d = { status: "one_box", tier: "result", cluster: [1, 9], poolN: 3, cards: [{ id: "a", price: 5, date: "2026-10-01", title: "2017 X" }, { id: "b", price: 3, date: "2026-09-01", title: "2017 Y" }, { id: "c", price: 7, date: "2026-08-01", title: "2017 Z" }] };
   const out = partnerShape(d, "t", 0, {});
   ok(out.rows.map(r => r.price).join(",") === "5,3,7" && out.sales.map(r => r.price).join(",") === "3,5,7", "rows: the card's own order (engine order); sales unchanged (by price)");
   ok(rowsOf({ tier: "result", cards: [{ id: "x", price: 1, title: "Bring a Trailer 1995 BMW M3", date: "2026-01-01" }] }).every(r => !/bring a trailer/i.test(r.name)), "rows: a venue in a title never shows (the row's own year, make and model)"); }
+// R4-B: every option carries the words the other tabs carry (carWord), a refine option sends its label, and a narrowed
+// re-read names the chosen option in car.name; offline, including the handler (the label reaches the name only with a refine)
+{ const { partnerShape, carFieldOf } = await import("../api/partnerAnswer.js");
+  const t = partnerShape({ status: "one_box", tier: "trim_choice", prompt: "Which 1965 Mustang?", askIndex: 1, trimOptions: [{ value: "gt", label: "GT", n: 9 }, { value: "other", label: "Other trims", n: 20, notTrims: ["gt"] }], trimChips: ["GT (9)", "Other trims (20)"] }, "1965 Ford Mustang", 0, {});
+  ok(t.engineQuestion.options[0].carWord === "1965 Ford Mustang GT" && t.engineQuestion.options[0].send.label === "GT", "a refine option: carWord = the car words plus its label (no count); send carries the label");
+  const g = partnerShape({ status: "one_box", tier: "generation_choice", prompt: "Which?", askIndex: 1, generationOptions: [{ label: "992", query: "2019 Porsche 992" }] }, "2019 porsche 911", 0, {});
+  ok(g.engineQuestion.options[0].carWord === "2019 Porsche 992" && g.engineQuestion.skip.carWord === "2019 porsche 911", "a re-asking option: carWord = its own words; the skip keeps the typed words");
+  ok(carFieldOf({ ok: true, identity: { year: 1965, make: "Ford", model: "Mustang" } }, { typed: "1965 Ford Mustang", chosen: "GT" }).car.name === "1965 Ford Mustang GT", "a narrowed re-read names the chosen option");
+  ok(carFieldOf({ ok: true, identity: { year: 1965, make: "Ford", model: "Mustang", variant: "GT" } }, { chosen: "GT" }).car.name === "1965 Ford Mustang GT", "never twice when the identity already names it");
+  ok(carFieldOf({ ok: true }, { typed: "1965 Ford Mustang", chosen: "Bring a Trailer" }).car.name === "1965 Ford Mustang", "a label naming a venue never reaches the name");
+  const src = (await import("node:fs")).readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
+  ok(/chosen = refine && typeof b\.label === "string"/.test(src), "the handler takes the label only together with a refine (a plain read never renames the car)"); }
 // carFieldOf, pure: the name order (record, decode, identity, typed), a venue never echoed, the eBay fields untouched
 { const { carFieldOf } = await import("../api/partnerAnswer.js");
   const d = { readable: true, year: 2003, make: "Chevrolet", model: "Corvette", trim: "Z06" };
