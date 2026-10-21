@@ -11618,3 +11618,5 @@ Search check: no public page touched (a gated noindex demo page).
 Search check: no public page touched (a gated noindex demo page).
 - WARM DONE (Lane E, 03:06:26Z): after Lane G's R4-A look, the seven Amazon stored answers re-stored with the revision 4 fields (rows, engineQuestion) (03:05:08Z to 03:06:26Z, archive reads only). warmDemo: 7 warmed, 0 failed [2017 Porsche 911 Carrera Coupe: result + demo; 2022 Porsche 911 GT3 6-Speed: result + demo; 2017 Audi R8 V10 Plus Coupe: result + demo; 2012 Mercedes-Benz SLS AMG Roadster: result + demo; 2013 BMW M3 Coupe Competition Package: result + demo; 2016 Ferrari 488 GTB: result + demo; 2016 Mercedes-Benz C63 AMG: refusal + demo]; check: 7 of 7 fresh.
 Search check: no public page touched.
+- REVIEW START (Lane E, 03:06:29Z): Amazon R4-A re-check: porsche 911, 2019 porsche 911, the seven, WBSBF932XSEH00621, 1G1YY12S035102964, WDDXJ8FB2FA010198, each by its path, then all four tabs; an open-lock check before every load (an open lock is waited out).
+Search check: no public page touched.
