@@ -12,7 +12,7 @@ ok(!/class="sq"/.test(client.slice(client.indexOf("function headerHtml"), client
 // ITEM 2 (now item 1 of Sam's new block): the pale green panel, no S mark, no Sam label
 const askSrc = client.slice(client.indexOf("  var ASK_SUB"), client.indexOf("  // Listings that don"));
 ok(/var ASK_SUB = "Choose one, or tell Sam how else to narrow your search below\.";/.test(client) && /<section class="ask samq" aria-label="Narrow the search">' \+ \(before \|\| ""\) \+ '<div class="sq-b"><p class="ask-q">/.test(askSrc), "2: the question, then the brief's line, in the panel");
-ok(!/sq-mark|sq-who/.test(client), "2 (new block item 1): no S mark and no Sam label");
+ok(!/sq-mark|sq-who|class="lav"/.test(client), "2 (new block item 1): no S mark and no Sam label (the location turn has no S mark either)");
 ok(/if \(light\) return samAskHtml\(a\.q, chips\.join\(""\)\);/.test(client) && /return samAskHtml\(lead \+ a\.q, chips\.join\(""\)/.test(client), "2: the panel and the light row both draw it; the quiet line stays");
 const n1 = css.slice(css.indexOf("SAM'S NEW 1f BLOCK, ITEM 1,"));
 ok(/\.msg\.sam \.ask\.samq\{display:block;margin:2px 0 12px;padding:10px 16px;background:var\(--tint,#E7EBE4\)/.test(n1) && /p\.ask-q\{margin:0;font:500 19px/.test(n1), "2 (new block item 1): the pale green panel, 10px padding (was 12), the question at 19px (was 17)");
