@@ -137,6 +137,25 @@ for (const r of ROWS) {
   ok(JSON.stringify(o.gallery) === JSON.stringify(["WBSBF932XSEH00621-0", "WBSBF932XSEH00621-2"]) && !("transmission" in o.keyFeatures), `a typed VIN: its own appearances' photos only; the decode alone never sets the gearbox (${JSON.stringify(o)})`);
   for (const q of [{ ok: true, answerType: "identity_question" }, { ok: false, error: "unavailable" }, { ok: true, answerType: "vin_unreadable" }]) { const r = await withCarFacts(q, null, {}); ok(!("gallery" in r) && !("keyFeatures" in r), `${q.answerType || q.error}: untouched (no car facts)`); }
 }
+// REVISION 4: the engine's question exactly as Market Check asks it (engineQuestion, additive), the round trip, the card-order rows
+{ const { partnerShape, engineQuestionOf, rowsOf } = await import("../api/partnerAnswer.js");
+  const sh = (d, t) => partnerShape({ status: "one_box", ...d }, t, 0, {});
+  const tc = sh({ tier: "trim_choice", prompt: "Which 1965 Mustang?", askIndex: 1, trimOptions: [{ value: "gt", label: "GT", n: 9 }, { value: "other", label: "Other trims", n: 20, notTrims: ["gt"] }], trimChips: ["GT (9)", "Other trims (20)"] }, "1965 Ford Mustang");
+  ok(tc.engineQuestion && tc.engineQuestion.text === "Which 1965 Mustang?" && tc.engineQuestion.options.map(o => o.label).join("|") === "GT (9)|Other trims (20)", "trim_choice: the engine's prompt and chip words, in order");
+  ok(JSON.stringify(tc.engineQuestion.options[1].send) === JSON.stringify({ q: "1965 Ford Mustang", refine: { trim: "other", notTrims: "gt" }, asked: 1 }), "trim_choice round trip: Market Check's own refine (trim, and notTrims for Other trims)");
+  ok(tc.question === null || tc.question === undefined, "trim_choice: the eBay question field is unchanged (still none)");
+  const mc = sh({ tier: "model_choice", prompt: "Which model?", modelOptions: ["911", "Cayman"], resolvedCar: { make: "Porsche" } }, "porsche");
+  ok(mc.engineQuestion.text === "Which Porsche?" && mc.question.text === "Which model?", "model_choice: engineQuestion says Market Check's 'Which Porsche?'; the eBay question text is unchanged");
+  const dh = sh({ tier: "dochistory_choice", prompt: "One thing separates these {carPlural} on price", identityQuestion: { dimension: "documented_history", blocking: true, questionText: "One thing separates these {carPlural}", options: [{ label: "Has documented history", count: 4 }, { label: "No documented history", count: 6 }] } }, "1955 Mercedes-Benz 300SL");
+  ok(dh.engineQuestion.text === "Has documented history or No documented history?" && !/\{/.test(dh.engineQuestion.text), "an identity question: Market Check's option-word line, never a {placeholder}");
+  const vc = sh({ tier: "variant_choice", prompt: "Which 4½ Litre?", askIndex: 1, variantChoices: [{ key: "blower", label: "Blower", count: 3 }, { key: "standard", label: "Standard", count: 5 }] }, "1929 Bentley");
+  ok(vc.engineQuestion && vc.engineQuestion.options.map(o => o.label).join("|") === "Blower|Standard|Any" && vc.engineQuestion.options[2].count === 8 && !vc.engineQuestion.options[2].send.refine, "variantChoices: each market by its key, plus Market Check's Any (every sale)");
+  const gen = sh({ tier: "generation_choice", prompt: "The 911 spans generations that price very differently. Which is it?", askIndex: 1, generationOptions: [{ label: "991", query: "2019 Porsche 991" }, { label: "992", query: "2019 Porsche 992" }] }, "2019 porsche 911");
+  ok(gen.engineQuestion.text === gen.question.text && JSON.stringify(gen.engineQuestion.options) === JSON.stringify(gen.question.options), "generation_choice: engineQuestion equals the existing question (Market Check's own prompt and options)");
+  const d = { status: "one_box", tier: "result", cluster: [1, 9], poolN: 3, cards: [{ id: "a", price: 5, date: "2026-10-01", title: "2017 X" }, { id: "b", price: 3, date: "2026-09-01", title: "2017 Y" }, { id: "c", price: 7, date: "2026-08-01", title: "2017 Z" }] };
+  const out = partnerShape(d, "t", 0, {});
+  ok(out.rows.map(r => r.price).join(",") === "5,3,7" && out.sales.map(r => r.price).join(",") === "3,5,7", "rows: the card's own order (engine order); sales unchanged (by price)");
+  ok(rowsOf({ tier: "result", cards: [{ id: "x", price: 1, title: "Bring a Trailer 1995 BMW M3", date: "2026-01-01" }] }).every(r => !/bring a trailer/i.test(r.name)), "rows: a venue in a title never shows (the row's own year, make and model)"); }
 // carFieldOf, pure: the name order (record, decode, identity, typed), a venue never echoed, the eBay fields untouched
 { const { carFieldOf } = await import("../api/partnerAnswer.js");
   const d = { readable: true, year: 2003, make: "Chevrolet", model: "Corvette", trim: "Z06" };

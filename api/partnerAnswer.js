@@ -240,6 +240,7 @@ function cleanRefine(r) {
   const word = v => typeof v === "string" && /^[A-Za-z0-9 ._/-]{1,40}$/.test(v) && !VENUE_RE.test(v);   // the engine's own option values
   if (word(r.body)) o.body = r.body;
   if (word(r.trim)) o.trim = r.trim;
+  { const nt = (Array.isArray(r.notTrims) ? r.notTrims : String(r.notTrims || "").split(",")).map(x => String(x).trim()).filter(word); if (nt.length) o.notTrims = nt.join(","); }   // the "Other trims" option (Market Check sends the same)
   if (word(r.variant)) o.variant = r.variant;
   if (r.tx === "manual" || r.tx === "auto") o.tx = r.tx;
   if (r.docHistory === "has" || r.docHistory === "nohas") o.docHistory = r.docHistory;
@@ -263,6 +264,14 @@ export function rowTitle(r) {
   return f && !VENUE_RE.test(f) ? f : "";
 }
 const rowId = r => r && r.id != null ? photoId(r.id) : null;   // the archive's UUID (lib/_salePhoto.js photoId)
+// REVISION 4 (Sam, Oct 20 2026: the sales list in the shared card's own rows and order): the engine's included sales in
+// the order its card draws them (newest first, Market Check's order), with the same venue-safe swaps as sales (the row's
+// own year, make and model when a title names a venue; the gated photo id). sales stays as it is (sorted by price).
+export function rowsOf(d) {
+  if (!d) return [];
+  const src = d.tier === "thin" && d.thin && Array.isArray(d.thin.receipts) ? d.thin.receipts : (Array.isArray(d.cards) ? d.cards : []);
+  return src.map(c => ({ photo: rowId(c), name: rowTitle(c), price: num(c.price) || num(c.allIn) || num(c.hammer), date: day(c.date), miles: num(c.mi) || num(c.mileage) })).filter(r => r.price);
+}
 export function salesOf(d) {
   if (!d) return [];
   let rows;
@@ -321,6 +330,54 @@ function questionOf(d, text, asked) {
       : iq.dimension === "competition" ? (/competition/i.test(label) ? "competition" : "standard")
       : iq.dimension === "documented_history" ? (/^has/i.test(label) ? "has" : "nohas") : null;
     if (key) return { dimension: iq.dimension, text: iq.questionText || null, options: iq.options.map(o => ({ label: o.label, count: o.count ?? null, send: { q: text, refine: { [key]: val(o.label) }, asked: next } })), skip: { label: iq.skipLabel || skip.label, send: skip.send } };
+  }
+  return null;
+}
+// REVISION 4 (Sam, Oct 20 2026): the engine's question EXACTLY as Market Check asks it, as an additive field (engineQuestion)
+// beside the unchanged question field (the eBay page reads question and stays byte-identical): Market Check's own wording
+// ("Which {make}?", the option words for an identity question, never a {placeholder}), the trim_choice and separate-market
+// variant_choice tiers question() never mapped, and each option's round trip exactly as Market Check sends it.
+export function engineQuestionOf(d, text, asked) {
+  if (!d) return null;
+  const tier = String(d.tier || ""), next = Number(d.askIndex) || (asked + 1);
+  const rc = d.resolvedCar || {};
+  const base = d.baseLabel || [rc.year, rc.make, rc.model, rc.trim].filter(Boolean).join(" ") || text;
+  const skip = { label: "Just show what sold", send: { q: text, asked: 2 } };
+  if (tier === "generation_choice" && Array.isArray(d.generationOptions)) {
+    return { dimension: "generation", text: d.prompt || "Which generation is it?", options: d.generationOptions.map(o => ({ label: o.label, send: { q: o.query, asked: next } })), skip };
+  }
+  if (tier === "model_choice" || tier === "body_choice") {
+    const opts = d.modelOptions || d.bodyOptions || [];
+    // Market Check's own wording (public/js/onebox.js modelChoiceTakeoverHtml): "Which {make}?" for a model question
+    const mk = tier === "model_choice" ? (rc.make || String(d.baseLabel || "").trim().split(/\s+/).pop() || "") : "";
+    return { dimension: tier === "model_choice" ? "model" : "body", text: mk ? `Which ${mk}?` : (d.prompt || "Which one is it?"), options: opts.map(o => ({ label: String(o), send: { q: base + " " + o, asked: next } })), skip };
+  }
+  // REVISION 4 (Sam, Oct 20 2026: the engine's question, exactly as Market Check asks it). trim_choice: the engine's own
+  // prompt and chip words (trimChips, each with its count); each option re-asks with that option's own refine, exactly as
+  // Market Check's trim takeover sends it (refine.trim, and for "Other trims" refine.notTrims).
+  if (tier === "trim_choice" && Array.isArray(d.trimOptions) && d.trimOptions.length) {
+    const chips = Array.isArray(d.trimChips) ? d.trimChips : [];
+    return { dimension: "trim", text: d.prompt || "Which is it?", options: d.trimOptions.map((o, i) => ({ label: String(chips[i] || o.label), count: o.n ?? null, send: { q: text, refine: { trim: String(o.value), ...(Array.isArray(o.notTrims) && o.notTrims.length ? { notTrims: o.notTrims.join(",") } : {}) }, asked: next } })), skip };
+  }
+  // variant_choice with the engine's separate-market choices (variantChoices: key, label, count): each re-asks with
+  // refine.variant = its key, plus Market Check's "Any" (every sale, no variant) when every count is known.
+  if (tier === "variant_choice" && Array.isArray(d.variantChoices) && d.variantChoices.length) {
+    const counts = d.variantChoices.map(c => Number(c.count));
+    const opts = d.variantChoices.map(c => ({ label: String(c.label), count: Number.isFinite(Number(c.count)) ? Number(c.count) : null, send: { q: text, refine: { variant: String(c.key) }, asked: next } }));
+    if (counts.every(Number.isFinite)) opts.push({ label: "Any", count: counts.reduce((a, b) => a + b, 0), send: { q: text, asked: next } });
+    return { dimension: "variant", text: d.prompt || "Which is it?", options: opts, skip };
+  }
+  const iq = d.identityQuestion;
+  if (iq && iq.blocking && Array.isArray(iq.options)) {
+    const key = { gearbox: "tx", competition: "variant", documented_history: "docHistory" }[iq.dimension];
+    const val = label => iq.dimension === "gearbox" ? (/manual/i.test(label) ? "manual" : "auto")
+      : iq.dimension === "competition" ? (/competition/i.test(label) ? "competition" : "standard")
+      : iq.dimension === "documented_history" ? (/^has/i.test(label) ? "has" : "nohas") : null;
+    // the question line Market Check draws for these (idqQuestionText): its option words, "Manual or PDK?"; never the
+    // engine's raw prompt, whose {carPlural} placeholder is not for display
+    const labels = iq.options.map(o => String(o.label || "")).filter(Boolean);
+    const qtext = labels.length >= 2 ? labels.slice(0, -1).join(", ") + " or " + labels[labels.length - 1] + "?" : (d.prompt && !/\{[a-zA-Z]+\}/.test(d.prompt) ? d.prompt : "Which is it?");
+    if (key) return { dimension: iq.dimension, text: qtext, options: iq.options.map(o => ({ label: o.label, count: o.count ?? null, send: { q: text, refine: { [key]: val(o.label) }, asked: next } })), skip: { label: iq.skipLabel || skip.label, send: skip.send } };
   }
   return null;
 }
@@ -528,15 +585,16 @@ export function partnerShape(d, text, asked, extra = {}) {
     return { ok: false, query: text, error: d.tier, history: extra.history || null,
       ...(still ? { stillReading: true, line: typeof d.samLine === "string" ? d.samLine : null, retryAfterMs: d.retry === true && Number.isFinite(d.retryAfterMs) && d.retryAfterMs > 0 ? d.retryAfterMs : null } : {}) };
   }
-  const question = questionOf(d, text, asked);
-  if (question) return { ok: true, query: text, engineVersion, answerType: "identity_question", identity: identityOf(d, extra.id), question, range: null, count: null, window: null, sales: [], setAside: null, thin: null, trend: null, narrow: null, history: extra.history || null };
+  const question = questionOf(d, text, asked), engineQuestion = engineQuestionOf(d, text, asked);
+  if (question) return { ok: true, query: text, engineVersion, answerType: "identity_question", identity: identityOf(d, extra.id), question, engineQuestion, range: null, count: null, window: null, sales: [], setAside: null, thin: null, trend: null, narrow: null, history: extra.history || null };
   const range = rangeOf(d), count = countOf(d);
   return {
     ok: true, query: text, engineVersion, readAt: d.readAt || null,
     answerType: range ? "range" : (count ? "not_enough_data" : "zero_result"),
     identity: identityOf(d, extra.id), question: null,
+    ...(engineQuestion ? { engineQuestion } : {}),   // a question tier question() does not map (trim_choice, variantChoices): additive
     range, count, window: d.windowLabel || null,
-    sales: salesOf(d), asideRows: asideRowsOf(d), asideLine: asideSentence(d), setAside: setAsideOf(d),
+    sales: salesOf(d), rows: rowsOf(d), asideRows: asideRowsOf(d), asideLine: asideSentence(d), setAside: setAsideOf(d),
     thin: range ? null : thinTextOf(d, count),
     trend: range ? trendOf(d) : null,
     card: demoCard(sellsForCardHtml(d, PARTNER_CARD_OPTS), d) || null,
@@ -681,6 +739,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: false, query: text, error: "unavailable", history, stillReading: true, line: null, retryAfterMs: null });
   }
   let out = await withCarFacts(partnerShape(r.d, text, asked, { history, id }), r.d, { env, vin: vinIn || null, vinDecode, history });
+  if (refine && out && typeof out === "object") out.refined = refine;   // REVISION 4: the round trip echoes the chosen option (the cleaned refine), so the page carries it in the name and the address and sends it back
   // The last good answer is stored from a plain read of the car and serves the VIN views too (Oct 18 2026: the listing
   // views send the VIN, had no fallback, and showed the limit line); a VIN view keeps its own VIN history.
   const lk = !refine ? demoKey(text) : null;
