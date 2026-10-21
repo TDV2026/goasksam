@@ -9,6 +9,7 @@ import { lastUpdatedDate } from "../lib/asOf.js";
 import { exampleBand } from "../lib/live/buyExample.js";
 import { landingHtml, LANDING_CSS, KEEP_ICON } from "../lib/live/buyLanding.js";
 import { priorSold, priorWords, priorTake } from "../lib/live/priorListing.js";
+import { ANY_ANSWER_JS } from "../lib/live/answerWords.js";
 import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE, brandPaletteCss, paletteHead, paletteSwitcherHtml, PALETTE_SWITCHER_JS } from "../lib/appShell.js";
 import { isTesterRequest } from "../lib/_tester.js";
 import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
@@ -142,7 +143,7 @@ ${CONSENT_BANNER_HTML}
 <script src="/js/auth.js" defer></script>
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 <script>${SELLS_FOR_CARD_JS}</script>
-<script>${CLIENT.replace("__KEEP_ICON__", () => JSON.stringify(KEEP_ICON)).replace("/*__PRIOR__*/", () => PRIOR_JS)}</script>
+<script>${CLIENT.replace("__KEEP_ICON__", () => JSON.stringify(KEEP_ICON)).replace("__ANY_ANSWER__", () => ANY_ANSWER_JS).replace("/*__PRIOR__*/", () => PRIOR_JS)}</script>
 <script src="/api/track?js=1" defer></script>
 <script>${CONSENT_BANNER_JS}</script>${showPal ? `<script>${PALETTE_SWITCHER_JS}</script>` : ""}</body></html>`;
   // Referrer logging (search measurement). Runs on a cache MISS only (the page is edge-cached 10 min),
