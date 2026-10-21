@@ -12,10 +12,15 @@ import { askRule } from "../lib/live/narrow.js";
 let fail = 0, pass = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const src = fs.readFileSync(new URL("../api/buy.js", import.meta.url), "utf8");
 const codeOnly = src.replace(/\/\/[^\n]*/g, "");
-const panelFn = (/function samAskHtml\([^)]*\)\{[\s\S]*?\n {2}\}/.exec(src) || [""])[0];
+// api/buy.js holds the page's client code as ONE JSON string: its line breaks are the two characters backslash and n, so the
+// function's end is matched on that literal (Lane C's scope finding, Oct 21 2026), never on a real newline
+const panelFn = (/function samAskHtml\([^)]*\)\{[\s\S]*?\\n {2,4}\}/.exec(src) || [""])[0];
 ok(!!panelFn, "the question panel's builder (samAskHtml) is found");
 ok(!/class=\\?"sq-mark/.test(panelFn) && !/>S<\/span>/.test(panelFn), "the panel draws no \"S\" mark");
 ok(!/class=\\?"sq-who/.test(panelFn) && !/>Sam<\/p>/.test(panelFn), "the panel draws no \"Sam\" label");
+ok(panelFn.length > 0 && panelFn.length < 2000 && !/lturn|lbub/.test(panelFn), `the panel's builder is matched on its own (${panelFn.length} characters), not run on into the location turn`);
+// Lane F's ruling: no "S" mark anywhere in the Sam turns (the location question's turn included); the plain turn has no mark
+ok(!/class=\\?"(sq-mark|lav)\\?"/.test(src) && !/aria-hidden=\\?"true\\?">S<\/span>/.test(src), "no \"S\" mark anywhere in the Sam turns (the panel and the location question's turn)");
 ok(src.includes("Choose one, or tell Sam how else to narrow your search below."), "Sam's line under the question is in the page");
 ok(/Show them too \\u2192|Show them too →|Show them too &rarr;|Show them too &#8594;/.test(src), "\"Show them too →\" carries its arrow");
 ok(!/[★☆♥♡]/.test(src) && !/aria-label=\\?"(Save|Favou?rite|Star)/i.test(src), "no star, heart or save icon in the Buy page");
