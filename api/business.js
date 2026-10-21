@@ -306,6 +306,7 @@ async function page(req) {
     `<form class="biz-lead" id="biz-lead-form"><input type="text" id="biz-name" placeholder="Name" autocomplete="name" required>` +
     `<input type="text" id="biz-company" placeholder="Company" autocomplete="organization">` +
     `<input type="email" id="biz-email" placeholder="Work email" autocomplete="email" required>` +
+    `<input type="text" id="biz-website" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-10000px;width:1px;height:1px;opacity:0" value="">` +
     `<textarea id="biz-message" placeholder="What do you want to know?"></textarea>` +
     `<button type="submit" class="biz-btn" id="biz-lead-submit">Request a walkthrough</button>` +
     `<p class="biz-lead-msg" id="biz-lead-msg" hidden></p></form></div>` +
@@ -318,7 +319,7 @@ async function page(req) {
       var name=document.getElementById("biz-name").value.trim(), company=document.getElementById("biz-company").value.trim(), email=document.getElementById("biz-email").value.trim(), message=document.getElementById("biz-message").value.trim();
       if(btn.disabled) return;
       btn.disabled=true; btn.textContent="Sending...";
-      fetch("/api/businessLead",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name,company:company,email:email,message:message})})
+      fetch("/api/businessLead",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name,company:company,email:email,message:message,hp:(document.getElementById("biz-website")||{}).value||""})})
         .then(function(r){return r.json();}).then(function(j){
           msg.hidden=false;
           if(j&&j.ok){

@@ -15,6 +15,10 @@
 import { supabaseEnv, supabaseInsert, supabasePatch } from "../lib/_supabase.js";
 import { sendTaskEmail } from "../lib/_email.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
+import { checkCeiling, leadEmailCeiling } from "../lib/_ceilings.js";
+// HARDENING (Oct 21 2026, Lane D, Sam's job D, docs/lane-security.md F-08): a honeypot field (hp) a person never fills, a
+// per-device and per-address ceiling and a per-email-per-day count (lib/_ceilings.js, crew exempt), and one email per
+// call as before. A filled honeypot gets the same success reply and nothing is stored or sent.
 
 const isEmail = s => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(s || ""));
 // Project ref from docs/lane-notes.md's confirmed prod ref - a plain link to the table, not a
@@ -29,11 +33,16 @@ export default async function handler(req, res) {
   const env = supabaseEnv();
   if (!env) return res.status(500).json({ ok: false, error: "not configured" });
   const b = req.body || {};
+  if (String(b.hp || "").trim()) return res.status(200).json({ ok: true });
   const name = String(b.name || "").trim().slice(0, 200);
   const company = String(b.company || "").trim().slice(0, 200);
   const email = String(b.email || "").trim().slice(0, 200);
   const message = String(b.message || "").trim().slice(0, 2000);
   if (!name || !isEmail(email)) return res.status(400).json({ ok: false, error: "name and a work email are required" });
+  const lim = await checkCeiling(env, req, "business_lead", { tool: "business" });
+  if (!lim.ok) return res.status(429).json({ ok: false, error: "Lots of requests from here just now. Give it a few minutes and try again." });
+  const limE = await leadEmailCeiling(env, req, email, "business_lead", 3);
+  if (!limE.ok) return res.status(429).json({ ok: false, error: "Lots of requests from here just now. Give it a few minutes and try again." });
 
   let leadId = null;
   try {
