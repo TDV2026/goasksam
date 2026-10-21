@@ -3105,8 +3105,10 @@
   // Aggregate-only: event name + a persistent anon id + a HASHED dedup key. Never the raw
   // query, VIN or chassis string. onebox_search is logged server-side (the cap's
   // authoritative source); the client logs outcome + interaction events.
+  // The id's random part comes from crypto.getRandomValues (Lane S's CodeQL triage, Oct 21 2026), never Math.random; same shape.
+  function obRand8() { var b = new Uint8Array(4); crypto.getRandomValues(b); return Array.prototype.map.call(b, function(x){ return (x < 16 ? "0" : "") + x.toString(16); }).join(""); }
   function obAnonId() {
-    try { var a = localStorage.getItem("gas_ob_anon"); if (a) return a; a = "ob-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10); localStorage.setItem("gas_ob_anon", a); return a; }
+    try { var a = localStorage.getItem("gas_ob_anon"); if (a) return a; a = "ob-" + Date.now().toString(36) + "-" + obRand8(); localStorage.setItem("gas_ob_anon", a); return a; }
     catch (e) { return null; }
   }
   var obFired = {};
