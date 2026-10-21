@@ -465,12 +465,15 @@ const JS = String.raw`
     var j = c.indexOf("</p>", i) + 4;
     return c.slice(0, j) + '<ul class="sfc-rows">' + rows.map(saleRow).join("") + "</ul>" + c.slice(j);
   }
+  // THE ENGINE'S QUESTION (revision 4, item 2): Lane E's engineQuestion field (Market Check's own question, the same shape as
+  // question, present on every answer that asks, trim question included) wins; else the older question field. Never written here.
+  function askOf(a){ return a && (a.engineQuestion || a.question) || null; }
   function cardHtml(a){
     if (!a || a.ok === false) return '<p class="muted">' + esc(a && a.stillReading ? (a.line || STILL_LINE) : COULD_NOT) + "</p>";
-    if (a.question) {
-      var q = a.question, opts = (q.options || []).concat(q.skip ? [q.skip] : []);
+    if (askOf(a)) {
+      var q = askOf(a), opts = (q.options || []).concat(q.skip ? [q.skip] : []);
       // the engine's question, its text and options and their order exactly as the engine returns them, drawn as chips; the skip option last
-      return '<div class="qa">' + (q.text ? '<p class="q-text">' + esc(q.text) + "</p>" : "") + '<div class="q-row">' + opts.map(function(o, i){ return '<button type="button" class="qchip' + (q.skip && i === opts.length - 1 ? " skip" : "") + '" data-qsend="' + esc(JSON.stringify(o.send || {})) + '">' + esc(o.label) + "</button>"; }).join("") + "</div></div>";
+      return '<div class="qa">' + (q.text ? '<p class="q-text">' + esc(q.text) + "</p>" : "") + '<div class="q-row">' + opts.map(function(o, i){ return '<button type="button" class="qchip' + (q.skip && i === opts.length - 1 ? " skip" : "") + '" data-qsend="' + esc(JSON.stringify(o.send || {})) + '">' + esc(o.label) + (o.count != null && !/\(\d+\)/.test(String(o.label)) ? " (" + esc(o.count) + ")" : "") + "</button>"; }).join("") + "</div></div>";
     }
     var c = a.cardWithRows || a.card || ""; return withRows(c.replace('<div class="gas-pill-slot"></div>', ""), a);
   }
@@ -559,7 +562,7 @@ const JS = String.raw`
     return '<div class="case"><p class="case-l">' + esc(k.line) + "</p>" + (k.name ? '<p class="case-n">' + esc(k.name) + "</p>" : "") + "</div>";
   }
   function wordsCaseHtml(q){ return '<div class="case"><p class="case-l">' + esc(OUT_OF_SCOPE_LINE) + '</p><p class="case-n">' + esc(q) + "</p></div>"; }
-  function mcCard(a){ return cardHtml(a) + (a && a.ok !== false && !a.question ? '<p class="mc-ctx">' + esc(CONTEXT) + "</p>" : ""); }
+  function mcCard(a){ return cardHtml(a) + (a && a.ok !== false && !askOf(a) ? '<p class="mc-ctx">' + esc(CONTEXT) + "</p>" : ""); }
   // "Last updated": the stored answer's own read date (M/D/YY), never a made-up time; nothing when the answer carries none.
   function readDate(a){ var m = /^(\d{4})-(\d\d)-(\d\d)/.exec(String((a && a.readAt) || "")); return m ? Number(m[2]) + "/" + Number(m[3]) + "/" + m[1].slice(2) : ""; }
   // THE SALES LIST (item 5): at most 10 sales show, in the card's own order (newest first); "Show more" only reveals rows the
@@ -593,7 +596,7 @@ const JS = String.raw`
     $("c-thumbs").innerHTML = ids.map(function(i, k){ return '<img src="/api/partnerAnswer?photo=' + encodeURIComponent(i) + '&w=320" alt="" loading="lazy"' + (k === 0 ? ' class="on"' : "") + ">"; }).join("");
     // A demo car keeps its own listing name (the grid's name); only a typed car or a VIN is titled from the answer.
     var t = CARS.indexOf(CAR) >= 0 ? null : amazonTitle(a); if (t) $("c-title").textContent = t;
-    var scope = ok && (inScope(a) || !!a.question), sl = scope ? sampleOf(a) : null;   // an engine question is always drawn
+    var scope = ok && (inScope(a) || !!askOf(a)), sl = scope ? sampleOf(a) : null;   // an engine question is always drawn
     // THE FULL LISTING BLOCK for every car (revision 3): a demo car has its fixed sample figures; a typed car shows "Price set by
     // dealer", an inert Finance box and button with NO figures, and no Cash row. Nothing here is computed.
     var block = ok && !a.question, ru = readDate(a);
@@ -602,7 +605,8 @@ const JS = String.raw`
     $("c-price").innerHTML = block ? '<div class="ptop"><div class="pl">' + (sl ? '<div class="price">' + usd(sl.price) + '</div><p class="price-kind">Sample asking price</p>' + (sl.miles ? '<p class="miles">' + esc(Number(sl.miles).toLocaleString("en-US")) + " miles</p>" : "") : '<div class="price dset">Price set by dealer</div>') + '</div><div class="icos"><button type="button" class="ico" data-inert aria-label="Save">' + HEART + '</button><button type="button" class="ico" data-inert aria-label="Share">' + SHARE + "</button></div></div>" : "";
     var wand = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l9-9M14 4v3M12.5 5.5h3M19 9v3M17.5 10.5h3M10 7l1.5 1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
     $("c-fin").innerHTML = !block ? "" : '<div class="fin"><span class="fin-l">Finance</span><div class="fin-top">' + (sl && ru ? '<p class="fin-u">' + wand + "Last updated " + esc(ru) + "</p>" : "") + (sl ? '<p class="fin-m">' + usd(sl.monthly) + '<span>/mo</span></p><p class="fin-t">' + esc(TERMS) + " \u00b7 Sample</p>" : "") + '</div><div class="fin-b"><button type="button" class="btn yel blk" data-inert>Estimate payments</button>' + (sl ? '<p class="fin-x">Total payments ' + usd(sl.total) + ". Sample figures for this demo.</p>" : '<p class="fin-x">Payments depend on the price the dealer sets.</p>') + "</div></div>" + (sl ? '<div class="cash"><span class="cash-l">Cash</span><b class="cash-r">' + usd(sl.price) + "</b></div>" : "");
-    if ($("c-mc")) { $("c-mc").hidden = !scope; if (scope) { $("mc-body").innerHTML = mcCard(a); openMc(); } }
+    // the engine's question opens its panel at once (OPENMC)
+    if ($("c-mc")) { $("c-mc").hidden = !scope; if (scope) { $("mc-body").innerHTML = mcCard(a); if (askOf(a)) OPENMC = true; openMc(); } }
     // A read that failed (ok:false) draws the page's own "could not be read" or still-reading line, never a blank rail.
     $("c-case").innerHTML = scope ? "" : (ok ? caseHtml(a) : '<div class="case">' + cardHtml(a) + "</div>");
     $("c-pcard").innerHTML = scope ? mcCard(a) : ""; tidyRows();
@@ -664,8 +668,8 @@ const JS = String.raw`
   function drawA(a){
     var out = $("a-out"); if (!out) return;
     setName(a);
-    var cs = caseHtml(a); if (cs) { out.innerHTML = cs; return; }
-    if (a && a.ok !== false && !a.question && !inScope(a)) { out.innerHTML = ""; return; }
+    var cs = askOf(a) ? "" : caseHtml(a); if (cs) { out.innerHTML = cs; return; }   // the engine's question is drawn before anything else
+    if (a && a.ok !== false && !askOf(a) && !inScope(a)) { out.innerHTML = ""; return; }
     out.innerHTML = inlineHist((a && a.history) || []) + cardHtml(a); tidyRows();
     if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ goA(); }, a.retryAfterMs);
   }
@@ -675,8 +679,8 @@ const JS = String.raw`
   function drawB(a){
     var out = $("b-out"); if (!out) return;
     setName(a);
-    var cs = caseHtml(a); if (cs) { out.innerHTML = cs; return; }
-    if (a && a.ok !== false && !a.question && !inScope(a)) { out.innerHTML = ""; return; }
+    var cs = askOf(a) ? "" : caseHtml(a); if (cs) { out.innerHTML = cs; return; }   // the engine's question is drawn before anything else
+    if (a && a.ok !== false && !askOf(a) && !inScope(a)) { out.innerHTML = ""; return; }
     out.innerHTML = inlineHist((a && a.history) || []) + cardHtml(a); tidyRows();
     if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ goB(); }, a.retryAfterMs);
   }

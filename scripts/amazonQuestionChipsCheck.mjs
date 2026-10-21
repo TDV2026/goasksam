@@ -12,7 +12,8 @@ const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); }
 const h = amazonPageHtml("a", "2019 porsche 911", { carOf, listing: DUMMY }), js = h.slice(h.indexOf("<script>") + 8, h.lastIndexOf("</script>"));
 const page = h.replace(/<script>[\s\S]*<\/script>/, "");
 const cardFn = js.slice(js.indexOf("function cardHtml(a){"), js.indexOf("// This exact car's history"));
-ok(/if \(a\.question\) \{\s*var q = a\.question, opts = \(q\.options \|\| \[\]\)\.concat\(q\.skip \? \[q\.skip\] : \[\]\);/.test(cardFn), "the chips are drawn from answer.question only: its options, then the engine's skip, in the engine's order");
+ok(/function askOf\(a\)\{ return a && \(a\.engineQuestion \|\| a\.question\) \|\| null; \}/.test(js) && /if \(askOf\(a\)\) \{\s*var q = askOf\(a\), opts = \(q\.options \|\| \[\]\)\.concat\(q\.skip \? \[q\.skip\] : \[\]\);/.test(js.slice(js.indexOf("function askOf(a)"), js.indexOf("// This exact car's history"))), "the chips are drawn from the engine's question only (engineQuestion, else question): its options, then the engine's skip, in the engine's order");
+ok(/\(o\.count != null && !\/\\\(\\d\+\\\)\/\.test\(String\(o\.label\)\) \? " \(" \+ esc\(o\.count\) \+ "\)" : ""\)/.test(cardFn + js.slice(js.indexOf("function askOf(a)"), js.indexOf("// This exact car's history"))), "a count beside a label is the engine's own count, never one of the page's, and never twice");
 ok(/'<p class="q-text">' \+ esc\(q\.text\)/.test(cardFn) && /esc\(o\.label\)/.test(cardFn) && /data-qsend="' \+ esc\(JSON\.stringify\(o\.send \|\| \{\}\)\)/.test(cardFn), "the question text and every label are the engine's own; each chip carries the option's own send");
 ok(/q\.skip && i === opts\.length - 1 \? " skip" : ""/.test(cardFn), "the engine's skip option is the last, plainer chip");
 // no question text of the page's own anywhere in the page or its script
@@ -26,12 +27,17 @@ ok(/function withAns\(b\)\{ if \(ANS && b && \(b\.q === CAR \|\| b\.q === LISTCA
 ok(/aj\.refine\[k\] === "string"/.test(js) && /typeof aj\.asked === "number"/.test(js), "a hand-edited address cannot send anything but string refine values and a number");
 ok(/ANS = null; syncAddress\(\);/.test(js.slice(js.indexOf("function setCar(t){"), js.indexOf("function nameLine"))), "a newly typed car clears the old choice");
 // tab c never asks: its panel shows the engine's question, with no price block
-ok(/var block = ok && !a\.question,/.test(js) && /var scope = ok && \(inScope\(a\) \|\| !!a\.question\)/.test(js) && /function mcCard\(a\)\{ return cardHtml\(a\)/.test(js), "tab c: an engine question shows in the Market Check panel as the engine words it, with no listing block");
+ok(/var block = ok && !a\.question,/.test(js) && /var scope = ok && \(inScope\(a\) \|\| !!askOf\(a\)\)/.test(js) && /function mcCard\(a\)\{ return cardHtml\(a\)/.test(js), "tab c: an engine question shows in the Market Check panel as the engine words it, with no listing block");
 // inert apart from the re-read
 const buttons = (page.match(/<button\b[^>]*>/g) || []);
 ok(buttons.every(b => /type="submit"/.test(b) || /data-(inert|mc-toggle|hist|close|a-go|b-go|qsend|stab)/.test(b)), "every control stays inert apart from the allowed ones");
 const css = h.slice(h.indexOf("<style>"), h.indexOf("</style>"));
 ok(/\.qchip\{[^}]*border-radius:999px/.test(css) && /\.qchip\.skip\{/.test(css), "Amazon-styled chips");
+for (const v of ["a", "b", "c", "d"]) for (const car of ["2019 porsche 911", "3", "1G1YY12S035102964"]) {
+  const hv = amazonPageHtml(v, car, { carOf, listing: DUMMY });
+  let parsed = true; try { new Function(hv.slice(hv.indexOf("<script>") + 8, hv.lastIndexOf("</script>"))); } catch (e) { parsed = false; console.log(String(e.message)); }
+  ok(parsed, `the page script parses (view ${v}, car ${car})`);
+}
 ok(!/[–—]/.test(h), "no dashes");
 console.log(`amazonQuestionChipsCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
