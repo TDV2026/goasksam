@@ -517,6 +517,8 @@ const JS = String.raw`
     var cw = o.getAttribute("data-carword") || send.q || "", words = cw ? carWord(cw) : null; if (words && words !== CAR) setCar(words);
     var ns = {}; if (send.refine && typeof send.refine === "object") { ns.refine = send.refine; if (typeof send.label === "string") ns.label = send.label; if (send.q) ns.q = send.q; } if (typeof send.asked === "number") ns.asked = send.asked;
     ANS = Object.keys(ns).length ? ns : null; syncAddress();
+    // the page's own reading line at once (the old chips would otherwise stay until the engine answers)
+    var wait = v === "a" ? $("a-out") : v === "b" ? $("b-out") : $("mc-body"); if (wait) wait.innerHTML = '<p class="loading">Reading the sales for this one.</p>';
     read(send, draw);
   });
   // TAB c: the vehicle page.

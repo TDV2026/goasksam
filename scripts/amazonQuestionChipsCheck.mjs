@@ -38,6 +38,7 @@ for (const v of ["a", "b", "c", "d"]) for (const car of ["2019 porsche 911", "3"
   let parsed = true; try { new Function(hv.slice(hv.indexOf("<script>") + 8, hv.lastIndexOf("</script>"))); } catch (e) { parsed = false; console.log(String(e.message)); }
   ok(parsed, `the page script parses (view ${v}, car ${car})`);
 }
+ok(/var wait = v === "a" \? \$\("a-out"\) : v === "b" \? \$\("b-out"\) : \$\("mc-body"\); if \(wait\) wait\.innerHTML = '<p class="loading">Reading the sales for this one\.<\/p>';\s*read\(send, draw\);/.test(click), "a chosen chip shows the page's own reading line at once, until the engine answers");
 ok(!/[–—]/.test(h), "no dashes");
 console.log(`amazonQuestionChipsCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
