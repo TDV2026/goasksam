@@ -22,6 +22,9 @@ ok(/\.car \.ph \.chip\{background:rgba\(21,24,20,\.82\);color:#fff/.test(after(4
 ok(!/star|heart|data-save|aria-label="Save/i.test(client.slice(client.indexOf("function photoHtml"), client.indexOf("function photoHtml") + 1500)), "4: no star, heart or save icon on a card");
 // ITEM 5
 ok(/\.car \.specs \.spec\.hchip\[aria-expanded=true\]\{background:#F7F3E8;color:var\(--green\);border:1px solid var\(--green\)/.test(after(5)) && !/hchip[^{]*\{[^}]*background:var\(--green\)/.test(after(5)), "5: the Sold before / Listed before tag is outlined on cream, never filled");
+// ITEM 6
+ok(/var ALIGN = \[".tx > .trow", ".tx > .meta", ".tx > .specs", ".tx > .sl"\]/.test(client) && /new MutationObserver\(alignSoon\)\.observe\(log, \{ childList: true, subtree: true \}\); window\.addEventListener\("resize", alignSoon\);/.test(client), "6: each row's title, meta, tag row and Sam box are matched (layout only), again on any change and on resize");
+ok(/\.cgrid \.car \.ph\{aspect-ratio:16\/10;height:auto\}/.test(after(6)) && /\.cgrid \.car \.acts\{margin-top:auto\}/.test(after(6)), "6: one image shape; the actions on one baseline");
 //__NEXT__
 console.log(`buyStage1fCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
