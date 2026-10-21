@@ -14,7 +14,7 @@ ok(/\.cgrid \.car \.acts\{margin-top:auto;padding-top:14px\}/.test(block), "the 
 ok(/\.cgrid \.car h3\{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;min-height:2\.6em\}/.test(block), "the title is held to two lines, with room for two");
 ok(/\.cgrid \.car p\.meta\{white-space:nowrap;overflow:hidden;text-overflow:ellipsis\}/.test(block), "the metadata is held to one line");
 ok(/@media \(max-width:700px\)\{\.cgrid \.car h3\{min-height:0\}\}/.test(block), "one card per row (phones): no room held for a second title line");
-ok(/data-gas-listing-id="' \+ esc\(String\(l\.id\|\|""\)\) \+ '" title="' \+ esc\(carTitle\(l\)\) \+ '">' \+ esc\(carTitle\(l\)\) \+ "<\/a><\/h3>/.test(client), "the full title is the link text and its title attribute (rule 25: the card's own title)");
+ok(/<h3><span class="ttl" title="' \+ esc\(carTitle\(l\)\) \+ '">' \+ esc\(carTitle\(l\)\) \+ "<\/span><\/h3>/.test(client), "the full title is the card's own text and its title attribute (rule 25), no longer a link (Sam's new 1f item 4)");
 ok(!/(^|[;{])\s*content:/.test(block), "no words added by CSS");
 console.log(`buyGridCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

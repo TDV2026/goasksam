@@ -46,7 +46,7 @@ ok(/'<div class="shead"><p class="sq"><b>' \+ esc\(said\) \+ '<\/b><\/p>/.test(c
 const ck = block("    var rf = e.target.closest(\"[data-rmf]\");", "    var ap = e.target.closest(\"[data-askpatch]\");");
 ok(/drop\.forEach\(function\(k\)\{ delete cur\[k\]; \}\);/.test(ck) && /return chatAsk\(cur\);/.test(ck) && /conv\.railReplace = location\.pathname \+ location\.search;/.test(ck), "a removed chip reruns at once without it, relabelling its rail entry");
 ok(/if \(!filterParts\(cur\)\.length\) return goStart\(true\);/.test(ck) && /if \(rf\.hasAttribute\("data-rmzip"\)\) setZip\("any"\);/.test(ck), "the last chip removed goes to the Buy start; a removed place forgets the zip");
-ok(/<form class="sq-form" data-sfield><input id="sfin"/.test(ck) && /document\.addEventListener\("submit", function\(e\)\{ var fm = e\.target\.closest && e\.target\.closest\("\[data-sfield\]"\); if \(!fm\) return; e\.preventDefault\(\); var v = String\(\(\$\("sfin"\) \|\| \{\}\)\.value \|\| ""\)\.trim\(\); if \(!v\) return; conv = newConv\(\); send\(v\); \}\);/.test(c), "the edited search runs as a new search on Enter");
+ok(!/sfin|data-sqedit|data-sfield/.test(c), "no inline edit field (Sam's new 1f item 4: the composer is the only free text input)");
 // Copy: no dashes, no banned words in what Stage 2 adds.
 const added = block("  // STAGE 2: \"{N} live matches\"", "  function headerHtml(") + ck;
 ok(!/[–—]/.test(added) && !/\b(worth|value|estimate|median|percentile|demo)\b/i.test(added.replace(/\.value\b|value="|\bvalue:/g, "")), "no em or en dash and no banned word in the new copy");

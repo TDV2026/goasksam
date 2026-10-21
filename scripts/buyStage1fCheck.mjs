@@ -29,6 +29,11 @@ ok(/\.car \.specs \.spec\.hchip\[aria-expanded=true\]\{background:#F7F3E8;color:
 // ITEM 6
 ok(/var ALIGN = \[".tx > .trow", ".tx > .meta", ".tx > .specs", ".tx > .sl"\]/.test(client) && /new MutationObserver\(alignSoon\)\.observe\(log, \{ childList: true, subtree: true \}\); window\.addEventListener\("resize", alignSoon\);/.test(client), "6: each row's title, meta, tag row and Sam box are matched (layout only), again on any change and on resize");
 ok(/\.cgrid \.car \.ph\{aspect-ratio:16\/10;height:auto\}/.test(after(6)) && /\.cgrid \.car \.acts\{margin-top:auto\}/.test(after(6)), "6: one image shape; the actions on one baseline");
+// NEW BLOCK ITEM 4: what links where
+const cardFn = client.slice(client.indexOf("  function card(l, big, eager){"), client.indexOf("  // THE ADAPTIVE GRID"));
+ok(/<h3><span class="ttl"/.test(cardFn) && !/<h3><a /.test(cardFn) && (cardFn.match(/href="' \+ esc\(l\.url\)/g) || []).length === 1 && /class="vauc" href="' \+ esc\(l\.url\)/.test(cardFn), "new 4: the title is plain text; inside the card's text only View auction links to the auction (the photo is the other link)");
+ok(/<a class="ph" href="' \+ esc\(l\.url\)/.test(client), "new 4: the photo opens the auction");
+ok(!/sfin|data-sqedit|data-sfield/.test(client), "new 4: no inline Edit the search field");
 //__NEXT__
 console.log(`buyStage1fCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
