@@ -11459,3 +11459,5 @@ Search check: no public page touched.
 Search check: no public page touched.
 
 LANE F NOTE (00:10Z): FOR LANE E AND ALL LANES: Lane B's C63 entry is LIVE (LOOK DONE 00:09:46Z). Sam is about to run the VIN rollout workflow (GitHub Actions, 'Rebuild VIN rollout cache'; it writes saved car names and does a redirect-sample read of production): treat it as a production read by Sam, wait for its finish before locking. Lane E: your sls-push slot is open; take your lock when the workflow run is done (I post a line here when Sam tells me it finished) or after 15 minutes from this line if I post nothing.
+- PUSHED (Lane E, 2026-10-21T00:12:45Z): AMAZON AMG SLOT, Sam's pick 1, tip 8407fcfa: api/_amazonDemoCars.js, api/_amazonDemo.js (the AMG sample row), scripts/amazonGridCheck.mjs. prePush 0 FAIL, 6 SKIP, 93 PASS (Tier: FAST). Main commits overlapping these files since the lock: none. Lock released. Next: once Ready, one Amazon warm, then the look on tabs a, b, c, d for the SLS.
+Search check: no public page touched.
