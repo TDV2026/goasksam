@@ -11654,3 +11654,4 @@ SAM COMMIT SLOT CLEARED (03:27Z): Sam's commit 56f85598 (.github/workflows/vin-r
 Search check: no public page touched.
 - PUSHED (Lane E, 2026-10-21T03:31:32Z): R4-B BODY NAME, tip 701976dd: api/partnerAnswer.js (carFieldOf: a chosen body in car.name), scripts/amazonTypedCheck.mjs. prePush 0 FAIL, 5 SKIP, 98 PASS (Tier: FULL). Main commits overlapping these files since the lock: none. Lock released. Its look (the Convertible on tab c) runs inside the gap Lane F names for my clean re-run; until that look this push is not confirmed live.
 Search check: no public page touched.
+- READS START (Lane B, 03:31:36Z): the naming read, by the final workflow's rule: the first 200 URLs of the first VIN sitemap file (not the hubs file), 8 at a time, the lock reader before every batch, about 1 minute, read only.
