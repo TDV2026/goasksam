@@ -21,6 +21,10 @@ const CARS = {
   "thin quarters with their sales (engine prices)": { quarters: [Q("2025-Q4", 70000, 70000, 70000, 1, { prices: [70000] }), Q("2026-Q1", 60000, 80000, 70000, 3, { prices: [60000, 70000, 80000] }), Q("2026-Q2", 62000, 90000, 75000, 9, { prices: [62000, 64000, 66000, 70000, 75000, 80000, 84000, 88000, 90000] }), Q("2026-Q3", 71000, 72000, 71500, 2, { prices: [71000, 72000] })], minForRange: 8 },
   "no prices yet (fallback: one dot at the typical)": { quarters: [Q("2025-Q4", 60000, 80000, 70000, 3), Q("2026-Q1", 62000, 90000, 75000, 9), Q("2026-Q2", 64000, 82000, 72000, 4), Q("2026-Q3", 66000, 85000, 74000, 12)], minForRange: null }
 };
+// (3) the no-chart layout: the lone left column has no right divider and uses the full width
+const page = fs.readFileSync(new URL("../public/onebox.html", import.meta.url), "utf8");
+ok(/\.hero2col > \.hero-left:only-child\{grid-column:1\/-1;border-right:0;padding-right:0\}/.test(page), "3: with no chart the hero's left column has no stray right divider and spans the full width");
+ok(/\.hero-left\{display:flex;flex-direction:column;gap:10px;min-width:0;padding-right:36px;border-right:1px solid var\(--div\)\}/.test(page), "3: a hero WITH a chart keeps its divider (the rule only changes the lone column)");
 const b = await puppeteer.launch({ executablePath: process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", headless: "new" });
 const shots = process.env.SHOTS;
 for (const [w, h] of [[1440, 900], [390, 844]]) {

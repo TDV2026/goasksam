@@ -142,7 +142,7 @@ button{font:inherit}
    rendered empty, so .hero-left is the grid's only child - span the full row instead of sitting in
    the first 6fr track, matching "the hero uses the full container width with the range left
    aligned." */
-.hero2col > .hero-left:only-child{grid-column:1/-1}
+.hero2col > .hero-left:only-child{grid-column:1/-1;border-right:0;padding-right:0}   /* Sam's chart item 3 (Oct 21 2026): alone in the row (no chart), no divider on its right and the full width */
 .hero-left{display:flex;flex-direction:column;gap:10px;min-width:0;padding-right:36px;border-right:1px solid var(--div)}
 .hero-right{min-width:0;display:flex;flex-direction:column}
 .hero-label{margin:0}
