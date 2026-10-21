@@ -613,7 +613,7 @@
   // and found none - nothing like it exists yet anywhere on this page. Built fresh, minimal (no new
   // JS, a native title attribute only), rather than blocking on the brief's "existing" framing.
   function infoDotHtml() {
-    var t = "The typical range for comparable sales, with the highest and lowest set aside.";
+    var t = "The typical range for comparable sales, without the extremes at either end.";
     return ' <span class="infodot" tabindex="0" title="' + esc(t) + '" aria-label="' + esc(t) + '"></span>';
   }
   // bodyMixTailOf: reads back the engine's own body-mix clause (lib/onebox.js bodyMixSuffix, e.g.

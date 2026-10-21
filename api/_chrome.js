@@ -162,5 +162,5 @@ export function railHtml(active, extra, crew, req) {
 }
 
 export function whyResultHtml(crew) {
-  return '<section class="whynote"><span class="eyebrow">Why it looks like this</span><p>No chart and no score. Every figure on this page is a hammer price from a real auction, matched to the car&#8217;s trim, body and gearbox, converted at the rate on the day it sold, with the replicas, projects and odd sales set aside. The range is where most of those sales landed. Where there aren&#8217;t enough sales to say something, the page says so instead.</p>' + (crew ? '<a href="/how-sam-decides">How Sam decides &#8594;</a>' : '') + '</section>';
+  return '<section class="whynote"><span class="eyebrow">Why it looks like this</span><p>No chart and no score. Every figure on this page is a hammer price from a real auction, matched to the car&#8217;s trim, body and gearbox, converted at the rate on the day it sold, with the replicas, projects and odd sales set aside. The typical range of those sales. Where there aren&#8217;t enough sales to say something, the page says so instead.</p>' + (crew ? '<a href="/how-sam-decides">How Sam decides &#8594;</a>' : '') + '</section>';
 }
