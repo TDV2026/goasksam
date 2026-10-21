@@ -36,7 +36,8 @@ const code = c.split("\n").filter(l => !/^\s*\/\//.test(l)).join("\n");
 ok(!/Your search:/.test(code) && !/sq-k/.test(hh), "no 'Your search:' anywhere on the page");
 ok(!/chip-live/.test(hh) && !/data-nearme/.test(hh) && /var chips = filterChips\(f, m\.place, m\.radius\);/.test(hh), "no Live or Near me pill; the chips are the search's constraints");
 ok(/if \(n <= 2\) widen\.forEach/.test(hh), "the engine's widenings (Any colour, abroad and the rest) show only for one, two or no cars");
-ok(/data-sqedit/.test(hh) && /<b>' \+ esc\(q\) \+ "<\/b><\/button>/.test(hh), "the search text is one button that makes it editable");
+// Stage 1e item 7 (Sam, Oct 21 2026): no heading above the chips; the chips alone show the search.
+ok(!/class="sq"|data-sqedit|esc\(q\)/.test(hh) && /return '<div class="shead">' \+\s*'<div class="srow2">/.test(hh), "no search heading above the chips (Stage 1e item 7): the header starts with the chips row");
 ok(/esc\(matchesLine\(n, true\)\)/.test(hh) && /esc\(matchesLine\(0, !!qp\)\)/.test(hh), "the header's count is N live matches");
 ok(!/insertAdjacentHTML\("beforeend", '<p class="snote">'/.test(c), "no 'Here's what's for sale' line over the cards");
 ok(/var lead = "";/.test(block("  function askHtml(a, m, qp){", "  // Listings that don't state")), "the narrowing question does not repeat the count");
