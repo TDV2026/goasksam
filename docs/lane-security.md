@@ -315,3 +315,68 @@ Search check: no public page touched.
 ### Live header check (Oct 21 2026, 04:10Z; two plain requests, no cookies, no keys; no lock open before either)
 - GET /sell: HTTP 200, cache-control private no-store, server Vercel, strict-transport-security max-age=63072000 (Vercel adds HSTS). NO content-security-policy, x-frame-options, x-content-type-options, referrer-policy or permissions-policy header. F-05 CONFIRMED on the live site (HSTS is present, so that part is fine).
 - OPTIONS /api/chat with an Origin header: HTTP 429 with no access-control headers. This is almost certainly Vercel bot protection answering a header-only request that carries no browser signals, not our code. F-06 is therefore NOT confirmed live; it stands from the code (Access-Control-Allow-Origin * set in api/chat.js line 51 and the other 11 routes). I did not retry, to avoid hammering production. A real-browser check by the owning lane on a preview would settle it.
+
+## STATUS UPDATE: F-02 and the ten search_path statements are RESOLVED (Oct 21 2026)
+Sam ran the revoke block and the ten ALTER FUNCTION statements in the Supabase SQL editor and Lane F relayed the checks: claim_result, reserve_search, release_search and journey_rank read anon false, signed-in false, service true; search_path is set on all ten functions; supabase_auth_admin keeps execute on before_user_created_ip_cap; and a real brand-new account claimed a result from a signed-out /sell result (the claim_result path works with the service role). DDL files confirmed to carry the matching lines (checked in the tree today): the ALTER lines at the end of supabase-backfill-usd-fn.sql (3), supabase-desk-dictionary-queue.sql, supabase-daily-caps.sql, supabase-phase3-2c.sql (2), supabase-ip-rate-caps.sql, supabase-vin-index-atomic-swap.sql, supabase-journeys-schema.sql; and the revoke/grant lines at the end of supabase-phase3-2c.sql (claim_result, release_search), supabase-daily-caps.sql (reserve_search), supabase-journeys-schema.sql (journey_rank). Status of F-02: RESOLVED. The Advisor warning count should drop by the ten function warnings; the remaining ten are listed in Stage 1c.
+
+## EMAIL DELIVERABILITY (report only; Oct 21 2026): why the sign-in code email went to Hotmail spam
+
+Method: the code (lib/_email.js and every caller), the repo docs, and PUBLIC DNS only (dig). No request to the app, no key.
+
+### 1. What the code sends, and from where
+Two Resend paths in lib/_email.js (the Resend REST address, key RESEND_API_KEY) and one path that is NOT in the code:
+| Email | Sent by | From | Reply-To | Subject style | List-Unsubscribe | Plain-text part |
+|---|---|---|---|---|---|---|
+| Sign-in code (and the "Confirm signup" code for new accounts) | Supabase Auth, asked by the browser (public/js/auth.js line 114, /auth/v1/otp). The sender is a Supabase dashboard setting, NOT in this repo | UNKNOWN from code. Either Supabase's built-in sender or a custom SMTP; the launch checklist says custom SMTP via smtp.resend.com was planned with sender hello@goasksam.com (noreply@ as fallback), "still to do by Sam" | unknown | set in the dashboard template | none (transactional) | unknown |
+| PowerSeller lead and "additional details" notices (sendLeadNotification, sendAdditionalDetails) | Resend | GoAskSam Leads <leads@mail.goasksam.com> (env LEAD_EMAIL_FROM can override) | the seller's address, unvalidated | "New GoAskSam lead: <car> (<partner>)" | none | yes (text and html) |
+| Tasks start email, Tasks digest, sold-car (watch) notices, Before it ends, spend alerts, business-lead notice to Sam (sendTaskEmail) | Resend | GoAskSam <sam@mail.goasksam.com> (TASK_EMAIL_FROM can change the address, name always GoAskSam) | feedback@goasksam.com | task-specific, plain sentences | YES on Tasks, digests and Before it ends: List-Unsubscribe plus List-Unsubscribe-Post one-click (lib/tasks/tasks.js lines 797 to 800, lib/tasks/digest.js lines 187 and 255, lib/live/buyAlerts.js line 184); none on the internal spend alert and business-lead notices (they go to our own inbox) | yes (text and html) |
+All Resend mail leaves from the subdomain mail.goasksam.com. A junk-folder reminder line is added to the first email an address ever receives (lib/_email.js firstEmailTo), so the team already knew Hotmail files this mail as junk.
+
+### 2. What public DNS shows (queried today)
+| Name | Result |
+|---|---|
+| goasksam.com MX | 0 goasksam-com.mail.protection.outlook.com (the apex mailboxes, feedback@ included, are Microsoft 365) |
+| goasksam.com TXT (SPF) | v=spf1 include:secureserver.net -all (no Microsoft 365 include, no Resend; hard fail) |
+| _dmarc.goasksam.com | v=DMARC1; p=quarantine; adkim=r; aspf=r; rua=mailto:dmarc_rua@onsecureserver.net (policy quarantine, relaxed alignment, reports go to a GoDaddy address nobody reads) |
+| DKIM for Microsoft 365 | selector1 and selector2 CNAMEs present (OK for mail sent from the apex mailboxes) |
+| resend._domainkey.mail.goasksam.com | a 1024-bit RSA public key present: the Resend domain mail.goasksam.com IS set up for DKIM |
+| resend._domainkey.goasksam.com (apex) | EMPTY: the apex goasksam.com is NOT a Resend domain |
+| mail.goasksam.com TXT, MX, _dmarc.mail | none (DMARC falls back to the apex policy, p=quarantine) |
+| send.mail.goasksam.com MX | 10 feedback-smtp.us-east-1.amazonses.com (Resend's return-path host, correct) |
+| send.mail.goasksam.com TXT (SPF) | TWO SPF records: "v=spf1 include:dc-fd741b8612._spfm.send.mail.goasksam.com ~all" and "v=spf1 include:amazonses.com ~all". The first include resolves to the same Amazon list. Two SPF records on one name is a permanent error (RFC 7208): receivers must treat SPF as broken for that name |
+| auth.goasksam.com | no record (no custom Supabase auth domain) |
+Alignment: Resend mail has From mail.goasksam.com, DKIM d=mail.goasksam.com (aligned, DMARC passes through DKIM), return-path send.mail.goasksam.com (SPF is broken by the duplicate record, and send.mail is a different subdomain from the From, but relaxed alignment treats them as the same organization). So DMARC passes on DKIM alone; SPF contributes nothing right now.
+
+### 3. What I cannot see, and the exact dashboard page Sam reads (one step at a time)
+- Which sender the sign-in email really uses. Step 1: Supabase dashboard, project otkmxyrglikdoychnmvy, left menu Authentication, then Emails, then the SMTP Settings tab. Read: is "Enable custom SMTP" on; the Sender email and Sender name; Host. If it is OFF, the code email comes from Supabase's built-in sender (a shared address on a Supabase domain), which is the most likely cause.
+- The email text. Step 2: same page, Templates tab: open "Magic Link" and "Confirm signup": read the Subject and body (does it hold only the code, {{ .Token }}, or a link too?).
+- Whether Resend considers mail.goasksam.com healthy. Step 3: Resend dashboard, Domains, mail.goasksam.com: read the status of DKIM and SPF, and the settings "Click tracking" and "Open tracking" (should be OFF).
+- What actually happened to the message. Step 4: Resend, Logs (Emails): if the sign-in code appears, read its status (Delivered or Bounced) and From; if it does not appear, the code did not go through Resend (built-in sender). Supabase, Authentication, Logs (or Logs, Auth) shows the send.
+- Hotmail's own view of our reputation (Microsoft SNDS / Junk Mail Reporting) cannot be read without our sending IPs; Resend's shared IPs are not ours, so no action there.
+
+### 4. Diagnosis: why Hotmail filed it to spam (ranked; confidence stated)
+1. Most likely (cannot confirm without step 1): the sign-in mail still goes out through Supabase's built-in sender. That is a shared, rate-limited address on Supabase's domain that is not authenticated to goasksam.com, sent with generic text; Hotmail routinely junks it. The launch checklist lists the custom SMTP as "still to do by Sam".
+2. If custom SMTP is already on: the planned sender hello@goasksam.com cannot be authenticated by Resend, because only mail.goasksam.com is a Resend domain (no DKIM key at the apex). Resend would refuse it, so a working custom setup must use an address on mail.goasksam.com. If it uses sam@ or another address at mail.goasksam.com the DKIM passes, and the cause is the next two items.
+3. Broken SPF on the Resend return-path name: the duplicate SPF records on send.mail.goasksam.com make SPF a permanent error. Microsoft weighs SPF; a permerror next to a brand-new sending domain is a plain junk signal. Fixable today.
+4. mail.goasksam.com is a young domain with no sending history; Hotmail starts such senders in junk until people open and mark it "not junk". Small volume makes this worse. Fix by consistency and by asking early recipients to mark it not junk (the existing junk line already does this for Tasks mail).
+5. Content: a one-line code mail with a link, a tracking-rewritten link, or a subject like "Confirm your signup" scores poorly. A plain "Your GoAskSam sign-in code" with the code in the body and no tracked links scores best.
+Not a cause: DMARC (policy quarantine is in place and passes through DKIM), List-Unsubscribe (not needed on a one-time code), the apex SPF (it only matters for mail sent from the Microsoft 365 mailboxes; see fix D).
+
+### 5. Proposed fix (Sam adds it himself; nothing runs until he approves)
+Answer first: YES, sign-in should move to a custom SMTP on Resend, from an address on mail.goasksam.com (not the apex), so the code email, the Tasks mail and the lead mail share one authenticated domain and one reputation.
+A. Fix the duplicate SPF (DNS, GoDaddy: domain goasksam.com, DNS, Records; nameservers are domaincontrol.com).
+   1. Open Resend, Domains, mail.goasksam.com and note the SPF record Resend lists (host send, type TXT, value v=spf1 include:amazonses.com ~all).
+   2. In GoDaddy find the two TXT records with host "send.mail". Delete the one whose value contains "dc-fd741b8612._spfm". Keep exactly one TXT at send.mail with value: v=spf1 include:amazonses.com ~all
+   3. Wait for DNS (GoDaddy TTL), then in Resend click Verify / Restart verification on the domain. Read-only check from any terminal: dig +short TXT send.mail.goasksam.com must show ONE line.
+B. Turn Resend tracking off: Resend, Domains, mail.goasksam.com, set Click tracking OFF and Open tracking OFF (already in the checklist; confirm it).
+C. Custom SMTP for sign-in:
+   1. Resend, API Keys, Create API Key: name supabase-smtp, permission Sending access, domain mail.goasksam.com only. Copy it once; do not paste it anywhere except step 2.
+   2. Supabase, Authentication, Emails, SMTP Settings: Enable custom SMTP. Sender email: login@mail.goasksam.com (or sam@mail.goasksam.com; any address at mail.goasksam.com works because the domain is verified). Sender name: GoAskSam. Host: smtp.resend.com. Port: 465. Username: resend. Password: the supabase-smtp key. Save. (Do NOT use hello@goasksam.com: the apex is not a Resend domain. If Sam wants hello@, first add goasksam.com itself as a Resend domain and publish the DKIM/SPF records Resend lists, which would put Resend beside Microsoft 365 on the apex SPF: not recommended.)
+   3. Templates tab, Magic Link and Confirm signup: Subject "Your GoAskSam sign-in code". Body: two short plain lines, the code as {{ .Token }}, one line saying it expires and to ignore it if unrequested. No button, no tracked link.
+   4. Authentication, Rate Limits: confirm "emails per hour" is raised (the built-in sender is limited to a few per hour; custom SMTP lifts it).
+D. Apex SPF for Sam's own Microsoft 365 mailboxes (not the cause of this problem, but a real gap): in GoDaddy change the TXT at host @ from v=spf1 include:secureserver.net -all to v=spf1 include:spf.protection.outlook.com include:secureserver.net -all. Without it, mail Sam sends from his goasksam.com mailbox fails SPF and, with DMARC p=quarantine, can land in Hotmail junk too.
+E. Optional: send DMARC reports somewhere readable: in GoDaddy edit the TXT at host _dmarc to v=DMARC1; p=quarantine; adkim=r; aspf=r; rua=mailto:feedback@goasksam.com (expect XML report mail; use a free DMARC report reader if it is noisy). Keep p=quarantine.
+F. Test (after A to C): Supabase, Authentication, Users, or just request a code on goasksam.com with a Hotmail address. In Hotmail open the message, "View message source" (Outlook.com: three dots, View, View message source) and read Authentication-Results: dkim=pass, spf=pass, dmarc=pass. In Resend, Logs, status Delivered. If it still lands in junk, mark it "Not junk" once and send two more; expect the placement to improve over the first days. A free tester that scores a received message (for example mail-tester.com) gives a second opinion; it needs one message sent to its address.
+Rollback: turn "Enable custom SMTP" off in Supabase (back to the built-in sender); put the second SPF record back only if Resend asks for it.
+
+Search check: no public page touched.
