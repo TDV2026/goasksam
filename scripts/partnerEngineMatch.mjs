@@ -487,10 +487,13 @@ else {
     if (!p.j || !m.j) { ok(false, `${q}: no answer (partner ${p.status}, Market Check ${m.status})`); continue; }
     ok(venueLeak(p.j).length === 0, `${q}: no venue, link, title or id on the live answer (${venueLeak(p.j).slice(0, 3).join(", ")})`);
     if (m.j.status !== "one_box" || /_choice$/.test(String(m.j.tier || ""))) { ok(p.j.answerType === "identity_question", `${q}: Market Check asks (${m.j.tier || m.j.status}), the endpoint asks too (${p.j.answerType})`); console.log(`  ${q}: both ask`); continue; }
+    // One side asks while the other answers (Lane E, Oct 21 2026: the 1965 Mustang during the engine's move to asking its body):
+    // say so plainly, never "card differs (endpoint undefined, Market Check undefined)"
+    if (p.j.answerType === "identity_question") { ok(false, `${q}: the endpoint asks ("${p.j.question && p.j.question.text}") but Market Check answers (tier ${m.j.tier}): a moving read or a real split; read both again once`); continue; }
     const mc = mcReads(m.j);
     const fields = { range: same(p.j.range, mc.range), count: p.j.count === mc.count, window: p.j.window === mc.window, sales: same(asKeys(p.j.sales || []), mc.sales), card: sameCard(p.j.card, m.j) };
     if (!fields.card && lastCardDiff) console.log(`  ${q}: card difference ${lastCardDiff}`);
-    for (const [k, v] of Object.entries(fields)) ok(v, `${q}: ${k} differs (endpoint ${JSON.stringify(k === "sales" ? (p.j.sales || []).length + " sales" : p.j[k])}, Market Check ${JSON.stringify(k === "sales" ? mc.sales.length + " sales" : mc[k])})`);
+    for (const [k, v] of Object.entries(fields)) ok(v, k === "card" ? `${q}: card differs (endpoint card ${p.j.card ? "drawn" : "MISSING"}; first difference: ${lastCardDiff || "none found"})` : `${q}: ${k} differs (endpoint ${JSON.stringify(k === "sales" ? (p.j.sales || []).length + " sales" : p.j[k])}, Market Check ${JSON.stringify(k === "sales" ? mc.sales.length + " sales" : mc[k])})`);
     console.log(`  ${q}: ${mc.range ? "$" + mc.range.low + " to $" + mc.range.high : "no range"}, ${mc.count} sales, ${mc.window || "no window"}: ${Object.values(fields).every(Boolean) ? "SAME" : "DIFFERENT"}`);
   }
   await br.close();
