@@ -14,11 +14,9 @@ import { supabaseSelect } from "../lib/_supabase.js";
 
 import { isCrewRequest } from "../lib/_crew.js";
 import { sendDisguisedNotFound } from "../lib/_notFound.js";
-function setCors(res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-}
+import { cors as gasCors } from "../lib/_cors.js";
+// One CORS helper (lib/_cors.js, security F-06): only GoAskSam's own hosts get a cross-origin answer.
+function setCors(res, req) { gasCors(req || { headers: {} }, res, { methods: "POST, OPTIONS", headers: "Content-Type" }); }
 
 export default async function handler(req, res) {
   // Crew/tester check FIRST, before anything else (CORS headers, method handling) can tell a
@@ -29,7 +27,7 @@ export default async function handler(req, res) {
   const tester = isTesterRequest(req);   // the signed tester cookie, inside its date (lib/_tester.js)
   if (!crew && !tester) return sendDisguisedNotFound(res);
 
-  setCors(res);
+  setCors(res, req);
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 

@@ -9,6 +9,7 @@ import { supabaseEnv, supabaseSelect, supabaseInsert } from "../lib/_supabase.js
 import { beehiivTier } from "../lib/_beehiiv.js";
 import { readVisitorId } from "../lib/_visitor.js";
 import { logEvent, stitchVisitorToAccount, EVENTS } from "../lib/events.js";
+import { cors as gasCors } from "../lib/_cors.js";
 
 // How stale a tier check may be before we re-check on ensure. Moves into
 // app_config with the other operational dials in 2C; a constant for now.
@@ -20,11 +21,8 @@ function tierIsStale(checkedAt) {
   return (Date.now() - t) > TIER_RECHECK_DAYS * 24 * 60 * 60 * 1000;
 }
 
-function cors(res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-}
+// One CORS helper (lib/_cors.js, security F-06): only GoAskSam's own hosts get a cross-origin answer.
+function cors(res, req) { gasCors(req || { headers: {} }, res, { methods: "POST, OPTIONS", headers: "Content-Type, Authorization" }); }
 
 async function supabaseRpc(fn, args, url, key) {
   try {
@@ -118,7 +116,7 @@ function publicAccount(row) {
 async function dailyQuota() { return { dailyLimit: null, dailyUsed: 0, dailyRemaining: null }; }
 
 async function handler(req, res) {
-  cors(res);
+  cors(res, req);
   if (req.method === "OPTIONS") { res.status(204).end(); return; }
   if (req.method !== "POST") { res.status(405).json({ error: "POST only" }); return; }
 

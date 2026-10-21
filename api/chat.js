@@ -6,6 +6,7 @@ import { hasServerCredential } from "../lib/_credential.js";
 import { followupGuard, assistGuard, sellModelGuard } from "../lib/_ceilings.js";
 import { anthropicCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
+import { cors as gasCors } from "../lib/_cors.js";
 
 // Wording layer only. Must never invent market performance (product rule 1).
 const CHAT_MODEL = process.env.SAM_MODEL || "claude-sonnet-4-6";
@@ -48,9 +49,7 @@ const prompts = () => PROMPTS || (PROMPTS = { assist: promptFrom("public/js/chat
 const MAX_MSG = 2000, MAX_TOTAL = 12000, MAX_TURNS = 12, MAX_CONTEXT = 20000, MAX_OUT = 700;
 
 async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  gasCors(req, res, { methods: "POST, OPTIONS", headers: "Content-Type, Authorization" });   // lib/_cors.js (security F-06)
 
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });

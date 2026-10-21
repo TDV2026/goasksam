@@ -14,6 +14,7 @@ import { isTesterRequest } from "../lib/_tester.js";
 import { vinFeatureActive, findVinArchiveMatch } from "../lib/_flags.js";
 
 import { isCrewRequest } from "../lib/_crew.js";
+import { cors as gasCors } from "../lib/_cors.js";
 // Privacy (VIN feature): a raw 17-char VIN must never land in a funnel/analytics
 // event or a log line. Replace any VIN run with a short truncated marker so the
 // event stays useful for debugging without storing the full identifier.
@@ -27,11 +28,8 @@ const EXTRACT_SYS = `Extract vehicle facts from a message someone typed about a 
 {"make":string|null,"model":string|null,"trim":string|null,"year":number|null,"decade":string|null,"condition_hint":string|null,"location_hint":string|null,"price_hint":string|null,"confidence":"high"|"low"}
 Rules: make/model use proper names (lx470 means Lexus LX 470; hellcat alone means Dodge but the model is ambiguous, leave model null). decade like "1980s" when only an era is given. confidence "high" only when make plus model (or an unambiguous nickname) are clear. Never invent details not present.`;
 
-function setCors(res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-}
+// One CORS helper (lib/_cors.js, security F-06): only GoAskSam's own hosts get a cross-origin answer.
+function setCors(res, req) { gasCors(req || { headers: {} }, res, { methods: "POST, OPTIONS", headers: "Content-Type" }); }
 
 function nothingUnderstood(result) {
   return result.status === "needs_clarification"
@@ -106,7 +104,7 @@ async function llmExtractVehicle(text, env) {
 }
 
 export default async function handler(req, res) {
-  setCors(res);
+  setCors(res, req);
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 

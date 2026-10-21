@@ -54,6 +54,7 @@ import { specKeyFor, coreOf, persistCore, warmAnswerKeyFor, readWarmAnswer, read
 
 import { isCrewRequest } from "../lib/_crew.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
+import { cors as gasCors } from "../lib/_cors.js";
 // Powerseller referrals are gated (locked product rule): estimated value from
 // actual comps must clear this threshold before a partner can lead.
 // PowerSeller eligibility floor (business decision, Aug 2026): lowered 75000 -> 40000.
@@ -297,11 +298,8 @@ export function marqueGatedBlocked(record, vehicle) {
   return !!marque && !makeMatchesMarque(vehicle && vehicle.make, marque);
 }
 
-function setCors(res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-}
+// One CORS helper (lib/_cors.js, security F-06): only GoAskSam's own hosts get a cross-origin answer.
+function setCors(res, req) { gasCors(req || { headers: {} }, res, { methods: "POST, OPTIONS", headers: "Content-Type" }); }
 
 // Freeform asking-price parser. Must stay in lockstep with the frontend's
 // parseAskingPrice (js/pipeline.js) so the wizard never accepts an input the
@@ -2810,7 +2808,7 @@ const SERVER_ONLY_FLAGS = ["warm", "bypassCache", "rerun", "poolDiag", "backfill
 // instance answers without re-probing (the probe itself was two 3.5 s tries in the worst case).
 let obProbeOkUntil = 0;
 async function handler(req, res) {
-  setCors(res);
+  setCors(res, req);
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   const reqStart = Date.now();

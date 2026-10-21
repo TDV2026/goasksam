@@ -7,6 +7,7 @@ import { supabaseEnv, supabaseInsert } from "../lib/_supabase.js";
 import { recordJourneyEvent, journeyVehicle, CLIENT_JOURNEY_EVENTS } from "../lib/_journey.js";
 import { ensureVisitorId } from "../lib/_visitor.js";
 import { EVENTS, storeFirstTouchOnce } from "../lib/events.js";
+import { cors as gasCors } from "../lib/_cors.js";
 
 const ALLOWED = new Set(["homepage_view", "wizard_start", "wizard_complete", "signup_shown", "non_us_attempt", "out_of_scope",
   // One Box (T1.7): aggregate-only client events. No raw VIN/chassis ever - only the
@@ -32,9 +33,7 @@ function scrubMetaVins(v) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  gasCors(req, res, { methods: "POST, OPTIONS", headers: "Content-Type" });   // lib/_cors.js (security F-06)
   if (req.method === "OPTIONS") { res.status(204).end(); return; }
   // Always answer 204 so a beacon never surfaces an error to the user.
   try {

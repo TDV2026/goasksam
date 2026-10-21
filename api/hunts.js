@@ -3,12 +3,10 @@
 // Available to every signed-in account.
 import { validateBearer } from "../lib/_auth.js";
 import { supabaseEnv, supabaseInsert } from "../lib/_supabase.js";
+import { cors as gasCors } from "../lib/_cors.js";
 
-function cors(res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-}
+// One CORS helper (lib/_cors.js, security F-06): only GoAskSam's own hosts get a cross-origin answer.
+function cors(res, req) { gasCors(req || { headers: {} }, res, { methods: "POST, OPTIONS", headers: "Content-Type, Authorization" }); }
 
 async function funnel(env, event, fields) {
   try {
@@ -19,7 +17,7 @@ async function funnel(env, event, fields) {
 }
 
 export default async function handler(req, res) {
-  cors(res);
+  cors(res, req);
   if (req.method === "OPTIONS") { res.status(204).end(); return; }
   if (req.method !== "POST") { res.status(405).json({ error: "POST only" }); return; }
 

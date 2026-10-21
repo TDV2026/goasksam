@@ -4,12 +4,12 @@
 // server-side inside the page handlers (api/history.js, api/buy.js) instead. No PII beyond referrer/UA.
 import { supabaseEnv } from "../lib/_supabase.js";
 import { logPageView } from "../lib/_pageview.js";
+import { cors as gasCors } from "../lib/_cors.js";
 
 const PIXEL = Buffer.from("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", "base64");
 
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  gasCors(req, res, { methods: "GET, POST, OPTIONS", headers: "Content-Type", pub: true });   // lib/_cors.js (security F-06)
   if (req.method === "OPTIONS") return res.status(200).end();
   const env = supabaseEnv();
   const path = (req.query && (req.query.p || req.query.path)) || (req.body && req.body.path) || null;

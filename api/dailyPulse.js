@@ -3,12 +3,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { cors as gasCors } from "../lib/_cors.js";
 
 const PULSE_PATH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "lib", "dailyPulse.json");
 
 export default function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  gasCors(req, res, { methods: "GET, OPTIONS", headers: "Content-Type", pub: true });   // lib/_cors.js (security F-06)
   if (req.method === "OPTIONS") { res.status(204).end(); return; }
   try {
     const pulse = JSON.parse(fs.readFileSync(PULSE_PATH, "utf8"));

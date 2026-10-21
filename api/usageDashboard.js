@@ -16,6 +16,7 @@ import { runDepthProbe, LAUNCH_SOURCES } from "../lib/ops/depthProbe.js";
 import { censusRegion, CENSUS_REGIONS } from "../lib/_regions.js";
 import { runFillBatch } from "../lib/ops/fillLadder.js";
 import { readPremiumFreshness } from "../lib/ops/premiumFresh.js";
+import { cors as gasCors } from "../lib/_cors.js";
 
 function adminEsc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 const adminDayKey = ts => new Date(ts).toISOString().slice(0, 10);
@@ -217,11 +218,8 @@ async function renderGeoView(req, res) {
   return res.status(200).send(pageChrome("Geo", { html: `<div>crew: ${mode} &middot; entered location only, never IPs</div><table><tr><th>Location</th><th>7d</th><th>30d</th></tr>${rows || "<tr><td colspan=3>none</td></tr>"}</table>` }));
 }
 
-function setCors(res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Admin-Key");
-}
+// One CORS helper (lib/_cors.js, security F-06): only GoAskSam's own hosts get a cross-origin answer.
+function setCors(res, req) { gasCors(req || { headers: {} }, res, { methods: "GET, OPTIONS", headers: "Content-Type, X-Admin-Key" }); }
 
 function asNumber(value) {
   return Number(value || 0);
@@ -6246,7 +6244,7 @@ async function renderQualityView(req, res) {
 }
 
 export default async function handler(req, res) {
-  setCors(res);
+  setCors(res, req);
   if (req.method === "OPTIONS") return res.status(200).end();
   // GET serves the dashboard; POST is the Phase-3 audited manual update only.
   if (req.method !== "GET" && req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });

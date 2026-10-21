@@ -15,6 +15,7 @@ import { SHELL_CSS, SHELL_JS, KEEPLOOK_CSS, railOpenHtml } from "../lib/appShell
 import { isCrewRequest } from "./_chrome.js";
 import { fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
+import { cors as gasCors } from "../lib/_cors.js";
 
 const YOUR_RESULTS_RAIL = '<a class="gas-navitem" id="gas-nav-results" href="#" style="display:none" onclick="return obToggleResults(event)">Your results</a><div class="gas-submenu" id="gas-results-menu"></div>';
 
@@ -124,7 +125,7 @@ export default async function handler(req, res) {
     return handleOneboxShare(req, res, String(req.query.obShare || "").trim());
   }
 
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  gasCors(req, res, { methods: "GET, OPTIONS", headers: "Content-Type" });   // lib/_cors.js (security F-06)
   res.setHeader("Cache-Control", "public, max-age=120");
   if (req.method === "OPTIONS") { res.status(204).end(); return; }
   const supabaseUrl = process.env.SUPABASE_URL || null;

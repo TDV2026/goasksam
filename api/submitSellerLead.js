@@ -3,6 +3,7 @@ import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
 import { sendLeadNotification, sendAdditionalDetails, safePriorSaleUrl } from "../lib/_email.js";
 import { checkCeiling, leadEmailCeiling } from "../lib/_ceilings.js";
 import crypto from "node:crypto";
+import { cors as gasCors } from "../lib/_cors.js";
 
 // HARDENING (Oct 21 2026, Lane D, Sam's job D, docs/lane-security.md F-03). The public lead form stores a row and emails
 // a real PowerSeller from our address, so: a ceiling per device, address and email (lib/_ceilings.js, crew exempt); a
@@ -13,7 +14,6 @@ import crypto from "node:crypto";
 // (feedback@ BCC), the confirmation and its reference, then add-details.
 const CALM_LEAD = "Lots of requests from here just now. Give it a few minutes and try again.";
 const MAX_BODY = 20000;
-const ALLOWED_ORIGINS = new Set(["https://goasksam.com", "https://www.goasksam.com"]);
 const REF_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";   // no 0/O/1/I
 const isEmail = e => e.length <= 254 && /^[^\s@<>"'(),;:]{1,64}@[^\s@<>"'(),;:]{1,190}\.[A-Za-z]{2,24}$/.test(e);
 // A stored or emailed field: trimmed, control characters out, length capped.
@@ -56,12 +56,8 @@ async function partnerNotifyTarget(slug, supabaseUrl, supabaseKey) {
   } catch { return { email: null, name: null }; }
 }
 
-function setCors(req, res) {
-  const origin = String((req.headers && req.headers.origin) || "");
-  if (ALLOWED_ORIGINS.has(origin)) { res.setHeader("Access-Control-Allow-Origin", origin); res.setHeader("Vary", "Origin"); }
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-}
+// One CORS helper (lib/_cors.js, security F-06): goasksam.com, www and this project's previews only, as Lane D's rule.
+function setCors(req, res) { gasCors(req, res, { methods: "POST, OPTIONS", headers: "Content-Type" }); }
 
 function asText(value) {
   return String(value || "").trim();
