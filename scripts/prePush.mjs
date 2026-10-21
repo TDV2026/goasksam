@@ -744,6 +744,13 @@ try {
 } catch (e) {
   record("Buy Stage 1d item 7, the follow-up bar (scripts/buyBarCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Buy Stage 1e item 2 (Sam, Oct 21 2026; Lane C): the Sold before / Listed before chip. No network.
+try {
+  const out = execSync("node scripts/buyHistChipCheck.mjs", { encoding: "utf8" });
+  record("buyHistChipCheck (scripts/buyHistChipCheck.mjs)", "PASS", (out.match(/buyHistChipCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("buyHistChipCheck (scripts/buyHistChipCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });

@@ -62,8 +62,8 @@ ok(/priorSold\(apps\) \? "sold" : "was listed"/.test(landing) && !/This exact ca
 
 // ---- 5. the card foot (Sam, Oct 15 2026): the pill has its own reserved line above the action row, on every card
 // (an ended card included), and the foot sits at the card's bottom with 44px buttons
-// Stage 1c item 1 (Sam): the history button sits inside the Sam area under "Sam has seen this exact car before.", never in the action row.
-ok(/function seenHtml\(l\)\{ return '<div class="seen"><p class="seen-l">' \+ esc\("Sam has seen this exact car before\."\) \+ '<\/p><button type="button" class="act hact" data-hist="/.test(client) && !/"<\/a>" \+\s*\(hasMc[^\n]*\n[^\n]*data-hist/.test(client), "the pill is in the Sam area, never inside the action row");
+// Stage 1e item 2 (Sam, Oct 21 2026): the history is one chip in the card's chip row, never in the action row.
+ok(/'<button type="button" class="spec hchip" data-hist="' \+ l\.id \+ '" aria-expanded="false" aria-haspopup="dialog">' \+ esc\(priorSold\(apps\) \? "Sold before" : "Listed before"\)/.test(client) && !/"<\/a>" \+\s*\(hasMc[^\n]*\n[^\n]*data-hist/.test(client), "the history chip is in the chip row ('Sold before' only when a record says it sold, else 'Listed before'), never inside the action row");
 ok(/<div class="hrow"><\/div><div class="acts"><a class="vauc"[^"]*"[^>]*>See it on/.test(client.replace(/' \+ esc\(l\.url\) \+ '/g, "")), "an ended card keeps the same reserved line");
 ok(/var h = slInner\(l\), sl = tx\.querySelector\("\.sl"\);/.test(client) && /if \(sl\) \{ sl\.innerHTML = h; return; \}/.test(client), "a late Sam line rebuilds the whole Sam area (line, rows, history) above the actions");
 ok(/\.car \.tx \.hrow\{margin-top:auto;[^}]*min-height:44px/.test(page) && /\.car \.acts \.vauc,\.car \.acts \.act,\.car \.hrow \.act\{min-height:44px/.test(page), "the foot is pinned to the bottom with 44px buttons");

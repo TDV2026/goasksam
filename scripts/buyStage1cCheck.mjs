@@ -16,12 +16,13 @@ const samLine = new Function(env + "\nreturn samLine;")();
 const same = { kind: "same", lead: "This exact car ", link: "sold for $128,000 in February 2023", tail: "." };
 ok(samLine({ market: { kind: "range" }, sam_lines: [same] }) === null, "a card whose only line was the exact-car sentence has no line of its own");
 ok(!/This exact car/.test((samLine({ market: { kind: "range" }, sam_lines: [{ kind: "range", text: "The middle half ..." }, same] }) || {}).html), "a range card keeps its range line and drops the sentence");
-const seen = block("  function seenHtml(l){", "  function card(l, big, eager){");
-ok(/esc\("Sam has seen this exact car before\."\) \+ '<\/p><button type="button" class="act hact" data-hist="' \+ l\.id/.test(seen) && /esc\(priorWords\(sameCar\(l\)\)\.button\)/.test(seen), "'Sam has seen this exact car before.' with the history button (its own words: See its earlier sale / See its history) directly under it");
-ok(/\(line \|\| hist\) \? '<span class="who">Sam<\/span>' \+ \(line \? line\.html : ""\) \+ \(hist \? seenHtml\(l\) : ""\) : ""/.test(seen), "inside the Sam area, after the range block; a card with history and no line still gets the Sam area");
+// Stage 1e item 2 (Sam, Oct 21 2026) replaces Stage 1c item 1: the exact-car history is a chip in the chip row, never lines in the Sam area.
+const seen = block("  function histChipHtml(l){", "  // THE ADAPTIVE GRID");
+ok(!/Sam has seen this exact car before/.test(c) && /esc\(priorSold\(apps\) \? "Sold before" : "Listed before"\)/.test(seen) && /class="spec hchip" data-hist="' \+ l\.id/.test(seen), "the history is the 'Sold before' / 'Listed before' chip (the Oct 15 rule), opening the popup; no 'Sam has seen this exact car before.' line");
+ok(/function slInner\(l\)\{ var line = samLine\(l\); return line \? '<span class="who">Sam<\/span>' \+ line\.html : ""; \}/.test(seen), "the Sam area carries the engine's line only; a card with history and no line has no Sam area");
 const card = block("  function card(l, big, eager){", "  // THE ADAPTIVE GRID");
-ok(!/class="hrow"/.test(card) && !/data-hist/.test(card) && /\(sl \? '<div class="sl">' \+ sl \+ "<\/div>" : ""\)/.test(card), "no separate history row on the card; the button is not in the action row");
-ok(/var h = slInner\(l\), sl = tx\.querySelector\("\.sl"\);/.test(c), "a line that arrives later rebuilds the same Sam area, history included");
+ok(!/class="hrow"/.test(card) && !/data-hist/.test(card) && /\(sl \? '<div class="sl">' \+ sl \+ "<\/div>" : ""\)/.test(card), "no separate history row on the card; the history chip is not in the action row");
+ok(/var h = slInner\(l\), sl = tx\.querySelector\("\.sl"\);/.test(c), "a line that arrives later rebuilds the same Sam area");
 ok(/priorSold|sold before|listed before/.test(c), "the popup and its Oct 15 heading rule are untouched");
 ok(/\.cgrid \.car \.sl \.seen\{/.test(css) && !/[–—]/.test(seen), "styled inside the Sam area; no dashes in the copy");
 // ---- Item 4a: the last row left-aligned (five cards: three, then two in the first two columns, on a wide screen).

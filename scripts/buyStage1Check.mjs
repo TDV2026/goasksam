@@ -11,7 +11,7 @@ const i = s.indexOf("const CLIENT = ") + "const CLIENT = ".length, c = JSON.pars
 const line = from => { const a = c.indexOf(from); if (a < 0) throw new Error("missing " + from); return c.slice(a, c.indexOf("\n", a)) + "\n"; };
 const block = (from, to) => { const a = c.indexOf(from), b = c.indexOf(to, a); if (a < 0 || b < 0) throw new Error("missing " + from); return c.slice(a, b); };
 const env = ["  function esc(s)", "  function usd(n)", "  function num(n)", "  var TZ = ", "  function timePT(d)", "  function sameDay(a,b)", "  function bidAt(iso)", "  var SYM = ", "  function localMoney(n, cur)", "  function notUS(l)"].map(line).join("") +
-  "var CPHRASE = {}; function cityOf(l){ return l.location || ''; }\n" + line("  function awayWords(d)") + block("  // onPhoto: drawn inside the photo", "  function bidAge(ms)") + line("  function localTime(t)") + block("  function bidLine(l){", "  var CUR_F = null;") + block("  // The VIN pill is not shown", "  // HAVE SAM KEEP LOOKING");
+  "var CPHRASE = {}; function cityOf(l){ return l.location || ''; } function sameCar(l){ return l.timeline || []; } function priorSold(a){ return a.some(function(x){ return x.result === 'sold'; }); }\n" + line("  function awayWords(d)") + block("  // onPhoto: drawn inside the photo", "  function bidAge(ms)") + line("  function localTime(t)") + block("  function bidLine(l){", "  var CUR_F = null;") + block("  // The VIN pill is not shown", "  // HAVE SAM KEEP LOOKING");
 const { moneyHtml, metaLine, chipsHtml, bidLine } = new Function(env + "\nreturn { moneyHtml: moneyHtml, metaLine: metaLine, chipsHtml: chipsHtml, bidLine: bidLine };")();
 const text = h => h.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 // The money figure: labelled, with the bid's own time; never a bare number.
@@ -44,7 +44,7 @@ ok(/var onPh = moneyHtml\(l, true\); if \(onPh\) ph = ph\.replace\(\/<\\\/a>\$\/
 ok(moneyHtml({ current_bid_usd: 42500, source: "Bring a Trailer", url: "https://x/1" }, true) === '<span class="mlab nobid">See the bid on Bring a Trailer</span>' && !/<a /.test(moneyHtml({ current_bid_usd: 42500, source: "Bring a Trailer", url: "https://x/1" }, true)), "on the photo (itself a link), the figure carries no link of its own");
 // Stage 1c item 1: the history button lives inside the Sam block (slInner), after the line and the rows.
 const order = ["photoHtml(l, eager)", "<h3>", "metaLine(l)", "chipsHtml(l)", '<div class="sl">', 'class="acts"'].map(x => card.indexOf(x));
-ok(order.every((x, k) => x > 0 && (k === 0 || x > order[k - 1])) && /\(line \? line\.html : ""\) \+ \(hist \? seenHtml\(l\) : ""\)/.test(c), "the order: photo (with the money), car, meta, specs, Sam block (line, history), actions");
+ok(order.every((x, k) => x > 0 && (k === 0 || x > order[k - 1])) && /function slInner\(l\)\{ var line = samLine\(l\); return line \? '<span class="who">Sam<\/span>' \+ line\.html : ""; \}/.test(c), "the order: photo (with the money), car, meta, specs (the history chip last, Stage 1e item 2), Sam block, actions");
 // STAGE 1b, NUMBER FIRST: a range card reads as the shared card does; every figure and line is the engine's.
 const rf = new Function("esc", "usd", block("  function rangeFirst(l, x){", "  function samLine(l){") + "\nfunction rungHtml(){ return ''; } function rungShown(){ return []; }\nreturn rangeFirst;")(
   s0 => String(s0 == null ? "" : s0).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch])), n => "$" + Math.round(Number(n)).toLocaleString("en-US"));
