@@ -848,8 +848,9 @@ begin
   select coalesce(jsonb_object_agg(k, v), '{}'::jsonb) into o from jsonb_each(p_outputs) as e(k, v)
    where k in ('dest_currency_code','dest_currency_symbol','total','line_items','signal_level','storage_play','tdv_take','openFare','enclosedFare','selectedType','distanceMiles');
   if i::text ~ '[<>]' or o::text ~ '[<>]' then raise exception 'invalid characters'; end if;
-  if not ((jsonb_typeof(o->'line_items') = 'array' and o ? 'total')
-       or (jsonb_typeof(o->'openFare') = 'number' and jsonb_typeof(o->'enclosedFare') = 'number')) then raise exception 'invalid'; end if;
+  -- shape check (CORRECTED Oct 21 2026 by Lane D: a missing key makes jsonb_typeof(...) NULL, and not (false or NULL) is NULL, so a bare 'not (...)' never raised and an empty link was stored; the test must be NULL-safe)
+  if not coalesce((jsonb_typeof(o->'line_items') = 'array' and o ? 'total')
+       or (jsonb_typeof(o->'openFare') = 'number' and jsonb_typeof(o->'enclosedFare') = 'number'), false) then raise exception 'invalid'; end if;
   -- flood cap: this function is callable directly with the public key
   if (select count(*) from public.shared_calculations where created_at > now() - interval '1 minute') >= 30
      or (select count(*) from public.shared_calculations where created_at > now() - interval '1 day') >= 1000 then raise exception 'busy'; end if;
@@ -861,6 +862,9 @@ end; $$;
 ```
 Check the function ran as intended (read-only or throwaway): `select public.get_shared_calculation('lane-s-none')` returns null; `select public.get_shared_calculation('<a real old token>')` returns its inputs and outputs; the shipping link returns its fares.
 Before Step 1 also run, read-only: `select column_name, column_default from information_schema.columns where table_schema = 'public' and table_name = 'shared_calculations' order by ordinal_position;` (confirms whether created_at has a default).
+
+### ONE SOURCE OF TRUTH (added Oct 21 2026, after Lane D found a NULL trap in my shape check)
+Sam runs Lane D's file, docs/f31-shared-calculations.sql on the branch f31-share-rpc in the calculator repo (Step 1; commit f1e3534 or later), and NOT the copies of the functions printed in this document. The copies here are kept only as the record of the review; where they differ, Lane D's file wins. The bug: in my create_shared_calculation the shape check `if not ((jsonb_typeof(o->'line_items') = 'array' and o ? 'total') or (jsonb_typeof(o->'openFare') = 'number' and ...))` is NULL when a key is missing (jsonb_typeof of a missing key is NULL), `not (false or NULL)` is NULL, and an IF on NULL does not raise, so ({}, {"anything":1}) was stored as an empty link. Lane D's fix (is not distinct from) refuses {}, line_items only, total only, openFare only, a string line_items and a string fare (re-tested on Postgres 17 before and after Step 2). The block above now carries an equivalent NULL-safe test (coalesce(..., false)). Review of the rest of my SQL for the same trap: get_shared_calculation (`jsonb_typeof(...) is distinct from 'object'` is NULL-safe; the token test is guarded by `p_token is null or`), create_shared_calculation (the first check is guarded by the null tests before `jsonb_typeof(...) <> 'object'`; `o ? 'total'` and the flood-cap counts never return NULL; `i::text ~` and `o::text ~` run on non-null jsonb), Step 2 and Step 3 (no comparisons on possibly missing keys: `?|` on a non-null column), and the F-02 revoke block (no conditions). No other NULL trap found.
 
 ### Does anything else use the table? The calculator uses THREE tables
 - shared_calculations: only api/share.js (now through the two functions on the branch); both calculators' pages reach it only through /api/share.
