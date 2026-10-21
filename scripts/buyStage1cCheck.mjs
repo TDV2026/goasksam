@@ -60,7 +60,7 @@ ok(/<p class="ask-q">Which model\?<\/p>/.test(lh) && (lh.match(/data-askpatch/g)
 // Stage 1e item 6 (Sam, Oct 21 2026): the light row carries the engine's counts and ends with its Any chip; never cut at four.
 const ea = { dim: "generation", q: "Which era?", chips: [{ label: "Air-cooled, to 1998", n: 16, patch: { era: "901,G-Body,964,993" } }, { label: "996", n: 3, patch: { era: "996" } }, { label: "997", n: 1, patch: { era: "997" } }, { label: "991.1", n: 1, patch: { era: "991.1" } }, { label: "991.2", n: 1, patch: { era: "991.2" } }], any: { label: "Any 911", n: 22 } };
 const eh = quietAskHtml(ea, "light"), et = eh.replace(/<[^>]+>/g, "").replace(/\s+/g, " ");
-ok(et === "SSamWhich era?Choose one, or tell Sam how else to narrow your search below.Air-cooled, to 1998 (16)996 (3)997 (1)991.1 (1)991.2 (1)Any 911 (22)", "the era row: each chip with its engine count, all five, ending 'Any 911 (22)' (got " + et + ")");
+ok(et === "Which era?Choose one, or tell Sam how else to narrow your search below.Air-cooled, to 1998 (16)996 (3)997 (1)991.1 (1)991.2 (1)Any 911 (22)", "the era row: each chip with its engine count, all five, ending 'Any 911 (22)' (got " + et + ")");
 ok(/data-askany="generation">Any 911 <span class="an">\(22\)<\/span><\/button><\/div><\/div><\/section>$/.test(eh), "the Any chip clears the question (data-askany), last in the row");
 ok(!/\(\d/.test(qh) && !/any/i.test(qh.replace(/narrow it/i, "")), "no count and no Any chip on the quiet line");
 // ---- A NOT-TRACKED MARKET (Lane B bb8715f6, Lane F's ask): until the card draws market.notTrackedLine, a card whose

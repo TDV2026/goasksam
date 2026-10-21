@@ -9,12 +9,14 @@ const after = k => css.slice(css.indexOf("BUY STAGE 1f ITEM " + k + ","));
 // ITEM 1
 ok(/\.msg\.results \.scount \.ssort\{order:2;margin-top:0\}/.test(after(1)) && /\.msg\.results \.scount p\.sc-2\{order:3;flex-basis:100%\}/.test(after(1)), "1: count and Sort on one line, the quiet line under them");
 ok(!/class="sq"/.test(client.slice(client.indexOf("function headerHtml"), client.indexOf("function everythingLine"))), "1: no headline above the chips");
-// ITEM 2
+// ITEM 2 (now item 1 of Sam's new block): the pale green panel, no S mark, no Sam label
 const askSrc = client.slice(client.indexOf("  var ASK_SUB"), client.indexOf("  // Listings that don"));
-ok(/var ASK_SUB = "Choose one, or tell Sam how else to narrow your search below\.";/.test(client) && /<span class="sq-mark" aria-hidden="true">S<\/span><div class="sq-b"><p class="sq-who">Sam<\/p><p class="ask-q">/.test(askSrc), "2: the S letter mark (text only), small Sam, the question, the brief's line");
+ok(/var ASK_SUB = "Choose one, or tell Sam how else to narrow your search below\.";/.test(client) && /<section class="ask samq" aria-label="Narrow the search">' \+ \(before \|\| ""\) \+ '<div class="sq-b"><p class="ask-q">/.test(askSrc), "2: the question, then the brief's line, in the panel");
+ok(!/sq-mark|sq-who/.test(client), "2 (new block item 1): no S mark and no Sam label");
 ok(/if \(light\) return samAskHtml\(a\.q, chips\.join\(""\)\);/.test(client) && /return samAskHtml\(lead \+ a\.q, chips\.join\(""\)/.test(client), "2: the panel and the light row both draw it; the quiet line stays");
-ok(!/Narrow your search</.test(client) && !/<img[^>]*sq-mark|sq-mark[^>]*><img/.test(client), "2: no 'Narrow your search' label, no image in the mark");
-ok(/\.ask\.samq \.rchip\.achip\.on\{background:var\(--green\)/.test(after(2)) && /if \(ap\) ap\.classList\.add\("on"\);/.test(client), "2: the applied chip fills deep green");
+const n1 = css.slice(css.indexOf("SAM'S NEW 1f BLOCK, ITEM 1,"));
+ok(/\.msg\.sam \.ask\.samq\{display:block;margin:2px 0 12px;padding:10px 16px;background:var\(--tint,#E7EBE4\)/.test(n1) && /p\.ask-q\{margin:0;font:500 19px/.test(n1), "2 (new block item 1): the pale green panel, 10px padding (was 12), the question at 19px (was 17)");
+ok(/\.ask\.samq \.rchip\.achip\.on\{background:var\(--green\)/.test(css) && /if \(ap\) ap\.classList\.add\("on"\);/.test(client), "2: the applied chip fills deep green");
 // ITEM 3
 ok(/\.msg\.results p\.unst\{margin:0 0 16px;padding:12px 2px 0;border-top:1px solid var\(--div\)/.test(after(3)) && /data-send="Show the ones that don’t say too">Show them too<\/button>/.test(client), "3: the unknown-data row keeps its words and button, a quiet row under a thin rule");
 // ITEM 4
