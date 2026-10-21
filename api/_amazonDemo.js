@@ -400,6 +400,8 @@ const JS = String.raw`
   var ANS = null;
   try { var am = /[?&]ans=([^&]*)/.exec(location.search); if (am) { var aj = JSON.parse(decodeURIComponent(am[1])); ANS = {};
     if (aj && typeof aj.asked === "number") ANS.asked = aj.asked;
+    if (aj && typeof aj.q === "string" && CAR_OK.test(aj.q)) ANS.q = aj.q;
+    if (aj && typeof aj.label === "string" && aj.label.length <= 40) ANS.label = aj.label;
     if (aj && aj.refine && typeof aj.refine === "object") { ANS.refine = {}; Object.keys(aj.refine).forEach(function(k){ if (typeof aj.refine[k] === "string") ANS.refine[k] = aj.refine[k]; }); }
     if (!Object.keys(ANS).length) ANS = null; } } catch (x) { ANS = null; }
   function qs(view){ return "?p=amazon&view=" + view + "&car=" + encodeURIComponent(CAR) + (ANS ? "&ans=" + encodeURIComponent(JSON.stringify(ANS)) : ""); }
@@ -408,7 +410,7 @@ const JS = String.raw`
     Array.prototype.forEach.call(document.querySelectorAll(".tabs a[data-view]"), function(a){ a.setAttribute("href", qs(a.getAttribute("data-view"))); });
     var bk = document.querySelector(".back-l"); if (bk) bk.setAttribute("href", qs("d"));
   }
-  function withAns(b){ if (ANS && b && (b.q === CAR || b.q === LISTCAR)) { if (ANS.refine) b.refine = ANS.refine; if (typeof ANS.asked === "number") b.asked = ANS.asked; } return b; }
+  function withAns(b){ if (ANS && b && (b.q === CAR || b.q === LISTCAR)) { if (ANS.q) b.q = ANS.q; if (ANS.refine) b.refine = ANS.refine; if (ANS.label) b.label = ANS.label; if (typeof ANS.asked === "number") b.asked = ANS.asked; } return b; }
   function setCar(t){
     var c = carWord(t); if (!c) return null;
     CAR = c; CHOSEN = true; LISTCAR = c + (LISTBODY[c] ? " " + LISTBODY[c] : "");
@@ -473,7 +475,7 @@ const JS = String.raw`
     if (askOf(a)) {
       var q = askOf(a), opts = (q.options || []).concat(q.skip ? [q.skip] : []);
       // the engine's question, its text and options and their order exactly as the engine returns them, drawn as chips; the skip option last
-      return '<div class="qa">' + (q.text ? '<p class="q-text">' + esc(q.text) + "</p>" : "") + '<div class="q-row">' + opts.map(function(o, i){ return '<button type="button" class="qchip' + (q.skip && i === opts.length - 1 ? " skip" : "") + '" data-qsend="' + esc(JSON.stringify(o.send || {})) + '">' + esc(o.label) + (o.count != null && !/\(\d+\)/.test(String(o.label)) ? " (" + esc(o.count) + ")" : "") + "</button>"; }).join("") + "</div></div>";
+      return '<div class="qa">' + (q.text ? '<p class="q-text">' + esc(q.text) + "</p>" : "") + '<div class="q-row">' + opts.map(function(o, i){ return '<button type="button" class="qchip' + (q.skip && i === opts.length - 1 ? " skip" : "") + '" data-qsend="' + esc(JSON.stringify(o.send || {})) + '" data-carword="' + esc(o.carWord || "") + '">' + esc(o.label) + (o.count != null && !/\(\d+\)/.test(String(o.label)) ? " (" + esc(o.count) + ")" : "") + "</button>"; }).join("") + "</div></div>";
     }
     var c = a.cardWithRows || a.card || ""; return withRows(c.replace('<div class="gas-pill-slot"></div>', ""), a);
   }
@@ -511,8 +513,9 @@ const JS = String.raw`
     var sec = o.closest("section"), v = sec ? sec.id.replace("view-", "") : "c";
     var draw = v === "a" ? (typeof drawA === "function" ? drawA : drawC) : v === "b" ? (typeof drawB === "function" ? drawB : drawC) : drawC;
     // the chosen option becomes the current car on every tab: its words (when it carries any) and its own send values ride the address
-    var words = send.q ? carWord(send.q) : null; if (words && words !== CAR) setCar(words);
-    var ns = {}; if (send.refine && typeof send.refine === "object") ns.refine = send.refine; if (typeof send.asked === "number") ns.asked = send.asked;
+    // the engine's carWord for the option (its own words, or the car words plus its label) goes in the boxes and the address; the option's own send values (q, refine, label, asked) ride along as ans so every tab re-reads the SAME narrowed pool
+    var cw = o.getAttribute("data-carword") || send.q || "", words = cw ? carWord(cw) : null; if (words && words !== CAR) setCar(words);
+    var ns = {}; if (send.refine && typeof send.refine === "object") { ns.refine = send.refine; if (typeof send.label === "string") ns.label = send.label; if (send.q) ns.q = send.q; } if (typeof send.asked === "number") ns.asked = send.asked;
     ANS = Object.keys(ns).length ? ns : null; syncAddress();
     read(send, draw);
   });
