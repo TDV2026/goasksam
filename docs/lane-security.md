@@ -678,3 +678,119 @@ BEFORE and AFTER TEST (each `set role` line on its own, then `reset role;`):
 Personal data and stored-markup counts (read-only; Sam runs; counts only): the section 1b queries plus `select count(*) from public.shared_calculations where inputs::text ~ '[<>]' or outputs::text ~ '[<>]';` (any non-zero count means someone has already written markup: look at those rows as owner, delete them, and treat F-31 as exploited). Owner: Sam for the SQL; the calculator's repo owner for share.js and index.html. Severity: HIGH (F-31).
 
 Search check: no public page touched.
+
+## F-31 / F-33 and the calculator: FINAL SQL AND FINDINGS (Oct 21 2026; replaces the earlier draft SQL; awaiting Sam's approval; Lane D builds the calculator change on a branch from this section)
+
+### What Sam's results and the calculator code show
+Table public.shared_calculations: id bigint, token text, inputs jsonb, outputs jsonb, created_at timestamptz, open_count integer, last_opened timestamptz; 87 rows; largest row 2,020 bytes, average 1,498; no emails, phones or VINs.
+INPUT keys the app writes and uses (index.html handleShare line 706, showSharedHeader): origin, dest, year, make, model, only.
+OUTPUT keys on the rows (counts): dest_currency_code, _supabase_row_id, signal_level, tdv_take, line_items, dest_currency_symbol, total (84 each), storage_play 79, signal 35, notes 18, documentation 5, distanceMiles, enclosedFare, selectedType, openFare (3 each; these four belong to the shipping calculator), tdv_notes_internal, signal_display, notes_internal (1 each).
+What the SHARE PAGE renders (loadSharedCalc to renderResults, index.html lines 391 to 411 and 536 to 641): dest_currency_symbol, total, line_items, signal_level, storage_play, tdv_take, and (as a side effect, not shown) _supabase_row_id. tdv_take IS shown to the recipient: it is the "verdict" paragraph (verdictText). dest_currency_code is carried but not displayed. NOT rendered anywhere: signal, signal_display, notes, documentation, tdv_notes_internal, notes_internal and the four shipping keys.
+Why the internal keys are in the table: the browser sends the model's whole JSON answer (window._lastOutputs) to /api/share, and share.js stores it unfiltered. Any extra key the model emitted (notes, notes_internal, tdv_notes_internal) is therefore stored, and the open SELECT publishes it.
+A side effect to know: when a share link is opened, renderResults sees _supabase_row_id and sends a log POST to /api/calculate that PATCHes the original `calculations` row (total_landed, delta_percent). Dropping _supabase_row_id from the shared output (the allow-list below) removes that side effect and stops leaking the internal row id; the share page needs no change for it.
+
+### Findings, restated separately
+- F-31 HIGH (stored XSS): the open INSERT and UPDATE policies let anyone write markup directly into the table with the public key, bypassing share.js's `<` `>` check; the share page then renders it with innerHTML (showSharedHeader, verdictText, cost rows) on thedailyvroom.com. Fix: close public writes (the SQL below) and escape on render (calculator change).
+- F-32 CONFIDENTIALITY, MEDIUM-HIGH: the open SELECT lets anyone download all 87 shared calculations in one request (every car, route and price someone priced, the verdict text, and the internal notes in 1 to 18 rows: tdv_notes_internal 1, notes_internal 1, notes 18). tdv_take itself is meant for the recipient (it is on the share page), so the harm is the bulk listing plus the keys never meant to leave the company (tdv_notes_internal, notes_internal, and notes/documentation/signal_display which are not shown anywhere). Fix: the get function below returns only the allow-listed keys for one token, and the table is closed to listing.
+- F-33 HIGH (calculator, new): api/calculate.js forwards `model`, `max_tokens`, `system` and `messages` from the request body straight to Anthropic with the calculator's ANTHROPIC_API_KEY, with no limit and no check. Anyone can use it as a free general Claude endpoint with any prompt, any model and a large max_tokens: direct billing abuse. Fix (calculator, Lane D): build the system prompt and fix model and max_tokens on the SERVER, accept only the structured car fields (year, make, model, origin, dest, price, and the few flags) from the browser, validate them, and add a per-address limit.
+- F-34 MEDIUM (calculator): api/subscribe.js subscribes any submitted email address to the Beehiiv publication with send_welcome_email true, with no limit and no verification: a stranger can sign other people up (spam and sender-reputation harm). Fix: a per-address limit and Turnstile, or double opt-in only.
+- F-35 LOW-MEDIUM (calculator): api/calculate.js log mode inserts arbitrary JSON into public.calculations and PATCHes any calculations row by guessable integer id with the anon key (total_landed, delta_percent, Intent), and row_id is placed in the address unencoded. If `calculations` has the same open policies, anyone can read or rewrite those rows. Run the same policy query on public.calculations. Fix: the same function pattern (create_calculation, update_calculation_intent by an unguessable handle), encode row_id.
+- F-36 LOW (calculator): the live result also puts the model's tdv_take into innerHTML unescaped (index.html line 620) and the fetch uses the token unencoded (line 396). Fix: textContent or an escape helper; encodeURIComponent(token).
+
+### FINAL SQL (real types; margin limits 16 KB per column; allow-list in the database, not only in the calculator)
+Take a backup first (one-off), locked down per the standing rule:
+```sql
+create table public.shared_calculations_backup_20261021 as select * from public.shared_calculations;
+alter table public.shared_calculations_backup_20261021 enable row level security;
+revoke all on public.shared_calculations_backup_20261021 from anon, authenticated;
+```
+Step 1 (adds functions; breaks nothing):
+```sql
+create or replace function public.get_shared_calculation(p_token text)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare r public.shared_calculations; o jsonb;
+begin
+  if p_token is null or length(p_token) < 6 or length(p_token) > 64 or p_token !~ '^[a-z0-9]+$' then return null; end if;
+  select * into r from public.shared_calculations where token = p_token;
+  if not found then return null; end if;
+  -- refuse a row that holds markup (defence in depth against rows written while the table was open)
+  if r.inputs::text ~ '[<>]' or r.outputs::text ~ '[<>]' then return null; end if;
+  update public.shared_calculations set open_count = coalesce(open_count, 0) + 1, last_opened = now() where id = r.id;
+  -- allow-list: only what the share page renders; internal and unused keys are never returned
+  select coalesce(jsonb_object_agg(k, v), '{}'::jsonb) into o
+    from jsonb_each(r.outputs) as e(k, v)
+   where k in ('dest_currency_code','dest_currency_symbol','total','line_items','signal_level','storage_play','tdv_take');
+  return jsonb_build_object(
+    'inputs', jsonb_strip_nulls(jsonb_build_object('origin', r.inputs->'origin', 'dest', r.inputs->'dest', 'year', r.inputs->'year', 'make', r.inputs->'make', 'model', r.inputs->'model')),
+    'outputs', o);
+end; $$;
+
+create or replace function public.create_shared_calculation(p_inputs jsonb, p_outputs jsonb)
+returns text language plpgsql security definer set search_path = public, pg_temp as $$
+declare t text; i jsonb; o jsonb;
+begin
+  if p_inputs is null or p_outputs is null or jsonb_typeof(p_inputs) <> 'object' or jsonb_typeof(p_outputs) <> 'object' then raise exception 'invalid'; end if;
+  if pg_column_size(p_inputs) > 16384 or pg_column_size(p_outputs) > 16384 then raise exception 'too large'; end if;
+  if p_inputs::text ~ '[<>]' or p_outputs::text ~ '[<>]' then raise exception 'invalid characters'; end if;
+  -- keep only the keys the page uses; internal and extra keys sent by the browser are DROPPED, not stored
+  i := jsonb_strip_nulls(jsonb_build_object('origin', p_inputs->'origin', 'dest', p_inputs->'dest', 'year', p_inputs->'year', 'make', p_inputs->'make', 'model', p_inputs->'model'));
+  select coalesce(jsonb_object_agg(k, v), '{}'::jsonb) into o
+    from jsonb_each(p_outputs) as e(k, v)
+   where k in ('dest_currency_code','dest_currency_symbol','total','line_items','signal_level','storage_play','tdv_take');
+  if jsonb_typeof(o->'line_items') is distinct from 'array' or o->'total' is null then raise exception 'invalid'; end if;
+  t := substr(replace(gen_random_uuid()::text, '-', ''), 1, 16);
+  insert into public.shared_calculations (token, inputs, outputs) values (t, i, o);
+  return t;
+end; $$;
+
+revoke execute on function public.get_shared_calculation(text) from public;
+revoke execute on function public.create_shared_calculation(jsonb, jsonb) from public;
+grant  execute on function public.get_shared_calculation(text) to anon, authenticated, service_role;
+grant  execute on function public.create_shared_calculation(jsonb, jsonb) to anon, authenticated, service_role;
+```
+Step 2 (after the calculator calls the functions and a link is tested): close the table.
+```sql
+do $$ declare p record; begin
+  for p in select policyname from pg_policies where schemaname = 'public' and tablename = 'shared_calculations' loop
+    execute format('drop policy %I on public.shared_calculations', p.policyname);
+  end loop;
+end $$;
+revoke all on public.shared_calculations from anon, authenticated;
+alter table public.shared_calculations enable row level security;
+```
+Step 3 (optional clean-up of what is already stored; irreversible except from the backup; Sam decides): remove the internal and unused keys from existing rows so a future mistake cannot publish them.
+```sql
+update public.shared_calculations
+   set outputs = outputs - 'tdv_notes_internal' - 'notes_internal' - 'notes' - 'documentation' - 'signal' - 'signal_display' - '_supabase_row_id' - 'openFare' - 'enclosedFare' - 'selectedType' - 'distanceMiles'
+ where outputs ?| array['tdv_notes_internal','notes_internal','notes','documentation','signal','signal_display','_supabase_row_id','openFare','enclosedFare','selectedType','distanceMiles'];
+```
+Calculator changes (their repo; Lane D on a branch; names only): api/share.js GET becomes `POST /rest/v1/rpc/get_shared_calculation` {"p_token": token} (null means 404) and drops the PATCH; POST becomes `POST /rest/v1/rpc/create_shared_calculation` {"p_inputs","p_outputs"} returning the token string; keep validatePayload; also drop the unlisted keys in share.js before the call (belt and braces); add a per-address limit; index.html escapes shared values before innerHTML (showSharedHeader, verdictText, cost rows) and uses encodeURIComponent(token); api/calculate.js per F-33; api/subscribe.js per F-34.
+
+### ROLLBACK
+```sql
+-- after Step 2: restore public access exactly as before (equivalent policies; the original names were not shown)
+create policy shared_calculations_select_all on public.shared_calculations for select to public using (true);
+create policy shared_calculations_insert_all on public.shared_calculations for insert to public with check (true);
+create policy shared_calculations_update_all on public.shared_calculations for update to public using (true);
+grant select, insert, update on public.shared_calculations to anon, authenticated;
+-- after Step 3: restore the removed keys from the backup
+update public.shared_calculations s set outputs = b.outputs from public.shared_calculations_backup_20261021 b where b.id = s.id;
+-- after Step 1: remove the functions (restore the old calculator code first)
+drop function if exists public.get_shared_calculation(text);
+drop function if exists public.create_shared_calculation(jsonb, jsonb);
+```
+### READ-ONLY QUERIES FOR SAM (counts only)
+```sql
+select count(*) from public.shared_calculations where inputs::text ~ '[<>]' or outputs::text ~ '[<>]';          -- stored markup (non-zero: someone wrote HTML; F-31 exploited)
+select count(*) from public.shared_calculations where outputs ? 'tdv_notes_internal' or outputs ? 'notes_internal'; -- rows holding the internal keys
+select count(*) from public.shared_calculations where outputs ?| array['tdv_notes_internal','notes_internal','notes','documentation','signal','signal_display','_supabase_row_id']; -- rows Step 3 would touch
+-- and, for the sister table the calculator logs to (F-35): the same policy query as for shared_calculations
+select polname, polcmd, polroles::regrole[] from pg_policy where polrelid = 'public.calculations'::regclass;
+```
+### BEFORE AND AFTER TEST (each `set role` line on its own, then `reset role;`)
+- Before: open a real share link, note what it shows. `set role anon; select count(*) from public.shared_calculations;` returns 87. `set role anon; select outputs ? 'tdv_notes_internal' from public.shared_calculations where outputs ? 'tdv_notes_internal';` returns true (internal key readable by anyone; run once to prove the exposure). An update on a made-up token returns UPDATE 0 (allowed).
+- After Step 1 and the calculator deploy: the same real link loads and looks identical (tdv_take, cost rows, signal, storage badge all present); its open_count rose by exactly 1; the Share button makes a 16-character link that loads; as owner, the new row's outputs have only the allow-listed keys: `select jsonb_object_keys(outputs) from public.shared_calculations order by id desc limit 7;`.
+- After Step 2: the real old link and the new link still load. `set role anon; select count(*) from public.shared_calculations;` fails (permission denied). `set role anon; update public.shared_calculations set open_count = 0 where token = 'lane-s-none';` fails (permission denied). `set role anon; select public.get_shared_calculation('<the token of the row that held tdv_notes_internal>') -> 'outputs' ? 'tdv_notes_internal';` returns false. `set role anon; select public.create_shared_calculation('{"year":"1990","make":"x","model":"y","origin":"UK","dest":"US"}'::jsonb, '{"total":1,"line_items":[],"tdv_notes_internal":"x"}'::jsonb);` returns a 16-character token and the stored row (read as owner) has no tdv_notes_internal (delete this test row afterwards); `... '{"total":1,"line_items":[],"tdv_take":"<b>"}'` raises "invalid characters".
+- Calculator-side: a direct anon call to /rest/v1/shared_calculations (select, insert, update) fails with permission denied; /api/share still creates and opens links.
+
+Search check: no public page touched.
