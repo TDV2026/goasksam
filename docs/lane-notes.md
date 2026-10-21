@@ -11740,3 +11740,4 @@ Search check: no public page touched (a gated noindex demo page).
 Search check: no public page touched (a gated noindex demo page).
 - READS START (Lane B, 04:37:41Z): the trim-first table's addendum: what each 2003 S-Class chip opens (3 obdiag refine reads) and the last 3 golden cars (one trimmix call), read only, the lock reader before each call, about 1 minute.
 - TABLE ADDENDUM FOR SAM (Lane B, 04:38:45Z): 2003 Mercedes-Benz S-Class chips (3 of 3 equal to what they open): S430 (7): opens 7 sales, shown without a range (under 8); S600 (4): opens 4 sales, shown without a range (under 8); S500 (3): opens 3 sales, shown without a range (under 8). The last 3 golden cars: 2014 Porsche 911 GT3: does not ask (result); 2015 Porsche 911 GT3: does not ask (result); 1965 Ford Mustang coupe: does not ask (result).
+- READS DONE (Lane B, 04:38:47Z): the table addendum reads finished; the addendum line is above.
