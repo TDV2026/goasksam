@@ -758,6 +758,13 @@ try {
 } catch (e) {
   record("buyHistPopupCheck (scripts/buyHistPopupCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Buy Stage 1e item 5 (Sam, Oct 21 2026; Lane C): the bar flush, a slim strip. No network.
+try {
+  const out = execSync("node scripts/buyBarFlushCheck.mjs", { encoding: "utf8" });
+  record("buyBarFlushCheck (scripts/buyBarFlushCheck.mjs)", "PASS", (out.match(/buyBarFlushCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("buyBarFlushCheck (scripts/buyBarFlushCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
