@@ -343,6 +343,12 @@ try {
 } catch (e) {
   record("sign-in card never writes a URL value into HTML (scripts/authPrefillCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+try {
+  const out = execSync("node scripts/crewBhsCheck.mjs", { encoding: "utf8" });
+  record("?bhs= mints no session; crew and tester paths unchanged (scripts/crewBhsCheck.mjs)", "PASS", (out.match(/crewBhsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("?bhs= mints no session; crew and tester paths unchanged (scripts/crewBhsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // lint:cards (CLAUDE.md names it an authoritative gate): the /sell card copy and composition suites, offline.
 try { execSync("npm run -s lint:cards", { encoding: "utf8", stdio: "pipe" }); record("lint:cards (cardV2Lint, verifyBugs and five more, offline)", "PASS", "0 FAIL"); }
 catch (e) { record("lint:cards (cardV2Lint, verifyBugs and five more, offline)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | ")); }
