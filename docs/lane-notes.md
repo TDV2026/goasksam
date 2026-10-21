@@ -11625,3 +11625,4 @@ Search check: no public page touched.
 Search check: no public page touched (a gated noindex demo page).
 - REVIEW DONE (Lane E, 03:19:48Z): Amazon R4-A re-check: r3Recheck: 48 pages, 29 FAIL. FAILURES:   FAIL "porsche 911" via tab a's box then tab d: error text on the page   FAIL "2019 porsche 911" via tab b's box then tab c: error text on the page   FAIL "2019 porsche 911" via tab b's box then tab d: no name line   FAIL "2019 porsche 911" via tab b's box then tab d: error text on the page   FAIL "WBSBF932XSEH00621" via tab a's box then tab c: error text on the page   FAIL "WBSBF932XSEH00621" via tab a's box then tab d: no name line  Rows follow from Lane E.
 Search check: no public page touched.
+- READS START (Lane B, 03:19:56Z): Lane F gap, naming the redirecting VIN: the VIN rollout workflow's own sample (the first 200 URLs of the first sitemap-vins file), read only, 8 pages at a time, the lock reader before every batch, about 1 minute.
