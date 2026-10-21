@@ -832,6 +832,13 @@ try {
 } catch (e) {
   record("chipLabelCheck (scripts/chipLabelCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// buyStage1fCheck (Lane E, Buy Stage 1c). No network.
+try {
+  const out = execSync("node scripts/buyStage1fCheck.mjs", { encoding: "utf8" });
+  record("buyStage1fCheck (scripts/buyStage1fCheck.mjs)", "PASS", (out.match(/buyStage1fCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("buyStage1fCheck (scripts/buyStage1fCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
