@@ -43,6 +43,17 @@ for (const d of [{ tier: "result", poolN: 9 }, { tier: "trim_choice", trimOption
   const nul = async () => null; const m2 = { _readMemo: new Map() };
   ok((await ob.memoReadForTest(nul, "one", m2, "q", [])) === null, "a failed read stays a failed read (null), never an empty list");
 }
+// THE GUARD (trimFirstGuard, Lane F's option B, Oct 21 2026): a trim-first question is asked only when at least one chip's own
+// answer carries a range. The live chips read on Oct 21: the 2003 S-Class (S430 7, S600 4, S500 3: all without a range) does
+// NOT ask; the 2019 911 (Carrera, Carrera 4S, Carrera T with ranges, Carrera S 4 without) and the 2025 911 DO
+ok(ob.RANGE_RULES.trimFirstGuard === true, "the guard ships ON (it only acts when trimFirst asks)");
+const R = (lo, hi) => ({ tier: "result", cluster: [lo, hi], poolN: 8 }), THIN = n => ({ tier: "thin", cluster: null, poolN: n });
+ok(ob.trimChipsCarryRange([THIN(7), THIN(4), THIN(3)]) === false, "the 2003 S-Class (7, 4, 3 sales, no chip with a range) does not ask");
+ok(ob.trimChipsCarryRange([R(78500, 91000), THIN(4), R(94500, 121000), R(94000, 114000)]) === true, "the 2019 911 (three chips with a range) asks");
+ok(ob.trimChipsCarryRange([THIN(5), R(153000, 166000), R(158000, 190000), R(132000, 147000)]) === true, "the 2025 911 asks");
+ok(ob.trimChipsCarryRange([R(1, 2), R(3, 4)]) === true, "a pool whose chips all carry a range asks");
+ok(ob.trimChipsCarryRange([THIN(6), { tier: "refusal", cluster: null, poolN: 9 }]) === false, "a pool where no chip carries a range (thin or too varied) does not ask");
+ok(ob.trimChipsCarryRange([null, undefined]) === false && ob.trimChipsCarryRange([]) === false, "failed chip reads never make a question");
 process.env.PROBE_KEY = "local-check-key"; process.env.OLDCARSDATA_API_KEY = "unused-local-check";
 const { default: handler } = await import("../api/usageDashboard.js");
 for (const task of ["trimmix", "rangepreview"]) {
