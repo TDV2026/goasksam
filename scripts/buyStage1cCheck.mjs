@@ -43,7 +43,7 @@ ok(!/mclink/.test(samLine(nomc).html) && /Too few sales to compare\./.test(samLi
 ok(!/\+ rowsHtml\(l\)/.test(c), "no grid card lists its sales inline");
 ok(/querySelectorAll\('\[data-mc="' \+ x\.getAttribute\("data-for"\) \+ '"\]'\)/.test(c), "closing the panel resets both openers (the link and the action)");
 const dr = block("  function drawerHtml(l, j){", "  function openDrawer(btn){");
-ok(/var sfc = j && j\.engineAnswer && window\.sellsForCardHtml \? window\.sellsForCardHtml\(j\.engineAnswer, \{\}\) : "";\n\s*if \(sfc\) \{ out\.push\(sfc\); \} else \{/.test(dr) && /else if \(m && m\.soldLine\) out\.push/.test(dr), "the inline panel draws the engine's own card (its line and its sales) and, if that read fails, the card's own line: never blank");
+ok(/var head = ea\.basisLine \|\| \(m && m\.basisLine\) \|\| ea\.thinLine \|\| \(m && \(m\.thinLine \|\| m\.soldLine\)\) \|\| "";/.test(dr) && /else if \(m && m\.kind === "range" && m\.low > 0 && m\.high > 0\) out\.push\('<p class="md-s">' \+ usd\(m\.low\)/.test(dr), "the inline panel draws the engine's own line (Stage 1e item 4) and, if that read fails, the card's own line: never blank");
 // ---- Item 4c: no big gap under the shorter cards (actions follow the content; each card its own height).
 ok(/\.cgrid\{align-items:start\}\n\.cgrid \.car \.acts\{margin-top:0;padding-top:14px\}/.test(css), "the actions follow the card's content; no empty band above them on a short card");
 // ---- Item 8b: rail names told apart (wrap up to three lines; the full name as the tooltip; one row per name).
