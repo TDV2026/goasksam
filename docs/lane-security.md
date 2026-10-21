@@ -413,3 +413,89 @@ Next step (sent when Sam says Step 1 is done): STEP 2, CURTAIN_CREW_CODE (Vercel
 Recorded. The earlier "drop if unused" advice is withdrawn for this table: the project is shared with a separate app and repo that likely uses it for share links. Waiting for the result of the two read-only queries in Stage 1b (the policy list and the row count). Plan once they arrive: keep anonymous SELECT only if the share link needs it, remove anonymous INSERT, UPDATE and DELETE, and move the calculator's writes to its own server route using the service role key; if it uses small numeric ids as the share handle, add an unguessable id column. Exact SQL and a rollback follow the query result; nothing runs until Sam says.
 
 Search check: no public page touched.
+
+## F-01 shared_calculations: DRAFT FIX (AWAITING THE CALCULATOR CODE FACTS; nothing runs until Sam approves) (Oct 21 2026)
+
+Facts from Sam's query: table public.shared_calculations, 87 rows, belongs to the TDV Import Calculator (separate repo dailyvroom-calculator, same Supabase project). Policies: public SELECT using true, public INSERT with check true, public UPDATE using true, no DELETE policy. Plain reading: anyone holding the public key can (1) list and read all 87 shared calculations, (2) add rows with any content and any size, (3) change ANY row (inputs, outputs, counters) of someone else's shared calculation. No one can delete rows through the API. The share link is therefore not private (a listing returns every calculation) and not tamper-proof (a link's content can be rewritten after it was shared).
+
+### What I need from Sam (the calculator repo is not on this machine and I have no gh; I will not try to fetch it)
+1. Put a read-only copy of the repo dailyvroom-calculator on this machine, for example: `git clone` it into ~/Documents/GitHub/dailyvroom-calculator, or download its ZIP from GitHub and unzip it there. Tell Lane F the folder. I only read it; I do not run, build or push it.
+2. The first files I will read, in this order: (a) every file that mentions shared_calculations (search the whole repo, including any supabase/migrations folder or .sql file that created the table and its policies); (b) the Supabase client setup (createClient or any fetch to /rest/v1): which key it uses in the browser and whether any service key appears in client code; (c) the share-link page or route (what the address looks like, how it finds the row); (d) the code that inserts a row when someone presses Share and the code that bumps the open counter; (e) the env file NAMES only (.env.example, README, vercel.json), never values; (f) package.json for the framework and hosting.
+3. Questions the code must answer (I will answer them from the code, not guess): Does the browser insert directly with the anon key? Is the share token in the address, and is it a long random value or a small number? Does the share page read by token or by id? Is open_count / last_opened updated from the browser with an UPDATE? Does the insert read the new row back (insert ... select / returning), which would need SELECT? What columns hold inputs and outputs and how big are they? Any other app or script that reads or writes this table?
+
+### Personal data check (read-only, Sam runs in the SQL editor; do not paste results containing real values, only counts)
+Look for: names, email addresses, phone numbers, street addresses, VINs and prices that identify a person's car or deal, and free-text notes. Counts only:
+```sql
+-- which keys appear in the stored inputs and outputs (column names assumed inputs and outputs; adjust to the real names)
+select k, count(*) from public.shared_calculations, lateral jsonb_object_keys(to_jsonb(shared_calculations)->'inputs') k group by 1 order by 2 desc;
+select k, count(*) from public.shared_calculations, lateral jsonb_object_keys(to_jsonb(shared_calculations)->'outputs') k group by 1 order by 2 desc;
+-- counts of rows that look like they hold an email, a VIN or a phone number (whole row as text)
+select count(*) filter (where to_jsonb(t)::text ~* '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}') as rows_with_email,
+       count(*) filter (where to_jsonb(t)::text ~ '\y[A-HJ-NPR-Z0-9]{17}\y') as rows_with_vin_shape,
+       count(*) filter (where to_jsonb(t)::text ~ '\y\d{3}[-. ]?\d{3}[-. ]?\d{4}\y') as rows_with_phone_shape,
+       count(*) as rows
+from public.shared_calculations t;
+-- column list and sizes, to set the insert limits
+select column_name, data_type from information_schema.columns where table_schema = 'public' and table_name = 'shared_calculations' order by ordinal_position;
+select max(pg_column_size(t.*)) as largest_row_bytes, round(avg(pg_column_size(t.*))) as average_row_bytes from public.shared_calculations t;
+```
+If any row holds an email, phone or a person's name, the open SELECT is a privacy problem today (anyone can download them), not only a hardening item: tell Lane F and treat the SELECT fix as first priority.
+
+### (3) The SQL (DRAFT; names in angle brackets come from the calculator code and the policy query: TOKEN_COL is the column the share link carries, INPUTS and OUTPUTS the JSON columns)
+```sql
+-- 3a. Read ONE row by its share token; bump the counters server side. Replaces anon SELECT and the browser UPDATE.
+create or replace function public.get_shared_calculation(p_token text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare r public.shared_calculations;
+begin
+  if p_token is null or length(p_token) < 8 or length(p_token) > 128 then return null; end if;
+  update public.shared_calculations
+     set open_count = coalesce(open_count, 0) + 1, last_opened = now()
+   where <TOKEN_COL>::text = p_token
+   returning * into r;
+  if not found then return null; end if;
+  return to_jsonb(r);
+end;
+$$;
+revoke execute on function public.get_shared_calculation(text) from public;
+grant  execute on function public.get_shared_calculation(text) to anon, authenticated, service_role;
+
+-- 3b. Keep INSERT for the browser, but bounded (size limits; counters cannot be pre-set).
+drop policy if exists "<existing insert policy name>" on public.shared_calculations;
+create policy shared_calculations_insert_bounded on public.shared_calculations
+  for insert to anon, authenticated
+  with check (
+    pg_column_size(<INPUTS>) <= 8192 and pg_column_size(<OUTPUTS>) <= 8192
+    and coalesce(open_count, 0) = 0 and last_opened is null
+  );
+
+-- 3c. Stop listing and rewriting: remove the public SELECT and UPDATE policies and the table privileges behind them.
+drop policy if exists "<existing select policy name>" on public.shared_calculations;
+drop policy if exists "<existing update policy name>" on public.shared_calculations;
+revoke select, update, delete on public.shared_calculations from anon, authenticated;
+-- INSERT stays granted to anon, authenticated. RLS stays enabled.
+```
+Two variants depending on the code facts: (A) if the calculator inserts with `.insert(...).select()` or reads the new row back, removing SELECT breaks the Share button; then instead of 3b create `public.create_shared_calculation(p_inputs jsonb, p_outputs jsonb)` (SECURITY DEFINER, fixed search_path, size checks, returns the new token), grant it to anon, authenticated, and drop the INSERT policy and privilege too, so anon has no direct table access at all. (B) if the share token is a small integer or short value, add a long random column (`share_token text default encode(gen_random_bytes(16), 'hex')`) first, backfill the 87 rows, and point the link at it; otherwise a function that reads by a guessable id is the same exposure as the open SELECT. Existing links keep working only if the old value remains accepted for the 87 old rows (keep both columns in the function's WHERE clause during a transition).
+Calculator code change needed (their repo, their lane): replace the browser's read-by-id/SELECT with `supabase.rpc('get_shared_calculation', { p_token })`, and remove the browser UPDATE for open_count (the function does it). I do not edit that repo.
+
+### (4) Rollback (restores today's open state exactly; policy text from Sam's query result)
+```sql
+drop function if exists public.get_shared_calculation(text);
+drop policy if exists shared_calculations_insert_bounded on public.shared_calculations;
+create policy "<existing select policy name>" on public.shared_calculations for select to public using (true);
+create policy "<existing insert policy name>" on public.shared_calculations for insert to public with check (true);
+create policy "<existing update policy name>" on public.shared_calculations for update to public using (true);
+grant select, insert, update on public.shared_calculations to anon, authenticated;
+```
+(Take the exact policy names, roles and clauses from the saved policy query before changing anything; the rollback must be pasted from that result, not from this draft.)
+
+### (5) Before and after share-link test
+Before (record, change nothing): (1) open one real, current share link in a browser: it loads (note what it shows). (2) In the SQL editor: `set role anon; select count(*) from public.shared_calculations; reset role;` returns 87 (shows the open listing). (3) `set role anon; update public.shared_calculations set open_count = open_count where <TOKEN_COL>::text = 'lane-s-no-such-token'; reset role;` answers UPDATE 0 (allowed, matches nothing). Note the real row's open_count: `select open_count, last_opened from public.shared_calculations where <TOKEN_COL>::text = '<the real token>';` as the owner role.
+After (the SQL applied and the calculator's code change deployed): (1) the same real share link still loads in a browser, and its open_count rose by exactly 1 (read as owner). (2) `set role anon; select count(*) from public.shared_calculations;` fails with permission denied. (3) `set role anon; update public.shared_calculations set open_count = 0 where <TOKEN_COL>::text = 'lane-s-no-such-token';` fails with permission denied. (4) `set role anon; select public.get_shared_calculation('<the real token>');` returns that one row; with a wrong token it returns null. (5) Pressing Share in the calculator still creates a link, and that new link loads. (6) `select has_function_privilege('anon','public.get_shared_calculation(text)','execute');` true; `select has_function_privilege('public','public.get_shared_calculation(text)','execute');` is not applicable (revoked from public). Run each `set role` line on its own followed by `reset role;`.
+Order of deployment (so no link breaks): apply 3a first (adds the function; breaks nothing), deploy the calculator code that calls it, test a link, and only then apply 3b and 3c. If the calculator code cannot change soon, stop after 3a and 3b (bounded insert) and leave SELECT/UPDATE for later.
+
+Severity: medium for the open write (anyone can rewrite any shared link), high if the personal-data check finds emails, phones or names in the 87 rows. Owner: Sam for the SQL, the calculator's own repo owner for the code change. Search check: no public page touched.
