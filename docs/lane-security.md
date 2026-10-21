@@ -311,3 +311,7 @@ Owner lanes: Lane B engine / lib / onebox; Lane C Buy, history pages, Amazon scr
 Suggested order for Sam: (1) run the F-02 revoke block and the 10 search_path statements; (2) F-04 (check the id) and F-11 (confirm env values differ); (3) F-03 and F-08 as one "public write endpoints" job for Lane D and Lane C; (4) F-05 and F-06 together as one headers-and-origin job on a preview; (5) F-01 inspection; (6) F-09 rotation plus the crew-link changes after the launch tests; the rest in any order.
 
 Search check: no public page touched.
+
+### Live header check (Oct 21 2026, 04:10Z; two plain requests, no cookies, no keys; no lock open before either)
+- GET /sell: HTTP 200, cache-control private no-store, server Vercel, strict-transport-security max-age=63072000 (Vercel adds HSTS). NO content-security-policy, x-frame-options, x-content-type-options, referrer-policy or permissions-policy header. F-05 CONFIRMED on the live site (HSTS is present, so that part is fine).
+- OPTIONS /api/chat with an Origin header: HTTP 429 with no access-control headers. This is almost certainly Vercel bot protection answering a header-only request that carries no browser signals, not our code. F-06 is therefore NOT confirmed live; it stands from the code (Access-Control-Allow-Origin * set in api/chat.js line 51 and the other 11 routes). I did not retry, to avoid hammering production. A real-browser check by the owning lane on a preview would settle it.
