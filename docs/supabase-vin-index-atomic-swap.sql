@@ -94,3 +94,6 @@ grant execute on function swap_vin_index() to service_role;
 -- 'public.vin_index_staging'" 404 (PGRST205) even though the table now exists. Run this LAST, after
 -- the statements above, every time this file is (re-)run.
 NOTIFY pgrst, 'reload schema';
+
+-- Lane S (Oct 2026): fixed search_path (Security Advisor); see docs/supabase-function-search-path.sql
+alter function public.swap_vin_index() set search_path = public, pg_temp;

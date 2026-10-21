@@ -59,3 +59,6 @@ alter table desk_dictionary_queue enable row level security;
 revoke all on desk_dictionary_queue from anon, authenticated;
 revoke execute on function desk_queue_log(text, text, text) from public, anon, authenticated;
 grant execute on function desk_queue_log(text, text, text) to service_role;
+
+-- Lane S (Oct 2026): fixed search_path (Security Advisor); see docs/supabase-function-search-path.sql
+alter function public.desk_queue_log(text, text, text) set search_path = public, pg_temp;

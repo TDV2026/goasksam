@@ -81,3 +81,8 @@ revoke all on function backfill_attempts_usd_range(text, date, date) from public
 grant execute on function backfill_attempts_usd_range(text, date, date) to service_role;
 revoke all on function backfill_attempts_usd_nulldate(text) from public, anon, authenticated;
 grant execute on function backfill_attempts_usd_nulldate(text) to service_role;
+
+-- Lane S (Oct 2026): fixed search_path (Security Advisor). Re-run safe; see docs/supabase-function-search-path.sql
+alter function public.backfill_sales_usd_range(uuid, uuid) set search_path = public, pg_temp;
+alter function public.backfill_attempts_usd_range(text, date, date) set search_path = public, pg_temp;
+alter function public.backfill_attempts_usd_nulldate(text) set search_path = public, pg_temp;

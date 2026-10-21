@@ -108,3 +108,7 @@ begin
   get diagnostics v_count = row_count;
   return v_count > 0;
 end; $$;
+
+-- Lane S (Oct 2026): fixed search_path (Security Advisor); see docs/supabase-function-search-path.sql
+alter function public.release_search(bigint) set search_path = public, pg_temp;
+alter function public.claim_result(uuid, uuid) set search_path = public, pg_temp;

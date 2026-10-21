@@ -262,3 +262,6 @@ revoke all on function public.record_journey_event(uuid,text,text,uuid,text,text
 revoke all on function public.journey_manual_update(uuid,text,text,text,text) from public, anon, authenticated;
 grant execute on function public.record_journey_event(uuid,text,text,uuid,text,text,text,jsonb,jsonb,jsonb,timestamptz) to service_role;
 grant execute on function public.journey_manual_update(uuid,text,text,text,text) to service_role;
+
+-- Lane S (Oct 2026): fixed search_path (Security Advisor); see docs/supabase-function-search-path.sql
+alter function public.journey_rank(text) set search_path = public, pg_temp;

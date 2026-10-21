@@ -80,3 +80,6 @@ begin
     'tier', v_tier, 'used', coalesce(v_used, 0) + 1, 'limit', v_limit,
     'daily_used', coalesce(v_daily_used, 0) + 1, 'daily_limit', v_daily_limit);
 end; $$;
+
+-- Lane S (Oct 2026): fixed search_path (Security Advisor); see docs/supabase-function-search-path.sql
+alter function public.reserve_search(uuid, text, text, integer) set search_path = public, pg_temp;

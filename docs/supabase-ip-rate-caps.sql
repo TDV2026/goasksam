@@ -55,3 +55,6 @@ begin
   insert into public.ip_rate_hits (ip, kind) values (v_ip, 'signup');
   return event;
 end; $$;
+
+-- Lane S (Oct 2026): fixed search_path (Security Advisor); see docs/supabase-function-search-path.sql
+alter function public.before_user_created_ip_cap(jsonb) set search_path = public, pg_temp;
