@@ -859,6 +859,13 @@ try {
 } catch (e) {
   record("marketChartCheck (scripts/marketChartCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Buy 1f (Sam's new block; Lane E's check, in prePush by Lane C): no S mark, the pale panel, what links where, the composer the only free input. No network.
+try {
+  const out = execSync("node scripts/buy1fCheck.mjs", { encoding: "utf8" });
+  record("buy1fCheck (scripts/buy1fCheck.mjs)", "PASS", (out.match(/buy1fCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("buy1fCheck (scripts/buy1fCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
