@@ -168,6 +168,12 @@ for (const r of ROWS) {
   ok(carFieldOf({ ok: true }, { typed: "1965 Ford Mustang", chosen: "Bring a Trailer" }).car.name === "1965 Ford Mustang", "a label naming a venue never reaches the name");
   const src = (await import("node:fs")).readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
   ok(/chosen = refine && typeof b\.label === "string"/.test(src), "the handler takes the label only together with a refine (a plain read never renames the car)"); }
+// R4-B (Lane G's look): a body option's re-read names the body ("1965 Ford Mustang Convertible"); a plain search does not
+{ const { carFieldOf } = await import("../api/partnerAnswer.js"); const id = { year: 1965, make: "Ford", model: "Mustang" };
+  ok(carFieldOf({ ok: true, identity: id }, { typed: "1965 Ford Mustang Convertible" }).car.name === "1965 Ford Mustang Convertible", "a body option's words: the name carries the body (identity with no body)");
+  ok(carFieldOf({ ok: true, identity: { ...id, body: "convertible" } }, { typed: "1965 Ford Mustang Convertible" }).car.name === "1965 Ford Mustang Convertible", "the identity's body, named once, capitalised");
+  ok(carFieldOf({ ok: true, identity: { ...id, body: "convertible" } }, { typed: "1965 Ford Mustang" }).car.name === "1965 Ford Mustang", "a plain search keeps its plain name even when the engine settled a body");
+  ok(carFieldOf({ ok: true, identity: { year: 2019, make: "Mercedes-Benz", model: "AMG GT", variant: "Roadster" } }, { typed: "2019 Mercedes-AMG GT Roadster" }).car.name === "2019 Mercedes-Benz AMG GT Roadster", "a body already in the name is never repeated"); }
 // carFieldOf, pure: the name order (record, decode, identity, typed), a venue never echoed, the eBay fields untouched
 { const { carFieldOf } = await import("../api/partnerAnswer.js");
   const d = { readable: true, year: 2003, make: "Chevrolet", model: "Corvette", trim: "Z06" };

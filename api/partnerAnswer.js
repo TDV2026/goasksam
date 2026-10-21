@@ -537,6 +537,11 @@ export async function withCarFacts(out, d, { env = null, vin = null, vinDecode =
 // name alone). The name, in this order: the archive's own name for a recorded VIN, else the free decode's (year, make,
 // model, trim), else the engine's identity, else the words as typed. A name that would carry a venue falls to the next.
 // An unreadable VIN carries no car. Additive: no other field changes, and the eBay page ignores it.
+const bodyNamed = (idBody, typed) => {
+  const t = String(typed || ""), w = BODY_WORDS.exec(t);
+  const word = idBody && new RegExp("\\b" + String(idBody).replace(/[^a-z0-9 ]/gi, "") + "\\b", "i").test(t) ? idBody : (w ? w[1] : null);
+  return word ? String(word).toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase()) : null;
+};
 export function carFieldOf(body, { vin = null, id = null, vinDecode = null, typed = "", chosen = null } = {}) {
   if (!body || typeof body !== "object" || Array.isArray(body) || body.error === "rate_limited" || "car" in body) return body;
   if (body.answerType === "vin_unreadable") return { ...body, car: null };
@@ -545,7 +550,10 @@ export function carFieldOf(body, { vin = null, id = null, vinDecode = null, type
   const cands = [
     ["record", id && !id.fromDecode ? carNameOf(id) : null],
     ["decode", vinDecode && vinDecode.readable && vinDecode.make ? join(vinDecode.year, vinDecode.make, vinDecode.model, vinDecode.trim) : null],
-    ["identity", idn && idn.make && idn.model ? join(idn.year, idn.make, idn.model, idn.variant) : null],
+    // R4-B (Lane G's look): a body the words chose names the car ("1965 Ford Mustang Convertible"), as a chosen refine
+    // option does: the engine's identity body when the typed words name it, else the body word the typed words name
+    // themselves; a plain search ("1965 Ford Mustang") keeps its plain name
+    ["identity", idn && idn.make && idn.model ? join(idn.year, idn.make, idn.model, idn.variant, bodyNamed(idn.body, typed)) : null],
     ["typed", typed && !(!/\s/.test(String(typed).trim()) && VIN_RE.test(normVin(typed))) ? String(typed).trim() : null]   // a VIN only as one token (vinOfInput's rule)
   ];
   const hit = cands.find(([, n]) => n && !VENUE_RE.test(n));
