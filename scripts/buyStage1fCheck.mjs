@@ -20,6 +20,8 @@ ok(/\.msg\.results p\.unst\{margin:0 0 16px;padding:12px 2px 0;border-top:1px so
 // ITEM 4
 ok(/\.car \.ph \.chip\{background:rgba\(21,24,20,\.82\);color:#fff/.test(after(4)), "4: the source and time label is dark, like the bid strip");
 ok(!/star|heart|data-save|aria-label="Save/i.test(client.slice(client.indexOf("function photoHtml"), client.indexOf("function photoHtml") + 1500)), "4: no star, heart or save icon on a card");
+// ITEM 5
+ok(/\.car \.specs \.spec\.hchip\[aria-expanded=true\]\{background:#F7F3E8;color:var\(--green\);border:1px solid var\(--green\)/.test(after(5)) && !/hchip[^{]*\{[^}]*background:var\(--green\)/.test(after(5)), "5: the Sold before / Listed before tag is outlined on cream, never filled");
 //__NEXT__
 console.log(`buyStage1fCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
