@@ -3472,13 +3472,46 @@ async function handleOps(req, res) {
   // answer (oneEngineAnswer, the page path) with the range-rule switches OFF (what the pages print today) and ON for this
   // request only (env.rangeRules), side by side. A question answer also shows what each gearbox chip prints. The module
   // switches are never touched.
+  // trimmix (Lane B, Oct 21 2026, Sam's trim-first rule, the nameplate count; READ-ONLY, key-gated, OldCarsData zero, stores
+  // nothing): for each typed car (qs, "|"-separated, up to 30, a 230 s budget) today's answer and the answer with ONLY the
+  // trimFirst switch on for this request (env.rangeRules; its own in-flight key), plus the measured test on today's pool
+  // (lib/onebox.js trimsPriceDifferently: splitMaterial on the two largest named trims). changed: the tier moved.
+  if (task === "trimmix") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle, sanitizeResolvedVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { oneEngineAnswer, trimsPriceDifferently, buildSpec, ENGINE_VERSION } = await import("../lib/onebox.js");
+    const qs = String(req.query?.qs || "").split("|").map(x => x.trim()).filter(Boolean).slice(0, 30);
+    const t0 = Date.now(), out = [];
+    const brief = d => d ? { tier: d.tier || null, count: Number(d.poolN) || null, range: Array.isArray(d.cluster) ? d.cluster : null, label: d.rungLabel || null,
+      prompt: d.prompt || null, chips: Array.isArray(d.trimChips) ? d.trimChips : null } : null;
+    for (const q of qs) {
+      if (Date.now() - t0 > 230000) { out.push({ q, skipped: "time budget" }); continue; }
+      try {
+        const rv = await resolveVehicle(q, {});
+        const v = sanitizeResolvedVehicle(rv && rv.vehicle) || (rv && rv.vehicle);
+        if (!v || !v.make) { out.push({ q, status: (rv && rv.status) || "unresolved" }); continue; }
+        const g = await findGeneration(v, env);
+        const before = (await oneEngineAnswer(v, g, q, env, null)).raw;
+        const after = (await oneEngineAnswer(v, g, q, { ...env, rangeRules: { trimFirst: true } }, null)).raw;
+        const test = before && Array.isArray(before.rawPool) ? trimsPriceDifferently(before.rawPool, buildSpec(v, g, q)) : null;
+        out.push({ q, trimTyped: !!v.trim, before: brief(before), after: brief(after), test, changed: !!(before && after && before.tier !== after.tier) });
+      } catch (e) { out.push({ q, error: String((e && e.message) || e).slice(0, 160) }); }
+    }
+    const done = out.filter(o => o.before);
+    return res.status(200).json({ task: "trimmix", engineVersion: ENGINE_VERSION, rule: "splitMaterial on the two largest named trims (3+ sales each; middle-half bands do not overlap)", ms: Date.now() - t0, read: done.length,
+      becomeQuestion: done.filter(o => o.changed && o.after && o.after.tier === "trim_choice").length, cars: out });
+  }
   if (task === "rangepreview") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle, sanitizeResolvedVehicle } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
     const { oneEngineAnswer, ENGINE_VERSION, RANGE_RULES } = await import("../lib/onebox.js");
     const qs = String(req.query?.qs || "").split("|").map(x => x.trim()).filter(Boolean).slice(0, 12);
-    const on = { blendOneFamily: true, gearboxFirst: true, houseOnlyBody: true };
+    // rules= (Oct 21 2026, the trim-first table): the preview turns on ONLY the named switches ("trimFirst"); without it, the
+    // three range rules as before
+    const ruleNames = String(req.query?.rules || "").split(",").map(x => x.trim()).filter(k => Object.prototype.hasOwnProperty.call(RANGE_RULES, k));
+    const on = ruleNames.length ? Object.fromEntries(ruleNames.map(k => [k, true])) : { blendOneFamily: true, gearboxFirst: true, houseOnlyBody: true };
     const { parsePreviewBind } = await import("../lib/_bodyChanges.js");
     const bindGens = parsePreviewBind(req.query?.bind);
     if (req.query?.bind && !bindGens) return res.status(400).json({ error: "bind must read Make|Model|code:YYYY-YYYY[,code:YYYY-YYYY]" });
