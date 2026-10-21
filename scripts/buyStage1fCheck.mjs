@@ -40,6 +40,8 @@ ok(/\.car \.specs \.spec\.hchip\{background:#F7F3E8;color:var\(--green\);border:
 // NEW BLOCK ITEM 6: the fold
 const n6 = css.slice(css.indexOf("SAM'S NEW 1f BLOCK, ITEM 6,"));
 ok(/\.cgrid \.car h3\{min-height:0\}/.test(n6) && /var ALIGN = \[".tx > .trow"/.test(client), "new 6: no empty second title line; a row makes room only when one of its titles wraps (measured: the first row's range bottom 694px against the composer at 823px, 1440 by 900, local render)");
+// NEW BLOCK ITEM 7: Sign in never on the Sort
+ok(/function clearSignIn\(\)\{/.test(client) && /row\.style\.paddingRight = Math\.ceil\(rr\.right - pr\.left \+ 12\) \+ "px"/.test(client) && /alignRows\(\); clearSignIn\(\);/.test(client) && /new MutationObserver\(alignSoon\)\.observe\(sbar/.test(client), "new 7: the header row keeps clear of the Sign in pill by its measured width, on every change, resize and when the pill fills");
 //__NEXT__
 console.log(`buyStage1fCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
