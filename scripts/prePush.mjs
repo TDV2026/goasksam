@@ -845,6 +845,13 @@ try {
 } catch (e) {
   record("buyStage1fCheck (scripts/buyStage1fCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// One left rail (Sam's new Buy 1f block item 8, Oct 21 2026; Lane C): every page's rail looks like Buy's, signed out and as crew. No network (a local browser).
+try {
+  const out = execSync("node scripts/railCheck.mjs", { encoding: "utf8" });
+  record("railCheck (scripts/railCheck.mjs)", "PASS", (out.match(/railCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("railCheck (scripts/railCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
