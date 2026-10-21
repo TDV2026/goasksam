@@ -37,6 +37,9 @@ ok(!/sfin|data-sqedit|data-sfield/.test(client), "new 4: no inline Edit the sear
 // NEW BLOCK ITEM 5: the tags
 const n5 = css.slice(css.indexOf("SAM'S NEW 1f BLOCK, ITEM 5,"));
 ok(/\.car \.specs \.spec\.hchip\{background:#F7F3E8;color:var\(--green\);border:1px solid var\(--green\);cursor:pointer/.test(n5) && /\.car \.specs \.spec\.hchip:hover,\.car \.specs \.spec\.hchip:focus-visible\{background:#E3EEE6/.test(n5), "new 5: outlined on cream at rest; pale green fill and a pointer on hover and keyboard focus");
+// NEW BLOCK ITEM 6: the fold
+const n6 = css.slice(css.indexOf("SAM'S NEW 1f BLOCK, ITEM 6,"));
+ok(/\.cgrid \.car h3\{min-height:0\}/.test(n6) && /var ALIGN = \[".tx > .trow"/.test(client), "new 6: no empty second title line; a row makes room only when one of its titles wraps (measured: the first row's range bottom 694px against the composer at 823px, 1440 by 900, local render)");
 //__NEXT__
 console.log(`buyStage1fCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
