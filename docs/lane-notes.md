@@ -11661,3 +11661,35 @@ Search check: no public page touched.
 - PUSHED (Lane B, 2026-10-21T03:46Z): trim first 1b (switch OFF), e1fd177e, pushed on 0 FAIL. Main commits overlapping these files since the lock: none (main's new non-docs files since the branch was built: none). Lock released. Look after Ready.
 - LOOK DONE (Lane E, 03:47:35Z): R4-B BODY NAME (701976dd), read only, one page plus thirteen partner reads, a busy-lane check before each (it waited out Lane B's 03:35Z lock first). Tab c for \"1965 Ford Mustang Convertible\": the name line reads \"1965 Ford Mustang Convertible\" (03:47:20Z). A plain \"1965 Ford Mustang\" keeps \"1965 Ford Mustang\". No body repeated anywhere. The three VINs unchanged (\"1995 BMW M3 · VIN WBSBF932XSEH00621\", \"2003 Chevrolet Corvette Z06 · VIN ...\", \"2015 Mercedes-Benz S-Class S550 4MATIC · VIN ...\"). ONE VISIBLE CHANGE, as the rule intends: a demo car whose own words name a body now carries it in its name: \"2017 Porsche 911 Carrera Coupe\" (was \"2017 Porsche 911 Carrera\"), \"2017 Audi R8 V10 Plus Coupe\" (was \"... V10 Plus\"), \"2012 Mercedes-Benz SLS AMG Roadster\" (was \"... SLS AMG\"), \"2013 BMW M3 Competition Coupe\" (was \"2013 BMW M3 Competition\"); the GT3, the 488 and the C63 are unchanged. bodyLook: all pass. No revert condition. (My first attempt at 03:3x waited on my own lane: my reader held Lane E busy until Lane E's own look; a lane's own look now skips its own lock.)
 Search check: no public page touched.
+
+## FROM SAM, relayed verbatim by Lane F (03:48Z)
+
+From Sam to F. Open a new lane, Lane S (Security), a fresh session that has not written GoAskSam code. It reviews, it does not build. Report stage by stage. No time estimates.
+
+PURPOSE. A security review of GoAskSam before launch and before any partner deal. GitHub secret protection, push protection, Dependabot alerts and CodeQL default setup are now on. The Supabase Security Advisor shows 0 errors, 20 warnings, 69 info.
+
+RULES FOR LANE S. Read-only on code and production, except the one approved fix in stage 1. Never print, copy or log any key, secret, partner code, cookie or personal data in a report, lane-notes or chat; refer to secrets by name only. No load tests, no attacks on production, no requests that change data; test against local or preview only. No spend. Every finding is reported with: what it is, file and line or table, how it could be misused in plain words, severity (critical, high, medium, low), and the proposed fix. Nothing beyond stage 1 changes until Sam approves each fix. Fixes then ship through the normal push protocol by the owning lane.
+
+STAGE 1. SUPABASE ADVISOR.
+(a) Approved fix: for each "Function Search Path Mutable" warning, set a fixed search_path on that function (public, pg_temp, plus any schema it really uses), with no other change. Before pushing, show that each function returns the same results before and after on a read-only test. Ship in one slot under the push protocol.
+(b) Report only: the "RLS Policy Always True" policies on public.shared_calculations: which operations they allow (read, insert, update, delete) and to whom, and whether anyone can change or delete someone else's calculation. Propose a fix if so.
+(c) Report only: every remaining warning not visible on Sam's screen, and a one-line summary of the 69 info items.
+(d) Leave pg_trgm in public; report only whether moving it is ever worth it.
+
+STAGE 2. CODE REVIEW, report only. Cover at least:
+- Supabase: row-level security on every table that holds emails, tasks, saved searches, signups or any personal data; the service role key never reaches a browser or a client bundle; which API routes use the service key and whether each needs to.
+- Gates: the partner demo gate and the crew gate cannot be bypassed (missing checks on any route, guessable codes, cookies without HttpOnly, Secure and SameSite, codes or tokens in URLs or logs); every crew-only route and admin script really checks.
+- Injection and scraped text: listing titles, descriptions and photo URLs from auction sites rendered without escaping (cross-site scripting); any raw SQL or RPC built from user input; typed VINs and search text.
+- Server-side fetches: any route that fetches an address taken from user input (VIN decode, photos, sitemaps).
+- Abuse and cost: rate limits on every public API route, especially the engine, Buy, Market Check, VIN decode and email sign-up, given the Supabase spend cap is off. Name the routes with none.
+- Email and personal data: what is stored, who can read it, retention, and that none is written to logs or analytics.
+- Secrets: a scan of the full git history for any committed key; the planned rotations (Vercel bypass secret, CURTAIN_CREW_CODE) and every place each one must be updated, including GitHub Actions secrets.
+- Workflows and scripts: least privilege for each GitHub workflow token; production scripts guarded by the explicit flag.
+- Headers: security headers on the live site (content security policy, frame options, HSTS) and CORS on the API.
+- Dependencies: npm audit and any Dependabot or CodeQL alerts, ranked.
+
+STAGE 3. A ranked findings table for Sam: critical and high first, each with a one-line plain-English summary and the proposed owner lane. Sam approves fixes item by item.
+
+One-engine rule applies: no fix may change a count, range, line or answer; any fix that would is reported, not shipped. No em or en dashes in any drafted copy.
+
+LANE F NOTE: LANE S OPENED (Lane F, 03:48Z): a fresh background agent in its own git worktree that has not seen the GoAskSam code, brief in its first message; it REVIEWS, it does not build. Its reports go in docs/lane-security.md (docs-only commits pushed by themselves; no secret, key, cookie, partner code or personal data anywhere: names only) with a '- LANE S REPORT (' line in lane-notes pointing at each stage. PRODUCTION READS: Lane S reads production ONLY in a gap Lane F names, by the lock rules (a lock is a line starting '- PUSH LOCK (Lane X', held until that lane's '- LOOK DONE', '- LOCK RELEASED' or '- REVERTED'); header and CORS checks are one or two plain requests. STAGE 1a is a SQL change to the live database: Lane S drafts the exact ALTER FUNCTION statements as a docs file and the before and after read-only test; SAM RUNS THE SQL (Lane S has no database key and gets none); the Security rule in CLAUDE.md (DDL file and live database must match) applies. No other lane is affected; lanes answer Lane S's questions about their files in lane-notes.
