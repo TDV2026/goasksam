@@ -765,6 +765,13 @@ try {
 } catch (e) {
   record("buyBarFlushCheck (scripts/buyBarFlushCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Buy Stage 1e item 6 (Sam, Oct 21 2026; Lane E's bucketing): each era chip counts the cards that print its code. No network.
+try {
+  const out = execSync("node scripts/eraChipsCheck.mjs", { encoding: "utf8" });
+  record("eraChipsCheck (scripts/eraChipsCheck.mjs)", "PASS", (out.match(/eraChipsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("eraChipsCheck (scripts/eraChipsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });

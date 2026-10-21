@@ -52,11 +52,16 @@ ok(/#gas-rail \.srch,\.vlist \.srch\{white-space:normal;overflow:visible;overflo
 const ds = block("  function drawSearch(d, typed){", "    lastDraw = d;");
 ok(/var mode = \(d\.meta \|\| \{\}\)\.narrow, quiet = !!\(a && !a\.vague && !a\.zipAsk && !d\._showAll && \(mode === "quiet" \|\| mode === "light"\)\);/.test(ds) && /if \(a && !a\.vague && mode === "none"\) a = null;/.test(ds), "the server's mode decides: quiet and light get the quiet line, none gets nothing, question keeps the panel");
 ok(/if \(quiet\) block\.insertAdjacentHTML\("beforeend", quietAskHtml\(a, mode\) \+ more\);\n\s*else if \(a && !d\._showAll\) block\.insertAdjacentHTML\("beforeend", askHtml\(a, d\.meta \|\| \{\}, qp\) \+ more\);/.test(ds), "the question panel only when the mode is not quiet or light");
-const quietAskHtml = new Function("function esc(s){ return String(s); }\n" + block("  function quietAskHtml(a, mode){", "  function askHtml(a, m, qp){") + "\nreturn quietAskHtml;")();
+const quietAskHtml = new Function("function esc(s){ return String(s).replace(/\"/g, '&quot;'); }\n" + block("  function quietAskHtml(a, mode){", "  function askHtml(a, m, qp){") + "\nreturn quietAskHtml;")();
 const qa = { dim: "model", q: "Which model?", chips: [{ label: "911", patch: { model: "911" } }, { label: "Panamera", patch: { model: "Panamera" } }, { label: "930", patch: { model: "930" } }, { label: "Cayman", patch: { model: "Cayman" } }] };
 const qh = quietAskHtml(qa, "quiet"), lh = quietAskHtml(qa, "light");
 ok(/^<p class="narrowq"[^>]*><span class="nq-t">Want to narrow it\?<\/span>/.test(qh) && (qh.match(/data-askpatch/g) || []).length === 3, "3 to 8 cars: 'Want to narrow it?' with at most three options");
 ok(/<span class="nq-t">Which model\?<\/span>/.test(lh) && (lh.match(/data-askpatch/g) || []).length === 4 && !/section class="ask"/.test(lh), "9 to 24: the question's own words with its options as light suggestions, no panel");
+// Stage 1e item 6 (Sam, Oct 21 2026): the light row carries the engine's counts and ends with its Any chip; never cut at four.
+const ea = { dim: "generation", q: "Which era?", chips: [{ label: "Air-cooled, to 1998", n: 16, patch: { era: "901,G-Body,964,993" } }, { label: "996", n: 3, patch: { era: "996" } }, { label: "997", n: 1, patch: { era: "997" } }, { label: "991.1", n: 1, patch: { era: "991.1" } }, { label: "991.2", n: 1, patch: { era: "991.2" } }], any: { label: "Any 911", n: 22 } };
+const eh = quietAskHtml(ea, "light"), et = eh.replace(/<[^>]+>/g, "").replace(/\s+/g, " ");
+ok(et === "Which era?Air-cooled, to 1998 (16)996 (3)997 (1)991.1 (1)991.2 (1)Any 911 (22)", "the era row: each chip with its engine count, all five, ending 'Any 911 (22)' (got " + et + ")");
+ok(/data-askany="generation">Any 911 <span class="an">\(22\)<\/span><\/button><\/p>$/.test(eh), "the Any chip clears the question (data-askany), last in the row");
 ok(!/\(\d/.test(qh) && !/any/i.test(qh.replace(/narrow it/i, "")), "no count and no Any chip on the quiet line");
 // ---- A NOT-TRACKED MARKET (Lane B bb8715f6, Lane F's ask): until the card draws market.notTrackedLine, a card whose
 // market is { kind: "not_tracked" } draws only the engine's notTrackedLine: no Market Check (it has no query), no placing, no basis.
