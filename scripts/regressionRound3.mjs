@@ -73,7 +73,7 @@ async function correctionCase(pendingSuggestion, answer) {
   sellState.pendingVehicleIdentity = { type:"model", baseVehicle:"BMW", suggestion:pendingSuggestion, rawInput:"2018 bmw 850i" };
   await handleVehicleValidationAnswer(answer);
   const lastChips = SAM.length ? SAM[SAM.length-1].chips : "";
-  const chipLabels = [...lastChips.matchAll(/handleChip\('([^']+)'\)/g)].map(m=>m[1]);
+  const chipLabels = [...lastChips.matchAll(/data-chip="([^"]+)"/g)].map(m=>m[1]);
   return { sentTexts: sent.slice(), chipLabels, sam: SAM.map(s=>s.text) };
 }
 {

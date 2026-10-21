@@ -1858,9 +1858,11 @@ function handleChip(text,chipStep){
   if(chipStep!=null&&Number(chipStep)!==currentChipStep())return; // stale chip: inert
   quick(text);
 }
+// F-30 (Lane S's CodeQL triage, Oct 21 2026): the label rides in data-chip (HTML-escaped) and onclick reads it back, so
+// no JS string is built from the label: a quote or angle bracket can no longer end the attribute.
 function chipsHTML(chips){
   const step=currentChipStep();
-  return`<div class="chips" data-chip-step="${step}">${chips.map(c=>`<button class="chip" data-chip-step="${step}" onclick="handleChip('${String(c).replace(/'/g,"\\'")}',${step})"> ${escapeHtml(c)}</button>`).join("")}</div>`;
+  return`<div class="chips" data-chip-step="${step}">${chips.map(c=>`<button class="chip" data-chip-step="${step}" data-chip="${escapeHtml(c)}" onclick="handleChip(this.dataset.chip,${step})"> ${escapeHtml(c)}</button>`).join("")}</div>`;
 }
 // Dim + disable every chip whose step no longer matches the current step. Called
 // on each message render, so a completed step's chips deactivate immediately.

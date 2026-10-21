@@ -82,7 +82,7 @@ async function type(text) {
   console.log(`  > "${text}"`);
   console.log(`    Sam: ${JSON.stringify((s?.text || "").slice(0, 140))}`);
   if (s?.chips && /chip/.test(s.chips)) {
-    const chips = [...s.chips.matchAll(/handleChip\('([^']+)'\)/g)].map(m => m[1]);
+    const chips = [...s.chips.matchAll(/data-chip="([^"]+)"/g)].map(m => m[1]);
     if (chips.length) console.log(`    chips: [${chips.join(", ")}]`);
   }
   console.log(`    state: active=${sellState.active} step=${sellState.step} car=${JSON.stringify(sellState.carName)} skipped=${sellState.vehicleDetailSkipped}`);

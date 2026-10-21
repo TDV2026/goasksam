@@ -225,7 +225,7 @@ check("registry: registryRoutableRegion europe=true, middle east=true, canada=fa
 // ============ #3 CHIP DISPATCH BY STEP-ID ============
 Object.assign(globalThis.sellState,{step:11});
 const chipHtml=chipsHTML(["United States","Somewhere else"]);
-check("chip dispatch: chips carry the current step-id", /data-chip-step="11"/.test(chipHtml)&&/handleChip\('United States',11\)/.test(chipHtml), chipHtml.slice(0,120));
+check("chip dispatch: chips carry the current step-id", /data-chip-step="11"/.test(chipHtml)&&/data-chip="United States" onclick="handleChip\(this\.dataset\.chip,11\)"/.test(chipHtml), chipHtml.slice(0,120));
 check("chip dispatch: currentChipStep reads sellState.step", currentChipStep()===11);
 Object.assign(globalThis.sellState,{step:1});
 check("chip dispatch: after step moves (11->1), a step-11 chip no longer matches", currentChipStep()===1&&Number(11)!==currentChipStep());

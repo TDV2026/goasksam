@@ -677,7 +677,7 @@ sellState.vehicleIdentityValidated = true; sellState.vehicleDetailSkipped = true
 sellState.region = null; sellState.state = null; sellState.step = 18;
 askLocationStep();
 check("launch: vehicle completion pre-sets region=US and asks the state question", sellState.region === "US" && sellState.step === 18 && /which state is it in/i.test(lastSam() || ""), `region=${sellState.region} step=${sellState.step} last="${lastSam()}"`);
-check("launch: the state step shows state chips (no country chips)", /handleChip\('California',18\)/.test(String(addMsgLog.at(-1)?.[3] || "")), `chips="${String(addMsgLog.at(-1)?.[3] || "").slice(0,120)}"`);
+check("launch: the state step shows state chips (no country chips)", /data-chip="California" onclick="handleChip\(this\.dataset\.chip,18\)"/.test(String(addMsgLog.at(-1)?.[3] || "")), `chips="${String(addMsgLog.at(-1)?.[3] || "").slice(0,120)}"`);
 await handleSellStep("California");
 check("launch: state stored, advances straight to price", sellState.state === "California" && sellState.step === 6, `state=${sellState.state} step=${sellState.step}`);
 

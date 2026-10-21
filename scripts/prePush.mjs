@@ -825,6 +825,13 @@ try {
 } catch (e) {
   record("beaconCeilingCheck (scripts/beaconCeilingCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// F-30 (Lane S's CodeQL triage, Oct 21 2026; Lane C): chip labels ride in data-chip. No network (a local browser).
+try {
+  const out = execSync("node scripts/chipLabelCheck.mjs", { encoding: "utf8" });
+  record("chipLabelCheck (scripts/chipLabelCheck.mjs)", "PASS", (out.match(/chipLabelCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("chipLabelCheck (scripts/chipLabelCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });

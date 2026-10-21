@@ -320,11 +320,13 @@ async function resolveVehicleInput(candidate,opts={}){
 // Back-compat alias: existing call sites keep working while the canonical name
 // is resolveVehicleInput. Both refer to the one resolver above.
 const validateVehicleIdentityPreflight=resolveVehicleInput;
+// F-30 (Lane S's CodeQL triage, Oct 21 2026): a chip from the reply ([CHIPS:...]) carries its label in data-chip (HTML-escaped)
+// and onclick reads it back; no JS string is built from model or listing text.
 function parseResults(raw){
   const chipMatch=raw.match(/\[CHIPS:([^\]]+)\]/);
   const chips=chipMatch?chipMatch[1].split("|").map(x=>x.trim()).filter(Boolean):[];
   const clean=raw.replace(/\[SEARCHING:.*?\]/g,"").replace(/\[CARD:.*?\]/g,"").replace(/\[RNM:.*?\]/g,"").replace(/\[CHIPS:.*?\]/g,"").trim();
-  const chipsHTML2=chips.length?`<div class="chips">${chips.map(c=>`<button class="chip" onclick="handleChip('${c.replace(/'/g,"\\'")}')"> ${escapeHtml(c)}</button>`).join("")}</div>`:"";
+  const chipsHTML2=chips.length?`<div class="chips">${chips.map(c=>`<button class="chip" data-chip="${escapeHtml(c)}" onclick="handleChip(this.dataset.chip)"> ${escapeHtml(c)}</button>`).join("")}</div>`:"";
   return{clean,chipsHTML:chipsHTML2};
 }
 let __lastSamText=null;
