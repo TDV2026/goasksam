@@ -34,6 +34,9 @@ const cardFn = client.slice(client.indexOf("  function card(l, big, eager){"), c
 ok(/<h3><span class="ttl"/.test(cardFn) && !/<h3><a /.test(cardFn) && (cardFn.match(/href="' \+ esc\(l\.url\)/g) || []).length === 1 && /class="vauc" href="' \+ esc\(l\.url\)/.test(cardFn), "new 4: the title is plain text; inside the card's text only View auction links to the auction (the photo is the other link)");
 ok(/<a class="ph" href="' \+ esc\(l\.url\)/.test(client), "new 4: the photo opens the auction");
 ok(!/sfin|data-sqedit|data-sfield/.test(client), "new 4: no inline Edit the search field");
+// NEW BLOCK ITEM 5: the tags
+const n5 = css.slice(css.indexOf("SAM'S NEW 1f BLOCK, ITEM 5,"));
+ok(/\.car \.specs \.spec\.hchip\{background:#F7F3E8;color:var\(--green\);border:1px solid var\(--green\);cursor:pointer/.test(n5) && /\.car \.specs \.spec\.hchip:hover,\.car \.specs \.spec\.hchip:focus-visible\{background:#E3EEE6/.test(n5), "new 5: outlined on cream at rest; pale green fill and a pointer on hover and keyboard focus");
 //__NEXT__
 console.log(`buyStage1fCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
