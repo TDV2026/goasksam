@@ -1034,7 +1034,7 @@
         "</g>";
     });
     var svg = '<svg class="hc-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Quarterly sale prices">' + grid + bars + "</svg>";
-    var legend = '<div class="hc-legend"><span class="hc-legend-sw"><span class="hc-legend-box"></span>Middle half of sales (25th to 75th percentile)</span><span class="hc-legend-sw"><span class="hc-legend-dot"></span>Typical sale (median)</span></div>';
+    var legend = '<div class="hc-legend"><span class="hc-legend-sw"><span class="hc-legend-box"></span>Typical range (middle half of sales)</span><span class="hc-legend-sw"><span class="hc-legend-dot"></span>Typical sale (median)</span></div>';
     var py = trendObj && trendObj.priorYear && Number(trendObj.priorYear.high) > 0
       ? ('<p class="hc-prioryear">' + lint(esc("The year before, the typical range was " + usd(trendObj.priorYear.low) + " to " + usd(trendObj.priorYear.high) + "."), "hc.prioryear") + "</p>") : "";
     return svg + legend + py;
