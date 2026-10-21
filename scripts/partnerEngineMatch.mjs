@@ -24,7 +24,12 @@ const noRows = h => String(h || "").replace(/<ul class="sfc-rows">[\s\S]*?<\/ul>
 // different days although every number and line is the same. The card is compared with that footer text set aside; the
 // footer is checked on its own to be one of the two engine forms (never invented, never empty of its brand).
 const FOOTER_LEFT = /<span class="sfc-footer-left">([\s\S]*?)<\/span>/;
-const noTime = h => String(h || "").replace(FOOTER_LEFT, '<span class="sfc-footer-left">(read time)</span>');
+// THE RANGE LINE (Sam, Oct 21 2026: "Half of these sold in this range." becomes "The typical range for cars like this."):
+// while the two sides run different deploys (production's endpoint still prints the old wording, a branch the new), both
+// wordings are read as ONE token on BOTH sides, so this check compares everything else. Drop this normaliser once the
+// new wording has been live a day (Lane E's handoff).
+const RANGE_LINE = /Half of these sold in this range\.|The typical range for cars like this\./g;
+const noTime = h => String(h || "").replace(FOOTER_LEFT, '<span class="sfc-footer-left">(read time)</span>').replace(RANGE_LINE, "(range line)");
 const footerOk = h => { const m = FOOTER_LEFT.exec(String(h || "")); return !!m && /^Powered by GoAskSam( &middot; (Updated [A-Z][a-z]+ \d{1,2}(, \d{4})?|Sales read [^<]*refreshing now\.|Sales read on [A-Z][a-z]+ \d{1,2}\. Sales since then are not in yet\. Updating now\.))?$/.test(m[1]); };
 const firstDiff = (a, b) => { a = String(a || ""); b = String(b || ""); let i = 0; while (i < a.length && a[i] === b[i]) i++; return i >= a.length && i >= b.length ? null : `at ${i}: endpoint "${a.slice(Math.max(0, i - 40), i + 80)}" / Market Check "${b.slice(Math.max(0, i - 40), i + 80)}"`; };
 let lastCardDiff = null;
