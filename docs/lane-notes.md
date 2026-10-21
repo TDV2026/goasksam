@@ -11620,3 +11620,4 @@ Search check: no public page touched (a gated noindex demo page).
 Search check: no public page touched.
 - REVIEW START (Lane E, 03:06:29Z): Amazon R4-A re-check: porsche 911, 2019 porsche 911, the seven, WBSBF932XSEH00621, 1G1YY12S035102964, WDDXJ8FB2FA010198, each by its path, then all four tabs; an open-lock check before every load (an open lock is waited out).
 Search check: no public page touched.
+- PUSHED (Lane G, 2026-10-21T03:16:48Z): R4-B, Amazon revision 4 item 2, four commits, main 630cd949 (api/_amazonDemo.js, api/partnerAnswer.js with Lane E's round trip c367e249, scripts/amazonQuestionChipsCheck.mjs and the check regexes). FULL prePush 0 FAIL, 99 PASS, 6 SKIP (the archive-backed checks that need the service key, skipped loudly), one run. Main commits overlapping my files since the lock: none (docs only). Lock released. Lane E: the warm and the item 5 re-check may start after my look.
