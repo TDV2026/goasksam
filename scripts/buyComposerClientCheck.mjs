@@ -29,7 +29,7 @@ ok(/drawSuggest\(\[\]\);/.test(block("  function goStart(push){", "  // Re-show 
 ok(!/[–—]/.test(zr + block("  function drawSuggest(", "  function zipAskRow(")), "no dashes");
 // Where they are: the count of cars whose listing does not say where they are, never when 0.
 const placeUnstatedHtml = new Function("function esc(x){ return String(x); } function numWord(n){ return n === 1 ? 'One' : n === 4 ? 'Four' : String(n); }\n" + block("  function placeUnstatedHtml(m){", "  function unstatedHtml(m){") + "\nreturn placeUnstatedHtml;")();
-ok(placeUnstatedHtml({ unstatedPlace: 4 }) === '<p class="unst">Four more don’t say where they are. <button type="button" class="rchip" data-send="Show the ones that don’t say too">Show them too</button></p>', "N more don't say where they are. Show them too");
+ok(placeUnstatedHtml({ unstatedPlace: 4 }) === '<p class="unst">Four more don’t say where they are. <button type="button" class="rchip" data-send="Show the ones that don’t say too">Show them too →</button></p>', "N more don't say where they are. Show them too");
 ok(/One more doesn’t say where it is\./.test(placeUnstatedHtml({ unstatedPlace: 1 })) && placeUnstatedHtml({ unstatedPlace: 0 }) === "" && placeUnstatedHtml({}) === "", "one reads it; none draws nothing");
 ok(/var more = unstatedHtml\(d\.meta \|\| \{\}\) \+ placeUnstatedHtml\(d\.meta \|\| \{\}\) \+ eraMoreHtml/.test(c), "drawn with the other quiet lines");
 console.log(`buyComposerClientCheck: ${pass} passed, ${fail} failed`);

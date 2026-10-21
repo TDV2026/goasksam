@@ -18,7 +18,9 @@ const n1 = css.slice(css.indexOf("SAM'S NEW 1f BLOCK, ITEM 1,"));
 ok(/\.msg\.sam \.ask\.samq\{display:block;margin:2px 0 12px;padding:10px 16px;background:var\(--tint,#E7EBE4\)/.test(n1) && /p\.ask-q\{margin:0;font:500 19px/.test(n1), "2 (new block item 1): the pale green panel, 10px padding (was 12), the question at 19px (was 17)");
 ok(/\.ask\.samq \.rchip\.achip\.on\{background:var\(--green\)/.test(css) && /if \(ap\) ap\.classList\.add\("on"\);/.test(client), "2: the applied chip fills deep green");
 // ITEM 3
-ok(/\.msg\.results p\.unst\{margin:0 0 16px;padding:12px 2px 0;border-top:1px solid var\(--div\)/.test(after(3)) && /data-send="Show the ones that don’t say too">Show them too<\/button>/.test(client), "3: the unknown-data row keeps its words and button, a quiet row under a thin rule");
+ok(/\.msg\.results p\.unst\{margin:0 0 16px;padding:12px 2px 0;border-top:1px solid var\(--div\)/.test(after(3)) && /data-send="Show the ones that don’t say too">Show them too →<\/button>/.test(client), "3: the unknown-data row keeps its words and button, a quiet row under a thin rule");
+// NEW BLOCK ITEM 2: "Show them too" with an arrow, an underlined text link
+ok(/">Show them too →<\/button>/.test(client) && !/Show them too<\/button>/.test(client) && /\.msg\.results p\.unst \.rchip\{all:unset;cursor:pointer;color:var\(--green\);[^}]*text-decoration:underline/.test(css), "new 2: 'Show them too →' is an underlined text link with an arrow");
 // ITEM 4
 ok(/\.car \.ph \.chip\{background:rgba\(21,24,20,\.82\);color:#fff/.test(after(4)), "4: the source and time label is dark, like the bid strip");
 ok(!/star|heart|data-save|aria-label="Save/i.test(client.slice(client.indexOf("function photoHtml"), client.indexOf("function photoHtml") + 1500)), "4: no star, heart or save icon on a card");
