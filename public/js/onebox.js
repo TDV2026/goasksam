@@ -996,42 +996,78 @@
     var axisLo = Math.floor(dataLo / step) * step - step;
     var axisHi = Math.ceil(dataHi / step) * step + step;
     if (!(axisHi > axisLo)) return "";
-    var W = 880, H = 560, padL = 60, padR = 20, padB = 44, padT = 44;
-    // Item 3 (Sam's follow-up round): box width ~28% of its slot (was 40%, read as too fat against
-    // the mockup).
+    // SAM'S MARKET CHECK CHART FIXES (Oct 21 2026; Lane C). Every figure is the engine's own (q.low, q.high, q.typical,
+    // q.count, q.thin, and q.prices / trend.minForRange when the engine sends them); the code below only LAYS THEM OUT.
+    // (e) the y-axis gets room for its widest label (measured in characters at this width's font), so "$190K" never clips.
+    var phone = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width:700px)").matches;
+    var FS = phone ? 32 : 23, CH = FS * 0.66;
+    var axisVals = []; for (var av = axisLo; av <= axisHi + step * 0.01; av += step) axisVals.push(av);
+    var axisChars = Math.max.apply(null, axisVals.map(function (v) { return usdK(v).length; }));
+    var W = 880, H = 560, padL = Math.max(60, Math.ceil(axisChars * FS * 0.72 + 28)), padR = 20, padB = phone ? 84 : 64, padT = 44;
     var plotW = W - padL - padR, slot = plotW / qs.length, barW = slot * 0.28;
     var y = function (v) { return padT + (1 - (v - axisLo) / (axisHi - axisLo)) * (H - padT - padB); };
     var grid = "";
-    for (var v = axisLo; v <= axisHi + step * 0.01; v += step) {
+    axisVals.forEach(function (v) {
       var yy = y(v);
       grid += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + yy.toFixed(1) + '" y2="' + yy.toFixed(1) + '" stroke="var(--div)" stroke-width="1"/>' +
-        '<text class="hc-axislabel" x="' + (padL - 10) + '" y="' + (yy + 4).toFixed(1) + '" text-anchor="end">' + esc(usdK(v)) + "</text>";
-    }
-    var bars = "";
+        '<text class="hc-axislabel" x="' + (padL - 10) + '" y="' + (yy + FS * 0.35).toFixed(1) + '" text-anchor="end">' + esc(usdK(v)) + "</text>";
+    });
+    // (d) no label ever overlaps a box, a dot or another label: every drawn thing claims its rectangle, and each label takes
+    // the first free place in its own order of preference.
+    var taken = [];
+    var hit = function (r) { return r.x1 < padL - 2 || r.x2 > W - 2 || taken.some(function (t) { return r.x1 < t.x2 && r.x2 > t.x1 && r.y1 < t.y2 && r.y2 > t.y1; }); };
+    var claim = function (r) { taken.push(r); return r; };
+    var textW = function (str) { return String(str).length * CH; };
+    var spotRect = function (str, sp) { var w = textW(str), x1 = sp.anchor === "middle" ? sp.x - w / 2 : sp.anchor === "end" ? sp.x - w : sp.x; return { x1: x1 - 3, x2: x1 + w + 3, y1: sp.y - FS * 1.0, y2: sp.y + FS * 0.3 }; };
+    var textAt = function (str, sp) { return '<text class="hc-candlelabel" x="' + sp.x.toFixed(1) + '" y="' + sp.y.toFixed(1) + '" text-anchor="' + sp.anchor + '">' + esc(str) + "</text>"; };
+    var place = function (str, spots) {
+      for (var k = 0; k < spots.length; k++) { var r = spotRect(str, spots[k]); if (!hit(r)) { claim(r); return textAt(str, spots[k]); } }
+      return "";   // no free place: the figure stays in the dot's or the box's tooltip, never drawn over something
+    };
+    var minN = Number(trendObj && trendObj.minForRange) || null;
+    var shapes = [], labels = [];
     qs.forEach(function (q, i) {
-      var cx = padL + slot * i + slot / 2;
-      var label = qtrLabel(q.period || q.label), count = digitOf(q.count);
-      var hasBox = Number.isFinite(Number(q.low)) && Number.isFinite(Number(q.high));
-      var box = "";
-      if (hasBox) {
-        var ylo = y(Number(q.low)), yhi = y(Number(q.high));
-        // Job 2 (round two): high/low in the secondary ink (not the heavier dark ink) at a size that
-        // actually reads as 13px - .hc-axislabel/.hc-candlelabel (CSS, onebox.html) compensate for
-        // the SVG's own viewBox-to-viewport scale (measured live: ~0.56 at 1440, ~0.41 at 390 - the
-        // bare "13" SVG unit this used to carry rendered at under 8px on screen, the "too small and
-        // too pale" Sam flagged), so the class carries a different base size per breakpoint instead
-        // of one inline attribute that could only ever be right at one width.
-        box = '<rect x="' + (cx - barW / 2).toFixed(1) + '" y="' + yhi.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + Math.max(2, ylo - yhi).toFixed(1) + '" rx="2" fill="var(--chip)"/>' +
-          '<text class="hc-candlelabel" x="' + cx.toFixed(1) + '" y="' + (yhi - 10).toFixed(1) + '" text-anchor="middle">' + esc(usd(q.high)) + "</text>" +
-          '<text class="hc-candlelabel" x="' + cx.toFixed(1) + '" y="' + (ylo + 20).toFixed(1) + '" text-anchor="middle">' + esc(usd(q.low)) + "</text>";
-        if (Number.isFinite(Number(q.typical))) {
-          var typTip = chartTip(["Typical " + usd(q.typical), Number.isFinite(count) ? (obNumWordLow(count) + " sales") : ""]);
-          box += '<circle class="hc-bar" tabindex="0" data-tip="' + typTip + '" cx="' + cx.toFixed(1) + '" cy="' + y(Number(q.typical)).toFixed(1) + '" r="6" fill="var(--num)"><title>' + typTip + "</title></circle>";
-        }
+      var cx = padL + slot * i + slot / 2, count = digitOf(q.count);
+      var lo = Number(q.low), hi = Number(q.high), has = Number.isFinite(lo) && Number.isFinite(hi);
+      var thin = q.thin === true || (minN && Number.isFinite(count) && count < minN);
+      var tip = function (parts) { return chartTip(parts.concat([Number.isFinite(count) ? (count + (count === 1 ? " sale" : " sales")) : ""])); };
+      if (thin && Array.isArray(q.prices) && q.prices.length) {
+        // (b) under the engine's minimum for a range: its own sales as plain dots, no box, no printed figures.
+        q.prices.forEach(function (pr) { var py = y(Number(pr)); claim({ x1: cx - 7, x2: cx + 7, y1: py - 7, y2: py + 7 });
+          shapes.push('<circle class="hc-bar hc-sale" tabindex="0" data-tip="' + chartTip([usd(pr)]) + '" cx="' + cx.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="5" fill="var(--num)"><title>' + chartTip([usd(pr)]) + "</title></circle>"); });
+        return;
       }
-      bars += '<g>' + box +
-        '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + 24).toFixed(1) + '" text-anchor="middle" font-size="14" fill="var(--ink)">' + esc(label) + "</text>" +
-        "</g>";
+      if (!has) return;
+      if (count === 1 || lo === hi || thin) {
+        // (a) one sale, or a low equal to its high (and a thin quarter without its sales): ONE dot, ONE label, no box.
+        var v1 = (count === 1 || lo === hi) ? lo : (Number.isFinite(Number(q.typical)) ? Number(q.typical) : lo), y1 = y(v1);
+        claim({ x1: cx - 8, x2: cx + 8, y1: y1 - 8, y2: y1 + 8 });
+        shapes.push('<circle class="hc-bar" tabindex="0" data-tip="' + tip([usd(v1)]) + '" cx="' + cx.toFixed(1) + '" cy="' + y1.toFixed(1) + '" r="7" fill="var(--num)"><title>' + tip([usd(v1)]) + "</title></circle>");
+        labels.push(function () { return (count === 1 || lo === hi) ? place(usd(v1), [{ x: cx, y: y1 - 16, anchor: "middle" }, { x: cx, y: y1 + 18 + FS, anchor: "middle" }, { x: cx + 14, y: y1 + FS * 0.35, anchor: "start" }, { x: cx - 14, y: y1 + FS * 0.35, anchor: "end" }]) : ""; });
+        return;
+      }
+      var ylo = y(lo), yhi = y(hi);
+      claim({ x1: cx - barW / 2, x2: cx + barW / 2, y1: yhi, y2: Math.max(yhi + 2, ylo) });
+      shapes.push('<rect x="' + (cx - barW / 2).toFixed(1) + '" y="' + yhi.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + Math.max(2, ylo - yhi).toFixed(1) + '" rx="2" fill="var(--chip)"/>');
+      if (Number.isFinite(Number(q.typical))) {
+        var ty = y(Number(q.typical)), typTip = tip(["Typical " + usd(q.typical)]);
+        shapes.push('<circle class="hc-bar" tabindex="0" data-tip="' + typTip + '" cx="' + cx.toFixed(1) + '" cy="' + ty.toFixed(1) + '" r="6" fill="var(--num)"><title>' + typTip + "</title></circle>");
+      }
+      labels.push(function () {
+        // the high above the box and the low below it when BOTH have room; otherwise (d) ONE line beside the box.
+        var spHi = { x: cx, y: yhi - 10, anchor: "middle" }, spLo = { x: cx, y: ylo + FS * 1.1, anchor: "middle" };
+        var rHi = spotRect(usd(hi), spHi), rLo = spotRect(usd(lo), spLo);
+        if ((ylo - yhi) >= FS * 1.2 && !hit(rHi) && !hit(rLo) && !(rHi.y2 > rLo.y1)) { claim(rHi); claim(rLo); return textAt(usd(hi), spHi) + textAt(usd(lo), spLo); }
+        var one = usd(lo) + " to " + usd(hi), mid = (yhi + ylo) / 2 + FS * 0.35;
+        return place(one, [{ x: cx + barW / 2 + 10, y: mid, anchor: "start" }, { x: cx - barW / 2 - 10, y: mid, anchor: "end" }, { x: cx, y: yhi - 10, anchor: "middle" }, { x: cx, y: ylo + FS * 1.1, anchor: "middle" }]);
+      });
+    });
+    var bars = shapes.join("") + labels.map(function (f) { return f(); }).join("");
+    // (c) under each quarter its name and, below it, the engine's sale count ("1 sale", "4 sales").
+    qs.forEach(function (q, i) {
+      var cx = padL + slot * i + slot / 2, count = digitOf(q.count);
+      bars += '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + FS + 2).toFixed(1) + '" text-anchor="middle" font-size="' + (phone ? 28 : 18) + '" fill="var(--ink)">' + esc(qtrLabel(q.period || q.label)) + "</text>" +
+        (Number.isFinite(count) ? '<text class="hc-count" x="' + cx.toFixed(1) + '" y="' + (H - padB + FS * 2 + 6).toFixed(1) + '" text-anchor="middle">' + esc(count + (count === 1 ? " sale" : " sales")) + "</text>" : "");
     });
     var svg = '<svg class="hc-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Quarterly sale prices">' + grid + bars + "</svg>";
     var legend = '<div class="hc-legend"><span class="hc-legend-sw"><span class="hc-legend-box"></span>Typical range (middle half of sales)</span><span class="hc-legend-sw"><span class="hc-legend-dot"></span>Typical sale (median)</span></div>';
