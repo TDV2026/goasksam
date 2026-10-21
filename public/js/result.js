@@ -2010,6 +2010,7 @@ function showContactForm(){
       <div class="contact-group">
         <div class="contact-label">Email address</div>
         <input class="contact-input" type="email" id="sellEmail" placeholder="you@example.com">
+        <input type="text" id="sellWebsite" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-10000px;width:1px;height:1px;opacity:0" value="">
       </div>
     </div>
     <div class="chips" style="margin-top:10px">
@@ -2052,6 +2053,7 @@ async function submitLead(seller){
         journeyId:(typeof gasJourneyId==="function"?gasJourneyId(sellState.resolvedVehicle):null),
         anonId:(typeof gasAnonId==="function"?gasAnonId():null),
         seller:{email,phone},
+        hp:String(document.getElementById("sellWebsite")?.value||""),
         car:{
           raw:sellState.carName,
           // VIN (when the journey was VIN-sourced): forwarded so it reaches the partner
