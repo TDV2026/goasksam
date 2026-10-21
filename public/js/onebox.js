@@ -289,7 +289,7 @@
   }
   // LIVE RIGHT NOW (Market Check result-page spec, Oct 2026): a plain table - CAR / VENUE / LAST BID
   // WE SAW / VS. RANGE. "The existing rule stays" (the brief's own words): no amount is ever shown
-  // without an honest basis - a fixed price reads "Asking $X", a real bid reads "Current bid $X"
+  // without an honest basis - a fixed price reads "Asking $X", a real bid reads "$X at HH:MMam PT" (never "current")
   // with its own "at HH:MMam PT" time underneath when the engine gave one, and nothing at all reads
   // "No bids yet" - exactly today's fallback tree, just laid out as two lines (amount, then time)
   // instead of one sentence. Job 4 (Oct 2026): api/buySearch.js panel=1 rows now carry `miles` (a
@@ -308,7 +308,9 @@
       if (!j || !(j.count > 0) || !j.rows || !j.rows.length || !document.body.contains(slot)) return;
       var rows = j.rows.map(function (l) {
         var amt = l.current_bid_usd ? usd(l.current_bid_usd) : (l.current_bid ? Math.round(l.current_bid).toLocaleString("en-US") + " " + l.currency : "");
-        var amountText = l.fixedPriceUsd ? "Asking " + usd(l.fixedPriceUsd) : (amt ? "Current bid " + amt : "No bids yet");
+        // Sam's small fixes (Oct 21 2026): the row reads "$25,250 at 11:21am PT" (the day added when not today, bidTimePT, the same format
+        // as Buy's), under "Last bid seen"; never the word "current".
+        var amountText = l.fixedPriceUsd ? "Asking " + usd(l.fixedPriceUsd) : (amt ? amt : "No bids yet");
         var timeText = (!l.fixedPriceUsd && amt && l.bid_at) ? ("at " + bidTimePT(l.bid_at)) : "";
         var vsrange = placingPillText(l.placing);
         var vsrangeDot = placingDotClass(l.placing);
@@ -1949,8 +1951,9 @@
     var rows = buckets.map(function (b, i) {
       var count = Number(b.count) || 0;
       var pct = max > 0 ? Math.max(2, count / max * 100) : 0;
-      // Item 5 (Sam's follow-up round): share only, "21%" - no count in brackets.
-      var share = Number.isFinite(Number(b.share)) ? (Math.round(Number(b.share)) + "%") : count.toLocaleString("en-US");
+      // Sam's small fixes (Oct 21 2026), reinstating the count the earlier item-5 note took out: the share WITH the engine's count,
+      // "31% (13)" (count = b.count); where the engine sends no share (under about 20 sales) the count alone, as before.
+      var share = (b.share != null && Number.isFinite(Number(b.share))) ? (Math.round(Number(b.share)) + "% (" + count.toLocaleString("en-US") + ")") : count.toLocaleString("en-US");
       var receipts = Array.isArray(b.receipts) ? b.receipts : [];
       var panelId = groupId + "-" + i;
       var barHtml = '<span class="dist-label">' + esc(distBucketLabel(b, i === buckets.length - 1)) + '</span><span class="dist-track"><span class="dist-bar' + (b.typicalBucket ? " typical" : "") + '" style="width:' + pct.toFixed(1) + '%"></span></span><span class="dist-count num">' + esc(share) + "</span>";
@@ -1962,7 +1965,10 @@
     }).join("");
     var poolSize = heroPoolSizeNum(d);
     var sub = "Share of sales in each price band" + (Number.isFinite(poolSize) ? (", based on " + obNumWordLow(poolSize) + " sales") : "") + ".";
-    return '<div class="sec-head" data-stage="cards"><div><h2>How this market is distributed</h2><span class="scope">' + lint(esc(sub), "dist.sub") + "</span></div></div>" +
+    // The dark bar is the engine's typicalBucket (the band holding the typical sale): a one-line legend says so, shown only when the engine
+    // marks one; the other bars are one quiet colour.
+    var legend = buckets.some(function (b) { return b.typicalBucket; }) ? '<p class="dist-legend"><span class="dist-legend-sw"></span>typical sale</p>' : "";
+    return '<div class="sec-head" data-stage="cards"><div><h2>How this market is distributed</h2><span class="scope">' + lint(esc(sub), "dist.sub") + "</span></div></div>" + legend +
       '<div class="distrows" data-stage="cards">' + rows + "</div>";
   }
   // ORDER AND NOTHING ELSE (Market Check result-page spec, Oct 2026): hero, sales behind this

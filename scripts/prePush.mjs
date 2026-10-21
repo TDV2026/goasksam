@@ -873,6 +873,13 @@ try {
 } catch (e) {
   record("movementCheck (scripts/movementCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Market Check small fixes (Sam, Oct 21 2026; Lane C): the distribution legend and counts, the live rows. No network.
+try {
+  const out = execSync("node scripts/marketSectionsCheck.mjs", { encoding: "utf8" });
+  record("marketSectionsCheck (scripts/marketSectionsCheck.mjs)", "PASS", (out.match(/marketSectionsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("marketSectionsCheck (scripts/marketSectionsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });

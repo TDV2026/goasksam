@@ -512,7 +512,7 @@ a.sb-line:hover{color:var(--green)}
 .lp-venue{display:block;font:400 16px/1.3 var(--sans);color:var(--ink)}
 .lp-ends{display:block;font:400 15px/1.3 var(--sans);color:var(--sec)}
 .lp-bid b{font:600 20px/1.2 var(--serif);color:var(--ink);font-weight:600;white-space:nowrap}
-.lp-bidtime{display:block;font:400 15px/1.3 var(--sans);color:var(--sec)}
+.lp-bidtime{display:inline;margin-left:6px;font:400 15px/1.3 var(--sans);color:var(--sec)}   /* Sam's fix (Oct 21 2026): one line, '$25,250 at 11:21am PT' */
 .lp-vsrange{font:400 16px/1.3 var(--sans);color:var(--ink);display:inline-flex;align-items:center;gap:7px}
 .lp-dot{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block}
 .lp-dot-within{background:var(--vs-within)}
@@ -551,7 +551,10 @@ a.sb-line:hover{color:var(--green)}
 
 /* ---- how this market is distributed: price-band rows, pale green bar proportional to count, the
    bar holding the typical sale in deep green. Clicking a row expands its receipts, one at a time. ---- */
-.distrows{display:flex;flex-direction:column;margin-top:8px}
+.distrows{display:flex;flex-direction:column;margin-top:0}
+.dist-legend{display:flex;align-items:center;gap:8px;margin:6px 0 2px;font:400 14px/1.3 var(--sans);color:var(--sec)}
+.dist-legend-sw{width:12px;height:12px;background:var(--green);display:inline-block}
+.distrows .distrow:first-child .distrowbtn{padding-top:4px}
 .distrow{display:flex;flex-direction:column}
 .distrowbtn{display:grid;grid-template-columns:160px 1fr auto;align-items:center;gap:16px;width:100%;padding:10px 0;border:0;border-top:1px solid var(--div);background:none;text-align:left;font:inherit;color:inherit;cursor:pointer;min-height:44px}
 .distrows .distrow:first-child .distrowbtn{border-top:0}
