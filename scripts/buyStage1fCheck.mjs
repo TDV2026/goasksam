@@ -17,6 +17,9 @@ ok(!/Narrow your search</.test(client) && !/<img[^>]*sq-mark|sq-mark[^>]*><img/.
 ok(/\.ask\.samq \.rchip\.achip\.on\{background:var\(--green\)/.test(after(2)) && /if \(ap\) ap\.classList\.add\("on"\);/.test(client), "2: the applied chip fills deep green");
 // ITEM 3
 ok(/\.msg\.results p\.unst\{margin:0 0 16px;padding:12px 2px 0;border-top:1px solid var\(--div\)/.test(after(3)) && /data-send="Show the ones that don’t say too">Show them too<\/button>/.test(client), "3: the unknown-data row keeps its words and button, a quiet row under a thin rule");
+// ITEM 4
+ok(/\.car \.ph \.chip\{background:rgba\(21,24,20,\.82\);color:#fff/.test(after(4)), "4: the source and time label is dark, like the bid strip");
+ok(!/star|heart|data-save|aria-label="Save/i.test(client.slice(client.indexOf("function photoHtml"), client.indexOf("function photoHtml") + 1500)), "4: no star, heart or save icon on a card");
 //__NEXT__
 console.log(`buyStage1fCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
