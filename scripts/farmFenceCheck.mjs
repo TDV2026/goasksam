@@ -19,6 +19,14 @@ const CARS = [["1965 International Harvester Scout 800", "International"], ["195
   ["1952 Oldsmobile 88 Super", "Oldsmobile"], ["1951 Allard J2", "Allard"], ["Mercedes-Benz Unimog 406", "Mercedes-Benz"], ["1948 Jeep CJ-2A", "Jeep"],
   ["1967 Porsche 912", "Porsche"], ["1974 Porsche 914 2.0", "Porsche"], ["1980 Ford Fiesta S", "Ford"], ["1957 Fiat 500", "Fiat"]];
 for (const [t, m] of FENCED) ok(c.isFarmMachineTitle(t, m) === true, `fenced: ${t}`);
+// the report read (Oct 21 2026): the archive files International Harvester road vehicles with the model "Harvester"
+for (const [t, m, mo] of [["1979 INTERNATIONAL HARVESTER SCOUT II", "INTERNATIONAL", "HARVESTER"], ["1976 International Harvester Scout II Traveler 4X4", "International", "Harvester"],
+  ["1935 INTERNATIONAL HARVESTER CUSTOM PICKUP", "INTERNATIONAL", "HARVESTER"], ["1971 International Harvester 1210 Pickup", "International", "Harvester 1210 Pickup"]])
+  ok(c.isFarmMachineTitle(t, m, mo) === false, `stays a car with the archive's model "${mo}": ${t}`);
+ok(c.isFarmMachineTitle("No-Reserve, 1964 International Harvester McCormick Farmall Cub Tractor and Rotary Mower", "International", "Harvester") === true, "an International Harvester Farmall Cub TRACTOR is still fenced");
+ok(c.isFarmMachineTitle("55-Years-Family-Owned, Turbodiesel Kubota-Powered Willys M38A1", "Willys", "M Series") === false, "a car with a tractor maker's ENGINE (Kubota-Powered Willys) stays a car");
+ok(c.isFarmMachineTitle("1981 International-Harvester 1724 S", "International", "1724") === false, "the hyphenated International-Harvester (a truck) stays out of the fence");
+ok(c.isFarmMachineTitle("1955 Kubota L245 Tractor", "Kubota", "L245") === true, "a Kubota tractor is still fenced");
 for (const [t, m] of CARS) ok(c.isFarmMachineTitle(t, m) === false, `stays a car: ${t}`);
 ok(c.isFarmMachineTitle("1958 Junior", "Porsche-Diesel") === true, "the maker in the make field fences it (Porsche-Diesel)");
 ok(c.isFarmMachineTitle("1958 Porsche", "Porsche", "Porsche-Diesel") === true, "the maker in a live row's model fences it (the Buy chip)");
