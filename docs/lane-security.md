@@ -809,3 +809,73 @@ F-34 (calculator api/subscribe.js): anyone can submit any email address and the 
 Alert #35, best guess: it sits between #34 (Insecure randomness) and #36 to #40 (Incomplete URL substring sanitization in test and script files), so it is almost certainly another "Incomplete URL substring sanitization" in a script or test that checks `url.includes("host")` against our own stub; the expected answer is "Used in tests". Sam should open it to confirm before dismissing.
 
 Search check: no public page touched.
+
+## F-31 AMENDMENT: Lane D's SQL reviewed (Oct 21 2026; report only; Lane D's branch f31-share-rpc, commit 8b76914, file docs/f31-shared-calculations.sql in the calculator repo clone dailyvroom-calculator-laneD)
+Lane D is right and my FINAL SQL was wrong for the shipping calculator: it shares through the same table (inputs isOperational and value; outputs openFare, enclosedFare, selectedType, distanceMiles; 3 existing shipping links; shipping.html shareQuote line 668 and loadShared line 706). My allow-list would have broken every shipping Share ('invalid': no line_items or total), opened the 3 existing links without fares, and Step 3 would have deleted their fare keys. Lane D's amendment (shipping keys on both allow-lists, "an import result OR a shipping quote" check, Step 3 keeping fare keys) is correct. I confirm the rest as written: search_path = public, pg_temp on both functions; revoke from public then grant to anon, authenticated, service_role; the backup table with RLS on and no anon/authenticated privileges; the 16-character token from gen_random_uuid (15 random hex characters, about 60 bits; the version digit is fixed, harmless); the token pattern check; Step 2 dropping every policy by a DO block and revoking all; the rollback (policies, backup restore by id, drop functions after reverting the code). The calculator branch itself reads correctly: api/share.js reaches the table only through the two RPCs, sends only the allow-listed keys, rejects malformed tokens before the database, returns generic errors, has an in-memory per-address limit; index.html escapes every shared and model-written value before innerHTML and both pages encode the token; shipping.html renders shared values with textContent (no XSS there).
+
+### Four corrections to the amended SQL (all small; none changes what a good link shows)
+1. Markup check on the wrong data (get_shared_calculation): it tests the whole stored row (`r.inputs::text`, `r.outputs::text`), including keys that are never returned. A row whose DROPPED internal keys contain a `<` or `>` (internal notes such as "> $50k") would be refused (404) although what it would show is clean. Test the filtered result instead (after the allow-list), in both functions.
+2. Non-object guard: `jsonb_each(r.outputs)` raises an error if an old row's outputs is not a JSON object, which would make that link answer 500. Guard with jsonb_typeof.
+3. create_shared_calculation does not set created_at or open_count: if the column has no default the new rows have null created_at (and null open_count). Set both explicitly. Also add a flood cap: anyone can call the function directly with the public key (not only through the calculator, whose limit is per instance memory), so cap rows created per minute and per day (a real day is a handful).
+4. Shape check: add a number check on the shipping fares so a string cannot be stored as a fare.
+Replacement functions (run INSTEAD of the two functions in Lane D's Step 1; everything else in Lane D's file stays):
+```sql
+create or replace function public.get_shared_calculation(p_token text)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare r public.shared_calculations; o jsonb; i jsonb;
+begin
+  if p_token is null or p_token !~ '^[a-z0-9]{6,64}$' then return null; end if;
+  select * into r from public.shared_calculations where token = p_token;
+  if not found then return null; end if;
+  if jsonb_typeof(r.inputs) is distinct from 'object' or jsonb_typeof(r.outputs) is distinct from 'object' then return null; end if;
+  select coalesce(jsonb_object_agg(k, v), '{}'::jsonb) into o from jsonb_each(r.outputs) as e(k, v)
+   where k in ('dest_currency_code','dest_currency_symbol','total','line_items','signal_level','storage_play','tdv_take','openFare','enclosedFare','selectedType','distanceMiles');
+  i := jsonb_strip_nulls(jsonb_build_object('origin', r.inputs->'origin', 'dest', r.inputs->'dest', 'year', r.inputs->'year',
+         'make', r.inputs->'make', 'model', r.inputs->'model', 'isOperational', r.inputs->'isOperational', 'value', r.inputs->'value'));
+  if i::text ~ '[<>]' or o::text ~ '[<>]' then return null; end if;      -- the data that would be returned must hold no markup
+  update public.shared_calculations set open_count = coalesce(open_count, 0) + 1, last_opened = now() where id = r.id;
+  return jsonb_build_object('inputs', i, 'outputs', o);
+end; $$;
+
+create or replace function public.create_shared_calculation(p_inputs jsonb, p_outputs jsonb)
+returns text language plpgsql security definer set search_path = public, pg_temp as $$
+declare t text; i jsonb; o jsonb;
+begin
+  if p_inputs is null or p_outputs is null or jsonb_typeof(p_inputs) <> 'object' or jsonb_typeof(p_outputs) <> 'object' then raise exception 'invalid'; end if;
+  if pg_column_size(p_inputs) > 16384 or pg_column_size(p_outputs) > 16384 then raise exception 'too large'; end if;
+  i := jsonb_strip_nulls(jsonb_build_object('origin', p_inputs->'origin', 'dest', p_inputs->'dest', 'year', p_inputs->'year',
+         'make', p_inputs->'make', 'model', p_inputs->'model', 'isOperational', p_inputs->'isOperational', 'value', p_inputs->'value'));
+  select coalesce(jsonb_object_agg(k, v), '{}'::jsonb) into o from jsonb_each(p_outputs) as e(k, v)
+   where k in ('dest_currency_code','dest_currency_symbol','total','line_items','signal_level','storage_play','tdv_take','openFare','enclosedFare','selectedType','distanceMiles');
+  if i::text ~ '[<>]' or o::text ~ '[<>]' then raise exception 'invalid characters'; end if;
+  if not ((jsonb_typeof(o->'line_items') = 'array' and o ? 'total')
+       or (jsonb_typeof(o->'openFare') = 'number' and jsonb_typeof(o->'enclosedFare') = 'number')) then raise exception 'invalid'; end if;
+  -- flood cap: this function is callable directly with the public key
+  if (select count(*) from public.shared_calculations where created_at > now() - interval '1 minute') >= 30
+     or (select count(*) from public.shared_calculations where created_at > now() - interval '1 day') >= 1000 then raise exception 'busy'; end if;
+  t := substr(replace(gen_random_uuid()::text, '-', ''), 1, 16);
+  insert into public.shared_calculations (token, inputs, outputs, created_at, open_count) values (t, i, o, now(), 0);
+  return t;
+end; $$;
+-- the grants from Lane D's file apply unchanged (create or replace keeps them; re-run the four revoke/grant lines to be sure)
+```
+Check the function ran as intended (read-only or throwaway): `select public.get_shared_calculation('lane-s-none')` returns null; `select public.get_shared_calculation('<a real old token>')` returns its inputs and outputs; the shipping link returns its fares.
+Before Step 1 also run, read-only: `select column_name, column_default from information_schema.columns where table_schema = 'public' and table_name = 'shared_calculations' order by ordinal_position;` (confirms whether created_at has a default).
+
+### Does anything else use the table? The calculator uses THREE tables
+- shared_calculations: only api/share.js (now through the two functions on the branch); both calculators' pages reach it only through /api/share.
+- calculations: api/calculate.js inserts a log row and PATCHes it by id (total_landed, delta_percent, Intent) with the anon key (lines 149 and 192 in the branch). Its policies are still UNKNOWN (Sam has not answered).
+- shipping_quotes: api/shipping.js inserts a quote row and PATCHes it by id (lines 55, 77, 133) with the anon key; the quote carries the pickup and drop-off places (origin/dest) and the fares. Its policies are UNKNOWN and not yet asked.
+Both are the same shape of risk as shared_calculations (anon insert and update by guessable id; possibly anon select). Ask Sam to run, read-only: `select polrelid::regclass as table_name, polname, polcmd, polroles::regrole[], pg_get_expr(polqual, polrelid) as using_clause, pg_get_expr(polwithcheck, polrelid) as check_clause from pg_policy where polrelid in ('public.calculations'::regclass, 'public.shipping_quotes'::regclass);` and `select count(*) from public.shipping_quotes;` (counts only). If they are open (select true, insert true, update true), the same fix applies after this one: two functions (create row returns an unguessable handle, update-by-handle), then close the table; it is F-35 and not part of tomorrow's change. Do not touch them in the same maintenance step.
+Residual risk after Step 2, stated plainly: the 87 existing links keep 6-character tokens (about 2.2 billion combinations), and get_shared_calculation can still be called directly with the public key from anywhere, so an enumerating caller could, very slowly, find a link; it returns only the allow-listed keys of one row and nothing is listable. Accepted; new links use 16 characters.
+
+### MORNING ORDER FOR SAM (Sam runs the SQL; Lane D owns the merge)
+0. Read-only first, in the SQL editor, counts only: the stored-markup count, the internal-keys count, the Step 3 count (section above), the column-default query, and the policy query for calculations and shipping_quotes. Send the numbers to Lane F. If the markup count is non-zero, stop and look at those rows first.
+1. Run the backup, then Lane D's Step 1 with the corrected two functions above (this adds the functions only; the live calculator still uses the table directly, so nothing changes yet). Check: `select public.get_shared_calculation('lane-s-none');` returns null, and with a real old token it returns inputs and outputs.
+2. Merge and deploy f31-share-rpc (Lane D). Test: (a) an old 6-character import link opens and looks the same; (b) the 3 old shipping links open with their fares; (c) Share on the import calculator and on the shipping calculator each make a 16-character link that opens; (d) in the SQL editor as owner, the new rows' outputs contain only the allow-listed keys: `select jsonb_object_keys(outputs) from public.shared_calculations order by id desc limit 10;`.
+3. Only then Step 2 (close the table). Test: `set role anon; select count(*) from public.shared_calculations;` and the anon update both fail with permission denied (each on its own line, then `reset role;`); the old and the new links still open in the browser.
+4. Optional later: Step 3 (strip internal keys; fare keys kept), only after Sam looks at the Step 3 count.
+Rollback at any point is the block in Lane D's file (after Step 2: recreate the three policies and grants; after Step 3: restore outputs from the backup; after Step 1: drop the functions after reverting the code).
+Separate and still open: F-33 (the open Claude proxy; the hotfix branch and the usage check), F-34, F-35 (calculations and shipping_quotes).
+
+Search check: no public page touched.
