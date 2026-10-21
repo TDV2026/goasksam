@@ -1052,8 +1052,12 @@
   // No candle chart (the engine supplies no trend at all): no chart, no empty panel - the hero goes
   // full width instead (see heroRangeHtml/thinHeroHtml, :only-child CSS in onebox.html) and this one
   // quiet line sits where the chart would have been.
-  function noChartLineHtml() {
-    return '<p class="hero-noband" data-stage="answer">' + lint(esc("There are too few sales in each quarter to chart how this market has moved."), "hero.nochart") + "</p>";
+  function noChartLineHtml(d) {
+    // Sam's evening order (Oct 21 2026): with no chart the line is the existing "N sales. Too few to show movement, enough to show
+    // where they landed." (the same words as the thin-tile line), N the engine's pool size, whatever the pool size.
+    var n = d ? heroPoolSizeNum(d) : NaN;
+    var said = Number.isFinite(n) && n > 0 ? obNumWord(n) + " sales. Too few to show movement, enough to show where they landed." : "Too few sales to show movement, enough to show where they landed.";
+    return '<p class="hero-noband" data-stage="answer">' + lint(esc(said), "hero.nochart") + "</p>";
   }
   function heroChartHtml(d) {
     var inner = candleChartHtml(d);
@@ -1231,7 +1235,7 @@
     var full = "";
     if (!right) {
       if (thinTile) { left += thinTile.said; left += thinTile.asideBlock; right = thinTile.right; full = thinTile.full || ""; }
-      else left += noChartLineHtml();
+      else left += noChartLineHtml(d);
     }
     return '<section class="hero2col" data-stage="answer"><div class="hero-left">' + left + "</div>" +
       (right ? ('<div class="hero-right">' + right + "</div>") : "") + "</section>" + full;
@@ -2192,7 +2196,7 @@
     var full = "";
     if (!right) {
       if (thinTile) { left += thinTile.said; left += thinTile.asideBlock; right = thinTile.right; full = thinTile.full || ""; }
-      else left += noChartLineHtml();
+      else left += noChartLineHtml(d);
     }
     return '<section class="hero2col" data-stage="answer"><div class="hero-left">' + left + "</div>" +
       (right ? ('<div class="hero-right">' + right + "</div>") : "") + "</section>" + full;

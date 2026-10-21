@@ -28,6 +28,8 @@ const b = await puppeteer.launch({ executablePath: process.env.CHROME_PATH || "/
 // (3) the no-chart layout: the lone left column has no right divider and uses the full width
 const page = fs.readFileSync(new URL("../public/onebox.html", import.meta.url), "utf8");
 ok(/\.hero2col > \.hero-left:only-child\{grid-column:1\/-1;border-right:0;padding-right:0\}/.test(page), "no chart: the hero's left column has no stray right divider and spans the full width");
+const src2 = fs.readFileSync(new URL("../public/js/onebox.js", import.meta.url), "utf8");
+ok(/function noChartLineHtml\(d\) \{/.test(src2) && /Too few to show movement, enough to show where they landed\./.test(src2.slice(src2.indexOf("function noChartLineHtml"), src2.indexOf("function noChartLineHtml") + 700)) && (src2.match(/left \+= noChartLineHtml\(d\);/g) || []).length === 2, "no chart: the one line 'N sales. Too few to show movement, enough to show where they landed.' with the engine's pool size at both call sites");
 const shots = process.env.SHOTS;
 for (const [w, h] of [[1440, 900], [390, 844]]) {
   const p = await b.newPage(); await p.setViewport({ width: w, height: h, isMobile: w < 600 });
