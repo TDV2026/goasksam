@@ -8,6 +8,8 @@
 import { EVENTS, PRODUCTS, SURFACES, SCHEMA_VERSION } from "../lib/track/catalog.js";
 import { identity } from "../lib/track/consent.js";
 import { trackFromBrowser } from "../lib/track/log.js";
+import { beaconAllowed } from "../lib/_ceilings.js";
+import { supabaseEnv } from "../lib/_supabase.js";
 import { UTM_FIELDS } from "../lib/track/privacy.js";
 
 export const config = { api: { bodyParser: { sizeLimit: "16kb" } } };
@@ -74,6 +76,8 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
   const host = String(req.headers.host || "").toLowerCase();
   if (host && host !== "goasksam.com" && !host.endsWith(".vercel.app") && !host.startsWith("localhost")) return res.status(204).end();
+  // Security F-08: past the address ceiling the beacon still answers 204 and writes nothing.
+  if (!(await beaconAllowed(supabaseEnv(), req, "beacon_track"))) return res.status(204).end();
   let body = req.body;
   if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = null; } }
   try {

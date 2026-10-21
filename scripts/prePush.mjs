@@ -818,6 +818,13 @@ try {
 } catch (e) {
   record("corsCheck (scripts/corsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Security job E/D (Sam approved, Oct 21 2026; Lane C): beaconCeilingCheck. No network.
+try {
+  const out = execSync("node scripts/beaconCeilingCheck.mjs", { encoding: "utf8" });
+  record("beaconCeilingCheck (scripts/beaconCeilingCheck.mjs)", "PASS", (out.match(/beaconCeilingCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("beaconCeilingCheck (scripts/beaconCeilingCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });

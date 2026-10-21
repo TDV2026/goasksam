@@ -5,6 +5,7 @@
 import { supabaseEnv } from "../lib/_supabase.js";
 import { logPageView } from "../lib/_pageview.js";
 import { cors as gasCors } from "../lib/_cors.js";
+import { beaconAllowed } from "../lib/_ceilings.js";
 
 const PIXEL = Buffer.from("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", "base64");
 
@@ -13,7 +14,8 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   const env = supabaseEnv();
   const path = (req.query && (req.query.p || req.query.path)) || (req.body && req.body.path) || null;
-  await logPageView(env, {
+  // Security F-08: past the address ceiling the pixel is still sent and nothing is written.
+  if (await beaconAllowed(env, req, "beacon_pageview")) await logPageView(env, {
     path: path ? String(path).slice(0, 120) : null,
     referer: req.headers["referer"] || req.headers["referrer"] || "",
     userAgent: req.headers["user-agent"] || ""

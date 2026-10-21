@@ -8,6 +8,7 @@ import { recordJourneyEvent, journeyVehicle, CLIENT_JOURNEY_EVENTS } from "../li
 import { ensureVisitorId } from "../lib/_visitor.js";
 import { EVENTS, storeFirstTouchOnce } from "../lib/events.js";
 import { cors as gasCors } from "../lib/_cors.js";
+import { beaconAllowed } from "../lib/_ceilings.js";
 
 const ALLOWED = new Set(["homepage_view", "wizard_start", "wizard_complete", "signup_shown", "non_us_attempt", "out_of_scope",
   // One Box (T1.7): aggregate-only client events. No raw VIN/chassis ever - only the
@@ -32,12 +33,25 @@ function scrubMetaVins(v) {
   return v;
 }
 
+// THE ENTRY DIAGNOSTIC'S SHAPE (security F-08): the keys public/index.html sends, strings trimmed, the whole at most
+// 2 KB; anything else is dropped, and an oversized one is not stored.
+export const DIAG_KEYS = ["kind", "path", "ua", "ts", "msg", "src", "line", "col", "stack", "inp", "rail", "btn", "btnDisabled", "stuckBtn", "inFlight", "send", "sf", "tr", "cover", "railOpen", "storageOk", "vis"];
+export const DIAG_MAX_BYTES = 2048;
+export function diagOf(diag) {
+  if (!diag || typeof diag !== "object" || Array.isArray(diag)) return null;
+  const o = {};
+  for (const k of DIAG_KEYS) { const v = diag[k]; if (v == null) continue; o[k] = typeof v === "string" ? v.slice(0, 400) : typeof v === "number" || typeof v === "boolean" ? v : String(JSON.stringify(v) || "").slice(0, 200); }
+  return JSON.stringify(o).length <= DIAG_MAX_BYTES ? o : null;
+}
+
 export default async function handler(req, res) {
   gasCors(req, res, { methods: "POST, OPTIONS", headers: "Content-Type" });   // lib/_cors.js (security F-06)
   if (req.method === "OPTIONS") { res.status(204).end(); return; }
   // Always answer 204 so a beacon never surfaces an error to the user.
   try {
     const body = typeof req.body === "object" && req.body ? req.body : {};
+    // Security F-08: past the address ceiling the beacon still answers 204 and writes nothing.
+    if (!(await beaconAllowed(supabaseEnv(), req, "beacon_funnel"))) { res.status(204).end(); return; }
     // ENTRY DIAGNOSTIC (temporary): client-side entry errors / non-interactive snapshots,
     // logged to app_usage_events with the SERVER-read User-Agent (the client can't spoof it
     // and funnel_events has no metadata column). Fires only when the entry path throws or is
@@ -45,7 +59,9 @@ export default async function handler(req, res) {
     if (body.kind === "client_diag" && body.diag && typeof body.diag === "object") {
       const env = supabaseEnv();
       if (env) {
-        const d = body.diag;
+        // Security F-08: only the keys the entry diagnostic sends (public/index.html), and at most 2 KB of them.
+        const d = diagOf(body.diag);
+        if (!d) { res.status(204).end(); return; }
         await supabaseInsert("app_usage_events", [{
           created_at: new Date().toISOString(),
           event_type: "entry_diag",

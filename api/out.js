@@ -6,6 +6,7 @@
 import { supabaseEnv, supabaseInsert } from "../lib/_supabase.js";
 import { SUBMISSION_URLS, REFERRAL_UTM } from "../lib/submissionUrls.js";
 import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
+import { beaconAllowed } from "../lib/_ceilings.js";
 
 function clip(value, max = 160) {
   if (value == null) return null;
@@ -28,7 +29,8 @@ export default async function handler(req, res) {
   // swallowed so a logging problem never breaks the seller's redirect.
   try {
     const env = supabaseEnv();
-    if (env) {
+    // Security F-08: past the address ceiling the redirect still happens and no click row is written.
+    if (env && await beaconAllowed(env, req, "beacon_out")) {
       const row = {
         search_id: clip(q.s),
         session_id: clip(q.sid),
