@@ -779,6 +779,13 @@ try {
 } catch (e) {
   record("eraChipsCheck (scripts/eraChipsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The hub gate reads the slug as the page does (Lane B's diagnosis, Oct 21 2026; Lane C): no dead hub URLs in the sitemap. No network.
+try {
+  const out = execSync("node scripts/hubGateCheck.mjs", { encoding: "utf8" });
+  record("hubGateCheck (scripts/hubGateCheck.mjs)", "PASS", (out.match(/hubGateCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("hubGateCheck (scripts/hubGateCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });

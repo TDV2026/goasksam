@@ -21,6 +21,7 @@ import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../l
 import { recordUsageEvent } from "./_usage.js";
 import { logPageView } from "../lib/_pageview.js";
 import { classifyRoad } from "../lib/_roadType.js";
+import { projectFlagReason } from "../lib/_classify.js";
 import { bidState, bidTimePT, lastBidLine } from "../lib/tasks/bidTime.js";
 
 const SITE = "https://goasksam.com";
@@ -784,6 +785,10 @@ let ROLL = null, ROLL_AT = 0;
 // scripts/buildVinRolloutCache.js (the nightly precompute, no serverless ceiling) passes a much larger
 // budget so its ONE nightly run computes the complete, uncut set - the same rollout(), never a second
 // implementation, just a bigger clock for the one caller that can afford it.
+// The hub gate's two string tests (exported for scripts/hubGateCheck.mjs).
+const REPLICA_HUB_KEYS = new Set(["replica", "tribute", "recreation", "evocation", "continuation"]);
+export function hubPageAgrees(k, make) { const p = parseHubSlug(k); return !!p && !p.year && p.makeSlug === slugify(make); }
+export function replicaHub(k) { const r = projectFlagReason(String(k).replace(/-/g, " ").replace(/\bre (creations?)\b/g, "re-$1"), ""); return !!r && REPLICA_HUB_KEYS.has(r); }
 async function rollout(env, opts = {}) {
   if (ROLL && Date.now() - ROLL_AT < 6 * 3600e3) return ROLL;
   const t0 = Date.now();
@@ -873,7 +878,15 @@ async function rollout(env, opts = {}) {
   // Hubs pass the hub page's own rule: the resolver names the make and model, or (fallback) the make
   // is known and the hub has 5+ sales, named from the archive's model, cleaned. Same budget: stop
   // naming further hubs once the deadline is close, rather than risk the 504 here instead.
-  const hubKeys = [...hubs.keys()], okHubs = [], fallback = [];
+  // THE PAGE'S OWN READING (Lane B's diagnosis, Oct 21 2026: two sitemap hubs 404'd): the hub page parses its slug by
+  // position (parseHubSlug: a leading year, then the make), while the resolver below reads the slug as text, so a
+  // replica title with a garbled make ("1923-1948-porsche-911-speedster-heritage-design": year 1923, make "1948";
+  // "250-gt-california-spyder-re-creation": make "250") passed here and 404'd on the page. A hub is kept only when the
+  // page reads it the same way (no year, the make the hub was built from), and a family that names a replica, tribute,
+  // re-creation, evocation or loose continuation is left out, as every pool leaves those out (lib/_classify.js). String
+  // tests only, no extra reads.
+  let pageDisagrees = 0, replicaHubs = 0;
+  const hubKeys = [...hubs.keys()].filter(k => { if (!hubPageAgrees(k, hubs.get(k).make)) { pageDisagrees++; return false; } if (replicaHub(k)) { replicaHubs++; return false; } return true; }), okHubs = [], fallback = [];
   for (let i = 0; i < hubKeys.length; i += 50) {
     if (Date.now() - t0 > BUDGET_MS) break;
     const part = await Promise.all(hubKeys.slice(i, i + 50).map(async k => {
@@ -886,7 +899,7 @@ async function rollout(env, opts = {}) {
     for (const x of part) if (x) { okHubs.push(x.k); if (x.fb) fallback.push({ url: `/history/${x.k}`, name: x.fb, sales: hubs.get(x.k).sales }); }
   }
   counts.multi_indexable = vins.length; counts.motorcycles_indexable = motos.length; counts.other_indexable = others.length;
-  counts.hubs_candidates = hubs.size; counts.hubs_indexable = okHubs.length; counts.hubs_fallback_named = fallback.length;
+  counts.hubs_candidates = hubs.size; counts.hubs_page_disagrees = pageDisagrees; counts.hubs_replica = replicaHubs; counts.hubs_indexable = okHubs.length; counts.hubs_fallback_named = fallback.length;
   counts.hubs_alias_merged = merged.size;
   const hubPhotos = {}; for (const k of okHubs) hubPhotos[k] = hubs.get(k).photos;
   ROLL = { counts, hubs: okHubs.sort(), hubPhotos, vins, motos, others, fallback, merged: [...merged.entries()].map(([from, to]) => ({ from: "/history/" + from, to: "/history/" + to })) }; ROLL_AT = Date.now();
