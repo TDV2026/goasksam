@@ -1,5 +1,4 @@
-// BUY STAGE 1d ITEM 7, THE FOLLOW-UP BAR (Sam, Oct 20 2026): up to six real suggestion chips directly above the input,
-// each the server's own words sent as if typed; Sam's placeholder; a stronger bar with an obvious send button, in the
+// BUY STAGE 1d ITEM 7, THE FOLLOW-UP BAR (Sam, Oct 20 2026), with Stage 1e item 1 (no suggestion bubbles): Sam's placeholder; a stronger bar with an obvious send button, in the
 // page's footer so it stays at the bottom of every width and state. The mic is untouched (Sam decides). No network.
 //   node scripts/buyBarCheck.mjs     exit 1 on any failure.
 import fs from "node:fs";
@@ -7,10 +6,10 @@ let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const buy = fs.readFileSync(new URL("../api/buy.js", import.meta.url), "utf8");
 const client = JSON.parse(/^const CLIENT = (".*");$/m.exec(buy)[1]), css = JSON.parse(/^const BUY_CARD_CSS = (".*");$/m.exec(buy)[1]);
+// BUY STAGE 1e ITEM 1 (Sam, Oct 21 2026): the suggestion bubbles are gone; drawSuggest draws nothing and removes a left row.
 const i = client.indexOf("function drawSuggest("), d = client.slice(i, client.indexOf("\n  function ", i + 1));
-ok(/\.slice\(0, 6\);/.test(d) && /'<button type="button" class="rchip sgc" data-send="' \+ esc\(x\) \+ '">' \+ esc\(x\) \+ "<\/button>"/.test(d), "up to six chips, each sending its own words");
-ok(/drawSuggest\(d && d\.suggest\);/.test(client), "the chips are the server's own list (suggest), never made on the page");
-ok(/bar\.parentNode\.insertBefore\(sg, bar\)/.test(d), "the chip row sits directly above the input");
+ok(i > 0 && !/sgc|data-send|insertBefore/.test(d) && /if \(sg\) sg\.remove\(\);/.test(d), "no suggestion bubbles above the bar (nothing drawn, a left row removed)");
+ok(!/class="rchip sgc"/.test(client), "no suggestion chip markup anywhere on the page");
 ok(/PH_FOLLOW_WIDE = "Tell Sam what to change, like only manuals or near 90210"/.test(client), "Sam's placeholder");
 const b = css.slice(css.indexOf("BUY STAGE 1d ITEM 7"));
 ok(/\.composer \.search\{border:1\.5px solid rgba\(21,32,26,\.28\);padding:6px 6px 6px 22px/.test(b) && /\.composer \.sendbtn\{width:44px;height:44px;opacity:\.7\}/.test(b), "a stronger bar and an obvious send button");
