@@ -265,3 +265,7 @@ grant execute on function public.journey_manual_update(uuid,text,text,text,text)
 
 -- Lane S (Oct 2026): fixed search_path (Security Advisor); see docs/supabase-function-search-path.sql
 alter function public.journey_rank(text) set search_path = public, pg_temp;
+
+-- Lane S F-02 (Oct 2026): lock down (service role only). Apply with the F-02 block in docs/lane-security.md.
+revoke execute on function public.journey_rank(text) from public, anon, authenticated;
+grant  execute on function public.journey_rank(text) to service_role;

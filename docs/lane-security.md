@@ -66,3 +66,105 @@ What I could not see without the dashboard: the exact list of the 20 warnings an
 No, not now. The warning is hygiene: an extension in `public` shares a namespace with app objects. pg_trgm only supplies operators and index operator classes; it has no function that writes data or runs with elevated rights, so there is no practical attack path. Moving it means `drop extension pg_trgm cascade` (which DROPS every trigram index, including the large GIN indexes on sales_archive that One Box's ILIKE title scans depend on) then `create extension pg_trgm schema extensions` and rebuilding those indexes on sales_archive, vehicle_market_records and auction_attempts (eight trigram indexes in all: docs/supabase-sales-archive-indexes.sql and supabase-indexes-oct8.sql), with a window where the ILIKE scans fall back to sequential scans and time out, and the project is single-instance with the Supabase spend cap off. Reward: one warning cleared. Recommendation: leave it, record it as an accepted Advisor warning. Revisit only if the sales_archive trigram indexes are ever rebuilt anyway (then create them against an `extensions`-schema pg_trgm in the same maintenance window).
 
 Search check: no public page touched.
+
+## F-02 (HIGH, confirmed on the live database): four functions callable by anyone with the public key
+
+What it is: claim_result, reserve_search and release_search are SECURITY DEFINER (they run with the owner's rights and skip row security) and the live database lets the anon role execute them. journey_rank is also anon-callable but it is a plain SQL function that touches no table (harmless by itself).
+How it could be misused, in plain words: the anon key is public by design (it is in the browser). With it anyone can call these through the REST address /rest/v1/rpc/<name>. release_search(id) deletes a search_events row by number, so a stranger can erase other people's search records (the ids are small consecutive numbers). claim_result(result_id, user_id) attaches a saved anonymous result to any account id they choose. reserve_search(user_id, make, model, year) writes a search_events row against any user id, using up that person's allowance. None of them reads personal data back, so this is tampering and quota abuse, not a leak. Severity high because it is open write on a public endpoint to rows that belong to other people.
+
+### 1. Every caller in the code (checked by search of api/, lib/, scripts/, public/, .github/, ops/)
+
+| Function | Caller | Key used | Browser use |
+|---|---|---|---|
+| release_search | api/sellerDecision.js line 4123 and line 4591, through supabaseRpc defined at line 2695 | SUPABASE_SERVICE_ROLE_KEY (falls back to SUPABASE_ANON_KEY only if the service key is not set; line 2857) | none |
+| claim_result | api/account.js line 45, through supabaseRpc defined at line 29 | env.supabaseKey from lib/_supabase.js: the service role key (same fallback to the anon key only if unset) | none. The browser (public/js/auth.js line 171) only sends claimResultId to /api/account; it never calls the database |
+| reserve_search | no caller anywhere (mentions are comments only: api/sellerDecision.js lines 2781 and 3220, api/usageDashboard.js line 5407, public/js/wizard.js line 1340, public/js/result.js line 178). Since the open search policy of Oct 9 2026 nothing reserves a search | n/a | none |
+| journey_rank | only inside record_journey_event (docs/supabase-journeys-schema.sql line 194). record_journey_event is SECURITY DEFINER, so it calls journey_rank with the owner's rights; the caller's grant is not used. record_journey_event is itself called only from lib/_journey.js with the service key | n/a | none |
+| before_user_created_ip_cap | Supabase Auth runs it (Auth hook), not our code | the auth service role supabase_auth_admin | none |
+
+No browser code calls any Postgres function: public/js/auth.js uses the anon key only for /auth/v1 (sign-in) addresses, and nothing under public/ or lib/ calls /rest/v1. Every RPC from our code goes out from a Vercel function with the service role key. So revoking anon and authenticated breaks nothing, PROVIDED the service role key is set in Vercel (it is: the other functions already work that way). One edge: the server code falls back to the anon key when the service key is missing; in that case these RPCs would start failing, quietly (supabaseRpc returns null on error). Production has the service key, so this is a note, not a risk today.
+
+### 2. The SQL block (Sam runs it in the Supabase SQL editor; nothing has been run)
+
+```sql
+-- F-02: lock down the four RPC functions. Service role only.
+revoke execute on function public.claim_result(uuid, uuid) from public, anon, authenticated;
+grant  execute on function public.claim_result(uuid, uuid) to service_role;
+
+revoke execute on function public.reserve_search(uuid, text, text, integer) from public, anon, authenticated;
+grant  execute on function public.reserve_search(uuid, text, text, integer) to service_role;
+
+revoke execute on function public.release_search(bigint) from public, anon, authenticated;
+grant  execute on function public.release_search(bigint) to service_role;
+
+-- journey_rank: no browser or anon caller exists (only record_journey_event uses it, as the owner).
+revoke execute on function public.journey_rank(text) from public, anon, authenticated;
+grant  execute on function public.journey_rank(text) to service_role;
+```
+
+About before_user_created_ip_cap (the sign-up Auth hook): do NOT touch it in this block. The live check shows it already has anon_can_call = false. Supabase Auth runs a Postgres hook as the role supabase_auth_admin, so that role must KEEP execute on it (docs/supabase-address-privacy.sql part 1 already did: revoke from public, anon, authenticated; grant to supabase_auth_admin). The block above does not mention it, so it keeps what it has. If its grant to supabase_auth_admin were ever removed, new sign-ups would be refused by the hook. Check, read-only: `select has_function_privilege('supabase_auth_admin', 'public.before_user_created_ip_cap(jsonb)', 'execute');` must stay true.
+
+Why journey_rank is included even though it is harmless: it removes the last anon-callable function from the standing-rule list, and nothing needs it. If Sam prefers the narrowest change, leave out the last pair of lines; nothing else depends on it.
+
+### 3. Rollback (restores exactly the old state: anon and authenticated could call them)
+
+```sql
+grant execute on function public.claim_result(uuid, uuid) to public, anon, authenticated;
+grant execute on function public.reserve_search(uuid, text, text, integer) to public, anon, authenticated;
+grant execute on function public.release_search(bigint) to public, anon, authenticated;
+grant execute on function public.journey_rank(text) to public, anon, authenticated;
+```
+
+### 4. Test after (read-only or provably zero-row), in the SQL editor
+
+A. Who can call each, one query (all four must read anon false, signed-in false, service true; the hook row must show the auth role true):
+```sql
+select p.oid::regprocedure as function,
+       has_function_privilege('anon', p.oid, 'execute')          as anon_can_call,
+       has_function_privilege('authenticated', p.oid, 'execute') as signed_in_can_call,
+       has_function_privilege('service_role', p.oid, 'execute')  as service_can_call
+from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public'
+  and p.proname in ('claim_result','reserve_search','release_search','journey_rank','before_user_created_ip_cap')
+order by 1::text;
+select has_function_privilege('supabase_auth_admin', 'public.before_user_created_ip_cap(jsonb)', 'execute') as auth_hook_still_ok;
+```
+B. The service role still works (zero-row calls, nothing changes). Run each line on its own:
+```sql
+set role service_role;
+select public.release_search(-1);
+select public.claim_result('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000');
+select public.reserve_search('00000000-0000-0000-0000-000000000000', 'x', 'x', 2000);
+select public.journey_rank('vehicle_identified');
+reset role;
+```
+Expected: release_search returns empty (void), claim_result false, reserve_search {"allowed": false, "reason": "no_account"}, journey_rank 20.
+C. Anon can no longer call (each must fail with "permission denied for function ..."; run each on its own, then run `reset role;`):
+```sql
+set role anon;
+select public.release_search(-1);
+reset role;
+set role anon;
+select public.claim_result('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000');
+reset role;
+```
+(If the editor shows the role stuck after an error, run `reset role;` first.) Optional from outside, with the public anon key, from any terminal, one zero-row request that changes nothing: POST to <project url>/rest/v1/rpc/release_search with header apikey set to the anon key and body {"p_event_id": -1}. BEFORE the revoke it answers 200 (empty); AFTER it answers 401 or 403 with "permission denied for function release_search". Do not paste the key anywhere.
+D. The feature to test after: claim_result is the only one in daily use. On goasksam.com, signed out, run a search to a result, then sign in with an email code (or Google) from that page; the result should appear under "Your results" for the account (api/account.js claims it). If it does not appear, run rollback line 1 and tell Lane F. release_search runs only when a search fails after reserving, and nothing reserves any more, so a normal search is unaffected; a normal /sell search completing is enough to show the engine path is intact.
+
+### 5. The 10 search_path statements again (the approved Stage 1a fix; the whole file with the discovery and test queries is docs/supabase-function-search-path.sql)
+
+```sql
+alter function public.backfill_sales_usd_range(uuid, uuid)          set search_path = public, pg_temp;
+alter function public.backfill_attempts_usd_range(text, date, date) set search_path = public, pg_temp;
+alter function public.backfill_attempts_usd_nulldate(text)          set search_path = public, pg_temp;
+alter function public.desk_queue_log(text, text, text)              set search_path = public, pg_temp;
+alter function public.reserve_search(uuid, text, text, integer)     set search_path = public, pg_temp;
+alter function public.release_search(bigint)                        set search_path = public, pg_temp;
+alter function public.claim_result(uuid, uuid)                      set search_path = public, pg_temp;
+alter function public.before_user_created_ip_cap(jsonb)             set search_path = public, pg_temp;
+alter function public.swap_vin_index()                              set search_path = public, pg_temp;
+alter function public.journey_rank(text)                            set search_path = public, pg_temp;
+```
+Order: run the revoke block (section 2) and the search_path block in either order; they do not interact. Rollback for the search_path block: `alter function <same signature> reset search_path;` for each.
+
+Standing-rule note: after Sam runs the revoke block, the DDL files must match the live database (CLAUDE.md). Lane S appends the same revoke and grant lines to docs/supabase-phase3-2c.sql (claim_result, release_search), docs/supabase-daily-caps.sql (reserve_search) and docs/supabase-journeys-schema.sql (journey_rank) in the same docs-only commit.

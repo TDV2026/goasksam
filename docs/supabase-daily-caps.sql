@@ -83,3 +83,7 @@ end; $$;
 
 -- Lane S (Oct 2026): fixed search_path (Security Advisor); see docs/supabase-function-search-path.sql
 alter function public.reserve_search(uuid, text, text, integer) set search_path = public, pg_temp;
+
+-- Lane S F-02 (Oct 2026): lock down (service role only). Apply with the F-02 block in docs/lane-security.md.
+revoke execute on function public.reserve_search(uuid, text, text, integer) from public, anon, authenticated;
+grant  execute on function public.reserve_search(uuid, text, text, integer) to service_role;
