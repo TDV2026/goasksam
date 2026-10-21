@@ -3492,10 +3492,13 @@ async function handleOps(req, res) {
         const v = sanitizeResolvedVehicle(rv && rv.vehicle) || (rv && rv.vehicle);
         if (!v || !v.make) { out.push({ q, status: (rv && rv.status) || "unresolved" }); continue; }
         const g = await findGeneration(v, env);
+        const tb = Date.now();
         const before = (await oneEngineAnswer(v, g, q, env, null)).raw;
+        const ta = Date.now();
         const after = (await oneEngineAnswer(v, g, q, { ...env, rangeRules: { trimFirst: true } }, null)).raw;
+        const msBefore = ta - tb, msAfter = Date.now() - ta;
         const test = before && Array.isArray(before.rawPool) ? trimsPriceDifferently(before.rawPool, buildSpec(v, g, q)) : null;
-        out.push({ q, trimTyped: !!v.trim, before: brief(before), after: brief(after), test, changed: !!(before && after && before.tier !== after.tier) });
+        out.push({ q, trimTyped: !!v.trim, before: brief(before), after: brief(after), msBefore, msAfter, test, changed: !!(before && after && before.tier !== after.tier) });
       } catch (e) { out.push({ q, error: String((e && e.message) || e).slice(0, 160) }); }
     }
     const done = out.filter(o => o.before);

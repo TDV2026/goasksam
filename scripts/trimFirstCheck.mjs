@@ -20,6 +20,12 @@ ok(ob.trimsPriceDifferently(rows("2016 Ford Mustang GT", [20000, 26000, 31000, 2
 const two = [...rows("2016 Ford Mustang GT", [30000, 31000]), ...rows("2016 Ford Mustang V6", [17000, 18000, 19000])];
 ok(ob.trimsPriceDifferently(two, spec).differ === false, "a trim under 3 sales never forms a side");
 ok(ob.trimsPriceDifferently([], spec).differ === false && ob.trimsPriceDifferently(null, spec).differ === false, "an empty pool never asks");
+// 1b: exact chips only touch a trim question whose counts are pending (the 911 fence question asked first); every other answer
+// passes through untouched, and none is pending while the switch is OFF
+for (const d of [{ tier: "result", poolN: 9 }, { tier: "trim_choice", trimOptions: [{ value: "gt", label: "GT", n: 5 }] }, null]) {
+  const back = await ob.exactTrimChipsForTest(d, {}, null, "x", {});
+  ok(back === d, `exactTrimChips leaves a non-pending answer untouched (${d && d.tier})`);
+}
 process.env.PROBE_KEY = "local-check-key"; process.env.OLDCARSDATA_API_KEY = "unused-local-check";
 const { default: handler } = await import("../api/usageDashboard.js");
 for (const task of ["trimmix", "rangepreview"]) {
