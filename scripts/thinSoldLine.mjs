@@ -11,7 +11,7 @@ for (const r of ["house_share", "few_sales", "few_comparable"]) {
   if (r !== "few_sales") check(`thin ${r} never says not enough`, got, !/not enough/i.test(got));
 }
 const range = soldLine({ kind: "range", low: 100000, high: 120000, family: "911 Carrera 4S Coupes", thinLine: THIN_LINES.few_sales });
-check("a range is unchanged by a stray thin line", range, /^The middle half of /.test(range));
+check("a range is unchanged by a stray thin line", range, /^The typical range for /.test(range));
 const spread = soldLine({ kind: "count", spread: true });
 check("too spread out keeps its line", spread, /vary too widely/.test(spread));
 console.log(`thinSoldLine: ${fail ? fail + " failed" : "all passed"}`);

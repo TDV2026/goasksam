@@ -390,7 +390,7 @@ const JS = String.raw`
     }
     var pl0 = opts.price != null ? placing(opts.price, a, opts.who) : null, pill = pl0 ? '<p class="pillrow"><span class="pill ' + pl0.cls + '">' + esc(pl0.text) + "</span></p>" : "";
     var body = a.range
-      ? '<p class="range">' + usd(a.range.low) + " to " + usd(a.range.high) + "</p>" + pill + '<p class="sub">The middle half of ' + a.count + " " + plural(a.count, "sale", "sales") + "" + ".</p>"
+      ? '<p class="range">' + usd(a.range.low) + " to " + usd(a.range.high) + "</p>" + pill + '<p class="sub">The typical range, from ' + a.count + " " + plural(a.count, "sale", "sales") + "" + ".</p>"
       : (a.thin ? '<p class="sub">' + esc(a.thin) + "</p>" : "") + pill;
     var aside = a.setAside && a.setAside.total ? '<p class="note">' + a.setAside.total + " more set aside" + (a.setAside.reasons ? " (" + Object.keys(a.setAside.reasons).map(function(k){ return a.setAside.reasons[k] + " " + esc(k); }).join(", ") + ")" : "") + ".</p>" : "";
     return '<div class="panel"><h3>What these sell for</h3>' + (opts.chips ? idChips(a) : "") + body + aside + foot(a) + "</div>";

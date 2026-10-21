@@ -143,7 +143,7 @@ const escHtml = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&l
 // (4, Sam, Oct 18 2026, demo only) the set-aside line comes off the demo's card (the set-aside group under the list
 // carries it, worded by asideSentence); (5) under the footer, the plain middle-half line (a range card only).
 // The shared card (lib/sellsForCard.js) and every other product keep their own lines.
-export const HOW_LINE = "The range is the middle half of the sales: a quarter sold below it, a quarter above it.";
+export const HOW_LINE = "The typical range is the middle of the market: a quarter of sales landed below it and a quarter above.";
 export function demoCard(html, d) {
   if (!html) return html;
   const b = basisLine(d), ranged = /class="sfc-range"/.test(html);

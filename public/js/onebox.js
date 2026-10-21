@@ -613,7 +613,7 @@
   // and found none - nothing like it exists yet anywhere on this page. Built fresh, minimal (no new
   // JS, a native title attribute only), rather than blocking on the brief's "existing" framing.
   function infoDotHtml() {
-    var t = "The middle half of comparable sales, closest to typical, with the highest and lowest set aside.";
+    var t = "The typical range for comparable sales, with the highest and lowest set aside.";
     return ' <span class="infodot" tabindex="0" title="' + esc(t) + '" aria-label="' + esc(t) + '"></span>';
   }
   // bodyMixTailOf: reads back the engine's own body-mix clause (lib/onebox.js bodyMixSuffix, e.g.
@@ -1036,7 +1036,7 @@
     var svg = '<svg class="hc-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Quarterly sale prices">' + grid + bars + "</svg>";
     var legend = '<div class="hc-legend"><span class="hc-legend-sw"><span class="hc-legend-box"></span>Middle half of sales (25th to 75th percentile)</span><span class="hc-legend-sw"><span class="hc-legend-dot"></span>Typical sale (median)</span></div>';
     var py = trendObj && trendObj.priorYear && Number(trendObj.priorYear.high) > 0
-      ? ('<p class="hc-prioryear">' + lint(esc("The year before, the middle half was " + usd(trendObj.priorYear.low) + " to " + usd(trendObj.priorYear.high) + "."), "hc.prioryear") + "</p>") : "";
+      ? ('<p class="hc-prioryear">' + lint(esc("The year before, the typical range was " + usd(trendObj.priorYear.low) + " to " + usd(trendObj.priorYear.high) + "."), "hc.prioryear") + "</p>") : "";
     return svg + legend + py;
   }
   // No candle chart (the engine supplies no trend at all): no chart, no empty panel - the hero goes
@@ -1325,7 +1325,7 @@
     if (crSales.length) { cards = crSales.slice(0, 3); sub = contextSentence(d, cr); }
     else {
       var rep = d.representative;
-      if (rep && rep.closest) { cards = [rep.closest, rep.high, rep.low].filter(Boolean); sub = "One from the middle of the range, one at each edge of the middle half."; }
+      if (rep && rep.closest) { cards = [rep.closest, rep.high, rep.low].filter(Boolean); sub = "One from the middle of the typical range, one at each edge of it."; }
       else { cards = (fallbackCards || []).slice(0, 3); }
     }
     if (!cards || !cards.length) return "";

@@ -44,7 +44,7 @@ ok(/1997 911 Turbo S sales/.test(sib), "a rung line naming a different car than 
 const thin = drawerHtml({ ...l, market: { kind: "thin", thinLine: "x" } }, { market: { kind: "thin", thinLine: "Not enough sales of this exact car to give a reliable range." }, engineAnswer: { thinLine: "Not enough sales of this exact car to give a reliable range.", cards: [] } });
 ok(/Not enough sales of this exact car to give a reliable range\./.test(thin) && !/md-rows/.test(thin), "a thin answer: its own line, no empty list");
 const failed = drawerHtml({ ...l, market: { kind: "range", low: 258000, high: 330000, count: 17 } }, null);
-ok(/\$258,000 to \$330,000\. The middle half of comparable sales landed here\. Based on 17 sales in the past year\./.test(failed), "a failed read falls back to the card's own line: never blank");
+ok(/\$258,000 to \$330,000: the typical range for comparable sales\. Based on 17 sales in the past year\./.test(failed), "a failed read falls back to the card's own line: never blank");
 ok(/function withMake\(fam, l\)/.test(client) && /Look for the next sale of ' \+ esc\(withMake\(fam, l\)\)/.test(client), "the look-for button names the car with its make");
 const withMake = new Function(line("  function withMake(fam, l){") + "\nreturn withMake;")();
 ok(withMake("1996 911 Turbo", { make: "Porsche" }) === "1996 Porsche 911 Turbo" && withMake("1996 Porsche 911 Turbo", { make: "Porsche" }) === "1996 Porsche 911 Turbo" && withMake("911 Turbo", { make: "Porsche" }) === "Porsche 911 Turbo", "'Look for the next sale of 1996 Porsche 911 Turbo' (the make put in once)");

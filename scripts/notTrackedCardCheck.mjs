@@ -8,7 +8,7 @@ const nt = { kind: "not_tracked", notTrackedLine: LINE };
 ok(JSON.stringify(b.samLines({ market: nt })) === JSON.stringify(b.samLines({ market: null })), "a not_tracked market adds no Sam line (the card is unchanged until Lane C draws notTrackedLine)");
 ok(b.bidPlacing({ market: nt, current_bid_usd: 50000 }) === null, "no bid placing on a not_tracked market");
 const range = { kind: "range", low: 40000, high: 60000, count: 12, family: "997 Carrera coupes" }; range.soldLine = s.soldLine(range);
-ok(b.samLines({ market: range })[0].text === "The middle half of 997 Carrera coupe sales landed at $40,000 to $60,000.", "a range card's line is unchanged");
+ok(b.samLines({ market: range })[0].text === "The typical range for 997 Carrera coupe sales: $40,000 to $60,000.", "a range card's line is unchanged");
 const src = fs.readFileSync(new URL("../lib/live/search.js", import.meta.url), "utf8");
 ok(/if \(!core\) \{ const nt = opts\.notTracked \? notTrackedMem\.get\(spec\.key\) : null; return nt \? \{ kind: "not_tracked", notTrackedLine: nt \} : null; \}/.test(src), "listingMarket returns the not-tracked market only when the caller passes opts.notTracked");
 const buy = fs.readFileSync(new URL("../api/buySearch.js", import.meta.url), "utf8");
