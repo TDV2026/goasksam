@@ -76,8 +76,10 @@ store.gas_auth_session = JSON.stringify({ access_token: "t2", email: "b@x.com" }
 ok(!/account A/.test(JSON.stringify(sstore)) && !/account A/.test(el["gas-recent-list"].innerHTML), "a different account on the same browser sees nothing of the first");
 store.gas_auth_session = JSON.stringify({ access_token: "t", email: "a@x.com" }); sb.add("find", "A again", "/find?q=a2", "ka2");
 ok(!/account B/.test(JSON.stringify(sstore)), "switching accounts without a sign out never mixes lists: the other account's key is deleted on read");
-store.gas_ob_recent = "[1]"; store.gas_task_draft = "x"; store["gas_ob_recent:a@x.com"] = "[1]"; delete store.gas_auth_session; sb.purge();
+store.gas_buy_convs = "[1]"; sstore.gas_buy_zip = "90210"; sstore.gas_buy_visit = "[1]"; sstore.gas_vin_fail = "1"; store.gas_onebox_prefill = "VIN"; store.gas_ob_anon = "keep"; store.gas_first_touch = "keep"; store.gas_ob_recent = "[1]"; store.gas_task_draft = "x"; store["gas_ob_recent:a@x.com"] = "[1]"; delete store.gas_auth_session; sb.purge();
 ok(!Object.keys(store).some(k => /^gas_(ob_recent|task_draft)/.test(k)), "sign out also clears Your results and the Task draft");
+ok(!("gas_buy_convs" in store) && !("gas_onebox_prefill" in store) && !("gas_buy_zip" in sstore) && !("gas_buy_visit" in sstore) && !("gas_vin_fail" in sstore), "sign out clears the ZIP, the VIN prefill, the saved Find conversations and the visit list");
+ok(store.gas_ob_anon === "keep" && store.gas_first_touch === "keep", "anonymous id and attribution stay (they hold no account data)");
 // buy is find
 const vj = JSON.parse(fs.readFileSync(path.join(ROOT, "vercel.json"), "utf8"));
 ok(vj.redirects.some(r => r.source === "/buy" && r.destination === "/find" && r.statusCode === 301), "/buy is a permanent redirect to /find (Vercel keeps the query string)");
