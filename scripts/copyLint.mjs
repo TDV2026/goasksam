@@ -290,6 +290,13 @@ check("plausibility: a sane 34% premium still renders (unchanged)", /34% higher 
   // Every start-page placeholder runs through the same lint (no dashes, no banned phrases, no "collector").
   const { PLACEHOLDERS } = await import(pathToFileURL(pathMod.resolve("lib", "startPlaceholders.js")).href);
   for (const [k, v] of Object.entries(PLACEHOLDERS)) for (const t of (v.examples || [v.text])) check(`placeholder ${k}: "${t}" is lint-clean`, lintText(t).length === 0 && !/collector/i.test(t), lintText(t).join(" ; "));
+  // The LIVE run (Sam, Oct 23 2026): every approved placeholder must still give a populated result with no leftover-words line and no question on the
+  // live engine; the lint FAILS the moment one stops passing. Needs PROBE_KEY and the crew cookie (GAS_CREW_COOKIE); without them it says so and skips.
+  if (process.env.PROBE_KEY && (process.env.GAS_CREW_COOKIE || process.env.CREW)) {
+    const { spawnSync } = await import("node:child_process");
+    const r = spawnSync(process.execPath, ["scripts/placeholderCheck.mjs", "--live"], { encoding: "utf8", env: process.env });
+    check("placeholders: every approved placeholder passes the live engine (populated, no leftover line, no question)", r.status === 0, (r.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).join(" ; ").slice(0, 400));
+  } else console.log("SKIP  placeholders live engine run: needs PROBE_KEY and GAS_CREW_COOKIE");
   // Emails never carry the Beta pill.
   for (const f of ["lib/tasks/emailCards.js", "lib/_email.js", "lib/tasks/tasks.js", "lib/live/buyAlerts.js", "lib/live/watches.js"]) if (fs.existsSync(f)) check(`email code ${f}: no Beta pill`, !/class="(?:gas-)?beta"/.test(fs.readFileSync(f, "utf8")), "");
 }
