@@ -1,4 +1,5 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
+import { unusedWordsOf } from "../lib/live/unusedWords.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
 import { mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, priceBandForVehicle, listSalesForVehicle, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
@@ -3713,7 +3714,10 @@ async function handler(req, res) {
         else obTimes.recompute = "none_live_on_next_visit";
       }
       const timings = { ...obTimes, warmHit, stale: !!staleInfo, totalMs: Date.now() - reqStart, dbBytes: supabaseBytesSoFar() - obTimes.dbBytes0, marks: dd && Array.isArray(dd.marks) ? dd.marks : null, fetchMs: dd && Array.isArray(dd.fetches) ? dd.fetches.map(f => Number(f.ms) || 0) : null };
-      return res.status(200).json({ status: "one_box", ...slimAnswerForWire(oneBox), ...staleFields, snapshotId: snapshotId || undefined, timings });
+      // the words Sam did not use in this search (lib/live/unusedWords.js): the engine names them, the page prints the line
+      let unusedFields = {};
+      try { const u = unusedWordsOf(oneBoxText, vehicle, null); if (u.unused.length) unusedFields = { unusedWords: u.unused, unusedLine: u.line }; } catch {}
+      return res.status(200).json({ status: "one_box", ...slimAnswerForWire(oneBox), ...staleFields, ...unusedFields, snapshotId: snapshotId || undefined, timings });
     }
 
     // Price-step transparency (#68): a seller who DEFERS the asking price gets THE RECORD
