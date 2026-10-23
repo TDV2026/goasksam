@@ -1,7 +1,7 @@
 // /sell (Oct 2026, search rules 1/3/5): index.html served with the parts a crawler must see in the raw
 // HTML. The registry title, the hero H1 (the same markup js/result-copy.js homeHeroHTML draws, so the
 // page reads the same before and after its scripts run), and one quiet "Updated [date]" line under
-// "Built for enthusiast, specialty and collector vehicles" (the real last-updated date, lib/asOf.js
+// "Built for enthusiast and specialty vehicles" (the real last-updated date, lib/asOf.js
 // lastUpdatedDate; no count, omitted when the date cannot be read). Edge-cached 1 hour.
 import fs from "node:fs";
 import path from "node:path";
@@ -9,7 +9,7 @@ import { lastUpdatedDate } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { isCrewRequest } from "./_chrome.js";
 import { isTesterRequest } from "../lib/_tester.js";
-import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE, SHELL_TOKENS_CSS, brandPaletteCss, ALL_PALETTES_CSS, PALETTE_APPLY_JS, PALETTE_SWITCHER_CSS, PALETTE_SWITCHER_JS, paletteSwitcherHtml } from "../lib/appShell.js";
+import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE, SHELL_TOKENS_CSS, brandPaletteCss, ALL_PALETTES_CSS, PALETTE_APPLY_JS } from "../lib/appShell.js";
 import { gaBootstrapHtml } from "../lib/analytics.js";
 import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
@@ -45,7 +45,7 @@ export async function sellShellHtml(req) {
   // The real last-updated date, shared with Market Check (lib/asOf.js lastUpdatedDate). No count.
   const updated = await lastUpdatedDate(supabaseEnv()).catch(() => null);
   const crew = isCrewRequest(req);
-  const showPal = crew;   // Sam, Stage 1c item 8a: the palette picker is for the crew only (no tester, no ?palette=1); removed before launch
+  // No palette bar on any Sell page (Sam, Oct 23 2026): it lives on Home only (lib/appShell.js PALETTE_BAR_ON).
   // GOASKSAM 2.0 STAGE 2 (Sam's block, Oct 23 2026): the old Sell page gets ONLY the shared rail (lib/appShell.js), nothing else changes.
   // The old rail (logo, value trio, nav, the signed-in "Your results" list, footer) is replaced by the shared one; the saved-results
   // block is kept and carried into the shared rail so a signed-in seller still reopens a saved result. The old page's own content
@@ -63,12 +63,11 @@ export async function sellShellHtml(req) {
     .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${TITLE}$2`)
     .replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${TITLE}$2`)
     .replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />\n<script>${PALETTE_APPLY_JS}</script>`)
-    .replace("</head>", `<style>${SHELL_TOKENS_CSS}${brandPaletteCss(crew)}${ALL_PALETTES_CSS}${showPal ? PALETTE_SWITCHER_CSS : ""}</style>\n</head>`)
-    .replace("</body>", `<style>${CONSENT_BANNER_CSS}</style>\n${CONSENT_BANNER_HTML}\n<script>${CONSENT_BANNER_JS}</script>\n${gaBootstrapHtml()}${showPal ? `\n<script>${PALETTE_SWITCHER_JS}</script>` : ""}\n</body>`)
+    .replace("</head>", `<style>${SHELL_TOKENS_CSS}${brandPaletteCss(crew)}${ALL_PALETTES_CSS}</style>\n</head>`)
+    .replace("</body>", `<style>${CONSENT_BANNER_CSS}</style>\n${CONSENT_BANNER_HTML}\n<script>${CONSENT_BANNER_JS}</script>\n${gaBootstrapHtml()}\n</body>`)
     .replace('<div id="msgs"></div>', `<div id="msgs">${HERO}</div>`)
-    .replace(/<body([^>]*)>/, `<body$1>\n${showPal ? paletteSwitcherHtml() : ""}`)
-    .replace('<div class="hp-value-preview hp-home-only">Built for enthusiast, specialty and collector vehicles</div>',
-      '<div class="hp-value-preview hp-home-only">Built for enthusiast, specialty and collector vehicles</div>' +
+        .replace('<div class="hp-value-preview hp-home-only">Built for enthusiast, specialty and collector vehicles</div>',
+      '<div class="hp-value-preview hp-home-only">Built for enthusiast and specialty vehicles</div>' +
       (updated ? `\n    <div class="hp-value-preview hp-home-only hp-updated" style="margin-top:6px;font-size:12px;color:var(--faint,#8C877C)">Updated ${esc(updated)}</div>` : ""));
 }
 
@@ -86,12 +85,12 @@ export default async function handler(req, res) {
   // URL (the same cache-poisoning gap fixed on Market Check/business/spec/publicConfig/history
   // this quarter - closing it here too now that this page also varies its palette by crew).
   const hasCrewCookie = /(?:^|;\s*)gas_crew=/.test(String(req.headers.cookie || ""));
-  const showPal = crew;   // Sam, Stage 1c item 8a: the palette picker is for the crew only (no tester, no ?palette=1); removed before launch
+  // No palette bar on any Sell page (Sam, Oct 23 2026): it lives on Home only (lib/appShell.js PALETTE_BAR_ON).
   // LAUNCH-STAGE SAFETY (Oct 2026, production incident, api/marketCheck.js has the full writeup):
   // this page's own rail is filtered by isReleased() - public caching at all is only safe once
   // fullyLaunched() is true (every gated product released for crew and public alike) and the
   // request carries no server credential (so an ops/probe stage override never seeds the shared
   // cache with a simulated state).
-  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched() || showPal) ? "private, no-store" : "public, s-maxage=30");
+  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : "public, s-maxage=30");
   res.status(200).send(html);
 }
