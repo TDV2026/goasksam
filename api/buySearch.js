@@ -17,6 +17,7 @@
 //   POST { action:"arm"|"disarm", listing_id } / { action:"alerts" } (signed in) -> Before it ends (lib/live/buyAlerts.js)
 //   GET  ?alerts=run                    -> the Before it ends probe run (the probe key in the x-ops-key header only)
 //   GET|POST ?alert=stop&t=<signed>     -> the message's stop link: GET shows a confirm page, only a POST acts
+import { mcUrlOf } from "../lib/mcLink.js";
 import { track, withTracking } from "../lib/track/log.js";
 import { historyEnv, houseName, normVin } from "./_historyData.js";
 import { isAbroadRow, parseQuery, parseQueryResolved, emptyFilters, gensNamed, resolveForBuy, searchLive, listingFacts, listingMarket, seenBefore, nounFor, liveForFamily, liveRows, familyMarket, COUNTRY_NAME, COLOURS } from "../lib/live/search.js";
@@ -147,7 +148,7 @@ export function cardOf(x) {
     bid_at: r.bid_at || null, end_time: r.end_time, year: r.year, make: r.make || null,
     miles: cardMiles(facts), km: facts.km || null, colour: facts.colour, colourSrc: facts.colourSrc || null, body: facts.body, gearbox: facts.gearboxLabel,
     location: titleCaseIfShouting(r.location) || null, country: cc || null, countryName: COUNTRY_NAME[cc] || cc || null, abroad: isAbroadRow(r),
-    vin_norm: r.vin_norm || null, generation: x.gen ? x.gen.code : null, unknown: x.unknown, flag: cardFlag(r),
+    vin_norm: r.vin_norm || null, mc_url: mcUrlOf(r, facts, x.market && x.market.query ? x.market : null), generation: x.gen ? x.gen.code : null, unknown: x.unknown, flag: cardFlag(r),
     reserve: r.has_reserve === true ? "reserve" : r.has_reserve === false ? "none" : null, says: listingSays(r), sam_facts: listingSamFacts(r, facts), chips: specChips(r, facts) };
 }
 // The car's own past appearances, oldest first, for the card's timeline: vin_index, falling back to the
@@ -222,11 +223,13 @@ async function enrich(env, x, deadlineAt) {   // deadlineAt (e61, Sam's item 3):
   if (market && market.kind === "pending") market = await listingMarket(env, x.r, x.facts, { deadlineAt, notTracked: true });   // one more go, warm now (the same clock; a key still computing answers at once)
   market = await rungMarket(env, x.r, x.facts, market);   // the engine's fallback rung, when it names one; else unchanged
   const c = { ...cardOf(x), market, seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name: await nameOf(env, x) };
+  c.mc_url = mcUrlOf(x.r, x.facts, market && market.query ? market : null);
   return { ...c, sam_lines: samLines(c) };
 }
 async function enrichFast(env, x) {
   const [market, seen, timeline, name] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts, { noBlock: true, notTracked: true }), seenBefore(env, x.r.vin_norm), timelineOf(env, x, { asideWaitMs: 1500 }), nameOf(env, x)]);
   const c = { ...cardOf(x), market: await rungMarket(env, x.r, x.facts, market), seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name };
+  c.mc_url = mcUrlOf(x.r, x.facts, c.market && c.market.query ? c.market : null);
   return { ...c, sam_lines: samLines(c) };
 }
 async function logSearch(env, v, anonId) {
