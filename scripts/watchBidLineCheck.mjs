@@ -31,7 +31,7 @@ ok(/ The last bid seen was \$61,500 at 11:50pm PT on Wednesday\.$/.test(edge), `
 // Every other line of the email unchanged: the subject, the link line, the Task links.
 const m = messageFor(w, [live(61500, "2026-10-14T18:40:00Z")], { now });
 ok(m.subject === "Back at auction: 1988 Porsche 911 Carrera", `subject: ${m.subject}`);
-ok(m.text.split("\n")[1] === "View it on Bring a Trailer: https://bringatrailer.com/listing/x/", `link line: ${m.text.split("\n")[1]}`);
+ok(m.text.includes("View the auction: https://bringatrailer.com/listing/x/"), "link line (the card's View the auction)");
 ok(/Open the Task: https:\/\/goasksam\.com\/tasks\/mine\nPause: /.test(m.text), "Task links unchanged");
 ok(m.html.includes("The last bid seen was $61,500 at 11:40am PT.") && !/current bid/i.test(m.html), "html carries the same line");
 // A sale and an attempt read as before.
