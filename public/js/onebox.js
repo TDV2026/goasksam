@@ -2897,7 +2897,7 @@
     var url = location.pathname + (qs ? "?" + qs : "");
     if (url !== location.pathname + location.search) { try { history.pushState({ mc: true }, "", url); } catch (e) {} }
     // GoAskSam 2.0: the shared rail's Recent searches; the address carries the refinements, so a click restores this exact search.
-    try { if (window.gasRecentAdd) window.gasRecentAdd("market-check", (vinAnchor && vinAnchor.displayName) || (obResolvedCar ? carLabel(obResolvedCar) : "") || lastQuery, url); } catch (e) {}
+    try { if (window.gasRecentAdd) window.gasRecentAdd("market-check", (vinAnchor && vinAnchor.displayName) || (obResolvedCar ? carLabel(obResolvedCar) : "") || lastQuery, url, vinAnchor && obSourceVin ? String(obSourceVin) : (obResolvedCar ? [obResolvedCar.year, obResolvedCar.make, obResolvedCar.model, obResolvedCar.trim].filter(Boolean).join("|") : "")); } catch (e) {}
   }
   function mcRefineFromParams(sp) {
     var refine = {};

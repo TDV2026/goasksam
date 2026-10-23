@@ -32,7 +32,7 @@ ok(!/Keep looking|gas-watching-rail|Your searches|Your results/.test(html), "no 
 const ctxs = {}; const store = {};
 const el = {}; const doc = { getElementById: id => (el[id] = el[id] || { id, hidden: true, innerHTML: "" }) };
 const sb = { document: doc, localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } }, window: { addEventListener() {} } }; sb.window.localStorage = sb.localStorage;
-vm.createContext(sb); vm.runInContext(shell.RECENT_JS.replace(/window\.gasRecentAdd =/, "this.add =").replace(/window\.addEventListener/g, "window.addEventListener"), sb);
+vm.createContext(sb); vm.runInContext(shell.RECENT_JS.replace(/window\.gasRecentAdd =/, "this.add =").replace(/window\.gasRecentRemove =/, "this.remove =").replace(/window\.gasRecentClear =/, "this.clear ="), sb);
 ok(el["gas-recent"].hidden === true && el["gas-recent-list"].innerHTML === "", "a new visitor sees nothing");
 for (let i = 1; i <= 7; i++) sb.add(i % 2 ? "find" : "market-check", "Car " + i, "/" + (i % 2 ? "find" : "market-check") + "?q=car" + i);
 ok(el["gas-recent"].hidden === false && (el["gas-recent-list"].innerHTML.match(/gas-recent-item/g) || []).length === 5, "at most five, newest first");
@@ -40,6 +40,24 @@ ok(/Car 7[\s\S]*Car 6[\s\S]*Car 5[\s\S]*Car 4[\s\S]*Car 3/.test(el["gas-recent-l
 ok(/class="gas-recent-p">Find</.test(el["gas-recent-list"].innerHTML) && /class="gas-recent-p">Market Check</.test(el["gas-recent-list"].innerHTML), "each carries its product label");
 sb.add("find", "Car 7", "/find?q=car7"); ok((el["gas-recent-list"].innerHTML.match(/Car 7/g) || []).length === 2, "the same address is one entry (title and label, once each)");
 sb.add("find", "Bad", "https://evil.example/x"); sb.add("find", "Bad2", "//evil.example"); ok(!/evil/.test(el["gas-recent-list"].innerHTML), "only addresses on this site are kept");
+// 2.0 Stage 1 follow-up (Sam, Oct 23 2026): remove, Clear all, no duplicates, the full search in the tooltip
+sb.clear(); ok(el["gas-recent"].hidden === true, "Clear all empties the list and hides the section");
+sb.add("find", "black Porsche 911", "/find?q=black+Porsche+911&make=Porsche&model=911&colour=black", "Porsche|911");
+sb.add("find", "black Porsche 911 near 90210", "/find?q=black+Porsche+911&make=Porsche&model=911&colour=black&near=90210", "Porsche|911");
+sb.add("find", "red Porsche 911 under 80k", "/find?q=red+Porsche+911&make=Porsche&model=911&colour=red", "Porsche|911");
+ok((el["gas-recent-list"].innerHTML.match(/gas-recent-item/g) || []).length === 1 && /red Porsche 911 under 80k/.test(el["gas-recent-list"].innerHTML) && !/black/.test(el["gas-recent-list"].innerHTML), "a refinement of the same search (same product, same car) updates the one entry and puts it on top: never a second");
+ok(!/Clear all/.test(el["gas-recent-list"].innerHTML), "no Clear all with a single entry");
+sb.add("market-check", "1995 Porsche 911 Carrera", "/market-check?car=1995-porsche-911-carrera", "1995|Porsche|911|Carrera");
+sb.add("market-check", "1995 Porsche 911 Carrera 5 speed", "/market-check?car=1995-porsche-911-carrera&tx=manual", "1995|Porsche|911|Carrera");
+sb.add("find", "Ferrari 308", "/find?q=ferrari+308&make=Ferrari&model=308", "Ferrari|308");
+ok((el["gas-recent-list"].innerHTML.match(/gas-recent-item/g) || []).length === 3, "the same car in two products stays two entries, a different car a third");
+ok(/Clear all/.test(el["gas-recent-list"].innerHTML) && (el["gas-recent-list"].innerHTML.match(/gas-recent-x/g) || []).length === 3, "Clear all shows with two or more entries; each entry has its remove mark");
+ok(/title="1995 Porsche 911 Carrera 5 speed"/.test(el["gas-recent-list"].innerHTML), "the full search is in the entry's title (tooltip)");
+const long = "red manual Porsche 911 from the nineteen nineties under one hundred thousand dollars near Austin with no reserve"; sb.add("find", long, "/find?q=x", "k1");
+ok(el["gas-recent-list"].innerHTML.includes('title="' + long + '"'), "a long search keeps its whole text in the tooltip (the row truncates it with an ellipsis)");
+sb.remove(0); ok(!/Porsche 911 from the nineteen/.test(el["gas-recent-list"].innerHTML) && (el["gas-recent-list"].innerHTML.match(/gas-recent-item/g) || []).length === 3, "the remove mark takes that one entry out and nothing else");
+ok(!JSON.stringify(Object.keys(store)).includes("task") , "removing touches only gas_recent (no saved Task or search record is read or written)");
+sb.clear(); ok(el["gas-recent-list"].innerHTML === "", "Clear all removes every entry");
 // buy is find
 const vj = JSON.parse(fs.readFileSync(path.join(ROOT, "vercel.json"), "utf8"));
 ok(vj.redirects.some(r => r.source === "/buy" && r.destination === "/find" && r.statusCode === 301), "/buy is a permanent redirect to /find (Vercel keeps the query string)");
