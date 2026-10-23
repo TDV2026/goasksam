@@ -950,6 +950,13 @@ try {
 } catch (e) {
   record("askContextCheck (scripts/askContextCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The four start pages' placeholders (Sam, Oct 23 2026; Lane C): offline copy check always; the live engine run needs the probe key (skips itself without).
+try {
+  const out = execSync("node scripts/placeholderCheck.mjs", { encoding: "utf8" });
+  record("placeholderCheck (scripts/placeholderCheck.mjs)", "PASS", (out.match(/placeholderCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("placeholderCheck (scripts/placeholderCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });

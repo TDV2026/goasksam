@@ -9,18 +9,14 @@ import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE, paletteHead, palet
 import { fullyLaunched, isReleased } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { startHtml, START_CSS, START_JS } from "../lib/startPage.js";
+import { PLACEHOLDERS } from "../lib/startPlaceholders.js";
 import { lastUpdatedDate } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const TITLE = "GoAskSam | Find enthusiast cars at auction, check what they sell for, sell yours";
 const DESC = "Tell Sam what you want and search live enthusiast car auctions in your own words, see what similar cars have actually sold for, and find where and how to sell yours.";
-const EXAMPLES = [
-  "Find me a red manual Porsche 911 from the 1990s, preferably under $100k...",
-  "A clean E30 M3 within 300 miles of Chicago...",
-  "Any Land Cruiser FJ40 ending this week...",
-  "A low-mileage Mustang GT350 with no reserve..."
-];
+const EXAMPLES = PLACEHOLDERS.home.examples;
 const IC_CHART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M9 20V6M14 20v-8M19 20V4M3 20h18"/></svg>';
 const IC_TAG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8L3 12z"/><circle cx="7.5" cy="8.5" r="1.2"/></svg>';
 const IC_OUT = '<svg class="gst-card-ar" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>';

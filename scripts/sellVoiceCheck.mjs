@@ -47,8 +47,6 @@ const ALLOW = [
   ["visitor", "What is my car worth"], ["visitor", "value my car"], ["visitor", "do they work in my region?"], ["visitor", "where should I sell"],
   // quoted bans inside a chat prompt (the model is told never to say them)
   ["ban", "I wish I could"], ["ban", "I don't have that data"], ["ban", "I don't have the data"], ["ban", "I want to be straight"], ["ban", "I need to be honest"],
-  // Sam's own ordered start-page placeholder (GoAskSam 2.0 Stage 2, Oct 23 2026): the box invites "Tell me about your car, or paste a VIN..."
-  ["ordered", "Tell me about your car, or paste a VIN"],
   ["ban", 'never "I", "we" or "our"'], ["ban", 'never "I", "me" or "my"'], ["ban", 'never "I", "me", "my"'], ["ban", "if this were my car"],
   
 ];
