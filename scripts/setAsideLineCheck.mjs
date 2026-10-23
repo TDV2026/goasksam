@@ -14,7 +14,7 @@ ok(/if \(asideN === 0\)/.test(blk) && /collectExcluded: true/.test(blk) && /awai
 ok(/if \(!\/\^no photo\$\/i\.test/.test(blk) && /if \(r2\) continue;/.test(blk), "only no-photo rows that pass every other fence (a project or modified reason comes before the trim fence, so it can be another trim)");
 ok(/qualifyReason\(e\.row, \{ \.\.\.spec, houseTier: true \}\)/.test(blk), "a no-photo row counts only if it passes every other fence for the car (never a different car)");
 ok(/bodyFamily\(b\) !== fam/.test(blk), "only rows of the typed body");
-ok(/const setAsideN = asideN > 0 \? asideN : heldN;/.test(blk) && /was set aside \(\$\{setAsideN\}\)/.test(blk), "the existing \"was set aside (N)\" sentence, no new wording");
+ok(/const setAsideN = asideN > 0 \? asideN : heldN;/.test(blk) && /Only one sale of \${artic} \${titleBody} is on record, and it was set aside\${whyAside}, so there is no range to show\./.test(blk) && /sales of \${artic} \${titleBody} on record were set aside\${whyAside}, so there is no range to show\./.test(blk) && !/set aside \(\$\{setAsideN\}\)/.test(blk) && !/ read to show/.test(blk), "the plain set-aside sentence (Sam, Oct 23 2026): the title in order, no parenthesis, no read");
 ok(/catch \(e\) \{ heldN = 0;/.test(blk), "a failed re-read never breaks today's answer");
 console.log(bad ? `setAsideLineCheck: ${bad} failed` : "setAsideLineCheck: all passed");
 process.exit(bad ? 1 : 0);
