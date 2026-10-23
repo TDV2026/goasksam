@@ -24,7 +24,7 @@ ok(/function send\(text\)\{\n\s*text = String\(text \|\| ""\)\.trim\(\); if \(!t
 ok(/\[60, 400\]\.forEach/.test(client), "the box is cleared again if the phone's keyboard puts the words back");
 const ph = (client.match(/PH_FOLLOW_WIDE = "([^"]+)"/) || [])[1] || "", phn = (client.match(/PH_FOLLOW_NARROW = "([^"]+)"/) || [])[1] || "";
 // Stage 1d item 7 (Sam, Oct 20 2026): the follow-up placeholder is Sam's one line, at every width.
-ok(ph === "Tell Sam what to change, like only manuals or near 90210" && phn === "Tell Sam what to change", `the follow-up placeholder is Sam's line ("${ph}"); on phones its first phrase ("${phn}")`);
+ok(ph === "Search any car, or tell Sam what to change" && phn === "Search any car", `the follow-up placeholder is Sam's line ("${ph}"); on phones its first phrase ("${phn}")`);
 ok([ph, phn].every(t => !/[–—]/.test(t) && !/\b(I|I'm|I'll|me|my)\b/.test(t)) && phn.length <= 24, "the follow-up lines: no dash, no first person, the phone one short enough for 360");
 ok(/var res = log\.querySelector\("\.msg\.results:not\(\[hidden\]\)"\), want = res \? phFollow\(\) : phFirst\(\);/.test(client), "the follow-up line only while a result is on the page");
 ok(/PH_NARROW = "Change the search, or ask\."/.test(client) && /matchMedia\("\(max-width: 520px\)"\)/.test(client), "a phone's first-search line is the short one that fits at 360");
