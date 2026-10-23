@@ -5,7 +5,7 @@
 import fs from "node:fs";
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
-const want = { "api/buy.js": 1, "api/marketCheck.js": 1, "api/sellPage.js": 2, "api/tasksPage.js": 2, "api/business.js": 1 };
+const want = { "api/buy.js": 1, "api/marketCheck.js": 1, "api/sellPage.js": 2, "api/tasksPage.js": 2, "api/business.js": 1, "api/home.js": 1 };
 for (const [f, n] of Object.entries(want)) {
   const s = fs.readFileSync(new URL("../" + f, import.meta.url), "utf8");
   ok((s.match(/const showPal = crew;/g) || []).length === n, `${f}: the picker shows for the crew only (${n} place${n > 1 ? "s" : ""})`);
