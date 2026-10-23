@@ -6,7 +6,7 @@ let bad = 0;
 const ok = (c, m) => { console.log((c ? "ok   " : "FAIL ") + m); if (!c) bad++; };
 ok(f("911 Carrera RS models, 1992 to 1993, Touring cars", "911") === "1992 to 1993 Carrera RS Touring cars", "the Carrera RS Touring pool is named in the basis phrase");
 ok(f("Boxster models, 1999 to 2004", "Boxster") === "1999 to 2004 Boxster", "a single-word model keeps its name");
-ok(f("911 Carrera models, 2003 to 2004, Targa cars (2 Cabriolet set aside)", "911") === "2003 to 2004 Carrera Targa cars", "set-aside parentheses are left to the footnote");
+ok(f("911 Carrera models, 2003 to 2004, Targa cars, 2 Cabriolet cars set aside", "911") === "2003 to 2004 Carrera Targa cars", "set-aside parentheses are left to the footnote");
 ok(f("Carrera, all years", "911") === "Carrera cars from all years", "all years");
 ok(f("2020 911 Carrera 4S Coupe", "911") === null, "a pool that matches the title keeps the plain basis line");
 const { sellsForCardHtml } = await import("../lib/sellsForCard.js");

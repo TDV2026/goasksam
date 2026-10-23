@@ -650,7 +650,7 @@
   // rather than body (1957 356 Speedster: Pushrod vs Carrera four-cam). Open word list (unlike
   // BODY_MIX_WORDS' fixed set), so matched structurally: the trailing comma-clause ending in "cars",
   // "cars (...)" or "cars mixed".
-  var VARIANT_TAIL_RE = /,\s*([^,]+?\s+cars(?:\s*\([^)]*\)|\s+mixed)?)\s*$/i;
+  var VARIANT_TAIL_RE = /,\s*([^,]+?\s+cars(?:,\s*\d+\s+[^,]+?\s+cars set aside|\s*\([^)]*\)|\s+mixed)?)\s*$/i;
   function variantTailOf(label) {
     var mm = VARIANT_TAIL_RE.exec(String(label || ""));
     return mm ? mm[1] : "";

@@ -4761,7 +4761,7 @@ async function handleOps(req, res) {
           const heldN = Object.values(heldBy).reduce((a, n) => a + n, 0);
           row.bodyInPool = pool.filter(r => { const b = ob.obRowBodyWordOf(r, rulesFor(v.make, v.model)); return b && ob.obBodyFamily(b) === ob.obBodyFamily(String(body).toLowerCase()) && (!v.year || !Number(r.year) || Number(r.year) === Number(v.year)); }).length;
           row.heldBack = heldBy;
-          row.falseNoSaleLine = !!(line && /sale on record in the last five years\.$/.test(line) && !/was set aside/.test(line) && heldN > 0);
+          row.falseNoSaleLine = !!(line && /are on record in the last five years, so there is no range to show\.$/.test(line) && !/set aside/.test(line) && heldN > 0);
         }
         out.push(row);
       } catch (e) { out.push({ q, error: String((e && e.message) || e).slice(0, 160) }); }

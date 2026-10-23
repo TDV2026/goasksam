@@ -133,11 +133,10 @@ export function asideSentence(d) {
   const parts = Object.keys(r).map(k => [k, Number(r[k]) || 0]).filter(([, n]) => n > 0);
   const k = parts.reduce((t, [, n]) => t + n, 0);
   if (!k) return null;
-  const as = ([key, n]) => "as " + (ASIDE_AS[key] ? ASIDE_AS[key][n === 1 ? 0 : 1] : key);
-  const head = numWord(k) + " " + (k === 1 ? "sale" : "sales") + " set aside";
-  const text = parts.length === 1 ? head + " " + as(parts[0])
-    : head + ", " + parts.map(([key, n], i) => (i && i === parts.length - 1 ? "and " : "") + numWord(n) + " " + as([key, n])).join(parts.length > 2 ? ", " : " ");
-  return text.charAt(0).toUpperCase() + text.slice(1) + ".";
+  // the one footnote wording (Sam, Oct 23 2026): "N sales set aside: reasons."
+  const LBL = { modified: ["modified", "modified"], project: ["project car", "project cars"], replica: ["replica or tribute", "replicas or tributes"], "odd sale": ["odd sale", "odd sales"] };
+  const text = k + " " + (k === 1 ? "sale" : "sales") + " set aside: " + parts.map(([key, n]) => { const l = LBL[key] || [key, key]; return n + " " + (n === 1 ? l[0] : l[1]); }).join(", ");
+  return text + ".";
 }
 const escHtml = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 // (4, Sam, Oct 18 2026, demo only) the set-aside line comes off the demo's card (the set-aside group under the list

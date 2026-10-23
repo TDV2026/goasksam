@@ -18,7 +18,7 @@ ok(normal.includes('<h3 class="sfc-heading">What these sell for</h3>'), "heading
 ok(normal.includes('$121,000 <span class="sfc-to">to</span> $134,000'), "range, the big line");
 ok(normal.includes("Based on 42 sales, the latest in September 2026."), "basis line: the engine's own sentence, verbatim, no month count");
 ok(!normal.includes("Middle half of") && !normal.includes("last 12 months"), "basis line: the old window-months wording is gone");
-ok(normal.includes("2 set aside: 1 modified, 1 odd sale."), "set-aside footnote, engine's own reasons");
+ok(normal.includes("2 sales set aside: 1 modified, 1 odd sale."), "set-aside footnote, engine's own reasons");
 ok(normal.includes("Powered by GoAskSam &middot; Updated Oct 14") && normal.includes('href="/how-sam-decides"'), "footer: Powered by, Updated date, How Sam decides link");
 
 // includesFromLine: only when the oldest included sale is over three years old, same decision as basisLine, right after it.
@@ -29,7 +29,7 @@ ok(!sellsForCardHtml({ cluster: [15000, 22000], poolN: 11, basisLine: "Based on 
 // setAsideCount WORD-IFIED under ten (confirmed live on the 1957 Porsche 356 Speedster: "two", not 2)
 // - the footnote must still show, counted from setAsideReasons' own real numbers, never from this field.
 const wordCount = sellsForCardHtml({ cluster: [282000, 363000], poolN: 8, windowMonths: 57, setAsideCount: "two", setAsideReasons: { project: 0, replica: 0, modified: 1, "odd sale": 1 }, readAt: "2026-10-16T08:00:00Z" });
-ok(wordCount.includes("2 set aside: 1 modified, 1 odd sale."), "setAsideCount as a word (\"two\") still produces the right footnote, counted from setAsideReasons");
+ok(wordCount.includes("2 sales set aside: 1 modified, 1 odd sale."), "setAsideCount as a word (\"two\") still produces the right footnote, counted from setAsideReasons");
 
 // Stale answer: the stale line replaces the date, never both.
 const stale = sellsForCardHtml({ cluster: [50000, 70000], poolN: 20, windowMonths: 12, stale: true, staleLine: "Sales read on October 14. Sales since then are not in yet. Updating now.", readAt: "2026-10-14T08:00:00Z" });
