@@ -389,15 +389,16 @@ async function handler(req, res) {
           if (!r) { out.sent.push({ label, error: "no stored listing of this kind right now" }); continue; }
           const card = cardOfMatch({ r, facts: listingFacts(r) });
           const blocks = (await taskEmailBlocks(env, [r], [card])).map(b => ({ ...b, card }));
-          const msg = taskEmailBody(tk, blocks, { first: true });
+          const msg = taskEmailBody(tk, blocks, { first: label === "live, with a bid" });   // the junk-folder line rides on a person's FIRST email only: the first of this set
           const subject = "[Test] " + taskEmailSubject([card]);
-          const resp = await sendTaskEmail({ to: TEST_EMAIL, subject, text: msg.text, html: msg.html });
+          const { taskMailHeaders } = await import("../lib/tasks/tasks.js");
+          const resp = await sendTaskEmail({ to: TEST_EMAIL, subject, text: msg.text, html: msg.html, headers: taskMailHeaders(tk) });
           out.sent.push({ label, listing: r.id, subject, status: resp.ok ? "sent" : (resp.reason || resp.error || resp.status), text: msg.text, html: msg.html });
         }
         const soldFrom = lots.warminster || withBid;
         if (soldFrom) {
           const since = new Date(Date.now() - (Number(req.body.soldDays) || 3) * 864e5).toISOString().slice(0, 10);
-          const r = await testSend(env, { kind: "spec", listing_id: soldFrom.id, since, to: TEST_EMAIL, first: true, subjectPrefix: "[Test] " });
+          const r = await testSend(env, { kind: "spec", listing_id: soldFrom.id, since, to: TEST_EMAIL, first: false, subjectPrefix: "[Test] " });
           out.sent.push({ label: "sold notice", listing: soldFrom.id, status: r.sent || r.error || (r.events === 0 ? "no sale since " + since : null), text: r.text || null, html: r.html || null, subject: r.subject || null, bands: r.bands || null });
         }
         // The sold DIGEST (several sales in one email): the busiest stored spec over the window, so the 10-sale cap

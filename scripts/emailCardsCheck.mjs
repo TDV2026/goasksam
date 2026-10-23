@@ -1,6 +1,8 @@
 // THE TASK EMAIL'S CARD (Sam, Oct 23 2026, stage 3): the same card as Find, laid out for a mail client. Offline.
 import { emailCardHtml, emailCardText, emailCardData, EMAIL_CARD_STYLE } from "../lib/tasks/emailCards.js";
 import { taskEmailBody } from "../lib/tasks/tasks.js";
+import { messageFor as soldMessage } from "../lib/live/watches.js";
+import { messageFor as endsMessage } from "../lib/live/buyAlerts.js";
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const now = Date.now();
 const l = { id: 1, title: "2011 BMW 1M", make: "BMW", url: "https://a.test/1", source: "Bring a Trailer", photo_url: "https://i.test/a.jpg", end_time: new Date(now + 5.3 * 3600e3).toISOString(), current_bid_usd: 52000, bid_at: new Date(now - 1200e3).toISOString(), miles: 34000, location: "Alpharetta, GA", country: "US", chips: ["Manual", "Alpine White"], mc_url: "/market-check?vin=WBSUR9C58BC123456", market: { kind: "range", low: 55000, high: 78000, count: 24, query: "2011 BMW 1M", basisLine: "Based on 24 sales, the latest in October 2026." }, sam_lines: [{ kind: "range", rung: [], placing: "below the range", text: "x" }], timeline: [{ date: "2024-03-12", result: "sold", price: 61000, miles: 29000, house: "Bring a Trailer" }], seen_before: { n: 1 }, history_url: "/vin/ABC" };
@@ -23,4 +25,22 @@ ok(/View auction: https:\/\/a\.test\/1/.test(t) && /Market Check: https:\/\/goas
 const body = taskEmailBody({ id: 9, summary: "BMW 1M", filters: {} }, [{ id: 1, car: "x", url: l.url, venue: "BaT", cardHtml: h, cardText: t, cardHead: EMAIL_CARD_STYLE }], { first: true });
 ok(body.html.includes("prefers-color-scheme") && body.html.includes("max-width:600px") && /Open the Task/.test(body.html) && /Pause/.test(body.html) && /Stop/.test(body.html), "the Task email keeps its Open, Pause and Stop links around the cards");
 ok(body.text.includes("View auction: https://a.test/1") && /Open the Task:/.test(body.text) && /Stop:/.test(body.text), "the text version keeps them too");
+// 2. a market the engine is still reading prints no panel and never "Sam is still reading the sales for this one."
+const pend = emailCardHtml({ ...l, market: { kind: "pending", stillReading: true, line: "Sam is still reading the sales for this one." }, sam_lines: [] }), pendT = emailCardText({ ...l, market: { kind: "pending", stillReading: true, line: "Sam is still reading the sales for this one." }, sam_lines: [] });
+ok(!/still reading/i.test(pend + pendT) && !pend.includes("The typical range"), "a pending market leaves the SAM panel out");
+// 1. the sold notice is the same card
+const w = { id: "00000000-0000-4000-8000-0000000000e1", kind: "spec", label: "3.2 Carrera Targas", spec: {} };
+const ev = { key: "s:1", kind: "sale", band: [55000, 78000], date: "2026-10-20", price: 61000, miles: 41200, house: "Bring a Trailer", url: "https://a.test/s", title: "41k-Mile 1987 Porsche 911 Carrera Targa DP935 6-Speed", image: "https://i.test/s.jpg" };
+const sm = soldMessage(w, [ev], { first: false }), smFirst = soldMessage(w, [ev], { first: true });
+ok(sm.html.includes("SOLD") && sm.html.includes("$61,000") && sm.html.includes("October 20, 2026") && sm.html.includes("Bring a Trailer"), "the sold notice has the dark SOLD strip with price, date and venue");
+ok(sm.html.includes("The typical range for cars like this.") && sm.html.includes("$55,000 to $78,000") && sm.html.includes("The sale was inside the range."), "the SAM panel: the range, its words, one engine line placing the sale");
+ok(!/inside the range of recent sales/.test(sm.html + sm.text), "the old sentence is gone");
+ok(sm.html.includes('<img src="https://i.test/s.jpg"') && sm.html.includes("View the sale") && sm.html.includes("Market Check") && /41,200 miles/.test(sm.html), "photo, View the sale, Market Check, miles");
+ok(/You asked Sam to tell you when the next/.test(sm.text) && /Open the Task:/.test(sm.text) && /Pause:/.test(sm.text) && /Stop:/.test(sm.text) && /Open the Task/.test(sm.html) && />Pause</.test(sm.html) && />Stop</.test(sm.html), "the You asked line and Open, Pause, Stop stay, in both versions");
+ok(!/junk folder/.test(sm.html + sm.text) && /junk folder/.test(smFirst.text) && (smFirst.html.match(/junk folder/g) || []).length === 1 && (smFirst.text.match(/junk folder/g) || []).length === 1, "the junk-folder line rides only on a first email, once");
+const aside = soldMessage(w, [{ ...ev, band: null, setAside: "modified" }], { first: false });
+ok(!aside.html.includes("The typical range") && /set aside/.test(aside.html), "a set-aside sale prints its reason and no range");
+const em = endsMessage({ name: "1987 Porsche 911", house: "Bring a Trailer", bid: 52000, bidAt: null, url: "https://a.test/1", cardHtml: h, cardText: t, cardHead: EMAIL_CARD_STYLE }, { end_time: new Date(now + 2 * 3600e3).toISOString() }, { first: false, userId: "u1" });
+ok(em.html.includes("The typical range for cars like this.") && em.html.includes("LAST BID SEEN") && /Open the Task/.test(em.html) && !em.html.includes("View on Bring a Trailer"), "Before it ends is the same card");
+ok(em.text.includes("View auction: https://a.test/1") && /Open the Task:/.test(em.text) && /Stop all Task emails:/.test(em.text), "its text twin keeps the links");
 console.log(`emailCardsCheck: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

@@ -992,6 +992,13 @@ try {
 } catch (e) {
   record("emailCardsCheck (scripts/emailCardsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Every Task email send carries List-Unsubscribe and a text twin (Sam, Oct 23 2026).
+try {
+  const out = execSync("node scripts/emailHeadersCheck.mjs", { encoding: "utf8" });
+  record("emailHeadersCheck (scripts/emailHeadersCheck.mjs)", "PASS", (out.match(/emailHeadersCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("emailHeadersCheck (scripts/emailHeadersCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
