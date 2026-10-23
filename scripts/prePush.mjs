@@ -964,6 +964,13 @@ try {
 } catch (e) {
   record("unusedWordsCheck (scripts/unusedWordsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The Market Check address of a card (Sam, Oct 23 2026): VIN or the exact car, no question.
+try {
+  const out = execSync("node scripts/mcLinkCheck.mjs", { encoding: "utf8" });
+  record("mcLinkCheck (scripts/mcLinkCheck.mjs)", "PASS", (out.match(/mcLinkCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("mcLinkCheck (scripts/mcLinkCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
