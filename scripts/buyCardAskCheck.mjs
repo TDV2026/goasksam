@@ -179,7 +179,7 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   const client = JSON.parse(/^const CLIENT = (.*);$/m.exec(page)[1]);
   const fnSrc = name => { const i = client.indexOf("function " + name + "("); let d = 0, j = client.indexOf("{", i); for (let k = j; k < client.length; k++) { if (client[k] === "{") d++; else if (client[k] === "}" && !--d) return client.slice(i, k + 1); } return ""; };
   const everythingLine = new Function(fnSrc("everythingLine") + "; return everythingLine;")();
-  ok(everythingLine({ unstated: 5, unstatedWhat: "colour" }, { colour: "red" }) === "That’s everything that says red right now." && everythingLine({ unstated: 2, unstatedWhat: "body" }, { body: "Coupe" }) === "That’s everything that says coupe right now.", "with unstated cars, everything names the word they lack");
+  ok(everythingLine({ unstated: 5, unstatedWhat: "colour" }, { colour: "red" }) === "That’s every red one live right now." && everythingLine({ unstated: 2, unstatedWhat: "body" }, { body: "Coupe" }) === "That’s every coupe live right now.", "with unstated cars, everything names the word they lack");
   ok(everythingLine({ unstated: 0 }, { colour: "red" }) === "That’s everything matching your search right now." && /esc\(everythingLine\(m, f\)\)/.test(client), "with none, the line is as before");
   ok(/" more doesn’t say " \+ String\(UNSTATED\[m\.unstatedWhat\] \|\| "every detail"\)\.replace\(\/\^their\\b\/, "its"\)/.test(client) && /replace\(\/\^don't\/, "doesn’t"\)\.replace\(\/\\btheir\\b\/, "its"\)/.test(client), "one car reads its, more read their");
   const bodyWord = (f) => { const w = []; if (f.body) { const bw = String(f.body).toLowerCase(); w.push(f.make || f.model ? bw.charAt(0).toUpperCase() + bw.slice(1) : bw); } return w[0]; };

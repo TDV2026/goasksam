@@ -685,6 +685,8 @@
     if (!d) return "";
     if (d.fallbackRung === "sibling") return (siblingLeadHtml(d) + String(d.rungLabel || "")).trim();
     if (!d.rungLabel) return "";
+    // the pool is named in the basis line when it differs from the car (Sam, Oct 23 2026): no standalone line here
+    if (d.basisPool) return "";
     if (d.fallbackRung === "exact") {
       var rc = d.resolvedCar || {};
       if (rc.bodyStyle) return cap(String(rc.bodyStyle));
