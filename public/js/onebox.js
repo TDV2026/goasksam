@@ -2412,7 +2412,7 @@
     return '<p class="rung-label" data-stage="answer">' + lint(esc("Matched to " + label), "rung.label") + "</p>";
   }
 
-  // LEFTOVER WORDS (Sam's order, Oct 23 2026): the engine's one plain sentence, "Sam didn't use 'xyz' in this search.", printed under the
+  // LEFTOVER WORDS (Sam's order, Oct 23 2026): the engine's one plain sentence naming the typed words it did not use, printed under the
   // search box exactly as sent (Market Check and Sell read the same response). Nothing is computed here.
   function unusedLineHtml(d) {
     return d && d.unusedLine ? '<p class="unused-line" role="note">' + esc(d.unusedLine) + "</p>" : "";
