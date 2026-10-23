@@ -12182,3 +12182,37 @@ LANE F NOTE: LANE B: (1) G-body table unchanged (as built); (2) add the conditio
 approve
 
 LANE F NOTE: SAM APPROVED THE FINAL SILENT-WORDS LIST (Lane B's PASS_SILENT: restored, restoration, survivor, original, garage, garaged, kept, clean, nice, runs, great, beautiful, mint, excellent, well, maintained, owner, owned). It ships as built in Lane C's next batch (branch enthusiast ac06e62b); no change to the list.
+
+## FROM SAM, relayed verbatim by Lane F (11:27Z)
+
+From Sam to F. GoAskSam 2.0: one shell and four start pages. Lane C builds it, one lane, in stages, fast checks per stage and the full prePush once per stage. Attached: four reference images (Home, Find, Market Check, Sell: docs/goasksam-2-refs/01_Home.png, 02_Find.png, 03_Market_Check.png, 04_Sell.png) and the original brief. Where this block and the brief or images differ, this block wins. This is the way in, not the products: do not change any results page, card, engine answer or wording on results.
+
+STAGE 1. SHELL AND RENAME
+- One left rail on every page: GoAskSam wordmark; Home, Find, Market Check, Sell, Tasks (active item highlighted); RECENT SEARCHES (up to five real searches across Find, Market Check and Sell, each with a small product label; clicking restores that search and its refinements; nothing shown for a new visitor, never sample searches); then quiet links: For Business, The Daily Vroom (https://thedailyvroom.com), How Sam decides, About, Feedback, Privacy, Terms, Privacy choices. Remove the rail's "Keep looking" section: those are Tasks and live in Tasks.
+- Sign in top right, or the existing account control when signed in.
+- Rename Buy to Find everywhere user-facing. /find is canonical; /buy and every old /buy link 301 to the matching /find address with its query intact. Update the sitemap and canonicals. Results, cards and refinement bar unchanged.
+- Rail tagline: "Enthusiast car market intelligence" (not collector-car).
+- Report with desktop and 390px screenshots of a Find result and a Market Check result in the new shell.
+
+STAGE 2. THE FOUR START PAGES (match the images, with these changes)
+- Headlines in the existing serif, not the sans in the images. Same input component, size, microphone and submit on all four.
+- Home (/): remove the redirect to /sell. "WELCOME TO GOASKSAM", "Find the car you're looking for.", "Tell Sam what you want. Search live enthusiast car auctions in your own words.", input with rotating examples, helper "Speak or type naturally.", then the two cards (Market Check: "See what similar cars have actually sold for."; Sell a car: "Discover where and how to sell."). No Daily Vroom section on the homepage (it stays in the rail). Submitting goes straight to populated Find results with the query run; never the empty Find page first.
+- Find (/find, from the rail): "FIND · LIVE AUCTIONS", "What car are you looking for?", "Describe it naturally. Sam searches live enthusiast car auctions for you.", helper "Type it or say it. No complicated filters.", line under: "Live auctions across platforms. Real bids, real listings."
+- Market Check: as the image ("What have cars like yours sold for?", "Real completed sales. A typical sold range. The evidence behind it.", VIN accepted). Arriving from a Find card shows results directly with the car carried over.
+- Sell: build the start page on the NEW Sell (api/sellNext), not the old one. "Where should you sell your car?", "Tell Sam what you're selling. See what the auction data says about where and how to sell it.", "Tell me about your car, or paste a VIN...", line "Platform performance · Selling strategy · PowerSeller matching". The new Sell stays behind its switch until Sam's review gate; the old Sell gets only the shared rail until then.
+- STOP after Stage 2: send Sam screenshots of all four start pages side by side at desktop and 390px. Nothing goes further until Sam approves.
+
+STAGE 3. BEHAVIOUR
+- Voice: the microphone works on all four (record with clear feedback, transcribe into the box as editable text, user submits). Graceful message on no permission or unsupported browser. No microphone shown where it cannot work.
+- Value intent on Find: if a Find query contains sell, selling, worth, value or what's it worth, the Find results open with one line at the top: "Want to know what it's worth? See what {car} have sold for →" linking to Market Check with the car filled in. The search itself runs as normal. No other routing between products.
+- Sign-in continuity: searching never needs sign-in. Saving a search or creating a Task signed out keeps the query, refinements and intended action through sign-in, returns to the same place, completes the action once (no duplicates) and confirms it. Cancelling keeps the search.
+
+STAGE 4. SEARCH AND MOBILE
+- Every start page's headline, subheading, card text and links are in the HTML on first load (server-rendered), not drawn afterwards in the browser.
+- Each page has its own title and meta description; Home also carries Organization and WebSite structured data with a site search action pointing at /find. Add the new pages to searchCheck and the copy lint.
+- Mobile: rail collapses to a menu, Sign in reachable, comfortable input and touch targets, no keyboard overlap, results layouts unchanged.
+- Regression: every check in the brief's verification list, plus Sold before and Listed before, history popups and full-history pages, Market Check figures unchanged, Sell answers unchanged, Tasks separate from recent searches, anonymous search works, old /buy links work.
+
+RULES: keep live wording on results ("Last bid seen", no "Sam's Take" on the range, "The typical range for cars like this."). No "collector-car" in new copy, no "AI" label, no first-person Sam, no source counts, no mention of other tools. One engine; the shell computes nothing. Three-line report per stage. No time estimates. No em or en dashes.
+
+LANE F NOTE: OWNER LANE C (the only builder; Lane B and Lane D on call for engine or Tasks questions). SEQUENCE: (0) Lane C's CURRENT BATCH (small fixes, modelfold, mileagerule, enthusiast) pushes FIRST and is looked at: 2.0 starts from that main; (1) STAGE 1 then Stage 2 on a branch, FAST checks per stage plus the FULL prePush once per stage, each stage its own push after its look; (2) STOP after Stage 2 and send Sam the screenshots (four start pages side by side, desktop and 390px); Stages 3 and 4 only after Sam approves. NOTES FOR LANE C: the original brief was not sent to me (Sam says it is attached): ask Sam through me for its verification list if you do not hold it; the reference images are saved in docs/goasksam-2-refs/ (the images show the sans and the old tagline and copy: this block wins); the redirect /buy to /find (301, query intact) needs vercel.json and the sitemap, canonicals, the pushCheck and every script that names /buy (prePush checks, buy1fLive, smoke, the Lane E scripts) updated in the same commits; PRIVATE and gated stay as they are (the launch gate for /tasks and the new Sell behind its switch); the Amazon/eBay demos stay held, gated and noindex; search rules (docs/search-rules.md) apply to every public page touched: end each report with a Search check line.
