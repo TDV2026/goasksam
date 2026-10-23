@@ -18,6 +18,11 @@
       "permanent": false
     },
     {
+      "source": "/buy",
+      "destination": "/find",
+      "permanent": true
+    },
+    {
       "source": "/onebox",
       "destination": "/market-check",
       "permanent": true
@@ -120,8 +125,8 @@
     { "source": "/sitemap-vins-(\\d+).xml", "destination": "/api/history?sitemap=$1" },
     { "source": "/sitemap-motorcycles.xml", "destination": "/api/history?sitemap=motorcycles" },
     { "source": "/sitemap-other.xml", "destination": "/api/history?sitemap=other" },
-    { "source": "/buy", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/buy?_crew=1" },
-    { "source": "/buy", "destination": "/api/buy" },
+    { "source": "/find", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/buy?_crew=1" },
+    { "source": "/find", "destination": "/api/buy" },
     { "source": "/dsk.20260928k/(.*)", "destination": "/js/$1" },
     { "source": "/dsk.20261006a/(.*)", "destination": "/js/$1" },
     { "source": "/dsk.20261006b/(.*)", "destination": "/js/$1" },

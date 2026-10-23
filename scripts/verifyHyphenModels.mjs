@@ -9,7 +9,7 @@ for (const [i, o] of J) { const g = joinShortHyphens(i); check(`join "${i}" -> "
 if (process.argv.includes("--live")) {
   const { default: puppeteer } = await import("puppeteer-core");
   const b = await puppeteer.launch({ executablePath: process.env.CHROME || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", headless: "new", args: ["--no-sandbox"] });
-  const p = await b.newPage(); await p.goto((process.env.SITE || "https://goasksam.com") + "/buy", { waitUntil: "domcontentloaded" });
+  const p = await b.newPage(); await p.goto((process.env.SITE || "https://goasksam.com") + "/find", { waitUntil: "domcontentloaded" });
   const res = t => p.evaluate(async t => { const j = await (await fetch("/api/vehicleIdentity", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: t }) })).json(); return j.vehicle || {}; }, t);
   const L = [
     ["1992 Jaguar XJ-S V12 coupe", v => v.model === "XJS"], ["1992 Jaguar XJ-S", v => v.model === "XJS"], ["1992 Jaguar XJS", v => v.model === "XJS"], ["1992 Jaguar XJ6", v => v.model === "XJ6"],

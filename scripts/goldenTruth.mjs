@@ -225,7 +225,7 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
   };
   const pageUrl = {
     marketCheck: q => BASE + "/market-check?q=" + encodeURIComponent(q),
-    buy: q => BASE + "/buy?q=" + encodeURIComponent(q),
+    buy: q => BASE + "/find?q=" + encodeURIComponent(q),
     sell: q => BASE + "/sell?car=" + encodeURIComponent(q) + "&state=California&how=self&rush=none"
   };
   const READY = {

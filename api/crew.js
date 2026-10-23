@@ -55,7 +55,7 @@ export default async function handler(req, res) {
     const host = String(req.headers.host || "").toLowerCase().split(":")[0];
     const domain = /(^|\.)goasksam\.com$/.test(host) ? "; Domain=goasksam.com" : "";
     res.setHeader("Set-Cookie", `${CREW_COOKIE}=${v}; Max-Age=${CREW_MAX_AGE_S}; Path=/${domain}; SameSite=Lax; Secure`);
-    res.setHeader("Location", q.to ? to : "/buy");
+    res.setHeader("Location", q.to ? to : "/find");
     res.status(302).end();
     return;
   }

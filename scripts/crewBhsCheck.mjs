@@ -28,7 +28,7 @@ for (const q of [{ bhs: "sub_00000000-0000-4000-8000-000000000000" }, { bhs: "00
   ok(r.code === 403 && /That crew link did not work/.test(r.body), `?bhs= falls through to the crew page and changes nothing (${r.code})`);
 }
 let r = await call({ code: process.env.CURTAIN_CREW_CODE });
-ok(r.code === 302 && /^gas_crew=v1\./.test(String(r.h["set-cookie"] || "")) && r.h.location === "/buy", `the crew code still sets the signed crew cookie and lands on /buy (${r.code} ${r.h.location})`);
+ok(r.code === 302 && /^gas_crew=v1\./.test(String(r.h["set-cookie"] || "")) && r.h.location === "/find", `the crew code still sets the signed crew cookie and lands on /buy (${r.code} ${r.h.location})`);
 r = await call({ code: process.env.CURTAIN_CREW_CODE, bhs: "sub_madeup" });
 ok(r.code === 302 && /^gas_crew=v1\./.test(String(r.h["set-cookie"] || "")) && calls.length === 0, "the crew code with a stray ?bhs= still works, and bhs is ignored");
 r = await call({ code: "wrong-code" });

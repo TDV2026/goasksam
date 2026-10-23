@@ -13,7 +13,7 @@ const SITE = "https://goasksam.com";
 // is null for the always-on stage-0 pages; isReleased(null, req) is never called for those.
 const PAGES = [
   { loc: "/sell", lastmod: "2026-10-07", changefreq: "daily", priority: "1.0", product: null },
-  { loc: "/buy", lastmod: "2026-10-07", changefreq: "daily", priority: "0.9", product: "buy" },
+  { loc: "/find", lastmod: "2026-10-07", changefreq: "daily", priority: "0.9", product: "buy" },
   { loc: "/tasks", lastmod: "2026-10-08", changefreq: "weekly", priority: "0.8", product: "tasks" },
   { loc: "/market-check", lastmod: "2026-10-08", changefreq: "daily", priority: "0.9", product: "market-check" },
   { loc: "/mcp", lastmod: "2026-10-07", changefreq: "monthly", priority: "0.7", product: null },

@@ -265,7 +265,7 @@ async function handler(req, res) {
       res.setHeader("Content-Type", "text/html; charset=utf-8"); res.setHeader("Cache-Control", "private, no-store");
       const page = (status, body) => { const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Stop these messages? | GoAskSam</title><style>${STOP_CSS}</style></head><body><main><p class="brand">GoAskSam</p>${body}</main></body></html>`; return req.method === "HEAD" ? res.status(status).end() : res.status(status).send(html); };
       const uid = verifyStop(q0.t);
-      if (!uid) return page(400, `<h1>That link has expired.</h1><p><a href="/buy">Back to Buy</a></p>`);
+      if (!uid) return page(400, `<h1>That link has expired.</h1><p><a href="/find">Back to Find</a></p>`);
       // A message's own link also names its one watch or notice (signed; lib/live/buyAlerts.js stopLink):
       // the page offers "Stop this one" beside "Stop everything". The mail client's one-click POST goes to
       // the header link, which names no item, so it always stops everything (as List-Unsubscribe requires).
@@ -276,15 +276,15 @@ async function handler(req, res) {
       if (req.method !== "POST") {
         // From an email: only the one notice it belongs to (only=1); stopping everything is on the Tasks page.
         if (lab && q0.only === "1") return page(200, `<h1>Stop ${esc2(lab.text)}?</h1><p>This stops ${esc2(lab.text)} only. Everything else keeps running.</p><form method="post" action="${base}&scope=one"><button type="submit">Stop this one</button></form><p class="quiet"><a href="/tasks/mine">Open your tasks instead</a></p>`);
-        if (lab) return page(200, `<h1>Stop these messages?</h1><p>Stop ${esc2(lab.text)}, or stop everything GoAskSam sends about the cars you picked: the before-it-ends notices and every task email.</p><div class="two"><form method="post" action="${base}&scope=one"><button type="submit">Stop this one</button></form><form method="post" action="${base}&scope=all"><button type="submit" class="alt">Stop everything</button></form></div><p class="quiet"><a href="/buy">Back to Buy instead</a></p>`);
-        return page(200, `<h1>Stop these messages?</h1><p>This stops every message GoAskSam sends about the cars you picked: the before-it-ends notices and every task email. You can turn them on again from any car.</p><form method="post" action="${base}&scope=all"><button type="submit">Stop everything</button></form><p class="quiet"><a href="/buy">Back to Buy instead</a></p>`);
+        if (lab) return page(200, `<h1>Stop these messages?</h1><p>Stop ${esc2(lab.text)}, or stop everything GoAskSam sends about the cars you picked: the before-it-ends notices and every task email.</p><div class="two"><form method="post" action="${base}&scope=one"><button type="submit">Stop this one</button></form><form method="post" action="${base}&scope=all"><button type="submit" class="alt">Stop everything</button></form></div><p class="quiet"><a href="/find">Back to Buy instead</a></p>`);
+        return page(200, `<h1>Stop these messages?</h1><p>This stops every message GoAskSam sends about the cars you picked: the before-it-ends notices and every task email. You can turn them on again from any car.</p><form method="post" action="${base}&scope=all"><button type="submit">Stop everything</button></form><p class="quiet"><a href="/find">Back to Buy instead</a></p>`);
       }
       if (item && q0.scope === "one") {
         await stopOne(env, uid, item).catch(e => console.error("buy stop one:", e.message));
-        return page(200, `<h1>Stopped.</h1><p>GoAskSam won't send any more messages from ${esc2(lab ? lab.text : "that one")}. Everything else stays on.</p><p class="quiet"><a href="/buy">Back to Buy</a></p>`);
+        return page(200, `<h1>Stopped.</h1><p>GoAskSam won't send any more messages from ${esc2(lab ? lab.text : "that one")}. Everything else stays on.</p><p class="quiet"><a href="/find">Back to Find</a></p>`);
       }
       await stopAll(env, uid).catch(e => console.error("buy alert stop:", e.message));
-      return page(200, `<h1>Stopped.</h1><p>GoAskSam won't send any more messages about the cars you picked.</p><p class="quiet"><a href="/buy">Back to Buy</a></p>`);
+      return page(200, `<h1>Stopped.</h1><p>GoAskSam won't send any more messages about the cars you picked.</p><p class="quiet"><a href="/find">Back to Find</a></p>`);
     }
     if (req.method === "GET" && q0.alerts === "run") {
       // No Vercel cron calls this (the send is /api/tasks?send=1): the probe key in a header only (lib/_credential.js);
@@ -750,7 +750,7 @@ async function savedSearches(env, req, res, b) {
   }
   if (b.action === "visit") {
     const url = String(b.url || "");
-    if (!/^\/buy\?[^\s<>"]{1,400}$/.test(url)) return res.status(400).json({ ok: false });
+    if (!/^\/(?:buy|find)\?[^\s<>"]{1,400}$/.test(url)) return res.status(400).json({ ok: false });
     const title = String(b.title || "Search").replace(/\s+/g, " ").trim().slice(0, 120) || "Search";
     const now = new Date().toISOString();
     const rr = await fetch(`${base}?user_id=eq.${user.userId}&select=id,state&order=updated_at.desc&limit=200`, { headers: H });

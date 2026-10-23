@@ -22,7 +22,7 @@ import { execSync } from "node:child_process";
 if (!process.argv.includes("--live")) { console.log("buy1fLive: LIVE script (production). Pass --live, in a named gap only."); process.exit(2); }
 const BASE = "https://goasksam.com", HOST = "goasksam.com", CREW = process.env.CREW, KEY = process.env.PROBE_KEY, BYP = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
 const SUB = "Choose one, or tell Sam how else to narrow your search below.";
-const RED = "/buy?q=red+Porsche&make=Porsche&colour=red";
+const RED = "/find?q=red+Porsche&make=Porsche&colour=red";
 const now = () => new Date().toISOString().slice(11, 19) + "Z";
 const busy = () => { if (!process.env.OPEN_LOCKS_SCRIPT || !process.env.MAIN_CHECKOUT) return ""; try { return execSync(`git -C "${process.env.MAIN_CHECKOUT}" fetch -q origin main && git -C "${process.env.MAIN_CHECKOUT}" show origin/main:docs/lane-notes.md | node "${process.env.OPEN_LOCKS_SCRIPT}"`, { encoding: "utf8", env: process.env }).trim(); } catch { return ""; } };
 const guard = () => { for (let i = 0; i < 120; i++) { const b = busy(); if (!b) return; console.log(`  (waiting ${now()}: ${b.slice(0, 60)})`); execSync("sleep 15"); } throw new Error("a lane stayed busy 30 minutes"); };
@@ -133,7 +133,7 @@ try {
     await p.close(); }
   // ---- (8) one left rail, signed out, four pages
   { const looks = {};
-    for (const [name, url] of [["Buy", "/buy"], ["Market Check", "/market-check"], ["Sell", "/sell"], ["Tasks", "/tasks"]]) { const p = await open(url, 1440, 900); await new Promise(r => setTimeout(r, 2500));
+    for (const [name, url] of [["Buy", "/find"], ["Market Check", "/market-check"], ["Sell", "/sell"], ["Tasks", "/tasks"]]) { const p = await open(url, 1440, 900); await new Promise(r => setTimeout(r, 2500));
       looks[name] = await p.evaluate(() => { const r = document.querySelector("#gas-rail"); if (!r) return null; const cs = getComputedStyle(r), items = [...r.querySelectorAll("a")].slice(0, 6); const ics = items[0] ? getComputedStyle(items[0]) : null;
         return { bg: cs.backgroundColor, width: Math.round(r.getBoundingClientRect().width), pad: cs.padding, font: ics && ics.font, itemGap: items.length > 1 ? Math.round(items[1].getBoundingClientRect().top - items[0].getBoundingClientRect().top) : null }; });
       await p.close(); }

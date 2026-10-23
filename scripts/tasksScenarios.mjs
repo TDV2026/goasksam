@@ -15,7 +15,7 @@ const results = [];
 const check = (name, ok, detail) => { results.push([name, !!ok]); console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? "\n      " + detail : ""}`); };
 
 const b = await puppeteer.launch({ executablePath: process.env.CHROME || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", headless: "new", args: ["--no-sandbox"] });
-const p = await b.newPage(); await p.goto(SITE + "/buy", { waitUntil: "domcontentloaded" });
+const p = await b.newPage(); await p.goto(SITE + "/find", { waitUntil: "domcontentloaded" });
 const scenario = steps => p.evaluate(async (steps, K) => (await fetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json", "x-probe-key": K }, body: JSON.stringify({ action: "test_scenario", steps }) })).json(), steps, KEY);
 const ends = new Date(Date.now() + 5 * 864e5).toISOString(), old = new Date(Date.now() - 864e5).toISOString(), soon = new Date(Date.now() + 2 * 60e3).toISOString();
 let nid = 990001001;

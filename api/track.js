@@ -28,8 +28,8 @@ if(window.gasTrack)return;
 var CAT=${JSON.stringify(browserCatalog())},PRODUCTS=${JSON.stringify(PRODUCTS)},SURFACES=${JSON.stringify(SURFACES)},UTM=${JSON.stringify(UTM_FIELDS)};
 var q=[],state="unknown",timer=null,strict=!!window.GAS_TRACK_STRICT;
 function where(){var p=location.pathname,d=document.documentElement.dataset||{};
- var product=d.gasProduct||(/^\\/buy/.test(p)?"buy":/^\\/(market-check|onebox|o\\/)/.test(p)?"market_check":/^\\/sell/.test(p)?"sell":/^\\/tasks/.test(p)?"tasks":"site");
- var surface=d.gasSurface||(p==="/"?"home":/^\\/buy/.test(p)?"buy_page":/^\\/(market-check|onebox|o\\/)/.test(p)?"market_check_page":/^\\/cars\\//.test(p)?"spec_page":/^\\/sell/.test(p)?"sell_page":/^\\/tasks/.test(p)?"tasks_page":/^\\/(history|vin)/.test(p)?"history_page":"static_page");
+ var product=d.gasProduct||(/^\\/(?:buy|find)/.test(p)?"buy":/^\\/(market-check|onebox|o\\/)/.test(p)?"market_check":/^\\/sell/.test(p)?"sell":/^\\/tasks/.test(p)?"tasks":"site");
+ var surface=d.gasSurface||(p==="/"?"home":/^\\/(?:buy|find)/.test(p)?"buy_page":/^\\/(market-check|onebox|o\\/)/.test(p)?"market_check_page":/^\\/cars\\//.test(p)?"spec_page":/^\\/sell/.test(p)?"sell_page":/^\\/tasks/.test(p)?"tasks_page":/^\\/(history|vin)/.test(p)?"history_page":"static_page");
  return {product:product,surface:surface};}
 function bad(m){if(strict)throw new Error("gasTrack: "+m);return false;}
 function check(name,props){var d=CAT[name];if(!d)return bad("unknown event "+name);props=props||{};

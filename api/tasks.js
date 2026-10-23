@@ -89,7 +89,7 @@ async function handler(req, res) {
       const id = verifyTap(q.t, act);
       if (!id) return page(400, "Link expired", `<h1>That link has expired.</h1><p><a href="/tasks/mine">Open your Tasks</a></p>`);
       const task = await getTask(env, id);
-      if (!task) return page(404, "Task gone", `<h1>That task is gone.</h1><p><a href="/buy">Start a new search</a></p>`);
+      if (!task) return page(404, "Task gone", `<h1>That task is gone.</h1><p><a href="/find">Start a new search</a></p>`);
       const w = TAP_WORDS[act];
       if (req.method !== "POST") {
         // The heading names exactly what it acts on: "Stop the task: manual Porsche 911s from 1964 to 1998".

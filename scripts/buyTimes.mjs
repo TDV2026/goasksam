@@ -33,7 +33,7 @@ const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new"
 const page = await browser.newPage();
 await page.setRequestInterception(true);
 page.on("request", r => { let own = false; try { own = new URL(r.url()).host === HOST; } catch {} r.continue(own ? { headers: { ...r.headers(), "x-ops-key": KEY, "x-launch-stage-test": "2" } } : undefined); });
-await page.goto(BASE + "/buy", { waitUntil: "domcontentloaded", timeout: 60000 }).catch(() => {});
+await page.goto(BASE + "/find", { waitUntil: "domcontentloaded", timeout: 60000 }).catch(() => {});
 await new Promise(r => setTimeout(r, 800));
 
 // One POST to /api/buySearch from the page; JSON answers return {ms, j}; the chat stream returns its event times.
@@ -83,7 +83,7 @@ if (arg("page")) {
       if (!t.named && /Sam is (finding live|searching )/.test(document.body ? document.body.innerText : "")) t.named = now;
       if (!(t.header && t.card)) requestAnimationFrame(tick); }; requestAnimationFrame(tick); });
     T0 = Date.now();
-    await pg.goto(BASE + "/buy?q=" + encodeURIComponent(q), { waitUntil: "domcontentloaded", timeout: 60000 }).catch(e => console.log("load error " + e.message));
+    await pg.goto(BASE + "/find?q=" + encodeURIComponent(q), { waitUntil: "domcontentloaded", timeout: 60000 }).catch(e => console.log("load error " + e.message));
     for (let i = 0; i < 90; i++) { const t = await pg.evaluate(() => window.__buyT || {}).catch(() => ({})); if (t.header && t.card) break; await new Promise(r => setTimeout(r, 500)); }
     await new Promise(r => setTimeout(r, 1500));
     const t = await pg.evaluate(() => window.__buyT || {}).catch(() => ({}));

@@ -19,7 +19,7 @@ const engine = specs => p.evaluate(async u => { const r = await fetch(u); /* the
   "/api/usageDashboard?view=ops&task=enginecheck&buypaths=0&livefences=0&representative=0&splitpools=0&overtime=0&livelisting=0&cacheconsistency=0&formpairs=0&identitycounts=0&specs=" + encodeURIComponent(specs.join("|")));
 let same = 0, diff = 0, pend = 0;
 for (const q of qs) {
-  await p.goto(`https://${HOST}/buy?q=` + encodeURIComponent(q), { waitUntil: "networkidle2", timeout: 90000 }).catch(() => {});
+  await p.goto(`https://${HOST}/find?q=` + encodeURIComponent(q), { waitUntil: "networkidle2", timeout: 90000 }).catch(() => {});
   for (let i = 0; i < 45 && !(await p.evaluate(() => !!document.querySelector(".msg.results[data-done]"))); i++) await new Promise(r => setTimeout(r, 2000));
   const ids = await p.evaluate(() => [...document.querySelectorAll(".msg.results article.car:not(.skel)")].filter(a => !a.hidden).map(a => Number(a.dataset.id)));
   // The cards' markets as the page reads them, asked until none is pending (up to about two minutes).

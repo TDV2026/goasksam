@@ -25,7 +25,7 @@ try {
         stop() { setTimeout(() => { this.onend && this.onend(); }, 20); } abort() { this.stop(); } }
       window.SpeechRecognition = FakeSR; window.webkitSpeechRecognition = FakeSR;
     }, WORDS);
-    await p.goto(`https://${HOST}/buy?q=` + encodeURIComponent("Porsche 911"), { waitUntil: "domcontentloaded", timeout: 60000 });
+    await p.goto(`https://${HOST}/find?q=` + encodeURIComponent("Porsche 911"), { waitUntil: "domcontentloaded", timeout: 60000 });
     for (let i = 0; i < 60 && !(await p.evaluate(() => !!document.querySelector(".msg.results[data-done]")).catch(() => false)); i++) await new Promise(r => setTimeout(r, 1000));
     const shown = await p.evaluate(() => { const m = document.getElementById("mic"); return !!m && !m.hidden && m.offsetParent !== null; });
     ok(shown, `${label}: the composer mic is shown when the browser offers speech recognition`);

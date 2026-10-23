@@ -30,7 +30,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;",
 // never touched. PowerSellers has no nav link on this page at all (removed, see index.html).
 // Each item removed by its own href so a copy/markup change elsewhere can never silently stop
 // matching and leak a link.
-const HIDDEN_FOR = { "/buy": "buy", "/market-check": "market-check", "/tasks": "tasks", "/business": "business" };
+const HIDDEN_FOR = { "/find": "buy", "/buy": "buy", "/market-check": "market-check", "/tasks": "tasks", "/business": "business" };
 function stripUnreleasedNav(html, req) {
   let out = html;
   for (const href of Object.keys(HIDDEN_FOR)) {

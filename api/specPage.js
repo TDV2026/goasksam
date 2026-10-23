@@ -105,7 +105,7 @@ async function handler(req, res) {
   const breadcrumb = breadcrumbChain(slug, parsed);
   const title = `${porscheLabel} | GoAskSam`;
   const marketCheckLink = `${SITE}/market-check?q=${encodeURIComponent("Porsche " + label)}`;
-  const buyLink = `${SITE}/buy`;
+  const buyLink = `${SITE}/find`;
   const lead = leadFor(parsed, porscheLabel, mcOn);
   const parent = parentOf(slug);
   const children = childrenOf(slug);

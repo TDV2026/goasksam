@@ -14,7 +14,7 @@ let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const ROOT = path.resolve(new URL("..", import.meta.url).pathname);
 const GATED = new Set(["/business"]);   // For business answers nothing to a signed-out visitor before its launch switch: compared as crew only
-const PAGES = [["buy", "/buy", {}], ["tasksPage", "/tasks", {}], ["tasksPage", "/tasks/mine", { app: "1" }], ["marketCheck", "/market-check", {}], ["howSamDecides", "/how-sam-decides", {}], ["business", "/business", {}]];
+const PAGES = [["buy", "/find", {}], ["tasksPage", "/tasks", {}], ["tasksPage", "/tasks/mine", { app: "1" }], ["marketCheck", "/market-check", {}], ["howSamDecides", "/how-sam-decides", {}], ["business", "/business", {}]];
 const render = async (mod, url, query, cookie) => {
   const { default: h } = await import(pathToFileURL(path.join(ROOT, "api", mod + ".js")).href);
   return await new Promise(resolve => { const res = { setHeader() {}, getHeader() {}, status() { return res; }, send(b) { resolve(String(b)); return res; }, end(b) { resolve(String(b || "")); return res; }, json(o) { resolve(JSON.stringify(o)); return res; }, writeHead() { return res; }, write() {}, redirect() { resolve(""); return res; } };
@@ -38,7 +38,7 @@ for (const crew of [false, true]) {
 }
 await b.close();
 for (const crew of [false, true]) {
-  const ref = look[(crew ? "crew " : "out  ") + "/buy"];
+  const ref = look[(crew ? "crew " : "out  ") + "/find"];
   ok(!!ref, (crew ? "crew" : "signed out") + ": Buy's rail is the reference");
   for (const [, url] of PAGES) { const k = (crew ? "crew " : "out  ") + url, x = look[k]; if (!x || !ref) continue;
     for (const f of Object.keys(ref)) ok(x[f] === ref[f], `${k}: rail ${f} matches Buy's (${x[f]} against ${ref[f]})`); }
