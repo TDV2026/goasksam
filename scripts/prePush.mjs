@@ -957,6 +957,13 @@ try {
 } catch (e) {
   record("placeholderCheck (scripts/placeholderCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Leftover words (Lane B, Oct 23 2026): chassis codes, place plus distance, hyphen forms, praise words count as used.
+try {
+  const out = execSync("node scripts/unusedWordsCheck.mjs", { encoding: "utf8" });
+  record("unusedWordsCheck (scripts/unusedWordsCheck.mjs)", "PASS", (out.match(/unusedWordsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("unusedWordsCheck (scripts/unusedWordsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
