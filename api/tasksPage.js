@@ -193,8 +193,20 @@ const EXPLAINER_JS = String.raw`(function(){
   }
   window.gateAfterSignup = function(){ location.href = next; };
   document.addEventListener("click", function(e){
-    var t = e.target.closest("#tkcta,#tkcta2"); if (!t || signedIn()) return;
-    e.preventDefault(); signIn();
+    var t = e.target.closest("#tkcta,#tkcta2"); if (!t) return;
+    e.preventDefault();
+    if (!signedIn()) return signIn();
+    // Signed in (the shell page lost the old shared entry script, Oct 23 2026): one active Task holds the slot; otherwise on to the app.
+    var tok = ""; try { tok = JSON.parse(localStorage.getItem("gas_auth_session") || "null").access_token; } catch(e2){}
+    var go = function(){ location.href = t.getAttribute("data-href") || "/tasks/mine?start=1"; };
+    fetch("/api/tasks?summary=1", { cache: "no-store", headers: { Authorization: "Bearer " + tok } }).then(function(r){ return r.json(); }).catch(function(){ return null; }).then(function(j){
+      var a = j && j.signedIn && j.active; if (!a) return go();
+      var box = t.closest("p,header") || t, old = document.querySelector(".tkblocked"); if (old) old.remove();
+      var m = document.createElement("p"); m.className = "tkblocked"; m.setAttribute("role", "status"); m.style.cssText = "margin:12px 0;padding:10px 14px;border-left:3px solid #D7262C;font:400 15px/1.5 inherit";
+      m.textContent = (a.state === "paused" ? "Your task is paused. Resume or stop it to start another." : "You have one task running. Stop it to start another.") + " ";
+      var l = document.createElement("a"); l.href = "/tasks/mine?task=" + encodeURIComponent(a.id); l.textContent = "Open your task"; m.appendChild(l);
+      box.insertAdjacentElement("afterend", m);
+    });
   });
   if (!signedIn() && (params.get("signin") || params.get("start") || params.get("seed") || params.get("task"))) { if (params.get("seed") || params.get("task")) next = "/tasks/mine" + location.search.replace(/([?&])(signin|next)=[^&]*/g, "$1"); signIn(); }
 })();`;
