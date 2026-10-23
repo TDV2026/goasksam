@@ -279,7 +279,19 @@ check("plausibility: a sane 34% premium still renders (unchanged)", /34% higher 
     check(`start page ${name}: no "collector", no "AI" label`, !/collector/i.test(text) && !/\bAI\b/.test(text), text.slice(0, 120));
     check(`start page ${name}: the dated line is a date only (no source, sale or live-car count)`, !/\b\d[\d,]*\s+(?:sales?|sources?|listings?|cars|auctions)\b/i.test(text), text.slice(-220));
     check(`start page ${name}: no Daily Vroom section in the body`, !/Daily Vroom/i.test(text), "");
+    // THE BETA PILL (Sam, Oct 23 2026): beside the wordmark in the rail and the mobile header on every shared-rail page; a label, never a control
+    // (a span: no link, button, hover or focus state); never in the title, meta, headings or structured data.
+    const pills = html.match(/<span class="(?:gas-)?beta">Beta<\/span>/g) || [];
+    check(`start page ${name}: the Beta pill shows beside the wordmark in the rail and the mobile header`, pills.length === 2, "pills: " + pills.length);
+    check(`start page ${name}: the Beta pill is not a link or a button`, !/<(?:a|button)\b[^>]*>(?:(?!<\/(?:a|button)>)[\s\S])*<span class="(?:gas-)?beta">/.test(html), "");
+    const head = ((html.match(/<title[\s\S]*?<\/title>/i) || []).concat(html.match(/<meta\b[^>]*>/gi) || [])).join(" "), heads = (html.match(/<h[1-6][\s\S]*?<\/h[1-6]>/gi) || []).join(" "), ld = (html.match(/<script type="application\/ld\+json">[\s\S]*?<\/script>/g) || []).join(" ");
+    check(`start page ${name}: Beta is not in the title, meta, headings or structured data`, !/\bbeta\b/i.test(head) && !/\bbeta\b/i.test(heads) && !/\bbeta\b/i.test(ld), "");
   }
+  // Every start-page placeholder runs through the same lint (no dashes, no banned phrases, no "collector").
+  const { PLACEHOLDERS } = await import(pathToFileURL(pathMod.resolve("lib", "startPlaceholders.js")).href);
+  for (const [k, v] of Object.entries(PLACEHOLDERS)) for (const t of (v.examples || [v.text])) check(`placeholder ${k}: "${t}" is lint-clean`, lintText(t).length === 0 && !/collector/i.test(t), lintText(t).join(" ; "));
+  // Emails never carry the Beta pill.
+  for (const f of ["lib/tasks/emailCards.js", "lib/_email.js", "lib/tasks/tasks.js", "lib/live/buyAlerts.js", "lib/live/watches.js"]) if (fs.existsSync(f)) check(`email code ${f}: no Beta pill`, !/class="(?:gas-)?beta"/.test(fs.readFileSync(f, "utf8")), "");
 }
 
 console.log(failures ? `\n${failures} FAILURE(S)` : "\n1D-LINT ALL PASS");

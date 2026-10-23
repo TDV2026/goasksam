@@ -18,7 +18,9 @@ body{background:var(--page);color:var(--ink);font:400 17px/1.5 var(--sans);-webk
 a{color:var(--green)}a:hover{color:var(--green-dk)}
 :focus-visible{outline:2px solid var(--green);outline-offset:2px}
 .rail{position:fixed;left:0;top:0;bottom:0;width:240px;border-right:1px solid var(--div);padding:28px 24px;display:flex;flex-direction:column;gap:2px;background:var(--page)}
-.rail .logo{font:600 26px/1.1 var(--serif);color:var(--ink);text-decoration:none;margin-bottom:22px}
+.rail .logo{font:600 26px/1.1 var(--serif);color:var(--ink);text-decoration:none}
+.rail .wm{display:flex;align-items:center;flex-wrap:wrap;gap:4px 7px;margin-bottom:22px}
+.beta{flex:none;display:inline-block;padding:3px 7px;border-radius:999px;background:#E3EFE6;color:#1E4D38;font:600 10.5px/1 var(--sans,system-ui);letter-spacing:.04em;pointer-events:none;user-select:none;cursor:default}
 .rail a.n{display:flex;align-items:center;min-height:44px;padding:0 14px;color:var(--sec);text-decoration:none;font-size:15px;border-left:2px solid transparent}
 .rail a.n:hover{color:var(--ink)}.rail a.n.on{color:var(--green);font-weight:600;border-left-color:var(--green);padding-left:12px}
 .rail .tag{margin:-14px 0 14px;font:400 12px/1.35 var(--sans);color:var(--sec)}
@@ -96,7 +98,8 @@ td a{font-weight:500}
 @media (max-width:860px){
   .rail{display:none}
   .mhead{display:flex;justify-content:space-between;align-items:center;padding:20px 16px 0}
-  .mhead>a{font:600 22px/1 var(--serif);color:var(--ink);text-decoration:none}
+  .mhead .wm{display:flex;align-items:center;gap:7px}
+  .mhead .wm a{font:600 22px/1 var(--serif);color:var(--ink);text-decoration:none}
   .mnav{display:flex;gap:2px}
   .mnav a.n{display:inline-flex;align-items:center;min-height:44px;padding:0 10px;color:var(--sec);text-decoration:none;font-size:15px;border-radius:8px}
   .mnav a.n.on{color:var(--green);font-weight:600;background:var(--tint)}
@@ -163,8 +166,8 @@ export function railHtml(active, extra, crew, req) {
   const mnavItems = pages.map(p => item(p.key, p.href, p.key === "tasks" ? tasksBadgeLabel : p.label)).join("");
   const home = '/';
   return flag +
-    '<nav class="rail" aria-label="Main navigation"><a class="logo" href="' + home + '">GoAskSam</a><p class="tag">' + RAIL_TAGLINE + '</p>' + railItems + (extra || '') + quiet + '</nav>' +
-    '<header class="mhead"><a href="' + home + '">GoAskSam</a><nav class="mnav" aria-label="Sections">' + mnavItems + '</nav></header>' + TASKS_BADGE + '<script>' + RECENT_JS + '</script>';
+    '<nav class="rail" aria-label="Main navigation"><div class="wm"><a class="logo" href="' + home + '">GoAskSam</a><span class="beta">Beta</span></div><p class="tag">' + RAIL_TAGLINE + '</p>' + railItems + (extra || '') + quiet + '</nav>' +
+    '<header class="mhead"><span class="wm"><a href="' + home + '">GoAskSam</a><span class="beta">Beta</span></span><nav class="mnav" aria-label="Sections">' + mnavItems + '</nav></header>' + TASKS_BADGE + '<script>' + RECENT_JS + '</script>';
 }
 
 export function whyResultHtml(crew) {
