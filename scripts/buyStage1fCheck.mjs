@@ -42,6 +42,10 @@ const n6 = css.slice(css.indexOf("SAM'S NEW 1f BLOCK, ITEM 6,"));
 ok(/\.cgrid \.car h3\{min-height:0\}/.test(n6) && /var ALIGN = \[".tx > .trow"/.test(client), "new 6: no empty second title line; a row makes room only when one of its titles wraps (measured: the first row's range bottom 694px against the composer at 823px, 1440 by 900, local render)");
 // NEW BLOCK ITEM 7: Sign in never on the Sort
 ok(/function clearSignIn\(\)\{/.test(client) && /row\.style\.paddingRight = Math\.ceil\(rr\.right - pr\.left \+ 12\) \+ "px"/.test(client) && /alignRows\(\); clearSignIn\(\);/.test(client) && /new MutationObserver\(alignSoon\)\.observe\(sbar/.test(client), "new 7: the header row keeps clear of the Sign in pill by its measured width, on every change, resize and when the pill fills");
+// ONE QUESTION PANEL (Sam's order 2): every route that draws a question draws it through samAskHtml (the pale green panel); no other builder writes a question section
+ok((client.match(/<section class="ask samq"/g) || []).length === 1 && (client.match(/<section class="ask"[^>]*><p class="ask-q"/g) || []).length === 0 && /function samAskHtml\(q, chipsHtml, before, afterHtml\)\{[^]*?<section class="ask samq"/.test(client), "2: ONE builder of the question panel (samAskHtml); the distance question, the light row and the panel all go through it");
+ok(/if \(a\.zipAsk\) return samAskHtml\(/.test(client) && /if \(light\) return samAskHtml\(/.test(client) && /return samAskHtml\(lead \+ a\.q/.test(client), "2: the panel, the light row and the distance question each call it");
+ok(!/class="lav"|sq-mark|sq-who|>S<\/span>/.test(client), "2: no avatar mark on any Buy route");
 //__NEXT__
 console.log(`buyStage1fCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
