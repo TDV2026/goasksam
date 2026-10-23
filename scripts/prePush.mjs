@@ -901,6 +901,13 @@ try {
 } catch (e) {
   record("savedNameCheck (scripts/savedNameCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Leftover words and mileage note, the page half (Sam, Oct 23 2026; Lane C). No network.
+try {
+  const out = execSync("node scripts/leftoverPageCheck.mjs", { encoding: "utf8" });
+  record("leftoverPageCheck (scripts/leftoverPageCheck.mjs)", "PASS", (out.match(/leftoverPageCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("leftoverPageCheck (scripts/leftoverPageCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });

@@ -786,7 +786,10 @@
     var rf = obLastRefine || {};
     if (Number(rf.miTarget) > 0) {
       var val = Number(rf.miTarget).toLocaleString("en-US");
-      return '<p class="hero-miles on" data-stage="answer">' + lint(esc("Range narrowed around " + val + " miles."), "hero.mi.on") +
+      // MILEAGE NEVER MAKES THE ANSWER WORSE (Sam's rule, Oct 23 2026): when too few sales sit near the miles to narrow, the engine keeps the
+      // original range and sends mileageNote ("Too few sales near N miles to narrow it. This is the range for all N."): printed in this slot.
+      var mnote = d && d.mileageNote ? String(d.mileageNote) : "";
+      return '<p class="hero-miles on" data-stage="answer">' + lint(esc(mnote || ("Range narrowed around " + val + " miles.")), mnote ? "hero.mi.note" : "hero.mi.on") +
         ' <button type="button" class="linkbtn" id="ob-miles-change">Change</button>' + milesFieldHtml(rf.miTarget) + "</p>";
     }
     var mi = m && Number(String(m.mileage == null ? "" : m.mileage).replace(/[^\d]/g, ""));
@@ -2409,6 +2412,11 @@
     return '<p class="rung-label" data-stage="answer">' + lint(esc("Matched to " + label), "rung.label") + "</p>";
   }
 
+  // LEFTOVER WORDS (Sam's order, Oct 23 2026): the engine's one plain sentence, "Sam didn't use 'xyz' in this search.", printed under the
+  // search box exactly as sent (Market Check and Sell read the same response). Nothing is computed here.
+  function unusedLineHtml(d) {
+    return d && d.unusedLine ? '<p class="unused-line" role="note">' + esc(d.unusedLine) + "</p>" : "";
+  }
   function renderResults(d) {
     // Search box, resolved car line (VIN MATCH pill on an exact match), then the tier body. Every
     // branch renders from the engine's structured facts - no fabricated numbers, ever.
@@ -2446,7 +2454,7 @@
     // new heroes (heroRangeHtml / thinHeroHtml) never print that sentence, so it must not render at
     // this shared top level for them either. Every other tier (class_era, refusal...) is unchanged -
     // it keeps rendering here exactly as Round 7/8 shipped it.
-    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + head + ((d.tier === "result" || d.tier === "thin") ? "" : rungLabelHtml(d)) + body + (foot ? footHtml() : "");
+    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + unusedLineHtml(d) + head + ((d.tier === "result" || d.tier === "thin") ? "" : rungLabelHtml(d)) + body + (foot ? footHtml() : "");
     wire();
     streamReveal();
     if (d.tier === "result" || d.tier === "thin") loadLivePanel(d, m);
