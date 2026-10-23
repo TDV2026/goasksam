@@ -14,22 +14,23 @@ let seq = 0;
 // price + image: the typed path's qualifier (isQualifying) wants a sale price above the car floor and a photo; the stored
 // body field is set to a DIFFERENT body on purpose (the Cars & Bids contradiction), so a typed body must ignore it.
 const row = (make, model, year, title, usd, daysAgo) => ({ id: ++seq, _usd: usd, price: usd, image: "x", body: "sedan", raw_title: title, rtitle: title, make, model, year, auction_end_date: new Date(now - daysAgo * DAY).toISOString().slice(0, 10), source: "bringatrailer", mods: "", transmission: "Manual (4-Speed)", mileage: String(40000 + seq * 100) });
-const pool = (make, model, year, bodies, usdBase = 30000) => {
+const pool = (make, model, year, bodies, usdBase = 30000, ageBase = 0) => {
   const rows = []; let i = 0;
-  for (const [word, n] of bodies) for (let k = 0; k < n; k++, i++) rows.push(row(make, model, year, `${year} ${make} ${model}${word ? " " + word : ""}${k % 3 === 0 ? " 4-Speed" : ""}`, usdBase + (i % 11) * 900, 10 + (i * 7) % 300));
+  for (const [word, n] of bodies) for (let k = 0; k < n; k++, i++) rows.push(row(make, model, year, `${year} ${make} ${model}${word ? " " + word : ""}${k % 3 === 0 ? " 4-Speed" : ""}`, usdBase + (i % 11) * 900, ageBase + 10 + (i * 7) % 300));
   return rows;
 };
 const CASES = [
   { name: "1965 Mustang: Convertible 33, Coupe 20, Fastback 12, four with no body word", make: "Ford", model: "Mustang", year: 1965, bodies: [["Convertible", 33], ["Coupe", 20], ["Fastback", 12], ["", 4]] },
   { name: "1969 Camaro: Coupe 17, Convertible 3, one with no body word (its page opens one card)", make: "Chevrolet", model: "Camaro", year: 1969, bodies: [["Coupe", 17], ["Convertible", 3], ["", 1]], usd: 50000 },
   { name: "1966 Thunderbird: Convertible 14, Coupe 24, Hardtop 9 (reads coupe), none without a body word", make: "Ford", model: "Thunderbird", year: 1966, bodies: [["Convertible", 14], ["Coupe", 24], ["Hardtop", 9]], usd: 20000 },
+  { name: "1969 Camaro, e81: 8 sales in twelve months (Coupe 6, Convertible 2), more in months 13 to 24, so the body pages read 24 months", make: "Chevrolet", model: "Camaro", year: 1969, bodies: [["Coupe", 6], ["Convertible", 2]], older: [["Coupe", 4], ["Convertible", 7]], usd: 50000, expectLonger: true },
   { name: "one body only (no options, nothing to sum)", make: "Acura", model: "NSX", year: 1995, bodies: [["", 15]], usd: 90000 }
 ];
 
 let failed = 0;
 const fail = (c, msg) => { failed++; console.log(`FAIL  ${c.name}: ${msg}`); };
 for (const c of CASES) {
-  const rows = pool(c.make, c.model, c.year, c.bodies, c.usd);
+  const rows = pool(c.make, c.model, c.year, c.bodies, c.usd).concat(c.older ? pool(c.make, c.model, c.year, c.older, c.usd, 380) : []);
   const vehicle = { make: c.make, model: c.model, trim: "", year: c.year, bodyStyle: null };
   const base = () => ({ resolvedCar: { make: c.make, model: c.model, year: c.year, trim: "", bodyStyle: null }, resolvedSpec: null, dedup: {}, vehicle, exactSale: null, inlineSplits: [] });
   const spec = { make: c.make, model: c.model, trim: "", year: c.year, bodyStyle: null, excludeVariants: [], genCode: null, subject: `${c.year} ${c.model}` };
@@ -65,6 +66,14 @@ for (const c of CASES) {
       if (typed !== Number(o.n)) { ok = false; console.log(`      typed "${o.value}" qualifies ${typed} rows, the chip opens ${o.n}`); }
     }
   }
+  if (c.expectLonger) {
+    const flagged = opts.filter(o => o.windowLonger === true);
+    if (flagged.length !== opts.length || !flagged.every(o => o.windowMonths === 24 && /^Based on \w+ sales over the last 24 months\.$/.test(o.windowNote || "") && o.n > o.inPool)) { ok = false; console.log(`      expected every option flagged windowLonger with 24 months: ${JSON.stringify(opts)}`); }
+    // the check must not be weakened: the same answer with the flags stripped (options that read a longer window without saying so) is still refused
+    const stripped = { ...d, bodyOptions: opts.map(({ windowLonger, windowMonths, windowNote, ...o }) => o) };
+    const refused = runOutputInvariants(stripped, vehicle).filter(x => !x.ok).map(x => x.name);
+    if (!refused.includes("identity_options_sum_to_pool")) { ok = false; console.log("      an unflagged option that opens more than its share was NOT refused"); }
+  } else if (opts.some(o => o.windowLonger)) { ok = false; console.log("      an option is flagged windowLonger on a pool where every page reads the same window"); }
   const covered = opts.some(o => o.value === "unspecified");
   const total = sum + (covered ? 0 : (Number(d.bodyUnspecified) || 0));
   if (total !== poolN) { ok = false; console.log(`      options sum ${sum}${covered ? "" : " + unspecified " + (d.bodyUnspecified || 0)} != Any ${poolN}`); }
@@ -72,6 +81,15 @@ for (const c of CASES) {
   if (noBody && noBody[1] > 0 && !covered) { ok = false; console.log(`      ${noBody[1]} row(s) with no body word are in no option (silent gap)`); }
   if (ok) console.log(`PASS  ${c.name}: bare ${d.tier} ${poolN}; ${opts.map(o => `${o.label} ${o.n}`).join(", ")} = ${sum}; typed body words qualify the chip's rows`);
   else failed++;
+}
+// e81: a "could not verify" refusal is never stored as a finished answer (the next search recomputes); a plain "too spread out" refusal still is.
+{
+  const { answerCacheable } = await import("../lib/live/search.js");
+  const base = { tier: "refusal", fallbackRung: "exact", rungLabel: "x", poolN: 0, cards: [] };
+  const a = answerCacheable({ ...base, refusal: { kind: "invariant_failed", failedChecks: ["identity_options_sum_to_pool"] } });
+  const b = answerCacheable({ ...base, refusal: { kind: "too_spread_out" } });
+  if (a !== false) { failed++; console.log("FAIL  an invariant_failed refusal is storable"); } else console.log("PASS  an invariant_failed refusal is never stored");
+  if (b !== true) { failed++; console.log("FAIL  an ordinary refusal stopped being storable"); } else console.log("PASS  an ordinary refusal is still stored");
 }
 console.log(failed ? `\nidentityLocalCheck: ${failed} case(s) FAILED.` : "\nidentityLocalCheck: every option equals its page and the options sum to Any, on the code being pushed.");
 process.exit(failed ? 1 : 0);

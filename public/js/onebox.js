@@ -903,7 +903,10 @@
     // available (never invented).
     var np = nameplateOf(d);
     var lead = np ? (lint("Which " + esc(np) + "?", "hero.idq.body") + " ") : "";
-    return '<p class="hero-idline" data-stage="answer">' + lead + items.join(" · ") + "</p>";
+    // e81 (Sam's ruling, Oct 23 2026): an option whose page reads a LONGER window than Any says so, in the engine's own words (windowNote); the page prints it and computes nothing.
+    var notes = shown.filter(function (o) { return o.windowLonger === true && o.windowNote; }).map(function (o) { return esc(o.label) + ": " + esc(o.windowNote); });
+    var noteHtml = notes.length ? '<p class="hero-idnote" data-stage="answer">' + notes.join(" ") + "</p>" : "";
+    return '<p class="hero-idline" data-stage="answer">' + lead + items.join(" · ") + "</p>" + noteHtml;
   }
   function heroGearboxLineHtml(d) {
     var splits = (d && d.inlineSplits) || [];

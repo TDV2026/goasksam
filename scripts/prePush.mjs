@@ -1067,6 +1067,13 @@ if (TIER === "fast") {
   try { console.log(execSync("node " + sc, { encoding: "utf8", timeout: 240000 }).trim().split("\n").slice(-14).join("\n")); }
   catch (e) { console.log(String((e.stdout || "") + (e.stderr || "")).trim().slice(-1200) || "searchCheck did not complete (report-only, not blocking)."); }
 } else {
+// ---- 3a. REFUSAL CHECK (Lane B, Oct 23 2026): ten large-pool cars through the page's own request; ANY refusal fails the push ----
+try {
+  const out = execSync(`node scripts/refusalCheck.mjs --base ${BASE}`, { encoding: "utf8", timeout: 600000 });
+  record("refusal check, ten large-pool cars (scripts/refusalCheck.mjs)", /SKIP/.test(out) ? "SKIP" : "PASS", (out.match(/refusalCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("refusal check, ten large-pool cars (scripts/refusalCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL|^refusalCheck/.test(l)).slice(0, 6).join(" | "));
+}
 // ---- 3 & 4. BROWSER CHECK (Lane C's pushCheck.mjs) + BASELINE ----
 console.log(`\n-- browser check via scripts/pushCheck.mjs (${BASE}) --`);
 let browserOutput = "";
