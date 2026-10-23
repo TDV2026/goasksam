@@ -2771,6 +2771,7 @@
   var vinAnchor = null;   // carried from the confirm step into the result render
   var vinQueryNoSale = false;   // the query WAS a VIN that resolved a car but has NO recorded sale in our archive
   var pendingVin = null;  // resolved vehicle awaiting confirmation
+  var mcFromCard = false;  // the address came from a card's Market Check link (from=card): no confirm question
   // Base label a clarification chip appends its answer to (year+make for a model ask, the full
   // car for a body ask). A VIN query's raw text is the VIN, so a chip must NOT append to it (it
   // re-decodes and loops) - the chip builds a clean query from this context instead. Null for a
@@ -2917,6 +2918,7 @@
   function mcApplyFromUrl() {
     var sp = new URLSearchParams(location.search);
     var vin = sp.get("vin"), car = sp.get("car");
+    mcFromCard = sp.get("from") === "card";
     if (!vin && !car) { renderEmpty(); syncRailResults(); return; }
     var refine = mcRefineFromParams(sp);
     obAsked = 0; lastQuery = vin || deslugifyQuery(car); obLastRefine = null; obIdOrigBody = null; obIdOrigTrim = null; obIdOrigVariantLines = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
@@ -3088,6 +3090,8 @@
             return;
           }
           pendingVin = d.vehicle || null; vinAnchor = null; vinQueryNoSale = true;   // decoded a VIN, no recorded sale
+          // Arriving from a card's own Market Check link (from=card): the car is the one the card shows, so there is nothing to confirm.
+          if (mcFromCard) { mcFromCard = false; runPool(lastQuery, pendingVin); return; }
           renderVinConfirm(cl.question, d.vehicle);
           return;
         }
