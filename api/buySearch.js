@@ -61,7 +61,8 @@ const FIRST = 10, MAX = 200;
 // A live car's miles, as its Buy card shows them (liveTrust through listingFacts): stated miles, a US lot with no stated
 // unit, or null when unknown or when the listing states kilometres (the card shows those as km). Never a guess.
 export const cardMiles = facts => (facts && !facts.km && Number(facts.miles) > 0 ? Math.round(Number(facts.miles)) : null);
-const titleCaseIfShouting = s => String(s || "").split(",").map(p => { const t = p.trim(); return t && t === t.toUpperCase() && /[A-Z]{3}/.test(t) ? t.toLowerCase().replace(/\b([a-z])/g, c => c.toUpperCase()) : t; }).filter(Boolean).join(", ");
+import { placeCase } from "../lib/placeCase.js";
+const titleCaseIfShouting = placeCase;   // one place-name rule for every product (lib/placeCase.js: "King of Prussia", shouting places in title case)
 // SPEC CHIPS (Sam, Oct 14 2026): gearbox, exterior over interior colour, title status and the VIN shortened, each only
 // when the listing states it; a field the listing doesn't state is left out, never guessed.
 const COLOUR_WORDS = new Set(Object.values(COLOURS).flat().concat(["gray", "tan", "cream", "ivory", "oxblood", "cinnamon", "saddle", "camel", "parchment", "stone", "biscuit", "magnolia", "natural"]));
