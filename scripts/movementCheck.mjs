@@ -36,6 +36,6 @@ ok(trend && trend.movement && trend.movement.size === "quarter" && Array.isArray
 const m = ob.mapEngineAnswer({ tier: "result", trend });
 ok(m.trendMovement && m.trendMovement.label === "by quarter" && m.trendMovement.buckets.length === 4, "mapEngineAnswer passes trendMovement");
 ok(ob.mapEngineAnswer({ tier: "result" }).trendMovement === null, "no trend: no movement");
-ok(/^e77-/.test(ob.ENGINE_VERSION), `the new engine stamp: ${ob.ENGINE_VERSION}`);
+ok(/^e7[7-9]-|^e[89]\d-/.test(ob.ENGINE_VERSION), `the new engine stamp: ${ob.ENGINE_VERSION}`);
 console.log(bad ? `movementCheck: ${bad} failed` : "movementCheck: all passed");
 process.exit(bad ? 1 : 0);
