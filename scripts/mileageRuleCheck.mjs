@@ -23,7 +23,7 @@ const e0 = buildResult(chosen(etype), base(), iso, spec, null);
 const e1 = buildResult(chosen(etype), base(), iso, spec, MILES(36000));
 ok(e0.tier === "result" && Array.isArray(e0.cluster), `the 1963 E-Type without mileage: a range (${e0.tier} ${JSON.stringify(e0.cluster)}, ${e0.poolN} sales)`);
 ok(keyOf(e1) === keyOf(e0), "with 36,000 miles: the SAME answer (tier, range, count, years, label) as without");
-ok(e1.mileageNote === `Too few sales near 36,000 miles to narrow it. This is the range for all ${e0.poolN}.`, `the plain line: "${e1.mileageNote}"`);
+ok(e1.mileageNote === `Too few sales near 36,000 miles to narrow it. This is the range for all eight.`, `the plain line: "${e1.mileageNote}"`);
 ok(e1.refined && e1.refined.mileage === true && e1.refined.narrowed === false, "refined says a mileage was given and the pool was not narrowed");
 ok(e1.mileageFallback === null && e1.nearestInMiles === null, "no 'nearest in miles' set replaces the answer");
 ok(Array.isArray(e1.poolYears) && e1.poolYears[0] === e0.poolYears[0] && e1.poolYears[1] === e0.poolYears[1], `the years stay (${JSON.stringify(e1.poolYears)}), never 1964 to 1966`);
@@ -42,5 +42,8 @@ const eight = Array.from({ length: 20 }, (_, i) => mk(i, 1964, i < 8 ? 34000 + i
 const seven = eight.map((r, i) => (i === 7 ? { ...r, mileage: "99000" } : r));
 ok(!buildResult(chosen(eight), base(), iso, spec, MILES(36000)).mileageNote, "eight sales near the miles: narrowed");
 ok(!!buildResult(chosen(seven), base(), iso, spec, MILES(36000)).mileageNote, "seven sales near the miles: not narrowed, the line");
+// the count is written the way the engine writes counts elsewhere: a word under ten, digits from ten
+const twelve = Array.from({ length: 12 }, (_, i) => mk(i, 1964, i < 2 ? 36000 : 90000 + i * 500, 80000 + i * 900, 20 * (i + 1)));
+ok(/range for all 12\.$/.test(buildResult(chosen(twelve), base(), iso, spec, MILES(36000)).mileageNote || ""), "twelve sales: 'all 12'");
 console.log(bad ? `mileageRuleCheck: ${bad} failed` : "mileageRuleCheck: all passed");
 process.exit(bad ? 1 : 0);
