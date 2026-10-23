@@ -12240,3 +12240,27 @@ Search check: rule 3 (title, H1, lead of /find unchanged copy; canonical and og:
 - PUSHED (Lane C, 13:34:54Z, e11b625e, Ready 13:35:16Z): GoAskSam 2.0 STAGE 2, the four start pages. One shared start component (lib/startPage.js) draws Home (new, at /), Find, Market Check and the new Sell with Sam's words; each box keeps its page's own ids so no engine path changed; Home's box goes straight to populated /find?q= results; the old Find, Market Check and new Sell landings (hero photos, example bands, feature cards) are gone; the microphone shows only where the browser can listen; the OLD Sell page gets only the shared rail (saved-results list kept in the rail's extra section); rail icons; /buy is now a real 301; public/index.html became public/sell-old.html (a static index.html would shadow the new "/"; the old file name redirects to /sell). Home stays closed to the public (302 to /sell) until Find is released. FULL prePush 0 FAIL.
 - LOOK DONE (Lane C, 13:38Z): live, crew: all four start pages show Sam's eyebrow, headline, sub, box, mic and quiet dated line at 1440 and 390, no overflow, no console errors; Home submit "red Porsche 911" lands on /find?q=... with cards (never the empty Find page); rail Find and rail Market Check open their empty start pages; Find box and Market Check box run their searches; Market Check search appears in Recent searches; /buy?q=Porsche%20911 answers 301 to /find?q=...; old Sell shows the shared rail and its input; buySearch on the deployed site still returns cards. Screenshots (four pages side by side, 1440 and 390, plus each page): ~/Desktop/goasksam-proofs/stage2. STOPPED after Stage 2 as ordered. LOCK RELEASED (Lane C).
 Search check: rule 1 (each start page keeps one quiet dated lead sentence marked data-lead-sentence: Find "Sam is following N enthusiast cars live ... as of date", Market Check "Market Check. Updated date", Home "updated date", Sell "Updated date" under its named exception), rule 2 and 8 ("/" now its own canonical page, /buy 301 to /find), rule 3 (headline, sub, box labels and lines are in the server HTML, no client-drawn start copy), rule 5 (Home has its own title and description; Find's title no longer says collector), rule 7 (sitemap-pages lists "/" once Find is released).
+
+## FROM SAM, relayed verbatim by Lane F (13:48Z)
+
+Lane C, Stage 2 is approved. Go ahead with Stages 3 and 4.
+
+Answers to your six calls:
+1. Home stays closed to the public (redirects to /sell) until Find is released. Confirmed.
+2. Keep the dated line under each box. It shows a date only, never a source count or sale count.
+3. public/sell-old.html is fine, but it must not be reachable as a second public page. Redirect or noindex it, and make sure no sitemap or canonical points at it.
+4. Skipping the rail card styling and the "About · Feedback" pairing is fine.
+5. Terms link stays out until a Terms page exists. Do not draw a dead link. Sam will supply the text later.
+6. New Sell stays behind SELL_NEXT_ON until Sam's review.
+
+Palette bar: it is only for Sam to compare looks and show a few people. Keep it on the homepage for now, crew-only (crew cookie), never in public HTML, never indexed, never in the server-rendered text. Sam removes it once the palette is chosen, so keep it in one easily removable place and tell Sam where it lives.
+
+Stage 3: voice on all four start pages (editable transcript, graceful errors), the value-intent line on Find, and sign-in continuity (keep the query, refinements and intended action, no duplicates). Then confirm the Tasks live bug is fixed on main (signed-in Tasks page, Give Sam a Task, rail Tasks link).
+
+Stage 4: server-rendered HTML for all start pages, own titles and descriptions, Organization and WebSite structured data with the site search action to /find, add the pages to searchCheck and copy lint, mobile pass, and the regression pass against the original brief attached by Sam (or the Stage 4 list in the GoAskSam 2.0 block if the brief has no list).
+
+Also: wire the leftover-words line into the Task setup reply from the engine field in code only (never model-written), as already instructed.
+
+Rules: one engine, pages compute nothing. Keep "Last bid seen" and "The typical range for cars like this." No secrets, no spend. No time estimates. No em or en dashes. Report in three lines per stage, then stop after Stage 3 for Sam's check on the value-intent line and sign-in flow.
+
+LANE F NOTE: OWNER LANE C. Stage 3, then STOP for Sam's check (value-intent line and sign-in flow); Stage 4 after Sam's word on Stage 3 (Sam wrote 'go ahead with Stages 3 and 4' but also 'stop after Stage 3 for Sam's check': the stop rule wins, Stage 4 follows his word). Also: sell-old.html noindex or redirect and in no sitemap or canonical; the crew-only palette bar in ONE removable place (tell Sam where it lives); the Tasks leftover-words wiring is already live (dbc91952): confirm it and the Tasks live bug on main in the Stage 3 report.
