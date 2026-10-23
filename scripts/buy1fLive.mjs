@@ -59,7 +59,7 @@ try {
         sub: panel ? txt(panel).includes(SUB) : false, chips, panelText: txt(panel).slice(0, 300),
         show: show ? { tag: show.tagName, text: txt(show), deco: getComputedStyle(show).textDecorationLine, bg: getComputedStyle(show).backgroundColor, border: getComputedStyle(show).borderTopWidth, radius: getComputedStyle(show).borderTopLeftRadius } : null,
         inputs, foldBottom: fr ? Math.round(fr.getBoundingClientRect().bottom) : null, foldTop: fr ? Math.round(fr.getBoundingClientRect().top) : null, vh: innerHeight, gaps,
-        cards: cards.map(c => ({ sold: c.classList.contains("soldc"), photo: !!c.querySelector(".ph img, .ph, .noimg"), acts: txt(c.querySelector(".acts")), src: c.querySelector(".src") ? { t: txt(c.querySelector(".src")), bg: getComputedStyle(c.querySelector(".src")).backgroundColor } : null, lbid: /LAST BID SEEN/.test(c.innerText), icon: /[★☆♥♡]/.test(c.innerText) || !!c.querySelector('[aria-label*="save" i],[aria-label*="favo" i],[aria-label*="star" i],.star,.heart,.fav,.save') }))
+        cards: cards.map(c => ({ sold: c.classList.contains("soldc"), photo: !!c.querySelector(".ph img, .ph, .noimg"), acts: txt(c.querySelector(".acts")), src: c.querySelector(".src") ? { t: txt(c.querySelector(".src")), bg: (() => { let e = c.querySelector(".src"); while (e && e !== c) { const b = getComputedStyle(e).backgroundColor; if (b && !/rgba\(0, 0, 0, 0\)|transparent/.test(b)) return b; e = e.parentElement; } return "rgba(0, 0, 0, 0)"; })() } : null, lbid: /LAST BID SEEN/.test(c.innerText), icon: /[★☆♥♡]/.test(c.innerText) || !!c.querySelector('[aria-label*="save" i],[aria-label*="favo" i],[aria-label*="star" i],.star,.heart,.fav,.save') }))
       };
     }, SUB);
     // (1)
@@ -71,7 +71,7 @@ try {
     if (a && a.chips) {
       const want = [...a.chips.map(c => `${c.label} (${c.n})`), a.any ? `${a.any.label} (${a.any.n})` : null].filter(Boolean), got = D.chips.filter(t => /\(\d+\)$/.test(t));
       if (JSON.stringify(got) !== JSON.stringify(want)) fail(w, `the panel's chips ${JSON.stringify(got)} are not the engine's ${JSON.stringify(want)}`);
-      if (a.unstated && !/don't say/i.test(D.panelText)) fail(w, `the engine says ${a.unstated} don't say, and the panel shows no "don't say" line ("${D.panelText}")`);
+      if (a.unstated && !/don[’']t say/i.test(D.panelText)) fail(w, `the engine says ${a.unstated} don't say, and the panel shows no "don't say" line ("${D.panelText}")`);
     } else console.log(`  (the engine asked no question here at ${now()})`);
     // (2)
     if (D.show) { if (!/underline/.test(D.show.deco) || !/→/.test(D.show.text) || (lum(D.show.bg) !== null && lum(D.show.bg) < 0.97) || parseFloat(D.show.border) > 0) fail(w, `"${D.show.text}" is not an underlined text link with an arrow (${D.show.tag}, decoration ${D.show.deco}, background ${D.show.bg}, border ${D.show.border}, radius ${D.show.radius})`); }
@@ -99,7 +99,7 @@ try {
       const pop = [...document.querySelectorAll("[role=dialog], dialog, .hp-full, .dpanel, .md-full")].find(d => d.getBoundingClientRect().height > 0);
       return { navigated, opened, moved: location.href !== before, pop: pop ? (pop.innerText || "").replace(/\s+/g, " ").slice(0, 160) : null };
     }, sel);
-    for (const [sel, label] of [["article.car:not(.soldc) h3", "the title"], ["article.car:not(.soldc) .meta", "the metadata line"], ["article.car:not(.soldc) .chips .chip, article.car:not(.soldc) .tagline span", "a chip"]]) {
+    for (const [sel, label] of [["article.car:not(.soldc) h3", "the title"], ["article.car:not(.soldc) .meta", "the metadata line"], ["article.car:not(.soldc) .tx .chips .chip, article.car:not(.soldc) .tx .tagline span", "a chip"]]) {
       const r = await clickTest(sel); if (r.none) continue;
       if (r.navigated || r.opened || r.moved) fail(w, `${label} opens something (${r.navigated || r.opened || "the page moved"})`);
     }
