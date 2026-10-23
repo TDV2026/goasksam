@@ -172,4 +172,4 @@ ${CONSENT_BANNER_HTML}
   res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched() || showPal) ? "private, no-store" : late ? "public, s-maxage=30" : "public, s-maxage=600");
   res.status(200).send(html);
 }
-export { BUY_CSS };
+export { BUY_CSS, CARD_RULES_CSS, RUNG_CSS, BUY_CARD_CSS, PRIOR_JS, CLIENT as BUY_CLIENT_SOURCE };   // the card kit (lib/findCardKit.js) reads Find's own card code and styles from here

@@ -13,6 +13,7 @@ import { isTesterRequest } from "../lib/_tester.js";
 import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
 import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
+import { findCardKitJs, FIND_CARD_CSS } from "../lib/findCardKit.js";
 
 export const TASKS_PITCH = { lead: "A free collector car finder.", sub: "Tell Sam what you want and he keeps searching, then emails you when one fits." };
 const HOW = "The cars Sam shows you come from a rules-based matching algorithm. Sam helps understand the question and explain the results, but never invents the cars, the matches or the numbers. Every number comes from real market evidence.";
@@ -80,7 +81,8 @@ const APP_CSS = `
 .pbtn{border:0;background:var(--ink);color:var(--on-accent,#fff);border-radius:6px;min-height:44px;padding:0 22px;font:600 16px var(--sans);cursor:pointer}
 .pbtn[disabled],.sbtn[disabled],.plink[disabled]{opacity:.65;cursor:default}
 .plink{background:none;border:0;padding:0;color:var(--ink);font:500 15px var(--sans);text-decoration:underline;text-underline-offset:4px;cursor:pointer;min-height:44px}
-.boxlab{display:block;margin:18px 0 6px;font:500 14px var(--sans);color:var(--sec)}
+.tkask{background:var(--card);padding:10px 0 0;margin-top:14px}
+.boxlab{display:block;margin:0 0 6px;font:500 14px/1.3 var(--sans);color:var(--sec)}
 .tkbox{display:flex;gap:8px;align-items:center;background:var(--card);border:1px solid var(--tk-line);border-radius:6px;padding:4px 6px 4px 14px}
 .tkbox input{flex:1;min-width:0;border:0;outline:0;font:400 17px/1.4 var(--sans);background:transparent;padding:11px 0}
 .tkbox button{border:0;background:var(--ink);color:var(--on-accent,#fff);border-radius:6px;min-height:40px;padding:0 14px;font:500 15px var(--sans);cursor:pointer}
@@ -98,9 +100,9 @@ const APP_CSS = `
 .cars .more{color:var(--sec)}
 .empty{margin:14px 0 0;font:400 15px var(--sans);color:var(--sec)}
 .notify{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:12px 2px 0;font:400 15px/1.5 var(--sans);color:var(--sec)}
-.notify b{font-weight:600;color:var(--ink)}.often{display:inline-flex;align-items:center;gap:8px;color:var(--ink)}.often select{min-height:36px;font:400 15px var(--sans);padding:0 8px;border:1px solid var(--div,#E6E1D8);border-radius:6px;background:var(--card);color:var(--ink)}.oftenhelp{flex-basis:100%;font-size:14px;color:var(--sec)}
+.notify b{font-weight:600;color:var(--ink)}.often{display:inline-flex;align-items:center;gap:8px;color:var(--ink);white-space:nowrap;flex:none}.often select{min-height:36px;font:400 15px var(--sans);padding:0 8px;border:1px solid var(--div,#E6E1D8);border-radius:6px;background:var(--card);color:var(--ink)}.oftenhelp{flex-basis:100%;font-size:14px;color:var(--sec)}
 .notify .plink{min-height:36px;font-size:15px}
-.sw{display:inline-flex;align-items:center;gap:8px;cursor:pointer;min-height:36px;color:var(--ink)}
+.sw{display:inline-flex;align-items:center;gap:8px;cursor:pointer;min-height:36px;color:var(--ink);white-space:nowrap;flex:none}
 .sw input{position:absolute;opacity:0;width:1px;height:1px}
 .sw i{position:relative;width:38px;height:22px;border-radius:11px;background:var(--tk-switch);transition:background .15s;flex:none}
 .sw i::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--card);transition:transform .15s}
@@ -217,7 +219,7 @@ function appPage(req, res) {
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">${paletteHead(showPal)}
 <title>Your Tasks | GoAskSam</title><meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#F6F3EC">
-${FONT_LINKS}<style>${PAGE_CSS}${CSS}${APP_CSS}${AUTH_CSS}${SHELL_CSS}${CONSENT_BANNER_CSS}</style></head><body>
+${FONT_LINKS}<style>${PAGE_CSS}${CSS}${FIND_CARD_CSS}${APP_CSS}${AUTH_CSS}${SHELL_CSS}${CONSENT_BANNER_CSS}</style></head><body>
 ${showPal ? paletteSwitcherHtml() : ""}${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 ${railOpenHtml({ active: "tasks", crew, req, analytics: true })}
@@ -229,6 +231,8 @@ ${CONSENT_BANNER_HTML}
 <script>${SHELL_JS}</script>
 <script>window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};window.GAS_AUTH_MODE="topbar";</script>
 <script src="/js/auth.js" defer></script>
+<script>window.GAS_REL={mc:${isReleased("market-check", req) ? "true" : "false"},tasks:true};</script>
+<script>${findCardKitJs()}</script>
 <script>${APP_JS}</script>
 <script src="/api/track?js=1" defer></script>
 <script>${CONSENT_BANNER_JS}</script>${showPal ? `<script>${PALETTE_SWITCHER_JS}</script>` : ""}</body></html>`;
@@ -272,21 +276,27 @@ const APP_JS = String.raw`(function(){
   // A stored bid by its own time, as on Buy's cards (lib/tasks/bidTime.js): within the hour "Bid $42,500"; older, "Last
   // bid we saw: $42,500 at 4:12am" in the reader's clock; no bid time, no bid.
   function bidFx(c){ var t = Date.parse(c.bid_at || ""); if (!c.bid_usd || isNaN(t)) return null; if (Date.now() - t <= 3600e3) return "Bid " + money(c.bid_usd); var d = new Date(t), s = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(" AM", "am").replace(" PM", "pm"); return "Last bid seen: " + money(c.bid_usd) + " at " + s + (d.toDateString() === new Date().toDateString() ? "" : " on " + d.toLocaleDateString("en-US", { weekday: "long" })); }
+  // The cars of an update, drawn with FIND'S OWN CARD (window.GASCARD, lib/findCardKit.js: the card code is Find's own, lifted from its
+  // client). The server read each listing again with Find's engine step (u.data.full); a car whose row could not be read keeps the thin line.
   function cars(u){
     var cs = (u.data && u.data.cards) || []; if (!cs.length) return "";
-    var more = u.data.total > cs.length ? '<li class="more">' + (u.data.total - cs.length) + " more match.</li>" : "";
-    return '<ul class="cars">' + cs.map(function(c){
-      var fx = [bidFx(c), c.house, c.distance_miles != null ? c.distance_miles.toLocaleString("en-US") + " miles away" : c.location, c.miles ? Number(c.miles).toLocaleString("en-US") + " mi" : c.km ? Number(c.km).toLocaleString("en-US") + " km" : null].filter(Boolean).join(" · ");
-      // The whole card opens the listing; title, bid and details are plain text inside it (the card rules).
+    var full = (u.data && u.data.full) || [], big = [], thin = [];
+    cs.forEach(function(c, i){ var f = full[i]; if (f && window.GASCARD) big.push(window.GASCARD.card(f)); else thin.push(c); });
+    var more = u.data.total > cs.length ? '<p class="more">' + (u.data.total - cs.length) + " more match.</p>" : "";
+    var h = big.length ? '<div class="cgrid tkgrid">' + big.join("") + "</div>" : "";
+    if (thin.length) h += '<ul class="cars">' + thin.map(function(c){
+      var fx = [bidFx(c), c.house, c.distance_miles != null ? c.distance_miles.toLocaleString("en-US") + " miles away" : c.location, c.miles ? Number(c.miles).toLocaleString("en-US") + " mi" : c.km ? Number(c.km).toLocaleString("en-US") + " km" : ""].filter(Boolean).join(" · ");
       return '<li><a class="carlink" href="' + esc(c.url || "#") + '" target="_blank" rel="noopener"><span class="t">' + esc(c.title || "Listing") + "</span>" + (fx ? '<span class="fx">' + esc(fx) + "</span>" : "") + "</a></li>";
-    }).join("") + more + "</ul>";
+    }).join("") + "</ul>";
+    return h + more;
   }
   function feed(t){
     var ups = (t.updates || []).filter(function(u){ return u.role === "sam" && ["match", "research", "still_looking", "system"].indexOf(u.kind) >= 0; }).slice().reverse();
     if (!ups.length) return '<p class="empty">No updates yet.</p>';
-    return '<ul class="feed">' + ups.map(function(u){ return '<li><span class="when">' + esc(when(u.created_at)) + '</span><p class="ut' + (u.kind === "system" ? " sys" : "") + '">' + esc(u.text) + "</p>" + cars(u) + "</li>"; }).join("") + "</ul>";
+    return '<ul class="feed">' + ups.map(function(u){ var eline = u.kind === "match" && u.data && u.data.line && ((u.data.full || []).some(function(f){ return !!f; }) || (u.data.cards || []).length);
+      return '<li><span class="when">' + esc(when(u.created_at)) + '</span>' + (eline ? '<p class="ut line">' + esc(u.data.line) + "</p>" : '<p class="ut' + (u.kind === "system" ? " sys" : "") + '">' + esc(u.text) + "</p>") + cars(u) + "</li>"; }).join("") + "</ul>";
   }
-  function box(label, id, value, ph){ return '<label class="boxlab" for="' + id + '">' + esc(label) + '</label><div class="tkbox"><input id="' + id + '" autocomplete="off" value="' + esc(value || "") + '" placeholder="' + esc(ph || "") + '"><button type="button" data-send="' + id + '"' + (busy ? " disabled" : "") + ">" + (busy ? "Sam is reading..." : "Send") + "</button></div>"; }
+  function box(label, id, value, ph){ return '<div class="tkask"><label class="boxlab" for="' + id + '">' + esc(label) + '</label><div class="tkbox"><input id="' + id + '" autocomplete="off" value="' + esc(value || "") + '" placeholder="' + esc(ph || "") + '"><button type="button" data-send="' + id + '"' + (busy ? " disabled" : "") + ">" + (busy ? "Sam is reading..." : "Send") + "</button></div></div>"; }
   function taskCard(t, compact){
     var st = status(t), live = t.state !== "done" && !compact;
     var btns = t.state !== "done" ? '<div class="tbtns">' + (t.state === "paused" ? '<button class="sbtn" data-act="resume" data-id="' + t.id + '">Resume</button>' : '<button class="sbtn" data-act="pause" data-id="' + t.id + '">Pause</button>') + '<button class="sbtn" data-act="stop" data-id="' + t.id + '">Stop</button></div>' : "";
@@ -338,6 +348,7 @@ const APP_JS = String.raw`(function(){
     if (paused.length) h += '<p class="pausedh">Paused</p>' + paused.map(function(t){ return taskCard(t, true); }).join("");
     if (past.length) h += '<details class="past"><summary>Past Tasks (' + past.length + ")</summary>" + past.map(function(t){ var st = status(t); return '<details><summary><span class="pill ' + st[0] + '">' + st[1] + "</span>" + esc(t.summary) + "</summary>" + feed(t) + "</details>"; }).join("") + "</details>";
     app.innerHTML = h;
+    if (window.GASCARD) { window.GASCARD.bind(); window.GASCARD.stamp(); }
     if (scrollTo) { var el = app.querySelector(".blocked") || document.getElementById("task-" + scrollTo); scrollTo = null; if (el) el.scrollIntoView({ block: "start" }); }
     var q = $("tkq"); if (q && !cur && (params.get("start") || params.get("seed") || editing)) { q.focus(); }
   }

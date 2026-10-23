@@ -473,6 +473,9 @@ async function handler(req, res) {
     if (b.action === "list") {
       const tasks = await userTasks(env, user.userId);
       const withThreads = await Promise.all(tasks.map(async t => ({ ...t, updates: await taskUpdates(env, t.id) })));
+      // Find's own cards for the cars an update lists (lib/tasks/fullCards.js), and the engine's one-line count in place of the model's paragraph.
+      { const { attachFullCards, updateLine } = await import("../lib/tasks/fullCards.js"); await attachFullCards(env, withThreads).catch(() => {});
+        for (const t of withThreads) for (const u of t.updates || []) if (u && u.role === "sam" && u.kind === "match" && u.data && Array.isArray(u.data.cards) && u.data.cards.length) u.data.line = updateLine(u); }
       // Opening the list is an interaction; the open thread's updates are read.
       if (b.open && /^[0-9a-f-]{36}$/.test(String(b.open))) { const t = tasks.find(x => x.id === b.open); if (t) await saveTask(env, t.id, { unread: 0, last_interaction_at: new Date().toISOString() }); }
       return res.status(200).json({ tasks: withThreads, suggestions: await suggestions(env, user.userId).catch(() => []), notify: await notifyPrefs(env, user).catch(() => null) });

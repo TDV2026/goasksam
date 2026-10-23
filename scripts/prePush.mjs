@@ -971,6 +971,27 @@ try {
 } catch (e) {
   record("mcLinkCheck (scripts/mcLinkCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// findCardKitCheck (GoAskSam 2.0 Tasks cards and emails, Oct 23 2026; Lane C).
+try {
+  const out = execSync("node scripts/findCardKitCheck.mjs", { encoding: "utf8" });
+  record("findCardKitCheck (scripts/findCardKitCheck.mjs)", "PASS", (out.match(/findCardKitCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("findCardKitCheck (scripts/findCardKitCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// placeCaseCheck (GoAskSam 2.0 Tasks cards and emails, Oct 23 2026; Lane C).
+try {
+  const out = execSync("node scripts/placeCaseCheck.mjs", { encoding: "utf8" });
+  record("placeCaseCheck (scripts/placeCaseCheck.mjs)", "PASS", (out.match(/placeCaseCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("placeCaseCheck (scripts/placeCaseCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// emailCardsCheck (GoAskSam 2.0 Tasks cards and emails, Oct 23 2026; Lane C).
+try {
+  const out = execSync("node scripts/emailCardsCheck.mjs", { encoding: "utf8" });
+  record("emailCardsCheck (scripts/emailCardsCheck.mjs)", "PASS", (out.match(/emailCardsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("emailCardsCheck (scripts/emailCardsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });

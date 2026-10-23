@@ -227,7 +227,7 @@ async function enrich(env, x, deadlineAt) {   // deadlineAt (e61, Sam's item 3):
   c.mc_url = mcUrlOf(x.r, x.facts, market && market.query ? market : null);
   return { ...c, sam_lines: samLines(c) };
 }
-async function enrichFast(env, x) {
+export async function enrichFast(env, x) {
   const [market, seen, timeline, name] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts, { noBlock: true, notTracked: true }), seenBefore(env, x.r.vin_norm), timelineOf(env, x, { asideWaitMs: 1500 }), nameOf(env, x)]);
   const c = { ...cardOf(x), market: await rungMarket(env, x.r, x.facts, market), seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name };
   c.mc_url = mcUrlOf(x.r, x.facts, c.market && c.market.query ? c.market : null);
