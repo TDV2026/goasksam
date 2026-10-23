@@ -20,7 +20,7 @@ const CARS = {
   "2014 911 (by half-year)": MV("half", "by half-year", [Bk("H2 2025", 66000, 79000, 71000, 10), Bk("H1 2026", 62000, 88000, 70500, 13), Bk("H2 2026", 69000, 101000, 75000, 9)]),
   "full quarters (by quarter)": MV("quarter", "by quarter", [Bk("Q4 2025", 55000, 61500, 58000, 10), Bk("Q1 2026", 52000, 66000, 59000, 12), Bk("Q2 2026", 58000, 72000, 64000, 11), Bk("Q3 2026", 60000, 78000, 69000, 14)]),
   "full quarters, high prices": MV("quarter", "by quarter", [Bk("Q4 2025", 190000, 240000, 212000, 9), Bk("Q1 2026", 185000, 260000, 220000, 13), Bk("Q2 2026", 200000, 250000, 225000, 10), Bk("Q3 2026", 210000, 280000, 240000, 16)]),
-  "by year (two years)": MV("year", "by year", [Bk("2025", 41000, 52000, 46000, 22), Bk("2026", 44000, 58000, 50000, 31)]),
+  "by year (three years)": MV("year", "by year", [Bk("2024", 39000, 49000, 44000, 17), Bk("2025", 41000, 52000, 46000, 22), Bk("2026", 44000, 58000, 50000, 31)]),
   "a short, flat box (one line beside it)": MV("quarter", "by quarter", [Bk("Q1 2026", 90000, 90500, 90200, 8), Bk("Q2 2026", 79000, 99000, 88000, 9), Bk("Q3 2026", 95000, 95400, 95100, 12)]),
 };
 const NONE = { "fewer than two buckets (the engine returns none)": null, "one bucket only": MV("year", "by year", [Bk("2026", 40000, 50000, 45000, 12)]), "movement null": { movement: null, quarters: [] }, "a 0-sale or no-figure bucket is never drawn (and leaves one)": MV("quarter", "by quarter", [Bk("Q3 2026", 60000, 70000, 65000, 10), { period: "Q4 2026", label: "Q4 2026", low: null, high: null, typical: null, count: 0 }]) };

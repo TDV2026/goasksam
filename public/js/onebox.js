@@ -1013,7 +1013,7 @@
   function candleChartHtml(d) {
     var mv = d && d.trend && d.trend.movement;
     var bs = (mv && Array.isArray(mv.buckets)) ? mv.buckets.filter(function (q) { return q && Number(q.low) > 0 && Number(q.high) > 0 && Number(q.high) >= Number(q.low) && digitOf(q.count) > 0; }) : [];
-    if (bs.length < 2) return "";   // the page's existing "Too few to show movement" line stands in
+    if (bs.length < 3) return "";   // the engine returns no movement under three candles; the page's "Too few to show movement" line stands in
     var dataLo = Math.min.apply(null, bs.map(function (q) { return Number(q.low); })), dataHi = Math.max.apply(null, bs.map(function (q) { return Number(q.high); }));
     // The axis fits the data with modest padding (half a step each side) and never goes below $0.
     var step = niceStep((dataHi - dataLo || dataHi * 0.2) / 4);
