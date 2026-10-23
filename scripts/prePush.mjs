@@ -943,6 +943,13 @@ try {
 } catch (e) {
   record("valueIntentCheck (scripts/valueIntentCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A question that needs typing clears the box and keeps the original as context (Sam, Oct 23 2026; Lane C). Needs Chrome, no network.
+try {
+  const out = execSync("node scripts/askContextCheck.mjs", { encoding: "utf8" });
+  record("askContextCheck (scripts/askContextCheck.mjs)", "PASS", (out.match(/askContextCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("askContextCheck (scripts/askContextCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });

@@ -3211,7 +3211,12 @@ async function handler(req, res) {
 
   const car = typeof req.body?.car === "object" ? req.body.car : {};
   const sellerCriteria = getSellerCriteria(car);
-  const rawSearch = req.body?.car?.raw || req.body?.car?.vehicle?.raw || req.body?.car || req.body?.search || req.body?.query;
+  const rawSearch0 = req.body?.car?.raw || req.body?.car?.vehicle?.raw || req.body?.car || req.body?.search || req.body?.query;
+  // AN ANSWER TO SAM'S QUESTION (Sam, Oct 23 2026): the page clears its box when Sam asks and sends what was first typed as car.context
+  // (a VIN, a chassis number, the words that did not pin a car down) next to the answer in car.raw; the engine reads them together,
+  // the answer first. Only a string, only up to 200 characters, and only when the answer does not already contain it.
+  const askContext = typeof req.body?.car?.context === "string" ? req.body.car.context.trim().slice(0, 200) : "";
+  const rawSearch = (askContext && typeof rawSearch0 === "string" && !rawSearch0.toLowerCase().includes(askContext.toLowerCase())) ? `${rawSearch0} ${askContext}` : rawSearch0;
   if (!rawSearch && !car.vehicle) return res.status(400).json({ error: "Missing car/search field" });
 
   // 2C: an authenticated reservation to refund if the search fails server-side.
@@ -3716,7 +3721,7 @@ async function handler(req, res) {
       const timings = { ...obTimes, warmHit, stale: !!staleInfo, totalMs: Date.now() - reqStart, dbBytes: supabaseBytesSoFar() - obTimes.dbBytes0, marks: dd && Array.isArray(dd.marks) ? dd.marks : null, fetchMs: dd && Array.isArray(dd.fetches) ? dd.fetches.map(f => Number(f.ms) || 0) : null };
       // the words Sam did not use in this search (lib/live/unusedWords.js): the engine names them, the page prints the line
       let unusedFields = {};
-      try { const u = unusedWordsOf(oneBoxText, vehicle, null); if (u.unused.length) unusedFields = { unusedWords: u.unused, unusedLine: u.line }; } catch {}
+      try { const u = unusedWordsOf(typeof rawSearch0 === "string" ? rawSearch0 : oneBoxText, vehicle, null); if (u.unused.length) unusedFields = { unusedWords: u.unused, unusedLine: u.line }; } catch {}
       return res.status(200).json({ status: "one_box", ...slimAnswerForWire(oneBox), ...staleFields, ...unusedFields, snapshotId: snapshotId || undefined, timings });
     }
 

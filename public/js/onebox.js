@@ -20,6 +20,12 @@
   var obSourceVin = null;   // the 17-char VIN when this result was VIN-sourced (travels to /sell)
   var obLastVehicle = null;  // the resolved vehicle of the current pool, reused for an inline refine
   var obAsked = 0;
+  // WHEN SAM ASKS A QUESTION THAT NEEDS TYPING (Sam, Oct 23 2026): "What year, make and model are we talking about?" The box is cleared and
+  // focused with a placeholder that says what the question wants (the engine's answerHint), what was entered first shows as a small chip
+  // above the box (and stays the context of the answer, sent to the engine as car.context), and Escape or the chip's close mark puts the
+  // original text back. A plain new search is as before.
+  var obAsk = null;          // { original, hint } while such a question is on screen
+  var obCtxOnce = "";        // the context for the NEXT engine call only (the answer), never a later one
   var obLastD = null;        // the decision currently rendered (for the /sell handoff parameters)
   // Identity question (Round 4 Job 3, Lane A render job): the dimension + real per-side counts the
   // engine gave on a BLOCKING identity question, kept alive after the user picks a side (unlike
@@ -175,7 +181,9 @@
     // Magnifier icon (mockup match round, Oct 2026): Market Check's own search bar only (SELL
     // false) - matches the approved mockup's header search box, never added to New Sell's bar.
     var magnifier = SELL ? "" : '<svg class="inbox-mag" viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="14" y1="14" x2="18.5" y2="18.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
-    return '<div class="inbox' + (SELL ? '' : ' mc-bar') + '" role="search">' + magnifier + '<label class="sr" for="ob-input">Search a car</label><input id="ob-input" autocomplete="off" ' + (value ? 'value="' + esc(value) + '"' : 'placeholder="' + esc(placeholder || OB_PLACEHOLDER) + '"') + '>' +
+    var ctx = (obAsk && obAsk.original) ? '<div class="ob-ctx" data-ob-ctx><span class="ob-ctx-l">You entered</span><span class="ob-ctx-t" title="' + esc(obAsk.original) + '">' + esc(obAsk.original) + '</span><button type="button" class="ob-ctx-x" id="ob-ctx-x" aria-label="Put the original text back">&times;</button></div>' : "";
+    var mic = obAsk ? '<button type="button" class="gst-mic ob-mic" id="ob-mic" data-ob-mic data-gst-mic="ob-input" aria-label="Speak instead of typing" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg></button>' : "";
+    return ctx + '<div class="inbox' + (SELL ? '' : ' mc-bar') + '" role="search">' + magnifier + '<label class="sr" for="ob-input">Search a car</label><input id="ob-input" autocomplete="off" ' + (value ? 'value="' + esc(value) + '"' : 'placeholder="' + esc(placeholder || OB_PLACEHOLDER) + '"') + '>' + mic +
       '<button type="button" class="go" id="ob-go" aria-label="Search"' + (SELL ? '' : ' data-gas-event="market_check_open"') + '>&#8594;</button></div>';
   }
   // Layout fix (item 3): the empty state centres the input in the viewport; the loading/result
@@ -2665,8 +2673,23 @@
     if (typeof gasTrack === "function") gasTrack("identity_question_shown", { dimension: "competition", option_count: (d.variantChoices || []).length });
   }
   function renderError(msg) {
+    obAsk = null;
     root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + samMsgHtml([esc(msg)], "", "big") + footHtml();
     wire();
+  }
+  // A question that needs typing: see obAsk above. The question is Sam's own line (the engine's words), the box is empty and focused.
+  function renderAsk(msg, hint) {
+    obAsk = lastQuery ? { original: lastQuery, hint: hint || "Year, make and model" } : null;
+    root.innerHTML = inboxHtml("", obAsk ? obAsk.hint : "Your car or its VIN") + samMsgHtml([esc(msg)], "", "big") + footHtml();
+    wire();
+    var i = document.getElementById("ob-input"); if (i) { try { i.focus({ preventScroll: true }); } catch (e) { i.focus(); } }
+  }
+  // Put the original text back (Escape, or the chip's close mark): the box shows it again and the next submit is a plain new search.
+  function restoreAsk() {
+    if (!obAsk) return; var o = obAsk.original; obAsk = null;
+    var chip = root.querySelector("[data-ob-ctx]"); if (chip) chip.remove();
+    var m = document.getElementById("ob-mic"); if (m) m.remove();
+    var i = document.getElementById("ob-input"); if (i) { i.value = o; i.setAttribute("placeholder", OB_PLACEHOLDER); try { i.focus(); i.select(); } catch (e) {} }
   }
   // The daily distinct-car limit's own card (Oct 2026, evidence-block job: reworded - overrides the
   // earlier "Sam Desk is built for ongoing or business use." card). This is Market Check's OWN daily
@@ -2817,9 +2840,10 @@
   }
 
   // ---------------------------------------------------------------- run (dispatcher)
-  function run(text, keepAsk) {
+  function run(text, keepAsk, ctx) {
     text = String(text || "").trim();
     if (!text) return;
+    obAsk = null; obCtxOnce = (ctx && !obIdentifierShaped(text)) ? String(ctx).slice(0, 200) : "";
     // A brand-new search resets the question count; a chip answer (keepAsk) carries it forward so
     // the engine can enforce the two-question cap across generation/body re-queries (Part 3).
     if (!keepAsk) obAsked = 0;
@@ -2964,6 +2988,7 @@
       loader.start(["Working out exactly what car this is", "Pulling the real sales"]);
     }
     var car = { raw: text };
+    if (obCtxOnce) { car.context = obCtxOnce; obCtxOnce = ""; }   // the answer's context: what was entered before Sam asked (the engine reads them together)
     if (vehicle) car.vehicle = vehicle;
     // #1 divergence rule: pass the exact car's own sale (from the VIN/chassis match) so the engine
     // can compare it to the cluster. Only present on a matched car; harmless when absent.
@@ -2989,7 +3014,7 @@
         if (d.vinArchiveMatch) { obEvent("onebox_vin_anchor_shown"); renderChassisMatch(d.vinArchiveMatch); return; }
         // Otherwise surface the resolver's OWN honest question (the VIN-invalid reword, the
         // chassis-number line, or a specific clarification) rather than a generic fallback.
-        renderError((d.clarification && d.clarification.question) || "That exact car couldn’t be pinned down. Try the year, make and model together, like 1972 Porsche 911 or 1969 Ford Mustang.");
+        renderAsk((d.clarification && d.clarification.question) || "That exact car couldn’t be pinned down. Try the year, make and model together, like 1972 Porsche 911 or 1969 Ford Mustang.", d.clarification && d.clarification.answerHint);
         return;
       }
       if (!d || d.status !== "one_box") { renderError(OB_CALM); return; }
@@ -3070,10 +3095,10 @@
           // Chassis-shaped input: on an exact archive hit, show the anchor + ask for the
           // car; otherwise just the honest chassis line. Match is evidence, never ranking.
           if (d.vinArchiveMatch) { obEvent("onebox_vin_anchor_shown"); renderChassisMatch(d.vinArchiveMatch); }
-          else { renderError(cl.question); }
+          else { renderAsk(cl.question, cl.answerHint); }
           return;
         }
-        if (cl && (cl.kind === "vin_decode_failed" || cl.kind === "vin_invalid_shape")) { renderError(cl.question); return; }
+        if (cl && (cl.kind === "vin_decode_failed" || cl.kind === "vin_invalid_shape")) { renderAsk(cl.question, cl.answerHint); return; }
         if (d && d.status === "valid" && d.vehicle) {
           pendingVin = null;
           // MATCH-FIRST on ANY exact archive match (chassis OR VIN), not just when a
@@ -3316,11 +3341,14 @@
   function wire() {
     var input = document.getElementById("ob-input");
     var go = document.getElementById("ob-go");
-    var submitText = function (v) { if (SELL && SELL.onSubmit && SELL.onSubmit(v)) return; if (obAnswerOpen(v)) return; run(v); };
+    var submitText = function (v) { if (obAsk && String(v || "").trim() && !(SELL && SELL.onSubmit && SELL.stage)) { var ctx = obAsk.original; return run(v, false, ctx); } if (SELL && SELL.onSubmit && SELL.onSubmit(v)) return; if (obAnswerOpen(v)) return; run(v); };
     // Sam's new-search order (Oct 21 2026): clicking into the top search box selects its text, so typing replaces the search.
     // (not on the start page's box: a dictated transcript is edited in place, a click must not select it all)
     if (input && !input.classList.contains("gst-in")) input.addEventListener("focus", function () { try { input.select(); } catch (e) {} });
     if (go) go.addEventListener("click", function () { submitText(input && input.value); });
+    var cx = document.getElementById("ob-ctx-x"); if (cx) cx.addEventListener("click", restoreAsk);
+    if (input) input.addEventListener("keydown", function (e) { if (e.key === "Escape" && obAsk) { e.preventDefault(); restoreAsk(); } });
+    var om = document.getElementById("ob-mic"); if (om && om.hasAttribute("data-ob-mic") && window.gstMic) window.gstMic(om);
     if (input) input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); submitText(input.value); } });
     var edit = document.getElementById("ob-edit"); if (edit) edit.addEventListener("click", function () { renderEmpty(); if (input && lastQuery) { var i2 = document.getElementById("ob-input"); if (i2) { i2.value = lastQuery; i2.focus(); } } });
     var sell = document.getElementById("ob-sell"); if (sell) sell.addEventListener("click", toSell);
