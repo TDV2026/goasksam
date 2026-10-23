@@ -929,6 +929,20 @@ try {
 } catch (e) {
   record("startPagesCheck (scripts/startPagesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// GoAskSam 2.0 Stage 3 (Sam, Oct 23 2026; Lane C). Offline, needs Chrome.
+try {
+  const out = execSync("node scripts/voiceStartCheck.mjs", { encoding: "utf8" });
+  record("voiceStartCheck (scripts/voiceStartCheck.mjs)", "PASS", (out.match(/voiceStartCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("voiceStartCheck (scripts/voiceStartCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// GoAskSam 2.0 Stage 3 (Sam, Oct 23 2026; Lane C). Offline, needs Chrome.
+try {
+  const out = execSync("node scripts/valueIntentCheck.mjs", { encoding: "utf8" });
+  record("valueIntentCheck (scripts/valueIntentCheck.mjs)", "PASS", (out.match(/valueIntentCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("valueIntentCheck (scripts/valueIntentCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });

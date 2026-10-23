@@ -38,6 +38,8 @@ ok(/data-lead-sentence>Market Check\./.test(mc.body) && !/collector/i.test(text(
 // Sell
 ok(/<h1 class="gst-h">Where should you sell your car\?<\/h1>/.test(sell.body) || sell.code !== 200 || /SELL_NEXT/.test(sell.body), "Sell (new): the headline is Sam's (or the page is switched off)");
 if (sell.code === 200) ok(/Tell Sam what you&#39;re selling|Tell Sam what you're selling/.test(sell.body) && /Tell me about your car, or paste a VIN\.\.\./.test(sell.body) && /Platform performance · Selling strategy · PowerSeller matching/.test(sell.body) && /id="ob-input"/.test(sell.body), "Sell (new): sub, placeholder and line are Sam's; the box keeps ob-input and ob-go");
+// the palette bar is for the crew cookie only: none of its markup, stylesheet or script reaches a visitor without it
+for (const [n, b] of [["Home", home.body], ["Find", find.body], ["Market Check", mc.body]]) ok(!/class="gas-pal-bar"|data-pal-btn|class="gas-pal-lbl"|\.gas-pal-bar\{/.test(b), n + ": no palette bar in a public page's HTML");
 // shared
 const sp = fs.readFileSync(path.join(ROOT, "lib/startPage.js"), "utf8");
 ok(/startHtml\.toString\(\)/.test(sp) && /class="gst-mic"/.test(sp) && /class="gst-go"/.test(sp) && /<textarea/.test(sp), "one component: the server and the browser draw it with the same function; the same mic and submit on all four");

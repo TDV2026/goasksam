@@ -5,7 +5,7 @@
 // exactly as before (to /sell), with a temporary redirect, so the launch gate stays as it is. The page computes nothing.
 import { FONT_LINKS, isCrewRequest } from "./_chrome.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
-import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE } from "../lib/appShell.js";
+import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE, paletteHead, paletteSwitcherHtml, PALETTE_SWITCHER_JS, brandPaletteCss } from "../lib/appShell.js";
 import { fullyLaunched, isReleased } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { startHtml, START_CSS, START_JS } from "../lib/startPage.js";
@@ -32,6 +32,7 @@ const CSS = `
 
 export default async function handler(req, res) {
   const crew = isCrewRequest(req);
+  const showPal = crew;   // the palette bar: the crew cookie only (lib/appShell.js PALETTE_BAR_ON is its one switch)
   if (!isReleased("buy", req)) { res.setHeader("Cache-Control", "no-store"); res.setHeader("Location", "/sell"); return res.status(302).end(); }
   const updated = await lastUpdatedDate(supabaseEnv()).catch(() => null);
   const start = startHtml({
@@ -46,14 +47,14 @@ export default async function handler(req, res) {
 <title>${esc(TITLE)}</title><meta name="description" content="${esc(DESC)}"><meta name="robots" content="index, follow"><link rel="canonical" href="https://goasksam.com/">
 <meta property="og:title" content="${esc(TITLE)}"><meta property="og:description" content="${esc(DESC)}"><meta property="og:url" content="https://goasksam.com/"><meta property="og:type" content="website">
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#F6F3EC">
-${FONT_LINKS}<style>:root{--ink:#15201A;--sec:#5E6B63;--soft:#3C4942;--green:#1E4D38;--green-dk:#143A29;--card:#fff;--border:#D8D4CB;--sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--serif:"Newsreader",Georgia,"Times New Roman",serif}*{box-sizing:border-box}html,body{margin:0}body{background:var(--main-bg,#F6F3EC);color:var(--ink);font:400 17px/1.5 var(--sans)}a{color:var(--green)}:focus-visible{outline:2px solid var(--green);outline-offset:2px}${CSS}${START_CSS}${AUTH_SIGNBAR_CSS}${SHELL_CSS}</style></head><body>
-${AUTH_SIGNBAR_HTML}
+${paletteHead(showPal)}${FONT_LINKS}<style>:root{--ink:#15201A;--sec:#5E6B63;--soft:#3C4942;--green:#1E4D38;--green-dk:#143A29;--card:#fff;--border:#D8D4CB;--sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--serif:"Newsreader",Georgia,"Times New Roman",serif}*{box-sizing:border-box}html,body{margin:0}body{background:var(--main-bg,#F6F3EC);color:var(--ink);font:400 17px/1.5 var(--sans)}a{color:var(--green)}:focus-visible{outline:2px solid var(--green);outline-offset:2px}${CSS}${START_CSS}${AUTH_SIGNBAR_CSS}${SHELL_CSS}${brandPaletteCss(crew)}</style></head><body>
+${showPal ? paletteSwitcherHtml() + "\n" : ""}${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 ${railOpenHtml({ active: "home", crew, req, analytics: true })}
 <main class="hm">${start}</main>${SHELL_MAIN_CLOSE}
 <script>${SHELL_JS}</script>
 <script>${START_JS}</script>
-<script>(function(){var q=document.getElementById("gst-home-q"),go=document.getElementById("gst-home-go");if(!q||!go)return;go.addEventListener("click",function(){var v=String(q.value||"").trim();if(!v){q.focus();return;}location.href="/find?q="+encodeURIComponent(v);});})();</script>
+${showPal ? `<script>${PALETTE_SWITCHER_JS}</script>\n` : ""}<script>(function(){var q=document.getElementById("gst-home-q"),go=document.getElementById("gst-home-go");if(!q||!go)return;go.addEventListener("click",function(){var v=String(q.value||"").trim();if(!v){q.focus();return;}location.href="/find?q="+encodeURIComponent(v);});})();</script>
 <script>window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};window.GAS_AUTH_MODE="topbar";</script>
 <script src="/js/auth.js" defer></script>
 </body></html>`;

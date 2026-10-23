@@ -3318,7 +3318,8 @@
     var go = document.getElementById("ob-go");
     var submitText = function (v) { if (SELL && SELL.onSubmit && SELL.onSubmit(v)) return; if (obAnswerOpen(v)) return; run(v); };
     // Sam's new-search order (Oct 21 2026): clicking into the top search box selects its text, so typing replaces the search.
-    if (input) input.addEventListener("focus", function () { try { input.select(); } catch (e) {} });
+    // (not on the start page's box: a dictated transcript is edited in place, a click must not select it all)
+    if (input && !input.classList.contains("gst-in")) input.addEventListener("focus", function () { try { input.select(); } catch (e) {} });
     if (go) go.addEventListener("click", function () { submitText(input && input.value); });
     if (input) input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); submitText(input.value); } });
     var edit = document.getElementById("ob-edit"); if (edit) edit.addEventListener("click", function () { renderEmpty(); if (input && lastQuery) { var i2 = document.getElementById("ob-input"); if (i2) { i2.value = lastQuery; i2.focus(); } } });
