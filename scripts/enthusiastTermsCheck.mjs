@@ -34,5 +34,20 @@ async function run(q) { const p = await parseQueryResolved(q, {}); const { rows 
 ok(await run("air cooled Porsche") === "1,2,3,9", `Buy "air cooled Porsche": only the air-cooled cars (${await run("air cooled Porsche")})`);
 ok(await run("water-cooled Porsche") === "4,5,8", `Buy "water-cooled Porsche": only the water-cooled cars (${await run("water-cooled Porsche")})`);
 ok((await run("Porsche")).split(",").length === 9, "Buy 'Porsche': all nine, unchanged");
+// impact bumper (= G-body), long hood, ponton, fintail: the definitions Sam approved (Oct 23 2026)
+const [,, bump, hood, pont, fint] = TERMS;
+const K = (term, model, year, title, make = "Porsche") => term.match({ make, model, year, title: title || `${year} ${make} ${model}` });
+ok(K(bump, "911", 1974) && K(bump, "911", 1988) && K(bump, "930", 1980) && K(bump, "911", 1989, "1989 Porsche 911 Carrera"), "impact bumper: the 911 and 930 Turbo, 1974 to 1989 (a 1989 car that names no 964 stays in)");
+ok(!K(bump, "911", 1973) && !K(bump, "911", 1990) && !K(bump, "964", 1990) && !K(bump, "993", 1996) && !K(bump, "911", 1989, "1989 Porsche 911 Carrera 4") && !K(bump, "911", 1989, "1989 Porsche 964 Carrera"), "impact bumper: not 1973, not the 964 or 993, and the 1989 car that names 964 or Carrera 4 is the 964 (left out)");
+ok(K(hood, "911", 1964) && K(hood, "912", 1967) && K(hood, "911", 1973) && !K(hood, "911", 1974) && !K(hood, "914", 1970), "long hood: the 911 and 912, 1964 to 1973");
+ok(enthusiastTermsIn("G-body 911", "").map(x => x.key).join() === "impact-bumper" && enthusiastTermsIn("impact bumper Porsche", "Porsche").length === 1 && enthusiastTermsIn("G-body Monte Carlo", "").length === 0 && enthusiastTermsIn("G-body Buick Regal", "Buick").length === 0, "G-body counts only in a Porsche context (GM's G-body is left alone)");
+const MBZ = (model, year, title) => ({ make: "Mercedes-Benz", model, year, title: title || `${year} Mercedes-Benz ${model}` });
+ok(pont.match(MBZ("180", 1957)) && pont.match(MBZ("190", 1958)) && pont.match(MBZ("219", 1957)) && pont.match(MBZ("220S", 1957)) && !pont.match(MBZ("190SL", 1958)) && !pont.match(MBZ("190E", 1988)) && !pont.match(MBZ("220", 1962)), "ponton: 180, 190, 219, 220/220S/220SE of the 1950s; not the 190 SL, the 190 E, or a 1962 220");
+ok(fint.match(MBZ("190", 1963)) && fint.match(MBZ("230S", 1966)) && fint.match(MBZ("220SE", 1963)) && fint.match(MBZ("300SE", 1963)) && fint.match(MBZ("250SE", 1967)) && !fint.match(MBZ("190", 1958)) && !fint.match(MBZ("220", 1959)) && !pont.match(MBZ("220", 1959)), "fintail: 190, 200, 220b, 230, 250, 300SE of 1959 to 1968; the 1959 220 is in neither (a gap, not a guess)");
+ok(pont.match(MBZ("300", 1957, "1957 Mercedes-Benz 300 ponton")) && fint.match(MBZ("S-Class", 1962, "1962 Mercedes-Benz fintail 300SE")), "the word in the title decides first");
+const gb = await resolveVehicle("G-body 911", {});
+ok(gb.status === "needs_clarification" && gb.clarification.chips.includes("1980 Porsche 911") && !/1989 Porsche/.test(gb.clarification.chips.join()), "'G-body 911' asks which years of the three generations; the chips are plain years");
+const pm = await resolveVehicle("ponton Mercedes", {});
+ok(pm.vehicle.make === "Mercedes-Benz" && pm.clarification.chips.includes("220"), "'ponton Mercedes' asks which ponton");
 console.log(bad ? `enthusiastTermsCheck: ${bad} failed` : "enthusiastTermsCheck: all passed");
 process.exit(bad ? 1 : 0);
