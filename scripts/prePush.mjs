@@ -887,6 +887,13 @@ try {
 } catch (e) {
   record("newSearchCheck (scripts/newSearchCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Buy model chips, the top 8 and More models (Sam, Oct 21 2026; Lane C). No network.
+try {
+  const out = execSync("node scripts/modelChipsTopCheck.mjs", { encoding: "utf8" });
+  record("modelChipsTopCheck (scripts/modelChipsTopCheck.mjs)", "PASS", (out.match(/modelChipsTopCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("modelChipsTopCheck (scripts/modelChipsTopCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
