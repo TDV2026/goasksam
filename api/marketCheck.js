@@ -20,8 +20,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { lastUpdatedDate } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
-import { landingHtml, LANDING_CSS } from "../lib/live/marketCheckLanding.js";
-import { marketCheckExample } from "../lib/live/marketCheckExample.js";
+import { landingHtml, LANDING_CSS, startCfg } from "../lib/live/marketCheckLanding.js";
+import { START_JS } from "../lib/startPage.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 import { SHELL_CSS, SHELL_JS, KEEPLOOK_CSS, railOpenHtml, brandPaletteCss, ALL_PALETTES_CSS, PALETTE_APPLY_JS, PALETTE_SWITCHER_CSS, PALETTE_SWITCHER_JS, paletteSwitcherHtml } from "../lib/appShell.js";
 import { SELLS_FOR_CARD_JS, SELLS_FOR_CARD_CSS } from "../lib/sellsForCard.js";
@@ -37,7 +37,7 @@ import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../l
 const YOUR_RESULTS_RAIL = '<a class="gas-navitem" id="gas-nav-results" href="#" style="display:none" onclick="return obToggleResults(event)">Your results</a><div class="gas-submenu" id="gas-results-menu"></div>';
 
 const TITLE = "Market Check: what could your car bring?";
-const H1 = "What do cars like yours sell for?";
+const H1 = "What have cars like yours sold for?";
 const SITE = "https://goasksam.com";
 
 let shell = null;
@@ -76,7 +76,6 @@ async function handler(req, res) {
   // rather than relying on serverless "finish in the background" (unreliable - confirmed live:
   // a request past its wait budget does not guarantee the build completes before this instance
   // is frozen). Once a row exists, every request is a cheap table read regardless of this number.
-  const example = await marketCheckExample(8000).catch((e) => { console.error("marketCheck example fetch threw:", e && e.message); return null; });
   // Rule 2: ANY query string is a variant (?q=, ?tester=, ?crew=) and stays noindex with the bare
   // /market-check as canonical - never its own indexed URL.
   const hasQuery = /\?./.test(String(req.url || ""));
@@ -95,10 +94,10 @@ async function handler(req, res) {
     .replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />\n<script>${PALETTE_APPLY_JS}</script>`)
     .replace("</head>", `<link rel="canonical" href="${SITE}/market-check" />\n<meta name="description" content="${esc(metaDesc)}" />\n<meta property="og:title" content="${TITLE}" />\n<meta property="og:description" content="${esc(metaDesc)}" />\n<meta property="og:type" content="website" />\n<meta property="og:url" content="${SITE}/market-check" />\n<style>${LANDING_CSS}\n${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}\n${KEEPLOOK_CSS}\n${SELLS_FOR_CARD_CSS}\n${brandPaletteCss(crew)}\n${ALL_PALETTES_CSS}\n${showPal ? PALETTE_SWITCHER_CSS : ""}\n${CONSENT_BANNER_CSS}</style>\n</head>`)
     .replace('<main class="wrap"><div id="ob"></div></main>',
-      `<main class="wrap"><div id="ob">${landingHtml({ updated, example, h1Text: H1 })}</div></main>`)
+      `<main class="wrap"><div id="ob">${landingHtml({ updated, h1Text: H1 })}</div></main>`)
     // Round D (app shell, Oct 2026): one shared rail/main/mobile-header, lib/appShell.js.
     .replace("<!--SHELL_RAIL-->", railOpenHtml({ active: "market-check", crew, req, analytics: true }))
-    .replace("<script>\nfunction obToggleResults", `<script>${SHELL_JS}</script>\n<script>${SELLS_FOR_CARD_JS}</script>\n<script>\nfunction obToggleResults`)
+    .replace("<script>\nfunction obToggleResults", `<script>${SHELL_JS}</script>\n<script>${SELLS_FOR_CARD_JS}</script>\n<script>${START_JS}</script>\n<script>window.GAS_START_CFG=${JSON.stringify(startCfg(updated)).replace(/</g, "\\u003c")};</script>\n<script>\nfunction obToggleResults`)
     // Item 9 (shared top bar, Oct 2026): "Sign in" / the account control, one shared file
     // (lib/authBar.js) - the same markup/CSS Buy now uses, GAS_AUTH_MODE="topbar" so js/auth.js
     // runs its lighter boot (no /sell-wizard upfront gate check, no homepage_view funnel stamp).

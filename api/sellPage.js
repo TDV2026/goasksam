@@ -9,7 +9,7 @@ import { lastUpdatedDate } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { isCrewRequest } from "./_chrome.js";
 import { isTesterRequest } from "../lib/_tester.js";
-import { SHELL_TOKENS_CSS, brandPaletteCss, ALL_PALETTES_CSS, PALETTE_APPLY_JS, PALETTE_SWITCHER_CSS, PALETTE_SWITCHER_JS, paletteSwitcherHtml } from "../lib/appShell.js";
+import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE, SHELL_TOKENS_CSS, brandPaletteCss, ALL_PALETTES_CSS, PALETTE_APPLY_JS, PALETTE_SWITCHER_CSS, PALETTE_SWITCHER_JS, paletteSwitcherHtml } from "../lib/appShell.js";
 import { gaBootstrapHtml } from "../lib/analytics.js";
 import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
@@ -41,12 +41,24 @@ function stripUnreleasedNav(html, req) {
 }
 
 export async function sellShellHtml(req) {
-  if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "public", "index.html"), "utf8");
+  if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "public", "sell-old.html"), "utf8");
   // The real last-updated date, shared with Market Check (lib/asOf.js lastUpdatedDate). No count.
   const updated = await lastUpdatedDate(supabaseEnv()).catch(() => null);
   const crew = isCrewRequest(req);
   const showPal = crew;   // Sam, Stage 1c item 8a: the palette picker is for the crew only (no tester, no ?palette=1); removed before launch
-  return stripUnreleasedNav(shell, req)
+  // GOASKSAM 2.0 STAGE 2 (Sam's block, Oct 23 2026): the old Sell page gets ONLY the shared rail (lib/appShell.js), nothing else changes.
+  // The old rail (logo, value trio, nav, the signed-in "Your results" list, footer) is replaced by the shared one; the saved-results
+  // block is kept and carried into the shared rail so a signed-in seller still reopens a saved result. The old page's own content
+  // (#main, its input, its wizard) sits inside the shared main area exactly as before.
+  let page = shell;
+  const rs = page.indexOf('<button id="hp-hamburger"'), ms = page.indexOf('<div id="main">'), ns = page.indexOf('<div id="nav-saved"'), ne = page.indexOf("<!-- PULSE_RAIL: TODAY'S MARKET");
+  if (rs > 0 && ms > rs) {
+    const saved = ns > rs && ne > ns ? page.slice(ns, ne) : "";
+    page = page.slice(0, rs) + railOpenHtml({ active: "sell", pageExtra: saved, crew, req, analytics: false }) + page.slice(ms);
+    page = page.replace("\n<!-- JS served at a VERSIONED PATH PREFIX", () => `\n${SHELL_MAIN_CLOSE}\n<script>${SHELL_JS}</script>\n<!-- JS served at a VERSIONED PATH PREFIX`);
+    page = page.replace("</head>", () => `<style>#gas-rail,.gas-mhead,#gas-scrim,#gas-main{--ink:#15201A;--sec:#5E6B63;--soft:#3C4942;--green:#1E4D38;--green-dk:#143A29;--card:#fff;--border:#D8D4CB;--sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--serif:"Newsreader",Georgia,"Times New Roman",serif}\n${SHELL_CSS}\n#gas-main{display:flex;flex-direction:column}#gas-main>#main{margin-left:0;flex:1}\n@media (max-width:860px){#hp-topbar{top:68px}.gas-mhead{z-index:70}}</style>\n</head>`);
+  }
+  return stripUnreleasedNav(page, req)
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${TITLE}</title>`)
     .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${TITLE}$2`)
     .replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${TITLE}$2`)

@@ -11,7 +11,7 @@ import { stripLaunchGate } from "./marketCheck.js";
 import { SELL_MC_CSS, SELL_MC_CLIENT } from "../lib/sell/sellMcClient.js";
 import { SELLS_FOR_CARD_JS, SELLS_FOR_CARD_CSS } from "../lib/sellsForCard.js";
 import { sellLandingHtml, SELL_LANDING_CSS } from "../lib/sell/sellLanding.js";
-import { sellExample } from "../lib/sell/sellExample.js";
+import { START_JS } from "../lib/startPage.js";
 import sellPage from "./sellPage.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 import { SHELL_CSS, SHELL_JS, railOpenHtml } from "../lib/appShell.js";
@@ -46,11 +46,8 @@ export default async function handler(req, res) {
   // The landing's one live example (lib/sell/sellExample.js, the same result a visitor gets): memory, the
   // stored row, or a build waited on for up to 8 seconds (never left to finish after the response is sent).
   // Past the wait, this one request shows the landing without the example band.
-  const [updated, ex] = await Promise.all([
-    lastUpdatedDate(env).catch(() => null),
-    sellExample(env, 8000).catch(e => { console.error("sell example threw:", e && e.message); return null; })
-  ]);
-  const home = sellLandingHtml({ updated, example: ex && ex.example });
+  const updated = await lastUpdatedDate(env).catch(() => null);
+  const home = sellLandingHtml({ updated });
   const cfg = JSON.stringify({ updated: updated || "", home }).replace(/</g, "\\u003c");
   // Function replacements throughout: the client holds "$" sequences a replacement string would expand.
   const html = stripLaunchGate(shell)
@@ -61,7 +58,7 @@ export default async function handler(req, res) {
     // Round D (app shell, Oct 2026): the same shared rail as every other product - the full page
     // list, current page ("sell") marked - replacing the old Sell-only stripped-down rail.
     .replace("<!--SHELL_RAIL-->", () => railOpenHtml({ active: "sell", logoHref: "/sell", crew, req }))
-    .replace("<script>\nfunction obToggleResults", () => `<script>${SHELL_JS}</script>\n<script>\nfunction obToggleResults`)
+    .replace("<script>\nfunction obToggleResults", () => `<script>${SHELL_JS}</script>\n<script>${START_JS}</script>\n<script>\nfunction obToggleResults`)
     // The Sell hook must exist before js/onebox.js boots, so the client goes in ahead of it.
     // SELLS_FOR_CARD_JS goes in first so window.sellsForCardHtml exists before sellMcClient.js's
     // draw() runs (same ordering api/marketCheck.js uses ahead of js/onebox.js).

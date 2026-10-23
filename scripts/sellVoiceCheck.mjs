@@ -37,7 +37,7 @@ function literals(src) {
   return out;
 }
 
-const FILES = ["public/js/result-v2.js", "public/js/result-copy.js", "public/js/result.js", "public/js/steps.js", "public/js/entry.js", "public/js/pipeline.js", "public/js/wizard.js", "public/js/chat-core.js", "public/js/homepage.js", "public/index.html", "lib/sell/sellChat.js", "lib/sell/sellFlow.js", "lib/sell/sellMcClient.js", "lib/sell/sellClient.js", "lib/sell/sellFacts.js", "lib/sell/sellFollow.js", "lib/sell/sellLanding.js", "lib/sell/sellExample.js", "lib/sell/sellPartner.js", "api/sellPage.js", "api/sellNext.js", "api/sellChat.js"];
+const FILES = ["public/js/result-v2.js", "public/js/result-copy.js", "public/js/result.js", "public/js/steps.js", "public/js/entry.js", "public/js/pipeline.js", "public/js/wizard.js", "public/js/chat-core.js", "public/js/homepage.js", "public/sell-old.html", "lib/sell/sellChat.js", "lib/sell/sellFlow.js", "lib/sell/sellMcClient.js", "lib/sell/sellClient.js", "lib/sell/sellFacts.js", "lib/sell/sellFollow.js", "lib/sell/sellLanding.js", "lib/sell/sellExample.js", "lib/sell/sellPartner.js", "api/sellPage.js", "api/sellNext.js", "api/sellChat.js"];
 const ALLOW = [
   // the visitor speaking (chips, buttons, the typed question a prompt quotes)
   ["visitor", "Sell my car"], ["visitor", "Sell my vehicle"], ["visitor", "Set my price"], ["visitor", "Run my analysis"], ["visitor", "Show me weekend cars"],

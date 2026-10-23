@@ -354,7 +354,7 @@
   }
   // ---------------------------------------------------------------- state renderers
   function renderEmpty() {
-    if (SELL && SELL.homeHtml) { root.innerHTML = SELL.homeHtml(inboxHtml); wire(); syncRailResults(); return; }
+    if (SELL && SELL.homeHtml) { root.innerHTML = SELL.homeHtml(inboxHtml); if (window.gstBind) window.gstBind(root); wire(); syncRailResults(); return; }
     // Screen 1 (empty state): reached on boot only when the server did NOT already render the rich
     // landing (lib/live/marketCheckLanding.js - see boot()'s early exit below), and on "Change" from
     // an active result. Headline/sub stay fixed (Oct 2026 landing redesign, Sam), matching the
@@ -364,9 +364,17 @@
     // the surface this round actually owns. The landing's proof row, "What you get" and example band
     // are landing-only (server-rendered, removed once a search runs, same as /buy's #lead); this
     // simple fallback never tries to reproduce them.
+    // GoAskSam 2.0 Stage 2: the same start page the server drew first (one function, window.gstHtml, one copy of the words, window.GAS_START_CFG).
+    if (window.gstHtml && window.GAS_START_CFG) {
+      root.innerHTML = '<div id="mc-landing" class="mc gst-lead">' + window.gstHtml(window.GAS_START_CFG) + "</div>";
+      if (window.gstBind) window.gstBind(root);
+      wire();
+      syncRailResults();
+      return;
+    }
     root.innerHTML =
       '<div class="ob-home">' +
-        '<h1 class="ob-head">What do cars like yours sell for?</h1>' +
+        '<h1 class="ob-head">What have cars like yours sold for?</h1>' +
         '<p class="ob-sub">Real sales, matched to your car, with the range most landed in and the cars behind it.</p>' +
         inboxHtml("", OB_PLACEHOLDER) +
       "</div>";

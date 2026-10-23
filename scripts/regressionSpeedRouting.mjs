@@ -15,7 +15,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const html = fs.readFileSync(path.join(repoRoot, "public", "index.html"), "utf8");
+const html = fs.readFileSync(path.join(repoRoot, "public", "sell-old.html"), "utf8");
 const moduleFiles = [...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m => "public/js/"+m[1]);
 const script = moduleFiles.map(f => fs.readFileSync(path.join(repoRoot, f), "utf8")).join("\n");
 

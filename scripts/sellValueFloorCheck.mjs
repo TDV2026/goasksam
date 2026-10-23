@@ -14,7 +14,7 @@ try{Object.defineProperty(globalThis,"navigator",{value:{language:"en-US"},confi
 globalThis.location={hostname:"localhost",protocol:"file:",search:""};
 globalThis.localStorage={getItem:()=>null,setItem:noop,removeItem:noop};
 globalThis.fetch=async()=>({ok:true,json:async()=>({})});
-const html=fs.readFileSync("public/index.html","utf8");
+const html=fs.readFileSync("public/sell-old.html","utf8");
 const files=[...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m=>"public/js/"+m[1]);
 (0,eval)(files.map(f=>fs.readFileSync(f,"utf8")).join("\n")+"\nglobalThis.sellState=sellState;");
 

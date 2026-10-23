@@ -41,7 +41,7 @@ sb.add("find", "Car 7", "/find?q=car7"); ok((el["gas-recent-list"].innerHTML.mat
 sb.add("find", "Bad", "https://evil.example/x"); sb.add("find", "Bad2", "//evil.example"); ok(!/evil/.test(el["gas-recent-list"].innerHTML), "only addresses on this site are kept");
 // buy is find
 const vj = JSON.parse(fs.readFileSync(path.join(ROOT, "vercel.json"), "utf8"));
-ok(vj.redirects.some(r => r.source === "/buy" && r.destination === "/find" && r.permanent === true), "/buy is a permanent redirect to /find (Vercel keeps the query string)");
+ok(vj.redirects.some(r => r.source === "/buy" && r.destination === "/find" && r.statusCode === 301), "/buy is a permanent redirect to /find (Vercel keeps the query string)");
 ok(vj.rewrites.filter(r => r.source === "/find").length === 2 && !vj.rewrites.some(r => r.source === "/buy"), "/find is served (crew and public); /buy is not served");
 const sm = fs.readFileSync(path.join(ROOT, "public/sitemap.xml"), "utf8");
 ok(/goasksam\.com\/find</.test(sm) && !/goasksam\.com\/buy</.test(sm), "the sitemap lists /find, not /buy");

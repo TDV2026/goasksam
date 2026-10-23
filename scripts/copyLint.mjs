@@ -58,7 +58,7 @@ try { Object.defineProperty(globalThis,"navigator",{value:{language:"en-US"},con
 globalThis.location = { hostname:"localhost", protocol:"file:" };
 globalThis.localStorage = { getItem:()=>null, setItem:noop };
 globalThis.fetch = async () => ({ ok:true, json:async()=>({}) });
-const html = fs.readFileSync("public/index.html","utf8");
+const html = fs.readFileSync("public/sell-old.html","utf8");
 const files = [...html.matchAll(/<script src="js[^"]*\/([^"]+)"><\/script>/g)].map(m=>"public/js/"+m[1]);
 const script = files.map(f=>fs.readFileSync(f,"utf8")).join("\n");
 (0, eval)(script + "\nglobalThis.sellState=sellState;globalThis.composeCard=composeCard;globalThis.v2Reserve=v2Reserve;globalThis.powerSellerIntroLine=powerSellerIntroLine;globalThis.powerSellerServiceLine=powerSellerServiceLine;globalThis.vehicleAcceptPrefix=vehicleAcceptPrefix;globalThis.SYS=SYS;globalThis.SELL_SYS=SELL_SYS;globalThis.platformDisplayName=platformDisplayName;globalThis.HERO_SUPPORTING=HERO_SUPPORTING;globalThis.PLACEHOLDER_EXAMPLES=PLACEHOLDER_EXAMPLES;globalThis.LEARN_PLATFORMS=LEARN_PLATFORMS;globalThis.HP_REASSURANCE=HP_REASSURANCE;");
