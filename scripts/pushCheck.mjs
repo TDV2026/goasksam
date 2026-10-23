@@ -25,7 +25,7 @@ const BYPASS = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || process.env.VERCEL
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const PAGES = [
   { name: "Market Check result", path: "/market-check?q=" + encodeURIComponent("1995 Porsche 911 Carrera"), gated: true, base: "/market-check", freshVisitor: true, waitFor: 20000 },
-  { name: "Buy result", path: "/buy?q=" + encodeURIComponent("Porsche 911"), gated: true, base: "/buy", waitFor: 20000 },
+  { name: "Buy result", path: "/find?q=" + encodeURIComponent("Porsche 911"), gated: true, base: "/find", waitFor: 20000 },
   { name: "Spec page", path: "/cars/porsche/911", gated: false, waitFor: 3000 },
   { name: "Sell first step", path: "/sell", gated: false, waitFor: 3000 }
 ];

@@ -57,8 +57,7 @@ if (typeof ctx.histHtml === "function") {
 
 // ---- 4. no surface keeps its own copy of the wording
 ok(!/This car (has )?sold before/.test(client.replace(/\/\/[^\n]*/g, "")), "the Buy client has no literal sold-before wording of its own");
-const landing = fs.readFileSync(new URL("../lib/live/buyLanding.js", import.meta.url), "utf8");
-ok(/priorSold\(apps\) \? "sold" : "was listed"/.test(landing) && !/This exact car sold before →/.test(landing.replace(/\/\/[^\n]*/g, "")), "the Buy landing example reads the rule");
+// (the Buy landing's example band left with the old landing: GoAskSam 2.0 Stage 2; the rule lives in the client's own chip, checked above)
 
 // ---- 5. the card foot (Sam, Oct 15 2026): the pill has its own reserved line above the action row, on every card
 // (an ended card included), and the foot sits at the card's bottom with 44px buttons
