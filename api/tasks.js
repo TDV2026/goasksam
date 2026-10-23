@@ -31,6 +31,7 @@ import { signupTicket } from "../lib/_signup.js";
 import { othersRunning, othersLine } from "../lib/tasks/othersRunning.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { testInbox } from "../lib/tasks/delivery.js";
+import { isCrewRequest } from "../lib/_crew.js";
 // The per-account daily limits (Tasks setup chat turns, research started), crew exempt: what -> ok.
 const gateOf = (req, user) => what => tasksAllowance(supabaseEnv(), req, user.userId, what).then(r => r.ok, () => true);
 
@@ -162,6 +163,12 @@ async function handler(req, res) {
       const rows = await r.json().catch(() => []);
       const norm = x => String(x || "").trim().toLowerCase();
       return res.status(200).json({ accounts_with_task_email: rows.length, differing_from_account_email: rows.filter(x => norm(x.task_email) !== norm(x.email)).length });
+    }
+    // Crew-only preview of the real-car emails (Sam, Oct 23 2026): the real builders on real live cars, never sent (lib/tasks/carMailPreview.js).
+    if (req.method === "GET" && q.carmails && (probeOk(req) || isCrewRequest(req))) {
+      const { carMailPreview } = await import("../lib/tasks/carMailPreview.js");
+      res.setHeader("Cache-Control", "private, no-store"); res.setHeader("X-Robots-Tag", "noindex, nofollow"); res.setHeader("Content-Type", "text/html; charset=utf-8");
+      return res.status(200).send(await carMailPreview(env));
     }
     // Probe: what a Task email would state for typed words (lib/tasks/tasks.js emailPreview). Read only: no Task, no
     // email, no cache row, no setup model turn, zero OCD (the engine reads the archive). &q=the words.
