@@ -18,7 +18,7 @@ ok(/var mnote = d && d\.mileageNote \? String\(d\.mileageNote\) : "";/.test(ob) 
 const c = JSON.parse(/^const CLIENT = (".*");$/m.exec(buy)[1]);
 ok(/var uw = \(d\.meta \|\| \{\}\)\.unusedLine; if \(uw\) block\.insertAdjacentHTML\("beforeend", '<p class="unusedl" role="note">' \+ esc\(uw\) \+ "<\/p>"\);/.test(c), "Buy prints meta.unusedLine under the header");
 const sc = fs.readFileSync(new URL("../lib/live/samChat.js", import.meta.url), "utf8");
-ok(/ctx\.searchMeta = \{ unusedLine: \(pq && pq\.unusedLine\) \|\| null,/.test(sc), "the engine puts unusedLine into Buy's searchMeta");
+ok(/ctx\.searchMeta = \{ unusedLine: unusedFor\.line,/.test(sc) && /unusedWordsOf\(lu, v, null\)/.test(sc), "the engine reads the typed message and puts unusedLine into Buy's searchMeta");
 ok(!/["`]Sam didn't use/.test(ob) && !/["`]Sam didn't use/.test(c), "the page never words the line itself");
 console.log(`leftoverPageCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
