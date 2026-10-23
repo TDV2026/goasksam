@@ -26,6 +26,7 @@ await named("", []);
   ok(JSON.stringify(u("e46 m3 sunroof delete")) === JSON.stringify(["sunroof", "delete"]), "a real unknown word ('sunroof delete') is still named");
   ok(u("a nice tidy mint e36 m3 well kept").length === 0, "condition and praise words pass silently");
 }
+ok(unusedWordsOf("WP0AG2A96PS252374", { make: "Porsche", model: "911" }, null).unused.length === 0, "a VIN is an identifier, never a leftover word");
 ok(unusedWordsLine(["xyz"]) === "Sam didn't use 'xyz' in this search.", "one word: the plain sentence");
 ok(unusedWordsLine(["a1", "b2", "c3"]) === "Sam didn't use 'a1', 'b2' or 'c3' in this search." && unusedWordsLine([]) === null, "several words and none");
 console.log(bad ? `unusedWordsCheck: ${bad} failed` : "unusedWordsCheck: all passed");
