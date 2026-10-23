@@ -116,7 +116,7 @@ export default async function handler(req, res) {
   // The phone header row carries the logo, Buy's "Your searches" pill, the menu and the docked sign in.
   const MVIS = '<button type="button" class="mvis" data-mvisits aria-expanded="false" aria-controls="mvlist">Your searches</button>';
   const MENU = '<button type="button" class="gas-menu"';
-  let shell = railOpenHtml({ active: "buy", logoHref: "/buy", pageExtra: '<div class="rh">Your searches</div><div id="searches"></div><button type="button" class="newbtn" id="newsearch">+ New search</button>', crew, req, analytics: true });
+  let shell = railOpenHtml({ active: "buy", logoHref: "/buy", pageExtra: '<div class="rh">Your searches</div><button type="button" class="newbtn" id="newsearch">+ New search</button><div id="searches"></div>', crew, req, analytics: true });
   shell = shell.includes(MENU) ? shell.replace(MENU, MVIS + MENU) : shell.replace("</header>", MVIS + "</header>");
   // Which other products Buy may link to: the launch stage, read per request (crew always true).
   const rel = { mc: isReleased("market-check", req), tasks: isReleased("tasks", req) };

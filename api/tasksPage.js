@@ -8,7 +8,7 @@
 import { PAGE_CSS, FONT_LINKS, isCrewRequest } from "./_chrome.js";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
-import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE, paletteHead, paletteSwitcherHtml, PALETTE_SWITCHER_JS } from "../lib/appShell.js";
+import { SHELL_CSS, SHELL_JS, railOpenHtml, newSearchLink, SHELL_MAIN_CLOSE, paletteHead, paletteSwitcherHtml, PALETTE_SWITCHER_JS } from "../lib/appShell.js";
 import { isTesterRequest } from "../lib/_tester.js";
 import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
 import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
@@ -143,7 +143,7 @@ export default async function handler(req, res) {
 ${FONT_LINKS}<style>${PAGE_CSS}${CSS}${AUTH_CSS}${SHELL_CSS}${CONSENT_BANNER_CSS}</style>${ld.map(o => '<script type="application/ld+json">' + JSON.stringify(o).replace(/</g, "\\u003c") + "</script>").join("")}</head><body>
 ${showPal ? paletteSwitcherHtml() : ""}${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
-${railOpenHtml({ active: "tasks", crew, req, analytics: true })}
+${railOpenHtml({ active: "tasks", pageExtra: newSearchLink("/tasks"), crew, req, analytics: true })}
 <main><div class="col">
 <header class="tkhero"><p class="pos">A car search that keeps looking, and free</p><h1>${esc(TASKS_PITCH.lead)}</h1><p class="lead" data-lead-sentence>${esc(TASKS_PITCH.sub)}</p>
 <button type="button" class="cta" id="tkcta" data-task-entry data-href="/tasks/mine?start=1">Give Sam a Task</button></header>
@@ -208,7 +208,7 @@ function appPage(req, res) {
 ${FONT_LINKS}<style>${PAGE_CSS}${CSS}${APP_CSS}${AUTH_CSS}${SHELL_CSS}${CONSENT_BANNER_CSS}</style></head><body>
 ${showPal ? paletteSwitcherHtml() : ""}${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
-${railOpenHtml({ active: "tasks", crew, req, analytics: true })}
+${railOpenHtml({ active: "tasks", pageExtra: newSearchLink("/tasks"), crew, req, analytics: true })}
 <main><div class="col">
 <div class="apph"><h1>Your Tasks</h1><a href="/tasks">How it works</a></div>
 <div id="tkapp"></div>

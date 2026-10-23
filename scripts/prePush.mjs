@@ -880,6 +880,13 @@ try {
 } catch (e) {
   record("marketSectionsCheck (scripts/marketSectionsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// New search four ways in (Sam, Oct 21 2026; Lane C). No network.
+try {
+  const out = execSync("node scripts/newSearchCheck.mjs", { encoding: "utf8" });
+  record("newSearchCheck (scripts/newSearchCheck.mjs)", "PASS", (out.match(/newSearchCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("newSearchCheck (scripts/newSearchCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
