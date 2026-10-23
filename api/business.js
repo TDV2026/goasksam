@@ -355,7 +355,7 @@ ${FONT_LINKS}<style>${CSS}${AUTH_SIGNBAR_CSS}${SHELL_CSS}${ALL_PALETTES_CSS}${sh
 ${showPal ? paletteSwitcherHtml() : ""}
 ${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
-${railOpenHtml({ active: "business", pageExtra: YOUR_RESULTS_RAIL, crew, req, analytics: true })}
+${railOpenHtml({ active: "business", crew, req, analytics: true })}
 ${body}
 ${CONSENT_BANNER_HTML}
 <script>${SHELL_JS}</script>

@@ -1,5 +1,5 @@
 import { isCrewRequest as isSignedCrew } from "../lib/_crew.js";
-import { buildPages } from "../lib/appShell.js";
+import { buildPages, shellFoot, RAIL_TAGLINE, RECENT_JS } from "../lib/appShell.js";
 // Shared page chrome for the server-rendered public pages (history, /buy): One Box tokens + fonts,
 // the left rail (with Buy) and the phone header. Lane C.
 //
@@ -21,6 +21,10 @@ a{color:var(--green)}a:hover{color:var(--green-dk)}
 .rail .logo{font:600 26px/1.1 var(--serif);color:var(--ink);text-decoration:none;margin-bottom:22px}
 .rail a.n{display:flex;align-items:center;min-height:44px;padding:0 14px;color:var(--sec);text-decoration:none;font-size:15px;border-left:2px solid transparent}
 .rail a.n:hover{color:var(--ink)}.rail a.n.on{color:var(--green);font-weight:600;border-left-color:var(--green);padding-left:12px}
+.rail .tag{margin:-14px 0 14px;font:400 12px/1.35 var(--sans);color:var(--sec)}
+.rail .quiet{margin-top:auto;display:flex;flex-direction:column;border-top:1px solid var(--div);padding-top:8px}.rail .quiet a.n{min-height:32px;font-size:13px}
+.rail .rec[hidden]{display:none}.rail .rec-h{font:600 11px/1.3 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--sec);padding:12px 14px 4px}
+.rail .gas-recent-item{display:flex;flex-direction:column;gap:1px;min-height:44px;justify-content:center;padding:4px 14px;text-decoration:none;color:var(--sec)}.rail .gas-recent-item:hover{color:var(--ink)}.rail .gas-recent-t{font:400 14px/1.3 var(--sans);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.rail .gas-recent-p{font:400 11px/1.2 var(--sans);color:var(--sec)}
 .mhead,.mnav{display:none}
 main{margin-left:240px;padding:36px 48px 64px;display:flex;justify-content:center}
 .col{width:100%;max-width:860px;display:flex;flex-direction:column;gap:28px}
@@ -147,18 +151,19 @@ export function railHtml(active, extra, crew, req) {
   // A tiny inline flag so any client script loaded LATER on the same page (e.g. api/buy.js's CLIENT,
   // which builds some CTAs at runtime) can gate itself without a second cookie read.
   const flag = '<script>window.GAS_CREW=' + (crew ? 'true' : 'false') + ';</script>';
-  const pages = buildPages(req, active).filter(p => p.key !== "powersellers");
+  const pages = buildPages(req, active);
   const tasksBadgeLabel = 'Tasks<span class="tbadge" data-tasks-badge hidden></span>';
-  const privacyChoices = '<a class="n" href="#" onclick="if(window.gasShowConsentBanner)window.gasShowConsentBanner();return false;">Privacy choices</a>';
+  // GOASKSAM 2.0 STAGE 1: the same rail as the shell pages (lib/appShell.js): the five products, the tagline, Recent searches (drawn by
+  // the shared RECENT_JS from this browser's own list) and the quiet links, in this page's own markup.
   const railItems = pages.map(p => item(p.key, p.href, p.key === "tasks" ? tasksBadgeLabel : p.label)).join("") +
     (active === 'history' ? item('history', '#', 'Car histories') : '') +
-    item('how', '/how-sam-decides', 'How Sam decides') + privacyChoices;
-  const mnavItems = pages.map(p => item(p.key, p.href, p.key === "tasks" ? tasksBadgeLabel : (p.key === "sell" ? "Sell" : p.label))).join("");
-  const mcOn = pages.some(p => p.key === "market-check");
-  const home = mcOn ? '/market-check' : '/sell';
+    '<div class="rec" id="gas-recent" hidden><div class="rec-h">Recent searches</div><div id="gas-recent-list"></div></div>';
+  const quiet = '<div class="quiet">' + shellFoot(active, req, "n", "on") + '</div>';
+  const mnavItems = pages.map(p => item(p.key, p.href, p.key === "tasks" ? tasksBadgeLabel : p.label)).join("");
+  const home = '/';
   return flag +
-    '<nav class="rail" aria-label="Main navigation"><a class="logo" href="' + home + '">GoAskSam</a>' + railItems + (extra || '') + '</nav>' +
-    '<header class="mhead"><a href="' + home + '">GoAskSam</a><nav class="mnav" aria-label="Sections">' + mnavItems + '</nav></header>' + TASKS_BADGE;
+    '<nav class="rail" aria-label="Main navigation"><a class="logo" href="' + home + '">GoAskSam</a><p class="tag">' + RAIL_TAGLINE + '</p>' + railItems + (extra || '') + quiet + '</nav>' +
+    '<header class="mhead"><a href="' + home + '">GoAskSam</a><nav class="mnav" aria-label="Sections">' + mnavItems + '</nav></header>' + TASKS_BADGE + '<script>' + RECENT_JS + '</script>';
 }
 
 export function whyResultHtml(crew) {

@@ -915,6 +915,13 @@ try {
 } catch (e) {
   record("tasksLeftoverCheck (scripts/tasksLeftoverCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// GoAskSam 2.0 Stage 1, the one rail, Find and /buy 301 (Sam, Oct 23 2026; Lane C). No network.
+try {
+  const out = execSync("node scripts/rail2Check.mjs", { encoding: "utf8" });
+  record("rail2Check (scripts/rail2Check.mjs)", "PASS", (out.match(/rail2Check: .*/) || [""])[0]);
+} catch (e) {
+  record("rail2Check (scripts/rail2Check.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });

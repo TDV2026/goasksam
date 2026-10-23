@@ -121,7 +121,7 @@ ${linksHtml(childLabel, children)}
 ${linksHtml("Other body and gearbox combinations", siblings)}
 ${(mcOn || buyOn) ? `<section class="card"><div class="sh"><h2>Go further</h2></div>
 <nav class="links">${mcOn ? `<a href="${esc(marketCheckLink)}">Check a specific ${esc(label)} on Market Check &#8594;</a>` : ""}
-${buyOn ? `<a href="${esc(buyLink)}">See live listings on Buy &#8594;</a>` : ""}</nav></section>` : ""}
+${buyOn ? `<a href="${esc(buyLink)}">See live listings on Find &#8594;</a>` : ""}</nav></section>` : ""}
 ${keepLookingHtml({ context: "spec", subject: porscheLabel, href: keepLookingHref({ subject: porscheLabel }) })}`;
 
   const canonical = `${SITE}${slug}`;

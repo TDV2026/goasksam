@@ -13,14 +13,12 @@ const render = async (mod, url, query) => { const { default: h } = await import(
   return await new Promise(resolve => { const res = { setHeader() {}, getHeader() {}, status() { return res; }, send(b) { resolve(String(b)); return res; }, end(b) { resolve(String(b || "")); return res; }, json(o) { resolve(JSON.stringify(o)); return res; }, writeHead() { return res; }, write() {}, redirect() { resolve(""); return res; } };
     Promise.resolve(h({ method: "GET", url, query, headers: { host: "goasksam.com", cookie: "" }, socket: {} }, res)).catch(() => resolve("")); setTimeout(() => resolve(""), 20000); }); };
 const buy = await render("buy", "/find", {}), mc = await render("marketCheck", "/market-check", {}), tk = await render("tasksPage", "/tasks", {}), tm = await render("tasksPage", "/tasks/mine", { app: "1" });
-ok(/<div class="rh">Your searches<\/div><button type="button" class="newbtn" id="newsearch">\+ New search<\/button><div id="searches"><\/div>/.test(buy), "Buy: '+ New search' is the first line of Your searches, above the list");
-ok(/<div class="gas-rail-extra"><a class="gas-navitem gas-newsearch" href="\/market-check">\+ New search<\/a><a class="gas-navitem" id="gas-nav-results"/.test(mc), "Market Check: '+ New search' first in its rail section, opening /market-check");
-ok(/<div class="gas-rail-extra"><a class="gas-navitem gas-newsearch" href="\/tasks">\+ New search<\/a><\/div>/.test(tk) && /gas-newsearch" href="\/tasks"/.test(tm), "Tasks (landing and app view): '+ New search' opening /tasks");
 const cl = JSON.parse(/^const CLIENT = (".*");$/m.exec(fs.readFileSync(path.join(ROOT, "api/buy.js"), "utf8"))[1]);
 ok(/PH_FOLLOW_WIDE = "Search any car, or tell Sam what to change"/.test(cl), "Buy's bottom-bar placeholder: 'Search any car, or tell Sam what to change'");
 ok(/closest\('#gas-rail a\.gas-navitem\[href="\/find"\]'\)/.test(cl) && /return goStart\(true\);/.test(cl.slice(cl.indexOf("1c: the rail's own"))), "the rail's Buy link opens Buy's start page (goStart)");
 ok(/if \(!filterParts\(cur\)\.length\) return goStart\(true\);/.test(cl), "removing the last chip opens Buy's start page");
-ok(/\$\("newsearch"\)\.addEventListener\("click", function\(\)\{ goStart\(true\); \}\);/.test(cl) && /closest\("\[data-newsearch\]"\)/.test(cl), "'+ New search' (rail and phone list) opens Buy's start page");
+ok(/var nsb = \$\("newsearch"\); if \(nsb\) nsb\.addEventListener\("click", function\(\)\{ goStart\(true\); \}\);/.test(cl) && /closest\("\[data-newsearch\]"\)/.test(cl), "the phone list's '+ New search' opens Buy's start page");
+ok(!/gas-newsearch|id="newsearch"/.test(buy + mc + tk + tm), "the 2.0 rail has no '+ New search' (the rail's items open each start page)");
 const ob = fs.readFileSync(path.join(ROOT, "public/js/onebox.js"), "utf8");
 ok(/input\.addEventListener\("focus", function \(\) \{ try \{ input\.select\(\); \} catch \(e\) \{\} \}\);/.test(ob), "Market Check's top box selects its text on focus");
 console.log(`newSearchCheck: ${pass} passed, ${fail} failed`);
