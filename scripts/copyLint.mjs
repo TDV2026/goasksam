@@ -287,6 +287,14 @@ check("plausibility: a sane 34% premium still renders (unchanged)", /34% higher 
     const head = ((html.match(/<title[\s\S]*?<\/title>/i) || []).concat(html.match(/<meta\b[^>]*>/gi) || [])).join(" "), heads = (html.match(/<h[1-6][\s\S]*?<\/h[1-6]>/gi) || []).join(" "), ld = (html.match(/<script type="application\/ld\+json">[\s\S]*?<\/script>/g) || []).join(" ");
     check(`start page ${name}: Beta is not in the title, meta, headings or structured data`, !/\bbeta\b/i.test(head) && !/\bbeta\b/i.test(heads) && !/\bbeta\b/i.test(ld), "");
   }
+  // "All Collector Cars" is never named in public page text or in a loading line (Sam, Oct 23 2026): the four start pages, Find's searching line
+  // (its LIVE_SITES list) and every static public page. (A result card's own venue label is the source of a real sale and is not this.)
+  for (const [name, mod, url] of [["Home", "home", "/"], ["Find", "buy", "/find"], ["Market Check", "marketCheck", "/market-check"], ["Sell (new)", "sellNext", "/api/sellNext"]]) {
+    const html = await render(mod, url);
+    const sites = (html.match(/var LIVE_SITES = \[[^\]]*\]/) || [""])[0];
+    check(`public page ${name}: "All Collector Cars" is not in the text or the searching line`, !/All Collector Cars/i.test(strip(html)) && !/All Collector Cars/i.test(sites) && (name !== "Find" || sites.length > 0), sites.slice(0, 120));
+  }
+  for (const f of fs.readdirSync("public").filter(x => x.endsWith(".html"))) check(`static public page ${f}: no "All Collector Cars"`, !/All Collector Cars/i.test(strip(fs.readFileSync("public/" + f, "utf8"))), "");
   // Every start-page placeholder runs through the same lint (no dashes, no banned phrases, no "collector").
   const { PLACEHOLDERS } = await import(pathToFileURL(pathMod.resolve("lib", "startPlaceholders.js")).href);
   for (const [k, v] of Object.entries(PLACEHOLDERS)) for (const t of (v.examples || [v.text])) check(`placeholder ${k}: "${t}" is lint-clean`, lintText(t).length === 0 && !/collector/i.test(t), lintText(t).join(" ; "));
