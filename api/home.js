@@ -26,6 +26,16 @@ const IC_TAG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12V4h8l1
 const IC_OUT = '<svg class="gst-card-ar" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>';
 const card = (href, ic, title, sub) => `<a class="gst-card" href="${href}"><span class="gst-card-ic">${ic}</span><span class="gst-card-t"><b>${esc(title)}</b><span>${esc(sub)}</span></span>${IC_OUT}</a>`;
 
+// STRUCTURED DATA (GoAskSam 2.0 Stage 4, Sam's block): who is behind GoAskSam (the same statement /about and the old Sell page carry) and the site's search
+// box, so a search engine can offer GoAskSam's own search: the target is Find, with the typed words as ?q=.
+const LD = JSON.stringify({ "@context": "https://schema.org", "@graph": [
+  { "@type": "Organization", "@id": "https://goasksam.com/#org", name: "GoAskSam", url: "https://goasksam.com/", logo: "https://goasksam.com/icon-512.png",
+    description: "GoAskSam helps enthusiasts find cars at live auction, see what similar cars have actually sold for, and decide where to sell theirs, using real auction results. Built by Sam Gold and the team behind The Daily Vroom.",
+    founder: { "@type": "Person", name: "Sam Gold" }, parentOrganization: { "@type": "Organization", name: "The Daily Vroom", url: "https://thedailyvroom.com" }, sameAs: ["https://thedailyvroom.com"] },
+  { "@type": "WebSite", "@id": "https://goasksam.com/#site", name: "GoAskSam", url: "https://goasksam.com/", publisher: { "@id": "https://goasksam.com/#org" },
+    potentialAction: { "@type": "SearchAction", target: { "@type": "EntryPoint", urlTemplate: "https://goasksam.com/find?q={search_term_string}" }, "query-input": "required name=search_term_string" } }
+] }).replace(/</g, "\\u003c");
+
 const CSS = `
 .hm{min-height:calc(100dvh - 24px);display:flex;align-items:center;justify-content:center;padding:72px 32px 56px;box-sizing:border-box}
 @media (max-width:700px){.hm{padding:28px 18px 40px;align-items:flex-start}}`;
@@ -47,6 +57,7 @@ export default async function handler(req, res) {
 <title>${esc(TITLE)}</title><meta name="description" content="${esc(DESC)}"><meta name="robots" content="index, follow"><link rel="canonical" href="https://goasksam.com/">
 <meta property="og:title" content="${esc(TITLE)}"><meta property="og:description" content="${esc(DESC)}"><meta property="og:url" content="https://goasksam.com/"><meta property="og:type" content="website">
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#F6F3EC">
+<script type="application/ld+json">${LD}</script>
 ${paletteHead(showPal)}${FONT_LINKS}<style>:root{--ink:#15201A;--sec:#5E6B63;--soft:#3C4942;--green:#1E4D38;--green-dk:#143A29;--card:#fff;--border:#D8D4CB;--sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--serif:"Newsreader",Georgia,"Times New Roman",serif}*{box-sizing:border-box}html,body{margin:0}body{background:var(--main-bg,#F6F3EC);color:var(--ink);font:400 17px/1.5 var(--sans)}a{color:var(--green)}:focus-visible{outline:2px solid var(--green);outline-offset:2px}${CSS}${START_CSS}${AUTH_SIGNBAR_CSS}${SHELL_CSS}${brandPaletteCss(crew)}</style></head><body>
 ${showPal ? paletteSwitcherHtml() + "\n" : ""}${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>

@@ -57,6 +57,8 @@ export default async function handler(req, res) {
     .replace("</head>", () => `<meta name="robots" content="noindex, nofollow">\n<link rel="canonical" href="https://goasksam.com/sell">\n<style>${cardCss}\n${SELL_MC_CSS}\n${SELLS_FOR_CARD_CSS}\n${SELL_LANDING_CSS}\n${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}</style>\n</head>`)
     // Round D (app shell, Oct 2026): the same shared rail as every other product - the full page
     // list, current page ("sell") marked - replacing the old Sell-only stripped-down rail.
+    // Server-rendered start page (GoAskSam 2.0 Stage 4): the headline, sub, box and line are in the first HTML, not drawn afterwards by the browser.
+    .replace('<main class="wrap"><div id="ob"></div></main>', () => `<main class="wrap"><div id="ob">${home}</div></main>`)
     .replace("<!--SHELL_RAIL-->", () => railOpenHtml({ active: "sell", logoHref: "/sell", crew, req }))
     .replace("<script>\nfunction obToggleResults", () => `<script>${SHELL_JS}</script>\n<script>${START_JS}</script>\n<script>\nfunction obToggleResults`)
     // The Sell hook must exist before js/onebox.js boots, so the client goes in ahead of it.

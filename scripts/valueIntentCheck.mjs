@@ -74,6 +74,16 @@ try {
     const st = await p.evaluate(() => ({ url: location.pathname + location.search, opens: window.__opens.slice(), toast: (document.querySelector(".gas-toast:not([hidden])") || {}).innerText || "", pend: sessionStorage.getItem("gas_buy_pendact") }));
     ok(/make=Porsche/.test(st.url) && st.pend === null && (st.opens.length === 1 || /Open your task/.test(st.toast)), `Google return: the search address is restored and the action completes once (url ${st.url}, opens ${st.opens.length}, line "${st.toast}")`);
     await p.close(); }
+  // a search still running when the visitor goes to the empty Find screen must not draw over it (rail Find, Back, a recent)
+  { const p = await b.newPage(); await p.setViewport({ width: 1300, height: 900 }); await p.setRequestInterception(true);
+    p.on("request", r => { const u = new URL(r.url()); if (u.host === "goasksam.com" && r.isNavigationRequest()) return r.respond({ status: 200, contentType: "text/html", body: html });
+      if (u.host === "goasksam.com" && u.pathname === "/api/buySearch") { let body = {}; try { body = JSON.parse(r.postData() || "{}"); } catch {} const a = body.action; if (a === "chat" || a === "rerun") { setTimeout(() => r.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ reply: "", suggest: [], state: { filters: { make: "Porsche", model: "911" } }, turns: 1, meta: { count: 1, live: 1, asks: [] }, cards: CARDS, searchNote: "" }) }), 2500); return; } return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(a === "list" ? { items: [] } : {}) }); }
+      return r.respond({ status: 204, body: "" }); });
+    await p.goto("https://goasksam.com/find", { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 800));
+    await p.type("#hq", "porsche 911"); await p.click("#hgo"); await new Promise(r => setTimeout(r, 600));
+    await p.click('#gas-rail a[href="/find"]'); await new Promise(r => setTimeout(r, 4500));
+    const st = await p.evaluate(() => ({ lead: !!document.getElementById("lead"), cards: document.querySelectorAll("article.car").length, url: location.pathname + location.search }));
+    ok(st.lead && st.cards === 0 && st.url === "/find", `rail Find while a search is still running opens the empty Find screen and stays there (${JSON.stringify(st)})`); await p.close(); }
 } finally { await b.close(); }
 console.log(`valueIntentCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

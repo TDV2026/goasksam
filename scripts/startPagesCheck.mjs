@@ -40,6 +40,18 @@ ok(/<h1 class="gst-h">Where should you sell your car\?<\/h1>/.test(sell.body) ||
 if (sell.code === 200) ok(/Tell Sam what you&#39;re selling|Tell Sam what you're selling/.test(sell.body) && /Tell me about your car, or paste a VIN\.\.\./.test(sell.body) && /Platform performance · Selling strategy · PowerSeller matching/.test(sell.body) && /id="ob-input"/.test(sell.body), "Sell (new): sub, placeholder and line are Sam's; the box keeps ob-input and ob-go");
 // the palette bar is for the crew cookie only: none of its markup, stylesheet or script reaches a visitor without it
 for (const [n, b] of [["Home", home.body], ["Find", find.body], ["Market Check", mc.body]]) ok(!/class="gas-pal-bar"|data-pal-btn|class="gas-pal-lbl"|\.gas-pal-bar\{/.test(b), n + ": no palette bar in a public page's HTML");
+// GoAskSam 2.0 Stage 4: server-rendered, own titles and descriptions, structured data
+const ttl = h => (/<title>([^<]*)<\/title>/.exec(h) || [])[1] || "", dsc = h => (/<meta name="description" content="([^"]*)"/.exec(h) || [])[1] || "";
+const metas = [["Home", home.body], ["Find", find.body], ["Market Check", mc.body]];
+ok(metas.every(([, b]) => ttl(b).length > 12 && dsc(b).length > 40), "each public start page has its own title and description in the first HTML");
+ok(new Set(metas.map(([, b]) => ttl(b))).size === 3 && new Set(metas.map(([, b]) => dsc(b))).size === 3, "no two start pages share a title or a description");
+ok(!/collector/i.test(metas.map(([, b]) => ttl(b) + " " + dsc(b)).join(" ")), "no title or description says collector");
+const ld = (/<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(home.body) || [])[1];
+let ldj = null; try { ldj = JSON.parse(ld); } catch {}
+const g = ldj && ldj["@graph"] || [];
+ok(g.some(x => x["@type"] === "Organization" && x.name === "GoAskSam" && x.founder && x.founder.name === "Sam Gold") && g.some(x => x["@type"] === "WebSite" && x.potentialAction && x.potentialAction["@type"] === "SearchAction" && x.potentialAction.target.urlTemplate === "https://goasksam.com/find?q={search_term_string}" && x.potentialAction["query-input"] === "required name=search_term_string"), "Home carries Organization and WebSite structured data with the site search action pointing at /find");
+if (sell.code === 200) ok(/<main class="wrap"><div id="ob"><div id="sell-landing"/.test(sell.body) && /<h1 class="gst-h">Where should you sell your car\?<\/h1>/.test(sell.body), "Sell (new): the start page is in the first HTML, not drawn afterwards by the browser");
+for (const [n, b] of [["Home", home.body], ["Find", find.body], ["Market Check", mc.body]]) ok(/<h1 class="gst-h">/.test(b) && /class="gst-sub"/.test(b) && /class="gst-in"/.test(b) && /data-lead-sentence/.test(b), n + ": headline, sub, box and dated lead are all in the first HTML");
 // shared
 const sp = fs.readFileSync(path.join(ROOT, "lib/startPage.js"), "utf8");
 ok(/startHtml\.toString\(\)/.test(sp) && /class="gst-mic"/.test(sp) && /class="gst-go"/.test(sp) && /<textarea/.test(sp), "one component: the server and the browser draw it with the same function; the same mic and submit on all four");

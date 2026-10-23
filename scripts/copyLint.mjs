@@ -264,5 +264,23 @@ globalThis.__weekdayBulletUsed = false;
 const okPrem = composeCard({ make: "BMW", model: "M3", year: 2015 }, mkRoute({ evidenceSales: 9, pricePremium: { type: "premium", gateType: "symmetric", percent: 34, platformSales: 9, othersSales: 11, scope: "model", windowDays: 180 } }), { isPick: true, landedScope: "model" });
 check("plausibility: a sane 34% premium still renders (unchanged)", /34% higher than/.test(cardText(okPrem)), cardText(okPrem));
 
+// ===== GoAskSam 2.0 Stage 4: the four start pages' own words (Home, Find, Market Check, the new Sell) =====
+{
+  process.env.LAUNCH_STAGE = "2"; process.env.SELL_NEXT_ON = "1";
+  const { pathToFileURL } = await import("node:url"), pathMod = await import("node:path");
+  const render = async (mod, url) => { const { default: h } = await import(pathToFileURL(pathMod.resolve("api", mod + ".js")).href);
+    return await new Promise(r => { const res = { setHeader() {}, getHeader() {}, status() { return res; }, send(b) { r(String(b)); return res; }, end(b) { r(String(b || "")); return res; }, json(o) { r(JSON.stringify(o)); return res; } }; Promise.resolve(h({ method: "GET", url, query: {}, headers: { host: "goasksam.com", cookie: "" }, socket: {} }, res)).catch(() => r("")); setTimeout(() => r(""), 25000); }); };
+  const strip = h => h.replace(/<style[\s\S]*?<\/style>/g, " ").replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<[^>]+>/g, " ").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+  for (const [name, mod, url, cut] of [["Home", "home", "/", "<main"], ["Find", "buy", "/find", "<main"], ["Market Check", "marketCheck", "/market-check", "<main"], ["Sell (new)", "sellNext", "/api/sellNext", "<main"]]) {
+    const html = await render(mod, url); const i = html.indexOf(cut), j = html.indexOf("</main>", i);
+    const text = i >= 0 ? strip(html.slice(i, j > 0 ? j : undefined)) : "";
+    check(`start page ${name}: has copy to read`, text.length > 80, text.slice(0, 80));
+    check(`start page ${name}: lint-clean (no dashes, banned phrases)`, lintText(text).length === 0, lintText(text).join(" ; "));
+    check(`start page ${name}: no "collector", no "AI" label`, !/collector/i.test(text) && !/\bAI\b/.test(text), text.slice(0, 120));
+    check(`start page ${name}: the dated line is a date only (no source, sale or live-car count)`, !/\b\d[\d,]*\s+(?:sales?|sources?|listings?|cars|auctions)\b/i.test(text), text.slice(-220));
+    check(`start page ${name}: no Daily Vroom section in the body`, !/Daily Vroom/i.test(text), "");
+  }
+}
+
 console.log(failures ? `\n${failures} FAILURE(S)` : "\n1D-LINT ALL PASS");
 process.exit(failures ? 1 : 0);

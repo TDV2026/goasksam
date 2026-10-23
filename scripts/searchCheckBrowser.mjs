@@ -65,7 +65,7 @@ async function main() {
     const pick = (re, fallback) => [...inSitemap].find(u => re.test(u)) || fallback;
     const specUrl = pick(/\/cars\/[^/]+\/[^/]+\/[^/]+/, `${BASE}/cars/porsche/911/993/carrera/coupe-manual`);
     const hubUrl = pick(/\/cars\/[^/]+\/[^/]+$/, `${BASE}/cars/porsche/911`);
-    const urls = [`${BASE}/`, `${BASE}/buy`, `${BASE}/sell`, `${BASE}/mcp`, `${BASE}/market-check`, `${BASE}/tasks`, `${BASE}/how-sam-decides`, hubUrl, specUrl];
+    const urls = [`${BASE}/`, `${BASE}/find`, `${BASE}/sell`, `${BASE}/mcp`, `${BASE}/market-check`, `${BASE}/tasks`, `${BASE}/how-sam-decides`, hubUrl, specUrl];
     const results = [];
     const seenFinal = new Set();
     for (const u of urls) {
