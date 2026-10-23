@@ -36,7 +36,12 @@ async function authConfig() {
 
 // ---------------- session ----------------
 function authGetSession() { try { const s = localStorage.getItem(AUTH_SESSION_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
-function authSetSession(s) { try { if (s) localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(s)); else localStorage.removeItem(AUTH_SESSION_KEY); } catch (e) {} }
+function authSetSession(s) {
+  try { if (s) localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(s)); else localStorage.removeItem(AUTH_SESSION_KEY); } catch (e) {}
+  // Signed out (or the token was refused): nothing of the account stays in this browser or on the page (the shell's gasAccountPurge: recent searches, results, drafts, badge).
+  if (!s) { try { if (typeof window.gasAccountPurge === "function") window.gasAccountPurge(); } catch (e) {} }
+  else { try { if (typeof window.gasRecentDraw === "function") window.gasRecentDraw(); } catch (e) {} }
+}
 function authIsSignedIn() { const s = authGetSession(); return !!(s && s.access_token); }
 function sessionFromTokenResponse(j) {
   const now = Math.floor(Date.now() / 1000);

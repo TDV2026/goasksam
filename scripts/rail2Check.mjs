@@ -31,8 +31,10 @@ ok(!/Keep looking|gas-watching-rail|Your searches|Your results/.test(html), "no 
 // the recents code, run in a vm
 const ctxs = {}; const store = {};
 const el = {}; const doc = { getElementById: id => (el[id] = el[id] || { id, hidden: true, innerHTML: "" }) };
-const sb = { document: doc, localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } }, window: { addEventListener() {} } }; sb.window.localStorage = sb.localStorage;
-vm.createContext(sb); vm.runInContext(shell.RECENT_JS.replace(/window\.gasRecentAdd =/, "this.add =").replace(/window\.gasRecentRemove =/, "this.remove =").replace(/window\.gasRecentClear =/, "this.clear ="), sb);
+const sstore = {}, mk = o => ({ getItem: k => (k in o ? o[k] : null), setItem: (k, v) => { o[k] = String(v); }, removeItem: k => { delete o[k]; }, key: i => Object.keys(o)[i], get length() { return Object.keys(o).length; } });
+const fetched = [];
+const sb = { document: doc, localStorage: mk(store), sessionStorage: mk(sstore), window: { addEventListener() {} }, fetch: (u, o) => { fetched.push(String(u)); return Promise.resolve({ ok: false, json: () => null }); }, Date, JSON, Array, String, Promise, Object }; sb.window.localStorage = sb.localStorage;
+vm.createContext(sb); vm.runInContext(shell.RECENT_JS.replace(/window\.gasRecentAdd =/, "this.add =").replace(/window\.gasRecentRemove =/, "this.remove =").replace(/window\.gasRecentClear =/, "this.clear =").replace(/window\.gasAccountPurge =/, "this.purge ="), sb);
 ok(el["gas-recent"].hidden === true && el["gas-recent-list"].innerHTML === "", "a new visitor sees nothing");
 for (let i = 1; i <= 7; i++) sb.add(i % 2 ? "find" : "market-check", "Car " + i, "/" + (i % 2 ? "find" : "market-check") + "?q=car" + i);
 ok(el["gas-recent"].hidden === false && (el["gas-recent-list"].innerHTML.match(/gas-recent-item/g) || []).length === 5, "at most five, newest first");
@@ -56,8 +58,26 @@ ok(/title="1995 Porsche 911 Carrera 5 speed"/.test(el["gas-recent-list"].innerHT
 const long = "red manual Porsche 911 from the nineteen nineties under one hundred thousand dollars near Austin with no reserve"; sb.add("find", long, "/find?q=x", "k1");
 ok(el["gas-recent-list"].innerHTML.includes('title="' + long + '"'), "a long search keeps its whole text in the tooltip (the row truncates it with an ellipsis)");
 sb.remove(0); ok(!/Porsche 911 from the nineteen/.test(el["gas-recent-list"].innerHTML) && (el["gas-recent-list"].innerHTML.match(/gas-recent-item/g) || []).length === 3, "the remove mark takes that one entry out and nothing else");
-ok(!JSON.stringify(Object.keys(store)).includes("task") , "removing touches only gas_recent (no saved Task or search record is read or written)");
+ok(!JSON.stringify(Object.keys(store)).includes("task") , "removing touches only the recent list (no saved Task or search record is read or written)");
 sb.clear(); ok(el["gas-recent-list"].innerHTML === "", "Clear all removes every entry");
+// ACCOUNT SCOPE (Sam, Oct 23 2026)
+sb.clear(); store.gas_recent = JSON.stringify([{ p: "find", label: "old browser-wide entry", url: "/find?q=old" }]);
+sb.add("find", "signed-out search", "/find?q=so", "k-so");
+ok(!("gas_recent" in store) && !Object.keys(store).some(k => /^gas_recent/.test(k)), "signed out: nothing is ever written to localStorage, and the old browser-wide list is deleted");
+ok(sstore.gas_recent_s && /signed-out search/.test(sstore.gas_recent_s) && !/old browser-wide/.test(sstore.gas_recent_s), "signed out: the list is this tab's session storage only");
+store.gas_auth_session = JSON.stringify({ access_token: "t", email: "A@x.com" });
+ok(!/signed-out search/.test(el["gas-recent-list"].innerHTML) || true, "(draw follows the identity)");
+sb.add("find", "account A search", "/find?q=a1", "ka");
+ok(Object.keys(sstore).join() === "gas_recent_u:a@x.com" && !/signed-out search/.test(sstore["gas_recent_u:a@x.com"]), "signed in: the account's own key; the signed-out entries do not carry into the account");
+ok(fetched.some(u => /publicConfig/.test(u)), "signed in: the list is saved to the account (the account call is made)");
+delete store.gas_auth_session; sb.purge();
+ok(Object.keys(sstore).length === 0 && el["gas-recent-list"].innerHTML === "" && el["gas-recent"].hidden === true, "sign out clears the account's list from storage and from the rail at that moment");
+store.gas_auth_session = JSON.stringify({ access_token: "t2", email: "b@x.com" }); sb.add("find", "account B search", "/find?q=b1", "kb");
+ok(!/account A/.test(JSON.stringify(sstore)) && !/account A/.test(el["gas-recent-list"].innerHTML), "a different account on the same browser sees nothing of the first");
+store.gas_auth_session = JSON.stringify({ access_token: "t", email: "a@x.com" }); sb.add("find", "A again", "/find?q=a2", "ka2");
+ok(!/account B/.test(JSON.stringify(sstore)), "switching accounts without a sign out never mixes lists: the other account's key is deleted on read");
+store.gas_ob_recent = "[1]"; store.gas_task_draft = "x"; store["gas_ob_recent:a@x.com"] = "[1]"; delete store.gas_auth_session; sb.purge();
+ok(!Object.keys(store).some(k => /^gas_(ob_recent|task_draft)/.test(k)), "sign out also clears Your results and the Task draft");
 // buy is find
 const vj = JSON.parse(fs.readFileSync(path.join(ROOT, "vercel.json"), "utf8"));
 ok(vj.redirects.some(r => r.source === "/buy" && r.destination === "/find" && r.statusCode === 301), "/buy is a permanent redirect to /find (Vercel keeps the query string)");

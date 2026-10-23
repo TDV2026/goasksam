@@ -3200,7 +3200,9 @@
   }
 
   // ---------------------------------------------------------------- recent searches (localStorage)
-  function recentSearches() { try { return JSON.parse(localStorage.getItem("gas_ob_recent") || "[]"); } catch (e) { return []; } }
+  // "Your results" is the signed-in account's own list in this browser (key carries the account); signed out it lives in this tab's session only, never localStorage.
+  function recentStore() { try { var s = JSON.parse(localStorage.getItem("gas_auth_session") || "null"); return s && s.access_token ? { st: localStorage, k: "gas_ob_recent:" + String(s.email || "").toLowerCase() } : { st: sessionStorage, k: "gas_ob_recent" }; } catch (e) { return { st: sessionStorage, k: "gas_ob_recent" }; } }
+  function recentSearches() { try { localStorage.removeItem("gas_ob_recent"); var r = recentStore(); return JSON.parse(r.st.getItem(r.k) || "[]"); } catch (e) { return []; } }
   function pushRecent(q, d) {
     try {
       // Name each entry the SAME way as the results headline: for a matched car the record's
@@ -3223,7 +3225,7 @@
       var key = String(keyBase || q).toLowerCase().replace(/\s+/g, " ").trim();
       var list = recentSearches().filter(function (it) { return (it.key || String(it.label || it.q || "").toLowerCase().replace(/\s+/g, " ").trim()) !== key; });
       list.unshift({ q: q, label: label || q, img: img, key: key, when: "Just now" });
-      localStorage.setItem("gas_ob_recent", JSON.stringify(list.slice(0, 8)));
+      { var rs = recentStore(); rs.st.setItem(rs.k, JSON.stringify(list.slice(0, 8))); }
     } catch (e) {}
     syncRailResults();
   }
