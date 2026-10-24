@@ -20,7 +20,7 @@ const ask = async car => {
   const j = await r.json().catch(() => ({}));
   return { ms: Date.now() - t0, http: r.status, tier: j.tier, status: j.status, refusal: j.refusal, fallback: j.chipFallback || null };
 };
-let failed = 0, unchecked = 0, warned = 0;
+let failed = 0, unchecked = 0, warned = 0, thin = 0;
 const BATCH = 5;
 let n = 0;
 for (const car of CARS) {
@@ -33,9 +33,13 @@ for (const car of CARS) {
   }
   if (a.tier === "business_limit") { unchecked++; console.log(`UNCHECKED  ${car}  (business_limit after 3 tries)`); continue; }
   if (a.fallback) { warned++; console.log(`WARN  ${car}  used the chip fallback (${(a.fallback.failedChecks || []).join(", ")}; engine ${a.fallback.engine})`); }
+  // A refusal of kind "thin" is the honest data answer (too few sales for a range; the answer still lists the sales it has) and is REPORTED, not failed.
+  // Every other refusal ("Sam could not verify this one": invariant_failed, a typed-model mismatch) or an error is a FAIL.
+  const thinOnly = a.tier === "refusal" && a.refusal && a.refusal.kind === "thin";
+  if (thinOnly) { thin++; console.log(`THIN  ${car}  ${a.ms}ms  refusal ${JSON.stringify(a.refusal).slice(0, 120)}`); continue; }
   const bad = a.tier === "refusal" || a.tier === "error" || a.http >= 500;
   if (bad) failed++;
   console.log(`${bad ? "FAIL" : "PASS"}  ${car}  ${a.ms}ms  tier ${a.tier}${a.refusal ? "  " + JSON.stringify(a.refusal).slice(0, 140) : ""}`);
 }
-console.log(failed ? `refusalCheck: ${failed} car(s) refused or errored.` : `refusalCheck: no refusal on ${CARS.length - unchecked} car(s)${unchecked ? `, ${unchecked} unchecked` : ""}${warned ? `, ${warned} WARN (chip fallback used)` : ""}.`);
+console.log(failed ? `refusalCheck: ${failed} car(s) refused or errored.` : `refusalCheck: no refusal on ${CARS.length - unchecked} car(s)${unchecked ? `, ${unchecked} unchecked` : ""}${warned ? `, ${warned} WARN (chip fallback used)` : ""}${thin ? `, ${thin} thin (honest no-range answers, listed above)` : ""}.`);
 process.exit(failed ? 1 : 0);
