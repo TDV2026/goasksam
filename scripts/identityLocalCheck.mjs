@@ -6,7 +6,7 @@
 // answer, a missing count, a gate refusal, an option whose page opens a different count, a zero-count option, or options
 // that do not sum to Any. e53 would have failed here: its gate refused every bare page with no-body titles.
 //   node scripts/identityLocalCheck.mjs
-import { buildResult, runOutputInvariants, isQualifying } from "../lib/onebox.js";
+import { buildResult, runOutputInvariants, isQualifying, applyOutputGate } from "../lib/onebox.js";
 
 const now = Date.now(), DAY = 864e5;
 const iso = days => new Date(now - days * DAY).toISOString();
@@ -94,6 +94,22 @@ for (const c of CASES) {
   const b = answerCacheable({ ...base, refusal: { kind: "too_spread_out" } });
   if (a !== false) { failed++; console.log("FAIL  an invariant_failed refusal is storable"); } else console.log("PASS  an invariant_failed refusal is never stored");
   if (b !== true) { failed++; console.log("FAIL  an ordinary refusal stopped being storable"); } else console.log("PASS  an ordinary refusal is still stored");
+}
+// e82 FALLBACK (Sam's launch gate: every car returns a range): a chip check that fails drops the chips and keeps the range; a non-chip failure still refuses.
+{
+  const c = CASES[3], rows = pool(c.make, c.model, c.year, c.bodies, c.usd).concat(pool(c.make, c.model, c.year, c.older, c.usd, 380));
+  const vehicle = { make: c.make, model: c.model, trim: "", year: c.year, bodyStyle: null };
+  const base = { resolvedCar: { make: c.make, model: c.model, year: c.year, trim: "", bodyStyle: null }, resolvedSpec: null, dedup: {}, vehicle, exactSale: null, inlineSplits: [] };
+  const spec = { make: c.make, model: c.model, trim: "", year: c.year, bodyStyle: null, excludeVariants: [], genCode: null, subject: `${c.year} ${c.model}` };
+  const d = buildResult({ rows: rows.map(r => ({ ...r })), step: "base", windowLabel: "past year" }, base, iso, spec, null);
+  const broken = { ...d, bodyOptions: d.bodyOptions.map(({ windowLonger, windowMonths, windowNote, ...o }) => o) };   // chips that open more than their share, unflagged
+  const gated = applyOutputGate(broken, vehicle, "fallback test");
+  if (!(gated.tier === d.tier && gated.chipFallback && gated.bodyOptions === null && gated.cluster && gated.cluster[0] === d.cluster[0] && Array.isArray(gated.cards) && gated.cards.length === d.cards.length)) { failed++; console.log("FAIL  a failed chip check did not keep the range: " + JSON.stringify({ tier: gated.tier, fb: !!gated.chipFallback, opts: gated.bodyOptions })); }
+  else console.log(`PASS  a failed chip check drops the chips and keeps the range (${gated.chipFallback.failedChecks.join(", ")}; cluster ${JSON.stringify(gated.cluster)}, ${gated.cards.length} cards)`);
+  const bad = applyOutputGate({ ...d, qualifyingTotal: Number(d.qualifyingTotal) + 5 }, vehicle, "non-chip failure test");
+  if (bad.tier !== "refusal") { failed++; console.log("FAIL  a non-chip failure no longer refuses"); } else console.log("PASS  a non-chip failure still refuses");
+  const { answerCacheable } = await import("../lib/live/search.js");
+  if (answerCacheable(gated) !== false) { failed++; console.log("FAIL  a chip-fallback answer is storable"); } else console.log("PASS  a chip-fallback answer is never stored");
 }
 console.log(failed ? `\nidentityLocalCheck: ${failed} case(s) FAILED.` : "\nidentityLocalCheck: every option equals its page and the options sum to Any, on the code being pushed.");
 process.exit(failed ? 1 : 0);

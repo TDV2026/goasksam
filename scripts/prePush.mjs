@@ -1070,9 +1070,10 @@ if (TIER === "fast") {
 // ---- 3a. REFUSAL CHECK (Lane B, Oct 23 2026): ten large-pool cars through the page's own request; ANY refusal fails the push ----
 try {
   const out = execSync(`node scripts/refusalCheck.mjs --base ${BASE}`, { encoding: "utf8", timeout: 600000 });
-  record("refusal check, ten large-pool cars (scripts/refusalCheck.mjs)", /SKIP/.test(out) ? "SKIP" : "PASS", (out.match(/refusalCheck: .*/) || [""])[0]);
+  for (const w of out.split("\n").filter(l => /^WARN/.test(l))) console.log("   " + w);   // a chip fallback used = a WARN that names the car
+  record("refusal check, 30 cars (scripts/refusalCheck.mjs)", /SKIP/.test(out) ? "SKIP" : "PASS", (out.match(/refusalCheck: .*/) || [""])[0]);
 } catch (e) {
-  record("refusal check, ten large-pool cars (scripts/refusalCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL|^refusalCheck/.test(l)).slice(0, 6).join(" | "));
+  record("refusal check, 30 cars (scripts/refusalCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL|^refusalCheck/.test(l)).slice(0, 6).join(" | "));
 }
 // ---- 3 & 4. BROWSER CHECK (Lane C's pushCheck.mjs) + BASELINE ----
 console.log(`\n-- browser check via scripts/pushCheck.mjs (${BASE}) --`);
