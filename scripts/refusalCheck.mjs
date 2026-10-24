@@ -4,13 +4,15 @@
 //   PROBE_KEY="$(security find-generic-password -s goasksam-probe -w)" node scripts/refusalCheck.mjs [--base https://goasksam.com] [--cars "a|b"]
 // Without PROBE_KEY it SKIPS (the public path is behind the same ceilings). business_limit answers are retried after a pause, then reported
 // as UNCHECKED, never as a pass.
+import { crewCookie } from "./_crewCookie.mjs";
 const arg = n => { const i = process.argv.indexOf("--" + n); return i > 0 ? process.argv[i + 1] : null; };
 const BASE = (arg("base") || "https://goasksam.com").replace(/\/$/, "");
 export const LARGE_POOL_CARS = ["1969 Chevrolet Camaro", "1965 Ford Mustang", "1966 Ford Mustang", "1972 Chevrolet Corvette", "1967 Chevrolet Corvette", "1987 Porsche 911 Carrera", "1978 Toyota Land Cruiser", "2002 BMW M3", "1970 Dodge Charger", "1957 Chevrolet Bel Air"];
 const CARS = arg("cars") ? arg("cars").split("|").map(s => s.trim()).filter(Boolean) : LARGE_POOL_CARS;
 const KEY = process.env.PROBE_KEY || null, BYPASS = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || null;
 if (!KEY) { console.log("refusalCheck: SKIP (no PROBE_KEY in the environment)."); process.exit(0); }
-const headers = { "content-type": "application/json", "x-ops-key": KEY, "x-launch-stage-test": "2", ...(BYPASS ? { "x-vercel-protection-bypass": BYPASS } : {}) };
+const CREW = await crewCookie();   // the crew cookie exempts the probe from the per-address daily car limit (Keychain, never printed)
+const headers = { "content-type": "application/json", ...(CREW ? { cookie: "gas_crew=" + CREW } : {}), "x-ops-key": KEY, "x-launch-stage-test": "2", ...(BYPASS ? { "x-vercel-protection-bypass": BYPASS } : {}) };
 const ask = async car => {
   const t0 = Date.now();
   const r = await fetch(BASE + "/api/sellerDecision", { method: "POST", headers, body: JSON.stringify({ oneBox: true, anonId: "ob-refusal-" + Math.random().toString(36).slice(2, 10), car: { raw: car.toLowerCase() }, asked: 0 }), signal: AbortSignal.timeout(60000) });

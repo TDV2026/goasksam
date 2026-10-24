@@ -24,13 +24,14 @@ const CASES = [
   { name: "1969 Camaro: Coupe 17, Convertible 3, one with no body word (its page opens one card)", make: "Chevrolet", model: "Camaro", year: 1969, bodies: [["Coupe", 17], ["Convertible", 3], ["", 1]], usd: 50000 },
   { name: "1966 Thunderbird: Convertible 14, Coupe 24, Hardtop 9 (reads coupe), none without a body word", make: "Ford", model: "Thunderbird", year: 1966, bodies: [["Convertible", 14], ["Coupe", 24], ["Hardtop", 9]], usd: 20000 },
   { name: "1969 Camaro, e81: 8 sales in twelve months (Coupe 6, Convertible 2), more in months 13 to 24, so the body pages read 24 months", make: "Chevrolet", model: "Camaro", year: 1969, bodies: [["Coupe", 6], ["Convertible", 2]], older: [["Coupe", 4], ["Convertible", 7]], usd: 50000, expectLonger: true },
+  { name: "1972 Corvette, e82: Body not stated has 1 sale in twelve months and 6 older than three years, so its page reads the ladder window (60 months)", make: "Chevrolet", model: "Corvette", year: 1972, bodies: [["Coupe", 9], ["Convertible", 9], ["", 1]], older: [["", 6]], olderAge: 1200, usd: 40000, expectFlags: ["unspecified"] },
   { name: "one body only (no options, nothing to sum)", make: "Acura", model: "NSX", year: 1995, bodies: [["", 15]], usd: 90000 }
 ];
 
 let failed = 0;
 const fail = (c, msg) => { failed++; console.log(`FAIL  ${c.name}: ${msg}`); };
 for (const c of CASES) {
-  const rows = pool(c.make, c.model, c.year, c.bodies, c.usd).concat(c.older ? pool(c.make, c.model, c.year, c.older, c.usd, 380) : []);
+  const rows = pool(c.make, c.model, c.year, c.bodies, c.usd).concat(c.older ? pool(c.make, c.model, c.year, c.older, c.usd, c.olderAge || 380) : []);
   const vehicle = { make: c.make, model: c.model, trim: "", year: c.year, bodyStyle: null };
   const base = () => ({ resolvedCar: { make: c.make, model: c.model, year: c.year, trim: "", bodyStyle: null }, resolvedSpec: null, dedup: {}, vehicle, exactSale: null, inlineSplits: [] });
   const spec = { make: c.make, model: c.model, trim: "", year: c.year, bodyStyle: null, excludeVariants: [], genCode: null, subject: `${c.year} ${c.model}` };
@@ -73,6 +74,9 @@ for (const c of CASES) {
     const stripped = { ...d, bodyOptions: opts.map(({ windowLonger, windowMonths, windowNote, ...o }) => o) };
     const refused = runOutputInvariants(stripped, vehicle).filter(x => !x.ok).map(x => x.name);
     if (!refused.includes("identity_options_sum_to_pool")) { ok = false; console.log("      an unflagged option that opens more than its share was NOT refused"); }
+  } else if (c.expectFlags) {
+    const got = opts.filter(o => o.windowLonger === true).map(o => o.value).sort().join(","), want = c.expectFlags.slice().sort().join(",");
+    if (got !== want) { ok = false; console.log(`      flagged ${got || "none"}, expected ${want}: ${JSON.stringify(opts)}`); }
   } else if (opts.some(o => o.windowLonger)) { ok = false; console.log("      an option is flagged windowLonger on a pool where every page reads the same window"); }
   const covered = opts.some(o => o.value === "unspecified");
   const total = sum + (covered ? 0 : (Number(d.bodyUnspecified) || 0));
