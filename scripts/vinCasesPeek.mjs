@@ -22,8 +22,8 @@ for (const q of QS) {
   if (sel) { await sel.focus(); await page.keyboard.type(q, { delay: 5 }); await page.keyboard.press("Enter"); }
   let txt = "";
   for (let i = 0; i < WAIT / 1000; i++) { await new Promise(r => setTimeout(r, 1000)); txt = await page.evaluate(() => (document.querySelector("main") || document.body).innerText).catch(() => ""); if (/\$\d[\d,]{3,}|Sold before|Which |not find|did you mean|No sales|catching his breath|could not verify/i.test(txt) && i > 3) break; }
-  const lines = txt.split("\n").map(s => s.trim()).filter(Boolean).slice(0, 26);
-  console.log(`\n=== "${q}"  (${Math.round((Date.now() - t0) / 1000)}s)`); console.log(lines.join(" | ").slice(0, 1400));
+  const lines = txt.split("\n").map(s => s.trim()).filter(Boolean).slice(0, Number(arg("lines")) || 26);
+  console.log(`\n=== "${q}"  (${Math.round((Date.now() - t0) / 1000)}s)`); console.log(lines.join(" | ").slice(0, Number(arg("chars")) || 1400));
   await page.close();
 }
 await browser.close();

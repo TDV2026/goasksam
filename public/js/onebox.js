@@ -1323,7 +1323,7 @@
       var sentence = "Its last sale, " + usd(last.price) + " in " + monthOnly(last.date) + ", sits " + last.placing + ".";
       note = '<p class="exactsale-note">' + lint(esc(sentence), "exactsale.note") + "</p>";
     }
-    return '<div class="exactsales" data-stage="cards"><h2>This car&#8217;s own sales</h2>' + rows + note + "</div>";
+    return '<div class="exactsales" data-stage="cards"><h2>Sold before</h2>' + rows + note + "</div>";
   }
   // d.contextRoles (dormant Lane B field, grepped lib/onebox.js - not present yet) is preferred for
   // both the cards and the subhead sentence; the range tier's own representative trio (closest/high/
@@ -2004,8 +2004,8 @@
   // behavior change, not an oversight - flagged plainly in docs/lane-notes.md.
   function resultHtml(d, m) {
     var thinTile = thinTileTreatment(d, m, d.cards, d.setAsideRows);
-    var body = heroRangeHtml(d, m, thinTile);
-    body += exactCarSalesHtml(d);
+    // The car's OWN sale shows FIRST, labelled "Sold before" (Stage 3, Oct 23 2026), above the range it is read against.
+    var body = exactCarSalesHtml(d) + heroRangeHtml(d, m, thinTile);
     // Item (d), Sam's review round: every sale is already on screen as a tile, so the "Sales behind
     // this answer" teaser (three cards + its own "see all" link) is redundant - suppressed whenever
     // tiles rendered (every pool size now, job 3 round two: 1 to 16 sales all get tiles).
@@ -2315,8 +2315,7 @@
     // Newest first (the honest evidence order); the engine's hammer-desc order is for its own math.
     var newestFirst = thinCardsFrom(scope).sort(function (a, b) { return String(b.date || "").localeCompare(String(a.date || "")); });
     var thinTile = thinTileTreatment(d, m, newestFirst, d.setAsideRows);
-    var body = thinHeroHtml(d, name, scope, ht, m, thinTile, newestFirst.length);
-    body += exactCarSalesHtml(d);
+    var body = exactCarSalesHtml(d) + thinHeroHtml(d, name, scope, ht, m, thinTile, newestFirst.length);
     if (!(thinTile && thinTile.suppressSalesRow)) body += salesRowHtml(d, m, newestFirst);
     body += livePanelSlot();
     // Job 6a (round two): the full comparable-sales table is redundant once every sale is already a
