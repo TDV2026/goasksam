@@ -11,7 +11,7 @@ import { hasAskableTrim } from "../lib/modelRules.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { recordUsageEvent, anthropicCost } from "./_usage.js";
 import { isTesterRequest } from "../lib/_tester.js";
-import { vinFeatureActive, findVinArchiveMatch } from "../lib/_flags.js";
+import { vinFeatureActive, findVinArchiveMatch, looksLikeChassisId } from "../lib/_flags.js";
 
 import { isCrewRequest } from "../lib/_crew.js";
 import { cors as gasCors } from "../lib/_cors.js";
@@ -280,7 +280,7 @@ export default async function handler(req, res) {
     // privacy (request body only, never logged). Gated on vinActive like every VIN path so
     // the off-feature response shape is unchanged.
     let chassisVehicle = null;
-    if (!vinMatch && vinActive && result.clarification?.kind === "chassis_hint" && typeof raw === "string") {
+    if (!vinMatch && vinActive && (result.clarification?.kind === "chassis_hint" || (!result.vehicle?.make && looksLikeChassisId(raw))) && typeof raw === "string") {
       const chassisTok = raw.trim().replace(/\s+/g, "");
       if (chassisTok) vinMatch = await findVinArchiveMatch(env, { vin: chassisTok });
       // On an exact chassis hit, the matched record IS the car's identity (evidence, not a
@@ -299,6 +299,10 @@ export default async function handler(req, res) {
           chassisVehicle.chassis = raw.trim();
         }
       }
+    }
+    // A typed number that looks like a chassis but matched nothing (and the resolver gave it no clarification of its own) says so plainly and asks for the car.
+    if (!vinMatch && !chassisVehicle && vinActive && !result.vehicle?.make && !result.clarification?.kind && typeof raw === "string" && looksLikeChassisId(raw)) {
+      result.clarification = { kind: "chassis_hint", question: "I did not find that number in the sales I track. Type the year, make and model of the car instead.", answerHint: "Year, make and model", chips: ["Not sure"] };
     }
     // A resolved chassis match is returned as a VALID vehicle (with the archive match and a
     // chassis_match correction) so the frontend renders the "I know this exact car" callout,

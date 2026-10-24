@@ -1700,7 +1700,7 @@
     var hist = (n >= 1 && obSourceVin)
       ? '<a class="histlink" href="' + esc(historyHref(rc, obSourceVin)) + '">' + esc(priorSaleLine + "See its full history") + " &#8594;</a>"
       : "";
-    return saleCardHtml({ cls: "hero this exact", flat: !!flat, pill: "This car", href: utmUrl(m.url), slug: m.source, image: m.photoUrl,
+    return saleCardHtml({ cls: "hero this exact", flat: !!flat, pill: (Number(m.price) > 0 ? "Sold before" : "This car"), href: utmUrl(m.url), slug: m.source, image: m.photoUrl,
       priceHtml: priceHtml, venueLine: venueLine, title: name, meta: meta, after: hist });
   }
   // Canonical VIN history URL (/history/{year}-{make}-{model-slug}/{VIN}), built the same way as
@@ -2499,7 +2499,10 @@
   // Job 6b (round two): "Real sales only." read as a dangling bullet under a question's own chip
   // row, with no rule above it to sit under - question screens never append footHtml() any more.
   function renderQuestion(html) {
-    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + html;
+    // The car's OWN sale shows first (Stage 3, Oct 23 2026), labelled "Sold before", ABOVE any question the engine still has about the car
+    // (the 1995 911 Carrera VIN used to open on "Has documented history or No documented history?" with its own sale nowhere on the page).
+    var own = vinAnchor && (vinAnchor.price || vinAnchor.history) ? '<div class="cards5 single" data-stage="anchor">' + vinHeroCardHtml(vinAnchor, obResolvedCar) + "</div>" : "";
+    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + own + html;
     wire();
   }
   // renderRefineChoice (gearbox_choice/variant_choice as a bare-chip refine) had no remaining
@@ -2829,7 +2832,8 @@
     var t = String(text || "").trim();
     if (!t || /\s/.test(t)) return false;
     var c = t.replace(/[\s.\-/]+/g, "");
-    if (!/^[A-Za-z0-9]+$/.test(c) || !/[A-Za-z]/.test(c) || !/[0-9]/.test(c)) return false;
+    if (!/^[A-Za-z0-9]+$/.test(c) || !/[0-9]/.test(c)) return false;
+    if (!/[A-Za-z]/.test(c) && c.length < 9) return false;   // a digit-only number is a chassis only from 9 digits (a year, a price or a ZIP never is); same test as lib/_flags.js looksLikeChassisId
     return c.length === 17 || (c.length >= 5 && c.length <= 14);
   }
   var OB_PLAT = { bringatrailer: "Bring a Trailer", carsandbids: "Cars & Bids", pcarmarket: "PCarMarket", hagerty: "Hagerty", rmsothebys: "RM Sotheby's", gooding: "Gooding & Co", acc: "All Collector Cars", allcollectorcars: "All Collector Cars", collectingcars: "Collecting Cars" };

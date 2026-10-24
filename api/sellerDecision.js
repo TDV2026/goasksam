@@ -25,7 +25,7 @@ import { sourceCoverage } from "../lib/desk/coverage.js";
 import { isMaterialVariant } from "../lib/materialVariants.js";
 import { buildHouseComparison } from "../lib/houseCalendar.js";
 import { isHouseSource } from "../lib/_houseComps.js";
-import { vinFeatureActive, findVinArchiveMatch } from "../lib/_flags.js";
+import { vinFeatureActive, findVinArchiveMatch, looksLikeChassisId } from "../lib/_flags.js";
 import { findWinCondition, BACKING_MIN } from "../lib/winConditions.js";
 import { MODEL_SEGMENTS } from "../lib/vehicleData.js";
 import { poolTrimFor } from "../lib/modelFamilies.js";
@@ -3329,7 +3329,7 @@ async function handler(req, res) {
           // never ranking) so the frontend can lead with "I know this exact car" before
           // asking for the year/make/model. No hit -> just the honest chassis line.
           let obChassisMatch = null;
-          if (obVinActive && cl.kind === "chassis_hint") {
+          if (obVinActive && (cl.kind === "chassis_hint" || looksLikeChassisId(rawSearch))) {
             try { obChassisMatch = await findVinArchiveMatch({ supabaseUrl, supabaseKey }, { vin: rawSearch }); } catch { obChassisMatch = null; }
           }
           return res.status(200).json({

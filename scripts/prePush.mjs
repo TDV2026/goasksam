@@ -1055,6 +1055,13 @@ try {
   record("Task from Buy reads the applied choice (scripts/engineChoiceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 
+// ---- 2y. VIN / CHASSIS LOOKUP (Lane B, Stage 3): one shape test, exact-string chassis match, title body wins. No network. ----
+try {
+  const out = execSync("node scripts/vinLookupCheck.mjs", { encoding: "utf8" });
+  record("VIN and chassis lookup (scripts/vinLookupCheck.mjs)", "PASS", (out.match(/vinLookupCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("VIN and chassis lookup (scripts/vinLookupCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 if (TIER === "fast") {
   record("browser check (pushCheck.mjs)", "SKIP", FAST_WHY);
   console.log("\n-- golden truth: not run in the fast tier (it reads the archive) --");
