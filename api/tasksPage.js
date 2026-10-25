@@ -94,10 +94,20 @@ const APP_CSS = `
 .tkbox button[disabled]{opacity:.6}
 .choices{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}.choices .chip{font:500 15px/1 var(--sans);padding:11px 16px;min-height:44px;border:1px solid var(--div);background:#fff;color:var(--ink);border-radius:999px;cursor:pointer}.choices .chip:hover{border-color:#1A1A1A}.choices .chip:disabled{opacity:.5;cursor:default}
 .statusline{margin:0 0 12px;font:500 15px/1.4 var(--sans);color:var(--sec)}
-details.trow{padding:0;margin-top:10px}details.trow>summary{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:14px 16px;cursor:pointer;list-style:none}details.trow>summary::-webkit-details-marker{display:none}
-details.trow>summary .tline{flex:1 1 220px;min-width:0;margin:0;font:500 16px/1.4 var(--sans);overflow-wrap:anywhere}details.trow>summary .tbtns{display:flex;gap:8px;margin-left:auto}
 .newn{font:600 13px/1 var(--sans);padding:5px 9px;border-radius:999px;background:#1E4D38;color:#fff;white-space:nowrap}
-details.trow>:not(summary){margin-left:16px;margin-right:16px}details.trow[open]{padding-bottom:14px}
+.pill.needs{background:var(--red);color:#fff}
+.tgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0 0;align-items:start}
+.tc{position:relative;border:1px solid var(--div);border-radius:8px;background:var(--card);display:flex;flex-direction:column}
+.tc.open{outline:2px solid var(--ink);outline-offset:-1px}
+.tc .thit{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;text-align:left;border:0;background:none;padding:14px 40px 8px 16px;cursor:pointer;color:var(--ink);font:inherit;min-height:44px}
+.tc .thit:focus-visible,.tc .sbtn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.tc .thit::after{content:"";position:absolute;right:16px;top:20px;width:9px;height:9px;border-right:2px solid var(--sec);border-bottom:2px solid var(--sec);transform:rotate(45deg);transition:transform .15s}
+.tc .thit[aria-expanded=true]::after{transform:rotate(-135deg);top:25px}
+.tc .tline{margin:0;font:500 16px/1.4 var(--sans);overflow-wrap:anywhere}
+.tc .tcount{font:400 14px/1.4 var(--sans);color:var(--sec)}
+.tc .tbtns{margin:0;padding:0 16px 14px}
+.tdetail{grid-column:1/-1;border:1px solid var(--div);border-radius:8px;background:var(--card);padding:6px 20px 16px}
+@media (max-width:640px){.tgrid{grid-template-columns:minmax(0,1fr)}.tdetail{padding:6px 14px 14px}}
 .unfin{padding:12px 16px;margin-top:12px}.unfin .unfinline{margin:0 0 8px;font:500 15px/1.4 var(--sans);overflow-wrap:anywhere}.unfin .go{margin-top:0}
 .samreply{margin:10px 0 0;font:400 17px/1.45 var(--serif);color:var(--tk-text2)}
 .feed{list-style:none;margin:20px 0 0;padding:0;border-top:1px solid var(--div)}
@@ -284,7 +294,7 @@ const APP_JS = String.raw`(function(){
   function seedObj(){ if (params.get("seed") === "vin") return { from: "vin", ref: "vin:" + params.get("vin") }; if (params.get("seed") === "buy") { var bf = null; try { bf = JSON.parse(params.get("filters") || "null"); } catch(e){} return { from: "buy_search", ref: null, filters: bf && typeof bf === "object" && !Array.isArray(bf) ? bf : null }; } return null; }
   function token(){ if (typeof authValidToken === "function") return authValidToken(); try { return Promise.resolve((JSON.parse(localStorage.getItem("gas_auth_session") || "null") || {}).access_token || null); } catch(e){ return Promise.resolve(null); } }
   function api(body){ return token().then(function(tk){ return fetch("/api/tasks", { method: "POST", headers: tk ? { "Content-Type": "application/json", Authorization: "Bearer " + tk } : { "Content-Type": "application/json" }, body: JSON.stringify(body) }); }).then(function(r){ if (r.status === 401) { location.replace("/tasks?signin=1&next=" + encodeURIComponent(location.pathname + location.search)); throw new Error("auth"); } return r.json(); }); }
-  function status(t){ if (starting[t.id]) return ["running", "Sam is starting"]; if (t.state === "running" || t.state === "needs_you") return ["running", "Running"]; if (t.state === "paused") return ["paused", "Paused"]; if (t.state === "done") return t.kind === "research" ? ["done", "Done"] : ["stopped", "Stopped"]; return ["draft", "Not started"]; }
+  function status(t){ if (starting[t.id]) return ["running", "Sam is starting"]; if (t.state === "needs_you") return ["needs", "Needs you"]; if (t.state === "running") return ["running", "Running"]; if (t.state === "paused") return ["paused", "Paused"]; if (t.state === "done") return t.kind === "research" ? ["done", "Done"] : ["stopped", "Stopped"]; return ["draft", "Not started"]; }
   function dropEntryParams(){ var u = new URL(location.href); ["start", "seed", "words", "filters", "vin", "car"].forEach(function(k){ u.searchParams.delete(k); }); try { history.replaceState(null, "", u.pathname + (u.search || "") + u.hash); } catch(e){} }
   function when(iso){ try { var d = new Date(iso), now = new Date(); var o = { month: "short", day: "numeric" }; if (Math.abs(now - d) > 80 * 864e5) o.year = "numeric"; return d.toLocaleDateString("en-US", o) + ", " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }); } catch(e){ return ""; } }
   function money(n){ return "$" + Number(n).toLocaleString("en-US"); }
@@ -313,21 +323,35 @@ const APP_JS = String.raw`(function(){
       return '<li><span class="when">' + esc(when(u.created_at)) + '</span>' + (eline ? '<p class="ut line">' + esc(u.data.line) + "</p>" : '<p class="ut' + (u.kind === "system" ? " sys" : "") + '">' + esc(u.text) + "</p>") + cars(u) + "</li>"; }).join("") + "</ul>";
   }
   function box(label, id, value, ph, tid){ return '<div class="tkask"><label class="boxlab" for="' + id + '">' + esc(label) + '</label><div class="tkbox"><input id="' + id + '" autocomplete="off"' + (tid ? ' data-task="' + tid + '"' : "") + ' value="' + esc(value || "") + '" placeholder="' + esc(ph || "") + '"><button type="button" data-send="' + id + '"' + (tid ? ' data-task="' + tid + '"' : "") + (busy ? " disabled" : "") + ">" + (busy ? "Sam is reading..." : "Send") + "</button></div></div>"; }
-  // EACH TASK IS A COMPACT ROW (Oct 24 2026): name, status, "N new", Pause and Stop; it opens to show its cars. The newest Task is open, the
-  // others closed, and a row the person opens or closes stays as they left it through every redraw.
-  var openRows = {};
-  function isOpen(t, newestId){ return openRows[t.id] !== undefined ? openRows[t.id] : t.id === newestId; }
-  function taskCard(t, compact, newestId){
-    var st = status(t), live = t.state !== "done" && !compact;
-    var btns = t.state !== "done" ? '<span class="tbtns">' + (t.state === "paused" ? '<button class="sbtn" data-act="resume" data-id="' + t.id + '">Resume</button>' : '<button class="sbtn" data-act="pause" data-id="' + t.id + '">Pause</button>') + '<button class="sbtn" data-act="stop" data-id="' + t.id + '">Stop</button></span>' : "";
-    var unread = Number(t.unread) > 0 ? '<span class="newn">' + Number(t.unread) + " new</span>" : "";
-    var h = '<details class="tcard trow" id="task-' + t.id + '" data-row="' + t.id + '"' + (isOpen(t, newestId) ? " open" : "") + '><summary><span class="pill ' + st[0] + '">' + st[1] + '</span><span class="tline">' + esc(t.summary) + "</span>" + unread + btns + "</summary>";
-    if (live) {
+  // THE OVERVIEW (Oct 25 2026): every Task is a compact card side by side (status, the Task sentence, the server's count line, Pause and Stop).
+  // All start closed. One opens at a time and its detail (change box, cars, timeline) sits directly below its row; a second click closes it.
+  // The open one is kept through redraws and reloads (sessionStorage). A Task that needs the person opens itself once.
+  var openId = null; try { openId = sessionStorage.getItem("gas_task_open") || null; } catch(e){}
+  var autoOpened = {};
+  function setOpen(id){ openId = id; try { if (id) sessionStorage.setItem("gas_task_open", id); else sessionStorage.removeItem("gas_task_open"); } catch(e){} }
+  var cols = function(){ return window.matchMedia && window.matchMedia("(max-width:640px)").matches ? 1 : 3; };
+  function compactCard(t){
+    var st = status(t), ov = t.overview || {}, isOpen = openId === t.id;
+    var btns = '<span class="tbtns">' + (t.state === "paused" ? '<button class="sbtn" data-act="resume" data-id="' + t.id + '">Resume</button>' : '<button class="sbtn" data-act="pause" data-id="' + t.id + '">Pause</button>') + '<button class="sbtn" data-act="stop" data-id="' + t.id + '">Stop</button></span>';
+    var count = [starting[t.id] ? "Sam is checking the live cars now." : ov.live, ov.fresh].filter(Boolean).join(" \u00B7 ");
+    return '<article class="tc' + (isOpen ? " open" : "") + '" id="task-' + t.id + '"><button type="button" class="thit" id="tt-' + t.id + '" data-toggle="' + t.id + '" aria-expanded="' + isOpen + '" aria-controls="detail-' + t.id + '"><span class="pill ' + st[0] + '">' + st[1] + '</span><span class="tline">' + esc(t.summary) + "</span>" + (count ? '<span class="tcount">' + esc(count) + "</span>" : "") + "</button>" + btns + "</article>";
+  }
+  function taskDetail(t){
+    var h = '<section class="tdetail" id="detail-' + t.id + '" aria-label="' + esc(t.summary) + '">';
+    if (t.state !== "paused") {
       if (pending && pendingId === t.id) h += '<p class="readback">' + esc(pending.summary.replace(/^Sam is looking for/, "Sam will look for").replace(/^Sam is researching/, "Sam will research")) + '</p><div class="go"><button class="pbtn" data-apply="' + t.id + '">Use this change</button><button class="plink" data-unpending>Keep the Task as it is</button></div>';
       h += box("Change the Task or tell Sam something", "tkq-" + t.id, "", "", t.id);
       if (reply && !(pending && pendingId === t.id) && replyFor === t.id) h += '<p class="samreply">' + esc(reply) + "</p>";
     }
-    return h + feed(t) + "</details>";
+    return h + feed(t) + "</section>";
+  }
+  function overview(list){
+    if (!list.length) return "";
+    var n = cols(), out = "", dIdx = -1;
+    list.forEach(function(t, i){ if (t.id === openId) dIdx = i; });
+    var after = dIdx < 0 ? -1 : Math.min(list.length - 1, dIdx - (dIdx % n) + n - 1);
+    list.forEach(function(t, i){ out += compactCard(t); if (i === after) out += taskDetail(list[dIdx]); });
+    return '<div class="tgrid">' + out + "</div>";
   }
   // The draft in the top slot (opened by typing, Continue or a seed): the question last asked with its choices as buttons and the box,
   // or the read-back with Start and Change. Never an old error line: the not-understood sentence shows only for the answer just given.
@@ -390,12 +414,14 @@ const APP_JS = String.raw`(function(){
     if (lim && lim.atLimit) h += limitCard(work) + (draft ? unfinishedCard() : "");
     else if (draft && draftOpen) h += draftCard();
     else h += newBox() + (draft ? unfinishedCard() : "");
-    var newestId = work.length ? work.slice().sort(function(x, y){ return String(y.created_at || "").localeCompare(String(x.created_at || "")); })[0].id : null;
-    h += work.map(function(t){ return taskCard(t, false, newestId); }).join("");
+    var mine = work.concat(paused);
+    // A Task that needs the person opens itself, once.
+    work.forEach(function(t){ if (t.state === "needs_you" && !autoOpened[t.id]) { autoOpened[t.id] = true; setOpen(t.id); } });
+    if (openId && !mine.some(function(t){ return t.id === openId; })) setOpen(null);
+    h += overview(mine);
     // The email settings show for everyone signed in, with or without a working Task: exact-car, sold-car and
     // Before it ends emails use them too.
     h += notifyLine();
-    if (paused.length) h += '<p class="pausedh">Paused</p>' + paused.map(function(t){ return taskCard(t, true, null); }).join("");
     if (past.length) h += '<details class="past"><summary>Past Tasks (' + past.length + ")</summary>" + past.map(function(t){ var st = status(t); return '<details><summary><span class="pill ' + st[0] + '">' + st[1] + "</span>" + esc(t.summary) + "</summary>" + feed(t) + "</details>"; }).join("") + "</details>";
     app.innerHTML = h;
     Object.keys(keep).forEach(function(k){ var el = $(k); if (el && keep[k]) el.value = keep[k]; });
@@ -405,12 +431,12 @@ const APP_JS = String.raw`(function(){
     var q = $("tkq"); if (q && (params.get("start") || params.get("seed") || editing || carry)) { q.focus(); }
   }
   // Pressed: disabled at once, the label says what is happening, and the other buttons in the card wait.
-  function working(btn, label){ btn.disabled = true; btn.textContent = label; var card = btn.closest(".tcard,.limitbox"); if (card) card.querySelectorAll("button").forEach(function(b){ b.disabled = true; }); }
+  function working(btn, label){ btn.disabled = true; btn.textContent = label; var card = btn.closest(".tcard,.tc,.limitbox"); if (card) card.querySelectorAll("button").forEach(function(b){ b.disabled = true; }); }
   // The rail's Tasks badge shows the server's count of open Tasks after every list.
   function syncBadge(){ var n = data && data.count; document.querySelectorAll("[data-gas-tasks-badge],[data-tasks-badge]").forEach(function(b){ if (n) { b.textContent = String(n); b.hidden = false; b.classList.remove("nu"); } else { b.textContent = ""; b.hidden = true; } }); }
   function findTask(id){ return ((data && data.tasks) || []).filter(function(x){ return x.id === id; })[0] || null; }
   // The list is fast (no full cards); the cars and the first match run follow and fill in.
-  function load(){ return api({ action: "list", fast: true, draft: draft, open: (data && data.open) || params.get("task") || null }).then(function(j){
+  function load(){ return api({ action: "list", fast: true, draft: draft, open: openId || params.get("task") || null }).then(function(j){
     data = j; if (draft && j.draft_ok === false) saveDraft(null); syncLimit(); syncBadge();
     (data.tasks || []).forEach(function(t){ (t.updates || []).forEach(function(u){ if (u.data && fullCache[u.id]) u.data.full = fullCache[u.id]; }); });
     render(); kick(); }).catch(function(){}); }
@@ -472,7 +498,7 @@ const APP_JS = String.raw`(function(){
     }).catch(function(){ busy = false; render(); var q = $(tid ? "tkq-" + tid : "tkq"); if (q) q.value = text; });
   }
   document.addEventListener("click", function(e){
-    var t = e.target.closest("[data-send],[data-act],[data-start],[data-change],[data-apply],[data-unpending],[data-goto],[data-limit-stop],[data-limit-keep],[data-choice],[data-continue],[data-discard]"); if (!t) return;
+    var t = e.target.closest("[data-send],[data-act],[data-start],[data-change],[data-apply],[data-unpending],[data-goto],[data-limit-stop],[data-limit-keep],[data-choice],[data-continue],[data-discard],[data-toggle]"); if (!t) return;
     if (t.hasAttribute("data-limit-keep")) { e.preventDefault(); var lk = limit; limit = null; carry = ""; if (lk) api({ action: "limit", event: "keep", mode: lk.mode, attempted: lk.attempted }).catch(function(){}); dropEntryParams(); render(); return; }
     if (t.hasAttribute("data-limit-stop")) { e.preventDefault(); if (t.disabled) return; var ls = limit || { mode: "none", attempted: "" }, cid = t.getAttribute("data-limit-stop"); working(t, "Stopping...");
       api({ action: "limit", event: "stop", mode: ls.mode, task_id: cid, attempted: ls.attempted, resume_id: ls.resume_id || null, draft: ls.mode === "draft" ? draft : null, defer: true }).then(function(j){
@@ -482,6 +508,7 @@ const APP_JS = String.raw`(function(){
         if (ls.mode === "seed" || ls.mode === "typed") { var w = ls.mode === "seed" ? seedWords() : ls.attempted; if (ls.mode === "seed") dropEntryParams(); return load().then(function(){ if (w) send(w); }); }
         return load();
       }).catch(function(){ limit = null; load(); }); return; }
+    if (t.hasAttribute("data-toggle")) { e.preventDefault(); var tid2 = t.getAttribute("data-toggle"); if (openId === tid2) { setOpen(null); render(); } else { setOpen(tid2); render(); load(); } var tb = $("tt-" + tid2); if (tb) tb.focus({ preventScroll: true }); return; }
     if (t.hasAttribute("data-goto")) { var el = document.getElementById("task-" + t.getAttribute("data-goto")); if (el) { e.preventDefault(); el.scrollIntoView({ block: "start" }); } return; }
     e.preventDefault();
     if (t.hasAttribute("data-choice")) { if (!t.disabled) send(t.getAttribute("data-choice")); return; }
@@ -501,7 +528,8 @@ const APP_JS = String.raw`(function(){
       if (j.blocked) { var rt = findTask(t.getAttribute("data-id")); showLimit({ mode: "resume", attempted: rt ? phraseOf(rt) : "", line: j.blocked.line, resume_id: t.getAttribute("data-id") }); }
       return load(); }).catch(function(){ load(); }); }
   });
-  document.addEventListener("toggle", function(e){ var d = e.target; if (d && d.getAttribute && d.getAttribute("data-row")) openRows[d.getAttribute("data-row")] = !!d.open; }, true);
+  window.addEventListener("resize", (function(last){ return function(){ var c = cols(); if (c !== last) { last = c; render(); } }; })(cols()));
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape" && openId && e.target && e.target.closest && e.target.closest(".tc,.tdetail")) { var id = openId; setOpen(null); render(); var b = $("tt-" + id); if (b) b.focus(); } });
   document.addEventListener("change", function(e){
     if (e.target && e.target.hasAttribute && e.target.hasAttribute("data-notify-every")) {
       var every = e.target.value; e.target.disabled = true;

@@ -9,6 +9,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SHOTS = process.argv.includes("--shots");
 const puppeteer = (await import(pathToFileURL(path.join(ROOT, "node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js")).href).catch(() => import("puppeteer-core"))).default;
 const { limitFacts } = await import(pathToFileURL(path.join(ROOT, "lib/tasks/limit.js")).href);
+const { overviewFacts } = await import(pathToFileURL(path.join(ROOT, "lib/tasks/overview.js")).href);   // the count lines come from the server module, never the page
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL  " + m); } };
 const now = Date.now(), soon = h => new Date(now + h * 3600e3).toISOString(), ago = h => new Date(now - h * 3600e3).toISOString();
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="432"><rect width="100%" height="100%" fill="#8ab"/></svg>`;
@@ -20,7 +21,7 @@ const mkTask = (n, state = "running", extra = {}) => ({ id: "00000000-0000-4000-
 function account(tasks, opts = {}) {
   const A = { tasks, calls: [], notify: { on: true, email: "me@example.com", every: "daily", everyReady: true }, firstDelay: opts.firstDelay || 0, cardsDelay: opts.cardsDelay || 0, enrich: opts.enrich || (() => ({ cards: [] })) };
   A.working = () => A.tasks.filter(t => ["running", "needs_you"].includes(t.state)).length;
-  A.list = () => ({  tasks: A.tasks.map(t => ({ ...t, updates: (t.updates || []).map(u => ({ ...u, task_id: t.id, data: u.data ? { ...u.data, full: undefined } : u.data })) })), count: A.tasks.filter(t => t.state !== "done").length, limit: limitFacts(A.working()), suggestions: [], notify: { ...A.notify, junk: !!A.junk } });
+  A.list = () => ({  tasks: A.tasks.map(t => ({ ...t, overview: overviewFacts(t), updates: (t.updates || []).map(u => ({ ...u, task_id: t.id, data: u.data ? { ...u.data, full: undefined } : u.data })) })), count: A.tasks.filter(t => t.state !== "done").length, limit: limitFacts(A.working()), suggestions: [], notify: { ...A.notify, junk: !!A.junk } });
   A.blocked = () => { const w = A.tasks.filter(t => ["running", "needs_you"].includes(t.state)); return { blocked: { task_id: w[0].id, max: 3, line: limitFacts(w.length).line, tasks: w.map(t => ({ id: t.id, summary: t.summary })) } }; };
   A.handle = async b => {
     A.calls.push(b.action + (b.act ? ":" + b.act : "") + (b.event ? ":" + b.event : ""));
@@ -54,6 +55,7 @@ async function open(A, width, search = "", signedOut = false, ssDraft = null) {
     if (u.host !== "goasksam.com") return r.respond({ status: 204, body: "" }); r.continue(); });
   await p.goto("https://goasksam.com/tasks/mine?app=1" + search, { waitUntil: "networkidle2" }).catch(() => {}); await new Promise(r => setTimeout(r, 900)); return p;
 }
+const openTask = async (p, n = 1) => { await p.click(`#task-00000000-0000-4000-8000-00000000000${n} [data-toggle]`); await wait(900); };
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const text = p => p.evaluate(() => document.getElementById("tkapp").innerText);
 const badge = p => p.evaluate(() => { const b = document.querySelector("[data-gas-tasks-badge],[data-tasks-badge]"); return b && !b.hidden ? b.textContent : ""; });
@@ -76,8 +78,9 @@ try {
       ok(/Tell Sam what to look for/.test(t) && /red manual Porsche 911s/.test(t) && /G-body sedans/.test(t) && !/Stop one to start/.test(t), `[${W}] 2 Tasks: the box first, both Tasks, no limit notice`);
       ok((await badge(p)) === "2", `[${W}] 2 Tasks: the badge reads 2 (${await badge(p)})`);
       ok(await p.evaluate(() => document.getElementById("tkapp").innerHTML.indexOf("tkq\"") < document.getElementById("tkapp").innerHTML.indexOf("task-0000")), `[${W}] 2 Tasks: the new-Task box comes before the Tasks`);
+      await shot(p, `tasks-2-closed-${W}`); await openTask(p, 1);
       const L = await layout(p); ok(!L.overlap && !L.selOut && !L.hscroll && L.clipped === 0 && L.chips >= 3, `[${W}] 2 Tasks: no overlap, no clipped badge ${JSON.stringify(L)}`);
-      await shot(p, `tasks-2-${W}`); await p.close(); }
+      await shot(p, `tasks-2-open-${W}`); await p.close(); }
     // 3 Tasks: the limit card REPLACES the box (no box to type into), a Stop frees a slot and the box comes back, then Start fills it again
     { const A = account([mkTask(1), mkTask(2), mkTask(3)]); const p = await open(A, W); await wait(700); let t = await text(p);
       ok((await badge(p)) === "3" && /You have 3 Tasks running\. Stop one to add another\./.test(t) && (t.match(/Stop and start this one/g) || []).length === 3, `[${W}] 3 Tasks: badge 3, the limit card with three Stop and start this one`);
@@ -103,15 +106,52 @@ try {
       await p.click("[data-act=stop]"); await wait(900); const t = await text(p);
       ok(!/Stop one to start|one job at a time|You already have/.test(t) && /Tell Sam what to look for/.test(t), `[${W}] stale case: after a Stop the card is gone (the server says 2 working)`);
       ok(await p.evaluate(() => document.getElementById("tkq").value) === "g body sedans", `[${W}] stale case: the attempted words are back in the box`); await p.close(); }
-    // the status line at 1 and 2 Tasks, and the compact rows: the newest open, the others closed, N new, Pause and Stop
-    { const A = account([mkTask(1, "running", { created_at: ago(30), unread: 2 }), mkTask(2, "running", { created_at: ago(5) })]); const p = await open(A, W); await wait(700); const t = await text(p);
-      ok(/You have 2 of 3 Tasks running\. 1 Task left\./.test(t), `[${W}] 2 Tasks: the status line`);
-      const rows = await p.$$eval("details.trow", ds => ds.map(d => ({ id: d.id, open: d.open, sum: d.querySelector("summary").innerText, btns: [...d.querySelectorAll("summary button")].map(b => b.textContent) })));
-      ok(rows.length === 2 && rows.find(r => r.id.endsWith("2")).open === true && rows.find(r => r.id.endsWith("1")).open === false, `[${W}] rows: the newest Task is open, the other closed (${rows.map(r => r.id.slice(-1) + ":" + r.open)})`);
-      ok(rows.every(r => r.btns.join() === "Pause,Stop") && /2 new/i.test(rows.find(r => r.id.endsWith("1")).sum) && !/new/i.test(rows.find(r => r.id.endsWith("2")).sum), `[${W}] rows: name, status, N new only when there are some, Pause and Stop`);
-      await p.click("#task-00000000-0000-4000-8000-000000000001 summary .pill"); await wait(200);
-      ok(await p.$eval("#task-00000000-0000-4000-8000-000000000001", d => d.open), `[${W}] a closed row opens on a click`);
-      await shot(p, `tasks-rows-${W}`); await p.close(); }
+    // THE OVERVIEW (Oct 25 2026): compact cards side by side, all closed; one detail opens directly below its row
+    { const A = account([mkTask(1, "running", { created_at: ago(30), unread: 2 }), mkTask(2, "running", { created_at: ago(5) }), mkTask(3, "paused", { created_at: ago(3) })]); const p = await open(A, W); await wait(700); const t = await text(p);
+      ok(/You have 2 of 3 Tasks running\. 1 Task left\./.test(t), `[${W}] overview: the status line`);
+      const geo = await p.$$eval(".tgrid > .tc", cs => cs.map(c => { const r = c.getBoundingClientRect(); return { id: c.id.slice(-1), top: Math.round(r.top), left: Math.round(r.left), w: Math.round(r.width), text: c.innerText.replace(/\s+/g, " "), btns: [...c.querySelectorAll(".tbtns button")].map(b => b.textContent).join() }; }));
+      ok(geo.length === 3 && !(await p.$(".tdetail")) && !(await p.$(".tkq-x")) && !(await p.$("[id^=tkq-]")), `[${W}] overview: three compact cards, all closed, no change box, no cars (${geo.length})`);
+      if (W === 1440) ok(new Set(geo.map(g => g.top)).size === 1 && geo[0].left < geo[1].left && geo[1].left < geo[2].left, `[1440] overview: three across in one row ${JSON.stringify(geo.map(g => [g.top, g.left]))}`);
+      else ok(new Set(geo.map(g => g.left)).size === 1 && geo[0].top < geo[1].top && geo[1].top < geo[2].top, `[390] overview: a single column ${JSON.stringify(geo.map(g => [g.top, g.left]))}`);
+      const g1 = geo.find(g => g.id === "1"), g3 = geo.find(g => g.id === "3");
+      ok(/Running/i.test(g1.text) && /red manual Porsche 911s/.test(g1.text) && /3 live cars match/.test(g1.text) && /2 new/.test(g1.text) && g1.btns === "Pause,Stop", `[${W}] card: status, sentence, count line, 2 new, Pause and Stop (${g1.text})`);
+      ok(/Paused/i.test(g3.text) && g3.btns === "Resume,Stop" && !/new/.test(geo.find(g => g.id === "2").text), `[${W}] card: a Paused Task shows Resume and Stop; no "new" when there are none`);
+      await shot(p, `tasks-overview-closed-${W}`);
+      // Pause from the card without opening it; the card stays closed
+      await p.click("#task-00000000-0000-4000-8000-000000000002 [data-act=pause]"); await wait(900);
+      ok(A.tasks[1].state === "paused" && !(await p.$(".tdetail")), `[${W}] Pause works from the closed card`);
+      // opening: the detail sits directly below its row and holds the change box, cars and timeline; the open card is marked
+      await p.click("#task-00000000-0000-4000-8000-000000000001 [data-toggle]"); await wait(1000);
+      const op = await p.evaluate(() => { const d = document.querySelector(".tdetail"), c = document.querySelector(".tc.open"), cs = [...document.querySelectorAll(".tgrid > .tc")]; const dr = d && d.getBoundingClientRect(); const rowBottom = Math.max(...cs.filter(x => Math.abs(x.getBoundingClientRect().top - c.getBoundingClientRect().top) < 4).map(x => x.getBoundingClientRect().bottom)); return { n: document.querySelectorAll(".tdetail").length, below: dr && dr.top >= rowBottom - 1, sameRow: dr && cs.every(x => x.getBoundingClientRect().top < dr.top || x.getBoundingClientRect().top > dr.bottom - 1 || true), box: !!d.querySelector("input[id^=tkq-]"), cars: d.querySelectorAll("article.car").length, feed: !!d.querySelector(".feed"), exp: c.querySelector("[data-toggle]").getAttribute("aria-expanded"), outline: getComputedStyle(c).outlineStyle, chev: getComputedStyle(c.querySelector("[data-toggle]"), "::after").content }; });
+      ok(op.n === 1 && op.below && op.box && op.cars >= 1 && op.feed && op.exp === "true" && op.outline === "solid" && op.chev !== "none", `[${W}] open: one detail below its row with the change box, cars and timeline; marked ${JSON.stringify(op)}`);
+      if (W === 1440) { const place = await p.evaluate(() => { const cs = [...document.querySelectorAll(".tgrid > *")].map(e => e.className.split(" ")[0] + ":" + Math.round(e.getBoundingClientRect().top)); return cs; }); ok(place[3] && place[3].startsWith("tdetail") && Number(place[3].split(":")[1]) > Number(place[2].split(":")[1]), `[1440] open: the detail follows the row of three (${place})`); }
+      else { const order = await p.$$eval(".tgrid > *", es => es.map(e => e.id || e.className).join()); ok(/^task-1,detail-1,task-2/.test(order.replace(/00000000-0000-4000-8000-00000000000/g, "")), `[390] open: the detail sits directly below that card (${order.replace(/00000000-0000-4000-8000-00000000000/g, "")})`); }
+      await shot(p, `tasks-overview-open-${W}`);
+      // a redraw keeps the open Task; a reload keeps it; opening another closes the first; clicking the open one closes it
+      await p.reload({ waitUntil: "networkidle2" }); await wait(900);
+      ok(await p.$eval("#task-00000000-0000-4000-8000-000000000001", c => c.classList.contains("open")) && (await p.$$(".tdetail")).length === 1, `[${W}] a reload keeps the open Task`);
+      await p.click("#task-00000000-0000-4000-8000-000000000003 [data-toggle]"); await wait(800);
+      ok((await p.$$(".tdetail")).length === 1 && (await p.$$eval(".tc.open", e => e.map(x => x.id.slice(-1)).join())) === "3", `[${W}] only one Task is open at a time`);
+      await p.click("#task-00000000-0000-4000-8000-000000000003 [data-toggle]"); await wait(500);
+      ok((await p.$$(".tdetail")).length === 0 && (await p.$$(".tc.open")).length === 0, `[${W}] clicking the open Task again closes it`);
+      ok(p._errs.length === 0, `[${W}] overview: no page errors ${JSON.stringify(p._errs)}`); await p.close(); }
+    // keyboard: Tab reaches the card, Enter opens, Escape closes and the focus stays on the card
+    { const A = account([mkTask(1), mkTask(2)]); const p = await open(A, W); await wait(600);
+      await p.focus("#tt-00000000-0000-4000-8000-000000000001"); await p.keyboard.press("Enter"); await wait(900);
+      ok((await p.$$(".tdetail")).length === 1 && await p.evaluate(() => document.activeElement && document.activeElement.id === "tt-00000000-0000-4000-8000-000000000001"), `[${W}] keyboard: Enter opens the Task and the focus stays on its card`);
+      await p.keyboard.press("Tab"); await p.keyboard.press("Tab"); const f = await p.evaluate(() => document.activeElement.textContent); ok(/Pause|Stop/.test(f), `[${W}] keyboard: Tab reaches Pause and Stop (${f})`);
+      await p.keyboard.press("Escape"); await wait(400);
+      ok((await p.$$(".tdetail")).length === 0 && await p.evaluate(() => document.activeElement.id === "tt-00000000-0000-4000-8000-000000000001"), `[${W}] keyboard: Escape closes and returns the focus to the card`); await p.close(); }
+    // 0 matches, 45 matches (the number is the server's), and a Task that needs the person
+    { const mk45 = (n, total) => mkTask(n, "running", { updates: [{ id: 300 + n, role: "sam", kind: "match", created_at: ago(2), text: "x", data: { opening: true, total, cards: total ? CARDS.map(c => ({ id: c.id, title: c.title, url: c.url })) : [] } }] });
+      const A = account([mk45(1, 0), mk45(2, 45), mkTask(3, "needs_you")]); const p = await open(A, W); await wait(900);
+      const tx = await p.$$eval(".tgrid > .tc", cs => cs.map(c => c.innerText.replace(/\s+/g, " ")));
+      ok(/No live cars match yet/.test(tx[0]) && /45 live cars match/.test(tx[1]) && /Needs you/i.test(tx[2]), `[${W}] counts: 0 matches, 45 matches (the server's number) and Needs you (${tx.join(" | ")})`);
+      ok((await p.$$eval(".tc.open", e => e.map(x => x.id.slice(-1)).join())) === "3" && (await p.$$(".tdetail")).length === 1, `[${W}] a Task that needs you opens itself`);
+      await shot(p, `tasks-needs-you-${W}`);
+      await p.click("#task-00000000-0000-4000-8000-000000000002 [data-toggle]"); await wait(900);
+      ok((await p.$$("#detail-00000000-0000-4000-8000-000000000002 .cars li, #detail-00000000-0000-4000-8000-000000000002 article.car")).length >= 1 && !(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), `[${W}] a Task with 45 matches opens without a sideways scroll`);
+      await shot(p, `tasks-45-open-${W}`); await p.close(); }
     { const A = account([mkTask(1)]); const p = await open(A, W); await wait(600); ok(/You have 1 of 3 Tasks running\. 2 Tasks left\./.test(await text(p)), `[${W}] 1 Task: the status line`); await p.close(); }
     // the junk-folder line shows only while the server says no alert email has gone out yet
     { const A = account([mkTask(1)]); A.junk = true; const p = await open(A, W); await wait(600); ok(/check your junk folder/.test(await text(p)), `[${W}] junk line: shown while the server says so`); await p.close(); }
@@ -122,7 +162,7 @@ try {
       let t = await text(p); ok(/Sam is starting/i.test(t) && /Sam is checking the live cars now\./.test(t) && /g body sedans/.test(t), `[${W}] starting state: the Task shows at once as "Sam is starting" while the first run is out`);
       ok(A.working() === 2 && (await badge(p)) === "2", `[${W}] starting state: count and badge already 2`);
       await shot(p, `tasks-starting-${W}`);
-      await wait(3500); t = await text(p); ok(!/Sam is starting/i.test(t) && /3 live cars match\./.test(await text(p)), `[${W}] starting state clears when the first run lands`); await p.close(); }
+      await wait(3500); t = await text(p); ok(!/Sam is starting/i.test(t) && /3 live cars match/.test(await text(p)), `[${W}] starting state clears when the first run lands`); await p.close(); }
   }
   // SIGNED OUT: the app page asks for sign-in (sends to the explainer's sign-in card, keeping where it was going); after sign-in the
   // same page completes ONE create.
@@ -136,14 +176,14 @@ try {
   { const pend = { kind: "pending", stillReading: true, line: "Sam is still reading the sales for this one.", retry: true, retryAfterMs: 4500 };
     const A = account([mkTask(1)], { enrich: (body, n) => ({ cards: (body.ids || []).map(id => n < 2 ? { id, market: { ...pend } } : { id, market: CARDS[0].market, seen_before: { n: 0 }, timeline: [], sam_lines: CARDS[0].sam_lines }) }) });
     A.cardsOf = () => CARDS.map(c => ({ ...c, market: { ...pend }, sam_lines: [] }));
-    const p = await open(A, 1440); p.on("pageerror", e => console.log("ERR", e.message)); await wait(300); const early = await text(p); await wait(6000); const late = await text(p);
+    const p = await open(A, 1440); p.on("pageerror", e => console.log("ERR", e.message)); await openTask(p); await wait(300); const early = await text(p); await wait(6000); const late = await text(p);
     ok(/still reading/.test(early) || /Getting the cars/.test(early), "reading: the holding line shows while the market is out");
     ok(!/still reading/.test(late) && /typical range/i.test(late), "reading: the line is gone once each card's own market lands, and the range is there");
     ok((A.enrichCalls || 0) >= 2, "reading: the page asked again after the engine's own retry wait (" + A.enrichCalls + " asks)"); await p.close(); }
   // a market that never comes: said plainly after the capped asks
   { const pend = { kind: "pending", stillReading: true, line: "Sam is still reading the sales for this one.", retry: true, retryAfterMs: 120 };
     const A = account([mkTask(1)], { enrich: body => ({ cards: (body.ids || []).map(id => ({ id, market: { ...pend } })) }) }); A.cardsOf = () => CARDS.map(c => ({ ...c, market: { ...pend }, sam_lines: [] }));
-    const p = await open(A, 1440); await wait(2500); const t = await text(p);
+    const p = await open(A, 1440); await openTask(p); await wait(2500); const t = await text(p);
     ok(!/still reading/.test(t) && /The sales could not be read just now/.test(t), "reading: a market that never comes is said plainly, not left on the holding line"); await p.close(); }
   // SETUP QUESTIONS AND DRAFTS (Lane D, Oct 24 2026): choices are buttons, a typed answer is read leniently, a draft left behind shows
   // as a small card under the clean box (Continue, Discard), and a draft older than a day is dropped by the server.
