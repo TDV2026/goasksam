@@ -85,7 +85,7 @@ console.log("=== PRE-PUSH SMOKE TEST ===\n");
 console.log("-- module load --");
 let changed = [];
 try {
-  const tracked = execSync("git diff --name-only --diff-filter=d origin/main...HEAD", { encoding: "utf8" })   /* --diff-filter=d: a DELETED file cannot be loaded (Oct 25 2026: removing api/emailExperiment.js failed the module load) */.trim().split("\n").filter(Boolean);
+  const tracked = execSync("git diff --name-only --diff-filter=d origin/main...HEAD", { encoding: "utf8" })     /* --diff-filter=d: a deleted file cannot be loaded; the deleted-file check just below covers it (Oct 25 2026) */.trim().split("\n").filter(Boolean);
   changed = [...new Set(tracked)].filter(f => /^(lib|api)\/.*\.m?js$/.test(f));
 } catch (e) {
   record("module load: diff against origin/main", "FAIL", String(e && e.message || e).split("\n")[0]);
