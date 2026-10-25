@@ -1027,7 +1027,7 @@
     var FS = phone ? 32 : 23, CH = FS * 0.66;
     var axisVals = []; for (var av = axisLo; av <= axisHi + step * 0.01; av += step) axisVals.push(av);
     var axisChars = Math.max.apply(null, axisVals.map(function (v) { return usdK(v).length; }));
-    var W = 880, H = 560, padL = Math.max(60, Math.ceil(axisChars * FS * 0.72 + 28)), padR = 20, padB = phone ? 84 : 64, padT = 44;
+    var W = 880, H = 560, padL = Math.max(60, Math.ceil(axisChars * FS * 0.72 + 28)), padR = 20, padB = phone ? 156 : 116, padT = 44;
     var plotW = W - padL - padR, slot = plotW / bs.length, barW = Math.min(slot * 0.34, 90);
     var y = function (v) { return padT + (1 - (v - axisLo) / (axisHi - axisLo)) * (H - padT - padB); };
     var grid = "";
@@ -1052,21 +1052,45 @@
       var tip = chartTip(["Typical range " + usd(lo) + " to " + usd(hi), Number.isFinite(Number(q.typical)) ? "Median " + usd(q.typical) : "", count + (count === 1 ? " sale" : " sales")]);
       shapes += '<g class="hc-candle" tabindex="0" data-tip="' + tip + '"><title>' + tip + '</title><rect x="' + (cx - barW / 2).toFixed(1) + '" y="' + yhi.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + Math.max(3, ylo - yhi).toFixed(1) + '" rx="2" fill="var(--chip)"/>' +
         (Number.isFinite(Number(q.typical)) ? '<line x1="' + (cx - barW / 2).toFixed(1) + '" x2="' + (cx + barW / 2).toFixed(1) + '" y1="' + y(Number(q.typical)).toFixed(1) + '" y2="' + y(Number(q.typical)).toFixed(1) + '" stroke="var(--num)" stroke-width="3"/>' : "") + "</g>";
-      labels.push(function () {
-        var spHi = { x: cx, y: yhi - 10, anchor: "middle" }, spLo = { x: cx, y: ylo + FS * 1.1, anchor: "middle" };
-        var rHi = spotRect(usd(hi), spHi), rLo = spotRect(usd(lo), spLo);
-        if ((ylo - yhi) >= FS * 1.2 && !hit(rHi) && !hit(rLo) && !(rHi.y2 > rLo.y1)) { claim(rHi); claim(rLo); return textAt(usd(hi), spHi) + textAt(usd(lo), spLo); }
-        var one = usd(lo) + " to " + usd(hi), mid = (yhi + ylo) / 2 + FS * 0.35;
-        return place(one, [{ x: cx + barW / 2 + 10, y: mid, anchor: "start" }, { x: cx - barW / 2 - 10, y: mid, anchor: "end" }, { x: cx, y: yhi - 10, anchor: "middle" }, { x: cx, y: ylo + FS * 1.1, anchor: "middle" }]);
-      });
+      labels.push({ i: i, cx: cx, yhi: yhi, ylo: ylo, lo: lo, hi: hi });
     });
+    // PRICE LABELS (Sam, Oct 25 2026): the range figures print only on the FIRST candle, the LAST, the HIGHEST and the LOWEST (the engine's own
+    // numbers, only picked out here); every other candle gives its figures on hover, tap or keyboard focus. Most important first, so when two
+    // labels would meet the less important one is dropped (it keeps its hover card). No label may touch a bar, another label or the axis rows.
+    claim({ x1: 0, x2: W, y1: H - padB + 2, y2: H });
+    var hiIdx = 0, loIdx = 0; bs.forEach(function (q, k) { if (Number(q.high) > Number(bs[hiIdx].high)) hiIdx = k; if (Number(q.low) < Number(bs[loIdx].low)) loIdx = k; });
+    var order = [hiIdx, loIdx, bs.length - 1, 0].filter(function (v, k, a2) { return a2.indexOf(v) === k; });
+    var drawn = {};
+    order.forEach(function (idx) {
+      var L = labels[idx], cx = L.cx, yhi = L.yhi, ylo = L.ylo, hi = L.hi, lo = L.lo, out = "";
+      // Each figure tries a few places (centred above or below its candle, then lifted or dropped a line, then hung off one side) and takes the
+      // first that touches nothing; if none is free the figure is dropped (its candle still gives it on hover, tap or focus).
+      var hiSpots = [], loSpots = [];
+      [-10, -10 - FS * 1.1].forEach(function (dy) { hiSpots.push({ x: cx, y: yhi + dy, anchor: "middle" }, { x: cx - barW / 2, y: yhi + dy, anchor: "start" }, { x: cx + barW / 2, y: yhi + dy, anchor: "end" }); });
+      [FS * 1.1, FS * 2.2].forEach(function (dy) { loSpots.push({ x: cx, y: ylo + dy, anchor: "middle" }, { x: cx - barW / 2, y: ylo + dy, anchor: "start" }, { x: cx + barW / 2, y: ylo + dy, anchor: "end" }); });
+      var firstFree = function (str, spots) { for (var k2 = 0; k2 < spots.length; k2++) { var rr = spotRect(str, spots[k2]); if (!hit(rr)) return { sp: spots[k2], r: rr }; } return null; };
+      var isEnd = idx === 0 || idx === bs.length - 1, wantHi = idx === hiIdx || isEnd, wantLo = idx === loIdx || isEnd;
+      if (wantHi) { var fh = firstFree(usd(hi), hiSpots); if (fh) { claim(fh.r); out += textAt(usd(hi), fh.sp); } }
+      if (wantLo && !(isEnd && idx !== loIdx && (ylo - yhi) < FS * 1.2)) { var fl = firstFree(usd(lo), loSpots); if (fl) { claim(fl.r); out += textAt(usd(lo), fl.sp); } }
+      drawn[idx] = out;
+    });
+    labels = order.map(function (idx) { return function () { return drawn[idx] || ""; }; });
     var body = shapes + labels.map(function (f) { return f(); }).join("");
-    // Under each bucket: its engine label ("Q3 2026", "H2 2026", "2026") and its sale count ("9 sales").
+    // Under each bucket (display only; every word and number is the engine's): the period on two lines, the period name on top ("Q4") and
+    // its year below in smaller grey type, then the sale count as a plain number in its own row; the row is named ONCE ("Sales per quarter").
+    // On a phone every second period is named (the last always), so no two labels ever touch.
+    var rowQ = H - padB + (phone ? 34 : 24), rowY = rowQ + (phone ? 30 : 21), rowN = rowY + (phone ? 40 : 30), rowCap = rowN + (phone ? 38 : 28);
     bs.forEach(function (q, i) {
       var cx = padL + slot * i + slot / 2, count = digitOf(q.count);
-      body += '<text x="' + cx.toFixed(1) + '" y="' + (H - padB + FS + 2).toFixed(1) + '" text-anchor="middle" font-size="' + (phone ? 28 : 18) + '" fill="var(--ink)">' + esc(q.label || qtrLabel(q.period)) + "</text>" +
-        '<text class="hc-count" x="' + cx.toFixed(1) + '" y="' + (H - padB + FS * 2 + 6).toFixed(1) + '" text-anchor="middle">' + esc(count + (count === 1 ? " sale" : " sales")) + "</text>";
+      var shown = !phone || ((bs.length - 1 - i) % 2 === 0);
+      if (shown) {
+        var m2 = /^(Q\d|H\d)\s+(\d{4})$/.exec(String(q.label || qtrLabel(q.period)));
+        if (m2) body += '<text class="hc-axq" x="' + cx.toFixed(1) + '" y="' + rowQ + '" text-anchor="middle">' + esc(m2[1]) + '</text><text class="hc-axy" x="' + cx.toFixed(1) + '" y="' + rowY + '" text-anchor="middle">' + esc(m2[2]) + "</text>";
+        else body += '<text class="hc-axq" x="' + cx.toFixed(1) + '" y="' + rowQ + '" text-anchor="middle">' + esc(q.label || qtrLabel(q.period)) + "</text>";
+      }
+      body += '<text class="hc-count" x="' + cx.toFixed(1) + '" y="' + rowN + '" text-anchor="middle">' + esc(String(count)) + "</text>";
     });
+    body += '<text class="hc-cap" x="' + padL + '" y="' + rowCap + '" text-anchor="start">' + esc("Sales per " + (mv.size || "period")) + "</text>";
     var svg = '<svg class="hc-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Typical range by period">' + grid + body + "</svg>";
     var size = mv.label ? '<p class="hc-size">' + esc(mv.label) + "</p>" : "";
     var legend = '<div class="hc-legend"><span class="hc-legend-sw"><span class="hc-legend-box"></span>Typical range (middle half of sales)</span><span class="hc-legend-sw"><span class="hc-legend-tick"></span>Typical sale (median)</span></div>';
@@ -1216,10 +1240,13 @@
     tip.textContent = text;
     document.body.appendChild(tip);
     var tr = tip.getBoundingClientRect();
-    var left = rect.left + rect.width / 2 - tr.width / 2 + window.scrollX;
-    var top = rect.top - tr.height - 8 + window.scrollY;
+    // The card stays INSIDE the chart (Sam, Oct 25 2026): clamped to the chart's own box, below the candle when there is no room above.
+    var box = (target.closest && target.closest(".hc-svg")) ? target.closest(".hc-svg").getBoundingClientRect() : null;
+    var lo = box ? box.left + 4 : 8, hi = box ? box.right - tr.width - 4 : window.innerWidth - tr.width - 8;
+    var left = Math.min(Math.max(rect.left + rect.width / 2 - tr.width / 2, lo), Math.max(lo, hi)) + window.scrollX;
+    var topV = rect.top - tr.height - 8; if (box && topV < box.top + 2) topV = rect.bottom + 8;
     tip.style.left = Math.max(8, left) + "px";
-    tip.style.top = Math.max(8, top) + "px";
+    tip.style.top = Math.max(8, topV + window.scrollY) + "px";
     hcTipEl = tip; hcTipTarget = target;
   }
   root.addEventListener("click", function (e) {
@@ -1240,6 +1267,9 @@
     if (t && (!e.relatedTarget || !t.contains(e.relatedTarget))) hcHideTip();
   });
   document.addEventListener("click", function (e) { if (!root.contains(e.target)) hcHideTip(); });
+  // Keyboard: focusing a candle shows its card, leaving hides it.
+  root.addEventListener("focusin", function (e) { var t = e.target.closest ? e.target.closest("[data-tip]") : null; if (t && t !== hcTipTarget) hcShowTip(t, t.getAttribute("data-tip")); });
+  root.addEventListener("focusout", function (e) { var t = e.target.closest ? e.target.closest("[data-tip]") : null; if (t) hcHideTip(); });
   // RANGE-TIER HERO (task #38, card job Oct 2026). The rule-24 no-band fallback is unchanged in
   // spirit: no cluster means no dollar headline of any kind, ever - enforced now inside the ONE
   // shared card function every product uses (lib/sellsForCard.js sellsForCardHtml, embedded here as

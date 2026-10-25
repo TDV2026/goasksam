@@ -208,7 +208,12 @@ button{font:inherit}
 .hc-axislabel{font-size:23px;fill:var(--sec)}
 .hc-candlelabel{font-size:23px;font-weight:600;fill:var(--sec)}
 /* Sam's chart fix (c), Oct 21 2026: each quarter's sale count under its name, quiet. */
-.hc-count{font-size:19px;fill:var(--sec)}
+.hc-count{font-size:19px;fill:var(--ink)}
+/* Candle axis (Sam, Oct 25 2026): the period on two lines ("Q4" over its year in smaller grey type), the sale count a plain number in its own row, the row named once. */
+.hc-axq{font-size:20px;font-weight:600;fill:var(--ink)}
+.hc-axy{font-size:16px;fill:var(--sec)}
+.hc-cap{font-size:16px;fill:var(--sec)}
+.hc-candle:focus-visible{outline:2px solid var(--green,#1E4D38);outline-offset:2px}
 .hc-size{margin:0;font:400 14px/1.3 var(--sans);color:var(--sec)}
 .hc-legend-tick{display:inline-block;width:14px;height:0;border-top:3px solid var(--num);vertical-align:middle;margin-right:6px}
 .hc-legend{display:flex;flex-wrap:wrap;gap:16px;align-items:center;font:400 13px/1.3 var(--sans);color:var(--sec)}
@@ -667,7 +672,10 @@ a.sb-line:hover{color:var(--green)}
      ~0.56 - the chart is full width here but a shorter box, a bigger scale drop than the half-width
      desktop column), so the same real-13px target needs a bigger SVG-unit base at this width. */
   .hc-axislabel,.hc-candlelabel{font-size:32px}
-  .hc-count{font-size:26px}
+  .hc-count{font-size:28px}
+  .hc-axq{font-size:30px}
+  .hc-axy{font-size:24px}
+  .hc-cap{font-size:24px}
   .dist-label,.dist-count{font-size:15px}
   .sep-note,.ev-why-note p{font-size:13px}
   /* Mileage field (item 8): the sentence on its own line, then the field full width with Go beside
