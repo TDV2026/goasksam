@@ -1092,7 +1092,9 @@ try {
   record("delta read equals the full read (scripts/deltaReadCheck.mjs)", "PASS", (out.match(/deltaReadCheck: .*/) || [""])[0]);
 } catch (e) {
   record("delta read equals the full read (scripts/deltaReadCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
-// ---- 2z. NAMES (Lane B, Oct 24 2026): a 911 generation code is never the printed name ("996 Carrera", "996 911"). No network. ----
+}
+
+// ---- 2za. NAMES (Lane B, Oct 24 2026): a 911 generation code is never the printed name ("996 Carrera", "996 911"). No network. ----
 try {
   const out = execSync("node scripts/nameCheck.mjs", { encoding: "utf8" });
   record("Car names (scripts/nameCheck.mjs)", "PASS", (out.match(/nameCheck: .*/) || [""])[0]);
