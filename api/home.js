@@ -23,12 +23,12 @@ const IC_TAG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12V4h8l1
 const IC_OUT = '<svg class="gst-card-ar" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>';
 const card = (href, ic, title, sub) => `<a class="gst-card" href="${href}"><span class="gst-card-ic">${ic}</span><span class="gst-card-t"><b>${esc(title)}</b><span>${esc(sub)}</span></span>${IC_OUT}</a>`;
 
-// STRUCTURED DATA (GoAskSam 2.0 Stage 4, Sam's block): who is behind GoAskSam (the same statement /about and the old Sell page carry) and the site's search
+// STRUCTURED DATA (GoAskSam 2.0 Stage 4, Sam's block): who is behind GoAskSam (the organization and its parent, never a named person: Sam is a persona) and the site's search
 // box, so a search engine can offer GoAskSam's own search: the target is Find, with the typed words as ?q=.
 const LD = JSON.stringify({ "@context": "https://schema.org", "@graph": [
   { "@type": "Organization", "@id": "https://goasksam.com/#org", name: "GoAskSam", url: "https://goasksam.com/", logo: "https://goasksam.com/icon-512.png",
-    description: "GoAskSam helps enthusiasts find cars at live auction, see what similar cars have actually sold for, and decide where to sell theirs, using real auction results. Built by Sam Gold and the team behind The Daily Vroom.",
-    founder: { "@type": "Person", name: "Sam Gold" }, parentOrganization: { "@type": "Organization", name: "The Daily Vroom", url: "https://thedailyvroom.com" }, sameAs: ["https://thedailyvroom.com"] },
+    description: "GoAskSam helps enthusiasts find cars at live auction, see what similar cars have actually sold for, and decide where to sell theirs, using real auction results. Built by the team behind The Daily Vroom.",
+    parentOrganization: { "@type": "Organization", name: "The Daily Vroom", url: "https://thedailyvroom.com" }, sameAs: ["https://thedailyvroom.com"] },
   { "@type": "WebSite", "@id": "https://goasksam.com/#site", name: "GoAskSam", url: "https://goasksam.com/", publisher: { "@id": "https://goasksam.com/#org" },
     potentialAction: { "@type": "SearchAction", target: { "@type": "EntryPoint", urlTemplate: "https://goasksam.com/find?q={search_term_string}" }, "query-input": "required name=search_term_string" } }
 ] }).replace(/</g, "\\u003c");
