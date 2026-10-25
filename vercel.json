@@ -53,7 +53,7 @@
     { "source": "/o/:id", "destination": "/api/publicConfig?obShare=:id" },
     { "source": "/onebox-preview", "destination": "/onebox-preview.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
-    { "source": "/about", "destination": "/about.html" },
+    { "source": "/about", "destination": "/api/about" },
     { "source": "/", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/home?_crew=1" },
     { "source": "/", "destination": "/api/home" },
     { "source": "/how-sam-decides", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/howSamDecides?_crew=1" },
