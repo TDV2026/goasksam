@@ -76,9 +76,9 @@ begin
   loop
     exit when v_i >= max_batches;
     -- the next batch_rows ids after the last one done, in primary-key order
-    select max(id) into v_next from (
+    select id into v_next from (
       select id from public.sales_archive where (v_last is null or id > v_last) order by id limit batch_rows
-    ) t;
+    ) t order by id desc limit 1;   -- the last id of the batch (no max(uuid): that aggregate does not exist in Postgres)
     exit when v_next is null;   -- nothing left: done
     update public.sales_archive s set
       image_url         = coalesce(s.image_url,         s.raw_record->>'featured_image_url'),
@@ -116,17 +116,19 @@ begin
 end $$;
 revoke execute on procedure public.fill_sales_archive_raw_columns(int, int) from public, anon, authenticated;
 
--- Run (repeat until the notice says done; check progress between calls):
--- call public.fill_sales_archive_raw_columns(5000, 10);
+-- Run (the editor may not show notices, so end EVERY call with the progress select and read last_id, done_rows and finished from it;
+-- repeat the pair until finished is true):
+-- call public.fill_sales_archive_raw_columns(5000, 1);
 -- select * from public.sales_archive_fill_progress;
--- When done:
+-- When finished is true:
 -- vacuum (analyze) public.sales_archive;
 
 -- CATCH-UP (rows ingest wrote while the fill ran): the fill walks ids in order and ids are random uuids, so a row ingest adds with an id
 -- below the cursor is skipped, and until Block 4 ships a new row carries null in the new columns. After Block 4 is on and the fill says
 -- done, run once more from the start; only rows still needing a value are written (the where clause above), so it is cheap:
 -- update public.sales_archive_fill_progress set last_id = null, finished = false where job = 'raw_columns';
--- call public.fill_sales_archive_raw_columns(5000, 10);   -- repeat until done again, then Block 3(b)
+-- call public.fill_sales_archive_raw_columns(5000, 10);
+-- select * from public.sales_archive_fill_progress;   -- repeat the pair until finished is true again, then Block 3(b)
 
 -- Rollback step 2 (the fill is idempotent and only writes null cells, so a stopped fill needs no undo). To undo what it wrote (the four reused
 -- columns are NOT touched: they existed before and ingest wrote them), then remove the procedure and the table:
@@ -165,9 +167,30 @@ select count(*) as sampled,
   count(*) filter (where raw_cols_at is null)                                                      as not_marked_rows                     -- must be 0 after the fill and the catch-up
 from t;
 -- (b) all rows: the same select with "from public.sales_archive" in place of the two CTEs and "from t".
--- (c) the rows behind a non-zero reused-column diff, for a look:
--- select id, source_slug, listing_title, body_style, raw_record->>'body_style' as rr_body_style
--- from public.sales_archive where body_style is distinct from raw_record->>'body_style' limit 50;
+-- (c) the rows behind a non-zero reused-column diff, one query per column (read only, limit 50):
+-- select id, source_slug, listing_title, body_style, raw_record->>'body_style' as raw_value
+--   from public.sales_archive where body_style is distinct from raw_record->>'body_style' limit 50;
+-- select id, source_slug, listing_title, modifications, raw_record->'modifications' as raw_value
+--   from public.sales_archive where modifications is distinct from nullif(raw_record->'modifications', 'null'::jsonb) limit 50;
+-- select id, source_slug, listing_title, exterior_color, raw_record->>'exterior_color' as raw_value
+--   from public.sales_archive where exterior_color is distinct from raw_record->>'exterior_color' limit 50;
+-- select id, source_slug, listing_title, title_status, raw_record->>'title_status' as raw_value
+--   from public.sales_archive where title_status is distinct from raw_record->>'title_status' limit 50;
+--
+-- HOW TO READ BLOCK 3 (a) AND (b)
+--   Must be exactly 0:
+--     the ten new columns: image_url_diff, mileage_text_diff, transmission_text_diff, currency_diff, listing_url_diff, source_url_diff,
+--       city_diff, state_diff, country_code_diff, end_precision_diff;
+--     the four reused columns: body_style_diff, modifications_diff, exterior_color_diff, title_status_diff;
+--     modifications_string_rows and not_marked_rows.
+--   Informational only (not a failure): listing_title_diff_informational.
+--   If a NEW column shows a count: the fill or the catch-up missed rows, or a writer wrote a different value. Run the catch-up pair, read
+--     block 3 again; if it stays above 0, list a few rows by hand (select ... where the_column is distinct from the raw extract) and tell Lane B.
+--   If a REUSED column shows a count (body_style, modifications, exterior_color, title_status): ingest wrote that column from a different value
+--     than the record holds, so the engine would read a different value from the column than it reads today. Run its query from (c), do NOT flip
+--     pool_columns_enabled, and send the rows to Lane B. Nothing is changed by the fill for these four except where the column was null.
+--   If modifications_string_rows is above 0: some record holds modifications as a plain string; the engine's text for it would differ. Do not flip the flag.
+--   If not_marked_rows is above 0 after the fill and the catch-up: run the catch-up pair again.
 
 -- ================================================================================================
 -- STEP 4. The writers (code, lib/_rawColumns.js, used by scripts/ingest.js and scripts/pullSources.js): the ten columns and the marker raw_cols_at,
