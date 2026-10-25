@@ -25,15 +25,23 @@ alter table public.sales_archive
   add column if not exists city              text,   -- raw_record->>'city'
   add column if not exists state             text,   -- raw_record->>'state'
   add column if not exists country_code      text,   -- raw_record->>'country_code'
-  add column if not exists end_precision     text,   -- raw_record->>'auction_end_precision'
-  add column if not exists raw_cols_at       timestamptz;   -- the marker: set when this row's new columns were copied from (or written with) its raw_record; null = not yet, the engine reads such a row from raw_record
+  add column if not exists end_precision     text;   -- raw_record->>'auction_end_precision'
 
 -- Rollback step 1 (only while nothing reads them, i.e. before the pool select change ships):
 -- alter table public.sales_archive
 --   drop column if exists image_url, drop column if exists mileage_text, drop column if exists transmission_text,
 --   drop column if exists currency, drop column if exists listing_url, drop column if exists source_url,
 --   drop column if exists city, drop column if exists state, drop column if exists country_code,
---   drop column if exists end_precision, drop column if exists raw_cols_at;
+--   drop column if exists end_precision;
+
+-- ================================================================================================
+-- STEP 1b. The marker column (added after step 1 had been run; instant, nullable, no default, no rewrite).
+-- ================================================================================================
+alter table public.sales_archive
+  add column if not exists raw_cols_at timestamptz;   -- set when this row's new columns were copied from (or written with) its raw_record; null = not yet, and the engine reads such a row from raw_record
+
+-- Rollback step 1b:
+-- alter table public.sales_archive drop column if exists raw_cols_at;
 
 -- ================================================================================================
 -- STEP 2. The fill, inside the database, in batches by id (uuid order on the primary key), resumable.
@@ -120,11 +128,13 @@ revoke execute on procedure public.fill_sales_archive_raw_columns(int, int) from
 -- update public.sales_archive_fill_progress set last_id = null, finished = false where job = 'raw_columns';
 -- call public.fill_sales_archive_raw_columns(5000, 10);   -- repeat until done again, then Block 3(b)
 
--- Rollback step 2: the fill is idempotent and only writes null cells, so a stopped fill needs no undo;
--- to start over: update public.sales_archive_fill_progress set last_id = null, done_rows = 0, finished = false
---   where job = 'raw_columns';  (the new columns can also be nulled: update ... set image_url = null, ... )
+-- Rollback step 2 (the fill is idempotent and only writes null cells, so a stopped fill needs no undo). To undo what it wrote (the four reused
+-- columns are NOT touched: they existed before and ingest wrote them), then remove the procedure and the table:
+-- update public.sales_archive set image_url = null, mileage_text = null, transmission_text = null, currency = null, listing_url = null,
+--   source_url = null, city = null, state = null, country_code = null, end_precision = null, raw_cols_at = null where raw_cols_at is not null;
 -- drop procedure if exists public.fill_sales_archive_raw_columns(int, int);
 -- drop table if exists public.sales_archive_fill_progress;
+-- To start the walk over without undoing: update public.sales_archive_fill_progress set last_id = null, done_rows = 0, finished = false where job = 'raw_columns';
 
 -- ================================================================================================
 -- STEP 3. Verification. (a) a random 10,000 rows, column against the jsonb value, every column;
@@ -160,12 +170,18 @@ from t;
 -- from public.sales_archive where body_style is distinct from raw_record->>'body_style' limit 50;
 
 -- ================================================================================================
--- STEP 4. The writers (code, lib/_rawColumns.js, used by scripts/ingest.js and scripts/pullSources.js): the ten new columns and the marker
--- raw_cols_at, from the same record fields raw_record holds. OFF unless the environment variable INGEST_RAW_COLUMNS=1 (writing a column that
--- is not there yet fails the whole insert, so set it only after Block 1 has run). These two are the only writers of sales_archive.raw_record;
--- backfillModelFamily, the USD backfill and the descfacts task write other columns and never touch raw_record, so they cannot leave a stale copy.
--- Rollback: unset INGEST_RAW_COLUMNS; the columns simply stop being written (rows keep their marker, and a row ingest re-writes after that would
--- leave its columns stale, so turn the pool flag off first).
+-- STEP 4. The writers (code, lib/_rawColumns.js, used by scripts/ingest.js and scripts/pullSources.js): the ten columns and the marker raw_cols_at,
+-- from the same record fields raw_record holds. OFF unless the environment variable INGEST_RAW_COLUMNS is exactly 1 (writing a column that is not
+-- there yet fails the whole insert, so set it only after steps 1 and 1b have run).
+--   * nightly ingest (GitHub Actions, .github/workflows/nightly.yml, job "ingest"): repository VARIABLE INGEST_RAW_COLUMNS = 1 (Settings >
+--     Secrets and variables > Actions > Variables), read by the line  INGEST_RAW_COLUMNS: ${{ vars.INGEST_RAW_COLUMNS }}  in that job's env
+--     (the line is in docs/nightly-workflow.yml; Sam copies it into the workflow file, which the CI token cannot push).
+--   * scripts/pullSources.js (run by hand): export INGEST_RAW_COLUMNS=1 in the shell that runs it. Vercel is not involved: no Vercel function writes
+--     sales_archive.raw_record.
+-- These two are the only writers of sales_archive.raw_record; backfillModelFamily, the USD backfill and the descfacts task write other columns and
+-- never touch raw_record, so they cannot leave a stale copy.
+-- Rollback: set the variable to 0 or delete it; the columns simply stop being written (rows keep their marker, and a row ingest re-writes after that
+-- would leave its columns stale, so turn the pool flag off first).
 --
 -- STEP 5. Pool select (code, lib/onebox.js fetchQualifying, DARK): with app_config pool_columns_enabled on, every raw_record->> extract is replaced by
 -- its column (mods reads modifications::text). A row whose raw_cols_at is null is read again by id with the extracts, so a half-filled table

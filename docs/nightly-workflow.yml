@@ -58,6 +58,9 @@ jobs:
       BACKFILL_FROM: ${{ github.event.inputs.backfill_from }}
       BACKFILL_TO: ${{ github.event.inputs.backfill_to }}
       SOURCES: ${{ github.event.inputs.sources }}
+      # docs/supabase-raw-columns.sql Block 4: the ten raw columns and raw_cols_at are written only when the repository VARIABLE (not a secret) is 1.
+      # Unset or empty = not written. Set it only after Blocks 1 and 1b have run, or every insert fails.
+      INGEST_RAW_COLUMNS: ${{ vars.INGEST_RAW_COLUMNS }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
