@@ -78,7 +78,7 @@ function localPreRoute(q){
   if(/\b(i have|i've got|my car is)\b/i.test(lower)&&looksLikeVehicleText(q))return{sellTrigger:true,initialCar:q};
   if(looksLikeVehicleText(q))return{sellTrigger:true,initialCar:q};
   if(/\b(the daily vroom|daily vroom|sam gold|who owns|owner|ownership|who is sam|who's sam|who runs|behind goasksam|behind this)\b/i.test(lower))
-    return{reply:"GoAskSam is part of The Daily Vroom, the collector car newsletter that's been running for years with tens of thousands of readers. Sam Gold owns it, and the tools include the Import Calculator and this seller-intelligence tool, built on real auction sale records. If you're selling a car, tell Sam what it is and Sam will work out where to take it.",chips:["Sell my car"]};
+    return{reply:"GoAskSam is built by the team behind The Daily Vroom, the collector car newsletter that has tracked this market every day for years. It is built on real auction sale records. If you're selling a car, tell Sam what it is and Sam will work out where to take it.",chips:["Sell my car"]};
   if(/^(u there|you there|hello|hey|hi|yo|are you there)\??$/.test(lower))
     return{reply:"Yep, here. Tell Sam the car you're selling and Sam will work out what to do.",chips:["Sell my car"]};
   if(/dump a body|dead body|outrun the cops/i.test(lower))
