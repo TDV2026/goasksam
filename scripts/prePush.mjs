@@ -91,7 +91,7 @@ try {
   record("module load: diff against origin/main", "FAIL", String(e && e.message || e).split("\n")[0]);
 }
 // A DELETED lib/api file cannot be loaded, so it is not skipped quietly: it passes only when NOTHING left in lib, api, scripts or public still names it
-// (a real missing import must never hide behind a deletion; Oct 25 2026, after api/emailExperiment.js was removed).
+// (a real missing import must never hide behind a deletion; Oct 25 2026, after the temporary experiment endpoint was removed).
 try {
   const gone = execSync("git diff --name-only --diff-filter=D origin/main...HEAD", { encoding: "utf8" }).trim().split("\n").filter(f => /^(lib|api)\/.*\.m?js$/.test(f));
   for (const f of gone) {
