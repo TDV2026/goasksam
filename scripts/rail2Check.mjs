@@ -21,6 +21,13 @@ const items = nav.slice(0, 5);
 ok(JSON.stringify(items) === JSON.stringify(["Home=/", "Find=/find", "Market Check=/market-check", "Sell=/sell", "Tasks=/tasks"]), "the five products in order: " + items.join(", "));
 ok(/<p class="gas-tag">Enthusiast car market intelligence<\/p>/.test(html) && !/collector/i.test(html.replace(/<style>[\s\S]*?<\/style>/g, "").replace(/<script>[\s\S]*?<\/script>/g, "")), "the tagline is 'Enthusiast car market intelligence' and 'collector' appears nowhere in the rail");
 ok(/<a class="gas-logo" href="\/">GoAskSam<\/a>/.test(html), "the wordmark is Home");
+// ONE WORDMARK ON EVERY PAGE (Sam, Oct 24 2026): the wordmark is set in the serif webfont, and a page that does not load it drew a wider fallback and pushed the
+// Beta pill under it (Sell and Market Check did). Every page that draws the shared rail carries the font links, and the Tasks badge script has no per-page skip.
+{
+  const src = f => fs.readFileSync(path.join(ROOT, f), "utf8");
+  for (const f of ["api/sellPage.js", "api/marketCheck.js", "api/publicConfig.js", "api/sellNext.js", "api/home.js", "api/buy.js", "api/tasksPage.js", "api/howSamDecides.js", "api/business.js"]) ok(/FONT_LINKS/.test(src(f)) && /railOpenHtml/.test(src(f)), f + " loads the rail's fonts (FONT_LINKS) where it draws the shared rail");
+  ok(!/getAttribute\("data-active"\) === "sell"\) return/.test(src("lib/appShell.js")), "the Tasks badge script does not skip Sell");
+}
 ok(/id="gas-recent" hidden><div class="gas-rail-head">Recent searches<\/div><div id="gas-recent-list"><\/div>/.test(html), "Recent searches is empty and hidden until this browser has a search (never samples)");
 const foot = noSvg.slice(noSvg.indexOf('class="gas-rail-foot"'), noSvg.indexOf("</aside>"));
 const labels = [...foot.matchAll(/<a class="gas-navitem[^"]*"[^>]*>([^<]+)/g)].map(m => m[1]);

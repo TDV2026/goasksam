@@ -7,7 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { lastUpdatedDate } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
-import { isCrewRequest } from "./_chrome.js";
+import { isCrewRequest, FONT_LINKS } from "./_chrome.js";
 import { isTesterRequest } from "../lib/_tester.js";
 import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE, SHELL_TOKENS_CSS, brandPaletteCss, ALL_PALETTES_CSS, PALETTE_APPLY_JS } from "../lib/appShell.js";
 import { gaBootstrapHtml } from "../lib/analytics.js";
@@ -56,7 +56,7 @@ export async function sellShellHtml(req) {
     const saved = ns > rs && ne > ns ? page.slice(ns, ne) : "";
     page = page.slice(0, rs) + railOpenHtml({ active: "sell", pageExtra: saved, crew, req, analytics: false }) + page.slice(ms);
     page = page.replace("\n<!-- JS served at a VERSIONED PATH PREFIX", () => `\n${SHELL_MAIN_CLOSE}\n<script>${SHELL_JS}</script>\n<!-- JS served at a VERSIONED PATH PREFIX`);
-    page = page.replace("</head>", () => `<style>#gas-rail,.gas-mhead,#gas-scrim,#gas-main{--ink:#15201A;--sec:#5E6B63;--soft:#3C4942;--green:#1E4D38;--green-dk:#143A29;--card:#fff;--border:#D8D4CB;--sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--serif:"Newsreader",Georgia,"Times New Roman",serif}\n${SHELL_CSS}\n#gas-main{display:flex;flex-direction:column}#gas-main>#main{margin-left:0;flex:1}\n@media (max-width:860px){#hp-topbar{top:68px}.gas-mhead{z-index:70}}</style>\n</head>`);
+    page = page.replace("</head>", () => `${FONT_LINKS}<style>#gas-rail,.gas-mhead,#gas-scrim,#gas-main{--ink:#15201A;--sec:#5E6B63;--soft:#3C4942;--green:#1E4D38;--green-dk:#143A29;--card:#fff;--border:#D8D4CB;--sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--serif:"Newsreader",Georgia,"Times New Roman",serif}\n${SHELL_CSS}\n#gas-main{display:flex;flex-direction:column}#gas-main>#main{margin-left:0;flex:1}\n@media (max-width:860px){#hp-topbar{top:68px}.gas-mhead{z-index:70}}</style>\n</head>`);
   }
   return stripUnreleasedNav(page, req)
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${TITLE}</title>`)
