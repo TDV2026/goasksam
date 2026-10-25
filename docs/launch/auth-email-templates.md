@@ -11,7 +11,7 @@ The sign-in dialog (public/js/auth.js, authSignInEmail) posts the address to Sup
 | The address has no account yet (a new reader) | the confirmation email | Confirm signup |
 | The address already has an account | the sign-in email | Magic Link |
 
-Both carry the code in the Supabase variable `{{ .Token }}` (the app's own comment says this project sends 8 digits; the dialog accepts 4 to 10). Neither template links anywhere, so a mail scanner cannot use up the code by opening a link.
+Both carry the code in the Supabase variable `{{ .Token }}` (the app's own comment says this project sends 8 digits; the dialog accepts 4 to 10). The only link in either template is the footer's goasksam.com (to https://goasksam.com); the code itself is never a link, so a mail scanner cannot use it up by opening one. The footer link is there on purpose: in Sam's four test emails (Oct 24 2026, below) the plain version went to Junk and the version with that one link went to the Inbox.
 
 Where to paste: Supabase dashboard, Authentication, Emails (Email Templates). Do the two templates one at a time; save each, then send yourself a real code to a new address (Confirm signup) and to your own existing address (Magic Link).
 
@@ -19,7 +19,7 @@ The same subject for both: `Your GoAskSam sign-in code`
 
 ## What the email says
 
-"You asked to sign in to GoAskSam. Enter this code on the sign-in screen:", then the code, then "If you did not ask for this, you can ignore this email.", then the footer "GoAskSam, goasksam.com". No links, no images (the wordmark is text), no marketing, no minutes stated: the code's real expiry is a Supabase setting that Lane C has not read, so the email does not name one. It is a complete HTML document with tables and inline styles, in the same look as the Task emails, with a dark twin (clients that honour `prefers-color-scheme`; every element also carries light colours so a client that forces its own dark mode still reads).
+"You asked to sign in to GoAskSam. Enter this code on the sign-in screen:", then the code, then "If you did not ask for this, you can ignore this email.", then the footer "GoAskSam, goasksam.com". One footer link to goasksam.com and no images (the wordmark is text), no marketing, no minutes stated: the code's real expiry is a Supabase setting that Lane C has not read, so the email does not name one. It is a complete HTML document with tables and inline styles, in the same look as the Task emails, with a dark twin (clients that honour `prefers-color-scheme`; every element also carries light colours so a client that forces its own dark mode still reads).
 
 ## 1. Confirm signup
 
@@ -81,7 +81,7 @@ Field: Authentication, Emails, Confirm signup. Subject heading: `Your GoAskSam s
         <tr>
           <td class="gas-pad" style="padding:28px 36px 30px 36px;">
             <div class="gas-rule" style="border-top:1px solid #E6E1D8;font-size:0;line-height:0;height:1px;">&nbsp;</div>
-            <p class="gas-foot" style="margin:14px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:19px;color:#6B756F;">GoAskSam, goasksam.com</p>
+            <p class="gas-foot" style="margin:14px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:19px;color:#6B756F;">GoAskSam, <a href="https://goasksam.com" style="color:inherit;text-decoration:underline;">goasksam.com</a></p>
           </td>
         </tr>
       </table>
@@ -152,7 +152,7 @@ Field: Authentication, Emails, Magic Link. Subject heading: `Your GoAskSam sign-
         <tr>
           <td class="gas-pad" style="padding:28px 36px 30px 36px;">
             <div class="gas-rule" style="border-top:1px solid #E6E1D8;font-size:0;line-height:0;height:1px;">&nbsp;</div>
-            <p class="gas-foot" style="margin:14px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:19px;color:#6B756F;">GoAskSam, goasksam.com</p>
+            <p class="gas-foot" style="margin:14px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:19px;color:#6B756F;">GoAskSam, <a href="https://goasksam.com" style="color:inherit;text-decoration:underline;">goasksam.com</a></p>
           </td>
         </tr>
       </table>
@@ -169,3 +169,16 @@ Field: Authentication, Emails, Magic Link. Subject heading: `Your GoAskSam sign-
 - In the received message (Show original) the Authentication-Results line should still read spf=pass, dkim=pass, dmarc=pass.
 - Look at it once in Hotmail or Outlook with images off and once in dark mode.
 - The dialog itself now says "Check your junk folder if it does not arrive." under the code request.
+
+## The test that chose the footer link (Oct 24 2026)
+
+Four copies of this email were sent from the same sender to Sam's Hotmail address through our Resend account. Resend reported all four delivered. Where they landed:
+
+| Variant | What differed | Result |
+|---|---|---|
+| V1 | the plain template | Junk |
+| V2 | V1 plus Reply-To and the List-Unsubscribe headers the Task emails carry | Inbox |
+| V3 | V1 plus the footer link | Inbox |
+| V4 | V1 with the code first in the subject | Junk |
+
+Supabase's template field takes HTML only, so it cannot add headers; it can add the link. That is why both templates above carry the footer link.

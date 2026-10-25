@@ -25,9 +25,6 @@ row = "0"; m.resetTaskEmailSwitchCache(); o = { res: await m.sendTaskEmail(msg) 
 // Every Task email path reaches Resend through sendTaskEmail (the one choke point); sign-in codes are not among them.
 import fs from "node:fs";
 const direct = ["lib/tasks", "lib/live", "api"].flatMap(d => fs.readdirSync(d, { recursive: true }).filter(f => /\.js$/.test(f)).map(f => d + "/" + f)).filter(f => /api\.resend\.com\/emails["'`]/.test(fs.readFileSync(f, "utf8")));
-// TEMPORARY exemption (Oct 24 2026): api/emailExperiment.js sends four sign-in TEST emails to one fixed address and is not a Task email; it is deleted with its exemption.
-const EXEMPT = ["api/emailExperiment.js"];
-const bad = direct.filter(f => !EXEMPT.includes(f));
-ok(bad.length === 0, "no Task email file calls Resend directly: " + bad.join(", "));
+ok(direct.length === 0, "no Task email file calls Resend directly: " + direct.join(", "));
 globalThis.fetch = realFetch;
 console.log(`taskEmailSwitchCheck: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
