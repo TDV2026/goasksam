@@ -58,6 +58,7 @@ jobs:
       BACKFILL_FROM: ${{ github.event.inputs.backfill_from }}
       BACKFILL_TO: ${{ github.event.inputs.backfill_to }}
       SOURCES: ${{ github.event.inputs.sources }}
+      INGEST_RAW_COLUMNS: ${{ vars.INGEST_RAW_COLUMNS }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
