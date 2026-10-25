@@ -90,6 +90,16 @@ try {
 } catch (e) {
   record("module load: diff against origin/main", "FAIL", String(e && e.message || e).split("\n")[0]);
 }
+// A DELETED lib/api file cannot be loaded, so it is not skipped quietly: it passes only when NOTHING left in lib, api, scripts or public still names it
+// (a real missing import must never hide behind a deletion; Oct 25 2026, after api/emailExperiment.js was removed).
+try {
+  const gone = execSync("git diff --name-only --diff-filter=D origin/main...HEAD", { encoding: "utf8" }).trim().split("\n").filter(f => /^(lib|api)\/.*\.m?js$/.test(f));
+  for (const f of gone) {
+    const base = f.split("/").pop();
+    let users = []; try { users = execSync(`git grep -l -F -- ${JSON.stringify(base)} -- lib api scripts public`, { encoding: "utf8" }).trim().split("\n").filter(Boolean); } catch (e) { users = []; }
+    record(`deleted file ${f}`, users.length ? "FAIL" : "PASS", users.length ? "still named in: " + users.slice(0, 4).join(", ") : "nothing references it any more");
+  }
+} catch (e) { record("deleted files", "FAIL", String(e && e.message || e).split("\n")[0]); }
 if (!changed.length) {
   record("module load", "SKIP", "no changed lib/api files in this branch's commits since origin/main");
 } else {
