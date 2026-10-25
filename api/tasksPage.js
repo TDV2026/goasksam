@@ -257,7 +257,7 @@ const APP_JS = String.raw`(function(){
   if (!signedIn()) { location.replace("/tasks?signin=1&next=" + encodeURIComponent(location.pathname + location.search)); return; }
   var params = new URLSearchParams(location.search);
   var data = null, busy = false, reply = "", replyFor = null, pending = null, pendingId = null, note = "", editing = false, arrived = !!(params.get("start") || params.get("seed")), scrollTo = null;
-  // At the limit (the server says so, data.limit.atLimit): the one card with the working Tasks and "Close and start this one".
+  // At the limit (the server says so, data.limit.atLimit): the one card with the working Tasks and "Stop and start this one".
   // { mode: "seed" | "typed" | "draft" | "resume", attempted (the new job's words), line (the server's sentence), resume_id }.
   // It shows only while the server's latest answer says the account is at the limit: every list drops it the moment it is not.
   var limit = null, carry = "";
@@ -322,10 +322,10 @@ const APP_JS = String.raw`(function(){
     else h += (last ? '<p class="readback">' + esc(last.text) + "</p>" : "") + box(draft.summary ? "Change what Sam looks for" : "Answer Sam", "tkq", editing ? draft.words : "", "");
     return h + "</section>";
   }
-  // THE LIMIT CARD (one, compact): the server's sentence, then the working Tasks, each with the action that closes it and starts the new one.
+  // THE LIMIT CARD (one, compact): the server's sentence, then the working Tasks, each with the action that stops it and starts the new one.
   function limitCard(workingTasks){
     return '<section class="limitbox" role="status"><p>' + esc((data && data.limit && data.limit.line) || limit.line || "") + '</p>' + workingTasks.map(function(t){
-      return '<div class="lrow"><span class="ltxt">' + esc(phraseOf(t)) + '</span><button class="sbtn" data-limit-close="' + t.id + '">Close and start this one</button></div>'; }).join("") +
+      return '<div class="lrow"><span class="ltxt">' + esc(phraseOf(t)) + '</span><button class="sbtn" data-limit-stop="' + t.id + '">Stop and start this one</button></div>'; }).join("") +
       '<p class="lkeep"><button class="plink" data-limit-keep>Never mind</button></p></section>';
   }
   function newBox(){ return '<section class="tcard">' + box("Tell Sam what to look for", "tkq", carry || seedWords(), "e.g. find me a black manual 997 under $70k") + (reply && replyFor === null ? '<p class="samreply">' + esc(reply) + "</p>" : "") + "</section>"; }
@@ -436,10 +436,10 @@ const APP_JS = String.raw`(function(){
     }).catch(function(){ busy = false; render(); var q = $(tid ? "tkq-" + tid : "tkq"); if (q) q.value = text; });
   }
   document.addEventListener("click", function(e){
-    var t = e.target.closest("[data-send],[data-act],[data-start],[data-change],[data-apply],[data-unpending],[data-goto],[data-limit-close],[data-limit-keep]"); if (!t) return;
+    var t = e.target.closest("[data-send],[data-act],[data-start],[data-change],[data-apply],[data-unpending],[data-goto],[data-limit-stop],[data-limit-keep]"); if (!t) return;
     if (t.hasAttribute("data-limit-keep")) { e.preventDefault(); var lk = limit; limit = null; carry = ""; if (lk) api({ action: "limit", event: "keep", mode: lk.mode, attempted: lk.attempted }).catch(function(){}); dropEntryParams(); render(); return; }
-    if (t.hasAttribute("data-limit-close")) { e.preventDefault(); if (t.disabled) return; var ls = limit, cid = t.getAttribute("data-limit-close"); if (!ls) return; working(t, "Closing...");
-      api({ action: "limit", event: "close", mode: ls.mode, task_id: cid, attempted: ls.attempted, resume_id: ls.resume_id || null, draft: ls.mode === "draft" ? draft : null, defer: true }).then(function(j){
+    if (t.hasAttribute("data-limit-stop")) { e.preventDefault(); if (t.disabled) return; var ls = limit, cid = t.getAttribute("data-limit-stop"); if (!ls) return; working(t, "Stopping...");
+      api({ action: "limit", event: "stop", mode: ls.mode, task_id: cid, attempted: ls.attempted, resume_id: ls.resume_id || null, draft: ls.mode === "draft" ? draft : null, defer: true }).then(function(j){
         limit = null; reply = "";
         if (ls.mode === "draft" && j && j.task) { saveDraft(null); if (j.task.state === "running") { starting[j.task.id] = true; } }
         // A typed or seeded job: the slot is free now, so Sam drafts it at once (the read-back, then Start).

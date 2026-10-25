@@ -552,17 +552,17 @@ async function handler(req, res) {
       const { attachFullCards } = await import("../lib/tasks/fullCards.js"); await attachFullCards(env, one).catch(() => {});
       return res.status(200).json({ updates: one[0].updates.filter(u => u.data && Array.isArray(u.data.full)).map(u => ({ id: u.id, full: u.data.full })) });
     }
-    // At the limit: the page shows one card with the working Tasks and "Close and start this one". Every showing and
-    // every button is logged as task_limit_hit (the user, the Task, the attempted job, the button). "close" stops the
+    // At the limit: the page shows one card with the working Tasks and "Stop and start this one". Every showing and
+    // every button is logged as task_limit_hit (the user, the Task, the attempted job, the button). "stop" stops the
     // Task the buyer chose (the slot is free at once), then resumes the paused Task asked for or starts the draft; a
-    // typed or seeded attempt is drafted by the page once the slot is free. "keep" changes nothing. ("swap", the
-    // earlier button name, is read as "close".)
+    // typed or seeded attempt is drafted by the page once the slot is free. "keep" changes nothing. ("close" and "swap", the
+    // earlier button names, are read as "stop".)
     if (b.action === "limit") {
-      const ev = ["seen", "close", "swap", "keep"].includes(b.event) ? (b.event === "swap" ? "close" : b.event) : null;
+      const ev = ["seen", "stop", "close", "swap", "keep"].includes(b.event) ? (b.event === "close" || b.event === "swap" ? "stop" : b.event) : null;
       if (!ev) return res.status(400).json({ error: "bad event" });
       const running = /^[0-9a-f-]{36}$/.test(String(b.task_id || "")) ? await getTask(env, b.task_id, user.userId).catch(() => null) : null;
       await recordUsageEvent({ event_type: "task_limit_hit", route: "tasks", status: ev, metadata: { user_id: user.userId, running_task_id: running ? running.id : null, running_task: running ? running.summary : null, attempted_job: String(b.attempted || "").slice(0, 300) || null, mode: ["seed", "draft", "resume", "typed"].includes(b.mode) ? b.mode : null, button: ev === "seen" ? null : ev } }, env.supabaseUrl, env.supabaseKey).catch(e => console.error("task_limit_hit log:", e && e.message));
-      if (ev !== "close") return res.status(200).json({ ok: true });
+      if (ev !== "stop") return res.status(200).json({ ok: true });
       if (running && ["running", "needs_you"].includes(running.state)) await controlTask(env, user, running.id, "stop", { apiKey, model: CHAT_MODEL });
       if (b.mode === "resume" && /^[0-9a-f-]{36}$/.test(String(b.resume_id || ""))) return res.status(200).json({ ok: true, ...(await controlTask(env, user, String(b.resume_id), "resume", { apiKey, model: CHAT_MODEL })) });
       if (b.mode === "draft" && b.draft) return res.status(200).json({ ok: true, ...(await startDraft(env, user, b.draft, { apiKey, model: CHAT_MODEL, visitorId: readVisitorId(req), gate: gateOf(req, user), defer: b.defer === true })) });

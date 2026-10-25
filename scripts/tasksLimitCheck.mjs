@@ -18,7 +18,7 @@ const working = async c => (await T.workingTasks(c.env, c.user.userId)).length;
 const facts = async c => limitFacts((await T.userTasks(c.env, c.user.userId)).filter(t => ["running", "needs_you"].includes(t.state)).length);
 
 ok(FREE_TASK_LIMIT === 3, "the limit is three");
-ok(limitLine(3) === "You have 3 Tasks running. Close one to start this one." && limitEntryLine(3) === "You have 3 Tasks running. Close one to start another.", "the two sentences, word for word");
+ok(limitLine(3) === "You have 3 Tasks running. Stop one to start this one." && limitEntryLine(3) === "You have 3 Tasks running. Stop one to start another.", "the two sentences, word for word");
 ok(freeTasksWords() === "three active Tasks" && tasksCount(1) === "1 Task", "the plain words come from the one number");
 ok(!/[–—]/.test(limitLine() + limitEntryLine() + freeTasksWords()), "no dashes");
 // one place: no other file holds the number as a limit
