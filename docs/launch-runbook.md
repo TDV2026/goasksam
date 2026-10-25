@@ -19,7 +19,7 @@ Check before widening (each with where to look):
 
 ## (b) Rollback
 
-Rollback switches, cheapest first. Vercel applies an environment variable change only to a NEW deployment, so every env switch needs a redeploy. The comment at the top of lib/_launchStage.js says no redeploy is needed; treat that comment as wrong until Lane C proves otherwise on a test change.
+Rollback switches, cheapest first. Vercel applies an environment variable change only to a NEW deployment, so every launch-stage and other env switch (LAUNCH_STAGE, CURTAIN_SEALED, LAUNCH_BUSINESS and the rest in the table) NEEDS A REDEPLOY (Sam's ruling, Oct 24 2026; the comment at the top of lib/_launchStage.js is corrected to say so). Two things do NOT need a deploy: the Task email kill switch (an app_config row read at send time, steps below) and Vercel Instant Rollback (promote the previous deployment).
 
 | Switch | Where | What it hides | Redeploy |
 |---|---|---|---|
@@ -30,7 +30,7 @@ Rollback switches, cheapest first. Vercel applies an environment variable change
 | SIGNUP_TURNSTILE | Vercel env | The Turnstile check at sign-up (needs both keys set) | Yes |
 | PARTNER_DEMO_CODE | Vercel env | Unset: /partner-demo is not reachable by code | Yes |
 | vin_input_enabled | Supabase app_config row (0 or 1) | The typed-VIN path, crew and test sessions | No (read at request time) |
-| PALETTE_BAR_ON, RANGE_RULES.trimFirst | Code constants (lib/appShell.js, lib/onebox.js) | The crew palette bar; the trim-first question | Yes, by a push through Lane C |
+| PALETTE_BAR_ON, RANGE_RULES.trimFirst | Code constants (lib/appShell.js, lib/onebox.js) | The crew palette bar; the trim-first question (LIVE today, approved by Sam) | Yes, by a push through Lane C |
 | task_emails_enabled (the Task email kill switch) | Supabase app_config row (see the steps under the table) | Every Task email: match, daily, before it ends, watch event, sold notice, the start email and test sends. Sign-in codes are untouched (Supabase sends those). | No (read at send time, held 5 seconds) |
 
 Task email kill switch, exactly how to flip it (Lane C, Oct 24 2026; code: lib/_email.js sendTaskEmail, one choke point for every Task email):
