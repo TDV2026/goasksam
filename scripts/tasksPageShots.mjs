@@ -24,7 +24,8 @@ function account(tasks, opts = {}) {
   A.blocked = () => { const w = A.tasks.filter(t => ["running", "needs_you"].includes(t.state)); return { blocked: { task_id: w[0].id, max: 3, line: limitFacts(w.length).line, tasks: w.map(t => ({ id: t.id, summary: t.summary })) } }; };
   A.handle = async b => {
     A.calls.push(b.action + (b.act ? ":" + b.act : "") + (b.event ? ":" + b.event : ""));
-    if (b.action === "list") return A.list();
+    if (b.action === "list") return b.draft ? { ...A.list(), draft_ok: !!b.draft.at && Date.now() - Date.parse(b.draft.at) < 864e5 } : A.list();
+    if (b.action === "say" && !b.task_id && A.sayFn) return A.sayFn(b);
     if (b.action === "say" && !b.task_id) { if (A.working() >= 3) return A.blocked(); const w = String(b.text); return { draft: { words: w, kind: "hunt", filters: { make: "X" }, question: null, summary: "Sam is looking for " + w + ".", thread: [{ role: "sam", text: "Sam will look for " + w + ". Start?" }] }, reply: "Sam will look for " + w + ". Start?" }; }
     if (b.action === "start") { if (A.working() >= 3) return A.blocked(); const t = mkTask(A.tasks.length + 1, "running", { summary: b.draft.summary, updates: [{ id: 900 + A.tasks.length, role: "sam", kind: "system", created_at: new Date().toISOString(), text: "Started. Sam checks every new listing and tells you when one matches." }] }); A.tasks.unshift(t); A.newest = t; return { task: { ...t, starting: !!b.defer } }; }
     if (b.action === "first") { if (A.firstDelay) await new Promise(r => setTimeout(r, A.firstDelay)); const t = A.tasks.find(x => x.id === b.task_id); t.updates.push(mkTask(1).updates[1]); return { task: t, ran: true }; }
@@ -40,8 +41,8 @@ function account(tasks, opts = {}) {
 const mod = async (f, url, q) => { const { default: h } = await import(pathToFileURL(path.join(ROOT, "api", f + ".js")).href); return await new Promise(r => { const res = { setHeader() {}, getHeader() {}, status() { return res; }, send(x) { r(String(x)); return res; }, end(x) { r(String(x || "")); return res; }, json(o) { r(JSON.stringify(o)); return res; }, writeHead() { return res; }, write() {} }; h({ method: "GET", url, query: q || {}, headers: { host: "goasksam.com", cookie: "gas_crew=x" }, socket: {} }, res); }); };
 const tasksHtml = await mod("tasksPage", "/tasks/mine?app=1", { app: "1" });
 const b = await puppeteer.launch({ executablePath: process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", headless: "new", args: ["--no-sandbox"] });
-async function open(A, width, search = "", signedOut = false) {
-  const p = await b.newPage(); await p.setViewport({ width, height: 900 }); const errs = []; p.on("pageerror", e => errs.push(e.message.slice(0, 120))); p._errs = errs; p._A = A;
+async function open(A, width, search = "", signedOut = false, ssDraft = null) {
+  const p = await b.newPage(); await p.setViewport({ width, height: 900 }); const errs = []; p.on("pageerror", e => errs.push(e.message.slice(0, 120))); p._errs = errs; p._A = A; if (ssDraft) await p.evaluateOnNewDocument(d => { if (!sessionStorage.getItem("__seeded")) { sessionStorage.setItem("__seeded", "1"); sessionStorage.setItem("gas_task_draft", JSON.stringify(d)); } }, ssDraft);
   if (signedOut) await p.evaluateOnNewDocument(() => localStorage.clear()); else await p.evaluateOnNewDocument(() => localStorage.setItem("gas_auth_session", JSON.stringify({ access_token: "tok", expires_at: 9999999999 }))); await p.setRequestInterception(true);
   p.on("request", async r => { const u = new URL(r.url());
     if (u.host === "goasksam.com" && r.isNavigationRequest() && u.pathname === "/tasks") return r.respond({ status: 200, contentType: "text/html", body: "<html><body>explainer</body></html>" });
@@ -126,5 +127,48 @@ try {
     const A = account([mkTask(1)], { enrich: body => ({ cards: (body.ids || []).map(id => ({ id, market: { ...pend } })) }) }); A.cardsOf = () => CARDS.map(c => ({ ...c, market: { ...pend }, sam_lines: [] }));
     const p = await open(A, 1440); await wait(2500); const t = await text(p);
     ok(!/still reading/.test(t) && /The sales could not be read just now/.test(t), "reading: a market that never comes is said plainly, not left on the holding line"); await p.close(); }
+  // SETUP QUESTIONS AND DRAFTS (Lane D, Oct 24 2026): choices are buttons, a typed answer is read leniently, a draft left behind shows
+  // as a small card under the clean box (Continue, Discard), and a draft older than a day is dropped by the server.
+  const Qm = "Which Porsche model should Sam look for?", stampNow = () => new Date().toISOString();
+  const qDraft = (extra = {}) => ({ at: stampNow(), asks: 1, words: "red porsche", kind: "hunt", filters: { make: "Porsche", colour: "red" }, question: Qm, qkind: "model", options: ["Panamera"], any: "Any Porsche", summary: null, thread: [{ role: "buyer", text: "red porsche" }, { role: "sam", text: Qm }], ...extra });
+  const readBack = w => ({ at: stampNow(), asks: 1, words: w, kind: "hunt", filters: { make: "Porsche", colour: "red", any_model: "1" }, question: null, summary: "Sam is looking for red Porsches.", thread: [{ role: "sam", text: "Sam will look for red Porsches. Start?" }] });
+  const norm = x => String(x).toLowerCase().replace(/[^a-z ]/g, "").trim();
+  const sayFn = b => { const t = norm(b.text);
+    if (!b.draft || !b.draft.question) return { draft: qDraft({ words: b.text }), reply: Qm };
+    if (["any", "any porsche", "doesnt matter", "no preference", "either"].includes(t) || norm(b.text) === "panamera" || t === "panamara" || t === "panamer") return { draft: readBack(b.draft.words), reply: "Sam will look for red Porsches. Start?" };
+    return { draft: b.draft, reply: "Sam didn't understand that answer. The choices are Panamera or Any Porsche.", miss: true }; };
+  for (const W of [1440, 390]) {
+    // "red porsche": the question comes with buttons (each choice, the Any option) and the box.
+    { const A = account([]); A.sayFn = sayFn; const p = await open(A, W, "&start=1"); await p.type("#tkq", "red porsche"); await p.click("[data-send=tkq]"); await wait(500);
+      let labels = await p.$$eval("[data-choice]", els => els.map(e => e.textContent));
+      ok(labels.join("|") === "Panamera|Any Porsche" && /Which Porsche model/.test(await text(p)) && !!(await p.$("#tkq")), `[${W}] red porsche: the question shows each choice as a button, the Any option, and the box (${labels})`);
+      const hs = await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1); ok(!hs, `[${W}] red porsche: no horizontal scroll`); await shot(p, `tasks-choices-${W}`);
+      // a typed answer not understood: said once, the buttons shown again, never the line alone
+      await p.type("#tkq", "banana"); await p.click("[data-send=tkq]"); await wait(500);
+      ok(/didn't understand/.test(await text(p)) && (await p.$$("[data-choice]")).length === 2, `[${W}] not understood: said once and the buttons are back`);
+      // a button click answers the question
+      await p.click('[data-choice="Any Porsche"]'); await wait(500);
+      ok(/Sam will look for red Porsches/.test(await text(p)) && !!(await p.$("[data-start]")) && !(await p.$("[data-choice]")), `[${W}] clicking Any Porsche reads the job back with Start`); await p.close(); }
+    // typed answers: any form, a typo
+    for (const said of ["any", "Any Porsche", "doesn't matter", "no preference", "either", "Panamara"]) {
+      const A = account([]); A.sayFn = sayFn; const p = await open(A, W, "&start=1", false, qDraft()); await p.type("#tkq", said); await p.click("[data-send=tkq]"); await wait(400);
+      ok(/Sam will look for red Porsches/.test(await text(p)) && !!(await p.$("[data-start]")), `[${W}] "${said}" counts as an answer`); await p.close(); }
+    // leaving mid-question and coming back: the clean box first, the unfinished card under it, no old error line
+    { const A = account([]); A.sayFn = sayFn; const p = await open(A, W, "", false, qDraft({ thread: [{ role: "sam", text: "Sam didn't understand that answer. The choices are Panamera or Any Porsche." }] }));
+      const t = await text(p), html = await p.evaluate(() => document.getElementById("tkapp").innerHTML);
+      ok(/Tell Sam what to look for/.test(t) && /Unfinished: red porsche/.test(t) && html.indexOf("Tell Sam what to look for") < html.indexOf("Unfinished:") && !/didn't understand/.test(t) && !(await p.$("[data-choice]")), `[${W}] from the rail: the clean setup box first, the unfinished card under it, no error line`);
+      ok(!!(await p.$("[data-continue]")) && !!(await p.$("[data-discard]")), `[${W}] the unfinished card has Continue and Discard`); await shot(p, `tasks-unfinished-${W}`);
+      await p.click("[data-continue]"); await wait(300); const t2 = await text(p);
+      ok(/Which Porsche model/.test(t2) && !/didn't understand/.test(t2) && (await p.$$("[data-choice]")).length === 2, `[${W}] Continue shows the question last asked with its buttons, never the old error`); await p.close(); }
+    { const A = account([]); A.sayFn = sayFn; const p = await open(A, W, "", false, qDraft()); await p.click("[data-discard]"); await wait(300);
+      ok(!/Unfinished/.test(await text(p)) && (await p.evaluate(() => sessionStorage.getItem("gas_task_draft"))) === null, `[${W}] Discard removes the draft for good`);
+      await p.reload({ waitUntil: "networkidle2" }); await wait(500); ok(!/Unfinished/.test(await text(p)), `[${W}] and it stays gone after a reload`); await p.close(); }
+    // typing in the clean box starts fresh, not an answer to the old question
+    { const A = account([]); A.sayFn = sayFn; const p = await open(A, W, "", false, qDraft({ words: "old words" })); await p.type("#tkq", "red porsche"); await p.click("[data-send=tkq]"); await wait(500);
+      ok(A.calls.includes("say") && !(await text(p)).includes("old words"), `[${W}] a new request from the clean box replaces the unfinished draft`); await p.close(); }
+    // older than a day: the server says so and the page shows nothing
+    { const A = account([]); A.sayFn = sayFn; const p = await open(A, W, "", false, qDraft({ at: new Date(Date.now() - 26 * 3600e3).toISOString() })); await wait(300);
+      ok(!/Unfinished/.test(await text(p)) && (await p.evaluate(() => sessionStorage.getItem("gas_task_draft"))) === null, `[${W}] a draft older than a day is dropped, not shown`); await p.close(); }
+  }
 } finally { await b.close(); }
 console.log(`tasksPageShots: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

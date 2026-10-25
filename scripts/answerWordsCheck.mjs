@@ -51,7 +51,7 @@ script = [toolTurn({ kind: "hunt", make: "Porsche", model: "911", colour: "red" 
 r = await draftTurn(env, user, { draft: d1, text: "911", apiKey: "stub", model: "stub" });
 ok(r.draft && r.draft.question === null && r.draft.filters.model === "911" && !r.draft.filters.any_model, "\"911\" goes to the conversation and sets the model");
 // The engine's body question: Any of them drops the question for this job.
-const dBody = { words: "red 911", kind: "hunt", filters: { make: "Porsche", model: "911", colour: "red" }, question: "Which body style is it?", qkind: "body", options: ["Coupe", "Cabriolet", "Targa"], any: "Any of them", thread: [] };
+const dBody = { at: new Date().toISOString(), words: "red 911", kind: "hunt", filters: { make: "Porsche", model: "911", colour: "red" }, question: "Which body style is it?", qkind: "body", options: ["Coupe", "Cabriolet", "Targa"], any: "Any of them", thread: [] };
 const b = await draftTurn(env, user, { draft: dBody, text: "doesn't matter", apiKey: "stub", model: "stub" });
 ok(b.draft && b.draft.question === null && b.draft.filters.any_body === "1" && /^Sam will look for red Porsche 911s/.test(b.reply), `the body question: "doesn't matter" chooses Any (${JSON.stringify(b.reply)})`);
 // 3. The pages use the SAME reader: Market Check's copy is the shared source verbatim; Buy's script gets it written in.

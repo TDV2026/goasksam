@@ -931,6 +931,13 @@ try {
 } catch (e) {
   record("tasksPageShots (scripts/tasksPageShots.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Tasks setup questions and drafts (Oct 24 2026, Lane D): choices answered in any form, the cap of two questions, a draft older than a day dropped. No network.
+try {
+  const out = execSync("node scripts/tasksDraftCheck.mjs", { encoding: "utf8" });
+  record("tasksDraftCheck (scripts/tasksDraftCheck.mjs)", "PASS", (out.match(/tasksDraftCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("tasksDraftCheck (scripts/tasksDraftCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // GoAskSam 2.0 Stage 1, the one rail, Find and /buy 301 (Sam, Oct 23 2026; Lane C). No network.
 try {
   const out = execSync("node scripts/rail2Check.mjs", { encoding: "utf8" });

@@ -91,6 +91,8 @@ const APP_CSS = `
 .tkbox input{flex:1;min-width:0;border:0;outline:0;font:400 17px/1.4 var(--sans);background:transparent;padding:11px 0}
 .tkbox button{border:0;background:var(--ink);color:var(--on-accent,#fff);border-radius:6px;min-height:40px;padding:0 14px;font:500 15px var(--sans);cursor:pointer}
 .tkbox button[disabled]{opacity:.6}
+.choices{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}.choices .chip{font:500 15px/1 var(--sans);padding:11px 16px;min-height:44px;border:1px solid var(--div);background:#fff;color:var(--ink);border-radius:999px;cursor:pointer}.choices .chip:hover{border-color:#1A1A1A}.choices .chip:disabled{opacity:.5;cursor:default}
+.unfin{padding:12px 16px;margin-top:12px}.unfin .unfinline{margin:0 0 8px;font:500 15px/1.4 var(--sans);overflow-wrap:anywhere}.unfin .go{margin-top:0}
 .samreply{margin:10px 0 0;font:400 17px/1.45 var(--serif);color:var(--tk-text2)}
 .feed{list-style:none;margin:20px 0 0;padding:0;border-top:1px solid var(--div)}
 .feed>li{padding:14px 0;border-bottom:1px solid var(--div)}
@@ -260,14 +262,14 @@ const APP_JS = String.raw`(function(){
   // At the limit (the server says so, data.limit.atLimit): the one card with the working Tasks and "Stop and start this one".
   // { mode: "seed" | "typed" | "draft" | "resume", attempted (the new job's words), line (the server's sentence), resume_id }.
   // It shows only while the server's latest answer says the account is at the limit: every list drops it the moment it is not.
-  var limit = null, carry = "";
+  var limit = null, carry = "", draftOpen = !!(params.get("start") || params.get("seed")), miss = false;
   var starting = {}, firing = {}, cardsOut = {}, fullCache = {}, askN = {};
   var MAX_ASKS = 4, COULD_NOT = "The sales could not be read just now. Try again in a minute.";
   function phraseOf(t){ return String((t && t.summary) || "").replace(/^Sam is (?:looking for|researching)\s+/i, "").replace(/:.*$/, "").replace(/[.]+$/, ""); }
   function showLimit(l){ limit = l; api({ action: "limit", event: "seen", mode: l.mode, attempted: l.attempted }).catch(function(){}); }
   function syncLimit(){ if (limit && !(data && data.limit && data.limit.atLimit)) { if (limit.mode === "seed" || limit.mode === "typed") carry = limit.attempted || ""; limit = null; } }
   var draft = null; try { draft = JSON.parse(sessionStorage.getItem("gas_task_draft") || "null"); } catch(e){}
-  function saveDraft(d){ draft = d; try { if (d) sessionStorage.setItem("gas_task_draft", JSON.stringify(d)); else sessionStorage.removeItem("gas_task_draft"); } catch(e){} }
+  function saveDraft(d){ draft = d; if (!d) { draftOpen = false; miss = false; } try { if (d) sessionStorage.setItem("gas_task_draft", JSON.stringify(d)); else sessionStorage.removeItem("gas_task_draft"); } catch(e){} }
   function seedWords(){
     if (params.get("seed") === "vin" && params.get("vin")) return "Keep looking for this exact car: " + (params.get("car") ? params.get("car") + ", " : "") + "VIN " + params.get("vin");
     return params.get("words") || "";
@@ -315,12 +317,29 @@ const APP_JS = String.raw`(function(){
     }
     return h + feed(t) + "</section>";
   }
+  // The draft in the top slot (opened by typing, Continue or a seed): the question last asked with its choices as buttons and the box,
+  // or the read-back with Start and Change. Never an old error line: the not-understood sentence shows only for the answer just given.
+  function choiceButtons(){
+    var o = (draft.options || []).slice(0, 8), any = draft.any;
+    if (!draft.question || (!o.length && !any)) return "";
+    return '<div class="choices">' + o.concat(any ? [any] : []).map(function(c){ return '<button type="button" class="chip" data-choice="' + esc(c) + '">' + esc(c) + "</button>"; }).join("") + "</div>";
+  }
   function draftCard(){
-    var last = (draft.thread || []).filter(function(m){ return m.role === "sam"; }).pop();
-    var h = '<section class="tcard"><div class="thead"><span class="pill draft">Not started</span></div>';
-    if (draft.summary && !editing) h += '<p class="readback">' + esc(last ? last.text : draft.summary) + '</p><div class="go"><button class="pbtn" data-start>Start</button><button class="plink" data-change>Change</button></div>';
-    else h += (last ? '<p class="readback">' + esc(last.text) + "</p>" : "") + box(draft.summary ? "Change what Sam looks for" : "Answer Sam", "tkq", editing ? draft.words : "", "");
-    return h + "</section>";
+    var h = '<section class="tcard"><div class="thead"><span class="pill draft">Not started</span><div class="tbtns"><button class="sbtn" data-discard>Discard</button></div></div>';
+    if (draft.summary && !editing) {
+      var last = (draft.thread || []).filter(function(m){ return m.role === "sam"; }).pop();
+      return h + '<p class="readback">' + esc(last ? last.text : draft.summary) + '</p><div class="go"><button class="pbtn" data-start>Start</button><button class="plink" data-change>Change</button></div></section>';
+    }
+    if (draft.question) {
+      if (miss && replyFor === null && reply) h += '<p class="samreply">' + esc(reply) + "</p>";
+      else h += '<p class="readback">' + esc(draft.question) + "</p>";
+      return h + choiceButtons() + box("Or tell Sam", "tkq", editing ? draft.words : "", "") + "</section>";
+    }
+    return h + box(draft.summary ? "Change what Sam looks for" : "Tell Sam what to look for", "tkq", editing ? draft.words : "", "") + "</section>";
+  }
+  // An unfinished draft seen from the rail: a small card under the clean setup box, never the page.
+  function unfinishedCard(){
+    return '<section class="tcard unfin"><p class="unfinline">Unfinished: ' + esc(String(draft.words || draft.summary || "").slice(0, 80)) + '</p><div class="go"><button class="pbtn" data-continue>Continue</button><button class="plink" data-discard>Discard</button></div></section>';
   }
   // THE LIMIT CARD (one, compact): the server's sentence, then the working Tasks, each with the action that stops it and starts the new one.
   function limitCard(workingTasks){
@@ -353,8 +372,8 @@ const APP_JS = String.raw`(function(){
     if (note) h += '<p class="noteinfo" role="status">' + esc(note) + "</p>";
     // The new Task comes first: the limit card (only at the limit), else the read-back, else the box.
     if (limit && lim && lim.atLimit) h += limitCard(work);
-    else if (draft) h += draftCard();
-    else h += newBox();
+    else if (draft && draftOpen) h += draftCard();
+    else h += newBox() + (draft ? unfinishedCard() : "");
     h += work.map(function(t){ return taskCard(t); }).join("");
     // The email settings show for everyone signed in, with or without a working Task: exact-car, sold-car and
     // Before it ends emails use them too.
@@ -374,8 +393,8 @@ const APP_JS = String.raw`(function(){
   function syncBadge(){ var n = data && data.count; document.querySelectorAll("[data-gas-tasks-badge],[data-tasks-badge]").forEach(function(b){ if (n) { b.textContent = String(n); b.hidden = false; b.classList.remove("nu"); } else { b.textContent = ""; b.hidden = true; } }); }
   function findTask(id){ return ((data && data.tasks) || []).filter(function(x){ return x.id === id; })[0] || null; }
   // The list is fast (no full cards); the cars and the first match run follow and fill in.
-  function load(){ return api({ action: "list", fast: true, open: (data && data.open) || params.get("task") || null }).then(function(j){
-    data = j; syncLimit(); syncBadge();
+  function load(){ return api({ action: "list", fast: true, draft: draft, open: (data && data.open) || params.get("task") || null }).then(function(j){
+    data = j; if (draft && j.draft_ok === false) saveDraft(null); syncLimit(); syncBadge();
     (data.tasks || []).forEach(function(t){ (t.updates || []).forEach(function(u){ if (u.data && fullCache[u.id]) u.data.full = fullCache[u.id]; }); });
     render(); kick(); }).catch(function(){}); }
   function kick(){
@@ -424,19 +443,19 @@ const APP_JS = String.raw`(function(){
     if (busy) return; busy = true;
     var sb = document.querySelector('[data-send="' + (tid ? "tkq-" + tid : "tkq") + '"]'); if (sb) { sb.disabled = true; sb.textContent = "Sam is reading..."; } var qi = $(tid ? "tkq-" + tid : "tkq"); if (qi) qi.readOnly = true;
     // The box in a Task speaks to that Task; the top box starts a new one.
-    var body = tid ? { action: "say", task_id: tid, text: text, pending: pendingId === tid ? pending : null } : { action: "say", text: text, draft: draft, seed: draft ? null : seedObj() };
+    var body = tid ? { action: "say", task_id: tid, text: text, pending: pendingId === tid ? pending : null } : { action: "say", text: text, draft: draftOpen ? draft : null, seed: draftOpen && draft ? null : seedObj() };
     api(body).then(function(j){
-      busy = false; editing = false; carry = ""; reply = j.reply || ""; replyFor = tid || null;
+      busy = false; editing = false; carry = ""; if (!tid) { var tq0 = $("tkq"); if (tq0) tq0.value = ""; } reply = j.reply || ""; replyFor = tid || null;
       if (tid) { pending = j.pending || null; pendingId = pending ? tid : null; return load(); }
       if (j.blocked) { showLimit({ mode: "typed", attempted: text, line: j.blocked.line }); reply = ""; return load(); }
       if (j.task) { saveDraft(null); reply = ""; return load(); }
       if (j.discarded) { saveDraft(null); return load(); }
-      if (j.draft) saveDraft(j.draft);
+      if (j.draft) { saveDraft(j.draft); draftOpen = true; miss = !!j.miss; }
       render();
     }).catch(function(){ busy = false; render(); var q = $(tid ? "tkq-" + tid : "tkq"); if (q) q.value = text; });
   }
   document.addEventListener("click", function(e){
-    var t = e.target.closest("[data-send],[data-act],[data-start],[data-change],[data-apply],[data-unpending],[data-goto],[data-limit-stop],[data-limit-keep]"); if (!t) return;
+    var t = e.target.closest("[data-send],[data-act],[data-start],[data-change],[data-apply],[data-unpending],[data-goto],[data-limit-stop],[data-limit-keep],[data-choice],[data-continue],[data-discard]"); if (!t) return;
     if (t.hasAttribute("data-limit-keep")) { e.preventDefault(); var lk = limit; limit = null; carry = ""; if (lk) api({ action: "limit", event: "keep", mode: lk.mode, attempted: lk.attempted }).catch(function(){}); dropEntryParams(); render(); return; }
     if (t.hasAttribute("data-limit-stop")) { e.preventDefault(); if (t.disabled) return; var ls = limit, cid = t.getAttribute("data-limit-stop"); if (!ls) return; working(t, "Stopping...");
       api({ action: "limit", event: "stop", mode: ls.mode, task_id: cid, attempted: ls.attempted, resume_id: ls.resume_id || null, draft: ls.mode === "draft" ? draft : null, defer: true }).then(function(j){
@@ -448,6 +467,9 @@ const APP_JS = String.raw`(function(){
       }).catch(function(){ limit = null; load(); }); return; }
     if (t.hasAttribute("data-goto")) { var el = document.getElementById("task-" + t.getAttribute("data-goto")); if (el) { e.preventDefault(); el.scrollIntoView({ block: "start" }); } return; }
     e.preventDefault();
+    if (t.hasAttribute("data-choice")) { if (!t.disabled) send(t.getAttribute("data-choice")); return; }
+    if (t.hasAttribute("data-continue")) { draftOpen = true; miss = false; reply = ""; render(); return; }
+    if (t.hasAttribute("data-discard")) { saveDraft(null); reply = ""; editing = false; render(); return; }
     if (t.hasAttribute("data-send")) { var q = $(t.getAttribute("data-send")); if (q && q.value.trim()) send(q.value.trim(), t.getAttribute("data-task") || null); return; }
     if (t.hasAttribute("data-change")) { editing = true; render(); return; }
     if (t.hasAttribute("data-unpending")) { pending = null; pendingId = null; reply = ""; render(); return; }

@@ -22,7 +22,7 @@ import { supabaseEnv, supabaseSelect, supabaseBytesSoFar } from "../lib/_supabas
 import { validateBearer } from "../lib/_auth.js";
 import { readVisitorId } from "../lib/_visitor.js";
 import { limitFacts } from "../lib/tasks/limit.js";
-import { jobPhrase, notifyPrefs, setNotifyPrefs, taskTurn, draftTurn, startDraft, applyEdit, slotTask, firstRun, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore, notify, oneTap, sendStartEmail } from "../lib/tasks/tasks.js";
+import { jobPhrase, notifyPrefs, setNotifyPrefs, taskTurn, draftTurn, draftFresh, startDraft, applyEdit, slotTask, firstRun, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore, notify, oneTap, sendStartEmail } from "../lib/tasks/tasks.js";
 import crypto from "node:crypto";
 import { CHAT_MODEL } from "../lib/live/chatHttp.js";
 import { recordUsageEvent } from "./_usage.js";
@@ -507,7 +507,7 @@ async function handler(req, res) {
       // Opening the list is an interaction; the open thread's updates are read.
       if (b.open && /^[0-9a-f-]{36}$/.test(String(b.open))) { const t = tasks.find(x => x.id === b.open); if (t) await saveTask(env, t.id, { unread: 0, last_interaction_at: new Date().toISOString() }); }
       const working = tasks.filter(t => ["running", "needs_you"].includes(t.state)).length;
-      return res.status(200).json({ tasks: withThreads, count: tasks.filter(t => ["running", "needs_you", "paused"].includes(t.state)).length, limit: limitFacts(working), suggestions: await suggestions(env, user.userId).catch(() => []), notify: await notifyPrefs(env, user).catch(() => null) });
+      return res.status(200).json({ tasks: withThreads, count: tasks.filter(t => ["running", "needs_you", "paused"].includes(t.state)).length, limit: limitFacts(working), ...(b.draft ? { draft_ok: !!draftFresh(b.draft) } : {}), suggestions: await suggestions(env, user.userId).catch(() => []), notify: await notifyPrefs(env, user).catch(() => null) });
     }
     if (b.action === "say") {
       const text = String(b.text || "").trim().slice(0, 2000);
