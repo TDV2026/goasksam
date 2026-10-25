@@ -938,6 +938,13 @@ try {
 } catch (e) {
   record("tasksDraftCheck (scripts/tasksDraftCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Task email caps (Oct 24 2026, Lane D): the first email shows the 5 cars ending soonest plus the count of the rest, later ones up to 6, every email well under 100KB. No network, no send.
+try {
+  const out = execSync("node scripts/tasksEmailCapCheck.mjs", { encoding: "utf8" });
+  record("tasksEmailCapCheck (scripts/tasksEmailCapCheck.mjs)", "PASS", (out.match(/tasksEmailCapCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("tasksEmailCapCheck (scripts/tasksEmailCapCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // GoAskSam 2.0 Stage 1, the one rail, Find and /buy 301 (Sam, Oct 23 2026; Lane C). No network.
 try {
   const out = execSync("node scripts/rail2Check.mjs", { encoding: "utf8" });

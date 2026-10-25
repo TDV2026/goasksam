@@ -507,7 +507,7 @@ async function handler(req, res) {
       // Opening the list is an interaction; the open thread's updates are read.
       if (b.open && /^[0-9a-f-]{36}$/.test(String(b.open))) { const t = tasks.find(x => x.id === b.open); if (t) await saveTask(env, t.id, { unread: 0, last_interaction_at: new Date().toISOString() }); }
       const working = tasks.filter(t => ["running", "needs_you"].includes(t.state)).length;
-      return res.status(200).json({ tasks: withThreads, count: tasks.filter(t => ["running", "needs_you", "paused"].includes(t.state)).length, limit: limitFacts(working), ...(b.draft ? { draft_ok: !!draftFresh(b.draft) } : {}), suggestions: await suggestions(env, user.userId).catch(() => []), notify: await notifyPrefs(env, user).catch(() => null) });
+      return res.status(200).json({ tasks: withThreads, count: tasks.filter(t => ["running", "needs_you", "paused"].includes(t.state)).length, limit: limitFacts(working), ...(b.draft ? { draft_ok: !!draftFresh(b.draft) } : {}), suggestions: await suggestions(env, user.userId).catch(() => []), notify: await (async () => { const n = await notifyPrefs(env, user).catch(() => null); if (!n) return n; const { firstAlertPending } = await import("../lib/_email.js"); return { ...n, junk: !!(n.on && working && !env.mem && await firstAlertPending(env, n.email || user.email).catch(() => false)) }; })() });
     }
     if (b.action === "say") {
       const text = String(b.text || "").trim().slice(0, 2000);

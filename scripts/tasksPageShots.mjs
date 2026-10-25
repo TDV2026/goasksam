@@ -20,7 +20,7 @@ const mkTask = (n, state = "running", extra = {}) => ({ id: "00000000-0000-4000-
 function account(tasks, opts = {}) {
   const A = { tasks, calls: [], notify: { on: true, email: "me@example.com", every: "daily", everyReady: true }, firstDelay: opts.firstDelay || 0, cardsDelay: opts.cardsDelay || 0, enrich: opts.enrich || (() => ({ cards: [] })) };
   A.working = () => A.tasks.filter(t => ["running", "needs_you"].includes(t.state)).length;
-  A.list = () => ({ tasks: A.tasks.map(t => ({ ...t, updates: (t.updates || []).map(u => ({ ...u, task_id: t.id, data: u.data ? { ...u.data, full: undefined } : u.data })) })), count: A.tasks.filter(t => t.state !== "done").length, limit: limitFacts(A.working()), suggestions: [], notify: A.notify });
+  A.list = () => ({  tasks: A.tasks.map(t => ({ ...t, updates: (t.updates || []).map(u => ({ ...u, task_id: t.id, data: u.data ? { ...u.data, full: undefined } : u.data })) })), count: A.tasks.filter(t => t.state !== "done").length, limit: limitFacts(A.working()), suggestions: [], notify: { ...A.notify, junk: !!A.junk } });
   A.blocked = () => { const w = A.tasks.filter(t => ["running", "needs_you"].includes(t.state)); return { blocked: { task_id: w[0].id, max: 3, line: limitFacts(w.length).line, tasks: w.map(t => ({ id: t.id, summary: t.summary })) } }; };
   A.handle = async b => {
     A.calls.push(b.action + (b.act ? ":" + b.act : "") + (b.event ? ":" + b.event : ""));
@@ -69,7 +69,7 @@ try {
   for (const W of [1440, 390]) {
     // 0 Tasks
     { const A = account([]); const p = await open(A, W, "&start=1"); const t = await text(p);
-      ok(/Tell Sam what to look for/.test(t) && !/running|Stop one|Paused/.test(t), `[${W}] 0 Tasks: the box, no limit notice`); ok((await badge(p)) === "", `[${W}] 0 Tasks: no badge`);
+      ok(/Tell Sam what to look for/.test(t) && /You have 0 of 3 Tasks running\. 3 Tasks left\./.test(t) && !/Stop one|Paused/.test(t), `[${W}] 0 Tasks: the box and the status line, no limit notice`); ok((await badge(p)) === "", `[${W}] 0 Tasks: no badge`);
       const L = await layout(p); ok(!L.overlap && !L.selOut && !L.hscroll, `[${W}] 0 Tasks: email toggle and How often do not overlap ${JSON.stringify(L)}`); await shot(p, `tasks-0-${W}`); await p.close(); }
     // 2 Tasks
     { const A = account([mkTask(1), mkTask(2)]); const p = await open(A, W); await wait(700); const t = await text(p);
@@ -78,26 +78,44 @@ try {
       ok(await p.evaluate(() => document.getElementById("tkapp").innerHTML.indexOf("tkq\"") < document.getElementById("tkapp").innerHTML.indexOf("task-0000")), `[${W}] 2 Tasks: the new-Task box comes before the Tasks`);
       const L = await layout(p); ok(!L.overlap && !L.selOut && !L.hscroll && L.clipped === 0 && L.chips >= 3, `[${W}] 2 Tasks: no overlap, no clipped badge ${JSON.stringify(L)}`);
       await shot(p, `tasks-2-${W}`); await p.close(); }
-    // 3 Tasks, the limit card via a typed attempt, then close one and start
-    { const A = account([mkTask(1), mkTask(2), mkTask(3)]); const p = await open(A, W); await wait(700);
-      ok((await badge(p)) === "3" && !/Stop one to start/.test(await text(p)), `[${W}] 3 Tasks: badge 3, no notice before an attempt`);
-      await shot(p, `tasks-3-${W}`);
-      await p.type("#tkq", "find me a Mustang"); await p.keyboard.press("Enter"); await wait(700); let t = await text(p);
-      ok(/You have 3 Tasks running\. Stop one to start this one\./.test(t) && (t.match(/Stop and start this one/g) || []).length === 3, `[${W}] 3 Tasks: the limit card with three Stop and start this one`);
+    // 3 Tasks: the limit card REPLACES the box (no box to type into), a Stop frees a slot and the box comes back, then Start fills it again
+    { const A = account([mkTask(1), mkTask(2), mkTask(3)]); const p = await open(A, W); await wait(700); let t = await text(p);
+      ok((await badge(p)) === "3" && /You have 3 Tasks running\. Stop one to add another\./.test(t) && (t.match(/Stop and start this one/g) || []).length === 3, `[${W}] 3 Tasks: badge 3, the limit card with three Stop and start this one`);
+      ok(!(await p.$("#tkq")) && !/of 3 Tasks running/.test(t), `[${W}] 3 Tasks: no box to type into, no status line`);
       ok(!/\bAI\b|upgrade|plan|Pro\b/.test(await p.evaluate(() => document.querySelector(".limitbox").innerText)), `[${W}] limit card: no upsell wording`);
-      await shot(p, `tasks-limit-${W}`);
+      await shot(p, `tasks-3-${W}`);
       await p.click(".limitbox .lrow:nth-of-type(2) button"); await wait(900); t = await text(p);
-      ok(!/Stop one to start/.test(t) && /Sam will look for find me a Mustang\. Start\?/.test(t), `[${W}] stopping one at the limit drafts the new Task (read-back with Start)`);
+      ok(!/Stop one to add another/.test(t) && !!(await p.$("#tkq")) && /You have 2 of 3 Tasks running\. 1 Task left\./.test(t), `[${W}] stopping one at the limit brings the box back, the status line says 2 of 3`);
       ok(A.working() === 2 && (await badge(p)) === "2", `[${W}] after stopping: 2 working, badge ${await badge(p)}`);
+      await p.type("#tkq", "find me a Mustang"); await p.keyboard.press("Enter"); await wait(700);
       await p.click("[data-start]"); await wait(900); t = await text(p);
-      ok(A.working() === 3 && (await badge(p)) === "3" && !/Stop one to start|one job at a time|You already have/.test(t), `[${W}] after Start: 3 working, badge 3, and NO stale limit notice (the reported bug)`);
+      ok(A.working() === 3 && (await badge(p)) === "3" && /Stop one to add another/.test(t) && !/Stop one to start this one|one job at a time|You already have/.test(t), `[${W}] after Start: 3 working, the card is back with the entry line (no stale attempt line)`);
       ok(p._errs.length === 0, `[${W}] no page errors ${JSON.stringify(p._errs)}`); await p.close(); }
-    // the reported stale-notice case: at the limit an attempt shows the card; the person closes a Task with its own Stop; the card goes
-    { const A = account([mkTask(1), mkTask(2), mkTask(3)]); const p = await open(A, W); await wait(500);
-      await p.type("#tkq", "g body sedans"); await p.keyboard.press("Enter"); await wait(600); ok(/Stop one to start this one/.test(await text(p)), `[${W}] stale case: the card shows at the limit`);
+    // arriving with a new job (seed) at the limit: the card names it; Stop and start this one drafts it
+    { const A = account([mkTask(1), mkTask(2), mkTask(3)]); const p = await open(A, W, "&seed=typed&words=find%20me%20a%20Mustang"); await wait(600); let t = await text(p);
+      ok(/You have 3 Tasks running\. Stop one to start this one\./.test(t), `[${W}] seed at the limit: the card says Stop one to start this one`);
+      await shot(p, `tasks-limit-${W}`);
+      await p.click(".limitbox .lrow:nth-of-type(2) button"); await wait(1100); t = await text(p);
+      ok(/Sam will look for find me a Mustang\. Start\?/.test(t) && A.working() === 2, `[${W}] seed: stopping one drafts the new Task (read-back with Start)`); await p.close(); }
+    // the reported stale-notice case: at the limit with a job in hand the card shows; the person stops a Task with its own Stop; the card goes
+    { const A = account([mkTask(1), mkTask(2), mkTask(3)]); const p = await open(A, W, "&seed=typed&words=g%20body%20sedans"); await wait(600);
+      ok(/Stop one to start this one/.test(await text(p)), `[${W}] stale case: the card shows at the limit`);
       await p.click("[data-act=stop]"); await wait(900); const t = await text(p);
       ok(!/Stop one to start|one job at a time|You already have/.test(t) && /Tell Sam what to look for/.test(t), `[${W}] stale case: after a Stop the card is gone (the server says 2 working)`);
       ok(await p.evaluate(() => document.getElementById("tkq").value) === "g body sedans", `[${W}] stale case: the attempted words are back in the box`); await p.close(); }
+    // the status line at 1 and 2 Tasks, and the compact rows: the newest open, the others closed, N new, Pause and Stop
+    { const A = account([mkTask(1, "running", { created_at: ago(30), unread: 2 }), mkTask(2, "running", { created_at: ago(5) })]); const p = await open(A, W); await wait(700); const t = await text(p);
+      ok(/You have 2 of 3 Tasks running\. 1 Task left\./.test(t), `[${W}] 2 Tasks: the status line`);
+      const rows = await p.$$eval("details.trow", ds => ds.map(d => ({ id: d.id, open: d.open, sum: d.querySelector("summary").innerText, btns: [...d.querySelectorAll("summary button")].map(b => b.textContent) })));
+      ok(rows.length === 2 && rows.find(r => r.id.endsWith("2")).open === true && rows.find(r => r.id.endsWith("1")).open === false, `[${W}] rows: the newest Task is open, the other closed (${rows.map(r => r.id.slice(-1) + ":" + r.open)})`);
+      ok(rows.every(r => r.btns.join() === "Pause,Stop") && /2 new/i.test(rows.find(r => r.id.endsWith("1")).sum) && !/new/i.test(rows.find(r => r.id.endsWith("2")).sum), `[${W}] rows: name, status, N new only when there are some, Pause and Stop`);
+      await p.click("#task-00000000-0000-4000-8000-000000000001 summary .pill"); await wait(200);
+      ok(await p.$eval("#task-00000000-0000-4000-8000-000000000001", d => d.open), `[${W}] a closed row opens on a click`);
+      await shot(p, `tasks-rows-${W}`); await p.close(); }
+    { const A = account([mkTask(1)]); const p = await open(A, W); await wait(600); ok(/You have 1 of 3 Tasks running\. 2 Tasks left\./.test(await text(p)), `[${W}] 1 Task: the status line`); await p.close(); }
+    // the junk-folder line shows only while the server says no alert email has gone out yet
+    { const A = account([mkTask(1)]); A.junk = true; const p = await open(A, W); await wait(600); ok(/check your junk folder/.test(await text(p)), `[${W}] junk line: shown while the server says so`); await p.close(); }
+    { const A = account([mkTask(1)]); A.junk = false; const p = await open(A, W); await wait(600); ok(!/junk folder/.test(await text(p)), `[${W}] junk line: gone once the first email has arrived`); await p.close(); }
     // the starting state: Start shows the Task at once, the first run is slow, cards fill in after
     { const A = account([mkTask(1)], { firstDelay: 1800, cardsDelay: 600 }); const p = await open(A, W); await wait(500);
       await p.type("#tkq", "g body sedans"); await p.keyboard.press("Enter"); await wait(500); await p.click("[data-start]"); await wait(500);

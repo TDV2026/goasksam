@@ -92,6 +92,11 @@ const APP_CSS = `
 .tkbox button{border:0;background:var(--ink);color:var(--on-accent,#fff);border-radius:6px;min-height:40px;padding:0 14px;font:500 15px var(--sans);cursor:pointer}
 .tkbox button[disabled]{opacity:.6}
 .choices{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}.choices .chip{font:500 15px/1 var(--sans);padding:11px 16px;min-height:44px;border:1px solid var(--div);background:#fff;color:var(--ink);border-radius:999px;cursor:pointer}.choices .chip:hover{border-color:#1A1A1A}.choices .chip:disabled{opacity:.5;cursor:default}
+.statusline{margin:0 0 12px;font:500 15px/1.4 var(--sans);color:var(--sec)}
+details.trow{padding:0;margin-top:10px}details.trow>summary{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:14px 16px;cursor:pointer;list-style:none}details.trow>summary::-webkit-details-marker{display:none}
+details.trow>summary .tline{flex:1 1 220px;min-width:0;margin:0;font:500 16px/1.4 var(--sans);overflow-wrap:anywhere}details.trow>summary .tbtns{display:flex;gap:8px;margin-left:auto}
+.newn{font:600 13px/1 var(--sans);padding:5px 9px;border-radius:999px;background:#1E4D38;color:#fff;white-space:nowrap}
+details.trow>:not(summary){margin-left:16px;margin-right:16px}details.trow[open]{padding-bottom:14px}
 .unfin{padding:12px 16px;margin-top:12px}.unfin .unfinline{margin:0 0 8px;font:500 15px/1.4 var(--sans);overflow-wrap:anywhere}.unfin .go{margin-top:0}
 .samreply{margin:10px 0 0;font:400 17px/1.45 var(--serif);color:var(--tk-text2)}
 .feed{list-style:none;margin:20px 0 0;padding:0;border-top:1px solid var(--div)}
@@ -306,16 +311,21 @@ const APP_JS = String.raw`(function(){
       return '<li><span class="when">' + esc(when(u.created_at)) + '</span>' + (eline ? '<p class="ut line">' + esc(u.data.line) + "</p>" : '<p class="ut' + (u.kind === "system" ? " sys" : "") + '">' + esc(u.text) + "</p>") + cars(u) + "</li>"; }).join("") + "</ul>";
   }
   function box(label, id, value, ph, tid){ return '<div class="tkask"><label class="boxlab" for="' + id + '">' + esc(label) + '</label><div class="tkbox"><input id="' + id + '" autocomplete="off"' + (tid ? ' data-task="' + tid + '"' : "") + ' value="' + esc(value || "") + '" placeholder="' + esc(ph || "") + '"><button type="button" data-send="' + id + '"' + (tid ? ' data-task="' + tid + '"' : "") + (busy ? " disabled" : "") + ">" + (busy ? "Sam is reading..." : "Send") + "</button></div></div>"; }
-  function taskCard(t, compact){
+  // EACH TASK IS A COMPACT ROW (Oct 24 2026): name, status, "N new", Pause and Stop; it opens to show its cars. The newest Task is open, the
+  // others closed, and a row the person opens or closes stays as they left it through every redraw.
+  var openRows = {};
+  function isOpen(t, newestId){ return openRows[t.id] !== undefined ? openRows[t.id] : t.id === newestId; }
+  function taskCard(t, compact, newestId){
     var st = status(t), live = t.state !== "done" && !compact;
-    var btns = t.state !== "done" ? '<div class="tbtns">' + (t.state === "paused" ? '<button class="sbtn" data-act="resume" data-id="' + t.id + '">Resume</button>' : '<button class="sbtn" data-act="pause" data-id="' + t.id + '">Pause</button>') + '<button class="sbtn" data-act="stop" data-id="' + t.id + '">Stop</button></div>' : "";
-    var h = '<section class="tcard" id="task-' + t.id + '"><div class="thead"><span class="pill ' + st[0] + '">' + st[1] + '</span><p class="tline">' + esc(t.summary) + "</p>" + btns + "</div>";
+    var btns = t.state !== "done" ? '<span class="tbtns">' + (t.state === "paused" ? '<button class="sbtn" data-act="resume" data-id="' + t.id + '">Resume</button>' : '<button class="sbtn" data-act="pause" data-id="' + t.id + '">Pause</button>') + '<button class="sbtn" data-act="stop" data-id="' + t.id + '">Stop</button></span>' : "";
+    var unread = Number(t.unread) > 0 ? '<span class="newn">' + Number(t.unread) + " new</span>" : "";
+    var h = '<details class="tcard trow" id="task-' + t.id + '" data-row="' + t.id + '"' + (isOpen(t, newestId) ? " open" : "") + '><summary><span class="pill ' + st[0] + '">' + st[1] + '</span><span class="tline">' + esc(t.summary) + "</span>" + unread + btns + "</summary>";
     if (live) {
       if (pending && pendingId === t.id) h += '<p class="readback">' + esc(pending.summary.replace(/^Sam is looking for/, "Sam will look for").replace(/^Sam is researching/, "Sam will research")) + '</p><div class="go"><button class="pbtn" data-apply="' + t.id + '">Use this change</button><button class="plink" data-unpending>Keep the Task as it is</button></div>';
       h += box("Change the Task or tell Sam something", "tkq-" + t.id, "", "", t.id);
       if (reply && !(pending && pendingId === t.id) && replyFor === t.id) h += '<p class="samreply">' + esc(reply) + "</p>";
     }
-    return h + feed(t) + "</section>";
+    return h + feed(t) + "</details>";
   }
   // The draft in the top slot (opened by typing, Continue or a seed): the question last asked with its choices as buttons and the box,
   // or the read-back with Start and Change. Never an old error line: the not-understood sentence shows only for the answer just given.
@@ -343,7 +353,7 @@ const APP_JS = String.raw`(function(){
   }
   // THE LIMIT CARD (one, compact): the server's sentence, then the working Tasks, each with the action that stops it and starts the new one.
   function limitCard(workingTasks){
-    return '<section class="limitbox" role="status"><p>' + esc((data && data.limit && data.limit.line) || limit.line || "") + '</p>' + workingTasks.map(function(t){
+    return '<section class="limitbox" role="status"><p>' + esc(limit ? ((data && data.limit && data.limit.line) || limit.line || "") : ((data && data.limit && data.limit.entryLine) || "")) + '</p>' + workingTasks.map(function(t){
       return '<div class="lrow"><span class="ltxt">' + esc(phraseOf(t)) + '</span><button class="sbtn" data-limit-stop="' + t.id + '">Stop and start this one</button></div>'; }).join("") +
       '<p class="lkeep"><button class="plink" data-limit-keep>Never mind</button></p></section>';
   }
@@ -370,15 +380,20 @@ const APP_JS = String.raw`(function(){
     // Arriving with a new job (a seed) at the limit: the card, with that job as the one to start.
     if (arrived) { if (params.get("seed") && lim && lim.atLimit && !limit) showLimit({ mode: "seed", attempted: seedWords(), line: lim.line }); arrived = false; if (!limit) dropEntryParams(); }
     if (note) h += '<p class="noteinfo" role="status">' + esc(note) + "</p>";
+    // The junk-folder line: the server says when it shows (from a Task's start until the first alert email has gone out).
+    if (data && data.notify && data.notify.junk) h += '<p class="noteinfo" role="status">If this isn\'t in your inbox, check your junk folder, and mark it as not junk so the next one lands.</p>';
     // The new Task comes first: the limit card (only at the limit), else the read-back, else the box.
-    if (limit && lim && lim.atLimit) h += limitCard(work);
+    // The one status line, then the setup box; at the limit the limit card takes the box's place, so nobody types into a box that cannot be used.
+    if (lim && lim.statusLine) h += '<p class="statusline" role="status">' + esc(lim.statusLine) + "</p>";
+    if (lim && lim.atLimit) h += limitCard(work) + (draft ? unfinishedCard() : "");
     else if (draft && draftOpen) h += draftCard();
     else h += newBox() + (draft ? unfinishedCard() : "");
-    h += work.map(function(t){ return taskCard(t); }).join("");
+    var newestId = work.length ? work.slice().sort(function(x, y){ return String(y.created_at || "").localeCompare(String(x.created_at || "")); })[0].id : null;
+    h += work.map(function(t){ return taskCard(t, false, newestId); }).join("");
     // The email settings show for everyone signed in, with or without a working Task: exact-car, sold-car and
     // Before it ends emails use them too.
     h += notifyLine();
-    if (paused.length) h += '<p class="pausedh">Paused</p>' + paused.map(function(t){ return taskCard(t, true); }).join("");
+    if (paused.length) h += '<p class="pausedh">Paused</p>' + paused.map(function(t){ return taskCard(t, true, null); }).join("");
     if (past.length) h += '<details class="past"><summary>Past Tasks (' + past.length + ")</summary>" + past.map(function(t){ var st = status(t); return '<details><summary><span class="pill ' + st[0] + '">' + st[1] + "</span>" + esc(t.summary) + "</summary>" + feed(t) + "</details>"; }).join("") + "</details>";
     app.innerHTML = h;
     Object.keys(keep).forEach(function(k){ var el = $(k); if (el && keep[k]) el.value = keep[k]; });
@@ -457,7 +472,7 @@ const APP_JS = String.raw`(function(){
   document.addEventListener("click", function(e){
     var t = e.target.closest("[data-send],[data-act],[data-start],[data-change],[data-apply],[data-unpending],[data-goto],[data-limit-stop],[data-limit-keep],[data-choice],[data-continue],[data-discard]"); if (!t) return;
     if (t.hasAttribute("data-limit-keep")) { e.preventDefault(); var lk = limit; limit = null; carry = ""; if (lk) api({ action: "limit", event: "keep", mode: lk.mode, attempted: lk.attempted }).catch(function(){}); dropEntryParams(); render(); return; }
-    if (t.hasAttribute("data-limit-stop")) { e.preventDefault(); if (t.disabled) return; var ls = limit, cid = t.getAttribute("data-limit-stop"); if (!ls) return; working(t, "Stopping...");
+    if (t.hasAttribute("data-limit-stop")) { e.preventDefault(); if (t.disabled) return; var ls = limit || { mode: "none", attempted: "" }, cid = t.getAttribute("data-limit-stop"); working(t, "Stopping...");
       api({ action: "limit", event: "stop", mode: ls.mode, task_id: cid, attempted: ls.attempted, resume_id: ls.resume_id || null, draft: ls.mode === "draft" ? draft : null, defer: true }).then(function(j){
         limit = null; reply = "";
         if (ls.mode === "draft" && j && j.task) { saveDraft(null); if (j.task.state === "running") { starting[j.task.id] = true; } }
@@ -477,13 +492,14 @@ const APP_JS = String.raw`(function(){
     // Start: the Task is created and shown at once (running, "Sam is starting"); the first match run and the cars fill in after.
     if (t.hasAttribute("data-start")) { working(t, "Starting..."); api({ action: "start", draft: draft, defer: true }).then(function(j){
       if (j.blocked) { showLimit({ mode: "draft", attempted: (draft && (draft.summary || draft.words)) || "", line: j.blocked.line }); return load(); }
-      if (j.task) { saveDraft(null); reply = ""; limit = null; if (j.task.starting) starting[j.task.id] = true; note = (data && data.notify && data.notify.on === false) ? "" : "If this isn't in your inbox, check your junk folder, and mark it as not junk so the next one lands."; }
+      if (j.task) { saveDraft(null); reply = ""; limit = null; if (j.task.starting) starting[j.task.id] = true; note = ""; }
       return load(); }).catch(function(){ load(); }); return; }
     if (t.hasAttribute("data-apply")) { working(t, "Saving..."); api({ action: "apply", task_id: t.getAttribute("data-apply"), pending: pending }).then(function(){ pending = null; pendingId = null; reply = ""; note = ""; return load(); }).catch(function(){ load(); }); return; }
     if (t.hasAttribute("data-act")) { working(t, { pause: "Pausing...", resume: "Resuming...", stop: "Stopping..." }[t.getAttribute("data-act")] || "..."); api({ action: "control", task_id: t.getAttribute("data-id"), act: t.getAttribute("data-act") }).then(function(j){ note = ""; pending = null; pendingId = null; reply = "";
       if (j.blocked) { var rt = findTask(t.getAttribute("data-id")); showLimit({ mode: "resume", attempted: rt ? phraseOf(rt) : "", line: j.blocked.line, resume_id: t.getAttribute("data-id") }); }
       return load(); }).catch(function(){ load(); }); }
   });
+  document.addEventListener("toggle", function(e){ var d = e.target; if (d && d.getAttribute && d.getAttribute("data-row")) openRows[d.getAttribute("data-row")] = !!d.open; }, true);
   document.addEventListener("change", function(e){
     if (e.target && e.target.hasAttribute && e.target.hasAttribute("data-notify-every")) {
       var every = e.target.value; e.target.disabled = true;

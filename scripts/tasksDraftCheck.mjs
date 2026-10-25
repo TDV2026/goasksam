@@ -44,6 +44,17 @@ const capped = { ...open, asks: 2 };
 script = [toolTurn({ kind: "hunt", make: "Porsche", colour: "red" }), textTurn("Sam will look for red Porsches. Start?")];
 r = await turn({ ...capped, question: null, qkind: null }, "red porsche again");
 ok(r.draft && !r.draft.question && r.draft.filters.any_model === "1" && r.draft.asks === 2, "after two questions, a make with no model reads as Any, not a third question");
+// Never narrow silently: "manual" is no BMW model, so the model the setup turn guessed is taken back out and the question stays open.
+const bmw = { at: new Date().toISOString(), asks: 1, words: "black manual bmw with less than 50k miles", kind: "hunt", filters: { make: "BMW", colour: "black", gearbox: "manual", miles_max: 50000 }, question: "Which BMW model should Sam look for?", qkind: "model", options: ["M3", "M5"], any: "Any BMW", thread: [] };
+script = [toolTurn({ kind: "hunt", make: "BMW", colour: "black", gearbox: "manual", miles_max: 50000, model: "M3" }), textTurn("Sam will look for black manual BMW M3s. Start?")];
+r = await turn(bmw, "manual");
+ok(r.miss === true && r.draft.question === bmw.question && !r.draft.filters.model && r.draft.filters.gearbox === "manual" && /^Sam didn't understand that answer\. The choices are M3, M5 or Any BMW\.$/.test(r.reply), `"manual" to a model question picks no model: said once, the question and buttons stay (${JSON.stringify(r.reply)})`);
+// ...but a real model named in the answer still goes through.
+script = [toolTurn({ kind: "hunt", make: "BMW", colour: "black", gearbox: "manual", miles_max: 50000, model: "M3" }), textTurn("Sam will look for black manual BMW M3s. Start?")];
+r = await turn(bmw, "the m3 please");
+ok(!r.draft.question && r.draft.filters.model === "M3", "an answer naming the M3 chooses it");
+r = await turn(bmw, "Any BMW");
+ok(!r.draft.question && r.draft.filters.any_model === "1", "the Any BMW button reads as Any");
 // A draft older than a day, or never stamped, is dropped by the server.
 const old = { ...open, at: new Date(Date.now() - 25 * 3600e3).toISOString() };
 ok(draftFresh(open) === open && !draftFresh(old) && !draftFresh({ ...open, at: undefined }) && !draftFresh(null), "draftFresh: under a day kept, over a day or unstamped dropped");
