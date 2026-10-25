@@ -356,6 +356,7 @@ function authRenderCheckEmail(email) {
   if (!d) return;
   d.innerHTML = `<h3>Enter your code</h3>
     <p>Check your email for the code. It went to <strong>${authEsc(email)}</strong>.</p>
+    <p class="auth-junk" style="margin:-4px 0 12px;font-size:13px;color:#6B6861">Check your junk folder if it does not arrive.</p>
     <input id="auth-code" class="auth-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="Enter the code" aria-label="Sign-in code" />
     <div id="auth-error" class="auth-error" style="display:none"></div>
     <button class="auth-email-btn" onclick="authVerifyCode(this)">Verify and sign in</button>
