@@ -6,7 +6,7 @@ const read = async q => { const r = await resolveVehicle(q, {}); return { st: r 
 for (const [q, make, model] of [
   ["1973 De Tomaso Pantera", "DeTomaso", "Pantera"], ["1973 DE TOMASO PANTERA", "DeTomaso", "Pantera"], ["1973 DeTomaso Pantera", "DeTomaso", "Pantera"],
   ["1965 Rolls Royce Silver Cloud", "Rolls-Royce", "Silver Cloud"], ["1949 Autocar C-50", "Autocar", null], ["1961 Wolseley 1500", "Wolseley", null],
-  ["1935 Scott 596cc Flying Squirrel", "Scott", null], ["1950 Kurtis Sports Car", "Kurtis", null], ["1992 Porsche 911 Carrera 4 by Singer", "Porsche", "911"],
+  ["1935 Scott 596cc Flying Squirrel", "Scott", null], ["1950 Kurtis Sports Car", "Kurtis", null], ["2000 Lola -Ford B2K/00", "Lola", null], ["1960 Auto Union 1000 SP", "Auto Union", null], ["1992 Porsche 911 Carrera 4 by Singer", "Porsche", "911"],
   ["2005 Suzuki Swift", "Suzuki", "Swift"], ["1969 Chevrolet Camaro", "Chevrolet", "Camaro"]
 ]) {
   const { st, v } = await read(q);
