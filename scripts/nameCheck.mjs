@@ -29,5 +29,16 @@ eq("Mille Miglia tribute 911L reads L", (await read("1968 Porsche 911L Mille Mig
 eq("Chevrolet Monte Carlo stays the model", (await read("1971 Chevrolet Monte Carlo")).split("|")[0], "Monte Carlo");
 eq("Pontiac Le Mans GTO unchanged", await read("1964 Pontiac Le Mans GTO"), "GTO||");
 eq("Ferrari 250 GT Tour de France keeps its model", (await read("1961 Ferrari 250 GT Tour de France")).split("|")[0], "250 GT");
+// LOOK-ALIKES AND ENGINE NAMES (trim-word sweep, Oct 25 2026)
+const tr = async t => (await read(t)).split("|").slice(0, 2).join("|");
+eq("Turbo-Look BMW 2002 has no Turbo trim", await tr("Turbo-Look 1975 BMW 2002 5-Speed"), "2002|");
+eq("GT-Style 914 has no GT trim", await tr("GT-Style, 2.7L-Powered 1974 Porsche 914 5-Speed"), "914|");
+eq("RS-Style 911S reads S", await tr("Non-Sunroof, RS-Style 1975 Porsche 911S Coupe"), "911|S");
+eq("Boss-Look Mustang has no Boss trim", await tr("Boss-Look 1969 Ford Mustang Convertible 302"), "Mustang|");
+eq("Kaase Boss Nine-Powered Mach 1 reads Mach 1", await tr("Fuel-Injected, Kaase \u201cBoss Nine\u201d-Powered 1969 Ford Mustang Mach 1 6-Speed"), "Mustang|Mach 1");
+eq("a real Boss 429 is unchanged", await tr("1969 Ford Mustang Boss 429"), "Mustang|Boss 429");
+eq("a real SVT Cobra is unchanged", await tr("1999 Ford Mustang SVT Cobra"), "Mustang|SVT Cobra");
+eq("a Z28 Pace Car Edition keeps Z28", await tr("1993 Chevrolet Camaro Z28 Pace Car Edition"), "Camaro|Z28");
+eq("the 911 S/T-Style 912 is a 912", (await tr("911 S/T-Style, 3.0L-Powered 1967 Porsche 912 Coupe 5-Speed")).split("|")[0], "912");
 if (failed) { console.log(`nameCheck: ${failed} failed`); process.exit(1); }
 console.log("nameCheck: no printed name puts a generation code in front of 911.");
