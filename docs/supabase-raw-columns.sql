@@ -87,7 +87,18 @@ begin
       modifications     = coalesce(s.modifications,     nullif(s.raw_record->'modifications', 'null'::jsonb)),   -- jsonb column: copy the jsonb (->), never text (->>)
       exterior_color    = coalesce(s.exterior_color,    s.raw_record->>'exterior_color'),
       title_status      = coalesce(s.title_status,      s.raw_record->>'title_status')
-    where (v_last is null or s.id > v_last) and s.id <= v_next;
+    where (v_last is null or s.id > v_last) and s.id <= v_next
+      -- only a row the update would CHANGE is written, so a second pass (the catch-up below) rewrites nothing that is already filled
+      and (s.image_url, s.mileage_text, s.transmission_text, s.currency, s.listing_url, s.source_url, s.city, s.state, s.country_code, s.end_precision,
+           s.body_style, s.modifications, s.exterior_color, s.title_status)
+          is distinct from
+          (coalesce(s.image_url, s.raw_record->>'featured_image_url'), coalesce(s.mileage_text, s.raw_record->>'mileage'),
+           coalesce(s.transmission_text, s.raw_record->>'transmission'), coalesce(s.currency, s.raw_record->>'currency'),
+           coalesce(s.listing_url, s.raw_record->>'url'), coalesce(s.source_url, s.raw_record->>'source_url'), coalesce(s.city, s.raw_record->>'city'),
+           coalesce(s.state, s.raw_record->>'state'), coalesce(s.country_code, s.raw_record->>'country_code'),
+           coalesce(s.end_precision, s.raw_record->>'auction_end_precision'), coalesce(s.body_style, s.raw_record->>'body_style'),
+           coalesce(s.modifications, nullif(s.raw_record->'modifications', 'null'::jsonb)), coalesce(s.exterior_color, s.raw_record->>'exterior_color'),
+           coalesce(s.title_status, s.raw_record->>'title_status'));
     get diagnostics v_n = row_count;
     v_total := v_total + v_n;
     v_last := v_next;
@@ -110,6 +121,12 @@ revoke execute on procedure public.fill_sales_archive_raw_columns(int, int) from
 -- select * from public.sales_archive_fill_progress;
 -- When done:
 -- vacuum (analyze) public.sales_archive;
+
+-- CATCH-UP (rows ingest wrote while the fill ran): the fill walks ids in order and ids are random uuids, so a row ingest adds with an id
+-- below the cursor is skipped, and until Block 4 ships a new row carries null in the new columns. After Block 4 is on and the fill says
+-- done, run once more from the start; only rows still needing a value are written (the where clause above), so it is cheap:
+-- update public.sales_archive_fill_progress set last_id = null, finished = false where job = 'raw_columns';
+-- call public.fill_sales_archive_raw_columns(5000, 10);   -- repeat until done again, then Block 3(b)
 
 -- Rollback step 2: the fill is idempotent and only writes null cells, so a stopped fill needs no undo;
 -- to start over: update public.sales_archive_fill_progress set last_id = null, done_rows = 0, finished = false
