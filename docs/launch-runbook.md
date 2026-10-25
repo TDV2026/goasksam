@@ -31,7 +31,17 @@ Rollback switches, cheapest first. Vercel applies an environment variable change
 | PARTNER_DEMO_CODE | Vercel env | Unset: /partner-demo is not reachable by code | Yes |
 | vin_input_enabled | Supabase app_config row (0 or 1) | The typed-VIN path, crew and test sessions | No (read at request time) |
 | PALETTE_BAR_ON, RANGE_RULES.trimFirst | Code constants (lib/appShell.js, lib/onebox.js) | The crew palette bar; the trim-first question | Yes, by a push through Lane C |
-| Task email sending | No env switch found in the code. Options: disable the cron entries for /api/tasks?send=1 and ?run=1 in vercel.json (push), or in the Vercel project's cron settings if the dashboard offers it. | Car emails and watches | Not decided |
+| task_emails_enabled (the Task email kill switch) | Supabase app_config row (see the steps under the table) | Every Task email: match, daily, before it ends, watch event, sold notice, the start email and test sends. Sign-in codes are untouched (Supabase sends those). | No (read at send time, held 5 seconds) |
+
+Task email kill switch, exactly how to flip it (Lane C, Oct 24 2026; code: lib/_email.js sendTaskEmail, one choke point for every Task email):
+1. Stop every Task email, either way (both write the one app_config row task_emails_enabled):
+   - Supabase SQL editor: `insert into app_config (key, value) values ('task_emails_enabled', '"0"') on conflict (key) do update set value = '"0"';`
+   - or the keyed read-and-write call (the probe key is in Sam's Keychain, never pasted here): GET https://goasksam.com/api/tasks?emailswitch=off with the header x-ops-key. It answers `task_emails: OFF`.
+2. Check it: GET https://goasksam.com/api/tasks?emailswitch=status (same header) answers `OFF` or `on`.
+3. Send again: the same call with emailswitch=on, or in SQL set the value to '"1"' (deleting the row also means on).
+4. It takes effect within 5 seconds, no deploy. While it is OFF each email that comes due is SKIPPED and recorded as done by its sender, so it is NOT sent later when the switch goes back on; Tasks keep running and in-app updates still show.
+5. If the switch cannot be read (Supabase down), emails still go (fail open, logged as "task email switch unreadable"), because the senders need the same database anyway.
+6. Not affected: sign-in codes, the internal Sam Desk request notice, partner lead notices, Beehiiv.
 
 Promote previous deployment (whole-site rollback, no code change):
 1. Vercel dashboard, project goasksam, Deployments.

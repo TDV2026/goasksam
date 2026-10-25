@@ -164,6 +164,22 @@ async function handler(req, res) {
       const norm = x => String(x || "").trim().toLowerCase();
       return res.status(200).json({ accounts_with_task_email: rows.length, differing_from_account_email: rows.filter(x => norm(x.task_email) !== norm(x.email)).length });
     }
+    // THE TASK EMAIL KILL SWITCH (Sam, Oct 24 2026; lib/_email.js taskEmailsOff): probe key only. ?emailswitch=status reads it, =off stops
+    // every Task email (sign-in codes are not Task emails), =on sends again. Writes ONLY the app_config row task_emails_enabled.
+    if (req.method === "GET" && q.emailswitch && probeOk(req)) {
+      const mode = String(q.emailswitch);
+      if (!["status", "on", "off"].includes(mode)) return res.status(400).json({ error: "emailswitch is status, on or off" });
+      const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json" };
+      if (mode !== "status") {
+        const w = await fetch(`${env.supabaseUrl}/rest/v1/app_config?on_conflict=key`, { method: "POST", headers: { ...H, Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify([{ key: "task_emails_enabled", value: mode === "on" ? "1" : "0" }]) });
+        if (!w.ok) return res.status(500).json({ error: "could not write the switch: " + w.status });
+      }
+      const r = await fetch(`${env.supabaseUrl}/rest/v1/app_config?key=eq.task_emails_enabled&select=value&limit=1`, { headers: H });
+      const rows = r.ok ? await r.json() : null;
+      const { taskSwitchValueIsOff, resetTaskEmailSwitchCache } = await import("../lib/_email.js"); resetTaskEmailSwitchCache();
+      res.setHeader("Cache-Control", "private, no-store");
+      return res.status(200).json({ task_emails: rows == null ? "unreadable" : (rows[0] && taskSwitchValueIsOff(rows[0].value)) ? "OFF" : "on", row: rows && rows[0] ? rows[0].value : "(no row, which means on)", note: "each running instance holds the answer for up to 5 seconds" });
+    }
     // Crew-only preview of the real-car emails (Sam, Oct 23 2026): the real builders on real live cars, never sent (lib/tasks/carMailPreview.js).
     if (req.method === "GET" && q.carmails && (probeOk(req) || isCrewRequest(req))) {
       const { carMailPreview } = await import("../lib/tasks/carMailPreview.js");
