@@ -1385,7 +1385,7 @@
   // set aside and why (d.setAsideReasons) - never a count of sources/venues. Content unchanged from
   // the prior "How Sam decided" toggle; only its trigger moved (now "How Sam picked these", beside
   // "See all N sales" at the foot of the sales row, see salesRowHtml above).
-  var ASIDE_REASON_LABEL = { modified: ["modified", "modified"], project: ["project car", "project cars"], replica: ["replica or tribute", "replicas or tributes"], "odd sale": ["odd sale", "odd sales"] };
+  var ASIDE_REASON_LABEL = { modified: ["modified", "modified"], project: ["project car", "project cars"], replica: ["replica or tribute", "replicas or tributes"], "odd sale": ["odd sale", "odd sales"], "bulk sale": ["from a bulk sale of project cars", "from a bulk sale of project cars"] };
   function howSamDecidedNoteHtml(d) {
     var yrs = Array.isArray(d.poolYears) ? d.poolYears : null;
     var yearPhrase = yrs ? (yrs[0] === yrs[1] ? String(yrs[0]) : (yrs[0] + " to " + yrs[1])) : "";

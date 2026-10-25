@@ -125,7 +125,7 @@ export function basisLine(d) {
 // (3, Sam, Oct 18 2026) the set-aside line reads as one plain sentence from the engine's own numeric reason counts
 // (setAsideReasons): the count in words under ten, singular and plural right, no colon ("Four sales set aside as odd
 // sales.", "Five sales set aside, four as odd sales and one as modified.").
-const ASIDE_AS = { "odd sale": ["an odd sale", "odd sales"], project: ["a project", "projects"], replica: ["a replica", "replicas"], modified: ["modified", "modified"] };
+const ASIDE_AS = { "odd sale": ["an odd sale", "odd sales"], project: ["a project", "projects"], replica: ["a replica", "replicas"], modified: ["modified", "modified"], "bulk sale": ["from a bulk sale of project cars", "from a bulk sale of project cars"] };
 const numWord = n => n < 10 ? WORD[n] : n.toLocaleString("en-US");
 export function asideSentence(d) {
   const r = d && d.setAsideReasons && typeof d.setAsideReasons === "object" ? d.setAsideReasons : null;
@@ -134,7 +134,7 @@ export function asideSentence(d) {
   const k = parts.reduce((t, [, n]) => t + n, 0);
   if (!k) return null;
   // the one footnote wording (Sam, Oct 23 2026): "N sales set aside: reasons."
-  const LBL = { modified: ["modified", "modified"], project: ["project car", "project cars"], replica: ["replica or tribute", "replicas or tributes"], "odd sale": ["odd sale", "odd sales"] };
+  const LBL = { modified: ["modified", "modified"], project: ["project car", "project cars"], replica: ["replica or tribute", "replicas or tributes"], "odd sale": ["odd sale", "odd sales"], "bulk sale": ["from a bulk sale of project cars", "from a bulk sale of project cars"] };
   const text = k + " " + (k === 1 ? "sale" : "sales") + " set aside: " + parts.map(([key, n]) => { const l = LBL[key] || [key, key]; return n + " " + (n === 1 ? l[0] : l[1]); }).join(", ");
   return text + ".";
 }

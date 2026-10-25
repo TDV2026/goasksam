@@ -1122,6 +1122,15 @@ try {
 } catch (e) {
   record("Model choices for a brand (scripts/modelChoicesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// ---- 2zc. BULK SALE GUARD + EXACT-YEAR LINE (Lane B, Oct 25 2026). No network. ----
+for (const [file, label] of [["bulkSaleCheck", "Bulk-sale guard"], ["exactYearLineCheck", "Exact-year line under a thin answer"]]) {
+  try {
+    const out = execSync(`node scripts/${file}.mjs`, { encoding: "utf8" });
+    record(`${label} (scripts/${file}.mjs)`, "PASS", (out.match(new RegExp(file + ": .*")) || [""])[0]);
+  } catch (e) {
+    record(`${label} (scripts/${file}.mjs)`, "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+  }
+}
 if (TIER === "fast") {
   record("browser check (pushCheck.mjs)", "SKIP", FAST_WHY);
   console.log("\n-- golden truth: not run in the fast tier (it reads the archive) --");
