@@ -14,6 +14,7 @@ import { gaBootstrapHtml } from "../lib/analytics.js";
 import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
+import { heldFor } from "../lib/_hold.js";
 
 const TITLE = "Where to sell your collector car";
 const HERO = `<div class="hero" id="hero"><div class="hp-hero">
@@ -72,6 +73,7 @@ export async function sellShellHtml(req) {
 }
 
 export default async function handler(req, res) {
+  if (heldFor(req, res)) return;   // the holding page while CURTAIN_SEALED=1 (lib/_hold.js); a keyed server job, crew and testers pass
   const crew = isCrewRequest(req);
   const html = await sellShellHtml(req);
   res.setHeader("Content-Type", "text/html; charset=utf-8");

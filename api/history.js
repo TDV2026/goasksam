@@ -23,6 +23,7 @@ import { logPageView } from "../lib/_pageview.js";
 import { classifyRoad } from "../lib/_roadType.js";
 import { projectFlagReason } from "../lib/_classify.js";
 import { bidState, bidTimePT, lastBidLine } from "../lib/tasks/bidTime.js";
+import { heldFor } from "../lib/_hold.js";
 
 const SITE = "https://goasksam.com";
 // Card design system (Oct 2026, the /buy cards): #FAF8F4 paper, near-black ink, one red (#D7262C),
@@ -691,6 +692,7 @@ ${whyResultHtml(crew)}
 
 // ---------------------------------------------------------------- handler
 async function handler(req, res) {
+  if (heldFor(req, res)) return;   // the holding page while CURTAIN_SEALED=1 (lib/_hold.js); a keyed server job, crew and testers pass
   const env = historyEnv();
   const crew = isCrewRequest(req);
   if (!env) return send(res, 503, page({ title: "GoAskSam", crew, body: "<p>Unavailable.</p>", req }), {}, false, crew, req);

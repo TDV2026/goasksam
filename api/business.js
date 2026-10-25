@@ -17,6 +17,7 @@ import { completedSalesCount, vinHistoryShare } from "../lib/live/deskProof.js";
 import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
+import { heldFor } from "../lib/_hold.js";
 
 const TITLE = "Sam Desk | GoAskSam for business";
 const DESC = "Sam Desk: ask the whole collector car market in plain words. Real sales, platform comparisons and market slices, with the cars behind every number.";
@@ -369,6 +370,7 @@ ${CONSENT_BANNER_HTML}
 }
 
 export default async function handler(req, res) {
+  if (heldFor(req, res)) return;   // the holding page while CURTAIN_SEALED=1 (lib/_hold.js); a keyed server job, crew and testers pass
   // LAUNCH_BUSINESS (Oct 2026, Job 2): a public request to this address, while /business is off,
   // gets a TEMPORARY redirect to /sell before any of the work below runs. Crew passes through.
   if (!isReleased("business", req)) { res.setHeader("Cache-Control", "no-store"); res.setHeader("Location", "/sell"); return res.status(302).end(); }

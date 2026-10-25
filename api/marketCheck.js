@@ -30,6 +30,7 @@ import { isTesterRequest } from "../lib/_tester.js";
 import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
+import { heldFor } from "../lib/_hold.js";
 
 // "Your results" (the rail's page-specific section on Market Check/Sell, same mechanism as Buy's
 // "Your searches"): the nav item + its dropdown are hidden by default and filled by js/onebox.js's
@@ -53,6 +54,7 @@ export function stripLaunchGate(html) {
 }
 
 async function handler(req, res) {
+  if (heldFor(req, res)) return;   // the holding page while CURTAIN_SEALED=1 (lib/_hold.js); a keyed server job, crew and testers pass
   // LAUNCH STAGE (Oct 2026, Job 2): a public request to this address, while Market Check is not yet
   // released at the current stage, gets a TEMPORARY redirect to /sell - never permanent, so a stage
   // rollback or a later release does not leave a stale 301 cached anywhere (a browser's own 301

@@ -15,6 +15,7 @@ import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { findCardKitJs, FIND_CARD_CSS } from "../lib/findCardKit.js";
 import { FREE_TASK_LIMIT, freeTasksWords } from "../lib/tasks/limit.js";
+import { heldFor } from "../lib/_hold.js";
 
 export const TASKS_PITCH = { lead: "A free collector car finder.", sub: "Tell Sam what you want and he keeps searching, then emails you when one fits." };
 const HOW = "The cars Sam shows you come from a rules-based matching algorithm. Sam helps understand the question and explain the results, but never invents the cars, the matches or the numbers. Every number comes from real market evidence.";
@@ -127,6 +128,7 @@ details.trow>:not(summary){margin-left:16px;margin-right:16px}details.trow[open]
 @media (max-width:640px){.apph h1{font-size:28px}.tcard{padding:14px 14px 16px}.thead .tline{font-size:19px;min-width:0;flex-basis:100%}}`;
 
 export default async function handler(req, res) {
+  if (heldFor(req, res)) return;   // the holding page while CURTAIN_SEALED=1 (lib/_hold.js); a keyed server job, crew and testers pass
   if (req.query && req.query.app) return appPage(req, res);
   // LAUNCH STAGE (Oct 2026, Job 2): a public request to the bare /tasks LANDING page, while Tasks is
   // not yet released at the current stage, gets a TEMPORARY redirect to /sell. /tasks/mine (the

@@ -1036,6 +1036,13 @@ try {
 } catch (e) {
   record("taskEmailSwitchCheck (scripts/taskEmailSwitchCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The holding page (Sam, Oct 25 2026): sealed, a stranger gets the countdown page (503, no noindex), at zero the site stays closed, crew and keyed jobs pass. No network.
+try {
+  const out = execSync("node scripts/holdPageCheck.mjs", { encoding: "utf8" });
+  record("holdPageCheck (scripts/holdPageCheck.mjs)", "PASS", (out.match(/holdPageCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("holdPageCheck (scripts/holdPageCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });

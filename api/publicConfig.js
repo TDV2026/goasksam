@@ -16,6 +16,7 @@ import { isCrewRequest, FONT_LINKS } from "./_chrome.js";
 import { fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { cors as gasCors } from "../lib/_cors.js";
+import { heldFor } from "../lib/_hold.js";
 
 const YOUR_RESULTS_RAIL = '<a class="gas-navitem" id="gas-nav-results" href="#" style="display:none" onclick="return obToggleResults(event)">Your results</a><div class="gas-submenu" id="gas-results-menu"></div>';
 
@@ -122,6 +123,7 @@ export default async function handler(req, res) {
   // One Box share route (rewritten from /o/<id>). Served here to stay under the Hobby
   // plan's 12-function cap. HTML response, distinct from the JSON config path below.
   if (req.query && typeof req.query.obShare !== "undefined") {
+    if (heldFor(req, res)) return;   // the holding page while CURTAIN_SEALED=1 (lib/_hold.js)
     return handleOneboxShare(req, res, String(req.query.obShare || "").trim());
   }
 

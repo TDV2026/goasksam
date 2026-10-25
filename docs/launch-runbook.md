@@ -71,3 +71,19 @@ Promote previous deployment (whole-site rollback, no code change):
 | Lane F | One digest to Sam when something needs him or something landed (five lines or fewer); enforces the freeze; keeps this file and the checklist |
 
 Search check: no public page touched.
+
+## (e) Sealing the site behind the crew code, and opening it (Lane C, Oct 25 2026)
+
+What the switch does. `CURTAIN_SEALED=1` seals the site for everyone who is not crew, a tester or a server job: Home, Find, Market Check, Sell, Tasks, For business, the spec, history and shared-result pages all answer ONE holding page ("Something big is coming", the launch date and time in Pacific time, a live countdown). The answer is HTTP 503 with Retry-After (closed for now, keep what you have), never a redirect, a 404 or a noindex. The data endpoints refuse strangers too (sellerDecision and vehicleIdentity answer 403 "Not open yet."). Left open on purpose: How Sam decides, About, Privacy, PowerSellers, robots.txt, the sitemaps, the crew link, sign-in codes and the Task email one-tap links (Stop all, Pause, Unsubscribe). The one launch moment is one line in lib/launchTime.js (Thursday 29 October 2026, 7:00 AM Pacific). At zero the page keeps the headline and drops the timer; it does NOT open the site.
+
+Seal, one step at a time:
+1. Vercel dashboard, project goasksam, Settings, Environment Variables: add `CURTAIN_SEALED` with the value `1` for Production.
+2. Redeploy (Deployments, the latest Ready deployment, Redeploy). An environment variable applies only to a new deployment.
+3. Check from a private window (signed out, no crew link): goasksam.com, /find, /market-check, /sell, /tasks each show the holding page. About and Privacy still open.
+4. Check as crew: open your crew link once in a normal window; the site opens as usual.
+
+Open the site on launch day: delete `CURTAIN_SEALED` (or set it to `0`), set LAUNCH_STAGE to 2 and LAUNCH_BUSINESS to 1 if they are not already, redeploy, then check from a private window.
+
+Roll back the seal in one line: Vercel Instant Rollback (Deployments, the previous Ready deployment, Promote to Production) or unset CURTAIN_SEALED and redeploy.
+
+What keeps working while sealed: running Tasks for existing accounts keep searching and emailing (they run on server schedules, not through the pages); Task and sign-in emails send as before; links in a Task email that open a page (Open the Task, a car's Market Check) show the holding page to a non-crew reader, while Stop all, Pause and Unsubscribe still work.

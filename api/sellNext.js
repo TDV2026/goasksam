@@ -17,6 +17,7 @@ import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../
 import { SHELL_CSS, SHELL_JS, railOpenHtml } from "../lib/appShell.js";
 import { isCrewRequest, FONT_LINKS } from "./_chrome.js";
 import { hasServerCredential } from "../lib/_credential.js";
+import { heldFor } from "../lib/_hold.js";
 
 const YOUR_RESULTS_RAIL = '<a class="gas-navitem" id="gas-nav-results" href="#" style="display:none" onclick="return obToggleResults(event)">Your results</a><div class="gas-submenu" id="gas-results-menu"></div>';
 
@@ -32,6 +33,7 @@ function pcardCss() {
 }
 
 export default async function handler(req, res) {
+  if (heldFor(req, res)) return;   // the holding page while CURTAIN_SEALED=1 (lib/_hold.js); a keyed server job, crew and testers pass
   // SWITCHED OFF for the public (Oct 8 2026, Sam): 404 unless SELL_NEXT_ON=1, our header credential
   // (lib/_credential.js, never a key in the address), or crew opening the preview landing itself
   // (/api/sellNext). A crew visit to a result address (/sell?car=) still gets the live /sell.

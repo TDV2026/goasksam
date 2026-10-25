@@ -12,6 +12,7 @@ import { startHtml, START_CSS, START_JS } from "../lib/startPage.js";
 import { PLACEHOLDERS } from "../lib/startPlaceholders.js";
 import { lastUpdatedDate } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
+import { heldFor } from "../lib/_hold.js";
 
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const TITLE = "GoAskSam | Find enthusiast cars at auction, check what they sell for, sell yours";
@@ -37,6 +38,7 @@ const CSS = `
 @media (max-width:700px){.hm{padding:28px 18px 40px;align-items:flex-start}}`;
 
 export default async function handler(req, res) {
+  if (heldFor(req, res)) return;   // the holding page while CURTAIN_SEALED=1 (lib/_hold.js); a keyed server job, crew and testers pass
   const crew = isCrewRequest(req);
   const showPal = crew;   // the palette bar: the crew cookie only (lib/appShell.js PALETTE_BAR_ON is its one switch)
   if (!isReleased("buy", req)) { res.setHeader("Cache-Control", "no-store"); res.setHeader("Location", "/sell"); return res.status(302).end(); }
