@@ -202,7 +202,7 @@ const EXPLAINER_JS = String.raw`(function(){
   if (signedIn() && (params.get("task") || params.get("seed"))) { location.replace("/tasks/mine" + location.search); return; }
   function signIn(){
     if (typeof openSignInCard !== "function") return;
-    openSignInCard("Sign in to give Sam a Task. Every GoAskSam account gets " + FREE_WORDS + " free.");
+    openSignInCard("Sign in to give Sam a Task. Every GoAskSam account gets " + FREE_WORDS + " free.", { dest: next });   // the page they were going to (auth.js keeps it through the code)
     var f = document.getElementById("auth-email"), card = document.querySelector("#auth-modal .auth-dialog");
     if (card && card.scrollIntoView) card.scrollIntoView({ block: "center" });
     if (f) { try { f.focus({ preventScroll: true }); } catch(e){ f.focus(); } }

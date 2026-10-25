@@ -1046,6 +1046,13 @@ try {
 } catch (e) {
   record("taskEmailSwitchCheck (scripts/taskEmailSwitchCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Sign-in return (Sam, Oct 25 2026): after the emailed code, the person lands where they were going (Give Sam a Task goes to the Task page), existing and new account, 1440 and 390; same-origin destinations only. No network.
+try {
+  const out = execSync("node scripts/signinReturnCheck.mjs", { encoding: "utf8" });
+  record("signinReturnCheck (scripts/signinReturnCheck.mjs)", "PASS", (out.match(/signinReturnCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("signinReturnCheck (scripts/signinReturnCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The holding page (Sam, Oct 25 2026): sealed, a stranger gets the countdown page (503, no noindex), at zero the site stays closed, crew and keyed jobs pass. No network.
 try {
   const out = execSync("node scripts/holdPageCheck.mjs", { encoding: "utf8" });

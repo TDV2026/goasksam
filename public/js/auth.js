@@ -7,6 +7,50 @@
 
 const AUTH_SESSION_KEY = "gas_auth_session";     // distinct from outbound's "gas_session"
 const AUTH_CONSENT_KEY = "gas_pending_consent";  // survives the sign-in redirect (11d)
+
+// SIGN-IN RETURN (Sam, Oct 25 2026): the person's intended destination (the button they pressed, the page they were on) and anything they had typed
+// is remembered the moment the sign-in card opens, and used once the emailed code (or Google) has signed them in, so they land where they were going and
+// never have to press the button again. ONE place: these four functions. Same-origin paths only (never an external address), kept 30 minutes in
+// localStorage, so closing the card or coming back from the email loses nothing.
+const AUTH_RETURN_KEY = "gas_signin_return", AUTH_TYPED_KEY = "gas_signin_typed", AUTH_RETURN_TTL_MS = 30 * 60 * 1000;
+function authSafeDest(d) {
+  try {
+    const raw = String(d == null ? "" : d); if (!raw || /[\\\u0000-\u001f]/.test(raw) || /^\/\//.test(raw)) return null;
+    const u = new URL(raw, location.origin); if (u.origin !== location.origin) return null;
+    return u.pathname + u.search + u.hash;
+  } catch (e) { return null; }
+}
+function authRememberReturn(dest) {
+  try {
+    const path = authSafeDest(dest || (location.pathname + location.search)); if (!path) return;
+    const box = document.querySelector(".gst-in, #sell-input, #buy-input, #tk-input, textarea"), typed = box && box.value ? String(box.value).trim().slice(0, 500) : "";
+    localStorage.setItem(AUTH_RETURN_KEY, JSON.stringify({ path, typed, at: Date.now() }));
+  } catch (e) {}
+}
+function authTakeReturn() {
+  try {
+    const raw = localStorage.getItem(AUTH_RETURN_KEY); if (!raw) return null;
+    localStorage.removeItem(AUTH_RETURN_KEY);
+    const r = JSON.parse(raw), path = authSafeDest(r && r.path);
+    if (!path || !(Date.now() - Number(r.at) < AUTH_RETURN_TTL_MS)) return null;
+    return { path, typed: r.typed ? String(r.typed) : "" };
+  } catch (e) { return null; }
+}
+// After a sign-in: go where the person was going (true when it left this page). What they had typed waits for them on the destination.
+function authLandAfterSignIn() {
+  const r = authTakeReturn(); if (!r) return false;
+  try { if (r.typed) localStorage.setItem(AUTH_TYPED_KEY, JSON.stringify({ text: r.typed, path: r.path.replace(/[?#].*$/, ""), at: Date.now() })); } catch (e) {}
+  if (r.path !== location.pathname + location.search + location.hash) { location.assign(r.path); return true; }
+  authApplyTyped(); return false;
+}
+function authApplyTyped() {
+  try {
+    const raw = localStorage.getItem(AUTH_TYPED_KEY); if (!raw) return;
+    const t = JSON.parse(raw); if (!t || !t.text || !(Date.now() - Number(t.at) < AUTH_RETURN_TTL_MS) || t.path !== location.pathname) { if (!t || !(Date.now() - Number(t.at) < AUTH_RETURN_TTL_MS)) localStorage.removeItem(AUTH_TYPED_KEY); return; }
+    const box = document.querySelector(".gst-in, #sell-input, #buy-input, #tk-input, textarea"); if (!box || box.value) return;
+    box.value = t.text; box.dispatchEvent(new Event("input", { bubbles: true })); localStorage.removeItem(AUTH_TYPED_KEY);
+  } catch (e) {}
+}
 let __authConfig = null, __authConfigPromise = null;
 let __authAccount = null;      // { email, tier, marketingConsent } once ensured
 let __authPrefillEmail = "";
@@ -159,6 +203,7 @@ async function authVerifyCode(btn) {
     await authEnsureAccount({ forceRecheck: true, freshSignIn: true });   // fresh sign-in: pick up a just-made TDV subscription now
     authRenderTopbar();
     authCloseModal();
+    if (authLandAfterSignIn()) return;   // the destination they were going to (a page's own gateAfterSignup is only the fallback)
     if (typeof gateAfterSignup === "function") gateAfterSignup();
   } catch (e) { done(); authCardError("That code could not be verified just now. Try again in a moment."); }
 }
@@ -311,7 +356,8 @@ function authCardError(msg) { const el = document.getElementById("auth-error"); 
 function authCloseModal() { const m = document.getElementById("auth-modal"); if (m && m.remove) m.remove(); }
 
 // The sign-in card. Sam-voiced, two doors, one unticked consent checkbox.
-function openSignInCard(subtitle) {
+function openSignInCard(subtitle, opts) {
+  authRememberReturn(opts && opts.dest);   // where they were going, and what they had typed (kept 30 minutes; see authLandAfterSignIn)
   gasFunnel("signup_shown");   // 2F: the sign-in card was shown (a funnel step)
   if (typeof gasTrack === "function") gasTrack("signin_started");   // analytics (docs/analytics-events.md)
   authCloseModal();
@@ -407,9 +453,10 @@ async function authBoot() {
     await authEnsureAccount(returned ? { forceRecheck: true, freshSignIn: true } : undefined);
     authRenderTopbar();              // repaint with the resolved email/tier
   }
-  if (returned) { authCloseModal(); gateAfterSignup(); }  // #2: land on the claimed result after a wall signup
+  if (returned) { authCloseModal(); if (!authLandAfterSignIn()) gateAfterSignup(); }  // #2: land on the claimed result after a wall signup, or where they were going
   else { gateCheckUpfront(); }                             // #1: tell a depleted visitor before the wizard
   gasFunnelOnce("homepage_view");  // 2F: one homepage_view per session
+  setTimeout(authApplyTyped, 700);   // what they typed before signing in is waiting in the page's box
 }
 
 // ===================== 2C: the account gate (client) =====================
@@ -694,7 +741,8 @@ async function authBootTopbarOnly() {
   const returned = authHandleCallback();
   authRenderTopbar();
   if (authIsSignedIn()) { await authEnsureAccount(returned ? { forceRecheck: true, freshSignIn: true } : undefined); authRenderTopbar(); }
-  if (returned) authCloseModal();
+  if (returned) { authCloseModal(); authLandAfterSignIn(); }
+  setTimeout(authApplyTyped, 700);   // what they typed before signing in is waiting in the page's box
 }
 if (typeof document !== "undefined" && document.addEventListener) {
   const __authEntry = (typeof window !== "undefined" && window.GAS_AUTH_MODE === "topbar") ? authBootTopbarOnly : authBoot;
