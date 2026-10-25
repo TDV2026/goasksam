@@ -1140,7 +1140,7 @@ try {
   record("Model choices for a brand (scripts/modelChoicesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 // ---- 2zc. BULK SALE GUARD + EXACT-YEAR LINE (Lane B, Oct 25 2026). No network. ----
-for (const [file, label] of [["bulkSaleCheck", "Bulk-sale guard"], ["exactYearLineCheck", "Exact-year line under a thin answer"]]) {
+for (const [file, label] of [["bulkSaleCheck", "Bulk-sale guard"], ["exactYearLineCheck", "Exact-year line under a thin answer"], ["specLiveAbroadCheck", "Spec-page live count leaves abroad out"]]) {
   try {
     const out = execSync(`node scripts/${file}.mjs`, { encoding: "utf8" });
     record(`${label} (scripts/${file}.mjs)`, "PASS", (out.match(new RegExp(file + ": .*")) || [""])[0]);
