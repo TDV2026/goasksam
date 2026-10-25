@@ -12,4 +12,14 @@ for (const [q, make, model] of [
   const { st, v } = await read(q);
   ok(`${q} reads as ${make}${model ? " " + model : ""}`, v.make === make && (!model || v.model === model) && st !== "needs_confirmation", `${st} ${v.make}/${v.model}`);
 }
+
+// UNKNOWN MAKE GUARD: a make the list does not hold is asked about, never replaced by another make through a model word
+for (const q of ["1970 Zorblax Camaro", "1966 Quentrix Mustang"]) {
+  const { st, v } = await read(q);
+  ok(`${q} asks and carries no make`, st === "needs_confirmation" && !v.make, `${st} ${v.make}`);
+}
+for (const q of ["1969 Camaro", "1990 Cabriolet 911", "1973 Targa 911", "1969 Camaro Z28", "2018 911 Carrera GTS", "1967 Fastback Mustang", "1987 Grand National Regal"]) {
+  const { st, v } = await read(q);
+  ok(`${q} still resolves without a question`, st === "valid" && !!v.make, `${st} ${v.make}/${v.model}`);
+}
 process.exit(failed ? 1 : 0);
