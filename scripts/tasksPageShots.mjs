@@ -148,36 +148,36 @@ try {
   // SETUP QUESTIONS AND DRAFTS (Lane D, Oct 24 2026): choices are buttons, a typed answer is read leniently, a draft left behind shows
   // as a small card under the clean box (Continue, Discard), and a draft older than a day is dropped by the server.
   const Qm = "Which Porsche model should Sam look for?", stampNow = () => new Date().toISOString();
-  const qDraft = (extra = {}) => ({ at: stampNow(), asks: 1, words: "red porsche", kind: "hunt", filters: { make: "Porsche", colour: "red" }, question: Qm, qkind: "model", options: ["Panamera"], any: "Any Porsche", summary: null, thread: [{ role: "buyer", text: "red porsche" }, { role: "sam", text: Qm }], ...extra });
+  const qDraft = (extra = {}) => ({ at: stampNow(), asks: 1, words: "red porsche", kind: "hunt", filters: { make: "Porsche", colour: "red" }, question: Qm, qkind: "model", options: ["911", "Boxster", "Cayenne", "356", "Cayman", "944"], any: "Any Porsche", summary: null, thread: [{ role: "buyer", text: "red porsche" }, { role: "sam", text: Qm }], ...extra });
   const readBack = w => ({ at: stampNow(), asks: 1, words: w, kind: "hunt", filters: { make: "Porsche", colour: "red", any_model: "1" }, question: null, summary: "Sam is looking for red Porsches.", thread: [{ role: "sam", text: "Sam will look for red Porsches. Start?" }] });
   const norm = x => String(x).toLowerCase().replace(/[^a-z ]/g, "").trim();
   const sayFn = b => { const t = norm(b.text);
     if (!b.draft || !b.draft.question) return { draft: qDraft({ words: b.text }), reply: Qm };
-    if (["any", "any porsche", "doesnt matter", "no preference", "either"].includes(t) || norm(b.text) === "panamera" || t === "panamara" || t === "panamer") return { draft: readBack(b.draft.words), reply: "Sam will look for red Porsches. Start?" };
-    return { draft: b.draft, reply: "Sam didn't understand that answer. The choices are Panamera or Any Porsche.", miss: true }; };
+    if (["any", "any porsche", "doesnt matter", "no preference", "either"].includes(t) || t === "cayman" || t === "boxter" || t === "911") return { draft: readBack(b.draft.words), reply: "Sam will look for red Porsches. Start?" };
+    return { draft: b.draft, reply: "Sam didn't understand that answer. The choices are 911, Boxster, Cayenne, 356, Cayman, 944 or Any Porsche.", miss: true }; };
   for (const W of [1440, 390]) {
     // "red porsche": the question comes with buttons (each choice, the Any option) and the box.
     { const A = account([]); A.sayFn = sayFn; const p = await open(A, W, "&start=1"); await p.type("#tkq", "red porsche"); await p.click("[data-send=tkq]"); await wait(500);
       let labels = await p.$$eval("[data-choice]", els => els.map(e => e.textContent));
-      ok(labels.join("|") === "Panamera|Any Porsche" && /Which Porsche model/.test(await text(p)) && !!(await p.$("#tkq")), `[${W}] red porsche: the question shows each choice as a button, the Any option, and the box (${labels})`);
+      ok(labels.join("|") === "911|Boxster|Cayenne|356|Cayman|944|Any Porsche" && /Which Porsche model/.test(await text(p)) && !!(await p.$("#tkq")), `[${W}] red porsche: the question shows each choice as a button, the Any option, and the box (${labels})`);
       const hs = await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1); ok(!hs, `[${W}] red porsche: no horizontal scroll`); await shot(p, `tasks-choices-${W}`);
       // a typed answer not understood: said once, the buttons shown again, never the line alone
       await p.type("#tkq", "banana"); await p.click("[data-send=tkq]"); await wait(500);
-      ok(/didn't understand/.test(await text(p)) && (await p.$$("[data-choice]")).length === 2, `[${W}] not understood: said once and the buttons are back`);
+      ok(/didn't understand/.test(await text(p)) && (await p.$$("[data-choice]")).length === 7, `[${W}] not understood: said once and the buttons are back`);
       // a button click answers the question
       await p.click('[data-choice="Any Porsche"]'); await wait(500);
       ok(/Sam will look for red Porsches/.test(await text(p)) && !!(await p.$("[data-start]")) && !(await p.$("[data-choice]")), `[${W}] clicking Any Porsche reads the job back with Start`); await p.close(); }
     // typed answers: any form, a typo
-    for (const said of ["any", "Any Porsche", "doesn't matter", "no preference", "either", "Panamara"]) {
+    for (const said of ["any", "Any Porsche", "doesn't matter", "no preference", "either", "Boxter"]) {
       const A = account([]); A.sayFn = sayFn; const p = await open(A, W, "&start=1", false, qDraft()); await p.type("#tkq", said); await p.click("[data-send=tkq]"); await wait(400);
       ok(/Sam will look for red Porsches/.test(await text(p)) && !!(await p.$("[data-start]")), `[${W}] "${said}" counts as an answer`); await p.close(); }
     // leaving mid-question and coming back: the clean box first, the unfinished card under it, no old error line
-    { const A = account([]); A.sayFn = sayFn; const p = await open(A, W, "", false, qDraft({ thread: [{ role: "sam", text: "Sam didn't understand that answer. The choices are Panamera or Any Porsche." }] }));
+    { const A = account([]); A.sayFn = sayFn; const p = await open(A, W, "", false, qDraft({ thread: [{ role: "sam", text: "Sam didn't understand that answer. The choices are 911, Boxster, Cayenne, 356, Cayman, 944 or Any Porsche." }] }));
       const t = await text(p), html = await p.evaluate(() => document.getElementById("tkapp").innerHTML);
       ok(/Tell Sam what to look for/.test(t) && /Unfinished: red porsche/.test(t) && html.indexOf("Tell Sam what to look for") < html.indexOf("Unfinished:") && !/didn't understand/.test(t) && !(await p.$("[data-choice]")), `[${W}] from the rail: the clean setup box first, the unfinished card under it, no error line`);
       ok(!!(await p.$("[data-continue]")) && !!(await p.$("[data-discard]")), `[${W}] the unfinished card has Continue and Discard`); await shot(p, `tasks-unfinished-${W}`);
       await p.click("[data-continue]"); await wait(300); const t2 = await text(p);
-      ok(/Which Porsche model/.test(t2) && !/didn't understand/.test(t2) && (await p.$$("[data-choice]")).length === 2, `[${W}] Continue shows the question last asked with its buttons, never the old error`); await p.close(); }
+      ok(/Which Porsche model/.test(t2) && !/didn't understand/.test(t2) && (await p.$$("[data-choice]")).length === 7, `[${W}] Continue shows the question last asked with its buttons, never the old error`); await p.close(); }
     { const A = account([]); A.sayFn = sayFn; const p = await open(A, W, "", false, qDraft()); await p.click("[data-discard]"); await wait(300);
       ok(!/Unfinished/.test(await text(p)) && (await p.evaluate(() => sessionStorage.getItem("gas_task_draft"))) === null, `[${W}] Discard removes the draft for good`);
       await p.reload({ waitUntil: "networkidle2" }); await wait(500); ok(!/Unfinished/.test(await text(p)), `[${W}] and it stays gone after a reload`); await p.close(); }

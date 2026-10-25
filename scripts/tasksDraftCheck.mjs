@@ -55,6 +55,28 @@ r = await turn(bmw, "the m3 please");
 ok(!r.draft.question && r.draft.filters.model === "M3", "an answer naming the M3 chooses it");
 r = await turn(bmw, "Any BMW");
 ok(!r.draft.question && r.draft.filters.any_model === "1", "the Any BMW button reads as Any");
+// THE MODEL CHOICES ARE THE ENGINE'S (Lane D, Oct 25 2026, Lane B's modelChoicesForBrand): "red porsche" offers the engine's six and Any Porsche,
+// never only the models of red cars on sale; the years go through only when the person typed them; Tasks neither ranks nor filters.
+{ const calls2 = [], six = ["911", "Boxster", "Cayenne", "356", "Cayman", "944"];
+  const env2 = { mem: memStore(), modelChoices: async (e, make, years) => { calls2.push({ make, years }); return { make, options: six.map(m => ({ label: m, value: m, n: 10, any: false })).concat([{ label: `Any ${make}`, value: null, n: null, any: true }]) }; } };
+  script = [toolTurn({ kind: "hunt", make: "Porsche", colour: "red" }), textTurn(Q)];
+  let q = await draftTurn(env2, user, { draft: null, text: "red porsche", apiKey: "stub", model: "stub" });
+  ok(q.draft && q.draft.options.join() === six.join() && q.draft.any === "Any Porsche" && q.draft.qkind === "model", `"red porsche" offers the engine's six and Any Porsche, in the engine's order (${q.draft && q.draft.options})`);
+  ok(calls2.length === 1 && calls2[0].make === "Porsche" && calls2[0].years === undefined, "no years typed: none passed to the engine");
+  script = [toolTurn({ kind: "hunt", make: "Porsche", year_min: 1995, year_max: 1995 }), textTurn(Q)];
+  await draftTurn(env2, user, { draft: null, text: "a 1995 porsche", apiKey: "stub", model: "stub" });
+  ok(calls2[1] && calls2[1].years && calls2[1].years.yearMin === 1995 && calls2[1].years.yearMax === 1995, "years typed: passed to the engine as yearMin and yearMax");
+  // the engine read failing or empty still leaves the Any button and the box
+  const env3 = { mem: memStore(), modelChoices: async () => { throw new Error("down"); } };
+  script = [toolTurn({ kind: "hunt", make: "Porsche" }), textTurn(Q)];
+  q = await draftTurn(env3, user, { draft: null, text: "porsche", apiKey: "stub", model: "stub" });
+  ok(q.draft && q.draft.options.length === 0 && q.draft.any === "Any Porsche" && q.draft.question === Q, "engine read fails: no models, the Any button, the question stays");
+  // a typed choice against the engine's list, with a typo
+  script = [toolTurn({ kind: "hunt", make: "Porsche", colour: "red" }), textTurn(Q)];
+  q = await draftTurn(env2, user, { draft: null, text: "red porsche", apiKey: "stub", model: "stub" });
+  script = [toolTurn({ kind: "hunt", make: "Porsche", colour: "red", model: "Boxster" }), textTurn("Sam will look for red Porsche Boxsters. Start?")];
+  const bx = await draftTurn(env2, user, { draft: q.draft, text: "boxter", apiKey: "stub", model: "stub" });
+  ok(bx.draft && !bx.draft.question && bx.draft.filters.model === "Boxster", "a typo in an engine choice ('boxter') still chooses Boxster"); }
 // A draft older than a day, or never stamped, is dropped by the server.
 const old = { ...open, at: new Date(Date.now() - 25 * 3600e3).toISOString() };
 ok(draftFresh(open) === open && !draftFresh(old) && !draftFresh({ ...open, at: undefined }) && !draftFresh(null), "draftFresh: under a day kept, over a day or unstamped dropped");
