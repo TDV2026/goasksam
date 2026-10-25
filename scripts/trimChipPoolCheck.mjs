@@ -23,10 +23,15 @@ const bare = buildPool(chosen, {}, iso, spec, null);
 const g = trimGroupsFromSales(bare.solid, spec);
 const count = v => (g.named.find(x => x.value === v) || {}).n || 0;
 ok(bare.solid.length === 10, `the bare page reads its twelve-month window (${bare.solid.length} sales)`);
+// Since e60/e80 (Sam, Oct 18 and 23 2026) the window rule counts the TRIM page's own cars: a trim with fewer than eight in the bare window
+// reads the shortest longer window that reaches eight and says so (330i: 4 in twelve months, 10 in five years). So a chip no longer opens
+// exactly its count; it opens at least the chip's own rows, never fewer, and a page that reads a longer window names it. A trim already at
+// eight or more keeps the bare window.
 for (const v of ["330i", "m340i"]) {
   const opened = buildPool(chosen, {}, iso, spec, { trim: v });
-  ok(opened.solid.length === count(v), `chip ${v} (${count(v)}) opens ${opened.solid.length} sales, the same rows`);
-  ok(opened.solid.every(r => opened.window.includes(r)) && opened.windowLabel === bare.windowLabel, `chip ${v} keeps the bare page's window (${opened.windowLabel})`);
+  const chipRows = bare.solid.filter(r => String(r.rtitle || "").toLowerCase().includes(v));
+  ok(chipRows.every(r => opened.solid.includes(r)), `chip ${v} (${count(v)}) opens at least its own ${chipRows.length} sales (${opened.solid.length})`);
+  ok(opened.solid.length === count(v) || opened.windowLabel !== bare.windowLabel, `chip ${v}: a page that opens more than its count names a longer window (${opened.windowLabel})`);
 }
 const other = buildPool(chosen, {}, iso, spec, { trim: "other", notTrims: g.named.map(x => x.value).join(",") });
 ok(other.solid.length === g.other, `"Other trims" (${g.other}) opens ${other.solid.length} sales`);

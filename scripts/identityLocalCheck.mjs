@@ -58,18 +58,18 @@ for (const c of CASES) {
     const cards = pg && Array.isArray(pg.cards) ? pg.cards.length : null;
     const gate = pg ? runOutputInvariants(pg, { ...vehicle, bodyStyle: o.value === "unspecified" ? null : o.value }).filter(x => !x.ok) : [{ name: "no answer" }];
     const bodyNull = o.value === "unspecified" ? (pg && pg.resolvedCar && pg.resolvedCar.bodyStyle == null) : true;
-    const same = opened === Number(o.n) && cards === Number(o.n);
+    const opensN = Number(o.opens ?? o.n), same = opened === opensN && cards === opensN;
     if (!same || gate.length || !bodyNull) { ok = false; console.log(`      ${o.label} (${o.n}) opens ${opened} with ${cards} card(s)${gate.length ? ", gate: " + gate.map(x => x.name).join(",") : ""}${bodyNull ? "" : ", bodyStyle not null on Body not stated"}`); }
     // TYPED = CHIP (Sam, Oct 15 2026, option 2): typing the body word ("1965 Ford Mustang coupe" -> spec.bodyStyle) must
     // qualify exactly the rows the chip opens: one classifier, title words only, no stored field, no default body.
     if (o.value !== "unspecified") {
       const typed = rows.filter(r => isQualifying(r, { ...spec, bodyStyle: o.value })).length;
-      if (typed !== Number(o.n)) { ok = false; console.log(`      typed "${o.value}" qualifies ${typed} rows, the chip opens ${o.n}`); }
+      if (typed !== Number(o.opens ?? o.n)) { ok = false; console.log(`      typed "${o.value}" qualifies ${typed} rows, the chip opens ${o.opens ?? o.n}`); }
     }
   }
   if (c.expectLonger) {
     const flagged = opts.filter(o => o.windowLonger === true);
-    if (flagged.length !== opts.length || !flagged.every(o => o.windowMonths === 24 && /^Based on \w+ sales over the last 24 months\.$/.test(o.windowNote || "") && o.n > o.inPool)) { ok = false; console.log(`      expected every option flagged windowLonger with 24 months: ${JSON.stringify(opts)}`); }
+    if (flagged.length !== opts.length || !flagged.every(o => o.windowMonths === 24 && /^Based on \w+ sales over the last 24 months\.$/.test(o.windowNote || "") && o.opens > o.inPool && o.n === o.inPool)) { ok = false; console.log(`      expected every option flagged windowLonger with 24 months: ${JSON.stringify(opts)}`); }
     // the check must not be weakened: the same answer with the flags stripped (options that read a longer window without saying so) is still refused
     const stripped = { ...d, bodyOptions: opts.map(({ windowLonger, windowMonths, windowNote, ...o }) => o) };
     const refused = runOutputInvariants(stripped, vehicle).filter(x => !x.ok).map(x => x.name);
