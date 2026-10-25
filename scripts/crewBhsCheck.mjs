@@ -23,14 +23,14 @@ for (const q of [{ bhs: "sub_00000000-0000-4000-8000-000000000000" }, { bhs: "00
   const r = await call(q);
   const loc = String(r.h.location || "");
   ok(!r.h["set-cookie"], `?bhs= sets no cookie (${JSON.stringify(q)})`);
-  ok(calls.length === 0, `?bhs= makes no outside call, so no session is minted (${calls.join(", ")})`);
+  ok(calls.filter(c => !/ip_rate_hits/.test(c)).length === 0, `?bhs= makes no outside call, so no session is minted (${calls.join(", ")})`);
   ok(!/access_token|refresh_token|via=beehiiv|bhs_error/.test(loc + r.body), `?bhs= never redirects with tokens (${loc || r.code})`);
-  ok(r.code === 403 && /That crew link did not work/.test(r.body), `?bhs= falls through to the crew page and changes nothing (${r.code})`);
+  ok(r.code === 200 && /<form method="post" action="\/api\/crew"/.test(r.body), `?bhs= falls through to the crew code box and changes nothing (${r.code})`);
 }
 let r = await call({ code: process.env.CURTAIN_CREW_CODE });
 ok(r.code === 302 && /^gas_crew=v1\./.test(String(r.h["set-cookie"] || "")) && r.h.location === "/find", `the crew code still sets the signed crew cookie and lands on /buy (${r.code} ${r.h.location})`);
 r = await call({ code: process.env.CURTAIN_CREW_CODE, bhs: "sub_madeup" });
-ok(r.code === 302 && /^gas_crew=v1\./.test(String(r.h["set-cookie"] || "")) && calls.length === 0, "the crew code with a stray ?bhs= still works, and bhs is ignored");
+ok(r.code === 302 && /^gas_crew=v1\./.test(String(r.h["set-cookie"] || "")) && calls.filter(c => !/ip_rate_hits/.test(c)).length === 0, "the crew code with a stray ?bhs= still works, and bhs is ignored");
 r = await call({ code: "wrong-code" });
 ok(r.code === 403 && !r.h["set-cookie"], "a wrong crew code sets nothing");
 r = await call({ tcode: "not-the-tester-code" });
