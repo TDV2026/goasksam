@@ -84,7 +84,7 @@ begin
       end_precision     = coalesce(s.end_precision,     s.raw_record->>'auction_end_precision'),
       -- the four reused columns: filled only where the row predates the column
       body_style        = coalesce(s.body_style,        s.raw_record->>'body_style'),
-      modifications     = coalesce(s.modifications,     s.raw_record->>'modifications'),
+      modifications     = coalesce(s.modifications,     nullif(s.raw_record->'modifications', 'null'::jsonb)),   -- jsonb column: copy the jsonb (->), never text (->>)
       exterior_color    = coalesce(s.exterior_color,    s.raw_record->>'exterior_color'),
       title_status      = coalesce(s.title_status,      s.raw_record->>'title_status')
     where (v_last is null or s.id > v_last) and s.id <= v_next;
@@ -138,7 +138,7 @@ select count(*) as sampled,
   count(*) filter (where country_code      is distinct from raw_record->>'country_code')         as country_code_diff,
   count(*) filter (where end_precision     is distinct from raw_record->>'auction_end_precision') as end_precision_diff,
   count(*) filter (where body_style        is distinct from raw_record->>'body_style')           as body_style_diff,
-  count(*) filter (where modifications     is distinct from raw_record->>'modifications')        as modifications_diff,
+  count(*) filter (where modifications     is distinct from nullif(raw_record->'modifications', 'null'::jsonb)) as modifications_diff,
   count(*) filter (where exterior_color    is distinct from raw_record->>'exterior_color')       as exterior_color_diff,
   count(*) filter (where title_status      is distinct from raw_record->>'title_status')         as title_status_diff,
   count(*) filter (where listing_title     is distinct from raw_record->>'title')                as listing_title_diff
@@ -156,6 +156,8 @@ from t;
 -- Rollback: revert the ingest commit; the columns simply stop being written (the pool select, if already on the
 -- columns, must be reverted first).
 --
+-- (The pool select must send modifications back as JSON text, as raw_record->>'modifications' did: the column is jsonb, so the
+-- engine stringifies an array result before row.mods is read, or the title/mods regexes see a different string.)
 -- STEP 5. Pool select (code, lib/onebox.js fetchQualifying cols): every raw_record->> extract replaced by its
 -- column (image:image_url, mileage:mileage_text, body:body_style, mods:modifications, rtitle:listing_title,
 -- currency, transmission:transmission_text, color:exterior_color, ts:title_status, srcurl:listing_url,
