@@ -21,5 +21,19 @@ const tooFew = [...others, row("rmsothebys", "Los Angeles", "2024-10-26", 5000, 
 ok(bulkSaleAside(tooFew).size === 0, "three cheap lots are not an event");
 const cheapSale = [...others, ...[30000, 33000, 35000, 28000, 36000, 34000].map((p, i) => row("barrettjackson", "Scottsdale", "2025-01-1" + i, p, 0))];
 ok(bulkSaleAside(cheapSale).size === 0, "a house sale priced at a fifth to a quarter of the market (not a few percent) is a cheap sale, not a bulk sale of project cars");
+// THE SET-ASIDE SENTENCE (e85): one label in lib/bulkSale.js, read by all three builders; alone it repeats no count, with other reasons it keeps the count.
+{
+  const { BULK_SALE_LABEL, setAsideLabelsFor } = await import("../lib/bulkSale.js");
+  const { asideSentence } = await import("../api/partnerAnswer.js");
+  const { sellsForCardHtml } = await import("../lib/sellsForCard.js");
+  const L = setAsideLabelsFor({ "bulk sale": 11, "odd sale": 0 });
+  ok(L && L["bulk sale"] === BULK_SALE_LABEL && setAsideLabelsFor({ "odd sale": 3 }) === null, "setAsideLabels ships only when a bulk sale was set aside");
+  ok(asideSentence({ setAsideReasons: { "bulk sale": 11 }, setAsideLabels: L }) === "11 sales set aside: sold as parts cars in a bulk sale.", "alone: no repeated count");
+  ok(asideSentence({ setAsideReasons: { "bulk sale": 1 }, setAsideLabels: L }) === "1 sale set aside: sold as a parts car in a bulk sale.", "alone, one sale");
+  ok(asideSentence({ setAsideReasons: { "odd sale": 7, "bulk sale": 3 }, setAsideLabels: L }) === "10 sales set aside: 7 odd sales, 3 sold as parts cars in a bulk sale.", "several reasons keep the count");
+  ok(asideSentence({ setAsideReasons: { "odd sale": 4 } }) === "4 sales set aside: 4 odd sales.", "other reasons unchanged");
+  const card = sellsForCardHtml({ cluster: [40000, 60000], poolN: 12, windowMonths: 36, setAsideReasons: { "bulk sale": 11 }, setAsideLabels: L }, {});
+  ok(card.includes("11 sales set aside: sold as parts cars in a bulk sale."), "the shared card reads the same label");
+}
 console.log(failed ? `bulkSaleCheck: ${failed} FAILED.` : "bulkSaleCheck: all passed.");
 process.exit(failed ? 1 : 0);
