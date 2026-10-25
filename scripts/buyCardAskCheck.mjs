@@ -115,7 +115,7 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   const r = await T.draftTurn(env, { userId: U }, { draft: null, text: "997 Carrera coupes", seed: { from: "buy_search", ref: null, filters } });
   const want = { make: "Porsche", model: "911", generation: "997", era: "997", trim: "Carrera", body: "coupe", gearbox: "manual", colour: "black", location: "46552", radius_miles: 250 };
   ok(r.draft && JSON.stringify(r.draft.filters) === JSON.stringify(want) && r.draft.seed.from === "buy_search", `the drafted Task's filters are the page's (got ${JSON.stringify(r.draft && r.draft.filters)})`);
-  ok(mem.tasks.length === 0 && /^Sam will look for /.test(r.reply) && /Shall Sam start\?$/.test(r.reply), "drafting writes nothing and reads the job back");
+  ok(mem.tasks.length === 0 && /^Sam will look for /.test(r.reply) && /Start\?$/.test(r.reply), "drafting writes nothing and reads the job back");
   ok(T.taskRow(want, null).listing_title === "Porsche 997 Carrera coupe", "the Task's market row names the page's car and body");
   const e46 = T.buyJob({ make: "BMW", model: "M3", era: "E46", body: "coupe", year_min: 2001, year_max: 2006 }).filters;
   ok(e46.era === "E46" && !e46.generation && T.taskRow(e46, null).listing_title === "BMW M3 E46 coupe", "the era chip is kept as the page had it (the same search) and names the row");

@@ -34,7 +34,7 @@ ok(r.draft && r.draft.qkind === "model" && r.draft.any === "Any Porsche", "the d
 const d1 = r.draft;
 for (const said of ["all", "any", "every", "everything", "doesn't matter", "no preference"]) {
   const before = calls; const a = await draftTurn(env, user, { draft: d1, text: said, apiKey: "stub", model: "stub" });
-  ok(a.reply === "Sam will look for red Porsches. Shall Sam start?", `"${said}" chooses Any Porsche and reads the job back (${JSON.stringify(a.reply)})`);
+  ok(a.reply === "Sam will look for red Porsches. Start?", `"${said}" chooses Any Porsche and reads the job back (${JSON.stringify(a.reply)})`);
   ok(a.draft && a.draft.question === null && a.draft.filters.any_model === "1" && !a.draft.filters.model, `"${said}": no question left, the job is any Porsche`);
   ok(calls === before, `"${said}": read in code, no model turn`);
 }
@@ -45,9 +45,9 @@ ok(r.reply !== Q && r.reply === "Sam didn't understand that answer. The choices 
 ok(r.draft && r.draft.question === Q && r.draft.qkind === "model", "the question stays open for the next answer");
 // The answer after that: "all" still works.
 const a2 = await draftTurn(env, user, { draft: r.draft, text: "All of them", apiKey: "stub", model: "stub" });
-ok(a2.reply === "Sam will look for red Porsches. Shall Sam start?", "after a not-understood line, \"All of them\" chooses Any");
+ok(a2.reply === "Sam will look for red Porsches. Start?", "after a not-understood line, \"All of them\" chooses Any");
 // A real model answer still goes to the conversation (the model sets the model): no Any, no repeat.
-script = [toolTurn({ kind: "hunt", make: "Porsche", model: "911", colour: "red" }), textTurn("Sam will look for red Porsche 911s. Shall Sam start?")];
+script = [toolTurn({ kind: "hunt", make: "Porsche", model: "911", colour: "red" }), textTurn("Sam will look for red Porsche 911s. Start?")];
 r = await draftTurn(env, user, { draft: d1, text: "911", apiKey: "stub", model: "stub" });
 ok(r.draft && r.draft.question === null && r.draft.filters.model === "911" && !r.draft.filters.any_model, "\"911\" goes to the conversation and sets the model");
 // The engine's body question: Any of them drops the question for this job.

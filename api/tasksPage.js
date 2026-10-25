@@ -14,11 +14,12 @@ import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../l
 import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { findCardKitJs, FIND_CARD_CSS } from "../lib/findCardKit.js";
+import { FREE_TASK_LIMIT, freeTasksWords } from "../lib/tasks/limit.js";
 
 export const TASKS_PITCH = { lead: "A free collector car finder.", sub: "Tell Sam what you want and he keeps searching, then emails you when one fits." };
 const HOW = "The cars Sam shows you come from a rules-based matching algorithm. Sam helps understand the question and explain the results, but never invents the cars, the matches or the numbers. Every number comes from real market evidence.";
 const FAQ = [
-  ["Is it free?", "Yes. Every GoAskSam account gets one active Task free. Sign in, tell Sam what you're looking for, and Sam keeps checking."],
+  ["Is it free?", "Yes. Every GoAskSam account gets " + freeTasksWords() + " free. Sign in, tell Sam what you're looking for, and Sam keeps checking."],
   ["How is it different from a saved search?", "You describe the car in plain words, the way you'd tell a friend, and Sam confirms exactly what it will look for before it starts. When a car matches, the update says what came up, how far away it is and, when the same car has been to auction before, what happened then."],
   ["How will I be told?", "Each update appears in your Task on GoAskSam, with a badge on Tasks. By email, Sam sends one email a day with everything new from all your Tasks. You can choose twice a day, three times a day, or as soon as one comes, up to six emails a day. A car you asked to hear about before bidding ends gets its own email two hours before the end. When nothing new matches, Sam stays quiet."],
   ["Who chooses the cars?", "A rules-based matching algorithm decides which live cars match your Task, the same one behind the GoAskSam search. Sam understands what you asked for and writes each update, but never invents the cars, the matches or the numbers."],
@@ -64,8 +65,11 @@ const APP_CSS = `
 .blocked{margin:0 0 18px;padding:12px 16px;border:1px solid var(--div);border-left:3px solid var(--red);background:var(--card);font:400 16px/1.5 var(--sans)}.noteinfo{margin:0 0 14px;padding:10px 14px;border:1px solid var(--div);border-radius:10px;background:var(--card);font-size:15px;color:var(--soft)}
 .blocked a{color:var(--red);font-weight:600}
 .limitbox{margin:0 0 18px;padding:16px 18px;border:1px solid var(--div);border-left:3px solid var(--green);border-radius:8px;background:var(--card)}
-.limitbox p{margin:0 0 14px;font:400 17px/1.5 var(--sans);color:var(--ink)}
-.limitbox .go{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.limitbox>p{margin:0 0 12px;font:400 17px/1.5 var(--sans);color:var(--ink)}
+.limitbox .lrow{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--div)}
+.limitbox .ltxt{flex:1;min-width:200px;font:400 16px/1.4 var(--sans);color:var(--ink);overflow-wrap:anywhere}
+.limitbox .lkeep{margin:6px 0 0}
+.tkload,.tkstart{margin:10px 0 0;font:400 15px/1.5 var(--sans);color:var(--sec)}
 .pausedh{margin:22px 0 10px;font:600 12px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--sec)}
 .tcard + .pausedh{margin-top:26px}
 .tcard{border:1px solid var(--div);border-radius:8px;background:var(--card);padding:18px 20px 20px}
@@ -102,12 +106,12 @@ const APP_CSS = `
 .notify{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:12px 2px 0;font:400 15px/1.5 var(--sans);color:var(--sec)}
 .notify b{font-weight:600;color:var(--ink)}.often{display:inline-flex;align-items:center;gap:8px;color:var(--ink);white-space:nowrap;flex:none}.often select{min-height:36px;font:400 15px var(--sans);padding:0 8px;border:1px solid var(--div,#E6E1D8);border-radius:6px;background:var(--card);color:var(--ink)}.oftenhelp{flex-basis:100%;font-size:14px;color:var(--sec)}
 .notify .plink{min-height:36px;font-size:15px}
-.sw{display:inline-flex;align-items:center;gap:8px;cursor:pointer;min-height:36px;color:var(--ink);white-space:nowrap;flex:none}
-.sw input{position:absolute;opacity:0;width:1px;height:1px}
-.sw i{position:relative;width:38px;height:22px;border-radius:11px;background:var(--tk-switch);transition:background .15s;flex:none}
-.sw i::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--card);transition:transform .15s}
-.sw input:checked+i{background:var(--ink)}.sw input:checked+i::after{transform:translateX(16px)}
-.sw input:focus-visible+i{outline:2px solid var(--ink);outline-offset:2px}
+.tksw{display:inline-flex;align-items:center;gap:8px;cursor:pointer;min-height:36px;color:var(--ink);white-space:nowrap;flex:none}
+.tksw input{position:absolute;opacity:0;width:1px;height:1px}
+.tksw i{position:relative;width:38px;height:22px;border-radius:11px;background:var(--tk-switch);transition:background .15s;flex:none}
+.tksw i::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--card);transition:transform .15s}
+.tksw input:checked+i{background:var(--ink)}.tksw input:checked+i::after{transform:translateX(16px)}
+.tksw input:focus-visible+i{outline:2px solid var(--ink);outline-offset:2px}
 .past{margin-top:22px}
 .past>summary{cursor:pointer;font:500 15px var(--sans);color:var(--sec);min-height:44px;display:flex;align-items:center}
 .past details{border-top:1px solid var(--div);padding:6px 0}
@@ -159,7 +163,7 @@ ${CONSENT_BANNER_HTML}
 <script>${SHELL_JS}</script>
 <script>window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};window.GAS_AUTH_MODE="topbar";</script>
 <script src="/js/auth.js" defer></script>
-<script>${EXPLAINER_JS}</script>
+<script>${EXPLAINER_JS.replace("__FREE_WORDS__", freeTasksWords())}</script>
 <script src="/api/track?js=1" defer></script>
 <script>${CONSENT_BANNER_JS}</script>${showPal ? `<script>${PALETTE_SWITCHER_JS}</script>` : ""}</body></html>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -181,6 +185,7 @@ ${CONSENT_BANNER_HTML}
 // slot and goes to the app. Signed out: the sign-in card, then on to the app (or to ?next=, where an
 // entry point sent a signed-out buyer). Old links (/tasks?task=, ?seed=) go to the app.
 const EXPLAINER_JS = String.raw`(function(){
+  var FREE_WORDS = "__FREE_WORDS__";
   function signedIn(){ try { var s = JSON.parse(localStorage.getItem("gas_auth_session") || "null"); return !!(s && s.access_token); } catch(e){ return false; } }
   var params = new URLSearchParams(location.search);
   var next = params.get("next");
@@ -188,7 +193,7 @@ const EXPLAINER_JS = String.raw`(function(){
   if (signedIn() && (params.get("task") || params.get("seed"))) { location.replace("/tasks/mine" + location.search); return; }
   function signIn(){
     if (typeof openSignInCard !== "function") return;
-    openSignInCard("Sign in to give Sam a Task. Every GoAskSam account gets one active Task free.");
+    openSignInCard("Sign in to give Sam a Task. Every GoAskSam account gets " + FREE_WORDS + " free.");
     var f = document.getElementById("auth-email"), card = document.querySelector("#auth-modal .auth-dialog");
     if (card && card.scrollIntoView) card.scrollIntoView({ block: "center" });
     if (f) { try { f.focus({ preventScroll: true }); } catch(e){ f.focus(); } }
@@ -198,15 +203,15 @@ const EXPLAINER_JS = String.raw`(function(){
     var t = e.target.closest("#tkcta,#tkcta2"); if (!t) return;
     e.preventDefault();
     if (!signedIn()) return signIn();
-    // Signed in (the shell page lost the old shared entry script, Oct 23 2026): one active Task holds the slot; otherwise on to the app.
+    // Signed in (the shell page lost the old shared entry script, Oct 23 2026): at the limit the server's own sentence shows; otherwise on to the app.
     var tok = ""; try { tok = JSON.parse(localStorage.getItem("gas_auth_session") || "null").access_token; } catch(e2){}
     var go = function(){ location.href = t.getAttribute("data-href") || "/tasks/mine?start=1"; };
     fetch("/api/tasks?summary=1", { cache: "no-store", headers: { Authorization: "Bearer " + tok } }).then(function(r){ return r.json(); }).catch(function(){ return null; }).then(function(j){
-      var a = j && j.signedIn && j.active; if (!a) return go();
+      var a = j && j.signedIn && j.limit && j.limit.atLimit && j.active; if (!a) return go();
       var box = t.closest("p,header") || t, old = document.querySelector(".tkblocked"); if (old) old.remove();
       var m = document.createElement("p"); m.className = "tkblocked"; m.setAttribute("role", "status"); m.style.cssText = "margin:12px 0;padding:10px 14px;border-left:3px solid #D7262C;font:400 15px/1.5 inherit";
-      m.textContent = (a.state === "paused" ? "Your task is paused. Resume or stop it to start another." : "You have one task running. Stop it to start another.") + " ";
-      var l = document.createElement("a"); l.href = "/tasks/mine?task=" + encodeURIComponent(a.id); l.textContent = "Open your task"; m.appendChild(l);
+      m.textContent = j.limit.entryLine + " ";
+      var l = document.createElement("a"); l.href = "/tasks/mine"; l.textContent = "Open your Tasks"; m.appendChild(l);
       box.insertAdjacentElement("afterend", m);
     });
   });
@@ -251,13 +256,16 @@ const APP_JS = String.raw`(function(){
   function signedIn(){ try { var s = JSON.parse(localStorage.getItem("gas_auth_session") || "null"); return !!(s && s.access_token); } catch(e){ return false; } }
   if (!signedIn()) { location.replace("/tasks?signin=1&next=" + encodeURIComponent(location.pathname + location.search)); return; }
   var params = new URLSearchParams(location.search);
-  var data = null, busy = false, reply = "", pending = null, note = "", editing = false, arrived = !!(params.get("start") || params.get("seed")), scrollTo = null;
-  // One task at a time (beta): the choice shown when a second task is attempted. { mode: "seed" | "draft" |
-  // "resume", task_id (the running task), current (its words), attempted (the new job's words), resume_id }.
-  var limit = null;
-  var LIMIT_TEXT = function(cur){ return "Sam takes one job at a time during the beta. You already have Sam looking for " + cur + ". Swap it for this one, or keep it running and come back to this later."; };
+  var data = null, busy = false, reply = "", replyFor = null, pending = null, pendingId = null, note = "", editing = false, arrived = !!(params.get("start") || params.get("seed")), scrollTo = null;
+  // At the limit (the server says so, data.limit.atLimit): the one card with the working Tasks and "Close and start this one".
+  // { mode: "seed" | "typed" | "draft" | "resume", attempted (the new job's words), line (the server's sentence), resume_id }.
+  // It shows only while the server's latest answer says the account is at the limit: every list drops it the moment it is not.
+  var limit = null, carry = "";
+  var starting = {}, firing = {}, cardsOut = {}, fullCache = {}, askN = {};
+  var MAX_ASKS = 4, COULD_NOT = "The sales could not be read just now. Try again in a minute.";
   function phraseOf(t){ return String((t && t.summary) || "").replace(/^Sam is (?:looking for|researching)\s+/i, "").replace(/:.*$/, "").replace(/[.]+$/, ""); }
-  function showLimit(l){ limit = l; api({ action: "limit", event: "seen", mode: l.mode, task_id: l.task_id, attempted: l.attempted }).catch(function(){}); }
+  function showLimit(l){ limit = l; api({ action: "limit", event: "seen", mode: l.mode, attempted: l.attempted }).catch(function(){}); }
+  function syncLimit(){ if (limit && !(data && data.limit && data.limit.atLimit)) { if (limit.mode === "seed" || limit.mode === "typed") carry = limit.attempted || ""; limit = null; } }
   var draft = null; try { draft = JSON.parse(sessionStorage.getItem("gas_task_draft") || "null"); } catch(e){}
   function saveDraft(d){ draft = d; try { if (d) sessionStorage.setItem("gas_task_draft", JSON.stringify(d)); else sessionStorage.removeItem("gas_task_draft"); } catch(e){} }
   function seedWords(){
@@ -267,9 +275,7 @@ const APP_JS = String.raw`(function(){
   function seedObj(){ if (params.get("seed") === "vin") return { from: "vin", ref: "vin:" + params.get("vin") }; if (params.get("seed") === "buy") { var bf = null; try { bf = JSON.parse(params.get("filters") || "null"); } catch(e){} return { from: "buy_search", ref: null, filters: bf && typeof bf === "object" && !Array.isArray(bf) ? bf : null }; } return null; }
   function token(){ if (typeof authValidToken === "function") return authValidToken(); try { return Promise.resolve((JSON.parse(localStorage.getItem("gas_auth_session") || "null") || {}).access_token || null); } catch(e){ return Promise.resolve(null); } }
   function api(body){ return token().then(function(tk){ return fetch("/api/tasks", { method: "POST", headers: tk ? { "Content-Type": "application/json", Authorization: "Bearer " + tk } : { "Content-Type": "application/json" }, body: JSON.stringify(body) }); }).then(function(r){ if (r.status === 401) { location.replace("/tasks?signin=1&next=" + encodeURIComponent(location.pathname + location.search)); throw new Error("auth"); } return r.json(); }); }
-  function status(t){ if (t.state === "running" || t.state === "needs_you") return ["running", "Running"]; if (t.state === "paused") return ["paused", "Paused"]; if (t.state === "done") return t.kind === "research" ? ["done", "Done"] : ["stopped", "Stopped"]; return ["draft", "Not started"]; }
-  // A new task was blocked by the one-task rule while the task is on screen: a short note above it, no link.
-  function blockedNote(state){ return state === "paused" ? "Your Task is paused below. Resume or stop it to start another." : "Your Task is already running below. Stop it to start another."; }
+  function status(t){ if (starting[t.id]) return ["running", "Sam is starting"]; if (t.state === "running" || t.state === "needs_you") return ["running", "Running"]; if (t.state === "paused") return ["paused", "Paused"]; if (t.state === "done") return t.kind === "research" ? ["done", "Done"] : ["stopped", "Stopped"]; return ["draft", "Not started"]; }
   function dropEntryParams(){ var u = new URL(location.href); ["start", "seed", "words", "filters", "vin", "car"].forEach(function(k){ u.searchParams.delete(k); }); try { history.replaceState(null, "", u.pathname + (u.search || "") + u.hash); } catch(e){} }
   function when(iso){ try { var d = new Date(iso), now = new Date(); var o = { month: "short", day: "numeric" }; if (Math.abs(now - d) > 80 * 864e5) o.year = "numeric"; return d.toLocaleDateString("en-US", o) + ", " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }); } catch(e){ return ""; } }
   function money(n){ return "$" + Number(n).toLocaleString("en-US"); }
@@ -280,8 +286,9 @@ const APP_JS = String.raw`(function(){
   // client). The server read each listing again with Find's engine step (u.data.full); a car whose row could not be read keeps the thin line.
   function cars(u){
     var cs = (u.data && u.data.cards) || []; if (!cs.length) return "";
+    if (u.data.full === undefined && cardsOut[u.task_id] !== "done") return '<p class="tkload">Getting the cars.</p>';
     var full = (u.data && u.data.full) || [], big = [], thin = [];
-    cs.forEach(function(c, i){ var f = full[i]; if (f && window.GASCARD) big.push(window.GASCARD.card(f)); else thin.push(c); });
+    cs.forEach(function(c, i){ var f = full[i], h = ""; if (f && window.GASCARD) { try { h = window.GASCARD.card(f); } catch(e){ h = ""; } } if (h) big.push(h); else thin.push(c); });
     var more = u.data.total > cs.length ? '<p class="more">' + (u.data.total - cs.length) + " more match.</p>" : "";
     var h = big.length ? '<div class="cgrid tkgrid">' + big.join("") + "</div>" : "";
     if (thin.length) h += '<ul class="cars">' + thin.map(function(c){
@@ -293,18 +300,18 @@ const APP_JS = String.raw`(function(){
   function feed(t){
     var ups = (t.updates || []).filter(function(u){ return u.role === "sam" && ["match", "research", "still_looking", "system"].indexOf(u.kind) >= 0; }).slice().reverse();
     if (!ups.length) return '<p class="empty">No updates yet.</p>';
-    return '<ul class="feed">' + ups.map(function(u){ var eline = u.kind === "match" && u.data && u.data.line && ((u.data.full || []).some(function(f){ return !!f; }) || (u.data.cards || []).length);
+    return '<ul class="feed">' + (starting[t.id] ? '<li><p class="ut sys tkstart">Sam is checking the live cars now.</p></li>' : "") + ups.map(function(u){ var eline = u.kind === "match" && u.data && u.data.line && ((u.data.full || []).some(function(f){ return !!f; }) || (u.data.cards || []).length);
       return '<li><span class="when">' + esc(when(u.created_at)) + '</span>' + (eline ? '<p class="ut line">' + esc(u.data.line) + "</p>" : '<p class="ut' + (u.kind === "system" ? " sys" : "") + '">' + esc(u.text) + "</p>") + cars(u) + "</li>"; }).join("") + "</ul>";
   }
-  function box(label, id, value, ph){ return '<div class="tkask"><label class="boxlab" for="' + id + '">' + esc(label) + '</label><div class="tkbox"><input id="' + id + '" autocomplete="off" value="' + esc(value || "") + '" placeholder="' + esc(ph || "") + '"><button type="button" data-send="' + id + '"' + (busy ? " disabled" : "") + ">" + (busy ? "Sam is reading..." : "Send") + "</button></div></div>"; }
+  function box(label, id, value, ph, tid){ return '<div class="tkask"><label class="boxlab" for="' + id + '">' + esc(label) + '</label><div class="tkbox"><input id="' + id + '" autocomplete="off"' + (tid ? ' data-task="' + tid + '"' : "") + ' value="' + esc(value || "") + '" placeholder="' + esc(ph || "") + '"><button type="button" data-send="' + id + '"' + (tid ? ' data-task="' + tid + '"' : "") + (busy ? " disabled" : "") + ">" + (busy ? "Sam is reading..." : "Send") + "</button></div></div>"; }
   function taskCard(t, compact){
     var st = status(t), live = t.state !== "done" && !compact;
     var btns = t.state !== "done" ? '<div class="tbtns">' + (t.state === "paused" ? '<button class="sbtn" data-act="resume" data-id="' + t.id + '">Resume</button>' : '<button class="sbtn" data-act="pause" data-id="' + t.id + '">Pause</button>') + '<button class="sbtn" data-act="stop" data-id="' + t.id + '">Stop</button></div>' : "";
     var h = '<section class="tcard" id="task-' + t.id + '"><div class="thead"><span class="pill ' + st[0] + '">' + st[1] + '</span><p class="tline">' + esc(t.summary) + "</p>" + btns + "</div>";
     if (live) {
-      if (pending) h += '<p class="readback">' + esc(pending.summary.replace(/^Sam is looking for/, "Sam will look for").replace(/^Sam is researching/, "Sam will research")) + '</p><div class="go"><button class="pbtn" data-apply="' + t.id + '">Use this change</button><button class="plink" data-unpending>Keep the Task as it is</button></div>';
-      h += box("Change the Task or tell Sam something", "tkq", "", "");
-      if (reply && !pending) h += '<p class="samreply">' + esc(reply) + "</p>";
+      if (pending && pendingId === t.id) h += '<p class="readback">' + esc(pending.summary.replace(/^Sam is looking for/, "Sam will look for").replace(/^Sam is researching/, "Sam will research")) + '</p><div class="go"><button class="pbtn" data-apply="' + t.id + '">Use this change</button><button class="plink" data-unpending>Keep the Task as it is</button></div>';
+      h += box("Change the Task or tell Sam something", "tkq-" + t.id, "", "", t.id);
+      if (reply && !(pending && pendingId === t.id) && replyFor === t.id) h += '<p class="samreply">' + esc(reply) + "</p>";
     }
     return h + feed(t) + "</section>";
   }
@@ -315,10 +322,17 @@ const APP_JS = String.raw`(function(){
     else h += (last ? '<p class="readback">' + esc(last.text) + "</p>" : "") + box(draft.summary ? "Change what Sam looks for" : "Answer Sam", "tkq", editing ? draft.words : "", "");
     return h + "</section>";
   }
+  // THE LIMIT CARD (one, compact): the server's sentence, then the working Tasks, each with the action that closes it and starts the new one.
+  function limitCard(workingTasks){
+    return '<section class="limitbox" role="status"><p>' + esc((data && data.limit && data.limit.line) || limit.line || "") + '</p>' + workingTasks.map(function(t){
+      return '<div class="lrow"><span class="ltxt">' + esc(phraseOf(t)) + '</span><button class="sbtn" data-limit-close="' + t.id + '">Close and start this one</button></div>'; }).join("") +
+      '<p class="lkeep"><button class="plink" data-limit-keep>Never mind</button></p></section>';
+  }
+  function newBox(){ return '<section class="tcard">' + box("Tell Sam what to look for", "tkq", carry || seedWords(), "e.g. find me a black manual 997 under $70k") + (reply && replyFor === null ? '<p class="samreply">' + esc(reply) + "</p>" : "") + "</section>"; }
   // Under the card: where updates go (the sign-in address, not a setting) and the email switch (stored on the account).
   function notifyLine(){
     var n = (data && data.notify) || null; if (!n) return "";
-    var sw = '<label class="sw"><input type="checkbox" data-notify-on' + (n.on ? " checked" : "") + '><i></i>Email updates</label>';
+    var sw = '<label class="tksw"><input type="checkbox" data-notify-on' + (n.on ? " checked" : "") + '><i></i>Email updates</label>';
     // How often (Oct 2026): one setting for all of a person's Tasks; shown once the account can store it.
     var opts = [["daily", "Once a day"], ["twice", "Twice a day"], ["thrice", "Three times a day"], ["instant", "As soon as one comes"]];
     var cur = n.every || "daily";
@@ -327,70 +341,125 @@ const APP_JS = String.raw`(function(){
     return '<div class="notify">' + (n.on ? "<span>Updates go to <b>" + esc(n.email || "your account email") + '</b>, the address you sign in with.</span>' : "<span>Email is off. Updates show here and on Tasks.</span>") + sw + often + "</div>";
   }
   function render(){
+    // Typed text and focus survive a redraw (cars fill in while a person is typing in a Task's box).
+    var keep = {}, fid = document.activeElement && document.activeElement.id; app.querySelectorAll("input[id^=tkq]").forEach(function(i){ keep[i.id] = i.value; });
     var tasks = (data && data.tasks) || [];
-    // The working task (running or needing the buyer) holds the slot; paused tasks wait below it.
-    var cur = tasks.filter(function(t){ return ["running", "needs_you"].indexOf(t.state) >= 0; })[0] || null;
+    var work = tasks.filter(function(t){ return ["running", "needs_you"].indexOf(t.state) >= 0; });
     var paused = tasks.filter(function(t){ return t.state === "paused"; });
-    var past = tasks.filter(function(t){ return t !== cur && t.state === "done"; });
-    var h = "";
-    // Arriving with a new job (a seed) while a task works: the one-at-a-time choice.
-    if (cur && arrived && params.get("seed") && !limit) showLimit({ mode: "seed", task_id: cur.id, current: phraseOf(cur), attempted: seedWords() });
-    else if (cur && arrived) { note = blockedNote(cur.state); scrollTo = cur.id; }
-    if (arrived) { arrived = false; if (!limit) dropEntryParams(); }
-    if (limit) h += '<div class="limitbox" role="status"><p>' + esc(LIMIT_TEXT(limit.current)) + '</p><div class="go"><button class="pbtn" data-limit-swap>Swap it for this one</button><button class="plink" data-limit-keep>Keep the current one</button></div></div>';
-    else if (note && cur) h += '<p class="' + (/junk folder/.test(note) ? "noteinfo" : "blocked") + '" role="status">' + esc(note) + "</p>";
-    if (cur) h += taskCard(cur);
+    var past = tasks.filter(function(t){ return t.state === "done"; });
+    var lim = (data && data.limit) || null, h = "";
+    // Arriving with a new job (a seed) at the limit: the card, with that job as the one to start.
+    if (arrived) { if (params.get("seed") && lim && lim.atLimit && !limit) showLimit({ mode: "seed", attempted: seedWords(), line: lim.line }); arrived = false; if (!limit) dropEntryParams(); }
+    if (note) h += '<p class="noteinfo" role="status">' + esc(note) + "</p>";
+    // The new Task comes first: the limit card (only at the limit), else the read-back, else the box.
+    if (limit && lim && lim.atLimit) h += limitCard(work);
     else if (draft) h += draftCard();
-    else h += '<section class="tcard">' + box("Tell Sam what to look for", "tkq", seedWords(), "e.g. find me a black manual 997 under $70k") + (reply ? '<p class="samreply">' + esc(reply) + "</p>" : "") + "</section>";
+    else h += newBox();
+    h += work.map(function(t){ return taskCard(t); }).join("");
     // The email settings show for everyone signed in, with or without a working Task: exact-car, sold-car and
     // Before it ends emails use them too.
     h += notifyLine();
     if (paused.length) h += '<p class="pausedh">Paused</p>' + paused.map(function(t){ return taskCard(t, true); }).join("");
     if (past.length) h += '<details class="past"><summary>Past Tasks (' + past.length + ")</summary>" + past.map(function(t){ var st = status(t); return '<details><summary><span class="pill ' + st[0] + '">' + st[1] + "</span>" + esc(t.summary) + "</summary>" + feed(t) + "</details>"; }).join("") + "</details>";
     app.innerHTML = h;
+    Object.keys(keep).forEach(function(k){ var el = $(k); if (el && keep[k]) el.value = keep[k]; });
+    if (fid && $(fid)) { try { $(fid).focus({ preventScroll: true }); } catch(e){} }
     if (window.GASCARD) { window.GASCARD.bind(); window.GASCARD.stamp(); }
-    if (scrollTo) { var el = app.querySelector(".blocked") || document.getElementById("task-" + scrollTo); scrollTo = null; if (el) el.scrollIntoView({ block: "start" }); }
-    var q = $("tkq"); if (q && !cur && (params.get("start") || params.get("seed") || editing)) { q.focus(); }
+    if (scrollTo) { var el2 = document.getElementById("task-" + scrollTo); scrollTo = null; if (el2) el2.scrollIntoView({ block: "start" }); }
+    var q = $("tkq"); if (q && (params.get("start") || params.get("seed") || editing || carry)) { q.focus(); }
   }
   // Pressed: disabled at once, the label says what is happening, and the other buttons in the card wait.
-  function working(btn, label){ btn.disabled = true; btn.textContent = label; var card = btn.closest(".tcard"); if (card) card.querySelectorAll("button").forEach(function(b){ b.disabled = true; }); }
-  function load(){ return api({ action: "list", open: (data && data.open) || params.get("task") || null }).then(function(j){ data = j; render(); }).catch(function(){}); }
-  function send(text){
+  function working(btn, label){ btn.disabled = true; btn.textContent = label; var card = btn.closest(".tcard,.limitbox"); if (card) card.querySelectorAll("button").forEach(function(b){ b.disabled = true; }); }
+  // The rail's Tasks badge shows the server's count of open Tasks after every list.
+  function syncBadge(){ var n = data && data.count; document.querySelectorAll("[data-gas-tasks-badge],[data-tasks-badge]").forEach(function(b){ if (n) { b.textContent = String(n); b.hidden = false; b.classList.remove("nu"); } else { b.textContent = ""; b.hidden = true; } }); }
+  function findTask(id){ return ((data && data.tasks) || []).filter(function(x){ return x.id === id; })[0] || null; }
+  // The list is fast (no full cards); the cars and the first match run follow and fill in.
+  function load(){ return api({ action: "list", fast: true, open: (data && data.open) || params.get("task") || null }).then(function(j){
+    data = j; syncLimit(); syncBadge();
+    (data.tasks || []).forEach(function(t){ (t.updates || []).forEach(function(u){ if (u.data && fullCache[u.id]) u.data.full = fullCache[u.id]; }); });
+    render(); kick(); }).catch(function(){}); }
+  function kick(){
+    ((data && data.tasks) || []).forEach(function(t){
+      if (t.kind === "hunt" && t.state === "running" && !firing[t.id] && !(t.updates || []).some(function(u){ return u.kind === "match"; })) {
+        firing[t.id] = true; starting[t.id] = true; render();
+        api({ action: "first", task_id: t.id }).catch(function(){}).then(function(){ delete starting[t.id]; return load(); });
+        return;
+      }
+      var need = (t.updates || []).some(function(u){ return u.data && Array.isArray(u.data.cards) && u.data.cards.length && u.data.full === undefined; });
+      if (need && !cardsOut[t.id]) {
+        cardsOut[t.id] = true;
+        api({ action: "cards", task_id: t.id }).then(function(j){
+          (j.updates || []).forEach(function(x){ fullCache[x.id] = x.full; var tk = findTask(t.id); if (tk) (tk.updates || []).forEach(function(u){ if (u.id === x.id && u.data) u.data.full = x.full; }); });
+          cardsOut[t.id] = "done"; render(); markets();
+        }).catch(function(){ cardsOut[t.id] = "done"; render(); });
+      }
+    });
+  }
+  // A card whose market is not back (the engine's own pending answer, or none yet) is asked for again exactly as Buy asks: the
+  // engine says when (retryAfterMs), each card fills in place the moment its own market lands, and a card still pending after
+  // MAX_ASKS says so plainly instead of holding the reading line.
+  function isPend(l){ return l && (l.market === undefined || l.market === null || (l.market && l.market.kind === "pending" && l.market.stillReading)); }
+  function allFull(){ var out = []; Object.keys(fullCache).forEach(function(k){ (fullCache[k] || []).forEach(function(l){ if (l && out.indexOf(l) < 0) out.push(l); }); }); return out; }
+  function redrawCard(l){ if (!window.GASCARD) return; app.querySelectorAll('article.car[data-id="' + l.id + '"]').forEach(function(a){ var d = document.createElement("div"); d.innerHTML = window.GASCARD.card(l); var n = d.firstElementChild; if (n) a.replaceWith(n); }); if (window.GASCARD.stamp) window.GASCARD.stamp(); }
+  function markets(){
+    var still = allFull().filter(function(l){ return isPend(l) && (askN[l.id] || 0) < MAX_ASKS; });
+    if (!still.length) return;
+    var ids = still.map(function(l){ return l.id; }).slice(0, 60);
+    ids.forEach(function(id){ askN[id] = (askN[id] || 0) + 1; });
+    fetch("/api/buySearch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "enrich", ids: ids }) }).then(function(r){ return r.json(); }).catch(function(){ return { cards: [] }; }).then(function(j){
+      var waits = [];
+      still.forEach(function(l){
+        var c = ((j && j.cards) || []).filter(function(x){ return x.id === l.id; })[0];
+        if (c && c.market !== undefined) { l.market = c.market; l.seen_before = c.seen_before; if (c.timeline !== undefined) l.timeline = c.timeline; l.sam_lines = c.sam_lines; }
+        if (isPend(l)) {
+          if ((askN[l.id] || 0) >= MAX_ASKS) { l.market = { kind: "pending", stillReading: false, line: COULD_NOT }; }
+          else waits.push(l.market && l.market.retryAfterMs > 0 ? l.market.retryAfterMs : 15000);
+        }
+        redrawCard(l);
+      });
+      if (waits.length) setTimeout(markets, Math.min.apply(null, waits));
+    });
+  }
+  function send(text, tid){
     if (busy) return; busy = true;
-    var sb = document.querySelector("[data-send]"); if (sb) { sb.disabled = true; sb.textContent = "Sam is reading..."; } var qi = $("tkq"); if (qi) qi.readOnly = true;
-    // The box speaks to the WORKING task when there is one (the same task render() shows); with none, a new draft.
-    var tasks = (data && data.tasks) || [], cur = tasks.filter(function(t){ return ["running", "needs_you"].indexOf(t.state) >= 0; })[0];
-    var body = cur ? { action: "say", task_id: cur.id, text: text, pending: pending } : { action: "say", text: text, draft: draft, seed: draft ? null : seedObj() };
+    var sb = document.querySelector('[data-send="' + (tid ? "tkq-" + tid : "tkq") + '"]'); if (sb) { sb.disabled = true; sb.textContent = "Sam is reading..."; } var qi = $(tid ? "tkq-" + tid : "tkq"); if (qi) qi.readOnly = true;
+    // The box in a Task speaks to that Task; the top box starts a new one.
+    var body = tid ? { action: "say", task_id: tid, text: text, pending: pendingId === tid ? pending : null } : { action: "say", text: text, draft: draft, seed: draft ? null : seedObj() };
     api(body).then(function(j){
-      busy = false; editing = false; reply = j.reply || ""; note = j.blocked ? blockedNote(j.blocked.state) : "";
-      if (cur) { pending = j.pending || null; return load(); }
+      busy = false; editing = false; carry = ""; reply = j.reply || ""; replyFor = tid || null;
+      if (tid) { pending = j.pending || null; pendingId = pending ? tid : null; return load(); }
+      if (j.blocked) { showLimit({ mode: "typed", attempted: text, line: j.blocked.line }); reply = ""; return load(); }
       if (j.task) { saveDraft(null); reply = ""; return load(); }
       if (j.discarded) { saveDraft(null); return load(); }
       if (j.draft) saveDraft(j.draft);
       render();
-    }).catch(function(){ busy = false; render(); var q = $("tkq"); if (q) q.value = text; });
+    }).catch(function(){ busy = false; render(); var q = $(tid ? "tkq-" + tid : "tkq"); if (q) q.value = text; });
   }
   document.addEventListener("click", function(e){
-    var t = e.target.closest("[data-send],[data-act],[data-start],[data-change],[data-apply],[data-unpending],[data-goto],[data-limit-swap],[data-limit-keep]"); if (!t) return;
-    if (t.hasAttribute("data-limit-keep")) { e.preventDefault(); var lk = limit; limit = null; note = ""; if (lk) api({ action: "limit", event: "keep", mode: lk.mode, task_id: lk.task_id, attempted: lk.attempted }).catch(function(){}); dropEntryParams(); render(); return; }
-    if (t.hasAttribute("data-limit-swap")) { e.preventDefault(); if (t.disabled) return; var ls = limit; working(t, "Swapping...");
-      api({ action: "limit", event: "swap", mode: ls.mode, task_id: ls.task_id, attempted: ls.attempted, resume_id: ls.resume_id || null, draft: ls.mode === "draft" ? draft : null }).then(function(j){
-        limit = null; note = ""; reply = "";
-        if (ls.mode === "draft" && j && j.task) saveDraft(null);
-        // A seeded job: the slot is free now, so Sam drafts it at once (the read-back, then Start).
-        if (ls.mode === "seed") { var w = seedWords(); dropEntryParams(); return load().then(function(){ if (w) send(w); }); }
+    var t = e.target.closest("[data-send],[data-act],[data-start],[data-change],[data-apply],[data-unpending],[data-goto],[data-limit-close],[data-limit-keep]"); if (!t) return;
+    if (t.hasAttribute("data-limit-keep")) { e.preventDefault(); var lk = limit; limit = null; carry = ""; if (lk) api({ action: "limit", event: "keep", mode: lk.mode, attempted: lk.attempted }).catch(function(){}); dropEntryParams(); render(); return; }
+    if (t.hasAttribute("data-limit-close")) { e.preventDefault(); if (t.disabled) return; var ls = limit, cid = t.getAttribute("data-limit-close"); if (!ls) return; working(t, "Closing...");
+      api({ action: "limit", event: "close", mode: ls.mode, task_id: cid, attempted: ls.attempted, resume_id: ls.resume_id || null, draft: ls.mode === "draft" ? draft : null, defer: true }).then(function(j){
+        limit = null; reply = "";
+        if (ls.mode === "draft" && j && j.task) { saveDraft(null); if (j.task.state === "running") { starting[j.task.id] = true; } }
+        // A typed or seeded job: the slot is free now, so Sam drafts it at once (the read-back, then Start).
+        if (ls.mode === "seed" || ls.mode === "typed") { var w = ls.mode === "seed" ? seedWords() : ls.attempted; if (ls.mode === "seed") dropEntryParams(); return load().then(function(){ if (w) send(w); }); }
         return load();
       }).catch(function(){ limit = null; load(); }); return; }
     if (t.hasAttribute("data-goto")) { var el = document.getElementById("task-" + t.getAttribute("data-goto")); if (el) { e.preventDefault(); el.scrollIntoView({ block: "start" }); } return; }
     e.preventDefault();
-    if (t.hasAttribute("data-send")) { var q = $(t.getAttribute("data-send")); if (q && q.value.trim()) send(q.value.trim()); return; }
+    if (t.hasAttribute("data-send")) { var q = $(t.getAttribute("data-send")); if (q && q.value.trim()) send(q.value.trim(), t.getAttribute("data-task") || null); return; }
     if (t.hasAttribute("data-change")) { editing = true; render(); return; }
-    if (t.hasAttribute("data-unpending")) { pending = null; reply = ""; render(); return; }
+    if (t.hasAttribute("data-unpending")) { pending = null; pendingId = null; reply = ""; render(); return; }
     if (t.disabled) return;
-    if (t.hasAttribute("data-start")) { working(t, "Starting..."); api({ action: "start", draft: draft }).then(function(j){ if (j.blocked) { showLimit({ mode: "draft", task_id: j.blocked.task_id, current: j.blocked.current || phraseOf(j.blocked), attempted: (draft && (draft.summary || draft.words)) || "" }); return load(); } if (j.task) { saveDraft(null); reply = ""; note = (data && data.notify && data.notify.on === false) ? "" : "If this isn't in your inbox, check your junk folder, and mark it as not junk so the next one lands."; } return load(); }).catch(function(){ load(); }); return; }
-    if (t.hasAttribute("data-apply")) { working(t, "Saving..."); api({ action: "apply", task_id: t.getAttribute("data-apply"), pending: pending }).then(function(){ pending = null; reply = ""; note = ""; return load(); }).catch(function(){ load(); }); return; }
-    if (t.hasAttribute("data-act")) { working(t, { pause: "Pausing...", resume: "Resuming...", stop: "Stopping..." }[t.getAttribute("data-act")] || "..."); api({ action: "control", task_id: t.getAttribute("data-id"), act: t.getAttribute("data-act") }).then(function(j){ note = ""; pending = null; reply = "";
-      if (j.blocked) { var rt = ((data && data.tasks) || []).filter(function(x){ return x.id === t.getAttribute("data-id"); })[0]; showLimit({ mode: "resume", task_id: j.blocked.task_id, current: j.blocked.current || phraseOf(j.blocked), attempted: rt ? phraseOf(rt) : "", resume_id: t.getAttribute("data-id") }); }
+    // Start: the Task is created and shown at once (running, "Sam is starting"); the first match run and the cars fill in after.
+    if (t.hasAttribute("data-start")) { working(t, "Starting..."); api({ action: "start", draft: draft, defer: true }).then(function(j){
+      if (j.blocked) { showLimit({ mode: "draft", attempted: (draft && (draft.summary || draft.words)) || "", line: j.blocked.line }); return load(); }
+      if (j.task) { saveDraft(null); reply = ""; limit = null; if (j.task.starting) starting[j.task.id] = true; note = (data && data.notify && data.notify.on === false) ? "" : "If this isn't in your inbox, check your junk folder, and mark it as not junk so the next one lands."; }
+      return load(); }).catch(function(){ load(); }); return; }
+    if (t.hasAttribute("data-apply")) { working(t, "Saving..."); api({ action: "apply", task_id: t.getAttribute("data-apply"), pending: pending }).then(function(){ pending = null; pendingId = null; reply = ""; note = ""; return load(); }).catch(function(){ load(); }); return; }
+    if (t.hasAttribute("data-act")) { working(t, { pause: "Pausing...", resume: "Resuming...", stop: "Stopping..." }[t.getAttribute("data-act")] || "..."); api({ action: "control", task_id: t.getAttribute("data-id"), act: t.getAttribute("data-act") }).then(function(j){ note = ""; pending = null; pendingId = null; reply = "";
+      if (j.blocked) { var rt = findTask(t.getAttribute("data-id")); showLimit({ mode: "resume", attempted: rt ? phraseOf(rt) : "", line: j.blocked.line, resume_id: t.getAttribute("data-id") }); }
       return load(); }).catch(function(){ load(); }); }
   });
   document.addEventListener("change", function(e){
@@ -404,6 +473,6 @@ const APP_JS = String.raw`(function(){
     var on = e.target.checked; e.target.disabled = true;
     api({ action: "notify", on: on }).then(function(j){ if (data && j && !j.error) data.notify = j; render(); });
   });
-  document.addEventListener("keydown", function(e){ if (e.key === "Enter" && e.target && e.target.id === "tkq" && e.target.value.trim()) { e.preventDefault(); send(e.target.value.trim()); } });
+  document.addEventListener("keydown", function(e){ if (e.key === "Enter" && e.target && /^tkq/.test(e.target.id || "") && e.target.value.trim()) { e.preventDefault(); send(e.target.value.trim(), e.target.getAttribute("data-task") || null); } });
   load();
 })();`;

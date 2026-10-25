@@ -1,0 +1,130 @@
+// TASKS PAGE, RENDERED (Lane D, Oct 2026): the REAL page code (api/tasksPage.js) in headless Chrome with /api/tasks and /api/buySearch
+// answered by fixtures, so the page's own flow is exercised without a network: 0, 1, 2 and 3 Tasks, the limit card, the starting state,
+// the close-and-start flow, the badge after each, the stale-notice case, the "still reading" holding line, and the layout at 1440 and 390
+// (no overlap of the email toggle and How often; no clipped badge on a card).  node scripts/tasksPageShots.mjs [--shots]
+// --shots also writes the screenshots to proofs/tasks3/.
+import path from "node:path"; import { pathToFileURL, fileURLToPath } from "node:url";
+process.env.LAUNCH_STAGE = "2"; process.env.LAUNCH_BUSINESS = "1";
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const SHOTS = process.argv.includes("--shots");
+const puppeteer = (await import(pathToFileURL(path.join(ROOT, "node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js")).href).catch(() => import("puppeteer-core"))).default;
+const { limitFacts } = await import(pathToFileURL(path.join(ROOT, "lib/tasks/limit.js")).href);
+let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL  " + m); } };
+const now = Date.now(), soon = h => new Date(now + h * 3600e3).toISOString(), ago = h => new Date(now - h * 3600e3).toISOString();
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="432"><rect width="100%" height="100%" fill="#8ab"/></svg>`;
+const card = (id, t, extra) => Object.assign({ id, title: t, make: "Porsche", url: "https://auction.test/" + id, source: "Bring a Trailer", sourceSlug: "bringatrailer", photo_url: "https://img.test/" + id + ".jpg", end_time: soon(14), reserve: "none", current_bid_usd: 40000 + id * 1000, bid_at: ago(0.4), miles: 30000 + id * 1000, location: "King of Prussia, PA", country: "US", chips: ["Manual", "Guards Red"], market: { kind: "range", low: 55000, high: 78000, count: 24, query: "1995 Porsche 911", basisLine: "Based on 24 sales, the latest in October 2026." }, sam_lines: [{ kind: "range", rung: [], placing: "below the range", text: "The middle half of 911 sales landed at $55,000 to $78,000 since December 2025. The bid is below the range." }], timeline: [], seen_before: { n: 0 }, history_url: null }, extra || {});
+const CARDS = [card(1, "1995 Porsche 911 Carrera"), card(2, "1996 Porsche 911 Carrera 4"), card(3, "1994 Porsche 964 Carrera RS")];
+const mkTask = (n, state = "running", extra = {}) => ({ id: "00000000-0000-4000-8000-00000000000" + n, state, kind: "hunt", summary: ["Sam is looking for red manual Porsche 911s.", "Sam is looking for G-body sedans.", "Sam is looking for a 1995 Land Rover Defender under $100,000.", "Sam is looking for Ford Mustangs."][n - 1], filters: {}, unread: 0, created_at: ago(5), updates: [{ id: 100 + n, role: "sam", kind: "system", created_at: ago(5), text: "Started. Sam checks every new listing and tells you when one matches." }, { id: 200 + n, role: "sam", kind: "match", created_at: ago(4.9), text: "x", data: { opening: true, total: 3, line: "3 live cars match.", cards: CARDS.map(c => ({ id: c.id, title: c.title, url: c.url })) } }], ...extra });
+
+// A fake account: tasks mutate with the page's calls, the way the server would; counts and the limit come from the same limitFacts.
+function account(tasks, opts = {}) {
+  const A = { tasks, calls: [], notify: { on: true, email: "me@example.com", every: "daily", everyReady: true }, firstDelay: opts.firstDelay || 0, cardsDelay: opts.cardsDelay || 0, enrich: opts.enrich || (() => ({ cards: [] })) };
+  A.working = () => A.tasks.filter(t => ["running", "needs_you"].includes(t.state)).length;
+  A.list = () => ({ tasks: A.tasks.map(t => ({ ...t, updates: (t.updates || []).map(u => ({ ...u, task_id: t.id, data: u.data ? { ...u.data, full: undefined } : u.data })) })), count: A.tasks.filter(t => t.state !== "done").length, limit: limitFacts(A.working()), suggestions: [], notify: A.notify });
+  A.blocked = () => { const w = A.tasks.filter(t => ["running", "needs_you"].includes(t.state)); return { blocked: { task_id: w[0].id, max: 3, line: limitFacts(w.length).line, tasks: w.map(t => ({ id: t.id, summary: t.summary })) } }; };
+  A.handle = async b => {
+    A.calls.push(b.action + (b.act ? ":" + b.act : "") + (b.event ? ":" + b.event : ""));
+    if (b.action === "list") return A.list();
+    if (b.action === "say" && !b.task_id) { if (A.working() >= 3) return A.blocked(); const w = String(b.text); return { draft: { words: w, kind: "hunt", filters: { make: "X" }, question: null, summary: "Sam is looking for " + w + ".", thread: [{ role: "sam", text: "Sam will look for " + w + ". Start?" }] }, reply: "Sam will look for " + w + ". Start?" }; }
+    if (b.action === "start") { if (A.working() >= 3) return A.blocked(); const t = mkTask(A.tasks.length + 1, "running", { summary: b.draft.summary, updates: [{ id: 900 + A.tasks.length, role: "sam", kind: "system", created_at: new Date().toISOString(), text: "Started. Sam checks every new listing and tells you when one matches." }] }); A.tasks.unshift(t); A.newest = t; return { task: { ...t, starting: !!b.defer } }; }
+    if (b.action === "first") { if (A.firstDelay) await new Promise(r => setTimeout(r, A.firstDelay)); const t = A.tasks.find(x => x.id === b.task_id); t.updates.push(mkTask(1).updates[1]); return { task: t, ran: true }; }
+    if (b.action === "cards") { if (A.cardsDelay) await new Promise(r => setTimeout(r, A.cardsDelay)); const t = A.tasks.find(x => x.id === b.task_id); return { updates: (t.updates || []).filter(u => u.data && u.data.cards).map(u => ({ id: u.id, full: A.cardsOf ? A.cardsOf() : CARDS.map(c => ({ ...c })) })) }; }
+    if (b.action === "control") { const t = A.tasks.find(x => x.id === b.task_id); if (b.act === "stop") t.state = "done"; else if (b.act === "pause") t.state = "paused"; else if (b.act === "resume") { if (A.working() >= 3) return { ...A.blocked(), task: t }; t.state = "running"; } return { task: t }; }
+    if (b.action === "limit") { if (b.event === "close") { const t = A.tasks.find(x => x.id === b.task_id); if (t) t.state = "done"; if (b.mode === "draft" && b.draft) { if (A.working() >= 3) return A.blocked(); const n = mkTask(A.tasks.length + 1, "running", { summary: b.draft.summary }); A.tasks.unshift(n); return { ok: true, task: { ...n, starting: true } }; } } return { ok: true }; }
+    if (b.action === "notify") { if (typeof b.on === "boolean") A.notify.on = b.on; if (b.every) A.notify.every = b.every; return A.notify; }
+    return {};
+  };
+  return A;
+}
+
+const mod = async (f, url, q) => { const { default: h } = await import(pathToFileURL(path.join(ROOT, "api", f + ".js")).href); return await new Promise(r => { const res = { setHeader() {}, getHeader() {}, status() { return res; }, send(x) { r(String(x)); return res; }, end(x) { r(String(x || "")); return res; }, json(o) { r(JSON.stringify(o)); return res; }, writeHead() { return res; }, write() {} }; h({ method: "GET", url, query: q || {}, headers: { host: "goasksam.com", cookie: "gas_crew=x" }, socket: {} }, res); }); };
+const tasksHtml = await mod("tasksPage", "/tasks/mine?app=1", { app: "1" });
+const b = await puppeteer.launch({ executablePath: process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", headless: "new", args: ["--no-sandbox"] });
+async function open(A, width, search = "", signedOut = false) {
+  const p = await b.newPage(); await p.setViewport({ width, height: 900 }); const errs = []; p.on("pageerror", e => errs.push(e.message.slice(0, 120))); p._errs = errs; p._A = A;
+  if (signedOut) await p.evaluateOnNewDocument(() => localStorage.clear()); else await p.evaluateOnNewDocument(() => localStorage.setItem("gas_auth_session", JSON.stringify({ access_token: "tok", expires_at: 9999999999 }))); await p.setRequestInterception(true);
+  p.on("request", async r => { const u = new URL(r.url());
+    if (u.host === "goasksam.com" && r.isNavigationRequest() && u.pathname === "/tasks") return r.respond({ status: 200, contentType: "text/html", body: "<html><body>explainer</body></html>" });
+    if (u.host === "goasksam.com" && r.isNavigationRequest()) return r.respond({ status: 200, contentType: "text/html", body: tasksHtml });
+    if (u.host === "img.test") return r.respond({ status: 200, contentType: "image/svg+xml", body: svg });
+    if (u.host === "goasksam.com" && u.pathname === "/api/tasks") { let body = {}; try { body = JSON.parse(r.postData() || "{}"); } catch {} if (r.method() === "GET") return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ signedIn: true, count: A.tasks.filter(t => t.state !== "done").length, limit: limitFacts(A.working()) }) }); const out = await A.handle(body); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(out) }); }
+    if (u.host === "goasksam.com" && u.pathname === "/api/buySearch") { let body = {}; try { body = JSON.parse(r.postData() || "{}"); } catch {} A.enrichCalls = (A.enrichCalls || 0) + 1; return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(A.enrich(body, A.enrichCalls)) }); }
+    if (u.host === "goasksam.com" && /^\/(api|js)/.test(u.pathname)) return r.respond({ status: 200, contentType: /\.js$/.test(u.pathname) ? "application/javascript" : "application/json", body: /\.js$/.test(u.pathname) ? "" : "{}" });
+    if (u.host !== "goasksam.com") return r.respond({ status: 204, body: "" }); r.continue(); });
+  await p.goto("https://goasksam.com/tasks/mine?app=1" + search, { waitUntil: "networkidle2" }).catch(() => {}); await new Promise(r => setTimeout(r, 900)); return p;
+}
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const text = p => p.evaluate(() => document.getElementById("tkapp").innerText);
+const badge = p => p.evaluate(() => { const b = document.querySelector("[data-gas-tasks-badge],[data-tasks-badge]"); return b && !b.hidden ? b.textContent : ""; });
+const shot = async (p, name) => { if (SHOTS) await p.screenshot({ path: path.join(ROOT, "proofs/tasks3", name + ".png"), fullPage: true }); };
+const layout = p => p.evaluate(() => {
+  const r = s => { const e = document.querySelector(s); return e ? e.getBoundingClientRect() : null; };
+  const swEl = document.querySelector(".notify .tksw"), sw = r(".notify .tksw"), often = r(".notify .often"), sel = r(".notify .often select"), nt = r(".notify");
+  const hit = (a, c) => a && c && !(a.right <= c.left + 0.5 || c.right <= a.left + 0.5 || a.bottom <= c.top + 0.5 || c.bottom <= a.top + 0.5);
+  const clipped = [...document.querySelectorAll("article.car .chips")].filter(c => c.scrollWidth > c.clientWidth + 1 || [...c.children].some(k => { const kb = k.getBoundingClientRect(), cb = c.parentElement.getBoundingClientRect(); return kb.right > cb.right + 1 || kb.left < cb.left - 1; })).length;
+  return { overlap: hit(sw, often) || (swEl ? swEl.scrollWidth > swEl.clientWidth + 1 : false), selOut: sel && nt ? sel.right > nt.right + 1 : false, hscroll: document.documentElement.scrollWidth > window.innerWidth + 1, clipped, chips: [...document.querySelectorAll("article.car .chips")].length };
+});
+try {
+  for (const W of [1440, 390]) {
+    // 0 Tasks
+    { const A = account([]); const p = await open(A, W, "&start=1"); const t = await text(p);
+      ok(/Tell Sam what to look for/.test(t) && !/running|Close one|Paused/.test(t), `[${W}] 0 Tasks: the box, no limit notice`); ok((await badge(p)) === "", `[${W}] 0 Tasks: no badge`);
+      const L = await layout(p); ok(!L.overlap && !L.selOut && !L.hscroll, `[${W}] 0 Tasks: email toggle and How often do not overlap ${JSON.stringify(L)}`); await shot(p, `tasks-0-${W}`); await p.close(); }
+    // 2 Tasks
+    { const A = account([mkTask(1), mkTask(2)]); const p = await open(A, W); await wait(700); const t = await text(p);
+      ok(/Tell Sam what to look for/.test(t) && /red manual Porsche 911s/.test(t) && /G-body sedans/.test(t) && !/Close one to start/.test(t), `[${W}] 2 Tasks: the box first, both Tasks, no limit notice`);
+      ok((await badge(p)) === "2", `[${W}] 2 Tasks: the badge reads 2 (${await badge(p)})`);
+      ok(await p.evaluate(() => document.getElementById("tkapp").innerHTML.indexOf("tkq\"") < document.getElementById("tkapp").innerHTML.indexOf("task-0000")), `[${W}] 2 Tasks: the new-Task box comes before the Tasks`);
+      const L = await layout(p); ok(!L.overlap && !L.selOut && !L.hscroll && L.clipped === 0 && L.chips >= 3, `[${W}] 2 Tasks: no overlap, no clipped badge ${JSON.stringify(L)}`);
+      await shot(p, `tasks-2-${W}`); await p.close(); }
+    // 3 Tasks, the limit card via a typed attempt, then close one and start
+    { const A = account([mkTask(1), mkTask(2), mkTask(3)]); const p = await open(A, W); await wait(700);
+      ok((await badge(p)) === "3" && !/Close one to start/.test(await text(p)), `[${W}] 3 Tasks: badge 3, no notice before an attempt`);
+      await shot(p, `tasks-3-${W}`);
+      await p.type("#tkq", "find me a Mustang"); await p.keyboard.press("Enter"); await wait(700); let t = await text(p);
+      ok(/You have 3 Tasks running\. Close one to start this one\./.test(t) && (t.match(/Close and start this one/g) || []).length === 3, `[${W}] 3 Tasks: the limit card with three Close and start this one`);
+      ok(!/\bAI\b|upgrade|plan|Pro\b/.test(await p.evaluate(() => document.querySelector(".limitbox").innerText)), `[${W}] limit card: no upsell wording`);
+      await shot(p, `tasks-limit-${W}`);
+      await p.click(".limitbox .lrow:nth-of-type(2) button"); await wait(900); t = await text(p);
+      ok(!/Close one to start/.test(t) && /Sam will look for find me a Mustang\. Start\?/.test(t), `[${W}] closing one at the limit drafts the new Task (read-back with Start)`);
+      ok(A.working() === 2 && (await badge(p)) === "2", `[${W}] after closing: 2 working, badge ${await badge(p)}`);
+      await p.click("[data-start]"); await wait(900); t = await text(p);
+      ok(A.working() === 3 && (await badge(p)) === "3" && !/Close one to start|one job at a time|You already have/.test(t), `[${W}] after Start: 3 working, badge 3, and NO stale limit notice (the reported bug)`);
+      ok(p._errs.length === 0, `[${W}] no page errors ${JSON.stringify(p._errs)}`); await p.close(); }
+    // the reported stale-notice case: at the limit an attempt shows the card; the person closes a Task with its own Stop; the card goes
+    { const A = account([mkTask(1), mkTask(2), mkTask(3)]); const p = await open(A, W); await wait(500);
+      await p.type("#tkq", "g body sedans"); await p.keyboard.press("Enter"); await wait(600); ok(/Close one to start this one/.test(await text(p)), `[${W}] stale case: the card shows at the limit`);
+      await p.click("[data-act=stop]"); await wait(900); const t = await text(p);
+      ok(!/Close one to start|one job at a time|You already have/.test(t) && /Tell Sam what to look for/.test(t), `[${W}] stale case: after a Stop the card is gone (the server says 2 working)`);
+      ok(await p.evaluate(() => document.getElementById("tkq").value) === "g body sedans", `[${W}] stale case: the attempted words are back in the box`); await p.close(); }
+    // the starting state: Start shows the Task at once, the first run is slow, cards fill in after
+    { const A = account([mkTask(1)], { firstDelay: 1800, cardsDelay: 600 }); const p = await open(A, W); await wait(500);
+      await p.type("#tkq", "g body sedans"); await p.keyboard.press("Enter"); await wait(500); await p.click("[data-start]"); await wait(500);
+      let t = await text(p); ok(/Sam is starting/i.test(t) && /Sam is checking the live cars now\./.test(t) && /g body sedans/.test(t), `[${W}] starting state: the Task shows at once as "Sam is starting" while the first run is out`);
+      ok(A.working() === 2 && (await badge(p)) === "2", `[${W}] starting state: count and badge already 2`);
+      await shot(p, `tasks-starting-${W}`);
+      await wait(3500); t = await text(p); ok(!/Sam is starting/i.test(t) && /3 live cars match\./.test(await text(p)), `[${W}] starting state clears when the first run lands`); await p.close(); }
+  }
+  // SIGNED OUT: the app page asks for sign-in (sends to the explainer's sign-in card, keeping where it was going); after sign-in the
+  // same page completes ONE create.
+  { const A0 = account([]); const p = await open(A0, 1440, "&start=1", true); const u = new URL(p.url());
+    ok(u.pathname === "/tasks" && u.searchParams.get("signin") === "1" && /^\/tasks\/mine/.test(u.searchParams.get("next") || ""), "signed out: the app asks to sign in and remembers where it was going (" + p.url().slice(0, 120) + ")");
+    ok(A0.calls.length === 0, "signed out: nothing was asked of the server"); await p.close();
+    const A = account([]); const q = await open(A, 1440, "&start=1");
+    await q.type("#tkq", "g body sedans"); await q.keyboard.press("Enter"); await wait(500); await q.click("[data-start]"); await wait(1200);
+    ok(A.tasks.length === 1 && A.calls.filter(c => c === "start").length === 1, "signed out then signed in: the Task is created once (" + A.tasks.length + " Task, " + A.calls.filter(c => c === "start").length + " start call)"); await q.close(); }
+  // "Sam is still reading the sales for this one." only while a card is actually loading (1440)
+  { const pend = { kind: "pending", stillReading: true, line: "Sam is still reading the sales for this one.", retry: true, retryAfterMs: 4500 };
+    const A = account([mkTask(1)], { enrich: (body, n) => ({ cards: (body.ids || []).map(id => n < 2 ? { id, market: { ...pend } } : { id, market: CARDS[0].market, seen_before: { n: 0 }, timeline: [], sam_lines: CARDS[0].sam_lines }) }) });
+    A.cardsOf = () => CARDS.map(c => ({ ...c, market: { ...pend }, sam_lines: [] }));
+    const p = await open(A, 1440); p.on("pageerror", e => console.log("ERR", e.message)); await wait(300); const early = await text(p); await wait(6000); const late = await text(p);
+    ok(/still reading/.test(early) || /Getting the cars/.test(early), "reading: the holding line shows while the market is out");
+    ok(!/still reading/.test(late) && /typical range/i.test(late), "reading: the line is gone once each card's own market lands, and the range is there");
+    ok((A.enrichCalls || 0) >= 2, "reading: the page asked again after the engine's own retry wait (" + A.enrichCalls + " asks)"); await p.close(); }
+  // a market that never comes: said plainly after the capped asks
+  { const pend = { kind: "pending", stillReading: true, line: "Sam is still reading the sales for this one.", retry: true, retryAfterMs: 120 };
+    const A = account([mkTask(1)], { enrich: body => ({ cards: (body.ids || []).map(id => ({ id, market: { ...pend } })) }) }); A.cardsOf = () => CARDS.map(c => ({ ...c, market: { ...pend }, sam_lines: [] }));
+    const p = await open(A, 1440); await wait(2500); const t = await text(p);
+    ok(!/still reading/.test(t) && /The sales could not be read just now/.test(t), "reading: a market that never comes is said plainly, not left on the holding line"); await p.close(); }
+} finally { await b.close(); }
+console.log(`tasksPageShots: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

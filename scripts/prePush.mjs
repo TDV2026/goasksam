@@ -915,6 +915,22 @@ try {
 } catch (e) {
   record("tasksLeftoverCheck (scripts/tasksLeftoverCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Tasks limit of three (Oct 2026, Lane D): the one limit module, the server-side refusal at the limit, close-and-start, the race recount, the
+// start split. No network.
+try {
+  const out = execSync("node scripts/tasksLimitCheck.mjs", { encoding: "utf8" });
+  record("tasksLimitCheck (scripts/tasksLimitCheck.mjs)", "PASS", (out.match(/tasksLimitCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("tasksLimitCheck (scripts/tasksLimitCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// The Tasks page rendered (Oct 2026, Lane D): the real page in headless Chrome against fixtures (0, 2, 3 Tasks, the limit card, the starting
+// state, the badge, the stale notice, the reading line, the toggle and the card badge at 1440 and 390). No network.
+try {
+  const out = execSync("node scripts/tasksPageShots.mjs", { encoding: "utf8" });
+  record("tasksPageShots (scripts/tasksPageShots.mjs)", "PASS", (out.match(/tasksPageShots: .*/) || [""])[0]);
+} catch (e) {
+  record("tasksPageShots (scripts/tasksPageShots.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // GoAskSam 2.0 Stage 1, the one rail, Find and /buy 301 (Sam, Oct 23 2026; Lane C). No network.
 try {
   const out = execSync("node scripts/rail2Check.mjs", { encoding: "utf8" });

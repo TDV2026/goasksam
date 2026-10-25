@@ -8,8 +8,8 @@
 //   POST {action:"start", draft}                 -> the only way a task row is written (the read-back confirmed)
 //   POST {action:"apply", task_id, pending}      -> a confirmed change to a task
 //   POST {action:"control", task_id, act}        -> pause | resume | stop | keep_looking
-// One task per account holds the slot (running, needs you, or paused): a new task while it is held
-// returns { blocked: { task_id, state, summary } } and creates nothing, wherever the request came from.
+// An account has FREE_TASK_LIMIT working Tasks at most (lib/tasks/limit.js, the one place): a new Task, or a resume,
+// past it returns { blocked: { task_id, state, summary, max, line, tasks } } and creates nothing, wherever the request came from.
 //   GET  ?a=pause|stop|keep_looking|resume&t=<signed token> -> the confirm page for an email link (changes
 //                                          nothing: email scanners open every link); HEAD likewise
 //   POST ?a=...&t=<signed token>        -> the confirm page's button, or a mail provider's one-click
@@ -21,7 +21,8 @@ import { withTracking } from "../lib/track/log.js";
 import { supabaseEnv, supabaseSelect, supabaseBytesSoFar } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { readVisitorId } from "../lib/_visitor.js";
-import { jobPhrase, notifyPrefs, setNotifyPrefs, taskTurn, draftTurn, startDraft, applyEdit, slotTask, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore, notify, oneTap, sendStartEmail } from "../lib/tasks/tasks.js";
+import { limitFacts } from "../lib/tasks/limit.js";
+import { jobPhrase, notifyPrefs, setNotifyPrefs, taskTurn, draftTurn, startDraft, applyEdit, slotTask, firstRun, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore, notify, oneTap, sendStartEmail } from "../lib/tasks/tasks.js";
 import crypto from "node:crypto";
 import { CHAT_MODEL } from "../lib/live/chatHttp.js";
 import { recordUsageEvent } from "./_usage.js";
@@ -488,8 +489,11 @@ async function handler(req, res) {
       res.setHeader("Cache-Control", "private, no-store");
       if (!user) return res.status(200).json({ signedIn: false });
       const tasks = await userTasks(env, user.userId);
-      const active = tasks.find(t => ["running", "needs_you", "paused"].includes(t.state)) || null;
-      return res.status(200).json({ signedIn: true, active: active ? { id: active.id, state: active.state, summary: active.summary } : null, unread: tasks.reduce((k, t) => k + (t.unread || 0), 0) });
+      const open = tasks.filter(t => ["running", "needs_you", "paused"].includes(t.state));
+      const active = open.find(t => ["running", "needs_you"].includes(t.state)) || open[0] || null;
+      const working = open.filter(t => ["running", "needs_you"].includes(t.state)).length;
+      // count: the Tasks the person has open (the rail badge); limit: the working count against the one limit.
+      return res.status(200).json({ signedIn: true, active: active ? { id: active.id, state: active.state, summary: active.summary } : null, count: open.length, limit: limitFacts(working), unread: tasks.reduce((k, t) => k + (t.unread || 0), 0) });
     }
     if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
     if (!user) return res.status(401).json({ needSignIn: true });
@@ -498,11 +502,12 @@ async function handler(req, res) {
       const tasks = await userTasks(env, user.userId);
       const withThreads = await Promise.all(tasks.map(async t => ({ ...t, updates: await taskUpdates(env, t.id) })));
       // Find's own cards for the cars an update lists (lib/tasks/fullCards.js), and the engine's one-line count in place of the model's paragraph.
-      { const { attachFullCards, updateLine } = await import("../lib/tasks/fullCards.js"); await attachFullCards(env, withThreads).catch(() => {});
+      { const { attachFullCards, updateLine } = await import("../lib/tasks/fullCards.js"); if (!b.fast) await attachFullCards(env, withThreads).catch(() => {});   // b.fast: the page asks for the full cards next (action "cards") and fills them in
         for (const t of withThreads) for (const u of t.updates || []) if (u && u.role === "sam" && u.kind === "match" && u.data && Array.isArray(u.data.cards) && u.data.cards.length) u.data.line = updateLine(u); }
       // Opening the list is an interaction; the open thread's updates are read.
       if (b.open && /^[0-9a-f-]{36}$/.test(String(b.open))) { const t = tasks.find(x => x.id === b.open); if (t) await saveTask(env, t.id, { unread: 0, last_interaction_at: new Date().toISOString() }); }
-      return res.status(200).json({ tasks: withThreads, suggestions: await suggestions(env, user.userId).catch(() => []), notify: await notifyPrefs(env, user).catch(() => null) });
+      const working = tasks.filter(t => ["running", "needs_you"].includes(t.state)).length;
+      return res.status(200).json({ tasks: withThreads, count: tasks.filter(t => ["running", "needs_you", "paused"].includes(t.state)).length, limit: limitFacts(working), suggestions: await suggestions(env, user.userId).catch(() => []), notify: await notifyPrefs(env, user).catch(() => null) });
     }
     if (b.action === "say") {
       const text = String(b.text || "").trim().slice(0, 2000);
@@ -534,22 +539,34 @@ async function handler(req, res) {
     // must always be able to use it" principle the task-email Pause/Stop/confirm/resume pages follow.
     if (b.action === "start") {
       if (!isReleased("tasks", req)) return notReleasedJson(res);
-      return res.status(200).json(await startDraft(env, user, b.draft || {}, { apiKey, model: CHAT_MODEL, visitorId: readVisitorId(req), gate: gateOf(req, user) }));
+      // defer: true (the Tasks page): the Task is created and running at once; the first match run is action "first".
+      return res.status(200).json(await startDraft(env, user, b.draft || {}, { apiKey, model: CHAT_MODEL, visitorId: readVisitorId(req), gate: gateOf(req, user), defer: b.defer === true }));
     }
-    // One task at a time (beta): the page shows the choice when a second task is attempted. Every showing
-    // and every button is logged as task_limit_hit (the user, the running task, the attempted job, the
-    // button). "swap" pauses the running task, then resumes the paused one asked for, or starts the
-    // draft; a seeded attempt is drafted by the page once the slot is free. "keep" changes nothing.
+    // The first match run of a deferred start (the start email, then the cars live right now). Managing an existing Task: never gated.
+    if (b.action === "first") return res.status(200).json(await firstRun(env, user, String(b.task_id || ""), { apiKey, model: CHAT_MODEL, visitorId: readVisitorId(req) }));
+    // One Task's cars as Find's full cards (the slow read, apart from the list): { updates: [{ id, full }] } in the order of each update's cards.
+    if (b.action === "cards") {
+      const t = await getTask(env, String(b.task_id || ""), user.userId);
+      if (!t) return res.status(200).json({ updates: [] });
+      const one = [{ ...t, updates: await taskUpdates(env, t.id) }];
+      const { attachFullCards } = await import("../lib/tasks/fullCards.js"); await attachFullCards(env, one).catch(() => {});
+      return res.status(200).json({ updates: one[0].updates.filter(u => u.data && Array.isArray(u.data.full)).map(u => ({ id: u.id, full: u.data.full })) });
+    }
+    // At the limit: the page shows one card with the working Tasks and "Close and start this one". Every showing and
+    // every button is logged as task_limit_hit (the user, the Task, the attempted job, the button). "close" stops the
+    // Task the buyer chose (the slot is free at once), then resumes the paused Task asked for or starts the draft; a
+    // typed or seeded attempt is drafted by the page once the slot is free. "keep" changes nothing. ("swap", the
+    // earlier button name, is read as "close".)
     if (b.action === "limit") {
-      const ev = ["seen", "swap", "keep"].includes(b.event) ? b.event : null;
+      const ev = ["seen", "close", "swap", "keep"].includes(b.event) ? (b.event === "swap" ? "close" : b.event) : null;
       if (!ev) return res.status(400).json({ error: "bad event" });
       const running = /^[0-9a-f-]{36}$/.test(String(b.task_id || "")) ? await getTask(env, b.task_id, user.userId).catch(() => null) : null;
-      await recordUsageEvent({ event_type: "task_limit_hit", route: "tasks", status: ev, metadata: { user_id: user.userId, running_task_id: running ? running.id : null, running_task: running ? running.summary : null, attempted_job: String(b.attempted || "").slice(0, 300) || null, mode: ["seed", "draft", "resume"].includes(b.mode) ? b.mode : null, button: ev === "seen" ? null : ev } }, env.supabaseUrl, env.supabaseKey).catch(e => console.error("task_limit_hit log:", e && e.message));
-      if (ev !== "swap") return res.status(200).json({ ok: true });
-      if (running && ["running", "needs_you"].includes(running.state)) await controlTask(env, user, running.id, "pause", { apiKey, model: CHAT_MODEL });
+      await recordUsageEvent({ event_type: "task_limit_hit", route: "tasks", status: ev, metadata: { user_id: user.userId, running_task_id: running ? running.id : null, running_task: running ? running.summary : null, attempted_job: String(b.attempted || "").slice(0, 300) || null, mode: ["seed", "draft", "resume", "typed"].includes(b.mode) ? b.mode : null, button: ev === "seen" ? null : ev } }, env.supabaseUrl, env.supabaseKey).catch(e => console.error("task_limit_hit log:", e && e.message));
+      if (ev !== "close") return res.status(200).json({ ok: true });
+      if (running && ["running", "needs_you"].includes(running.state)) await controlTask(env, user, running.id, "stop", { apiKey, model: CHAT_MODEL });
       if (b.mode === "resume" && /^[0-9a-f-]{36}$/.test(String(b.resume_id || ""))) return res.status(200).json({ ok: true, ...(await controlTask(env, user, String(b.resume_id), "resume", { apiKey, model: CHAT_MODEL })) });
-      if (b.mode === "draft" && b.draft) return res.status(200).json({ ok: true, ...(await startDraft(env, user, b.draft, { apiKey, model: CHAT_MODEL, gate: gateOf(req, user) })) });
-      return res.status(200).json({ ok: true, paused: running ? running.id : null });
+      if (b.mode === "draft" && b.draft) return res.status(200).json({ ok: true, ...(await startDraft(env, user, b.draft, { apiKey, model: CHAT_MODEL, visitorId: readVisitorId(req), gate: gateOf(req, user), defer: b.defer === true })) });
+      return res.status(200).json({ ok: true, closed: running ? running.id : null });
     }
     if (b.action === "apply") return res.status(200).json(await applyEdit(env, user, String(b.task_id || ""), b.pending || null, { apiKey, model: CHAT_MODEL }));
     if (b.action === "control") {
