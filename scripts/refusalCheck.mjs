@@ -18,7 +18,7 @@ const ask = async car => {
   const t0 = Date.now();
   const r = await fetch(BASE + "/api/sellerDecision", { method: "POST", headers, body: JSON.stringify({ oneBox: true, anonId: "ob-refusal-" + Math.random().toString(36).slice(2, 10), car: { raw: car.toLowerCase() }, asked: 0 }), signal: AbortSignal.timeout(60000) });
   const j = await r.json().catch(() => ({}));
-  return { ms: Date.now() - t0, http: r.status, tier: j.tier, status: j.status, refusal: j.refusal, fallback: j.chipFallback || null };
+  return { ms: Date.now() - t0, http: r.status, tier: j.tier, status: j.status, refusal: j.refusal, fallback: j.chipFallback || null, cardsN: Array.isArray(j.cards) ? j.cards.length : (Array.isArray(j.rawPool) ? j.rawPool.length : 0), line: j.thinLine || j.samLine || null };
 };
 let failed = 0, unchecked = 0, warned = 0, thin = 0;
 const BATCH = 5;
@@ -33,10 +33,17 @@ for (const car of CARS) {
   }
   if (a.tier === "business_limit") { unchecked++; console.log(`UNCHECKED  ${car}  (business_limit after 3 tries)`); continue; }
   if (a.fallback) { warned++; console.log(`WARN  ${car}  used the chip fallback (${(a.fallback.failedChecks || []).join(", ")}; engine ${a.fallback.engine})`); }
-  // A refusal of kind "thin" is the honest data answer (too few sales for a range; the answer still lists the sales it has) and is REPORTED, not failed.
-  // Every other refusal ("Sam could not verify this one": invariant_failed, a typed-model mismatch) or an error is a FAIL.
-  const thinOnly = a.tier === "refusal" && a.refusal && a.refusal.kind === "thin";
-  if (thinOnly) { thin++; console.log(`THIN  ${car}  ${a.ms}ms  refusal ${JSON.stringify(a.refusal).slice(0, 120)}`); continue; }
+  // HONEST NO-RANGE ANSWERS (Sam's ruling, Oct 24 2026): a refusal of kind thin or varied (too few sales, or too varied a model, for ONE range) and a builder car (Singer) are
+  // REPORTED, not failed, PROVIDED the answer carries the sales on record and says plainly there is no range (never an empty page). A builder car is shown as a
+  // builder car. Every other refusal ("Sam could not verify this one": invariant_failed, a typed-model mismatch) or an error is a FAIL.
+  const kind = a.tier === "refusal" && a.refusal ? a.refusal.kind : null;
+  if (kind === "builder_car") { thin++; console.log(`THIN  ${car}  ${a.ms}ms  builder car (intended)`); continue; }
+  if (kind === "thin" || kind === "varied") {
+    const carries = a.cardsN > 0 && !!a.line;
+    if (!carries) { failed++; console.log(`FAIL  ${car}  ${a.ms}ms  ${kind} answer with ${a.cardsN} sale(s) and ${a.line ? "a line" : "no line"}: an empty page`); }
+    else { thin++; console.log(`THIN  ${car}  ${a.ms}ms  ${kind}, ${a.cardsN} sale(s) shown, line: "${String(a.line).slice(0, 90)}"`); }
+    continue;
+  }
   const bad = a.tier === "refusal" || a.tier === "error" || a.http >= 500;
   if (bad) failed++;
   console.log(`${bad ? "FAIL" : "PASS"}  ${car}  ${a.ms}ms  tier ${a.tier}${a.refusal ? "  " + JSON.stringify(a.refusal).slice(0, 140) : ""}`);

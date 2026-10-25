@@ -9,14 +9,14 @@ export const AREAS = {
   "Japanese": ["1995 Acura NSX", "1998 Toyota Supra", "1994 Toyota Supra", "1972 Datsun 240Z", "1999 Nissan Skyline GT-R", "1990 Mazda Miata", "2003 Mazda RX-7", "1993 Mazda RX-7", "2011 Honda S2000", "1985 Toyota AE86", "1997 Toyota Land Cruiser", "2000 Nissan 300ZX", "1991 Nissan 300ZX Twin Turbo", "1999 Mitsubishi 3000GT", "2006 Subaru Impreza WRX STI", "1987 Toyota MR2", "2005 Mitsubishi Lancer Evolution"],
   "British and Italian": ["1965 Jaguar E-Type", "1969 Jaguar E-Type", "1990 Jaguar XJS", "1964 Aston Martin DB5", "1974 MG MGB", "1967 Austin-Healey 3000", "1972 Triumph TR6", "1985 Land Rover Defender 110", "1997 Land Rover Defender 110", "2011 Land Rover Range Rover", "1971 Land Rover Series III", "1972 Lotus Elan", "1966 Mini Cooper", "1973 Triumph Spitfire", "1966 Ferrari 275 GTB", "1989 Ferrari 328 GTS", "1995 Ferrari 355", "1972 Ferrari Dino 246 GT", "1985 Lamborghini Countach", "1971 Alfa Romeo Spider", "1969 Fiat 124 Spider", "2009 Ferrari California"],
   "Trucks and SUVs": ["1978 Ford Bronco", "1969 Ford Bronco", "1996 Ford Bronco", "1972 Chevrolet K5 Blazer", "1967 Chevrolet C10", "1979 Ford F-150", "1956 Ford F-100", "1991 GMC Syclone", "1979 Jeep CJ-7", "1966 Jeep Wagoneer", "1988 Jeep Grand Wagoneer", "1976 International Scout", "1966 International Scout", "1990 Chevrolet Suburban", "1984 Jeep Cherokee", "1972 Chevrolet C10"],
-  "Pre-1960": ["1931 Ford Model A", "1929 Ford Model A", "1932 Ford Roadster", "1936 Ford Coupe", "1953 Chevrolet Corvette", "1955 Ford Thunderbird", "1957 Ford Thunderbird", "1954 Mercedes-Benz 300SL", "1947 Cadillac Series 62", "1941 Packard 120", "1937 Cord 812", "1958 Chevrolet Corvette", "1959 Cadillac Eldorado"]
+  "Pre-1960": ["1931 Ford Model A", "1929 Ford Model A", "1932 Ford Roadster", "1936 Ford Coupe", "1953 Chevrolet Corvette", "1955 Ford Thunderbird", "1957 Ford Thunderbird", "1955 Mercedes-Benz 300SL Gullwing", "1947 Cadillac Series 62", "1941 Packard 120", "1937 Cord 812", "1958 Chevrolet Corvette", "1959 Cadillac Eldorado"]
 };
 export const PREPUSH = [...LARGE_POOL, "1969 Ford Mustang Mach 1", "1970 Plymouth Barracuda", "1987 Buick Regal Grand National", "1963 Chevrolet Corvette", "2003 Porsche 911 Carrera Targa", "1973 Porsche 911 Targa", "2008 Porsche 997 Carrera S Coupe", "1999 BMW M3", "1960 Mercedes-Benz 300SL", "1995 Acura NSX", "1998 Toyota Supra", "1972 Datsun 240Z", "1990 Mazda Miata", "1965 Jaguar E-Type", "1985 Land Rover Defender 110", "1966 Ferrari 275 GTB", "1978 Ford Bronco", "1972 Chevrolet K5 Blazer", "1976 International Scout", "1931 Ford Model A"];
 export function goldenCars() {
   try {
     const doc = fs.readFileSync(new URL("../docs/golden-rules.md", import.meta.url), "utf8");
     const m = /```json golden\n([\s\S]*?)```/.exec(doc);
-    return [...new Set(JSON.parse(m[1]).filter(g => !g.identity).map(g => g.q || g.car).filter(Boolean))];
+    return [...new Set(JSON.parse(m[1]).filter(g => !g.identity && !g.empty).map(g => g.q || g.car).filter(Boolean))];
   } catch { return []; }
 }
 export const SWEEP = [...new Set([...goldenCars(), ...LARGE_POOL, ...Object.values(AREAS).flat()])];
