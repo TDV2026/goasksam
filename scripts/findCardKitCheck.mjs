@@ -48,6 +48,8 @@ try {
   const fp = await page(findHtml, "/find?q=porsche+911&make=Porsche&model=911", (r, body) => r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(body.action === "chat" || body.action === "rerun" ? { reply: "", suggest: [], state: { filters: { make: "Porsche", model: "911" } }, turns: 1, meta: { count: 3, live: 3, asks: [] }, cards: FIX, searchNote: "" } : body.action === "list" ? { items: [] } : {}) }));
   const TASK = { id: "11111111-1111-1111-1111-111111111111", state: "running", kind: "hunt", summary: "Sam is looking for Porsche 911s", filters: {}, updates: [{ id: "u2", role: "sam", kind: "match", created_at: ago(2), text: "MODEL PARAGRAPH that must not show", data: { total: 3, cards: FIX.map(c => ({ id: c.id, title: c.title, url: c.url })), full: FIX, line: "3 new cars match." } }] };
   const tp = await page(tasksHtml, "/tasks/mine?app=1", r => r.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ tasks: [TASK], suggestions: [], notify: { on: false } }) }));
+  // The Tasks overview (Lane D, Oct 25 2026) shows a Task's cars only once its detail is open: open it the way a person does.
+  await tp.evaluate(() => { const b = document.querySelector("[data-toggle]"); if (b && !document.querySelector("article.car")) b.click(); }); await new Promise(r => setTimeout(r, 1500));
   const grab = p => p.evaluate(() => [...document.querySelectorAll("article.car")].map(a => a.outerHTML.replace(/ loading="lazy"/g, "").replace(/ hidden=""/g, "").replace(/ style="min-height: [0-9.]+px;"/g, "").replace(/\s+/g, " ")));
   const a = await grab(fp), c = await grab(tp);
   ok(a.length === 3 && c.length === 3, `three cards on each page (Find ${a.length}, Tasks ${c.length})`);
