@@ -10,6 +10,7 @@ const FIX = [
   mk(1, { title: "1957 Mercedes-Benz 300SL Roadster", year: 1957, model: "300SL" }), mk(2, { title: "1958 Mercedes-Benz 300SL Roadster", year: 1958, model: "300SL" }),
   mk(3, { title: "1954 Mercedes-Benz 300b Cabriolet D", year: 1954, model: "300SL", source_id: "124485" }),
   mk(4, { title: "1954 Mercedes-Benz 300b Cabriolet D", year: 1954, model: "300SL", source_id: "999001" }),   // same labels, NOT in the table: stays
+  mk(6, { title: "1952 Mercedes-Benz 300 Cabriolet D Project", year: 1952, model: "300SL", source_id: "77029" }),
   mk(5, { title: "1987 Ford Sierra RS Cosworth", year: 1987, make: "Merkur", model: "XR4Ti", source_id: "176322" })
 ];
 const ev = (row, it) => { const ci = it.indexOf(":"); const alias = ci > 0 && it[ci + 1] !== ":" ? it.slice(0, ci) : null; const expr = alias ? it.slice(ci + 1) : it; if (expr.startsWith("raw_record->>")) { const v = row.raw_record[expr.slice(13)]; return [alias || expr.slice(13), v == null ? null : String(v)]; } return [alias || expr, row[expr] === undefined ? null : row[expr]]; };
@@ -20,6 +21,7 @@ const ids = rows => rows.map(r => r.source_id).sort().join(",");
 
 const pool300 = await fetchQualifying({ make: "Mercedes-Benz", model: "300SL", trim: "", year: 1957, yearMin: 1952, yearMax: 1963 }, since, env, {});
 ok("the corrected 300b Cabriolet D (124485) is not in the 300SL pool", !pool300.some(r => r.source_id === "124485"), ids(pool300));
+ok("the second corrected row (77029) is not in the 300SL pool either", !pool300.some(r => r.source_id === "77029"));
 ok("an identical row that is NOT in the table stays (the rule is the table, not a title guess)", pool300.some(r => r.source_id === "999001"));
 ok("the real 300SL sales stay", pool300.filter(r => /300SL Roadster/.test(r.raw_title)).length === 2);
 const poolMerkur = await fetchQualifying({ make: "Merkur", model: "XR4Ti", trim: "", year: 1987, yearMin: 1985, yearMax: 1989 }, since, env, {});
@@ -28,5 +30,5 @@ const a = { source_slug: "bringatrailer", source_id: "124485", make: "Mercedes-B
 ok("movedOutOf: the corrected row is out of 300SL, in for its own model", movedOutOf(a, { make: "Mercedes-Benz", model: "300SL" }) && !movedOutOf(a, { make: "Mercedes-Benz", model: "300b Cabriolet D" }));
 ok("movedOutOf: a row never corrected is never out", !movedOutOf({ source_slug: "bringatrailer", source_id: "1", make: "Mercedes-Benz", model: "300SL" }, { make: "Mercedes-Benz", model: "300SL" }));
 const moves = correctionsThatMoveRows();
-ok("the table's make-or-model corrections are the two known ones", moves.length === 2 && moves.some(m => m.key === "bringatrailer|124485" && m.model === "300b Cabriolet D") && moves.some(m => m.key === "bringatrailer|176322"), JSON.stringify(moves.map(m => m.key)));
+ok("the table's make-or-model corrections are the three known entries", moves.length === 3 && moves.some(m => m.key === "bringatrailer|124485" && m.model === "300b Cabriolet D") && moves.some(m => m.key === "bringatrailer|77029" && m.model === "300 Cabriolet D") && moves.some(m => m.key === "bringatrailer|176322"), JSON.stringify(moves.map(m => m.key)));
 process.exit(failed ? 1 : 0);
