@@ -4,14 +4,17 @@
 //   node scripts/bulkSaleScan.mjs [from=2021-11-01] [to=2026-10-25]
 import { execSync } from "node:child_process";
 import { bulkSaleAside, houseEvents } from "../lib/bulkSale.js";
+import fs from "node:fs";
+const CACHE = process.env.BULK_CACHE || "";
 const key = execSync("security find-generic-password -s goasksam-probe -w", { encoding: "utf8" }).trim();
 let bypass = ""; try { bypass = execSync("security find-generic-password -s goasksam-bypass -w", { encoding: "utf8" }).trim(); } catch {}
 const FROM = process.argv[2] || "2021-11-01", TO = process.argv[3] || "2026-10-25";
 const SOURCES = ["rmsothebys", "gooding", "barrettjackson", "mecum", "broadarrow", "bonhams"];
 const get = async qs => { for (let t = 0; t < 3; t++) { try { const r = await fetch(`https://goasksam.com/api/usageDashboard?view=ops&task=poolrows&${qs}`, { headers: { "x-ops-key": key, "x-vercel-protection-bypass": bypass } }); const j = await r.json(); if (j && j.rows) return j; } catch {} } return { rows: [], total: 0 }; };
 const months = []; { let d = new Date(FROM + "T00:00:00Z"); const end = new Date(TO + "T00:00:00Z"); while (d < end) { const n = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1)); months.push([d.toISOString().slice(0, 10), new Date(Math.min(n - 864e5, end)).toISOString().slice(0, 10)]); d = n; } }
-const all = [];
-for (const src of SOURCES) for (const [a, b] of months) {
+let all = [];
+if (CACHE && fs.existsSync(CACHE)) all = JSON.parse(fs.readFileSync(CACHE, "utf8"));
+else for (const src of SOURCES) for (const [a, b] of months) {
   for (let off = 0; ; off += 500) {
     const j = await get(`source=${src}&since=${a}&until=${b}&limit=500&offset=${off}`);
     for (const r of j.rows) if (Number(r.sale_price_usd) > 0 && r.make && r.year) all.push({ id: r.id, source: src, source_slug: src, city: r.city, auction_end_date: r.sale_date, _usd: Number(r.hammerUsd || r.sale_price_usd), mileage: r.mileage, make: r.make, model: r.model, year: r.year, title: r.listing_title });
@@ -20,6 +23,7 @@ for (const src of SOURCES) for (const [a, b] of months) {
   process.stderr.write(`${src} ${a} rows so far ${all.length}\r`);
 }
 console.error("");
+if (CACHE && !fs.existsSync(CACHE)) fs.writeFileSync(CACHE, JSON.stringify(all));
 const poolKey = r => `${r.make}|${r.model}|${Math.floor(r.year / 5) * 5}`;
 const pools = new Map(); for (const r of all) (pools.get(poolKey(r)) || pools.set(poolKey(r), []).get(poolKey(r))).push(r);
 const med = xs => { const a = xs.slice().sort((x, y) => x - y), n = a.length; return n ? (n % 2 ? a[(n - 1) / 2] : (a[n / 2 - 1] + a[n / 2]) / 2) : null; };

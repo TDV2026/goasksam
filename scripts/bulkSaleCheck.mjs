@@ -17,7 +17,9 @@ ok(bulkSaleAside(driven).size === 0, "a house event whose cheap lots carry real 
 const mixed = [...others, ...[160000, 170000, 180000, 20000].map((p, i) => row("rmsothebys", "Los Angeles", "2024-10-26", p, 0))];
 ok(bulkSaleAside(mixed).size === 0, "one cheap lot among normal lots of an event is left alone (share under 60 percent)");
 ok(bulkSaleAside([...junk, ...real]).size === 0, "with too few other sales to give a reference, nothing is set aside");
-const tooFew = [...others, row("rmsothebys", "Los Angeles", "2024-10-26", 5000, 0), row("rmsothebys", "Los Angeles", "2024-10-26", 6000, 0)];
-ok(bulkSaleAside(tooFew).size === 0, "two cheap lots are not an event");
+const tooFew = [...others, row("rmsothebys", "Los Angeles", "2024-10-26", 5000, 0), row("rmsothebys", "Los Angeles", "2024-10-26", 6000, 0), row("rmsothebys", "Los Angeles", "2024-10-26", 6500, 0)];
+ok(bulkSaleAside(tooFew).size === 0, "three cheap lots are not an event");
+const cheapSale = [...others, ...[30000, 33000, 35000, 28000, 36000, 34000].map((p, i) => row("barrettjackson", "Scottsdale", "2025-01-1" + i, p, 0))];
+ok(bulkSaleAside(cheapSale).size === 0, "a house sale priced at a fifth to a quarter of the market (not a few percent) is a cheap sale, not a bulk sale of project cars");
 console.log(failed ? `bulkSaleCheck: ${failed} FAILED.` : "bulkSaleCheck: all passed.");
 process.exit(failed ? 1 : 0);
