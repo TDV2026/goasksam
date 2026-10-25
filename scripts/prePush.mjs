@@ -1060,6 +1060,13 @@ try {
 } catch (e) {
   record("holdPageCheck (scripts/holdPageCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The crew code box (Sam, Oct 25 2026): the code goes in a form body, never in an address, redirect, page or header; wrong codes get the 403 page and the limit. No network.
+try {
+  const out = execSync("node scripts/crewBoxCheck.mjs", { encoding: "utf8" });
+  record("crewBoxCheck (scripts/crewBoxCheck.mjs)", "PASS", (out.match(/crewBoxCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("crewBoxCheck (scripts/crewBoxCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
