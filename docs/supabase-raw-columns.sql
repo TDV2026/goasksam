@@ -37,6 +37,7 @@ alter table public.sales_archive
 -- ================================================================================================
 -- STEP 1b. The marker column (added after step 1 had been run; instant, nullable, no default, no rewrite).
 -- ================================================================================================
+set lock_timeout = '5s';   -- same run, before the alter: if the table is busy the statement gives up after 5 seconds instead of queueing behind a long query and blocking everyone behind it
 alter table public.sales_archive
   add column if not exists raw_cols_at timestamptz;   -- set when this row's new columns were copied from (or written with) its raw_record; null = not yet, and the engine reads such a row from raw_record
 
@@ -71,6 +72,9 @@ declare
   v_i      int := 0;
   v_total  bigint := 0;
 begin
+  if batch_rows < 1 or max_batches < 1 then
+    raise exception 'batch_rows and max_batches must be at least 1';
+  end if;
   insert into public.sales_archive_fill_progress (job) values ('raw_columns') on conflict (job) do nothing;
   select last_id into v_last from public.sales_archive_fill_progress where job = 'raw_columns';
   loop
@@ -166,7 +170,93 @@ select count(*) as sampled,
   count(*) filter (where jsonb_typeof(raw_record->'modifications') = 'string')                    as modifications_string_rows,          -- must be 0: for a string value ->> unquotes and ::text quotes, so the engine's read would differ
   count(*) filter (where raw_cols_at is null)                                                      as not_marked_rows                     -- must be 0 after the fill and the catch-up
 from t;
--- (b) all rows: the same select with "from public.sales_archive" in place of the two CTEs and "from t".
+-- (b) every row, in FOUR slices by id range (no single run is a full table scan). Run the four selects one at a time, never together, outside the
+-- nightly ingest window; each returns the same result columns as (a). Send Lane B all four results: Lane B adds each column across the slices.
+-- slice 1
+select count(*) as sampled,
+  count(*) filter (where image_url         is distinct from raw_record->>'featured_image_url')   as image_url_diff,
+  count(*) filter (where mileage_text      is distinct from raw_record->>'mileage')              as mileage_text_diff,
+  count(*) filter (where transmission_text is distinct from raw_record->>'transmission')         as transmission_text_diff,
+  count(*) filter (where currency          is distinct from raw_record->>'currency')             as currency_diff,
+  count(*) filter (where listing_url       is distinct from raw_record->>'url')                  as listing_url_diff,
+  count(*) filter (where source_url        is distinct from raw_record->>'source_url')           as source_url_diff,
+  count(*) filter (where city              is distinct from raw_record->>'city')                 as city_diff,
+  count(*) filter (where state             is distinct from raw_record->>'state')                as state_diff,
+  count(*) filter (where country_code      is distinct from raw_record->>'country_code')         as country_code_diff,
+  count(*) filter (where end_precision     is distinct from raw_record->>'auction_end_precision') as end_precision_diff,
+  count(*) filter (where body_style        is distinct from raw_record->>'body_style')           as body_style_diff,
+  count(*) filter (where modifications     is distinct from nullif(raw_record->'modifications', 'null'::jsonb)) as modifications_diff,
+  count(*) filter (where exterior_color    is distinct from raw_record->>'exterior_color')       as exterior_color_diff,
+  count(*) filter (where title_status      is distinct from raw_record->>'title_status')         as title_status_diff,
+  count(*) filter (where listing_title     is distinct from raw_record->>'title')                as listing_title_diff_informational,   -- INFORMATIONAL: listing_title is a reused column that ingest corrections (lib/_corrections.js) may legitimately change; a non-zero count here is not a failure
+  count(*) filter (where jsonb_typeof(raw_record->'modifications') = 'string')                    as modifications_string_rows,          -- must be 0: for a string value ->> unquotes and ::text quotes, so the engine's read would differ
+  count(*) filter (where raw_cols_at is null)                                                      as not_marked_rows                     -- must be 0 after the fill and the catch-up
+from public.sales_archive
+where id < '40000000-0000-0000-0000-000000000000';
+-- slice 2
+select count(*) as sampled,
+  count(*) filter (where image_url         is distinct from raw_record->>'featured_image_url')   as image_url_diff,
+  count(*) filter (where mileage_text      is distinct from raw_record->>'mileage')              as mileage_text_diff,
+  count(*) filter (where transmission_text is distinct from raw_record->>'transmission')         as transmission_text_diff,
+  count(*) filter (where currency          is distinct from raw_record->>'currency')             as currency_diff,
+  count(*) filter (where listing_url       is distinct from raw_record->>'url')                  as listing_url_diff,
+  count(*) filter (where source_url        is distinct from raw_record->>'source_url')           as source_url_diff,
+  count(*) filter (where city              is distinct from raw_record->>'city')                 as city_diff,
+  count(*) filter (where state             is distinct from raw_record->>'state')                as state_diff,
+  count(*) filter (where country_code      is distinct from raw_record->>'country_code')         as country_code_diff,
+  count(*) filter (where end_precision     is distinct from raw_record->>'auction_end_precision') as end_precision_diff,
+  count(*) filter (where body_style        is distinct from raw_record->>'body_style')           as body_style_diff,
+  count(*) filter (where modifications     is distinct from nullif(raw_record->'modifications', 'null'::jsonb)) as modifications_diff,
+  count(*) filter (where exterior_color    is distinct from raw_record->>'exterior_color')       as exterior_color_diff,
+  count(*) filter (where title_status      is distinct from raw_record->>'title_status')         as title_status_diff,
+  count(*) filter (where listing_title     is distinct from raw_record->>'title')                as listing_title_diff_informational,   -- INFORMATIONAL: listing_title is a reused column that ingest corrections (lib/_corrections.js) may legitimately change; a non-zero count here is not a failure
+  count(*) filter (where jsonb_typeof(raw_record->'modifications') = 'string')                    as modifications_string_rows,          -- must be 0: for a string value ->> unquotes and ::text quotes, so the engine's read would differ
+  count(*) filter (where raw_cols_at is null)                                                      as not_marked_rows                     -- must be 0 after the fill and the catch-up
+from public.sales_archive
+where id >= '40000000-0000-0000-0000-000000000000' and id < '80000000-0000-0000-0000-000000000000';
+-- slice 3
+select count(*) as sampled,
+  count(*) filter (where image_url         is distinct from raw_record->>'featured_image_url')   as image_url_diff,
+  count(*) filter (where mileage_text      is distinct from raw_record->>'mileage')              as mileage_text_diff,
+  count(*) filter (where transmission_text is distinct from raw_record->>'transmission')         as transmission_text_diff,
+  count(*) filter (where currency          is distinct from raw_record->>'currency')             as currency_diff,
+  count(*) filter (where listing_url       is distinct from raw_record->>'url')                  as listing_url_diff,
+  count(*) filter (where source_url        is distinct from raw_record->>'source_url')           as source_url_diff,
+  count(*) filter (where city              is distinct from raw_record->>'city')                 as city_diff,
+  count(*) filter (where state             is distinct from raw_record->>'state')                as state_diff,
+  count(*) filter (where country_code      is distinct from raw_record->>'country_code')         as country_code_diff,
+  count(*) filter (where end_precision     is distinct from raw_record->>'auction_end_precision') as end_precision_diff,
+  count(*) filter (where body_style        is distinct from raw_record->>'body_style')           as body_style_diff,
+  count(*) filter (where modifications     is distinct from nullif(raw_record->'modifications', 'null'::jsonb)) as modifications_diff,
+  count(*) filter (where exterior_color    is distinct from raw_record->>'exterior_color')       as exterior_color_diff,
+  count(*) filter (where title_status      is distinct from raw_record->>'title_status')         as title_status_diff,
+  count(*) filter (where listing_title     is distinct from raw_record->>'title')                as listing_title_diff_informational,   -- INFORMATIONAL: listing_title is a reused column that ingest corrections (lib/_corrections.js) may legitimately change; a non-zero count here is not a failure
+  count(*) filter (where jsonb_typeof(raw_record->'modifications') = 'string')                    as modifications_string_rows,          -- must be 0: for a string value ->> unquotes and ::text quotes, so the engine's read would differ
+  count(*) filter (where raw_cols_at is null)                                                      as not_marked_rows                     -- must be 0 after the fill and the catch-up
+from public.sales_archive
+where id >= '80000000-0000-0000-0000-000000000000' and id < 'c0000000-0000-0000-0000-000000000000';
+-- slice 4
+select count(*) as sampled,
+  count(*) filter (where image_url         is distinct from raw_record->>'featured_image_url')   as image_url_diff,
+  count(*) filter (where mileage_text      is distinct from raw_record->>'mileage')              as mileage_text_diff,
+  count(*) filter (where transmission_text is distinct from raw_record->>'transmission')         as transmission_text_diff,
+  count(*) filter (where currency          is distinct from raw_record->>'currency')             as currency_diff,
+  count(*) filter (where listing_url       is distinct from raw_record->>'url')                  as listing_url_diff,
+  count(*) filter (where source_url        is distinct from raw_record->>'source_url')           as source_url_diff,
+  count(*) filter (where city              is distinct from raw_record->>'city')                 as city_diff,
+  count(*) filter (where state             is distinct from raw_record->>'state')                as state_diff,
+  count(*) filter (where country_code      is distinct from raw_record->>'country_code')         as country_code_diff,
+  count(*) filter (where end_precision     is distinct from raw_record->>'auction_end_precision') as end_precision_diff,
+  count(*) filter (where body_style        is distinct from raw_record->>'body_style')           as body_style_diff,
+  count(*) filter (where modifications     is distinct from nullif(raw_record->'modifications', 'null'::jsonb)) as modifications_diff,
+  count(*) filter (where exterior_color    is distinct from raw_record->>'exterior_color')       as exterior_color_diff,
+  count(*) filter (where title_status      is distinct from raw_record->>'title_status')         as title_status_diff,
+  count(*) filter (where listing_title     is distinct from raw_record->>'title')                as listing_title_diff_informational,   -- INFORMATIONAL: listing_title is a reused column that ingest corrections (lib/_corrections.js) may legitimately change; a non-zero count here is not a failure
+  count(*) filter (where jsonb_typeof(raw_record->'modifications') = 'string')                    as modifications_string_rows,          -- must be 0: for a string value ->> unquotes and ::text quotes, so the engine's read would differ
+  count(*) filter (where raw_cols_at is null)                                                      as not_marked_rows                     -- must be 0 after the fill and the catch-up
+from public.sales_archive
+where id >= 'c0000000-0000-0000-0000-000000000000';
+
 -- (c) the rows behind a non-zero reused-column diff, one query per column (read only, limit 50):
 -- select id, source_slug, listing_title, body_style, raw_record->>'body_style' as raw_value
 --   from public.sales_archive where body_style is distinct from raw_record->>'body_style' limit 50;
@@ -178,6 +268,8 @@ from t;
 --   from public.sales_archive where title_status is distinct from raw_record->>'title_status' limit 50;
 --
 -- HOW TO READ BLOCK 3 (a) AND (b)
+--   (b) comes back as four result sets (slices 1 to 4). Send all four to Lane B; Lane B adds each column across the slices. Every *_diff total, modifications_string_rows
+--   and not_marked_rows must add up to exactly 0. 'sampled' across the four slices should add up to the table's row count.
 --   Must be exactly 0:
 --     the ten new columns: image_url_diff, mileage_text_diff, transmission_text_diff, currency_diff, listing_url_diff, source_url_diff,
 --       city_diff, state_diff, country_code_diff, end_precision_diff;
