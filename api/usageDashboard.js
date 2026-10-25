@@ -3596,7 +3596,9 @@ async function handleOps(req, res) {
         // refine=<json> (e47, read-only): run the same words with a chip's refine object ({"variant":"carrera"}, {"body":"coupe"}).
         let refineQ = null; try { refineQ = req.query?.refine ? JSON.parse(String(req.query.refine)) : null; } catch (e) { refineQ = null; }
         const keepHouseQ = req.query?.keepHouse === "1";   // e65, Sam item 5, diagnosis only: the answer with house sales kept in the band
-        const ob = (asOfQ || keepHouseQ) ? await runWithAsOf(asOfQ, () => runOneBox(v, g, q, wantRows ? { ...env, collectExcluded: true } : env, refineQ), { keepHouse: keepHouseQ }) : await runOneBox(v, g, q, wantRows ? { ...env, collectExcluded: true } : env, refineQ);
+        // poolcols=1|0 (Oct 25 2026, read-only): this one read uses the pool columns (1) or raw_record (0) whatever app_config says, so the 996 pool can be timed both ways in the same minute without flipping the flag
+        const envP = req.query?.poolcols === "1" ? { ...env, poolColumns: true } : req.query?.poolcols === "0" ? { ...env, poolColumns: false } : env;
+        const ob = (asOfQ || keepHouseQ) ? await runWithAsOf(asOfQ, () => runOneBox(v, g, q, wantRows ? { ...envP, collectExcluded: true } : envP, refineQ), { keepHouse: keepHouseQ }) : await runOneBox(v, g, q, wantRows ? { ...envP, collectExcluded: true } : envP, refineQ);
         const d = ob.dedup || {};
         let considered = null;
         if (wantRows) {

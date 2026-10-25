@@ -15,10 +15,13 @@ const mk = (i, over = {}) => {
     exterior_color: "Black", title_status: "Clean", url: `https://bat.example/${i}`, source_url: `https://src.example/${i}`, city: "Austin", state: "TX", country_code: "US", auction_end_precision: "day", ...over };
   return { id: "uuid-" + String(i).padStart(4, "0"), source_id: raw.id, sale_price: 30000 + i * 700, sale_date: `2026-0${1 + (i % 9)}-1${i % 9}`, platform: "Bring a Trailer", listing_title: raw.title, year: 1999 + (i % 5),
     make: "Porsche", model: "911", vin_norm: null, stated_mileage: null, project_flag: null, desc_facts: null, has_reserve: false, raw_record: raw,
-    image_url: raw.featured_image_url, mileage_text: raw.mileage, body_style: raw.body_style, modifications: raw.modifications, currency: raw.currency, transmission_text: raw.transmission,
+    raw_cols_at: "2026-10-26T00:00:00Z", image_url: raw.featured_image_url, mileage_text: raw.mileage, body_style: raw.body_style, modifications: raw.modifications, currency: raw.currency, transmission_text: raw.transmission,
     exterior_color: raw.exterior_color, title_status: raw.title_status, listing_url: raw.url, source_url: raw.source_url, city: raw.city, state: raw.state, country_code: raw.country_code, end_precision: raw.auction_end_precision };
 };
 const FIX = Array.from({ length: 24 }, (_, i) => mk(i)).concat([mk(40, { modifications: [], mileage: "" }), mk(41, { city: null, state: null, country_code: null })]);
+// HALF-FILLED rows: ingest wrote them before the columns were on (raw_cols_at null, new columns null) or the fill has not reached them
+// (a stale value). Their raw_record holds the truth; the columns must never be believed.
+for (let i = 50; i < 58; i++) { const r = mk(i); r.raw_cols_at = null; r.image_url = i % 2 ? null : "https://stale.example/old.jpg"; r.mileage_text = null; r.city = null; r.state = null; r.country_code = null; r.modifications = null; r.listing_url = null; FIX.push(r); }
 
 const evalItem = (row, item) => {
   const ci = item.indexOf(":"); const hasAlias = ci > 0 && item[ci + 1] !== ":";
@@ -29,13 +32,17 @@ const evalItem = (row, item) => {
   else { if (!(expr in row)) throw Object.assign(new Error("column " + expr + " does not exist"), { code: 400 }); val = row[expr]; key = key || expr; }
   return [key, val];
 };
-let missingColumns = false, lastSelect = "";
+let missingColumns = false, lastSelect = "", byIdRequests = 0, failById = false, colReads = 0, colSelectSeen = false;
 globalThis.fetch = async (url) => {
   const u = new URL(String(url)); const sel = u.searchParams.get("select");
   if (u.pathname.endsWith("/sales_archive")) {
-    lastSelect = sel;
+    if (!u.searchParams.get("id")) lastSelect = sel;
+    if (sel === POOL_COLUMN_COLS && !u.searchParams.get("id")) { colReads++; colSelectSeen = true; }
     if (missingColumns && sel.includes("image:image_url")) return new Response("{}", { status: 400 });
-    const rows = FIX.map(r => Object.fromEntries(sel.split(",").map(it => evalItem(r, it))));
+    const idf = u.searchParams.get("id");
+    let src = FIX;
+    if (idf && idf.startsWith("in.(")) { byIdRequests++; if (failById) return new Response("{}", { status: 500 }); const want = new Set(idf.slice(4, -1).split(",")); src = FIX.filter(r => want.has(r.id)); }
+    const rows = src.map(r => Object.fromEntries(sel.split(",").map(it => evalItem(r, it))));
     return new Response(JSON.stringify(rows), { status: 200 });
   }
   if (u.pathname.endsWith("/app_config")) return new Response("[]", { status: 200 });
@@ -62,6 +69,16 @@ const fb = await fetchQualifying(spec(), since, { ...base, poolColumns: true }, 
 try { assert.deepEqual(fb, off); ok("a missing column falls back to raw_record with identical rows", dg.poolColumnsFellBack === true, "fell back"); } catch (e) { ok("a missing column falls back to raw_record with identical rows", false, String(e.message).slice(0, 200)); }
 missingColumns = false;
 
+// only the half-filled rows are read a second time, and the rows still equal the raw_record read
+byIdRequests = 0; colReads = 0;
+const half = await fetchQualifying(spec(), since, { ...base, poolColumns: true }, {});
+ok("only the half-filled rows are read again by id (one request per pool read, 8 rows)", byIdRequests === colReads && colReads >= 1, `${byIdRequests} by-id request(s) for ${colReads} pool read(s)`);
+try { assert.deepEqual(half, off); ok("half-filled rows read identically to raw_record", true); } catch (e) { ok("half-filled rows read identically to raw_record", false, String(e.message).slice(0, 200)); }
+ok("no row carries the marker field", half.every(r => !("rawfill" in r)));
+failById = true; const dg2 = {};
+const fb2 = await fetchQualifying(spec(), since, { ...base, poolColumns: true }, dg2);
+try { assert.deepEqual(fb2, off); ok("a failed by-id read falls back to the whole raw_record read", dg2.poolColumnsFellBack === true); } catch (e) { ok("a failed by-id read falls back to the whole raw_record read", false, String(e.message).slice(0, 200)); }
+failById = false;
 lastSelect = "";
 await fetchQualifying(spec(), since, { ...base }, {});
 ok("nothing set: the engine reads raw_record", lastSelect === POOL_RAW_COLS);

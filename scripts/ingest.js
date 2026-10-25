@@ -12,6 +12,7 @@
 // Needs SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OLDCARSDATA_API_KEY (GitHub
 // Actions provides them as secrets; secrets are not pullable to a laptop).
 import fs from "node:fs";
+import { rawColumnsOf } from "../lib/_rawColumns.js";
 import { callOldCarsData, configureOcdUsage, flushOcdUsage, getOcdRunMetered } from "../lib/_ocd.js";
 import { supabaseEnv, supabaseInsert, supabaseSelect, supabaseSelectAll, supabaseDelete } from "../lib/_supabase.js";
 import { isPartsListing, projectFlagReason } from "../lib/_classify.js";
@@ -191,15 +192,8 @@ function toFullRow(r, label, source) {
     has_reserve: toBool(r.has_reserve), views: toInt(r.stats?.views), bids: toInt(r.stats?.bids),
     known_flaws: r.known_flaws ?? null, recent_service_history: r.recent_service_history ?? null, modifications: r.modifications ?? null
   };
-  // RAW COLUMNS (docs/supabase-raw-columns.sql Block 4): the ten real columns the pool read uses once app_config pool_columns_enabled is
-  // on, written from the same record fields raw_record holds. OFF unless INGEST_RAW_COLUMNS=1, because writing a column that is not there
-  // yet fails the whole insert; set it only after Block 1 has been run.
-  if (process.env.INGEST_RAW_COLUMNS === "1") {
-    row.image_url = r.featured_image_url ?? null; row.mileage_text = r.mileage == null ? null : String(r.mileage);
-    row.transmission_text = r.transmission ?? null; row.currency = r.currency ?? null; row.listing_url = r.url ?? null;
-    row.source_url = r.source_url ?? null; row.city = r.city ?? null; row.state = r.state ?? null;
-    row.country_code = r.country_code ?? null; row.end_precision = r.auction_end_precision ?? null;
-  }
+  // RAW COLUMNS (docs/supabase-raw-columns.sql Block 4): lib/_rawColumns.js, off unless INGEST_RAW_COLUMNS=1
+  Object.assign(row, rawColumnsOf(r));
   // SOURCE-ROW CORRECTIONS (Round 5 Lane B job, Oct 2026): a curated override (lib/_corrections.js,
   // keyed on platform+source_id) applied AFTER OCD's own identity resolution, so a known upstream
   // mislabel (the Merkur XR4Ti/Ford Sierra RS Cosworth case) is written correctly on every ingest,

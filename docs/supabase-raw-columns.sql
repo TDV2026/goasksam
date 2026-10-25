@@ -25,14 +25,15 @@ alter table public.sales_archive
   add column if not exists city              text,   -- raw_record->>'city'
   add column if not exists state             text,   -- raw_record->>'state'
   add column if not exists country_code      text,   -- raw_record->>'country_code'
-  add column if not exists end_precision     text;   -- raw_record->>'auction_end_precision'
+  add column if not exists end_precision     text,   -- raw_record->>'auction_end_precision'
+  add column if not exists raw_cols_at       timestamptz;   -- the marker: set when this row's new columns were copied from (or written with) its raw_record; null = not yet, the engine reads such a row from raw_record
 
 -- Rollback step 1 (only while nothing reads them, i.e. before the pool select change ships):
 -- alter table public.sales_archive
 --   drop column if exists image_url, drop column if exists mileage_text, drop column if exists transmission_text,
 --   drop column if exists currency, drop column if exists listing_url, drop column if exists source_url,
 --   drop column if exists city, drop column if exists state, drop column if exists country_code,
---   drop column if exists end_precision;
+--   drop column if exists end_precision, drop column if exists raw_cols_at;
 
 -- ================================================================================================
 -- STEP 2. The fill, inside the database, in batches by id (uuid order on the primary key), resumable.
@@ -86,19 +87,10 @@ begin
       body_style        = coalesce(s.body_style,        s.raw_record->>'body_style'),
       modifications     = coalesce(s.modifications,     nullif(s.raw_record->'modifications', 'null'::jsonb)),   -- jsonb column: copy the jsonb (->), never text (->>)
       exterior_color    = coalesce(s.exterior_color,    s.raw_record->>'exterior_color'),
-      title_status      = coalesce(s.title_status,      s.raw_record->>'title_status')
+      title_status      = coalesce(s.title_status,      s.raw_record->>'title_status'),
+      raw_cols_at       = now()
     where (v_last is null or s.id > v_last) and s.id <= v_next
-      -- only a row the update would CHANGE is written, so a second pass (the catch-up below) rewrites nothing that is already filled
-      and (s.image_url, s.mileage_text, s.transmission_text, s.currency, s.listing_url, s.source_url, s.city, s.state, s.country_code, s.end_precision,
-           s.body_style, s.modifications, s.exterior_color, s.title_status)
-          is distinct from
-          (coalesce(s.image_url, s.raw_record->>'featured_image_url'), coalesce(s.mileage_text, s.raw_record->>'mileage'),
-           coalesce(s.transmission_text, s.raw_record->>'transmission'), coalesce(s.currency, s.raw_record->>'currency'),
-           coalesce(s.listing_url, s.raw_record->>'url'), coalesce(s.source_url, s.raw_record->>'source_url'), coalesce(s.city, s.raw_record->>'city'),
-           coalesce(s.state, s.raw_record->>'state'), coalesce(s.country_code, s.raw_record->>'country_code'),
-           coalesce(s.end_precision, s.raw_record->>'auction_end_precision'), coalesce(s.body_style, s.raw_record->>'body_style'),
-           coalesce(s.modifications, nullif(s.raw_record->'modifications', 'null'::jsonb)), coalesce(s.exterior_color, s.raw_record->>'exterior_color'),
-           coalesce(s.title_status, s.raw_record->>'title_status'));
+      and s.raw_cols_at is null;   -- only a row not yet marked is written, so the catch-up pass touches nothing already filled
     get diagnostics v_n = row_count;
     v_total := v_total + v_n;
     v_last := v_next;
@@ -158,7 +150,9 @@ select count(*) as sampled,
   count(*) filter (where modifications     is distinct from nullif(raw_record->'modifications', 'null'::jsonb)) as modifications_diff,
   count(*) filter (where exterior_color    is distinct from raw_record->>'exterior_color')       as exterior_color_diff,
   count(*) filter (where title_status      is distinct from raw_record->>'title_status')         as title_status_diff,
-  count(*) filter (where listing_title     is distinct from raw_record->>'title')                as listing_title_diff
+  count(*) filter (where listing_title     is distinct from raw_record->>'title')                as listing_title_diff_informational,   -- INFORMATIONAL: listing_title is a reused column that ingest corrections (lib/_corrections.js) may legitimately change; a non-zero count here is not a failure
+  count(*) filter (where jsonb_typeof(raw_record->'modifications') = 'string')                    as modifications_string_rows,          -- must be 0: for a string value ->> unquotes and ::text quotes, so the engine's read would differ
+  count(*) filter (where raw_cols_at is null)                                                      as not_marked_rows                     -- must be 0 after the fill and the catch-up
 from t;
 -- (b) all rows: the same select with "from public.sales_archive" in place of the two CTEs and "from t".
 -- (c) the rows behind a non-zero reused-column diff, for a look:
@@ -166,18 +160,15 @@ from t;
 -- from public.sales_archive where body_style is distinct from raw_record->>'body_style' limit 50;
 
 -- ================================================================================================
--- STEP 4. Ingest (code, scripts/ingest.js toFullRow): write the ten new columns from the same record fields:
---   image_url: r.featured_image_url, mileage_text: r.mileage (raw), transmission_text: r.transmission (raw),
---   currency: r.currency, listing_url: r.url, source_url: r.source_url, city: r.city, state: r.state,
---   country_code: r.country_code, end_precision: r.auction_end_precision.
--- Rollback: revert the ingest commit; the columns simply stop being written (the pool select, if already on the
--- columns, must be reverted first).
+-- STEP 4. The writers (code, lib/_rawColumns.js, used by scripts/ingest.js and scripts/pullSources.js): the ten new columns and the marker
+-- raw_cols_at, from the same record fields raw_record holds. OFF unless the environment variable INGEST_RAW_COLUMNS=1 (writing a column that
+-- is not there yet fails the whole insert, so set it only after Block 1 has run). These two are the only writers of sales_archive.raw_record;
+-- backfillModelFamily, the USD backfill and the descfacts task write other columns and never touch raw_record, so they cannot leave a stale copy.
+-- Rollback: unset INGEST_RAW_COLUMNS; the columns simply stop being written (rows keep their marker, and a row ingest re-writes after that would
+-- leave its columns stale, so turn the pool flag off first).
 --
--- (The pool select must send modifications back as JSON text, as raw_record->>'modifications' did: the column is jsonb, so the
--- engine stringifies an array result before row.mods is read, or the title/mods regexes see a different string.)
--- STEP 5. Pool select (code, lib/onebox.js fetchQualifying cols): every raw_record->> extract replaced by its
--- column (image:image_url, mileage:mileage_text, body:body_style, mods:modifications, rtitle:listing_title,
--- currency, transmission:transmission_text, color:exterior_color, ts:title_status, srcurl:listing_url,
--- srcurl2:source_url, city, state, cc:country_code, precision:end_precision). Ships as its own engine bump ONLY
--- after step 3(b) shows zero diffs on all rows, with the sweep before and after.
--- Rollback: revert that commit (the extracts come back; the columns stay, unread).
+-- STEP 5. Pool select (code, lib/onebox.js fetchQualifying, DARK): with app_config pool_columns_enabled on, every raw_record->> extract is replaced by
+-- its column (mods reads modifications::text). A row whose raw_cols_at is null is read again by id with the extracts, so a half-filled table
+-- still gives raw_record answers; only those rows pay the extraction. Off by default and fails closed; a failed column read falls back to
+-- raw_record. Flip it only after Block 3(b) shows zero differences and not_marked_rows is 0.
+-- Rollback: set the app_config row to 0 (no deploy).
