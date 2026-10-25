@@ -2839,7 +2839,7 @@ async function handler(req, res) {
     const sealCookies = parseCookies(req.headers.cookie);
     const internalSeal = req.body?.warm === true || req.body?.bypassCache === true;
     const testerSeal = isTesterRequest(req); // the signed tester cookie only; an expired or plain one is re-sealed
-    if (!isCrewRequest(req) && !testerSeal && !internalSeal) {
+    if (!isCrewRequest(req) && !testerSeal && !internalSeal && !credentialed) {   // credentialed: a keyed server job (the probe key header), never an address or a cookie
       return res.status(403).json({ status: "sealed", error: "Not open yet." });
     }
   }

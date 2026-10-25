@@ -27,6 +27,18 @@ ok(run({ "x-ops-key": process.env.PROBE_KEY }).held === false, "a keyed server j
 ok(run({ "x-ops-key": "wrong" }).held === true, "a wrong key does not");
 delete process.env.CURTAIN_SEALED; r = run({ "x-ops-key": process.env.PROBE_KEY, "x-hold-preview": "1" }); ok(r.held && r.res.code === 503, "the keyed preview shows the page before the switch is set");
 r = run({ "x-hold-preview": "1" }); ok(r.held === false, "the preview header alone (no key) does nothing");
+// the sitemaps stay readable while held (search engines), and the engine seals let a keyed server job through (Lane B's golden and sweep calls carry a key, no crew cookie)
+process.env.CURTAIN_SEALED = "1";
+{ const { req, res } = mk({}); req.query = { sitemap: "1" }; ok(hold.heldFor(req, res) === false, "a sitemap request is never held"); }
+{ const { default: vi } = await import("../api/vehicleIdentity.js");
+  const call = async headers => { const r = { code: 0, body: null, headers: {} }; const res = { setHeader(k, v) { r.headers[k] = v; }, getHeader() {}, status(c) { r.code = c; return res; }, json(o) { r.body = o; return res; }, send(b2) { r.body = b2; return res; }, end() { return res; } };
+    await vi({ method: "POST", headers: { host: "goasksam.com", ...headers }, query: {}, body: {} }, res).catch(() => {}); return r; };
+  const stranger = await call({}), keyed = await call({ "x-ops-key": process.env.PROBE_KEY });
+  ok(stranger.code === 403 && stranger.body && stranger.body.status === "sealed", "vehicleIdentity: a stranger is sealed out (403)");
+  ok(keyed.code !== 403, "vehicleIdentity: a keyed server job passes the seal (answered " + keyed.code + ")"); }
+{ const src = fs.readFileSync(new URL("../api/sellerDecision.js", import.meta.url), "utf8"), g = src.slice(src.indexOf('process.env.CURTAIN_SEALED === "1"'), src.indexOf('process.env.CURTAIN_SEALED === "1"') + 700);
+  ok(/!credentialed/.test(g), "sellerDecision: the seal lets a keyed server job through"); }
+delete process.env.CURTAIN_SEALED;
 // every product page asks first
 for (const f of ["home", "buy", "marketCheck", "sellPage", "sellNext", "tasksPage", "business", "specPage", "history", "publicConfig"]) { const s = fs.readFileSync(new URL(`../api/${f}.js`, import.meta.url), "utf8"); ok(/import \{ heldFor \} from "\.\.\/lib\/_hold\.js"/.test(s) && /if \(heldFor\(req, res\)\) return;/.test(s), `api/${f}.js asks heldFor first`); }
 console.log(`holdPageCheck: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

@@ -14,6 +14,7 @@ import { isTesterRequest } from "../lib/_tester.js";
 import { vinFeatureActive, findVinArchiveMatch, looksLikeChassisId } from "../lib/_flags.js";
 
 import { isCrewRequest } from "../lib/_crew.js";
+import { hasServerCredential } from "../lib/_credential.js";
 import { cors as gasCors } from "../lib/_cors.js";
 // Privacy (VIN feature): a raw 17-char VIN must never land in a funnel/analytics
 // event or a log line. Replace any VIN run with a short truncated marker so the
@@ -117,7 +118,7 @@ export default async function handler(req, res) {
   if (process.env.CURTAIN_SEALED === "1") {
     const cookie = req.headers.cookie || "";
     const testerOk = isTesterRequest(cookie);   // the signed tester cookie only (e41, Sam's Job 4)
-    if (!isCrewRequest(cookie) && !testerOk) {
+    if (!isCrewRequest(cookie) && !testerOk && !hasServerCredential(req)) {   // a keyed server job passes (lib/_credential.js, header only)
       return res.status(403).json({ status: "sealed", error: "Not open yet." });
     }
   }
