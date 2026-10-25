@@ -33,7 +33,18 @@ export const WARM_LIST = [
   "1967 Ford Mustang Fastback",
   "1970 Chevrolet Chevelle", "1965 Ford Mustang", "2008 Porsche 911", "1990 Chevrolet Corvette",
   "1968 Chevrolet Camaro", "1973 Porsche 911", "1966 Ford Mustang", "1972 Datsun 240Z",
-  "1957 Chevrolet Bel Air", "1985 Porsche 911"
+  "1957 Chevrolet Bel Air", "1985 Porsche 911",
+  // BIG POOLS (Sam, Oct 25 2026): every family whose cold read pulls more than 3,000 rows (measured over 243 specs, 12 over the
+  // line in 7 families). A stored answer is per spec (year, trim, body), so each family carries its popular years, not one car.
+  // 996 911 1999 to 2004 (5,687 rows), 997 911 2005 to 2011 (7,265; 2008 is above), SL R107 1972 to 1989 (4,781), Corvette C3
+  // 1968 to 1982 (4,147), Camaro 1967 to 1969 (4,074; 1968 and 1969 are above), SL R230 2001 to 2005 (3,783), Bronco 1966 to 1977 (3,346).
+  "1999 Porsche 911", "2001 Porsche 911", "2003 Porsche 911",
+  "2006 Porsche 911", "2010 Porsche 911",
+  "1972 Mercedes-Benz SL-Class", "1980 Mercedes-Benz SL-Class", "1985 Mercedes-Benz SL-Class",
+  "1972 Chevrolet Corvette", "1975 Chevrolet Corvette", "1979 Chevrolet Corvette",
+  "1967 Chevrolet Camaro",
+  "2003 Mercedes-Benz SL", "2004 Mercedes-Benz SL-Class",
+  "1970 Ford Bronco", "1974 Ford Bronco"
 ];
 
 export async function warmMarketCheck(env, list = WARM_LIST) {
