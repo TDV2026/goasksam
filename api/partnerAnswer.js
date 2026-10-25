@@ -313,7 +313,7 @@ function questionOf(d, text, asked) {
   if (!d) return null;
   const tier = String(d.tier || ""), next = Number(d.askIndex) || (asked + 1);
   const rc = d.resolvedCar || {};
-  const base = d.baseLabel || [rc.year, rc.make, rc.model, rc.trim].filter(Boolean).join(" ") || text;
+  const base = d.baseLabel || [rc.year, rc.make, rc.nameModel || rc.model, rc.trim].filter(Boolean).join(" ") || text;
   const skip = { label: "Just show what sold", send: { q: text, asked: 2 } };
   if (tier === "generation_choice" && Array.isArray(d.generationOptions)) {
     return { dimension: "generation", text: d.prompt || "Which generation is it?", options: d.generationOptions.map(o => ({ label: o.label, send: { q: o.query, asked: next } })), skip };
@@ -340,7 +340,7 @@ function engineQuestionCore(d, text, asked) {
   if (!d) return null;
   const tier = String(d.tier || ""), next = Number(d.askIndex) || (asked + 1);
   const rc = d.resolvedCar || {};
-  const base = d.baseLabel || [rc.year, rc.make, rc.model, rc.trim].filter(Boolean).join(" ") || text;
+  const base = d.baseLabel || [rc.year, rc.make, rc.nameModel || rc.model, rc.trim].filter(Boolean).join(" ") || text;
   const skip = { label: "Just show what sold", send: { q: text, asked: 2 } };
   if (tier === "generation_choice" && Array.isArray(d.generationOptions)) {
     return { dimension: "generation", text: d.prompt || "Which generation is it?", options: d.generationOptions.map(o => ({ label: o.label, send: { q: o.query, asked: next } })), skip };
@@ -400,7 +400,7 @@ const digitOf = n => typeof n === "string" && WORDNUM[n.toLowerCase()] != null ?
 function nameplateOf(d) {
   const rc = (d && d.resolvedCar) || {}, cl = rc.canonicalLabel;
   if (cl && rc.year && rc.make) { const pre = rc.year + " " + rc.make + " "; if (String(cl).indexOf(pre) === 0) return String(cl).slice(pre.length).split(" ")[0] || ""; }
-  return rc.model || "";
+  return rc.nameModel || rc.model || "";
 }
 export function linesOf(d) {
   if (!d || !/^(result|thin)$/.test(String(d.tier || ""))) return [];

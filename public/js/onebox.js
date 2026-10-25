@@ -126,7 +126,7 @@
     // Drop the body word when the trim already carries it (a "Roadster" trim + "roadster" body
     // would print "300SL Roadster Roadster"); trim stays to protect real model names.
     var body = rc.bodyStyle && !(rc.trim && String(rc.trim).toLowerCase().indexOf(String(rc.bodyStyle).toLowerCase()) >= 0) ? cap(rc.bodyStyle) : "";
-    return [rc.year, rc.make, rc.model, rc.trim, body].filter(Boolean).join(" ") || "this car";
+    return [rc.year, rc.make, rc.nameModel || rc.model, rc.trim, body].filter(Boolean).join(" ") || "this car";
   }
   // Item 2 (Sam's review round): the engine never writes an applied body/trim refine back onto
   // resolvedCar (bodyStyle/trim stay null/"" post-refine), so the heading doesn't pick it up on its
@@ -856,7 +856,7 @@
       var prefix = rc.year + " " + rc.make + " ";
       if (String(cl).indexOf(prefix) === 0) return String(cl).slice(prefix.length).split(" ")[0] || "";
     }
-    return rc.model || "";
+    return rc.nameModel || rc.model || "";
   }
   // Item 2 (Sam's review round, Oct 14 2026): once a trim/body choice is made, the identity line
   // persists instead of vanishing - the chosen option reads as plain ink text (not a link), every
@@ -2544,7 +2544,7 @@
     // the resolved car (year+make+model+trim on a body ask), so a body answer re-queries the SAME
     // car and a VIN chip never appends to the VIN (which re-decodes and loops). Generation chips
     // carry a full query of their own and never touch choiceCtx.
-    if (!isGen) choiceCtx = d.baseLabel || (d.resolvedCar ? [d.resolvedCar.year, d.resolvedCar.make, d.resolvedCar.model, d.resolvedCar.trim].filter(Boolean).join(" ") : null) || null;
+    if (!isGen) choiceCtx = d.baseLabel || (d.resolvedCar ? [d.resolvedCar.year, d.resolvedCar.make, d.resolvedCar.nameModel || d.resolvedCar.model, d.resolvedCar.trim].filter(Boolean).join(" ") : null) || null;
     var headName = d.baseLabel || carLabel(d.resolvedCar) || lastQuery || "";
     var question = d.prompt || (isGen ? "Which generation is it?" : "Which one is it?");
     var links = (opts || []).map(function (o) {
@@ -2621,7 +2621,7 @@
   function modelChoiceTakeoverHtml(d) {
     var opts = d.modelOptions || [];
     if (d.resolvedCar) opts = obDropRejectedChips(d.resolvedCar.year, d.resolvedCar.make, opts);
-    choiceCtx = d.baseLabel || (d.resolvedCar ? [d.resolvedCar.year, d.resolvedCar.make, d.resolvedCar.model, d.resolvedCar.trim].filter(Boolean).join(" ") : null) || null;
+    choiceCtx = d.baseLabel || (d.resolvedCar ? [d.resolvedCar.year, d.resolvedCar.make, d.resolvedCar.nameModel || d.resolvedCar.model, d.resolvedCar.trim].filter(Boolean).join(" ") : null) || null;
     var make = (d.resolvedCar && d.resolvedCar.make) || String(d.baseLabel || "").trim().split(/\s+/).pop() || "";
     var headName = d.baseLabel || carLabel(d.resolvedCar) || make;
     var question = make ? ("Which " + make + "?") : (d.prompt || "Which one is it?");
@@ -3228,7 +3228,7 @@
       // word, so the key is rebuilt WITHOUT it (year/make/model/trim only).
       var rc = d && d.resolvedCar;
       var keyBase = (vinAnchor && vinAnchor.displayName) ? vinAnchor.displayName
-        : (rc ? [rc.year, rc.make, rc.model, rc.trim].filter(Boolean).join(" ") : (label || q));
+        : (rc ? [rc.year, rc.make, rc.nameModel || rc.model, rc.trim].filter(Boolean).join(" ") : (label || q));
       // Thumbnail: exact-car photo when VIN-anchored, else the closest comp's photo so a text search
       // gets a real thumbnail instead of a blank grey plate.
       var img = (vinAnchor && vinAnchor.photoUrl) ? vinAnchor.photoUrl
