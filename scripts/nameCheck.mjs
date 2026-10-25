@@ -40,6 +40,6 @@ eq("a real Boss 429 is unchanged", await tr("1969 Ford Mustang Boss 429"), "Must
 eq("a real SVT Cobra is unchanged", await tr("1999 Ford Mustang SVT Cobra"), "Mustang|SVT Cobra");
 eq("a Z28 Pace Car Edition keeps Z28", await tr("1993 Chevrolet Camaro Z28 Pace Car Edition"), "Camaro|Z28");
 eq("the 911 S/T-Style 912 is a 912", (await tr("911 S/T-Style, 3.0L-Powered 1967 Porsche 912 Coupe 5-Speed")).split("|")[0], "912");
-{ const { ENGINE_VERSION } = await import("../lib/onebox.js"); eq("the engine stamp", ENGINE_VERSION.split(" ")[0], "e88-20261025-corrections"); }
+{ const { ENGINE_VERSION } = await import("../lib/onebox.js"); eq("the engine stamp", ENGINE_VERSION.split(" ")[0], "e89-20261025-askedyear"); }
 if (failed) { console.log(`nameCheck: ${failed} failed`); process.exit(1); }
 console.log("nameCheck: no printed name puts a generation code in front of 911.");
