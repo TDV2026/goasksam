@@ -1195,9 +1195,11 @@ async function handleOps(req, res) {
     const BOUND_VINS = 2000, BOUND_HISTORY = 6000;
     // VINs sold this window on a non-live platform (the "current" sale each history entry is prior to).
     const curSel = "id,source_slug,platform,vin_norm,sale_date,sale_price,sale_price_usd";
-    const current = await supabaseSelectAll(env, `sales_archive?sale_date=gte.${from}&sale_date=lte.${to}&sale_price=not.is.null&vin_norm=not.is.null&vin_norm=neq.&select=${curSel}&order=sale_date.asc&limit=${BOUND_VINS}`);
+    const current = await supabaseSelectAll(env, `sales_archive?sale_date=gte.${from}&sale_date=lte.${to}&sale_price=not.is.null&vin_norm=not.is.null&vin_norm=neq.&select=${curSel}&order=sale_date.asc`);
+    // A failed first read is an ERROR, never an empty week (supabaseSelectAll answers null on any failure; Oct 25 2026 the empty list looked like "no cars with a VIN").
+    if (current === null) return res.status(502).json({ error: "vinhistory: the first read (this window's sold rows with a VIN) failed, so no result. This is not an empty week. Retry when the database is quiet." });
     const curByVin = new Map();
-    for (const r of (current || [])) {
+    for (const r of current) {
       if (LIVE_SLUGS.has(r.source_slug || r.platform)) continue; // the CURRENT sale itself must be an included platform
       const v = String(r.vin_norm || "");
       if (v.length < 8) continue;
@@ -1206,12 +1208,13 @@ async function handleOps(req, res) {
     const vinBound = curByVin.size >= BOUND_VINS;
     const vins = [...curByVin.keys()];
     const hist = [];
-    let historyBound = false;
+    let historyBound = false, historyReadFailures = 0;
     for (let i = 0; i < vins.length && hist.length < BOUND_HISTORY; i += 150) {
       const chunk = vins.slice(i, i + 150);
       const inList = chunk.map(v => `"${v}"`).join(",");
       const soldSel = "id,source_slug,platform,vin_norm,sale_date,sale_price,sale_price_usd,make,model,year,raw_record->>mileage";
-      const sold = await supabaseSelect(env, `sales_archive?vin_norm=in.(${inList})&sale_date=lt.${from}&sale_price=not.is.null&select=${soldSel}&order=sale_date.desc&limit=1000`).catch(() => []);
+      const sold = await supabaseSelect(env, `sales_archive?vin_norm=in.(${inList})&sale_date=lt.${from}&sale_price=not.is.null&select=${soldSel}&order=sale_date.desc&limit=1000`).catch(() => null);
+      if (sold === null) historyReadFailures++;
       for (const r of (sold || [])) {
         if (hist.length >= BOUND_HISTORY) { historyBound = true; break; }
         const v = String(r.vin_norm || "");
@@ -1219,7 +1222,8 @@ async function handleOps(req, res) {
         hist.push({ vin: v, forId: curByVin.get(v).id, id: r.id, date: String(r.sale_date || "").slice(0, 10), source: r.source_slug || r.platform, live: LIVE_SLUGS.has(r.source_slug || r.platform), result: "sold", price: r.sale_price_usd != null ? Math.round(Number(r.sale_price_usd)) : Math.round(Number(r.sale_price) || 0), miles: r["mileage"] != null ? Number(String(r["mileage"]).replace(/[^\d]/g, "")) || null : null, make: r.make || null, model: r.model || null, year: r.year || null });
       }
       const attSel = "chassis_vin_norm,attempt_date,source_slug,high_bid,high_bid_usd,auction_status,make,model,mi:raw_record->>mileage";
-      const unsold = await supabaseSelect(env, `auction_attempts?chassis_vin_norm=in.(${inList})&attempt_date=lt.${from}&select=${attSel}&order=attempt_date.desc&limit=1000`).catch(() => []);
+      const unsold = await supabaseSelect(env, `auction_attempts?chassis_vin_norm=in.(${inList})&attempt_date=lt.${from}&select=${attSel}&order=attempt_date.desc&limit=1000`).catch(() => null);
+      if (unsold === null) historyReadFailures++;
       for (const r of (unsold || [])) {
         if (hist.length >= BOUND_HISTORY) { historyBound = true; break; }
         const v = String(r.chassis_vin_norm || "");
@@ -1229,7 +1233,7 @@ async function handleOps(req, res) {
         hist.push({ vin: v, forId: curByVin.get(v).id, id: null, date: String(r.attempt_date || "").slice(0, 10), source: r.source_slug || null, live: LIVE_SLUGS.has(r.source_slug), result, price: r.high_bid_usd != null ? Math.round(Number(r.high_bid_usd)) : (r.high_bid != null ? Math.round(Number(r.high_bid)) : null), miles: r.mi != null ? Number(String(r.mi).replace(/[^\d]/g, "")) || null : null, make: r.make || null, model: r.model || null, year: null });
       }
     }
-    return res.status(200).json({ task: "vinhistory", from, to, vinsLookedUp: vins.length, vinsBound: vinBound, historyRows: hist.length, historyBound, current: [...curByVin.entries()].map(([vin, c]) => ({ vin, ...c })), history: hist });
+    return res.status(200).json({ task: "vinhistory", from, to, vinsLookedUp: vins.length, vinsBound: vinBound, historyRows: hist.length, historyBound, historyReadFailures, current: [...curByVin.entries()].map(([vin, c]) => ({ vin, ...c })), history: hist });
   }
 
   // task=weeklysales: READ-ONLY (weekly total report job, Oct 2026). Returns every sold sales_archive
@@ -1244,7 +1248,7 @@ async function handleOps(req, res) {
     const from = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.from || "")) ? String(req.query.from) : null;
     const to = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.to || "")) ? String(req.query.to) : null;
     if (!from || !to) return res.status(400).json({ error: "weeklysales needs ?from=YYYY-MM-DD&to=YYYY-MM-DD." });
-    const sel = "id,source_id,source_slug,platform,make,model,year,sale_date,sale_price,sale_price_usd,vin,vin_norm,listing_title,created_at,mi:raw_record->>mileage,curr:raw_record->>currency";
+    const sel = "id,source_id,source_slug,platform,make,model,year,sale_date,sale_price,sale_price_usd,vin,vin_norm,listing_title,created_at,mi:raw_record->>mileage,curr:raw_record->>currency,u:raw_record->>url";
     const rows = await supabaseSelectAll(env, `sales_archive?sale_date=gte.${from}&sale_date=lte.${to}&sale_price=not.is.null&select=${sel}&order=sale_date.asc`);
     const out = (rows || []).map(r => ({
       id: r.id, source: r.source_slug || r.platform || null, make: r.make || null, model: r.model || null, year: r.year || null,
@@ -1254,7 +1258,8 @@ async function handleOps(req, res) {
       currency: r.curr || "USD",
       miles: r.mi != null && r.mi !== "" ? Number(String(r.mi).replace(/[^\d]/g, "")) || null : null,
       vin: r.vin || null, vinNorm: r.vin_norm || null, title: r.listing_title || null,
-      createdAt: r.created_at || null
+      createdAt: r.created_at || null,
+      url: r.u || null   // the record's own listing url (Oct 25 2026, newsletter examples)
     }));
     return res.status(200).json({ task: "weeklysales", from, to, n: out.length, rows: out });
   }
