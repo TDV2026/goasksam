@@ -6,7 +6,7 @@
 // answer, a missing count, a gate refusal, an option whose page opens a different count, a zero-count option, or options
 // that do not sum to Any. e53 would have failed here: its gate refused every bare page with no-body titles.
 //   node scripts/identityLocalCheck.mjs
-import { buildResult, runOutputInvariants, isQualifying, applyOutputGate } from "../lib/onebox.js";
+import { buildResult, runOutputInvariants, isQualifying, applyOutputGate, typedModelMismatch } from "../lib/onebox.js";
 
 const now = Date.now(), DAY = 864e5;
 const iso = days => new Date(now - days * DAY).toISOString();
@@ -110,6 +110,18 @@ for (const c of CASES) {
   if (bad.tier !== "refusal") { failed++; console.log("FAIL  a non-chip failure no longer refuses"); } else console.log("PASS  a non-chip failure still refuses");
   const { answerCacheable } = await import("../lib/live/search.js");
   if (answerCacheable(gated) !== false) { failed++; console.log("FAIL  a chip-fallback answer is storable"); } else console.log("PASS  a chip-fallback answer is never stored");
+}
+// e82: the same words in another order are the same car (the 1972 K5 Blazer), and a typed "trim" that is the car's own chassis code is honoured (the 1985 Toyota AE86).
+{
+  const m1 = typedModelMismatch("1972 chevrolet k5 blazer", { make: "Chevrolet", model: "Blazer", trim: "K5" });
+  if (m1) { failed++; console.log("FAIL  k5 blazer typed, resolved Blazer K5: " + JSON.stringify(m1)); } else console.log("PASS  the K5 Blazer typed in the other word order is not a model mismatch");
+  const c = CASES[0], rows = pool(c.make, c.model, c.year, c.bodies, c.usd);
+  const vehicle = { make: "Toyota", model: "Corolla", trim: "AE86", year: 1985, bodyStyle: null };
+  const d0 = buildResult({ rows: rows.map(r => ({ ...r })), step: "base", windowLabel: "past year" }, { resolvedCar: { make: c.make, model: c.model, year: c.year, trim: "", bodyStyle: null }, resolvedSpec: null, dedup: {}, vehicle, exactSale: null, inlineSplits: [] }, iso, { make: c.make, model: c.model, trim: "", year: c.year, bodyStyle: null, excludeVariants: [], genCode: null, subject: "x" }, null);
+  const test = gen => runOutputInvariants({ ...d0, rungLabel: "1985 Corolla", scopeLabel: "1985 Corolla", fallbackRung: "exact", resolvedCar: { ...d0.resolvedCar, trim: "", genCode: gen } }, vehicle).filter(x => x.name === "typed_words_honoured_or_wider");
+  const yes = test("AE86"), no = test("AE92");
+  if (!(yes.length && yes[0].ok)) { failed++; console.log("FAIL  AE86 as the generation code is not honoured"); } else console.log("PASS  a typed trim equal to the generation code is honoured");
+  if (no.length && no[0].ok) { failed++; console.log("FAIL  a trim the answer never names was honoured"); } else console.log("PASS  a trim the answer never names is still judged as before");
 }
 console.log(failed ? `\nidentityLocalCheck: ${failed} case(s) FAILED.` : "\nidentityLocalCheck: every option equals its page and the options sum to Any, on the code being pushed.");
 process.exit(failed ? 1 : 0);
