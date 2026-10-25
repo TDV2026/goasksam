@@ -9,9 +9,10 @@ const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); }
 const s = fs.readFileSync(new URL("../api/buy.js", import.meta.url), "utf8");
 const i = s.indexOf("const CLIENT = ") + "const CLIENT = ".length, c = JSON.parse(s.slice(i, s.indexOf('";\n', i) + 1));
 const block = (from, to) => { const a = c.indexOf(from), b = c.indexOf(to, a); if (a < 0 || b < 0) throw new Error("missing " + from); return c.slice(a, b); };
-const SIXTEEN = ["Bring a Trailer", "Car & Classic", "Collecting Cars", "RM Sotheby's", "Mecum", "Gooding & Co", "Cars & Bids", "Hemmings", "Hagerty", "PistonHeads", "PCAR Market", "Sotheby's Motorsport", "The Market", "MB Market", "Bonhams"];
+const SIXTEEN = ["Bring a Trailer", "Cars & Bids", "Hagerty", "PCAR Market", "Hemmings", "MB Market", "Sotheby's Motorsport", "RM Sotheby's", "Gooding & Co", "Collecting Cars"];
 ok(c.includes(`var LIVE_SITES = ${JSON.stringify(SIXTEEN).replace(/","/g, '", "')};`), "the sites of the live read, in Sam's order (no All Collector Cars: Sam, Oct 23 2026)");
 ok(!/All Collector Cars/i.test(block("  var SEARCH_LINE = ", "  function searchingBlock(said){")) && !SIXTEEN.includes("All Collector Cars"), "no All Collector Cars in the searching line");
+ok(!SIXTEEN.some(x => /Car & Classic|PistonHeads|The Market|Bonhams|Mecum|All Collector Cars/i.test(x)), "no UK-only or unreturned source is named (Sam, Oct 25 2026)");
 ok(!/AutoHunter/i.test(block("  var SEARCH_LINE = ", "  function searchingBlock(said){")), "no AutoHunter");
 ok((c.match(/Sam is searching \{site\} for your car/g) || []).length === 1 && !/Sam is searching [A-Z]/.test(c), "Sam's phrase is ONE constant, never written out per site");
 // Run it: a fake DOM and a fake clock.
@@ -27,7 +28,7 @@ const searchingBlock = new Function("document", "setInterval", "setTimeout", "cl
 const el = searchingBlock("black manual Porsche");
 const seen = [st.textContent];
 for (let k = 0; k < SIXTEEN.length - 1; k++) { tick(1100); seen.push(st.textContent); }
-ok(seen[0] === "Sam is searching Bring a Trailer for your car" && seen[1] === "Sam is searching Car & Classic for your car", "it starts at once with the first site and moves on one name at a time");
+ok(seen[0] === "Sam is searching Bring a Trailer for your car" && seen[1] === "Sam is searching Cars & Bids for your car", "it starts at once with the first site and moves on one name at a time");
 ok(seen.length === SIXTEEN.length && seen.every((x, k) => x === "Sam is searching " + SIXTEEN[k] + " for your car"), "every site of the live read, each in Sam's form");
 ok(seen.every(x => !/\d|✓|no cars|nothing|none/i.test(x)), "no count, no ticks, never a claim a site had no cars");
 // The answer arrives: the line stops at once, nothing keeps cycling.
