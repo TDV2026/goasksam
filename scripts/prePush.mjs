@@ -1115,6 +1115,13 @@ try {
 } catch (e) {
   record("Car names (scripts/nameCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// ---- 2zb. MODEL CHOICES FOR A BRAND (Lane B, Oct 25 2026, for Tasks): six models most-sold first plus Any. No network. ----
+try {
+  const out = execSync("node scripts/modelChoicesCheck.mjs", { encoding: "utf8" });
+  record("Model choices for a brand (scripts/modelChoicesCheck.mjs)", "PASS", (out.match(/modelChoicesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Model choices for a brand (scripts/modelChoicesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 if (TIER === "fast") {
   record("browser check (pushCheck.mjs)", "SKIP", FAST_WHY);
   console.log("\n-- golden truth: not run in the fast tier (it reads the archive) --");
