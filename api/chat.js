@@ -7,6 +7,7 @@ import { followupGuard, assistGuard, sellModelGuard } from "../lib/_ceilings.js"
 import { anthropicCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { cors as gasCors } from "../lib/_cors.js";
+import { groundReplyNumbers } from "../lib/live/numberGuard.js";
 
 // Wording layer only. Must never invent market performance (product rule 1).
 const CHAT_MODEL = process.env.SAM_MODEL || "claude-sonnet-4-6";
@@ -23,6 +24,15 @@ function cleanSellReply(text) {
   return parts.map(x => x.trim()).filter(x => x && !SELL_BANNED_WORD_RE.test(x)).join(" ").trim();
 }
 
+// THE NUMBER CHECK (Sam, Oct 25 2026): the same rule the Find, Sell and Tasks chats enforce (lib/live/numberGuard.js, shared with chatCore.guardReply): a number in the
+// model's reply must appear in the facts text the page sent or in the person's own words. A sentence carrying any other number is taken out whole; if nothing is
+// left, the plain line below. It reads the model's words only: no engine answer changes. Applied to a cached reply too.
+const NUMBERS_LINE = "Sam only states numbers that come from the sales record for a car. Tell Sam the year, make and model to see them.";
+function groundedReply(text, context, messages) {
+  const supplied = [context || "", ...(messages || []).filter(m => m.role === "user").map(m => m.content)].join("\n");
+  const g = groundReplyNumbers(text, supplied);
+  return g.dropped.length ? { text: g.text || NUMBERS_LINE, dropped: g.dropped.length } : { text, dropped: 0 };
+}
 // Narration cache: identical request payloads (model + prompts + facts +
 // conversation) reuse the stored wording at zero Anthropic cost. Any change
 // to the facts changes the hash, so invalidation is inherent. Degrades
@@ -135,6 +145,7 @@ async function handler(req, res) {
     const cachedRows = await supabaseSelect({ supabaseUrl, supabaseKey }, `narration_cache?cache_key=eq.${cacheKey}&select=response_text&limit=1`);
     const cachedText = cachedRows?.[0]?.response_text;
     if (cachedText) {
+      const cachedGrounded = groundedReply(cachedText, context, messages);
       await recordUsageEvent({
         event_type: "chat",
         route: "/api/chat",
@@ -148,9 +159,9 @@ async function handler(req, res) {
         oldcarsdata_cost_1k_usd: 0,
         oldcarsdata_cost_10k_usd: 0,
         duration_ms: Date.now() - startedAt,
-        metadata: { ...requestMetadata(req), narrationCache: "hit" }
+        metadata: { ...requestMetadata(req), narrationCache: "hit", numbersDropped: cachedGrounded.dropped }
       }, supabaseUrl, supabaseKey);
-      return res.status(200).json({ text: cachedText, cached: true, estimatedCostUsd: 0 });
+      return res.status(200).json({ text: cachedGrounded.text, cached: true, estimatedCostUsd: 0 });
     }
   }
 
@@ -184,7 +195,8 @@ async function handler(req, res) {
     // Backstop (never the primary defense - SELL_SYS already bans these words): a sentence that
     // still carries one slips out whole, not surgically edited, so the reply never breaks mid-
     // sentence. Applied before caching, so a cached reply is clean too.
-    const text = cleanSellReply(rawText);
+    const grounded = groundedReply(cleanSellReply(rawText), context, messages);
+    const text = grounded.text;
     const usage = data.usage || {};
     const cost = anthropicCost(usage);
     // Best-effort cache write; a failed insert never blocks the reply.
@@ -209,7 +221,8 @@ async function handler(req, res) {
       duration_ms: Date.now() - startedAt,
       metadata: {
         ...requestMetadata(req),
-        usage
+        usage,
+        numbersDropped: grounded.dropped
       }
     }, supabaseUrl, supabaseKey);
     return res.status(200).json({ text, usage, estimatedCostUsd: cost, usageLog });
