@@ -14,6 +14,7 @@ import { supabaseSelectAll } from "../lib/_supabase.js";
 import { trackHealth, withTracking } from "../lib/track/log.js";
 import { BUY_CHAT_SPEND_PER_DAY_USD } from "../lib/_ceilings.js";
 import { readPremiumFreshness } from "../lib/ops/premiumFresh.js";
+import { launchPanels, rightNow, LAUNCH_ISO } from "../lib/admin/launch.js";
 
 const CRON_ROUTES = ["/api/pullLive", "/api/tasks", "/api/refreshSpecLiveCounts", "/api/admin"];
 
@@ -135,6 +136,20 @@ async function demand(env) {
   };
 }
 
+// The Launch tab's date picker: today and yesterday are Pacific days, "launch" runs from Thursday Oct 29 7:00 AM Pacific, last 7 days is a rolling week.
+function launchRange(key) {
+  const now = new Date(), nowIso = new Date(now.getTime() + 1000).toISOString();
+  if (key === "yesterday") { const y = ptRange(ptDay(-1)); return { key, from: y.start, to: y.end }; }
+  if (key === "launch") return { key, from: LAUNCH_ISO, to: nowIso };
+  if (key === "last7") return { key, from: new Date(now.getTime() - 7 * 864e5).toISOString(), to: nowIso };
+  return { key: "today", from: ptRange(ptDay(0)).start, to: nowIso };
+}
+async function launch(env, key) {
+  const r = launchRange(key);
+  const [panels, now] = await Promise.all([r.from >= r.to ? Promise.resolve({ range: r, before_launch: true }) : launchPanels(env, r), rightNow(env)]);
+  return { ...panels, now, launchAt: LAUNCH_ISO };
+}
+
 const ANON_RE = /^[A-Za-z0-9_-]{16,40}$/;
 async function journey(env, anon) {
   if (anon && ANON_RE.test(anon)) {
@@ -245,7 +260,7 @@ function pageHtml() {
   // The script holds no key and no data; everything comes from POST /api/admin with the person's own token.
   return `<!doctype html><html lang=en><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=robots content="noindex,nofollow"><title>404: NOT_FOUND</title>
 <style>:root{color-scheme:dark;--background:#0a0a0a;--foreground:#ededed;--copy:#ffffff;--secondary:#a0a0a0}@media(prefers-color-scheme:light){:root{color-scheme:light;--background:#ffffff;--foreground:#171717;--copy:#171717;--secondary:#4d4d4d}}*,*::before,*::after{box-sizing:border-box}html,body{min-height:100%}body{margin:0;background:var(--background);color:var(--foreground);font-family:geist,-apple-system,BlinkMacSystemFont,segoe ui,helvetica neue,Arial,sans-serif}main.nf{display:grid;min-height:100vh;place-items:center;padding:32px}h1{font-size:24px;font-weight:600;letter-spacing:-.96px;line-height:32px;margin:0}p{margin:8px 0 0;color:var(--copy);font-size:16px;line-height:24px}.metadata{margin-top:23px;color:var(--secondary);font-family:geist mono,sfmono-regular,Consolas,liberation mono,Menlo,monospace;font-size:12px;line-height:16px}</style>
-<style id=ad-style media="not all">body.ad{background:#f7f6f3;color:#1a1a1a;color-scheme:light}.ad main{max-width:1100px;margin:0 auto;padding:16px}.ad h1{font-size:20px;letter-spacing:0}.ad h2{font-size:16px;margin:22px 0 8px}.ad nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}.ad nav button{border:1px solid #cfcac2;background:#fff;border-radius:16px;padding:6px 12px;font-size:14px;cursor:pointer;color:#1a1a1a}.ad nav button.on{background:#1a1a1a;color:#fff;border-color:#1a1a1a}.ad .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}.ad .tile{background:#fff;border:1px solid #e4e0d8;border-radius:10px;padding:10px}.ad .tile b{display:block;font-size:22px;margin-top:4px}.ad .tile span{font-size:12px;color:#5f5a53}.ad .wrap{overflow-x:auto;background:#fff;border:1px solid #e4e0d8;border-radius:10px}.ad table{border-collapse:collapse;width:100%;font-size:13px}.ad th,.ad td{text-align:left;padding:6px 8px;border-bottom:1px solid #eee;white-space:nowrap}.ad th{color:#5f5a53;font-weight:600}.ad .note{font-size:12px;color:#5f5a53;margin:6px 0}.ad input{font-size:14px;padding:6px 8px;border:1px solid #cfcac2;border-radius:6px;width:min(320px,100%)}.ad .muted{color:#8a857d}.ad .fresh{background:#fff;border:1px solid #e4e0d8;border-radius:10px;padding:10px 12px;margin:12px 0 0;font-size:14px}.ad .fresh.amber{background:#fff4d6;border-color:#d9a400;color:#5c4100}</style>
+<style id=ad-style media="not all">body.ad{background:#f7f6f3;color:#1a1a1a;color-scheme:light}.ad main{max-width:1100px;margin:0 auto;padding:16px}.ad h1{font-size:20px;letter-spacing:0}.ad h2{font-size:16px;margin:22px 0 8px}.ad nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}.ad nav button{border:1px solid #cfcac2;background:#fff;border-radius:16px;padding:6px 12px;font-size:14px;cursor:pointer;color:#1a1a1a}.ad nav button.on{background:#1a1a1a;color:#fff;border-color:#1a1a1a}.ad .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}.ad .tile{background:#fff;border:1px solid #e4e0d8;border-radius:10px;padding:10px}.ad .tile b{display:block;font-size:22px;margin-top:4px}.ad .tile span{font-size:12px;color:#5f5a53}.ad .wrap{overflow-x:auto;background:#fff;border:1px solid #e4e0d8;border-radius:10px}.ad table{border-collapse:collapse;width:100%;font-size:13px}.ad th,.ad td{text-align:left;padding:6px 8px;border-bottom:1px solid #eee;white-space:nowrap}.ad th{color:#5f5a53;font-weight:600}.ad .note{font-size:12px;color:#5f5a53;margin:6px 0}.ad input{font-size:14px;padding:6px 8px;border:1px solid #cfcac2;border-radius:6px;width:min(320px,100%)}.ad .muted{color:#8a857d}.ad .fresh{background:#fff;border:1px solid #e4e0d8;border-radius:10px;padding:10px 12px;margin:12px 0 0;font-size:14px}.ad h3{font-size:14px;margin:16px 0 6px}.ad .lrange{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.ad .lrange button{border:1px solid #cfcac2;background:#fff;border-radius:16px;padding:6px 12px;font-size:14px;cursor:pointer;color:#1a1a1a}.ad .lrange button.on{background:#1a1a1a;color:#fff;border-color:#1a1a1a}.ad .fresh.amber{background:#fff4d6;border-color:#d9a400;color:#5c4100}</style>
 </head><body><main class=nf><section aria-labelledby=error-title><h1 id=error-title>This page doesn&#8217;t exist</h1><p>It may have been moved, removed, or never existed.</p><div class=metadata><p>404 NOT_FOUND</p></div></section></main>
 <script>(function(){
 var tok=null;
@@ -266,7 +281,7 @@ function premiumLine(p){if(!p||p.error)return '<p class="fresh amber">Premium nu
  var act=(p.partners||[]).filter(function(x){return x.active;}),behind=act.filter(function(x){return x.computedAt&&Date.parse(p.lastRefreshed)-Date.parse(x.computedAt)>36e5;}).map(function(x){return x.name;}),none=act.filter(function(x){return !x.computedAt;}).map(function(x){return x.name;});
  return '<p class="fresh'+(p.stale?' amber':'')+'" title="'+E(new Date(p.lastRefreshed).toLocaleString())+'">Premium numbers last refreshed '+hoursText(p.hoursOld)+' ago.'+(p.stale?' That is over '+n(p.staleAfterHours)+' hours: check the nightly premium job.':'')+'</p>'
   +(behind.length?'<p class=note>Older than that run: '+E(behind.join(", "))+'.</p>':'')+(none.length?'<p class=note>No stored number (below the sales needed): '+E(none.join(", "))+'.</p>':'');}
-var PARTS=[["overview","Today"],["reliability","Cost and Reliability"],["buy","Buy and Market Check"],["demand","Demand"],["journey","Journey"],["retention","Retention"]];
+var PARTS=[["launch","Launch"],["overview","Today"],["reliability","Cost and Reliability"],["buy","Buy and Market Check"],["demand","Demand"],["journey","Journey"],["retention","Retention"]];
 var R={
 overview:function(d){return tiles([["Searches",n(d.searches)],["Answered with a range",n(d.answered)],["Not enough data",pct(d.notEnoughRate)],["Clickouts",n(d.clickouts)],["Market Checks",n(d.marketChecks)],["Tasks created",n(d.tasksCreated)],["Sign-ups",n(d.signups)],["Visitors",n(d.visitors)],["Model spend",usd(d.spendUsd),"of the "+usd(d.spendCapUsd)+" cap"],["Errors",n(d.errors)],["Live cars",n(d.liveInventory)],["Analytics events lost",n(d.analyticsLost)]])+'<p class=note>'+E(d.day)+' Pacific. '+(d.refreshed?'Summaries refreshed '+E(new Date(d.refreshed).toLocaleTimeString()):'Summaries not refreshed yet')+'; crew, test and bot traffic left out.</p>';},
 reliability:function(d){return premiumLine(d.premium)+'<h2>Spend by product</h2>'+table([["Day","day"],["Product","product"],["Calls","model_calls",n],["Cache hits","cache_hits",n],["Tokens in","tokens_in",n],["Tokens out","tokens_out",n],["Cost","cost_usd",usd]],d.cost)
@@ -289,15 +304,76 @@ retention:function(d){function grid(list,field,first){var w={},weeks=0;(list||[]
  var cols=[["Week of","week"]];for(var i=0;i<=Math.min(weeks,12);i++)cols.push([i===0?first:"Week "+i,"w"+i,i===0?n:pct]);return table(cols,rows);}
  return '<h2>Weekly retention by person</h2><p class=note>A signed-in person counts once across devices; everyone else by browser. Grouped by first week, with the share seen again each week after.</p>'+grid(d.people,"people","People")
   +'<h2>Weekly retention by browser</h2><p class=note>By anon id only, so a second device counts as new.</p>'+grid(d.cohorts,"visitors","Visitors");}};
-var cur="overview",main;
-function show(part,extra){cur=part;main.querySelectorAll("nav button").forEach(function(b){b.className=b.getAttribute("data-p")===part?"on":"";});var box=document.getElementById("ad-body");box.innerHTML='<p class=note>Loading...</p>';
- api(Object.assign({part:part},extra||{})).then(function(d){box.innerHTML=R[part](d);
+var rng="today",lastLaunch=null;
+function pc(a,b){return b?Math.round(a/b*100)+"%":"-";}
+function cell(a,b){return n(a)+" ("+pc(a,b)+")";}
+function ms(x){return x==null?"-":(x>=1000?(x/1000).toFixed(1)+" s":n(x)+" ms");}
+function fmtT(v){try{return new Date(v).toLocaleString();}catch(e){return v;}}
+var PN={buy:"Find",market_check:"Market Check",sell:"Sell",total:"All products"};
+function pn(v){return E(PN[v]||v);}
+R.launch=function(d){
+ var h='<div class=lrange>'+[["today","Today"],["yesterday","Yesterday"],["launch","Since launch"],["last7","Last 7 days"]].map(function(x){return '<button data-r="'+x[0]+'" class="'+(rng===x[0]?"on":"")+'">'+x[1]+'</button>';}).join("")+'</div>';
+ h+='<p class=note>Refreshes every 60 seconds. '+(d.generatedAt?'Numbers as of '+E(fmtT(d.generatedAt))+'. ':'')+'Crew, test and bot traffic are left out. Nothing here is personal: visitors are counted, never listed. Visitors who declined analytics in Europe, the UK or Switzerland appear only in the answer counts.</p>';
+ if(d.before_launch||(d.range&&rng==="launch"&&d.range.from>=d.range.to))h+='<p class="fresh amber">Launch is Thursday Oct 29 at 7:00 AM Pacific. Nothing to count yet.</p>';
+ if(d.truncated)h+='<p class="fresh amber">This range has more page views than the tab counts; only the earliest 60,000 are in the visitor numbers.</p>';
+ if(!d.answerRate){return h;}
+ // 1
+ h+='<h2>1. Did they get an answer? Answer rate</h2><p class=note>Real result = a range (or live cars on Find). Asked back = the page asked which car. Thin or nothing = not enough sales, or no result. Error = the search failed.</p>'
+  +table([["Product","product",function(v){return pn(v);}],["Asked","asked",n],["Real result","real",function(v,r){return cell(v,r.asked);}],["Asked back","asked_back",function(v,r){return cell(v,r.asked);}],["Thin or nothing","thin",function(v,r){return cell(v,r.asked);}],["Error","error",function(v,r){return cell(v,r.asked);}]],d.answerRate)
+  +'<p class=note>Refusals are counted apart and are not asks: daily or hourly limit reached '+n(d.refusals.limit_hit)+' (limit_hit), sign-ups refused '+n(d.refusals.signup_refused)+' (signup_refused).</p>';
+ // 2
+ h+='<h2>2. Unmet demand</h2><p class=note>Every query that ended thin, with nothing, or in an error, word for word (scrubbed of emails, phone numbers and VINs), newest first, with how many times it was asked.</p>'
+  +table([["Last asked","last",function(v){return E(fmtT(v));}],["Product","product",function(v){return pn(v);}],["Query","query"],["Ended","outcome",function(v){return v==="error"?"error":"thin or nothing";}],["Times asked","times",n]],d.unmet)
+  +'<h2>Top 20 cars asked</h2>'+table([["Car","car"],["Asked","asked",n],["Find","buy",n],["Market Check","market_check",n],["Sell","sell",n]],d.topCars);
+ // 3
+ h+='<h2>3. Drop-off</h2><p class=note>Each step is inside the one before it. Arrived = a page view. Asked = ran a search. Real result = got a range or live cars. Acted = clicked out to an auction, opened a Task, or asked for an introduction. Came back = a second session in this range. The percent is the share lost from the step before.</p>'
+  +table([["Product","product",function(v){return pn(v);}],["Arrived","arrived",n],["Asked","asked",function(v,r){return n(v)+" (lost "+pc(r.arrived-v,r.arrived)+")";}],["Real result","real",function(v,r){return n(v)+" (lost "+pc(r.asked-v,r.asked)+")";}],["Acted","acted",function(v,r){return n(v)+" (lost "+pc(r.real-v,r.real)+")";}],["Came back","came_back",function(v,r){return n(v)+" (lost "+pc(r.acted-v,r.acted)+")";}]],d.funnel)
+  +'<p class=note>Acted without a real result (not in the table): '+n(d.actedNoReal)+' visitors.</p>'
+  +'<h2>The asked-back loop</h2>'+tiles([["Were asked a question",n(d.loop.asked)],["Answered it",cell(d.loop.answered,d.loop.asked)],["Skipped it",cell(d.loop.skipped,d.loop.asked)],["Real result after answering",cell(d.loop.real_after,d.loop.answered)],["Left at the question",cell(d.loop.left,d.loop.asked)]])
+  +(d.loop.shown_without_id?'<p class=note>'+n(d.loop.shown_without_id)+' question views carried no search id and are not in these numbers.</p>':'');
+ // 4
+ var a=d.action;
+ h+='<h2>4. Action</h2><h3>Outbound clicks by platform and surface</h3><p class=note>Find, Market Check and Tasks pages, and the links in Task emails. Sell is the venue links, read from the outbound clicks table'+(d.outbound_sell_read?'':' (that table could not be read just now)')+'. Closest-sales links count as clicks too.</p>'
+  +table([["Platform","platform"],["Find","find",n],["Market Check","market_check",n],["Tasks","tasks",n],["Task emails","tasks_email",n],["Sell","sell",n],["Other","unlabelled",n],["Total","total",n]],d.outbound)
+  +tiles([["Tasks created",n(a.tasks_created)],["Tasks paused",n(a.tasks_paused)],["Tasks stopped",n(a.tasks_stopped)],["Task emails sent",n(a.task_emails_sent),n(a.task_emails_failed)+" failed"],["Sell flows started",n(a.sell_started)],["Sell finished",cell(a.sell_finished,a.sell_started)],["Introductions requested",n(a.introductions)],["Sign-ins started",n(a.signin_started),n(a.code_requested)+" codes requested"],["Sign-ins completed",n(a.signin_completed),"Google "+n(a.signin_google)+", code "+n(a.signin_code)+", method not recorded "+n(a.signin_method_unknown)],["New accounts",n(a.new_accounts)],["Newsletter box ticked",n(a.newsletter_ticked),"not ticked "+n(a.newsletter_not_ticked)+", not recorded "+n(a.newsletter_unknown)]]);
+ // 5
+ h+='<h2>5. Came back, and where from</h2>'+tiles([["Visitors",n(d.returning.visitors)],["Came back (second session)",cell(d.returning.returning,d.returning.visitors)]])
+  +'<p class=note>Source is each first page view of each visitor in this range: the utm source if the link had one, otherwise the referring site, otherwise direct. Acted and came back are shares of that source.</p>'
+  +table([["Source","source"],["First page","product",function(v){return pn(v);}],["Visitors","visitors",n],["Asked","asked",function(v,r){return cell(v,r.visitors);}],["Acted","acted",function(v,r){return cell(v,r.visitors);}],["Came back","came_back",function(v,r){return cell(v,r.visitors);}]],d.sources);
+ // 6
+ var w=d.now||{};
+ h+='<h2>6. Right now (last 15 minutes)</h2>'+tiles([["Visitors",n(w.visitors)],["Answers served",n(w.answers)],["Failures",n(w.failures)]]);
+ // 7
+ h+='<h2>7. Speed</h2><p class=note>Seconds from the question to the answer, as the server measured it, failed searches left out. Cold = computed for this request. Warm = served from the stored answer. Find does not record cold or warm.</p>'
+  +table([["Product","product",function(v){return pn(v);}],["Answers","n",n],["Median","p50",ms],["95th percentile","p95",ms],["Cold median","cold",function(v){return v.n?ms(v.p50)+" ("+n(v.n)+")":"none yet";}],["Cold 95th","cold",function(v){return v.n?ms(v.p95):"none yet";}],["Warm median","warm",function(v){return v.n?ms(v.p50)+" ("+n(v.n)+")":"none yet";}],["Warm 95th","warm",function(v){return v.n?ms(v.p95):"none yet";}]],d.speed);
+ // 8
+ var f=d.failures;
+ h+='<h2>8. Failures</h2>'+tiles([["Busy line shown",n(f.busy_shown)],["Errors (5xx)",n(f.errors.reduce(function(s,x){return s+x.n;},0))],["Limits hit",n(f.limit_hit.reduce(function(s,x){return s+x.n;},0))],["Searches failed",n(f.search_failed.reduce(function(s,x){return s+x.n;},0))]])
+  +'<h3>Errors by route and status</h3>'+table([["Route and status","k"],["Count","n",n]],f.errors)
+  +'<h3>Searches that failed</h3>'+table([["Product and state","k"],["Count","n",n]],f.search_failed)
+  +'<h3>Limits hit (limit_hit)</h3>'+table([["Limit","k"],["Count","n",n]],f.limit_hit)
+  +'<h3>Last 20</h3>'+table([["When","ts",function(v){return E(fmtT(v));}],["What","kind"],["Detail","detail"]],f.last);
+ // 9
+ var c=d.cost;
+ h+='<h2>9. Cost per answer</h2><p class=note>Answers served in this range: '+n(c.answers_served)+'. Anthropic is the model_call events; OldCarsData is the credits ledger (ocd_call rows), shown for visitor searches, live pulls, and the nightly and other jobs.'+(c.ocd_read?'':' The ledger could not be read just now.')+'</p>'
+  +tiles([["Anthropic spend","$"+Number(c.anthropic_usd||0).toFixed(2),c.anthropic_per_answer==null?"":"$"+Number(c.anthropic_per_answer).toFixed(4)+" per answer"],["OldCarsData, visitor searches",n(c.ocd_visitor_search),c.ocd_per_answer_search_only==null?"":Number(c.ocd_per_answer_search_only).toFixed(2)+" credits per answer"],["OldCarsData, live pulls",n(c.ocd_live_pull)],["OldCarsData, nightly and other jobs",n(c.ocd_nightly_and_other)],["OldCarsData, all credits",n(c.ocd_total),c.ocd_per_answer_all==null?"":Number(c.ocd_per_answer_all).toFixed(2)+" credits per answer"]])
+  +table([["Job","job"],["Credits","credits",n]],c.by_job);
+ // 10
+ h+='<h2>10. Feedback</h2>'+tiles([["Messages sent",n(d.feedback)]])+'<p class=note>A count only. Feedback goes to the inbox and is never stored here.</p>';
+ return h;};
+var cur="launch",main,lTimer=null;
+function wireLaunch(box){box.querySelectorAll(".lrange button").forEach(function(b){b.onclick=function(){rng=b.getAttribute("data-r");show("launch");};});}
+function refreshLaunch(){var box=document.getElementById("ad-body");if(!box||cur!=="launch")return;
+ token().then(function(t){if(t)tok=t;return api({part:"launch",range:rng});}).then(function(d){if(cur!=="launch")return;var y=window.scrollY;box.innerHTML=R.launch(d);wireLaunch(box);window.scrollTo(0,y);}).catch(function(){});}
+function show(part,extra){cur=part;if(lTimer){clearInterval(lTimer);lTimer=null;}main.querySelectorAll("nav button").forEach(function(b){b.className=b.getAttribute("data-p")===part?"on":"";});var box=document.getElementById("ad-body");box.innerHTML='<p class=note>Loading...</p>';
+ token().then(function(t){if(t)tok=t;return api(Object.assign({part:part},part==="launch"?{range:rng}:{},extra||{}));}).then(function(d){box.innerHTML=R[part](d);
+  if(part==="launch"){wireLaunch(box);lTimer=setInterval(function(){if(!document.hidden)refreshLaunch();},60000);}
   box.querySelectorAll("[data-anon]").forEach(function(a){a.onclick=function(e){e.preventDefault();show("journey",{anon:a.getAttribute("data-anon")});};});
   var bk=document.getElementById("ad-back");if(bk)bk.onclick=function(){show("journey");};}).catch(function(){box.innerHTML='<p class=note>That part could not load. Try again in a moment.</p>';});}
 token().then(function(t){if(!t)return;tok=t;return api({part:"me"}).then(function(){
  document.getElementById("ad-style").media="all";document.body.className="ad";document.title="GoAskSam numbers";
  main=document.querySelector("main");main.className="";main.innerHTML='<h1>GoAskSam numbers</h1><nav>'+PARTS.map(function(p){return '<button data-p="'+p[0]+'">'+E(p[1])+'</button>';}).join("")+'</nav><div id=ad-body></div>';
- main.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){show(b.getAttribute("data-p"));};});show("overview");});}).catch(function(){});
+ main.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){show(b.getAttribute("data-p"));};});show("launch");});}).catch(function(){});
 })();</script></body></html>`;
 }
 
@@ -343,6 +419,7 @@ async function handler(req, res) {
     if (b.part === "test_events" && cred) return res.status(200).json(await testEvents(env, typeof b.since === "string" ? b.since : null));
     if (b.part === "refresh_now" && cred) return res.status(200).json(await refresh(env, "hour"));
     if (b.part === "me") return res.status(200).json({ ok: true });
+    if (b.part === "launch") return res.status(200).json(await launch(env, typeof b.range === "string" ? b.range : "today"));
     if (b.part === "overview") return res.status(200).json(await overview(env));
     if (b.part === "reliability") return res.status(200).json(await reliability(env));
     if (b.part === "buy") return res.status(200).json(await buyAndMarketCheck(env));

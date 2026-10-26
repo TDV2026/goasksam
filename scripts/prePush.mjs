@@ -221,6 +221,15 @@ try {
   record("analytics layer (scripts/analyticsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 
+// Launch dashboard (Oct 26 2026, Lane D): the new events log without personal data and never block, the Launch tab's numbers on a known
+// fixture, the real /admin script in headless Chrome at 1440 and 390 with no sideways scroll, and /admin's 404 for anyone not allowed. No database, no keys.
+try {
+  const out = execSync("node scripts/launchDashCheck.mjs", { encoding: "utf8" });
+  record("launch dashboard (scripts/launchDashCheck.mjs)", "PASS", (out.match(/launchDashCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("launch dashboard (scripts/launchDashCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+
 // GA consent by country (Oct 17 2026, Lane C): EEA, UK and Switzerland load the tag with consent required, everywhere
 // else loads it with no banner, crew and other hosts load nothing. The real handler with the country header. No network.
 try {

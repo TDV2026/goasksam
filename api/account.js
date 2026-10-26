@@ -145,7 +145,7 @@ async function handler(req, res) {
     logEvent(env, { event: EVENTS.SIGN_IN_COMPLETED, userId: auth.userId, visitorId, props: src ? { source: src } : null });
     // Analytics (docs/analytics-events.md): signin, and this browser's earlier events linked to the account.
     // newsletter: the sign-in card's Daily Vroom box as sent with this call (ticked or not); absent when the client sent no state. A flag only, never the address.
-    track(req, "signin", typeof req.body.marketingConsent === "boolean" ? { newsletter: req.body.marketingConsent } : {}, { product: "site", surface: "api", user_id: auth.userId });
+    track(req, "signin", { ...(typeof req.body.marketingConsent === "boolean" ? { newsletter: req.body.marketingConsent } : {}), ...(req.body.signInMethod === "google" || req.body.signInMethod === "email" ? { method: req.body.signInMethod } : {}) }, { product: "site", surface: "api", user_id: auth.userId });
     linkAnonToUser(req, auth.userId);
   }
 

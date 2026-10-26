@@ -200,7 +200,7 @@ async function authVerifyCode(btn) {
     const now = Math.floor(Date.now() / 1000);
     authSetSession({ access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || (now + (j.expires_in || 3600)), email: (j.user && j.user.email) || email });
     authRenderTopbar();
-    await authEnsureAccount({ forceRecheck: true, freshSignIn: true });   // fresh sign-in: pick up a just-made TDV subscription now
+    await authEnsureAccount({ forceRecheck: true, freshSignIn: true, method: "email" });   // fresh sign-in: pick up a just-made TDV subscription now
     authRenderTopbar();
     authCloseModal();
     if (authLandAfterSignIn()) return;   // the destination they were going to (a page's own gateAfterSignup is only the fallback)
@@ -234,6 +234,7 @@ async function authEnsureAccount(opts) {
   // (gasAttribution()'s first touch) rides along so sign_in_completed can carry props.source -
   // the "best acquisition sources" admin view reads this.
   if (opts && opts.freshSignIn) { body.freshSignIn = true; const a = gasAttribution(); if (a && a.first) body.attributionSource = a.first.source || null; }
+  if (opts && opts.freshSignIn && (opts.method === "google" || opts.method === "email")) body.signInMethod = opts.method;   // analytics: which way they signed in (the signin event's method)
   try {
     const res = await fetch(authApiPath("/api/account"), {
       method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -452,7 +453,7 @@ async function authBoot() {
   if (authIsSignedIn()) {
     // Fresh sign-in (returned via Google/magic-link callback) forces a live tier
     // re-check so a just-subscribed reader is TDV immediately; a normal load does not.
-    await authEnsureAccount(returned ? { forceRecheck: true, freshSignIn: true } : undefined);
+    await authEnsureAccount(returned ? { forceRecheck: true, freshSignIn: true, method: "google" } : undefined);
     authRenderTopbar();              // repaint with the resolved email/tier
   }
   if (returned) { authCloseModal(); if (!authLandAfterSignIn()) gateAfterSignup(); }  // #2: land on the claimed result after a wall signup, or where they were going
@@ -742,7 +743,7 @@ async function authBootTopbarOnly() {
   authScrubPrefill();
   const returned = authHandleCallback();
   authRenderTopbar();
-  if (authIsSignedIn()) { await authEnsureAccount(returned ? { forceRecheck: true, freshSignIn: true } : undefined); authRenderTopbar(); }
+  if (authIsSignedIn()) { await authEnsureAccount(returned ? { forceRecheck: true, freshSignIn: true, method: "google" } : undefined); authRenderTopbar(); }
   if (returned) { authCloseModal(); authLandAfterSignIn(); }
   setTimeout(authApplyTyped, 700);   // what they typed before signing in is waiting in the page's box
 }
