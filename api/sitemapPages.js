@@ -20,7 +20,8 @@ const PAGES = [
   { loc: "/mcp", lastmod: "2026-10-07", changefreq: "monthly", priority: "0.7", product: null },
   { loc: "/how-sam-decides", lastmod: "2026-09-03", changefreq: "monthly", priority: "0.6", product: null },
   { loc: "/about", lastmod: "2026-09-03", changefreq: "yearly", priority: "0.3", product: null },
-  { loc: "/privacy", lastmod: "2026-08-31", changefreq: "yearly", priority: "0.3", product: null },
+  { loc: "/privacy", lastmod: "2026-10-26", changefreq: "yearly", priority: "0.3", product: null },
+  { loc: "/terms", lastmod: "2026-10-26", changefreq: "yearly", priority: "0.3", product: null },
   { loc: "/business", lastmod: "2026-09-03", changefreq: "monthly", priority: "0.5", product: "business" }
 ];
 

@@ -23,7 +23,7 @@ ok(/Market Check<\/b><span>See what similar cars have actually sold for\.<\/span
 // (Oct 25 2026: the one quiet bottom line "(c) GoAskSam, from The Daily Vroom" with Privacy links is Sam's order and is the only mention allowed in the body.)
 const homeMain = home.body.slice(home.body.indexOf("<main"), home.body.indexOf("</main>")).replace(/<div class="hm-legal">[\s\S]*?<\/div>/, "");
 ok(!/Daily Vroom/.test(text(homeMain)), "Home: no Daily Vroom section in the body (it stays in the rail)");
-ok(/<div class="hm-legal"><span>&copy; GoAskSam, from The Daily Vroom<\/span><a href="\/privacy">Privacy<\/a><a [^>]*>Privacy choices<\/a><\/div>/.test(home.body), "Home: one quiet bottom line with the copyright and the Privacy and Privacy choices links");
+ok(/<div class="hm-legal"><span>&copy; GoAskSam, from The Daily Vroom<\/span><a href="\/terms">Terms<\/a><a href="\/privacy">Privacy<\/a><a [^>]*>Privacy choices<\/a><\/div>/.test(home.body), "Home: one quiet bottom line with the copyright and the Privacy and Privacy choices links");
 ok(/location\.href="\/find\?q="\+encodeURIComponent\(v\)/.test(home.body), "Home: submit goes straight to /find?q= (populated results)");
 ok(/data-gst-enter/.test(home.body) && /data-ph="/.test(home.body), "Home: Enter submits and the examples rotate");
 ok(/<p class="gst-asof" data-lead-sentence>Sam reads live and completed enthusiast car auctions/.test(home.body), "Home: the dated lead sentence (rule 1)");
@@ -31,7 +31,7 @@ const closed = await call("home", "/", { cookie: "" });
 { const prev = process.env.LAUNCH_STAGE; process.env.LAUNCH_STAGE = "0"; const c0 = await call("home", "/"); process.env.LAUNCH_STAGE = prev; ok(c0.code === 302 && c0.hd.location === "/sell", "Home: while Find is not released, '/' answers as before (302 to /sell), not a permanent redirect"); }
 // Find
 ok(/<h1 class="gst-h">What car are you looking for\?<\/h1>/.test(find.body) && /Find · Live auctions/.test(find.body) && /Describe it naturally\. Sam searches live enthusiast car auctions for you\./.test(find.body), "Find: eyebrow, headline, sub are Sam's");
-ok(/Type it or say it\. No complicated filters\./.test(find.body) && /Live auctions across platforms\. Real bids, real listings\./.test(find.body) && /id="hq"/.test(find.body) && /id="hgo"/.test(find.body) && /id="hmic"/.test(find.body), "Find: helper and line are Sam's; the box keeps ids hq, hgo, hmic (its own engine path)");
+ok(/Type it or say it\. No complicated filters\./.test(find.body) && !/Live auctions across platforms/.test(find.body) && /id="hq"/.test(find.body) && /id="hgo"/.test(find.body) && /id="hmic"/.test(find.body), "Find: helper and line are Sam's; the box keeps ids hq, hgo, hmic (its own engine path)");
 ok(/data-lead-sentence>Live auctions as of [A-Z][a-z]+ \d{1,2}, \d{4}</.test(find.body) && /<meta name="description" content="Live auctions as of [A-Z][a-z]+ \d{1,2}, \d{4}, each one shown with what cars like it have actually sold for\.">/.test(find.body) && !/Sam follows the enthusiast/.test(find.body) && !/collector/i.test(text(find.body)), "Find: the dated lead sentence is there and nothing says collector");
 ok(!/lk-chip|Put Sam on it|ls-step|One search\. Every live/.test(find.body.replace(/<style>[\s\S]*?<\/style>/g, "").replace(/<script>[\s\S]*?<\/script>/g, "")), "Find: the old landing (hero, feature cards, Put Sam on it, example band) is gone");
 // Market Check

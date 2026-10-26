@@ -63,7 +63,7 @@ ${paletteHead(showPal)}${FONT_LINKS}<style>:root{--ink:#15201A;--sec:#5E6B63;--s
 ${showPal ? paletteSwitcherHtml() + "\n" : ""}${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 ${railOpenHtml({ active: "home", crew, req, analytics: true })}
-<main class="hm">${start}<div class="hm-legal"><span>&copy; GoAskSam, from The Daily Vroom</span><a href="/privacy">Privacy</a><a href="#" onclick="if(window.gasShowConsentBanner)window.gasShowConsentBanner();return false;">Privacy choices</a></div></main>${SHELL_MAIN_CLOSE}
+<main class="hm">${start}<div class="hm-legal"><span>&copy; GoAskSam, from The Daily Vroom</span><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="#" onclick="if(window.gasShowConsentBanner)window.gasShowConsentBanner();return false;">Privacy choices</a></div></main>${SHELL_MAIN_CLOSE}
 <script>${SHELL_JS}</script>
 <script>${START_JS}</script>
 ${showPal ? `<script>${PALETTE_SWITCHER_JS}</script>\n` : ""}<script>(function(){var q=document.getElementById("gst-home-q"),go=document.getElementById("gst-home-go");if(!q||!go)return;go.addEventListener("click",function(){var v=String(q.value||"").trim();if(!v){q.focus();return;}location.href="/find?q="+encodeURIComponent(v);});})();</script>

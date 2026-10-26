@@ -378,7 +378,7 @@ function openSignInCard(subtitle, opts) {
     <label class="auth-consent-row"><input id="auth-consent" type="checkbox" /> <span>Send me Sam's market notes</span></label>
     <div id="auth-error" class="auth-error" style="display:none"></div>
     <div class="auth-fineprint">No passwords. We email you a one-time code. Marketing notes only if you tick the box.</div>
-    <div class="auth-fineprint">By continuing you agree to our <a href="/privacy">Privacy Policy</a>.</div>
+    <div class="auth-fineprint">By continuing you agree to our <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</div>
   </div>`;
   document.body.appendChild(scrim);
   const f = document.getElementById("auth-email");
@@ -408,7 +408,7 @@ function authRenderCheckEmail(email) {
     <div id="auth-error" class="auth-error" style="display:none"></div>
     <button class="auth-email-btn" onclick="authVerifyCode(this)">Verify and sign in</button>
     <button onclick="authSignInEmail(this)" style="margin-top:10px;background:none;border:none;color:#6B6861;font-size:13px;cursor:pointer;text-decoration:underline">Resend code</button>
-    <div class="auth-fineprint">By continuing you agree to our <a href="/privacy">Privacy Policy</a>.</div>`;
+    <div class="auth-fineprint">By continuing you agree to our <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</div>`;
   const f = document.getElementById("auth-code");
   if (f) { try { f.focus(); } catch (e) {} f.addEventListener("keydown", e => { if (e.key === "Enter") authVerifyCode(document.querySelector("#auth-modal .auth-email-btn")); }); }
 }
