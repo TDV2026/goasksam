@@ -31,23 +31,39 @@ ok(/marketHref: "\/market-check\?q=" \+ encodeURIComponent\(engineCar\(\)\)/.tes
 ok(/window\.open\(rc\.getAttribute\("data-href"\), "_blank", "noopener"\)/.test(client) && /closest\("a, button"\)/.test(client), "the whole card opens it in a new tab, and a click on a link or button inside keeps its own target");
 ok(/\.sfc-card\[data-href\]\{cursor:pointer\}/.test(fs.readFileSync(new URL("../lib/sellsForCard.js", import.meta.url), "utf8")), "the card shows a pointer");
 ok(!/[–—]/.test(withLink), "no dashes");
-// 4. the reserve card (from the engine's own pool; nothing when a side is under eight or the sides are level)
+const { dayBuckets } = await import("../lib/sell/sellFacts.js");
+// 4. the reserve card (e91): drawn from the engine's reserve_split as it stands; the page counts nothing
 const { reserveTile } = await import("../lib/sell/sellFlow.js");
-const { reserveBuckets } = await import("../lib/sell/sellFacts.js");
-const row = (price, has) => ({ sale_price: price, hammer_usd: price, price, _usd: price, has_reserve: has, source: "bringatrailer", auction_end_date: "2026-09-01" });
-const many = (n, p0, has) => Array.from({ length: n }, (_, i) => row(p0 + i * 500, has));
-const win = reserveBuckets([...many(9, 60000, false), ...many(11, 50000, true)]);
-ok(win && win.winner === "no_reserve" && win.no_reserve.count === 9 && win.reserve.count === 11 && win.total === 20, "reserve: both sides eight or more and a clear gap gives the better side");
-const t = reserveTile({ by_reserve: win });
-ok(t && t.label === "Reserve or no reserve" && t.head === "No reserve" && t.line === "nine of the 20 sales were no reserve and they brought the stronger results", "reserve card: label, the winner as the big words, the engine's counts in the line (" + (t && t.line) + ")");
-ok(reserveTile({ by_reserve: reserveBuckets([...many(11, 50000, false), ...many(9, 62000, true)]) }).head === "Reserve", "reserve card: the reserve side can win");
-ok(reserveBuckets([...many(7, 60000, false), ...many(30, 50000, true)]) === null && reserveTile({ by_reserve: null }) === null, "reserve: a side under eight shows nothing");
-ok(reserveBuckets([...many(9, 60000, false), ...many(9, 60500, true)]) === null, "reserve: level sides show nothing");
-ok(reserveBuckets(many(30, 50000, undefined)) === null && reserveBuckets([]) === null, "reserve: rows that do not say are left out; no flags, nothing");
-ok(!/[–—]|%|\$/.test((t && (t.line + t.head + t.label)) || ""), "reserve card: no dash, no percentage, no price");
+const rsOf = (winner, an, bn, label = "2004 Porsche 911 Carrera", months = 12) => ({ winner, a: { side: "no_reserve", n: an, median: 61000 }, b: { side: "reserve", n: bn, median: 52000 }, n: an + bn, gap_pct: 17.3, scope_label: label, window: { months, from: "2025-10-27", to: "2026-10-20" } });
+const own = { window_label: "in the last 12 months", pool_years: [2004, 2004] };
+let t = reserveTile({ ...own, reserve_split: rsOf("no_reserve", 9, 11, "2004 911 Carrera") });
+ok(t && t.label === "Reserve or no reserve" && t.head === "No reserve" && t.line === "Nine of the 20 sales were no reserve and they brought the stronger results." && t.line2 === null, "reserve card, no reserve wins: the words from the engine's counts, no scope line when the scope is the page's own car (" + (t && t.line) + ")");
+t = reserveTile({ ...own, reserve_split: rsOf("reserve", 9, 11, "2004 911 Carrera") });
+ok(t && t.head === "With a reserve" && t.line === "11 of the 20 sales had a reserve and they brought the stronger results.", "reserve card, a reserve wins (" + (t && t.line) + ")");
+t = reserveTile({ ...own, reserve_split: rsOf("none", 9, 11, "2004 911 Carrera") });
+ok(t && t.head === "No real difference" && t.line === "Nine no reserve and 11 with a reserve closed about level.", "reserve card, no difference (" + (t && t.line) + ")");
+t = reserveTile({ ...own, reserve_split: rsOf("no_reserve", 9, 11, "2001 to 2005 911 Carrera", 36) });
+ok(t && t.line2 === "Counted across 2001 to 2005 911 Carrera, in the last three years.", "reserve card: a wider scope adds the small line with the engine's scope and window (" + (t && t.line2) + ")");
+t = reserveTile({ ...own, reserve_split: rsOf("no_reserve", 9, 11, "911 Carrera", 12) });
+ok(t && t.line2 === "Counted across 911 Carrera, in the last 12 months.", "reserve card: a scope with no years is wider than the page's car");
+ok(reserveTile({ ...own, reserve_split: null }) === null && reserveTile({ ...own }) === null && reserveTile(null) === null, "reserve card: null shows nothing");
+ok(!/[–—]|%|\$/.test(JSON.stringify([reserveTile({ ...own, reserve_split: rsOf("none", 9, 11, "2001 to 2005 911 Carrera") })])), "reserve card: no dash, no percentage, no price");
+// the old page-side counting is gone: the card reads only the engine field
+const factsSrc = fs.readFileSync(new URL("../lib/sell/sellFacts.js", import.meta.url), "utf8"), flowSrc = fs.readFileSync(new URL("../lib/sell/sellFlow.js", import.meta.url), "utf8");
+ok(!/reserveBuckets|by_reserve|RESERVE_SIDE_MIN|has_reserve === false/.test(factsSrc.replace(/\/\/[^\n]*/g, "") + flowSrc.replace(/\/\/[^\n]*/g, "")), "the page-side has_reserve counting is gone");
+ok(/reserve_split: \(d && d\.reserve_split\) \|\| null/.test(factsSrc) && /best_day: \(d && d\.best_day\) \|\| null/.test(factsSrc), "the facts pass the engine's two fields through unchanged");
+// the best day card (e91)
+const { dayTile: dt2 } = await import("../lib/sell/sellFlow.js");
+const bdf = { day: "Sunday", count: 5, n: 13, measure: "median_vs_pool_median_pct", lead_pct: 29.3, median: 40200, pool_median: 31100, margin: 32.2, fence: { min_sales: 5, min_margin: 5 }, window: { months: 12 } };
+const bt = dt2({ best_day: bdf, window_label: "since October 2025", by_day: null });
+ok(bt && bt.label === "Best day to end your auction" && bt.head === "Sunday" && bt.line === "Sunday sales have closed strongest for cars like this, five of the 13 sales since October 2025.", "best day card: label, the day, the engine's count line (" + (bt && bt.line) + ")");
+ok(!/[–—]|%|\$|lead_pct|29/.test(JSON.stringify(bt)), "best day card: no percent, no price, no figure beyond the counts");
+const both = dt2({ best_day: bdf, window_label: "since October 2025", by_day: dayBuckets(drows0(), false) });
+ok(both && both.label === "Best day to end your auction", "best day present: that card, never the most-often card as well");
+ok(dt2({ best_day: null, window_label: "since October 2025", by_day: dayBuckets(drows0(), false) }).label === "Most often sold on a", "best day null: the most-often-sold-on card from the day counts, unchanged");
+function drows0() { const r = (d, p) => ({ auction_end_date: d + "T18:00:00Z", _usd: p, _hv: p, source: "bringatrailer" }); return [...Array(5).fill(0).map((_, i) => r("2026-09-14", 50000 + i * 900)), ...Array(3).fill(0).map((_, i) => r("2026-09-15", 48000 + i * 900)), ...Array(4).fill(0).map((_, i) => r("2026-09-17", 46000 + i * 900))]; }
 // 5. the day card (Oct 26 2026): the plain fact from dayBuckets, never "best"; the old label is gone
 const { dayTile } = await import("../lib/sell/sellFlow.js");
-const { dayBuckets } = await import("../lib/sell/sellFacts.js");
 const dayRow = (date, price) => ({ auction_end_date: date + "T18:00:00Z", _usd: price, _hv: price, source: "bringatrailer" });
 const drows = [...Array(5).fill(0).map((_, i) => dayRow("2026-09-14", 50000 + i * 900)), ...Array(3).fill(0).map((_, i) => dayRow("2026-09-15", 48000 + i * 900)), ...Array(4).fill(0).map((_, i) => dayRow("2026-09-17", 46000 + i * 900))];
 const one = dayTile({ by_day: dayBuckets(drows, false), window_label: "since October 2025" });
