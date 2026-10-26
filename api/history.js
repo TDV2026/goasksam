@@ -283,7 +283,7 @@ function saneLinkFamily(f) { const t = String(f || "").trim(); return !!slugify(
 async function carPage(req, res, env, slug, vin) {
   const crew = isCrewRequest(req);
   const { appearances, vinNorm, ok, source: dataSource } = await vinAppearances(env, vin);
-  if (!ok) return send(res, 503, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>`, req }), {}, false, crew, req);
+  if (!ok) return send(res, 503, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam is busy right now, try again in a minute.</p></section>`, req }), {}, false, crew, req);
   if (!appearances.length) return notFound(req, res, "VIN " + vinNorm);
   const id = await identityFor(env, appearances, vinNorm);
   if (!id) return notFound(req, res, "VIN " + vinNorm);
@@ -636,7 +636,7 @@ async function hubPage(req, res, env, slug) {
   const hubVinsTiming = {};
   const list = await hubVins(env, hub, hubVinsTiming);
   profMark("hubVinsDone");
-  if (list == null) return send(res, 503, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>`, req }), {}, false, crew, req);
+  if (list == null) return send(res, 503, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam is busy right now, try again in a minute.</p></section>`, req }), {}, false, crew, req);
   if (!list.length) return notFound(req, res, slug.replace(/-/g, " "));
   // Name + One Box family from the resolver on the slug text (same resolver One Box uses).
   let v = null;
@@ -717,7 +717,7 @@ async function handler(req, res) {
     if (q.go && vin) {
       // /vin/{VIN}: 301 to the canonical car URL (404 when the VIN has no appearance or is not a car).
       const { appearances, ok } = await vinAppearances(env, vin);
-      if (!ok) return send(res, 503, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>`, req }), {}, false, crew, req);
+      if (!ok) return send(res, 503, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam is busy right now, try again in a minute.</p></section>`, req }), {}, false, crew, req);
       const id = appearances.length ? await identityFor(env, appearances, vin) : null;
       if (!id) return notFound(req, res, "VIN " + vin);
       res.setHeader("Location", `/history/${id.slug}/${vin}`);
@@ -729,7 +729,7 @@ async function handler(req, res) {
     return notFound(req, res, "that page");
   } catch (e) {
     console.error("history page failed:", (e && e.stack) || e);
-    return send(res, 500, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam&#8217;s catching his breath, try again in a minute.</p></section>`, req }), {}, false, crew, req);
+    return send(res, 500, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam is busy right now, try again in a minute.</p></section>`, req }), {}, false, crew, req);
   }
 }
 

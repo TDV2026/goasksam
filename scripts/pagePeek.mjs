@@ -14,7 +14,7 @@ const WAIT = Number(arg("wait")) || 45000;
 const KEY = process.env.PROBE_KEY || null;
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 if (!KEY) { console.log("pagePeek: no PROBE_KEY in the environment."); process.exit(1); }
-const READY = /\$\d[\d,]{2,}|catching his breath|limit of \d+ cars|which (one|generation|body|model|year|trim)|did you mean|sale on record|sales? (since|in the last)/i;
+const READY = /\$\d[\d,]{2,}|catching his breath|Sam is busy right now|limit of \d+ cars|which (one|generation|body|model|year|trim)|did you mean|sale on record|sales? (since|in the last)/i;
 
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", protocolTimeout: 600000, args: ["--no-sandbox"] });
 try {

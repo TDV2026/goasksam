@@ -229,7 +229,7 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
     sell: q => BASE + "/sell?car=" + encodeURIComponent(q) + "&state=California&how=self&rush=none"
   };
   const READY = {
-    marketCheck: /\$\d[\d,]{2,}|catching his breath|limit of \d+ cars/i,
+    marketCheck: /\$\d[\d,]{2,}|catching his breath|Sam is busy right now|limit of \d+ cars/i,
     buy: /landed at \$|sold between \$|That.s everything matching|Nothing else right now|No live|0 live|live .* right now/i,
     sell: /SAM.S PICK|WHO SAM WOULD RECOMMEND|not enough|couldn.t/i
   };

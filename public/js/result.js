@@ -2191,7 +2191,7 @@ function closeLeadDetailsModal(){const m=document.getElementById("lead-details-m
 var METHODOLOGY_PARAS=[
   "Every recommendation starts with real sales. Sam tracks completed sales across the major enthusiast platforms, what sold, where, and for how much, recalculated as new sales close.",
   "For your vehicle, Sam looks at how cars like yours have actually performed on each platform: how many have sold, how consistently, and at what level. Volume matters, a platform with a deep track record for your kind of car counts for more than one with a couple of lucky results.",
-  "Sam also weighs what you've told him: your timing, how involved you want to be, and what you're hoping to get. The recommendation balances the market evidence with your situation, and where a PowerSeller has a proven record with cars like yours, Sam says so.",
+  "Sam also weighs what you've told Sam: your timing, how involved you want to be, and what you're hoping to get. The recommendation balances the market evidence with your situation, and where a PowerSeller has a proven record with cars like yours, Sam says so.",
   "No platform or PowerSeller can pay to be recommended. Nothing you see is sponsored, and when the data is thin, Sam says that too, better nothing than a fake number."
 ];
 var methodologyKeyHandler=null;

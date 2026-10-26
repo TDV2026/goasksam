@@ -2971,7 +2971,7 @@
   }
   // Graceful failure copy + a fetch that never hangs the spinner: if the server is slow/down and the
   // request stalls, the abort fires and the catch renders one calm line.
-  var OB_CALM = "Sam’s catching his breath, try again in a minute.";
+  var OB_CALM = "Sam is busy right now, try again in a minute.";
   function obFetch(url, opts, ms) {
     var o = opts || {};
     if (typeof AbortController !== "undefined") {

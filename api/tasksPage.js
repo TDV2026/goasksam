@@ -17,7 +17,7 @@ import { findCardKitJs, FIND_CARD_CSS } from "../lib/findCardKit.js";
 import { FREE_TASK_LIMIT, freeTasksWords } from "../lib/tasks/limit.js";
 import { heldFor } from "../lib/_hold.js";
 
-export const TASKS_PITCH = { lead: "A free collector car finder.", sub: "Tell Sam what you want and he keeps searching, then emails you when one fits." };
+export const TASKS_PITCH = { lead: "A free collector car finder.", sub: "Tell Sam what you want and Sam keeps searching, then emails you when one fits." };
 const HOW = "The cars Sam shows you come from a rules-based matching algorithm. Sam helps understand the question and explain the results, but never invents the cars, the matches or the numbers. Every number comes from real market evidence.";
 const FAQ = [
   ["Is it free?", "Yes. Every GoAskSam account gets " + freeTasksWords() + " free. Sign in, tell Sam what you're looking for, and Sam keeps checking."],
@@ -151,7 +151,7 @@ export default async function handler(req, res) {
   const hasQuery = /\?./.test(String(req.url || ""));
   const robots = hasQuery ? "noindex, follow" : "index, follow";
   const title = "Free collector car finder that keeps looking | GoAskSam";
-  const desc = `${TASKS_PITCH.lead} Tell Sam what you want and Sam keeps searching, then emails you when one fits.`;   // meta and og description (Sam, Oct 25 2026); the visible lead keeps TASKS_PITCH.sub
+  const desc = `${TASKS_PITCH.lead} ${TASKS_PITCH.sub}`;
   const ld = [
     { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: FAQ.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
     { "@context": "https://schema.org", "@type": "WebPage", name: "Sam Tasks", url: "https://goasksam.com/tasks", description: desc }
