@@ -1,5 +1,5 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
-import { unusedWordsOf } from "../lib/live/unusedWords.js";
+import { unusedFieldsFor } from "../lib/live/unusedWords.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
 import { mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, priceBandForVehicle, listSalesForVehicle, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
@@ -3720,8 +3720,7 @@ async function handler(req, res) {
       }
       const timings = { ...obTimes, warmHit, stale: !!staleInfo, totalMs: Date.now() - reqStart, dbBytes: supabaseBytesSoFar() - obTimes.dbBytes0, marks: dd && Array.isArray(dd.marks) ? dd.marks : null, fetchMs: dd && Array.isArray(dd.fetches) ? dd.fetches.map(f => Number(f.ms) || 0) : null };
       // the words Sam did not use in this search (lib/live/unusedWords.js): the engine names them, the page prints the line
-      let unusedFields = {};
-      try { const u = unusedWordsOf(typeof rawSearch0 === "string" ? rawSearch0 : oneBoxText, vehicle, null); if (u.unused.length) unusedFields = { unusedWords: u.unused, unusedLine: u.line }; } catch {}
+      const unusedFields = unusedFieldsFor(typeof rawSearch0 === "string" ? rawSearch0 : oneBoxText, vehicle, oneBox);
       return res.status(200).json({ status: "one_box", ...slimAnswerForWire(oneBox), ...staleFields, ...unusedFields, snapshotId: snapshotId || undefined, timings });
     }
 
