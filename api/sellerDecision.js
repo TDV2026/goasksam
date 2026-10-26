@@ -3412,7 +3412,7 @@ async function handler(req, res) {
       const mcRefine = !!(req.body?.refine || (car && car.refine));
       const mcRun = (props, engineVersion) => {
         if (mcRefine) return;
-        track(req, "search_run", { query_text: mcText || "-", latency_ms: Date.now() - obStart, vehicle_key: vehicle && vehicle.make ? `${vehicle.make}|${vehicle.model || ""}`.toLowerCase() : undefined,
+        track(req, "search_run", { query_text: mcText || "-", search_id: /^[A-Za-z0-9]{6,40}$/.test(String(req.body?.searchId || "")) ? String(req.body.searchId) : undefined, latency_ms: Date.now() - obStart, vehicle_key: vehicle && vehicle.make ? `${vehicle.make}|${vehicle.model || ""}`.toLowerCase() : undefined,
           year: Number(vehicle && vehicle.year) || undefined, model_used: false, cost_usd: 0, ...props },
           { product: "market_check", surface: "market_check_page", engine_version: engineVersion || ENGINE_VERSION, vin: vehicle && (vehicle.vin || null) });
       };
@@ -3624,7 +3624,7 @@ async function handler(req, res) {
         mcRun({ answer_type: a.answerType, pool_size: a.poolSize ?? undefined, result_count: Array.isArray(oneBox.cards) ? oneBox.cards.length : undefined,
           range_low: a.low ?? undefined, range_high: a.high ?? undefined, year_widened: !!a.yearWidened,
           fallback_rung: a.fallbackRung ? String(a.fallbackRung).slice(0, 60) : undefined, reason_flag: a.reasonFlag ? String(a.reasonFlag).slice(0, 60) : undefined,
-          transmission: obRefine && obRefine.tx ? obRefine.tx : undefined }, a.engineVersion);
+          transmission: obRefine && obRefine.tx ? obRefine.tx : undefined, cache: warmHit ? "warm" : "cold" }, a.engineVersion);
         // Lane A render job (Oct 2026): expose Lane B's already-computed standard-shape fields on the
         // SAME response the Market Check page reads (previously `a` was computed only for the search_run
         // event above and discarded) - never a second computation, no number changes, just the existing
@@ -4513,7 +4513,8 @@ async function handler(req, res) {
       track(req, "search_run", { query_text: typeof rawSearch === "string" ? rawSearch : (vehicle?.raw || vehicle?.canonicalLabel || "-"),
         answer_type: decision && decision.evidenceBasis === "regional_policy" ? "not_enough_data" : "range",
         latency_ms: Date.now() - reqStart, vehicle_key: vk, year: Number(vehicle && vehicle.year) || undefined,
-        pool_size: Number(analysis.recordsAnalyzed) || 0, model_used: false, cost_usd: costEstimate.plan1k }, sellCtx);
+        pool_size: Number(analysis.recordsAnalyzed) || 0, model_used: false, cost_usd: costEstimate.plan1k,
+        cache: fetchResult && fetchResult.fromCache ? "warm" : "cold" }, sellCtx);
       if (decision && decision.recommendedPath) track(req, "sell_answer_shown", { recommended_platform: String(decision.recommendedPath).slice(0, 60),
         evidence_basis: decision.evidenceBasis || undefined, confidence: typeof decision.confidence === "string" ? decision.confidence.slice(0, 60) : undefined, vehicle_key: vk }, sellCtx);
       if (decision && decision.partnerReferral && (decision.partnerReferral.eligible || decision.partnerReferral.secondary))

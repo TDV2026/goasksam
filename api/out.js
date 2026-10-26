@@ -7,6 +7,8 @@ import { supabaseEnv, supabaseInsert } from "../lib/_supabase.js";
 import { SUBMISSION_URLS, REFERRAL_UTM } from "../lib/submissionUrls.js";
 import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
 import { beaconAllowed } from "../lib/_ceilings.js";
+import { isSourceUrl, platformKeyFor } from "../lib/outboundUtm.js";
+import { track } from "../lib/track/log.js";
 
 function clip(value, max = 160) {
   if (value == null) return null;
@@ -20,6 +22,16 @@ function withUtm(url) {
 
 export default async function handler(req, res) {
   const q = req.query || {};
+  // A Task email's listing link (Lane D, Oct 26 2026): GET /out?l=<the already tagged listing address>&sf=tasks_email. Logs one auction_clickout (best effort, never
+  // blocks) and redirects to that same address, utm tags untouched. Only an https link on one of the 19 sources is ever followed; anything else goes home.
+  if (q.l != null) {
+    const dest = String(q.l);
+    if (!isSourceUrl(dest)) { res.setHeader("Location", "/"); res.status(302).end(); return; }
+    try { track(req, "auction_clickout", { platform: platformKeyFor(dest), state: "live", surface: "tasks_email" }, { product: "tasks", surface: "email" }); } catch { /* never block the redirect */ }
+    res.setHeader("Location", dest);
+    res.status(302).end();
+    return;
+  }
   const slug = String(q.p || "").toLowerCase().replace(/[^a-z0-9]/g, "");
   const target = SUBMISSION_URLS[slug];
   const outcome = q.outcome === "abandoned" ? "abandoned" : "continued";

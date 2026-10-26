@@ -2671,7 +2671,7 @@
     obLastD = d;
     var iq = d.identityQuestion;
     renderQuestion(identityTakeoverHtml(d));
-    if (typeof gasTrack === "function" && iq) gasTrack("identity_question_shown", { dimension: iq.dimension, option_count: (iq.options || []).length });
+    if (typeof gasTrack === "function" && iq) gasTrack("identity_question_shown", { search_id: obSearchId || undefined, dimension: iq.dimension, option_count: (iq.options || []).length });
   }
   // VARIANT-CHOICE TAKEOVER (job 2, Sam's review round, Oct 2026): d.variantChoices is the engine's
   // own real per-market chip list (key/label/count/refine - Lane B's FOR LANE A note), a genuinely
@@ -2709,12 +2709,12 @@
   function renderTrimChoice(d) {
     obLastD = d;
     renderQuestion(trimChoiceTakeoverHtml(d));
-    if (typeof gasTrack === "function") gasTrack("identity_question_shown", { dimension: "trim", option_count: (d.trimOptions || []).length });
+    if (typeof gasTrack === "function") gasTrack("identity_question_shown", { search_id: obSearchId || undefined, dimension: "trim", option_count: (d.trimOptions || []).length });
   }
   function renderVariantChoice(d) {
     obLastD = d;
     renderQuestion(variantChoiceTakeoverHtml(d));
-    if (typeof gasTrack === "function") gasTrack("identity_question_shown", { dimension: "competition", option_count: (d.variantChoices || []).length });
+    if (typeof gasTrack === "function") gasTrack("identity_question_shown", { search_id: obSearchId || undefined, dimension: "competition", option_count: (d.variantChoices || []).length });
   }
   function renderError(msg) {
     obAsk = null;
@@ -2892,7 +2892,7 @@
     obAsk = null; obCtxOnce = (ctx && !obIdentifierShaped(text)) ? String(ctx).slice(0, 200) : "";
     // A brand-new search resets the question count; a chip answer (keepAsk) carries it forward so
     // the engine can enforce the two-question cap across generation/body re-queries (Part 3).
-    if (!keepAsk) obAsked = 0;
+    if (!keepAsk) { obAsked = 0; obSearchId = obNewSearchId(); }   // a brand-new search gets a new id; a chip answer keeps it, so a question and its answer carry the same one (analytics)
     lastQuery = text; obLastRefine = null; obIdOrigBody = null; obIdOrigTrim = null; obIdOrigVariantLines = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
     // Identifier-shaped input (VIN or chassis) routes through the shared resolver (decode +
     // confirm + exact-match + the honest VIN-invalid / chassis lines); everything else goes
@@ -2973,6 +2973,10 @@
   // Graceful failure copy + a fetch that never hangs the spinner: if the server is slow/down and the
   // request stalls, the abort fires and the catch renders one calm line.
   var OB_CALM = "Sam is busy right now, try again in a minute.";
+  var obSearchId = "";
+  function obNewSearchId() { try { var a = new Uint8Array(8); crypto.getRandomValues(a); return Array.prototype.map.call(a, function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); } catch (e) { return String(Date.now()); } }
+  // busy_shown (analytics): the calm line was drawn. A flag with a reason, nothing else; never blocks the line.
+  function obBusy(reason) { try { if (typeof gasTrack === "function") gasTrack("busy_shown", { reason: reason }); } catch (e) {} }
   function obFetch(url, opts, ms) {
     var o = opts || {};
     if (typeof AbortController !== "undefined") {
@@ -3041,6 +3045,7 @@
     // can compare it to the cluster. Only present on a matched car; harmless when absent.
     if (vinAnchor && Number(vinAnchor.price) > 0) car.exactSale = { price: vinAnchor.price, mileage: vinAnchor.mileage, soldDate: vinAnchor.soldDate };
     var payload = { oneBox: true, anonId: obAnonId(), car: car, asked: obAsked };
+    if (obSearchId) payload.searchId = obSearchId;
     if (refine) payload.refine = refine;   // inline earned-question refinement (mileage / transmission)
     obFetch(API_ORIGIN + "/api/sellerDecision", {
       method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
@@ -3064,8 +3069,8 @@
         renderAsk((d.clarification && d.clarification.question) || "That exact car couldn’t be pinned down. Try the year, make and model together, like 1972 Porsche 911 or 1969 Ford Mustang.", d.clarification && d.clarification.answerHint);
         return;
       }
-      if (!d || d.status !== "one_box") { renderError(OB_CALM); return; }
-      if (d.tier === "unavailable") { renderError(d.samLine || OB_CALM); return; }
+      if (!d || d.status !== "one_box") { obBusy("busy"); renderError(OB_CALM); return; }
+      if (d.tier === "unavailable") { obBusy(d.stillReading ? "still_reading" : "busy"); renderError(d.samLine || OB_CALM); return; }
       if (d.tier === "rate_limited") { renderError(d.samLine || "That’s a lot of lookups for one day. Come back tomorrow and Sam keeps pulling real sales."); return; }
       if (d.tier === "business_limit") { renderBusinessLimit(d.samLine); return; }
       if (d.tier === "model_choice") { if (d.askIndex) obAsked = d.askIndex; obLastD = d; renderQuestion(modelChoiceTakeoverHtml(d)); return; }
@@ -3098,7 +3103,7 @@
       finalSteps.push("Picking the ones that matter");
       var finish = function () { mcPushUrl(); if (SELL && SELL.onCar && SELL.onCar(d, text)) return; renderResults(d); };
       if (loader) loader.finish(finalSteps, finish); else finish();
-    }).catch(function () { if (opts.inline) dimHeroForRerun(false); renderError(OB_CALM); });
+    }).catch(function () { if (opts.inline) dimHeroForRerun(false); obBusy("busy"); renderError(OB_CALM); });
   }
   // VIN path: decode + confirm (reuses /api/vehicleIdentity). VINs travel in the request
   // body only; nothing here logs the raw VIN.
@@ -3563,7 +3568,7 @@
     Array.prototype.forEach.call(root.querySelectorAll("[data-variantopt]"), function (b) {
       b.addEventListener("click", function () {
         var key = b.getAttribute("data-variantopt"), label = b.getAttribute("data-mlabel");
-        if (typeof gasTrack === "function") gasTrack("identity_question_answered", { dimension: "competition", choice: label || key || "", skipped: false });
+        if (typeof gasTrack === "function") gasTrack("identity_question_answered", { search_id: obSearchId || undefined, dimension: "competition", choice: label || key || "", skipped: false });
         runPool(lastQuery, obLastVehicle, mergeRefine({ variant: key, label: label }));
       });
     });
@@ -3571,14 +3576,14 @@
     Array.prototype.forEach.call(root.querySelectorAll("[data-trimopt]"), function (b) {
       b.addEventListener("click", function () {
         var key = b.getAttribute("data-trimopt"), not = b.getAttribute("data-trimnot") || "", label = b.getAttribute("data-mlabel");
-        if (typeof gasTrack === "function") gasTrack("identity_question_answered", { dimension: "trim", choice: label || key || "", skipped: false });
+        if (typeof gasTrack === "function") gasTrack("identity_question_answered", { search_id: obSearchId || undefined, dimension: "trim", choice: label || key || "", skipped: false });
         var part = { trim: key, label: label }; if (not) part.notTrims = not;
         runPool(lastQuery, obLastVehicle, mergeRefine(part));
       });
     });
     Array.prototype.forEach.call(root.querySelectorAll("[data-variantopt-any]"), function (b) {
       b.addEventListener("click", function () {
-        if (typeof gasTrack === "function") gasTrack("identity_question_answered", { dimension: "competition", choice: "any", skipped: true });
+        if (typeof gasTrack === "function") gasTrack("identity_question_answered", { search_id: obSearchId || undefined, dimension: "competition", choice: "any", skipped: true });
         runPool(lastQuery, obLastVehicle, mergeRefine({ variant: null, label: null }));
       });
     });
@@ -3588,7 +3593,7 @@
     Array.prototype.forEach.call(root.querySelectorAll("[data-typo-chip]"), function (b) {
       b.addEventListener("click", function () {
         var text = b.getAttribute("data-typo-chip");
-        if (typeof gasTrack === "function") gasTrack("identity_question_answered", { dimension: "typo_confirmation", choice: text, skipped: text === "Not sure" });
+        if (typeof gasTrack === "function") gasTrack("identity_question_answered", { search_id: obSearchId || undefined, dimension: "typo_confirmation", choice: text, skipped: text === "Not sure" });
         if (text === "Change car") { renderEmpty(); return; }
         if (text === "Not sure") { run(obTypoBase || text); return; }
         run(text);
@@ -3600,7 +3605,7 @@
     Array.prototype.forEach.call(root.querySelectorAll(".idqchip"), function (b) {
       b.addEventListener("click", function () {
         var dim = b.getAttribute("data-idq-dim"), val = b.getAttribute("data-idq-val"), label = b.getAttribute("data-mlabel");
-        if (typeof gasTrack === "function") gasTrack("identity_question_answered", { dimension: dim, choice: label || val || "", skipped: false });
+        if (typeof gasTrack === "function") gasTrack("identity_question_answered", { search_id: obSearchId || undefined, dimension: dim, choice: label || val || "", skipped: false });
         var key = IDQ_REFINE_KEY[dim];
         var patch = { label: label }; if (key) patch[key] = val;
         runPool(lastQuery, obLastVehicle, mergeRefine(patch));
@@ -3612,7 +3617,7 @@
     Array.prototype.forEach.call(root.querySelectorAll(".idqskip"), function (b) {
       b.addEventListener("click", function () {
         var dim = b.getAttribute("data-idq-dim");
-        if (typeof gasTrack === "function") gasTrack("identity_question_answered", { dimension: dim, choice: "skip", skipped: true });
+        if (typeof gasTrack === "function") gasTrack("identity_question_answered", { search_id: obSearchId || undefined, dimension: dim, choice: "skip", skipped: true });
         obAsked = 2;
         runPool(lastQuery, obLastVehicle, obLastRefine);
       });

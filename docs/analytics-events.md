@@ -189,6 +189,16 @@ the tab is not counted; a page that is never hidden before the browser dies send
   report's summary row (`pull_live_summary`). Optional `platforms`, `added`, `ended`, `updated`,
   `failures`, `requests`, `mode`.
 
+## Launch dashboard additions (Lane D, Oct 26 2026; props only, no table or column change)
+
+- **`search_run.cache`** (`cold` or `warm`): Market Check `warm` when the stored answer was served (`warmHit`), Sell `warm` when the market pool came from the stored fetch; Buy does not set it (a live search has no stored answer). **`search_run.search_id`**: the page's id for this search (Market Check), the same id the question events carry.
+- **`search_run.failure_state`** now also allows `still_reading` (the code already sent it; before this it failed validation and the event was dropped).
+- **`identity_question_shown`**, **`identity_question_answered`**: optional `search_id` (a random id the page makes for each brand-new search and keeps while the visitor answers the questions), so an asked-back loop can be followed to its end.
+- **`auction_clickout.surface`** (`find`, `market_check`, `tasks`, `tasks_email`, `sell`): set by the shared click listener from the page the click is on. The closest-sales links also fire `auction_clickout` with `state: sold`. Task email links go through `GET /out?l=<the tagged listing address>&sf=tasks_email`, which logs this event (server, surface `tasks_email`) and redirects to the same address with its outbound utm tags untouched; only an https link on one of the 19 sources is followed (`lib/outboundUtm.js isSourceUrl`), anything else goes to the home page. Sell's venue links keep logging to `outbound_clicks` through `/out?p=`; the dashboard reads that table.
+- **`signin.newsletter`** (bool): the sign-in card's Daily Vroom box as sent with the call; absent when the client sent no state. Never the address.
+- **`feedback_sent`** (service, server, `api/feedback.js`): a COUNT. No field at all: no text, name, address or page. The message is still never stored.
+- **`busy_shown`** (journey, browser, `public/js/onebox.js`): the "Sam is busy right now" line was drawn. Optional `reason` (`busy`, `still_reading`).
+
 ## Consent and identity
 
 `lib/track/consent.js`, `GET /api/track?consent=1` (uncached, `private, no-store`).

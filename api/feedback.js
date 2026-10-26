@@ -12,6 +12,7 @@ import { hasServerCredential } from "../lib/_credential.js";
 import { checkCeiling } from "../lib/_ceilings.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { sendTaskEmail } from "../lib/_email.js";
+import { track } from "../lib/track/log.js";
 
 export const FEEDBACK_TO = "feedback@goasksam.com";
 export const FEEDBACK_SUBJECT = "GoAskSam feedback";
@@ -117,6 +118,8 @@ async function send(req, res) {
   const path = /^\/[A-Za-z0-9\-_/]{0,60}$/.test(rawPath) ? rawPath : "/feedback";
   const r = await sendTaskEmail(buildEmail({ name, email, message, path, now: new Date().toISOString() })).catch(() => ({ ok: false }));
   if (!r || !r.ok) return out(503, { ok: false, paused: true, error: PAUSED_TEXT }, r && r.skipped ? "paused" : "failed");
+  // A count only (Sam, Oct 26 2026): the event carries no text, name or address, and the message is still never stored.
+  track(req, "feedback_sent", {}, { product: "site", surface: "api" });
   return out(200, { ok: true }, "sent");
 }
 
