@@ -31,7 +31,7 @@ ok(/<a class="gas-logo" href="\/">GoAskSam<\/a>/.test(html), "the wordmark is Ho
 ok(/id="gas-recent" hidden><div class="gas-rail-head">Recent searches<\/div><div id="gas-recent-list"><\/div>/.test(html), "Recent searches is empty and hidden until this browser has a search (never samples)");
 const foot = noSvg.slice(noSvg.indexOf('class="gas-rail-foot"'), noSvg.indexOf("</aside>"));
 const labels = [...foot.matchAll(/<a class="gas-navitem[^"]*"[^>]*>([^<]+)/g)].map(m => m[1]);
-ok(JSON.stringify(labels.filter(l => l !== "For business")) === JSON.stringify(["The Daily Vroom", "How Sam decides", "About", "Feedback", "Privacy", "Privacy choices"]), "the quiet links in order: " + labels.join(", "));
+ok(JSON.stringify(labels.filter(l => l !== "For business")) === JSON.stringify(["The Daily Vroom", "How Sam decides", "About", "Feedback"]), "the quiet links in order, no Privacy items (they moved off the rail): " + labels.join(", "));
 ok(/href="https:\/\/thedailyvroom\.com" target="_blank" rel="noopener"/.test(foot), "The Daily Vroom opens thedailyvroom.com in a new tab");
 ok(!/Terms/.test(foot) && !fs.existsSync(path.join(ROOT, "public/terms.html")), "no Terms link while no Terms page exists (no dead links)");
 ok(!/Keep looking|gas-watching-rail|Your searches|Your results/.test(html), "no Keep looking, Your searches or Your results in the rail");

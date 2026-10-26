@@ -5,6 +5,7 @@
 // exactly as before (to /sell), with a temporary redirect, so the launch gate stays as it is. The page computes nothing.
 import { FONT_LINKS, isCrewRequest } from "./_chrome.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
+import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
 import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE, paletteHead, paletteSwitcherHtml, PALETTE_SWITCHER_JS, brandPaletteCss } from "../lib/appShell.js";
 import { fullyLaunched, isReleased } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
@@ -34,8 +35,9 @@ const LD = JSON.stringify({ "@context": "https://schema.org", "@graph": [
 ] }).replace(/</g, "\\u003c");
 
 const CSS = `
-.hm{min-height:calc(100dvh - 24px);display:flex;align-items:center;justify-content:center;padding:72px 32px 56px;box-sizing:border-box}
-@media (max-width:700px){.hm{padding:28px 18px 40px;align-items:flex-start}}`;
+.hm{position:relative;min-height:calc(100dvh - 24px);display:flex;align-items:center;justify-content:center;padding:72px 32px 56px;box-sizing:border-box}
+@media (max-width:700px){.hm{min-height:calc(100dvh - 60px);padding:28px 18px 64px;align-items:flex-start}}
+.hm-legal{position:absolute;left:0;right:0;bottom:16px;display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;font:400 12.5px/1.4 var(--sans,sans-serif);color:var(--sec,#5E6B63)}.hm-legal a{color:inherit;text-decoration:none}.hm-legal a:hover{text-decoration:underline}`;
 
 export default async function handler(req, res) {
   if (heldFor(req, res)) return;   // the holding page while CURTAIN_SEALED=1 (lib/_hold.js); a keyed server job, crew and testers pass
@@ -56,16 +58,18 @@ export default async function handler(req, res) {
 <meta property="og:title" content="${esc(TITLE)}"><meta property="og:description" content="${esc(DESC)}"><meta property="og:url" content="https://goasksam.com/"><meta property="og:type" content="website">
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#F6F3EC">
 <script type="application/ld+json">${LD}</script>
-${paletteHead(showPal)}${FONT_LINKS}<style>:root{--ink:#15201A;--sec:#5E6B63;--soft:#3C4942;--green:#1E4D38;--green-dk:#143A29;--card:#fff;--border:#D8D4CB;--sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--serif:"Newsreader",Georgia,"Times New Roman",serif}*{box-sizing:border-box}html,body{margin:0}body{background:var(--main-bg,#F6F3EC);color:var(--ink);font:400 17px/1.5 var(--sans)}a{color:var(--green)}:focus-visible{outline:2px solid var(--green);outline-offset:2px}${CSS}${START_CSS}${AUTH_SIGNBAR_CSS}${SHELL_CSS}${brandPaletteCss(crew)}</style></head><body>
+${paletteHead(showPal)}${FONT_LINKS}<style>:root{--ink:#15201A;--sec:#5E6B63;--soft:#3C4942;--green:#1E4D38;--green-dk:#143A29;--card:#fff;--border:#D8D4CB;--sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--serif:"Newsreader",Georgia,"Times New Roman",serif}*{box-sizing:border-box}html,body{margin:0}body{background:var(--main-bg,#F6F3EC);color:var(--ink);font:400 17px/1.5 var(--sans)}a{color:var(--green)}:focus-visible{outline:2px solid var(--green);outline-offset:2px}${CSS}${START_CSS}${AUTH_SIGNBAR_CSS}${SHELL_CSS}${brandPaletteCss(crew)}${CONSENT_BANNER_CSS}</style></head><body>
 ${showPal ? paletteSwitcherHtml() + "\n" : ""}${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 ${railOpenHtml({ active: "home", crew, req, analytics: true })}
-<main class="hm">${start}</main>${SHELL_MAIN_CLOSE}
+<main class="hm">${start}<div class="hm-legal"><span>&copy; GoAskSam, from The Daily Vroom</span><a href="/privacy">Privacy</a><a href="#" onclick="if(window.gasShowConsentBanner)window.gasShowConsentBanner();return false;">Privacy choices</a></div></main>${SHELL_MAIN_CLOSE}
 <script>${SHELL_JS}</script>
 <script>${START_JS}</script>
 ${showPal ? `<script>${PALETTE_SWITCHER_JS}</script>\n` : ""}<script>(function(){var q=document.getElementById("gst-home-q"),go=document.getElementById("gst-home-go");if(!q||!go)return;go.addEventListener("click",function(){var v=String(q.value||"").trim();if(!v){q.focus();return;}location.href="/find?q="+encodeURIComponent(v);});})();</script>
 <script>window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};window.GAS_AUTH_MODE="topbar";</script>
 <script src="/js/auth.js" defer></script>
+${CONSENT_BANNER_HTML}
+<script>${CONSENT_BANNER_JS}</script>
 </body></html>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", "index, follow");

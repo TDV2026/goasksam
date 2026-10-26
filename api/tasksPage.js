@@ -151,7 +151,7 @@ export default async function handler(req, res) {
   const hasQuery = /\?./.test(String(req.url || ""));
   const robots = hasQuery ? "noindex, follow" : "index, follow";
   const title = "Free collector car finder that keeps looking | GoAskSam";
-  const desc = `${TASKS_PITCH.lead} ${TASKS_PITCH.sub}`;
+  const desc = `${TASKS_PITCH.lead} Tell Sam what you want and Sam keeps searching, then emails you when one fits.`;   // meta and og description (Sam, Oct 25 2026); the visible lead keeps TASKS_PITCH.sub
   const ld = [
     { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: FAQ.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
     { "@context": "https://schema.org", "@type": "WebPage", name: "Sam Tasks", url: "https://goasksam.com/tasks", description: desc }

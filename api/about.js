@@ -30,10 +30,6 @@ const CSS = `
 .ab-list{margin:0 0 14px;padding:0 0 0 20px;font:400 17px/1.6 var(--sans,sans-serif);display:flex;flex-direction:column;gap:8px}
 .ab-list b{font-weight:600}
 .ab-col a.inline{color:var(--green,#1E4D38);text-decoration:underline}
-.ab-feedback{margin-top:34px;padding-top:18px;border-top:1px solid var(--shell-div,#E2DED3);color:var(--sec,#5E6B63)}
-.ab-col .ab-feedback{font-size:15px}
-.ab-foot{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin-top:30px;padding-top:18px;border-top:1px solid var(--shell-div,#E2DED3);color:var(--sec,#5E6B63);font-size:13.5px}
-.ab-foot a{color:var(--sec,#5E6B63);text-decoration:none}.ab-foot a:hover{text-decoration:underline}
 @media (max-width:640px){.ab-col{padding:32px 20px 56px}.ab-h1{font-size:32px}.ab-h2{font-size:22px}}`;
 
 function page(req) {
@@ -59,8 +55,6 @@ ${list}
 <p>${esc(NEVER)}</p>
 <h2 class="ab-h2">Where we stand</h2>
 <p>${esc(STAND)}</p>
-<p class="ab-feedback">Questions or feedback: <a class="inline" href="mailto:feedback@goasksam.com">feedback@goasksam.com</a>.</p>
-<div class="ab-foot"><span>&copy; GoAskSam, from The Daily Vroom</span><a href="/">Home</a><a href="/privacy">Privacy</a><a href="mailto:feedback@goasksam.com">Contact</a><a href="#" onclick="if(window.gasShowConsentBanner)window.gasShowConsentBanner();return false;">Privacy choices</a></div>
 </div></main>${SHELL_MAIN_CLOSE}
 <script>${SHELL_JS}</script>
 <script>window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};window.GAS_AUTH_MODE="topbar";</script>
