@@ -43,11 +43,12 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     const svg = out.querySelector("svg"); if (!svg) return { none: true, html: out.innerHTML.length };
     const vb = svg.viewBox.baseVal, texts = [...svg.querySelectorAll("text")].map(t => { const bb = t.getBBox(); return { s: t.textContent, cls: t.getAttribute("class") || "", x1: bb.x, x2: bb.x + bb.width, y1: bb.y, y2: bb.y + bb.height }; });
     const rects = [...svg.querySelectorAll("rect")].map(e => { const bb = e.getBBox(); return { x1: bb.x, x2: bb.x + bb.width, y1: bb.y, y2: bb.y + bb.height }; });
-    return { W: vb.width, H: vb.height, texts, rects, circles: svg.querySelectorAll("circle").length, ticks: svg.querySelectorAll("line[stroke-width='3']").length, size: (out.querySelector(".hc-size") || {}).textContent || null, legend: (out.querySelector(".hc-legend") || {}).textContent || null }; }, trend);
+    return { W: vb.width, H: vb.height, texts, rects, circles: svg.querySelectorAll("circle").length, ticks: svg.querySelectorAll("line[stroke-width='3']").length, size: (out.querySelector(".hc-size") || {}).textContent || null, note: (out.querySelector(".hc-note") || {}).textContent || null, noteLast: !!(out.querySelector(".hc-note") && out.querySelector(".hc-legend") && (out.querySelector(".hc-legend").compareDocumentPosition(out.querySelector(".hc-note")) & 4) && !out.querySelector(".hc-note").nextElementSibling), legend: (out.querySelector(".hc-legend") || {}).textContent || null }; }, trend);
   for (const [name, trend] of Object.entries(CARS)) {
     const r = await draw(trend), key = `${w}px ${name}`, bks = trend.movement.buckets;
     if (r.none) { ok(false, key + ": no chart drawn"); continue; }
     const labels = r.texts.filter(t => /candlelabel/.test(t.cls)), axis = r.texts.filter(t => /axislabel/.test(t.cls)), counts = r.texts.filter(t => /hc-count/.test(t.cls));
+    ok(r.note === "Quarters with too few sales are left out." && r.noteLast, key + ": the one static line sits last, under the legend (and under any year-before line): " + r.note);
     ok(r.circles === 0, key + ": ONLY candles: no dots anywhere (" + r.circles + " circles)");
     ok(r.rects.length === bks.length && r.ticks === bks.length, key + ": one candle (box and median mark) for each engine bucket (" + r.rects.length + " boxes, " + r.ticks + " marks, " + bks.length + " buckets)");
     ok(!r.texts.some(t => /^\$0\b|\$0$/.test(t.s.trim()) || /\$0 /.test(t.s)) && !axis.some(t => /-/.test(t.s)), key + ": never a $0 or a negative figure");
@@ -74,7 +75,7 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     ok(/Typical range \(middle half of sales\)/.test(r.legend || "") && /Typical sale \(median\)/.test(r.legend || ""), key + ": the legend");
     if (shots) await (await p.$("svg")).screenshot({ path: `${shots}/chart-${name.split(" ")[0]}-${name.length % 7}-${w}.png` });
   }
-  for (const [name, trend] of Object.entries(NONE)) { const r = await draw(trend); ok(r.none === true && r.html === 0, `${w}px ${name}: no chart, so the page's 'Too few to show movement' line stands in`); }
+  for (const [name, trend] of Object.entries(NONE)) { const r = await draw(trend); ok(r.none === true && r.html === 0, `${w}px ${name}: no chart, so the page's 'Too few to show movement' line stands in`); ok(r.note == null, `${w}px ${name}: no chart means no static quarters line`); }
   await p.close();
 }
 await b.close();
