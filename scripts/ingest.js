@@ -12,7 +12,7 @@
 // Needs SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OLDCARSDATA_API_KEY (GitHub
 // Actions provides them as secrets; secrets are not pullable to a laptop).
 import fs from "node:fs";
-import { rawColumnsOf } from "../lib/_rawColumns.js";
+import { rawColumnsOf, rawColumnsLine } from "../lib/_rawColumns.js";
 import { callOldCarsData, configureOcdUsage, flushOcdUsage, getOcdRunMetered } from "../lib/_ocd.js";
 import { supabaseEnv, supabaseInsert, supabaseSelect, supabaseSelectAll, supabaseDelete } from "../lib/_supabase.js";
 import { isPartsListing, projectFlagReason } from "../lib/_classify.js";
@@ -502,6 +502,8 @@ if (inserted > 0) {
 // judged here any more: a healthy delta that correctly finds nothing new would always trip a per-run
 // floor. The authoritative, archive-based health check runs below (item 3).
 const days = Object.keys(perDay).sort();
+// Word only (on or off), never the value: the nightly log shows at a glance whether the ten raw columns were written.
+console.log(rawColumnsLine());
 console.log(`\n=== ingest report (${DELTA ? "delta" : `${FROM}..${TO}`}) ===`);
 for (const d of days) console.log(`  ${d}: ${perDay[d]}`);
 // The AUTHORITATIVE OCD count is the client's per-run counter (every HTTP request, incl 429 retries),
