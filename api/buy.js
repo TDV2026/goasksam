@@ -97,7 +97,8 @@ export default async function handler(req, res) {
   const n = n0 === LATE ? liveCount.n : n0;
   const asOf = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" });
   // Date only, never a count (Sam, Oct 23 2026: the dated line under the box shows a date, never a source or sale count).
-  const lead = `Sam follows the enthusiast cars live at auction as of ${asOf}, each one shown with what cars like it have actually sold for.`;
+  const lead = `Live auctions as of ${asOf}`;   // the page's dated line (search rule 1), no full stop like the page's other small lines
+  const description = `${lead}, each one shown with what cars like it have actually sold for.`;   // meta and og: the same dated opening, a complete sentence
   const TITLE = "Find enthusiast cars at auction, by what they actually sell for";
   // Search: /buy itself is indexable; a conversation is never a separate URL (?q= starts one in the
   // page) and any query-string variant is noindex with /buy as its canonical.
@@ -122,9 +123,9 @@ export default async function handler(req, res) {
   const railFinal = '<script>window.GAS_CREW=' + (crew ? "true" : "false") + ';window.GAS_REL=' + JSON.stringify(rel) + ';</script>' + shell +
     '<div class="mvlist" id="mvlist" hidden><div class="vlist"></div><button type="button" class="mvnew" data-newsearch>+ New search</button></div>';
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">${paletteHead(showPal)}<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>${TITLE}</title><meta name="description" content="${esc(lead)}">
+<title>${TITLE}</title><meta name="description" content="${esc(description)}">
 <meta name="robots" content="${robots}"><link rel="canonical" href="https://goasksam.com/find">
-<meta property="og:title" content="${TITLE}"><meta property="og:description" content="${esc(lead)}"><meta property="og:url" content="https://goasksam.com/find"><meta property="og:type" content="website"><link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#FAF8F4">
+<meta property="og:title" content="${TITLE}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="https://goasksam.com/find"><meta property="og:type" content="website"><link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#FAF8F4">
 ${FONT_LINKS}<style>${PAGE_CSS}${AUTH_SIGNBAR_CSS}${SHELL_CSS}${BUY_CSS}${CARD_RULES_CSS}${RUNG_CSS}${BUY_CARD_CSS}${LANDING_CSS}${SELLS_FOR_CARD_CSS}${brandPaletteCss(crew)}${CONSENT_BANNER_CSS}</style></head><body>
 ${showPal ? paletteSwitcherHtml() + "\n" : ""}${AUTH_SIGNBAR_HTML}
 ${railFinal}
