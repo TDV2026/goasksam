@@ -10,10 +10,10 @@ const SUN = "2026-01-04", MON = "2026-01-05", SAT = "2026-01-10", WED = "2026-01
 const mk = (spec) => spec.flatMap(([date, n, base]) => Array.from({ length: n }, (_, i) => ({ auction_end_date: date + "T18:00:00Z", _hv: base + i * 1000, _usd: base + i * 1000, source: "bringatrailer" })));
 const BANNED = /\b(worth|value[sd]?|valuation|estimate[sd]?|appraisal|median|percentile|sell-through|sold through)\b|%|[–—]|\b\d+ (sources|venues)\b/i;
 const cases = [
-  ["11 Sunday of 30, ranges both groups", mk([[SUN, 11, 50000], [MON, 6, 40000], [WED, 8, 42000], [SAT, 5, 45000]]), { total: 30, top: "Sunday", ranges: true, line: "11 of the 30 sales in the last 12 months" }],
-  ["top day has only 6: count, no range", mk([[SUN, 6, 50000], [MON, 5, 40000], [WED, 4, 42000]]), { total: 15, top: "Sunday", ranges: false, line: "six of the 15 sales in the last 12 months" }],
-  ["top has 9, others only 5: no range", mk([[SUN, 9, 50000], [MON, 3, 40000], [WED, 2, 42000]]), { total: 14, top: "Sunday", ranges: false, line: "nine of the 14 sales in the last 12 months" }],
-  ["exactly eight in all", mk([[SUN, 4, 50000], [MON, 2, 40000], [WED, 2, 42000]]), { total: 8, top: "Sunday", ranges: false, line: "four of the eight sales in the last 12 months" }],
+  ["11 Sunday of 30, ranges both groups", mk([[SUN, 11, 50000], [MON, 6, 40000], [WED, 8, 42000], [SAT, 5, 45000]]), { total: 30, top: "Sunday", ranges: true, line: "11 of the 30 sales in the last 12 months ended on a Sunday." }],
+  ["top day has only 6: count, no range", mk([[SUN, 6, 50000], [MON, 5, 40000], [WED, 4, 42000]]), { total: 15, top: "Sunday", ranges: false, line: "Six of the 15 sales in the last 12 months ended on a Sunday." }],
+  ["top has 9, others only 5: no range", mk([[SUN, 9, 50000], [MON, 3, 40000], [WED, 2, 42000]]), { total: 14, top: "Sunday", ranges: false, line: "Nine of the 14 sales in the last 12 months ended on a Sunday." }],
+  ["exactly eight in all", mk([[SUN, 4, 50000], [MON, 2, 40000], [WED, 2, 42000]]), { total: 8, top: "Sunday", ranges: false, line: "Four of the eight sales in the last 12 months ended on a Sunday." }],
   ["seven in all: hidden", mk([[SUN, 4, 50000], [MON, 3, 40000]]), { hidden: true }],
   ["empty pool: hidden", [], { hidden: true }],
   ["two-way tie", mk([[SUN, 5, 50000], [SAT, 5, 40000], [WED, 2, 42000]]), { total: 12, tie: true }],
@@ -25,7 +25,7 @@ for (const [what, rows, w] of cases) {
   ok(bd && bd.days.reduce((n, g) => n + g.count, 0) + bd.undated === rows.length, `${what}: day counts add up to the pool (${rows.length})`);
   ok(!!t, `${what}: tile shown`); if (!t) continue;
   const text = [t.label, t.head, t.line, t.line2, t.words].filter(Boolean).join(" ");
-  if (w.tie) ok(t.line === "five sales each, among the 12 in the last 12 months", `${what}: tie line reads naturally (got ${t.line})`);
+  if (w.tie) ok(t.line === "Five sales each, among the 12 sales in the last 12 months." && t.label === "Most of these sold on", `${what}: tie line reads naturally (got ${t.line})`);
   if (w.tie) ok(/Sunday and Saturday|Saturday and Sunday/.test(t.head) && !t.line2, `${what}: ties named, no range`);
   else { ok(t.head === w.top, `${what}: top day ${w.top} (got ${t.head})`); ok(t.line === w.line, `${what}: line ${JSON.stringify(w.line)} (got ${JSON.stringify(t.line)})`); }
   ok(!t.line2, `${what}: the day card prints no sentence comparing the day's range with other days (Sam, Oct 26 2026)`);
@@ -41,7 +41,7 @@ for (const [what, rows, w] of cases) {
 { const rows = mk([[SUN, 11, 50000], [MON, 6, 40000], [WED, 8, 42000], [SAT, 5, 45000]]);
   const bd = dayBuckets(rows, false), t = dayTile({ by_day: bd, window_label: "in the last 12 months", total: rows.length });
   ok(bd && bd.top.count === 11 && bd.other.count === 19 && !bd.top.most_sold_between && !bd.other.most_sold_between && bd.days.every(g => !g.most_sold_between), "no engine cluster: day groups carry no range");
-  ok(t && t.line === "11 of the 30 sales in the last 12 months" && !t.line2, "no engine cluster: the tile prints its counts and no range");
+  ok(t && t.line === "11 of the 30 sales in the last 12 months ended on a Sunday." && !t.line2, "no engine cluster: the tile prints its counts and no range");
   ok(dayBuckets(rows).top.most_sold_between && dayBuckets(rows, true).top.most_sold_between, "with the engine's cluster the range stands as before"); }
 // The scope line carries the span the engine label carries (golden cars 6 and 14).
 ok(scopeWithSpan({ scopeLabel: "2006 Mercedes-Benz CLK DTM", rungLabel: "CLK DTM, 2005 to 2007" }) === "CLK DTM, 2005 to 2007", "thin CLK DTM scope names 2005 to 2007");

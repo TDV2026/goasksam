@@ -45,6 +45,16 @@ ok(reserveBuckets([...many(7, 60000, false), ...many(30, 50000, true)]) === null
 ok(reserveBuckets([...many(9, 60000, false), ...many(9, 60500, true)]) === null, "reserve: level sides show nothing");
 ok(reserveBuckets(many(30, 50000, undefined)) === null && reserveBuckets([]) === null, "reserve: rows that do not say are left out; no flags, nothing");
 ok(!/[–—]|%|\$/.test((t && (t.line + t.head + t.label)) || ""), "reserve card: no dash, no percentage, no price");
-// 5. the day card keeps its present label until the engine can pick a best day (Change 1 stopped for a decision)
+// 5. the day card (Oct 26 2026): the plain fact from dayBuckets, never "best"; the old label is gone
+const { dayTile } = await import("../lib/sell/sellFlow.js");
+const { dayBuckets } = await import("../lib/sell/sellFacts.js");
+const dayRow = (date, price) => ({ auction_end_date: date + "T18:00:00Z", _usd: price, _hv: price, source: "bringatrailer" });
+const drows = [...Array(5).fill(0).map((_, i) => dayRow("2026-09-14", 50000 + i * 900)), ...Array(3).fill(0).map((_, i) => dayRow("2026-09-15", 48000 + i * 900)), ...Array(4).fill(0).map((_, i) => dayRow("2026-09-17", 46000 + i * 900))];
+const one = dayTile({ by_day: dayBuckets(drows, false), window_label: "since October 2025" });
+ok(one && one.label === "Most of these sold on a" && one.head === "Monday" && one.line === "Five of the 12 sales since October 2025 ended on a Monday.", "day card: label, the day as the big word, the count line from dayBuckets (" + (one && one.label + " | " + one.head + " | " + one.line) + ")");
+const tieRows = [...Array(4).fill(0).map((_, i) => dayRow("2026-09-14", 50000 + i * 900)), ...Array(4).fill(0).map((_, i) => dayRow("2026-09-17", 46000 + i * 900)), ...Array(2).fill(0).map((_, i) => dayRow("2026-09-15", 48000 + i * 900))];
+const tie = dayTile({ by_day: dayBuckets(tieRows, false), window_label: "since October 2025" });
+ok(tie && /^Most of these sold on$/.test(tie.label) && / and /.test(tie.head), "day card: on a tie the label drops the a and the big word names both days (" + (tie && tie.head) + ")");
+ok(!/Day the sale ended|best/i.test(JSON.stringify([one, tie])), "day card: no Day the sale ended, no best");
 console.log(`sellResultLinksCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);
