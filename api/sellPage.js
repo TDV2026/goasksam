@@ -3,6 +3,7 @@
 // page reads the same before and after its scripts run), and one quiet "Updated [date]" line under
 // "Built for enthusiast and specialty vehicles" (the real last-updated date, lib/asOf.js
 // lastUpdatedDate; no count, omitted when the date cannot be read). Edge-cached 1 hour.
+import { OUTBOUND_JS } from "../lib/outboundUtm.js";
 import fs from "node:fs";
 import path from "node:path";
 import { lastUpdatedDate } from "../lib/asOf.js";
@@ -65,7 +66,7 @@ export async function sellShellHtml(req) {
     .replace("</head>", `<style>${SHELL_TOKENS_CSS}${brandPaletteCss(crew)}${ALL_PALETTES_CSS}${SELL_ENTRY_CSS}</style>\n</head>`)
     .replace('<button id="btn">↑</button>', () => SELL_GO_HTML)
     .replace('placeholder="Type your car, or paste a VIN."', `placeholder="${esc(SELL_ENTRY.placeholder)}"`)
-    .replace("</body>", `<style>${CONSENT_BANNER_CSS}</style>\n${CONSENT_BANNER_HTML}\n<script>${CONSENT_BANNER_JS}</script>\n${gaBootstrapHtml()}\n</body>`)
+    .replace("</body>", `<style>${CONSENT_BANNER_CSS}</style>\n${CONSENT_BANNER_HTML}\n<script>${CONSENT_BANNER_JS}</script>\n<script>${OUTBOUND_JS};gasOutboundInstall("sell")</script>\n${gaBootstrapHtml()}\n</body>`)
     .replace('<div id="msgs"></div>', `<div id="msgs">${HERO}</div>`)
         .replace('<div class="hp-value-preview hp-home-only">Built for enthusiast, specialty and collector vehicles</div>',
       '<div class="hp-value-preview hp-home-only">Built for enthusiast and specialty vehicles</div>' +

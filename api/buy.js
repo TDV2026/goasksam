@@ -1,6 +1,7 @@
 // /buy (Lane C, Oct 2026): the live-auction finder as a plain conversation with Sam. Server-rendered
 // shell + an inline client that talks to /api/buySearch. One centred column, input fixed at the bottom,
 // no bubbles or card boxes around messages. ZERO OldCarsData (the feed is the cron's).
+import { OUTBOUND_JS } from "../lib/outboundUtm.js";
 import { PAGE_CSS, FONT_LINKS, isCrewRequest } from "./_chrome.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 import { supabaseEnv } from "../lib/_supabase.js";
@@ -146,7 +147,7 @@ ${CONSENT_BANNER_HTML}
 <script>${START_JS}</script>
 <script>${CLIENT.replace("__KEEP_ICON__", () => JSON.stringify(KEEP_ICON)).replace("__ANY_ANSWER__", () => ANY_ANSWER_JS).replace("/*__PRIOR__*/", () => PRIOR_JS)}</script>
 <script src="/api/track?js=1" defer></script>
-<script>${CONSENT_BANNER_JS}</script>${showPal ? `<script>${PALETTE_SWITCHER_JS}</script>` : ""}</body></html>`;
+<script>${CONSENT_BANNER_JS}</script><script>${OUTBOUND_JS};gasOutboundInstall("find")</script>${showPal ? `<script>${PALETTE_SWITCHER_JS}</script>` : ""}</body></html>`;
   // Referrer logging (search measurement). Runs on a cache MISS only (the page is edge-cached 10 min),
   // so this samples origin hits, which includes crawlers that bypass the edge; cached hits are not seen.
   // Never holds the page: queued, written in a batch after the response.

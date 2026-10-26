@@ -645,7 +645,7 @@ function outboundGo(slug,card){
   // anchor click during the user gesture opens the new tab reliably and never
   // touches the current tab, with no return-value guessing.
   const a=document.createElement("a");
-  a.href=url;a.target="_blank";a.rel="noopener noreferrer";
+  a.href=url;a.target="_blank";a.rel="noopener";
   document.body.appendChild(a);
   a.click();
   a.remove();

@@ -5,6 +5,7 @@
 // (app_config "tasks_example_update"); with none yet, the slot is left out ("better nothing than a
 // fake number"). TASKS_PITCH and exampleUpdate() are exported so a homepage section can reuse them.
 // Search: a conversation or a task is never a URL; any query-string variant is noindex, canonical /tasks.
+import { OUTBOUND_JS } from "../lib/outboundUtm.js";
 import { PAGE_CSS, FONT_LINKS, isCrewRequest } from "./_chrome.js";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
@@ -190,7 +191,7 @@ ${CONSENT_BANNER_HTML}
 <script src="/js/auth.js" defer></script>
 <script>${EXPLAINER_JS.replace("__FREE_WORDS__", freeTasksWords())}</script>
 <script src="/api/track?js=1" defer></script>
-<script>${CONSENT_BANNER_JS}</script>${showPal ? `<script>${PALETTE_SWITCHER_JS}</script>` : ""}</body></html>`;
+<script>${CONSENT_BANNER_JS}</script><script>${OUTBOUND_JS};gasOutboundInstall("tasks")</script>${showPal ? `<script>${PALETTE_SWITCHER_JS}</script>` : ""}</body></html>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", robots);
   // Crew's full nav is never shared or stored. The public response (no crew cookie) is identical
@@ -265,7 +266,7 @@ ${CONSENT_BANNER_HTML}
 <script>${findCardKitJs()}</script>
 <script>${APP_JS}</script>
 <script src="/api/track?js=1" defer></script>
-<script>${CONSENT_BANNER_JS}</script>${showPal ? `<script>${PALETTE_SWITCHER_JS}</script>` : ""}</body></html>`;
+<script>${CONSENT_BANNER_JS}</script><script>${OUTBOUND_JS};gasOutboundInstall("tasks")</script>${showPal ? `<script>${PALETTE_SWITCHER_JS}</script>` : ""}</body></html>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
   res.setHeader("Cache-Control", "private, no-store");

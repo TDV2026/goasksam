@@ -329,7 +329,7 @@
         // (l.source_slug), never l.source (the display name used in the VENUE cell).
         var gasAttrs = ' data-gas-event="auction_clickout" data-gas-source="' + esc(l.source_slug || "") + '" data-gas-listing-id="' + esc(l.id != null ? l.id : "") + '"';
         return "<tr><td><span class=\"lp-car\"><span class=\"lp-ph" + (l.photo_url ? "" : " noimg") + "\">" + photo + '<span class="none">No photo</span></span>' +
-          '<span class="lp-cbody"><a class="lp-title" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer"' + gasAttrs + ">" + esc(cleanReceiptTitle(l.title)) + "</a>" +
+          '<span class="lp-cbody"><a class="lp-title" href="' + esc(href) + '" target="_blank" rel="noopener"' + gasAttrs + ">" + esc(cleanReceiptTitle(l.title)) + "</a>" +
           (milesText ? ('<span class="lp-miles">' + esc(milesText) + "</span>") : "") + "</span></span></td>" +
           '<td><span class="lp-venue">' + esc(l.source || "") + '</span><span class="lp-ends">' + esc(endsShort(l.end_time)) + "</span></td>" +
           '<td class="lp-bid"><b>' + esc(amountText) + "</b>" + (timeText ? ('<span class="lp-bidtime">' + esc(timeText) + "</span>") : "") + "</td>" +
@@ -433,7 +433,7 @@
       '<div class="rmeta"><span class="num">' + esc(c.mileageText) + '</span><span class="dot">&middot;</span>' + esc(c.platform) + "</div>" +
       '<div class="rdate">' + esc(c.month) + "</div><div class=\"rtitle\">" + esc(titleCaseSaleTitle(c.title)) + "</div></div>";
     var href = utmUrl(c.url);
-    return href ? '<a class="rcard" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="rcard">' + inner + "</div>";
+    return href ? '<a class="rcard" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="rcard">' + inner + "</div>";
   }
   // ============ RENDER PORT (round 7): cluster hero, quiet span, freshness slot, Sam's Read
   // (driver + divergence), three representative cards, See-all -> platforms. Replaces the
@@ -1175,7 +1175,7 @@
     var metaLines = [mon, venue, miles].filter(Boolean).map(function (t) { return '<p class="thin-tile-meta">' + esc(t) + "</p>"; }).join("");
     var gasAttrs = (href && c.id != null) ? (' data-gas-event="receipt_click" data-gas-source="' + esc(c.platformSlug || "") + '" data-gas-listing-id="' + esc(c.id) + '"') : "";
     var tag = href ? "a" : "div";
-    var attrs = href ? (' href="' + esc(href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(c.platformSlug || "") + '"' + gasAttrs) : "";
+    var attrs = href ? (' href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '"' + gasAttrs) : "";
     // Job 5 (round two): a set-aside sale is never hidden, only labelled - the tile is byte-identical
     // otherwise (same photo/price/meta, same link), so it reads as "one of the sales," not a second,
     // different kind of thing.
@@ -1308,7 +1308,7 @@
     var href = utmUrl(c.url);
     var gasAttrs = (href && c.id != null) ? (' data-gas-event="receipt_click" data-gas-source="' + esc(c.platformSlug || "") + '" data-gas-listing-id="' + esc(c.id) + '"') : "";
     var tag = href ? "a" : "div";
-    var attrs = href ? (' href="' + esc(href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(c.platformSlug || "") + '"' + gasAttrs) : "";
+    var attrs = href ? (' href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '"' + gasAttrs) : "";
     // Mockup match round, Oct 2026: miles, venue and date each on their own small line (was one
     // middle-dot-joined meta line) - matches the mockup's card layout exactly.
     return "<" + tag + ' class="salescard"' + attrs + ">" +
@@ -1345,7 +1345,7 @@
         '<span class="exactsale-price num">' + esc(usd(s.price)) + '</span>' +
         '<span class="exactsale-venue">' + esc(s.venue || "") + '</span>' +
         '<span class="exactsale-miles">' + esc(miles) + '</span>' +
-        (href ? ('<a class="linkbtn exactsale-view" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">View sale &#8594;</a>') : "") +
+        (href ? ('<a class="linkbtn exactsale-view" href="' + esc(href) + '" target="_blank" rel="noopener">View sale &#8594;</a>') : "") +
         "</div>";
     }).join("");
     var note = "";
@@ -1486,7 +1486,7 @@
     var href = utmUrl(c.url);
     var gasAttrs = (href && c.id != null) ? (' data-gas-event="receipt_click" data-gas-source="' + esc(c.platformSlug || "") + '" data-gas-listing-id="' + esc(c.id) + '"') : "";
     var carCell = href
-      ? ('<a href="' + esc(href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(c.platformSlug || "") + '"' + gasAttrs + ">" + esc(cleanReceiptTitle(c.title)) + "</a>")
+      ? ('<a href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '"' + gasAttrs + ">" + esc(cleanReceiptTitle(c.title)) + "</a>")
       : esc(cleanReceiptTitle(c.title));
     return "<tr><td>" + esc(fullDateOrMonth(c)) + "</td><td>" + carCell + "</td><td>" + esc(longMiles(c) || "") + "</td><td>" + esc(venue) +
       '</td><td class="astc-price num">' + esc(usd(c.price)) + "</td></tr>";
@@ -1641,7 +1641,7 @@
     // unaffected - it still opens the listing - only the tracking event is withheld until that
     // query carries an id.
     var gasAttrs = (o.href && o.id != null) ? (' data-gas-event="receipt_click" data-gas-source="' + esc(o.slug || "") + '" data-gas-listing-id="' + esc(o.id) + '"') : "";
-    var linkAttrs = o.href ? (' href="' + esc(o.href) + '" target="_blank" rel="noopener noreferrer" data-cardclick="' + esc(o.slug || "") + '"' + gasAttrs) : "";
+    var linkAttrs = o.href ? (' href="' + esc(o.href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(o.slug || "") + '"' + gasAttrs) : "";
     var titleHtml = o.title
       ? (o.href ? ('<h3 class="ctitle"><a' + linkAttrs + ' aria-label="Open the listing">' + esc(o.title) + "</a></h3>") : ('<h3 class="ctitle">' + esc(o.title) + "</h3>"))
       : "";
@@ -1788,7 +1788,7 @@
     // follows), the label still becomes a link - to the car's own history page rather than a specific
     // dated prior sale. soldBefore (a specific sale, when known) takes precedence when both are true.
     var sb = (c.soldBefore && c.soldBefore.date)
-      ? (c.soldBefore.link ? ('<a class="sb-line" href="' + esc(utmUrl(c.soldBefore.link)) + '" target="_blank" rel="noopener noreferrer">' + esc(sbText) + '</a>') : ('<div class="sb-line">' + esc(sbText) + '</div>'))
+      ? (c.soldBefore.link ? ('<a class="sb-line" href="' + esc(utmUrl(c.soldBefore.link)) + '" target="_blank" rel="noopener">' + esc(sbText) + '</a>') : ('<div class="sb-line">' + esc(sbText) + '</div>'))
       : (c.hasHistoryPage && c.vinNorm) ? ('<a class="sb-line" href="' + esc(historyHref(null, c.vinNorm)) + '">Sold before &#8594;</a>') : "";
     // flat: true unconditionally (follow-up round, Oct 2026) - poolCardHtml's callers (the aside-
     // toggle's outside-range cards, distribution's bucket receipts) all want the flat row treatment.

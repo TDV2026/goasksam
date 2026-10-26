@@ -3,6 +3,7 @@
 // js/onebox.js) so "porsche 911" asks exactly Market Check's questions in its cards and serif. js/onebox.js
 // exposes a small Sell hook (window.GAS_SELL, inert on Market Check); lib/sell/sellMcClient.js asks the
 // state and how to sell it in the same card, then shows the result from /api/sellChat {action:"flow"}.
+import { OUTBOUND_JS } from "../lib/outboundUtm.js";
 import fs from "node:fs";
 import path from "node:path";
 import { lastUpdatedDate } from "../lib/asOf.js";
@@ -53,6 +54,7 @@ export default async function handler(req, res) {
   const cfg = JSON.stringify({ updated: updated || "", home }).replace(/</g, "\\u003c");
   // Function replacements throughout: the client holds "$" sequences a replacement string would expand.
   const html = stripLaunchGate(shell)
+    .replace("</body>", () => `<script>${OUTBOUND_JS};gasOutboundInstall("sell")</script></body>`)
     .replace(/<title>[\s\S]*?<\/title>/, () => "<title>Sell your car | GoAskSam</title>")
     .replace(/<meta name="robots" content="[^"]*"\s*\/?>/, () => "")
     // Every new Sell address is noindex with the Sell landing as its canonical (result addresses included).

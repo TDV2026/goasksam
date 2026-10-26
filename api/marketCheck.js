@@ -15,6 +15,7 @@
 //
 // Query-string variants (?q=<car>, a prefilled search, or a legacy ?tester=/?crew= link) are noindex
 // with THIS canonical (bare /market-check) - rule 2, one URL per object.
+import { OUTBOUND_JS } from "../lib/outboundUtm.js";
 import { withTracking } from "../lib/track/log.js";
 import fs from "node:fs";
 import path from "node:path";
@@ -106,7 +107,7 @@ async function handler(req, res) {
     // The switcher bar (gated) sits as the very first thing in <body>, above the auth bar, so it is
     // sticky at the top of everything.
     .replace("<body>", `<body>\n${showPal ? paletteSwitcherHtml() : ""}\n${AUTH_SIGNBAR_HTML}\n<script>${AUTH_SIGNBAR_MIRROR_JS}</script>\n<script>window.GAS_AUTH_MODE="topbar";</script>\n<script src="/js/auth.js" defer></script>`)
-    .replace("<script src=\"/api/track?js=1\" defer></script>", `${CONSENT_BANNER_HTML}\n<script src="/api/track?js=1" defer></script>\n<script>${CONSENT_BANNER_JS}</script>${showPal ? `\n<script>${PALETTE_SWITCHER_JS}</script>` : ""}`);
+    .replace("<script src=\"/api/track?js=1\" defer></script>", `${CONSENT_BANNER_HTML}\n<script src="/api/track?js=1" defer></script>\n<script>${CONSENT_BANNER_JS}</script><script>${OUTBOUND_JS};gasOutboundInstall("market_check")</script>${showPal ? `\n<script>${PALETTE_SWITCHER_JS}</script>` : ""}`);
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", robots);

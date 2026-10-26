@@ -170,7 +170,7 @@ function renderVinArchiveCallout(match){
     : `Sam knows this exact car. It sold${onPlat}${whenTxt}${forTxt}.`;
   const photo=vinMatchPhotoHtml(match);
   let link="";
-  if(match.url){ const a=document.createElement("a"); a.href=match.url; a.target="_blank"; a.rel="noopener noreferrer"; a.className="vin-receipt-link"; a.textContent="View that sale"; link=a.outerHTML; }
+  if(match.url){ const a=document.createElement("a"); a.href=match.url; a.target="_blank"; a.rel="noopener"; a.className="vin-receipt-link"; a.textContent="View that sale"; link=a.outerHTML; }
   const html=(photo||link)?`<div class="vin-archive-callout">${photo}${link}</div>`:"";
   addMsg("sam",text,html);
 }
