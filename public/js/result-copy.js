@@ -1880,8 +1880,6 @@ function homeHeroHTML(){
   // input, label and reassurance live in #input-area (centered under this on the
   // home state), so submitting runs the existing send() flow unchanged.
   const supporting=(typeof HERO_SUPPORTING!=="undefined")?HERO_SUPPORTING:"";
-  return `<div class="hero" id="hero"><div class="hp-hero">
-    <div class="hp-script">Go ahead, ask Sam.</div>
-    <h1>Tell Sam the car you're selling.<br>Sam will show you where to sell it, <br class="hero-br2">and why.</h1>
-  </div></div>`;
+  // Same pieces as lib/sell/sellEntry.js (Find, Market Check and Home's heading component): eyebrow, serif headline, sans sub. No script font.
+  return `<div id="hero"><section class="gst gst-entry"><p class="gst-eye">Sell \u00b7 Selling intelligence</p><h1 class="gst-h">Tell Sam the car you're selling.</h1><p class="gst-sub">Sam will show you where to sell it, and why.</p></section></div>`;
 }

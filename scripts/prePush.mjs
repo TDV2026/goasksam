@@ -1074,6 +1074,13 @@ try {
 } catch (e) {
   record("feedbackCheck (scripts/feedbackCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The Sell entry page (Sam, Oct 26 2026): the shared heading component, no script font, an "e.g." example in the box, the words kept. No network.
+try {
+  const out = execSync("node scripts/sellEntryCheck.mjs", { encoding: "utf8" });
+  record("sellEntryCheck (scripts/sellEntryCheck.mjs)", "PASS", (out.match(/sellEntryCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("sellEntryCheck (scripts/sellEntryCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });

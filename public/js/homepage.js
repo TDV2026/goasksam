@@ -6,7 +6,7 @@
 const HERO_SUPPORTING = "Sam will recommend where to sell your vehicle and show you exactly why.";
 
 // Rotating placeholder: real, resolver-parseable examples.
-const PLACEHOLDER_EXAMPLES = ["Type your car, or paste a VIN."];
+const PLACEHOLDER_EXAMPLES = ["e.g. 2004 Porsche 911 Carrera, or paste a VIN."];
 
 // ---- Learn page copy (prose, Paddock system, no dashes) ----
 const LEARN_PLATFORMS = {

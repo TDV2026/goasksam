@@ -15,12 +15,10 @@ import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
 import { heldFor } from "../lib/_hold.js";
+import { sellHeroHtml, SELL_ENTRY, SELL_ENTRY_CSS } from "../lib/sell/sellEntry.js";
 
 const TITLE = "Where to sell your collector car";
-const HERO = `<div class="hero" id="hero"><div class="hp-hero">
-    <div class="hp-script">Go ahead, ask Sam.</div>
-    <h1>Tell Sam the car you're selling.<br>Sam will show you where to sell it, <br class="hero-br2">and why.</h1>
-  </div></div>`;
+const HERO = sellHeroHtml();
 let shell = null;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
@@ -64,7 +62,8 @@ export async function sellShellHtml(req) {
     .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${TITLE}$2`)
     .replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${TITLE}$2`)
     .replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />\n<script>${PALETTE_APPLY_JS}</script>`)
-    .replace("</head>", `<style>${SHELL_TOKENS_CSS}${brandPaletteCss(crew)}${ALL_PALETTES_CSS}</style>\n</head>`)
+    .replace("</head>", `<style>${SHELL_TOKENS_CSS}${brandPaletteCss(crew)}${ALL_PALETTES_CSS}${SELL_ENTRY_CSS}</style>\n</head>`)
+    .replace('placeholder="Type your car, or paste a VIN."', `placeholder="${esc(SELL_ENTRY.placeholder)}"`)
     .replace("</body>", `<style>${CONSENT_BANNER_CSS}</style>\n${CONSENT_BANNER_HTML}\n<script>${CONSENT_BANNER_JS}</script>\n${gaBootstrapHtml()}\n</body>`)
     .replace('<div id="msgs"></div>', `<div id="msgs">${HERO}</div>`)
         .replace('<div class="hp-value-preview hp-home-only">Built for enthusiast, specialty and collector vehicles</div>',

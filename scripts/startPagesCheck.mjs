@@ -40,7 +40,7 @@ ok(/1995 Porsche 911 Carrera/.test(mc.body) && /Describe the car, enter a VIN, o
 ok(/data-lead-sentence>Market Check\./.test(mc.body) && !/collector/i.test(text(mc.body.slice(mc.body.indexOf('id="mc-landing"'), mc.body.indexOf("</main>")))), "Market Check: the dated lead is there and the start page says nothing about collector");
 // Sell
 ok(/<h1 class="gst-h">Where should you sell your car\?<\/h1>/.test(sell.body) || sell.code !== 200 || /SELL_NEXT/.test(sell.body), "Sell (new): the headline is Sam's (or the page is switched off)");
-if (sell.code === 200) ok(/Tell Sam what you&#39;re selling|Tell Sam what you're selling/.test(sell.body) && /Type your car, or paste a VIN\./.test(sell.body) && /Platform performance · Selling strategy · PowerSeller matching/.test(sell.body) && /id="ob-input"/.test(sell.body), "Sell (new): sub, placeholder and line are Sam's; the box keeps ob-input and ob-go");
+if (sell.code === 200) ok(/Tell Sam what you&#39;re selling|Tell Sam what you're selling/.test(sell.body) && /e\.g\. 2004 Porsche 911 Carrera, or paste a VIN\./.test(sell.body) && /Platform performance · Selling strategy · PowerSeller matching/.test(sell.body) && /id="ob-input"/.test(sell.body), "Sell (new): sub, placeholder and line are Sam's; the box keeps ob-input and ob-go");
 // the palette bar is for the crew cookie only: none of its markup, stylesheet or script reaches a visitor without it
 for (const [n, b] of [["Home", home.body], ["Find", find.body], ["Market Check", mc.body]]) ok(!/class="gas-pal-bar"|data-pal-btn|class="gas-pal-lbl"|\.gas-pal-bar\{/.test(b), n + ": no palette bar in a public page's HTML");
 // GoAskSam 2.0 Stage 4: server-rendered, own titles and descriptions, structured data
