@@ -8,7 +8,7 @@ import { fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 
 const TITLE = "About GoAskSam";
-const DESC = "GoAskSam tells you where to sell your enthusiast car and why, using real sales data. Built by the team behind The Daily Vroom. No estimates, no valuations.";
+const DESC = "GoAskSam reads real auction sales to show what cars are bringing, find live cars that fit, and tell you where to sell. Built by the team behind The Daily Vroom.";
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 const WHAT = "GoAskSam is market intelligence for enthusiast cars, built on real auction sales. Every answer starts with a car that actually sold, on a date, for a price. Sam matches your car to those sales and tells you what they add up to. If the sales are not there, Sam says so instead of guessing.";
@@ -20,7 +20,7 @@ const PRODUCTS = [
 ];
 const HOW = "Sam matches your car to real sales: same model, generation, body and gearbox, and the same trim when it changes the price. From those sales, our own rules and methodology work out the range, the count, the closest sales and where cars like yours sell best, the same way every time, in all four products. We use AI for the conversation: it helps Sam understand what you typed and explains what the engine found. AI never sets a price, a range, a count, which sales are set aside, or where to sell. New sales are added every day. When the exact match is thin, Sam widens the read a step at a time and says so, rather than dressing up a guess as a certainty.";
 const NEVER = "Sam never invents a number. Every figure you see comes from a real recorded sale. GoAskSam does not appraise your car or put a value on it: it shows you what cars like yours actually sold for, with the sales behind it. It never sends your details out to a list of buyers, never claims a platform gets you more money than the evidence actually shows, and never emails you about a car that does not match what you asked for. When the read is less certain, Sam says so plainly.";
-const STAND = "We are independent and sales first. Nobody pays to be recommended, and nothing on GoAskSam is sponsored. Every answer follows the sales record, not a relationship: what cars like yours are bringing, which live cars fit what you asked, and where to sell all come from the same real sales. It is the same call we would make on our own car. If the numbers say to list it yourself, that is exactly what Sam will tell you. If the sales are not there, Sam says that instead.";
+const STAND = "We are independent and sales first. Nobody pays to be recommended, and nothing on GoAskSam is sponsored. Every answer follows the sales record, not a relationship: what a car is bringing, which live cars fit what you asked, and where to sell all come from the same real sales. It is the same call we would make on our own car. If the numbers say to list it yourself, that is exactly what Sam will tell you. If the sales are not there, Sam says that instead.";
 
 const CSS = `
 .ab-col{max-width:760px;margin:0 auto;padding:56px 48px 80px}

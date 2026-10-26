@@ -1,13 +1,15 @@
 # GoAskSam
 
-> Where collector cars actually sell. Real auction results, one car at a time.
+> Collector car market intelligence from real auction sales.
 
-GoAskSam answers three questions from recorded auction sales: what a collector car has sold for, the full auction history of one car by its VIN, and where a car like it is most likely to sell well. Every figure on the site comes from a recorded sale. There are no appraisals and no guesses. When the record is thin, the page says so.
+GoAskSam answers four questions from recorded auction sales: what a car is bringing (Market Check), which live cars fit what you asked (Find), where a car is most likely to sell well (Sell), and, through Tasks, which new cars to tell you about, because Sam keeps looking for you. Every figure on the site comes from a recorded sale. There are no appraisals and no guesses. When the record is thin, the page says so.
 
 Go ask Sam is the brand's call to action. Sam is the name of the service, the voice that answers.
 
 ## Pages
 
+* Market Check, what cars like a given car have sold for: https://goasksam.com/market-check
+* Find, live enthusiast cars that fit what you asked: https://goasksam.com/find
 * Where to sell: https://goasksam.com/sell
 * What a model has sold for, Porsche 911 first: https://goasksam.com/cars/porsche/911
 * Every car by VIN, each with its own auction history: https://goasksam.com/history/porsche-911
