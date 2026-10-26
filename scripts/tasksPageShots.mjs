@@ -184,6 +184,27 @@ try {
       ok(A.tasks[0].state === "done", `[${W}] Stop is its own button and acts on its own`);
       ok(p._errs.length === 0, `[${W}] the one-match card: no page errors ${JSON.stringify(p._errs)}`);
       ok(!(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), `[${W}] the one-match card: no sideways scroll`); await p.close(); }
+    // THE TWO LIVE TASKS (Oct 26 2026): a later quiet check rewrites the opening update to its status line (data.total 0, data.loose) and leaves its old listing_ids column;
+    // those ids are not matches. Only data.cards count, each car once; near misses are a count ("31 close ones"), never "match".
+    { const stale = n => Array.from({ length: n }, (_, i) => 100 + i);
+      const bmwOpen = { id: 420, role: "sam", kind: "match", created_at: ago(6), text: "Nothing red yet. 31 other cars match the rest.", listing_ids: stale(3), data: { opening: true, edit: false, total: 0, loose: { dropped: "colour", count: 31 } } };
+      const porOpen = { id: 421, role: "sam", kind: "match", created_at: ago(6), text: "Nothing with a manual gearbox yet. 9 other cars match the rest.", listing_ids: stale(10), data: { opening: true, edit: false, total: 0, loose: { dropped: "gearbox", count: 9 } } };
+      const car = { id: 3, title: CARDS[2].title, url: CARDS[2].url };
+      const porNew = { id: 422, role: "sam", kind: "match", created_at: ago(2), text: "x", listing_ids: [3], data: { line: "1 new car matches.", cards: [car] } };
+      const porAgain = { id: 423, role: "sam", kind: "match", created_at: ago(1), text: "x", listing_ids: [3], data: { line: "1 new car matches.", cards: [car] } };
+      const BMW = mkTask(1, "running", { summary: "Sam is looking for red BMWs with under 50,000 miles.", updates: [bmwOpen] });
+      const POR = mkTask(2, "running", { summary: "Sam is looking for black manual Porsches.", updates: [porOpen, porNew, porAgain] });
+      const fb = overviewFacts(BMW), fp = overviewFacts(POR), fpEnded = overviewFacts(POR, new Set());
+      ok(fb.liveCount === 0 && fb.live === "No live cars match yet" && fb.close === "31 close ones" && !/\d.* (live )?cars? match/.test(fb.live + " " + fb.close), `[${W}] BMW: nothing red yet with 31 other cars gives a live count of 0, the line No live cars match yet and 31 close ones (${JSON.stringify(fb)})`);
+      ok(fp.liveCount === 1 && fp.live === "1 live car matches" && fp.close === null, `[${W}] Porsche: one exact car and 9 near misses gives a live count of 1; the stale opening list is not read (${JSON.stringify(fp)})`);
+      ok(fpEnded.liveCount === 0 && fpEnded.live === "No live cars match right now", `[${W}] Porsche: if the one car has ended the count is 0`);
+      ok(overviewFacts(mkTask(3, "running", { updates: [{ ...porNew, id: 1 }, { ...porAgain, id: 2 }] })).liveCount === 1, `[${W}] a car repeated across two updates counts once`);
+      ok(overviewFacts(mkTask(3, "running", { updates: [{ id: 5, role: "sam", kind: "match", created_at: ago(1), listing_ids: Array.from({ length: 45 }, (_, i) => 1 + i), data: { opening: true, total: 45, cards: [car, { id: 1, title: "a" }, { id: 2, title: "b" }] } }] })).liveCount === 45, `[${W}] an opening that still holds its own list counts its cars past the first twelve`);
+      const A = account([BMW, POR]); const p = await open(A, W); await wait(900);
+      const t1 = await p.$eval("#task-00000000-0000-4000-8000-000000000001", c => c.innerText.replace(/\s+/g, " ")), t2 = await p.$eval("#task-00000000-0000-4000-8000-000000000002", c => c.innerText.replace(/\s+/g, " "));
+      ok(/No live cars match yet/.test(t1) && /31 close ones, select the card to read the note/.test(t1) && /Show cars/.test(t1) && !/\d+ live cars? match/.test(t1) && !/Show \d/.test(t1), `[${W}] the BMW card as drawn: ${t1}`);
+      ok(/1 live car matches/.test(t2) && /Show 1 car/.test(t2) && !/close one/.test(t2), `[${W}] the Porsche card as drawn: ${t2}`);
+      await shot(p, `tasks-two-live-${W}`); await p.close(); }
     { const A = account([mkTask(1)]); const p = await open(A, W); await wait(600); ok(/You have 1 of 3 Tasks running\. 2 Tasks left\./.test(await text(p)), `[${W}] 1 Task: the status line`); await p.close(); }
     // the junk-folder line shows only while the server says no alert email has gone out yet
     { const A = account([mkTask(1)]); A.junk = true; const p = await open(A, W); await wait(600); ok(/check your junk folder/.test(await text(p)), `[${W}] junk line: shown while the server says so`); await p.close(); }
