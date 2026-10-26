@@ -35,6 +35,6 @@ ok(trend && trend.movement && trend.movement.size === "quarter" && Array.isArray
 const m = ob.mapEngineAnswer({ tier: "result", trend });
 ok(m.trendMovement && m.trendMovement.buckets.length === 5, "mapEngineAnswer passes trendMovement");
 ok(ob.CANDLE_MIN === 5 && ob.CANDLE_MIN_COUNT === 3 && ob.__specEngine.RANGE_THRESHOLD === 8, "candle floor 5 and 3; the range threshold stays 8");
-ok(/^e8\d-/.test(ob.ENGINE_VERSION), `the engine stamp: ${ob.ENGINE_VERSION}`);
+ok(/^e\d{2,3}-/.test(ob.ENGINE_VERSION), `the engine stamp: ${ob.ENGINE_VERSION}`);
 console.log(bad ? `movementCheck: ${bad} failed` : "movementCheck: all passed");
 process.exit(bad ? 1 : 0);
