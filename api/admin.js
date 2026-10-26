@@ -349,7 +349,8 @@ R.launch=function(d){
  // 8
  var f=d.failures;
  h+='<h2>8. Failures</h2>'+tiles([["Busy line shown",n(f.busy_shown)],["Errors (5xx)",n(f.errors.reduce(function(s,x){return s+x.n;},0))],["Limits hit",n(f.limit_hit.reduce(function(s,x){return s+x.n;},0))],["Searches failed",n(f.search_failed.reduce(function(s,x){return s+x.n;},0))]])
-  +'<h3>Errors by route and status</h3>'+table([["Route and status","k"],["Count","n",n]],f.errors)
+  +'<h3>Held at the door</h3><p class=note>The sealed-site holding page (a 503 with Retry-After). Not an error, and it goes to zero on its own after launch.'+(f.held.read?'':' Could not be read just now.')+'</p>'+tiles([["Held at the door",n(f.held.total)],["Bot share",f.held.bot_share==null?"-":pc(f.held.bots,f.held.total)]])+table([["Route","k"],["Count","n",n]],f.held.by_route)
+  +'<h3>Errors by route and status</h3><p class=note>Real failures only: database, missing environment, and 5xx from routes.</p>'+table([["Route and status","k"],["Count","n",n]],f.errors)
   +'<h3>Searches that failed</h3>'+table([["Product and state","k"],["Count","n",n]],f.search_failed)
   +'<h3>Limits hit (limit_hit)</h3>'+table([["Limit","k"],["Count","n",n]],f.limit_hit)
   +'<h3>Last 20</h3>'+table([["When","ts",function(v){return E(fmtT(v));}],["What","kind"],["Detail","detail"]],f.last);

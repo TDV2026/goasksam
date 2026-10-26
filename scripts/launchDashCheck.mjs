@@ -90,6 +90,7 @@ const fixture = {
     E("signin_started", "site", "a1", 8, {}), E("signin", "site", "a1", 9, { method: "google", newsletter: true }), E("signin", "site", "b1", 10, { method: "email", newsletter: false }),
     E("limit_hit", "site", null, 11, { limit: "daily" }), E("error", "site", null, 12, { route: "/api/buySearch", status: 502 }), E("busy_shown", "market_check", "a3", 13, { reason: "busy" }), E("feedback_sent", "site", null, 14, {}),
   ],
+  held: [{ ts: "2026-10-29T14:01:00Z", is_bot: true, props: { route: "/api/history", status: 503 } }, { ts: "2026-10-29T14:02:00Z", is_bot: true, props: { route: "/api/history", status: 503 } }, { ts: "2026-10-29T14:03:00Z", is_bot: false, props: { route: "/api/buy", status: 503 } }, { ts: "2026-10-29T14:04:00Z", is_bot: false, props: { route: "/api/history", status: 503 } }],
   mc: [{ product: "market_check", props: { cost_usd: 0.02 } }, { product: "buy", props: { cost_usd: 0.01 } }],
   out: [{ platform: "bringatrailer" }, { platform: "carsandbids" }],
   ocd: [{ oldcarsdata_metered_requests: 3, job: "ocd" }, { oldcarsdata_metered_requests: 10, job: "pull_live" }, { oldcarsdata_metered_requests: 50, job: "ingest" }], pvCapped: false,
@@ -116,6 +117,8 @@ ok(srcN("google.com") === 2 && srcN("utm: newsletter") === 1 && srcN("direct") =
 ok(D.returning.visitors === 5 && D.returning.returning === 1, "returning visitors: 1 of 5 had a second session");
 const sp = D.speed.find(s => s.product === "market_check");
 ok(sp.cold.n === 1 && sp.cold.p50 === 9000 && sp.warm.n === 1 && sp.warm.p50 === 400 && D.speed.find(s => s.product === "buy").cache_recorded === 0, "speed splits cold and warm where recorded, and says Find records neither");
+ok(D.failures.held.total === 4 && D.failures.held.bots === 2 && D.failures.held.bot_share === 0.5 && D.failures.held.by_route[0].k === "/api/history" && D.failures.held.by_route[0].n === 3, "held at the door: its own count, bot share and routes");
+ok(!D.failures.errors.some(x => /503/.test(x.k)) && D.failures.errors.length === 1, "held pages never appear in Errors");
 ok(D.failures.busy_shown === 1 && D.failures.errors[0].k === "/api/buySearch 502" && D.failures.search_failed[0].k === "market_check catching_breath" && D.failures.last.length === 3, "failures: busy line, errors by route and status, failed searches, last list");
 ok(D.cost.answers_served === 6 && Math.abs(D.cost.anthropic_usd - 0.03) < 1e-9 && D.cost.ocd_visitor_search === 3 && D.cost.ocd_live_pull === 10 && D.cost.ocd_nightly_and_other === 50 && D.cost.ocd_total === 63, "cost: answers served, Anthropic spend, OldCarsData split into searches, live pulls, nightly and other");
 ok(D.feedback === 1, "feedback count");
@@ -173,6 +176,50 @@ const gate = async (b, headers) => { const r = resObj(); await admin.default({ m
 for (const part of ["launch", "overview", "me", "demand"]) {
   const a = await gate({ part, range: "today" }); const c = await gate({ part, range: "today" }, { authorization: "Bearer not-a-real-token" });
   ok(a.c === 404 && c.c === 404, `/admin part ${part}: the plain 404 with no token and with a bad token`);
+}
+
+// ---- 5. ADMIN_EMAILS accounts are internal (round 2, addition 1)
+{
+  const crewMod = await import(pathToFileURL(path.join(ROOT, "lib/_crew.js")).href + "?int=" + Date.now());
+  const cons = await import(pathToFileURL(path.join(ROOT, "lib/track/consent.js")).href + "?int=" + Date.now());
+  const prevCode = process.env.CURTAIN_CREW_CODE, prevAdm = process.env.ADMIN_EMAILS;
+  process.env.CURTAIN_CREW_CODE = "test-code-for-check"; process.env.ADMIN_EMAILS = "Sam@Example.com, pat@example.com";
+  ok(crewMod.isAdminEmail("sam@example.com") && crewMod.isAdminEmail(" PAT@example.com "), "admin email match ignores case and spaces");
+  ok(!crewMod.isAdminEmail("visitor@example.com") && !crewMod.isAdminEmail("") && !crewMod.isAdminEmail(null), "a non-admin or empty email is not internal");
+  const v = crewMod.mintInternalCookieValue();
+  const withCookie = c => ({ headers: { cookie: c } });
+  ok(cons.isInternal(withCookie("gas_int=" + v)), "a signed gas_int cookie makes the request internal");
+  ok(!cons.isInternal(withCookie("gas_int=v1.9999999999999.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")), "a made-up gas_int is not internal");
+  ok(!cons.isInternal(withCookie("gas_int=ok")), "gas_int=ok is not internal");
+  ok(!crewMod.isCrewRequest(withCookie("gas_int=" + v)), "the internal cookie is not a crew cookie (no access)");
+  const crewV = crewMod.mintCrewCookieValue();
+  ok(!cons.isInternal(withCookie("gas_int=" + crewV)), "a crew cookie value passed as gas_int is refused (own HMAC label)");
+  ok(cons.isInternal(withCookie("gas_crew=" + crewV)), "the crew cookie is still internal");
+  ok(!cons.isInternal(withCookie("gas_aid=abcdefghijklmnop")), "an ordinary visitor and a tester stay not internal");
+  delete process.env.CURTAIN_CREW_CODE;
+  ok(!cons.isInternal(withCookie("gas_int=" + v)), "with no secret set nothing is internal (fail closed)");
+  process.env.CURTAIN_CREW_CODE = prevCode ?? ""; if (prevCode == null) delete process.env.CURTAIN_CREW_CODE;
+  if (prevAdm == null) delete process.env.ADMIN_EMAILS; else process.env.ADMIN_EMAILS = prevAdm;
+  const acct = fs.readFileSync(path.join(ROOT, "api/account.js"), "utf8");
+  ok(/isAdminEmail\(auth\.email\)/.test(acct) && /internal: adminAcct/.test(acct) && /INTERNAL_COOKIE/.test(acct), "api/account.js marks an admin sign-in and sets the internal flag on its own events");
+}
+
+// ---- 6. the holding page is logged as held_at_door, never as an error (round 2, addition 2)
+{
+  const { withTracking } = await imp("lib/track/log.js");
+  const mk = (code, retry) => { const h = {}; return { statusCode: code, getHeader: k => h[k], setHeader: (k, v) => { h[k] = v; } , _h: h, _retry: retry }; };
+  setTrackSink(r => rows.push(r));
+  const before = rows.length;
+  const held = mk(503); held.setHeader("Retry-After", "3600");
+  await withTracking("/api/history", async () => {}, "site")(fakeReq, Object.assign(held, { statusCode: 503 }));
+  const real = mk(503);
+  await withTracking("/api/history", async () => {}, "site")(fakeReq, real);
+  const five = mk(502);
+  await withTracking("/api/buySearch", async () => {}, "site")(fakeReq, five);
+  await trackDrain();
+  const added = rows.slice(before).map(r => r.name + ":" + r.props.route + ":" + r.props.status);
+  ok(added.length === 3 && added[0] === "held_at_door:/api/history:503", "a 503 with Retry-After logs held_at_door");
+  ok(added[1] === "error:/api/history:503" && added[2] === "error:/api/buySearch:502", "a 503 without Retry-After and any other 5xx still log error");
 }
 console.log(`launchDashCheck: ${pass} pass, ${fail} fail`);
 process.exit(fail ? 1 : 0);

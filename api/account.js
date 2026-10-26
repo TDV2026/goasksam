@@ -5,6 +5,7 @@
 // result-claiming (2C) attach to this same endpoint later.
 import { withTracking, track, linkAnonToUser } from "../lib/track/log.js";
 import { validateBearer } from "../lib/_auth.js";
+import { isAdminEmail, isInternalRequest, mintInternalCookieValue, INTERNAL_COOKIE, CREW_MAX_AGE_S } from "../lib/_crew.js";
 import { supabaseEnv, supabaseSelect, supabaseInsert } from "../lib/_supabase.js";
 import { beehiivTier } from "../lib/_beehiiv.js";
 import { maybeSubscribeAfterSignin, waitBounded } from "../lib/newsletterSignup.js";
@@ -124,6 +125,14 @@ async function handler(req, res) {
   const auth = await validateBearer(req.headers.authorization);
   if (!auth) { res.status(401).json({ status: "auth_required" }); return; }
 
+  // An ADMIN_EMAILS account counts as internal for every event, like the crew cookie (Oct 2026): mark this
+  // browser once so Sam's and Pat's signed-in tests never count as visitors. Grants no access.
+  const adminAcct = isAdminEmail(auth.email);
+  if (adminAcct && !isInternalRequest(req)) {
+    const v = mintInternalCookieValue();
+    if (v) { try { const ex = res.getHeader("Set-Cookie"); res.setHeader("Set-Cookie", [...(ex ? (Array.isArray(ex) ? ex : [ex]) : []), `${INTERNAL_COOKIE}=${v}; Max-Age=${CREW_MAX_AGE_S}; Path=/; HttpOnly; Secure; SameSite=Lax`]); } catch {} }
+  }
+
   const env = supabaseEnv();
   if (!env) { res.status(500).json({ error: "storage not configured" }); return; }
 
@@ -145,7 +154,7 @@ async function handler(req, res) {
     logEvent(env, { event: EVENTS.SIGN_IN_COMPLETED, userId: auth.userId, visitorId, props: src ? { source: src } : null });
     // Analytics (docs/analytics-events.md): signin, and this browser's earlier events linked to the account.
     // newsletter: the sign-in card's Daily Vroom box as sent with this call (ticked or not); absent when the client sent no state. A flag only, never the address.
-    track(req, "signin", { ...(typeof req.body.marketingConsent === "boolean" ? { newsletter: req.body.marketingConsent } : {}), ...(req.body.signInMethod === "google" || req.body.signInMethod === "email" ? { method: req.body.signInMethod } : {}) }, { product: "site", surface: "api", user_id: auth.userId });
+    track(req, "signin", { ...(typeof req.body.marketingConsent === "boolean" ? { newsletter: req.body.marketingConsent } : {}), ...(req.body.signInMethod === "google" || req.body.signInMethod === "email" ? { method: req.body.signInMethod } : {}) }, { product: "site", surface: "api", user_id: auth.userId, internal: adminAcct });
     linkAnonToUser(req, auth.userId);
   }
 
@@ -190,7 +199,7 @@ async function handler(req, res) {
       const created = (insert.rows && insert.rows[0]) ||
         { email: auth.email, tier: newTier, bonus_searches: 0, marketing_consent: consent === true };
       await funnel(env, "signup_completed", { user_id: auth.userId, dedup_key: `signup:${auth.userId}` });
-      track(req, "signup_completed", {}, { product: "site", surface: "api", user_id: auth.userId });
+      track(req, "signup_completed", {}, { product: "site", surface: "api", user_id: auth.userId, internal: adminAcct });
       linkAnonToUser(req, auth.userId);
       const claimedNew = await claimResultIfAny(req, env, auth.userId);
       const respNew = publicAccount(created); if (claimedNew !== undefined) respNew.claimed = claimedNew;
