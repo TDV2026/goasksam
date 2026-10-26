@@ -114,7 +114,7 @@ jobs:
     # never delay warm/attempts/premium/cube, none of which need anything in this job. 55 min keeps
     # today's effective ceiling for this slower tail (VIN index + VIN rollout cache are the two
     # genuinely multi-minute steps; crossProductCheck at 53 specs is the newest and least bounded).
-    timeout-minutes: 55
+    timeout-minutes: 80
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
