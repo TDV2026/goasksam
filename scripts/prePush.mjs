@@ -1081,6 +1081,13 @@ try {
 } catch (e) {
   record("sellEntryCheck (scripts/sellEntryCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The start pages' input box and send button (Sam, Oct 26 2026): Sell, Find and Market Check share one send button and one box width; Market Check keeps its microphone. Rendered, no network.
+try {
+  const out = execSync("node scripts/startButtonCheck.mjs", { encoding: "utf8" });
+  record("startButtonCheck (scripts/startButtonCheck.mjs)", "PASS", (out.match(/startButtonCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("startButtonCheck (scripts/startButtonCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });

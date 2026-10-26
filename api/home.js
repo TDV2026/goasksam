@@ -35,6 +35,7 @@ const LD = JSON.stringify({ "@context": "https://schema.org", "@graph": [
 ] }).replace(/</g, "\\u003c");
 
 const CSS = `
+#gas-start-home .gst-box{max-width:960px}   /* Home keeps its own width; Sell, Find and Market Check share 600 (lib/startPage.js START_BOX_MAX) */
 .hm{position:relative;min-height:calc(100dvh - 24px);display:flex;align-items:center;justify-content:center;padding:72px 32px 56px;box-sizing:border-box}
 @media (max-width:700px){.hm{min-height:calc(100dvh - 60px);padding:28px 18px 64px;align-items:flex-start}}
 .hm-legal{position:absolute;left:0;right:0;bottom:16px;display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;font:400 12.5px/1.4 var(--sans,sans-serif);color:var(--sec,#5E6B63)}.hm-legal a{color:inherit;text-decoration:none}.hm-legal a:hover{text-decoration:underline}`;

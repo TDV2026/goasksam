@@ -15,7 +15,7 @@ import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
 import { heldFor } from "../lib/_hold.js";
-import { sellHeroHtml, SELL_ENTRY, SELL_ENTRY_CSS } from "../lib/sell/sellEntry.js";
+import { sellHeroHtml, SELL_ENTRY, SELL_ENTRY_CSS, SELL_GO_HTML } from "../lib/sell/sellEntry.js";
 
 const TITLE = "Where to sell your collector car";
 const HERO = sellHeroHtml();
@@ -63,6 +63,7 @@ export async function sellShellHtml(req) {
     .replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${TITLE}$2`)
     .replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />\n<script>${PALETTE_APPLY_JS}</script>`)
     .replace("</head>", `<style>${SHELL_TOKENS_CSS}${brandPaletteCss(crew)}${ALL_PALETTES_CSS}${SELL_ENTRY_CSS}</style>\n</head>`)
+    .replace('<button id="btn">↑</button>', () => SELL_GO_HTML)
     .replace('placeholder="Type your car, or paste a VIN."', `placeholder="${esc(SELL_ENTRY.placeholder)}"`)
     .replace("</body>", `<style>${CONSENT_BANNER_CSS}</style>\n${CONSENT_BANNER_HTML}\n<script>${CONSENT_BANNER_JS}</script>\n${gaBootstrapHtml()}\n</body>`)
     .replace('<div id="msgs"></div>', `<div id="msgs">${HERO}</div>`)
