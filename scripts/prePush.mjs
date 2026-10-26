@@ -1248,7 +1248,8 @@ try {
 }
 // ---- 2zc. BULK SALE GUARD + EXACT-YEAR LINE (Lane B, Oct 25 2026). No network. ----
 for (const [file, label] of [["bulkSaleCheck", "Bulk-sale guard"], ["exactYearLineCheck", "Exact-year line under a thin answer"], ["specLiveAbroadCheck", "Spec-page live count leaves abroad out"], ["marketPlaceCheck", "Place before currency (market check)"], ["amgBadgeCheck", "AMG badge and Shelby pools keep their own sales"], ["poolColumnsCheck", "Pool columns switch: identical rows, fail closed"], ["zeroRefusalCheck", "A refusal with count 0 says no sales on record"], ["archiveMakeCheck", "A make is never silently another make"], ["archiveModelCheck", "A known marque with an unknown model asks which model"], ["correctionMoveCheck", "A corrected row that moves out of a pool leaves it"], ["makeDisplayCheck", "Make display name, body page basis note, make-join leftover"], ["chatNumberGuardCheck", "The legacy chat refuses an invented number and passes supplied ones"], ["askedYearCheck", "A held or set-aside sentence claims only the asked year"], ["singerLeftoverCheck", "No leftover-word line above an answer the typed words made"], ["rawColumnsLineCheck", "The nightly log says raw columns on or off"], ["sellFieldsCheck", "Sell fields: best day and reserve split from the engine pool"],
-  ["sellSpeedCheck", "Sell speed: one engine call per visit, no fetchQualifying of its own"]]) {
+  ["sellSpeedCheck", "Sell speed: one engine call per visit, no fetchQualifying of its own"],
+  ["generationChipCheck", "Generation chips resolve for the whole generation with no invented year"]]) {
   try {
     const out = execSync(`node scripts/${file}.mjs`, { encoding: "utf8" });
     record(`${label} (scripts/${file}.mjs)`, "PASS", (out.match(new RegExp(file + ": .*")) || [""])[0]);
