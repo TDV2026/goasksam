@@ -7,6 +7,8 @@ const HERO_SUPPORTING = "Sam will recommend where to sell your vehicle and show 
 
 // Rotating placeholder: real, resolver-parseable examples.
 const PLACEHOLDER_EXAMPLES = ["e.g. 2004 Porsche 911 Carrera, or paste a VIN."];
+// On a phone the box is too narrow for the long example (a textarea wraps and clips its placeholder), so it shows the short one.
+const PLACEHOLDER_SHORT = "e.g. 2004 Porsche 911 Carrera";
 
 // ---- Learn page copy (prose, Paddock system, no dashes) ----
 const LEARN_PLATFORMS = {
@@ -55,7 +57,7 @@ function enterChatState() {
 function startPlaceholderRotation() {
   const inp = document.getElementById("inp");
   if (!inp || __phTimer || __phStopped) return;
-  inp.placeholder = PLACEHOLDER_EXAMPLES[0];
+  inp.placeholder = (window.innerWidth <= 520) ? PLACEHOLDER_SHORT : PLACEHOLDER_EXAMPLES[0];
   // Single fixed placeholder at launch (no rotation): skip the interval so it never
   // pulses on the same text.
   if (PLACEHOLDER_EXAMPLES.length <= 1) return;

@@ -25,6 +25,7 @@ ok(scriptUses.every(s => /\.hp-script|\.pcard-script/.test(s)) && /\.pcard-scrip
 const place = (/<textarea id="inp"[^>]*placeholder="([^"]*)"/.exec(html) || [])[1] || "";
 ok(/^e\.g\. 2004 Porsche 911 Carrera, or paste a VIN\.$/.test(place), "the box shows an example starting with e.g. (" + place + ")");
 ok(/PLACEHOLDER_EXAMPLES = \["e\.g\. /.test(fs.readFileSync("public/js/homepage.js", "utf8")), "the page script keeps the same example");
+ok(/PLACEHOLDER_SHORT = "e\.g\. 2004 Porsche 911 Carrera"/.test(fs.readFileSync("public/js/homepage.js", "utf8")) && /innerWidth <= 520\) \? PLACEHOLDER_SHORT/.test(fs.readFileSync("public/js/homepage.js", "utf8")), "on a phone the box shows the short example so it never clips");
 ok(/^e\.g\./.test(ph.PLACEHOLDERS.sell.text), "the new Sell's placeholder is the same example");
 ok(/placeholder="e\.g\. /.test(fs.readFileSync("api/tasksPage.js", "utf8")) || /e\.g\. find me a black manual 997/.test(fs.readFileSync("api/tasksPage.js", "utf8")), "Tasks shows its example the same way (e.g.)");
 ok(!/[0-9]/.test(place.replace("2004", "").replace("911", "")), "the only numbers in the example are the year and the model name");
