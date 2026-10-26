@@ -20,7 +20,7 @@ export default async function handler(req, res) {
   // The one-direction Sell (lib/sell/sellFlow.js). The car questions are Market Check's own (api/sellNext.js
   // serves its page); {action:"flow", step:"result", car, state, how} -> the result; step:"ask" -> follow-up.
   if (b.action === "flow") {
-    const { buildResult, stateOf } = await import("../lib/sell/sellFlow.js");
+    const { buildResult, buildRange, buildRest, stateOf } = await import("../lib/sell/sellFlow.js");
     try {
       if (b.step === "state") return res.status(200).json({ state: stateOf(b.text) });
       // A follow-up question after the result: Claude on the shared chat core, the engine's facts in words.
@@ -37,6 +37,10 @@ export default async function handler(req, res) {
       }
       // The result: open to everyone, under the same invisible ceiling as live /sell's search (one guard).
       if (b.step === "result") { const cred = hasServerCredential(req), lim = testLimits(req, cred); if (!cred || lim) { const ce = await checkCeiling(env, req, "sell_search", { tool: "sell", limits: lim }); if (!ce.ok) return res.status(200).json({ empty: CALM.search, limited: true }); } }
+      // The result in pieces: "range" (one search, under the ceiling like the result) then "rest" (no second count).
+      if (b.step === "range") { const cred = hasServerCredential(req), lim = testLimits(req, cred); if (!cred || lim) { const ce = await checkCeiling(env, req, "sell_search", { tool: "sell", limits: lim }); if (!ce.ok) return res.status(200).json({ empty: CALM.search, limited: true }); } return res.status(200).json(await buildRange(env, { carText: String(b.car || "").slice(0, 300), state: stateOf(b.state) || null, how: ["self", "handled", "house", "unsure"].includes(b.how) ? b.how : "unsure", rush: ["fast", "month", "none"].includes(b.rush) ? b.rush : null }));
+      }
+      if (b.step === "rest") return res.status(200).json(await buildRest(env, { carText: String(b.car || "").slice(0, 300), state: stateOf(b.state) || null, how: ["self", "handled", "house", "unsure"].includes(b.how) ? b.how : "unsure", rush: ["fast", "month", "none"].includes(b.rush) ? b.rush : null }));
       if (b.step === "result") return res.status(200).json(await buildResult(env, { carText: String(b.car || "").slice(0, 300), state: stateOf(b.state) || null, how: ["self", "handled", "house", "unsure"].includes(b.how) ? b.how : "unsure", rush: ["fast", "month", "none"].includes(b.rush) ? b.rush : null }));
       return res.status(400).json({ error: "unknown step" });
     } catch (e) { console.error("sell flow failed:", (e && e.stack) || e); return res.status(500).json({ error: "Sam couldn't read that just now." }); }

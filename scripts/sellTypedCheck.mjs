@@ -17,7 +17,7 @@ globalThis.location = { search: "", pathname: "/sell" };
 const states = [];
 globalThis.history = { pushState: (s, t, u) => { states.push(s); addr.push(u); }, replaceState: (s, t, u) => { states.push(s); addr.push("R " + u); } };
 globalThis.localStorage = { getItem: () => null, setItem() {} };
-globalThis.document = { addEventListener: (k, f) => { listeners[k] = f; }, getElementById: () => null, createElement: () => ({}), head: { appendChild() {} } };
+globalThis.document = { addEventListener: (k, f) => { listeners[k] = f; }, getElementById: id => id === "sell-slot" ? { set innerHTML(v) { OBX.root.innerHTML = OBX.root.innerHTML.replace(/<div id="sell-slot">[\s\S]*?<\/div><\/div>/, () => '<div id="sell-slot">' + v + "</div>"); } } : id === "sell-sales" ? { set innerHTML(v) { OBX.root.innerHTML = OBX.root.innerHTML.replace(/<div id="sell-sales">[\s\S]*?<\/div>/, () => '<div id="sell-sales">' + v + "</div>"); } } : null, createElement: () => ({}), head: { appendChild() {} } };
 globalThis.fetch = (u, o) => { calls.push(JSON.parse(o.body)); return Promise.resolve({ json: () => Promise.resolve(replies.shift() || {}) }); };
 new Function(SELL_MC_CLIENT)();
 const S = window.GAS_SELL, tick = async () => { for (let i = 0; i < 4; i++) await new Promise(r => setTimeout(r, 0)); };
@@ -33,7 +33,7 @@ const RANGE = (lo, hi, n) => ({ label: "x", make: "Ford", order: ["platform"], p
 //    and the result reads the Fastback's own range with no question repeated.
 S.onCar({ resolvedCar: { year: 1965, make: "Ford", model: "Mustang" } }, "1965 ford mustang");
 three(); replies = [{ question: BODYQ }]; await tick();
-ok(last().step === "result" && last().car === "1965 ford mustang", "typed Mustang: the engine reads the visitor's own words");
+ok(last().step === "range" && last().car === "1965 ford mustang", "typed Mustang: the engine reads the visitor's own words");
 ok(OBX.root.innerHTML.includes(`<q>${PROMPT}</q>`), "typed Mustang: the engine's body question");
 replies = [RANGE(43500, 56500, 11)]; chip("2", "Fastback"); await tick();
 ok(last().car === "1965 ford mustang Fastback", "typed Mustang: Fastback joins the typed words");

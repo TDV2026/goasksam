@@ -39,7 +39,7 @@ globalThis.window = { OBX, addEventListener() {}, matchMedia: () => ({ matches: 
 globalThis.location = { search: "", pathname: "/sell" };
 globalThis.history = { pushState: (s, t, u) => addr.push(u), replaceState: (s, t, u) => addr.push("R " + u) };
 globalThis.localStorage = { getItem: () => null, setItem() {} };
-globalThis.document = { addEventListener: (k, f) => { listeners[k] = f; }, getElementById: () => null, createElement: () => ({}), head: { appendChild() {} } };
+globalThis.document = { addEventListener: (k, f) => { listeners[k] = f; }, getElementById: id => id === "sell-slot" ? { set innerHTML(v) { OBX.root.innerHTML = OBX.root.innerHTML.replace(/<div id="sell-slot">[\s\S]*?<\/div><\/div>/, () => '<div id="sell-slot">' + v + "</div>"); } } : id === "sell-sales" ? { set innerHTML(v) { OBX.root.innerHTML = OBX.root.innerHTML.replace(/<div id="sell-sales">[\s\S]*?<\/div>/, () => '<div id="sell-sales">' + v + "</div>"); } } : null, createElement: () => ({}), head: { appendChild() {} } };
 globalThis.fetch = (u, o) => { const b = JSON.parse(o.body); calls.push(b); return Promise.resolve({ json: () => Promise.resolve(replies.shift() || {}) }); };
 new Function(SELL_MC_CLIENT)();
 const S = window.GAS_SELL, tick = () => new Promise(r => setTimeout(r, 0));
@@ -48,7 +48,7 @@ S.onCar({ resolvedCar: { year: 1965, make: "Ford", model: "Mustang" } }, "1965 F
 chip("California", "California"); chip("self", "I'll sell it myself"); chip("none", "No rush, right result only");
 replies = [{ label: "1965 Ford Mustang", question: body }];
 await tick(); await tick(); await tick();
-ok(calls.length === 1 && calls[0].step === "result" && calls[0].car === "1965 Ford Mustang", "the result is asked for the car as named");
+ok(calls.length === 1 && calls[0].step === "range" && calls[0].car === "1965 Ford Mustang", "the result is asked for the car as named");
 ok(OBX.root.innerHTML.includes(`<q>${PROMPT}</q>`), "the engine's question shows, in its own words");
 ok(/data-sellchip="0">Convertible<.*data-sellchip="1">Coupe<.*data-sellchip="2">Fastback</.test(OBX.root.innerHTML), "the engine's options, as the existing chips");
 ok(!/\$\d/.test(OBX.root.innerHTML), "no figure before the answer");
@@ -75,7 +75,7 @@ const before = calls.length;
 chip("California", "California"); chip("self", "x"); chip("none", "x");
 replies = [{ label: "1965 Ford Mustang Fastback", order: ["platform"], platform: null, marketAnswer: { cluster: [43500, 56500], poolN: 11 } }];
 await tick(); await tick(); await tick();
-ok(calls.length === before + 1 && calls[before].car === "1965 Ford Mustang Fastback", "answered in Market Check: the result reads the car with its body, once");
+ok(calls.length === before + 2 && calls[before].step === "range" && calls[before + 1].step === "rest" && calls[before].car === "1965 Ford Mustang Fastback" && calls[before + 1].car === "1965 Ford Mustang Fastback", "answered in Market Check: the result reads the car with its body, once (the range, then the rest)");
 ok(!OBX.root.innerHTML.includes("<q>") && !/data-sellchip="\d"/.test(OBX.root.innerHTML), "answered in Market Check: no second question");
 
 console.log(`sellQuestionCheck: ${pass} passed, ${fail} failed`);

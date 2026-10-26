@@ -46,12 +46,12 @@ globalThis.window = { OBX, addEventListener() {}, matchMedia: () => ({ matches: 
 globalThis.location = { search: "", pathname: "/sell" };
 globalThis.history = { pushState() {}, replaceState() {} };
 globalThis.localStorage = { getItem: () => null, setItem() {} };
-globalThis.document = { addEventListener: (k, f) => { listeners[k] = f; }, getElementById: () => null, createElement: () => ({}), head: { appendChild() {} } };
+globalThis.document = { addEventListener: (k, f) => { listeners[k] = f; }, getElementById: id => id === "sell-slot" ? { set innerHTML(v) { OBX.root.innerHTML = OBX.root.innerHTML.replace(/<div id="sell-slot">[\s\S]*?<\/div><\/div>/, () => '<div id="sell-slot">' + v + "</div>"); } } : id === "sell-sales" ? { set innerHTML(v) { OBX.root.innerHTML = OBX.root.innerHTML.replace(/<div id="sell-sales">[\s\S]*?<\/div>/, () => '<div id="sell-sales">' + v + "</div>"); } } : null, createElement: () => ({}), head: { appendChild() {} } };
 globalThis.fetch = (u, o) => { calls.push(JSON.parse(o.body)); return Promise.resolve({ json: () => Promise.resolve(replies.shift() || {}) }); };
 new Function(SELL_MC_CLIENT)();
 const S = window.GAS_SELL, tick = () => new Promise(r => setTimeout(r, 0));
 const chip = (key, text) => listeners.click({ preventDefault() {}, target: { closest: sel => (sel === "[data-sellchip]" ? { textContent: text, getAttribute: () => key } : null) } });
-async function run(label, reply) { S.onCar({ resolvedCar: { year: 1990, make: "Porsche", model: "911" } }, label); chip("California", "California"); chip("self", "x"); chip("none", "x"); replies = [reply]; await tick(); await tick(); await tick(); return OBX.root.innerHTML; }
+async function run(label, reply) { S.onCar({ resolvedCar: { year: 1990, make: "Porsche", model: "911" } }, label); chip("California", "California"); chip("self", "x"); chip("none", "x"); replies = reply && reply.marketAnswer && !reply.noRange && !reply.refusal && !reply.question ? [{ label: reply.label, make: reply.make, marketAnswer: reply.marketAnswer }, reply] : [reply]; await tick(); await tick(); await tick(); return OBX.root.innerHTML; }
 const NO_OURS = /pcard|sell-ps|Ask Sam about this|data-sellchip|sell-for|Analysis window|Sam would sell|\b\d+ of \d+\b/;
 for (const [k, d] of Object.entries(KINDS)) {
   const h = await run("car " + k, { label: "car " + k, noRange: noRangeOf(d) });

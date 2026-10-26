@@ -50,7 +50,7 @@ ok(reserveTile({ ...own, reserve_split: null }) === null && reserveTile({ ...own
 ok(!/[–—]|%|\$/.test(JSON.stringify([reserveTile({ ...own, reserve_split: rsOf("none", 9, 11, "2001 to 2005 911 Carrera") })])), "reserve card: no dash, no percentage, no price");
 // the old page-side counting is gone: the card reads only the engine field
 const factsSrc = fs.readFileSync(new URL("../lib/sell/sellFacts.js", import.meta.url), "utf8"), flowSrc = fs.readFileSync(new URL("../lib/sell/sellFlow.js", import.meta.url), "utf8");
-ok(!/reserveBuckets|by_reserve|RESERVE_SIDE_MIN|has_reserve === false/.test(factsSrc.replace(/\/\/[^\n]*/g, "") + flowSrc.replace(/\/\/[^\n]*/g, "")), "the page-side has_reserve counting is gone");
+ok(!/reserveBuckets|by_reserve|RESERVE_SIDE_MIN/.test(factsSrc.replace(/\/\/[^\n]*/g, "") + flowSrc.replace(/\/\/[^\n]*/g, "")) && !/has_reserve/.test(flowSrc.replace(/\/\/[^\n]*/g, "")), "the page-side has_reserve counting is gone");
 ok(/reserve_split: \(d && d\.reserve_split\) \|\| null/.test(factsSrc) && /best_day: \(d && d\.best_day\) \|\| null/.test(factsSrc), "the facts pass the engine's two fields through unchanged");
 // the best day card (e91)
 const { dayTile: dt2 } = await import("../lib/sell/sellFlow.js");
@@ -72,5 +72,15 @@ const tieRows = [...Array(4).fill(0).map((_, i) => dayRow("2026-09-14", 50000 + 
 const tie = dayTile({ by_day: dayBuckets(tieRows, false), window_label: "since October 2025" });
 ok(tie && /^Most often sold on$/.test(tie.label) && / and /.test(tie.head), "day card: on a tie the label drops the a and the big word names both days (" + (tie && tie.head) + ")");
 ok(!/Day the sale ended|best/i.test(JSON.stringify([one, tie])), "day card: no Day the sale ended, no best");
+// 6. the result in pieces (Oct 26 2026): the range alone, then the rest; each reports how long its pieces took; the waiting lines are the three in the order
+const chatSrc = fs.readFileSync(new URL("../api/sellChat.js", import.meta.url), "utf8");
+ok(/export async function buildRange\(/.test(flowSrc) && /export async function buildRest\(/.test(flowSrc) && /export async function buildResult\(/.test(flowSrc), "the flow has the range, the rest and the whole result");
+const rangeSrc = flowSrc.slice(flowSrc.indexOf("export async function buildRange("), flowSrc.indexOf("export async function buildResult("));
+ok(!/sellFactsFor\(|pickPlatform\(|partnerFor\(|buildBlock\(/.test(rangeSrc) && /answerFor\(car/.test(rangeSrc) && /readBlock\(/.test(rangeSrc), "the range reads the stored block or the engine's one answer and nothing else (no pool, pick or partner read)");
+ok(/timings\.resolve/.test(flowSrc) && /capped\("block_read"/.test(flowSrc) && /timings\.answer/.test(flowSrc) && /timings\.build/.test(flowSrc) && /capped\("partner"/.test(flowSrc) && /total: Date\.now\(\) - T0/.test(flowSrc), "every piece reports its milliseconds (resolve, the block read, the answer and where it came from, the build, the partner, the total)");
+ok(/b\.step === "range"/.test(chatSrc) && /b\.step === "rest"/.test(chatSrc) && /b\.step === "result"/.test(chatSrc), "the Sell route answers range, rest and result");
+ok(client.includes("Reading the sales for the ") && client.includes("Checking where cars like this sold") && client.includes("Nearly there") && client.includes("This one is taking longer than usual"), "the waiting lines are the ones asked for, in the client");
+ok(/startWait\("sell-waitbox", \[\[0, "Reading the sales for the " \+ S\.label\]\]\)/.test(client) && /startWait\("sell-slotwait", \[\[0, "Checking where cars like this sold"\], \[8, "Nearly there"\]\]\)/.test(client), "in order: reading (until the range), then checking, then nearly there");
+ok(/restFailed\(/.test(client) && /couldn\\'t read where cars like this sold just now/.test(client), "a rest that fails says so in its own place");
 console.log(`sellResultLinksCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);
