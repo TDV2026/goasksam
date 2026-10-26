@@ -134,9 +134,8 @@ button{font:inherit}
    at desktop (minmax so the receipt never gets crushed), one column stacked at 390 (media query at
    the bottom of this file, grouped with the rest of the phone rules). */
 /* align-items default (stretch, not start): the right column (the chart) grows to match whichever
-   column is taller instead of sizing to its own content alone and leaving empty space below it when
-   the left column (mileage/identity lines) runs long - the chart itself still centers in that
-   stretched space (.hero-chart below), so it never looks squeezed, only genuinely fills the row. */
+   column is taller instead of sizing to its own content alone; the chart's heading, size line and chart stay together at the top of that
+   stretched space (.hc-body below), never centered away from the heading. */
 .hero2col{display:grid;grid-template-columns:minmax(0,6fr) minmax(280px,6fr);gap:0 48px}
 /* No chart (fewer than 3 qualifying quarters, item 1): hero-right is omitted entirely rather than
    rendered empty, so .hero-left is the grid's only child - span the full row instead of sitting in
@@ -187,7 +186,7 @@ button{font:inherit}
 /* Right column, hero: "How this market has moved" - candles when the engine answer carries trend,
    else the strip (every sale as a dot on a lowest-to-highest line). No card surface, no photo. */
 .hero-chart{flex:1;display:flex;flex-direction:column;gap:10px}
-.hc-body{flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px}
+.hc-body{flex:1;display:flex;flex-direction:column;justify-content:flex-start;gap:10px}   /* Oct 26 2026: pinned to the top (was centered): a taller left column stretched this body and the centering opened a large empty band between the heading and the "by quarter" line */
 .hero-chart h2{margin:0;font:600 20px/1.3 var(--serif);color:var(--ink)}
 /* aspect-ratio (not a fixed px height): the SVG's own viewBox is cut to the SAME ratio (see
    candleChartHtml/stripChartHtml, js/onebox.js), so the chart always fills its box edge to edge at

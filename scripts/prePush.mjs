@@ -1094,6 +1094,12 @@ try {
   record("legalPagesCheck (scripts/legalPagesCheck.mjs)", "PASS", (out.match(/legalPagesCheck: .*/) || [""])[0]);
 } catch (e) {
   record("legalPagesCheck (scripts/legalPagesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+// The "How this market has moved" card (Sam, Oct 26 2026): the heading and the "by quarter" line sit together at 1440 and 390, no empty band, no sideways scroll. Rendered with the page's own CSS, no network.
+try {
+  const out = execSync("node scripts/chartGapCheck.mjs", { encoding: "utf8" });
+  record("chartGapCheck (scripts/chartGapCheck.mjs)", "PASS", (out.match(/chartGapCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("chartGapCheck (scripts/chartGapCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
