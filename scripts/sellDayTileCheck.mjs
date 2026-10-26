@@ -25,7 +25,7 @@ for (const [what, rows, w] of cases) {
   ok(bd && bd.days.reduce((n, g) => n + g.count, 0) + bd.undated === rows.length, `${what}: day counts add up to the pool (${rows.length})`);
   ok(!!t, `${what}: tile shown`); if (!t) continue;
   const text = [t.label, t.head, t.line, t.line2, t.words].filter(Boolean).join(" ");
-  if (w.tie) ok(t.line === "Five sales each, among the 12 sales in the last 12 months." && t.label === "Most of these sold on", `${what}: tie line reads naturally (got ${t.line})`);
+  if (w.tie) ok(t.line === "Five sales each, among the 12 sales in the last 12 months." && t.label === "Most often sold on", `${what}: tie line reads naturally (got ${t.line})`);
   if (w.tie) ok(/Sunday and Saturday|Saturday and Sunday/.test(t.head) && !t.line2, `${what}: ties named, no range`);
   else { ok(t.head === w.top, `${what}: top day ${w.top} (got ${t.head})`); ok(t.line === w.line, `${what}: line ${JSON.stringify(w.line)} (got ${JSON.stringify(t.line)})`); }
   ok(!t.line2, `${what}: the day card prints no sentence comparing the day's range with other days (Sam, Oct 26 2026)`);
