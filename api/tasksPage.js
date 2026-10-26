@@ -100,9 +100,15 @@ const APP_CSS = `
 .tc{position:relative;border:1px solid var(--div);border-radius:8px;background:var(--card);display:flex;flex-direction:column}
 .tc.open{outline:2px solid var(--ink);outline-offset:-1px}
 .tc .thit{display:flex;flex-direction:column;align-items:flex-start;gap:8px;width:100%;text-align:left;border:0;background:none;padding:14px 40px 8px 16px;cursor:pointer;color:var(--ink);font:inherit;min-height:44px}
+.tc .thit::before{content:"";position:absolute;inset:0;border-radius:8px}
+.tc:hover{border-color:var(--ink);background:var(--hover,#FAF8F4)}
 .tc .thit:focus-visible,.tc .sbtn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.tc .thit:focus-visible{outline:0}
+.tc .thit:focus-visible::before{outline:2px solid var(--ink);outline-offset:2px}
 .tc .thit::after{content:"";position:absolute;right:16px;top:20px;width:9px;height:9px;border-right:2px solid var(--sec);border-bottom:2px solid var(--sec);transform:rotate(45deg);transition:transform .15s}
 .tc .thit[aria-expanded=true]::after{transform:rotate(-135deg);top:25px}
+.tc .tshow{position:absolute;right:36px;top:14px;font:500 13px/1.4 var(--sans);color:var(--sec)}
+.tc .tbtns{position:relative;z-index:1;pointer-events:none}.tc .tbtns .sbtn{pointer-events:auto}
 .tc .tline{margin:0;font:500 16px/1.4 var(--sans);overflow-wrap:anywhere}
 .tc .tcount{font:400 14px/1.4 var(--sans);color:var(--sec)}
 .tc .tbtns{margin:0;padding:0 16px 14px}
@@ -333,8 +339,11 @@ const APP_JS = String.raw`(function(){
   function compactCard(t){
     var st = status(t), ov = t.overview || {}, isOpen = openId === t.id;
     var btns = '<span class="tbtns">' + (t.state === "paused" ? '<button class="sbtn" data-act="resume" data-id="' + t.id + '">Resume</button>' : '<button class="sbtn" data-act="pause" data-id="' + t.id + '">Pause</button>') + '<button class="sbtn" data-act="stop" data-id="' + t.id + '">Stop</button></span>';
-    var count = [starting[t.id] ? "Sam is checking the live cars now." : ov.live, ov.fresh].filter(Boolean).join(" \u00B7 ");
-    return '<article class="tc' + (isOpen ? " open" : "") + '" id="task-' + t.id + '"><button type="button" class="thit" id="tt-' + t.id + '" data-toggle="' + t.id + '" aria-expanded="' + isOpen + '" aria-controls="detail-' + t.id + '"><span class="pill ' + st[0] + '">' + st[1] + '</span><span class="tline">' + esc(t.summary) + "</span>" + (count ? '<span class="tcount">' + esc(count) + "</span>" : "") + "</button>" + btns + "</article>";
+    var nLive = Number(ov.liveCount) || 0;
+    var where = nLive > 0 && !starting[t.id] ? (isOpen ? "Shown below" : "Select the card to see " + (nLive === 1 ? "it" : "them")) : "";
+    var count = [starting[t.id] ? "Sam is checking the live cars now." : ov.live, where, ov.fresh].filter(Boolean).join(" \u00B7 ");
+    var showLabel = (isOpen ? "Hide " : "Show ") + (nLive > 0 ? (nLive === 1 ? "1 car" : nLive.toLocaleString("en-US") + " cars") : "cars");
+    return '<article class="tc' + (isOpen ? " open" : "") + '" id="task-' + t.id + '"><button type="button" class="thit" id="tt-' + t.id + '" data-toggle="' + t.id + '" aria-expanded="' + isOpen + '" aria-controls="detail-' + t.id + '"><span class="pill ' + st[0] + '">' + st[1] + '</span><span class="tshow">' + esc(showLabel) + '</span><span class="tline">' + esc(t.summary) + "</span>" + (count ? '<span class="tcount">' + esc(count) + "</span>" : "") + "</button>" + btns + "</article>";
   }
   function taskDetail(t){
     var h = '<section class="tdetail" id="detail-' + t.id + '" aria-label="' + esc(t.summary) + '">';

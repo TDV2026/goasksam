@@ -504,7 +504,14 @@ async function handler(req, res) {
       // Find's own cards for the cars an update lists (lib/tasks/fullCards.js), and the engine's one-line count in place of the model's paragraph.
       { const { attachFullCards, updateLine } = await import("../lib/tasks/fullCards.js"); if (!b.fast) await attachFullCards(env, withThreads).catch(() => {});   // b.fast: the page asks for the full cards next (action "cards") and fills them in
         for (const t of withThreads) for (const u of t.updates || []) if (u && u.role === "sam" && u.kind === "match" && u.data && Array.isArray(u.data.cards) && u.data.cards.length) u.data.line = updateLine(u); }
-      { const { overviewFacts } = await import("../lib/tasks/overview.js"); for (const t of withThreads) t.overview = overviewFacts(t); }
+      { const { overviewFacts, matchCarIds } = await import("../lib/tasks/overview.js");
+        // The cars the threads list that are still live, from the listing rows' own end times (one bounded read; a failed read counts the thread's cars as they stand).
+        let liveIds = null;
+        try { const all = [...new Set(withThreads.flatMap(matchCarIds))];
+          if (all.length && all.length <= 1000) { const now = Date.now(), keep = new Set(); let good = true;
+            for (let i = 0; i < all.length && good; i += 200) { const rows = await supabaseSelect(env, `live_listings?id=in.(${all.slice(i, i + 200).join(",")})&select=id,end_time`); if (!Array.isArray(rows)) { good = false; break; } for (const r of rows) if (!r.end_time || Date.parse(r.end_time) > now) keep.add(Number(r.id)); }
+            if (good) liveIds = keep; } } catch (e) { liveIds = null; }
+        for (const t of withThreads) t.overview = overviewFacts(t, liveIds); }
       // Opening the list is an interaction; the open thread's updates are read.
       if (b.open && /^[0-9a-f-]{36}$/.test(String(b.open))) { const t = tasks.find(x => x.id === b.open); if (t) await saveTask(env, t.id, { unread: 0, last_interaction_at: new Date().toISOString() }); }
       const working = tasks.filter(t => ["running", "needs_you"].includes(t.state)).length;

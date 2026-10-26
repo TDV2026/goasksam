@@ -143,7 +143,7 @@ try {
       await p.keyboard.press("Escape"); await wait(400);
       ok((await p.$$(".tdetail")).length === 0 && await p.evaluate(() => document.activeElement.id === "tt-00000000-0000-4000-8000-000000000001"), `[${W}] keyboard: Escape closes and returns the focus to the card`); await p.close(); }
     // 0 matches, 45 matches (the number is the server's), and a Task that needs the person
-    { const mk45 = (n, total) => mkTask(n, "running", { updates: [{ id: 300 + n, role: "sam", kind: "match", created_at: ago(2), text: "x", data: { opening: true, total, cards: total ? CARDS.map(c => ({ id: c.id, title: c.title, url: c.url })) : [] } }] });
+    { const mk45 = (n, total) => mkTask(n, "running", { updates: [{ id: 300 + n, role: "sam", kind: "match", created_at: ago(2), text: "x", listing_ids: total ? [1, 2, 3, ...Array.from({ length: total - 3 }, (_, i) => 1000 + i)] : [], data: { opening: true, total, cards: total ? CARDS.map(c => ({ id: c.id, title: c.title, url: c.url })) : [] } }] });
       const A = account([mk45(1, 0), mk45(2, 45), mkTask(3, "needs_you")]); const p = await open(A, W); await wait(900);
       const tx = await p.$$eval(".tgrid > .tc", cs => cs.map(c => c.innerText.replace(/\s+/g, " ")));
       ok(/No live cars match yet/.test(tx[0]) && /45 live cars match/.test(tx[1]) && /Needs you/i.test(tx[2]), `[${W}] counts: 0 matches, 45 matches (the server's number) and Needs you (${tx.join(" | ")})`);
@@ -152,6 +152,35 @@ try {
       await p.click("#task-00000000-0000-4000-8000-000000000002 [data-toggle]"); await wait(900);
       ok((await p.$$("#detail-00000000-0000-4000-8000-000000000002 .cars li, #detail-00000000-0000-4000-8000-000000000002 article.car")).length >= 1 && !(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), `[${W}] a Task with 45 matches opens without a sideways scroll`);
       await shot(p, `tasks-45-open-${W}`); await p.close(); }
+    // THE CASE FROM THE LIVE ACCOUNT (Oct 26 2026): the opening read found nothing (total 0, no cars), a later check found one live car (a follow-up update
+    // with a card and NO total). The card said "No live cars match yet" over a thread that listed the car. The count now reads the thread's own cars; the whole
+    // card is one real button with a visible text label; Pause and Stop stay separate.
+    { const opening = { id: 410, role: "sam", kind: "match", created_at: ago(5), text: "Nothing new matches right now.", listing_ids: [], data: { opening: true, total: 0, cards: [] } };
+      const follow = { id: 411, role: "sam", kind: "match", created_at: ago(2), text: "x", listing_ids: [3], data: { cards: [{ id: 3, title: CARDS[2].title, url: CARDS[2].url }] } };
+      const T = mkTask(1, "running", { updates: [opening, follow] }), B = mkTask(2, "running", { updates: [opening] });
+      const f1 = overviewFacts(T), f0 = overviewFacts(B), fEnded = overviewFacts(T, new Set());
+      ok(f1.live === "1 live car matches" && f1.liveCount === 1, `[${W}] one live match in the thread: the server's count is 1 (${JSON.stringify(f1)})`);
+      ok(f0.live === "No live cars match yet" && f0.liveCount === 0 && fEnded.live === "No live cars match right now" && fEnded.liveCount === 0, `[${W}] no cars at all says yet; every car ended says right now (${f0.live} | ${fEnded.live})`);
+      const A = account([T, B]); const p = await open(A, W); await wait(900);
+      const cardText = async n => p.$eval("#task-00000000-0000-4000-8000-00000000000" + n, c => c.innerText.replace(/\s+/g, " "));
+      const c1 = await cardText(1), c2 = await cardText(2);
+      ok(/1 live car matches/.test(c1) && !/No live cars match yet/.test(c1) && /Select the card to see it/.test(c1) && /Show 1 car/.test(c1), `[${W}] the card with one live match: count, where to look and the label (${c1})`);
+      ok(/No live cars match yet/.test(c2) && /Show cars/.test(c2) && !/Select the card/.test(c2), `[${W}] the card with no cars: yet line, plain Show cars label (${c2})`);
+      const tg = await p.$eval("#tt-00000000-0000-4000-8000-000000000001", b => { const cs = getComputedStyle(b), pr = getComputedStyle(b, "::before"), c = b.closest(".tc").getBoundingClientRect(), r = b.getBoundingClientRect(); return { tag: b.tagName, type: b.type, label: (b.querySelector(".tshow") || {}).innerText, cursor: cs.cursor, cover: pr.position === "absolute" && pr.inset !== "" , exp: b.getAttribute("aria-expanded"), ctl: b.getAttribute("aria-controls"), w: Math.round(c.width), h: Math.round(c.height), noDash: !/[\u2013\u2014]/.test(b.innerText) }; });
+      ok(tg.tag === "BUTTON" && tg.type === "button" && tg.label === "Show 1 car" && tg.cursor === "pointer" && tg.cover && tg.exp === "false" && !!tg.ctl, `[${W}] the toggle is a real button with a visible text label, a pointer and full-card cover (${JSON.stringify(tg)})`);
+      ok(!/\b(he|him|his)\b/i.test(c1 + " " + c2), `[${W}] the card words never call Sam he, him or his`);
+      // the whole card is the control: a click in the empty space at the bottom right of the card (the Pause and Stop row) opens it; Pause and Stop do not toggle
+      const rect = await p.$eval("#task-00000000-0000-4000-8000-000000000001", c => { const r = c.getBoundingClientRect(); return { x: r.right - 24, y: r.bottom - 18 }; });
+      await p.mouse.move(rect.x, rect.y); const hov = await p.$eval("#task-00000000-0000-4000-8000-000000000001", c => getComputedStyle(c).borderTopColor);
+      await p.mouse.click(rect.x, rect.y); await wait(900);
+      const o1 = await p.evaluate(() => ({ open: document.querySelector("#task-00000000-0000-4000-8000-000000000001").classList.contains("open"), label: document.querySelector("#tt-00000000-0000-4000-8000-000000000001 .tshow").innerText, line: document.querySelector("#task-00000000-0000-4000-8000-000000000001 .tcount").innerText, d: document.querySelectorAll(".tdetail").length }));
+      ok(o1.open && o1.label === "Hide 1 car" && /Shown below/.test(o1.line) && o1.d === 1, `[${W}] a click anywhere on the card opens it: label Hide 1 car, line says shown below (${JSON.stringify(o1)})`);
+      ok(hov !== "rgba(0, 0, 0, 0)", `[${W}] the card has a hover state (${hov})`);
+      await shot(p, `tasks-one-match-open-${W}`);
+      await p.click("#task-00000000-0000-4000-8000-000000000001 [data-act=stop]"); await wait(700);
+      ok(A.tasks[0].state === "done", `[${W}] Stop is its own button and acts on its own`);
+      ok(p._errs.length === 0, `[${W}] the one-match card: no page errors ${JSON.stringify(p._errs)}`);
+      ok(!(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), `[${W}] the one-match card: no sideways scroll`); await p.close(); }
     { const A = account([mkTask(1)]); const p = await open(A, W); await wait(600); ok(/You have 1 of 3 Tasks running\. 2 Tasks left\./.test(await text(p)), `[${W}] 1 Task: the status line`); await p.close(); }
     // the junk-folder line shows only while the server says no alert email has gone out yet
     { const A = account([mkTask(1)]); A.junk = true; const p = await open(A, W); await wait(600); ok(/check your junk folder/.test(await text(p)), `[${W}] junk line: shown while the server says so`); await p.close(); }
