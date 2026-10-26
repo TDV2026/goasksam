@@ -176,6 +176,9 @@ try {
       const o1 = await p.evaluate(() => ({ open: document.querySelector("#task-00000000-0000-4000-8000-000000000001").classList.contains("open"), label: document.querySelector("#tt-00000000-0000-4000-8000-000000000001 .tshow").innerText, line: document.querySelector("#task-00000000-0000-4000-8000-000000000001 .tcount").innerText, d: document.querySelectorAll(".tdetail").length }));
       ok(o1.open && o1.label === "Hide 1 car" && /Shown below/.test(o1.line) && o1.d === 1, `[${W}] a click anywhere on the card opens it: label Hide 1 car, line says shown below (${JSON.stringify(o1)})`);
       ok(hov !== "rgba(0, 0, 0, 0)", `[${W}] the card has a hover state (${hov})`);
+      // the one car in the thread is a full-width card, never squeezed into one of six tracks (Find's own n1 class: the grid carries its car count)
+      const cw = await p.evaluate(() => { const c = document.querySelector(".tkgrid .car"), g = document.querySelector(".tkgrid"); return c && g ? { car: Math.round(c.getBoundingClientRect().width), grid: Math.round(g.getBoundingClientRect().width), cls: g.className } : null; });
+      ok(cw && /\bn1\b/.test(cw.cls) && cw.car >= Math.min(300, cw.grid - 2), `[${W}] the one car in the thread is not squeezed (${JSON.stringify(cw)})`);
       await shot(p, `tasks-one-match-open-${W}`);
       await p.click("#task-00000000-0000-4000-8000-000000000001 [data-act=stop]"); await wait(700);
       ok(A.tasks[0].state === "done", `[${W}] Stop is its own button and acts on its own`);
