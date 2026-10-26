@@ -28,7 +28,7 @@ for (const [what, rows, w] of cases) {
   if (w.tie) ok(t.line === "five sales each, among the 12 in the last 12 months", `${what}: tie line reads naturally (got ${t.line})`);
   if (w.tie) ok(/Sunday and Saturday|Saturday and Sunday/.test(t.head) && !t.line2, `${what}: ties named, no range`);
   else { ok(t.head === w.top, `${what}: top day ${w.top} (got ${t.head})`); ok(t.line === w.line, `${what}: line ${JSON.stringify(w.line)} (got ${JSON.stringify(t.line)})`); }
-  ok(w.ranges ? /^The typical range for Sunday sales was \$[\d,]+ to \$[\d,]+, and for sales on other days \$[\d,]+ to \$[\d,]+\.$/.test(t.line2 || "") : !t.line2, `${what}: range only with eight or more in both groups`);
+  ok(!t.line2, `${what}: the day card prints no sentence comparing the day's range with other days (Sam, Oct 26 2026)`);
   if (t.line2) { const n = bd.top.count; ok(bd.top.count >= 8 && bd.other.count >= 8, `${what}: both range groups hold eight or more`); }
   ok(!BANNED.test(text), `${what}: no percentage, no banned word, no dash (${text})`);
   ok(!/\bwords?\b/.test(t.words) && !/[0-9$]/.test(t.words), `${what}: landing words carry no figure`);

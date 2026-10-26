@@ -68,7 +68,7 @@ ok(empty.includes("<sam big>Sam could not verify this one, so no figures are sho
 // A normal range answer (a plain 1992 Carrera 4): unchanged.
 const plain = await run("1992 Porsche 911 Carrera 4", { label: "1992 Porsche 911 Carrera 4", make: "Porsche", order: ["platform"], platform: { slug: "bringatrailer", name: "Bring a Trailer", why: "x", boxes: [], meta: [] }, marketAnswer: { cluster: [70000, 95000], poolN: 24, basisLine: "Based on 24 sales, the latest in September 2026." } });
 const plainText = plain.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
-ok(plainText.includes("$70,000 to $95,000") && plain.includes("Based on 24 sales, the latest in September 2026.") && plain.includes("Ask Sam about this") && /pcard/.test(plain), "normal range answer: unchanged (pick card, the shared card, the follow-up box)");
+ok(plainText.includes("$70,000 to $95,000") && plain.includes("Based on 24 sales, the latest in September 2026.") && !plain.includes("Ask Sam about this") && !plain.includes("sell-ask") && /pcard/.test(plain), "normal range answer: unchanged (pick card, the shared card), no Ask Sam section");
 
 console.log(`sellRefusalCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -14,7 +14,7 @@ const render = async (mod, url, query) => { const { default: h } = await import(
     Promise.resolve(h({ method: "GET", url, query, headers: { host: "goasksam.com", cookie: "" }, socket: {} }, res)).catch(() => resolve("")); setTimeout(() => resolve(""), 20000); }); };
 const buy = await render("buy", "/find", {}), mc = await render("marketCheck", "/market-check", {}), tk = await render("tasksPage", "/tasks", {}), tm = await render("tasksPage", "/tasks/mine", { app: "1" });
 const cl = JSON.parse(/^const CLIENT = (".*");$/m.exec(fs.readFileSync(path.join(ROOT, "api/buy.js"), "utf8"))[1]);
-ok(/PH_FOLLOW_WIDE = "Search any car, or tell Sam what to change"/.test(cl), "Buy's bottom-bar placeholder: 'Search any car, or tell Sam what to change'");
+ok(/PH_FOLLOW_WIDE = "Search another car, or tell Sam what to change\."/.test(cl), "Buy's bottom-bar placeholder: 'Search another car, or tell Sam what to change.'");
 ok(/closest\('#gas-rail a\.gas-navitem\[href="\/find"\]'\)/.test(cl) && /return goStart\(true\);/.test(cl.slice(cl.indexOf("1c: the rail's own"))), "the rail's Buy link opens Buy's start page (goStart)");
 ok(/if \(!filterParts\(cur\)\.length\) return goStart\(true\);/.test(cl), "removing the last chip opens Buy's start page");
 ok(/var nsb = \$\("newsearch"\); if \(nsb\) nsb\.addEventListener\("click", function\(\)\{ goStart\(true\); \}\);/.test(cl) && /closest\("\[data-newsearch\]"\)/.test(cl), "the phone list's '+ New search' opens Buy's start page");

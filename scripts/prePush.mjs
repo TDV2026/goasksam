@@ -1132,6 +1132,20 @@ try {
 } catch (e) {
   record("sellCutoffCheck (scripts/sellCutoffCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Sell result page display changes (Lane C, Oct 26 2026): no Ask Sam section, no day-range sentence, the range card links to Market Check for the same car in a new tab. No network.
+try {
+  const out = execSync("node scripts/sellResultLinksCheck.mjs", { encoding: "utf8" });
+  record("sellResultLinksCheck (scripts/sellResultLinksCheck.mjs)", "PASS", (out.match(/sellResultLinksCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("sellResultLinksCheck (scripts/sellResultLinksCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// The header scrolls with the page on every shell page, and Find starts over (New search link, the rail's Find item, the bottom box line). Real browser; needs PROBE_KEY.
+try {
+  const out = execSync("node scripts/shellHeaderFindCheck.mjs", { encoding: "utf8", timeout: 900000 });
+  if (/SKIP/.test(out)) record("shellHeaderFindCheck (scripts/shellHeaderFindCheck.mjs)", "SKIP", "no PROBE_KEY"); else record("shellHeaderFindCheck (scripts/shellHeaderFindCheck.mjs)", "PASS", (out.match(/shellHeaderFindCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("shellHeaderFindCheck (scripts/shellHeaderFindCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | ") || String(e.message || "").slice(0, 160));
+}
 // The /sell door (Lane C, Oct 26 2026): crew sees the newer Sell, the public the previous one until SELL_NEXT_ON=1 flips it. No network.
 try {
   const out = execSync("node scripts/sellRouteCheck.mjs", { encoding: "utf8" });

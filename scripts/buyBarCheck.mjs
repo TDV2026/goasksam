@@ -10,7 +10,7 @@ const client = JSON.parse(/^const CLIENT = (".*");$/m.exec(buy)[1]), css = JSON.
 const i = client.indexOf("function drawSuggest("), d = client.slice(i, client.indexOf("\n  function ", i + 1));
 ok(i > 0 && !/sgc|data-send|insertBefore/.test(d) && /if \(sg\) sg\.remove\(\);/.test(d), "no suggestion bubbles above the bar (nothing drawn, a left row removed)");
 ok(!/class="rchip sgc"/.test(client), "no suggestion chip markup anywhere on the page");
-ok(/PH_FOLLOW_WIDE = "Search any car, or tell Sam what to change"/.test(client), "Sam's placeholder");
+ok(/PH_FOLLOW_WIDE = "Search another car, or tell Sam what to change\."/.test(client), "Sam's placeholder");
 const b = css.slice(css.indexOf("BUY STAGE 1d ITEM 7"));
 ok(/\.composer \.search\{border:1\.5px solid rgba\(21,32,26,\.28\);padding:6px 6px 6px 22px/.test(b) && /\.composer \.sendbtn\{width:44px;height:44px;opacity:\.7\}/.test(b), "a stronger bar and an obvious send button");
 ok(/<div class="composer"><div class="col">/.test(buy), "the bar is the page's footer (stays at the bottom)");

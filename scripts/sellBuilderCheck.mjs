@@ -59,7 +59,7 @@ ok(calls.length === before, "typed Singer: no Sell read of the plain car");
 const plain = await run({ year: 1992, make: "Porsche", model: "911", trim: "Carrera 4" }, "1992 Porsche 911 Carrera 4",
   { label: "1992 Porsche 911 Carrera 4", make: "Porsche", order: ["platform"], platform: { slug: "bringatrailer", name: "Bring a Trailer", why: "x", boxes: [], meta: [] }, marketAnswer: { cluster: [70000, 95000], poolN: 24 } });
 ok(calls[calls.length - 1].car === "1992 Porsche 911 Carrera 4", "1992 Carrera 4: the result is read for the car as named");
-ok(/<card \$70000>/.test(plain) && plain.includes("Ask Sam about this") && !plain.includes(LINE), "1992 Carrera 4: unchanged, the shared card and the follow-up box, no refusal line");
+ok(/<card \$70000>/.test(plain) && !plain.includes("Ask Sam about this") && !plain.includes("sell-ask") && !plain.includes(LINE), "1992 Carrera 4: unchanged (the shared card), no Ask Sam section, no refusal line");
 
 console.log(`sellBuilderCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
