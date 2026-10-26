@@ -35,9 +35,7 @@
   ],
   "rewrites": [
     { "source": "/api/task-link", "destination": "/api/watch" },
-    { "source": "/sell", "has": [{ "type": "query", "key": "car" }], "destination": "/api/sellNext" },
-    { "source": "/sell", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/sellPage?_crew=1" },
-    { "source": "/sell", "destination": "/api/sellPage" },
+    { "source": "/sell", "destination": "/api/sell" },
     { "source": "/tasks", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/tasksPage?_crew=1" },
     { "source": "/tasks", "destination": "/api/tasksPage" },
     { "source": "/tasks/mine", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/tasksPage?app=1&_crew=1" },
@@ -162,6 +160,9 @@
     },
     "api/marketCheck.js": {
       "includeFiles": "public/onebox.html"
+    },
+    "api/sell.js": {
+      "includeFiles": "public/{onebox.html,styles.css,sell-old.html}"
     },
     "api/sellPage.js": {
       "includeFiles": "public/sell-old.html"

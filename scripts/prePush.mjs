@@ -1116,6 +1116,20 @@ try {
 } catch (e) {
   record("outboundUtmCheck (scripts/outboundUtmCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Sell cut-off (Lane C, Oct 26 2026): the old Sell's conversation must keep the answer box and the newest message on screen after every step, at 1440x900 and 390x844. Real browser on the code being pushed; needs PROBE_KEY.
+try {
+  const out = execSync("node scripts/sellCutoffCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  if (/SKIP/.test(out)) record("sellCutoffCheck (scripts/sellCutoffCheck.mjs)", "SKIP", "no PROBE_KEY"); else record("sellCutoffCheck (scripts/sellCutoffCheck.mjs)", "PASS", (out.match(/sellCutoffCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("sellCutoffCheck (scripts/sellCutoffCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// The /sell door (Lane C, Oct 26 2026): crew sees the newer Sell, the public the previous one until SELL_NEXT_ON=1 flips it. No network.
+try {
+  const out = execSync("node scripts/sellRouteCheck.mjs", { encoding: "utf8" });
+  record("sellRouteCheck (scripts/sellRouteCheck.mjs)", "PASS", (out.match(/sellRouteCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("sellRouteCheck (scripts/sellRouteCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });

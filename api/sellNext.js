@@ -37,8 +37,8 @@ export default async function handler(req, res) {
   if (heldFor(req, res)) return;   // the holding page while CURTAIN_SEALED=1 (lib/_hold.js); a keyed server job, crew and testers pass
   // SWITCHED OFF for the public (Oct 8 2026, Sam): 404 unless SELL_NEXT_ON=1, our header credential
   // (lib/_credential.js, never a key in the address), or crew opening the preview landing itself
-  // (/api/sellNext). A crew visit to a result address (/sell?car=) still gets the live /sell.
-  const keyed = hasServerCredential(req) || (isCrewRequest(req) && !/[?&]car=/.test(String(req.url || "")));
+  // (/api/sellNext). Since Oct 26 2026 crew also get it at /sell and at result addresses (/sell?car=), routed by api/sell.js.
+  const keyed = hasServerCredential(req) || isCrewRequest(req);
   // A result address (/sell?car=..., routed here by vercel.json) while the new Sell is off: the live /sell
   // page, exactly as /sell serves it, so the public never sees the new Sell before the cutover.
   if (process.env.SELL_NEXT_ON !== "1" && !keyed) return /[?&]car=/.test(String(req.url || "")) ? (res.setHeader("X-Robots-Tag", "noindex, follow"), sellPage(req, res)) : res.status(404).json({ error: "Not found." });
