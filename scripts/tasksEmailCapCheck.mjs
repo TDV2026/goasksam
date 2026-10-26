@@ -30,14 +30,10 @@ function run(updates, cars) {
 const cars1 = {}; for (let i = 0; i < 45; i++) cars1[i] = car(i, 1 + (44 - i));
 const opening = { id: 1, task_id: TASK.id, kind: "match", email_status: "queued", created_at: hours(-1), listing_ids: [...Array(45).keys()],
   data: { opening: true, total: 45, cards: [...Array(12).keys()].map(i => ({ id: i, title: `Car ${i}` })), email_ids: [...Array(45).keys()].sort((a, b) => b - a), email_cards: [...Array(15).keys()].map(i => ({ id: 44 - i, title: `Car ${44 - i}` })) } };
-{ const { sends, reads } = await run([opening], cars1); const m = sends[0] || { text: "", html: "" };
-  const shownIds = [...m.html.matchAll(/data-car="(\d+)"/g)].map(x => Number(x[1]));
-  ok(sends.length === 1, "day one: one email");
-  ok(shownIds.length === FIRST_EMAIL_CARS && shownIds.join() === "44,43,42,41,40", `day one: the 5 cars ending soonest, soonest first (${shownIds})`);
-  ok(m.text.includes("40 more cars match. Open the Task to see them.") && m.html.includes("40 more cars match. Open the Task to see them."), "day one: the 'more' line, 40 in the text and the html");
-  ok(Buffer.byteLength(m.html) < 100000 && Buffer.byteLength(m.text) < 100000, `day one: well under 100KB (${Buffer.byteLength(m.html)} bytes of html)`);
-  ok(reads.full[0] === 5 && reads.slim[0] === 45, `day one: the slim read counts all 45, the full read is only the 5 shown (${reads.slim}, ${reads.full})`);
-  ok(!/\s[—–]\s|—|–/.test(m.text.replace(/·/g, "")), "day one: no em or en dashes in the email text"); }
+// Oct 26 2026 (Sam): cars shown at setup count as seen, so the opening update is never emailed, however many cars it holds. The first email is a later update's.
+{ const { sends, marks } = await run([opening], cars1);
+  ok(sends.length === 0, "day one: an opening update with 45 cars sends no email (the cars were shown at setup)");
+  ok(marks.some(m => m[0] === 1 && m[1] === "setup"), "day one: and it is marked as shown at setup"); }
 // Day two: 8 new cars in a later update.
 const cars2 = {}; for (let i = 100; i < 108; i++) cars2[i] = car(i, 2 + (i - 100));
 const later = { id: 2, task_id: TASK.id, kind: "match", email_status: "queued", created_at: hours(-1), data: { cards: [...Array(8).keys()].reverse().map(i => ({ id: 100 + i, title: `Car ${100 + i}` })) } };

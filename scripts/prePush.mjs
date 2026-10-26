@@ -1130,6 +1130,13 @@ try {
 } catch (e) {
   record("sellRouteCheck (scripts/sellRouteCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Cars shown at setup count as seen (Lane C, Oct 26 2026): no repeat in the thread or the combined email, the ending reminder stays. No network.
+try {
+  const out = execSync("node scripts/tasksSeenCheck.mjs", { encoding: "utf8" });
+  record("tasksSeenCheck (scripts/tasksSeenCheck.mjs)", "PASS", (out.match(/tasksSeenCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("tasksSeenCheck (scripts/tasksSeenCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Prior listings (Lane C, Oct 15 2026): "sold before" only when an earlier listing of the same car sold. No network.
 try {
   const out = execSync("node scripts/priorListingCheck.mjs", { encoding: "utf8" });
