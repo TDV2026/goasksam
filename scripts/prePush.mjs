@@ -1146,6 +1146,13 @@ try {
 } catch (e) {
   record("shellHeaderFindCheck (scripts/shellHeaderFindCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | ") || String(e.message || "").slice(0, 160));
 }
+// Market Check's waiting state (Lane C, Oct 26 2026): the lines advance, the slow line after 20 seconds, a failed answer says so in place. Real browser; needs PROBE_KEY.
+try {
+  const out = execSync("node scripts/marketWaitCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  if (/SKIP/.test(out)) record("marketWaitCheck (scripts/marketWaitCheck.mjs)", "SKIP", "no PROBE_KEY"); else record("marketWaitCheck (scripts/marketWaitCheck.mjs)", "PASS", (out.match(/marketWaitCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("marketWaitCheck (scripts/marketWaitCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | ") || String(e.message || "").slice(0, 160));
+}
 // The /sell door (Lane C, Oct 26 2026): crew sees the newer Sell, the public the previous one until SELL_NEXT_ON=1 flips it. No network.
 try {
   const out = execSync("node scripts/sellRouteCheck.mjs", { encoding: "utf8" });

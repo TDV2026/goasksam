@@ -23,7 +23,8 @@ const b = await puppeteer.launch({ executablePath: process.env.CHROME_PATH || "/
 async function open(W, H, url) {
   const p = await b.newPage(); await p.setViewport({ width: W, height: H });
   await p.setRequestInterception(true);
-  p.on("request", r => { const u = r.url(); const path0 = u.replace("https://goasksam.com", "").split("?")[0];
+  p.on("request", async r => { const u = r.url(); const path0 = u.replace("https://goasksam.com", "").split("?")[0];
+    { const om = /^\/obx\.[^/]+\/(.+)$/.exec(path0); if (om) { try { return r.respond({ status: 200, contentType: "application/javascript; charset=utf-8", body: (await import("node:fs")).readFileSync(new URL("../public/js/" + om[1], import.meta.url), "utf8") }); } catch {} } }
     if (r.resourceType() === "document" && u.startsWith("https://goasksam.com") && html[path0.replace(/\/$/, "") || "/"]) return r.respond({ status: 200, contentType: "text/html; charset=utf-8", body: html[path0.replace(/\/$/, "") || "/"] });
     if (u.startsWith("https://goasksam.com/")) return r.continue({ headers: { ...r.headers(), "x-ops-key": KEY, "x-launch-stage-test": "2", ...(BYPASS ? { "x-vercel-protection-bypass": BYPASS } : {}) } });
     return r.continue(); });

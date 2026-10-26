@@ -54,6 +54,55 @@ for (const [W, H] of [[1440, 900], [390, 844]]) {
   }
   await p.close();
 }
+// ---- PART 2: the newer Sell, in pieces (Oct 26 2026). Its result address is opened with the Sell calls answered by this script, so the timing is known:
+// the range comes back after 0.8 s, the rest after 3 s. Proves: the waiting line first, the range card on screen before the rest, the staged line in the
+// slot, then the pick card and the latest sales; a failed rest says so in its own place and keeps the range card; the slow line appears; the page never scrolls sideways
+// and its search box stays on screen. Phone and desktop.
+process.env.SELL_NEXT_ON = "1";
+const nextHandler = (await import("../api/sellNext.js")).default;
+const nextHtml = await new Promise(resolve => {
+  const res = { setHeader() {}, status() { return this; }, send: b => resolve(String(b)), end: () => resolve(""), json: o => resolve(JSON.stringify(o)) };
+  nextHandler({ method: "GET", url: "/sell", headers: { host: "goasksam.com", cookie: "" }, query: {} }, res);
+});
+ok(nextHtml.length > 5000 && /GAS_SELL_CFG/.test(nextHtml), "the newer Sell page renders in this process");
+const RANGE = { label: "2006 Porsche 911 Carrera", make: "Porsche", marketAnswer: { tier: "result", cluster: [38500, 51500], poolN: 24, basisLine: "Based on 24 sales, the latest in September 2026.", readAt: "2026-10-26T12:00:00Z" }, timings: { resolve: 300, engine: 500 } };
+const REST = { carLine: { title: "2006 Porsche 911 Carrera", generation: "997", span: null }, order: ["platform"], platform: { slug: "bringatrailer", name: "Bring a Trailer", house: false, why: "Cars like this have sold most often on Bring a Trailer.", boxes: [{ key: "day", label: "Most often sold on a", head: "Monday", line: "Five of the 24 sales in the last 12 months ended on a Monday." }], meta: [], link: "https://bringatrailer.com/" }, partner: null, recent: [{ title: "2006 Porsche 911 Carrera", house: "Bring a Trailer", date: "2026-09-12", price: 41000, url: "https://bringatrailer.com/listing/x/", photo: null }], marketAnswer: RANGE.marketAnswer, timings: { facts: 2000 } };
+for (const [W, H] of [[1440, 900], [390, 844]]) for (const mode of ["ok", "restfails"]) {
+  const tag = `${W}x${H} ${mode}`;
+  const p = await b.newPage(); await p.setViewport({ width: W, height: H });
+  await p.evaluateOnNewDocument(() => { window.GAS_WAIT_SCALE = 0.1; });
+  await p.setRequestInterception(true);
+  p.on("request", async r => {
+    const u = r.url(), pth = u.replace("https://goasksam.com", "").split("?")[0];
+    { const om = /^\/obx\.[^/]+\/(.+)$/.exec(pth); if (om) { try { return r.respond({ status: 200, contentType: "application/javascript; charset=utf-8", body: (await import("node:fs")).readFileSync(new URL("../public/js/" + om[1], import.meta.url), "utf8") }); } catch {} } }   // the script token in this page may not be deployed yet: serve the code being pushed
+    if (r.resourceType() === "document" && pth === "/sell") return r.respond({ status: 200, contentType: "text/html; charset=utf-8", body: nextHtml });
+    if (pth === "/api/sellChat" && r.method() === "POST") {
+      let step = ""; try { step = JSON.parse(r.postData() || "{}").step; } catch {}
+      if (step === "range") { await sleep(800); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(RANGE) }); }
+      if (step === "rest") { await sleep(3000); return mode === "ok" ? r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(REST) }) : r.respond({ status: 500, contentType: "application/json", body: JSON.stringify({ error: "x" }) }); }
+    }
+    if (u.startsWith("https://goasksam.com/")) return r.continue({ headers: { ...r.headers(), "x-ops-key": KEY, "x-launch-stage-test": "2" } });
+    return r.continue();
+  });
+  await p.goto("https://goasksam.com/sell?car=" + encodeURIComponent("2006 Porsche 911 Carrera") + "&state=California&how=self&rush=none", { waitUntil: "domcontentloaded", timeout: 60000 }).catch(() => {});
+  const snap = () => p.evaluate(() => ({ wait: (document.querySelector("[data-waitline]") || {}).textContent || null, bar: !!document.querySelector(".sell-wait-bar i"), card: !!document.querySelector(".sfc-card"), pick: !!document.querySelector(".pcard"), sales: !!document.querySelector("#sell-sales .grid3, #sell-sales .sale"), failMsg: (document.querySelector(".sell-wait-fail") || {}).textContent || null, slow: !!document.querySelector("[data-waitslow]:not([hidden])"), sideways: document.documentElement.scrollWidth > innerWidth + 2, input: (() => { const i = document.getElementById("ob-input"); if (!i) return false; const r = i.getBoundingClientRect(); return r.width > 0 && r.top >= 0 && r.bottom <= innerHeight; })() }));
+  await sleep(450); let t = await snap();
+  ok(/^Reading the sales for the 2006 Porsche 911 Carrera$/.test(t.wait || "") && t.bar && !t.card && !t.pick, `${tag}: first the waiting line with a moving bar, no card yet (${t.wait})`);
+  await sleep(1200); t = await snap();
+  ok(t.card && !t.pick && t.bar && /^(Checking where cars like this sold|Nearly there)$/.test(t.wait || ""), `${tag}: the range card is on screen before the rest, with the staged line in the slot (${t.wait})`);
+  await sleep(2600); t = await snap();
+  if (mode === "ok") {
+    ok(t.card && t.pick && t.sales && !t.bar && !t.failMsg, `${tag}: then the pick card and the latest sales, the wait gone`);
+    ok(await p.evaluate(() => /Monday/.test(document.body.innerText) && /Most often sold on a/i.test(document.body.innerText)), `${tag}: the day card is in the pick card`);
+  } else {
+    ok(t.card && !t.pick && !t.bar && /couldn.t read where cars like this sold/.test(t.failMsg || ""), `${tag}: a failed rest says so in its own place and the range card stays (${t.failMsg})`);
+  }
+  ok(!t.sideways && t.input, `${tag}: no sideways scroll, the search box is on screen`);
+  await p.close();
+}
+// the slow line and the 20-second rule are in the client
+const clientSrc = (await import("node:fs")).readFileSync(new URL("../lib/sell/sellMcClient.js", import.meta.url), "utf8");
+ok(/secs >= 20 && slow/.test(clientSrc) && /This one is taking longer than usual\./.test(clientSrc), "the client adds 'This one is taking longer than usual' after 20 seconds and keeps going");
 await b.close();
 console.log(`sellCutoffCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

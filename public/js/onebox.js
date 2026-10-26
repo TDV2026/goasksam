@@ -2771,27 +2771,29 @@
   // Never a fake progress bar or percentage.
   function loaderHtml() {
     return '<div class="loader" data-stage="note"><span class="ltext"></span>' +
-      '<span class="ldots"><i></i><i></i><i></i></span></div>';
+      '<span class="ldots"><i></i><i></i><i></i></span></div><p class="lslow" hidden>This one is taking longer than usual.</p>';
   }
   function setLoaderLine(text) { var t = document.querySelector(".loader .ltext"); if (t) t.textContent = text; }
+  function showLoaderSlow() { var t = document.querySelector(".lslow"); if (t) t.hidden = false; }
   // start(lines): shows the first line, then advances through the rest on a min dwell while waiting.
   // finish(steps, cb): lets the current line finish its dwell, plays the final steps in order (each
   // for the min dwell), then fires cb. Faithful to "sequential with a minimum dwell so lines don't
   // flash." A screen swap (clarification / error / choice) simply replaces the loader DOM.
   function makeLoader() {
-    var MIN = 600, shownAt = 0, ambient = [], ai = 0, timer = null, finalizing = false;
+    var MIN = 600, shownAt = 0, timers = [], finalizing = false;
     function show(line) { setLoaderLine(line); shownAt = Date.now(); }
-    function ambientTick() {
-      timer = setTimeout(function () {
-        if (finalizing) return;
-        if (ai < ambient.length - 1) { ai++; show(ambient[ai]); }
-        ambientTick();
-      }, MIN);
-    }
+    function clearAll() { timers.forEach(clearTimeout); timers = []; }
     return {
-      start: function (lines) { ambient = lines || []; ai = 0; if (ambient.length) show(ambient[0]); ambientTick(); },
+      // start(stages): [[seconds, line], ...]. The first line at once, each later line when its time comes while the answer is still out, and after
+      // 20 seconds "This one is taking longer than usual" is added; the wait goes on until the answer or the request's own limit says otherwise.
+      // window.GAS_WAIT_SCALE shortens the clock for the check only.
+      start: function (stages) {
+        var k = Number(window.GAS_WAIT_SCALE) || 1;
+        (stages || []).forEach(function (st) { if (st[0] === 0) show(st[1]); else timers.push(setTimeout(function () { if (!finalizing) show(st[1]); }, st[0] * 1000 * k)); });
+        timers.push(setTimeout(function () { if (!finalizing) showLoaderSlow(); }, 20000 * k));
+      },
       finish: function (steps, cb) {
-        finalizing = true; if (timer) clearTimeout(timer);
+        finalizing = true; clearAll();
         var seq = (steps || []).slice();
         (function next(delay) {
           setTimeout(function () {
@@ -3036,7 +3038,8 @@
       setRootHtmlLifted(inboxHtml(text) + loaderHtml() + footHtml());
       wire();
       loader = makeLoader();
-      loader.start(["Working out exactly what car this is", "Pulling the real sales"]);
+      var carWords = String((vehicle && (carLabel(vehicle) || "")) || text || "").replace(/\s+/g, " ").trim().slice(0, 80);
+      loader.start([[0, carWords ? "Pulling the real sales for the " + carWords : "Pulling the real sales"], [4, "Sorting out which ones count"], [10, "Nearly there"]]);
     }
     var car = { raw: text };
     if (obCtxOnce) { car.context = obCtxOnce; obCtxOnce = ""; }   // the answer's context: what was entered before Sam asked (the engine reads them together)
