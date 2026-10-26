@@ -23,8 +23,8 @@ ok(refusalOf({ tier: "result", cluster: [60000, 90000], poolN: 30 }) === null &&
 const flow = fs.readFileSync(new URL("../lib/sell/sellFlow.js", import.meta.url), "utf8");
 const br = flow.slice(flow.indexOf("export async function buildResult("));
 const at = br.indexOf("if (first.refusal) return");
-ok(at > 0 && at < br.indexOf("sellFactsFor(car)") && at < br.indexOf("pickPlatform(") && at < br.indexOf("partnerFor("), "buildResult: the refusal returns before any venue, pick or partner read");
-ok(/if \(first\.refusal\) return \{[^}]*refusal: first\.refusal \}/.test(br) && !/if \(first\.refusal\) return \{[^}]*(places|platform|partner|marketAnswer|recent)/.test(br), "buildResult: the refusal carries nothing but the engine's line");
+ok(at > 0 && at < br.indexOf("const facts = block") && at < br.indexOf("pickPlatform(") && at < br.indexOf("partnerFor("), "buildResult: the refusal returns before any venue, pick or partner read");
+ok(/if \(first\.refusal\) return done\(\{ \.\.\.head, refusal: first\.refusal \}\)/.test(br), "buildResult: the refusal carries nothing but the engine's line");
 
 // 3. The client on a stubbed page.
 const listeners = {}, calls = [];

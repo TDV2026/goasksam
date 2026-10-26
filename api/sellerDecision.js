@@ -3596,6 +3596,8 @@ async function handler(req, res) {
           obTimes.engineMs = Date.now() - te;
           if (wantsWarm && answerCacheable(oneBox) && !/_choice$/.test(String(oneBox && oneBox.tier || ""))) {   // a recompute self-call lands here too and writes the fresh row
             await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, slimAnswerForWire(oneBox)).catch(() => {});
+            // the nightly warm's own credentialed call also stores the car-only Sell block beside the answer (lib/sell/sellBlock.js)
+            if (req.body?.warm === true && credentialed) { try { await (await import("../lib/sell/sellBlock.js")).warmSellBlock({ supabaseUrl, supabaseKey }, oneBoxText, oneBox, warmKey); } catch (e) { /* the block is optional */ } }
           }
         }
       } catch (e) {

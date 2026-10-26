@@ -34,8 +34,8 @@ ok(noRangeOf(null) === null, "no answer: nothing");
 const flow = fs.readFileSync(new URL("../lib/sell/sellFlow.js", import.meta.url), "utf8");
 const br = flow.slice(flow.indexOf("export async function buildResult("));
 const at = br.indexOf("if (first.noRange) return");
-ok(at > 0 && at < br.indexOf("sellFactsFor(car)") && at < br.indexOf("pickPlatform(") && at < br.indexOf("partnerFor("), "buildResult: a refusal returns before any venue, pick, partner or tile read");
-ok(/if \(first\.noRange\) return \{[^}]*noRange: first\.noRange \}/.test(br) && !/if \(first\.noRange\) return \{[^}]*(places|platform|partner|tiles|recent|marketAnswer)/.test(br), "buildResult: the refusal carries nothing but the engine's card");
+ok(at > 0 && at < br.indexOf("const facts = block") && at < br.indexOf("pickPlatform(") && at < br.indexOf("partnerFor("), "buildResult: a refusal returns before any venue, pick, partner or tile read");
+ok(/if \(first\.noRange\) return done\(\{ \.\.\.head, noRange: first\.noRange \}\)/.test(br), "buildResult: the refusal carries nothing but the engine's card");
 
 // 3. The client on a stubbed page, with the real shared card.
 const listeners = {}, calls = [];

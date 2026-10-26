@@ -4980,7 +4980,7 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
-    const { runOneBox } = await import("../lib/onebox.js");
+    const { runOneBox, attachSellFields } = await import("../lib/onebox.js");
     const { warmAnswerKeyFor, writeWarmAnswer } = await import("../lib/live/search.js");
     const DEMO = ["2015 Porsche 911 GT3", "2005 Porsche 911", "1965 Ford Mustang", "1957 Porsche 356 Speedster", "1966 Ferrari 275 GTB", "2010 Porsche Boxster Convertible", "2023 Porsche 911 GT3", "2014 Porsche 911 GT3"];   // the 2014 GT3: the demo's "This car before" listing car (Sam, c9, Oct 18 2026)
     const PERF = ["2008 Porsche 997 Carrera S Coupe", "1995 Porsche 911 Carrera", "1969 Chevrolet Camaro"];
@@ -5000,11 +5000,14 @@ async function handleOps(req, res) {
         if (!vehicle || !vehicle.make) throw new Error(rv && rv.status === "lookup_timeout" ? "lookup_timeout" : "unresolved");
         const generation = await findGeneration(vehicle, env).catch(() => null);
         const tr = Date.now();
-        const d = await runOneBox(vehicle, generation, q, env, null);
+        let d = await runOneBox(vehicle, generation, q, env, null);
         row.ms = Date.now() - tr;
         if (!d || !d.tier) throw new Error("engine returned no tier");
+        d = await attachSellFields(d, vehicle, generation, env, q, tr);   // e91: the stored answer carries best_day and reserve_split
         row.tier = d.tier; row.readAt = d.readAt || null;
         if (/^(result|thin|refusal|not_tracked)$/.test(String(d.tier))) { await writeWarmAnswer(env, warmAnswerKeyFor(vehicle, generation), d); row.stored = true; result.warmed++;
+          // the car-only Sell block beside the answer (lib/sell/sellBlock.js), from this same answer; never a reason to fail the warm
+          { const sb = await (await import("../lib/sell/sellBlock.js")).warmSellBlock(env, q, d, warmAnswerKeyFor(vehicle, generation)); row.sellBlock = sb.stored ? "stored" : sb.why; }
           // keep-warm (Sam, Oct 18 2026): the demo's own stored answer through Lane C's SINGLE write path, once per car,
           // only after a full result; refreshDemoAnswer re-reads the row just stored (a hit) and writes partner_last
           // itself, or returns why it did not (not a demo car, still reading, blocked). This task writes nothing of its own.
