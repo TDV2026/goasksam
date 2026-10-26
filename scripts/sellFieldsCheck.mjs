@@ -71,7 +71,13 @@ rows = [];
 for (let i = 0; i < 12; i++) sale(1972, day(10 + i), 28000 + i * 100, i < 3 ? true : null);
 a1 = await ask(1972);
 ok("reserve_split null when no scope clears the floor", a1.raw.reserve_split === null, JSON.stringify(a1.raw.reserve_split));
+// the stored core carries both fields too
+{ const { coreOf } = await import(pathToFileURL(path.join(root, "lib/live/search.js")).href);
+  rows = []; for (let i = 0; i < 10; i++) sale(1972, day(10 + i), 30000 + i * 200, true); for (let i = 0; i < 10; i++) sale(1972, day(30 + i), 26000 + i * 200, false);
+  const x = await ask(1972); const core = coreOf(x.raw, { v: { make: "Datsun", model: "240Z", year: 1972 }, generation: null, refine: null });
+  ok("the stored core carries best_day and reserve_split unchanged", core && "best_day" in core && core.reserve_split && core.reserve_split.winner === "reserve", JSON.stringify(core && core.reserve_split)); }
 // every other shape carries null, never a made-up field
+rows = [];
 const none = await oneEngineAnswer({ make: "Datsun", model: "240Z", trim: "", year: 1999, bodyStyle: null }, null, "1999 Datsun 240Z", env, null);
 ok("an answer with no pool carries both fields as null", none.raw.best_day === null && none.raw.reserve_split === null);
 ok("the stamp is e91", E.ENGINE_VERSION.split(" ")[0] === "e91-20261026-sellfields");
