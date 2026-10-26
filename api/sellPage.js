@@ -75,6 +75,12 @@ export async function sellShellHtml(req) {
 
 export default async function handler(req, res) {
   if (heldFor(req, res)) return;   // the holding page while CURTAIN_SEALED=1 (lib/_hold.js); a keyed server job, crew and testers pass
+  // One switch (Oct 26 2026): with SELL_NEXT_ON=1 the newer Sell answers /sell (api/sell.js), so a direct visit to this address goes there too and no route
+  // reaches the old wizard. api/sell.js and api/sellNext.js only call this handler while the flag is off, so this never loops.
+  if (process.env.SELL_NEXT_ON === "1") {
+    const qs = String(req.url || "").includes("?") ? String(req.url).slice(String(req.url).indexOf("?")) : "";
+    res.setHeader("Cache-Control", "no-store"); res.setHeader("Location", "/sell" + qs); return res.status(302).end();
+  }
   const crew = isCrewRequest(req);
   const html = await sellShellHtml(req);
   res.setHeader("Content-Type", "text/html; charset=utf-8");

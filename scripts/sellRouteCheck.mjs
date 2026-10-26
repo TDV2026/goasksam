@@ -37,6 +37,15 @@ for (const [flag, label] of [[undefined, "flag off"], ["1", "flag on"]]) {
     ok(pubCar.code === 200 && NEW(pubCar.body), "flag on: the public at a result address sees the newer Sell");
   }
 }
+// The old door: /api/sellPage goes to /sell when the flag is on (one switch closes every route to the old wizard), and serves the old Sell when it is off.
+{ const page = (await import("../api/sellPage.js")).default;
+  process.env.SELL_NEXT_ON = "1";
+  const on = await call(page, "/api/sellPage"), onQ = await call(page, "/api/sellPage?car=2004%20Porsche%20911");
+  ok(on.code === 302 && on.hdr["location"] === "/sell", "flag on: /api/sellPage redirects to /sell (" + on.code + " " + on.hdr["location"] + ")");
+  ok(onQ.code === 302 && onQ.hdr["location"] === "/sell?car=2004%20Porsche%20911", "flag on: the query goes with it");
+  delete process.env.SELL_NEXT_ON;
+  const off = await call(page, "/api/sellPage");
+  ok(off.code === 200 && OLD(off.body), "flag off: /api/sellPage still serves the previous Sell"); }
 delete process.env.SELL_NEXT_ON;
 console.log(`sellRouteCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);
