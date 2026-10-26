@@ -7,7 +7,7 @@ import { withTracking, track, linkAnonToUser } from "../lib/track/log.js";
 import { validateBearer } from "../lib/_auth.js";
 import { supabaseEnv, supabaseSelect, supabaseInsert } from "../lib/_supabase.js";
 import { beehiivTier } from "../lib/_beehiiv.js";
-import { maybeSubscribeAfterSignin } from "../lib/newsletterSignup.js";
+import { maybeSubscribeAfterSignin, waitBounded } from "../lib/newsletterSignup.js";
 import { readVisitorId } from "../lib/_visitor.js";
 import { logEvent, stitchVisitorToAccount, EVENTS } from "../lib/events.js";
 import { cors as gasCors } from "../lib/_cors.js";
@@ -164,8 +164,9 @@ async function handler(req, res) {
   // whatever is stored; never silently flip an existing opt-in back off.
   const consent = req.body && typeof req.body.marketingConsent === "boolean" ? req.body.marketingConsent : undefined;
   // The sign-in card's Daily Vroom box (Sam, Oct 26 2026): ticked and signed in (the token is verified above) adds the email to the list, in the background,
-  // never awaited: whatever Beehiiv answers, the sign-in below is not slowed or blocked (lib/newsletterSignup.js).
-  maybeSubscribeAfterSignin(req, env, auth.email, consent);
+  // registered with the platform's keep-alive (waitUntil) so the response never cuts it off; with no keep-alive it is awaited here, bounded by its own 3 second
+  // timeout. Whatever Beehiiv answers, the sign-in below is not blocked (lib/newsletterSignup.js).
+  await waitBounded(maybeSubscribeAfterSignin(req, env, auth.email, consent));
 
   try {
     const existing = await supabaseSelect(env,
