@@ -44,6 +44,7 @@ for (const [W, H] of [[1440, 900], [390, 844]]) {
   for (const [label, chip] of STEPS) {
     if (!chip) { await p.evaluate(() => document.getElementById("inp").focus()); await p.keyboard.type("2004 porsche", { delay: 8 }); await p.keyboard.press("Enter"); }
     else {
+      for (let w = 0; w < 30; w++) { const there = await p.evaluate(t => [...document.querySelectorAll("button,.chip,[class*=chip]")].some(e => e.offsetParent !== null && e.textContent.trim() === t), chip); if (there) break; await sleep(1000); }   // the live resolver can be slow: wait for the question, up to 30 seconds
       const clicked = await p.evaluate(t => { const c = [...document.querySelectorAll("button,.chip,[class*=chip]")].reverse().find(e => e.offsetParent !== null && e.textContent.trim() === t); if (c) { c.click(); return true; } return false; }, chip);
       ok(clicked, `${tag} ${label}: the chip was there to answer with`);
       if (!clicked) break;
