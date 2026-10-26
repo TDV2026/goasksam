@@ -33,6 +33,7 @@
       "permanent": false
     }
   ],
+  "regions": ["dub1"],
   "rewrites": [
     { "source": "/api/task-link", "destination": "/api/watch" },
     { "source": "/sell", "destination": "/api/sell" },

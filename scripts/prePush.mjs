@@ -1153,6 +1153,13 @@ try {
 } catch (e) {
   record("marketWaitCheck (scripts/marketWaitCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | ") || String(e.message || "").slice(0, 160));
 }
+// Function region (Lane C, Oct 26 2026): the functions run next to the database. No network.
+try {
+  const out = execSync("node scripts/regionCheck.mjs", { encoding: "utf8" });
+  record("regionCheck (scripts/regionCheck.mjs)", "PASS", (out.match(/regionCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("regionCheck (scripts/regionCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The /sell door (Lane C, Oct 26 2026): crew sees the newer Sell, the public the previous one until SELL_NEXT_ON=1 flips it. No network.
 try {
   const out = execSync("node scripts/sellRouteCheck.mjs", { encoding: "utf8" });
