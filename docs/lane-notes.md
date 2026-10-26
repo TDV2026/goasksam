@@ -356,3 +356,13 @@ Branch laned-tasks3. Lane B's commit 8677167f is cherry-picked onto it (be84d1ae
 - LOCK RELEASED (Lane C, legal, chart and newsletter batches). Outbound link tags are next (FULL running).
 - PUSHED (Lane C, 05:53Z): outbound link tags, stamp unchanged (e90-20261025-singer, read live). Every auction or listing link on Find, Tasks, Market Check, Sell and in the Tasks emails carries utm_source=goasksam, utm_medium=referral, utm_campaign=<find, market_check, tasks, tasks_email, sell> through one helper (lib/outboundUtm.js) at render time, never in stored engine answers (no stamp bump); an existing utm is left alone, query and fragment kept, nothing about the person; noreferrer dropped from listing links; script tokens js.20261026e and obx.20261026a. Checks 0 FAIL, 6 SKIP, 172 PASS. Deployment Ready.
 - LOCK RELEASED (Lane C, outbound link tags)
+- GOLDEN FAIL LINES (Lane C, 15:12Z, report-only, from the last FULL golden read on goasksam.com, scripts/goldenTruth.mjs, mode api, 6 rows: 22 PASS, 7 FAIL, 2 RENDER DRIFT, 1 PENDING). For Lane B to classify:
+  1. row 3, 1995 Porsche 911 Carrera, Buy page: the Buy page run ended on /market-check instead of a /find result.
+  2. row 21, 1965 Ford Mustang, "options add up to Any": the bare page prints no identity question and no count, so the sum cannot be checked (- vs -).
+  3. row 24, 1969 Chevrolet Camaro, "option Coupe": the question prints Coupe (6), the page it opens shows 8 sales.
+  4. row 24, 1969 Chevrolet Camaro, "option Convertible": the question prints Convertible (2), the page it opens shows 9 sales.
+  5. row 26, 2005 Porsche 911, "Targa: chip equals typed words": clicking Targa shows no count line, typing "2005 Porsche 911 targa" shows no count.
+  6. row 26, 2005 Porsche 911, "option Targa": the question prints Targa (1), the page it opens shows no count.
+  7. shared card, row 3, 1995 Porsche 911 Carrera, "partner demo": differs from Market Check at character 307, the demo adds a "The typical range is the mid..." line (sfc-howline) that Market Check's card does not have.
+  Also in the same read (not FAIL lines): RENDER DRIFT row 1 (2025 Porsche 911, Market Check page prints no range, engine answer $144,000 to $164,000) and row 3 (Sell page prints $67,000 to $93,500, engine answer $64,000 to $104,000); PENDING: Buy shared card not yet adopted.
+- PUSH LOCK (Lane C, 15:13Z): /sell door (crew sees the newer Sell at /sell; public unchanged until SELL_NEXT_ON), stamp unchanged (e90-20261025-singer), FULL. No other push inside this lock.
