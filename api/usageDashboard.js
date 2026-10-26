@@ -1541,6 +1541,19 @@ async function handleOps(req, res) {
   // spec_market_cache) once, selecting only a few JSON paths per row (no answer bodies), and counts them by engine
   // version, tier, refusal kind and wideSpread. The trim-question candidates are the rows a trim question could reach
   // (a too-spread-out refusal or a wide result); the invariant cases are refusal kind invariant_failed. No writes.
+  // task=consentcount (Oct 26 2026): READ-ONLY. How many accounts carry the old "Send me Sam's market notes" flag. A count only: no email, no id leaves this task.
+  if (task === "consentcount") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    let flagged = 0, total = 0, cursor = "";
+    for (let page = 0; page < 200; page++) {
+      const rows = await supabaseSelect(env, `accounts?select=user_id,marketing_consent&order=user_id.asc&limit=1000` + (cursor ? `&user_id=gt.${cursor}` : ""));
+      if (!Array.isArray(rows) || !rows.length) break;
+      for (const r of rows) { total++; if (r.marketing_consent === true) flagged++; }
+      cursor = rows[rows.length - 1].user_id;
+      if (rows.length < 1000) break;
+    }
+    return res.status(200).json({ task: "consentcount", ocdSpend: 0, writes: 0, accounts: total, flagged });
+  }
   if (task === "storedcount") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const t0 = Date.now(); const counts = { rows: 0, byEngine: {}, byTier: {}, byRefusalKind: {}, wideSpread: 0, trimQuestionCandidates: 0, invariantFailed: 0, notTrackedKeys: [] };
