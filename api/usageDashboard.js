@@ -1585,7 +1585,9 @@ async function handleOps(req, res) {
     const { trimTextIsNoise } = await import("../lib/vehicle.js");
     const t0 = Date.now(), maxPages = Math.max(1, Math.min(60, Number(req.query?.pages) || 20));
     const onlyVersion = String(req.query?.version || ENGINE_VERSION);   // e95: only the answers stamped with the live engine; older stored rows are counted, not judged
-    const out = { version: onlyVersion, rows: 0, otherVersion: 0, results: 0, setViolations: 0, wrongModel: 0, noiseTrim: 0, pooled: { apart: 0, split: 0, alike: 0 }, first: { setViolations: [], wrongModel: [], noiseTrim: [], apart: [], split: [] }, readFailed: 0 };
+    const out = { version: onlyVersion, rows: 0, otherVersion: 0, results: 0, setViolations: 0, wrongModel: 0, noiseTrim: 0, pooled: { apart: 0, split: 0, alike: 0 }, first: { setViolations: [], wrongModel: [], noiseTrim: [], apart: [], split: [] }, readFailed: 0,
+      // e95 class counters (Lane B, Oct 28): counts over the live-version results, the first 10 of each with what explains it
+      classes: { optionQuestion: { built: 0, asked: 0, alike: 0, split: 0, apart: 0 }, wideAlike: { n: 0, examples: [] }, windowMismatch: { n: 0, examples: [] }, yearApart: { n: 0, examples: [] }, lowMileTiles: { sales: 0, answers: 0, examples: [] }, zeroFromNull: { n: 0, examples: [] } } };
     let cursor = req.query?.after ? String(req.query.after) : "";
     const keep = (k, o) => { if (out.first[k].length < 20) out.first[k].push(o); };
     for (let page = 0; page < maxPages; page++) {
@@ -1603,7 +1605,27 @@ async function handleOps(req, res) {
           const trims = [rc.trim, ...(Array.isArray(d.trimOptions) ? d.trimOptions.map(o => o && (o.label || o.value)) : [])].filter(Boolean).map(String);
           const noisy = trims.filter(t => t.split(/\s+/).some(w => trimTextIsNoise(w))); if (noisy.length) { out.noiseTrim++; keep("noiseTrim", { key, values: noisy.slice(0, 3) }); }
         }
+        if (/^(body_choice|generation_choice|trim_choice|gearbox_choice|variant_choice)$/.test(String(d.tier || ""))) { out.classes.optionQuestion.built++; out.classes.optionQuestion.asked++; }
         if (d.tier === "result") {
+          const C = out.classes, ex = (k, o) => { if (C[k].examples.length < 10) C[k].examples.push({ key, ...o }); };
+          const cl = Array.isArray(d.cluster) && d.cluster.length === 2 ? d.cluster.map(Number) : null, n = Number(d.poolN) || 0;
+          const optGroups = [["body", d.bodyOptions], ["variant", d.variantOptions], ["gearbox", d.gearboxOptions], ["generation", d.generationOptions], ["trim", d.trimOptions]].map(([dim, l]) => [dim, (Array.isArray(l) ? l : []).filter(o => o && Number(o.n) > 0)]).filter(([, l]) => l.length >= 2);
+          const built = optGroups.length > 0 || !!d.identityQuestion;
+          let gg = null; try { gg = pooledApartGuard(d, null); } catch (e) { gg = null; }
+          const state = gg && gg.pooledApart ? "apart" : gg && gg.pooledSplit ? "split" : "alike";
+          if (built) { C.optionQuestion.built++; C.optionQuestion[state]++; }
+          if (cl && cl[0] > 0 && cl[1] > 1.6 * cl[0] && state === "alike") { C.wideAlike.n++; ex("wideAlike", { range: cl, ratio: Math.round(cl[1] / cl[0] * 100) / 100, n, years: d.poolYears || null, rung: d.fallbackRung || null, options: optGroups.map(([dim, l]) => dim + ":" + l.map(o => `${o.label} ${o.n}`).join("/")).join(" ") || null, optionsAtFloor: optGroups.some(([, l]) => l.filter(o => Number(o.n) >= 3).length >= 2) }); }
+          const bk = d.trend && d.trend.movement && Array.isArray(d.trend.movement.buckets) ? d.trend.movement.buckets : [];
+          const barSum = bk.reduce((t, b) => t + (Number(b.count) || 0), 0);
+          if (bk.length && n && barSum !== n) { C.windowMismatch.n++; ex("windowMismatch", { cardN: n, barSum, windowWords: d.windowWords || null, span: d.trend.movement.spanLabel || null }); }
+          const yrs = {}; for (const r of (Array.isArray(d.rawPool) ? d.rawPool : [])) { const y = Number(r.year), v = Number(r._usd ?? r._allin ?? r._hammer); if (y > 0 && Number.isFinite(v)) (yrs[y] = yrs[y] || []).push(v); }
+          const pq = (arr, f) => { const v = [...arr].sort((x, y) => x - y), k = (v.length - 1) * f, i = Math.floor(k), j = Math.min(i + 1, v.length - 1); return v[i] + (v[j] - v[i]) * (k - i); };
+          const yl = Object.keys(yrs).map(Number).filter(y => yrs[y].length >= 3).sort((x, y) => x - y); let yApart = null;
+          for (let i = 0; i < yl.length && !yApart; i++) for (let j = i + 1; j < yl.length; j++) if (pq(yrs[yl[i]], 0.75) < pq(yrs[yl[j]], 0.25) || pq(yrs[yl[j]], 0.75) < pq(yrs[yl[i]], 0.25)) { yApart = [yl[i], yl[j]]; break; }
+          if (yApart && yl.length >= 2 && /year_widened|generation|model_any_year/.test(String(d.fallbackRung || ""))) { C.yearApart.n++; ex("yearApart", { years: yApart, groups: yApart.map(y => `${y}: ${yrs[y].length} sales, median ${Math.round(pq(yrs[y], 0.5))}`), rung: d.fallbackRung, range: cl }); }
+          const lo = (Array.isArray(d.cards) ? d.cards : []).filter(c => Number(c.mi) > 0 && Number(c.mi) < 500 && Number(c.year) > 0 && Number(c.year) <= new Date().getUTCFullYear() - 15);
+          if (lo.length) { C.lowMileTiles.sales += lo.length; C.lowMileTiles.answers++; ex("lowMileTiles", { cars: lo.slice(0, 2).map(c => `${c.title} ${c.mi} mi $${c.price}`) }); }
+          for (const o of [...(((d.pooledSplit || {}).options) || []), ...(((d.pooledApart || {}).options) || []), ...(((gg || {}).pooledSplit || {}).options || []), ...(((gg || {}).pooledApart || {}).options || [])]) if (o && (o.low === 0 || o.high === 0 || o.median === 0)) { C.zeroFromNull.n++; ex("zeroFromNull", { option: `${o.dimension}:${o.label}`, low: o.low, high: o.high, median: o.median }); break; }
           out.results++;
           let g = null; try { g = pooledApartGuard(d, null); } catch (e) { g = null; }
           const cls = g && g.pooledApart ? "apart" : g && g.pooledSplit ? "split" : "alike"; out.pooled[cls]++;
