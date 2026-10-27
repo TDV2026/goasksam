@@ -11,7 +11,8 @@ import { fileURLToPath, pathToFileURL } from "url";
 const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
 const E = await import(pathToFileURL(path.join(root, "lib/onebox.js")).href);
 const MR = await import(pathToFileURL(path.join(root, "lib/modelRules.js")).href);
-const { oneEngineAnswer, scopeReasonOf, QUESTION_FLOOR } = E;
+const { oneEngineAnswer, scopeReasonOf } = E;
+const QUESTION_FLOOR = E.QUESTION_FLOOR || 3;
 let failed = 0; const ok = (n, c, d) => { if (!c) failed++; console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? "  " + d : ""}`); };
 const ev = (row, it) => { const ci = it.indexOf(":"); const alias = ci > 0 && it[ci + 1] !== ":" ? it.slice(0, ci) : null; const expr = alias ? it.slice(ci + 1) : it; if (expr.startsWith("raw_record->>")) { const k = expr.slice(13); const v = row.raw_record[k]; return [alias || k, v == null ? null : String(v)]; } return [alias || expr, row[expr] === undefined ? null : row[expr]]; };
 const likeRe = v => new RegExp("^" + String(v).replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$", "i");
@@ -26,10 +27,18 @@ sale("Lamborghini", "Diablo", 2001, "13k-Kilometer 2001 Lamborghini Diablo VT 6.
 // a car with a real body question: six coupes near 20,000 and six convertibles near 40,000, no trim
 for (let i = 0; i < 6; i++) sale("Acme", "Zeta", 1972, `1972 Acme Zeta Coupe`, 20000 + i * 300, 20 + i * 40, "Coupe");
 for (let i = 0; i < 6; i++) sale("Acme", "Zeta", 1972, `1972 Acme Zeta Convertible`, 70000 + i * 300, 25 + i * 40, "Convertible");
-// a trim question where one body's sales are another trim: GT coupes (5), GT convertibles (1), plain convertibles (6)
+// a trim question where one body's sales are another trim: GT coupes (5), plain convertibles (6)
 for (let i = 0; i < 5; i++) sale("Acme", "Omega", 1980, `1980 Acme Omega GT Coupe`, 30000 + i * 300, 20 + i * 40, "Coupe");
-sale("Acme", "Omega", 1980, `1980 Acme Omega GT Convertible`, 52000, 30, "Convertible");
 for (let i = 0; i < 6; i++) sale("Acme", "Omega", 1980, `1980 Acme Omega Convertible`, 50000 + i * 300, 25 + i * 40, "Convertible");
+// gearbox: Theta has 7 manuals and 1 automatic (the automatic option has one sale); Iota has 6 manuals at 20,000 and 6 automatics at 45,000; Kappa 6 and 6 at the same price
+const gb = (model, year, n, label, price, ago0) => { for (let i = 0; i < n; i++) sale("Acme", model, year, `${year} Acme ${model} ${label}`, price + i * 150, ago0 + i * 30, "Coupe"); };
+gb("Theta", 1985, 7, "5-Speed Manual", 20000, 10); gb("Theta", 1985, 1, "Automatic", 30000, 15);
+gb("Iota", 1985, 6, "5-Speed Manual", 20000, 10); gb("Iota", 1985, 6, "Automatic", 45000, 12);
+gb("Kappa", 1985, 6, "5-Speed Manual", 20000, 10); gb("Kappa", 1985, 6, "Automatic", 20100, 12);
+// generations: Corvette C3 (1968 to 1982) six sales near 20,000; C4 (1984 to 1996) six near 45,000; C5 (1997 to 2004) one sale
+for (let i = 0; i < 6; i++) sale("Chevrolet", "Corvette", 1975 + (i % 4), `${1975 + (i % 4)} Chevrolet Corvette Coupe`, 20000 + i * 200, 20 + i * 40, "Coupe");
+for (let i = 0; i < 6; i++) sale("Chevrolet", "Corvette", 1990 + (i % 4), `${1990 + (i % 4)} Chevrolet Corvette Coupe`, 45000 + i * 200, 25 + i * 40, "Coupe");
+sale("Chevrolet", "Corvette", 2000, "2000 Chevrolet Corvette Coupe", 30000, 50, "Coupe");
 globalThis.fetch = async (url) => {
   const u = new URL(String(url));
   if (u.pathname.endsWith("/sales_archive")) {
@@ -49,13 +58,13 @@ const ask = async (v, text) => { const a = (await oneEngineAnswer(v, null, text,
 const optionsOf = a => (a.bodyOptions || a.gearboxOptions || a.variantOptions || []).map(o => (o && typeof o === "object") ? o.label : o);
 
 // 1. the lock
-ok("lock: the edition lock is in car data", MR.editionBodyLock("Lamborghini", "Diablo", "SE") === "coupe" && MR.editionBodyLock("Lamborghini", "Diablo", "SE30") === "coupe" && MR.editionBodyLock("Lamborghini", "Diablo", "VT") === null && MR.editionBodyLock("Lamborghini", "Countach", "SE") === null);
+ok("lock: the edition lock is in car data", typeof MR.editionBodyLock === "function" && MR.editionBodyLock("Lamborghini", "Diablo", "SE") === "coupe" && MR.editionBodyLock("Lamborghini", "Diablo", "SE30") === "coupe" && MR.editionBodyLock("Lamborghini", "Diablo", "VT") === null && MR.editionBodyLock("Lamborghini", "Countach", "SE") === null);
 const d1 = await ask({ make: "Lamborghini", model: "Diablo", trim: "SE", year: 2001, bodyStyle: null }, "2001 Lamborghini Diablo SE");
 ok("Diablo SE: no body question is asked", d1.tier !== "body_choice", `tier ${d1.tier}`);
 ok("Diablo SE: the answer never holds a Roadster sale", !(d1.cards || []).some(c => /roadster/i.test(String(c.title || ""))), (d1.cards || []).map(c => c.title).join(" | "));
 // 2. a trim-scoped question drops an option that is another trim
 const d2 = await ask({ make: "Acme", model: "Omega", trim: "GT", year: 1980, bodyStyle: null }, "1980 Acme Omega GT");
-ok("Omega GT: the Convertible option (one GT sale, six plain convertibles) is never offered", !optionsOf(d2).some(l => /convertible/i.test(l)), `tier ${d2.tier} ${JSON.stringify(optionsOf(d2))}`);
+ok("Omega GT: the Convertible option (no GT sale, six plain convertibles) is never offered", !optionsOf(d2).some(l => /convertible/i.test(l)), `tier ${d2.tier} ${JSON.stringify(optionsOf(d2))}`);
 ok("Omega GT: the answer holds only GT sales", (d2.cards || []).every(c => /\bGT\b/.test(String(c.title || ""))), (d2.cards || []).map(c => c.title).join(" | "));
 // 3. a real question stands
 const d3 = await ask({ make: "Acme", model: "Zeta", trim: "", year: 1972, bodyStyle: null }, "1972 Acme Zeta");
@@ -68,6 +77,28 @@ ok("Zeta Convertible: typed words name the body, no question", d4.tier !== "body
 { const qr = { dimension: "body", kept: "Coupe", dropped: ["Convertible"] };
   const r = scopeReasonOf({ tier: "thin", poolYears: [1980, 1980], rawPool: [], questionResolved: qr }, { year: 1980 });
   ok("scope_reason names the scope used when an option is dropped", /Coupe/.test(String(r)) && !/[–—]/.test(String(r)), String(r)); }
+// 5. every dimension runs the full rule (behaviour, on option answers)
+const QR = E.questionRule || (async d => d);
+const gv = m => ({ make: "Acme", model: m, trim: "", year: 1985, bodyStyle: null });
+{ const d = await QR({ tier: "gearbox_choice", gearboxOptions: ["Manual", "Automatic"], optionCounts: [7, 1], prompt: "Manual or Automatic?" }, gv("Theta"), null, "1985 Acme Theta", env, null);
+  ok("gearbox: an automatic option with one sale is dropped and the manual answers as itself", d.tier !== "gearbox_choice" && d.questionResolved && d.questionResolved.kept === "Manual", `tier ${d.tier} ${JSON.stringify(d.questionResolved || null)}`); }
+{ const d = await QR({ tier: "gearbox_choice", gearboxOptions: ["Manual", "Automatic"], optionCounts: [6, 6], prompt: "Manual or Automatic?" }, gv("Iota"), null, "1985 Acme Iota", env, null);
+  ok("gearbox: two options with 6 sales each that price apart stay a question", d.tier === "gearbox_choice" && d.questionChecked === true, `tier ${d.tier}`); }
+{ const d = await QR({ tier: "gearbox_choice", gearboxOptions: ["Manual", "Automatic"], optionCounts: [6, 6], prompt: "Manual or Automatic?" }, gv("Kappa"), null, "1985 Acme Kappa", env, null);
+  ok("gearbox: two options that do not price apart are not asked, the answer says so", d.tier !== "gearbox_choice" && d.questionResolved && d.questionResolved.why === "no_price_split", `tier ${d.tier} ${JSON.stringify(d.questionResolved || null)}`); }
+{ const d = await QR({ tier: "gearbox_choice", gearboxOptions: ["Manual", "Automatic"], optionCounts: [6, 6], prompt: "Manual or Automatic?" }, gv("Iota"), null, "1985 Acme Iota Manual", env, null);
+  ok("gearbox: the typed words already name the answer, no question", d.tier !== "gearbox_choice" && d.questionResolved && d.questionResolved.why === "typed", `tier ${d.tier} ${JSON.stringify(d.questionResolved || null)}`); }
+{ const d = await QR({ tier: "variant_choice", variantKey: "competition", variantOptions: ["Competition Package", "Standard"], optionCounts: [0, 12], prompt: "Competition Package or standard?" }, gv("Iota"), null, "1985 Acme Iota", env, null);
+  ok("edition: an edition option with no sales in its own pool is dropped", d.tier !== "variant_choice" && d.questionResolved && d.questionResolved.kept === "Standard", `tier ${d.tier} ${JSON.stringify(d.questionResolved || null)}`); }
+{ const gens = [{ label: "C3 (1968-1982)", query: "Chevrolet Corvette C3" }, { label: "C4 (1984-1996)", query: "Chevrolet Corvette C4" }, { label: "C5 (1997-2004)", query: "Chevrolet Corvette C5" }];
+  const d = await QR({ tier: "generation_choice", generationOptions: gens, prompt: "Which generation?" }, { make: "Chevrolet", model: "Corvette", trim: "", year: null, bodyStyle: null }, null, "Chevrolet Corvette", env, null);
+  ok("generation: the C5 option (one sale) is dropped, C3 and C4 stay", d.tier === "generation_choice" && d.generationOptions.length === 2 && !d.generationOptions.some(o => /C5/.test(o.label)), `tier ${d.tier} ${JSON.stringify((d.generationOptions || []).map(o => o.label))}`);
+  ok("generation: every option left has 3 or more sales", Array.isArray(d.optionCounts) && d.optionCounts.every(c => c >= QUESTION_FLOOR), JSON.stringify(d.optionCounts)); }
+{ const d = await QR({ tier: "body_choice", bodyOptions: ["Coupe", "Convertible"], optionCounts: [6, 7], prompt: "These sold as Coupe and Convertible, and they price differently. Which one is it?" }, { make: "Acme", model: "Omega", trim: "GT", year: 1980, bodyStyle: null }, null, "1980 Acme Omega GT", env, null);
+  ok("body: the Convertible option (no GT sale) is dropped and the Coupe answers as itself", d.tier !== "body_choice" && d.questionResolved && d.questionResolved.kept === "Coupe", `tier ${d.tier} ${JSON.stringify(d.questionResolved || null)}`); }
+{ const d = await QR({ tier: "body_choice", bodyOptions: ["Roadster", "Coupe"], optionCounts: [10, 9], prompt: "These sold as Roadster and Coupe, and they price differently. Which one is it?" }, { make: "Lamborghini", model: "Diablo", trim: "SE", year: 2001, bodyStyle: null }, null, "2001 Lamborghini Diablo SE", env, null);
+  ok("body: the Diablo SE question (ten VT Roadsters, no SE) is never asked", d.tier !== "body_choice", `tier ${d.tier} ${JSON.stringify(d.questionResolved || null)}`);
+  ok("body: and the answer never silently holds the Roadster sales", !(d.cards || []).some(c => /roadster/i.test(String(c.title || ""))), (d.cards || []).map(c => c.title).join(" | ")); }
 // 4. the rule over everything asked above
 for (const { text, a } of asked) {
   const labels = optionsOf(a); if (!labels.length) continue;

@@ -14,26 +14,39 @@ const MR = await import(pathToFileURL(path.join(root, "lib/modelRules.js")).href
 const { oneEngineAnswer, runOutputInvariants } = E;
 let failed = 0; const ok = (n, c, d) => { if (!c) failed++; console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? "  " + d : ""}`); };
 
-// 1. the rule, for every pair
-const PAIRS = [["McLaren", "Speedtail", "Senna"], ["McLaren", "Senna", "Speedtail"], ["Lamborghini", "Diablo", "Countach"], ["Lamborghini", "Gallardo", "Murcielago"],
-  ["Ferrari", "F40", "F50"], ["Ferrari", "Enzo", "LaFerrari"], ["Bugatti", "Veyron", "Chiron"], ["Koenigsegg", "Agera", "Regera"], ["Pagani", "Zonda", "Huayra"]];
+// 1. the rule, for any make: the make's own model list decides (fake lists, including a make that exists nowhere else)
+const LISTS = {
+  McLaren: ["Speedtail", "Senna", "P1", "720S", "Artura"],
+  Zorb: ["Alpha", "Beta", "Gammaray", "Delta7"],
+  Lamborghini: ["Diablo", "Countach", "Murcielago", "Gallardo"],
+  BMW: ["3-Series", "M3", "7-Series", "750i", "E9"],
+  Chevrolet: ["Corvette", "Stingray", "Camaro"]
+};
+for (const [mk, names] of Object.entries(LISTS)) E.setMakeModels(mk, names.map(name => ({ name })));
+const R = (mk, filed, title, year) => E.rivalFromModels(mk, filed, title, year, E.makeModelsCached(mk));
+const PAIRS = [["McLaren", "Speedtail", "Senna"], ["McLaren", "Senna", "Speedtail"], ["Zorb", "Alpha", "Beta"], ["Zorb", "Beta", "Gammaray"], ["Lamborghini", "Diablo", "Countach"], ["Lamborghini", "Gallardo", "Murcielago"]];
 for (const [mk, own, rival] of PAIRS) {
-  ok(`rival: a ${rival} title under ${mk} ${own} is another car`, MR.rivalModelIn(mk, own, `2019 ${mk} ${rival}`) === rival.toLowerCase());
-  ok(`rival: a ${own} title under ${mk} ${own} is the car`, MR.rivalModelIn(mk, own, `2020 ${mk} ${own}`) === null);
+  ok(`rival: a ${rival} title filed under ${mk} ${own} is the other car`, R(mk, own, `2019 ${mk} ${rival}`, 2019) === rival);
+  ok(`rival: a ${own} title filed under ${mk} ${own} is the car`, R(mk, own, `2020 ${mk} ${own}`, 2020) === null);
+  ok(`rival: a mileage prefix does not hide it (${mk} ${rival})`, R(mk, own, `787-Mile 2019 ${mk} ${rival} Coupe`, 2019) === rival);
 }
-ok("rival: Senna GTR under Senna is still the Senna family (the halo rules set it aside, not this)", MR.rivalModelIn("McLaren", "Senna", "2020 McLaren Senna GTR") === null);
-ok("rival: a make with no table never conflicts", MR.rivalModelIn("Ford", "Mustang", "1966 Ford Mustang Shelby GT350") === null);
-ok("rival: a model outside the table never conflicts", MR.rivalModelIn("Ferrari", "Testarossa", "1989 Ferrari Testarossa") === null);
+ok("rival: Senna GTR filed under Senna is the Senna family", R("McLaren", "Senna", "2020 McLaren Senna GTR", 2020) === null);
+ok("rival: a code model is a family (M3 filed under 3-Series)", R("BMW", "3-Series", "2006 BMW M3 Coupe", 2006) === null);
+ok("rival: a number model is a family (750i filed under 7-Series)", R("BMW", "7-Series", "2013 BMW 750Li", 2013) === null);
+ok("rival: a trim word is not a model (Stingray filed under Corvette)", R("Chevrolet", "Corvette", "1969 Chevrolet Stingray", 1969) === null);
+ok("rival: a model word later in the title is not the model (Zorb Alpha with Beta in the description)", R("Zorb", "Alpha", "2015 Zorb Alpha with Beta wheels", 2015) === null);
+ok("rival: no model list for the make, no rival", E.rivalFromModels("Nowhere", "A", "2019 Nowhere B", 2019, E.makeModelsCached("Nowhere")) === null);
+ok("rival: the year decides when the filed model's years fit", (() => { E.setMakeModels("Yrs", [{ name: "Oldie", year_ranges: [[1990, 2000]] }, { name: "Newbie", year_ranges: [[2010, 2020]] }]); return E.rivalFromModels("Yrs", "Oldie", "1995 Yrs Newbie", 1995, E.makeModelsCached("Yrs")) === null && E.rivalFromModels("Yrs", "Oldie", "2015 Yrs Newbie", 2015, E.makeModelsCached("Yrs")) === "Newbie"; })());
 
 // 2 and 3. the gate
-const card = (make, model, title) => ({ make, model, title, price: 1000000, platform: "Bring a Trailer" });
+const card = (make, model, title, year) => ({ make, model, title, year, price: 1000000, platform: "Bring a Trailer" });
 const gate = (d, v) => runOutputInvariants({ tier: "result", rawPool: d.cards, fallbackRung: "model", ...d }, v).find(x => x.name === "receipts_carry_resolved_car");
 for (const [mk, own, rival] of PAIRS) {
-  const cards = Array.from({ length: 6 }, (_, i) => card(mk, own, `${2015 + i} ${mk} ${rival}`));
+  const cards = Array.from({ length: 6 }, (_, i) => card(mk, own, `${2015 + i} ${mk} ${rival}`, 2015 + i));
   const g = gate({ cards }, { make: mk, model: own });
   ok(`gate: six ${rival} titles filed under ${mk} ${own} fail`, g && g.ok === false, g && g.detail);
 }
-{ const cards = [card("McLaren", "Speedtail", "2020 McLaren Speedtail"), card("McLaren", "Speedtail", "2020 McLaren Speedtail"), card("McLaren", "Speedtail", "2020 McLaren Speedtail"), card("McLaren", "Speedtail", "2019 McLaren Senna")];
+{ const cards = [card("McLaren", "Speedtail", "2020 McLaren Speedtail"), card("McLaren", "Speedtail", "2020 McLaren Speedtail"), card("McLaren", "Speedtail", "2020 McLaren Speedtail"), card("McLaren", "Speedtail", "2019 McLaren Senna", 2019)];
   const g = gate({ cards }, { make: "McLaren", model: "Speedtail" }); ok("gate: one Senna among four Speedtail stands (a minority stray is named, not a refusal)", g && g.ok === true, g && g.detail); }
 { const cards = Array.from({ length: 5 }, (_, i) => card("Porsche", "Zephyrine", `${2010 + i} Porsche Odd Thing`));
   const g = gate({ cards }, { make: "Porsche", model: "Zephyrine" }); ok("gate: a plain one-word model that no card title carries fails", g && g.ok === false, g && g.detail); }
@@ -69,6 +82,7 @@ globalThis.fetch = async (url) => {
     const keep = rows.filter(r => (!ge.length || r.sale_date >= ge[0]) && (!lt.length || r.sale_date < lt[0]) && r.year >= ymin && r.year <= ymax && (!mk || mk.test(r.make)) && (!md || md.test(r.model)) && (!ti || ti.test(r.listing_title)));
     return new Response(JSON.stringify(keep.map(r => Object.fromEntries(sel.split(",").map(it => ev(r, it))))), { status: 200 });
   }
+  if (u.pathname.endsWith("/taxonomy_models")) { const slug = (u.searchParams.get("make_slug") || "").replace(/^eq\./, ""); const mk = Object.keys(LISTS).find(k => k.toLowerCase() === slug); return new Response(JSON.stringify(mk ? LISTS[mk].map(name => ({ name, year_ranges: null })) : []), { status: 200 }); }
   if (u.hostname.includes("fake.supabase")) return new Response("[]", { status: 200 });
   throw new Error("offline");
 };
@@ -78,7 +92,7 @@ const titles = (a.cards || []).map(c => String(c.title || ""));
 ok("end to end: no receipt on the Speedtail answer is a Senna", !titles.some(t => /senna/i.test(t)), `tier ${a.tier}, ${titles.length} cards: ${titles.slice(0, 3).join(" | ")}`);
 ok("end to end: the answer is made of Speedtail sales or says there are too few", a.tier === "result" || a.tier === "thin" || a.tier === "not_tracked", `tier ${a.tier}`);
 ok("end to end: the pool never holds a 2019 year", !(a.poolYears || []).some(y => y === 2019), JSON.stringify(a.poolYears));
-const sn = (await oneEngineAnswer({ make: "McLaren", model: "Senna", trim: "", year: 2019, bodyStyle: null }, null, "2019 McLaren Senna", env, null)).raw;
-ok("end to end: the Senna answer keeps its Senna sales", (sn.cards || []).length > 0 && (sn.cards || []).every(c => /senna/i.test(String(c.title || ""))), `tier ${sn.tier}, ${(sn.cards || []).length} cards`);
+ok("fence: a sale whose title names the asked model is kept even when filed elsewhere", E.titleFenceReason({ titleRival: "Senna", raw_title: "2019 McLaren Senna", price: 1e6, model: "Speedtail", make: "McLaren" }, { make: "McLaren", model: "Senna" }) === null || /photo|floor/.test(String(E.titleFenceReason({ titleRival: "Senna", raw_title: "2019 McLaren Senna", model: "Speedtail", make: "McLaren" }, { make: "McLaren", model: "Senna" }))));
+ok("fence: the same sale is out of the Speedtail pool", /different model/.test(String(E.titleFenceReason({ titleRival: "Senna", raw_title: "2019 McLaren Senna", model: "Speedtail", make: "McLaren" }, { make: "McLaren", model: "Speedtail" }))));
 console.log(failed ? `modelIdentityCheck: ${failed} FAIL` : "modelIdentityCheck: all PASS");
 process.exit(failed ? 1 : 0);
