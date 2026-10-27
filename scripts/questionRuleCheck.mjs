@@ -101,13 +101,17 @@ const gv = m => ({ make: "Acme", model: m, trim: "", year: 1985, bodyStyle: null
 { const d = await QR({ tier: "body_choice", bodyOptions: ["Roadster", "Coupe"], optionCounts: [10, 9], prompt: "These sold as Roadster and Coupe, and they price differently. Which one is it?" }, { make: "Lamborghini", model: "Diablo", trim: "SE", year: 2001, bodyStyle: null }, null, "2001 Lamborghini Diablo SE", env, null);
   ok("body: the Diablo SE question (ten VT Roadsters, no SE) is never asked", d.tier !== "body_choice", `tier ${d.tier} ${JSON.stringify(d.questionResolved || null)}`);
   ok("body: and the answer never silently holds the Roadster sales", !(d.cards || []).some(c => /roadster/i.test(String(c.title || ""))), (d.cards || []).map(c => c.title).join(" | ")); }
-// 6. the live ask reads the stored decision and does not run the option answers
+// 6. the live ask: a stored decision is read (one row); a miss is computed once under the cap, stored, and instant the next time
 { let reads = 0; const f0 = globalThis.fetch; globalThis.fetch = async (u, o) => { reads++; return f0(u, o); };
   reads = 0; const stored = await QR({ tier: "gearbox_choice", gearboxOptions: ["Manual", "Automatic"], optionCounts: [6, 6], prompt: "Manual or Automatic?" }, gv("Iota"), null, "1985 Acme Iota", live, null);
   ok("live: a question with a stored decision is asked from it, with no archive reads", stored.tier === "gearbox_choice" && stored.questionChecked === true && reads <= 1, `tier ${stored.tier}, ${reads} reads`);
-  reads = 0; const unstored = await QR({ tier: "gearbox_choice", gearboxOptions: ["Manual", "Automatic"], optionCounts: [6, 6], prompt: "Manual or Automatic?" }, gv("Kappa2"), null, "1985 Acme Kappa2", live, null);
-  ok("live: a question with no stored decision is not asked, the answer says every gearbox", unstored.tier !== "gearbox_choice" && unstored.questionResolved && unstored.questionResolved.why === "unchecked", `tier ${unstored.tier} ${JSON.stringify(unstored.questionResolved || null)}`);
-  ok("live: the unchecked answer says what scope it used", /every gearbox/.test(String(scopeReasonOf({ tier: "thin", poolYears: [1985, 1985], rawPool: [], questionResolved: unstored.questionResolved }, { year: 1985 }))));
+  const iotaCoupe = { ...gv("Iota"), bodyStyle: "coupe" };
+  E.forgetEligibility(); reads = 0; const miss = await QR({ tier: "gearbox_choice", gearboxOptions: ["Manual", "Automatic"], optionCounts: [6, 6], prompt: "Manual or Automatic?" }, iotaCoupe, null, "1985 Acme Iota coupe", live, null);
+  ok("live: a miss is computed once under the cap and the question is asked from it", miss.tier === "gearbox_choice" && miss.questionChecked === true, `tier ${miss.tier} ${JSON.stringify(miss.questionResolved || null)}, ${reads} reads`);
+  reads = 0; const again = await QR({ tier: "gearbox_choice", gearboxOptions: ["Manual", "Automatic"], optionCounts: [6, 6], prompt: "Manual or Automatic?" }, iotaCoupe, null, "1985 Acme Iota coupe", live, null);
+  ok("live: the next ask of the same spec reads the stored row, no option reads", reads <= 1, `${reads} reads`);
+  ok("live: the cap is 1.5 seconds", E.QUESTION_CAP_MS === 1500);
+  ok("live: the unchecked and cap wording says what scope was used", /every gearbox/.test(String(scopeReasonOf({ tier: "thin", poolYears: [1985, 1985], rawPool: [], questionResolved: { dimension: "gearbox", kept: null, dropped: [], why: "cap_exceeded" } }, { year: 1985 }))));
   globalThis.fetch = f0; }
 // 4. the rule over everything asked above
 for (const { text, a } of asked) {

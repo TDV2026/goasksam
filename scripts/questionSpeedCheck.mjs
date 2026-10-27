@@ -57,6 +57,7 @@ for (const [name, v, text, direct] of cases) {
   const cold = await timed(async () => direct ? await E.questionRule(direct, v, null, text, live, null) : (await E.oneEngineAnswer(v, null, text, live, null)).raw);
   const hot = await timed(async () => direct ? await E.questionRule(direct, v, null, text, live, null) : (await E.oneEngineAnswer(v, null, text, live, null)).raw);
   console.log(`${name}: OLD ${old.ms} ms ${old.reads} reads | warm computes ${first.ms} ms ${first.reads} reads | NEW live cold ${cold.ms} ms ${cold.reads} reads | NEW live warm ${hot.ms} ms ${hot.reads} reads | tier ${cold.r.tier}`);
+  ok(`${name}: the warm's added cost for this question stays under 2.5 seconds (100 ms reads), ${first.ms} ms ${first.reads} reads`, first.ms <= 2500);
   if (/_choice$/.test(String(cold.r.tier))) {
     ok(`${name}: the live question is within ${BUDGET} ms of the old question, cold`, cold.ms <= old.ms + BUDGET + JITTER, `${cold.ms} against ${old.ms}`);
     ok(`${name}: the live question is within ${BUDGET} ms of the old question, warm`, hot.ms <= old.ms + BUDGET + JITTER, `${hot.ms} against ${old.ms}`);

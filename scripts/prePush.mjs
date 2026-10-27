@@ -1254,6 +1254,13 @@ try {
 } catch (e) {
   record("a question is not slower than the old question by more than the budget (scripts/questionSpeedCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A question that cannot be settled inside the cap never prints one range over mixed bodies (Lane B, Oct 27 2026, e95). No network.
+try {
+  const out = execSync("node scripts/mixedRangeCheck.mjs", { encoding: "utf8" });
+  record("a mixed-body pool past the question cap shows the sales, not one range (scripts/mixedRangeCheck.mjs)", "PASS", (out.match(/mixedRangeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("a mixed-body pool past the question cap shows the sales, not one range (scripts/mixedRangeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // How Sam decides (Sam, Oct 26 2026): the five agreed sections, exactly. No network.
 try {
   const out = execSync("node scripts/howSamDecidesCheck.mjs", { encoding: "utf8" });

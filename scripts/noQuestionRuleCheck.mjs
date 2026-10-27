@@ -9,11 +9,13 @@ const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPat
 let failed = 0; const ok = (n, c, d) => { if (!c) failed++; console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? "  " + d : ""}`); };
 const walk = (dir, out = []) => { for (const e of fs.readdirSync(dir, { withFileTypes: true })) { if (/^(node_modules|\.git|proofs|docs|\.vercel)$/.test(e.name)) continue; const p = path.join(dir, e.name); if (e.isDirectory()) walk(p, out); else if (/\.(js|mjs|cjs|json|yml|yaml)$/.test(e.name)) out.push(p); } return out; };
 const files = walk(root);
-const naming = files.filter(f => /noQuestionRule|GAS_TEST_NO_QUESTION_RULE/.test(fs.readFileSync(f, "utf8"))).map(f => path.relative(root, f));
-const ALLOWED = new Set(["lib/onebox.js", "scripts/generationChipCheck.mjs", "scripts/questionRuleCheck.mjs", "scripts/noQuestionRuleCheck.mjs", "scripts/questionSpeedCheck.mjs"]);
+const naming = files.filter(f => /noQuestionRule|GAS_TEST_NO_QUESTION_RULE|questionCapMs|GAS_TEST_QUESTION_CAP/.test(fs.readFileSync(f, "utf8"))).map(f => path.relative(root, f)).filter(f => f !== "scripts/prePush.mjs");   // prePush only names this check by file name
+const ALLOWED = new Set(["lib/onebox.js", "scripts/generationChipCheck.mjs", "scripts/questionRuleCheck.mjs", "scripts/noQuestionRuleCheck.mjs", "scripts/questionSpeedCheck.mjs", "scripts/mixedRangeCheck.mjs"]);
 ok("the flag is named only in the engine and the checks that set it", naming.every(f => ALLOWED.has(f)), naming.filter(f => !ALLOWED.has(f)).join(", "));
 const src = fs.readFileSync(path.join(root, "lib/onebox.js"), "utf8");
 ok("the engine honours it only when the process variable is set", /questionRuleOff = env => !!\(env && env\.noQuestionRule\) && process\.env\.GAS_TEST_NO_QUESTION_RULE === "1"/.test(src));
+const capSetters = naming.filter(f => f !== "lib/onebox.js" && f !== "scripts/noQuestionRuleCheck.mjs" && /questionCapMs/.test(fs.readFileSync(path.join(root, f), "utf8")));
+ok("the cap override is honoured only with its process variable, and only the cap check sets both", /process\.env\.GAS_TEST_QUESTION_CAP === "1"/.test(src) && capSetters.every(f => /GAS_TEST_QUESTION_CAP\s*=\s*"1"/.test(fs.readFileSync(path.join(root, f), "utf8"))), capSetters.join(", "));
 const setters = naming.filter(f => f !== "lib/onebox.js" && f !== "scripts/noQuestionRuleCheck.mjs");
 ok("every check that passes the flag also sets the variable to 1 (or, for the rule's own check, clears it)", setters.every(f => /GAS_TEST_NO_QUESTION_RULE\s*=\s*"(1|)"/.test(fs.readFileSync(path.join(root, f), "utf8"))), setters.join(", "));
 const prod = files.filter(f => /(^|\/)(api|lib)\//.test(path.relative(root, f)) && path.relative(root, f) !== "lib/onebox.js").filter(f => /noQuestionRule/.test(fs.readFileSync(f, "utf8")));
