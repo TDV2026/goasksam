@@ -1268,6 +1268,13 @@ try {
 } catch (e) {
   record("options that price apart print no pooled headline or chart; options that price alike do (scripts/pooledAnswerCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A car titled by its number and filed under its model (the 1985 Land Rover Defender 110) is that car; the G-Wagen is the G-Class (Lane B, Oct 27 2026, e95). No network.
+try {
+  const out = execSync("node scripts/numberNameCheck.mjs", { encoding: "utf8" });
+  record("a car titled by its number is the model it is filed under; the G-Wagen is the G-Class (scripts/numberNameCheck.mjs)", "PASS", (out.match(/numberNameCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("a car titled by its number is the model it is filed under; the G-Wagen is the G-Class (scripts/numberNameCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // How Sam decides (Sam, Oct 26 2026): the five agreed sections, exactly. No network.
 try {
   const out = execSync("node scripts/howSamDecidesCheck.mjs", { encoding: "utf8" });
