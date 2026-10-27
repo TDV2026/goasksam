@@ -376,6 +376,7 @@ function openSignInCard(subtitle, opts) {
     <input id="auth-email" class="auth-input" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" />
     <div id="auth-turnstile" class="auth-turnstile"></div>
     <button class="auth-email-btn" onclick="authSignInEmail(this)">Email me a code</button>
+    <p class="auth-free" style="margin:12px 0 0;font-size:14px;line-height:1.4"><strong>Free to use. Sign in to save searches and set Tasks.</strong></p>
     <label class="auth-consent-row"><input id="auth-consent" type="checkbox" /> <span>Sign me up to The Daily Vroom</span></label>
     <div id="auth-error" class="auth-error" style="display:none"></div>
     <div class="auth-fineprint">No passwords. We email you a one-time code. You get The Daily Vroom only if you tick the box.</div>

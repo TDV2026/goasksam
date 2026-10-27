@@ -44,6 +44,7 @@ ${AUTH_SIGNBAR_HTML}
 ${railOpenHtml({ active: "", crew, req, analytics: true })}
 <main><div class="ab-col">
 <h1 class="ab-h1">About GoAskSam</h1>
+<p class="ab-free" style="margin:0 0 22px"><b>Sam is free to use. Built for the community, from The Daily Vroom.</b></p>
 <h2 class="ab-h2">What this is</h2>
 <p data-lead-sentence>${esc(WHAT)}</p>
 ${list}

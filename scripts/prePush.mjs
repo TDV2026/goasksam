@@ -1195,6 +1195,13 @@ try {
 } catch (e) {
   record("Homepage tightening (scripts/homeTightenCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The two free-to-use lines, About and the sign-in card (Sam, Oct 26 2026). No network.
+try {
+  const out = execSync("node scripts/freeLinesCheck.mjs", { encoding: "utf8" });
+  record("Free-to-use lines (scripts/freeLinesCheck.mjs)", "PASS", (out.match(/freeLinesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Free-to-use lines (scripts/freeLinesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The /sell door (Lane C, Oct 26 2026): crew sees the newer Sell, the public the previous one until SELL_NEXT_ON=1 flips it. No network.
 try {
   const out = execSync("node scripts/sellRouteCheck.mjs", { encoding: "utf8" });
