@@ -21,7 +21,9 @@ const STATES = {
   split: { ...base, pooledSplit: { flag: "pooled_split", thresholdPct: 15, floor: 3, dimensions: ["body"], options: [OPT("body", "Convertible", "convertible", 9, 29000, 42500, 35500), OPT("body", "Coupe", "coupe", 8, 22500, 31500, 27000)] } },
   apart: { ...base, cluster: null, referenceFigure: null, noCluster: true, thinReason: "pooled_apart", thinLine: ENGINE_THIN, pooledApart: { dimensions: ["body"], test: "splitMaterial", floor: 3, options: [OPT("body", "Convertible", "convertible", 9, 36000, 48000), OPT("body", "Coupe", "coupe", 8, 21000, 29000)] }, trend: null, trendHeld: { reason: "mix_changes", spreadPts: 22, limitPts: 10, periods: 5 } },
 };
-const LINES = { body: ["Convertible: $29,000 to $42,500, 9 sales.", "Coupe: $22,500 to $31,500, 8 sales."], apartBody: ["Convertible: $36,000 to $48,000, 9 sales.", "Coupe: $21,000 to $29,000, 8 sales."] };
+// The Coupe reads a longer window in its own answer (bodyOptions: 13 sales over the last 24 months), so its line carries the engine's words, not the pool's 8.
+const COUPE_NOTE = "Based on 13 sales over the last 24 months.";
+const LINES = { body: ["Convertible: $29,000 to $42,500, 9 sales.", "Coupe: $22,500 to $31,500. " + COUPE_NOTE], apartBody: ["Convertible: $36,000 to $48,000, 9 sales.", "Coupe: $21,000 to $29,000. " + COUPE_NOTE] };
 const POOLED_RANGE = "$22,500 to $41,000", HELD = "The mix of cars changed from quarter to quarter, so a change here would not show the market moving.";
 const flat = h => String(h || "").replace(/<style[\s\S]*?<\/style>/g, "").replace(/<[^>]+>/g, " ").replace(/&#8217;/g, "’").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
 const NOT_BLANK = (s, what) => ok(s.length > 20, `${what}: not blank`);
@@ -154,5 +156,24 @@ const NOT_BLANK = (s, what) => ok(s.length > 20, `${what}: not blank`);
     if (name === "apart") ok(o.kind === "answer_by_option" && !o.soldRangeHammerUsd && (o.options || []).length === 2 && String(o.note || "").includes(THIN) && !/spread out/.test(JSON.stringify(o)), "the MCP tool, apart: no band, each option's own range, never 'too spread out'");
   }
 }
+// the window travels with the option: the lookup is the same on every surface, and a line never prints the pool's count where the option's own answer reads another
+{ const { pooledNoteOf = () => "" } = await import("../lib/pooledWords.js");
+  const grabFn = (src, name) => { const i = src.indexOf("function " + name + "("); let dd = 0, j = src.indexOf("{", i); for (let k = j; k < src.length; k++) { if (src[k] === "{") dd++; else if (src[k] === "}" && !--dd) return src.slice(i, k + 1); } return ""; };
+  const clientFn = new Function("return (" + grabFn(fs.readFileSync("public/js/onebox.js", "utf8"), "pooledNoteOf") + ")")();
+  const cardFn = new Function("return (" + grabFn(fs.readFileSync("lib/sellsForCard.js", "utf8"), "pooledNoteOf") + ")")();
+  const gbAnswer = { inlineSplits: [{ key: "gearbox", sides: [{ label: "Manuals", n: 9, windowLonger: true, windowNote: "Based on 12 sales over the last 30 months." }, { label: "PDKs", n: 8 }] }] };
+  const edAnswer = { variantOptionsLine: [{ key: "edition", options: [{ value: "csl", label: "CSL", n: 4, windowLonger: true, windowNote: "Based on 5 sales over the last 36 months." }, { value: "std", label: "Standard", n: 20 }] }] };
+  const CASES = [[base, { dimension: "body", value: "coupe" }, COUPE_NOTE], [base, { dimension: "body", value: "convertible" }, ""], [gbAnswer, { dimension: "gearbox", value: "manual" }, "Based on 12 sales over the last 30 months."], [gbAnswer, { dimension: "gearbox", value: "auto" }, ""],
+    [edAnswer, { dimension: "edition", value: "csl" }, "Based on 5 sales over the last 36 months."], [edAnswer, { dimension: "edition", value: "std" }, ""], [base, { dimension: "body", value: "coupe", windowLonger: true, windowNote: "Based on 99 sales over the last 12 months." }, "Based on 99 sales over the last 12 months."]];
+  for (const [a, o, want] of CASES) ok(pooledNoteOf(a, o) === want && clientFn(a, o) === want && cardFn(a, o) === want, `the option window is the same on every surface (${o.dimension} ${o.value}: ${JSON.stringify(want)})`);
+  // the same case rendered on each surface: the Coupe's line never says 8 sales
+  const card = await import("../lib/sellsForCard.js");
+  for (const [name, a] of [["split", STATES.split], ["apart", STATES.apart]]) { const t = flat(card.sellsForCardHtml(a, {})); ok(!/Coupe: [^.]*\$\d[\d,]* to \$\d[\d,]*, 8 sales/.test(t) && t.includes(COUPE_NOTE), `the shared card, ${name}: the Coupe line carries its own window, not the pool's 8`); }
+  const { marketOf } = await import("../lib/live/search.js");
+  for (const [name, a] of [["split", STATES.split], ["apart", STATES.apart]]) { const o = (marketOf(a).options || []).find(x => x.label === "Coupe"); ok(o && o.note === COUPE_NOTE, `Find's market object, ${name}: the Coupe option carries the engine's window words`); }
+  const { oneBoxBlock: hb = () => "" } = await import("../api/history.js");
+  for (const [name, a] of [["split", STATES.split], ["apart", STATES.apart]]) ok(flat(hb(a, { make: "BMW", family: "M3", model: "M3", year: 2001, label: "BMW M3" }, "/x", "")).includes(COUPE_NOTE), `the history page, ${name}: the Coupe line carries its own window`);
+  const { toolAnswerOf: ta = () => ({}) } = await import("../lib/tools/marketCheck.js");
+  const tool = ta(STATES.apart, { vehicle: { make: "BMW", model: "M3", year: 2001 } }); ok(((tool.options || []).find(x => x.option === "Coupe") || {}).windowNote === COUPE_NOTE, "the MCP tool, apart: the Coupe carries its window note"); }
 console.log(`pooledStatesCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

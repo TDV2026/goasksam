@@ -26,7 +26,7 @@ import { bidState, bidTimePT, lastBidLine } from "../lib/tasks/bidTime.js";
 import { heldFor } from "../lib/_hold.js";
 import { countNoun } from "../lib/countNoun.js";
 import { routeLimit, sendTooMany } from "../lib/_routeLimit.js";
-import { POOLED_APART_LINE } from "../lib/pooledWords.js";
+import { POOLED_APART_LINE, pooledNoteOf as optionNoteOf } from "../lib/pooledWords.js";
 
 const SITE = "https://goasksam.com";
 // Card design system (Oct 2026, the /buy cards): #FAF8F4 paper, near-black ink, one red (#D7262C),
@@ -243,7 +243,7 @@ function nounOf(d, id) {
 function pooledOptionsHtml(d) {
   const src = d && (d.pooledApart || d.pooledSplit);
   const opts = src && Array.isArray(src.options) ? src.options.filter(o => o && Number(o.n) > 0 && Number(o.low) > 0 && Number(o.high) > 0) : [];
-  return opts.length < 2 ? "" : `<ul class="opts">${opts.map(o => `<li>${esc(o.label)}: ${esc(usd(o.low))} to ${esc(usd(o.high))}, ${esc(countNoun(o.n, "sale", { words: false }))}.</li>`).join("")}</ul>`;
+  return opts.length < 2 ? "" : `<ul class="opts">${opts.map(o => `<li>${esc(o.label)}: ${esc(usd(o.low))} to ${esc(usd(o.high))}${optionNoteOf(d, o) ? ". " + esc(optionNoteOf(d, o)) : ", " + esc(countNoun(o.n, "sale", { words: false })) + "."}</li>`).join("")}</ul>`;
 }
 export function oneBoxBlock(d, id, oneboxHref, ctx) {
   if (!d) return "";

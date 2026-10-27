@@ -1119,6 +1119,16 @@
   //   Each line is a button that opens that option, through the same hooks the count only line used (data-bodyopt, data-tx, data-varopt).
   //   Alike: neither field, nothing here. A withheld chart (d.trendHeld, reason mix_changes) draws no chart and says why in one plain line.
   var POOL_ATTR = { body: "data-bodyopt", gearbox: "data-tx", edition: "data-varopt" };
+  function pooledNoteOf(d, o) {
+    // the engine's own words for an option that reads a longer window than the bare page ("Based on 13 sales over the last 24 months."): on the option itself, else on the same option in the answer's own option lists
+    if (o.windowLonger === true && o.windowNote) return String(o.windowNote);
+    var lists = [];
+    if (o.dimension === "body") lists.push(d.bodyOptions);
+    if (o.dimension === "edition") (Array.isArray(d.variantOptionsLine) ? d.variantOptionsLine : []).forEach(function (e) { if (e && e.key !== "restoration") lists.push(e.options); });
+    if (o.dimension === "gearbox") (Array.isArray(d.inlineSplits) ? d.inlineSplits : []).forEach(function (e) { if (e && e.key === "gearbox" && Array.isArray(e.sides)) lists.push(e.sides.map(function (s) { return { value: /manual/i.test(String(s.label || "")) ? "manual" : "auto", windowLonger: s.windowLonger, windowNote: s.windowNote }; })); });
+    for (var i = 0; i < lists.length; i++) for (var j = 0; Array.isArray(lists[i]) && j < lists[i].length; j++) { var e = lists[i][j]; if (e && String(e.value) === String(o.value) && e.windowLonger === true && e.windowNote) return String(e.windowNote); }
+    return "";
+  }
   function pooledOptionsOf(d, dimension) {
     var src = d && (d.pooledApart || d.pooledSplit); if (!src || !Array.isArray(src.options)) return [];
     return src.options.filter(function (o) { return o && o.dimension === dimension && Number(o.n) > 0 && Number(o.low) > 0 && Number(o.high) > 0; });
@@ -1128,7 +1138,8 @@
     var attr = POOL_ATTR[dimension]; if (!attr) return "";
     var apart = !!(d && d.pooledApart);
     var items = opts.map(function (o) {
-      var label = esc(o.label) + ": " + usd(o.low) + " to " + usd(o.high) + ", " + obCount(o.n, "sale", { words: false }) + ".";
+      var note = pooledNoteOf(d, o);
+      var label = esc(o.label) + ": " + usd(o.low) + " to " + usd(o.high) + (note ? ". " + esc(note) : ", " + obCount(o.n, "sale", { words: false }) + ".");
       var btn = '<button type="button" class="linkbtn hero-idlink" ' + attr + '="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + label + "</button>";
       return apart ? '<p class="hero-idline hero-poolline" data-stage="answer">' + btn + "</p>" : btn;
     });
