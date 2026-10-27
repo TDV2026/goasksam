@@ -1191,6 +1191,13 @@ try {
 } catch (e) {
   record("scope_reason, gate variants, refusal_line (scripts/scopeReasonCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// One car, one answer: a Porsche 911 chassis code typed as the model and the VIN's nameplate return the same range, count and set-aside (Lane B, Oct 27 2026, e94). No network.
+try {
+  const out = execSync("node scripts/chassisCodeCheck.mjs", { encoding: "utf8" });
+  record("typed chassis code and VIN nameplate agree (scripts/chassisCodeCheck.mjs)", "PASS", (out.match(/chassisCodeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("typed chassis code and VIN nameplate agree (scripts/chassisCodeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // How Sam decides (Sam, Oct 26 2026): the five agreed sections, exactly. No network.
 try {
   const out = execSync("node scripts/howSamDecidesCheck.mjs", { encoding: "utf8" });
