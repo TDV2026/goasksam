@@ -40,5 +40,5 @@ process.env.CURTAIN_SEALED = "1";
   ok(/!credentialed/.test(g), "sellerDecision: the seal lets a keyed server job through"); }
 delete process.env.CURTAIN_SEALED;
 // every product page asks first
-for (const f of ["home", "buy", "marketCheck", "sellPage", "sellNext", "tasksPage", "business", "specPage", "history", "publicConfig"]) { const s = fs.readFileSync(new URL(`../api/${f}.js`, import.meta.url), "utf8"); ok(/import \{ heldFor \} from "\.\.\/lib\/_hold\.js"/.test(s) && /if \(heldFor\(req, res\)\) return;/.test(s), `api/${f}.js asks heldFor first`); }
+for (const f of ["home", "buy", "marketCheck", "sellPage", "sellNext", "tasksPage", "business", "specPage", "history", "publicConfig"]) { const s = fs.readFileSync(new URL(`../api/${f}.js`, import.meta.url), "utf8"); ok(/import \{ heldFor(?:, withCalm)? \} from "\.\.\/lib\/_hold\.js"/.test(s) && /if \(heldFor\(req, res\)\) return;/.test(s), `api/${f}.js asks heldFor first`); }
 console.log(`holdPageCheck: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
