@@ -35,7 +35,11 @@ const LD = JSON.stringify({ "@context": "https://schema.org", "@graph": [
 ] }).replace(/</g, "\\u003c");
 
 const CSS = `
-#gas-start-home .gst-box{max-width:960px}   /* Home keeps its own width; Sell, Find and Market Check share 600 (lib/startPage.js START_BOX_MAX) */
+#gas-start-home .gst-box{max-width:960px;display:flex;align-items:center;gap:10px;min-height:72px;padding:12px 16px 12px 24px}   /* one line, about 72 px; the mic and the arrow stay at the right edge */
+#gas-start-home .gst-in{flex:1;min-width:0;margin:0}
+#gas-start-home .gst-row{flex:none;min-height:0}
+#gas-start-home .gst-help{display:none}
+@media (max-width:700px){#gas-start-home .gst-box{min-height:64px;padding:10px 12px 10px 18px}}   /* Home keeps its own width; Sell, Find and Market Check share 600 (lib/startPage.js START_BOX_MAX) */
 .hm{position:relative;min-height:calc(100dvh - 24px);display:flex;align-items:center;justify-content:center;padding:72px 32px 56px;box-sizing:border-box}
 @media (max-width:700px){.hm{min-height:calc(100dvh - 60px);padding:28px 18px 64px;align-items:flex-start}}
 .hm-legal{position:absolute;left:0;right:0;bottom:16px;display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;font:400 12.5px/1.4 var(--sans,sans-serif);color:var(--sec,#5E6B63)}.hm-legal a{color:inherit;text-decoration:none}.hm-legal a:hover{text-decoration:underline}`;
@@ -47,11 +51,11 @@ export default async function handler(req, res) {
   if (!isReleased("buy", req)) { res.setHeader("Cache-Control", "no-store"); res.setHeader("Location", "/sell"); return res.status(302).end(); }
   const updated = await lastUpdatedDate(supabaseEnv()).catch(() => null);
   const start = startHtml({
-    id: "gas-start-home", enter: true, eyebrow: "Welcome to GoAskSam", title: "Find the car you're looking for.",
+    id: "gas-start-home", enter: true, title: "Find the car you're looking for.",
     sub: "Tell Sam what you want. Search live enthusiast car auctions in your own words.",
-    examples: EXAMPLES, helper: "Speak or type naturally.", label: "What are you looking for?",
+    examples: EXAMPLES, helper: "", label: "Describe the car you want",
     ids: { input: "gst-home-q", mic: "gst-home-mic", go: "gst-home-go" },
-    asof: updated ? `Sam reads live and completed enthusiast car auctions, updated ${updated}.` : "Sam reads live and completed enthusiast car auctions.", leadMark: true,
+    asof: updated ? `Live auctions and completed sales, updated ${updated}.` : "Live auctions and completed sales.", leadMark: true,
     after: `<div class="gst-cards">${card("/market-check", IC_CHART, "Market Check", "See what similar cars have actually sold for.")}${card("/sell", IC_TAG, "Sell a car", "Discover where and how to sell.")}</div>`
   });
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">

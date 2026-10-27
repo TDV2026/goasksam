@@ -19,7 +19,7 @@ const noSvg = html.replace(/<svg[\s\S]*?<\/svg>/g, "");
 const nav = [...noSvg.matchAll(/<a class="gas-navitem(?: active)?" href="([^"]+)"[^>]*>([^<]+)/g)].map(m => m[2] + "=" + m[1]);
 const items = nav.slice(0, 5);
 ok(JSON.stringify(items) === JSON.stringify(["Home=/", "Find=/find", "Market Check=/market-check", "Sell=/sell", "Tasks=/tasks"]), "the five products in order: " + items.join(", "));
-ok(/<p class="gas-tag">Enthusiast car market intelligence<\/p>/.test(html) && !/collector/i.test(html.replace(/<style>[\s\S]*?<\/style>/g, "").replace(/<script>[\s\S]*?<\/script>/g, "")), "the tagline is 'Enthusiast car market intelligence' and 'collector' appears nowhere in the rail");
+ok(/<p class="gas-tag">Find, check, sell\.<\/p>/.test(html) && !/collector/i.test(html.replace(/<style>[\s\S]*?<\/style>/g, "").replace(/<script>[\s\S]*?<\/script>/g, "")), "the tagline is 'Find, check, sell.' and 'collector' appears nowhere in the rail");
 ok(/<a class="gas-logo" href="\/">GoAskSam<\/a>/.test(html), "the wordmark is Home");
 // ONE WORDMARK ON EVERY PAGE (Sam, Oct 24 2026): the wordmark is set in the serif webfont, and a page that does not load it drew a wider fallback and pushed the
 // Beta pill under it (Sell and Market Check did). Every page that draws the shared rail carries the font links, and the Tasks badge script has no per-page skip.

@@ -18,7 +18,8 @@ const text = h => h.replace(/<style>[\s\S]*?<\/style>/g, "").replace(/<script[\s
 const home = await call("home", "/"), find = await call("buy", "/find"), mc = await call("marketCheck", "/market-check"), sell = await call("sellNext", "/api/sellNext", { cookie: "" });
 // Home
 ok(home.code === 200 && /<h1 class="gst-h">Find the car you&#39;re looking for\.<\/h1>/.test(home.body) || /<h1 class="gst-h">Find the car you're looking for\.<\/h1>/.test(home.body), "Home: the headline is Sam's (" + home.code + ")");
-ok(/Welcome to GoAskSam/.test(home.body) && /Tell Sam what you want\. Search live enthusiast car auctions in your own words\./.test(home.body) && /Speak or type naturally\./.test(home.body), "Home: eyebrow, sub and helper are Sam's");
+const homeMarkup = home.body.replace(/<style>[\s\S]*?<\/style>/g, "").replace(/<script[\s\S]*?<\/script>/g, "");
+ok(!/Welcome to GoAskSam/i.test(homeMarkup) && !/class="gst-eye"/.test(homeMarkup) && /Tell Sam what you want\. Search live enthusiast car auctions in your own words\./.test(home.body) && !/Speak or type naturally/.test(home.body), "Home: no eyebrow, no helper line, the sub is Sam's");
 ok(/Market Check<\/b><span>See what similar cars have actually sold for\.<\/span>/.test(home.body) && /Sell a car<\/b><span>Discover where and how to sell\.<\/span>/.test(home.body), "Home: the two cards are Sam's");
 // (Oct 25 2026: the one quiet bottom line "(c) GoAskSam, from The Daily Vroom" with Privacy links is Sam's order and is the only mention allowed in the body.)
 const homeMain = home.body.slice(home.body.indexOf("<main"), home.body.indexOf("</main>")).replace(/<div class="hm-legal">[\s\S]*?<\/div>/, "");
@@ -26,7 +27,7 @@ ok(!/Daily Vroom/.test(text(homeMain)), "Home: no Daily Vroom section in the bod
 ok(/<div class="hm-legal"><span>&copy; GoAskSam, from The Daily Vroom<\/span><a href="\/terms">Terms<\/a><a href="\/privacy">Privacy<\/a><a [^>]*>Privacy choices<\/a><\/div>/.test(home.body), "Home: one quiet bottom line with the copyright and the Privacy and Privacy choices links");
 ok(/location\.href="\/find\?q="\+encodeURIComponent\(v\)/.test(home.body), "Home: submit goes straight to /find?q= (populated results)");
 ok(/data-gst-enter/.test(home.body) && /data-ph="/.test(home.body), "Home: Enter submits and the examples rotate");
-ok(/<p class="gst-asof" data-lead-sentence>Sam reads live and completed enthusiast car auctions/.test(home.body), "Home: the dated lead sentence (rule 1)");
+ok(/<p class="gst-asof" data-lead-sentence>Live auctions and completed sales/.test(home.body), "Home: the dated lead sentence (rule 1)");
 const closed = await call("home", "/", { cookie: "" });
 { const prev = process.env.LAUNCH_STAGE; process.env.LAUNCH_STAGE = "0"; const c0 = await call("home", "/"); process.env.LAUNCH_STAGE = prev; ok(c0.code === 302 && c0.hd.location === "/sell", "Home: while Find is not released, '/' answers as before (302 to /sell), not a permanent redirect"); }
 // Find
