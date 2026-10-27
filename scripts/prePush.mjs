@@ -1160,6 +1160,13 @@ try {
 } catch (e) {
   record("regionCheck (scripts/regionCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// How Sam decides (Sam, Oct 26 2026): the five agreed sections, exactly. No network.
+try {
+  const out = execSync("node scripts/howSamDecidesCheck.mjs", { encoding: "utf8" });
+  record("How Sam decides copy (scripts/howSamDecidesCheck.mjs)", "PASS", (out.match(/howSamDecidesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("How Sam decides copy (scripts/howSamDecidesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The /sell door (Lane C, Oct 26 2026): crew sees the newer Sell, the public the previous one until SELL_NEXT_ON=1 flips it. No network.
 try {
   const out = execSync("node scripts/sellRouteCheck.mjs", { encoding: "utf8" });

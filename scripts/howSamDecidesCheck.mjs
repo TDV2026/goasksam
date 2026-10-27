@@ -1,0 +1,21 @@
+// How Sam decides (Sam, Oct 26 2026): the five agreed sections, exactly. No network.  node scripts/howSamDecidesCheck.mjs
+let pass = 0, fail = 0;
+const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
+const { default: handler } = await import("../api/howSamDecides.js");
+const res = { headers: {}, setHeader(k, v) { this.headers[k] = v; }, status(c) { this.code = c; return this; }, send(b) { this.body = b; } };
+await handler({ headers: {}, url: "/how-sam-decides", method: "GET" }, res);
+const html = res.body, main = html.slice(html.indexOf("<main>"), html.indexOf("</main>"));
+const text = main.replace(/<[^>]+>/g, " ").replace(/&#39;/g, "'").replace(/\s+/g, " ");
+ok(res.code === 200, "the page answers 200");
+const heads = [...main.matchAll(/<h2 class="hd-headline">([^<]*)</g)].map(m => m[1]);
+ok(JSON.stringify(heads) === JSON.stringify(["One engine, every page", "Less is more", "The rules", "What Sam never does", "Where the intelligence comes from"]), "five headings in order: " + heads.join(" | "));
+ok(/<h1 class="hd-h1">How Sam decides\.<\/h1>/.test(main), "the page heading is unchanged");
+ok(!/[—–]/.test(main), "no em or en dashes");
+ok(!/data-lead-sentence/.test(main.slice(main.indexOf("Less is more"))) && /data-lead-sentence>Sam is one engine/.test(main), "the lead sentence is the first line of section 1");
+const nv = [...main.matchAll(/<li><span class="hd-nv">Never<\/span> ([^<]*)<\/li>/g)];
+ok(nv.length === 8, "eight Never lines, only the word Never in the accent span (" + nv.length + ")");
+ok(/\.hd-nv\{color:var\(--amber\)\}/.test(html) && /--amber:#9a6000/.test(html), "the word Never uses --amber");
+for (const must of ["Every car with a VIN or chassis number keeps its own page", "no moving averages, no growth rates", "Four rules decide what you see", "The sales behind every range are one click away.", "proprietary algorithm", "the conversation, and reading what you type"]) ok(text.includes(must), "has: " + must);
+for (const gone of ["Fresh every night", "yours", "your car", "trading screen. You came with one question, so you get one answer: the range, the sales behind it, the next step. No dozen statistics fighting for the same inch. If", "Rules Sam never breaks", "Go ask Sam", "candlesticks"]) ok(!text.includes(gone), "gone: " + gone);
+console.log(`howSamDecidesCheck: ${pass} pass, ${fail} FAIL`);
+process.exit(fail ? 1 : 0);
