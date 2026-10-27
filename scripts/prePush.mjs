@@ -1226,6 +1226,13 @@ try {
 } catch (e) {
   record("wrong refusals as classes: drive-train letters, non-trim words (scripts/refusalCauseCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// One set of sales: the count, the range, every tile and the set-aside line of one answer come from the same sales (Lane B, Oct 27 2026, e95). No network.
+try {
+  const out = execSync("node scripts/sameSetCheck.mjs", { encoding: "utf8" });
+  record("one set of sales behind every number on an answer (scripts/sameSetCheck.mjs)", "PASS", (out.match(/sameSetCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("one set of sales behind every number on an answer (scripts/sameSetCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // How Sam decides (Sam, Oct 26 2026): the five agreed sections, exactly. No network.
 try {
   const out = execSync("node scripts/howSamDecidesCheck.mjs", { encoding: "utf8" });

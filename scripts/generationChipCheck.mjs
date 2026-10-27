@@ -9,7 +9,7 @@ globalThis.fetch = async (url) => { const u = new URL(String(url)); if (u.pathna
 const E = await import(pathToFileURL(path.join(root, "lib/onebox.js")).href);
 const G = await import(pathToFileURL(path.join(root, "lib/generations.js")).href);
 let failed = 0; const ok = (n, c, d) => { if (!c) failed++; console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? "  " + d : ""}`); };
-const env = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
+const env = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k", noQuestionRule: true };   // the chips are read as the engine builds them; the question rule needs sales behind each option
 const models = [...new Set(G.CURATED_GENERATIONS.map(g => g.make + "|" + g.model))].map(k => k.split("|"));
 let asked = 0, chips = 0, bad = [];
 for (const [make, model] of models) {
