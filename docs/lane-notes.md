@@ -596,3 +596,4 @@ Branch laned-tasks3. Lane B's commit 8677167f is cherry-picked onto it (be84d1ae
   - windowWords: since December 2025 [no (basisLine carries it)]
   - yearWidened: not on the M3 answer (row or builder field, or another tier) [unsure]
   - yoyDirection: year over year: most sales landed about 26 percent higher than a year ago [unsure, probably YES for Market Check and the history page; cards unsure]
+- PUSH LOCK (Lane C, 19:33Z): carried fields (the engine's reason travels with its number on the shared card, Find's card and the Tasks email), no engine, stamp unchanged e94-20261027-onefence. FULL 0 FAIL except the one NAMED FAIL approved by Sam for this push and the e95 push: refusalCheck, the live e94 engine refuses the 1985 Land Rover Defender 110 (e95 fixes it). 203 PASS. No other push inside this lock.
