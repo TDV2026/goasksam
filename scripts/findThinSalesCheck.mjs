@@ -38,6 +38,14 @@ ok(thinSales(card({ thin_sales: { count: 3, sales: [sale(1, "x")] } }, { swap: t
 const u = unlinked(card({ thin_sales: { count: 2, sales: [sale(8500, "Sep"), sale(7200, "Jun")], latest_month: "September 2026" } }));
 ok(u && !/<a /.test(u.html) && text(u.html).includes("$8,500"), "Market Check not released: prices print without a link");
 ok(!/[–—]/.test(a.html + b.html + z.html), "no dashes");
+// REFUSED and NOT TRACKED: the card is never blank. A refusal prints the engine's refusal sentence as it comes; a car that is not tracked prints the zero line (thin_sales count 0), not nothing.
+{ const sl2 = new Function("esc", "thinSales", "READING_LINE", "rungHtml", "rungShown", "usd", "var REL_MC = true;\n" + block("  function rangeFirst(", "  function noRange(") + "\n" + block("  function noRange(", "  function compactNoRange(") + "\n" + block("  function compactNoRange(", "  function samLine(") + "\n" + block("  function samLine(l){", "  // SPEC CHIPS under the bid line") + "\nreturn samLine;")(esc, thinSales, "Sam is still reading the sales for this one.", () => "", () => [], usd);
+  const refused = sl2({ id: 1, market: { kind: "refused", refusalLine: "Sam could not verify this one, so no figures are shown." } });
+  ok(refused && /<p class="nt">Sam could not verify this one, so no figures are shown\.<\/p>/.test(refused.html), "refused: the card prints the engine's refusal sentence");
+  const zeroCard = sl2({ id: 1, market: { kind: "not_tracked", notTrackedLine: "Sam does not track this car.", thin_sales: { count: 0 } } });
+  ok(zeroCard && /No car like this has sold at auction yet\./.test(zeroCard.html) && !/does not track/.test(zeroCard.html), "not tracked: the card prints the zero line"); }
+const srcS = fs.readFileSync(new URL("../lib/live/search.js", import.meta.url), "utf8");
+ok(/refusalMem/.test(srcS) && /refusalLine: refusalMem\.get\(spec\.key\) \|\| null/.test(srcS) && /kind: "refused", refusalLine: rf/.test(srcS), "the engine's refusal sentence is carried and stored (refusalLine) for a spec with no sales to count");
 // samLine draws it first (a card with no sam_lines still shows it) and falls through otherwise
 const sl = block("  function samLine(l){", "    var ls = l.swap");
 ok(/var thin = thinSales\(l\); if \(thin\) return thin;/.test(sl), "samLine returns the thin block first");

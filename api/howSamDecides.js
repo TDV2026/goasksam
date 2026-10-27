@@ -21,7 +21,7 @@ const PARTS = [
   { h: "One engine, every page", p: [
     "Sam is one engine, not a set of tools. The same sales, the same rules and the same fences sit behind every page, so a car reads the same wherever you meet it.",
     "Follow one car through. Market Check shows what cars like it have actually sold for and which sale is closest. Sell takes that same evidence and turns it into decisions: the range to expect, the best day to end an auction, whether a reserve has helped cars like it, and where cars like it have sold best, house by house. Find shows the cars for sale right now and reads each live bid against those same sales, so you know whether a bid is inside, above or below the range before you act. Put Sam on a car or a search and Tasks keeps watch, and the emails carry the same line as the pages: where the bid sits against the range of recent sales. Every car with a VIN or chassis number keeps its own page, so its history is there the next time it comes up.",
-    "Change the car in one place and every page agrees."] },
+    "Ask about the same car on any page and you get the same answer."] },
   { h: "Less is more", p: [
     "Finding a car, selling a car or seeing what cars like it have sold for should not feel like reading a trading screen. You came with one question, so you get one answer: the range, the sales behind it, the next step. No dozen statistics fighting for the same inch, no moving averages, no growth rates. When Sam shows how a market has moved, it is real sales by period, shown only when there are enough of them, and never a change in the mix of cars dressed as a change in the market."] },
   { h: "The rules", p: [

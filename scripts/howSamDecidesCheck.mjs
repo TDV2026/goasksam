@@ -15,7 +15,7 @@ ok(!/data-lead-sentence/.test(main.slice(main.indexOf("Less is more"))) && /data
 const nv = [...main.matchAll(/<li><span class="hd-nv">Never<\/span> ([^<]*)<\/li>/g)];
 ok(nv.length === 8, "eight Never lines, only the word Never in the accent span (" + nv.length + ")");
 ok(/\.hd-nv\{color:var\(--amber\)\}/.test(html) && /--amber:#9a6000/.test(html), "the word Never uses --amber");
-for (const must of ["Every car with a VIN or chassis number keeps its own page", "no moving averages, no growth rates", "Four rules decide what you see", "The sales behind every range are one click away.", "proprietary algorithm", "the conversation, and reading what you type"]) ok(text.includes(must), "has: " + must);
-for (const gone of ["Fresh every night", "yours", "your car", "trading screen. You came with one question, so you get one answer: the range, the sales behind it, the next step. No dozen statistics fighting for the same inch. If", "Rules Sam never breaks", "Go ask Sam", "candlesticks"]) ok(!text.includes(gone), "gone: " + gone);
+for (const must of ["Ask about the same car on any page and you get the same answer.", "Every car with a VIN or chassis number keeps its own page", "no moving averages, no growth rates", "Four rules decide what you see", "The sales behind every range are one click away.", "proprietary algorithm", "the conversation, and reading what you type"]) ok(text.includes(must), "has: " + must);
+for (const gone of ["Change the car in one place", "Fresh every night", "yours", "your car", "trading screen. You came with one question, so you get one answer: the range, the sales behind it, the next step. No dozen statistics fighting for the same inch. If", "Rules Sam never breaks", "Go ask Sam", "candlesticks"]) ok(!text.includes(gone), "gone: " + gone);
 console.log(`howSamDecidesCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);
