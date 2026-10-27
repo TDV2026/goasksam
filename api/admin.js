@@ -250,13 +250,29 @@ async function writeFailures(env) {
 // door: the held-at-the-door and error events of the last few hours, grouped. Whether a row had an anon id is
 // shown as yes or no; the peak is the busiest single second.
 async function doorCheck(env, hours) {
-  const h = Math.min(24, Math.max(1, Number(hours) || 6));
-  const ev = await rows(env, `analytics_events?name=in.(held_at_door,error)&ts=gte.${encodeURIComponent(new Date(Date.now() - h * 3600e3).toISOString())}&internal=eq.false&select=ts,name,is_bot,anon_id,browser_family,device_class,region_class,props&limit=20000&order=ts.desc`);
-  const g = (f) => { const m = {}; for (const e of ev) { const k = f(e); m[k] = (m[k] || 0) + 1; } return Object.entries(m).map(([k, n]) => ({ k, n })).sort((a, b) => b.n - a.n).slice(0, 12); };
-  const sec = {}; for (const e of ev) { const k = String(e.ts).slice(0, 19); sec[k] = (sec[k] || 0) + 1; }
-  const peak = Object.entries(sec).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([t, n]) => ({ second: t, n }));
-  return { hours: h, rows: ev.length, capped: ev.length >= 20000, byName: g(e => e.name), byRoute: g(e => `${e.name} ${(e.props || {}).route || "?"} ${(e.props || {}).status || ""}`),
-    bot: g(e => e.is_bot ? "bot" : "not flagged"), withAnonId: g(e => e.anon_id ? "yes" : "no"), browser: g(e => e.browser_family || "none"), device: g(e => e.device_class || "none"), region: g(e => e.region_class || "none"), peak };
+  const h = Math.min(72, Math.max(1, Number(hours) || 6));
+  // Read in 3 hour slices, one at a time, so no single read is big enough to time out; a slice that fails fails the whole read.
+  // (Oct 27 2026: the first version of this read returned a silent 0 rows against 2,400 events in 2 hours. The cause was not proven, so it is now sliced and a failed read says so.)
+  let ev = []; const SLICE = 3 * 3600e3, end = Date.now();
+  for (let t = end; t > end - h * 3600e3; t -= SLICE) {
+    const part = await supabaseSelectAll(env, `analytics_events?name=in.(held_at_door,error)&ts=gte.${encodeURIComponent(new Date(Math.max(t - SLICE, end - h * 3600e3)).toISOString())}&ts=lt.${encodeURIComponent(new Date(t + 1000).toISOString())}&internal=eq.false&select=ts,name,is_bot,anon_id,browser_family,device_class,region_class,props&order=ts.desc`);
+    if (part === null) { ev = null; break; }
+    ev.push(...part);
+  }
+  if (ev === null) return { hours: h, read: false, error: "read failed" };
+  const g = (f, list = ev) => { const m = {}; for (const e of list) { const k = f(e); m[k] = (m[k] || 0) + 1; } return Object.entries(m).map(([k, n]) => ({ k, n })).sort((a, b) => b.n - a.n).slice(0, 12); };
+  const sec = {}, min = {}, hr = {}; for (const e of ev) { const t = String(e.ts); sec[t.slice(0, 19)] = (sec[t.slice(0, 19)] || 0) + 1; min[t.slice(0, 16)] = (min[t.slice(0, 16)] || 0) + 1; hr[t.slice(0, 13)] = (hr[t.slice(0, 13)] || 0) + 1; }
+  const top = (o, k) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, k).map(([t, n]) => ({ at: t, n }));
+  const ids = new Set(ev.filter(e => e.anon_id).map(e => e.anon_id));
+  const held = ev.filter(e => e.name === "held_at_door");
+  const perMin = Object.values(min).sort((a, b) => a - b);
+  return { hours: h, read: true, rows: ev.length, window: { first: ev.length ? ev[ev.length - 1].ts : null, last: ev.length ? ev[0].ts : null },
+    byName: g(e => e.name), byRoute: g(e => `${e.name} ${(e.props || {}).route || "?"} ${(e.props || {}).status || ""}`),
+    bot: g(e => e.is_bot ? "bot" : "not flagged", held), withAnonId: g(e => e.anon_id ? "yes" : "no", held), distinct_anon_ids: ids.size,
+    top_anon_id_counts: Object.values(ev.reduce((m, e) => { if (e.anon_id) m[e.anon_id] = (m[e.anon_id] || 0) + 1; return m; }, {})).sort((a, b) => b - a).slice(0, 5),
+    browser: g(e => e.browser_family || "none", held), device: g(e => e.device_class || "none", held), region: g(e => e.region_class || "none", held),
+    per_hour: Object.entries(hr).sort().map(([t, n]) => ({ at: t, n })), peak_seconds: top(sec, 5), peak_minutes: top(min, 5),
+    minutes_active: perMin.length, median_per_active_minute: perMin.length ? perMin[Math.floor(perMin.length / 2)] : null, max_per_minute: perMin.length ? perMin[perMin.length - 1] : null };
 }
 
 // ------------------------------------------------------------------------------------------------ cron
