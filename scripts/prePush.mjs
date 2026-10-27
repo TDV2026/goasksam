@@ -1261,6 +1261,13 @@ try {
 } catch (e) {
   record("a mixed-body pool past the question cap shows the sales, not one range (scripts/mixedRangeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Options that price apart never print one pooled headline or one pooled movement chart (Lane B, Oct 27 2026, e95). No network.
+try {
+  const out = execSync("node scripts/pooledAnswerCheck.mjs", { encoding: "utf8" });
+  record("options that price apart print no pooled headline or chart; options that price alike do (scripts/pooledAnswerCheck.mjs)", "PASS", (out.match(/pooledAnswerCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("options that price apart print no pooled headline or chart; options that price alike do (scripts/pooledAnswerCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // How Sam decides (Sam, Oct 26 2026): the five agreed sections, exactly. No network.
 try {
   const out = execSync("node scripts/howSamDecidesCheck.mjs", { encoding: "utf8" });
