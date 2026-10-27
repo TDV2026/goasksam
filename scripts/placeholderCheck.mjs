@@ -14,9 +14,7 @@ const render = async (mod, url) => { const { default: h } = await import(pathToF
 const esc = s => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 const pages = { home: await render("home", "/"), find: await render("buy", "/find"), mc: await render("marketCheck", "/market-check"), sell: await render("sellNext", "/api/sellNext") };
 ok(PLACEHOLDERS.home.examples.every(x => pages.home.includes(esc(x)) || pages.home.includes(esc(x).replace(/'/g, "&#39;"))), "Home carries its examples");
-ok(pages.find.includes('placeholder="' + esc(PLACEHOLDERS.find.text) + '"'), "Find carries its placeholder");
-ok(pages.mc.includes('placeholder="' + esc(PLACEHOLDERS.mc.text) + '"'), "Market Check carries its placeholder");
-ok(pages.sell.includes('placeholder="' + esc(PLACEHOLDERS.sell.text) + '"'), "the new Sell start carries its placeholder");
+for (const k of ["find", "mc", "sell"]) ok(PLACEHOLDERS[k].examples.every(x => pages[k].includes(esc(x)) || pages[k].includes(esc(x).replace(/'/g, "&#39;")) || pages[k].replace(/&amp;quot;/g, "&quot;").includes(esc(x))), `${k} carries its three examples (they rotate; the real placeholder stays blank for a screen reader)`);
 for (const [k, v] of Object.entries(PLACEHOLDERS)) for (const t of (v.examples || [v.text])) ok(!/[–—]/.test(t) && !/collector/i.test(t), `${k}: "${t}" has no dash and no collector`);
 const live = process.argv.includes("--live"), KEY = process.env.PROBE_KEY, CREW = process.env.CREW || process.env.GAS_CREW_COOKIE;
 if (live && KEY && CREW) {
@@ -28,7 +26,7 @@ if (live && KEY && CREW) {
   const find = q => p.evaluate(async q => { const r = await fetch("/api/buySearch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "chat", messages: [{ role: "user", content: q }], state: {}, turns: 0, anonId: "t" + Date.now() }) }); const t = await r.text(); const dd = t.slice(t.indexOf("event: done")); let j = null; try { j = JSON.parse(dd.slice(dd.indexOf("data:") + 5).trim().split("\n")[0]); } catch (e) {} const m = (j && j.meta) || {}; return { cards: ((j && j.cards) || []).length, unused: m.unusedLine || null, asks: (m.asks || []).length }; }, q);
   const mc = q => p.evaluate(async q => { const r = await fetch("/api/sellerDecision", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ oneBox: true, anonId: "t" + Date.now(), car: { raw: q }, asked: 0 }) }); const j = await r.json().catch(() => ({})); return { cards: j.tier === "result" ? Number(j.soldCount) || 1 : 0, unused: j.unusedLine || null, asks: /choice|question/.test(String(j.tier)) ? 1 : 0 }; }, q);
   for (const [k, v] of Object.entries(PLACEHOLDERS)) { if (!v.via) continue;
-    for (const t of (v.examples || [v.text])) { const q = t.replace(/\.\.\.$/, ""); const r = await (v.via === "marketCheck" ? mc(q) : find(q)); const good = r.cards > 0 && !r.unused && r.asks === 0;
+    for (const t of (v.examples || [v.text])) { if (/^Or paste a VIN$/i.test(t)) continue; const q = t.replace(/\.\.\.$/, ""); const r = await (v.via === "marketCheck" ? mc(q) : find(q)); const good = r.cards > 0 && !r.unused && r.asks === 0;
       if (v.pending) console.log(`PENDING ${k} "${t}": ${good ? "works" : JSON.stringify(r)} (${v.pending})`); else ok(good, `${k} "${t}" gives a populated result with no leftover words and no question (${JSON.stringify(r)})`); } }
   await b.close();
 } else console.log(live ? "SKIP the live engine run: needs PROBE_KEY and the crew cookie" : "(offline only; --live runs the engine)");

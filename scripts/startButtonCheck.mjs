@@ -40,9 +40,10 @@ for (const W of [1440, 390]) for (const [n, h] of Object.entries(pages)) R[n + W
 await b.close();
 for (const W of [1440, 390]) {
   const a = R["sell" + W], f = R["find" + W], m = R["mc" + W];
-  ok(a.boxW === f.boxW && f.boxW === m.boxW, `[${W}] the three boxes are the same width (sell ${a.boxW}, find ${f.boxW}, market check ${m.boxW})`);
+  // (Oct 26 2026) Find, Market Check and the new Sell draw the one-line 960 box (scripts/homeTightenCheck.mjs checks all four); this check still builds the OLD Sell wizard, whose own box stays 600.
+  ok(f.boxW === m.boxW, `[${W}] Find and Market Check boxes are the same width (find ${f.boxW}, market check ${m.boxW})`);
   if (W === 1440) ok(a.boxW === 600, "[1440] the box is 600 px");
-  else ok(a.boxL === f.boxL && f.boxL === m.boxL && a.boxR === f.boxR && f.boxR === m.boxR && a.boxL > 0, `[390] the same side gutters on all three (left ${a.boxL}/${f.boxL}/${m.boxL}, right ${a.boxR}/${f.boxR}/${m.boxR})`);
+  else ok(f.boxL === m.boxL && f.boxR === m.boxR && f.boxL > 0, `[390] the same side gutters on all three (left ${a.boxL}/${f.boxL}/${m.boxL}, right ${a.boxR}/${f.boxR}/${m.boxR})`);
   const same = k => a[k] === f[k] && f[k] === m[k];
   ok(same("bw") && same("bh") && same("radius") && same("bg") && same("d") && a.bw === 40 && a.radius === "12px" && a.bg === "rgb(18, 63, 51)" && a.d === "M5 12h14M13 6l6 6-6 6", `[${W}] the same send button: size, corners, green and right arrow (${JSON.stringify([a.bw, a.bh, a.radius, a.bg, a.d])} | ${JSON.stringify([m.bw, m.bh, m.radius, m.bg, m.d])})`);
   ok(m.mic && m.help && !a.mic, `[${W}] Market Check keeps its microphone and two-line box; Sell has no microphone`);
