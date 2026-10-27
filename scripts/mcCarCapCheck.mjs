@@ -31,7 +31,8 @@ for (const [tier, auth] of [["anonymous", ""], ["signed_in", "Bearer abc.def.ghi
   const ev = rows.find(x => (x.event || x.event_name || x.name) === "limit_hit" || JSON.stringify(x).includes("limit_hit"));
   const props = ev && (ev.props || ev.properties || {});
   ok(ev && props.limit === "device_cars_day" && props.route === "market_check" && props.tier === tier, `${tier}: limit_hit fires with limit device_cars_day, route market_check, tier ${tier} (${JSON.stringify(props)})`);
-  ok(ev && !JSON.stringify(ev).includes(DEVICE_IP) && !JSON.stringify(ev).includes("abc.def.ghi") && !/dev:/.test(JSON.stringify(ev)), `${tier}: the event stores no address, no device key and no token`);
+  ok(ev && props.scope === "market_check_search" && (ev.product === "market_check" || JSON.stringify(ev).includes("market_check")), `${tier}: the event still carries limit, scope and product (Lane D's Held back panel reads them)`);
+ok(ev && !JSON.stringify(ev).includes(DEVICE_IP) && !JSON.stringify(ev).includes("abc.def.ghi") && !/dev:/.test(JSON.stringify(ev)), `${tier}: the event stores no address, no device key and no token`);
 }
 // under the cap: allowed, no event
 rows.length = 0;
