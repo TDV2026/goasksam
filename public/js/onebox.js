@@ -1056,25 +1056,29 @@
         (Number.isFinite(Number(q.typical)) ? '<line x1="' + (cx - barW / 2).toFixed(1) + '" x2="' + (cx + barW / 2).toFixed(1) + '" y1="' + y(Number(q.typical)).toFixed(1) + '" y2="' + y(Number(q.typical)).toFixed(1) + '" stroke="var(--num)" stroke-width="3"/>' : "") + "</g>";
       labels.push({ i: i, cx: cx, yhi: yhi, ylo: ylo, lo: lo, hi: hi });
     });
-    // PRICE LABELS (Sam, Oct 25 2026): the range figures print only on the FIRST candle, the LAST, the HIGHEST and the LOWEST (the engine's own
-    // numbers, only picked out here); every other candle gives its figures on hover, tap or keyboard focus. Most important first, so when two
-    // labels would meet the less important one is dropped (it keeps its hover card). No label may touch a bar, another label or the axis rows.
-    claim({ x1: 0, x2: W, y1: H - padB + 2, y2: H });
+    // PRICE LABELS (Sam, Oct 27 2026, replacing the Oct 25 rule that labelled only the first, last, highest and lowest candle): EVERY candle shown carries the top and the bottom of its
+    // typical range (the engine's own low and high, printed as they come; the median stays unlabelled). Same small type. A candle whose top and bottom are the same figure after rounding
+    // shows one label. No label may touch a bar, another label, the axis rows or the edge of the chart: every top is placed first, then every bottom, each in priority order (the highest
+    // and the lowest candle, the last, the first, then the rest), each trying a few places (centred above or below its candle, lifted or dropped a line, hung off one side). A figure with no
+    // free place is dropped, the bottoms before the tops (the lower candle's bottom first), and the count dropped is on the chart (data-labels-dropped); its candle still gives it on hover, tap or focus.
+    claim({ x1: 0, x2: W, y1: H - padB - 8, y2: H });   // the rows under the chart, with a little air above them
     var hiIdx = 0, loIdx = 0; bs.forEach(function (q, k) { if (Number(q.high) > Number(bs[hiIdx].high)) hiIdx = k; if (Number(q.low) < Number(bs[loIdx].low)) loIdx = k; });
     var order = [hiIdx, loIdx, bs.length - 1, 0].filter(function (v, k, a2) { return a2.indexOf(v) === k; });
-    var drawn = {};
-    order.forEach(function (idx) {
-      var L = labels[idx], cx = L.cx, yhi = L.yhi, ylo = L.ylo, hi = L.hi, lo = L.lo, out = "";
-      // Each figure tries a few places (centred above or below its candle, then lifted or dropped a line, then hung off one side) and takes the
-      // first that touches nothing; if none is free the figure is dropped (its candle still gives it on hover, tap or focus).
-      var hiSpots = [], loSpots = [];
-      [-10, -10 - FS * 1.1].forEach(function (dy) { hiSpots.push({ x: cx, y: yhi + dy, anchor: "middle" }, { x: cx - barW / 2, y: yhi + dy, anchor: "start" }, { x: cx + barW / 2, y: yhi + dy, anchor: "end" }); });
-      [FS * 1.1, FS * 2.2].forEach(function (dy) { loSpots.push({ x: cx, y: ylo + dy, anchor: "middle" }, { x: cx - barW / 2, y: ylo + dy, anchor: "start" }, { x: cx + barW / 2, y: ylo + dy, anchor: "end" }); });
-      var firstFree = function (str, spots) { for (var k2 = 0; k2 < spots.length; k2++) { var rr = spotRect(str, spots[k2]); if (!hit(rr)) return { sp: spots[k2], r: rr }; } return null; };
-      var isEnd = idx === 0 || idx === bs.length - 1, wantHi = idx === hiIdx || isEnd, wantLo = idx === loIdx || isEnd;
-      if (wantHi) { var fh = firstFree(usd(hi), hiSpots); if (fh) { claim(fh.r); out += textAt(usd(hi), fh.sp); } }
-      if (wantLo && !(isEnd && idx !== loIdx && (ylo - yhi) < FS * 1.2)) { var fl = firstFree(usd(lo), loSpots); if (fl) { claim(fl.r); out += textAt(usd(lo), fl.sp); } }
-      drawn[idx] = out;
+    bs.forEach(function (q, k) { if (order.indexOf(k) < 0) order.push(k); });
+    var firstFree = function (str, spots) { for (var k2 = 0; k2 < spots.length; k2++) { var rr = spotRect(str, spots[k2]); if (!hit(rr) && rr.y1 >= 2) return { sp: spots[k2], r: rr }; } return null; };
+    var drawn = {}, dropped = 0;
+    order.forEach(function (idx) { drawn[idx] = ""; });
+    var hiSpotsOf = function (L) { var out = []; [-10, -10 - FS * 1.4, -10 - FS * 2.8].forEach(function (dy) { out.push({ x: L.cx, y: L.yhi + dy, anchor: "middle" }, { x: L.cx - barW / 2, y: L.yhi + dy, anchor: "start" }, { x: L.cx + barW / 2, y: L.yhi + dy, anchor: "end" }); }); return out; };
+    var loSpotsOf = function (L) { var out = []; [FS * 1.1, FS * 2.5, FS * 3.9].forEach(function (dy) { out.push({ x: L.cx, y: L.ylo + dy, anchor: "middle" }, { x: L.cx - barW / 2, y: L.ylo + dy, anchor: "start" }, { x: L.cx + barW / 2, y: L.ylo + dy, anchor: "end" }); }); return out; };
+    order.forEach(function (idx) {   // every top first
+      var L = labels[idx], f = firstFree(usd(L.hi), hiSpotsOf(L));
+      if (f) { claim(f.r); drawn[idx] += textAt(usd(L.hi), f.sp); } else dropped++;
+    });
+    order.forEach(function (idx) {   // then every bottom (one label alone when top and bottom are the same figure)
+      var L = labels[idx];
+      if (usd(L.lo) === usd(L.hi)) return;
+      var f = firstFree(usd(L.lo), loSpotsOf(L));
+      if (f) { claim(f.r); drawn[idx] += textAt(usd(L.lo), f.sp); } else dropped++;
     });
     labels = order.map(function (idx) { return function () { return drawn[idx] || ""; }; });
     var body = shapes + labels.map(function (f) { return f(); }).join("");
@@ -1093,7 +1097,7 @@
       body += '<text class="hc-count" x="' + cx.toFixed(1) + '" y="' + rowN + '" text-anchor="middle">' + esc(String(count)) + "</text>";
     });
     body += '<text class="hc-cap" x="' + padL + '" y="' + rowCap + '" text-anchor="start">' + esc("Sales per " + (mv.size || "period")) + "</text>";
-    var svg = '<svg class="hc-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Typical range by period">' + grid + body + "</svg>";
+    var svg = '<svg class="hc-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Typical range by period" data-labels-dropped="' + dropped + '">' + grid + body + "</svg>";
     var size = mv.label ? '<p class="hc-size">' + esc(mv.label) + "</p>" : "";
     var legend = '<div class="hc-legend"><span class="hc-legend-sw"><span class="hc-legend-box"></span>Typical range (middle half of sales)</span><span class="hc-legend-sw"><span class="hc-legend-tick"></span>Typical sale (median)</span></div>';
     var trendObj = d.trend;

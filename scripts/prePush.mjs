@@ -1237,6 +1237,13 @@ try {
 } catch (e) {
   record("Market Check daily cap (scripts/mcCarCapCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Candle chart labels: every quarter shown is labelled, none overlap, none leave the chart (Oct 27 2026). Local browser render, no network.
+try {
+  const out = execSync("node scripts/candleLabelsCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("Candle chart labels (scripts/candleLabelsCheck.mjs)", "PASS", (out.match(/candleLabelsCheck: \d+ pass.*/) || [""])[0] + " | " + (out.match(/candleLabelsCheck: \d+ charts.*/) || [""])[0]);
+} catch (e) {
+  record("Candle chart labels (scripts/candleLabelsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The /sell door (Lane C, Oct 26 2026): crew sees the newer Sell, the public the previous one until SELL_NEXT_ON=1 flips it. No network.
 try {
   const out = execSync("node scripts/sellRouteCheck.mjs", { encoding: "utf8" });
