@@ -312,3 +312,11 @@ Stage 1c item 6). One per Buy composer input that asked for a distance with no z
 different car, or asked for something Sam cannot do here yet. Carries ONLY `text` (what was typed, scrubbed like every
 text field), written by `trackSystem`: no visitor, session, account or address. So Sam can read what people type and
 which requests Buy cannot handle yet.
+
+## Dashboard round 2 (Lane D, Oct 26 2026)
+
+- `held_at_door` (service, server): route, status. The sealed-site holding page (503 with Retry-After) is logged here by `withTracking`, never as `error`. The Launch tab shows it as "Held at the door" with its bot share.
+- `near_me_zip` (service, server): the five-digit zip a buyer gave for "near me" on Find, logged once per new zip. A coarse place, no name or address.
+- Coarse place: `page_view`, `search_run` and `near_me_zip` rows carry `geo_country`, `geo_region` and `geo_city` in props, from Vercel's geo headers (`geoOf`, lib/track/consent.js). City is the name only. Never latitude, longitude or postcode. A visitor in the restricted set (EEA, UK, Switzerland) or who declined gets none. Device class is the `device_class` column on every event.
+- Internal: an `ADMIN_EMAILS` account signed in on a browser marks it internal through the signed `gas_int` cookie (minted by /api/account, same key as the crew cookie, its own HMAC label). It grants no access.
+- Admin: Launch panel 11 (where from and what on); a Searches tab (filters, CSV up to 5,000 rows); a Users tab (account email, first source, sign-in method, newsletter, searches, Tasks, clickouts; click for the whole journey); an include-crew switch on all three, off by default. Server-credential-only reads `write_failures` and `door`.

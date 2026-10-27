@@ -15,6 +15,7 @@ import { trackHealth, withTracking } from "../lib/track/log.js";
 import { BUY_CHAT_SPEND_PER_DAY_USD } from "../lib/_ceilings.js";
 import { readPremiumFreshness } from "../lib/ops/premiumFresh.js";
 import { launchPanels, rightNow, LAUNCH_ISO } from "../lib/admin/launch.js";
+import { searchesPanel, usersPanel, userJourney } from "../lib/admin/people.js";
 
 const CRON_ROUTES = ["/api/pullLive", "/api/tasks", "/api/refreshSpecLiveCounts", "/api/admin"];
 
@@ -144,9 +145,9 @@ function launchRange(key) {
   if (key === "last7") return { key, from: new Date(now.getTime() - 7 * 864e5).toISOString(), to: nowIso };
   return { key: "today", from: ptRange(ptDay(0)).start, to: nowIso };
 }
-async function launch(env, key) {
-  const r = launchRange(key);
-  const [panels, now] = await Promise.all([r.from >= r.to ? Promise.resolve({ range: r, before_launch: true }) : launchPanels(env, r), rightNow(env)]);
+async function launch(env, key, crew) {
+  const r = { ...launchRange(key), crew: !!crew };
+  const [panels, now] = await Promise.all([r.from >= r.to ? Promise.resolve({ range: r, before_launch: true }) : launchPanels(env, r), rightNow(env, !!crew)]);
   return { ...panels, now, launchAt: LAUNCH_ISO };
 }
 
@@ -300,7 +301,7 @@ function premiumLine(p){if(!p||p.error)return '<p class="fresh amber">Premium nu
  var act=(p.partners||[]).filter(function(x){return x.active;}),behind=act.filter(function(x){return x.computedAt&&Date.parse(p.lastRefreshed)-Date.parse(x.computedAt)>36e5;}).map(function(x){return x.name;}),none=act.filter(function(x){return !x.computedAt;}).map(function(x){return x.name;});
  return '<p class="fresh'+(p.stale?' amber':'')+'" title="'+E(new Date(p.lastRefreshed).toLocaleString())+'">Premium numbers last refreshed '+hoursText(p.hoursOld)+' ago.'+(p.stale?' That is over '+n(p.staleAfterHours)+' hours: check the nightly premium job.':'')+'</p>'
   +(behind.length?'<p class=note>Older than that run: '+E(behind.join(", "))+'.</p>':'')+(none.length?'<p class=note>No stored number (below the sales needed): '+E(none.join(", "))+'.</p>':'');}
-var PARTS=[["launch","Launch"],["overview","Today"],["reliability","Cost and Reliability"],["buy","Buy and Market Check"],["demand","Demand"],["journey","Journey"],["retention","Retention"]];
+var PARTS=[["launch","Launch"],["searches","Searches"],["users","Users"],["overview","Today"],["reliability","Cost and Reliability"],["buy","Buy and Market Check"],["demand","Demand"],["journey","Journey"],["retention","Retention"]];
 var R={
 overview:function(d){return tiles([["Searches",n(d.searches)],["Answered with a range",n(d.answered)],["Not enough data",pct(d.notEnoughRate)],["Clickouts",n(d.clickouts)],["Market Checks",n(d.marketChecks)],["Tasks created",n(d.tasksCreated)],["Sign-ups",n(d.signups)],["Visitors",n(d.visitors)],["Model spend",usd(d.spendUsd),"of the "+usd(d.spendCapUsd)+" cap"],["Errors",n(d.errors)],["Live cars",n(d.liveInventory)],["Analytics events lost",n(d.analyticsLost)]])+'<p class=note>'+E(d.day)+' Pacific. '+(d.refreshed?'Summaries refreshed '+E(new Date(d.refreshed).toLocaleTimeString()):'Summaries not refreshed yet')+'; crew, test and bot traffic left out.</p>';},
 reliability:function(d){return premiumLine(d.premium)+'<h2>Spend by product</h2>'+table([["Day","day"],["Product","product"],["Calls","model_calls",n],["Cache hits","cache_hits",n],["Tokens in","tokens_in",n],["Tokens out","tokens_out",n],["Cost","cost_usd",usd]],d.cost)
@@ -315,7 +316,7 @@ buy:function(d){var b=d.behavior,rowsB=[];["buy","market_check"].forEach(functio
  +'<h2>Range width against behavior, 7 days</h2><p class=note>Share of sessions that opened a receipt or clicked out after a range answer.</p>'+table([["Product","product"],["Width","width_band"],["Range answers","searches",n],["Went on","went_on",n],["Share","went_on",function(v,r){return pct(r.searches?v/r.searches:null);}]],d.width);},
 demand:function(d){var c=[["Car","car"],["Searches","searches",n],["Buy","buy",n],["Market Check","marketCheck",n],["Sell","sell",n],["Not enough data","notEnough",n],["No live cars","zeroLive",n],["Market Checked","marketChecked",n],["Tasks","tasks",n]];
  return '<h2>Top searches, 7 days</h2>'+table(c,d.top)+'<h2>Unmet searches</h2>'+table(c,d.unmet)+'<h2>Searched again on another day, 30 days</h2>'+table([["Car","vehicle_key",function(v){return E(String(v||"").replace("|"," "));}],["Visitors who came back to it","visitors",n],["Searches","searches",n]],d.repeats);},
-journey:function(d){if(d.events)return '<h2>One anonymous journey</h2><p class=note>Events for one anon id, oldest first. VINs are shown to admins only.</p>'+table([["Time","ts",function(v){return E(new Date(v).toLocaleString());}],["Product","product"],["Event","name"],["Fields","props",function(v){return E(JSON.stringify(v));}],["Region","region_class"],["Consent","consent"],["Browser","browser_family"],["Device","device_class"],["From","ref_domain"],["Campaign","utm_source"],["Account","user_id"],["VIN","vin"]],d.events)+'<p><button id=ad-back>Back to recent journeys</button></p>';
+journey:function(d){if(d.events)return (d.user?'<h2>Journey: '+E(d.anon)+'</h2>':'<h2>One anonymous journey</h2>')+'<p class=note>'+(d.user?'Every event linked to this account, oldest first.':'Events for one anon id, oldest first.')+' VINs are shown to admins only.</p>'+table([["Time","ts",function(v){return E(new Date(v).toLocaleString());}],["Product","product"],["Event","name"],["Fields","props",function(v){return E(JSON.stringify(v));}],["Region","region_class"],["Consent","consent"],["Browser","browser_family"],["Device","device_class"],["From","ref_domain"],["Campaign","utm_source"],["Account","user_id"],["VIN","vin"]],d.events)+'<p><button id=ad-back>Back to recent journeys</button></p>';
  return '<h2>Recent journeys, last 24 hours</h2><p class=note>Pick one to see it. Only anonymous ids; no address, no account email.</p>'+table([["Anon id","anon",function(v){return '<a href="#" data-anon="'+E(v)+'">'+E(v.slice(0,6))+'...</a>';}],["Events","events",n],["Products","products"],["Last","last",function(v){return E(new Date(v).toLocaleString());}]],d.recent)
   +'<h2>Handed off to Sell, 7 days</h2><p class=note>Market Check results passed to Sell, by car. Crew, test and bot traffic left out.</p>'+table([["Car","vehicle_key",function(v){return v?E(String(v).replace("|"," ")):'<span class=muted>Car not recorded</span>';}],["Model years","years",function(v){return v&&v.length?E(v.length>3?v[0]+" to "+v[v.length-1]:v.join(", ")):"-";}],["Handoffs","handoffs",n],["Visitors","visitors",n]],d.handoffs);},
 retention:function(d){function grid(list,field,first){var w={},weeks=0;(list||[]).forEach(function(r){(w[r.cohort_week]=w[r.cohort_week]||{})[r.weeks_after]=r[field];weeks=Math.max(weeks,r.weeks_after);});
@@ -323,7 +324,32 @@ retention:function(d){function grid(list,field,first){var w={},weeks=0;(list||[]
  var cols=[["Week of","week"]];for(var i=0;i<=Math.min(weeks,12);i++)cols.push([i===0?first:"Week "+i,"w"+i,i===0?n:pct]);return table(cols,rows);}
  return '<h2>Weekly retention by person</h2><p class=note>A signed-in person counts once across devices; everyone else by browser. Grouped by first week, with the share seen again each week after.</p>'+grid(d.people,"people","People")
   +'<h2>Weekly retention by browser</h2><p class=note>By anon id only, so a second device counts as new.</p>'+grid(d.cohorts,"visitors","Visitors");}};
-var rng="today",lastLaunch=null;
+var rng="today",lastLaunch=null,crew=false,sf={product:"",outcome:"",text:""},ut="";
+function crewBox(){return '<p class=note><label><input type=checkbox id=ad-crew'+(crew?' checked':'')+'> Include crew traffic (Sam, Pat and test visits). Off by default; bots stay out.</label></p>'+(crew?'<p class="fresh amber">Crew traffic is included in everything on this tab.</p>':'');}
+function rangeBtns(){return '<div class=lrange>'+[["today","Today"],["yesterday","Yesterday"],["launch","Since launch"],["last7","Last 7 days"]].map(function(x){return '<button data-r="'+x[0]+'" class="'+(rng===x[0]?"on":"")+'">'+x[1]+'</button>';}).join("")+'</div>';}
+function opt(list,cur){return list.map(function(x){return '<option value="'+E(x[0])+'"'+(cur===x[0]?' selected':'')+'>'+E(x[1])+'</option>';}).join("");}
+function csvCell(v){var t=String(v==null?"":v);if(/^[=+@-]/.test(t))t="'"+t;var q=String.fromCharCode(34);return q+t.split(q).join(q+q)+q;}
+function csvOf(rows,cols){var nl=String.fromCharCode(10);return [cols.map(function(c){return csvCell(c[0]);}).join(",")].concat(rows.map(function(r){return cols.map(function(c){return csvCell(r[c[1]]);}).join(",");})).join(nl)+nl;}
+function download(name,text){var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type:"text/csv"}));a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},500);}
+var SCOLS=[["Time","ts"],["Product","product"],["Text","text"],["Car","car"],["Outcome","outcome"],["Seconds","seconds"],["Cache","cache"],["State","state"],["Device","device"],["Source","source"],["Person","person"],["Crew","crew"]];
+R.searches=function(d){
+ var h=rangeBtns()+'<div class=lrange><select id=sf-product>'+opt([["","All products"],["buy","Find"],["market_check","Market Check"],["sell","Sell"]],sf.product)+'</select> <select id=sf-outcome>'+opt([["","All outcomes"],["range","Range"],["thin","Thin"],["nothing","Nothing"],["error","Error"],["asked_back","Asked back"]],sf.outcome)+'</select> <input id=sf-text placeholder="Search the text" value="'+E(sf.text)+'"> <button id=sf-go>Apply</button> <button id=sf-csv>Download CSV (up to 5,000 rows)</button></div>'+crewBox();
+ h+='<p class=note>Newest first. The text is what was typed, scrubbed of emails, phone numbers and VINs. Person is the account email when signed in, else the anonymous id. Source is the first page of that visit in this range. Showing '+n(d.shown)+(d.capped?' (the most recent '+n(d.limit)+'; narrow the filters to see older ones)':'')+'.</p>';
+ return h+table([["Time","ts",function(v){return E(fmtT(v));}],["Product","product",function(v){return pn(v);}],["Text","text"],["Car","car"],["Outcome","outcome"],["Seconds","seconds"],["Cache","cache"],["State","state"],["Device","device"],["Source","source"],["Person","person",function(v,r){return r.anon&&!r.signed_in?'<a href="#" data-anon="'+E(v)+'">'+E(String(v).slice(0,8))+'...</a>':E(v);}],["Crew","crew",function(v){return v?"crew":"";}]],d.rows);};
+R.users=function(d){
+ return '<div class=lrange><input id=ut-text placeholder="Search emails" value="'+E(ut)+'"> <button id=ut-go>Apply</button> <button id=ut-csv>Download CSV</button></div>'+crewBox()+'<p class=note>'+n(d.total)+' accounts, most recently seen first (the first 1,000 shown). Searches, Tasks and clickouts are counted from '+E(String(d.since).slice(0,10))+'. Click an email for the whole journey.'+(d.capped?' Activity is capped at 60,000 events, so the newest are missing.':'')+'</p>'
+  +table([["Email","email",function(v,r){return '<a href="#" data-user="'+E(r.user_id)+'">'+E(v)+'</a>';}],["First seen","first_seen",function(v){return E(fmtT(v));}],["First source","first_source"],["Sign-in","method"],["Newsletter","newsletter",function(v){return v?"yes":"no";}],["Searches","searches",n],["Tasks","tasks",n],["Clickouts","clickouts",n],["Last seen","last_seen",function(v){return E(fmtT(v));}]],d.rows);};
+R.user_journey=function(d){return R.journey(d);};
+var UCOLS=[["Email","email"],["First seen","first_seen"],["First source","first_source"],["Sign-in","method"],["Newsletter","newsletter"],["Searches","searches"],["Tasks","tasks"],["Clickouts","clickouts"],["Last seen","last_seen"]];
+function wirePeople(box,part){
+ var c=document.getElementById("ad-crew");if(c)c.onchange=function(){crew=c.checked;show(part);};
+ box.querySelectorAll(".lrange button[data-r]").forEach(function(b){b.onclick=function(){rng=b.getAttribute("data-r");show(part);};});
+ var g=document.getElementById("sf-go");if(g)g.onclick=function(){sf={product:document.getElementById("sf-product").value,outcome:document.getElementById("sf-outcome").value,text:document.getElementById("sf-text").value};show("searches");};
+ var t=document.getElementById("sf-text");if(t)t.onkeydown=function(e){if(e.key==="Enter")g.click();};
+ var cs=document.getElementById("sf-csv");if(cs)cs.onclick=function(){cs.disabled=true;api({part:"searches",range:rng,product:sf.product,outcome:sf.outcome,text:sf.text,crew:crew,limit:5000}).then(function(d){download("goasksam-searches-"+rng+".csv",csvOf(d.rows,SCOLS));cs.disabled=false;}).catch(function(){cs.disabled=false;});};
+ var ug=document.getElementById("ut-go");if(ug)ug.onclick=function(){ut=document.getElementById("ut-text").value;show("users");};
+ var uc=document.getElementById("ut-csv");if(uc)uc.onclick=function(){api({part:"users",text:ut,crew:crew}).then(function(d){download("goasksam-users.csv",csvOf(d.rows,UCOLS));});};
+ box.querySelectorAll("[data-user]").forEach(function(a){a.onclick=function(e){e.preventDefault();show("user_journey",{user:a.getAttribute("data-user")});};});}
 function pc(a,b){return b?Math.round(a/b*100)+"%":"-";}
 function cell(a,b){return n(a)+" ("+pc(a,b)+")";}
 function ms(x){return x==null?"-":(x>=1000?(x/1000).toFixed(1)+" s":n(x)+" ms");}
@@ -332,7 +358,8 @@ var PN={buy:"Find",market_check:"Market Check",sell:"Sell",total:"All products"}
 function pn(v){return E(PN[v]||v);}
 R.launch=function(d){
  var h='<div class=lrange>'+[["today","Today"],["yesterday","Yesterday"],["launch","Since launch"],["last7","Last 7 days"]].map(function(x){return '<button data-r="'+x[0]+'" class="'+(rng===x[0]?"on":"")+'">'+x[1]+'</button>';}).join("")+'</div>';
- h+='<p class=note>Refreshes every 60 seconds. '+(d.generatedAt?'Numbers as of '+E(fmtT(d.generatedAt))+'. ':'')+'Crew, test and bot traffic are left out. Nothing here is personal: visitors are counted, never listed. Visitors who declined analytics in Europe, the UK or Switzerland appear only in the answer counts.</p>';
+ h+='<p class=note>Refreshes every 60 seconds. '+(d.generatedAt?'Numbers as of '+E(fmtT(d.generatedAt))+'. ':'')+(crew?'Crew and test traffic are included. ':'Crew and test traffic are left out. ')+'Bots are left out. Nothing here is personal: visitors are counted, never listed. Visitors who declined analytics in Europe, the UK or Switzerland appear only in the answer counts.</p>';
+ h+=crewBox();
  if(d.before_launch||(d.range&&rng==="launch"&&d.range.from>=d.range.to))h+='<p class="fresh amber">Launch is Thursday Oct 29 at 7:00 AM Pacific. Nothing to count yet.</p>';
  if(d.truncated)h+='<p class="fresh amber">This range has more page views than the tab counts; only the earliest 60,000 are in the visitor numbers.</p>';
  if(!d.answerRate){return h;}
@@ -389,14 +416,15 @@ R.launch=function(d){
  h+='<h3>Zips typed for near me</h3>'+table([["Zip","zip"],["Times","times",n],["Visitors","visitors",n],["Last","last",function(v){return E(fmtT(v));}]],w2.zips);
  return h;};
 var cur="launch",main,lTimer=null;
-function wireLaunch(box){box.querySelectorAll(".lrange button").forEach(function(b){b.onclick=function(){rng=b.getAttribute("data-r");show("launch");};});}
+function wireLaunch(box){var c=document.getElementById("ad-crew");if(c)c.onchange=function(){crew=c.checked;show("launch");};box.querySelectorAll(".lrange button").forEach(function(b){b.onclick=function(){rng=b.getAttribute("data-r");show("launch");};});}
 function refreshLaunch(){var box=document.getElementById("ad-body");if(!box||cur!=="launch")return;
- token().then(function(t){if(t)tok=t;return api({part:"launch",range:rng});}).then(function(d){if(cur!=="launch")return;var y=window.scrollY;box.innerHTML=R.launch(d);wireLaunch(box);window.scrollTo(0,y);}).catch(function(){});}
+ token().then(function(t){if(t)tok=t;return api({part:"launch",range:rng,crew:crew});}).then(function(d){if(cur!=="launch")return;var y=window.scrollY;box.innerHTML=R.launch(d);wireLaunch(box);window.scrollTo(0,y);}).catch(function(){});}
 function show(part,extra){cur=part;if(lTimer){clearInterval(lTimer);lTimer=null;}main.querySelectorAll("nav button").forEach(function(b){b.className=b.getAttribute("data-p")===part?"on":"";});var box=document.getElementById("ad-body");box.innerHTML='<p class=note>Loading...</p>';
- token().then(function(t){if(t)tok=t;return api(Object.assign({part:part},part==="launch"?{range:rng}:{},extra||{}));}).then(function(d){box.innerHTML=R[part](d);
+ token().then(function(t){if(t)tok=t;return api(Object.assign({part:part},part==="launch"?{range:rng,crew:crew}:part==="searches"?{range:rng,product:sf.product,outcome:sf.outcome,text:sf.text,crew:crew}:part==="users"?{text:ut,crew:crew}:{},extra||{}));}).then(function(d){box.innerHTML=R[part](d);
+  if(part==="searches"||part==="users")wirePeople(box,part);
   if(part==="launch"){wireLaunch(box);lTimer=setInterval(function(){if(!document.hidden)refreshLaunch();},60000);}
   box.querySelectorAll("[data-anon]").forEach(function(a){a.onclick=function(e){e.preventDefault();show("journey",{anon:a.getAttribute("data-anon")});};});
-  var bk=document.getElementById("ad-back");if(bk)bk.onclick=function(){show("journey");};}).catch(function(){box.innerHTML='<p class=note>That part could not load. Try again in a moment.</p>';});}
+  var bk=document.getElementById("ad-back");if(bk)bk.onclick=function(){show(part==="user_journey"?"users":"journey");};}).catch(function(){box.innerHTML='<p class=note>That part could not load. Try again in a moment.</p>';});}
 token().then(function(t){if(!t)return;tok=t;return api({part:"me"}).then(function(){
  document.getElementById("ad-style").media="all";document.body.className="ad";document.title="GoAskSam numbers";
  main=document.querySelector("main");main.className="";main.innerHTML='<h1>GoAskSam numbers</h1><nav>'+PARTS.map(function(p){return '<button data-p="'+p[0]+'">'+E(p[1])+'</button>';}).join("")+'</nav><div id=ad-body></div>';
@@ -448,7 +476,10 @@ async function handler(req, res) {
     if (b.part === "door" && cred) return res.status(200).json(await doorCheck(env, b.hours));
     if (b.part === "refresh_now" && cred) return res.status(200).json(await refresh(env, "hour"));
     if (b.part === "me") return res.status(200).json({ ok: true });
-    if (b.part === "launch") return res.status(200).json(await launch(env, typeof b.range === "string" ? b.range : "today"));
+    if (b.part === "launch") return res.status(200).json(await launch(env, typeof b.range === "string" ? b.range : "today", b.crew === true));
+    if (b.part === "searches") { const r = launchRange(typeof b.range === "string" ? b.range : "today"); return res.status(200).json(await searchesPanel(env, { from: r.from, to: r.to, product: b.product, outcome: b.outcome, text: b.text, crew: b.crew === true, limit: b.limit })); }
+    if (b.part === "users") return res.status(200).json(await usersPanel(env, { text: b.text, crew: b.crew === true, adminEmail: e => adminEmails().includes(String(e).toLowerCase()) }));
+    if (b.part === "user_journey") return res.status(200).json({ ...(await userJourney(env, b.user)), user: true });
     if (b.part === "overview") return res.status(200).json(await overview(env));
     if (b.part === "reliability") return res.status(200).json(await reliability(env));
     if (b.part === "buy") return res.status(200).json(await buyAndMarketCheck(env));

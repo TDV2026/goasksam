@@ -132,6 +132,13 @@ ok(g.c === 404 && /noindex/.test(g.b) && /R\.launch=/.test(g.b) && /var cur="lau
 const puppeteer = (await import(pathToFileURL(path.join(ROOT, "node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js")).href).catch(() => import("puppeteer-core"))).default;
 const payload = { ...D, now: { minutes: 15, visitors: 7, answers: 12, failures: 1 }, generatedAt: new Date().toISOString(), launchAt: "2026-10-29T14:00:00Z" };
 for (let i = 0; i < 40; i++) payload.unmet.push({ product: "market_check", query: "a rather long query about a very rare car " + i, outcome: "thin", times: 1 + (i % 3), last: at(100 - i) });
+const searchesMock = { shown: 3, capped: false, limit: 300, rows: [
+  { ts: at(3), product: "buy", text: "=cmd|calc a very long typed question about a rare car with many words in it " + "x".repeat(60), car: "ford gt", outcome: "range", seconds: 1.2, cache: "warm", state: "CA", device: "mobile", source: "google.com", person: "sam@example.com", signed_in: true, anon: "AAAAAAAAAAAAAAAAAAAAAA", crew: true },
+  { ts: at(2), product: "market_check", text: "1948 tucker", car: "tucker 48", outcome: "thin", seconds: 0.8, cache: "cold", state: "TX", device: "desktop", source: "direct", person: "AAAAAAAAAAAAAAAAAAAAAA", signed_in: false, anon: "AAAAAAAAAAAAAAAAAAAAAA", crew: false },
+  { ts: at(1), product: "sell", text: "spyker", car: "", outcome: "error", seconds: null, cache: "", state: "", device: "", source: "", person: "", signed_in: false, anon: null, crew: false }] };
+const usersMock = { total: 2, capped: false, since: "2026-10-01T00:00:00Z", rows: [
+  { user_id: "11111111-1111-1111-1111-111111111111", email: "someone@example.com", first_seen: at(0), first_source: "google.com", method: "google", newsletter: true, searches: 4, tasks: 1, clickouts: 2, last_seen: at(9) },
+  { user_id: "22222222-2222-2222-2222-222222222222", email: "other.person.with.a.rather.long.address@example.org", first_seen: at(0), first_source: "direct", method: "email", newsletter: false, searches: 0, tasks: 0, clickouts: 0, last_seen: at(2) }] };
 const b = await puppeteer.launch({ executablePath: process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", headless: "new", args: ["--no-sandbox"] });
 if (SHOTS) fs.mkdirSync(path.join(ROOT, "proofs/launch"), { recursive: true });
 for (const [w, h, tag] of [[1440, 900, "1440"], [390, 844, "390"]]) {
@@ -139,7 +146,7 @@ for (const [w, h, tag] of [[1440, 900, "1440"], [390, 844, "390"]]) {
   const calls = [];
   await page.setRequestInterception(true);
   page.on("request", rq => {
-    if (rq.url().endsWith("/api/admin") && rq.method() === "POST") { let body = {}; try { body = JSON.parse(rq.postData() || "{}"); } catch {} calls.push(body); const ranged = { ...payload, range: { key: body.range } }; return rq.respond({ status: 200, contentType: "application/json", body: JSON.stringify(body.part === "me" ? { ok: true } : ranged) }); }
+    if (rq.url().endsWith("/api/admin") && rq.method() === "POST") { let body = {}; try { body = JSON.parse(rq.postData() || "{}"); } catch {} calls.push(body); const ranged = { ...payload, range: { key: body.range } }; return rq.respond({ status: 200, contentType: "application/json", body: JSON.stringify(body.part === "me" ? { ok: true } : body.part === "searches" ? searchesMock : body.part === "users" ? usersMock : body.part === "user_journey" ? { user: true, anon: "sam@example.com", events: [{ ts: at(1), product: "buy", name: "page_view", props: { path: "/buy" }, user_id: "signed in" }] } : ranged) }); }
     if (rq.url().startsWith("http://admin.test/")) return rq.respond({ status: 404, contentType: "text/html; charset=utf-8", body: g.b });
     return rq.abort();
   });
@@ -165,6 +172,32 @@ for (const [w, h, tag] of [[1440, 900, "1440"], [390, 844, "390"]]) {
   ok(["yesterday", "launch", "last7"].every(r => asked.includes(r)), `${tag}: the date picker asks for yesterday, since launch and last 7 days (${asked.join(",")})`);
   const over2 = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
   ok(over2, `${tag}: still no sideways scroll after the picker`);
+  // Searches and Users tabs (round 2, stages 3 to 5)
+  await page.evaluate(() => [...document.querySelectorAll("nav button")].find(x => x.textContent === "Searches").click());
+  await page.waitForFunction(() => document.querySelector("#sf-go"), { timeout: 4000 }).catch(() => {});
+  const stxt = await page.evaluate(() => document.body.innerText);
+  ok(/Newest first/.test(stxt) && /1948 tucker/.test(stxt) && /sam@example\.com/.test(stxt), `${tag}: the Searches tab draws its rows, with the signed-in email`);
+  ok(await page.evaluate(() => !!document.querySelector("#sf-product") && !!document.querySelector("#sf-outcome") && !!document.querySelector("#sf-text") && !!document.querySelector("#sf-csv")), `${tag}: Searches has the product, outcome and text filters and the CSV button`);
+  ok(await page.evaluate(() => { const c = document.getElementById("ad-crew"); return c && !c.checked; }), `${tag}: the include-crew switch is off by default on Searches`);
+  ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `${tag}: Searches has no sideways page scroll`);
+  const nCalls = calls.length;
+  await page.evaluate(() => { document.getElementById("ad-crew").click(); });
+  await page.waitForFunction(n => true, {}, 0);
+  await new Promise(r => setTimeout(r, 300));
+  ok(calls.slice(nCalls).some(c => c.part === "searches" && c.crew === true), `${tag}: switching crew on asks for crew traffic`);
+  await page.evaluate(() => { document.getElementById("sf-outcome").value = "thin"; document.getElementById("sf-go").click(); });
+  await new Promise(r => setTimeout(r, 300));
+  ok(calls.some(c => c.part === "searches" && c.outcome === "thin" && c.crew === true), `${tag}: the outcome filter and the crew switch are sent together`);
+  await page.evaluate(() => [...document.querySelectorAll("nav button")].find(x => x.textContent === "Users").click());
+  await page.waitForFunction(() => document.querySelector("#ut-go"), { timeout: 4000 }).catch(() => {});
+  ok(await page.evaluate(() => /someone@example\.com/.test(document.body.innerText) && document.documentElement.scrollWidth <= window.innerWidth), `${tag}: the Users tab draws with no sideways scroll`);
+  await page.evaluate(() => document.querySelector("[data-user]").click());
+  await new Promise(r => setTimeout(r, 300));
+  ok(calls.some(c => c.part === "user_journey" && /^1{8}-/.test(c.user)), `${tag}: clicking a user asks for that account's journey`);
+  ok(await page.evaluate(() => /Journey: sam@example\.com/.test(document.body.innerText)), `${tag}: the journey page names the account`);
+  await page.evaluate(() => [...document.querySelectorAll("nav button")].find(x => x.textContent === "Launch").click());
+  await page.waitForFunction(() => document.getElementById("ad-crew"), { timeout: 4000 }).catch(() => {});
+  ok(await page.evaluate(() => { const c = document.getElementById("ad-crew"); return c && c.checked && /Crew and test traffic are included/.test(document.body.innerText); }), `${tag}: the crew switch carries over to Launch and says so plainly`);
   // a table wider than the screen scrolls inside its own box, not the page
   if (tag === "390") { const wide = await page.evaluate(() => { const w = document.querySelector(".wrap"); return w && getComputedStyle(w).overflowX; }); ok(wide === "auto", "390: wide tables scroll inside their own box"); }
   await page.close();
@@ -173,7 +206,7 @@ await b.close();
 
 // ---- 4. the gate
 const gate = async (b, headers) => { const r = resObj(); await admin.default({ method: "POST", query: {}, headers: { host: "goasksam.com", ...(headers || {}) }, body: b }, r); return r; };
-for (const part of ["launch", "overview", "me", "demand", "write_failures", "door"]) {
+for (const part of ["launch", "overview", "me", "demand", "write_failures", "door", "searches", "users", "user_journey"]) {
   const a = await gate({ part, range: "today" }); const c = await gate({ part, range: "today" }, { authorization: "Bearer not-a-real-token" });
   ok(a.c === 404 && c.c === 404, `/admin part ${part}: the plain 404 with no token and with a bad token`);
 }
@@ -252,6 +285,45 @@ for (const part of ["launch", "overview", "me", "demand", "write_failures", "doo
   ok(W.states[0].k === "CA" && W.states[0].visitors === 2 && W.states[0].searches === 1 && W.states[1].k === "TX", "by US state: California 2 visitors, 1 search; Texas next");
   const bd = W.devices.find(x => x.product === "buy").rows; ok(bd.find(x => x.k === "mobile").visitors === 2 && bd.find(x => x.k === "desktop").visitors === 2, "device split per product counts each visitor once");
   ok(W.zips[0].zip === "94105" && W.zips[0].times === 2 && W.zips[0].visitors === 2 && W.zips[1].zip === "78701", "zips typed for near me, most often first");
+}
+
+// ---- 8. Searches and Users, server side (round 2, stages 3 to 5): the reads, with fetch stubbed
+{
+  const { searchesPanel, usersPanel, userJourney } = await imp("lib/admin/people.js");
+  const realFetch = globalThis.fetch, urls = [];
+  const U1 = "11111111-1111-1111-1111-111111111111", U2 = "22222222-2222-2222-2222-222222222222";
+  globalThis.fetch = async (url, init) => {
+    const u = String(url); urls.push(u);
+    const j = body => ({ ok: true, json: async () => body });
+    if (u.includes("/accounts?user_id=in.")) return j([{ user_id: U1, email: "someone@example.com" }]);
+    if (u.includes("/accounts?select=")) return j([{ user_id: U1, email: "someone@example.com", created_at: "2026-10-20T00:00:00Z", marketing_consent: false }, { user_id: U2, email: "Sam@Example.com", created_at: "2026-10-21T00:00:00Z", marketing_consent: true }]);
+    if (u.includes("name=eq.page_view")) return j([{ anon_id: "AAAA", ref_domain: "google.com", utm_source: null }, { anon_id: "AAAA", ref_domain: "later.example", utm_source: null }]);
+    if (u.includes("name=eq.search_run")) return j([{ ts: "2026-10-29T15:00:00Z", product: "buy", anon_id: "AAAA", user_id: U1, device_class: "mobile", internal: false, props: { query_text: "porsche 911", answer_type: "not_enough_data", vehicle_key: "porsche|911", latency_ms: 1234, cache: "cold", geo_region: "CA" } }]);
+    if (u.includes("user_id=not.is.null")) return j([
+      { ts: "2026-10-22T00:00:00Z", name: "page_view", user_id: U1, ref_domain: "google.com", utm_source: null, props: {} }, { ts: "2026-10-23T00:00:00Z", name: "signin", user_id: U1, props: { method: "google", newsletter: true } },
+      { ts: "2026-10-24T00:00:00Z", name: "search_run", user_id: U1, props: {} }, { ts: "2026-10-24T01:00:00Z", name: "task_created", user_id: U1, props: {} }, { ts: "2026-10-24T02:00:00Z", name: "auction_clickout", user_id: U1, props: {} },
+      { ts: "2026-10-25T00:00:00Z", name: "search_run", user_id: U2, props: {} }]);
+    return j([]);
+  };
+  try {
+    const env = { supabaseUrl: "https://x.test", supabaseKey: "k" };
+    const sp = await searchesPanel(env, { from: "2026-10-29T14:00:00Z", to: "2026-10-30T14:00:00Z", product: "buy", outcome: "thin", text: "por*sche,(x)", crew: false, limit: 999999 });
+    const su = urls.find(x => x.includes("name=eq.search_run"));
+    ok(/internal=eq\.false/.test(su) && /is_bot=eq\.false/.test(su) && /product=eq\.buy/.test(su) && /answer_type=in\.\(not_enough_data\)/.test(su) && /ilike\.\*por%20sche%20x\*/.test(su.replace(/%20+/g, "%20")) && /order=ts\.desc/.test(su), "Searches: crew off leaves internal out, bots always out, product and outcome and text filters sent, newest first");
+    ok(sp.limit === 5000, "Searches: a limit above 5,000 is held to 5,000 rows (" + sp.limit + ")");
+    ok(sp.rows.length === 1 && sp.rows[0].outcome === "thin" && sp.rows[0].seconds === 1.2 && sp.rows[0].person === "someone@example.com" && sp.rows[0].source === "google.com" && sp.rows[0].state === "CA" && sp.rows[0].car === "porsche 911", "Searches: row shows outcome, seconds, state, the account email, and the first page of the visit as its source");
+    ok(!("vin" in sp.rows[0]), "Searches: no VIN column");
+    urls.length = 0; await searchesPanel(env, { from: "a", to: "b", crew: true });
+    ok(!/internal=eq\.false/.test(urls.find(x => x.includes("name=eq.search_run"))) && /is_bot=eq\.false/.test(urls.find(x => x.includes("name=eq.search_run"))), "Searches: crew on drops the internal filter and keeps bots out");
+    const off = await usersPanel(env, { crew: false, adminEmail: e => /^sam@example\.com$/i.test(e) });
+    ok(off.rows.length === 1 && off.rows[0].email === "someone@example.com" && off.rows[0].searches === 1 && off.rows[0].tasks === 1 && off.rows[0].clickouts === 1 && off.rows[0].method === "google" && off.rows[0].newsletter === true && off.rows[0].first_source === "google.com", "Users: counts, sign-in method, newsletter and first source per account; an admin account is left out");
+    const on = await usersPanel(env, { crew: true, adminEmail: e => /^sam@example\.com$/i.test(e) });
+    ok(on.rows.length === 2 && on.total === 2, "Users: crew on brings the admin account in");
+    ok(urls.some(x => /name=in\.\(page_view,search_run,task_created,auction_clickout,live_car_clicked,signin\)/.test(x)) && !urls.some(x => /select=[^&]*\bvin\b/.test(x)), "Users: reads only the listed event names and never the VIN column");
+    urls.length = 0; const uj = await userJourney(env, U1);
+    ok(urls.some(x => x.includes("user_id=eq." + U1)) && uj.events.every(e => e.user_id === "signed in" || e.user_id == null), "User journey: reads one account's events and never returns the user id");
+    const bad = await userJourney(env, "not-a-uuid'); drop"); ok(bad.events.length === 0, "User journey: a malformed id reads nothing");
+  } finally { globalThis.fetch = realFetch; }
 }
 console.log(`launchDashCheck: ${pass} pass, ${fail} fail`);
 process.exit(fail ? 1 : 0);
