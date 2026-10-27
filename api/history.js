@@ -25,6 +25,7 @@ import { projectFlagReason } from "../lib/_classify.js";
 import { bidState, bidTimePT, lastBidLine } from "../lib/tasks/bidTime.js";
 import { heldFor } from "../lib/_hold.js";
 import { countNoun } from "../lib/countNoun.js";
+import { routeLimit, sendTooMany } from "../lib/_routeLimit.js";
 
 const SITE = "https://goasksam.com";
 // Card design system (Oct 2026, the /buy cards): #FAF8F4 paper, near-black ink, one red (#D7262C),
@@ -697,6 +698,13 @@ async function handler(req, res) {
   const env = historyEnv();
   const crew = isCrewRequest(req);
   if (!env) return send(res, 503, page({ title: "GoAskSam", crew, body: "<p>Unavailable.</p>", req }), {}, false, crew, req);
+  // The address limit (lib/_routeLimit.js, Oct 27 2026): a page, a sitemap or a watch each has its own scope. Crew and our keyed jobs (the
+  // photo check cron) pass; an unreadable or slow ledger lets the request through. Over the limit: 429 with Retry-After, no query run.
+  {
+    const qq = req.query || {};
+    const scope = req.method === "POST" ? "history_watch" : qq.sitemap ? "history_sitemap" : qq.photocheck ? null : "history_page";
+    if (scope) { const lim = await routeLimit(env, req, scope, { route: "/api/history" }); if (!lim.ok) return sendTooMany(res, lim.retryAfter); }
+  }
   if (req.method === "POST") {
     const b = req.body || {};
     if (b.action !== "watch") return res.status(400).json({ ok: false });

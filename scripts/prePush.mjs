@@ -230,6 +230,15 @@ try {
   record("launch dashboard (scripts/launchDashCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 
+// Route limits (Oct 27 2026, Lane D): every api route that reads the database or calls the model has an address limit or a listed,
+// verifiable reason; /api/history, /api/vehicleIdentity and /o/<id> refuse over the limit without a query and fail open. No database, no keys.
+try {
+  const out = execSync("node scripts/routeLimitCheck.mjs", { encoding: "utf8" });
+  record("route limits (scripts/routeLimitCheck.mjs)", "PASS", (out.match(/routeLimitCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("route limits (scripts/routeLimitCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+
 // GA consent by country (Oct 17 2026, Lane C): EEA, UK and Switzerland load the tag with consent required, everywhere
 // else loads it with no banner, crew and other hosts load nothing. The real handler with the country header. No network.
 try {

@@ -10,6 +10,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { appConfigFlag } from "../lib/_flags.js";
 import { supabaseSelect } from "../lib/_supabase.js";
+import { routeLimit, sendTooMany } from "../lib/_routeLimit.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 import { SHELL_CSS, SHELL_JS, KEEPLOOK_CSS, railOpenHtml } from "../lib/appShell.js";
 import { isCrewRequest, FONT_LINKS } from "./_chrome.js";
@@ -89,6 +90,11 @@ async function handleOneboxShare(req, res, id) {
   };
 
   if (!/^[0-9a-fA-F-]{10,64}$/.test(id)) { finish(defaultOg, ""); return; }
+  {   // the address limit (lib/_routeLimit.js, Oct 27 2026): one indexed row per request, but a flood of ids is still a flood
+    const sbUrl = process.env.SUPABASE_URL, sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+    const lim = await routeLimit(sbUrl && sbKey ? { supabaseUrl: sbUrl, supabaseKey: sbKey } : null, req, "shared_result", { route: "/o" });
+    if (!lim.ok) return sendTooMany(res, lim.retryAfter);
+  }
   try {
     const rows = await supabaseSelect(
       { supabaseUrl: process.env.SUPABASE_URL, supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY },

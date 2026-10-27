@@ -15,6 +15,7 @@ import { vinFeatureActive, findVinArchiveMatch, looksLikeChassisId } from "../li
 
 import { isCrewRequest } from "../lib/_crew.js";
 import { hasServerCredential } from "../lib/_credential.js";
+import { routeLimit } from "../lib/_routeLimit.js";
 import { cors as gasCors } from "../lib/_cors.js";
 import { failBody } from "../lib/_fail.js";
 // Privacy (VIN feature): a raw 17-char VIN must never land in a funnel/analytics
@@ -129,6 +130,9 @@ export default async function handler(req, res) {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
   const env = { supabaseUrl, supabaseKey };
+
+  // The address limit (lib/_routeLimit.js, Oct 27 2026): far above a person typing cars; crew and keyed jobs pass; fails open.
+  { const lim = await routeLimit(env, req, "identity_lookup", { route: "/api/vehicleIdentity" }); if (!lim.ok) { res.setHeader("Retry-After", String(lim.retryAfter)); return res.status(429).json({ status: "ip_rate_limited", error: "Too many requests. Try again in a minute." }); } }
 
   try {
     // VIN feature flag (dark by default): active only for crew/test sessions when
