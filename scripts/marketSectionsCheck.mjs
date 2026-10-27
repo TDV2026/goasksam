@@ -12,6 +12,7 @@ const grab = (from, to) => { const a = src.indexOf(from), b = src.indexOf(to, a)
 const env = "var obDistSeq = 0; function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\"/g,'&quot;'); } function usd(n){ return '$' + Math.round(Number(n)).toLocaleString('en-US'); } function lint(s){ return s; } function obNumWordLow(n){ return String(n); } function heroPoolSizeNum(d){ return d.poolN; } function capCardsHtml(){ return ''; } function poolCardHtml(){ return ''; }\n" + grab("  function distBucketLabel(", "  // ORDER AND NOTHING ELSE") + "\nwindow.__dist = distributionHtml;";
 const vm = await import("node:vm"); const ctx = vm.createContext({ window: {}, Math, Number, Array, String, Object });
 vm.runInContext(env, ctx);
+vm.runInContext(grab("function obCount(", "function classEraHtml"), ctx);   // the page's own count and noun helper (lib/countNoun.js twin)
 const B = (low, high, count, share, typical) => ({ low, high, count, share, typicalBucket: !!typical, receipts: [] });
 const withShare = ctx.window.__dist({ poolN: 42, distribution: { buckets: [B(40000, 50000, 6, 14), B(50000, 60000, 13, 31, true), B(60000, 70000, 12, 29), B(70000, 80000, 7, 17), B(80000, 90000, 4, 9)] } });
 const noShare = ctx.window.__dist({ poolN: 12, distribution: { buckets: [B(40000, 50000, 3, null), B(50000, 60000, 5, null, true), B(60000, 70000, 4, null)] } });
