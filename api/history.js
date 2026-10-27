@@ -26,6 +26,7 @@ import { bidState, bidTimePT, lastBidLine } from "../lib/tasks/bidTime.js";
 import { heldFor } from "../lib/_hold.js";
 import { countNoun } from "../lib/countNoun.js";
 import { routeLimit, sendTooMany } from "../lib/_routeLimit.js";
+import { POOLED_APART_LINE } from "../lib/pooledWords.js";
 
 const SITE = "https://goasksam.com";
 // Card design system (Oct 2026, the /buy cards): #FAF8F4 paper, near-black ink, one red (#D7262C),
@@ -260,7 +261,7 @@ export function oneBoxBlock(d, id, oneboxHref, ctx) {
   if (!n) return "";
   const win = d.tier === "thin" ? "the past three years" : windowText(d);
   const apart = !!(d.pooledApart && pooledOptionsHtml(d));
-  const line = apart ? "These sell in different price ranges, so one range would mislead." : n < 8 ? `Only ${n} ${nounOf(d, id)} ${n === 1 ? "has" : "have"} sold in ${win}, not enough for a range.` : `${nounOf(d, id)} sold too spread out in ${win} to call a typical price.`;
+  const line = apart ? POOLED_APART_LINE : n < 8 ? `Only ${n} ${nounOf(d, id)} ${n === 1 ? "has" : "have"} sold in ${win}, not enough for a range.` : `${nounOf(d, id)} sold too spread out in ${win} to call a typical price.`;
   return `<section class="card anscard solo" aria-label="Cars like it"><div class="ans-main"><div class="eyebrow">${esc(nounOf(d, id))}</div><p class="landed">${esc(line)}</p>${pooledOptionsHtml(d)}${freshLine(d)}${ctx ? `<p class="ctx">${esc(ctx)}</p>` : ""}${link}</div></section>`;
 }
 function poolCount(d) { return d ? (d.tier === "thin" ? (d.thin && d.thin.receipts ? d.thin.receipts.length : 0) : (d.poolN || 0)) : 0; }

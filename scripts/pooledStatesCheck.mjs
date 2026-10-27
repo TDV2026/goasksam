@@ -14,11 +14,12 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
 globalThis.fetch = async () => { throw new Error("no network in this check"); };
 const base = JSON.parse(fs.readFileSync("scripts/fixtures/m3Answer.json", "utf8"));
 const OPT = (dimension, label, value, n, low, high, median) => ({ dimension, label, value, n, low, high, ...(median ? { median } : {}) });
-const THIN = "These sales split into options that sit in different price ranges, so no one typical range is shown. Pick an option below to read its own sales.";
+const ENGINE_THIN = "These sales split into options that sit in different price ranges, so no one typical range is shown. Pick an option below to read its own sales.";   // what Lane B's engine says; the pages print the one plain sentence instead
+const { POOLED_APART_LINE: THIN } = await import("../lib/pooledWords.js");
 const STATES = {
   alike: base,
   split: { ...base, pooledSplit: { flag: "pooled_split", thresholdPct: 15, floor: 3, dimensions: ["body"], options: [OPT("body", "Convertible", "convertible", 9, 29000, 42500, 35500), OPT("body", "Coupe", "coupe", 8, 22500, 31500, 27000)] } },
-  apart: { ...base, cluster: null, referenceFigure: null, noCluster: true, thinReason: "pooled_apart", thinLine: THIN, pooledApart: { dimensions: ["body"], test: "splitMaterial", floor: 3, options: [OPT("body", "Convertible", "convertible", 9, 36000, 48000), OPT("body", "Coupe", "coupe", 8, 21000, 29000)] }, trend: null, trendHeld: { reason: "mix_changes", spreadPts: 22, limitPts: 10, periods: 5 } },
+  apart: { ...base, cluster: null, referenceFigure: null, noCluster: true, thinReason: "pooled_apart", thinLine: ENGINE_THIN, pooledApart: { dimensions: ["body"], test: "splitMaterial", floor: 3, options: [OPT("body", "Convertible", "convertible", 9, 36000, 48000), OPT("body", "Coupe", "coupe", 8, 21000, 29000)] }, trend: null, trendHeld: { reason: "mix_changes", spreadPts: 22, limitPts: 10, periods: 5 } },
 };
 const LINES = { body: ["Convertible: $29,000 to $42,500, 9 sales.", "Coupe: $22,500 to $31,500, 8 sales."], apartBody: ["Convertible: $36,000 to $48,000, 9 sales.", "Coupe: $21,000 to $29,000, 8 sales."] };
 const POOLED_RANGE = "$22,500 to $41,000", HELD = "The mix of cars changed from quarter to quarter, so a change here would not show the market moving.";
@@ -58,7 +59,7 @@ const NOT_BLANK = (s, what) => ok(s.length > 20, `${what}: not blank`);
         ok(!/Which M3\? Convertible \(9\)/.test(t), `${where}: the count only line is replaced`);
       } else {
         ok(!t.includes(POOLED_RANGE) && !/\$22,500 to \$41,000/.test(t), `${where}: no pooled headline range`);
-        ok(t.includes(THIN), `${where}: the engine's line says why no one range is shown`);
+        ok(t.includes(THIN) && !t.includes(ENGINE_THIN), `${where}: the one plain sentence says why no one range is shown, not the engine's wording`);
         ok(LINES.apartBody.every(l => t.includes(l)) && lines.length === 2, `${where}: each option on its own line with its own range and count (${JSON.stringify(lines)})`);
         ok(!/Which M3\? Convertible \(9\)/.test(t), `${where}: the count only line is replaced`);
         ok(t.includes(HELD) && !/Too few to show movement/.test(t), `${where}: the chart is withheld with one plain line why, not the thin sales line`);
@@ -84,7 +85,7 @@ const NOT_BLANK = (s, what) => ok(s.length > 20, `${what}: not blank`);
     NOT_BLANK(t, where);
     if (name === "alike") ok(t.includes(POOLED_RANGE) && !/Convertible: \$/.test(t), `${where}: as today`);
     if (name === "split") ok(t.includes(POOLED_RANGE) && LINES.body.every(l => t.includes(l)), `${where}: the headline stays and each option has its own line`);
-    if (name === "apart") ok(!t.includes(POOLED_RANGE) && t.includes(THIN) && LINES.apartBody.every(l => t.includes(l)), `${where}: no pooled range, the engine's line, each option's own line`);
+    if (name === "apart") ok(!t.includes(POOLED_RANGE) && t.includes(THIN) && !t.includes(ENGINE_THIN) && LINES.apartBody.every(l => t.includes(l)), `${where}: no pooled range, the engine's line, each option's own line`);
   }
   // Sell and Find hand the card only the fields on their lists: the pooled fields are on both lists
   const sf = await import("../lib/sell/sellFacts.js");
@@ -95,13 +96,13 @@ const NOT_BLANK = (s, what) => ok(s.length > 20, `${what}: not blank`);
     if (name === "split") ok(LINES.body.every(l => t.includes(l)), "Sell: the split options reach the card");
     if (name === "apart") ok(LINES.apartBody.every(l => t.includes(l)) && !t.includes(POOLED_RANGE), "Sell: the apart options reach the card, no pooled range");
   }
-  const srcSearch = fs.readFileSync("lib/live/search.js", "utf8");
-  ok(/"pooledApart", "pooledSplit", "trendHeld"\]/.test(srcSearch), "Find's card fields keep the engine's pooled fields");
+  const { CARD_FIELDS } = await import("../lib/engineFields.js");
+  ok(["pooledApart", "pooledSplit", "trendHeld"].every(k => CARD_FIELDS.includes(k)) && /for \(const k of CARD_FIELDS\)/.test(fs.readFileSync("lib/live/search.js", "utf8")), "Find's card fields keep the engine's pooled fields (the one list)");
 }
 
 // 3. Find: the market object and the card line
 {
-  const { marketOf } = await import("../lib/live/search.js");
+  const { marketOf, coreOf } = await import("../lib/live/search.js");
   const mAlike = marketOf(STATES.alike), mSplit = marketOf(STATES.split), mApart = marketOf(STATES.apart);
   ok(mAlike.kind === "range" && !mAlike.options, "Find market, alike: a range, no options");
   ok(mSplit.kind === "range" && mSplit.low === 22500 && (mSplit.options || []).length === 2 && mSplit.options[0].label === "Convertible", "Find market, split: the range stays and the options ride with it");
@@ -111,7 +112,7 @@ const NOT_BLANK = (s, what) => ok(s.length > 20, `${what}: not blank`);
   const esc = new Function(block("function esc(s){", "function usd(n)") + "\nreturn esc;")();
   const usd = n => "$" + Math.round(Number(n)).toLocaleString("en-US");
   const samLine = new Function("esc", "thinSales", "READING_LINE", "rungHtml", "rungShown", "usd", "var REL_MC = true;\n" + block("  function rangeFirst(", "  function noRange(") + "\n" + block("  function noRange(", "  function compactNoRange(") + "\n" + block("  function compactNoRange(", "  function samLine(") + "\n" + block("  function samLine(l){", "  // SPEC CHIPS under the bid line") + "\nreturn samLine;")(esc, () => null, "reading", () => "", () => [], usd);
-  for (const [name, m, lines] of [["alike", mAlike, ["Sam finds the range $22,500 to $41,000."]], ["split", mSplit, ["Sam finds the range $22,500 to $41,000."]], ["apart", mApart, [THIN.split(". ")[0] + "."]]]) {
+  for (const [name, m, lines] of [["alike", mAlike, ["Sam finds the range $22,500 to $41,000."]], ["split", mSplit, ["Sam finds the range $22,500 to $41,000."]], ["apart", mApart, [THIN]]]) {
     const out = samLine({ id: 1, market: m, sam_lines: [{ kind: "range", text: lines[0], rung: null }] });
     const t = flat(out && out.html);
     NOT_BLANK(t, `Find card, ${name}`);
@@ -120,6 +121,13 @@ const NOT_BLANK = (s, what) => ok(s.length > 20, `${what}: not blank`);
     if (name === "alike") ok(!/Convertible:/.test(t), "Find card, alike: no option lines");
   }
 }
+
+{ const { coreOf } = await import("../lib/live/search.js");
+  const core = coreOf(STATES.apart, { v: { make: "BMW", model: "M3", year: 2001 } }); ok(core && core.thinLine === THIN, "Find's core carries the one plain sentence, not the engine's (" + (core && core.thinLine) + ")");
+  ok(coreOf(STATES.alike, { v: { make: "BMW", model: "M3", year: 2001 } }).thinLine === null, "Find's core, alike: no thin line");
+  const copies = [["lib/sellsForCard.js", fs.readFileSync("lib/sellsForCard.js", "utf8")]];
+  for (const [f, src] of copies) ok(src.includes('"' + THIN + '"'), `${f} carries the same sentence as lib/pooledWords.js`);
+  const pa = await import("../api/partnerAnswer.js"); ok(typeof pa === "object", "the partner answer module loads with the helper"); }
 
 // 4. the history page
 {
@@ -130,7 +138,7 @@ const NOT_BLANK = (s, what) => ok(s.length > 20, `${what}: not blank`);
     NOT_BLANK(t, where);
     if (name === "alike") ok(t.includes(POOLED_RANGE) && !/Convertible:/.test(t), `${where}: as today`);
     if (name === "split") ok(t.includes(POOLED_RANGE) && LINES.body.every(l => t.includes(l)), `${where}: the headline stays and each option has its own line`);
-    if (name === "apart") ok(!t.includes(POOLED_RANGE) && /These sell in different price ranges, so one range would mislead\./.test(t) && LINES.apartBody.every(l => t.includes(l)) && !/too spread out/.test(t), `${where}: one plain line, each option's own line, never 'too spread out'`);
+    if (name === "apart") ok(!t.includes(POOLED_RANGE) && t.includes(THIN) && LINES.apartBody.every(l => t.includes(l)) && !/too spread out/.test(t), `${where}: one plain line, each option's own line, never 'too spread out'`);
   }
 }
 
@@ -143,7 +151,7 @@ const NOT_BLANK = (s, what) => ok(s.length > 20, `${what}: not blank`);
     ok(o && o.kind, `the MCP tool, ${name}: answers`);
     if (name === "alike") ok(o.kind === "answer" && !o.byOption, "the MCP tool, alike: as today");
     if (name === "split") ok(o.kind === "answer" && o.soldRangeHammerUsd && (o.byOption || []).length === 2 && o.byOption[0].option === "Convertible", "the MCP tool, split: the range stays and carries each option");
-    if (name === "apart") ok(o.kind === "answer_by_option" && !o.soldRangeHammerUsd && (o.options || []).length === 2 && /different price ranges/.test(o.note) && !/spread out/.test(JSON.stringify(o)), "the MCP tool, apart: no band, each option's own range, never 'too spread out'");
+    if (name === "apart") ok(o.kind === "answer_by_option" && !o.soldRangeHammerUsd && (o.options || []).length === 2 && String(o.note || "").includes(THIN) && !/spread out/.test(JSON.stringify(o)), "the MCP tool, apart: no band, each option's own range, never 'too spread out'");
   }
 }
 console.log(`pooledStatesCheck: ${pass} pass, ${fail} FAIL`);

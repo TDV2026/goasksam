@@ -1302,6 +1302,13 @@ try {
 } catch (e) {
   record("Candle chart labels (scripts/candleLabelsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// No engine field is dropped silently (Oct 27 2026): one list of the fields the shared card carries; every field the engine adds is on it or acknowledged. No network.
+try {
+  const out = execSync("node scripts/engineFieldsCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Engine fields (scripts/engineFieldsCheck.mjs)", "PASS", (out.match(/engineFieldsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Engine fields (scripts/engineFieldsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The pooled states (Oct 27 2026, e95 fields): Market Check, the shared card, Find, the history page and the MCP tool print apart, split and alike, and a withheld chart. Local render, no network.
 try {
   const out = execSync("node scripts/pooledStatesCheck.mjs", { encoding: "utf8", timeout: 600000 });
