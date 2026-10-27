@@ -1275,6 +1275,13 @@ try {
 } catch (e) {
   record("a car titled by its number is the model it is filed under; the G-Wagen is the G-Class (scripts/numberNameCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The read-only storedsweep ops task finds a count that is not its pool, another car's sales, a noise word in a stored trim, and the pooled states (Lane B, Oct 27 2026, e95). No network.
+try {
+  const out = execSync("node scripts/storedSweepCheck.mjs", { encoding: "utf8" });
+  record("storedsweep finds mismatched counts, wrong-car pools, noise trims and the pooled states, and writes nothing (scripts/storedSweepCheck.mjs)", "PASS", (out.match(/storedSweepCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("storedsweep finds mismatched counts, wrong-car pools, noise trims and the pooled states, and writes nothing (scripts/storedSweepCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // How Sam decides (Sam, Oct 26 2026): the five agreed sections, exactly. No network.
 try {
   const out = execSync("node scripts/howSamDecidesCheck.mjs", { encoding: "utf8" });

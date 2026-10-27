@@ -1576,6 +1576,44 @@ async function handleOps(req, res) {
     }
     return res.status(200).json({ task: "storedcount", ocdSpend: 0, writes: 0, ...counts, ms: Date.now() - t0 });
   }
+  // task=storedsweep (Lane B, Oct 27 2026, e95): READ-ONLY. Runs the engine's own checks over every stored Market Check answer (MCWARM rows), 100 rows a page,
+  // nothing written: one set of sales (setConsistencyOf), the output gate's receipts check (runOutputInvariants: another car's sales under this car), non-trim text
+  // in a stored trim value (trimTextIsNoise), and the pooled states (apart, split, alike) the e95 rule gives each result. Counts, and the first 20 of each kind with the key.
+  if (task === "storedsweep") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { setConsistencyOf, runOutputInvariants, pooledApartGuard } = await import("../lib/onebox.js");
+    const { trimTextIsNoise } = await import("../lib/vehicle.js");
+    const t0 = Date.now(), maxPages = Math.max(1, Math.min(60, Number(req.query?.pages) || 20));
+    const out = { rows: 0, results: 0, setViolations: 0, wrongModel: 0, noiseTrim: 0, pooled: { apart: 0, split: 0, alike: 0 }, first: { setViolations: [], wrongModel: [], noiseTrim: [], apart: [], split: [] }, readFailed: 0 };
+    let cursor = req.query?.after ? String(req.query.after) : "";
+    const keep = (k, o) => { if (out.first[k].length < 20) out.first[k].push(o); };
+    for (let page = 0; page < maxPages; page++) {
+      const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,raw:market->raw&order=spec_key.asc&limit=100` + (cursor ? `&spec_key=gt.${encodeURIComponent(cursor)}` : ""));
+      if (rows === null || rows === undefined) { out.readFailed++; break; }
+      if (!Array.isArray(rows) || !rows.length) break;
+      for (const r of rows) {
+        out.rows++; const d = r.raw; const key = String(r.spec_key).replace(/^MCWARM:/, ""); if (!d || typeof d !== "object") continue;
+        if (/^(result|thin)$/.test(String(d.tier || ""))) {
+          const v = setConsistencyOf(d, null); if (v.length) { out.setViolations++; keep("setViolations", { key, violations: v.slice(0, 3) }); }
+          const rc = d.resolvedCar || {};
+          const inv = (() => { try { return runOutputInvariants(d, { make: rc.make, model: rc.model, trim: rc.trim, year: rc.year }); } catch (e) { return []; } })();
+          const bad = (Array.isArray(inv) ? inv : (inv && inv.checks) || []).find(c => c && c.name === "receipts_carry_resolved_car" && c.ok === false);
+          if (bad) { out.wrongModel++; keep("wrongModel", { key, detail: String(bad.detail).slice(0, 200) }); }
+          const trims = [rc.trim, ...(Array.isArray(d.trimOptions) ? d.trimOptions.map(o => o && (o.label || o.value)) : [])].filter(Boolean).map(String);
+          const noisy = trims.filter(t => t.split(/\s+/).some(w => trimTextIsNoise(w))); if (noisy.length) { out.noiseTrim++; keep("noiseTrim", { key, values: noisy.slice(0, 3) }); }
+        }
+        if (d.tier === "result") {
+          out.results++;
+          let g = null; try { g = pooledApartGuard(d, null); } catch (e) { g = null; }
+          const cls = g && g.pooledApart ? "apart" : g && g.pooledSplit ? "split" : "alike"; out.pooled[cls]++;
+          if (cls !== "alike") keep(cls, { key, count: d.poolN, options: ((g.pooledApart || g.pooledSplit).options || []).map(o => `${o.dimension}:${o.label} ${o.n} $${o.low}-$${o.high}`) });
+        }
+      }
+      cursor = rows[rows.length - 1].spec_key;
+      if (rows.length < 100) { cursor = ""; break; }
+    }
+    return res.status(200).json({ task: "storedsweep", ocdSpend: 0, writes: 0, ...out, next: cursor || null, ms: Date.now() - t0 });
+  }
   if (task === "photocov") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const exact = req.query?.exact === "1";
