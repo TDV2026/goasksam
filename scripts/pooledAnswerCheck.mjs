@@ -82,6 +82,9 @@ let sp = E.pooledApartGuard(stub({ low: 20000, high: 30000, median: 25000 }, { l
 ok("edition line, medians apart: split carried, headline kept", sp.cluster && sp.pooledSplit && sp.pooledSplit.options.filter(o => o.dimension === "edition").length === 2);
 sp = E.pooledApartGuard(stub({ low: 20000, high: 30000, median: 25000 }, { low: 21000, high: 31000, median: 26000 }));
 ok("edition line, medians within 15 percent: nothing carried", sp.cluster && !sp.pooledSplit);
+// null is no number (Number(null) is 0): an edition option with a median but no printed range (3 to 7 sales) is not carried as a range of $0 to $0
+sp = E.pooledApartGuard(stub({ low: 20000, high: 30000, median: 25000 }, { low: null, high: null, median: 34000 }));
+ok("edition line, an option with no printed range: never carried with a range of 0", !(sp.pooledSplit || sp.pooledApart) || [...((sp.pooledSplit || sp.pooledApart).options || [])].every(o => o.low !== 0 && o.high !== 0), JSON.stringify((sp.pooledSplit || sp.pooledApart || {}).options));
 // 8. ONE SET OF SALES PER OPTION: an option line's count, range and window are those of the option's own answer (the page the option opens), not the pooled set's.
 //    The pool spans 8 sales in the last year and more over two years for one body, so the pooled headline set and the option's own set differ.
 const ownAnswer = async (model, refine, asked = 2) => (await E.oneEngineAnswer({ make: MK, model, trim: "", year: 2001, bodyStyle: null }, null, `2001 ${MK} ${model}`, { ...env, asked }, refine)).raw;
