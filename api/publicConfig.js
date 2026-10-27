@@ -85,7 +85,7 @@ async function handleOneboxShare(req, res, id) {
     // LAUNCH-STAGE SAFETY (Oct 2026, production incident, api/marketCheck.js has the full writeup):
     // this page's own rail is filtered by isReleased() (via railOpenHtml) - public caching at all
     // is only safe once fullyLaunched() is true and the request carries no server credential.
-    res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : (injectScript ? "public, max-age=300" : "public, max-age=120"));
+    res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : (injectScript ? "public, max-age=300, s-maxage=300, stale-while-revalidate=900" : "public, max-age=120, s-maxage=120, stale-while-revalidate=600"));
     res.status(200).send(page);
   };
 

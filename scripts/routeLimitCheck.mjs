@@ -116,7 +116,8 @@ try {
   const ident = (await imp("api/vehicleIdentity.js")).default;
   { ledger = 99999; seenUrls = []; const res = mkRes(); await ident({ ...bot, method: "POST", body: { text: "1990 porsche 911" } }, res); ok(res.c === 429 && res.b && res.b.status === "ip_rate_limited" && res.h["retry-after"] && seenUrls.every(u => /ip_rate_hits/.test(u)), "/api/vehicleIdentity: over the limit answers 429 and resolves nothing"); }
   const cfg = (await imp("api/publicConfig.js")).default;
-  { ledger = 99999; seenUrls = []; const res = mkRes(); await cfg({ ...bot, query: { share: "0123456789abcdef" }, url: "/o/0123456789abcdef" }, res); ok(res.c === 429 || res.c === 500 || res.c === 200, "/o/<id> handler runs (" + res.c + ")"); }
+  { ledger = 99999; seenUrls = []; const res = mkRes(); await cfg({ ...bot, query: { obShare: "0123456789abcdef0123" } }, res); ok(res.c === 429 && res.h["retry-after"] && seenUrls.every(u => /ip_rate_hits/.test(u)), "/o/<id>: over the limit answers 429 with Retry-After and reads no saved result (" + res.c + ")"); }
+  { ledger = 0; seenUrls = []; const res = mkRes(); await cfg({ ...bot, query: { obShare: "0123456789abcdef0123" } }, res); ok(res.c === 200, "/o/<id>: under the limit serves the page as before (" + res.c + ")"); }
   { ledger = 0; seenUrls = []; const res = mkRes(); await ident({ ...bot, method: "POST", body: { text: "" } }, res); ok(res.c === 400, "/api/vehicleIdentity under the limit behaves as before (400 for empty text)"); }
 } finally { globalThis.fetch = realFetch; }
 

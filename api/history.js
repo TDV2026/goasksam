@@ -171,6 +171,11 @@ ${gaBootstrapHtml()}
 <script>${CONSENT_BANNER_JS}</script>
 </body></html>`;
 }
+// SHARED CACHE FOR A REPEAT HIT (Oct 27 2026, Lane D): a VIN or hub page that exists is kept at the edge for 2 minutes and may be served stale for 10 more
+// while one request refreshes it; a page that does not exist (a bot walking made-up VINs) for 5 minutes. A 503 or 500 is never kept. Page content is unchanged;
+// the live-bid line on a VIN page already carries its own time, and the longest it can lag is about 12 minutes. Crew, a keyed job and a pre-launch site stay no-store above.
+export const HISTORY_PAGE_CACHE = "public, s-maxage=120, stale-while-revalidate=600";
+export const HISTORY_MISS_CACHE = "public, s-maxage=300";
 function send(res, status, html, extra = {}, index = false, crew = false, req = null) {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   if (!index) res.setHeader("X-Robots-Tag", "noindex, follow");
@@ -189,7 +194,7 @@ function send(res, status, html, extra = {}, index = false, crew = false, req = 
   // this page's own rail is filtered by isReleased() - public caching at all is only safe once
   // fullyLaunched() is true and the request carries no server credential (so an ops/probe stage
   // override never seeds the shared cache with a simulated state).
-  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : (status === 200 ? "public, s-maxage=30" : "no-store"));
+  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : (status === 200 ? HISTORY_PAGE_CACHE : status === 404 ? HISTORY_MISS_CACHE : "no-store"));
   for (const k of Object.keys(extra)) res.setHeader(k, extra[k]);
   res.status(status).send(html);
 }

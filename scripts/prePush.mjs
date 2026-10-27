@@ -239,6 +239,14 @@ try {
   record("route limits (scripts/routeLimitCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 
+// Cache headers (Oct 27 2026, Lane D): every HTML page route sets a shared cache or is listed as gated; /api/history and /o/<id> keep a repeat crawler hit off the engine. No database, no keys.
+try {
+  const out = execSync("node scripts/cacheHeaderCheck.mjs", { encoding: "utf8" });
+  record("cache headers (scripts/cacheHeaderCheck.mjs)", "PASS", (out.match(/cacheHeaderCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("cache headers (scripts/cacheHeaderCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+
 // GA consent by country (Oct 17 2026, Lane C): EEA, UK and Switzerland load the tag with consent required, everywhere
 // else loads it with no banner, crew and other hosts load nothing. The real handler with the country header. No network.
 try {
