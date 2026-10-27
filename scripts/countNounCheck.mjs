@@ -55,9 +55,10 @@ const bad = t => /\b(one|1) (sales|cars|listings|quarters)\b/i.test(t) || /\b0 (
     ok(!bad(foot.replace(/<[^>]+>/g, " ")), `Sells-for footer link at "${bl}" reads right: ${JSON.stringify(foot.replace(/<[^>]+>/g, " ").trim())}`);
   } }
 { const src = read("public/js/onebox.js"), body = grab(src, "noChartLineHtml");
-  const f = new Function("heroPoolSizeNum", "lint", "esc", "obCount", "return (" + body.replace("function noChartLineHtml", "function") + ")");
+  const NW = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"], obNumWord = n => NW[n] || Number(n).toLocaleString("en-US");   // the page's own table, so an old line fails here instead of crashing
+  const f = new Function("heroPoolSizeNum", "lint", "esc", "obCount", "obNumWord", "return (" + body.replace("function noChartLineHtml", "function") + ")");
   const ob = new Function("return (" + grab(src, "obCount").replace("function obCount", "function") + ")")();
-  const draw = f(d => d.n, (s) => s, s => s, ob);
+  const draw = f(d => d.n, (s) => s, s => s, ob, obNumWord);
   for (const n of [0, 1, 2, 8]) { const t = draw({ n }); ok(!bad(t) && (n === 1 ? /One sale\. Too few/.test(t) : n === 0 ? /^<p[^>]*>Too few sales to show movement/.test(t) : true), `Market Check no-chart line at ${n}: ${JSON.stringify(t.replace(/<[^>]+>/g, ""))}`); } }
 { const src = read("public/js/onebox.js");
   ok(/obCount\(n, "sale", \{ cap: true \}\) \+ "\. Too few to show movement/.test(src.slice(src.indexOf("function thinHeroHtml"))) || /hero\.thintiles\.said/.test(src) && !/obNumWord\(n\) \+ " sales/.test(src), "the thin hero said-line uses the helper"); }
