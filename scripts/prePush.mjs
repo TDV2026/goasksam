@@ -1358,6 +1358,13 @@ try {
 } catch (e) {
   record("Candle chart labels (scripts/candleLabelsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A Task email prints by the engine's emailMode and never a question (Oct 27 2026): the block lines and the card, every mode, an answer that also asked a question. No network.
+try {
+  const out = execSync("node scripts/emailModeCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Email mode (scripts/emailModeCheck.mjs)", "PASS", (out.match(/emailModeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Email mode (scripts/emailModeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The engine's reason travels with its number (Oct 27 2026): scope reason, scope label, window, refusal line and mileage note on Market Check, Sell, the partner pages, Find and the Tasks email. No network.
 try {
   const out = execSync("node scripts/carriedFieldsCheck.mjs", { encoding: "utf8", timeout: 600000 });

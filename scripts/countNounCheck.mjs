@@ -68,6 +68,7 @@ const bad = t => /\b(one|1) (sales|cars|listings|quarters)\b/i.test(t) || /\b0 (
 const SAFE = [
   ["lib/onebox.js", "across ${solid.length} sales over", "a cluster needs eight solid sales"],
   ["lib/onebox.js", "Based on ${countWord(dts.length)} sales, the latest", "the else of dts.length === 1"],
+  ["lib/onebox.js", "prints ${op.n} sales, its own page reads", "the engine's same-set self-check message (sameSetCheck), a diagnostic that is never shown to a visitor"],
   ["lib/onebox.js", "${inBand.length} sales, ${EY_USD(rf.rangeLow)}", "the mixed-trims line returns null under eight sales in the band"],
   ["lib/sell/sellFlow.js", "of the ${dnw(best.n)} sales", "best day needs twenty sales"],
   ["lib/sell/sellFlow.js", "dnw(rs.a.n))} of the ${n} sales", "reserve split needs eight on each side"],
