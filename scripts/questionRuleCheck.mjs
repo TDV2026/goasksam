@@ -13,6 +13,7 @@ const E = await import(pathToFileURL(path.join(root, "lib/onebox.js")).href);
 const MR = await import(pathToFileURL(path.join(root, "lib/modelRules.js")).href);
 const { oneEngineAnswer, scopeReasonOf } = E;
 const QUESTION_FLOOR = E.QUESTION_FLOOR || 3;
+process.env.GAS_TEST_NO_QUESTION_RULE = "";
 let failed = 0; const ok = (n, c, d) => { if (!c) failed++; console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? "  " + d : ""}`); };
 const ev = (row, it) => { const ci = it.indexOf(":"); const alias = ci > 0 && it[ci + 1] !== ":" ? it.slice(0, ci) : null; const expr = alias ? it.slice(ci + 1) : it; if (expr.startsWith("raw_record->>")) { const k = expr.slice(13); const v = row.raw_record[k]; return [alias || k, v == null ? null : String(v)]; } return [alias || expr, row[expr] === undefined ? null : row[expr]]; };
 const likeRe = v => new RegExp("^" + String(v).replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$", "i");
@@ -52,7 +53,8 @@ globalThis.fetch = async (url) => {
   if (u.hostname.includes("fake.supabase")) return new Response("[]", { status: 200 });
   throw new Error("offline");
 };
-const env = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
+const env = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k", qelig: "compute" };   // the warm computes and stores each question's eligibility
+const live = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };   // a visitor: reads the stored decision, never runs the option answers
 const asked = [];
 const ask = async (v, text) => { const a = (await oneEngineAnswer(v, null, text, env, null)).raw; asked.push({ text, a }); return a; };
 const optionsOf = a => (a.bodyOptions || a.gearboxOptions || a.variantOptions || []).map(o => (o && typeof o === "object") ? o.label : o);
@@ -99,6 +101,14 @@ const gv = m => ({ make: "Acme", model: m, trim: "", year: 1985, bodyStyle: null
 { const d = await QR({ tier: "body_choice", bodyOptions: ["Roadster", "Coupe"], optionCounts: [10, 9], prompt: "These sold as Roadster and Coupe, and they price differently. Which one is it?" }, { make: "Lamborghini", model: "Diablo", trim: "SE", year: 2001, bodyStyle: null }, null, "2001 Lamborghini Diablo SE", env, null);
   ok("body: the Diablo SE question (ten VT Roadsters, no SE) is never asked", d.tier !== "body_choice", `tier ${d.tier} ${JSON.stringify(d.questionResolved || null)}`);
   ok("body: and the answer never silently holds the Roadster sales", !(d.cards || []).some(c => /roadster/i.test(String(c.title || ""))), (d.cards || []).map(c => c.title).join(" | ")); }
+// 6. the live ask reads the stored decision and does not run the option answers
+{ let reads = 0; const f0 = globalThis.fetch; globalThis.fetch = async (u, o) => { reads++; return f0(u, o); };
+  reads = 0; const stored = await QR({ tier: "gearbox_choice", gearboxOptions: ["Manual", "Automatic"], optionCounts: [6, 6], prompt: "Manual or Automatic?" }, gv("Iota"), null, "1985 Acme Iota", live, null);
+  ok("live: a question with a stored decision is asked from it, with no archive reads", stored.tier === "gearbox_choice" && stored.questionChecked === true && reads <= 1, `tier ${stored.tier}, ${reads} reads`);
+  reads = 0; const unstored = await QR({ tier: "gearbox_choice", gearboxOptions: ["Manual", "Automatic"], optionCounts: [6, 6], prompt: "Manual or Automatic?" }, gv("Kappa2"), null, "1985 Acme Kappa2", live, null);
+  ok("live: a question with no stored decision is not asked, the answer says every gearbox", unstored.tier !== "gearbox_choice" && unstored.questionResolved && unstored.questionResolved.why === "unchecked", `tier ${unstored.tier} ${JSON.stringify(unstored.questionResolved || null)}`);
+  ok("live: the unchecked answer says what scope it used", /every gearbox/.test(String(scopeReasonOf({ tier: "thin", poolYears: [1985, 1985], rawPool: [], questionResolved: unstored.questionResolved }, { year: 1985 }))));
+  globalThis.fetch = f0; }
 // 4. the rule over everything asked above
 for (const { text, a } of asked) {
   const labels = optionsOf(a); if (!labels.length) continue;

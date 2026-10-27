@@ -5004,6 +5004,7 @@ async function handleOps(req, res) {
         if (!d || !d.tier) throw new Error("engine returned no tier");
         d = await attachSellFields(d, vehicle, generation, env, q, tr);   // e91: the stored answer carries best_day and reserve_split
         row.tier = d.tier; row.readAt = d.readAt || null;
+        if (/_choice$/.test(String(d.tier))) row.question = await (await import("../lib/onebox.js")).warmQuestion(d, vehicle, generation, q, env);   // e95: the question's stored eligibility
         if (/^(result|thin|refusal|not_tracked)$/.test(String(d.tier))) { await writeWarmAnswer(env, warmAnswerKeyFor(vehicle, generation), d); row.stored = true; result.warmed++;
           // the car-only Sell block beside the answer (lib/sell/sellBlock.js), from this same answer; never a reason to fail the warm
           { const sb = await (await import("../lib/sell/sellBlock.js")).warmSellBlock(env, q, d, warmAnswerKeyFor(vehicle, generation)); row.sellBlock = sb.stored ? "stored" : sb.why; }
@@ -5134,6 +5135,7 @@ async function handleOps(req, res) {
         row.ms = Date.now() - t0;
         if (!d || !d.tier) throw new Error("engine returned no tier");
         row.tier = d.tier;
+        if (/_choice$/.test(String(d.tier))) row.question = await (await import("../lib/onebox.js")).warmQuestion(d, vehicle, generation, q, env);   // e95: the question's stored eligibility
         const key = warmAnswerKeyFor(vehicle, generation);
         await writeWarmAnswer(env, key, d);
         row.key = key;

@@ -1233,6 +1233,27 @@ try {
 } catch (e) {
   record("one set of sales behind every number on an answer (scripts/sameSetCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Rival rule fallback (Lane B, Oct 27 2026, e95). No network.
+try {
+  const out = execSync("node scripts/taxonomyUnreadableCheck.mjs", { encoding: "utf8" });
+  record("the rival rule keeps its protection when the model list cannot be read (scripts/taxonomyUnreadableCheck.mjs)", "PASS", (out.match(/taxonomyUnreadableCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("the rival rule keeps its protection when the model list cannot be read (scripts/taxonomyUnreadableCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// Test flag guard (Lane B, Oct 27 2026, e95). No network.
+try {
+  const out = execSync("node scripts/noQuestionRuleCheck.mjs", { encoding: "utf8" });
+  record("the question rule can only be switched off by the one test that sets it (scripts/noQuestionRuleCheck.mjs)", "PASS", (out.match(/noQuestionRuleCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("the question rule can only be switched off by the one test that sets it (scripts/noQuestionRuleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// Question speed budget (Lane B, Oct 27 2026, e95). No network.
+try {
+  const out = execSync("node scripts/questionSpeedCheck.mjs", { encoding: "utf8" });
+  record("a question is not slower than the old question by more than the budget (scripts/questionSpeedCheck.mjs)", "PASS", (out.match(/questionSpeedCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("a question is not slower than the old question by more than the budget (scripts/questionSpeedCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // How Sam decides (Sam, Oct 26 2026): the five agreed sections, exactly. No network.
 try {
   const out = execSync("node scripts/howSamDecidesCheck.mjs", { encoding: "utf8" });

@@ -2,6 +2,7 @@
 // For every curated model that asks which generation, each chip's query (a) holds no four-digit year and (b) when run binds
 // that generation (the answer's resolved generation code is set, the question is not asked again). No database: an empty archive.
 //   node scripts/generationChipCheck.mjs [repo root]
+process.env.GAS_TEST_NO_QUESTION_RULE = "1";   // the only place the question rule is switched off (see scripts/noQuestionRuleCheck.mjs)
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
