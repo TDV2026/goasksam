@@ -380,6 +380,13 @@ R.launch=function(d){
   +table([["Job","job"],["Credits","credits",n]],c.by_job);
  // 10
  h+='<h2>10. Feedback</h2>'+tiles([["Messages sent",n(d.feedback)]])+'<p class=note>A count only. Feedback goes to the inbox and is never stored here.</p>';
+ // 11
+ var w2=d.where;
+ h+='<h2>11. Where from and what on</h2><p class=note>A coarse place from the edge (country, state and city name only, never a precise location) and the device class. Visitors are counted once each; searches are counts. A visitor in the EEA, UK or Switzerland, or who declined analytics, has no place and is not in these tables ('+n(w2.no_place_page_views)+' page views in this range have none).</p>'
+  +'<h3>By country</h3>'+table([["Country","k"],["Visitors","visitors",n],["Searches","searches",n]],w2.countries)
+  +'<h3>By US state</h3>'+table([["State","k"],["Visitors","visitors",n],["Searches","searches",n]],w2.states);
+ w2.devices.forEach(function(x){h+='<h3>Devices, '+pn(x.product)+'</h3>'+table([["Device","k"],["Visitors","visitors",n],["Searches","searches",n]],x.rows);});
+ h+='<h3>Zips typed for near me</h3>'+table([["Zip","zip"],["Times","times",n],["Visitors","visitors",n],["Last","last",function(v){return E(fmtT(v));}]],w2.zips);
  return h;};
 var cur="launch",main,lTimer=null;
 function wireLaunch(box){box.querySelectorAll(".lrange button").forEach(function(b){b.onclick=function(){rng=b.getAttribute("data-r");show("launch");};});}

@@ -114,7 +114,10 @@ for (const [label, g] of Object.entries(groups)) {
     ok(rows.length === 6 && rows.every(r => r.anon_id && r.session_id), `${label}: all events stored with anon and session ids`);
   }
   ok(rows.every(r => !JSON.stringify(r).includes("quota-device-id")), `${label}: the quota device id is never in an event`);
-  ok(rows.every(r => r.region_class === id.region_class && !/"(US|DE|FR|GB)"/.test(JSON.stringify(r))), `${label}: region class only, never the country`);
+  // Round 2 (Oct 2026): an open-region visitor's page views and searches carry a coarse place in props (geo_country, geo_region, geo_city);
+  // a restricted-region visitor (EEA, UK, Switzerland) never has the country in any event, and nobody has it outside those props.
+  const strip = r => JSON.stringify({ ...r, props: Object.fromEntries(Object.entries(r.props || {}).filter(([k]) => !/^geo_/.test(k))) });
+  ok(rows.every(r => r.region_class === id.region_class && !/"(US|DE|FR|GB)"/.test(strip(r)) && (id.region_class !== "restricted" || !/"geo_/.test(JSON.stringify(r)))), `${label}: region class on every row; the country only inside the geo props, and none at all in a restricted region`);
 }
 ok(consentResults["open (US, no cookie)"].consent === "not_required" && consentResults["restricted + granted (DE)"].consent === "granted"
   && consentResults["restricted + declined (FR)"].consent === "declined" && consentResults["restricted, no cookie (GB)"].consent === "declined", "consent states: open, granted, declined, missing cookie counts as declined");

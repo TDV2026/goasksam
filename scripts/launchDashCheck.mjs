@@ -221,5 +221,37 @@ for (const part of ["launch", "overview", "me", "demand", "write_failures", "doo
   ok(added.length === 3 && added[0] === "held_at_door:/api/history:503", "a 503 with Retry-After logs held_at_door");
   ok(added[1] === "error:/api/history:503" && added[2] === "error:/api/buySearch:502", "a 503 without Retry-After and any other 5xx still log error");
 }
+
+// ---- 7. geo and device (round 2, stage 2)
+{
+  setTrackSink(r => rows.push(r));
+  const geoReq = (h) => ({ headers: { cookie: "gas_aid=AAAAAAAAAAAAAAAAAAAAAA; gas_sid=BBBBBBBB", "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/604.1", ...h }, query: {}, method: "POST" });
+  const b0 = rows.length;
+  const us = geoReq({ "x-vercel-ip-country": "US", "x-vercel-ip-country-region": "CA", "x-vercel-ip-city": "San%20Francisco", "x-vercel-ip-latitude": "37.77", "x-vercel-ip-longitude": "-122.41" });
+  track(us, "search_run", { query_text: "x", answer_type: "range", latency_ms: 5 }, { product: "buy", surface: "buy_page" });
+  track(us, "near_me_zip", { zip: "94105" }, { product: "buy", surface: "buy_page" });
+  track(us, "feedback_sent", {}, { product: "site", surface: "api" });
+  const de = geoReq({ "x-vercel-ip-country": "DE", "x-vercel-ip-city": "Berlin" });
+  track(de, "search_run", { query_text: "x", answer_type: "range", latency_ms: 5 }, { product: "buy", surface: "buy_page" });
+  track(geoReq({}), "search_run", { query_text: "x", answer_type: "range", latency_ms: 5 }, { product: "buy", surface: "buy_page" });
+  await trackDrain();
+  const g = rows.slice(b0);
+  ok(g[0].props.geo_country === "US" && g[0].props.geo_region === "CA" && g[0].props.geo_city === "San Francisco", "an open-region search carries country, state and city name");
+  ok(g[1].props.geo_country === "US" && g[1].props.zip === "94105", "near_me_zip carries the zip and the coarse place");
+  ok(!Object.keys(g[2].props).some(k => /^geo_/.test(k)), "other events carry no geo");
+  ok(!JSON.stringify(g).includes("37.77") && !JSON.stringify(g).includes("-122.41"), "latitude and longitude are never stored");
+  ok(!Object.keys(g[3].props).some(k => /^geo_/.test(k)) && g[3].region_class === "restricted", "a restricted-region visitor has no place at all");
+  ok(!Object.keys(g[4].props).some(k => /^geo_/.test(k)), "a request with no geo header has none");
+  ok(g[0].device_class === "mobile" || /phone|mobile/i.test(String(g[0].device_class)), "device class is stored on every event (" + g[0].device_class + ")");
+  const mk = (anon, dev, geo) => ({ ts: at(1), product: "buy", anon_id: anon, session_id: "s" + anon, ref_domain: null, utm_source: null, utm_medium: null, device_class: dev, props: geo || {} });
+  const W = build({ pv: [mk("a", "mobile", { geo_country: "US", geo_region: "CA" }), mk("b", "desktop", { geo_country: "US", geo_region: "TX" }), mk("c", "mobile", { geo_country: "US", geo_region: "CA" }), mk("d", "desktop", {})],
+    ev: [{ ...run("buy", "a", 2, "range", {}), device_class: "mobile", props: { answer_type: "range", query_text: "q", latency_ms: 1, geo_country: "US", geo_region: "CA" } },
+      { ts: at(3), name: "near_me_zip", product: "buy", anon_id: "a", session_id: "sa", props: { zip: "94105", geo_country: "US" } }, { ts: at(4), name: "near_me_zip", product: "buy", anon_id: "c", session_id: "sc", props: { zip: "94105", geo_country: "US" } }, { ts: at(5), name: "near_me_zip", product: "buy", anon_id: "b", session_id: "sb", props: { zip: "78701", geo_country: "US" } }],
+    mc: [], out: [], ocd: [], held: [] }, { from: at(0), to: at(60), key: "today" }).where;
+  ok(W.countries[0].k === "US" && W.countries[0].visitors === 3 && W.countries[0].searches === 1 && W.no_place_page_views === 1, "by country: 3 visitors, 1 search, 1 page view with no place");
+  ok(W.states[0].k === "CA" && W.states[0].visitors === 2 && W.states[0].searches === 1 && W.states[1].k === "TX", "by US state: California 2 visitors, 1 search; Texas next");
+  const bd = W.devices.find(x => x.product === "buy").rows; ok(bd.find(x => x.k === "mobile").visitors === 2 && bd.find(x => x.k === "desktop").visitors === 2, "device split per product counts each visitor once");
+  ok(W.zips[0].zip === "94105" && W.zips[0].times === 2 && W.zips[0].visitors === 2 && W.zips[1].zip === "78701", "zips typed for near me, most often first");
+}
 console.log(`launchDashCheck: ${pass} pass, ${fail} fail`);
 process.exit(fail ? 1 : 0);

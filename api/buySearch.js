@@ -526,7 +526,7 @@ async function handler(req, res) {
       return res.status(200).json({ title: r.listing_title, key: spec.key, steps, refine: spec.refine || null, chosen: chosen && { step: chosen.step, family: chosen.family, refinedNote: chosen.refinedNote || null, kind: chosen.kind, count: chosen.count, low: chosen.low, high: chosen.high, span: chosen.span } });
     }
     if (b.action === "geocoverage") return res.status(200).json(await geoCoverage(env));
-    if (b.action === "converse") { const cv = await converseOut(env, b); await noteBuySearch(env, req, cv && cv.filters); return res.status(200).json(cv); }
+    if (b.action === "converse") { const cv = await converseOut(env, b); noteNearMeZip(req, b, cv); await noteBuySearch(env, req, cv && cv.filters); return res.status(200).json(cv); }
     // The invisible ceiling on every search path (lib/_ceilings.js, the one guard Buy and Sell share): a
     // calm reply when hit, never a sign in demand. Our own jobs (credential) skip it unless a test ceiling
     // is sent with them (x-ceiling-test), which is how the ceiling is tested without touching real numbers.
@@ -661,6 +661,14 @@ function cleanChatFilters(f) {
     else if (Array.isArray(v)) { const a = v.filter(x => typeof x === "string" && x.length <= 40).slice(0, 10); if (a.length) out[k] = a; }
   }
   return Object.keys(out).length ? out : null;
+}
+// near_me_zip (round 2): the five-digit zip a buyer gave for "near me", logged when this turn's filters carry a zip the
+// turn before did not. A coarse place, counted once per new zip; never blocks the answer.
+function noteNearMeZip(req, b, cv) {
+  try {
+    const now = String((cv && cv.filters && cv.filters.location) || ""), was = String((b && b.state && b.state.filters && b.state.filters.location) || "");
+    if (/^\d{5}$/.test(now) && now !== was) track(req, "near_me_zip", { zip: now }, { product: "buy", surface: "buy_page" });
+  } catch {}
 }
 async function converseOut(env, b) {
   const st = cleanState(b.state);
