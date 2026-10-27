@@ -238,6 +238,25 @@ async function testEvents(env, since) {
   return { events: ev.map(e => ({ ...e, anon_id: e.anon_id ? "present" : null, session_id: e.session_id ? "present" : null, user_id: e.user_id ? "present" : null, anon_tail: e.anon_id ? String(e.anon_id).slice(-4) : null })) };
 }
 
+// Round 2, Stage 1 reads (server credential only, counts and categories, never an id or an address).
+// write_failures: today's analytics_write_failed ledger rows, so the reason for a lost event can be read.
+async function writeFailures(env) {
+  const r = await rows(env, `app_usage_events?event_type=eq.analytics_write_failed&created_at=gte.${encodeURIComponent(ptRange(ptDay(0)).start)}&select=created_at,status,metadata&order=created_at.desc&limit=100`);
+  const byStatus = {}; for (const x of r) { const k = x.status || "-"; byStatus[k] = (byStatus[k] || 0) + (Number(x.metadata && x.metadata.lost) || 0); }
+  return { rows: r.length, lost: sum(r, x => x.metadata && x.metadata.lost), byStatus, last: r.slice(0, 20).map(x => ({ at: x.created_at, status: x.status, lost: x.metadata && x.metadata.lost, instance_total: x.metadata && x.metadata.instance_total })) };
+}
+// door: the held-at-the-door and error events of the last few hours, grouped. Whether a row had an anon id is
+// shown as yes or no; the peak is the busiest single second.
+async function doorCheck(env, hours) {
+  const h = Math.min(24, Math.max(1, Number(hours) || 6));
+  const ev = await rows(env, `analytics_events?name=in.(held_at_door,error)&ts=gte.${encodeURIComponent(new Date(Date.now() - h * 3600e3).toISOString())}&internal=eq.false&select=ts,name,is_bot,anon_id,browser_family,device_class,region_class,props&limit=20000&order=ts.desc`);
+  const g = (f) => { const m = {}; for (const e of ev) { const k = f(e); m[k] = (m[k] || 0) + 1; } return Object.entries(m).map(([k, n]) => ({ k, n })).sort((a, b) => b.n - a.n).slice(0, 12); };
+  const sec = {}; for (const e of ev) { const k = String(e.ts).slice(0, 19); sec[k] = (sec[k] || 0) + 1; }
+  const peak = Object.entries(sec).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([t, n]) => ({ second: t, n }));
+  return { hours: h, rows: ev.length, capped: ev.length >= 20000, byName: g(e => e.name), byRoute: g(e => `${e.name} ${(e.props || {}).route || "?"} ${(e.props || {}).status || ""}`),
+    bot: g(e => e.is_bot ? "bot" : "not flagged"), withAnonId: g(e => e.anon_id ? "yes" : "no"), browser: g(e => e.browser_family || "none"), device: g(e => e.device_class || "none"), region: g(e => e.region_class || "none"), peak };
+}
+
 // ------------------------------------------------------------------------------------------------ cron
 async function refresh(env, which) {
   const out = {};
@@ -418,6 +437,8 @@ async function handler(req, res) {
   try {
     if (b.part === "check" && cred) return res.status(200).json(await storeCheck(env));
     if (b.part === "test_events" && cred) return res.status(200).json(await testEvents(env, typeof b.since === "string" ? b.since : null));
+    if (b.part === "write_failures" && cred) return res.status(200).json(await writeFailures(env));
+    if (b.part === "door" && cred) return res.status(200).json(await doorCheck(env, b.hours));
     if (b.part === "refresh_now" && cred) return res.status(200).json(await refresh(env, "hour"));
     if (b.part === "me") return res.status(200).json({ ok: true });
     if (b.part === "launch") return res.status(200).json(await launch(env, typeof b.range === "string" ? b.range : "today"));

@@ -173,7 +173,7 @@ await b.close();
 
 // ---- 4. the gate
 const gate = async (b, headers) => { const r = resObj(); await admin.default({ method: "POST", query: {}, headers: { host: "goasksam.com", ...(headers || {}) }, body: b }, r); return r; };
-for (const part of ["launch", "overview", "me", "demand"]) {
+for (const part of ["launch", "overview", "me", "demand", "write_failures", "door"]) {
   const a = await gate({ part, range: "today" }); const c = await gate({ part, range: "today" }, { authorization: "Bearer not-a-real-token" });
   ok(a.c === 404 && c.c === 404, `/admin part ${part}: the plain 404 with no token and with a bad token`);
 }
