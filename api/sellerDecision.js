@@ -1,4 +1,5 @@
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
+import { countNoun } from "../lib/countNoun.js";
 import { unusedFieldsFor } from "../lib/live/unusedWords.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
@@ -2191,7 +2192,7 @@ export function decide(analysis, criteria, vehicle) {
     powerSellerReferral,
     routeFit,
     limitations: analysis.thinMarket
-      ? [`Evidence at this rung is thin (${analysis.evidenceSales} sales); treat the decision as directional, not definitive.`]
+      ? [`Evidence at this rung is thin (${countNoun(analysis.evidenceSales, "sale", { words: false })}); treat the decision as directional, not definitive.`]
       : []
   };
 }

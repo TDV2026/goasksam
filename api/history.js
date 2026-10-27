@@ -24,6 +24,7 @@ import { classifyRoad } from "../lib/_roadType.js";
 import { projectFlagReason } from "../lib/_classify.js";
 import { bidState, bidTimePT, lastBidLine } from "../lib/tasks/bidTime.js";
 import { heldFor } from "../lib/_hold.js";
+import { countNoun } from "../lib/countNoun.js";
 
 const SITE = "https://goasksam.com";
 // Card design system (Oct 2026, the /buy cards): #FAF8F4 paper, near-black ink, one red (#D7262C),
@@ -347,7 +348,7 @@ async function carPage(req, res, env, slug, vin) {
   const urlVins = poolCards.length ? await vinsForUrls(env, poolCards.map(c => c.url).filter(Boolean)).catch(() => null) : null;
   const n = poolCount(d);
   let ctx = "";
-  if (n) ctx = (lastSale && lastSale.date >= windowStartIso(d) ? `One of ${n}` : `${n}`) + ` ${id.family} sales at auction in ${poolWindow(d)}.`;
+  if (n) ctx = (lastSale && lastSale.date >= windowStartIso(d) && n > 1 ? `One of ${n} ${id.family} sales` : countNoun(n, `${id.family} sale`, { words: false })) + ` at auction in ${poolWindow(d)}.`;
   const oneboxCar = `/market-check?q=${encodeURIComponent(name)}`;
   // 7. QUESTIONS
   // Compares only a sale INSIDE the window the range covers (an older sale is a different market), and
@@ -474,7 +475,7 @@ function specRailHtml(d, id, lastSale, noun = "car") {
     const recent = lastSale && lastSale.priceUsd && (Date.now() - Date.parse(lastSale.date + "T00:00:00Z")) <= 730 * 864e5 && lastSale.priceUsd >= lo && lastSale.priceUsd <= hi;
     const dot = recent ? `<i class="me" style="left:${pc(lastSale.priceUsd).toFixed(1)}%"></i><span class="melab" style="left:${pc(lastSale.priceUsd).toFixed(1)}%">This ${esc(noun)}, ${esc(monShort(lastSale.date))}</span>` : "";
     const n = (d.cards || []).length || poolCount(d);
-    return `<section class="sec" aria-label="What ${noun === "car" ? "cars" : noun + "s"} like it sold for"><h2>What ${esc(fam)} sell for</h2><p class="sub">${n ? `${n} sales in ${esc(win)}.` : ""}</p>
+    return `<section class="sec" aria-label="What ${noun === "car" ? "cars" : noun + "s"} like it sold for"><h2>What ${esc(fam)} sell for</h2><p class="sub">${n ? `${esc(countNoun(n, "sale", { words: false, cap: true }))} in ${esc(win)}.` : ""}</p>
 <div class="vrail${recent ? " hasme" : ""}"><div class="rrow"><span class="rend">${usd(lo)}</span><span class="rline"><i class="band" style="left:${a.toFixed(1)}%;width:${Math.max(1.5, b - a).toFixed(1)}%"></i>${dot}</span><span class="rend">${usd(hi)}</span></div>
 <p class="rmost">Most sold between ${usd(d.cluster[0])} and ${usd(d.cluster[1])}</p><p class="rcap">What this spec has sold for, ${/twelve/.test(win) ? "last 12 months" : "last 2 years"}</p></div></section>`;
   }
@@ -561,7 +562,7 @@ function groupListsHtml(d, id, vinNorm, cards, urlVins, others, noun = "car") {
     });
     const shown = rows.slice(0, 30);
     const ranged = d.tier === "result" && Array.isArray(d.cluster);
-    const lead = ranged ? `The ${cards.length} sales behind the range above, in ${windowText(d)}` : cards.length >= 8 ? `The ${cards.length} sales in ${poolWindow(d)}, too spread out to mark one range` : `The ${cards.length === 1 ? "one sale" : cards.length + " sales"} in ${poolWindow(d)}, too few to mark a range`;
+    const lead = ranged ? `The ${countNoun(cards.length, "sale", { words: false })} behind the range above, in ${windowText(d)}` : cards.length >= 8 ? `The ${countNoun(cards.length, "sale", { words: false })} in ${poolWindow(d)}, too spread out to mark one range` : `The ${cards.length === 1 ? "one sale" : cards.length + " sales"} in ${poolWindow(d)}, too few to mark a range`;
     out.push(`<section class="sec"><h2>${esc(fam.charAt(0).toUpperCase() + fam.slice(1))} that sold</h2><p class="sub">${esc(lead)}. Newest first${rows.length > shown.length ? `, the latest ${shown.length} shown` : ""}.</p><ul class="others">${shown.join("")}</ul></section>`);
   }
   // Other bodies, same window, each its own list.

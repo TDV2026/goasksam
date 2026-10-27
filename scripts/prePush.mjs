@@ -1244,6 +1244,13 @@ try {
 } catch (e) {
   record("Candle chart labels (scripts/candleLabelsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A count and its noun (Oct 27 2026): "One sales" is a class, so every line that joins a count to sale, car, listing or quarter is checked. No network.
+try {
+  const out = execSync("node scripts/countNounCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Count and noun (scripts/countNounCheck.mjs)", "PASS", (out.match(/countNounCheck: \d+ pass.*/) || [""])[0]);
+} catch (e) {
+  record("Count and noun (scripts/countNounCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The /sell door (Lane C, Oct 26 2026): crew sees the newer Sell, the public the previous one until SELL_NEXT_ON=1 flips it. No network.
 try {
   const out = execSync("node scripts/sellRouteCheck.mjs", { encoding: "utf8" });

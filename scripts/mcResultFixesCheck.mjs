@@ -19,6 +19,6 @@ ok(!/hero-scope-why/.test(heroMetaLine({})) && !/hero-scope-why/.test(heroMetaLi
 ok(/scope_reason/.test(src) && !/typed year|resolvedCar\.year/.test(fn("heroMetaLine")), "the page compares no years: heroMetaLine reads scope_reason only");
 const html = fs.readFileSync(new URL("../public/onebox.html", import.meta.url), "utf8"), vj = fs.readFileSync(new URL("../vercel.json", import.meta.url), "utf8");
 const tok = (/\/obx\.([0-9a-z]+)\/onebox\.js/.exec(html) || [])[1];
-ok(tok && vj.includes(`"/obx.${tok}/(.*)"`) && tok === "20261027a", "the script token was bumped for this change and has its rewrite (" + tok + ")");
+ok(tok && vj.includes(`"/obx.${tok}/(.*)"`) && tok === "20261027b", "the script token was bumped for this change and has its rewrite (" + tok + ")");
 console.log(`mcResultFixesCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

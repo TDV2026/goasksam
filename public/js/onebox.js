@@ -650,7 +650,7 @@
   // rather than body (1957 356 Speedster: Pushrod vs Carrera four-cam). Open word list (unlike
   // BODY_MIX_WORDS' fixed set), so matched structurally: the trailing comma-clause ending in "cars",
   // "cars (...)" or "cars mixed".
-  var VARIANT_TAIL_RE = /,\s*([^,]+?\s+cars(?:,\s*\d+\s+[^,]+?\s+cars set aside|\s*\([^)]*\)|\s+mixed)?)\s*$/i;
+  var VARIANT_TAIL_RE = /,\s*([^,]+?\s+cars(?:,\s*\d+\s+[^,]+?\s+cars? set aside|\s*\([^)]*\)|\s+mixed)?)\s*$/i;
   function variantTailOf(label) {
     var mm = VARIANT_TAIL_RE.exec(String(label || ""));
     return mm ? mm[1] : "";
@@ -1113,7 +1113,7 @@
     // Sam's evening order (Oct 21 2026): with no chart the line is the existing "N sales. Too few to show movement, enough to show
     // where they landed." (the same words as the thin-tile line), N the engine's pool size, whatever the pool size.
     var n = d ? heroPoolSizeNum(d) : NaN;
-    var said = Number.isFinite(n) && n > 0 ? obNumWord(n) + " sales. Too few to show movement, enough to show where they landed." : "Too few sales to show movement, enough to show where they landed.";
+    var said = Number.isFinite(n) && n > 0 ? obCount(n, "sale", { cap: true }) + ". Too few to show movement, enough to show where they landed." : "Too few sales to show movement, enough to show where they landed.";
     return '<p class="hero-noband" data-stage="answer">' + lint(esc(said), "hero.nochart") + "</p>";
   }
   function heroChartHtml(d) {
@@ -1214,7 +1214,7 @@
     var list = Array.isArray(pool) ? pool : [];
     var n = list.length;
     if (!n || n > 16) return null;
-    var said = '<p class="hero-noband" data-stage="answer">' + lint(esc(obNumWord(n) + " sales. Too few to show movement, enough to show where they landed."), "hero.thintiles.said") + "</p>";
+    var said = '<p class="hero-noband" data-stage="answer">' + lint(esc(obCount(n, "sale", { cap: true }) + ". Too few to show movement, enough to show where they landed."), "hero.thintiles.said") + "</p>";
     var sorted = list.slice().sort(function (a, b) { return Number(b.price) - Number(a.price); });
     var wide = n >= 9;
     var tiles = '<div class="thin-tiles' + (wide ? " thin-tiles-wide" : "") + '">' + sorted.map(function (c) { return thinTileHtml(c, null); }).join("") + "</div>";
@@ -1224,7 +1224,7 @@
       var asideTiles = aside.slice().sort(function (a, b) { return Number(b.price) - Number(a.price); }).map(function (c) { return thinTileHtml(c, thinAsideTileLabel(c.reason)); }).join("");
       asideBlock = '<div class="thin-aside-block" data-stage="answer"><p class="eyebrow thin-aside-eyebrow">' + lint(esc("Set aside, not in the range"), "hero.thintiles.asideeyebrow") + '</p><div class="thin-tiles thin-tiles-aside">' + asideTiles + "</div></div>";
     }
-    var eyebrow = '<div class="eyebrow">' + lint(esc("The " + obNumWordLow(n) + " sales"), "hero.thintiles.eyebrow") + "</div>";
+    var eyebrow = '<div class="eyebrow">' + lint(esc(n >= 1 ? "The " + obCount(n, "sale") : obCount(0, "sale", { cap: true })), "hero.thintiles.eyebrow") + "</div>";
     var trust = thinTrustLineHtml();
     if (wide) {
       var full = '<div class="thin-tiles-full" data-stage="answer">' + eyebrow + tiles + trust + asideBlock + "</div>";
@@ -2034,7 +2034,7 @@
       return '<div class="distrow">' + btn + panel + "</div>";
     }).join("");
     var poolSize = heroPoolSizeNum(d);
-    var sub = "Share of sales in each price band" + (Number.isFinite(poolSize) ? (", based on " + obNumWordLow(poolSize) + " sales") : "") + ".";
+    var sub = "Share of sales in each price band" + (Number.isFinite(poolSize) ? (", based on " + obCount(poolSize, "sale")) : "") + ".";
     // The dark bar is the engine's typicalBucket (the band holding the typical sale): a one-line legend says so, shown only when the engine
     // marks one; the other bars are one quiet colour.
     var legend = buckets.some(function (b) { return b.typicalBucket; }) ? '<p class="dist-legend"><span class="dist-legend-sw"></span>typical sale</p>' : "";
@@ -2393,6 +2393,17 @@
   var NUMWORD = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"];
   function obNumWord(n) { return NUMWORD[n] || Number(n).toLocaleString("en-US"); }
   function obNumWordLow(n) { var w = NUMWORD[n]; return w ? w.toLowerCase() : Number(n).toLocaleString("en-US"); }
+  // Twin of lib/countNoun.js (countNounCheck fails if they differ): count in, correct noun out, zero reads "no sales".
+  function obCount(n, one, o) {
+    o = o || {};
+    var k = Math.round(Number(n)), many = o.many || one + "s", W = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"], out;
+    if (!(k >= 1)) out = "no " + many;
+    else {
+      var num = o.num != null ? String(o.num) : (o.words === false || k > 10 ? k.toLocaleString("en-US") : W[k]);
+      out = num + " " + (k === 1 ? one : many);
+    }
+    return o.cap ? out.charAt(0).toUpperCase() + out.slice(1) : out;
+  }
   function classEraHtml(d, m) {
     var ce = d.classEra;
     htLastD = d;   // so gearboxLabel can read the resolved model for the receipt rows
