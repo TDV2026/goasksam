@@ -37,6 +37,7 @@ const many = (d, k, base) => Array.from({ length: k }, (_, i) => [d, base + i * 
 const clear = bestDayOf(stub([...many(D.sun, 5, 40000), ...many(D.tue, 5, 30000), ...many(D.fri, 3, 31000)]));
 ok("best_day clears: Sunday, five sales, well above the pool middle", clear && clear.day === "Sunday" && clear.count === 5 && clear.lead_pct > 0 && clear.margin >= 5 && clear.measure === "median_vs_pool_median_pct", JSON.stringify(clear));
 ok("best_day shape: day, count, n, measure, margin, window", clear && ["day", "count", "n", "measure", "margin", "window"].every(k => k in clear) && clear.n === 13 && clear.window.months === 12);
+ok("best_day carries what the Sell line prints: day, count, n, lead_pct (a number) and the window start", clear && typeof clear.lead_pct === "number" && clear.window && "from" in clear.window && typeof clear.day === "string", JSON.stringify(clear && { lead_pct: clear.lead_pct, window: clear.window }));
 ok("best_day null: a day under five sales is never ranked", bestDayOf(stub([...many(D.sun, 4, 40000), ...many(D.tue, 5, 30000), ...many(D.fri, 4, 31000)])) === null);
 ok("best_day null: the winner leads the next day by under five points", bestDayOf(stub([...many(D.sun, 5, 30200), ...many(D.tue, 5, 30000), ...many(D.fri, 3, 29000)])) === null);
 ok("best_day null: one ranked day has no next day to beat", bestDayOf(stub([...many(D.sun, 6, 40000), ...many(D.tue, 3, 30000), ...many(D.fri, 3, 31000)])) === null);

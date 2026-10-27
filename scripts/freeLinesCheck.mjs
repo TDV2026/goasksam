@@ -11,6 +11,7 @@ const { default: h } = await import(pathToFileURL(path.join(ROOT, "api", "about.
 const body = await new Promise(resolve => { const res = { setHeader() {}, getHeader() {}, status() { return res; }, send(b) { resolve(String(b)); }, end() { resolve(""); } }; h({ method: "GET", url: "/about", headers: { host: "goasksam.com", cookie: "" }, query: {}, socket: {} }, res); });
 const main = body.slice(body.indexOf("<main>"), body.indexOf("</main>"));
 ok(/<h1 class="ab-h1">About GoAskSam<\/h1>\s*<p class="ab-free"[^>]*><b>Sam is free to use\. Built for the community, from The Daily Vroom\.<\/b><\/p>/.test(main), "About: the bold line sits right under the page heading");
+ok(/<\/b><\/p>\s*<p class="ab-cover"[^>]*>Sam reads sales from the US and Canada today\. Europe, the UK and the rest of the world are next\.<\/p>/.test(main) && !/<b>[^<]*Sam reads sales/.test(main), "About: the coverage line sits directly under the bold free line, in normal weight");
 ok((main.match(/Sam is free to use/g) || []).length === 1, "About: the line is there once");
 ok(/<h2 class="ab-h2">What this is<\/h2>\s*<p data-lead-sentence>/.test(main), "About: the lead sentence is still the first line of 'What this is' (nothing else changed)");
 const auth = fs.readFileSync("public/js/auth.js", "utf8");

@@ -2455,7 +2455,7 @@
     var n = d.poolSize;
     var car = carLabel(d.resolvedCar);
     if (n == null) return "";
-    if (n === 0) return "No " + car + " sales yet. ";
+    if (n === 0) return "No sale of a car like this on record in the US or Canada yet. ";
     if (n >= 1 && n <= 10) return obNumWord(n) + " " + car + " " + (n === 1 ? "sale" : "sales") + " so far. ";
     if (typeof console !== "undefined" && console.warn) console.warn("rungLabelHtml: sibling rung with poolSize > 10", n);
     return "";
@@ -2508,7 +2508,7 @@
     else if (d.tier === "class_era") body = classEraHtml(d, m);
     else if (d.tier === "refusal") { body = refusalHtml(d, m); foot = true; }
     else if (d.tier === "body_unavailable") { body = samMsgHtml([lint(esc(d.samLine || "That body was not offered for this car."), "bu")], "Sam’s read", "big"); foot = true; }
-    else if (d.tier === "not_tracked") { body = samMsgHtml([lint(esc(d.samLine || "We haven’t tracked a sale of this car yet."), "nt")], "Sam’s read", "big") + sellHtml(); foot = true; }
+    else if (d.tier === "not_tracked") { body = samMsgHtml([lint(esc(d.samLine || "No sale of a car like this on record in the US or Canada yet."), "nt")], "Sam’s read", "big") + sellHtml(); foot = true; }
     else if (d.tier === "non_road") { body = samMsgHtml([lint(esc(d.samLine || "Market Check covers cars, trucks and motorcycles."), "nr")], "Sam’s read", "big"); foot = true; }
     else if (d.tier === "result") body = resultHtml(d, m);
     else { body = samMsgHtml([lint(esc("Not enough real " + carLabel(d.resolvedCar) + " sales for an honest read, and nothing here is made up. Try another car and Sam pulls what actually sold."), "zero")], "Sam’s read", "big") + sellHtml(); foot = true; }

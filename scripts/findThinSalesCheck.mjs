@@ -28,7 +28,7 @@ ok(b && /Thin so far/.test(b.html) && text(b.html).includes("One sale of a car l
 ok(b && /<a href="\/market-check\?q=/.test(b.html), "1: the price is linked");
 // 0
 const z = thinSales(card({ kind: "not_tracked", thin_sales: { count: 0 } }));
-ok(z && text(z.html) === "|No car like this has sold at auction yet.|" && !/Thin so far/.test(z.html), "0: 'No car like this has sold at auction yet.' and nothing else");
+ok(z && text(z.html) === "|No sale of a car like this on record in the US or Canada yet.|" && !/Thin so far/.test(z.html), "0: 'No sale of a car like this on record in the US or Canada yet.' and nothing else");
 // 8 or more: the range card is not touched
 ok(thinSales(card({ kind: "range", low: 6500, high: 9000, thin_sales: null })) === null, "8 or more: a range card is left to the range block");
 ok(thinSales(card({ kind: "range", low: 6500, high: 9000, count: 10, thin_sales: { count: 10, sales: [sale(1, "x")] } })) === null, "a range wins even if a thin field were present");
@@ -43,7 +43,10 @@ ok(!/[–—]/.test(a.html + b.html + z.html), "no dashes");
   const refused = sl2({ id: 1, market: { kind: "refused", refusalLine: "Sam could not verify this one, so no figures are shown." } });
   ok(refused && /<p class="nt">Sam could not verify this one, so no figures are shown\.<\/p>/.test(refused.html), "refused: the card prints the engine's refusal sentence");
   const zeroCard = sl2({ id: 1, market: { kind: "not_tracked", notTrackedLine: "Sam does not track this car.", thin_sales: { count: 0 } } });
-  ok(zeroCard && /No car like this has sold at auction yet\./.test(zeroCard.html) && !/does not track/.test(zeroCard.html), "not tracked: the card prints the zero line"); }
+  ok(zeroCard && /No sale of a car like this on record in the US or Canada yet\./.test(zeroCard.html) && !/does not track/.test(zeroCard.html), "not tracked: the card prints the zero line"); }
+{ const sl3 = new Function("esc", "thinSales", "READING_LINE", "rungHtml", "rungShown", "usd", "var REL_MC = true;\n" + block("  function rangeFirst(", "  function noRange(") + "\n" + block("  function noRange(", "  function compactNoRange(") + "\n" + block("  function compactNoRange(", "  function samLine(") + "\n" + block("  function samLine(l){", "  // SPEC CHIPS under the bid line") + "\nreturn samLine;")(esc, thinSales, "x", () => "", () => [], usd);
+  const um = sl3({ id: 1, market: { kind: "unmatched" } });
+  ok(um && /<p class="nt">Sam could not match this listing to a car yet\.<\/p>/.test(um.html), "unmatched: a listing the resolver cannot read prints the fixed line"); }
 const srcS = fs.readFileSync(new URL("../lib/live/search.js", import.meta.url), "utf8");
 ok(/d\.refusal_line\) refusal = String\(d\.refusal_line\)/.test(srcS) && /refusalMem/.test(srcS) && /refusalLine: refusalMem\.get\(spec\.key\) \|\| null/.test(srcS) && /kind: "refused", refusalLine: rf/.test(srcS), "the engine's refusal sentence is carried and stored (refusalLine) for a spec with no sales to count");
 // samLine draws it first (a card with no sam_lines still shows it) and falls through otherwise

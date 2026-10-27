@@ -45,6 +45,7 @@ ${railOpenHtml({ active: "", crew, req, analytics: true })}
 <main><div class="ab-col">
 <h1 class="ab-h1">About GoAskSam</h1>
 <p class="ab-free" style="margin:0 0 22px"><b>Sam is free to use. Built for the community, from The Daily Vroom.</b></p>
+<p class="ab-cover" style="margin:-10px 0 22px">Sam reads sales from the US and Canada today. Europe, the UK and the rest of the world are next.</p>
 <h2 class="ab-h2">What this is</h2>
 <p data-lead-sentence>${esc(WHAT)}</p>
 ${list}

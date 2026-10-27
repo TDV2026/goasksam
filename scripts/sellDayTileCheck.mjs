@@ -49,5 +49,16 @@ ok(scopeWithSpan({ scopeLabel: "1966 Ferrari 275 GTB", rungLabel: "275 GTB, 1965
 ok(scopeWithSpan({ scopeLabel: "S2000 models, 2009 to 2013", rungLabel: "S2000 models, 2009 to 2013" }) === "S2000 models, 2009 to 2013", "a scope that has the span is kept");
 ok(scopeWithSpan({ scopeLabel: "1995 Carrera", rungLabel: "1995 911 Carrera" }) === "1995 Carrera", "no span in the label: the scope stands");
 ok(scopeWithSpan({}) === null, "no engine answer: no scope");
+// BEST DAY WORDING (Sam, Oct 27 2026): the line is the engine's best_day fields only: "{Day} sales have closed about {lead_pct} percent above the typical price for cars like this,
+// {count} of the {n} sales since {window}." lead_pct is the engine's, shown as a whole number. Never "strongest" and never "most sales" for the day.
+{ const bdf = { day: "Tuesday", count: 6, n: 21, measure: "median_vs_pool_median_pct", lead_pct: 7.4, window: { months: 12, from: "2025-11-03", to: "2026-10-20" } };
+  const t = dayTile({ best_day: bdf, window_label: "in the last 12 months", by_day: null });
+  ok(t && t.line === "Tuesday sales have closed about 7 percent above the typical price for cars like this, six of the 21 sales since November 2025.", "best day line: day, lead_pct whole, count of n, since the window start (" + (t && t.line) + ")");
+  ok(t && !/strongest|most sales/i.test(t.line + " " + t.words + " " + t.label), "best day: neither 'strongest' nor 'most sales' for the day");
+  ok(t && !BANNED.test(t.line), "best day line carries no banned word or percent sign");
+  ok(dayTile({ best_day: { ...bdf, lead_pct: undefined }, by_day: null }) === null, "best day without lead_pct: nothing is invented, no card");
+  ok(dayTile({ best_day: null, by_day: null }) === null, "null best_day prints nothing"); }
+{ const fsrc = (await import("node:fs")).readFileSync("lib/sell/sellFlow.js", "utf8");
+  ok(!/closed strongest/.test(fsrc) && !/strongest/.test(fsrc.slice(fsrc.indexOf("export function dayTile"), fsrc.indexOf("const winWords"))), "sellFlow's day tile never says strongest"); }
 console.log(`sellDayTileCheck: ${passes} pass, ${fails} fail`);
 process.exit(fails ? 1 : 0);

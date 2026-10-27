@@ -54,10 +54,10 @@ ok(!/reserveBuckets|by_reserve|RESERVE_SIDE_MIN/.test(factsSrc.replace(/\/\/[^\n
 ok(/reserve_split: \(d && d\.reserve_split\) \|\| null/.test(factsSrc) && /best_day: \(d && d\.best_day\) \|\| null/.test(factsSrc), "the facts pass the engine's two fields through unchanged");
 // the best day card (e91)
 const { dayTile: dt2 } = await import("../lib/sell/sellFlow.js");
-const bdf = { day: "Sunday", count: 5, n: 13, measure: "median_vs_pool_median_pct", lead_pct: 29.3, median: 40200, pool_median: 31100, margin: 32.2, fence: { min_sales: 5, min_margin: 5 }, window: { months: 12 } };
+const bdf = { day: "Sunday", count: 5, n: 13, measure: "median_vs_pool_median_pct", lead_pct: 29.3, median: 40200, pool_median: 31100, margin: 32.2, fence: { min_sales: 5, min_margin: 5 }, window: { months: 12, from: "2025-10-27", to: "2026-10-20" } };
 const bt = dt2({ best_day: bdf, window_label: "since October 2025", by_day: null });
-ok(bt && bt.label === "Best day to end your auction" && bt.head === "Sunday" && bt.line === "Sunday sales have closed strongest for cars like this, five of the 13 sales since October 2025.", "best day card: label, the day, the engine's count line (" + (bt && bt.line) + ")");
-ok(!/[–—]|%|\$|lead_pct|29/.test(JSON.stringify(bt)), "best day card: no percent, no price, no figure beyond the counts");
+ok(bt && bt.label === "Best day to end your auction" && bt.head === "Sunday" && bt.line === "Sunday sales have closed about 29 percent above the typical price for cars like this, five of the 13 sales since October 2025.", "best day card: label, the day, the engine's count line (" + (bt && bt.line) + ")");
+ok(!/[–—]|%|\$|lead_pct/.test(JSON.stringify(bt)) && /about 29 percent above the typical price/.test(bt.line), "best day card: the engine's lead_pct as 'about N percent', no percent sign, no price, no dash");
 const both = dt2({ best_day: bdf, window_label: "since October 2025", by_day: dayBuckets(drows0(), false) });
 ok(both && both.label === "Best day to end your auction", "best day present: that card, never the most-often card as well");
 ok(dt2({ best_day: null, window_label: "since October 2025", by_day: dayBuckets(drows0(), false) }).label === "Most often sold on a", "best day null: the most-often-sold-on card from the day counts, unchanged");
