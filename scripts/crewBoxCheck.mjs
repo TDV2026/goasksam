@@ -1,6 +1,6 @@
 // THE CREW CODE BOX (Sam, Oct 25 2026), offline: /api/crew shows a box that POSTS the code as a form body. A right code sets the signed gas_crew cookie and
 // 302s to /find (or a same-origin `to`); a wrong code gets the 403 page and sets nothing; attempts are limited; the code value never appears in any response
-// body, header or redirect, nor in the page the box is served on. The old ?code= link still works. The holding page points to the box. No network.
+// body, header or redirect, nor in the page the box is served on. A ?code= link no longer works (Oct 27 2026): it shows the box and sets nothing. The holding page points to the box. No network.
 //   node scripts/crewBoxCheck.mjs
 import fs from "node:fs";
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
@@ -35,10 +35,10 @@ for (const [lab, body] of [["wrong", { code: "not-the-code-at-all-0000" }], ["em
   else ok(r.code === 403 && !r.headers["Set-Cookie"] && /did not work/.test(r.body) && /<form method="post"/.test(r.body), lab + ": 403 page, no cookie, the box again");
   ok(!everything(r).includes(CODE) && !everything(r).includes(String(body.code || "\u0000")), lab + ": neither the real nor the typed code is in the answer");
 }
-// the old link still works, and a wrong one is the same 403
-r = await go("GET", { code: CODE }); ok(r.code === 302 && r.headers.Location === "/find" && /gas_crew=/.test(String(r.headers["Set-Cookie"])), "the old ?code= link still sets the cookie and goes to /find");
-r = await go("GET", { code: CODE, to: "/sell" }); ok(r.headers.Location === "/sell", "the old link keeps its to");
-r = await go("GET", { code: "wrong-code" }); ok(r.code === 403 && !r.headers["Set-Cookie"] && !everything(r).includes("wrong-code"), "the old link, wrong code: 403, nothing echoed");
+// the old link no longer works: a GET with a code shows the box and sets nothing (a code is accepted by POST only)
+r = await go("GET", { code: CODE }); ok(r.code === 200 && !r.headers["Set-Cookie"] && !r.headers.Location, "a ?code= link no longer sets the cookie: it shows the box");
+r = await go("GET", { code: CODE, to: "/sell" }); ok(!r.headers["Set-Cookie"] && !r.headers.Location && !everything(r).includes(CODE), "a ?code= link with a to sets nothing, redirects nowhere and never echoes the code");
+r = await go("GET", { code: "wrong-code" }); ok(r.code === 200 && !r.headers["Set-Cookie"] && !everything(r).includes("wrong-code"), "a ?code= link with a wrong code: the box, nothing set, nothing echoed");
 // the limit: five tries a minute from one address, same 403 even for the right code; a crew device is exempt
 ok(ceil.CEILINGS.crew_code && ceil.CEILINGS.crew_code.address[0][1] === 5 && ceil.CEILINGS.crew_code.device[0][1] === 5, "crew_code ceiling: 5 a minute per device and per address");
 {

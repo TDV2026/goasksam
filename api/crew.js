@@ -22,23 +22,9 @@ export default async function handler(req, res) {
   // setting no cookie. A signed, expiring newsletter link is a rebuild after launch, not now.)
   const rawTo = String(q.to || "/");
   const to = /^\/(?!\/)/.test(rawTo) ? rawTo : "/"; // same-origin path only, never an open redirect
-  // TESTER cohort redemption: ?tcode=<the CURTAIN_TESTER_CODE env value>. Sets a signed gas_tester cookie whose
-  // Max-Age ends at the hard expiry, and NEVER issues once the code has expired
-  // (the search gate + curtain seal also re-check expiry, so this is one of two
-  // enforcement points). Falls through to the curtain on a bad or expired code.
-  const tcode = String(q.tcode || "");
-  if (tcode) {
-    const tc = testerCodeMatches(tcode) ? testerSetCookie() : null;
-    if (tc) {
-      res.setHeader("Set-Cookie", tc);
-      res.setHeader("Location", to);
-      res.status(302).end();
-      return;
-    }
-    res.setHeader("Location", "/"); // wrong or expired tester code -> curtain
-    res.status(302).end();
-    return;
-  }
+  // TESTER cohort redemption (Oct 27 2026, Lane S review): a code is accepted by POST only, never from an address. A GET with ?tcode= or ?code= redeems nothing and sets no cookie; it
+  // shows the box. The box takes either code: the crew code sets the signed crew cookie, the tester code sets the signed gas_tester cookie (whose Max-Age ends at the hard expiry and which
+  // NEVER issues once the code has expired; the search gate and the curtain seal re-check expiry, so this is one of two enforcement points).
   // Old guest (?guest=) and one-time pass (?once=) links (Oct 2026, open search): search is open to everyone,
   // so these links no longer carry any searches. Links already shared still land on the page; nothing is set.
   if (q.guest || q.once) {
@@ -50,8 +36,9 @@ export default async function handler(req, res) {
   // goasksam.com and every subdomain, then lands on /buy (or the page a gate passed in `to`). A wrong code, or
   // no crew secret on the server, gets a plain page and sets nothing: never a silent redirect.
   res.setHeader("Cache-Control", "private, no-store");
+  res.setHeader("Referrer-Policy", "no-referrer");   // a code is never sent on in a Referer
   // The code box (Sam, Oct 25 2026): the page at /api/crew has a box that POSTS the code as a form body, so the code never sits in an
-  // address (browser history, Vercel request logs). The old ?code= link still works. Nothing here echoes, redirects with or logs the code.
+  // address (browser history, Vercel request logs). A ?code= or ?tcode= link no longer works (Oct 27 2026): it shows the box and sets nothing. Nothing here echoes, redirects with or logs the code.
   let bodyCode = "", bodyTo = "";
   if (req.method === "POST") {
     let b = req.body;
@@ -60,7 +47,7 @@ export default async function handler(req, res) {
     b = b && typeof b === "object" ? b : {};
     bodyCode = String(b.code || "").slice(0, 200); bodyTo = String(b.to || "");
   }
-  const code = req.method === "POST" ? bodyCode : String(q.code || "").slice(0, 200);
+  const code = req.method === "POST" ? bodyCode : "";   // never read from the address
   const dest = req.method === "POST" ? (/^\/(?![\/\\])/.test(bodyTo) ? bodyTo : "") : (q.to ? to : "");
   if (!code) {   // no code anywhere: the box
     res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -72,6 +59,11 @@ export default async function handler(req, res) {
   const expected = process.env.CURTAIN_CREW_CODE || "";
   const same = (a, b) => { const x = Buffer.from(a), y = Buffer.from(b); return x.length > 0 && x.length === y.length && crypto.timingSafeEqual(x, y); };
   const v = lim.ok && expected && same(code, expected) ? mintCrewCookieValue() : null;
+  // The tester code through the same box (POST only), with the same wrong-guess limit.
+  if (!v && lim.ok && testerCodeMatches(code)) {
+    const tc = testerSetCookie();
+    if (tc) { res.setHeader("Set-Cookie", tc); res.setHeader("Location", dest || "/"); res.status(302).end(); return; }
+  }
   if (v) {
     const host = String(req.headers.host || "").toLowerCase().split(":")[0];
     const domain = /(^|\.)goasksam\.com$/.test(host) ? "; Domain=goasksam.com" : "";

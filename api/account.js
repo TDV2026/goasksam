@@ -12,6 +12,7 @@ import { maybeSubscribeAfterSignin, waitBounded } from "../lib/newsletterSignup.
 import { readVisitorId } from "../lib/_visitor.js";
 import { logEvent, stitchVisitorToAccount, EVENTS } from "../lib/events.js";
 import { cors as gasCors } from "../lib/_cors.js";
+import { failBody } from "../lib/_fail.js";
 
 // How stale a tier check may be before we re-check on ensure. Moves into
 // app_config with the other operational dials in 2C; a constant for now.
@@ -162,11 +163,11 @@ async function handler(req, res) {
   // a per-result stale flag (age > saved_result_stale_days, default 14).
   if (req.body && req.body.action === "savedResults") {
     try { return await handleSavedResults(req, res, env, auth); }
-    catch (err) { return res.status(500).json({ error: err.message }); }
+    catch (err) { return res.status(500).json(failBody("account", err)); }
   }
   if (req.body && req.body.action === "savedResult") {
     try { return await handleSavedResult(req, res, env, auth); }
-    catch (err) { return res.status(500).json({ error: err.message }); }
+    catch (err) { return res.status(500).json(failBody("account", err)); }
   }
 
   // Consent is only meaningful when the client explicitly sends it (captured at
@@ -238,7 +239,7 @@ async function handler(req, res) {
     resp.daily = await dailyQuota(env, auth.userId, resp.tier);
     res.status(200).json(resp);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json(failBody("account", err));
   }
 }
 

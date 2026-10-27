@@ -33,6 +33,7 @@ import { othersRunning, othersLine } from "../lib/tasks/othersRunning.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { testInbox } from "../lib/tasks/delivery.js";
 import { isCrewRequest } from "../lib/_crew.js";
+import { failBody } from "../lib/_fail.js";
 // The per-account daily limits (Tasks setup chat turns, research started), crew exempt: what -> ok.
 const gateOf = (req, user) => what => tasksAllowance(supabaseEnv(), req, user.userId, what).then(r => r.ok, () => true);
 
@@ -613,7 +614,7 @@ async function handler(req, res) {
     return res.status(400).json({ error: "unknown action" });
   } catch (e) {
     console.error("tasks failed:", (e && e.stack) || e);
-    return res.status(500).json({ error: String((e && e.message) || e).slice(0, 300) });
+    return res.status(500).json(failBody("tasks", e));
   }
 }
 

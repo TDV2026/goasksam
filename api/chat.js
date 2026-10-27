@@ -8,6 +8,7 @@ import { anthropicCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { cors as gasCors } from "../lib/_cors.js";
 import { groundReplyNumbers } from "../lib/live/numberGuard.js";
+import { failBody } from "../lib/_fail.js";
 
 // Wording layer only. Must never invent market performance (product rule 1).
 const CHAT_MODEL = process.env.SAM_MODEL || "claude-sonnet-4-6";
@@ -228,7 +229,7 @@ async function handler(req, res) {
     return res.status(200).json({ text, usage, estimatedCostUsd: cost, usageLog });
   } catch (err) {
     await logError(err.message, null);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json(failBody("chat", err));
   }
 }
 

@@ -16,6 +16,7 @@ import { vinFeatureActive, findVinArchiveMatch, looksLikeChassisId } from "../li
 import { isCrewRequest } from "../lib/_crew.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { cors as gasCors } from "../lib/_cors.js";
+import { failBody } from "../lib/_fail.js";
 // Privacy (VIN feature): a raw 17-char VIN must never land in a funnel/analytics
 // event or a log line. Replace any VIN run with a short truncated marker so the
 // event stays useful for debugging without storing the full identifier.
@@ -331,6 +332,6 @@ export default async function handler(req, res) {
       _debug: _dbg
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "Vehicle identity failed" });
+    return res.status(500).json(failBody("vehicleIdentity", err));
   }
 }

@@ -4,6 +4,7 @@ import { sendLeadNotification, sendAdditionalDetails, safePriorSaleUrl } from ".
 import { checkCeiling, leadEmailCeiling } from "../lib/_ceilings.js";
 import crypto from "node:crypto";
 import { cors as gasCors } from "../lib/_cors.js";
+import { failBody } from "../lib/_fail.js";
 
 // HARDENING (Oct 21 2026, Lane D, Sam's job D, docs/lane-security.md F-03). The public lead form stores a row and emails
 // a real PowerSeller from our address, so: a ceiling per device, address and email (lib/_ceilings.js, crew exempt); a
@@ -321,7 +322,7 @@ async function handler(req, res) {
       lead: inserted || row
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json(failBody("submitSellerLead", err));
   }
 }
 

@@ -6,11 +6,14 @@ import sellNext from "./sellNext.js";
 import sellPage from "./sellPage.js";
 import { isCrewRequest } from "./_chrome.js";
 import { hasServerCredential } from "../lib/_credential.js";
+import { withCalm } from "../lib/_hold.js";
 
-export default function handler(req, res) {
+function handler(req, res) {
   const result = /[?&]car=/.test(String(req.url || ""));
   // Our header credential keeps reaching the newer Sell at result addresses only (the golden reads and the checks), as before; plain /sell stays the previous Sell for it.
   if (process.env.SELL_NEXT_ON === "1" || isCrewRequest(req) || (result && hasServerCredential(req))) return sellNext(req, res);
   if (result) res.setHeader("X-Robots-Tag", "noindex, follow");
   return sellPage(req, res);
 }
+// A database failure under either Sell answers the calm page (503, Retry-After, one plain sentence), never the platform's generic 500 (Lane S review, Oct 27 2026).
+export default withCalm(handler, "sell");

@@ -56,6 +56,7 @@ import { specKeyFor, coreOf, persistCore, warmAnswerKeyFor, readWarmAnswer, read
 import { isCrewRequest } from "../lib/_crew.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
 import { cors as gasCors } from "../lib/_cors.js";
+import { failBody } from "../lib/_fail.js";
 // Powerseller referrals are gated (locked product rule): estimated value from
 // actual comps must clear this threshold before a partner can lead.
 // PowerSeller eligibility floor (business decision, Aug 2026): lowered 75000 -> 40000.
@@ -4598,7 +4599,7 @@ async function handler(req, res) {
   } catch (err) {
     // 2C: a server-side failure consumes nothing - refund the reservation (11b).
     if (reservationEventId) { try { await supabaseRpc("release_search", { p_event_id: reservationEventId }, supabaseUrl, supabaseKey); } catch (e) {} }
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json(failBody("sellerDecision", err));
   }
 }
 

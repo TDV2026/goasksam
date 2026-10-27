@@ -27,14 +27,28 @@ for (const q of [{ bhs: "sub_00000000-0000-4000-8000-000000000000" }, { bhs: "00
   ok(!/access_token|refresh_token|via=beehiiv|bhs_error/.test(loc + r.body), `?bhs= never redirects with tokens (${loc || r.code})`);
   ok(r.code === 200 && /<form method="post" action="\/api\/crew"/.test(r.body), `?bhs= falls through to the crew code box and changes nothing (${r.code})`);
 }
+const callPost = async (body, query = {}) => {
+  calls = [];
+  const res = { code: 0, h: {}, body: "", setHeader(k, v) { this.h[k.toLowerCase()] = v; }, getHeader(k) { return this.h[k.toLowerCase()]; }, status(c) { this.code = c; return this; }, end() { return this; }, send(b) { this.body = String(b); return this; }, json(b) { this.body = JSON.stringify(b); return this; } };
+  await crew({ method: "POST", query, body, headers: { host: "goasksam.com" } }, res);
+  return res;
+};
+// Oct 27 2026 (Lane S review): a code is accepted by POST only. A GET with ?code= or ?tcode= redeems nothing, sets no cookie, and shows the box.
 let r = await call({ code: process.env.CURTAIN_CREW_CODE });
-ok(r.code === 302 && /^gas_crew=v1\./.test(String(r.h["set-cookie"] || "")) && r.h.location === "/find", `the crew code still sets the signed crew cookie and lands on /buy (${r.code} ${r.h.location})`);
-r = await call({ code: process.env.CURTAIN_CREW_CODE, bhs: "sub_madeup" });
-ok(r.code === 302 && /^gas_crew=v1\./.test(String(r.h["set-cookie"] || "")) && calls.filter(c => !/ip_rate_hits/.test(c)).length === 0, "the crew code with a stray ?bhs= still works, and bhs is ignored");
-r = await call({ code: "wrong-code" });
+ok(r.code === 200 && !r.h["set-cookie"] && /<form method="post" action="\/api\/crew"/.test(r.body), `a GET with ?code= (the right crew code) sets no cookie and shows the box (${r.code})`);
+r = await call({ code: process.env.CURTAIN_CREW_CODE, to: "/sell" });
+ok(r.code === 200 && !r.h["set-cookie"] && !r.h.location && !r.body.includes(process.env.CURTAIN_CREW_CODE), "a GET with ?code= and ?to= sets no cookie, does not redirect and never echoes the code");
+r = await call({ tcode: "anything" });
+ok(r.code === 200 && !r.h["set-cookie"] && !r.h.location, "a GET with ?tcode= sets no cookie and does not redirect");
+ok(r.h["referrer-policy"] === "no-referrer", "the box page sends Referrer-Policy: no-referrer, so a code never travels in a Referer");
+r = await callPost({ code: process.env.CURTAIN_CREW_CODE });
+ok(r.code === 302 && /^gas_crew=v1\./.test(String(r.h["set-cookie"] || "")) && r.h.location === "/find", `the crew code by POST still sets the signed crew cookie and lands on /find (${r.code} ${r.h.location})`);
+r = await callPost({ code: process.env.CURTAIN_CREW_CODE }, { bhs: "sub_madeup" });
+ok(r.code === 302 && /^gas_crew=v1\./.test(String(r.h["set-cookie"] || "")) && calls.filter(c => !/ip_rate_hits/.test(c)).length === 0, "the crew code by POST with a stray ?bhs= still works, and bhs is ignored");
+r = await callPost({ code: "wrong-code" });
 ok(r.code === 403 && !r.h["set-cookie"], "a wrong crew code sets nothing");
-r = await call({ tcode: "not-the-tester-code" });
-ok(r.code === 302 && r.h.location === "/" && !r.h["set-cookie"], "a wrong tester code sets nothing and goes to /");
+r = await callPost({ code: "not-the-tester-code" });
+ok(r.code === 403 && !r.h["set-cookie"], "a wrong tester code sets nothing");
 const src = (await import("node:fs")).readFileSync("api/crew.js", "utf8"), lib = (await import("node:fs")).readFileSync("lib/_beehiiv.js", "utf8");
 ok(!/q\.bhs|beehiivBySubscriberId|mintSessionForEmail|generate_link/.test(src), "api/crew.js no longer reads bhs or mints a session for an email");
 ok(!/export async function beehiivBySubscriberId/.test(lib) && /export async function beehiivTier/.test(lib), "lib/_beehiiv.js drops the subscription-id lookup and keeps beehiivTier");

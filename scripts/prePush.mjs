@@ -1209,6 +1209,27 @@ try {
 } catch (e) {
   record("Market Check result fixes (scripts/mcResultFixesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// No error detail to the browser (Lane S review of a615b64a, Oct 27 2026). No network.
+try {
+  const out = execSync("node scripts/errorTextCheck.mjs", { encoding: "utf8" });
+  record("No error detail to the browser (scripts/errorTextCheck.mjs)", "PASS", (out.match(/errorTextCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("No error detail to the browser (scripts/errorTextCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// Signed device id and the Market Check cap (Lane S review of a615b64a, Oct 27 2026). No network.
+try {
+  const out = execSync("node scripts/deviceIdCheck.mjs", { encoding: "utf8" });
+  record("Signed device id and the Market Check cap (scripts/deviceIdCheck.mjs)", "PASS", (out.match(/deviceIdCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Signed device id and the Market Check cap (scripts/deviceIdCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// Database failure is a calm page (Lane S review of a615b64a, Oct 27 2026). No network.
+try {
+  const out = execSync("node scripts/calmFailureCheck.mjs", { encoding: "utf8" });
+  record("Database failure is a calm page (scripts/calmFailureCheck.mjs)", "PASS", (out.match(/calmFailureCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Database failure is a calm page (scripts/calmFailureCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The /sell door (Lane C, Oct 26 2026): crew sees the newer Sell, the public the previous one until SELL_NEXT_ON=1 flips it. No network.
 try {
   const out = execSync("node scripts/sellRouteCheck.mjs", { encoding: "utf8" });

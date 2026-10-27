@@ -33,7 +33,7 @@ ok(/^gas_tester=t1\./.test(T.testerSetCookie(NOW)) && /Max-Age=\d+/.test(T.teste
 // Every server reader uses the signed check, never the plain value; none prints or imports a code.
 const read = f => fs.readFileSync(new URL("../" + f, import.meta.url), "utf8");
 for (const f of ["api/crew.js", "api/desk.js"]) ok(!/gas_tester=ok|gas_tester === "ok"|\bTESTER_CODE\b/.test(read(f).replace(/\/\/.*$/gm, "")), `${f}: no plain cookie, no code`);
-ok(/testerCodeMatches\(tcode\)/.test(read("api/crew.js")) && /testerSetCookie\(\)/.test(read("api/crew.js")), "crew.js: the code is checked and the cookie minted by lib/_tester.js");
+ok(/testerCodeMatches\(code\)/.test(read("api/crew.js")) && /testerSetCookie\(\)/.test(read("api/crew.js")), "crew.js: the code is checked and the cookie minted by lib/_tester.js");
 ok(/isTesterRequest\(req\)/.test(read("api/desk.js")), "desk.js: the signed check");
 ok(/"key": "gas_tester", "value": "t1\\\\\.\.\*"/.test(read("vercel.json")) && !/"key": "gas_tester", "value": "ok"/.test(read("vercel.json")), "vercel.json: /desk follows the signed shape");
 console.log(`testerCheck: ${passes} passed, ${fails} failed`);

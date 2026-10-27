@@ -15,6 +15,7 @@ import { supabaseSelect } from "../lib/_supabase.js";
 import { isCrewRequest } from "../lib/_crew.js";
 import { sendDisguisedNotFound } from "../lib/_notFound.js";
 import { cors as gasCors } from "../lib/_cors.js";
+import { failBody } from "../lib/_fail.js";
 // One CORS helper (lib/_cors.js, security F-06): only GoAskSam's own hosts get a cross-origin answer.
 function setCors(res, req) { gasCors(req || { headers: {} }, res, { methods: "POST, OPTIONS", headers: "Content-Type" }); }
 
@@ -87,6 +88,6 @@ export default async function handler(req, res) {
     const code = out.httpStatus || 200; delete out.httpStatus;
     return res.status(code).json(out);
   } catch (e) {
-    return res.status(500).json({ status: "error", error: e.message || "desk failed" });
+    return res.status(500).json(failBody("desk", e, { status: "error" }));
   }
 }
