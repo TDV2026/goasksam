@@ -633,3 +633,4 @@ Branch laned-tasks3. Lane B's commit 8677167f is cherry-picked onto it (be84d1ae
   - 1975 Porsche 911 Carrera 2.7 MFI | 16:14:33Z | ["Porsche","911","Carrera",1975,"930",null,null,null,null,null,null,null,null]
   - 1989 BMW M3 Cabriolet | 16:14:43Z | ["BMW","M3",null,1989,"e30","cabriolet",null,null,null,null,null,null,null]
   - 1985 BMW M635CSi | 16:14:52Z | ["BMW","6-Series","M635CSi",1985,null,null,null,null,null,null,null,null,null]
+- PUSH LOCK (Lane C, 20:19Z): the e95 engine (Lane B lane-b-e95 b824d0a3 and notes) with the Task email class (emailMode), stamp e95-20261027-pooled. FULL 0 FAIL except the one NAMED FAIL approved by Sam: refusalCheck, the Defender 110 refusal on live e94 (e95 fixes it; re-run after the deploy). 217 PASS. Then one sliced warm. No other push inside this lock.
