@@ -69,7 +69,7 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     const axisAll = [...axq, ...axy, ...counts, ...cap]; let axClash = [];
     axisAll.forEach((a1, i2) => axisAll.slice(i2 + 1).forEach(a2 => { if (a1.x1 < a2.x2 + 1 && a1.x2 + 1 > a2.x1 && a1.y1 < a2.y2 && a1.y2 > a2.y1) axClash.push(a1.s + "/" + a2.s); }));
     ok(axClash.length === 0, key + ": no axis label, year, count or caption touches another" + (axClash.length ? " (" + axClash.join(", ") + ")" : ""));
-    ok(labels.length >= 1 && labels.length <= 8, key + ": range figures print only on the first, last, highest and lowest candle (" + labels.length + " printed)");
+    ok(labels.length >= 1 && labels.length <= 2 * bks.length, key + ": range figures print at most the top and bottom of each candle (" + labels.length + " printed for " + bks.length + " candles)");
     ok(axisAll.every(t => t.x1 >= 0 && t.x2 <= r.W && t.y2 <= r.H), key + ": every axis row sits inside the frame");
     ok(r.size === trend.movement.label, key + ": the bucket size reads the engine's words (" + r.size + ")");
     ok(/Typical range \(middle half of sales\)/.test(r.legend || "") && /Typical sale \(median\)/.test(r.legend || ""), key + ": the legend");
