@@ -6,7 +6,7 @@
 import { OUTBOUND_JS } from "../lib/outboundUtm.js";
 import fs from "node:fs";
 import path from "node:path";
-import { lastUpdatedDate } from "../lib/asOf.js";
+import { lastUpdatedDate, shortDate } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { stripLaunchGate } from "./marketCheck.js";
 import { SELL_MC_CSS, SELL_MC_CLIENT } from "../lib/sell/sellMcClient.js";
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
     // The Sell hook must exist before js/onebox.js boots, so the client goes in ahead of it.
     // SELLS_FOR_CARD_JS goes in first so window.sellsForCardHtml exists before sellMcClient.js's
     // draw() runs (same ordering api/marketCheck.js uses ahead of js/onebox.js).
-    .replace(/<script src="\/obx\.[^"]+\/onebox\.js"><\/script>/, m => `<script>${SELLS_FOR_CARD_JS}</script>\n<script>window.GAS_SELL_CFG=${cfg};</script>\n<script>${SELL_MC_CLIENT}</script>\n${m}`)
+    .replace(/<script src="\/obx\.[^"]+\/onebox\.js"><\/script>/, m => `<script>${SELLS_FOR_CARD_JS}</script>\n<script>window.GAS_SELL_CFG=${cfg};window.GAS_UPDATED=${JSON.stringify(updated ? shortDate(updated) : "")};</script>\n<script>${SELL_MC_CLIENT}</script>\n${m}`)
     // Item 9 (shared top bar): same control as Market Check/Buy, one file (lib/authBar.js).
     // window.GAS_SELL is already set above (SELL_MC_CLIENT), so js/onebox.js's own address-bar
     // code correctly skips this page either way; GAS_AUTH_MODE="topbar" is this page's own,

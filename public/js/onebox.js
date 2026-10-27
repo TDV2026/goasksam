@@ -430,7 +430,7 @@
     var ext = '<span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span>';
     var inner = '<div class="rph">' + img + ext + aside + '<div class="rplate"><div class="n">' + esc(titleCaseSaleTitle(c.title)) + '</div><div class="s">photo unavailable</div></div></div>' +
       '<div class="rb"><div class="rprice num">' + esc(usd(c.price)) + "</div>" +
-      '<div class="rmeta"><span class="num">' + esc(c.mileageText) + '</span><span class="dot">&middot;</span>' + esc(c.platform) + "</div>" +
+      '<div class="rmeta"><span class="num">' + esc(c.mileageText) + (venueOf(c) ? '</span><span class="dot">&middot;</span>' + esc(venueOf(c)) : "</span>") + "</div>" +
       '<div class="rdate">' + esc(c.month) + "</div><div class=\"rtitle\">" + esc(titleCaseSaleTitle(c.title)) + "</div></div>";
     var href = utmUrl(c.url);
     return href ? '<a class="rcard" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="rcard">' + inner + "</div>";
@@ -782,7 +782,9 @@
     // Item 1 (Sam's follow-up round): never truncate with an ellipsis - this line is already short
     // (no model name, no window clause) and wraps normally if it is ever still too long for one
     // line, rather than clipping.
-    return t ? ('<p class="hero-scope" data-stage="answer">' + lint(esc(t), "hero.scope") + "</p>") : "";
+    // Why the years differ from the typed one: the engine's own scope_reason (e.g. "No 1974 sales yet, showing 1971 to 1973"), printed as it comes; no field, no line. Nothing is compared here.
+    var why = d && typeof d.scope_reason === "string" && d.scope_reason.trim() ? '<p class="hero-scope hero-scope-why" data-stage="answer">' + lint(esc(d.scope_reason.trim()), "hero.scope") + "</p>" : "";
+    return t ? ('<p class="hero-scope" data-stage="answer">' + lint(esc(t), "hero.scope") + "</p>" + why) : "";
   }
   // Mileage line (left column, item 6, Market Check result-page spec): the field is ALWAYS present
   // once rendered - only the sentence above it switches. Not yet narrowed: "Add mileage to narrow
@@ -1159,11 +1161,14 @@
     var img = image ? ('<img src="' + esc(image) + '" alt="' + esc(title || "") + '" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()">') : "";
     return '<div class="ph' + (image ? "" : " noimg") + '">' + img + '<span class="none">' + esc(title || "") + "</span></div>";
   }
+  // The venue a tile prints: the four named online platforms by name, any other house by the engine's own platformName (Bonhams, Mecum, Collecting Cars...). `platform` reads
+  // "others" for every house outside the four, which hid the venue on tiles for cars that sell at those houses (the 1974 Triumph Stag, Oct 26 2026). No platformName: no venue, honest.
+  function venueOf(c) { return c && c.platform && c.platform !== "others" ? c.platform : ((c && c.platformName) || ""); }
   function thinTileHtml(c, asideLabel) {
     var href = utmUrl(c.url);
     var title = cleanReceiptTitle(c.title);
     var miles = Number(c.mi) > 0 ? (Number(c.mi).toLocaleString("en-US") + " miles") : "";
-    var venue = (c.platform && c.platform !== "others") ? c.platform : "";
+    var venue = venueOf(c);
     // monShort(c.date), never c.month directly: the thin tier's own pool (thinCardsFrom) builds
     // month with the client's full-month-name monthYear(), while the result tier's d.cards (shapeCards)
     // builds it with the server's three-letter one - monShort reads the shared date field instead, so
@@ -1302,7 +1307,7 @@
   // Lane B) for the subhead sentence; falls back to the brief's own fallback sentence verbatim.
   function salesRowCardHtml(c, d) {
     if (!c) return "";
-    var venue = (c.platform && c.platform !== "others") ? c.platform : "";
+    var venue = venueOf(c);
     var month = c.month || monShort(c.date);
     var miles = longMiles(c);
     var href = utmUrl(c.url);
@@ -1482,7 +1487,7 @@
   // sale; the row itself is plain.
   function allSalesRowHtml(c) {
     if (!c) return "";
-    var venue = (c.platform && c.platform !== "others") ? c.platform : "";
+    var venue = venueOf(c);
     var href = utmUrl(c.url);
     var gasAttrs = (href && c.id != null) ? (' data-gas-event="receipt_click" data-gas-source="' + esc(c.platformSlug || "") + '" data-gas-listing-id="' + esc(c.id) + '"') : "";
     var carCell = href
@@ -1777,7 +1782,7 @@
   // tagLabel is an optional small pill ("Above range") - never invented, only ever a label the
   // caller derived from data the engine already returned (see shownSeparatelyHtml).
   function poolCardHtml(c, tagLabel) {
-    var venue = (c.platform && c.platform !== "others") ? c.platform : "";
+    var venue = venueOf(c);
     // Item 6 (Oct 2026): the same car's earlier sale, when the engine found one (attachSoldBefore,
     // d.cards only - asideCards/setAsideRows are a separate shapeCards call never mutated with it,
     // so this is a no-op there, same function either way).

@@ -122,7 +122,7 @@ export default async function handler(req, res) {
   shell = shell.includes(MENU) ? shell.replace(MENU, MVIS + MENU) : shell.replace("</header>", MVIS + "</header>");
   // Which other products Buy may link to: the launch stage, read per request (crew always true).
   const rel = { mc: isReleased("market-check", req), tasks: isReleased("tasks", req) };
-  const railFinal = '<script>window.GAS_CREW=' + (crew ? "true" : "false") + ';window.GAS_REL=' + JSON.stringify(rel) + ';</script>' + shell +
+  const railFinal = '<script>window.GAS_CREW=' + (crew ? "true" : "false") + ';window.GAS_REL=' + JSON.stringify(rel) + ';window.GAS_UPDATED=' + JSON.stringify(updated ? shortDate(updated) : "") + ';</script>' + shell +
     '<div class="mvlist" id="mvlist" hidden><div class="vlist"></div><button type="button" class="mvnew" data-newsearch>+ New search</button></div>';
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">${paletteHead(showPal)}<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>${TITLE}</title><meta name="description" content="${esc(description)}">

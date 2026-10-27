@@ -19,7 +19,7 @@ import { OUTBOUND_JS } from "../lib/outboundUtm.js";
 import { withTracking } from "../lib/track/log.js";
 import fs from "node:fs";
 import path from "node:path";
-import { lastUpdatedDate } from "../lib/asOf.js";
+import { lastUpdatedDate, shortDate } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { landingHtml, LANDING_CSS, startCfg } from "../lib/live/marketCheckLanding.js";
 import { START_JS } from "../lib/startPage.js";
@@ -100,7 +100,7 @@ async function handler(req, res) {
       `<main class="wrap"><div id="ob">${landingHtml({ updated, h1Text: H1 })}</div></main>`)
     // Round D (app shell, Oct 2026): one shared rail/main/mobile-header, lib/appShell.js.
     .replace("<!--SHELL_RAIL-->", railOpenHtml({ active: "market-check", crew, req, analytics: true }))
-    .replace("<script>\nfunction obToggleResults", `<script>${SHELL_JS}</script>\n<script>${SELLS_FOR_CARD_JS}</script>\n<script>${START_JS}</script>\n<script>window.GAS_START_CFG=${JSON.stringify(startCfg(updated)).replace(/</g, "\\u003c")};</script>\n<script>\nfunction obToggleResults`)
+    .replace("<script>\nfunction obToggleResults", `<script>${SHELL_JS}</script>\n<script>${SELLS_FOR_CARD_JS}</script>\n<script>${START_JS}</script>\n<script>window.GAS_START_CFG=${JSON.stringify(startCfg(updated)).replace(/</g, "\\u003c")};window.GAS_UPDATED=${JSON.stringify(updated ? shortDate(updated) : "")};</script>\n<script>\nfunction obToggleResults`)
     // Item 9 (shared top bar, Oct 2026): "Sign in" / the account control, one shared file
     // (lib/authBar.js) - the same markup/CSS Buy now uses, GAS_AUTH_MODE="topbar" so js/auth.js
     // runs its lighter boot (no /sell-wizard upfront gate check, no homepage_view funnel stamp).

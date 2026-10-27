@@ -24,7 +24,9 @@ import { currentEpoch } from "../lib/_epoch.js";
 import { photoId, photoUrlFor, fetchPhoto, vinPhotoKey, safeImageUrl, sizedPhotoUrl } from "../lib/_salePhoto.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { vinAppearances, carIdentity, normVin } from "./_historyData.js";
-import { lastUpdatedDate } from "../lib/asOf.js";
+import { lastUpdatedDate, shortDate } from "../lib/asOf.js";
+// The card footer's "Updated" date: the shared last-ingest date (set per request below, "" when unread, so the footer prints no date), never the answer's read time.
+let CARD_UPDATED = "";
 import { decodeVinFacts } from "../lib/vehicle.js";
 import { sellsForCardHtml, latestQuarterRowHtml } from "../lib/sellsForCard.js";
 import { mapEngineAnswer, ENGINE_VERSION } from "../lib/onebox.js";
@@ -584,10 +586,10 @@ export function historyOf(apps, vin) {
 // reads as its own year, make and model (rowTitle, the rule the sales list already uses). Additive: the existing card,
 // sales and every other field are unchanged, and the eBay page ignores this field.
 export function cardWithRowsOf(d) {
-  if (!d || !Array.isArray(d.cards)) return demoCard(sellsForCardHtml(d || {}, {}), d || {}) || null;
+  if (!d || !Array.isArray(d.cards)) return demoCard(sellsForCardHtml(d || {}, { updated: CARD_UPDATED }), d || {}) || null;
   const cards = d.cards.map(c => ({ ...c, title: rowTitle(c) }));
   const photo = c => { const id = c && c.image ? rowId(c) : null; return id ? "/api/partnerAnswer?photo=" + encodeURIComponent(id) + "&w=320" : null; };   // the smallest width the photo path serves (PHOTO_WIDTHS), for a 72 px row (Lane E's stage 5 find); a sale with no photo keeps the card's "No photo" slot, as on Market Check
-  return demoCard(sellsForCardHtml({ ...d, cards }, { rowPhoto: photo }), d) || null;
+  return demoCard(sellsForCardHtml({ ...d, cards }, { rowPhoto: photo, updated: CARD_UPDATED }), d) || null;
 }
 export function partnerShape(d, text, asked, extra = {}) {
   const engineVersion = d && d.engineVersion || null;
@@ -617,7 +619,7 @@ export function partnerShape(d, text, asked, extra = {}) {
     sales: salesOf(d), rows: rowsOf(d), asideRows: asideRowsOf(d), asideLine: asideSentence(d), setAside: setAsideOf(d),
     thin: range ? null : thinTextOf(d, count),
     trend: range ? trendOf(d) : null,
-    card: demoCard(sellsForCardHtml(d, PARTNER_CARD_OPTS), d) || null,
+    card: demoCard(sellsForCardHtml(d, { ...PARTNER_CARD_OPTS, updated: CARD_UPDATED }), d) || null,
     cardWithRows: cardWithRowsOf(d),   // additive (Oct 20 2026, the Amazon demo's tab c): Market Check's own card WITH its sale rows
     quarter: latestQuarterRowHtml({ ...d, trendQuarters: mapEngineAnswer(d).trendQuarters }) || null,
     lines: linesOf(d),
@@ -730,6 +732,7 @@ export default async function handler(req, res) {
   }
   if (!text) return res.status(400).json({ ok: false, error: "Type a car, or a VIN." });
   const updatedP = lastUpdatedDate(env).catch(() => null);   // the shared last-ingest date; null shows no date
+  { const u0 = await updatedP; CARD_UPDATED = u0 ? shortDate(u0) : ""; }
   // The read goes through Market Check's own handler and its own bound; a read that throws answers from the last good
   // answer (a demo car) or the plain still-reading state.
   // (c): a demo car whose stored answer is the engine's question (current version, under a day old) is answered from that

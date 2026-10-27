@@ -46,6 +46,13 @@ ok(/Platform performance \u00b7 Selling strategy \u00b7 PowerSeller matching/.te
 ok(/<p class="gas-tag">Find, check, sell\.<\/p>/.test(PAGES.home.html), "the sidebar line is 'Find, check, sell.'");
 // the dates come from the ingest row, never the clock: no date at all when it cannot be read
 ok(!/new Date\(\)\.toLocale|toLocaleDateString/.test(src("find").split("export default")[1] || "") && !/new Date\(\)/.test(src("home").split("export default")[1] || ""), "home and find never read the clock for the date");
+// the range card's footer date ("Powered by GoAskSam · Updated ...") is the SAME ingest date, Pacific, handed to the card by the page (window.GAS_UPDATED), never the answer's read time
+for (const k of ["find", "mc", "sell"]) ok(PAGES[k].html.includes('window.GAS_UPDATED="Oct 26, 2026"'), `${k}: the page hands the card the ingest date (Oct 26, 2026) for its footer`);
+ok(/window\.GAS_UPDATED=\$\{JSON\.stringify\(updated \? shortDate\(updated\) : ""\)\}/.test(src("mc").length ? fs.readFileSync("api/marketCheck.js", "utf8") : "") && /updated \? shortDate\(updated\) : ""/.test(fs.readFileSync("api/sellNext.js", "utf8")), "mc and sell: with no readable date the card is handed no date, so its footer prints none");
+{ const { sellsForCardHtml } = await import(pathToFileURL(path.join(ROOT, "lib", "sellsForCard.js")).href);
+  const d = { cluster: [18000, 26000], poolN: 12, windowMonths: 12, readAt: "2026-10-27T03:33:00Z" };
+  ok(sellsForCardHtml(d, { updated: "Oct 26, 2026" }).includes("Powered by GoAskSam &middot; Updated Oct 26, 2026"), "the card footer prints the ingest date it is handed");
+  ok(!/Updated/.test(sellsForCardHtml(d, {})) && !/Oct 27/.test(sellsForCardHtml(d, {})), "the card footer prints no date when it is handed none (the read time, 20:33 Pacific on the 26th, is UTC the 27th, and is not shown)"); }
 // with no readable date the line prints without one (the fallback is in each page's source, lib/asOf.js returns null when the ingest row cannot be read)
 ok(/updated \? `Live auctions \\u00b7 Updated \$\{shortDate\(updated\)\}` : "Live auctions"/.test(src("find")), "find: with no readable date the line prints 'Live auctions' with no date");
 ok(/: "Live auctions and completed sales\."/.test(src("home")), "home: with no readable date the line prints 'Live auctions and completed sales.' with no date");

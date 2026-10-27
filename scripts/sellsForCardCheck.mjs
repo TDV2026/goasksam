@@ -19,7 +19,9 @@ ok(normal.includes('$121,000 <span class="sfc-to">to</span> $134,000'), "range, 
 ok(normal.includes("Based on 42 sales, the latest in September 2026."), "basis line: the engine's own sentence, verbatim, no month count");
 ok(!normal.includes("Middle half of") && !normal.includes("last 12 months"), "basis line: the old window-months wording is gone");
 ok(normal.includes("2 sales set aside: 1 modified, 1 odd sale."), "set-aside footnote, engine's own reasons");
-ok(normal.includes("Powered by GoAskSam &middot; Updated Oct 14") && normal.includes('href="/how-sam-decides"'), "footer: Powered by, Updated date, How Sam decides link");
+ok(normal.includes("Powered by GoAskSam</span>") && !/Updated/.test(normal) && normal.includes('href="/how-sam-decides"'), "footer: Powered by and the How Sam decides link; the answer's own read time (the clock) prints no date");
+{ const dated = sellsForCardHtml({ cluster: [121000, 134000], poolN: 42, windowMonths: 12, readAt: "2026-10-27T03:33:00Z" }, { updated: "Oct 26, 2026" });
+  ok(dated.includes("Powered by GoAskSam &middot; Updated Oct 26, 2026") && !dated.includes("Oct 27"), "footer: the date is the page's ingest date (Pacific), not the read time read in UTC (20:33 Pacific on the 26th printed the 27th)"); }
 
 // includesFromLine: only when the oldest included sale is over three years old, same decision as basisLine, right after it.
 const oldPool = sellsForCardHtml({ cluster: [15000, 22000], poolN: 11, basisLine: "Based on 11 sales, the latest in August 2026.", includesFromLine: "Includes sales from 2021.", readAt: "2026-10-16T08:00:00Z" });
