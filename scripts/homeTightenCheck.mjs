@@ -91,7 +91,7 @@ for (const [name, w, hgt] of [["desktop", 1440, 900], ["desktop tall", 1440, 110
 }
 for (const [name, t] of Object.entries(tops)) { const v = Object.values(t); ok(v.every(x => Math.abs(x - v[0]) <= 1), `${name}: the hero starts the same distance from the top on all four pages (${JSON.stringify(t)})`); }
 for (const name of ["desktop", "phone"]) { const v = Object.values(widths[name]); ok(v.every(x => Math.abs(x - v[0]) <= 1), `${name}: the box is the same width on all four pages (${JSON.stringify(widths[name])})`); }
-ok(tops.desktop.mc === 236 && tops.phone.mc === 108, "the hero start is Market Check's position before this change: 236 px on a desktop, 108 px on a phone");
+ok(tops.desktop.mc === 152 && tops.phone.mc === 108, "the hero start: 152 px on a 1440 by 900 desktop (a third of the way down, from the shared --gst-top, scripts/startPlaceCheck.mjs), 108 px on a phone as before");
 // the rotation itself, one page with a short clock: it advances through the three and the real placeholder is untouched
 for (const k of ["home", "mc"]) {
   const page = await browser.newPage(); await page.setViewport({ width: 1440, height: 900 });

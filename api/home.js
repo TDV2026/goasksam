@@ -35,7 +35,7 @@ const LD = JSON.stringify({ "@context": "https://schema.org", "@graph": [
 ] }).replace(/</g, "\\u003c");
 
 const CSS = `
-.hm{position:relative;min-height:calc(100dvh - 24px);display:flex;align-items:flex-start;justify-content:center;padding:236px 32px 56px;box-sizing:border-box}   /* the hero starts 236 px from the top, the same on Home, Find, Market Check and Sell */
+.hm{position:relative;min-height:calc(100dvh - 24px);display:flex;align-items:flex-start;justify-content:center;padding:var(--gst-top) 32px 56px;box-sizing:border-box}   /* the position is START_CSS's --gst-top, the same on Home, Find, Market Check and Sell */
 @media (max-width:700px){.hm{min-height:calc(100dvh - 60px);padding:48px 16px 64px;align-items:flex-start}}
 .hm-legal{position:absolute;left:0;right:0;bottom:16px;display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;font:400 12.5px/1.4 var(--sans,sans-serif);color:var(--sec,#5E6B63)}.hm-legal a{color:inherit;text-decoration:none}.hm-legal a:hover{text-decoration:underline}`;
 

@@ -1190,6 +1190,12 @@ try {
 }
 // Homepage tightening (Sam, Oct 26 2026): one-line box, no eyebrow, rotating examples, the new sidebar line. Local browser render, no network.
 try {
+  const out = execSync("node scripts/startPlaceCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Start page place (scripts/startPlaceCheck.mjs)", "PASS", (out.match(/startPlaceCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Start page place (scripts/startPlaceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/homeTightenCheck.mjs", { encoding: "utf8" });
   record("Homepage tightening (scripts/homeTightenCheck.mjs)", "PASS", (out.match(/homeTightenCheck: .*/) || [""])[0]);
 } catch (e) {
