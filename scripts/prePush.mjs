@@ -1198,6 +1198,34 @@ try {
 } catch (e) {
   record("typed chassis code and VIN nameplate agree (scripts/chassisCodeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Speedtail: a neighbouring model's title is another car; the gate fails such a pool (Lane B, Oct 27 2026, e94). No network.
+try {
+  const out = execSync("node scripts/modelIdentityCheck.mjs", { encoding: "utf8" });
+  record("receipts are the car asked about, rival-model titles and model-less cars (scripts/modelIdentityCheck.mjs)", "PASS", (out.match(/modelIdentityCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("receipts are the car asked about, rival-model titles and model-less cars (scripts/modelIdentityCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// 13k-Kilometer (Lane B, Oct 27 2026, e94). No network.
+try {
+  const out = execSync("node scripts/trimTextCheck.mjs", { encoding: "utf8" });
+  record("title noise is never a trim, kilometres read in miles, one set of sales (scripts/trimTextCheck.mjs)", "PASS", (out.match(/trimTextCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("title noise is never a trim, kilometres read in miles, one set of sales (scripts/trimTextCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// question rule (Lane B, Oct 27 2026, e94). No network.
+try {
+  const out = execSync("node scripts/questionRuleCheck.mjs", { encoding: "utf8" });
+  record("a question is asked only with 3 or more sales an option in its own pool (scripts/questionRuleCheck.mjs)", "PASS", (out.match(/questionRuleCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("a question is asked only with 3 or more sales an option in its own pool (scripts/questionRuleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// BMW refusals (Lane B, Oct 27 2026, e94). No network.
+try {
+  const out = execSync("node scripts/refusalCauseCheck.mjs", { encoding: "utf8" });
+  record("wrong refusals as classes: drive-train letters, non-trim words (scripts/refusalCauseCheck.mjs)", "PASS", (out.match(/refusalCauseCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("wrong refusals as classes: drive-train letters, non-trim words (scripts/refusalCauseCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // How Sam decides (Sam, Oct 26 2026): the five agreed sections, exactly. No network.
 try {
   const out = execSync("node scripts/howSamDecidesCheck.mjs", { encoding: "utf8" });
