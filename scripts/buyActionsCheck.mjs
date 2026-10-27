@@ -11,7 +11,7 @@ const client = JSON.parse(/^const CLIENT = (".*");$/m.exec(buy)[1]), css = JSON.
 const code = client.split("\n").filter(l => !/^\s*\/\//.test(l)).join("\n");
 ok(!/mclink|See the sales/.test(code), "no 'See the sales' link anywhere in the page's code");
 const fn = name => { const i = code.indexOf("function " + name + "("); return code.slice(i, code.indexOf("\n  function ", i + 1)); };
-ok(/return '<p class="nr-scope">' \+ rungHtml\(\{ rungLines: rungShown\(l, x\.rung\) \}\) \+ '<\/p><p class="nr-line">' \+ esc\(first\) \+ "<\/p>";/.test(fn("compactNoRange")), "the thin card keeps the scope and the engine's first sentence, nothing after it");
+ok(/return '<p class="nr-scope">' \+ rungHtml\(\{ rungLines: rungShown\(l, x\.rung\) \}\) \+ '<\/p>' \+ \(l\.market && l\.market\.scope_reason \? '<p class="nr-why">' \+ esc\(l\.market\.scope_reason\) \+ "<\/p>" : ""\) \+ '<p class="nr-line">' \+ esc\(first\) \+ "<\/p>";/.test(fn("compactNoRange")), "the thin card keeps the scope, the engine's reason for the years if it gave one, and the engine's first sentence, nothing after it");
 const card = fn("card");
 ok((card.match(/<a class="vauc"/g) || []).length === 1 && (card.match(/class="act" data-mc=/g) || []).length === 1, "each card has exactly the two actions, View auction and Market Check");
 ok(/function mcState\(b, open\)\{ b\.setAttribute\("aria-expanded", open \? "true" : "false"\); if \(REL_MC && b\.classList\.contains\("act"\)\) b\.textContent = open \? "Close Market Check" : "Market Check"; \}/.test(code), "the button reads Close Market Check while open, Market Check when closed");
