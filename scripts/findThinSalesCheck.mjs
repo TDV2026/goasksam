@@ -45,7 +45,7 @@ ok(!/[–—]/.test(a.html + b.html + z.html), "no dashes");
   const zeroCard = sl2({ id: 1, market: { kind: "not_tracked", notTrackedLine: "Sam does not track this car.", thin_sales: { count: 0 } } });
   ok(zeroCard && /No car like this has sold at auction yet\./.test(zeroCard.html) && !/does not track/.test(zeroCard.html), "not tracked: the card prints the zero line"); }
 const srcS = fs.readFileSync(new URL("../lib/live/search.js", import.meta.url), "utf8");
-ok(/refusalMem/.test(srcS) && /refusalLine: refusalMem\.get\(spec\.key\) \|\| null/.test(srcS) && /kind: "refused", refusalLine: rf/.test(srcS), "the engine's refusal sentence is carried and stored (refusalLine) for a spec with no sales to count");
+ok(/d\.refusal_line\) refusal = String\(d\.refusal_line\)/.test(srcS) && /refusalMem/.test(srcS) && /refusalLine: refusalMem\.get\(spec\.key\) \|\| null/.test(srcS) && /kind: "refused", refusalLine: rf/.test(srcS), "the engine's refusal sentence is carried and stored (refusalLine) for a spec with no sales to count");
 // samLine draws it first (a card with no sam_lines still shows it) and falls through otherwise
 const sl = block("  function samLine(l){", "    var ls = l.swap");
 ok(/var thin = thinSales\(l\); if \(thin\) return thin;/.test(sl), "samLine returns the thin block first");
