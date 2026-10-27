@@ -17,12 +17,13 @@ const wrongCar = answer(pool(10, "Acme", "Zephyr", i => "1990 Acme Sprinter " + 
 const noiseTrim = answer(pool(10, "Acme", "Zephyr", i => "1990 Acme Zephyr " + i, 20000), { resolvedCar: { make: "Acme", model: "Zephyr", year: 1990, trim: "13k-Kilometer" } });
 const cp = pool(8, "Acme", "Zephyr", i => "1990 Acme Zephyr Coupe " + i, 20000, "Coupe"), cv = pool(8, "Acme", "Zephyr", i => "1990 Acme Zephyr Convertible " + (i + 8), 70000, "Convertible");
 const apart = answer([...cp, ...cv].map((r, i) => ({ ...r, id: "p" + i })), { bodyOptions: [{ value: "coupe", label: "Coupe", n: 8, inPool: 8, own: { n: 8, low: 20500, high: 22000, median: 21500, windowMonths: 12 } }, { value: "convertible", label: "Convertible", n: 8, inPool: 8, own: { n: 8, low: 70500, high: 72000, median: 71500, windowMonths: 12 } }] });
-const stored = { "MCWARM:clean": clean, "MCWARM:badcount": badCount, "MCWARM:wrongcar": wrongCar, "MCWARM:noisetrim": noiseTrim, "MCWARM:apart": apart, "MCWARM:refusal": { tier: "refusal" } };
+const stored = { "MCWARM:clean": clean, "MCWARM:badcount": badCount, "MCWARM:wrongcar": wrongCar, "MCWARM:noisetrim": noiseTrim, "MCWARM:apart": apart, "MCWARM:refusal": { tier: "refusal" }, "MCWARM:old": badCount };
+const OLD = new Set(["MCWARM:old"]);
 let writes = 0;
 globalThis.fetch = async (url, init) => {
   const u = new URL(String(url)); if (init && init.method && init.method !== "GET") writes++;
   if (u.pathname.endsWith("/spec_market_cache")) { const keys = Object.keys(stored).sort(); const after = (u.searchParams.get("spec_key") || "") === "like.MCWARM:*" ? "" : (u.searchParams.getAll("spec_key").find(v => v.startsWith("gt.")) || "").slice(3);
-    return new Response(JSON.stringify(keys.filter(k => k > after).map(k => ({ spec_key: k, ev: ENGV, raw: stored[k] }))), { status: 200 }); }
+    return new Response(JSON.stringify(keys.filter(k => k > after).map(k => ({ spec_key: k, ev: OLD.has(k) ? "e80-20261023-candles" : ENGV, raw: stored[k] }))), { status: 200 }); }
   return new Response("[]", { status: 200 });
 };
 const H = await import(pathToFileURL(path.join(root, "api/usageDashboard.js")).href);
@@ -30,10 +31,11 @@ const run = async () => { let body = null, code = 0; const res = { status(c) { c
   await H.default({ method: "GET", query: { view: "ops", task: "storedsweep" }, headers: { "x-ops-key": "k" }, body: null }, res); return { code, body }; };
 const { code, body } = await run();
 ok("the task answers", code === 200 && body && body.task === "storedsweep", `HTTP ${code}`);
-ok("it reads every stored row and writes nothing", body && body.rows === 6 && body.writes === 0 && writes === 0, `rows ${body && body.rows}, writes ${writes}`);
+ok("it reads every stored row and writes nothing", body && body.rows === 7 && body.writes === 0 && writes === 0, `rows ${body && body.rows}, writes ${writes}`);
 ok("a count that is not the pool is found, and only that one", body && body.setViolations === 1 && body.first.setViolations[0].key === "badcount", JSON.stringify(body && body.first.setViolations));
 ok("another car's sales under the car are found", body && body.wrongModel >= 1 && body.first.wrongModel.some(x => x.key === "wrongcar"), JSON.stringify(body && body.first.wrongModel));
 ok("a noise word in a stored trim is found", body && body.noiseTrim === 1 && body.first.noiseTrim[0].key === "noisetrim", JSON.stringify(body && body.first.noiseTrim));
 ok("bodies priced apart are counted as apart; the others alike", body && body.pooled.apart === 1 && body.pooled.alike === 4 && body.first.apart[0].key === "apart", JSON.stringify(body && body.pooled));
+ok("a row from an older engine version is counted apart and not judged", body && body.otherVersion === 1 && !body.first.setViolations.some(x => x.key === "old"), JSON.stringify({ otherVersion: body && body.otherVersion }));
 console.log(failed ? `storedSweepCheck: ${failed} FAIL` : "storedSweepCheck: all PASS");
 process.exit(failed ? 1 : 0);

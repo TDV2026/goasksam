@@ -1282,6 +1282,13 @@ try {
 } catch (e) {
   record("storedsweep finds mismatched counts, wrong-car pools, noise trims and the pooled states, and writes nothing (scripts/storedSweepCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The read-only milesfault ops task lists old cars with a stored mileage under 500 and nothing else (Lane B, Oct 28 2026). No network.
+try {
+  const out = execSync("node scripts/milesFaultCheck.mjs", { encoding: "utf8" });
+  record("milesfault flags old low-mileage sales only, counts them by source and decade, and writes nothing (scripts/milesFaultCheck.mjs)", "PASS", (out.match(/milesFaultCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("milesfault flags old low-mileage sales only, counts them by source and decade, and writes nothing (scripts/milesFaultCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // How Sam decides (Sam, Oct 26 2026): the five agreed sections, exactly. No network.
 try {
   const out = execSync("node scripts/howSamDecidesCheck.mjs", { encoding: "utf8" });

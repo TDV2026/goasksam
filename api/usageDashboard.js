@@ -4414,6 +4414,33 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "ocdmeter", source: "ocd_call events only (single source of truth; starts at the meter-fix deploy)", today: { total: dayTotal, byJob: byJobDay }, month: { total: monthTotal, byJob: byJobMonth }, ocdCallRowsThisMonth: rows.length, breaker });
   }
 
+  // task=milesfault (Lane B, Oct 28 2026): READ-ONLY. Sales whose stored mileage looks like a unit or parsing fault: under 500 miles (above 0) on a car older than
+  // `age` years (default 15). Counts by source and by decade, the five models with the most flagged sales, and the first 20 with title, year, mileage, price and
+  // venue (the judgement against the model's median is made on those, not here). Pages of 1000, `pages` (default 10) per call, `after` is the last id. ZERO OCD, nothing written.
+  if (task === "milesfault") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const t0 = Date.now(), age = Math.max(5, Math.min(60, Number(req.query?.age) || 15)), maxYear = new Date().getUTCFullYear() - age, maxPages = Math.max(1, Math.min(30, Number(req.query?.pages) || 10));
+    const out = { age, maxYear, scanned: 0, flagged: 0, bySource: {}, byDecade: {}, first: [], models: {}, readFailed: 0 };
+    let cursor = req.query?.after ? String(req.query.after) : "";
+    for (let page = 0; page < maxPages; page++) {
+      const rows = await supabaseSelect(env, `sales_archive?vehicle_type=eq.car&sale_price=not.is.null&mileage=gt.0&mileage=lt.500&year=lte.${maxYear}&year=gt.0&select=id,year,make,model,listing_title,source_slug,sale_date,mileage,price:sale_price_usd&order=id.asc&limit=1000` + (cursor ? `&id=gt.${encodeURIComponent(cursor)}` : ""));
+      if (rows === null || rows === undefined) { out.readFailed++; break; }
+      if (!Array.isArray(rows) || !rows.length) { cursor = ""; break; }
+      for (const r of rows) {
+        out.scanned++; out.flagged++;
+        out.bySource[r.source_slug || "(none)"] = (out.bySource[r.source_slug || "(none)"] || 0) + 1;
+        const dec = Math.floor(Number(r.year) / 10) * 10 + "s"; out.byDecade[dec] = (out.byDecade[dec] || 0) + 1;
+        const mk = `${r.make}|${r.model}`; out.models[mk] = (out.models[mk] || 0) + 1;
+        if (out.first.length < 20) out.first.push({ id: r.id, title: String(r.listing_title || "").slice(0, 80), year: r.year, mileage: r.mileage, price: r.price, venue: r.source_slug, date: r.sale_date });
+      }
+      cursor = rows[rows.length - 1].id;
+      if (rows.length < 1000) { cursor = ""; break; }
+    }
+    const top = Object.entries(out.models).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    out.topModels = top.map(([k, n]) => ({ model: k, flagged: n }));
+    delete out.models;
+    return res.status(200).json({ task: "milesfault", ocdSpend: 0, writes: 0, ...out, next: cursor || null, ms: Date.now() - t0 });
+  }
   // task=milesaudit: READ-ONLY. Mileage-data audit: MB Market rows under 1,000 mi with their RAW
   // mileage string (to confirm the "102k" parse bug); zero-mileage counts by source; stated_mileage=0
   // and live_listings mileage=0. ZERO OCD.

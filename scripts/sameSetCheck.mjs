@@ -53,5 +53,10 @@ caught("an option line whose count is not the count its own page reads", d => { 
 caught("an option line whose median sits outside its own range", d => { d.pooledSplit = { options: [{ dimension: "gearbox", label: "Manual", value: "manual", n: 9, low: 22500, high: 31500, median: 40000 }] }; return d; });
 { const d = JSON.parse(JSON.stringify(d0)); d.bodyOptions = [{ label: "Coupe", value: "coupe", n: 9, opens: 13 }]; d.pooledSplit = { options: [{ dimension: "body", label: "Coupe", value: "coupe", n: 13, low: 22500, high: 31500, median: 27000 }] };
   ok("an option line from its own page's set is clean", E.setConsistencyOf(d, base).length === 0, E.setConsistencyOf(d, base).join(" | ")); }
+// e95: an option with 3 to 7 sales has a median and no printed range (a range needs 8): null is no number, never 0, so that is not a violation
+for (const [nm, op] of [["median and no range (low and high null)", { low: null, high: null, median: 65500 }], ["median and no range (low and high absent)", { median: 65500 }], ["a range and no median", { low: 22500, high: 31500, median: null }]]) {
+  const d = JSON.parse(JSON.stringify(d0)); d.pooledSplit = { options: [{ dimension: "gearbox", label: "Automatic", value: "auto", n: 5, ...op }] };
+  ok(`an option with ${nm} is not a violation`, E.setConsistencyOf(d, base).length === 0, E.setConsistencyOf(d, base).join(" | "));
+}
 console.log(failed ? `sameSetCheck: ${failed} FAIL` : "sameSetCheck: all PASS");
 process.exit(failed ? 1 : 0);
