@@ -2742,12 +2742,12 @@
   }
   // The daily distinct-car limit's own card (Oct 2026, evidence-block job: reworded - overrides the
   // earlier "Sam Desk is built for ongoing or business use." card). This is Market Check's OWN daily
-  // limit (10 distinct cars/device/day, lib/_ceilings.js checkMarketCheckCarLimit) - Buy and Sell are
+  // limit (30 distinct cars/device/day, lib/_ceilings.js checkMarketCheckCarLimit) - Buy and Sell are
   // unaffected by this cap. No product name, no sign-in demand, no prefilled car/search text: just an
   // email door. The visitor can still type a different car (a fresh distinct car just won't resolve
   // until tomorrow; the server enforces that, not this render).
   function renderBusinessLimit(line) {
-    var msg = line || "That is today’s limit of 10 cars on Market Check. If you would like more searches, email feedback@goasksam.com and we will get you set up.";
+    var msg = line || "That’s 30 cars checked today, the most Market Check shows one visitor in a day while Sam is in beta. It starts fresh tomorrow, so come back then. Find and Sell are still open. If this got in your way, tell us at feedback@goasksam.com.";
     var mailHref = "mailto:feedback@goasksam.com?subject=" + encodeURIComponent("More Market Check searches");
     root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") +
       '<section class="samonit" data-stage="note"><p>' + lint(esc(msg), "businesslimit") + '</p><a class="linkbtn" href="' + esc(mailHref) + '">Email feedback@goasksam.com &#8594;</a></section>' +

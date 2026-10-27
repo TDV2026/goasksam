@@ -3526,7 +3526,7 @@ async function handler(req, res) {
           // caller of). No product name, no sign-in demand: an email handles it.
           return res.status(200).json({
             status: "one_box", tier: "business_limit", resolvedCar: null,
-            samLine: "That is today’s limit of " + marketCheckDailyCarCap() + " cars on Market Check. If you would like more searches, email feedback@goasksam.com and we will get you set up."
+            samLine: "That’s " + marketCheckDailyCarCap() + " cars checked today, the most Market Check shows one visitor in a day while Sam is in beta. It starts fresh tomorrow, so come back then. Find and Sell are still open. If this got in your way, tell us at feedback@goasksam.com."
           });
         }
       }

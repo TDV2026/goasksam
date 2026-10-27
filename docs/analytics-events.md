@@ -179,7 +179,7 @@ the tab is not counted; a page that is never hidden before the browser dies send
   `cost_usd`. Optional `model`, `cache_read`, `cache_write`, `cache_hit` (bool), `status`.
   `product` comes from the ledger row's type (`buy_chat_*` buy, `tasks_*` tasks, `sell_*` and the
   wording layer `chat` sell).
-- **`limit_hit`** (service, server, `lib/_ceilings.js`): Required `limit` (which one). Optional `scope`. Never an address or a device key.
+- **`limit_hit`** (service, server, `lib/_ceilings.js`): Required `limit` (which one). Optional `scope`. Never an address or a device key. Oct 27 2026: optional `route` and `tier` (`signed_in` or `anonymous`); Market Check's daily cap fires `limit` `device_cars_day`, `route` `market_check`.
 - **`error`** (service, server): a 5xx answered (or a throw) by a wrapped API route: `withTracking` in
   `lib/track/log.js` around sellerDecision, buySearch, tasks, watch, account, signup, submitSellerLead, chat,
   marketCheck, history, specPage, pullLive, refreshSpecLiveCounts and admin. Cron routes' errors are the
