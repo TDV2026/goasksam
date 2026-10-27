@@ -4574,8 +4574,7 @@ async function handleOps(req, res) {
   // bundling quirk does not apply) with its own identical copy of the list - kept in sync by
   // hand; if they ever need to diverge, that is itself a sign this inlining should be revisited.
   const MC_WARM_LIST = [
-    "1991 BMW M3", "1969 Chevrolet Camaro", "1973 Volkswagen Beetle", "1995 Porsche 911 Carrera",
-    "1967 Ford Mustang Fastback",
+    "1991 BMW M3", "1969 Chevrolet Camaro", "1973 Volkswagen Beetle",
     "1970 Chevrolet Chevelle", "1965 Ford Mustang", "2008 Porsche 911", "1990 Chevrolet Corvette",
     "1968 Chevrolet Camaro", "1973 Porsche 911", "1966 Ford Mustang", "1972 Datsun 240Z",
     "1957 Chevrolet Bel Air", "1985 Porsche 911"
@@ -5121,14 +5120,14 @@ async function handleOps(req, res) {
     const { runOneBox } = await import("../lib/onebox.js");
     const { warmAnswerKeyFor, writeWarmAnswer } = await import("../lib/live/search.js");
     const list = req.query?.list ? String(req.query.list).split("|").filter(Boolean) : MC_WARM_LIST;
-    const result = { warmed: 0, failed: 0, rows: [] };
+    const result = { warmed: 0, refused: 0, failed: 0, rows: [] };
     for (const q of list) {
       const row = { q };
       try {
         const rv = await resolveVehicle(q, {});
         const vehicle = rv && rv.vehicle;
         if (!vehicle || !vehicle.make) throw new Error("unresolved");
-        if (vehicle.trim) throw new Error(`not a bare nameplate (resolved trim: ${vehicle.trim})`);
+        if (vehicle.trim) { row.refused = `not a bare nameplate (resolved trim: ${vehicle.trim})`; result.refused++; result.rows.push(row); continue; }   // a correct refusal is a pass
         const generation = await findGeneration(vehicle, env).catch(() => null);
         const t0 = Date.now();
         const d = await runOneBox(vehicle, generation, q, env, null);

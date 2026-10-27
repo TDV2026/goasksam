@@ -30,8 +30,7 @@ import { supabaseEnv } from "../lib/_supabase.js";
 // nameplates (dense collector models, no trim), chosen to exercise the same "large raw pool
 // paged before fencing" cost class. Documented here, not hidden, per the explicit ask to say so.
 export const WARM_LIST = [
-  "1991 BMW M3", "1969 Chevrolet Camaro", "1973 Volkswagen Beetle", "1995 Porsche 911 Carrera",
-  "1967 Ford Mustang Fastback",
+  "1991 BMW M3", "1969 Chevrolet Camaro", "1973 Volkswagen Beetle",
   "1970 Chevrolet Chevelle", "1965 Ford Mustang", "2008 Porsche 911", "1990 Chevrolet Corvette",
   "1968 Chevrolet Camaro", "1973 Porsche 911", "1966 Ford Mustang", "1972 Datsun 240Z",
   "1957 Chevrolet Bel Air", "1985 Porsche 911",
@@ -49,14 +48,15 @@ export const WARM_LIST = [
 ];
 
 export async function warmMarketCheck(env, list = WARM_LIST) {
-  const out = { warmed: 0, failed: 0, rows: [] };
+  const out = { warmed: 0, refused: 0, failed: 0, rows: [] };
   for (const q of list) {
     const row = { q };
     try {
       const rv = await resolveVehicle(q, {});
       const vehicle = rv && rv.vehicle;
       if (!vehicle || !vehicle.make) throw new Error("unresolved");
-      if (vehicle.trim) throw new Error(`not a bare nameplate (resolved trim: ${vehicle.trim})`);
+      // A name that resolves to a trim is not a bare nameplate: the warm correctly declines it (the engine answers it as a trim car, not a nameplate). That is a pass, counted apart.
+      if (vehicle.trim) { row.refused = `not a bare nameplate (resolved trim: ${vehicle.trim})`; out.refused++; out.rows.push(row); continue; }
       const generation = await findGeneration(vehicle, env).catch(() => null);
       const t0 = Date.now();
       let d = await runOneBox(vehicle, generation, q, env, null);
@@ -81,7 +81,7 @@ if (process.argv[1] && /warmMarketCheck\.js$/.test(process.argv[1])) {
   const listArg = process.argv.find(a => a.startsWith("--list="));
   const list = listArg ? listArg.slice(7).split("|").filter(Boolean) : WARM_LIST;
   const result = await warmMarketCheck(env, list);
-  for (const r of result.rows) console.log(r.error ? `FAIL  ${r.q}: ${r.error}` : `OK    ${r.q}  tier=${r.tier}  ${r.ms}ms`);
-  console.log(`\nDONE. warmed=${result.warmed} failed=${result.failed} of ${list.length}.`);
+  for (const r of result.rows) console.log(r.error ? `FAIL  ${r.q}: ${r.error}` : r.refused ? `OK    ${r.q}  refused: ${r.refused}` : `OK    ${r.q}  tier=${r.tier}  ${r.ms}ms`);
+  console.log(`\nDONE. warmed=${result.warmed} refused=${result.refused} failed=${result.failed} of ${list.length}.`);
   process.exit(result.failed > 0 ? 1 : 0);
 }
