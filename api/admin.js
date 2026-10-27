@@ -13,6 +13,7 @@ import { sendDisguisedNotFound } from "../lib/_notFound.js";
 import { supabaseSelectAll } from "../lib/_supabase.js";
 import { trackHealth, withTracking } from "../lib/track/log.js";
 import { BUY_CHAT_SPEND_PER_DAY_USD } from "../lib/_ceilings.js";
+import { heldBackPanel, runHeldBackAlert } from "../lib/admin/heldBack.js";
 import { readPremiumFreshness } from "../lib/ops/premiumFresh.js";
 import { launchPanels, rightNow, LAUNCH_ISO } from "../lib/admin/launch.js";
 import { searchesPanel, usersPanel, userJourney } from "../lib/admin/people.js";
@@ -147,8 +148,8 @@ function launchRange(key) {
 }
 async function launch(env, key, crew) {
   const r = { ...launchRange(key), crew: !!crew };
-  const [panels, now] = await Promise.all([r.from >= r.to ? Promise.resolve({ range: r, before_launch: true }) : launchPanels(env, r), rightNow(env, !!crew)]);
-  return { ...panels, now, launchAt: LAUNCH_ISO };
+  const [panels, now, held_back] = await Promise.all([r.from >= r.to ? Promise.resolve({ range: r, before_launch: true }) : launchPanels(env, r), rightNow(env, !!crew), heldBackPanel(env, !!crew)]);
+  return { ...panels, now, held_back, launchAt: LAUNCH_ISO };
 }
 
 const ANON_RE = /^[A-Za-z0-9_-]{16,40}$/;
@@ -266,6 +267,8 @@ async function refresh(env, which) {
     // The first hour after midnight also catches yesterday's last events.
     const h = Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", hour: "numeric", hour12: false }).format(new Date()));
     if (h === 0) out.yesterday = await rpc(env, "analytics_refresh_day", { p_day: ptDay(-1), p_final: false });
+    // Held back: an email to the admin accounts when 5 or more visitors hit the Market Check cap inside the hour (lib/admin/heldBack.js).
+    out.held_back_alert = await runHeldBackAlert(env);
   } else {
     out.yesterday = await rpc(env, "analytics_refresh_day", { p_day: ptDay(-1), p_final: true });
     out.retention = await rpc(env, "analytics_refresh_retention", {});
@@ -293,6 +296,11 @@ function token(){var s=session();if(!s||!s.access_token)return Promise.resolve(n
 var E=function(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});};
 var n=function(x){return x==null?"-":Number(x).toLocaleString("en-US");},usd=function(x){return x==null?"-":"$"+Number(x).toFixed(2);},pct=function(x){return x==null?"-":Math.round(x*100)+"%";};
 function table(cols,rows){if(!rows||!rows.length)return '<p class=note>No rows yet.</p>';return '<div class=wrap><table><tr>'+cols.map(function(c){return '<th>'+E(c[0])+'</th>';}).join("")+'</tr>'+rows.map(function(r){return '<tr>'+cols.map(function(c){return '<td>'+(c[2]?c[2](r[c[1]],r):E(r[c[1]]))+'</td>';}).join("")+'</tr>';}).join("")+'</table></div>';}
+function heldBackBlock(b){if(!b)return '';var hr=function(x){return x?E(x.hour)+' ('+n(x.hits)+')':'none';};
+ return tiles([["Hits today",n(b.today.hits)],["Visitors today",n(b.today.visitors)],["Hits, 7 days",n(b.week.hits)],["Visitors, 7 days",n(b.week.visitors)],["Busiest hour today",hr(b.busiest_today)],["Busiest hour, 7 days",hr(b.busiest_week)]])
+ +(b.today.no_id||b.week.no_id?'<p class=note>Hits with no visitor id: '+n(b.today.no_id)+' today, '+n(b.week.no_id)+' in 7 days. They are in the hit counts, not the visitor counts.</p>':'')
+ +'<h3>By route</h3>'+table([["Route","k"],["Today","today",n],["7 days","week",n]],b.by_route)
+ +'<h3>By limit</h3>'+table([["Limit","k"],["Today","today",n],["7 days","week",n]],b.by_limit);}
 function tiles(t){return '<div class=tiles>'+t.map(function(x){return '<div class=tile><span>'+E(x[0])+'</span><b>'+x[1]+'</b>'+(x[2]?'<span>'+E(x[2])+'</span>':'')+'</div>';}).join("")+'</div>';}
 // Partner premium numbers: how long since the nightly job last wrote them; amber past the limit (36 hours).
 function hoursText(h){var r=Math.round(h),W=["zero","one","two","three","four","five","six","seven","eight","nine","ten"];return h<1?"less than an hour":(r<=10?W[r]:n(r))+(r===1?" hour":" hours");}
@@ -396,6 +404,7 @@ R.launch=function(d){
  var f=d.failures;
  h+='<h2>8. Failures</h2>'+tiles([["Busy line shown",n(f.busy_shown)],["Errors (5xx)",n(f.errors.reduce(function(s,x){return s+x.n;},0))],["Limits hit",n(f.limit_hit.reduce(function(s,x){return s+x.n;},0))],["Searches failed",n(f.search_failed.reduce(function(s,x){return s+x.n;},0))]])
   +'<h3>Held at the door</h3><p class=note>The sealed-site holding page (a 503 with Retry-After). Not an error, and it goes to zero on its own after launch.'+(f.held.read?'':' Could not be read just now.')+'</p>'+tiles([["Held at the door",n(f.held.total)],["Bot share",f.held.bot_share==null?"-":pc(f.held.bots,f.held.total)]])+table([["Route","k"],["Count","n",n]],f.held.by_route)
+  +'<h3>Held back</h3><p class=note>Visitors stopped by a daily limit (limit_hit). Visitors are counted, never listed; hits with no visitor id are shown apart. Pacific time.'+(d.held_back&&d.held_back.read?'':' Could not be read just now.')+'</p>'+heldBackBlock(d.held_back)
   +'<h3>Errors by route and status</h3><p class=note>Real failures only: database, missing environment, and 5xx from routes.</p>'+table([["Route and status","k"],["Count","n",n]],f.errors)
   +'<h3>Searches that failed</h3>'+table([["Product and state","k"],["Count","n",n]],f.search_failed)
   +'<h3>Limits hit (limit_hit)</h3>'+table([["Limit","k"],["Count","n",n]],f.limit_hit)

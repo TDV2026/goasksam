@@ -130,7 +130,8 @@ const resObj = () => ({ h: {}, c: null, b: null, setHeader(k, v) { this.h[k] = v
 const g = resObj(); await admin.default({ method: "GET", query: {}, headers: {} }, g);
 ok(g.c === 404 && /noindex/.test(g.b) && /R\.launch=/.test(g.b) && /var cur="launch"/.test(g.b), "GET /admin answers 404 to everyone (noindex) and carries the Launch tab as the default");
 const puppeteer = (await import(pathToFileURL(path.join(ROOT, "node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js")).href).catch(() => import("puppeteer-core"))).default;
-const payload = { ...D, now: { minutes: 15, visitors: 7, answers: 12, failures: 1 }, generatedAt: new Date().toISOString(), launchAt: "2026-10-29T14:00:00Z" };
+const heldBackMock = { read: true, today: { hits: 7, visitors: 5, no_id: 1 }, week: { hits: 31, visitors: 19, no_id: 2 }, by_route: [{ k: "market_check market_check_search", today: 7, week: 25 }, { k: "buy buy_chat", today: 0, week: 6 }], by_limit: [{ k: "device_day_cars", today: 7, week: 25 }, { k: "buy_model_spend", today: 0, week: 6 }], busiest_today: { hour: "2026-10-26 19:00", hits: 4 }, busiest_week: { hour: "2026-10-25 11:00", hits: 9 }, tz: "Pacific" };
+const payload = { ...D, held_back: heldBackMock, now: { minutes: 15, visitors: 7, answers: 12, failures: 1 }, generatedAt: new Date().toISOString(), launchAt: "2026-10-29T14:00:00Z" };
 for (let i = 0; i < 40; i++) payload.unmet.push({ product: "market_check", query: "a rather long query about a very rare car " + i, outcome: "thin", times: 1 + (i % 3), last: at(100 - i) });
 const searchesMock = { shown: 3, capped: false, limit: 300, rows: [
   { ts: at(3), product: "buy", text: "=cmd|calc a very long typed question about a rare car with many words in it " + "x".repeat(60), car: "ford gt", outcome: "range", seconds: 1.2, cache: "warm", state: "CA", device: "mobile", source: "google.com", person: "sam@example.com", signed_in: true, anon: "AAAAAAAAAAAAAAAAAAAAAA", crew: true },
@@ -157,6 +158,8 @@ for (const [w, h, tag] of [[1440, 900, "1440"], [390, 844, "390"]]) {
   ok(/GoAskSam numbers/.test(txt) && /1\. Did they get an answer/.test(txt), `${tag}: the Launch tab draws by default`);
   const order = ["1. Did they get an answer", "2. Unmet demand", "3. Drop-off", "4. Action", "5. Came back", "6. Right now", "7. Speed", "8. Failures", "9. Cost per answer", "10. Feedback"].map(s => txt.indexOf(s));
   ok(order.every((x, i) => x >= 0 && (i === 0 || x > order[i - 1])), `${tag}: the ten panels are all there, in the priority order`);
+  ok(/Held back/.test(txt) && txt.indexOf("Held back") > txt.indexOf("Held at the door") && txt.indexOf("Held back") < txt.indexOf("Errors by route and status"), `${tag}: the Held back panel sits next to Held at the door`);
+  ok(/Visitors today\s*5/.test(txt) && /Visitors, 7 days\s*19/.test(txt) && /market_check market_check_search/.test(txt) && /device_day_cars/.test(txt) && /2026-10-26 19:00 \(4\)/.test(txt), `${tag}: Held back shows hits, visitors, route, limit and the busiest hour`);
   const firstNav = await page.evaluate(() => { const b = document.querySelector("nav button"); return b && b.textContent; });
   ok(firstNav === "Launch", `${tag}: Launch is the first tab`);
   ok(/Real result/.test(txt) && /Real result after answering/.test(txt) && /Left at the question/.test(txt), `${tag}: answer rate and the asked-back loop show`);
@@ -324,6 +327,59 @@ for (const part of ["launch", "overview", "me", "demand", "write_failures", "doo
     ok(urls.some(x => x.includes("user_id=eq." + U1)) && uj.events.every(e => e.user_id === "signed in" || e.user_id == null), "User journey: reads one account's events and never returns the user id");
     const bad = await userJourney(env, "not-a-uuid'); drop"); ok(bad.events.length === 0, "User journey: a malformed id reads nothing");
   } finally { globalThis.fetch = realFetch; }
+}
+
+// ---- Held back panel and the Market Check cap email (Lane D, Oct 26 2026)
+{
+  const hb = await imp("lib/admin/heldBack.js");
+  const now = Date.parse("2026-10-26T20:30:00Z");   // 1:30 PM Pacific
+  const mk = (min, id, product = "market_check", props = { limit: "device_day_cars", scope: "market_check_search" }) => ({ ts: new Date(now - min * 60000).toISOString(), product, anon_id: id, props });
+  const rowsHB = [mk(5, "a1a1a1a1a1a1a1a1a1a1a1"), mk(6, "a1a1a1a1a1a1a1a1a1a1a1"), mk(10, "b2b2b2b2b2b2b2b2b2b2b2"), mk(20, null), mk(30, "c3c3c3c3c3c3c3c3c3c3c3"),
+    mk(40, "d4d4d4d4d4d4d4d4d4d4d4"), mk(50, "e5e5e5e5e5e5e5e5e5e5e5"), mk(70, "f6f6f6f6f6f6f6f6f6f6f6"),
+    mk(60 * 30, "g7g7g7g7g7g7g7g7g7g7g7", "buy", { limit: "buy_model_spend", scope: "buy_chat" }),   // yesterday
+    mk(60 * 24 * 9, "h8h8h8h8h8h8h8h8h8h8h8")];                                                      // nine days ago, outside seven
+  const p = hb.buildHeldBack(rowsHB, now);
+  ok(p.today.hits === 8 && p.today.visitors === 6 && p.today.no_id === 1, "Held back: today counts hits, distinct visitors, and hits with no id apart (" + JSON.stringify(p.today) + ")");
+  ok(p.week.hits === 9 && p.week.visitors === 7, "Held back: seven days leaves out a hit from nine days ago (" + JSON.stringify(p.week) + ")");
+  ok(p.by_route[0].k === "market_check market_check_search" && p.by_route[0].today === 8 && p.by_route[0].week === 8 && p.by_route.some(r => r.k === "buy buy_chat" && r.today === 0 && r.week === 1), "Held back: by route, today and seven days");
+  ok(p.by_limit.some(r => r.k === "device_day_cars" && r.week === 8) && p.by_limit.some(r => r.k === "buy_model_spend" && r.week === 1), "Held back: by limit");
+  ok(p.busiest_today && /^2026-10-26 1[23]:00$/.test(p.busiest_today.hour) && p.busiest_today.hits >= 4, "Held back: busiest hour is a Pacific clock hour (" + JSON.stringify(p.busiest_today) + ")");
+  ok(!/a1a1a1|b2b2b2|203\.0|@/.test(JSON.stringify(p)), "Held back: the panel returns counts only, no visitor id, address or email");
+  // reads: bots out always, internal out unless crew, bounded by name and time
+  const hurls = []; const rf = globalThis.fetch;
+  globalThis.fetch = async u => { hurls.push(String(u)); return new Response("[]", { status: 200, headers: { "content-type": "application/json" } }); };
+  try {
+    const henv = { supabaseUrl: "https://x.test", supabaseKey: "k" };
+    await hb.readHeldBack(henv, { crew: false, now }); await hb.readHeldBack(henv, { crew: true, now });
+    ok(/name=eq\.limit_hit/.test(hurls[0]) && /is_bot=eq\.false/.test(hurls[0]) && /internal=eq\.false/.test(hurls[0]) && /ts=gte\./.test(hurls[0]), "Held back: reads limit_hit only, bots and crew out, time bounded");
+    ok(/is_bot=eq\.false/.test(hurls[1]) && !/internal=eq\.false/.test(hurls[1]), "Held back: the include-crew switch adds crew back, bots stay out");
+  } finally { globalThis.fetch = rf; }
+  // the alert
+  ok(hb.marketCheckBurst(rowsHB, now) === 5, "Alert: counts different Market Check visitors in the last hour, not hits and not hits with no id (" + hb.marketCheckBurst(rowsHB, now) + ")");
+  ok(hb.marketCheckBurst(rowsHB.filter(r => r.anon_id !== "e5e5e5e5e5e5e5e5e5e5e5"), now) === 4, "Alert: four visitors do not reach five");
+  ok(hb.marketCheckBurst([mk(5, "z1z1z1z1z1z1z1z1z1z1z1", "buy", { limit: "buy_model_spend" })], now) === 0, "Alert: only the Market Check cap counts");
+  const sent = []; let marked = 0, seenFlag = false;
+  const send = async m => { sent.push(m); return { ok: true }; };
+  const base = { rows: rowsHB, now, recipients: ["sam@example.com", "pat@example.com"], send, seen: async () => seenFlag, mark: async () => { marked++; } };
+  const r1 = await hb.maybeSendHeldBackAlert(base);
+  ok(r1.sent === true && sent.length === 2 && marked === 1 && sent.map(m => m.to).join() === "sam@example.com,pat@example.com", "Alert: five visitors send one email to each admin account and mark the hour");
+  ok(sent.every(m => !/@|203\.0|a1a1a1|device_day/.test(m.subject + m.text + m.html)) && !/[\u2013\u2014]/.test(sent[0].subject + sent[0].text + sent[0].html), "Alert: subject and body are plain, hold no address or id, and no em or en dash");
+  seenFlag = true; sent.length = 0;
+  const r2 = await hb.maybeSendHeldBackAlert(base);
+  ok(r2.sent === null && r2.already === true && sent.length === 0, "Alert: at most one an hour (a second inside the hour sends nothing)");
+  seenFlag = false;
+  const r3 = await hb.maybeSendHeldBackAlert({ ...base, rows: rowsHB.slice(2) });
+  ok(r3.sent === null && sent.length === 0, "Alert: under five sends nothing");
+  const r4 = await hb.maybeSendHeldBackAlert({ ...base, recipients: [] });
+  ok(r4.sent === null && r4.skipped, "Alert: no ADMIN_EMAILS accounts sends nothing");
+  ok(hb.adminRecipients("Sam@Example.com; pat@example.com ,sam@example.com") .join() === "sam@example.com,pat@example.com", "Alert: recipients come from ADMIN_EMAILS, lower-cased and once each");
+  const src = fs.readFileSync(path.join(ROOT, "lib/admin/heldBack.js"), "utf8");
+  ok(!/sk_|re_[A-Za-z0-9]{8}|Bearer /.test(src) && !/process\.env\.(?!ADMIN_EMAILS)/.test(src), "Alert: no key in code and no new environment setting (only ADMIN_EMAILS is read)");
+  // cron: the hourly refresh runs the alert (no database here, so it must fail soft)
+  const cr = await hb.runHeldBackAlert({ supabaseUrl: "https://127.0.0.1:9", supabaseKey: "k" });
+  ok(cr && (cr.error || cr.visitors === 0), "Alert: the hourly run never throws when the read fails");
+  const adminSrc = fs.readFileSync(path.join(ROOT, "api/admin.js"), "utf8");
+  ok(/out\.held_back_alert = await runHeldBackAlert\(env\)/.test(adminSrc), "Alert: the hourly admin refresh runs it");
 }
 console.log(`launchDashCheck: ${pass} pass, ${fail} fail`);
 process.exit(fail ? 1 : 0);
