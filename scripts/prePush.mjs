@@ -1167,6 +1167,13 @@ try {
 } catch (e) {
   record("thin_sales on a no-range answer (scripts/thinSalesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// scope_reason, the 325xi receipts gate, refusal_line and Where to sell on the engine's counts (Lane B, Oct 26 2026, e93). No network.
+try {
+  const out = execSync("node scripts/scopeReasonCheck.mjs", { encoding: "utf8" });
+  record("scope_reason, gate variants, refusal_line (scripts/scopeReasonCheck.mjs)", "PASS", (out.match(/scopeReasonCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("scope_reason, gate variants, refusal_line (scripts/scopeReasonCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // How Sam decides (Sam, Oct 26 2026): the five agreed sections, exactly. No network.
 try {
   const out = execSync("node scripts/howSamDecidesCheck.mjs", { encoding: "utf8" });
