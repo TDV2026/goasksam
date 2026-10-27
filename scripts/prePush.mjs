@@ -1160,6 +1160,13 @@ try {
 } catch (e) {
   record("regionCheck (scripts/regionCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Find's thin_sales (Lane B, Oct 26 2026, e93): the sales an answer holds when it has no range, from the engine's own pool. No network.
+try {
+  const out = execSync("node scripts/thinSalesCheck.mjs", { encoding: "utf8" });
+  record("thin_sales on a no-range answer (scripts/thinSalesCheck.mjs)", "PASS", (out.match(/thinSalesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("thin_sales on a no-range answer (scripts/thinSalesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // How Sam decides (Sam, Oct 26 2026): the five agreed sections, exactly. No network.
 try {
   const out = execSync("node scripts/howSamDecidesCheck.mjs", { encoding: "utf8" });
