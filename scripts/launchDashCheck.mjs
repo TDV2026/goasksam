@@ -364,6 +364,7 @@ for (const part of ["launch", "overview", "me", "demand", "write_failures", "doo
   const r1 = await hb.maybeSendHeldBackAlert(base);
   ok(r1.sent === true && sent.length === 2 && marked === 1 && sent.map(m => m.to).join() === "sam@example.com,pat@example.com", "Alert: five visitors send one email to each admin account and mark the hour");
   ok(sent.every(m => !/@|203\.0|a1a1a1|device_day/.test(m.subject + m.text + m.html)) && !/[\u2013\u2014]/.test(sent[0].subject + sent[0].text + sent[0].html), "Alert: subject and body are plain, hold no address or id, and no em or en dash");
+  ok(sent.every(m => m.always === true), "Alert: sent with always:true, so it does not depend on the Task emails switch");
   seenFlag = true; sent.length = 0;
   const r2 = await hb.maybeSendHeldBackAlert(base);
   ok(r2.sent === null && r2.already === true && sent.length === 0, "Alert: at most one an hour (a second inside the hour sends nothing)");
@@ -376,6 +377,16 @@ for (const part of ["launch", "overview", "me", "demand", "write_failures", "doo
   const src = fs.readFileSync(path.join(ROOT, "lib/admin/heldBack.js"), "utf8");
   ok(!/sk_|re_[A-Za-z0-9]{8}|Bearer /.test(src) && !/process\.env\.(?!ADMIN_EMAILS)/.test(src), "Alert: no key in code and no new environment setting (only ADMIN_EMAILS is read)");
   // cron: the hourly refresh runs the alert (no database here, so it must fail soft)
+  { // the real sender with the Task emails switch OFF: a Task email is held, the alert still reaches the mail provider
+    const em = await imp("lib/_email.js"); const rf2 = globalThis.fetch; const sv = { k: process.env.RESEND_API_KEY, u: process.env.SUPABASE_URL, s: process.env.SUPABASE_SERVICE_ROLE_KEY }; let posted = 0;
+    process.env.RESEND_API_KEY = "test-key-not-real"; process.env.SUPABASE_URL = "https://sw.test"; process.env.SUPABASE_SERVICE_ROLE_KEY = "k";
+    globalThis.fetch = async u => { const us = String(u); if (/resend\.com/.test(us)) { posted++; return new Response('{"id":"x"}', { status: 200 }); } return new Response('[{"value":"off"}]', { status: 200 }); };
+    try { em.resetTaskEmailSwitchCache();
+      const task = await em.sendTaskEmail({ to: "a@example.com", subject: "s", text: "t" });
+      const alertSend = await em.sendTaskEmail({ to: "a@example.com", subject: "s", text: "t", always: true });
+      ok(task.skipped && task.reason === "task_emails_off" && alertSend.ok === true && posted === 1, "Alert: with the Task emails switch OFF a Task email is held and the alert still sends (" + JSON.stringify([task.reason, alertSend.ok, posted]) + ")"); }
+    finally { globalThis.fetch = rf2; for (const [k, e] of [["k", "RESEND_API_KEY"], ["u", "SUPABASE_URL"], ["s", "SUPABASE_SERVICE_ROLE_KEY"]]) { if (sv[k] === undefined) delete process.env[e]; else process.env[e] = sv[k]; } em.resetTaskEmailSwitchCache(); }
+  }
   const cr = await hb.runHeldBackAlert({ supabaseUrl: "https://127.0.0.1:9", supabaseKey: "k" });
   ok(cr && (cr.error || cr.visitors === 0), "Alert: the hourly run never throws when the read fails");
   const adminSrc = fs.readFileSync(path.join(ROOT, "api/admin.js"), "utf8");
