@@ -64,6 +64,7 @@ td a{font-weight:500}
 .ans-main{grid-column:span 7;padding:26px 28px 24px;display:flex;flex-direction:column;gap:10px;border-right:1px solid var(--div)}
 .anscard.solo .ans-main{grid-column:1 / -1;border-right:0}
 .ans-main .eyebrow{color:var(--sec)}
+.ans-main .opts{list-style:none;margin:0;padding:0;display:grid;gap:4px;font:400 16px/1.5 var(--sans)}
 .range{margin:0;font:600 40px/1.1 var(--serif);color:var(--green);font-variant-numeric:tabular-nums}
 .range .to{font-weight:400;font-size:26px;color:var(--sec)}
 .landed{margin:0;font:400 20px/1.4 var(--serif)}

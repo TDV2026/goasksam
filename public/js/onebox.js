@@ -884,6 +884,7 @@
     return '<p class="hero-idline" data-stage="answer">' + lint("Which " + esc(q.model) + "?", "hero.idq") + " " + items.join(" · ") + "</p>";
   }
   function heroBodyLineHtml(d) {
+    var pooledBody = pooledLineHtml(d, "body"); if (pooledBody) return pooledBody;
     var chosen = obLastRefine && obLastRefine.body;
     var orig = obIdOrigBody;
     var opts = (d && d.bodyOptions) || (chosen && orig ? orig.options : []);
@@ -911,6 +912,7 @@
     return '<p class="hero-idline" data-stage="answer">' + lead + items.join(" · ") + "</p>" + noteHtml;
   }
   function heroGearboxLineHtml(d) {
+    var pooledGb = pooledLineHtml(d, "gearbox"); if (pooledGb) return pooledGb;
     var splits = (d && d.inlineSplits) || [];
     var gb = null;
     for (var i = 0; i < splits.length; i++) { if (splits[i] && splits[i].key === "gearbox") { gb = splits[i]; break; } }
@@ -936,6 +938,7 @@
   // to the next entry; the first entry that still has a real two-sided choice is the one line
   // rendered, and no others are considered.
   function variantOptionsLineHtml(d) {
+    var pooledVar = pooledLineHtml(d, "edition"); if (pooledVar) return pooledVar;
     var entries = (d && Array.isArray(d.variantOptionsLine) && d.variantOptionsLine.length) ? d.variantOptionsLine : obIdOrigVariantLines;
     if (!Array.isArray(entries) || !entries.length) return "";
     var np = nameplateOf(d);
@@ -1109,9 +1112,35 @@
   // No candle chart (the engine supplies no trend at all): no chart, no empty panel - the hero goes
   // full width instead (see heroRangeHtml/thinHeroHtml, :only-child CSS in onebox.html) and this one
   // quiet line sits where the chart would have been.
+  // THE POOLED STATES (e95, Sam's rule, Oct 27 2026). The engine says when a question's options (body, gearbox, edition) price apart or split:
+  //   d.pooledApart.options and d.pooledSplit.options, each { dimension, label, value, n, low, high }. The page prints them as they come and computes nothing.
+  //   Apart: no headline range (the engine's own thinLine stands in for it) and each option on its own line with its own range and count.
+  //   Split: the pooled headline stays and, directly under the card, each option's own range and count replaces the count only line.
+  //   Each line is a button that opens that option, through the same hooks the count only line used (data-bodyopt, data-tx, data-varopt).
+  //   Alike: neither field, nothing here. A withheld chart (d.trendHeld, reason mix_changes) draws no chart and says why in one plain line.
+  var POOL_ATTR = { body: "data-bodyopt", gearbox: "data-tx", edition: "data-varopt" };
+  function pooledOptionsOf(d, dimension) {
+    var src = d && (d.pooledApart || d.pooledSplit); if (!src || !Array.isArray(src.options)) return [];
+    return src.options.filter(function (o) { return o && o.dimension === dimension && Number(o.n) > 0 && Number(o.low) > 0 && Number(o.high) > 0; });
+  }
+  function pooledLineHtml(d, dimension) {
+    var opts = pooledOptionsOf(d, dimension); if (opts.length < 2) return "";
+    var attr = POOL_ATTR[dimension]; if (!attr) return "";
+    var apart = !!(d && d.pooledApart);
+    var items = opts.map(function (o) {
+      var label = esc(o.label) + ": " + usd(o.low) + " to " + usd(o.high) + ", " + obCount(o.n, "sale", { words: false }) + ".";
+      var btn = '<button type="button" class="linkbtn hero-idlink" ' + attr + '="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + label + "</button>";
+      return apart ? '<p class="hero-idline hero-poolline" data-stage="answer">' + btn + "</p>" : btn;
+    });
+    return apart ? items.join("") : '<p class="hero-idline hero-poolline" data-stage="answer">' + items.join(" ") + "</p>";
+  }
+  function chartHeldLine(d) {
+    return d && d.trendHeld && d.trendHeld.reason === "mix_changes" ? "The mix of cars changed from quarter to quarter, so a change here would not show the market moving." : "";
+  }
   function noChartLineHtml(d) {
     // Sam's evening order (Oct 21 2026): with no chart the line is the existing "N sales. Too few to show movement, enough to show
     // where they landed." (the same words as the thin-tile line), N the engine's pool size, whatever the pool size.
+    var held = chartHeldLine(d); if (held) return '<p class="hero-noband" data-stage="answer">' + lint(esc(held), "hero.chartheld") + "</p>";
     var n = d ? heroPoolSizeNum(d) : NaN;
     var said = Number.isFinite(n) && n > 0 ? obCount(n, "sale", { cap: true }) + ". Too few to show movement, enough to show where they landed." : "Too few sales to show movement, enough to show where they landed.";
     return '<p class="hero-noband" data-stage="answer">' + lint(esc(said), "hero.nochart") + "</p>";
@@ -1214,7 +1243,8 @@
     var list = Array.isArray(pool) ? pool : [];
     var n = list.length;
     if (!n || n > 16) return null;
-    var said = '<p class="hero-noband" data-stage="answer">' + lint(esc(obCount(n, "sale", { cap: true }) + ". Too few to show movement, enough to show where they landed."), "hero.thintiles.said") + "</p>";
+    var heldSaid = chartHeldLine(d);
+    var said = '<p class="hero-noband" data-stage="answer">' + lint(esc(heldSaid || (obCount(n, "sale", { cap: true }) + ". Too few to show movement, enough to show where they landed.")), "hero.thintiles.said") + "</p>";
     var sorted = list.slice().sort(function (a, b) { return Number(b.price) - Number(a.price); });
     var wide = n >= 9;
     var tiles = '<div class="thin-tiles' + (wide ? " thin-tiles-wide" : "") + '">' + sorted.map(function (c) { return thinTileHtml(c, null); }).join("") + "</div>";

@@ -238,7 +238,13 @@ function nounOf(d, id) {
   if (/\d[A-Z]+$/.test(fam)) return fam + " cars";
   return /(s|x|z|ch|sh)$/i.test(fam) ? fam + "es" : fam + "s";
 }
-function oneBoxBlock(d, id, oneboxHref, ctx) {
+// THE POOLED STATES (e95): the engine's own options for a question that prices apart or splits, one plain line each, as they come. Alike: none.
+function pooledOptionsHtml(d) {
+  const src = d && (d.pooledApart || d.pooledSplit);
+  const opts = src && Array.isArray(src.options) ? src.options.filter(o => o && Number(o.n) > 0 && Number(o.low) > 0 && Number(o.high) > 0) : [];
+  return opts.length < 2 ? "" : `<ul class="opts">${opts.map(o => `<li>${esc(o.label)}: ${esc(usd(o.low))} to ${esc(usd(o.high))}, ${esc(countNoun(o.n, "sale", { words: false }))}.</li>`).join("")}</ul>`;
+}
+export function oneBoxBlock(d, id, oneboxHref, ctx) {
   if (!d) return "";
   const link = "";   // no product name on public pages; the range block stands alone
   if (d.tier === "result" && d.cluster) {
@@ -246,15 +252,16 @@ function oneBoxBlock(d, id, oneboxHref, ctx) {
     return `<section class="card anscard${take ? "" : " solo"}" aria-label="Cars like it"><div class="ans-main">
       <div class="eyebrow">${esc(nounOf(d, id) + " · sold in " + windowText(d))}</div>
       <p class="range">${esc(usd(d.cluster[0]))} <span class="to">to</span> ${esc(usd(d.cluster[1]))}</p>
-      <p class="landed">Most sales landed here.</p>${freshLine(d)}${ctx ? `<p class="ctx">${esc(ctx)}</p>` : ""}${link}</div>
+      <p class="landed">Most sales landed here.</p>${pooledOptionsHtml(d)}${freshLine(d)}${ctx ? `<p class="ctx">${esc(ctx)}</p>` : ""}${link}</div>
       ${take ? `<aside class="take"><div class="tag"><span class="roundel" aria-hidden="true">SAM</span>Sam&#8217;s Take</div><p>${esc(take)}</p></aside>` : ""}</section>`;
   }
   // No cluster: NO headline figure (rule 24). Lead with the count and let One Box show the sales.
   const n = d.poolN || (d.thin && d.thin.receipts ? d.thin.receipts.length : 0);
   if (!n) return "";
   const win = d.tier === "thin" ? "the past three years" : windowText(d);
-  const line = n < 8 ? `Only ${n} ${nounOf(d, id)} ${n === 1 ? "has" : "have"} sold in ${win}, not enough for a range.` : `${nounOf(d, id)} sold too spread out in ${win} to call a typical price.`;
-  return `<section class="card anscard solo" aria-label="Cars like it"><div class="ans-main"><div class="eyebrow">${esc(nounOf(d, id))}</div><p class="landed">${esc(line)}</p>${freshLine(d)}${ctx ? `<p class="ctx">${esc(ctx)}</p>` : ""}${link}</div></section>`;
+  const apart = !!(d.pooledApart && pooledOptionsHtml(d));
+  const line = apart ? "These sell in different price ranges, so one range would mislead." : n < 8 ? `Only ${n} ${nounOf(d, id)} ${n === 1 ? "has" : "have"} sold in ${win}, not enough for a range.` : `${nounOf(d, id)} sold too spread out in ${win} to call a typical price.`;
+  return `<section class="card anscard solo" aria-label="Cars like it"><div class="ans-main"><div class="eyebrow">${esc(nounOf(d, id))}</div><p class="landed">${esc(line)}</p>${pooledOptionsHtml(d)}${freshLine(d)}${ctx ? `<p class="ctx">${esc(ctx)}</p>` : ""}${link}</div></section>`;
 }
 function poolCount(d) { return d ? (d.tier === "thin" ? (d.thin && d.thin.receipts ? d.thin.receipts.length : 0) : (d.poolN || 0)) : 0; }
 // "The {make} {model} sold {n} times at auction in the last twelve months, as of {date}." (once with one sale); a year hub

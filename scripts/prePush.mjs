@@ -1302,6 +1302,13 @@ try {
 } catch (e) {
   record("Candle chart labels (scripts/candleLabelsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The pooled states (Oct 27 2026, e95 fields): Market Check, the shared card, Find, the history page and the MCP tool print apart, split and alike, and a withheld chart. Local render, no network.
+try {
+  const out = execSync("node scripts/pooledStatesCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("Pooled states (scripts/pooledStatesCheck.mjs)", "PASS", (out.match(/pooledStatesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Pooled states (scripts/pooledStatesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // A count and its noun (Oct 27 2026): "One sales" is a class, so every line that joins a count to sale, car, listing or quarter is checked. No network.
 try {
   const out = execSync("node scripts/countNounCheck.mjs", { encoding: "utf8", timeout: 120000 });
