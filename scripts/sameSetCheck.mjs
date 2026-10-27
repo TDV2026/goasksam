@@ -49,5 +49,9 @@ caught("an unlabelled card outside the printed range", d => { d.cluster = [d.clu
 caught("a range wider than its pool", d => { d.cluster = [1000, 900000]; return d; });
 caught("a pool and a set aside that do not add up", d => { d.qualifyingTotal = d.rawPool.length + 40; d.setAsideRows = d.setAsideRows || []; return d; });
 caught("a lowest sale that is not the pool's", d => { d.lowestSaleN = 1; return d; });
+caught("an option line whose count is not the count its own page reads", d => { d.bodyOptions = [{ label: "Coupe", value: "coupe", n: 9, opens: 13 }]; d.pooledSplit = { options: [{ dimension: "body", label: "Coupe", value: "coupe", n: 8, low: 22500, high: 31500, median: 27000 }] }; return d; });
+caught("an option line whose median sits outside its own range", d => { d.pooledSplit = { options: [{ dimension: "gearbox", label: "Manual", value: "manual", n: 9, low: 22500, high: 31500, median: 40000 }] }; return d; });
+{ const d = JSON.parse(JSON.stringify(d0)); d.bodyOptions = [{ label: "Coupe", value: "coupe", n: 9, opens: 13 }]; d.pooledSplit = { options: [{ dimension: "body", label: "Coupe", value: "coupe", n: 13, low: 22500, high: 31500, median: 27000 }] };
+  ok("an option line from its own page's set is clean", E.setConsistencyOf(d, base).length === 0, E.setConsistencyOf(d, base).join(" | ")); }
 console.log(failed ? `sameSetCheck: ${failed} FAIL` : "sameSetCheck: all PASS");
 process.exit(failed ? 1 : 0);

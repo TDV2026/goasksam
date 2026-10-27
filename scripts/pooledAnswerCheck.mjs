@@ -77,10 +77,37 @@ spread("Over", "Coupe", null, 20000, 900, 20, 5); spread("Over", "Convertible", 
 a = await ask("Over");
 ok("overlapping bodies, medians apart: headline kept, both bodies carry their own range", a.tier === "result" && hasPooled(a) && a.pooledSplit && a.pooledSplit.options.filter(o => o.dimension === "body").length === 2, JSON.stringify(a.pooledSplit && a.pooledSplit.options));
 // edition line under a result: the engine's own options carry their range
-const stub = (std, ed) => ({ tier: "result", cluster: [20000, 40000], rawPool: [], variantOptionsLine: [{ key: "ed", options: [{ value: "standard", label: "Standard", n: 12, ...std }, { value: "ed", label: "Special edition", n: 9, ...ed }] }] });
+const stub = (std, ed) => ({ tier: "result", cluster: [20000, 40000], rawPool: [], variantOptionsLine: [{ key: "ed", options: [{ value: "standard", label: "Standard", n: 12, ownN: 12, ...std }, { value: "ed", label: "Special edition", n: 9, ownN: 9, ...ed }] }] });
 let sp = E.pooledApartGuard(stub({ low: 20000, high: 30000, median: 25000 }, { low: 28000, high: 40000, median: 34000 }));
 ok("edition line, medians apart: split carried, headline kept", sp.cluster && sp.pooledSplit && sp.pooledSplit.options.filter(o => o.dimension === "edition").length === 2);
 sp = E.pooledApartGuard(stub({ low: 20000, high: 30000, median: 25000 }, { low: 21000, high: 31000, median: 26000 }));
 ok("edition line, medians within 15 percent: nothing carried", sp.cluster && !sp.pooledSplit);
+// 8. ONE SET OF SALES PER OPTION: an option line's count, range and window are those of the option's own answer (the page the option opens), not the pooled set's.
+//    The pool spans 8 sales in the last year and more over two years for one body, so the pooled headline set and the option's own set differ.
+const ownAnswer = async (model, refine, asked = 2) => (await E.oneEngineAnswer({ make: MK, model, trim: "", year: 2001, bodyStyle: null }, null, `2001 ${MK} ${model}`, { ...env, asked }, refine)).raw;
+const sameAsOwn = async (model, opt, refine) => { const o = await ownAnswer(model, refine); const c = Array.isArray(o.cluster) ? o.cluster : [null, null];
+  const nOwn = Number(o.poolN ?? (o.rawPool || []).length); return { ok: opt.n === nOwn && opt.low === c[0] && opt.high === c[1] && (opt.windowMonths ?? null) === (o.windowMonths ?? null), opt, own: { n: nOwn, low: c[0], high: c[1], windowMonths: o.windowMonths ?? null } }; };
+MK = "Testmake"; rows = [];
+for (let i = 0; i < 6; i++) sale("Own", "Coupe", null, 26000 + i * 700, 20 + i * 15);          // the coupe: 6 sales in the year, 14 more in the second year
+for (let i = 0; i < 14; i++) sale("Own", "Coupe", null, 24000 + i * 600, 400 + i * 20);
+for (let i = 0; i < 20; i++) sale("Own", "Convertible", null, 34000 + i * 800, 10 + i * 12);
+a = await ask("Own");
+const bodyOpts = (a.pooledSplit || a.pooledApart || {}).options || [];
+ok("option lines exist for the body case", bodyOpts.filter(o => o.dimension === "body").length === 2, JSON.stringify(bodyOpts));
+for (const o of bodyOpts.filter(o => o.dimension === "body")) {
+  const r = await sameAsOwn("Own", o, { body: o.value === "open" ? "convertible" : o.value });
+  ok(`body option ${o.label}: count, range and window are the set its own answer reads`, r.ok, JSON.stringify(r));
+}
+MK = "BMW"; rows = [];
+for (let i = 0; i < 6; i++) sale("M3", "Coupe", "Manual", 30000 + i * 900, 20 + i * 15);
+for (let i = 0; i < 14; i++) sale("M3", "Coupe", "Manual", 28000 + i * 800, 400 + i * 20);
+for (let i = 0; i < 20; i++) sale("M3", "Coupe", "Automatic", 21000 + i * 500, 10 + i * 12);
+a = await ask("M3");
+const gbOpts = ((a.pooledSplit || a.pooledApart || {}).options || []).filter(o => o.dimension === "gearbox");
+ok("option lines exist for the gearbox case", gbOpts.length === 2, JSON.stringify(gbOpts));
+for (const o of gbOpts) {
+  const r = await sameAsOwn("M3", o, { tx: o.value });
+  ok(`gearbox option ${o.label}: count, range and window are the set its own answer reads`, r.ok, JSON.stringify(r));
+}
 console.log(failed ? `pooledAnswerCheck: ${failed} FAIL` : "pooledAnswerCheck: all PASS");
 process.exit(failed ? 1 : 0);
