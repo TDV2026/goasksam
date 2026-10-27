@@ -94,9 +94,11 @@ for (let i = 0; i < 20; i++) sale("Own", "Convertible", null, 34000 + i * 800, 1
 a = await ask("Own");
 const bodyOpts = (a.pooledSplit || a.pooledApart || {}).options || [];
 ok("option lines exist for the body case", bodyOpts.filter(o => o.dimension === "body").length === 2, JSON.stringify(bodyOpts));
+ok("a body option whose own answer reads a longer window says so (windowLonger true, the note names the months)", bodyOpts.some(o => o.windowLonger === true && /over the last \d+ months/.test(o.windowNote || "")), JSON.stringify(bodyOpts.map(o => [o.label, o.windowLonger, o.windowNote])));
 for (const o of bodyOpts.filter(o => o.dimension === "body")) {
   const r = await sameAsOwn("Own", o, { body: o.value === "open" ? "convertible" : o.value });
   ok(`body option ${o.label}: count, range and window are the set its own answer reads`, r.ok, JSON.stringify(r));
+  ok(`body option ${o.label}: windowLonger and windowNote are carried on the option and agree with its window`, typeof o.windowLonger === "boolean" && (o.windowLonger ? /Based on .* over the last \d+ months\./.test(o.windowNote || "") : !o.windowNote), JSON.stringify({ l: o.windowLonger, n: o.windowNote }));
 }
 MK = "BMW"; rows = [];
 for (let i = 0; i < 6; i++) sale("M3", "Coupe", "Manual", 30000 + i * 900, 20 + i * 15);
