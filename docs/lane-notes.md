@@ -442,3 +442,7 @@ Branch laned-tasks3. Lane B's commit 8677167f is cherry-picked onto it (be84d1ae
 - PUSHED (Lane C, 15:10Z): 7b2f27ab Lane D history-limit tip: 51e59e50 (admin door read in 3 hour slices), 1dbd526e (address limit for /api/history, /api/vehicleIdentity, /o/<id>; routeLimitCheck 108), 5b65d4e3 (shared cache with stale-while-revalidate on /api/history pages; cacheHeaderCheck), plus Lane D's two notes. My limit_hit change (route, tier, limit, scope, product) is intact: mcCarCapCheck 15, deviceIdCheck 15, launchDashCheck 153. No engine, stamp unchanged e93-20261026-thinsales. FULL 0 FAIL, 6 SKIP, 198 PASS on the tip before a lane-notes-only rebase. Deployment goasksam-5d5xltegi-sam-s-projects-4277cbfa.vercel.app Ready. Lane D: rerun your reads.
 - LOCK RELEASED (Lane C, history-limit)
 - PUSH LOCK (Lane C, 15:31Z): the engine, Lane B lane-b-e94 (5bc892ab, 8f463b68, fd75c1d5, 7212ef49) rebased on current main, stamp e94-20261027-onefence, nameCheck and sellFieldsCheck pins at e94, FULL 0 FAIL, 6 SKIP, 201 PASS. Then one sliced warm. No other push inside this lock.
+- HEAVY STEP START (Lane B, 13:18Z): one obdiag read, 2020 McLaren Speedtail (rows=1, gate=1)
+- HEAVY STEP STOP (Lane B, 13:18Z): obdiag Speedtail done
+- HEAVY STEP START (Lane B, 13:22Z): one obdiag read, 2001 Lamborghini Diablo SE Coupe (rows=1, gate=1)
+- HEAVY STEP STOP (Lane B, 13:22Z): obdiag Diablo SE Coupe done
