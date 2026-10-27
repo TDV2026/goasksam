@@ -46,6 +46,9 @@ const src = fs.readFileSync(new URL("../lib/live/search.js", import.meta.url), "
 ok(/if \(m\.kind !== "range" && core\.thin_sales\) m\.thin_sales = core\.thin_sales;/.test(src), "listingMarket passes the engine's thin_sales through, never on a range card");
 ok(/thinZeroMem/.test(src) && /thin_sales: \{ count: 0 \}/.test(src) && /thinZero: thinZeroMem\.has\(spec\.key\)/.test(src), "the zero state is carried and stored (thinZero) for a spec with no core");
 ok(/m\.thin_sales = d\.thin_sales \|\| null/.test(src) || /m\.thin_sales = /.test(src), "the stored core carries thin_sales");
+// Tasks (its page and its emails) lift Find's card code by name: the thin block must be in that list or the email card cannot build
+const kit = fs.readFileSync(new URL("../lib/findCardKit.js", import.meta.url), "utf8");
+ok(/"compactNoRange", "thinSales", "samLine"/.test(kit), "findCardKit lifts thinSales with samLine, so the Tasks page and its emails print the same thin card");
 // the shared card is unchanged
 const shared = fs.readFileSync(new URL("../lib/sellsForCard.js", import.meta.url), "utf8");
 ok(!/thin_sales|Thin so far/.test(shared), "lib/sellsForCard.js (Sell, Tasks, the partner demo) is unchanged");
