@@ -1,0 +1,766 @@
+{
+ "status": "one_box",
+ "resolvedCar": {
+  "year": 1974,
+  "make": "Triumph",
+  "model": "Stag",
+  "trim": "",
+  "genCode": null,
+  "badge": null,
+  "bodyStyle": null,
+  "transmission": null,
+  "nameModel": "Stag",
+  "familyLabel": "Stag",
+  "trimsCovered": null
+ },
+ "resolvedSpec": "Comparing the 1974 Stag with equivalent 1972 to 1976 Stag sales.",
+ "dedup": {
+  "collectExcluded": false,
+  "t0": 1793126646579,
+  "marks": [
+   [
+    "thin_checked",
+    136
+   ],
+   [
+    "pool_chosen",
+    157
+   ],
+   [
+    "pool_built",
+    157
+   ],
+   [
+    "result_built",
+    160
+   ],
+   [
+    "done",
+    187
+   ]
+  ],
+  "accentUnion": true,
+  "ms": 134,
+  "queries": 3,
+  "fetchedRaw": 81,
+  "fetchedDeduped": 34,
+  "fetches": [
+   {
+    "titleContains": null,
+    "yearMin": 1972,
+    "yearMax": 1976,
+    "since": "2024-10-27",
+    "houseTier": false,
+    "raw": 15,
+    "ms": 59,
+    "filter": "sales_archive?make=ilike.Triumph&sale_price=not.is.null&vehicle_type=eq.car&sale_date=gte.2024-10-27&year=gte.1972&year=lte.1976&order=sale_date.desc,id.asc",
+    "byModel": "Stag",
+    "byTitle": null,
+    "queryError": false
+   },
+   {
+    "titleContains": null,
+    "yearMin": 1972,
+    "yearMax": 1976,
+    "since": "2021-10-28",
+    "houseTier": true,
+    "raw": 33,
+    "ms": 74,
+    "filter": "sales_archive?make=ilike.Triumph&sale_price=not.is.null&vehicle_type=eq.car&sale_date=gte.2021-10-28&year=gte.1972&year=lte.1976&order=sale_date.desc,id.asc",
+    "byModel": "Stag",
+    "byTitle": null,
+    "queryError": false
+   },
+   {
+    "titleContains": null,
+    "yearMin": 1972,
+    "yearMax": 1976,
+    "since": "2021-10-28",
+    "houseTier": false,
+    "raw": 33,
+    "ms": 1,
+    "filter": "sales_archive?make=ilike.Triumph&sale_price=not.is.null&vehicle_type=eq.car&sale_date=gte.2021-10-28&year=gte.1972&year=lte.1976&order=sale_date.desc,id.asc",
+    "byModel": "Stag",
+    "byTitle": null,
+    "queryError": false
+   }
+  ],
+  "deltaReads": 2,
+  "memoHits": 2,
+  "xtraFetchMs": 19,
+  "xtraEnriched": 9
+ },
+ "vehicle": {
+  "make": "Triumph",
+  "model": "Stag",
+  "trim": "",
+  "year": 1974
+ },
+ "exactSale": null,
+ "subjectMileage": null,
+ "familyCoverageNote": null,
+ "inlineSplits": null,
+ "htMeta": {
+  "isThin": false,
+  "houseSteer": false,
+  "onlineN": 10,
+  "onlineReceiptsN": 10,
+  "houseN": 0,
+  "totalN": 10,
+  "windowMonths": 60,
+  "variantAside": null,
+  "variantAsides": [],
+  "variantOptionsLine": null,
+  "setAsideRows": [],
+  "setAsideN": 0
+ },
+ "platformsCount": 3,
+ "variantAsides": [],
+ "variantOptionsLine": null,
+ "variantAside": null,
+ "gearboxApplies": true,
+ "windowLabel": "widened years",
+ "windowMonthsChosen": null,
+ "tier": "result",
+ "ladderStep": "base",
+ "widening": null,
+ "soldCount": "eight",
+ "soldCountN": 8,
+ "windowMonths": 55,
+ "windowStart": "2022-04-08",
+ "windowWords": "since April 2022",
+ "quarterlyBands": null,
+ "rowsNotShownCount": null,
+ "yoyDirection": null,
+ "setAsideCount": "one",
+ "setAsideCountN": 1,
+ "setAsideReasons": {
+  "modified": 0,
+  "project": 0,
+  "replica": 0,
+  "odd sale": 1
+ },
+ "setAsideLabels": null,
+ "setAsideRows": [
+  {
+   "id": "b7c4188e-3f36-4e76-b15f-e711720c85e4",
+   "country": "US",
+   "countryBasis": "country_code",
+   "vinNorm": "LE23597UBW",
+   "make": "Triumph",
+   "model": "Stag",
+   "price": 27250,
+   "mi": 80000,
+   "mileageText": "80,000 mi",
+   "platform": "Bring a Trailer",
+   "platformSlug": "bringatrailer",
+   "platformName": "Bring a Trailer",
+   "date": "2023-07-17",
+   "month": "Jul 2023",
+   "transmission": "Automatic (3-speed)",
+   "title": "1973 Triumph Stag",
+   "image": "https://bringatrailer.com/wp-content/uploads/2023/05/1973_triumph_stag_img_3455-2-74899.jpg",
+   "url": "https://bringatrailer.com/listing/1973-triumph-stag-30/",
+   "hollow": false,
+   "reason": "odd sale",
+   "setAside": true
+  }
+ ],
+ "qualifyingTotal": 9,
+ "counts": {
+  "qualifying": 9,
+  "used": 8,
+  "setAside": {
+   "total": 1,
+   "aboveRange": 1,
+   "belowRange": 0,
+   "reasons": {
+    "modified": 0,
+    "project": 0,
+    "replica": 0,
+    "odd sale": 1
+   }
+  }
+ },
+ "bodyScoped": null,
+ "referenceFigure": {
+  "amount": 13500,
+  "rangeLow": 12500,
+  "rangeHigh": 14500,
+  "salesCount": 8,
+  "windowLabel": "widened years",
+  "confidence": "medium",
+  "basis": "The midpoint of the range most sales landed in, across 8 sales over widened years."
+ },
+ "referenceFigureReason": null,
+ "mileageFallback": null,
+ "mileageNotNarrowed": null,
+ "mileageNote": null,
+ "nearestInMiles": null,
+ "poolTrim": null,
+ "poolYears": [
+  1973,
+  1973
+ ],
+ "rangeTier": "band",
+ "olderOutside": null,
+ "span": [
+  3000,
+  18500
+ ],
+ "cluster": [
+  12500,
+  14500
+ ],
+ "direction": null,
+ "driver": null,
+ "divergence": null,
+ "newestSale": "2026-08-24",
+ "houseLed": false,
+ "spanOnly": false,
+ "poolN": 8,
+ "setAsideTags": [],
+ "platforms": [
+  "Bring a Trailer",
+  "others"
+ ],
+ "topPlatform": "Bring a Trailer",
+ "singlePlatform": true,
+ "earned": {
+  "kind": "mileage",
+  "buckets": [
+   {
+    "label": "under 40k",
+    "min": 0,
+    "max": 40000
+   },
+   {
+    "label": "40k to 50k",
+    "min": 40000,
+    "max": 50000
+   },
+   {
+    "label": "50k to 70k",
+    "min": 50000,
+    "max": 70000
+   },
+   {
+    "label": "over 70k",
+    "min": 70000,
+    "max": null
+   }
+  ]
+ },
+ "driverSentence": null,
+ "bodyOptions": null,
+ "bodyUnspecified": 7,
+ "trimQuestion": null,
+ "observeOffer": [],
+ "observeAside": null,
+ "driverDiag": {
+  "wideBand": false,
+  "band": null,
+  "candidates": [],
+  "dict": []
+ },
+ "refined": null,
+ "halfGeneration": null,
+ "samsTake": null,
+ "samsTakeSkipReason": "pool tier band below the 16-sale cluster tier",
+ "cards": [
+  {
+   "id": "6fd55c24-dabd-4f00-b324-5510c4461d93",
+   "country": "US",
+   "countryBasis": "country_code",
+   "vinNorm": "LE20470UBW",
+   "make": "Triumph",
+   "model": "Stag",
+   "price": 14500,
+   "mi": 11000,
+   "mileageText": "11,000 mi",
+   "platform": "Bring a Trailer",
+   "platformSlug": "bringatrailer",
+   "platformName": "Bring a Trailer",
+   "date": "2026-08-24",
+   "month": "Aug 2026",
+   "transmission": "Automatic (3-speed)",
+   "title": "1973 Triumph Stag",
+   "image": "https://bringatrailer.com/wp-content/uploads/2026/08/1973_triumph_stag_1973_triumph_stag_IMG_0614-24232-scaled-UZPINQ-42534-42534-1-copy-2026-08-17-2h9-95961.jpg?w=940",
+   "url": "https://bringatrailer.com/listing/1973-triumph-stag-45-2/",
+   "hollow": false,
+   "hasHistoryPage": false,
+   "soldBefore": null
+  },
+  {
+   "id": "d242b2cc-5d37-4e8f-9c4c-ad09aeff2369",
+   "country": "US",
+   "countryBasis": "state",
+   "vinNorm": "LE23884UBW",
+   "make": "Triumph",
+   "model": "Stag",
+   "price": 3000,
+   "mi": 66500,
+   "mileageText": "66,500 mi",
+   "platform": "Hagerty",
+   "platformSlug": "hagerty",
+   "platformName": "Hagerty",
+   "date": "2026-01-28",
+   "month": "Jan 2026",
+   "transmission": "Automatic",
+   "title": "1973 Triumph Stag",
+   "image": "https://hagerty-marketplace-prod.imgix.net/assets/DQ5z3eV2dsSvB34TnbYVaA.jpg",
+   "url": "https://www.hagerty.com/marketplace/auction/1973-Triumph-Stag/8e687f73-de8b-4498-8b7a-ab82a8f48152",
+   "hollow": false,
+   "hasHistoryPage": false,
+   "soldBefore": null
+  },
+  {
+   "id": "7f9303a3-13f6-4ebe-854d-2c758b3f6a96",
+   "country": "US",
+   "countryBasis": "country_code",
+   "vinNorm": "LE23232UBW",
+   "make": "Triumph",
+   "model": "Stag",
+   "price": 12000,
+   "mi": 43000,
+   "mileageText": "43,000 mi",
+   "platform": "Bring a Trailer",
+   "platformSlug": "bringatrailer",
+   "platformName": "Bring a Trailer",
+   "date": "2025-09-02",
+   "month": "Sep 2025",
+   "transmission": null,
+   "title": "1973 Triumph Stag",
+   "image": "https://bringatrailer.com/wp-content/uploads/2025/07/1973_triumph_stag_1973_triumph_stag_9d7afc3b-4634-44d3-9172-2c7656915391-7SVrxw-55115-55116-scaled.jpg",
+   "url": "https://bringatrailer.com/listing/1973-triumph-stag-41/",
+   "hollow": false,
+   "hasHistoryPage": false,
+   "soldBefore": null
+  },
+  {
+   "id": "8fda3410-6852-4590-9f92-85d34c6f8486",
+   "country": "US",
+   "countryBasis": "country_code",
+   "vinNorm": "LE20925U",
+   "make": "Triumph",
+   "model": "Stag",
+   "price": 15000,
+   "mi": 44000,
+   "mileageText": "44,000 mi",
+   "platform": "Bring a Trailer",
+   "platformSlug": "bringatrailer",
+   "platformName": "Bring a Trailer",
+   "date": "2025-07-03",
+   "month": "Jul 2025",
+   "transmission": "Automatic (3-speed)",
+   "title": "1973 Triumph Stag",
+   "image": "https://bringatrailer.com/wp-content/uploads/2025/06/TR6_Stag-_263-59257-scaled.jpg",
+   "url": "https://bringatrailer.com/listing/1973-triumph-stag-40/",
+   "hollow": false,
+   "hasHistoryPage": false,
+   "soldBefore": null
+  },
+  {
+   "id": "c11245e8-5854-44c4-aa6d-9b3870b1e901",
+   "country": "US",
+   "countryBasis": "country_code",
+   "vinNorm": "LE23355U",
+   "make": "Triumph",
+   "model": "Stag",
+   "price": 13250,
+   "mi": 83000,
+   "mileageText": "83,000 mi",
+   "platform": "Bring a Trailer",
+   "platformSlug": "bringatrailer",
+   "platformName": "Bring a Trailer",
+   "date": "2025-05-02",
+   "month": "May 2025",
+   "transmission": null,
+   "title": "1973 Triumph Stag 4-Speed",
+   "image": "https://bringatrailer.com/wp-content/uploads/2025/03/1973_triumph_stag_img_4763-44379.jpg",
+   "url": "https://bringatrailer.com/listing/1973-triumph-stag-39/",
+   "hollow": false,
+   "hasHistoryPage": false,
+   "soldBefore": null
+  },
+  {
+   "id": "b8c94dd1-771a-4d3f-9e54-578239264c8a",
+   "country": "US",
+   "countryBasis": "country_code",
+   "vinNorm": "LE24107UBW",
+   "make": "Triumph",
+   "model": "Stag",
+   "price": 18500,
+   "mi": 73308,
+   "mileageText": "73,308 mi",
+   "platform": "others",
+   "platformSlug": "autohunter",
+   "platformName": "AutoHunter",
+   "date": "2025-04-22",
+   "month": "Apr 2025",
+   "transmission": "Automatic",
+   "title": "1973 Triumph Stag Convertible",
+   "image": "https://photos.autohunter.com/assets/media/bc7f4764-f474-4124-b5b2-ba6dc872ba89_fullsize.jpg",
+   "url": "https://autohunter.com/Listing/Details/69395754",
+   "hollow": false,
+   "hasHistoryPage": false,
+   "soldBefore": null
+  },
+  {
+   "id": "d2c3a588-65f4-4bc2-83b8-9e4ef3fbbfc5",
+   "country": "US",
+   "countryBasis": "country_code",
+   "vinNorm": "LE21965UBW",
+   "make": "Triumph",
+   "model": "Stag",
+   "price": 12650,
+   "mi": 48000,
+   "mileageText": "48,000 mi",
+   "platform": "Bring a Trailer",
+   "platformSlug": "bringatrailer",
+   "platformName": "Bring a Trailer",
+   "date": "2024-03-23",
+   "month": "Mar 2024",
+   "transmission": "Automatic (3-speed)",
+   "title": "1973 Triumph Stag",
+   "image": "https://bringatrailer.com/wp-content/uploads/2024/02/1973_triumph_stag_img_2063-40693.jpeg",
+   "url": "https://bringatrailer.com/listing/1973-triumph-stag-34/",
+   "hollow": false,
+   "hasHistoryPage": false,
+   "soldBefore": null
+  },
+  {
+   "id": "94574d3c-c584-4319-bb3a-e209332c024b",
+   "country": "US",
+   "countryBasis": "country_code",
+   "vinNorm": "LE20940UO",
+   "make": "Triumph",
+   "model": "Stag",
+   "price": 13513,
+   "mi": 11000,
+   "mileageText": "11,000 mi",
+   "platform": "Bring a Trailer",
+   "platformSlug": "bringatrailer",
+   "platformName": "Bring a Trailer",
+   "date": "2022-04-08",
+   "month": "Apr 2022",
+   "transmission": "Manual (4-speed)",
+   "title": "1973 Triumph Stag 4-Speed",
+   "image": "https://bringatrailer.com/wp-content/uploads/2022/03/1973_triumph_stag_1973_triumph_stag_9b91c15d-1cf6-4fd4-ad2a-58a8dda12c79-iocnkp-38742-60465.jpg",
+   "url": "https://bringatrailer.com/listing/1973-triumph-stag-28/",
+   "hollow": false,
+   "hasHistoryPage": false,
+   "soldBefore": null
+  }
+ ],
+ "asideCards": [
+  {
+   "id": "b7c4188e-3f36-4e76-b15f-e711720c85e4",
+   "country": "US",
+   "countryBasis": "country_code",
+   "vinNorm": "LE23597UBW",
+   "make": "Triumph",
+   "model": "Stag",
+   "price": 27250,
+   "mi": 80000,
+   "mileageText": "80,000 mi",
+   "platform": "Bring a Trailer",
+   "platformSlug": "bringatrailer",
+   "platformName": "Bring a Trailer",
+   "date": "2023-07-17",
+   "month": "Jul 2023",
+   "transmission": "Automatic (3-speed)",
+   "title": "1973 Triumph Stag",
+   "image": "https://bringatrailer.com/wp-content/uploads/2023/05/1973_triumph_stag_img_3455-2-74899.jpg",
+   "url": "https://bringatrailer.com/listing/1973-triumph-stag-30/",
+   "hollow": false
+  }
+ ],
+ "taggedCards": [],
+ "recent3": [
+  {
+   "id": "7f9303a3-13f6-4ebe-854d-2c758b3f6a96",
+   "country": "US",
+   "countryBasis": "country_code",
+   "vinNorm": "LE23232UBW",
+   "make": "Triumph",
+   "model": "Stag",
+   "price": 12000,
+   "mi": 43000,
+   "mileageText": "43,000 mi",
+   "platform": "Bring a Trailer",
+   "platformSlug": "bringatrailer",
+   "platformName": "Bring a Trailer",
+   "date": "2025-09-02",
+   "month": "Sep 2025",
+   "transmission": null,
+   "title": "1973 Triumph Stag",
+   "image": "https://bringatrailer.com/wp-content/uploads/2025/07/1973_triumph_stag_1973_triumph_stag_9d7afc3b-4634-44d3-9172-2c7656915391-7SVrxw-55115-55116-scaled.jpg",
+   "url": "https://bringatrailer.com/listing/1973-triumph-stag-41/",
+   "hollow": false
+  },
+  {
+   "id": "d242b2cc-5d37-4e8f-9c4c-ad09aeff2369",
+   "country": "US",
+   "countryBasis": "state",
+   "vinNorm": "LE23884UBW",
+   "make": "Triumph",
+   "model": "Stag",
+   "price": 3000,
+   "mi": 66500,
+   "mileageText": "66,500 mi",
+   "platform": "Hagerty",
+   "platformSlug": "hagerty",
+   "platformName": "Hagerty",
+   "date": "2026-01-28",
+   "month": "Jan 2026",
+   "transmission": "Automatic",
+   "title": "1973 Triumph Stag",
+   "image": "https://hagerty-marketplace-prod.imgix.net/assets/DQ5z3eV2dsSvB34TnbYVaA.jpg",
+   "url": "https://www.hagerty.com/marketplace/auction/1973-Triumph-Stag/8e687f73-de8b-4498-8b7a-ab82a8f48152",
+   "hollow": false
+  },
+  {
+   "id": "6fd55c24-dabd-4f00-b324-5510c4461d93",
+   "country": "US",
+   "countryBasis": "country_code",
+   "vinNorm": "LE20470UBW",
+   "make": "Triumph",
+   "model": "Stag",
+   "price": 14500,
+   "mi": 11000,
+   "mileageText": "11,000 mi",
+   "platform": "Bring a Trailer",
+   "platformSlug": "bringatrailer",
+   "platformName": "Bring a Trailer",
+   "date": "2026-08-24",
+   "month": "Aug 2026",
+   "transmission": "Automatic (3-speed)",
+   "title": "1973 Triumph Stag",
+   "image": "https://bringatrailer.com/wp-content/uploads/2026/08/1973_triumph_stag_1973_triumph_stag_IMG_0614-24232-scaled-UZPINQ-42534-42534-1-copy-2026-08-17-2h9-95961.jpg?w=940",
+   "url": "https://bringatrailer.com/listing/1973-triumph-stag-45-2/",
+   "hollow": false
+  }
+ ],
+ "contextRoles": {
+  "roles": [
+   {
+    "role": "near the middle of the typical range",
+    "sale": {
+     "id": "94574d3c-c584-4319-bb3a-e209332c024b",
+     "country": "US",
+     "countryBasis": "country_code",
+     "vinNorm": "LE20940UO",
+     "make": "Triumph",
+     "model": "Stag",
+     "price": 13513,
+     "mi": 11000,
+     "mileageText": "11,000 mi",
+     "platform": "Bring a Trailer",
+     "platformSlug": "bringatrailer",
+     "platformName": "Bring a Trailer",
+     "date": "2022-04-08",
+     "month": "Apr 2022",
+     "transmission": "Manual (4-speed)",
+     "title": "1973 Triumph Stag 4-Speed",
+     "image": "https://bringatrailer.com/wp-content/uploads/2022/03/1973_triumph_stag_1973_triumph_stag_9b91c15d-1cf6-4fd4-ad2a-58a8dda12c79-iocnkp-38742-60465.jpg",
+     "url": "https://bringatrailer.com/listing/1973-triumph-stag-28/",
+     "hollow": false
+    }
+   },
+   {
+    "role": "at the lower edge of the typical range",
+    "sale": {
+     "id": "d2c3a588-65f4-4bc2-83b8-9e4ef3fbbfc5",
+     "country": "US",
+     "countryBasis": "country_code",
+     "vinNorm": "LE21965UBW",
+     "make": "Triumph",
+     "model": "Stag",
+     "price": 12650,
+     "mi": 48000,
+     "mileageText": "48,000 mi",
+     "platform": "Bring a Trailer",
+     "platformSlug": "bringatrailer",
+     "platformName": "Bring a Trailer",
+     "date": "2024-03-23",
+     "month": "Mar 2024",
+     "transmission": "Automatic (3-speed)",
+     "title": "1973 Triumph Stag",
+     "image": "https://bringatrailer.com/wp-content/uploads/2024/02/1973_triumph_stag_img_2063-40693.jpeg",
+     "url": "https://bringatrailer.com/listing/1973-triumph-stag-34/",
+     "hollow": false
+    }
+   },
+   {
+    "role": "at the upper edge of the typical range",
+    "sale": {
+     "id": "6fd55c24-dabd-4f00-b324-5510c4461d93",
+     "country": "US",
+     "countryBasis": "country_code",
+     "vinNorm": "LE20470UBW",
+     "make": "Triumph",
+     "model": "Stag",
+     "price": 14500,
+     "mi": 11000,
+     "mileageText": "11,000 mi",
+     "platform": "Bring a Trailer",
+     "platformSlug": "bringatrailer",
+     "platformName": "Bring a Trailer",
+     "date": "2026-08-24",
+     "month": "Aug 2026",
+     "transmission": "Automatic (3-speed)",
+     "title": "1973 Triumph Stag",
+     "image": "https://bringatrailer.com/wp-content/uploads/2026/08/1973_triumph_stag_1973_triumph_stag_IMG_0614-24232-scaled-UZPINQ-42534-42534-1-copy-2026-08-17-2h9-95961.jpg?w=940",
+     "url": "https://bringatrailer.com/listing/1973-triumph-stag-45-2/",
+     "hollow": false
+    }
+   }
+  ],
+  "sentence": "These three sales were chosen to show the typical range after widening the years, not for symmetry."
+ },
+ "identityQuestion": null,
+ "trend": null,
+ "distribution": null,
+ "strip": {
+  "sales": [
+   {
+    "date": "2026-08-24",
+    "price": 14500,
+    "miles": 11000,
+    "venue": "Bring a Trailer",
+    "id": "6fd55c24-dabd-4f00-b324-5510c4461d93"
+   },
+   {
+    "date": "2026-01-28",
+    "price": 3000,
+    "miles": 66500,
+    "venue": "Hagerty",
+    "id": "d242b2cc-5d37-4e8f-9c4c-ad09aeff2369"
+   },
+   {
+    "date": "2025-09-02",
+    "price": 12000,
+    "miles": 43000,
+    "venue": "Bring a Trailer",
+    "id": "7f9303a3-13f6-4ebe-854d-2c758b3f6a96"
+   },
+   {
+    "date": "2025-07-03",
+    "price": 15000,
+    "miles": 44000,
+    "venue": "Bring a Trailer",
+    "id": "8fda3410-6852-4590-9f92-85d34c6f8486"
+   },
+   {
+    "date": "2025-05-02",
+    "price": 13250,
+    "miles": 83000,
+    "venue": "Bring a Trailer",
+    "id": "c11245e8-5854-44c4-aa6d-9b3870b1e901"
+   },
+   {
+    "date": "2025-04-22",
+    "price": 18500,
+    "miles": 73308,
+    "venue": "others",
+    "id": "b8c94dd1-771a-4d3f-9e54-578239264c8a"
+   },
+   {
+    "date": "2024-03-23",
+    "price": 12650,
+    "miles": 48000,
+    "venue": "Bring a Trailer",
+    "id": "d2c3a588-65f4-4bc2-83b8-9e4ef3fbbfc5"
+   },
+   {
+    "date": "2022-04-08",
+    "price": 13513,
+    "miles": 11000,
+    "venue": "Bring a Trailer",
+    "id": "94574d3c-c584-4319-bb3a-e209332c024b"
+   }
+  ],
+  "latestSale": {
+   "date": "2026-08-24",
+   "price": 14500,
+   "miles": 11000,
+   "venue": "Bring a Trailer",
+   "id": "6fd55c24-dabd-4f00-b324-5510c4461d93"
+  }
+ },
+ "fallbackRung": "year_widened",
+ "rungLabel": "Stag models, 1973",
+ "scopeLabel": "Stag models, 1973",
+ "liveScope": "Comparing live listings to Stag models, 1973 against $12,500 to $14,500.",
+ "ownSales": null,
+ "freshness": {
+  "mode": "online",
+  "lastNight": false,
+  "through": "2026-08-24",
+  "archiveThrough": "2026-10-26"
+ },
+ "didNotSellCount": "three",
+ "didNotSellCountN": 3,
+ "readAt": "2026-10-27T18:44:06.766Z",
+ "latestSaleDate": "2026-08-24",
+ "oldestIncludedSaleDate": "2022-04-08",
+ "latestSaleLine": "Latest sale: August 2026.",
+ "includesFromLine": "Includes sales from 2022.",
+ "basisLine": "Based on eight sales since April 2022.",
+ "lowestSaleN": 3000,
+ "highestSaleN": 18500,
+ "wideSpread": false,
+ "best_day": null,
+ "reserve_split": null,
+ "thin_sales": null,
+ "scope_reason": "No 1974 sales yet, showing 1973",
+ "refusal_line": null,
+ "answerType": "range",
+ "factsBlock": null,
+ "reasonFlag": null,
+ "siblingName": null,
+ "queryMileage": null,
+ "snapshotId": "da02d93b-af36-4e80-bcaf-5289fd745a00",
+ "timings": {
+  "reqStart": 1793126646166,
+  "dbBytes0": 1371491,
+  "resolveStart": 1793126646186,
+  "resolveMs": 234,
+  "warmReadMs": 87,
+  "engineMs": 299,
+  "mapMs": 0,
+  "snapshotMs": 43,
+  "warmHit": false,
+  "stale": false,
+  "totalMs": 790,
+  "dbBytes": 150052,
+  "marks": [
+   [
+    "thin_checked",
+    136
+   ],
+   [
+    "pool_chosen",
+    157
+   ],
+   [
+    "pool_built",
+    157
+   ],
+   [
+    "result_built",
+    160
+   ],
+   [
+    "done",
+    187
+   ]
+  ],
+  "fetchMs": [
+   59,
+   74,
+   1
+  ]
+ }
+}

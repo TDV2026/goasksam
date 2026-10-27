@@ -1302,6 +1302,13 @@ try {
 } catch (e) {
   record("Candle chart labels (scripts/candleLabelsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The engine's reason travels with its number (Oct 27 2026): scope reason, scope label, window, refusal line and mileage note on Market Check, Sell, the partner pages, Find and the Tasks email. No network.
+try {
+  const out = execSync("node scripts/carriedFieldsCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("Carried fields (scripts/carriedFieldsCheck.mjs)", "PASS", (out.match(/carriedFieldsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Carried fields (scripts/carriedFieldsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // No engine field is dropped silently (Oct 27 2026): one list of the fields the shared card carries; every field the engine adds is on it or acknowledged. No network.
 try {
   const out = execSync("node scripts/engineFieldsCheck.mjs", { encoding: "utf8", timeout: 120000 });

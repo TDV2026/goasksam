@@ -1332,7 +1332,7 @@
       heroMetaLine(d);
     // e63 (Sam, Oct 19 2026; Lane C as integrator, Lane A away): ONE list on the spread refusal too. The card carries the
     // engine's line ("Sales too spread out for a range."), the tiles below carry the sales; no sale prints twice.
-    left += (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false }) : "");
+    left += (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true }) : "");
     if (!d.cluster) {
       var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.older") + "</p>";
     }
@@ -2128,7 +2128,7 @@
       // A thin answer (e63, Sam, Oct 19 2026; Lane C as integrator, Lane A away): the shared card carries the engine's
       // thinLine and latest-sale line, the only explanation; the grid below carries the sales. No lead of the page's own.
       var follow = m ? "" : "A bit more detail, or a different car, and Sam pulls what actually sold.";
-      var card = window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false }) : "";
+      var card = window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true }) : "";
       return '<div class="refusal">' + card + (follow ? samMsgHtml([lint(esc(follow), "thin.follow")], "Sam’s read") : "") + factsBlockHtml(d, false) + "</div>" + exactCarSalesHtml(d) + poolGridHtml(cards, "What has sold") + sellHtml();
     }
     var follow2 = "Say which " + esc(model) + " it is and Sam compares it to the ones that match.";
@@ -2138,7 +2138,7 @@
     // The spread refusal (Sam, Oct 19 2026; Lane C as integrator, Lane A away): the shared card carries the engine's own
     // line (its samLine, "Sales too spread out for a range.") and latest sale, the only explanation; no reason of the
     // page's own. The ask to name the car and the engine's own variant chips stay; the grid below carries the sales.
-    var card = window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false }) : "";
+    var card = window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true }) : "";
     var head = '<div class="refusal" data-stage="answer">' + card +
       samMsgHtml([lint(esc(follow2), "refuse.follow")], "Sam’s read") + factsBlockHtml(d, false) + chips + "</div>";
     return head + exactCarSalesHtml(d) + poolGridHtml(cards, "What has sold") + sellHtml();
@@ -2289,7 +2289,7 @@
     // spread-too-wide line rather than staying silent - see lib/sellsForCard.js's own FOR LANE B note.
     // e63 (Sam, Oct 19 2026; Lane C as integrator, Lane A away): ONE list. The sale tiles below are this tier's list, so the
     // card draws the engine's line and latest sale without its own rows; no sale prints twice.
-    left += (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false }) : "");
+    left += (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true }) : "");
     var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.thin.older") + "</p>";
     // The page's own house/online lines are gone (Sam, Oct 19 2026; Lane C as integrator, Lane A away): the engine's line
     // and latest-sale line on the card are the only explanation under a thin card.
