@@ -61,5 +61,26 @@ rows = [];
 fill("M3", [["Coupe", "Manual", 40000, 12, 5], ["Coupe", "Automatic", 18000, 12, 6], ["Convertible", "Manual", 90000, 12, 7], ["Convertible", "Automatic", 55000, 12, 8]]);
 a = await ask("M3");
 ok("bodies and gearboxes both vary: no pooled headline, the body is named", a.tier === "result" && !hasPooled(a) && a.pooledApart && a.pooledApart.dimensions.includes("body"), `tier ${a.tier} ${JSON.stringify(a.pooledApart && a.pooledApart.dimensions)}`);
+// 7. THE MIDDLE TIER (pooled_split): ranges overlap, medians apart by 15 percent or more of the lower: headline kept, each option's own range, count and median carried
+const spread = (model, body, tx, lo, step, count, ago0) => { for (let i = 0; i < count; i++) sale(model, body, tx, lo + i * step, ago0 + i * 7); };
+rows = [];
+spread("M3", "Coupe", "Manual", 21000, 1100, 20, 5); spread("M3", "Coupe", "Automatic", 18000, 710, 20, 8);
+a = await ask("M3");
+ok("overlapping gearboxes, medians apart: the pooled headline is kept", a.tier === "result" && hasPooled(a) && !a.pooledApart);
+ok("overlapping gearboxes, medians apart: both options carry their own range, count and median, flagged pooled_split", a.pooledSplit && a.pooledSplit.flag === "pooled_split" && a.pooledSplit.options.filter(o => o.dimension === "gearbox").length === 2 && a.pooledSplit.options.every(o => o.n >= 3 && o.low > 0 && o.high >= o.low && o.median >= o.low && o.median <= o.high), JSON.stringify(a.pooledSplit && a.pooledSplit.options));
+rows = [];
+spread("M3", "Coupe", "Manual", 21000, 1100, 20, 5); spread("M3", "Coupe", "Automatic", 19500, 1100, 20, 8);
+a = await ask("M3");
+ok("gearbox medians within 15 percent: no split, the count only line as today", a.tier === "result" && hasPooled(a) && !a.pooledApart && !a.pooledSplit, JSON.stringify(a.pooledSplit || null));
+MK = "Testmake"; rows = [];
+spread("Over", "Coupe", null, 20000, 900, 20, 5); spread("Over", "Convertible", null, 24000, 1000, 20, 8);
+a = await ask("Over");
+ok("overlapping bodies, medians apart: headline kept, both bodies carry their own range", a.tier === "result" && hasPooled(a) && a.pooledSplit && a.pooledSplit.options.filter(o => o.dimension === "body").length === 2, JSON.stringify(a.pooledSplit && a.pooledSplit.options));
+// edition line under a result: the engine's own options carry their range
+const stub = (std, ed) => ({ tier: "result", cluster: [20000, 40000], rawPool: [], variantOptionsLine: [{ key: "ed", options: [{ value: "standard", label: "Standard", n: 12, ...std }, { value: "ed", label: "Special edition", n: 9, ...ed }] }] });
+let sp = E.pooledApartGuard(stub({ low: 20000, high: 30000, median: 25000 }, { low: 28000, high: 40000, median: 34000 }));
+ok("edition line, medians apart: split carried, headline kept", sp.cluster && sp.pooledSplit && sp.pooledSplit.options.filter(o => o.dimension === "edition").length === 2);
+sp = E.pooledApartGuard(stub({ low: 20000, high: 30000, median: 25000 }, { low: 21000, high: 31000, median: 26000 }));
+ok("edition line, medians within 15 percent: nothing carried", sp.cluster && !sp.pooledSplit);
 console.log(failed ? `pooledAnswerCheck: ${failed} FAIL` : "pooledAnswerCheck: all PASS");
 process.exit(failed ? 1 : 0);
