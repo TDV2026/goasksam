@@ -36,7 +36,7 @@ let missingColumns = false, lastSelect = "", byIdRequests = 0, failById = false,
 globalThis.fetch = async (url) => {
   const u = new URL(String(url)); const sel = u.searchParams.get("select");
   if (u.pathname.endsWith("/sales_archive")) {
-    if (!u.searchParams.get("id")) lastSelect = sel;
+    if (!u.searchParams.get("id") && /^id,source_id/.test(String(sel))) lastSelect = sel;   // the pool reads only: e95 also reads the make's model list (select=model) from this table
     if (sel === POOL_COLUMN_COLS && !u.searchParams.get("id")) { colReads++; colSelectSeen = true; }
     if (missingColumns && sel.includes("image:image_url")) return new Response("{}", { status: 400 });
     const idf = u.searchParams.get("id");
