@@ -5,6 +5,7 @@ import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
 process.env.PROBE_KEY = "k"; process.env.OLDCARSDATA_API_KEY = "x"; process.env.SUPABASE_URL = "https://fake.supabase.test"; process.env.SUPABASE_SERVICE_ROLE_KEY = "s";
+const ENGV = (await import(pathToFileURL(path.join(root, "lib/onebox.js")).href)).ENGINE_VERSION;
 let failed = 0; const ok = (n, c, d) => { if (!c) failed++; console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? "  " + d : ""}`); };
 const sale = (i, title, price, model, body) => ({ id: "id" + i, raw_title: title, rtitle: title, title, make: "Acme", model, year: 1990, _usd: price, auction_end_date: "2026-0" + (1 + (i % 9)) + "-10", body_style: body });
 const pool = (n, make, model, titleFn, base, body) => Array.from({ length: n }, (_, i) => sale(i, titleFn(i), base + i * 500, model, body));
@@ -21,7 +22,7 @@ let writes = 0;
 globalThis.fetch = async (url, init) => {
   const u = new URL(String(url)); if (init && init.method && init.method !== "GET") writes++;
   if (u.pathname.endsWith("/spec_market_cache")) { const keys = Object.keys(stored).sort(); const after = (u.searchParams.get("spec_key") || "") === "like.MCWARM:*" ? "" : (u.searchParams.getAll("spec_key").find(v => v.startsWith("gt.")) || "").slice(3);
-    return new Response(JSON.stringify(keys.filter(k => k > after).map(k => ({ spec_key: k, raw: stored[k] }))), { status: 200 }); }
+    return new Response(JSON.stringify(keys.filter(k => k > after).map(k => ({ spec_key: k, ev: ENGV, raw: stored[k] }))), { status: 200 }); }
   return new Response("[]", { status: 200 });
 };
 const H = await import(pathToFileURL(path.join(root, "api/usageDashboard.js")).href);

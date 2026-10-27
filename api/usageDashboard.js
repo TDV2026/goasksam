@@ -1581,18 +1581,19 @@ async function handleOps(req, res) {
   // in a stored trim value (trimTextIsNoise), and the pooled states (apart, split, alike) the e95 rule gives each result. Counts, and the first 20 of each kind with the key.
   if (task === "storedsweep") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { setConsistencyOf, runOutputInvariants, pooledApartGuard } = await import("../lib/onebox.js");
+    const { setConsistencyOf, runOutputInvariants, pooledApartGuard, ENGINE_VERSION } = await import("../lib/onebox.js");
     const { trimTextIsNoise } = await import("../lib/vehicle.js");
     const t0 = Date.now(), maxPages = Math.max(1, Math.min(60, Number(req.query?.pages) || 20));
-    const out = { rows: 0, results: 0, setViolations: 0, wrongModel: 0, noiseTrim: 0, pooled: { apart: 0, split: 0, alike: 0 }, first: { setViolations: [], wrongModel: [], noiseTrim: [], apart: [], split: [] }, readFailed: 0 };
+    const onlyVersion = String(req.query?.version || ENGINE_VERSION);   // e95: only the answers stamped with the live engine; older stored rows are counted, not judged
+    const out = { version: onlyVersion, rows: 0, otherVersion: 0, results: 0, setViolations: 0, wrongModel: 0, noiseTrim: 0, pooled: { apart: 0, split: 0, alike: 0 }, first: { setViolations: [], wrongModel: [], noiseTrim: [], apart: [], split: [] }, readFailed: 0 };
     let cursor = req.query?.after ? String(req.query.after) : "";
     const keep = (k, o) => { if (out.first[k].length < 20) out.first[k].push(o); };
     for (let page = 0; page < maxPages; page++) {
-      const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,raw:market->raw&order=spec_key.asc&limit=100` + (cursor ? `&spec_key=gt.${encodeURIComponent(cursor)}` : ""));
+      const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,ev:market->>engineVersion,raw:market->raw&order=spec_key.asc&limit=100` + (cursor ? `&spec_key=gt.${encodeURIComponent(cursor)}` : ""));
       if (rows === null || rows === undefined) { out.readFailed++; break; }
       if (!Array.isArray(rows) || !rows.length) break;
       for (const r of rows) {
-        out.rows++; const d = r.raw; const key = String(r.spec_key).replace(/^MCWARM:/, ""); if (!d || typeof d !== "object") continue;
+        out.rows++; if (String(r.ev) !== onlyVersion) { out.otherVersion++; continue; } const d = r.raw; const key = String(r.spec_key).replace(/^MCWARM:/, ""); if (!d || typeof d !== "object") continue;
         if (/^(result|thin)$/.test(String(d.tier || ""))) {
           const v = setConsistencyOf(d, null); if (v.length) { out.setViolations++; keep("setViolations", { key, violations: v.slice(0, 3) }); }
           const rc = d.resolvedCar || {};
