@@ -1181,6 +1181,13 @@ try {
 } catch (e) {
   record("How Sam decides copy (scripts/howSamDecidesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Find's thin card, four states (Sam, Oct 26 2026, e93): a card never reads blank. No network.
+try {
+  const out = execSync("node scripts/findThinSalesCheck.mjs", { encoding: "utf8" });
+  record("Find thin card, four states (scripts/findThinSalesCheck.mjs)", "PASS", (out.match(/findThinSalesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Find thin card, four states (scripts/findThinSalesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The /sell door (Lane C, Oct 26 2026): crew sees the newer Sell, the public the previous one until SELL_NEXT_ON=1 flips it. No network.
 try {
   const out = execSync("node scripts/sellRouteCheck.mjs", { encoding: "utf8" });
