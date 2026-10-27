@@ -111,5 +111,18 @@ for (const o of gbOpts) {
   const r = await sameAsOwn("M3", o, { tx: o.value });
   ok(`gearbox option ${o.label}: count, range and window are the set its own answer reads`, r.ok, JSON.stringify(r));
 }
+// 9. EMAIL MODE: what a Task email may print, decided by the engine (a Task email never prints a question)
+{ const modeOf = async (setup) => { rows = []; MK = "Testmake"; setup(); return (await ask("Mode", 2)).emailMode; };
+  const m1 = await modeOf(() => fill("Mode", [["Coupe", null, 20000, 24, 5], ["Convertible", null, 70000, 24, 7]]));
+  ok("email mode: options that price apart give options (each option's own range, no pooled range)", m1 === "options", String(m1));
+  const m2 = await modeOf(() => { spread("Mode", "Coupe", null, 20000, 900, 20, 5); spread("Mode", "Convertible", null, 24000, 1000, 20, 8); });
+  ok("email mode: options split give range_with_options", m2 === "range_with_options", String(m2));
+  const m3 = await modeOf(() => fill("Mode", [["Coupe", null, 30000, 24, 5], ["Convertible", null, 30600, 24, 7]]));
+  ok("email mode: options alike give range", m3 === "range", String(m3));
+  const m4 = await modeOf(() => { for (let i = 0; i < 4; i++) sale("Mode", "Coupe", null, 30000 + i * 500, 10 + i * 20); });
+  ok("email mode: a few sales and no honest range give sales", m4 === "sales", String(m4));
+  const m5 = await modeOf(() => {});
+  ok("email mode: no sales give none", m5 === "none", String(m5));
+  ok("email mode: asked normally the engine still asks (the email reads the pooled read, mode never a question)", ["options", "range", "range_with_options", "sales", "none"].includes(E.emailModeOf({ tier: "body_choice" })) ); }
 console.log(failed ? `pooledAnswerCheck: ${failed} FAIL` : "pooledAnswerCheck: all PASS");
 process.exit(failed ? 1 : 0);

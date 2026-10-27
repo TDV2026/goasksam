@@ -257,7 +257,10 @@ Re-pinned Oct 25 2026 (e87). Intended changes: row 4 prints the 911 name (e83); 
  {"id":69,"q":"2016 BMW M3","status":"ready","labelHas":["M3 Sedan"],"count":11,"tol":0,"low":40500,"high":52000,"tolPct":3},
  {"id":70,"q":"2026 Lexus LC 500","status":"ready","labelHas":["LC"],"count":8,"tol":0,"low":138000,"high":154000,"tolPct":3},
  {"id":71,"q":"1992 Porsche 911 Carrera 4 by Singer","status":"pending","singerRule":true,"expect":{"refusalKind":"builder car","refusalLine":"Singer cars are not compared with standard 911s, so Sam shows no range for this car.","range":null,"count":null,"salesList":false,"products":"every product"}},
- {"id":72,"q":"1992 Porsche 911 Carrera 4","status":"pending","notSinger":true,"expect":{"rangeUnchanged":true,"note":"its current range before e68; pinned from the first read after e68, never borrowing the Singer pool"}}
+ {"id":72,"q":"1992 Porsche 911 Carrera 4","status":"pending","notSinger":true,"expect":{"rangeUnchanged":true,"note":"its current range before e68; pinned from the first read after e68, never borrowing the Singer pool"}},
+ {"id":73,"q":"2025 Porsche 911","status":"pending","emailCase":true,"note":"email case of row 1: the engine asks a trim question; the Task email must print the pooled range (alike or split, with option lines) or each option's own range (apart), never the question. Pin on the e95 run."},
+ {"id":74,"q":"1963 Chevrolet Corvette Split Window","status":"pending","emailCase":true,"note":"email case of row 19 (L76, L84, L75 question). Pin on the e95 run."},
+ {"id":75,"q":"2003 Mercedes-Benz S-Class","status":"pending","emailCase":true,"note":"email case of row 66 (S430, S600, S500 question). Pin on the e95 run."}
 ]
 ```
 

@@ -410,9 +410,9 @@ const GOLDEN_QS = [...new Set(GOLDEN.map(g => g.q))];   // rows 22 and 23 read t
     const src = out.email === "stored" ? (out.stored && (out.stored.market || out.stored)) : out.engine;
     const f = out.filters || {};
     if (!src) { r.pages.tasks = { cell: r.g.empty ? "PASS" : (r.g.status === "pending" ? "PENDING" : "FAIL"), diffs: r.g.empty ? [] : ["the Task email states nothing for these words"], shown: `no line; filters ${[f.make, f.model, f.trim, f.year_min].filter(Boolean).join(" ")}` }; continue; }
-    // The engine asked its own question first (e65 decision, lib/tasks/tasks.js engineAsks): the Task email prints the question and no count or range, by design.
+    // The engine asked its own question first (e65 decision, lib/tasks/tasks.js engineAsks): until Lane C's email mode ships, the Task email prints the question and no count or range. The email cases (emailCase rows) fail on it.
     // That is the engine's answer for these words, not "nothing on record": its own cell, with the question named. (Oct 27 2026: rows 1, 19 and 66 read as FAIL here before.)
-    if (src.kind === "question") { r.pages.tasks = { cell: "PASS", diffs: [], shown: `question: ${String(src.prompt || "").slice(0, 70)} (${out.email})` }; continue; }
+    if (src.kind === "question") { r.pages.tasks = { cell: r.g.emailCase ? "FAIL" : "PASS", diffs: r.g.emailCase ? ["the Task email prints a question (Sam, Oct 27 2026: an email never prints a question; it prints the pooled range, each option's own range when apart, or the sales)"] : [], shown: `question: ${String(src.prompt || "").slice(0, 70)} (${out.email})` }; continue; }
     const count = src.count != null ? Number(src.count) : null, low = src.low != null ? Number(src.low) : null, high = src.high != null ? Number(src.high) : null;
     const rung = src.rung || src.step || null, label = src.family || src.short || "";
     const asLane = { ok: count != null, fallbackRung: rung, rungLabel: label, count, low, high, reason: count == null ? "nothing on record" : null };
