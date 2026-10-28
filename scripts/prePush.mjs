@@ -1289,6 +1289,15 @@ try {
 } catch (e) {
   record("milesfault flags old low-mileage sales only, counts them by source and decade, and writes nothing (scripts/milesFaultCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// e96 checks (Lane B): each registers one script, no network.
+for (const [file, label] of [["nullIsNoNumberCheck", "null is no number at every customer-path site (scripts/nullIsNoNumberCheck.mjs)"]]) {
+  try {
+    const out = execSync(`node scripts/${file}.mjs`, { encoding: "utf8" });
+    record(label, "PASS", (out.match(new RegExp(file + ": .*")) || [""])[0]);
+  } catch (e) {
+    record(label, "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+  }
+}
 // How Sam decides (Sam, Oct 26 2026): the five agreed sections, exactly. No network.
 try {
   const out = execSync("node scripts/howSamDecidesCheck.mjs", { encoding: "utf8" });

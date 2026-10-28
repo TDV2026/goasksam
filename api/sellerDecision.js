@@ -1,3 +1,4 @@
+import { isNum } from "../lib/_num.js";
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { countNoun } from "../lib/countNoun.js";
 import { unusedFieldsFor } from "../lib/live/unusedWords.js";
@@ -728,7 +729,7 @@ function premiumLandedScopeTags(landed) {
 }
 
 export function buildLadder(vehicle, generation = null) {
-  const year = Number.isFinite(Number(vehicle.year)) ? Number(vehicle.year) : null;
+  const year = isNum(vehicle.year) ? Number(vehicle.year) : null;
   const trim = asText(vehicle.trim) || null;
   const baseModel = asText(vehicle.model);
   // Market-spec + wheelbase are part of the market identity, not a trim: name them
@@ -792,7 +793,7 @@ export function buildLadder(vehicle, generation = null) {
 }
 
 function rungYearBounds(rung, vehicle) {
-  const year = Number.isFinite(Number(vehicle.year)) ? Number(vehicle.year) : null;
+  const year = isNum(vehicle.year) ? Number(vehicle.year) : null;
   if (rung.yearMin != null && rung.yearMax != null) return { year_min: rung.yearMin, year_max: rung.yearMax };
   if (rung.maxYearGap !== null && year) return { year_min: year - rung.maxYearGap, year_max: year + rung.maxYearGap };
   return null;
@@ -1291,7 +1292,7 @@ export async function fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, g
   const yearReads = [];
   if (orClause && Number.isFinite(yr) && yr > 1900) {
     yearReads.push(supabaseSelect(env, `vehicle_market_records?make=ilike.${mkq}&or=(${orClause})&year=eq.${yr}&auction_end_date=gte.${cutoff}&select=raw_record&order=auction_end_date.desc&limit=1000`));
-    if (generation && Number.isFinite(Number(generation.yearStart)) && Number.isFinite(Number(generation.yearEnd))) {
+    if (generation && isNum(generation.yearStart) && isNum(generation.yearEnd)) {
       yearReads.push(supabaseSelect(env, `vehicle_market_records?make=ilike.${mkq}&or=(${orClause})&year=gte.${generation.yearStart}&year=lte.${generation.yearEnd}&auction_end_date=gte.${cutoff}&select=raw_record&order=auction_end_date.desc&limit=1000`));
     } else {
       // No generation mapping: fall back to a +/-2 year band (matches the calendar rungs).
@@ -1464,7 +1465,7 @@ export function analyze(records, classifications, ladder, vehicle, debug, txFilt
 
   const totalEvidenceSales = evidenceSetAllowed.length;
   const strongestSales = [...evidenceSetAllowed]
-    .filter(item => Number.isFinite(Number(item.classification.price)))
+    .filter(item => isNum(item.classification.price))
     .sort((a, b) => Number(b.classification.price) - Number(a.classification.price))
     .slice(0, 3);
 
@@ -1787,7 +1788,7 @@ export function analyze(records, classifications, ladder, vehicle, debug, txFilt
           .filter(Number.isFinite)),
         ...weekdayInsight,
         highestResultWeekday: weekdayName([...items]
-          .filter(item => Number.isFinite(Number(item.classification.price)))
+          .filter(item => isNum(item.classification.price))
           .sort((a, b) => Number(b.classification.price) - Number(a.classification.price))[0]?.record?.auction_end_date),
         latestSaleDate: items
           .map(item => item.record.auction_end_date)
@@ -3452,10 +3453,10 @@ async function handler(req, res) {
       // same pool without a re-typed query. Sanitized to numbers + a known transmission token.
       const rawRefine = req.body?.refine || (car && car.refine) || null;
       let obRefine = rawRefine ? {
-        miMin: Number.isFinite(Number(rawRefine.miMin)) ? Number(rawRefine.miMin) : null,
-        miMax: Number.isFinite(Number(rawRefine.miMax)) ? Number(rawRefine.miMax) : null,
+        miMin: isNum(rawRefine.miMin) ? Number(rawRefine.miMin) : null,
+        miMax: isNum(rawRefine.miMax) ? Number(rawRefine.miMax) : null,
         // Nearest-sales fallback (Part 3): the band center, so a too-thin band shows the closest sales.
-        miTarget: Number.isFinite(Number(rawRefine.miTarget)) ? Number(rawRefine.miTarget) : null,
+        miTarget: isNum(rawRefine.miTarget) ? Number(rawRefine.miTarget) : null,
         tx: rawRefine.tx === "manual" ? "manual" : rawRefine.tx === "auto" ? "auto" : null,
         // Body style refine (Oct 2026, Market Check): same small, known vocabulary lib/onebox.js's
         // detectBodyStyle()/BODY_LABEL use - anything else is dropped, never passed through raw.
@@ -4297,7 +4298,7 @@ async function handler(req, res) {
         // The closest sales (Oct 2026, follow-up chat): Market Check's own sale cards from this SAME runOneBox
         // call (closest first), never a new query. The follow-up chat may name only these.
         if (pbResult && Array.isArray(pbResult.cards) && pbResult.cards.length) {
-          decision.closestSales = pbResult.cards.slice(0, FOLLOWUP_SALES).map(c => ({ date: c.date || null, price: Number(c.price) || null, platform: c.platform || null, miles: Number.isFinite(Number(c.mi)) ? Number(c.mi) : null, title: c.title || null })).filter(c => c.price && c.date);
+          decision.closestSales = pbResult.cards.slice(0, FOLLOWUP_SALES).map(c => ({ date: c.date || null, price: Number(c.price) || null, platform: c.platform || null, miles: isNum(c.mi) ? Number(c.mi) : null, title: c.title || null })).filter(c => c.price && c.date);
         }
       }
     } catch (e) { /* additive */ }
