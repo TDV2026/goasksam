@@ -8,6 +8,7 @@ import { MC, FIND, FIND_MATCHED, CORVETTE, BLACK_BMW } from "./e98Fixtures.mjs";
 import { startBrowser, openMC, ROOT } from "./e98Render.mjs";
 import { buildCards, openFind } from "./e98FindRender.mjs";
 import { inPage, judge as judgeIn } from "./e98DomCheck.mjs";
+import { readEmails, judgeEmails } from "./e98EmailDom.mjs";
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 // the stale line is an engine field (api/sellerDecision.js) the pages must never print: no page-side file may read it into markup
 { const fs = await import("node:fs"), path = await import("node:path"); const bad = [];
@@ -32,6 +33,9 @@ for (const [n, defs] of Object.entries(sets)) { const cards = await buildCards(d
   await p.close(); } }
 // THE CLASS: a Find card state nobody renders is a state nobody checks (the single live match was not in the seven proof pages). Across every Find render above, each piece a card can carry appears at least once.
 { const need = ["fx-spec", "fx-lab", "fx-range", "fx-answer", "fx-sale", "fx-count", "fx-near", "mlab", "vauc", "specs", "fx-sales"], missing = need.filter(k => !seen.has(k)); ok(!missing.length, "every Find card piece is rendered by at least one proof page" + (missing.length ? " (never rendered: " + missing.join(", ") + ")" : "")); }
+// the Task emails: the real live preview (scripts/fixtures/taskEmailPreview.html, read Oct 28 18:57Z) holds each email in an iframe; each is read on its own. A check that read only the wrapper page finds 0 figures and fails.
+{ const fs = await import("node:fs"), html = fs.readFileSync("scripts/fixtures/taskEmailPreview.html", "utf8"); judgeEmails(ok, "Task emails (live preview fixture)", await readEmails(b, html, null));
+  const wrap = await b.newPage(); await wrap.setContent(html); const wrapperFigures = ((await wrap.evaluate(() => document.body.innerText)).match(/\$[\d,]+/g) || []).length; await wrap.close(); ok(wrapperFigures === 0, "the wrapper page alone carries no figures (reading it instead of the iframes is what the first live run did), " + wrapperFigures); }
 // the control: with NO cards the header must say so (the line is not simply deleted)
 { const p = await openFind(b, [], 1440); const r = await p.evaluate(inPage); ok(r.drawn === 0 && r.hasNothingLine, "Find with no cards: the header says there is nothing live (" + r.drawn + " cards)"); await p.close(); }
 await b.close();

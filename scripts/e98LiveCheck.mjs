@@ -8,6 +8,7 @@ import fs from "node:fs";
 import { execSync } from "node:child_process";
 import puppeteer from "puppeteer-core";
 import { inPage, judge } from "./e98DomCheck.mjs";
+import { readEmails, judgeEmails } from "./e98EmailDom.mjs";
 if (!process.argv.includes("--live") || process.env.GAP_OK !== "1") { console.log("e98LiveCheck: LIVE script (production). Pass --live and GAP_OK=1, in a gap Lane F names only."); process.exit(2); }
 const BASE = "https://goasksam.com", CREW = process.env.CREW, OUT = "docs/screens/e98/live", BYP = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
 if (!CREW) { console.log("e98LiveCheck: no CREW in the environment."); process.exit(2); }
@@ -44,10 +45,8 @@ try {
       if (/single live match/.test(name)) { ok(r.drawn === 1, `${name} at ${w}: exactly one live match is drawn (${r.drawn}); if not, the state is not live and the page proves nothing`); ok(new Set(r.sale).size <= 1, `${name} at ${w}: the sale lines carry one weight (${r.sale.length} lines)`);
         ok(r.text.join(" ").replace(/\s+/g, " ").match(/too few for a range|[Tt]hree sales|sales/) !== null, `${name} at ${w}: the engine's count or too-few line prints`); ok(!r.specs.some(s => /underlined/.test(s)), `${name} at ${w}: the chips row is not underlined (${r.specs.length} chips)`); } }); }
     await p.close(); }
-  // the real Task email
-  { const p = await browser.newPage(); await p.setViewport({ width: 700, height: 900 }); await p.setContent(emailHtml, { waitUntil: "load" }); await p.screenshot({ path: `${OUT}/task-email.png`, fullPage: true });
-    const E = await p.evaluate(() => { const t = document.body.innerText; const bad = []; for (const a of document.querySelectorAll("a")) if (/\$\s?\d/.test(a.innerText)) bad.push(a.innerText.trim().slice(0, 50) + " [in a link]"); for (const e of document.querySelectorAll("*")) if (e.children.length === 0 && /\$\s?\d/.test(e.textContent) && /underline/.test(getComputedStyle(e).textDecorationLine)) bad.push(e.textContent.trim().slice(0, 50) + " [underlined]"); return { len: t.length, bad, stale: /Sales read on|Sales since then are not in yet|Updating now/.test(t), latest: /Latest sale: [A-Z]/.test(t), money: (t.match(/\$[\d,]+/g) || []).length }; });
-    ok(E.len > 200 && E.money > 0, `task email: it printed (${E.len} chars, ${E.money} figures)`); ok(!E.bad.length, `task email: no underlined or linked number${E.bad.length ? " (" + E.bad.slice(0, 3).join(" | ") + ")" : ""}`); ok(!E.stale && !E.latest, "task email: no stale line, no Latest sale line"); await p.close(); }
+  // the real Task email: the preview page holds each email in an iframe, so each email frame is read on its own
+  { const E = await readEmails(browser, emailHtml, `${OUT}/task-email.png`); judgeEmails(ok, "task emails (live preview)", E); }
 } finally { await browser.close(); }
 console.log(`e98LiveCheck: ${pass} pass, ${fail} FAIL. PNGs in ${OUT}/. ${fail ? "Post the FAIL lines with LIVE VISUALS FAILED." : "Post LIVE VISUALS OK."}`);
 process.exit(fail ? 1 : 0);
