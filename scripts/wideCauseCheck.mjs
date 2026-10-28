@@ -37,7 +37,7 @@ ok("unit mileage: price falls as miles rise", w && w.wideCause === "mileage" && 
 w = E.wideOf(set(15, i => mk(20000 + Math.floor(i / 5) * 18000 + (i % 5) * 500, 40000 + ((i * 7919) % 13) * 1000, 2001 + Math.floor(i / 5), false)), [20000, 58000]);
 ok("unit year: three model years that price apart, mileage scattered", w && w.wideCause === "year" && w.wideLever === "year" && /^Wide because these run from 2001 to 2003\. Pick a year\.$/.test(w.wideLine), JSON.stringify(w));
 w = E.wideOf(set(12, i => mk(i < 6 ? 60000 + i * 300 : 25000 + i * 300, 40000 + ((i * 7919) % 13) * 1000, 2001, i < 6)), [25000, 62000]);
-ok("unit mods: modified and stock sales price apart", w && w.wideCause === "mods" && /^Wide because 6 of the 12 sales had modifications\.$/.test(w.wideLine), JSON.stringify(w));
+ok("unit mods: modified and stock sales price apart", w && w.wideCause === "mods" && /^Wide because 6 of the 12 sales are modified cars\.$/.test(w.wideLine), JSON.stringify(w));
 w = E.wideOf(set(10, i => mk(20000 + ((i * 7919) % 10) * 4000, 40000 + ((i * 6007) % 11) * 1000, 2001, i % 2 === 0 ? false : false)), [20000, 56000]);
 ok("unit none: nothing measurable explains it", w && w.wideCause === "none" && w.wideLever === null && /^These sell on condition and history more than mileage\. Here are the 10 sales\.$/.test(w.wideLine), JSON.stringify(w));
 ok("unit: a range at or under 1.6 times carries nothing", E.wideOf(set(10, i => mk(30000 + i * 500, 1000 * i, 2001, false)), [30000, 48000]) === null);
