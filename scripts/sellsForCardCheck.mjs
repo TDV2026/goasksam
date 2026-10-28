@@ -19,9 +19,9 @@ ok(normal.includes('$121,000 <span class="sfc-to">to</span> $134,000'), "range, 
 ok(normal.includes("Based on 42 sales, the latest in September 2026."), "basis line: the engine's own sentence, verbatim, no month count");
 ok(!normal.includes("Middle half of") && !normal.includes("last 12 months"), "basis line: the old window-months wording is gone");
 ok(normal.includes("2 sales set aside: 1 modified, 1 odd sale."), "set-aside footnote, engine's own reasons");
-ok(normal.includes("Powered by GoAskSam</span>") && !/Updated/.test(normal) && normal.includes('href="/how-sam-decides"'), "footer: Powered by and the How Sam decides link; the answer's own read time (the clock) prints no date");
+ok(normal.includes("Powered by GoAskSam.") && !/Updated/.test(normal) && normal.includes('href="/how-sam-decides"'), "footer: Powered by and the How Sam decides link; the answer's own read time (the clock) prints no date");
 { const dated = sellsForCardHtml({ cluster: [121000, 134000], poolN: 42, windowMonths: 12, readAt: "2026-10-27T03:33:00Z" }, { updated: "Oct 26, 2026" });
-  ok(dated.includes("Powered by GoAskSam &middot; Updated Oct 26, 2026") && !dated.includes("Oct 27"), "footer: the date is the page's ingest date (Pacific), not the read time read in UTC (20:33 Pacific on the 26th printed the 27th)"); }
+  ok(dated.includes("Powered by GoAskSam. Updated Oct 26, 2026.") && !dated.includes("Oct 27"), "footer: the date is the page's ingest date (Pacific), not the read time read in UTC (20:33 Pacific on the 26th printed the 27th)"); }
 
 // includesFromLine: only when the oldest included sale is over three years old, same decision as basisLine, right after it.
 const oldPool = sellsForCardHtml({ cluster: [15000, 22000], poolN: 11, basisLine: "Based on 11 sales, the latest in August 2026.", includesFromLine: "Includes sales from 2021.", readAt: "2026-10-16T08:00:00Z" });
@@ -35,11 +35,11 @@ ok(wordCount.includes("2 sales set aside: 1 modified, 1 odd sale."), "setAsideCo
 
 // Stale answer: the stale line replaces the date, never both.
 const stale = sellsForCardHtml({ cluster: [50000, 70000], poolN: 20, windowMonths: 12, stale: true, staleLine: "Sales read on October 14. Sales since then are not in yet. Updating now.", readAt: "2026-10-14T08:00:00Z" });
-ok(stale.includes("Sales read on October 14. Sales since then are not in yet. Updating now.") && !stale.includes("Updated Oct"), "stale line replaces the date, never both");
+ok(!stale.includes("Sales read on") && !stale.includes("Updating now") && !stale.includes("not in yet"), "E98: the stale line never prints to a visitor, the footer is the one line");
 
 // readAt missing entirely: the date clause is left out, never invented.
 const noDate = sellsForCardHtml({ cluster: [80000, 95000], poolN: 15, windowMonths: 12 });
-ok(noDate.includes("Powered by GoAskSam</span>") && !noDate.includes("Updated"), "readAt missing: no date clause, never invented");
+ok(noDate.includes("Powered by GoAskSam.") && !noDate.includes("Updated"), "readAt missing: no date clause, never invented");
 
 // THE THIN CARD (e63): the engine's line, its latest-sale line and its rows; no wording of the card's own.
 const L = { house_share: "The sales of this car are too one-sided to mark a range from. These are the sales we found.", few_sales: "Not enough sales of this exact car to give a reliable range. These are the sales we found.", few_comparable: "Too few of these sales can be compared side by side to give a reliable range. These are the sales we found." };
@@ -78,7 +78,7 @@ ok(!partner.includes("Cobra R</span>") && partner.includes('src="/api/partnerAns
 
 // Partner pill placement: directly under the headline, every case, nowhere else.
 const withPill = sellsForCardHtml({ cluster: [100000, 120000], poolN: 20, windowMonths: 12, basisLine: "Based on 20 sales, the latest in September 2026.", readAt: "2026-10-14T08:00:00Z" }, { partnerPillsHtml: '<div class="pill">Partner pill</div>' });
-ok(withPill.indexOf('class="sfc-range"') < withPill.indexOf('class="pill"') && withPill.indexOf('class="pill"') < withPill.indexOf('class="sfc-basis"'), "range case: partner pill sits between the range and the basis line");
+ok(withPill.indexOf('class="sfc-range"') < withPill.indexOf('class="pill"') && withPill.indexOf('class="pill"') < withPill.indexOf('class="sfc-small"'), "range case: partner pill sits between the range and the basis line");
 const pillThin = sellsForCardHtml(COBRA, { partnerPillsHtml: '<div class="pill">P</div>' });
 ok(pillThin.indexOf('class="sfc-thin"') < pillThin.indexOf('class="pill"') && pillThin.indexOf('class="pill"') < pillThin.indexOf('class="sfc-latest"'), "thin: partner pill sits right after the engine's line");
 ok(cobra === sellsForCardHtml(COBRA), "no opts passed: thin case output stable");

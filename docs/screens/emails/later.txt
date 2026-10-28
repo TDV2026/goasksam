@@ -1,0 +1,61 @@
+Subject: Three updates from your Tasks
+
+New since your last email
+
+2025 Porsche 911 Carrera
+bringatrailer · 1 hour left
+Last bid seen $30,000 at 7:50am PT
+Not enough recent sales to show a range.
+Carrera $118,000 to $139,000, 9 sales
+Carrera S $141,000 to $154,000, 11 sales
+The bid is within the sales.
+View auction: https://example.com/listing/101
+Market Check: https://goasksam.com/market-check?car=undefined
+Matches your Task: 911.
+
+Sam is looking for a 2025 Porsche 911.
+Open the Task: https://goasksam.com/tasks/mine?task=00000000-0000-4000-8000-0000000000a1
+Pause: https://goasksam.com/api/tasks?a=pause&t=00000000-0000-4000-8000-0000000000a1.wKRYwIZqVHvOtRaWdIyUlv
+Stop: https://goasksam.com/api/tasks?a=stop&t=00000000-0000-4000-8000-0000000000a1.W5-A7xrx-4HovlWhsH1RL6
+
+· · ·
+
+1963 Chevrolet Corvette Split Window
+bringatrailer · 3 hours left
+Last bid seen $30,000 at 7:50am PT
+$150,000 to $235,000
+L76 $160,000 to $230,000, 8 sales
+L84 $150,000 to $235,000, 9 sales
+L75 $152,000 to $220,000, 8 sales
+The bid is below the range.
+View auction: https://example.com/listing/102
+Market Check: https://goasksam.com/market-check?car=undefined
+Matches your Task: Corvette.
+
+Sam is looking for a 1963 Chevrolet Corvette Split Window.
+Open the Task: https://goasksam.com/tasks/mine?task=00000000-0000-4000-8000-0000000000a2
+Pause: https://goasksam.com/api/tasks?a=pause&t=00000000-0000-4000-8000-0000000000a2.Kn4AnnEMJWdSKLhWK89oBh
+Stop: https://goasksam.com/api/tasks?a=stop&t=00000000-0000-4000-8000-0000000000a2.UjbY2XisjBhcjhgQhEUd4g
+
+· · ·
+
+2003 Mercedes-Benz S-Class S500
+bringatrailer · 6 hours left
+Last bid seen $30,000 at 7:50am PT
+Not enough recent sales to show a range.
+S430 $6,500 to $10,500, 8 sales
+S500 $8,500 to $14,500, 12 sales
+S600 $9,500 to $15,500, 8 sales
+The bid is within the sales.
+View auction: https://example.com/listing/103
+Market Check: https://goasksam.com/market-check?car=undefined
+Matches your Task: S-Class.
+
+Sam is looking for a 2003 Mercedes-Benz S-Class.
+Open the Task: https://goasksam.com/tasks/mine?task=00000000-0000-4000-8000-0000000000a3
+Pause: https://goasksam.com/api/tasks?a=pause&t=00000000-0000-4000-8000-0000000000a3.r9dwxBHAglj4oecHrGz0XA
+Stop: https://goasksam.com/api/tasks?a=stop&t=00000000-0000-4000-8000-0000000000a3.uVI0Mres0_n3MHVXJ3rASt
+
+Sam sends one email a day with everything new from your Tasks. Change how often on your Tasks page. Before it ends emails always come two hours before bidding ends. Open your Tasks: https://goasksam.com/tasks/mine Stop all Task emails: https://goasksam.com/api/tasks?a=emails_off&t=aaaaaaaa-0000-4000-8000-000000000001.PN7OcNTzMVrJhqBB55itUA
+
+GoAskSam

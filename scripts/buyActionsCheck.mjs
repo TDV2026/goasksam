@@ -11,7 +11,7 @@ const client = JSON.parse(/^const CLIENT = (".*");$/m.exec(buy)[1]), css = JSON.
 const code = client.split("\n").filter(l => !/^\s*\/\//.test(l)).join("\n");
 ok(!/mclink|See the sales in Market Check/.test(code), "no 'See the sales in Market Check' link anywhere in the page's code (the card's own button is See the sales, Oct 29 2026)");
 const fn = name => { const i = code.indexOf("function " + name + "("); return code.slice(i, code.indexOf("\n  function ", i + 1)); };
-ok(/return fxHead\(l\) \+ '<p class="fx-answer">' \+ esc\(m\.answerLine \|\| first\) \+ "<\/p>" \+ fxOpt\(l\) \+ fxTail\(l, x\);/.test(fn("compactNoRange")) && /scope_reason \? '<p class="fx-scope">'/.test(fn("fxHead")), "the no-range card keeps the engine's spec, its scope and its reason line (the five-line box, Oct 29 2026)");
+ok(/return fxHead\(l\) \+ '<p class="fx-answer">' \+ esc\(m\.answerLine \|\| first\) \+ "<\/p>" \+ fxTail\(l, x\);/.test(fn("compactNoRange")) && /m\.scope_reason\) second = m\.scope_reason/.test(fn("fxTail")), "the no-range card keeps the engine's spec, its reason line and (second line) its scope (the e98 box: at most two small lines)");
 const card = fn("card");
 ok((card.match(/<a class="vauc"/g) || []).length === 1 && (card.match(/class="act" data-mc=/g) || []).length === 1, "each card has exactly the two actions, View auction and See the sales");
 ok(/function mcState\(b, open\)\{ b\.setAttribute\("aria-expanded", open \? "true" : "false"\); if \(b\.classList\.contains\("act"\)\) b\.textContent = open \? "Hide the sales" : "See the sales"; \}/.test(code), "the button reads Hide the sales while open, See the sales when closed");

@@ -1,0 +1,23 @@
+Subject: Sam found a 2001 BMW M3 Convertible, live now
+
+Live right now
+
+2001 BMW M3 Convertible
+bringatrailer · 4 hours left
+Last bid seen $30,000 at 7:50am PT
+$22,500 to $41,000
+Convertible $29,000 to $42,500, 9 sales
+Coupe $22,500 to $31,500, 8 sales
+The bid is inside the range.
+View auction: https://example.com/listing/104
+Market Check: https://goasksam.com/market-check?car=undefined
+Matches your Task: M3.
+
+Sam is looking for a BMW M3 from 2001.
+Open the Task: https://goasksam.com/tasks/mine?task=00000000-0000-4000-8000-0000000000a4
+Pause: https://goasksam.com/api/tasks?a=pause&t=00000000-0000-4000-8000-0000000000a4.O7iTxsMfLQJQ7pX-5_fphI
+Stop: https://goasksam.com/api/tasks?a=stop&t=00000000-0000-4000-8000-0000000000a4.sLiN6iPrbNWjx46T3_1a6O
+
+Sam sends one email a day with everything new from your Tasks. Change how often on your Tasks page. Before it ends emails always come two hours before bidding ends. Open your Tasks: https://goasksam.com/tasks/mine Stop all Task emails: https://goasksam.com/api/tasks?a=emails_off&t=aaaaaaaa-0000-4000-8000-000000000001.PN7OcNTzMVrJhqBB55itUA
+
+GoAskSam

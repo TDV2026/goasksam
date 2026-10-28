@@ -27,7 +27,7 @@ ok(/function card\(l/.test(built ? built.code : "") && /function drawerHtml/.tes
   const many = [{ updates: [{ role: "sam", created_at: "2026-10-23T10:00:00Z", data: { cards: Array.from({ length: 40 }, (_, i) => ({ id: i + 100 })) } }] }];
   await fc.attachFullCards({}, many, { select: async () => [], facts: r => r, enrich: async () => null });
   ok(many[0].updates[0].data.full.length === fc.FULL_CAP, "no more than " + fc.FULL_CAP + " cars are read per request");
-  ok(fc.updateLine({ data: { opening: true, total: 12, cards: [{}] } }) === "12 live cars match." && fc.updateLine({ data: { total: 1, cards: [{}] } }) === "1 new car matches." && fc.updateLine({ data: { cards: [{}, {}] } }) === "2 new cars match.", "the engine's one-line count"); }
+  ok(fc.updateLine({ data: { opening: true, total: 12, cards: [{}] } }) === "12 live cars match." && fc.updateLine({ data: { total: 1, cards: [{}] } }) === "One new car matches." && fc.updateLine({ data: { cards: [{}, {}] } }) === "Two new cars match.", "the engine's one-line count"); }
 // 5
 { const { placeCase } = await import(pathToFileURL(path.join(ROOT, "lib/placeCase.js")).href); ok(placeCase("King Of Prussia, PA") === "King of Prussia, PA", "King of Prussia"); }
 // 2 and 3 (browser)
@@ -46,7 +46,7 @@ async function page(html, url, api) { const p = await b.newPage(); await p.setVi
   await p.goto("https://goasksam.com" + url, { waitUntil: "networkidle2" }).catch(() => {}); await new Promise(r => setTimeout(r, 1500)); return p; }
 try {
   const fp = await page(findHtml, "/find?q=porsche+911&make=Porsche&model=911", (r, body) => r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(body.action === "chat" || body.action === "rerun" ? { reply: "", suggest: [], state: { filters: { make: "Porsche", model: "911" } }, turns: 1, meta: { count: 3, live: 3, asks: [] }, cards: FIX, searchNote: "" } : body.action === "list" ? { items: [] } : {}) }));
-  const TASK = { id: "11111111-1111-1111-1111-111111111111", state: "running", kind: "hunt", summary: "Sam is looking for Porsche 911s", filters: {}, updates: [{ id: "u2", role: "sam", kind: "match", created_at: ago(2), text: "MODEL PARAGRAPH that must not show", data: { total: 3, cards: FIX.map(c => ({ id: c.id, title: c.title, url: c.url })), full: FIX, line: "3 new cars match." } }] };
+  const TASK = { id: "11111111-1111-1111-1111-111111111111", state: "running", kind: "hunt", summary: "Sam is looking for Porsche 911s", filters: {}, updates: [{ id: "u2", role: "sam", kind: "match", created_at: ago(2), text: "MODEL PARAGRAPH that must not show", data: { total: 3, cards: FIX.map(c => ({ id: c.id, title: c.title, url: c.url })), full: FIX, line: "Three new cars match." } }] };
   const tp = await page(tasksHtml, "/tasks/mine?app=1", r => r.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ tasks: [TASK], suggestions: [], notify: { on: false } }) }));
   // The Tasks overview (Lane D, Oct 25 2026) shows a Task's cars only once its detail is open: open it the way a person does.
   await tp.evaluate(() => { const b = document.querySelector("[data-toggle]"); if (b && !document.querySelector("article.car")) b.click(); }); await new Promise(r => setTimeout(r, 1500));
@@ -55,7 +55,7 @@ try {
   ok(a.length === 3 && c.length === 3, `three cards on each page (Find ${a.length}, Tasks ${c.length})`);
   ok(a.length && a.every((h, i) => h === c[i]), "each card is byte-identical on Find and on Tasks (the row aligner's heights, which follow each page's own column width, aside)" + (a.every((h, i) => h === c[i]) ? "" : ": first difference at " + (() => { const i = a.findIndex((h, k) => h !== c[k]); const x = a[i] || "", y = c[i] || ""; let n = 0; while (n < x.length && x[n] === y[n]) n++; return `card ${i} char ${n}: Find "${x.slice(Math.max(0, n - 40), n + 60)}" / Tasks "${y.slice(Math.max(0, n - 40), n + 60)}"`; })()));
   const t = await tp.evaluate(() => ({ model: /MODEL PARAGRAPH/.test(document.body.innerText), line: (document.querySelector(".ut.line") || {}).innerText, links: [...document.querySelectorAll("article.car:first-of-type a")].map(a => a.className + "|" + (a.getAttribute("href") || "").slice(0, 30)), range: !!document.querySelector(".fx-range") && !/The typical range for cars like this\./.test(document.body.innerText), lastbid: /LAST BID SEEN/.test(document.body.innerText) }));
-  ok(!t.model && t.line === "3 new cars match.", "the model-written paragraph is gone and the engine's one-line count stands (" + t.line + ")");
+  ok(!t.model && t.line === "Three new cars match.", "the model-written paragraph is gone and the engine's one-line count stands (" + t.line + ")");
   ok(t.range && t.lastbid, "the SAM range panel and the LAST BID SEEN strip are on the Tasks card");
   ok(t.links.filter(l => /^ph\|https:\/\/auction/.test(l)).length === 1 && t.links.filter(l => /vauc/.test(l)).length === 1, "only the photo and View auction link to the auction on a Tasks card: " + t.links.join(" ; "));
   await tp.click("article.car [data-mc]"); await new Promise(r => setTimeout(r, 900));

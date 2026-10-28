@@ -42,7 +42,7 @@ const base = skeletons.fresh;
 for (const c of Object.keys(CASES)) ok(skeletons[c] === base, `${c}: every other line identical to the fresh case's`);
 const want = ["A 2005 Mercedes-Benz CLK DTM AMG Coupe is listed on Bring a Trailer.", "View on Bring a Trailer: https://bringatrailer.com/", "Bidding ends Wednesday, October 14 at 12:15pm PT.", "Matches your Task: CLK.", "", "Sam is looking for Mercedes-Benz CLK DTMs.", "Open the Task: https://goasksam.com/tasks/mine?task=3b9d6f10-2222-4c1d-8e2f-abcdef012345"];
 ok(base.split("\n").slice(0, want.length).join("\n") === want.join("\n"), `the car block and Task lines as before (got ${JSON.stringify(base.split("\n").slice(0, want.length))})`);
-ok(/\nView the auction: https:\/\/bringatrailer\.com\/\n/.test(base) && /\nStop all Task emails: https:\/\/goasksam\.com\/api\/tasks\?a=emails_off&t=/.test(base) && base.endsWith("\nGoAskSam"), "the watch link, Stop all and sign-off as before");
+ok(/\nView the auction: https:\/\/bringatrailer\.com\/\n/.test(base) && / Stop all Task emails: https:\/\/goasksam\.com\/api\/tasks\?a=emails_off&t=/.test(base) && base.endsWith("\nGoAskSam"), "the watch link, Stop all (in the one footer line) and sign-off");
 // bidBlock alone (no range): the bid line by itself, and a fresh bid just past midnight PT names its day.
 const row = (mins, bid = 61500, now = NOW) => ({ id: 1, current_bid_usd: bid, bid_at: mins == null ? null : new Date(now.getTime() - mins * 60e3).toISOString() });
 ok(bidBlock(row(10), null, NOW).lines.join("|") === "The last bid seen was $61,500 at 10:20am PT.", `fresh, no range: ${bidBlock(row(10), null, NOW).lines.join("|")}`);

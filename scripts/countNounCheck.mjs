@@ -76,7 +76,7 @@ const SAFE = [
   ["lib/sell/sellFlow.js", "dnw(rs.b.n))} of the ${n} sales", "reserve split needs eight on each side"],
   ["lib/sell/sellFlow.js", "of the ${nw(total)} sales", "reached only with three or more sales"],
   ["lib/sell/sellFlow.js", "${Cnt(total)} sales ${inWin}, but no single venue", "reached only with eight or more sales"],
-  ["lib/tasks/tasks.js", "cars for your Task, live now", "the one-car subject is its own line above"],
+  ["lib/tasks/tasks.js", "for your Task, live now", "the several-car subject is the helper's count and its noun, then the Task line"],
   ["api/sellerDecision.js", "${landed.sales} sales ${windowLabel", "printed only from ten sales"],
 ];
 const pat = /((?:obNumWord|obNumWordLow|countWord|numWord|dnw|Cnt|low|COUNT_WORDS\[[^\]]*\]|timesWord)\([^()]*\)|\$\{[^}]*(?:\.length|\bn\b|\bcount\b|\btotal\b|\.n\b|\.sales\b|\.count\b)[^}]*\})\s*["'`]?\s*\+?\s*["'`]?\s*(sales|cars|listings|quarters|odd sales|set asides?)\b/g;

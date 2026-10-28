@@ -75,8 +75,8 @@ for (const [name, d] of Object.entries(ALL)) {
   const t = flat(card.sellsForCardHtml(sf.cardAnswerOf(STATES.floor), {}));
   ok(/Convertible, 5 sales, too few for a range/.test(t) && !/Convertible \$/.test(t), "the shared card, floor: the count and 'too few for a range', no range");
   const h = card.sellsForCardHtml(sf.cardAnswerOf(STATES.refine), { interactive: true });
-  ok(/data-refine="[^"]*tx[^"]*"/.test(h) && /Manual \(10\)/.test(flat(h)) && /SMG \(13\)/.test(flat(h)), "the shared card, refine: the chip row from refineOptions, each carrying its own refine");
-  ok(!/sfc-chips/.test(card.sellsForCardHtml(sf.cardAnswerOf(STATES.refine), {})), "the shared card, not interactive (Sell, emails): no chip row");
+  ok(/data-refine="[^"]*tx[^"]*"/.test(h) && /Manual\s+10\b/.test(flat(h)) && /SMG\s+13\b/.test(flat(h)), "the shared card, refine: the chip row from refineOptions, each carrying its own refine");
+  ok(!/sfc-chip\b/.test(card.sellsForCardHtml(sf.cardAnswerOf(STATES.refine), {})), "the shared card, not interactive (Sell, emails): no chip row");
   const row = flat(card.sellsForCardHtml({ ...base, cluster: null, thinLine: "Too few for a range.", cards: [{ price: 52000, date: "2026-03-01", mi: null, milesHidden: true, rangeLabel: "Above the typical range", title: "2001 BMW M3" }] }, {}));
   ok(/Above the typical range/.test(row) && !/miles at sale/.test(row), "the shared card: a sale row prints the engine's rangeLabel and no mileage where milesHidden");
 }
