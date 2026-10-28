@@ -11,7 +11,7 @@ const L = await import("../lib/live/looking.js");
 const caps = await import("../lib/live/lookingCaps.js");
 const BA = await import("../lib/live/buyAlerts.js");
 // 1. rows and counts
-const rows = L.lookingRows([{ id: "w1", kind: "spec", label: "1995 Chevrolet Impala SS" }, { id: "w2", kind: "vin", label: "1994 Porsche 911 Carrera Cabriolet" }], [{ listing_id: 4412, title: "2010 Porsche 911 Carrera Cabriolet", end_time: "2026-11-03T20:00:00Z", ended: false }, { listing_id: 9, title: "ended one", ended: true }]);
+const rows = L.lookingRows([{ id: "w1", kind: "spec", label: "Impala, all years", identity: "1995 Chevrolet Impala SS" }, { id: "w2", kind: "vin", label: "1994 Porsche 911 Carrera Cabriolet" }], [{ listing_id: 4412, title: "2010 Porsche 911 Carrera Cabriolet", end_time: "2026-11-03T20:00:00Z", ended: false }, { listing_id: 9, title: "ended one", ended: true }]);
 ok(rows.length === 3 && rows.map(r => r.kind).join() === "spec_watch,car_watch,alert", "the list holds a spec watch, an exact-car watch and an alert (an ended alert is not listed)");
 ok(rows.every(r => /^(w|a):/.test(r.ref) && r.what && r.detail), "each row has a ref to stop it, what it watches and a plain line");
 ok(rows[2].detail === BA.TOGGLE_LINE && /two hours before bidding ends/.test(BA.TOGGLE_LINE), "an alert's row carries the same rule line as the toggle");
@@ -62,12 +62,14 @@ ok(!/You’ll get an email before it ends/.test(C), "the toggle no longer says '
 ok(/Added to your Tasks\. /.test(C) && /Already on your Tasks\. /.test(C) && /href="\/tasks\/mine"/.test(C), "a toggle or button confirms 'Added to your Tasks' (or 'Already on your Tasks') with the link");
 ok(/j\.reason === "cap" \? j\.line : j && j\.limited \? j\.line/.test(C) && /j\.error === "cap" \|\| j\.limited\) && j\.line/.test(C), "the cap and the address line reach the page as the server's own words");
 ok(/BOTH/.test("BOTH") && /askSignInFor\("watch"/.test(C) && /askSignIn\(id\)/.test(C), "signed out: the choice starts the sign-in and comes back to it (the drawer's own flow)");
+try { new Function(C.replace("__KEEP_ICON__", "''")); ok(true, ""); } catch (e) { ok(false, "Find's client script parses (" + e.message + ")"); }
 // 5. the engine's name for the car
 const S = await import("../lib/live/search.js");
 const spec = { v: { year: 1995, make: "Chevrolet", model: "Impala", trim: "SS" }, title: "1995 Chevrolet Impala SS Sedan" };
 ok(S.specLabelOf(spec) === "1995 Chevrolet Impala SS", "specLabelOf: the engine's identity of a 1995 Impala SS");
 const st = (await import("../lib/live/watches.js")).specTaskOf(spec, { family: "Impala, all years", familyBare: "Impala, all years", rung: "model_any_year" }, "x");
-ok(st.label === "1995 Chevrolet Impala SS" && !/all years/.test(st.label), "a watch is named for the car, never the pool the read used ('Impala, all years')");
+ok(st.spec.identity === "1995 Chevrolet Impala SS" && !/all years/.test(st.spec.identity), "a watch carries the engine's name for the car (spec.identity), never the pool the read used ('Impala, all years' stays the email's door name)");
+ok(L.lookingRows([{ id: "w1", kind: "spec", label: "Impala, all years", identity: "1995 Chevrolet Impala SS" }], [])[0].what === "1995 Chevrolet Impala SS", "the Tasks list names the watch by the engine's identity, not the email label");
 ok(/return m\.specLabel \|\| ""/.test(C) && !/m\.doorName \|\| m\.familyBare \|\| m\.family/.test(C), "Find's toggle line names the car from the engine's specLabel");
 ok(/m\.specLabel = specLabelOf\(spec\)/.test(rd("lib/live/search.js")), "the Find card's market carries specLabel");
 // 6. the Tasks page
