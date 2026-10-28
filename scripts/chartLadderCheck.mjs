@@ -31,9 +31,8 @@ const run = async (text) => (await E.oneEngineAnswer(car, null, text || "2014 Po
 const agrees = (a, label) => {
   const c = a.chart; if (!c) return false;
   const pool = new Map(); for (const r of a.rawPool || []) { const k = String(r.auction_end_date).slice(0, 10) + "|" + Math.round(r._usd); pool.set(k, (pool.get(k) || 0) + 1); }
-  if (c.type === "dots") { const seen = new Map(); for (const d of c.dots) { const k = d.date + "|" + d.price; seen.set(k, (seen.get(k) || 0) + 1); } for (const [k, n] of seen) if ((pool.get(k) || 0) < n) return false; return c.dots.length <= (a.rawPool || []).length && c.n === c.dots.length; }
   if (c.type === "candles") return c.buckets.every(b => b.count >= 5 && b.low <= b.typical && b.typical <= b.high) && c.buckets.reduce((t, b) => t + b.count, 0) <= (c.scope ? (a.rawPool || []).length : (a.rawPool || []).length + 400);
-  if (c.type === "withheld") return c.dots == null && c.buckets == null && c.withheld && c.withheld.n === (a.rawPool || []).length;
+  if (c.type === "withheld") return c.buckets == null && !!c.withheld && c.n === (a.rawPool || []).length;
   return false;
 };
 // 1. the mix changes from quarter to quarter and the answer is split by gearbox: scoped candles
@@ -50,15 +49,16 @@ rows = []; for (let q = 0; q < 12; q++) for (let i = 0; i < 6; i++) sale(2014, d
 a = await run();
 ok("a steady pool keeps the pooled candles, scope null", a.chart && a.chart.type === "candles" && a.chart.scope === null && a.trend && a.chart.buckets.length === a.trend.movement.buckets.length, JSON.stringify(a.chart && a.chart.type));
 ok("pooled candles agree with the old trend", a.chart && a.trend && a.chart.buckets.every((b, i) => b.count === a.trend.movement.buckets[i].count && b.low === a.trend.movement.buckets[i].low));
-// 3. a thin spec: dots
+// 3. a thin spec: withheld, with the engine's line, and no sale-by-sale series anywhere
 rows = []; for (let i = 0; i < 4; i++) sale(2014, day(30 + i * 40), 35000 + i * 1000, 40000, "2014 Porsche Boxster S PDK");
 a = await run();
-ok("a thin spec comes back as dots, one per sale", a.chart && a.chart.type === "dots" && a.chart.dots.length === 4 && a.chart.dots.every(d => d.date && d.price > 0) && !a.chart.buckets, JSON.stringify(a.chart && a.chart.type));
-ok("dots agree with the answer's own sales", agrees(a));
-// 4. two sales: withheld, with the engine's reason
+ok("a thin spec comes back withheld with the engine's line", a.chart && a.chart.type === "withheld" && a.chart.buckets === null && /^There are too few sales in each period to draw a chart\.$/.test(a.chart.withheld.line), JSON.stringify(a.chart && a.chart.withheld));
+ok("the chart carries no per-sale data", !("dots" in a.chart) && !JSON.stringify(a.chart).includes("price") , JSON.stringify(Object.keys(a.chart)));
+ok("no quarter carries its sale prices", !(a.trend && a.trend.quarters || []).some(q => "prices" in q));
+// 4. two sales: withheld too
 rows = []; for (let i = 0; i < 2; i++) sale(2014, day(30 + i * 40), 35000 + i * 1000, 40000, "2014 Porsche Boxster S PDK");
 a = await run();
-ok("two sales: withheld, floor 3, the line from the table", !a.chart || (a.chart.type === "withheld" && a.chart.withheld.floor === 3 && /^Only 2 dated sales, too few to chart/.test(a.chart.withheld.line)), JSON.stringify(a.chart || a.tier));
+ok("two sales: withheld", !a.chart || a.chart.type === "withheld", JSON.stringify(a.chart ? a.chart.type : a.tier));
 // 5. the chart follows a stored answer: the same function over a stored raw answer
 const again = E.withReadFields(JSON.parse(JSON.stringify(a)), "2014 Porsche Boxster S", car);
 ok("a stored answer gets its chart at read time, unchanged", JSON.stringify(again.chart) === JSON.stringify(a.chart));
