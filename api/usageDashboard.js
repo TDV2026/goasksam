@@ -1567,6 +1567,28 @@ async function handleOps(req, res) {
     }
     return res.status(200).json({ task: "storedcount", ocdSpend: 0, writes: 0, ...counts, ms: Date.now() - t0 });
   }
+  // task=vintyped (Lane B, Oct 28 2026, typed equals VIN, a go or no-go gate): READ ONLY. Takes up to n (default 50, at most 60) cars from the stored VIN identities (vin_rollout_cache, the nightly rollout), always
+  // including a 996 when one is stored, and compares what the VIN page hands the engine with what the typed name resolves to (lib/vinTyped.js): same stored answer key, or the same tier, count, range and rung.
+  // Reads stored rows and the resolver only: no visitor-path read, no address cap, no writes, no OldCarsData.
+  if (task === "vintyped") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { compareVinTyped } = await import("../lib/vinTyped.js");
+    const { resolveVehicle, sanitizeResolvedVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { warmAnswerKeyFor, readWarmAnswerDetailed } = await import("../lib/live/search.js");
+    const rc = await supabaseSelect(env, "vin_rollout_cache?key=eq.current&select=data&limit=1");
+    const d = Array.isArray(rc) && rc[0] && rc[0].data;
+    if (!d) return res.status(200).json({ task: "vintyped", readFailed: true, ocdSpend: 0, writes: 0 });
+    const n = Math.max(1, Math.min(60, Number(req.query?.n) || 50));
+    const all = [...(d.vins || [])].filter(u => u && u.vin && u.ident && u.ident.make && (u.ident.model || u.ident.family) && u.ident.year).sort((a, b) => String(a.vin).localeCompare(String(b.vin)));
+    const is996 = u => /\b996\b/.test(`${u.ident.model || ""} ${u.ident.family || ""} ${u.ident.genCode || ""}`);
+    const pick = []; const seen = new Set();
+    const add = u => { const k = `${u.ident.year}|${u.ident.make}|${u.ident.model || u.ident.family}|${u.ident.trim || ""}`.toLowerCase(); if (seen.has(k) || pick.length >= n) return; seen.add(k); pick.push({ ...u.ident, vin: u.vin }); };
+    const f996 = all.find(is996); if (f996) add(f996);
+    for (const u of all) add(u);
+    const out = await compareVinTyped(env, pick, { resolveVehicle, sanitize: sanitizeResolvedVehicle, findGeneration, keyFor: (v, g) => warmAnswerKeyFor(v, g, null), readAnswer: async (e, key) => { const r = await readWarmAnswerDetailed(e, key); return r && r.raw ? r.raw : null; } });
+    return res.status(200).json({ task: "vintyped", has996: !!f996, storedIdentities: all.length, ...out, rows: undefined, sample: out.rows.slice(0, 5), ocdSpend: 0, writes: 0 });
+  }
   // task=livescope (Lane B, Oct 28 2026, launch scope of the live feed): READ ONLY. Reads every live listing past the scope fence and counts those the launch scope leaves out (liveScopeOf in
   // lib/live/search.js: an excluded platform, or a place outside the US and Canada; a row with no place stays in and is counted apart), by reason and by platform, with five example titles. Writes nothing, spends nothing.
   if (task === "livescope") {
