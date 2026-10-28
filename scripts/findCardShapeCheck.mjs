@@ -1,6 +1,6 @@
-// THE FIND CARD'S SAM BOX, ONE SHAPE (Sam, Oct 29 2026). Every Find card prints the same lines in the same order, each one the engine's: (1) the spec, the engine's identity of the live car; (2) the scope, only when the engine sends
-// one; (3) the answer: the range on its own line, or the engine's reason line when a range is withheld, or "Six sales, too few for a range."; (4) the count with its window and the bid, in one line; (5) when the engine sends
-// mileageNear, the sales near the car's own miles with the bid against them; then the wide line, only when set. A card of sales only lists each sale as a line (price, month, gearbox, miles) that opens the Sold before modal's shape.
+// THE FIND CARD'S SAM BOX (Sam, Oct 28 2026; the shape is the three slots below, ENGINE READY 10). Every Find card prints the same slots in the same order, each one the engine's: the spec, the answer (the range, or the engine's one
+// thin sentence), and one small line (the count with its window and the bid). No sale line, no scope or near-miles line of the card's own: the sales are in See the sales (checks 1 to 4 once described a five-line box
+// and a card of sales listed as lines; both are gone, findNoSaleLineCheck keeps it that way).
 // Cause: the card was assembled by the page from several lines of its own ("Thin so far", "Only N sales of cars like this", "The typical range for cars like this", a bare list of prices that linked to Market Check).
 // Cards affected: every Find card (grid and rows), Tasks' cars (the same code, lib/findCardKit.js), and the Tasks email's cars (lib/tasks/emailCards.js reads the same lines). Fixtures run the real Find path: engine answer,
 // coreOf, marketFromCore, samLines, the card's client code.   node scripts/findCardShapeCheck.mjs
