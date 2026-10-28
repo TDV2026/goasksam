@@ -3,7 +3,7 @@
 // deploy cap; all three take the probe key in the x-ops-key header only (Oct 2026; USAGE_DASHBOARD_KEY is no longer
 // read, and a key in the address is refused). (Merged from api/adminAccounts.js
 // and api/outboundClicks.js, July 2026.)
-import { hasServerCredential, hasHeaderKey, keyInAddress, ADDRESS_KEY_REFUSED } from "../lib/_credential.js";
+import { hasServerCredential, hasHeaderKey, cronOk, keyInAddress, ADDRESS_KEY_REFUSED } from "../lib/_credential.js";
 import { sendDisguisedNotFound } from "../lib/_notFound.js";
 import fs from "node:fs";
 import { supabaseEnv, supabaseSelect, supabaseSelectAll, supabaseInsert, supabaseDelete } from "../lib/_supabase.js";
@@ -415,7 +415,7 @@ async function handleOps(req, res) {
   // OPS_KEY) as x-ops-key or x-probe-key, or Vercel's cron auth (Authorization: Bearer ${CRON_SECRET}).
   // A key in the address is ignored: addresses end up in logs and histories. Keys from env only.
   const opsKey = process.env.PROBE_KEY || process.env.OPS_KEY;
-  const isCron = !!process.env.CRON_SECRET && String(req.headers["authorization"] || "") === `Bearer ${process.env.CRON_SECRET}`;
+  const isCron = !!process.env.CRON_SECRET && cronOk(req);
   if (!hasServerCredential(req)) {
     if (!opsKey && !process.env.CRON_SECRET) return res.status(500).json({ error: "Set PROBE_KEY in Vercel to enable the ops endpoint." });
     return res.status(401).json({ error: "Unauthorized (ops). Send the key in the x-ops-key header." });

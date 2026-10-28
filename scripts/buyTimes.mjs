@@ -15,7 +15,7 @@
 // Derived: shape = done - text (enrichFast); tool = rerun - shape (toolSearchLive); model = text - tool.
 //
 //   PROBE_KEY="$(security find-generic-password -s goasksam-probe -w)" node scripts/buyTimes.mjs [--cars "a|b"] [--runs 2]
-// The key goes only in the x-ops-key header of same-origin requests (and the explain probe's body), never printed.
+// The key goes only in the x-ops-key header of same-origin requests, the explain probe's included (the page's request interception adds it to every one); never in a body or an address, never printed.
 import puppeteer from "puppeteer-core";
 import { crewCookie } from "./_crewCookie.mjs";
 
@@ -110,7 +110,7 @@ for (let run = 1; run <= RUNS; run++) {
     const d = chat.done || {};
     const trace = d.trace || [], sl = trace.find(t => t.tool === "search_live"), filters = (sl && sl.input) || (d.state && d.state.filters) || {};
     const usage = d.usage || {}, cards = d.cards || [], pend = cards.filter(isPend).length;
-    const explain = await post({ action: "explain", key: KEY, p: filters });
+    const explain = await post({ action: "explain", p: filters });
     const rerun = await post({ action: "rerun", filters, turns: 1 });
     const rc = (rerun.j && rerun.j.cards) || [], rpend = rc.filter(isPend).length;
     const ids = cards.slice(0, 10).map(c => c.id).filter(Boolean);
