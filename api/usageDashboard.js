@@ -5094,9 +5094,11 @@ async function handleOps(req, res) {
         if (!(st && st.raw)) { row.hit = false; row.note = st && st.reason === "engine_version_mismatch" ? "stored under an older engine stamp" : "no answer row (a question-first spec stores none; its first read is the question)"; out.noRow++; }
         else {
           row.storedAt = st.storedAt; row.storedDay = utcDayOf(st.storedAt); row.stale = !!st.stale; row.tier = st.raw.tier;
-          row.e96 = st.raw.optionsState !== undefined;
+          // e96 fields exist on a ranged answer (tier result with a cluster); a thin, refusal or other tier never carries optionsState, so only a ranged row is asked for them
+          row.ranged = st.raw.tier === "result" && Array.isArray(st.raw.cluster);
+          row.e96 = row.ranged ? st.raw.optionsState !== undefined : true;
           row.hit = !st.stale && (!day || row.storedDay === day);
-          if (st.stale) out.stale++; if (day && row.storedDay !== day) out.offDay++; if (!row.e96 && /^(result|thin)$/.test(String(st.raw.tier))) out.noE96Fields++;
+          if (st.stale) out.stale++; if (day && row.storedDay !== day) out.offDay++; if (!row.e96) out.noE96Fields++;
           if (row.hit) out.hit++;
         }
       } catch (e) { row.error = String(e && e.message || e); out.failed++; }
@@ -5114,10 +5116,10 @@ async function handleOps(req, res) {
     const day = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.day || "")) ? String(req.query.day) : utcDayOf(Date.now());
     const mc = [], core = []; let cursor = "";
     for (let page = 0; page < 200; page++) {
-      const q = `spec_market_cache?select=spec_key,computed_at,ev:market->>engineVersion,os:market->raw->>optionsState,tr:market->raw->>tier&order=spec_key.asc&limit=1000` + (cursor ? `&spec_key=gt.${encodeURIComponent(cursor)}` : "");
+      const q = `spec_market_cache?select=spec_key,computed_at,ev:market->>engineVersion,os:market->raw->>optionsState,tr:market->raw->>tier,hc:market->raw->cluster->>0&order=spec_key.asc&limit=1000` + (cursor ? `&spec_key=gt.${encodeURIComponent(cursor)}` : "");
       const rows = await supabaseSelect(env, q);
       if (!Array.isArray(rows) || !rows.length) break;
-      for (const r of rows) (String(r.spec_key).startsWith("MCWARM:") ? mc : core).push({ key: r.spec_key, computedAt: r.computed_at, engineVersion: r.ev, thin: String(r.spec_key).startsWith("MCWARM:") && /^(result|thin)$/.test(String(r.tr || "")) && r.os == null });
+      for (const r of rows) (String(r.spec_key).startsWith("MCWARM:") ? mc : core).push({ key: r.spec_key, computedAt: r.computed_at, engineVersion: r.ev, thin: String(r.spec_key).startsWith("MCWARM:") && String(r.tr || "") === "result" && r.hc != null && r.os == null });
       cursor = rows[rows.length - 1].spec_key;
       if (rows.length < 1000) break;
     }

@@ -43,7 +43,8 @@ for (let i = 0; i < todo.length; i += 25) {
   const rows = (r.j && r.j.rows) || [];
   for (const t of chunk) {
     const row = rows.find(x => x.q === t.q);
-    const hit = !!(row && row.hit && row.e96 !== false);
+    const asQuestion = !!(warmRows[t.q] && warmRows[t.q].question);   // a spec whose first answer is the engine's question stores no answer row; its warm is the question's eligibility
+    const hit = !!(row && row.hit && row.e96 !== false) || (asQuestion && !(row && row.error));
     const reason = hit ? null : !row ? "warmHits call: HTTP " + r.status + " " + (r.text || "") : row.error ? row.error : row.stale ? "stale row" : row.hit === false && row.note ? row.note : row.e96 === false ? "stored without the e96 fields" : "no stored row (" + (warmRows[t.q] && (warmRows[t.q].error || "not stored") || "not warmed") + ")";
     results.push({ ...t, hit, tier: row && row.tier || null, reason, question: !!(row && row.note && /question-first/.test(row.note)) });
   }
