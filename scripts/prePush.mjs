@@ -429,6 +429,20 @@ try {
 } catch (e) {
   record("Keys in the header only (scripts/keyInAddressCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// No plain comparison of a secret (PROBE_KEY, CRON_SECRET, crew and tester codes): the shared helpers only. No network.
+try {
+  const out = execSync("node scripts/keyedCompareCheck.mjs", { encoding: "utf8" });
+  record("Secrets compared in constant time (scripts/keyedCompareCheck.mjs)", "PASS", (out.match(/PASS keyedCompareCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Secrets compared in constant time (scripts/keyedCompareCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// /sitemap.xml answers the real sitemap index, never a stale page list. No network.
+try {
+  const out = execSync("node scripts/sitemapRouteCheck.mjs", { encoding: "utf8" });
+  record("/sitemap.xml reaches the sitemap index (scripts/sitemapRouteCheck.mjs)", "PASS", (out.match(/sitemapRouteCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("/sitemap.xml reaches the sitemap index (scripts/sitemapRouteCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Tester access: env code, mandatory expiry, signed cookie, no written-in code (Oct 2026, Lane C). No network.
 try {
   const out = execSync("node scripts/testerCheck.mjs", { encoding: "utf8" });

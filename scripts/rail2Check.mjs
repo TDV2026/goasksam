@@ -91,8 +91,8 @@ ok(store.gas_ob_anon === "keep" && store.gas_first_touch === "keep", "anonymous 
 const vj = JSON.parse(fs.readFileSync(path.join(ROOT, "vercel.json"), "utf8"));
 ok(vj.redirects.some(r => r.source === "/buy" && r.destination === "/find" && r.statusCode === 301), "/buy is a permanent redirect to /find (Vercel keeps the query string)");
 ok(vj.rewrites.filter(r => r.source === "/find").length === 2 && !vj.rewrites.some(r => r.source === "/buy"), "/find is served (crew and public); /buy is not served");
-const sm = fs.readFileSync(path.join(ROOT, "public/sitemap.xml"), "utf8");
-ok(/goasksam\.com\/find</.test(sm) && !/goasksam\.com\/buy</.test(sm), "the sitemap lists /find, not /buy");
+const sm = fs.readFileSync(path.join(ROOT, "api/sitemapPages.js"), "utf8");  // /sitemap.xml now answers the index; the pages list is api/sitemapPages.js
+ok(/loc: "\/find"/.test(sm) && !/loc: "\/buy"/.test(sm), "the sitemap lists /find, not /buy");
 const buy = fs.readFileSync(path.join(ROOT, "api/buy.js"), "utf8");
 ok(/rel="canonical" href="https:\/\/goasksam\.com\/find"/.test(buy) && /og:url" content="https:\/\/goasksam\.com\/find"/.test(buy), "Find's canonical and og:url are /find");
 console.log(`rail2Check: ${pass} passed, ${fail} failed`);

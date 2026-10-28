@@ -30,7 +30,7 @@ import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
 import { tasksAllowance } from "../lib/_ceilings.js";
 import { signupTicket } from "../lib/_signup.js";
 import { othersRunning, othersLine } from "../lib/tasks/othersRunning.js";
-import { hasServerCredential } from "../lib/_credential.js";
+import { hasServerCredential, cronOk } from "../lib/_credential.js";
 import { testInbox } from "../lib/tasks/delivery.js";
 import { isCrewRequest } from "../lib/_crew.js";
 import { failBody } from "../lib/_fail.js";
@@ -111,7 +111,7 @@ async function handler(req, res) {
     // The combined Task email (lib/tasks/digest.js): the cron every quarter hour sends each person's email when their
     // setting says it is due, under the six a day cap. A probe may ask for a dry run (&dry=1): nothing sent or marked.
     if (req.method === "GET" && q.send) {
-      const isCron = process.env.CRON_SECRET && req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
+      const isCron = process.env.CRON_SECRET && cronOk(req);
       if (!isCron && !probeOk(req)) return res.status(401).json({ error: "Unauthorized." });
       const { runDigest, runBeforeItEnds, digestBytesSoFar } = await import("../lib/tasks/digest.js");
       // bytesRead (Lane D, Oct 2026): the PostgREST bodies this run pulled (lib/_supabase.js reads plus the digest's own
@@ -130,7 +130,7 @@ async function handler(req, res) {
       return res.status(200).json({ ...out, beforeItEnds: bie, bytesRead, legacy: legacy || undefined });
     }
     if (req.method === "GET" && q.run) {
-      const isCron = process.env.CRON_SECRET && req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
+      const isCron = process.env.CRON_SECRET && cronOk(req);
       if (!isCron && !probeOk(req)) return res.status(401).json({ error: "Unauthorized." });
       const t0 = Date.now();
       // &ifnew=1 (THE cron, 5 minutes after every quarter-hour pull slot, lib/live/pullSchedule.js): exits at once
