@@ -1567,6 +1567,16 @@ async function handleOps(req, res) {
     }
     return res.status(200).json({ task: "storedcount", ocdSpend: 0, writes: 0, ...counts, ms: Date.now() - t0 });
   }
+  // task=livescope (Lane B, Oct 28 2026, launch scope of the live feed): READ ONLY. Reads every live listing past the scope fence and counts those the launch scope leaves out (liveScopeOf in
+  // lib/live/search.js: an excluded platform, or a place outside the US and Canada; a row with no place stays in and is counted apart), by reason and by platform, with five example titles. Writes nothing, spends nothing.
+  if (task === "livescope") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { liveRows, liveScopeOf } = await import("../lib/live/search.js");
+    const all = (await liveRows(env, "id=gt.0", { noDescription: true, allScope: true })) || [];
+    const by = { platform: 0, country: 0 }, bySource = {}, ex = []; let unplaced = 0;
+    for (const r of all) { const sc = liveScopeOf(r); if (sc.reason === "unplaced") unplaced++; if (sc.in) continue; by[sc.reason]++; bySource[r.source] = (bySource[r.source] || 0) + 1; if (ex.length < 5) ex.push({ title: r.listing_title, source: r.source, location: r.location || null, country: r.country || null, currency: r.currency || null, reason: sc.reason }); }
+    return res.status(200).json({ task: "livescope", live: all.length, out: by.platform + by.country, inScope: all.length - (by.platform + by.country), unplacedKeptIn: unplaced, byReason: by, bySource, examples: ex.slice(0, 7), ocdSpend: 0, writes: 0 });
+  }
   // task=stalecount (Lane B, Oct 28 2026, mark stale, never delete): READ ONLY. Counts spec_market_cache rows by kind (core rows with a JSON-array key, MCWARM answers, other), how many core rows carry
   // market.staleSince, and the first ten marked keys with their mark time. Paged 1000 rows a call (after = last key). Writes nothing, spends nothing: the before and after of the supervised ingest.
   if (task === "stalecount") {
