@@ -1567,6 +1567,26 @@ async function handleOps(req, res) {
     }
     return res.status(200).json({ task: "storedcount", ocdSpend: 0, writes: 0, ...counts, ms: Date.now() - t0 });
   }
+  // task=chartsweep (Lane B, Oct 28 2026, chart ladder): READ ONLY. Applies the chart ladder (chartOf, lib/onebox.js) to every stored Market Check answer of the live stamp and counts the pages that land on each
+  // step: pooled candles, scoped candles, dots, withheld; five examples of each (key, count, scope, held reason). Paged 100 rows a call (after = last key). Writes nothing, spends nothing.
+  if (task === "chartsweep") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { chartOf, ENGINE_VERSION } = await import("../lib/onebox.js");
+    const after = req.query?.after ? String(req.query.after) : "";
+    const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,ev:market->>engineVersion,raw:market->raw&order=spec_key.asc&limit=100` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "chartsweep", readFailed: true, ocdSpend: 0, writes: 0 });
+    const out = { task: "chartsweep", ocdSpend: 0, writes: 0, rows: rows.length, otherVersion: 0, answers: 0, pooled_candles: 0, scoped_candles: 0, dots: 0, withheld: 0, noChart: 0, held: 0, examples: { pooled_candles: [], scoped_candles: [], dots: [], withheld: [] }, next: rows.length === 100 ? rows[rows.length - 1].spec_key : null };
+    for (const r of rows) {
+      if (String(r.ev) !== ENGINE_VERSION) { out.otherVersion++; continue; }
+      const d = r.raw; if (!d || typeof d !== "object") continue;
+      let c = null; try { c = chartOf(d); } catch { c = null; }
+      if (!c) { out.noChart++; continue; }
+      out.answers++; if (d.trendHeld) out.held++;
+      const rung = c.type === "candles" ? (c.scope ? "scoped_candles" : "pooled_candles") : c.type;
+      out[rung]++; if (out.examples[rung].length < 5) out.examples[rung].push({ key: String(r.spec_key).replace(/^MCWARM:/, "").slice(0, 90), n: c.n, scope: c.scope ? c.scope.label : null, held: d.trendHeld ? d.trendHeld.reason : null, candles: c.buckets ? c.buckets.length : null });
+    }
+    return res.status(200).json(out);
+  }
   // task=vintyped (Lane B, Oct 28 2026, typed equals VIN, a go or no-go gate): READ ONLY. Takes up to n (default 50, at most 60) cars from the stored VIN identities (vin_rollout_cache, the nightly rollout), always
   // including a 996 when one is stored, and compares what the VIN page hands the engine with what the typed name resolves to (lib/vinTyped.js): same stored answer key, or the same tier, count, range and rung.
   // Reads stored rows and the resolver only: no visitor-path read, no address cap, no writes, no OldCarsData.
