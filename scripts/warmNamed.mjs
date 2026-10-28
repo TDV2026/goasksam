@@ -15,8 +15,9 @@ let golden = []; try { const doc = fs.readFileSync(new URL("../docs/golden-rules
 const getJson = async (url, ms = 290000) => { const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms); try { const r = await fetch(url, { headers: H(), signal: ac.signal }); const x = await r.text(); try { return { status: r.status, j: JSON.parse(x) }; } catch { return { status: r.status, j: null, text: x.slice(0, 120) }; } } catch (e) { return { status: 0, j: null, text: String(e && e.message || e) }; } finally { clearTimeout(t); } };
 let top = [];
 if (PART === "top" || PART === "all") { const r = await getJson(`${BASE}/api/usageDashboard?view=ops&task=buyqueries&product=market_check&days=30&top=50`, 120000); top = r.j && Array.isArray(r.j.top) ? r.j.top.map(x => x.q) : []; if (!top.length) console.log("warmNamed: the Market Check log gave no top specs (" + (r.status || r.text) + ")"); }
-const lists = { named, golden, top };
-const parts = PART === "all" ? ["named", "golden", "top"] : [PART];
+let crosscheck = []; try { crosscheck = JSON.parse(fs.readFileSync(new URL("./warm-crosscheck.json", import.meta.url), "utf8")).crosscheck || []; } catch {}
+const lists = { named, golden, top, crosscheck };
+const parts = PART === "all" ? ["named", "golden", "top", "crosscheck"] : [PART];
 const seen = new Set(), todo = [];
 for (const p of parts) for (const q of lists[p] || []) { const k = q.toLowerCase(); if (!seen.has(k)) { seen.add(k); todo.push({ q, part: p }); } }
 console.log(`warmNamed: ${todo.length} specs (${parts.map(p => p + " " + (lists[p] || []).length).join(", ")})`);
