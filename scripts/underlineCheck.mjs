@@ -14,6 +14,11 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   const walk = d => { for (const e of fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })) { const p = d + "/" + e.name; if (e.isDirectory()) walk(p); else if (/\.(js|mjs)$/.test(e.name) && !/^api\/sellerDecision\.js$|^lib\/engineFields\.js$/.test(p)) { const code = fs.readFileSync(path.join(ROOT, p), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, ""); if (/\.staleLine\b|Sales since then are not in yet/.test(code)) bad.push(p); } } };
   for (const d of ["api", "lib", "public/js"]) walk(d);
   ok(!bad.length, "no page or email reads the engine's staleLine into markup" + (bad.length ? " (" + bad.join(", ") + ")" : "")); }
+// the words "See the bid on" (the heading link above a car's name) print nowhere: not in Find's client, not in a lib or page file
+{ const fs = await import("node:fs"), path = await import("node:path"); const hits = [];
+  const walk = d => { for (const e of fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })) { const p = d + "/" + e.name; if (e.isDirectory()) walk(p); else if (/\.(js|mjs|html)$/.test(e.name) && /See the bid on/.test(fs.readFileSync(path.join(ROOT, p), "utf8"))) hits.push(p); } };
+  for (const d of ["api", "lib", "public"]) walk(d);
+  ok(!hits.length, "nothing prints 'See the bid on'" + (hits.length ? " (" + hits.join(", ") + ")" : "")); }
 const b = await startBrowser();
 console.log("underlineCheck reading " + ROOT);
 for (const [n, fx] of Object.entries(MC)) for (const w of [1440, 390]) { const p = await openMC(b, fx, w); judgeIn(ok, `Market Check ${n} at ${w}`, await p.evaluate(inPage)); await p.close(); }

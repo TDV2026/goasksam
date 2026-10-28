@@ -21,8 +21,8 @@ ok(/^<p class="mlab"><span class="mk">LAST BID SEEN<\/span> <span class="mv">\$1
 // no number at all, only the way to the bid.
 const fresh = new Date(Date.now() - 10 * 60e3).toISOString();
 ok(text(moneyHtml({ current_bid_usd: 42500, bid_at: fresh, end_time: "2099-01-01" })).startsWith("LAST BID SEEN $42,500"), "a bid under an hour old: LAST BID SEEN, never a bare 'Bid'");
-ok(text(moneyHtml({ current_bid_usd: 42500, source: "Bring a Trailer", url: "https://x/1" })) === "See the bid on Bring a Trailer" && !/\$\d/.test(moneyHtml({ current_bid_usd: 42500, source: "Bring a Trailer", url: "https://x/1" })), "a bid with no time: no number, only 'See the bid on {source}'");
-ok(text(moneyHtml({ current_bid_usd: 42500, bid_at: fresh, end_time: "2020-01-01", source: "Cars & Bids", url: "https://x/2" })) === "See the bid on Cars &amp; Bids" && !/\$\d/.test(moneyHtml({ current_bid_usd: 42500, bid_at: fresh, end_time: "2020-01-01", source: "Cars & Bids", url: "https://x/2" })), "an ended auction: no number, only the way to the bid");
+ok(moneyHtml({ current_bid_usd: 42500, source: "Bring a Trailer", url: "https://x/1" }) === "", "E98: a bid with no time: no number and no 'See the bid' link, the card prints nothing for it");
+ok(moneyHtml({ current_bid_usd: 42500, bid_at: fresh, end_time: "2020-01-01", source: "Cars & Bids", url: "https://x/2" }) === "", "E98: an ended auction: no number and no link to the bid");
 // The detail panel's line follows the same rule.
 ok(/^Last bid seen: \$42,500 at /.test(text(bidLine({ current_bid_usd: 42500, bid_at: fresh, end_time: "2099-01-01", source: "Bring a Trailer", url: "https://x/1" }))), "panel, a fresh bid: 'Last bid we saw' with its time, never 'Bid $X'");
 ok(!/\$\d/.test(bidLine({ current_bid_usd: 42500, source: "Bring a Trailer", url: "https://x/1" })) && !/\$\d/.test(bidLine({ current_bid_usd: 42500, bid_at: fresh, end_time: "2020-01-01", source: "Bring a Trailer", url: "https://x/1" })), "panel, no bid time or an ended auction: no number");
@@ -41,7 +41,7 @@ const card = block("  function card(l, big, eager){", "  // THE ADAPTIVE GRID");
 ok(!/keepPill\(\)/.test(card), "no 'Have Sam keep looking' on a card");
 ok(!/priceLine\(l\)|placeLine\(l\)/.test(card) && /metaLine\(l\) \+ chipsHtml\(l\)/.test(card), "one meta line, then the specs");
 ok(/var onPh = moneyHtml\(l, true\); if \(onPh\) ph = ph\.replace\(\/<\\\/a>\$\/, onPh \+ "<\/a>"\)/.test(card) && /money = ph \? "" : moneyHtml\(l, false\)/.test(card) && /'<div class="tx">' \+ \(ph \? "" : money\)/.test(card), "the money figure sits on the photo (inside its link), or at the top of the card when there is no photo");
-ok(moneyHtml({ current_bid_usd: 42500, source: "Bring a Trailer", url: "https://x/1" }, true) === '<span class="mlab nobid">See the bid on Bring a Trailer</span>' && !/<a /.test(moneyHtml({ current_bid_usd: 42500, source: "Bring a Trailer", url: "https://x/1" }, true)), "on the photo (itself a link), the figure carries no link of its own");
+ok(moneyHtml({ current_bid_usd: 42500, source: "Bring a Trailer", url: "https://x/1" }, true) === "" && !/<a /.test(moneyHtml({ current_bid_usd: 42500, source: "Bring a Trailer", url: "https://x/1" })), "E98: on the photo or above the title, no bid link: View auction is the one link to the auction");
 // Stage 1c item 1: the history button lives inside the Sam block (slInner), after the line and the rows.
 const order = ["photoHtml(l, eager)", "<h3>", "metaLine(l)", "chipsHtml(l)", '<div class="sl">', 'class="acts"'].map(x => card.indexOf(x));
 ok(order.every((x, k) => x > 0 && (k === 0 || x > order[k - 1])) && /function slInner\(l\)\{ var line = samLine\(l\); return line \? '<span class="who">Sam<\/span>' \+ line\.html : ""; \}/.test(c), "the order: photo (with the money), car, meta, specs (the history chip last, Stage 1e item 2), Sam block, actions");
