@@ -4,7 +4,7 @@
 //   FAIL: a currency figure inside an anchor, or under an underline (the element's or any ancestor's text-decoration), inside an answer card (.sfc-card, the Find Sam box .sl);
 //         a range ("$a to $b") set below 20px (the two small lines Sam allows, the other option's line and the near-miles line, are lines, not figures); more than two small lines under the figures; the stale line ("Sales read on ... Updating now.") or "Latest sale:" anywhere in a card; a footer over one sentence-line of facts.
 //   node scripts/underlineCheck.mjs        E98_ROOT=<another checkout> to read that tree's pages (how it was shown failing on main)
-import { MC, FIND, FIND_MATCHED, BLACK_BMW } from "./e98Fixtures.mjs";
+import { MC, FIND, FIND_MATCHED, CORVETTE, BLACK_BMW } from "./e98Fixtures.mjs";
 import { startBrowser, openMC, ROOT } from "./e98Render.mjs";
 import { buildCards, openFind } from "./e98FindRender.mjs";
 import { inPage, judge as judgeIn } from "./e98DomCheck.mjs";
@@ -22,8 +22,16 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
 const b = await startBrowser();
 console.log("underlineCheck reading " + ROOT);
 for (const [n, fx] of Object.entries(MC)) for (const w of [1440, 390]) { const p = await openMC(b, fx, w); judgeIn(ok, `Market Check ${n} at ${w}`, await p.evaluate(inPage)); await p.close(); }
-const sets = { "Find card 2003 BMW Alpina Roadster V8": [FIND["2003 BMW Alpina Roadster V8"]], "Find card 2014 Porsche Boxster": [FIND["2014 Porsche Boxster"]], "Find page, black BMW": Object.values(BLACK_BMW), "Find card Boxster S PDK (matched option)": [FIND_MATCHED] };
-for (const [n, defs] of Object.entries(sets)) { const cards = await buildCards(defs); for (const w of [1440, 390]) { const p = await openFind(b, cards, w); judgeIn(ok, `${n} at ${w}`, await p.evaluate(inPage)); await p.close(); } }
+const sets = { "Find card 2003 BMW Alpina Roadster V8": [FIND["2003 BMW Alpina Roadster V8"]], "Find card 2014 Porsche Boxster": [FIND["2014 Porsche Boxster"]], "Find page, black BMW": Object.values(BLACK_BMW), "Find card Boxster S PDK (matched option)": [FIND_MATCHED], "Find single live match, 1965 Chevrolet Corvette": [CORVETTE] };
+const seen = new Set();
+for (const [n, defs] of Object.entries(sets)) { const cards = await buildCards(defs); for (const w of [1440, 390]) { const p = await openFind(b, cards, w), r = await p.evaluate(inPage); judgeIn(ok, `${n} at ${w}`, r); r.classes.forEach(k => seen.add(k));
+  if (defs[0] === CORVETTE) { ok(r.drawn === 1, `${n} at ${w}: exactly one live match is drawn (${r.drawn})`); ok(r.sale.length === 3, `${n} at ${w}: the Sam box carries the engine's three sale lines (${r.sale.length})`);
+    ok(r.specs.join("|") === CORVETTE.extra.chips.join("|"), `${n} at ${w}: the chips row is the card's own chips, untouched (${r.specs.join(", ")})`);
+    const tx = (await p.evaluate(() => document.querySelector("article.car .sl").innerText)).replace(/\s+/g, " "); ok(tx.includes(CORVETTE.d.thin_sales.answer_line) && !/Thin so far|Only \d+ sales/.test(tx), `${n} at ${w}: the too-few line is the engine's own ("${CORVETTE.d.thin_sales.answer_line}")`);
+    ok(/LAST BID SEEN/.test(await p.evaluate(() => document.querySelector("article.car").innerText)), `${n} at ${w}: the Last bid seen overlay is on the photo`); }
+  await p.close(); } }
+// THE CLASS: a Find card state nobody renders is a state nobody checks (the single live match was not in the seven proof pages). Across every Find render above, each piece a card can carry appears at least once.
+{ const need = ["fx-spec", "fx-lab", "fx-range", "fx-answer", "fx-sale", "fx-count", "fx-near", "mlab", "vauc", "specs", "fx-sales"], missing = need.filter(k => !seen.has(k)); ok(!missing.length, "every Find card piece is rendered by at least one proof page" + (missing.length ? " (never rendered: " + missing.join(", ") + ")" : "")); }
 // the control: with NO cards the header must say so (the line is not simply deleted)
 { const p = await openFind(b, [], 1440); const r = await p.evaluate(inPage); ok(r.drawn === 0 && r.hasNothingLine, "Find with no cards: the header says there is nothing live (" + r.drawn + " cards)"); await p.close(); }
 await b.close();

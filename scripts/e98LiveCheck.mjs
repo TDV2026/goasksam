@@ -37,10 +37,12 @@ try {
     if (got && miles) { await p.type("#ob-miles", miles); await p.keyboard.press("Enter"); await new Promise(r => setTimeout(r, 6000)); await wait(p, ".sfc-card", 40000); }
     if (got) await snap(p, `mc ${car}${miles ? " " + miles + " typed" : ""}`, (r, w) => ok(r.figure > 0, `${car} at ${w}: the large figure is present (${r.figure})`));
     await p.close(); }
-  for (const [name, q] of [["Find card Alpina Roadster V8", "BMW Alpina Roadster V8"], ["Find card Porsche Boxster", "Porsche Boxster"], ["Find page black BMW", "black BMW"]]) { const p = await open();
+  for (const [name, q] of [["Find card Alpina Roadster V8", "BMW Alpina Roadster V8"], ["Find card Porsche Boxster", "Porsche Boxster"], ["Find page black BMW", "black BMW"], ["Find single live match 1965 Corvette", "1965 Chevrolet Corvette"]]) { const p = await open();
     await p.goto(BASE + "/buy", { waitUntil: "domcontentloaded", timeout: 60000 }); await p.waitForSelector("#hq", { timeout: 20000 }); await p.type("#hq", q); await p.keyboard.press("Enter");
     const got = await wait(p, "article.car .sl"); ok(got, `${name}: a live card with its Sam box arrived (${got ? "" : "text: " + (await p.evaluate(() => document.body.innerText.slice(0, 200).replace(/\s+/g, " ")))})`);
-    if (got) { await new Promise(r => setTimeout(r, 4000)); await snap(p, name, r => ok(r.figure > 0 || r.text.join(" ").length > 0, `${name}: the Sam box prints`)); }
+    if (got) { await new Promise(r => setTimeout(r, 4000)); await snap(p, name, (r, w) => { ok(r.figure > 0 || r.text.join(" ").length > 0, `${name}: the Sam box prints`);
+      if (/single live match/.test(name)) { ok(r.drawn === 1, `${name} at ${w}: exactly one live match is drawn (${r.drawn}); if not, the state is not live and the page proves nothing`); ok(new Set(r.sale).size <= 1, `${name} at ${w}: the sale lines carry one weight (${r.sale.length} lines)`);
+        ok(r.text.join(" ").replace(/\s+/g, " ").match(/too few for a range|[Tt]hree sales|sales/) !== null, `${name} at ${w}: the engine's count or too-few line prints`); ok(!r.specs.some(s => /underlined/.test(s)), `${name} at ${w}: the chips row is not underlined (${r.specs.length} chips)`); } }); }
     await p.close(); }
   // the real Task email
   { const p = await browser.newPage(); await p.setViewport({ width: 700, height: 900 }); await p.setContent(emailHtml, { waitUntil: "load" }); await p.screenshot({ path: `${OUT}/task-email.png`, fullPage: true });
