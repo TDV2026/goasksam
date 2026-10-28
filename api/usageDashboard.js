@@ -1581,7 +1581,7 @@ async function handleOps(req, res) {
   // in a stored trim value (trimTextIsNoise), and the pooled states (apart, split, alike) the e95 rule gives each result. Counts, and the first 20 of each kind with the key.
   if (task === "storedsweep") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { setConsistencyOf, runOutputInvariants, pooledApartGuard, ENGINE_VERSION } = await import("../lib/onebox.js");
+    const { setConsistencyOf, runOutputInvariants, pooledApartGuard, ENGINE_VERSION, loadMakeModels } = await import("../lib/onebox.js");
     const { trimTextIsNoise } = await import("../lib/vehicle.js");
     const t0 = Date.now(), maxPages = Math.max(1, Math.min(60, Number(req.query?.pages) || 20));
     const onlyVersion = String(req.query?.version || ENGINE_VERSION);   // e95: only the answers stamped with the live engine; older stored rows are counted, not judged
@@ -1628,6 +1628,8 @@ async function handleOps(req, res) {
           const yl = Object.keys(yrs).map(Number).filter(y => yrs[y].length >= 3).sort((x, y) => x - y); let yApart = null;
           for (let i = 0; i < yl.length && !yApart; i++) for (let j = i + 1; j < yl.length; j++) if (pq(yrs[yl[i]], 0.75) < pq(yrs[yl[j]], 0.25) || pq(yrs[yl[j]], 0.75) < pq(yrs[yl[i]], 0.25)) { yApart = [yl[i], yl[j]]; break; }
           if (yApart && yl.length >= 2 && /year_widened|generation|model_any_year/.test(String(d.fallbackRung || ""))) { C.yearApart.n++; ex("yearApart", { years: yApart, groups: yApart.map(y => `${y}: ${yrs[y].length} sales, median ${Math.round(pq(yrs[y], 0.5))}`), rung: d.fallbackRung, range: cl }); }
+          // e98 (row 15, the 1987 Grand National): an answer whose trim is also a model of its make is exposed to the rival rule; listed so a change in its sales count can be read against it
+          { const rc2 = d.resolvedCar || {}, tn = String(rc2.trim || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); if (tn && rc2.make) { const mm = await loadMakeModels(env, rc2.make); if (mm && mm.list && mm.list.some(m => m.norm === tn)) { C.trimIsModel = C.trimIsModel || { n: 0, examples: [] }; C.trimIsModel.n++; ex("trimIsModel", { make: rc2.make, model: rc2.model, trim: rc2.trim, count: n, rung: d.fallbackRung || null }); } } }
           const lo = (Array.isArray(d.cards) ? d.cards : []).filter(c => Number(c.mi) > 0 && Number(c.mi) < 500 && (Number(c.year) || Number((/\b(18|19|20)\d{2}\b/.exec(String(c.title || "")) || [])[0])) > 0 && (Number(c.year) || Number((/\b(18|19|20)\d{2}\b/.exec(String(c.title || "")) || [])[0])) <= new Date().getUTCFullYear() - 15);
           if (lo.length) { C.lowMileTiles.sales += lo.length; C.lowMileTiles.answers++; ex("lowMileTiles", { cars: lo.slice(0, 2).map(c => `${c.title} ${c.mi} mi $${c.price}`) }); }
           for (const o of [...(((d.pooledSplit || {}).options) || []), ...(((d.pooledApart || {}).options) || []), ...(((gg || {}).pooledSplit || {}).options || []), ...(((gg || {}).pooledApart || {}).options || [])]) if (o && (o.low === 0 || o.high === 0 || o.median === 0)) { C.zeroFromNull.n++; ex("zeroFromNull", { option: `${o.dimension}:${o.label}`, low: o.low, high: o.high, median: o.median }); break; }
