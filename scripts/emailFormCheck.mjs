@@ -100,5 +100,53 @@ for (const f of ["lib/tasks/emailCaps.js", "lib/tasks/digest.js", "lib/tasks/ful
   const src = fs.readFileSync(f, "utf8").split("\n").filter(l => !/^\s*\/\//.test(l)).join("\n");
   ok(!/\$\{(?:n|k)\} (?:more |new |live )*(?:cars?|updates?)\b/.test(src) && !/countText\(/.test(src), `${f}: no count typed in front of its noun`);
 }
+// ---- 7. THE WATCH SECTION (a sold-car Task and an exact-car Task; lib/live/watches.js messageFor, placed in the email by lib/tasks/digest.js), covered like the match path (Oct 28 2026).
+// What it can print: the Task's rung lines; for a sold-car Task one sale (its card, the sale line, the engine's band before it and where the sale sat), or a count line ("Three <label> sold since <date>."),
+// each sale, "<Count> more are in your Task." for the rest, and the "You asked Sam to tell you when the next <car> sells." line; for an exact car one line per event (live, offered and did not sell, sold)
+// with its card. A band and a placing line only when the engine's event carries a band; a set-aside sale prints the engine's reason and nothing placed; no headline range, no options, no question
+// (a watch event is a sale on record, not a market read, so emailMode does not apply to it). Its own Open, Pause and Stop sit under it; the footer is the digest's one line. It carries no heading of its own.
+export function watchCountProblems(text) {
+  const bad = [], t = String(text);
+  const form = (tok, atStart) => { const n = num(tok), want = countNoun(n, "x", { words: true }).split(" ")[0]; return n >= 1 && (atStart ? tok === want.charAt(0).toUpperCase() + want.slice(1) : tok.toLowerCase() === want.toLowerCase()) ? null : `${tok} (the helper writes ${want})`; };
+  for (const m of t.matchAll(/Sam saw (\S+) sell:/g)) { const b = form(m[1], false); if (b) bad.push(b); }
+  for (const m of t.matchAll(/^(?!No )(\S+) [^\n]*? sold since /gm)) { const b = form(m[1], true); if (b) bad.push(b); }
+  for (const m of t.matchAll(/And (\S+) more (?:is|are) in your Task/g)) { const b = form(m[1], false); if (b) bad.push(b); }
+  return bad;
+}
+const WATCH = ["watchOne", "watchMany", "watchMore", "watchVin", "combined"];
+for (const k of WATCH) {
+  const m = E[k]; ok(!!m, `${k}: the email was built (the watch path ran without throwing)`); if (!m) continue;
+  const all = noUrls(textOf(m));
+  ok(carCountProblems(all).length === 0 && watchCountProblems(m.subject + "\n" + m.text).length === 0, `${k}: counts follow the helper (${carCountProblems(all)} ${watchCountProblems(m.subject + "\n" + m.text)})`);
+  ok(saleFormProblems(all).length === 0, `${k}: one form for the sale counts`);
+  ok(footerProblems(m).length === 0, `${k}: one footer line (${footerProblems(m)})`);
+  ok(!QUESTION.test(noUrls(m.subject + m.text)) && !/\bwhich\b|\bpick an option\b|\bchoose\b/i.test(all), `${k}: no question`);
+  ok(!/\u2014|\u2013/.test(m.subject + m.text), `${k}: no em or en dash`);
+  const ids = [...m.text.matchAll(/https:\/\/example\.com\/((?:sale|live|att)\/\w+)/g)].map(x => x[1]); ok(new Set(ids).size === ids.length, `${k}: no sale is listed twice (${ids})`);
+  if (k !== "combined") ok(headings(m, CATCH_UP_HEADING) === 0 && headings(m, NEW_HEADING) === 0, `${k}: a watch section carries no heading`);
+  ok(!/\$\d[\d,]* to \$\d[\d,]*, \d+ sales/.test(m.text) || k === "combined", `${k}: no option line (a watch event has no options)`);
+}
+{ // the lines by event: a band prints a range and where the sale sat; none prints neither; a set-aside sale prints its reason and nothing placed
+  const t = E.watchMany.text, seg = n => { const i = t.indexOf("Carrera Targa " + n + "\n"), j = t.indexOf("Market Check:", i); return t.slice(i, j); };
+  ok(/\$88,000 to \$121,000/.test(seg(2)) && /The sale was inside the range\./.test(seg(2)), "a sale with a band: the range and where it sat");
+  ok(!/typical range|The sale was|\$\d[\d,]* to \$/.test(seg(3)), "a sale with no band: no range and nothing placed");
+  ok(/set aside as modified/.test(seg(4)) && !/typical range|The sale was|\$\d[\d,]* to \$/.test(seg(4)), "a set-aside sale: the engine's reason, no range, nothing placed");
+  ok(/^Three Porsche 911 Carrera Targas sold since/m.test(t) && /^Sam saw three sell: /.test(E.watchMany.subject) && (t.match(/View the sale:/g) || []).length === 3, "three sales: the count line, the subject and the sales listed are the same three");
+  const tm = E.watchMore.text; ok(/^13 Porsche/m.test(tm) && /Sam saw 13 sell/.test(E.watchMore.subject) && (tm.match(/View the sale:/g) || []).length === 10 && /And three more are in your Task\./.test(tm), "thirteen sales: 13 in the subject and the count line, ten shown, three more (10 + 3 = 13)");
+  const v = E.watchVin.text; ok(/is live on Cars & Bids/.test(v) && /was offered on Mecum on October 12 and did not sell/.test(v) && /it sold on Bring a Trailer on October 5/.test(v) && /^Back at auction: /.test(E.watchVin.subject), "an exact car: live, offered and did not sell, and sold, each by its own event"); }
+// one email, three kinds of section: the catch-up heading once, over the car section only; the watch section and the quiet sibling line carry none
+{ const c = E.combined.text, hi = c.indexOf(CATCH_UP_HEADING), wi = c.indexOf("Three Porsche 911 Carrera Targas sold since"), mi = c.indexOf("2025 Porsche 911 Carrera");
+  ok(headings(E.combined, CATCH_UP_HEADING) === 1 && hi >= 0 && hi < mi && mi < wi, "combined: Live right now once, before the car section, and none over the watch section");
+  ok(/No Ferrari 308 GTS has sold since you started this Task\. Sam keeps looking\./.test(c) && (c.match(/Sam keeps looking/g) || []).length === 1, "combined: the sibling Task's quiet line once, at the end"); }
+// the stray heading tasksReadsCheck caught: the digest's watch call takes no heading, catch-up flag or car-section name, and the watch path runs (above) without a ReferenceError
+{ const src = fs.readFileSync("lib/tasks/digest.js", "utf8"), call = src.split("\n").filter(l => /watchMessage\(/.test(l) && !/^\s*\/\//.test(l) && !/import/.test(l)).join("\n");
+  ok(call.length > 0 && !/heading|catchUp|opening|headingFor/.test(call), "the digest's watch call carries no heading, catch-up flag or car-section name (the stray heading argument)");
+  const wsec = src.split("\n").filter(l => /sections\.push\(\{ \.\.\.msg/.test(l)).join("\n"); ok(wsec.length > 0 && !/catchUp/.test(wsec), "a watch section is pushed with no catch-up flag, so composeDigest writes no heading over it"); }
+// the counting helpers the watch lines use agree with the shared helper's number form at every count
+for (let n = 1; n <= 45; n++) { const { countText } = await import("../lib/live/rung.js"); if (countText(n).toLowerCase() !== countNoun(n, "x").split(" ")[0].toLowerCase()) { ok(false, `rung countText(${n}) differs from the helper`); break; } if (n === 45) ok(true, "countText (the watch lines' number) is the helper's number form at 1 to 45"); }
+// the detector: the old shapes fail it
+ok(watchCountProblems("Sam saw 3 sell: X").length === 1 && watchCountProblems("Sam saw three sell: X").length === 0 && watchCountProblems("Sam saw eleven sell: X").length === 1, "watch detector: a digit where the helper writes a word fails");
+ok(watchCountProblems("3 Porsche Targas sold since June").length === 1 && watchCountProblems("Three Porsche Targas sold since June").length === 0 && watchCountProblems("And 3 more are in your Task").length === 1, "watch detector: the count line and the more line");
+
 console.log(`emailFormCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

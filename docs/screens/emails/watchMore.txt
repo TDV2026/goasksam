@@ -1,0 +1,105 @@
+Subject: Sam saw 13 sell: Porsche 911 Carrera Targas
+
+13 Porsche 911 Carrera Targas sold since October 20.
+
+1987 Porsche 911 Carrera Targa 15
+Sold $120,500 October 27, 2026 · Bring a Trailer
+51,500 miles
+$88,000 to $121,000
+The typical range for cars like this.
+The sale was inside the range.
+View the sale: https://example.com/sale/15
+Market Check: https://goasksam.com/market-check?car=1987-porsche-911-carrera-targa-15
+
+1987 Porsche 911 Carrera Targa 14
+Sold $119,000 October 26, 2026 · Bring a Trailer
+50,800 miles
+$88,000 to $121,000
+The typical range for cars like this.
+The sale was inside the range.
+View the sale: https://example.com/sale/14
+Market Check: https://goasksam.com/market-check?car=1987-porsche-911-carrera-targa-14
+
+1987 Porsche 911 Carrera Targa 13
+Sold $117,500 October 25, 2026 · Bring a Trailer
+50,100 miles
+$88,000 to $121,000
+The typical range for cars like this.
+The sale was inside the range.
+View the sale: https://example.com/sale/13
+Market Check: https://goasksam.com/market-check?car=1987-porsche-911-carrera-targa-13
+
+1987 Porsche 911 Carrera Targa 12
+Sold $116,000 October 24, 2026 · Bring a Trailer
+49,400 miles
+$88,000 to $121,000
+The typical range for cars like this.
+The sale was inside the range.
+View the sale: https://example.com/sale/12
+Market Check: https://goasksam.com/market-check?car=1987-porsche-911-carrera-targa-12
+
+1987 Porsche 911 Carrera Targa 11
+Sold $114,500 October 23, 2026 · Bring a Trailer
+48,700 miles
+$88,000 to $121,000
+The typical range for cars like this.
+The sale was inside the range.
+View the sale: https://example.com/sale/11
+Market Check: https://goasksam.com/market-check?car=1987-porsche-911-carrera-targa-11
+
+1987 Porsche 911 Carrera Targa 19
+Sold $126,500 October 23, 2026 · Bring a Trailer
+54,300 miles
+$88,000 to $121,000
+The typical range for cars like this.
+The sale was above the range.
+View the sale: https://example.com/sale/19
+Market Check: https://goasksam.com/market-check?car=1987-porsche-911-carrera-targa-19
+
+1987 Porsche 911 Carrera Targa 10
+Sold $113,000 October 22, 2026 · Bring a Trailer
+48,000 miles
+$88,000 to $121,000
+The typical range for cars like this.
+The sale was inside the range.
+View the sale: https://example.com/sale/10
+Market Check: https://goasksam.com/market-check?car=1987-porsche-911-carrera-targa-10
+
+1987 Porsche 911 Carrera Targa 18
+Sold $125,000 October 22, 2026 · Bring a Trailer
+53,600 miles
+$88,000 to $121,000
+The typical range for cars like this.
+The sale was above the range.
+View the sale: https://example.com/sale/18
+Market Check: https://goasksam.com/market-check?car=1987-porsche-911-carrera-targa-18
+
+1987 Porsche 911 Carrera Targa 17
+Sold $123,500 October 21, 2026 · Bring a Trailer
+52,900 miles
+$88,000 to $121,000
+The typical range for cars like this.
+The sale was above the range.
+View the sale: https://example.com/sale/17
+Market Check: https://goasksam.com/market-check?car=1987-porsche-911-carrera-targa-17
+
+1987 Porsche 911 Carrera Targa 16
+Sold $122,000 October 20, 2026 · Bring a Trailer
+52,200 miles
+$88,000 to $121,000
+The typical range for cars like this.
+The sale was above the range.
+View the sale: https://example.com/sale/16
+Market Check: https://goasksam.com/market-check?car=1987-porsche-911-carrera-targa-16
+
+And three more are in your Task. https://goasksam.com/tasks/mine
+
+You asked Sam to tell you when the next Porsche 911 Carrera Targa sells.
+
+Open the Task: https://goasksam.com/tasks/mine
+Pause: https://goasksam.com/api/task-link?a=pause&t=00000000-0000-4000-8000-0000000000b3.xV8DTupTmXXmwherSmXfGY
+Stop: https://goasksam.com/api/task-link?a=stop&t=00000000-0000-4000-8000-0000000000b3.LNEuUMbuG-5fhDojlGl8xS
+
+Sam sends one email a day with everything new from your Tasks. Change how often on your Tasks page. Before it ends emails always come two hours before bidding ends. Open your Tasks: https://goasksam.com/tasks/mine Stop all Task emails: https://goasksam.com/api/tasks?a=emails_off&t=aaaaaaaa-0000-4000-8000-000000000001.PN7OcNTzMVrJhqBB55itUA
+
+GoAskSam

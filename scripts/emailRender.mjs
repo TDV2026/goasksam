@@ -6,7 +6,12 @@ const SET = {
   first:   ["1 First email after three Tasks were created (golden rows 73 to 75)", "The catch-up: headed Live right now, one footer line, each car by its engine emailMode (options for the 911 and the S-Class, range with options for the Corvette)."],
   options: ["2 First email of a new Task whose car has options", "A 2001 BMW M3 Convertible: the pooled range and each option's own line (emailMode range_with_options)."],
   later:   ["3 A later email for the same three Tasks", "Headed New since your last email; only cars new since the last email."],
-  modes:   ["4 Later email: range, sales and none", "emailMode range (M3 Coupe), sales (Diablo, sales and no range), none (959, nothing about the market)."]
+  modes:   ["4 Later email: range, sales and none", "emailMode range (M3 Coupe), sales (Diablo, sales and no range), none (959, nothing about the market)."],
+  watchOne:  ["5 Watch section: one sale of a sold-car Task", "The sale, the engine's band before it and where it sat; no heading, the Task's own Open, Pause and Stop, one footer line."],
+  watchMany: ["6 Watch section: three sales", "A sale with its band, a sale with no band (nothing placed), a sale the engine set aside (its reason, never placed)."],
+  watchMore: ["7 Watch section: thirteen sales", "Ten shown, the count covers all thirteen, and the line for the rest."],
+  watchVin:  ["8 Watch section: an exact car", "Back at auction (last bid seen with its time), offered and did not sell, sold, each by its own event."],
+  combined:  ["9 One email: a catch-up car section, a watch section and the quiet sibling line", "Live right now over the car section only; the watch sections carry no heading; one footer line."]
 };
 const out = "docs/screens/emails"; fs.mkdirSync(out, { recursive: true });
 const mails = await buildEmails(), made = [];

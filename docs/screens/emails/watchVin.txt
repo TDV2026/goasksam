@@ -1,0 +1,30 @@
+Subject: Back at auction: 1987 Porsche 911 Carrera Targa
+
+The 1987 Porsche 911 Carrera Targa in your Task (VIN WP0EB0910HS120001) is live on Cars & Bids, ending Friday, October 30 at 11:00am PT. The last bid seen was $61,500 at 7:50am PT.
+1987 Porsche 911 Carrera Targa
+Last bid seen $61,500 Cars & Bids
+View the auction: https://example.com/live/1
+Market Check: https://goasksam.com/market-check?vin=WP0EB0910HS120001&from=card
+
+Before that, it was offered on Mecum on October 12 and did not sell. The high bid was $54,000.
+1987 Porsche 911 Carrera Targa
+Did not sell $54,000 October 12, 2026 · Mecum
+View the auction: https://example.com/att/1
+Market Check: https://goasksam.com/market-check?vin=WP0EB0910HS120001&from=card
+
+Before that, it sold on Bring a Trailer on October 5 for $87,500.
+1987 Porsche 911 Carrera Targa
+Sold $87,500 October 5, 2026 · Bring a Trailer
+$80,000 to $110,000
+The typical range for cars like this.
+The sale was inside the range.
+View the sale: https://example.com/sale/v1
+Market Check: https://goasksam.com/market-check?vin=WP0EB0910HS120001&from=card
+
+Open the Task: https://goasksam.com/tasks/mine
+Pause: https://goasksam.com/api/task-link?a=pause&t=00000000-0000-4000-8000-0000000000b4.4P69rCzk1DlrS_h44TOxou
+Stop: https://goasksam.com/api/task-link?a=stop&t=00000000-0000-4000-8000-0000000000b4.j2SSOvRiLK012pcOj_ZI6H
+
+Sam sends one email a day with everything new from your Tasks. Change how often on your Tasks page. Before it ends emails always come two hours before bidding ends. Open your Tasks: https://goasksam.com/tasks/mine Stop all Task emails: https://goasksam.com/api/tasks?a=emails_off&t=aaaaaaaa-0000-4000-8000-000000000001.PN7OcNTzMVrJhqBB55itUA
+
+GoAskSam
