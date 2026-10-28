@@ -1628,7 +1628,7 @@ async function handleOps(req, res) {
           const yl = Object.keys(yrs).map(Number).filter(y => yrs[y].length >= 3).sort((x, y) => x - y); let yApart = null;
           for (let i = 0; i < yl.length && !yApart; i++) for (let j = i + 1; j < yl.length; j++) if (pq(yrs[yl[i]], 0.75) < pq(yrs[yl[j]], 0.25) || pq(yrs[yl[j]], 0.75) < pq(yrs[yl[i]], 0.25)) { yApart = [yl[i], yl[j]]; break; }
           if (yApart && yl.length >= 2 && /year_widened|generation|model_any_year/.test(String(d.fallbackRung || ""))) { C.yearApart.n++; ex("yearApart", { years: yApart, groups: yApart.map(y => `${y}: ${yrs[y].length} sales, median ${Math.round(pq(yrs[y], 0.5))}`), rung: d.fallbackRung, range: cl }); }
-          const lo = (Array.isArray(d.cards) ? d.cards : []).filter(c => Number(c.mi) > 0 && Number(c.mi) < 500 && Number(c.year) > 0 && Number(c.year) <= new Date().getUTCFullYear() - 15);
+          const lo = (Array.isArray(d.cards) ? d.cards : []).filter(c => Number(c.mi) > 0 && Number(c.mi) < 500 && (Number(c.year) || Number((/\b(18|19|20)\d{2}\b/.exec(String(c.title || "")) || [])[0])) > 0 && (Number(c.year) || Number((/\b(18|19|20)\d{2}\b/.exec(String(c.title || "")) || [])[0])) <= new Date().getUTCFullYear() - 15);
           if (lo.length) { C.lowMileTiles.sales += lo.length; C.lowMileTiles.answers++; ex("lowMileTiles", { cars: lo.slice(0, 2).map(c => `${c.title} ${c.mi} mi $${c.price}`) }); }
           for (const o of [...(((d.pooledSplit || {}).options) || []), ...(((d.pooledApart || {}).options) || []), ...(((gg || {}).pooledSplit || {}).options || []), ...(((gg || {}).pooledApart || {}).options || [])]) if (o && (o.low === 0 || o.high === 0 || o.median === 0)) { C.zeroFromNull.n++; ex("zeroFromNull", { option: `${o.dimension}:${o.label}`, low: o.low, high: o.high, median: o.median }); break; }
           out.results++;
@@ -4984,6 +4984,40 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { liveSpecKeyCounts } = await import("../lib/live/search.js");
     return res.status(200).json({ task: "liveSpecKeys", ...(await liveSpecKeyCounts(env)) });
+  }
+  // task=findsweep (Lane B, Oct 28 2026, e98): READ-ONLY. Does the Find card equal the Market Check answer for the same identity? For each spec of the stored live set
+  // (the LIVESPECS row), reads the Find core row and the stored Market Check answer under the same key and compares kind (range or not), low and high, count, scope label and
+  // landing rung. &after=N&n=M pages the set (default 40 specs a call). Counts by cause, first ten examples. Writes nothing, spends nothing.
+  if (task === "findsweep") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { liveSpecKeyCounts } = await import("../lib/live/search.js");
+    const live = await supabaseSelect(env, `spec_market_cache?spec_key=like.${encodeURIComponent("LIVESPECS:v1:%")}&select=spec_key,market,computed_at&order=computed_at.desc&limit=1`);
+    const lrow = live && live[0]; const specsAll = lrow && lrow.market && Array.isArray(lrow.market.specs) ? lrow.market.specs.filter(e => e && e.spec && e.spec.key) : null;
+    if (!specsAll) return res.status(200).json({ task: "findsweep", found: false });
+    const keys = [...new Map(specsAll.map(e => [e.spec.key, e.spec.title || null])).entries()];
+    const after = Math.max(0, Number(req.query?.after) || 0), n = Math.max(1, Math.min(80, Number(req.query?.n) || 40));
+    const slice = keys.slice(after, after + n);
+    const out = { task: "findsweep", liveSet: String(lrow.spec_key), totalKeys: keys.length, after, read: slice.length, differ: 0, same: 0, noFindRow: 0, noMarketCheckRow: 0, causes: {}, examples: [], ocdSpend: 0, writes: 0 };
+    const cause = (k, ex) => { out.differ++; out.causes[k] = (out.causes[k] || 0) + 1; if (out.examples.length < 10) out.examples.push({ key: ex.key, title: ex.title, cause: k, find: ex.find, marketCheck: ex.mc }); };
+    for (let i = 0; i < slice.length; i += 8) {
+      await Promise.all(slice.slice(i, i + 8).map(async ([key, title]) => {
+        const [fr, mr] = await Promise.all([supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent(key)}&select=market`), supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent("MCWARM:" + key)}&select=market`)]);
+        const f = fr && fr[0] && fr[0].market, m = mr && mr[0] && mr[0].market && mr[0].market.raw;
+        if (!f) { out.noFindRow++; return; } if (!m) { out.noMarketCheckRow++; return; }
+        const fR = { kind: f.kind || null, low: f.low ?? null, high: f.high ?? null, count: f.count ?? null, rung: f.fallbackRung || null, label: f.rungLabel || null };
+        const cl = Array.isArray(m.cluster) ? m.cluster : null;
+        const mR = { kind: cl ? "range" : (m.tier === "not_tracked" ? "none" : "count"), low: cl ? cl[0] : null, high: cl ? cl[1] : null, count: m.poolN ?? null, rung: m.fallbackRung || null, label: m.rungLabel || null };
+        const ex = { key, title, find: fR, mc: mR };
+        if (String(f.engineVersion) !== String((mr[0].market || {}).engineVersion)) return cause("version_differs", ex);
+        if ((fR.kind === "range") !== (mR.kind === "range")) return cause("range_vs_no_range", ex);
+        if (fR.kind === "range" && (Number(fR.low) !== Number(mR.low) || Number(fR.high) !== Number(mR.high))) return cause("low_high_differs", ex);
+        if (fR.count != null && mR.count != null && Number(fR.count) !== Number(mR.count)) return cause("count_differs", ex);
+        if ((fR.rung || null) !== (mR.rung || null)) return cause("landing_rung_differs", ex);
+        if (fR.label && mR.label && fR.label !== mR.label) return cause("scope_label_differs", ex);
+        out.same++;
+      }));
+    }
+    return res.status(200).json(out);
   }
   // task=warmStale&q=<car> (stage 4 proof, credentialed): marks one car's stored Market Check row as if an ingest had
   // moved the epoch since it was stored, so the next public read serves it stale (with the dated line) and recomputes.
