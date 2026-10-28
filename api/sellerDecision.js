@@ -52,7 +52,14 @@ import {
 } from "../lib/_classify.js";
 import { hammerUsd, ensureFxReady } from "../lib/_houseComps.js";
 import { buildSharedAnalysis, isRoutableVenue, ROUTABLE_VENUES, SHORT_AUCTION_VENUES, US_ROUTE_VENUES } from "../lib/platformPick.js";
-import { specKeyFor, coreOf, persistCore, warmAnswerKeyFor, readWarmAnswer, readWarmAnswerDetailed, writeWarmAnswer, answerCacheable, markRecomputing } from "../lib/live/search.js";
+import { specKeyFor, coreOf, persistCore, warmAnswerKeyFor, readWarmAnswer, readWarmAnswerDetailed, writeWarmAnswer, answerCacheable, markRecomputing, markComputing, readComputing, clearComputing } from "../lib/live/search.js";
+import { keepAlive } from "../lib/keepAlive.js";
+// COLD SPEC WORDS (Sam, Oct 28 2026): the computing answer and the one plain line when the read cannot finish. No page says "try again"; the page keeps asking
+// (retryAfterMs, up to waitMaxMs) while computing is true.
+export const COMPUTING_LINE = "Sam is reading the sales for this one.";
+export const COULD_NOT_LINE = "Sam couldn't read this one yet.";
+const carStubOf = v => v ? { year: v.year || null, make: v.make || null, model: v.model || null, trim: v.trim || null, bodyStyle: v.bodyStyle || null } : null;
+const computingAnswer = v => ({ status: "one_box", tier: "unavailable", stillReading: true, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: 45000, samLine: COMPUTING_LINE, resolvedCar: carStubOf(v) });
 
 import { isCrewRequest } from "../lib/_crew.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
@@ -3256,7 +3263,7 @@ async function handler(req, res) {
       // e60 timing contract: a resolver lookup that timed out is the deadline card (the same words as the 20-second
       // card), never a car resolved from the typed words alone.
       if (resolution && resolution.status === "lookup_timeout") {
-        return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: "Sam is still reading the sales for this one. Try again in a minute.", retry: true, retryAfterMs: 15000 });
+        return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: COMPUTING_LINE, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: 45000 });
       }
       if (resolution.status !== "valid") {
         // The caller already accepted a model-level read (the seller declined
@@ -3381,7 +3388,7 @@ async function handler(req, res) {
       const obStillReading = () => {
         console.error(`One Box deadline on the path before the engine, ${Date.now() - obStart}ms.`);
         mcRun({ answer_type: "failed", failure_state: "still_reading" });
-        return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: "Sam is still reading the sales for this one. Try again in a minute.", retry: true, retryAfterMs: 15000 });
+        return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: COMPUTING_LINE, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: 45000 });
       };
       // Graceful failure (reliability pass): if Supabase is slow or DOWN, fail FAST to one calm line
       // rather than a hung spinner or a misleading "not enough sales" from empty reads. A cheap probe
@@ -3587,20 +3594,37 @@ async function handler(req, res) {
           }
         } catch (e) { if (e && e.message === "onebox_deadline") return obStillReading(); /* otherwise fall through to the live path below */ }
       }
+      let engineP = null;   // the compute, kept alive past this response when the page's clock beats it (COLD SPEC, below)
+      // finishStore: the one place a computed answer is stored (inline, or after the response by keepAlive)
+      const finishStore = async (ans) => {
+        const raw = ans && ans.raw;
+        if (wantsWarm && raw && answerCacheable(raw) && !/_choice$/.test(String(raw.tier || ""))) {   // a recompute self-call lands here too and writes the fresh row
+          await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, slimAnswerForWire(raw)).catch(() => {});
+          // the nightly warm's own credentialed call also stores the car-only Sell block beside the answer (lib/sell/sellBlock.js)
+          if (req.body?.warm === true && credentialed) { try { await (await import("../lib/sell/sellBlock.js")).warmSellBlock({ supabaseUrl, supabaseKey }, oneBoxText, raw, warmKey); } catch (e) { /* the block is optional */ } }
+        }
+      };
       try {
         if (!warmHit) {
           const te = Date.now();
+          // COLD SPEC (Sam, Oct 28 2026, no dead ends): a spec whose answer is not stored is computed behind the first response. After ONEBOX_HANDOFF_MS the
+          // page gets the computing answer (it keeps asking every 2 seconds), the compute is handed to keepAlive and writes the row when it finishes, and a
+          // marker row keeps those asks from starting a second compute. Only a stored market (wantsWarm) can be asked for again, so only it hands off.
+          if (wantsWarm && !recompute && await readComputing({ supabaseUrl, supabaseKey }, warmKey)) {
+            mcRun({ answer_type: "failed", failure_state: "still_reading" });
+            return res.status(200).json(computingAnswer(vehicle));
+          }
+          if (wantsWarm) markComputing({ supabaseUrl, supabaseKey }, warmKey).catch(() => {});
+          engineP = oneEngineAnswer(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, asked: Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) }, obRefine);
+          const handoffMs = wantsWarm ? Math.min(obRemaining(), Number(process.env.ONEBOX_HANDOFF_MS || 8000)) : obRemaining();
           const engineAnswer = await Promise.race([
-            oneEngineAnswer(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, asked: Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) }, obRefine),
-            new Promise((_, rej) => setTimeout(() => rej(new Error("onebox_deadline")), obRemaining()))   // the remainder of the whole-path clock
+            engineP,
+            new Promise((_, rej) => setTimeout(() => rej(new Error("onebox_deadline")), handoffMs))   // the handoff, or the remainder of the whole-path clock
           ]);
           oneBox = engineAnswer.raw;
           obTimes.engineMs = Date.now() - te;
-          if (wantsWarm && answerCacheable(oneBox) && !/_choice$/.test(String(oneBox && oneBox.tier || ""))) {   // a recompute self-call lands here too and writes the fresh row
-            await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, slimAnswerForWire(oneBox)).catch(() => {});
-            // the nightly warm's own credentialed call also stores the car-only Sell block beside the answer (lib/sell/sellBlock.js)
-            if (req.body?.warm === true && credentialed) { try { await (await import("../lib/sell/sellBlock.js")).warmSellBlock({ supabaseUrl, supabaseKey }, oneBoxText, oneBox, warmKey); } catch (e) { /* the block is optional */ } }
-          }
+          await finishStore(engineAnswer);
+          if (wantsWarm) await clearComputing({ supabaseUrl, supabaseKey }, warmKey);
         }
       } catch (e) {
         console.error(`One Box unavailable (${(e && e.message) || e}), ${Date.now() - obStart}ms.`);
@@ -3609,8 +3633,13 @@ async function handler(req, res) {
         // written on this path). The health-probe failure keeps its own line below.
         if (e && e.message === "onebox_deadline") {
           mcRun({ answer_type: "failed", failure_state: "still_reading" });
-          return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: "Sam is still reading the sales for this one. Try again in a minute.", retry: true, retryAfterMs: 15000 });
+          if (engineP && wantsWarm) {   // the compute finishes and stores its row after this response; the page's next ask is a stored read
+            keepAlive(engineP.then(finishStore).finally(() => clearComputing({ supabaseUrl, supabaseKey }, warmKey)));
+            return res.status(200).json(computingAnswer(vehicle));
+          }
+          return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, computing: false, samLine: COULD_NOT_LINE, retry: false, resolvedCar: carStubOf(vehicle) });
         }
+        if (engineP && wantsWarm) clearComputing({ supabaseUrl, supabaseKey }, warmKey).catch(() => {});
         mcRun({ answer_type: "failed", failure_state: "catching_breath" });
         return res.status(200).json({ status: "one_box", tier: "unavailable", samLine: OB_CALM });
       }
