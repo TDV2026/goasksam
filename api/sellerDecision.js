@@ -3599,25 +3599,37 @@ async function handler(req, res) {
       // finishStore: the one place a computed answer is stored (inline, or after the response by keepAlive)
       const finishStore = async (ans) => {
         const raw = ans && ans.raw;
-        if (wantsWarm && raw && answerCacheable(raw) && !/_choice$/.test(String(raw.tier || ""))) {   // a recompute self-call lands here too and writes the fresh row
+        if (wantsWarm && !poolSeed && raw && answerCacheable(raw) && !/_choice$/.test(String(raw.tier || ""))) {   // a recompute self-call lands here too and writes the fresh row
           await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, slimAnswerForWire(raw)).catch(() => {});
           // the nightly warm's own credentialed call also stores the car-only Sell block beside the answer (lib/sell/sellBlock.js)
           if (req.body?.warm === true && credentialed) { try { await (await import("../lib/sell/sellBlock.js")).warmSellBlock({ supabaseUrl, supabaseKey }, oneBoxText, raw, warmKey); } catch (e) { /* the block is optional */ } }
         }
       };
+      // e97 (Sam, Oct 28 2026): a refine of a market whose bare answer is stored (mileage band, body, gearbox, variant, year, edition, a chip) is computed from that
+      // stored answer's own pool in this same request: the engine reads the stored rawPool, never the archive, never starts a cold compute, marks no computing row
+      // and stores no second row per refine. No stored bare row (or not a result) falls through to the compute below, as before.
+      let poolSeed = null;
+      if (!warmHit && obRefine && !exactSale && vehicle && vehicle.make && !vehicle.vin && !vehicle.chassis && !req.body?.fresh && !recompute && !isSingerPorsche(oneBoxText, vehicle)) {
+        try {
+          const bare = await obWithin(readWarmAnswerDetailed({ supabaseUrl, supabaseKey }, warmAnswerKeyFor(vehicle, generation, null)));
+          const br = bare && bare.raw;
+          if (br && br.tier === "result" && Array.isArray(br.rawPool) && br.rawPool.length) poolSeed = { rows: br.rawPool, storedAt: bare.storedAt || null };
+        } catch (e) { if (e && e.message === "onebox_deadline") return obStillReading(); }
+      }
+      const coldStore = wantsWarm && !poolSeed;
       try {
         if (!warmHit) {
           const te = Date.now();
           // COLD SPEC (Sam, Oct 28 2026, no dead ends): a spec whose answer is not stored is computed behind the first response. After ONEBOX_HANDOFF_MS the
           // page gets the computing answer (it keeps asking every 2 seconds), the compute is handed to keepAlive and writes the row when it finishes, and a
           // marker row keeps those asks from starting a second compute. Only a stored market (wantsWarm) can be asked for again, so only it hands off.
-          if (wantsWarm && !recompute && await readComputing({ supabaseUrl, supabaseKey }, warmKey)) {
+          if (coldStore && !recompute && await readComputing({ supabaseUrl, supabaseKey }, warmKey)) {
             mcRun({ answer_type: "failed", failure_state: "still_reading" });
             return res.status(200).json(computingAnswer(vehicle));
           }
-          if (wantsWarm) markComputing({ supabaseUrl, supabaseKey }, warmKey).catch(() => {});
-          engineP = oneEngineAnswer(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, asked: Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) }, obRefine);
-          const handoffMs = wantsWarm ? Math.min(obRemaining(), Number(process.env.ONEBOX_HANDOFF_MS || 8000)) : obRemaining();
+          if (coldStore) markComputing({ supabaseUrl, supabaseKey }, warmKey).catch(() => {});
+          engineP = oneEngineAnswer(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, ...(poolSeed ? { poolSeed } : {}), asked: Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) }, obRefine);
+          const handoffMs = coldStore ? Math.min(obRemaining(), Number(process.env.ONEBOX_HANDOFF_MS || 8000)) : obRemaining();
           const engineAnswer = await Promise.race([
             engineP,
             new Promise((_, rej) => setTimeout(() => rej(new Error("onebox_deadline")), handoffMs))   // the handoff, or the remainder of the whole-path clock
@@ -3625,7 +3637,7 @@ async function handler(req, res) {
           oneBox = engineAnswer.raw;
           obTimes.engineMs = Date.now() - te;
           await finishStore(engineAnswer);
-          if (wantsWarm) await clearComputing({ supabaseUrl, supabaseKey }, warmKey);
+          if (coldStore) await clearComputing({ supabaseUrl, supabaseKey }, warmKey);
         }
       } catch (e) {
         console.error(`One Box unavailable (${(e && e.message) || e}), ${Date.now() - obStart}ms.`);
@@ -3634,13 +3646,13 @@ async function handler(req, res) {
         // written on this path). The health-probe failure keeps its own line below.
         if (e && e.message === "onebox_deadline") {
           mcRun({ answer_type: "failed", failure_state: "still_reading" });
-          if (engineP && wantsWarm) {   // the compute finishes and stores its row after this response; the page's next ask is a stored read
+          if (engineP && coldStore) {   // the compute finishes and stores its row after this response; the page's next ask is a stored read
             keepAlive(engineP.then(finishStore).finally(() => clearComputing({ supabaseUrl, supabaseKey }, warmKey)));
             return res.status(200).json(computingAnswer(vehicle));
           }
           return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, computing: false, samLine: COULD_NOT_LINE, retry: false, resolvedCar: carStubOf(vehicle) });
         }
-        if (engineP && wantsWarm) clearComputing({ supabaseUrl, supabaseKey }, warmKey).catch(() => {});
+        if (engineP && coldStore) clearComputing({ supabaseUrl, supabaseKey }, warmKey).catch(() => {});
         mcRun({ answer_type: "failed", failure_state: "catching_breath" });
         return res.status(200).json({ status: "one_box", tier: "unavailable", samLine: OB_CALM });
       }
