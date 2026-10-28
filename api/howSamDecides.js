@@ -15,7 +15,7 @@ const TITLE = "How Sam decides | GoAskSam";
 const DESC = "Every answer on GoAskSam starts with a real sale. Here is how Find, Market Check, Sell and Tasks each use that evidence.";
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-// The five sections (Sam, Oct 26 2026, exact copy; every earlier line on this page is gone). Plain text, no icons. The page describes the engine and
+// The six sections (Sam, Oct 26 and 28 2026, exact copy; every earlier line on this page is gone). Plain text, no icons. The page describes the engine and
 // computes nothing. Section 2 keeps its own wording because Market Check shows a candle panel (public/js/onebox.js candleChartHtml, 3+ candles).
 const PARTS = [
   { h: "One engine, every page", p: [
@@ -30,6 +30,10 @@ const PARTS = [
     "Like with like. A 997.1 is not a 997.2 and a cabriolet is not a coupe. When there are not enough sales of the exact car and the net is widened, the answer says so.",
     "Enough sales or nothing. A range, a best day or a reserve call is shown only when enough sales agree. When they don't, Sam says so instead of guessing.",
     "The count is always there. Every range says how many sales it rests on, and when the window is wider than a year, it says so. The sales behind every range are one click away."] },
+  { h: "Where the numbers come from", p: [
+    "Every figure Sam shows traces back to a completed sale at a live or online auction, with a price that was public when the hammer fell. Any sale behind any answer can be opened and checked.",
+    "Plenty of other numbers exist. Cars change hands privately every day, and some tools collect prices by asking people what they paid or what they got. Those numbers can't be verified, and people have their own reasons for the figure they give. So Sam doesn't use them. A number that can't be checked isn't evidence, and it never reaches an answer here.",
+    "New sources of sales data are reviewed all the time. The ones that can be verified earn their way in. A guess never does."] },
   { h: "What Sam never does", never: [
     "estimates what a car is worth before it has sold.",
     "builds a range on an asking price, a failed bid or a withdrawn car.",
