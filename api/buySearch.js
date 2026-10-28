@@ -129,7 +129,11 @@ export function bidAgainstSales(c, now = Date.now()) {
 export function samLines(c, now = Date.now()) {
   if (!c || c.swap) return [];
   const out = [], m = c.market;
-  if (m && m.kind !== "pending" && m.soldLine) {
+  if (m && m.findAnswer) {
+    // ENGINE READY 10: a Find card prints the engine's findAnswer lines and nothing else about the market (one range, no sale lines, no pick one, no mileage band the car is not in)
+    const fa = m.findAnswer;
+    out.push({ kind: "range", rung: [], text: fa.lines.join(" "), lines: fa.lines, state: fa.state, range: fa.range, option: fa.option, ...(fa.bid ? { placing: fa.bid } : {}) });
+  } else if (m && m.kind !== "pending" && m.soldLine) {
     const pl = bidPlacing(c, now);
     // e71b (Sam, Oct 19 2026): until the grid card lists the sales the engine found (Lane C's build, the market flag m.cardListsSales), a
     // no-range answer prints only the FIRST sentence of the engine's own thin line ("Not enough sales of this exact car to

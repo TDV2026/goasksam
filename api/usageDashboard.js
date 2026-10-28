@@ -1567,6 +1567,70 @@ async function handleOps(req, res) {
     }
     return res.status(200).json({ task: "storedcount", ocdSpend: 0, writes: 0, ...counts, ms: Date.now() - t0 });
   }
+  // task=findcards (Lane B, Oct 28 2026, ENGINE READY 10): READ ONLY. Builds the Find card's market for live listings (listingMarket, never computing: a spec with no stored read is counted as cold) and counts the
+  // findAnswer states: matched option, split with no option said, too few, near-miles headline, plain count; with the old card line beside five examples of each. Paged by after/n (n at most 40). Writes nothing,
+  // spends nothing.
+  if (task === "findcards") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { liveRows, specOf, listingFacts, listingMarket } = await import("../lib/live/search.js");
+    const all = ((await liveRows(env, "id=gt.0", { noDescription: true })) || []).sort((x, y) => x.id - y.id);
+    const after = Number(req.query?.after) || 0, n = Math.max(1, Math.min(40, Number(req.query?.n) || 40));
+    const part = all.filter(r => r.id > after).slice(0, n);
+    const out = { task: "findcards", live: all.length, read: part.length, cold: 0, noAnswer: 0, byRule: { option_matched: 0, split_unsaid: 0, few: 0, near_headline: 0, count_range: 0 }, examples: { option_matched: [], split_unsaid: [], few: [], near_headline: [], count_range: [] }, next: part.length === n ? part[part.length - 1].id : null, ocdSpend: 0, writes: 0 };
+    for (const r of part) {
+      try {
+        const facts = listingFacts(r); const spec = await specOf(env, r, facts, null);
+        const m = spec ? await listingMarket(env, r, facts, { noBlock: true, notTracked: true }) : null;
+        if (!m || m.kind === "pending") { out.cold++; continue; }
+        const f = m.findAnswer; if (!f) { out.noAnswer++; continue; }
+        const rule = f.state === "split_unsaid" ? "split_unsaid" : f.state === "few" ? "few" : f.basis === "band" ? "near_headline" : f.option ? "option_matched" : "count_range";
+        out.byRule[rule]++; if (out.examples[rule].length < 5) out.examples[rule].push({ title: r.listing_title, new: f.lines.join(" "), old: m.soldLine || null });
+      } catch { out.noAnswer++; }
+    }
+    return res.status(200).json(out);
+  }
+  // task=chartsweep (Lane B, Oct 28 2026, chart ladder): READ ONLY. Applies the chart ladder (chartOf, lib/onebox.js) to every stored Market Check answer of the live stamp and counts the pages that land on each
+  // step: pooled candles, scoped candles, withheld (never dots); five examples of each (key, count, scope, held reason). Paged 100 rows a call (after = last key). Writes nothing, spends nothing.
+  if (task === "chartsweep") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { chartOf, ENGINE_VERSION } = await import("../lib/onebox.js");
+    const after = req.query?.after ? String(req.query.after) : "";
+    const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,ev:market->>engineVersion,raw:market->raw&order=spec_key.asc&limit=100` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "chartsweep", readFailed: true, ocdSpend: 0, writes: 0 });
+    const out = { task: "chartsweep", ocdSpend: 0, writes: 0, rows: rows.length, otherVersion: 0, answers: 0, pooled_candles: 0, scoped_candles: 0, withheld: 0, noChart: 0, held: 0, examples: { pooled_candles: [], scoped_candles: [], withheld: [] }, next: rows.length === 100 ? rows[rows.length - 1].spec_key : null };
+    for (const r of rows) {
+      if (String(r.ev) !== ENGINE_VERSION) { out.otherVersion++; continue; }
+      const d = r.raw; if (!d || typeof d !== "object") continue;
+      let c = null; try { c = chartOf(d); } catch { c = null; }
+      if (!c) { out.noChart++; continue; }
+      out.answers++; if (d.trendHeld) out.held++;
+      const rung = c.type === "candles" ? (c.scope ? "scoped_candles" : "pooled_candles") : c.type;
+      out[rung]++; if (out.examples[rung].length < 5) out.examples[rung].push({ key: String(r.spec_key).replace(/^MCWARM:/, "").slice(0, 90), n: c.n, scope: c.scope ? c.scope.label : null, held: d.trendHeld ? d.trendHeld.reason : null, why: c.withheld ? c.withheld.reason : null, candles: c.buckets ? c.buckets.length : null });
+    }
+    return res.status(200).json(out);
+  }
+  // task=vintyped (Lane B, Oct 28 2026, typed equals VIN, a go or no-go gate): READ ONLY. Takes up to n (default 50, at most 60) cars from the stored VIN identities (vin_rollout_cache, the nightly rollout), always
+  // including a 996 when one is stored, and compares what the VIN page hands the engine with what the typed name resolves to (lib/vinTyped.js): same stored answer key, or the same tier, count, range and rung.
+  // Reads stored rows and the resolver only: no visitor-path read, no address cap, no writes, no OldCarsData.
+  if (task === "vintyped") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { compareVinTyped } = await import("../lib/vinTyped.js");
+    const { resolveVehicle, sanitizeResolvedVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { warmAnswerKeyFor, readWarmAnswerDetailed } = await import("../lib/live/search.js");
+    const rc = await supabaseSelect(env, "vin_rollout_cache?key=eq.current&select=data&limit=1");
+    const d = Array.isArray(rc) && rc[0] && rc[0].data;
+    if (!d) return res.status(200).json({ task: "vintyped", readFailed: true, ocdSpend: 0, writes: 0 });
+    const n = Math.max(1, Math.min(60, Number(req.query?.n) || 50));
+    const all = [...(d.vins || [])].filter(u => u && u.vin && u.ident && u.ident.make && (u.ident.model || u.ident.family) && u.ident.year).sort((a, b) => String(a.vin).localeCompare(String(b.vin)));
+    const is996 = u => /\b996\b/.test(`${u.ident.model || ""} ${u.ident.family || ""} ${u.ident.genCode || ""}`);
+    const pick = []; const seen = new Set();
+    const add = u => { const k = `${u.ident.year}|${u.ident.make}|${u.ident.model || u.ident.family}|${u.ident.trim || ""}`.toLowerCase(); if (seen.has(k) || pick.length >= n) return; seen.add(k); pick.push({ ...u.ident, vin: u.vin }); };
+    const f996 = all.find(is996); if (f996) add(f996);
+    for (const u of all) add(u);
+    const out = await compareVinTyped(env, pick, { resolveVehicle, sanitize: sanitizeResolvedVehicle, findGeneration, keyFor: (v, g) => warmAnswerKeyFor(v, g, null), readAnswer: async (e, key) => { const r = await readWarmAnswerDetailed(e, key); return r && r.raw ? r.raw : null; } });
+    return res.status(200).json({ task: "vintyped", has996: !!f996, storedIdentities: all.length, ...out, rows: undefined, sample: out.rows.slice(0, 5), ocdSpend: 0, writes: 0 });
+  }
   // task=livescope (Lane B, Oct 28 2026, launch scope of the live feed): READ ONLY. Reads every live listing past the scope fence and counts those the launch scope leaves out (liveScopeOf in
   // lib/live/search.js: an excluded platform, or a place outside the US and Canada; a row with no place stays in and is counted apart), by reason and by platform, with five example titles. Writes nothing, spends nothing.
   if (task === "livescope") {
