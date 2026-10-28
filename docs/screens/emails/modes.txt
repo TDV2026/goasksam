@@ -3,7 +3,7 @@ Subject: Two updates from your Tasks
 New since your last email
 
 2001 BMW M3 Coupe
-bringatrailer · 7 hours left
+bringatrailer · 6 hours left
 Last bid seen $30,000 at 7:50am PT
 $22,500 to $41,000
 The bid is inside the range.
@@ -19,7 +19,7 @@ Stop: https://goasksam.com/api/tasks?a=stop&t=00000000-0000-4000-8000-0000000000
 · · ·
 
 2001 Lamborghini Diablo SE Coupe
-bringatrailer · 10 hours left
+bringatrailer · 9 hours left
 Last bid seen $30,000 at 7:50am PT
 Not enough sales of this exact car to give a reliable range.
 $1,063,000 · October 2026
@@ -27,7 +27,7 @@ View auction: https://example.com/listing/106
 Market Check: https://goasksam.com/market-check?car=undefined
 
 1987 Porsche 959
-bringatrailer · 12 hours left
+bringatrailer · 11 hours left
 Last bid seen $30,000 at 7:50am PT
 View auction: https://example.com/listing/107
 Market Check: https://goasksam.com/market-check

@@ -54,16 +54,29 @@ const TASKS = {
   D: { id: "00000000-0000-4000-8000-0000000000a4", summary: "Sam is looking for a BMW M3 from 2001.", filters: { make: "BMW", model: "M3" }, car: "m3conv" },
   E: { id: "00000000-0000-4000-8000-0000000000a5", summary: "Sam is looking for rare Italian and Porsche exotics.", filters: { make: "Porsche" }, car: "diablo" }
 };
+// ---- the watch section (lib/live/watches.js messageFor): a sold-car Task (spec) or an exact-car Task (vin), their events as pendingEvents hands them over.
+const WID = n => `00000000-0000-4000-8000-0000000000b${n}`;
+const sale = (i, o = {}) => ({ key: "s" + i, kind: "sale", date: `2026-10-${String(20 + (i % 8)).padStart(2, "0")}`, price: 98000 + i * 1500, house: "Bring a Trailer", title: `1987 Porsche 911 Carrera Targa ${i}`, miles: 41000 + i * 700, url: "https://example.com/sale/" + i, band: [88000, 121000], ...o });
+export const WATCHES = {
+  one:   { w: { id: WID(1), user_id: "u", kind: "spec", label: "Porsche 911 Carrera Targas", spec: {}, baseline_date: "2026-10-01" }, events: [sale(1)] },
+  many:  { w: { id: WID(2), user_id: "u", kind: "spec", label: "Porsche 911 Carrera Targas", spec: {}, baseline_date: "2026-10-01" }, events: [sale(2), sale(3, { band: null }), sale(4, { band: null, setAside: "modified", hasRange: true })] },
+  more:  { w: { id: WID(3), user_id: "u", kind: "spec", label: "Porsche 911 Carrera Targas", spec: {}, baseline_date: "2026-10-01" }, events: Array.from({ length: 13 }, (_, i) => sale(10 + i)) },
+  vin:   { w: { id: WID(4), user_id: "u", kind: "vin", label: "1987 Porsche 911 Carrera Targa", key: "WP0EB0910HS120001", created_at: "2026-10-01T00:00:00Z", spec: null }, events: [
+      { key: "l1", kind: "live", date: "2026-10-27", bid: 61500, bidAt: "2026-10-28T14:50:00Z", house: "Cars & Bids", url: "https://example.com/live/1", end: "2026-10-30T18:00:00Z", title: "1987 Porsche 911 Carrera Targa" },
+      { key: "a1", kind: "attempt", date: "2026-10-12", bid: 54000, house: "Mecum", url: "https://example.com/att/1", title: "1987 Porsche 911 Carrera Targa" },
+      { key: "s1", kind: "sale", date: "2026-10-05", price: 87500, house: "Bring a Trailer", url: "https://example.com/sale/v1", title: "1987 Porsche 911 Carrera Targa", band: [80000, 110000] }] },
+  sibling: { w: { id: WID(5), user_id: "u", kind: "spec", label: "Ferrari 308 GTS", spec: { rung: { rung: "sibling", label: "308 GTB", sibling: "308 GTB" } }, baseline_date: "2026-10-01" }, events: [] }
+};
 // One send run. updates: [{ taskKey, cars: [carKey...] }]; emailedTasks: task keys that already had a match email.
-export async function runMail({ updates, emailedTasks = [], every = "daily", first = false }) {
+export async function runMail({ updates = [], watches = [], emailedTasks = [], every = "daily", first = false }) {
   const taskById = Object.fromEntries(Object.values(TASKS).map(t => [t.id, { id: t.id, user_id: "aaaaaaaa-0000-4000-8000-000000000001", email: "p@example.com", channels: ["inapp", "email"], summary: t.summary, filters: t.filters, state: "running", kind: "hunt" }]));
   const carsByKey = CARS, byId = {}; for (const c of Object.values(carsByKey)) byId[c.id] = c;
   const ups = updates.map((u, i) => ({ id: i + 1, task_id: TASKS[u.taskKey].id, kind: "match", email_status: "queued", created_at: hoursFrom(-1), data: { cards: u.cars.map(k => ({ id: carsByKey[k].id, title: carsByKey[k].title })) } }));
   const emailed = new Set(emailedTasks.map(k => TASKS[k].id)), sends = [];
   const io = {
-    queuedUpdates: () => ups, tasks: ids => ids.map(id => taskById[id]), watchUsers: () => [], watchesFor: () => [], watches: () => [],
+    queuedUpdates: () => ups, tasks: ids => ids.map(id => taskById[id]), watchUsers: () => (watches.length ? [{ user_id: "aaaaaaaa-0000-4000-8000-000000000001" }] : []), watchesFor: () => watches.map(k => WATCHES[k].w), watches: () => [],
     prefs: () => ({ on: true, email: "p@example.com", every }), targets: () => [{ channel: "email", to: "p@example.com" }],
-    lastSent: () => null, sentToday: () => 0, first: () => first, recordSent: () => {}, pendingEvents: () => [], taskEmailed: id => emailed.has(id),
+    lastSent: () => null, sentToday: () => 0, first: () => first, recordSent: () => {}, pendingEvents: w => (Object.values(WATCHES).find(x => x.w.id === w.id) || { events: [] }).events, taskEmailed: id => emailed.has(id),
     liveSlim: ids => ids.map(i => byId[i] && rowOf(byId[i])).filter(Boolean), liveRows: ids => ids.map(i => byId[i] && rowOf(byId[i])).filter(Boolean),
     blocks: (rows, cards) => cards.map(c => { const l = listingOf(byId[c.id]); return { id: c.id, car: byId[c.id].title, cardText: emailCardText(l), cardHtml: emailCardHtml(l) }; }),
     patchUpdate: () => {}, markAlert: () => {}, markWatch: () => {}, send: m => { sends.push(m); return { ok: true }; }
@@ -81,7 +94,14 @@ export async function buildEmails() {
     // 3. a later email: the three Tasks each have an earlier email, only new cars
     later: await runMail({ updates: [{ taskKey: "A", cars: ["p911"] }, { taskKey: "B", cars: ["vette"] }, { taskKey: "C", cars: ["sclass"] }], emailedTasks: ["A", "B", "C"] }),
     // 4. the other modes: range, sales, none
-    modes: await runMail({ updates: [{ taskKey: "D", cars: ["m3plain"] }, { taskKey: "E", cars: ["diablo", "none"] }], emailedTasks: ["D", "E"] })
+    modes: await runMail({ updates: [{ taskKey: "D", cars: ["m3plain"] }, { taskKey: "E", cars: ["diablo", "none"] }], emailedTasks: ["D", "E"] }),
+    // 5. the watch section (a sold-car Task and an exact-car Task): one sale, three sales (a band, none, a set-aside), thirteen sales (three past the ten shown), an exact car (live, offered, sold)
+    watchOne: await runMail({ watches: ["one"] }),
+    watchMany: await runMail({ watches: ["many"] }),
+    watchMore: await runMail({ watches: ["more"] }),
+    watchVin: await runMail({ watches: ["vin"] }),
+    // 6. a catch-up match section, a watch section and the quiet sibling line in one email
+    combined: await runMail({ updates: [{ taskKey: "A", cars: ["p911"] }], watches: ["many", "sibling"], first: true })
   };
 }
 globalThis.fetch = realFetch;
