@@ -1359,6 +1359,13 @@ try {
 } catch (e) {
   record("everything a Find toggle or button makes is on Tasks, limited and named by the engine (scripts/findWatchCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Every stored answer carries the live epoch (Sam, Oct 28 2026); offline rule only (the --live read runs after the final warm).
+try {
+  const out = execSync("node scripts/epochMatchCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("every stored answer carries the live epoch, the counting rule (scripts/epochMatchCheck.mjs)", "PASS", (out.match(/epochMatchCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("every stored answer carries the live epoch, the counting rule (scripts/epochMatchCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The launch warm is the union of every live spec (Sam, Oct 28 2026).
 try {
   const out = execSync("node scripts/warmUnionCheck.mjs", { encoding: "utf8", timeout: 600000 });

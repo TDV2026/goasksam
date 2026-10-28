@@ -5113,19 +5113,19 @@ async function handleOps(req, res) {
   // apart) not stored on that UTC day, for the live engine version. The launch gate is offDay = 0 on the MCWARM rows (lib/warmDay.js, scripts/warmDayCheck.mjs).
   if (task === "warmDay") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { rowsOffDay, utcDayOf } = await import("../lib/warmDay.js");
+    const { rowsOffDay, utcDayOf, epochMatch } = await import("../lib/warmDay.js");
     const { ENGINE_VERSION } = await import("../lib/onebox.js");
     const day = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.day || "")) ? String(req.query.day) : utcDayOf(Date.now());
     const mc = [], core = []; let cursor = "";
     for (let page = 0; page < 200; page++) {
-      const q = `spec_market_cache?select=spec_key,computed_at,ev:market->>engineVersion,os:market->raw->>optionsState,tr:market->raw->>tier,hc:market->raw->cluster->>0&order=spec_key.asc&limit=1000` + (cursor ? `&spec_key=gt.${encodeURIComponent(cursor)}` : "");
+      const q = `spec_market_cache?select=spec_key,computed_at,ev:market->>engineVersion,we:market->>warmEpoch,os:market->raw->>optionsState,tr:market->raw->>tier,hc:market->raw->cluster->>0&order=spec_key.asc&limit=1000` + (cursor ? `&spec_key=gt.${encodeURIComponent(cursor)}` : "");
       const rows = await supabaseSelect(env, q);
       if (!Array.isArray(rows) || !rows.length) break;
-      for (const r of rows) (String(r.spec_key).startsWith("MCWARM:") ? mc : core).push({ key: r.spec_key, computedAt: r.computed_at, engineVersion: r.ev, thin: String(r.spec_key).startsWith("MCWARM:") && String(r.tr || "") === "result" && r.hc != null && r.os == null });
+      for (const r of rows) (String(r.spec_key).startsWith("MCWARM:") ? mc : core).push({ key: r.spec_key, computedAt: r.computed_at, engineVersion: r.ev, warmEpoch: r.we, thin: String(r.spec_key).startsWith("MCWARM:") && String(r.tr || "") === "result" && r.hc != null && r.os == null });
       cursor = rows[rows.length - 1].spec_key;
       if (rows.length < 1000) break;
     }
-    return res.status(200).json({ task: "warmDay", engineVersion: ENGINE_VERSION, day, marketCheck: { ...rowsOffDay(mc, day, ENGINE_VERSION), withoutE96Fields: mc.filter(r => r.engineVersion === ENGINE_VERSION && r.thin).length }, buyAndTasks: rowsOffDay(core, day, null), note: "marketCheck.offDay must be 0 at the Wednesday WARM DONE; withoutE96Fields counts live-stamp result and thin rows stored without optionsState (the thin shape), which the warm re-stores" });
+    return res.status(200).json({ task: "warmDay", engineVersion: ENGINE_VERSION, day, marketCheck: { ...rowsOffDay(mc, day, ENGINE_VERSION), withoutE96Fields: mc.filter(r => r.engineVersion === ENGINE_VERSION && r.thin).length }, buyAndTasks: rowsOffDay(core, day, null), epoch: epochMatch(mc, await (await import("../lib/_epoch.js")).currentEpoch(env), ENGINE_VERSION), note: "marketCheck.offDay must be 0 at the Wednesday WARM DONE; withoutE96Fields counts live-stamp result and thin rows stored without optionsState (the thin shape), which the warm re-stores" });
   }
   if (task === "warmDemoCheck") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
