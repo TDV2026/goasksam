@@ -950,6 +950,17 @@
   // bucket size's own words ("by quarter") are the engine's; this function only LAYS THEM OUT (the axis fit, the label places).
   // ENGINE READY 9: answer.chart = { type: "candles" | "withheld", scope, size, spanLabel, caption, note, buckets, withheld: { reason, line } }; an answer stored before it carries d.trend.movement (the same buckets).
   function chartMovementOf(d) { var ch = d && d.chart; if (ch && ch.type === "candles" && Array.isArray(ch.buckets)) return { buckets: ch.buckets, size: ch.size, label: ch.spanLabel }; return d && d.trend && d.trend.movement; }
+  // The axis slots: the engine's buckets in order, with an empty slot for each period between two of them that the engine did not return (a quarter under its minimum). Layout only: no number is made.
+  function chartSlots(bs) {
+    var key = function (q) { var m = /^(\d{4})-(Q[1-4]|H[12])$/.exec(String(q.period || "")), y = /^(\d{4})$/.exec(String(q.period || "")); return m ? { y: +m[1], k: m[2].charAt(0), n: +m[2].charAt(1) } : y ? { y: +y[1], k: "Y", n: 1 } : null; };
+    var ks = bs.map(key); if (ks.some(function (x) { return !x; }) || ks.some(function (x) { return x.k !== ks[0].k; })) return { slots: bs, at: bs.map(function (q, i) { return i; }) };
+    var per = ks[0].k === "Q" ? 4 : ks[0].k === "H" ? 2 : 1, ord = function (x) { return x.y * per + (x.n - 1); }, slots = [], at = [];
+    bs.forEach(function (q, i) {
+      if (i) for (var o2 = ord(ks[i - 1]) + 1; o2 < ord(ks[i]); o2++) { var yy = Math.floor(o2 / per), nn = o2 % per + 1; slots.push({ gap: true, label: per === 1 ? String(yy) : ks[0].k + nn + " " + yy }); }
+      at.push(slots.length); slots.push(q);
+    });
+    return { slots: slots, at: at };
+  }
   function candleChartHtml(d) {
     var mv = chartMovementOf(d);
     var bs = (mv && Array.isArray(mv.buckets)) ? mv.buckets.filter(function (q) { return q && Number(q.low) > 0 && Number(q.high) > 0 && Number(q.high) >= Number(q.low) && digitOf(q.count) > 0; }) : [];
@@ -965,7 +976,9 @@
     var axisVals = []; for (var av = axisLo; av <= axisHi + step * 0.01; av += step) axisVals.push(av);
     var axisChars = Math.max.apply(null, axisVals.map(function (v) { return usdK(v).length; }));
     var W = 880, H = 560, padL = Math.max(60, Math.ceil(axisChars * FS * 0.72 + 28)), padR = 20, padB = phone ? 156 : 116, padT = 44;
-    var plotW = W - padL - padR, slot = plotW / bs.length, barW = Math.min(slot * 0.34, 90);
+    // A period the engine left out (fewer sales than its minimum) keeps its place on the axis as an empty, labelled slot, so a gap in the dates is a visible gap and the candles on either side are not drawn as neighbours.
+    var slotsOf = chartSlots(bs), slots = slotsOf.slots, si = slotsOf.at;
+    var plotW = W - padL - padR, slot = plotW / slots.length, barW = Math.min(slot * 0.34, 90);
     var y = function (v) { return padT + (1 - (v - axisLo) / (axisHi - axisLo)) * (H - padT - padB); };
     var grid = "";
     axisVals.forEach(function (v) {
@@ -984,7 +997,7 @@
     var place = function (str, spots) { for (var k = 0; k < spots.length; k++) { var r = spotRect(str, spots[k]); if (!hit(r)) { claim(r); return textAt(str, spots[k]); } } return ""; };
     var shapes = "", labels = [];
     bs.forEach(function (q, i) {
-      var cx = padL + slot * i + slot / 2, lo = Number(q.low), hi = Number(q.high), ylo = y(lo), yhi = y(hi), count = digitOf(q.count);
+      var cx = padL + slot * si[i] + slot / 2, lo = Number(q.low), hi = Number(q.high), ylo = y(lo), yhi = y(hi), count = digitOf(q.count);
       claim({ x1: cx - barW / 2, x2: cx + barW / 2, y1: yhi, y2: Math.max(yhi + 3, ylo) });
       var tip = chartTip(["Typical range " + usd(lo) + " to " + usd(hi), Number.isFinite(Number(q.typical)) ? "Median " + usd(q.typical) : "", count + (count === 1 ? " sale" : " sales")]);
       shapes += '<g class="hc-candle" tabindex="0" data-tip="' + tip + '"><title>' + tip + '</title><rect x="' + (cx - barW / 2).toFixed(1) + '" y="' + yhi.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + Math.max(3, ylo - yhi).toFixed(1) + '" rx="2" fill="var(--chip)"/>' +
@@ -1022,14 +1035,21 @@
     // On a phone every second period is named (the last always), so no two labels ever touch.
     var rowQ = H - padB + (phone ? 34 : 24), rowY = rowQ + (phone ? 30 : 21), rowN = rowY + (phone ? 40 : 30), rowCap = rowN + (phone ? 38 : 28);
     bs.forEach(function (q, i) {
-      var cx = padL + slot * i + slot / 2, count = digitOf(q.count);
-      var shown = !phone || ((bs.length - 1 - i) % 2 === 0);
+      var cx = padL + slot * si[i] + slot / 2, count = digitOf(q.count);
+      var shown = !phone || ((slots.length - 1 - si[i]) % 2 === 0);
       if (shown) {
         var m2 = /^(Q\d|H\d)\s+(\d{4})$/.exec(String(q.label || qtrLabel(q.period)));
         if (m2) body += '<text class="hc-axq" x="' + cx.toFixed(1) + '" y="' + rowQ + '" text-anchor="middle">' + esc(m2[1]) + '</text><text class="hc-axy" x="' + cx.toFixed(1) + '" y="' + rowY + '" text-anchor="middle">' + esc(m2[2]) + "</text>";
         else body += '<text class="hc-axq" x="' + cx.toFixed(1) + '" y="' + rowQ + '" text-anchor="middle">' + esc(q.label || qtrLabel(q.period)) + "</text>";
       }
       body += '<text class="hc-count" x="' + cx.toFixed(1) + '" y="' + rowN + '" text-anchor="middle">' + esc(String(count)) + "</text>";
+    });
+    slots.forEach(function (sl, k) {
+      if (!sl.gap) return;
+      var cx = padL + slot * k + slot / 2, m3 = /^(Q\d|H\d)\s+(\d{4})$/.exec(sl.label), shownG = !phone || ((slots.length - 1 - k) % 2 === 0);
+      body += '<rect class="hc-gap" x="' + (cx - slot * 0.4).toFixed(1) + '" y="' + padT + '" width="' + (slot * 0.8).toFixed(1) + '" height="' + (H - padT - padB) + '" fill="none" stroke="var(--div)" stroke-dasharray="4 5" rx="4"/>';
+      if (shownG) body += m3 ? '<text class="hc-axq hc-axgap" x="' + cx.toFixed(1) + '" y="' + rowQ + '" text-anchor="middle">' + esc(m3[1]) + '</text><text class="hc-axy" x="' + cx.toFixed(1) + '" y="' + rowY + '" text-anchor="middle">' + esc(m3[2]) + "</text>" : '<text class="hc-axq hc-axgap" x="' + cx.toFixed(1) + '" y="' + rowQ + '" text-anchor="middle">' + esc(sl.label) + "</text>";
+      body += '<text class="hc-count hc-axgap" x="' + cx.toFixed(1) + '" y="' + rowN + '" text-anchor="middle">&ndash;</text>';
     });
     body += '<text class="hc-cap" x="' + padL + '" y="' + rowCap + '" text-anchor="start">' + esc("Sales per " + (mv.size || "period")) + "</text>";
     var svg = '<svg class="hc-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Typical range by period" data-labels-dropped="' + dropped + '">' + grid + body + "</svg>";

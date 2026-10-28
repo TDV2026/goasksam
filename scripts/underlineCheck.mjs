@@ -4,7 +4,7 @@
 //   FAIL: a currency figure inside an anchor, or under an underline (the element's or any ancestor's text-decoration), inside an answer card (.sfc-card, the Find Sam box .sl);
 //         a range ("$a to $b") set below 20px (the two small lines Sam allows, the other option's line and the near-miles line, are lines, not figures); more than two small lines under the figures; the stale line ("Sales read on ... Updating now.") or "Latest sale:" anywhere in a card; a footer over one sentence-line of facts.
 //   node scripts/underlineCheck.mjs        E98_ROOT=<another checkout> to read that tree's pages (how it was shown failing on main)
-import { MC, FIND, FIND_MATCHED, CORVETTE, BLACK_BMW, M3_ROW, PORSCHE_2005 } from "./e98Fixtures.mjs";
+import { MC, FIND, FIND_MATCHED, CORVETTE, BLACK_BMW, M3_ROW, PORSCHE_2005, NO_META } from "./e98Fixtures.mjs";
 import { startBrowser, openMC, ROOT } from "./e98Render.mjs";
 import { buildCards, openFind } from "./e98FindRender.mjs";
 import { inPage, judge as judgeIn } from "./e98DomCheck.mjs";
@@ -25,7 +25,9 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
 const b = await startBrowser();
 console.log("underlineCheck reading " + ROOT);
 const WANT = { "2001 BMW M3 (alike with options)": "candles", "Chart: option-scoped candles (2004 BMW M3, Manual)": "scoped", "Chart: SEEDED dots (the engine sends type dots): the page draws none": "none", "1985 Land Rover Defender 110 (year split)": "withheld" };
-for (const [n, fx] of Object.entries(MC)) for (const w of [1440, 390]) { const p = await openMC(b, fx, w), r = await p.evaluate(inPage); judgeIn(ok, `Market Check ${n} at ${w}`, r);
+for (const [n, fx] of Object.entries(MC)) for (const w of [1440, 390]) { const p = await openMC(b, fx, w), r = await p.evaluate(inPage); judgeIn(ok, `Market Check ${n} at ${w}`, r, fx.needs || fx.typed.split(" ").slice(1, 3));
+  { const bk = fx.d.chart && fx.d.chart.type === "candles" && fx.d.chart.buckets ? fx.d.chart.buckets : fx.d.trend && fx.d.trend.movement ? fx.d.trend.movement.buckets : null;
+    if (bk && bk.every(b => /^\d{4}-Q[1-4]$/.test(b.period))) { const ord = b => +b.period.slice(0, 4) * 4 + (+b.period.slice(-1) - 1), o = bk.map(ord), expect = o[o.length - 1] - o[0] + 1 - o.length; ok(r.gaps === expect, `Market Check ${n} at ${w}: every quarter the engine left out shows as a gap in the chart (${r.gaps} of ${expect})`); } }
   ok(r.strip && r.strip.miles && r.strip.pills >= 0, `Market Check ${n} at ${w}: the narrow strip holds the mileage box`);
   const kind = WANT[n]; if (kind === "none") ok(r.panels.length === 0 && r.panels.every(q => q.circles === 0), `${n} at ${w}: the engine's dots become no chart and no point (${r.panels.length} panels)`); else if (kind) { const q = r.panels[0] || {}; ok(q.kind === kind, `Market Check ${n} at ${w}: the chart panel is the ${kind} state (${q.kind || "no panel"})`);
     if (kind === "scoped") ok(q.scope === fx.d.chart.scope.line, `${n} at ${w}: the scope line is the engine's own words ("${q.scope}")`);
@@ -41,7 +43,7 @@ for (const [n, fx] of Object.entries(MC)) for (const w of [1440, 390]) { const p
 // ONE chart panel builder: no page draws a panel of its own (every state identical everywhere the kit draws it)
 { const fs = await import("node:fs"), path = await import("node:path"), src = fs.readFileSync(path.join(ROOT, "public/js/onebox.js"), "utf8"), a = src.indexOf("function chartPanelHtml"), z = src.indexOf("function heroChartHtml");
   const rest = a > 0 && z > a ? src.slice(0, a) + src.slice(z) : src; ok(a > 0 && !/class="hero-chart/.test(rest), "the chart panel is drawn by ONE function (chartPanelHtml); no other code builds a hero-chart"); }
-const sets = { "Find card 2003 BMW Alpina Roadster V8": [FIND["2003 BMW Alpina Roadster V8"]], "Find card 2014 Porsche Boxster": [FIND["2014 Porsche Boxster"]], "Find page, black BMW": Object.values(BLACK_BMW), "Find card Boxster S PDK (matched option)": [FIND_MATCHED], "Find single live match, 1965 Chevrolet Corvette": [CORVETTE], "Find row, three BMW M3s": Object.values(M3_ROW), "Find page, 2005 Porsche 911 with a no-answer card": Object.values(PORSCHE_2005) };
+const sets = { "Find card 2003 BMW Alpina Roadster V8": [FIND["2003 BMW Alpina Roadster V8"]], "Find card 2014 Porsche Boxster": [FIND["2014 Porsche Boxster"]], "Find page, black BMW": Object.values(BLACK_BMW), "Find card Boxster S PDK (matched option)": [FIND_MATCHED], "Find single live match, 1965 Chevrolet Corvette": [CORVETTE], "Find row, three BMW M3s": Object.values(M3_ROW), "Find page, 2005 Porsche 911 with a no-answer card": Object.values(PORSCHE_2005), "Find row, two M3s and one with no miles and no place": [...Object.values(M3_ROW).slice(0, 2), NO_META] };
 const seen = new Set();
 for (const [n, defs] of Object.entries(sets)) { const cards = await buildCards(defs); for (const w of [1440, 390]) { const p = await openFind(b, cards, w), r = await p.evaluate(inPage); judgeIn(ok, `${n} at ${w}`, r); r.classes.forEach(k => seen.add(k));
   if (defs[0] === CORVETTE) { ok(r.drawn === 1, `${n} at ${w}: exactly one live match is drawn (${r.drawn})`); ok(r.sale.length === 0, `${n} at ${w}: the card carries no sale line (${r.sale.length}); the sales are in See the sales`);

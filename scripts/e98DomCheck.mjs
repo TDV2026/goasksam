@@ -1,6 +1,6 @@
 // The DOM rules of the number rule, shared by underlineCheck.mjs (fixtures) and e98LiveCheck.mjs (production): read the COMPUTED styles of every answer card on a page.
 export const inPage = () => {
-  const out = { under: [], small: [], tiny: [], text: [], lines: [], bigLinks: [], contradict: [], keep: [], sale: [], classes: [], specs: [], panels: [], strip: null, pillsInCard: [], slots: [], chipWrap: [], findBad: [], footers: [], slotRows: 0 };
+  const out = { under: [], small: [], tiny: [], text: [], lines: [], bigLinks: [], contradict: [], keep: [], sale: [], classes: [], specs: [], panels: [], strip: null, pillsInCard: [], slots: [], chipWrap: [], findBad: [], footers: [], slotRows: 0, counts: null, sales: null, ranges: [], yearNo: null, chartText: [], linkPos: [], metaBad: [], single: null, gaps: 0, bidWords: [] };
   const vis = e => { const r = e.getBoundingClientRect(), s = getComputedStyle(e); return r.width > 2 && r.height > 2 && s.visibility !== "hidden" && s.display !== "none"; };
   const cards = [...document.querySelectorAll(".sfc-card, .car .sl")];
   const underlined = e => { for (let n = e; n && n !== document.body; n = n.parentElement) { if (/underline/.test(getComputedStyle(n).textDecorationLine || "")) return true; } return false; };
@@ -57,12 +57,31 @@ export const inPage = () => {
     if (kids.length && (kids.length > 3 || !kids.every(e => /fx-spec|fx-ans|fx-count/.test(e.className)))) out.findBad.push("the Sam box is not spec, answer, one small line: " + kids.map(e => e.className).join(",")); }
   // the Market Check card's footer
   for (const f of document.querySelectorAll(".sfc-footer-left")) out.footers.push(f.innerText.replace(/\s+/g, " ").trim());
+  // COUNTS AND SALES (Sam's review, Oct 28 2026). Every number on a Market Check screen is read here and compared by judge: a pill never exceeds the headline count; a split's blocks add up to the footer count; "for all N" is the headline count;
+  // the hero, the footer, "All N comparable sales" and the table agree; each of the three sales behind the answer sits inside a shown range; every listed sale belongs to the page's car; no row has a year the page says there are no sales of.
+  const W = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 }, N = s => { const k = String(s).toLowerCase(); return k in W ? W[k] : Number(k.replace(/,/g, "")); }, firstN = (s, re) => { const m = re.exec(s || ""); return m ? N(m[1]) : null; }, hero = document.querySelector(".hero-scope");
+  if (hero) {
+    out.counts = { hero: firstN(hero.innerText, /(\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten) sales?/i), footer: firstN((document.querySelector(".sfc-footer-left") || {}).innerText, /(\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten) sales?/i), allH: firstN([...document.querySelectorAll("h2")].map(e => e.innerText).find(x => /^All \d/.test(x)), /^All (\d[\d,]*)/),
+      rows: document.querySelectorAll(".allsales-table tbody tr").length, pills: [...document.querySelectorAll(".narrow-strip .sfc-pn")].map(e => N(e.innerText)), pillNames: [...document.querySelectorAll(".narrow-strip .sfc-pill")].map(e => (e.firstElementChild || e).innerText.replace(/\s+/g, " ").trim()), blocks: [...document.querySelectorAll(".sfc-card .sfc-block .sfc-count")].map(e => firstN(e.innerText, /(\d[\d,]*)/)),
+      forAll: firstN((document.querySelector(".hero-miles") || {}).innerText, /for all (\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten)/i) };
+    const rg = txt => [...String(txt).matchAll(/\$([\d,]+) to \$([\d,]+)/g)].map(m => [N(m[1]), N(m[2])]);
+    out.ranges = rg([...document.querySelectorAll(".sfc-card .sfc-range")].map(e => e.innerText).join(" "));
+    out.sales = { trio: [...document.querySelectorAll(".salescard")].map(e => ({ price: N(((e.querySelector(".salescard-price") || {}).innerText || "").replace(/[^\d]/g, "")), title: (e.querySelector(".salescard-title") || {}).innerText || "" })),
+      rows: [...document.querySelectorAll(".allsales-table tbody tr")].map(r => ({ title: (r.children[1] || {}).innerText || "", price: N(((r.lastElementChild || {}).innerText || "").replace(/[^\d]/g, "")) })) };
+    const yn = /No (\d{4}) sales/.exec(document.querySelector(".sfc-card") ? document.querySelector(".sfc-card").innerText : ""); out.yearNo = yn ? yn[1] : null;
+  }
+  out.gaps = document.querySelectorAll(".hero-chart .hc-gap").length;
+  for (const pn of document.querySelectorAll(".hero-chart")) out.chartText.push(pn.innerText.replace(/\s+/g, " ").trim());
+  for (const card of document.querySelectorAll(".sfc-card")) { const l = card.querySelector(".sfc-footer-left"), k = [...card.querySelectorAll(".sfc-footer-link")].find(a => /How Sam decides/.test(a.innerText)); if (l && k && vis(k)) { const lr = l.getBoundingClientRect(), kr = k.getBoundingClientRect(); out.linkPos.push(Math.abs(kr.left - lr.left) <= 1 && kr.top >= lr.bottom - 1 ? "ok" : "left " + Math.round(kr.left - lr.left) + " top " + Math.round(kr.top - lr.bottom)); } }
+  for (const c of document.querySelectorAll("article.car")) { const m = c.querySelector(".tx > .meta"); if (!m) out.metaBad.push("no meta slot"); else { if (/not listed|not stated|unknown/i.test(m.innerText)) out.metaBad.push(m.innerText.trim().slice(0, 60)); if (m.getBoundingClientRect().height < 14) out.metaBad.push("meta slot has no height"); } }
+  out.bidWords = []; for (const c of document.querySelectorAll("article.car")) { const mv = c.querySelector(".mlab .mv"), r = c.querySelector(".sl .fx-range"), w = c.querySelector(".sl .fx-count"); if (!mv || !r || !w) continue; const bid = N(mv.innerText.replace(/[^\d]/g, "")), rr = /\$([\d,]+) to \$([\d,]+)/.exec(r.innerText), word = /The bid is (below|within|inside|above)/.exec(w.innerText); if (rr && word) out.bidWords.push({ bid, lo: N(rr[1]), hi: N(rr[2]), word: word[1] }); }
+  { const g = document.querySelector(".cgrid"), cs = [...document.querySelectorAll(".cgrid > article.car")].filter(vis); if (g && cs.length === 1) out.single = { w: Math.round(cs[0].getBoundingClientRect().width), g: Math.round(g.getBoundingClientRect().width), vw: innerWidth }; }
   out.cards = cards.length;
   out.figure = [...document.querySelectorAll(".sfc-range, .fx-range")].filter(e => vis(e) && !e.closest(".sfc-sr") && parseFloat(getComputedStyle(e).fontSize) >= 20).length;
   return out;
 };
 
-export const judge = (ok, name, r) => {
+export const judge = (ok, name, r, needs) => {
   ok(r.cards > 0, `${name}: an answer card is on the page`);
   ok(!r.under.length, `${name}: no currency figure is underlined or a link${r.under.length ? " (" + r.under.slice(0, 3).join(" | ") + ")" : ""}`);
   ok(!r.bigLinks.length, `${name}: no link in a Find card is larger than body text and underlined${r.bigLinks.length ? " (" + r.bigLinks.slice(0, 2).join(" | ") + ")" : ""}`);
@@ -76,6 +95,22 @@ export const judge = (ok, name, r) => {
   ok(!r.chipWrap.length, `${name}: the chip row is one row and never wraps${r.chipWrap.length ? " (" + r.chipWrap[0] + ")" : ""}`);
   ok(!r.findBad.length, `${name}: a Find card prints no sale line, no pick one line, no second range, no near-miles or band line, and its Sam box is three slots${r.findBad.length ? " (" + r.findBad.slice(0, 2).join(" ; ") + ")" : ""}`);
   ok(r.footers.every(f => /^\d[\d,]* sales,? since [A-Z][a-z]+ \d{4}\. Updated [A-Z][a-z]{2} \d{1,2}, \d{4}\.$/.test(f) && !/Powered by/.test(f)), `${name}: the card footer reads "N sales since Month Year. Updated Oct 28, 2026." with no Powered by (${r.footers.join(" | ") || "no footer"})`);
+  if (r.counts) { const c = r.counts, h = c.hero;
+    ok(c.pills.every(n => n <= h), `${name}: no pill count exceeds the headline count ${h} (pills ${c.pills.join(", ") || "none"})`);
+    ok(new Set(c.pillNames).size === c.pillNames.length, `${name}: no pill appears twice (${c.pillNames.join(" | ") || "no pills"})`);
+    if (c.blocks.length) ok(c.blocks.reduce((a, b) => a + b, 0) === c.footer, `${name}: the split's blocks add up to the footer count (${c.blocks.join(" + ")} = ${c.blocks.reduce((a, b) => a + b, 0)}, footer ${c.footer})`);
+    if (c.forAll != null) ok(c.forAll === h, `${name}: "for all N" is the headline count (${c.forAll} against ${h})`);
+    ok(c.footer === h && (c.allH === null || c.allH === h) && (c.rows === 0 || c.rows === h), `${name}: the headline, the footer, "All N comparable sales" and the table agree (${h} / ${c.footer} / ${c.allH} / ${c.rows} rows)`);
+    const inRange = p => r.ranges.length === 0 || r.ranges.some(([lo, hi]) => p >= lo && p <= hi), trio = r.sales ? r.sales.trio : [];
+    ok(trio.every(s => inRange(s.price)), `${name}: each sale behind the answer sits inside a shown range (${trio.map(s => "$" + s.price).join(", ") || "none"} against ${r.ranges.map(x => x.join("-")).join(" and ") || "no range"})`);
+    const listed = r.sales ? [...trio, ...r.sales.rows] : [];
+    if (needs && needs.length) ok(listed.every(s => needs.every(w => s.title.toLowerCase().includes(w.toLowerCase()))), `${name}: every listed sale belongs to the page's car (${needs.join(" ")}): ${listed.filter(s => !needs.every(w => s.title.toLowerCase().includes(w.toLowerCase()))).slice(0, 2).map(s => s.title).join(" | ") || "all of them"}`);
+    if (r.yearNo) ok(listed.every(s => !s.title.includes(r.yearNo)), `${name}: no listed sale is from ${r.yearNo} where the page says there are no ${r.yearNo} sales`); }
+  ok(r.chartText.every(tx => { const lines = tx.split(/(?<=[.!?])\s+/).map(x => x.trim().toLowerCase()).filter(Boolean); return new Set(lines).size === lines.length && (tx.match(/sales only/gi) || []).length <= 1; }), `${name}: the chart panel says nothing twice ("sales only" at most once)`);
+  ok(r.linkPos.every(x => x === "ok"), `${name}: How Sam decides sits in the same place in every card footer, under the footer line and flush left (${r.linkPos.join(", ") || "no footer"})`);
+  ok(!r.metaBad.length, `${name}: every Find card keeps its miles-and-place slot, with its height, and never prints a not-listed label${r.metaBad.length ? " (" + r.metaBad[0] + ")" : ""}`);
+  ok(r.bidWords.every(b => (b.word === "below" ? b.bid < b.lo : b.word === "above" ? b.bid > b.hi : b.bid >= b.lo && b.bid <= b.hi)), `${name}: each card's bid sentence agrees with its last bid and its range (${r.bidWords.map(b => "$" + b.bid + " " + b.word + " " + b.lo + "-" + b.hi).join("; ") || "none to read"})`);
+  if (r.single) ok(r.single.vw < 700 || r.single.w <= r.single.g * 0.5 + 2, `${name}: a single Find card is sized like the others, not full width (${r.single.w}px of ${r.single.g}px)`);
   ok(!r.contradict.length, `${name}: no header line says there is nothing over drawn cards${r.contradict.length ? " (" + r.contradict[0] + ")" : ""}`);
   ok(r.keep.every(k => !k.red && k.sameAsView !== false), `${name}: the Have Sam keep looking button is not red and is View auction's green (${r.keep.map(k => k.bg).join(" | ") || "none on the page"})`);
   ok(!r.tiny.length, `${name}: every range is set large${r.tiny.length ? " (" + r.tiny.slice(0, 2).join(" | ") + ")" : ""}`);

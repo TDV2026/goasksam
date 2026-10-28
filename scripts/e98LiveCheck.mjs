@@ -28,15 +28,15 @@ const emailHtml = await er.text(); fs.writeFileSync(OUT + "/task-email.html", em
 const browser = await puppeteer.launch({ executablePath: process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", headless: "new", args: ["--no-sandbox"] });
 const slug = s => s.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
 const open = async () => { guard(); const p = await browser.newPage(); await p.setViewport({ width: 1440, height: 900 }); await p.setCookie({ name: "gas_crew", value: CREW, domain: "goasksam.com", path: "/" }); if (BYP) await p.setExtraHTTPHeaders({ "x-vercel-protection-bypass": BYP }); return p; };
-const snap = async (p, name, check) => { for (const w of [1440, 390]) { await p.setViewport({ width: w, height: 900 }); await new Promise(r => setTimeout(r, 700)); await p.screenshot({ path: `${OUT}/${slug(name)}-${w}.png`, fullPage: true });
-  const r = await p.evaluate(inPage); judge(ok, `${name} at ${w}`, r); if (check) check(r, w); } };
+const snap = async (p, name, check, needs) => { for (const w of [1440, 390]) { await p.setViewport({ width: w, height: 900 }); await new Promise(r => setTimeout(r, 700)); await p.screenshot({ path: `${OUT}/${slug(name)}-${w}.png`, fullPage: true });
+  const r = await p.evaluate(inPage); judge(ok, `${name} at ${w}`, r, needs); if (check) check(r, w); } };
 const wait = async (p, sel, ms = 70000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await p.evaluate(s => !!document.querySelector(s), sel).catch(() => false)) return true; await new Promise(r => setTimeout(r, 1000)); } return false; };
-const MC = [["2004 BMW M3", null], ["2001 BMW M3", null], ["1985 Land Rover Defender 110", null], ["1994 Porsche 911 Carrera Cabriolet", "27000"]];
+const MC = [["2004 BMW M3", null, ["BMW", "M3"]], ["2001 BMW M3", null, ["BMW", "M3"]], ["1985 Land Rover Defender 110", null, ["Land Rover", "Defender"]], ["1994 Porsche 911 Carrera Cabriolet", "27000", ["Porsche", "911"]]];
 try {
-  for (const [car, miles] of MC) { const p = await open(); await p.goto(BASE + "/market-check", { waitUntil: "domcontentloaded", timeout: 60000 }); await p.waitForSelector("#ob-input", { timeout: 20000 });
+  for (const [car, miles, needs] of MC) { const p = await open(); await p.goto(BASE + "/market-check", { waitUntil: "domcontentloaded", timeout: 60000 }); await p.waitForSelector("#ob-input", { timeout: 20000 });
     await p.type("#ob-input", car); await p.keyboard.press("Enter"); const got = await wait(p, ".sfc-card"); ok(got, `Market Check ${car}: an answer card arrived (${got ? "" : "text: " + (await p.evaluate(() => document.body.innerText.slice(0, 200).replace(/\s+/g, " ")))})`);
     if (got && miles) { await p.type("#ob-miles", miles); await p.keyboard.press("Enter"); await new Promise(r => setTimeout(r, 6000)); await wait(p, ".sfc-card", 40000); }
-    if (got) await snap(p, `mc ${car}${miles ? " " + miles + " typed" : ""}`, (r, w) => ok(r.figure > 0, `${car} at ${w}: the large figure is present (${r.figure})`));
+    if (got) await snap(p, `mc ${car}${miles ? " " + miles + " typed" : ""}`, (r, w) => ok(r.figure > 0, `${car} at ${w}: the large figure is present (${r.figure})`), needs);
     await p.close(); }
   for (const [name, q] of [["Find card Alpina Roadster V8", "BMW Alpina Roadster V8"], ["Find card Porsche Boxster", "Porsche Boxster"], ["Find page black BMW", "black BMW"], ["Find single live match 1965 Corvette", "1965 Chevrolet Corvette"]]) { const p = await open();
     await p.goto(BASE + "/buy", { waitUntil: "domcontentloaded", timeout: 60000 }); await p.waitForSelector("#hq", { timeout: 20000 }); await p.type("#hq", q); await p.keyboard.press("Enter");

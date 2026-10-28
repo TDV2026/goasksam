@@ -32,7 +32,7 @@ const abroad = { current_bid_usd: 30000, current_bid: 24000, currency: "GBP", co
 ok(/LAST BID SEEN.*\$\d/.test(text(moneyHtml(abroad))) && text(moneyHtml(abroad)).includes("(£24,000)"), "a car abroad: the USD figure with its own currency beside it, labelled");
 // Mileage and location on one line, the record's own.
 ok(text(metaLine({ miles: 60000, location: "Orlando, FL" })) === "60,000 miles · Orlando, FL", "mileage, then location, on one line");
-ok(text(metaLine({ location: "Orlando, FL" })) === "Orlando, FL" && metaLine({}) === "", "nothing stated: nothing invented");
+ok(text(metaLine({ location: "Orlando, FL" })) === "Orlando, FL" && metaLine({}) === '<p class="meta"></p>', "nothing stated: nothing invented, the slot stays empty (its height is CSS) so the cards stay level");
 // The VIN pill is gone, the other chips stay.
 const ch = chipsHtml({ chips: ["Automatic", "Alpine White over Saddle Brown", "VIN WBAEA5…3774"] });
 ok(ch.includes("Automatic") && ch.includes("Alpine White over Saddle Brown") && !/VIN/.test(ch), "the VIN pill is not shown; the other chips stay");
