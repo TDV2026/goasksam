@@ -199,7 +199,7 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   ok(/var hasMc = !l\.swap && !!\(l\.market && l\.market\.query\)/.test(client), "a card still pending has no Market Check button (a pending market has no query)");
   // STAGE 2 (Sam's Buy redesign, Oct 19 2026): the count is said once, in the header, with or without a question; the
   // question no longer repeats it, and the "everything" line is left out while a question shows.
-  ok(/headerHtml\(d\.meta \|\| \{\}, q, qp, f \|\| \{\}, !!\(a && !d\._showAll && !a\.vague && !quiet\)\)/.test(client) && /esc\(matchesLine\(n, true\)\) \+ "<\/p>" \+ \(asking \? "" :/.test(client) && /var lead = "";/.test(client), "the count stays in the header while a question shows; the question does not repeat it");
+  ok(/headerHtml\(d\.meta \|\| \{\}, q, qp, f \|\| \{\}, !!\(a && !d\._showAll && !a\.vague && !quiet\), cards\.length\)/.test(client) && /esc\(matchesLine\(n, true\)\) \+ "<\/p>" \+ \(asking \? "" :/.test(client) && /var lead = "";/.test(client), "the count stays in the header while a question shows; the question does not repeat it");
 }
 
 console.log(`buyCardAskCheck: ${passes} passed, ${fails} failed`);
