@@ -50,7 +50,7 @@ ok("window: an option read over a longer window than the headline says so, besid
 ok("window: every option names its window in windowWords", sp.options.every(o => typeof o.windowWords === "string" && o.windowWords.length), JSON.stringify(sp.options.map(o => o.windowWords)));
 // D. option counts that add up to more than the headline say why
 sp = E.pooledApartGuard({ ...stubEd({ low: 20000, high: 30000, median: 25000, windowMonths: 12 }, { low: 21000, high: 31000, median: 26000, windowMonths: 30 }), poolN: 14 });
-ok("counts: when the options add up to more than the headline count, optionsNote says each reads its own window", /own window/.test(sp.optionsNote || ""), String(sp.optionsNote));
+ok("counts: when the options add up to more than the headline count, optionsNote says each reads its own time span", /own time spans/.test(sp.optionsNote || ""), String(sp.optionsNote));
 sp = E.pooledApartGuard({ ...stubEd({ low: 20000, high: 30000, median: 25000, windowMonths: 12 }, { low: 21000, high: 31000, median: 26000, windowMonths: 12 }), poolN: 21 });
 ok("counts: when they do not, there is no note", !sp.optionsNote, String(sp.optionsNote));
 // E. the shared field list carries the new fields

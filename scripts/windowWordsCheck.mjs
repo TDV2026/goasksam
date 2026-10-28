@@ -35,13 +35,13 @@ for (let i = 0; i < 12; i++) sale("WW1", "Coupe", null, 40000 + (i % 6) * 500, 5
 for (let i = 0; i < 30; i++) sale("WW1", "Coupe", null, 38000 + (i % 6) * 500, 330 + i * 30);
 let a = await ask("WW1");
 ok("window: the card names its window and its count", a.tier === "result" && /^\d+ sales, since [A-Z][a-z]+ \d{4}\.$/.test(a.windowLine || ""), String(a.windowLine));
-ok("caption: the chart states its span and that thin quarters are left out", /^By (month|quarter|half-year|year), .+ to .+\. (Months|Quarters|Half-years|Years) with fewer than \d+ sales are left out\.$/.test(a.chartCaption || ""), String(a.chartCaption));
+ok("caption: the chart states its span and that thin quarters are left out", /^By (month|quarter|half-year|year), .+ to .+, (months|quarters|half-years|years) under \d+ sales left out\.$/.test(a.chartCaption || ""), String(a.chartCaption));
 ok("differ: when the chart spans more than the range, one line says both", /^The chart covers \d+ months, the range the last \d+\.$/.test(a.chartWindowLine || ""), `${a.chartWindowLine} window ${a.windowMonths}`);
 // same span: no line
 for (let i = 0; i < 14; i++) sale("WW2", "Coupe", null, 40000 + (i % 6) * 500, 5 + i * 20);
 a = await ask("WW2");
 ok("same: when they agree there is no extra line", a.chartWindowLine == null, String(a.chartWindowLine));
 const m = await E.oneEngineAnswer({ make: MK, model: "WW1", trim: "", year: 2001, bodyStyle: null }, null, `2001 ${MK} WW1`, { ...env, asked: 2 }, { miTarget: 30000 });
-ok("mileage band: the line names its own window", !m.raw.mileageBand || /The band reads the last \d+ months\.$|^Too few sales near/.test(m.raw.mileageBand.line), String(m.raw.mileageBand && m.raw.mileageBand.line));
+ok("mileage band: the line names its own window", !m.raw.mileageBand || /(since .+|over the last \d+ months)\.$|^Too few sales near/.test(m.raw.mileageBand.line), String(m.raw.mileageBand && m.raw.mileageBand.line));
 console.log(failed ? `windowWordsCheck: ${failed} FAIL` : "windowWordsCheck: all PASS");
 process.exit(failed ? 1 : 0);

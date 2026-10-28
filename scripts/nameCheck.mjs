@@ -14,7 +14,7 @@ eq("996 Carrera subject", s1.subject, "911 Carrera");
 eq("996 Carrera spec line has no 996 in front of 911", /996\s+911/.test(s1.resolvedSpec), false);
 const s2 = relabel({ make: "Porsche", model: "911", trim: "Carrera", genCode: "997", bodyStyle: null, year: 2008, yearMin: 2005, yearMax: 2012 });
 eq("997 Carrera spec line has no 997 in front of 911", /997\s+911/.test(s2.resolvedSpec), false);
-eq("pool without the asked year says so", yearGapNote(1967, [{ year: 1972 }, { year: 1973 }]), "None of these sales is a 1967; they are 1972 to 1973 cars. ");
+eq("pool without the asked year says so", yearGapNote(1967, [{ year: 1972 }, { year: 1973 }]), "None of these sales is a 1967, they are 1972 to 1973 cars. ");
 eq("pool holding the asked year says nothing", yearGapNote(1967, [{ year: 1967 }, { year: 1973 }]), "");
 eq("no asked year says nothing", yearGapNote(null, [{ year: 1972 }]), "");
 // EVENT NAMES (Oct 25 2026): a race or rally name in a title is not a trim; a stated 911S wins; Targa stays a body; models named like an event stay.
@@ -40,6 +40,6 @@ eq("a real Boss 429 is unchanged", await tr("1969 Ford Mustang Boss 429"), "Must
 eq("a real SVT Cobra is unchanged", await tr("1999 Ford Mustang SVT Cobra"), "Mustang|SVT Cobra");
 eq("a Z28 Pace Car Edition keeps Z28", await tr("1993 Chevrolet Camaro Z28 Pace Car Edition"), "Camaro|Z28");
 eq("the 911 S/T-Style 912 is a 912", (await tr("911 S/T-Style, 3.0L-Powered 1967 Porsche 912 Coupe 5-Speed")).split("|")[0], "912");
-{ const { ENGINE_VERSION } = await import("../lib/onebox.js"); eq("the engine stamp", ENGINE_VERSION.split(" ")[0], "e98-20261028-find"); }
+{ const { ENGINE_VERSION } = await import("../lib/onebox.js"); eq("the engine stamp", ENGINE_VERSION.split(" ")[0], "e99-20261028-trimfix"); }
 if (failed) { console.log(`nameCheck: ${failed} failed`); process.exit(1); }
 console.log("nameCheck: no printed name puts a generation code in front of 911.");
