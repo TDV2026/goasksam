@@ -1338,6 +1338,27 @@ try {
 } catch (e) {
   record("named warm list (scripts/namedWarmCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The Find card's five-line Sam box (Sam, Oct 29 2026). The real Find path on fixtures.
+try {
+  const out = execSync("node scripts/findCardShapeCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("the Find card's Sam box has one shape, every line the engine's (scripts/findCardShapeCheck.mjs)", "PASS", (out.match(/findCardShapeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("the Find card's Sam box has one shape, every line the engine's (scripts/findCardShapeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// See the sales and the sale modal on Find (Sam, Oct 29 2026). No network.
+try {
+  const out = execSync("node scripts/findSalesButtonCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("See the sales and the sale modal on Find (scripts/findSalesButtonCheck.mjs)", "PASS", (out.match(/findSalesButtonCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("See the sales and the sale modal on Find (scripts/findSalesButtonCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// What Find's toggles and buttons make (Sam, Oct 29 2026). A fake table behind fetch.
+try {
+  const out = execSync("node scripts/findWatchCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("everything a Find toggle or button makes is on Tasks, limited and named by the engine (scripts/findWatchCheck.mjs)", "PASS", (out.match(/findWatchCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("everything a Find toggle or button makes is on Tasks, limited and named by the engine (scripts/findWatchCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The launch warm counts rows by UTC day, never by age (Sam, Oct 28 2026). No network.
 try {
   const out = execSync("node scripts/warmDayCheck.mjs", { encoding: "utf8" });

@@ -9,9 +9,9 @@ const i = s.indexOf("const CLIENT = ") + "const CLIENT = ".length, c = JSON.pars
 const ci = s.indexOf("const BUY_CARD_CSS = ") + "const BUY_CARD_CSS = ".length, css = JSON.parse(s.slice(ci, s.indexOf('";\n', ci) + 1));
 const block = (from, to) => { const a = c.indexOf(from), b = c.indexOf(to, a); if (a < 0 || b < 0) throw new Error("missing " + from); return c.slice(a, b); };
 // ---- Item 1: EXACT-CAR HISTORY ONCE.
-const sl = block("  function noRange(l){", "  // SPEC CHIPS");
+const sl = block("  function fxOpt(", "  // SPEC CHIPS");
 ok(/ls = ls\.filter\(function\(x\)\{ return x\.kind !== "same"; \}\);/.test(sl), "the 'This exact car sold for ...' sentence is not printed on a card");
-const env = "function esc(s){ return String(s); } var READING_LINE = 'r', REL_MC = true; function rangeFirst(){ return ''; } function rungHtml(){ return ''; } function rungShown(){ return []; } function saleLink(t){ return t; }\n" + sl;
+const env = "function esc(s){ return String(s); } var READING_LINE = 'r', REL_MC = true; function usd(n){ return '$' + n; } function num(n){ return String(n); } function rungHtml(){ return ''; } function rungShown(){ return []; } function saleLink(t){ return t; }\n" + sl;
 const samLine = new Function(env + "\nreturn samLine;")();
 const same = { kind: "same", lead: "This exact car ", link: "sold for $128,000 in February 2023", tail: "." };
 ok(samLine({ market: { kind: "range" }, sam_lines: [same] }) === null, "a card whose only line was the exact-car sentence has no line of its own");
@@ -30,13 +30,13 @@ ok(/@media \(min-width:1100px\)\{\.cgrid\.n5 > article\.car:nth-of-type\(4\)\{gr
 // ---- Item 4b: THE COMPACT NO-RANGE CARD.
 const thin = { id: 7, market: { kind: "count", query: "1982 Ferrari 512", noCluster: true }, sam_lines: [{ kind: "range", rung: ["512 models, 1981 to 1983"], text: "Sales of cars like it vary too widely to show one range. These are the sales we found." }] };
 const tl = (samLine(thin) || {}).html || "";
-ok(/<p class="nr-line">Sales of cars like it vary too widely to show one range\.<\/p>/.test(tl) && !/These are the sales we found/.test(tl), "a no-range card prints the engine's line, first sentence only");
+ok(/<p class="fx-answer">Sales of cars like it vary too widely to show one range\.<\/p>/.test(tl) && !/These are the sales we found/.test(tl), "a no-range card prints the engine's line, first sentence only");
 // STAGE 1d ITEM 4 (Sam, Oct 20 2026): the thin card's "See the sales in Market Check" link is gone (it sat under the
 // card's stretched title link and opened the auction site); the card's own Market Check action opens its panel.
 ok(!/mclink|See the sales/.test(tl), "the thin card carries no 'See the sales in Market Check' link (Stage 1d item 4)");
-ok(/function compactNoRange\(l, x\)\{[\s\S]*'<p class="nr-scope">' \+ rungHtml\(\{ rungLines: rungShown\(l, x\.rung\) \}\)/.test(c), "the scope label when the engine gives one");
+ok(/function compactNoRange\(l, x\)\{[\s\S]*return fxHead\(l\) \+ '<p class="fx-answer">'/.test(c), "the spec and the scope head, then the engine's reason line");
 const rg = { id: 8, market: { kind: "range", low: 55000, high: 78000, query: "q" }, sam_lines: [{ kind: "range", rung: [], text: "The middle half of 1M sales landed at $55,000 to $78,000. These are recent." }] };
-ok(!/nr-line|mclink/.test((samLine(rg) || {}).html || ""), "a card with a range is not the compact card");
+ok(!/fx-answer|mclink/.test((samLine(rg) || {}).html || ""), "a card with a range is not the compact card");
 ok(samLine({ id: 9, swap: true, market: { kind: "count" }, sam_lines: [] }) === null, "an engine-swapped card stays as it is");
 const nomc = { id: 10, market: { kind: "count", noCluster: true }, sam_lines: [{ kind: "range", rung: [], text: "Too few sales to compare. More words." }] };
 ok(!/mclink/.test(samLine(nomc).html) && /Too few sales to compare\./.test(samLine(nomc).html), "no Market Check for the card: no link, still the engine's first sentence");

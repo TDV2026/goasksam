@@ -63,6 +63,7 @@ const surfaces = {};   // car -> surface -> text
   for (const [k, c] of Object.entries(CARS)) { (surfaces[k] = surfaces[k] || {}).sell = norm(card.sellsForCardHtml(sf.cardAnswerOf(c.d), { marketHref: "/market-check?q=x" })); surfaces[k].partner = norm(card.sellsForCardHtml(c.d, {})); }
 }
 // 3. Find's card and the Tasks email (the real Find path, the same pieces)
+const findLines = {};
 {
   const S = await import("../lib/live/search.js"), { samLines } = await import("../api/buySearch.js"), { emailCardData } = await import("../lib/tasks/emailCards.js");
   for (const [k, c] of Object.entries(CARS)) {
@@ -71,7 +72,7 @@ const surfaces = {};   // car -> surface -> text
     const spec = S.specOf(c.row), core = S.coreOf(c.d, spec), m = S.marketFromCore(core, c.row, { miles: null }, spec);
     const l = { id: 1, title: c.row.listing_title, make: c.row.make, year: c.row.year, market: m }; l.sam_lines = samLines(l, Date.now());
     const t = norm(emailCardData(l).sam.map(x => x.text).join(" "));
-    (surfaces[k] = surfaces[k] || {}).find = t; surfaces[k].email = t;
+    (surfaces[k] = surfaces[k] || {}).find = t; surfaces[k].email = t; findLines[k] = { spec: m.specLabel, count: m.countLine };
   }
 }
 // 4. every number carries its reason on every surface that prints it
@@ -82,10 +83,12 @@ for (const [k, c] of Object.entries(CARS)) {
     ok(text.length > 15, `${where}: not blank`);
     ok(!/undefined|NaN|\[object/.test(text), `${where}: nothing broken prints`);
     if (R.scope_reason) ok(has(text, R.scope_reason), `${where}: the scope reason is printed ("${R.scope_reason}")`);
-    if (R.window) ok(has(text, R.window), `${where}: the longer window is printed ("${R.window}")`);
+    const onFind = surf === "find" || surf === "email";   // the five-line Sam box (Oct 29 2026): the spec, the scope reason and the count with its window replace the rung label and the longer-window note
+    if (R.window && !onFind) ok(has(text, R.window), `${where}: the longer window is printed ("${R.window}")`);
     if (R.refusal) ok(has(text, R.refusal) && !/Sales too spread out for a range/.test(text), `${where}: a refusal says the engine's reason, not a sentence of the card's own ("${R.refusal}")`);
     if (R.mileage) ok(has(text, R.mileage), `${where}: the mileage note is printed ("${R.mileage}")`);
-    if (R.scope && !c.noScope && surf !== "mc") ok(has(text, R.scope), `${where}: what the number covers is printed ("${R.scope}")`);
+    if (R.scope && !c.noScope && surf !== "mc" && !onFind) ok(has(text, R.scope), `${where}: what the number covers is printed ("${R.scope}")`);
+    if (onFind && findLines[k]) { if (findLines[k].spec) ok(has(text, findLines[k].spec), `${where}: the spec line is the engine's identity of the car ("${findLines[k].spec}")`); if (findLines[k].count) ok(has(text, findLines[k].count), `${where}: the count with its window is printed ("${findLines[k].count}")`); }
   }
 }
 // 5. the fields are on the one list, and the check is reading the real thing

@@ -233,7 +233,7 @@ try {
     A.cardsOf = () => CARDS.map(c => ({ ...c, market: { ...pend }, sam_lines: [] }));
     const p = await open(A, 1440); p.on("pageerror", e => console.log("ERR", e.message)); await openTask(p); await wait(300); const early = await text(p); await wait(6000); const late = await text(p);
     ok(/still reading/.test(early) || /Getting the cars/.test(early), "reading: the holding line shows while the market is out");
-    ok(!/still reading/.test(late) && /typical range/i.test(late), "reading: the line is gone once each card's own market lands, and the range is there");
+    ok(!/still reading/.test(late) && /\$[\d,]+ to \$[\d,]+/.test(late), "reading: the line is gone once each card's own market lands, and the range is there");
     ok((A.enrichCalls || 0) >= 2, "reading: the page asked again after the engine's own retry wait (" + A.enrichCalls + " asks)"); await p.close(); }
   // a market that never comes: said plainly after the capped asks
   { const pend = { kind: "pending", stillReading: true, line: "Sam is still reading the sales for this one.", retry: true, retryAfterMs: 120 };

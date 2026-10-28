@@ -42,20 +42,23 @@ ok("every listed sale carries its year", ts && ts.sales.length > 0 && ts.sales.e
 spread("T6", "Coupe", "Manual", 30000, 800, 5, 5);
 a = await ask("T6");
 ok("under 8 sales: thin true, no reason line", a.thin_sales && a.thin_sales.thin === true && a.thin_sales.reason_line === null && a.thin_sales.count === 5, JSON.stringify(a.thin_sales && { c: a.thin_sales.count, t: a.thin_sales.thin }));
-// 3. the Find card prints them
+ok("under 8 sales: the engine's answer line and count line", a.thin_sales && /^\w+ sales?, too few for a range\.$/.test(a.thin_sales.answer_line || "") && /^(Five|\d+) sales?( since [A-Z][a-z]+ \d{4})?\.$/.test(a.thin_sales.count_line || ""), JSON.stringify(a.thin_sales && { a: a.thin_sales.answer_line, c: a.thin_sales.count_line }));
+ok("8 or more, no range: the answer line is the reason line", ts && ts.answer_line === ts.reason_line, ts && ts.answer_line);
+ok("every listed sale carries date, miles, gearbox and venue fields", ts && ts.sales.every(x => "date" in x && "mi" in x && "gearbox" in x && "venue" in x && "photo" in x && "title" in x), JSON.stringify(ts && ts.sales[0]));
+// 3. the Find card prints them (the five-line box, Oct 29 2026: scripts/findCardShapeCheck.mjs has the fixtures; this part keeps the threshold)
 const s = fs.readFileSync(path.join(root, "api/buy.js"), "utf8");
 const i0 = s.indexOf("const CLIENT = ") + "const CLIENT = ".length, c = JSON.parse(s.slice(i0, s.indexOf('";\n', i0) + 1));
 const block = (from, to) => { const x = c.indexOf(from), y = c.indexOf(to, x); if (x < 0 || y < 0) throw new Error("missing " + from); return c.slice(x, y); };
 const esc = new Function(block("function esc(s){", "function usd(n)") + "\nreturn esc;")();
-const usd = n => "$" + Math.round(Number(n)).toLocaleString("en-US");
-const thinSales = new Function("esc", "usd", "REL_MC", block("  function thinSales(l){", "  function samLine(l){") + "\nreturn thinSales;")(esc, usd, true);
+const usd = n => "$" + Math.round(Number(n)).toLocaleString("en-US"), num = n => Math.round(Number(n)).toLocaleString("en-US");
+const thinSales = new Function("esc", "usd", "num", "REL_MC", block("  function fxOpt(", "  function samLine(l){") + "\nreturn thinSales;")(esc, usd, num, true);
 const text = h => h.replace(/<[^>]+>/g, "|").replace(/\|+/g, "|");
-const card = (t) => ({ id: 1, market: { kind: "count", query: "2004 Porsche Boxster", thin_sales: t } });
-const sale2 = (price, year, body) => ({ price, year, body, month: "September 2026", venue: "Bring a Trailer", url: "https://x" });
-const wide = thinSales(card({ count: 12, thin: false, threshold: 8, reason_line: "These sales split into options that sit in different price ranges, so no one typical range is shown.", sales: [sale2(14000, 2004, "Convertible"), sale2(21000, 2004, "Convertible")], latest_month: "September 2026" }));
-ok("card, 12 sales: the engine's reason line, never 'Thin so far'", wide && /different price ranges/.test(wide.html) && !/Thin so far/.test(wide.html) && !/Only 12/.test(text(wide.html)), wide && text(wide.html));
-ok("card: each price prints its year and body", wide && /\$14,000\|? \(2004 Convertible\)/.test(text(wide.html).replace(/\|/g, "")) , wide && text(wide.html));
-const few = thinSales(card({ count: 3, thin: true, threshold: 8, reason_line: null, sales: [sale2(8500, 1998, "Coupe")], latest_month: "June 2026" }));
-ok("card, 3 sales: still 'Thin so far' with the year and body", few && /Thin so far/.test(few.html) && /1998 Coupe/.test(text(few.html)), few && text(few.html));
+const card = (t) => ({ id: 1, market: { kind: "count", query: "2004 Porsche Boxster", specLabel: "2004 Porsche Boxster Convertible", countLine: t.count_line, thin_sales: t } });
+const sale2 = (price, gearbox) => ({ price, month: "September 2026", gearbox, mi: 41000, venue: "Bring a Trailer", url: "https://x" });
+const wide = thinSales(card({ count: 12, thin: false, threshold: 8, reason_line: "These sales split into options that sit in different price ranges, so no one typical range is shown.", answer_line: "These sales split into options that sit in different price ranges, so no one typical range is shown.", count_line: "12 sales since March 2025.", sales: [sale2(14000, "Manual"), sale2(21000, "Tiptronic")] }));
+ok("card, 12 sales: the engine's reason line, never 'Thin so far' or 'Only 12'", wide && /different price ranges/.test(wide.html) && !/Thin so far|Only 12/.test(wide.html), wide && text(wide.html));
+ok("card: each sale is a line with price, month, gearbox and miles that opens the modal", wide && /data-fxsale="0"[^>]*>\$14,000 · September 2026 · Manual · 41,000 miles</.test(wide.html) && !/<a /.test(wide.html), wide && text(wide.html));
+const few = thinSales(card({ count: 3, thin: true, threshold: 8, reason_line: null, answer_line: "Three sales, too few for a range.", count_line: "Three sales since June 2025.", sales: [sale2(8500, "Manual")] }));
+ok("card, 3 sales: the engine's 'too few for a range' line, never 'Thin so far'", few && /Three sales, too few for a range\./.test(few.html) && !/Thin so far/.test(few.html), few && text(few.html));
 console.log(failed ? `findThinThresholdCheck: ${failed} FAIL` : "findThinThresholdCheck: all PASS");
 process.exit(failed ? 1 : 0);

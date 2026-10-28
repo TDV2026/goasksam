@@ -44,12 +44,12 @@ mk([2000, 4000, 6000, 8000, 10000, 12000, 14000, 16000, 20000, 24000, 40000, 550
 let a = await run(11000, 98000);
 let nr = a.mileageNear;
 ok("11,000 miles, 10 sales in the band: mileageNear is a range", nr && nr.kind === "range" && nr.n === 10 && nr.low > 0 && nr.high > nr.low && nr.miMin === 0 && nr.miMax === 26000, JSON.stringify(nr));
-ok("the line names the count, the miles and the range", nr && /10 sales near 11,000 miles: \$[\d,]+ to \$[\d,]+\./.test(nr.line), nr && nr.line);
+ok("the line names the count, the miles and the range", nr && /^Near 11,000 miles: \$[\d,]+ to \$[\d,]+, ten sales\.$/.test(nr.line) && /^The bid is (inside|below|above) the range\.$/.test(nr.bidLine || "The bid is inside the range."), nr && nr.line);   // the Find card's fifth line (Oct 29 2026)
 ok("the bid is placed against the range", nr && nr.bid && nr.bid.amount === 98000 && ["below", "within", "above"].includes(nr.bid.against) && nr.bid.of === "range", JSON.stringify(nr && nr.bid));
 // 2. five sales in the band: the span of those sales, labelled as sales, not a range
 mk([3000, 7000, 12000, 18000, 25000, 40000, 55000, 70000, 90000]);
 a = await run(11000, 60000); nr = a.mileageNear;
-ok("5 sales in the band: the span of those sales, labelled sales not a range", nr && nr.kind === "sales" && nr.n === 5 && nr.spanLabel === "sales, not a range" && /not a range/.test(nr.line), JSON.stringify(nr));
+ok("5 sales in the band: the span of those sales, labelled sales not a range", nr && nr.kind === "sales" && nr.n === 5 && nr.spanLabel === "sales, not a range" && /^Near 11,000 miles: five sales, \$[\d,]+ to \$[\d,]+\.$/.test(nr.line) && (!nr.bidLine || /^The bid is (inside|below|above) them\.$/.test(nr.bidLine)), JSON.stringify(nr));
 // 3. two sales: the field is empty
 mk([3000, 25000, 40000, 55000, 70000, 90000]);
 a = await run(11000, 60000);

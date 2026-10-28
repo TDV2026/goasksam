@@ -5,7 +5,7 @@ import { messageFor as soldMessage } from "../lib/live/watches.js";
 import { messageFor as endsMessage } from "../lib/live/buyAlerts.js";
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const now = Date.now();
-const l = { id: 1, title: "2011 BMW 1M", make: "BMW", url: "https://a.test/1", source: "Bring a Trailer", photo_url: "https://i.test/a.jpg", end_time: new Date(now + 5.3 * 3600e3).toISOString(), current_bid_usd: 52000, bid_at: new Date(now - 1200e3).toISOString(), miles: 34000, location: "Alpharetta, GA", country: "US", chips: ["Manual", "Alpine White"], mc_url: "/market-check?vin=WBSUR9C58BC123456", market: { kind: "range", low: 55000, high: 78000, count: 24, query: "2011 BMW 1M", basisLine: "Based on 24 sales, the latest in October 2026." }, sam_lines: [{ kind: "range", rung: [], placing: "below the range", text: "x" }], timeline: [{ date: "2024-03-12", result: "sold", price: 61000, miles: 29000, house: "Bring a Trailer" }], seen_before: { n: 1 }, history_url: "/vin/ABC" };
+const l = { id: 1, title: "2011 BMW 1M", make: "BMW", url: "https://a.test/1", source: "Bring a Trailer", photo_url: "https://i.test/a.jpg", end_time: new Date(now + 5.3 * 3600e3).toISOString(), current_bid_usd: 52000, bid_at: new Date(now - 1200e3).toISOString(), miles: 34000, location: "Alpharetta, GA", country: "US", chips: ["Manual", "Alpine White"], mc_url: "/market-check?vin=WBSUR9C58BC123456", market: { kind: "range", low: 55000, high: 78000, count: 24, query: "2011 BMW 1M", specLabel: "2011 BMW 1M", countLine: "24 sales since October 2025." }, sam_lines: [{ kind: "range", rung: [], placing: "below the range", bidLine: "The bid is below the range.", text: "x" }], timeline: [{ date: "2024-03-12", result: "sold", price: 61000, miles: 29000, house: "Bring a Trailer" }], seen_before: { n: 1 }, history_url: "/vin/ABC" };
 const h = emailCardHtml(l), t = emailCardText(l), d = emailCardData(l);
 ok(/^<table role="presentation"/.test(h) && !/<(div|section|flex)/i.test(h) && !/display:\s*(flex|grid)/.test(h), "table layout, no flex or grid");
 ok(/style="/.test(h) && !/<style/.test(h), "inline styles on the card");
@@ -13,7 +13,7 @@ ok(h.includes('<img src="https://i.test/a.jpg" alt="2011 BMW 1M"'), "the photo i
 ok(h.includes('max-width:600px') && h.includes('@media') === false, "600 pixels fluid, the media rules live in the head block");
 ok(/prefers-color-scheme: dark/.test(EMAIL_CARD_STYLE) && /max-width:480px/.test(EMAIL_CARD_STYLE), "a dark twin and a phone width");
 ok(h.includes("LAST BID SEEN") && h.includes("$52,000") && d.bid.time, "the last bid seen strip with its time");
-ok(h.includes("The typical range for cars like this.") && h.includes("$55,000 to $78,000") && h.includes("Based on 24 sales, the latest in October 2026."), "Sam's panel, the same words as Find");
+ok(h.includes("2011 BMW 1M") && h.includes("$55,000 to $78,000") && h.includes("24 sales since October 2025. The bid is below the range.") && !h.includes("The typical range for cars like this."), "Sam's box, the same lines as Find (spec, range, count with the bid)");
 ok(h.includes("Bring a Trailer") && /hours? left/.test(h), "the dark source and time label");
 const hrefs = [...h.matchAll(/href="([^"]+)"/g)].map(m => m[1]);
 ok(hrefs.filter(u => u === "https://a.test/1").length === 2, "photo and View auction go to the auction");
@@ -21,7 +21,7 @@ ok(hrefs.filter(u => u === "https://goasksam.com/market-check?vin=WBSUR9C58BC123
 ok([...h.matchAll(/<a [^>]*>/g)].every(m => /target="_blank" rel="noopener"/.test(m[0])), "every link opens in a new tab with noopener");
 ok(d.hist === "Sold before", "Sold before comes from the engine's timeline");
 ok(!/[–—]/.test(h + t) && !/\bSam (found|thinks|says)\b/i.test(h + t) && !/Hagerty|Hemmings|Desk|Task email|sources?\b/i.test(h + t), "no dashes, no first person, no other tools, no source counts");
-ok(/View auction: https:\/\/a\.test\/1/.test(t) && /Market Check: https:\/\/goasksam\.com\/market-check\?vin=/.test(t) && /typical range/.test(t), "the plain-text twin carries the same facts and both links");
+ok(/View auction: https:\/\/a\.test\/1/.test(t) && /Market Check: https:\/\/goasksam\.com\/market-check\?vin=/.test(t) && /\$55,000 to \$78,000/.test(t) && /24 sales since October 2025/.test(t), "the plain-text twin carries the same facts and both links");
 const body = taskEmailBody({ id: 9, summary: "BMW 1M", filters: {} }, [{ id: 1, car: "x", url: l.url, venue: "BaT", cardHtml: h, cardText: t, cardHead: EMAIL_CARD_STYLE }], { first: true });
 ok(body.html.includes("prefers-color-scheme") && body.html.includes("max-width:600px") && /Open the Task/.test(body.html) && /Pause/.test(body.html) && /Stop/.test(body.html), "the Task email keeps its Open, Pause and Stop links around the cards");
 ok(body.text.includes("View auction: https://a.test/1") && /Open the Task:/.test(body.text) && /Stop:/.test(body.text), "the text version keeps them too");
@@ -41,6 +41,6 @@ ok(!/junk folder/.test(sm.html + sm.text) && /junk folder/.test(smFirst.text) &&
 const aside = soldMessage(w, [{ ...ev, band: null, setAside: "modified" }], { first: false });
 ok(!aside.html.includes("The typical range") && /set aside/.test(aside.html), "a set-aside sale prints its reason and no range");
 const em = endsMessage({ name: "1987 Porsche 911", house: "Bring a Trailer", bid: 52000, bidAt: null, url: "https://a.test/1", cardHtml: h, cardText: t, cardHead: EMAIL_CARD_STYLE }, { end_time: new Date(now + 2 * 3600e3).toISOString() }, { first: false, userId: "u1" });
-ok(em.html.includes("The typical range for cars like this.") && em.html.includes("LAST BID SEEN") && /Open the Task/.test(em.html) && !em.html.includes("View on Bring a Trailer"), "Before it ends is the same card");
+ok(em.html.includes("$55,000 to $78,000") && em.html.includes("LAST BID SEEN") && /Open the Task/.test(em.html) && !em.html.includes("View on Bring a Trailer"), "Before it ends is the same card");
 ok(em.text.includes("View auction: https://a.test/1") && /Open the Task:/.test(em.text) && /Stop all Task emails:/.test(em.text), "its text twin keeps the links");
 console.log(`emailCardsCheck: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
