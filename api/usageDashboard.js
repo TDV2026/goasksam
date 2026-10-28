@@ -678,19 +678,10 @@ async function handleOps(req, res) {
     const make = String(req.query?.make || "").toLowerCase().trim();
     const model = String(req.query?.model || "").toLowerCase().trim();
     if (!make || !model) return res.status(400).json({ error: "make and model query params are required." });
-    const cacheRows = (await supabaseSelectAll(env, "spec_market_cache?select=spec_key")) || [];
-    const toDelete = [];
-    for (const row of cacheRows) {
-      let parsed; try { parsed = JSON.parse(row.spec_key); } catch { continue; }
-      const [mk, md, , gc] = Array.isArray(parsed) ? parsed : [];
-      if (String(mk || "").toLowerCase() !== make) continue;
-      if (String(md || "").toLowerCase() === model || (gc && String(gc).toLowerCase() === model)) toDelete.push(row.spec_key);
-    }
-    for (let k = 0; k < toDelete.length; k += 100) {
-      const batch = toDelete.slice(k, k + 100).map(s => `"${s.replace(/"/g, '\\"')}"`).join(",");
-      await supabaseDelete(env, `spec_market_cache?spec_key=in.(${encodeURIComponent(batch)})`);
-    }
-    return res.status(200).json({ task: "specinvalidate", make, model, deleted: toDelete });
+    // mark stale, never delete (Oct 28 2026): the rows stay and are served stale while they refresh behind
+    const { markTouchedStale } = await import("../lib/_staleMark.js");
+    const r = await markTouchedStale(env, new Set([`${make}|${model}`]));
+    return res.status(200).json({ task: "specinvalidate", make, model, marked: r.marked, alreadyMarked: r.already, failed: r.failed, deleted: 0, keys: r.keys });
   }
 
   // task=trimresolvediff: READ-ONLY, zero writes. Runs every PORSCHE_911_TRIMS entry (the one
@@ -1575,6 +1566,19 @@ async function handleOps(req, res) {
       if (rows.length < 1000) break;
     }
     return res.status(200).json({ task: "storedcount", ocdSpend: 0, writes: 0, ...counts, ms: Date.now() - t0 });
+  }
+  // task=stalecount (Lane B, Oct 28 2026, mark stale, never delete): READ ONLY. Counts spec_market_cache rows by kind (core rows with a JSON-array key, MCWARM answers, other), how many core rows carry
+  // market.staleSince, and the first ten marked keys with their mark time. Paged 1000 rows a call (after = last key). Writes nothing, spends nothing: the before and after of the supervised ingest.
+  if (task === "stalecount") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const after = req.query?.after ? String(req.query.after) : "";
+    const rows = await supabaseSelect(env, `spec_market_cache?select=spec_key,mark:market->>staleSince,at:computed_at&order=spec_key.asc&limit=1000` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "stalecount", readFailed: true, ocdSpend: 0, writes: 0 });
+    const out = { task: "stalecount", ocdSpend: 0, writes: 0, rows: rows.length, core: 0, mcwarm: 0, other: 0, marked: 0, markedExamples: [], next: rows.length === 1000 ? rows[rows.length - 1].spec_key : null };
+    for (const r of rows) {
+      const k = String(r.spec_key); if (k.startsWith("MCWARM:")) out.mcwarm++; else if (k.startsWith("[")) { out.core++; if (r.mark) { out.marked++; if (out.markedExamples.length < 10) out.markedExamples.push({ key: k, staleSince: r.mark, computed_at: r.at }); } } else out.other++;
+    }
+    return res.status(200).json(out);
   }
   // task=storedsweep (Lane B, Oct 27 2026, e95): READ-ONLY. Runs the engine's own checks over every stored Market Check answer (MCWARM rows), 100 rows a page,
   // nothing written: one set of sales (setConsistencyOf), the output gate's receipts check (runOutputInvariants: another car's sales under this car), non-trim text
