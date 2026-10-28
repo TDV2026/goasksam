@@ -1654,6 +1654,47 @@ async function handleOps(req, res) {
     }
     return res.status(200).json(out);
   }
+  // task=bidplace (Lane B, Oct 28 2026, e100): READ-ONLY. For every stored core row (one page of 200, `after` continues): build the Find card the real way (marketFromCore, samLines) at five bids around the pair the card shows
+  // (one under the low, the low, the middle, the high, one over the high) and say where any sentence about the bid disagrees with the figures beside it (lib/live/bidPlaceVerify.js). Nothing is written, nothing is spent.
+  if (task === "bidplace") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { marketFromCore } = await import("../lib/live/search.js"); const { samLines } = await import("./buySearch.js"); const V = await import("../lib/live/bidPlaceVerify.js");
+    const after = req.query?.after ? String(req.query.after) : "";
+    const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.${encodeURIComponent("[*")}&select=spec_key,market&order=spec_key.asc&limit=200` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "bidplace", readFailed: true, ocdSpend: 0, writes: 0 });
+    const out = { task: "bidplace", ocdSpend: 0, writes: 0, rows: rows.length, cards: 0, noPair: 0, sentences: 0, problems: 0, examples: [], next: rows.length === 200 ? rows[rows.length - 1].spec_key : null };
+    for (const r of rows) {
+      let a; try { a = JSON.parse(r.spec_key); } catch { continue; } const core = r.market; if (!core || !Array.isArray(a)) continue;
+      const v = { make: a[0], model: a[1], trim: a[2] || undefined, year: a[3] || undefined }, row = { id: 1, listing_title: [a[3], a[0], a[1], a[2]].filter(Boolean).join(" "), year: a[3] || null, make: a[0], model: a[1], source: "bringatrailer" }, spec = { v, title: row.listing_title };
+      let m0; try { m0 = marketFromCore(core, row, { miles: null, priceUsd: null }, spec); } catch { continue; }
+      const sp = V.shownPair(m0); if (!sp) { out.noPair++; continue; }
+      for (const bid of V.BID_GRID(sp.pair)) {
+        const m = marketFromCore(core, row, { miles: null, priceUsd: bid }, spec), l = { id: 1, market: m, current_bid_usd: bid, end_time: new Date(Date.now() + 864e5).toISOString(), sam_lines: [] };
+        l.sam_lines = samLines(l, Date.now()); out.cards++;
+        out.sentences += l.sam_lines.filter(e => /The bid is/.test(e.text || "") || /The bid is/.test(e.bidLine || "")).length;
+        const pr = V.bidWordProblems(l, bid); out.problems += pr.length; if (pr.length && out.examples.length < 10) out.examples.push({ key: r.spec_key, bid, problems: pr.slice(0, 2) });
+      }
+    }
+    return res.status(200).json(out);
+  }
+  // task=modelclash (Lane B, Oct 28 2026, e100): READ-ONLY. The live specs (LIVESPECS row) name each live listing's identity. A listing whose TITLE puts a different model of the same make in the model position than the spec's model is a car
+  // priced from another model's sales. Counts, split into plain-name clashes (what the engine's rival rule would already catch) and coded ones (a digit in either name, which the rule leaves alone), and the first ten of each with the title and the spec.
+  if (task === "modelclash") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { ENGINE_VERSION, loadMakeModels, titleModelClash } = await import("../lib/onebox.js");
+    const got = await supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent("LIVESPECS:v1:" + (req.query?.version || ENGINE_VERSION))}&select=market`);
+    const specs = got && got[0] && got[0].market && Array.isArray(got[0].market.specs) ? got[0].market.specs : [];
+    const out = { task: "modelclash", ocdSpend: 0, writes: 0, specs: specs.length, checked: 0, unchecked: 0, plain: 0, coded: 0, first: { plain: [], coded: [] } };
+    const lists = new Map();
+    for (const e of specs) {
+      const sp = e && e.spec; if (!sp || !sp.v || !sp.v.make || !sp.v.model) continue;
+      if (!lists.has(sp.v.make)) lists.set(sp.v.make, (await loadMakeModels(env, sp.v.make).catch(() => ({ list: null }))).list);
+      const list = lists.get(sp.v.make); if (!list) { out.unchecked++; continue; } out.checked++;
+      const title = String(sp.title || ""), c = titleModelClash(sp.v.make, sp.v.model, title, sp.v.year, list); if (!c) continue;
+      out[c.kind]++; if (out.first[c.kind].length < 10) out.first[c.kind].push({ title, specModel: sp.v.model, titleModel: c.titleModel, year: sp.v.year || null });
+    }
+    return res.status(200).json(out);
+  }
   // task=storedsweep (Lane B, Oct 27 2026, e95): READ-ONLY. Runs the engine's own checks over every stored Market Check answer (MCWARM rows), 100 rows a page,
   // nothing written: one set of sales (setConsistencyOf), the output gate's receipts check (runOutputInvariants: another car's sales under this car), non-trim text
   // in a stored trim value (trimTextIsNoise), and the pooled states (apart, split, alike) the e95 rule gives each result. Counts, and the first 20 of each kind with the key.
