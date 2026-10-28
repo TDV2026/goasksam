@@ -1694,11 +1694,13 @@ async function handleOps(req, res) {
     const after = req.query?.after ? String(req.query.after) : "";
     const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,ev:market->>engineVersion,raw:market->raw&order=spec_key.asc&limit=100` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
     if (!Array.isArray(rows)) return res.status(200).json({ task: "optionssweep", readFailed: true, ocdSpend: 0, writes: 0 });
-    const out = { task: "optionssweep", ocdSpend: 0, writes: 0, rows: rows.length, withOptions: 0, storedProblems: { short: 0, over: 0, twice: 0 }, servedProblems: { short: 0, over: 0, twice: 0 }, first: [], next: rows.length === 100 ? rows[rows.length - 1].spec_key : null };
+    const out = { task: "optionssweep", ocdSpend: 0, writes: 0, rows: rows.length, withOptions: 0, ownWindow: { answers: 0, options: 0, printedWhenServed: 0, examples: [] }, storedProblems: { short: 0, over: 0, twice: 0 }, servedProblems: { short: 0, over: 0, twice: 0 }, first: [], next: rows.length === 100 ? rows[rows.length - 1].spec_key : null };
     const kind = t => /twice/.test(t) ? "twice" : /over the footer/.test(t) ? "over" : "short";
     for (const r of rows) {
       const a = r.raw; if (!a || !Array.isArray(a.options) || a.options.length < 2) continue; out.withOptions++;
-      const before = optionProblems(a), served = optionProblems({ ...a, ...optionsFieldsOf(a) });
+      const fields = optionsFieldsOf(a), before = optionProblems(a), served = optionProblems({ ...a, ...fields });
+      const diff = (fields.options || []).filter(o => o.windowDiffers);
+      if (diff.length) { out.ownWindow.answers++; out.ownWindow.options += diff.length; out.ownWindow.printedWhenServed += diff.filter(o => (fields.optionLines || []).some(l => l.includes(o.label) && l.includes(o.windowWords))).length; if (out.ownWindow.examples.length < 10) out.ownWindow.examples.push({ key: r.spec_key, footer: a.windowWords || null, poolN: a.poolN, options: diff.map(o => o.ownWindowLine && `${o.label}: ${o.ownWindowLine}`) }); }
       for (const t of before) out.storedProblems[kind(t)]++; for (const t of served) out.servedProblems[kind(t)]++;
       if ((before.length || served.length) && out.first.length < 10) out.first.push({ key: r.spec_key, poolN: a.poolN, options: a.options.map(o => `${o.label} ${o.n}`), stored: before.slice(0, 2), served: served.slice(0, 2) });
     }

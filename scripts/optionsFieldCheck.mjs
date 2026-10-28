@@ -41,7 +41,7 @@ fill("Floor", [["Coupe", null, 30000, 14, 5], ["Convertible", null, 30400, 5, 7]
 a = await ask("Floor");
 const fo = (a.options || []).find(o => o.label === "Convertible");
 ok("floor: the small option is carried with its count, no range and rangeFloor true", fo && fo.n === 5 && fo.low === null && fo.high === null && fo.rangeFloor === true, JSON.stringify(fo));
-ok("floor: its line prints the count and \"too few for a range\"", (a.optionLines || []).some(l => /^Convertible, 5 sales, too few for a range$/.test(l)), JSON.stringify(a.optionLines));
+ok("floor: its line prints the count and \"too few for a range\"", (a.optionLines || []).some(l => /^Convertible, 5 sales( since [A-Z][a-z]+ \d{4})?, too few for a range$/.test(l)), JSON.stringify(a.optionLines));
 ok("floor: no option without a range carries a window note", (a.options || []).every(o => !(o.rangeFloor && (o.windowNote || o.windowLonger === true))), JSON.stringify((a.options || []).map(o => [o.label, o.windowNote])));
 // C. a window note appears only beside a range, whatever the option
 const stubEd = (std, ed) => ({ tier: "result", windowMonths: 12, poolN: 21, cluster: [20000, 40000], rawPool: [], variantOptionsLine: [{ key: "ed", options: [{ value: "standard", label: "Standard", n: 12, ownN: 12, ...std }, { value: "ed", label: "Special edition", n: 9, ownN: ed.windowMonths > 12 ? 14 : 9, ...ed }] }] });

@@ -50,3 +50,9 @@ Send `{miTarget: n}` only. The engine builds the band (15,000 miles either side 
 ## Retired
 
 `pooledSplit` is never set. The page must not read it; use `options` and `optionsState`. The page must not compute the mileage band (`submitMileageInline` in `public/js/onebox.js` sends `miMin`, `miMax` and `miTarget` today; it should send `miTarget` only).
+
+## Option windows (e100, Oct 28; read-time fields, no stored answer changes)
+
+- An option read over a window other than the footer's carries `windowDiffers: true` and `ownWindowLine` ("11 sales since March 2025"); `optionLines[i]`, `headlineLines[i]` and `matchedOption.line` already contain it ("Targa $61,000 to $82,000, 11 sales since March 2025"). Print the line, or print `ownWindowLine` where the count is printed alone. Compute nothing: the count is `options[i].n`, the since date is `options[i].windowWords`.
+- `optionsNote` is null and `options[i].windowNote` is null: no explanation sentence about time spans prints anywhere. A page that still prints "Option counts use their own time spans" prints a sentence the engine no longer sends.
+- `optionsRemainder` ({ n, dimension, line }, "3 sales do not say their gearbox.") when the options add up to fewer sales than the footer and no option has its own window. `refineOptions` entries that repeat a headline option carry `ofOptions: true`; print options as lines and refineOptions as chips, never the same pill from both.

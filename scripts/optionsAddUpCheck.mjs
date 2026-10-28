@@ -23,6 +23,22 @@ ok("Defender 110 as stored: the year pills twice is a problem", raw(DEF).length 
 ok("Defender 110 as served: each pill once in a list, repeats marked ofOptions", after(DEF).length === 0 && (read(DEF).refineOptions || []).every(o => o.ofOptions), JSON.stringify(read(DEF).refineOptions));
 ok("options that add up carry no remainder", read(ADDS).optionsRemainder === null && after(ADDS).length === 0);
 ok("a body or mileage group that adds up is untouched", read(M3).refineOptions.length === 3);
+// the 1986 911 (Sam, Oct 28): Targa 11, Cabriolet 11, Coupe 16 = 38 against 35 in the footer; each option read over its own window. Allowed: options that print their own count and since date. Nothing else.
+const opt86 = (label, value, n, low, high, words) => ({ dimension: "body", label, value, n, low, high, median: Math.round((low + high) / 2), rangeFloor: false, windowMonths: 20, windowWords: words, ownWindow: true, windowLonger: true, windowNote: `${n} sales, over the last 20 months` });
+const S86 = { poolN: 35, windowWords: "since June 2025", headlineDimension: "body", optionsState: "alike", optionsNote: "Option counts use their own time spans, so they can add up to more than the total.",
+  options: [opt86("Targa", "targa", 11, 61000, 82000, "since March 2025"), opt86("Cabriolet", "cabriolet", 11, 58000, 79000, "since March 2025"), opt86("Coupe", "coupe", 16, 52000, 74000, "since April 2025")],
+  optionLines: ["Targa $61,000 to $82,000, 11 sales", "Cabriolet $58,000 to $79,000, 11 sales", "Coupe $52,000 to $74,000, 16 sales"], refineOptions: [] };
+ok("1986 911 as stored: 38 against 35 and no option says its own window is a problem", optionProblems(S86).length > 0, optionProblems(S86).join(" | "));
+const s86 = read(S86);
+ok("1986 911 as served: each option line carries its own count and since date", s86.optionLines[0] === "Targa $61,000 to $82,000, 11 sales since March 2025" && s86.optionLines[2] === "Coupe $52,000 to $74,000, 16 sales since April 2025", JSON.stringify(s86.optionLines));
+ok("1986 911 as served: no problems, no explanation sentence, no per-option window note", optionProblems(s86).length === 0 && s86.optionsNote === null && s86.options.every(o => o.windowNote === null && o.windowDiffers === true), optionProblems(s86).join(" | "));
+ok("each option carries its own line as a field", s86.options[0].ownWindowLine === "11 sales since March 2025", String(s86.options[0].ownWindowLine));
+const same = { ...S86, options: S86.options.map(o => ({ ...o, windowWords: "since June 2025" })) };
+ok("38 against 35 with every option on the footer's own window still fails after serving", optionProblems(read(same)).length > 0, optionProblems(read(same)).join(" | "));
+const hidden = { ...s86, optionLines: S86.optionLines };
+ok("an option on its own window whose line does not say so fails", optionProblems(hidden).length > 0, optionProblems(hidden).join(" | "));
+const adds = { ...S86, poolN: 38 };
+ok("options that add up but read over their own window still print it", optionProblems(adds).length > 0 && optionProblems(read(adds)).length === 0);
 // the engine itself, on a fake archive: Defender-like years that stay one range
 { const ev = (row, it) => { const ci = it.indexOf(":"); const alias = ci > 0 && it[ci + 1] !== ":" ? it.slice(0, ci) : null; const expr = alias ? it.slice(ci + 1) : it; if (expr.startsWith("raw_record->>")) { const k = expr.slice(13); const v = row.raw_record[k]; return [alias || k, v == null ? null : String(v)]; } return [alias || expr, row[expr] === undefined ? null : row[expr]]; };
   const likeRe = v => new RegExp("^" + String(v).replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$", "i");
