@@ -31,17 +31,17 @@ ok(mk[0].keys.join() === "make,model,generation,trim,era" && mk[1].keys.join() =
 const ch = filterChips({ make: "Porsche", colour: "black" }).join("");
 ok(/<button type="button" class="rchip fchip" data-rmf="make,model,generation,trim,era" aria-label="Remove Porsche">Porsche<span class="fx" aria-hidden="true">×<\/span><\/button>/.test(ch) && /data-rmf="colour"/.test(ch), "each chip is a button that names what it removes");
 // The header and the searching block.
-const hh = block("  function headerHtml(m, q, qp, f, asking){", "  // With cars that don't state");
+const hh = block("  function headerHtml(m, q, qp, f, asking, drawn){", "  // With cars that don't state");
 const code = c.split("\n").filter(l => !/^\s*\/\//.test(l)).join("\n");
 ok(!/Your search:/.test(code) && !/sq-k/.test(hh), "no 'Your search:' anywhere on the page");
 ok(!/chip-live/.test(hh) && !/data-nearme/.test(hh) && /var chips = filterChips\(f, m\.place, m\.radius\);/.test(hh), "no Live or Near me pill; the chips are the search's constraints");
 ok(/if \(n <= 2\) widen\.forEach/.test(hh), "the engine's widenings (Any colour, abroad and the rest) show only for one, two or no cars");
 // Stage 1e item 7 (Sam, Oct 21 2026): no heading above the chips; the chips alone show the search.
 ok(!/class="sq"|data-sqedit|esc\(q\)/.test(hh) && /return '<div class="shead">' \+\s*('<div class="shead-top">[^']*<\/div>' \+\s*)?'<div class="srow2">/.test(hh), "no search heading above the chips (Stage 1e item 7): the header starts with the chips row");
-ok(/esc\(matchesLine\(n, true\)\)/.test(hh) && /esc\(matchesLine\(0, !!qp\)\)/.test(hh), "the header's count is N live matches");
+ok(/esc\(matchesLine\(n, true\)\)/.test(hh) && /esc\(matchesLine\(0, !!qp, drawn\)\)/.test(hh), "the header's count is N live matches");
 ok(!/insertAdjacentHTML\("beforeend", '<p class="snote">'/.test(c), "no 'Here's what's for sale' line over the cards");
 ok(/var lead = "";/.test(block("  function askHtml(a, m, qp){", "  // Listings that don't state")), "the narrowing question does not repeat the count");
-ok(/'<div class="shead"><p class="sq"><b>' \+ esc\(said\) \+ '<\/b><\/p>/.test(c) && /esc\(matchesLine\(n, !!searchLabel/.test(c), "the searching block says the search once and its count as N live matches");
+ok(/'<div class="shead"><p class="sq"><b>' \+ esc\(said\) \+ '<\/b><\/p>/.test(c) && /matchesLine\(n, !!searchLabel/.test(c), "the searching block says the search once and its count as N live matches");
 // The clicks.
 const ck = block("    var rf = e.target.closest(\"[data-rmf]\");", "    var ap = e.target.closest(\"[data-askpatch]\");");
 ok(/drop\.forEach\(function\(k\)\{ delete cur\[k\]; \}\);/.test(ck) && /return chatAsk\(cur\);/.test(ck) && /conv\.railReplace = location\.pathname \+ location\.search;/.test(ck), "a removed chip reruns at once without it, relabelling its rail entry");
