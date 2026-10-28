@@ -3415,7 +3415,7 @@ async function handler(req, res) {
           return r.ok;
         } catch { return false; }
       };
-      const OB_CALM = "Sam is busy right now, try again in a minute.";
+      const OB_CALM = COULD_NOT_LINE;   // cold spec (Oct 28 2026): one plain line, never "try again"
       // search_run (docs/analytics-events.md): one per Market Check search, from Lane B's one engine result
       // object (mapEngineAnswer), failures included. Never on a refine tap (that is refinement_applied).
       const mcText = typeof rawSearch === "string" ? rawSearch : (vehicle?.raw || vehicle?.canonicalLabel || "");

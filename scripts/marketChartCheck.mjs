@@ -39,7 +39,7 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
   const p = await b.newPage(); await p.setViewport({ width: w, height: h, isMobile: w < 600 });
   await p.setContent(`<!doctype html><meta name="viewport" content="width=device-width, initial-scale=1"><style>:root{--ink:#15201A;--sec:#5E6B61;--div:#DCD8CC;--chip:#DDE6DE;--num:#1E4D38}body{margin:20px;font:14px sans-serif}.hc-svg{width:100%;height:auto;display:block;max-width:${w < 600 ? 350 : 560}px}.hc-axislabel{font-size:${w < 600 ? 32 : 23}px;fill:var(--sec)}.hc-candlelabel{font-size:${w < 600 ? 32 : 23}px;font-weight:600;fill:var(--sec)}.hc-count{font-size:${w < 600 ? 28 : 19}px;fill:var(--ink)}.hc-axq{font-size:${w < 600 ? 30 : 20}px;font-weight:600;fill:var(--ink)}.hc-axy{font-size:${w < 600 ? 24 : 16}px;fill:var(--sec)}.hc-cap{font-size:${w < 600 ? 24 : 16}px;fill:var(--sec)}</style><div id=out></div>`);
   await p.addScriptTag({ content: code });
-  const draw = (trend) => p.evaluate((trend) => { const out = document.getElementById("out"); out.innerHTML = window.__chart({ trend });
+  const draw = (trend) => p.evaluate((trend) => { const out = document.getElementById("out"); out.innerHTML = window.__chart({ trend, chartCaption: "By quarter, November 2023 to September 2026. Quarters with fewer than 5 sales are left out." });
     const svg = out.querySelector("svg"); if (!svg) return { none: true, html: out.innerHTML.length };
     const vb = svg.viewBox.baseVal, texts = [...svg.querySelectorAll("text")].map(t => { const bb = t.getBBox(); return { s: t.textContent, cls: t.getAttribute("class") || "", x1: bb.x, x2: bb.x + bb.width, y1: bb.y, y2: bb.y + bb.height }; });
     const rects = [...svg.querySelectorAll("rect")].map(e => { const bb = e.getBBox(); return { x1: bb.x, x2: bb.x + bb.width, y1: bb.y, y2: bb.y + bb.height }; });
@@ -48,7 +48,7 @@ for (const [w, h] of [[1440, 900], [390, 844]]) {
     const r = await draw(trend), key = `${w}px ${name}`, bks = trend.movement.buckets;
     if (r.none) { ok(false, key + ": no chart drawn"); continue; }
     const labels = r.texts.filter(t => /candlelabel/.test(t.cls)), axis = r.texts.filter(t => /axislabel/.test(t.cls)), counts = r.texts.filter(t => /hc-count/.test(t.cls));
-    ok(r.note === "Quarters with too few sales are left out." && r.noteLast, key + ": the one static line sits last, under the legend (and under any year-before line): " + r.note);
+    ok(r.note === "By quarter, November 2023 to September 2026. Quarters with fewer than 5 sales are left out." && r.noteLast, key + ": the engine's chartCaption sits last, under the legend (and under any year-before line): " + r.note);
     ok(r.circles === 0, key + ": ONLY candles: no dots anywhere (" + r.circles + " circles)");
     ok(r.rects.length === bks.length && r.ticks === bks.length, key + ": one candle (box and median mark) for each engine bucket (" + r.rects.length + " boxes, " + r.ticks + " marks, " + bks.length + " buckets)");
     ok(!r.texts.some(t => /^\$0\b|\$0$/.test(t.s.trim()) || /\$0 /.test(t.s)) && !axis.some(t => /-/.test(t.s)), key + ": never a $0 or a negative figure");

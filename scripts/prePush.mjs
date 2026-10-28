@@ -1289,6 +1289,13 @@ try {
 } catch (e) {
   record("milesfault flags old low-mileage sales only, counts them by source and decade, and writes nothing (scripts/milesFaultCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// No dead end on a cold spec: the computing state asks again for 45 seconds, then one plain line (Sam, Oct 28 2026). Rendered in a browser.
+try {
+  const out = execSync("node scripts/coldPathCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("cold spec: reading line, asks every 2 seconds up to 45, then the plain line (scripts/coldPathCheck.mjs)", "PASS", (out.match(/coldPathCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("cold spec: reading line, asks every 2 seconds up to 45, then the plain line (scripts/coldPathCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The account pill covers nothing on any page, result views included (Sam, Oct 27 2026). Rendered in a browser.
 try {
   const out = execSync("node scripts/pillOverlapCheck.mjs", { encoding: "utf8" });
@@ -1411,10 +1418,10 @@ try {
 }
 // The pooled states (Oct 27 2026, e95 fields): Market Check, the shared card, Find, the history page and the MCP tool print apart, split and alike, and a withheld chart. Local render, no network.
 try {
-  const out = execSync("node scripts/pooledStatesCheck.mjs", { encoding: "utf8", timeout: 600000 });
-  record("Pooled states (scripts/pooledStatesCheck.mjs)", "PASS", (out.match(/pooledStatesCheck: .*/) || [""])[0]);
+  const out = execSync("node scripts/e96PagesCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("E96 pages print the engine's lines and compute nothing (scripts/e96PagesCheck.mjs)", "PASS", (out.match(/e96PagesCheck: .*/) || [""])[0]);
 } catch (e) {
-  record("Pooled states (scripts/pooledStatesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+  record("E96 pages print the engine's lines and compute nothing (scripts/e96PagesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 // A count and its noun (Oct 27 2026): "One sales" is a class, so every line that joins a count to sale, car, listing or quarter is checked. No network.
 try {

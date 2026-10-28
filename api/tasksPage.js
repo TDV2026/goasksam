@@ -288,7 +288,7 @@ const APP_JS = String.raw`(function(){
   // It shows only while the server's latest answer says the account is at the limit: every list drops it the moment it is not.
   var limit = null, carry = "", draftOpen = !!(params.get("start") || params.get("seed")), miss = false;
   var starting = {}, firing = {}, cardsOut = {}, fullCache = {}, askN = {};
-  var MAX_ASKS = 4, COULD_NOT = "The sales could not be read just now. Try again in a minute.";
+  var COLD_MAX = 45000, COULD_NOT = "Sam couldn't read this one yet.", coldSince = {};   // cold spec (Oct 28 2026): a card still being read is asked for every 2 seconds for up to 45 seconds, then the one plain line; never "try again"
   function phraseOf(t){ return String((t && t.summary) || "").replace(/^Sam is (?:looking for|researching)\s+/i, "").replace(/:.*$/, "").replace(/[.]+$/, ""); }
   function showLimit(l){ limit = l; api({ action: "limit", event: "seen", mode: l.mode, attempted: l.attempted }).catch(function(){}); }
   function syncLimit(){ if (limit && !(data && data.limit && data.limit.atLimit)) { if (limit.mode === "seed" || limit.mode === "typed") carry = limit.attempted || ""; limit = null; } }
@@ -470,12 +470,12 @@ const APP_JS = String.raw`(function(){
   }
   // A card whose market is not back (the engine's own pending answer, or none yet) is asked for again exactly as Buy asks: the
   // engine says when (retryAfterMs), each card fills in place the moment its own market lands, and a card still pending after
-  // MAX_ASKS says so plainly instead of holding the reading line.
+  // 45 seconds says so plainly instead of holding the reading line.
   function isPend(l){ return l && (l.market === undefined || l.market === null || (l.market && l.market.kind === "pending" && l.market.stillReading)); }
   function allFull(){ var out = []; Object.keys(fullCache).forEach(function(k){ (fullCache[k] || []).forEach(function(l){ if (l && out.indexOf(l) < 0) out.push(l); }); }); return out; }
   function redrawCard(l){ if (!window.GASCARD) return; app.querySelectorAll('article.car[data-id="' + l.id + '"]').forEach(function(a){ var d = document.createElement("div"); d.innerHTML = window.GASCARD.card(l); var n = d.firstElementChild; if (n) a.replaceWith(n); }); if (window.GASCARD.stamp) window.GASCARD.stamp(); }
   function markets(){
-    var still = allFull().filter(function(l){ return isPend(l) && (askN[l.id] || 0) < MAX_ASKS; });
+    var still = allFull().filter(function(l){ return isPend(l) && !(l.market && l.market.couldNot); });
     if (!still.length) return;
     var ids = still.map(function(l){ return l.id; }).slice(0, 60);
     ids.forEach(function(id){ askN[id] = (askN[id] || 0) + 1; });
@@ -485,9 +485,11 @@ const APP_JS = String.raw`(function(){
         var c = ((j && j.cards) || []).filter(function(x){ return x.id === l.id; })[0];
         if (c && c.market !== undefined) { l.market = c.market; l.seen_before = c.seen_before; if (c.timeline !== undefined) l.timeline = c.timeline; l.sam_lines = c.sam_lines; }
         if (isPend(l)) {
-          if ((askN[l.id] || 0) >= MAX_ASKS) { l.market = { kind: "pending", stillReading: false, line: COULD_NOT }; }
-          else waits.push(l.market && l.market.retryAfterMs > 0 ? l.market.retryAfterMs : 15000);
-        }
+          coldSince[l.id] = coldSince[l.id] || Date.now();
+          var k = Number(window.GAS_WAIT_SCALE) || 1;
+          if (Date.now() - coldSince[l.id] >= COLD_MAX * k) { l.market = { kind: "pending", stillReading: false, couldNot: true, line: COULD_NOT }; try { if (typeof gasTrack === "function") gasTrack("cold_miss", { wait_ms: Math.round(Date.now() - coldSince[l.id]), reason: "timeout", text: String(l.title || "").slice(0, 120), from_product: "tasks" }); } catch (e) {} }
+          else waits.push((l.market && l.market.retryAfterMs > 0 ? l.market.retryAfterMs : 2000) * k);
+        } else delete coldSince[l.id];
         redrawCard(l);
       });
       if (waits.length) setTimeout(markets, Math.min.apply(null, waits));

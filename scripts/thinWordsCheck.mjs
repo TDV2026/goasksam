@@ -24,9 +24,9 @@ const DROPPED = [
 for (const [f, s, re] of DROPPED) ok(!re.test(s), `${f}: page-written thin wording is back: ${re}`);
 
 const thinHero = fnBody(mc, "thinHeroHtml"), refusal = fnBody(mc, "refusalHtml"), rangeHero = fnBody(mc, "heroRangeHtml");
-ok(/sellsForCardHtml\(d, \{ rows: false(?:, reasonsShown: true)? \}\)/.test(thinHero), "Market Check thin hero draws the shared card with {rows:false}");
-ok(/sellsForCardHtml\(d, \{ rows: false(?:, reasonsShown: true)? \}\)/.test(rangeHero), "Market Check range hero draws the shared card with {rows:false}");
-const refusalCalls = (refusal.match(/sellsForCardHtml\(d, \{ rows: false(?:, reasonsShown: true)? \}\)/g) || []).length;
+ok(/sellsForCardHtml\(d, \{ rows: false(?:, reasonsShown: true)?(?:, interactive: true)? \}\)/.test(thinHero), "Market Check thin hero draws the shared card with {rows:false}");
+ok(/sellsForCardHtml\(d, \{ rows: false(?:, reasonsShown: true)?(?:, interactive: true)? \}\)/.test(rangeHero), "Market Check range hero draws the shared card with {rows:false}");
+const refusalCalls = (refusal.match(/sellsForCardHtml\(d, \{ rows: false(?:, reasonsShown: true)?(?:, interactive: true)? \}\)/g) || []).length;
 ok(refusalCalls === 2, `Market Check refusal draws the shared card on both the thin and the spread refusal (found ${refusalCalls})`);
 ok(!/lint\(esc\(lead\)/.test(refusal) && !/"refuse\.reason"/.test(refusal), "Market Check refusal prints no lead or reason of its own");
 

@@ -134,7 +134,7 @@ for (const [name, d] of Object.entries(FIX)) {
 // Any car (Sam, Oct 18 2026): every demo read, the six and any other car, uses the demo's own per-device ceiling only.
 { const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8"), apiSrc = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
   ok(!/checkCeiling\(env, req, "partner_cars"/.test(apiSrc) && !/"partner_answer"/.test(apiSrc) && (apiSrc.match(/checkCeiling\(env, req, "partner_demo"/g) || []).length === 1, "any car reads under the demo's per-device ceiling only; no daily car cap and no per-address window on the demo");
-  ok(/That is today's limit for other cars here\./.test(pageSrc) && /a && a\.error === "car_limit" \? LIMIT/.test(pageSrc) && !/setTimeout\(runs\[view\], (?!a\.retryAfterMs)/.test(pageSrc), "over the limit the page says so (no retry), never that the car has no sales"); }
+  ok(/That is today's limit for other cars here\./.test(pageSrc) && /a && a\.error === "car_limit" \? LIMIT/.test(pageSrc), "over the limit the page says so (the limit answer is not a still-reading answer, so it is never asked again), never that the car has no sales"); }
 // A refused or failed read never claims the car has no history, and the per-minute ceiling never applies to the demo's
 // own six cars (Oct 17 2026: ten view loads in a minute tripped it on the GT3 and the page said two wrong things).
 { const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8"), apiSrc = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
@@ -206,7 +206,7 @@ for (const [name, d] of Object.entries(FIX)) {
   const sr = ps({ status: "one_box", tier: "unavailable", stillReading: true, samLine: "Sam is still reading the sales for this one.", retry: true, retryAfterMs: 15000 }, "2015 Porsche 911 GT3", 0, {});
   ok(sr.ok === false && sr.error === "unavailable" && sr.stillReading === true && sr.line === "Sam is still reading the sales for this one." && sr.retryAfterMs === 15000, "the engine's still-reading answer passes through with its line and its wait");
   const sr2 = ps({ status: "one_box", tier: "unavailable", stillReading: true, samLine: "x" }, "q", 0, {});
-  ok(sr2.stillReading === true && sr2.retryAfterMs === null, "no retry asked by the engine: no wait, the page offers Try again");
+  ok(sr2.stillReading === true && sr2.retryAfterMs === null, "no retry asked by the engine: no wait named (the page then asks at the 2 second default, never offers Try again)");
   ok(ps({ status: "one_box", tier: "rate_limited" }, "q", 0, {}).stillReading === undefined, "a refusal is not a still-reading answer");
   ok(fullResult({ ok: true, answerType: "range" }) && fullResult({ ok: true, answerType: "not_enough_data" }) && fullResult({ ok: true, answerType: "zero_result" }), "a range, a thin answer and the engine's zero answer are full results");
   ok(!fullResult({ ok: true, answerType: "identity_question" }) && !fullResult(sr) && !fullResult({ ok: false, error: "unavailable" }) && !fullResult(null), "a question, a still-reading answer and a failed read are never stored");
@@ -217,8 +217,8 @@ for (const [name, d] of Object.entries(FIX)) {
   const lastBlock = apiSrc.slice(apiSrc.indexOf("req.query.last != null"), apiSrc.indexOf("req.query.photo != null"));
   ok(lastBlock.length > 0 && /readLast\(env, lk\)/.test(lastBlock) && !/marketCheckAnswer|writeLast|partnerShape/.test(lastBlock), "GET ?last= returns the stored answer only: no engine read, no write");
   const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
-  ok(/if \(a && a\.stillReading && a\.retryAfterMs > 0\) setTimeout\(runs\[view\], a\.retryAfterMs\);/.test(pageSrc) && (pageSrc.match(/setTimeout\(runs\[view\]/g) || []).length === 1, "the page asks again only after the engine's own retryAfterMs");
-  ok(/esc\(a\.line \|\| STILL_LINE\)/.test(pageSrc) && /data-retry>Try again<\/button>/.test(pageSrc), "the still-reading state draws the engine's line, and Try again when no wait is named");
+  ok(/setTimeout\(runs\[view\], \(a\.retryAfterMs > 0 \? a\.retryAfterMs : 2000\)/.test(pageSrc) && (pageSrc.match(/setTimeout\(runs\[view\]/g) || []).length === 1 && /45000 \* \(Number\(window\.GAS_WAIT_SCALE\)/.test(pageSrc), "the page asks again at the engine's own retryAfterMs (2 seconds by default) for up to 45 seconds (cold spec, Oct 28 2026)");
+  ok(/esc\(a\.line \|\| STILL_LINE\)/.test(pageSrc) && !/data-retry>Try again<\/button>/.test(pageSrc) && /Sam couldn't read this one yet\./.test(pageSrc), "the still-reading state draws the engine's line; after 45 seconds the one plain line; never Try again");
   ok(/fetch\("\/api\/partnerAnswer\?last=" \+ encodeURIComponent\(body\.q\)/.test(pageSrc) && /if \(!a \|\| !a\.aborted\) return a;/.test(pageSrc), "after the page's abort (a safety net only): the stored last good answer, else the still-reading state");
   // ONE CAR ACROSS THE VIEWS, ANY CAR (Sam, Oct 18 2026): the car box takes any year, make and model, the six are quick
   // picks; every view reads the same car; only the 2015 GT3 has listing detail; nothing invented for any other car.

@@ -10,12 +10,15 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
 const rd = f => JSON.parse(fs.readFileSync("scripts/fixtures/" + f, "utf8"));
 const S = await import("../lib/live/search.js"), { samLines } = await import("../api/buySearch.js"), { emailCardData } = await import("../lib/tasks/emailCards.js"), { blockLines } = await import("../lib/tasks/tasks.js"), { emailModeOf } = await import("../lib/onebox.js");
 const m3 = rd("m3Answer.json"), diablo = rd("answer-diablo.json");
+// e96: the engine writes the lines (optionLines under a range; headlineLines in place of one); the email prints them as written
 const OPT = (dimension, label, value, n, low, high, median) => ({ dimension, label, value, n, low, high, ...(median ? { median } : {}) });
+const LN = o => `${o.label} $${o.low.toLocaleString("en-US")} to $${o.high.toLocaleString("en-US")}, ${o.n} sales`;
+const e96 = (d, state, opts) => ({ ...d, optionsState: state, options: opts, optionLines: opts.map(LN), headlineLines: state === "alike" ? [] : opts.map(LN) });
 const withMode = d => ({ ...d, emailMode: emailModeOf(d) });
 const CASES = {
   range: withMode(m3),
-  range_with_options: withMode({ ...m3, optionsState: "alike", options: [OPT("body", "Convertible", "convertible", 9, 29000, 42500, 35500), OPT("body", "Coupe", "coupe", 8, 22500, 31500, 27000)] }),
-  options: withMode({ ...m3, cluster: null, referenceFigure: null, noCluster: true, thinReason: "pooled_apart", pooledApart: { dimensions: ["body"], options: [OPT("body", "Convertible", "convertible", 9, 36000, 48000), OPT("body", "Coupe", "coupe", 8, 21000, 29000)] }, trend: null }),
+  range_with_options: withMode(e96(m3, "alike", [OPT("body", "Convertible", "convertible", 9, 29000, 42500, 35500), OPT("body", "Coupe", "coupe", 8, 22500, 31500, 27000)])),
+  options: withMode(e96({ ...m3, cluster: null, referenceFigure: null, noCluster: true, trend: null }, "apart", [OPT("body", "Convertible", "convertible", 9, 36000, 48000), OPT("body", "Coupe", "coupe", 8, 21000, 29000)])),
   sales: withMode(diablo),
   none: withMode({ status: "one_box", tier: "refusal", cluster: null, poolN: 0, cards: [], samLine: "Sales too spread out for a range.", refusal_line: "Sam could not verify this one, so no figures are shown." }),
 };
@@ -36,13 +39,13 @@ for (const [mode, d] of Object.entries(CASES)) {
   ok(!QUESTION.test(all), `${where}: the email prints no question (${all.match(QUESTION) || ""})`);
   if (mode === "range") ok(e.card.includes(POOLED) && /\$22,500 to \$41,000|inside/.test(e.block + e.card), `${where}: the pooled range is printed`);
   if (mode === "range_with_options") {
-    ok(e.card.includes(POOLED) && /Convertible: \$29,000 to \$42,500, 9 sales\./.test(e.card) && /Coupe: /.test(e.card), `${where}: the card prints the pooled range and each option's own line`);
-    ok(/Convertible: \$29,000 to \$42,500, 9 sales\./.test(e.block) && /Coupe: \$22,500 to \$31,500/.test(e.block), `${where}: the block prints each option's own line (${e.block})`);
+    ok(e.card.includes(POOLED) && /Convertible \$29,000 to \$42,500, 9 sales/.test(e.card) && /Coupe \$22,500/.test(e.card), `${where}: the card prints the pooled range and each option's own line`);
+    ok(/Convertible \$29,000 to \$42,500, 9 sales/.test(e.block) && /Coupe \$22,500 to \$31,500/.test(e.block), `${where}: the block prints each option's own line (${e.block})`);
   }
   if (mode === "options") {
     ok(!e.card.includes(POOLED) && !e.block.includes(POOLED) && !/\$22,500 to \$41,000/.test(all), `${where}: no pooled range anywhere in the email`);
-    ok(/Convertible: \$36,000 to \$48,000, 9 sales\./.test(e.card) && /Coupe: \$21,000 to \$29,000/.test(e.card), `${where}: the card prints each option's own range`);
-    ok(/Convertible: \$36,000 to \$48,000, 9 sales\./.test(e.block) && /Coupe: \$21,000 to \$29,000/.test(e.block), `${where}: the block prints each option's own range (${e.block})`);
+    ok(/Convertible \$36,000 to \$48,000, 9 sales/.test(e.card) && /Coupe \$21,000 to \$29,000/.test(e.card), `${where}: the card prints each option's own range`);
+    ok(/Convertible \$36,000 to \$48,000, 9 sales/.test(e.block) && /Coupe \$21,000 to \$29,000/.test(e.block), `${where}: the block prints each option's own range (${e.block})`);
   }
   if (mode === "sales") {
     ok(e.card.includes(SALE) && !/ to \$\d/.test(e.card), `${where}: the card prints the sales and no range`);
@@ -57,7 +60,7 @@ for (const [mode, d] of Object.entries(CASES)) {
   ok(e.card.includes(POOLED) && !QUESTION.test(e.card + e.block), "a question the engine asked first does not change what the email prints: the range (mode range)");
   ok(/inside|\$22,500 to \$41,000/.test(e.block) && !/Which body/.test(e.block), `the block still prints the range by its mode (${e.block})`);
   const o = emailOf(CASES.options, asked);
-  ok(!o.card.includes(POOLED) && !/Which body/.test(o.card + o.block) && /Coupe: \$21,000/.test(o.block), "an options answer that also asked a question prints its option lines and no question");
+  ok(!o.card.includes(POOLED) && !/Which body/.test(o.card + o.block) && /Coupe \$21,000/.test(o.block), "an options answer that also asked a question prints its option lines and no question");
 }
 // the Find path marks every no-market read none, so an email prints nothing for it
 { const src = fs.readFileSync("lib/live/search.js", "utf8"); for (const k of ['kind: "unmatched", emailMode: "none"', 'kind: "not_tracked", emailMode: "none"', 'kind: "refused", emailMode: "none"']) ok(src.includes(k), `listingMarket marks ${k.split(",")[0]} as emailMode none`); }
