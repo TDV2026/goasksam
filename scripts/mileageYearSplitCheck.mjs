@@ -62,5 +62,19 @@ for (let i = 0; i < 10; i++) salemi("YR1", "Coupe", 60000 + i * 300, 22 + i * 9,
 a = await ask("YR1");
 ok("year: a widened set whose year groups price apart splits by year, no pooled range", a.tier === "result" && !a.cluster && a.headlineDimension === "year" && a.emailMode === "options", `${a.tier} ${a.optionsState} ${a.headlineDimension} ${a.fallbackRung}`);
 ok("year: one line per year from its own set, the typed year first when it has sales", (a.options || []).length >= 2 && a.options.every(o => o.dimension === "year" && o.refine && o.refine.year >= 2000) && a.headlineLines.length === a.options.length, JSON.stringify(a.headlineLines));
+// a year option returns that year's own set; the typed year with 2 sales is under the floor
+const refinedAt = async (model, refine) => (await E.oneEngineAnswer({ make: MK, model, trim: "", year: 2001, bodyStyle: null }, null, `2001 ${MK} ${model}`, { ...env, asked: 2 }, refine)).raw;
+let r1 = await refinedAt("YR1", { year: 2000 });
+ok("year click: 2000 returns its own 10 sales and a range", r1.poolN === 10 && Array.isArray(r1.cluster) && r1.rangeFloor === false, `${r1.poolN} ${JSON.stringify(r1.cluster)} ${r1.rangeFloor}`);
+r1 = await refinedAt("YR1", { year: 2001 });
+ok("year click: the typed 2001 with 2 sales gives the count, rangeFloor true, no range", (r1.poolN === 2 || (r1.thin_sales && r1.thin_sales.count === 2) || (r1.cards || []).length === 2) && r1.rangeFloor === true && !r1.cluster, `${r1.poolN} ${JSON.stringify(r1.thin_sales)} ${r1.rangeFloor}`);
+// TYPED MILES: the page sends only the target, the engine maps it to the band
+let m1 = await refinedAt("MB1", { miTarget: 30000 });
+ok("typed miles: 30,000 maps to 15,000 to 45,000 and narrows", m1.mileageBand && m1.mileageBand.miMin === 15000 && m1.mileageBand.miMax === 45000 && m1.mileageBand.narrowed === true && /within 15,000 miles of 30,000/.test(m1.mileageBand.line), JSON.stringify(m1.mileageBand));
+m1 = await refinedAt("MB1", { miTarget: 70000 });
+ok("typed miles: 70,000 maps to 45,000 to 95,000 (25,000 either side from 60,000 up)", m1.mileageBand && m1.mileageBand.miMin === 45000 && m1.mileageBand.miMax === 95000 && m1.mileageBand.narrowed === true, JSON.stringify(m1.mileageBand));
+m1 = await refinedAt("MB2", { miTarget: 75000 });
+ok("typed miles: a band with fewer than 8 sales says so in one line and keeps the pooled range", m1.mileageBand && m1.mileageBand.narrowed === false && /^Too few sales near 75,000 miles/.test(m1.mileageBand.line), JSON.stringify(m1.mileageBand));
+ok("typed miles: bandedRefine leaves a refine that already has a band alone", JSON.stringify(E.bandedRefine({ miMin: 0, miMax: 50000, miTarget: 30000 })) === JSON.stringify({ miMin: 0, miMax: 50000, miTarget: 30000 }) && E.bandedRefine(null) === null);
 console.log(failed ? `mileageYearSplitCheck: ${failed} FAIL` : "mileageYearSplitCheck: all PASS");
 process.exit(failed ? 1 : 0);
