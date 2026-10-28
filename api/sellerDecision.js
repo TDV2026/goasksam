@@ -59,9 +59,9 @@ import { keepAlive } from "../lib/keepAlive.js";
 // COLD SPEC WORDS (Sam, Oct 28 2026): the computing answer and the one plain line when the read cannot finish. No page says "try again"; the page keeps asking
 // (retryAfterMs, up to waitMaxMs) while computing is true.
 export const COMPUTING_LINE = reasonLine("cold.reading");
-export const COULD_NOT_LINE = "Sam couldn't read this one yet.";
+export const COULD_NOT_LINE = reasonLine("cold.missed");
 const carStubOf = v => v ? { year: v.year || null, make: v.make || null, model: v.model || null, trim: v.trim || null, bodyStyle: v.bodyStyle || null } : null;
-const computingAnswer = v => ({ status: "one_box", tier: "unavailable", stillReading: true, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: 45000, samLine: COMPUTING_LINE, resolvedCar: carStubOf(v) });
+const computingAnswer = v => ({ status: "one_box", tier: "unavailable", stillReading: true, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: 45000, samLine: COMPUTING_LINE, couldNotLine: COULD_NOT_LINE, resolvedCar: carStubOf(v) });
 
 import { isCrewRequest } from "../lib/_crew.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
@@ -3265,7 +3265,7 @@ async function handler(req, res) {
       // e60 timing contract: a resolver lookup that timed out is the deadline card (the same words as the 20-second
       // card), never a car resolved from the typed words alone.
       if (resolution && resolution.status === "lookup_timeout") {
-        return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: COMPUTING_LINE, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: 45000 });
+        return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: COMPUTING_LINE, couldNotLine: COULD_NOT_LINE, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: 45000 });
       }
       if (resolution.status !== "valid") {
         // The caller already accepted a model-level read (the seller declined
@@ -3390,7 +3390,7 @@ async function handler(req, res) {
       const obStillReading = () => {
         console.error(`One Box deadline on the path before the engine, ${Date.now() - obStart}ms.`);
         mcRun({ answer_type: "failed", failure_state: "still_reading" });
-        return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: COMPUTING_LINE, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: 45000 });
+        return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: COMPUTING_LINE, couldNotLine: COULD_NOT_LINE, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: 45000 });
       };
       // Graceful failure (reliability pass): if Supabase is slow or DOWN, fail FAST to one calm line
       // rather than a hung spinner or a misleading "not enough sales" from empty reads. A cheap probe

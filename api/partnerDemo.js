@@ -20,6 +20,7 @@ import { SELLS_FOR_CARD_CSS } from "../lib/sellsForCard.js";
 import { PARTNER_LOGO_SVG_B64 } from "./_partnerLogo.js";
 import { DEMO_CARS } from "./partnerAnswer.js";
 import { amazonPageHtml } from "./_amazonDemo.js";
+import { reasonLine } from "../lib/reasonWords.js";
 import { AMAZON_LOGO_SVG_B64 } from "./_amazonLogo.js";
 
 // THE LISTING CAR (c9, Sam, Oct 18 2026): the real 2014 Porsche 911 GT3, VIN WP0AC2A9XES183617, listed at 30,400 miles
@@ -290,12 +291,12 @@ const JS = String.raw`
       return a;
     });
   }
-  var COULD_NOT = "Sam couldn't read this one yet.";
+  var COULD_NOT = ${JSON.stringify(reasonLine("cold.missed"))};
   // Each refusal says what it is: the demo's daily limit for other cars, the per-minute limit, or a read that failed.
   var LIMIT = "That is today's limit for other cars here.";
   var BUSY = "Lots of reads just now. Try again in a minute.";
   // The still-reading state draws the engine's own line; when the engine named no wait, a Try again button reruns the read.
-  var STILL_LINE = "Sam is reading the sales for this one.";
+  var STILL_LINE = ${JSON.stringify(reasonLine("cold.reading"))};
   var notRead = function(a){
     if (a && a.stillReading) return esc(a.line || STILL_LINE);
     return a && a.error === "car_limit" ? LIMIT : a && a.error === "rate_limited" ? BUSY : COULD_NOT;
@@ -484,7 +485,7 @@ const JS = String.raw`
     st.chosen = val ? { key: key, value: val } : null; st.refining = true;
     var send = { q: st.q }; if (val) { send.refine = {}; send.refine[key] = val; }
     if (slot === "a") return runA(send);
-    if (slot === "b") { $("b-out").innerHTML = '<p class="loading">Sam is reading the sales for this one.</p>'; return run("b", send, gotB); }
+    if (slot === "b") { $("b-out").innerHTML = '<p class="loading">${reasonLine("cold.reading")}</p>'; return run("b", send, gotB); }
     if (slot === "c") return run("c", D ? Object.assign({ vin: D.vin }, send) : send, drawListing);
   });
   // ---- view a: before listing
@@ -502,7 +503,7 @@ const JS = String.raw`
       (!a.question && a.sales && a.sales.length ? '<section class="full-a"><h2>What cars like this sold for</h2>' + salesList(a, "a") + "</section>" : "") +
       '<div style="margin-top:20px"><button type="button" class="btn pri" id="a-list">List it</button></div>';
   }
-  function runA(body){ $("a-out").innerHTML = '<p class="loading">Sam is reading the sales for this one.</p>'; run("a", body, drawA); }
+  function runA(body){ $("a-out").innerHTML = '<p class="loading">${reasonLine("cold.reading")}</p>'; run("a", body, drawA); }
   // ---- view b: setting a reserve
   var bAns = null;
   // (Sam, Oct 18 2026) View b shows the same "This car last sold for" panel under its heading line, above the reserve
@@ -556,7 +557,7 @@ const JS = String.raw`
     var b = e.target.closest && e.target.closest("[data-send]"); if (!b) return;
     var send = JSON.parse(b.getAttribute("data-send")), slot = b.getAttribute("data-slot");
     if (slot === "a") return runA(send);
-    if (slot === "b") { $("b-out").innerHTML = '<p class="loading">Sam is reading the sales for this one.</p>'; return run("b", send, gotB); }
+    if (slot === "b") { $("b-out").innerHTML = '<p class="loading">${reasonLine("cold.reading")}</p>'; return run("b", send, gotB); }
     if (slot === "c") return run("c", D ? Object.assign({ vin: D.vin }, send) : send, drawListing);
   });
   document.addEventListener("click", function(e){ if (e.target && e.target.id === "a-list") e.preventDefault(); });   // the demo's List it does nothing
@@ -611,7 +612,7 @@ export function pageHtml(view, carIn) {
       <hr>
       <div class="price">US ${"$" + d.price.toLocaleString("en-US")}</div>
       <div class="buy"><button type="button" class="btn pri blk">${d.priceKind}</button><button type="button" class="btn sec blk">Make offer</button><button type="button" class="btn sec blk">Save</button></div>
-      ${withRail ? '<div id="c-rail"><p class="loading">Sam is reading the sales for this one.</p></div>' : ""}
+      ${withRail ? '<div id="c-rail"><p class="loading">${reasonLine("cold.reading")}</p></div>' : ""}
     </div>
     ${below ? `<div class="below-gal">${below}</div>` : ""}
   </div>`;
@@ -629,9 +630,9 @@ export function pageHtml(view, carIn) {
       <h1 id="c-name">${escHtml(car)}</h1><p class="sample-tag">Sample listing</p>
       <hr>
       <div id="c-sample"></div>
-      <div id="c-rail"><p class="loading">Sam is reading the sales for this one.</p></div>
+      <div id="c-rail"><p class="loading">${reasonLine("cold.reading")}</p></div>
     </div>
-    <div class="below-gal">${sampleDesc}<div class="full" id="d-sales"><p class="loading">Sam is reading the sales for this one.</p></div><div class="full" id="d-hist"></div></div>
+    <div class="below-gal">${sampleDesc}<div class="full" id="d-sales"><p class="loading">${reasonLine("cold.reading")}</p></div><div class="full" id="d-hist"></div></div>
   </div>`;
   const desc = `<div class="desc below"><h2>About this car</h2><dl class="specs"><div><dt>Year</dt><dd>${d.year}</dd></div><div><dt>Mileage</dt><dd>${miles}</dd></div></dl></div>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -650,10 +651,10 @@ ${carBar}
   <div class="lead"><h1>Set your reserve</h1><p class="sub" id="b-name">${hasListing ? `${d.title}, ${miles} miles` : escHtml(car)}</p>
   <div id="b-prior"></div>
   <div class="reserve"><label for="b-res">Reserve</label><span class="money">$<input id="b-res" inputmode="numeric" placeholder="0" aria-label="Reserve in dollars"></span></div>
-  <div id="b-out"><p class="loading">Sam is reading the sales for this one.</p></div></div>
+  <div id="b-out"><p class="loading">${reasonLine("cold.reading")}</p></div></div>
 </section>
 <section class="sec-view wrap" id="view-c"${v === "c" ? "" : " hidden"}>${hasListing ? listing(true, "gallery", `${desc}
-  <div class="full" id="d-sales"><p class="loading">Sam is reading the sales for this one.</p></div>
+  <div class="full" id="d-sales"><p class="loading">${reasonLine("cold.reading")}</p></div>
   <div class="full" id="d-hist"></div>`) : noListing}</section>
 </main>
 <script>${JS.replace("__CAR__", JSON.stringify(car)).replace("__LISTING__", JSON.stringify(hasListing ? DUMMY : null)).replace("__CARS__", JSON.stringify(DEMO_CARS)).replace("__CHOSEN__", JSON.stringify(chosen))}</script></body></html>`;

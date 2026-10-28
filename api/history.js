@@ -7,6 +7,7 @@
 // listed in /sitemap-vins.xml; every other page (single priced appearance, hubs, 404s) stays noindex.
 //   GET /sitemap-vins.xml -> sitemap index (?sitemap=index);  /sitemap-vins-N.xml -> page N (?sitemap=N)
 import { asOfDate } from "../lib/asOf.js";
+import { reasonLine } from "../lib/reasonWords.js";
 import { withTracking } from "../lib/track/log.js";
 import { vinsForUrls } from "./_historyData.js";
 import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor, parseHubSlug, hubVins, titleInHub, hubHasRows, liveListing, addWatch, carSlug, hubSlug, familyOf, slugify, listingSaid, familySales, SITEMAP_PAGE, resolveText, cleanTitle, canonicalHub } from "./_historyData.js";
@@ -254,7 +255,7 @@ function pooledOptionsHtml(d) {
 // COLD SPEC (Sam, Oct 28 2026, no dead ends): a hub whose market is still being read draws this in the place of the range card. The page asks for itself again every 2 seconds
 // for up to 45 seconds and swaps the card in the moment it is stored; after that, one plain line and a cold_miss event. Nothing says "try again". (The engine finishes
 // behind the response and stores its row: api/_historyData.js oneBoxFor.)
-export const COLD_LINE = "Sam is reading the sales for this one.", COULD_NOT_LINE = "Sam couldn't read this one yet.";
+export const COLD_LINE = reasonLine("cold.reading"), COULD_NOT_LINE = reasonLine("cold.missed");
 function coldCardHtml() {
   return `<section class="card anscard solo" id="sam-cold" aria-label="Cars like it"><div class="ans-main"><p class="landed" id="sam-cold-line">${esc(COLD_LINE)}</p></div></section>
 <script>(function(){var k=Number(window.GAS_WAIT_SCALE)||1,t0=Date.now(),el=document.getElementById("sam-cold");if(!el)return;
