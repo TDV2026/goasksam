@@ -241,7 +241,7 @@ function nounOf(d, id) {
 }
 // THE POOLED STATES (e95): the engine's own options for a question that prices apart or splits, one plain line each, as they come. Alike: none.
 function pooledOptionsHtml(d) {
-  const src = d && (d.pooledApart || d.pooledSplit);
+  const src = d && (d.pooledApart || d.pooledSplit || (Array.isArray(d.options) && d.options.length ? { options: d.options } : null));
   const opts = src && Array.isArray(src.options) ? src.options.filter(o => o && Number(o.n) > 0 && Number(o.low) > 0 && Number(o.high) > 0) : [];
   return opts.length < 2 ? "" : `<ul class="opts">${opts.map(o => `<li>${esc(o.label)}: ${esc(usd(o.low))} to ${esc(usd(o.high))}${optionNoteOf(d, o) ? ". " + esc(optionNoteOf(d, o)) : ", " + esc(countNoun(o.n, "sale", { words: false })) + "."}</li>`).join("")}</ul>`;
 }

@@ -14,7 +14,7 @@ const OPT = (dimension, label, value, n, low, high, median) => ({ dimension, lab
 const withMode = d => ({ ...d, emailMode: emailModeOf(d) });
 const CASES = {
   range: withMode(m3),
-  range_with_options: withMode({ ...m3, pooledSplit: { flag: "pooled_split", options: [OPT("body", "Convertible", "convertible", 9, 29000, 42500, 35500), OPT("body", "Coupe", "coupe", 8, 22500, 31500, 27000)] } }),
+  range_with_options: withMode({ ...m3, optionsState: "alike", options: [OPT("body", "Convertible", "convertible", 9, 29000, 42500, 35500), OPT("body", "Coupe", "coupe", 8, 22500, 31500, 27000)] }),
   options: withMode({ ...m3, cluster: null, referenceFigure: null, noCluster: true, thinReason: "pooled_apart", pooledApart: { dimensions: ["body"], options: [OPT("body", "Convertible", "convertible", 9, 36000, 48000), OPT("body", "Coupe", "coupe", 8, 21000, 29000)] }, trend: null }),
   sales: withMode(diablo),
   none: withMode({ status: "one_box", tier: "refusal", cluster: null, poolN: 0, cards: [], samLine: "Sales too spread out for a range.", refusal_line: "Sam could not verify this one, so no figures are shown." }),

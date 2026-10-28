@@ -1120,6 +1120,7 @@
   //   Alike: neither field, nothing here. A withheld chart (d.trendHeld, reason mix_changes) draws no chart and says why in one plain line.
   var POOL_ATTR = { body: "data-bodyopt", gearbox: "data-tx", edition: "data-varopt" };
   function pooledNoteOf(d, o) {
+    if (o && o.rangeFloor === true) return "";   // e96: a window note prints only beside a range
     // the engine's own words for an option that reads a longer window than the bare page ("Based on 13 sales over the last 24 months."): on the option itself, else on the same option in the answer's own option lists
     if (o.windowLonger === true && o.windowNote) return String(o.windowNote);
     var lists = [];
@@ -1130,7 +1131,7 @@
     return "";
   }
   function pooledOptionsOf(d, dimension) {
-    var src = d && (d.pooledApart || d.pooledSplit); if (!src || !Array.isArray(src.options)) return [];
+    var src = d && (d.pooledApart || d.pooledSplit || (Array.isArray(d.options) && d.options.length ? { options: d.options } : null)); if (!src || !Array.isArray(src.options)) return [];
     return src.options.filter(function (o) { return o && o.dimension === dimension && Number(o.n) > 0 && Number(o.low) > 0 && Number(o.high) > 0; });
   }
   function pooledLineHtml(d, dimension) {

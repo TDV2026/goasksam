@@ -18,7 +18,7 @@ const ENGINE_THIN = "These sales split into options that sit in different price 
 const { POOLED_APART_LINE: THIN } = await import("../lib/pooledWords.js");
 const STATES = {
   alike: base,
-  split: { ...base, pooledSplit: { flag: "pooled_split", thresholdPct: 15, floor: 3, dimensions: ["body"], options: [OPT("body", "Convertible", "convertible", 9, 29000, 42500, 35500), OPT("body", "Coupe", "coupe", 8, 22500, 31500, 27000)] } },
+  split: { ...base, optionsState: "alike", options: [OPT("body", "Convertible", "convertible", 9, 29000, 42500, 35500), OPT("body", "Coupe", "coupe", 8, 22500, 31500, 27000)] },   // e96: the range stays and the options field rides with it
   apart: { ...base, cluster: null, referenceFigure: null, noCluster: true, thinReason: "pooled_apart", thinLine: ENGINE_THIN, pooledApart: { dimensions: ["body"], test: "splitMaterial", floor: 3, options: [OPT("body", "Convertible", "convertible", 9, 36000, 48000), OPT("body", "Coupe", "coupe", 8, 21000, 29000)] }, trend: null, trendHeld: { reason: "mix_changes", spreadPts: 22, limitPts: 10, periods: 5 } },
 };
 // The Coupe reads a longer window in its own answer (bodyOptions: 13 sales over the last 24 months), so its line carries the engine's words, not the pool's 8.
@@ -93,7 +93,7 @@ const NOT_BLANK = (s, what) => ok(s.length > 20, `${what}: not blank`);
   const sf = await import("../lib/sell/sellFacts.js");
   for (const [name, a] of Object.entries(STATES)) {
     const kept = sf.cardAnswerOf(a);
-    ok(name === "alike" || (name === "split" ? !!kept.pooledSplit : !!kept.pooledApart && !!kept.trendHeld), `Sell's card fields keep the engine's pooled fields (${name})`);
+    ok(name === "alike" || (name === "split" ? !!kept.options : !!kept.pooledApart && !!kept.trendHeld), `Sell's card fields keep the engine's pooled fields (${name})`);
     const t = flat(card.sellsForCardHtml(kept, {}));
     if (name === "split") ok(LINES.body.every(l => t.includes(l)), "Sell: the split options reach the card");
     if (name === "apart") ok(LINES.apartBody.every(l => t.includes(l)) && !t.includes(POOLED_RANGE), "Sell: the apart options reach the card, no pooled range");

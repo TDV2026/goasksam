@@ -16,6 +16,7 @@
 // NEVER in any output: a venue name, a venue link, a listing id, a listing title.
 // Gate: the signed crew cookie, the partner demo cookie (lib/_partnerAccess.js gas_partner), or the PARTNER_KEY header (x-partner-key) when that env var is set; anything else
 // is a plain 404. Rate limited (lib/_ceilings.js partner_answer). Archive only: zero OldCarsData requests.
+import { isNum } from "../lib/_num.js";
 import crypto from "node:crypto";
 import { isCrewRequest } from "../lib/_crew.js";
 import { isPartnerRequest } from "../lib/_partnerAccess.js";
@@ -366,7 +367,7 @@ function engineQuestionCore(d, text, asked) {
   // refine.variant = its key, plus Market Check's "Any" (every sale, no variant) when every count is known.
   if (tier === "variant_choice" && Array.isArray(d.variantChoices) && d.variantChoices.length) {
     const counts = d.variantChoices.map(c => Number(c.count));
-    const opts = d.variantChoices.map(c => ({ label: String(c.label), count: Number.isFinite(Number(c.count)) ? Number(c.count) : null, send: { q: text, refine: { variant: String(c.key) }, asked: next } }));
+    const opts = d.variantChoices.map(c => ({ label: String(c.label), count: isNum(c.count) ? Number(c.count) : null, send: { q: text, refine: { variant: String(c.key) }, asked: next } }));
     if (counts.every(Number.isFinite)) opts.push({ label: "Any", count: counts.reduce((a, b) => a + b, 0), send: { q: text, asked: next } });
     return { dimension: "variant", text: d.prompt || "Which is it?", options: opts, skip };
   }
