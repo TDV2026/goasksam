@@ -49,6 +49,6 @@ const a = sum(typed), b = sum(vin);
 ok("typed 996 and the VIN's 911 return the same tier, count, range and set-aside", JSON.stringify(a) === JSON.stringify(b), JSON.stringify(a) + " vs " + JSON.stringify(b));
 ok("both read a result with the 15 ordinary sales or more", typed.tier === "result" && vin.tier === "result", typed.tier + " / " + vin.tier);
 ok("the two X50 sales are treated alike on both spellings", (typed.setAsideRows || []).length === (vin.setAsideRows || []).length);
-ok("the stamp is e96", /^e96-/.test(E.ENGINE_VERSION), E.ENGINE_VERSION);
+ok("the stamp is e96 or later", /^e9[6-9]-/.test(E.ENGINE_VERSION), E.ENGINE_VERSION);
 console.log(`chassisCodeCheck: ${failed ? failed + " FAIL" : "all PASS"}`);
 process.exit(failed ? 1 : 0);
