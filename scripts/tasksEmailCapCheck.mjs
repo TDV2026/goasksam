@@ -40,12 +40,12 @@ const later = { id: 2, task_id: TASK.id, kind: "match", email_status: "queued", 
 { const { sends } = await run([later], cars2); const m = sends[0] || { text: "", html: "" };
   const shownIds = [...m.html.matchAll(/data-car="(\d+)"/g)].map(x => Number(x[1]));
   ok(shownIds.length === LATER_EMAIL_CARS && shownIds.join() === "100,101,102,103,104,105", `day two: 6 of 8 new cars, soonest first (${shownIds})`);
-  ok(m.text.includes("2 more new cars. Open the Task to see them.") && Buffer.byteLength(m.html) < 100000, "day two: the 'more' line and under 100KB"); }
+  ok(m.text.includes("Two more new cars. Open the Task to see them.") && Buffer.byteLength(m.html) < 100000, "day two: the 'more' line and under 100KB"); }
 // Fewer than the cap: no 'more' line; a car that ended before the send is not counted or shown.
 { const cars3 = { 100: car(100, 3), 101: car(101, -1) }; const u = { ...later, data: { cards: [{ id: 100, title: "Car 100" }, { id: 101, title: "Car 101" }] } };
   const { sends } = await run([u], cars3); const m = sends[0] || { text: "" };
   ok(!/more/.test(m.text.split("The Task")[0] || "") && (m.html.match(/data-car=/g) || []).length === 1, "an ended car is left out and nothing says more when nothing is left over"); }
-ok(moreCarsLine(0, true) === "" && moreCarsLine(1, true) === "1 more car matches. Open the Task to see it." && moreCarsLine(1, false) === "1 more new car. Open the Task to see it.", "the sentence handles none and one");
+ok(moreCarsLine(0, true) === "" && moreCarsLine(1, true) === "One more car matches. Open the Task to see it." && moreCarsLine(1, false) === "One more new car. Open the Task to see it." && moreCarsLine(40, true) === "40 more cars match. Open the Task to see them.", "the sentence handles none and one");
 // The start email: its Open link is the same black as Pause and Stop.
 { const env = { mem: memStore() }; const sent = [];
   const realFetch = globalThis.fetch; globalThis.fetch = async () => new Response("{}", { status: 200 });

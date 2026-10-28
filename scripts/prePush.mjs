@@ -1451,6 +1451,13 @@ try {
 } catch (e) {
   record("Candle chart labels (scripts/candleLabelsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Task email form (Lane D, Oct 28 2026): the first email is a catch-up headed Live right now, later ones only new cars, one count in one word form (the shared helper), one footer line, every emailMode. No network.
+try {
+  const out = execSync("node scripts/emailFormCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Task email form (scripts/emailFormCheck.mjs)", "PASS", (out.match(/emailFormCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Task email form (scripts/emailFormCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // A Task email prints by the engine's emailMode and never a question (Oct 27 2026): the block lines and the card, every mode, an answer that also asked a question. No network.
 try {
   const out = execSync("node scripts/emailModeCheck.mjs", { encoding: "utf8", timeout: 300000 });
