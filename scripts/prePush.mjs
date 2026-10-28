@@ -1289,6 +1289,13 @@ try {
 } catch (e) {
   record("milesfault flags old low-mileage sales only, counts them by source and decade, and writes nothing (scripts/milesFaultCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The account pill covers nothing on any page, result views included (Sam, Oct 27 2026). Rendered in a browser.
+try {
+  const out = execSync("node scripts/pillOverlapCheck.mjs", { encoding: "utf8" });
+  record("account pill covers nothing, every page and result view (scripts/pillOverlapCheck.mjs)", "PASS", (out.match(/pillOverlapCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("account pill covers nothing, every page and result view (scripts/pillOverlapCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The launch warm counts rows by UTC day, never by age (Sam, Oct 28 2026). No network.
 try {
   const out = execSync("node scripts/warmDayCheck.mjs", { encoding: "utf8" });
