@@ -14,7 +14,7 @@ export async function buildCards(defs, extraPerCard = {}) {
     const d = { ...base, ...c.d }; const core = S.coreOf(d, spec);
     if (core && c.d.nearPool) core.nearPool = slimNearPool(c.d.nearPool.map(x => ({ _usd: x.p, mileage: x.m })));
     const market = core ? S.marketFromCore(core, row, { miles: c.miles || null, priceUsd: c.bid }, spec) : { kind: "pending" };
-    const l = { id: row.id, title: c.title, make: c.make, model: c.model, year: c.year, url: "https://bringatrailer.com/listing/" + row.id, image: PHOTO, platform: "Bring a Trailer", source: "Bring a Trailer", current_bid_usd: c.bid, end_time: row.end_time, market, sam_lines: [], ...extraPerCard };
+    const l = { id: row.id, title: c.title, make: c.make, model: c.model, year: c.year, url: "https://bringatrailer.com/listing/" + row.id, image: PHOTO, platform: "Bring a Trailer", source: "Bring a Trailer", current_bid_usd: c.bid, end_time: row.end_time, bid_at: new Date(Date.now() - 3 * 3600e3).toISOString(), photo_url: c.photo === false ? null : PHOTO, market, sam_lines: [], ...(c.extra || {}), ...extraPerCard };
     l.sam_lines = samLines(l, Date.now());
     return l;
   });
