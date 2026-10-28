@@ -1366,6 +1366,13 @@ try {
 } catch (e) {
   record("every stored answer carries the live epoch, the counting rule (scripts/epochMatchCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// No page carries a copy of an engine reason line (Sam, Oct 28 2026).
+try {
+  const out = execSync("node scripts/pageReasonCopyCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("no page carries a copy of an engine reason line (scripts/pageReasonCopyCheck.mjs)", "PASS", (out.match(/pageReasonCopyCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("no page carries a copy of an engine reason line (scripts/pageReasonCopyCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The launch warm is the union of every live spec (Sam, Oct 28 2026).
 try {
   const out = execSync("node scripts/warmUnionCheck.mjs", { encoding: "utf8", timeout: 600000 });
