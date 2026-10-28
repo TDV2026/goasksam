@@ -126,16 +126,16 @@ const ROWS = [
 const fits = (f, r) => (!f.make || r.make === f.make) && (!f.model || r.model === f.model) && (!f.generation || r.gen === f.generation) && (!f.colour || r.colour === f.colour) && (!f.gearbox || r.gearbox === (f.gearbox === "manual" ? "manual" : "automatic")) && (!f.body || r.body === f.body) && (!f.trim || (r.trim || "").toLowerCase() === String(f.trim).toLowerCase()) && (!f.year_min || r.year >= f.year_min) && (!f.year_max || r.year <= f.year_max) && (!f.budget_max || r.price <= f.budget_max);
 const search = async (filters, rows) => rows.filter(r => fits(filters, r)).map(r => ({ r }));
 const WANT = {
-  "Find me a black manual 997 under $70k": "Nothing black yet. 1 other car matches the rest.",
-  "Keep looking for a 1990s Mazda Miata under $15k": "Nothing under $15,000 yet. 2 other cars match the rest.",
-  "Find me a 1965 Mustang fastback": "No fastback yet. 1 other car matches the rest.",
-  "Porsche 997 Carrera S": "No 997 Carrera S yet. 2 other cars match the rest.",
-  "Keep looking for a 964 within 500 miles of LA": "No 964 yet. 3 other cars match the rest.",
-  "a 1987 Buick Regal Grand National": "No Regal Grand National yet. 1 other car matches the rest.",
-  "1997 Land Rover Defender 110": "No Defender 110 yet. 1 other car matches the rest.",
-  "Looking for a red Miata, manual, under 15k": "Nothing under $15,000 yet. 1 other car matches the rest.",
-  "Mustang GT": "No Mustang GT yet. 2 other cars match the rest.",
-  "any 911 under 60k, automatic is fine": "Nothing under $60,000 yet. 3 other cars match the rest.",
+  "Find me a black manual 997 under $70k": "Nothing black yet. One other car matches the rest.",
+  "Keep looking for a 1990s Mazda Miata under $15k": "Nothing under $15,000 yet. Two other cars match the rest.",
+  "Find me a 1965 Mustang fastback": "No fastback yet. One other car matches the rest.",
+  "Porsche 997 Carrera S": "No 997 Carrera S yet. Two other cars match the rest.",
+  "Keep looking for a 964 within 500 miles of LA": "No 964 yet. Three other cars match the rest.",
+  "a 1987 Buick Regal Grand National": "No Regal Grand National yet. One other car matches the rest.",
+  "1997 Land Rover Defender 110": "No Defender 110 yet. One other car matches the rest.",
+  "Looking for a red Miata, manual, under 15k": "Nothing under $15,000 yet. One other car matches the rest.",
+  "Mustang GT": "No Mustang GT yet. Two other cars match the rest.",
+  "any 911 under 60k, automatic is fine": "Nothing under $60,000 yet. Three other cars match the rest.",
 };
 for (const [sentence, f] of TEN) {
   const st = await looseStatus({}, { filters: f }, ROWS, { search });
@@ -144,11 +144,11 @@ for (const [sentence, f] of TEN) {
 }
 // The red manual Miata under 15k: colour dropped finds nothing (3 is $19,500, 10 is automatic), so the chooser walks on;
 // gearbox dropped finds nothing either (both red Miatas are over $15,000); budget dropped finds the red manual 1994 car.
-{ const st = await looseStatus({}, { filters: TEN[7][1] }, ROWS, { search }); ok(st.text === "Nothing under $15,000 yet. 1 other car matches the rest." && st.dropped === "budget_max", `the chooser walks the order past filters whose removal finds nothing (got "${st.text}")`); }
+{ const st = await looseStatus({}, { filters: TEN[7][1] }, ROWS, { search }); ok(st.text === "Nothing under $15,000 yet. One other car matches the rest." && st.dropped === "budget_max", `the chooser walks the order past filters whose removal finds nothing (got "${st.text}")`); }
 ok(statusLine({}, null, 0) === "Nothing yet. Sam is watching.", "nothing at all: Nothing yet. Sam is watching.");
 { const st = await looseStatus({}, { filters: { make: "Ferrari", model: "F40" } }, ROWS, { search }); ok(st.text === "Nothing yet. Sam is watching." && st.dropped === null, "make and model only, nothing live: Nothing yet. Sam is watching."); }
 { const st = await looseStatus({}, { filters: { make: "Porsche", model: "911", colour: "black", gearbox: "manual" } }, [], { search }); ok(st.text === "Nothing yet. Sam is watching.", "no candidate rows: Nothing yet. Sam is watching., never a count"); }
-ok(statusLine({ colour: "black" }, "colour", 8) === "Nothing black yet. 8 other cars match the rest." && statusLine({ colour: "black" }, "colour", 1) === "Nothing black yet. 1 other car matches the rest.", "Sam's wording exactly, singular and plural");
+ok(statusLine({ colour: "black" }, "colour", 8) === "Nothing black yet. Eight other cars match the rest." && statusLine({ colour: "black" }, "colour", 1) === "Nothing black yet. One other car matches the rest.", "Sam's wording exactly, singular and plural");
 ok(LOOSE_ORDER[0] === "colour" && LOOSE_ORDER[LOOSE_ORDER.length - 1] === "generation", "the order: colour first, generation last");
 
 // THE ENGINE ASKS FIRST (e65 escalatedFrom; Lane C as integrator, Oct 19 2026, Lane F's decision): a bare 2001 M3 is a body

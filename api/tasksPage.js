@@ -346,7 +346,7 @@ const APP_JS = String.raw`(function(){
     var where = nLive > 0 && !starting[t.id] ? (isOpen ? "Shown below" : "Select the card to see " + (nLive === 1 ? "it" : "them")) : (ov.close && !starting[t.id] ? (isOpen ? "" : "select the card to read the note") : "");
     var closeLine = ov.close && nLive === 0 && !starting[t.id] ? ov.close + (where ? ", " + where : "") : where;
     var count = [starting[t.id] ? "Sam is checking the live cars now." : ov.live, closeLine, ov.fresh].filter(Boolean).join(" \u00B7 ");
-    var showLabel = (isOpen ? "Hide " : "Show ") + (nLive > 0 ? (nLive === 1 ? "1 car" : nLive.toLocaleString("en-US") + " cars") : "cars");
+    var showLabel = (isOpen ? "Hide " : "Show ") + (nLive > 0 && ov.cars ? ov.cars : "cars");
     return '<article class="tc' + (isOpen ? " open" : "") + '" id="task-' + t.id + '"><button type="button" class="thit" id="tt-' + t.id + '" data-toggle="' + t.id + '" aria-expanded="' + isOpen + '" aria-controls="detail-' + t.id + '"><span class="pill ' + st[0] + '">' + st[1] + '</span><span class="tshow">' + esc(showLabel) + '</span><span class="tline">' + esc(t.summary) + "</span>" + (count ? '<span class="tcount">' + esc(count) + "</span>" : "") + "</button>" + btns + "</article>";
   }
   function taskDetail(t){
