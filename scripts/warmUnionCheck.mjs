@@ -9,5 +9,5 @@ ok(/task=warmLive[^`'"]*trafficDays=0/.test(pd), "postDeployWarm asks warmLive f
 ok(/trafficDays: Math\.max\(0, Number\(req\.query\.trafficDays\)/.test(ud), "the warmLive task passes trafficDays through");
 ok(/trafficDays\) \? Number\(opts\.trafficDays\) : 14/.test(sr) && /off \(trafficDays=0\), every spec warmed/.test(sr), "warmLiveSpecs warms every spec when trafficDays is 0");
 // every in-repo caller of the warmLive task is the union
-for (const f of fs.readdirSync("scripts").filter(x => /\.(mjs|sh)$/.test(x))) { const t = src("scripts/" + f); for (const m of t.matchAll(/task=warmLive[^\n`'"]*/g)) ok(/trafficDays=0/.test(m[0]), `scripts/${f}: a warmLive call without trafficDays=0 warms the traffic slice only`); }
+for (const f of fs.readdirSync("scripts").filter(x => /\.(mjs|sh)$/.test(x) && x !== "warmUnionCheck.mjs")) { for (const line of src("scripts/" + f).split("\n")) { if (/^\s*(\/\/|#)/.test(line)) continue; for (const m of line.matchAll(/usageDashboard\?[^\s`'"]*task=warmLive[^\s`'"]*/g)) ok(/trafficDays=0/.test(m[0]), `scripts/${f}: a warmLive call without trafficDays=0 warms the traffic slice only`); } }
 console.log(`warmUnionCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

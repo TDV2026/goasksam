@@ -683,6 +683,7 @@ Branch laned-tasks3. Lane B's commit 8677167f is cherry-picked onto it (be84d1ae
 - HEAVY STEP START (Lane B, 23:45Z): Stage A reads, 2001 BMW M3: one poolrows read, then obdiag with 30,000, 60,000 and 100,000 miles typed (three, one at a time)
 - HEAVY STEP STOP (Lane B, 23:47Z): Stage A and Stage D reads done (M3 poolrows, 6 obdiag mileage reads, 7 newsletter candidates), no read running
 - READY FOR C (Lane B, 23:48Z), supersedes the line above: lane-b-readonly c4b422e6, still READ ONLY (api/usageDashboard.js, scripts only; lib/onebox.js carries only the judge-side setConsistencyOf line), stamp stays e95-20261027-pooled. Adds to storedsweep the class counters (option questions built by asked/alike/split/apart, wide and alike, card count against chart bars, widened-year groups that price apart, sales under 500 miles on cars older than 15 years, zeros from null) with first-10 examples; storedSweepCheck fails 5 ways without them.
+<<<<<<< Updated upstream
 - PUSHED (Lane C, 00:30Z Oct 28): 8194c083 lane-b-readonly (code c4b422e6, notes c7d0c475) on main, read only, stamp stays e95-20261027-pooled, no warm. FULL prePush 0 FAIL, 6 SKIP (the 5 archive checks need SUPABASE env here, the partner endpoint needs a crew cookie); one countNounCheck FAIL on Lane B's storedsweep example line was an ops diagnostic, allowlisted in the same push. Deployment goasksam-d1f2t8brj Ready, milesfault ops task answers 200 live.
 - IDENTICAL CHECK (Lane C): 1985 Porsche 911 (bare year car), 2001 BMW M3 Coupe and 2001 BMW M3 Convertible (the pair), read before and after the deploy. Only snapshotId, storedAt, stale, staleLine and timings differ; every answer field is identical. The after reads came back as the stored Oct 27 snapshots marked stale (the UTC day rolled over during FULL), so they show the new code serves the e95 rows unchanged, not a fresh recompute; a fresh read on Oct 28 moves only the 12-month window dates, so a recompute comparison across midnight is not valid.
 - LOCK RELEASED (Lane C, read only)
@@ -718,3 +719,11 @@ Branch laned-tasks3. Lane B's commit 8677167f is cherry-picked onto it (be84d1ae
 - STAGE 3 reads (Lane B, e98 live, enginecheck + obdiag): 2004 Boxster now reads a range, 12 sales, $12,500 to $22,000, exact rung, last twelve months (the e98 "Thin so far" for 12 sales is gone; the engine threshold is 8). 2014 BMW 650i Convertible: 7 sales since July 2023, no range, because 7 is under the threshold of 8 (the line reads the longer window); correct, nothing wrong.
 - HEAVY STEP STOP (Lane B, Oct 28): findsweep, golden table, storedsweep, Boxster and 650i reads done; no read running.
 - ENGINE READY 3 (Lane B, Oct 28), branch lane-b-e96-fix 8e8107b6 on top of 0fd60370 (Find card refine from the stored pool, findRefineStoredCheck) plus the not_a_car refusal (notACarCheck, 9 FAIL on origin/main, 0 here); stamp unchanged e98-20261028-find, NOT pushed, FULL prePush not run by me; all 261 checks: same 9 baseline failures, none new. Year-required-everywhere question for Lane C/Sam is in the NOT A CAR line above.
+=======
+- HEAVY STEP START (Lane B, 00:44Z): Stage B/C/E/F sweeps, storedsweep e95 only, pages of one, then milesfault; one read at a time
+- HEAVY STEP STOP (Lane B, 00:47Z): storedsweep e95 (11 reads) and milesfault done; next one poolrows read 2004 M3
+- HEAVY STEP START (Lane B, 00:48Z): Stage C, ten poolrows reads one at a time, batches of three (Alfa Spider 1969, Audi A6 2012 and 2001, R8 2013 V10 Plus, R8 2010, R8 2012, S5 2012, BMW 2002 1966, 650i, M1)
+- HEAVY STEP STOP (Lane B, 00:48Z): Stage C ten poolrows reads done, no read running
+- HEAVY STEP START (Lane B, 00:49Z): 2001 BMW M3 obdiag with the page's typed-mileage bands, three reads one at a time
+- HEAVY STEP STOP (Lane B, 00:50Z): M3 typed-mileage reads done
+>>>>>>> Stashed changes
