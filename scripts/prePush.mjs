@@ -1296,6 +1296,13 @@ try {
 } catch (e) {
   record("account pill covers nothing, every page and result view (scripts/pillOverlapCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The named warm list is Sam's 19 specs and the warm tool reads it (Sam, Oct 28 2026). The live half (--live) runs after a warm, not here. No network.
+try {
+  const out = execSync("node scripts/namedWarmCheck.mjs", { encoding: "utf8" });
+  record("named warm list (scripts/namedWarmCheck.mjs)", "PASS", (out.match(/namedWarmCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("named warm list (scripts/namedWarmCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The launch warm counts rows by UTC day, never by age (Sam, Oct 28 2026). No network.
 try {
   const out = execSync("node scripts/warmDayCheck.mjs", { encoding: "utf8" });

@@ -5141,7 +5141,7 @@ async function handleOps(req, res) {
     const { MAKE_ALIASES, MODEL_ALIASES, MODEL_OWNERSHIP, EXTRA_MAKES } = await import("../lib/vehicleData.js");
     const days = Math.min(60, Number(req.query?.days) || 30);
     const since = new Date(Date.now() - days * 864e5).toISOString();
-    const rows = (await supabaseSelectAll(env, `analytics_events?name=eq.search_run&product=eq.buy&internal=is.false&is_bot=is.false&ts=gte.${encodeURIComponent(since)}&select=q:props->>query_text`)) || [];
+    const rows = (await supabaseSelectAll(env, `analytics_events?name=eq.search_run&product=eq.${req.query?.product === "market_check" ? "market_check" : "buy"}&internal=is.false&is_bot=is.false&ts=gte.${encodeURIComponent(since)}&select=q:props->>query_text`)) || [];   // product=market_check reads Market Check's own searches (Oct 28 2026, the launch warm's top 50), same filters
     const carWords = new Set();
     const addW = t => String(t || "").toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length >= 2).forEach(w => carWords.add(w));
     for (const a of MAKE_ALIASES || []) { addW(a.alias); addW(a.make); }
