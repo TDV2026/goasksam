@@ -1366,6 +1366,13 @@ try {
 } catch (e) {
   record("the Find card's Sam box has one shape, every line the engine's (scripts/findCardShapeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// No sale line on a Find card (Sam, Oct 28 2026, ENGINE READY 10): the box, Tasks' cars and the email's modes. No network.
+try {
+  const out = execSync("node scripts/findNoSaleLineCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("a Find card prints no sale line (scripts/findNoSaleLineCheck.mjs)", "PASS", (out.match(/findNoSaleLineCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("a Find card prints no sale line (scripts/findNoSaleLineCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // See the sales and the sale modal on Find (Sam, Oct 29 2026). No network.
 try {
   const out = execSync("node scripts/findSalesButtonCheck.mjs", { encoding: "utf8", timeout: 600000 });
