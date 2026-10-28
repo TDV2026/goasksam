@@ -15,7 +15,7 @@
 // Derived: shape = done - text (enrichFast); tool = rerun - shape (toolSearchLive); model = text - tool.
 //
 //   PROBE_KEY="$(security find-generic-password -s goasksam-probe -w)" node scripts/buyTimes.mjs [--cars "a|b"] [--runs 2]
-// The key goes only in the x-ops-key header of same-origin requests (and the explain probe's body), never printed.
+// The key goes only in the x-ops-key header of same-origin requests, the explain probe's included (the page's request interception adds it to every one); never in a body or an address, never printed.
 import puppeteer from "puppeteer-core";
 import { crewCookie } from "./_crewCookie.mjs";
 
