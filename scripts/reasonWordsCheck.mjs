@@ -44,8 +44,8 @@ const day = i => new Date(Date.now() - i * 864e5).toISOString().slice(0, 10);
 const pats = RW.reasonPatterns();
 const FIELDS = ["thinLine", "wideLine", "yearNote", "windowLine", "chartCaption", "chartWindowLine", "windowNote", "basisLine", "includesFromLine", "latestSaleLine", "optionsNote", "mileageNote", "refusal_line", "samLine", "staleLine", "scope_reason"];
 const lineOf = (v, path_) => { const out = []; if (typeof v === "string") out.push([path_, v]); else if (Array.isArray(v)) v.forEach(x => out.push(...lineOf(x, path_))); return out; };
-const linesOf = a => { const L = []; const raw = a.raw || a; for (const k of FIELDS) L.push(...lineOf(raw[k], k)); for (const k of ["optionLines", "headlineLines"]) L.push(...lineOf(raw[k], "optionLines")); if (raw.mileageBand && raw.mileageBand.line) L.push(["mileageBand.line", raw.mileageBand.line]); if (raw.thin_sales && raw.thin_sales.reason_line) L.push(["thinLine", raw.thin_sales.reason_line]); return L; };
-const inTable = (field, line) => String(line).split("; ").every(part => pats.some(p => (p.field === field || (field === "samLine" && p.field === "refusal_line") || (field === "refusal_line" && p.field === "refusal_line") || (field === "scope_reason" && p.field === "scope_reason")) && p.re.test(part)));
+const linesOf = a => { const L = []; const raw = a.raw || a; for (const k of FIELDS) L.push(...lineOf(raw[k], k)); for (const k of ["optionLines", "headlineLines"]) L.push(...lineOf(raw[k], "optionLines")); if (raw.chart) { const c = raw.chart; for (const v of [c.caption, c.note, c.scope && c.scope.line, c.withheld && c.withheld.line]) if (v) L.push(["chart.*", v]); } if (raw.mileageBand && raw.mileageBand.line) L.push(["mileageBand.line", raw.mileageBand.line]); if (raw.thin_sales && raw.thin_sales.reason_line) L.push(["thinLine", raw.thin_sales.reason_line]); return L; };
+const inTable = (field, line) => String(line).split("; ").every(part => pats.some(p => (p.field === field || field === "chart.*" || (field === "samLine" && p.field === "refusal_line") || (field === "refusal_line" && p.field === "refusal_line") || (field === "scope_reason" && p.field === "scope_reason")) && p.re.test(part)));
 let seen = 0, bad = [];
 const scan = async (name, v, text, refine) => { const a = await E.oneEngineAnswer(v, null, text, env, refine || null).catch(e => ({ raw: { err: e.message } })); for (const [f, l] of linesOf(a)) { seen++; if (!inTable(f, l)) bad.push(`${name}: ${f}: ${l}`); } };
 const base = { make: "Datsun", model: "240Z", trim: "", year: 1972, bodyStyle: null };
@@ -56,6 +56,10 @@ rows = []; for (let i = 0; i < 10; i++) sale(2008 + (i % 2), day(10 + i * 20), 3
 rows = []; await scan("no sales", base, "1972 Datsun 240Z");
 await scan("not a car", { make: "", model: "", trim: "Speedline", year: null, requireYear: true }, "Speedline");
 rows = []; for (let i = 0; i < 10; i++) sale(1972, day(10 + i * 10), 30000 + i * 200, 40000, "1972 Datsun 240Z Coupe"); for (let i = 0; i < 10; i++) sale(1972, day(12 + i * 10), 52000 + i * 200, 40000, "1972 Datsun 240Z Convertible"); await scan("split options", base, "1972 Datsun 240Z");
+rows = []; for (let q = 0; q < 4; q++) { for (let i = 0; i < 10; i++) sale(1972, day(20 + q * 88 + i * 3), 44000 + i * 600, 40000, "1972 Datsun 240Z Coupe 4-Speed Manual"); for (let i = 0; i < 2 + q * 4; i++) sale(1972, day(22 + q * 88 + i * 4), 30000 + i * 500, 40000, "1972 Datsun 240Z Coupe Automatic"); }
+await scan("scoped chart", base, "1972 Datsun 240Z");
+rows = []; for (let i = 0; i < 4; i++) sale(1972, day(30 + i * 40), 30000 + i * 1000); await scan("dots chart", base, "1972 Datsun 240Z");
+rows = []; for (let i = 0; i < 2; i++) sale(1972, day(30 + i * 40), 30000 + i * 1000); await scan("withheld chart", base, "1972 Datsun 240Z");
 ok(`the engine lines carried by ${seen} fields on the fixtures are all in the table`, seen >= 12 && bad.length === 0, bad.slice(0, 5).join(" | "));
 // the cold and stale lines
 const S = await import(pathToFileURL(path.join(root, "lib/live/search.js")).href);

@@ -1567,6 +1567,70 @@ async function handleOps(req, res) {
     }
     return res.status(200).json({ task: "storedcount", ocdSpend: 0, writes: 0, ...counts, ms: Date.now() - t0 });
   }
+  // task=findcards (Lane B, Oct 28 2026, ENGINE READY 10): READ ONLY. Builds the Find card's market for live listings (listingMarket, never computing: a spec with no stored read is counted as cold) and counts the
+  // findAnswer states: matched option, split with no option said, too few, near-miles headline, plain count; with the old card line beside five examples of each. Paged by after/n (n at most 40). Writes nothing,
+  // spends nothing.
+  if (task === "findcards") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { liveRows, specOf, listingFacts, listingMarket } = await import("../lib/live/search.js");
+    const all = ((await liveRows(env, "id=gt.0", { noDescription: true })) || []).sort((x, y) => x.id - y.id);
+    const after = Number(req.query?.after) || 0, n = Math.max(1, Math.min(40, Number(req.query?.n) || 40));
+    const part = all.filter(r => r.id > after).slice(0, n);
+    const out = { task: "findcards", live: all.length, read: part.length, cold: 0, noAnswer: 0, byRule: { option_matched: 0, split_unsaid: 0, few: 0, near_headline: 0, count_range: 0 }, examples: { option_matched: [], split_unsaid: [], few: [], near_headline: [], count_range: [] }, next: part.length === n ? part[part.length - 1].id : null, ocdSpend: 0, writes: 0 };
+    for (const r of part) {
+      try {
+        const facts = listingFacts(r); const spec = await specOf(env, r, facts, null);
+        const m = spec ? await listingMarket(env, r, facts, { noBlock: true, notTracked: true }) : null;
+        if (!m || m.kind === "pending") { out.cold++; continue; }
+        const f = m.findAnswer; if (!f) { out.noAnswer++; continue; }
+        const rule = f.state === "split_unsaid" ? "split_unsaid" : f.state === "few" ? "few" : f.basis === "band" ? "near_headline" : f.option ? "option_matched" : "count_range";
+        out.byRule[rule]++; if (out.examples[rule].length < 5) out.examples[rule].push({ title: r.listing_title, new: f.lines.join(" "), old: m.soldLine || null });
+      } catch { out.noAnswer++; }
+    }
+    return res.status(200).json(out);
+  }
+  // task=chartsweep (Lane B, Oct 28 2026, chart ladder): READ ONLY. Applies the chart ladder (chartOf, lib/onebox.js) to every stored Market Check answer of the live stamp and counts the pages that land on each
+  // step: pooled candles, scoped candles, withheld (never dots); five examples of each (key, count, scope, held reason). Paged 100 rows a call (after = last key). Writes nothing, spends nothing.
+  if (task === "chartsweep") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { chartOf, ENGINE_VERSION } = await import("../lib/onebox.js");
+    const after = req.query?.after ? String(req.query.after) : "";
+    const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,ev:market->>engineVersion,raw:market->raw&order=spec_key.asc&limit=100` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "chartsweep", readFailed: true, ocdSpend: 0, writes: 0 });
+    const out = { task: "chartsweep", ocdSpend: 0, writes: 0, rows: rows.length, otherVersion: 0, answers: 0, pooled_candles: 0, scoped_candles: 0, withheld: 0, noChart: 0, held: 0, examples: { pooled_candles: [], scoped_candles: [], withheld: [] }, next: rows.length === 100 ? rows[rows.length - 1].spec_key : null };
+    for (const r of rows) {
+      if (String(r.ev) !== ENGINE_VERSION) { out.otherVersion++; continue; }
+      const d = r.raw; if (!d || typeof d !== "object") continue;
+      let c = null; try { c = chartOf(d); } catch { c = null; }
+      if (!c) { out.noChart++; continue; }
+      out.answers++; if (d.trendHeld) out.held++;
+      const rung = c.type === "candles" ? (c.scope ? "scoped_candles" : "pooled_candles") : c.type;
+      out[rung]++; if (out.examples[rung].length < 5) out.examples[rung].push({ key: String(r.spec_key).replace(/^MCWARM:/, "").slice(0, 90), n: c.n, scope: c.scope ? c.scope.label : null, held: d.trendHeld ? d.trendHeld.reason : null, why: c.withheld ? c.withheld.reason : null, candles: c.buckets ? c.buckets.length : null });
+    }
+    return res.status(200).json(out);
+  }
+  // task=vintyped (Lane B, Oct 28 2026, typed equals VIN, a go or no-go gate): READ ONLY. Takes up to n (default 50, at most 60) cars from the stored VIN identities (vin_rollout_cache, the nightly rollout), always
+  // including a 996 when one is stored, and compares what the VIN page hands the engine with what the typed name resolves to (lib/vinTyped.js): same stored answer key, or the same tier, count, range and rung.
+  // Reads stored rows and the resolver only: no visitor-path read, no address cap, no writes, no OldCarsData.
+  if (task === "vintyped") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { compareVinTyped } = await import("../lib/vinTyped.js");
+    const { resolveVehicle, sanitizeResolvedVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { warmAnswerKeyFor, readWarmAnswerDetailed } = await import("../lib/live/search.js");
+    const rc = await supabaseSelect(env, "vin_rollout_cache?key=eq.current&select=data&limit=1");
+    const d = Array.isArray(rc) && rc[0] && rc[0].data;
+    if (!d) return res.status(200).json({ task: "vintyped", readFailed: true, ocdSpend: 0, writes: 0 });
+    const n = Math.max(1, Math.min(60, Number(req.query?.n) || 50));
+    const all = [...(d.vins || [])].filter(u => u && u.vin && u.ident && u.ident.make && (u.ident.model || u.ident.family) && u.ident.year).sort((a, b) => String(a.vin).localeCompare(String(b.vin)));
+    const is996 = u => /\b996\b/.test(`${u.ident.model || ""} ${u.ident.family || ""} ${u.ident.genCode || ""}`);
+    const pick = []; const seen = new Set();
+    const add = u => { const k = `${u.ident.year}|${u.ident.make}|${u.ident.model || u.ident.family}|${u.ident.trim || ""}`.toLowerCase(); if (seen.has(k) || pick.length >= n) return; seen.add(k); pick.push({ ...u.ident, vin: u.vin }); };
+    const f996 = all.find(is996); if (f996) add(f996);
+    for (const u of all) add(u);
+    const out = await compareVinTyped(env, pick, { resolveVehicle, sanitize: sanitizeResolvedVehicle, findGeneration, keyFor: (v, g) => warmAnswerKeyFor(v, g, null), readAnswer: async (e, key) => { const r = await readWarmAnswerDetailed(e, key); return r && r.raw ? r.raw : null; } });
+    return res.status(200).json({ task: "vintyped", has996: !!f996, storedIdentities: all.length, ...out, rows: undefined, sample: out.rows.slice(0, 5), ocdSpend: 0, writes: 0 });
+  }
   // task=livescope (Lane B, Oct 28 2026, launch scope of the live feed): READ ONLY. Reads every live listing past the scope fence and counts those the launch scope leaves out (liveScopeOf in
   // lib/live/search.js: an excluded platform, or a place outside the US and Canada; a row with no place stays in and is counted apart), by reason and by platform, with five example titles. Writes nothing, spends nothing.
   if (task === "livescope") {
@@ -1587,6 +1651,117 @@ async function handleOps(req, res) {
     const out = { task: "stalecount", ocdSpend: 0, writes: 0, rows: rows.length, core: 0, mcwarm: 0, other: 0, marked: 0, markedExamples: [], next: rows.length === 1000 ? rows[rows.length - 1].spec_key : null };
     for (const r of rows) {
       const k = String(r.spec_key); if (k.startsWith("MCWARM:")) out.mcwarm++; else if (k.startsWith("[")) { out.core++; if (r.mark) { out.marked++; if (out.markedExamples.length < 10) out.markedExamples.push({ key: k, staleSince: r.mark, computed_at: r.at }); } } else out.other++;
+    }
+    return res.status(200).json(out);
+  }
+  // task=corewindow (Lane B, Oct 28 2026, e100): READ-ONLY. The core rows written at or after `since` (an ISO time, default the sales epoch), 200 a page (`after` continues): what kind each is, and the BLANK CARD GATE over each:
+  // a range row needs a positive low, a high not under it and at least 8 sales; a count row needs a count; a none row needs its reason (not tracked line, zero thin, refusal line); and the Find card built from the row
+  // (marketFromCore, samLines) must print at least one line. Also: rows still carrying a stale mark although written after `since`, and rows on another engine stamp. Counts and the first ten of each problem.
+  if (task === "corewindow") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { marketFromCore, SPEC_V } = await import("../lib/live/search.js"); const { samLines } = await import("./buySearch.js"); const { ENGINE_VERSION, RANGE_THRESHOLD } = await import("../lib/onebox.js"); const { currentEpoch } = await import("../lib/_epoch.js");
+    const since = /^\d{4}-\d{2}-\d{2}T/.test(String(req.query?.since || "")) ? String(req.query.since) : await currentEpoch(env);
+    const after = req.query?.after ? String(req.query.after) : "";
+    const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.${encodeURIComponent("[*")}&computed_at=gte.${encodeURIComponent(since)}&select=spec_key,market,computed_at&order=spec_key.asc&limit=200` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "corewindow", readFailed: true, ocdSpend: 0, writes: 0 });
+    const out = { task: "corewindow", since, ocdSpend: 0, writes: 0, rows: rows.length, kinds: {}, blank: 0, stillMarked: 0, otherStamp: 0, examples: { blank: [], stillMarked: [], otherStamp: [] }, next: rows.length === 200 ? rows[rows.length - 1].spec_key : null };
+    const keep = (k, o) => { if (out.examples[k].length < 10) out.examples[k].push(o); };
+    for (const r of rows) {
+      const c = r.market; if (!c || typeof c !== "object") { out.blank++; keep("blank", { key: r.spec_key, why: "no market object" }); continue; }
+      out.kinds[c.kind || "?"] = (out.kinds[c.kind || "?"] || 0) + 1;
+      if (c.staleSince) { out.stillMarked++; keep("stillMarked", { key: r.spec_key, at: r.computed_at }); }
+      if (c.engineVersion !== ENGINE_VERSION || c.v !== SPEC_V) { out.otherStamp++; keep("otherStamp", { key: r.spec_key, engineVersion: c.engineVersion, v: c.v }); }
+      let why = null;
+      if (c.kind === "range") { if (!(c.low > 0) || !(c.high >= c.low) || !(c.count >= RANGE_THRESHOLD)) why = "range without low, high or 8 sales"; }
+      else if (c.kind === "count") { if (!(c.count >= 1)) why = "count row with no count"; }
+      else if (c.kind === "none") { if (!(c.notTrackedLine || c.thinZero || c.refusalLine)) why = "none row with no reason"; }
+      if (!why) {
+        let a; try { a = JSON.parse(r.spec_key); } catch { a = null; }
+        if (a && c.kind !== "none") {
+          const row = { id: 1, listing_title: [a[3], a[0], a[1], a[2]].filter(Boolean).join(" "), year: a[3] || null, make: a[0], model: a[1], source: "bringatrailer" }, spec = { v: { make: a[0], model: a[1], trim: a[2] || undefined, year: a[3] || undefined }, title: row.listing_title };
+          try { const m = marketFromCore(c, row, { miles: null, priceUsd: null }, spec); const l = { id: 1, market: m, current_bid_usd: 0, sam_lines: [] }; l.sam_lines = samLines(l, Date.now()); if (!l.sam_lines.some(e => String(e.text || "").trim()) && !(m.thin_sales && m.thin_sales.count >= 0) && !m.countLine) why = "card prints no line"; } catch (e) { why = "card build threw"; }
+        }
+      }
+      if (why) { out.blank++; keep("blank", { key: r.spec_key, kind: c.kind, why, at: r.computed_at }); }
+    }
+    return res.status(200).json(out);
+  }
+  // task=optionssweep (Lane B, Oct 28 2026, e100): READ-ONLY. Every stored Market Check answer that carries options (100 a page, `after` continues): the option counts against the headline count and any pill listed twice (lib/optionProblems.js),
+  // once as stored and once as served (the read fields add the remainder and drop repeated pills). Counts by problem and the first ten with the key.
+  if (task === "optionssweep") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { optionsFieldsOf, ENGINE_VERSION } = await import("../lib/onebox.js"); const { optionProblems } = await import("../lib/optionProblems.js");
+    const after = req.query?.after ? String(req.query.after) : "";
+    const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,ev:market->>engineVersion,raw:market->raw&order=spec_key.asc&limit=100` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "optionssweep", readFailed: true, ocdSpend: 0, writes: 0 });
+    const out = { task: "optionssweep", ocdSpend: 0, writes: 0, rows: rows.length, withOptions: 0, ownWindow: { answers: 0, options: 0, printedWhenServed: 0, examples: [] }, storedProblems: { short: 0, over: 0, twice: 0 }, servedProblems: { short: 0, over: 0, twice: 0 }, first: [], next: rows.length === 100 ? rows[rows.length - 1].spec_key : null };
+    const kind = t => /twice/.test(t) ? "twice" : /over the footer/.test(t) ? "over" : "short";
+    for (const r of rows) {
+      const a = r.raw; if (!a || !Array.isArray(a.options) || a.options.length < 2) continue; out.withOptions++;
+      const fields = optionsFieldsOf(a), before = optionProblems(a), served = optionProblems({ ...a, ...fields });
+      const diff = (fields.options || []).filter(o => o.windowDiffers);
+      if (diff.length) { out.ownWindow.answers++; out.ownWindow.options += diff.length; out.ownWindow.printedWhenServed += diff.filter(o => (fields.optionLines || []).some(l => l.includes(o.label) && l.includes(o.windowWords))).length; if (out.ownWindow.examples.length < 10) out.ownWindow.examples.push({ key: r.spec_key, footer: a.windowWords || null, poolN: a.poolN, options: diff.map(o => o.ownWindowLine && `${o.label}: ${o.ownWindowLine}`) }); }
+      for (const t of before) out.storedProblems[kind(t)]++; for (const t of served) out.servedProblems[kind(t)]++;
+      if ((before.length || served.length) && out.first.length < 10) out.first.push({ key: r.spec_key, poolN: a.poolN, options: a.options.map(o => `${o.label} ${o.n}`), stored: before.slice(0, 2), served: served.slice(0, 2) });
+    }
+    return res.status(200).json(out);
+  }
+  // task=stalelive (Lane B, Oct 28 2026, e100): READ-ONLY. The live specs (the LIVESPECS row of the live stamp) whose stored core row is still marked stale: the cards a visitor's Find page reads that still say "newer sales are being added".
+  // Pages the core rows by key (1,000 a page, up to 8 pages), counts how many live specs are marked, and lists the first ten with their make and model.
+  if (task === "stalelive") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { ENGINE_VERSION } = await import("../lib/onebox.js");
+    const got = await supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent("LIVESPECS:v1:" + ENGINE_VERSION)}&select=market`);
+    const specs = got && got[0] && got[0].market && Array.isArray(got[0].market.specs) ? got[0].market.specs : [];
+    const liveKeys = new Map(); for (const e of specs) if (e && e.spec && e.spec.key) liveKeys.set(e.spec.key, e.spec);
+    const marked = new Map(); let after = "", pages = 0, readFailed = false;
+    for (; pages < 8; pages++) {
+      const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.${encodeURIComponent("[*")}&select=spec_key,mark:market->>staleSince&order=spec_key.asc&limit=1000` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+      if (!Array.isArray(rows)) { readFailed = true; break; }
+      for (const r of rows) if (r.mark) marked.set(r.spec_key, r.mark);
+      if (rows.length < 1000) break; after = rows[rows.length - 1].spec_key;
+    }
+    const hit = [...liveKeys.keys()].filter(k => marked.has(k));
+    return res.status(200).json({ task: "stalelive", ocdSpend: 0, writes: 0, readFailed, liveSpecs: liveKeys.size, markedCoreRows: marked.size, liveSpecsStale: hit.length, examples: hit.slice(0, 10).map(k => ({ key: k, title: liveKeys.get(k).title, staleSince: marked.get(k) })) });
+  }
+  // task=bidplace (Lane B, Oct 28 2026, e100): READ-ONLY. For every stored core row (one page of 200, `after` continues): build the Find card the real way (marketFromCore, samLines) at five bids around the pair the card shows
+  // (one under the low, the low, the middle, the high, one over the high) and say where any sentence about the bid disagrees with the figures beside it (lib/live/bidPlaceVerify.js). Nothing is written, nothing is spent.
+  if (task === "bidplace") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { marketFromCore } = await import("../lib/live/search.js"); const { samLines } = await import("./buySearch.js"); const V = await import("../lib/live/bidPlaceVerify.js");
+    const after = req.query?.after ? String(req.query.after) : "";
+    const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.${encodeURIComponent("[*")}&select=spec_key,market&order=spec_key.asc&limit=200` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "bidplace", readFailed: true, ocdSpend: 0, writes: 0 });
+    const out = { task: "bidplace", ocdSpend: 0, writes: 0, rows: rows.length, cards: 0, noPair: 0, sentences: 0, problems: 0, examples: [], next: rows.length === 200 ? rows[rows.length - 1].spec_key : null };
+    for (const r of rows) {
+      let a; try { a = JSON.parse(r.spec_key); } catch { continue; } const core = r.market; if (!core || !Array.isArray(a)) continue;
+      const v = { make: a[0], model: a[1], trim: a[2] || undefined, year: a[3] || undefined }, row = { id: 1, listing_title: [a[3], a[0], a[1], a[2]].filter(Boolean).join(" "), year: a[3] || null, make: a[0], model: a[1], source: "bringatrailer" }, spec = { v, title: row.listing_title };
+      let m0; try { m0 = marketFromCore(core, row, { miles: null, priceUsd: null }, spec); } catch { continue; }
+      const sp = V.shownPair(m0); if (!sp) { out.noPair++; continue; }
+      for (const bid of V.BID_GRID(sp.pair)) {
+        const m = marketFromCore(core, row, { miles: null, priceUsd: bid }, spec), l = { id: 1, market: m, current_bid_usd: bid, end_time: new Date(Date.now() + 864e5).toISOString(), sam_lines: [] };
+        l.sam_lines = samLines(l, Date.now()); out.cards++;
+        out.sentences += l.sam_lines.filter(e => /The bid is/.test(e.text || "") || /The bid is/.test(e.bidLine || "")).length;
+        const pr = V.bidWordProblems(l, bid); out.problems += pr.length; if (pr.length && out.examples.length < 10) out.examples.push({ key: r.spec_key, bid, problems: pr.slice(0, 2) });
+      }
+    }
+    return res.status(200).json(out);
+  }
+  // task=modelclash (Lane B, Oct 28 2026, e100): READ-ONLY. The live specs (LIVESPECS row) name each live listing's identity. A listing whose TITLE puts a different model of the same make in the model position than the spec's model is a car
+  // priced from another model's sales. Counts, split into plain-name clashes (what the engine's rival rule would already catch) and coded ones (a digit in either name, which the rule leaves alone), and the first ten of each with the title and the spec.
+  if (task === "modelclash") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { ENGINE_VERSION, loadMakeModels, titleModelClash } = await import("../lib/onebox.js");
+    const got = await supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent("LIVESPECS:v1:" + (req.query?.version || ENGINE_VERSION))}&select=market`);
+    const specs = got && got[0] && got[0].market && Array.isArray(got[0].market.specs) ? got[0].market.specs : [];
+    const out = { task: "modelclash", ocdSpend: 0, writes: 0, specs: specs.length, checked: 0, unchecked: 0, plain: 0, coded: 0, first: { plain: [], coded: [] } };
+    const lists = new Map();
+    for (const e of specs) {
+      const sp = e && e.spec; if (!sp || !sp.v || !sp.v.make || !sp.v.model) continue;
+      if (!lists.has(sp.v.make)) lists.set(sp.v.make, (await loadMakeModels(env, sp.v.make).catch(() => ({ list: null }))).list);
+      const list = lists.get(sp.v.make); if (!list) { out.unchecked++; continue; } out.checked++;
+      const title = String(sp.title || ""), c = titleModelClash(sp.v.make, sp.v.model, title, sp.v.year, list); if (!c) continue;
+      out[c.kind]++; if (out.first[c.kind].length < 10) out.first[c.kind].push({ title, specModel: sp.v.model, titleModel: c.titleModel, year: sp.v.year || null });
     }
     return res.status(200).json(out);
   }

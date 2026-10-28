@@ -1239,25 +1239,29 @@ export async function checkIdentityCounts(env, specs = DEFAULT_SPECS) {
   }
   return { ok: cases.every(c => c.ok), cases };
 }
+// e100 (run 127, Oct 28: this check ran 35 minutes against an 80 minute job and was cancelled with it): the check has its own cap. opts.deadlineMs is the most time it may take; past it every spec and
+// every sub-check not yet started is SKIPPED and named in the result (skippedSpecs, skippedChecks, capHit). A cap is never a finding: it changes no exit status.
 export async function runEngineCheck(env, specs = DEFAULT_SPECS, opts = {}) {
+  const t0 = Date.now(), deadline = Number(opts.deadlineMs) > 0 ? t0 + Number(opts.deadlineMs) : Infinity, over = () => Date.now() > deadline;
+  const skippedSpecs = [], skippedChecks = [];
   const rows = [];
-  for (const q of specs) rows.push(await checkOneSpec(q, env));
+  for (const q of specs) { if (over()) { skippedSpecs.push(q); continue; } rows.push(await checkOneSpec(q, env)); }
   const totalMismatches = rows.filter(r => r.anyMismatch).length;
-  const singlePick = opts.singlePick === false ? null : await checkSinglePick(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  const buyPaths = opts.buyPaths === false ? null : await checkBuyPaths(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  const liveFences = opts.liveFences === false ? null : await checkLiveComparableFences(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  const representative = opts.representative === false ? null : await checkRepresentativeInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  const splitPools = opts.splitPools === false ? null : await checkSplitPoolInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  const overTime = opts.overTime === false ? null : await checkOverTimeInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  const liveListing = opts.liveListing === false ? null : await checkLiveListingDisclosure(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  const urgentOct2026 = opts.urgentOct2026 === false ? null : await checkUrgentOct2026Guards(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  const cacheConsistency = opts.cacheConsistency === false ? null : await checkCacheConsistency(env, specs).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  const singlePick = opts.singlePick === false ? null : over() ? (skippedChecks.push("singlePick"), null) : await checkSinglePick(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  const buyPaths = opts.buyPaths === false ? null : over() ? (skippedChecks.push("buyPaths"), null) : await checkBuyPaths(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  const liveFences = opts.liveFences === false ? null : over() ? (skippedChecks.push("liveFences"), null) : await checkLiveComparableFences(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  const representative = opts.representative === false ? null : over() ? (skippedChecks.push("representative"), null) : await checkRepresentativeInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  const splitPools = opts.splitPools === false ? null : over() ? (skippedChecks.push("splitPools"), null) : await checkSplitPoolInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  const overTime = opts.overTime === false ? null : over() ? (skippedChecks.push("overTime"), null) : await checkOverTimeInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  const liveListing = opts.liveListing === false ? null : over() ? (skippedChecks.push("liveListing"), null) : await checkLiveListingDisclosure(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  const urgentOct2026 = opts.urgentOct2026 === false ? null : over() ? (skippedChecks.push("urgentOct2026"), null) : await checkUrgentOct2026Guards(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  const cacheConsistency = opts.cacheConsistency === false ? null : over() ? (skippedChecks.push("cacheConsistency"), null) : await checkCacheConsistency(env, specs).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const specKeyYearIsolation = opts.specKeyYearIsolation === false ? null : checkSpecKeyYearIsolation();
   const refineKeyIsolation = opts.refineKeyIsolation === false ? null : checkRefineKeyIsolation();
-  const refineIsolation = opts.refineIsolation === false ? null : await checkRefineIsolation(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  const formPairs = opts.formPairs === false ? null : await checkFormPairs(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  const identityCounts = opts.identityCounts === false ? null : await checkIdentityCounts(env, specs).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  return { task: "crossproductcheck", formPairs, identityCounts, total: rows.length, mismatchSpecs: totalMismatches, singlePick, buyPaths, liveFences, representative, splitPools, overTime, liveListing, urgentOct2026, cacheConsistency, refineKeyIsolation, refineIsolation, specKeyYearIsolation, rows };
+  const refineIsolation = opts.refineIsolation === false ? null : over() ? (skippedChecks.push("refineIsolation"), null) : await checkRefineIsolation(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  const formPairs = opts.formPairs === false ? null : over() ? (skippedChecks.push("formPairs"), null) : await checkFormPairs(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  const identityCounts = opts.identityCounts === false ? null : over() ? (skippedChecks.push("identityCounts"), null) : await checkIdentityCounts(env, specs).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  return { task: "crossproductcheck", capHit: skippedSpecs.length + skippedChecks.length > 0, checked: rows.length, skippedSpecs, skippedChecks, ms: Date.now() - t0, formPairs, identityCounts, total: rows.length, mismatchSpecs: totalMismatches, singlePick, buyPaths, liveFences, representative, splitPools, overTime, liveListing, urgentOct2026, cacheConsistency, refineKeyIsolation, refineIsolation, specKeyYearIsolation, rows };
 }
 
 // ---- CLI ----
@@ -1292,15 +1296,34 @@ function printTable(result) {
   if (result.refineIsolation) console.log(`REFINE ISOLATION (live): ${result.refineIsolation.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.refineIsolation)}`);
 }
 
+// THE CAP (e100). A nightly run samples DEFAULT_SPECS (CROSS_MAX_SPECS a night, default 12, a window that moves one window a day so every spec is read within a week or two) and stops starting work after
+// CROSS_MAX_MINUTES (default 8). A hard stop 3 minutes later ends the process even when one read hangs. Neither is a failure: the check says what it read and what it skipped, and exits on findings only.
+// --specs= (an explicit list) and CROSS_MAX_SPECS=all read everything, still under the time cap.
+export function sampleSpecs(all, max, day = Math.floor(Date.now() / 864e5)) {
+  if (!(max > 0) || max >= all.length) return { picked: all.slice(), skipped: [] };
+  const start = (day * max) % all.length, picked = [];
+  for (let k = 0; k < max; k++) picked.push(all[(start + k) % all.length]);
+  return { picked, skipped: all.filter(x => !picked.includes(x)) };
+}
+export function capSettings(envv = process.env) {
+  const mins = Number(envv.CROSS_MAX_MINUTES); const maxRaw = String(envv.CROSS_MAX_SPECS || "").toLowerCase();
+  return { minutes: mins > 0 ? mins : 8, hardMs: ((mins > 0 ? mins : 8) + 3) * 60e3, maxSpecs: maxRaw === "all" ? 0 : (Number(maxRaw) > 0 ? Number(maxRaw) : 12) };
+}
 const isMain = import.meta.url === `file://${process.argv[1]}`;
 if (isMain) {
   const argSpecs = process.argv.find(a => a.startsWith("--specs="));
   const asJson = process.argv.includes("--json");
-  const specs = argSpecs ? argSpecs.slice("--specs=".length).split("|").filter(Boolean) : DEFAULT_SPECS;
+  const cap = capSettings();
+  const all = argSpecs ? argSpecs.slice("--specs=".length).split("|").filter(Boolean) : DEFAULT_SPECS;
+  const { picked, skipped: notPicked } = argSpecs ? { picked: all, skipped: [] } : sampleSpecs(all, cap.maxSpecs);
   const env = supabaseEnv();
   if (!env) { console.error("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set."); process.exit(2); }
-  const result = await runEngineCheck(env, specs);
-  if (asJson) console.log(JSON.stringify(result));
+  const hard = setTimeout(() => { console.log(`CAP: hard stop after ${cap.hardMs / 60e3} minutes; the check ended without a result. This is not a finding.`); console.error(`::warning::crossProductCheck hit its hard stop (${cap.hardMs / 60e3} minutes) and was ended; not a finding.`); process.exit(0); }, cap.hardMs); hard.unref && hard.unref();
+  const result = await runEngineCheck(env, picked, { deadlineMs: cap.minutes * 60e3 });
+  clearTimeout(hard);
+  const skippedAll = [...notPicked, ...result.skippedSpecs];
+  if (asJson) console.log(JSON.stringify({ ...result, specsTotal: all.length, specsSkipped: skippedAll.length }));
   else printTable(result);
+  console.log(`CAP: read ${result.checked} of ${all.length} specs (${notPicked.length} not in tonight's sample, ${result.skippedSpecs.length} skipped at the ${cap.minutes} minute cap), ${result.skippedChecks.length} sub-check(s) skipped${result.skippedChecks.length ? ": " + result.skippedChecks.join(", ") : ""}, ${Math.round(result.ms / 1000)} s. A cap is not a finding.`);
   process.exit(result.mismatchSpecs > 0 || (result.singlePick && !result.singlePick.ok) || (result.buyPaths && !result.buyPaths.ok) || (result.liveFences && !result.liveFences.ok) || (result.representative && !result.representative.ok) || (result.splitPools && !result.splitPools.ok) || (result.overTime && !result.overTime.ok) || (result.liveListing && !result.liveListing.ok) || (result.cacheConsistency && !result.cacheConsistency.ok) ? 1 : 0);
 }

@@ -78,4 +78,18 @@ await new Promise(r => setTimeout(r, 2500));
 const after = table.get(spec.key);
 ok("the refresh behind the response wrote the fresh row (no mark, new figures)", !!after && !after.market.staleSince && after.market.low !== 111000, JSON.stringify(after && { stale: after.market.staleSince || null, low: after.market.low }));
 ok("nothing was deleted by the serve path", deletes === 0);
+// 3. the BLOCKING path (every card read but noBlock, the path a live Find card takes: listingMarket marks the key "filling" around its own read): the marked row still answers at once and the refresh still starts
+// (listing 181534 stayed stale for six reads on this path, Oct 28; the refresh waited on the same set the caller had just filled)
+rows = []; for (let i = 0; i < 12; i++) sale(1973, day(10 + i * 9), 30000 + i * 1000, null);
+const vehicle3 = { make: "Datsun", model: "240Z", trim: "", year: 1973, bodyStyle: null };
+const lrow3 = { id: "l3", listing_title: "1973 Datsun 240Z", year: 1973, make: "Datsun", model: "240Z" };
+const facts3 = S.listingFacts({ ...lrow3, mileage: 50000 });
+const spec3 = await S.specOf(env, lrow3, facts3, vehicle3);
+table.clear(); archiveReads = 0;
+table.set(spec3.key, { spec_key: spec3.key, market: { v: SPEC_V, engineVersion: E.ENGINE_VERSION, kind: "range", low: 111000, high: 222000, count: 9, family: "1973 240Z", staleSince: now }, computed_at: now });
+const m3 = await S.listingMarket(env, lrow3, facts3, { notTracked: true, vehicle: vehicle3 });
+ok("blocking path: a marked row answers with its stored range and says it is stale", m3 && m3.kind === "range" && m3.low === 111000 && m3.stale === true, JSON.stringify(m3 && { kind: m3.kind, low: m3.low, stale: m3.stale }));
+await new Promise(r => setTimeout(r, 2500));
+const after3 = table.get(spec3.key);
+ok("blocking path: the refresh behind the response ran and wrote the fresh row (no mark, new figures)", !!after3 && !after3.market.staleSince && after3.market.low !== 111000, JSON.stringify(after3 && { stale: after3.market.staleSince || null, low: after3.market.low }));
 process.exit(failed ? 1 : 0);

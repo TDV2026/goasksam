@@ -21,7 +21,7 @@ import { mcUrlOf } from "../lib/mcLink.js";
 import { track, withTracking } from "../lib/track/log.js";
 import { historyEnv, houseName, normVin } from "./_historyData.js";
 import { isAbroadRow, parseQuery, parseQueryResolved, emptyFilters, gensNamed, resolveForBuy, searchLive, listingFacts, listingMarket, seenBefore, nounFor, liveForFamily, liveRows, familyMarket, COUNTRY_NAME, COLOURS } from "../lib/live/search.js";
-import { placingFor, ENGINE_VERSION } from "../lib/onebox.js";
+import { placingFor, bidPlaceOf, ENGINE_VERSION } from "../lib/onebox.js";
 import { asideRowsFor, asideMatch, setAsideLabel } from "../lib/tasks/setAside.js";
 import { findGeneration } from "../lib/generations.js";
 import { converse } from "../lib/live/converse.js";
@@ -117,19 +117,31 @@ export function bidPlacing(c, now = Date.now()) {
   if (c.bid_unknown || !(Number(c.current_bid_usd) > 0) || (c.end_time && Date.parse(c.end_time) <= now)) return null;
   return placingFor(Number(c.current_bid_usd), [Number(m.low), Number(m.high)]);
 }
+// The same judgement as an object that carries the pair it compared (lib/onebox.js bidPlaceOf), so the sentence and the figures it judges go out together.
+export function bidPlaceObj(c, now = Date.now()) {
+  const m = c && c.market;
+  if (!bidPlacing(c, now)) return null;
+  return bidPlaceOf(c.current_bid_usd, m.low, m.high, "range");
+}
 // The bid against the sales themselves when no range is shown (Oct 29 2026, the Find card's count line): below every sale, above every sale, or within them, against the span of the sales the engine counted
 // (m.saleSpan). Same conditions as bidPlacing; null with no span or no bid.
-export function bidAgainstSales(c, now = Date.now()) {
+export function bidSalesObj(c, now = Date.now()) {
   const m = c && c.market, sp = m && m.saleSpan;
   if (!m || m.kind === "range" || !Array.isArray(sp) || sp.length !== 2 || !(sp[0] > 0) || !(sp[1] > 0) || m.rung === "sibling" || m.rung === "not_enough_data" || m.bodyScoped === false) return null;
   if (c.bid_unknown || !(Number(c.current_bid_usd) > 0) || (c.end_time && Date.parse(c.end_time) <= now)) return null;
-  const b = Number(c.current_bid_usd);
-  return b < sp[0] ? "The bid is below every sale." : b > sp[1] ? "The bid is above every sale." : "The bid is within the sales.";
+  // the sales spanned are all the sales counted; when the card's large figure is ONE option's range (the engine split the sales into options priced apart) the bid is not placed against the whole span (e100)
+  if (m.optionsState === "split" || m.optionsState === "apart") return null;
+  return bidPlaceOf(c.current_bid_usd, sp[0], sp[1], "sales");
 }
+export function bidAgainstSales(c, now = Date.now()) { const o = bidSalesObj(c, now); return o ? o.line : null; }
 export function samLines(c, now = Date.now()) {
   if (!c || c.swap) return [];
   const out = [], m = c.market;
-  if (m && m.kind !== "pending" && m.soldLine) {
+  if (m && m.findAnswer) {
+    // ENGINE READY 10: a Find card prints the engine's findAnswer lines and nothing else about the market (one range, no sale lines, no pick one, no mileage band the car is not in)
+    const fa = m.findAnswer;
+    out.push({ kind: "range", rung: [], text: fa.lines.join(" "), lines: fa.lines, state: fa.state, range: fa.range, option: fa.option, ...(fa.bid ? { placing: fa.bid, bidPlace: fa.bidPlace || null } : {}) });
+  } else if (m && m.kind !== "pending" && m.soldLine) {
     const pl = bidPlacing(c, now);
     // e71b (Sam, Oct 19 2026): until the grid card lists the sales the engine found (Lane C's build, the market flag m.cardListsSales), a
     // no-range answer prints only the FIRST sentence of the engine's own thin line ("Not enough sales of this exact car to
@@ -137,7 +149,7 @@ export function samLines(c, now = Date.now()) {
     // never new wording; the full line returns once the card lists the sales.
     const firstOnly = m.noCluster && m.thinLine && m.soldLine === m.thinLine && !m.cardListsSales;
     const said = firstOnly ? (String(m.thinLine).match(/^.*?\.(?=\s|$)/) || [String(m.thinLine)])[0] : m.soldLine;
-    out.push({ kind: "range", rung: m.rungLines && m.rungLines.length ? m.rungLines : (m.rungLabel ? [m.rungLabel] : []), text: said + (pl ? ` The bid is ${pl}.` : ""), ...(pl ? { placing: pl } : {}), bidLine: pl ? `The bid is ${pl}.` : bidAgainstSales(c, now) });   // placing: the same word, as its own field (Buy redesign 1b)
+    out.push({ kind: "range", rung: m.rungLines && m.rungLines.length ? m.rungLines : (m.rungLabel ? [m.rungLabel] : []), text: said + (pl ? ` The bid is ${pl}.` : ""), ...(pl ? { placing: pl, bidPlace: bidPlaceObj(c, now) } : {}), bidLine: pl ? `The bid is ${pl}.` : bidAgainstSales(c, now), ...(!pl && bidSalesObj(c, now) ? { bidPlace: bidSalesObj(c, now) } : {}) });   // placing: the same word, as its own field (Buy redesign 1b)
   }
   const t = (c.timeline || []).filter(a => a && a.date);
   const s0 = c.seen_before;
