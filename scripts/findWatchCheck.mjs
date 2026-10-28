@@ -62,7 +62,7 @@ ok(!/You’ll get an email before it ends/.test(C), "the toggle no longer says '
 ok(/Added to your Tasks\. /.test(C) && /Already on your Tasks\. /.test(C) && /href="\/tasks\/mine"/.test(C), "a toggle or button confirms 'Added to your Tasks' (or 'Already on your Tasks') with the link");
 ok(/j\.reason === "cap" \? j\.line : j && j\.limited \? j\.line/.test(C) && /j\.error === "cap" \|\| j\.limited\) && j\.line/.test(C), "the cap and the address line reach the page as the server's own words");
 ok(/BOTH/.test("BOTH") && /askSignInFor\("watch"/.test(C) && /askSignIn\(id\)/.test(C), "signed out: the choice starts the sign-in and comes back to it (the drawer's own flow)");
-try { new Function(C.replace("__KEEP_ICON__", "''")); ok(true, ""); } catch (e) { ok(false, "Find's client script parses (" + e.message + ")"); }
+try { new Function(C.replace("__KEEP_ICON__", "''").replace("__COLD_MISSED__", () => JSON.stringify("COLD_MISSED")).replace("__COLD_READING__", () => JSON.stringify("COLD_READING"))); ok(true, ""); } catch (e) { ok(false, "Find's client script parses (" + e.message + ")"); }
 // 5. the engine's name for the car
 const S = await import("../lib/live/search.js");
 const spec = { v: { year: 1995, make: "Chevrolet", model: "Impala", trim: "SS" }, title: "1995 Chevrolet Impala SS Sedan" };

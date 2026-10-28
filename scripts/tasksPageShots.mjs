@@ -4,6 +4,8 @@
 // (no overlap of the email toggle and How often; no clipped badge on a card).  node scripts/tasksPageShots.mjs [--shots]
 // --shots also writes the screenshots to proofs/tasks3/.
 import path from "node:path"; import { pathToFileURL, fileURLToPath } from "node:url";
+import { reasonLine } from "../lib/reasonWords.js";
+const CR = reasonLine("cold.reading"), CS = reasonLine("cold.still"), CM = reasonLine("cold.missed");   // the engine's own wording (lib/reasonWords.js), never a copy here
 process.env.LAUNCH_STAGE = "2"; process.env.LAUNCH_BUSINESS = "1";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SHOTS = process.argv.includes("--shots");
@@ -227,19 +229,19 @@ try {
     const A = account([]); const q = await open(A, 1440, "&start=1");
     await q.type("#tkq", "g body sedans"); await q.keyboard.press("Enter"); await wait(500); await q.click("[data-start]"); await wait(1200);
     ok(A.tasks.length === 1 && A.calls.filter(c => c === "start").length === 1, "signed out then signed in: the Task is created once (" + A.tasks.length + " Task, " + A.calls.filter(c => c === "start").length + " start call)"); await q.close(); }
-  // "Sam is still reading the sales for this one." only while a card is actually loading (1440)
-  { const pend = { kind: "pending", stillReading: true, line: "Sam is still reading the sales for this one.", retry: true, retryAfterMs: 4500 };
+  // CS only while a card is actually loading (1440)
+  { const pend = { kind: "pending", stillReading: true, line: CS, retry: true, retryAfterMs: 4500 };
     const A = account([mkTask(1)], { enrich: (body, n) => ({ cards: (body.ids || []).map(id => n < 2 ? { id, market: { ...pend } } : { id, market: CARDS[0].market, seen_before: { n: 0 }, timeline: [], sam_lines: CARDS[0].sam_lines }) }) });
     A.cardsOf = () => CARDS.map(c => ({ ...c, market: { ...pend }, sam_lines: [] }));
     const p = await open(A, 1440); p.on("pageerror", e => console.log("ERR", e.message)); await openTask(p); await wait(300); const early = await text(p); await wait(6000); const late = await text(p);
-    ok(/still reading/.test(early) || /Getting the cars/.test(early), "reading: the holding line shows while the market is out");
-    ok(!/still reading/.test(late) && /\$[\d,]+ to \$[\d,]+/.test(late), "reading: the line is gone once each card's own market lands, and the range is there");
+    ok(/still being read|being read/.test(early) || /Getting the cars/.test(early), "reading: the holding line shows while the market is out");
+    ok(!/being read/.test(late) && /\$[\d,]+ to \$[\d,]+/.test(late), "reading: the line is gone once each card's own market lands, and the range is there");
     ok((A.enrichCalls || 0) >= 2, "reading: the page asked again after the engine's own retry wait (" + A.enrichCalls + " asks)"); await p.close(); }
   // a market that never comes: said plainly after the capped asks
-  { const pend = { kind: "pending", stillReading: true, line: "Sam is still reading the sales for this one.", retry: true, retryAfterMs: 120 };
+  { const pend = { kind: "pending", stillReading: true, line: CS, retry: true, retryAfterMs: 120 };
     const A = account([mkTask(1)], { enrich: body => ({ cards: (body.ids || []).map(id => ({ id, market: { ...pend } })) }) }); A.cardsOf = () => CARDS.map(c => ({ ...c, market: { ...pend }, sam_lines: [] }));
     const p = await open(A, 1440); await p.evaluate(() => { window.GAS_WAIT_SCALE = 0.02; }); await openTask(p); await wait(3000); const t = await text(p);   // the clock scaled down for the check only: 45 seconds of asking becomes under one
-    ok(!/still reading/.test(t) && /Sam couldn't read this one yet\./.test(t) && !/try again/i.test(t), "reading: a market that never comes is said plainly after 45 seconds of asking (cold spec, Oct 28 2026), never try again, not left on the holding line"); await p.close(); }
+    ok(!/still reading/.test(t) && t.includes(CM) && !/try again/i.test(t), "reading: a market that never comes is said plainly after 45 seconds of asking (cold spec, Oct 28 2026), never try again, not left on the holding line"); await p.close(); }
   // WHAT FIND'S TOGGLES AND BUTTONS MADE (Oct 29 2026): the watches and before-it-ends emails are on the Tasks page with what they watch and a Stop, counted apart from the Task limit.
   { const A = account([mkTask(1), mkTask(2), mkTask(3)]);
     A.lookingRows = [{ ref: "w:aaaaaaaa-0000-4000-8000-000000000001", kind: "spec_watch", what: "1995 Chevrolet Impala SS", detail: "The next sale of this car." }, { ref: "w:aaaaaaaa-0000-4000-8000-000000000002", kind: "car_watch", what: "1994 Porsche 911 Carrera Cabriolet", detail: "This exact car, if it comes up again." }, { ref: "a:4412", kind: "alert", what: "2010 Porsche 911 Carrera Cabriolet", detail: "Sam sends one email two hours before bidding ends, at any hour of the day or night.", ends_at: new Date(Date.now() + 5 * 864e5).toISOString() }];

@@ -9,6 +9,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import puppeteer from "puppeteer-core";
+import { reasonLine } from "../lib/reasonWords.js";
+const CR = reasonLine("cold.reading"), CS = reasonLine("cold.still"), CM = reasonLine("cold.missed");   // the engine's own wording (lib/reasonWords.js), never a copy here
 process.env.LAUNCH_STAGE = "2"; process.env.SUPABASE_URL = "https://example.supabase.co"; process.env.SUPABASE_SERVICE_ROLE_KEY = "x";
 const ROOT = path.resolve(new URL("..", import.meta.url).pathname); process.chdir(ROOT);
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
@@ -187,18 +189,18 @@ for (const [name, d] of Object.entries(ALL)) {
       const t = await p.evaluate(() => (document.querySelector("#ob") || document.body).innerText.replace(/\s+/g, " "));
       ok(!/Range narrowed|Looking near|narrowed around|Reading the sales near/i.test(t), "no engine line: the page says nothing of its own about the mileage"); await p.close(); }
     { // the rerun computes for a while: the range stays faded while it waits and un-fades when the answer lands
-      const computing = { status: "one_box", tier: "unavailable", stillReading: true, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: 45000, samLine: "Sam is reading the sales for this one.", resolvedCar: { year: 2001, make: "BMW", model: "M3" } };
+      const computing = { status: "one_box", tier: "unavailable", stillReading: true, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: 45000, samLine: CR, couldNotLine: CM, resolvedCar: { year: 2001, make: "BMW", model: "M3" } };
       const p = await open(STATES.alike, 1440, n => n <= 6 ? computing : { status: "one_box", ...THIN_BAND }, { scale: 0.1 }); await typeMiles(p); await new Promise(r => setTimeout(r, 500));
       const during = await p.evaluate(() => document.querySelectorAll(".hero-dim").length); await new Promise(r => setTimeout(r, 2500));
       const t = await p.evaluate(() => (document.querySelector("#ob") || document.body).innerText.replace(/\s+/g, " ")), after = await p.evaluate(() => document.querySelectorAll(".hero-dim").length);
       ok(during > 0, "while the rerun computes the range is faded (" + during + ")");
       ok(after === 0 && t.includes(THIN_BAND.mileageBand.line), "when the rerun's answer lands the range un-fades and the engine's line prints (" + after + " faded)"); await p.close(); }
     { // never answered: the 45 second line, with Have Sam keep looking, even where the watch tables are not ready
-      const computing = { status: "one_box", tier: "unavailable", stillReading: true, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: 45000, samLine: "Sam is reading the sales for this one.", resolvedCar: { year: 2001, make: "BMW", model: "M3" } };
+      const computing = { status: "one_box", tier: "unavailable", stillReading: true, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: 45000, samLine: CR, couldNotLine: CM, resolvedCar: { year: 2001, make: "BMW", model: "M3" } };
       for (const ready of [true, false]) {
         const p = await open(STATES.alike, 1440, () => computing, { scale: 0.04, watchReady: ready }); await typeMiles(p); await new Promise(r => setTimeout(r, 3500));
         const t = await p.evaluate(() => (document.querySelector("#ob") || document.body).innerText.replace(/\s+/g, " ")), btn = await p.evaluate(() => !!document.getElementById("ob-samonit"));
-        ok(/Sam couldn't read this one yet\./.test(t), "never answered (watch " + (ready ? "ready" : "not ready") + "): the plain line");
+        ok(t.includes(CM), "never answered (watch " + (ready ? "ready" : "not ready") + "): the plain line");
         ok(btn && /Have Sam keep looking/.test(t), "never answered (watch " + (ready ? "ready" : "not ready") + "): the line always carries Have Sam keep looking"); await p.close(); }
     }
     await b.close();

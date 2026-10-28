@@ -2663,13 +2663,15 @@
       return d;
     });
   }
+  // The could-not line is the engine's: couldNotLine on a computing answer, samLine on the engine's own could-not answer (api/sellerDecision.js, lib/reasonWords.js).
+  function cnLine(d) { return (d && (d.couldNotLine || (d.computing !== true && d.status === "one_box" && d.tier === "unavailable" ? d.samLine : ""))) || ""; }
   function renderCouldNot(d, reason, waitedMs) {
     obAsk = null;
     var rc = (d && d.resolvedCar) || obResolvedCar || obLastVehicle || null;
     try {
       if (typeof gasTrack === "function") gasTrack("cold_miss", { wait_ms: Math.round(waitedMs || 0), reason: reason, vehicle_key: rc && rc.make ? String(rc.make + "|" + (rc.model || "")).slice(0, 60) : undefined, text: String(lastQuery || "").slice(0, 120), from_product: "market_check" });
     } catch (e) {}
-    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + (d && d.couldNotLine ? samMsgHtml([esc(d.couldNotLine)], "", "big") : "") + samOnItHtml({ resolvedCar: rc }, null, true) + footHtml();   // always with Have Sam keep looking: the line without the button is a dead end
+    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + (cnLine(d) ? samMsgHtml([esc(cnLine(d))], "", "big") : "") + samOnItHtml({ resolvedCar: rc }, null, true) + footHtml();   // always with Have Sam keep looking: the line without the button is a dead end
     wire();
   }
   function renderError(msg) {
