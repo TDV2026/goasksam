@@ -1654,6 +1654,74 @@ async function handleOps(req, res) {
     }
     return res.status(200).json(out);
   }
+  // task=corewindow (Lane B, Oct 28 2026, e100): READ-ONLY. The core rows written at or after `since` (an ISO time, default the sales epoch), 200 a page (`after` continues): what kind each is, and the BLANK CARD GATE over each:
+  // a range row needs a positive low, a high not under it and at least 8 sales; a count row needs a count; a none row needs its reason (not tracked line, zero thin, refusal line); and the Find card built from the row
+  // (marketFromCore, samLines) must print at least one line. Also: rows still carrying a stale mark although written after `since`, and rows on another engine stamp. Counts and the first ten of each problem.
+  if (task === "corewindow") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { marketFromCore, SPEC_V } = await import("../lib/live/search.js"); const { samLines } = await import("./buySearch.js"); const { ENGINE_VERSION, RANGE_THRESHOLD } = await import("../lib/onebox.js"); const { currentEpoch } = await import("../lib/_epoch.js");
+    const since = /^\d{4}-\d{2}-\d{2}T/.test(String(req.query?.since || "")) ? String(req.query.since) : await currentEpoch(env);
+    const after = req.query?.after ? String(req.query.after) : "";
+    const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.${encodeURIComponent("[*")}&computed_at=gte.${encodeURIComponent(since)}&select=spec_key,market,computed_at&order=spec_key.asc&limit=200` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "corewindow", readFailed: true, ocdSpend: 0, writes: 0 });
+    const out = { task: "corewindow", since, ocdSpend: 0, writes: 0, rows: rows.length, kinds: {}, blank: 0, stillMarked: 0, otherStamp: 0, examples: { blank: [], stillMarked: [], otherStamp: [] }, next: rows.length === 200 ? rows[rows.length - 1].spec_key : null };
+    const keep = (k, o) => { if (out.examples[k].length < 10) out.examples[k].push(o); };
+    for (const r of rows) {
+      const c = r.market; if (!c || typeof c !== "object") { out.blank++; keep("blank", { key: r.spec_key, why: "no market object" }); continue; }
+      out.kinds[c.kind || "?"] = (out.kinds[c.kind || "?"] || 0) + 1;
+      if (c.staleSince) { out.stillMarked++; keep("stillMarked", { key: r.spec_key, at: r.computed_at }); }
+      if (c.engineVersion !== ENGINE_VERSION || c.v !== SPEC_V) { out.otherStamp++; keep("otherStamp", { key: r.spec_key, engineVersion: c.engineVersion, v: c.v }); }
+      let why = null;
+      if (c.kind === "range") { if (!(c.low > 0) || !(c.high >= c.low) || !(c.count >= RANGE_THRESHOLD)) why = "range without low, high or 8 sales"; }
+      else if (c.kind === "count") { if (!(c.count >= 1)) why = "count row with no count"; }
+      else if (c.kind === "none") { if (!(c.notTrackedLine || c.thinZero || c.refusalLine)) why = "none row with no reason"; }
+      if (!why) {
+        let a; try { a = JSON.parse(r.spec_key); } catch { a = null; }
+        if (a && c.kind !== "none") {
+          const row = { id: 1, listing_title: [a[3], a[0], a[1], a[2]].filter(Boolean).join(" "), year: a[3] || null, make: a[0], model: a[1], source: "bringatrailer" }, spec = { v: { make: a[0], model: a[1], trim: a[2] || undefined, year: a[3] || undefined }, title: row.listing_title };
+          try { const m = marketFromCore(c, row, { miles: null, priceUsd: null }, spec); const l = { id: 1, market: m, current_bid_usd: 0, sam_lines: [] }; l.sam_lines = samLines(l, Date.now()); if (!l.sam_lines.some(e => String(e.text || "").trim()) && !(m.thin_sales && m.thin_sales.count >= 0) && !m.countLine) why = "card prints no line"; } catch (e) { why = "card build threw"; }
+        }
+      }
+      if (why) { out.blank++; keep("blank", { key: r.spec_key, kind: c.kind, why, at: r.computed_at }); }
+    }
+    return res.status(200).json(out);
+  }
+  // task=optionssweep (Lane B, Oct 28 2026, e100): READ-ONLY. Every stored Market Check answer that carries options (100 a page, `after` continues): the option counts against the headline count and any pill listed twice (lib/optionProblems.js),
+  // once as stored and once as served (the read fields add the remainder and drop repeated pills). Counts by problem and the first ten with the key.
+  if (task === "optionssweep") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { optionsFieldsOf, ENGINE_VERSION } = await import("../lib/onebox.js"); const { optionProblems } = await import("../lib/optionProblems.js");
+    const after = req.query?.after ? String(req.query.after) : "";
+    const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,ev:market->>engineVersion,raw:market->raw&order=spec_key.asc&limit=100` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "optionssweep", readFailed: true, ocdSpend: 0, writes: 0 });
+    const out = { task: "optionssweep", ocdSpend: 0, writes: 0, rows: rows.length, withOptions: 0, storedProblems: { short: 0, over: 0, twice: 0 }, servedProblems: { short: 0, over: 0, twice: 0 }, first: [], next: rows.length === 100 ? rows[rows.length - 1].spec_key : null };
+    const kind = t => /twice/.test(t) ? "twice" : /over the footer/.test(t) ? "over" : "short";
+    for (const r of rows) {
+      const a = r.raw; if (!a || !Array.isArray(a.options) || a.options.length < 2) continue; out.withOptions++;
+      const before = optionProblems(a), served = optionProblems({ ...a, ...optionsFieldsOf(a) });
+      for (const t of before) out.storedProblems[kind(t)]++; for (const t of served) out.servedProblems[kind(t)]++;
+      if ((before.length || served.length) && out.first.length < 10) out.first.push({ key: r.spec_key, poolN: a.poolN, options: a.options.map(o => `${o.label} ${o.n}`), stored: before.slice(0, 2), served: served.slice(0, 2) });
+    }
+    return res.status(200).json(out);
+  }
+  // task=stalelive (Lane B, Oct 28 2026, e100): READ-ONLY. The live specs (the LIVESPECS row of the live stamp) whose stored core row is still marked stale: the cards a visitor's Find page reads that still say "newer sales are being added".
+  // Pages the core rows by key (1,000 a page, up to 8 pages), counts how many live specs are marked, and lists the first ten with their make and model.
+  if (task === "stalelive") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { ENGINE_VERSION } = await import("../lib/onebox.js");
+    const got = await supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent("LIVESPECS:v1:" + ENGINE_VERSION)}&select=market`);
+    const specs = got && got[0] && got[0].market && Array.isArray(got[0].market.specs) ? got[0].market.specs : [];
+    const liveKeys = new Map(); for (const e of specs) if (e && e.spec && e.spec.key) liveKeys.set(e.spec.key, e.spec);
+    const marked = new Map(); let after = "", pages = 0, readFailed = false;
+    for (; pages < 8; pages++) {
+      const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.${encodeURIComponent("[*")}&select=spec_key,mark:market->>staleSince&order=spec_key.asc&limit=1000` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+      if (!Array.isArray(rows)) { readFailed = true; break; }
+      for (const r of rows) if (r.mark) marked.set(r.spec_key, r.mark);
+      if (rows.length < 1000) break; after = rows[rows.length - 1].spec_key;
+    }
+    const hit = [...liveKeys.keys()].filter(k => marked.has(k));
+    return res.status(200).json({ task: "stalelive", ocdSpend: 0, writes: 0, readFailed, liveSpecs: liveKeys.size, markedCoreRows: marked.size, liveSpecsStale: hit.length, examples: hit.slice(0, 10).map(k => ({ key: k, title: liveKeys.get(k).title, staleSince: marked.get(k) })) });
+  }
   // task=bidplace (Lane B, Oct 28 2026, e100): READ-ONLY. For every stored core row (one page of 200, `after` continues): build the Find card the real way (marketFromCore, samLines) at five bids around the pair the card shows
   // (one under the low, the low, the middle, the high, one over the high) and say where any sentence about the bid disagrees with the figures beside it (lib/live/bidPlaceVerify.js). Nothing is written, nothing is spent.
   if (task === "bidplace") {
