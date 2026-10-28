@@ -18,7 +18,7 @@ const noiseTrim = answer(pool(10, "Acme", "Zephyr", i => "1990 Acme Zephyr " + i
 const cp = pool(8, "Acme", "Zephyr", i => "1990 Acme Zephyr Coupe " + i, 20000, "Coupe"), cv = pool(8, "Acme", "Zephyr", i => "1990 Acme Zephyr Convertible " + (i + 8), 70000, "Convertible");
 const apart = answer([...cp, ...cv].map((r, i) => ({ ...r, id: "p" + i })), { bodyOptions: [{ value: "coupe", label: "Coupe", n: 8, inPool: 8, own: { n: 8, low: 20500, high: 22000, median: 21500, windowMonths: 12 } }, { value: "convertible", label: "Convertible", n: 8, inPool: 8, own: { n: 8, low: 70500, high: 72000, median: 71500, windowMonths: 12 } }] });
 const spread = (yr = () => 1990) => Array.from({ length: 10 }, (_, i) => ({ ...sale(i, "1990 Acme Zephyr " + i, 20000 + i * 2500, "Zephyr"), year: yr(i) }));
-const wide = answer(spread());
+const wide = { ...answer(spread()), wideCause: "mileage" };
 const mismatch = answer(pool(10, "Acme", "Zephyr", i => "1990 Acme Zephyr " + i, 20000), { trend: { movement: { spanLabel: "January 2024 to September 2026", buckets: [{ count: 5 }, { count: 6 }, { count: 8 }] } } });
 const yearApart = answer(Array.from({ length: 8 }, (_, i) => ({ ...sale(i, "Acme Zephyr " + i, i < 4 ? 20000 + i * 300 : 40000 + i * 300, "Zephyr"), year: i < 4 ? 1984 : 1986 })), { fallbackRung: "year_widened", cluster: [20300, 41500] });
 const lowMile = answer(pool(10, "Acme", "Zephyr", i => "1985 Acme Zephyr " + i, 20000)); lowMile.cards = lowMile.cards.map((c, i) => ({ ...c, mi: i === 0 ? 151 : 60000, year: 1985 }));
@@ -45,6 +45,7 @@ ok("a row from an older engine version is counted apart and not judged", body &&
 const K = body && body.classes || {};
 ok("class: a wide range with options that price alike or no options is found (the wide pool and the year-apart pool), a narrow one is not", K.wideAlike && K.wideAlike.n === 2 && K.wideAlike.examples.map(x => x.key).sort().join() === "wide,yearapart", JSON.stringify(K.wideAlike));
 ok("class: a card count that is not the chart bars' total is found", K.windowMismatch && K.windowMismatch.n === 1 && K.windowMismatch.examples[0].barSum === 19 && K.windowMismatch.examples[0].cardN === 10, JSON.stringify(K.windowMismatch));
+ok("class: the wide-and-alike count is split by the cause the engine stored (mileage 1) and the one stored before e96 is unread (1)", K.wideAlike && K.wideAlike.causes && K.wideAlike.causes.mileage === 1 && K.wideAlike.causes.unread === 1, JSON.stringify(K.wideAlike && K.wideAlike.causes));
 ok("class: a widened-year answer whose year groups price apart is found", K.yearApart && K.yearApart.n === 1 && K.yearApart.examples[0].key === "yearapart", JSON.stringify(K.yearApart));
 ok("class: a sale under 500 miles on a car older than 15 years is counted on its tile", K.lowMileTiles && K.lowMileTiles.sales === 1 && K.lowMileTiles.answers === 1, JSON.stringify(K.lowMileTiles));
 ok("class: an option question is counted as built and by state", K.optionQuestion && K.optionQuestion.built === 1 && K.optionQuestion.apart === 1, JSON.stringify(K.optionQuestion));
