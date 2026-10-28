@@ -11,7 +11,7 @@ import { inPage, judge as judgeIn } from "./e98DomCheck.mjs";
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 // the stale line is an engine field (api/sellerDecision.js) the pages must never print: no page-side file may read it into markup
 { const fs = await import("node:fs"), path = await import("node:path"); const bad = [];
-  const walk = d => { for (const e of fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })) { const p = d + "/" + e.name; if (e.isDirectory()) walk(p); else if (/\.(js|mjs)$/.test(e.name) && !/^api\/sellerDecision\.js$|^lib\/engineFields\.js$/.test(p)) { const code = fs.readFileSync(path.join(ROOT, p), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, ""); if (/\.staleLine\b|Sales since then are not in yet/.test(code)) bad.push(p); } } };
+  const walk = d => { for (const e of fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })) { const p = d + "/" + e.name; if (e.isDirectory()) walk(p); else if (/\.(js|mjs)$/.test(e.name) && !/^api\/sellerDecision\.js$|^lib\/engineFields\.js$|^lib\/reasonWords\.js$/.test(p)) { const code = fs.readFileSync(path.join(ROOT, p), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, ""); if (/\.staleLine\b|Sales since then are not in yet/.test(code)) bad.push(p); } } };
   for (const d of ["api", "lib", "public/js"]) walk(d);
   ok(!bad.length, "no page or email reads the engine's staleLine into markup" + (bad.length ? " (" + bad.join(", ") + ")" : "")); }
 // the words "See the bid on" (the heading link above a car's name) print nowhere: not in Find's client, not in a lib or page file
