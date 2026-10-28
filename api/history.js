@@ -26,7 +26,6 @@ import { bidState, bidTimePT, lastBidLine } from "../lib/tasks/bidTime.js";
 import { heldFor } from "../lib/_hold.js";
 import { countNoun } from "../lib/countNoun.js";
 import { routeLimit, sendTooMany } from "../lib/_routeLimit.js";
-import { POOLED_APART_LINE, pooledNoteOf as optionNoteOf } from "../lib/pooledWords.js";
 
 const SITE = "https://goasksam.com";
 // Card design system (Oct 2026, the /buy cards): #FAF8F4 paper, near-black ink, one red (#D7262C),
@@ -239,11 +238,26 @@ function nounOf(d, id) {
   if (/\d[A-Z]+$/.test(fam)) return fam + " cars";
   return /(s|x|z|ch|sh)$/i.test(fam) ? fam + "es" : fam + "s";
 }
-// THE POOLED STATES (e95): the engine's own options for a question that prices apart or splits, one plain line each, as they come. Alike: none.
+// THE OPTIONS (e96, docs/e96-page-contract.md): the engine's own lines, printed as they come. alike: optionLines under the range; split and apart: headlineLines in place of it.
+function optionLinesOf(d) {
+  const lines = d && (d.optionsState === "alike" ? d.optionLines : (d.optionsState === "split" || d.optionsState === "apart") ? d.headlineLines : null);
+  return Array.isArray(lines) ? lines.filter(x => typeof x === "string" && x) : [];
+}
 function pooledOptionsHtml(d) {
-  const src = d && (d.pooledApart || d.pooledSplit);
-  const opts = src && Array.isArray(src.options) ? src.options.filter(o => o && Number(o.n) > 0 && Number(o.low) > 0 && Number(o.high) > 0) : [];
-  return opts.length < 2 ? "" : `<ul class="opts">${opts.map(o => `<li>${esc(o.label)}: ${esc(usd(o.low))} to ${esc(usd(o.high))}${optionNoteOf(d, o) ? ". " + esc(optionNoteOf(d, o)) : ", " + esc(countNoun(o.n, "sale", { words: false })) + "."}</li>`).join("")}</ul>`;
+  const lines = optionLinesOf(d);
+  return lines.length ? `<ul class="opts">${lines.map(t => `<li>${esc(t)}</li>`).join("")}</ul>${d.optionsNote ? `<p class="ctx">${esc(d.optionsNote)}</p>` : ""}` : "";
+}
+// COLD SPEC (Sam, Oct 28 2026, no dead ends): a hub whose market is still being read draws this in the place of the range card. The page asks for itself again every 2 seconds
+// for up to 45 seconds and swaps the card in the moment it is stored; after that, one plain line and a cold_miss event. Nothing says "try again". (The engine finishes
+// behind the response and stores its row: api/_historyData.js oneBoxFor.)
+export const COLD_LINE = "Sam is reading the sales for this one.", COULD_NOT_LINE = "Sam couldn't read this one yet.";
+function coldCardHtml() {
+  return `<section class="card anscard solo" id="sam-cold" aria-label="Cars like it"><div class="ans-main"><p class="landed" id="sam-cold-line">${esc(COLD_LINE)}</p></div></section>
+<script>(function(){var k=Number(window.GAS_WAIT_SCALE)||1,t0=Date.now(),el=document.getElementById("sam-cold");if(!el)return;
+function stop(){clearInterval(iv)}
+function ask(){if(Date.now()-t0>=45000*k){stop();var l=document.getElementById("sam-cold-line");if(l)l.textContent=${JSON.stringify(COULD_NOT_LINE)};try{if(typeof gasTrack==="function")gasTrack("cold_miss",{wait_ms:Math.round(Date.now()-t0),reason:"timeout",text:document.title.slice(0,120),from_product:"site"})}catch(e){}return}
+fetch(location.pathname+location.search,{cache:"no-store",credentials:"same-origin"}).then(function(r){return r.text()}).then(function(h){var doc=new DOMParser().parseFromString(h,"text/html");if(doc.getElementById("sam-cold"))return;stop();var card=doc.querySelector("section.anscard");if(card)el.outerHTML=card.outerHTML;else el.remove()}).catch(function(){})}
+var iv=setInterval(ask,2000*k)})();</script>`;
 }
 export function oneBoxBlock(d, id, oneboxHref, ctx) {
   if (!d) return "";
@@ -260,8 +274,8 @@ export function oneBoxBlock(d, id, oneboxHref, ctx) {
   const n = d.poolN || (d.thin && d.thin.receipts ? d.thin.receipts.length : 0);
   if (!n) return "";
   const win = d.tier === "thin" ? "the past three years" : windowText(d);
-  const apart = !!(d.pooledApart && pooledOptionsHtml(d));
-  const line = apart ? POOLED_APART_LINE : n < 8 ? `Only ${n} ${nounOf(d, id)} ${n === 1 ? "has" : "have"} sold in ${win}, not enough for a range.` : `${nounOf(d, id)} sold too spread out in ${win} to call a typical price.`;
+  const apart = !!(optionLinesOf(d).length && !d.cluster);
+  const line = apart ? (d.thinLine || "") : n < 8 ? `Only ${n} ${nounOf(d, id)} ${n === 1 ? "has" : "have"} sold in ${win}, not enough for a range.` : `${nounOf(d, id)} sold too spread out in ${win} to call a typical price.`;
   return `<section class="card anscard solo" aria-label="Cars like it"><div class="ans-main"><div class="eyebrow">${esc(nounOf(d, id))}</div><p class="landed">${esc(line)}</p>${pooledOptionsHtml(d)}${freshLine(d)}${ctx ? `<p class="ctx">${esc(ctx)}</p>` : ""}${link}</div></section>`;
 }
 function poolCount(d) { return d ? (d.tier === "thin" ? (d.thin && d.thin.receipts ? d.thin.receipts.length : 0) : (d.poolN || 0)) : 0; }
@@ -663,7 +677,8 @@ async function hubPage(req, res, env, slug) {
   const id = v && v.make && v.model ? { year: hub.year, make: v.make, model: v.model, trim: v.trim || null, family: familyOf(v), genCode: v.genCode || null, bodyStyle: v.bodyStyle || null, vehicle: { ...v, year: hub.year } }
     : { year: hub.year, make: fbMake || hub.makeSlug.replace(/(^|-)\w/g, s => s.toUpperCase()), model: cleanModelName(hub.modelSlug), family: cleanModelName(hub.modelSlug), vehicle: null };
   const name = [id.year, id.make, id.family].filter(Boolean).join(" ");
-  const d = id.vehicle ? await oneBoxFor(env, id, null, { skipBareRetry: true }) : null;
+  const cold = {};
+  const d = id.vehicle ? await oneBoxFor(env, id, null, { skipBareRetry: true, cold }) : null;
   profMark("oneBoxDone");
   const n = poolCount(d);
   const salesN = list.reduce((k, g) => k + g.apps.filter(a => a.kind === "sale").length, 0);
@@ -682,7 +697,7 @@ async function hubPage(req, res, env, slug) {
   }).join("");
   const body = `
 <div><span class="eyebrow">${esc(id.family)} · Auction results</span><h1 style="margin:6px 0 0;font:600 40px/1.12 var(--serif)">${esc(name)} auction results</h1></div>
-${oneBoxBlock(d, id, `/market-check?q=${encodeURIComponent(name)}`, "")}
+${cold.timedOut && !d ? coldCardHtml() : oneBoxBlock(d, id, `/market-check?q=${encodeURIComponent(name)}`, "")}
 <p class="answer" style="margin:0">${esc(ctx)}</p>
 <section class="card"><div class="sh"><h2>Every ${esc(name)} by VIN</h2><span class="muted">Newest sale first</span></div>
 <table class="stack"><thead><tr><th><span style="position:absolute;left:-9999px">Photo</span></th><th>VIN</th><th class="r">Appearances</th><th>Last result</th><th>Date</th><th class="r">Miles</th></tr></thead><tbody>${rows}</tbody></table></section>
@@ -702,7 +717,7 @@ ${whyResultHtml(crew)}
     ["render", prof.renderDone - prof.oneBoxDone], ["deadphotos", prof.deadPhotosDone - prof.renderDone],
     ["total", prof.deadPhotosDone - prof.t0]
   ].filter(([, v]) => v != null).map(([k, v]) => `${k};dur=${v}`).join(", ");
-  send(res, 200, page({ title: `${name} auction results and sale prices`, description: ctx, canonical, body, ld, index: hubIndex, crew, req }), { "Server-Timing": serverTiming }, hubIndex, crew, req);
+  send(res, 200, page({ title: `${name} auction results and sale prices`, description: ctx, canonical, body, ld, index: hubIndex, crew, req }), { "Server-Timing": serverTiming, ...(cold.timedOut && !d ? { "Cache-Control": "private, no-store" } : {}) }, hubIndex, crew, req);
 }
 
 // ---------------------------------------------------------------- handler

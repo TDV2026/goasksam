@@ -808,8 +808,9 @@
       var val = Number(rf.miTarget).toLocaleString("en-US");
       // MILEAGE NEVER MAKES THE ANSWER WORSE (Sam's rule, Oct 23 2026): when too few sales sit near the miles to narrow, the engine keeps the
       // original range and sends mileageNote ("Too few sales near N miles to narrow it. This is the range for all N."): printed in this slot.
-      var mnote = d && d.mileageNote ? String(d.mileageNote) : "";
-      return '<p class="hero-miles on" data-stage="answer">' + lint(esc(mnote || ("Range narrowed around " + val + " miles.")), mnote ? "hero.mi.note" : "hero.mi.on") +
+      // e96: the engine builds the band and says it (mileageBand.line, whether it narrowed or not); the page sends only the typed target
+      var mnote = d && d.mileageBand && d.mileageBand.line ? String(d.mileageBand.line) : (d && d.mileageNote ? String(d.mileageNote) : "");
+      return '<p class="hero-miles on" data-stage="answer">' + lint(esc(mnote || ("Looking near " + val + " miles.")), mnote ? "hero.mi.note" : "hero.mi.on") +
         ' <button type="button" class="linkbtn" id="ob-miles-change">Change</button>' + milesFieldHtml(rf.miTarget) + "</p>";
     }
     var mi = m && Number(String(m.mileage == null ? "" : m.mileage).replace(/[^\d]/g, ""));
@@ -883,88 +884,17 @@
     if (chosen && orig && Number.isFinite(Number(orig.poolN))) items.push('<button type="button" class="linkbtn hero-idlink" data-trimopt-any="1">Any (' + idLineNum(orig.poolN) + ")</button>");
     return '<p class="hero-idline" data-stage="answer">' + lint("Which " + esc(q.model) + "?", "hero.idq") + " " + items.join(" · ") + "</p>";
   }
-  function heroBodyLineHtml(d) {
-    var pooledBody = pooledLineHtml(d, "body"); if (pooledBody) return pooledBody;
-    var chosen = obLastRefine && obLastRefine.body;
-    var orig = obIdOrigBody;
-    var opts = (d && d.bodyOptions) || (chosen && orig ? orig.options : []);
-    // Found live (Sam's table run, e54): a stale >= 8 floor dropped "Body not stated" on the Mustang
-    // (4) and the Camaro (1) - not an unknown-label issue and not a zero-count filter (there was none
-    // here before), just this threshold. Sam's decision: every option the engine returns with a real
-    // count renders, in the same chip style, no per-option floor - "Body not stated" is an honest
-    // bucket, not a choice to be hidden for being small.
-    var shown = opts.filter(function (o) { return Number(o.n) > 0 || (chosen && String(o.value) === String(chosen)); });
-    if (!chosen && shown.length < 2) return "";
-    var items = shown.map(function (o) {
-      var isChosen = chosen && String(o.value) === String(chosen);
-      var label = esc(o.label) + " (" + idLineNum(o.n) + ")";
-      return isChosen ? ('<span class="hero-idlink hero-idlink-chosen">' + label + "</span>")
-        : ('<button type="button" class="linkbtn hero-idlink" data-bodyopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + label + "</button>");
-    });
-    if (chosen && orig && Number.isFinite(Number(orig.poolN))) items.push('<button type="button" class="linkbtn hero-idlink" data-bodyopt-any="1">Any (' + idLineNum(orig.poolN) + ")</button>");
-    // "Which {nameplate}?" precedes the options - falls back to options-only when no nameplate is
-    // available (never invented).
-    var np = nameplateOf(d);
-    var lead = np ? (lint("Which " + esc(np) + "?", "hero.idq.body") + " ") : "";
-    // e81 (Sam's ruling, Oct 23 2026): an option whose page reads a LONGER window than Any says so, in the engine's own words (windowNote); the page prints it and computes nothing.
-    var notes = shown.filter(function (o) { return o.windowLonger === true && o.windowNote; }).map(function (o) { return esc(o.label) + ": " + esc(o.windowNote); });
-    var noteHtml = notes.length ? '<p class="hero-idnote" data-stage="answer">' + notes.join(" ") + "</p>" : "";
-    return '<p class="hero-idline" data-stage="answer">' + lead + items.join(" · ") + "</p>" + noteHtml;
-  }
-  function heroGearboxLineHtml(d) {
-    var pooledGb = pooledLineHtml(d, "gearbox"); if (pooledGb) return pooledGb;
-    var splits = (d && d.inlineSplits) || [];
-    var gb = null;
-    for (var i = 0; i < splits.length; i++) { if (splits[i] && splits[i].key === "gearbox") { gb = splits[i]; break; } }
-    if (!gb || !gb.sides) return "";
-    var shown = gb.sides.filter(function (s) { return !s.thin; });
-    if (shown.length < 2) return "";
-    var links = shown.map(function (s) {
-      var label = String(s.label || "").replace(/s$/, ""); // the engine's own split labels are plural ("Manuals", "PDKs")
-      var val = /manual/i.test(label) ? "manual" : "auto";
-      return '<button type="button" class="linkbtn hero-idlink" data-tx="' + val + '" data-mlabel="' + esc(label) + '">' + esc(label) + " (" + idLineNum(s.n) + ")</button>";
-    }).join(" · ");
-    return '<p class="hero-idline" data-stage="answer">' + links + "</p>";
-  }
-  // Job 7 (round two, Lane B's e47 d.variantOptionsLine); round three (Sam's decision): at most ONE
-  // identity line from this field, never two stacked, and never a restoration line at all - the
-  // "Unrestored/Professional restoration" entry (key "restoration") is skipped outright, every time,
-  // regardless of its counts. A zero-count option is never rendered, even from a stale persisted
-  // snapshot (obIdOrigVariantLines) an older answer left behind - filtered out before anything else,
-  // so Lane B's own engine change (an option with zero sales is never returned at all, once live)
-  // changes nothing here: this was already defensive against exactly that case. An entry left with
-  // fewer than two real (non-zero) options after filtering is not a choice - same "needs 2 to be
-  // worth asking" rule heroBodyLineHtml already applies - so it is skipped too, and the search moves
-  // to the next entry; the first entry that still has a real two-sided choice is the one line
-  // rendered, and no others are considered.
-  function variantOptionsLineHtml(d) {
-    var pooledVar = pooledLineHtml(d, "edition"); if (pooledVar) return pooledVar;
-    var entries = (d && Array.isArray(d.variantOptionsLine) && d.variantOptionsLine.length) ? d.variantOptionsLine : obIdOrigVariantLines;
-    if (!Array.isArray(entries) || !entries.length) return "";
-    var np = nameplateOf(d);
-    var chosen = obLastRefine && obLastRefine.variant;
-    for (var i = 0; i < entries.length; i++) {
-      var entry = entries[i];
-      if (!entry || entry.key === "restoration") continue;
-      var opts = Array.isArray(entry.options) ? entry.options : [];
-      var real = opts.filter(function (o) { var n = digitOf(o.n); return Number.isFinite(n) && n > 0; });
-      if (real.length < 2) continue;
-      var total = 0, chosenHere = false;
-      real.forEach(function (o) { total += digitOf(o.n); if (chosen && String(o.value) === String(chosen)) chosenHere = true; });
-      var items = real.map(function (o) {
-        var isChosen = chosenHere && String(o.value) === String(chosen);
-        var label = esc(o.label) + " (" + idLineNum(digitOf(o.n)) + ")";
-        return isChosen ? ('<span class="hero-idlink hero-idlink-chosen">' + label + "</span>")
-          : ('<button type="button" class="linkbtn hero-idlink" data-varopt="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + label + "</button>");
-      });
-      if (chosenHere) items.push('<button type="button" class="linkbtn hero-idlink" data-varopt-any="1">Any (' + idLineNum(total) + ")</button>");
-      var lead = np ? (lint("Which " + esc(np) + "?", "hero.idq.variant") + " ") : "";
-      return '<p class="hero-idline" data-stage="answer">' + lead + items.join(" · ") + "</p>";
-    }
-    return "";
+  // THE REFINED ROW (e96): the options themselves print in the shared card (lib/sellsForCard.js: optionLines, headlineLines, refineOptions, from the engine). What the page
+  // keeps here is the way back: each answered refine shows as a button that clears it. The trim question is the engine's own trimQuestion, unchanged.
+  var REFINE_KEYS = [["body", "bodyLabel"], ["tx", "txLabel"], ["variant", "variantLabel"], ["year", "yearLabel"]];
+  function refinedRowHtml() {
+    var rf = obLastRefine; if (!rf) return "";
+    var items = [];
+    REFINE_KEYS.forEach(function (k) { if (rf[k[0]]) items.push('<button type="button" class="linkbtn hero-idlink" data-unrefine="' + k[0] + '">' + esc(rf[k[1]] || String(rf[k[0]])) + " (clear)</button>"); });
+    return items.length ? '<p class="hero-idline" data-stage="answer">' + items.join(" &middot; ") + "</p>" : "";
   }
   function heroIdentityLineHtml(d) {
-    var lines = heroTrimLineHtml(d) + heroBodyLineHtml(d) + heroGearboxLineHtml(d) + variantOptionsLineHtml(d);
+    var lines = heroTrimLineHtml(d) + refinedRowHtml();
     return lines ? ('<div class="hero-divider"></div>' + lines) : "";
   }
   // ================= HERO CHART (Market Check result-page spec, Oct 2026) =================
@@ -1107,44 +1037,14 @@
     var py = trendObj && trendObj.priorYear && Number(trendObj.priorYear.high) > 0
       ? ('<p class="hc-prioryear">' + lint(esc("The year before, the typical range was " + usd(trendObj.priorYear.low) + " to " + usd(trendObj.priorYear.high) + "."), "hc.prioryear") + "</p>") : "";
     // One small static line under the chart (Sam, Oct 26 2026): no engine field, no condition, shown whenever the chart is shown (this function returns "" when there is no chart).
-    return size + svg + legend + py + '<p class="hc-note">Quarters with too few sales are left out.</p>';
+    // the engine's own caption and, when the chart's window differs from the range's, its one line saying so (e96 chartCaption, chartWindowLine); no field, no line
+    return size + svg + legend + py + (d.chartCaption ? '<p class="hc-note">' + esc(d.chartCaption) + "</p>" : "") + (d.chartWindowLine ? '<p class="hc-note">' + esc(d.chartWindowLine) + "</p>" : "");
   }
   // No candle chart (the engine supplies no trend at all): no chart, no empty panel - the hero goes
   // full width instead (see heroRangeHtml/thinHeroHtml, :only-child CSS in onebox.html) and this one
   // quiet line sits where the chart would have been.
-  // THE POOLED STATES (e95, Sam's rule, Oct 27 2026). The engine says when a question's options (body, gearbox, edition) price apart or split:
-  //   d.pooledApart.options and d.pooledSplit.options, each { dimension, label, value, n, low, high }. The page prints them as they come and computes nothing.
-  //   Apart: no headline range (the engine's own thinLine stands in for it) and each option on its own line with its own range and count.
-  //   Split: the pooled headline stays and, directly under the card, each option's own range and count replaces the count only line.
-  //   Each line is a button that opens that option, through the same hooks the count only line used (data-bodyopt, data-tx, data-varopt).
-  //   Alike: neither field, nothing here. A withheld chart (d.trendHeld, reason mix_changes) draws no chart and says why in one plain line.
-  var POOL_ATTR = { body: "data-bodyopt", gearbox: "data-tx", edition: "data-varopt" };
-  function pooledNoteOf(d, o) {
-    // the engine's own words for an option that reads a longer window than the bare page ("Based on 13 sales over the last 24 months."): on the option itself, else on the same option in the answer's own option lists
-    if (o.windowLonger === true && o.windowNote) return String(o.windowNote);
-    var lists = [];
-    if (o.dimension === "body") lists.push(d.bodyOptions);
-    if (o.dimension === "edition") (Array.isArray(d.variantOptionsLine) ? d.variantOptionsLine : []).forEach(function (e) { if (e && e.key !== "restoration") lists.push(e.options); });
-    if (o.dimension === "gearbox") (Array.isArray(d.inlineSplits) ? d.inlineSplits : []).forEach(function (e) { if (e && e.key === "gearbox" && Array.isArray(e.sides)) lists.push(e.sides.map(function (s) { return { value: /manual/i.test(String(s.label || "")) ? "manual" : "auto", windowLonger: s.windowLonger, windowNote: s.windowNote }; })); });
-    for (var i = 0; i < lists.length; i++) for (var j = 0; Array.isArray(lists[i]) && j < lists[i].length; j++) { var e = lists[i][j]; if (e && String(e.value) === String(o.value) && e.windowLonger === true && e.windowNote) return String(e.windowNote); }
-    return "";
-  }
-  function pooledOptionsOf(d, dimension) {
-    var src = d && (d.pooledApart || d.pooledSplit); if (!src || !Array.isArray(src.options)) return [];
-    return src.options.filter(function (o) { return o && o.dimension === dimension && Number(o.n) > 0 && Number(o.low) > 0 && Number(o.high) > 0; });
-  }
-  function pooledLineHtml(d, dimension) {
-    var opts = pooledOptionsOf(d, dimension); if (opts.length < 2) return "";
-    var attr = POOL_ATTR[dimension]; if (!attr) return "";
-    var apart = !!(d && d.pooledApart);
-    var items = opts.map(function (o) {
-      var note = pooledNoteOf(d, o);
-      var label = esc(o.label) + ": " + usd(o.low) + " to " + usd(o.high) + (note ? ". " + esc(note) : ", " + obCount(o.n, "sale", { words: false }) + ".");
-      var btn = '<button type="button" class="linkbtn hero-idlink" ' + attr + '="' + esc(o.value) + '" data-mlabel="' + esc(o.label) + '">' + label + "</button>";
-      return apart ? '<p class="hero-idline hero-poolline" data-stage="answer">' + btn + "</p>" : btn;
-    });
-    return apart ? items.join("") : '<p class="hero-idline hero-poolline" data-stage="answer">' + items.join(" ") + "</p>";
-  }
+  // THE OPTIONS (e96, docs/e96-page-contract.md) print in the shared card (lib/sellsForCard.js): the engine's optionLines under a range, its headlineLines in place of one.
+  // A withheld chart (d.trendHeld, reason mix_changes) draws no chart and says why in one plain line.
   function chartHeldLine(d) {
     return d && d.trendHeld && d.trendHeld.reason === "mix_changes" ? "The mix of cars changed from quarter to quarter, so a change here would not show the market moving." : "";
   }
@@ -1332,7 +1232,7 @@
       heroMetaLine(d);
     // e63 (Sam, Oct 19 2026; Lane C as integrator, Lane A away): ONE list on the spread refusal too. The card carries the
     // engine's line ("Sales too spread out for a range."), the tiles below carry the sales; no sale prints twice.
-    left += (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true }) : "");
+    left += (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "");
     if (!d.cluster) {
       var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.older") + "</p>";
     }
@@ -1717,7 +1617,7 @@
     return '<article class="' + cls + (o.href ? " clickable" : "") + '">' + photo + body + "</article>";
   }
   // "Automatic (7-speed)" -> "Automatic, 7-speed".
-  function longMiles(c) { return Number(c.mi) > 0 ? Number(c.mi).toLocaleString("en-US") + " miles" : (c.mileageText && c.mileageText !== "TMU" ? c.mileageText : ""); }
+  function longMiles(c) { if (c.milesHidden) return ""; return Number(c.mi) > 0 ? Number(c.mi).toLocaleString("en-US") + " miles" : (c.mileageText && c.mileageText !== "TMU" ? c.mileageText : ""); }
   // ctxCardHtml (the old boxed/pilled "Closest match"/"Middle of the range" context cards) was
   // deleted in the hero-rebuild round (Oct 2026) along with contextSalesHtml - see salesRowCardHtml
   // above, the new borderless replacement. otherHalfLabel and offWindowLabel below are KEPT, byte-
@@ -2128,7 +2028,7 @@
       // A thin answer (e63, Sam, Oct 19 2026; Lane C as integrator, Lane A away): the shared card carries the engine's
       // thinLine and latest-sale line, the only explanation; the grid below carries the sales. No lead of the page's own.
       var follow = m ? "" : "A bit more detail, or a different car, and Sam pulls what actually sold.";
-      var card = window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true }) : "";
+      var card = window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "";
       return '<div class="refusal">' + card + (follow ? samMsgHtml([lint(esc(follow), "thin.follow")], "Sam’s read") : "") + factsBlockHtml(d, false) + "</div>" + exactCarSalesHtml(d) + poolGridHtml(cards, "What has sold") + sellHtml();
     }
     var follow2 = "Say which " + esc(model) + " it is and Sam compares it to the ones that match.";
@@ -2138,7 +2038,7 @@
     // The spread refusal (Sam, Oct 19 2026; Lane C as integrator, Lane A away): the shared card carries the engine's own
     // line (its samLine, "Sales too spread out for a range.") and latest sale, the only explanation; no reason of the
     // page's own. The ask to name the car and the engine's own variant chips stay; the grid below carries the sales.
-    var card = window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true }) : "";
+    var card = window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "";
     var head = '<div class="refusal" data-stage="answer">' + card +
       samMsgHtml([lint(esc(follow2), "refuse.follow")], "Sam’s read") + factsBlockHtml(d, false) + chips + "</div>";
     return head + exactCarSalesHtml(d) + poolGridHtml(cards, "What has sold") + sellHtml();
@@ -2289,7 +2189,7 @@
     // spread-too-wide line rather than staying silent - see lib/sellsForCard.js's own FOR LANE B note.
     // e63 (Sam, Oct 19 2026; Lane C as integrator, Lane A away): ONE list. The sale tiles below are this tier's list, so the
     // card draws the engine's line and latest sale without its own rows; no sale prints twice.
-    left += (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true }) : "");
+    left += (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "");
     var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.thin.older") + "</p>";
     // The page's own house/online lines are gone (Sam, Oct 19 2026; Lane C as integrator, Lane A away): the engine's line
     // and latest-sale line on the card are the only explanation under a thin card.
@@ -2306,7 +2206,6 @@
     // Job 7 (round two): d.variantOptionsLine reaches the labelled-rung thin tier too (confirmed
     // live, 275 GTB) - the result tier's own identity-line wrapper (body/trim/gearbox) does not
     // apply here, so this calls the variant line directly rather than the full heroIdentityLineHtml.
-    var varLine = variantOptionsLineHtml(d); if (varLine) left += '<div class="hero-divider"></div>' + varLine;
     // Candles only (engine's own d.trend quarters) - same rule as the result tier, no scope-filtered
     // fallback any more.
     var right = heroChartHtml(d);
@@ -2777,6 +2676,33 @@
     renderQuestion(variantChoiceTakeoverHtml(d));
     if (typeof gasTrack === "function") gasTrack("identity_question_shown", { search_id: obSearchId || undefined, dimension: "competition", option_count: (d.variantChoices || []).length });
   }
+  // COLD SPEC (Sam, Oct 28 2026, no dead ends): when the engine says the answer is computing, the search stays in place under "Sam is reading the sales for this one." with the
+  // live dots, the page asks again every retryAfterMs (2 seconds) for up to waitMaxMs (45 seconds) and draws the answer the moment it is stored. If the engine fails or the
+  // time runs out, one plain line and the Have Sam keep looking button, and a cold_miss event with the spec and the wait. Nothing says "try again". GAS_WAIT_SCALE shortens the clock for the check only.
+  var COMPUTING_LINE = "Sam is reading the sales for this one.", COULD_NOT_LINE = "Sam couldn't read this one yet.";
+  function obAskUntilRead(payload, t0, onComputing) {
+    var k = Number(window.GAS_WAIT_SCALE) || 1;
+    return obFetch(API_ORIGIN + "/api/sellerDecision", {
+      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    }, 25000).then(function (r) { return r.json(); }).then(function (d) {
+      if (d && d.status === "one_box" && d.tier === "unavailable" && d.computing === true) {
+        if (Date.now() - t0 >= (Number(d.waitMaxMs) || 45000) * k) return { couldNot: true, d: d };
+        onComputing(d);
+        return new Promise(function (res) { setTimeout(res, (Number(d.retryAfterMs) || 2000) * k); }).then(function () { return obAskUntilRead(payload, t0, onComputing); });
+      }
+      return d;
+    });
+  }
+  function renderCouldNot(d, reason, waitedMs) {
+    obAsk = null;
+    var rc = (d && d.resolvedCar) || obResolvedCar || obLastVehicle || null;
+    try {
+      if (typeof gasTrack === "function") gasTrack("cold_miss", { wait_ms: Math.round(waitedMs || 0), reason: reason, vehicle_key: rc && rc.make ? String(rc.make + "|" + (rc.model || "")).slice(0, 60) : undefined, text: String(lastQuery || "").slice(0, 120), from_product: "market_check" });
+    } catch (e) {}
+    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + samMsgHtml([esc(COULD_NOT_LINE)], "", "big") + samOnItHtml({ resolvedCar: rc }, null) + footHtml();
+    wire();
+  }
   function renderError(msg) {
     obAsk = null;
     root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + samMsgHtml([esc(msg)], "", "big") + footHtml();
@@ -2853,6 +2779,8 @@
         (stages || []).forEach(function (st) { if (st[0] === 0) show(st[1]); else timers.push(setTimeout(function () { if (!finalizing) show(st[1]); }, st[0] * 1000 * k)); });
         timers.push(setTimeout(function () { if (!finalizing) showLoaderSlow(); }, 20000 * k));
       },
+      // hold(line): the wait goes on under one steady line (a cold spec is being read; no later stage line replaces it)
+      hold: function (line) { clearAll(); show(line); },
       finish: function (steps, cb) {
         finalizing = true; clearAll();
         var seq = (steps || []).slice();
@@ -3013,7 +2941,7 @@
     var miles = sp.get("miles");
     if (miles) {
       var m = /^(\d+)-(\d+)?$/.exec(miles);
-      if (m) { refine.miMin = Number(m[1]) * 1000; refine.miMax = m[2] ? Number(m[2]) * 1000 : null; refine.miTarget = refine.miMax ? Math.round((refine.miMin + refine.miMax) / 2) : refine.miMin; refine.label = m[2] ? (m[1] + "k to " + m[2] + "k") : ("over " + m[1] + "k"); }
+      if (m) { refine.miMin = Number(m[1]) * 1000; refine.miMax = m[2] ? Number(m[2]) * 1000 : null; refine.label = m[2] ? (m[1] + "k to " + m[2] + "k") : ("over " + m[1] + "k"); }
     }
     var body = sp.get("body"); if (body) refine.body = body;
     var tx = sp.get("tx"); if (tx === "manual" || tx === "auto") refine.tx = tx;
@@ -3057,13 +2985,14 @@
   function mergeRefine(partial) {
     var base = obLastRefine ? Object.assign({}, obLastRefine) : {};
     Object.keys(partial).forEach(function (k) { if (k !== "label") base[k] = partial[k]; });
-    if ("miMin" in partial) base.miLabel = partial.label;
+    if ("miMin" in partial || "miTarget" in partial) base.miLabel = partial.label;
     if ("tx" in partial) base.txLabel = partial.label;
     if ("variant" in partial) base.variantLabel = partial.label;
     if ("driver" in partial) base.driverLabel = partial.label;
     if ("observe" in partial) base.observeLabel = partial.label;
     if ("body" in partial) base.bodyLabel = partial.label;
     if ("trim" in partial) base.trimLabel = partial.label;
+    if ("year" in partial) base.yearLabel = partial.label;
     if ("docHistory" in partial) base.docHistoryLabel = partial.label;
     return base;
   }
@@ -3076,16 +3005,16 @@
   }
   function submitMileageInline(v) {
     if (!(v > 0)) return;
-    var band = v >= 60000 ? 25000 : 15000, lbl = "around " + Math.round(v / 1000) + "k";
+    var lbl = "around " + Math.round(v / 1000) + "k";
     if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "mileage", value: lbl });
     // Optimistic line update (the field itself keeps its typed value, untouched): the final
     // renderResults() call below will redraw this exactly the same way once the rerun lands, from
     // obLastRefine - set here only so the wait never shows the old "Add mileage" sentence.
     var mline = document.querySelector(".hero-miles");
-    if (mline) mline.outerHTML = '<p class="hero-miles on" data-stage="answer">' + lint(esc("Range narrowed around " + v.toLocaleString("en-US") + " miles."), "hero.mi.on.opt") +
+    if (mline) mline.outerHTML = '<p class="hero-miles on" data-stage="answer">' + lint(esc("Reading the sales near " + v.toLocaleString("en-US") + " miles."), "hero.mi.on.opt") +
       ' <button type="button" class="linkbtn" disabled>Change</button>' + milesFieldHtml(v) + "</p>";
     dimHeroForRerun(true);
-    runPool(lastQuery, obLastVehicle, mergeRefine({ miMin: Math.max(0, v - band), miMax: v + band, miTarget: v, label: lbl }), { inline: true });
+    runPool(lastQuery, obLastVehicle, mergeRefine({ miTarget: v, miMin: null, miMax: null, label: lbl }), { inline: true });
   }
   function runPool(text, vehicle, refine, opts) {
     opts = opts || {};
@@ -3111,10 +3040,9 @@
     var payload = { oneBox: true, anonId: obAnonId(), car: car, asked: obAsked };
     if (obSearchId) payload.searchId = obSearchId;
     if (refine) payload.refine = refine;   // inline earned-question refinement (mileage / transmission)
-    obFetch(API_ORIGIN + "/api/sellerDecision", {
-      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    }, 25000).then(function (r) { return r.json(); }).then(function (d) {
+    var coldT0 = Date.now();
+    obAskUntilRead(payload, coldT0, function () { if (loader) loader.hold(COMPUTING_LINE); }).then(function (d) {
+      if (d && d.couldNot) { renderCouldNot(d.d, "timeout", Date.now() - coldT0); return; }
       pushRecent(text, d);
       // Typo confirmation (found this round, Sam's review): a typed year/body combination the
       // resolver knows is wrong (product rule 6, e.g. a Speedster typed on a 911 year with no
@@ -3134,7 +3062,7 @@
         return;
       }
       if (!d || d.status !== "one_box") { obBusy("busy"); renderError(OB_CALM); return; }
-      if (d.tier === "unavailable") { obBusy(d.stillReading ? "still_reading" : "busy"); renderError(d.samLine || OB_CALM); return; }
+      if (d.tier === "unavailable") { obBusy(d.stillReading ? "still_reading" : "busy"); renderCouldNot(d, "failed", Date.now() - coldT0); return; }
       if (d.tier === "rate_limited") { renderError(d.samLine || "That’s a lot of lookups for one day. Come back tomorrow and Sam keeps pulling real sales."); return; }
       if (d.tier === "business_limit") { renderBusinessLimit(d.samLine); return; }
       if (d.tier === "model_choice") { if (d.askIndex) obAsked = d.askIndex; obLastD = d; renderQuestion(modelChoiceTakeoverHtml(d)); return; }
@@ -3167,7 +3095,7 @@
       finalSteps.push("Picking the ones that matter");
       var finish = function () { mcPushUrl(); if (SELL && SELL.onCar && SELL.onCar(d, text)) return; renderResults(d); };
       if (loader) loader.finish(finalSteps, finish); else finish();
-    }).catch(function () { if (opts.inline) dimHeroForRerun(false); obBusy("busy"); renderError(OB_CALM); });
+    }).catch(function () { if (opts.inline) dimHeroForRerun(false); obBusy("busy"); renderCouldNot(null, "failed", Date.now() - coldT0); });
   }
   // VIN path: decode + confirm (reuses /api/vehicleIdentity). VINs travel in the request
   // body only; nothing here logs the raw VIN.
@@ -3587,45 +3515,36 @@
     // text (.linkbtn), not .qchip pills - loosened to match the [data-trimopt] handler's own
     // precedent just above. The old .qchip-scoped producer (bodyOptionsHtml) is gone, so this is a
     // strict broadening, not a behavior change for anything still alive.
-    Array.prototype.forEach.call(root.querySelectorAll("[data-bodyopt]"), function (b) {
-      b.addEventListener("click", function () {
-        var body = b.getAttribute("data-bodyopt"), label = b.getAttribute("data-mlabel");
-        if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "body", value: String(label || body || "").slice(0, 40) });
-        runPool(lastQuery, obLastVehicle, mergeRefine({ body: body, label: label }));
-      });
-    });
     // "Any (N)" (item 2, Sam's review round): clears the chosen trim/body refine, returning to the
     // unsplit answer - mergeRefine sets the key to null (and its *Label alongside), the server reads
     // a null refine key as unanswered, same as never having asked.
+    // e96: an option line or a chip sends the option's own refine back to the engine, unchanged (options[i].refine, refineOptions[i].refine); the page builds nothing.
+    Array.prototype.forEach.call(root.querySelectorAll("[data-refine]"), function (b) {
+      b.addEventListener("click", function () {
+        var ref; try { ref = JSON.parse(b.getAttribute("data-refine")); } catch (e) { ref = null; }
+        if (!ref || typeof ref !== "object") return;
+        var label = b.getAttribute("data-mlabel");
+        if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: Object.keys(ref)[0] || "option", value: String(label || "").slice(0, 40) });
+        runPool(lastQuery, obLastVehicle, mergeRefine(Object.assign({}, ref, { label: label })));
+      });
+    });
+    Array.prototype.forEach.call(root.querySelectorAll("[data-unrefine]"), function (b) {
+      b.addEventListener("click", function () {
+        var k = b.getAttribute("data-unrefine"), clear = {}; clear[k] = null; clear.label = null;
+        if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: k, value: "any" });
+        runPool(lastQuery, obLastVehicle, mergeRefine(clear));
+      });
+    });
     Array.prototype.forEach.call(root.querySelectorAll("[data-trimopt-any]"), function (b) {
       b.addEventListener("click", function () {
         if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "trim", value: "any" });
         runPool(lastQuery, obLastVehicle, mergeRefine({ trim: null, label: null }));
       });
     });
-    Array.prototype.forEach.call(root.querySelectorAll("[data-bodyopt-any]"), function (b) {
-      b.addEventListener("click", function () {
-        if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "body", value: "any" });
-        runPool(lastQuery, obLastVehicle, mergeRefine({ body: null, label: null }));
-      });
-    });
     // Job 7 (round two): the in-result variantOptionsLine chips - same mergeRefine key "variant" the
     // blocking variant_choice screen's own [data-variantopt] chips use (job 2), a DIFFERENT attribute
     // name so the two never collide (this fires inline on a result/thin page that already has an
     // answer; job 2's fires on its own full-takeover question screen).
-    Array.prototype.forEach.call(root.querySelectorAll("[data-varopt]"), function (b) {
-      b.addEventListener("click", function () {
-        var val = b.getAttribute("data-varopt"), label = b.getAttribute("data-mlabel");
-        if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "variant", value: String(label || val || "").slice(0, 40) });
-        runPool(lastQuery, obLastVehicle, mergeRefine({ variant: val, label: label }));
-      });
-    });
-    Array.prototype.forEach.call(root.querySelectorAll("[data-varopt-any]"), function (b) {
-      b.addEventListener("click", function () {
-        if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "variant", value: "any" });
-        runPool(lastQuery, obLastVehicle, mergeRefine({ variant: null, label: null }));
-      });
-    });
     // Job 2 (variant_choice takeover, Sam's review round): same refine mechanism the generic
     // gearbox/competition/documented-history takeover's [data-idq-dim="competition"] chips already
     // use (mergeRefine key "variant"), plus the new Any chip this screen family did not have before.
@@ -3694,7 +3613,7 @@
       b.addEventListener("click", function () {
         var lo = b.getAttribute("data-milemin"), hi = b.getAttribute("data-milemax"), label = b.getAttribute("data-mlabel");
         if (typeof gasTrack === "function") gasTrack("refinement_applied", { field: "mileage", value: String(label || lo || "").slice(0, 40) });
-        runPool(lastQuery, obLastVehicle, mergeRefine({ miMin: Number(lo), miMax: hi ? Number(hi) : null, miTarget: hi ? Math.round((Number(lo) + Number(hi)) / 2) : Number(lo), label: label }));
+        runPool(lastQuery, obLastVehicle, mergeRefine({ miMin: Number(lo), miMax: hi ? Number(hi) : null, label: label }));
       });
     });
     // Bare [data-tx] (follow-up round, Oct 2026): also matches the hero's plain-text (.linkbtn)
@@ -3888,7 +3807,7 @@
   // renderResults (Market Check result-page spec, Oct 2026 proof round): exported so a hand-built
   // engine answer (a trend/distribution stub, before Lane B ships either field live) can be rendered
   // straight to the page for a screenshot - read-only, no new behavior.
-  window.OBX = { carHead: carHead, qscreenHtml: qscreenHtml, askCopy: askCopy, esc: esc, inboxHtml: inboxHtml, footHtml: footHtml, saleCardHtml: saleCardHtml,
+  window.OBX = { renderCouldNot: renderCouldNot, carHead: carHead, qscreenHtml: qscreenHtml, askCopy: askCopy, esc: esc, inboxHtml: inboxHtml, footHtml: footHtml, saleCardHtml: saleCardHtml,
     samMsgHtml: samMsgHtml, setRootHtmlLifted: setRootHtmlLifted, wire: wire, root: root, run: run, renderError: renderError, renderEmpty: renderEmpty,
     renderResults: renderResults, renderQuestion: renderQuestion, modelChoiceTakeoverHtml: modelChoiceTakeoverHtml };
   boot();

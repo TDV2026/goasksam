@@ -10,7 +10,7 @@ let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const listeners = {}, calls = [], addr = [];
 let replies = [], popstate = null;
-const OBX = { root: { innerHTML: "" }, esc: s => String(s), inboxHtml: v => `<inbox ${v}>`, footHtml: () => "<foot>", wire() {}, renderError(t) { OBX.root.innerHTML = "ERR " + t; }, renderEmpty() {},
+const OBX = { root: { innerHTML: "" }, esc: s => String(s), inboxHtml: v => `<inbox ${v}>`, footHtml: () => "<foot>", wire() {}, renderError(t) { OBX.root.innerHTML = "ERR " + t; }, renderCouldNot() { OBX.root.innerHTML = "ERR Sam couldn't read this one yet."; }, renderEmpty() {},
   qscreenHtml: (p, c) => `<q>${p}</q>${c}`, samMsgHtml: (a, x, size) => `<sam ${size}>${a.join(" ")}</sam>`, saleCardHtml: () => "<sale>" };
 globalThis.window = { OBX, addEventListener: (k, f) => { if (k === "popstate") popstate = f; }, matchMedia: () => ({ matches: false }), scrollTo() {}, sellsForCardHtml };
 globalThis.location = { search: "", pathname: "/sell" };

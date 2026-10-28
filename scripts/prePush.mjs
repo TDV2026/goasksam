@@ -1289,6 +1289,13 @@ try {
 } catch (e) {
   record("milesfault flags old low-mileage sales only, counts them by source and decade, and writes nothing (scripts/milesFaultCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// No dead end on a cold spec: the computing state asks again for 45 seconds, then one plain line (Sam, Oct 28 2026). Rendered in a browser.
+try {
+  const out = execSync("node scripts/coldPathCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("cold spec: reading line, asks every 2 seconds up to 45, then the plain line (scripts/coldPathCheck.mjs)", "PASS", (out.match(/coldPathCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("cold spec: reading line, asks every 2 seconds up to 45, then the plain line (scripts/coldPathCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The account pill covers nothing on any page, result views included (Sam, Oct 27 2026). Rendered in a browser.
 try {
   const out = execSync("node scripts/pillOverlapCheck.mjs", { encoding: "utf8" });
@@ -1309,6 +1316,15 @@ try {
   record("launch warm counts by UTC day, not age (scripts/warmDayCheck.mjs)", "PASS", (out.match(/warmDayCheck: .*/) || [""])[0]);
 } catch (e) {
   record("launch warm counts by UTC day, not age (scripts/warmDayCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// e96 checks (Lane B): each registers one script, no network.
+for (const [file, label] of [["nullIsNoNumberCheck", "null is no number at every customer-path site (scripts/nullIsNoNumberCheck.mjs)"], ["cardsRangeCheck", "cards outside the range are labelled, the three cards come from inside, a low-mile tile on an old car prints no mileage (scripts/cardsRangeCheck.mjs)"], ["windowWordsCheck", "the card names its window, the chart caption states its span, one line when they differ (scripts/windowWordsCheck.mjs)"], ["mileageYearSplitCheck", "a wide range that mileage explains splits by band, a widened set whose years price apart splits by year (scripts/mileageYearSplitCheck.mjs)"], ["yearNoteCheck", "a range that leaves out the typed year says so (scripts/yearNoteCheck.mjs)"], ["wideCauseCheck", "a wide range carries its cause and lever from its own sales, on the headline and on wide options (scripts/wideCauseCheck.mjs)"], ["gearboxWordCheck", "the gearbox word comes from one table by make, model, year and generation (scripts/gearboxWordCheck.mjs)"], ["splitStateCheck", "split and apart withhold the pooled headline, one dimension at a time, refine returns the combined set (scripts/splitStateCheck.mjs)"], ["optionsFieldCheck", "every answer with options carries its own figures; a window note only beside a range (scripts/optionsFieldCheck.mjs)"]]) {
+  try {
+    const out = execSync(`node scripts/${file}.mjs`, { encoding: "utf8" });
+    record(label, "PASS", (out.match(new RegExp(file + ": .*")) || [""])[0]);
+  } catch (e) {
+    record(label, "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+  }
 }
 // How Sam decides (Sam, Oct 26 2026): the five agreed sections, exactly. No network.
 try {
@@ -1409,10 +1425,10 @@ try {
 }
 // The pooled states (Oct 27 2026, e95 fields): Market Check, the shared card, Find, the history page and the MCP tool print apart, split and alike, and a withheld chart. Local render, no network.
 try {
-  const out = execSync("node scripts/pooledStatesCheck.mjs", { encoding: "utf8", timeout: 600000 });
-  record("Pooled states (scripts/pooledStatesCheck.mjs)", "PASS", (out.match(/pooledStatesCheck: .*/) || [""])[0]);
+  const out = execSync("node scripts/e96PagesCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("E96 pages print the engine's lines and compute nothing (scripts/e96PagesCheck.mjs)", "PASS", (out.match(/e96PagesCheck: .*/) || [""])[0]);
 } catch (e) {
-  record("Pooled states (scripts/pooledStatesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+  record("E96 pages print the engine's lines and compute nothing (scripts/e96PagesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 // A count and its noun (Oct 27 2026): "One sales" is a class, so every line that joins a count to sale, car, listing or quarter is checked. No network.
 try {

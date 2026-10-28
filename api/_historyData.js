@@ -9,7 +9,8 @@ import { findGeneration } from "../lib/generations.js";
 import { oneEngineAnswer } from "../lib/onebox.js";
 import { supabaseSelect } from "../lib/_supabase.js";
 import { isPartsListing, isMemorabilia } from "../lib/_classify.js";
-import { genFor } from "../lib/live/search.js";
+import { genFor, warmAnswerKeyFor, readWarmAnswerDetailed, writeWarmAnswer, answerCacheable, markComputing, readComputing, clearComputing } from "../lib/live/search.js";
+import { keepAlive } from "../lib/keepAlive.js";
 import { normalizeListingUrl } from "../lib/_urlNorm.js";
 
 export function normVin(s) { return String(s == null ? "" : s).toUpperCase().replace(/[^A-Z0-9]/g, ""); }
@@ -239,6 +240,13 @@ export async function carIdentity(apps, vin) {
 // The One Box answer for the car's family, computed by the engine exactly as One Box does
 // (resolved vehicle -> findGeneration -> runOneBox). A first call that comes back as a question
 // is re-run at the engine's own two-question cap, which answers across the variants and says so.
+// the stored row's slim form (the same as api/sellerDecision.js slimAnswerForWire: the diagnostics lists stay out of the row)
+function slimStored(ob) {
+  const out = { ...ob };
+  if (out.dedup && typeof out.dedup === "object") { const { excluded, abroad, fetchMemo, ...keep } = out.dedup; out.dedup = keep; }
+  if (out.htMeta && typeof out.htMeta === "object") { const { receipts, pairs, cards, rawPool, ...keep } = out.htMeta; out.htMeta = keep; }
+  return out;
+}
 export async function oneBoxFor(env, id, exactSale, opts) {
   try {
     const vehicle = { ...id.vehicle };
@@ -246,10 +254,18 @@ export async function oneBoxFor(env, id, exactSale, opts) {
     const text = [id.year, id.make, id.family].filter(Boolean).join(" ");
     vehicle.raw = vehicle.raw || text;
     const generation = await findGeneration(vehicle, env);
-    const run = (asked) => Promise.race([
-      oneEngineAnswer(vehicle, generation, text, { ...env, exactSale: exactSale || null, asked }, null).then(r => r.raw),
-      new Promise((_, rej) => setTimeout(() => rej(new Error("deadline")), 15000))
-    ]);
+    // COLD SPEC (Sam, Oct 28 2026, no dead ends): a hub (no exact car) reads the stored Market Check answer for its market first, the way every other page does; a read
+    // that has to compute outlasts the 15 second page clock behind the response (keepAlive) and stores its row, and opts.cold.timedOut tells the caller to draw the
+    // reading placeholder that asks again (history.js coldCardHtml), never a missing card.
+    const wkey = !exactSale ? warmAnswerKeyFor(vehicle, generation, null) : null;
+    if (wkey) { const st = await readWarmAnswerDetailed(env, wkey).catch(() => null); if (st && st.raw && st.raw.tier === "result" && Array.isArray(st.raw.cluster)) return st.raw; }   // a ranged answer only: it carries everything the page prints; any other tier is computed as before
+    if (wkey && await readComputing(env, wkey)) { if (opts && opts.cold) opts.cold.timedOut = true; return null; }   // already being read: the page asks again, no second compute
+    if (wkey) markComputing(env, wkey).catch(() => {});
+    const run = (asked) => {
+      const eng = oneEngineAnswer(vehicle, generation, text, { ...env, exactSale: exactSale || null, asked }, null).then(r => r.raw);
+      keepAlive(eng.then(async raw => { if (wkey && asked === 0 && raw && answerCacheable(raw) && !/_choice$/.test(String(raw.tier || ""))) await writeWarmAnswer(env, wkey, slimStored(raw)).catch(() => {}); if (wkey) await clearComputing(env, wkey); }));
+      return Promise.race([eng, new Promise((_, rej) => setTimeout(() => rej(new Error("deadline")), exactSale ? 40000 : 15000))]);   // a VIN page has no stored row to come back to (its own sale is part of the read): it waits for the answer; a hub hands off at 15 s to its reading placeholder
+    };
     let d = await run(0);
     // BARE MULTI-GENERATION NAMEPLATE (Oct 2026, history hub timing): a year-less query that lands
     // on generation_choice (or the model-family-ambiguous choice, same tier shape) has no year to
@@ -262,7 +278,7 @@ export async function oneBoxFor(env, id, exactSale, opts) {
     if (opts && opts.skipBareRetry && d && d.tier === "generation_choice" && !vehicle.year) return null;
     if (d && /_choice$/.test(String(d.tier || ""))) d = await run(2);
     return d && d.tier ? d : null;
-  } catch (e) { console.error("history oneBoxFor failed:", (e && e.message) || e); return null; }
+  } catch (e) { if (opts && opts.cold && e && e.message === "deadline") opts.cold.timedOut = true; console.error("history oneBoxFor failed:", (e && e.message) || e); return null; }
 }
 
 // Multi-word makes, so a hub slug splits make from model correctly.

@@ -236,8 +236,8 @@ try {
   // a market that never comes: said plainly after the capped asks
   { const pend = { kind: "pending", stillReading: true, line: "Sam is still reading the sales for this one.", retry: true, retryAfterMs: 120 };
     const A = account([mkTask(1)], { enrich: body => ({ cards: (body.ids || []).map(id => ({ id, market: { ...pend } })) }) }); A.cardsOf = () => CARDS.map(c => ({ ...c, market: { ...pend }, sam_lines: [] }));
-    const p = await open(A, 1440); await openTask(p); await wait(2500); const t = await text(p);
-    ok(!/still reading/.test(t) && /The sales could not be read just now/.test(t), "reading: a market that never comes is said plainly, not left on the holding line"); await p.close(); }
+    const p = await open(A, 1440); await p.evaluate(() => { window.GAS_WAIT_SCALE = 0.02; }); await openTask(p); await wait(3000); const t = await text(p);   // the clock scaled down for the check only: 45 seconds of asking becomes under one
+    ok(!/still reading/.test(t) && /Sam couldn't read this one yet\./.test(t) && !/try again/i.test(t), "reading: a market that never comes is said plainly after 45 seconds of asking (cold spec, Oct 28 2026), never try again, not left on the holding line"); await p.close(); }
   // SETUP QUESTIONS AND DRAFTS (Lane D, Oct 24 2026): choices are buttons, a typed answer is read leniently, a draft left behind shows
   // as a small card under the clean box (Continue, Discard), and a draft older than a day is dropped by the server.
   const Qm = "Which Porsche model should Sam look for?", stampNow = () => new Date().toISOString();

@@ -3,6 +3,7 @@
 // UTMs. It NEVER open-redirects: p must be a known slug (whitelist). Logging is
 // best-effort and NEVER blocks the redirect. An abandon beacon (outcome=abandoned
 // or beacon=1) logs only and returns 204 with no redirect.
+import { isNum } from "../lib/_num.js";
 import { supabaseEnv, supabaseInsert } from "../lib/_supabase.js";
 import { SUBMISSION_URLS, REFERRAL_UTM } from "../lib/submissionUrls.js";
 import { recordJourneyEvent, journeyVehicle } from "../lib/_journey.js";
@@ -48,7 +49,7 @@ export default async function handler(req, res) {
         session_id: clip(q.sid),
         platform: slug || clip(q.p),
         card: q.card === "alt" ? "alt" : q.card === "pick" ? "pick" : clip(q.card),
-        year: Number.isFinite(Number(q.year)) ? Number(q.year) : null,
+        year: isNum(q.year) ? Number(q.year) : null,
         make: clip(q.make),
         model: clip(q.model),
         trim: clip(q.trim),

@@ -425,14 +425,19 @@ const JS = String.raw`
     Array.prototype.forEach.call(document.querySelectorAll("[data-carname]"), function(n){ n.textContent = line; n.hidden = !line; });
   }
   var GEN = 0;
-  function read(b, draw){ var g = ++GEN; return ask(b).then(function(a){ if (g === GEN) draw(a); }); }
+  // COLD SPEC (Sam, Oct 28 2026, no dead ends): a read the engine is still computing is asked again (the draw functions below re-ask on the engine's retryAfterMs, 2 seconds); after 45 seconds
+  // of that the answer becomes the one plain line (COULD_NOT), which the draws print and stop on. Never "try again". GAS_WAIT_SCALE shortens the clock for the check only.
+  var coldSince = 0;
+  function read(b, draw){ var g = ++GEN; return ask(b).then(function(a){ if (g !== GEN) return;
+    if (a && a.stillReading) { coldSince = coldSince || Date.now(); if (Date.now() - coldSince >= 45000 * (Number(window.GAS_WAIT_SCALE) || 1)) { coldSince = 0; a = { ok: false, error: "cold" }; } } else coldSince = 0;
+    draw(a); }); }
   var esc = function(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
   var usd = function(n){ return "$" + Math.round(Number(n)).toLocaleString("en-US"); };
   var MON = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var monthYear = function(d){ var p = String(d || "").split("-"); return p.length >= 2 && MON[Number(p[1]) - 1] ? MON[Number(p[1]) - 1] + " " + p[0] : ""; };
   // Sam's decision 6 (Oct 20 2026), the Amazon profile only: the page's own lines without "Sam"; the engine's own
   // still-reading line (a.line) is shown as the engine words it.
-  var STILL_LINE = "Sam is still reading the sales for this one.", COULD_NOT = "The sales could not be read just now. Try again in a minute.";
+  var STILL_LINE = "Reading the sales for this one.", COULD_NOT = "The sales could not be read yet.";
   // ONE READ PER PAGE through the partner answer path (the same path and stored answers as the eBay demo); the engine's own
   // retryAfterMs is the only retry, and past the safety deadline a demo car falls back to its stored answer.
   var DEADLINE = 25000;
@@ -620,7 +625,7 @@ const JS = String.raw`
     // History and condition shows only when this exact car has an earlier listing on record.
     $("c-hist").innerHTML = HIST.length ? '<p class="hist-l">This car has previous market history</p><button type="button" class="linkbtn" data-hist>See earlier sales</button>' : "";
     $("c-histsec").hidden = !HIST.length;
-    if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ read(bodyOf(), drawC); }, a.retryAfterMs);
+    if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ read(bodyOf(), drawC); }, a.retryAfterMs * (Number(window.GAS_WAIT_SCALE) || 1));
   }
   // The two working section tabs: Overview and Pricing (the same card); the others are inert.
   document.addEventListener("click", function(e){
@@ -676,7 +681,7 @@ const JS = String.raw`
     var cs = askOf(a) ? "" : caseHtml(a); if (cs) { out.innerHTML = cs; return; }   // the engine's question is drawn before anything else
     if (a && a.ok !== false && !askOf(a) && !inScope(a)) { out.innerHTML = ""; return; }
     out.innerHTML = inlineHist((a && a.history) || []) + cardHtml(a); tidyRows();
-    if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ goA(); }, a.retryAfterMs);
+    if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ goA(); }, a.retryAfterMs * (Number(window.GAS_WAIT_SCALE) || 1));
   }
   function goA(){ var q = String(($("a-q") || {}).value || "").trim(); if (!q) return; q = setCar(q) || q; if (wordsOut(q)) { $("a-out").innerHTML = wordsCaseHtml(q); return; } $("a-out").innerHTML = '<p class="loading">Reading the sales for this one.</p>'; read(withAns({ q: q }), drawA); }
   // TAB b, DEALER LISTS A CAR: VIN in; this car's history inline and the same shared card, ABOVE the asking price field.
@@ -687,7 +692,7 @@ const JS = String.raw`
     var cs = askOf(a) ? "" : caseHtml(a); if (cs) { out.innerHTML = cs; return; }   // the engine's question is drawn before anything else
     if (a && a.ok !== false && !askOf(a) && !inScope(a)) { out.innerHTML = ""; return; }
     out.innerHTML = inlineHist((a && a.history) || []) + cardHtml(a); tidyRows();
-    if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ goB(); }, a.retryAfterMs);
+    if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(function(){ goB(); }, a.retryAfterMs * (Number(window.GAS_WAIT_SCALE) || 1));
   }
   // The listing car opens by its name; its VIN goes with the read (for its history) and is never printed.
   function goB(){ var q = String(($("b-vin") || {}).value || "").trim(); if (!q) return; q = setCar(q) || q; if (wordsOut(q)) { $("b-out").innerHTML = wordsCaseHtml(q); return; } $("b-out").innerHTML = '<p class="loading">Reading the sales for this one.</p>'; read(withAns(LIST && LIST.vin && q === ORIGCAR ? { q: q, vin: LIST.vin } : { q: q }), drawB); }

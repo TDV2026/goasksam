@@ -273,7 +273,7 @@ const JS = String.raw`
   }
   // Only a view's latest read draws (Oct 18 2026: the page's first read of the default car could land after the
   // visitor's own typed car and draw over it); an older answer is dropped, never drawn.
-  var seqs = {};
+  var seqs = {}, coldAt = {};
   function run(view, body, draw){
     if (view !== "all" && body && body.q && !body.refine && !body.vin) setCar(body.q);
     runs[view] = function(){ run(view, body, draw); };
@@ -281,18 +281,23 @@ const JS = String.raw`
     return ask(body).then(function(a){
       if (seqs[view] !== my) return a;
       draw(a);
-      if (a && a.stillReading && a.retryAfterMs > 0) setTimeout(runs[view], a.retryAfterMs);
+      // COLD SPEC (Sam, Oct 28 2026, no dead ends): asked again every 2 seconds (the engine's retryAfterMs) for up to 45 seconds, then the one plain line; never "try again".
+      if (a && a.stillReading) {
+        coldAt[view] = coldAt[view] || Date.now();
+        if (Date.now() - coldAt[view] >= 45000 * (Number(window.GAS_WAIT_SCALE) || 1)) { delete coldAt[view]; draw({ ok: false, error: "cold" }); }
+        else setTimeout(runs[view], (a.retryAfterMs > 0 ? a.retryAfterMs : 2000) * (Number(window.GAS_WAIT_SCALE) || 1));
+      } else delete coldAt[view];
       return a;
     });
   }
-  var COULD_NOT = "Sam could not read the sales just now. Try again in a minute.";
+  var COULD_NOT = "Sam couldn't read this one yet.";
   // Each refusal says what it is: the demo's daily limit for other cars, the per-minute limit, or a read that failed.
   var LIMIT = "That is today's limit for other cars here.";
   var BUSY = "Lots of reads just now. Try again in a minute.";
   // The still-reading state draws the engine's own line; when the engine named no wait, a Try again button reruns the read.
-  var STILL_LINE = "Sam is still reading the sales for this one.";
+  var STILL_LINE = "Sam is reading the sales for this one.";
   var notRead = function(a){
-    if (a && a.stillReading) return esc(a.line || STILL_LINE) + (a.retryAfterMs > 0 ? "" : ' <button type="button" class="idl" data-retry>Try again</button>');
+    if (a && a.stillReading) return esc(a.line || STILL_LINE);
     return a && a.error === "car_limit" ? LIMIT : a && a.error === "rate_limited" ? BUSY : COULD_NOT;
   };
   document.addEventListener("click", function(e){

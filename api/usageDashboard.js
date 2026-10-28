@@ -1587,7 +1587,7 @@ async function handleOps(req, res) {
     const onlyVersion = String(req.query?.version || ENGINE_VERSION);   // e95: only the answers stamped with the live engine; older stored rows are counted, not judged
     const out = { version: onlyVersion, rows: 0, otherVersion: 0, results: 0, setViolations: 0, wrongModel: 0, noiseTrim: 0, pooled: { apart: 0, split: 0, alike: 0 }, first: { setViolations: [], wrongModel: [], noiseTrim: [], apart: [], split: [] }, readFailed: 0,
       // e95 class counters (Lane B, Oct 28): counts over the live-version results, the first 10 of each with what explains it
-      classes: { optionQuestion: { built: 0, asked: 0, alike: 0, split: 0, apart: 0 }, wideAlike: { n: 0, examples: [] }, windowMismatch: { n: 0, examples: [] }, yearApart: { n: 0, examples: [] }, lowMileTiles: { sales: 0, answers: 0, examples: [] }, zeroFromNull: { n: 0, examples: [] } } };
+      classes: { optionQuestion: { built: 0, asked: 0, alike: 0, split: 0, apart: 0 }, wideAlike: { n: 0, causes: { mileage: 0, year: 0, mods: 0, none: 0, unread: 0 }, examples: [] }, windowMismatch: { n: 0, examples: [] }, yearApart: { n: 0, examples: [] }, lowMileTiles: { sales: 0, answers: 0, examples: [] }, zeroFromNull: { n: 0, examples: [] }, editionAside: { n: 0, examples: [] }, yearExcluded: { n: 0, examples: [] } } };
     let cursor = req.query?.after ? String(req.query.after) : "";
     const keep = (k, o) => { if (out.first[k].length < 20) out.first[k].push(o); };
     for (let page = 0; page < maxPages; page++) {
@@ -1612,12 +1612,17 @@ async function handleOps(req, res) {
           const optGroups = [["body", d.bodyOptions], ["variant", d.variantOptions], ["gearbox", d.gearboxOptions], ["generation", d.generationOptions], ["trim", d.trimOptions]].map(([dim, l]) => [dim, (Array.isArray(l) ? l : []).filter(o => o && Number(o.n) > 0)]).filter(([, l]) => l.length >= 2);
           const built = optGroups.length > 0 || !!d.identityQuestion;
           let gg = null; try { gg = pooledApartGuard(d, null); } catch (e) { gg = null; }
-          const state = gg && gg.pooledApart ? "apart" : gg && gg.pooledSplit ? "split" : "alike";
+          const state = gg && gg.optionsState === "apart" ? "apart" : gg && gg.optionsState === "split" ? "split" : "alike";
           if (built) { C.optionQuestion.built++; C.optionQuestion[state]++; }
-          if (cl && cl[0] > 0 && cl[1] > 1.6 * cl[0] && state === "alike") { C.wideAlike.n++; ex("wideAlike", { range: cl, ratio: Math.round(cl[1] / cl[0] * 100) / 100, n, years: d.poolYears || null, rung: d.fallbackRung || null, options: optGroups.map(([dim, l]) => dim + ":" + l.map(o => `${o.label} ${o.n}`).join("/")).join(" ") || null, optionsAtFloor: optGroups.some(([, l]) => l.filter(o => Number(o.n) >= 3).length >= 2) }); }
+          if (cl && cl[0] > 0 && cl[1] > 1.6 * cl[0] && state === "alike") { C.wideAlike.n++; C.wideAlike.causes[d.wideCause || "unread"] = (C.wideAlike.causes[d.wideCause || "unread"] || 0) + 1; ex("wideAlike", { range: cl, ratio: Math.round(cl[1] / cl[0] * 100) / 100, n, years: d.poolYears || null, rung: d.fallbackRung || null, options: optGroups.map(([dim, l]) => dim + ":" + l.map(o => `${o.label} ${o.n}`).join("/")).join(" ") || null, optionsAtFloor: optGroups.some(([, l]) => l.filter(o => Number(o.n) >= 3).length >= 2) }); }
           const bk = d.trend && d.trend.movement && Array.isArray(d.trend.movement.buckets) ? d.trend.movement.buckets : [];
           const barSum = bk.reduce((t, b) => t + (Number(b.count) || 0), 0);
           if (bk.length && n && barSum !== n) { C.windowMismatch.n++; ex("windowMismatch", { cardN: n, barSum, windowWords: d.windowWords || null, span: d.trend.movement.spanLabel || null }); }
+          // Oct 28 (the 2010 Murcielago): a set-aside sale of another edition than the pool, and a range whose years leave out the typed year
+          const edAside = (Array.isArray(d.setAsideRows) ? d.setAsideRows : []).filter(x => /variant|halo|edition|special|trim/i.test(String(x && x.reason || "")));
+          if (edAside.length) { C.editionAside.n++; ex("editionAside", { aside: edAside.slice(0, 3).map(x => `${String(x.title || "").slice(0, 60)} (${String(x.reason).slice(0, 50)})`), pool: d.rungLabel || d.scopeLabel || null }); }
+          const ty = Number((d.resolvedCar || {}).year), pyr = Array.isArray(d.poolYears) && d.poolYears.length === 2 ? d.poolYears.map(Number) : null;
+          if (ty > 0 && pyr && pyr.every(x => x > 0) && (ty < pyr[0] || ty > pyr[1])) { C.yearExcluded.n++; ex("yearExcluded", { typed: ty, poolYears: pyr, rung: d.fallbackRung || null, label: d.scopeLabel || null }); }
           const yrs = {}; for (const r of (Array.isArray(d.rawPool) ? d.rawPool : [])) { const y = Number(r.year), v = Number(r._usd ?? r._allin ?? r._hammer); if (y > 0 && Number.isFinite(v)) (yrs[y] = yrs[y] || []).push(v); }
           const pq = (arr, f) => { const v = [...arr].sort((x, y) => x - y), k = (v.length - 1) * f, i = Math.floor(k), j = Math.min(i + 1, v.length - 1); return v[i] + (v[j] - v[i]) * (k - i); };
           const yl = Object.keys(yrs).map(Number).filter(y => yrs[y].length >= 3).sort((x, y) => x - y); let yApart = null;
@@ -1628,7 +1633,7 @@ async function handleOps(req, res) {
           for (const o of [...(((d.pooledSplit || {}).options) || []), ...(((d.pooledApart || {}).options) || []), ...(((gg || {}).pooledSplit || {}).options || []), ...(((gg || {}).pooledApart || {}).options || [])]) if (o && (o.low === 0 || o.high === 0 || o.median === 0)) { C.zeroFromNull.n++; ex("zeroFromNull", { option: `${o.dimension}:${o.label}`, low: o.low, high: o.high, median: o.median }); break; }
           out.results++;
           let g = null; try { g = pooledApartGuard(d, null); } catch (e) { g = null; }
-          const cls = g && g.pooledApart ? "apart" : g && g.pooledSplit ? "split" : "alike"; out.pooled[cls]++;
+          const cls = g && g.optionsState === "apart" ? "apart" : g && g.optionsState === "split" ? "split" : "alike"; out.pooled[cls]++;
           if (cls !== "alike") keep(cls, { key, count: d.poolN, options: ((g.pooledApart || g.pooledSplit).options || []).map(o => `${o.dimension}:${o.label} ${o.n} $${o.low}-$${o.high}`) });
         }
       }

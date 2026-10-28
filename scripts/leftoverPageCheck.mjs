@@ -14,7 +14,7 @@ const line = "Sam didn't use 'xyz' in this search.";
 ok(ctx.f({ unusedLine: line }) === '<p class="unused-line" role="note">Sam didn&#39;t use \'xyz\' in this search.</p>'.replace("&#39;", "'"), "One Box prints the engine's line exactly as sent");
 ok(ctx.f({}) === "" && ctx.f(null) === "", "nothing sent, nothing printed");
 ok(/inboxHtml\(lastQuery, "Your car or its VIN"\) \+ unusedLineHtml\(d\) \+ head/.test(ob), "the line sits under the search box, before the car line");
-ok(/var mnote = d && d\.mileageNote \? String\(d\.mileageNote\) : "";/.test(ob) && /esc\(mnote \|\| \("Range narrowed around " \+ val \+ " miles\."\)\)/.test(ob), "mileageNote prints in the hero-miles slot; the old sentence stays when there is none");
+ok(/var mnote = d && d\.mileageBand && d\.mileageBand\.line \? String\(d\.mileageBand\.line\) : \(d && d\.mileageNote \? String\(d\.mileageNote\) : ""\);/.test(ob) && /esc\(mnote \|\| \("Looking near " \+ val \+ " miles\."\)\)/.test(ob), "the engine's mileageBand.line (else mileageNote) prints in the hero-miles slot; a short line stays when there is none");
 const c = JSON.parse(/^const CLIENT = (".*");$/m.exec(buy)[1]);
 ok(/var uw = \(d\.meta \|\| \{\}\)\.unusedLine; if \(uw\) block\.insertAdjacentHTML\("beforeend", '<p class="unusedl" role="note">' \+ esc\(uw\) \+ "<\/p>"\);/.test(c), "Buy prints meta.unusedLine under the header");
 const sc = fs.readFileSync(new URL("../lib/live/samChat.js", import.meta.url), "utf8");

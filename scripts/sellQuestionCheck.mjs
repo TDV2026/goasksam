@@ -33,7 +33,7 @@ ok(br.indexOf("answerFor(car") > 0 && br.indexOf("if (first.question) return") <
 // 3. The client on a stubbed page.
 const listeners = {}, calls = [], addr = [];
 let replies = [];
-const OBX = { root: { innerHTML: "" }, esc: s => String(s), inboxHtml: () => "", footHtml: () => "", wire() {}, renderError(t) { OBX.root.innerHTML = "ERR " + t; }, renderEmpty() {},
+const OBX = { root: { innerHTML: "" }, esc: s => String(s), inboxHtml: () => "", footHtml: () => "", wire() {}, renderError(t) { OBX.root.innerHTML = "ERR " + t; }, renderCouldNot() { OBX.root.innerHTML = "ERR Sam couldn't read this one yet."; }, renderEmpty() {},
   qscreenHtml: (p, c, eb) => `<eyebrow>${eb}</eyebrow><q>${p}</q>${c}`, samMsgHtml: a => a.join(" "), saleCardHtml: () => "" };
 globalThis.window = { OBX, addEventListener() {}, matchMedia: () => ({ matches: false }), scrollTo() {} };
 globalThis.location = { search: "", pathname: "/sell" };

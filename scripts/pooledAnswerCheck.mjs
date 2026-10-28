@@ -66,8 +66,8 @@ const spread = (model, body, tx, lo, step, count, ago0) => { for (let i = 0; i <
 rows = [];
 spread("M3", "Coupe", "Manual", 21000, 1100, 20, 5); spread("M3", "Coupe", "Automatic", 18000, 710, 20, 8);
 a = await ask("M3");
-ok("overlapping gearboxes, medians apart: the pooled headline is kept", a.tier === "result" && hasPooled(a) && !a.pooledApart);
-ok("overlapping gearboxes, medians apart: both options carry their own range, count and median, flagged pooled_split", a.pooledSplit && a.pooledSplit.flag === "pooled_split" && a.pooledSplit.options.filter(o => o.dimension === "gearbox").length === 2 && a.pooledSplit.options.every(o => o.n >= 3 && o.low > 0 && o.high >= o.low && o.median >= o.low && o.median <= o.high), JSON.stringify(a.pooledSplit && a.pooledSplit.options));
+ok("overlapping gearboxes, medians apart: the pooled headline is withheld (e96), the state is split", a.tier === "result" && !hasPooled(a) && a.pooledApart && a.pooledApart.state === "split" && a.optionsState === "split" && a.emailMode === "options");
+ok("overlapping gearboxes, medians apart: both options carry their own range, count and median, flagged pooled_split", a.options && a.options.filter(o => o.dimension === "gearbox").length === 2 && a.options.every(o => o.n >= 3 && o.low > 0 && o.high >= o.low && o.median >= o.low && o.median <= o.high), JSON.stringify(a.options && a.options.options));
 rows = [];
 spread("M3", "Coupe", "Manual", 21000, 1100, 20, 5); spread("M3", "Coupe", "Automatic", 19500, 1100, 20, 8);
 a = await ask("M3");
@@ -75,13 +75,16 @@ ok("gearbox medians within 15 percent: no split, the count only line as today", 
 MK = "Testmake"; rows = [];
 spread("Over", "Coupe", null, 20000, 900, 20, 5); spread("Over", "Convertible", null, 24000, 1000, 20, 8);
 a = await ask("Over");
-ok("overlapping bodies, medians apart: headline kept, both bodies carry their own range", a.tier === "result" && hasPooled(a) && a.pooledSplit && a.pooledSplit.options.filter(o => o.dimension === "body").length === 2, JSON.stringify(a.pooledSplit && a.pooledSplit.options));
+ok("overlapping bodies, medians apart: headline withheld, both bodies carry their own range", a.tier === "result" && !hasPooled(a) && a.options && a.options.filter(o => o.dimension === "body").length === 2, JSON.stringify(a.options));
 // edition line under a result: the engine's own options carry their range
 const stub = (std, ed) => ({ tier: "result", cluster: [20000, 40000], rawPool: [], variantOptionsLine: [{ key: "ed", options: [{ value: "standard", label: "Standard", n: 12, ownN: 12, ...std }, { value: "ed", label: "Special edition", n: 9, ownN: 9, ...ed }] }] });
 let sp = E.pooledApartGuard(stub({ low: 20000, high: 30000, median: 25000 }, { low: 28000, high: 40000, median: 34000 }));
-ok("edition line, medians apart: split carried, headline kept", sp.cluster && sp.pooledSplit && sp.pooledSplit.options.filter(o => o.dimension === "edition").length === 2);
+ok("edition line, medians apart: split carried, headline withheld", !sp.cluster && sp.optionsState === "split" && sp.options.filter(o => o.dimension === "edition").length === 2);
 sp = E.pooledApartGuard(stub({ low: 20000, high: 30000, median: 25000 }, { low: 21000, high: 31000, median: 26000 }));
-ok("edition line, medians within 15 percent: nothing carried", sp.cluster && !sp.pooledSplit);
+ok("edition line, medians within 15 percent: alike, headline kept, options carried under it", sp.cluster && !sp.pooledApart && sp.optionsState === "alike" && sp.options.length === 2);
+// null is no number (Number(null) is 0): an edition option with a median but no printed range (3 to 7 sales) is not carried as a range of $0 to $0
+sp = E.pooledApartGuard(stub({ low: 20000, high: 30000, median: 25000 }, { low: null, high: null, median: 34000 }));
+ok("edition line, an option with no printed range: never carried with a range of 0", !(sp.pooledSplit || sp.pooledApart) || [...((sp.pooledSplit || sp.pooledApart).options || [])].every(o => o.low !== 0 && o.high !== 0), JSON.stringify((sp.pooledSplit || sp.pooledApart || {}).options));
 // 8. ONE SET OF SALES PER OPTION: an option line's count, range and window are those of the option's own answer (the page the option opens), not the pooled set's.
 //    The pool spans 8 sales in the last year and more over two years for one body, so the pooled headline set and the option's own set differ.
 const ownAnswer = async (model, refine, asked = 2) => (await E.oneEngineAnswer({ make: MK, model, trim: "", year: 2001, bodyStyle: null }, null, `2001 ${MK} ${model}`, { ...env, asked }, refine)).raw;
@@ -116,9 +119,9 @@ for (const o of gbOpts) {
   const m1 = await modeOf(() => fill("Mode", [["Coupe", null, 20000, 24, 5], ["Convertible", null, 70000, 24, 7]]));
   ok("email mode: options that price apart give options (each option's own range, no pooled range)", m1 === "options", String(m1));
   const m2 = await modeOf(() => { spread("Mode", "Coupe", null, 20000, 900, 20, 5); spread("Mode", "Convertible", null, 24000, 1000, 20, 8); });
-  ok("email mode: options split give range_with_options", m2 === "range_with_options", String(m2));
+  ok("email mode: options split give options (e96)", m2 === "options", String(m2));
   const m3 = await modeOf(() => fill("Mode", [["Coupe", null, 30000, 24, 5], ["Convertible", null, 30600, 24, 7]]));
-  ok("email mode: options alike give range", m3 === "range", String(m3));
+  ok("email mode: options alike give range_with_options (e96)", m3 === "range_with_options", String(m3));
   const m4 = await modeOf(() => { for (let i = 0; i < 4; i++) sale("Mode", "Coupe", null, 30000 + i * 500, 10 + i * 20); });
   ok("email mode: a few sales and no honest range give sales", m4 === "sales", String(m4));
   const m5 = await modeOf(() => {});
