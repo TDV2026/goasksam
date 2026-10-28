@@ -1,4 +1,4 @@
-// How Sam decides (Sam, Oct 26 2026): the five agreed sections, exactly. No network.  node scripts/howSamDecidesCheck.mjs
+// How Sam decides (Sam, Oct 26 2026): the six agreed sections, exactly. No network.  node scripts/howSamDecidesCheck.mjs
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const { default: handler } = await import("../api/howSamDecides.js");
@@ -8,7 +8,7 @@ const html = res.body, main = html.slice(html.indexOf("<main>"), html.indexOf("<
 const text = main.replace(/<[^>]+>/g, " ").replace(/&#39;/g, "'").replace(/\s+/g, " ");
 ok(res.code === 200, "the page answers 200");
 const heads = [...main.matchAll(/<h2 class="hd-headline">([^<]*)</g)].map(m => m[1]);
-ok(JSON.stringify(heads) === JSON.stringify(["One engine, every page", "Less is more", "The rules", "What Sam never does", "Where the intelligence comes from"]), "five headings in order: " + heads.join(" | "));
+ok(JSON.stringify(heads) === JSON.stringify(["One engine, every page", "Less is more", "The rules", "Where the numbers come from", "What Sam never does", "Where the intelligence comes from"]), "six headings in order: " + heads.join(" | "));
 ok(/<h1 class="hd-h1">How Sam decides\.<\/h1>/.test(main), "the page heading is unchanged");
 ok(!/[—–]/.test(main), "no em or en dashes");
 ok(!/data-lead-sentence/.test(main.slice(main.indexOf("Less is more"))) && /data-lead-sentence>Sam is one engine/.test(main), "the lead sentence is the first line of section 1");
@@ -17,5 +17,10 @@ ok(nv.length === 8, "eight Never lines, only the word Never in the accent span (
 ok(/\.hd-nv\{color:var\(--amber\)\}/.test(html) && /--amber:#9a6000/.test(html), "the word Never uses --amber");
 for (const must of ["Ask about the same car on any page and you get the same answer.", "Every car with a VIN or chassis number keeps its own page", "no moving averages, no growth rates", "Four rules decide what you see", "The sales behind every range are one click away.", "proprietary algorithm", "the conversation, and reading what you type"]) ok(text.includes(must), "has: " + must);
 for (const gone of ["Change the car in one place", "Fresh every night", "yours", "your car", "trading screen. You came with one question, so you get one answer: the range, the sales behind it, the next step. No dozen statistics fighting for the same inch. If", "Rules Sam never breaks", "Go ask Sam", "candlesticks"]) ok(!text.includes(gone), "gone: " + gone);
+const wn = main.slice(main.indexOf("Where the numbers come from"), main.indexOf("What Sam never does")), wnText = wn.replace(/<[^>]+>/g, " ").replace(/&#39;/g, "'");
+ok((wn.match(/<p /g) || []).length === 3, "the numbers section has three paragraphs");
+ok(!/\bAI\b/.test(wnText) && !/[—–]/.test(wnText) && !/\d/.test(wnText) && !/\b(I|we|my)\b/i.test(wnText), "the numbers section: no AI, no dash, no digit count, no first person");
+ok(/Those numbers can't be verified/.test(wnText) && /A guess never does\./.test(wnText), "the numbers section keeps the approved wording");
+ok(text.indexOf("Where the numbers come from") > text.indexOf("Four rules decide") && text.indexOf("Where the numbers come from") < text.indexOf("estimates what a car is worth"), "the numbers section sits after The rules and before What Sam never does");
 console.log(`howSamDecidesCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);
