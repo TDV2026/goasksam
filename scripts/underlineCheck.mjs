@@ -4,10 +4,10 @@
 //   FAIL: a currency figure inside an anchor, or under an underline (the element's or any ancestor's text-decoration), inside an answer card (.sfc-card, the Find Sam box .sl);
 //         a range ("$a to $b") set below 20px (the two small lines Sam allows, the other option's line and the near-miles line, are lines, not figures); more than two small lines under the figures; the stale line ("Sales read on ... Updating now.") or "Latest sale:" anywhere in a card; a footer over one sentence-line of facts.
 //   node scripts/underlineCheck.mjs        E98_ROOT=<another checkout> to read that tree's pages (how it was shown failing on main)
-import { MC, FIND, FIND_MATCHED, CORVETTE, BLACK_BMW, M3_ROW, PORSCHE_2005, NO_META, MC_WITHHELD_SENTINEL, HISTORY, HISTORY_EXPECT } from "./e98Fixtures.mjs";
+import { MC, FIND, FIND_MATCHED, CORVETTE, BLACK_BMW, M3_ROW, PORSCHE_2005, NO_META, MC_WITHHELD_SENTINEL, HISTORY, HISTORY_EXPECT, MC_BAD_COUNTS } from "./e98Fixtures.mjs";
 import { startBrowser, openMC, ROOT } from "./e98Render.mjs";
 import { buildCards, openFind } from "./e98FindRender.mjs";
-import { inPage, judge as judgeIn } from "./e98DomCheck.mjs";
+import { inPage, judge as judgeIn, printedProblems } from "./e98DomCheck.mjs";
 import { readEmails, judgeEmails } from "./e98EmailDom.mjs";
 import { pathToFileURL } from "node:url";
 import path from "node:path";
@@ -79,6 +79,15 @@ for (const [n, defs] of Object.entries(sets)) { const cards = await buildCards(d
   // the Task email and the Tasks page share the card code: the history tag survives there too
   const { emailCardData } = await import(pathToFileURL(path.join(ROOT, "lib/tasks/emailCards.js")).href);
   names.forEach((nm, i) => { const want = HISTORY_EXPECT[nm], d = emailCardData(cards[i]); ok(want ? d.hist === want.chip : !d.hist, `Task email card ${nm}: the history tag ${want ? "is " + want.chip : "is absent"} (${d.hist || "none"})`); }); }
+// THE ONE RULE (lib/optionProblems.js): a page that prints option counts which do not add up to the footer and shows no window fails the rule; the same pool printed with each option's since date passes.
+for (const w of [1440, 390]) { const p = await openMC(b, MC_BAD_COUNTS, w), pr = printedProblems(await p.evaluate(inPage)); ok(pr.length > 0 && /add to 38, footer 35/.test(pr.join(" ")), `1986 Porsche 911 without windows at ${w}: optionProblems refuses 38 against 35 with no remainder and no since date (${pr[0] || "NOT REFUSED"})`); await p.close(); }
+// THE OPTION-COUNT EXPLANATION IS GONE (Sam, Oct 28 2026): the engine sends no optionsNote and no windowNote; no page or email prints one, and no page file carries the sentence ("Each option's count is read over its own window...") or reads the field to print it.
+{ const fs = await import("node:fs"), path = await import("node:path"), hits = [], ALLOWED = /^lib\/(reasonWords|onebox|engineFields|optionProblems|live\/search)\.js$/, WORDS = /read over its own window|use their own time spans|add up to more than the (?:headline count|total)/;
+  const walk = d => { for (const e of fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })) { const p = d + "/" + e.name; if (e.isDirectory()) walk(p); else if (/\.(js|html)$/.test(e.name) && !ALLOWED.test(p)) { const src = fs.readFileSync(path.join(ROOT, p), "utf8").split("\n").filter(l => !/^\s*(\/\/|\*|\/\*)/.test(l)).join("\n"); if (WORDS.test(src) || /\.optionsNote\b|d\.windowNote\b/.test(src)) hits.push(p); } } };
+  for (const d of ["api", "lib", "public/js"]) walk(d);
+  ok(!hits.length, "no page or email prints the option-count explanation (optionsNote, windowNote, its sentence)" + (hits.length ? " (" + hits.join(", ") + ")" : ""));
+  const { sellsForCardHtml } = await import(pathToFileURL(path.join(ROOT, "lib/sellsForCard.js")).href), d0 = { ...MC["2004 BMW M3 (split)"].d, optionsNote: "SEEDED option note", windowLonger: true, windowNote: "SEEDED window note" };
+  const h0 = sellsForCardHtml(d0, { interactive: true }); ok(!/SEEDED/.test(h0), "the card prints neither a seeded optionsNote nor a seeded windowNote"); }
 // the control: with NO cards the header must say so (the line is not simply deleted)
 { const p = await openFind(b, [], 1440); const r = await p.evaluate(inPage); ok(r.drawn === 0 && r.hasNothingLine, "Find with no cards: the header says there is nothing live (" + r.drawn + " cards)"); await p.close(); }
 await b.close();

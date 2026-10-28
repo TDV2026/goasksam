@@ -7,15 +7,18 @@ import puppeteer from "puppeteer-core";
 export const ROOT = path.resolve(process.env.E98_ROOT || new URL("..", import.meta.url).pathname);
 export const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 export async function startBrowser() { process.env.LAUNCH_STAGE = "2"; process.env.SUPABASE_URL = "https://example.supabase.co"; process.env.SUPABASE_SERVICE_ROLE_KEY = "x"; globalThis.fetch = async () => { throw new Error("no network"); }; return puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] }); }
-let mcHtml = null;
-async function mcPageHtml() {
-  if (mcHtml) return mcHtml;
-  const { default: h } = await import(pathToFileURL(path.join(ROOT, "api/marketCheck.js")).href);
-  return mcHtml = await new Promise(r => { const res = { setHeader() {}, getHeader() {}, status() { return res; }, send(x) { r(String(x)); return res; }, end(x) { r(String(x || "")); return res; } }; h({ method: "GET", url: "/market-check", query: {}, headers: { host: "goasksam.com", cookie: "" }, socket: {} }, res); });
+const mcHtml = {};
+// crew: render the page as the signed crew cookie would (the palette bar showed for the crew only before Oct 28 2026)
+export async function crewCookie() { process.env.CURTAIN_CREW_CODE = process.env.CURTAIN_CREW_CODE || "e98-test-code"; const { mintCrewCookieValue } = await import(pathToFileURL(path.join(ROOT, "lib/_crew.js")).href); return "gas_crew=" + mintCrewCookieValue(); }
+export async function pageHtml(file, url, crew) {
+  const { default: h } = await import(pathToFileURL(path.join(ROOT, file)).href), cookie = crew ? await crewCookie() : "";
+  return await new Promise(r => { const hdr = {}, res = { setHeader(k, v) { hdr[k] = v; }, getHeader() {}, status() { return res; }, send(x) { r(String(x)); return res; }, end(x) { r(String(x || "")); return res; }, json(x) { r(JSON.stringify(x)); return res; }, redirect() { r(""); return res; } }; Promise.resolve(h({ method: "GET", url, query: Object.fromEntries(new URL("https://goasksam.com" + url).searchParams), headers: { host: "goasksam.com", cookie, "user-agent": "check" }, socket: {} }, res)).catch(() => r("")); setTimeout(() => r(""), 8000); });
 }
-export async function openMC(browser, fx, width) {
-  const html = await mcPageHtml(), p = await browser.newPage(); await p.setViewport({ width, height: 900, deviceScaleFactor: 1 }); p._posts = [];
-  await p.evaluateOnNewDocument(() => { window.gasTrack = () => {}; });
+async function mcPageHtml(crew) { const k = crew ? "crew" : "pub"; return mcHtml[k] || (mcHtml[k] = await pageHtml("api/marketCheck.js", "/market-check", crew)); }
+export async function openMC(browser, fx, width, opts = {}) {
+  const html = await mcPageHtml(opts.crew), p = await browser.newPage(); await p.setViewport({ width, height: 900, deviceScaleFactor: 1 }); p._posts = [];
+  await p.evaluateOnNewDocument(st => { window.gasTrack = () => {}; try { for (const [k, v] of Object.entries(st || {})) localStorage.setItem(k, v); } catch (e) {} }, opts.storage || null);
+  if (opts.crew) await p.setCookie({ name: "gas_crew", value: (await crewCookie()).split("=")[1], domain: "goasksam.com", path: "/" });
   await p.setRequestInterception(true);
   p.on("request", r => { const u = new URL(r.url());
     if (u.host === "goasksam.com" && r.isNavigationRequest()) return r.respond({ status: 200, contentType: "text/html", body: html });

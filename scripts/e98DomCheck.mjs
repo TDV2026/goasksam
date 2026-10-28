@@ -1,6 +1,7 @@
+import { optionProblems } from "../lib/optionProblems.js";
 // The DOM rules of the number rule, shared by underlineCheck.mjs (fixtures) and e98LiveCheck.mjs (production): read the COMPUTED styles of every answer card on a page.
 export const inPage = () => {
-  const out = { under: [], small: [], tiny: [], text: [], lines: [], bigLinks: [], contradict: [], keep: [], sale: [], classes: [], specs: [], panels: [], strip: null, pillsInCard: [], slots: [], chipWrap: [], findBad: [], footers: [], slotRows: 0, counts: null, sales: null, ranges: [], yearNo: null, chartText: [], linkPos: [], metaBad: [], single: null, gaps: 0, bidWords: [] };
+  const out = { under: [], small: [], tiny: [], text: [], lines: [], bigLinks: [], contradict: [], keep: [], sale: [], classes: [], specs: [], panels: [], strip: null, pillsInCard: [], slots: [], chipWrap: [], findBad: [], footers: [], slotRows: 0, counts: null, sales: null, ranges: [], yearNo: null, chartText: [], linkPos: [], metaBad: [], single: null, gaps: 0, bidWords: [], printed: null };
   const vis = e => { const r = e.getBoundingClientRect(), s = getComputedStyle(e); return r.width > 2 && r.height > 2 && s.visibility !== "hidden" && s.display !== "none"; };
   const cards = [...document.querySelectorAll(".sfc-card, .car .sl")];
   const underlined = e => { for (let n = e; n && n !== document.body; n = n.parentElement) { if (/underline/.test(getComputedStyle(n).textDecorationLine || "")) return true; } return false; };
@@ -71,6 +72,16 @@ export const inPage = () => {
     const yn = /No (\d{4}) sales/.exec(document.querySelector(".sfc-card") ? document.querySelector(".sfc-card").innerText : ""); out.yearNo = yn ? yn[1] : null;
   }
   out.gaps = document.querySelectorAll(".hero-chart .hc-gap").length;
+  // THE OPTIONS AS THE PAGE PRINTED THEM, for lib/optionProblems.js (the one rule, Lane B's): each option's engine line (the screen-reader copy of the whole line) gives its label, count and window; what is VISIBLE on its block or pill is what the page printed of it.
+  if (hero) { const pr = { options: [], optionLines: [], refineOptions: [], optionsRemainder: null, poolN: null, windowWords: null };
+    const sw = /since [A-Z][a-z]+ \d{4}/, cnt = s => firstN(s, /(\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten) sales?/i);
+    const optEls = [...document.querySelectorAll(".sfc-card .sfc-block, .narrow-strip .sfc-opt-btn")];
+    for (const e of optEls) { const full = (e.querySelector(".sfc-sr") || {}).innerText || "", vis = Array.from((e.querySelector(".sfc-vis, span[aria-hidden]") || e).querySelectorAll("span")).map(x => x.childElementCount ? "" : x.textContent).join(" ").replace(/\s+/g, " ").trim() || (e.querySelector(".sfc-vis, span[aria-hidden]") || e).textContent.replace(/\s+/g, " ").trim(), label = (/^(.+?)(?:\s+\$|,\s+\d)/.exec(full) || [])[1] || vis.split(" ")[0];
+      pr.options.push({ dimension: "opt", value: label.toLowerCase(), label, n: cnt(full), windowWords: (sw.exec(full) || [null])[0] }); pr.optionLines.push(vis); }
+    for (const e of document.querySelectorAll(".narrow-strip .sfc-chip")) { const label = ((e.firstElementChild || e).innerText || "").replace(/\s+\d[\d,]*$/, "").trim(); pr.refineOptions.push({ dimension: "opt", value: label.toLowerCase(), label, ofOptions: false }); }
+    const rm = [...document.querySelectorAll(".sfc-remainder, .sfc-card .sfc-small")].map(e => e.innerText).join(" "), rn = firstN(rm, /(\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten) sales? (?:do|does) not/i);
+    if (rn) pr.optionsRemainder = { n: rn, dimension: "opt", line: rm.trim() };
+    const ft = (document.querySelector(".sfc-footer-left") || {}).innerText || ""; pr.poolN = out.counts ? out.counts.footer : null; pr.windowWords = (sw.exec(ft) || [null])[0]; out.printed = pr; }
   for (const pn of document.querySelectorAll(".hero-chart")) out.chartText.push(pn.innerText.replace(/\s+/g, " ").trim());
   for (const card of document.querySelectorAll(".sfc-card")) { const l = card.querySelector(".sfc-footer-left"), k = [...card.querySelectorAll(".sfc-footer-link")].find(a => /How Sam decides/.test(a.innerText)); if (l && k && vis(k)) { const lr = l.getBoundingClientRect(), kr = k.getBoundingClientRect(); out.linkPos.push(Math.abs(kr.left - lr.left) <= 1 && kr.top >= lr.bottom - 1 ? "ok" : "left " + Math.round(kr.left - lr.left) + " top " + Math.round(kr.top - lr.bottom)); } }
   for (const c of document.querySelectorAll("article.car")) { const m = c.querySelector(".tx > .meta"); if (!m) out.metaBad.push("no meta slot"); else { if (/not listed|not stated|unknown/i.test(m.innerText)) out.metaBad.push(m.innerText.trim().slice(0, 60)); if (m.getBoundingClientRect().height < 14) out.metaBad.push("meta slot has no height"); } }
@@ -81,6 +92,7 @@ export const inPage = () => {
   return out;
 };
 
+export const printedProblems = r => (r && r.printed ? optionProblems(r.printed) : []);
 export const judge = (ok, name, r, needs) => {
   ok(r.cards > 0, `${name}: an answer card is on the page`);
   ok(!r.under.length, `${name}: no currency figure is underlined or a link${r.under.length ? " (" + r.under.slice(0, 3).join(" | ") + ")" : ""}`);
@@ -96,11 +108,7 @@ export const judge = (ok, name, r, needs) => {
   ok(!r.findBad.length, `${name}: a Find card prints no sale line, no pick one line, no second range, no near-miles or band line, and its Sam box is three slots${r.findBad.length ? " (" + r.findBad.slice(0, 2).join(" ; ") + ")" : ""}`);
   ok(r.footers.every(f => /^\d[\d,]* sales,? since [A-Z][a-z]+ \d{4}\. Updated [A-Z][a-z]{2} \d{1,2}, \d{4}\.$/.test(f) && !/Powered by/.test(f)), `${name}: the card footer reads "N sales since Month Year. Updated Oct 28, 2026." with no Powered by (${r.footers.join(" | ") || "no footer"})`);
   if (r.counts) { const c = r.counts, h = c.hero;
-    ok(c.pills.every(n => n <= h), `${name}: no pill count exceeds the headline count ${h} (pills ${c.pills.join(", ") || "none"})`);
-    ok(!c.pillNames.some(n => c.blockLabels.some(b => n.toLowerCase().startsWith(b))), `${name}: no pill repeats an option already printed as a block (${c.blockLabels.join(", ") || "no blocks"} against ${c.pillNames.join(" | ") || "no pills"})`);
-    ok(new Set(c.pillNames).size === c.pillNames.length, `${name}: no pill appears twice (${c.pillNames.join(" | ") || "no pills"})`);
-    if (c.blocks.length) ok(c.blocks.reduce((a, b) => a + b, 0) + c.remainder === c.footer, `${name}: the split's blocks add up to the footer count, with the engine's remainder line where they do not (${c.blocks.join(" + ")}${c.remainder ? " + " + c.remainder + " in the remainder line" : ""} = ${c.blocks.reduce((a, b) => a + b, 0) + c.remainder}, footer ${c.footer})`);
-    if (c.optPills.length) ok(c.optPills.reduce((a, b) => a + b, 0) + c.remainder === c.footer, `${name}: the option pills add up to the footer count, with the engine's remainder line where they do not (${c.optPills.join(" + ")}${c.remainder ? " + " + c.remainder : ""}, footer ${c.footer})`);
+    { const bad = r.printed ? optionProblems(r.printed) : []; ok(!bad.length, `${name}: the options the page printed obey lib/optionProblems.js, the one rule (add up to the footer or print a remainder, or each prints its own since date; no pill twice; no repeat across lists)${bad.length ? ": " + bad.join("; ") : ""}`); }
     if (c.forAll != null) ok(c.forAll === h, `${name}: "for all N" is the headline count (${c.forAll} against ${h})`);
     ok(c.footer === h && (c.allH === null || c.allH === h) && (c.rows === 0 || c.rows === h), `${name}: the headline, the footer, "All N comparable sales" and the table agree (${h} / ${c.footer} / ${c.allH} / ${c.rows} rows)`);
     const inRange = p => r.ranges.length === 0 || r.ranges.some(([lo, hi]) => p >= lo && p <= hi), trio = r.sales ? r.sales.trio : [];

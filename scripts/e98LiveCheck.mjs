@@ -9,6 +9,7 @@ import { execSync } from "node:child_process";
 import puppeteer from "puppeteer-core";
 import { inPage, judge } from "./e98DomCheck.mjs";
 import { readEmails, judgeEmails } from "./e98EmailDom.mjs";
+import { designControlProblems } from "./e98DesignControls.mjs";
 if (!process.argv.includes("--live") || process.env.GAP_OK !== "1") { console.log("e98LiveCheck: LIVE script (production). Pass --live and GAP_OK=1, in a gap Lane F names only."); process.exit(2); }
 const BASE = "https://goasksam.com", CREW = process.env.CREW, OUT = "docs/screens/e98/live", BYP = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
 if (!CREW) { console.log("e98LiveCheck: no CREW in the environment."); process.exit(2); }
@@ -29,7 +30,7 @@ const browser = await puppeteer.launch({ executablePath: process.env.CHROME_PATH
 const slug = s => s.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
 const open = async () => { guard(); const p = await browser.newPage(); await p.setViewport({ width: 1440, height: 900 }); await p.setCookie({ name: "gas_crew", value: CREW, domain: "goasksam.com", path: "/" }); if (BYP) await p.setExtraHTTPHeaders({ "x-vercel-protection-bypass": BYP }); return p; };
 const snap = async (p, name, check, needs) => { for (const w of [1440, 390]) { await p.setViewport({ width: w, height: 900 }); await new Promise(r => setTimeout(r, 700)); await p.screenshot({ path: `${OUT}/${slug(name)}-${w}.png`, fullPage: true });
-  const r = await p.evaluate(inPage); judge(ok, `${name} at ${w}`, r, needs); if (check) check(r, w); } };
+  const r = await p.evaluate(inPage); judge(ok, `${name} at ${w}`, r, needs); { const bad = designControlProblems(await p.content(), name); ok(!bad.length, `${name} at ${w}: no design test control in the live page${bad.length ? " (" + bad.join("; ") + ")" : ""}`); } if (check) check(r, w); } };
 const wait = async (p, sel, ms = 70000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await p.evaluate(s => !!document.querySelector(s), sel).catch(() => false)) return true; await new Promise(r => setTimeout(r, 1000)); } return false; };
 const MC = [["2004 BMW M3", null, ["BMW", "M3"]], ["2001 BMW M3", null, ["BMW", "M3"]], ["1985 Land Rover Defender 110", null, ["Land Rover", "Defender"]], ["1994 Porsche 911 Carrera Cabriolet", "27000", ["Porsche", "911"]]];
 try {

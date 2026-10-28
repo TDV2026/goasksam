@@ -250,7 +250,7 @@ function optionLinesOf(d) {
 }
 function pooledOptionsHtml(d) {
   const lines = optionLinesOf(d);
-  return lines.length ? `<ul class="opts">${lines.map(t => `<li>${esc(t)}</li>`).join("")}</ul>${d.optionsNote ? `<p class="ctx">${esc(d.optionsNote)}</p>` : ""}` : "";
+  return lines.length ? `<ul class="opts">${lines.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : "";
 }
 // COLD SPEC (Sam, Oct 28 2026, no dead ends): a hub whose market is still being read draws this in the place of the range card. The page asks for itself again every 2 seconds
 // for up to 45 seconds and swaps the card in the moment it is stored; after that, one plain line and a cold_miss event. Nothing says "try again". (The engine finishes

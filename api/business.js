@@ -8,7 +8,7 @@
 import { FONT_LINKS, isCrewRequest } from "./_chrome.js";
 import { isTesterRequest } from "../lib/_tester.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
-import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE, ALL_PALETTES_CSS, PALETTE_APPLY_JS, PALETTE_SWITCHER_CSS, PALETTE_SWITCHER_JS, paletteSwitcherHtml } from "../lib/appShell.js";
+import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE } from "../lib/appShell.js";
 import { heroHtml, HERO_CSS } from "../lib/heroImage.js";
 import { lastUpdatedDate } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
@@ -270,7 +270,6 @@ async function page(req) {
   const crew = isCrewRequest(req);
   // PALETTE SWITCHER (Sam, Oct 2026, colours only): gated the same way as Market Check - a reviewer
   // flag or a crew/tester cookie, never otherwise. See api/marketCheck.js for the full note.
-  const showPal = crew;   // Sam, Stage 1c item 8a: the palette picker is for the crew only (no tester, no ?palette=1); removed before launch
   const env = supabaseEnv();
   const [updated, ex, soldCount, vinShare] = await Promise.all([
     lastUpdatedDate(env).catch(() => null),
@@ -348,12 +347,12 @@ async function page(req) {
     if(dgo) dgo.addEventListener("click", goToWalkthrough);
     if(dq) dq.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); goToWalkthrough(); } });
   })();`;
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><script>${PALETTE_APPLY_JS}</script><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>${esc(TITLE)}</title><meta name="description" content="${esc(DESC)}"><meta name="robots" content="index, follow"><link rel="canonical" href="${SITE}/business">
 <meta property="og:title" content="${esc(TITLE)}"><meta property="og:description" content="${esc(DESC)}"><meta property="og:url" content="${SITE}/business"><meta property="og:type" content="website">
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#F6F3EC">
-${FONT_LINKS}<style>${CSS}${AUTH_SIGNBAR_CSS}${SHELL_CSS}${ALL_PALETTES_CSS}${showPal ? PALETTE_SWITCHER_CSS : ""}${CONSENT_BANNER_CSS}</style></head><body>
-${showPal ? paletteSwitcherHtml() : ""}
+${FONT_LINKS}<style>${CSS}${AUTH_SIGNBAR_CSS}${SHELL_CSS}${CONSENT_BANNER_CSS}</style></head><body>
+
 ${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 ${railOpenHtml({ active: "business", crew, req, analytics: true })}
@@ -364,9 +363,9 @@ ${CONSENT_BANNER_HTML}
 <script>window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};window.GAS_AUTH_MODE="topbar";</script>
 <script src="/js/auth.js" defer></script>
 <script src="/api/track?js=1" defer></script>
-<script>${CONSENT_BANNER_JS}</script>${showPal ? `<script>${PALETTE_SWITCHER_JS}</script>` : ""}
+<script>${CONSENT_BANNER_JS}</script>
 </body></html>`;
-  return { html, crew, showPal };
+  return { html, crew };
 }
 
 export default async function handler(req, res) {
@@ -374,7 +373,7 @@ export default async function handler(req, res) {
   // LAUNCH_BUSINESS (Oct 2026, Job 2): a public request to this address, while /business is off,
   // gets a TEMPORARY redirect to /sell before any of the work below runs. Crew passes through.
   if (!isReleased("business", req)) { res.setHeader("Cache-Control", "no-store"); res.setHeader("Location", "/sell"); return res.status(302).end(); }
-  const { html, crew, showPal } = await page(req);
+  const { html, crew } = await page(req);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", "index, follow");
   // Cache-poisoning fix (Oct 2026, reproduced live on Market Check, same pattern here): an INVALID
@@ -388,6 +387,6 @@ export default async function handler(req, res) {
   // override never seeds the shared cache with a simulated state). showPal (Oct 2026 palette round)
   // joins the list for the same reason Market Check's does: never let a shared edge cache hold a
   // response carrying the switcher's markup.
-  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched() || showPal) ? "private, no-store" : "public, s-maxage=30");
+  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : "public, s-maxage=30");
   res.status(200).send(html);
 }

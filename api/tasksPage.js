@@ -10,7 +10,7 @@ import { reasonLine } from "../lib/reasonWords.js";
 import { PAGE_CSS, FONT_LINKS, isCrewRequest } from "./_chrome.js";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
-import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE, paletteHead, paletteSwitcherHtml, PALETTE_SWITCHER_JS } from "../lib/appShell.js";
+import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE } from "../lib/appShell.js";
 import { isTesterRequest } from "../lib/_tester.js";
 import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
 import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
@@ -44,7 +44,6 @@ export async function exampleUpdate() {
 // copy. On desktop the card centres in the content column, clear of the 240px rail.
 const AUTH_CSS = AUTH_SIGNBAR_CSS + "\n@media (min-width:861px){#auth-modal{padding-left:256px}}\n";
 const CSS = `:root{--red:#D7262C;--tk-quote:#D7262C;--tk-line:#D9D3C8;--tk-soft:#EFEBE4;--tk-text2:#3A3733;--tk-switch:#CFC8BC}
-:root[data-pal]{--tk-quote:var(--green);--tk-line:var(--border);--tk-soft:var(--tint);--tk-text2:var(--sec);--tk-switch:var(--border)}
 .col{max-width:880px}
 .tkhero h1{margin:8px 0 10px;font:500 46px/1.08 var(--serif);letter-spacing:-.015em}
 .tkhero .lead{margin:0;font:400 23px/1.45 var(--serif)}
@@ -166,16 +165,12 @@ export default async function handler(req, res) {
     { "@context": "https://schema.org", "@type": "WebPage", name: "Sam Tasks", url: "https://goasksam.com/tasks", description: desc }
   ];
   const crew = isCrewRequest(req);
-  // PALETTE SWITCHER (Sam, Oct 2026 palette round; lib/appShell.js paletteHead): shown for crew, testers or
-  // ?palette=1, computed the same way Market Check, Sell and the business page compute it. A page carrying the
-  // bar is never shared-cached (showPal joins the no-store condition below).
-  const showPal = crew;   // Sam, Stage 1c item 8a: the palette picker is for the crew only (no tester, no ?palette=1); removed before launch
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">${paletteHead(showPal)}
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>${title}</title><meta name="description" content="${esc(desc)}"><meta name="robots" content="${robots}"><link rel="canonical" href="https://goasksam.com/tasks">
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:url" content="https://goasksam.com/tasks"><meta property="og:type" content="website"><meta property="og:image" content="https://goasksam.com/og-card.png">
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#F6F3EC">
 ${FONT_LINKS}<style>${PAGE_CSS}${CSS}${AUTH_CSS}${SHELL_CSS}${CONSENT_BANNER_CSS}</style>${ld.map(o => '<script type="application/ld+json">' + JSON.stringify(o).replace(/</g, "\\u003c") + "</script>").join("")}</head><body>
-${showPal ? paletteSwitcherHtml() : ""}${AUTH_SIGNBAR_HTML}
+${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 ${railOpenHtml({ active: "tasks", crew, req, analytics: true })}
 <main><div class="col">
@@ -193,7 +188,7 @@ ${CONSENT_BANNER_HTML}
 <script src="/js/auth.js" defer></script>
 <script>${EXPLAINER_JS.replace("__FREE_WORDS__", freeTasksWords())}</script>
 <script src="/api/track?js=1" defer></script>
-<script>${CONSENT_BANNER_JS}</script><script>${OUTBOUND_JS};gasOutboundInstall("tasks")</script>${showPal ? `<script>${PALETTE_SWITCHER_JS}</script>` : ""}</body></html>`;
+<script>${CONSENT_BANNER_JS}</script><script>${OUTBOUND_JS};gasOutboundInstall("tasks")</script></body></html>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", robots);
   // Crew's full nav is never shared or stored. The public response (no crew cookie) is identical
@@ -205,7 +200,7 @@ ${CONSENT_BANNER_HTML}
   // fullyLaunched() is true and the request carries no server credential (so an ops/probe stage
   // override never seeds the shared cache with a simulated state).
   const hasCrewCookie = /(?:^|;\s*)gas_crew=/.test(String(req.headers.cookie || ""));
-  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched() || showPal) ? "private, no-store" : "public, s-maxage=30");
+  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : "public, s-maxage=30");
   res.status(200).send(html);
 }
 
@@ -248,12 +243,11 @@ const EXPLAINER_JS = String.raw`(function(){
 
 function appPage(req, res) {
   const crew = isCrewRequest(req);
-  const showPal = crew;   // Sam, Stage 1c item 8a: the palette picker is for the crew only (no tester, no ?palette=1); removed before launch
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">${paletteHead(showPal)}
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Your Tasks | GoAskSam</title><meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="/favicon.ico" sizes="any"><meta name="theme-color" content="#F6F3EC">
 ${FONT_LINKS}<style>${PAGE_CSS}${CSS}${FIND_CARD_CSS}${APP_CSS}${AUTH_CSS}${SHELL_CSS}${CONSENT_BANNER_CSS}</style></head><body>
-${showPal ? paletteSwitcherHtml() : ""}${AUTH_SIGNBAR_HTML}
+${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 ${railOpenHtml({ active: "tasks", crew, req, analytics: true })}
 <main><div class="col">
@@ -268,7 +262,7 @@ ${CONSENT_BANNER_HTML}
 <script>${findCardKitJs()}</script>
 <script>${APP_JS}</script>
 <script src="/api/track?js=1" defer></script>
-<script>${CONSENT_BANNER_JS}</script><script>${OUTBOUND_JS};gasOutboundInstall("tasks")</script>${showPal ? `<script>${PALETTE_SWITCHER_JS}</script>` : ""}</body></html>`;
+<script>${CONSENT_BANNER_JS}</script><script>${OUTBOUND_JS};gasOutboundInstall("tasks")</script></body></html>`;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
   res.setHeader("Cache-Control", "private, no-store");
