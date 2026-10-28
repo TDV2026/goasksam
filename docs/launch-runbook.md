@@ -1,95 +1,50 @@
-# Launch runbook (Beta, newsletter audience)
+# Launch runbook: Wednesday night to Thursday Oct 29
 
-Kept by Lane F. One page. No secrets here: values live in Vercel, Resend, Beehiiv and Supabase, never in this file. "Not decided" means Sam has not ruled. Gate state: docs/launch-checklist.md.
+One page for Sam. Written offline from docs/lane-notes.md (origin/main 48c8f680) and the repo. No secrets here. All times are Pacific. A step marked **SAM** is Sam's own click. Lane jobs have no time estimates; only scheduled events have clock times. The older staged-send, rollback-table and freeze text moved unchanged to docs/launch-runbook-reference.md.
 
-## (a) Staged send
+Standing rule for every fix tonight and tomorrow: pages and emails compute nothing. Every number and sentence comes from oneEngineAnswer. A fix that makes a page work out its own figure is rejected.
 
-1. Before the first send, every YES row in checklist table A is closed.
-2. First send: the most engaged segment only. Segment definition and size: not decided. Beehiiv holds the segment; Lane F does not read it.
-3. Watch period: from the first send until the checks below are clean. Length: not decided.
-4. Widen to the rest only when Sam says so after reading the list below. If any item fails, hold the send and fix or roll back first (section b).
+## Wednesday Oct 28, evening
 
-Check before widening (each with where to look):
-- Refusals: run refusalCheck on the deployed site (scripts/refusalCheck.mjs, ten to thirty cars); a refusal kind on a car a reader typed is a fail. Source for reader cars: Lane B's obdiag read of sellerDecision outcomes. Sam's bar: every car returns a range or an honest thin card.
-- Errors: Vercel logs for 5xx on /api/sellerDecision, /api/buySearch, /api/tasks, /api/sellNext; browser console errors on Home, Find, Market Check, Sell, Tasks (scripts/pushCheck.mjs). Zero 5xx is the bar.
-- Speed: Market Check cold read and Buy first card (scripts/buyTimes.mjs, the perf cars in prePush). Bars: the prePush budgets (8 s and 18 s on the perf cars). Stored-row reads are expected fast; cold computes are the risk.
-- Deliverability: Resend dashboard for bounces and complaints on sign-in codes and car emails; Beehiiv for bounces, unsubscribes and spam complaints; one real sign-in code received at a Hotmail and a Gmail address and not in spam.
-- Feedback inbox: feedback@goasksam.com read by Sam; any report of a wrong number, a missing sale or a dead end is a stop until Lane B has looked.
-- Spend: Supabase compute and egress, OldCarsData credits, Anthropic credit and usage, Vercel usage. Budget alerts and the Anthropic auto-reload: not decided (checklist rows).
+1. **Last pushes.** Lane C is the only lane that pushes. Left to land: ENGINE READY 6 (f25d5377, plus 222025f0), stamp stays e99-20261028-trimfix, a code push with no warm. Anything else after it needs Sam's word. After the final push Lane C confirms a NEW deployment is Ready and reads the live stamp (if none appeared, push one empty commit). Lane C posts PUSHED and LOCK RELEASED. No push after that line.
+2. **Launch warm, run 1, starts 5:05 PM at the earliest** (00:05Z, the first minutes of the launch UTC day) and only after the last push. Lane C posts WARM START, then WARM DONE with `task=warmDay&day=2026-10-29`. The line must show marketCheck.offDay 0 and the result of `scripts/epochMatchCheck.mjs --live` (zero mismatches). Question-first specs (a trim or body question as the first answer) store no row by design; they are not misses. Nobody reads production between WARM START and WARM DONE. Lane B starts the golden table only after WARM DONE.
+3. **Mac stays awake. SAM.** The Thursday warm is armed inside Lane C's terminal session only (one-shot 5da7459d, 4:52 AM). If that session ends or the Mac sleeps, the job is gone. Plug the Mac in, leave Lane C's terminal open, and in another terminal run `! caffeinate -dims` (stop it after 8:00 AM Thursday). Do not close the lid. Lane C checks CronList at WARM DONE and posts that the 4:52 AM job is listed; if it is not, Lane C re-arms it then.
+4. **Nightly stays disabled. SAM.** GitHub, Actions, "Nightly ingest and warm", Disable workflow, and keep it disabled. Why: its ingest runs at 12:11 AM and bumps the sales epoch, which turns every stored Market Check row stale just before launch.
+5. **Possible supervised manual ingest (only if Sam wants fresher sales in; skip otherwise).** It must finish before 4:52 AM so the Thursday warm re-warms behind it. SAM: Actions, Nightly, Enable workflow, Run workflow with blank inputs (the normal delta; scheduled-only jobs do not run on a manual run, but the caches job does). Lane B watches the run and posts its end. Ingest bumps the epoch and deletes stored rows for every make and model it touched, so those cars go cold until the 4:52 AM pass. **SAM disables the workflow again as soon as the run ends, and before 12:11 AM, or the nightly fires on its own.** Lane C then posts that the epoch moved, and the 4:52 AM pass runs the full union warm.
+6. **Launch eve flips in Vercel. SAM.** Two orderings matter. (a) Rotating the Vercel bypass secret stales every lane's Keychain copy (item goasksam-bypass) and the warm scripts use it, so rotate it only AFTER the 4:52 AM pass is checked (step 8), then update the Keychain item and tell Lane C. (b) Environment changes take effect only on a NEW deployment, so tonight Sam only edits the values; the deployment that carries them is the opening (step 9). Nothing in the docs fixes the opening time; this runbook puts it after the 4:52 AM check so the site never opens on a cold warm.
+   - Delete CURTAIN_SEALED (or set 0). Opening the site is this change plus the deployment.
+   - SELL_NEXT_ON = 1 (the new Sell for everyone; the old Sell door redirects while it is on).
+   - LAUNCH_STAGE = 2 and LAUNCH_BUSINESS = 1 if not already set (Market Check, Tasks and Buy).
+   - Crew code: rotate again on launch eve (set only in Vercel and the Keychain; enter it in the crew box at goasksam.com/api/crew, never in a link). This ends every crew cookie; lanes refresh theirs with usageDashboard task=crewcookie. Do it with the bypass rotation, after step 8.
+   - Nightly stays disabled (step 4).
 
-## (b) Rollback
+## Thursday Oct 29
 
-Rollback switches, cheapest first. Vercel applies an environment variable change only to a NEW deployment, so every launch-stage and other env switch (LAUNCH_STAGE, CURTAIN_SEALED, LAUNCH_BUSINESS and the rest in the table) NEEDS A REDEPLOY (Sam's ruling, Oct 24 2026; the comment at the top of lib/_launchStage.js is corrected to say so). Two things do NOT need a deploy: the Task email kill switch (an app_config row read at send time, steps below) and Vercel Instant Rollback (promote the previous deployment).
+7. **4:52 AM, warm pass, run 2** (Lane C, the armed job). It runs the held-specs retry and the full union re-warm, then warmDay for 2026-10-29 and `epochMatchCheck --live`, before and after. Lane C posts WARM DONE with the numbers. How to read it:
+   - **Done:** offDay 0, epoch mismatch 0, named list 19 of 19, held 0. Proceed.
+   - **Held:** specs whose read failed wait an hour before a retry. Lane C lists them by title. A short list is acceptable only if Sam says so; each reads cold and slower for its first visitor.
+   - **Missed:** any epoch mismatch, offDay above 0, or the job not firing. Lane C runs the pass by hand at once and posts the result. Nothing in step 9 starts until WARM DONE is clean or Sam accepts the held list.
+8. **After the check: bypass and crew secrets (step 6a). SAM** rotates, updates the Keychain, tells Lane C. Lane C confirms a live script still gets through.
+9. **Opening deployment.** Lane C redeploys so the step 6 values take effect, confirms the deployment is Ready and the live stamp is still e99-20261028-trimfix. Lane C checks from a private window: Home, Find, Market Check, Sell (the new one), Tasks all open, no holding page, no 5xx, no console error (scripts/pushCheck.mjs). Lane C posts LOOK DONE (Lane C, time) first. Lane B then runs one read on a named car through the bypass header to confirm it answers from its stored row.
+10. **7:00 AM, email send. SAM.** Send the Beehiiv email. Before it: Lane C's LOOK DONE is posted and the Task email switch reads `on` (`GET /api/tasks?emailswitch=status`, header x-ops-key, key from the Keychain). If the site is broken before the send: Instant Rollback (below) and hold the email.
 
-| Switch | Where | What it hides | Redeploy |
-|---|---|---|---|
-| LAUNCH_STAGE (0, 1, 2) | Vercel env | 0: every gated product for the public (Sell only). 1: Market Check and Tasks. 2: adds Buy. Crew always sees all. | Yes |
-| CURTAIN_SEALED=1 | Vercel env | Non-crew calls to the engine endpoints (sellerDecision, vehicleIdentity), whatever the stage | Yes |
-| LAUNCH_BUSINESS | Vercel env | /business and the For business link | Yes |
-| SELL_NEXT_ON | Vercel env | The new Sell (api/sellNext.js, api/sellChat.js). Unset or not 1: the old Sell stays public. | Yes |
-| SIGNUP_TURNSTILE | Vercel env | The Turnstile check at sign-up (needs both keys set) | Yes |
-| PARTNER_DEMO_CODE | Vercel env | Unset: /partner-demo is not reachable by code | Yes |
-| vin_input_enabled | Supabase app_config row (0 or 1) | The typed-VIN path, crew and test sessions | No (read at request time) |
-| PALETTE_BAR_ON, RANGE_RULES.trimFirst | Code constants (lib/appShell.js, lib/onebox.js) | The crew palette bar; the trim-first question (LIVE today, approved by Sam) | Yes, by a push through Lane C |
-| task_emails_enabled (the Task email kill switch) | Supabase app_config row (see the steps under the table) | Every Task email: match, daily, before it ends, watch event, sold notice, the start email and test sends. Sign-in codes are untouched (Supabase sends those). | No (read at send time, held 5 seconds) |
+## After 7:00 AM: what each lane watches and the one line it posts
 
-Task email kill switch, exactly how to flip it (Lane C, Oct 24 2026; code: lib/_email.js sendTaskEmail, one choke point for every Task email):
-1. Stop every Task email, either way (both write the one app_config row task_emails_enabled):
-   - Supabase SQL editor: `insert into app_config (key, value) values ('task_emails_enabled', '"0"') on conflict (key) do update set value = '"0"';`
-   - or the keyed read-and-write call (the probe key is in Sam's Keychain, never pasted here): GET https://goasksam.com/api/tasks?emailswitch=off with the header x-ops-key. It answers `task_emails: OFF`.
-2. Check it: GET https://goasksam.com/api/tasks?emailswitch=status (same header) answers `OFF` or `on`.
-3. Send again: the same call with emailswitch=on, or in SQL set the value to '"1"' (deleting the row also means on).
-4. It takes effect within 5 seconds, no deploy. While it is OFF each email that comes due is SKIPPED and recorded as done by its sender, so it is NOT sent later when the switch goes back on; Tasks keep running and in-app updates still show.
-5. If the switch cannot be read (Supabase down), emails still go (fail open, logged as "task email switch unreadable"), because the senders need the same database anyway.
-6. Not affected: sign-in codes, the internal Sam Desk request notice, partner lead notices, Beehiiv.
+Post at 7:15 AM and 8:00 AM, and at once on anything red. Line format: `WATCH (Lane X, time): ...`. No ENGINE_VERSION bump during the watch (it makes every stored answer cold). Fixes only. Max three heavy reads at once; no reads while a push lock is open; lane reads use the bypass header and do not forward a visitor address.
 
-Promote previous deployment (whole-site rollback, no code change):
-1. Vercel dashboard, project goasksam, Deployments.
-2. Open the last deployment that was Ready and healthy before the bad one (Lane C names it in the PUSHED line of lane-notes).
-3. Use Promote to Production (Instant Rollback). Production moves to that build at once.
-4. Vercel stops auto-assigning new pushes to the production domain after a rollback until a deployment is promoted again; read the banner before the next push.
-5. A rollback reverts code only. It does not undo database writes, stored engine answers (written by an ENGINE_VERSION stamp) or emails already sent. Lane B decides whether stored answers need a warm.
-6. Lane C looks at the live site after the promote and posts a look-done line.
+| Lane | Watches | Its one line |
+|---|---|---|
+| B | Refusals on cars readers typed (obdiag), cold-read speed, golden spot checks | `WATCH (Lane B, time): refusals N, slowest cold read Ns, cards checked N, wrong N` |
+| C | Deployment state, Vercel logs for 5xx, console errors on the five pages | `WATCH (Lane C, time): deployment Ready, 5xx N, console errors N` |
+| D | Sign-in codes (Hotmail and Gmail), Task sends and bounces in Resend, Tasks page | `WATCH (Lane D, time): codes ok or late, task emails sent N, bounces N` |
+| E | Only when assigned | none unless assigned |
+| F | Reads the lines above and writes Sam a digest of five lines or fewer | `DIGEST (Lane F, time): green, or what needs Sam` |
+| Sam | feedback@ inbox, Beehiiv stats, Supabase compute, OldCarsData and Anthropic spend, the /admin Launch tab | decides hold, roll back or go on |
 
-## (c) Freeze rule after the send
+## If something breaks
 
-- From the first send until Sam lifts the freeze: fixes only. A fix is a revert, a security fix, a wrong number or range (product rule 1), or a dead end a reader hit.
-- Lane C is the only lane that pushes, batched, FULL prePush alone. No pushes in the busiest hours after an email goes out. The window is set from Beehiiv open and click data; its length: not decided.
-- No ENGINE_VERSION bump during the watch period: a bump makes every stored answer recompute cold, which slows Buy and Market Check.
-- No env changes other than the switches in section b. No DNS changes unless Sam asks.
-- A rollback by promote or env switch is always allowed and needs only Sam's word.
-
-## (d) Who watches what
-
-| Who | Watches |
-|---|---|
-| Sam | Beehiiv sends and segments; feedback@ inbox; Resend, Anthropic, Vercel and Supabase billing and alerts; the decision to widen or roll back |
-| Lane C | Deploys, promote-previous, env redeploys, the look after every push; the only pusher |
-| Lane B | Refusals, golden table, engine reads, speed of the engine; says when stored answers need a warm |
-| Lane D | Task sends, sign-in codes, the Tasks page, Resend send logs |
-| Lane E | Sweeps and speed audits only when assigned |
-| Lane F | One digest to Sam when something needs him or something landed (five lines or fewer); enforces the freeze; keeps this file and the checklist |
+- **A page breaks (5xx, blank, holding page shows).** Lane C owns it. Roll back first, fix later: Vercel, Deployments, the last healthy Ready one, Promote to Production (Instant Rollback), then LOOK DONE. Rollback reverts code only, not stored answers or sent emails. To close the site instead: CURTAIN_SEALED=1 and a redeploy. Sam's word starts any rollback.
+- **A card is wrong (a number, a missing sale, a wrong title).** Lane B owns it and works the class, not the example: (1) state the cause; (2) name every other car and page it touches (Find, Market Check, Sell, Tasks, emails); (3) sweep those cars; (4) add a check that covers the class and show it fails without the fix and passes with it. Product rule 1 wins: a number that cannot be backed by records comes off. A fix that changes stored answers needs a stamp bump and a warm, so Lane B asks Sam first. Lane C pushes after FULL prePush alone.
+- **The site slows.** Lane B stops all its heavy reads and reads cold-read time; Sam reads the Supabase compute graph. Lane D pauses Task email load with the kill switch (`emailswitch=off`; takes 5 seconds, no deploy; skipped emails are not sent later; sign-in codes unaffected). Lane C checks Vercel function times. If it does not recover, Sam decides: roll back, or seal with CURTAIN_SEALED=1 and a redeploy.
 
 Search check: no public page touched.
-
-## (e) Sealing the site behind the crew code, and opening it (Lane C, Oct 25 2026)
-
-What the switch does. `CURTAIN_SEALED=1` seals the site for everyone who is not crew, a tester or a server job: Home, Find, Market Check, Sell, Tasks, For business, the spec, history and shared-result pages all answer ONE holding page ("Something big is coming", the launch date and time in Pacific time, a live countdown). The answer is HTTP 503 with Retry-After (closed for now, keep what you have), never a redirect, a 404 or a noindex. The data endpoints refuse strangers too (sellerDecision and vehicleIdentity answer 403 "Not open yet."). Left open on purpose: How Sam decides, About, Privacy, PowerSellers, robots.txt, the sitemaps, the crew link, sign-in codes and the Task email one-tap links (Stop all, Pause, Unsubscribe). The one launch moment is one line in lib/launchTime.js (Thursday 29 October 2026, 7:00 AM Pacific). At zero the page keeps the headline and drops the timer; it does NOT open the site.
-
-Seal, one step at a time (CURTAIN_SEALED=1 is already set in Vercel Production; it takes effect at the NEXT deployment, so the next push seals the site):
-1. Rotate the crew code. Sam makes the new CURTAIN_CREW_CODE himself (long and random), sets it in Vercel Production, and stores it only in Vercel and his own Keychain. Never in chat, a file or a log. WHAT THIS CHANGES: every crew cookie made from the old code stops working at the deployment (crew devices, every lane's scripts that carry the cookie, the signed value stored in the Keychain item goasksam-crew). Crew people open the crew box (goasksam.com/api/crew, the "Crew" link at the foot of the holding page) and enter the new code once. The code goes in the box, which posts it as a form body, so it never sits in an address, a history entry or a request log. Testers (their own code, CURTAIN_TESTER_CODE), the partner demo and the keyed ops calls (probe key) are NOT affected.
-2. Redeploy (or let the next push deploy): the code change and both variables take effect together. Confirm a deployment exists and is Ready (see "After every final push" below).
-3. Check from a private window (signed out, no crew link): goasksam.com, /find, /market-check, /sell, /tasks each show the holding page with the countdown; About, Privacy and How Sam decides still open.
-4. Check as crew: open goasksam.com/api/crew in a normal window and enter the new code in the box; the site opens at Find as usual. Then delete the old goasksam.com/api/crew entry from the browser history. Lanes refresh their cookie from the keyed ops call (usageDashboard task=crewcookie) and replace the Keychain value.
-4b. LAUNCH EVE (Sam, Oct 25 2026): the current CURTAIN_CREW_CODE was used once in a link (/api/crew with the code in the address), so it can sit in browser history and Vercel request logs. Rotate it again on launch eve with the other keys, set it only in Vercel and the Keychain, redeploy, and from then on use only the box at goasksam.com/api/crew. Delete the old crew-link entry from the browser history.
-5. Roll back in one line: Vercel Instant Rollback (Deployments, the previous Ready deployment, Promote to Production) or unset CURTAIN_SEALED and redeploy.
-
-What still works while sealed (checked in code and in-process): Task checks and Task emails (the cron calls /api/tasks?run and ?send carry the cron secret and are not pages), the Supabase sign-in code email and the sign-up hook (/api/signup), keyed ops reads and the golden and sweep calls (the probe key passes every page seal and both engine seals), the crew box (/api/crew), robots.txt and every sitemap (the sitemap routes are exempt), the one-tap Stop, Pause and Unsubscribe links in Task emails (/api/task-link), the partner demo (its own code). Blocked for a stranger: every product page and the engine endpoints sellerDecision and vehicleIdentity. There is no Resend webhook in the product.
-
-After every final push (Sam's rule, Oct 25 2026): the push of 3ca84ab3 at 07:39Z never produced a Vercel deployment (no record at all, not even a cancelled one; the next push built the whole difference). The cause cannot be read from here: it is either the GitHub to Vercel webhook not firing or a Vercel-side skip; Sam can see it in GitHub, Settings, Webhooks (recent deliveries) and the Vercel project's Git settings. So launch day never depends on one push: (a) after the final push run `vercel ls` or open Deployments and confirm a NEW deployment exists and is Ready within a few minutes; (b) read the live engine stamp or the page; (c) if no deployment appeared, push one more commit that changes nothing (`git commit --allow-empty -m "redeploy"` then push): the ignore rule compares with the last DEPLOYED commit, so it builds the whole difference; or press Redeploy on the last Ready deployment in the dashboard (that redeploys the OLD code, so use it only for an environment change).
-
-Open the site on launch day: delete `CURTAIN_SEALED` (or set it to `0`), set LAUNCH_STAGE to 2 and LAUNCH_BUSINESS to 1 if they are not already, redeploy, then check from a private window.
-
-Roll back the seal in one line: Vercel Instant Rollback (Deployments, the previous Ready deployment, Promote to Production) or unset CURTAIN_SEALED and redeploy.
-
-What keeps working while sealed: running Tasks for existing accounts keep searching and emailing (they run on server schedules, not through the pages); Task and sign-in emails send as before; links in a Task email that open a page (Open the Task, a car's Market Check) show the holding page to a non-crew reader, while Stop all, Pause and Unsubscribe still work.
