@@ -3,6 +3,7 @@
 import path from "path";
 import fs from "fs";
 import { fileURLToPath, pathToFileURL } from "url";
+import { SPEC_V } from "../lib/live/search.js";   // the stored core's version comes from the engine, never a number of this file's own
 const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
 let failed = 0; const ok = (n, c, d) => { if (!c) failed++; console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? "  " + d : ""}`); };
 const ev = (row, it) => { const ci = it.indexOf(":"); const alias = ci > 0 && it[ci + 1] !== ":" ? it.slice(0, ci) : null; const expr = alias ? it.slice(ci + 1) : it; if (expr.startsWith("raw_record->>")) { const k = expr.slice(13); const v = row.raw_record[k]; return [alias || k, v == null ? null : String(v)]; } return [alias || expr, row[expr] === undefined ? null : row[expr]]; };
@@ -48,7 +49,7 @@ const E = await import(pathToFileURL(path.join(root, "lib/onebox.js")).href);
 // 1. ingest on a fixture delta: touched rows are marked and kept, nothing is deleted, other rows are untouched
 const now = new Date().toISOString();
 const k1 = JSON.stringify(["Datsun", "240Z", null, null, null, null]), k2 = JSON.stringify(["Datsun", "240Z", null, 1972, null, null]), k3 = JSON.stringify(["Ford", "GT", null, 2005, null, null]), k4 = "MCWARM:" + k1;
-for (const k of [k1, k2, k3, k4]) table.set(k, { spec_key: k, market: { v: 11, engineVersion: E.ENGINE_VERSION, kind: "range", low: 1, high: 2, count: 9 }, computed_at: now });
+for (const k of [k1, k2, k3, k4]) table.set(k, { spec_key: k, market: { v: SPEC_V, engineVersion: E.ENGINE_VERSION, kind: "range", low: 1, high: 2, count: 9 }, computed_at: now });
 const src = fs.readFileSync(path.join(root, "scripts/ingest.js"), "utf8");
 ok("ingest.js never deletes a stored answer", !/supabaseDelete|method:\s*"DELETE"/.test(src) && /markTouchedStale/.test(src));
 if (SM) {
@@ -65,7 +66,7 @@ const lrow = { id: "l1", listing_title: "1972 Datsun 240Z", year: 1972, make: "D
 const facts = S.listingFacts({ ...lrow, mileage: 50000 });
 const spec = await S.specOf(env, lrow, facts, vehicle);
 table.clear(); archiveReads = 0; posts = 0;
-const marked = { v: 11, engineVersion: E.ENGINE_VERSION, kind: "range", low: 111000, high: 222000, count: 9, family: "1972 240Z", staleSince: now };
+const marked = { v: SPEC_V, engineVersion: E.ENGINE_VERSION, kind: "range", low: 111000, high: 222000, count: 9, family: "1972 240Z", staleSince: now };
 table.set(spec.key, { spec_key: spec.key, market: marked, computed_at: now });
 const t0 = Date.now();
 const m = await S.listingMarket(env, lrow, facts, { noBlock: true, notTracked: true, vehicle });

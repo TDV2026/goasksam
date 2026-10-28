@@ -2,6 +2,7 @@
 //   node scripts/liveScopeCheck.mjs [repo root]
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
+import { SPEC_V } from "../lib/live/search.js";   // the stored core's version comes from the engine, never a number of this file's own
 const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
 let failed = 0; const ok = (n, c, d) => { if (!c) failed++; console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? "  " + d : ""}`); };
 const live = (id, source, title, location, country, currency) => ({ id, source, source_listing_id: "s" + id, url: "https://x/" + id, listing_title: title, make: "Porsche", model: "911", year: 2005, vin_norm: null, mileage: 50000, body: null, transmission: null, location, country, currency, current_bid: 40000, current_bid_usd: 40000, end_time: new Date(Date.now() + 864e5 * 3).toISOString(), photo_url: "https://x/p.jpg", last_seen: new Date().toISOString(), first_seen: new Date().toISOString(), status: "live" });
@@ -45,7 +46,7 @@ ok("an ops read can still see all of them (allScope), for the sweep", (await S.l
 const lrow = ROWS[4], facts = S.listingFacts(lrow);
 const vehicle = { make: "Porsche", model: "911", trim: "Carrera S", year: 2005, bodyStyle: null };
 const spec = await S.specOf(env, lrow, facts, vehicle);
-STORED = { key: spec.key, market: { v: 11, engineVersion: E.ENGINE_VERSION, kind: "none", notTrackedLine: null } };
+STORED = { key: spec.key, market: { v: SPEC_V, engineVersion: E.ENGINE_VERSION, kind: "none", notTrackedLine: null } };
 const m = await S.listingMarket(env, lrow, facts, { noBlock: true, notTracked: true, vehicle });
 ok("a car with no read prints the engine's own no-sales line, not nothing", m && m.kind === "not_tracked" && /^No sales of an? .+ are on record in the last five years, so there is no range to show\.$/.test(String(m.notTrackedLine)), JSON.stringify(m));
 ok("and never the page wording for a failed check", !/could not be checked|Sam could not/i.test(JSON.stringify(m)));
