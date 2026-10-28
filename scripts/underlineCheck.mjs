@@ -4,7 +4,7 @@
 //   FAIL: a currency figure inside an anchor, or under an underline (the element's or any ancestor's text-decoration), inside an answer card (.sfc-card, the Find Sam box .sl);
 //         a range ("$a to $b") set below 20px (the two small lines Sam allows, the other option's line and the near-miles line, are lines, not figures); more than two small lines under the figures; the stale line ("Sales read on ... Updating now.") or "Latest sale:" anywhere in a card; a footer over one sentence-line of facts.
 //   node scripts/underlineCheck.mjs        E98_ROOT=<another checkout> to read that tree's pages (how it was shown failing on main)
-import { MC, FIND, FIND_MATCHED, CORVETTE, BLACK_BMW, M3_ROW, PORSCHE_2005, NO_META, MC_WITHHELD_SENTINEL } from "./e98Fixtures.mjs";
+import { MC, FIND, FIND_MATCHED, CORVETTE, BLACK_BMW, M3_ROW, PORSCHE_2005, NO_META, MC_WITHHELD_SENTINEL, HISTORY, HISTORY_EXPECT } from "./e98Fixtures.mjs";
 import { startBrowser, openMC, ROOT } from "./e98Render.mjs";
 import { buildCards, openFind } from "./e98FindRender.mjs";
 import { inPage, judge as judgeIn } from "./e98DomCheck.mjs";
@@ -66,6 +66,19 @@ for (const [n, defs] of Object.entries(sets)) { const cards = await buildCards(d
 { const { sellsForCardHtml } = await import(pathToFileURL(path.join(ROOT, "lib/sellsForCard.js")).href), { PARTNER_CARD_OPTS } = await import(pathToFileURL(path.join(ROOT, "api/partnerAnswer.js")).href), { AMAZON_PROFILE } = await import(pathToFileURL(path.join(ROOT, "api/_amazonDemo.js")).href);
   const d = MC["2001 BMW M3 (alike with options)"].d, own = sellsForCardHtml(d, { updated: "Oct 28, 2026" }), partner = sellsForCardHtml(d, { ...PARTNER_CARD_OPTS, updated: "Oct 28, 2026" });
   ok(!/Powered by/.test(own), "our own pages' card footer has no Powered by"); ok(/Powered by GoAskSam\./.test(partner), "the partner demo card keeps Powered by GoAskSam (the poweredBy kit option)"); ok(AMAZON_PROFILE.attribution === "Powered by GoAskSam", "the Amazon demo keeps Powered by GoAskSam"); }
+// THE CAR'S OWN HISTORY (Sam's rule): a Find card for a car listed or sold before shows it (the chip at the end of the chip row, "Sold before" or "Listed before", opening the history popup with the car's own sale or bid); a car with none shows no chip.
+// The comparable-sale lines left the card (ENGINE READY 10); the car's own record did not. Same cards on the Tasks page (the kit) and in the Task email (emailCardData.hist).
+{ const cards = await buildCards(Object.values(HISTORY)), names = Object.keys(HISTORY);
+  for (const w of [1440, 390]) { const p = await openFind(b, cards, w);
+    const rows = await p.evaluate(() => [...document.querySelectorAll("article.car")].map(c => ({ title: c.querySelector(".ttl") ? c.querySelector(".ttl").innerText : "", chip: (c.querySelector(".specs .hchip") || {}).innerText || "", last: !!c.querySelector(".specs .hchip") && c.querySelector(".specs").lastElementChild === c.querySelector(".specs .hchip"), hidden: !!c.querySelector(".specs .hchip") && c.querySelector(".specs .hchip").hidden, under: !!c.querySelector(".specs .hchip") && /underline/.test(getComputedStyle(c.querySelector(".specs .hchip")).textDecorationLine) })));
+    names.forEach((nm, i) => { const want = HISTORY_EXPECT[nm], got = rows[i] || {}; if (want) ok(got.chip === want.chip && got.last && !got.hidden, `Find ${nm} at ${w}: the card shows its own history, the chip "${want.chip}", last in the chip row (${got.chip || "no chip"})`); else ok(!got.chip, `Find ${nm} at ${w}: no chip where the car has no history`); });
+    await p.close(); }
+  // the popup, once per card
+  for (const [i, nm] of names.entries()) { const want = HISTORY_EXPECT[nm]; if (!want) continue; const p = await openFind(b, cards, 1440); await p.evaluate(k => { const h = document.querySelectorAll("article.car")[k].querySelector(".hchip"); if (h) h.click(); }, i); await new Promise(r => setTimeout(r, 600));
+    const pop = await p.evaluate(() => { const e = document.querySelector(".hpop"); return e ? e.innerText.replace(/\s+/g, " ") : ""; }); ok(pop.includes(want.pop), `Find ${nm}: the chip opens the history popup with the car's own price ${want.pop} (${pop.slice(0, 90)})`); await p.close(); }
+  // the Task email and the Tasks page share the card code: the history tag survives there too
+  const { emailCardData } = await import(pathToFileURL(path.join(ROOT, "lib/tasks/emailCards.js")).href);
+  names.forEach((nm, i) => { const want = HISTORY_EXPECT[nm], d = emailCardData(cards[i]); ok(want ? d.hist === want.chip : !d.hist, `Task email card ${nm}: the history tag ${want ? "is " + want.chip : "is absent"} (${d.hist || "none"})`); }); }
 // the control: with NO cards the header must say so (the line is not simply deleted)
 { const p = await openFind(b, [], 1440); const r = await p.evaluate(inPage); ok(r.drawn === 0 && r.hasNothingLine, "Find with no cards: the header says there is nothing live (" + r.drawn + " cards)"); await p.close(); }
 await b.close();
