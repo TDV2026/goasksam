@@ -1240,6 +1240,9 @@
     left += heroIdentityLineHtml(d);
     var right = heroChartHtml(d);
     var full = "";
+    // E98: the engine's chart-withheld sentence sits in the chart panel, small and grey, where the chart would have been; never under the mileage box
+    var heldNote = !right ? chartHeldLine(d) : "";
+    if (heldNote) right = '<div class="hero-chart"><div class="hc-body"><p class="hc-note" data-stage="answer">' + lint(esc(heldNote), "hero.chartheld") + "</p></div></div>";
     if (!right) {
       if (thinTile) { left += thinTile.said; left += thinTile.asideBlock; right = thinTile.right; full = thinTile.full || ""; }
       else left += noChartLineHtml(d);
@@ -2179,6 +2182,9 @@
     // fallback any more.
     var right = heroChartHtml(d);
     var full = "";
+    // E98: the engine's chart-withheld sentence sits in the chart panel, small and grey, where the chart would have been; never under the mileage box
+    var heldNote = !right ? chartHeldLine(d) : "";
+    if (heldNote) right = '<div class="hero-chart"><div class="hc-body"><p class="hc-note" data-stage="answer">' + lint(esc(heldNote), "hero.chartheld") + "</p></div></div>";
     if (!right) {
       if (thinTile) { left += thinTile.said; left += thinTile.asideBlock; right = thinTile.right; full = thinTile.full || ""; }
       else left += noChartLineHtml(d);
