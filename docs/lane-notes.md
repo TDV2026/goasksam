@@ -729,3 +729,53 @@ Branch laned-tasks3. Lane B's commit 8677167f is cherry-picked onto it (be84d1ae
 - GOLDEN PENDING (Lane B): 47 cells = 10 rows x 4 lanes plus the email column, every one status pending in docs/golden-rules.md (no pin yet): rows 58 Carrera GT, 59 250 GT California, 60 California, 61 Skyline GT-R, 62 IROC-Z (one word: unpinned), row 71 Singer (unpinned, Singer rule), 72 1992 Carrera 4 (unpinned), 73 to 75 email cases (unpinned). None is a no-stored-row; the no-stored-row list for Lane C is rows 40, 41, 54, 56, 64, 68 (Buy and Tasks).
 - ENGINE READY 4 (Lane B, Oct 28), branch lane-b-e96-fix 0f7d5bf6 on top of 8ace0669, stamp unchanged e98-20261028-find, NOT pushed, FULL prePush not run by me; all 262 checks run here: the same 9 baseline failures, none new. Changes since ENGINE READY 3: the own-trim rival fix (row 15), storedsweep class trimIsModel, golden re-pins.
 - HEAVY STEP STOP (Lane B, Oct 28): row 15 and Cobra reads done; no read running.
+- REASON LINE TABLE (Lane B, Oct 28, e99-20261028-trimfix, lib/reasonWords.js; every producer builds its line there, no page writes one; check scripts/reasonWordsCheck.mjs). Before and after, one per line, [id | before | after]:
+    thin.house_share | BEFORE: The sales of this car are too one-sided to mark a range from. These are the sales on record. | AFTER: These sales come mostly from one place, so no range is shown.
+    thin.few_sales | BEFORE: Not enough sales of this exact car to give a reliable range. These are the sales on record. | AFTER: Too few sales to show a range.
+    thin.mixed_prices | BEFORE: These sales sit in very different price ranges, so no typical range is shown. These are the sales on record. | AFTER: These sales sit in very different price ranges, so no range is shown.
+    thin.pooled_apart | BEFORE: These sales split into options that sit in different price ranges, so no one typical range is shown. Pick an option below to read its own sales. | AFTER: These sales split into options priced apart, so pick one to see its range.
+    thin.few_comparable | BEFORE: Too few of these sales can be compared side by side to give a reliable range. These are the sales on record. | AFTER: Too few of these sales match closely enough to show a range.
+    wide.mileage | BEFORE: Wide because 20,000 to 90,000 miles. Add yours. | AFTER: The range is wide because mileage runs from 20,000 to 90,000 miles.
+    wide.year | BEFORE: Wide because these run from 2008 to 2014. Pick a year. | AFTER: The range is wide because the cars run from 2008 to 2014.
+    wide.mods | BEFORE: Wide because 4 of the 12 sales are modified cars. | AFTER: The range is wide because 4 of the 12 sales are modified cars.
+    wide.none | BEFORE: These sell on condition and history more than mileage. Here are the twelve sales. | AFTER: These sales vary with condition and history more than with mileage.
+    year.note | BEFORE: No 2010 sales in this range. These are 2008 to 2009 cars. | AFTER: No 2010 sales here, only 2008 to 2009 cars.
+    year.none_of | BEFORE: None of these sales is a 2010; they are 2008 to 2009 cars. | AFTER: None of these sales is a 2010, they are 2008 to 2009 cars.
+    option.floor | BEFORE: Convertible, 5 sales, too few for a range | AFTER: Coupe, 12 sales, too few for a range
+    option.range | BEFORE: Coupe $20,000 to $30,000, 12 sales | AFTER: Coupe $20,000 to $30,000, 12 sales
+    options.note | BEFORE: Each option's count is read over its own window, so the counts can add up to more than the headline count. | AFTER: Option counts use their own time spans, so they can add up to more than the total.
+    mileage.note | BEFORE: Too few sales near 40,000 miles to narrow it. This is the range for all twelve. | AFTER: Too few sales near 40,000 miles to narrow it, so this is the range for all 12 sales.
+    chart.caption | BEFORE: By quarter, November 2023 to September 2026. Quarters with fewer than 5 sales are left out. | AFTER: By quarter, 2008 to 2009, quarters under 5 sales left out.
+    chart.window | BEFORE: The chart covers 33 months, the range the last 11. | AFTER: The chart covers 33 months, the range the last 11.
+    mileage.band | BEFORE: 12 sales within 15,000 miles of 40,000, since December 2025. The band reads the last 12 months. | AFTER: 12 sales 2008 to 2009, since December 2025.
+    window.line | BEFORE: 12 sales, since December 2025. | AFTER: 12 sales, since December 2025.
+    window.longer | BEFORE: Based on 9 sales over the last 24 months. | AFTER: Based on 12 sales over the last 24 months.
+    basis.one | BEFORE: Based on one sale, in March 2026. | AFTER: Based on one sale, in March 2026.
+    basis.since | BEFORE: Based on nine sales since March 2025. | AFTER: Based on 12 sales since March 2026.
+    basis.latest | BEFORE: Based on nine sales, the latest in March 2026. | AFTER: Based on 12 sales, the latest in March 2026.
+    basis.pool_one | BEFORE: Based on one sale of 1995 911 Carrera, in March 2026. | AFTER: Based on one sale of 1995 911 Carrera, in March 2026.
+    basis.pool_since | BEFORE: Based on nine sales of 1995 911 Carrera since March 2025. | AFTER: Based on 12 sales of 1995 911 Carrera since March 2026.
+    basis.pool_latest | BEFORE: Based on nine sales of 1995 911 Carrera, the latest in March 2026. | AFTER: Based on 12 sales of 1995 911 Carrera, the latest in March 2026.
+    latest.sale | BEFORE: Latest sale: March 2026. | AFTER: Latest sale: March 2026.
+    includes.from | BEFORE: Includes sales from 2021. | AFTER: Includes sales from 2021.
+    scope.typed | BEFORE: Showing the Coupe as named. | AFTER: Showing the Coupe as named
+    scope.every | BEFORE: Showing every edition of this car. | AFTER: Showing every edition of this car
+    scope.same_price | BEFORE: The editions of this car sell for about the same, showing every edition. | AFTER: The editions of this car sell for about the same, showing every edition
+    scope.only_kept | BEFORE: Only the Coupe has three or more sales of this car, showing Coupe. | AFTER: Only the Coupe has three or more sales of this car, showing Coupe
+    scope.none_kept | BEFORE: No edition of this car has three sales on its own, showing every edition. | AFTER: No edition of this car has three sales on its own, showing every edition
+    scope.no_year | BEFORE: No 1974 sales yet, showing 1973. | AFTER: No 2010 sales yet, showing 1972 to 1973
+    scope.few_year | BEFORE: Too few 2006 sales, showing 2005 to 2007. | AFTER: Too few 2010 sales, showing 1972 to 1973
+    refusal.verify | BEFORE: Sam could not verify this one, so no figures are shown. | AFTER: No figures are shown because this car could not be checked.
+    refusal.not_a_car | BEFORE: (new in e98: no line) | AFTER: This does not read as a car, so no figures are shown.
+    refusal.varied | BEFORE: Sales too spread out for a range. | AFTER: These sales are too spread out to show a range.
+    refusal.read_failed | BEFORE: The archive read did not finish. Try the search again in a moment. | AFTER: This could not be read just now, try again in a moment.
+    refusal.no_body | BEFORE: The 993 911 was not sold as a Targa. If you mean a different body or a related model, tell me which and I'll pull the right sales. | AFTER: The 993 911 was not sold as a Targa, try another body or a related model.
+    refusal.not_tracked | BEFORE: We haven’t tracked a 1995 911 Carrera sale yet. When one sells, it’ll show up here. | AFTER: No sale of a 911 has been tracked yet.
+    refusal.no_sales | BEFORE: No sales of a 1995 911 Carrera are on record in the last five years, so there is no range to show. | AFTER: No sales of a 1995 911 Carrera are on record in the last five years, so there is no range to show.
+    refusal.builder | BEFORE: Singer cars are not compared with standard 911s, so Sam shows no range for this car. | AFTER: Singer cars are not compared with standard 911s, so no range is shown.
+    cold.still | BEFORE: Sam is still reading the sales for this one. | AFTER: The sales for this one are still being read.
+    cold.reading | BEFORE: Sam is reading the sales for this one. | AFTER: The sales for this one are being read.
+    cold.missed | BEFORE: Sam couldn't read this one yet. | AFTER: This one could not be read yet.
+    stale.line | BEFORE: Sales read on October 20. Sales since then are not in yet. Updating now. | AFTER: Sales read on October 20, newer sales are being added.
+- FOR LANE C (pages still hold their own copies of cold and stale wording, outside lib/): api/partnerDemo.js (COULD_NOT, STILL_LINE, four loading lines), lib/sell/sellMcClient.js ("Sam couldn't read this one yet", "Sam is reading"), api/buy.js client. Read them from the engine: cold.reading is stillReadingMarket().line and COMPUTING_LINE, cold.missed and cold.still are in the table; the page prints the field, not its own sentence.
+- ENGINE READY 5 (Lane B, Oct 28), branch lane-b-e96-fix f820a157, stamp e99-20261028-trimfix, SUPERSEDES ENGINE READY 3 and 4, NOT pushed, FULL prePush not run by me. Contains: the own-trim rival fix (Buick Grand National, ownTrimRivalCheck), the not_a_car refusal (notACarCheck), the Find card refine from the stored pool, the golden re-pins, storedsweep trimIsModel, and the reason line table. Stamp bump needed because the Buick fix changes stored answers and a same-stamp warm would skip the old rows. Checks that pin the stamp or a reason line follow (nameCheck, sellFieldsCheck, countNounCheck, mileageRuleCheck, optionsFieldCheck, scopeReasonCheck, wideCauseCheck, windowWordsCheck, yearNoteCheck, coldPathCheck, the five Singer line checks and golden row 71). All 263 checks: the same 9 baseline failures, none new. reasonWordsCheck fails 16 ways on origin/main code with the table (it reads the old sentences). The Singer line is now "Singer cars are not compared with standard 911s, so no range is shown." (golden row 71 follows).

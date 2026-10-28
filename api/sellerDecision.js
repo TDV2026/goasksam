@@ -1,3 +1,4 @@
+import { reasonLine } from "../lib/reasonWords.js";
 import { isNum } from "../lib/_num.js";
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { countNoun } from "../lib/countNoun.js";
@@ -57,7 +58,7 @@ import { specKeyFor, coreOf, persistCore, warmAnswerKeyFor, readWarmAnswer, read
 import { keepAlive } from "../lib/keepAlive.js";
 // COLD SPEC WORDS (Sam, Oct 28 2026): the computing answer and the one plain line when the read cannot finish. No page says "try again"; the page keeps asking
 // (retryAfterMs, up to waitMaxMs) while computing is true.
-export const COMPUTING_LINE = "Sam is reading the sales for this one.";
+export const COMPUTING_LINE = reasonLine("cold.reading");
 export const COULD_NOT_LINE = "Sam couldn't read this one yet.";
 const carStubOf = v => v ? { year: v.year || null, make: v.make || null, model: v.model || null, trim: v.trim || null, bodyStyle: v.bodyStyle || null } : null;
 const computingAnswer = v => ({ status: "one_box", tier: "unavailable", stillReading: true, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: 45000, samLine: COMPUTING_LINE, resolvedCar: carStubOf(v) });
@@ -3741,7 +3742,7 @@ async function handler(req, res) {
       // STALE STORED ANSWER (stage 4): served exactly as stored (its counts, range and cards), with the dated line in
       // Sam's exact form; the recompute starts the moment this response is sent (awaited after it, so the function
       // stays alive to finish and write the fresh row), and the line is gone on the next read.
-      const staleFields = staleInfo ? { stale: true, storedAt: staleInfo.storedAt, recomputingSince: staleInfo.recomputingSince || null, staleLine: `Sales read on ${new Date(staleInfo.storedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "America/Los_Angeles" })}. Sales since then are not in yet. Updating now.` } : {};
+      const staleFields = staleInfo ? { stale: true, storedAt: staleInfo.storedAt, recomputingSince: staleInfo.recomputingSince || null, staleLine: reasonLine("stale.line", { date: new Date(staleInfo.storedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "America/Los_Angeles" }) }) } : {};
       if (staleInfo) {
         // THE RECOMPUTE RUNS IN THIS PROCESS, after the response, under Vercel's waitUntil (stage 4, Oct 16 2026). An HTTP
         // self-call cannot land: the site's bot protection answers a server-side POST to this endpoint with a challenge

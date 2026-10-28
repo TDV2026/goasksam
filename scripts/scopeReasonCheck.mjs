@@ -69,7 +69,7 @@ ok("a real swap (330i receipts for a 325i) still refuses or is not served as the
 // a refusal: the sentence is a field, and refused sales are never thin (the typed-model guard refuses a pool read for another car)
 rows = []; for (let i = 0; i < 10; i++) sale(1966, day(10 + i * 9), 30000 + i * 300, true, "Ford", "Mustang");
 { const g = await oneEngineAnswer({ make: "Ford", model: "Mustang", trim: "", year: 1966, bodyStyle: null }, null, "1966 Ford GT40", env, null);
-  ok("a refusal carries its sentence as refusal_line and no thin_sales", g.raw.tier === "refusal" && g.raw.refusal_line === g.raw.samLine && /could not verify/i.test(String(g.raw.refusal_line)) && g.raw.thin_sales === null && g.refusal_line === g.raw.refusal_line, g.raw.tier + " " + g.raw.refusal_line + " " + JSON.stringify(g.raw.thin_sales)); }
+  ok("a refusal carries its sentence as refusal_line and no thin_sales", g.raw.tier === "refusal" && g.raw.refusal_line === g.raw.samLine && /could not be checked/i.test(String(g.raw.refusal_line)) && g.raw.thin_sales === null && g.refusal_line === g.raw.refusal_line, g.raw.tier + " " + g.raw.refusal_line + " " + JSON.stringify(g.raw.thin_sales)); }
 // Where to sell: the engine's own counts, no price
 rows = []; for (let i = 0; i < 4; i++) sale(1972, day(10 + i * 9), 30000 + i * 300, true);
 a = await askV(V(1972), "1972 Datsun 240Z");

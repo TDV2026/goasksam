@@ -33,25 +33,25 @@ const mk = (p, mi, y, mod) => ({ _usd: p, mileage: String(mi), year: y, mods: mo
 const set = (n, f) => Array.from({ length: n }, (_, i) => f(i));
 // unit: the cause comes from the set's own sales
 let w = E.wideOf(set(14, i => mk(80000 - i * 4500, 12000 + i * 7000, 2001, false)), [36000, 65000]);
-ok("unit mileage: price falls as miles rise", w && w.wideCause === "mileage" && w.wideLever === "mileage" && /^Wide because [\d,]+ to [\d,]+ miles\. Add yours\.$/.test(w.wideLine), JSON.stringify(w));
+ok("unit mileage: price falls as miles rise", w && w.wideCause === "mileage" && w.wideLever === "mileage" && /^The range is wide because mileage runs from [\d,]+ to [\d,]+ miles\.$/.test(w.wideLine), JSON.stringify(w));
 w = E.wideOf(set(15, i => mk(20000 + Math.floor(i / 5) * 18000 + (i % 5) * 500, 40000 + ((i * 7919) % 13) * 1000, 2001 + Math.floor(i / 5), false)), [20000, 58000]);
-ok("unit year: three model years that price apart, mileage scattered", w && w.wideCause === "year" && w.wideLever === "year" && /^Wide because these run from 2001 to 2003\. Pick a year\.$/.test(w.wideLine), JSON.stringify(w));
+ok("unit year: three model years that price apart, mileage scattered", w && w.wideCause === "year" && w.wideLever === "year" && /^The range is wide because the cars run from 2001 to 2003\.$/.test(w.wideLine), JSON.stringify(w));
 w = E.wideOf(set(12, i => mk(i < 6 ? 60000 + i * 300 : 25000 + i * 300, 40000 + ((i * 7919) % 13) * 1000, 2001, i < 6)), [25000, 62000]);
-ok("unit mods: modified and stock sales price apart", w && w.wideCause === "mods" && /^Wide because 6 of the 12 sales are modified cars\.$/.test(w.wideLine), JSON.stringify(w));
+ok("unit mods: modified and stock sales price apart", w && w.wideCause === "mods" && /^The range is wide because 6 of the 12 sales are modified cars\.$/.test(w.wideLine), JSON.stringify(w));
 w = E.wideOf(set(10, i => mk(20000 + ((i * 7919) % 10) * 4000, 40000 + ((i * 6007) % 11) * 1000, 2001, i % 2 === 0 ? false : false)), [20000, 56000]);
-ok("unit none: nothing measurable explains it", w && w.wideCause === "none" && w.wideLever === null && /^These sell on condition and history more than mileage\. Here are the 10 sales\.$/.test(w.wideLine), JSON.stringify(w));
+ok("unit none: nothing measurable explains it", w && w.wideCause === "none" && w.wideLever === null && /^These sales vary with condition and history more than with mileage\.$/.test(w.wideLine), JSON.stringify(w));
 ok("unit: a range at or under 1.6 times carries nothing", E.wideOf(set(10, i => mk(30000 + i * 500, 1000 * i, 2001, false)), [30000, 48000]) === null);
 // end to end: a wide car whose price tracks mileage
 MK = "Testmake";
 for (let i = 0; i < 16; i++) sale("Wide1", "Coupe", null, 82000 - i * 4300, 5 + i * 9);
 let a = await ask("Wide1");
-ok("engine: the headline range is wide and says mileage", a.tier === "result" && Array.isArray(a.cluster) && a.cluster[1] > 1.6 * a.cluster[0] && a.wideCause === "mileage" && /Add yours\.$/.test(a.wideLine || ""), `${JSON.stringify(a.cluster)} ${a.wideCause} ${a.wideLine}`);
+ok("engine: the headline range is wide and says mileage", a.tier === "result" && Array.isArray(a.cluster) && a.cluster[1] > 1.6 * a.cluster[0] && a.wideCause === "mileage" && /^The range is wide because mileage runs from/.test(a.wideLine || ""), `${JSON.stringify(a.cluster)} ${a.wideCause} ${a.wideLine}`);
 // each option line carries its own cause: coupes wide by mileage, convertibles tight
 for (let i = 0; i < 14; i++) sale("Wide2", "Coupe", null, 90000 - i * 5000, 5 + i * 9);
 for (let i = 0; i < 14; i++) sale("Wide2", "Convertible", null, 70000 + (i % 3) * 400, 6 + i * 9);
 a = await ask("Wide2");
 const co = (a.options || []).find(o => o.label === "Coupe"), cv = (a.options || []).find(o => o.label === "Convertible");
-ok("options: the wide option (coupe) carries a cause from its own sales", co && co.high > 1.6 * co.low && co.wideCause === "mileage" && /Add yours\.$/.test(co.wideLine || ""), JSON.stringify(co));
+ok("options: the wide option (coupe) carries a cause from its own sales", co && co.high > 1.6 * co.low && co.wideCause === "mileage" && /^The range is wide because mileage runs from/.test(co.wideLine || ""), JSON.stringify(co));
 ok("options: the tight option (convertible) carries none", cv && cv.wideCause === null && cv.wideLine === null, JSON.stringify(cv));
 console.log(failed ? `wideCauseCheck: ${failed} FAIL` : "wideCauseCheck: all PASS");
 process.exit(failed ? 1 : 0);
