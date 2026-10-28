@@ -499,6 +499,16 @@ async function handler(req, res) {
     if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
     if (!user) return res.status(401).json({ needSignIn: true });
     const b = req.body || {};
+    // WHAT FIND'S TOGGLES AND BUTTONS MADE (Oct 29 2026, lib/live/looking.js): the person's own watches and before-it-ends alerts, each with what it watches and a way to stop it, counted apart from the Task limit.
+    if (b.action === "looking") {
+      const { lookingList } = await import("../lib/live/looking.js");
+      const working = (await userTasks(env, user.userId).catch(() => [])).filter(t => ["running", "needs_you"].includes(t.state)).length;
+      return res.status(200).json(await lookingList(env, user, working));
+    }
+    if (b.action === "looking_stop") {
+      const { lookingStop } = await import("../lib/live/looking.js");
+      return res.status(200).json(await lookingStop(env, user, b.ref));
+    }
     if (b.action === "list") {
       const tasks = await userTasks(env, user.userId);
       const withThreads = await Promise.all(tasks.map(async t => ({ ...t, updates: await taskUpdates(env, t.id) })));

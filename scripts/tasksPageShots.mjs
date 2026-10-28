@@ -33,6 +33,8 @@ function account(tasks, opts = {}) {
     if (b.action === "cards") { if (A.cardsDelay) await new Promise(r => setTimeout(r, A.cardsDelay)); const t = A.tasks.find(x => x.id === b.task_id); return { updates: (t.updates || []).filter(u => u.data && u.data.cards).map(u => ({ id: u.id, full: A.cardsOf ? A.cardsOf() : CARDS.map(c => ({ ...c })) })) }; }
     if (b.action === "control") { const t = A.tasks.find(x => x.id === b.task_id); if (b.act === "stop") t.state = "done"; else if (b.act === "pause") t.state = "paused"; else if (b.act === "resume") { if (A.working() >= 3) return { ...A.blocked(), task: t }; t.state = "running"; } return { task: t }; }
     if (b.action === "limit") { if (b.event === "stop") { const t = A.tasks.find(x => x.id === b.task_id); if (t) t.state = "done"; if (b.mode === "draft" && b.draft) { if (A.working() >= 3) return A.blocked(); const n = mkTask(A.tasks.length + 1, "running", { summary: b.draft.summary }); A.tasks.unshift(n); return { ok: true, task: { ...n, starting: true } }; } } return { ok: true }; }
+    if (b.action === "looking") { if (!A.lookingRows) return { rows: [], counts: {} }; return { rows: A.lookingRows, counts: { tasks: { working: A.working(), max: 3 }, watches: { count: A.lookingRows.filter(r => r.kind !== "alert").length, max: 25 }, alerts: { count: A.lookingRows.filter(r => r.kind === "alert").length, max: 25 } }, rule: "Sam sends one email two hours before bidding ends, at any hour of the day or night." }; }
+    if (b.action === "looking_stop") { A.lookingRows = (A.lookingRows || []).filter(r => r.ref !== b.ref); return { ok: true }; }
     if (b.action === "notify") { if (typeof b.on === "boolean") A.notify.on = b.on; if (b.every) A.notify.every = b.every; return A.notify; }
     return {};
   };
@@ -238,6 +240,17 @@ try {
     const A = account([mkTask(1)], { enrich: body => ({ cards: (body.ids || []).map(id => ({ id, market: { ...pend } })) }) }); A.cardsOf = () => CARDS.map(c => ({ ...c, market: { ...pend }, sam_lines: [] }));
     const p = await open(A, 1440); await p.evaluate(() => { window.GAS_WAIT_SCALE = 0.02; }); await openTask(p); await wait(3000); const t = await text(p);   // the clock scaled down for the check only: 45 seconds of asking becomes under one
     ok(!/still reading/.test(t) && /Sam couldn't read this one yet\./.test(t) && !/try again/i.test(t), "reading: a market that never comes is said plainly after 45 seconds of asking (cold spec, Oct 28 2026), never try again, not left on the holding line"); await p.close(); }
+  // WHAT FIND'S TOGGLES AND BUTTONS MADE (Oct 29 2026): the watches and before-it-ends emails are on the Tasks page with what they watch and a Stop, counted apart from the Task limit.
+  { const A = account([mkTask(1), mkTask(2), mkTask(3)]);
+    A.lookingRows = [{ ref: "w:aaaaaaaa-0000-4000-8000-000000000001", kind: "spec_watch", what: "1995 Chevrolet Impala SS", detail: "The next sale of this car." }, { ref: "w:aaaaaaaa-0000-4000-8000-000000000002", kind: "car_watch", what: "1994 Porsche 911 Carrera Cabriolet", detail: "This exact car, if it comes up again." }, { ref: "a:4412", kind: "alert", what: "2010 Porsche 911 Carrera Cabriolet", detail: "Sam sends one email two hours before bidding ends, at any hour of the day or night.", ends_at: new Date(Date.now() + 5 * 864e5).toISOString() }];
+    const p = await open(A, 1440); const t = await text(p);
+    ok(/Watching/.test(t) && /1995 Chevrolet Impala SS/.test(t) && /1994 Porsche 911 Carrera Cabriolet/.test(t) && /2010 Porsche 911 Carrera Cabriolet/.test(t), "watching: every watch and email Find made is on the Tasks page, by the engine's name for the car");
+    ok(/Tasks 3 of 3 · watches 2 of 25 · before-it-ends emails 1 of 25/.test(t) && /do not use up your Tasks/.test(t), "watching: the counts are shown apart from the Task limit (3 of 3 Tasks, 2 watches, 1 email)");
+    ok(/two hours before bidding ends, at any hour/.test(t) && /Bidding ends/.test(t), "watching: an email shows the rule and when bidding ends");
+    ok((await p.evaluate(() => document.querySelectorAll("[data-lk-stop]").length)) === 3, "watching: each has a Stop");
+    await p.click('[data-lk-stop="w:aaaaaaaa-0000-4000-8000-000000000001"]'); await wait(900); const t2 = await text(p);
+    ok(!/1995 Chevrolet Impala SS/.test(t2) && /watches 1 of 25/.test(t2) && A.calls.includes("looking_stop") && A.working() === 3, "watching: Stop ends that one only, the counts follow, the Tasks keep running"); await p.close(); }
+  { const A = account([mkTask(1)]); const p = await open(A, 1440); const t = await text(p); ok(!/Watching/.test(t), "watching: nothing made by Find, no section"); await p.close(); }
   // SETUP QUESTIONS AND DRAFTS (Lane D, Oct 24 2026): choices are buttons, a typed answer is read leniently, a draft left behind shows
   // as a small card under the clean box (Continue, Discard), and a draft older than a day is dropped by the server.
   const Qm = "Which Porsche model should Sam look for?", stampNow = () => new Date().toISOString();

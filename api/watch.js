@@ -16,6 +16,7 @@ import { readVisitorId } from "../lib/_visitor.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { ready, arm, stop, resume, list, run, testSend, isMissingTable, probeBackdate, probeInspect, verifySoldTaskTap, soldTaskTap, soldTaskName, getWatch, setWatchState } from "../lib/live/watches.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
+import { routeLimit } from "../lib/_routeLimit.js";
 import { othersRunning as othersRunningFor, othersLine } from "../lib/tasks/othersRunning.js";
 
 // Does the person still have another running Task (lib/tasks/othersRunning.js)? This looking Task is left out.
@@ -116,6 +117,8 @@ async function handler(req, res) {
     // above) is never gated - someone who already has one must always be able to use it.
     if (b.action === "arm") {
       if (!isReleased("tasks", req)) return notReleasedJson(res);
+      { const lim = await routeLimit(env, req, "watch_arm", { route: "/api/watch" });   // the address and device line (lib/_ceilings.js watch_arm); the account's own cap is in arm
+        if (!lim.ok) return res.status(429).json({ ok: false, limited: true, line: "That is a lot of notices from here just now. Sam will take more in a few minutes.", retryAfter: lim.retryAfter }); }
       return res.status(200).json(await arm(env, user, { kind: b.kind, listing_id: b.listing_id, vin: b.vin, car: b.car, visitorId: readVisitorId(req) }));
     }
     if (b.action === "stop") return res.status(200).json(await stop(env, user, b.id));

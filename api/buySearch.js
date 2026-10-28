@@ -55,6 +55,8 @@ const withSuggest = (out, r) => ({ ...r, suggest: suggestFor({ meta: out.meta, f
 import { humanTitle } from "../lib/carTitle.js";
 import { supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { chatOut } from "../lib/live/chatHttp.js";
+import { routeLimit } from "../lib/_routeLimit.js";
+import { TOGGLE_LINE } from "../lib/live/buyAlerts.js";
 import { armAlert, cancelAlert, listAlerts, runAlerts, stopAll, verifyStop, verifyItem, stopOne, itemLabel, testSend, isMissingTable, alertsReady, useNamer } from "../lib/live/buyAlerts.js";
 
 const FIRST = 10, MAX = 200;
@@ -579,13 +581,17 @@ async function handler(req, res) {
     // public visitor (open-search policy: public answers come from the cache and the archive only).
     if (b.action === "detail") return res.status(200).json(await detailOut(env, b, { fresh: hasServerCredential(req) }));
     if (b.action === "save" || b.action === "list" || b.action === "watchsearch" || b.action === "remove" || b.action === "visit" || b.action === "hide" || b.action === "hideall") return await savedSearches(env, req, res, b);
-    if (b.action === "alerts_ready") return res.status(200).json({ ready: await alertsReady(env) });
+    if (b.action === "alerts_ready") return res.status(200).json({ ready: await alertsReady(env), rule: TOGGLE_LINE });   // rule: what the toggle prints (lib/live/buyAlerts.js), never a sentence of the page's own
     if (b.action === "arm" || b.action === "disarm" || b.action === "alerts" || b.action === "alert_test") {
       const user = await validateBearer(req.headers.authorization || "").catch(() => null);
       if (!user || !user.userId) return res.status(401).json({ ok: false, needSignIn: true });
       try {
         if (b.action === "alerts") return res.status(200).json(await listAlerts(env, user));
-        if (b.action === "arm") return res.status(200).json(await armAlert(env, user, b.listing_id));
+        if (b.action === "arm") {
+          const lim = await routeLimit(env, req, "watch_arm", { route: "/api/buySearch" });
+          if (!lim.ok) return res.status(429).json({ ok: false, limited: true, line: "That is a lot of notices from here just now. Sam will take more in a few minutes.", retryAfter: lim.retryAfter });
+          return res.status(200).json(await armAlert(env, user, b.listing_id));
+        }
         if (b.action === "disarm") return res.status(200).json(await cancelAlert(env, user, b.listing_id));
         // Probe only: this signed-in buyer's armed car, its message now, to a disposable test inbox.
         if (process.env.PROBE_KEY && b.key === process.env.PROBE_KEY && /^[^@\s]+@[^@\s]+$/.test(String(b.to || ""))) return res.status(200).json(await testSend(env, user.userId, b.listing_id, String(b.to), { freshBid, noMark: !!b.noMark }));

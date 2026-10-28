@@ -95,6 +95,7 @@ const APP_CSS = `
 .tkbox button[disabled]{opacity:.6}
 .choices{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}.choices .chip{font:500 15px/1 var(--sans);padding:11px 16px;min-height:44px;border:1px solid var(--div);background:#fff;color:var(--ink);border-radius:999px;cursor:pointer}.choices .chip:hover{border-color:#1A1A1A}.choices .chip:disabled{opacity:.5;cursor:default}
 .statusline{margin:0 0 12px;font:500 15px/1.4 var(--sans);color:var(--sec)}
+.lk{margin:26px 0 8px}.lk h2{margin:0 0 4px;font:600 18px/1.3 var(--sans);color:var(--ink)}.lk .lkc{margin:0 0 10px;font:400 14px/1.45 var(--sans);color:var(--sec)}.lk ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}.lk li{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border:1px solid var(--div);border-radius:12px;padding:12px 14px;background:var(--card,#fff)}.lk .lkw{font:500 15px/1.35 var(--sans);color:var(--ink)}.lk .lkd{display:block;margin-top:2px;font:400 13px/1.4 var(--sans);color:var(--sec)}.lk .sbtn{flex:none}
 .newn{font:600 13px/1 var(--sans);padding:5px 9px;border-radius:999px;background:#1E4D38;color:#fff;white-space:nowrap}
 .pill.needs{background:var(--red);color:#fff}
 .tgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0 0;align-items:start}
@@ -288,6 +289,7 @@ const APP_JS = String.raw`(function(){
   // It shows only while the server's latest answer says the account is at the limit: every list drops it the moment it is not.
   var limit = null, carry = "", draftOpen = !!(params.get("start") || params.get("seed")), miss = false;
   var starting = {}, firing = {}, cardsOut = {}, fullCache = {}, askN = {};
+  var looking = null;   // what Find's toggles and buttons made (api/tasks.js action looking): the person's watches and before-it-ends alerts
   var COLD_MAX = 45000, COULD_NOT = "Sam couldn't read this one yet.", coldSince = {};   // cold spec (Oct 28 2026): a card still being read is asked for every 2 seconds for up to 45 seconds, then the one plain line; never "try again"
   function phraseOf(t){ return String((t && t.summary) || "").replace(/^Sam is (?:looking for|researching)\s+/i, "").replace(/:.*$/, "").replace(/[.]+$/, ""); }
   function showLimit(l){ limit = l; api({ action: "limit", event: "seen", mode: l.mode, attempted: l.attempted }).catch(function(){}); }
@@ -406,6 +408,18 @@ const APP_JS = String.raw`(function(){
       '<span class="oftenhelp">' + (cur === "instant" ? "An email each time Sam finds one, up to six a day." : "One email with everything new from all your Tasks.") + " A car you asked to hear about before bidding ends gets its own email two hours before the end." + "</span>" : "";
     return '<div class="notify">' + (n.on ? "<span>Updates go to <b>" + esc(n.email || "your account email") + '</b>, the address you sign in with.</span>' : "<span>Email is off. Updates show here and on Tasks.</span>") + sw + often + "</div>";
   }
+  // WHAT FIND'S TOGGLES AND BUTTONS MADE (Oct 29 2026): each watch and each before-it-ends email, what it watches (the server's own label) and a Stop. The counts are apart from the Task limit: a watch or an email never uses
+  // up one of the working Tasks. Every word that is not a label comes from the server (looking.counts, looking.rule).
+  function lookingHtml(){
+    if (!looking || !looking.rows) return "";
+    var c = looking.counts || {}, rows = looking.rows;
+    if (!rows.length) return "";
+    var line = [c.tasks && ("Tasks " + c.tasks.working + " of " + c.tasks.max), c.watches && ("watches " + c.watches.count + " of " + c.watches.max), c.alerts && ("before-it-ends emails " + c.alerts.count + " of " + c.alerts.max)].filter(Boolean).join(" · ");
+    return '<section class="lk" aria-label="Watches and emails Find set up"><h2>Watching</h2><p class="lkc">' + esc(line) + ". Watches and emails do not use up your Tasks.</p><ul>" + rows.map(function(r){
+      var when = r.ends_at ? " Bidding ends " + esc(new Date(r.ends_at).toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })) + "." : "";
+      return '<li><span class="lkw">' + esc(r.what || "") + '<span class="lkd">' + esc(r.detail || "") + when + '</span></span><button class="sbtn" data-lk-stop="' + esc(r.ref) + '">Stop</button></li>'; }).join("") + "</ul></section>";
+  }
+  function loadLooking(){ return api({ action: "looking" }).then(function(j){ looking = j && j.rows ? j : null; render(); }).catch(function(){}); }
   function render(){
     // Typed text and focus survive a redraw (cars fill in while a person is typing in a Task's box).
     var keep = {}, fid = document.activeElement && document.activeElement.id; app.querySelectorAll("input[id^=tkq]").forEach(function(i){ keep[i.id] = i.value; });
@@ -430,6 +444,7 @@ const APP_JS = String.raw`(function(){
     work.forEach(function(t){ if (t.state === "needs_you" && !autoOpened[t.id]) { autoOpened[t.id] = true; setOpen(t.id); } });
     if (openId && !mine.some(function(t){ return t.id === openId; })) setOpen(null);
     h += overview(mine);
+    h += lookingHtml();
     // The email settings show for everyone signed in, with or without a working Task: exact-car, sold-car and
     // Before it ends emails use them too.
     h += notifyLine();
@@ -450,7 +465,7 @@ const APP_JS = String.raw`(function(){
   function load(){ return api({ action: "list", fast: true, draft: draft, open: openId || params.get("task") || null }).then(function(j){
     data = j; if (draft && j.draft_ok === false) saveDraft(null); syncLimit(); syncBadge();
     (data.tasks || []).forEach(function(t){ (t.updates || []).forEach(function(u){ if (u.data && fullCache[u.id]) u.data.full = fullCache[u.id]; }); });
-    render(); kick(); }).catch(function(){}); }
+    render(); kick(); loadLooking(); }).catch(function(){}); }
   function kick(){
     ((data && data.tasks) || []).forEach(function(t){
       if (t.kind === "hunt" && t.state === "running" && !firing[t.id] && !(t.updates || []).some(function(u){ return u.kind === "match"; })) {
@@ -511,6 +526,7 @@ const APP_JS = String.raw`(function(){
     }).catch(function(){ busy = false; render(); var q = $(tid ? "tkq-" + tid : "tkq"); if (q) q.value = text; });
   }
   document.addEventListener("click", function(e){
+    var lk = e.target.closest("[data-lk-stop]"); if (lk) { e.preventDefault(); if (lk.disabled) return; lk.disabled = true; lk.textContent = "Stopping..."; api({ action: "looking_stop", ref: lk.getAttribute("data-lk-stop") }).catch(function(){}).then(loadLooking); return; }
     var t = e.target.closest("[data-send],[data-act],[data-start],[data-change],[data-apply],[data-unpending],[data-goto],[data-limit-stop],[data-limit-keep],[data-choice],[data-continue],[data-discard],[data-toggle]"); if (!t) return;
     if (t.hasAttribute("data-limit-keep")) { e.preventDefault(); var lk = limit; limit = null; carry = ""; if (lk) api({ action: "limit", event: "keep", mode: lk.mode, attempted: lk.attempted }).catch(function(){}); dropEntryParams(); render(); return; }
     if (t.hasAttribute("data-limit-stop")) { e.preventDefault(); if (t.disabled) return; var ls = limit || { mode: "none", attempted: "" }, cid = t.getAttribute("data-limit-stop"); working(t, "Stopping...");
