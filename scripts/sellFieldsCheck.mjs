@@ -81,5 +81,5 @@ ok("reserve_split null when no scope clears the floor", a1.raw.reserve_split ===
 rows = [];
 const none = await oneEngineAnswer({ make: "Datsun", model: "240Z", trim: "", year: 1999, bodyStyle: null }, null, "1999 Datsun 240Z", env, null);
 ok("an answer with no pool carries both fields as null", none.raw.best_day === null && none.raw.reserve_split === null);
-ok("the stamp is e96", E.ENGINE_VERSION.split(" ")[0] === "e96-20261028-options");
+ok("the stamp is e98", E.ENGINE_VERSION.split(" ")[0] === "e98-20261028-find");
 process.exit(failed ? 1 : 0);

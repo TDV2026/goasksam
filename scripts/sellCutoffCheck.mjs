@@ -86,11 +86,14 @@ for (const [W, H] of [[1440, 900], [390, 844]]) for (const mode of ["ok", "restf
   });
   await p.goto("https://goasksam.com/sell?car=" + encodeURIComponent("2006 Porsche 911 Carrera") + "&state=California&how=self&rush=none", { waitUntil: "domcontentloaded", timeout: 60000 }).catch(() => {});
   const snap = () => p.evaluate(() => ({ wait: (document.querySelector("[data-waitline]") || {}).textContent || null, bar: !!document.querySelector(".sell-wait-bar i"), card: !!document.querySelector(".sfc-card"), pick: !!document.querySelector(".pcard"), sales: !!document.querySelector("#sell-sales .grid3, #sell-sales .sale"), failMsg: (document.querySelector(".sell-wait-fail") || {}).textContent || null, slow: !!document.querySelector("[data-waitslow]:not([hidden])"), sideways: document.documentElement.scrollWidth > innerWidth + 2, input: (() => { const i = document.getElementById("ob-input"); if (!i) return false; const r = i.getBoundingClientRect(); return r.width > 0 && r.top >= 0 && r.bottom <= innerHeight; })() }));
-  await sleep(450); let t = await snap();
+  // POLLED, NOT SLEPT (Oct 29 2026): the first version slept 450, 1200 and 2600 ms after the page began to load, and failed under a loaded FULL run (a slow start shifted every stage). Each stage is now waited for (up to 12 seconds);
+  // what is asserted at each stage is unchanged: the waiting line before any card, the range card before the rest, the end state last.
+  const until = async (pred, ms = 12000) => { const t0 = Date.now(); let v = await snap(); while (!pred(v) && Date.now() - t0 < ms) { await sleep(40); v = await snap(); } return v; };
+  let t = await until(v => v.wait || v.card);
   ok(/^Reading the sales for the 2006 Porsche 911 Carrera$/.test(t.wait || "") && t.bar && !t.card && !t.pick, `${tag}: first the waiting line with a moving bar, no card yet (${t.wait})`);
-  await sleep(1200); t = await snap();
+  t = await until(v => v.card);
   ok(t.card && !t.pick && t.bar && /^(Checking where cars like this sold|Nearly there)$/.test(t.wait || ""), `${tag}: the range card is on screen before the rest, with the staged line in the slot (${t.wait})`);
-  await sleep(2600); t = await snap();
+  t = await until(v => mode === "ok" ? (v.pick && v.sales && !v.bar) : (v.failMsg && !v.bar));
   if (mode === "ok") {
     ok(t.card && t.pick && t.sales && !t.bar && !t.failMsg, `${tag}: then the pick card and the latest sales, the wait gone`);
     ok(await p.evaluate(() => /Monday/.test(document.body.innerText) && /Most often sold on a/i.test(document.body.innerText)), `${tag}: the day card is in the pick card`);
