@@ -1587,7 +1587,7 @@ async function handleOps(req, res) {
     const onlyVersion = String(req.query?.version || ENGINE_VERSION);   // e95: only the answers stamped with the live engine; older stored rows are counted, not judged
     const out = { version: onlyVersion, rows: 0, otherVersion: 0, results: 0, setViolations: 0, wrongModel: 0, noiseTrim: 0, pooled: { apart: 0, split: 0, alike: 0 }, first: { setViolations: [], wrongModel: [], noiseTrim: [], apart: [], split: [] }, readFailed: 0,
       // e95 class counters (Lane B, Oct 28): counts over the live-version results, the first 10 of each with what explains it
-      classes: { optionQuestion: { built: 0, asked: 0, alike: 0, split: 0, apart: 0 }, wideAlike: { n: 0, examples: [] }, windowMismatch: { n: 0, examples: [] }, yearApart: { n: 0, examples: [] }, lowMileTiles: { sales: 0, answers: 0, examples: [] }, zeroFromNull: { n: 0, examples: [] } } };
+      classes: { optionQuestion: { built: 0, asked: 0, alike: 0, split: 0, apart: 0 }, wideAlike: { n: 0, examples: [] }, windowMismatch: { n: 0, examples: [] }, yearApart: { n: 0, examples: [] }, lowMileTiles: { sales: 0, answers: 0, examples: [] }, zeroFromNull: { n: 0, examples: [] }, editionAside: { n: 0, examples: [] }, yearExcluded: { n: 0, examples: [] } } };
     let cursor = req.query?.after ? String(req.query.after) : "";
     const keep = (k, o) => { if (out.first[k].length < 20) out.first[k].push(o); };
     for (let page = 0; page < maxPages; page++) {
@@ -1618,6 +1618,11 @@ async function handleOps(req, res) {
           const bk = d.trend && d.trend.movement && Array.isArray(d.trend.movement.buckets) ? d.trend.movement.buckets : [];
           const barSum = bk.reduce((t, b) => t + (Number(b.count) || 0), 0);
           if (bk.length && n && barSum !== n) { C.windowMismatch.n++; ex("windowMismatch", { cardN: n, barSum, windowWords: d.windowWords || null, span: d.trend.movement.spanLabel || null }); }
+          // Oct 28 (the 2010 Murcielago): a set-aside sale of another edition than the pool, and a range whose years leave out the typed year
+          const edAside = (Array.isArray(d.setAsideRows) ? d.setAsideRows : []).filter(x => /variant|halo|edition|special|trim/i.test(String(x && x.reason || "")));
+          if (edAside.length) { C.editionAside.n++; ex("editionAside", { aside: edAside.slice(0, 3).map(x => `${String(x.title || "").slice(0, 60)} (${String(x.reason).slice(0, 50)})`), pool: d.rungLabel || d.scopeLabel || null }); }
+          const ty = Number((d.resolvedCar || {}).year), pyr = Array.isArray(d.poolYears) && d.poolYears.length === 2 ? d.poolYears.map(Number) : null;
+          if (ty > 0 && pyr && pyr.every(x => x > 0) && (ty < pyr[0] || ty > pyr[1])) { C.yearExcluded.n++; ex("yearExcluded", { typed: ty, poolYears: pyr, rung: d.fallbackRung || null, label: d.scopeLabel || null }); }
           const yrs = {}; for (const r of (Array.isArray(d.rawPool) ? d.rawPool : [])) { const y = Number(r.year), v = Number(r._usd ?? r._allin ?? r._hammer); if (y > 0 && Number.isFinite(v)) (yrs[y] = yrs[y] || []).push(v); }
           const pq = (arr, f) => { const v = [...arr].sort((x, y) => x - y), k = (v.length - 1) * f, i = Math.floor(k), j = Math.min(i + 1, v.length - 1); return v[i] + (v[j] - v[i]) * (k - i); };
           const yl = Object.keys(yrs).map(Number).filter(y => yrs[y].length >= 3).sort((x, y) => x - y); let yApart = null;
