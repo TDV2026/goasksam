@@ -17,7 +17,7 @@ ok(/pop\.className = "hpop modal"/.test(oh) && /document\.body\.appendChild\(sc\
 ok(/pop\.setAttribute\("aria-modal", "true"\)/.test(oh) && /x\.focus\(/.test(oh), "a dialog, focus on its X");
 ok(/\.hpop\.modal\{position:fixed;left:50%;top:50%;[^}]*transform:translate\(-50%,-50%\);[^}]*z-index:200\}/.test(css) && /\.hscrim\{z-index:199\}/.test(css), "fixed, centred, above everything (the scrim just under it)");
 ok(/sc\.setAttribute\("data-hpclose", ""\)/.test(oh) && /if \(e\.target\.closest\("\[data-hpclose\]"\)\) \{ e\.preventDefault\(\); return closeOverlays\(\); \}/.test(c), "a click outside (on the scrim) or on the X closes it");
-ok(/document\.addEventListener\("keydown", function\(e\)\{ if \(e\.key === "Escape"\) \{ closeOverlays\(\);/.test(c), "Escape closes it");
+ok(/document\.addEventListener\("keydown", function\(e\)\{ if \(e\.key === "Escape"\) \{ if \(document\.querySelector\("\[data-sale-modal\]"\)\) \{ closeSale\(\); return; \} closeOverlays\(\);/.test(c), "Escape closes it (a sale modal first, then the rest)");
 // The rows, rendered for the 1996 Turbo.
 const env = "var HOUSE = {}, MON3 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];\nfunction esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\"/g,'&quot;'); }\n" +
   [priorSold, priorWords, priorTake].map(f => f.toString()).join("\n") + "\n" + line("  function usd(n){") + line("  function num(n){") + line("  function monShort(d){") + line("  function okUrl(u){") + line("  function sameCar(l){") + block("  function histHtml(l){", "  function openHist(btn){");
