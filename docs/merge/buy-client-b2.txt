@@ -1,0 +1,108 @@
+api/buy.js CLIENT string, decoded, three-way (Lane C, Oct 28). base = merge-base of bb83288a and main (aa9ea4ca); strip = bb83288a; main = 3ee36435.
+
+## base -> main (the only main change inside the string, 4 lines)
+674c674
+<     var COLD_MAX = 45000, COULD_NOT = "Sam couldn't read this one yet.";
+---
+>     var COLD_MAX = 45000, COULD_NOT = __COLD_MISSED__;
+711c711
+<   var READING_LINE = "Sam is reading the sales for this one.";
+---
+>   var READING_LINE = __COLD_READING__;
+
+## base -> strip (Lane E, 10 hunks, none touches lines 674 or 711)
+13c13,21
+<   var ALIGN = [".tx > .trow", ".tx > .meta", ".tx > .specs", ".tx > .sl"], alignQ = 0;
+---
+>   var ALIGN = [".tx > .src", ".tx > .trow", ".tx > .meta", ".tx > .specs", ".tx > .sl > .fx-spec", ".tx > .sl > .fx-ans", ".tx > .sl > .fx-count", ".tx > .sl"], alignQ = 0;
+>   // THE CHIP ROW IS ONE ROW (Sam, Oct 28 2026): it never wraps; while it overflows, the longest chip is dropped first (the Sold before / Listed before chip stays). Layout only: no chip is written or counted here.
+>   function fitChips(){
+>     Array.prototype.forEach.call(document.querySelectorAll("article.car .specs"), function(p){
+>       var chips = Array.prototype.slice.call(p.querySelectorAll(".spec:not(.hchip)")); chips.forEach(function(x){ x.hidden = false; });
+>       var order = chips.slice().sort(function(a, b){ return b.textContent.length - a.textContent.length; });
+>       for (var i = 0; i < order.length && p.scrollWidth > p.clientWidth + 1; i++) order[i].hidden = true;
+>     });
+>   }
+15a24
+>     fitChips();
+1113a1123
+>     // E98 (Sam, Oct 28 2026): the miles and the place are the slot of one line; a listing that states neither prints nothing there (never a not-listed label) and the slot keeps its height (CSS .meta min-height) so the cards stay level.
+1116c1126
+<     return bits.length ? '<p class="meta">' + bits.map(function(b){ return '<span class="nw">' + esc(b) + "</span>"; }).join(' <span class="sep">·</span> ') + "</p>" : "";
+---
+>     return bits.length ? '<p class="meta">' + bits.map(function(b){ return '<span class="nw">' + esc(b) + "</span>"; }).join(' <span class="sep">·</span> ') + "</p>" : '<p class="meta"></p>';
+1171,1172c1181
+<   // the engine's option lines (optionLines under a range; headlineLines carried as optionLines when none is shown), printed as written between the answer and the count
+<   // the engine's option lines (optionLines under a range; headlineLines carried as optionLines when none is shown): read, never rebuilt
+---
+>   // the engine's option lines (optionLines under a range; headlineLines carried as optionLines when none is shown): read for the expanded panel, never printed on the card
+1174,1183c1183,1192
+<   // THE FIND CARD'S WEIGHTS (Sam, Oct 28 2026, e98): the spec in small grey, the range alone in the large serif, then at most two small grey lines. In a split or apart state the large figure is the
+<   // leading option's range under its label in small caps and the second line names the other(s). The options' own lines (Manual, PDK) print only in the expanded panel (drawerHtml). Nothing that is a number is a link.
+<   // fxParts only SPLITS the engine's own option line into label, range and count; it writes no word and computes no number.
+<   function fxParts(t){ var p = /^(.+?)\s+(\$[\d,]+ to \$[\d,]+),\s+(.+)$/.exec(String(t || "")); return p ? { label: p[1], range: p[2], count: p[3] } : null; }
+<   // The option the listing matches (the engine's matchedOption: an index into optionLines, or the option's own label) prints first; none sent, the engine's order stands. Nothing else is reordered.
+<   function fxSplit(l){
+<     var m = l.market || {}, ls = fxOpt(l);
+<     if (!((m.optionsState === "split" || m.optionsState === "apart") && ls.length)) return null;
+<     var mo = m.matchedOption, at = typeof mo === "number" && mo >= 0 && mo < ls.length ? mo : typeof mo === "string" && mo ? ls.findIndex(function(t){ return t === mo || String(t).indexOf(mo + " $") === 0 || String(t).indexOf(mo + ",") === 0; }) : -1;
+<     return at > 0 ? [ls[at]].concat(ls.slice(0, at), ls.slice(at + 1)) : ls;
+---
+>   // THE FIND CARD'S SAM BOX (Sam, Oct 28 2026; Lane B's ENGINE READY 10 field market.findAnswer): exactly three slots, the same on every card so the cards in a row line up: (1) the spec line, (2) the answer: the range in
+>   // the large serif, or one thin sentence, (3) ONE small line. A Find card never prints a sale line, a "pick one" line, a second range, the near-miles line of its own or a mileage band line: those paths are gone from
+>   // Find (the See the sales panel and Market Check keep every sale). findAnswer = { state: range | few | split_unsaid, range: { low, high } | null, lines: [string], ... }: the page prints range and lines, nothing of its own.
+>   // With no findAnswer (an answer stored before ENGINE READY 10) the same three slots read the older fields: the range or the engine's reason line, then the count and the bid sentence in one small line.
+>   function fxHead(l){ var m = l.market || {}; return '<p class="fx-spec">' + (m.specLabel ? esc(m.specLabel) : "") + "</p>"; }
+>   function fxSlots(l, answerHtml, small){ return fxHead(l) + answerHtml + '<p class="fx-count">' + (small ? esc(small) : "") + "</p>"; }
+>   function fxFindHtml(l, fa){
+>     var ls = (fa.lines || []).filter(function(t){ return typeof t === "string" && t; });
+>     if (fa.state === "range" && fa.range && fa.range.low > 0 && fa.range.high > 0) return fxSlots(l, '<p class="fx-ans fx-range">' + esc(usd(fa.range.low) + " to " + usd(fa.range.high)) + "</p>", ls.join(" "));
+>     return fxSlots(l, '<p class="fx-ans fx-answer">' + esc(ls[0] || "") + "</p>", ls.slice(1).join(" "));
+1185d1193
+<   function fxHead(l){ var m = l.market || {}; return m.specLabel ? '<p class="fx-spec">' + esc(m.specLabel) + "</p>" : ""; }
+1187,1193c1195,1196
+<     var m = l.market || {}, bid = x && x.bidLine ? String(x.bidLine) : "", near = m.mileageNear, sp = fxSplit(l), second = "";
+<     if (sp) second = sp.slice(1).map(function(t){ return String(t).replace(/\.?$/, "."); }).join(" ") + (bid ? " " + bid : "");
+<     else if (near && near.line) second = near.line;
+<     else if (m.scope_reason) second = m.scope_reason;
+<     else if (m.wideLine) second = m.wideLine;
+<     var count = sp ? (m.countLine || "") : (m.countLine ? m.countLine + (bid ? " " + bid : "") : bid);
+<     return (count ? '<p class="fx-count">' + esc(count) + "</p>" : "") + (second.trim() ? '<p class="fx-near">' + esc(second.trim()) + "</p>" : "");
+---
+>     var m = l.market || {}, bid = x && x.bidLine ? String(x.bidLine) : "";
+>     return m.countLine ? m.countLine + (bid ? " " + bid : "") : bid;
+1198c1201
+<     return fxHead(l) + '<p class="fx-range">' + esc(usd(m.low) + " to " + usd(m.high)) + "</p>" + fxTail(l, x);
+---
+>     return fxSlots(l, '<p class="fx-ans fx-range">' + esc(usd(m.low) + " to " + usd(m.high)) + "</p>", fxTail(l, x));
+1200c1203
+<   // A card with no range: the same head, the engine's reason line as the answer, the same tail.
+---
+>   // A card with no range: the same three slots, the engine's reason line as the answer.
+1203,1205c1206,1207
+<     var m = l.market || {}, first = (String(x.text || "").match(/^.*?\.(?=\s|$)/) || [String(x.text || "")])[0], sp = fxSplit(l), lead = sp && fxParts(sp[0]);
+<     if (lead) return fxHead(l) + '<p class="fx-lab">' + esc(lead.label) + '</p><p class="fx-range">' + esc(lead.range) + "</p>" + fxTail(l, x);
+<     return fxHead(l) + '<p class="fx-answer">' + esc(m.answerLine || first) + "</p>" + fxTail(l, x);
+---
+>     var m = l.market || {}, first = (String(x.text || "").match(/^.*?\.(?=\s|$)/) || [String(x.text || "")])[0];
+>     return fxSlots(l, '<p class="fx-ans fx-answer">' + esc(m.answerLine || first) + "</p>", fxTail(l, x));
+1207,1208c1209
+<   // THE SALES-ONLY CARD: the engine's thin_sales (lib/onebox.js thinSalesOf), the answer line, each sale as a line that opens the modal, the count line. The zero state is the engine's own answer line.
+<   function saleLineText(x){ return [usd(x.price), x.month, x.gearbox, Number(x.mi) > 0 ? num(x.mi) + " miles" : ""].filter(Boolean).join(" · "); }
+---
+>   // The engine's sales-only answer (lib/onebox.js thinSalesOf): its answer line and its count line; the sales themselves are in the See the sales panel, never on the card.
+1212,1216c1213,1215
+<     if (t.count === 0) return t.answer_line ? { html: '<p class="fx-answer">' + esc(t.answer_line) + "</p>" } : null;
+<     var sales = (t.sales || []).filter(function(x){ return x && x.price > 0; });
+<     if (!sales.length) return null;
+<     var list = '<div class="fx-sales">' + sales.map(function(x, i){ return '<p class="fx-sl"><button type="button" class="fx-sale" data-fxsale="' + i + '" data-fxid="' + esc(String(l.id)) + '" aria-haspopup="dialog">' + esc(saleLineText(x)) + "</button></p>"; }).join("") + "</div>";
+<     return { html: fxHead(l) + '<p class="fx-answer">' + esc(t.answer_line || m.answerLine || "") + "</p>" + list + fxTail(l, { bidLine: bidLine || null }) };
+---
+>     if (t.count === 0) return t.answer_line ? { html: fxSlots(l, '<p class="fx-ans fx-answer">' + esc(t.answer_line) + "</p>", "") } : null;
+>     if (!(t.sales || []).some(function(x){ return x && x.price > 0; })) return null;
+>     return { html: fxSlots(l, '<p class="fx-ans fx-answer">' + esc(t.answer_line || m.answerLine || "") + "</p>", t.count_line ? t.count_line + (bidLine ? " " + bidLine : "") : (bidLine || "")) };
+1218a1218,1219
+>     var fa = !l.swap && l.market && l.market.findAnswer && typeof l.market.findAnswer === "object" ? l.market.findAnswer : null;
+>     if (fa && Array.isArray(fa.lines) && fa.lines.length) return { html: fxFindHtml(l, fa) };
+
+## merged line count: base 1969, strip 1970, main 1969, merged 1970; merged holds both __COLD_MISSED__ and __COLD_READING__ and the strip's fitChips and fxFindHtml
