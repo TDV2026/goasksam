@@ -28,5 +28,6 @@ ok(ageOnly === 3 && r.onDay === 2, `WITHOUT the fix (age under 24 hours only) th
 const OPS = fs.readFileSync("api/usageDashboard.js", "utf8");
 ok(/task === "warmDay"/.test(OPS) && /rowsOffDay\(mc, day, ENGINE_VERSION\)/.test(OPS), "task=warmDay is wired and reads the helper");
 ok(!/supabaseInsert|supabaseDelete|writeWarmAnswer|\.upsert/.test(OPS.slice(OPS.indexOf('task === "warmDay"'), OPS.indexOf('task === "warmDemoCheck"'))), "task=warmDay writes nothing");
+ok(/withoutE96Fields/.test(OPS), "the day count also names the live-stamp rows stored in the thin shape (no optionsState), which the warm re-stores");
 console.log(`warmDayCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

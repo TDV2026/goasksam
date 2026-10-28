@@ -1310,6 +1310,27 @@ try {
 } catch (e) {
   record("stored answers are the whole answer (scripts/warmStoresFullAnswerCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A warm confirmation is never a search (Sam, Oct 29 2026). No network.
+try {
+  const out = execSync("node scripts/warmHitsCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("a warm confirmation reads the stored row, never a search (scripts/warmHitsCheck.mjs)", "PASS", (out.match(/warmHitsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("a warm confirmation reads the stored row, never a search (scripts/warmHitsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// The history pages' window is the engine's (Sam, Oct 29 2026). Fake archive, no database.
+try {
+  const out = execSync("node scripts/historyWindowCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("history pages print the engine's window, never one they work out (scripts/historyWindowCheck.mjs)", "PASS", (out.match(/historyWindowCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("history pages print the engine's window, never one they work out (scripts/historyWindowCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// The house tier's gearbox words, split flag and pattern line are the engine's (Sam, Oct 29 2026). Rendered in a browser.
+try {
+  const out = execSync("node scripts/houseGearboxCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("the house tier's box words come from the engine (scripts/houseGearboxCheck.mjs)", "PASS", (out.match(/houseGearboxCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("the house tier's box words come from the engine (scripts/houseGearboxCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The named warm list is Sam's 19 specs and the warm tool reads it (Sam, Oct 28 2026). The live half (--live) runs after a warm, not here. No network.
 try {
   const out = execSync("node scripts/namedWarmCheck.mjs", { encoding: "utf8" });

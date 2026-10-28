@@ -18,9 +18,9 @@ ok(hubLead({ year: null, make: "BMW", family: "M3", n: 1303, win: W12, date: D }
 for (const n of [0, null, undefined]) ok(hubLead({ year: 2001, make: "Ford", family: "Falcon", n, win: W12, date: D }) === "Each car below by VIN, with its auction results, as of October 20, 2026.", `no engine pool (${n}): the list's own sentence`);
 ok([[2009, "Porsche", "911", 3], [null, "Ford", "Mustang", 2]].every(([y, m, f, n]) => /^The /.test(hubLead({ year: y, make: m, family: f, n, win: W12, date: D }))), "never starts with a number");
 // The window is the engine's: Sam's words for its twelve-month window, else its windowWords, else none; never hardcoded.
-ok(hubWindow({ windowLabel: "last twelve months", windowWords: "since October 2025" }) === W12, "the engine's twelve-month window: Sam's words");
-ok(hubWindow({ windowLabel: "last two years", windowWords: "since October 2024" }) === "since October 2024" && hubWindow({ tier: "thin", windowLabel: "past 5 years", windowWords: "since October 2021" }) === "since October 2021", "two years, a thin read: the engine's own windowWords");
-ok(hubWindow({ windowLabel: "all years on record", windowWords: null }) === "" && hubWindow(null) === "", "no plain window: no clause");
+ok(hubWindow({ windowPhrase: W12, windowWords: "since October 2025" }) === W12, "the engine's windowPhrase is the clause (Sam's words for the twelve-month window, built in the engine, Oct 29 2026)");
+ok(hubWindow({ windowPhrase: "since October 2024", windowWords: "since October 2024" }) === "since October 2024" && hubWindow({ tier: "thin", windowWords: "since October 2021" }) === "since October 2021", "two years, a thin read: the engine's own windowWords");
+ok(hubWindow({ windowLabel: "all years on record", windowPhrase: null, windowWords: null }) === "" && hubWindow({ windowLabel: "last twelve months" }) === "" && hubWindow(null) === "", "no plain window: no clause");
 const h = fs.readFileSync(new URL("../api/history.js", import.meta.url), "utf8");
 ok(/const ctx = hubLead\(\{ year: hub\.year, make: id\.make, family: id\.family, n, win: hubWindow\(d\), date: asOfDate\(\) \}\);/.test(h), "the hub reads the engine's count (n = poolCount(d)) and window (hubWindow)");
 ok(!/recorded sale/.test(h), "no VIN-list count ('recorded sales') anywhere on the history pages");

@@ -121,14 +121,16 @@ for (const [name, d] of Object.entries(ALL)) {
   if (!fs.existsSync(CHROME)) console.log("SKIP Market Check in Chrome: no Chrome at " + CHROME);
   else {
     const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
-    const open = async (payload, w, second = null) => {
+    const open = async (payload, w, second = null, o = {}) => {
       const p = await b.newPage(); await p.setViewport({ width: w, height: 900 }); p._posts = [];
+      await p.evaluateOnNewDocument(sc => { if (sc) window.GAS_WAIT_SCALE = sc; window.gasTrack = (e, props) => { (window.__ev = window.__ev || []).push([e, props]); }; }, o.scale || 0);
       await p.setRequestInterception(true);
       p.on("request", r => { const u = new URL(r.url());
         if (u.host === "goasksam.com" && r.isNavigationRequest()) return r.respond({ status: 200, contentType: "text/html", body: html });
         const loc = /^\/obx\.[^/]+\/onebox\.js$/.test(u.pathname) ? "public/js/onebox.js" : (/^\/js(?:\.[^/]+)?\/([\w.-]+\.js)$/.exec(u.pathname) ? "public/js/" + /^\/js(?:\.[^/]+)?\/([\w.-]+\.js)$/.exec(u.pathname)[1] : null);
         if (u.host === "goasksam.com" && loc && fs.existsSync(loc)) return r.respond({ status: 200, contentType: "application/javascript", body: fs.readFileSync(loc, "utf8") });
-        if (u.host === "goasksam.com" && u.pathname === "/api/sellerDecision") { let bd = {}; try { bd = JSON.parse(r.postData() || "{}"); } catch {} p._posts.push(bd); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(p._posts.length === 1 ? { status: "one_box", ...payload } : { status: "one_box", ...(second || base) }) }); }
+        if (u.host === "goasksam.com" && u.pathname === "/api/sellerDecision") { let bd = {}; try { bd = JSON.parse(r.postData() || "{}"); } catch {} p._posts.push(bd); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(p._posts.length === 1 ? { status: "one_box", ...payload } : typeof second === "function" ? second(p._posts.length) : { status: "one_box", ...(second || base) }) }); }
+        if (u.host === "goasksam.com" && u.pathname === "/api/watch") return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ ready: o.watchReady !== false }) });
         if (u.host === "goasksam.com" && /^\/api\//.test(u.pathname)) return r.respond({ status: 200, contentType: "application/json", body: "{}" });
         if (u.host !== "goasksam.com") return r.respond({ status: 204, body: "" }); r.continue(); });
       await p.goto("https://goasksam.com/market-check", { waitUntil: "networkidle2" }).catch(() => {});
@@ -166,6 +168,38 @@ for (const [name, d] of Object.entries(ALL)) {
       const t = await p.evaluate(() => (document.querySelector("#ob") || document.body).innerText.replace(/\s+/g, " "));
       ok(t.includes(STATES.mileageBand.mileageBand.line) && !/Add mileage to narrow the range/.test(t), "the mileage slot prints the engine's mileageBand.line and no longer asks for a mileage");
       await p.close();
+    }
+    // THE REFINE ON A STORED ANSWER (Sam, Oct 29 2026; 1994 Porsche 911 Carrera Cabriolet with 27,000 typed). The page sends the typed target against the car it is showing and nothing else; the engine answers from the
+    // stored pool in the same request. The page prints mileageBand.line exactly as sent in every case, never a sentence of its own ("Range narrowed", "Looking near"), the range and the tiles un-fade when the answer lands whether
+    // or not it narrowed, and the page asks the engine once (no loop) when the engine answers at once. If the engine does not, the 45 second line always carries Have Sam keep looking.
+    const typeMiles = async p => { await p.type("#ob-miles", "27000"); await p.keyboard.press("Enter"); };
+    const THIN_BAND = { ...STATES.alike, mileageBand: { target: 27000, miMin: 12000, miMax: 42000, narrowed: false, n: 3, windowWords: "over the last 24 months", windowMonths: 24, line: "Too few sales near 27,000 miles to narrow it. This is the range for all 8." } };
+    { // the thin band: the engine's line exactly, the range unchanged, nothing faded, one ask
+      const p = await open(STATES.alike, 1440, THIN_BAND); await typeMiles(p); await new Promise(r => setTimeout(r, 1500));
+      const t = await p.evaluate(() => (document.querySelector("#ob") || document.body).innerText.replace(/\s+/g, " ")), dim = await p.evaluate(() => document.querySelectorAll(".hero-dim").length);
+      ok(t.includes(THIN_BAND.mileageBand.line), "thin band: the engine's line prints exactly (Too few sales near 27,000 miles to narrow it. This is the range for all 8.)");
+      ok(!/Range narrowed|Looking near|narrowed around/i.test(t), "thin band: no sentence of the page's own about the range narrowing");
+      ok(dim === 0, "thin band: the range and the tiles are not faded once the answer landed (" + dim + " faded)");
+      ok(/\$22,500 to \$41,000/.test(t), "thin band: the range stays on the page");
+      const last = p._posts[p._posts.length - 1] || {}; ok(p._posts.length === 2 && last.refine && last.refine.miTarget === 27000 && last.refine.miMin == null && last.refine.miMax == null && last.car && last.car.raw === "2001 BMW M3" && !last.fresh, "refine on the stored answer: one request, the typed target only, the same car (" + p._posts.length + " requests, " + JSON.stringify(last.refine || null) + ")"); await p.close(); }
+    { // no mileageBand in the answer: the slot carries no sentence of the page's own
+      const p = await open(STATES.alike, 1440, { ...STATES.alike }); await typeMiles(p); await new Promise(r => setTimeout(r, 1500));
+      const t = await p.evaluate(() => (document.querySelector("#ob") || document.body).innerText.replace(/\s+/g, " "));
+      ok(!/Range narrowed|Looking near|narrowed around|Reading the sales near/i.test(t), "no engine line: the page says nothing of its own about the mileage"); await p.close(); }
+    { // the rerun computes for a while: the range stays faded while it waits and un-fades when the answer lands
+      const computing = { status: "one_box", tier: "unavailable", stillReading: true, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: 45000, samLine: "Sam is reading the sales for this one.", resolvedCar: { year: 2001, make: "BMW", model: "M3" } };
+      const p = await open(STATES.alike, 1440, n => n <= 6 ? computing : { status: "one_box", ...THIN_BAND }, { scale: 0.1 }); await typeMiles(p); await new Promise(r => setTimeout(r, 500));
+      const during = await p.evaluate(() => document.querySelectorAll(".hero-dim").length); await new Promise(r => setTimeout(r, 2500));
+      const t = await p.evaluate(() => (document.querySelector("#ob") || document.body).innerText.replace(/\s+/g, " ")), after = await p.evaluate(() => document.querySelectorAll(".hero-dim").length);
+      ok(during > 0, "while the rerun computes the range is faded (" + during + ")");
+      ok(after === 0 && t.includes(THIN_BAND.mileageBand.line), "when the rerun's answer lands the range un-fades and the engine's line prints (" + after + " faded)"); await p.close(); }
+    { // never answered: the 45 second line, with Have Sam keep looking, even where the watch tables are not ready
+      const computing = { status: "one_box", tier: "unavailable", stillReading: true, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: 45000, samLine: "Sam is reading the sales for this one.", resolvedCar: { year: 2001, make: "BMW", model: "M3" } };
+      for (const ready of [true, false]) {
+        const p = await open(STATES.alike, 1440, () => computing, { scale: 0.04, watchReady: ready }); await typeMiles(p); await new Promise(r => setTimeout(r, 3500));
+        const t = await p.evaluate(() => (document.querySelector("#ob") || document.body).innerText.replace(/\s+/g, " ")), btn = await p.evaluate(() => !!document.getElementById("ob-samonit"));
+        ok(/Sam couldn't read this one yet\./.test(t), "never answered (watch " + (ready ? "ready" : "not ready") + "): the plain line");
+        ok(btn && /Have Sam keep looking/.test(t), "never answered (watch " + (ready ? "ready" : "not ready") + "): the line always carries Have Sam keep looking"); await p.close(); }
     }
     await b.close();
   }

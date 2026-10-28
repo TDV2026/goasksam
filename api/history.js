@@ -214,7 +214,11 @@ function photoHtml(img, url, house, alt, cls, hero) {
 }
 
 // ---------------------------------------------------------------- One Box block (same render as One Box)
-function windowText(d) { return /12 months|twelve/.test(d.windowLabel || "") ? "the last twelve months" : "the past two years"; }
+// THE WINDOW IS THE ENGINE'S (Oct 29 2026): windowPhrase ("in the last twelve months", "since December 2025") and windowStart (the earliest sale counted) come off oneEngineAnswer; no label is mapped to words and no start date is
+// worked out from a day count. No phrase, no clause; no start, no date test.
+const winPhrase = d => (d && (d.windowPhrase || d.windowWords)) || "";
+const winClause = d => winPhrase(d) ? " " + winPhrase(d) : "";
+const winStart = d => (d && d.windowStart ? String(d.windowStart).slice(0, 10) : null);
 function freshLine(d) {
   const f = d && d.freshness; if (!f) return "";
   if (f.through && f.archiveThrough && f.through < f.archiveThrough) {
@@ -265,7 +269,7 @@ export function oneBoxBlock(d, id, oneboxHref, ctx) {
   if (d.tier === "result" && d.cluster) {
     const take = d.samsTake && d.samsTake.sentence ? String(d.samsTake.sentence) : "";
     return `<section class="card anscard${take ? "" : " solo"}" aria-label="Cars like it"><div class="ans-main">
-      <div class="eyebrow">${esc(nounOf(d, id) + " · sold in " + windowText(d))}</div>
+      <div class="eyebrow">${esc(nounOf(d, id) + " · sold" + winClause(d))}</div>
       <p class="range">${esc(usd(d.cluster[0]))} <span class="to">to</span> ${esc(usd(d.cluster[1]))}</p>
       <p class="landed">Most sales landed here.</p>${pooledOptionsHtml(d)}${freshLine(d)}${ctx ? `<p class="ctx">${esc(ctx)}</p>` : ""}${link}</div>
       ${take ? `<aside class="take"><div class="tag"><span class="roundel" aria-hidden="true">SAM</span>Sam&#8217;s Take</div><p>${esc(take)}</p></aside>` : ""}</section>`;
@@ -273,9 +277,8 @@ export function oneBoxBlock(d, id, oneboxHref, ctx) {
   // No cluster: NO headline figure (rule 24). Lead with the count and let One Box show the sales.
   const n = d.poolN || (d.thin && d.thin.receipts ? d.thin.receipts.length : 0);
   if (!n) return "";
-  const win = d.tier === "thin" ? "the past three years" : windowText(d);
   const apart = !!(optionLinesOf(d).length && !d.cluster);
-  const line = apart ? (d.thinLine || "") : n < 8 ? `Only ${n} ${nounOf(d, id)} ${n === 1 ? "has" : "have"} sold in ${win}, not enough for a range.` : `${nounOf(d, id)} sold too spread out in ${win} to call a typical price.`;
+  const line = apart ? (d.thinLine || "") : n < 8 ? `Only ${n} ${nounOf(d, id)} ${n === 1 ? "has" : "have"} sold${winClause(d)}, not enough for a range.` : `${nounOf(d, id)} sold too spread out${winClause(d)} to call a typical price.`;
   return `<section class="card anscard solo" aria-label="Cars like it"><div class="ans-main"><div class="eyebrow">${esc(nounOf(d, id))}</div><p class="landed">${esc(line)}</p>${pooledOptionsHtml(d)}${freshLine(d)}${ctx ? `<p class="ctx">${esc(ctx)}</p>` : ""}${link}</div></section>`;
 }
 function poolCount(d) { return d ? (d.tier === "thin" ? (d.thin && d.thin.receipts ? d.thin.receipts.length : 0) : (d.poolN || 0)) : 0; }
@@ -294,13 +297,7 @@ export function hubLead({ year, make, family, n, win, date }) {
 // The engine's own window for the hub lead (Lane F's decision on Sam's rule, Oct 20 2026): its twelve-month window in Sam's
 // words, every other window in the engine's own windowWords, and no clause where the engine has no plain window. Never
 // a window the engine did not state.
-export function hubWindow(d) {
-  if (!d) return "";
-  if (/^(last|past) (twelve|12) months$/.test(String(d.windowLabel || "").trim())) return "in the last twelve months";
-  return d.windowWords ? String(d.windowWords) : "";
-}
-function poolWindow(d) { return d && d.tier === "thin" ? "the past three years" : (d ? windowText(d) : ""); }
-function windowStartIso(d) { const days = d && d.tier === "thin" ? 1096 : (/twelve|12 months/.test((d && d.windowLabel) || "") ? 365 : 730); return new Date(Date.now() - days * 864e5).toISOString().slice(0, 10); }
+export function hubWindow(d) { return winPhrase(d); }
 
 // ---------------------------------------------------------------- car page
 function sellHref(id) {
@@ -376,18 +373,18 @@ async function carPage(req, res, env, slug, vin) {
   const urlVins = poolCards.length ? await vinsForUrls(env, poolCards.map(c => c.url).filter(Boolean)).catch(() => null) : null;
   const n = poolCount(d);
   let ctx = "";
-  if (n) ctx = (lastSale && lastSale.date >= windowStartIso(d) && n > 1 ? `One of ${n} ${id.family} sales` : countNoun(n, `${id.family} sale`, { words: false })) + ` at auction in ${poolWindow(d)}.`;
+  if (n) ctx = (lastSale && winStart(d) && lastSale.date >= winStart(d) && n > 1 ? `One of ${n} ${id.family} sales` : countNoun(n, `${id.family} sale`, { words: false })) + ` at auction${winClause(d)}.`;
   const oneboxCar = `/market-check?q=${encodeURIComponent(name)}`;
   // 7. QUESTIONS
   // Compares only a sale INSIDE the window the range covers (an older sale is a different market), and
   // never a live bid. No above/below labels: inside the middle half says so; otherwise the two facts
   // stand side by side. Outside the window, the question is left out (cmp stays null).
   let cmp = null;
-  if (lastSale && lastSale.priceUsd && d && d.tier === "result" && d.cluster && lastSale.date >= windowStartIso(d)) {
+  if (lastSale && lastSale.priceUsd && d && d.tier === "result" && d.cluster && winStart(d) && lastSale.date >= winStart(d)) {
     const [lo, hi] = d.cluster, p = lastSale.priceUsd, yr = String(lastSale.date).slice(0, 4);
     cmp = p >= lo && p <= hi
-      ? `Its ${yr} sale, ${usd(p)}, sits inside where most ${nounOf(d, id)} sold in ${windowText(d)} (${usd(lo)} to ${usd(hi)}).`
-      : `Its ${yr} sale was ${usd(p)}. Most ${nounOf(d, id)} sold in ${windowText(d)} went for ${usd(lo)} to ${usd(hi)}.`;
+      ? `Its ${yr} sale, ${usd(p)}, sits inside where most ${nounOf(d, id)} sold${winClause(d)} (${usd(lo)} to ${usd(hi)}).`
+      : `Its ${yr} sale was ${usd(p)}. Most ${nounOf(d, id)} sold${winClause(d)} went for ${usd(lo)} to ${usd(hi)}.`;
   }
   // Questions answered only with THIS car's own facts; a question whose answer would be a template (the
   // same words on every page) is left out.
@@ -496,21 +493,21 @@ function timelineHtml(apps, live) {
 // honest line, never a figure.
 function specRailHtml(d, id, lastSale, noun = "car") {
   if (!d) return "";
-  const fam = nounOf(d, id), win = windowText(d);
+  const fam = nounOf(d, id);
   if (d.tier === "result" && Array.isArray(d.cluster) && Array.isArray(d.span) && d.span[1] > d.span[0]) {
     const [lo, hi] = d.span, pc = x => Math.max(0, Math.min(100, (x - lo) / (hi - lo) * 100));
     const a = pc(d.cluster[0]), b = pc(d.cluster[1]);
-    const recent = lastSale && lastSale.priceUsd && (Date.now() - Date.parse(lastSale.date + "T00:00:00Z")) <= 730 * 864e5 && lastSale.priceUsd >= lo && lastSale.priceUsd <= hi;
+    const recent = lastSale && lastSale.priceUsd && winStart(d) && lastSale.date >= winStart(d) && lastSale.priceUsd >= lo && lastSale.priceUsd <= hi;
     const dot = recent ? `<i class="me" style="left:${pc(lastSale.priceUsd).toFixed(1)}%"></i><span class="melab" style="left:${pc(lastSale.priceUsd).toFixed(1)}%">This ${esc(noun)}, ${esc(monShort(lastSale.date))}</span>` : "";
     const n = (d.cards || []).length || poolCount(d);
-    return `<section class="sec" aria-label="What ${noun === "car" ? "cars" : noun + "s"} like it sold for"><h2>What ${esc(fam)} sell for</h2><p class="sub">${n ? `${esc(countNoun(n, "sale", { words: false, cap: true }))} in ${esc(win)}.` : ""}</p>
+    return `<section class="sec" aria-label="What ${noun === "car" ? "cars" : noun + "s"} like it sold for"><h2>What ${esc(fam)} sell for</h2><p class="sub">${n ? `${esc(countNoun(n, "sale", { words: false, cap: true }))}${esc(winClause(d))}.` : ""}</p>
 <div class="vrail${recent ? " hasme" : ""}"><div class="rrow"><span class="rend">${usd(lo)}</span><span class="rline"><i class="band" style="left:${a.toFixed(1)}%;width:${Math.max(1.5, b - a).toFixed(1)}%"></i>${dot}</span><span class="rend">${usd(hi)}</span></div>
-<p class="rmost">Most sold between ${usd(d.cluster[0])} and ${usd(d.cluster[1])}</p><p class="rcap">What this spec has sold for, ${/twelve/.test(win) ? "last 12 months" : "last 2 years"}</p></div></section>`;
+<p class="rmost">Most sold between ${usd(d.cluster[0])} and ${usd(d.cluster[1])}</p><p class="rcap">What this spec has sold for${esc(winClause(d))}</p></div></section>`;
   }
   const n = poolCount(d);
   if (!n) return "";
   const one = fam.replace(/ cars$/, "").replace(/(ch|sh|s|x|z)es$/, "$1").replace(/(?<!s)s$/, "");
-  const line = n === 1 ? `Only one ${one} has sold in ${poolWindow(d)}, too few to mark a range.` : n < 8 ? `Only ${n} ${fam} have sold in ${poolWindow(d)}, too few to mark a range.` : `${fam.charAt(0).toUpperCase() + fam.slice(1)} sold too spread out in ${poolWindow(d)} to mark one range.`;
+  const line = n === 1 ? `Only one ${one} has sold${winClause(d)}, too few to mark a range.` : n < 8 ? `Only ${n} ${fam} have sold${winClause(d)}, too few to mark a range.` : `${fam.charAt(0).toUpperCase() + fam.slice(1)} sold too spread out${winClause(d)} to mark one range.`;
   return `<section class="sec" aria-label="What ${noun === "car" ? "cars" : noun + "s"} like it sold for"><h2>What ${esc(fam)} sell for</h2><p class="vthin">${esc(line)}</p></section>`;
 }
 // BACK AT AUCTION NOW: the live listing as a /buy card (photo with chips, title, facts, link out).
@@ -590,21 +587,21 @@ function groupListsHtml(d, id, vinNorm, cards, urlVins, others, noun = "car") {
     });
     const shown = rows.slice(0, 30);
     const ranged = d.tier === "result" && Array.isArray(d.cluster);
-    const lead = ranged ? `The ${countNoun(cards.length, "sale", { words: false })} behind the range above, in ${windowText(d)}` : cards.length >= 8 ? `The ${countNoun(cards.length, "sale", { words: false })} in ${poolWindow(d)}, too spread out to mark one range` : `The ${cards.length === 1 ? "one sale" : cards.length + " sales"} in ${poolWindow(d)}, too few to mark a range`;
+    const lead = ranged ? `The ${countNoun(cards.length, "sale", { words: false })} behind the range above${winClause(d)}` : cards.length >= 8 ? `The ${countNoun(cards.length, "sale", { words: false })} ${winPhrase(d) ? winPhrase(d) + ", " : ""}too spread out to mark one range` : `The ${cards.length === 1 ? "one sale" : cards.length + " sales"} ${winPhrase(d) ? winPhrase(d) + ", " : ""}too few to mark a range`;
     out.push(`<section class="sec"><h2>${esc(fam.charAt(0).toUpperCase() + fam.slice(1))} that sold</h2><p class="sub">${esc(lead)}. Newest first${rows.length > shown.length ? `, the latest ${shown.length} shown` : ""}.</p><ul class="others">${shown.join("")}</ul></section>`);
   }
   // Other bodies, same window, each its own list.
   const myBody = d && d.resolvedCar && d.resolvedCar.bodyStyle ? bodyOfTitle(d.resolvedCar.bodyStyle) : null;
   if (others && others.rows && myBody && d) {
-    const start = windowStartIso(d), groups = new Map();
+    const start = winStart(d), groups = new Map();
     for (const r of others.rows) {
-      if (!r.date || r.date < start || r.vin === vinNorm) continue;
+      if (!r.date || (start && r.date < start) || r.vin === vinNorm) continue;
       const b = bodyOfTitle(r.title); if (!b || b === myBody) continue;
       if (!groups.has(b)) groups.set(b, []); groups.get(b).push(r);
     }
     for (const [b, list] of groups) {
       const name = `${id.family} ${b}`;
-      out.push(`<section class="sec"><h2>${esc(name)} that sold</h2><p class="sub">${list.length} in ${esc(windowText(d))}. A different body, so not part of the range above. Newest first.</p><ul class="others">${list.map(r => saleRow({ year: r.year, miles: r.miles, price: money(r.priceUsd, r.nativePrice, r.currency), date: r.date, house: r.house, href: r.href })).join("")}</ul></section>`);
+      out.push(`<section class="sec"><h2>${esc(name)} that sold</h2><p class="sub">${list.length}${esc(winClause(d))}. A different body, so not part of the range above. Newest first.</p><ul class="others">${list.map(r => saleRow({ year: r.year, miles: r.miles, price: money(r.priceUsd, r.nativePrice, r.currency), date: r.date, house: r.house, href: r.href })).join("")}</ul></section>`);
     }
   }
   return out.join("");

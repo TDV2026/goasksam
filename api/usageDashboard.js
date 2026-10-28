@@ -5028,6 +5028,49 @@ async function handleOps(req, res) {
   // costs that one read and nothing else. Archive only, no OldCarsData spend. After any engine push the next quarter hour
   // fills the demo before a visitor can trigger a live compute. (The warmDemo list also carries the 2010 Porsche Boxster
   // Convertible, not a demo car; left as it is, harmless.)
+  // task=warmHits (Oct 29 2026; READ-ONLY, no search, no write): for each spec, the STORED Market Check row read as a visitor's read reads it (the same key, the engine stamp, the stale rule), with
+  // the day it was stored and whether it carries the e96 fields. A confirmation of "warmHit true" through the public path is a search from the shared address and fills its caps (the per-address
+  // ceiling, the 30 cars a day); this reads the table instead. part=named|golden|all (default all) or list=a|b|c. A spec whose first answer is the engine's question has no answer row and says so.
+  if (task === "warmHits") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle } = await import("../lib/vehicle.js");
+    const { findGeneration } = await import("../lib/generations.js");
+    const { ENGINE_VERSION } = await import("../lib/onebox.js");
+    const { warmAnswerKeyFor, readWarmAnswerDetailed } = await import("../lib/live/search.js");
+    const { utcDayOf } = await import("../lib/warmDay.js");
+    const fs = await import("node:fs");
+    let named = [], golden = [];
+    try { named = JSON.parse(fs.readFileSync(new URL("../scripts/warm-named.json", import.meta.url), "utf8")).named || []; } catch {}
+    try { const doc = fs.readFileSync(new URL("../docs/golden-rules.md", import.meta.url), "utf8"); const gm = /```json golden\n([\s\S]*?)```/.exec(doc); golden = gm ? JSON.parse(gm[1]).map(g => g.q).filter(Boolean) : []; } catch {}
+    const part = String(req.query?.part || "all");
+    const list = req.query?.list ? String(req.query.list).split("|").filter(Boolean) : [...new Set([...(part === "golden" ? [] : named), ...(part === "named" ? [] : golden)])];
+    const day = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.day || "")) ? String(req.query.day) : null;
+    const out = { task: "warmHits", engineVersion: ENGINE_VERSION, day, listed: list.length, hit: 0, stale: 0, offDay: 0, noRow: 0, noE96Fields: 0, failed: 0, rows: [] };
+    const t0 = Date.now();
+    for (const q of list) {
+      if (Date.now() - t0 > 250000) { out.rows.push({ q, error: "not reached" }); out.failed++; continue; }
+      const row = { q };
+      try {
+        const rv = await resolveVehicle(q, {});
+        const vehicle = rv && rv.vehicle;
+        if (!vehicle || !vehicle.make) throw new Error(rv && rv.status === "lookup_timeout" ? "lookup_timeout" : "unresolved");
+        const generation = await findGeneration(vehicle, env).catch(() => null);
+        const st = await readWarmAnswerDetailed(env, warmAnswerKeyFor(vehicle, generation));
+        row.reason = st && st.reason || null;
+        if (!(st && st.raw)) { row.hit = false; row.note = st && st.reason === "engine_version_mismatch" ? "stored under an older engine stamp" : "no answer row (a question-first spec stores none; its first read is the question)"; out.noRow++; }
+        else {
+          row.storedAt = st.storedAt; row.storedDay = utcDayOf(st.storedAt); row.stale = !!st.stale; row.tier = st.raw.tier;
+          row.e96 = st.raw.optionsState !== undefined;
+          row.hit = !st.stale && (!day || row.storedDay === day);
+          if (st.stale) out.stale++; if (day && row.storedDay !== day) out.offDay++; if (!row.e96 && /^(result|thin)$/.test(String(st.raw.tier))) out.noE96Fields++;
+          if (row.hit) out.hit++;
+        }
+      } catch (e) { row.error = String(e && e.message || e); out.failed++; }
+      out.rows.push(row);
+    }
+    out.ms = Date.now() - t0;
+    return res.status(200).json(out);
+  }
   // task=warmDay&day=YYYY-MM-DD (launch warm, Oct 28 2026): read-only count of the stored answers (Market Check MCWARM rows, and the Buy/Tasks core rows
   // apart) not stored on that UTC day, for the live engine version. The launch gate is offDay = 0 on the MCWARM rows (lib/warmDay.js, scripts/warmDayCheck.mjs).
   if (task === "warmDay") {
@@ -5037,14 +5080,14 @@ async function handleOps(req, res) {
     const day = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.day || "")) ? String(req.query.day) : utcDayOf(Date.now());
     const mc = [], core = []; let cursor = "";
     for (let page = 0; page < 200; page++) {
-      const q = `spec_market_cache?select=spec_key,computed_at,ev:market->>engineVersion&order=spec_key.asc&limit=1000` + (cursor ? `&spec_key=gt.${encodeURIComponent(cursor)}` : "");
+      const q = `spec_market_cache?select=spec_key,computed_at,ev:market->>engineVersion,os:market->raw->>optionsState,tr:market->raw->>tier&order=spec_key.asc&limit=1000` + (cursor ? `&spec_key=gt.${encodeURIComponent(cursor)}` : "");
       const rows = await supabaseSelect(env, q);
       if (!Array.isArray(rows) || !rows.length) break;
-      for (const r of rows) (String(r.spec_key).startsWith("MCWARM:") ? mc : core).push({ key: r.spec_key, computedAt: r.computed_at, engineVersion: r.ev });
+      for (const r of rows) (String(r.spec_key).startsWith("MCWARM:") ? mc : core).push({ key: r.spec_key, computedAt: r.computed_at, engineVersion: r.ev, thin: String(r.spec_key).startsWith("MCWARM:") && /^(result|thin)$/.test(String(r.tr || "")) && r.os == null });
       cursor = rows[rows.length - 1].spec_key;
       if (rows.length < 1000) break;
     }
-    return res.status(200).json({ task: "warmDay", engineVersion: ENGINE_VERSION, day, marketCheck: rowsOffDay(mc, day, ENGINE_VERSION), buyAndTasks: rowsOffDay(core, day, null), note: "marketCheck.offDay must be 0 at the Wednesday WARM DONE" });
+    return res.status(200).json({ task: "warmDay", engineVersion: ENGINE_VERSION, day, marketCheck: { ...rowsOffDay(mc, day, ENGINE_VERSION), withoutE96Fields: mc.filter(r => r.engineVersion === ENGINE_VERSION && r.thin).length }, buyAndTasks: rowsOffDay(core, day, null), note: "marketCheck.offDay must be 0 at the Wednesday WARM DONE; withoutE96Fields counts live-stamp result and thin rows stored without optionsState (the thin shape), which the warm re-stores" });
   }
   if (task === "warmDemoCheck") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });

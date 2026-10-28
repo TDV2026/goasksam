@@ -805,13 +805,13 @@
   function heroMileageLineHtml(d, m) {
     var rf = obLastRefine || {};
     if (Number(rf.miTarget) > 0) {
-      var val = Number(rf.miTarget).toLocaleString("en-US");
       // MILEAGE NEVER MAKES THE ANSWER WORSE (Sam's rule, Oct 23 2026): when too few sales sit near the miles to narrow, the engine keeps the
       // original range and sends mileageNote ("Too few sales near N miles to narrow it. This is the range for all N."): printed in this slot.
       // e96: the engine builds the band and says it (mileageBand.line, whether it narrowed or not); the page sends only the typed target
       var mnote = d && d.mileageBand && d.mileageBand.line ? String(d.mileageBand.line) : (d && d.mileageNote ? String(d.mileageNote) : "");
-      return '<p class="hero-miles on" data-stage="answer">' + lint(esc(mnote || ("Looking near " + val + " miles.")), mnote ? "hero.mi.note" : "hero.mi.on") +
-        ' <button type="button" class="linkbtn" id="ob-miles-change">Change</button>' + milesFieldHtml(rf.miTarget) + "</p>";
+      // the engine's line exactly as sent, in every case (narrowed or not); with none the slot carries no sentence of the page's own, only the box
+      return '<p class="hero-miles on" data-stage="answer">' + (mnote ? lint(esc(mnote), "hero.mi.note") + " " : "") +
+        '<button type="button" class="linkbtn" id="ob-miles-change">Change</button>' + milesFieldHtml(rf.miTarget) + "</p>";
     }
     var mi = m && Number(String(m.mileage == null ? "" : m.mileage).replace(/[^\d]/g, ""));
     if (mi > 0 && m.soldDate) {
@@ -1718,7 +1718,7 @@
     if (Number(rc.mileage) > 0) segs.push(Number(rc.mileage).toLocaleString("en-US") + " mi");
     segs.push(rc.venue); segs.push(monthYear(rc.date));
     if (rc.isHouse) { var ch = houseChassisMeta(rc); if (ch) segs.push(ch); }
-    else if (htGearboxSplit) { var gl = gearboxLabel(rc); if (gl) segs.push(gl); }
+    else if (htGearboxSplit && rc.gearboxWord) segs.push(rc.gearboxWord);
     var marks = (rc.markers && rc.markers.length) ? "<div>" + rc.markers.map(function (mk) { return '<span class="mk">' + esc(mk.label) + "</span>"; }).join("") + "</div>" : "";
     return saleCardHtml({ cls: "t", flat: !!flat, href: utmUrl(rc.url), slug: rc.slug, id: rc.id, image: rc.image, priceHtml: priceHtml, allIn: allIn,
       title: cleanReceiptTitle(shortCarName(rc.title)), meta: segs.filter(Boolean).join(" · "), extra: marks });
@@ -1909,8 +1909,8 @@
   // wording the shared card used, and keepLookingCardHtml's call is gone from resultHtml below - so
   // "You'll be notified when another matching car goes live." (that card's fixed trailer line, which
   // belongs to Buy's live-listing results, not a market-range read) no longer appears here either.
-  function samOnItHtml(d, m) {
-    if (!OB_WATCH_READY) return "";
+  function samOnItHtml(d, m, always) {
+    if (!OB_WATCH_READY && !always) return "";
     if (obWatchArmed) {
       var onLine = m ? "Sam’s looking for this exact car to come up again." : ("Sam’s looking for the next sale of " + esc(obWatchArmed.label || carLabel(d.resolvedCar)) + ".");
       return '<section class="samonit" data-stage="note"><p class="samonit-on">' + lint(onLine, "samonit.on") + "</p>" + (obWatchFirst ? '<p class="samonit-free">Free. No card, no plan.</p>' : "") + "</section>";
@@ -2059,37 +2059,8 @@
   function receiptYears(list) { return (list || []).map(function (rc) { var y = String((rc && (rc.date || rc.year)) || "").slice(0, 4); return /^\d{4}$/.test(y) ? +y : null; }).filter(Boolean); }
   function spanSince(list) { var ys = receiptYears(list); if (!ys.length) return "over " + HT_WINDOW_TEXT; var lo = Math.min.apply(null, ys), hi = Math.max.apply(null, ys); return lo === hi ? ("in " + lo) : ("since " + lo); }
   function spanRange(list) { var ys = receiptYears(list); if (!ys.length) return HT_WINDOW_TEXT; var lo = Math.min.apply(null, ys), hi = Math.max.apply(null, ys); return lo === hi ? ("in " + lo) : (lo + " to " + hi); }
-  function R4C_MANUAL(t) { return /manual|\d[- ]?speed(?!\s*auto)|\bmt\b|\bstick\b/i.test(t) && !/automatic|pdk|dct|tiptronic|dsg/i.test(t); }
-  // Gearbox label. On models with a single-clutch automated box, "manual vs E-gear" is the defining
-  // split, so label plainly: "Manual" (factory), "Manual (conversion)" (a retrofit, NEVER a factory
-  // manual - item 4), or "E-gear" (the automated). Other models keep their raw label. Uses the
-  // current render's resolved model (htLastD) for scope.
-  var EGEAR_MODELS = /murci[eé]lago|gallardo|aventador|huracan|huracán/i;   // Lamborghini single-clutch "E-gear"
-  function gearboxLabel(rc) {
-    var raw = String(rc.transmission || "");
-    var title = String(rc.title || "");
-    var modelName = (htLastD && htLastD.resolvedCar && htLastD.resolvedCar.model) || (htLastD && htLastD.vehicle && htLastD.vehicle.model) || "";
-    var isConv = /conversion|converted/i.test(raw) || /conversion|converted/i.test(title);
-    var isManual = /\bmanual\b|\bgated\b|\bstick\b/i.test(raw);
-    if (isManual || (isConv && /\bmanual\b|\d[- ]?speed/i.test(raw + " " + title))) return isConv ? "Manual (conversion)" : "Manual";
-    if (EGEAR_MODELS.test(String(modelName)) || EGEAR_MODELS.test(title)) return "E-gear";
-    return raw ? cap(raw) : "";
-  }
-  // One plain OBSERVED-pattern line for the manual-vs-E-gear split (never a cause). Only when the
-  // pool actually holds both, on an E-gear model. Conversions are excluded from the manual figure.
-  var GEARBOX_PATTERN_MIN = 3;   // each side needs >=3 real sales, or it is a coincidence, not a pattern
-  function gearboxPatternLine(scope) {
-    var man = [], eg = [];
-    (scope || []).forEach(function (rc) { var g = gearboxLabel(rc); if (g === "Manual") man.push(rc.hammer); else if (g === "E-gear") eg.push(rc.hammer); });
-    // A pattern needs both sides populated: >=3 manuals AND >=3 E-gears. One manual (often the
-    // searched car itself) is not a pattern - omit the line entirely.
-    if (man.length < GEARBOX_PATTERN_MIN || eg.length < GEARBOX_PATTERN_MIN) return "";
-    var mn = Math.min.apply(null, man), mx = Math.max.apply(null, man), en = Math.min.apply(null, eg), ex = Math.max.apply(null, eg);
-    var mr = man.length === 1 ? usd(mn) : usd(mn) + " to " + usd(mx);
-    var er = eg.length === 1 ? usd(en) : usd(en) + " to " + usd(ex);
-    return "The manuals here sold " + mr + "; the E-gears " + er + ".";
-  }
-  function R4C_AUTO(t) { return /automatic|\bpdk\b|\bdct\b|tiptronic|\bdsg\b|paddle/i.test(t); }
+  // THE BOX OF A HOUSE RECEIPT IS THE ENGINE'S (Oct 29 2026): each receipt carries gearboxKind and gearboxWord, the thin answer gearboxSplit and the one observed-pattern line gearboxPatternLine (lib/onebox.js
+  // houseGearboxOf, htReceipt, assessThin). The page reads a title or a transmission word for none of it.
   function htHasMk(rc, key) { return !!(rc.markers && rc.markers.some(function (mk) { return mk.key === key; })); }
   function natMoney(cur, n) { var s = sym(cur); return s ? s + Number(n).toLocaleString("en-US") : Number(n).toLocaleString("en-US") + " " + esc(cur); }
   // Short car-name header for a HOUSE row: year/make/model/variant only. Strip chassis/engine/serial
@@ -2145,8 +2116,6 @@
     if (choice.indexOf("no:") === 0) { var key = choice.slice(3); keep = receipts.filter(function (r) { return !htHasMk(r, key); }); lbl = "standard"; }
     else if (choice === "mi:lo") { var thL = intake && intake.threshold; keep = receipts.filter(function (r) { var mi = Number(r.mileage) || 0; return mi > 0 && mi <= thL; }); lbl = "lower-mileage"; }
     else if (choice === "mi:hi") { var thH = intake && intake.threshold; keep = receipts.filter(function (r) { var mi = Number(r.mileage) || 0; return mi > thH; }); lbl = "higher-mileage"; }
-    else if (choice === "tx:manual") { keep = receipts.filter(function (r) { var g = gearboxLabel(r); if (g === "Manual") return true; if (g === "E-gear" || /conversion/i.test(g)) return false; return R4C_MANUAL(String(r.transmission || "")); }); lbl = "manual"; }
-    else if (choice === "tx:auto") { keep = receipts.filter(function (r) { var g = gearboxLabel(r); if (g === "E-gear") return true; if (g === "Manual" || /conversion/i.test(g)) return false; return R4C_AUTO(String(r.transmission || "")); }); lbl = "e-gear"; }
     else { keep = receipts.filter(function (r) { return htHasMk(r, choice); }); lbl = (intake && intake.markerLabel ? intake.markerLabel : "").toLowerCase(); }
     return keep && keep.length ? { scope: keep, label: lbl } : { scope: receipts, label: null };
   }
@@ -2193,7 +2162,7 @@
     var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.thin.older") + "</p>";
     // The page's own house/online lines are gone (Sam, Oct 19 2026; Lane C as integrator, Lane A away): the engine's line
     // and latest-sale line on the card are the only explanation under a thin card.
-    var gpat = gearboxPatternLine(scope); if (gpat) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(gpat), "hero.thin.gpat") + "</p>";
+    var gpat = d.thin && d.thin.gearboxPatternLine; if (gpat) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(gpat), "hero.thin.gpat") + "</p>";
     // REMOVED (Sam's review, found live on the 275 GTB): this used to print an "ink" headline range
     // from d.factsBlock.lowest/highest once poolLen reached 8, regardless of whether the engine ever
     // decided there was a real cluster for this car - the thin tier exists precisely BECAUSE there is
@@ -2297,7 +2266,7 @@
     var sc = thinScope(ht.receipts, ht.intake, null);
     var scope = sc.scope;
     // A gearbox tag shows only when the pool has a real manual-vs-non-manual split.
-    htGearboxSplit = (function () { var man = 0, non = 0; (scope || []).forEach(function (rc) { if (rc.isHouse) return; var g = gearboxLabel(rc); if (!g) return; if (/^manual/i.test(g)) man++; else non++; }); return man > 0 && non > 0; })();
+    htGearboxSplit = !!ht.gearboxSplit;   // the engine's flag: the online receipts hold both a manual and another box
     // Newest first (the honest evidence order); the engine's hammer-desc order is for its own math.
     var newestFirst = thinCardsFrom(scope).sort(function (a, b) { return String(b.date || "").localeCompare(String(a.date || "")); });
     var thinTile = thinTileTreatment(d, m, newestFirst, d.setAsideRows);
@@ -2346,7 +2315,7 @@
   }
   function classEraHtml(d, m) {
     var ce = d.classEra;
-    htLastD = d;   // so gearboxLabel can read the resolved model for the receipt rows
+    htLastD = d;
     if (!ce || !ce.receipts || !ce.receipts.length) return refusalHtml(d, m);
     var v = d.resolvedCar || d.vehicle || {};
     var carName = [v.year, v.make, v.model, v.trim].filter(Boolean).join(" ") || bareNameOf(d, m);
@@ -2700,7 +2669,7 @@
     try {
       if (typeof gasTrack === "function") gasTrack("cold_miss", { wait_ms: Math.round(waitedMs || 0), reason: reason, vehicle_key: rc && rc.make ? String(rc.make + "|" + (rc.model || "")).slice(0, 60) : undefined, text: String(lastQuery || "").slice(0, 120), from_product: "market_check" });
     } catch (e) {}
-    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + samMsgHtml([esc(COULD_NOT_LINE)], "", "big") + samOnItHtml({ resolvedCar: rc }, null) + footHtml();
+    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + samMsgHtml([esc(COULD_NOT_LINE)], "", "big") + samOnItHtml({ resolvedCar: rc }, null, true) + footHtml();   // always with Have Sam keep looking: the line without the button is a dead end
     wire();
   }
   function renderError(msg) {
@@ -2812,7 +2781,7 @@
   // re-decodes and loops) - the chip builds a clean query from this context instead. Null for a
   // typed query, where appending to the raw text is correct.
   var choiceCtx = null;
-  var htLastD = null;  // last house-tier decision; gearboxLabel reads its resolved model
+  var htLastD = null;  // last house-tier decision
   var obGbApplies = false;  // item 4: gearbox line on a volume-result card only when a gearbox question applies
   var htGearboxSplit = false;  // item 7b: true only when the pool holds BOTH a manual and a non-manual
   // gearbox (a real split / a gearbox question applies). When false, the per-card gearbox tag is dropped.
@@ -3042,6 +3011,7 @@
     if (refine) payload.refine = refine;   // inline earned-question refinement (mileage / transmission)
     var coldT0 = Date.now();
     obAskUntilRead(payload, coldT0, function () { if (loader) loader.hold(COMPUTING_LINE); }).then(function (d) {
+      if (opts.inline) dimHeroForRerun(false);   // the rerun's answer landed (narrowed or not): the range and the chart un-fade whatever it says
       if (d && d.couldNot) { renderCouldNot(d.d, "timeout", Date.now() - coldT0); return; }
       pushRecent(text, d);
       // Typo confirmation (found this round, Sam's review): a typed year/body combination the
