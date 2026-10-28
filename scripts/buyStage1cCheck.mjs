@@ -30,11 +30,11 @@ ok(/@media \(min-width:1100px\)\{\.cgrid\.n5 > article\.car:nth-of-type\(4\)\{gr
 // ---- Item 4b: THE COMPACT NO-RANGE CARD.
 const thin = { id: 7, market: { kind: "count", query: "1982 Ferrari 512", noCluster: true }, sam_lines: [{ kind: "range", rung: ["512 models, 1981 to 1983"], text: "Sales of cars like it vary too widely to show one range. These are the sales we found." }] };
 const tl = (samLine(thin) || {}).html || "";
-ok(/<p class="fx-answer">Sales of cars like it vary too widely to show one range\.<\/p>/.test(tl) && !/These are the sales we found/.test(tl), "a no-range card prints the engine's line, first sentence only");
+ok(/<p class="fx-ans fx-answer">Sales of cars like it vary too widely to show one range\.<\/p>/.test(tl) && !/These are the sales we found/.test(tl), "a no-range card prints the engine's line, first sentence only");
 // STAGE 1d ITEM 4 (Sam, Oct 20 2026): the thin card's "See the sales in Market Check" link is gone (it sat under the
 // card's stretched title link and opened the auction site); the card's own Market Check action opens its panel.
 ok(!/mclink|See the sales/.test(tl), "the thin card carries no 'See the sales in Market Check' link (Stage 1d item 4)");
-ok(/function compactNoRange\(l, x\)\{[\s\S]*return fxHead\(l\) \+ '<p class="fx-answer">'/.test(c), "the spec and the scope head, then the engine's reason line");
+ok(/function compactNoRange\(l, x\)\{[\s\S]*return fxSlots\(l, '<p class="fx-ans fx-answer">'/.test(c), "e98: the spec, then the engine's reason line, then one small line (three slots)");
 const rg = { id: 8, market: { kind: "range", low: 55000, high: 78000, query: "q" }, sam_lines: [{ kind: "range", rung: [], text: "The middle half of 1M sales landed at $55,000 to $78,000. These are recent." }] };
 ok(!/fx-answer|mclink/.test((samLine(rg) || {}).html || ""), "a card with a range is not the compact card");
 ok(samLine({ id: 9, swap: true, market: { kind: "count" }, sam_lines: [] }) === null, "an engine-swapped card stays as it is");
