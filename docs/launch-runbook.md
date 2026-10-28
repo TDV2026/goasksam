@@ -14,10 +14,10 @@ Standing rule for every fix tonight and tomorrow: pages and emails compute nothi
 6. **Launch eve flips in Vercel. SAM.** Two orderings matter. (a) Rotating the Vercel bypass secret stales every lane's Keychain copy (item goasksam-bypass) and the warm scripts use it, so rotate it only AFTER the 4:52 AM pass is checked (step 8), then update the Keychain item and tell Lane C. (b) Environment changes take effect only on a NEW deployment, so tonight Sam only edits the values; the deployment that carries them is the opening (step 9). Nothing in the docs fixes the opening time; this runbook puts it after the 4:52 AM check so the site never opens on a cold warm.
    - Delete CURTAIN_SEALED (or set 0). Opening the site is this change plus the deployment.
    - SELL_NEXT_ON = 1 (the new Sell for everyone; the old Sell door redirects while it is on).
-   - LAUNCH_STAGE = 2 and LAUNCH_BUSINESS = 1 if not already set (Market Check, Tasks and Buy).
+   - LAUNCH_STAGE = 2 (Market Check, Tasks and Buy). Leave LAUNCH_BUSINESS off unless /business is meant to ship, and leave PARTNER_DEMO_CODE unset (checklist items 2 and 4).
    - Crew code: rotate again on launch eve (set only in Vercel and the Keychain; enter it in the crew box at goasksam.com/api/crew, never in a link). This ends every crew cookie; lanes refresh theirs with usageDashboard task=crewcookie. Do it with the bypass rotation, after step 8.
    - Nightly stays disabled (step 4).
-   - Lane S's launch-eve checklist is part of this step: work through it with the flips above, by reference (its path is not in the repo or lane-notes at this head; Lane S or Lane F names it). Where it and this page disagree on order, the bypass and crew rotations still wait for step 8.
+   - Work through the section "LAUNCH EVE CHECKLIST FOR SAM" (items LAUNCH EVE 1 to 13) at the end of docs/lane-notes.md alongside this step. It is Lane S's checklist, kept by Lane F; Lane C commits it in its next batch. It also covers items this page does not (budget alerts, the spend cap, Turnstile, the firewall publish, DNS and the Beehiiv segment, deleting USAGE_DASHBOARD_KEY). Where the two differ on order, this page governs: the checklist rotates the bypass secret and the crew code (its items 6 and 7) after its one redeploy, but Sam approved rotating them after the 4:52 AM check and before the opening deployment (steps 8 and 9).
 
 ## Thursday Oct 29
 
