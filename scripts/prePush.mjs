@@ -1359,6 +1359,13 @@ try {
 } catch (e) {
   record("everything a Find toggle or button makes is on Tasks, limited and named by the engine (scripts/findWatchCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The launch warm is the union of every live spec (Sam, Oct 28 2026).
+try {
+  const out = execSync("node scripts/warmUnionCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("the launch warm covers every live spec, not the traffic slice (scripts/warmUnionCheck.mjs)", "PASS", (out.match(/warmUnionCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("the launch warm covers every live spec, not the traffic slice (scripts/warmUnionCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The launch warm counts rows by UTC day, never by age (Sam, Oct 28 2026). No network.
 try {
   const out = execSync("node scripts/warmDayCheck.mjs", { encoding: "utf8" });
