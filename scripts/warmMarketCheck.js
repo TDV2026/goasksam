@@ -17,7 +17,7 @@
 //   node scripts/warmMarketCheck.js [--list=a|b]   warm the built-in list (or a custom pipe list)
 import { resolveVehicle } from "../lib/vehicle.js";
 import { findGeneration } from "../lib/generations.js";
-import { runOneBox, attachSellFields } from "../lib/onebox.js";
+import { oneEngineAnswer } from "../lib/onebox.js";
 import { warmSellBlock } from "../lib/sell/sellBlock.js";
 import { warmAnswerKeyFor, writeWarmAnswer } from "../lib/live/search.js";
 import { supabaseEnv } from "../lib/_supabase.js";
@@ -59,11 +59,10 @@ export async function warmMarketCheck(env, list = WARM_LIST) {
       if (vehicle.trim) { row.refused = `not a bare nameplate (resolved trim: ${vehicle.trim})`; out.refused++; out.rows.push(row); continue; }
       const generation = await findGeneration(vehicle, env).catch(() => null);
       const t0 = Date.now();
-      let d = await runOneBox(vehicle, generation, q, env, null);
+      let d = (await oneEngineAnswer(vehicle, generation, q, { ...env, asked: 0 }, null)).raw;   // the whole engine path a visitor's read takes: the stored row carries every e96 field
       row.ms = Date.now() - t0;
       if (!d || !d.tier) throw new Error("engine returned no tier");
       row.tier = d.tier;
-      d = await attachSellFields(d, vehicle, generation, env, q, t0);   // e91: the stored answer carries best_day and reserve_split
       const key = warmAnswerKeyFor(vehicle, generation);
       await writeWarmAnswer(env, key, d);
       row.key = key;

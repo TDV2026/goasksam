@@ -1303,6 +1303,13 @@ try {
 } catch (e) {
   record("account pill covers nothing, every page and result view (scripts/pillOverlapCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A stored Market Check answer is the whole answer: every writer feeds writeWarmAnswer from oneEngineAnswer, never runOneBox (Sam, Oct 28 2026). No network.
+try {
+  const out = execSync("node scripts/warmStoresFullAnswerCheck.mjs", { encoding: "utf8" });
+  record("stored answers are the whole answer (scripts/warmStoresFullAnswerCheck.mjs)", "PASS", (out.match(/warmStoresFullAnswerCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("stored answers are the whole answer (scripts/warmStoresFullAnswerCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The named warm list is Sam's 19 specs and the warm tool reads it (Sam, Oct 28 2026). The live half (--live) runs after a warm, not here. No network.
 try {
   const out = execSync("node scripts/namedWarmCheck.mjs", { encoding: "utf8" });

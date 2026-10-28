@@ -5050,7 +5050,7 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
-    const { runOneBox, ENGINE_VERSION } = await import("../lib/onebox.js");
+    const { oneEngineAnswer, ENGINE_VERSION } = await import("../lib/onebox.js");
     const { warmAnswerKeyFor, writeWarmAnswer, readWarmAnswerDetailed } = await import("../lib/live/search.js");
     const { DEMO_CARS, refreshDemoAnswer, readDemoLast, lastGoodUsable, questionResult } = await import("./partnerAnswer.js");
     const t0 = Date.now(), budgetMs = 240000;
@@ -5073,7 +5073,7 @@ async function handleOps(req, res) {
         // demo's own store, under this engine version, counts as fresh (one read, nothing computed)
         { const dl = await readDemoLast(env, q).catch(() => null); if (lastGoodUsable(dl) && questionResult(dl.out)) { row.fresh = true; row.reason = "stored question"; result.fresh++; result.rows.push(row); continue; } }
         row.missing = (have && have.reason) || "no_row";
-        const d = await runOneBox(vehicle, generation, q, env, null);
+        const d = (await oneEngineAnswer(vehicle, generation, q, { ...env, asked: 0 }, null)).raw;   // the whole engine path a visitor's read takes (questions, the options guard, the sell fields), so the stored row carries every e96 field
         if (!d || !d.tier || /^(read_failed|unavailable)$/.test(String(d.tier))) throw new Error("engine returned " + (d && d.tier));
         // a full answer goes to the Market Check store as warmDemo writes it; a question answer is kept by the demo's own store only (c)
         if (/^(result|thin|refusal|not_tracked)$/.test(String(d.tier))) await writeWarmAnswer(env, key, d);
@@ -5090,7 +5090,7 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
-    const { runOneBox, attachSellFields } = await import("../lib/onebox.js");
+    const { oneEngineAnswer } = await import("../lib/onebox.js");
     const { warmAnswerKeyFor, writeWarmAnswer } = await import("../lib/live/search.js");
     const DEMO = ["2015 Porsche 911 GT3", "2005 Porsche 911", "1965 Ford Mustang", "1957 Porsche 356 Speedster", "1966 Ferrari 275 GTB", "2010 Porsche Boxster Convertible", "2023 Porsche 911 GT3", "2014 Porsche 911 GT3"];   // the 2014 GT3: the demo's "This car before" listing car (Sam, c9, Oct 18 2026)
     const PERF = ["2008 Porsche 997 Carrera S Coupe", "1995 Porsche 911 Carrera", "1969 Chevrolet Camaro"];
@@ -5110,10 +5110,9 @@ async function handleOps(req, res) {
         if (!vehicle || !vehicle.make) throw new Error(rv && rv.status === "lookup_timeout" ? "lookup_timeout" : "unresolved");
         const generation = await findGeneration(vehicle, env).catch(() => null);
         const tr = Date.now();
-        let d = await runOneBox(vehicle, generation, q, env, null);
+        let d = (await oneEngineAnswer(vehicle, generation, q, { ...env, asked: 0 }, null)).raw;   // the whole engine path a visitor's read takes (questions, the options guard, the sell fields): the stored row carries every e96 field (best_day and reserve_split included)
         row.ms = Date.now() - tr;
         if (!d || !d.tier) throw new Error("engine returned no tier");
-        d = await attachSellFields(d, vehicle, generation, env, q, tr);   // e91: the stored answer carries best_day and reserve_split
         row.tier = d.tier; row.readAt = d.readAt || null;
         if (/_choice$/.test(String(d.tier))) row.question = await (await import("../lib/onebox.js")).warmQuestion(d, vehicle, generation, q, env);   // e95: the question's stored eligibility
         if (/^(result|thin|refusal|not_tracked)$/.test(String(d.tier))) { await writeWarmAnswer(env, warmAnswerKeyFor(vehicle, generation), d); row.stored = true; result.warmed++;
@@ -5229,7 +5228,7 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
-    const { runOneBox } = await import("../lib/onebox.js");
+    const { oneEngineAnswer } = await import("../lib/onebox.js");
     const { warmAnswerKeyFor, writeWarmAnswer } = await import("../lib/live/search.js");
     const list = req.query?.list ? String(req.query.list).split("|").filter(Boolean) : MC_WARM_LIST;
     const result = { warmed: 0, refused: 0, failed: 0, rows: [] };
@@ -5242,7 +5241,7 @@ async function handleOps(req, res) {
         if (vehicle.trim) { row.refused = `not a bare nameplate (resolved trim: ${vehicle.trim})`; result.refused++; result.rows.push(row); continue; }   // a correct refusal is a pass
         const generation = await findGeneration(vehicle, env).catch(() => null);
         const t0 = Date.now();
-        const d = await runOneBox(vehicle, generation, q, env, null);
+        const d = (await oneEngineAnswer(vehicle, generation, q, { ...env, asked: 0 }, null)).raw;   // the whole engine path a visitor's read takes, so the stored row carries every e96 field
         row.ms = Date.now() - t0;
         if (!d || !d.tier) throw new Error("engine returned no tier");
         row.tier = d.tier;
