@@ -437,7 +437,7 @@ const JS = String.raw`
   var monthYear = function(d){ var p = String(d || "").split("-"); return p.length >= 2 && MON[Number(p[1]) - 1] ? MON[Number(p[1]) - 1] + " " + p[0] : ""; };
   // Sam's decision 6 (Oct 20 2026), the Amazon profile only: the page's own lines without "Sam"; the engine's own
   // still-reading line (a.line) is shown as the engine words it.
-  var STILL_LINE = "Sam is reading the sales for this one.", COULD_NOT = "Sam couldn't read this one yet.";
+  var STILL_LINE = "Reading the sales for this one.", COULD_NOT = "The sales could not be read yet.";
   // ONE READ PER PAGE through the partner answer path (the same path and stored answers as the eBay demo); the engine's own
   // retryAfterMs is the only retry, and past the safety deadline a demo car falls back to its stored answer.
   var DEADLINE = 25000;

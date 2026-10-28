@@ -32,7 +32,7 @@ ok(/function drawB\(a\)\{\s*var out = \$\("b-out"\); if \(!out\) return;\s*setNa
 ok(/if \(VIEW === "d"\) nameD\(\);/.test(js) && /read\(withAns\(\{ q: CAR \}\), setName\)/.test(js), "tab d names the car too (a demo car from its stored answer, a typed one from one read)");
 ok(/document\.addEventListener\("submit", function\(e\)\{\s*if \(!e\.target\.closest \|\| !e\.target\.closest\("#car-form"\)\) return;/.test(js) && /startC\(true\)/.test(js), "the top box sets the car in the page on every tab");
 ok(/q = setCar\(q\) \|\| q;/.test(js) && (js.match(/q = setCar\(q\) \|\| q;/g) || []).length === 2, "tab a's and tab b's boxes set the car before they read");
-ok(/var GEN = 0;[\s\S]*if \(g === GEN\) draw\(a\)/.test(js), "a late answer for an earlier car is never drawn");
+ok(/var GEN = 0;[\s\S]*if \(g !== GEN\) return;[\s\S]*draw\(a\)/.test(js), "a late answer for an earlier car is never drawn");
 ok(/setName\(a && a\.car \? a : \{ car: \{ name: CAR \} \}\)/.test(js), "tab d: a demo car's stored answer without the car field falls back to the car's own listing name");
 ok(/if \(!\/\^\[A-Za-z0-9\]\{11,17\}\$\/\.test\(CAR\)\) setName\(\{ car: \{ name: CAR \} \}\);\s*read\(withAns\(\{ q: CAR \}\), setName\);/.test(js), "tab d: a typed car (not a demo car, not a VIN) shows its words as typed at once, then the answer's own car field replaces them");
 ok(!/[–—]/.test(h), "no dashes");

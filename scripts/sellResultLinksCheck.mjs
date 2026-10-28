@@ -81,6 +81,6 @@ ok(/timings\.resolve/.test(flowSrc) && /capped\("block_read"/.test(flowSrc) && /
 ok(/b\.step === "range"/.test(chatSrc) && /b\.step === "rest"/.test(chatSrc) && /b\.step === "result"/.test(chatSrc), "the Sell route answers range, rest and result");
 ok(client.includes("Reading the sales for the ") && client.includes("Checking where cars like this sold") && client.includes("Nearly there") && client.includes("This one is taking longer than usual"), "the waiting lines are the ones asked for, in the client");
 ok(/startWait\("sell-waitbox", \[\[0, "Reading the sales for the " \+ S\.label\]\]\)/.test(client) && /startWait\("sell-slotwait", \[\[0, "Checking where cars like this sold"\], \[8, "Nearly there"\]\]\)/.test(client), "in order: reading (until the range), then checking, then nearly there");
-ok(/restFailed\(/.test(client) && /couldn\\'t read where cars like this sold just now/.test(client), "a rest that fails says so in its own place");
+ok(/restFailed\(/.test(client) && /couldn\\'t read where cars like this sold yet/.test(client), "a rest that fails says so in its own place");
 console.log(`sellResultLinksCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);
