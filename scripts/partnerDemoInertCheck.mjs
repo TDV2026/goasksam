@@ -8,6 +8,8 @@ import fs from "node:fs";
 import { amazonPageHtml, AMAZON_PROFILE } from "../api/_amazonDemo.js";
 import { carOf, DUMMY } from "../api/partnerDemo.js";
 import { DEMO_CARS } from "../api/partnerAnswer.js";
+import { reasonLine } from "../lib/reasonWords.js";
+const CR = reasonLine("cold.reading"), CS = reasonLine("cold.still"), CM = reasonLine("cold.missed");   // the engine's own wording (lib/reasonWords.js), never a copy here
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const VERDICT = /\b(overpriced|underpriced|good deal|great deal|fair price|above market|below market|deal score|price score|bargain)\b/i;
@@ -62,7 +64,7 @@ ok(AMAZON_PROFILE.attribution === "Powered by GoAskSam" && AMAZON_PROFILE.module
 // Sam's decision 6: on the Amazon profile the page's own lines read without "Sam"; the eBay demo keeps its own words.
 ok(/Reading the sales for this one\./.test(js) && /The sales could not be read yet\./.test(js) && !/Try again/.test(js) && !/Sam is reading the sales for this one\.|Sam could not read the sales just now/.test(js), "Amazon: 'Reading the sales for this one.' and 'The sales could not be read yet.' (no Try again, cold spec Oct 28 2026)");
 ok(/a\.line \|\| STILL_LINE/.test(js), "Amazon: the engine's own still-reading line is shown as the engine words it");
-ok(/Sam is reading the sales for this one\./.test(d) && /Sam couldn't read this one yet\./.test(d) && !/Reading the sales for this one\.(?<!Sam is reading the sales for this one\.)/.test(d.replace(/Sam is reading the sales for this one\./g, "")), "eBay: its own words unchanged");
+ok(d.includes('reasonLine("cold.reading")') && d.includes('reasonLine("cold.missed")') && !/Reading the sales for this one\./.test(d), "eBay: its words are the engine's (lib/reasonWords.js), the Amazon wording is not in it");
 ok(/read\(withAns\(LIST && LIST\.vin && q === ORIGCAR \? \{ q: q, vin: LIST\.vin \} : \{ q: q \}\), drawB\)/.test(js) && /\$\("b-vin"\)\.value = CAR;/.test(js), "tab b: the listing car's VIN goes with the read, never into the page");
 ok(/<input id="b-price" disabled placeholder="Set by the dealer"/.test(amazonPageHtml("b", DEMO_CARS[0], { carOf, listing: DUMMY })), "tab b: the asking price is the dealer's, an empty disabled field, no suggested price");
 const hb = amazonPageHtml("b", DEMO_CARS[0], { carOf, listing: DUMMY }); ok(hb.indexOf('id="b-out"') < hb.indexOf('id="b-price"'), "tab b: the engine card sits above the asking price field");

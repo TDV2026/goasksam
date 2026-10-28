@@ -14,6 +14,8 @@
 import fs from "node:fs";
 import { partnerShape, venueLeak, historyOf, PILL_SLOT, PARTNER_CARD_OPTS, demoCard, basisLine } from "../api/partnerAnswer.js";
 import { sellsForCardHtml } from "../lib/sellsForCard.js";
+import { reasonLine } from "../lib/reasonWords.js";
+const CR = reasonLine("cold.reading"), CS = reasonLine("cold.still"), CM = reasonLine("cold.missed");   // the engine's own wording (lib/reasonWords.js), never a copy here
 // The card Market Check draws for an answer (public/js/onebox.js: window.sellsForCardHtml(d, {})); the partner card is
 // the same card with the pill slot and without the sale rows (the partner page lists those same sales itself, e63), so
 // with the slot taken out it must be byte-identical to Market Check's card with its rows list taken out.
@@ -203,8 +205,8 @@ for (const [name, d] of Object.entries(FIX)) {
 // samLine, retry, retryAfterMs): passed through as it is; the page draws the engine's line and asks again only after the
 // engine's own retryAfterMs; with no wait named it offers Try again. No timeout, retry rule or number of the page's own.
 { const { partnerShape: ps, fullResult, refreshDemoAnswer, DEMO_CARS } = await import("../api/partnerAnswer.js");
-  const sr = ps({ status: "one_box", tier: "unavailable", stillReading: true, samLine: "Sam is still reading the sales for this one.", retry: true, retryAfterMs: 15000 }, "2015 Porsche 911 GT3", 0, {});
-  ok(sr.ok === false && sr.error === "unavailable" && sr.stillReading === true && sr.line === "Sam is still reading the sales for this one." && sr.retryAfterMs === 15000, "the engine's still-reading answer passes through with its line and its wait");
+  const sr = ps({ status: "one_box", tier: "unavailable", stillReading: true, samLine: CS, retry: true, retryAfterMs: 15000 }, "2015 Porsche 911 GT3", 0, {});
+  ok(sr.ok === false && sr.error === "unavailable" && sr.stillReading === true && sr.line === CS && sr.retryAfterMs === 15000, "the engine's still-reading answer passes through with its line and its wait");
   const sr2 = ps({ status: "one_box", tier: "unavailable", stillReading: true, samLine: "x" }, "q", 0, {});
   ok(sr2.stillReading === true && sr2.retryAfterMs === null, "no retry asked by the engine: no wait named (the page then asks at the 2 second default, never offers Try again)");
   ok(ps({ status: "one_box", tier: "rate_limited" }, "q", 0, {}).stillReading === undefined, "a refusal is not a still-reading answer");
@@ -218,7 +220,7 @@ for (const [name, d] of Object.entries(FIX)) {
   ok(lastBlock.length > 0 && /readLast\(env, lk\)/.test(lastBlock) && !/marketCheckAnswer|writeLast|partnerShape/.test(lastBlock), "GET ?last= returns the stored answer only: no engine read, no write");
   const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
   ok(/setTimeout\(runs\[view\], \(a\.retryAfterMs > 0 \? a\.retryAfterMs : 2000\)/.test(pageSrc) && (pageSrc.match(/setTimeout\(runs\[view\]/g) || []).length === 1 && /45000 \* \(Number\(window\.GAS_WAIT_SCALE\)/.test(pageSrc), "the page asks again at the engine's own retryAfterMs (2 seconds by default) for up to 45 seconds (cold spec, Oct 28 2026)");
-  ok(/esc\(a\.line \|\| STILL_LINE\)/.test(pageSrc) && !/data-retry>Try again<\/button>/.test(pageSrc) && /Sam couldn't read this one yet\./.test(pageSrc), "the still-reading state draws the engine's line; after 45 seconds the one plain line; never Try again");
+  ok(/esc\(a\.line \|\| STILL_LINE\)/.test(pageSrc) && !/data-retry>Try again<\/button>/.test(pageSrc) && /reasonLine\("cold\.missed"\)/.test(pageSrc), "the still-reading state draws the engine's line; after 45 seconds the one plain line; never Try again");
   ok(/fetch\("\/api\/partnerAnswer\?last=" \+ encodeURIComponent\(body\.q\)/.test(pageSrc) && /if \(!a \|\| !a\.aborted\) return a;/.test(pageSrc), "after the page's abort (a safety net only): the stored last good answer, else the still-reading state");
   // ONE CAR ACROSS THE VIEWS, ANY CAR (Sam, Oct 18 2026): the car box takes any year, make and model, the six are quick
   // picks; every view reads the same car; only the 2015 GT3 has listing detail; nothing invented for any other car.
@@ -239,7 +241,7 @@ for (const [name, d] of Object.entries(FIX)) {
     ok(seen.every(x => x === seen[0]), `${car}: the same car identically in every view`);
   });
   ok(carOf("9") === DEMO_CARS[0] && carOf("") === DEMO_CARS[0] && carOf("<script>") === DEMO_CARS[0] && carOf("x".repeat(80)) === DEMO_CARS[0] && carOf("1965 ford mustang") === "1965 Ford Mustang", "an unknown or unsafe car= opens the 2015 GT3; a quick pick in any case is that car");
-  ok(!/Sam is reading the sales\.</.test(pageHtml("c", "1")) && /Sam is reading the sales for this one\./.test(pageHtml("c", "1")), "the loading line reads \"Sam is reading the sales for this one.\""); }
+  ok(!/Sam is reading the sales\.</.test(pageHtml("c", "1")) && pageHtml("c", "1".includes(CR)), "the loading line reads the engine's cold.reading line"); }
 // THE TYPED PATH (Sam, Oct 18 2026: a car typed into the first screen's own box did not reach the second screen). In a
 // local browser with every request answered here (no network, fake answers): type a car into view a's box, submit, then
 // open view b by its tab, at 1440 and 390; the address, the tab, the car bar and view b's read all carry the typed car.

@@ -64,7 +64,7 @@ try {
   console.log(`-- step 0: task=warmLive (${BASE}) --`);
   const liveT0 = Date.now();
   for (let call = 1; call <= 8; call++) {
-    const r = await opsGet(`${BASE}/api/usageDashboard?view=ops&task=warmLive&budget=240000&width=6`);
+    const r = await opsGet(`${BASE}/api/usageDashboard?view=ops&task=warmLive&budget=240000&width=6&trafficDays=0`);
     let j = null; try { j = JSON.parse(r.text); } catch {}
     if (r.status !== 200 || !j) { console.log(`task=warmLive call ${call}: HTTP ${r.status} ${String(r.text).slice(0, 160)}`); break; }
     console.log(`task=warmLive call ${call}: ${j.liveRows} live cars, ${j.distinctSpecs} distinct specs (${j.unresolved} unresolved, resolve ${Math.round(j.resolveMs / 1000)}s), already warm ${j.alreadyWarm}, warmed ${j.warmed}, failed ${j.failed}, not reached ${j.notReached}, ${Math.round(j.ms / 1000)}s`);

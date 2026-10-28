@@ -27,7 +27,7 @@ for (const [k, d] of Object.entries(KINDS)) {
   ok(n && !("rawPool" in n.card) && (n.card.cards || []).length === d.cards.length, `${k}: the engine's own rows, its card fields only`);
 }
 ok(noRangeOf(RANGE) === null, "a normal range answer: not a refusal");
-ok(noRangeOf({ tier: "refusal", refusal: { kind: "builder_car" }, samLine: "Singer cars are not compared with standard 911s, so Sam shows no range for this car." }) === null && refusalOf({ tier: "refusal", refusal: { kind: "builder_car" }, samLine: "x" }), "a builder car stays on its own line-only path");
+ok(noRangeOf({ tier: "refusal", refusal: { kind: "builder_car" }, samLine: "Singer cars are not compared with standard 911s, so no range is shown." }) === null && refusalOf({ tier: "refusal", refusal: { kind: "builder_car" }, samLine: "x" }), "a builder car stays on its own line-only path");
 ok(noRangeOf(null) === null, "no answer: nothing");
 
 // 2. buildResult: a refusal returns before any venue, pick, partner or tile read, carrying only the engine's card.

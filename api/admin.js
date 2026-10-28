@@ -8,7 +8,7 @@
 //   GET  /api/admin?refresh=night   yesterday's summaries finalized, retention, and the 13-month purge.
 // Every number comes from analytics_events (through the summary tables) except live inventory and the deploy.
 import { validateBearer } from "../lib/_auth.js";
-import { hasServerCredential } from "../lib/_credential.js";
+import { hasServerCredential, cronOk } from "../lib/_credential.js";
 import { sendDisguisedNotFound } from "../lib/_notFound.js";
 import { supabaseSelectAll } from "../lib/_supabase.js";
 import { trackHealth, withTracking } from "../lib/track/log.js";
@@ -463,7 +463,7 @@ async function handler(req, res) {
   const q = req.query || {};
 
   if (req.method === "GET" && q.refresh) {
-    const cron = process.env.CRON_SECRET && req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
+    const cron = process.env.CRON_SECRET && cronOk(req);
     if (!cron) return sendDisguisedNotFound(res);
     const env = storeEnv(); if (!env) return res.status(500).json({ ok: false, error: "store not configured" });
     try { return res.status(200).json({ ok: true, ...(await refresh(env, q.refresh === "night" ? "night" : "hour")) }); }

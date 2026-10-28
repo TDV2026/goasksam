@@ -3,12 +3,10 @@ Subject: Three updates from your Tasks
 Live right now
 
 2025 Porsche 911 Carrera
-bringatrailer · 1 hour left
+bringatrailer · 29 min left
 Last bid seen $30,000 at 7:50am PT
-Not enough recent sales to show a range.
 Carrera $118,000 to $139,000, 9 sales
 Carrera S $141,000 to $154,000, 11 sales
-The bid is within the sales.
 View auction: https://example.com/listing/101
 Market Check: https://goasksam.com/market-check?car=undefined
 Matches your Task: 911.
@@ -21,7 +19,7 @@ Stop: https://goasksam.com/api/tasks?a=stop&t=00000000-0000-4000-8000-0000000000
 · · ·
 
 1963 Chevrolet Corvette Split Window
-bringatrailer · 3 hours left
+bringatrailer · 2 hours left
 Last bid seen $30,000 at 7:50am PT
 $150,000 to $235,000
 L76 $160,000 to $230,000, 8 sales
@@ -40,13 +38,11 @@ Stop: https://goasksam.com/api/tasks?a=stop&t=00000000-0000-4000-8000-0000000000
 · · ·
 
 2003 Mercedes-Benz S-Class S500
-bringatrailer · 6 hours left
+bringatrailer · 5 hours left
 Last bid seen $30,000 at 7:50am PT
-Not enough recent sales to show a range.
 S430 $6,500 to $10,500, 8 sales
 S500 $8,500 to $14,500, 12 sales
 S600 $9,500 to $15,500, 8 sales
-The bid is within the sales.
 View auction: https://example.com/listing/103
 Market Check: https://goasksam.com/market-check?car=undefined
 Matches your Task: S-Class.

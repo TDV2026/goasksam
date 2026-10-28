@@ -429,6 +429,27 @@ try {
 } catch (e) {
   record("Keys in the header only (scripts/keyInAddressCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The probe key travels in a header only, and no tracked .claude json holds a credential (Lane S's check, adopted by Lane D, Oct 28 2026). Repo mode: tracked files only, so a local settings file cannot fail another lane's run; node scripts/credStorageCheck.mjs --full [claudeRoot] is the sweep.
+try {
+  const out = execSync("node scripts/credStorageCheck.mjs", { encoding: "utf8" });
+  record("Probe key in headers only, no credential in tracked .claude json (scripts/credStorageCheck.mjs)", "PASS", (out.match(/PASS credStorageCheck[^\n]*/) || [""])[0]);
+} catch (e) {
+  record("Probe key in headers only, no credential in tracked .claude json (scripts/credStorageCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^\s+(sender|storage)|^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// No plain comparison of a secret (PROBE_KEY, CRON_SECRET, crew and tester codes): the shared helpers only. No network.
+try {
+  const out = execSync("node scripts/keyedCompareCheck.mjs", { encoding: "utf8" });
+  record("Secrets compared in constant time (scripts/keyedCompareCheck.mjs)", "PASS", (out.match(/PASS keyedCompareCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Secrets compared in constant time (scripts/keyedCompareCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// /sitemap.xml answers the real sitemap index, never a stale page list. No network.
+try {
+  const out = execSync("node scripts/sitemapRouteCheck.mjs", { encoding: "utf8" });
+  record("/sitemap.xml reaches the sitemap index (scripts/sitemapRouteCheck.mjs)", "PASS", (out.match(/sitemapRouteCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("/sitemap.xml reaches the sitemap index (scripts/sitemapRouteCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Tester access: env code, mandatory expiry, signed cookie, no written-in code (Oct 2026, Lane C). No network.
 try {
   const out = execSync("node scripts/testerCheck.mjs", { encoding: "utf8" });
@@ -1359,6 +1380,34 @@ try {
 } catch (e) {
   record("everything a Find toggle or button makes is on Tasks, limited and named by the engine (scripts/findWatchCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Every stored answer carries the live epoch (Sam, Oct 28 2026); offline rule only (the --live read runs after the final warm).
+try {
+  const out = execSync("node scripts/epochMatchCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("every stored answer carries the live epoch, the counting rule (scripts/epochMatchCheck.mjs)", "PASS", (out.match(/epochMatchCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("every stored answer carries the live epoch, the counting rule (scripts/epochMatchCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// No page carries a copy of an engine reason line (Sam, Oct 28 2026).
+try {
+  const out = execSync("node scripts/pageReasonCopyCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("no page carries a copy of an engine reason line (scripts/pageReasonCopyCheck.mjs)", "PASS", (out.match(/pageReasonCopyCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("no page carries a copy of an engine reason line (scripts/pageReasonCopyCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// A stored-core fixture uses the engine's SPEC_V (Oct 28 2026).
+try {
+  const out = execSync("node scripts/specVersionFixtureCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("a stored-core fixture uses SPEC_V, never a version of its own (scripts/specVersionFixtureCheck.mjs)", "PASS", (out.match(/specVersionFixtureCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("a stored-core fixture uses SPEC_V, never a version of its own (scripts/specVersionFixtureCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// The launch warm is the union of every live spec (Sam, Oct 28 2026).
+try {
+  const out = execSync("node scripts/warmUnionCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("the launch warm covers every live spec, not the traffic slice (scripts/warmUnionCheck.mjs)", "PASS", (out.match(/warmUnionCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("the launch warm covers every live spec, not the traffic slice (scripts/warmUnionCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The launch warm counts rows by UTC day, never by age (Sam, Oct 28 2026). No network.
 try {
   const out = execSync("node scripts/warmDayCheck.mjs", { encoding: "utf8" });
@@ -1367,7 +1416,7 @@ try {
   record("launch warm counts by UTC day, not age (scripts/warmDayCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 // e96 checks (Lane B): each registers one script, no network.
-for (const [file, label] of [["nullIsNoNumberCheck", "null is no number at every customer-path site (scripts/nullIsNoNumberCheck.mjs)"], ["cardsRangeCheck", "cards outside the range are labelled, the three cards come from inside, a low-mile tile on an old car prints no mileage (scripts/cardsRangeCheck.mjs)"], ["windowWordsCheck", "the card names its window, the chart caption states its span, one line when they differ (scripts/windowWordsCheck.mjs)"], ["mileageYearSplitCheck", "a wide range that mileage explains splits by band, a widened set whose years price apart splits by year (scripts/mileageYearSplitCheck.mjs)"], ["yearNoteCheck", "a range that leaves out the typed year says so (scripts/yearNoteCheck.mjs)"], ["wideCauseCheck", "a wide range carries its cause and lever from its own sales, on the headline and on wide options (scripts/wideCauseCheck.mjs)"], ["gearboxWordCheck", "the gearbox word comes from one table by make, model, year and generation (scripts/gearboxWordCheck.mjs)"], ["splitStateCheck", "split and apart withhold the pooled headline, one dimension at a time, refine returns the combined set (scripts/splitStateCheck.mjs)"], ["generationPoolCheck", "a pool is its own model and generation: Impala SS is not a halo, a Bel Air is no Impala, a rescue never crosses a generation (scripts/generationPoolCheck.mjs)"], ["findThinThresholdCheck", "one thin threshold on Find and Market Check, the engine reason line at 8 or more, year and body per price (scripts/findThinThresholdCheck.mjs)"], ["findEqualsMarketCheckCheck", "a Find card is the Market Check answer for the listing; no rules of its own on the Find path; parts and unmatched lots do not draw (scripts/findEqualsMarketCheckCheck.mjs)"], ["findRefineStoredCheck", "a refine on a Find card reads the stored bare pool like Market Check: no pool read, no second row (scripts/findRefineStoredCheck.mjs)"], ["mileageNearCheck", "a listing that states its mileage carries the mileage band answer: range at 8 or more, span of sales at 3 to 7, empty under 3, bid placed (scripts/mileageNearCheck.mjs)"], ["refineFromStoredCheck", "a refine of a stored market reads the stored pool in the same request: no pool read, no cold marker, no second row (scripts/refineFromStoredCheck.mjs)"], ["twoRangeSplitCheck", "a split or apart replaces the pooled headline only when two options carry a range (scripts/twoRangeSplitCheck.mjs)"], ["optionsFieldCheck", "every answer with options carries its own figures; a window note only beside a range (scripts/optionsFieldCheck.mjs)"]]) {
+for (const [file, label] of [["nullIsNoNumberCheck", "null is no number at every customer-path site (scripts/nullIsNoNumberCheck.mjs)"], ["cardsRangeCheck", "cards outside the range are labelled, the three cards come from inside, a low-mile tile on an old car prints no mileage (scripts/cardsRangeCheck.mjs)"], ["windowWordsCheck", "the card names its window, the chart caption states its span, one line when they differ (scripts/windowWordsCheck.mjs)"], ["mileageYearSplitCheck", "a wide range that mileage explains splits by band, a widened set whose years price apart splits by year (scripts/mileageYearSplitCheck.mjs)"], ["yearNoteCheck", "a range that leaves out the typed year says so (scripts/yearNoteCheck.mjs)"], ["wideCauseCheck", "a wide range carries its cause and lever from its own sales, on the headline and on wide options (scripts/wideCauseCheck.mjs)"], ["gearboxWordCheck", "the gearbox word comes from one table by make, model, year and generation (scripts/gearboxWordCheck.mjs)"], ["splitStateCheck", "split and apart withhold the pooled headline, one dimension at a time, refine returns the combined set (scripts/splitStateCheck.mjs)"], ["generationPoolCheck", "a pool is its own model and generation: Impala SS is not a halo, a Bel Air is no Impala, a rescue never crosses a generation (scripts/generationPoolCheck.mjs)"], ["findThinThresholdCheck", "one thin threshold on Find and Market Check, the engine reason line at 8 or more, year and body per price (scripts/findThinThresholdCheck.mjs)"], ["findEqualsMarketCheckCheck", "a Find card is the Market Check answer for the listing; no rules of its own on the Find path; parts and unmatched lots do not draw (scripts/findEqualsMarketCheckCheck.mjs)"], ["liveScopeCheck", "the live feed matches the launch scope: no excluded platform or non-US car reaches Find, and a card is never an empty Sam box (scripts/liveScopeCheck.mjs)"], ["staleMarkCheck", "ingest marks touched core rows stale and deletes none; a marked row serves at once and refreshes behind (scripts/staleMarkCheck.mjs)"], ["matchedOptionCheck", "a title or typed words that name an option (gearbox word, body, edition, mileage band) make the engine mark it and send it first (scripts/matchedOptionCheck.mjs)"], ["reasonWordsCheck", "every reason line a visitor can read is in the one wording table, plain and one sentence (scripts/reasonWordsCheck.mjs)"], ["ownTrimRivalCheck", "a trim the asked car carries is never its rival, even when the make lists it as a model (Buick Grand National) (scripts/ownTrimRivalCheck.mjs)"], ["notACarCheck", "an identity missing make or model (and year, on a listing) is refused not_a_car by the engine, never answered or stored (scripts/notACarCheck.mjs)"], ["findRefineStoredCheck", "a refine on a Find card reads the stored bare pool like Market Check: no pool read, no second row (scripts/findRefineStoredCheck.mjs)"], ["mileageNearCheck", "a listing that states its mileage carries the mileage band answer: range at 8 or more, span of sales at 3 to 7, empty under 3, bid placed (scripts/mileageNearCheck.mjs)"], ["refineFromStoredCheck", "a refine of a stored market reads the stored pool in the same request: no pool read, no cold marker, no second row (scripts/refineFromStoredCheck.mjs)"], ["twoRangeSplitCheck", "a split or apart replaces the pooled headline only when two options carry a range (scripts/twoRangeSplitCheck.mjs)"], ["optionsFieldCheck", "every answer with options carries its own figures; a window note only beside a range (scripts/optionsFieldCheck.mjs)"]]) {
   try {
     const out = execSync(`node scripts/${file}.mjs`, { encoding: "utf8" });
     record(label, "PASS", (out.match(new RegExp(file + ": .*")) || [""])[0]);
@@ -1450,6 +1499,13 @@ try {
   record("Candle chart labels (scripts/candleLabelsCheck.mjs)", "PASS", (out.match(/candleLabelsCheck: \d+ pass.*/) || [""])[0] + " | " + (out.match(/candleLabelsCheck: \d+ charts.*/) || [""])[0]);
 } catch (e) {
   record("Candle chart labels (scripts/candleLabelsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// Every car count on the Tasks surfaces is the shared helper's (Lane D, Oct 28 2026): the overview card, the Show label, the status line, the update line and the email lines at 0 to 45, and no count typed in front of its noun. No network.
+try {
+  const out = execSync("node scripts/taskCountsCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Task counts use the helper (scripts/taskCountsCheck.mjs)", "PASS", (out.match(/taskCountsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Task counts use the helper (scripts/taskCountsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 // Task email form (Lane D, Oct 28 2026): the first email is a catch-up headed Live right now, later ones only new cars, one count in one word form (the shared helper), one footer line, every emailMode. No network.
 try {

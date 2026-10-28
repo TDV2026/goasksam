@@ -3,7 +3,7 @@
 // deploy cap; all three take the probe key in the x-ops-key header only (Oct 2026; USAGE_DASHBOARD_KEY is no longer
 // read, and a key in the address is refused). (Merged from api/adminAccounts.js
 // and api/outboundClicks.js, July 2026.)
-import { hasServerCredential, hasHeaderKey, keyInAddress, ADDRESS_KEY_REFUSED } from "../lib/_credential.js";
+import { hasServerCredential, hasHeaderKey, cronOk, keyInAddress, ADDRESS_KEY_REFUSED } from "../lib/_credential.js";
 import { sendDisguisedNotFound } from "../lib/_notFound.js";
 import fs from "node:fs";
 import { supabaseEnv, supabaseSelect, supabaseSelectAll, supabaseInsert, supabaseDelete } from "../lib/_supabase.js";
@@ -415,7 +415,7 @@ async function handleOps(req, res) {
   // OPS_KEY) as x-ops-key or x-probe-key, or Vercel's cron auth (Authorization: Bearer ${CRON_SECRET}).
   // A key in the address is ignored: addresses end up in logs and histories. Keys from env only.
   const opsKey = process.env.PROBE_KEY || process.env.OPS_KEY;
-  const isCron = !!process.env.CRON_SECRET && String(req.headers["authorization"] || "") === `Bearer ${process.env.CRON_SECRET}`;
+  const isCron = !!process.env.CRON_SECRET && cronOk(req);
   if (!hasServerCredential(req)) {
     if (!opsKey && !process.env.CRON_SECRET) return res.status(500).json({ error: "Set PROBE_KEY in Vercel to enable the ops endpoint." });
     return res.status(401).json({ error: "Unauthorized (ops). Send the key in the x-ops-key header." });
@@ -678,19 +678,10 @@ async function handleOps(req, res) {
     const make = String(req.query?.make || "").toLowerCase().trim();
     const model = String(req.query?.model || "").toLowerCase().trim();
     if (!make || !model) return res.status(400).json({ error: "make and model query params are required." });
-    const cacheRows = (await supabaseSelectAll(env, "spec_market_cache?select=spec_key")) || [];
-    const toDelete = [];
-    for (const row of cacheRows) {
-      let parsed; try { parsed = JSON.parse(row.spec_key); } catch { continue; }
-      const [mk, md, , gc] = Array.isArray(parsed) ? parsed : [];
-      if (String(mk || "").toLowerCase() !== make) continue;
-      if (String(md || "").toLowerCase() === model || (gc && String(gc).toLowerCase() === model)) toDelete.push(row.spec_key);
-    }
-    for (let k = 0; k < toDelete.length; k += 100) {
-      const batch = toDelete.slice(k, k + 100).map(s => `"${s.replace(/"/g, '\\"')}"`).join(",");
-      await supabaseDelete(env, `spec_market_cache?spec_key=in.(${encodeURIComponent(batch)})`);
-    }
-    return res.status(200).json({ task: "specinvalidate", make, model, deleted: toDelete });
+    // mark stale, never delete (Oct 28 2026): the rows stay and are served stale while they refresh behind
+    const { markTouchedStale } = await import("../lib/_staleMark.js");
+    const r = await markTouchedStale(env, new Set([`${make}|${model}`]));
+    return res.status(200).json({ task: "specinvalidate", make, model, marked: r.marked, alreadyMarked: r.already, failed: r.failed, deleted: 0, keys: r.keys });
   }
 
   // task=trimresolvediff: READ-ONLY, zero writes. Runs every PORSCHE_911_TRIMS entry (the one
@@ -1576,12 +1567,35 @@ async function handleOps(req, res) {
     }
     return res.status(200).json({ task: "storedcount", ocdSpend: 0, writes: 0, ...counts, ms: Date.now() - t0 });
   }
+  // task=livescope (Lane B, Oct 28 2026, launch scope of the live feed): READ ONLY. Reads every live listing past the scope fence and counts those the launch scope leaves out (liveScopeOf in
+  // lib/live/search.js: an excluded platform, or a place outside the US and Canada; a row with no place stays in and is counted apart), by reason and by platform, with five example titles. Writes nothing, spends nothing.
+  if (task === "livescope") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { liveRows, liveScopeOf } = await import("../lib/live/search.js");
+    const all = (await liveRows(env, "id=gt.0", { noDescription: true, allScope: true })) || [];
+    const by = { platform: 0, country: 0 }, bySource = {}, ex = []; let unplaced = 0;
+    for (const r of all) { const sc = liveScopeOf(r); if (sc.reason === "unplaced") unplaced++; if (sc.in) continue; by[sc.reason]++; bySource[r.source] = (bySource[r.source] || 0) + 1; if (ex.length < 5) ex.push({ title: r.listing_title, source: r.source, location: r.location || null, country: r.country || null, currency: r.currency || null, reason: sc.reason }); }
+    return res.status(200).json({ task: "livescope", live: all.length, out: by.platform + by.country, inScope: all.length - (by.platform + by.country), unplacedKeptIn: unplaced, byReason: by, bySource, examples: ex.slice(0, 7), ocdSpend: 0, writes: 0 });
+  }
+  // task=stalecount (Lane B, Oct 28 2026, mark stale, never delete): READ ONLY. Counts spec_market_cache rows by kind (core rows with a JSON-array key, MCWARM answers, other), how many core rows carry
+  // market.staleSince, and the first ten marked keys with their mark time. Paged 1000 rows a call (after = last key). Writes nothing, spends nothing: the before and after of the supervised ingest.
+  if (task === "stalecount") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const after = req.query?.after ? String(req.query.after) : "";
+    const rows = await supabaseSelect(env, `spec_market_cache?select=spec_key,mark:market->>staleSince,at:computed_at&order=spec_key.asc&limit=1000` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "stalecount", readFailed: true, ocdSpend: 0, writes: 0 });
+    const out = { task: "stalecount", ocdSpend: 0, writes: 0, rows: rows.length, core: 0, mcwarm: 0, other: 0, marked: 0, markedExamples: [], next: rows.length === 1000 ? rows[rows.length - 1].spec_key : null };
+    for (const r of rows) {
+      const k = String(r.spec_key); if (k.startsWith("MCWARM:")) out.mcwarm++; else if (k.startsWith("[")) { out.core++; if (r.mark) { out.marked++; if (out.markedExamples.length < 10) out.markedExamples.push({ key: k, staleSince: r.mark, computed_at: r.at }); } } else out.other++;
+    }
+    return res.status(200).json(out);
+  }
   // task=storedsweep (Lane B, Oct 27 2026, e95): READ-ONLY. Runs the engine's own checks over every stored Market Check answer (MCWARM rows), 100 rows a page,
   // nothing written: one set of sales (setConsistencyOf), the output gate's receipts check (runOutputInvariants: another car's sales under this car), non-trim text
   // in a stored trim value (trimTextIsNoise), and the pooled states (apart, split, alike) the e95 rule gives each result. Counts, and the first 20 of each kind with the key.
   if (task === "storedsweep") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { setConsistencyOf, runOutputInvariants, pooledApartGuard, ENGINE_VERSION } = await import("../lib/onebox.js");
+    const { setConsistencyOf, runOutputInvariants, pooledApartGuard, ENGINE_VERSION, loadMakeModels } = await import("../lib/onebox.js");
     const { trimTextIsNoise } = await import("../lib/vehicle.js");
     const t0 = Date.now(), maxPages = Math.max(1, Math.min(60, Number(req.query?.pages) || 20));
     const onlyVersion = String(req.query?.version || ENGINE_VERSION);   // e95: only the answers stamped with the live engine; older stored rows are counted, not judged
@@ -1628,6 +1642,8 @@ async function handleOps(req, res) {
           const yl = Object.keys(yrs).map(Number).filter(y => yrs[y].length >= 3).sort((x, y) => x - y); let yApart = null;
           for (let i = 0; i < yl.length && !yApart; i++) for (let j = i + 1; j < yl.length; j++) if (pq(yrs[yl[i]], 0.75) < pq(yrs[yl[j]], 0.25) || pq(yrs[yl[j]], 0.75) < pq(yrs[yl[i]], 0.25)) { yApart = [yl[i], yl[j]]; break; }
           if (yApart && yl.length >= 2 && /year_widened|generation|model_any_year/.test(String(d.fallbackRung || ""))) { C.yearApart.n++; ex("yearApart", { years: yApart, groups: yApart.map(y => `${y}: ${yrs[y].length} sales, median ${Math.round(pq(yrs[y], 0.5))}`), rung: d.fallbackRung, range: cl }); }
+          // e98 (row 15, the 1987 Grand National): an answer whose trim is also a model of its make is exposed to the rival rule; listed so a change in its sales count can be read against it
+          { const rc2 = d.resolvedCar || {}, tn = String(rc2.trim || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); if (tn && rc2.make) { const mm = await loadMakeModels(env, rc2.make); if (mm && mm.list && mm.list.some(m => m.norm === tn)) { C.trimIsModel = C.trimIsModel || { n: 0, examples: [] }; C.trimIsModel.n++; ex("trimIsModel", { make: rc2.make, model: rc2.model, trim: rc2.trim, count: n, rung: d.fallbackRung || null }); } } }
           const lo = (Array.isArray(d.cards) ? d.cards : []).filter(c => Number(c.mi) > 0 && Number(c.mi) < 500 && (Number(c.year) || Number((/\b(18|19|20)\d{2}\b/.exec(String(c.title || "")) || [])[0])) > 0 && (Number(c.year) || Number((/\b(18|19|20)\d{2}\b/.exec(String(c.title || "")) || [])[0])) <= new Date().getUTCFullYear() - 15);
           if (lo.length) { C.lowMileTiles.sales += lo.length; C.lowMileTiles.answers++; ex("lowMileTiles", { cars: lo.slice(0, 2).map(c => `${c.title} ${c.mi} mi $${c.price}`) }); }
           for (const o of [...(((d.pooledSplit || {}).options) || []), ...(((d.pooledApart || {}).options) || []), ...(((gg || {}).pooledSplit || {}).options || []), ...(((gg || {}).pooledApart || {}).options || [])]) if (o && (o.low === 0 || o.high === 0 || o.median === 0)) { C.zeroFromNull.n++; ex("zeroFromNull", { option: `${o.dimension}:${o.label}`, low: o.low, high: o.high, median: o.median }); break; }
@@ -5049,7 +5065,7 @@ async function handleOps(req, res) {
   if (task === "warmLive" || task === "warmlive") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { warmLiveSpecs } = await import("../lib/live/search.js");
-    const r = await warmLiveSpecs(env, { budgetMs: Math.min(230000, Number(req.query?.budget) || 200000), concurrency: Math.min(8, Number(req.query?.width) || 6), shard: req.query?.shard ? String(req.query.shard) : null });
+    const r = await warmLiveSpecs(env, { budgetMs: Math.min(230000, Number(req.query?.budget) || 200000), concurrency: Math.min(8, Number(req.query?.width) || 6), shard: req.query?.shard ? String(req.query.shard) : null, ...(req.query?.trafficDays != null && req.query.trafficDays !== "" ? { trafficDays: Math.max(0, Number(req.query.trafficDays) || 0) } : {}) });
     return res.status(200).json({ task: "warmLive", ...r });
   }
   // task=warmDemo (e60, Sam: the 00:05 UTC warm of the demo cars, the golden rows and prePush's perf cars, and the
@@ -5111,19 +5127,19 @@ async function handleOps(req, res) {
   // apart) not stored on that UTC day, for the live engine version. The launch gate is offDay = 0 on the MCWARM rows (lib/warmDay.js, scripts/warmDayCheck.mjs).
   if (task === "warmDay") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { rowsOffDay, utcDayOf } = await import("../lib/warmDay.js");
+    const { rowsOffDay, utcDayOf, epochMatch } = await import("../lib/warmDay.js");
     const { ENGINE_VERSION } = await import("../lib/onebox.js");
     const day = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.day || "")) ? String(req.query.day) : utcDayOf(Date.now());
     const mc = [], core = []; let cursor = "";
     for (let page = 0; page < 200; page++) {
-      const q = `spec_market_cache?select=spec_key,computed_at,ev:market->>engineVersion,os:market->raw->>optionsState,tr:market->raw->>tier,hc:market->raw->cluster->>0&order=spec_key.asc&limit=1000` + (cursor ? `&spec_key=gt.${encodeURIComponent(cursor)}` : "");
+      const q = `spec_market_cache?select=spec_key,computed_at,ev:market->>engineVersion,we:market->>warmEpoch,os:market->raw->>optionsState,tr:market->raw->>tier,hc:market->raw->cluster->>0&order=spec_key.asc&limit=1000` + (cursor ? `&spec_key=gt.${encodeURIComponent(cursor)}` : "");
       const rows = await supabaseSelect(env, q);
       if (!Array.isArray(rows) || !rows.length) break;
-      for (const r of rows) (String(r.spec_key).startsWith("MCWARM:") ? mc : core).push({ key: r.spec_key, computedAt: r.computed_at, engineVersion: r.ev, thin: String(r.spec_key).startsWith("MCWARM:") && String(r.tr || "") === "result" && r.hc != null && r.os == null });
+      for (const r of rows) (String(r.spec_key).startsWith("MCWARM:") ? mc : core).push({ key: r.spec_key, computedAt: r.computed_at, engineVersion: r.ev, warmEpoch: r.we, thin: String(r.spec_key).startsWith("MCWARM:") && String(r.tr || "") === "result" && r.hc != null && r.os == null });
       cursor = rows[rows.length - 1].spec_key;
       if (rows.length < 1000) break;
     }
-    return res.status(200).json({ task: "warmDay", engineVersion: ENGINE_VERSION, day, marketCheck: { ...rowsOffDay(mc, day, ENGINE_VERSION), withoutE96Fields: mc.filter(r => r.engineVersion === ENGINE_VERSION && r.thin).length }, buyAndTasks: rowsOffDay(core, day, null), note: "marketCheck.offDay must be 0 at the Wednesday WARM DONE; withoutE96Fields counts live-stamp result and thin rows stored without optionsState (the thin shape), which the warm re-stores" });
+    return res.status(200).json({ task: "warmDay", engineVersion: ENGINE_VERSION, day, marketCheck: { ...rowsOffDay(mc, day, ENGINE_VERSION), withoutE96Fields: mc.filter(r => r.engineVersion === ENGINE_VERSION && r.thin).length }, buyAndTasks: rowsOffDay(core, day, null), epoch: epochMatch(mc, await (await import("../lib/_epoch.js")).currentEpoch(env), ENGINE_VERSION), note: "marketCheck.offDay must be 0 at the Wednesday WARM DONE; withoutE96Fields counts live-stamp result and thin rows stored without optionsState (the thin shape), which the warm re-stores" });
   }
   if (task === "warmDemoCheck") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });

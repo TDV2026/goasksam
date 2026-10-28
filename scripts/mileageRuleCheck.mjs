@@ -23,7 +23,7 @@ const e0 = buildResult(chosen(etype), base(), iso, spec, null);
 const e1 = buildResult(chosen(etype), base(), iso, spec, MILES(36000));
 ok(e0.tier === "result" && Array.isArray(e0.cluster), `the 1963 E-Type without mileage: a range (${e0.tier} ${JSON.stringify(e0.cluster)}, ${e0.poolN} sales)`);
 ok(keyOf(e1) === keyOf(e0), "with 36,000 miles: the SAME answer (tier, range, count, years, label) as without");
-ok(e1.mileageNote === `Too few sales near 36,000 miles to narrow it. This is the range for all eight.`, `the plain line: "${e1.mileageNote}"`);
+ok(e1.mileageNote === `Too few sales near 36,000 miles to narrow it, so this is the range for all eight.`, `the plain line: "${e1.mileageNote}"`);
 ok(e1.refined && e1.refined.mileage === true && e1.refined.narrowed === false, "refined says a mileage was given and the pool was not narrowed");
 ok(e1.mileageFallback === null && e1.nearestInMiles === null, "no 'nearest in miles' set replaces the answer");
 ok(Array.isArray(e1.poolYears) && e1.poolYears[0] === e0.poolYears[0] && e1.poolYears[1] === e0.poolYears[1], `the years stay (${JSON.stringify(e1.poolYears)}), never 1964 to 1966`);

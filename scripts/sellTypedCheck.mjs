@@ -57,9 +57,9 @@ ok(OBX.root.innerHTML.includes("<inbox 2004 Porsche 911 Carrera GT>"), "typed Ca
 
 // 3. A typed Singer: the engine's line at the hand-over, nothing read.
 const n0 = calls.length;
-S.onCar({ tier: "refusal", refusal: { kind: "builder_car" }, samLine: "Singer cars are not compared with standard 911s, so Sam shows no range for this car.", resolvedCar: { year: 1992, make: "Porsche", model: "911", trim: "Carrera 4" } }, "1992 Porsche 911 Carrera 4 by Singer");
+S.onCar({ tier: "refusal", refusal: { kind: "builder_car" }, samLine: "Singer cars are not compared with standard 911s, so no range is shown.", resolvedCar: { year: 1992, make: "Porsche", model: "911", trim: "Carrera 4" } }, "1992 Porsche 911 Carrera 4 by Singer");
 await tick();
-ok(calls.length === n0 && text().includes("Singer cars are not compared with standard 911s, so Sam shows no range for this car."), "typed Singer: the engine's line, no Sell read");
+ok(calls.length === n0 && text().includes("Singer cars are not compared with standard 911s, so no range is shown."), "typed Singer: the engine's line, no Sell read");
 
 // 4. An unchanged plain car: typed words the same as the resolver's name read exactly as before.
 S.onCar({ resolvedCar: { year: 1992, make: "Porsche", model: "911", trim: "Carrera 4" } }, "1992 Porsche 911 Carrera 4");

@@ -8,7 +8,7 @@ import { validateJob, builderOf, builderMarket, taskRow, blockLines, setupQuesti
 import { BUILDER_CAR_LINE } from "../lib/onebox.js";
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
-const SAM = "Singer cars are not compared with standard 911s, so Sam shows no range for this car.";
+const SAM = "Singer cars are not compared with standard 911s, so no range is shown.";
 ok(BUILDER_CAR_LINE === SAM, "the engine's line is Sam's approved wording");
 // The mark, from the buyer's own words, on a Porsche only.
 ok(builderOf("1992 Porsche 911 Carrera 4 by Singer", "Porsche") === "Singer" && builderOf("Reimagined by Singer 911", "Porsche") === "Singer", "Singer words on a Porsche: the mark");

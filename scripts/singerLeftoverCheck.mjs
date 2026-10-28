@@ -16,7 +16,7 @@ const answer = async text => { const r = await resolveVehicle(text, {}); const a
 const S = "1992 Porsche 911 Carrera 4 by Singer";
 const s = await answer(S);
 ok("Singer: the answer is the builder-car refusal with Sam's sentence, unchanged", s.raw.refusal && s.raw.refusal.kind === "builder_car" && s.raw.samLine === BUILDER_CAR_LINE, s.raw.samLine);
-ok("Singer: the sentence is the approved one", BUILDER_CAR_LINE === "Singer cars are not compared with standard 911s, so Sam shows no range for this car.");
+ok("Singer: the sentence is the approved one", BUILDER_CAR_LINE === "Singer cars are not compared with standard 911s, so no range is shown.");
 ok("Singer: the typed words do leave 'by' and 'singer' over (this is what printed the line)", JSON.stringify(UW.unusedWordsOf(S, s.v, s.corrections).unused) === JSON.stringify(["by", "singer"]));
 ok("Singer: no leftover-word line is added above the refusal", typeof UW.unusedFieldsFor === "function" && Object.keys(UW.unusedFieldsFor(S, s.v, s.raw)).length === 0);
 const M = "2004 Porsche 911 carrera gt";

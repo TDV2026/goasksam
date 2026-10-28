@@ -2686,7 +2686,7 @@
   // COLD SPEC (Sam, Oct 28 2026, no dead ends): when the engine says the answer is computing, the search stays in place under "Sam is reading the sales for this one." with the
   // live dots, the page asks again every retryAfterMs (2 seconds) for up to waitMaxMs (45 seconds) and draws the answer the moment it is stored. If the engine fails or the
   // time runs out, one plain line and the Have Sam keep looking button, and a cold_miss event with the spec and the wait. Nothing says "try again". GAS_WAIT_SCALE shortens the clock for the check only.
-  var COMPUTING_LINE = "Sam is reading the sales for this one.", COULD_NOT_LINE = "Sam couldn't read this one yet.";
+  // The words come from the engine's answer (samLine while computing, couldNotLine for the timeout; lib/reasonWords.js), never from this file.
   function obAskUntilRead(payload, t0, onComputing) {
     var k = Number(window.GAS_WAIT_SCALE) || 1;
     return obFetch(API_ORIGIN + "/api/sellerDecision", {
@@ -2701,13 +2701,15 @@
       return d;
     });
   }
+  // The could-not line is the engine's: couldNotLine on a computing answer, samLine on the engine's own could-not answer (api/sellerDecision.js, lib/reasonWords.js).
+  function cnLine(d) { return (d && (d.couldNotLine || (d.computing !== true && d.status === "one_box" && d.tier === "unavailable" ? d.samLine : ""))) || ""; }
   function renderCouldNot(d, reason, waitedMs) {
     obAsk = null;
     var rc = (d && d.resolvedCar) || obResolvedCar || obLastVehicle || null;
     try {
       if (typeof gasTrack === "function") gasTrack("cold_miss", { wait_ms: Math.round(waitedMs || 0), reason: reason, vehicle_key: rc && rc.make ? String(rc.make + "|" + (rc.model || "")).slice(0, 60) : undefined, text: String(lastQuery || "").slice(0, 120), from_product: "market_check" });
     } catch (e) {}
-    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + samMsgHtml([esc(COULD_NOT_LINE)], "", "big") + samOnItHtml({ resolvedCar: rc }, null, true) + footHtml();   // always with Have Sam keep looking: the line without the button is a dead end
+    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + (cnLine(d) ? samMsgHtml([esc(cnLine(d))], "", "big") : "") + samOnItHtml({ resolvedCar: rc }, null, true) + footHtml();   // always with Have Sam keep looking: the line without the button is a dead end
     wire();
   }
   function renderError(msg) {
@@ -3048,7 +3050,7 @@
     if (obSearchId) payload.searchId = obSearchId;
     if (refine) payload.refine = refine;   // inline earned-question refinement (mileage / transmission)
     var coldT0 = Date.now();
-    obAskUntilRead(payload, coldT0, function () { if (loader) loader.hold(COMPUTING_LINE); }).then(function (d) {
+    obAskUntilRead(payload, coldT0, function (cd) { if (loader && cd && cd.samLine) loader.hold(cd.samLine); }).then(function (d) {
       if (opts.inline) dimHeroForRerun(false);   // the rerun's answer landed (narrowed or not): the range and the chart un-fade whatever it says
       if (d && d.couldNot) { renderCouldNot(d.d, "timeout", Date.now() - coldT0); return; }
       pushRecent(text, d);

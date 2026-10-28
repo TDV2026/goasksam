@@ -13,7 +13,7 @@ import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
 import { recordUsageEvent } from "./_usage.js";
 import { validateBearer } from "../lib/_auth.js";
 import { readVisitorId } from "../lib/_visitor.js";
-import { hasServerCredential } from "../lib/_credential.js";
+import { hasServerCredential, cronOk } from "../lib/_credential.js";
 import { ready, arm, stop, resume, list, run, testSend, isMissingTable, probeBackdate, probeInspect, verifySoldTaskTap, soldTaskTap, soldTaskName, getWatch, setWatchState } from "../lib/live/watches.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
 import { routeLimit } from "../lib/_routeLimit.js";
@@ -66,7 +66,7 @@ async function handler(req, res) {
   }
   try {
     if (req.method === "GET" && req.query && req.query.run) {
-      const cron = process.env.CRON_SECRET && String(req.headers.authorization || "") === `Bearer ${process.env.CRON_SECRET}`;
+      const cron = process.env.CRON_SECRET && cronOk(req);
       if (!cron && !probe) return res.status(401).json({ error: "Unauthorized." });
       if (!(await ready(env))) return res.status(200).json({ ok: true, setup: true });
       // &ifnew=1 (THE cron, every quarter hour, 10 minutes after each pull slot in lib/live/pullSchedule.js): exits

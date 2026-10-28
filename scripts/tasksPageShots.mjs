@@ -4,6 +4,8 @@
 // (no overlap of the email toggle and How often; no clipped badge on a card).  node scripts/tasksPageShots.mjs [--shots]
 // --shots also writes the screenshots to proofs/tasks3/.
 import path from "node:path"; import { pathToFileURL, fileURLToPath } from "node:url";
+import { reasonLine } from "../lib/reasonWords.js";
+const CR = reasonLine("cold.reading"), CS = reasonLine("cold.still"), CM = reasonLine("cold.missed");   // the engine's own wording (lib/reasonWords.js), never a copy here
 process.env.LAUNCH_STAGE = "2"; process.env.LAUNCH_BUSINESS = "1";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SHOTS = process.argv.includes("--shots");
@@ -116,7 +118,7 @@ try {
       if (W === 1440) ok(new Set(geo.map(g => g.top)).size === 1 && geo[0].left < geo[1].left && geo[1].left < geo[2].left, `[1440] overview: three across in one row ${JSON.stringify(geo.map(g => [g.top, g.left]))}`);
       else ok(new Set(geo.map(g => g.left)).size === 1 && geo[0].top < geo[1].top && geo[1].top < geo[2].top, `[390] overview: a single column ${JSON.stringify(geo.map(g => [g.top, g.left]))}`);
       const g1 = geo.find(g => g.id === "1"), g3 = geo.find(g => g.id === "3");
-      ok(/Running/i.test(g1.text) && /red manual Porsche 911s/.test(g1.text) && /3 live cars match/.test(g1.text) && /2 new/.test(g1.text) && g1.btns === "Pause,Stop", `[${W}] card: status, sentence, count line, 2 new, Pause and Stop (${g1.text})`);
+      ok(/Running/i.test(g1.text) && /red manual Porsche 911s/.test(g1.text) && /Three live cars match/.test(g1.text) && /2 new/.test(g1.text) && g1.btns === "Pause,Stop", `[${W}] card: status, sentence, count line, 2 new, Pause and Stop (${g1.text})`);
       ok(/Paused/i.test(g3.text) && g3.btns === "Resume,Stop" && !/new/.test(geo.find(g => g.id === "2").text), `[${W}] card: a Paused Task shows Resume and Stop; no "new" when there are none`);
       await shot(p, `tasks-overview-closed-${W}`);
       // Pause from the card without opening it; the card stays closed
@@ -161,22 +163,22 @@ try {
       const follow = { id: 411, role: "sam", kind: "match", created_at: ago(2), text: "x", listing_ids: [3], data: { cards: [{ id: 3, title: CARDS[2].title, url: CARDS[2].url }] } };
       const T = mkTask(1, "running", { updates: [opening, follow] }), B = mkTask(2, "running", { updates: [opening] });
       const f1 = overviewFacts(T), f0 = overviewFacts(B), fEnded = overviewFacts(T, new Set());
-      ok(f1.live === "1 live car matches" && f1.liveCount === 1, `[${W}] one live match in the thread: the server's count is 1 (${JSON.stringify(f1)})`);
+      ok(f1.live === "One live car matches" && f1.liveCount === 1, `[${W}] one live match in the thread: the server's count is 1 (${JSON.stringify(f1)})`);
       ok(f0.live === "No live cars match yet" && f0.liveCount === 0 && fEnded.live === "No live cars match right now" && fEnded.liveCount === 0, `[${W}] no cars at all says yet; every car ended says right now (${f0.live} | ${fEnded.live})`);
       const A = account([T, B]); const p = await open(A, W); await wait(900);
       const cardText = async n => p.$eval("#task-00000000-0000-4000-8000-00000000000" + n, c => c.innerText.replace(/\s+/g, " "));
       const c1 = await cardText(1), c2 = await cardText(2);
-      ok(/1 live car matches/.test(c1) && !/No live cars match yet/.test(c1) && /Select the card to see it/.test(c1) && /Show 1 car/.test(c1), `[${W}] the card with one live match: count, where to look and the label (${c1})`);
+      ok(/One live car matches/.test(c1) && !/No live cars match yet/.test(c1) && /Select the card to see it/.test(c1) && /Show one car/.test(c1), `[${W}] the card with one live match: count, where to look and the label (${c1})`);
       ok(/No live cars match yet/.test(c2) && /Show cars/.test(c2) && !/Select the card/.test(c2), `[${W}] the card with no cars: yet line, plain Show cars label (${c2})`);
       const tg = await p.$eval("#tt-00000000-0000-4000-8000-000000000001", b => { const cs = getComputedStyle(b), pr = getComputedStyle(b, "::before"), c = b.closest(".tc").getBoundingClientRect(), r = b.getBoundingClientRect(); return { tag: b.tagName, type: b.type, label: (b.querySelector(".tshow") || {}).innerText, cursor: cs.cursor, cover: pr.position === "absolute" && pr.inset !== "" , exp: b.getAttribute("aria-expanded"), ctl: b.getAttribute("aria-controls"), w: Math.round(c.width), h: Math.round(c.height), noDash: !/[\u2013\u2014]/.test(b.innerText) }; });
-      ok(tg.tag === "BUTTON" && tg.type === "button" && tg.label === "Show 1 car" && tg.cursor === "pointer" && tg.cover && tg.exp === "false" && !!tg.ctl, `[${W}] the toggle is a real button with a visible text label, a pointer and full-card cover (${JSON.stringify(tg)})`);
+      ok(tg.tag === "BUTTON" && tg.type === "button" && tg.label === "Show one car" && tg.cursor === "pointer" && tg.cover && tg.exp === "false" && !!tg.ctl, `[${W}] the toggle is a real button with a visible text label, a pointer and full-card cover (${JSON.stringify(tg)})`);
       ok(!/\b(he|him|his)\b/i.test(c1 + " " + c2), `[${W}] the card words never call Sam he, him or his`);
       // the whole card is the control: a click in the empty space at the bottom right of the card (the Pause and Stop row) opens it; Pause and Stop do not toggle
       const rect = await p.$eval("#task-00000000-0000-4000-8000-000000000001", c => { const r = c.getBoundingClientRect(); return { x: r.right - 24, y: r.bottom - 18 }; });
       await p.mouse.move(rect.x, rect.y); const hov = await p.$eval("#task-00000000-0000-4000-8000-000000000001", c => getComputedStyle(c).borderTopColor);
       await p.mouse.click(rect.x, rect.y); await wait(900);
       const o1 = await p.evaluate(() => ({ open: document.querySelector("#task-00000000-0000-4000-8000-000000000001").classList.contains("open"), label: document.querySelector("#tt-00000000-0000-4000-8000-000000000001 .tshow").innerText, line: document.querySelector("#task-00000000-0000-4000-8000-000000000001 .tcount").innerText, d: document.querySelectorAll(".tdetail").length }));
-      ok(o1.open && o1.label === "Hide 1 car" && /Shown below/.test(o1.line) && o1.d === 1, `[${W}] a click anywhere on the card opens it: label Hide 1 car, line says shown below (${JSON.stringify(o1)})`);
+      ok(o1.open && o1.label === "Hide one car" && /Shown below/.test(o1.line) && o1.d === 1, `[${W}] a click anywhere on the card opens it: label Hide one car, line says shown below (${JSON.stringify(o1)})`);
       ok(hov !== "rgba(0, 0, 0, 0)", `[${W}] the card has a hover state (${hov})`);
       // the one car in the thread is a full-width card, never squeezed into one of six tracks (Find's own n1 class: the grid carries its car count)
       const cw = await p.evaluate(() => { const c = document.querySelector(".tkgrid .car"), g = document.querySelector(".tkgrid"); return c && g ? { car: Math.round(c.getBoundingClientRect().width), grid: Math.round(g.getBoundingClientRect().width), cls: g.className } : null; });
@@ -190,22 +192,22 @@ try {
     // those ids are not matches. Only data.cards count, each car once; near misses are a count ("31 close ones"), never "match".
     { const stale = n => Array.from({ length: n }, (_, i) => 100 + i);
       const bmwOpen = { id: 420, role: "sam", kind: "match", created_at: ago(6), text: "Nothing red yet. 31 other cars match the rest.", listing_ids: stale(3), data: { opening: true, edit: false, total: 0, loose: { dropped: "colour", count: 31 } } };
-      const porOpen = { id: 421, role: "sam", kind: "match", created_at: ago(6), text: "Nothing with a manual gearbox yet. 9 other cars match the rest.", listing_ids: stale(10), data: { opening: true, edit: false, total: 0, loose: { dropped: "gearbox", count: 9 } } };
+      const porOpen = { id: 421, role: "sam", kind: "match", created_at: ago(6), text: "Nothing with a manual gearbox yet. Nine other cars match the rest.", listing_ids: stale(10), data: { opening: true, edit: false, total: 0, loose: { dropped: "gearbox", count: 9 } } };
       const car = { id: 3, title: CARDS[2].title, url: CARDS[2].url };
-      const porNew = { id: 422, role: "sam", kind: "match", created_at: ago(2), text: "x", listing_ids: [3], data: { line: "1 new car matches.", cards: [car] } };
-      const porAgain = { id: 423, role: "sam", kind: "match", created_at: ago(1), text: "x", listing_ids: [3], data: { line: "1 new car matches.", cards: [car] } };
+      const porNew = { id: 422, role: "sam", kind: "match", created_at: ago(2), text: "x", listing_ids: [3], data: { line: "One new car matches.", cards: [car] } };
+      const porAgain = { id: 423, role: "sam", kind: "match", created_at: ago(1), text: "x", listing_ids: [3], data: { line: "One new car matches.", cards: [car] } };
       const BMW = mkTask(1, "running", { summary: "Sam is looking for red BMWs with under 50,000 miles.", updates: [bmwOpen] });
       const POR = mkTask(2, "running", { summary: "Sam is looking for black manual Porsches.", updates: [porOpen, porNew, porAgain] });
       const fb = overviewFacts(BMW), fp = overviewFacts(POR), fpEnded = overviewFacts(POR, new Set());
       ok(fb.liveCount === 0 && fb.live === "No live cars match yet" && fb.close === "31 close ones" && !/\d.* (live )?cars? match/.test(fb.live + " " + fb.close), `[${W}] BMW: nothing red yet with 31 other cars gives a live count of 0, the line No live cars match yet and 31 close ones (${JSON.stringify(fb)})`);
-      ok(fp.liveCount === 1 && fp.live === "1 live car matches" && fp.close === null, `[${W}] Porsche: one exact car and 9 near misses gives a live count of 1; the stale opening list is not read (${JSON.stringify(fp)})`);
+      ok(fp.liveCount === 1 && fp.live === "One live car matches" && fp.close === null, `[${W}] Porsche: one exact car and 9 near misses gives a live count of 1; the stale opening list is not read (${JSON.stringify(fp)})`);
       ok(fpEnded.liveCount === 0 && fpEnded.live === "No live cars match right now", `[${W}] Porsche: if the one car has ended the count is 0`);
       ok(overviewFacts(mkTask(3, "running", { updates: [{ ...porNew, id: 1 }, { ...porAgain, id: 2 }] })).liveCount === 1, `[${W}] a car repeated across two updates counts once`);
       ok(overviewFacts(mkTask(3, "running", { updates: [{ id: 5, role: "sam", kind: "match", created_at: ago(1), listing_ids: Array.from({ length: 45 }, (_, i) => 1 + i), data: { opening: true, total: 45, cards: [car, { id: 1, title: "a" }, { id: 2, title: "b" }] } }] })).liveCount === 45, `[${W}] an opening that still holds its own list counts its cars past the first twelve`);
       const A = account([BMW, POR]); const p = await open(A, W); await wait(900);
       const t1 = await p.$eval("#task-00000000-0000-4000-8000-000000000001", c => c.innerText.replace(/\s+/g, " ")), t2 = await p.$eval("#task-00000000-0000-4000-8000-000000000002", c => c.innerText.replace(/\s+/g, " "));
       ok(/No live cars match yet/.test(t1) && /31 close ones, select the card to read the note/.test(t1) && /Show cars/.test(t1) && !/\d+ live cars? match/.test(t1) && !/Show \d/.test(t1), `[${W}] the BMW card as drawn: ${t1}`);
-      ok(/1 live car matches/.test(t2) && /Show 1 car/.test(t2) && !/close one/.test(t2), `[${W}] the Porsche card as drawn: ${t2}`);
+      ok(/One live car matches/.test(t2) && /Show one car/.test(t2) && !/close one/.test(t2), `[${W}] the Porsche card as drawn: ${t2}`);
       await shot(p, `tasks-two-live-${W}`); await p.close(); }
     { const A = account([mkTask(1)]); const p = await open(A, W); await wait(600); ok(/You have 1 of 3 Tasks running\. 2 Tasks left\./.test(await text(p)), `[${W}] 1 Task: the status line`); await p.close(); }
     // the junk-folder line shows only while the server says no alert email has gone out yet
@@ -217,7 +219,7 @@ try {
       let t = await text(p); ok(/Sam is starting/i.test(t) && /Sam is checking the live cars now\./.test(t) && /g body sedans/.test(t), `[${W}] starting state: the Task shows at once as "Sam is starting" while the first run is out`);
       ok(A.working() === 2 && (await badge(p)) === "2", `[${W}] starting state: count and badge already 2`);
       await shot(p, `tasks-starting-${W}`);
-      await wait(3500); t = await text(p); ok(!/Sam is starting/i.test(t) && /3 live cars match/.test(await text(p)), `[${W}] starting state clears when the first run lands`); await p.close(); }
+      await wait(3500); t = await text(p); ok(!/Sam is starting/i.test(t) && /Three live cars match/.test(await text(p)), `[${W}] starting state clears when the first run lands`); await p.close(); }
   }
   // SIGNED OUT: the app page asks for sign-in (sends to the explainer's sign-in card, keeping where it was going); after sign-in the
   // same page completes ONE create.
@@ -227,19 +229,19 @@ try {
     const A = account([]); const q = await open(A, 1440, "&start=1");
     await q.type("#tkq", "g body sedans"); await q.keyboard.press("Enter"); await wait(500); await q.click("[data-start]"); await wait(1200);
     ok(A.tasks.length === 1 && A.calls.filter(c => c === "start").length === 1, "signed out then signed in: the Task is created once (" + A.tasks.length + " Task, " + A.calls.filter(c => c === "start").length + " start call)"); await q.close(); }
-  // "Sam is still reading the sales for this one." only while a card is actually loading (1440)
-  { const pend = { kind: "pending", stillReading: true, line: "Sam is still reading the sales for this one.", retry: true, retryAfterMs: 4500 };
+  // CS only while a card is actually loading (1440)
+  { const pend = { kind: "pending", stillReading: true, line: CS, retry: true, retryAfterMs: 4500 };
     const A = account([mkTask(1)], { enrich: (body, n) => ({ cards: (body.ids || []).map(id => n < 2 ? { id, market: { ...pend } } : { id, market: CARDS[0].market, seen_before: { n: 0 }, timeline: [], sam_lines: CARDS[0].sam_lines }) }) });
     A.cardsOf = () => CARDS.map(c => ({ ...c, market: { ...pend }, sam_lines: [] }));
     const p = await open(A, 1440); p.on("pageerror", e => console.log("ERR", e.message)); await openTask(p); await wait(300); const early = await text(p); await wait(6000); const late = await text(p);
-    ok(/still reading/.test(early) || /Getting the cars/.test(early), "reading: the holding line shows while the market is out");
-    ok(!/still reading/.test(late) && /\$[\d,]+ to \$[\d,]+/.test(late), "reading: the line is gone once each card's own market lands, and the range is there");
+    ok(/still being read|being read/.test(early) || /Getting the cars/.test(early), "reading: the holding line shows while the market is out");
+    ok(!/being read/.test(late) && /\$[\d,]+ to \$[\d,]+/.test(late), "reading: the line is gone once each card's own market lands, and the range is there");
     ok((A.enrichCalls || 0) >= 2, "reading: the page asked again after the engine's own retry wait (" + A.enrichCalls + " asks)"); await p.close(); }
   // a market that never comes: said plainly after the capped asks
-  { const pend = { kind: "pending", stillReading: true, line: "Sam is still reading the sales for this one.", retry: true, retryAfterMs: 120 };
+  { const pend = { kind: "pending", stillReading: true, line: CS, retry: true, retryAfterMs: 120 };
     const A = account([mkTask(1)], { enrich: body => ({ cards: (body.ids || []).map(id => ({ id, market: { ...pend } })) }) }); A.cardsOf = () => CARDS.map(c => ({ ...c, market: { ...pend }, sam_lines: [] }));
     const p = await open(A, 1440); await p.evaluate(() => { window.GAS_WAIT_SCALE = 0.02; }); await openTask(p); await wait(3000); const t = await text(p);   // the clock scaled down for the check only: 45 seconds of asking becomes under one
-    ok(!/still reading/.test(t) && /Sam couldn't read this one yet\./.test(t) && !/try again/i.test(t), "reading: a market that never comes is said plainly after 45 seconds of asking (cold spec, Oct 28 2026), never try again, not left on the holding line"); await p.close(); }
+    ok(!/still reading/.test(t) && t.includes(CM) && !/try again/i.test(t), "reading: a market that never comes is said plainly after 45 seconds of asking (cold spec, Oct 28 2026), never try again, not left on the holding line"); await p.close(); }
   // WHAT FIND'S TOGGLES AND BUTTONS MADE (Oct 29 2026): the watches and before-it-ends emails are on the Tasks page with what they watch and a Stop, counted apart from the Task limit.
   { const A = account([mkTask(1), mkTask(2), mkTask(3)]);
     A.lookingRows = [{ ref: "w:aaaaaaaa-0000-4000-8000-000000000001", kind: "spec_watch", what: "1995 Chevrolet Impala SS", detail: "The next sale of this car." }, { ref: "w:aaaaaaaa-0000-4000-8000-000000000002", kind: "car_watch", what: "1994 Porsche 911 Carrera Cabriolet", detail: "This exact car, if it comes up again." }, { ref: "a:4412", kind: "alert", what: "2010 Porsche 911 Carrera Cabriolet", detail: "Sam sends one email two hours before bidding ends, at any hour of the day or night.", ends_at: new Date(Date.now() + 5 * 864e5).toISOString() }];

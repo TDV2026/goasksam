@@ -6,6 +6,7 @@
 // fake number"). TASKS_PITCH and exampleUpdate() are exported so a homepage section can reuse them.
 // Search: a conversation or a task is never a URL; any query-string variant is noindex, canonical /tasks.
 import { OUTBOUND_JS } from "../lib/outboundUtm.js";
+import { reasonLine } from "../lib/reasonWords.js";
 import { PAGE_CSS, FONT_LINKS, isCrewRequest } from "./_chrome.js";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
@@ -290,7 +291,7 @@ const APP_JS = String.raw`(function(){
   var limit = null, carry = "", draftOpen = !!(params.get("start") || params.get("seed")), miss = false;
   var starting = {}, firing = {}, cardsOut = {}, fullCache = {}, askN = {};
   var looking = null;   // what Find's toggles and buttons made (api/tasks.js action looking): the person's watches and before-it-ends alerts
-  var COLD_MAX = 45000, COULD_NOT = "Sam couldn't read this one yet.", coldSince = {};   // cold spec (Oct 28 2026): a card still being read is asked for every 2 seconds for up to 45 seconds, then the one plain line; never "try again"
+  var COLD_MAX = 45000, COULD_NOT = ${JSON.stringify(reasonLine("cold.missed"))}, coldSince = {};   // cold spec (Oct 28 2026): a card still being read is asked for every 2 seconds for up to 45 seconds, then the one plain line; never "try again"
   function phraseOf(t){ return String((t && t.summary) || "").replace(/^Sam is (?:looking for|researching)\s+/i, "").replace(/:.*$/, "").replace(/[.]+$/, ""); }
   function showLimit(l){ limit = l; api({ action: "limit", event: "seen", mode: l.mode, attempted: l.attempted }).catch(function(){}); }
   function syncLimit(){ if (limit && !(data && data.limit && data.limit.atLimit)) { if (limit.mode === "seed" || limit.mode === "typed") carry = limit.attempted || ""; limit = null; } }
@@ -346,7 +347,7 @@ const APP_JS = String.raw`(function(){
     var where = nLive > 0 && !starting[t.id] ? (isOpen ? "Shown below" : "Select the card to see " + (nLive === 1 ? "it" : "them")) : (ov.close && !starting[t.id] ? (isOpen ? "" : "select the card to read the note") : "");
     var closeLine = ov.close && nLive === 0 && !starting[t.id] ? ov.close + (where ? ", " + where : "") : where;
     var count = [starting[t.id] ? "Sam is checking the live cars now." : ov.live, closeLine, ov.fresh].filter(Boolean).join(" \u00B7 ");
-    var showLabel = (isOpen ? "Hide " : "Show ") + (nLive > 0 ? (nLive === 1 ? "1 car" : nLive.toLocaleString("en-US") + " cars") : "cars");
+    var showLabel = (isOpen ? "Hide " : "Show ") + (nLive > 0 && ov.cars ? ov.cars : "cars");
     return '<article class="tc' + (isOpen ? " open" : "") + '" id="task-' + t.id + '"><button type="button" class="thit" id="tt-' + t.id + '" data-toggle="' + t.id + '" aria-expanded="' + isOpen + '" aria-controls="detail-' + t.id + '"><span class="pill ' + st[0] + '">' + st[1] + '</span><span class="tshow">' + esc(showLabel) + '</span><span class="tline">' + esc(t.summary) + "</span>" + (count ? '<span class="tcount">' + esc(count) + "</span>" : "") + "</button>" + btns + "</article>";
   }
   function taskDetail(t){

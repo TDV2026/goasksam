@@ -374,7 +374,7 @@ async function handler(req, res) {
     }
     // Probe (PROBE_KEY): live listings for the card tests (repeat VINs, no photo, no reserve, long titles).
     // Probe: the landing's example pick (chips, example, and what each candidate search returned).
-    if (b.action === "landing" && process.env.PROBE_KEY && b.key === process.env.PROBE_KEY) {
+    if (b.action === "landing" && hasHeaderKey(req)) {
       const { exampleBand } = await import("../lib/live/buyExample.js");
       return res.status(200).json(await exampleBand(env, 60000, { fresh: !!b.fresh }));
     }
@@ -382,9 +382,9 @@ async function handler(req, res) {
     // and the make, model and year it is filed under, for the check that every live car draws a card with a market.
     if (b.action === "liveaudit" && hasServerCredential(req)) {
       const rows = (await liveRows(env, "id=gt.0")) || [];
-      return res.status(200).json({ live: rows.length, rows: rows.map(r => ({ id: r.id, title: r.listing_title, make: r.make || null, model: r.model || null, year: r.year || null, abroad: isAbroadRow(r), source: r.source || null })) });
+      return res.status(200).json({ live: rows.length, rows: rows.map(r => ({ id: r.id, end_time: r.end_time || null, title: r.listing_title, make: r.make || null, model: r.model || null, year: r.year || null, abroad: isAbroadRow(r), source: r.source || null })) });
     }
-    if (b.action === "finds" && process.env.PROBE_KEY && b.key === process.env.PROBE_KEY) {
+    if (b.action === "finds" && hasHeaderKey(req)) {
       const rows = (await liveRows(env, "id=gt.0")) || [];
       const us = rows.filter(r => !isAbroadRow(r));
       const vins = [...new Set(us.map(r => r.vin_norm).filter(v => v && String(v).length >= 11))];
@@ -415,7 +415,7 @@ async function handler(req, res) {
     // Probe (PROBE_KEY, header only; read only): the email's middle-half line next to the engine range it is built from,
     // for live listings of one make and model, with the Market Check question for the same car (m.query), so a check
     // can open Market Check for it and compare.
-    if (b.action === "rangeproof" && process.env.PROBE_KEY && req.headers["x-probe-key"] === process.env.PROBE_KEY) {
+    if (b.action === "rangeproof" && hasHeaderKey(req)) {
       const { liveRows, listingMarket, listingFacts } = await import("../lib/live/search.js");
       const { middleHalfLine } = await import("../lib/live/buyAlerts.js");
       const mk = String(b.make || "Porsche").replace(/[^A-Za-z0-9 -]/g, ""), md = String(b.model || "911").replace(/[^A-Za-z0-9 -]/g, "");
@@ -429,7 +429,7 @@ async function handler(req, res) {
       }
       return res.status(200).json({ rows: out });
     }
-    if (b.action === "limits" && process.env.PROBE_KEY && req.headers["x-probe-key"] === process.env.PROBE_KEY) {
+    if (b.action === "limits" && hasHeaderKey(req)) {
       const days = Math.min(60, Number(b.days) || 30), since = new Date(Date.now() - days * 864e5).toISOString();
       const pct = (arr, q) => { if (!arr.length) return null; const s2 = arr.slice().sort((x, y) => x - y); return s2[Math.min(s2.length - 1, Math.floor(q * (s2.length - 1)))]; };
       const spread = (rows, keyOf, cut) => { const m = {}; for (const r of rows) { const k = keyOf(r); if (!k) continue; const kk = k + "|" + String(r.created_at).slice(0, cut); m[kk] = (m[kk] || 0) + 1; } const v = Object.values(m); return { buckets: v.length, p50: pct(v, 0.5), p90: pct(v, 0.9), p99: pct(v, 0.99), max: pct(v, 1), top: v.sort((x, y) => y - x).slice(0, 5) }; };
@@ -475,7 +475,7 @@ async function handler(req, res) {
           modelTurns: { rows: tm.length, byKind: tm.reduce((o, r) => { const k = r.event_type + ":" + ((r.metadata && r.metadata.kind) || "?"); o[k] = (o[k] || 0) + 1; return o; }, {}), costUsd: Math.round(tm.reduce((a, r) => a + (Number(r.anthropic_cost_usd) || 0), 0) * 1000) / 1000,
             cache: tm.filter(r => r.event_type === "tasks_model_turn").map(r => ({ at: r.created_at, kind: r.metadata && r.metadata.kind, calls: r.metadata && r.metadata.calls, read: r.metadata && r.metadata.cache_read, write: r.metadata && r.metadata.cache_write, input: r.anthropic_input_tokens, output: r.anthropic_output_tokens, usd: r.anthropic_cost_usd })).slice(-20) } } });
     }
-    if (b.action === "traffic" && process.env.PROBE_KEY && req.headers["x-probe-key"] === process.env.PROBE_KEY) {
+    if (b.action === "traffic" && hasHeaderKey(req)) {
       const days = Math.min(60, Number(b.days) || 30), since = new Date(Date.now() - days * 864e5).toISOString(), since7 = new Date(Date.now() - 7 * 864e5).toISOString();
       const pct = (arr, q) => { if (!arr.length) return null; const s = arr.slice().sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(q * (s.length - 1)))]; };
       const dist = (rows, keyOf) => {
@@ -515,7 +515,7 @@ async function handler(req, res) {
     }
     // Probe (PROBE_KEY): which live listings a search shows, and for every live listing whose title carries
     // `like` (any make field), why it is or is not shown (the search's own stage that left it out).
-    if (b.action === "explain" && process.env.PROBE_KEY && b.key === process.env.PROBE_KEY) {
+    if (b.action === "explain" && hasHeaderKey(req)) {
       const trace = [], sr = await runSearch(env, b.p || {}, { trace });
       const shown = new Set(sr.matches.map(x => x.r.id)), why = {};
       for (const t of trace) if (!why[t.id]) why[t.id] = t.why;
@@ -525,7 +525,7 @@ async function handler(req, res) {
       return res.status(200).json({ resolved: sr.v ? { make: sr.v.make, model: sr.v.model, trim: sr.v.trim || null } : null, shown: sr.matches.length, abroadHidden: sr.abroadHidden, unstated: sr.unstated, cutByBudget: sr.cutByBudget, titleMatches: all.map(row) });
     }
     // Probe (PROBE_KEY): what the range ladder returns at each rung for one live listing.
-    if (b.action === "ladder" && process.env.PROBE_KEY && b.key === process.env.PROBE_KEY) {
+    if (b.action === "ladder" && hasHeaderKey(req)) {
       const rows = await liveRows(env, `id=eq.${Number(b.id) || 0}`);
       const r = rows && rows[0]; if (!r) return res.status(200).json({ error: "not live" });
       const facts = listingFacts(r), spec = await specOf(env, r, facts), trace = [];
@@ -603,7 +603,7 @@ async function handler(req, res) {
         }
         if (b.action === "disarm") return res.status(200).json(await cancelAlert(env, user, b.listing_id));
         // Probe only: this signed-in buyer's armed car, its message now, to a disposable test inbox.
-        if (process.env.PROBE_KEY && b.key === process.env.PROBE_KEY && /^[^@\s]+@[^@\s]+$/.test(String(b.to || ""))) return res.status(200).json(await testSend(env, user.userId, b.listing_id, String(b.to), { freshBid, noMark: !!b.noMark }));
+        if (hasHeaderKey(req) && /^[^@\s]+@[^@\s]+$/.test(String(b.to || ""))) return res.status(200).json(await testSend(env, user.userId, b.listing_id, String(b.to), { freshBid, noMark: !!b.noMark }));
         return res.status(400).json({ ok: false });
       } catch (e) { if (isMissingTable(e)) return res.status(200).json({ ok: false, setup: true, items: [] }); throw e; }
     }
