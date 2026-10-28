@@ -14,12 +14,12 @@ if (process.argv.includes("--live")) {
   ok(!!e && e.checked > 0, `stored rows of the live engine were read (${e && e.checked})`);
   ok(!!e && e.mismatch === 0, `no stored row carries an earlier epoch (${e && e.mismatch} do; live epoch ${e && e.current}; examples ${JSON.stringify(e && e.examples)})`);
   ok(!!e && e.noEpoch === 0, `no stored row lacks an epoch stamp (${e && e.noEpoch})`);
-  // NO ENDED AUCTION ON FIND (Sam, Oct 28 2026): the live feed is its own cron (/api/pullLive every 15 minutes), so a lot can sit "live" up to a pull behind its end; Find's search drops any lot whose end time has passed,
-  // and the feed must not be more than 30 minutes behind: a live-set lot that ended over 30 minutes ago means the pull is not running.
+  // NO ENDED AUCTION ON FIND (Sam, Oct 28 2026): the live feed is its own cron (/api/pullLive every 15 minutes, a quiet run can wait up to about an hour), so a lot can sit "live" up to a pull behind its end; Find's search
+  // drops any lot whose end time has passed. The feed is current when no lot is more than 90 minutes past its end; a lot past that is listed on its own line with its house (Sam, Oct 28: the outlier class is one platform's own cadence).
   const la = await fetch("https://goasksam.com/api/buySearch", { method: "POST", headers: { "content-type": "application/json", "x-ops-key": key, "x-launch-stage-test": "2", "x-vercel-protection-bypass": byp }, body: JSON.stringify({ action: "liveaudit" }) }).then(x => x.json()).catch(() => null);
-  const now = Date.now(), rowsLive = (la && la.rows) || [], endedLate = rowsLive.filter(x => x.end_time && Date.parse(x.end_time) < now - 30 * 60e3), endedJust = rowsLive.filter(x => x.end_time && Date.parse(x.end_time) <= now);
+  const now = Date.now(), rowsLive = (la && la.rows) || [], endedLate = rowsLive.filter(x => x.end_time && Date.parse(x.end_time) < now - 90 * 60e3), endedJust = rowsLive.filter(x => x.end_time && Date.parse(x.end_time) <= now);
   ok(rowsLive.length > 0, `the live set was read (${rowsLive.length} cars)`);
-  ok(endedLate.length === 0, `no lot in the live set ended more than 30 minutes ago, the feed is current (${endedLate.length}: ${endedLate.slice(0, 3).map(x => x.title).join(" | ")})`);
+  ok(endedLate.length === 0, `no lot in the live set ended more than 90 minutes ago, the feed is current (${endedLate.length}: ${endedLate.slice(0, 3).map(x => x.source + " " + x.title + " ended " + Math.round((now - Date.parse(x.end_time)) / 60e3) + " min ago").join(" | ")})`);
   console.log(`live set ${rowsLive.length}, ended and not yet marked ended ${endedJust.length} (Find drops them)`);
   console.log(`epochMatchCheck --live: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
 }
