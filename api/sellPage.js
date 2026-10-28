@@ -10,7 +10,7 @@ import { lastUpdatedDate } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { isCrewRequest, FONT_LINKS } from "./_chrome.js";
 import { isTesterRequest } from "../lib/_tester.js";
-import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE, SHELL_TOKENS_CSS, brandPaletteCss, ALL_PALETTES_CSS, PALETTE_APPLY_JS } from "../lib/appShell.js";
+import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE, SHELL_TOKENS_CSS, brandPaletteCss } from "../lib/appShell.js";
 import { gaBootstrapHtml } from "../lib/analytics.js";
 import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
@@ -45,7 +45,6 @@ export async function sellShellHtml(req) {
   // The real last-updated date, shared with Market Check (lib/asOf.js lastUpdatedDate). No count.
   const updated = await lastUpdatedDate(supabaseEnv()).catch(() => null);
   const crew = isCrewRequest(req);
-  // No palette bar on any Sell page (Sam, Oct 23 2026): it lives on Home only (lib/appShell.js PALETTE_BAR_ON).
   // GOASKSAM 2.0 STAGE 2 (Sam's block, Oct 23 2026): the old Sell page gets ONLY the shared rail (lib/appShell.js), nothing else changes.
   // The old rail (logo, value trio, nav, the signed-in "Your results" list, footer) is replaced by the shared one; the saved-results
   // block is kept and carried into the shared rail so a signed-in seller still reopens a saved result. The old page's own content
@@ -62,8 +61,8 @@ export async function sellShellHtml(req) {
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${TITLE}</title>`)
     .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${TITLE}$2`)
     .replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${TITLE}$2`)
-    .replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />\n<script>${PALETTE_APPLY_JS}</script>`)
-    .replace("</head>", `<style>${SHELL_TOKENS_CSS}${brandPaletteCss(crew)}${ALL_PALETTES_CSS}${SELL_ENTRY_CSS}</style>\n</head>`)
+    .replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />\n`)
+    .replace("</head>", `<style>${SHELL_TOKENS_CSS}${brandPaletteCss(crew)}${SELL_ENTRY_CSS}</style>\n</head>`)
     .replace('<button id="btn">↑</button>', () => SELL_GO_HTML)
     .replace('placeholder="Type your car, or paste a VIN."', `placeholder="${esc(SELL_ENTRY.placeholder)}"`)
     .replace("</body>", `<style>${CONSENT_BANNER_CSS}</style>\n${CONSENT_BANNER_HTML}\n<script>${CONSENT_BANNER_JS}</script>\n<script>${OUTBOUND_JS};gasOutboundInstall("sell")</script>\n${gaBootstrapHtml()}\n</body>`)
@@ -94,7 +93,6 @@ export default async function handler(req, res) {
   // URL (the same cache-poisoning gap fixed on Market Check/business/spec/publicConfig/history
   // this quarter - closing it here too now that this page also varies its palette by crew).
   const hasCrewCookie = /(?:^|;\s*)gas_crew=/.test(String(req.headers.cookie || ""));
-  // No palette bar on any Sell page (Sam, Oct 23 2026): it lives on Home only (lib/appShell.js PALETTE_BAR_ON).
   // LAUNCH-STAGE SAFETY (Oct 2026, production incident, api/marketCheck.js has the full writeup):
   // this page's own rail is filtered by isReleased() - public caching at all is only safe once
   // fullyLaunched() is true (every gated product released for crew and public alike) and the

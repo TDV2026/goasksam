@@ -603,10 +603,10 @@ try {
 }
 // The palette picker is for the crew only (Sam, Buy Stage 1c item 8a; Lane C). No network.
 try {
-  const out = execSync("node scripts/paletteCrewOnlyCheck.mjs", { encoding: "utf8" });
-  record("The palette picker is crew only (scripts/paletteCrewOnlyCheck.mjs)", "PASS", (out.match(/paletteCrewOnlyCheck: .*/) || [""])[0]);
+  const out = execSync("node scripts/noDesignControlsCheck.mjs", { encoding: "utf8" });
+  record("No page carries a design test control: no palette switcher, no stored look (scripts/noDesignControlsCheck.mjs)", "PASS", (out.match(/noDesignControlsCheck: .*/) || [""])[0]);
 } catch (e) {
-  record("The palette picker is crew only (scripts/paletteCrewOnlyCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+  record("No page carries a design test control: no palette switcher, no stored look (scripts/noDesignControlsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 // The narrowing question by set size and the hierarchy first (Lane E, Buy Stage 1c item 2). No network.
 try {

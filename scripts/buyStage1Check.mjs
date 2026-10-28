@@ -32,7 +32,7 @@ const abroad = { current_bid_usd: 30000, current_bid: 24000, currency: "GBP", co
 ok(/LAST BID SEEN.*\$\d/.test(text(moneyHtml(abroad))) && text(moneyHtml(abroad)).includes("(£24,000)"), "a car abroad: the USD figure with its own currency beside it, labelled");
 // Mileage and location on one line, the record's own.
 ok(text(metaLine({ miles: 60000, location: "Orlando, FL" })) === "60,000 miles · Orlando, FL", "mileage, then location, on one line");
-ok(text(metaLine({ location: "Orlando, FL" })) === "Orlando, FL" && metaLine({}) === "", "nothing stated: nothing invented");
+ok(text(metaLine({ location: "Orlando, FL" })) === "Orlando, FL" && metaLine({}) === '<p class="meta"></p>', "nothing stated: nothing invented, the slot stays empty (its height is CSS) so the cards stay level");
 // The VIN pill is gone, the other chips stay.
 const ch = chipsHtml({ chips: ["Automatic", "Alpine White over Saddle Brown", "VIN WBAEA5…3774"] });
 ok(ch.includes("Automatic") && ch.includes("Alpine White over Saddle Brown") && !/VIN/.test(ch), "the VIN pill is not shown; the other chips stay");
@@ -52,7 +52,7 @@ const RM = { kind: "range", low: 55000, high: 78000, count: 24, specLabel: "2014
 const r1 = rf({ market: RM }, { kind: "range", rung: [], placing: "below the range", bidLine: "The bid is below the range.", text: "x" });
 const t1 = text(r1);
 ok(t1 === "2014 BMW 650i M Sport Convertible $55,000 to $78,000 24 sales since December 2025. The bid is below the range.", "the range card: spec, range, count and window with the bid, in that order, all the engine's (" + t1 + ")");
-ok(text(rf({ market: { ...RM, scope_reason: "Too few 2014 sales, showing 2014 to 2015." } }, { kind: "range", rung: [] })) === "2014 BMW 650i M Sport Convertible $55,000 to $78,000 24 sales since December 2025. Too few 2014 sales, showing 2014 to 2015.", "e98: the scope line is the second small line, under the count; no bid, no bid sentence");
+ok(text(rf({ market: { ...RM, scope_reason: "Too few 2014 sales, showing 2014 to 2015." } }, { kind: "range", rung: [] })) === "2014 BMW 650i M Sport Convertible $55,000 to $78,000 24 sales since December 2025.", "e98 Find card: the spec, the range and ONE small line; the scope line is not on the card; no bid, no bid sentence");
 ok(rf({ market: { kind: "none", cardListsSales: true, rows: [] } }, { kind: "range", rung: [] }) === "" && rf({ market: null }, { kind: "range" }) === "", "a thin card or no market: unchanged");
 ok(/x\.kind === "range" \? \(rangeFirst\(l, x\) \|\| \(noRange\(l\) \? compactNoRange\(l, x\) : "<p>"/.test(c), "the card uses the range box only where the engine gives a range (a no-range card is the compact card)");
 

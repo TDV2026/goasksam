@@ -10,7 +10,7 @@ const buy = src("api/buy.js");
 ok(/anycolour: \\"Any color\\"/.test(buy) && !/\\"Any colour\\"/.test(buy), "Buy: the widening button reads 'Any color'");
 ok(/colour: \\"their color\\"/.test(buy) && !/\\"their colour\\"/.test(buy), "Buy: the unstated line reads 'don't say their color'");
 ok(/out\.push\("any color"\)/.test(src("lib/live/buyExample.js")), "Buy example band: 'any color'");
-ok(/aria-label="Color palette"/.test(src("lib/appShell.js")), "the palette bar's aria label: 'Color palette'");
+ok(!/aria-label="Color palette"/.test(src("lib/appShell.js")), "the palette bar is gone (Oct 28 2026): no 'Color palette' control in lib/appShell.js");
 // How Sam decides was rewritten (Oct 26 2026): the old Find paragraph with 'its color' is gone; scripts/howSamDecidesCheck.mjs covers the page.
 ok((src("lib/tasks/tasks.js").match(/color and gearbox if known/g) || []).length === 2 && !/colour and gearbox if known/.test(src("lib/tasks/tasks.js")), "Task updates: the instructions say 'color'");
 // Any sentence-like string in the Buy client (a quoted run with a space in it, comments left out) that still says "colour".

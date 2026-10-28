@@ -31,59 +31,46 @@ CARS["1965 Chevrolet Corvette (single live match, three sales)"] = { row: row(19
   thin_sales: { count: 3, thin: true, threshold: 8, answer_line: "Three sales, too few for a range.", count_line: "Three sales since March 2025.", latest_month: "September 2026", sales: [sale(82000, "2026-09-14", "September 2026", "Manual", 38000), sale(78000, "2026-04-02", "April 2026", "Manual", 52000), sale(74000, "2025-06-21", "June 2025", "Automatic", 61000)] } } };
 CARS["2014 Porsche Boxster S PDK (matchedOption PDK)"] = { row: row(2014, "Porsche", "Boxster", "2014 Porsche Boxster S 7-Speed PDK"), bid: 29000, d: { ...CARS["2014 Porsche Boxster (split, PDK and Manual)"].d, matchedOption: "PDK" } };
 const FIX_SPEC = { "1965 Chevrolet Corvette (single live match, three sales)": { v: { year: 1965, make: "Chevrolet", model: "Corvette", bodyStyle: "convertible" } }, "2014 Porsche Boxster S PDK (matchedOption PDK)": { v: { year: 2014, make: "Porsche", model: "Boxster", trim: "S" } }, "2014 Porsche Boxster (split, PDK and Manual)": { v: { year: 2014, make: "Porsche", model: "Boxster", trim: "S" } }, "2010 Porsche 911 Carrera Cabriolet (six sales)": { v: { year: 2010, make: "Porsche", model: "911", trim: "Carrera", bodyStyle: "convertible" } }, "2002 BMW M3 Coupe (21 sales, range withheld)": { v: { year: 2002, make: "BMW", model: "M3", bodyStyle: "coupe" } }, "2015 BMW Z4 sDrive35is (scope line)": { v: { year: 2015, make: "BMW", model: "Z4", trim: "sDrive35is" } }, "2014 BMW 650i M Sport Convertible (one body)": { v: { year: 2014, make: "BMW", model: "650i", trim: "M Sport", bodyStyle: "convertible" } }, "2003 BMW Alpina Roadster V8 at 11,000 miles (mileageNear)": { v: { year: 2003, make: "BMW", model: "Alpina Roadster V8" } } };
-const ORDER = ["fx-spec", "fx-lab", "fx-range", "fx-answer", "fx-sales", "fx-count", "fx-near"];
-const classes = h => [...String(h).matchAll(/<(?:p|div) class="(fx-[a-z]+)"/g)].map(m => m[1]).filter(k => k !== "fx-sl");
-for (const [name, c] of Object.entries(CARS)) {
-  const spec = { ...S.specOf(c.row), ...FIX_SPEC[name], title: c.row.listing_title };
-  const core = S.coreOf(c.d, spec); ok(!!core, `${name}: the engine answer becomes a core`);
-  if (!core) continue;
-  core.nearPool = c.d.nearPool ? slimNearPool(c.d.nearPool.map ? c.d.nearPool.map(x => ({ _usd: x.p, mileage: x.m })) : []) : core.nearPool;
-  const m = S.marketFromCore(core, c.row, { miles: c.miles || null, priceUsd: c.bid }, spec);
-  const l = { id: 1, title: c.row.listing_title, make: c.row.make, year: c.row.year, market: m, current_bid_usd: c.bid, end_time: c.row.end_time, sam_lines: [] };
-  l.sam_lines = samLines(l, Date.now());
-  const out = samLineOf(l), h = out ? out.html : "", t = flat(h), cls = classes(h);
+const ORDER = ["fx-spec", "fx-ans", "fx-count"];
+const classes = h => [...String(h).matchAll(/<(?:p|div) class="(fx-[a-z]+)(?: [a-z -]*)?"/g)].map(m => m[1]).filter(k => k !== "fx-sl");
+const bare = h => [...String(h).matchAll(/<p class="((?:fx-[a-z]+ ?)+)">/g)].map(m => m[1]);
+// THE FIND CARD, THREE SLOTS (Sam, Oct 28 2026; ENGINE READY 10 market.findAnswer): the spec line, the answer (the range in the large serif, or one thin sentence), ONE small line. Never a sale line, a "pick one" line, a second range, a near-miles line of the card's own, a mileage band line.
+const FA = {
+  range: { state: "range", basis: "option", option: null, range: { low: 38000, high: 52000 }, n: 17, bid: "below", lines: ["17 sales since November 2024.", "The bid is below the range."], pointer: null },
+  band: { state: "range", basis: "band", option: null, range: { low: 33500, high: 42000 }, n: 10, bid: "below", lines: ["Ten sales near its miles.", "The bid is below the range."], pointer: null },
+  few: { state: "few", basis: "option", option: { dimension: "gearbox", value: "manual", label: "Manual" }, range: null, n: 7, bid: null, lines: ["Seven Manual sales, too few for a range.", "See the sales for all seven."], pointer: "See the sales for all seven." },
+  split: { state: "split_unsaid", basis: "pooled", option: null, range: null, n: 21, bid: null, lines: ["Sales of this car split into options priced apart, and the listing does not say which."], pointer: null },
+};
+const mkCard = (name, over = {}) => { const c = CARS[name], spec = { v: FIX_SPEC[name].v, title: c.row.listing_title }, core = S.coreOf(c.d, spec); core.nearPool = c.d.nearPool ? slimNearPool(c.d.nearPool.map(x => ({ _usd: x.p, mileage: x.m }))) : core.nearPool;
+  const m = { ...S.marketFromCore(core, c.row, { miles: c.miles || null, priceUsd: c.bid }, spec), ...over }, l = { id: 1, title: c.row.listing_title, make: c.row.make, year: c.row.year, market: m, current_bid_usd: c.bid, end_time: c.row.end_time, sam_lines: [] };
+  l.sam_lines = samLines(l, Date.now()); const out = samLineOf(l); return { c, m, l, h: out ? out.html : "" }; };
+for (const name of Object.keys(CARS)) {
+  const { c, m, l, h } = mkCard(name), t = flat(h), cls = bare(h).map(k => k.split(" ")[0]);
   ok(h.length > 20, `${name}: the Sam box prints`);
-  // order: the classes are a subsequence of the one order, no repeats
-  let at = -1, inOrder = true; for (const k of cls) { const j = ORDER.indexOf(k); if (j <= at) inOrder = false; at = Math.max(at, j); }
-  ok(inOrder && cls.length >= 3, `${name}: the lines come in the one order (${cls.join(" > ")})`);
-  ok(cls[0] === "fx-spec" && h.includes(esc(m.specLabel || "~")), `${name}: line 1 is the engine's spec ("${m.specLabel}")`);
-  ok(!cls.includes("fx-scope") && !cls.includes("fx-opt") && !cls.includes("fx-wide"), `${name}: no scope, option or wide line of its own on the card (E98: the options print in the expanded panel only)`);
-  const small = cls.filter(k => k === "fx-count" || k === "fx-near");
-  ok(small.length <= 2, `${name}: at most two small grey lines under the figure (${small.length})`);
-  const split = m.optionsState === "split" || m.optionsState === "apart", nearLine = m.mileageNear && m.mileageNear.line;
-  if (m.kind === "range") ok(cls.includes("fx-range") && new RegExp(">" + usd(m.low).replace("$", "\\$") + " to " + usd(m.high).replace("$", "\\$") + "<").test(h) && !cls.includes("fx-lab"), `${name}: line 3 is the range on its own line`);
-  else if (split) { const ls = m.matchedOption ? [...m.optionLines.filter(x => x.startsWith(m.matchedOption + " ")), ...m.optionLines.filter(x => !x.startsWith(m.matchedOption + " "))] : m.optionLines, p = /^(.+?)\s+(\$[\d,]+ to \$[\d,]+),/.exec(ls[0]); ok(cls.includes("fx-lab") && cls.includes("fx-range") && h.includes('<p class="fx-lab">' + esc(p[1]) + "</p>") && h.includes(">" + esc(p[2]) + "<") && !cls.includes("fx-answer"), `${name}: the large figure is the leading option's range under its label ("${p[1]}" ${p[2]})`); }
-  else ok(cls.includes("fx-answer") && !!m.answerLine && h.includes(esc(m.answerLine)) || (m.thin_sales && h.includes(esc(m.thin_sales.answer_line))), `${name}: line 3 is the engine's reason line (${m.answerLine || (m.thin_sales && m.thin_sales.answer_line)})`);
-  if (m.countLine) ok(new RegExp('<p class="fx-count">' + esc(m.countLine).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).test(h), `${name}: the count line starts with the engine's count and window ("${m.countLine}")`);
+  ok(JSON.stringify(cls) === JSON.stringify(ORDER), `${name}: exactly three slots in one order (${cls.join(" > ")})`);
+  ok(h.includes('<p class="fx-spec">' + esc(m.specLabel || "")), `${name}: slot 1 is the engine's spec ("${m.specLabel}")`);
+  ok(!/fx-sale|fx-sales|fx-near|fx-lab|fx-scope|fx-wide|fx-opt/.test(h), `${name}: no sale line, near line, option label, scope or wide line of its own`);
+  ok(!/Thin so far|Only \d+ sales|The typical range for cars like this|Based on \d|Market Check|market-check|Pick one|pick one/i.test(h) && !/<a /.test(h), `${name}: none of the old lines, no link in the box`);
+  const second = (t.match(/\$[\d,]+ to \$[\d,]+/g) || []).length; ok(second <= 1, `${name}: at most one range (${second})`);
+  ok(!/\$[\d,]+(, \$[\d,]+)+/.test(t) && !/miles/.test(t), `${name}: no sale line, no mileage in the box`);
+  if (m.kind === "range") ok(/class="fx-ans fx-range"/.test(h) && new RegExp(">" + usd(m.low).replace("$", "\\$") + " to " + usd(m.high).replace("$", "\\$") + "<").test(h), `${name}: the answer is the range in the large serif`);
+  else ok(/class="fx-ans fx-answer"/.test(h), `${name}: the answer is one thin sentence`);
+  if (m.countLine) ok(new RegExp('<p class="fx-count">' + esc(m.countLine).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).test(h), `${name}: the small line starts with the engine's count ("${m.countLine}")`);
   const bid = l.sam_lines.filter(x => x.kind === "range").map(x => x.bidLine).filter(Boolean)[0];
-  if (bid && !split) ok(h.includes(esc(bid)) && h.indexOf(esc(m.countLine || "~")) < h.indexOf(esc(bid)), `${name}: the bid sentence follows the count in the same line ("${bid}")`);
-  if (split) { const other = (m.matchedOption ? m.optionLines.filter(x => !x.startsWith(m.matchedOption + " ")) : m.optionLines.slice(1))[0]; ok(cls.includes("fx-near") && h.includes(esc(other)) && (!bid || h.includes(esc(bid))), `${name}: the second line names the other option ("${other}")${bid ? " and the bid" : ""}`); }
-  if (nearLine && !split) ok(cls.includes("fx-near") && h.includes(esc(nearLine)) && !(m.mileageNear.bidLine && h.includes(esc(m.mileageNear.bidLine))), `${name}: the second line is the engine's mileageNear ("${nearLine}"), with no second bid line`);
-  if (!split && !nearLine && !m.scope_reason && m.wideLine) ok(h.includes(esc(m.wideLine)), `${name}: the wide line prints when nothing else takes the second line`);
-  if (c.d.scope_reason && !split && !nearLine) ok(h.includes(esc(c.d.scope_reason)), `${name}: the engine's scope prints as the second line`);
-  // never: the old strings, a link, a bare price list
-  ok(!/Thin so far|Only \d+ sales|The typical range for cars like this|Based on \d|Market Check|market-check/i.test(h), `${name}: none of the old lines or links`);
-  ok(!/<a /.test(h), `${name}: no link in the box (a sale opens the modal, nothing goes to Market Check)`);
-  ok(!/\$[\d,]+(, \$[\d,]+)+/.test(t) && !/^(\|?\$[\d,]+\|?)+$/.test(t), `${name}: no bare list of prices`);
-  if (m.thin_sales && m.thin_sales.sales && m.thin_sales.sales.length) {
-    const btns = [...h.matchAll(/<button type="button" class="fx-sale" data-fxsale="(\d+)"[^>]*>([^<]*)<\/button>/g)];
-    ok(btns.length === m.thin_sales.sales.length, `${name}: each sale is a line that opens the modal (${btns.length})`);
-    ok(btns.every((b, k) => { const s = m.thin_sales.sales[k]; return b[2].includes(usd(s.price)) && b[2].includes(s.month) && (!s.gearbox || b[2].includes(s.gearbox)) && (!(s.mi > 0) || b[2].includes(num(s.mi) + " miles")); }), `${name}: a sale line carries price, month, gearbox and miles from the engine`);
-  }
-  // no word the engine did not send: remove every engine string and every number, what is left has no letters
-  let rest = t; for (const e of [m.specLabel, c.d.scope_reason, m.answerLine, m.thin_sales && m.thin_sales.answer_line, m.countLine, bid, m.wideLine, m.mileageNear && m.mileageNear.line, m.mileageNear && m.mileageNear.bidLine, ...(m.optionLines || []), ...((m.optionLines || []).map(x => (/^(.+?)\s+\$/.exec(x) || [])[1])), ...((m.thin_sales && m.thin_sales.sales) || []).flatMap(s => [s.month, s.gearbox, "miles"])]) if (e) rest = rest.split(String(e)).join("|");
-  rest = rest.replace(/\$[\d,]+/g, "|").replace(/[\d,]+/g, "|").replace(/\bto\b/g, "|");
-  ok(!/[A-Za-z]/.test(rest), `${name}: no word on the box that the engine did not send (left over: "${rest.replace(/\|+/g, " ").trim()}")`);
+  if (bid && m.kind === "range") ok(h.includes(esc(bid)), `${name}: the bid sentence is in the same small line ("${bid}")`);
 }
-ok(CARS["2014 Porsche Boxster S PDK (matchedOption PDK)"] && /matchedOption/.test(C), "the card reads the engine's matchedOption");
-{ const mk = nm => { const c = CARS[nm], spec = { v: FIX_SPEC[nm].v, title: c.row.listing_title }, core = S.coreOf(c.d, spec), m = S.marketFromCore(core, c.row, { miles: null, priceUsd: c.bid }, spec), l = { id: 1, title: c.row.listing_title, make: c.row.make, year: c.row.year, market: m, current_bid_usd: c.bid, end_time: c.row.end_time, sam_lines: [] }; l.sam_lines = samLines(l, Date.now()); return { m, h: samLineOf(l).html }; };
-  const a = mk("2014 Porsche Boxster S PDK (matchedOption PDK)"), b0 = mk("2014 Porsche Boxster (split, PDK and Manual)");
-  ok(a.m.matchedOption === "PDK" && a.h.includes('<p class="fx-lab">PDK</p>') && a.h.includes(">$31,000 to $41,000<") && a.h.includes("Manual $33,000 to $43,000, 12 sales"), "the matched option leads: PDK is the large figure, Manual is the second line");
-  ok(b0.m.matchedOption === undefined && b0.h.includes('<p class="fx-lab">Manual</p>'), "no matchedOption from the engine: the engine's order stands (Manual leads)"); }
+// findAnswer: the page prints findAnswer.range and findAnswer.lines and nothing of its own
+for (const [label, fa, name] of [["range", FA.range, "2015 BMW Z4 sDrive35is (scope line)"], ["near-miles headline", FA.band, "2003 BMW Alpina Roadster V8 at 11,000 miles (mileageNear)"], ["few", FA.few, "2010 Porsche 911 Carrera Cabriolet (six sales)"], ["split unsaid", FA.split, "2002 BMW M3 Coupe (21 sales, range withheld)"]]) {
+  const { h } = mkCard(name, { findAnswer: fa }), cls = bare(h).map(k => k.split(" ")[0]), t = flat(h);
+  ok(JSON.stringify(cls) === JSON.stringify(ORDER), `findAnswer ${label}: three slots (${cls.join(" > ")})`);
+  if (fa.state === "range") { ok(h.includes('class="fx-ans fx-range">' + usd(fa.range.low) + " to " + usd(fa.range.high) + "<"), `findAnswer ${label}: the range is the answer`); ok(h.includes('<p class="fx-count">' + esc(fa.lines.join(" ")) + "</p>"), `findAnswer ${label}: the small line is the engine's lines, in order (${fa.lines.join(" ")})`); }
+  else { ok(h.includes('class="fx-ans fx-answer">' + esc(fa.lines[0]) + "</p>"), `findAnswer ${label}: the answer is the engine's first line`); ok(h.includes('<p class="fx-count">' + esc(fa.lines.slice(1).join(" ")) + "</p>"), `findAnswer ${label}: the small line is the engine's second line (${fa.lines[1] || "none"})`); ok(!/\$\d/.test(t), `findAnswer ${label}: no range printed`); }
+  ok(!/pick one|miles|\$[\d,]+ · /i.test(t.replace(/near its miles/, "")), `findAnswer ${label}: no pick one, no mileage line, no sale line`);
+}
 // the button, and the same code on Tasks
 ok(/"See the sales"/.test(C), "the card's button is See the sales");
 ok(/md-opts/.test(C) && /m\.optionLines\.map/.test(C), "the options' own lines print in the expanded panel (drawerHtml)");
 const kit = fs.readFileSync("lib/findCardKit.js", "utf8");
-ok(/"fxHead", "fxTail", "rangeFirst", "noRange", "compactNoRange", "saleLineText", "thinSales"/.test(kit), "Tasks lifts the same box code (findCardKit)");
+ok(/"fxHead", "fxSlots", "fxFindHtml", "fxTail", "rangeFirst", "noRange", "compactNoRange", "thinSales"/.test(kit), "Tasks lifts the same box code (findCardKit)");
 console.log(`findCardShapeCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

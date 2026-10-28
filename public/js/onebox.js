@@ -948,8 +948,21 @@
   // only buckets with the engine's minimum of sales; none at all when fewer than two qualify). No single-sale dots, no single-sale labels,
   // no zero: a bucket the engine did not return is not drawn. The chart computes nothing: the figures, the bucket labels, the counts and the
   // bucket size's own words ("by quarter") are the engine's; this function only LAYS THEM OUT (the axis fit, the label places).
+  // ENGINE READY 9: answer.chart = { type: "candles" | "withheld", scope, size, spanLabel, caption, note, buckets, withheld: { reason, line } }; an answer stored before it carries d.trend.movement (the same buckets).
+  function chartMovementOf(d) { var ch = d && d.chart; if (ch && ch.type === "candles" && Array.isArray(ch.buckets)) return { buckets: ch.buckets, size: ch.size, label: ch.spanLabel }; return d && d.trend && d.trend.movement; }
+  // The axis slots: the engine's buckets in order, with an empty slot for each period between two of them that the engine did not return (a quarter under its minimum). Layout only: no number is made.
+  function chartSlots(bs) {
+    var key = function (q) { var m = /^(\d{4})-(Q[1-4]|H[12])$/.exec(String(q.period || "")), y = /^(\d{4})$/.exec(String(q.period || "")); return m ? { y: +m[1], k: m[2].charAt(0), n: +m[2].charAt(1) } : y ? { y: +y[1], k: "Y", n: 1 } : null; };
+    var ks = bs.map(key); if (ks.some(function (x) { return !x; }) || ks.some(function (x) { return x.k !== ks[0].k; })) return { slots: bs, at: bs.map(function (q, i) { return i; }) };
+    var per = ks[0].k === "Q" ? 4 : ks[0].k === "H" ? 2 : 1, ord = function (x) { return x.y * per + (x.n - 1); }, slots = [], at = [];
+    bs.forEach(function (q, i) {
+      if (i) for (var o2 = ord(ks[i - 1]) + 1; o2 < ord(ks[i]); o2++) { var yy = Math.floor(o2 / per), nn = o2 % per + 1; slots.push({ gap: true, label: per === 1 ? String(yy) : ks[0].k + nn + " " + yy }); }
+      at.push(slots.length); slots.push(q);
+    });
+    return { slots: slots, at: at };
+  }
   function candleChartHtml(d) {
-    var mv = d && d.trend && d.trend.movement;
+    var mv = chartMovementOf(d);
     var bs = (mv && Array.isArray(mv.buckets)) ? mv.buckets.filter(function (q) { return q && Number(q.low) > 0 && Number(q.high) > 0 && Number(q.high) >= Number(q.low) && digitOf(q.count) > 0; }) : [];
     if (bs.length < 3) return "";   // the engine returns no movement under three candles; the page's "Too few to show movement" line stands in
     var dataLo = Math.min.apply(null, bs.map(function (q) { return Number(q.low); })), dataHi = Math.max.apply(null, bs.map(function (q) { return Number(q.high); }));
@@ -963,7 +976,9 @@
     var axisVals = []; for (var av = axisLo; av <= axisHi + step * 0.01; av += step) axisVals.push(av);
     var axisChars = Math.max.apply(null, axisVals.map(function (v) { return usdK(v).length; }));
     var W = 880, H = 560, padL = Math.max(60, Math.ceil(axisChars * FS * 0.72 + 28)), padR = 20, padB = phone ? 156 : 116, padT = 44;
-    var plotW = W - padL - padR, slot = plotW / bs.length, barW = Math.min(slot * 0.34, 90);
+    // A period the engine left out (fewer sales than its minimum) keeps its place on the axis as an empty, labelled slot, so a gap in the dates is a visible gap and the candles on either side are not drawn as neighbours.
+    var slotsOf = chartSlots(bs), slots = slotsOf.slots, si = slotsOf.at;
+    var plotW = W - padL - padR, slot = plotW / slots.length, barW = Math.min(slot * 0.34, 90);
     var y = function (v) { return padT + (1 - (v - axisLo) / (axisHi - axisLo)) * (H - padT - padB); };
     var grid = "";
     axisVals.forEach(function (v) {
@@ -982,7 +997,7 @@
     var place = function (str, spots) { for (var k = 0; k < spots.length; k++) { var r = spotRect(str, spots[k]); if (!hit(r)) { claim(r); return textAt(str, spots[k]); } } return ""; };
     var shapes = "", labels = [];
     bs.forEach(function (q, i) {
-      var cx = padL + slot * i + slot / 2, lo = Number(q.low), hi = Number(q.high), ylo = y(lo), yhi = y(hi), count = digitOf(q.count);
+      var cx = padL + slot * si[i] + slot / 2, lo = Number(q.low), hi = Number(q.high), ylo = y(lo), yhi = y(hi), count = digitOf(q.count);
       claim({ x1: cx - barW / 2, x2: cx + barW / 2, y1: yhi, y2: Math.max(yhi + 3, ylo) });
       var tip = chartTip(["Typical range " + usd(lo) + " to " + usd(hi), Number.isFinite(Number(q.typical)) ? "Median " + usd(q.typical) : "", count + (count === 1 ? " sale" : " sales")]);
       shapes += '<g class="hc-candle" tabindex="0" data-tip="' + tip + '"><title>' + tip + '</title><rect x="' + (cx - barW / 2).toFixed(1) + '" y="' + yhi.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + Math.max(3, ylo - yhi).toFixed(1) + '" rx="2" fill="var(--chip)"/>' +
@@ -1020,14 +1035,21 @@
     // On a phone every second period is named (the last always), so no two labels ever touch.
     var rowQ = H - padB + (phone ? 34 : 24), rowY = rowQ + (phone ? 30 : 21), rowN = rowY + (phone ? 40 : 30), rowCap = rowN + (phone ? 38 : 28);
     bs.forEach(function (q, i) {
-      var cx = padL + slot * i + slot / 2, count = digitOf(q.count);
-      var shown = !phone || ((bs.length - 1 - i) % 2 === 0);
+      var cx = padL + slot * si[i] + slot / 2, count = digitOf(q.count);
+      var shown = !phone || ((slots.length - 1 - si[i]) % 2 === 0);
       if (shown) {
         var m2 = /^(Q\d|H\d)\s+(\d{4})$/.exec(String(q.label || qtrLabel(q.period)));
         if (m2) body += '<text class="hc-axq" x="' + cx.toFixed(1) + '" y="' + rowQ + '" text-anchor="middle">' + esc(m2[1]) + '</text><text class="hc-axy" x="' + cx.toFixed(1) + '" y="' + rowY + '" text-anchor="middle">' + esc(m2[2]) + "</text>";
         else body += '<text class="hc-axq" x="' + cx.toFixed(1) + '" y="' + rowQ + '" text-anchor="middle">' + esc(q.label || qtrLabel(q.period)) + "</text>";
       }
       body += '<text class="hc-count" x="' + cx.toFixed(1) + '" y="' + rowN + '" text-anchor="middle">' + esc(String(count)) + "</text>";
+    });
+    slots.forEach(function (sl, k) {
+      if (!sl.gap) return;
+      var cx = padL + slot * k + slot / 2, m3 = /^(Q\d|H\d)\s+(\d{4})$/.exec(sl.label), shownG = !phone || ((slots.length - 1 - k) % 2 === 0);
+      body += '<rect class="hc-gap" x="' + (cx - slot * 0.4).toFixed(1) + '" y="' + padT + '" width="' + (slot * 0.8).toFixed(1) + '" height="' + (H - padT - padB) + '" fill="none" stroke="var(--div)" stroke-dasharray="4 5" rx="4"/>';
+      if (shownG) body += m3 ? '<text class="hc-axq hc-axgap" x="' + cx.toFixed(1) + '" y="' + rowQ + '" text-anchor="middle">' + esc(m3[1]) + '</text><text class="hc-axy" x="' + cx.toFixed(1) + '" y="' + rowY + '" text-anchor="middle">' + esc(m3[2]) + "</text>" : '<text class="hc-axq hc-axgap" x="' + cx.toFixed(1) + '" y="' + rowQ + '" text-anchor="middle">' + esc(sl.label) + "</text>";
+      body += '<text class="hc-count hc-axgap" x="' + cx.toFixed(1) + '" y="' + rowN + '" text-anchor="middle">&ndash;</text>';
     });
     body += '<text class="hc-cap" x="' + padL + '" y="' + rowCap + '" text-anchor="start">' + esc("Sales per " + (mv.size || "period")) + "</text>";
     var svg = '<svg class="hc-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Typical range by period" data-labels-dropped="' + dropped + '">' + grid + body + "</svg>";
@@ -1038,33 +1060,48 @@
       ? ('<p class="hc-prioryear">' + lint(esc("The year before, the typical range was " + usd(trendObj.priorYear.low) + " to " + usd(trendObj.priorYear.high) + "."), "hc.prioryear") + "</p>") : "";
     // One small static line under the chart (Sam, Oct 26 2026): no engine field, no condition, shown whenever the chart is shown (this function returns "" when there is no chart).
     // the engine's own caption and, when the chart's window differs from the range's, its one line saying so (e96 chartCaption, chartWindowLine); no field, no line
-    return size + svg + legend + py + (d.chartCaption ? '<p class="hc-note">' + esc(d.chartCaption) + "</p>" : "") + (d.chartWindowLine ? '<p class="hc-note">' + esc(d.chartWindowLine) + "</p>" : "");
+    return size + svg + legend + py + ((d.chart && d.chart.caption) || d.chartCaption ? '<p class="hc-note">' + esc((d.chart && d.chart.caption) || d.chartCaption) + "</p>" : "") + (d.chart && d.chart.scope && d.chart.note ? '<p class="hc-note">' + esc(d.chart.note) + "</p>" : "") + (d.chartWindowLine ? '<p class="hc-note">' + esc(d.chartWindowLine) + "</p>" : "");
   }
   // No candle chart (the engine supplies no trend at all): no chart, no empty panel - the hero goes
   // full width instead (see heroRangeHtml/thinHeroHtml, :only-child CSS in onebox.html) and this one
   // quiet line sits where the chart would have been.
   // THE OPTIONS (e96, docs/e96-page-contract.md) print in the shared card (lib/sellsForCard.js): the engine's optionLines under a range, its headlineLines in place of one.
-  // A withheld chart (d.trendHeld, reason mix_changes) draws no chart and says why in one plain line.
-  function chartHeldLine(d) {
-    return d && d.trendHeld && d.trendHeld.reason === "mix_changes" ? "The mix of cars changed from quarter to quarter, so a change here would not show the market moving." : "";
+  // A withheld chart draws no chart and says why with the ENGINE's sentence: answer.chart.note (the mix-changed sentence), else answer.chart.withheld.line (the too-few sentence). No sentence of the page's own for either: the words
+  // live in lib/reasonWords.js (chart.held, chart.withheld_few) and pageReasonCopyCheck fails on a copy of them here.
+  function chartHeldSentence(d) {
+    var ch = d && d.chart; if (!ch || ch.type !== "withheld") return "";
+    var n = typeof ch.note === "string" ? ch.note.trim() : "", w = ch.withheld && typeof ch.withheld.line === "string" ? ch.withheld.line.trim() : "";
+    return n || w || "";
   }
   function noChartLineHtml(d) {
     // Sam's evening order (Oct 21 2026): with no chart the line is the existing "N sales. Too few to show movement, enough to show
     // where they landed." (the same words as the thin-tile line), N the engine's pool size, whatever the pool size.
-    var held = chartHeldLine(d); if (held) return '<p class="hero-noband" data-stage="answer">' + lint(esc(held), "hero.chartheld") + "</p>";
+    var held = chartHeldSentence(d); if (held) return '<p class="hero-noband" data-stage="answer">' + lint(esc(held), "hero.chartheld") + "</p>";
     var n = d ? heroPoolSizeNum(d) : NaN;
     var said = Number.isFinite(n) && n > 0 ? obCount(n, "sale", { cap: true }) + ". Too few to show movement, enough to show where they landed." : "Too few sales to show movement, enough to show where they landed.";
     return '<p class="hero-noband" data-stage="answer">' + lint(esc(said), "hero.nochart") + "</p>";
   }
-  function heroChartHtml(d) {
-    var inner = candleChartHtml(d);
-    if (!inner) return "";
-    // The heading stays pinned at the top (hc-body is the ONLY flex:1/centered element) - when the
-    // left column (mileage/identity lines) runs longer than the chart's own natural height, the
-    // stretched right column (.hero2col's default align-items:stretch) gives the chart's own body
-    // the extra room and centers within it, rather than leaving dead space below the legend or
-    // sliding the heading itself away from the top.
-    return '<div class="hero-chart"><h2>How this market has moved</h2><div class="hc-body">' + inner + "</div></div>";
+  // THE CHART PANEL, FOUR STATES (Sam, Oct 28 2026, e98 narrow strip). ONE function draws the panel for every page the kit draws it on (the result hero, the second hero); every state keeps the heading
+  // "How this market has moved". Everything printed is the engine's: no field, no panel.
+  //   a. candles: the engine's d.trend buckets (candleChartHtml), as before.
+  //   b. option-scoped candles: d.chart.scope.line, the engine's own sentence ("Manual sales only, so the mix stays comparable"), small and grey above the same candle chart.
+  //   NEVER A DOT (Sam's ruling, Oct 28 2026): no per-sale point is drawn anywhere; an engine that sends chart.type "dots" gets the candles (or the withheld panel), never points.
+  //   c. withheld: the heading with the engine's withheld sentence under it (answer.chart.note, else answer.chart.withheld.line: the engine's words, none of the page's own).
+  function chartPanelHtml(d) {
+    var ch = d && d.chart && typeof d.chart === "object" ? d.chart : null, head = "<h2>How this market has moved</h2>", inner;
+    if ((inner = candleChartHtml(d))) {
+      var sc = ch && ch.type === "candles" && ch.scope && typeof ch.scope === "object" && typeof ch.scope.line === "string" ? ch.scope.line.trim() : "";
+      return '<div class="hero-chart" data-chart="' + (sc ? "scoped" : "candles") + '">' + head + (sc ? '<p class="hc-scope">' + lint(esc(sc), "hc.scope") + "</p>" : "") + '<div class="hc-body">' + inner + "</div></div>";
+    }
+    var held = chartHeldSentence(d);
+    if (held) return '<div class="hero-chart hc-held" data-chart="withheld">' + head + '<div class="hc-body"><p class="hc-note" data-stage="answer">' + lint(esc(held), "hero.chartheld") + "</p></div></div>";
+    return "";
+  }
+  function heroChartHtml(d) { return chartPanelHtml(d); }
+  // THE NARROW STRIP (Sam, Oct 28 2026): directly below the answer card, one heading NARROW BY for the pills (the engine's refine options) and the mileage box; the card itself keeps only ranges, counts, the footer.
+  function narrowStripHtml(d, m, withMileage) {
+    var pills = window.sellsForNarrowHtml ? window.sellsForNarrowHtml(d, { interactive: true }) : "", mi = withMileage ? heroMileageLineHtml(d, m) : "";
+    return pills || mi ? '<div class="narrow-strip" data-stage="answer"><p class="sfc-label">Narrow by</p>' + pills + mi + "</div>" : "";
   }
   // ============ THIN-TILE TREATMENT (Sam's review round, Oct 2026; widened round two) ==========
   // Replaces "too few sales in each quarter to chart" with the mockup's own treatment on any pool
@@ -1154,7 +1191,7 @@
     var list = Array.isArray(pool) ? pool : [];
     var n = list.length;
     if (!n || n > 16) return null;
-    var heldSaid = chartHeldLine(d);
+    var heldSaid = chartHeldSentence(d);
     var said = '<p class="hero-noband" data-stage="answer">' + lint(esc(heldSaid || (obCount(n, "sale", { cap: true }) + ". Too few to show movement, enough to show where they landed.")), "hero.thintiles.said") + "</p>";
     var sorted = list.slice().sort(function (a, b) { return Number(b.price) - Number(a.price); });
     var wide = n >= 9;
@@ -1236,13 +1273,10 @@
     if (!d.cluster) {
       var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.older") + "</p>";
     }
-    left += heroMileageLineHtml(d, m);
+    left += narrowStripHtml(d, m, true);
     left += heroIdentityLineHtml(d);
-    var right = heroChartHtml(d);
+    var right = chartPanelHtml(d);
     var full = "";
-    // E98: the engine's chart-withheld sentence sits in the chart panel, small and grey, where the chart would have been; never under the mileage box
-    var heldNote = !right ? chartHeldLine(d) : "";
-    if (heldNote) right = '<div class="hero-chart"><div class="hc-body"><p class="hc-note" data-stage="answer">' + lint(esc(heldNote), "hero.chartheld") + "</p></div></div>";
     if (!right) {
       if (thinTile) { left += thinTile.said; left += thinTile.asideBlock; right = thinTile.right; full = thinTile.full || ""; }
       else left += noChartLineHtml(d);
@@ -2031,7 +2065,7 @@
       // A thin answer (e63, Sam, Oct 19 2026; Lane C as integrator, Lane A away): the shared card carries the engine's
       // thinLine and latest-sale line, the only explanation; the grid below carries the sales. No lead of the page's own.
       var follow = m ? "" : "A bit more detail, or a different car, and Sam pulls what actually sold.";
-      var card = window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "";
+      var card = (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "") + narrowStripHtml(d, null, false);
       return '<div class="refusal">' + card + (follow ? samMsgHtml([lint(esc(follow), "thin.follow")], "Sam’s read") : "") + factsBlockHtml(d, false) + "</div>" + exactCarSalesHtml(d) + poolGridHtml(cards, "What has sold") + sellHtml();
     }
     var follow2 = "Say which " + esc(model) + " it is and Sam compares it to the ones that match.";
@@ -2041,7 +2075,7 @@
     // The spread refusal (Sam, Oct 19 2026; Lane C as integrator, Lane A away): the shared card carries the engine's own
     // line (its samLine, "Sales too spread out for a range.") and latest sale, the only explanation; no reason of the
     // page's own. The ask to name the car and the engine's own variant chips stay; the grid below carries the sales.
-    var card = window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "";
+    var card = (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "") + narrowStripHtml(d, null, false);
     var head = '<div class="refusal" data-stage="answer">' + card +
       samMsgHtml([lint(esc(follow2), "refuse.follow")], "Sam’s read") + factsBlockHtml(d, false) + chips + "</div>";
     return head + exactCarSalesHtml(d) + poolGridHtml(cards, "What has sold") + sellHtml();
@@ -2162,6 +2196,7 @@
     // e63 (Sam, Oct 19 2026; Lane C as integrator, Lane A away): ONE list. The sale tiles below are this tier's list, so the
     // card draws the engine's line and latest sale without its own rows; no sale prints twice.
     left += (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "");
+    left += narrowStripHtml(d, m, false);
     var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.thin.older") + "</p>";
     // The page's own house/online lines are gone (Sam, Oct 19 2026; Lane C as integrator, Lane A away): the engine's line
     // and latest-sale line on the card are the only explanation under a thin card.
@@ -2180,11 +2215,8 @@
     // apply here, so this calls the variant line directly rather than the full heroIdentityLineHtml.
     // Candles only (engine's own d.trend quarters) - same rule as the result tier, no scope-filtered
     // fallback any more.
-    var right = heroChartHtml(d);
+    var right = chartPanelHtml(d);
     var full = "";
-    // E98: the engine's chart-withheld sentence sits in the chart panel, small and grey, where the chart would have been; never under the mileage box
-    var heldNote = !right ? chartHeldLine(d) : "";
-    if (heldNote) right = '<div class="hero-chart"><div class="hc-body"><p class="hc-note" data-stage="answer">' + lint(esc(heldNote), "hero.chartheld") + "</p></div></div>";
     if (!right) {
       if (thinTile) { left += thinTile.said; left += thinTile.asideBlock; right = thinTile.right; full = thinTile.full || ""; }
       else left += noChartLineHtml(d);
