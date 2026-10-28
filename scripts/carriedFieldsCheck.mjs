@@ -82,8 +82,9 @@ for (const [k, c] of Object.entries(CARS)) {
     const where = `${k} on ${surf}`;
     ok(text.length > 15, `${where}: not blank`);
     ok(!/undefined|NaN|\[object/.test(text), `${where}: nothing broken prints`);
-    if (R.scope_reason) ok(has(text, R.scope_reason), `${where}: the scope reason is printed ("${R.scope_reason}")`);
-    const onFind = surf === "find" || surf === "email";   // the five-line Sam box (Oct 29 2026): the spec, the scope reason and the count with its window replace the rung label and the longer-window note
+    const onFind = surf === "find" || surf === "email";   // E98 (Oct 28 2026): the Find card and the Task email card are three slots (spec, answer, one small line); the scope reason lives on Market Check and in the See the sales panel, never on those cards
+    if (R.scope_reason) ok(onFind ? !has(text, R.scope_reason) : has(text, R.scope_reason), `${where}: the scope reason is ${onFind ? "NOT printed on a Find or email card" : "printed"} ("${R.scope_reason}")`);
+    const _unused = null;   // the five-line Sam box (Oct 29 2026): the spec, the scope reason and the count with its window replace the rung label and the longer-window note
     if (R.window && !onFind) ok(has(text, R.window), `${where}: the longer window is printed ("${R.window}")`);
     if (R.refusal) ok(has(text, R.refusal) && !/Sales too spread out for a range/.test(text), `${where}: a refusal says the engine's reason, not a sentence of the card's own ("${R.refusal}")`);
     if (R.mileage) ok(has(text, R.mileage), `${where}: the mileage note is printed ("${R.mileage}")`);

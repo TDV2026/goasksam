@@ -8,7 +8,7 @@ let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const src = fs.readFileSync("public/js/onebox.js", "utf8"), html = fs.readFileSync("public/onebox.html", "utf8");
 const fn = name => { const i = src.indexOf("  function " + name + "("); if (i < 0) throw new Error("missing " + name); let d = 0, j = src.indexOf("{", i); for (let k = j; k < src.length; k++) { if (src[k] === "{") d++; else if (src[k] === "}" && !--d) return src.slice(i, k + 1); } throw new Error("unterminated " + name); };
-const build = phone => new Function("window", "lint", ["esc", "usd", "usdK", "chartTip", "niceStep", "qtrLabel", "digitOf", "candleChartHtml"].map(fn).join("\n") + "\nreturn candleChartHtml;")({ matchMedia: () => ({ matches: phone }) }, x => x);
+const build = phone => new Function("window", "lint", ["esc", "usd", "usdK", "chartTip", "niceStep", "qtrLabel", "digitOf", "chartMovementOf", "chartSlots", "candleChartHtml"].map(fn).join("\n") + "\nreturn candleChartHtml;")({ matchMedia: () => ({ matches: phone }) }, x => x);
 // The rules of the line below the chart are static text; the chart's CSS is the page's own.
 const css = (html.match(/\.hc-[^{]*\{[^}]*\}/g) || []).join("\n") + "\n.hc-svg{width:100%;aspect-ratio:11/7;display:block}";
 const phoneCss = (html.match(/@media \(max-width:700px\)\{[\s\S]*?\n\}/g) || []).join("\n");

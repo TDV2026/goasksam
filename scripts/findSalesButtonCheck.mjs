@@ -35,7 +35,7 @@ const sr = fs.readFileSync("lib/live/search.js", "utf8"), on = fs.readFileSync("
 ok(/venue: c\.platformName \|\| null, url: c\.url \|\| null, gearbox: c\.gearboxWord \|\| null/.test(sr), "the panel's sales carry the venue, the link and the gearbox word from the engine's cards");
 ok(/gearboxWord: houseGearboxOf\(r,/.test(on), "the engine's sale cards carry gearboxWord");
 // the class: nothing on a Find card sends a SALE to Market Check
-const sales = block("  function saleLineText(", "  function samLine(l){");
-ok(!/<a /.test(sales) && !/market-check/.test(sales) && /data-fxsale=/.test(sales) && /openCardSale/.test(C), "a sale line on a sales-only card is a button that opens the modal, never a link to Market Check");
+const sales = block("  function thinSales(", "  function samLine(l){");
+ok(!/<a /.test(sales) && !/market-check/.test(sales) && !/data-fxsale=/.test(sales) && /openCardSale/.test(C), "e98: a Find card carries no sale line (ENGINE READY 10); its sales are in the See the sales panel and open the modal, never a link to Market Check");
 console.log(`findSalesButtonCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);
