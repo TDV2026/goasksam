@@ -113,7 +113,7 @@ export const PILL_SLOT = '<div class="gas-pill-slot"></div>';
 // product; its sale rows are left to the page's own sales list, which every /preview view draws from the same engine
 // sales right below the card (date, price, mileage, photo through the gated ?photo= path, venue-blind), so no sale
 // shows twice.
-export const PARTNER_CARD_OPTS = { partnerPillsHtml: PILL_SLOT, rows: false };
+export const PARTNER_CARD_OPTS = { partnerPillsHtml: PILL_SLOT, rows: false, poweredBy: true };
 // THE DEMO'S COPY OF THE CARD (Sam, Oct 16 2026), two edits on the shared card's own output, nothing else: (1) the basis
 // line states no month count: "Based on {count} sales, the latest in {Month Year}." (the count in words under ten, the
 // latest from the engine's own sale dates; the engine's window is unchanged); (2) "How Sam decides" is plain text, not a
@@ -588,10 +588,10 @@ export function historyOf(apps, vin) {
 // reads as its own year, make and model (rowTitle, the rule the sales list already uses). Additive: the existing card,
 // sales and every other field are unchanged, and the eBay page ignores this field.
 export function cardWithRowsOf(d) {
-  if (!d || !Array.isArray(d.cards)) return demoCard(sellsForCardHtml(d || {}, { updated: CARD_UPDATED }), d || {}) || null;
+  if (!d || !Array.isArray(d.cards)) return demoCard(sellsForCardHtml(d || {}, { updated: CARD_UPDATED, poweredBy: true }), d || {}) || null;
   const cards = d.cards.map(c => ({ ...c, title: rowTitle(c) }));
   const photo = c => { const id = c && c.image ? rowId(c) : null; return id ? "/api/partnerAnswer?photo=" + encodeURIComponent(id) + "&w=320" : null; };   // the smallest width the photo path serves (PHOTO_WIDTHS), for a 72 px row (Lane E's stage 5 find); a sale with no photo keeps the card's "No photo" slot, as on Market Check
-  return demoCard(sellsForCardHtml({ ...d, cards }, { rowPhoto: photo, updated: CARD_UPDATED }), d) || null;
+  return demoCard(sellsForCardHtml({ ...d, cards }, { rowPhoto: photo, updated: CARD_UPDATED, poweredBy: true }), d) || null;
 }
 export function partnerShape(d, text, asked, extra = {}) {
   const engineVersion = d && d.engineVersion || null;

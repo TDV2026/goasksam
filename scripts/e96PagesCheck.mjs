@@ -72,7 +72,8 @@ for (const [name, d] of Object.entries(ALL)) {
 { // the floor state, the chips, the buttons, and a card row
   const t = flat(card.sellsForCardHtml(sf.cardAnswerOf(STATES.floor), {}));
   ok(/Convertible, 5 sales, too few for a range/.test(t) && !/Convertible \$/.test(t), "the shared card, floor: the count and 'too few for a range', no range");
-  const h = card.sellsForCardHtml(sf.cardAnswerOf(STATES.refine), { interactive: true });
+  const h = card.sellsForNarrowHtml(sf.cardAnswerOf(STATES.refine), { interactive: true });   // E98: the chips are the narrow strip's, not the card's
+  ok(!/sfc-chip\b|sfc-pill/.test(card.sellsForCardHtml(sf.cardAnswerOf(STATES.refine), { interactive: true })), "the shared card holds no pill: the chips sit in the narrow strip");
   ok(/data-refine="[^"]*tx[^"]*"/.test(h) && /Manual\s+10\b/.test(flat(h)) && /SMG\s+13\b/.test(flat(h)), "the shared card, refine: the chip row from refineOptions, each carrying its own refine");
   ok(!/sfc-chip\b/.test(card.sellsForCardHtml(sf.cardAnswerOf(STATES.refine), {})), "the shared card, not interactive (Sell, emails): no chip row");
   const row = flat(card.sellsForCardHtml({ ...base, cluster: null, thinLine: "Too few for a range.", cards: [{ price: 52000, date: "2026-03-01", mi: null, milesHidden: true, rangeLabel: "Above the typical range", title: "2001 BMW M3" }] }, {}));
@@ -142,7 +143,7 @@ for (const [name, d] of Object.entries(ALL)) {
       ok(t.length > 60 && !/undefined|NaN|\[object/.test(t), `${where}: prints, nothing broken`);
       ok(linesOf(d).every(l => t.includes(l.replace(/\s+/g, " "))), `${where}: the engine's lines print as written`);
       if (d.optionsState === "split" || d.optionsState === "apart") ok(!t.includes(POOLED), `${where}: no pooled number`);
-      if (d.optionsState === "apart" && d.trendHeld) ok(!/How this market has moved/.test(t), `${where}: no chart where the engine withheld it`);
+      if (d.optionsState === "apart" && d.trendHeld) { const svg = await p.evaluate(() => document.querySelectorAll(".hero-chart svg").length); ok(/How this market has moved/.test(t) && svg === 0 && t.includes("The mix of cars changed from quarter to quarter"), `${where}: no chart where the engine withheld it: the panel keeps its heading and says why`); }
       if (d.wideLine) ok(t.includes(d.wideLine), `${where}: wideLine prints`);
       if (d.yearNote) ok(t.includes(d.yearNote), `${where}: yearNote prints`);
       ok(!/Add mileage to narrow the range[\s\S]*Add mileage to narrow/.test(t), `${where}: one mileage prompt at most`);

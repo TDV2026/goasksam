@@ -948,8 +948,10 @@
   // only buckets with the engine's minimum of sales; none at all when fewer than two qualify). No single-sale dots, no single-sale labels,
   // no zero: a bucket the engine did not return is not drawn. The chart computes nothing: the figures, the bucket labels, the counts and the
   // bucket size's own words ("by quarter") are the engine's; this function only LAYS THEM OUT (the axis fit, the label places).
+  // ENGINE READY 9: answer.chart = { type: "candles" | "withheld", scope, size, spanLabel, caption, note, buckets, withheld: { reason, line } }; an answer stored before it carries d.trend.movement (the same buckets).
+  function chartMovementOf(d) { var ch = d && d.chart; if (ch && ch.type === "candles" && Array.isArray(ch.buckets)) return { buckets: ch.buckets, size: ch.size, label: ch.spanLabel }; return d && d.trend && d.trend.movement; }
   function candleChartHtml(d) {
-    var mv = d && d.trend && d.trend.movement;
+    var mv = chartMovementOf(d);
     var bs = (mv && Array.isArray(mv.buckets)) ? mv.buckets.filter(function (q) { return q && Number(q.low) > 0 && Number(q.high) > 0 && Number(q.high) >= Number(q.low) && digitOf(q.count) > 0; }) : [];
     if (bs.length < 3) return "";   // the engine returns no movement under three candles; the page's "Too few to show movement" line stands in
     var dataLo = Math.min.apply(null, bs.map(function (q) { return Number(q.low); })), dataHi = Math.max.apply(null, bs.map(function (q) { return Number(q.high); }));
@@ -1038,7 +1040,7 @@
       ? ('<p class="hc-prioryear">' + lint(esc("The year before, the typical range was " + usd(trendObj.priorYear.low) + " to " + usd(trendObj.priorYear.high) + "."), "hc.prioryear") + "</p>") : "";
     // One small static line under the chart (Sam, Oct 26 2026): no engine field, no condition, shown whenever the chart is shown (this function returns "" when there is no chart).
     // the engine's own caption and, when the chart's window differs from the range's, its one line saying so (e96 chartCaption, chartWindowLine); no field, no line
-    return size + svg + legend + py + (d.chartCaption ? '<p class="hc-note">' + esc(d.chartCaption) + "</p>" : "") + (d.chartWindowLine ? '<p class="hc-note">' + esc(d.chartWindowLine) + "</p>" : "");
+    return size + svg + legend + py + ((d.chart && d.chart.caption) || d.chartCaption ? '<p class="hc-note">' + esc((d.chart && d.chart.caption) || d.chartCaption) + "</p>" : "") + (d.chart && d.chart.scope && d.chart.note ? '<p class="hc-note">' + esc(d.chart.note) + "</p>" : "") + (d.chartWindowLine ? '<p class="hc-note">' + esc(d.chartWindowLine) + "</p>" : "");
   }
   // No candle chart (the engine supplies no trend at all): no chart, no empty panel - the hero goes
   // full width instead (see heroRangeHtml/thinHeroHtml, :only-child CSS in onebox.html) and this one
@@ -1056,15 +1058,28 @@
     var said = Number.isFinite(n) && n > 0 ? obCount(n, "sale", { cap: true }) + ". Too few to show movement, enough to show where they landed." : "Too few sales to show movement, enough to show where they landed.";
     return '<p class="hero-noband" data-stage="answer">' + lint(esc(said), "hero.nochart") + "</p>";
   }
-  function heroChartHtml(d) {
-    var inner = candleChartHtml(d);
-    if (!inner) return "";
-    // The heading stays pinned at the top (hc-body is the ONLY flex:1/centered element) - when the
-    // left column (mileage/identity lines) runs longer than the chart's own natural height, the
-    // stretched right column (.hero2col's default align-items:stretch) gives the chart's own body
-    // the extra room and centers within it, rather than leaving dead space below the legend or
-    // sliding the heading itself away from the top.
-    return '<div class="hero-chart"><h2>How this market has moved</h2><div class="hc-body">' + inner + "</div></div>";
+  // THE CHART PANEL, FOUR STATES (Sam, Oct 28 2026, e98 narrow strip). ONE function draws the panel for every page the kit draws it on (the result hero, the second hero); every state keeps the heading
+  // "How this market has moved". Everything printed is the engine's: no field, no panel.
+  //   a. candles: the engine's d.trend buckets (candleChartHtml), as before.
+  //   b. option-scoped candles: d.chart.scope.line, the engine's own sentence ("Manual sales only, so the mix stays comparable"), small and grey above the same candle chart.
+  //   NEVER A DOT (Sam's ruling, Oct 28 2026): no per-sale point is drawn anywhere; an engine that sends chart.type "dots" gets the candles (or the withheld panel), never points.
+  //   c. withheld: the heading with the engine's withheld sentence under it (d.trendHeld.line; an engine that sends none keeps the one existing sentence for reason mix_changes).
+  function chartHeldSentence(d) { var w = d && d.chart && d.chart.type === "withheld" && d.chart.withheld; if (w && typeof w.line === "string" && w.line.trim()) return w.line.trim(); var h = d && d.trendHeld; return h && typeof h.line === "string" && h.line.trim() ? h.line.trim() : chartHeldLine(d); }
+  function chartPanelHtml(d) {
+    var ch = d && d.chart && typeof d.chart === "object" ? d.chart : null, head = "<h2>How this market has moved</h2>", inner;
+    if ((inner = candleChartHtml(d))) {
+      var sc = ch && ch.type === "candles" && ch.scope && typeof ch.scope === "object" && typeof ch.scope.line === "string" ? ch.scope.line.trim() : "";
+      return '<div class="hero-chart" data-chart="' + (sc ? "scoped" : "candles") + '">' + head + (sc ? '<p class="hc-scope">' + lint(esc(sc), "hc.scope") + "</p>" : "") + '<div class="hc-body">' + inner + "</div></div>";
+    }
+    var held = chartHeldSentence(d);
+    if (held) return '<div class="hero-chart hc-held" data-chart="withheld">' + head + '<div class="hc-body"><p class="hc-note" data-stage="answer">' + lint(esc(held), "hero.chartheld") + "</p></div></div>";
+    return "";
+  }
+  function heroChartHtml(d) { return chartPanelHtml(d); }
+  // THE NARROW STRIP (Sam, Oct 28 2026): directly below the answer card, one heading NARROW BY for the pills (the engine's refine options) and the mileage box; the card itself keeps only ranges, counts, the footer.
+  function narrowStripHtml(d, m, withMileage) {
+    var pills = window.sellsForNarrowHtml ? window.sellsForNarrowHtml(d, { interactive: true }) : "", mi = withMileage ? heroMileageLineHtml(d, m) : "";
+    return pills || mi ? '<div class="narrow-strip" data-stage="answer"><p class="sfc-label">Narrow by</p>' + pills + mi + "</div>" : "";
   }
   // ============ THIN-TILE TREATMENT (Sam's review round, Oct 2026; widened round two) ==========
   // Replaces "too few sales in each quarter to chart" with the mockup's own treatment on any pool
@@ -1236,13 +1251,10 @@
     if (!d.cluster) {
       var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.older") + "</p>";
     }
-    left += heroMileageLineHtml(d, m);
+    left += narrowStripHtml(d, m, true);
     left += heroIdentityLineHtml(d);
-    var right = heroChartHtml(d);
+    var right = chartPanelHtml(d);
     var full = "";
-    // E98: the engine's chart-withheld sentence sits in the chart panel, small and grey, where the chart would have been; never under the mileage box
-    var heldNote = !right ? chartHeldLine(d) : "";
-    if (heldNote) right = '<div class="hero-chart"><div class="hc-body"><p class="hc-note" data-stage="answer">' + lint(esc(heldNote), "hero.chartheld") + "</p></div></div>";
     if (!right) {
       if (thinTile) { left += thinTile.said; left += thinTile.asideBlock; right = thinTile.right; full = thinTile.full || ""; }
       else left += noChartLineHtml(d);
@@ -2031,7 +2043,7 @@
       // A thin answer (e63, Sam, Oct 19 2026; Lane C as integrator, Lane A away): the shared card carries the engine's
       // thinLine and latest-sale line, the only explanation; the grid below carries the sales. No lead of the page's own.
       var follow = m ? "" : "A bit more detail, or a different car, and Sam pulls what actually sold.";
-      var card = window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "";
+      var card = (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "") + narrowStripHtml(d, null, false);
       return '<div class="refusal">' + card + (follow ? samMsgHtml([lint(esc(follow), "thin.follow")], "Sam’s read") : "") + factsBlockHtml(d, false) + "</div>" + exactCarSalesHtml(d) + poolGridHtml(cards, "What has sold") + sellHtml();
     }
     var follow2 = "Say which " + esc(model) + " it is and Sam compares it to the ones that match.";
@@ -2041,7 +2053,7 @@
     // The spread refusal (Sam, Oct 19 2026; Lane C as integrator, Lane A away): the shared card carries the engine's own
     // line (its samLine, "Sales too spread out for a range.") and latest sale, the only explanation; no reason of the
     // page's own. The ask to name the car and the engine's own variant chips stay; the grid below carries the sales.
-    var card = window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "";
+    var card = (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "") + narrowStripHtml(d, null, false);
     var head = '<div class="refusal" data-stage="answer">' + card +
       samMsgHtml([lint(esc(follow2), "refuse.follow")], "Sam’s read") + factsBlockHtml(d, false) + chips + "</div>";
     return head + exactCarSalesHtml(d) + poolGridHtml(cards, "What has sold") + sellHtml();
@@ -2162,6 +2174,7 @@
     // e63 (Sam, Oct 19 2026; Lane C as integrator, Lane A away): ONE list. The sale tiles below are this tier's list, so the
     // card draws the engine's line and latest sale without its own rows; no sale prints twice.
     left += (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "");
+    left += narrowStripHtml(d, m, false);
     var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.thin.older") + "</p>";
     // The page's own house/online lines are gone (Sam, Oct 19 2026; Lane C as integrator, Lane A away): the engine's line
     // and latest-sale line on the card are the only explanation under a thin card.
@@ -2180,11 +2193,8 @@
     // apply here, so this calls the variant line directly rather than the full heroIdentityLineHtml.
     // Candles only (engine's own d.trend quarters) - same rule as the result tier, no scope-filtered
     // fallback any more.
-    var right = heroChartHtml(d);
+    var right = chartPanelHtml(d);
     var full = "";
-    // E98: the engine's chart-withheld sentence sits in the chart panel, small and grey, where the chart would have been; never under the mileage box
-    var heldNote = !right ? chartHeldLine(d) : "";
-    if (heldNote) right = '<div class="hero-chart"><div class="hc-body"><p class="hc-note" data-stage="answer">' + lint(esc(heldNote), "hero.chartheld") + "</p></div></div>";
     if (!right) {
       if (thinTile) { left += thinTile.said; left += thinTile.asideBlock; right = thinTile.right; full = thinTile.full || ""; }
       else left += noChartLineHtml(d);

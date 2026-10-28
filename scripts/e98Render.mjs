@@ -25,7 +25,7 @@ export async function openMC(browser, fx, width) {
     if (u.host === "goasksam.com" && /^\/api\//.test(u.pathname)) return r.respond({ status: 200, contentType: "application/json", body: "{}" });
     if (u.host !== "goasksam.com") return r.respond({ status: 204, body: "" }); r.continue(); });
   await p.goto("https://goasksam.com/market-check", { waitUntil: "networkidle2" }).catch(() => {});
-  await p.evaluate(() => { if (!window.GAS_UPDATED) window.GAS_UPDATED = "October 28"; });   // offline the page cannot read the last-ingest date
+  await p.evaluate(() => { if (!window.GAS_UPDATED) window.GAS_UPDATED = "Oct 28, 2026"; });   // offline the page cannot read the last-ingest date
   await p.type("#ob-input", fx.typed); await p.keyboard.press("Enter"); await new Promise(r => setTimeout(r, 4200));
   if (fx.miles) { await p.type("#ob-miles", fx.miles); await p.keyboard.press("Enter"); await new Promise(r => setTimeout(r, 1800)); }
   return p;

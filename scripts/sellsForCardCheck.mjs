@@ -19,9 +19,9 @@ ok(normal.includes('$121,000 <span class="sfc-to">to</span> $134,000'), "range, 
 ok(normal.includes("Based on 42 sales, the latest in September 2026."), "basis line: the engine's own sentence, verbatim, no month count");
 ok(!normal.includes("Middle half of") && !normal.includes("last 12 months"), "basis line: the old window-months wording is gone");
 ok(normal.includes("2 sales set aside: 1 modified, 1 odd sale."), "set-aside footnote, engine's own reasons");
-ok(normal.includes("Powered by GoAskSam.") && !/Updated/.test(normal) && normal.includes('href="/how-sam-decides"'), "footer: Powered by and the How Sam decides link; the answer's own read time (the clock) prints no date");
+ok(!/Powered by/.test(normal) && sellsForCardHtml({ cluster: [121000, 134000], poolN: 42, windowMonths: 12 }, { poweredBy: true }).includes("Powered by GoAskSam.") && !/Updated/.test(normal) && normal.includes('href="/how-sam-decides"'), "footer: no Powered by on our own pages (only with the poweredBy option), the How Sam decides link; the answer's own read time (the clock) prints no date");
 { const dated = sellsForCardHtml({ cluster: [121000, 134000], poolN: 42, windowMonths: 12, readAt: "2026-10-27T03:33:00Z" }, { updated: "Oct 26, 2026" });
-  ok(dated.includes("Powered by GoAskSam. Updated Oct 26, 2026.") && !dated.includes("Oct 27"), "footer: the date is the page's ingest date (Pacific), not the read time read in UTC (20:33 Pacific on the 26th printed the 27th)"); }
+  ok(dated.includes("Updated Oct 26, 2026.") && !/Powered by/.test(dated) && !dated.includes("Oct 27"), "footer: the date is the page's ingest date (Pacific), not the read time read in UTC (20:33 Pacific on the 26th printed the 27th)"); }
 
 // includesFromLine: only when the oldest included sale is over three years old, same decision as basisLine, right after it.
 const oldPool = sellsForCardHtml({ cluster: [15000, 22000], poolN: 11, basisLine: "Based on 11 sales, the latest in August 2026.", includesFromLine: "Includes sales from 2021.", readAt: "2026-10-16T08:00:00Z" });
@@ -39,7 +39,7 @@ ok(!stale.includes("Sales read on") && !stale.includes("Updating now") && !stale
 
 // readAt missing entirely: the date clause is left out, never invented.
 const noDate = sellsForCardHtml({ cluster: [80000, 95000], poolN: 15, windowMonths: 12 });
-ok(noDate.includes("Powered by GoAskSam.") && !noDate.includes("Updated"), "readAt missing: no date clause, never invented");
+ok(!noDate.includes("Updated") && !/Powered by/.test(noDate), "readAt missing: no date clause, never invented");
 
 // THE THIN CARD (e63): the engine's line, its latest-sale line and its rows; no wording of the card's own.
 const L = { house_share: "The sales of this car are too one-sided to mark a range from. These are the sales we found.", few_sales: "Not enough sales of this exact car to give a reliable range. These are the sales we found.", few_comparable: "Too few of these sales can be compared side by side to give a reliable range. These are the sales we found." };

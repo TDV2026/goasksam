@@ -51,7 +51,7 @@ for (const k of ["find", "mc", "sell"]) ok(PAGES[k].html.includes('window.GAS_UP
 ok(/window\.GAS_UPDATED=\$\{JSON\.stringify\(updated \? shortDate\(updated\) : ""\)\}/.test(src("mc").length ? fs.readFileSync("api/marketCheck.js", "utf8") : "") && /updated \? shortDate\(updated\) : ""/.test(fs.readFileSync("api/sellNext.js", "utf8")), "mc and sell: with no readable date the card is handed no date, so its footer prints none");
 { const { sellsForCardHtml } = await import(pathToFileURL(path.join(ROOT, "lib", "sellsForCard.js")).href);
   const d = { cluster: [18000, 26000], poolN: 12, windowMonths: 12, readAt: "2026-10-27T03:33:00Z" };
-  ok(sellsForCardHtml(d, { updated: "Oct 26, 2026" }).includes("Powered by GoAskSam. Updated Oct 26, 2026."), "the card footer prints the ingest date it is handed");
+  ok(sellsForCardHtml(d, { updated: "Oct 26, 2026" }).includes("Updated Oct 26, 2026."), "the card footer prints the ingest date it is handed");
   ok(!/Updated/.test(sellsForCardHtml(d, {})) && !/Oct 27/.test(sellsForCardHtml(d, {})), "the card footer prints no date when it is handed none (the read time, 20:33 Pacific on the 26th, is UTC the 27th, and is not shown)"); }
 // with no readable date the line prints without one (the fallback is in each page's source, lib/asOf.js returns null when the ingest row cannot be read)
 ok(/updated \? `Live auctions \\u00b7 Updated \$\{shortDate\(updated\)\}` : "Live auctions"/.test(src("find")), "find: with no readable date the line prints 'Live auctions' with no date");

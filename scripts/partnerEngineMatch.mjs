@@ -75,7 +75,7 @@ for (const [name, d] of Object.entries(FIX)) {
     ok(sameCard(out.card, d), `${name}: the shared card, byte-identical to Market Check's card for the same answer`);
     // cardWithRows (Oct 20 2026, additive, the Amazon demo's tab c): Market Check's own card WITH its sale rows, in the engine's
     // order, with only the photo address (the gated ?photo= path) and venue-naming titles swapped; no venue anywhere
-    const mcRows = demoCard(sellsForCardHtml(d, {}), d) || "";
+    const mcRows = demoCard(sellsForCardHtml(d, { poweredBy: true }), d) || "";
     const norm = h => String(h || "").replace(/<img class="sfc-row-img" src="[^"]*"/g, '<img class="sfc-row-img" src=""').replace(/<span class="sfc-row-title">[^<]*<\/span>/g, "");
     ok(typeof out.cardWithRows === "string" && /<ul class="sfc-rows">/.test(out.cardWithRows) === /<ul class="sfc-rows">/.test(mcRows), `${name}: cardWithRows carries the sale rows exactly when Market Check's card does`);
     ok(norm(out.cardWithRows) === norm(mcRows), `${name}: cardWithRows is Market Check's card (same lines, prices, dates, miles, order), photo address and titles aside`);

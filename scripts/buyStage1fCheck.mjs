@@ -27,7 +27,7 @@ ok(!/star|heart|data-save|aria-label="Save/i.test(client.slice(client.indexOf("f
 // ITEM 5
 ok(/\.car \.specs \.spec\.hchip\[aria-expanded=true\]\{background:#F7F3E8;color:var\(--green\);border:1px solid var\(--green\)/.test(after(5)) && !/hchip[^{]*\{[^}]*background:var\(--green\)/.test(after(5)), "5: the Sold before / Listed before tag is outlined on cream, never filled");
 // ITEM 6
-ok(/var ALIGN = \[".tx > .trow", ".tx > .meta", ".tx > .specs", ".tx > .sl"\]/.test(client) && /new MutationObserver\(alignSoon\)\.observe\(log, \{ childList: true, subtree: true \}\); window\.addEventListener\("resize", alignSoon\);/.test(client), "6: each row's title, meta, tag row and Sam box are matched (layout only), again on any change and on resize");
+ok(/var ALIGN = \[".tx > .src", ".tx > .trow", ".tx > .meta", ".tx > .specs", ".tx > .sl > .fx-spec", ".tx > .sl > .fx-ans", ".tx > .sl > .fx-count", ".tx > .sl"\]/.test(client) && /new MutationObserver\(alignSoon\)\.observe\(log, \{ childList: true, subtree: true \}\); window\.addEventListener\("resize", alignSoon\);/.test(client), "6: e98: each row's source line, title, meta, chip row and every slot of the Sam box (spec, answer, small line) are matched (layout only), again on any change and on resize");
 ok(/\.cgrid \.car \.ph\{aspect-ratio:16\/10;height:auto\}/.test(after(6)) && /\.cgrid \.car \.acts\{margin-top:auto\}/.test(after(6)), "6: one image shape; the actions on one baseline");
 // NEW BLOCK ITEM 4: what links where
 const cardFn = client.slice(client.indexOf("  function card(l, big, eager){"), client.indexOf("  // THE ADAPTIVE GRID"));
@@ -39,7 +39,7 @@ const n5 = css.slice(css.indexOf("SAM'S NEW 1f BLOCK, ITEM 5,"));
 ok(/\.car \.specs \.spec\.hchip\{background:#F7F3E8;color:var\(--green\);border:1px solid var\(--green\);cursor:pointer/.test(n5) && /\.car \.specs \.spec\.hchip:hover,\.car \.specs \.spec\.hchip:focus-visible\{background:#E3EEE6/.test(n5), "new 5: outlined on cream at rest; pale green fill and a pointer on hover and keyboard focus");
 // NEW BLOCK ITEM 6: the fold
 const n6 = css.slice(css.indexOf("SAM'S NEW 1f BLOCK, ITEM 6,"));
-ok(/\.cgrid \.car h3\{min-height:0\}/.test(n6) && /var ALIGN = \[".tx > .trow"/.test(client), "new 6: no empty second title line; a row makes room only when one of its titles wraps (measured: the first row's range bottom 694px against the composer at 823px, 1440 by 900, local render)");
+ok(/\.cgrid \.car h3\{min-height:0\}/.test(n6) && /var ALIGN = \[".tx > .src", ".tx > .trow"/.test(client), "new 6: no empty second title line; a row makes room only when one of its titles wraps (measured: the first row's range bottom 694px against the composer at 823px, 1440 by 900, local render)");
 // NEW BLOCK ITEM 7: Sign in never on the Sort
 ok(/function clearSignIn\(\)\{/.test(client) && /row\.style\.paddingRight = Math\.ceil\(rr\.right - pr\.left \+ 12\) \+ "px"/.test(client) && /alignRows\(\); clearSignIn\(\);/.test(client) && /new MutationObserver\(alignSoon\)\.observe\(sbar/.test(client), "new 7: the header row keeps clear of the Sign in pill by its measured width, on every change, resize and when the pill fills");
 // ONE QUESTION PANEL (Sam's order 2): every route that draws a question draws it through samAskHtml (the pale green panel); no other builder writes a question section
