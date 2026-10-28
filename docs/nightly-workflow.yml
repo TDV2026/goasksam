@@ -63,10 +63,13 @@ jobs:
       INGEST_RAW_COLUMNS: ${{ vars.INGEST_RAW_COLUMNS }}
     steps:
       - uses: actions/checkout@v5
+        timeout-minutes: 2
       - uses: actions/setup-node@v5
+        timeout-minutes: 2
         with:
           node-version: 22
       - name: Verify required secrets are present
+        timeout-minutes: 2
         run: |
           set -euo pipefail
           missing=0
@@ -83,6 +86,7 @@ jobs:
             exit 1
           fi
       - name: Ingest (backfill range if provided, else nightly delta)
+        timeout-minutes: 17
         run: |
           set -euo pipefail
           node --version
@@ -99,6 +103,7 @@ jobs:
       # rows; absent = nothing to recompute. Uploaded so the "caches" job (a separate runner) can
       # pick it up - the recompute itself never runs in THIS job, per the Oct 2026 fix above.
       - name: Upload invalidated specs list (if any) for the deferred recompute
+        timeout-minutes: 2
         uses: actions/upload-artifact@v4
         with:
           name: invalidated-specs
@@ -114,21 +119,25 @@ jobs:
     # never delay warm/attempts/premium/cube, none of which need anything in this job. 55 min keeps
     # today's effective ceiling for this slower tail (VIN index + VIN rollout cache are the two
     # genuinely multi-minute steps; crossProductCheck at 53 specs is the newest and least bounded).
-    timeout-minutes: 80
+    timeout-minutes: 110   # every step below has its own cap; their sum (99) stays under this, so no one step can run the job into the cancel (run 127, Oct 28: the cross-product check ran 35 minutes and the 80 minute cap cancelled the job)
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
       - uses: actions/checkout@v5
+        timeout-minutes: 2
       - uses: actions/setup-node@v5
+        timeout-minutes: 2
         with:
           node-version: 22
       - name: Download invalidated specs list (if any)
+        timeout-minutes: 2
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: invalidated-specs
       - name: Rebuild VIN index (vin_index + vin_summary)
+        timeout-minutes: 10
         id: vinindex
         continue-on-error: true
         run: |
@@ -136,6 +145,7 @@ jobs:
           test -f scripts/buildVinIndex.js || { echo "::error::scripts/buildVinIndex.js not found in checkout"; exit 1; }
           node scripts/buildVinIndex.js
       - name: Refresh spec market cache (what each live spec sells for)
+        timeout-minutes: 17
         id: specmarket
         continue-on-error: true
         run: node scripts/buildSpecMarketCache.js
@@ -143,31 +153,38 @@ jobs:
       # ranked by real search volume, top RECOMPUTE_CAP (default 60) recomputed, the rest left for
       # the ordinary cold-read-on-next-visit path. Clean no-op when nothing was invalidated.
       - name: Recompute invalidated spec cache rows (capped, ranked by search volume)
+        timeout-minutes: 5
         id: recomputespec
         continue-on-error: true
         run: node scripts/recomputeSpecCache.js --cap=60
       # Builds the Market Check landing example once a night
       - name: Build Market Check landing example (what the example car sold for)
+        timeout-minutes: 3
         id: marketcheckexample
         continue-on-error: true
         run: node scripts/buildMarketCheckExample.js
       # Builds the Sell landing example once a night
       - name: Build Sell landing example (where the example car sells)
+        timeout-minutes: 3
         id: sellexample
         continue-on-error: true
         run: node scripts/buildSellExample.js
       # Builds the Sam Desk (/business) worked example once a night
       - name: Build Sam Desk worked example (three Porsche 911 generations)
+        timeout-minutes: 3
         id: deskexample
         continue-on-error: true
         run: node scripts/buildDeskExample.js
       - name: Build spec_pages (Porsche 911 spec/hub pages, serve-from-table)
+        timeout-minutes: 6
         run: node scripts/buildSpecPagesCache.js
       - name: Precompute VIN rollout cache (sitemap-vins/motorcycles/other)
+        timeout-minutes: 22
         id: vinrollout
         continue-on-error: true
         run: node scripts/buildVinRolloutCache.js
       - name: Search rules check (public pages)
+        timeout-minutes: 3
         env:
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: node scripts/searchCheck.js
@@ -178,45 +195,54 @@ jobs:
       # count comparison is now exact-match, not the 10%-tolerance low/high use, so this is a real
       # gate again, not advisory).
       - name: Cross-product engine check (Buy/Sell/Market Check/Tasks agree)
+        timeout-minutes: 13
         id: crossproductcheck
         continue-on-error: true
         run: node scripts/crossProductCheck.js
       - name: Fail the job if the VIN index step failed
+        timeout-minutes: 1
         if: steps.vinindex.outcome == 'failure'
         run: |
           echo "::error::VIN index rebuild failed (see the Rebuild VIN index step above). Later steps still ran, but the job must end red."
           exit 1
       - name: Fail the job if the spec market cache step failed
+        timeout-minutes: 1
         if: steps.specmarket.outcome == 'failure'
         run: |
           echo "::error::Spec market cache refresh failed (see the Refresh spec market cache step above). Later steps still ran, but the job must end red."
           exit 1
       - name: Fail the job if the recompute step failed
+        timeout-minutes: 1
         if: steps.recomputespec.outcome == 'failure'
         run: |
           echo "::error::Deferred spec cache recompute failed (see the Recompute invalidated spec cache rows step above). Later steps still ran, but the job must end red. The ordinary cold-read-on-next-visit path still covers every affected spec meanwhile - this is a speed regression, not a correctness outage."
           exit 1
       - name: Fail the job if the Market Check example step failed
+        timeout-minutes: 1
         if: steps.marketcheckexample.outcome == 'failure'
         run: |
           echo "::error::Market Check landing example build failed (see the Build Market Check landing example step above). Later steps still ran, but the job must end red. The landing still serves correctly off its own live fallback meanwhile. This is a cache freshness regression, not a correctness outage."
           exit 1
       - name: Fail the job if the Sell example step failed
+        timeout-minutes: 1
         if: steps.sellexample.outcome == 'failure'
         run: |
           echo "::error::Sell landing example build failed (see the Build Sell landing example step above). Later steps still ran, but the job must end red. The landing still builds its example within its own wait meanwhile. This is a cache freshness regression, not a correctness outage."
           exit 1
       - name: Fail the job if the cross-product engine check found a mismatch
+        timeout-minutes: 1
         if: steps.crossproductcheck.outcome == 'failure'
         run: |
           echo "::error::Buy/Sell/Market Check/Tasks disagreed on at least one spec (see the Cross-product engine check step above for which field and which specs). The one-engine rule means the same car must give the same sales count, range and venue in every product - this is a real correctness regression, not advisory."
           exit 1
       - name: Fail the job if the Sam Desk example step failed
+        timeout-minutes: 1
         if: steps.deskexample.outcome == 'failure'
         run: |
           echo "::error::Sam Desk worked example build failed (see the Build Sam Desk worked example step above). Later steps still ran, but the job must end red. The /business page still serves correctly with its worked example section hidden meanwhile. This is a cache freshness regression, not a correctness outage."
           exit 1
       - name: Fail the job if the VIN rollout cache step failed
+        timeout-minutes: 1
         if: steps.vinrollout.outcome == 'failure'
         run: |
           echo "::error::VIN rollout cache precompute failed (see the Precompute VIN rollout cache step above). Later steps still ran, but the job must end red. The sitemaps still serve correctly off the live budgeted fallback meanwhile - this is a speed/completeness regression, not a correctness outage."
@@ -240,15 +266,19 @@ jobs:
       PROBE_KEY: ${{ secrets.PROBE_KEY }}
     steps:
       - uses: actions/checkout@v5
+        timeout-minutes: 2
       - uses: actions/setup-node@v5
+        timeout-minutes: 2
         with:
           node-version: 22
       - name: Rolling warm (~30 nameplates, budget-reserved so search outranks it)
+        timeout-minutes: 8
         run: |
           set -euo pipefail
           test -f scripts/warm.js || { echo "::error::scripts/warm.js not found in checkout"; exit 1; }
           node scripts/warm.js --count=30
       - name: Market Check bare-nameplate warm cache (Round 5 Job 3, archive-only, zero OldCarsData)
+        timeout-minutes: 3
         run: |
           set -euo pipefail
           test -f scripts/warmMarketCheck.js || { echo "::error::scripts/warmMarketCheck.js not found in checkout"; exit 1; }
@@ -280,10 +310,13 @@ jobs:
       OLDCARSDATA_API_KEY: ${{ secrets.OLDCARSDATA_API_KEY }}
     steps:
       - uses: actions/checkout@v5
+        timeout-minutes: 2
       - uses: actions/setup-node@v5
+        timeout-minutes: 2
         with:
           node-version: 22
       - name: Verify required secrets are present
+        timeout-minutes: 2
         run: |
           set -euo pipefail
           missing=0
@@ -297,6 +330,7 @@ jobs:
           done
           if [ "${missing}" -ne 0 ]; then echo "::error::Aborting: required secret(s) missing."; exit 1; fi
       - name: Nightly non-sold delta (last month, all 5 clean sources, filtered status=unsold)
+        timeout-minutes: 23
         run: |
           set -euo pipefail
           test -f scripts/ingestAttempts.js || { echo "::error::scripts/ingestAttempts.js not found in checkout"; exit 1; }
@@ -319,6 +353,7 @@ jobs:
       PROBE_KEY: ${{ secrets.PROBE_KEY }}
     steps:
       - name: Verify PROBE_KEY secret is present
+        timeout-minutes: 1
         run: |
           set -euo pipefail
           if [ -z "${PROBE_KEY:-}" ]; then
@@ -327,6 +362,7 @@ jobs:
           fi
           echo "PROBE_KEY: present"
       - name: Recompute and persist partner premiums (all five, archive-only)
+        timeout-minutes: 8
         run: |
           set -euo pipefail
           echo "Recomputing partner premiums (archive-only, zero OCD)..."
@@ -379,10 +415,13 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
       - uses: actions/checkout@v5
+        timeout-minutes: 2
       - uses: actions/setup-node@v5
+        timeout-minutes: 2
         with:
           node-version: 22
       - name: Verify required secrets are present
+        timeout-minutes: 2
         run: |
           set -euo pipefail
           missing=0
@@ -396,11 +435,13 @@ jobs:
           done
           if [ "${missing}" -ne 0 ]; then echo "::error::Aborting: required secret(s) missing."; exit 1; fi
       - name: Tag new rows' model_family (only the null ones)
+        timeout-minutes: 5
         run: |
           set -euo pipefail
           test -f scripts/backfillModelFamily.js || { echo "::error::scripts/backfillModelFamily.js not found in checkout"; exit 1; }
           node scripts/backfillModelFamily.js --only-null
       - name: Rebuild the Desk aggregates cube (Core + venue)
+        timeout-minutes: 9
         run: |
           set -euo pipefail
           test -f scripts/deskCube.js || { echo "::error::scripts/deskCube.js not found in checkout"; exit 1; }
