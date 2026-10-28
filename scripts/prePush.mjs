@@ -1289,6 +1289,13 @@ try {
 } catch (e) {
   record("milesfault flags old low-mileage sales only, counts them by source and decade, and writes nothing (scripts/milesFaultCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The launch warm counts rows by UTC day, never by age (Sam, Oct 28 2026). No network.
+try {
+  const out = execSync("node scripts/warmDayCheck.mjs", { encoding: "utf8" });
+  record("launch warm counts by UTC day, not age (scripts/warmDayCheck.mjs)", "PASS", (out.match(/warmDayCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("launch warm counts by UTC day, not age (scripts/warmDayCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // How Sam decides (Sam, Oct 26 2026): the five agreed sections, exactly. No network.
 try {
   const out = execSync("node scripts/howSamDecidesCheck.mjs", { encoding: "utf8" });

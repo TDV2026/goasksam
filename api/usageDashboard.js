@@ -5023,6 +5023,24 @@ async function handleOps(req, res) {
   // costs that one read and nothing else. Archive only, no OldCarsData spend. After any engine push the next quarter hour
   // fills the demo before a visitor can trigger a live compute. (The warmDemo list also carries the 2010 Porsche Boxster
   // Convertible, not a demo car; left as it is, harmless.)
+  // task=warmDay&day=YYYY-MM-DD (launch warm, Oct 28 2026): read-only count of the stored answers (Market Check MCWARM rows, and the Buy/Tasks core rows
+  // apart) not stored on that UTC day, for the live engine version. The launch gate is offDay = 0 on the MCWARM rows (lib/warmDay.js, scripts/warmDayCheck.mjs).
+  if (task === "warmDay") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { rowsOffDay, utcDayOf } = await import("../lib/warmDay.js");
+    const { ENGINE_VERSION } = await import("../lib/onebox.js");
+    const day = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.day || "")) ? String(req.query.day) : utcDayOf(Date.now());
+    const mc = [], core = []; let cursor = "";
+    for (let page = 0; page < 200; page++) {
+      const q = `spec_market_cache?select=spec_key,computed_at,ev:market->>engineVersion&order=spec_key.asc&limit=1000` + (cursor ? `&spec_key=gt.${encodeURIComponent(cursor)}` : "");
+      const rows = await supabaseSelect(env, q);
+      if (!Array.isArray(rows) || !rows.length) break;
+      for (const r of rows) (String(r.spec_key).startsWith("MCWARM:") ? mc : core).push({ key: r.spec_key, computedAt: r.computed_at, engineVersion: r.ev });
+      cursor = rows[rows.length - 1].spec_key;
+      if (rows.length < 1000) break;
+    }
+    return res.status(200).json({ task: "warmDay", engineVersion: ENGINE_VERSION, day, marketCheck: rowsOffDay(mc, day, ENGINE_VERSION), buyAndTasks: rowsOffDay(core, day, null), note: "marketCheck.offDay must be 0 at the Wednesday WARM DONE" });
+  }
   if (task === "warmDemoCheck") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle } = await import("../lib/vehicle.js");
