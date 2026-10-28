@@ -32,7 +32,7 @@ const STATES = {
   floor: withOptions({ ...base, ...CARD }, "alike", "body", [OPT("body", "Coupe", "coupe", 14, 22500, 43900), OPT("body", "Convertible", "convertible", 5, null, null)]),
   wide: withOptions({ ...base, ...CARD, ...NONE, wideCause: "mileage", wideLever: "mileage" }, "split", "mileage", [OPT("mileage", "Under 50,000 miles", "lt50", 7, 35000, 48000), OPT("mileage", "50,000 to 100,000 miles", "50to100", 6, 26000, 34000), OPT("mileage", "Over 100,000 miles", "gt100", 4, null, null)]),
   split: withOptions({ ...base, ...CARD, ...NONE }, "split", "gearbox", [OPT("gearbox", "Manual", "manual", 9, 36000, 48000), OPT("gearbox", "SMG", "auto", 12, 27000, 33500)]),
-  apart: withOptions({ ...base, ...CARD, ...NONE, trend: null, trendHeld: { reason: "mix_changes" } }, "apart", "body", [OPT("body", "Convertible", "convertible", 9, 36000, 48000), OPT("body", "Coupe", "coupe", 8, 21000, 29000)]),
+  apart: withOptions({ ...base, ...CARD, ...NONE, trend: null, chart: { type: "withheld", note: "The mix of cars changed from quarter to quarter, so a change here would not show the market moving.", withheld: { reason: "mix_changes", line: null }, buckets: null } }, "apart", "body", [OPT("body", "Convertible", "convertible", 9, 36000, 48000), OPT("body", "Coupe", "coupe", 8, 21000, 29000)]),
   refine: withOptions({ ...base, ...CARD }, "alike", "body", [OPT("body", "Coupe", "coupe", 12, 22500, 43900), OPT("body", "Convertible", "convertible", 11, 23000, 41000)],
     { refineOptions: [{ dimension: "gearbox", label: "Manual", value: "manual", n: 10, refine: { tx: "manual" } }, { dimension: "gearbox", label: "SMG", value: "auto", n: 13, refine: { tx: "auto" } }] }),
   wideLine: withOptions({ ...base, ...CARD, wideLine: "Cars with about 20,000 miles sold higher than cars with about 90,000 miles, so the top of this range is the low-mileage cars.", wideCause: "mileage", wideLever: "mileage" }, "alike", "body", [OPT("body", "Coupe", "coupe", 12, 22500, 43900), OPT("body", "Convertible", "convertible", 11, 23000, 41000)]),
@@ -143,7 +143,7 @@ for (const [name, d] of Object.entries(ALL)) {
       ok(t.length > 60 && !/undefined|NaN|\[object/.test(t), `${where}: prints, nothing broken`);
       ok(linesOf(d).every(l => t.includes(l.replace(/\s+/g, " "))), `${where}: the engine's lines print as written`);
       if (d.optionsState === "split" || d.optionsState === "apart") ok(!t.includes(POOLED), `${where}: no pooled number`);
-      if (d.optionsState === "apart" && d.trendHeld) { const svg = await p.evaluate(() => document.querySelectorAll(".hero-chart svg").length); ok(/How this market has moved/.test(t) && svg === 0 && t.includes("The mix of cars changed from quarter to quarter"), `${where}: no chart where the engine withheld it: the panel keeps its heading and says why`); }
+      if (d.optionsState === "apart" && d.chart && d.chart.type === "withheld") { const svg = await p.evaluate(() => document.querySelectorAll(".hero-chart svg").length); ok(/How this market has moved/.test(t) && svg === 0 && t.includes("The mix of cars changed from quarter to quarter"), `${where}: no chart where the engine withheld it: the panel keeps its heading and says why`); }
       if (d.wideLine) ok(t.includes(d.wideLine), `${where}: wideLine prints`);
       if (d.yearNote) ok(t.includes(d.yearNote), `${where}: yearNote prints`);
       ok(!/Add mileage to narrow the range[\s\S]*Add mileage to narrow/.test(t), `${where}: one mileage prompt at most`);

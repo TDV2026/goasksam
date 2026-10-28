@@ -4,7 +4,7 @@
 //   FAIL: a currency figure inside an anchor, or under an underline (the element's or any ancestor's text-decoration), inside an answer card (.sfc-card, the Find Sam box .sl);
 //         a range ("$a to $b") set below 20px (the two small lines Sam allows, the other option's line and the near-miles line, are lines, not figures); more than two small lines under the figures; the stale line ("Sales read on ... Updating now.") or "Latest sale:" anywhere in a card; a footer over one sentence-line of facts.
 //   node scripts/underlineCheck.mjs        E98_ROOT=<another checkout> to read that tree's pages (how it was shown failing on main)
-import { MC, FIND, FIND_MATCHED, CORVETTE, BLACK_BMW, M3_ROW, PORSCHE_2005, NO_META } from "./e98Fixtures.mjs";
+import { MC, FIND, FIND_MATCHED, CORVETTE, BLACK_BMW, M3_ROW, PORSCHE_2005, NO_META, MC_WITHHELD_SENTINEL } from "./e98Fixtures.mjs";
 import { startBrowser, openMC, ROOT } from "./e98Render.mjs";
 import { buildCards, openFind } from "./e98FindRender.mjs";
 import { inPage, judge as judgeIn } from "./e98DomCheck.mjs";
@@ -14,9 +14,9 @@ import path from "node:path";
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 // the stale line is an engine field (api/sellerDecision.js) the pages must never print: no page-side file may read it into markup
 { const fs = await import("node:fs"), path = await import("node:path"); const bad = [];
-  const walk = d => { for (const e of fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })) { const p = d + "/" + e.name; if (e.isDirectory()) walk(p); else if (/\.(js|mjs)$/.test(e.name) && !/^api\/sellerDecision\.js$|^lib\/engineFields\.js$/.test(p)) { const code = fs.readFileSync(path.join(ROOT, p), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, ""); if (/\.staleLine\b|Sales since then are not in yet/.test(code)) bad.push(p); } } };
+  const walk = d => { for (const e of fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })) { const p = d + "/" + e.name; if (e.isDirectory()) walk(p); else if (/\.(js|mjs)$/.test(e.name) && !/^api\/sellerDecision\.js$|^lib\/engineFields\.js$|^lib\/live\/search\.js$/.test(p)) { const code = fs.readFileSync(path.join(ROOT, p), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, ""); if (/\.staleLine\b|Sales since then are not in yet/.test(code)) bad.push(p); } } };
   for (const d of ["api", "lib", "public/js"]) walk(d);
-  ok(!bad.length, "no page or email reads the engine's staleLine into markup" + (bad.length ? " (" + bad.join(", ") + ")" : "")); }
+  ok(!bad.length, "no page or email reads the engine's staleLine into markup (api/sellerDecision.js and lib/engineFields.js set it; lib/live/search.js, Lane B's ER7 Find data layer, carries it as a field and prints nothing)" + (bad.length ? " (" + bad.join(", ") + ")" : "")); }
 // the words "See the bid on" (the heading link above a car's name) print nowhere: not in Find's client, not in a lib or page file
 { const fs = await import("node:fs"), path = await import("node:path"); const hits = [];
   const walk = d => { for (const e of fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })) { const p = d + "/" + e.name; if (e.isDirectory()) walk(p); else if (/\.(js|mjs|html)$/.test(e.name) && /See the bid on/.test(fs.readFileSync(path.join(ROOT, p), "utf8"))) hits.push(p); } };
@@ -32,7 +32,7 @@ for (const [n, fx] of Object.entries(MC)) for (const w of [1440, 390]) { const p
   const kind = WANT[n]; if (kind === "none") ok(r.panels.length === 0 && r.panels.every(q => q.circles === 0), `${n} at ${w}: the engine's dots become no chart and no point (${r.panels.length} panels)`); else if (kind) { const q = r.panels[0] || {}; ok(q.kind === kind, `Market Check ${n} at ${w}: the chart panel is the ${kind} state (${q.kind || "no panel"})`);
     if (kind === "scoped") ok(q.scope === fx.d.chart.scope.line, `${n} at ${w}: the scope line is the engine's own words ("${q.scope}")`);
 
-    if (kind === "withheld") ok(q.note === fx.d.chart.withheld.line, `${n} at ${w}: the engine's withheld sentence sits under the heading`); }
+    if (kind === "withheld") ok(q.note === fx.d.chart.note, `${n} at ${w}: the engine's withheld sentence sits under the heading`); }
   await p.close(); }
 // NEVER A DOT (Sam's ruling, Oct 28 2026): no page code draws a per-sale point in a chart: no dots builder, no hc-dot class, no <circle> markup in the page scripts or the shared kit.
 { const fs = await import("node:fs"), path = await import("node:path"), hits = [], rd = rel => { try { return fs.readFileSync(path.join(ROOT, rel), "utf8"); } catch { return ""; } };
@@ -40,6 +40,12 @@ for (const [n, fx] of Object.entries(MC)) for (const w of [1440, 390]) { const p
   if (/<circle|createElementNS\([^)]*circle|dotsChartHtml|hc-dot\b/.test(chartSrc)) hits.push("public/js/onebox.js (chart builders)");
   for (const rel of ["lib/sellsForCard.js", "public/onebox.html", "lib/sell/sellMcClient.js"]) if (/dotsChartHtml|hc-dot\b/.test(rd(rel))) hits.push(rel);
   ok(!hits.length, "no page code draws a per-sale point (dots, circles) in a chart" + (hits.length ? " (" + hits.join(", ") + ")" : "")); }
+// THE HELD SENTENCE IS THE ENGINE'S (pageReasonCopyCheck, ER9): the withheld panel prints answer.chart.note, else answer.chart.withheld.line, and never a copy of either sentence; no page or email file holds the table's chart sentences as literals.
+for (const [mode, want, not] of [["note", "SENTINEL chart note from the engine.", "SENTINEL withheld line"], ["line", "SENTINEL withheld line from the engine.", "SENTINEL chart note"]]) { for (const w of [1440, 390]) { const p = await openMC(b, MC_WITHHELD_SENTINEL(mode), w), tx = await p.evaluate(() => (document.querySelector(".hero-chart") || { innerText: "" }).innerText.replace(/\s+/g, " ")); ok(tx.includes(want) && !tx.includes(not) && !/mix of cars changed|too few sales in each period/.test(tx), `withheld panel (${mode}) at ${w}: the engine's own sentence prints and no other (${tx.slice(0, 120)})`); await p.close(); } }
+{ const fs = await import("node:fs"), path = await import("node:path"), hits = [], WORDS = ["The mix of cars changed from quarter to quarter", "There are too few sales in each period to draw a chart", "Only 2 dated sales, too few to chart"];
+  const walk = d => { for (const e of fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })) { const p = d + "/" + e.name; if (e.isDirectory()) walk(p); else if (/\.(js|html)$/.test(e.name) && !/^lib\/(reasonWords|onebox)\.js$/.test(p)) { let src = fs.readFileSync(path.join(ROOT, p), "utf8"); src = src.split("\n").filter(l => !/^\s*(\/\/|\*|\/\*)/.test(l)).join("\n"); if (WORDS.some(wd => src.includes(wd))) hits.push(p); } } };
+  for (const d of ["api", "lib", "public"]) walk(d);
+  ok(!hits.length, "no page or email file carries the engine's chart sentences as literals" + (hits.length ? " (" + hits.join(", ") + ")" : "")); }
 // ONE chart panel builder: no page draws a panel of its own (every state identical everywhere the kit draws it)
 { const fs = await import("node:fs"), path = await import("node:path"), src = fs.readFileSync(path.join(ROOT, "public/js/onebox.js"), "utf8"), a = src.indexOf("function chartPanelHtml"), z = src.indexOf("function heroChartHtml");
   const rest = a > 0 && z > a ? src.slice(0, a) + src.slice(z) : src; ok(a > 0 && !/class="hero-chart/.test(rest), "the chart panel is drawn by ONE function (chartPanelHtml); no other code builds a hero-chart"); }

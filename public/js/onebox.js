@@ -1066,14 +1066,17 @@
   // full width instead (see heroRangeHtml/thinHeroHtml, :only-child CSS in onebox.html) and this one
   // quiet line sits where the chart would have been.
   // THE OPTIONS (e96, docs/e96-page-contract.md) print in the shared card (lib/sellsForCard.js): the engine's optionLines under a range, its headlineLines in place of one.
-  // A withheld chart (d.trendHeld, reason mix_changes) draws no chart and says why in one plain line.
-  function chartHeldLine(d) {
-    return d && d.trendHeld && d.trendHeld.reason === "mix_changes" ? "The mix of cars changed from quarter to quarter, so a change here would not show the market moving." : "";
+  // A withheld chart draws no chart and says why with the ENGINE's sentence: answer.chart.note (the mix-changed sentence), else answer.chart.withheld.line (the too-few sentence). No sentence of the page's own for either: the words
+  // live in lib/reasonWords.js (chart.held, chart.withheld_few) and pageReasonCopyCheck fails on a copy of them here.
+  function chartHeldSentence(d) {
+    var ch = d && d.chart; if (!ch || ch.type !== "withheld") return "";
+    var n = typeof ch.note === "string" ? ch.note.trim() : "", w = ch.withheld && typeof ch.withheld.line === "string" ? ch.withheld.line.trim() : "";
+    return n || w || "";
   }
   function noChartLineHtml(d) {
     // Sam's evening order (Oct 21 2026): with no chart the line is the existing "N sales. Too few to show movement, enough to show
     // where they landed." (the same words as the thin-tile line), N the engine's pool size, whatever the pool size.
-    var held = chartHeldLine(d); if (held) return '<p class="hero-noband" data-stage="answer">' + lint(esc(held), "hero.chartheld") + "</p>";
+    var held = chartHeldSentence(d); if (held) return '<p class="hero-noband" data-stage="answer">' + lint(esc(held), "hero.chartheld") + "</p>";
     var n = d ? heroPoolSizeNum(d) : NaN;
     var said = Number.isFinite(n) && n > 0 ? obCount(n, "sale", { cap: true }) + ". Too few to show movement, enough to show where they landed." : "Too few sales to show movement, enough to show where they landed.";
     return '<p class="hero-noband" data-stage="answer">' + lint(esc(said), "hero.nochart") + "</p>";
@@ -1083,8 +1086,7 @@
   //   a. candles: the engine's d.trend buckets (candleChartHtml), as before.
   //   b. option-scoped candles: d.chart.scope.line, the engine's own sentence ("Manual sales only, so the mix stays comparable"), small and grey above the same candle chart.
   //   NEVER A DOT (Sam's ruling, Oct 28 2026): no per-sale point is drawn anywhere; an engine that sends chart.type "dots" gets the candles (or the withheld panel), never points.
-  //   c. withheld: the heading with the engine's withheld sentence under it (d.trendHeld.line; an engine that sends none keeps the one existing sentence for reason mix_changes).
-  function chartHeldSentence(d) { var w = d && d.chart && d.chart.type === "withheld" && d.chart.withheld; if (w && typeof w.line === "string" && w.line.trim()) return w.line.trim(); var h = d && d.trendHeld; return h && typeof h.line === "string" && h.line.trim() ? h.line.trim() : chartHeldLine(d); }
+  //   c. withheld: the heading with the engine's withheld sentence under it (answer.chart.note, else answer.chart.withheld.line: the engine's words, none of the page's own).
   function chartPanelHtml(d) {
     var ch = d && d.chart && typeof d.chart === "object" ? d.chart : null, head = "<h2>How this market has moved</h2>", inner;
     if ((inner = candleChartHtml(d))) {
@@ -1189,7 +1191,7 @@
     var list = Array.isArray(pool) ? pool : [];
     var n = list.length;
     if (!n || n > 16) return null;
-    var heldSaid = chartHeldLine(d);
+    var heldSaid = chartHeldSentence(d);
     var said = '<p class="hero-noband" data-stage="answer">' + lint(esc(heldSaid || (obCount(n, "sale", { cap: true }) + ". Too few to show movement, enough to show where they landed.")), "hero.thintiles.said") + "</p>";
     var sorted = list.slice().sort(function (a, b) { return Number(b.price) - Number(a.price); });
     var wide = n >= 9;
