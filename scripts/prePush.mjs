@@ -1290,7 +1290,7 @@ try {
   record("milesfault flags old low-mileage sales only, counts them by source and decade, and writes nothing (scripts/milesFaultCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 // e96 checks (Lane B): each registers one script, no network.
-for (const [file, label] of [["nullIsNoNumberCheck", "null is no number at every customer-path site (scripts/nullIsNoNumberCheck.mjs)"], ["splitStateCheck", "split and apart withhold the pooled headline, one dimension at a time, refine returns the combined set (scripts/splitStateCheck.mjs)"], ["optionsFieldCheck", "every answer with options carries its own figures; a window note only beside a range (scripts/optionsFieldCheck.mjs)"]]) {
+for (const [file, label] of [["nullIsNoNumberCheck", "null is no number at every customer-path site (scripts/nullIsNoNumberCheck.mjs)"], ["gearboxWordCheck", "the gearbox word comes from one table by make, model, year and generation (scripts/gearboxWordCheck.mjs)"], ["splitStateCheck", "split and apart withhold the pooled headline, one dimension at a time, refine returns the combined set (scripts/splitStateCheck.mjs)"], ["optionsFieldCheck", "every answer with options carries its own figures; a window note only beside a range (scripts/optionsFieldCheck.mjs)"]]) {
   try {
     const out = execSync(`node scripts/${file}.mjs`, { encoding: "utf8" });
     record(label, "PASS", (out.match(new RegExp(file + ": .*")) || [""])[0]);
