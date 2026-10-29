@@ -239,6 +239,15 @@ try {
   record("launch status strip (scripts/launchHealthCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 
+// Stored search text (Oct 28 2026, Lane D): no stored free text holds an email, a phone number or a VIN (every event with a text field), real car texts are kept
+// word for word, and the Searches tab's list of what people typed carries no visitor identity. No database, no keys.
+try {
+  const out = execSync("node scripts/searchTextCheck.mjs", { encoding: "utf8" });
+  record("stored search text (scripts/searchTextCheck.mjs)", "PASS", (out.match(/searchTextCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("stored search text (scripts/searchTextCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+
 // Route limits (Oct 27 2026, Lane D): every api route that reads the database or calls the model has an address limit or a listed,
 // verifiable reason; /api/history, /api/vehicleIdentity and /o/<id> refuse over the limit without a query and fail open. No database, no keys.
 try {
