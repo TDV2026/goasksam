@@ -1,3 +1,4 @@
+// clock: real-ok the stub data uses fixed Oct 29 timestamps and only generatedAt and the sign-in expiry are relative to now; no assertion compares them to a launch time (Lane G, Oct 29 2026)
 // THE ADMIN PEOPLE AND LAUNCH TABS IN CHROME, data stubbed (Lane D, Oct 29 2026). The real /admin page script at 1440 and 390 against the real
 // panel code (peoplePanel, personDrill, launch build) on a fake store: no network, no live data, no credential.
 //   People: one row per signed-in email (first source, device, searches, Tasks, watches, last seen), the same list for visitors by cookie id,
