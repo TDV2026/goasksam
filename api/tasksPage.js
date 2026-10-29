@@ -282,13 +282,16 @@ const APP_JS = String.raw`(function(){
   // At the limit (the server says so, data.limit.atLimit): the one card with the working Tasks and "Stop and start this one".
   // { mode: "seed" | "typed" | "draft" | "resume", attempted (the new job's words), line (the server's sentence), resume_id }.
   // It shows only while the server's latest answer says the account is at the limit: every list drops it the moment it is not.
-  var limit = null, carry = "", draftOpen = !!(params.get("start") || params.get("seed")), miss = false;
+  var limit = null, limitHidden = false, carry = "", draftOpen = !!(params.get("start") || params.get("seed")), miss = false;
   var starting = {}, firing = {}, cardsOut = {}, fullCache = {}, askN = {};
   var looking = null;   // what Find's toggles and buttons made (api/tasks.js action looking): the person's watches and before-it-ends alerts
   var COULD_NOT = ${JSON.stringify(reasonLine("cold.missed"))}, coldSince = {};   // cold spec: a card still being read is asked for every retryAfterMs for up to the engine's waitMaxMs (market.waitMaxMs), then the one plain line; never "try again"; no wait number of the page's own
   function phraseOf(t){ return String((t && t.summary) || "").replace(/^Sam is (?:looking for|researching)\s+/i, "").replace(/:.*$/, "").replace(/[.]+$/, ""); }
-  function showLimit(l){ limit = l; api({ action: "limit", event: "seen", mode: l.mode, attempted: l.attempted }).catch(function(){}); }
-  function syncLimit(){ if (limit && !(data && data.limit && data.limit.atLimit)) { if (limit.mode === "seed" || limit.mode === "typed") carry = limit.attempted || ""; limit = null; } }
+  function showLimit(l){ limit = l; limitHidden = false; api({ action: "limit", event: "seen", mode: l.mode, attempted: l.attempted }).catch(function(){}); }
+  // "Never mind" and Escape: the card is drawn from the server's atLimit, so clearing the limit variable alone leaves it up. limitHidden is what closes it; it opens again
+  // on the next blocked attempt (showLimit) and is reset when the account is no longer at the limit.
+  function dismissLimit(){ var lk = limit; limit = null; carry = ""; limitHidden = true; if (lk) api({ action: "limit", event: "keep", mode: lk.mode, attempted: lk.attempted }).catch(function(){}); dropEntryParams(); render(); }
+  function syncLimit(){ if (!(data && data.limit && data.limit.atLimit)) limitHidden = false; if (limit && !(data && data.limit && data.limit.atLimit)) { if (limit.mode === "seed" || limit.mode === "typed") carry = limit.attempted || ""; limit = null; } }
   var draft = null; try { draft = JSON.parse(sessionStorage.getItem("gas_task_draft") || "null"); } catch(e){}
   function saveDraft(d){ draft = d; if (!d) { draftOpen = false; miss = false; } try { if (d) sessionStorage.setItem("gas_task_draft", JSON.stringify(d)); else sessionStorage.removeItem("gas_task_draft"); } catch(e){} }
   function seedWords(){
@@ -338,8 +341,8 @@ const APP_JS = String.raw`(function(){
     var st = status(t), ov = t.overview || {}, isOpen = openId === t.id;
     var btns = '<span class="tbtns">' + (t.state === "paused" ? '<button class="sbtn" data-act="resume" data-id="' + t.id + '">Resume</button>' : '<button class="sbtn" data-act="pause" data-id="' + t.id + '">Pause</button>') + '<button class="sbtn" data-act="stop" data-id="' + t.id + '">Stop</button></span>';
     var nLive = Number(ov.liveCount) || 0;
-    var where = nLive > 0 && !starting[t.id] ? (isOpen ? "Shown below" : "Select the card to see " + (nLive === 1 ? "it" : "them")) : (ov.close && !starting[t.id] ? (isOpen ? "" : "select the card to read the note") : "");
-    var closeLine = ov.close && nLive === 0 && !starting[t.id] ? ov.close + (where ? ", " + where : "") : where;
+    var where = nLive > 0 && !starting[t.id] ? (isOpen ? "Shown below" : "Select the card to see " + (nLive === 1 ? "it" : "them")) : "";
+    var closeLine = where;   // a count with no list behind it is never printed
     var count = [starting[t.id] ? "Sam is checking the live cars now." : ov.live, closeLine, ov.fresh].filter(Boolean).join(" \u00B7 ");
     var showLabel = (isOpen ? "Hide " : "Show ") + (nLive > 0 && ov.cars ? ov.cars : "cars");
     return '<article class="tc' + (isOpen ? " open" : "") + '" id="task-' + t.id + '"><button type="button" class="thit" id="tt-' + t.id + '" data-toggle="' + t.id + '" aria-expanded="' + isOpen + '" aria-controls="detail-' + t.id + '"><span class="pill ' + st[0] + '">' + st[1] + '</span><span class="tshow">' + esc(showLabel) + '</span><span class="tline">' + esc(t.summary) + "</span>" + (count ? '<span class="tcount">' + esc(count) + "</span>" : "") + "</button>" + btns + "</article>";
@@ -435,7 +438,7 @@ const APP_JS = String.raw`(function(){
     if (lim && lim.statusLine) h += '<p class="statusline" role="status">' + esc(lim.statusLine) + "</p>";
     // The three counts and what each is, in one plain line (the server writes it: lib/live/looking.js countsOf), under the Tasks status line.
     { var cl = (looking && looking.counts && looking.counts.line) || (data && data.counts && data.counts.line); if (cl) h += '<p class="statusline countsline" role="status">' + esc(cl) + "</p>"; }
-    if (lim && lim.atLimit) h += limitCard(work) + (draft ? unfinishedCard() : "");
+    if (lim && lim.atLimit && !limitHidden) h += limitCard(work) + (draft ? unfinishedCard() : "");
     else if (draft && draftOpen) h += draftCard();
     else h += newBox() + (draft ? unfinishedCard() : "");
     var mine = work.concat(paused);
@@ -534,7 +537,7 @@ const APP_JS = String.raw`(function(){
   document.addEventListener("click", function(e){
     var lk = e.target.closest("[data-lk-stop]"); if (lk) { e.preventDefault(); if (lk.disabled) return; lk.disabled = true; lk.textContent = "Stopping..."; api({ action: "looking_stop", ref: lk.getAttribute("data-lk-stop") }).catch(function(){}).then(loadLooking); return; }
     var t = e.target.closest("[data-send],[data-act],[data-start],[data-change],[data-apply],[data-unpending],[data-goto],[data-limit-stop],[data-limit-keep],[data-choice],[data-continue],[data-discard],[data-toggle]"); if (!t) return;
-    if (t.hasAttribute("data-limit-keep")) { e.preventDefault(); var lk = limit; limit = null; carry = ""; if (lk) api({ action: "limit", event: "keep", mode: lk.mode, attempted: lk.attempted }).catch(function(){}); dropEntryParams(); render(); return; }
+    if (t.hasAttribute("data-limit-keep")) { e.preventDefault(); dismissLimit(); return; }
     if (t.hasAttribute("data-limit-stop")) { e.preventDefault(); if (t.disabled) return; var ls = limit || { mode: "none", attempted: "" }, cid = t.getAttribute("data-limit-stop"); working(t, "Stopping...");
       api({ action: "limit", event: "stop", mode: ls.mode, task_id: cid, attempted: ls.attempted, resume_id: ls.resume_id || null, draft: ls.mode === "draft" ? draft : null, defer: true }).then(function(j){
         limit = null; reply = "";
@@ -564,6 +567,7 @@ const APP_JS = String.raw`(function(){
       return load(); }).catch(function(){ load(); }); }
   });
   window.addEventListener("resize", (function(last){ return function(){ var c = cols(); if (c !== last) { last = c; render(); } }; })(cols()));
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape" && data && data.limit && data.limit.atLimit && !limitHidden && document.querySelector(".limitbox")) { dismissLimit(); return; } });
   document.addEventListener("keydown", function(e){ if (e.key === "Escape" && openId && e.target && e.target.closest && e.target.closest(".tc,.tdetail")) { var id = openId; setOpen(null); render(); var b = $("tt-" + id); if (b) b.focus(); } });
   document.addEventListener("change", function(e){
     if (e.target && e.target.hasAttribute && e.target.hasAttribute("data-notify-every")) {

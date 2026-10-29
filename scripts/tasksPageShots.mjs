@@ -199,14 +199,14 @@ try {
       const BMW = mkTask(1, "running", { summary: "Sam is looking for red BMWs with under 50,000 miles.", updates: [bmwOpen] });
       const POR = mkTask(2, "running", { summary: "Sam is looking for black manual Porsches.", updates: [porOpen, porNew, porAgain] });
       const fb = overviewFacts(BMW), fp = overviewFacts(POR), fpEnded = overviewFacts(POR, new Set());
-      ok(fb.liveCount === 0 && fb.live === "No live cars match yet" && fb.close === "31 close ones" && !/\d.* (live )?cars? match/.test(fb.live + " " + fb.close), `[${W}] BMW: nothing red yet with 31 other cars gives a live count of 0, the line No live cars match yet and 31 close ones (${JSON.stringify(fb)})`);
+      ok(fb.liveCount === 0 && fb.live === "No live cars match yet" && fb.close === null && !/\d.* (live )?cars? match/.test(fb.live), `[${W}] BMW: nothing red yet with 31 other cars gives a live count of 0, the line No live cars match yet and no count of cars the card cannot show (${JSON.stringify(fb)})`);
       ok(fp.liveCount === 1 && fp.live === "One live car matches" && fp.close === null, `[${W}] Porsche: one exact car and 9 near misses gives a live count of 1; the stale opening list is not read (${JSON.stringify(fp)})`);
       ok(fpEnded.liveCount === 0 && fpEnded.live === "No live cars match right now", `[${W}] Porsche: if the one car has ended the count is 0`);
       ok(overviewFacts(mkTask(3, "running", { updates: [{ ...porNew, id: 1 }, { ...porAgain, id: 2 }] })).liveCount === 1, `[${W}] a car repeated across two updates counts once`);
       ok(overviewFacts(mkTask(3, "running", { updates: [{ id: 5, role: "sam", kind: "match", created_at: ago(1), listing_ids: Array.from({ length: 45 }, (_, i) => 1 + i), data: { opening: true, total: 45, cards: [car, { id: 1, title: "a" }, { id: 2, title: "b" }] } }] })).liveCount === 45, `[${W}] an opening that still holds its own list counts its cars past the first twelve`);
       const A = account([BMW, POR]); const p = await open(A, W); await wait(900);
       const t1 = await p.$eval("#task-00000000-0000-4000-8000-000000000001", c => c.innerText.replace(/\s+/g, " ")), t2 = await p.$eval("#task-00000000-0000-4000-8000-000000000002", c => c.innerText.replace(/\s+/g, " "));
-      ok(/No live cars match yet/.test(t1) && /31 close ones, select the card to read the note/.test(t1) && /Show cars/.test(t1) && !/\d+ live cars? match/.test(t1) && !/Show \d/.test(t1), `[${W}] the BMW card as drawn: ${t1}`);
+      ok(/No live cars match yet/.test(t1) && !/close one|read the note/.test(t1) && /Show cars/.test(t1) && !/\d+ live cars? match/.test(t1) && !/Show \d/.test(t1), `[${W}] the BMW card as drawn: ${t1}`);
       ok(/One live car matches/.test(t2) && /Show one car/.test(t2) && !/close one/.test(t2), `[${W}] the Porsche card as drawn: ${t2}`);
       await shot(p, `tasks-two-live-${W}`); await p.close(); }
     { const A = account([mkTask(1)]); const p = await open(A, W); await wait(600); ok(/You have 1 of 3 Tasks running\. 2 Tasks left\./.test(await text(p)), `[${W}] 1 Task: the status line`); await p.close(); }
