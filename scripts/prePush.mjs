@@ -1779,6 +1779,13 @@ try {
 } catch (e) {
   record("everything that can email a person is on the Tasks page with a Stop; 'about two hours before' everywhere (scripts/standingNoticesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A browser check that drives a Tasks or watch control reads no live data (Lane D, Oct 29 2026): the engine answer is a complete stub. Offline.
+try {
+  const out = execSync("node scripts/liveStubCheck.mjs", { encoding: "utf8", timeout: 60000 });
+  record("browser checks that drive Tasks or watch controls read no live data (scripts/liveStubCheck.mjs)", "PASS", (out.match(/liveStubCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("browser checks that drive Tasks or watch controls read no live data (scripts/liveStubCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | ") || String(e.message).slice(0, 200));
+}
 // Checks that read a real auction end time pin it to the clock (Lane D, Oct 29 2026): the before-it-ends toggle is off inside two hours, so an unpinned check changes verdict with the hour. Offline.
 try {
   const out = execSync("node scripts/clockPinCheck.mjs", { encoding: "utf8", timeout: 60000 });

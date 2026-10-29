@@ -6,20 +6,23 @@
 import fs from "node:fs";
 import puppeteer from "puppeteer-core";
 import { execFileSync } from "node:child_process";
-import { crewCookie } from "./_crewCookie.mjs";
 let pass = 0, fail = 0, skipped = false; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 process.env.LAUNCH_STAGE = "2";
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 if (!fs.existsSync(CHROME)) { console.log("standingDrawerCheck: SKIP (no Chrome)"); process.exit(0); }
 try { const r = await fetch("https://goasksam.com/robots.txt", { signal: AbortSignal.timeout(8000) }); if (!r.ok && r.status >= 500) throw new Error("down"); } catch { console.log("standingDrawerCheck: SKIP (no network)"); process.exit(0); }
-const ck = await crewCookie();
-if (!ck) { console.log("standingDrawerCheck: SKIP (no crew code in the Keychain: the live search behind the drawer is sealed to the public)"); process.exit(0); }
 let bypass = ""; try { bypass = execFileSync("security", ["find-generic-password", "-s", "goasksam-bypass", "-w"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch {}
 const buy = (await import("../api/buy.js")).default;
-import { freshenEndTimes, freshenEndTimesText } from "./_pinEndTimes.mjs";
+import { freshenEndTimes } from "./_pinEndTimes.mjs";
 const FIX = JSON.parse(fs.readFileSync(new URL("./fixtures/findSl65Search.json", import.meta.url), "utf8"));
-// End times of every answer are pinned to the clock (scripts/_pinEndTimes.mjs): the real listing ends when it ends.
-freshenEndTimes(FIX);
+// THE ENGINE ANSWER IS STUBBED WHOLE (Oct 29 2026): the car, its two listings, their end times, the counts and the facets all come from the stored
+// fixture, and the page never reaches the live engine (parse, chat, rerun are answered here). Read live, the first card changed under the check
+// (the stored watch carried the fixture's VIN while the page drew another car) and the real auction ended inside the toggle's two hours.
+// The clock is the check's own: CLOCK_SHIFT_DAYS moves it (browser and fixture together), so the verdict is the same on any day.
+const NOW = Date.now() + Number(process.env.CLOCK_SHIFT_DAYS || 0) * 864e5;
+freshenEndTimes(FIX, NOW);
+const CHAT_DONE = JSON.stringify({ reply: "", turns: 1, state: { filters: { year_min: 2005, year_max: 2005, make: "Mercedes-Benz", model: "SL-Class", trim: "SL65 AMG" } }, meta: Object.fromEntries(Object.entries(FIX).filter(([k]) => k !== "cards")), cards: FIX.cards });
+const SSE = "event: done\ndata: " + CHAT_DONE + "\n\n";
 async function html() {
   const res = { code: 200, headers: {}, body: null, setHeader(k, v) { this.headers[k] = v; }, getHeader() {}, status(c) { this.code = c; return this; }, send(b) { this.body = b; return this; }, json(b) { this.body = JSON.stringify(b); return this; }, end(b) { if (b) this.body = b; return this; }, writeHead() {} };
   await buy({ method: "GET", headers: { host: "goasksam.com", cookie: "" }, query: { q: "2005 mercedes-benz sl65 amg" }, url: "/find?q=2005+mercedes-benz+sl65+amg", socket: {} }, res);
@@ -36,7 +39,7 @@ async function scenario({ mode = "ok", stored = [SPEC], signedIn = true, alertMo
   await p.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36");
   await p.evaluateOnNewDocument((si) => { window.__signin = 0; if (si) localStorage.setItem("gas_auth_session", JSON.stringify({ access_token: "a.b.c", user: { email: "x@example.com" } })); }, signedIn);
   if (bypass) await p.setExtraHTTPHeaders({ 'x-vercel-protection-bypass': bypass });
-  await p.setCookie({ name: 'gas_crew', value: ck, domain: 'goasksam.com', path: '/', secure: true });
+  await p.evaluateOnNewDocument((off) => { const R = Date, OFF = off; const D = class extends R { constructor(...a) { if (a.length) super(...a); else super(R.now() + OFF); } static now() { return R.now() + OFF; } }; window.Date = D; }, NOW - Date.now());
   const log = []; if (process.env.DEBUG_DRAWER) { p.on('pageerror', e => console.log('PAGEERR', String(e.message).slice(0,200))); p.on('console', m => { if (m.type()==='error') console.log('CONSOLE', m.text().slice(0,200)); }); }
   await p.setRequestInterception(true);
   p.on("request", async rq => {
@@ -68,16 +71,11 @@ async function scenario({ mode = "ok", stored = [SPEC], signedIn = true, alertMo
       if (a.action === "list") return json({ items: [] });
       if (a.action === "arm") { log.push("alert:arm"); if (alertMode === "drop") return rq.abort(); if (alertMode === "refuse") return json({ ok: false, reason: "cap_alert", line: "You have 25 before-it-ends emails set. Stop one under Watching on your Tasks page to add another." }); return json({ ok: true, already: false, alert: { listing_id: 191043, title: "2005 Mercedes-Benz SL65 AMG", end_time: new Date(Date.now() + 8 * 3600e3).toISOString() } }); }
       if (a.action === "disarm") return json({ ok: true });
-      if (process.env.DEBUG_DRAWER) console.log('buySearch body', Object.keys(a).join(','), a.action || '');
-      if (!a.action) return json(FIX);
-      const h = { ...rq.headers() }; delete h.authorization;   // the live search is anonymous here; only the arm calls are faked
-      // the engine answers over the network from here; its end times are pinned to the clock before the page reads them
-      try {
-        const r = await fetch("https://goasksam.com/api/buySearch", { method: "POST", headers: { "content-type": "application/json", cookie: "gas_crew=" + ck, ...(bypass ? { "x-vercel-protection-bypass": bypass } : {}) }, body: rq.postData() || "{}", signal: AbortSignal.timeout(45000) });
-        const out = freshenEndTimesText(await r.text());
-        return rq.respond({ status: r.status, contentType: r.headers.get("content-type") || "application/json", headers: { "access-control-allow-origin": "*" }, body: out });
-      } catch { return rq.continue({ headers: h }); }
+      if (a.action === "parse") return json({ label: "2005 Mercedes-Benz SL65 AMG", chips: [] });
+      if (a.action === "chat" || a.action === "rerun") return rq.respond({ status: 200, contentType: "text/event-stream; charset=utf-8", headers: { "access-control-allow-origin": "*" }, body: SSE });
+      return json({});   // nothing else goes to the engine
     }
+    if (/\/api\//.test(u)) return m === "GET" && /publicConfig|track\?/.test(u) ? rq.respond({ status: /track/.test(u) ? 204 : 200, contentType: "application/json", body: /track/.test(u) ? "" : "{}" }) : rq.respond({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: "{}" });
     rq.continue();
   });
   await p.goto("https://goasksam.com/find?q=" + encodeURIComponent("2005 mercedes-benz sl65 amg"), { waitUntil: "domcontentloaded", timeout: 60000 });

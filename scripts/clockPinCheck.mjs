@@ -27,7 +27,7 @@ ok(freshenEndTimesText("no dates here") === "no dates here", "text with no end t
 const buy = fs.readFileSync(new URL("../api/buy.js", import.meta.url), "utf8");
 ok(/< 2\*60\*60\*1000\) return[^;]{0,200}disabled/.test(buy) && /Bidding ends in under two hours\./.test(buy), "the page still turns the toggle off inside two hours (the rule the pin protects)");
 // C
-const dir = new URL(".", import.meta.url), files = fs.readdirSync(dir).filter(f => /\.mjs$/.test(f) && f !== "clockPinCheck.mjs");
+const dir = new URL(".", import.meta.url), files = fs.readdirSync(dir).filter(f => /\.mjs$/.test(f) && f !== "clockPinCheck.mjs" && f !== "liveStubCheck.mjs");
 const toggle = files.filter(f => { const s = fs.readFileSync(new URL(f, dir), "utf8"); return /puppeteer/.test(s) && /data-alertsw|\[data-alertsw\]/.test(s) && /goasksam\.com/.test(s); });
 ok(toggle.length >= 1, "the sweep finds the browser checks that drive the toggle (" + toggle.join(", ") + ")");
 for (const f of toggle) ok(/from "\.\/_pinEndTimes\.mjs"/.test(fs.readFileSync(new URL(f, dir), "utf8")), f + " pins end times to the clock (imports _pinEndTimes.mjs)");
