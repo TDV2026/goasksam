@@ -4,7 +4,7 @@
 // warm cache is shared across every caller of api/sellerDecision.js's Market Check branch.
 //
 //   export PROBE_KEY="$(security find-generic-password -s goasksam-probe -w)"   # per command, never printed
-//   node scripts/postDeployWarm.mjs [--base https://goasksam.com]
+//   node scripts/postDeployWarm.mjs [--base <deployment address> | --live-main]
 //
 // WHY: a version bump makes the MCWARM cache miss for every row stamped under the old version (by
 // design - serving a pre-bump answer would be the exact bug the gate exists to prevent). Before this
@@ -36,7 +36,12 @@ import fs from "node:fs";
 import puppeteer from "puppeteer-core";
 
 const arg = n => { const i = process.argv.indexOf("--" + n); return i > 0 ? process.argv[i + 1] : null; };
-const BASE = (arg("base") || "https://goasksam.com").replace(/\/$/, "");
+// The warm targets a PINNED deployment address (Sam, Oct 28 2026): a deployment address does not change when main is pushed, so a push no longer swaps code under a running warm.
+// --base <address> or WARM_BASE names it (find it with: vercel inspect <deployment>); --live-main targets the live site on purpose (read-only checks only).
+const _arg = n => { const i = process.argv.indexOf("--" + n); return i > 0 ? process.argv[i + 1] : null; };
+const _BASE0 = process.argv.includes("--live-main") ? "https://goasksam.com" : (_arg("base") || process.env.WARM_BASE || "");
+if (!_BASE0) { console.log("postDeployWarm: no address given. Pass --base <the deployment address of the build to warm> or set WARM_BASE; --live-main targets goasksam.com on purpose."); process.exit(2); }
+const BASE = _BASE0.replace(/\/$/, "");
 const KEY = process.env.PROBE_KEY || null;
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 

@@ -1,12 +1,17 @@
 // LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the key and the protection-bypass secret in the environment (never printed):
 //   export PROBE_KEY="$(security find-generic-password -s goasksam-probe -w)" BYPASS_SECRET="$(security find-generic-password -s goasksam-bypass -w)"
-//   node scripts/warmNamed.mjs [--part named|crosscheck|golden|top|crossrest|all] [--no-warm] [--base https://goasksam.com]
+//   node scripts/warmNamed.mjs [--part named|crosscheck|golden|top|crossrest|list|all] [--list FILE] [--chain k/n] [--no-warm] [--base <deployment address> | --live-main] [--force]
 // THE NAMED WARM (Sam, Oct 28 2026): the named list (scripts/warm-named.json), the golden table (docs/golden-rules.md) and the 50 most searched Market Check specs (ops task buyqueries&product=market_check)
 // are warmed FIRST in every warm run, before the Buy specs, through the ops task warmDemo (the same path the page reads, trims allowed, archive only, no vendor spend). Then every spec's stored row is
 // read (ops task warmHits: the row a visitor's read reads, no search) and must be a hit under the live stamp with the e96 fields. Prints the count that failed and the reason of each. Exit 1 when any named spec is cold.
 import fs from "node:fs";
+// The warm targets a PINNED deployment address (Sam, Oct 28 2026): a deployment address does not change when main is pushed, so a push no longer swaps code under a running warm.
+// --base <address> or WARM_BASE names it (find it with: vercel inspect <deployment>); --live-main targets the live site on purpose (read-only checks only).
+const _arg = n => { const i = process.argv.indexOf("--" + n); return i > 0 ? process.argv[i + 1] : null; };
+const _BASE0 = process.argv.includes("--live-main") ? "https://goasksam.com" : (_arg("base") || process.env.WARM_BASE || "");
+if (!_BASE0) { console.log("warmNamed: no address given. Pass --base <the deployment address of the build to warm> or set WARM_BASE; --live-main targets goasksam.com on purpose."); process.exit(2); }
 const arg = n => { const i = process.argv.indexOf("--" + n); return i > 0 ? process.argv[i + 1] : null; };
-const BASE = (arg("base") || "https://goasksam.com").replace(/\/$/, ""), PART = arg("part") || "all", NO_WARM = process.argv.includes("--no-warm");
+const BASE = _BASE0.replace(/\/$/, ""), PART = arg("part") || "all", NO_WARM = process.argv.includes("--no-warm");
 const KEY = process.env.PROBE_KEY, BYP = process.env.BYPASS_SECRET || null;
 if (!KEY) { console.log("warmNamed: PROBE_KEY is not set; nothing was called."); process.exit(2); }
 const H = extra => ({ "x-ops-key": KEY, ...(BYP ? { "x-vercel-protection-bypass": BYP } : {}), ...(extra || {}) });
@@ -17,13 +22,25 @@ let top = [];
 if (PART === "top" || PART === "all") { const r = await getJson(`${BASE}/api/usageDashboard?view=ops&task=buyqueries&product=market_check&days=30&top=50`, 120000); top = r.j && Array.isArray(r.j.top) ? r.j.top.map(x => x.q) : []; if (!top.length) console.log("warmNamed: the Market Check log gave no top specs (" + (r.status || r.text) + ")"); }
 let crossrest = []; try { crossrest = JSON.parse(fs.readFileSync(new URL("./warm-crossrest.json", import.meta.url), "utf8")).crossrest || []; } catch {}
 let crosscheck = []; try { crosscheck = JSON.parse(fs.readFileSync(new URL("./warm-crosscheck.json", import.meta.url), "utf8")).crosscheck || []; } catch {}
-const lists = { named, golden, top, crosscheck, crossrest };
+// --list FILE (a JSON file with a "texts" array, or one car text per line): the cars the read only task staletexts names (Lane B, e101). --chain k/n takes every nth text from k, so n chains run in parallel.
+let listed = []; { const lf = arg("list"); if (lf) { const raw = fs.readFileSync(lf, "utf8"); try { const j = JSON.parse(raw); listed = (Array.isArray(j) ? j : j.texts || []).map(String); } catch { listed = raw.split("\n").map(s => s.trim()).filter(Boolean); } } }
+const lists = { named, golden, top, crosscheck, crossrest, list: listed };
 // order of the warm: Sam's 19, then the nine cross-product specs that were cold, then the golden table and the top 50, then the other 61 cross-product specs
 const parts = PART === "all" ? ["named", "crosscheck", "golden", "top", "crossrest"] : [PART];
 const seen = new Set(), todo = [];
 for (const p of parts) for (const q of lists[p] || []) { const k = q.toLowerCase(); if (!seen.has(k)) { seen.add(k); todo.push({ q, part: p }); } }
+{ const ch = /^(\d+)\/(\d+)$/.exec(arg("chain") || ""); if (ch) { const k = Number(ch[1]), n = Number(ch[2]); const mine = todo.filter((_, i) => i % n === k); todo.length = 0; todo.push(...mine); } }
 console.log(`warmNamed: ${todo.length} specs (${parts.map(p => p + " " + (lists[p] || []).length).join(", ")})`);
 const warmRows = {};
+// Only rows that are cold or stale at the current epoch and stamp are recomputed (warmHits reads the stored row, writes nothing); --force warms every row.
+if (!NO_WARM && !process.argv.includes("--force")) {
+  let skipped = 0;
+  for (let i = 0; i < todo.length; i += 25) {
+    const chunk = todo.slice(i, i + 25), r = await getJson(`${BASE}/api/usageDashboard?view=ops&task=warmHits&list=${encodeURIComponent(chunk.map(c => c.q).join("|"))}`, 280000);
+    for (const row of (r.j && r.j.rows) || []) if (row.hit && row.e96 !== false && !row.stale) { warmRows[row.q] = { q: row.q, stored: true, skipped: true }; skipped++; }
+  }
+  console.log(`warmNamed: ${skipped} of ${todo.length} already stored at the current epoch and stamp, skipped`);
+}
 if (!NO_WARM) {
   for (let pass = 1; pass <= 2; pass++) {
     const need = todo.filter(t => !warmRows[t.q] || !warmRows[t.q].stored);

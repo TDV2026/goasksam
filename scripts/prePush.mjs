@@ -1343,9 +1343,44 @@ try {
 // No dead end on a cold spec: the computing state asks again for 45 seconds, then one plain line (Sam, Oct 28 2026). Rendered in a browser.
 try {
   const out = execSync("node scripts/coldPathCheck.mjs", { encoding: "utf8", timeout: 600000 });
-  record("cold spec: reading line, asks every 2 seconds up to 45, then the plain line (scripts/coldPathCheck.mjs)", "PASS", (out.match(/coldPathCheck: .*/) || [""])[0]);
+  record("cold spec: reading line, asks every 2 seconds up to the engine's wait, then the plain line (scripts/coldPathCheck.mjs)", "PASS", (out.match(/coldPathCheck: .*/) || [""])[0]);
 } catch (e) {
-  record("cold spec: reading line, asks every 2 seconds up to 45, then the plain line (scripts/coldPathCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+  record("cold spec: reading line, asks every 2 seconds up to the engine's wait, then the plain line (scripts/coldPathCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// A split answer with an option over the candle floor is never withheld: the scoped chart tries every option (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/chartSplitFloorCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("chart: a split answer with an option over the floor draws that option's candles (scripts/chartSplitFloorCheck.mjs)", "PASS", (out.match(/chartSplitFloorCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("chart: a split answer with an option over the floor draws that option's candles (scripts/chartSplitFloorCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// A make and a year with more than one model that has sales asks which one, before any range (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/makeYearAskCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("resolver: a make and a year with more than one model that has sales asks which (scripts/makeYearAskCheck.mjs)", "PASS", (out.match(/makeYearAskCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("resolver: a make and a year with more than one model that has sales asks which (scripts/makeYearAskCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// An ended lot never stays unmarked past one pull cycle (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/endedLotCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("live: an ended lot is marked ended on the next pull cycle and never read as live (scripts/endedLotCheck.mjs)", "PASS", (out.match(/endedLotCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("live: an ended lot is marked ended on the next pull cycle and never read as live (scripts/endedLotCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// A landing example is the engine's answer and nothing else: no cluster rule, sales floor or generation floor of a builder's own (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/exampleFromEngineCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("examples: the Market Check and Desk builders store the engine's answer as it is (scripts/exampleFromEngineCheck.mjs)", "PASS", (out.match(/exampleFromEngineCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("examples: the Market Check and Desk builders store the engine's answer as it is (scripts/exampleFromEngineCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// A cold Market Check never ends "still reading" with no answer following: the page waits as long as the compute can still land, and one search writes one failed row (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/coldWaitCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("cold spec: the wait reaches the end of the compute, one failed row per search (scripts/coldWaitCheck.mjs)", "PASS", (out.match(/coldWaitCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("cold spec: the wait reaches the end of the compute, one failed row per search (scripts/coldWaitCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 // The account pill covers nothing on any page, result views included (Sam, Oct 27 2026). Rendered in a browser.
 try {
@@ -1444,6 +1479,12 @@ try {
   record("the launch warm covers every live spec, not the traffic slice (scripts/warmUnionCheck.mjs)", "PASS", (out.match(/warmUnionCheck: .*/) || [""])[0]);
 } catch (e) {
   record("the launch warm covers every live spec, not the traffic slice (scripts/warmUnionCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/warmBaseCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("no warm script targets goasksam.com by default (scripts/warmBaseCheck.mjs)", "PASS", (out.match(/warmBaseCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("no warm script targets goasksam.com by default (scripts/warmBaseCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 // The launch warm counts rows by UTC day, never by age (Sam, Oct 28 2026). No network.
 try {
