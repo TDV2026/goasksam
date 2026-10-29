@@ -1915,11 +1915,24 @@ async function handleOps(req, res) {
     if (!Array.isArray(rows)) return res.status(200).json({ task: "nonvehicle", readFailed: true, ocdSpend: 0, writes: 0 });
     const q = String(req.query?.q || "").trim().toLowerCase(), src = String(req.query?.source || "").trim().toLowerCase();
     const need = rows.filter(r => !(Number(r.mileage) > 0 && String(r.vin_norm || "").length >= 6) || (q && String(r.listing_title || "").toLowerCase().includes(q))).map(r => r.id), descs = await liveDescriptions(env, need).catch(() => ({}));
-    const out = { task: "nonvehicle", ocdSpend: 0, writes: 0, live: rows.length, notAVehicle: 0, doubtful: 0, bySource: {}, bySignals: {}, examples: [], doubtfulList: [], matches: [] };
+    const out = { task: "nonvehicle", ocdSpend: 0, writes: 0, live: rows.length, notAVehicle: 0, doubtful: 0, bySource: {}, bySignals: {}, examples: [], doubtfulList: [], matches: [],
+      // CANDIDATE SIGNALS the function does not use today (Sam's facts on the Hagerty engine, Oct 29 2026): how many live lots each fires on, how many of those the function still calls a car (what adding it would also hide), and up to 12 of those lots with the source title and our card title. No price signal.
+      candidates: {} };
+    const slugYear = u => { const m = /\/(\d{4})-[A-Za-z]/.exec(String(u || "")); return m ? m[1] : null; };
+    const CAND = {
+      lot_marker_in_title: r => /\(\s*lot\s*#?\s*\w+\s*\)|\blot\s*#?\d+\b/i.test(r.listing_title || ""),
+      source_slug_year_0000: r => slugYear(r.url) === "0000",
+      slug_year_differs_from_title_year: r => { const sy = slugYear(r.url), ty = (String(r.listing_title || "").match(/\b(18|19|20)\d{2}\b/) || [])[0]; return !!sy && sy !== "0000" && !!ty && sy !== ty; },
+      part_noun_in_source_title: r => /\b(engines?|transmissions?|gearbox(?:es)?|wheels?|motors?)\b/i.test(r.listing_title || ""),
+      collection_or_motorsports_in_description: r => /\b(collection|motorsports)\b/i.test(String(descs[r.id] || "")),
+      mileage_zero_or_blank: r => !(Number(r.mileage) > 0)
+    };
+    for (const k of Object.keys(CAND)) out.candidates[k] = { fires: 0, stillCars: 0, examples: [] };
     const show = (r, v) => ({ id: r.id, source: r.source, sourceTitle: r.listing_title, cardTitle: humanTitle(r.listing_title || ""), verdict: v.verdict, signals: v.signals, bidUsd: r.current_bid_usd != null ? Math.round(r.current_bid_usd) : null, mileage: r.mileage || null, vin: r.vin_norm ? "yes" : "no", reserve: r.has_reserve === false ? "no reserve" : r.has_reserve === true ? "reserve" : null, location: r.location || null, endsAt: r.end_time || null, descriptionStart: String(descs[r.id] || "").slice(0, 160) });
     for (const r of rows) {
       const v = nonVehicleSignals({ ...r, description: descs[r.id] });
       if (q && String(r.listing_title || "").toLowerCase().includes(q) && (!src || String(r.source || "").toLowerCase() === src) && out.matches.length < 12) out.matches.push({ ...show(r, v), url: r.url ? "present" : null, photo: r.photo_url ? "present" : null, body: r.body || null, transmission: r.transmission || null, specialFlag: r.special_flag || null, descriptionStart: String(descs[r.id] || "").slice(0, 400) });
+      for (const [ck, fn] of Object.entries(CAND)) { let hit = false; try { hit = fn(r); } catch { hit = false; } if (!hit) continue; const c = out.candidates[ck]; c.fires++; if (v.verdict === "car") { c.stillCars++; if (c.examples.length < 12) c.examples.push({ id: r.id, source: r.source, sourceTitle: r.listing_title, cardTitle: humanTitle(r.listing_title || ""), year: r.year || null, mileage: r.mileage || null, vin: r.vin_norm ? "yes" : "no", url: r.url ? String(r.url).replace(/^https?:\/\/[^/]+/, "").slice(0, 80) : null }); } }
       if (v.verdict === "car") continue;
       const k = v.verdict === "not_a_vehicle" ? "notAVehicle" : "doubtful"; out[k]++;
       out.bySource[r.source] = out.bySource[r.source] || { notAVehicle: 0, doubtful: 0 }; out.bySource[r.source][k]++;
@@ -1951,6 +1964,72 @@ async function handleOps(req, res) {
     }
     out.examples = out.examples.sort((a, b) => b.removed - a.removed).slice(0, 12);
     return res.status(200).json(out);
+  }
+  // task=warmwhy (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, WRITES NOTHING): why a warm text stores nothing. ?list=a|b|c (up to 8 texts a call). Each text is run the way warmDemo runs it (resolve, generation, the whole engine at asked 0) and the response says what the warm
+  // would do: the tier, a question (stores only its eligibility), a result the store guard rejects (the rule named, with poolN and the rawPool length), a refusal or not_tracked, unresolved (no make), or an answer it would store; and the stored row's state today (none, older stamp, earlier epoch, fresh).
+  if (task === "warmwhy") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle } = await import("../lib/vehicle.js"); const { findGeneration } = await import("../lib/generations.js"); const { oneEngineAnswer } = await import("../lib/onebox.js");
+    const { warmAnswerKeyFor, readWarmAnswerDetailed, answerCacheable, storeGuardRejectReason } = await import("../lib/live/search.js");
+    const list = String(req.query?.list || "").split("|").map(x => x.trim()).filter(Boolean).slice(0, 8), rows = [];
+    for (const q of list) {
+      const row = { q };
+      try {
+        const rv = await resolveVehicle(q, {}), vehicle = rv && rv.vehicle;
+        if (!vehicle || !vehicle.make) { row.would = "unresolved"; row.status = rv && rv.status || null; rows.push(row); continue; }
+        const generation = await findGeneration(vehicle, env).catch(() => null), key = warmAnswerKeyFor(vehicle, generation);
+        const st = await readWarmAnswerDetailed(env, key).catch(() => null); row.stored = st ? (st.raw ? (st.stale ? "stale: " + st.reason : "fresh") : "none: " + st.reason) : "unread";
+        const d = (await oneEngineAnswer(vehicle, generation, q, { ...env, asked: 0 }, null)).raw; row.tier = d && d.tier || null;
+        if (!d || !d.tier) row.would = "engine returned no tier";
+        else if (/_choice$/.test(String(d.tier))) row.would = "question: stores only the question's eligibility, no answer row (by design)";
+        else if (!/^(result|thin|refusal|not_tracked)$/.test(String(d.tier))) row.would = "not stored: tier " + d.tier;
+        else if (!answerCacheable(d)) { row.would = "store guard rejects: " + (storeGuardRejectReason(d) || "unknown"); row.poolN = d.poolN ?? null; row.rawPool = Array.isArray(d.rawPool) ? d.rawPool.length : null; row.fallbackRung = d.fallbackRung || null; }
+        else row.would = "stores an answer (" + d.tier + ")";
+      } catch (e) { row.error = String(e && e.message || e).slice(0, 100); }
+      rows.push(row);
+    }
+    return res.status(200).json({ task: "warmwhy", ocdSpend: 0, writes: 0, rows });
+  }
+  // task=bodywords (Lane B, Oct 29 2026; READ-ONLY): the body words in live titles and in sale titles (the newest ?n= sales, default 20000) that name a body, how many the one body vocabulary (lib/bodyWords.js) reads, and 15 examples of the words it does not.
+  if (task === "bodywords") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { bodyFromText } = await import("../lib/bodyWords.js"); const n = Math.min(60000, Number(req.query?.n) || 20000);
+    const live = await supabaseSelectAll(env, "live_listings?status=eq.live&select=listing_title"), sold = await supabaseSelectAll(env, `sales_archive?select=listing_title&vehicle_type=eq.car&order=sale_date.desc&limit=${n}`);
+    const WORDS = ["wagon", "estate", "touring", "avant", "hatchback", "liftback", "sportback", "gran coupe", "gran turismo", "shooting brake", "sportbrake", "fastback", "roadster", "spider", "spyder", "targa", "suv", "sport utility", "pickup", "pick-up", "truck", "crew cab", "van", "microbus", "minivan", "limousine", "tourer", "barchetta", "speedster", "cabrio", "drophead", "landaulet", "phaeton", "variant", "kombi", "sedan delivery", "panel"];
+    const out = { task: "bodywords", ocdSpend: 0, writes: 0, liveTitles: (live || []).length, soldTitles: (sold || []).length, words: {}, unmatchedExamples: [] };
+    for (const w of WORDS) out.words[w] = { live: 0, sold: 0, notRead: 0 };
+    for (const [src, list] of [["live", live || []], ["sold", sold || []]]) for (const r of list) { const t = String(r.listing_title || "").toLowerCase(); for (const w of WORDS) if (new RegExp("\\b" + w.replace(/[-\s]/g, "[-\\s]?") + "\\b").test(t)) { out.words[w][src]++; if (!bodyFromText(t)) { out.words[w].notRead++; if (out.unmatchedExamples.length < 15) out.unmatchedExamples.push({ word: w, title: String(r.listing_title).slice(0, 90) }); } } }
+    for (const w of WORDS) if (!out.words[w].live && !out.words[w].sold) delete out.words[w];
+    return res.status(200).json(out);
+  }
+  // task=refinedetail (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, zero writes, nothing stored): a filtered Market Check answer taken apart. For ONE car (the same selector as optiondetail: ?make= ?model= ?year= ?trim= ?body= ?spec=) and ONE filter
+  // (?band=lt50|50to100|gt100, ?tx=manual|auto, ?miles=60000 for typed miles), the engine is run the way Market Check runs a refine (the stored bare answer's own pool as the seed, never the archive) and the response gives: the key the answer reads (a mileage refine
+  // is not in the key: it reads the bare row's pool and stores nothing), the sales that pass the filter (date, price, body, gearbox, miles, source), the range the engine printed, the range derived from exactly those sales (p25 to p75), and the unfiltered range beside them.
+  if (task === "refinedetail") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { oneEngineAnswer, ENGINE_VERSION, MILE_BANDS, chartOptionOf, gearboxType } = await import("../lib/onebox.js"); const { resolveVehicle } = await import("../lib/vehicle.js"); const { findGeneration } = await import("../lib/generations.js"); const { warmAnswerKeyFor } = await import("../lib/live/search.js");
+    const make = String(req.query?.make || "").trim(), model = String(req.query?.model || "").trim(), year = Number(req.query?.year) || null, trim = String(req.query?.trim || "").trim(), wantBody = String(req.query?.body || "").trim().toLowerCase();
+    if (!make || !model) return res.status(400).json({ error: "make and model are required" });
+    const keys = await supabaseSelect(env, `spec_market_cache?spec_key=like.${encodeURIComponent(`MCWARM:["${make}","${model}",*`)}&select=spec_key,ev:market->>engineVersion&order=spec_key.asc&limit=400`);
+    const parse = k => { try { return JSON.parse(String(k).replace(/^MCWARM:/, "")); } catch { return null; } };
+    const exact = String(req.query?.spec || ""), cand = (keys || []).filter(r => { const a = parse(r.spec_key); return a && (year ? a[3] === year : a[3] == null) && String(a[2] || "") === trim && !(a[9] || a[10] || a[11] || a[12]) && r.ev === ENGINE_VERSION && (!wantBody || String(a[5] || "").toLowerCase() === wantBody); });
+    const hit = exact ? (keys || []).find(r => r.spec_key === exact) : cand.sort((x, y) => { const f = r => { const a = parse(r.spec_key); return [a[5], a[6], a[7]].filter(Boolean).length; }; return f(x) - f(y); })[0];
+    if (!hit) return res.status(200).json({ task: "refinedetail", found: false, candidates: cand.map(r => r.spec_key.slice(0, 120)) });
+    const got = await supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent(hit.spec_key)}&select=raw:market->raw`); const bare = got && got[0] && got[0].raw; if (!bare || !Array.isArray(bare.rawPool)) return res.status(200).json({ task: "refinedetail", found: true, readFailed: true });
+    const band = MILE_BANDS.find(b => b.value === String(req.query?.band || "")), miles = Number(req.query?.miles) || null, tx = ["manual", "auto"].includes(String(req.query?.tx)) ? String(req.query.tx) : null;
+    const refine = band ? { miMin: band.miMin, miMax: band.miMax ?? null, label: band.label } : miles ? { miTarget: miles } : tx ? { tx, label: tx === "manual" ? "Manual" : "Automatic" } : null;
+    if (!refine) return res.status(400).json({ error: "give band, miles or tx" });
+    const a0 = parse(hit.spec_key), text = [a0[3], a0[0], a0[1], a0[2], a0[5]].filter(Boolean).join(" "), rv = await resolveVehicle(text, {}), vehicle = rv && rv.vehicle; if (!vehicle) return res.status(200).json({ task: "refinedetail", found: true, unresolved: text });
+    const generation = await findGeneration(vehicle, env).catch(() => null), seed = { rows: bare.rawPool, storedAt: null };
+    const filt = (await oneEngineAnswer(vehicle, generation, text, { ...env, asked: 2, poolSeed: seed }, refine)).raw;
+    const usd = r => Number(r._usd ?? r._allin ?? r._hammer), miOf = r => Number(String(r.mileage || "").replace(/[^\d.]/g, "")) || 0;
+    const inSet = r => band ? miOf(r) > 0 && miOf(r) >= band.miMin && (band.miMax == null || miOf(r) < band.miMax) : tx ? gearboxType(r) === tx : miles ? Math.abs(miOf(r) - miles) <= (filt.mileageBand && filt.mileageBand.miMax != null ? filt.mileageBand.miMax - miles : 0) : true;
+    const mine = bare.rawPool.filter(inSet).map(r => ({ r, p: usd(r) })).filter(x => x.p > 0), q = (arr, p) => { const v = arr.slice().sort((x, y) => x - y); if (!v.length) return null; const i = (v.length - 1) * p, lo = Math.floor(i), hi = Math.ceil(i); return Math.round(v[lo] + (v[hi] - v[lo]) * (i - lo)); };
+    return res.status(200).json({ task: "refinedetail", ocdSpend: 0, writes: 0, found: true, spec: hit.spec_key.slice(0, 120), refine,
+      keyRead: warmAnswerKeyFor(vehicle, generation, null).slice(0, 140), keyNote: band || miles ? "a mileage refine is not part of the key: it reads the bare row's own pool (poolSeed) and stores nothing" : "a gearbox refine is part of the key (its own row, built from the bare row's pool when stored)",
+      unfiltered: { poolN: bare.poolN, cluster: bare.cluster || null, optionsState: bare.optionsState || null, options: (bare.options || []).map(o => `${o.label} ${o.n}${o.rangeFloor ? " thin" : " " + o.low + "-" + o.high}`) },
+      filteredSales: { n: mine.length, derivedP25P75: mine.length ? [q(mine.map(x => x.p), 0.25), q(mine.map(x => x.p), 0.75)] : null, sales: mine.slice(0, 60).map(({ r, p }) => ({ date: String(r.auction_end_date || "").slice(0, 10), usd: Math.round(p), body: (chartOptionOf("body", r, [{ value: "coupe" }, { value: "open" }, { value: "sedan" }, { value: "wagon" }, { value: "targa" }, { value: "fastback" }]) || {}).value || null, gearbox: gearboxType(r) || null, miles: miOf(r) || null, source: r.source || null })) },
+      printed: { tier: filt.tier, cluster: filt.cluster || null, poolN: filt.poolN, optionsState: filt.optionsState || null, options: (filt.options || []).map(o => `${o.label} ${o.n}${o.rangeFloor ? " thin" : " " + o.low + "-" + o.high}`), mileageNote: filt.mileageNote || null, appliedLine: filt.appliedLine || null, windowLine: filt.windowLine || null, scopeLine: filt.scopeLine || null, rangeSentence: filt.rangeSentence || null } });
   }
   // task=optiondetail (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, zero writes): for ONE car (?make= ?model= ?year=, optional ?trim=), the stored Market Check answer as it is SERVED (optionsFieldsOf, chartOf) and the sales behind every number on it:
 // the footer's window and count, each option's count and window, the sales behind each option and the sales that name no option, each with date, price, source, the listing's own transmission field and how the engine reads it (gearboxType), and

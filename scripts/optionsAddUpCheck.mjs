@@ -30,9 +30,9 @@ const S86 = { poolN: 35, windowWords: "since June 2025", headlineDimension: "bod
   optionLines: ["Targa $61,000 to $82,000, 11 sales", "Cabriolet $58,000 to $79,000, 11 sales", "Coupe $52,000 to $74,000, 16 sales"], refineOptions: [] };
 ok("1986 911 as stored: 38 against 35 and no option says its own window is a problem", optionProblems(S86).length > 0, optionProblems(S86).join(" | "));
 const s86 = read(S86);
-ok("1986 911 as served: each option line carries its own count and since date", s86.optionLines[0] === "Targa $61,000 to $82,000, 11 sales since March 2025" && s86.optionLines[2] === "Coupe $52,000 to $74,000, 16 sales since April 2025", JSON.stringify(s86.optionLines));
+ok("1986 911 as served: each option line carries its own count and since date", s86.optionLines[1] === "Targa $61,000 to $82,000, 11 sales since March 2025" && s86.optionLines[0] === "Coupe $52,000 to $74,000, 16 sales since April 2025"   /* options with a range come largest first (Oct 29 2026) */, JSON.stringify(s86.optionLines));
 ok("1986 911 as served: no problems, no explanation sentence, no per-option window note", optionProblems(s86).length === 0 && s86.optionsNote === null && s86.options.every(o => o.windowNote === null && o.windowDiffers === true), optionProblems(s86).join(" | "));
-ok("each option carries its own line as a field", s86.options[0].ownWindowLine === "11 sales since March 2025", String(s86.options[0].ownWindowLine));
+ok("each option carries its own line as a field", s86.options[1].ownWindowLine === "11 sales since March 2025", String(s86.options[0].ownWindowLine));
 const same = { ...S86, options: S86.options.map(o => ({ ...o, windowWords: "since June 2025" })) };
 ok("38 against 35 with every option on the footer's own window still fails after serving", optionProblems(read(same)).length > 0, optionProblems(read(same)).join(" | "));
 const hidden = { ...s86, optionLines: S86.optionLines };

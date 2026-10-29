@@ -53,7 +53,10 @@ for (const [name, core, n] of [["core thin", CORE_THIN, 6], ["core split", CORE_
   const oldCore = { ...CORE_SPLIT, optionsState: "split", optionLines: ["Manual $57,000 to $92,500, 18 sales", "Tiptronic $48,000 to $65,500, 13 sales"] }, c = E.freshenStoredText(oldCore);
   ok("a stored core with options serves no total count line", c.countLine === null && c.thin_sales.count_line === null, JSON.stringify([c.countLine, c.thin_sales && c.thin_sales.count_line]));
   const single = { ...MC_RANGE, windowLine: "30 sales, since June 2025.", optionsState: "none", options: [] }, sf = E.withReadFields(single, "1995 Porsche 911", { year: 1995 });
-  ok("a stored single range keeps its footer line", sf.windowLine === "30 sales, since June 2025."); }
+  ok("a stored single range keeps its footer line", sf.windowLine === "30 sales, since June 2025.");
+  ok("a stored split row with a range serves the range sentence once; a stored single range serves it once; a stored row with no range serves none", f.rangeSentence === "The range is where most sales landed." && sf.rangeSentence === "The range is where most sales landed." && E.freshenStoredText({ ...MC_THIN, optionsState: "none" }).rangeSentence == null, JSON.stringify([f.rangeSentence, sf.rangeSentence]));
+  const nar = E.freshenStoredText({ ...MC_SPLIT, optionsState: "alike", cluster: [1, 2], windowLine: "23 sales, since June 2025.", basisLine: "Based on 23 sales.", options: opts.map(o => ({ ...o, low: 1, high: 2, rangeFloor: false })) });
+  ok("a stored narrowed answer (one range with option pills) keeps its count and since date", nar.windowLine === "23 sales, since June 2025." && nar.basisLine === "Based on 23 sales.", JSON.stringify([nar.windowLine, nar.basisLine])); }
 // 3. idempotent: a row stored with the current text comes back unchanged
 { const cur = E.freshenStoredText(MC_SPLIT), again = E.freshenStoredText(cur); ok("a row with the current text comes back unchanged", JSON.stringify(cur) === JSON.stringify(again));
   const t = E.thinSalesOf(MC_THIN); ok("thin_sales rebuilt from rawPool is the text the engine stores today", E.freshenStoredText(MC_THIN).thin_sales.count_line === t.count_line && E.freshenStoredText(MC_THIN).thin_sales.answer_line === t.answer_line); }

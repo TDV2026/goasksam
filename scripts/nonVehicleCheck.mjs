@@ -4,7 +4,7 @@
 // doubtful (one real signal) is kept, marked, listed for Sam and shown with no number; a lot with an odometer reading AND a VIN is a car whatever its words. It is read by liveRows (every live surface: Find, Buy, Tasks, emails, the dashboard), by the pool
 // filter (qualifyReason: Market Check, Sell, the sales lists) and by the Desk. Nothing is deleted: the verdict is computed where the lot is read and listed by the ops tasks nonvehicle and nonvehiclesold.
 // Built from real lots: the engine, wheel set, literature lot and parts lots that the guard's own comments record from real BaT and house listings, plus the Hagerty engine as far as it is known (title, no mileage, bid, no reserve); the lot's description is
-// not in this file until the ops task nonvehicle has read it (q=1986 porsche 911, source=hagerty), so its fixture carries only the facts the report gives.
+// is not in this file (Sam sent the source title, seller, bids, photos, mileage and VIN facts, not the description), so the fixture carries exactly those facts: the title as the SOURCE writes it, no mileage, no VIN.
 //   node scripts/nonVehicleCheck.mjs [repo root]
 import path from "node:path"; import { fileURLToPath, pathToFileURL } from "node:url";
 const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
@@ -12,7 +12,7 @@ process.chdir(root);
 process.env.SUPABASE_URL = "https://fake.supabase.test"; process.env.SUPABASE_SERVICE_ROLE_KEY = "k"; process.env.LAUNCH_STAGE = "2";
 let fail = 0; const ok = (n, c, d) => { if (!c) fail++; console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? "  " + d : ""}`); };
 const LOTS = [
-  { id: 9001, label: "an engine (Hagerty, Savannah GA, no reserve, bid $15,250: the reported lot)", source: "hagerty", listing_title: "1986 Porsche 911 3.2L Flat-Six Engine", make: "Porsche", model: "911", year: 1986, mileage: null, vin_norm: null, current_bid_usd: 15250, has_reserve: false, description: "Complete 3.2L flat-six engine, Thoroughbred Motorsports", end_time: new Date(Date.now() + 9 * 3600e3).toISOString(), location: "Savannah, GA" },
+  { id: 9001, label: "the reported Hagerty engine (source title as the source writes it, no mileage, no VIN, no reserve, high bid $15,250, 35 bids)", source: "hagerty", listing_title: "1986 Porsche 3.2L Twin Plug 911 Engine (Lot 35)", make: "Porsche", model: "911", year: 1986, mileage: null, vin_norm: null, current_bid_usd: 15250, has_reserve: false, description: "", end_time: new Date(Date.now() + 8 * 3600e3).toISOString(), location: "Savannah, GA" },
   { id: 9002, label: "an engine (BaT)", source: "bringatrailer", listing_title: "Lamborghini Murcielago 6.2L V12 Engine", make: "Lamborghini", model: "Murcielago", year: 2004, mileage: null, vin_norm: null, current_bid_usd: 21000, description: "" },
   { id: 9003, label: "a wheel set", source: "bringatrailer", listing_title: "18x8 Wheels for Porsche 911", make: "Porsche", model: "911", year: 1986, mileage: null, vin_norm: null, current_bid_usd: 2400, description: "" },
   { id: 9004, label: "a literature lot", source: "rmsothebys", listing_title: "1986 Porsche 911 Factory Sales Brochures", make: "Porsche", model: "911", year: 1986, mileage: null, vin_norm: null, current_bid_usd: 300, description: "" },
@@ -25,6 +25,16 @@ const CARS = [
   { id: 9104, label: "an engine-swapped car with miles and a VIN", source: "carsandbids", listing_title: "1986 Porsche 911 Carrera with 3.6L Engine Swap", make: "Porsche", model: "911", year: 1986, mileage: 41000, vin_norm: "WP0AB0911GS120999", description: "" }
 ];
 const E = await import(pathToFileURL(path.join(root, "lib/onebox.js")).href), C = await import(pathToFileURL(path.join(root, "lib/_classify.js")).href), S = await import(pathToFileURL(path.join(root, "lib/live/search.js")).href);
+// 0. the intake keeps the source's own title (the classifier reads it, not the card's cleaned name): the Hagerty record as the feed gives it
+{ const F = await import(pathToFileURL(path.join(root, "lib/live/feed.js")).href);
+  const rec = { source_slug: "hagerty", source_record_id: "7gOJzHjdVMIwld3nQqzJwU", title: "1986 Porsche 3.2L Twin Plug 911 Engine (Lot 35)", ocd_make_name: "Porsche", ocd_model_name: "911", year: 1986, current_bid: 15250, has_reserve: false, url: "https://www.hagerty.com/marketplace/auction/0000-Porsche-911/7gOJzHjdVMIwld3nQqzJwU", stats: { bids: 35 } };
+  const m = F.mapLiveRecord(rec, new Date().toISOString());
+  ok("intake stores the source's own title, word for word (Twin Plug, Engine, Lot 35 all kept)", !!m && m.listing_title === "1986 Porsche 3.2L Twin Plug 911 Engine (Lot 35)", m && m.listing_title);
+  ok("... with no mileage and no VIN, as the source shows", !!m && !m.mileage && !m.vin_norm);
+  ok("... and the function reads that stored row as not a vehicle", !!m && C.isNonVehicleLot(m), m && JSON.stringify(C.nonVehicleSignals(m)));
+  // the card's own name is built from the resolved spec (year make model trim body) and drops the words that decide what the lot is: nothing downstream of that name may decide what the lot is
+  const B = await import(pathToFileURL(path.join(root, "api/buySearch.js")).href).catch(() => null);
+  if (B && B.nameFromSpec) { const name = B.nameFromSpec({ make: "Porsche", model: "911", year: 1986 }, 1986); ok("the card's name is the resolved spec's (it drops Engine): so the classifier must never read it", name === "1986 Porsche 911" && C.nonVehicleSignals({ listing_title: name, mileage: null, vin_norm: null }).verdict === "car", name); } }
 // 1. the one function
 for (const l of LOTS) ok(`${l.label}: isNonVehicleLot, not a vehicle`, C.isNonVehicleLot(l) === true, JSON.stringify(C.nonVehicleSignals(l)));
 for (const c of CARS) ok(`${c.label}: still a car`, C.isNonVehicleLot(c) === false && C.nonVehicleSignals(c).verdict === "car", JSON.stringify(C.nonVehicleSignals(c)));

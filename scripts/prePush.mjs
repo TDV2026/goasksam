@@ -1408,6 +1408,30 @@ try {
 } catch (e) {
   record("lots: an engine, wheels, literature or parts lot is never a car card, a spec match or a sale in a pool (scripts/nonVehicleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+try {
+  const out = execSync("node scripts/whichChipsCheck.mjs", { encoding: "utf8", timeout: 180000 });
+  record("Which model: no chip cut at a space, no duplicate, no variant beside its model (scripts/whichChipsCheck.mjs)", "PASS", (out.match(/whichChipsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Which model: no chip cut at a space, no duplicate, no variant beside its model (scripts/whichChipsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/countsCheck.mjs", { encoding: "utf8", timeout: 180000 });
+  record("counts: options, remainder and the table caption add up, no chip cut at a space (Lane F's check) (scripts/countsCheck.mjs)", "PASS", (out.match(/countsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("counts: options, remainder and the table caption add up, no chip cut at a space (Lane F's check) (scripts/countsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/filtersRangeCheck.mjs", { encoding: "utf8", timeout: 180000 });
+  record("filters: a narrowed answer is computed from its own sales, says which filter is on, keeps its basis once (scripts/filtersRangeCheck.mjs)", "PASS", (out.match(/filtersRangeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("filters: a narrowed answer is computed from its own sales, says which filter is on, keeps its basis once (scripts/filtersRangeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/bodiesOrderAsideCheck.mjs", { encoding: "utf8", timeout: 180000 });
+  record("bodies, option order and the set-aside line (one vocabulary, ranges first, the count said once) (scripts/bodiesOrderAsideCheck.mjs)", "PASS", (out.match(/bodiesOrderAsideCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("bodies, option order and the set-aside line (one vocabulary, ranges first, the count said once) (scripts/bodiesOrderAsideCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // An ended lot never stays unmarked past one pull cycle (Lane B, Oct 29 2026).
 try {
   const out = execSync("node scripts/endedLotCheck.mjs", { encoding: "utf8", timeout: 120000 });
