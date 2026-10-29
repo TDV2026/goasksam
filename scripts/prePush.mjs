@@ -1494,6 +1494,20 @@ try {
 } catch (e) {
   record("pages: options answers state no total in the footer, each option its own window, no repeated year (scripts/footerOptionsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The range sentence says what the range is, never "most" (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/rangeSentenceShareCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("engine: the range sentence claims no share the range does not cover (scripts/rangeSentenceShareCheck.mjs)", "PASS", (out.match(/rangeSentenceShareCheck: .*/) || [""])[0])
+} catch (e) {
+  record("engine: the range sentence claims no share the range does not cover (scripts/rangeSentenceShareCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "))
+}
+// A range over far wider sales says so (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/spreadLineCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("engine: a range over sales that run more than twice bottom to top says so (scripts/spreadLineCheck.mjs)", "PASS", (out.match(/spreadLineCheck: .*/) || [""])[0])
+} catch (e) {
+  record("engine: a range over sales that run more than twice bottom to top says so (scripts/spreadLineCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "))
+}
 // A lot that is not a vehicle is not a car anywhere: no Find card, no spec match, no sales pool (Lane B, Oct 29 2026).
 try {
   const out = execSync("node scripts/nonVehicleCheck.mjs", { encoding: "utf8", timeout: 120000 });
