@@ -1,11 +1,11 @@
 // EVERY LINE ON A CARD SITS INSIDE ITS BOX IN THE CARD'S OWN STYLE (Sam, Oct 29 2026). Cause: the Find card printed the engine's remainder line ("2 sales do not say their gearbox.") as a <p> below the buttons; where the page's rule for it was not applied the paragraph fell to the browser's serif at body size, outside the answer box, a style no other line on the card uses.
-// Class: any engine line a small card prints that lands outside the card or in a font no other line on it uses. Rendered here at 1440 and 390 for every Find fixture card and the See the sales drawer: each text element must sit inside its card, be set in the card's sans, except the title and the answer box, which are the card's serif (.ttl, .fx-ans). A stray unstyled paragraph added to a card (the mutant) must be caught.   node scripts/cardLinesCheck.mjs
+// Class: any engine line a small card prints that lands outside the card or in a font no other line on it uses. Rendered here at 1440 and 390 for every Find fixture card and the See the sales drawer: each text element must sit inside its card, be set in the card's sans, except the title and the answer box, which are the card's serif (.ttl, .fx-ans, and the drawer title .md-ttl). A stray unstyled paragraph added to a card (the mutant) must be caught.   node scripts/cardLinesCheck.mjs
 import { startBrowser } from "./e98Render.mjs";
 import { buildCards, openFind } from "./e98FindRender.mjs";
 import { openPanel } from "./e98PanelRender.mjs";
 import { M3_ROW, FIND } from "./e98Fixtures.mjs";
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
-const SCAN = () => { const bad = [], SANS = "Instrument Sans", SERIF_OK = e => e.closest(".ttl, .fx-ans"); let n = 0;
+const SCAN = () => { const bad = [], SANS = "Instrument Sans", SERIF_OK = e => e.closest(".ttl, .fx-ans, .md-ttl"); let n = 0;
   for (const a of document.querySelectorAll("article.car, .mcdrawer")) { const ar = a.getBoundingClientRect();
     for (const e of a.querySelectorAll("*")) { if (![...e.childNodes].some(x => x.nodeType === 3 && x.textContent.trim())) continue; const r = e.getBoundingClientRect(); if (!r.width || !r.height) continue; n++;
       const fam = getComputedStyle(e).fontFamily.split(",")[0].replace(/["']/g, ""), why = [];
