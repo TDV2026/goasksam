@@ -1,6 +1,6 @@
 // LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the key and the protection-bypass secret in the environment (never printed):
 //   export PROBE_KEY="$(security find-generic-password -s goasksam-probe -w)" BYPASS_SECRET="$(security find-generic-password -s goasksam-bypass -w)"
-//   node scripts/warmNamed.mjs [--part named|crosscheck|golden|top|crossrest|all] [--no-warm] [--base <deployment address> | --live-main] [--force]
+//   node scripts/warmNamed.mjs [--part named|crosscheck|golden|top|crossrest|list|all] [--list FILE] [--chain k/n] [--no-warm] [--base <deployment address> | --live-main] [--force]
 // THE NAMED WARM (Sam, Oct 28 2026): the named list (scripts/warm-named.json), the golden table (docs/golden-rules.md) and the 50 most searched Market Check specs (ops task buyqueries&product=market_check)
 // are warmed FIRST in every warm run, before the Buy specs, through the ops task warmDemo (the same path the page reads, trims allowed, archive only, no vendor spend). Then every spec's stored row is
 // read (ops task warmHits: the row a visitor's read reads, no search) and must be a hit under the live stamp with the e96 fields. Prints the count that failed and the reason of each. Exit 1 when any named spec is cold.
@@ -22,11 +22,14 @@ let top = [];
 if (PART === "top" || PART === "all") { const r = await getJson(`${BASE}/api/usageDashboard?view=ops&task=buyqueries&product=market_check&days=30&top=50`, 120000); top = r.j && Array.isArray(r.j.top) ? r.j.top.map(x => x.q) : []; if (!top.length) console.log("warmNamed: the Market Check log gave no top specs (" + (r.status || r.text) + ")"); }
 let crossrest = []; try { crossrest = JSON.parse(fs.readFileSync(new URL("./warm-crossrest.json", import.meta.url), "utf8")).crossrest || []; } catch {}
 let crosscheck = []; try { crosscheck = JSON.parse(fs.readFileSync(new URL("./warm-crosscheck.json", import.meta.url), "utf8")).crosscheck || []; } catch {}
-const lists = { named, golden, top, crosscheck, crossrest };
+// --list FILE (a JSON file with a "texts" array, or one car text per line): the cars the read only task staletexts names (Lane B, e101). --chain k/n takes every nth text from k, so n chains run in parallel.
+let listed = []; { const lf = arg("list"); if (lf) { const raw = fs.readFileSync(lf, "utf8"); try { const j = JSON.parse(raw); listed = (Array.isArray(j) ? j : j.texts || []).map(String); } catch { listed = raw.split("\n").map(s => s.trim()).filter(Boolean); } } }
+const lists = { named, golden, top, crosscheck, crossrest, list: listed };
 // order of the warm: Sam's 19, then the nine cross-product specs that were cold, then the golden table and the top 50, then the other 61 cross-product specs
 const parts = PART === "all" ? ["named", "crosscheck", "golden", "top", "crossrest"] : [PART];
 const seen = new Set(), todo = [];
 for (const p of parts) for (const q of lists[p] || []) { const k = q.toLowerCase(); if (!seen.has(k)) { seen.add(k); todo.push({ q, part: p }); } }
+{ const ch = /^(\d+)\/(\d+)$/.exec(arg("chain") || ""); if (ch) { const k = Number(ch[1]), n = Number(ch[2]); const mine = todo.filter((_, i) => i % n === k); todo.length = 0; todo.push(...mine); } }
 console.log(`warmNamed: ${todo.length} specs (${parts.map(p => p + " " + (lists[p] || []).length).join(", ")})`);
 const warmRows = {};
 // Only rows that are cold or stale at the current epoch and stamp are recomputed (warmHits reads the stored row, writes nothing); --force warms every row.

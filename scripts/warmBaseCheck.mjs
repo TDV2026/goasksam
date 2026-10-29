@@ -19,5 +19,7 @@ for (const f of ["warmNamed", "warmUnion", "postDeployWarm"]) {
 const sh = fs.readFileSync("scripts/launchWarm.sh", "utf8");
 ok(!sh.includes("goasksam.com"), "launchWarm.sh holds no literal live address");
 ok(/\[ -n "\$WARM_BASE" \]/.test(sh) && /\$WARM_BASE\/api\//.test(sh), "launchWarm.sh needs WARM_BASE and sends every ops call to it");
+const ws = fs.readFileSync("scripts/warmStale.sh", "utf8");
+ok(!ws.includes("goasksam.com") && /\[ -n "\$WARM_BASE" \]/.test(ws) && /base\+"\/api\/usageDashboard/.test(ws), "warmStale.sh holds no literal live address, needs WARM_BASE and sends every call to it");
 console.log(`warmBaseCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);
