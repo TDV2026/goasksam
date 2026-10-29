@@ -79,14 +79,15 @@ ok(/"See the sales"/.test(C), "the card's button is See the sales");
 ok(/md-opts/.test(C) && /m\.optionLines\.map/.test(C), "the options' own lines print in the expanded panel (drawerHtml)");
 const kit = fs.readFileSync("lib/findCardKit.js", "utf8");
 ok(/"fxHead", "fxSlots", "fxFindHtml", "fxTail", "rangeFirst", "noRange", "compactNoRange", "thinSales"/.test(kit), "Tasks lifts the same box code (findCardKit)");
-// optionsRemainder (Lane B e101, Sam Oct 29 2026): the engine's line prints under See the sales on a Find or Tasks card when it is set ("2 sales are over 100,000 miles."), and prints nothing when it is not. Rendered in the real Find page, a card with the line and a card without.
-{ const { startBrowser } = await import("./e98Render.mjs"), { buildCards, openFind } = await import("./e98FindRender.mjs"), { M3_ROW } = await import("./e98Fixtures.mjs");
-  const cards = await buildCards([M3_ROW["2008 BMW M3 Coupe"], M3_ROW["2008 BMW M3 Coupe"]]), LINE = "2 sales are over 100,000 miles.";
-  cards.forEach((c, k) => { c.market = { ...c.market, query: "2008 bmw m3 coupe", optionsRemainder: k === 0 ? { n: 2, dimension: "mileage", line: LINE } : null }; });
+// optionsRemainder (Sam, Oct 29 2026, replacing the Oct 29 e101 print): a FIND CARD prints no remainder line ("2 sales do not say their gearbox."), with the engine's line set or not: the options a card did not match are Market Check's, beside the options. Market Check still prints it. Rendered in the real pages.
+{ const { startBrowser, openMC } = await import("./e98Render.mjs"), { buildCards, openFind } = await import("./e98FindRender.mjs"), { M3_ROW, MC } = await import("./e98Fixtures.mjs");
+  const cards = await buildCards([M3_ROW["2008 BMW M3 Coupe"], M3_ROW["2008 BMW M3 Coupe"]]), LINE = "2 sales do not say their gearbox.";
+  cards.forEach((c, k) => { c.market = { ...c.market, query: "2008 bmw m3 coupe", optionsRemainder: k === 0 ? { n: 2, dimension: "gearbox", line: LINE } : null }; });
   const b = await startBrowser();
-  for (const w of [1440, 390]) { const p = await openFind(b, cards, w), r = await p.evaluate(() => [...document.querySelectorAll("article.car")].map(a => { const rem = a.querySelector(".fx-rem"), btn = a.querySelector("button[data-mc]"), acts = a.querySelector(".acts"); return { rem: rem ? rem.textContent : null, btn: !!btn, below: !!(rem && acts && (acts.compareDocumentPosition(rem) & Node.DOCUMENT_POSITION_FOLLOWING)) }; }));
-    ok(r.length >= 2 && r[0].btn && r[0].rem === LINE && r[0].below, `Find card at ${w}: the engine's optionsRemainder line prints under See the sales ("${r[0] && r[0].rem}")`);
-    ok(r.length >= 2 && r[1].btn && r[1].rem === null, `Find card at ${w}: a card whose optionsRemainder is null prints no remainder line`); await p.close(); }
+  for (const w of [1440, 390]) { const p = await openFind(b, cards, w), r = await p.evaluate(() => [...document.querySelectorAll("article.car")].map(a => ({ rem: !!a.querySelector(".fx-rem"), text: /do not say their|are over [\d,]+ miles|sales do not/i.test(a.innerText), btn: !!a.querySelector("button[data-mc]") })));
+    ok(r.length >= 2 && r.every(x => x.btn && !x.rem && !x.text), `Find card at ${w}: no remainder line, whether the engine set optionsRemainder or not (${r.map(x => x.rem || x.text ? "printed" : "none").join(", ")})`); await p.close(); }
+  const fxd = MC["2004 BMW M3 (split)"], rl = fxd.d.optionsRemainder && fxd.d.optionsRemainder.line;
+  for (const w of [1440, 390]) { const p = await openMC(b, fxd, w), t = await p.evaluate(() => document.body.innerText.replace(/\s+/g, " ")); ok(!!rl && t.includes(rl), `Market Check at ${w}: the remainder line still prints beside the options ("${rl}")`); await p.close(); }
   await b.close(); }
 console.log(`findCardShapeCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

@@ -91,7 +91,7 @@ for (const [name, d] of Object.entries(ALL)) {
   const id = { make: "BMW", family: "M3", model: "M3", year: 2001, label: "BMW M3" }, r = { vehicle: { make: "BMW", model: "M3", year: 2001 } };
   const s = fs.readFileSync("api/buy.js", "utf8"), i = s.indexOf("const CLIENT = ") + "const CLIENT = ".length, c = JSON.parse(s.slice(i, s.indexOf('";\n', i) + 1));
   ok(/l\.market\.optionLines/.test(c) && !/l\.market\.options\b/.test(c), "Find's card line reads the engine's optionLines, not options (the options array itself)");
-  ok(/l\.market\.optionsRemainder\.line/.test(c) && !/optionsRemainder\.n\b/.test(c), "Find's card prints the engine's optionsRemainder.line (Lane B e101), a field of its own, and never counts or words the remainder itself");
+  ok(!/optionsRemainder/.test(c) && !/fx-rem/.test(c), "Find's card and drawer print no optionsRemainder line (Sam, Oct 29 2026): the remainder is Market Check's, beside its options");
   for (const [name, d] of Object.entries(ALL)) {
     const mk = marketOf(d), want = linesOf(d);
     ok(mk && (!want.length || (Array.isArray(mk.optionLines) && want.every(l => mk.optionLines.includes(l)))), `Find market, ${name}: carries the engine's lines`);
