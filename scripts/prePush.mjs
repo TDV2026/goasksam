@@ -608,6 +608,12 @@ try {
 } catch (e) {
   record("No page carries a design test control: no palette switcher, no stored look (scripts/noDesignControlsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+try {
+  const out = execSync("node scripts/crewPublicColoursCheck.mjs", { encoding: "utf8" });
+  record("A signed crew cookie changes no colour on any page (scripts/crewPublicColoursCheck.mjs)", "PASS", (out.match(/crewPublicColoursCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("A signed crew cookie changes no colour on any page (scripts/crewPublicColoursCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The narrowing question by set size and the hierarchy first (Lane E, Buy Stage 1c item 2). No network.
 try {
   const out = execSync("node scripts/narrowCheck.mjs", { encoding: "utf8" });
