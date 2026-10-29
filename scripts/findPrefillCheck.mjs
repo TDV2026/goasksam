@@ -49,6 +49,14 @@ for (const [kind, title, year, make, model] of LISTINGS) {
   const w = await S.prefillFindAnswer(env, spec, false, async () => ({ raw: { tier: "not_tracked", poolN: 0 } }));
   const rd = await S.readWarmAnswerDetailed(env, S.findAnswerKeyFor(spec)), card = S.serveSplitCard(CORE, null, rd && rd.raw, row, { miles: 1 }, spec);
   ok("a spec that cannot be read is stored too, and its card says so plainly (not 'still reading', no figures)", w.stored === true && card.pending === false && /sales for this exact car cannot be read/.test(String(card.mk && card.mk.answerLine)) && !/\d/.test(String(card.mk && card.mk.answerLine).replace(/this exact car/, ""))); }
+// a spec that stores nothing says WHY (the 1966 Corvette 427: trim_choice, tier result, not stored): a question still at asked 2, a result the store guard rejects (named), nothing from the engine
+{ const sp = { v: { year: 1966, make: "Chevrolet", model: "Corvette" }, generation: null, title: "427-Powered 1966 Chevrolet Corvette Convertible", key: "k-427" };
+  const q = await S.prefillFindAnswer(env, sp, true, async () => ({ raw: { tier: "trim_choice" } }));
+  ok("a question still asked at asked 2 says so", q.stored === false && /still_a_question_at_asked_2:trim_choice/.test(q.reason || ""), q.reason);
+  const g = await S.prefillFindAnswer(env, sp, true, async () => ({ raw: { tier: "result", poolN: 20, rawPool: new Array(18).fill({}), fallbackRung: "model_any_year", rungLabel: "x" } }));
+  ok("a result the store guard rejects names the rule and the counts", g.stored === false && /store_guard:poolsize_ne_receipts:20!=18/.test(g.reason || "") && g.poolN === 20 && g.rawPool === 18, g.reason);
+  const n = await S.prefillFindAnswer(env, sp, true, async () => ({ raw: null }));
+  ok("nothing from the engine says so", n.stored === false && n.reason === "engine_returned_nothing", n.reason); }
 // the runner and the task exist and are wired
 { const ud = fs.readFileSync("api/usageDashboard.js", "utf8"), sc = fs.readFileSync("scripts/warmFind.mjs", "utf8");
   ok("ops task warmFind (write) and findasks (read) exist", /task === "warmFind"/.test(ud) && /task === "findasks"/.test(ud));

@@ -1917,7 +1917,12 @@ if (task === "optiondetail") {
     const keys = await supabaseSelect(env, `spec_market_cache?spec_key=like.${encodeURIComponent(`MCWARM:["${make}","${model}",*`)}&select=spec_key,ev:market->>engineVersion,at:computed_at&order=spec_key.asc&limit=400`);
     if (!Array.isArray(keys)) return res.status(200).json({ task: "optiondetail", readFailed: true, ocdSpend: 0, writes: 0 });
     const parse = k => { try { return JSON.parse(String(k).replace(/^MCWARM:/, "")); } catch { return null; } };
-    const hit = keys.find(r => { const a = parse(r.spec_key); return a && (year ? a[3] === year : a[3] == null) && String(a[2] || "") === trim && !(a[9] || a[10] || a[11] || a[12]) && r.ev === ENGINE_VERSION; });
+    // THE BARE ROW, NOT THE FIRST ONE (Oct 29 2026: the 2004 M3 read returned the convertible row, footer 22, because the first stored key for the year was taken and the bare key sorts after the body keys): among the live-stamp rows of the year and trim, ?body= ?edition= ?variant= pick the
+    // row that names them; with none given the row that names NONE of body, edition, variant (the bare car) wins; ?spec= takes one stored spec key exactly (never ?key=, which is the credential's name). The candidates are always listed.
+    const want = k => String(req.query?.[k] || "").trim().toLowerCase(), named = a => [a[5], a[6], a[7]].filter(x => x != null && x !== "").length;
+    const matches = keys.filter(r => { const a = parse(r.spec_key); return a && (year ? a[3] === year : a[3] == null) && String(a[2] || "") === trim && !(a[9] || a[10] || a[11] || a[12]) && r.ev === ENGINE_VERSION; });
+    const exact = String(req.query?.spec || ""), hit = exact ? keys.find(r => r.spec_key === exact || r.spec_key.slice(0, 120) === exact) : matches.filter(r => { const a = parse(r.spec_key); return (!want("body") || String(a[5] || "").toLowerCase() === want("body")) && (!want("edition") || String(a[6] || "").toLowerCase() === want("edition")) && (!want("variant") || String(a[7] || "").toLowerCase() === want("variant")); }).sort((x, y) => named(parse(x.spec_key)) - named(parse(y.spec_key)))[0];
+    const candidateKeys = matches.map(r => r.spec_key.slice(0, 120));
     if (!hit) return res.status(200).json({ task: "optiondetail", ocdSpend: 0, writes: 0, found: false, candidates: keys.filter(r => { const a = parse(r.spec_key); return a && (!year || a[3] === year); }).slice(0, 8).map(r => ({ key: r.spec_key.slice(0, 100), engineVersion: r.ev })) });
     const got = await supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent(hit.spec_key)}&select=raw:market->raw`);
     const a = got && got[0] && got[0].raw; if (!a) return res.status(200).json({ task: "optiondetail", found: false, readFailed: true, ocdSpend: 0, writes: 0 });
@@ -1933,7 +1938,7 @@ if (task === "optiondetail") {
       return { label: o.label, servedN: o.n, storedN: stored.n ?? null, servedWindow: o.windowWords || null, storedWindow: stored.windowWords || null, ownWindow: !!stored.ownWindow, capped: !!o.windowCapped, recounted: !!o.recounted, sales: rows.length, listed: rows.slice(0, cap).map(row) }; });
     const none = inFooter.filter(r => !base.some(o => { const x = chartOptionOf(o.dimension, r, base); return x && x.value === o.value; })).sort((x, y) => dateOf(y).localeCompare(dateOf(x)));
     const ch = chartOf(d), why = ch && ch.withheld ? ch.withheld : null;
-    return res.status(200).json({ task: "optiondetail", ocdSpend: 0, writes: 0, found: true, key: hit.spec_key.slice(0, 120), storedAt: hit.at, dimension: dim, footer: { poolN: a.poolN, windowWords: a.windowWords || null, windowLine: a.windowLine || null, rawPool: pool.length, inFooterWindow: inFooter.length }, groups,
+    return res.status(200).json({ task: "optiondetail", ocdSpend: 0, writes: 0, found: true, key: hit.spec_key.slice(0, 120), candidates: candidateKeys, storedAt: hit.at, dimension: dim, footer: { poolN: a.poolN, windowWords: a.windowWords || null, windowLine: a.windowLine || null, rawPool: pool.length, inFooterWindow: inFooter.length }, groups,
       nameNoOption: { sales: none.length, line: d.optionsRemainder ? d.optionsRemainder.line : null, listed: none.slice(0, cap).map(row) },
       chart: ch ? { type: ch.type, scope: ch.scope ? ch.scope.label : null, reason: why ? why.reason : null, pooledReason: a.trendHeld ? a.trendHeld.reason : null, options: why ? why.options || null : null } : null });
   }
@@ -1982,7 +1987,7 @@ if (task === "optiondetail") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { liveAskFirstSpecs, prefillFindAnswer } = await import("../lib/live/search.js");
     const L = await liveAskFirstSpecs(env);
-    const ch = /^(\d+)\/(\d+)$/.exec(String(req.query?.chain || "")), list = ch ? L.rows.filter((_, i) => i % Number(ch[2]) === Number(ch[1])) : L.rows;
+    const ch = /^(\d+)\/(\d+)$/.exec(String(req.query?.chain || "")), qf = String(req.query?.q || "").trim().toLowerCase(), all = qf ? L.rows.filter(r => String(r.spec.title || "").toLowerCase().includes(qf)) : L.rows, list = ch ? all.filter((_, i) => i % Number(ch[2]) === Number(ch[1])) : all;   // ?q= a title fragment: one spec, to read why it stores nothing
     const byKind = {}; for (const r of list) byKind[r.esc] = (byKind[r.esc] || 0) + 1;
     if (req.query?.count === "1") return res.status(200).json({ task: "warmFind", count: true, ocdSpend: 0, writes: 0, liveSpecs: L.liveSpecs, total: list.length, byKind, readFailed: L.readFailed });
     const offset = Math.max(0, Number(req.query?.offset) || 0), limit = Math.max(1, Math.min(40, Number(req.query?.limit) || 12)), budget = Math.min(270000, Number(req.query?.budget) || 200000), force = req.query?.force === "1", t0 = Date.now();
@@ -1991,7 +1996,7 @@ if (task === "optiondetail") {
     for (; i < Math.min(list.length, offset + limit); i++) {
       if (Date.now() - t0 > budget) break;
       const r = list[i];
-      try { const x = await prefillFindAnswer(env, r.spec, force); if (x.stored) { out[x.skipped ? "skipped" : "stored"]++; } else { out.failed++; } out.rows.push({ i, q: r.spec.title, kind: r.esc, stored: !!x.stored, skipped: !!x.skipped, tier: x.tier || null }); }
+      try { const x = await prefillFindAnswer(env, r.spec, force); if (x.stored) { out[x.skipped ? "skipped" : "stored"]++; } else { out.failed++; } out.rows.push({ i, q: r.spec.title, kind: r.esc, stored: !!x.stored, skipped: !!x.skipped, tier: x.tier || null, ...(x.reason ? { reason: x.reason, poolN: x.poolN, rawPool: x.rawPool, fallbackRung: x.fallbackRung } : {}) }); }
       catch (e) { out.failed++; out.rows.push({ i, q: r.spec.title, kind: r.esc, stored: false, error: String(e && e.message || e).slice(0, 80) }); }
     }
     out.writes = out.stored; out.next = i < list.length ? i : null; out.done = i >= list.length;
