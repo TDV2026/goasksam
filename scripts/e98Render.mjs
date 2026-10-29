@@ -17,14 +17,14 @@ export async function pageHtml(file, url, crew) {
 async function mcPageHtml(crew) { const k = crew ? "crew" : "pub"; return mcHtml[k] || (mcHtml[k] = await pageHtml("api/marketCheck.js", "/market-check", crew)); }
 export async function openMC(browser, fx, width, opts = {}) {
   const html = await mcPageHtml(opts.crew), p = await browser.newPage(); await p.setViewport({ width, height: 900, deviceScaleFactor: 1 }); p._posts = [];
-  await p.evaluateOnNewDocument(st => { window.gasTrack = () => {}; try { for (const [k, v] of Object.entries(st || {})) localStorage.setItem(k, v); } catch (e) {} }, opts.storage || null);
+  await p.evaluateOnNewDocument((st, sc) => { if (sc) window.GAS_WAIT_SCALE = sc; window.gasTrack = () => {}; try { for (const [k, v] of Object.entries(st || {})) localStorage.setItem(k, v); } catch (e) {} }, opts.storage || null, opts.scale || 0);
   if (opts.crew) await p.setCookie({ name: "gas_crew", value: (await crewCookie()).split("=")[1], domain: "goasksam.com", path: "/" });
   await p.setRequestInterception(true);
   p.on("request", r => { const u = new URL(r.url());
     if (u.host === "goasksam.com" && r.isNavigationRequest()) return r.respond({ status: 200, contentType: "text/html", body: html });
     const loc = /^\/obx\.[^/]+\/onebox\.js$/.test(u.pathname) ? "public/js/onebox.js" : (/^\/js(?:\.[^/]+)?\/([\w.-]+\.js)$/.exec(u.pathname) ? "public/js/" + /^\/js(?:\.[^/]+)?\/([\w.-]+\.js)$/.exec(u.pathname)[1] : null);
     if (u.host === "goasksam.com" && loc && fs.existsSync(path.join(ROOT, loc))) return r.respond({ status: 200, contentType: "application/javascript", body: fs.readFileSync(path.join(ROOT, loc), "utf8") });
-    if (u.host === "goasksam.com" && u.pathname === "/api/sellerDecision") { p._posts.push(1); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ status: "one_box", ...(p._posts.length > 1 && fx.second ? { ...fx.d, ...fx.second } : fx.d) }) }); }
+    if (u.host === "goasksam.com" && u.pathname === "/api/sellerDecision") { p._posts.push(1); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(fx.respond ? fx.respond(p._posts.length) : { status: "one_box", ...(p._posts.length > 1 && fx.second ? { ...fx.d, ...fx.second } : fx.d) }) }); }
     if (u.host === "goasksam.com" && /^\/api\//.test(u.pathname)) return r.respond({ status: 200, contentType: "application/json", body: "{}" });
     if (u.host !== "goasksam.com") return r.respond({ status: 204, body: "" }); r.continue(); });
   await p.goto("https://goasksam.com/market-check", { waitUntil: "networkidle2" }).catch(() => {});

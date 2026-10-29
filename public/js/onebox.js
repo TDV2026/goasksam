@@ -2684,7 +2684,7 @@
     if (typeof gasTrack === "function") gasTrack("identity_question_shown", { search_id: obSearchId || undefined, dimension: "competition", option_count: (d.variantChoices || []).length });
   }
   // COLD SPEC (Sam, Oct 28 2026, no dead ends): when the engine says the answer is computing, the search stays in place under "Sam is reading the sales for this one." with the
-  // live dots, the page asks again every retryAfterMs (2 seconds) for up to waitMaxMs (45 seconds) and draws the answer the moment it is stored. If the engine fails or the
+  // live dots, the page asks again every retryAfterMs for up to waitMaxMs (both the engine's) and draws the answer the moment it is stored. If the engine fails or the
   // time runs out, one plain line and the Have Sam keep looking button, and a cold_miss event with the spec and the wait. Nothing says "try again". GAS_WAIT_SCALE shortens the clock for the check only.
   // The words come from the engine's answer (samLine while computing, couldNotLine for the timeout; lib/reasonWords.js), never from this file.
   function obAskUntilRead(payload, t0, onComputing) {
@@ -2694,9 +2694,10 @@
       body: JSON.stringify(payload)
     }, 25000).then(function (r) { return r.json(); }).then(function (d) {
       if (d && d.status === "one_box" && d.tier === "unavailable" && d.computing === true) {
-        if (Date.now() - t0 >= (Number(d.waitMaxMs) || 45000) * k) return { couldNot: true, d: d };
+        if (Number(d.waitMaxMs) > 0 && Date.now() - t0 >= Number(d.waitMaxMs) * k) return { couldNot: true, d: d };   // the engine's wait, no number of the page's own
+        if (!(d.retry === true && Number(d.retryAfterMs) > 0)) return { couldNot: true, d: d };   // the engine says not to ask again
         onComputing(d);
-        return new Promise(function (res) { setTimeout(res, (Number(d.retryAfterMs) || 2000) * k); }).then(function () { return obAskUntilRead(payload, t0, onComputing); });
+        return new Promise(function (res) { setTimeout(res, Number(d.retryAfterMs) * k); }).then(function () { return obAskUntilRead(payload, t0, onComputing); });
       }
       return d;
     });

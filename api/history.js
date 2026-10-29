@@ -6,6 +6,7 @@
 // Indexing (Oct 2026): a car page is indexable when the car has at least two appearances that each carry a price (a sale or a bid), a real VIN, a make and model family, and live photos, and is
 // listed in /sitemap-vins.xml; every other page (single priced appearance, hubs, 404s) stays noindex.
 //   GET /sitemap-vins.xml -> sitemap index (?sitemap=index);  /sitemap-vins-N.xml -> page N (?sitemap=N)
+import { stillReadingMarket } from "../lib/live/search.js";
 import { asOfDate } from "../lib/asOf.js";
 import { reasonLine } from "../lib/reasonWords.js";
 import { withTracking } from "../lib/track/log.js";
@@ -253,16 +254,16 @@ function pooledOptionsHtml(d) {
   return lines.length ? `<ul class="opts">${lines.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : "";
 }
 // COLD SPEC (Sam, Oct 28 2026, no dead ends): a hub whose market is still being read draws this in the place of the range card. The page asks for itself again every 2 seconds
-// for up to 45 seconds and swaps the card in the moment it is stored; after that, one plain line and a cold_miss event. Nothing says "try again". (The engine finishes
+// for up to the engine's waitMaxMs and swaps the card in the moment it is stored; after that, one plain line and a cold_miss event. Nothing says "try again". (The engine finishes
 // behind the response and stores its row: api/_historyData.js oneBoxFor.)
 export const COLD_LINE = reasonLine("cold.reading"), COULD_NOT_LINE = reasonLine("cold.missed");
-function coldCardHtml() {
+export function coldCardHtml(cold) {   // cold: the engine's own pending market (lib/live/search.js stillReadingMarket): its retryAfterMs and waitMaxMs; no wait number of the page's own
   return `<section class="card anscard solo" id="sam-cold" aria-label="Cars like it"><div class="ans-main"><p class="landed" id="sam-cold-line">${esc(COLD_LINE)}</p></div></section>
-<script>(function(){var k=Number(window.GAS_WAIT_SCALE)||1,t0=Date.now(),el=document.getElementById("sam-cold");if(!el)return;
+<script>(function(){var k=Number(window.GAS_WAIT_SCALE)||1,W=${Number(cold && cold.waitMaxMs) > 0 ? Number(cold.waitMaxMs) : 0},R=${Number(cold && cold.retryAfterMs) > 0 ? Number(cold.retryAfterMs) : 0},t0=Date.now(),el=document.getElementById("sam-cold");if(!el)return;
 function stop(){clearInterval(iv)}
-function ask(){if(Date.now()-t0>=45000*k){stop();var l=document.getElementById("sam-cold-line");if(l)l.textContent=${JSON.stringify(COULD_NOT_LINE)};try{if(typeof gasTrack==="function")gasTrack("cold_miss",{wait_ms:Math.round(Date.now()-t0),reason:"timeout",text:document.title.slice(0,120),from_product:"site"})}catch(e){}return}
+function ask(){if(W>0&&Date.now()-t0>=W*k){stop();var l=document.getElementById("sam-cold-line");if(l)l.textContent=${JSON.stringify(COULD_NOT_LINE)};try{if(typeof gasTrack==="function")gasTrack("cold_miss",{wait_ms:Math.round(Date.now()-t0),reason:"timeout",text:document.title.slice(0,120),from_product:"site"})}catch(e){}return}
 fetch(location.pathname+location.search,{cache:"no-store",credentials:"same-origin"}).then(function(r){return r.text()}).then(function(h){var doc=new DOMParser().parseFromString(h,"text/html");if(doc.getElementById("sam-cold"))return;stop();var card=doc.querySelector("section.anscard");if(card)el.outerHTML=card.outerHTML;else el.remove()}).catch(function(){})}
-var iv=setInterval(ask,2000*k)})();</script>`;
+var iv=R>0?setInterval(ask,R*k):0})();</script>`;
 }
 export function oneBoxBlock(d, id, oneboxHref, ctx) {
   if (!d) return "";
@@ -695,7 +696,7 @@ async function hubPage(req, res, env, slug) {
   }).join("");
   const body = `
 <div><span class="eyebrow">${esc(id.family)} · Auction results</span><h1 style="margin:6px 0 0;font:600 40px/1.12 var(--serif)">${esc(name)} auction results</h1></div>
-${cold.timedOut && !d ? coldCardHtml() : oneBoxBlock(d, id, `/market-check?q=${encodeURIComponent(name)}`, "")}
+${cold.timedOut && !d ? coldCardHtml(stillReadingMarket()) : oneBoxBlock(d, id, `/market-check?q=${encodeURIComponent(name)}`, "")}
 <p class="answer" style="margin:0">${esc(ctx)}</p>
 <section class="card"><div class="sh"><h2>Every ${esc(name)} by VIN</h2><span class="muted">Newest sale first</span></div>
 <table class="stack"><thead><tr><th><span style="position:absolute;left:-9999px">Photo</span></th><th>VIN</th><th class="r">Appearances</th><th>Last result</th><th>Date</th><th class="r">Miles</th></tr></thead><tbody>${rows}</tbody></table></section>
