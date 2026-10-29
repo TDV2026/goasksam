@@ -25,6 +25,18 @@ for (const kind of ["body_choice", "generation_choice", "model_choice", "needs_c
 }
 { const { sell, drawn } = mk(); sell.onCarEarly(computing, "x"); sell.onCar(result, "x"); ok(drawn.length === 1, "a result arriving after the early question draws nothing more (unchanged)"); if (sell.onEarlyEnd) sell.onEarlyEnd(); ok(drawn.length === 1, "onEarlyEnd after a consumed early question is a no-op"); }
 { const { sell, drawn } = mk(); sell.onCarEarly(computing, "x"); sell.onEarlyEnd && sell.onEarlyEnd(); ok(typeof sell.onEarlyEnd === "function" && sell.onCar({ ...result, resolvedCar: {} }, "x") === false, "a refusal after the early question: Sell steps aside for One Box's screen"); }
+
+// THE SWAP IS SAFE (Lane E, follow-up): a state answered while the early question was up is kept when the body question arrives, and the next search goes on to the next unanswered question.
+{ const { sell, drawn } = mk(); sell.onCarEarly(computing, "2004 Porsche 911"); sell.onSubmit("Texas");
+  ok(/How would you like to sell it/.test(drawn[drawn.length - 1]), "the state answered during the early question moves on to the how question");
+  sell.onEarlyEnd(); const d0 = drawn.length;
+  sell.onCarEarly(computing, "2004 Porsche 911 Coupe");
+  ok(/How would you like to sell it/.test(drawn[drawn.length - 1]) && !drawn.slice(d0).some(x => /Which state/.test(x)), "after the body question the state is not asked again: the how question is drawn");
+  sell.onCar(result, "2004 Porsche 911 Coupe"); ok(!/Which state/.test(drawn[drawn.length - 1]) && drawn.slice(d0).length === 1, "the result arriving afterwards draws nothing more"); }
+{ const { sell, drawn } = mk(); sell.onCarEarly(computing, "x"); sell.onEarlyEnd(); sell.onCarEarly(computing, "x y");
+  ok(/Which state/.test(drawn[drawn.length - 1]), "nothing answered before the swap: the next search asks the state question as before"); }
+{ const { sell, drawn } = mk(); sell.onCarEarly(computing, "x"); sell.onSubmit("Texas"); sell.onEarlyEnd(); sell.onCar(result, "x y");
+  ok(/How would you like to sell it/.test(drawn[drawn.length - 1]), "an answer carried over is used when the next answer arrives without an early question (onCar)"); }
 const src = fs.readFileSync(new URL("../public/js/onebox.js", import.meta.url), "utf8"), i = src.indexOf("obAskUntilRead(payload, coldT0"), blk = src.slice(i, i + 12000);
 ok(/SELL\.onEarlyEnd/.test(blk) && /finally/.test(blk) && /viaFinish/.test(blk), "One Box ends the early question on every answer that does not reach onCar (finally), and in the catch");
 console.log(`earlyQuestionEndCheck: ${pass} pass, ${fail} fail`); process.exit(fail ? 1 : 0);
