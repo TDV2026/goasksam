@@ -16,6 +16,7 @@ globalThis.fetch = async (url) => { const u = new URL(String(url)); if (u.hostna
 let fail = 0; const ok = (n, c, d) => { if (!c) fail++; console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? "  " + d : ""}`); };
 const S = await import(pathToFileURL(path.join(root, "lib/live/search.js")).href);
 const env = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
+// clock: real-ok the stored row is stamped "now" and read back at once, so no assertion depends on the date
 const row = raw => ({ computed_at: new Date().toISOString(), market: { raw, engineVersion: E.ENGINE_VERSION, warmEpoch: null } });
 for (const failed of [["typed_words_honoured_or_wider"], ["receipts_carry_resolved_car"], ["label_span_within_receipts", "typed_words_honoured_or_wider"], ["typed_model_mismatch"], ["range_from_receipts_only"], ["identity_options_sum_to_pool"]]) {
   ROW = row({ tier: "refusal", poolN: 11, rawPool: [{ id: "a" }], refusal: { kind: "invariant_failed", failedChecks: failed } });
