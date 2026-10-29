@@ -97,6 +97,7 @@ ok(!sellsForCardHtml({ cluster: [21000, 31000], poolN: 18, windowMonths: 12, rea
 
 // latestQuarterRowHtml - the trendQuarters shape (Lane B's e58), oldest first, latest is the last element.
 const shown = latestQuarterRowHtml({
+  latestQuarterLine: "Latest quarter: 2026 Q3, $120,000 to $133,000 (9 sales)",   // the engine's sentence (the card prints it, Oct 29 2026)
   cluster: [100000, 120000],
   trendQuarters: [
     { period: "2025-Q4", low: 90000, high: 110000, count: 12, thin: false },
@@ -104,7 +105,7 @@ const shown = latestQuarterRowHtml({
   ]
 });
 ok(shown === '<p class="sfc-quarter">Latest quarter: 2026 Q3, $120,000 to $133,000 (9 sales)</p>', "latest quarter: exact brief wording");
-ok(latestQuarterRowHtml({ cluster: [100000, 120000], trendQuarters: [{ period: "2026-Q3", low: 102000, high: 122000, count: 9, thin: false }] }) === "", "latest quarter hidden: midpoint too close to the main range");
+ok(latestQuarterRowHtml({ latestQuarterLine: "Latest quarter: 2026 Q3, $102,000 to $122,000 (9 sales)", cluster: [100000, 120000], trendQuarters: [{ period: "2026-Q3", low: 102000, high: 122000, count: 9, thin: false }] }) === "", "latest quarter hidden: midpoint too close to the main range");
 ok(latestQuarterRowHtml({ cluster: [100000, 120000], trendQuarters: [{ period: "2026-Q3", low: 150000, high: 170000, count: 5, thin: true }] }) === "", "latest quarter hidden: thin flag from the engine");
 ok(latestQuarterRowHtml({ trendQuarters: [{ period: "2026-Q3", low: 150000, high: 170000, count: 9, thin: false }] }) === "", "latest quarter hidden: no main range to compare against");
 
@@ -115,7 +116,7 @@ vm.createContext(sandbox);
 vm.runInContext(SELLS_FOR_CARD_JS, sandbox);
 const fixture = { cluster: [121000, 134000], poolN: 42, windowMonths: 12, readAt: "2026-10-14T08:00:00Z" };
 ok(sandbox.window.sellsForCardHtml(fixture, {}) === sellsForCardHtml(fixture, {}), "client embedding is byte-identical to the Node function");
-const quarterFixture = { cluster: [100000, 120000], trendQuarters: [{ period: "2026-Q3", low: 120000, high: 133000, count: 9, thin: false }] };
+const quarterFixture = { latestQuarterLine: "Latest quarter: 2026 Q3, $120,000 to $133,000 (9 sales)", cluster: [100000, 120000], trendQuarters: [{ period: "2026-Q3", low: 120000, high: 133000, count: 9, thin: false }] };
 ok(sandbox.window.latestQuarterRowHtml(quarterFixture) === latestQuarterRowHtml(quarterFixture) && sandbox.window.latestQuarterRowHtml(quarterFixture) === shown, "client latestQuarterRowHtml is byte-identical to the Node function");
 
 console.log(`sellsForCardCheck: ${passes} passed, ${fails} failed`);
