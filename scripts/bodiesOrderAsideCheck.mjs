@@ -14,6 +14,7 @@ const E = await import(pathToFileURL(path.join(root, "lib/onebox.js")).href), B 
 // 1. real titles
 const TITLES = [["2008 BMW 335i Touring M Sport", "wagon"], ["2008 BMW 328xi Sports Wagon", "wagon"], ["2013 Audi RS6 Avant", "wagon"], ["2011 Cadillac CTS-V Sport Wagon", "wagon"], ["1999 Mercedes-Benz E320 Estate", "wagon"], ["2014 Ferrari FF Shooting Brake", "wagon"], ["2012 Porsche Panamera Gran Turismo", "hatchback"], ["1991 Honda CRX Hatchback", "hatchback"],
   ["2008 BMW 328i Convertible", "convertible"], ["2008 BMW 335i Coupe", "coupe"], ["2008 BMW 328i Sedan", "sedan"], ["1995 Volkswagen Vanagon Van", "van"], ["2005 Ford F-150 Crew Cab Pickup", "pickup"], ["2018 Land Rover Range Rover SUV", "suv"],
+  ["1958 Porsche 356 A 1600 Speedster by Reutter", "roadster"], ["1989 Porsche 911 Speedster", "roadster"], ["2001 Ferrari 550 Barchetta Pininfarina", "roadster"], ["1936 Ford V8 Phaeton", "convertible"], ["1934 Bentley 3½-Litre All-Weather Tourer by Barker", "convertible"], ["1967 Lincoln Continental Executive Limousine by Lehmann-Peterson", "sedan"],   // live titles the bodywords read found unread (Oct 29 2026)
   ["2004 Aston Martin Vanquish", null], ["1961 Ferrari 250 GT Touring Superleggera", null], ["2019 Porsche 911 Carrera T Touring", null], ["Estate sale lot: 1962 Jaguar poster", null]];
 for (const [t, want] of TITLES) ok(`"${t}" reads as ${want || "no body"}`, B.bodyFromText(t) === want, String(B.bodyFromText(t)));
 // 2. the 2008 3-Series, built from those titles
