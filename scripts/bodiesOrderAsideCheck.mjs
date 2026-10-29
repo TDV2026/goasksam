@@ -32,6 +32,10 @@ const unnamed = pool.filter(r => !opts.some(x => String(x.value) === (B.bodyFrom
 ok("no sale whose title names a known body is counted as not saying its body", unnamed.every(r => !B.bodyFromText(r.rtitle)), unnamed.filter(r => B.bodyFromText(r.rtitle)).map(r => r.rtitle).join(" | "));
 const bodiesInPool = new Set(pool.map(r => B.bodyFromText(r.rtitle)).filter(Boolean)), line = String(d.scopeLine || "").toLowerCase();
 ok("every body the sales carry is named in the title line", [...bodiesInPool].every(b => line.includes(b === "convertible" ? "convertible" : b + "s".slice(0, 0))) && /wagons/.test(line), d.scopeLine);
+// the open bodies are one word in the title line (cabriolet, convertible, roadster: Oct 29 2026, "Cabriolets, convertibles, coupes and sedans" on the narrowed 2008 3-Series)
+{ const mix = ["2008 BMW 328i Convertible", "2008 BMW 335i Cabriolet", "2008 BMW 335i Coupe", "2008 BMW 328i Sedan"].map((t, i) => ({ id: "m" + i, _usd: 9000 + i, auction_end_date: "2026-05-1" + i, year: 2008, rtitle: t, raw_title: t }));
+  const l = String(E.scopeLineOf({ tier: "result", rawPool: mix, resolvedCar: { year: 2008, canonicalLabel: "2008 BMW 3-Series" }, poolYears: [2008, 2008], freshness: { through: "2026-10-16" }, options: [{ dimension: "body", value: "open", label: "Convertible" }], rungLabel: "2008 3-Series, convertibles, coupes and sedans" })).toLowerCase();
+  ok("the title line says the open body once (convertibles), never cabriolets beside convertibles", /convertibles/.test(l) && !/cabriolets/.test(l), l); }
 // 3. the set-aside line
 const ASIDE = [[{ "odd sale": 5 }, "5 odd sales set aside."], [{ "odd sale": 1 }, "1 odd sale set aside."], [{ "odd sale": 3, modified: 2 }, "3 odd sales and 2 modified sales set aside."], [{ project: 1 }, "1 project car set aside."]];
 for (const [r, want] of ASIDE) ok(`set-aside line ${JSON.stringify(r)}: "${want}"`, E.setAsideLineOf(r, null) === want, E.setAsideLineOf(r, null));
