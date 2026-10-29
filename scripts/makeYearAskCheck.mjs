@@ -86,7 +86,9 @@ for (const [q, want] of CASES) {
 {
   const C = await import(pathToFileURL(path.join(root, "lib/calculatorYears.js")).href).catch(() => null);
   ok("the calculator fills a model the taxonomy has no years for (Huracan 2014 to 2024)", !!C && JSON.stringify(C.calculatorYearsFor("Lamborghini", "Huracan")) === "[[2014,2024]]");
-  ok("a family takes the span of its variants (Corvette from C1 to C8)", !!C && (() => { const r = C.calculatorYearsFor("Chevrolet", "Corvette"); return r && r[0][0] === 1953 && r[0][1] >= 2024; })());
+  ok("a family takes the spans of its variants (Corvette C1 to C8, 1983 a gap)", !!C && JSON.stringify(C.calculatorYearsFor("Chevrolet", "Corvette")) === "[[1953,1982],[1984,2026]]");
+  ok("a gap stays a gap (Supra 1981 to 2002 and 2019 on, Ford GT 2005 to 2006 and 2017 to 2022)", !!C && JSON.stringify(C.calculatorYearsFor("Toyota", "Supra")) === "[[1981,2002],[2019,2026]]" && JSON.stringify(C.calculatorYearsFor("Ford", "GT")) === "[[2005,2006],[2017,2022]]");
+  ok("the Dodge Daytona is 1984 to 1993 for the question (the calculator says 1992 to 2005)", !!C && JSON.stringify(C.chipYearOverride("Dodge", "Daytona")) === "[[1984,1993]]");
   ok("Silverado starts in 1999 for the question (the calculator's own span starts at the 1960 C10)", !!C && JSON.stringify(C.chipYearOverride("Chevrolet", "Silverado")) === "[[1999,2026]]");
 }
 console.log(fail ? `makeYearAskCheck: ${fail} failure(s)` : "makeYearAskCheck: all pass");
