@@ -1,6 +1,7 @@
 // /sell conversation endpoint (Lane C, Oct 2026): POST {action:"chat", messages, state, turns} ->
 // text/event-stream through the shared chat endpoint (lib/live/chatHttp.js). "done" carries the page
 // data the turn produced: places, tiles, the latest sales and a matched PowerSeller.
+import { reasonLine } from "../lib/reasonWords.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { chatOut } from "../lib/live/chatHttp.js";
 import { runSellTurn } from "../lib/sell/sellChat.js";
@@ -43,7 +44,7 @@ export default async function handler(req, res) {
       if (b.step === "rest") return res.status(200).json(await buildRest(env, { carText: String(b.car || "").slice(0, 300), state: stateOf(b.state) || null, how: ["self", "handled", "house", "unsure"].includes(b.how) ? b.how : "unsure", rush: ["fast", "month", "none"].includes(b.rush) ? b.rush : null }));
       if (b.step === "result") return res.status(200).json(await buildResult(env, { carText: String(b.car || "").slice(0, 300), state: stateOf(b.state) || null, how: ["self", "handled", "house", "unsure"].includes(b.how) ? b.how : "unsure", rush: ["fast", "month", "none"].includes(b.rush) ? b.rush : null }));
       return res.status(400).json({ error: "unknown step" });
-    } catch (e) { console.error("sell flow failed:", (e && e.stack) || e); return res.status(500).json({ error: "Sam couldn't read that just now." }); }
+    } catch (e) { console.error("sell flow failed:", (e && e.stack) || e); return res.status(500).json({ error: "Sam couldn't read that just now.", couldNotLine: reasonLine("cold.missed") }); }   // never a bare error: the page prints the engine's line
   }
   // Probe (header credential): how a car resolves and what each pool step holds.
   if (b.action === "probe" && hasServerCredential(req)) {

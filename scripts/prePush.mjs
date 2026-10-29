@@ -1439,6 +1439,13 @@ try {
 } catch (e) {
   record("VIN: the VIN answer and the typed answer of the same car are the same, field by field (scripts/vinTypedCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The Sell flow never ends on the watch line alone, and a search never hangs without end (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/sellEndingCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Sell: the flow always ends on an answer or a plain sentence, and a wait always ends (scripts/sellEndingCheck.mjs)", "PASS", (out.match(/sellEndingCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Sell: the flow always ends on an answer or a plain sentence, and a wait always ends (scripts/sellEndingCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // An ended lot never stays unmarked past one pull cycle (Lane B, Oct 29 2026).
 try {
   const out = execSync("node scripts/endedLotCheck.mjs", { encoding: "utf8", timeout: 120000 });
