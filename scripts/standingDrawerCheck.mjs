@@ -16,7 +16,10 @@ const ck = await crewCookie();
 if (!ck) { console.log("standingDrawerCheck: SKIP (no crew code in the Keychain: the live search behind the drawer is sealed to the public)"); process.exit(0); }
 let bypass = ""; try { bypass = execFileSync("security", ["find-generic-password", "-s", "goasksam-bypass", "-w"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch {}
 const buy = (await import("../api/buy.js")).default;
+import { freshenEndTimes, freshenEndTimesText } from "./_pinEndTimes.mjs";
 const FIX = JSON.parse(fs.readFileSync(new URL("./fixtures/findSl65Search.json", import.meta.url), "utf8"));
+// End times of every answer are pinned to the clock (scripts/_pinEndTimes.mjs): the real listing ends when it ends.
+freshenEndTimes(FIX);
 async function html() {
   const res = { code: 200, headers: {}, body: null, setHeader(k, v) { this.headers[k] = v; }, getHeader() {}, status(c) { this.code = c; return this; }, send(b) { this.body = b; return this; }, json(b) { this.body = JSON.stringify(b); return this; }, end(b) { if (b) this.body = b; return this; }, writeHead() {} };
   await buy({ method: "GET", headers: { host: "goasksam.com", cookie: "" }, query: { q: "2005 mercedes-benz sl65 amg" }, url: "/find?q=2005+mercedes-benz+sl65+amg", socket: {} }, res);
@@ -68,11 +71,16 @@ async function scenario({ mode = "ok", stored = [SPEC], signedIn = true, alertMo
       if (process.env.DEBUG_DRAWER) console.log('buySearch body', Object.keys(a).join(','), a.action || '');
       if (!a.action) return json(FIX);
       const h = { ...rq.headers() }; delete h.authorization;   // the live search is anonymous here; only the arm calls are faked
-      return rq.continue({ headers: h });
+      // the engine answers over the network from here; its end times are pinned to the clock before the page reads them
+      try {
+        const r = await fetch("https://goasksam.com/api/buySearch", { method: "POST", headers: { "content-type": "application/json", cookie: "gas_crew=" + ck, ...(bypass ? { "x-vercel-protection-bypass": bypass } : {}) }, body: rq.postData() || "{}", signal: AbortSignal.timeout(45000) });
+        const out = freshenEndTimesText(await r.text());
+        return rq.respond({ status: r.status, contentType: r.headers.get("content-type") || "application/json", headers: { "access-control-allow-origin": "*" }, body: out });
+      } catch { return rq.continue({ headers: h }); }
     }
     rq.continue();
   });
-  await p.goto("https://goasksam.com/find?q=" + encodeURIComponent("2005 mercedes-benz sl65 amg"), { waitUntil: "networkidle2", timeout: 60000 });
+  await p.goto("https://goasksam.com/find?q=" + encodeURIComponent("2005 mercedes-benz sl65 amg"), { waitUntil: "domcontentloaded", timeout: 60000 });
   await p.waitForSelector('[data-mc]', { timeout: 60000 }).catch(() => {});
   await new Promise(r => setTimeout(r, 1500));
   await p.evaluate(() => { const b = document.querySelector("[data-mc]"); if (b) b.click(); });

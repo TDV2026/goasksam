@@ -1743,6 +1743,13 @@ try {
 } catch (e) {
   record("everything that can email a person is on the Tasks page with a Stop; 'about two hours before' everywhere (scripts/standingNoticesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Checks that read a real auction end time pin it to the clock (Lane D, Oct 29 2026): the before-it-ends toggle is off inside two hours, so an unpinned check changes verdict with the hour. Offline.
+try {
+  const out = execSync("node scripts/clockPinCheck.mjs", { encoding: "utf8", timeout: 60000 });
+  record("checks that read an auction end time pin it to the clock (scripts/clockPinCheck.mjs)", "PASS", (out.match(/clockPinCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("checks that read an auction end time pin it to the clock (scripts/clockPinCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | ") || String(e.message).slice(0, 200));
+}
 // The Find drawer in Chrome (Lane D, Oct 29 2026): this branch's page code against a fake server, a stored Find answer for the 2005 SL65 AMG. Needs Chrome, the network and the crew code in the Keychain; says SKIP without them.
 try {
   const out = execSync("node scripts/standingDrawerCheck.mjs", { encoding: "utf8", timeout: 600000 });
