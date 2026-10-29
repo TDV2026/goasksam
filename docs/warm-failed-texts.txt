@@ -1,0 +1,126 @@
+# Warm texts that did not store after two passes (Lane C, Oct 29, pinned bee760b6 build). kind | text | reason from the retry
+mc | 2022 Airstream Conversion | unresolved
+mc | 2006 Audi A6 wagon | stored under an older engine stamp
+mc | 2013 BAC Mono | unresolved
+mc | 1972 BMW 0CS | stored under an older engine stamp
+mc | 1973 BMW 0CS | stored under an older engine stamp
+mc | 2013 BMW 1-Series | stored under an older engine stamp
+mc | 1991 BMW 3-Series | stored on retry (engine_version_mismatch)
+mc | 1998 BMW 3-Series | stored under an older engine stamp
+mc | 1987 BMW 5-Series | stored under an older engine stamp
+mc | 2000 BMW 5-Series | stored under an older engine stamp
+mc | 2018 BMW 7-Series | stored under an older engine stamp
+mc | 1973 BMW E9 coupe | stored under an older engine stamp
+mc | 2006 BMW Z4 M coupe | no answer row
+mc | 2007 BMW Z4 M coupe | no answer row
+mc | 1994 Chevrolet Blazer 4X4 | stored on retry (engine_version_mismatch)
+mc | 1964 Chevrolet Corvette L84 | stored on retry (engine_version_mismatch)
+mc | C4 Chevrolet Corvette | no answer row
+mc | 1963 Chevrolet Corvette coupe | stored under an older engine stamp
+mc | 1987 Chevrolet Silverado R10 | no answer row
+mc | 1995 Chevrolet Silverado Z71 | no answer row
+mc | 1992 Chevrolet Silverado | stored under an older engine stamp
+mc | 1969 Dodge Dart | stored on retry (engine_version_mismatch)
+mc | Ferrari 308 | no answer row
+mc | 2022 Ford Bronco | stored under an older engine stamp
+mc | 1936 Ford Deluxe | stored on retry (engine_version_mismatch)
+mc | 1955 Ford F-Series | stored under an older engine stamp
+mc | 1990 Ford F-Series | stored under an older engine stamp
+mc | 1960 Ford Galaxie | stored on retry (engine_version_mismatch)
+mc | 1930 Ford Model A | stored on retry (engine_version_mismatch)
+mc | 1993 Ford Mustang LX | stored on retry (engine_version_mismatch)
+mc | 1936 Ford Mustang | stored under an older engine stamp
+mc | 1993 Ford Mustang | stored on retry (engine_version_mismatch)
+mc | 2008 Ford Mustang | stored under an older engine stamp
+mc | 1977 Ford Ranger | stored under an older engine stamp
+mc | 1989 Formula 1 Grand Prix Racing Programmes | unresolved
+mc | 1994 Formula 1 Grand Prix Racing Programmes | unresolved
+mc | 2005 Formula 1 Grand Prix Racing Programmes | unresolved
+mc | 1947 Frazer Manhattan | unresolved
+mc | 1968 International Harvester Travelall 1100C | unresolved
+mc | 1969 Jaguar E-Type Series 2 | stored on retry (engine_version_mismatch)
+mc | 1969 Jaguar E-Type | stored on retry (engine_version_mismatch)
+mc | 1972 Jaguar E-Type Series III | stored under an older engine stamp
+mc | 1999 Lada Niva | unresolved
+mc | 1969 Lancia Fulvia | stored under an older engine stamp
+mc | 2008 Land Rover Defender | no answer row
+mc | 2009 Land Rover Defender | no answer row
+mc | 2011 Land Rover Defender | no answer row
+mc | 2013 Land Rover Defender | no answer row
+mc | 2003 Land Rover Discovery | stored under an older engine stamp
+mc | Lexus SC | no answer row
+mc | 1967 Mercedes-Benz 250SE | no answer row
+mc | 1984 Mercedes-Benz 300GD | no answer row
+mc | 2019 Mercedes-Benz AMG GT GT C Roadster | stored under an older engine stamp
+mc | 2019 Mercedes-Benz AMG GT GT C | stored under an older engine stamp
+mc | 2019 Mercedes-Benz AMG GT Roadster | stored under an older engine stamp
+mc | 2019 Mercedes-Benz AMG GT | stored under an older engine stamp
+mc | 1985 Mercedes-Benz E-Class 190E AMG | no answer row
+mc | 1990 Mercedes-Benz E-Class 190E Evolution | no answer row
+mc | 1992 Mercedes-Benz E-Class 190E W201 | no answer row
+mc | 1993 Mercedes-Benz E-Class 190E W201 | no answer row
+mc | 1985 Mercedes-Benz E-Class 190E cabriolet | no answer row
+mc | 1989 Mercedes-Benz E-Class 190E | no answer row
+mc | 1990 Mercedes-Benz E-Class 190E | no answer row
+mc | 1992 Mercedes-Benz E-Class 190E | no answer row
+mc | 1992 Mercedes-Benz E-Class 400E | no answer row
+mc | 1993 Mercedes-Benz E-Class 500E AMG | no answer row
+mc | 2016 Mercedes-Benz E-Class | stored under an older engine stamp
+mc | 1987 Mercedes-Benz S-Class | stored under an older engine stamp
+mc | 1995 Mercedes-Benz S-Class | stored under an older engine stamp
+mc | 2003 Mercedes-Benz S-Class | stored under an older engine stamp
+mc | 2018 Mercedes-Benz S-Class | stored under an older engine stamp
+mc | 2004 Mercedes-Benz SL-Class | stored under an older engine stamp
+mc | 2005 Mercedes-Benz SL-Class | stored under an older engine stamp
+mc | 2013 Mini Cooper coupe | no answer row
+mc | 2013 Mini Cooper | stored under an older engine stamp
+mc | 1904 MMC 10hp Twin-Cylinder Rear-Entrance Tonneau | unresolved
+mc | 1988 Official Formula 1 Opus: Classic Edition; published | unresolved
+mc | 2003 Pagsta other | unresolved
+mc | 2016 Porsche 356 Powered Replica BY Intermeccan Speedster | stored on retry (no_row)
+mc | Porsche 356 | stored on retry (no_row)
+mc | Porsche 911 R | no answer row
+mc | Porsche 911 Targa | no answer row
+mc | 1986 Porsche 911 | stored under an older engine stamp
+mc | 1988 Porsche 911 | no answer row
+mc | 1990 Porsche 911 | no answer row
+mc | 2001 Porsche 911 | stored under an older engine stamp
+mc | 2003 Porsche 911 | stored under an older engine stamp
+mc | 2019 Porsche 911 | stored under an older engine stamp
+mc | 2024 Porsche 911 | stored under an older engine stamp
+mc | 2025 Porsche 911 | stored under an older engine stamp
+mc | 2026 Porsche 911 | stored under an older engine stamp
+mc | Porsche 992 | stored on retry (engine_version_mismatch)
+mc | 1995 Porsche 993 Carrera cabriolet | stored under an older engine stamp
+mc | 1996 Porsche 993 Targa | stored under an older engine stamp
+mc | Porsche 996 | stored under an older engine stamp
+mc | Porsche 997 | stored under an older engine stamp
+mc | 2015 Porsche Cayenne | stored under an older engine stamp
+mc | 2016 Porsche Cayenne | stored under an older engine stamp
+mc | 2019 Porsche Macan | stored under an older engine stamp
+mc | 1986 Porsche Speedster Speedster | stored under an older engine stamp
+mc | 2024 Rezvani Tank | unresolved
+mc | 2010 Rossion Q1 | unresolved
+mc | Shelby Cobra Replica | stored on retry (no_row)
+mc | 1967 Shelby Cobra | stored on retry (engine_version_mismatch)
+mc | 1985 Spirit of Ecstasy' showroom display statue | unresolved
+mc | 2004 Steyr-Puch Pinzgauer | stored under an older engine stamp
+mc | 2015 Subaru Forester 2401R | unresolved
+mc | 2015 Toyota Corolla | stored on retry (engine_version_mismatch)
+mc | 2024 VinFast VF8 Plus | unresolved
+mc | 2015 Volvo V60 | stored under an older engine stamp
+core | 2000 BMW 3-Series Z3 Roadster | no answer row
+core | 2008 Land Rover Defender | no answer row
+core | 2011 Land Rover Defender | no answer row
+core | Porsche 911 Turbo | stored on retry (no_row)
+core | 1994 Porsche 911 | no answer row
+core | 2026 Porsche 911 | stored under an older engine stamp
+scopedout | 1969 Jaguar E-Type Series 2 4.2 FHC | stored on retry (engine_version_mismatch)
+scopedout | 2019 Mercedes-AMG GT 53 4MATIC+ | no answer row
+scopedout | 1930 Ford Model A | stored on retry (engine_version_mismatch)
+scopedout | 1969 Jaguar E-Type Series 2 4.2 2+2 FHC | stored on retry (engine_version_mismatch)
+scopedout | 2014 Porsche Macan Turbo | no answer row
+scopedout | 2000 BMW Z3 Roadster Manual 2.0 Straight 6 (E36) - 49k miles | no answer row
+scopedout | 2026 Porsche 911 Spirit 70 | stored under an older engine stamp
+scopedout | 1967 Chevrolet Corvette Sting Ray 427/400 Convertible | no answer row
+scopedout | 2008 Mercedes-Benz CL 600 | no answer row
