@@ -1077,6 +1077,7 @@
     // Sam's evening order (Oct 21 2026): with no chart the line is the existing "N sales. Too few to show movement, enough to show
     // where they landed." (the same words as the thin-tile line), N the engine's pool size, whatever the pool size.
     var held = chartHeldSentence(d); if (held) return '<p class="hero-noband" data-stage="answer">' + lint(esc(held), "hero.chartheld") + "</p>";
+    if (d && d.chart && d.chart.type === "withheld") return "";   // the engine withheld the chart and sent no sentence: the page writes none (its "too few" line would be wrong for the mix reason)
     var n = d ? heroPoolSizeNum(d) : NaN;
     var said = Number.isFinite(n) && n > 0 ? obCount(n, "sale", { cap: true }) + ". Too few to show movement, enough to show where they landed." : "Too few sales to show movement, enough to show where they landed.";
     return '<p class="hero-noband" data-stage="answer">' + lint(esc(said), "hero.nochart") + "</p>";
@@ -1086,15 +1087,14 @@
   //   a. candles: the engine's d.trend buckets (candleChartHtml), as before.
   //   b. option-scoped candles: d.chart.scope.line, the engine's own sentence ("Manual sales only, so the mix stays comparable"), small and grey above the same candle chart.
   //   NEVER A DOT (Sam's ruling, Oct 28 2026): no per-sale point is drawn anywhere; an engine that sends chart.type "dots" gets the candles (or the withheld panel), never points.
-  //   c. withheld: the heading with the engine's withheld sentence under it (answer.chart.note, else answer.chart.withheld.line: the engine's words, none of the page's own).
+  //   c. no chart, for ANY reason (mix changed, too few, or no chart object at all): NO panel. The page draws no chart heading and no right column; the card and the narrow strip take the full width and the engine's one sentence
+  //      (answer.chart.note, else answer.chart.withheld.line, none of the page's own) is one line under the pills (noChartLineHtml), where the sales behind the answer move up.
   function chartPanelHtml(d) {
     var ch = d && d.chart && typeof d.chart === "object" ? d.chart : null, head = "<h2>How this market has moved</h2>", inner;
     if ((inner = candleChartHtml(d))) {
       var sc = ch && ch.type === "candles" && ch.scope && typeof ch.scope === "object" && typeof ch.scope.line === "string" ? ch.scope.line.trim() : "";
       return '<div class="hero-chart" data-chart="' + (sc ? "scoped" : "candles") + '">' + head + (sc ? '<p class="hc-scope">' + lint(esc(sc), "hc.scope") + "</p>" : "") + '<div class="hc-body">' + inner + "</div></div>";
     }
-    var held = chartHeldSentence(d);
-    if (held) return '<div class="hero-chart hc-held" data-chart="withheld">' + head + '<div class="hc-body"><p class="hc-note" data-stage="answer">' + lint(esc(held), "hero.chartheld") + "</p></div></div>";
     return "";
   }
   function heroChartHtml(d) { return chartPanelHtml(d); }

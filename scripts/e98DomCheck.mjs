@@ -1,7 +1,7 @@
 import { optionProblems } from "../lib/optionProblems.js";
 // The DOM rules of the number rule, shared by underlineCheck.mjs (fixtures) and e98LiveCheck.mjs (production): read the COMPUTED styles of every answer card on a page.
 export const inPage = () => {
-  const out = { under: [], small: [], tiny: [], text: [], lines: [], bigLinks: [], contradict: [], keep: [], sale: [], classes: [], specs: [], panels: [], strip: null, pillsInCard: [], slots: [], chipWrap: [], findBad: [], footers: [], slotRows: 0, counts: null, sales: null, ranges: [], yearNo: null, chartText: [], linkPos: [], metaBad: [], single: null, gaps: 0, bidWords: [], printed: null };
+  const out = { under: [], small: [], tiny: [], text: [], lines: [], bigLinks: [], contradict: [], keep: [], sale: [], classes: [], specs: [], panels: [], strip: null, pillsInCard: [], slots: [], chipWrap: [], findBad: [], footers: [], slotRows: 0, counts: null, sales: null, ranges: [], yearNo: null, chartText: [], linkPos: [], metaBad: [], single: null, gaps: 0, bidWords: [], printed: null, pointerDup: [], noband: [] };
   const vis = e => { const r = e.getBoundingClientRect(), s = getComputedStyle(e); return r.width > 2 && r.height > 2 && s.visibility !== "hidden" && s.display !== "none"; };
   const cards = [...document.querySelectorAll(".sfc-card, .car .sl")];
   const underlined = e => { for (let n = e; n && n !== document.body; n = n.parentElement) { if (/underline/.test(getComputedStyle(n).textDecorationLine || "")) return true; } return false; };
@@ -56,6 +56,7 @@ export const inPage = () => {
     if ((txt.match(/\$[\d,]+ to \$[\d,]+/g) || []).length > 1) out.findBad.push("a second range: " + txt.slice(0, 80));
     if (/Near [\d,]+ miles|miles near|near [\d,]+ miles/i.test(txt)) out.findBad.push("a near-miles or mileage band line: " + txt.slice(0, 80));
     if (kids.length && (kids.length > 3 || !kids.every(e => /fx-spec|fx-ans|fx-count/.test(e.className)))) out.findBad.push("the Sam box is not spec, answer, one small line: " + kids.map(e => e.className).join(",")); }
+  for (const c of document.querySelectorAll("article.car")) { const btn = [...c.querySelectorAll("button[data-mc]")].find(b => /See the sales/.test(b.innerText)), sl = (c.querySelector(".sl") || {}).innerText || ""; if (btn && /See the sales for all/i.test(sl)) out.pointerDup.push(sl.replace(/\s+/g, " ").slice(0, 80)); }
   // the Market Check card's footer
   for (const f of document.querySelectorAll(".sfc-footer-left")) out.footers.push(f.innerText.replace(/\s+/g, " ").trim());
   // COUNTS AND SALES (Sam's review, Oct 28 2026). Every number on a Market Check screen is read here and compared by judge: a pill never exceeds the headline count; a split's blocks add up to the footer count; "for all N" is the headline count;
@@ -72,6 +73,7 @@ export const inPage = () => {
     const yn = /No (\d{4}) sales/.exec(document.querySelector(".sfc-card") ? document.querySelector(".sfc-card").innerText : ""); out.yearNo = yn ? yn[1] : null;
   }
   out.gaps = document.querySelectorAll(".hero-chart .hc-gap").length;
+  out.noband = [...document.querySelectorAll(".hero-left .hero-noband")].map(e => e.innerText.replace(/\s+/g, " ").trim());
   // THE OPTIONS AS THE PAGE PRINTED THEM, for lib/optionProblems.js (the one rule, Lane B's): each option's engine line (the screen-reader copy of the whole line) gives its label, count and window; what is VISIBLE on its block or pill is what the page printed of it.
   if (hero) { const pr = { options: [], optionLines: [], refineOptions: [], optionsRemainder: null, poolN: null, windowWords: null };
     const sw = /since [A-Z][a-z]+ \d{4}/, cnt = s => firstN(s, /(\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten) sales?/i);
@@ -121,6 +123,7 @@ export const judge = (ok, name, r, needs) => {
   ok(!r.metaBad.length, `${name}: every Find card keeps its miles-and-place slot, with its height, and never prints a not-listed label${r.metaBad.length ? " (" + r.metaBad[0] + ")" : ""}`);
   ok(r.bidWords.every(b => (b.word === "below" ? b.bid < b.lo : b.word === "above" ? b.bid > b.hi : b.bid >= b.lo && b.bid <= b.hi)), `${name}: each card's bid sentence agrees with its last bid and its range (${r.bidWords.map(b => "$" + b.bid + " " + b.word + " " + b.lo + "-" + b.hi).join("; ") || "none to read"})`);
   if (r.single) ok(r.single.vw < 700 || r.single.w <= r.single.g * 0.5 + 2, `${name}: a single Find card is sized like the others, not full width (${r.single.w}px of ${r.single.g}px)`);
+  ok(!r.pointerDup.length, `${name}: no Find card prints "See the sales for all N." next to its See the sales button${r.pointerDup.length ? " (" + r.pointerDup[0] + ")" : ""}`);
   ok(!r.contradict.length, `${name}: no header line says there is nothing over drawn cards${r.contradict.length ? " (" + r.contradict[0] + ")" : ""}`);
   ok(r.keep.every(k => !k.red && k.sameAsView !== false), `${name}: the Have Sam keep looking button is not red and is View auction's green (${r.keep.map(k => k.bg).join(" | ") || "none on the page"})`);
   ok(!r.tiny.length, `${name}: every range is set large${r.tiny.length ? " (" + r.tiny.slice(0, 2).join(" | ") + ")" : ""}`);

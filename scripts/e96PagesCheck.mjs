@@ -145,7 +145,7 @@ for (const [name, d] of Object.entries(ALL)) {
       ok(t.length > 60 && !/undefined|NaN|\[object/.test(t), `${where}: prints, nothing broken`);
       ok(linesOf(d).every(l => t.includes(l.replace(/\s+/g, " "))), `${where}: the engine's lines print as written`);
       if (d.optionsState === "split" || d.optionsState === "apart") ok(!t.includes(POOLED), `${where}: no pooled number`);
-      if (d.optionsState === "apart" && d.chart && d.chart.type === "withheld") { const svg = await p.evaluate(() => document.querySelectorAll(".hero-chart svg").length); ok(/How this market has moved/.test(t) && svg === 0 && t.includes("The mix of cars changed from quarter to quarter"), `${where}: no chart where the engine withheld it: the panel keeps its heading and says why`); }
+      if (d.optionsState === "apart" && d.chart && d.chart.type === "withheld") { const svg = await p.evaluate(() => document.querySelectorAll(".hero-chart svg").length); ok(!/How this market has moved/.test(t) && svg === 0 && t.includes("The mix of cars changed from quarter to quarter"), `${where}: no chart where the engine withheld it: no heading, no panel, the engine's sentence says why`); }
       if (d.wideLine) ok(t.includes(d.wideLine), `${where}: wideLine prints`);
       if (d.yearNote) ok(t.includes(d.yearNote), `${where}: yearNote prints`);
       ok(!/Add mileage to narrow the range[\s\S]*Add mileage to narrow/.test(t), `${where}: one mileage prompt at most`);

@@ -41,8 +41,8 @@ const FA = {
   few: { state: "few", basis: "option", option: { dimension: "gearbox", value: "manual", label: "Manual" }, range: null, n: 7, bid: null, lines: ["Seven Manual sales, too few for a range.", "See the sales for all seven."], pointer: "See the sales for all seven." },
   split: { state: "split_unsaid", basis: "pooled", option: null, range: null, n: 21, bid: null, lines: ["Sales of this car split into options priced apart, and the listing does not say which."], pointer: null },
 };
-const mkCard = (name, over = {}) => { const c = CARS[name], spec = { v: FIX_SPEC[name].v, title: c.row.listing_title }, core = S.coreOf(c.d, spec); core.nearPool = c.d.nearPool ? slimNearPool(c.d.nearPool.map(x => ({ _usd: x.p, mileage: x.m }))) : core.nearPool;
-  const m = { ...S.marketFromCore(core, c.row, { miles: c.miles || null, priceUsd: c.bid }, spec), ...over }, l = { id: 1, title: c.row.listing_title, make: c.row.make, year: c.row.year, market: m, current_bid_usd: c.bid, end_time: c.row.end_time, sam_lines: [] };
+const mkCard = (name, over = {}, lextra = {}) => { const c = CARS[name], spec = { v: FIX_SPEC[name].v, title: c.row.listing_title }, core = S.coreOf(c.d, spec); core.nearPool = c.d.nearPool ? slimNearPool(c.d.nearPool.map(x => ({ _usd: x.p, mileage: x.m }))) : core.nearPool;
+  const m = { ...S.marketFromCore(core, c.row, { miles: c.miles || null, priceUsd: c.bid }, spec), ...over }; mkCard.lastMarket = m; const l = { ...lextra, id: 1, title: c.row.listing_title, make: c.row.make, year: c.row.year, market: m, current_bid_usd: c.bid, end_time: c.row.end_time, sam_lines: [] };
   l.sam_lines = samLines(l, Date.now()); const out = samLineOf(l); return { c, m, l, h: out ? out.html : "" }; };
 for (const name of Object.keys(CARS)) {
   const { c, m, l, h } = mkCard(name), t = flat(h), cls = bare(h).map(k => k.split(" ")[0]);
@@ -64,7 +64,14 @@ for (const [label, fa, name] of [["range", FA.range, "2015 BMW Z4 sDrive35is (sc
   const { h } = mkCard(name, { findAnswer: fa }), cls = bare(h).map(k => k.split(" ")[0]), t = flat(h);
   ok(JSON.stringify(cls) === JSON.stringify(ORDER), `findAnswer ${label}: three slots (${cls.join(" > ")})`);
   if (fa.state === "range") { ok(h.includes('class="fx-ans fx-range">' + usd(fa.range.low) + " to " + usd(fa.range.high) + "<"), `findAnswer ${label}: the range is the answer`); ok(h.includes('<p class="fx-count">' + esc(fa.lines.join(" ")) + "</p>"), `findAnswer ${label}: the small line is the engine's lines, in order (${fa.lines.join(" ")})`); }
-  else { ok(h.includes('class="fx-ans fx-answer">' + esc(fa.lines[0]) + "</p>"), `findAnswer ${label}: the answer is the engine's first line`); ok(h.includes('<p class="fx-count">' + esc(fa.lines.slice(1).join(" ")) + "</p>"), `findAnswer ${label}: the small line is the engine's second line (${fa.lines[1] || "none"})`); ok(!/\$\d/.test(t), `findAnswer ${label}: no range printed`); }
+  else { ok(h.includes('class="fx-ans fx-answer">' + esc(fa.lines[0]) + "</p>"), `findAnswer ${label}: the answer is the engine's first line`);
+    const hasBtn = !!(mkCard.lastMarket && mkCard.lastMarket.query), pointer = fa.pointer, rest = fa.lines.slice(1).filter(x => !(hasBtn && pointer && x === pointer));
+    ok(h.includes('<p class="fx-count">' + esc(rest.join(" ")) + "</p>"), `findAnswer ${label}: the small line is the engine's remaining lines (${rest.join(" ") || "none: the pointer is the button's job"})`);
+    // THE POINTER IS NOT PRINTED NEXT TO ITS OWN BUTTON (Sam, Oct 29 2026): a card with the See the sales button (a market query) never prints "See the sales for all five."; a card with no such button keeps it
+    if (pointer) { const withBtn = mkCard(name, { findAnswer: fa, query: "a query" }), noBtn = mkCard(name, { findAnswer: fa, query: null });
+      ok(!withBtn.h.includes(esc(pointer)), `findAnswer ${label}: a card with the See the sales button does not also print "${pointer}"`);
+      ok(noBtn.h.includes(esc(pointer)), `findAnswer ${label}: a card with no See the sales button keeps "${pointer}"`);
+      const em = mkCard(name, { findAnswer: fa, query: "a query" }, { emailCard: true }); ok(em.h.includes(esc(pointer)), `findAnswer ${label}: the Task email card (a Market Check link, no See the sales button) keeps "${pointer}"`); } ok(!/\$\d/.test(t), `findAnswer ${label}: no range printed`); }
   ok(!/pick one|miles|\$[\d,]+ · /i.test(t.replace(/near its miles/, "")), `findAnswer ${label}: no pick one, no mileage line, no sale line`);
 }
 // the button, and the same code on Tasks
@@ -72,5 +79,14 @@ ok(/"See the sales"/.test(C), "the card's button is See the sales");
 ok(/md-opts/.test(C) && /m\.optionLines\.map/.test(C), "the options' own lines print in the expanded panel (drawerHtml)");
 const kit = fs.readFileSync("lib/findCardKit.js", "utf8");
 ok(/"fxHead", "fxSlots", "fxFindHtml", "fxTail", "rangeFirst", "noRange", "compactNoRange", "thinSales"/.test(kit), "Tasks lifts the same box code (findCardKit)");
+// optionsRemainder (Lane B e101, Sam Oct 29 2026): the engine's line prints under See the sales on a Find or Tasks card when it is set ("2 sales are over 100,000 miles."), and prints nothing when it is not. Rendered in the real Find page, a card with the line and a card without.
+{ const { startBrowser } = await import("./e98Render.mjs"), { buildCards, openFind } = await import("./e98FindRender.mjs"), { M3_ROW } = await import("./e98Fixtures.mjs");
+  const cards = await buildCards([M3_ROW["2008 BMW M3 Coupe"], M3_ROW["2008 BMW M3 Coupe"]]), LINE = "2 sales are over 100,000 miles.";
+  cards.forEach((c, k) => { c.market = { ...c.market, query: "2008 bmw m3 coupe", optionsRemainder: k === 0 ? { n: 2, dimension: "mileage", line: LINE } : null }; });
+  const b = await startBrowser();
+  for (const w of [1440, 390]) { const p = await openFind(b, cards, w), r = await p.evaluate(() => [...document.querySelectorAll("article.car")].map(a => { const rem = a.querySelector(".fx-rem"), btn = a.querySelector("button[data-mc]"), acts = a.querySelector(".acts"); return { rem: rem ? rem.textContent : null, btn: !!btn, below: !!(rem && acts && (acts.compareDocumentPosition(rem) & Node.DOCUMENT_POSITION_FOLLOWING)) }; }));
+    ok(r.length >= 2 && r[0].btn && r[0].rem === LINE && r[0].below, `Find card at ${w}: the engine's optionsRemainder line prints under See the sales ("${r[0] && r[0].rem}")`);
+    ok(r.length >= 2 && r[1].btn && r[1].rem === null, `Find card at ${w}: a card whose optionsRemainder is null prints no remainder line`); await p.close(); }
+  await b.close(); }
 console.log(`findCardShapeCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

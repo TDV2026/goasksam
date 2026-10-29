@@ -620,6 +620,24 @@ try {
 } catch (e) {
   record("No page carries a wait of its own for a cold answer (scripts/pageWaitCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+try {
+  const out = execSync("node scripts/salesPanelCheck.mjs", { encoding: "utf8" });
+  record("The sale rows read across (See the sales panel, Market Check lists) (scripts/salesPanelCheck.mjs)", "PASS", (out.match(/salesPanelCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("The sale rows read across (See the sales panel, Market Check lists) (scripts/salesPanelCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/landingExampleCheck.mjs", { encoding: "utf8" });
+  record("Landing examples never print empty for a split car (scripts/landingExampleCheck.mjs)", "PASS", (out.match(/landingExampleCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Landing examples never print empty for a split car (scripts/landingExampleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/noChartLayoutCheck.mjs", { encoding: "utf8" });
+  record("No chart, for any reason, is one full-width layout with no empty panel (scripts/noChartLayoutCheck.mjs)", "PASS", (out.match(/noChartLayoutCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("No chart, for any reason, is one full-width layout with no empty panel (scripts/noChartLayoutCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The narrowing question by set size and the hierarchy first (Lane E, Buy Stage 1c item 2). No network.
 try {
   const out = execSync("node scripts/narrowCheck.mjs", { encoding: "utf8" });
