@@ -5794,6 +5794,21 @@ if (task === "optiondetail") {
     }
     return res.status(200).json(out);
   }
+  // task=bodynames (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, zero writes): the live-lot sweep behind "a body word inside a model's name is not a body" (lib/bodyWords.js BODY_NAME_PHRASES). Over every live listing title and the newest ?n= (default 40,000) car sales in
+  // sales_archive: how many titles carry each name phrase, what the body reader said before the phrase table (the bare words) and what it says now, and every title whose body CHANGED, by body style (so a wagon read from Power Wagon, a van from Van Diemen, an Avant from Traction Avant is listed under the body that was wrong).
+  if (task === "bodynames") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const B = await import("../lib/bodyWords.js"); const n = Math.min(80000, Number(req.query?.n) || 40000);
+    const live = await supabaseSelectAll(env, "live_listings?status=eq.live&select=listing_title"), sold = await supabaseSelectAll(env, `sales_archive?select=listing_title&vehicle_type=eq.car&order=sale_date.desc&limit=${n}`);
+    const oldBody = t0 => { const t = String(t0 || "").toLowerCase(); for (const b of B.BODY_BUCKETS) if (b.words.some(w => t.includes(w))) return b.style; for (const r of B.BODY_WORD_RULES) if (r.re.test(t) && (!r.when || r.when(t))) return r.style; return null; };
+    const out = { task: "bodynames", ocdSpend: 0, writes: 0, liveTitles: (live || []).length, soldTitles: (sold || []).length, phrases: {}, changedByOldBody: {}, examples: {} };
+    for (const [src, list] of [["live", live || []], ["sold", sold || []]]) for (const r of list) {
+      const t = String(r.listing_title || ""), low = t.toLowerCase();
+      for (const np of B.BODY_NAME_PHRASES) { if (!np.re.test(low)) continue; const k = np.re.source.slice(0, 40); (out.phrases[k] = out.phrases[k] || { live: 0, sold: 0 })[src]++;
+        const was = oldBody(t), now = B.bodyFromText(t); if (was !== now) { const key = (was || "none") + " -> " + (now || "none"); out.changedByOldBody[key] = (out.changedByOldBody[key] || 0) + 1; (out.examples[key] = out.examples[key] || []); if (out.examples[key].length < 8) out.examples[key].push(t.slice(0, 80)); } }
+    }
+    return res.status(200).json(out);
+  }
   if (task === "warmDay") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { rowsOffDay, utcDayOf, epochMatch } = await import("../lib/warmDay.js");
