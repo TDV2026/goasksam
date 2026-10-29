@@ -3069,7 +3069,9 @@
     if (obSearchId) payload.searchId = obSearchId;
     if (refine) payload.refine = refine;   // inline earned-question refinement (mileage / transmission)
     var coldT0 = Date.now();
-    obAskUntilRead(payload, coldT0, function (cd) { if (loader && cd && cd.samLine) loader.hold(cd.samLine); }).then(function (d) {
+    obAskUntilRead(payload, coldT0, function (cd) { if (loader && cd && cd.samLine) loader.hold(cd.samLine); if (SELL && SELL.onCarEarly) SELL.onCarEarly(cd, text); }).then(function (d) {
+      var viaFinish = false;   // the result path hands Sell the answer (onCar); every other end tells Sell its early question is over (onEarlyEnd)
+      try {
       if (opts.inline) dimHeroForRerun(false);   // the rerun's answer landed (narrowed or not): the range and the chart un-fade whatever it says
       if (d && d.couldNot) { renderCouldNot(d.d, "timeout", Date.now() - coldT0); return; }
       pushRecent(text, d);
@@ -3123,8 +3125,10 @@
       if (resultIsHousePool(d)) finalSteps.push("Backing out the buyer’s premiums");
       finalSteps.push("Picking the ones that matter");
       var finish = function () { mcPushUrl(); if (SELL && SELL.onCar && SELL.onCar(d, text)) return; renderResults(d); };
+      viaFinish = true;
       if (loader) loader.finish(finalSteps, finish); else finish();
-    }).catch(function () { if (opts.inline) dimHeroForRerun(false); obBusy("busy"); renderCouldNot(null, "failed", Date.now() - coldT0); });
+      } finally { if (!viaFinish && SELL && SELL.onEarlyEnd) SELL.onEarlyEnd(); }
+    }).catch(function () { if (SELL && SELL.onEarlyEnd) SELL.onEarlyEnd(); if (opts.inline) dimHeroForRerun(false); obBusy("busy"); renderCouldNot(null, "failed", Date.now() - coldT0); });
   }
   // VIN path: decode + confirm (reuses /api/vehicleIdentity). VINs travel in the request
   // body only; nothing here logs the raw VIN.
