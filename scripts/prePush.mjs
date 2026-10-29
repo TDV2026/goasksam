@@ -1446,6 +1446,13 @@ try {
 } catch (e) {
   record("Sell: the flow always ends on an answer or a plain sentence, and a wait always ends (scripts/sellEndingCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Every question the resolver and the engine ask carries a way out (Lane B, Oct 29 2026, Lane E's FULL).
+try {
+  const out = execSync("node scripts/questionPayloadsCheck.mjs", { encoding: "utf8", timeout: 180000 });
+  record("questions: every clarification the resolver asks carries a way out, every engine question a way out or its skip (scripts/questionPayloadsCheck.mjs)", "PASS", (out.match(/questionPayloadsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("questions: every clarification the resolver asks carries a way out, every engine question a way out or its skip (scripts/questionPayloadsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // An ended lot never stays unmarked past one pull cycle (Lane B, Oct 29 2026).
 try {
   const out = execSync("node scripts/endedLotCheck.mjs", { encoding: "utf8", timeout: 120000 });
