@@ -1467,6 +1467,12 @@ try {
   record("resolver: a model code typed with a space (RS 6, M 3, X 5) is the glued model, so a known car is never refused as unchecked (scripts/spacedModelCodeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/chartNoReasonCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("chart: a withheld chart prints the engine's plain heading and no reason on any page, and a stored row serves it at read time (scripts/chartNoReasonCheck.mjs)", "PASS", (out.match(/chartNoReasonCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("chart: a withheld chart prints the engine's plain heading and no reason on any page, and a stored row serves it at read time (scripts/chartNoReasonCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/appliedAllCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("filters: every way the engine narrows (pill, band, typed miles, gearbox, body, year, edition, trim, history, detail) is named with its clear (scripts/appliedAllCheck.mjs)", "PASS", (out.match(/appliedAllCheck: .*/) || [""])[0]);
 } catch (e) {
