@@ -75,8 +75,13 @@ for (const [name, core, n] of [["core thin", CORE_THIN, 6], ["core split", CORE_
 // 4. every reader of a stored row restates: the class, by reading the code that reads rows
 { const src = fs.readFileSync("lib/live/search.js", "utf8"), rd = (src.match(/row\.market\.raw(?![A-Za-z])/g) || []).length, fr = (src.match(/freshenStoredText\(row\.market\.raw\)/g) || []).length;
   ok(`readWarmAnswerDetailed and readWarmAnswer serve the restated raw (${fr} of the 2 places that return row.market.raw)`, fr === 2, `${rd} mentions of row.market.raw`);
-  ok("marketFromCore restates the core it is given", /export function marketFromCore\(core, row, facts, spec\) \{\s*core = freshenStoredText\(core\)/.test(src));
-  const on = fs.readFileSync("lib/onebox.js", "utf8"); ok("withReadFields restates the row it is given", /export function withReadFields\(d, text, vehicle\) \{[\s\S]{0,200}d = freshenStoredText\(d\)/.test(on));
+  // BEHAVIOUR, NOT SOURCE TEXT (Oct 29 2026: a source pattern on withReadFields broke when it became a wrapper): give each reader a row carrying a retired sentence and read what it returns.
+  { const { RETIRED_LINES } = await import(pathToFileURL(path.join(root, "lib/reasonWords.js")).href), old = RETIRED_LINES[0].old, NEWL = "Too few sales of this car to show a range.";
+    const m = S.marketFromCore({ ...CORE_THIN, thinReason: "few_comparable", thinLine: old, answerLine: old }, ROW, { miles: null }, S.specOf(ROW));
+    ok("marketFromCore restates the core it is given (a stored core with a retired sentence comes back with the current one)", m.answerLine === NEWL, m.answerLine); }
+  { const { RETIRED_LINES } = await import(pathToFileURL(path.join(root, "lib/reasonWords.js")).href), old = RETIRED_LINES[0].old, NEWL = "Too few sales of this car to show a range.";
+    const row = { ...MC_THIN, thinReason: "few_comparable", thinLine: old, thin_sales: { count: 12, answer_line: old, count_line: "Since June 2025." } }, served = E.withReadFields(row, "x", { year: 1995 });
+    ok("withReadFields restates the row it is given (a stored row with a retired sentence is served with the current one; a wrapper or a rename cannot break this)", served.thinLine === NEWL && row.thinLine === old, JSON.stringify(served.thinLine)); }
   const leaks = []; for (const f of ["api/_historyData.js", "api/sellerDecision.js", "lib/live/samChat.js", "lib/live/narrow.js", "lib/platformPick.js"]) { const t = fs.readFileSync(f, "utf8"); if (/market\.raw\b/.test(t) && !/freshenStoredText|readWarmAnswer|withReadFields/.test(t)) leaks.push(f); }
   ok("no other file reads a stored row's raw around the readers", leaks.length === 0, leaks.join(" "));
   // api/usageDashboard.js (read-only ops tasks) looks at the stored raw on purpose
