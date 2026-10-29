@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { ROOT } from "./e98Render.mjs";
+import { ROOT, pageHtml, crewCookie } from "./e98Render.mjs";
 import { base } from "./e98Fixtures.mjs";
 const imp = f => import(pathToFileURL(path.join(ROOT, f)).href);
 export async function buildCards(defs, extraPerCard = {}) {
@@ -21,15 +21,12 @@ export async function buildCards(defs, extraPerCard = {}) {
   });
 }
 const PHOTO = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480"><rect width="640" height="480" fill="#d9d4c7"/></svg>');
-let html = null;
-async function buyHtml() {
-  if (html) return html;
-  const { default: h } = await imp("api/buy.js");
-  return html = await new Promise(r => { const res = { setHeader() {}, getHeader() {}, status() { return res; }, send(x) { r(String(x)); return res; }, end(x) { r(String(x || "")); return res; }, writeHead() { return res; } }; h({ method: "GET", url: "/buy", query: {}, headers: { host: "goasksam.com", cookie: "" }, socket: {} }, res); });
-}
-export async function openFind(browser, cards, width, typed = "black BMW") {
-  const page = await buyHtml(), p = await browser.newPage(); await p.setViewport({ width, height: 900, deviceScaleFactor: 1 });
+const htmls = {};
+async function buyHtml(crew) { const k = crew ? "crew" : "pub"; return htmls[k] || (htmls[k] = await pageHtml("api/buy.js", "/buy", crew)); }
+export async function openFind(browser, cards, width, typed = "black BMW", opts = {}) {
+  const page = await buyHtml(opts.crew), p = await browser.newPage(); await p.setViewport({ width, height: 900, deviceScaleFactor: 1 });
   await p.evaluateOnNewDocument(() => { window.gasTrack = () => {}; });
+  if (opts.crew) await p.setCookie({ name: "gas_crew", value: (await crewCookie()).split("=")[1], domain: "goasksam.com", path: "/" });
   await p.setRequestInterception(true);
   p.on("request", r => { const u = new URL(r.url());
     if (u.host === "goasksam.com" && r.isNavigationRequest()) return r.respond({ status: 200, contentType: "text/html", body: page });

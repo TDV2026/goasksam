@@ -18,6 +18,11 @@
       "statusCode": 302
     },
     {
+      "source": "/onebox.html",
+      "destination": "/market-check",
+      "statusCode": 302
+    },
+    {
       "source": "/buy",
       "destination": "/find",
       "statusCode": 301
@@ -51,7 +56,7 @@
     { "source": "/cars/porsche/911/:path*", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/specPage?slug=/cars/porsche/911/:path*&_crew=1" },
     { "source": "/cars/porsche/911/:path*", "destination": "/api/specPage?slug=/cars/porsche/911/:path*" },
     { "source": "/o/:id", "destination": "/api/publicConfig?obShare=:id" },
-    { "source": "/onebox-preview", "destination": "/onebox-preview.html" },
+    { "source": "/onebox-preview", "destination": "/api/crewPage?page=onebox-preview" },
     { "source": "/privacy", "destination": "/api/legal?page=privacy" },
     { "source": "/terms", "destination": "/api/legal?page=terms" },
     { "source": "/about", "destination": "/api/about" },
@@ -123,8 +128,8 @@
     { "source": "/obx.20261026e/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261028a/(.*)", "destination": "/js/$1" },
     { "source": "/admin", "destination": "/api/admin?page=1" },
-    { "source": "/desk", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/desk.html" },
-    { "source": "/desk", "has": [{ "type": "cookie", "key": "gas_tester", "value": "t1\\..*" }], "destination": "/desk.html" },
+    { "source": "/desk", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=desk" },
+    { "source": "/desk", "has": [{ "type": "cookie", "key": "gas_tester", "value": "t1\\..*" }], "destination": "/api/crewPage?page=desk" },
     { "source": "/history/:slug/:vin", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/history?slug=:slug&vin=:vin&_crew=1" },
     { "source": "/history/:slug/:vin", "destination": "/api/history?slug=:slug&vin=:vin" },
     { "source": "/history/:slug", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/history?slug=:slug&_crew=1" },
@@ -161,6 +166,9 @@
     "api/usageDashboard.js": {
       "maxDuration": 300,
       "includeFiles": "scripts/{warm-list,warm-named}.json"
+    },
+    "api/crewPage.js": {
+      "includeFiles": "lib/crewPages/*.html"
     },
     "api/publicConfig.js": {
       "includeFiles": "public/onebox.html"

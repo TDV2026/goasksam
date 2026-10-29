@@ -33,3 +33,19 @@ export async function openMC(browser, fx, width, opts = {}) {
   if (fx.miles) { await p.type("#ob-miles", fx.miles); await p.keyboard.press("Enter"); await new Promise(r => setTimeout(r, 1800)); }
   return p;
 }
+
+// ANY PAGE, as the public or as the crew: the real handler's HTML, the page's own scripts and stylesheet from public/, nothing else (no network). Used by the crew-versus-public colour check and its screenshots.
+export async function openAny(browser, file, url, width, opts = {}) {
+  const html = await pageHtml(file, url, opts.crew), p = await browser.newPage(); await p.setViewport({ width, height: 900, deviceScaleFactor: 1 });
+  await p.evaluateOnNewDocument(() => { window.gasTrack = () => {}; });
+  if (opts.crew) await p.setCookie({ name: "gas_crew", value: (await crewCookie()).split("=")[1], domain: "goasksam.com", path: "/" });
+  await p.setRequestInterception(true);
+  p.on("request", r => { const u = new URL(r.url());
+    if (u.host === "goasksam.com" && r.isNavigationRequest()) return r.respond({ status: 200, contentType: "text/html", body: html });
+    const m = /^\/(?:obx\.[^/]+|js(?:\.[^/]+)?)\/([\w.-]+\.js)$/.exec(u.pathname), loc = m ? "public/js/" + m[1] : u.pathname === "/styles.css" ? "public/styles.css" : null;
+    if (u.host === "goasksam.com" && loc && fs.existsSync(path.join(ROOT, loc))) return r.respond({ status: 200, contentType: /\.css$/.test(loc) ? "text/css" : "application/javascript", body: fs.readFileSync(path.join(ROOT, loc), "utf8") });
+    if (u.host === "goasksam.com" && /^\/api\//.test(u.pathname)) return r.respond({ status: 200, contentType: "application/json", body: "{}" });
+    if (u.host !== "goasksam.com") return r.respond({ status: 204, body: "" }); r.continue(); });
+  await p.goto("https://goasksam.com" + url, { waitUntil: "networkidle2" }).catch(() => {});
+  await new Promise(r => setTimeout(r, 800)); return p;
+}
