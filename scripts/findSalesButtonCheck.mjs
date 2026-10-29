@@ -14,7 +14,7 @@ const monShort = d => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d || ""
 const okUrl = u => /^https?:\/\//.test(String(u || ""));
 const modal = new Function("esc", "usd", "num", "monShort", "okUrl", block("  function saleModalHtml(r){", "  function closeSale(){") + "\nreturn saleModalHtml;")(esc, usd, num, monShort, okUrl);
 const monthYear = d => { const m = /^(\d{4})-(\d{2})/.exec(String(d || "")); return m ? ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"][Number(m[2]) - 1] + " " + m[1] : ""; };
-const row = new Function("esc", "usd", "num", "monthYear", block("  function mdRowHtml(r, k){", "  function drawerHtml(l, j){") + "\nreturn mdRowHtml;")(esc, usd, num, monthYear);
+const row = new Function("esc", "usd", "num", "monthYear", block("  var HOUSE = {", "\n") + "\n" + block("  function cap(s){", "\n") + "\n" + block("  function venueOf(c){", "\n") + "\n" + block("  function mdRowHtml(r, k){", "  function drawerHtml(l, j){") + "\nreturn mdRowHtml;")(esc, usd, num, monthYear);
 const sale = { title: "2010 Porsche 911 Carrera Cabriolet", price: 81500, date: "2026-07-01", mi: 27000, image: "https://img.test/a.jpg", venue: "Bring a Trailer", url: "https://bringatrailer.com/listing/x/", gearbox: "Manual" };
 const m1 = modal(sale);
 ok(/Jul 1, 2026/.test(m1) && /Bring a Trailer/.test(m1) && /27,000 miles/.test(m1) && />Manual</.test(m1) && /\$81,500/.test(m1) && /img.test\/a.jpg/.test(m1), "the modal shows photo, date, venue, miles, gearbox and price from the sale");
@@ -25,7 +25,7 @@ const r1 = row(sale, 3);
 ok(/<button type="button" class="md-rowb" data-sale="3"/.test(r1) && !/<a /.test(r1), "a sale line in the panel is a button that opens the modal (its index in the engine's list), not a link");
 // the label, everywhere
 ok(/"See the sales"/.test(C) && /"Hide the sales"/.test(C) && /class="act" data-mc="/.test(C), "the card's button is See the sales (Hide the sales when open)");
-const act = block("<button type=\"button\" class=\"act\" data-mc=", "</div></div></article>");
+const act = block("<button type=\"button\" class=\"act\" data-mc=", "</div></article>\";");
 ok(!/Market Check|Sold prices/.test(act), "the card's button carries no other label (no 'Market Check', no 'Sold prices')");
 ok(/b\.textContent = open \? "Hide the sales" : "See the sales"/.test(CODE) && !/Close Market Check/.test(CODE), "open and shut, the same two words");
 ok(/Open full Market Check ↗/.test(C), "the panel keeps its Open full Market Check button");

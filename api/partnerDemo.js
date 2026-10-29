@@ -282,11 +282,11 @@ const JS = String.raw`
     return ask(body).then(function(a){
       if (seqs[view] !== my) return a;
       draw(a);
-      // COLD SPEC (Sam, Oct 28 2026, no dead ends): asked again every 2 seconds (the engine's retryAfterMs) for up to 45 seconds, then the one plain line; never "try again".
+      // COLD SPEC (Sam, Oct 28 2026, no dead ends): asked again every retryAfterMs for up to the engine's waitMaxMs, then the one plain line; never "try again".
       if (a && a.stillReading) {
         coldAt[view] = coldAt[view] || Date.now();
-        if (Date.now() - coldAt[view] >= 45000 * (Number(window.GAS_WAIT_SCALE) || 1)) { delete coldAt[view]; draw({ ok: false, error: "cold" }); }
-        else setTimeout(runs[view], (a.retryAfterMs > 0 ? a.retryAfterMs : 2000) * (Number(window.GAS_WAIT_SCALE) || 1));
+        if (a.waitMaxMs > 0 && Date.now() - coldAt[view] >= a.waitMaxMs * (Number(window.GAS_WAIT_SCALE) || 1)) { delete coldAt[view]; draw({ ok: false, error: "cold" }); }
+        else if (a.retryAfterMs > 0) setTimeout(runs[view], a.retryAfterMs * (Number(window.GAS_WAIT_SCALE) || 1));
       } else delete coldAt[view];
       return a;
     });

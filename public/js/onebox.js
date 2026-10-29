@@ -1071,10 +1071,26 @@
     var n = typeof ch.note === "string" ? ch.note.trim() : "", w = ch.withheld && typeof ch.withheld.line === "string" ? ch.withheld.line.trim() : "";
     return n || w || "";
   }
+  // THE WITHHELD LAYOUT (Sam, Oct 29 2026). When the engine withheld the chart and sent its own sentence (chart.note, else chart.withheld.line), the right column holds that ONE caption, then the engine's latest sales
+  // (d.cards, which the engine sends newest first: lib/onebox.js, the same order recent3 uses), up to six, each in the See the sales panel's row shape (photo, the sale's own title, date, miles at sale, venue, price), then a link
+  // to the full list. No heading, no chart, no dots, no average, range or trend word, no count. The page takes the rows as sent: no sort, no filter, no count. d is the narrowed answer, so the rows follow the pills.
+  function heldPanelHtml(d) {
+    var cap = chartHeldSentence(d); if (!cap) return "";
+    var rows = (d && Array.isArray(d.cards) ? d.cards : []).slice(0, 6).map(function (c) {
+      if (!c) return "";
+      var href = utmUrl(c.url), meta = [fullDateOrMonth(c), longMiles(c) ? longMiles(c) : "", venueOf(c)].filter(Boolean).join(" \u00b7 ");
+      var ph = c.image ? '<img src="' + esc(c.image) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.classList.add(\'np\');this.remove()">' : "No photo";
+      var inner = '<span class="hw-ph' + (c.image ? "" : " np") + '">' + ph + '</span><span class="hw-t"><span class="hw-n">' + esc(cleanReceiptTitle(c.title)) + '</span><span class="hw-m">' + esc(meta) + '</span></span><span class="hw-p">' + (Number(c.price) > 0 ? esc(usd(c.price)) : "") + "</span>";
+      return '<li class="hw-row">' + (href ? '<a class="hw-rowb" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="hw-rowb">' + inner + "</div>") + "</li>";
+    }).filter(Boolean);
+    return '<div class="hero-held" data-chart="held"><p class="hw-cap" data-stage="answer">' + lint(esc(cap), "hero.chartheld") + "</p>" +
+      (rows.length ? '<ul class="hw-rows">' + rows.join("") + '</ul><p class="hw-all"><button type="button" class="linkbtn" data-scrollto="more-sales">See all the sales</button></p>' : "") + "</div>";
+  }
   function noChartLineHtml(d) {
     // Sam's evening order (Oct 21 2026): with no chart the line is the existing "N sales. Too few to show movement, enough to show
     // where they landed." (the same words as the thin-tile line), N the engine's pool size, whatever the pool size.
     var held = chartHeldSentence(d); if (held) return '<p class="hero-noband" data-stage="answer">' + lint(esc(held), "hero.chartheld") + "</p>";
+    if (d && d.chart && d.chart.type === "withheld") return "";   // the engine withheld the chart and sent no sentence: the page writes none (its "too few" line would be wrong for the mix reason)
     var n = d ? heroPoolSizeNum(d) : NaN;
     var said = Number.isFinite(n) && n > 0 ? obCount(n, "sale", { cap: true }) + ". Too few to show movement, enough to show where they landed." : "Too few sales to show movement, enough to show where they landed.";
     return '<p class="hero-noband" data-stage="answer">' + lint(esc(said), "hero.nochart") + "</p>";
@@ -1084,15 +1100,14 @@
   //   a. candles: the engine's d.trend buckets (candleChartHtml), as before.
   //   b. option-scoped candles: d.chart.scope.line, the engine's own sentence ("Manual sales only, so the mix stays comparable"), small and grey above the same candle chart.
   //   NEVER A DOT (Sam's ruling, Oct 28 2026): no per-sale point is drawn anywhere; an engine that sends chart.type "dots" gets the candles (or the withheld panel), never points.
-  //   c. withheld: the heading with the engine's withheld sentence under it (answer.chart.note, else answer.chart.withheld.line: the engine's words, none of the page's own).
+  //   c. no chart, for ANY reason (mix changed, too few, or no chart object at all): NO panel. The page draws no chart heading and no right column; the card and the narrow strip take the full width and the engine's one sentence
+  //      (answer.chart.note, else answer.chart.withheld.line, none of the page's own) is one line under the pills (noChartLineHtml), where the sales behind the answer move up.
   function chartPanelHtml(d) {
     var ch = d && d.chart && typeof d.chart === "object" ? d.chart : null, head = "<h2>How this market has moved</h2>", inner;
     if ((inner = candleChartHtml(d))) {
       var sc = ch && ch.type === "candles" && ch.scope && typeof ch.scope === "object" && typeof ch.scope.line === "string" ? ch.scope.line.trim() : "";
       return '<div class="hero-chart" data-chart="' + (sc ? "scoped" : "candles") + '">' + head + (sc ? '<p class="hc-scope">' + lint(esc(sc), "hc.scope") + "</p>" : "") + '<div class="hc-body">' + inner + "</div></div>";
     }
-    var held = chartHeldSentence(d);
-    if (held) return '<div class="hero-chart hc-held" data-chart="withheld">' + head + '<div class="hc-body"><p class="hc-note" data-stage="answer">' + lint(esc(held), "hero.chartheld") + "</p></div></div>";
     return "";
   }
   function heroChartHtml(d) { return chartPanelHtml(d); }
@@ -1277,7 +1292,7 @@
     var full = "";
     if (!right) {
       if (thinTile) { left += thinTile.said; left += thinTile.asideBlock; right = thinTile.right; full = thinTile.full || ""; }
-      else left += noChartLineHtml(d);
+      else { var hp = heldPanelHtml(d); if (hp) right = hp; else left += noChartLineHtml(d); }
     }
     return '<section class="hero2col" data-stage="answer"><div class="hero-left">' + left + "</div>" +
       (right ? ('<div class="hero-right">' + right + "</div>") : "") + "</section>" + full;
@@ -2217,7 +2232,7 @@
     var full = "";
     if (!right) {
       if (thinTile) { left += thinTile.said; left += thinTile.asideBlock; right = thinTile.right; full = thinTile.full || ""; }
-      else left += noChartLineHtml(d);
+      else { var hp = heldPanelHtml(d); if (hp) right = hp; else left += noChartLineHtml(d); }
     }
     return '<section class="hero2col" data-stage="answer"><div class="hero-left">' + left + "</div>" +
       (right ? ('<div class="hero-right">' + right + "</div>") : "") + "</section>" + full;
@@ -2682,7 +2697,7 @@
     if (typeof gasTrack === "function") gasTrack("identity_question_shown", { search_id: obSearchId || undefined, dimension: "competition", option_count: (d.variantChoices || []).length });
   }
   // COLD SPEC (Sam, Oct 28 2026, no dead ends): when the engine says the answer is computing, the search stays in place under "Sam is reading the sales for this one." with the
-  // live dots, the page asks again every retryAfterMs (2 seconds) for up to waitMaxMs (45 seconds) and draws the answer the moment it is stored. If the engine fails or the
+  // live dots, the page asks again every retryAfterMs for up to waitMaxMs (both the engine's) and draws the answer the moment it is stored. If the engine fails or the
   // time runs out, one plain line and the Have Sam keep looking button, and a cold_miss event with the spec and the wait. Nothing says "try again". GAS_WAIT_SCALE shortens the clock for the check only.
   // The words come from the engine's answer (samLine while computing, couldNotLine for the timeout; lib/reasonWords.js), never from this file.
   function obAskUntilRead(payload, t0, onComputing) {
@@ -2692,9 +2707,10 @@
       body: JSON.stringify(payload)
     }, 25000).then(function (r) { return r.json(); }).then(function (d) {
       if (d && d.status === "one_box" && d.tier === "unavailable" && d.computing === true) {
-        if (Date.now() - t0 >= (Number(d.waitMaxMs) || 45000) * k) return { couldNot: true, d: d };
+        if (Number(d.waitMaxMs) > 0 && Date.now() - t0 >= Number(d.waitMaxMs) * k) return { couldNot: true, d: d };   // the engine's wait, no number of the page's own
+        if (!(d.retry === true && Number(d.retryAfterMs) > 0)) return { couldNot: true, d: d };   // the engine says not to ask again
         onComputing(d);
-        return new Promise(function (res) { setTimeout(res, (Number(d.retryAfterMs) || 2000) * k); }).then(function () { return obAskUntilRead(payload, t0, onComputing); });
+        return new Promise(function (res) { setTimeout(res, Number(d.retryAfterMs) * k); }).then(function () { return obAskUntilRead(payload, t0, onComputing); });
       }
       return d;
     });

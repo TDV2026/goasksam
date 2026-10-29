@@ -425,11 +425,11 @@ const JS = String.raw`
     Array.prototype.forEach.call(document.querySelectorAll("[data-carname]"), function(n){ n.textContent = line; n.hidden = !line; });
   }
   var GEN = 0;
-  // COLD SPEC (Sam, Oct 28 2026, no dead ends): a read the engine is still computing is asked again (the draw functions below re-ask on the engine's retryAfterMs, 2 seconds); after 45 seconds
+  // COLD SPEC (Sam, Oct 28 2026, no dead ends): a read the engine is still computing is asked again (the draw functions below re-ask on the engine's retryAfterMs); after the engine's waitMaxMs
   // of that the answer becomes the one plain line (COULD_NOT), which the draws print and stop on. Never "try again". GAS_WAIT_SCALE shortens the clock for the check only.
   var coldSince = 0;
   function read(b, draw){ var g = ++GEN; return ask(b).then(function(a){ if (g !== GEN) return;
-    if (a && a.stillReading) { coldSince = coldSince || Date.now(); if (Date.now() - coldSince >= 45000 * (Number(window.GAS_WAIT_SCALE) || 1)) { coldSince = 0; a = { ok: false, error: "cold" }; } } else coldSince = 0;
+    if (a && a.stillReading) { coldSince = coldSince || Date.now(); if (a.waitMaxMs > 0 && Date.now() - coldSince >= a.waitMaxMs * (Number(window.GAS_WAIT_SCALE) || 1)) { coldSince = 0; a = { ok: false, error: "cold" }; } } else coldSince = 0;
     draw(a); }); }
   var esc = function(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
   var usd = function(n){ return "$" + Math.round(Number(n)).toLocaleString("en-US"); };

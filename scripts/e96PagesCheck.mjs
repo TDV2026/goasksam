@@ -90,7 +90,8 @@ for (const [name, d] of Object.entries(ALL)) {
   const { toolAnswerOf } = await import("../lib/tools/marketCheck.js");
   const id = { make: "BMW", family: "M3", model: "M3", year: 2001, label: "BMW M3" }, r = { vehicle: { make: "BMW", model: "M3", year: 2001 } };
   const s = fs.readFileSync("api/buy.js", "utf8"), i = s.indexOf("const CLIENT = ") + "const CLIENT = ".length, c = JSON.parse(s.slice(i, s.indexOf('";\n', i) + 1));
-  ok(/l\.market\.optionLines/.test(c) && !/l\.market\.options/.test(c), "Find's card line reads the engine's optionLines, not options");
+  ok(/l\.market\.optionLines/.test(c) && !/l\.market\.options\b/.test(c), "Find's card line reads the engine's optionLines, not options (the options array itself)");
+  ok(/l\.market\.optionsRemainder\.line/.test(c) && !/optionsRemainder\.n\b/.test(c), "Find's card prints the engine's optionsRemainder.line (Lane B e101), a field of its own, and never counts or words the remainder itself");
   for (const [name, d] of Object.entries(ALL)) {
     const mk = marketOf(d), want = linesOf(d);
     ok(mk && (!want.length || (Array.isArray(mk.optionLines) && want.every(l => mk.optionLines.includes(l)))), `Find market, ${name}: carries the engine's lines`);
@@ -145,7 +146,7 @@ for (const [name, d] of Object.entries(ALL)) {
       ok(t.length > 60 && !/undefined|NaN|\[object/.test(t), `${where}: prints, nothing broken`);
       ok(linesOf(d).every(l => t.includes(l.replace(/\s+/g, " "))), `${where}: the engine's lines print as written`);
       if (d.optionsState === "split" || d.optionsState === "apart") ok(!t.includes(POOLED), `${where}: no pooled number`);
-      if (d.optionsState === "apart" && d.chart && d.chart.type === "withheld") { const svg = await p.evaluate(() => document.querySelectorAll(".hero-chart svg").length); ok(/How this market has moved/.test(t) && svg === 0 && t.includes("The mix of cars changed from quarter to quarter"), `${where}: no chart where the engine withheld it: the panel keeps its heading and says why`); }
+      if (d.optionsState === "apart" && d.chart && d.chart.type === "withheld") { const svg = await p.evaluate(() => document.querySelectorAll(".hero-chart svg").length); ok(!/How this market has moved/.test(t) && svg === 0 && t.includes("The mix of cars changed from quarter to quarter"), `${where}: no chart where the engine withheld it: no heading, no panel, the engine's sentence says why`); }
       if (d.wideLine) ok(t.includes(d.wideLine), `${where}: wideLine prints`);
       if (d.yearNote) ok(t.includes(d.yearNote), `${where}: yearNote prints`);
       ok(!/Add mileage to narrow the range[\s\S]*Add mileage to narrow/.test(t), `${where}: one mileage prompt at most`);

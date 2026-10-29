@@ -285,7 +285,7 @@ const APP_JS = String.raw`(function(){
   var limit = null, carry = "", draftOpen = !!(params.get("start") || params.get("seed")), miss = false;
   var starting = {}, firing = {}, cardsOut = {}, fullCache = {}, askN = {};
   var looking = null;   // what Find's toggles and buttons made (api/tasks.js action looking): the person's watches and before-it-ends alerts
-  var COLD_MAX = 45000, COULD_NOT = ${JSON.stringify(reasonLine("cold.missed"))}, coldSince = {};   // cold spec (Oct 28 2026): a card still being read is asked for every 2 seconds for up to 45 seconds, then the one plain line; never "try again"
+  var COULD_NOT = ${JSON.stringify(reasonLine("cold.missed"))}, coldSince = {};   // cold spec: a card still being read is asked for every retryAfterMs for up to the engine's waitMaxMs (market.waitMaxMs), then the one plain line; never "try again"; no wait number of the page's own
   function phraseOf(t){ return String((t && t.summary) || "").replace(/^Sam is (?:looking for|researching)\s+/i, "").replace(/:.*$/, "").replace(/[.]+$/, ""); }
   function showLimit(l){ limit = l; api({ action: "limit", event: "seen", mode: l.mode, attempted: l.attempted }).catch(function(){}); }
   function syncLimit(){ if (limit && !(data && data.limit && data.limit.atLimit)) { if (limit.mode === "seed" || limit.mode === "typed") carry = limit.attempted || ""; limit = null; } }
@@ -497,8 +497,8 @@ const APP_JS = String.raw`(function(){
         if (isPend(l)) {
           coldSince[l.id] = coldSince[l.id] || Date.now();
           var k = Number(window.GAS_WAIT_SCALE) || 1;
-          if (Date.now() - coldSince[l.id] >= COLD_MAX * k) { l.market = { kind: "pending", stillReading: false, couldNot: true, line: COULD_NOT }; try { if (typeof gasTrack === "function") gasTrack("cold_miss", { wait_ms: Math.round(Date.now() - coldSince[l.id]), reason: "timeout", text: String(l.title || "").slice(0, 120), from_product: "tasks" }); } catch (e) {} }
-          else waits.push((l.market && l.market.retryAfterMs > 0 ? l.market.retryAfterMs : 2000) * k);
+          if (Number(l.market && l.market.waitMaxMs) > 0 && Date.now() - coldSince[l.id] >= Number(l.market.waitMaxMs) * k) { l.market = { kind: "pending", stillReading: false, couldNot: true, line: COULD_NOT }; try { if (typeof gasTrack === "function") gasTrack("cold_miss", { wait_ms: Math.round(Date.now() - coldSince[l.id]), reason: "timeout", text: String(l.title || "").slice(0, 120), from_product: "tasks" }); } catch (e) {} }
+          else if (l.market && l.market.retryAfterMs > 0) waits.push(l.market.retryAfterMs * k);
         } else delete coldSince[l.id];
         redrawCard(l);
       });

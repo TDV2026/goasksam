@@ -86,9 +86,9 @@ const FAILED = { status: "one_box", tier: "unavailable", samLine: CM, resolvedCa
   ok(/"api\/sellerDecision\.js": \{\s*"maxDuration": (\d+)/.test(rd("vercel.json")) && Number(/"api\/sellerDecision\.js": \{\s*"maxDuration": (\d+)/.exec(rd("vercel.json"))[1]) >= 90, "server: the function lives long enough for the compute to finish after the response (maxDuration 90)");
   ok(/retryAfterMs: 2000, waitMaxMs: COLD_WAIT_MS/.test(ls) && /keepAlive\(p\)/.test(ls), "Find/Tasks cards: the pending answer asks in 2 seconds and the compute is kept alive");
   const buy = rd("api/buy.js"); const i = buy.indexOf("const CLIENT = ") + "const CLIENT = ".length, c = JSON.parse(buy.slice(i, buy.indexOf('";\n', i) + 1));
-  ok(/COLD_MAX = 45000/.test(c) && /COULD_NOT = __COLD_MISSED__/.test(c) && /__COLD_MISSED__/.test(buy) && buy.includes("reasonLine(\"cold.missed\")") && /gasTrack\("cold_miss"/.test(c), "Find: a card still being read is asked for 45 seconds, then the plain line and a cold_miss");
-  ok(/COLD_MAX = 45000/.test(rd("api/tasksPage.js")) && /gasTrack\("cold_miss"/.test(rd("api/tasksPage.js")), "Tasks: the same 45 seconds and cold_miss");
-  ok(/cold\(|coldAt|45000 \* \(Number\(window\.GAS_WAIT_SCALE\)/.test(rd("api/partnerDemo.js")) && /45000 \* \(Number\(window\.GAS_WAIT_SCALE\)/.test(rd("api/_amazonDemo.js")), "partner demos: the same 45 seconds");
+  ok(/Number\(m\.waitMaxMs\)/.test(c) && !/COLD_MAX/.test(c) && /COULD_NOT = __COLD_MISSED__/.test(c) && /__COLD_MISSED__/.test(buy) && buy.includes("reasonLine(\"cold.missed\")") && /gasTrack\("cold_miss"/.test(c), "Find: a card still being read is asked for the engine's waitMaxMs, then the plain line and a cold_miss (no number of the page's own)");
+  ok(/Number\(l\.market\.waitMaxMs\)/.test(rd("api/tasksPage.js")) && !/COLD_MAX/.test(rd("api/tasksPage.js")) && /gasTrack\("cold_miss"/.test(rd("api/tasksPage.js")), "Tasks: the engine's waitMaxMs and cold_miss");
+  ok(/a\.waitMaxMs \* \(Number\(window\.GAS_WAIT_SCALE\)/.test(rd("api/partnerDemo.js")) && /a\.waitMaxMs \* \(Number\(window\.GAS_WAIT_SCALE\)/.test(rd("api/_amazonDemo.js")), "partner demos: the engine's waitMaxMs");
   ok(/coldCardHtml/.test(rd("api/history.js")) && /readComputing/.test(rd("api/_historyData.js")) && /keepAlive/.test(rd("api/_historyData.js")), "history hubs: the reading placeholder asks again; the compute is kept and stored");
   ok(/cold_miss:/.test(rd("lib/track/catalog.js")), "the cold_miss event is in the catalog");
   // CLASS: no market-read state keeps a come-back line

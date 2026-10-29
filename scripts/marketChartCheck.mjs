@@ -33,7 +33,11 @@ const b = await puppeteer.launch({ executablePath: process.env.CHROME_PATH || "/
 const page = fs.readFileSync(new URL("../public/onebox.html", import.meta.url), "utf8");
 ok(/\.hero2col > \.hero-left:only-child\{grid-column:1\/-1;border-right:0;padding-right:0\}/.test(page), "no chart: the hero's left column has no stray right divider and spans the full width");
 const src2 = fs.readFileSync(new URL("../public/js/onebox.js", import.meta.url), "utf8");
-ok(/function noChartLineHtml\(d\) \{/.test(src2) && /Too few to show movement, enough to show where they landed\./.test(src2.slice(src2.indexOf("function noChartLineHtml"), src2.indexOf("function noChartLineHtml") + 700)) && (src2.match(/left \+= noChartLineHtml\(d\);/g) || []).length === 2, "no chart: the one line 'N sales. Too few to show movement, enough to show where they landed.' with the engine's pool size at both call sites");
+{ const i = src2.indexOf("function noChartLineHtml"), body = src2.slice(i, src2.indexOf("\n  }\n", i)), panel = src2.slice(src2.indexOf("function chartPanelHtml"), src2.indexOf("function chartPanelHtml") + 2600);
+  ok(i > 0 && /Too few to show movement, enough to show where they landed\./.test(body) && (src2.match(/left \+= noChartLineHtml\(d\);/g) || []).length === 2, "no chart: the one calm line 'N sales. Too few to show movement, enough to show where they landed.' (or the engine's own chart sentence) with the engine's pool size at both call sites, under the pills in the left column");
+  { const pi = src2.indexOf("function chartPanelHtml"), pe = src2.indexOf("\n  }\n", pi), heads = [...src2.matchAll(/<h2>How this market has moved<\/h2>/g)].map(m => m.index);
+    ok(heads.length === 1 && heads[0] > pi && heads[0] < pe && /\n    return "";\n$/.test(src2.slice(pi, pe + 1)) && (src2.slice(pi, pe).match(/hero-chart/g) || []).length === 1 && !/hc-held|data-chart="withheld"|chartHeldSentence/.test(src2.slice(pi, pe)), "no chart: the 'How this market has moved' heading exists only inside chartPanelHtml, which ends in return \"\" (no panel, no heading, no empty column) when there are no candles"); }
+  ok(!/hc-dot|hc-dots|<circle[^>]*class="hc/.test(src2), "no chart: no dots anywhere in the chart code (never ever dots)"); }
 const shots = process.env.SHOTS;
 for (const [w, h] of [[1440, 900], [390, 844]]) {
   const p = await b.newPage(); await p.setViewport({ width: w, height: h, isMobile: w < 600 });
