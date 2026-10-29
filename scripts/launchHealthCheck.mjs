@@ -13,7 +13,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
 const imp = f => import(pathToFileURL(path.join(ROOT, f)).href);
 const H = await imp("lib/admin/health.js");
 const { statusOf, hourNumbers, capacityNumbers, feedbackToday, THRESHOLDS: T, _resetHealthCache } = H;
-const hour = over => ({ searches: 40, failed_searches: 0, errors_5xx: 0, busy_shown: 0, limits_hit: 0, task_emails_sent: 4, task_emails_failed: 0, cold_n: 10, cold_p50_ms: 3900, cold_p95_ms: 16300, ...over });
+const hour = over => ({ searches: 40, failed_searches: 0, still_reading: 0, stopped_by_limit: 0, errors_5xx: 0, busy_shown: 0, limits_hit: 0, task_emails_sent: 4, task_emails_failed: 0, cold_n: 10, cold_p50_ms: 3900, cold_p95_ms: 16300, ...over });
 const lv = (over, fresh = null) => statusOf({ hour: hour(over), fresh }).level;
 
 // ---- 1. the strip
@@ -22,6 +22,8 @@ ok(lv({}) === "GOOD", "a quiet, healthy hour is GOOD");
 { const g = statusOf({ hour: hour({ searches: 0, cold_n: 0, cold_p50_ms: null, cold_p95_ms: null }), fresh: null }); ok(g.level === "GOOD" && /No searches in the last hour/.test(g.why), "an hour with no searches says so, not a number it does not have"); }
 ok(lv({ errors_5xx: 1 }) === "WATCH" && lv({ errors_5xx: T.act.errors_5xx - 1 }) === "WATCH" && lv({ errors_5xx: T.act.errors_5xx }) === "ACT NOW", "5xx: 1 is WATCH, " + T.act.errors_5xx + " is ACT NOW");
 ok(lv({ failed_searches: 3, searches: 10 }) === "ACT NOW" && lv({ failed_searches: 3, searches: 40 }) === "WATCH" && lv({ failed_searches: 1 }) === "WATCH", "failed searches: 3 of 10 is ACT NOW, 3 of 40 (under 20 percent) is WATCH, one is WATCH");
+ok(lv({ still_reading: 2, searches: 10 }) === "GOOD" && lv({ still_reading: 4, searches: 40 }) === "WATCH" && lv({ still_reading: 3, searches: 100 }) === "GOOD" && lv({ still_reading: 10, searches: 40 }) === "WATCH" && lv({ still_reading: 10, searches: 20 }) === "ACT NOW", "still reading (a car with no stored answer): 3 or more and at least 10 percent is WATCH, 10 and half of all searches is ACT NOW, never from a handful");
+ok(lv({ stopped_by_limit: 500, searches: 600 }) === "GOOD", "searches stopped by a limit (rate_limited, daily_limit, catching_breath) are the protection working, never a failure");
 ok(lv({ busy_shown: 1 }) === "WATCH" && lv({ busy_shown: 5 }) === "ACT NOW", "busy line: 1 WATCH, 5 ACT NOW");
 ok(lv({ limits_hit: 4 }) === "GOOD" && lv({ limits_hit: 5 }) === "WATCH" && lv({ limits_hit: 500 }) === "WATCH", "limits hit: under 5 GOOD, 5 or more WATCH and never ACT NOW (a limit is the protection working)");
 ok(lv({ task_emails_failed: 1 }) === "WATCH" && lv({ task_emails_failed: 3 }) === "ACT NOW", "Task emails failed: 1 WATCH, 3 ACT NOW");
@@ -39,13 +41,13 @@ ok(lv({}, { last_warm_hours: null }) === "GOOD", "a stored-answer time that is n
 const NOW = Date.parse("2026-10-29T14:30:00Z"), ago = m => new Date(NOW - m * 60000).toISOString();
 const ev = (name, m, props = {}, product = "market_check") => ({ ts: ago(m), name, product, props });
 const rows = [
-  ev("search_run", 5, { answer_type: "range", latency_ms: 4000, cache: "cold" }), ev("search_run", 10, { answer_type: "range", latency_ms: 900, cache: "warm" }), ev("search_run", 15, { answer_type: "failed", latency_ms: 99999, cache: "cold" }),
+  ev("search_run", 5, { answer_type: "range", latency_ms: 4000, cache: "cold" }), ev("search_run", 10, { answer_type: "range", latency_ms: 900, cache: "warm" }), ev("search_run", 15, { answer_type: "failed", latency_ms: 99999, cache: "cold" }), ev("search_run", 16, { answer_type: "failed", failure_state: "still_reading", latency_ms: 200 }), ev("search_run", 17, { answer_type: "failed", failure_state: "rate_limited", latency_ms: 100 }), ev("search_run", 18, { answer_type: "failed", failure_state: "daily_limit", latency_ms: 100 }),
   ev("search_run", 90, { answer_type: "range", latency_ms: 70000, cache: "cold" }),   // older than the hour
   ev("error", 3, { route: "/api/x", status: 503 }), ev("error", 4, { route: "/api/y", status: 404 }), ev("error", 200, { route: "/api/x", status: 504 }),
   ev("busy_shown", 2), ev("limit_hit", 2, { limit: "a" }), ev("task_match_sent", 20, { emails_sent: 3, failed: 1 }), ev("feedback_sent", 30), ev("feedback_sent", 60 * 20),
 ];
 { const h = hourNumbers(rows, NOW);
-  ok(h.searches === 3 && h.failed_searches === 1 && h.errors_5xx === 1 && h.busy_shown === 1 && h.limits_hit === 1 && h.task_emails_sent === 3 && h.task_emails_failed === 1, "the hour counts only the last 60 minutes (3 searches, 1 failed, 1 five-hundred, 1 busy, 1 limit, 3 emails sent, 1 failed)");
+  ok(h.searches === 6 && h.failed_searches === 1 && h.still_reading === 1 && h.stopped_by_limit === 2 && h.errors_5xx === 1 && h.busy_shown === 1 && h.limits_hit === 1 && h.task_emails_sent === 3 && h.task_emails_failed === 1, "the hour counts only the last 60 minutes (6 searches: 1 failed, 1 still reading, 2 stopped by a limit; 1 five-hundred, 1 busy, 1 limit, 3 emails sent, 1 failed)");
   ok(h.cold_n === 1 && h.cold_p50_ms === 4000, "the cold speed leaves out the failed search and the one older than the hour"); }
 { const c = capacityNumbers(rows, NOW); ok(c.errors_5xx === 2 && c.errors_504 === 1 && c.by_route[0].n === 1 && c.slowest[0].product === "market_check" && c.not_recorded.length === 2 && c.not_recorded.every(t => /not logged|cannot log itself/.test(t)), "capacity: 24 hour 5xx and 504, slowest search, and what is not recorded is said"); }
 { const f = feedbackToday(rows, NOW); ok(f.form_messages === 1 && f.replies === null, "feedback today is the Pacific day (the message 20 hours ago is yesterday) and replies are not recorded"); }
@@ -93,10 +95,12 @@ globalThis.fetch = realFetch;
 // ---- 4. the class: only recorded numbers
 const { EVENTS } = await imp("lib/track/catalog.js");
 const src = fs.readFileSync(path.join(ROOT, "lib/admin/health.js"), "utf8");
-const used = { search_run: ["answer_type", "latency_ms", "cache"], error: ["route", "status", "code"], busy_shown: [], limit_hit: [], task_match_sent: ["emails_sent", "failed"], feedback_sent: [] };
+const used = { search_run: ["answer_type", "latency_ms", "cache", "failure_state"], error: ["route", "status", "code"], busy_shown: [], limit_hit: [], task_match_sent: ["emails_sent", "failed"], feedback_sent: [] };
 const fieldsOf = n => { const e = EVENTS[n]; return e ? new Set([...Object.keys(e.req || {}), ...Object.keys(e.opt || {})]) : null; };
 for (const [n, fl] of Object.entries(used)) { const f = fieldsOf(n); ok(!!f && fl.every(x => f.has(x)), `the strip reads ${n}${fl.length ? " (" + fl.join(", ") + ")" : ""}, and the catalog records ${f ? "all of it" : "no such event"}`); }
 { const names = [...src.matchAll(/by\(hr, "([a-z_]+)"\)/g)].map(m => m[1]).concat([...src.matchAll(/e\.name === "([a-z_]+)"/g)].map(m => m[1])); ok(names.length > 5 && names.every(n => EVENTS[n]), "every event name the health file reads is in the catalog (" + [...new Set(names)].join(", ") + ")"); }
+{ const states = EVENTS.search_run.opt.failure_state, srcH = fs.readFileSync(path.join(ROOT, "lib/admin/health.js"), "utf8"); const named = new Set([...srcH.matchAll(/LIMIT_STATES = new Set\(\[([^\]]*)\]/g)].flatMap(m => m[1].match(/"[a-z_]+"/g) || []).map(x => x.replace(/"/g, "")).concat(srcH.includes('"still_reading"') ? ["still_reading"] : []));
+  ok(Array.isArray(states) && states.every(x => named.has(x)), "every failure_state the catalog can record is classed by the strip (a limit, or still reading), so a new state cannot be silently counted as a failure or as nothing (" + states.join(", ") + ")"); }
 ok(!/Math\.random|estimate|guess/i.test(src.replace(/^\s*\/\/.*$/gm, "").replace(/never a guess|not a guess/g, "")), "the health file has no random number and no estimate");
 ok(!/\b(oneEngineAnswer|runOneBox|sellerDecision|oldcarsdata|fetchOCD)\b/i.test(src.replace(/^\s*\/\/.*$/gm, "")), "the health file calls no engine and no OldCarsData");
 ok(!/supabaseInsert|method:\s*"(POST|PATCH|PUT|DELETE)"|\.insert\(|\.upsert\(/.test(src), "the health file writes nothing");
@@ -113,7 +117,7 @@ const base = { read: true, hour: hour({}), capacity: capacityNumbers(rows, NOW),
 const CASES = {
   good: { ...base, status: st("GOOD", "40 searches in the last hour, none failed, no server errors, no busy line.", null) },
   watch: { ...base, hour: hour({ errors_5xx: 2 }), status: st("WATCH", "2 server errors (5xx) in the last hour.", null, ["The busy line was shown 1 time in the last hour."]) },
-  act: { ...base, hour: hour({ errors_5xx: 7 }), status: st("ACT NOW", "7 server errors (5xx) in the last hour.", "Open Failures below, read the first line of Errors by route and status, and send Lane C that route and the time. Do not push anything.", ["5 Task emails failed in the last hour."]) },
+  act: { ...base, hour: hour({ errors_5xx: 7, task_emails_failed: 5 }), status: st("ACT NOW", "7 server errors (5xx) in the last hour.", "Open Failures below, read the first line of Errors by route and status, and send Lane C that route and the time. Do not push anything.", ["5 Task emails failed in the last hour."]) },
   unread: { read: false, status: statusOf({ hour: null, fresh: null }), hour: null, capacity: null, feedback: null, last_real: null, fresh: null },
 };
 const b = await puppeteer.launch({ executablePath: process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", headless: "new", args: ["--no-sandbox"] });
@@ -137,6 +141,7 @@ for (const [w, hgt, tag] of [[1440, 900, "1440"], [390, 844, "390"]]) for (const
   ok(r.fs >= 14, `${tag} ${name}: the sentence is at least 14px`);
   ok((name === "act" || name === "unread") === /First step:/.test(r.text), `${tag} ${name}: a first step is written only when there is something to do`);
   ok(/Ready for launch/.test(r.all) && (name === "unread" || /Newest stored answer/.test(r.all)), `${tag} ${name}: the readiness blocks draw`);
+  ok(!/\(\s*\)/.test(r.all), `${tag} ${name}: no empty brackets where a time has no age`);
   if (name === "good") ok(/Replies to Task emails\s*not recorded/.test(r.all) && /none in the last 30 days/.test(r.all) && /Feedback form messages\s*2/.test(r.all), `${tag}: replies are "not recorded", the product with no real answer says none in 30 days, feedback shows its count`);
   if (name === "unread") ok(/Not recorded: the stored answers could not be read/.test(r.all) && /Not recorded: the last 24 hours/.test(r.all), `${tag}: with nothing readable every block says not recorded and no zero is drawn`);
   if (SHOTS) await page.screenshot({ path: path.join(ROOT, `docs/screens/launch/status-${name}-${tag}.png`), clip: { x: 0, y: 0, width: w, height: Math.min(hgt * 1.6, 1500) } });

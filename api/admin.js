@@ -382,10 +382,10 @@ function fmtT(v){try{return new Date(v).toLocaleString();}catch(e){return v;}}
 var PN={buy:"Find",market_check:"Market Check",sell:"Sell",total:"All products"};
 function pn(v){return E(PN[v]||v);}
 function ago(v){if(!v)return "";var m=Math.round((Date.now()-new Date(v).getTime())/60000);if(!isFinite(m)||m<0)return "";return m<90?m+" min ago":m<2880?Math.round(m/60)+" hours ago":Math.round(m/1440)+" days ago";}
-function atT(v){return v?E(fmtT(v))+" ("+E(ago(v))+")":"not recorded";}
+function atT(v){if(!v)return "not recorded";var g=ago(v);return E(fmtT(v))+(g?" ("+E(g)+")":"");}
 function healthStrip(hh){if(!hh||!hh.status)return '';var st=hh.status,c=st.level==="GOOD"?"good":st.level==="WATCH"?"watch":"act",x=hh.hour;
  return '<div class="strip '+c+'" role=status><b class=lv>'+E(st.level)+'</b><span>'+E(st.why)+'</span>'+(st.step?'<span>First step: '+E(st.step)+'</span>':'')+(st.also&&st.also.length?'<span class=also>Also: '+E(st.also.join(" "))+'</span>':'')+'</div>'
- +(x?'<p class=note>Last 60 minutes: '+n(x.searches)+' searches, '+n(x.failed_searches)+' failed, '+n(x.errors_5xx)+' server errors, busy line '+n(x.busy_shown)+', limits hit '+n(x.limits_hit)+', Task emails failed '+n(x.task_emails_failed)+', cold median '+(x.cold_n?ms(x.cold_p50_ms)+' and 95th '+ms(x.cold_p95_ms)+' over '+n(x.cold_n)+' cold answers':'not recorded (no cold answers)')+'.</p>':'');}
+ +(x?'<p class=note>Last 60 minutes: '+n(x.searches)+' searches, '+n(x.failed_searches)+' failed, '+n(x.still_reading)+' still reading, '+n(x.stopped_by_limit)+' stopped by a limit, '+n(x.errors_5xx)+' server errors, busy line '+n(x.busy_shown)+', limits hit '+n(x.limits_hit)+', Task emails failed '+n(x.task_emails_failed)+', cold median '+(x.cold_n?ms(x.cold_p50_ms)+' and 95th '+ms(x.cold_p95_ms)+' over '+n(x.cold_n)+' cold answers':'not recorded (no cold answers)')+'.</p>':'');}
 function healthBlocks(hh){if(!hh)return '';var f=hh.fresh,c=hh.capacity,lr=hh.last_real,fb=hh.feedback,h='<h2>Ready for launch</h2>';
  h+='<h3>How fresh the stored answers are</h3>';
  if(!f){h+='<p class=note>Not recorded: the stored answers could not be read just now.</p>';}
@@ -396,7 +396,7 @@ function healthBlocks(hh){if(!hh)return '';var f=hh.fresh,c=hh.capacity,lr=hh.la
   +table([["Slowest search first","product",function(v){return pn(v);}],["Answers","n",n],["Median","p50",ms],["95th percentile","p95",ms]],c.slowest)
   +table([["Errors by route and status","k"],["Count","n",n]],c.by_route)+c.not_recorded.map(function(t){return '<p class=note>Not recorded: '+E(t)+'</p>';}).join("");}
  h+='<h3>Feedback today (Pacific)</h3>'+(fb?tiles([["Feedback form messages",n(fb.form_messages)],["Replies to Task emails","not recorded"]])+'<p class=note>A count only; the messages and replies are in the feedback inbox. Nothing counts the replies.</p>':'<p class=note>Not recorded: could not be read just now.</p>');
- h+='<h3>The last real answer, per product</h3>'+(lr?table([["Product","product",function(v){return pn(v);}],["Last real answer","at"]],["buy","market_check","sell"].map(function(p){var r=lr[p];return {product:p,at:!r||!r.read?"not recorded":r.ts?fmtT(r.ts)+" ("+ago(r.ts)+")":"none in the last 30 days"};}))+'<p class=note>A real answer is a range, as the rest of this tab counts it. Bots are left out; crew only when the box is ticked.</p>':'<p class=note>Not recorded: could not be read just now.</p>');
+ h+='<h3>The last real answer, per product</h3>'+(lr?table([["Product","product",function(v){return pn(v);}],["Last real answer","at"]],["buy","market_check","sell"].map(function(p){var r=lr[p];return {product:p,at:!r||!r.read?"not recorded":r.ts?atT(r.ts):"none in the last 30 days"};}))+'<p class=note>A real answer is a range, as the rest of this tab counts it. Bots are left out; crew only when the box is ticked.</p>':'<p class=note>Not recorded: could not be read just now.</p>');
  return h;}
 R.launch=function(d){
  var h=healthStrip(d.health)+'<div class=lrange>'+[["today","Today"],["yesterday","Yesterday"],["launch","Since launch"],["last7","Last 7 days"]].map(function(x){return '<button data-r="'+x[0]+'" class="'+(rng===x[0]?"on":"")+'">'+x[1]+'</button>';}).join("")+'</div>';
