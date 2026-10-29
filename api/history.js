@@ -386,8 +386,8 @@ async function carPage(req, res, env, slug, vin) {
   if (lastSale && lastSale.priceUsd && d && d.tier === "result" && d.cluster && winStart(d) && lastSale.date >= winStart(d)) {
     const [lo, hi] = d.cluster, p = lastSale.priceUsd, yr = String(lastSale.date).slice(0, 4);
     cmp = p >= lo && p <= hi
-      ? `Its ${yr} sale, ${usd(p)}, sits inside where most ${nounOf(d, id)} sold${winClause(d)} (${usd(lo)} to ${usd(hi)}).`
-      : `Its ${yr} sale was ${usd(p)}. Most ${nounOf(d, id)} sold${winClause(d)} went for ${usd(lo)} to ${usd(hi)}.`;
+      ? `Its ${yr} sale, ${usd(p)}, sits inside the typical range for ${nounOf(d, id)} sold${winClause(d)} (${usd(lo)} to ${usd(hi)}).`
+      : `Its ${yr} sale was ${usd(p)}. The typical range for ${nounOf(d, id)} sold${winClause(d)} is ${usd(lo)} to ${usd(hi)}.`;
   }
   // Questions answered only with THIS car's own facts; a question whose answer would be a template (the
   // same words on every page) is left out.
@@ -505,7 +505,7 @@ function specRailHtml(d, id, lastSale, noun = "car") {
     const n = (d.cards || []).length || poolCount(d);
     return `<section class="sec" aria-label="What ${noun === "car" ? "cars" : noun + "s"} like it sold for"><h2>What ${esc(fam)} sell for</h2><p class="sub">${n ? `${esc(countNoun(n, "sale", { words: false, cap: true }))}${esc(winClause(d))}.` : ""}</p>
 <div class="vrail${recent ? " hasme" : ""}"><div class="rrow"><span class="rend">${usd(lo)}</span><span class="rline"><i class="band" style="left:${a.toFixed(1)}%;width:${Math.max(1.5, b - a).toFixed(1)}%"></i>${dot}</span><span class="rend">${usd(hi)}</span></div>
-<p class="rmost">Most sold between ${usd(d.cluster[0])} and ${usd(d.cluster[1])}</p><p class="rcap">What this spec has sold for${esc(winClause(d))}</p></div></section>`;
+<p class="rmost">The typical range is ${usd(d.cluster[0])} to ${usd(d.cluster[1])}</p><p class="rcap">What this spec has sold for${esc(winClause(d))}</p></div></section>`;
   }
   const n = poolCount(d);
   if (!n) return "";
