@@ -42,6 +42,16 @@ for (const w of [1440, 390]) {
     const again = await until(p, s => s.state || s.loader === false && !s.body, 5000);
     ok(again.s.state && !again.s.loader && again.s.n === 1, `${at}: a tap on the body question's chip starts a clean search and the first question shows (${JSON.stringify(again.s)}; asks ${before} to ${p._posts.length})`);
     await p.close(); }
+  // (1b) cold, question-tier, the reader taps a state before the body question arrives: kept, not asked again, not lost
+  { const car = C(2004, "Porsche", "911"), p = await run(car, "2004 Porsche 911", n => n <= 4 ? computing(car) : n === 5 ? bodyQ(car) : n <= 7 ? computing(car) : result(car), w), at = `question-tier, state tapped before the body question, at ${w}`;
+    await until(p, s => s.state); await p.evaluate(() => { const c = [...document.querySelectorAll(".chip")].find(x => /^Texas/.test(x.textContent.trim())); c && c.click(); });
+    const e = await until(p, s => s.body, 6000); ok(e.s.body && !e.s.loader, `${at}: the body question arrives with no blank (${JSON.stringify(e.s)})`);
+    await p.evaluate(() => { const c = [...document.querySelectorAll(".chip,button")].find(x => /^Coupe/.test(x.textContent.trim())); c && c.click(); });
+    const h = await until(p, s => s.how || s.state, 5000); ok(h.s.how && !h.s.state && !h.s.loader, `${at}: after the body chip the next question is how to sell, the state is not asked again (${JSON.stringify(h.s)})`);
+    await p.evaluate(() => { const c = [...document.querySelectorAll(".chip")][0]; c && c.click(); }); await new Promise(r => setTimeout(r, 300));
+    await p.evaluate(() => { const c = [...document.querySelectorAll(".chip")][0]; c && c.click(); }); await new Promise(r => setTimeout(r, 800));
+    ok(p._flow.some(f => /^(range|result)$/.test(f.step) && f.state === "Texas"), `${at}: the state tapped before the swap reaches the result request (${JSON.stringify(p._flow.map(f => f.step + ":" + (f.state || "")))})`);
+    await p.close(); }
   // (2) stored
   { const car = C(1973, "Porsche", "911"), p = await run(car, "1973 Porsche 911", () => result(car), w), at = `stored 1973 Porsche 911 at ${w}`;
     const q = await until(p, s => s.state); ok(q.s.state && q.s.n === 1 && !q.s.loader, `${at}: the question shows once, no bar (${JSON.stringify(q.s)})`);
