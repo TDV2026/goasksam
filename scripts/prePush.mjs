@@ -1331,6 +1331,13 @@ try {
 } catch (e) {
   record("resolver: a make and a year with more than one model that has sales asks which (scripts/makeYearAskCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// An ended lot never stays unmarked past one pull cycle (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/endedLotCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("live: an ended lot is marked ended on the next pull cycle and never read as live (scripts/endedLotCheck.mjs)", "PASS", (out.match(/endedLotCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("live: an ended lot is marked ended on the next pull cycle and never read as live (scripts/endedLotCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // A landing example is the engine's answer and nothing else: no cluster rule, sales floor or generation floor of a builder's own (Lane B, Oct 29 2026).
 try {
   const out = execSync("node scripts/exampleFromEngineCheck.mjs", { encoding: "utf8", timeout: 120000 });

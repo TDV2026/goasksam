@@ -1738,6 +1738,56 @@ async function handleOps(req, res) {
     if (!out.stoppedAtBudget && offset + limit < all.length) out.next = offset + limit; else if (out.stoppedAtBudget) out.next = offset + out.read;
     return res.status(200).json(out);
   }
+  // task=staletexts (Lane B, Oct 29 2026, e101; READ-ONLY, no write, no spend): the cars whose stored rows are behind, as car texts Lane C can feed to warmNamed (--list). ?kind=mc: every MCWARM (Market Check) row whose warmEpoch is
+  // not the current epoch; ?kind=core: every core row still marked stale (market.staleSince); ?kind=scopedout: the specs of live listings outside the launch scope (the ones the scope fix took out of the union), with whether their
+  // Market Check row is behind. Paged 1000 rows a call (?after= is the last key); texts are year make model trim body edition variant from the row's own key, de-duplicated, refine rows (a gearbox, body, trim or variant chip's
+  // own row) counted apart because the bare row's warm covers them. The key is returned beside each text so a text that resolves to another key can be told.
+  if (task === "staletexts") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { currentEpoch } = await import("../lib/_epoch.js");
+    const kind = ["core", "scopedout"].includes(String(req.query?.kind)) ? String(req.query.kind) : "mc";
+    const epoch = await currentEpoch(env).catch(() => null);
+    const textOf = arr => { const [make, model, trim, year, , body, edition, variant] = arr; return [year, make, model, trim, body, edition, variant].filter(x => x != null && x !== "").join(" ").replace(/\s+/g, " ").trim(); };
+    const parse = key => { try { const a = JSON.parse(String(key).replace(/^MCWARM:/, "")); return Array.isArray(a) ? a : null; } catch { return null; } };
+    if (kind === "scopedout") {
+      const { liveRows, liveScopeOf, specOf, listingFacts, warmAnswerKeyFor, readWarmAnswerDetailed } = await import("../lib/live/search.js");
+      const t0 = Date.now(), budget = Math.min(250000, Number(req.query?.budget) || 120000), offset = Math.max(0, Number(req.query?.offset) || 0), limit = Math.max(1, Math.min(400, Number(req.query?.limit) || 200));
+      const all = ((await liveRows(env, "id=gt.0", { allScope: true })) || []).filter(r => !liveScopeOf(r).in && !(r.end_time && Date.parse(r.end_time) <= Date.now()));
+      const seen = new Map(); let read = 0, stopped = false;
+      for (const r of all.slice(offset, offset + limit)) {
+        if (Date.now() - t0 > budget) { stopped = true; break; } read++;
+        try { const sp = await specOf(env, r, listingFacts(r)); if (!sp || !sp.key || seen.has(sp.key)) continue;
+          const w = await readWarmAnswerDetailed(env, warmAnswerKeyFor(sp.v, sp.generation, null)).catch(() => null);
+          seen.set(sp.key, { text: sp.title, behind: !w || !w.raw || !!w.stale, reason: w ? (w.reason || null) : "unread" }); } catch { /* unresolved */ }
+      }
+      const list = [...seen.values()];
+      return res.status(200).json({ task: "staletexts", kind, ocdSpend: 0, writes: 0, outOfScopeLive: all.length, offset, read, distinctSpecs: list.length, behind: list.filter(x => x.behind).length, texts: [...new Set(list.filter(x => x.behind).map(x => x.text))], next: stopped ? offset + read : (offset + limit < all.length ? offset + limit : null) });
+    }
+    const after = req.query?.after ? String(req.query.after) : "";
+    const like = kind === "mc" ? "spec_key=like.MCWARM%3A*" : "spec_key=not.like.MCWARM%3A*&spec_key=not.like.LIVESPECS*&spec_key=not.like.QELIG*&spec_key=not.like.MCCOMPUTING*";
+    const rows = await supabaseSelect(env, `spec_market_cache?${like}&select=spec_key,ep:market->>warmEpoch,mark:market->>staleSince&order=spec_key.asc&limit=1000` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "staletexts", kind, readFailed: true, ocdSpend: 0, writes: 0 });
+    const out = { task: "staletexts", kind, epoch, ocdSpend: 0, writes: 0, rows: rows.length, behind: 0, refineRows: 0, unparsed: 0, texts: [], keys: [], next: rows.length === 1000 ? rows[999].spec_key : null };
+    const seen = new Set();
+    for (const r of rows) {
+      const behind = kind === "mc" ? !!(epoch && r.ep && r.ep !== epoch) : !!r.mark; if (!behind) continue; out.behind++;
+      const a = parse(r.spec_key); if (!a) { out.unparsed++; continue; }
+      if (a[9] || a[10] || a[11] || a[12]) { out.refineRows++; continue; }   // a chip's own row (tx, rBody, rTrim, rVariant): the bare row's warm covers it
+      const t = textOf(a); if (!t || seen.has(t.toLowerCase())) continue; seen.add(t.toLowerCase()); out.texts.push(t); out.keys.push(r.spec_key.slice(0, 120));
+    }
+    return res.status(200).json(out);
+  }
+  // task=endedunmarked (Lane B, Oct 29 2026, e101; READ-ONLY): the live_listings rows still status live whose end time passed more than ?minutes= ago (default 30), by source, with the title, how long ago they ended and when they
+  // were last seen: the lots the full walk has not yet marked ended. The short pull now marks them (feed.js markEndedPast); this task is the before and after.
+  if (task === "endedunmarked") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const minutes = Math.max(1, Math.min(2880, Number(req.query?.minutes) || 30)), cut = new Date(Date.now() - minutes * 60e3).toISOString();
+    const rows = await supabaseSelectAll(env, `live_listings?status=eq.live&end_time=lt.${encodeURIComponent(cut)}&select=id,source,listing_title,end_time,last_seen,url&order=end_time.asc`);
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "endedunmarked", readFailed: true, ocdSpend: 0, writes: 0 });
+    const bySource = {}; for (const r of rows) bySource[r.source] = (bySource[r.source] || 0) + 1;
+    const ago = r => Math.round((Date.now() - Date.parse(r.end_time)) / 60e3);
+    return res.status(200).json({ task: "endedunmarked", ocdSpend: 0, writes: 0, minutes, count: rows.length, bySource, oldestMinutesAgo: rows.length ? ago(rows[0]) : null, lots: rows.slice(0, 200).map(r => ({ id: r.id, source: r.source, title: String(r.listing_title || "").slice(0, 90), endedMinutesAgo: ago(r), lastSeen: r.last_seen })) });
+  }
   // task=makeyearsweep (Lane B, Oct 29 2026, e101; READ-ONLY, no write, no OldCarsData spend): for ONE make (?make=), every year it has sales in: the models the Which-make question offers now (production years from the taxonomy,
   // a curated rule or the calculator's list; sales order them), whether the question asks (two or more models with 8 sales in the year's window), and which sales-only models the old list offered that are not offered now.
   // Counts: years, years that ask, years whose chip set changed. Run once per make. ?full=1 returns every year, otherwise the first 40 that changed.
@@ -5346,7 +5396,7 @@ async function handleOps(req, res) {
   if (task === "warmLive" || task === "warmlive") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { warmLiveSpecs } = await import("../lib/live/search.js");
-    const r = await warmLiveSpecs(env, { budgetMs: Math.min(230000, Number(req.query?.budget) || 200000), concurrency: Math.min(8, Number(req.query?.width) || 6), shard: req.query?.shard ? String(req.query.shard) : null, ...(req.query?.trafficDays != null && req.query.trafficDays !== "" ? { trafficDays: Math.max(0, Number(req.query.trafficDays) || 0) } : {}) });
+    const r = await warmLiveSpecs(env, { budgetMs: Math.min(230000, Number(req.query?.budget) || 200000), allScope: req.query?.allScope === "1", concurrency: Math.min(8, Number(req.query?.width) || 6), shard: req.query?.shard ? String(req.query.shard) : null, ...(req.query?.trafficDays != null && req.query.trafficDays !== "" ? { trafficDays: Math.max(0, Number(req.query.trafficDays) || 0) } : {}) });
     return res.status(200).json({ task: "warmLive", ...r });
   }
   // task=warmDemo (e60, Sam: the 00:05 UTC warm of the demo cars, the golden rows and prePush's perf cars, and the

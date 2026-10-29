@@ -6,13 +6,15 @@ const BASE = arg("base", "https://goasksam.com").replace(/\/$/, ""), N = Math.ma
 const KEY = process.env.PROBE_KEY, BYP = process.env.BYPASS_SECRET;
 if (!KEY) { console.log("warmUnion: PROBE_KEY is not set; nothing was called."); process.exit(2); }
 const H = { "x-ops-key": KEY, ...(BYP ? { "x-vercel-protection-bypass": BYP } : {}) };
-const call = async (shard) => { try { const r = await fetch(`${BASE}/api/usageDashboard?view=ops&task=warmLive&budget=240000&width=6&trafficDays=0&shard=${shard}`, { headers: H, signal: AbortSignal.timeout(295000) }); return await r.json(); } catch (e) { return { error: String(e && e.message || e).slice(0, 80) }; } };
+const call = async (shard, all) => { try { const r = await fetch(`${BASE}/api/usageDashboard?view=ops&task=warmLive&budget=240000&width=6&trafficDays=0${all ? "&allScope=1" : ""}&shard=${shard}`, { headers: H, signal: AbortSignal.timeout(295000) }); return await r.json(); } catch (e) { return { error: String(e && e.message || e).slice(0, 80) }; } };
 const t0 = Date.now(); const tot = { calls: 0, warmed: 0, failed: 0, specs: 0 };
-for (let pass = 1; pass <= 2; pass++) {
+// pass 3 (Sam, Oct 29 2026): the listings outside the launch scope too (--no-scopedout leaves it off). Their specs are Market Check rows a reader can type; they get warmed LAST so the in-scope specs are always done first.
+const PASSES = process.argv.includes("--no-scopedout") ? 2 : 3;
+for (let pass = 1; pass <= PASSES; pass++) {
   const tp = Date.now();
   await Promise.all(Array.from({ length: N }, async (_, k) => {
     for (let i = 0; i < 12; i++) {
-      const j = await call(`${k}/${N}`); tot.calls++;
+      const j = await call(`${k}/${N}`, pass === 3); tot.calls++;
       console.log(`pass ${pass} shard ${k}/${N} call ${i + 1}: specs ${j.distinctSpecs} alreadyWarm ${j.alreadyWarm} warmed ${j.warmed} failed ${j.failed} held ${j.heldOut} notReached ${j.notReached} done ${j.done}${j.error ? " ERROR " + j.error : ""}`);
       tot.warmed += j.warmed || 0; tot.failed += j.failed || 0; if (j.distinctSpecs) tot.specs = Math.max(tot.specs, j.distinctSpecs * N);
       if (j.done || j.error) break;
