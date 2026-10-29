@@ -31,7 +31,7 @@ for (const [name, refine, inSet, words] of FILTERS) {
   // the card: one range prints its basis once
   const html = C.sellsForCardHtml(a, { updated: "Oct 28, 2026" }), foot = ((html.match(/<div class="sfc-footer">[\s\S]*$/) || [""])[0]).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
   const single = /^(alike|none)$/.test(String(a.optionsState || "none")) || !a.optionsState;
-  if (single) ok(`${name}: a single range card prints its count and since date once, and the range sentence once`, (foot.match(/\d[\d,]* sales?, since [A-Z][a-z]+ \d{4}/g) || []).length === 1 && (foot.match(/The range is the middle of the market: a quarter of sales landed below it and a quarter above\./g) || []).length === 1, foot.slice(0, 160));
+  if (single) ok(`${name}: a single range card prints its count and since date once, and the range sentence once`, (foot.match(/\d[\d,]* sales?, since [A-Z][a-z]+ \d{4}/g) || []).length === 1 && typeof a.rangeSentence === "string" && a.rangeSentence && foot.split(a.rangeSentence).length - 1 === 1, foot.slice(0, 160));
 }
 // a typed mileage is said in the engine's words
 { const a = await run({ miTarget: 60000, miMin: 50000, miMax: 70000, miBand: 10000, label: "60,000 miles" }); ok("typed miles: \"within 10,000 miles of 60,000\" is on the answer", /within 10,000 miles of 60,000/.test(String(a.appliedLine)), a.appliedLine); }

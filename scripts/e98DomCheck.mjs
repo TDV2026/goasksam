@@ -8,13 +8,19 @@ export const inPage = () => {
   const inAnchor = e => !!e.closest("a[href]");
   for (const card of cards) {
     out.text.push(card.innerText);
+    let cardBig = false; const cardTiny = [];   // a range set 20px or larger is the card's headline range; a small one in the footer is a note only when the card has a headline range
     const walker = document.createTreeWalker(card, NodeFilter.SHOW_TEXT);
     for (let t; (t = walker.nextNode());) {
       if (!/\$\s?\d/.test(t.nodeValue)) continue;
       const e = t.parentElement; if (!e || !vis(e) || e.closest(".sfc-sr")) continue;
       if (underlined(e) || inAnchor(e)) out.under.push(t.nodeValue.trim().slice(0, 60) + (inAnchor(e) ? " [in a link]" : " [underlined]"));
-      if (/\$[\d,]+\s*(?:to)\s*\$[\d,]+/.test(t.nodeValue) && parseFloat(getComputedStyle(e).fontSize) < 20 && !e.closest(".fx-sales, .md-opts, .fx-near, .fx-count, .sfc-small")) out.tiny.push(t.nodeValue.trim().slice(0, 60) + " @" + getComputedStyle(e).fontSize);
+      if (/\$[\d,]+\s*(?:to)\s*\$[\d,]+/.test(t.nodeValue)) { const fs = parseFloat(getComputedStyle(e).fontSize);
+        if (fs >= 20) cardBig = true;
+        else if (!e.closest(".fx-sales, .md-opts, .fx-near, .fx-count, .sfc-small")) cardTiny.push({ text: t.nodeValue.trim(), fs, foot: !!e.closest(".sfc-footer-left") }); }
     }
+    // a small range in the footer is tagged a note (judge() accepts it only when it is the engine's own spreadLine); with no headline range in the card it is a small range like any other
+    if (!cardBig) for (const e of card.querySelectorAll("*")) { if (!vis(e) || e.closest(".sfc-footer-left, .sfc-sr")) continue; const tx = e.textContent.replace(/\s+/g, " "); if (tx.length < 80 && /\$\s?[\d,]+\s*(?:to|-|\u2013)\s*\$\s?[\d,]+/.test(tx) && parseFloat(getComputedStyle(e).fontSize) >= 20) { cardBig = true; break; } }   // the headline range may be split over several elements
+    for (const x of cardTiny) out.tiny.push(x.text.slice(0, 60) + " @" + x.fs + "px" + (x.foot && cardBig ? " [footer note]" : "")); out.tinyFull = (out.tinyFull || []).concat(cardTiny.map(x => x.text));
     // the small lines under the figures: a visible text block under 15px that is not a label (uppercase), a count under a block, a pill, the footer, the spec, a sale line or a button
     let n = 0;
     for (const e of card.querySelectorAll("p, div")) {
@@ -110,7 +116,7 @@ export const judge = (ok, name, r, needs) => {
   ok(!r.findBad.length, `${name}: a Find card prints no sale line, no pick one line, no second range, no near-miles or band line, and its Sam box is three slots${r.findBad.length ? " (" + r.findBad.slice(0, 2).join(" ; ") + ")" : ""}`);
   { const withOpts = !!(r.printed && r.printed.options.length > 0), single = /^\d[\d,]* sales,? since [A-Z][a-z]+ \d{4}\. Updated [A-Z][a-z]{2} \d{1,2}, \d{4}\.$/, E = r.engine, upd = /Updated [A-Z][a-z]{2} \d{1,2}, \d{4}\.$/;
     // THE FOOTER CONTRACT (Lane B, Oct 29 2026): the footer is the engine's own sentences and nothing else: its rangeSentence, its windowLine (the total count and the since date: sent for a single range and for options that all share the window, null when options are split or apart, each option then printing its own), and "Updated <date>.". Never "null", never a dangling since.
-    const want = E ? [E.rangeSentence, E.windowLine].filter(Boolean).join(" ") : null;
+    const want = E ? [E.rangeSentence, E.spreadLine, E.windowLine].filter(Boolean).join(" ") : null;
     ok(r.footers.every(f => !/Powered by|null|undefined|\(\)|since\s*[.,]/.test(f) && (E ? (f.startsWith(want) && upd.test(f) && f.replace(want, "").replace(upd, "").trim() === "") : (withOpts ? upd.test(f) : single.test(f)))), `${name}: the card footer is the engine's own sentences and the update date${E && !E.windowLine ? " (no total count or total since date: the engine sent none)" : ""}, no Powered by, no null (${r.footers.join(" | ") || "no footer"})`); }
   if (r.counts) { const c = r.counts, h = c.hero;
     { const bad = r.printed ? optionProblems(r.printed) : []; ok(!bad.length, `${name}: the options the page printed obey lib/optionProblems.js, the one rule (add up to the footer or print a remainder, or each prints its own since date; no pill twice; no repeat across lists)${bad.length ? ": " + bad.join("; ") : ""}`); }
@@ -133,7 +139,11 @@ export const judge = (ok, name, r, needs) => {
   ok(!r.pointerDup.length, `${name}: no Find card prints "See the sales for all N." next to its See the sales button${r.pointerDup.length ? " (" + r.pointerDup[0] + ")" : ""}`);
   ok(!r.contradict.length, `${name}: no header line says there is nothing over drawn cards${r.contradict.length ? " (" + r.contradict[0] + ")" : ""}`);
   ok(r.keep.every(k => !k.red && k.sameAsView !== false), `${name}: the Have Sam keep looking button is not red and is View auction's green (${r.keep.map(k => k.bg).join(" | ") || "none on the page"})`);
-  ok(!r.tiny.length, `${name}: every range is set large${r.tiny.length ? " (" + r.tiny.slice(0, 2).join(" | ") + ")" : ""}`);
+  { // THE SPREAD LINE is a caption under a headline range, at note size: the footer note is allowed only when it is the engine's own spreadLine (any other small range still fails), and only where a headline range is set large in the same card
+    const E = r.engine, notes = r.tiny.filter(x => / \[footer note\]$/.test(x)), bad = r.tiny.filter(x => !/ \[footer note\]$/.test(x)), foot = r.footers.join(" ");
+    const noteOk = E && E.spreadLine ? (foot.includes(E.spreadLine) && notes.length <= 1) : (E ? notes.length === 0 : notes.length <= 1);
+    ok(!bad.length && noteOk, `${name}: every range is set large${E && E.spreadLine ? " except the engine's spread line, a note under the headline range" : ""}${bad.length ? " (" + bad.slice(0, 2).join(" | ") + ")" : !noteOk ? " (a small footer range that is not the engine's spreadLine: " + notes.join(" | ") + ")" : ""}`);
+    if (E) ok(E.spreadLine ? foot.includes(E.spreadLine) : !/vary widely|[Ss]ales (?:vary|range)/.test(foot) && notes.length === 0, `${name}: the spread line ${E.spreadLine ? "prints, as the engine sent it" : "is absent, as the engine sent none"}`); }
   ok(r.lines.every(n => n <= 2), `${name}: at most two small lines under the figures (${r.lines.join(", ")})`);
   const all = r.text.join(" ");
   ok(!/Sales read on|Sales since then are not in yet|Updating now/.test(all), `${name}: the stale line never prints`);

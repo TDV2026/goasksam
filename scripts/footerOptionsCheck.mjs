@@ -33,8 +33,8 @@ for (const [name, a] of Object.entries(shapes)) {
   } else {
     ok(`${name}: one range with option pills keeps its count and since date, once`, (footText.match(/\d[\d,]* sales?, since [A-Z][a-z]+ \d{4}/g) || []).length === 1 && /Updated Oct 28, 2026\./.test(footText), footText.slice(0, 160));
   }
-  const has = /a quarter of sales landed below it/.test(footText), shouldHave = Array.isArray(d.cluster) || (blocks && (d.options || []).some(o => !o.rangeFloor));
-  ok(`${name}: the range sentence is in the footer once when a range is shown, and not otherwise`, (footText.match(/The range is the middle of the market: a quarter of sales landed below it and a quarter above\./g) || []).length === (shouldHave ? 1 : 0) && has === shouldHave, footText.slice(0, 160));
+  const RS = typeof d.rangeSentence === "string" ? d.rangeSentence : "", once = (t, x) => x ? t.split(x).length - 1 : 0, has = !!RS && footText.includes(RS), shouldHave = Array.isArray(d.cluster) || (blocks && (d.options || []).some(o => !o.rangeFloor));
+  ok(`${name}: the engine's rangeSentence is in the footer once when a range is shown, and the engine sends none otherwise`, once(footText, RS) === (shouldHave ? 1 : 0) && has === shouldHave && !!RS === shouldHave, footText.slice(0, 160));
   const range = (d.options || []).filter(o => !o.rangeFloor), lines = d.optionLines || [];
   ok(`${name}: every range option prints its own count and its own since date`, range.length > 0 && range.every(o => lines.some(l => l.includes(o.label) && new RegExp(`${o.n} sales? since [A-Z][a-z]+ \\d{4}`).test(l))), lines.join(" | "));
   ok(`${name}: a thin option keeps "N sales, too few for a range" with no since date`, (d.options || []).filter(o => o.rangeFloor).every(o => lines.some(l => l.includes(o.label) && new RegExp(`${o.n} sales?, too few for a range`).test(l) && !/since/.test(l))), lines.join(" | "));
