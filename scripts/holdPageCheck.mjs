@@ -19,7 +19,7 @@ ok(Date.parse(launch.LAUNCH_AT) === Date.UTC(2026, 9, 29, 14, 0, 0), "LAUNCH_AT 
 ok(/id="clock"/.test(r.res.body) && /data-at="1793/.test(r.res.body), "before launch: the live countdown is there");
 ok(!/\bAI\b/.test(r.res.body) && !/\bI\b|\bmy\b|\bwe\b/i.test(r.res.body.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, "")) && !/[–—]/.test(r.res.body), "no first person, no AI word, no dashes");
 // at zero: same headline, no timer, no site
-const after = hold.holdingHtml(Date.parse(launch.LAUNCH_AT) + 5000); ok(/Something big is coming/.test(after) && !/id="clock"/.test(after) && !/Opening /.test(after), "at zero: the same headline, no timer, the site stays closed");
+const after = hold.holdingHtml(Date.parse(launch.LAUNCH_AT) + 5000); ok(/Something big is coming/.test(after) && !/id="clock"/.test(after) && /Opening now/.test(after) && !/Opening (Thursday|on)/.test(after), "at zero: the same headline, no timer, a calm \"Opening now\" line, the site stays closed (503)");
 // who passes
 ok(run({ cookie: "gas_crew=" + crew.mintCrewCookieValue() }).held === false, "a crew cookie passes");
 ok(run({ cookie: "gas_crew=ok" }).held === true && run({ cookie: "gas_crew=v1.1.forged" }).held === true, "a forged crew cookie does not pass");

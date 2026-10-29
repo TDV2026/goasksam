@@ -5,6 +5,7 @@
 //   (lib/calculatorYears.js); a model in production with few sales still appears; one with unknown years appears only on sales in the window; sales count orders them; a family and its model are one chip.
 // FAULT 2: "1995 porsche" answered the 911 and "1985 land rover" answered the Range Rover (8 sales, none in 1985) while the Defender 110 had 17 in 1985. CAUSE: "A make with exactly one known model resolves silently" took vPIC's
 //   list of models for the year when it had one name; vPIC's year list is incomplete (it names only the 911 for a 1995 Porsche). FIX: two or more models with ASK_MODEL_MIN (8) sales in the year's window ask first.
+// The live sweep (task makeyearsweep) showed the same car as two chips ("928" and "928 GTS", "SL-Class" and "SL55", "Z" and "240Z", an accent) and a motorcycle as a model; the mock now carries each.
 // The queries below, the exact chip set each must offer (in order), against a taxonomy and an archive built for them, a vPIC that names one model, and a make with one model that still resolves silently.
 //   node scripts/makeYearAskCheck.mjs [repo root]
 import path from "node:path"; import { fileURLToPath, pathToFileURL } from "node:url";
@@ -15,28 +16,28 @@ let fail = 0; const ok = (n, c, d) => { if (!c) fail++; console.log(`${c ? "PASS
 const R = (a, b) => [a, b];
 // taxonomy_models: [name, year_ranges or null (a curated rule or the calculator fills it)]
 const TAX = {
-  porsche: [["911", null], ["928", [R(1978, 1995)]], ["968", [R(1992, 1995)]], ["944", [R(1982, 1991)]], ["356", [R(1950, 1965)]]],
-  bmw: [["3-Series", null], ["M3", [R(1986, 2026)]], ["5-Series", null], ["Z4", [R(2003, 2026)]]],
+  porsche: [["911", null], ["928", [R(1978, 1995)]], ["928 GTS", null], ["968", [R(1992, 1995)]], ["968 Club Sport", null], ["968 Sport", null], ["944", [R(1982, 1991)]], ["356", [R(1950, 1965)]]],
+  bmw: [["Other Motorcycles", null], ["3-Series", null], ["M3", [R(1986, 2026)]], ["5-Series", null], ["Z4", [R(2003, 2026)]]],
   chevrolet: [["Corvette", null], ["Camaro", null], ["Chevelle", [R(1964, 1977)]], ["Nova", [R(1962, 1979)]], ["Impala", null], ["Silverado", null]],
-  "mercedes-benz": [["SL-Class", [R(1954, 2026)]], ["E-Class", null], ["S-Class", null], ["CLK-Class", [R(1997, 2009)]]],
+  "mercedes-benz": [["SL-Class", [R(1954, 2026)]], ["SL55", null], ["E-Class", null], ["S-Class", null], ["CLK-Class", [R(1997, 2009)]]],
   ford: [["Mustang", null], ["Fairlane", [R(1955, 1970)]], ["Thunderbird", [R(1955, 1997)]], ["Model A", null]],
   datsun: [["Z", null], ["240Z", [R(1970, 1973)]], ["280ZX", [R(1979, 1983)]], ["510", [R(1968, 1973)]]],
   toyota: [["Corolla", null], ["Camry", null], ["Land Cruiser", [R(1951, 2026)]], ["Supra", null], ["4Runner", [R(1984, 2026)]], ["FJ Cruiser", null]],
-  lamborghini: [["Gallardo", null], ["Murcielago", null], ["Huracan", null], ["Aventador", null], ["Diablo", null]],
+  lamborghini: [["Gallardo", null], ["Murcielago", null], ["Murcielago LP640", null], ["Huracan", null], ["Aventador", null], ["Diablo", null]],
   mclaren: [["720S", null], ["570S", null], ["GT", [R(2019, 2026)]], ["MP4-12C", null], ["650S", null], ["Senna", null]],
   "land-rover": [["Defender 110", null], ["Range Rover", null], ["Discovery", null]],
   lotus: [["Esprit", [R(1976, 2004)]]]
 };
 // sales_archive: [year, model, model_family, count]
 const S = {
-  porsche: [[1995, "911", "911", 22], [1994, "911", "911", 8], [1995, "928", "928", 12], [1995, "968", "968", 9], [1995, "944", "944", 6]],
-  bmw: [[1990, "3-Series", "3-Series", 20], [1990, "M3", "M3", 12], [1990, "5-Series", "5-Series", 9], [1990, "Z4", "Z4", 2]],
+  porsche: [[1995, "928 GTS", "928 GTS", 9], [1995, "968 Sport", "968 Sport", 9], [1995, "968 Club Sport", "968 Club Sport", 9], [1995, "911", "911", 22], [1994, "911", "911", 8], [1995, "928", "928", 12], [1995, "968", "968", 9], [1995, "944", "944", 6]],
+  bmw: [[1990, "Other Motorcycles", "Other Motorcycles", 30], [1990, "3-Series", "3-Series", 20], [1990, "M3", "M3", 12], [1990, "5-Series", "5-Series", 9], [1990, "Z4", "Z4", 2]],
   chevrolet: [[1969, "Corvette", "Corvette", 80], [1969, "Camaro", "Camaro", 60], [1969, "Chevelle", "Chevelle", 40], [1969, "Impala", "Impala", 15], [1969, "Nova", "Nova", 12], [1969, "Silverado", "Silverado", 9]],
-  "mercedes-benz": [[2005, "SL-Class", "SL-Class", 12], [2005, "E-Class", "E-Class", 10], [2005, "S-Class", "S-Class", 9], [2005, "CLK-Class", "CLK-Class", 8]],
+  "mercedes-benz": [[2005, "SL55", "SL55", 9], [2005, "SL-Class", "SL-Class", 12], [2005, "E-Class", "E-Class", 10], [2005, "S-Class", "S-Class", 9], [2005, "CLK-Class", "CLK-Class", 8]],
   ford: [[1967, "Mustang", "Mustang", 50], [1967, "Fairlane", "Fairlane", 14], [1967, "Thunderbird", "Thunderbird", 10], [1967, "Model A", "Model A", 9]],
   datsun: [[1972, "240Z", "Z", 25], [1972, "510", "510", 12], [1972, "280ZX", "280ZX", 2]],
   toyota: [[1998, "Corolla", "Corolla", 40], [1998, "Camry", "Camry", 30], [1998, "Land Cruiser", "Land Cruiser", 20], [1998, "Supra", "Supra", 15], [1998, "4Runner", "4Runner", 12], [1998, "FJ Cruiser", "FJ Cruiser", 9]],
-  lamborghini: [[2010, "Gallardo", "Gallardo", 30], [2010, "Murcielago", "Murcielago", 18], [2011, "Aventador", "Aventador", 9], [2010, "Diablo", "Diablo", 9], [2010, "Huracan", "Huracan", 8]],
+  lamborghini: [[2010, "Murcielago LP640", "Murcielago LP640", 9], [2010, "Gallardo", "Gallardo", 30], [2010, "Murcielago", "Murcielago", 18], [2011, "Aventador", "Aventador", 9], [2010, "Diablo", "Diablo", 9], [2010, "Huracan", "Huracan", 8]],
   mclaren: [[2020, "720S", "720S", 20], [2020, "570S", "570S", 14], [2020, "GT", "GT", 9], [2020, "MP4-12C", "MP4-12C", 9], [2020, "650S", "650S", 9]],
   "land-rover": [[1985, "Defender 110", "Defender 110", 17], [1984, "Range Rover", "Range Rover", 8], [1985, "Discovery", "Discovery", 9]],
   lotus: [[1995, "Esprit", "Esprit", 9]]
@@ -63,7 +64,7 @@ globalThis.fetch = async (url) => {
 const V = await import(pathToFileURL(path.join(root, "lib/vehicle.js")).href);
 const NS = "Not sure";
 const CASES = [
-  ["1995 porsche", ["911", "928", "968"]],                                   // fault 2: the 911 no longer answers alone; the 944 (ended 1991) is not offered
+  ["1995 porsche", ["911", "968", "928"]],                                   // fault 2: the 911 no longer answers alone; the 944 (ended 1991) is not offered
   ["1990 bmw", ["3-Series", "M3", "5-Series"]],                              // the Z4 (2003 on) is not offered
   ["1969 chevrolet", ["Corvette", "Camaro", "Chevelle", "Impala", "Nova"]],  // never Silverado
   ["2005 mercedes", ["SL-Class", "E-Class", "S-Class", "CLK-Class"]],
