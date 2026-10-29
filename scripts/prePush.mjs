@@ -1590,6 +1590,12 @@ try {
   record("Sell in Chrome at 1440 and 390: first question at the computing answer, once, bar gone, later steps and a new search work (cold question-tier, stored, cold result-tier) (scripts/sellFirstQuestionRender.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/emptyHeadingCheck.mjs", { encoding: "utf8", timeout: 590000 });
+  record("Market Check and Find: no heading is followed by blank space or an empty region (withheld, none, drawn chart, thin tiles, options, Find) (scripts/emptyHeadingCheck.mjs)", "PASS", (out.match(/emptyHeadingCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Market Check and Find: no heading is followed by blank space or an empty region (withheld, none, drawn chart, thin tiles, options, Find) (scripts/emptyHeadingCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/spacedModelCodeCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("resolver: a model code typed with a space (RS 6, M 3, X 5) is the glued model, so a known car is never refused as unchecked (scripts/spacedModelCodeCheck.mjs)", "PASS", (out.match(/spacedModelCodeCheck: .*/) || [""])[0]);
 } catch (e) {

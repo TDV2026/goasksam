@@ -384,7 +384,7 @@
     root.innerHTML =
       '<div class="ob-home">' +
         '<h1 class="ob-head">What have cars like yours sold for?</h1>' +
-        '<p class="ob-sub">Real sales, matched to your car, with the range most landed in and the cars behind it.</p>' +
+        '<p class="ob-sub">Real sales, matched to your car, with the typical range and the cars behind it.</p>' +
         inboxHtml("", OB_PLACEHOLDER) +
       "</div>";
     wire();
@@ -1216,7 +1216,8 @@
     var n = list.length;
     if (!n || n > 16) return null;
     var heldSaid = chartLatestHeading(d);
-    var said = heldSaid ? '<h2 class="hero-latest" data-stage="answer">' + lint(esc(heldSaid), "hero.chartheld") + "</h2>" : '<p class="hero-noband" data-stage="answer">' + lint(esc(obCount(n, "sale", { cap: true }) + ". Too few to show movement, enough to show where they landed."), "hero.thintiles.said") + "</p>";
+    // The sales are listed right here (in the block below, by price, not newest first), so the engine's "Latest sales" heading is NOT printed over nothing: no heading in this slot (Sam's live 2010 Porsche 911 GT3, 130 pixels of blank under it). The heading prints only over the engine's own rows (heldPanelHtml).
+    var said = heldSaid ? "" : '<p class="hero-noband" data-stage="answer">' + lint(esc(obCount(n, "sale", { cap: true }) + ". Too few to show movement, enough to show where they landed."), "hero.thintiles.said") + "</p>";
     var sorted = list.slice().sort(function (a, b) { return Number(b.price) - Number(a.price); });
     var wide = n >= 9;
     var tiles = '<div class="thin-tiles' + (wide ? " thin-tiles-wide" : "") + '">' + sorted.map(function (c) { return thinTileHtml(c, null); }).join("") + "</div>";
