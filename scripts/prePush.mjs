@@ -1668,6 +1668,27 @@ try {
   record("See the sales and the sale modal on Find (scripts/findSalesButtonCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 // What Find's toggles and buttons make (Sam, Oct 29 2026). A fake table behind fetch.
+// Everything that can email a person is on the Tasks page with a Stop, and the before-it-ends wording (Lane D, Oct 29 2026): the tables the send paths read are listed or named as not a notice, the saved-search watch is listed, counted and capped, and every copy says "about two hours before". Offline.
+try {
+  const out = execSync("node scripts/standingNoticesCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("everything that can email a person is on the Tasks page with a Stop; 'about two hours before' everywhere (scripts/standingNoticesCheck.mjs)", "PASS", (out.match(/standingNoticesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("everything that can email a person is on the Tasks page with a Stop; 'about two hours before' everywhere (scripts/standingNoticesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// The Find drawer in Chrome (Lane D, Oct 29 2026): this branch's page code against a fake server, a stored Find answer for the 2005 SL65 AMG. Needs Chrome, the network and the crew code in the Keychain; says SKIP without them.
+try {
+  const out = execSync("node scripts/standingDrawerCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("the Find drawer: sends, says what happened and where, fails in plain words, state from the stored row (scripts/standingDrawerCheck.mjs)", /SKIP/.test(out) ? "SKIP" : "PASS", (out.match(/standingDrawerCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("the Find drawer: sends, says what happened and where, fails in plain words, state from the stored row (scripts/standingDrawerCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// Every "Sam is looking" control as one class (Lane D, Oct 29 2026): a click writes a row and an event, the one badge counts it, the Tasks page lists it in the server's words, a refusal or a drop shows a plain line. No network.
+try {
+  const out = execSync("node scripts/standingControlsCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("every Sam-is-looking control writes a row and a log, counts on the one badge, and fails in plain words (scripts/standingControlsCheck.mjs)", "PASS", (out.match(/standingControlsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("every Sam-is-looking control writes a row and a log, counts on the one badge, and fails in plain words (scripts/standingControlsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 try {
   const out = execSync("node scripts/findWatchCheck.mjs", { encoding: "utf8", timeout: 600000 });
   record("everything a Find toggle or button makes is on Tasks, limited and named by the engine (scripts/findWatchCheck.mjs)", "PASS", (out.match(/findWatchCheck: .*/) || [""])[0]);

@@ -17,6 +17,7 @@ import { hasServerCredential, cronOk } from "../lib/_credential.js";
 import { ready, arm, stop, resume, list, run, testSend, isMissingTable, probeBackdate, probeInspect, verifySoldTaskTap, soldTaskTap, soldTaskName, getWatch, setWatchState } from "../lib/live/watches.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
 import { routeLimit } from "../lib/_routeLimit.js";
+import { armOutcome, logArm, ARM_LINES } from "../lib/live/looking.js";
 import { othersRunning as othersRunningFor, othersLine } from "../lib/tasks/othersRunning.js";
 
 // Does the person still have another running Task (lib/tasks/othersRunning.js)? This looking Task is left out.
@@ -111,15 +112,24 @@ async function handler(req, res) {
       return res.status(200).json({ rows: await probeBackdate(env, String(b.id || ""), { baseline_date: b.baseline_date, created_at: b.created_at }) });
     }
     const user = await validateBearer(req.headers.authorization || "").catch(() => null);
-    if (!user || !user.userId) return res.status(401).json({ ok: false, needSignIn: true });
+    // Every arm is logged, signed out or not (lib/live/looking.js logArm): control from the kind, no account when signed out.
+    const armControl = b.kind === "vin" ? "watch_vin" : "watch_spec";
+    if (!user || !user.userId) { if (b.action === "arm") logArm(null, armControl, { outcome: "refused", reason: "signed_out" }, { kind: b.kind === "vin" ? "vin" : "spec", listing: b.listing_id }); return res.status(401).json({ ok: false, needSignIn: true, reason: "signed_out", line: ARM_LINES.signed_out }); }
     // "arm" creates a NEW watch - gated with task creation (Job 3: "Task creation and the watch
     // API"). Managing an EXISTING watch (stop/resume/list below, and the email-tap pause/stop/resume
     // above) is never gated - someone who already has one must always be able to use it.
     if (b.action === "arm") {
-      if (!isReleased("tasks", req)) return notReleasedJson(res);
+      const logK = { kind: b.kind === "vin" ? "vin" : "spec", listing: b.listing_id };
+      if (!isReleased("tasks", req)) { logArm(user.userId, armControl, { outcome: "refused", reason: "not_released" }, logK); return notReleasedJson(res); }
       { const lim = await routeLimit(env, req, "watch_arm", { route: "/api/watch" });   // the address and device line (lib/_ceilings.js watch_arm); the account's own cap is in arm
-        if (!lim.ok) return res.status(429).json({ ok: false, limited: true, line: "That is a lot of notices from here just now. Sam will take more in a few minutes.", retryAfter: lim.retryAfter }); }
-      return res.status(200).json(await arm(env, user, { kind: b.kind, listing_id: b.listing_id, vin: b.vin, car: b.car, visitorId: readVisitorId(req) }));
+        if (!lim.ok) { logArm(user.userId, armControl, { outcome: "refused", reason: "limited" }, logK); return res.status(429).json({ ok: false, limited: true, reason: "limited", line: ARM_LINES.limited, retryAfter: lim.retryAfter }); } }
+      let out;
+      try { out = await arm(env, user, { kind: b.kind, listing_id: b.listing_id, vin: b.vin, car: b.car, visitorId: readVisitorId(req) }); }
+      catch (e) { logArm(user.userId, armControl, { outcome: "refused", reason: "failed" }, logK); return res.status(500).json({ ok: false, reason: "failed", line: ARM_LINES.failed }); }
+      const oc = armOutcome("watch", out);
+      logArm(user.userId, armControl, oc, logK);
+      // The page gets the reason and the plain line with every refusal; a success carries the stored row as before.
+      return res.status(200).json(oc.outcome === "refused" ? { ...out, ok: false, reason: oc.reason, line: out.line || oc.line } : out);
     }
     if (b.action === "stop") return res.status(200).json(await stop(env, user, b.id));
     if (b.action === "resume") return res.status(200).json(await resume(env, user, b.id));
