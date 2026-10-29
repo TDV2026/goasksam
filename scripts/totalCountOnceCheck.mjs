@@ -6,6 +6,7 @@
 // counts are other numbers and stay. This check: for every answer shape, the visible lines the pages print (scopeLine, the footer or basis line, the thin card's answer and count lines, the Find answer lines) state the answer's total at most once.
 //   node scripts/totalCountOnceCheck.mjs [repo root]
 import fs from "node:fs";
+import { reasonLine } from "../lib/reasonWords.js";   // the engine's own wording table: the check compares the field with it, never with a copy of the sentence
 import path from "node:path"; import { fileURLToPath, pathToFileURL } from "node:url";
 const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
 process.chdir(root);
@@ -28,7 +29,7 @@ const served = (d) => { const r = E.withReadFields(d, "1995 Porsche 911", { year
   ok("scopeLine exists (the engine's title line)", typeof d.scopeLine === "string" && d.scopeLine.length > 0, d.scopeLine);
   ok("the title line states what the car is and its latest sale, with no count (the year is the title's: 1995 911 carries it, so the line does not repeat it)", /Cabriolets and coupes/.test(d.scopeLine || "") && !/1995/.test(d.scopeLine || "") && /latest sale Oct 21, 2026/.test(d.scopeLine || "") && !/\bsales?\b.*\bsales?\b|\d+\s+sales?|(one|two|three|four|five|six|seven|eight|nine)\s+sales?/i.test(d.scopeLine || ""), d.scopeLine);
   once("1995 911, pooled", d);
-  ok("a pooled range carries the range sentence in the footer once, beside its count and window", d.rangeSentence === "The range is the middle of the market: a quarter of sales landed below it and a quarter above." && d.windowLine === "43 sales, since October 2025.", JSON.stringify([d.rangeSentence, d.windowLine]));
+  ok("a pooled range carries the range sentence in the footer once, beside its count and window", d.rangeSentence === reasonLine("footer.range") && d.windowLine === "43 sales, since October 2025.", JSON.stringify([d.rangeSentence, d.windowLine]));
   // the single option and the split shapes keep their option counts; those are other numbers
   const opt = served({ ...d, optionsState: "split", headlineDimension: "body", cluster: null, options: [{ dimension: "body", label: "Coupe", value: "coupe", n: 32, low: 60000, high: 90000, rangeFloor: false, windowWords: "since October 2025", ownWindow: true }, { dimension: "body", label: "Cabriolet", value: "open", n: 3, low: null, high: null, rangeFloor: true, windowWords: "since October 2025", ownWindow: true }] });
   once("1995 911, split into options", opt);
