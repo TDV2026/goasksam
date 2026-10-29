@@ -7,11 +7,13 @@ import { startBrowser, openMC } from "./e98Render.mjs";
 import { MC } from "./e98Fixtures.mjs";
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const MIX = "The mix of cars changed from quarter to quarter, so a change here would not show the market moving.", FEW = "There are too few sales in each period to draw a chart.";
-const P86 = MC["1986 Porsche 911 (Targa 11, Cabriolet 11, Coupe 16 against 35)"], M01 = MC["2001 BMW M3 (alike with options)"];
+const P86 = MC["1986 Porsche 911 (Targa 11, Cabriolet 11, Coupe 16 against 35)"], M01 = MC["2001 BMW M3 (alike with options)"], DEF = MC["1985 Land Rover Defender 110 (year split)"];
 const strip = d => { const { trend, chart, trendHeld, chartCaption, chartWindowLine, ...rest } = d; return rest; };
 const STATES = [
   ["mix changed (chart.note)", P86, { ...strip(P86.d), chart: { type: "withheld", scope: null, buckets: null, note: MIX, withheld: { reason: "mix_changes", line: null }, n: 35 } }, MIX],
   ["too few (chart.withheld.line)", P86, { ...strip(P86.d), chart: { type: "withheld", scope: null, buckets: null, note: null, withheld: { reason: "too_few", line: FEW }, n: 35 } }, FEW],
+  ["Defender 110, mix changed (chart.note)", DEF, { ...strip(DEF.d), chart: { type: "withheld", scope: null, buckets: null, note: MIX, withheld: { reason: "mix_changes", line: null }, n: (DEF.d.cards || []).length } }, MIX],
+  ["Defender 110, too few (chart.withheld.line)", DEF, { ...strip(DEF.d), chart: { type: "withheld", scope: null, buckets: null, note: null, withheld: { reason: "too_few", line: FEW }, n: (DEF.d.cards || []).length } }, FEW],
   ["mix changed on the 17 sale pool", M01, { ...strip(M01.d), chart: { type: "withheld", scope: null, buckets: null, note: MIX, withheld: { reason: "mix_changes", line: null }, n: 17 } }, MIX],
   ["withheld with no sentence at all", P86, { ...strip(P86.d), chart: { type: "withheld", scope: null, buckets: null, note: null, withheld: { reason: "mix_changes", line: null }, n: 35 } }, null],
   ["no chart object (an answer stored before ER9)", P86, strip(P86.d), undefined],
@@ -61,5 +63,10 @@ for (const [name, fx, d, sentence] of STATES.filter(s => !s[3])) for (const w of
   if (sentence) ok(r.sentTop >= r.pillsBottom - 1, `${where}: the sentence sits under the pills (${r.sentTop} against ${r.pillsBottom})`);
   if (sentence && w === 1440) ok(r.salesTop - r.sentBottom < 200, `${where}: Sales behind this answer moves up under it (${r.salesTop - r.sentBottom}px below the sentence)`);
   await p.close(); }
+// CLASS: only Market Check draws the withheld layout. No other page (Find, Tasks, hubs, history, partner pages, demos, emails) reads chart.note or chart.withheld, so none can print a chart sentence or a chart of its own.
+import { readFileSync, readdirSync } from "node:fs";
+const srcs = [...readdirSync("api").filter(f => f.endsWith(".js")).map(f => "api/" + f), ...readdirSync("public/js").filter(f => f.endsWith(".js")).map(f => "public/js/" + f), "lib/findCardKit.js", "lib/tasks/emailCards.js", "public/onebox.html"];
+const readers = srcs.filter(f => !/^api\/(usageDashboard|admin)\.js$/.test(f)).filter(f => /chart\.note|chart\.withheld|chartHeldSentence|\.chart\.buckets/.test(readFileSync(f, "utf8")));
+ok(readers.every(f => f === "public/js/onebox.js"), `only Market Check reads the engine's chart object (readers: ${readers.join(", ") || "none"})`);
 await b.close();
 console.log(`noChartLayoutCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

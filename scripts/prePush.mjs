@@ -652,6 +652,12 @@ try {
   record("Landing examples never print empty for a split car (scripts/landingExampleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/showMoreCheck.mjs", { encoding: "utf8" });
+  record("A show more control ends: gone when every row is shown, its count the rows still hidden (scripts/showMoreCheck.mjs)", "PASS", (out.match(/showMoreCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("A show more control ends: gone when every row is shown, its count the rows still hidden (scripts/showMoreCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/noChartLayoutCheck.mjs", { encoding: "utf8" });
   record("No chart, for any reason, is one full-width layout with no empty panel (scripts/noChartLayoutCheck.mjs)", "PASS", (out.match(/noChartLayoutCheck: .*/) || [""])[0]);
 } catch (e) {

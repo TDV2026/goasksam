@@ -70,6 +70,8 @@ a{color:var(--green)}a:hover{color:var(--green-dk)}
 button{font:inherit}
 :focus-visible{outline:2px solid var(--green);outline-offset:2px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* the hidden attribute always hides: a class that sets display (.linkbtn is inline-flex) beat the browser rule, so "Show more sales (N)" stayed on screen after it had shown every row (Oct 29 2026) */
+[hidden]{display:none!important}
 .linkbtn{background:none;border:0;padding:0;color:var(--green);font:600 15px/1.4 var(--sans);text-decoration:underline;text-underline-offset:3px;cursor:pointer;min-height:44px;display:inline-flex;align-items:center}
 .linkbtn:hover{color:var(--green-dk)}
 
