@@ -230,6 +230,15 @@ try {
   record("launch dashboard (scripts/launchDashCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 
+// Launch tab status strip and readiness blocks (Oct 28 2026, Lane D): the thresholds, a strip that never says GOOD on an unread number, "not recorded" where a number is missing,
+// held visits never an error, the page at 1440 and 390. No database, no keys.
+try {
+  const out = execSync("node scripts/launchHealthCheck.mjs", { encoding: "utf8" });
+  record("launch status strip (scripts/launchHealthCheck.mjs)", "PASS", (out.match(/launchHealthCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("launch status strip (scripts/launchHealthCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+
 // Route limits (Oct 27 2026, Lane D): every api route that reads the database or calls the model has an address limit or a listed,
 // verifiable reason; /api/history, /api/vehicleIdentity and /o/<id> refuse over the limit without a query and fail open. No database, no keys.
 try {
