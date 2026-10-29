@@ -1738,6 +1738,34 @@ async function handleOps(req, res) {
     if (!out.stoppedAtBudget && offset + limit < all.length) out.next = offset + limit; else if (out.stoppedAtBudget) out.next = offset + out.read;
     return res.status(200).json(out);
   }
+  // task=typedmissing (Lane B, Oct 29 2026; READ-ONLY, no write, no spend): the car texts typed ?min= (default 3) or more times in the last ?days= (default 7) on Market Check (?product=, default market_check) whose resolved
+  // spec has no stored answer (or one behind the epoch): the cars people actually type that a visit would have to compute. ?crew=1 includes crew and test traffic (before launch almost every search is). Texts that look like a VIN,
+  // an email, a phone number or a person's name are dropped, as buyqueries does. Returns the texts for warmNamed (--list) and, per text, why (no_row, stale, other stamp). Budget-bounded (?budget= ms, default 150000).
+  if (task === "typedmissing") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle, sanitizeResolvedVehicle } = await import("../lib/vehicle.js"); const { findGeneration } = await import("../lib/generations.js");
+    const { warmAnswerKeyFor, readWarmAnswerDetailed } = await import("../lib/live/search.js");
+    const days = Math.min(30, Number(req.query?.days) || 7), min = Math.max(1, Number(req.query?.min) || 3), product = ["buy", "sell"].includes(String(req.query?.product)) ? String(req.query.product) : "market_check";
+    const t0 = Date.now(), budget = Math.min(250000, Number(req.query?.budget) || 150000), since = new Date(Date.now() - days * 864e5).toISOString();
+    const rows = await supabaseSelectAll(env, `analytics_events?name=eq.search_run&product=eq.${product}${req.query?.crew === "1" ? "" : "&internal=is.false"}&is_bot=is.false&ts=gte.${encodeURIComponent(since)}&select=q:props->>query_text`);
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "typedmissing", readFailed: true, ocdSpend: 0, writes: 0 });
+    const looksVin = q => /\b[a-hj-npr-z0-9]{17}\b/i.test(q), looksEmail = q => /\S+@\S+/.test(q), looksPhone = q => (q.match(/\d/g) || []).length >= 10 && /^[\d\s+().-]+$/.test(q.trim());
+    const counts = new Map(), shown = new Map();
+    for (const r of rows) { const q = String(r.q || "").replace(/\s+/g, " ").trim().slice(0, 120); if (!q || looksVin(q) || looksEmail(q) || looksPhone(q)) continue; const k = q.toLowerCase(); counts.set(k, (counts.get(k) || 0) + 1); if (!shown.has(k)) shown.set(k, q); }
+    const typed = [...counts.entries()].filter(([, n]) => n >= min).sort((a, b) => b[1] - a[1]);
+    const out = { task: "typedmissing", product, days, min, crewIncluded: req.query?.crew === "1", ocdSpend: 0, writes: 0, searches: rows.length, distinctTexts: counts.size, typedMin: typed.length, checked: 0, missing: [], covered: 0, unresolved: 0, stoppedAtBudget: false };
+    for (const [k, n] of typed) {
+      if (Date.now() - t0 > budget) { out.stoppedAtBudget = true; break; } out.checked++;
+      try {
+        const r = await resolveVehicle(shown.get(k), {}); const v = r && r.status === "valid" && r.vehicle ? (sanitizeResolvedVehicle(r.vehicle) || r.vehicle) : null;
+        if (!v) { out.unresolved++; out.missing.push({ q: shown.get(k), times: n, why: "no_car (asks a question or unresolved)" }); continue; }
+        const w = await readWarmAnswerDetailed(env, warmAnswerKeyFor(v, await findGeneration(v, env), null)).catch(() => null);
+        if (w && w.raw && !w.stale) out.covered++; else out.missing.push({ q: shown.get(k), times: n, why: !w || !w.raw ? (w && w.reason) || "no_row" : "stale" });
+      } catch { out.unresolved++; }
+    }
+    out.texts = out.missing.filter(m => !/^no_car/.test(m.why)).map(m => m.q);
+    return res.status(200).json(out);
+  }
   // task=staletexts (Lane B, Oct 29 2026, e101; READ-ONLY, no write, no spend): the cars whose stored rows are behind, as car texts Lane C can feed to warmNamed (--list). ?kind=mc: every MCWARM (Market Check) row whose warmEpoch is
   // not the current epoch; ?kind=core: every core row still marked stale (market.staleSince); ?kind=scopedout: the specs of live listings outside the launch scope (the ones the scope fix took out of the union), with whether their
   // Market Check row is behind. Paged 1000 rows a call (?after= is the last key); texts are year make model trim body edition variant from the row's own key, de-duplicated, refine rows (a gearbox, body, trim or variant chip's
@@ -1834,22 +1862,22 @@ async function handleOps(req, res) {
     const out = { task: "optionreach", ocdSpend: 0, writes: 0, rows: rows.length, withOptions: 0, options: 0, over24: 0, over36: 0, over48: 0, answersOver24: 0, longest: 0, examples: [], next: rows.length === 100 ? rows[99].spec_key : null };
     for (const r of rows) {
       const a = r.raw; if (!a || !Array.isArray(a.options) || a.options.length < 2) continue; out.withOptions++;
-      let hit = false;
-      for (const o of a.options) { out.options++; const m = monthsOf(o); if (m == null) continue; out.longest = Math.max(out.longest, m); if (m > 24) { out.over24++; hit = true; if (out.examples.length < 10) out.examples.push({ key: r.spec_key.slice(0, 90), option: o.label, n: o.n, windowWords: o.windowWords || null, months: m, footer: a.windowWords || null }); } if (m > 36) out.over36++; if (m > 48) out.over48++; }
-      if (hit) out.answersOver24++;
+      let hit = false, capHit = false;
+      for (const o of a.options) { out.options++; const m = monthsOf(o); if (m == null) continue; out.longest = Math.max(out.longest, m); if (m > 24) { out.over24++; hit = true; if (out.examples.length < 10) out.examples.push({ key: r.spec_key.slice(0, 90), option: o.label, n: o.n, windowWords: o.windowWords || null, months: m, footer: a.windowWords || null }); } if (m > 36) out.over36++; if (m > 48) out.over48++; if (o.ownWindow && /^since /.test(String(o.windowWords || "")) && o.windowWords !== a.windowWords && m > 24) { out.capApplies = (out.capApplies || 0) + 1; capHit = true; } }
+      if (hit) out.answersOver24++; if (capHit) out.answersCapApplies = (out.answersCapApplies || 0) + 1;
     }
     return res.status(200).json(out);
   }
-  // task=chartsweep (Lane B, Oct 29 2026, e101; READ-ONLY, no write, no spend): the stored Market Check answers whose pooled chart is held for a changing mix and that are split by an option: how many drew
+  // task=chartsplitsweep (Lane B, Oct 29 2026, e101; named so it does not collide with the older chartsweep; READ-ONLY, no write, no spend): the stored Market Check answers whose pooled chart is held for a changing mix and that are split by an option: how many drew
   // no chart under the old one-option rule, how many draw a scoped chart now (every option tried, largest first), how many stay withheld because no option clears the candle floor, and ten examples
   // with each option's own count and the 1986 Porsche 911 if it is in the page. 100 stored answers a page (?after=).
-  if (task === "chartsweep") {
+  if (task === "chartsplitsweep") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { chartOf, optionsFieldsOf } = await import("../lib/onebox.js");
     const after = req.query?.after ? String(req.query.after) : "";
     const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,raw:market->raw&order=spec_key.asc&limit=100` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
-    if (!Array.isArray(rows)) return res.status(200).json({ task: "chartsweep", readFailed: true, ocdSpend: 0, writes: 0 });
-    const out = { task: "chartsweep", ocdSpend: 0, writes: 0, rows: rows.length, split: 0, held: 0, withheldBefore: 0, drawNow: 0, stillWithheld: 0, examples: { nowDraw: [], stillWithheld: [] }, next: rows.length === 100 ? rows[99].spec_key : null };
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "chartsplitsweep", readFailed: true, ocdSpend: 0, writes: 0 });
+    const out = { task: "chartsplitsweep", ocdSpend: 0, writes: 0, rows: rows.length, split: 0, held: 0, withheldBefore: 0, drawNow: 0, stillWithheld: 0, examples: { nowDraw: [], stillWithheld: [] }, next: rows.length === 100 ? rows[99].spec_key : null };
     for (const r of rows) {
       const a = r.raw; if (!a || !Array.isArray(a.options) || a.options.length < 2 || !a.trendHeld) continue;
       out.split++; out.held++;
@@ -5569,12 +5597,12 @@ async function handleOps(req, res) {
   // task=coldruns (Lane B, Oct 29 2026; READ-ONLY, no write, no spend): the day's Market Check (or ?product=) search_run events that ended "still reading", grouped by search id, so a
   // count of failed rows is not read as a count of searches: one cold search asks again every 2 seconds and each ask used to write one failed row. Per search: the typed text
   // (VIN, email and phone shapes dropped), rows written, the first and last time, the longest latency, and whether a later row of the SAME search id answered. ?since= (ISO, default
-  // the UTC midnight), ?product=. Internal and bot traffic excluded.
+  // the UTC midnight), ?product=. Bots are excluded; crew and test traffic is excluded unless ?crew=1 (before launch nearly every search is crew or test).
   if (task === "coldruns") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const product = req.query?.product === "buy" ? "buy" : req.query?.product === "sell" ? "sell" : "market_check";
     const since = /^\d{4}-\d{2}-\d{2}/.test(String(req.query?.since || "")) ? new Date(String(req.query.since)).toISOString() : new Date(new Date().toISOString().slice(0, 10) + "T00:00:00Z").toISOString();
-    const rows = await supabaseSelectAll(env, `analytics_events?name=eq.search_run&product=eq.${product}&internal=is.false&is_bot=is.false&ts=gte.${encodeURIComponent(since)}&select=ts,q:props->>query_text,sid:props->>search_id,fs:props->>failure_state,at:props->>answer_type,ms:props->>latency_ms,vk:props->>vehicle_key&order=ts.asc`);
+    const rows = await supabaseSelectAll(env, `analytics_events?name=eq.search_run&product=eq.${product}${req.query?.crew === "1" ? "" : "&internal=is.false"}&is_bot=is.false&ts=gte.${encodeURIComponent(since)}&select=ts,internal,q:props->>query_text,sid:props->>search_id,fs:props->>failure_state,at:props->>answer_type,ms:props->>latency_ms,vk:props->>vehicle_key&order=ts.asc`);
     if (!Array.isArray(rows)) return res.status(200).json({ task: "coldruns", readFailed: true, ocdSpend: 0, writes: 0 });
     const looksVin = q => /\b[a-hj-npr-z0-9]{17}\b/i.test(q), looksEmail = q => /\S+@\S+/.test(q), looksPhone = q => (q.match(/\d/g) || []).length >= 10 && /^[\d\s+().-]+$/.test(q.trim());
     const by = new Map();
@@ -5583,7 +5611,7 @@ async function handleOps(req, res) {
       if (r.fs === "still_reading") g.still++; else if (r.at && r.at !== "failed") g.answered = true; if (r.fs) g.states[r.fs] = (g.states[r.fs] || 0) + 1; by.set(k, g); });
     const all = [...by.values()], cold = all.filter(g => g.still > 0);
     const shown = g => ({ q: looksVin(g.q) || looksEmail(g.q) || looksPhone(g.q) ? "(dropped)" : g.q, sid: g.sid ? g.sid.slice(0, 6) : null, rows: g.rows, stillRows: g.still, answeredLater: g.answered, first: g.first, last: g.last, maxMs: g.maxMs });
-    return res.status(200).json({ task: "coldruns", product, since, ocdSpend: 0, writes: 0, rows: rows.length, searches: all.length, stillReadingRows: rows.filter(r => r.fs === "still_reading").length, searchesWithStillReading: cold.length,
+    return res.status(200).json({ task: "coldruns", product, since, crewIncluded: req.query?.crew === "1", internalRows: rows.filter(r => r.internal).length, ocdSpend: 0, writes: 0, rows: rows.length, searches: all.length, stillReadingRows: rows.filter(r => r.fs === "still_reading").length, searchesWithStillReading: cold.length,
       answeredLater: cold.filter(g => g.answered).length, neverAnswered: cold.filter(g => !g.answered).length, failureStates: rows.reduce((m, r) => { if (r.fs) m[r.fs] = (m[r.fs] || 0) + 1; return m; }, {}), list: cold.map(shown).slice(0, 200) });
   }
   if (task === "buyqueries") {
