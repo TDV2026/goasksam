@@ -1485,6 +1485,12 @@ try {
   record("engine: every result, thin and refusal answer leaves with a recognized rung and a label, so the store guard never refuses a Find pre-fill for fallback_rung_not_recognized (scripts/rungAlwaysCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/droppedTrimCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("engine: a typed trim the pool does not carry reads the model's pool and says so, never a 'could not be checked' refusal (scripts/droppedTrimCheck.mjs)", "PASS", (out.match(/droppedTrimCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: a typed trim the pool does not carry reads the model's pool and says so, never a 'could not be checked' refusal (scripts/droppedTrimCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/appliedAllCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("filters: every way the engine narrows (pill, band, typed miles, gearbox, body, year, edition, trim, history, detail) is named with its clear (scripts/appliedAllCheck.mjs)", "PASS", (out.match(/appliedAllCheck: .*/) || [""])[0]);
 } catch (e) {
