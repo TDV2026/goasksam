@@ -1905,6 +1905,53 @@ async function handleOps(req, res) {
     }
     return res.status(200).json(out);
   }
+  // task=nonvehicle (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, zero writes): every live listing read through the one non-vehicle function (lib/_classify.js nonVehicleSignals): the count of lots it calls not a vehicle (two real signals) and
+  // doubtful (one), by source and by signal, with examples (the title as the source writes it, the title our card shows, the bid, the mileage and VIN, a description opening) and the full doubtful list. ?q= a title fragment and ?source= return the
+  // full stored fields of the matching lots (the Hagerty engine). The description is read only for the lots with no odometer reading or no VIN.
+  if (task === "nonvehicle") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { nonVehicleSignals } = await import("../lib/_classify.js"); const { humanTitle } = await import("../lib/carTitle.js"); const { liveDescriptions } = await import("../lib/live/search.js");
+    const rows = await supabaseSelectAll(env, "live_listings?status=eq.live&select=id,source,source_listing_id,url,listing_title,make,model,year,vin_norm,mileage,body,transmission,location,current_bid_usd,has_reserve,end_time,photo_url,special_flag,exterior_color&order=id.asc");
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "nonvehicle", readFailed: true, ocdSpend: 0, writes: 0 });
+    const q = String(req.query?.q || "").trim().toLowerCase(), src = String(req.query?.source || "").trim().toLowerCase();
+    const need = rows.filter(r => !(Number(r.mileage) > 0 && String(r.vin_norm || "").length >= 6) || (q && String(r.listing_title || "").toLowerCase().includes(q))).map(r => r.id), descs = await liveDescriptions(env, need).catch(() => ({}));
+    const out = { task: "nonvehicle", ocdSpend: 0, writes: 0, live: rows.length, notAVehicle: 0, doubtful: 0, bySource: {}, bySignals: {}, examples: [], doubtfulList: [], matches: [] };
+    const show = (r, v) => ({ id: r.id, source: r.source, sourceTitle: r.listing_title, cardTitle: humanTitle(r.listing_title || ""), verdict: v.verdict, signals: v.signals, bidUsd: r.current_bid_usd != null ? Math.round(r.current_bid_usd) : null, mileage: r.mileage || null, vin: r.vin_norm ? "yes" : "no", reserve: r.has_reserve === false ? "no reserve" : r.has_reserve === true ? "reserve" : null, location: r.location || null, endsAt: r.end_time || null, descriptionStart: String(descs[r.id] || "").slice(0, 160) });
+    for (const r of rows) {
+      const v = nonVehicleSignals({ ...r, description: descs[r.id] });
+      if (q && String(r.listing_title || "").toLowerCase().includes(q) && (!src || String(r.source || "").toLowerCase() === src) && out.matches.length < 12) out.matches.push({ ...show(r, v), url: r.url ? "present" : null, photo: r.photo_url ? "present" : null, body: r.body || null, transmission: r.transmission || null, specialFlag: r.special_flag || null, descriptionStart: String(descs[r.id] || "").slice(0, 400) });
+      if (v.verdict === "car") continue;
+      const k = v.verdict === "not_a_vehicle" ? "notAVehicle" : "doubtful"; out[k]++;
+      out.bySource[r.source] = out.bySource[r.source] || { notAVehicle: 0, doubtful: 0 }; out.bySource[r.source][k]++;
+      const sk = v.verdict + ": " + v.signals.join(" + "); out.bySignals[sk] = (out.bySignals[sk] || 0) + 1;
+      if (v.verdict === "not_a_vehicle" && out.examples.length < 15) out.examples.push(show(r, v));
+      if (v.verdict === "doubtful") out.doubtfulList.push(show(r, v));
+    }
+    out.doubtfulList = out.doubtfulList.slice(0, 60);
+    return res.status(200).json(out);
+  }
+  // task=nonvehiclesold (Lane B, Oct 29 2026; READ-ONLY): the stored Market Check answers (MCWARM rows, 100 a page, ?after=) whose pool (rawPool) holds sales the one non-vehicle function calls not a vehicle: the pools affected, the sale that does not
+  // belong (title, price, mileage, VIN) and how far the typical range (p25 to p75) moves when it is taken out. Nothing is written; the warm list is the answers it names.
+  if (task === "nonvehiclesold") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { isNonVehicleLot, nonVehicleSignals } = await import("../lib/_classify.js"); const { ENGINE_VERSION } = await import("../lib/onebox.js");
+    const after = req.query?.after ? String(req.query.after) : "";
+    const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,raw:market->raw&order=spec_key.asc&limit=100` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "nonvehiclesold", readFailed: true, ocdSpend: 0, writes: 0 });
+    const q = (a, p) => { const v = a.slice().sort((x, y) => x - y); if (!v.length) return null; const i = (v.length - 1) * p, lo = Math.floor(i), hi = Math.ceil(i); return v[lo] + (v[hi] - v[lo]) * (i - lo); };
+    const out = { task: "nonvehiclesold", ocdSpend: 0, writes: 0, rows: rows.length, poolsAffected: 0, lotsFound: 0, examples: [], warmTexts: [], next: rows.length === 100 ? rows[99].spec_key : null };
+    const textOf = k => { try { const a = JSON.parse(String(k).replace(/^MCWARM:/, "")); const [make, model, trim, year, , body, edition, variant] = a; return a[9] || a[10] || a[11] || a[12] ? null : [year, make, model, trim, body, edition, variant].filter(x => x != null && x !== "").join(" "); } catch { return null; } };
+    for (const r of rows) {
+      const pool = r.raw && Array.isArray(r.raw.rawPool) ? r.raw.rawPool : []; if (!pool.length) continue;
+      const bad = pool.filter(x => isNonVehicleLot(x)); if (!bad.length) continue;
+      out.poolsAffected++; out.lotsFound += bad.length;
+      const usd = x => Number(x._usd ?? x._allin ?? x._hammer), all = pool.map(usd).filter(n => n > 0), keep = pool.filter(x => !isNonVehicleLot(x)).map(usd).filter(n => n > 0);
+      const t = textOf(r.spec_key); if (t && out.warmTexts.length < 400) out.warmTexts.push(t);
+      out.examples.push({ key: r.spec_key.slice(0, 100), poolN: pool.length, removed: bad.length, lot: String(bad[0].raw_title || bad[0].rtitle || "").slice(0, 80), usd: Math.round(usd(bad[0])), mileage: bad[0].mileage || null, vin: bad[0].vin_norm ? "yes" : "no", signals: nonVehicleSignals(bad[0]).signals, range: all.length > 3 ? [Math.round(q(all, 0.25)), Math.round(q(all, 0.75))] : null, rangeWithout: keep.length > 3 ? [Math.round(q(keep, 0.25)), Math.round(q(keep, 0.75))] : null });
+    }
+    out.examples = out.examples.sort((a, b) => b.removed - a.removed).slice(0, 12);
+    return res.status(200).json(out);
+  }
   // task=optiondetail (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, zero writes): for ONE car (?make= ?model= ?year=, optional ?trim=), the stored Market Check answer as it is SERVED (optionsFieldsOf, chartOf) and the sales behind every number on it:
 // the footer's window and count, each option's count and window, the sales behind each option and the sales that name no option, each with date, price, source, the listing's own transmission field and how the engine reads it (gearboxType), and
 // the chart ladder per option (sales per quarter, the floor, the quarters that meet it, which test failed). Up to ?cap= sales per group (default 60). One answer per call (the bare row of the car, no chip), so a call is one small read.
