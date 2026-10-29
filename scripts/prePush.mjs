@@ -44,6 +44,7 @@
 import { execSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import path from "node:path";
+import fs from "node:fs";
 
 const argBase = (() => { const i = process.argv.indexOf("--base"); return i >= 0 ? process.argv[i + 1] : null; })();
 const BASE = argBase || process.env.BASE || "https://goasksam.com";
@@ -1170,6 +1171,13 @@ try {
   record("outboundUtmCheck (scripts/outboundUtmCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 // Sell cut-off (Lane C, Oct 26 2026): the old Sell's conversation must keep the answer box and the newest message on screen after every step, at 1440x900 and 390x844. Real browser on the code being pushed; needs PROBE_KEY.
+// The launch holding page at, before and after zero, in a real browser (no network, no key; SKIP when Chrome is not installed).
+try {
+  if (!fs.existsSync(process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")) record("holdZeroCheck (scripts/holdZeroCheck.mjs)", "SKIP", "no Chrome");
+  else { const out = execSync("node scripts/holdZeroCheck.mjs", { encoding: "utf8", timeout: 120000 }); record("holdZeroCheck (scripts/holdZeroCheck.mjs)", "PASS", (out.match(/holdZeroCheck: .*/) || [""])[0]); }
+} catch (e) {
+  record("holdZeroCheck (scripts/holdZeroCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 try {
   const out = execSync("node scripts/sellCutoffCheck.mjs", { encoding: "utf8", timeout: 600000 });
   if (/SKIP/.test(out)) record("sellCutoffCheck (scripts/sellCutoffCheck.mjs)", "SKIP", "no PROBE_KEY"); else record("sellCutoffCheck (scripts/sellCutoffCheck.mjs)", "PASS", (out.match(/sellCutoffCheck: .*/) || [""])[0]);
