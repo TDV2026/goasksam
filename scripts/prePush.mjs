@@ -1455,6 +1455,18 @@ try {
 }
 // Every way the engine narrows an answer is named, with the refine that clears it (Lane B, Oct 29 2026, Lane E's FULL: typed mileage).
 try {
+  const out = execSync("node scripts/bodyNamePhraseCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("body: a body word inside a model's own name (Power Wagon, Traction Avant, Van Diemen) is not a body (scripts/bodyNamePhraseCheck.mjs)", "PASS", (out.match(/bodyNamePhraseCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("body: a body word inside a model's own name (Power Wagon, Traction Avant, Van Diemen) is not a body (scripts/bodyNamePhraseCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/spacedModelCodeCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("resolver: a model code typed with a space (RS 6, M 3, X 5) is the glued model, so a known car is never refused as unchecked (scripts/spacedModelCodeCheck.mjs)", "PASS", (out.match(/spacedModelCodeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("resolver: a model code typed with a space (RS 6, M 3, X 5) is the glued model, so a known car is never refused as unchecked (scripts/spacedModelCodeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/appliedAllCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("filters: every way the engine narrows (pill, band, typed miles, gearbox, body, year, edition, trim, history, detail) is named with its clear (scripts/appliedAllCheck.mjs)", "PASS", (out.match(/appliedAllCheck: .*/) || [""])[0]);
 } catch (e) {
