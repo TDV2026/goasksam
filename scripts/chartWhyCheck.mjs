@@ -42,6 +42,6 @@ for (const dim of ["body", "mileage", "year", "edition"]) {
   const c = E.chartOf({ tier: "result", poolN: 8, rawPool: rows, headlineDimension: dim, options: o, trendHeld: { reason: "mix_changes" }, trend: { quarters: [] }, cluster: null });
   ok(`E. ${dim}: options too thin, withheld with the too-few sentence`, c && c.type === "withheld" && c.withheld.reason === "too_few", c && c.withheld && c.withheld.reason); }
 // F. the page prints the engine's sentence: nothing in a page decides the reason
-{ const pg = fs.readFileSync("public/js/onebox.js", "utf8"); ok("F. the page prints chart.note or chart.withheld.line as sent", /withheld\.line/.test(pg) && !/changed from quarter to quarter/.test(pg.replace(/\/\/[^\n]*/g, ""))); }
+{ const pg = fs.readFileSync("public/js/onebox.js", "utf8"); ok("F. the page prints the engine's plain heading and decides no reason (the reasons are not printed, Oct 29 2026)", /chartLatestHeading/.test(pg) && !/changed from quarter to quarter/.test(pg.replace(/\/\/[^\n]*/g, ""))); }
 console.log(fail ? `chartWhyCheck: ${fail} failure(s)` : "chartWhyCheck: all pass");
 process.exit(fail ? 1 : 0);

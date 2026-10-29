@@ -5777,6 +5777,38 @@ if (task === "optiondetail") {
   }
   // task=warmDay&day=YYYY-MM-DD (launch warm, Oct 28 2026): read-only count of the stored answers (Market Check MCWARM rows, and the Buy/Tasks core rows
   // apart) not stored on that UTC day, for the live engine version. The launch gate is offDay = 0 on the MCWARM rows (lib/warmDay.js, scripts/warmDayCheck.mjs).
+  // task=refusals (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, zero writes): every stored answer whose tier is a refusal, by the kind and the failed checks (the sentence "No figures are shown because this car could not be checked." is the invariant refusal), with the key and up to 40 examples.
+  // The sweep behind "which live cards say could not be checked, and why". Pages 1,000 stored rows a call (?after= the last key); filter ?kind= (invariant_failed, not_a_car, builder_car, thin, ...).
+  if (task === "refusals") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const after = String(req.query?.after || ""), kindQ = String(req.query?.kind || "");
+    const rows = await supabaseSelect(env, `spec_market_cache?select=spec_key,tier:market->raw->>tier,kind:market->raw->refusal->>kind,failed:market->raw->refusal->failedChecks,ev:market->>engineVersion,line:market->raw->>refusal_line&market->raw->>tier=eq.refusal&order=spec_key.asc&limit=1000` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "refusals", readFailed: true, ocdSpend: 0, writes: 0 });
+    const out = { task: "refusals", ocdSpend: 0, writes: 0, refusals: rows.length, byPrefix: {}, byKind: {}, byFailedCheck: {}, byStamp: {}, examples: [], next: rows.length === 1000 ? rows[999].spec_key : null };
+    for (const r of rows) {
+      const prefix = String(r.spec_key).includes(":") ? String(r.spec_key).split(":")[0] : "core", kind = r.kind || "none";
+      if (kindQ && kind !== kindQ) continue;
+      out.byPrefix[prefix] = (out.byPrefix[prefix] || 0) + 1; out.byKind[kind] = (out.byKind[kind] || 0) + 1; out.byStamp[r.ev || "none"] = (out.byStamp[r.ev || "none"] || 0) + 1;
+      for (const c of Array.isArray(r.failed) ? r.failed : []) out.byFailedCheck[c] = (out.byFailedCheck[c] || 0) + 1;
+      if (out.examples.length < 40) out.examples.push({ key: String(r.spec_key).slice(0, 110), kind, failed: r.failed || null, stamp: r.ev || null });
+    }
+    return res.status(200).json(out);
+  }
+  // task=bodynames (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, zero writes): the live-lot sweep behind "a body word inside a model's name is not a body" (lib/bodyWords.js BODY_NAME_PHRASES). Over every live listing title and the newest ?n= (default 40,000) car sales in
+  // sales_archive: how many titles carry each name phrase, what the body reader said before the phrase table (the bare words) and what it says now, and every title whose body CHANGED, by body style (so a wagon read from Power Wagon, a van from Van Diemen, an Avant from Traction Avant is listed under the body that was wrong).
+  if (task === "bodynames") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const B = await import("../lib/bodyWords.js"); const n = Math.min(80000, Number(req.query?.n) || 40000);
+    const live = await supabaseSelectAll(env, "live_listings?status=eq.live&select=listing_title"), sold = await supabaseSelectAll(env, `sales_archive?select=listing_title&vehicle_type=eq.car&order=sale_date.desc&limit=${n}`);
+    const oldBody = t0 => { const t = String(t0 || "").toLowerCase(); for (const b of B.BODY_BUCKETS) if (b.words.some(w => t.includes(w))) return b.style; for (const r of B.BODY_WORD_RULES) if (r.re.test(t) && (!r.when || r.when(t))) return r.style; return null; };
+    const out = { task: "bodynames", ocdSpend: 0, writes: 0, liveTitles: (live || []).length, soldTitles: (sold || []).length, phrases: {}, changedByOldBody: {}, examples: {} };
+    for (const [src, list] of [["live", live || []], ["sold", sold || []]]) for (const r of list) {
+      const t = String(r.listing_title || ""), low = t.toLowerCase();
+      for (const np of B.BODY_NAME_PHRASES) { if (!np.re.test(low)) continue; const k = np.re.source.slice(0, 40); (out.phrases[k] = out.phrases[k] || { live: 0, sold: 0 })[src]++;
+        const was = oldBody(t), now = B.bodyFromText(t); if (was !== now) { const key = (was || "none") + " -> " + (now || "none"); out.changedByOldBody[key] = (out.changedByOldBody[key] || 0) + 1; (out.examples[key] = out.examples[key] || []); if (out.examples[key].length < 8) out.examples[key].push(t.slice(0, 80)); } }
+    }
+    return res.status(200).json(out);
+  }
   if (task === "warmDay") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { rowsOffDay, utcDayOf, epochMatch } = await import("../lib/warmDay.js");
@@ -5787,7 +5819,7 @@ if (task === "optiondetail") {
       const q = `spec_market_cache?select=spec_key,computed_at,ev:market->>engineVersion,we:market->>warmEpoch,os:market->raw->>optionsState,tr:market->raw->>tier,hc:market->raw->cluster->>0&order=spec_key.asc&limit=1000` + (cursor ? `&spec_key=gt.${encodeURIComponent(cursor)}` : "");
       const rows = await supabaseSelect(env, q);
       if (!Array.isArray(rows) || !rows.length) break;
-      for (const r of rows) (String(r.spec_key).startsWith("MCWARM:") ? mc : core).push({ key: r.spec_key, computedAt: r.computed_at, engineVersion: r.ev, warmEpoch: r.we, thin: String(r.spec_key).startsWith("MCWARM:") && String(r.tr || "") === "result" && r.hc != null && r.os == null });
+      for (const r of rows) (String(r.spec_key).startsWith("MCWARM:") ? mc : core).push({ key: r.spec_key, computedAt: r.computed_at, engineVersion: r.ev, warmEpoch: r.we, tier: r.tr || null, thin: String(r.spec_key).startsWith("MCWARM:") && String(r.tr || "") === "result" && r.hc != null && r.os == null });
       cursor = rows[rows.length - 1].spec_key;
       if (rows.length < 1000) break;
     }
