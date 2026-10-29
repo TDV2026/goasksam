@@ -18,7 +18,7 @@ ok(normal.includes('<h3 class="sfc-heading">What these sell for</h3>'), "heading
 ok(normal.includes('$121,000 <span class="sfc-to">to</span> $134,000'), "range, the big line");
 ok(normal.includes("Based on 42 sales, the latest in September 2026."), "basis line: the engine's own sentence, verbatim, no month count");
 ok(!normal.includes("Middle half of") && !normal.includes("last 12 months"), "basis line: the old window-months wording is gone");
-ok(normal.includes("2 sales set aside: 1 modified, 1 odd sale."), "set-aside footnote, engine's own reasons");
+ok(normal.includes("1 modified sale and 1 odd sale set aside."), "set-aside footnote, engine's own reasons (the count said once, Oct 29 2026)");
 ok(!/Powered by/.test(normal) && sellsForCardHtml({ cluster: [121000, 134000], poolN: 42, windowMonths: 12 }, { poweredBy: true }).includes("Powered by GoAskSam.") && !/Updated/.test(normal) && normal.includes('href="/how-sam-decides"'), "footer: no Powered by on our own pages (only with the poweredBy option), the How Sam decides link; the answer's own read time (the clock) prints no date");
 { const dated = sellsForCardHtml({ cluster: [121000, 134000], poolN: 42, windowMonths: 12, readAt: "2026-10-27T03:33:00Z" }, { updated: "Oct 26, 2026" });
   ok(dated.includes("Updated Oct 26, 2026.") && !/Powered by/.test(dated) && !dated.includes("Oct 27"), "footer: the date is the page's ingest date (Pacific), not the read time read in UTC (20:33 Pacific on the 26th printed the 27th)"); }
@@ -31,7 +31,7 @@ ok(!sellsForCardHtml({ cluster: [15000, 22000], poolN: 11, basisLine: "Based on 
 // setAsideCount WORD-IFIED under ten (confirmed live on the 1957 Porsche 356 Speedster: "two", not 2)
 // - the footnote must still show, counted from setAsideReasons' own real numbers, never from this field.
 const wordCount = sellsForCardHtml({ cluster: [282000, 363000], poolN: 8, windowMonths: 57, setAsideCount: "two", setAsideReasons: { project: 0, replica: 0, modified: 1, "odd sale": 1 }, readAt: "2026-10-16T08:00:00Z" });
-ok(wordCount.includes("2 sales set aside: 1 modified, 1 odd sale."), "setAsideCount as a word (\"two\") still produces the right footnote, counted from setAsideReasons");
+ok(wordCount.includes("1 modified sale and 1 odd sale set aside."), "setAsideCount as a word (\"two\") still produces the right footnote, counted from setAsideReasons");
 
 // Stale answer: the stale line replaces the date, never both.
 const stale = sellsForCardHtml({ cluster: [50000, 70000], poolN: 20, windowMonths: 12, stale: true, staleLine: "Sales read on October 14. Sales since then are not in yet. Updating now.", readAt: "2026-10-14T08:00:00Z" });

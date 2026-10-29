@@ -18,6 +18,7 @@ import { isTesterRequest } from "../lib/_tester.js";
 import { supabaseBytesSoFar } from "../lib/_supabase.js";
 import { VARIANT_MARKETS } from "../lib/modelRules.js";
 import { BODY_LABEL, isSingerPorsche, withReadFields } from "../lib/onebox.js";
+import { vinSearchPlan, applyVinOverlay } from "../lib/vinAsTyped.js";
 // Every variant value a chip may carry (e51): the M-car pair plus each variant market's key and its other side.
 // Restoration is never an option or a question (e52, Sam's decision): the generic entries' keys (restoration,
 // unrestored) are not accepted from a client, so a stale refine for them is ignored and the base page answers.
@@ -3371,6 +3372,13 @@ async function handler(req, res) {
 
     // Generation mapping (Phase 4): null is safe and means the ladder keeps
     // its calendar +/- 2 rungs, exactly as unmapped models behave today.
+    // A VIN SEARCH IS A TYPED SEARCH OF THE CAR IT NAMES (lib/vinAsTyped.js): the VIN names the car, the car goes through the same stored-answer path a typed search takes, and the VIN car's own sales and option are put on the finished answer
+    let vinCtx = null;
+    if (req.body?.oneBox && vehicle && (vehicle.vin || vehicle.chassis)) {
+      const plan = await vinSearchPlan(vehicle, { resolveVehicle });
+      if (plan && plan.unresolved) return res.status(200).json({ status: "one_box", tier: "not_tracked", resolvedCar: null, samLine: plan.line, refusal_line: plan.line });
+      if (plan) { vinCtx = { ...plan.ctx, text: plan.text }; vehicle = plan.vehicle; }
+    }
     const generation = await findGeneration(vehicle, { supabaseUrl, supabaseKey });
     if (obTimes.resolveStart) obTimes.resolveMs = Date.now() - obTimes.resolveStart;
 
@@ -3460,7 +3468,7 @@ async function handler(req, res) {
         mcRun({ answer_type: "failed", failure_state: "rate_limited" });
         return res.status(200).json({ status: "one_box", tier: "rate_limited", resolvedCar: null, samLine: CALM.search });
       }
-      const oneBoxText = typeof rawSearch === "string" ? rawSearch : (vehicle?.raw || vehicle?.canonicalLabel || "");
+      const oneBoxText = vinCtx ? vinCtx.text : (typeof rawSearch === "string" ? rawSearch : (vehicle?.raw || vehicle?.canonicalLabel || ""));
       // Round-4 earned question: an inline refinement (mileage band / transmission) narrows the
       // same pool without a re-typed query. Sanitized to numbers + a known transmission token.
       const rawRefine = req.body?.refine || (car && car.refine) || null;
@@ -3503,7 +3511,7 @@ async function handler(req, res) {
       // #1 divergence rule: the exact-car sale is fetched by the frontend (vehicleIdentity ->
       // vinAnchor) and passed back in car.exactSale; the engine compares it to the cluster.
       const rawES = car && typeof car.exactSale === "object" ? car.exactSale : null;
-      const exactSale = rawES && Number(rawES.price) > 0 ? {
+      const exactSale = !vinCtx && rawES && Number(rawES.price) > 0 ? {   // a VIN search reads the typed car's answer; its own sale rides on top (ownSales)
         price: Number(rawES.price),
         mileage: Number.isFinite(Number(rawES.mileage)) && Number(rawES.mileage) > 0 ? Number(rawES.mileage) : null,
         soldDate: typeof rawES.soldDate === "string" ? rawES.soldDate.slice(0, 10) : null
@@ -3772,6 +3780,7 @@ async function handler(req, res) {
       }
       const timings = { ...obTimes, warmHit, stale: !!staleInfo, totalMs: Date.now() - reqStart, dbBytes: supabaseBytesSoFar() - obTimes.dbBytes0, marks: dd && Array.isArray(dd.marks) ? dd.marks : null, fetchMs: dd && Array.isArray(dd.fetches) ? dd.fetches.map(f => Number(f.ms) || 0) : null };
       // the words Sam did not use in this search (lib/live/unusedWords.js): the engine names them, the page prints the line
+      if (vinCtx) oneBox = applyVinOverlay(oneBox, vinCtx);   // the VIN car's own sales and option on the typed car's finished answer
       const unusedFields = unusedFieldsFor(typeof rawSearch0 === "string" ? rawSearch0 : oneBoxText, vehicle, oneBox);
       return res.status(200).json({ status: "one_box", ...slimAnswerForWire(oneBox), ...staleFields, ...unusedFields, snapshotId: snapshotId || undefined, timings });
     }
