@@ -1503,7 +1503,7 @@
     }
     // id="more-sales" (hero-rebuild round, kept): the sales row's "See all N sales" link scrolls here
     // via [data-scrollto] (wire()).
-    return '<div id="more-sales"><div class="sec-head" data-stage="cards"><div><h2>All ' + esc(countWord) + " comparable " + (n === 1 ? "sale" : "sales") + "</h2>" +
+    return '<div id="more-sales"><div class="sec-head" data-stage="cards"><div><h2>' + esc(typeof d.salesHeading === "string" && d.salesHeading ? d.salesHeading : "All " + countWord + " comparable " + (n === 1 ? "sale" : "sales")) + "</h2>" +   // the engine's heading (d.salesHeading: no count when an option reaches past the window); the build is only for an answer that carries none
       (sub ? ('<span class="scope">' + lint(esc(sub), "allsales.scope") + "</span>") : "") + "</div></div>" +
       '<table class="allsales-table" data-stage="cards"><thead><tr><th class="colhead">Date</th><th class="colhead">Car</th><th class="colhead">Miles</th><th class="colhead">Venue</th><th class="colhead astc-price">Price</th></tr></thead>' +
       bodyHtml + "</table>" + foot + "</div>";
