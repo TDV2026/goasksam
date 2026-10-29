@@ -1738,6 +1738,34 @@ async function handleOps(req, res) {
     if (!out.stoppedAtBudget && offset + limit < all.length) out.next = offset + limit; else if (out.stoppedAtBudget) out.next = offset + out.read;
     return res.status(200).json(out);
   }
+  // task=typedmissing (Lane B, Oct 29 2026; READ-ONLY, no write, no spend): the car texts typed ?min= (default 3) or more times in the last ?days= (default 7) on Market Check (?product=, default market_check) whose resolved
+  // spec has no stored answer (or one behind the epoch): the cars people actually type that a visit would have to compute. ?crew=1 includes crew and test traffic (before launch almost every search is). Texts that look like a VIN,
+  // an email, a phone number or a person's name are dropped, as buyqueries does. Returns the texts for warmNamed (--list) and, per text, why (no_row, stale, other stamp). Budget-bounded (?budget= ms, default 150000).
+  if (task === "typedmissing") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle, sanitizeResolvedVehicle } = await import("../lib/vehicle.js"); const { findGeneration } = await import("../lib/generations.js");
+    const { warmAnswerKeyFor, readWarmAnswerDetailed } = await import("../lib/live/search.js");
+    const days = Math.min(30, Number(req.query?.days) || 7), min = Math.max(1, Number(req.query?.min) || 3), product = ["buy", "sell"].includes(String(req.query?.product)) ? String(req.query.product) : "market_check";
+    const t0 = Date.now(), budget = Math.min(250000, Number(req.query?.budget) || 150000), since = new Date(Date.now() - days * 864e5).toISOString();
+    const rows = await supabaseSelectAll(env, `analytics_events?name=eq.search_run&product=eq.${product}${req.query?.crew === "1" ? "" : "&internal=is.false"}&is_bot=is.false&ts=gte.${encodeURIComponent(since)}&select=q:props->>query_text`);
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "typedmissing", readFailed: true, ocdSpend: 0, writes: 0 });
+    const looksVin = q => /\b[a-hj-npr-z0-9]{17}\b/i.test(q), looksEmail = q => /\S+@\S+/.test(q), looksPhone = q => (q.match(/\d/g) || []).length >= 10 && /^[\d\s+().-]+$/.test(q.trim());
+    const counts = new Map(), shown = new Map();
+    for (const r of rows) { const q = String(r.q || "").replace(/\s+/g, " ").trim().slice(0, 120); if (!q || looksVin(q) || looksEmail(q) || looksPhone(q)) continue; const k = q.toLowerCase(); counts.set(k, (counts.get(k) || 0) + 1); if (!shown.has(k)) shown.set(k, q); }
+    const typed = [...counts.entries()].filter(([, n]) => n >= min).sort((a, b) => b[1] - a[1]);
+    const out = { task: "typedmissing", product, days, min, crewIncluded: req.query?.crew === "1", ocdSpend: 0, writes: 0, searches: rows.length, distinctTexts: counts.size, typedMin: typed.length, checked: 0, missing: [], covered: 0, unresolved: 0, stoppedAtBudget: false };
+    for (const [k, n] of typed) {
+      if (Date.now() - t0 > budget) { out.stoppedAtBudget = true; break; } out.checked++;
+      try {
+        const r = await resolveVehicle(shown.get(k), {}); const v = r && r.status === "valid" && r.vehicle ? (sanitizeResolvedVehicle(r.vehicle) || r.vehicle) : null;
+        if (!v) { out.unresolved++; out.missing.push({ q: shown.get(k), times: n, why: "no_car (asks a question or unresolved)" }); continue; }
+        const w = await readWarmAnswerDetailed(env, warmAnswerKeyFor(v, await findGeneration(v, env), null)).catch(() => null);
+        if (w && w.raw && !w.stale) out.covered++; else out.missing.push({ q: shown.get(k), times: n, why: !w || !w.raw ? (w && w.reason) || "no_row" : "stale" });
+      } catch { out.unresolved++; }
+    }
+    out.texts = out.missing.filter(m => !/^no_car/.test(m.why)).map(m => m.q);
+    return res.status(200).json(out);
+  }
   // task=staletexts (Lane B, Oct 29 2026, e101; READ-ONLY, no write, no spend): the cars whose stored rows are behind, as car texts Lane C can feed to warmNamed (--list). ?kind=mc: every MCWARM (Market Check) row whose warmEpoch is
   // not the current epoch; ?kind=core: every core row still marked stale (market.staleSince); ?kind=scopedout: the specs of live listings outside the launch scope (the ones the scope fix took out of the union), with whether their
   // Market Check row is behind. Paged 1000 rows a call (?after= is the last key); texts are year make model trim body edition variant from the row's own key, de-duplicated, refine rows (a gearbox, body, trim or variant chip's
