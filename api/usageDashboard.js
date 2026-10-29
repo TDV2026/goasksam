@@ -1905,13 +1905,61 @@ async function handleOps(req, res) {
     }
     return res.status(200).json(out);
   }
+  // task=optiondetail (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, zero writes): for ONE car (?make= ?model= ?year=, optional ?trim=), the stored Market Check answer as it is SERVED (optionsFieldsOf, chartOf) and the sales behind every number on it:
+// the footer's window and count, each option's count and window, the sales behind each option and the sales that name no option, each with date, price, source, the listing's own transmission field and how the engine reads it (gearboxType), and
+// the chart ladder per option (sales per quarter, the floor, the quarters that meet it, which test failed). Up to ?cap= sales per group (default 60). One answer per call (the bare row of the car, no chip), so a call is one small read.
+if (task === "optiondetail") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { optionsFieldsOf, chartOf, chartOptionOf, gearboxType, ENGINE_VERSION } = await import("../lib/onebox.js");
+    const make = String(req.query?.make || "").trim(), model = String(req.query?.model || "").trim(), year = Number(req.query?.year) || null, trim = String(req.query?.trim || "").trim();
+    const cap = Math.max(5, Math.min(200, Number(req.query?.cap) || 60));
+    if (!make || !model) return res.status(400).json({ error: "make and model are required" });
+    const keys = await supabaseSelect(env, `spec_market_cache?spec_key=like.${encodeURIComponent(`MCWARM:["${make}","${model}",*`)}&select=spec_key,ev:market->>engineVersion,at:computed_at&order=spec_key.asc&limit=400`);
+    if (!Array.isArray(keys)) return res.status(200).json({ task: "optiondetail", readFailed: true, ocdSpend: 0, writes: 0 });
+    const parse = k => { try { return JSON.parse(String(k).replace(/^MCWARM:/, "")); } catch { return null; } };
+    const hit = keys.find(r => { const a = parse(r.spec_key); return a && (year ? a[3] === year : a[3] == null) && String(a[2] || "") === trim && !(a[9] || a[10] || a[11] || a[12]) && r.ev === ENGINE_VERSION; });
+    if (!hit) return res.status(200).json({ task: "optiondetail", ocdSpend: 0, writes: 0, found: false, candidates: keys.filter(r => { const a = parse(r.spec_key); return a && (!year || a[3] === year); }).slice(0, 8).map(r => ({ key: r.spec_key.slice(0, 100), engineVersion: r.ev })) });
+    const got = await supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent(hit.spec_key)}&select=raw:market->raw`);
+    const a = got && got[0] && got[0].raw; if (!a) return res.status(200).json({ task: "optiondetail", found: false, readFailed: true, ocdSpend: 0, writes: 0 });
+    const d = { ...a, ...optionsFieldsOf(a) }, pool = (Array.isArray(a.rawPool) ? a.rawPool : []).map(r => ({ ...r, _usd: Number(r._usd ?? r._allin ?? r._hammer) })).filter(r => r._usd > 0);
+    const dateOf = r => String(r.auction_end_date || "").slice(0, 10);
+    const MON = ["january","february","march","april","may","june","july","august","september","october","november","december"];
+    const sinceDate = w => { const m = /since (\w+) (\d{4})/i.exec(String(w || "")); const i = m ? MON.indexOf(m[1].toLowerCase()) : -1; return i < 0 ? null : `${m[2]}-${String(i + 1).padStart(2, "0")}-01`; };
+    const row = r => ({ date: dateOf(r), usd: Math.round(r._usd), source: r.source_slug || r.platform || null, gearboxField: r.transmission ?? null, readAs: gearboxType(r) || null, title: String(r.rtitle || r.raw_title || r.listing_title || "").slice(0, 80) });
+    const dim = a.headlineDimension, base = Array.isArray(a.options) ? a.options : [], footerFrom = sinceDate(a.windowWords);
+    const inFooter = pool.filter(r => !footerFrom || dateOf(r) >= footerFrom);
+    const groups = (d.options || []).map(o => { const from = o.windowDiffers ? sinceDate(o.windowWords) : footerFrom; const stored = base.find(x => x.value === o.value) || {};
+      const rows = pool.filter(r => { const x = chartOptionOf(o.dimension, r, base); return x && x.value === o.value && (!from || dateOf(r) >= from); }).sort((x, y) => dateOf(y).localeCompare(dateOf(x)));
+      return { label: o.label, servedN: o.n, storedN: stored.n ?? null, servedWindow: o.windowWords || null, storedWindow: stored.windowWords || null, ownWindow: !!stored.ownWindow, capped: !!o.windowCapped, recounted: !!o.recounted, sales: rows.length, listed: rows.slice(0, cap).map(row) }; });
+    const none = inFooter.filter(r => !base.some(o => { const x = chartOptionOf(o.dimension, r, base); return x && x.value === o.value; })).sort((x, y) => dateOf(y).localeCompare(dateOf(x)));
+    const ch = chartOf(d), why = ch && ch.withheld ? ch.withheld : null;
+    return res.status(200).json({ task: "optiondetail", ocdSpend: 0, writes: 0, found: true, key: hit.spec_key.slice(0, 120), storedAt: hit.at, dimension: dim, footer: { poolN: a.poolN, windowWords: a.windowWords || null, windowLine: a.windowLine || null, rawPool: pool.length, inFooterWindow: inFooter.length }, groups,
+      nameNoOption: { sales: none.length, line: d.optionsRemainder ? d.optionsRemainder.line : null, listed: none.slice(0, cap).map(row) },
+      chart: ch ? { type: ch.type, scope: ch.scope ? ch.scope.label : null, reason: why ? why.reason : null, pooledReason: a.trendHeld ? a.trendHeld.reason : null, options: why ? why.options || null : null } : null });
+  }
   // task=chartsplitsweep (Lane B, Oct 29 2026, e101; named so it does not collide with the older chartsweep; READ-ONLY, no write, no spend): the stored Market Check answers whose pooled chart is held for a changing mix and that are split by an option: how many drew
   // no chart under the old one-option rule, how many draw a scoped chart now (every option tried, largest first), how many stay withheld because no option clears the candle floor, and ten examples
   // with each option's own count and the 1986 Porsche 911 if it is in the page. 100 stored answers a page (?after=).
   if (task === "chartsplitsweep") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { chartOf, optionsFieldsOf } = await import("../lib/onebox.js");
+    const { chartOf, optionsFieldsOf, ENGINE_VERSION: liveStamp } = await import("../lib/onebox.js");
     const after = req.query?.after ? String(req.query.after) : "";
+    // ?big=1 (Oct 29 2026): the live-stamp answers whose chart is withheld although some option holds 30 or more sales, with each option's own test. A light read (options and the held flag, 1,000 keys a page), then ONLY the
+    // candidates' answers are read, up to 40 a call. Counts: answers read, held, with an option of 30+, still withheld, and by the reason the options give against the reason the pooled answer gave.
+    if (req.query?.big === "1") {
+      const light = await supabaseSelect(env, `spec_market_cache?spec_key=like.MCWARM%3A*&market->>engineVersion=eq.${encodeURIComponent(liveStamp)}&select=spec_key,held:market->raw->trendHeld->>reason,opts:market->raw->options&order=spec_key.asc&limit=1000` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+      if (!Array.isArray(light)) return res.status(200).json({ task: "chartsplitsweep", mode: "big", readFailed: true, ocdSpend: 0, writes: 0 });
+      const cand = light.filter(r => r.held && Array.isArray(r.opts) && r.opts.some(o => Number(o && o.n) >= 30));
+      const o2 = { task: "chartsplitsweep", mode: "big", ocdSpend: 0, writes: 0, keys: light.length, pooledHeld: light.filter(r => r.held).length, heldWithBigOption: cand.length, read: 0, drawNow: 0, stillWithheld: 0, reasons: { options_mix: 0, options_too_few: 0 }, wrongReasonBefore: 0, examples: [], next: light.length === 1000 ? light[999].spec_key : null, more: cand.length > 40 };
+      for (const c of cand.slice(0, 40)) {
+        const got = await supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent(c.spec_key)}&select=raw:market->raw`); const a = got && got[0] && got[0].raw; if (!a) continue; o2.read++;
+        const ch = chartOf({ ...a, ...optionsFieldsOf(a) });
+        if (ch && ch.type === "candles") { o2.drawNow++; continue; }
+        o2.stillWithheld++; const w = ch && ch.withheld; if (w) { o2.reasons[w.reason === "mix_changes" ? "options_mix" : "options_too_few"]++; if (w.reason !== c.held) o2.wrongReasonBefore++; }
+        if (o2.examples.length < 10) o2.examples.push({ key: c.spec_key.slice(0, 110), options: (a.options || []).map(o => `${o.label} ${o.n}`), pooledReason: c.held, optionsReason: w ? w.reason : null, tried: w && w.options ? w.options.map(t => `${t.label}: ${t.n} sales, ${t.quartersMeeting} of ${t.quartersNeeded} quarters at ${t.floor}+, failed ${t.failed}`) : null });
+      }
+      return res.status(200).json(o2);
+    }
     const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,raw:market->raw&order=spec_key.asc&limit=100` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
     if (!Array.isArray(rows)) return res.status(200).json({ task: "chartsplitsweep", readFailed: true, ocdSpend: 0, writes: 0 });
     const out = { task: "chartsplitsweep", ocdSpend: 0, writes: 0, rows: rows.length, split: 0, held: 0, withheldBefore: 0, drawNow: 0, stillWithheld: 0, examples: { nowDraw: [], stillWithheld: [] }, next: rows.length === 100 ? rows[99].spec_key : null };

@@ -1373,6 +1373,13 @@ try {
 } catch (e) {
   record("stored rows: a row stored before the wording change serves the current lines (scripts/storedTextCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A withheld chart says the options' reason, not the pooled answer's (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/chartWhyCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("chart: a withheld chart says why the options were withheld (scripts/chartWhyCheck.mjs)", "PASS", (out.match(/chartWhyCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("chart: a withheld chart says why the options were withheld (scripts/chartWhyCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // An ended lot never stays unmarked past one pull cycle (Lane B, Oct 29 2026).
 try {
   const out = execSync("node scripts/endedLotCheck.mjs", { encoding: "utf8", timeout: 120000 });
