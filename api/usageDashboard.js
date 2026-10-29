@@ -1723,16 +1723,23 @@ async function handleOps(req, res) {
       try {
         const facts = listingFacts(r), spec = await specOf(env, r, facts); if (!spec) continue;
         const key = warmAnswerKeyFor(spec.v, spec.generation, null);
-        if (!memo.has(key)) { const w = await readWarmAnswerDetailed(env, key).catch(() => null); memo.set(key, w && w.raw ? w.raw : null); }
+        if (!memo.has(key)) { const w = await readWarmAnswerDetailed(env, key).catch(() => null); memo.set(key, w && w.raw ? w.raw : null); if (!(w && w.raw)) { out.specsNoStoredAnswer = (out.specsNoStoredAnswer || 0) + 1; out.noStoredReasons = out.noStoredReasons || {}; out.noStoredReasons[(w && w.reason) || "no_row"] = (out.noStoredReasons[(w && w.reason) || "no_row"] || 0) + 1; } }
         const a = memo.get(key); if (!a || !Array.isArray(a.options) || a.options.length < 2 || !a.headlineDimension || !/^(split|apart)$/.test(String(a.optionsState || ""))) continue;
         out.withOptionsAnswer++;
         const base = { year: spec.v && spec.v.year, listingMiles: facts && facts.miles };
         const byTitle = matchedOptionOf(a, r.listing_title, base);
         if (byTitle) continue;
         out.unsaidByTitle++;
+        const fieldsTxt = [r.transmission, r.body].filter(Boolean).join(" ");
         const now = matchedOptionOf(a, r.listing_title, { ...base, fields: [r.transmission, r.body].filter(Boolean).join(" "), gearbox: facts && facts.gearbox, body: facts && facts.body });
         if (now) { out.nowMatched++; const dm = now.matchedOption.dimension; out.byDimension[dm] = (out.byDimension[dm] || 0) + 1; if (out.examples.length < 10) out.examples.push({ id: r.id, title: String(r.listing_title || "").slice(0, 80), transmission: r.transmission || null, body: r.body || null, matched: now.matchedOption.label }); }
-        else out.stillUnsaid++;
+        else {
+          out.stillUnsaid++;
+          const dim = a.headlineDimension, saysGb = !!(facts && facts.gearbox), saysBody = !!(facts && facts.body);
+          const cause = (dim === "gearbox" && !saysGb) ? "listing states no gearbox" : (dim === "body" && !saysBody) ? "listing states no body" : (dim === "gearbox" || dim === "body") ? "states it, no option of that name" : dim === "mileage" ? "split by mileage band: listing miles outside every band or not stated" : "split by " + dim + ": a listing field does not state it";
+          out.stillCauses = out.stillCauses || {}; out.stillCauses[cause] = (out.stillCauses[cause] || 0) + 1;
+          if ((out.stillExamples = out.stillExamples || []).length < 12) out.stillExamples.push({ id: r.id, title: String(r.listing_title || "").slice(0, 80), transmission: r.transmission || null, body: r.body || null, splitBy: dim, options: a.options.map(o => o.label).join(" / "), cause });
+        }
       } catch { /* a listing that does not resolve is left out */ }
     }
     if (!out.stoppedAtBudget && offset + limit < all.length) out.next = offset + limit; else if (out.stoppedAtBudget) out.next = offset + out.read;
@@ -1774,7 +1781,7 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { currentEpoch } = await import("../lib/_epoch.js");
     const kind = ["core", "scopedout"].includes(String(req.query?.kind)) ? String(req.query.kind) : "mc";
-    const epoch = await currentEpoch(env).catch(() => null);
+    const epoch = await currentEpoch(env).catch(() => null), { ENGINE_VERSION: liveStamp } = await import("../lib/onebox.js");   // mc rows also count when stored under another engine stamp: a card cannot match its options against them
     const textOf = arr => { const [make, model, trim, year, , body, edition, variant] = arr; return [year, make, model, trim, body, edition, variant].filter(x => x != null && x !== "").join(" ").replace(/\s+/g, " ").trim(); };
     const parse = key => { try { const a = JSON.parse(String(key).replace(/^MCWARM:/, "")); return Array.isArray(a) ? a : null; } catch { return null; } };
     if (kind === "scopedout") {
@@ -1793,12 +1800,12 @@ async function handleOps(req, res) {
     }
     const after = req.query?.after ? String(req.query.after) : "";
     const like = kind === "mc" ? "spec_key=like.MCWARM%3A*" : "spec_key=not.like.MCWARM%3A*&spec_key=not.like.LIVESPECS*&spec_key=not.like.QELIG*&spec_key=not.like.MCCOMPUTING*";
-    const rows = await supabaseSelect(env, `spec_market_cache?${like}&select=spec_key,ep:market->>warmEpoch,mark:market->>staleSince&order=spec_key.asc&limit=1000` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+    const rows = await supabaseSelect(env, `spec_market_cache?${like}&select=spec_key,ep:market->>warmEpoch,ev:market->>engineVersion,mark:market->>staleSince&order=spec_key.asc&limit=1000` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
     if (!Array.isArray(rows)) return res.status(200).json({ task: "staletexts", kind, readFailed: true, ocdSpend: 0, writes: 0 });
     const out = { task: "staletexts", kind, epoch, ocdSpend: 0, writes: 0, rows: rows.length, behind: 0, refineRows: 0, unparsed: 0, texts: [], keys: [], next: rows.length === 1000 ? rows[999].spec_key : null };
     const seen = new Set();
     for (const r of rows) {
-      const behind = kind === "mc" ? !!(epoch && r.ep && r.ep !== epoch) : !!r.mark; if (!behind) continue; out.behind++;
+      const wrongStamp = kind === "mc" && !!r.ev && r.ev !== liveStamp, behind = kind === "mc" ? (!!(epoch && r.ep && r.ep !== epoch) || wrongStamp) : !!r.mark; if (!behind) continue; out.behind++; if (wrongStamp) out.olderStamp = (out.olderStamp || 0) + 1;
       const a = parse(r.spec_key); if (!a) { out.unparsed++; continue; }
       if (a[9] || a[10] || a[11] || a[12]) { out.refineRows++; continue; }   // a chip's own row (tx, rBody, rTrim, rVariant): the bare row's warm covers it
       const t = textOf(a); if (!t || seen.has(t.toLowerCase())) continue; seen.add(t.toLowerCase()); out.texts.push(t); out.keys.push(r.spec_key.slice(0, 120));

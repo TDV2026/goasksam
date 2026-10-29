@@ -1338,6 +1338,34 @@ try {
 } catch (e) {
   record("core rows: a none row always carries its reason (scripts/noneRowReasonCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Every question the engine returns has a way out that reaches the normal search (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/questionWayOutCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("questions: every question the engine returns has a way out to the normal search (scripts/questionWayOutCheck.mjs)", "PASS", (out.match(/questionWayOutCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("questions: every question the engine returns has a way out to the normal search (scripts/questionWayOutCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// Every taxonomy model has years or a named bucket, and no years we hold go unused (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/modelYearsBucketCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("taxonomy: every model has production years or a named bucket, the calculator's years are used (scripts/modelYearsBucketCheck.mjs)", "PASS", (out.match(/modelYearsBucketCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("taxonomy: every model has production years or a named bucket, the calculator's years are used (scripts/modelYearsBucketCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// The total count is printed once (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/totalCountOnceCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("pages: the total count is stated once, the title line has none (scripts/totalCountOnceCheck.mjs)", "PASS", (out.match(/totalCountOnceCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("pages: the total count is stated once, the title line has none (scripts/totalCountOnceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// A Find card never says to pick, and the listing's own fields settle its option (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/findNoPickCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Find: the card never says pick or choose, real listings' fields settle the option (scripts/findNoPickCheck.mjs)", "PASS", (out.match(/findNoPickCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Find: the card never says pick or choose, real listings' fields settle the option (scripts/findNoPickCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // An ended lot never stays unmarked past one pull cycle (Lane B, Oct 29 2026).
 try {
   const out = execSync("node scripts/endedLotCheck.mjs", { encoding: "utf8", timeout: 120000 });

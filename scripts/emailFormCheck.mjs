@@ -120,7 +120,7 @@ for (const k of WATCH) {
   ok(carCountProblems(all).length === 0 && watchCountProblems(m.subject + "\n" + m.text).length === 0, `${k}: counts follow the helper (${carCountProblems(all)} ${watchCountProblems(m.subject + "\n" + m.text)})`);
   ok(saleFormProblems(all).length === 0, `${k}: one form for the sale counts`);
   ok(footerProblems(m).length === 0, `${k}: one footer line (${footerProblems(m)})`);
-  ok(!QUESTION.test(noUrls(m.subject + m.text)) && !/\bwhich\b|\bpick an option\b|\bchoose\b/i.test(all), `${k}: no question`);
+  ok(!QUESTION.test(noUrls(m.subject + m.text)) && !/\bwhich\b|\bpick an option\b|\bchoose\b/i.test(all.replace(/does not say which it is/g, "")), `${k}: no question`);   // e101: the unsaid line ("... this listing does not say which it is, so there is no single range.") is a statement, not a question
   ok(!/\u2014|\u2013/.test(m.subject + m.text), `${k}: no em or en dash`);
   const ids = [...m.text.matchAll(/https:\/\/example\.com\/((?:sale|live|att)\/\w+)/g)].map(x => x[1]); ok(new Set(ids).size === ids.length, `${k}: no sale is listed twice (${ids})`);
   if (k !== "combined") ok(headings(m, CATCH_UP_HEADING) === 0 && headings(m, NEW_HEADING) === 0, `${k}: a watch section carries no heading`);
