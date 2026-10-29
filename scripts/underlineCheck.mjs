@@ -25,7 +25,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
 const b = await startBrowser();
 console.log("underlineCheck reading " + ROOT);
 const WANT = { "2001 BMW M3 (alike with options)": "candles", "Chart: option-scoped candles (2004 BMW M3, Manual)": "scoped", "Chart: SEEDED dots (the engine sends type dots): the page draws none": "none", "1985 Land Rover Defender 110 (year split)": "withheld" };
-for (const [n, fx] of Object.entries(MC)) for (const w of [1440, 390]) { const p = await openMC(b, fx, w), r = await p.evaluate(inPage); judgeIn(ok, `Market Check ${n} at ${w}`, r, fx.needs || fx.typed.split(" ").slice(1, 3));
+for (const [n, fx] of Object.entries(MC)) for (const w of [1440, 390]) { const p = await openMC(b, fx, w), r = await p.evaluate(inPage); r.engine = { rangeSentence: fx.d.rangeSentence || null, windowLine: fx.d.windowLine || null }; judgeIn(ok, `Market Check ${n} at ${w}`, r, fx.needs || fx.typed.split(" ").slice(1, 3));
   { const bk = fx.d.chart && fx.d.chart.type === "candles" && fx.d.chart.buckets ? fx.d.chart.buckets : fx.d.trend && fx.d.trend.movement ? fx.d.trend.movement.buckets : null;
     if (bk && bk.every(b => /^\d{4}-Q[1-4]$/.test(b.period))) { const ord = b => +b.period.slice(0, 4) * 4 + (+b.period.slice(-1) - 1), o = bk.map(ord), expect = o[o.length - 1] - o[0] + 1 - o.length; ok(r.gaps === expect, `Market Check ${n} at ${w}: every quarter the engine left out shows as a gap in the chart (${r.gaps} of ${expect})`); } }
   ok(r.strip && r.strip.miles && r.strip.pills >= 0, `Market Check ${n} at ${w}: the narrow strip holds the mileage box`);
