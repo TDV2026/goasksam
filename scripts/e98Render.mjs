@@ -24,7 +24,7 @@ export async function openMC(browser, fx, width, opts = {}) {
     if (u.host === "goasksam.com" && r.isNavigationRequest()) return r.respond({ status: 200, contentType: "text/html", body: html });
     const loc = /^\/obx\.[^/]+\/onebox\.js$/.test(u.pathname) ? "public/js/onebox.js" : (/^\/js(?:\.[^/]+)?\/([\w.-]+\.js)$/.exec(u.pathname) ? "public/js/" + /^\/js(?:\.[^/]+)?\/([\w.-]+\.js)$/.exec(u.pathname)[1] : null);
     if (u.host === "goasksam.com" && loc && fs.existsSync(path.join(ROOT, loc))) return r.respond({ status: 200, contentType: "application/javascript", body: fs.readFileSync(path.join(ROOT, loc), "utf8") });
-    if (u.host === "goasksam.com" && u.pathname === "/api/sellerDecision") { p._posts.push(1); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(fx.respond ? fx.respond(p._posts.length) : { status: "one_box", ...(p._posts.length > 1 && fx.second ? { ...fx.d, ...fx.second } : fx.d) }) }); }
+    if (u.host === "goasksam.com" && u.pathname === "/api/sellerDecision") { p._posts.push(1); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(fx.respond ? fx.respond(p._posts.length, (() => { try { return JSON.parse(r.postData() || "{}"); } catch { return {}; } })()) : { status: "one_box", ...(p._posts.length > 1 && fx.second ? { ...fx.d, ...fx.second } : fx.d) }) }); }
     if (u.host === "goasksam.com" && /^\/api\//.test(u.pathname)) return r.respond({ status: 200, contentType: "application/json", body: "{}" });
     if (u.host !== "goasksam.com") return r.respond({ status: 204, body: "" }); r.continue(); });
   await p.goto("https://goasksam.com/market-check", { waitUntil: "networkidle2" }).catch(() => {});

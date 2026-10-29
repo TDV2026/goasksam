@@ -670,6 +670,12 @@ try {
   record("Every question has its way out; no label prints over an empty body (scripts/wayOutAndLabelCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/appliedFiltersCheck.mjs", { encoding: "utf8" });
+  record("A narrowing shows: the engine's applied line and a clear control per filter (scripts/appliedFiltersCheck.mjs)", "PASS", (out.match(/appliedFiltersCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("A narrowing shows: the engine's applied line and a clear control per filter (scripts/appliedFiltersCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/showMoreCheck.mjs", { encoding: "utf8" });
   record("A show more control ends: gone when every row is shown, its count the rows still hidden (scripts/showMoreCheck.mjs)", "PASS", (out.match(/showMoreCheck: .*/) || [""])[0]);
 } catch (e) {

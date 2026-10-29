@@ -1111,6 +1111,15 @@
     return "";
   }
   function heroChartHtml(d) { return chartPanelHtml(d); }
+  // THE APPLIED LINE (Sam, Oct 29 2026: after tapping "50,000 to 100,000 miles" nothing said a filter was on). The engine names every narrowing that is on: appliedLine ("Narrowed to 50,000 to 100,000 miles and Manual.") and appliedFilters [{kind, words, clear}], clear being the refine that takes that one narrowing off. The page prints the line above the range and one clear control per filter that sends the engine's own `clear`; it counts and words nothing. No appliedFilters, no line.
+  function appliedFiltersHtml(d) {
+    var list = d && Array.isArray(d.appliedFilters) ? d.appliedFilters.filter(function (f) { return f && typeof f.words === "string" && f.words && f.clear && typeof f.clear === "object"; }) : [];
+    if (!list.length) return "";
+    var line = typeof d.appliedLine === "string" ? d.appliedLine.trim() : "";
+    return '<div class="applied" data-stage="answer">' + (line ? '<p class="applied-line">' + lint(esc(line), "hero.applied") + "</p>" : "") + '<div class="applied-chips">' + list.map(function (f) {
+      return '<span class="applied-chip"><span class="applied-w">' + esc(f.words) + '</span><button type="button" class="applied-x" data-clear="' + esc(JSON.stringify(f.clear)) + '" aria-label="Remove ' + esc(f.words) + '" title="Remove ' + esc(f.words) + '">&times;</button></span>';
+    }).join("") + "</div></div>";
+  }
   // THE NARROW STRIP (Sam, Oct 28 2026): directly below the answer card, one heading NARROW BY for the pills (the engine's refine options) and the mileage box; the card itself keeps only ranges, counts, the footer.
   function narrowStripHtml(d, m, withMileage) {
     var pills = window.sellsForNarrowHtml ? window.sellsForNarrowHtml(d, { interactive: true }) : "", mi = withMileage ? heroMileageLineHtml(d, m) : "";
@@ -1284,7 +1293,7 @@
       heroMetaLine(d);
     // e63 (Sam, Oct 19 2026; Lane C as integrator, Lane A away): ONE list on the spread refusal too. The card carries the
     // engine's line ("Sales too spread out for a range."), the tiles below carry the sales; no sale prints twice.
-    left += (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "");
+    left += appliedFiltersHtml(d) + (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "");
     if (!d.cluster) {
       var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.older") + "</p>";
     }
@@ -2080,7 +2089,7 @@
       // A thin answer (e63, Sam, Oct 19 2026; Lane C as integrator, Lane A away): the shared card carries the engine's
       // thinLine and latest-sale line, the only explanation; the grid below carries the sales. No lead of the page's own.
       var follow = m ? "" : "A bit more detail, or a different car, and Sam pulls what actually sold.";
-      var card = (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "") + narrowStripHtml(d, null, false);
+      var card = appliedFiltersHtml(d) + (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "") + narrowStripHtml(d, null, false);
       return '<div class="refusal">' + card + (follow ? samMsgHtml([lint(esc(follow), "thin.follow")], "Sam’s read") : "") + factsBlockHtml(d, false) + "</div>" + exactCarSalesHtml(d) + poolGridHtml(cards, "What has sold") + sellHtml();
     }
     var follow2 = "Say which " + esc(model) + " it is and Sam compares it to the ones that match.";
@@ -2090,7 +2099,7 @@
     // The spread refusal (Sam, Oct 19 2026; Lane C as integrator, Lane A away): the shared card carries the engine's own
     // line (its samLine, "Sales too spread out for a range.") and latest sale, the only explanation; no reason of the
     // page's own. The ask to name the car and the engine's own variant chips stay; the grid below carries the sales.
-    var card = (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "") + narrowStripHtml(d, null, false);
+    var card = appliedFiltersHtml(d) + (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "") + narrowStripHtml(d, null, false);
     var head = '<div class="refusal" data-stage="answer">' + card +
       samMsgHtml([lint(esc(follow2), "refuse.follow")], "Sam’s read") + factsBlockHtml(d, false) + chips + "</div>";
     return head + exactCarSalesHtml(d) + poolGridHtml(cards, "What has sold") + sellHtml();
@@ -2210,7 +2219,7 @@
     // spread-too-wide line rather than staying silent - see lib/sellsForCard.js's own FOR LANE B note.
     // e63 (Sam, Oct 19 2026; Lane C as integrator, Lane A away): ONE list. The sale tiles below are this tier's list, so the
     // card draws the engine's line and latest sale without its own rows; no sale prints twice.
-    left += (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "");
+    left += appliedFiltersHtml(d) + (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "");
     left += narrowStripHtml(d, m, false);
     var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.thin.older") + "</p>";
     // The page's own house/online lines are gone (Sam, Oct 19 2026; Lane C as integrator, Lane A away): the engine's line
@@ -3712,6 +3721,15 @@
     // UTM for the destination). Best-effort beacon, never blocks the navigation.
     Array.prototype.forEach.call(root.querySelectorAll("a[data-cardclick]"), function (a) {
       a.addEventListener("click", function () { try { obEvent("onebox_comp_click", a.getAttribute("data-cardclick") + ":" + lastQuery); } catch (e) {} });
+    });
+    // A clear control sends the engine's own clear refine for that one narrowing, as it is (it replaces the refine; the page merges nothing).
+    Array.prototype.forEach.call(root.querySelectorAll("[data-clear]"), function (b) {
+      b.addEventListener("click", function () {
+        var clear; try { clear = JSON.parse(b.getAttribute("data-clear")); } catch (e) { clear = null; }
+        if (!clear || typeof clear !== "object") return;
+        if (typeof gasTrack === "function") gasTrack("refinement_cleared", { field: String(b.getAttribute("aria-label") || "").slice(0, 40) });
+        runPool(lastQuery, obLastVehicle, clear);
+      });
     });
     // The way out: the box takes the engine's prefill, its hint, and the cursor (the person types the car; the search runs as any typed text does).
     Array.prototype.forEach.call(root.querySelectorAll("[data-wayout]"), function (b) {
