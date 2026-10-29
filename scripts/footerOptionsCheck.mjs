@@ -23,15 +23,25 @@ const shapes = {
   "alike, year": { ...base, optionsState: "alike", headlineDimension: "year", cluster: [50000, 90000], options: [opt("year", "1985", "1985", 15), opt("year", "1986", "1986", 20)] }
 };
 for (const [name, a] of Object.entries(shapes)) {
+  const blocks = /^(split|apart)$/.test(a.optionsState);   // the card shows option BLOCKS in place of a range; an alike answer is one range with its option pills (Oct 29 2026)
   const d = E.withReadFields(a, "1986 Porsche 911 Carrera", { year: 1986 });
-  ok(`${name}: the footer states no total count and no total since date (windowLine, basisLine, latestSaleLine, countLine all null)`, !d.windowLine && !d.basisLine && !d.latestSaleLine && !d.countLine, JSON.stringify([d.windowLine, d.basisLine, d.latestSaleLine, d.countLine]));
-  const html = C.sellsForCardHtml(d, { updated: "Oct 28, 2026" }), foot = (html.match(/<div class="sfc-footer">[\s\S]*$/) || [""])[0];
-  ok(`${name}: the rendered footer is "Updated <date>." and the link, with no total`, /Updated Oct 28, 2026\./.test(foot) && !TOTAL.test(foot.replace(/<[^>]+>/g, " ")) && /how-sam-decides|How Sam decides/.test(html), foot.replace(/<[^>]+>/g, " ").slice(0, 120));
+  const html = C.sellsForCardHtml(d, { updated: "Oct 28, 2026" }), foot = (html.match(/<div class="sfc-footer">[\s\S]*$/) || [""])[0], footText = foot.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  if (blocks) {
+    ok(`${name}: option blocks, so the footer states no total count and no total since date (windowLine, basisLine, latestSaleLine, countLine all null)`, !d.windowLine && !d.basisLine && !d.latestSaleLine && !d.countLine, JSON.stringify([d.windowLine, d.basisLine, d.latestSaleLine, d.countLine]));
+    ok(`${name}: the rendered footer has no total`, /Updated Oct 28, 2026\./.test(foot) && !TOTAL.test(footText) && /how-sam-decides|How Sam decides/.test(html), footText.slice(0, 140));
+    ok(`${name}: the all-sales caption is the engine's metaLine, with no window`, typeof d.metaLine === "string" && !/since/.test(d.metaLine), d.metaLine);
+  } else {
+    ok(`${name}: one range with option pills keeps its count and since date, once`, (footText.match(/\d[\d,]* sales?, since [A-Z][a-z]+ \d{4}/g) || []).length === 1 && /Updated Oct 28, 2026\./.test(footText), footText.slice(0, 160));
+  }
+  const has = /where most sales landed/.test(footText), shouldHave = Array.isArray(d.cluster) || (blocks && (d.options || []).some(o => !o.rangeFloor));
+  ok(`${name}: the range sentence is in the footer once when a range is shown, and not otherwise`, (footText.match(/The range is where most sales landed\./g) || []).length === (shouldHave ? 1 : 0) && has === shouldHave, footText.slice(0, 160));
   const range = (d.options || []).filter(o => !o.rangeFloor), lines = d.optionLines || [];
   ok(`${name}: every range option prints its own count and its own since date`, range.length > 0 && range.every(o => lines.some(l => l.includes(o.label) && new RegExp(`${o.n} sales? since [A-Z][a-z]+ \\d{4}`).test(l))), lines.join(" | "));
   ok(`${name}: a thin option keeps "N sales, too few for a range" with no since date`, (d.options || []).filter(o => o.rangeFloor).every(o => lines.some(l => l.includes(o.label) && new RegExp(`${o.n} sales?, too few for a range`).test(l) && !/since/.test(l))), lines.join(" | "));
-  ok(`${name}: the all-sales caption is the engine's metaLine, with no window`, typeof d.metaLine === "string" && !/since/.test(d.metaLine), d.metaLine);
 }
+// no range at all (every option thin): no range sentence, only "Updated <date>."
+{ const a = { ...shapes["split, gearbox"], headlineLines: ["a", "b"], options: [opt("gearbox", "Manual", "manual", 5, { rangeFloor: true, low: null, high: null }), opt("gearbox", "SMG", "auto", 3, { rangeFloor: true, low: null, high: null })] }, d = E.withReadFields(a, "x", { year: 2004 }), t = C.sellsForCardHtml(d, { updated: "Oct 28, 2026" }).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  ok("an answer that shows no range (every option thin) carries no range sentence", d.rangeSentence == null && !/where most sales landed/.test(t) && /Updated Oct 28, 2026\./.test(t), t.slice(-120)); }
 { const d = E.withReadFields(shapes["alike, body"], "1986 Porsche 911 Carrera", { year: 1986 }); ok("the Coupe, which shares the footer's window, reads \"16 sales since November 2025\"", (d.optionLines || []).some(l => /^Coupe .*16 sales since November 2025$/.test(l)), (d.optionLines || []).join(" | ")); }
 { const a = { ...shapes["alike, body"], poolN: 38, rawPool: pool(38), options: [opt("body", "Coupe", "coupe", 16), opt("body", "Targa", "targa", 11), opt("body", "Cabriolet", "cabriolet", 11, { windowWords: "since February 2025", ownWindow: true })] }, d = E.withReadFields(a, "1986 Porsche 911 Carrera", { year: 1986 });
   ok("an option on its own window still prints its own count and its own since date (Cabriolet since February 2025)", (d.optionLines || []).some(l => /Cabriolet .*11 sales since February 2025/.test(l))); }

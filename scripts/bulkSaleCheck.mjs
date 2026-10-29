@@ -33,7 +33,7 @@ ok(bulkSaleAside(cheapSale).size === 0, "a house sale priced at a fifth to a qua
   ok(asideSentence({ setAsideReasons: { "odd sale": 7, "bulk sale": 3 }, setAsideLabels: L }) === "10 sales set aside: 7 odd sales, 3 sold as parts cars in a bulk sale.", "several reasons keep the count");
   ok(asideSentence({ setAsideReasons: { "odd sale": 4 } }) === "4 sales set aside: 4 odd sales.", "other reasons unchanged");
   const card = sellsForCardHtml({ cluster: [40000, 60000], poolN: 12, windowMonths: 36, setAsideReasons: { "bulk sale": 11 }, setAsideLabels: L }, {});
-  ok(card.includes("11 sales set aside: sold as parts cars in a bulk sale."), "the shared card reads the same label");
+  ok(card.includes("11 set aside, sold as parts cars in a bulk sale."), "the shared card reads the same label");
 }
 console.log(failed ? `bulkSaleCheck: ${failed} FAILED.` : "bulkSaleCheck: all passed.");
 process.exit(failed ? 1 : 0);

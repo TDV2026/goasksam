@@ -1475,6 +1475,51 @@ try {
 } catch (e) {
   record("pages: options answers state no total in the footer, each option its own window, no repeated year (scripts/footerOptionsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A lot that is not a vehicle is not a car anywhere: no Find card, no spec match, no sales pool (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/nonVehicleCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("lots: an engine, wheels, literature or parts lot is never a car card, a spec match or a sale in a pool (scripts/nonVehicleCheck.mjs)", "PASS", (out.match(/nonVehicleCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("lots: an engine, wheels, literature or parts lot is never a car card, a spec match or a sale in a pool (scripts/nonVehicleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/whichChipsCheck.mjs", { encoding: "utf8", timeout: 180000 });
+  record("Which model: no chip cut at a space, no duplicate, no variant beside its model (scripts/whichChipsCheck.mjs)", "PASS", (out.match(/whichChipsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Which model: no chip cut at a space, no duplicate, no variant beside its model (scripts/whichChipsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/countsCheck.mjs", { encoding: "utf8", timeout: 180000 });
+  record("counts: options, remainder and the table caption add up, no chip cut at a space (Lane F's check) (scripts/countsCheck.mjs)", "PASS", (out.match(/countsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("counts: options, remainder and the table caption add up, no chip cut at a space (Lane F's check) (scripts/countsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/filtersRangeCheck.mjs", { encoding: "utf8", timeout: 180000 });
+  record("filters: a narrowed answer is computed from its own sales, says which filter is on, keeps its basis once (scripts/filtersRangeCheck.mjs)", "PASS", (out.match(/filtersRangeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("filters: a narrowed answer is computed from its own sales, says which filter is on, keeps its basis once (scripts/filtersRangeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/bodiesOrderAsideCheck.mjs", { encoding: "utf8", timeout: 180000 });
+  record("bodies, option order and the set-aside line (one vocabulary, ranges first, the count said once) (scripts/bodiesOrderAsideCheck.mjs)", "PASS", (out.match(/bodiesOrderAsideCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("bodies, option order and the set-aside line (one vocabulary, ranges first, the count said once) (scripts/bodiesOrderAsideCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// A VIN search is a typed search of the car it names, plus the car's own facts (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/vinTypedCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("VIN: the VIN answer and the typed answer of the same car are the same, field by field (scripts/vinTypedCheck.mjs)", "PASS", (out.match(/vinTypedCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("VIN: the VIN answer and the typed answer of the same car are the same, field by field (scripts/vinTypedCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// The Sell flow never ends on the watch line alone, and a search never hangs without end (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/sellEndingCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Sell: the flow always ends on an answer or a plain sentence, and a wait always ends (scripts/sellEndingCheck.mjs)", "PASS", (out.match(/sellEndingCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Sell: the flow always ends on an answer or a plain sentence, and a wait always ends (scripts/sellEndingCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // An ended lot never stays unmarked past one pull cycle (Lane B, Oct 29 2026).
 try {
   const out = execSync("node scripts/endedLotCheck.mjs", { encoding: "utf8", timeout: 120000 });

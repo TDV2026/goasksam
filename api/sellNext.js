@@ -3,6 +3,7 @@
 // js/onebox.js) so "porsche 911" asks exactly Market Check's questions in its cards and serif. js/onebox.js
 // exposes a small Sell hook (window.GAS_SELL, inert on Market Check); lib/sell/sellMcClient.js asks the
 // state and how to sell it in the same card, then shows the result from /api/sellChat {action:"flow"}.
+import { reasonLine } from "../lib/reasonWords.js";
 import { OUTBOUND_JS } from "../lib/outboundUtm.js";
 import fs from "node:fs";
 import path from "node:path";
@@ -51,7 +52,7 @@ export default async function handler(req, res) {
   // Past the wait, this one request shows the landing without the example band.
   const updated = await lastUpdatedDate(env).catch(() => null);
   const home = sellLandingHtml({ updated });
-  const cfg = JSON.stringify({ updated: updated || "", home }).replace(/</g, "\\u003c");
+  const cfg = JSON.stringify({ updated: updated || "", home, couldNot: reasonLine("cold.missed"), stillReading: reasonLine("cold.still"), waitMaxMs: 60000 }).replace(/</g, "\\u003c");   // the engine's lines and the longest the page waits for one answer (Sell's server waits 45 s)
   // Function replacements throughout: the client holds "$" sequences a replacement string would expand.
   const html = stripLaunchGate(shell)
     .replace("</body>", () => `<script>${OUTBOUND_JS};gasOutboundInstall("sell")</script></body>`)

@@ -42,13 +42,12 @@ const CASES = [
   ["1995 911 Cabriolet", "Porsche", "911", "Carrera", 1995, "1995 Porsche 911 Carrera Coupe", "1995 Porsche 911 Carrera Cabriolet", 75000, 82000, "open", "body"],
   ["1995 911 Coupe", "Porsche", "911", "Carrera", 1995, "1995 Porsche 911 Carrera Coupe", "1995 Porsche 911 Carrera Cabriolet", 75000, 82000, "coupe", "body"],
   ["1997 Defender 110 Station Wagon", "Land Rover", "Defender", "110", 1997, "1997 Land Rover Defender 110 Station Wagon", "1997 Land Rover Defender 110 Pickup", 52000, 45000, "wagon", "body"],
-  ["1997 Defender 110 Pickup", "Land Rover", "Defender", "110", 1997, "1997 Land Rover Defender 110 Station Wagon", "1997 Land Rover Defender 110 Pickup", 52000, 45000, "open", "body"]
+  ["1997 Defender 110 Pickup", "Land Rover", "Defender", "110", 1997, "1997 Land Rover Defender 110 Station Wagon", "1997 Land Rover Defender 110 Pickup", 52000, 45000, "pickup", "body"]
 ];
 for (const [name, make, model, trim, year, ta, tb, pa, pb, want, dim] of CASES) {
   const d = await stored(make, model, trim, year, two(year, ta, tb, pa, pb));
   const hasDim = Array.isArray(d.options) && d.options.length >= 2 && d.headlineDimension === dim;
-  if (/Defender/.test(name)) { // KNOWN GAP (Oct 28 2026): the engine has no body table for the Defender, so a station wagon and a pickup are never offered as options; nothing to mark until it does
-    ok(`${name}: the engine offers no body option today (known gap, so nothing is marked)`, !hasDim && matchedOf(d, name, {}) == null, `${d.tier} ${d.optionsState} ${d.headlineDimension}`); continue; }
+  // the Defender gap is closed (Oct 29 2026): wagon, pickup and the other bodies are in the one body vocabulary (lib/bodyWords.js), so a station wagon and a pickup are offered and marked like any body
   ok(`${name}: the bare answer carries the ${dim} options`, hasDim, `${d.tier} ${d.optionsState} ${d.headlineDimension} ${JSON.stringify((d.options || []).map(o => [o.value, o.n]))}`);
   const r = lead(d, name);
   ok(`${name}: the engine marks ${want} and sends it first`, !!r && r.mo.value === want && r.first === want && r.mo.dimension === dim && String(r.line0).length > 0, JSON.stringify(r && r.mo));
