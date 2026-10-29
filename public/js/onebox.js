@@ -1064,18 +1064,17 @@
   // full width instead (see heroRangeHtml/thinHeroHtml, :only-child CSS in onebox.html) and this one
   // quiet line sits where the chart would have been.
   // THE OPTIONS (e96, docs/e96-page-contract.md) print in the shared card (lib/sellsForCard.js): the engine's optionLines under a range, its headlineLines in place of one.
-  // A withheld chart draws no chart and says why with the ENGINE's sentence: answer.chart.note (the mix-changed sentence), else answer.chart.withheld.line (the too-few sentence). No sentence of the page's own for either: the words
-  // live in lib/reasonWords.js (chart.held, chart.withheld_few) and pageReasonCopyCheck fails on a copy of them here.
-  function chartHeldSentence(d) {
+  // A withheld chart draws no chart and prints NO REASON (Sam, Oct 29 2026): the engine sends the plain heading in the slot where the caption was (answer.chart.caption, "Latest sales") and the sales follow. The withheld reasons (chart.note, chart.withheld.line)
+  // stay in the engine and on How Sam decides; no page prints them, and pageReasonCopyCheck fails on a copy of them here.
+  function chartLatestHeading(d) {
     var ch = d && d.chart; if (!ch || ch.type !== "withheld") return "";
-    var n = typeof ch.note === "string" ? ch.note.trim() : "", w = ch.withheld && typeof ch.withheld.line === "string" ? ch.withheld.line.trim() : "";
-    return n || w || "";
+    return typeof ch.caption === "string" ? ch.caption.trim() : "";
   }
   // THE WITHHELD LAYOUT (Sam, Oct 29 2026). When the engine withheld the chart and sent its own sentence (chart.note, else chart.withheld.line), the right column holds that ONE caption, then the engine's latest sales
   // (d.cards, which the engine sends newest first: lib/onebox.js, the same order recent3 uses), up to six, each in the See the sales panel's row shape (photo, the sale's own title, date, miles at sale, venue, price), then a link
   // to the full list. No heading, no chart, no dots, no average, range or trend word, no count. The page takes the rows as sent: no sort, no filter, no count. d is the narrowed answer, so the rows follow the pills.
   function heldPanelHtml(d) {
-    var cap = chartHeldSentence(d); if (!cap) return "";
+    var cap = chartLatestHeading(d); if (!cap) return "";
     var rows = (d && Array.isArray(d.cards) ? d.cards : []).slice(0, 6).map(function (c) {
       if (!c) return "";
       var href = utmUrl(c.url), meta = [fullDateOrMonth(c), longMiles(c) ? longMiles(c) : "", venueOf(c)].filter(Boolean).join(" \u00b7 ");
@@ -1083,13 +1082,13 @@
       var inner = '<span class="hw-ph' + (c.image ? "" : " np") + '">' + ph + '</span><span class="hw-t"><span class="hw-n">' + esc(cleanReceiptTitle(c.title)) + '</span><span class="hw-m">' + esc(meta) + '</span></span><span class="hw-p">' + (Number(c.price) > 0 ? esc(usd(c.price)) : "") + "</span>";
       return '<li class="hw-row">' + (href ? '<a class="hw-rowb" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="hw-rowb">' + inner + "</div>") + "</li>";
     }).filter(Boolean);
-    return '<div class="hero-held" data-chart="held"><p class="hw-cap" data-stage="answer">' + lint(esc(cap), "hero.chartheld") + "</p>" +
-      (rows.length ? '<ul class="hw-rows">' + rows.join("") + '</ul><p class="hw-all"><button type="button" class="linkbtn" data-scrollto="more-sales">See all the sales</button></p>' : "") + "</div>";
+    if (!rows.length) return "";   // a heading with no sales under it is never printed
+    return '<div class="hero-held" data-chart="held"><h2 class="hw-cap" data-stage="answer">' + lint(esc(cap), "hero.chartheld") + "</h2>" +
+      '<ul class="hw-rows">' + rows.join("") + '</ul><p class="hw-all"><button type="button" class="linkbtn" data-scrollto="more-sales">See all the sales</button></p></div>';
   }
   function noChartLineHtml(d) {
     // Sam's evening order (Oct 21 2026): with no chart the line is the existing "N sales. Too few to show movement, enough to show
     // where they landed." (the same words as the thin-tile line), N the engine's pool size, whatever the pool size.
-    var held = chartHeldSentence(d); if (held) return '<p class="hero-noband" data-stage="answer">' + lint(esc(held), "hero.chartheld") + "</p>";
     if (d && d.chart && d.chart.type === "withheld") return "";   // the engine withheld the chart and sent no sentence: the page writes none (its "too few" line would be wrong for the mix reason)
     var n = d ? heroPoolSizeNum(d) : NaN;
     var said = Number.isFinite(n) && n > 0 ? obCount(n, "sale", { cap: true }) + ". Too few to show movement, enough to show where they landed." : "Too few sales to show movement, enough to show where they landed.";
@@ -1215,8 +1214,8 @@
     var list = Array.isArray(pool) ? pool : [];
     var n = list.length;
     if (!n || n > 16) return null;
-    var heldSaid = chartHeldSentence(d);
-    var said = '<p class="hero-noband" data-stage="answer">' + lint(esc(heldSaid || (obCount(n, "sale", { cap: true }) + ". Too few to show movement, enough to show where they landed.")), "hero.thintiles.said") + "</p>";
+    var heldSaid = chartLatestHeading(d);
+    var said = heldSaid ? '<h2 class="hero-latest" data-stage="answer">' + lint(esc(heldSaid), "hero.chartheld") + "</h2>" : '<p class="hero-noband" data-stage="answer">' + lint(esc(obCount(n, "sale", { cap: true }) + ". Too few to show movement, enough to show where they landed."), "hero.thintiles.said") + "</p>";
     var sorted = list.slice().sort(function (a, b) { return Number(b.price) - Number(a.price); });
     var wide = n >= 9;
     var tiles = '<div class="thin-tiles' + (wide ? " thin-tiles-wide" : "") + '">' + sorted.map(function (c) { return thinTileHtml(c, null); }).join("") + "</div>";

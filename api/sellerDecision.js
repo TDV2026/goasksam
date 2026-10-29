@@ -3331,6 +3331,7 @@ async function handler(req, res) {
           return res.status(200).json({
             status: "needs_clarification", vehicle: resolution.vehicle,
             clarification: resolution.clarification || { question: "What year, make and model are you selling?" },
+            ...(resolution.clarification && resolution.clarification.wayOut ? { wayOut: resolution.clarification.wayOut } : {}),
             // One Box rejected-chip tracking (Oct 2026, mirrors js/chat-core.js noteRejectedModel):
             // the frontend needs to know the underlying resolver status was invalid_vehicle, not a
             // generic re-ask, to record that this model never comes back as a chip for this year+make.
@@ -3351,7 +3352,7 @@ async function handler(req, res) {
             vehicle: resolution.vehicle,
             clarification: cl,
             // a Which model question (chips of cars for a make and year, no model yet) carries its way to type the model (lib/questionWayOut.js); the page renders it, the typed text is a normal search
-            ...(Array.isArray(cl.chips) && cl.chips.length && !cl.kind && resolution.vehicle && resolution.vehicle.make && !resolution.vehicle.model ? { wayOut: wayOutFor("model", resolution.vehicle) } : {}),
+            ...(cl && cl.wayOut ? { wayOut: cl.wayOut } : (Array.isArray(cl.chips) && cl.chips.length && !cl.kind && resolution.vehicle && resolution.vehicle.make && !resolution.vehicle.model ? { wayOut: wayOutFor("model", resolution.vehicle) } : {})),   // the question's way out at the top level too, as every engine question carries it
             vinArchiveMatch: obChassisMatch || undefined,
             // One Box rejected-chip tracking (Oct 2026, mirrors js/chat-core.js noteRejectedModel).
             invalidVehicle: resolution.status === "invalid_vehicle"

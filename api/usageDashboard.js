@@ -1965,6 +1965,32 @@ async function handleOps(req, res) {
     out.examples = out.examples.sort((a, b) => b.removed - a.removed).slice(0, 12);
     return res.status(200).json(out);
   }
+  // task=vintypedlive (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, WRITES NOTHING): typed against VIN on real live listings that carry a VIN. ?limit= (default 5, at most 8) distinct cars. Each is run both ways through the live path: typed (the car's year, make and model resolved as a
+  // typed search resolves them, the stored answer, the engine when there is none) and by VIN (lib/vinAsTyped.js: the VIN names the car, the same path, then the VIN car's own sales and option). The response lists, per car, the tier and range of each and EVERY field that differs outside the two the VIN adds.
+  if (task === "vintypedlive") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle } = await import("../lib/vehicle.js"); const { findGeneration } = await import("../lib/generations.js"); const { oneEngineAnswer, withReadFields } = await import("../lib/onebox.js");
+    const { warmAnswerKeyFor, readWarmAnswerDetailed } = await import("../lib/live/search.js"); const { vinSearchPlan, applyVinOverlay, typedWordsFor } = await import("../lib/vinAsTyped.js");
+    const limit = Math.max(1, Math.min(8, Number(req.query?.limit) || 5));
+    const rows = await supabaseSelect(env, "live_listings?status=eq.live&vin_norm=not.is.null&year=not.is.null&make=not.is.null&model=not.is.null&select=vin_norm,year,make,model,listing_title&order=id.asc&limit=400");
+    const seen = new Set(), picks = []; for (const r of (Array.isArray(rows) ? rows : [])) { if (String(r.vin_norm || "").length !== 17) continue; const k = r.year + r.make + r.model; if (seen.has(k)) continue; seen.add(k); picks.push(r); if (picks.length >= limit) break; }
+    const OUT = new Set(["readAt", "latencyMs", "timings", "snapshotId", "dedup"]), ADDS = new Set(["ownSales", "matchedOption", "options", "optionLines", "headlineLines", "optionsNote", "refineOptions", "optionsRemainder", "chart"]);
+    const answer = async (vehicle, text) => { const generation = await findGeneration(vehicle, env).catch(() => null), st = await readWarmAnswerDetailed(env, warmAnswerKeyFor(vehicle, generation)).catch(() => null); let raw = st && st.raw, via = "stored"; if (!raw) { via = "engine"; raw = (await oneEngineAnswer(vehicle, generation, text, { ...env, asked: 0 }, null)).raw; } return { d: withReadFields(raw, text, vehicle), via }; };
+    const out = { task: "vintypedlive", ocdSpend: 0, writes: 0, cars: [] };
+    for (const r of picks) {
+      const car = { title: String(r.listing_title || "").slice(0, 70), year: r.year, make: r.make, model: r.model };
+      try {
+        const vv = { year: r.year, make: r.make, model: r.model, nameModel: r.model, vin: r.vin_norm, raw: r.vin_norm }, words = typedWordsFor(vv), tr = await resolveVehicle(words, {}), tv = tr && tr.vehicle;
+        if (!tv || !tv.model) { out.cars.push({ ...car, typed: "unresolved: " + (tr && tr.status) }); continue; }
+        const plan = await vinSearchPlan(vv, { resolveVehicle }); if (!plan || plan.unresolved) { out.cars.push({ ...car, vin: "unresolved", line: plan && plan.line }); continue; }
+        const A = await answer(tv, words), Bv = await answer(plan.vehicle, plan.text), vin = applyVinOverlay(Bv.d, plan.ctx);
+        const diff = Object.keys({ ...A.d, ...vin }).filter(k => !OUT.has(k) && !ADDS.has(k) && JSON.stringify(A.d[k]) !== JSON.stringify(vin[k]));
+        out.cars.push({ ...car, typed: { via: A.via, tier: A.d.tier, cluster: A.d.cluster || null, poolN: A.d.poolN ?? null }, byVin: { via: Bv.via, tier: vin.tier, cluster: vin.cluster || null, poolN: vin.poolN ?? null, ownSales: !!vin.ownSales, matchedOption: vin.matchedOption ? vin.matchedOption.label : null }, differingFields: diff, identical: diff.length === 0 });
+      } catch (e) { out.cars.push({ ...car, error: String(e && e.message || e).slice(0, 100) }); }
+    }
+    out.identical = out.cars.filter(c => c.identical).length; out.compared = out.cars.filter(c => c.typed && c.byVin).length;
+    return res.status(200).json(out);
+  }
   // task=warmwhy (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, WRITES NOTHING): why a warm text stores nothing. ?list=a|b|c (up to 8 texts a call). Each text is run the way warmDemo runs it (resolve, generation, the whole engine at asked 0) and the response says what the warm
   // would do: the tier, a question (stores only its eligibility), a result the store guard rejects (the rule named, with poolN and the rawPool length), a refusal or not_tracked, unresolved (no make), or an answer it would store; and the stored row's state today (none, older stamp, earlier epoch, fresh).
   if (task === "warmwhy") {

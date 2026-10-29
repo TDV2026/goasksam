@@ -14,6 +14,7 @@ const E = await import(pathToFileURL(path.join(root, "lib/onebox.js")).href), B 
 // 1. real titles
 const TITLES = [["2008 BMW 335i Touring M Sport", "wagon"], ["2008 BMW 328xi Sports Wagon", "wagon"], ["2013 Audi RS6 Avant", "wagon"], ["2011 Cadillac CTS-V Sport Wagon", "wagon"], ["1999 Mercedes-Benz E320 Estate", "wagon"], ["2014 Ferrari FF Shooting Brake", "wagon"], ["2012 Porsche Panamera Gran Turismo", "hatchback"], ["1991 Honda CRX Hatchback", "hatchback"],
   ["2008 BMW 328i Convertible", "convertible"], ["2008 BMW 335i Coupe", "coupe"], ["2008 BMW 328i Sedan", "sedan"], ["1995 Volkswagen Vanagon Van", "van"], ["2005 Ford F-150 Crew Cab Pickup", "pickup"], ["2018 Land Rover Range Rover SUV", "suv"],
+  ["1958 Porsche 356 A 1600 Speedster by Reutter", "roadster"], ["1989 Porsche 911 Speedster", "roadster"], ["2001 Ferrari 550 Barchetta Pininfarina", "roadster"], ["1936 Ford V8 Phaeton", "convertible"], ["1934 Bentley 3½-Litre All-Weather Tourer by Barker", "convertible"], ["1967 Lincoln Continental Executive Limousine by Lehmann-Peterson", "sedan"],   // live titles the bodywords read found unread (Oct 29 2026)
   ["2004 Aston Martin Vanquish", null], ["1961 Ferrari 250 GT Touring Superleggera", null], ["2019 Porsche 911 Carrera T Touring", null], ["Estate sale lot: 1962 Jaguar poster", null]];
 for (const [t, want] of TITLES) ok(`"${t}" reads as ${want || "no body"}`, B.bodyFromText(t) === want, String(B.bodyFromText(t)));
 // 2. the 2008 3-Series, built from those titles
@@ -32,6 +33,10 @@ const unnamed = pool.filter(r => !opts.some(x => String(x.value) === (B.bodyFrom
 ok("no sale whose title names a known body is counted as not saying its body", unnamed.every(r => !B.bodyFromText(r.rtitle)), unnamed.filter(r => B.bodyFromText(r.rtitle)).map(r => r.rtitle).join(" | "));
 const bodiesInPool = new Set(pool.map(r => B.bodyFromText(r.rtitle)).filter(Boolean)), line = String(d.scopeLine || "").toLowerCase();
 ok("every body the sales carry is named in the title line", [...bodiesInPool].every(b => line.includes(b === "convertible" ? "convertible" : b + "s".slice(0, 0))) && /wagons/.test(line), d.scopeLine);
+// the open bodies are one word in the title line (cabriolet, convertible, roadster: Oct 29 2026, "Cabriolets, convertibles, coupes and sedans" on the narrowed 2008 3-Series)
+{ const mix = ["2008 BMW 328i Convertible", "2008 BMW 335i Cabriolet", "2008 BMW 335i Coupe", "2008 BMW 328i Sedan"].map((t, i) => ({ id: "m" + i, _usd: 9000 + i, auction_end_date: "2026-05-1" + i, year: 2008, rtitle: t, raw_title: t }));
+  const l = String(E.scopeLineOf({ tier: "result", rawPool: mix, resolvedCar: { year: 2008, canonicalLabel: "2008 BMW 3-Series" }, poolYears: [2008, 2008], freshness: { through: "2026-10-16" }, options: [{ dimension: "body", value: "open", label: "Convertible" }], rungLabel: "2008 3-Series, convertibles, coupes and sedans" })).toLowerCase();
+  ok("the title line says the open body once (convertibles), never cabriolets beside convertibles", /convertibles/.test(l) && !/cabriolets/.test(l), l); }
 // 3. the set-aside line
 const ASIDE = [[{ "odd sale": 5 }, "5 odd sales set aside."], [{ "odd sale": 1 }, "1 odd sale set aside."], [{ "odd sale": 3, modified: 2 }, "3 odd sales and 2 modified sales set aside."], [{ project: 1 }, "1 project car set aside."]];
 for (const [r, want] of ASIDE) ok(`set-aside line ${JSON.stringify(r)}: "${want}"`, E.setAsideLineOf(r, null) === want, E.setAsideLineOf(r, null));

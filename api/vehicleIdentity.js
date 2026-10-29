@@ -5,6 +5,7 @@
 // extracts structure, the extraction re-enters the normal resolver pipeline,
 // and the canned "year, make and model" line only renders after both fail.
 
+import { wayOutFor } from "../lib/questionWayOut.js";
 import { createHash } from "node:crypto";
 import { resolveVehicle, lastResolveDebug } from "../lib/vehicle.js";
 import { hasAskableTrim } from "../lib/modelRules.js";
@@ -213,7 +214,8 @@ export default async function handler(req, res) {
                 question: `I can see a ${seen} in there. ${missing.length ? `Which ${missing.join(" and ")}?` : "Give me the year, make and model in one line."}`,
                 missing,
                 baseVehicle: [parsed.year, parsed.make, parsed.model].filter(Boolean).join(" ") || null,
-                chips: ["Change car", "Not sure"]
+                chips: ["Change car", "Not sure"],
+                wayOut: wayOutFor(missing.includes("model") ? "model" : missing.includes("year") ? "year" : "car", { ...parsed })
               },
               corrections: result.corrections
             };
