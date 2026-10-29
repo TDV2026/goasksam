@@ -1317,6 +1317,13 @@ try {
 } catch (e) {
   record("cold spec: reading line, asks every 2 seconds up to the engine's wait, then the plain line (scripts/coldPathCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A split answer with an option over the candle floor is never withheld: the scoped chart tries every option (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/chartSplitFloorCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("chart: a split answer with an option over the floor draws that option's candles (scripts/chartSplitFloorCheck.mjs)", "PASS", (out.match(/chartSplitFloorCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("chart: a split answer with an option over the floor draws that option's candles (scripts/chartSplitFloorCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // A landing example is the engine's answer and nothing else: no cluster rule, sales floor or generation floor of a builder's own (Lane B, Oct 29 2026).
 try {
   const out = execSync("node scripts/exampleFromEngineCheck.mjs", { encoding: "utf8", timeout: 120000 });

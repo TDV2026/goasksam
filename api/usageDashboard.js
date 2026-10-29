@@ -1706,6 +1706,28 @@ async function handleOps(req, res) {
     }
     return res.status(200).json(out);
   }
+  // task=chartsweep (Lane B, Oct 29 2026, e101; READ-ONLY, no write, no spend): the stored Market Check answers whose pooled chart is held for a changing mix and that are split by an option: how many drew
+  // no chart under the old one-option rule, how many draw a scoped chart now (every option tried, largest first), how many stay withheld because no option clears the candle floor, and ten examples
+  // with each option's own count and the 1986 Porsche 911 if it is in the page. 100 stored answers a page (?after=).
+  if (task === "chartsweep") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { chartOf, optionsFieldsOf } = await import("../lib/onebox.js");
+    const after = req.query?.after ? String(req.query.after) : "";
+    const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,raw:market->raw&order=spec_key.asc&limit=100` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "chartsweep", readFailed: true, ocdSpend: 0, writes: 0 });
+    const out = { task: "chartsweep", ocdSpend: 0, writes: 0, rows: rows.length, split: 0, held: 0, withheldBefore: 0, drawNow: 0, stillWithheld: 0, examples: { nowDraw: [], stillWithheld: [] }, next: rows.length === 100 ? rows[99].spec_key : null };
+    for (const r of rows) {
+      const a = r.raw; if (!a || !Array.isArray(a.options) || a.options.length < 2 || !a.trendHeld) continue;
+      out.split++; out.held++;
+      const d = { ...a, ...optionsFieldsOf(a) };
+      const before = chartOf(d, { leadOnly: true }), now = chartOf(d);
+      if (before && before.type === "withheld") out.withheldBefore++;
+      const ex = { key: r.spec_key, n: now && now.n, options: a.options.map(o => `${o.label} ${o.n}`), scope: now && now.scope ? now.scope.label : null, heldLine: now && now.withheld ? now.withheld.reason : null };
+      if (before && before.type === "withheld" && now && now.type === "candles") { out.drawNow++; if (out.examples.nowDraw.length < 10) out.examples.nowDraw.push(ex); }
+      else if (now && now.type === "withheld") { out.stillWithheld++; if (out.examples.stillWithheld.length < 10 || /\["Porsche","911"[^\]]*1986/.test(r.spec_key)) out.examples.stillWithheld.push(ex); }
+    }
+    return res.status(200).json(out);
+  }
   // task=stalelive (Lane B, Oct 28 2026, e100): READ-ONLY. The live specs (the LIVESPECS row of the live stamp) whose stored core row is still marked stale: the cards a visitor's Find page reads that still say "newer sales are being added".
   // Pages the core rows by key (1,000 a page, up to 8 pages), counts how many live specs are marked, and lists the first ten with their make and model.
   if (task === "stalelive") {
