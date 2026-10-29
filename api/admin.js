@@ -18,7 +18,7 @@ import { readPremiumFreshness } from "../lib/ops/premiumFresh.js";
 import { launchPanels, rightNow, launchIso } from "../lib/admin/launch.js";
 import { healthPanel, healthUnread } from "../lib/admin/health.js";
 import { launchWords } from "../lib/launchTime.js";
-import { searchesPanel, usersPanel, userJourney } from "../lib/admin/people.js";
+import { searchesPanel, usersPanel, userJourney, peoplePanel, personDrill } from "../lib/admin/people.js";
 
 const CRON_ROUTES = ["/api/pullLive", "/api/tasks", "/api/refreshSpecLiveCounts", "/api/admin"];
 
@@ -327,7 +327,7 @@ function premiumLine(p){if(!p||p.error)return '<p class="fresh amber">Premium nu
  var act=(p.partners||[]).filter(function(x){return x.active;}),behind=act.filter(function(x){return x.computedAt&&Date.parse(p.lastRefreshed)-Date.parse(x.computedAt)>36e5;}).map(function(x){return x.name;}),none=act.filter(function(x){return !x.computedAt;}).map(function(x){return x.name;});
  return '<p class="fresh'+(p.stale?' amber':'')+'" title="'+E(new Date(p.lastRefreshed).toLocaleString())+'">Premium numbers last refreshed '+hoursText(p.hoursOld)+' ago.'+(p.stale?' That is over '+n(p.staleAfterHours)+' hours: check the nightly premium job.':'')+'</p>'
   +(behind.length?'<p class=note>Older than that run: '+E(behind.join(", "))+'.</p>':'')+(none.length?'<p class=note>No stored number (below the sales needed): '+E(none.join(", "))+'.</p>':'');}
-var PARTS=[["launch","Launch"],["searches","Searches"],["users","Users"],["overview","Today"],["reliability","Cost and Reliability"],["buy","Buy and Market Check"],["demand","Demand"],["journey","Journey"],["retention","Retention"]];
+var PARTS=[["launch","Launch"],["searches","Searches"],["users","Users"],["people","People"],["overview","Today"],["reliability","Cost and Reliability"],["buy","Buy and Market Check"],["demand","Demand"],["journey","Journey"],["retention","Retention"]];
 var R={
 overview:function(d){return tiles([["Searches",n(d.searches)],["Answered with a range",n(d.answered)],["Not enough data",pct(d.notEnoughRate)],["Clickouts",n(d.clickouts)],["Market Checks",n(d.marketChecks)],["Tasks created",n(d.tasksCreated)],["Sign-ups",n(d.signups)],["Visitors",n(d.visitors)],["Model spend",usd(d.spendUsd),"of the "+usd(d.spendCapUsd)+" cap"],["Errors",n(d.errors)],["Live cars",n(d.liveInventory)],["Analytics events lost",n(d.analyticsLost)]])+'<p class=note>'+E(d.day)+' Pacific. '+(d.refreshed?'Summaries refreshed '+E(new Date(d.refreshed).toLocaleTimeString()):'Summaries not refreshed yet')+'; crew, test and bot traffic left out.</p>';},
 reliability:function(d){return premiumLine(d.premium)+'<h2>Spend by product</h2>'+table([["Day","day"],["Product","product"],["Calls","model_calls",n],["Cache hits","cache_hits",n],["Tokens in","tokens_in",n],["Tokens out","tokens_out",n],["Cost","cost_usd",usd]],d.cost)
@@ -350,7 +350,7 @@ retention:function(d){function grid(list,field,first){var w={},weeks=0;(list||[]
  var cols=[["Week of","week"]];for(var i=0;i<=Math.min(weeks,12);i++)cols.push([i===0?first:"Week "+i,"w"+i,i===0?n:pct]);return table(cols,rows);}
  return '<h2>Weekly retention by person</h2><p class=note>A signed-in person counts once across devices; everyone else by browser. Grouped by first week, with the share seen again each week after.</p>'+grid(d.people,"people","People")
   +'<h2>Weekly retention by browser</h2><p class=note>By anon id only, so a second device counts as new.</p>'+grid(d.cohorts,"visitors","Visitors");}};
-var rng="today",lastLaunch=null,crew=false,sf={product:"",outcome:"",text:""},ut="";
+var rng="today",lastLaunch=null,crew=false,sf={product:"",outcome:"",text:""},ut="",pf={who:"signed_in",source:"",text:""};
 function crewBox(){return '<p class=note><label><input type=checkbox id=ad-crew'+(crew?' checked':'')+'> Include crew traffic (Sam, Pat and test visits). Off by default; bots stay out.</label></p>'+(crew?'<p class="fresh amber">Crew traffic is included in everything on this tab.</p>':'');}
 function rangeBtns(){return '<div class=lrange>'+[["today","Today"],["yesterday","Yesterday"],["launch","Since launch"],["last7","Last 7 days"]].map(function(x){return '<button data-r="'+x[0]+'" class="'+(rng===x[0]?"on":"")+'">'+x[1]+'</button>';}).join("")+'</div>';}
 function opt(list,cur){return list.map(function(x){return '<option value="'+E(x[0])+'"'+(cur===x[0]?' selected':'')+'>'+E(x[1])+'</option>';}).join("");}
@@ -370,6 +370,11 @@ R.users=function(d){
  return '<div class=lrange><input id=ut-text placeholder="Search emails" value="'+E(ut)+'"> <button id=ut-go>Apply</button> <button id=ut-csv>Download CSV</button></div>'+crewBox()+'<p class=note>'+n(d.total)+' accounts, most recently seen first (the first 1,000 shown). Searches, Tasks and clickouts are counted from '+E(String(d.since).slice(0,10))+'. Click an email for the whole journey.'+(d.capped?' Activity is capped at 60,000 events, so the newest are missing.':'')+'</p>'
   +table([["Email","email",function(v,r){return '<a href="#" data-user="'+E(r.user_id)+'">'+E(v)+'</a>';}],["First seen","first_seen",function(v){return E(fmtT(v));}],["First source","first_source"],["Sign-in","method"],["Newsletter","newsletter",function(v){return v?"yes":"no";}],["Searches","searches",n],["Tasks","tasks",n],["Clickouts","clickouts",n],["Last seen","last_seen",function(v){return E(fmtT(v));}]],d.rows);};
 R.user_journey=function(d){return R.journey(d);};
+R.people=function(d){var sel=function(v,t){return '<option value="'+v+'"'+(pf.who===v?' selected':'')+'>'+t+'</option>';};
+ return '<div class=lrange><select id=pp-who>'+sel("signed_in","Signed in (by email)")+sel("anonymous","Not signed in (by visitor id)")+'</select> <input id=pp-source placeholder="Source, e.g. beehiiv" value="'+E(pf.source)+'"> <input id=pp-text placeholder="'+(pf.who==="anonymous"?"Visitor id":"Email")+'" value="'+E(pf.text)+'"> <button id=pp-go>Apply</button></div>'+crewBox()+'<p class=note>'+n(d.total)+' '+(d.who==="anonymous"?'visitors who have not signed in':'signed-in people')+', most recently seen first (the first 1,000 shown). Counted from '+E(String(d.since).slice(0,10))+'. Source is the first page of the first visit. Click a person for their searches in order.'+(d.capped?' Activity is capped at 60,000 events, so the newest are missing.':'')+'</p>'
+  +table([["Person","person",function(v,r){return '<a href="#" data-person="'+E(r.id)+'">'+E(r.who==="anonymous"||!r.signed_in?String(v).slice(0,12)+"...":v)+'</a>';}],["First source","first_source"],["Device","device"],["First seen","first_seen",function(v){return E(fmtT(v));}],["Searches","searches",n],["Tasks","tasks",n],["Watches","watches",n],["Last search","last_search"],["Last seen","last_seen",function(v){return E(fmtT(v));}]],d.rows);};
+R.person=function(d){return '<h2>'+E(d.who)+'</h2><p class=note>First source '+E(d.first_source||"unknown")+'. Device '+E(d.device||"unknown")+'. Oldest first; the words are exactly what was typed (emails, phone numbers and VINs already removed).</p>'
+  +table([["Time","ts",function(v){return E(fmtT(v));}],["What","what"],["Page","page"],["Typed","text"],["Car","car"],["Result","result"],["Detail","detail"]],d.rows)+'<p><button id=ad-back>Back to People</button></p>';};
 var UCOLS=[["Email","email"],["First seen","first_seen"],["First source","first_source"],["Sign-in","method"],["Newsletter","newsletter"],["Searches","searches"],["Tasks","tasks"],["Clickouts","clickouts"],["Last seen","last_seen"]];
 function wirePeople(box,part){
  var c=document.getElementById("ad-crew");if(c)c.onchange=function(){crew=c.checked;show(part);};
@@ -378,6 +383,8 @@ function wirePeople(box,part){
  var t=document.getElementById("sf-text");if(t)t.onkeydown=function(e){if(e.key==="Enter")g.click();};
  var cs=document.getElementById("sf-csv");if(cs)cs.onclick=function(){cs.disabled=true;api({part:"searches",range:rng,product:sf.product,outcome:sf.outcome,text:sf.text,crew:crew,limit:5000,asked:false}).then(function(d){download("goasksam-searches-"+rng+".csv",csvOf(d.rows,SCOLS));cs.disabled=false;}).catch(function(){cs.disabled=false;});};
  var ug=document.getElementById("ut-go");if(ug)ug.onclick=function(){ut=document.getElementById("ut-text").value;show("users");};
+ var pg=document.getElementById("pp-go");if(pg)pg.onclick=function(){pf={who:document.getElementById("pp-who").value,source:document.getElementById("pp-source").value,text:document.getElementById("pp-text").value};show("people");};
+ box.querySelectorAll("[data-person]").forEach(function(a){a.onclick=function(e){e.preventDefault();show("person",{person:a.getAttribute("data-person")});};});
  var uc=document.getElementById("ut-csv");if(uc)uc.onclick=function(){api({part:"users",text:ut,crew:crew}).then(function(d){download("goasksam-users.csv",csvOf(d.rows,UCOLS));});};
  box.querySelectorAll("[data-user]").forEach(function(a){a.onclick=function(e){e.preventDefault();show("user_journey",{user:a.getAttribute("data-user")});};});}
 function pc(a,b){return b?Math.round(a/b*100)+"%":"-";}
@@ -470,11 +477,11 @@ function wireLaunch(box){var c=document.getElementById("ad-crew");if(c)c.onchang
 function refreshLaunch(){var box=document.getElementById("ad-body");if(!box||cur!=="launch")return;
  token().then(function(t){if(t)tok=t;return api({part:"launch",range:rng,crew:crew});}).then(function(d){if(cur!=="launch")return;var y=window.scrollY;box.innerHTML=R.launch(d);wireLaunch(box);window.scrollTo(0,y);}).catch(function(){});}
 function show(part,extra){cur=part;if(lTimer){clearInterval(lTimer);lTimer=null;}main.querySelectorAll("nav button").forEach(function(b){b.className=b.getAttribute("data-p")===part?"on":"";});var box=document.getElementById("ad-body");box.innerHTML='<p class=note>Loading...</p>';
- token().then(function(t){if(t)tok=t;return api(Object.assign({part:part},part==="launch"?{range:rng,crew:crew}:part==="searches"?{range:rng,product:sf.product,outcome:sf.outcome,text:sf.text,crew:crew}:part==="users"?{text:ut,crew:crew}:{},extra||{}));}).then(function(d){box.innerHTML=R[part](d);
-  if(part==="searches"||part==="users")wirePeople(box,part);
+ token().then(function(t){if(t)tok=t;return api(Object.assign({part:part},part==="launch"?{range:rng,crew:crew}:part==="searches"?{range:rng,product:sf.product,outcome:sf.outcome,text:sf.text,crew:crew}:part==="users"?{text:ut,crew:crew}:part==="people"?{who:pf.who,source:pf.source,text:pf.text,crew:crew}:{},extra||{}));}).then(function(d){box.innerHTML=R[part](d);
+  if(part==="searches"||part==="users"||part==="people")wirePeople(box,part);
   if(part==="launch"){wireLaunch(box);lTimer=setInterval(function(){if(!document.hidden)refreshLaunch();},60000);}
   box.querySelectorAll("[data-anon]").forEach(function(a){a.onclick=function(e){e.preventDefault();show("journey",{anon:a.getAttribute("data-anon")});};});
-  var bk=document.getElementById("ad-back");if(bk)bk.onclick=function(){show(part==="user_journey"?"users":"journey");};}).catch(function(){box.innerHTML='<p class=note>That part could not load. Try again in a moment.</p>';});}
+  var bk=document.getElementById("ad-back");if(bk)bk.onclick=function(){show(part==="user_journey"?"users":part==="person"?"people":"journey");};}).catch(function(){box.innerHTML='<p class=note>That part could not load. Try again in a moment.</p>';});}
 token().then(function(t){if(!t)return;tok=t;return api({part:"me"}).then(function(){
  document.getElementById("ad-style").media="all";document.body.className="ad";document.title="GoAskSam numbers";
  main=document.querySelector("main");main.className="";main.innerHTML='<h1>GoAskSam numbers</h1><nav>'+PARTS.map(function(p){return '<button data-p="'+p[0]+'">'+E(p[1])+'</button>';}).join("")+'</nav><div id=ad-body></div>';
@@ -529,6 +536,8 @@ async function handler(req, res) {
     if (b.part === "launch") return res.status(200).json(await launch(env, typeof b.range === "string" ? b.range : "today", b.crew === true));
     if (b.part === "searches") { const r = launchRange(typeof b.range === "string" ? b.range : "today"); return res.status(200).json(await searchesPanel(env, { from: r.from, to: r.to, product: b.product, outcome: b.outcome, text: b.text, crew: b.crew === true, limit: b.limit, asked: b.asked !== false })); }
     if (b.part === "users") return res.status(200).json(await usersPanel(env, { text: b.text, crew: b.crew === true, adminEmail: e => adminEmails().includes(String(e).toLowerCase()) }));
+    if (b.part === "people") return res.status(200).json(await peoplePanel(env, { who: b.who === "anonymous" ? "anonymous" : "signed_in", source: b.source, text: b.text, crew: b.crew === true, adminEmail: e => adminEmails().includes(String(e).toLowerCase()) }));
+    if (b.part === "person") return res.status(200).json(await personDrill(env, typeof b.person === "string" ? b.person : ""));
     if (b.part === "user_journey") return res.status(200).json({ ...(await userJourney(env, b.user)), user: true });
     if (b.part === "overview") return res.status(200).json(await overview(env));
     if (b.part === "reliability") return res.status(200).json(await reliability(env));
