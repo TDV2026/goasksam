@@ -607,7 +607,7 @@ export function partnerShape(d, text, asked, extra = {}) {
     // retryAfterMs) passes through as it is: the page draws the engine's line and asks again after the engine's wait.
     const still = d.tier === "unavailable" && d.stillReading === true;
     return { ok: false, query: text, error: d.tier, history: extra.history || null,
-      ...(still ? { stillReading: true, line: typeof d.samLine === "string" ? d.samLine : null, retryAfterMs: d.retry === true && Number.isFinite(d.retryAfterMs) && d.retryAfterMs > 0 ? d.retryAfterMs : null } : {}) };
+      ...(still ? { stillReading: true, line: typeof d.samLine === "string" ? d.samLine : null, retryAfterMs: d.retry === true && Number.isFinite(d.retryAfterMs) && d.retryAfterMs > 0 ? d.retryAfterMs : null, waitMaxMs: Number.isFinite(d.waitMaxMs) && d.waitMaxMs > 0 ? d.waitMaxMs : null } : {}) };
   }
   const question = questionOf(d, text, asked), engineQuestion = engineQuestionOf(d, text, asked);
   if (question) return { ok: true, query: text, engineVersion, answerType: "identity_question", identity: identityOf(d, extra.id), question, engineQuestion, range: null, count: null, window: null, sales: [], setAside: null, thin: null, trend: null, narrow: null, history: extra.history || null };

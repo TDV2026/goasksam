@@ -21,7 +21,10 @@ ok(Number.isFinite(maxDur) && wait >= maxDur - 5000, `the wait the engine sends 
 ok(Number.isFinite(COMPUTING_MS) && COMPUTING_MS > wait, "the computing marker (" + COMPUTING_MS + ") outlives the wait, so asks never start a second compute while the first can still land");
 ok(payload && payload.waitMaxMs === wait && payload.computing === true && payload.retryAfterMs === 2000, "the computing answer carries the one wait constant");
 // 2
-ok(!/waitMaxMs: \d/.test(sd), "no server literal for waitMaxMs (they all read COLD_WAIT_MS)");
+ok(!/waitMaxMs: \d/.test(sd) && !/waitMaxMs: \d/.test(ls), "no engine literal for waitMaxMs (they all read COLD_WAIT_MS)");
+{ const lm = await import("../lib/live/search.js").catch(() => null), pm = lm && lm.stillReadingMarket ? lm.stillReadingMarket() : null;
+  ok(pm && pm.waitMaxMs === wait && lm.COLD_WAIT_MS === wait, "the Find and Tasks pending market carries the same wait (stillReadingMarket)");
+  ok(/waitMaxMs: Number\.isFinite\(d\.waitMaxMs\)/.test(rd("api/partnerAnswer.js")), "the partner answer passes the engine's waitMaxMs through"); }
 // 3 the page loop on a fake clock
 {
   const m = /function obAskUntilRead\(payload, t0, onComputing\) \{[\s\S]*?\n  \}\n/.exec(pg);

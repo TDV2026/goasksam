@@ -54,17 +54,14 @@ import {
 } from "../lib/_classify.js";
 import { hammerUsd, ensureFxReady } from "../lib/_houseComps.js";
 import { buildSharedAnalysis, isRoutableVenue, ROUTABLE_VENUES, SHORT_AUCTION_VENUES, US_ROUTE_VENUES } from "../lib/platformPick.js";
-import { specKeyFor, coreOf, persistCore, warmAnswerKeyFor, readWarmAnswer, readWarmAnswerDetailed, writeWarmAnswer, answerCacheable, markRecomputing, markComputing, readComputing, clearComputing } from "../lib/live/search.js";
+import { specKeyFor, coreOf, persistCore, warmAnswerKeyFor, readWarmAnswer, readWarmAnswerDetailed, writeWarmAnswer, answerCacheable, markRecomputing, markComputing, readComputing, clearComputing, COLD_WAIT_MS } from "../lib/live/search.js";
 import { keepAlive } from "../lib/keepAlive.js";
 // COLD SPEC WORDS (Sam, Oct 28 2026): the computing answer and the one plain line when the read cannot finish. No page says "try again"; the page keeps asking
 // (retryAfterMs, up to waitMaxMs) while computing is true.
 export const COMPUTING_LINE = reasonLine("cold.reading");
 export const COULD_NOT_LINE = reasonLine("cold.missed");
 const carStubOf = v => v ? { year: v.year || null, make: v.make || null, model: v.model || null, trim: v.trim || null, bodyStyle: v.bodyStyle || null } : null;
-// How long a page keeps asking for a cold spec: until the compute can no longer land. The compute is kept alive past its response (keepAlive) and the platform stops it at this
-// function's maxDuration (vercel.json, 90 s), so a page that gives up earlier (it was 45 s) ends "still reading" while the answer lands a few seconds later with nobody to show it
-// to. The marker (COMPUTING_MS, 100 s) outlives this wait. scripts/coldWaitCheck.mjs holds the three to each other.
-export const COLD_WAIT_MS = 85000;
+export { COLD_WAIT_MS };   // defined with COMPUTING_MS in lib/live/search.js: the one wait every page reads from the engine's waitMaxMs
 export const computingAnswer = v => ({ status: "one_box", tier: "unavailable", stillReading: true, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: COLD_WAIT_MS, samLine: COMPUTING_LINE, couldNotLine: COULD_NOT_LINE, resolvedCar: carStubOf(v) });
 
 import { isCrewRequest } from "../lib/_crew.js";
