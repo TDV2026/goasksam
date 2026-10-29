@@ -1,4 +1,8 @@
-# Stored refusals (tier refusal, kind invariant_failed) read Oct 29 2026 on 84c54259. A: texts that compute to an answer on that build, stale refusal rows: warmFind --force. B: still refuse on 84c54259; the Audi RS rows are cured by the tip (spacedTaxonomyModelCheck), re-run warmwhy after the push for the rest.
+# Stored invariant refusals read Oct 29 2026 on 84c54259 (103 texts), each recomputed on that build with warmwhy.
+# Since tip storedRefusalNotServedCheck a stored refusal is read as no row, so the first ask recomputes it; the warm below only does it ahead of the visitor.
+# A (52): compute to an answer on 84c54259 already. Nothing more than a re-warm: warmFind --force on these texts. Includes the Porsche Boxster Spyder 2012, 2016 and 2020 rows (the live 2016 Spyder card).
+# C (7): Audi RS rows, still refuse on 84c54259, cured by the new tip (spacedTaxonomyModelCheck). Re-warm after the push.
+# B (44): still refuse on 84c54259 and not cured by anything in the tip: junk taxonomy names (Years, Ti, Single, Custom) and real cars whose cause needs refusal.details from the tip (warmwhy now prints it): re-read after the push.
 # A
 2022 Audi TT RS Heritage Edition
 2002 BMW M3 2L I6
@@ -52,7 +56,7 @@ Porsche 930
 2014 Porsche Panamera E
 2018 Porsche Panamera E
 1993 Toyota Supra MK4
-# B
+# C
 2018 Audi RS 3
 2007 Audi RS 4 B7
 2014 Audi RS 5 B8
@@ -60,6 +64,7 @@ Porsche 930
 2021 Audi RS 5 Sportback
 2022 Audi RS 6 Avant
 2003 Audi RS 6 C5
+# B
 2014 Audi S7
 1994 Bentley Continental R
 1996 Bentley Continental R

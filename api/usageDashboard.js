@@ -2019,7 +2019,7 @@ async function handleOps(req, res) {
         if (!d || !d.tier) row.would = "engine returned no tier";
         else if (/_choice$/.test(String(d.tier))) row.would = "question: stores only the question's eligibility, no answer row (by design)";
         else if (!/^(result|thin|refusal|not_tracked)$/.test(String(d.tier))) row.would = "not stored: tier " + d.tier;
-        else if (!answerCacheable(d)) { row.would = "store guard rejects: " + (storeGuardRejectReason(d) || "unknown"); row.poolN = d.poolN ?? null; row.rawPool = Array.isArray(d.rawPool) ? d.rawPool.length : null; row.fallbackRung = d.fallbackRung || null; }
+        else if (!answerCacheable(d)) { row.would = "store guard rejects: " + (storeGuardRejectReason(d) || "unknown"); if (d.refusal) row.refusal = { kind: d.refusal.kind, failed: d.refusal.failedChecks || null, details: d.refusal.details || null }; row.resolved = d.resolvedCar ? { make: d.resolvedCar.make, model: d.resolvedCar.model, trim: d.resolvedCar.trim, year: d.resolvedCar.year } : null; row.poolN = d.poolN ?? null; row.rawPool = Array.isArray(d.rawPool) ? d.rawPool.length : null; row.fallbackRung = d.fallbackRung || null; }
         else row.would = "stores an answer (" + d.tier + ")";
       } catch (e) { row.error = String(e && e.message || e).slice(0, 100); }
       rows.push(row);
@@ -5792,7 +5792,7 @@ if (task === "optiondetail") {
   if (task === "refusals") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const after = String(req.query?.after || ""), kindQ = String(req.query?.kind || "");
-    const rows = await supabaseSelect(env, `spec_market_cache?select=spec_key,tier:market->raw->>tier,kind:market->raw->refusal->>kind,failed:market->raw->refusal->failedChecks,ev:market->>engineVersion,line:market->raw->>refusal_line&market->raw->>tier=eq.refusal&order=spec_key.asc&limit=1000` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+    const rows = await supabaseSelect(env, `spec_market_cache?select=spec_key,tier:market->raw->>tier,kind:market->raw->refusal->>kind,failed:market->raw->refusal->failedChecks,det:market->raw->refusal->details,ev:market->>engineVersion,line:market->raw->>refusal_line&market->raw->>tier=eq.refusal&order=spec_key.asc&limit=1000` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
     if (!Array.isArray(rows)) return res.status(200).json({ task: "refusals", readFailed: true, ocdSpend: 0, writes: 0 });
     const out = { task: "refusals", ocdSpend: 0, writes: 0, refusals: rows.length, byPrefix: {}, byKind: {}, byFailedCheck: {}, byStamp: {}, examples: [], next: rows.length === 1000 ? rows[999].spec_key : null };
     for (const r of rows) {
@@ -5800,8 +5800,30 @@ if (task === "optiondetail") {
       if (kindQ && kind !== kindQ) continue;
       out.byPrefix[prefix] = (out.byPrefix[prefix] || 0) + 1; out.byKind[kind] = (out.byKind[kind] || 0) + 1; out.byStamp[r.ev || "none"] = (out.byStamp[r.ev || "none"] || 0) + 1;
       for (const c of Array.isArray(r.failed) ? r.failed : []) out.byFailedCheck[c] = (out.byFailedCheck[c] || 0) + 1;
-      if (out.examples.length < 40) out.examples.push({ key: String(r.spec_key).slice(0, 110), kind, failed: r.failed || null, stamp: r.ev || null });
+      if (out.examples.length < 40) out.examples.push({ key: String(r.spec_key).slice(0, 110), kind, failed: r.failed || null, details: r.det || null, stamp: r.ev || null });
     }
+    return res.status(200).json(out);
+  }
+  // task=livecardrefusals (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, zero writes): every live Find spec (the stored LIVESPECS set, all platforms, no search filter) whose Find core or stored Market Check answer prints a refusal with no figures
+  // ("could not be checked", or any refusal tier). Paged by after/n (n at most 80). Lists the title, the listing count of the spec, the stored refusal kind and failed checks, and the pool the core holds.
+  if (task === "livecardrefusals") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { INVARIANT_REFUSAL_LINE } = await import("../lib/live/search.js");
+    const live = await supabaseSelect(env, `spec_market_cache?spec_key=like.${encodeURIComponent("LIVESPECS:v1:%")}&select=spec_key,market,computed_at&order=computed_at.desc&limit=1`);
+    const lrow = live && live[0]; const specsAll = lrow && lrow.market && Array.isArray(lrow.market.specs) ? lrow.market.specs.filter(e => e && e.spec && e.spec.key) : null;
+    if (!specsAll) return res.status(200).json({ task: "livecardrefusals", found: false });
+    const per = new Map(); for (const e of specsAll) { const k = e.spec.key; const p = per.get(k) || { title: e.spec.title || null, listings: 0 }; p.listings++; per.set(k, p); }
+    const keys = [...per.entries()], after = Math.max(0, Number(req.query?.after) || 0), n = Math.max(1, Math.min(80, Number(req.query?.n) || 80)), slice = keys.slice(after, after + n);
+    const out = { task: "livecardrefusals", ocdSpend: 0, writes: 0, totalSpecs: keys.length, after, read: slice.length, refusing: 0, listingsAffected: 0, examples: [] };
+    for (let i = 0; i < slice.length; i += 8) await Promise.all(slice.slice(i, i + 8).map(async ([key, p]) => {
+      const [fr, mr] = await Promise.all([supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent(key)}&select=market`), supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent("MCWARM:" + key)}&select=market->raw`)]);
+      const f = fr && fr[0] && fr[0].market, m = mr && mr[0] && mr[0].raw;
+      const coreRefuses = !!(f && (f.refusalLine === INVARIANT_REFUSAL_LINE || f.refusal_line === INVARIANT_REFUSAL_LINE));
+      const mcRefuses = !!(m && m.tier === "refusal");
+      if (!coreRefuses && !mcRefuses) return;
+      out.refusing++; out.listingsAffected += p.listings;
+      out.examples.push({ key: String(key).slice(0, 110), title: p.title, listings: p.listings, core: coreRefuses ? "could_not_be_checked" : (f && f.kind) || null, mc: mcRefuses ? (m.refusal && m.refusal.kind) || "refusal" : (m && m.tier) || null, failed: m && m.refusal && m.refusal.failedChecks || null });
+    }));
     return res.status(200).json(out);
   }
   // task=bodynames (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, zero writes): the live-lot sweep behind "a body word inside a model's name is not a body" (lib/bodyWords.js BODY_NAME_PHRASES). Over every live listing title and the newest ?n= (default 40,000) car sales in
