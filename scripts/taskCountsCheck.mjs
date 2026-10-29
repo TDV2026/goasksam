@@ -16,8 +16,8 @@ for (const n of [1, 2, 3, 10, 11, 45]) {
   ok(ov.live === `${countNoun(n, "live car", { many: "live cars", cap: true })} ${verb}`, `overview card, ${n}: "${ov.live}"`);
   ok(ov.cars === countNoun(n, "car"), `overview "Show" label, ${n}: "${ov.cars}"`);
   const closed = overviewFacts({ updates: [{ role: "sam", kind: "match", data: { opening: true, total: 0, loose: { dropped: "colour", count: n }, cards: [] } }] });
-  ok(closed.close === countNoun(n, "close one", { cap: true }), `overview close ones, ${n}: "${closed.close}"`);
-  ok(statusLine({ colour: "black" }, "colour", n) === `Nothing black yet. ${countNoun(n, "other car", { many: "other cars", cap: true })} ${verb} the rest.`, `status line, ${n}: "${statusLine({ colour: "black" }, "colour", n)}"`);
+  ok(closed.close === null, `overview prints no count of near misses, ${n}: "${closed.close}"`);
+  ok(statusLine({ colour: "black" }, "colour", n) === "Nothing black yet. Sam is watching.", `status line prints no count of near misses, ${n}: "${statusLine({ colour: "black" }, "colour", n)}"`);
   ok(updateLine({ data: { total: n, cards: [{}] } }) === `${countNoun(n, "new car", { many: "new cars", cap: true })} ${verb}.`, `update line, ${n}`);
   ok(moreCarsLine(n, true).startsWith(cap(countNoun(n, "more car", { many: "more cars" }))), `email more line, ${n}`);
 }
