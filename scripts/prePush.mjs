@@ -1387,6 +1387,13 @@ try {
 } catch (e) {
   record("Find: a card stands on its own spec's answer for every question kind, never the stale core's numbers (scripts/findResolveCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The Find pre-fill writes rows the card reads without computing (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/findPrefillCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Find: the pre-fill writes the rows a card reads without computing (scripts/findPrefillCheck.mjs)", "PASS", (out.match(/findPrefillCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Find: the pre-fill writes the rows a card reads without computing (scripts/findPrefillCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // An ended lot never stays unmarked past one pull cycle (Lane B, Oct 29 2026).
 try {
   const out = execSync("node scripts/endedLotCheck.mjs", { encoding: "utf8", timeout: 120000 });

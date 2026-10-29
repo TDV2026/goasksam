@@ -1975,36 +1975,54 @@ if (task === "optiondetail") {
     }
     return res.status(200).json(out);
   }
+  // task=warmFind (Lane B, Oct 29 2026; WRITES the FINDANS: rows, zero OldCarsData spend, archive only): the pre-fill of the Find answer for every live spec the engine asks a question about first, so no card computes its own on a reader's first open.
+  // ?count=1 only counts (no write). ?offset= ?limit= (default 12 specs a call) ?chain=k/n (every nth from k) ?force=1 (recompute rows already stored at the current epoch and stamp) ?budget= (ms). Resumable: a row already stored is skipped.
+  // Returns { total, offset, next, done, stored, skipped, failed, rows } so scripts/warmFind.mjs can loop it, print a line every 500 specs, and resume.
+  if (task === "warmFind") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { liveAskFirstSpecs, prefillFindAnswer } = await import("../lib/live/search.js");
+    const L = await liveAskFirstSpecs(env);
+    const ch = /^(\d+)\/(\d+)$/.exec(String(req.query?.chain || "")), list = ch ? L.rows.filter((_, i) => i % Number(ch[2]) === Number(ch[1])) : L.rows;
+    const byKind = {}; for (const r of list) byKind[r.esc] = (byKind[r.esc] || 0) + 1;
+    if (req.query?.count === "1") return res.status(200).json({ task: "warmFind", count: true, ocdSpend: 0, writes: 0, liveSpecs: L.liveSpecs, total: list.length, byKind, readFailed: L.readFailed });
+    const offset = Math.max(0, Number(req.query?.offset) || 0), limit = Math.max(1, Math.min(40, Number(req.query?.limit) || 12)), budget = Math.min(270000, Number(req.query?.budget) || 200000), force = req.query?.force === "1", t0 = Date.now();
+    const out = { task: "warmFind", ocdSpend: 0, total: list.length, offset, stored: 0, skipped: 0, failed: 0, rows: [], next: null, done: false };
+    let i = offset;
+    for (; i < Math.min(list.length, offset + limit); i++) {
+      if (Date.now() - t0 > budget) break;
+      const r = list[i];
+      try { const x = await prefillFindAnswer(env, r.spec, force); if (x.stored) { out[x.skipped ? "skipped" : "stored"]++; } else { out.failed++; } out.rows.push({ i, q: r.spec.title, kind: r.esc, stored: !!x.stored, skipped: !!x.skipped, tier: x.tier || null }); }
+      catch (e) { out.failed++; out.rows.push({ i, q: r.spec.title, kind: r.esc, stored: false, error: String(e && e.message || e).slice(0, 80) }); }
+    }
+    out.writes = out.stored; out.next = i < list.length ? i : null; out.done = i >= list.length;
+    return res.status(200).json(out);
+  }
   // task=findasks (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, zero writes): the live specs whose Find ladder took the pooled read because the engine asks a question first for the spec's text (the core's escalatedFrom.tier: dochistory_choice, trim_choice,
   // generation_choice, body_choice, gearbox_choice, variant_choice, model_choice), with the state of the card each one draws TODAY: no core, a none or not_tracked row, a split core whose option lines stand on no sales answer (the stored Market Check
   // row of the spec is missing or not a result or thin: the old split state, the 1995 Cabriolet), or a core that stands on its own numbers. Counts by kind and by state, and 10 examples with the lines the card prints.
   if (task === "findasks") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { ENGINE_VERSION } = await import("../lib/onebox.js");
-    const got = await supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent("LIVESPECS:v1:" + ENGINE_VERSION)}&select=market`);
-    const specs = got && got[0] && got[0].market && Array.isArray(got[0].market.specs) ? got[0].market.specs : [];
-    const live = new Map(); for (const e of specs) if (e && e.spec && e.spec.key) live.set(e.spec.key, e.spec);
-    const cores = new Map(); let after = "", readFailed = false;
-    for (let pages = 0; pages < 8; pages++) {
-      const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.${encodeURIComponent("[*")}&select=spec_key,kind:market->>kind,esc:market->escalatedFrom->>tier,os:market->>optionsState,ol:market->optionLines,cl:market->>countLine,al:market->>answerLine,rl:market->>refusalLine&order=spec_key.asc&limit=1000` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
-      if (!Array.isArray(rows)) { readFailed = true; break; }
-      for (const r of rows) if (live.has(r.spec_key)) cores.set(r.spec_key, r);
-      if (rows.length < 1000) break; after = rows[rows.length - 1].spec_key;
-    }
-    const withEsc = [...cores.values()].filter(r => r.esc);
-    const mcTier = new Map();
+    const { liveAskFirstSpecs, findAnswerKeyFor } = await import("../lib/live/search.js");
+    const L = await liveAskFirstSpecs(env), readFailed = L.readFailed, withEsc = L.rows, live = { size: L.liveSpecs }, cores = { size: L.liveWithCore };
+    const mcTier = new Map(), findRow = new Map();
     for (let i = 0; i < withEsc.length; i += 40) {
       const part = withEsc.slice(i, i + 40), list = part.map(r => '"MCWARM:' + r.spec_key.replace(/"/g, '\\"') + '"').join(",");
       const rows = await supabaseSelect(env, `spec_market_cache?spec_key=in.(${encodeURIComponent(list)})&select=spec_key,tier:market->raw->>tier,ev:market->>engineVersion`);
       if (Array.isArray(rows)) for (const r of rows) mcTier.set(r.spec_key.replace(/^MCWARM:/, ""), r);
+      const flist = part.map(r => '"' + findAnswerKeyFor({ key: r.spec_key }).replace(/"/g, '\\"') + '"').join(",");
+      const frows = await supabaseSelect(env, `spec_market_cache?spec_key=in.(${encodeURIComponent(flist)})&select=spec_key,tier:market->raw->>tier,ev:market->>engineVersion`);
+      if (Array.isArray(frows)) for (const r of frows) findRow.set(r.spec_key.replace(/^FINDANS:/, ""), r);
     }
-    const out = { task: "findasks", ocdSpend: 0, writes: 0, readFailed, liveSpecs: live.size, liveWithCore: cores.size, liveSpecsWithoutCore: live.size - cores.size, askFirst: withEsc.length, byKind: {}, byState: {}, byKindState: {}, examples: [] };
+    const out = { task: "findasks", ocdSpend: 0, writes: 0, readFailed, liveSpecs: live.size, liveWithCore: cores.size, liveSpecsWithoutCore: live.size - cores.size, stillReading: 0, askFirst: withEsc.length, byKind: {}, byState: {}, byKindState: {}, examples: [] };
     for (const r of withEsc) {
       const mc = mcTier.get(r.spec_key), mcOk = mc && mc.ev === ENGINE_VERSION && /^(result|thin)$/.test(String(mc.tier || ""));
       const split = r.os && r.os !== "none" && Array.isArray(r.ol) && r.ol.length;
-      const state = r.kind === "none" ? (r.rl ? "none_with_reason" : "none_blank") : r.kind === "not_tracked" ? "not_tracked" : split && !mcOk ? (mc ? "split_core_mc_not_a_sales_answer" : "split_core_no_mc_row") : split ? "split_core_with_answer" : "own_numbers";
-      out.byKind[r.esc] = (out.byKind[r.esc] || 0) + 1; out.byState[state] = (out.byState[state] || 0) + 1; const ks = r.esc + " | " + state; out.byKindState[ks] = (out.byKindState[ks] || 0) + 1;
-      if ((state.startsWith("split_core") && state !== "split_core_with_answer" || /^none|not_tracked/.test(state)) && out.examples.length < 10) out.examples.push({ key: r.spec_key.slice(0, 110), asksFirst: r.esc, state, mcRowTier: mc ? mc.tier : null, printsToday: [...(split ? r.ol : []), r.cl, r.al, r.rl].filter(Boolean) });
+      const fr = findRow.get(r.spec_key), frOk = fr && fr.ev === ENGINE_VERSION && /^(result|thin)$/.test(String(fr.tier || "")), frAny = fr && fr.ev === ENGINE_VERSION;
+      // what the card draws: with a sales answer behind it (the Market Check row, or the spec's FINDANS row) it draws that answer; a split core with none is "still reading" until the FINDANS row exists, and the engine's plain words when that row is not a sales answer
+      const state = r.kind === "none" ? (r.rl ? "none_with_reason" : "none_blank") : r.kind === "not_tracked" ? "not_tracked" : split && !mcOk && !frOk ? (frAny ? "unresolved_plain_words" : "still_reading_until_first_read") : split ? "split_core_with_answer" : "own_numbers";
+      out.byKind[r.esc] = (out.byKind[r.esc] || 0) + 1; out.byState[state] = (out.byState[state] || 0) + 1; if (state === "still_reading_until_first_read") out.stillReading++; const ks = r.esc + " | " + state; out.byKindState[ks] = (out.byKindState[ks] || 0) + 1;
+      if ((/^(still_reading|unresolved)/.test(state) || /^none|not_tracked/.test(state)) && out.examples.length < 10) out.examples.push({ key: r.spec_key.slice(0, 110), asksFirst: r.esc, state, mcRowTier: mc ? mc.tier : null, printsToday: [...(split ? r.ol : []), r.cl, r.al, r.rl].filter(Boolean) });
     }
     return res.status(200).json(out);
   }
