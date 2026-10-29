@@ -5569,12 +5569,12 @@ async function handleOps(req, res) {
   // task=coldruns (Lane B, Oct 29 2026; READ-ONLY, no write, no spend): the day's Market Check (or ?product=) search_run events that ended "still reading", grouped by search id, so a
   // count of failed rows is not read as a count of searches: one cold search asks again every 2 seconds and each ask used to write one failed row. Per search: the typed text
   // (VIN, email and phone shapes dropped), rows written, the first and last time, the longest latency, and whether a later row of the SAME search id answered. ?since= (ISO, default
-  // the UTC midnight), ?product=. Internal and bot traffic excluded.
+  // the UTC midnight), ?product=. Bots are excluded; crew and test traffic is excluded unless ?crew=1 (before launch nearly every search is crew or test).
   if (task === "coldruns") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const product = req.query?.product === "buy" ? "buy" : req.query?.product === "sell" ? "sell" : "market_check";
     const since = /^\d{4}-\d{2}-\d{2}/.test(String(req.query?.since || "")) ? new Date(String(req.query.since)).toISOString() : new Date(new Date().toISOString().slice(0, 10) + "T00:00:00Z").toISOString();
-    const rows = await supabaseSelectAll(env, `analytics_events?name=eq.search_run&product=eq.${product}&internal=is.false&is_bot=is.false&ts=gte.${encodeURIComponent(since)}&select=ts,q:props->>query_text,sid:props->>search_id,fs:props->>failure_state,at:props->>answer_type,ms:props->>latency_ms,vk:props->>vehicle_key&order=ts.asc`);
+    const rows = await supabaseSelectAll(env, `analytics_events?name=eq.search_run&product=eq.${product}${req.query?.crew === "1" ? "" : "&internal=is.false"}&is_bot=is.false&ts=gte.${encodeURIComponent(since)}&select=ts,internal,q:props->>query_text,sid:props->>search_id,fs:props->>failure_state,at:props->>answer_type,ms:props->>latency_ms,vk:props->>vehicle_key&order=ts.asc`);
     if (!Array.isArray(rows)) return res.status(200).json({ task: "coldruns", readFailed: true, ocdSpend: 0, writes: 0 });
     const looksVin = q => /\b[a-hj-npr-z0-9]{17}\b/i.test(q), looksEmail = q => /\S+@\S+/.test(q), looksPhone = q => (q.match(/\d/g) || []).length >= 10 && /^[\d\s+().-]+$/.test(q.trim());
     const by = new Map();
@@ -5583,7 +5583,7 @@ async function handleOps(req, res) {
       if (r.fs === "still_reading") g.still++; else if (r.at && r.at !== "failed") g.answered = true; if (r.fs) g.states[r.fs] = (g.states[r.fs] || 0) + 1; by.set(k, g); });
     const all = [...by.values()], cold = all.filter(g => g.still > 0);
     const shown = g => ({ q: looksVin(g.q) || looksEmail(g.q) || looksPhone(g.q) ? "(dropped)" : g.q, sid: g.sid ? g.sid.slice(0, 6) : null, rows: g.rows, stillRows: g.still, answeredLater: g.answered, first: g.first, last: g.last, maxMs: g.maxMs });
-    return res.status(200).json({ task: "coldruns", product, since, ocdSpend: 0, writes: 0, rows: rows.length, searches: all.length, stillReadingRows: rows.filter(r => r.fs === "still_reading").length, searchesWithStillReading: cold.length,
+    return res.status(200).json({ task: "coldruns", product, since, crewIncluded: req.query?.crew === "1", internalRows: rows.filter(r => r.internal).length, ocdSpend: 0, writes: 0, rows: rows.length, searches: all.length, stillReadingRows: rows.filter(r => r.fs === "still_reading").length, searchesWithStillReading: cold.length,
       answeredLater: cold.filter(g => g.answered).length, neverAnswered: cold.filter(g => !g.answered).length, failureStates: rows.reduce((m, r) => { if (r.fs) m[r.fs] = (m[r.fs] || 0) + 1; return m; }, {}), list: cold.map(shown).slice(0, 200) });
   }
   if (task === "buyqueries") {
