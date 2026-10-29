@@ -42,6 +42,12 @@ ok("one sentence for every pool (the page never has a second wording)", said.siz
   const hits = [];
   for (const f of [...walk("lib"), ...walk("api"), ...walk("public")]) { if (f === "lib/reasonWords.js") continue; const t = fs.readFileSync(f, "utf8").replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); if (/range is where most sales landed/i.test(t)) hits.push(f); }
   const rw = fs.readFileSync("lib/reasonWords.js", "utf8").split("\n").filter(l => /most sales landed/.test(l) && !/^\s*\/\//.test(l) && !/\{ old:|before:/.test(l));
+  // the CLASS: any reader-facing sentence that says MOST sales sold, landed or went inside a price range (the range is the middle half, so "most" is false): "Most sold between $X and $Y", "sits inside where most ... sold", "the range most sales landed in"
+  // public/js/onebox.js is Lane E's file: its landing sub-line says "the range most landed in"; reported to Lane E to reword ("the typical range"), listed here until they do, then this entry is deleted
+  const PENDING_LANE_E = [["public/js/onebox.js", "with the range most landed in"]];
+  const CLAIM = /\b(most|majority)\b[^.`"'\n]{0,40}\b(sold|landed|went)\b[^.`"'\n]{0,30}\b(between|for|inside)\b|\bMost [^.`"'\n]{0,60}\blanded about\b|\binside where most\b|range most (sales )?(landed|sold)/i, claims = [];
+  for (const f of [...walk("lib"), ...walk("api"), ...walk("public")]) { if (f === "lib/reasonWords.js" || /crewPages/.test(f)) continue; const t = fs.readFileSync(f, "utf8").replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""); for (const l of t.split("\n")) if (CLAIM.test(l) && !PENDING_LANE_E.some(x => f === x[0] && l.includes(x[1]))) claims.push(f + ": " + l.trim().slice(0, 90)); }
+  ok("no reader-facing sentence says most sales sold or landed inside a price range (spec pages, history, Sell, Sell chat, the engine's own basis line)", claims.length === 0, claims.join(" | "));
   ok("no file prints the old range sentence; in the reason table it appears only as a retired line", hits.length === 0 && rw.length === 0, hits.concat(rw).join(" | ")); }
 console.log(fail ? `rangeSentenceShareCheck: ${fail} failure(s)` : "rangeSentenceShareCheck: all pass");
 process.exit(fail ? 1 : 0);
