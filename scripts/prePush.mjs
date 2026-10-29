@@ -1313,9 +1313,16 @@ try {
 // No dead end on a cold spec: the computing state asks again for 45 seconds, then one plain line (Sam, Oct 28 2026). Rendered in a browser.
 try {
   const out = execSync("node scripts/coldPathCheck.mjs", { encoding: "utf8", timeout: 600000 });
-  record("cold spec: reading line, asks every 2 seconds up to 45, then the plain line (scripts/coldPathCheck.mjs)", "PASS", (out.match(/coldPathCheck: .*/) || [""])[0]);
+  record("cold spec: reading line, asks every 2 seconds up to the engine's wait, then the plain line (scripts/coldPathCheck.mjs)", "PASS", (out.match(/coldPathCheck: .*/) || [""])[0]);
 } catch (e) {
-  record("cold spec: reading line, asks every 2 seconds up to 45, then the plain line (scripts/coldPathCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+  record("cold spec: reading line, asks every 2 seconds up to the engine's wait, then the plain line (scripts/coldPathCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// A cold Market Check never ends "still reading" with no answer following: the page waits as long as the compute can still land, and one search writes one failed row (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/coldWaitCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("cold spec: the wait reaches the end of the compute, one failed row per search (scripts/coldWaitCheck.mjs)", "PASS", (out.match(/coldWaitCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("cold spec: the wait reaches the end of the compute, one failed row per search (scripts/coldWaitCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 // The account pill covers nothing on any page, result views included (Sam, Oct 27 2026). Rendered in a browser.
 try {

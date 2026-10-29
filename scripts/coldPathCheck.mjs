@@ -80,7 +80,7 @@ const FAILED = { status: "one_box", tier: "unavailable", samLine: CM, resolvedCa
 // 2. the server contract and every page's lines
 {
   const sd = rd("api/sellerDecision.js"), ls = rd("lib/live/search.js"), ka = rd("lib/keepAlive.js");
-  ok(/retryAfterMs: 2000, waitMaxMs: 45000/.test(sd) && /export const COMPUTING_LINE = reasonLine\("cold\.reading"\)/.test(sd), "server: the computing answer asks again in 2 seconds, for up to 45, in the one line");
+  ok(/retryAfterMs: 2000, waitMaxMs: COLD_WAIT_MS/.test(sd) && /export const COMPUTING_LINE = reasonLine\("cold\.reading"\)/.test(sd), "server: the computing answer asks again in 2 seconds, for up to COLD_WAIT_MS (scripts/coldWaitCheck.mjs), in the one line");
   ok(/keepAlive\(engineP\.then\(finishStore\)/.test(sd) && /markComputing\(/.test(sd) && /readComputing\(/.test(sd), "server: a compute that outlasts the page's clock is kept alive and stored; one marker stops a second compute");
   ok(/@vercel\/request-context/.test(ka) && /waitUntil/.test(ka), "keepAlive hands the promise to the platform's waitUntil");
   ok(/"api\/sellerDecision\.js": \{\s*"maxDuration": (\d+)/.test(rd("vercel.json")) && Number(/"api\/sellerDecision\.js": \{\s*"maxDuration": (\d+)/.exec(rd("vercel.json"))[1]) >= 90, "server: the function lives long enough for the compute to finish after the response (maxDuration 90)");
