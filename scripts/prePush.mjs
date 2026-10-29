@@ -1497,6 +1497,12 @@ try {
   record("chart: on a year split the chart is never drawn from another year's sales (scripts/chartYearScopeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/vinPlanCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("vin: the VIN's own resolved car is never refused by a re-read of its words (a question or an invalid year), so typed and VIN do not differ into a dead end (scripts/vinPlanCheck.mjs)", "PASS", (out.match(/vinPlanCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("vin: the VIN's own resolved car is never refused by a re-read of its words (a question or an invalid year), so typed and VIN do not differ into a dead end (scripts/vinPlanCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/appliedAllCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("filters: every way the engine narrows (pill, band, typed miles, gearbox, body, year, edition, trim, history, detail) is named with its clear (scripts/appliedAllCheck.mjs)", "PASS", (out.match(/appliedAllCheck: .*/) || [""])[0]);
 } catch (e) {
