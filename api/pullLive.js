@@ -19,7 +19,7 @@ import { historyEnv } from "./_historyData.js";
 import { recordUsageEvent } from "./_usage.js";
 import { ocdWithRetry, readRemaining, reserveFloor } from "../lib/live/ocdGuard.js";
 import { pullFor, dayPlan, PAGES, ENDING_AHEAD_MS } from "../lib/live/pullSchedule.js";
-import { mapLiveRecord, upsertLive, markVanished, fillFinalPrices, liveStats } from "../lib/live/feed.js";
+import { mapLiveRecord, upsertLive, markVanished, markEndedPast, fillFinalPrices, liveStats } from "../lib/live/feed.js";
 
 async function handler(req, res) {
   const cronSecret = process.env.CRON_SECRET;
@@ -88,7 +88,9 @@ async function handler(req, res) {
     if (mode === "auto") {
       if (req.query.dryrun) return res.status(200).json({ ok: true, dryrun: true, ocdRequests: 0, now: pullFor(new Date()), plan: dayPlan(String(req.query.date || new Date().toISOString().slice(0, 10)).slice(0, 10)) });
       const slot = pullFor(new Date());
-      if (!slot.mode) return res.status(200).json({ ok: true, slot, nothing: true, ocdRequests: 0 });
+      // A quarter hour with no pull (the evening, after the last ending-soonest pull at 14:30 Pacific, until the 22:15 full walk) still marks over any lot whose end time passed more than an hour ago: ZERO OCD, database only.
+      // A lot wrongly marked (an auction extended past an hour) is made live again by the next pull that lists it (the upsert sets status live).
+      if (!slot.mode) { const endedPast = await markEndedPast(env, new Date().toISOString(), 60 * 60e3).catch(e => ({ error: String(e && e.message).slice(0, 120) })); return res.status(200).json({ ok: true, slot, nothing: true, ocdRequests: 0, endedPast }); }
       mode = slot.mode === "full" ? "" : slot.mode;
       if (starter.by === "scheduled") { starter.detail = `${slot.mode === "full" ? "full walk" : "ending soonest"} ${slot.hhmm} ${slot.zone}`; configureOcdUsage({ job: "pull_live", startedBy: starter.by, startedDetail: starter.detail }); }
     }
@@ -145,9 +147,11 @@ async function handler(req, res) {
       const order = { field, sent: params.sort ? params.sort + " " + params.direction : "default order", asked: mode === "new" ? "desc" : "asc", values: seq.length, outOfOrder: wrong, honoured: seq.length > 1 && wrong === 0, first: seq.length ? new Date(seq[0]).toISOString() : null, last: seq.length ? new Date(seq[seq.length - 1]).toISOString() : null, futureEnds: mode === "ending" ? seq.filter(t => t > Date.now()).length : undefined, createdAge };
       const fresh = await newCount(env, rows);
       const up = await upsertLive(env, rows);
+      // the lots this short pull shows over: end time passed and not listed again (feed.js markEndedPast); only after a pull that read at least one page to its end
+      const endedPast = mode === "ending" && pagesRead > 0 && rows.length > 0 ? await markEndedPast(env, seenAt).catch(e => ({ error: String(e && e.message).slice(0, 120) })) : null;
       await flushOcdUsage();
       const lastEndAt = rows.length ? Date.parse(rows[rows.length - 1].end_time) : null;
-      const out = { mode, pages: pagesRead, ocdRequests: used(), fetched: rows.length, newListings: fresh, upserted: up, order, coveredHoursAhead: lastEndAt ? Math.round((lastEndAt - Date.now()) / 360e3) / 10 : null, cappedShort: mode === "ending" && pagesRead >= cap && lastEndAt != null && lastEndAt < Date.now() + ENDING_AHEAD_MS, started_by: starter.by, started_detail: starter.detail };
+      const out = { mode, pages: pagesRead, ocdRequests: used(), fetched: rows.length, newListings: fresh, upserted: up, endedPast, order, coveredHoursAhead: lastEndAt ? Math.round((lastEndAt - Date.now()) / 360e3) / 10 : null, cappedShort: mode === "ending" && pagesRead >= cap && lastEndAt != null && lastEndAt < Date.now() + ENDING_AHEAD_MS, started_by: starter.by, started_detail: starter.detail };
       await recordUsageEvent({ event_type: "pull_live_mode", route: "pull_live", status: "ok", oldcarsdata_metered_requests: 0, metadata: out }, env.supabaseUrl, env.supabaseKey).catch(() => {});
       return res.status(200).json({ ok: true, ...out });
     }

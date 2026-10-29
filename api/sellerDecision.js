@@ -54,14 +54,15 @@ import {
 } from "../lib/_classify.js";
 import { hammerUsd, ensureFxReady } from "../lib/_houseComps.js";
 import { buildSharedAnalysis, isRoutableVenue, ROUTABLE_VENUES, SHORT_AUCTION_VENUES, US_ROUTE_VENUES } from "../lib/platformPick.js";
-import { specKeyFor, coreOf, persistCore, warmAnswerKeyFor, readWarmAnswer, readWarmAnswerDetailed, writeWarmAnswer, answerCacheable, markRecomputing, markComputing, readComputing, clearComputing } from "../lib/live/search.js";
+import { specKeyFor, coreOf, persistCore, warmAnswerKeyFor, readWarmAnswer, readWarmAnswerDetailed, writeWarmAnswer, answerCacheable, markRecomputing, markComputing, readComputing, clearComputing, COLD_WAIT_MS } from "../lib/live/search.js";
 import { keepAlive } from "../lib/keepAlive.js";
 // COLD SPEC WORDS (Sam, Oct 28 2026): the computing answer and the one plain line when the read cannot finish. No page says "try again"; the page keeps asking
 // (retryAfterMs, up to waitMaxMs) while computing is true.
 export const COMPUTING_LINE = reasonLine("cold.reading");
 export const COULD_NOT_LINE = reasonLine("cold.missed");
 const carStubOf = v => v ? { year: v.year || null, make: v.make || null, model: v.model || null, trim: v.trim || null, bodyStyle: v.bodyStyle || null } : null;
-const computingAnswer = v => ({ status: "one_box", tier: "unavailable", stillReading: true, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: 45000, samLine: COMPUTING_LINE, couldNotLine: COULD_NOT_LINE, resolvedCar: carStubOf(v) });
+export { COLD_WAIT_MS };   // defined with COMPUTING_MS in lib/live/search.js: the one wait every page reads from the engine's waitMaxMs
+export const computingAnswer = v => ({ status: "one_box", tier: "unavailable", stillReading: true, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: COLD_WAIT_MS, samLine: COMPUTING_LINE, couldNotLine: COULD_NOT_LINE, resolvedCar: carStubOf(v) });
 
 import { isCrewRequest } from "../lib/_crew.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
@@ -3265,7 +3266,7 @@ async function handler(req, res) {
       // e60 timing contract: a resolver lookup that timed out is the deadline card (the same words as the 20-second
       // card), never a car resolved from the typed words alone.
       if (resolution && resolution.status === "lookup_timeout") {
-        return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: COMPUTING_LINE, couldNotLine: COULD_NOT_LINE, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: 45000 });
+        return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: COMPUTING_LINE, couldNotLine: COULD_NOT_LINE, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: COLD_WAIT_MS });
       }
       if (resolution.status !== "valid") {
         // The caller already accepted a model-level read (the seller declined
@@ -3390,7 +3391,7 @@ async function handler(req, res) {
       const obStillReading = () => {
         console.error(`One Box deadline on the path before the engine, ${Date.now() - obStart}ms.`);
         mcRun({ answer_type: "failed", failure_state: "still_reading" });
-        return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: COMPUTING_LINE, couldNotLine: COULD_NOT_LINE, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: 45000 });
+        return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: COMPUTING_LINE, couldNotLine: COULD_NOT_LINE, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: COLD_WAIT_MS });
       };
       // Graceful failure (reliability pass): if Supabase is slow or DOWN, fail FAST to one calm line
       // rather than a hung spinner or a misleading "not enough sales" from empty reads. A cheap probe
@@ -3625,7 +3626,8 @@ async function handler(req, res) {
           // page gets the computing answer (it keeps asking every 2 seconds), the compute is handed to keepAlive and writes the row when it finishes, and a
           // marker row keeps those asks from starting a second compute. Only a stored market (wantsWarm) can be asked for again, so only it hands off.
           if (coldStore && !recompute && await readComputing({ supabaseUrl, supabaseKey }, warmKey)) {
-            mcRun({ answer_type: "failed", failure_state: "still_reading" });
+            // an ask while the compute runs is the same search asking again (every 2 s): it writes no search_run row, so the day's "still reading" rows count searches, not asks.
+            // The first ask wrote the one row (below); the ask that finally finds the stored answer writes the answered one under the same search id.
             return res.status(200).json(computingAnswer(vehicle));
           }
           if (coldStore) markComputing({ supabaseUrl, supabaseKey }, warmKey).catch(() => {});
