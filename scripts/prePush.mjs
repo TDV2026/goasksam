@@ -1432,6 +1432,13 @@ try {
 } catch (e) {
   record("bodies, option order and the set-aside line (one vocabulary, ranges first, the count said once) (scripts/bodiesOrderAsideCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A VIN search is a typed search of the car it names, plus the car's own facts (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/vinTypedCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("VIN: the VIN answer and the typed answer of the same car are the same, field by field (scripts/vinTypedCheck.mjs)", "PASS", (out.match(/vinTypedCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("VIN: the VIN answer and the typed answer of the same car are the same, field by field (scripts/vinTypedCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // An ended lot never stays unmarked past one pull cycle (Lane B, Oct 29 2026).
 try {
   const out = execSync("node scripts/endedLotCheck.mjs", { encoding: "utf8", timeout: 120000 });
