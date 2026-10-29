@@ -258,7 +258,7 @@ export async function oneBoxFor(env, id, exactSale, opts) {
     // that has to compute outlasts the 15 second page clock behind the response (keepAlive) and stores its row, and opts.cold.timedOut tells the caller to draw the
     // reading placeholder that asks again (history.js coldCardHtml), never a missing card.
     const wkey = !exactSale ? warmAnswerKeyFor(vehicle, generation, null) : null;
-    if (wkey) { const st = await readWarmAnswerDetailed(env, wkey).catch(() => null); if (st && st.raw && st.raw.tier === "result" && Array.isArray(st.raw.cluster)) return st.raw; }   // a ranged answer only: it carries everything the page prints; any other tier is computed as before
+    if (wkey) { const st = await readWarmAnswerDetailed(env, wkey).catch(() => null); if (st && st.raw && st.raw.tier === "result" && (Array.isArray(st.raw.cluster) || (Array.isArray(st.raw.options) && st.raw.options.length))) return st.raw; }   // a result: a ranged answer, or the split and apart ones that carry their options (cluster null, e96): it carries everything the page prints; any other tier is computed as before
     if (wkey && await readComputing(env, wkey)) { if (opts && opts.cold) opts.cold.timedOut = true; return null; }   // already being read: the page asks again, no second compute
     if (wkey) markComputing(env, wkey).catch(() => {});
     const run = (asked) => {
