@@ -1777,6 +1777,36 @@ async function handleOps(req, res) {
   // not the current epoch; ?kind=core: every core row still marked stale (market.staleSince); ?kind=scopedout: the specs of live listings outside the launch scope (the ones the scope fix took out of the union), with whether their
   // Market Check row is behind. Paged 1000 rows a call (?after= is the last key); texts are year make model trim body edition variant from the row's own key, de-duplicated, refine rows (a gearbox, body, trim or variant chip's
   // own row) counted apart because the bare row's warm covers them. The key is returned beside each text so a text that resolves to another key can be told.
+  // task=staleword (Lane B, Oct 29 2026, after e2b58967; READ-ONLY, zero OldCarsData, zero writes): the stored rows still holding the words before the Find wording and title-line change, as warm texts for Lane C's --force warm.
+  // Every reader restates these at read time now (lib/onebox.js freshenStoredText), so a listed row already SERVES the current text; the warm only makes the stored copy match, and gives a split core its real group names
+  // (a core holds no options, so its restated unsaid line says "Cars like this"). ?kind=mc (MCWARM rows: no scopeLine on a result or thin answer, the old "pick one" sentence, the count in both thin lines),
+  // ?kind=core (cores: the same two lines), ?kind=scopedout (no stored row exists to restate: use staletexts kind=scopedout). Counts by cause; texts are only the rows listed; ?after= pages 1000 rows.
+  if (task === "staleword") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const kind = ["core", "scopedout"].includes(String(req.query?.kind)) ? String(req.query.kind) : "mc";
+    if (kind === "scopedout") return res.status(200).json({ task: "staleword", kind, ocdSpend: 0, writes: 0, rows: 0, note: "A scoped-out spec has no stored row, so no old words to restate; its warm texts are staletexts kind=scopedout." });
+    const { restateLines } = await import("../lib/onebox.js");
+    const textOf = arr => { const [make, model, trim, year, , body, edition, variant] = arr; return [year, make, model, trim, body, edition, variant].filter(x => x != null && x !== "").join(" ").replace(/\s+/g, " ").trim(); };
+    const parse = key => { try { const a = JSON.parse(String(key).replace(/^[^\[]*(?=\[)/, "")); return Array.isArray(a) ? a : null; } catch { return null; } };
+    const after = req.query?.after ? String(req.query.after) : "";
+    const sel = kind === "mc"
+      ? "spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,tier:market->raw->>tier,sl:market->raw->>scopeLine,aa:market->raw->thin_sales->>answer_line,cc:market->raw->thin_sales->>count_line&order=spec_key.asc&limit=1000"
+      : "spec_market_cache?spec_key=not.like.MCWARM%3A*&spec_key=not.like.LIVESPECS*&spec_key=not.like.QELIG*&spec_key=not.like.MCCOMPUTING*&select=spec_key,aa:market->thin_sales->>answer_line,cc:market->thin_sales->>count_line,ans:market->>answerLine,cnt:market->>countLine&order=spec_key.asc&limit=1000";
+    const rows = await supabaseSelect(env, sel + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "staleword", kind, readFailed: true, ocdSpend: 0, writes: 0 });
+    const out = { task: "staleword", kind, ocdSpend: 0, writes: 0, rows: rows.length, stale: 0, noScopeLine: 0, oldPickSentence: 0, countInBothLines: 0, refineRows: 0, unparsed: 0, texts: [], next: rows.length === 1000 ? rows[999].spec_key : null };
+    const seen = new Set();
+    for (const r of rows) {
+      const lines = kind === "mc" ? { answer_line: r.aa, count_line: r.cc } : { answer_line: r.ans || r.aa, count_line: r.cnt || r.cc };
+      const re = restateLines(lines, {}), pick = typeof lines.answer_line === "string" && re.answer_line !== lines.answer_line && /\b(pick|choose)\b/i.test(lines.answer_line), dbl = typeof lines.count_line === "string" && re.count_line !== lines.count_line;
+      const noScope = kind === "mc" && /^(result|thin)$/.test(String(r.tier || "")) && !r.sl;
+      if (!(pick || dbl || noScope)) continue; out.stale++; if (noScope) out.noScopeLine++; if (pick) out.oldPickSentence++; if (dbl) out.countInBothLines++;
+      const a = parse(r.spec_key); if (!a) { out.unparsed++; continue; }
+      if (a[9] || a[10] || a[11] || a[12]) { out.refineRows++; continue; }   // a chip's own row: the bare row's warm covers it
+      const t = textOf(a); if (!t || seen.has(t.toLowerCase())) continue; seen.add(t.toLowerCase()); out.texts.push(t);
+    }
+    return res.status(200).json(out);
+  }
   if (task === "staletexts") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { currentEpoch } = await import("../lib/_epoch.js");

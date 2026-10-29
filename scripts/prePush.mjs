@@ -1366,6 +1366,13 @@ try {
 } catch (e) {
   record("Find: the card never says pick or choose, real listings' fields settle the option (scripts/findNoPickCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A row stored before the Find wording and the title line changed serves the current text (Lane B, Oct 29 2026, after e2b58967).
+try {
+  const out = execSync("node scripts/storedTextCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("stored rows: a row stored before the wording change serves the current lines (scripts/storedTextCheck.mjs)", "PASS", (out.match(/storedTextCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("stored rows: a row stored before the wording change serves the current lines (scripts/storedTextCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // An ended lot never stays unmarked past one pull cycle (Lane B, Oct 29 2026).
 try {
   const out = execSync("node scripts/endedLotCheck.mjs", { encoding: "utf8", timeout: 120000 });
