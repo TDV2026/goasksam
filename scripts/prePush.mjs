@@ -1456,6 +1456,12 @@ try {
 } catch (e) {
   record("the launch warm covers every live spec, not the traffic slice (scripts/warmUnionCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+try {
+  const out = execSync("node scripts/warmBaseCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("no warm script targets goasksam.com by default (scripts/warmBaseCheck.mjs)", "PASS", (out.match(/warmBaseCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("no warm script targets goasksam.com by default (scripts/warmBaseCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The launch warm counts rows by UTC day, never by age (Sam, Oct 28 2026). No network.
 try {
   const out = execSync("node scripts/warmDayCheck.mjs", { encoding: "utf8" });

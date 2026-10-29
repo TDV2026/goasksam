@@ -14,7 +14,7 @@ ok(/product === "market_check"/.test(fs.readFileSync("api/usageDashboard.js", "u
 if (process.argv.includes("--live")) {
   if (!process.env.PROBE_KEY) console.log("SKIP live: no PROBE_KEY in the environment");
   else {
-    const r = spawnSync("node", ["scripts/warmNamed.mjs", "--part", "named", "--no-warm"], { encoding: "utf8", env: process.env, timeout: 900000 });
+    const r = spawnSync("node", ["scripts/warmNamed.mjs", "--part", "named", "--no-warm", "--live-main"], { encoding: "utf8", env: process.env, timeout: 900000 });
     const out = r.stdout || "";
     const cold = out.split("\n").filter(l => /^COLD/.test(l));
     ok(cold.length === 0 && /\d+ warmHit true, 0 failed/.test(out), "live: every named spec returns warmHit true" + (cold.length ? " (cold: " + cold.map(l => l.replace(/\s+/g, " ").slice(0, 120)).join(" | ") + ")" : ""));

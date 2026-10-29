@@ -1,8 +1,13 @@
 // THE UNION WARM, SLICED (Sam, Oct 28 2026). Every spec any live listing resolves to (task=warmLive, trafficDays=0), warmed in SHARDS run in parallel, each shard looping until it reports done, then a second
 // pass for what a shard missed or held. Three shards at a time (the heavy-read limit is three). The named list is warmed before this by scripts/warmNamed.mjs, never after.
-//   PROBE_KEY=... BYPASS_SECRET=... node scripts/warmUnion.mjs [--shards 3] [--base https://goasksam.com]
+//   PROBE_KEY=... BYPASS_SECRET=... node scripts/warmUnion.mjs [--shards 3] [--base <deployment address> | --live-main]
 const arg = (n, d) => { const i = process.argv.indexOf("--" + n); return i > 0 ? process.argv[i + 1] : d; };
-const BASE = arg("base", "https://goasksam.com").replace(/\/$/, ""), N = Math.max(1, Math.min(3, Number(arg("shards", 3))));
+// The warm targets a PINNED deployment address (Sam, Oct 28 2026): a deployment address does not change when main is pushed, so a push no longer swaps code under a running warm.
+// --base <address> or WARM_BASE names it (find it with: vercel inspect <deployment>); --live-main targets the live site on purpose (read-only checks only).
+const _arg = n => { const i = process.argv.indexOf("--" + n); return i > 0 ? process.argv[i + 1] : null; };
+const _BASE0 = process.argv.includes("--live-main") ? "https://goasksam.com" : (_arg("base") || process.env.WARM_BASE || "");
+if (!_BASE0) { console.log("warmUnion: no address given. Pass --base <the deployment address of the build to warm> or set WARM_BASE; --live-main targets goasksam.com on purpose."); process.exit(2); }
+const BASE = _BASE0.replace(/\/$/, ""), N = Math.max(1, Math.min(3, Number(arg("shards", 3))));
 const KEY = process.env.PROBE_KEY, BYP = process.env.BYPASS_SECRET;
 if (!KEY) { console.log("warmUnion: PROBE_KEY is not set; nothing was called."); process.exit(2); }
 const H = { "x-ops-key": KEY, ...(BYP ? { "x-vercel-protection-bypass": BYP } : {}) };
