@@ -1738,6 +1738,45 @@ async function handleOps(req, res) {
     if (!out.stoppedAtBudget && offset + limit < all.length) out.next = offset + limit; else if (out.stoppedAtBudget) out.next = offset + out.read;
     return res.status(200).json(out);
   }
+  // task=makeyearsweep (Lane B, Oct 29 2026, e101; READ-ONLY, no write, no OldCarsData spend): for ONE make (?make=), the years where a bare "{year} {make}" has more than one model with sales in the sales archive
+  // (model families, at least 3 sales each = the resolver's ask rule; at least 8 = Sam's count), and, with ?vpic=1, how many of those years vPIC lists ONE model for (the years the old resolver answered silently).
+  // Run it once per make. Paged by the archive read (a make's sales for the make only).
+  if (task === "makeyearsweep") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const make = String(req.query?.make || "").trim(); if (!make) return res.status(400).json({ error: "make= is required" });
+    const rows = await supabaseSelectAll(env, `sales_archive?select=year,model,model_family&make=ilike.${encodeURIComponent(make)}&year=not.is.null&model=not.is.null&sale_price=not.is.null&order=year.asc`);
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "makeyearsweep", make, readFailed: true, ocdSpend: 0, writes: 0 });
+    const by = new Map();
+    for (const r of rows) { const fam = String(r.model_family || r.model || "").trim(); if (!fam || /^unknown$/i.test(fam)) continue; const m = by.get(r.year) || new Map(); m.set(fam, (m.get(fam) || 0) + 1); by.set(r.year, m); }
+    const years = [...by.entries()].map(([year, m]) => ({ year, models: [...m.entries()].filter(([, n]) => n >= 3).sort((a, b) => b[1] - a[1]).map(([model, n]) => ({ model, n })) })).filter(y => y.models.length > 1);
+    const eight = years.filter(y => y.models.filter(m => m.n >= 8).length > 1);
+    let silentBefore = null;
+    if (req.query?.vpic === "1") {
+      silentBefore = [];
+      for (let i = 0; i < years.length; i += 8) await Promise.all(years.slice(i, i + 8).map(async y => { try { const r = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/getmodelsformakeyear/make/${encodeURIComponent(make)}/modelyear/${y.year}?format=json`, { signal: AbortSignal.timeout(8000) }); const j = await r.json(); const n = new Set((j.Results || []).map(x => String(x.Model_Name || "").toLowerCase())).size; if (n === 1) silentBefore.push(y.year); } catch { /* vPIC unreachable for this year */ } }));
+      silentBefore.sort();
+    }
+    return res.status(200).json({ task: "makeyearsweep", make, ocdSpend: 0, writes: 0, salesRead: rows.length, yearsWithSales: by.size, yearsAskedNow: years.length, yearsWithTwoModelsOf8: eight.length, silentBeforeVpicOneModel: silentBefore ? silentBefore.length : null, silentBeforeYears: silentBefore, list: years.slice(0, 60) });
+  }
+  // task=optionreach (Lane B, Oct 29 2026, e101; READ-ONLY): how far back each stored option's own window reaches. The window ladder reads 12, then 24, then 36 months for the first that holds 8 sales; a pool that never
+  // reaches 8 reads every sale it has (up to 60 months), and an option's own figures take the same ladder, so "Tiptronic: 17 sales since January 2022" is a 57 month reach. Counts, per 100 stored answers a page (?after=),
+  // the options reaching past 24, 36 and 48 months, the answers they sit in, and ten examples.
+  if (task === "optionreach") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const after = req.query?.after ? String(req.query.after) : "";
+    const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,raw:market->raw&order=spec_key.asc&limit=100` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "optionreach", readFailed: true, ocdSpend: 0, writes: 0 });
+    const MON = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+    const monthsOf = o => { const w = Number(o.windowMonths); if (Number.isFinite(w) && w > 0) return w; const m = /since (\w+) (\d{4})/i.exec(String(o.windowWords || "")); if (!m) return null; const i = MON.indexOf(m[1].toLowerCase()); return i < 0 ? null : Math.round((Date.now() - Date.UTC(Number(m[2]), i, 1)) / (30.4 * 864e5)); };
+    const out = { task: "optionreach", ocdSpend: 0, writes: 0, rows: rows.length, withOptions: 0, options: 0, over24: 0, over36: 0, over48: 0, answersOver24: 0, longest: 0, examples: [], next: rows.length === 100 ? rows[99].spec_key : null };
+    for (const r of rows) {
+      const a = r.raw; if (!a || !Array.isArray(a.options) || a.options.length < 2) continue; out.withOptions++;
+      let hit = false;
+      for (const o of a.options) { out.options++; const m = monthsOf(o); if (m == null) continue; out.longest = Math.max(out.longest, m); if (m > 24) { out.over24++; hit = true; if (out.examples.length < 10) out.examples.push({ key: r.spec_key.slice(0, 90), option: o.label, n: o.n, windowWords: o.windowWords || null, months: m, footer: a.windowWords || null }); } if (m > 36) out.over36++; if (m > 48) out.over48++; }
+      if (hit) out.answersOver24++;
+    }
+    return res.status(200).json(out);
+  }
   // task=chartsweep (Lane B, Oct 29 2026, e101; READ-ONLY, no write, no spend): the stored Market Check answers whose pooled chart is held for a changing mix and that are split by an option: how many drew
   // no chart under the old one-option rule, how many draw a scoped chart now (every option tried, largest first), how many stay withheld because no option clears the candle floor, and ten examples
   // with each option's own count and the 1986 Porsche 911 if it is in the page. 100 stored answers a page (?after=).

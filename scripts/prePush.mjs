@@ -1324,6 +1324,13 @@ try {
 } catch (e) {
   record("chart: a split answer with an option over the floor draws that option's candles (scripts/chartSplitFloorCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A make and a year with more than one model that has sales asks which one, before any range (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/makeYearAskCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("resolver: a make and a year with more than one model that has sales asks which (scripts/makeYearAskCheck.mjs)", "PASS", (out.match(/makeYearAskCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("resolver: a make and a year with more than one model that has sales asks which (scripts/makeYearAskCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // A landing example is the engine's answer and nothing else: no cluster rule, sales floor or generation floor of a builder's own (Lane B, Oct 29 2026).
 try {
   const out = execSync("node scripts/exampleFromEngineCheck.mjs", { encoding: "utf8", timeout: 120000 });
