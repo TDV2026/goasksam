@@ -1473,6 +1473,12 @@ try {
   record("chart: a withheld chart prints the engine's plain heading and no reason on any page, and a stored row serves it at read time (scripts/chartNoReasonCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/numberSentenceCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("pages print engine sentences: the year-before, last-sale, sold-before, distribution, facts and latest-quarter lines are engine lines at read time, none written by a page (scripts/numberSentenceCheck.mjs)", "PASS", (out.match(/numberSentenceCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("pages print engine sentences: the year-before, last-sale, sold-before, distribution, facts and latest-quarter lines are engine lines at read time, none written by a page (scripts/numberSentenceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/appliedAllCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("filters: every way the engine narrows (pill, band, typed miles, gearbox, body, year, edition, trim, history, detail) is named with its clear (scripts/appliedAllCheck.mjs)", "PASS", (out.match(/appliedAllCheck: .*/) || [""])[0]);
 } catch (e) {
