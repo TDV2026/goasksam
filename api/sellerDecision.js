@@ -56,6 +56,7 @@ import { hammerUsd, ensureFxReady } from "../lib/_houseComps.js";
 import { buildSharedAnalysis, isRoutableVenue, ROUTABLE_VENUES, SHORT_AUCTION_VENUES, US_ROUTE_VENUES } from "../lib/platformPick.js";
 import { specKeyFor, coreOf, persistCore, warmAnswerKeyFor, readWarmAnswer, readWarmAnswerDetailed, writeWarmAnswer, answerCacheable, markRecomputing, markComputing, readComputing, clearComputing, COLD_WAIT_MS } from "../lib/live/search.js";
 import { keepAlive } from "../lib/keepAlive.js";
+import { wayOutFor } from "../lib/questionWayOut.js";
 // COLD SPEC WORDS (Sam, Oct 28 2026): the computing answer and the one plain line when the read cannot finish. No page says "try again"; the page keeps asking
 // (retryAfterMs, up to waitMaxMs) while computing is true.
 export const COMPUTING_LINE = reasonLine("cold.reading");
@@ -3348,6 +3349,8 @@ async function handler(req, res) {
             status: "needs_clarification",
             vehicle: resolution.vehicle,
             clarification: cl,
+            // a Which model question (chips of cars for a make and year, no model yet) carries its way to type the model (lib/questionWayOut.js); the page renders it, the typed text is a normal search
+            ...(Array.isArray(cl.chips) && cl.chips.length && !cl.kind && resolution.vehicle && resolution.vehicle.make && !resolution.vehicle.model ? { wayOut: wayOutFor("model", resolution.vehicle) } : {}),
             vinArchiveMatch: obChassisMatch || undefined,
             // One Box rejected-chip tracking (Oct 2026, mirrors js/chat-core.js noteRejectedModel).
             invalidVehicle: resolution.status === "invalid_vehicle"

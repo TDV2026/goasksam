@@ -713,7 +713,8 @@
   // "Matched to...". Plain text (no markup), so moreComparableSalesHtml can name the window and
   // scope EXACTLY as before - unchanged by the hero's own line below.
   function heroMetaLineText(d) {
-    var parts = [heroScopeText(d), heroCountText(d), heroLatestText(d)].filter(Boolean);
+    // the all-sales caption names the scope, the window and the latest sale; the total is stated once, in the card footer (windowLine)
+    var parts = [heroScopeText(d), windowText(d), heroLatestText(d)].filter(Boolean);
     return parts.length ? cap(parts.join(" · ")) : "";
   }
   // The hero's OWN scope line (item 1, Sam's follow-up round, Oct 2026): bodies, the pool's year
@@ -735,6 +736,8 @@
   // tiles shown, not a second-sourced engine field that might not even exist on this tier.
   function heroScopeLineText(d, poolLenOverride) {
     if (!d) return "";
+    // the engine's own line (d.scopeLine, lib/onebox.js scopeLineOf): what the car is and its latest sale, no count (the card footer states the total once); the old build below stays only for an answer that carries none
+    if (typeof d.scopeLine === "string" && d.scopeLine) return d.scopeLine;
     var rc = d.resolvedCar || {};
     var bodies = "";
     if (rc.bodyStyle) {
@@ -762,14 +765,8 @@
     var py = Array.isArray(d.poolYears) && d.poolYears.length === 2 && Number.isFinite(d.poolYears[0]) && Number.isFinite(d.poolYears[1]) ? d.poolYears : rungLabelYearSpan(d.rungLabel);
     var yearSpan = py ? (py[0] === py[1] ? String(py[0]) : (py[0] + " to " + py[1])) : "";
     var bodyYear = bodies && yearSpan ? (bodies + ", " + yearSpan) : (bodies || yearSpan);
-    var count = poolLenOverride != null ? poolLenOverride : d.soldCount, countTxt = "";
-    if (count != null) {
-      var n = Number(count), isNum = Number.isFinite(n);
-      var countWord = isNum ? obNumWord(n) : String(count);
-      var isOne = isNum ? n === 1 : /^one$/i.test(String(count));
-      countTxt = countWord + (isOne ? " sale" : " sales");
-    }
-    var parts = [bodyYear, countTxt, heroScopeLatestText(d)].filter(Boolean);
+    // no count here: the card footer states the total once (lib/onebox.js scopeLineOf is the engine's line; this build is only for an answer that carries none)
+    var parts = [bodyYear, heroScopeLatestText(d)].filter(Boolean);
     return parts.length ? cap(parts.join(" · ")) : "";
   }
   function heroMetaLine(d, poolLenOverride) {

@@ -75,6 +75,13 @@ const CASES = [
   ["2020 mclaren", ["720S", "570S", "GT"]],                                  // never MP4-12C or 650S
   ["1985 land rover", ["Defender 110", "Range Rover"]]                       // fault 2: the Range Rover (8 sales, none in 1985) no longer answers alone; no Discovery (1989 on)
 ];
+// the question Market Check itself asks (runOneBoxModelChoice, the engine's model_choice) offers the same chips: the first version of this fix changed only the resolver's own ask
+const O = await import(pathToFileURL(path.join(root, "lib/onebox.js")).href);
+for (const [q, want] of CASES) {
+  const m = /^(\d{4}) (.+)$/.exec(q), make = { porsche: "Porsche", bmw: "BMW", chevrolet: "Chevrolet", mercedes: "Mercedes-Benz", ford: "Ford", datsun: "Datsun", toyota: "Toyota", lamborghini: "Lamborghini", mclaren: "McLaren", "land rover": "Land Rover" }[m[2]];
+  const mc = await O.runOneBoxModelChoice({ year: Number(m[1]), make }, { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" });
+  ok(`"${q}": the engine's model_choice offers exactly ${want.join(", ")}`, !!mc && mc.tier === "model_choice" && JSON.stringify(mc.modelOptions) === JSON.stringify(want), mc && JSON.stringify(mc.modelOptions));
+}
 for (const [q, want] of CASES) {
   const r = await V.resolveVehicle(q, {});
   const chips = (r.clarification && r.clarification.chips) || [];
