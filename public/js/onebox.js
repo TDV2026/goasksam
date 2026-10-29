@@ -714,6 +714,7 @@
   // scope EXACTLY as before - unchanged by the hero's own line below.
   function heroMetaLineText(d) {
     // the all-sales caption names the scope, the window and the latest sale; the total is stated once, in the card footer (windowLine)
+    if (typeof d.metaLine === "string" && d.metaLine) return d.metaLine;   // an answer with options: the engine's line, no window (each option states its own)
     var parts = [heroScopeText(d), windowText(d), heroLatestText(d)].filter(Boolean);
     return parts.length ? cap(parts.join(" · ")) : "";
   }

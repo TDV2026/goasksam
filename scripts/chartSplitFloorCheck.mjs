@@ -20,9 +20,9 @@ const quarters = { targa: [4, 4, 3], coupe: [6, 6, 6], coupeThin: [4, 4, 4], cab
   ok("a split answer whose first option misses the floor but whose coupe clears it draws candles", c && c.type === "candles", c && c.type);
   ok("the chart states its scope: the coupe, its own count and the total", c && c.scope && c.scope.value === "coupe" && /coupe/i.test(String(c.scope.line)) && c.scope.line.includes("18") && c.scope.line.includes(String(a.rawPool.length)), c && c.scope && c.scope.line);
   ok("its candles are the coupe's own (6 sales each)", c && Array.isArray(c.buckets) && c.buckets.length === 3 && c.buckets.every(b => b.count === 6)); }
-// 2. no option clears (the 1986 case on a window of about four quarters): withheld, said as mix_changes
+// 2. no option clears (the 1986 case on a window of about four quarters): withheld, and the reason is the options' own (none met the floor: too few), not the pooled answer's mix_changes (scripts/chartWhyCheck.mjs)
 { const a = answer([["Targa", "targa", 11], ["Coupe", "coupe", 12], ["Cabriolet", "cabriolet", 8]], [...sales("Targa", quarters.targa, 60000), ...sales("Coupe", quarters.coupeThin, 55000), ...sales("Cabriolet", quarters.cab, 70000)]);
-  const c = E.chartOf(a); ok("no option clears the floor: withheld, with the engine's reason", c && c.type === "withheld" && c.withheld && c.withheld.reason === "mix_changes", c && c.type); }
+  const c = E.chartOf(a); ok("no option clears the floor: withheld, with the engine's reason", c && c.type === "withheld" && c.withheld && c.withheld.reason === "too_few" && c.withheld.options.every(t => t.failed === "floor"), c && c.withheld && c.withheld.reason); }
 // 3. the leading option clears: unchanged, it still draws (no new order for a chart that drew before)
 { const a = answer([["Coupe", "coupe", 18], ["Targa", "targa", 11]], [...sales("Coupe", quarters.coupe, 55000), ...sales("Targa", [6, 6, 6], 60000)]);
   const c = E.chartOf(a); ok("the leading option clears: it draws, as before", c && c.type === "candles" && c.scope && c.scope.value === "coupe"); }

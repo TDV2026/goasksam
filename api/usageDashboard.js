@@ -1777,6 +1777,36 @@ async function handleOps(req, res) {
   // not the current epoch; ?kind=core: every core row still marked stale (market.staleSince); ?kind=scopedout: the specs of live listings outside the launch scope (the ones the scope fix took out of the union), with whether their
   // Market Check row is behind. Paged 1000 rows a call (?after= is the last key); texts are year make model trim body edition variant from the row's own key, de-duplicated, refine rows (a gearbox, body, trim or variant chip's
   // own row) counted apart because the bare row's warm covers them. The key is returned beside each text so a text that resolves to another key can be told.
+  // task=staleword (Lane B, Oct 29 2026, after e2b58967; READ-ONLY, zero OldCarsData, zero writes): the stored rows still holding the words before the Find wording and title-line change, as warm texts for Lane C's --force warm.
+  // Every reader restates these at read time now (lib/onebox.js freshenStoredText), so a listed row already SERVES the current text; the warm only makes the stored copy match, and gives a split core its real group names
+  // (a core holds no options, so its restated unsaid line says "Cars like this"). ?kind=mc (MCWARM rows: no scopeLine on a result or thin answer, the old "pick one" sentence, the count in both thin lines),
+  // ?kind=core (cores: the same two lines), ?kind=scopedout (no stored row exists to restate: use staletexts kind=scopedout). Counts by cause; texts are only the rows listed; ?after= pages 1000 rows.
+  if (task === "staleword") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const kind = ["core", "scopedout"].includes(String(req.query?.kind)) ? String(req.query.kind) : "mc";
+    if (kind === "scopedout") return res.status(200).json({ task: "staleword", kind, ocdSpend: 0, writes: 0, rows: 0, note: "A scoped-out spec has no stored row, so no old words to restate; its warm texts are staletexts kind=scopedout." });
+    const { restateLines } = await import("../lib/onebox.js");
+    const textOf = arr => { const [make, model, trim, year, , body, edition, variant] = arr; return [year, make, model, trim, body, edition, variant].filter(x => x != null && x !== "").join(" ").replace(/\s+/g, " ").trim(); };
+    const parse = key => { try { const a = JSON.parse(String(key).replace(/^[^\[]*(?=\[)/, "")); return Array.isArray(a) ? a : null; } catch { return null; } };
+    const after = req.query?.after ? String(req.query.after) : "";
+    const sel = kind === "mc"
+      ? "spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,tier:market->raw->>tier,sl:market->raw->>scopeLine,aa:market->raw->thin_sales->>answer_line,cc:market->raw->thin_sales->>count_line&order=spec_key.asc&limit=1000"
+      : "spec_market_cache?spec_key=not.like.MCWARM%3A*&spec_key=not.like.LIVESPECS*&spec_key=not.like.QELIG*&spec_key=not.like.MCCOMPUTING*&spec_key=not.like.FINDANS%3A*&select=spec_key,aa:market->thin_sales->>answer_line,cc:market->thin_sales->>count_line,ans:market->>answerLine,cnt:market->>countLine&order=spec_key.asc&limit=1000";
+    const rows = await supabaseSelect(env, sel + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "staleword", kind, readFailed: true, ocdSpend: 0, writes: 0 });
+    const out = { task: "staleword", kind, ocdSpend: 0, writes: 0, rows: rows.length, stale: 0, noScopeLine: 0, oldPickSentence: 0, countInBothLines: 0, refineRows: 0, unparsed: 0, texts: [], next: rows.length === 1000 ? rows[999].spec_key : null };
+    const seen = new Set();
+    for (const r of rows) {
+      const lines = kind === "mc" ? { answer_line: r.aa, count_line: r.cc } : { answer_line: r.ans || r.aa, count_line: r.cnt || r.cc };
+      const re = restateLines(lines, {}), pick = typeof lines.answer_line === "string" && re.answer_line !== lines.answer_line && /\b(pick|choose)\b/i.test(lines.answer_line), dbl = typeof lines.count_line === "string" && re.count_line !== lines.count_line;
+      const noScope = kind === "mc" && /^(result|thin)$/.test(String(r.tier || "")) && !r.sl;
+      if (!(pick || dbl || noScope)) continue; out.stale++; if (noScope) out.noScopeLine++; if (pick) out.oldPickSentence++; if (dbl) out.countInBothLines++;
+      const a = parse(r.spec_key); if (!a) { out.unparsed++; continue; }
+      if (a[9] || a[10] || a[11] || a[12]) { out.refineRows++; continue; }   // a chip's own row: the bare row's warm covers it
+      const t = textOf(a); if (!t || seen.has(t.toLowerCase())) continue; seen.add(t.toLowerCase()); out.texts.push(t);
+    }
+    return res.status(200).json(out);
+  }
   if (task === "staletexts") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { currentEpoch } = await import("../lib/_epoch.js");
@@ -1799,7 +1829,7 @@ async function handleOps(req, res) {
       return res.status(200).json({ task: "staletexts", kind, ocdSpend: 0, writes: 0, outOfScopeLive: all.length, offset, read, distinctSpecs: list.length, behind: list.filter(x => x.behind).length, texts: [...new Set(list.filter(x => x.behind).map(x => x.text))], next: stopped ? offset + read : (offset + limit < all.length ? offset + limit : null) });
     }
     const after = req.query?.after ? String(req.query.after) : "";
-    const like = kind === "mc" ? "spec_key=like.MCWARM%3A*" : "spec_key=not.like.MCWARM%3A*&spec_key=not.like.LIVESPECS*&spec_key=not.like.QELIG*&spec_key=not.like.MCCOMPUTING*";
+    const like = kind === "mc" ? "spec_key=like.MCWARM%3A*" : "spec_key=not.like.MCWARM%3A*&spec_key=not.like.LIVESPECS*&spec_key=not.like.QELIG*&spec_key=not.like.MCCOMPUTING*&spec_key=not.like.FINDANS%3A*";
     const rows = await supabaseSelect(env, `spec_market_cache?${like}&select=spec_key,ep:market->>warmEpoch,ev:market->>engineVersion,mark:market->>staleSince&order=spec_key.asc&limit=1000` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
     if (!Array.isArray(rows)) return res.status(200).json({ task: "staletexts", kind, readFailed: true, ocdSpend: 0, writes: 0 });
     const out = { task: "staletexts", kind, epoch, ocdSpend: 0, writes: 0, rows: rows.length, behind: 0, refineRows: 0, unparsed: 0, texts: [], keys: [], next: rows.length === 1000 ? rows[999].spec_key : null };
@@ -1875,13 +1905,61 @@ async function handleOps(req, res) {
     }
     return res.status(200).json(out);
   }
+  // task=optiondetail (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, zero writes): for ONE car (?make= ?model= ?year=, optional ?trim=), the stored Market Check answer as it is SERVED (optionsFieldsOf, chartOf) and the sales behind every number on it:
+// the footer's window and count, each option's count and window, the sales behind each option and the sales that name no option, each with date, price, source, the listing's own transmission field and how the engine reads it (gearboxType), and
+// the chart ladder per option (sales per quarter, the floor, the quarters that meet it, which test failed). Up to ?cap= sales per group (default 60). One answer per call (the bare row of the car, no chip), so a call is one small read.
+if (task === "optiondetail") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { optionsFieldsOf, chartOf, chartOptionOf, gearboxType, ENGINE_VERSION } = await import("../lib/onebox.js");
+    const make = String(req.query?.make || "").trim(), model = String(req.query?.model || "").trim(), year = Number(req.query?.year) || null, trim = String(req.query?.trim || "").trim();
+    const cap = Math.max(5, Math.min(200, Number(req.query?.cap) || 60));
+    if (!make || !model) return res.status(400).json({ error: "make and model are required" });
+    const keys = await supabaseSelect(env, `spec_market_cache?spec_key=like.${encodeURIComponent(`MCWARM:["${make}","${model}",*`)}&select=spec_key,ev:market->>engineVersion,at:computed_at&order=spec_key.asc&limit=400`);
+    if (!Array.isArray(keys)) return res.status(200).json({ task: "optiondetail", readFailed: true, ocdSpend: 0, writes: 0 });
+    const parse = k => { try { return JSON.parse(String(k).replace(/^MCWARM:/, "")); } catch { return null; } };
+    const hit = keys.find(r => { const a = parse(r.spec_key); return a && (year ? a[3] === year : a[3] == null) && String(a[2] || "") === trim && !(a[9] || a[10] || a[11] || a[12]) && r.ev === ENGINE_VERSION; });
+    if (!hit) return res.status(200).json({ task: "optiondetail", ocdSpend: 0, writes: 0, found: false, candidates: keys.filter(r => { const a = parse(r.spec_key); return a && (!year || a[3] === year); }).slice(0, 8).map(r => ({ key: r.spec_key.slice(0, 100), engineVersion: r.ev })) });
+    const got = await supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent(hit.spec_key)}&select=raw:market->raw`);
+    const a = got && got[0] && got[0].raw; if (!a) return res.status(200).json({ task: "optiondetail", found: false, readFailed: true, ocdSpend: 0, writes: 0 });
+    const d = { ...a, ...optionsFieldsOf(a) }, pool = (Array.isArray(a.rawPool) ? a.rawPool : []).map(r => ({ ...r, _usd: Number(r._usd ?? r._allin ?? r._hammer) })).filter(r => r._usd > 0);
+    const dateOf = r => String(r.auction_end_date || "").slice(0, 10);
+    const MON = ["january","february","march","april","may","june","july","august","september","october","november","december"];
+    const sinceDate = w => { const m = /since (\w+) (\d{4})/i.exec(String(w || "")); const i = m ? MON.indexOf(m[1].toLowerCase()) : -1; return i < 0 ? null : `${m[2]}-${String(i + 1).padStart(2, "0")}-01`; };
+    const row = r => ({ date: dateOf(r), usd: Math.round(r._usd), source: r.source_slug || r.platform || null, gearboxField: r.transmission ?? null, readAs: gearboxType(r) || null, title: String(r.rtitle || r.raw_title || r.listing_title || "").slice(0, 80) });
+    const dim = a.headlineDimension, base = Array.isArray(a.options) ? a.options : [], footerFrom = sinceDate(a.windowWords);
+    const inFooter = pool.filter(r => !footerFrom || dateOf(r) >= footerFrom);
+    const groups = (d.options || []).map(o => { const from = o.windowDiffers ? sinceDate(o.windowWords) : footerFrom; const stored = base.find(x => x.value === o.value) || {};
+      const rows = pool.filter(r => { const x = chartOptionOf(o.dimension, r, base); return x && x.value === o.value && (!from || dateOf(r) >= from); }).sort((x, y) => dateOf(y).localeCompare(dateOf(x)));
+      return { label: o.label, servedN: o.n, storedN: stored.n ?? null, servedWindow: o.windowWords || null, storedWindow: stored.windowWords || null, ownWindow: !!stored.ownWindow, capped: !!o.windowCapped, recounted: !!o.recounted, sales: rows.length, listed: rows.slice(0, cap).map(row) }; });
+    const none = inFooter.filter(r => !base.some(o => { const x = chartOptionOf(o.dimension, r, base); return x && x.value === o.value; })).sort((x, y) => dateOf(y).localeCompare(dateOf(x)));
+    const ch = chartOf(d), why = ch && ch.withheld ? ch.withheld : null;
+    return res.status(200).json({ task: "optiondetail", ocdSpend: 0, writes: 0, found: true, key: hit.spec_key.slice(0, 120), storedAt: hit.at, dimension: dim, footer: { poolN: a.poolN, windowWords: a.windowWords || null, windowLine: a.windowLine || null, rawPool: pool.length, inFooterWindow: inFooter.length }, groups,
+      nameNoOption: { sales: none.length, line: d.optionsRemainder ? d.optionsRemainder.line : null, listed: none.slice(0, cap).map(row) },
+      chart: ch ? { type: ch.type, scope: ch.scope ? ch.scope.label : null, reason: why ? why.reason : null, pooledReason: a.trendHeld ? a.trendHeld.reason : null, options: why ? why.options || null : null } : null });
+  }
   // task=chartsplitsweep (Lane B, Oct 29 2026, e101; named so it does not collide with the older chartsweep; READ-ONLY, no write, no spend): the stored Market Check answers whose pooled chart is held for a changing mix and that are split by an option: how many drew
   // no chart under the old one-option rule, how many draw a scoped chart now (every option tried, largest first), how many stay withheld because no option clears the candle floor, and ten examples
   // with each option's own count and the 1986 Porsche 911 if it is in the page. 100 stored answers a page (?after=).
   if (task === "chartsplitsweep") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { chartOf, optionsFieldsOf } = await import("../lib/onebox.js");
+    const { chartOf, optionsFieldsOf, ENGINE_VERSION: liveStamp } = await import("../lib/onebox.js");
     const after = req.query?.after ? String(req.query.after) : "";
+    // ?big=1 (Oct 29 2026): the live-stamp answers whose chart is withheld although some option holds 30 or more sales, with each option's own test. A light read (options and the held flag, 1,000 keys a page), then ONLY the
+    // candidates' answers are read, up to 40 a call. Counts: answers read, held, with an option of 30+, still withheld, and by the reason the options give against the reason the pooled answer gave.
+    if (req.query?.big === "1") {
+      const light = await supabaseSelect(env, `spec_market_cache?spec_key=like.MCWARM%3A*&market->>engineVersion=eq.${encodeURIComponent(liveStamp)}&select=spec_key,held:market->raw->trendHeld->>reason,opts:market->raw->options&order=spec_key.asc&limit=1000` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+      if (!Array.isArray(light)) return res.status(200).json({ task: "chartsplitsweep", mode: "big", readFailed: true, ocdSpend: 0, writes: 0 });
+      const cand = light.filter(r => r.held && Array.isArray(r.opts) && r.opts.some(o => Number(o && o.n) >= 30));
+      const o2 = { task: "chartsplitsweep", mode: "big", ocdSpend: 0, writes: 0, keys: light.length, pooledHeld: light.filter(r => r.held).length, heldWithBigOption: cand.length, read: 0, drawNow: 0, stillWithheld: 0, reasons: { options_mix: 0, options_too_few: 0 }, wrongReasonBefore: 0, examples: [], next: light.length === 1000 ? light[999].spec_key : null, more: cand.length > 40 };
+      for (const c of cand.slice(0, 40)) {
+        const got = await supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent(c.spec_key)}&select=raw:market->raw`); const a = got && got[0] && got[0].raw; if (!a) continue; o2.read++;
+        const ch = chartOf({ ...a, ...optionsFieldsOf(a) });
+        if (ch && ch.type === "candles") { o2.drawNow++; continue; }
+        o2.stillWithheld++; const w = ch && ch.withheld; if (w) { o2.reasons[w.reason === "mix_changes" ? "options_mix" : "options_too_few"]++; if (w.reason !== c.held) o2.wrongReasonBefore++; }
+        if (o2.examples.length < 10) o2.examples.push({ key: c.spec_key.slice(0, 110), options: (a.options || []).map(o => `${o.label} ${o.n}`), pooledReason: c.held, optionsReason: w ? w.reason : null, tried: w && w.options ? w.options.map(t => `${t.label}: n ${t.n}, quarters meeting the floor ${t.quartersMeeting} of ${t.quartersNeeded} at ${t.floor}+, failed ${t.failed}`) : null });
+      }
+      return res.status(200).json(o2);
+    }
     const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,raw:market->raw&order=spec_key.asc&limit=100` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
     if (!Array.isArray(rows)) return res.status(200).json({ task: "chartsplitsweep", readFailed: true, ocdSpend: 0, writes: 0 });
     const out = { task: "chartsplitsweep", ocdSpend: 0, writes: 0, rows: rows.length, split: 0, held: 0, withheldBefore: 0, drawNow: 0, stillWithheld: 0, examples: { nowDraw: [], stillWithheld: [] }, next: rows.length === 100 ? rows[99].spec_key : null };
@@ -1894,6 +1972,57 @@ async function handleOps(req, res) {
       const ex = { key: r.spec_key, n: now && now.n, options: a.options.map(o => `${o.label} ${o.n}`), scope: now && now.scope ? now.scope.label : null, heldLine: now && now.withheld ? now.withheld.reason : null };
       if (before && before.type === "withheld" && now && now.type === "candles") { out.drawNow++; if (out.examples.nowDraw.length < 10) out.examples.nowDraw.push(ex); }
       else if (now && now.type === "withheld") { out.stillWithheld++; if (out.examples.stillWithheld.length < 10 || /\["Porsche","911"[^\]]*1986/.test(r.spec_key)) out.examples.stillWithheld.push(ex); }
+    }
+    return res.status(200).json(out);
+  }
+  // task=warmFind (Lane B, Oct 29 2026; WRITES the FINDANS: rows, zero OldCarsData spend, archive only): the pre-fill of the Find answer for every live spec the engine asks a question about first, so no card computes its own on a reader's first open.
+  // ?count=1 only counts (no write). ?offset= ?limit= (default 12 specs a call) ?chain=k/n (every nth from k) ?force=1 (recompute rows already stored at the current epoch and stamp) ?budget= (ms). Resumable: a row already stored is skipped.
+  // Returns { total, offset, next, done, stored, skipped, failed, rows } so scripts/warmFind.mjs can loop it, print a line every 500 specs, and resume.
+  if (task === "warmFind") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { liveAskFirstSpecs, prefillFindAnswer } = await import("../lib/live/search.js");
+    const L = await liveAskFirstSpecs(env);
+    const ch = /^(\d+)\/(\d+)$/.exec(String(req.query?.chain || "")), list = ch ? L.rows.filter((_, i) => i % Number(ch[2]) === Number(ch[1])) : L.rows;
+    const byKind = {}; for (const r of list) byKind[r.esc] = (byKind[r.esc] || 0) + 1;
+    if (req.query?.count === "1") return res.status(200).json({ task: "warmFind", count: true, ocdSpend: 0, writes: 0, liveSpecs: L.liveSpecs, total: list.length, byKind, readFailed: L.readFailed });
+    const offset = Math.max(0, Number(req.query?.offset) || 0), limit = Math.max(1, Math.min(40, Number(req.query?.limit) || 12)), budget = Math.min(270000, Number(req.query?.budget) || 200000), force = req.query?.force === "1", t0 = Date.now();
+    const out = { task: "warmFind", ocdSpend: 0, total: list.length, offset, stored: 0, skipped: 0, failed: 0, rows: [], next: null, done: false };
+    let i = offset;
+    for (; i < Math.min(list.length, offset + limit); i++) {
+      if (Date.now() - t0 > budget) break;
+      const r = list[i];
+      try { const x = await prefillFindAnswer(env, r.spec, force); if (x.stored) { out[x.skipped ? "skipped" : "stored"]++; } else { out.failed++; } out.rows.push({ i, q: r.spec.title, kind: r.esc, stored: !!x.stored, skipped: !!x.skipped, tier: x.tier || null }); }
+      catch (e) { out.failed++; out.rows.push({ i, q: r.spec.title, kind: r.esc, stored: false, error: String(e && e.message || e).slice(0, 80) }); }
+    }
+    out.writes = out.stored; out.next = i < list.length ? i : null; out.done = i >= list.length;
+    return res.status(200).json(out);
+  }
+  // task=findasks (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, zero writes): the live specs whose Find ladder took the pooled read because the engine asks a question first for the spec's text (the core's escalatedFrom.tier: dochistory_choice, trim_choice,
+  // generation_choice, body_choice, gearbox_choice, variant_choice, model_choice), with the state of the card each one draws TODAY: no core, a none or not_tracked row, a split core whose option lines stand on no sales answer (the stored Market Check
+  // row of the spec is missing or not a result or thin: the old split state, the 1995 Cabriolet), or a core that stands on its own numbers. Counts by kind and by state, and 10 examples with the lines the card prints.
+  if (task === "findasks") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { ENGINE_VERSION } = await import("../lib/onebox.js");
+    const { liveAskFirstSpecs, findAnswerKeyFor } = await import("../lib/live/search.js");
+    const L = await liveAskFirstSpecs(env), readFailed = L.readFailed, withEsc = L.rows, live = { size: L.liveSpecs }, cores = { size: L.liveWithCore };
+    const mcTier = new Map(), findRow = new Map();
+    for (let i = 0; i < withEsc.length; i += 40) {
+      const part = withEsc.slice(i, i + 40), list = part.map(r => '"MCWARM:' + r.spec_key.replace(/"/g, '\\"') + '"').join(",");
+      const rows = await supabaseSelect(env, `spec_market_cache?spec_key=in.(${encodeURIComponent(list)})&select=spec_key,tier:market->raw->>tier,ev:market->>engineVersion`);
+      if (Array.isArray(rows)) for (const r of rows) mcTier.set(r.spec_key.replace(/^MCWARM:/, ""), r);
+      const flist = part.map(r => '"' + findAnswerKeyFor({ key: r.spec_key }).replace(/"/g, '\\"') + '"').join(",");
+      const frows = await supabaseSelect(env, `spec_market_cache?spec_key=in.(${encodeURIComponent(flist)})&select=spec_key,tier:market->raw->>tier,ev:market->>engineVersion`);
+      if (Array.isArray(frows)) for (const r of frows) findRow.set(r.spec_key.replace(/^FINDANS:/, ""), r);
+    }
+    const out = { task: "findasks", ocdSpend: 0, writes: 0, readFailed, liveSpecs: live.size, liveWithCore: cores.size, liveSpecsWithoutCore: live.size - cores.size, stillReading: 0, askFirst: withEsc.length, byKind: {}, byState: {}, byKindState: {}, examples: [] };
+    for (const r of withEsc) {
+      const mc = mcTier.get(r.spec_key), mcOk = mc && mc.ev === ENGINE_VERSION && /^(result|thin)$/.test(String(mc.tier || ""));
+      const split = r.os && r.os !== "none" && Array.isArray(r.ol) && r.ol.length;
+      const fr = findRow.get(r.spec_key), frOk = fr && fr.ev === ENGINE_VERSION && /^(result|thin)$/.test(String(fr.tier || "")), frAny = fr && fr.ev === ENGINE_VERSION;
+      // what the card draws: with a sales answer behind it (the Market Check row, or the spec's FINDANS row) it draws that answer; a split core with none is "still reading" until the FINDANS row exists, and the engine's plain words when that row is not a sales answer
+      const state = r.kind === "none" ? (r.rl ? "none_with_reason" : "none_blank") : r.kind === "not_tracked" ? "not_tracked" : split && !mcOk && !frOk ? (frAny ? "unresolved_plain_words" : "still_reading_until_first_read") : split ? "split_core_with_answer" : "own_numbers";
+      out.byKind[r.esc] = (out.byKind[r.esc] || 0) + 1; out.byState[state] = (out.byState[state] || 0) + 1; if (state === "still_reading_until_first_read") out.stillReading++; const ks = r.esc + " | " + state; out.byKindState[ks] = (out.byKindState[ks] || 0) + 1;
+      if ((/^(still_reading|unresolved)/.test(state) || /^none|not_tracked/.test(state)) && out.examples.length < 10) out.examples.push({ key: r.spec_key.slice(0, 110), asksFirst: r.esc, state, mcRowTier: mc ? mc.tier : null, printsToday: [...(split ? r.ol : []), r.cl, r.al, r.rl].filter(Boolean) });
     }
     return res.status(200).json(out);
   }

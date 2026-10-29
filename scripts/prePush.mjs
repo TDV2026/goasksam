@@ -1398,6 +1398,41 @@ try {
 } catch (e) {
   record("Find: the card never says pick or choose, real listings' fields settle the option (scripts/findNoPickCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A row stored before the Find wording and the title line changed serves the current text (Lane B, Oct 29 2026, after e2b58967).
+try {
+  const out = execSync("node scripts/storedTextCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("stored rows: a row stored before the wording change serves the current lines (scripts/storedTextCheck.mjs)", "PASS", (out.match(/storedTextCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("stored rows: a row stored before the wording change serves the current lines (scripts/storedTextCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// A withheld chart says the options' reason, not the pooled answer's (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/chartWhyCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("chart: a withheld chart says why the options were withheld (scripts/chartWhyCheck.mjs)", "PASS", (out.match(/chartWhyCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("chart: a withheld chart says why the options were withheld (scripts/chartWhyCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// A Find card stands on the answer of its own spec, whatever the typed text would ask (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/findResolveCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Find: a card stands on its own spec's answer for every question kind, never the stale core's numbers (scripts/findResolveCheck.mjs)", "PASS", (out.match(/findResolveCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Find: a card stands on its own spec's answer for every question kind, never the stale core's numbers (scripts/findResolveCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// The Find pre-fill writes rows the card reads without computing (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/findPrefillCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Find: the pre-fill writes the rows a card reads without computing (scripts/findPrefillCheck.mjs)", "PASS", (out.match(/findPrefillCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Find: the pre-fill writes the rows a card reads without computing (scripts/findPrefillCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// An answer with options states no total in its footer, each option its own count and since date, the title line never repeats the title's year (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/footerOptionsCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("pages: options answers state no total in the footer, each option its own window, no repeated year (scripts/footerOptionsCheck.mjs)", "PASS", (out.match(/footerOptionsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("pages: options answers state no total in the footer, each option its own window, no repeated year (scripts/footerOptionsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // An ended lot never stays unmarked past one pull cycle (Lane B, Oct 29 2026).
 try {
   const out = execSync("node scripts/endedLotCheck.mjs", { encoding: "utf8", timeout: 120000 });
