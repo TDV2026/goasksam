@@ -14,7 +14,7 @@ const BA = await import("../lib/live/buyAlerts.js");
 const rows = L.lookingRows([{ id: "w1", kind: "spec", label: "Impala, all years", identity: "1995 Chevrolet Impala SS" }, { id: "w2", kind: "vin", label: "1994 Porsche 911 Carrera Cabriolet" }], [{ listing_id: 4412, title: "2010 Porsche 911 Carrera Cabriolet", end_time: "2026-11-03T20:00:00Z", ended: false }, { listing_id: 9, title: "ended one", ended: true }]);
 ok(rows.length === 3 && rows.map(r => r.kind).join() === "spec_watch,car_watch,alert", "the list holds a spec watch, an exact-car watch and an alert (an ended alert is not listed)");
 ok(rows.every(r => /^(w|a):/.test(r.ref) && r.what && r.detail), "each row has a ref to stop it, what it watches and a plain line");
-ok(rows[2].detail === BA.TOGGLE_LINE && /two hours before bidding ends/.test(BA.TOGGLE_LINE), "an alert's row carries the same rule line as the toggle");
+ok(rows[2].detail === L.LOOKING_WORDS.alert && L.LOOKING_WORDS.alert === "One email about two hours before bidding ends." && /two hours before bidding ends/.test(BA.TOGGLE_LINE), "an alert's row says 'One email about two hours before bidding ends.' (Sam, Oct 29); the toggle keeps its longer rule");
 const counts = L.lookingCounts(3, rows);
 ok(counts.tasks.working === 3 && counts.tasks.max === 3 && counts.watches.count === 2 && counts.alerts.count === 1 && counts.watches.max === caps.WATCH_CAP && counts.alerts.max === caps.ALERT_CAP, "the counts are apart: 3 of 3 Tasks, 2 watches, 1 alert, each against its own cap");
 ok(counts.tasks.max === 3, "watches and alerts never change the Task limit");
@@ -59,8 +59,8 @@ const buy = rd("api/buy.js"), i = buy.indexOf("const CLIENT = ") + "const CLIENT
 ok(/rule: TOGGLE_LINE/.test(BS), "alerts_ready sends the rule");
 ok(/ALERT_RULE/.test(C) && /"Sam’s on it\. " \+ ALERT_RULE/.test(C) && /with where the bid stands\. " \+ ALERT_RULE/.test(C), "the toggle prints the server's rule in both states");
 ok(!/You’ll get an email before it ends/.test(C), "the toggle no longer says 'You'll get an email before it ends' with no time");
-ok(/Added to your Tasks\. /.test(C) && /Already on your Tasks\. /.test(C) && /href="\/tasks\/mine"/.test(C), "a toggle or button confirms 'Added to your Tasks' (or 'Already on your Tasks') with the link");
-ok(/j\.reason === "cap" \? j\.line : j && j\.limited \? j\.line/.test(C) && /j\.error === "cap" \|\| j\.limited\) && j\.line/.test(C), "the cap and the address line reach the page as the server's own words");
+ok(/Added to /.test(C) && /Already in /.test(C) && /href="\/tasks\/mine/.test(C), "a toggle or button confirms 'Added to Watching' (or 'Already in Watching') with the link (standingControlsCheck covers the rest)");
+ok(/alertFail\(id, j && j\.line\)/.test(C) && /watchFail\(id, j && j\.line\)/.test(C), "the cap and the address line reach the page as the server's own words");
 ok(/BOTH/.test("BOTH") && /askSignInFor\("watch"/.test(C) && /askSignIn\(id\)/.test(C), "signed out: the choice starts the sign-in and comes back to it (the drawer's own flow)");
 try { new Function(C.replace("__KEEP_ICON__", "''").replace("__COLD_MISSED__", () => JSON.stringify("COLD_MISSED")).replace("__COLD_READING__", () => JSON.stringify("COLD_READING"))); ok(true, ""); } catch (e) { ok(false, "Find's client script parses (" + e.message + ")"); }
 // 5. the engine's name for the car

@@ -15,8 +15,9 @@ import { trackHealth, withTracking } from "../lib/track/log.js";
 import { BUY_CHAT_SPEND_PER_DAY_USD } from "../lib/_ceilings.js";
 import { heldBackPanel, runHeldBackAlert } from "../lib/admin/heldBack.js";
 import { readPremiumFreshness } from "../lib/ops/premiumFresh.js";
-import { launchPanels, rightNow, LAUNCH_ISO } from "../lib/admin/launch.js";
+import { launchPanels, rightNow, launchIso } from "../lib/admin/launch.js";
 import { healthPanel, healthUnread } from "../lib/admin/health.js";
+import { launchWords } from "../lib/launchTime.js";
 import { searchesPanel, usersPanel, userJourney } from "../lib/admin/people.js";
 
 const CRON_ROUTES = ["/api/pullLive", "/api/tasks", "/api/refreshSpecLiveCounts", "/api/admin"];
@@ -139,18 +140,18 @@ async function demand(env) {
   };
 }
 
-// The Launch tab's date picker: today and yesterday are Pacific days, "launch" runs from Thursday Oct 29 7:00 AM Pacific, last 7 days is a rolling week.
+// The Launch tab's date picker: today and yesterday are Pacific days, "launch" runs from the opening time (the LAUNCH_AT setting; empty until Sam sets it, then nothing to count), last 7 days is a rolling week.
 function launchRange(key) {
   const now = new Date(), nowIso = new Date(now.getTime() + 1000).toISOString();
   if (key === "yesterday") { const y = ptRange(ptDay(-1)); return { key, from: y.start, to: y.end }; }
-  if (key === "launch") return { key, from: LAUNCH_ISO, to: nowIso };
+  if (key === "launch") return { key, from: launchIso() || nowIso, to: nowIso };
   if (key === "last7") return { key, from: new Date(now.getTime() - 7 * 864e5).toISOString(), to: nowIso };
   return { key: "today", from: ptRange(ptDay(0)).start, to: nowIso };
 }
 async function launch(env, key, crew) {
   const r = { ...launchRange(key), crew: !!crew };
   const [panels, now, held_back, health] = await Promise.all([r.from >= r.to ? Promise.resolve({ range: r, before_launch: true }) : launchPanels(env, r), rightNow(env, !!crew), heldBackPanel(env, !!crew), healthPanel(env, !!crew).catch(() => healthUnread())]);
-  return { ...panels, now, held_back, health, launchAt: LAUNCH_ISO };
+  return { ...panels, now, held_back, health, launchAt: launchIso(), launchWords: launchWords() || null };
 }
 
 const ANON_RE = /^[A-Za-z0-9_-]{16,40}$/;
@@ -407,7 +408,7 @@ R.launch=function(d){
  h+='<p class=note>Refreshes every 60 seconds. '+(d.generatedAt?'Numbers as of '+E(fmtT(d.generatedAt))+'. ':'')+(crew?'Crew and test traffic are included. ':'Crew and test traffic are left out. ')+'Bots are left out. Nothing here is personal: visitors are counted, never listed. Visitors who declined analytics in Europe, the UK or Switzerland appear only in the answer counts.</p>';
  h+=crewBox();
  h+=healthBlocks(d.health);
- if(d.before_launch||(d.range&&rng==="launch"&&d.range.from>=d.range.to))h+='<p class="fresh amber">Launch is Thursday Oct 29 at 7:00 AM Pacific. Nothing to count yet.</p>';
+ if(d.before_launch||(d.range&&rng==="launch"&&d.range.from>=d.range.to))h+='<p class="fresh amber">'+(d.launchWords?'Launch is '+E(d.launchWords)+'.':'The opening time is not set yet.')+' Nothing to count yet.</p>';
  if(d.truncated)h+='<p class="fresh amber">This range has more page views than the tab counts; only the earliest 60,000 are in the visitor numbers.</p>';
  if(!d.answerRate){return h;}
  // 1

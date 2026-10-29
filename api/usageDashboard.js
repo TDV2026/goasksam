@@ -1972,7 +1972,8 @@ async function handleOps(req, res) {
     const { resolveVehicle } = await import("../lib/vehicle.js"); const { findGeneration } = await import("../lib/generations.js"); const { oneEngineAnswer, withReadFields } = await import("../lib/onebox.js");
     const { warmAnswerKeyFor, readWarmAnswerDetailed } = await import("../lib/live/search.js"); const { vinSearchPlan, applyVinOverlay, typedWordsFor } = await import("../lib/vinAsTyped.js");
     const limit = Math.max(1, Math.min(8, Number(req.query?.limit) || 5));
-    const rows = await supabaseSelect(env, "live_listings?status=eq.live&vin_norm=not.is.null&year=not.is.null&make=not.is.null&model=not.is.null&select=vin_norm,year,make,model,listing_title&order=id.asc&limit=400");
+    const matchQ = String(req.query?.match || "").trim(), repeat = Math.max(1, Math.min(5, Number(req.query?.repeat) || 1));   // ?match= a title fragment (one named car), ?repeat= runs of each path (at most 5): the determinism proof
+    const rows = await supabaseSelect(env, "live_listings?status=eq.live&vin_norm=not.is.null&year=not.is.null&make=not.is.null&model=not.is.null&select=vin_norm,year,make,model,listing_title&order=id.asc&limit=400" + (matchQ ? "&listing_title=ilike.*" + encodeURIComponent(matchQ) + "*" : ""));
     const seen = new Set(), picks = []; for (const r of (Array.isArray(rows) ? rows : [])) { if (String(r.vin_norm || "").length !== 17) continue; const k = r.year + r.make + r.model; if (seen.has(k)) continue; seen.add(k); picks.push(r); if (picks.length >= limit) break; }
     const OUT = new Set(["readAt", "latencyMs", "timings", "snapshotId", "dedup"]), ADDS = new Set(["ownSales", "matchedOption", "options", "optionLines", "headlineLines", "optionsNote", "refineOptions", "optionsRemainder", "chart"]);
     const answer = async (vehicle, text) => { const generation = await findGeneration(vehicle, env).catch(() => null), st = await readWarmAnswerDetailed(env, warmAnswerKeyFor(vehicle, generation)).catch(() => null); let raw = st && st.raw, via = "stored"; if (!raw) { via = "engine"; raw = (await oneEngineAnswer(vehicle, generation, text, { ...env, asked: 0 }, null)).raw; } return { d: withReadFields(raw, text, vehicle), via }; };
@@ -1985,7 +1986,16 @@ async function handleOps(req, res) {
         const plan = await vinSearchPlan(vv, { resolveVehicle }); if (!plan || plan.unresolved) { out.cars.push({ ...car, vin: "unresolved", line: plan && plan.line }); continue; }
         const A = await answer(tv, words), Bv = await answer(plan.vehicle, plan.text), vin = applyVinOverlay(Bv.d, plan.ctx);
         const diff = Object.keys({ ...A.d, ...vin }).filter(k => !OUT.has(k) && !ADDS.has(k) && JSON.stringify(A.d[k]) !== JSON.stringify(vin[k]));
-        out.cars.push({ ...car, typed: { via: A.via, tier: A.d.tier, cluster: A.d.cluster || null, poolN: A.d.poolN ?? null }, byVin: { via: Bv.via, tier: vin.tier, cluster: vin.cluster || null, poolN: vin.poolN ?? null, ownSales: !!vin.ownSales, matchedOption: vin.matchedOption ? vin.matchedOption.label : null }, differingFields: diff, identical: diff.length === 0 });
+        let runs = null;
+        if (repeat > 1) {   // each path computed fresh (the engine, never the stored row) `repeat` times: the order of the cards each time, and the first place two runs of the SAME path differ
+          const cardKey = c => [c && c.price, c && (c.date || c.soldDate || c.auction_end_date), String(c && (c.title || c.rtitle) || "").slice(0, 28)].join("|");
+          const fresh = async (vehicle, text, overlay) => { const generation = await findGeneration(vehicle, env).catch(() => null), raw = (await oneEngineAnswer(vehicle, generation, text, { ...env, asked: 0 }, null)).raw, d = withReadFields(raw, text, vehicle); return (overlay ? applyVinOverlay(d, plan.ctx) : d); };
+          const typedRuns = [], vinRuns = []; for (let k = 0; k < repeat; k++) { typedRuns.push(await fresh(tv, words, false)); vinRuns.push(await fresh(plan.vehicle, plan.text, true)); }
+          const order = ds => ds.map(d => (Array.isArray(d.cards) ? d.cards : []).slice(0, 12).map(cardKey)), sig = o => JSON.stringify(o);
+          const to = order(typedRuns), vo = order(vinRuns), firstDiff = (x, y) => { for (let i = 0; i < Math.max(x.length, y.length); i++) if (x[i] !== y[i]) return { at: i, a: x[i] || null, b: y[i] || null }; return null; };
+          runs = { repeat, typedSame: to.every(o => sig(o) === sig(to[0])), vinSame: vo.every(o => sig(o) === sig(vo[0])), typedVsVinSame: sig(to[0]) === sig(vo[0]), typedFirstDiff: to.length > 1 ? firstDiff(to[0], to.find(o => sig(o) !== sig(to[0])) || to[0]) : null, vinFirstDiff: vo.length > 1 ? firstDiff(vo[0], vo.find(o => sig(o) !== sig(vo[0])) || vo[0]) : null, typedVsVinFirstDiff: firstDiff(to[0], vo[0]), typedOrders: to.map(o => o.slice(0, 6)), vinOrders: vo.map(o => o.slice(0, 6)), cardsCount: typedRuns.map(d => (d.cards || []).length), fieldsDifferingAcrossTypedRuns: Object.keys({ ...typedRuns[0], ...typedRuns[1] }).filter(k => !OUT.has(k) && JSON.stringify(typedRuns[0][k]) !== JSON.stringify(typedRuns[1][k])) };
+        }
+        out.cars.push({ ...car, ...(runs ? { runs } : {}), typed: { via: A.via, tier: A.d.tier, cluster: A.d.cluster || null, poolN: A.d.poolN ?? null }, byVin: { via: Bv.via, tier: vin.tier, cluster: vin.cluster || null, poolN: vin.poolN ?? null, ownSales: !!vin.ownSales, matchedOption: vin.matchedOption ? vin.matchedOption.label : null }, differingFields: diff, identical: diff.length === 0 });
       } catch (e) { out.cars.push({ ...car, error: String(e && e.message || e).slice(0, 100) }); }
     }
     out.identical = out.cars.filter(c => c.identical).length; out.compared = out.cars.filter(c => c.typed && c.byVin).length;
@@ -5777,6 +5787,38 @@ if (task === "optiondetail") {
   }
   // task=warmDay&day=YYYY-MM-DD (launch warm, Oct 28 2026): read-only count of the stored answers (Market Check MCWARM rows, and the Buy/Tasks core rows
   // apart) not stored on that UTC day, for the live engine version. The launch gate is offDay = 0 on the MCWARM rows (lib/warmDay.js, scripts/warmDayCheck.mjs).
+  // task=refusals (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, zero writes): every stored answer whose tier is a refusal, by the kind and the failed checks (the sentence "No figures are shown because this car could not be checked." is the invariant refusal), with the key and up to 40 examples.
+  // The sweep behind "which live cards say could not be checked, and why". Pages 1,000 stored rows a call (?after= the last key); filter ?kind= (invariant_failed, not_a_car, builder_car, thin, ...).
+  if (task === "refusals") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const after = String(req.query?.after || ""), kindQ = String(req.query?.kind || "");
+    const rows = await supabaseSelect(env, `spec_market_cache?select=spec_key,tier:market->raw->>tier,kind:market->raw->refusal->>kind,failed:market->raw->refusal->failedChecks,ev:market->>engineVersion,line:market->raw->>refusal_line&market->raw->>tier=eq.refusal&order=spec_key.asc&limit=1000` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "refusals", readFailed: true, ocdSpend: 0, writes: 0 });
+    const out = { task: "refusals", ocdSpend: 0, writes: 0, refusals: rows.length, byPrefix: {}, byKind: {}, byFailedCheck: {}, byStamp: {}, examples: [], next: rows.length === 1000 ? rows[999].spec_key : null };
+    for (const r of rows) {
+      const prefix = String(r.spec_key).includes(":") ? String(r.spec_key).split(":")[0] : "core", kind = r.kind || "none";
+      if (kindQ && kind !== kindQ) continue;
+      out.byPrefix[prefix] = (out.byPrefix[prefix] || 0) + 1; out.byKind[kind] = (out.byKind[kind] || 0) + 1; out.byStamp[r.ev || "none"] = (out.byStamp[r.ev || "none"] || 0) + 1;
+      for (const c of Array.isArray(r.failed) ? r.failed : []) out.byFailedCheck[c] = (out.byFailedCheck[c] || 0) + 1;
+      if (out.examples.length < 40) out.examples.push({ key: String(r.spec_key).slice(0, 110), kind, failed: r.failed || null, stamp: r.ev || null });
+    }
+    return res.status(200).json(out);
+  }
+  // task=bodynames (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, zero writes): the live-lot sweep behind "a body word inside a model's name is not a body" (lib/bodyWords.js BODY_NAME_PHRASES). Over every live listing title and the newest ?n= (default 40,000) car sales in
+  // sales_archive: how many titles carry each name phrase, what the body reader said before the phrase table (the bare words) and what it says now, and every title whose body CHANGED, by body style (so a wagon read from Power Wagon, a van from Van Diemen, an Avant from Traction Avant is listed under the body that was wrong).
+  if (task === "bodynames") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const B = await import("../lib/bodyWords.js"); const n = Math.min(80000, Number(req.query?.n) || 40000);
+    const live = await supabaseSelectAll(env, "live_listings?status=eq.live&select=listing_title"), sold = await supabaseSelectAll(env, `sales_archive?select=listing_title&vehicle_type=eq.car&order=sale_date.desc&limit=${n}`);
+    const oldBody = t0 => { const t = String(t0 || "").toLowerCase(); for (const b of B.BODY_BUCKETS) if (b.words.some(w => t.includes(w))) return b.style; for (const r of B.BODY_WORD_RULES) if (r.re.test(t) && (!r.when || r.when(t))) return r.style; return null; };
+    const out = { task: "bodynames", ocdSpend: 0, writes: 0, liveTitles: (live || []).length, soldTitles: (sold || []).length, phrases: {}, changedByOldBody: {}, examples: {} };
+    for (const [src, list] of [["live", live || []], ["sold", sold || []]]) for (const r of list) {
+      const t = String(r.listing_title || ""), low = t.toLowerCase();
+      for (const np of B.BODY_NAME_PHRASES) { if (!np.re.test(low)) continue; const k = np.re.source.slice(0, 40); (out.phrases[k] = out.phrases[k] || { live: 0, sold: 0 })[src]++;
+        const was = oldBody(t), now = B.bodyFromText(t); if (was !== now) { const key = (was || "none") + " -> " + (now || "none"); out.changedByOldBody[key] = (out.changedByOldBody[key] || 0) + 1; (out.examples[key] = out.examples[key] || []); if (out.examples[key].length < 8) out.examples[key].push(t.slice(0, 80)); } }
+    }
+    return res.status(200).json(out);
+  }
   if (task === "warmDay") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { rowsOffDay, utcDayOf, epochMatch } = await import("../lib/warmDay.js");
@@ -5787,7 +5829,7 @@ if (task === "optiondetail") {
       const q = `spec_market_cache?select=spec_key,computed_at,ev:market->>engineVersion,we:market->>warmEpoch,os:market->raw->>optionsState,tr:market->raw->>tier,hc:market->raw->cluster->>0&order=spec_key.asc&limit=1000` + (cursor ? `&spec_key=gt.${encodeURIComponent(cursor)}` : "");
       const rows = await supabaseSelect(env, q);
       if (!Array.isArray(rows) || !rows.length) break;
-      for (const r of rows) (String(r.spec_key).startsWith("MCWARM:") ? mc : core).push({ key: r.spec_key, computedAt: r.computed_at, engineVersion: r.ev, warmEpoch: r.we, thin: String(r.spec_key).startsWith("MCWARM:") && String(r.tr || "") === "result" && r.hc != null && r.os == null });
+      for (const r of rows) (String(r.spec_key).startsWith("MCWARM:") ? mc : core).push({ key: r.spec_key, computedAt: r.computed_at, engineVersion: r.ev, warmEpoch: r.we, tier: r.tr || null, thin: String(r.spec_key).startsWith("MCWARM:") && String(r.tr || "") === "result" && r.hc != null && r.os == null });
       cursor = rows[rows.length - 1].spec_key;
       if (rows.length < 1000) break;
     }

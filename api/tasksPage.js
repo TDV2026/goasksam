@@ -24,7 +24,7 @@ const HOW = "The cars Sam shows you come from a rules-based matching algorithm. 
 const FAQ = [
   ["Is it free?", "Yes. Every GoAskSam account gets " + freeTasksWords() + " free. Sign in, tell Sam what you're looking for, and Sam keeps checking."],
   ["How is it different from a saved search?", "You describe the car in plain words, the way you'd tell a friend, and Sam confirms exactly what it will look for before it starts. When a car matches, the update says what came up, how far away it is and, when the same car has been to auction before, what happened then."],
-  ["How will I be told?", "Each update appears in your Task on GoAskSam, with a badge on Tasks. By email, Sam sends one email a day with everything new from all your Tasks. You can choose twice a day, three times a day, or as soon as one comes, up to six emails a day. A car you asked to hear about before bidding ends gets its own email two hours before the end. When nothing new matches, Sam stays quiet."],
+  ["How will I be told?", "Each update appears in your Task on GoAskSam, with a badge on Tasks. By email, Sam sends one email a day with everything new from all your Tasks. You can choose twice a day, three times a day, or as soon as one comes, up to six emails a day. A car you asked to hear about before bidding ends gets its own email about two hours before the end. When nothing new matches, Sam stays quiet."],
   ["Who chooses the cars?", "A rules-based matching algorithm decides which live cars match your Task, the same one behind the GoAskSam search. Sam understands what you asked for and writes each update, but never invents the cars, the matches or the numbers."],
   ["Can I change or stop a Task?", "Yes, at any time. Type the change in the Task, or use the pause and stop links in any update. A task keeps running after a match until you pause or stop it."],
   ["What can I ask Sam to do?", "Look for a car (\"Find me a black manual 997 under $70k\", \"Keep looking for a 964 within 500 miles of LA\"), or research one car (\"Research this car and tell me if it has sold before\" with its VIN or a listing link)."]
@@ -95,7 +95,7 @@ const APP_CSS = `
 .tkbox button[disabled]{opacity:.6}
 .choices{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}.choices .chip{font:500 15px/1 var(--sans);padding:11px 16px;min-height:44px;border:1px solid var(--div);background:#fff;color:var(--ink);border-radius:999px;cursor:pointer}.choices .chip:hover{border-color:#1A1A1A}.choices .chip:disabled{opacity:.5;cursor:default}
 .statusline{margin:0 0 12px;font:500 15px/1.4 var(--sans);color:var(--sec)}
-.lk{margin:26px 0 8px}.lk h2{margin:0 0 4px;font:600 18px/1.3 var(--sans);color:var(--ink)}.lk .lkc{margin:0 0 10px;font:400 14px/1.45 var(--sans);color:var(--sec)}.lk ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}.lk li{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border:1px solid var(--div);border-radius:12px;padding:12px 14px;background:var(--card,#fff)}.lk .lkw{font:500 15px/1.35 var(--sans);color:var(--ink)}.lk .lkd{display:block;margin-top:2px;font:400 13px/1.4 var(--sans);color:var(--sec)}.lk .sbtn{flex:none}
+.lk .lka{display:flex;gap:8px;flex:none}.lk a.sbtn{text-decoration:none;display:inline-block}.lk li.hl{border-color:var(--ink);background:#F3F1EC}.countsline{margin-top:-4px}.lk{margin:26px 0 8px}.lk h2{margin:0 0 4px;font:600 18px/1.3 var(--sans);color:var(--ink)}.lk .lkc{margin:0 0 10px;font:400 14px/1.45 var(--sans);color:var(--sec)}.lk ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}.lk li{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border:1px solid var(--div);border-radius:12px;padding:12px 14px;background:var(--card,#fff)}.lk .lkw{font:500 15px/1.35 var(--sans);color:var(--ink)}.lk .lkd{display:block;margin-top:2px;font:400 13px/1.4 var(--sans);color:var(--sec)}.lk .sbtn{flex:none}
 .newn{font:600 13px/1 var(--sans);padding:5px 9px;border-radius:999px;background:#1E4D38;color:#fff;white-space:nowrap}
 .pill.needs{background:var(--red);color:#fff}
 .tgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0 0;align-items:start}
@@ -400,21 +400,23 @@ const APP_JS = String.raw`(function(){
     var opts = [["daily", "Once a day"], ["twice", "Twice a day"], ["thrice", "Three times a day"], ["instant", "As soon as one comes"]];
     var cur = n.every || "daily";
     var often = n.on && n.everyReady ? '<label class="often">How often <select data-notify-every>' + opts.map(function(o){ return '<option value="' + o[0] + '"' + (o[0] === cur ? " selected" : "") + ">" + o[1] + "</option>"; }).join("") + "</select></label>" +
-      '<span class="oftenhelp">' + (cur === "instant" ? "An email each time Sam finds one, up to six a day." : "One email with everything new from all your Tasks.") + " A car you asked to hear about before bidding ends gets its own email two hours before the end." + "</span>" : "";
+      '<span class="oftenhelp">' + (cur === "instant" ? "An email each time Sam finds one, up to six a day." : "One email with everything new from all your Tasks.") + " A car you asked to hear about before bidding ends gets its own email about two hours before the end." + "</span>" : "";
     return '<div class="notify">' + (n.on ? "<span>Updates go to <b>" + esc(n.email || "your account email") + '</b>, the address you sign in with.</span>' : "<span>Email is off. Updates show here and on Tasks.</span>") + sw + often + "</div>";
   }
   // WHAT FIND'S TOGGLES AND BUTTONS MADE (Oct 29 2026): each watch and each before-it-ends email, what it watches (the server's own label) and a Stop. The counts are apart from the Task limit: a watch or an email never uses
   // up one of the working Tasks. Every word that is not a label comes from the server (looking.counts, looking.rule).
+  function lookingItem(r){
+    var when = r.ends_at ? " Bidding ends " + esc(new Date(r.ends_at).toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })) + "." : "";
+    return '<li id="lk-' + esc(r.ref) + '"><span class="lkw">' + esc(r.what || "") + '<span class="lkd">' + esc(r.detail || "") + when + '</span></span><span class="lka">' + (r.start_href ? '<a class="sbtn" href="' + esc(r.start_href) + '">' + esc(r.start_label || "") + "</a> " : "") + '<button class="sbtn" data-lk-stop="' + esc(r.ref) + '">Stop</button></span></li>';
+  }
+  // Watching and Before-it-ends emails, always shown (never collapsed, never hidden when empty), right under the Tasks. The counts come from the server (looking.counts).
   function lookingHtml(){
     if (!looking || !looking.rows) return "";
-    var c = looking.counts || {}, rows = looking.rows;
-    if (!rows.length) return "";
-    var line = [c.tasks && ("Tasks " + c.tasks.working + " of " + c.tasks.max), c.watches && ("watches " + c.watches.count + " of " + c.watches.max), c.alerts && ("before-it-ends emails " + c.alerts.count + " of " + c.alerts.max)].filter(Boolean).join(" · ");
-    return '<section class="lk" aria-label="Watches and emails Find set up"><h2>Watching</h2><p class="lkc">' + esc(line) + ". Watches and emails do not use up your Tasks.</p><ul>" + rows.map(function(r){
-      var when = r.ends_at ? " Bidding ends " + esc(new Date(r.ends_at).toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })) + "." : "";
-      return '<li><span class="lkw">' + esc(r.what || "") + '<span class="lkd">' + esc(r.detail || "") + when + '</span></span><button class="sbtn" data-lk-stop="' + esc(r.ref) + '">Stop</button></li>'; }).join("") + "</ul></section>";
+    var rows = looking.rows, w = rows.filter(function(r){ return r.kind !== "alert"; }), a = rows.filter(function(r){ return r.kind === "alert"; });
+    return '<section class="lk" id="watching" aria-label="Watching"><h2>Watching ' + w.length + "</h2>" + (w.length ? "<ul>" + w.map(lookingItem).join("") + "</ul>" : '<p class="lkc">Nothing yet. Press Look for the next sale on a Find card.</p>') + "</section>" +
+      '<section class="lk" id="emails" aria-label="Before-it-ends emails"><h2>Before-it-ends emails ' + a.length + "</h2>" + (a.length ? "<ul>" + a.map(lookingItem).join("") + "</ul>" : '<p class="lkc">None set. Switch on Email me before bidding ends in a Find card.</p>') + '<p class="lkc">Watches and emails do not use up your Tasks.</p></section>';
   }
-  function loadLooking(){ return api({ action: "looking" }).then(function(j){ looking = j && j.rows ? j : null; render(); }).catch(function(){}); }
+  function loadLooking(){ return api({ action: "looking" }).then(function(j){ looking = j && j.rows ? j : null; syncBadge(true); render(); jumpToHash(); }).catch(function(){}); }
   function render(){
     // Typed text and focus survive a redraw (cars fill in while a person is typing in a Task's box).
     var keep = {}, fid = document.activeElement && document.activeElement.id; app.querySelectorAll("input[id^=tkq]").forEach(function(i){ keep[i.id] = i.value; });
@@ -431,6 +433,8 @@ const APP_JS = String.raw`(function(){
     // The new Task comes first: the limit card (only at the limit), else the read-back, else the box.
     // The one status line, then the setup box; at the limit the limit card takes the box's place, so nobody types into a box that cannot be used.
     if (lim && lim.statusLine) h += '<p class="statusline" role="status">' + esc(lim.statusLine) + "</p>";
+    // The three counts and what each is, in one plain line (the server writes it: lib/live/looking.js countsOf), under the Tasks status line.
+    { var cl = (looking && looking.counts && looking.counts.line) || (data && data.counts && data.counts.line); if (cl) h += '<p class="statusline countsline" role="status">' + esc(cl) + "</p>"; }
     if (lim && lim.atLimit) h += limitCard(work) + (draft ? unfinishedCard() : "");
     else if (draft && draftOpen) h += draftCard();
     else h += newBox() + (draft ? unfinishedCard() : "");
@@ -454,7 +458,14 @@ const APP_JS = String.raw`(function(){
   // Pressed: disabled at once, the label says what is happening, and the other buttons in the card wait.
   function working(btn, label){ btn.disabled = true; btn.textContent = label; var card = btn.closest(".tcard,.tc,.limitbox"); if (card) card.querySelectorAll("button").forEach(function(b){ b.disabled = true; }); }
   // The rail's Tasks badge shows the server's count of open Tasks after every list.
-  function syncBadge(){ var n = data && data.count; document.querySelectorAll("[data-gas-tasks-badge],[data-tasks-badge]").forEach(function(b){ if (n) { b.textContent = String(n); b.hidden = false; b.classList.remove("nu"); } else { b.textContent = ""; b.hidden = true; } }); }
+  function syncBadge(fromWatching){
+    // One number everywhere: open Tasks + watches + before-it-ends emails that are on. Whichever list was read last (the Tasks list or the Watching list) says it; both carry the same total from the server.
+    var n = fromWatching && looking && looking.counts && typeof looking.counts.total === "number" ? looking.counts.total : (data && data.count);
+    document.querySelectorAll("[data-gas-tasks-badge],[data-tasks-badge]").forEach(function(b){ if (n) { b.textContent = String(n); b.hidden = false; b.classList.remove("nu"); } else { b.textContent = ""; b.hidden = true; } });
+    document.title = (n ? "(" + n + ") " : "") + "Your Tasks | GoAskSam";
+  }
+  // Arriving from a Find card's "Open Tasks" link: the item it made is scrolled to and marked.
+  function jumpToHash(){ var h = decodeURIComponent((location.hash || "").replace(/^#/, "")); if (!/^lk-[wa]:/.test(h)) return; var el = document.getElementById(h); if (el) { el.classList.add("hl"); el.scrollIntoView({ block: "center" }); } }
   function findTask(id){ return ((data && data.tasks) || []).filter(function(x){ return x.id === id; })[0] || null; }
   // The list is fast (no full cards); the cars and the first match run follow and fill in.
   function load(){ return api({ action: "list", fast: true, draft: draft, open: openId || params.get("task") || null }).then(function(j){

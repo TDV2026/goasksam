@@ -39,6 +39,7 @@
   var OB_WATCH_READY = false;
   obFetch(API_ORIGIN + "/api/watch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "ready" }) })
     .then(function (r) { return r.json(); }).then(function (j) { OB_WATCH_READY = !!(j && j.ready); }).catch(function () {});
+  var obWatchAlready = false;   // the arm answered "already": a row was there
   var obWatchArmed = null;   // the current result's own watch, once armed this session: {id, kind, label, ...}
   var obWatchFirst = false;  // this account's very first watch (show "Free. No card, no plan.")
   // Rejected model chips (Oct 2026, Market Check card rejected-chip job): the SAME algorithm
@@ -1054,11 +1055,11 @@
     var size = mv.label ? '<p class="hc-size">' + esc(mv.label) + "</p>" : "";
     var legend = '<div class="hc-legend"><span class="hc-legend-sw"><span class="hc-legend-box"></span>Typical range (middle half of sales)</span><span class="hc-legend-sw"><span class="hc-legend-tick"></span>Typical sale (median)</span></div>';
     var trendObj = d.trend;
-    var py = trendObj && trendObj.priorYear && Number(trendObj.priorYear.high) > 0
-      ? ('<p class="hc-prioryear">' + lint(esc("The year before, the typical range was " + usd(trendObj.priorYear.low) + " to " + usd(trendObj.priorYear.high) + "."), "hc.prioryear") + "</p>") : "";
+    var py = trendObj && typeof trendObj.priorYearLine === "string" && trendObj.priorYearLine
+      ? ('<p class="hc-prioryear">' + lint(esc(trendObj.priorYearLine), "hc.prioryear") + "</p>") : "";   // the engine's sentence (trend.priorYearLine, reason table trend.prior_year); the page writes none
     // One small static line under the chart (Sam, Oct 26 2026): no engine field, no condition, shown whenever the chart is shown (this function returns "" when there is no chart).
-    // the engine's own caption and, when the chart's window differs from the range's, its one line saying so (e96 chartCaption, chartWindowLine); no field, no line
-    return size + svg + legend + py + ((d.chart && d.chart.caption) || d.chartCaption ? '<p class="hc-note">' + esc((d.chart && d.chart.caption) || d.chartCaption) + "</p>" : "") + (d.chart && d.chart.scope && d.chart.note ? '<p class="hc-note">' + esc(d.chart.note) + "</p>" : "") + (d.chartWindowLine ? '<p class="hc-note">' + esc(d.chartWindowLine) + "</p>" : "");
+    // the engine's own caption (e96 chartCaption); the window line (chartWindowLine) is dropped, Sam Oct 29 2026; no field, no line
+    return size + svg + legend + py + ((d.chart && d.chart.caption) || d.chartCaption ? '<p class="hc-note">' + esc((d.chart && d.chart.caption) || d.chartCaption) + "</p>" : "") + (d.chart && d.chart.scope && d.chart.note ? '<p class="hc-note">' + esc(d.chart.note) + "</p>" : "");
   }
   // No candle chart (the engine supplies no trend at all): no chart, no empty panel - the hero goes
   // full width instead (see heroRangeHtml/thinHeroHtml, :only-child CSS in onebox.html) and this one
@@ -1360,8 +1361,8 @@
     }).join("");
     var note = "";
     var last = own.lastSale;
-    if (last && Number(last.price) > 0 && last.placing) {
-      var sentence = "Its last sale, " + usd(last.price) + " in " + monthOnly(last.date) + ", sits " + last.placing + ".";
+    if (own && typeof own.lastSaleLine === "string" && own.lastSaleLine) {
+      var sentence = own.lastSaleLine;   // the engine's sentence (ownSales.lastSaleLine)
       note = '<p class="exactsale-note">' + lint(esc(sentence), "exactsale.note") + "</p>";
     }
     return '<div class="exactsales" data-stage="cards"><h2>Sold before</h2>' + rows + note + "</div>";
@@ -1741,9 +1742,7 @@
     // line when the next history entry is an unsold attempt rather than a sale with a real price.
     var n = Number(m.soldBeforeCount);
     var prior = (m.history && m.history[1]) || null;
-    var priorSaleLine = (prior && prior.kind === "sale" && prior.price > 0 && prior.date)
-      ? ("Previously sold for " + usd(prior.price) + " in " + monthYear(prior.date) + ". ")
-      : (n === 1 ? "Sold once before. " : n === 2 ? "Sold twice before. " : n > 0 ? ("Sold " + n + " times before. ") : "");
+    var priorSaleLine = typeof m.priorSaleLine === "string" ? m.priorSaleLine : "";   // the engine's sentence (vinMatch.priorSaleLine)
     var hist = (n >= 1 && obSourceVin)
       ? '<a class="histlink" href="' + esc(historyHref(rc, obSourceVin)) + '">' + esc(priorSaleLine + "See its full history") + " &#8594;</a>"
       : "";
@@ -1791,7 +1790,7 @@
     // Item 6 (Oct 2026): the same car's earlier sale, when the engine found one (attachSoldBefore,
     // d.cards only - asideCards/setAsideRows are a separate shapeCards call never mutated with it,
     // so this is a no-op there, same function either way).
-    var sbText = "Sold before on " + monthYear((c.soldBefore && c.soldBefore.date) || "") + ((c.soldBefore && c.soldBefore.price) ? " for " + usd(c.soldBefore.price) : "");
+    var sbText = (c.soldBefore && typeof c.soldBefore.line === "string") ? c.soldBefore.line : "";   // the engine's sentence (card.soldBefore.line)
     // Part 3 (result-hero job, Oct 2026): when the engine has no dated soldBefore fact but this
     // card's own VIN IS indexable (c.hasHistoryPage, lane-notes FOR LANE A Oct 13 - same d.cards
     // array, same conservative "never link to a noindex page" rule attachSoldBefore already
@@ -1926,16 +1925,17 @@
     var tok = sess && sess.access_token;
     if (!tok) { if (onFail) onFail(); return; }
     obFetch(API_ORIGIN + "/api/watch", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok }, body: JSON.stringify(Object.assign({ action: "arm" }, payload)) })
-      .then(function (r) { return r.json(); })
+      .then(function (r) { return r.json().catch(function () { return null; }); })
       .then(function (j) {
         if (j && j.watch) {
-          obWatchArmed = j.watch; obWatchFirst = !!j.first;
+          obWatchArmed = j.watch; obWatchFirst = !!j.first; obWatchAlready = !!j.already;
           var sec = document.querySelector(".samonit");
           if (sec) sec.outerHTML = samOnItHtml(obLastD, vinAnchor);
           if (typeof gasWatchRail === "function") gasWatchRail();
+          if (typeof gasTasksBadge === "function") gasTasksBadge();   // the Tasks badge moves in this same view
           return;
         }
-        if (onFail) onFail();
+        if (onFail) onFail(j && j.line);
       })
       .catch(function () { if (onFail) onFail(); });
   }
@@ -1973,7 +1973,7 @@
     if (!OB_WATCH_READY && !always) return "";
     if (obWatchArmed) {
       var onLine = m ? "Sam’s looking for this exact car to come up again." : ("Sam’s looking for the next sale of " + esc(obWatchArmed.label || carLabel(d.resolvedCar)) + ".");
-      return '<section class="samonit" data-stage="note"><p class="samonit-on">' + lint(onLine, "samonit.on") + "</p>" + (obWatchFirst ? '<p class="samonit-free">Free. No card, no plan.</p>' : "") + "</section>";
+      return '<section class="samonit" data-stage="note"><p class="samonit-on">' + lint(onLine, "samonit.on") + "</p>" + (obWatchFirst ? '<p class="samonit-free">Free. No card, no plan.</p>' : "") + '<p class="samonit-link">' + (obWatchAlready ? "Already in Watching. " : "Added to Watching. ") + '<a href="/tasks/mine' + (obWatchArmed.id ? "#lk-w:" + esc(obWatchArmed.id) : "") + '">Open Tasks</a></p></section>';
     }
     var line = m ? "If this exact car comes up again, Sam will email you, with the sale attached." : ("When the next " + esc(carLabel(d.resolvedCar)) + " sells, Sam will email you, with the sale attached.");
     // samonit-main (follow-up round, Oct 2026): the sentence and the link read as one group on the
@@ -2035,7 +2035,7 @@
       return '<div class="distrow">' + btn + panel + "</div>";
     }).join("");
     var poolSize = heroPoolSizeNum(d);
-    var sub = "Share of sales in each price band" + (Number.isFinite(poolSize) ? (", based on " + obCount(poolSize, "sale")) : "") + ".";
+    var sub = typeof d.distSubLine === "string" ? d.distSubLine : "";   // the engine's sentence (distSubLine)
     // The dark bar is the engine's typicalBucket (the band holding the typical sale): a one-line legend says so, shown only when the engine
     // marks one; the other bars are one quiet colour.
     var legend = buckets.some(function (b) { return b.typicalBucket; }) ? '<p class="dist-legend"><span class="dist-legend-sw"></span>typical sale</p>' : "";
@@ -2292,17 +2292,7 @@
     // Number words one to ten in sentences (copy rule): this line leads with the count, so cap()
     // alone (meant for a letter-starting string) would silently leave a bare leading digit un-
     // spelled - obNumWord already handles the one-to-ten case and the thousands separator above ten.
-    var bits = [obNumWord(fb.count) + (fb.count === 1 ? " sale" : " sales")];
-    if (fb.window) bits.push(fb.window);
-    var line1 = cap(bits.join(" "));
-    if (!countOnly && fb.lowest != null && fb.highest != null) line1 += (fb.lowest === fb.highest) ? (", sold at " + usd(fb.lowest)) : (", sold between " + usd(fb.lowest) + " and " + usd(fb.highest));
-    if (countOnly && fb.latestMonth) {
-      line1 += ", most recently " + esc(monthLabelFromYM(fb.latestMonth));
-    } else if (!countOnly && fb.count !== 1 && fb.latestPrice != null && fb.latestMonth) {
-      // Skip "most recently" on a single sale - it would just restate the same price a second time.
-      line1 += ", most recently " + usd(fb.latestPrice) + " in " + esc(monthLabelFromYM(fb.latestMonth));
-    }
-    line1 += ".";
+    var line1 = typeof fb.line === "string" ? fb.line : "";   // the engine's sentence (factsBlock.line)
     var reasonFn = includeReason !== false ? FACTS_REASON_SENTENCE[d.reasonFlag] : null;
     var line2 = reasonFn ? reasonFn(fb) : "";
     return '<p class="ans-line facts-block">' + lint(esc(line1), "facts.block") + "</p>" + (line2 ? '<p class="ans-line facts-reason">' + lint(esc(line2), "facts.reason") + "</p>" : "");
@@ -3079,7 +3069,9 @@
     if (obSearchId) payload.searchId = obSearchId;
     if (refine) payload.refine = refine;   // inline earned-question refinement (mileage / transmission)
     var coldT0 = Date.now();
-    obAskUntilRead(payload, coldT0, function (cd) { if (loader && cd && cd.samLine) loader.hold(cd.samLine); }).then(function (d) {
+    obAskUntilRead(payload, coldT0, function (cd) { if (loader && cd && cd.samLine) loader.hold(cd.samLine); if (SELL && SELL.onCarEarly) SELL.onCarEarly(cd, text); }).then(function (d) {
+      var viaFinish = false;   // the result path hands Sell the answer (onCar); every other end tells Sell its early question is over (onEarlyEnd)
+      try {
       if (opts.inline) dimHeroForRerun(false);   // the rerun's answer landed (narrowed or not): the range and the chart un-fade whatever it says
       if (d && d.couldNot) { renderCouldNot(d.d, "timeout", Date.now() - coldT0); return; }
       pushRecent(text, d);
@@ -3133,8 +3125,10 @@
       if (resultIsHousePool(d)) finalSteps.push("Backing out the buyer’s premiums");
       finalSteps.push("Picking the ones that matter");
       var finish = function () { mcPushUrl(); if (SELL && SELL.onCar && SELL.onCar(d, text)) return; renderResults(d); };
+      viaFinish = true;
       if (loader) loader.finish(finalSteps, finish); else finish();
-    }).catch(function () { if (opts.inline) dimHeroForRerun(false); obBusy("busy"); renderCouldNot(null, "failed", Date.now() - coldT0); });
+      } finally { if (!viaFinish && SELL && SELL.onEarlyEnd) SELL.onEarlyEnd(); }
+    }).catch(function () { if (SELL && SELL.onEarlyEnd) SELL.onEarlyEnd(); if (opts.inline) dimHeroForRerun(false); obBusy("busy"); renderCouldNot(null, "failed", Date.now() - coldT0); });
   }
   // VIN path: decode + confirm (reuses /api/vehicleIdentity). VINs travel in the request
   // body only; nothing here logs the raw VIN.
@@ -3813,9 +3807,9 @@
         }
         var msg = document.getElementById("ob-samonit-msg");
         soi.disabled = true; soi.textContent = "One moment...";
-        armWatchNow(function () {
-          soi.disabled = false; soi.textContent = "Put Sam on it →";
-          if (msg) { msg.hidden = false; msg.textContent = "That didn’t work just now. Try again in a moment."; }
+        armWatchNow(function (line) {
+          soi.disabled = false; soi.textContent = "Have Sam keep looking →";   // the button stays, as it was
+          if (msg) { msg.hidden = false; msg.textContent = line || "That didn't work just now. Try again."; }
         });
       });
     })();

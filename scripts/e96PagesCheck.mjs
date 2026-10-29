@@ -27,7 +27,7 @@ const withOptions = (d, state, dimension, options, extra = {}) => {
   const lines = options.map(LINE);
   return { ...d, optionsState: state, headlineDimension: dimension, options, optionLines: lines, headlineLines: state === "alike" ? [] : lines, refineOptions: [], optionsNote: null, ...extra };
 };
-const CARD = { windowLine: "17 sales, since December 2025.", chartCaption: "By quarter, November 2023 to September 2026. Quarters with fewer than 5 sales are left out.", chartWindowLine: "The chart covers 33 months, the range the last 11." };
+const CARD = { windowLine: "17 sales, since December 2025.", chartCaption: "By quarter, November 2023 to September 2026. Quarters with fewer than 5 sales are left out." };
 const NONE = { cluster: null, referenceFigure: null, noCluster: true };
 const STATES = {
   alike: withOptions({ ...base, ...CARD }, "alike", "body", [OPT("body", "Coupe", "coupe", 8, 22500, 43900), OPT("body", "Convertible", "convertible", 9, 19750, 40750)], { emitMode: "x", wideLine: null }),

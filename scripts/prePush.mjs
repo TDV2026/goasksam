@@ -1250,6 +1250,13 @@ try {
 } catch (e) {
   record("holdZeroCheck (scripts/holdZeroCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The opening time is one setting that starts empty: no served file holds a launch time, and with LAUNCH_AT empty nothing prints a time or says "Opening now" (no network).
+try {
+  const out = execSync("node scripts/openingTimeCheck.mjs", { encoding: "utf8", timeout: 60000 });
+  record("openingTimeCheck (scripts/openingTimeCheck.mjs)", "PASS", (out.match(/openingTimeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("openingTimeCheck (scripts/openingTimeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 try {
   const out = execSync("node scripts/sellCutoffCheck.mjs", { encoding: "utf8", timeout: 600000 });
   if (/SKIP/.test(out)) record("sellCutoffCheck (scripts/sellCutoffCheck.mjs)", "SKIP", "no PROBE_KEY"); else record("sellCutoffCheck (scripts/sellCutoffCheck.mjs)", "PASS", (out.match(/sellCutoffCheck: .*/) || [""])[0]);
@@ -1547,6 +1554,42 @@ try {
   record("body: a body word inside a model's own name (Power Wagon, Traction Avant, Van Diemen) is not a body (scripts/bodyNamePhraseCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/spacedTaxonomyModelCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("engine: a taxonomy model named with a space (RS 6 Avant, M 3, RX 7) is not refused for its own glued sales (scripts/spacedTaxonomyModelCheck.mjs)", "PASS", (out.match(/spacedTaxonomyModelCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: a taxonomy model named with a space (RS 6 Avant, M 3, RX 7) is not refused for its own glued sales (scripts/spacedTaxonomyModelCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/unusedWordsCodeCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Find: a piece of the car's own name (the RS of RS 6) is never named as a word Sam did not use (scripts/unusedWordsCodeCheck.mjs)", "PASS", (out.match(/unusedWordsCodeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Find: a piece of the car's own name (the RS of RS 6) is never named as a word Sam did not use (scripts/unusedWordsCodeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/refusalNoCountCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("engine: a refusal prints no Based on N sales line, stored or fresh (scripts/refusalNoCountCheck.mjs)", "PASS", (out.match(/refusalNoCountCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: a refusal prints no Based on N sales line, stored or fresh (scripts/refusalNoCountCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/firstQuestionNowCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Sell: the first question is drawn the moment the car is named, never after a cold read (the computing answer hands the car to Sell) (scripts/firstQuestionNowCheck.mjs)", "PASS", (out.match(/firstQuestionNowCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Sell: the first question is drawn the moment the car is named, never after a cold read (the computing answer hands the car to Sell) (scripts/firstQuestionNowCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/earlyQuestionEndCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Sell: the early first question ends with an answer that is not a result, so the next search draws its question (no stuck loading bar) (scripts/earlyQuestionEndCheck.mjs)", "PASS", (out.match(/earlyQuestionEndCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Sell: the early first question ends with an answer that is not a result, so the next search draws its question (no stuck loading bar) (scripts/earlyQuestionEndCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/sellFirstQuestionRender.mjs", { encoding: "utf8", timeout: 280000 });
+  record("Sell in Chrome at 1440 and 390: first question at the computing answer, once, bar gone, later steps and a new search work (cold question-tier, stored, cold result-tier) (scripts/sellFirstQuestionRender.mjs)", "PASS", (out.match(/sellFirstQuestionRender: .*/) || [""])[0]);
+} catch (e) {
+  record("Sell in Chrome at 1440 and 390: first question at the computing answer, once, bar gone, later steps and a new search work (cold question-tier, stored, cold result-tier) (scripts/sellFirstQuestionRender.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/spacedModelCodeCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("resolver: a model code typed with a space (RS 6, M 3, X 5) is the glued model, so a known car is never refused as unchecked (scripts/spacedModelCodeCheck.mjs)", "PASS", (out.match(/spacedModelCodeCheck: .*/) || [""])[0]);
 } catch (e) {
@@ -1557,6 +1600,36 @@ try {
   record("chart: a withheld chart prints the engine's plain heading and no reason on any page, and a stored row serves it at read time (scripts/chartNoReasonCheck.mjs)", "PASS", (out.match(/chartNoReasonCheck: .*/) || [""])[0]);
 } catch (e) {
   record("chart: a withheld chart prints the engine's plain heading and no reason on any page, and a stored row serves it at read time (scripts/chartNoReasonCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/numberSentenceCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("pages print engine sentences: the year-before, last-sale, sold-before, distribution, facts and latest-quarter lines are engine lines at read time, none written by a page (scripts/numberSentenceCheck.mjs)", "PASS", (out.match(/numberSentenceCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("pages print engine sentences: the year-before, last-sale, sold-before, distribution, facts and latest-quarter lines are engine lines at read time, none written by a page (scripts/numberSentenceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/rungAlwaysCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("engine: every result, thin and refusal answer leaves with a recognized rung and a label, so the store guard never refuses a Find pre-fill for fallback_rung_not_recognized (scripts/rungAlwaysCheck.mjs)", "PASS", (out.match(/rungAlwaysCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: every result, thin and refusal answer leaves with a recognized rung and a label, so the store guard never refuses a Find pre-fill for fallback_rung_not_recognized (scripts/rungAlwaysCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/droppedTrimCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("engine: a typed trim the pool does not carry reads the model's pool and says so, never a 'could not be checked' refusal (scripts/droppedTrimCheck.mjs)", "PASS", (out.match(/droppedTrimCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: a typed trim the pool does not carry reads the model's pool and says so, never a 'could not be checked' refusal (scripts/droppedTrimCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/chartYearScopeCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("chart: on a year split the chart is never drawn from another year's sales (scripts/chartYearScopeCheck.mjs)", "PASS", (out.match(/chartYearScopeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("chart: on a year split the chart is never drawn from another year's sales (scripts/chartYearScopeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/vinPlanCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("vin: the VIN's own resolved car is never refused by a re-read of its words (a question or an invalid year), so typed and VIN do not differ into a dead end (scripts/vinPlanCheck.mjs)", "PASS", (out.match(/vinPlanCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("vin: the VIN's own resolved car is never refused by a re-read of its words (a question or an invalid year), so typed and VIN do not differ into a dead end (scripts/vinPlanCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
   const out = execSync("node scripts/appliedAllCheck.mjs", { encoding: "utf8", timeout: 240000 });
@@ -1649,6 +1722,27 @@ try {
   record("See the sales and the sale modal on Find (scripts/findSalesButtonCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 // What Find's toggles and buttons make (Sam, Oct 29 2026). A fake table behind fetch.
+// Everything that can email a person is on the Tasks page with a Stop, and the before-it-ends wording (Lane D, Oct 29 2026): the tables the send paths read are listed or named as not a notice, the saved-search watch is listed, counted and capped, and every copy says "about two hours before". Offline.
+try {
+  const out = execSync("node scripts/standingNoticesCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("everything that can email a person is on the Tasks page with a Stop; 'about two hours before' everywhere (scripts/standingNoticesCheck.mjs)", "PASS", (out.match(/standingNoticesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("everything that can email a person is on the Tasks page with a Stop; 'about two hours before' everywhere (scripts/standingNoticesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// The Find drawer in Chrome (Lane D, Oct 29 2026): this branch's page code against a fake server, a stored Find answer for the 2005 SL65 AMG. Needs Chrome, the network and the crew code in the Keychain; says SKIP without them.
+try {
+  const out = execSync("node scripts/standingDrawerCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("the Find drawer: sends, says what happened and where, fails in plain words, state from the stored row (scripts/standingDrawerCheck.mjs)", /SKIP/.test(out) ? "SKIP" : "PASS", (out.match(/standingDrawerCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("the Find drawer: sends, says what happened and where, fails in plain words, state from the stored row (scripts/standingDrawerCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// Every "Sam is looking" control as one class (Lane D, Oct 29 2026): a click writes a row and an event, the one badge counts it, the Tasks page lists it in the server's words, a refusal or a drop shows a plain line. No network.
+try {
+  const out = execSync("node scripts/standingControlsCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("every Sam-is-looking control writes a row and a log, counts on the one badge, and fails in plain words (scripts/standingControlsCheck.mjs)", "PASS", (out.match(/standingControlsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("every Sam-is-looking control writes a row and a log, counts on the one badge, and fails in plain words (scripts/standingControlsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 try {
   const out = execSync("node scripts/findWatchCheck.mjs", { encoding: "utf8", timeout: 600000 });
   record("everything a Find toggle or button makes is on Tasks, limited and named by the engine (scripts/findWatchCheck.mjs)", "PASS", (out.match(/findWatchCheck: .*/) || [""])[0]);
