@@ -3069,7 +3069,7 @@
     if (obSearchId) payload.searchId = obSearchId;
     if (refine) payload.refine = refine;   // inline earned-question refinement (mileage / transmission)
     var coldT0 = Date.now();
-    obAskUntilRead(payload, coldT0, function (cd) { if (loader && cd && cd.samLine) loader.hold(cd.samLine); }).then(function (d) {
+    obAskUntilRead(payload, coldT0, function (cd) { if (loader && cd && cd.samLine) loader.hold(cd.samLine); if (SELL && SELL.onCarEarly) SELL.onCarEarly(cd, text); }).then(function (d) {
       if (opts.inline) dimHeroForRerun(false);   // the rerun's answer landed (narrowed or not): the range and the chart un-fade whatever it says
       if (d && d.couldNot) { renderCouldNot(d.d, "timeout", Date.now() - coldT0); return; }
       pushRecent(text, d);

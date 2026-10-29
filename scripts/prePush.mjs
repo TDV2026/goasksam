@@ -1572,6 +1572,12 @@ try {
   record("engine: a refusal prints no Based on N sales line, stored or fresh (scripts/refusalNoCountCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/firstQuestionNowCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Sell: the first question is drawn the moment the car is named, never after a cold read (the computing answer hands the car to Sell) (scripts/firstQuestionNowCheck.mjs)", "PASS", (out.match(/firstQuestionNowCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Sell: the first question is drawn the moment the car is named, never after a cold read (the computing answer hands the car to Sell) (scripts/firstQuestionNowCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/spacedModelCodeCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("resolver: a model code typed with a space (RS 6, M 3, X 5) is the glued model, so a known car is never refused as unchecked (scripts/spacedModelCodeCheck.mjs)", "PASS", (out.match(/spacedModelCodeCheck: .*/) || [""])[0]);
 } catch (e) {
