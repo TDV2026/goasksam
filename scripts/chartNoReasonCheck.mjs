@@ -41,5 +41,15 @@ const both = { chart: { type: "withheld", scope: null, buckets: null, caption: H
 // 5. a drawn chart still prints its caption
 { const drawn = { chart: { type: "candles", caption: "By quarter, June 2025 to September 2026.", scope: null }, chartCaption: "By quarter, June 2025 to September 2026." };
   ok("a drawn chart's caption comes from the same field and is unchanged", /chartCaption/.test(src) && !/chartLatestHeading\(d\)\) return/.test(grab("candleChartHtml")), drawn.chart.caption); }
+// 6. THE CHART WINDOW LINE IS DROPPED (Sam, Oct 29 2026: "The chart covers 15 months, the range the last 11." under the 2001 BMW M3 candles). The engine never sends chartWindowLine, a stored row that carries it is stripped at read time (no warm),
+//    and no page, email or fixture prints it. The other chart lines are kept: chartCaption ("By quarter, ..., quarters under 5 sales left out."), the scope line, the year-before line.
+{ const stored = { tier: "result", poolN: 17, rawPool: rows, windowMonths: 11, windowWords: "since December 2025", trend: { movement: { size: "quarter", spanLabel: "November 2023 to September 2026", buckets: Array.from({ length: 5 }, (_, i) => ({ period: "2025-Q" + (1 + i % 4), n: 6, low: 1, high: 2 })) } }, chartWindowLine: "The chart covers 15 months, the range the last 11.", chartCaption: "By quarter, November 2023 to September 2026, quarters under 5 sales left out." };
+  const served = E.withReadFields(stored, "2001 BMW M3", { year: 2001 }), fresh = E.freshenStoredText({ chartWindowLine: "The chart covers 15 months, the range the last 11.", windowLine: "17 sales, since December 2025." });
+  ok("a stored row that carries chartWindowLine serves without it (read time, no warm)", !("chartWindowLine" in served) && !("chartWindowLine" in fresh), JSON.stringify(Object.keys(served).filter(k => /chart/i.test(k))));
+  ok("the chart caption line is kept", typeof served.chartCaption === "string" && /^By quarter, .+ under 5 sales left out\.$/.test(served.chartCaption), String(served.chartCaption));
+  ok("the table has no chart.window line and the field is not registered", !/"chart\.window"/.test(fs.readFileSync("lib/reasonWords.js", "utf8")) && !/"chartWindowLine"/.test(fs.readFileSync("lib/engineFields.js", "utf8")));
+  const hits = []; const walk = d => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) { if (!/node_modules|\.git/.test(e.name)) walk(p); } else if (/\.(js|html|mjs)$/.test(e.name) && p !== path.join("scripts", "chartNoReasonCheck.mjs") && p !== path.join("lib", "reasonWords.js")) { const t = fs.readFileSync(p, "utf8").replace(/\/\/[^\n]*/g, ""); if (/The chart covers|d\.chartWindowLine/.test(t) || (/chartWindowLine/.test(t) && !/^scripts\//.test(p) && p !== path.join("lib", "onebox.js"))) hits.push(p); } } };
+  for (const d of ["api", "lib", "public", "scripts"]) walk(d);
+  ok("no page, email, fixture or check prints or builds the chart window line", hits.length === 0, hits.join(" | ")); }
 console.log(fail ? `chartNoReasonCheck: ${fail} failure(s)` : "chartNoReasonCheck: all pass");
 process.exit(fail ? 1 : 0);

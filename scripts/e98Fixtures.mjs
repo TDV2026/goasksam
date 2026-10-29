@@ -8,7 +8,7 @@ const OPT = (dimension, label, value, n, low, high) => { const floor = !(low > 0
 const LINE = o => { const w = o.windowDiffers ? ` ${o.windowWords}` : ""; return o.rangeFloor ? `${o.label}, ${o.n} sales${w}, too few for a range` : `${o.label} ${$(o.low)} to ${$(o.high)}, ${o.n} sales${w}`; };
 // an option read over its own window (Lane B, e100): windowWords "since March 2025", windowDiffers, ownWindowLine "11 sales since March 2025"; its line carries the since date
 const OPTW = (dimension, label, value, n, low, high, since) => ({ ...OPT(dimension, label, value, n, low, high), windowWords: since, windowDiffers: true, ownWindow: true, ownWindowLine: `${n} sales ${since}` });
-const CARD = { windowLine: "17 sales, since December 2025.", chartCaption: "By quarter, November 2023 to September 2026. Quarters with fewer than 5 sales are left out.", chartWindowLine: "The chart covers 33 months, the range the last 11." };
+const CARD = { windowLine: "17 sales, since December 2025.", chartCaption: "By quarter, November 2023 to September 2026. Quarters with fewer than 5 sales are left out." };
 const NONE = { cluster: null, referenceFigure: null, noCluster: true };
 const withOptions = (d, state, dimension, options, extra = {}) => { const lines = options.map(LINE); return { ...d, optionsState: state, headlineDimension: dimension, options, optionLines: lines, headlineLines: state === "alike" ? [] : lines, refineOptions: [], optionsNote: null, ...extra }; };
 const label = (d, text) => ({ ...d, resolvedCar: { ...(base.resolvedCar || {}), canonicalLabel: text } });
@@ -31,11 +31,11 @@ const ENG = (d, extra) => ({ ...extra, chart: extra.chart || { type: "candles", 
 const M04 = asCar(base, { make: "BMW", model: "M3", year: 2004, bodies: ["Convertible", "Coupe", "Convertibles and coupes"], lo: 24000, hi: 46000 });
 const DEF = asCar(base, { make: "Land Rover", model: "Defender 110", year: 1985, bodies: ["Station Wagon", "Pickup", "Station wagons and pickups"], lo: 41000, hi: 76000, years: [1984, 1986] });
 const P94 = asCar(base, { make: "Porsche", model: "911", year: 1994, bodies: ["Cabriolet", "Coupe", "Cabriolets and coupes"], lo: 58000, hi: 94500 });
-const POOL17 = { windowLine: "17 sales, since December 2025.", chartWindowLine: "The chart covers 33 months, the range the last 11." };
+const POOL17 = { windowLine: "17 sales, since December 2025." };
 // a pool of n sales: the 2001 answer's rows repeated under new ids so the table, the headline and the footer all say n
 const withPool = (d, n) => { const cards = Array.from({ length: n }, (_, i) => ({ ...d.cards[i % d.cards.length], id: "c" + i + "-" + d.cards[i % d.cards.length].id })); return { ...d, cards, soldCount: n, soldCountN: n, poolN: n, qualifyingTotal: n, counts: { ...d.counts, used: n, qualifying: n } }; };
 const P86 = withPool(asCar(base, { make: "Porsche", model: "911", year: 1986, bodies: ["Targa", "Coupe", "Targas, cabriolets and coupes"], lo: 55000, hi: 90000 }), 35);
-const POOL35 = { windowLine: "35 sales, since December 2025.", chartWindowLine: "The chart covers 33 months, the range the last 11." };
+const POOL35 = { windowLine: "35 sales, since December 2025." };
 const P86_OPTS = [OPTW("body", "Targa", "targa", 11, 61000, 82000, "since March 2025"), OPTW("body", "Cabriolet", "cabriolet", 11, 58000, 79000, "since April 2025"), OPTW("body", "Coupe", "coupe", 16, 55000, 90000, "since January 2025")];
 // the same 1986 pool WITHOUT the windows: 38 against 35 and nothing says why (the page must not be allowed to print this)
 const P86_NOWIN = P86_OPTS.map(o => ({ ...OPT("body", o.label, o.value, o.n, o.low, o.high) }));

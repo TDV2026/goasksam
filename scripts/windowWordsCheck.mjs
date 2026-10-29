@@ -36,7 +36,7 @@ for (let i = 0; i < 30; i++) sale("WW1", "Coupe", null, 38000 + (i % 6) * 500, 3
 let a = await ask("WW1");
 ok("window: the card names its window and its count", a.tier === "result" && /^\d+ sales, since [A-Z][a-z]+ \d{4}\.$/.test(a.windowLine || ""), String(a.windowLine));
 ok("caption: the chart states its span and that thin quarters are left out", /^By (month|quarter|half-year|year), .+ to .+, (months|quarters|half-years|years) under \d+ sales left out\.$/.test(a.chartCaption || ""), String(a.chartCaption));
-ok("differ: when the chart spans more than the range, one line says both", /^The chart covers \d+ months, the range the last \d+\.$/.test(a.chartWindowLine || ""), `${a.chartWindowLine} window ${a.windowMonths}`);
+ok("differ: when the chart spans more than the range there is still NO chart window line (Sam dropped it, Oct 29 2026)", !("chartWindowLine" in a) && a.chartWindowLine == null, `${a.chartWindowLine} window ${a.windowMonths}`);
 // same span: no line
 for (let i = 0; i < 14; i++) sale("WW2", "Coupe", null, 40000 + (i % 6) * 500, 5 + i * 20);
 a = await ask("WW2");

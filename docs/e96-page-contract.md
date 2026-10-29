@@ -40,7 +40,7 @@ Send `{miTarget: n}` only. The engine builds the band (15,000 miles either side 
 
 - `windowLine` ("12 sales, since December 2025.") names the card's window on every result.
 - `chartCaption` ("By quarter, November 2023 to September 2026. Quarters with fewer than 5 sales are left out.") under the chart.
-- `chartWindowLine` ("The chart covers 33 months, the range the last 11.") when the two differ; null otherwise.
+- `chartWindowLine` is DROPPED (Sam, Oct 29 2026): the engine no longer sends it, a stored row has it removed at read time, no page prints it.
 - `yearNote` ("No 2010 sales in this range. These are 2008 to 2009 cars.") when the range leaves out the typed year; `yearExcluded` is its flag.
 
 ## Gearbox words

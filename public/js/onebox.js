@@ -1057,8 +1057,8 @@
     var py = trendObj && trendObj.priorYear && Number(trendObj.priorYear.high) > 0
       ? ('<p class="hc-prioryear">' + lint(esc("The year before, the typical range was " + usd(trendObj.priorYear.low) + " to " + usd(trendObj.priorYear.high) + "."), "hc.prioryear") + "</p>") : "";
     // One small static line under the chart (Sam, Oct 26 2026): no engine field, no condition, shown whenever the chart is shown (this function returns "" when there is no chart).
-    // the engine's own caption and, when the chart's window differs from the range's, its one line saying so (e96 chartCaption, chartWindowLine); no field, no line
-    return size + svg + legend + py + ((d.chart && d.chart.caption) || d.chartCaption ? '<p class="hc-note">' + esc((d.chart && d.chart.caption) || d.chartCaption) + "</p>" : "") + (d.chart && d.chart.scope && d.chart.note ? '<p class="hc-note">' + esc(d.chart.note) + "</p>" : "") + (d.chartWindowLine ? '<p class="hc-note">' + esc(d.chartWindowLine) + "</p>" : "");
+    // the engine's own caption (e96 chartCaption); the window line (chartWindowLine) is dropped, Sam Oct 29 2026; no field, no line
+    return size + svg + legend + py + ((d.chart && d.chart.caption) || d.chartCaption ? '<p class="hc-note">' + esc((d.chart && d.chart.caption) || d.chartCaption) + "</p>" : "") + (d.chart && d.chart.scope && d.chart.note ? '<p class="hc-note">' + esc(d.chart.note) + "</p>" : "");
   }
   // No candle chart (the engine supplies no trend at all): no chart, no empty panel - the hero goes
   // full width instead (see heroRangeHtml/thinHeroHtml, :only-child CSS in onebox.html) and this one
