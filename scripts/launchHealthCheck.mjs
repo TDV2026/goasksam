@@ -1,3 +1,4 @@
+// clock: real-ok every time in it is built from the real now (minutes ago) or is a fixed fixture string read against its own explicit now; the sweep ran it with the clock moved +2 and +60 days and it did not change (Lane G, Oct 29 2026)
 // LAUNCH TAB STATUS STRIP AND READINESS BLOCKS (Lane D, Oct 28 2026). No network, no database, no key.
 //   1. statusOf: GOOD, WATCH or ACT NOW at exactly the thresholds in lib/admin/health.js THRESHOLDS; a first step only when there is something to do; a strip that could not read its numbers never says GOOD;
 //   2. hourNumbers, capacityNumbers and feedbackToday count the right rows on a fixture (the last 60 minutes only, bots and failed searches out of the cold speed, the Pacific day);

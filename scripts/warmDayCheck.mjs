@@ -1,3 +1,4 @@
+// clock: real-ok its day and now are fixed fixture strings (DAY, NOW) passed in explicitly; it never reads the real time (Lane G, Oct 29 2026)
 // THE LAUNCH WARM COUNTS BY UTC DAY, NOT BY AGE (Sam, Oct 28 2026). A stored answer is "stale" for a visitor's read when it was stored on an earlier UTC day, even
 // when it is under 24 hours old; the launch gate is zero rows off the launch day. Fixtures only; no network.
 //   1. rowsOffDay counts a row stored at 23:50Z the day before as OFF the day, though it is 7 hours old at 07:00Z (the age rule would pass it);
