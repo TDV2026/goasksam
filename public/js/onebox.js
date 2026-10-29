@@ -1114,7 +1114,9 @@
   // THE NARROW STRIP (Sam, Oct 28 2026): directly below the answer card, one heading NARROW BY for the pills (the engine's refine options) and the mileage box; the card itself keeps only ranges, counts, the footer.
   function narrowStripHtml(d, m, withMileage) {
     var pills = window.sellsForNarrowHtml ? window.sellsForNarrowHtml(d, { interactive: true }) : "", mi = withMileage ? heroMileageLineHtml(d, m) : "";
-    return pills || mi ? '<div class="narrow-strip" data-stage="answer"><p class="sfc-label">Narrow by</p>' + pills + mi + "</div>" : "";
+    // NARROW BY prints only with a chip under it: the mileage box alone does not count (Sam, Oct 29 2026); a strip with only the box prints the box with no label.
+    if (!pills && !mi) return "";
+    return '<div class="narrow-strip" data-stage="answer">' + (pills ? '<p class="sfc-label">Narrow by</p>' : "") + pills + mi + "</div>";
   }
   // ============ THIN-TILE TREATMENT (Sam's review round, Oct 2026; widened round two) ==========
   // Replaces "too few sales in each quarter to chart" with the mockup's own treatment on any pool
@@ -2542,6 +2544,11 @@
   // (not the old tight inline .hero-idline text flow), no boxes/pills/chips. "Real sales only."
   // comes from footHtml(), already appended by renderQuestion() below every screen - not repeated
   // here.
+  // THE WAY OUT (Lane B questionWayOut, Sam Oct 29 2026): the engine's wayOut {label, placeholder, prefill} is the last button of every question that names which car. The label, the hint and the text kept in the box are the engine's own; a tap focuses the normal search box (wireWayOut). A question the engine sent no wayOut for draws none.
+  function wayOutButtonHtml(w) {
+    if (!w || typeof w !== "object" || typeof w.label !== "string" || !w.label.trim()) return "";
+    return '<button type="button" class="linkbtn idq-opt idq-wayout" data-wayout="1" data-prefill="' + esc(typeof w.prefill === "string" ? w.prefill : "") + '" data-placeholder="' + esc(typeof w.placeholder === "string" ? w.placeholder : "") + '">' + esc(w.label.trim()) + "</button>";
+  }
   function idqScreenHtml(o) {
     return '<section class="idq-screen" data-stage="answer">' +
       '<p class="eyebrow hero-label">Market Check</p>' +
@@ -2549,7 +2556,7 @@
       (o.pre ? ('<p class="hero-scope" data-stage="answer">' + lint(esc(o.pre), (o.lintKey || "idq") + ".pre") + "</p>") : "") +
       '<h2 class="hero-carname idq-question">' + lint(esc(o.question), o.lintKey || "idq.q") + "</h2>" +
       (o.subline ? ('<p class="hero-scope" data-stage="answer">' + lint(esc(o.subline), (o.lintKey || "idq") + ".sub") + "</p>") : "") +
-      '<div class="idq-options-row" data-stage="answer">' + o.links + "</div>" +
+      '<div class="idq-options-row" data-stage="answer">' + o.links + wayOutButtonHtml(o.wayOut) + "</div>" +
       "</section>";
   }
   function renderChoice(d) {
@@ -2569,7 +2576,7 @@
       var attr = kind === "model" ? "data-model" : "data-body";
       return '<button type="button" class="linkbtn idq-opt" ' + attr + '="' + esc(o) + '">' + esc(o) + " &#8594;</button>";
     }).join("");
-    renderQuestion(idqScreenHtml({ headName: headName, question: question, subline: "The range changes with the answer.", links: links, lintKey: "choice" }));
+    renderQuestion(idqScreenHtml({ headName: headName, question: question, subline: "The range changes with the answer.", links: links, lintKey: "choice", wayOut: d.wayOut }));
   }
   // Identity question (Round 4 Job 3 engine contract, Lane A render job): dimension/options/
   // skipLabel are the engine's own identityQuestion payload, nothing computed here. Round 6 Job 4
@@ -2645,7 +2652,7 @@
     var links = opts.map(function (o) {
       return '<button type="button" class="linkbtn idq-opt" data-model="' + esc(o) + '">' + esc(o) + " &#8594;</button>";
     }).join("");
-    return idqScreenHtml({ headName: headName, question: question, subline: "The range changes with the answer.", links: links, lintKey: "mc" });
+    return idqScreenHtml({ headName: headName, question: question, subline: "The range changes with the answer.", links: links, lintKey: "mc", wayOut: d.wayOut });
   }
   function renderIdentityQuestion(d) {
     obLastD = d;
@@ -2684,7 +2691,7 @@
     var links = opts.map(function (o, i) {
       return '<button type="button" class="linkbtn idq-opt" data-trimopt="' + esc(o.value) + '" data-trimnot="' + esc((o.notTrims || []).join(",")) + '" data-mlabel="' + esc(o.label) + '">' + esc(chips[i] || o.label) + " &#8594;</button>";
     }).join("");
-    return idqScreenHtml({ headName: carLabel(d.resolvedCar), question: d.prompt || "", links: links, lintKey: "trimq" });
+    return idqScreenHtml({ headName: carLabel(d.resolvedCar), question: d.prompt || "", links: links, lintKey: "trimq", wayOut: d.wayOut });
   }
   function renderTrimChoice(d) {
     obLastD = d;
@@ -3705,6 +3712,16 @@
     // UTM for the destination). Best-effort beacon, never blocks the navigation.
     Array.prototype.forEach.call(root.querySelectorAll("a[data-cardclick]"), function (a) {
       a.addEventListener("click", function () { try { obEvent("onebox_comp_click", a.getAttribute("data-cardclick") + ":" + lastQuery); } catch (e) {} });
+    });
+    // The way out: the box takes the engine's prefill, its hint, and the cursor (the person types the car; the search runs as any typed text does).
+    Array.prototype.forEach.call(root.querySelectorAll("[data-wayout]"), function (b) {
+      b.addEventListener("click", function () {
+        var inp = document.getElementById("ob-input"); if (!inp) return;
+        var pf = b.getAttribute("data-prefill") || "", ph = b.getAttribute("data-placeholder") || "";
+        inp.value = pf; if (ph) inp.setAttribute("placeholder", ph);
+        try { inp.scrollIntoView({ block: "center" }); } catch (e) {}
+        inp.focus(); try { inp.setSelectionRange(pf.length, pf.length); } catch (e) {}
+      });
     });
     // One id, one hidden attribute: "How Sam picked these", "N sales sat outside the middle half"
     // and "Show more sales (N)" all reveal their own already server-rendered content in place.
