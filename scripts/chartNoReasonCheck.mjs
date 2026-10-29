@@ -31,8 +31,21 @@ const both = { chart: { type: "withheld", scope: null, buckets: null, caption: H
 { const wrap = (names, ret) => new Function("lint", "esc", "obCount", "heroPoolSizeNum", "candleChartHtml", names.map(grab).join("\n") + "\nreturn " + ret + ";")((s) => s, s => String(s), () => "Six sales", () => 6, () => "");
   const heading = grab("chartLatestHeading");
   ok("the page reads the engine's caption for a withheld chart (chartLatestHeading)", heading.length > 0 && wrap(["chartLatestHeading"], "chartLatestHeading")(both) === HEAD);
+  // THE LAYOUT (Lane E, Oct 29 2026, noChartLayoutCheck asserts it in a browser at 1440 and 390): a withheld chart has NO chart panel and NO no-chart line; the one place the heading prints is the held panel (chartLatestHeading over the engine's latest sales
+  // d.cards, up to six, and a link to all of them). No sale rows, no heading. No reason sentence anywhere, even when the engine sends both.
+  const stubs = "var utmUrl=function(u){return u||''},fullDateOrMonth=function(){return 'Jun 10, 2026'},longMiles=function(){return ''},venueOf=function(){return 'Bring a Trailer'},cleanReceiptTitle=function(t){return t},usd=function(n){return '$'+n};\n";
+  const HAS_HELD = grab("heldPanelHtml").length > 0;
+  ok("the page has the held panel (heldPanelHtml)", HAS_HELD);
+  const held = !HAS_HELD ? () => "" : new Function("lint", "esc", stubs + grab("chartLatestHeading") + "\n" + grab("heldPanelHtml") + "\nreturn heldPanelHtml;")((s) => s, s => String(s));
+  const cards = rows.map(r => ({ title: r.rtitle, price: r._usd, url: "https://x.test/" + r.id }));
+  const withRows = held({ ...both, cards }), noRows = held({ ...both, cards: [] });
+  const count = (h, t) => h.split(t).length - 1;
   const panel = wrap(["chartLatestHeading", "chartPanelHtml"], "chartPanelHtml")(both), line = wrap(["chartLatestHeading", "noChartLineHtml"], "noChartLineHtml")(both);
-  for (const [spot, html] of [["the chart panel", panel], ["the no-chart line", line]]) ok(`${spot}: prints the heading and neither reason sentence`, html.includes(HEAD) && !html.includes(MIX) && !html.includes(FEW) && !/mix of cars|too few sales in each/i.test(html), html.slice(0, 160));
+  ok("the chart panel prints nothing for a withheld chart (no heading, no sentence, no empty panel)", panel === "", panel.slice(0, 160));
+  ok("the no-chart line prints nothing for a withheld chart (the held panel is the one place)", line === "", line.slice(0, 160));
+  ok("the held panel prints the heading once, over the engine's sales (six rows) and a link to all of them", count(withRows, HEAD) === 1 && count(withRows, '<li class="hw-row">') === 6 && /hw-all/.test(withRows), `${count(withRows, HEAD)} headings, ${count(withRows, '<li class="hw-row">')} rows`);
+  ok("the held panel prints no reason sentence, even when the engine sends both", !withRows.includes(MIX) && !withRows.includes(FEW) && !/mix of cars|too few sales in each/i.test(withRows));
+  ok("the held panel with no sales prints nothing: a heading is never printed over no rows", noRows === "", noRows.slice(0, 160));
   ok("the thin-tile spot (heldSaid) prints the heading, not a sentence", /var heldSaid = chartLatestHeading\(d\)/.test(src) && !/chartHeldSentence/.test(src)); }
 // 4. nobody else reads the reasons (the one allowed read is the note a DRAWN, option-scoped chart carries, which is unchanged)
 { const hits = []; const walk = d => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) { if (!/node_modules|\.git/.test(e.name)) walk(p); } else if (/\.(js|html|mjs)$/.test(e.name) && !/^lib\/(onebox|reasonWords|engineFields)\.js$|^api\/usageDashboard\.js$|^api\/howSamDecides/.test(p)) { const t = fs.readFileSync(p, "utf8").replace(/\/\/[^\n]*/g, "").replace(/d\.chart\.scope && d\.chart\.note \? [^\n]*?esc\(d\.chart\.note\)/, ""); if (/withheld\.line|chart\.note|\.withheld\.reason/.test(t)) hits.push(p); } } };
