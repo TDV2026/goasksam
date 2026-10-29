@@ -1840,16 +1840,16 @@ async function handleOps(req, res) {
     }
     return res.status(200).json(out);
   }
-  // task=chartsweep (Lane B, Oct 29 2026, e101; READ-ONLY, no write, no spend): the stored Market Check answers whose pooled chart is held for a changing mix and that are split by an option: how many drew
+  // task=chartsplitsweep (Lane B, Oct 29 2026, e101; named so it does not collide with the older chartsweep; READ-ONLY, no write, no spend): the stored Market Check answers whose pooled chart is held for a changing mix and that are split by an option: how many drew
   // no chart under the old one-option rule, how many draw a scoped chart now (every option tried, largest first), how many stay withheld because no option clears the candle floor, and ten examples
   // with each option's own count and the 1986 Porsche 911 if it is in the page. 100 stored answers a page (?after=).
-  if (task === "chartsweep") {
+  if (task === "chartsplitsweep") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { chartOf, optionsFieldsOf } = await import("../lib/onebox.js");
     const after = req.query?.after ? String(req.query.after) : "";
     const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,raw:market->raw&order=spec_key.asc&limit=100` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
-    if (!Array.isArray(rows)) return res.status(200).json({ task: "chartsweep", readFailed: true, ocdSpend: 0, writes: 0 });
-    const out = { task: "chartsweep", ocdSpend: 0, writes: 0, rows: rows.length, split: 0, held: 0, withheldBefore: 0, drawNow: 0, stillWithheld: 0, examples: { nowDraw: [], stillWithheld: [] }, next: rows.length === 100 ? rows[99].spec_key : null };
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "chartsplitsweep", readFailed: true, ocdSpend: 0, writes: 0 });
+    const out = { task: "chartsplitsweep", ocdSpend: 0, writes: 0, rows: rows.length, split: 0, held: 0, withheldBefore: 0, drawNow: 0, stillWithheld: 0, examples: { nowDraw: [], stillWithheld: [] }, next: rows.length === 100 ? rows[99].spec_key : null };
     for (const r of rows) {
       const a = r.raw; if (!a || !Array.isArray(a.options) || a.options.length < 2 || !a.trendHeld) continue;
       out.split++; out.held++;
