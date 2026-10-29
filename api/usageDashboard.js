@@ -1591,6 +1591,26 @@ async function handleOps(req, res) {
   }
   // task=chartsweep (Lane B, Oct 28 2026, chart ladder): READ ONLY. Applies the chart ladder (chartOf, lib/onebox.js) to every stored Market Check answer of the live stamp and counts the pages that land on each
   // step: pooled candles, scoped candles, withheld (never dots); five examples of each (key, count, scope, held reason). Paged 100 rows a call (after = last key). Writes nothing, spends nothing.
+  // task=rangecoverage (Lane B, Oct 29 2026; READ ONLY, no write, no OldCarsData, one page of 100 stored answers per call, ?after= pages): for every stored result answer with a range, the share of its own shown sales (cards) inside the range
+  // and the top-to-bottom spread of those sales, so Sam's "the range is very different to the sales" is counted, not guessed. Returns the page's tallies and each row (key, n, cards, coverage, spread) for the caller to rank; changes no figure.
+  if (task === "rangecoverage") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { ENGINE_VERSION } = await import("../lib/onebox.js");
+    const after = req.query?.after ? String(req.query.after) : "";
+    const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,ev:market->>engineVersion,raw:market->raw&order=spec_key.asc&limit=100` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "rangecoverage", readFailed: true, ocdSpend: 0, writes: 0 });
+    const out = { task: "rangecoverage", ocdSpend: 0, writes: 0, rows: rows.length, otherVersion: 0, noRange: 0, results: [], next: rows.length === 100 ? rows[rows.length - 1].spec_key : null };
+    for (const r of rows) {
+      if (String(r.ev) !== ENGINE_VERSION) { out.otherVersion++; continue; }
+      const d = r.raw; if (!d || typeof d !== "object") continue;
+      const cl = Array.isArray(d.cluster) && d.cluster.length === 2 && d.cluster[0] != null && d.cluster[1] != null ? d.cluster : null;
+      const px = (Array.isArray(d.cards) ? d.cards : []).map(c => Number(c && c.price)).filter(x => x > 0);
+      if (!cl || px.length < 3) { out.noRange++; continue; }
+      const inside = px.filter(x => x >= cl[0] && x <= cl[1]).length, lo = Math.min(...px), hi = Math.max(...px);
+      out.results.push({ key: String(r.spec_key).replace(/^MCWARM:/, "").slice(0, 90), poolN: d.poolN, shown: px.length, range: cl, low: lo, high: hi, coverage: Math.round(inside / px.length * 100) / 100, spread: Math.round(hi / lo * 100) / 100 });
+    }
+    return res.status(200).json(out);
+  }
   if (task === "chartsweep") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { chartOf, ENGINE_VERSION } = await import("../lib/onebox.js");
