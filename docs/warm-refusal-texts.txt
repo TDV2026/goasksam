@@ -1,0 +1,106 @@
+# Stored refusals (tier refusal, kind invariant_failed) read Oct 29 2026 on 84c54259. A: texts that compute to an answer on that build, stale refusal rows: warmFind --force. B: still refuse on 84c54259; the Audi RS rows are cured by the tip (spacedTaxonomyModelCheck), re-run warmwhy after the push for the rest.
+# A
+2022 Audi TT RS Heritage Edition
+2002 BMW M3 2L I6
+2002 BMW M3 Dinan S
+2001 BMW M3 LS V8
+2018 BMW M4 Edition
+1994 Chevrolet Blazer 4X4
+1991 Chevrolet Silverado
+1930 Chrysler By Roadster
+2014 Dodge Challenger Hemi R/T
+1970 Dodge Challenger R/T 440 Pack
+1971 Dodge Challenger R/T Tribute
+1972 Dodge Challenger SRT Demon 340
+1971 Dodge Challenger SRT Demon
+1970 Dodge Challenger T 340 Pack
+2023 Dodge Challenger T
+1998 Ferrari 355 Spider Pack
+2001 Ferrari 550 Maranello RN26
+2009 Ferrari F430 Spider 16M
+2007 Ferrari F430 Spider RN26
+2009 Honda S2000 GT Limited Edition
+2009 Honda S2000 Type S
+2004 Lamborghini Gallardo EX
+2012 Lamborghini Gallardo LP550 Spyder
+2013 Lamborghini Gallardo LP550 Spyder
+2012 Lamborghini Gallardo LP570 Super Stradale
+2010 Lamborghini Gallardo LP570 Superleggera
+2020 McLaren GT 427R
+1971 Mercedes-Benz 280SE 3.5 GN26
+1963 Mercedes-Benz 300SL Roadster
+1988 Mercedes-Benz 500 Classic
+2017 Mercedes-Benz AMG GT Edition 50
+2015 Mercedes-Benz AMG GT S
+2016 Mercedes-Benz AMG GT S
+2017 Mercedes-Benz AMG GT S
+2019 Mercedes-Benz GT63 AMG
+1987 Mercedes-Benz S-Class
+1972 MG MGB GT 1860CC
+1977 MG MGB Roadster MX5
+2025 Porsche 911 Turbo
+Porsche 930
+1993 Porsche 964 RS
+2021 Porsche 992 Carrera
+2023 Porsche 992 GT3 Cup
+1999 Porsche 996 GT3 Clubsport
+2001 Porsche 996 GT3 Clubsport
+2005 Porsche 997 Carrera
+2012 Porsche Boxster Spyder
+2016 Porsche Boxster Spyder
+2020 Porsche Boxster Spyder
+2014 Porsche Panamera E
+2018 Porsche Panamera E
+1993 Toyota Supra MK4
+# B
+2018 Audi RS 3
+2007 Audi RS 4 B7
+2014 Audi RS 5 B8
+2019 Audi RS 5 Sportback
+2021 Audi RS 5 Sportback
+2022 Audi RS 6 Avant
+2003 Audi RS 6 C5
+2014 Audi S7
+1994 Bentley Continental R
+1996 Bentley Continental R
+1994 Bentley Continental
+1974 BMW R90S
+1968 BMW Ti
+1968 BMW Years
+1970 Cadillac Single
+1973 Chevrolet C10
+1990 Chevrolet SS
+1989 Chevrolet Suburban R2500
+1990 Chevrolet Suburban
+1965 Citroen DS19
+1974 Citroen DS23IE
+1935 Ford CUSTOM
+1937 Ford Custom
+1947 Ford Custom
+1950 Ford Custom
+1950 Ford Custom
+1951 Ford Custom
+1941 Ford Years Super
+1951 Ford Years
+1974 Jaguar XJ6
+2012 Jaguar XK 5L V8 X150
+2007 Jaguar XK X150
+1948 Jaguar Years
+1960 Land Rover 200DI
+2003 Land Rover Discovery V8
+2011 Land Rover Discovery
+2020 McLaren Speedtail
+1959 Mercedes-Benz 190
+1990 Mercedes-Benz 300 CE
+1953 Mercedes-Benz 300 D
+1984 Mercedes-Benz 300 W460
+1991 Mercedes-Benz S-Class 500SEC
+1978 MG B Roadster
+1965 MG MGB Roadster
+2008 Nissan Patrol 3L TD GU/Y61
+1965 Pontiac Single
+2018 Subaru WRX STI Limited
+2016 Subaru WRX STI
+2000 Toyota Crown
+1995 Toyota Previa
+1991 Volkswagen Vanagon
