@@ -1,6 +1,6 @@
 // LIVE: this script calls production (goasksam.com). Run it only in a gap the lanes name, with the key and the protection-bypass secret in the environment (never printed):
 //   export PROBE_KEY="$(security find-generic-password -s goasksam-probe -w)" BYPASS_SECRET="$(security find-generic-password -s goasksam-bypass -w)"
-//   node scripts/warmNamed.mjs [--part named|golden|top|all] [--no-warm] [--base https://goasksam.com]
+//   node scripts/warmNamed.mjs [--part named|crosscheck|golden|top|crossrest|all] [--no-warm] [--base https://goasksam.com]
 // THE NAMED WARM (Sam, Oct 28 2026): the named list (scripts/warm-named.json), the golden table (docs/golden-rules.md) and the 50 most searched Market Check specs (ops task buyqueries&product=market_check)
 // are warmed FIRST in every warm run, before the Buy specs, through the ops task warmDemo (the same path the page reads, trims allowed, archive only, no vendor spend). Then every spec's stored row is
 // read (ops task warmHits: the row a visitor's read reads, no search) and must be a hit under the live stamp with the e96 fields. Prints the count that failed and the reason of each. Exit 1 when any named spec is cold.
@@ -15,8 +15,11 @@ let golden = []; try { const doc = fs.readFileSync(new URL("../docs/golden-rules
 const getJson = async (url, ms = 290000) => { const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms); try { const r = await fetch(url, { headers: H(), signal: ac.signal }); const x = await r.text(); try { return { status: r.status, j: JSON.parse(x) }; } catch { return { status: r.status, j: null, text: x.slice(0, 120) }; } } catch (e) { return { status: 0, j: null, text: String(e && e.message || e) }; } finally { clearTimeout(t); } };
 let top = [];
 if (PART === "top" || PART === "all") { const r = await getJson(`${BASE}/api/usageDashboard?view=ops&task=buyqueries&product=market_check&days=30&top=50`, 120000); top = r.j && Array.isArray(r.j.top) ? r.j.top.map(x => x.q) : []; if (!top.length) console.log("warmNamed: the Market Check log gave no top specs (" + (r.status || r.text) + ")"); }
-const lists = { named, golden, top };
-const parts = PART === "all" ? ["named", "golden", "top"] : [PART];
+let crossrest = []; try { crossrest = JSON.parse(fs.readFileSync(new URL("./warm-crossrest.json", import.meta.url), "utf8")).crossrest || []; } catch {}
+let crosscheck = []; try { crosscheck = JSON.parse(fs.readFileSync(new URL("./warm-crosscheck.json", import.meta.url), "utf8")).crosscheck || []; } catch {}
+const lists = { named, golden, top, crosscheck, crossrest };
+// order of the warm: Sam's 19, then the nine cross-product specs that were cold, then the golden table and the top 50, then the other 61 cross-product specs
+const parts = PART === "all" ? ["named", "crosscheck", "golden", "top", "crossrest"] : [PART];
 const seen = new Set(), todo = [];
 for (const p of parts) for (const q of lists[p] || []) { const k = q.toLowerCase(); if (!seen.has(k)) { seen.add(k); todo.push({ q, part: p }); } }
 console.log(`warmNamed: ${todo.length} specs (${parts.map(p => p + " " + (lists[p] || []).length).join(", ")})`);

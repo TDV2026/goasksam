@@ -243,11 +243,11 @@ Re-pinned Oct 25 2026 (e87). Intended changes: row 4 prints the 911 name (e83); 
  {"id":55,"e73Note":"market move, one new sale before e72","q":"2003 Ford Mustang SVT Cobra","status":"ready","e98Note":"market move, window roll: the 2025-10-27 sale left the twelve months and three October 2026 sales joined; re-pinned Oct 28 2026 on live e98","count":12,"tol":0,"low":28000,"high":47500,"tolPct":0,"lowestSale":24350,"highestSale":62000,"e87Note":"market move (new sales in the archive), re-pinned on e86 live reads Oct 25 2026"},
  {"id":56,"e73Note":"moved on e73 as predicted (M340i in, 12 sales, range appears)","q":"2019 BMW 3-Series","status":"ready","count":12,"tol":0,"low":30000,"high":35500,"tolPct":3},
  {"id":57,"q":"2005 Ford GT","status":"ready","labelHas":["GT Coupe"],"count":24,"tol":0,"low":479000,"high":611000,"tolPct":3,"e87Note":"market move (new sales in the archive), re-pinned on e86 live reads Oct 25 2026"},
- {"id":58,"q":"2004 Porsche Carrera GT","status":"pending","labelHas":["Carrera GT"],"countMin":1},
- {"id":59,"q":"1959 Ferrari 250 GT California","status":"pending","labelHas":["250 GT California"],"countMin":1},
- {"id":60,"q":"2009 Ferrari California","status":"pending","labelHas":["California"],"countMin":1},
- {"id":61,"q":"1971 Nissan Skyline GT-R","status":"pending","labelHas":["Skyline GT-R"],"countMin":1},
- {"id":62,"q":"1989 Chevrolet Camaro IROC-Z","status":"pending","labelHas":["IROC-Z"],"countMin":1},
+ {"id":58,"q":"2004 Porsche Carrera GT","status":"ready","rung":"year_widened","labelHas":["Carrera GT"],"count":14,"tol":2,"low":1335000,"high":1805000,"tolPct":5,"e99Note":"pinned Oct 28 2026 on live e99 (Lane B): 14 sales of the 2005 cars, the 2004 has too few; the engine widens by year"},
+ {"id":59,"q":"1959 Ferrari 250 GT California","status":"ready","rung":"year_widened","labelHas":["250 GT California"],"count":7,"tol":1,"low":null,"high":null,"e99Note":"pinned Oct 28 2026 on live e99 (Lane B): 7 sales of 1957 to 1961, under the eight a range needs, so sales only"},
+ {"id":60,"q":"2009 Ferrari California","status":"ready","rung":"year_widened","labelHas":["California"],"count":13,"tol":2,"low":80000,"high":94000,"tolPct":5,"e99Note":"pinned Oct 28 2026 on live e99 (Lane B): the 2010 cars, the 2009 alone has too few"},
+ {"id":61,"q":"1971 Nissan Skyline GT-R","status":"ready","rung":"year_widened","labelHas":["Skyline GT-R"],"count":1,"tol":1,"low":null,"high":null,"e99Note":"pinned Oct 28 2026 on live e99 (Lane B): one sale on record, so the sale only, no range"},
+ {"id":62,"q":"1989 Chevrolet Camaro IROC-Z","status":"ready","rung":"exact","labelHas":["IROC-Z"],"count":9,"tol":1,"low":16000,"high":30000,"tolPct":5,"e99Note":"pinned Oct 28 2026 on live e99 (Lane B)"},
  {"id":63,"q":"2018 Ford GT","status":"ready","labelHas":["GT Coupe"],"count":10,"tol":0,"low":791000,"high":882000,"tolPct":3},
  {"id":64,"q":"2006 Ford GT Heritage Edition","status":"ready","labelHas":["Heritage"],"count":11,"tol":0,"low":676000,"high":840000,"tolPct":3,"mustInclude":[793500,725000,742500]},
  {"id":65,"q":"1999 Ferrari 550 Maranello","status":"ready","labelHas":["550"],"count":11,"tol":0,"low":164000,"high":370000,"tolPct":3},
@@ -256,11 +256,11 @@ Re-pinned Oct 25 2026 (e87). Intended changes: row 4 prints the 911 name (e83); 
  {"id":68,"q":"2022 Mercedes-Benz S-Class","status":"ready","labelHas":["S-Class"],"count":9,"tol":0,"low":66000,"high":90000,"tolPct":3},
  {"id":69,"q":"2016 BMW M3","status":"ready","labelHas":["M3 Sedan"],"count":11,"tol":0,"low":40500,"high":52000,"tolPct":3},
  {"id":70,"q":"2026 Lexus LC 500","status":"ready","labelHas":["LC"],"count":8,"tol":0,"low":138000,"high":154000,"tolPct":3},
- {"id":71,"q":"1992 Porsche 911 Carrera 4 by Singer","status":"pending","singerRule":true,"expect":{"refusalKind":"builder car","refusalLine":"Singer cars are not compared with standard 911s, so no range is shown.","range":null,"count":null,"salesList":false,"products":"every product"}},
- {"id":72,"q":"1992 Porsche 911 Carrera 4","status":"pending","notSinger":true,"expect":{"rangeUnchanged":true,"note":"its current range before e68; pinned from the first read after e68, never borrowing the Singer pool"}},
- {"id":73,"q":"2025 Porsche 911","status":"pending","emailCase":true,"note":"email case of row 1: the engine asks a trim question; the Task email must print the pooled range (alike or split, with option lines) or each option's own range (apart), never the question. Pin on the e95 run."},
- {"id":74,"q":"1963 Chevrolet Corvette Split Window","status":"pending","emailCase":true,"note":"email case of row 19 (L76, L84, L75 question). Pin on the e95 run."},
- {"id":75,"q":"2003 Mercedes-Benz S-Class","status":"pending","emailCase":true,"note":"email case of row 66 (S430, S600, S500 question). Pin on the e95 run."}
+ {"id":71,"q":"1992 Porsche 911 Carrera 4 by Singer","status":"ready","e99Note":"pinned Oct 28 2026 on live e99 (Lane B): builder car refusal on every product, no range, no count","singerRule":true,"expect":{"refusalKind":"builder car","refusalLine":"Singer cars are not compared with standard 911s, so no range is shown.","range":null,"count":null,"salesList":false,"products":"every product"}},
+ {"id":72,"q":"1992 Porsche 911 Carrera 4","status":"ready","notSinger":true,"rung":"exact","labelHas":["911 Carrera 4"],"count":8,"tol":1,"low":91500,"high":131000,"tolPct":5,"e99Note":"pinned Oct 28 2026 on live e99 (Lane B): its own range, never the Singer pool"},
+ {"id":73,"q":"2025 Porsche 911","status":"ready","emailCase":true,"rung":"year_widened","labelHas":["911"],"count":11,"tol":1,"low":144000,"high":164000,"tolPct":5,"e99Note":"pinned Oct 28 2026 on live e99 (Lane B): email case of row 1; the pooled range of the 2024 to 2025 cars, never the question"},
+ {"id":74,"q":"1963 Chevrolet Corvette Split Window","status":"ready","emailCase":true,"rung":"exact","labelHas":["1963 Corvette Coupe"],"count":31,"tol":0,"low":null,"high":null,"e99Note":"pinned Oct 28 2026 on live e99 (Lane B): email case of row 19; no pooled range (L76, L84 and L75 price apart), the email prints each option range"},
+ {"id":75,"q":"2003 Mercedes-Benz S-Class","status":"ready","emailCase":true,"rung":"exact","labelHas":["2003 S-Class"],"count":14,"tol":1,"low":7500,"high":10000,"tolPct":5,"e99Note":"pinned Oct 28 2026 on live e99 (Lane B): email case of row 66; the pooled range"}
 ]
 ```
 
