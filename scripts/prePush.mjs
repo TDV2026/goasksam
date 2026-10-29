@@ -1786,6 +1786,13 @@ try {
 } catch (e) {
   record("browser checks that drive Tasks or watch controls read no live data (scripts/liveStubCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | ") || String(e.message).slice(0, 200));
 }
+// The admin People and Launch tabs in Chrome at 1440 and 390, data stubbed (Lane D, Oct 29 2026). Offline.
+try {
+  const out = execSync("node scripts/peopleBrowserCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("admin People and Launch tabs in Chrome, stubbed (scripts/peopleBrowserCheck.mjs)", /SKIP/.test(out) ? "SKIP" : "PASS", (out.match(/peopleBrowserCheck: .*/) || [out.trim()])[0]);
+} catch (e) {
+  record("admin People and Launch tabs in Chrome, stubbed (scripts/peopleBrowserCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | ") || String(e.message).slice(0, 200));
+}
 // Checks that read a real auction end time pin it to the clock (Lane D, Oct 29 2026): the before-it-ends toggle is off inside two hours, so an unpinned check changes verdict with the hour. Offline.
 try {
   const out = execSync("node scripts/clockPinCheck.mjs", { encoding: "utf8", timeout: 60000 });

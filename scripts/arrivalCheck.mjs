@@ -83,5 +83,18 @@ ok(pvRow && pvRow.utm_source === "beehiiv", "the stored page_view row has utm_so
   ok(mcS.anonymous === 2 && mcS.signed_in === 0 && buyS.anonymous === 1 && buyS.signed_in === 1, "Launch tab: searches before and after sign-in split by the first signin event: " + JSON.stringify(D.searchSplit));
 }
 
+// 6. the exact link in the newsletter: https://goasksam.com/?utm_source=beehiiv&utm_medium=email
+{
+  const LINK = "https://goasksam.com/?utm_source=beehiiv&utm_medium=email", u = pickUtm(LINK);
+  ok(u.utm_source === "beehiiv" && u.utm_medium === "email", "the newsletter link is read as source beehiiv, medium email");
+  const t = m => new Date(Date.UTC(2026, 9, 29, 14, m)).toISOString();
+  const pv = anon => ({ ts: t(0), product: "site", anon_id: anon, session_id: "s" + anon, ref_domain: null, utm_source: u.utm_source, utm_medium: u.utm_medium, device_class: "desktop", props: {} });
+  const ev = (anon, m, name, props) => ({ ts: t(m), name, product: "buy", anon_id: anon, session_id: "s" + anon, device_class: "desktop", props: props || {} });
+  const D = build({ pv: [pv("x"), pv("y")], ev: [ev("x", 3, "search_run", { answer_type: "range", query_text: "x", vehicle_key: "a|b" }), ev("y", 3, "search_run", { answer_type: "range", query_text: "y", vehicle_key: "a|b" }), ev("y", 5, "signin")], mc: [], out: [], ocd: [], held: [] }, { from: t(0), to: t(60), key: "launch" });
+  const s = D.sources.find(r => r.source === "utm: beehiiv");
+  ok(s && s.visitors === 2 && s.asked === 2 && s.signed_in === 1, "Launch tab: 'utm: beehiiv' for a reader who lands and searches and for one who signs in afterwards (2 visitors, 2 asked, 1 signed in)");
+  ok(!D.sources.some(r => r.source === "direct"), "neither reader is counted as direct");
+}
+
 console.log(`arrivalCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);
