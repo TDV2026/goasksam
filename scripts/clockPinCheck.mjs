@@ -1,3 +1,4 @@
+// clock: real-ok it pins auction end times to the real clock on purpose: the point is that checks must not hold a dated end time that passes, so its own reads are relative to now (Lane G, Oct 29 2026)
 // CHECKS THAT READ A REAL AUCTION END TIME MUST PIN IT TO THE CLOCK (Oct 29 2026). standingDrawerCheck went red alone, 2 of 2, with no code change:
 // the page turns the before-it-ends toggle off inside two hours and drops it once a car has ended (api/buy.js alertSwitchHtml, a real rule), and the
 // check opened a real SL65 listing that ended at 17:30 UTC that day. So the check passed at 6:50 AM Pacific and failed from 8:30. The page was right.
