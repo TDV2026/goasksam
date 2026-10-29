@@ -60,7 +60,7 @@ async function scenario({ mode = "ok", stored = [SPEC], signedIn = true, alertMo
     }
     if (/\/api\/buySearch$/.test(u) && m === "POST") {
       let a = {}; try { a = JSON.parse(rq.postData() || "{}"); } catch {}
-      if (a.action === "alerts_ready") return json({ ready: true, rule: "Sam sends one email two hours before bidding ends, at any hour of the day or night." });
+      if (a.action === "alerts_ready") return json({ ready: true, rule: "Sam sends one email about two hours before bidding ends, at any hour of the day or night." });
       if (a.action === "alerts") return json({ items: [] });
       if (a.action === "list") return json({ items: [] });
       if (a.action === "arm") { log.push("alert:arm"); if (alertMode === "drop") return rq.abort(); if (alertMode === "refuse") return json({ ok: false, reason: "cap_alert", line: "You have 25 before-it-ends emails set. Stop one under Watching on your Tasks page to add another." }); return json({ ok: true, already: false, alert: { listing_id: 191043, title: "2005 Mercedes-Benz SL65 AMG", end_time: new Date(Date.now() + 8 * 3600e3).toISOString() } }); }

@@ -14,7 +14,7 @@ const U1 = "11111111-1111-4111-8111-111111111111", U2 = "22222222-2222-4222-8222
 const b64 = o => Buffer.from(JSON.stringify(o)).toString("base64url");
 const tokenOf = u => b64({ alg: "ES256", kid: "t" }) + "." + b64({ sub: u }) + ".x";   // unverifiable locally, so validateBearer asks the (fake) GoTrue
 const future = h => new Date(Date.now() + h * 3600e3).toISOString();
-const db = { watches: [], alerts: [], tasks: [], next: 1, listings: {
+const db = { watches: [], alerts: [], tasks: [], convs: [], reqs: [], next: 1, listings: {
   7: { id: 7, vin_norm: "WDBSK75F95F000007", listing_title: "2005 Mercedes-Benz SL65 AMG", make: "Mercedes-Benz", model: "SL-Class", model_family: "SL-Class", year: 2005, status: "live", end_time: future(8), current_bid: 15250, source: "bringatrailer", url: "https://x/7" },
   8: { id: 8, vin_norm: "", listing_title: "1971 Datsun 240Z", make: "Datsun", model: "240Z", model_family: "240Z", year: 1971, status: "live", end_time: future(30), current_bid: 9000, source: "bringatrailer", url: "https://x/8" },
   9: { id: 9, vin_norm: "WDBSK75F95F000009", listing_title: "2005 Mercedes-Benz SL65 AMG", make: "Mercedes-Benz", model: "SL-Class", model_family: "SL-Class", year: 2005, status: "ended_sold", end_time: future(-30), current_bid: 40000, source: "bringatrailer", url: "https://x/9" } } };
@@ -42,6 +42,15 @@ globalThis.fetch = async (url, o = {}) => {
     if (m === "POST") { const a = { id: db.next++, armed_at: new Date().toISOString(), cancelled_at: null, sent_at: null, ...JSON.parse(o.body)[0] }; db.alerts.push(a); return json([a], 201); }
     if (m === "PATCH") { const body = JSON.parse(o.body); const id = Number((q.get("id") || "").replace("eq.", "")); for (const a of db.alerts) if ((id && a.id === id) || ("eq." + a.listing_id === q.get("listing_id") && a.user_id === uid)) Object.assign(a, body); return json(id ? db.alerts.filter(a => a.id === id) : []); }
   }
+  if (path === "buy_conversations") {
+    const id = (q.get("id") || "").replace("eq.", "");
+    if (m === "GET") { let r = db.convs.filter(x => !uid || x.user_id === uid); if (id) r = r.filter(x => x.id === id); if (q.get("watch") === "is.true") r = r.filter(x => x.watch === true); return json(r); }
+    if (m === "PATCH") { for (const x of db.convs) if (x.id === id && x.user_id === uid) Object.assign(x, JSON.parse(o.body)); return json([]); }
+  }
+  if (path === "watch_requests") {
+    if (m === "POST") { const b = JSON.parse(o.body)[0]; if (!db.reqs.some(x => x.vin_norm === b.vin_norm && x.email === b.email)) db.reqs.push(b); return new Response("", { status: 201 }); }
+    if (m === "DELETE") { const k = decodeURIComponent((q.get("vin_norm") || "").replace("eq.", "")); db.reqs = db.reqs.filter(x => x.vin_norm !== k); return new Response("", { status: 204 }); }
+  }
   if (path === "tasks") return json(db.tasks.filter(t => !uid || t.user_id === uid));
   return json([]);
 };
@@ -65,7 +74,7 @@ db.tasks = [task("t1", "running"), task("t2", "running")];
 for (const [i, label] of ["2005 SL65", "Impala, all years", "2003 M3 Convertible", "2014 911 Carrera and Carrera S"].entries()) db.watches.push({ id: "bbbbbbbb-bbbb-4bbb-8bbb-00000000000" + i, user_id: U1, kind: "spec", key: "spec" + i, label, spec: { identity: label }, created_at: new Date().toISOString(), stopped_at: null });
 let s = await summary();
 ok(s.signedIn && s.count === 6 && s.counts.tasks.open === 2 && s.counts.watches.count === 4 && s.counts.alerts.count === 0, "Sam's account reads 6 on the badge (2 Tasks + 4 watches + 0 emails), not 2");
-ok(s.counts.line === "Tasks 2 of 3 (searches you describe). Watching 4 of 25 (cars you want to hear about when they sell). Before-it-ends emails 0 of 25 (one email two hours before a bid ends).", "the header line gives the three counts and what each is, in Sam's order: " + s.counts.line);
+ok(s.counts.line === "Tasks 2 of 3 (searches you describe). Watching 4 of 25 (cars you want to hear about when they sell). Before-it-ends emails 0 of 25 (one email about two hours before a bid ends).", "the header line gives the three counts and what each is, in Sam's order: " + s.counts.line);
 ok(s.limit.statusLine === "You have 2 of 3 Tasks running. 1 Task left.", "the Tasks status line is unchanged");
 let ls = await call(tasksH, { action: "list" });
 ok(ls.count === 6 && ls.counts.total === 6, "the Tasks list carries the same total (6)");
@@ -100,12 +109,40 @@ ok(r.ok === false && r.reason === "ended" && r.line === L.ARM_LINES.ended && las
 r = await call(buyH, { action: "arm", listing_id: 7 });
 ok(r.already === true && lastArm().outcome === "already" && db.alerts.length === 1, "alert: a second switch-on is 'already', no second row");
 
+// ---- control 4: "Tell me when one comes up" on a saved search (the fourth standing notice)
+const SID = "dddddddd-dddd-4ddd-8ddd-000000000001";
+db.convs.push({ id: SID, user_id: U1, title: "2005 Mercedes-Benz SL65 AMG", watch: false });
+const nBefore = (await summary()).count;
+r = await call(buyH, { action: "watchsearch", id: SID });
+ok(r.ok === true && db.convs[0].watch === true && db.reqs.some(x => x.vin_norm === "search:" + SID), "saved_search: a click writes the flag and its watch_requests row");
+ok(lastArm().control === "saved_search" && lastArm().outcome === "added" && lastArm().user === U1, "saved_search: logs standing_arm added with the account");
+ok((await summary()).count === nBefore + 1, "saved_search: the badge counts it");
+r = await call(buyH, { action: "watchsearch", id: SID });
+ok(r.ok === true && r.already === true && lastArm().outcome === "already" && db.reqs.length === 1, "saved_search: a second click is 'already', no second row");
+r = await call(buyH, { action: "watchsearch", id: "eeeeeeee-eeee-4eee-8eee-000000000002" });
+ok(r.ok === false && r.reason === "not_found" && lastArm().reason === "not_found" && db.reqs.length === 1, "saved_search: a search that is not the account's is refused, logged, writes nothing");
+r = await call(buyH, { action: "watchsearch", id: SID }, { token: "" });
+ok(r.needSignIn === true && r.reason === "signed_out" && lastArm().control === "saved_search" && lastArm().reason === "signed_out", "saved_search: signed out is refused with the reason, logged");
+{
+  const lk4 = await call(tasksH, { action: "looking" });
+  const row = lk4.rows.find(x => x.ref === "s:" + SID);
+  ok(row && row.kind === "search_watch" && row.what === "2005 Mercedes-Benz SL65 AMG" && row.detail === "Sam tells you when one comes up.", "saved_search: the Tasks page lists it under Watching in words that match the control ('Sam tells you when one comes up.')");
+  ok(lk4.counts.watches.count === lk4.rows.filter(x => x.kind !== "alert").length && lk4.counts.total === (await summary()).count, "saved_search: it is in the Watching count and the badge total");
+  // the cap is shared with the other watches
+  const db0 = db.watches.length; db.convs.push({ id: "dddddddd-dddd-4ddd-8ddd-000000000002", user_id: U2, title: "x", watch: false });
+  for (let i = db.watches.filter(w => w.user_id === U2).length; i < caps.WATCH_CAP; i++) db.watches.push({ id: "ffffffff-ffff-4fff-8fff-" + String(i).padStart(12, "0"), user_id: U2, kind: "spec", key: "z" + i, label: "z" + i, stopped_at: null });
+  r = await call(buyH, { action: "watchsearch", id: "dddddddd-dddd-4ddd-8ddd-000000000002" }, { token: tokenOf(U2) });
+  ok(r.ok === false && r.reason === "cap_watch" && /Stop one under Watching/.test(r.line) && lastArm().reason === "cap_watch" && db.convs[1].watch === false, "saved_search: at 25 watches it is refused with what to stop, logged, writes nothing"); void db0;
+  r = await call(tasksH, { action: "looking_stop", ref: "s:" + SID });
+  ok(r.ok === true && db.convs[0].watch === false && !db.reqs.some(x => x.vin_norm === "search:" + SID), "saved_search: Stop turns the flag off and removes its watch_requests row");
+  ok((await summary()).count === nBefore, "saved_search: the badge drops after Stop");
+}
 // ---- the Tasks page shows each in the server's words
 const lk = await call(tasksH, { action: "looking" });
 const byRef = Object.fromEntries(lk.rows.map(x => [x.ref, x]));
 ok(byRef["w:" + specId] && byRef["w:" + specId].detail === "Sam tells you when the next one sells.", "a watch on a car or market says 'Sam tells you when the next one sells.'");
 ok(byRef["w:" + vinId] && byRef["w:" + vinId].detail === "This exact car." && /SL65/.test(byRef["w:" + vinId].what) && !!byRef["w:" + vinId].ends_at, "an exact-car watch says 'This exact car.' with the car's name and, the lot being live, the end time");
-ok(byRef["a:7"] && byRef["a:7"].detail === "One email two hours before bidding ends." && !!byRef["a:7"].ends_at, "a before-it-ends email says 'One email two hours before bidding ends.' with the end time");
+ok(byRef["a:7"] && byRef["a:7"].detail === "One email about two hours before bidding ends." && !!byRef["a:7"].ends_at, "a before-it-ends email says 'One email about two hours before bidding ends.' with the end time");
 ok(lk.rows.every(x => !/next sale of this car/i.test(x.detail) && !/alert/i.test(x.detail)), "no row says 'The next sale of this car.' (wrong for several cars) and none calls a Task email an alert");
 ok(lk.counts.total === 9 && lk.counts.watches.count === 6 && lk.counts.alerts.count === 1 && lk.counts.tasks.working === 2, "the Watching list's counts match the badge (9)");
 

@@ -57,7 +57,8 @@ import { supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { chatOut } from "../lib/live/chatHttp.js";
 import { routeLimit } from "../lib/_routeLimit.js";
 import { TOGGLE_LINE } from "../lib/live/buyAlerts.js";
-import { armOutcome, logArm, ARM_LINES } from "../lib/live/looking.js";
+import { armOutcome, logArm, ARM_LINES, searchWatchOutcome, standingCounts } from "../lib/live/looking.js";
+import { WATCH_CAP } from "../lib/live/lookingCaps.js";
 import { armAlert, cancelAlert, listAlerts, runAlerts, stopAll, verifyStop, verifyItem, stopOne, itemLabel, testSend, isMissingTable, alertsReady, useNamer } from "../lib/live/buyAlerts.js";
 
 const FIRST = 10, MAX = 200;
@@ -772,7 +773,7 @@ async function detailOut(env, b, opts = {}) {
 // ---------------------------------------------------------------- saved searches (signed in)
 async function savedSearches(env, req, res, b) {
   const user = await validateBearer(req.headers.authorization || "").catch(() => null);
-  if (!user || !user.userId) return res.status(401).json({ ok: false, needSignIn: true });
+  if (!user || !user.userId) { if (b.action === "watchsearch") logArm(null, "saved_search", { outcome: "refused", reason: "signed_out" }); return res.status(401).json({ ok: false, needSignIn: true, ...(b.action === "watchsearch" ? { reason: "signed_out", line: ARM_LINES.signed_out } : {}) }); }
   const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json" };
   const base = `${env.supabaseUrl}/rest/v1/buy_conversations`;
   // ONE LIST (Sam, Oct 9 2026): "Your searches" is the account's list when signed in, these rows: each search
@@ -826,12 +827,22 @@ async function savedSearches(env, req, res, b) {
   // Remove hides the row (never a delete; see ONE LIST above).
   if (b.action === "remove" && /^[0-9a-f-]{36}$/.test(String(b.id))) return res.status(200).json({ ok: await hideRows([b.id]) });
   if (b.action === "watchsearch" && /^[0-9a-f-]{36}$/.test(String(b.id))) {
+    // "Tell me when one comes up" on a saved search is a watch to the person (Sam, Oct 29 2026): it is listed under Watching with a Stop, counted in the badge and under the same 25 cap (lib/live/looking.js), and logged.
     const email = user.email || String(b.email || "").toLowerCase();
-    if (!email) { logArm(user.userId, "saved_search", { outcome: "refused", reason: "no_address" }); return res.status(400).json({ ok: false, reason: "no_address", line: ARM_LINES.no_address }); }
-    await fetch(`${base}?id=eq.${b.id}&user_id=eq.${user.userId}`, { method: "PATCH", headers: H, body: JSON.stringify({ watch: true, updated_at: new Date().toISOString() }) });
-    const r = await fetch(`${env.supabaseUrl}/rest/v1/watch_requests?on_conflict=vin_norm,email`, { method: "POST", headers: { ...H, Prefer: "resolution=ignore-duplicates,return=minimal" }, body: JSON.stringify([{ vin_norm: "search:" + b.id, email }]) });
-    logArm(user.userId, "saved_search", r.ok ? { outcome: "added" } : { outcome: "refused", reason: "failed" });
-    return res.status(r.ok ? 200 : 500).json(r.ok ? { ok: true } : { ok: false, reason: "failed", line: ARM_LINES.failed });
+    const done = (code, r) => { const oc = searchWatchOutcome(r); logArm(user.userId, "saved_search", oc); return res.status(code).json(r.ok ? r : { ...r, ok: false, line: r.line || oc.line }); };
+    if (!email) return done(400, { ok: false, reason: "no_address", line: ARM_LINES.no_address });
+    const own = await fetch(`${base}?id=eq.${b.id}&user_id=eq.${user.userId}&select=id,watch&limit=1`, { headers: H });
+    const mine = own.ok ? (await own.json())[0] : null;
+    if (!own.ok) return done(500, { ok: false, reason: "failed" });
+    if (!mine) return done(404, { ok: false, reason: "not_found" });
+    const already = mine.watch === true;
+    if (!already) {
+      const c = await standingCounts(env, user.userId);
+      if (c.watches >= WATCH_CAP) return done(200, { ok: false, reason: "cap_watch", line: ARM_LINES.cap_watch });
+    }
+    const pr = await fetch(`${base}?id=eq.${b.id}&user_id=eq.${user.userId}`, { method: "PATCH", headers: H, body: JSON.stringify({ watch: true, updated_at: new Date().toISOString() }) });
+    const r = pr.ok ? await fetch(`${env.supabaseUrl}/rest/v1/watch_requests?on_conflict=vin_norm,email`, { method: "POST", headers: { ...H, Prefer: "resolution=ignore-duplicates,return=minimal" }, body: JSON.stringify([{ vin_norm: "search:" + b.id, email }]) }) : pr;
+    return r.ok ? done(200, { ok: true, already, id: b.id }) : done(500, { ok: false, reason: "failed" });
   }
   return res.status(400).json({ ok: false });
 }

@@ -1548,6 +1548,13 @@ try {
   record("See the sales and the sale modal on Find (scripts/findSalesButtonCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 // What Find's toggles and buttons make (Sam, Oct 29 2026). A fake table behind fetch.
+// Everything that can email a person is on the Tasks page with a Stop, and the before-it-ends wording (Lane D, Oct 29 2026): the tables the send paths read are listed or named as not a notice, the saved-search watch is listed, counted and capped, and every copy says "about two hours before". Offline.
+try {
+  const out = execSync("node scripts/standingNoticesCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("everything that can email a person is on the Tasks page with a Stop; 'about two hours before' everywhere (scripts/standingNoticesCheck.mjs)", "PASS", (out.match(/standingNoticesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("everything that can email a person is on the Tasks page with a Stop; 'about two hours before' everywhere (scripts/standingNoticesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The Find drawer in Chrome (Lane D, Oct 29 2026): this branch's page code against a fake server, a stored Find answer for the 2005 SL65 AMG. Needs Chrome, the network and the crew code in the Keychain; says SKIP without them.
 try {
   const out = execSync("node scripts/standingDrawerCheck.mjs", { encoding: "utf8", timeout: 600000 });
