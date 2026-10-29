@@ -39,6 +39,7 @@
   var OB_WATCH_READY = false;
   obFetch(API_ORIGIN + "/api/watch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "ready" }) })
     .then(function (r) { return r.json(); }).then(function (j) { OB_WATCH_READY = !!(j && j.ready); }).catch(function () {});
+  var obWatchAlready = false;   // the arm answered "already": a row was there
   var obWatchArmed = null;   // the current result's own watch, once armed this session: {id, kind, label, ...}
   var obWatchFirst = false;  // this account's very first watch (show "Free. No card, no plan.")
   // Rejected model chips (Oct 2026, Market Check card rejected-chip job): the SAME algorithm
@@ -1916,16 +1917,17 @@
     var tok = sess && sess.access_token;
     if (!tok) { if (onFail) onFail(); return; }
     obFetch(API_ORIGIN + "/api/watch", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok }, body: JSON.stringify(Object.assign({ action: "arm" }, payload)) })
-      .then(function (r) { return r.json(); })
+      .then(function (r) { return r.json().catch(function () { return null; }); })
       .then(function (j) {
         if (j && j.watch) {
-          obWatchArmed = j.watch; obWatchFirst = !!j.first;
+          obWatchArmed = j.watch; obWatchFirst = !!j.first; obWatchAlready = !!j.already;
           var sec = document.querySelector(".samonit");
           if (sec) sec.outerHTML = samOnItHtml(obLastD, vinAnchor);
           if (typeof gasWatchRail === "function") gasWatchRail();
+          if (typeof gasTasksBadge === "function") gasTasksBadge();   // the Tasks badge moves in this same view
           return;
         }
-        if (onFail) onFail();
+        if (onFail) onFail(j && j.line);
       })
       .catch(function () { if (onFail) onFail(); });
   }
@@ -1963,7 +1965,7 @@
     if (!OB_WATCH_READY && !always) return "";
     if (obWatchArmed) {
       var onLine = m ? "Sam’s looking for this exact car to come up again." : ("Sam’s looking for the next sale of " + esc(obWatchArmed.label || carLabel(d.resolvedCar)) + ".");
-      return '<section class="samonit" data-stage="note"><p class="samonit-on">' + lint(onLine, "samonit.on") + "</p>" + (obWatchFirst ? '<p class="samonit-free">Free. No card, no plan.</p>' : "") + "</section>";
+      return '<section class="samonit" data-stage="note"><p class="samonit-on">' + lint(onLine, "samonit.on") + "</p>" + (obWatchFirst ? '<p class="samonit-free">Free. No card, no plan.</p>' : "") + '<p class="samonit-link">' + (obWatchAlready ? "Already in Watching. " : "Added to Watching. ") + '<a href="/tasks/mine' + (obWatchArmed.id ? "#lk-w:" + esc(obWatchArmed.id) : "") + '">Open Tasks</a></p></section>';
     }
     var line = m ? "If this exact car comes up again, Sam will email you, with the sale attached." : ("When the next " + esc(carLabel(d.resolvedCar)) + " sells, Sam will email you, with the sale attached.");
     // samonit-main (follow-up round, Oct 2026): the sentence and the link read as one group on the
@@ -3779,9 +3781,9 @@
         }
         var msg = document.getElementById("ob-samonit-msg");
         soi.disabled = true; soi.textContent = "One moment...";
-        armWatchNow(function () {
-          soi.disabled = false; soi.textContent = "Put Sam on it →";
-          if (msg) { msg.hidden = false; msg.textContent = "That didn’t work just now. Try again in a moment."; }
+        armWatchNow(function (line) {
+          soi.disabled = false; soi.textContent = "Have Sam keep looking →";   // the button stays, as it was
+          if (msg) { msg.hidden = false; msg.textContent = line || "That didn't work just now. Try again."; }
         });
       });
     })();

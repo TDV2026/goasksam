@@ -493,8 +493,10 @@ async function handler(req, res) {
       const open = tasks.filter(t => ["running", "needs_you", "paused"].includes(t.state));
       const active = open.find(t => ["running", "needs_you"].includes(t.state)) || open[0] || null;
       const working = open.filter(t => ["running", "needs_you"].includes(t.state)).length;
-      // count: the Tasks the person has open (the rail badge); limit: the working count against the one limit.
-      return res.status(200).json({ signedIn: true, active: active ? { id: active.id, state: active.state, summary: active.summary } : null, count: open.length, limit: limitFacts(working), unread: tasks.reduce((k, t) => k + (t.unread || 0), 0) });
+      // count: everything active, the ONE number behind the Tasks badge on every page (Sam, Oct 29 2026): open Tasks + watches + before-it-ends emails that are on (lib/live/looking.js badgeFacts).
+      const { standingCounts, badgeFacts } = await import("../lib/live/looking.js");
+      const bf = badgeFacts(working, open.length, await standingCounts(env, user.userId));
+      return res.status(200).json({ signedIn: true, active: active ? { id: active.id, state: active.state, summary: active.summary } : null, count: bf.total, counts: bf, limit: limitFacts(working), unread: tasks.reduce((k, t) => k + (t.unread || 0), 0) });
     }
     if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
     if (!user) return res.status(401).json({ needSignIn: true });
@@ -503,7 +505,8 @@ async function handler(req, res) {
     if (b.action === "looking") {
       const { lookingList } = await import("../lib/live/looking.js");
       const working = (await userTasks(env, user.userId).catch(() => [])).filter(t => ["running", "needs_you"].includes(t.state)).length;
-      return res.status(200).json(await lookingList(env, user, working));
+      const openN = (await userTasks(env, user.userId).catch(() => [])).filter(t => ["running", "needs_you", "paused"].includes(t.state)).length;
+      return res.status(200).json(await lookingList(env, user, working, openN));
     }
     if (b.action === "looking_stop") {
       const { lookingStop } = await import("../lib/live/looking.js");
@@ -526,7 +529,9 @@ async function handler(req, res) {
       // Opening the list is an interaction; the open thread's updates are read.
       if (b.open && /^[0-9a-f-]{36}$/.test(String(b.open))) { const t = tasks.find(x => x.id === b.open); if (t) await saveTask(env, t.id, { unread: 0, last_interaction_at: new Date().toISOString() }); }
       const working = tasks.filter(t => ["running", "needs_you"].includes(t.state)).length;
-      return res.status(200).json({ tasks: withThreads, count: tasks.filter(t => ["running", "needs_you", "paused"].includes(t.state)).length, limit: limitFacts(working), ...(b.draft ? { draft_ok: !!draftFresh(b.draft) } : {}), suggestions: await suggestions(env, user.userId).catch(() => []), notify: await (async () => { const n = await notifyPrefs(env, user).catch(() => null); if (!n) return n; const { firstAlertPending } = await import("../lib/_email.js"); return { ...n, junk: !!(n.on && working && !env.mem && await firstAlertPending(env, n.email || user.email).catch(() => false)) }; })() });
+      const { standingCounts, badgeFacts } = await import("../lib/live/looking.js");
+      const bf = badgeFacts(working, tasks.filter(t => ["running", "needs_you", "paused"].includes(t.state)).length, await standingCounts(env, user.userId));
+      return res.status(200).json({ tasks: withThreads, count: bf.total, counts: bf, limit: limitFacts(working), ...(b.draft ? { draft_ok: !!draftFresh(b.draft) } : {}), suggestions: await suggestions(env, user.userId).catch(() => []), notify: await (async () => { const n = await notifyPrefs(env, user).catch(() => null); if (!n) return n; const { firstAlertPending } = await import("../lib/_email.js"); return { ...n, junk: !!(n.on && working && !env.mem && await firstAlertPending(env, n.email || user.email).catch(() => false)) }; })() });
     }
     if (b.action === "say") {
       const text = String(b.text || "").trim().slice(0, 2000);
@@ -559,7 +564,9 @@ async function handler(req, res) {
     if (b.action === "start") {
       if (!isReleased("tasks", req)) return notReleasedJson(res);
       // defer: true (the Tasks page): the Task is created and running at once; the first match run is action "first".
-      return res.status(200).json(await startDraft(env, user, b.draft || {}, { apiKey, model: CHAT_MODEL, visitorId: readVisitorId(req), gate: gateOf(req, user), defer: b.defer === true }));
+      { const { logArm, taskOutcome } = await import("../lib/live/looking.js");
+        const r = await startDraft(env, user, b.draft || {}, { apiKey, model: CHAT_MODEL, visitorId: readVisitorId(req), gate: gateOf(req, user), defer: b.defer === true });
+        logArm(user.userId, "task", taskOutcome(r)); return res.status(200).json(r); }
     }
     // The first match run of a deferred start (the start email, then the cars live right now). Managing an existing Task: never gated.
     if (b.action === "first") return res.status(200).json(await firstRun(env, user, String(b.task_id || ""), { apiKey, model: CHAT_MODEL, visitorId: readVisitorId(req) }));
@@ -584,7 +591,9 @@ async function handler(req, res) {
       if (ev !== "stop") return res.status(200).json({ ok: true });
       if (running && ["running", "needs_you"].includes(running.state)) await controlTask(env, user, running.id, "stop", { apiKey, model: CHAT_MODEL });
       if (b.mode === "resume" && /^[0-9a-f-]{36}$/.test(String(b.resume_id || ""))) return res.status(200).json({ ok: true, ...(await controlTask(env, user, String(b.resume_id), "resume", { apiKey, model: CHAT_MODEL })) });
-      if (b.mode === "draft" && b.draft) return res.status(200).json({ ok: true, ...(await startDraft(env, user, b.draft, { apiKey, model: CHAT_MODEL, visitorId: readVisitorId(req), gate: gateOf(req, user), defer: b.defer === true })) });
+      if (b.mode === "draft" && b.draft) { const { logArm, taskOutcome } = await import("../lib/live/looking.js");
+        const r = await startDraft(env, user, b.draft, { apiKey, model: CHAT_MODEL, visitorId: readVisitorId(req), gate: gateOf(req, user), defer: b.defer === true });
+        logArm(user.userId, "task", taskOutcome(r)); return res.status(200).json({ ok: true, ...r }); }
       return res.status(200).json({ ok: true, closed: running ? running.id : null });
     }
     if (b.action === "apply") return res.status(200).json(await applyEdit(env, user, String(b.task_id || ""), b.pending || null, { apiKey, model: CHAT_MODEL }));

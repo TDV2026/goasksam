@@ -57,6 +57,7 @@ import { supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { chatOut } from "../lib/live/chatHttp.js";
 import { routeLimit } from "../lib/_routeLimit.js";
 import { TOGGLE_LINE } from "../lib/live/buyAlerts.js";
+import { armOutcome, logArm, ARM_LINES } from "../lib/live/looking.js";
 import { armAlert, cancelAlert, listAlerts, runAlerts, stopAll, verifyStop, verifyItem, stopOne, itemLabel, testSend, isMissingTable, alertsReady, useNamer } from "../lib/live/buyAlerts.js";
 
 const FIRST = 10, MAX = 200;
@@ -605,13 +606,18 @@ async function handler(req, res) {
     if (b.action === "alerts_ready") return res.status(200).json({ ready: await alertsReady(env), rule: TOGGLE_LINE });   // rule: what the toggle prints (lib/live/buyAlerts.js), never a sentence of the page's own
     if (b.action === "arm" || b.action === "disarm" || b.action === "alerts" || b.action === "alert_test") {
       const user = await validateBearer(req.headers.authorization || "").catch(() => null);
-      if (!user || !user.userId) return res.status(401).json({ ok: false, needSignIn: true });
+      if (!user || !user.userId) { if (b.action === "arm") logArm(null, "alert", { outcome: "refused", reason: "signed_out" }, { listing: b.listing_id }); return res.status(401).json({ ok: false, needSignIn: true, reason: "signed_out", line: ARM_LINES.signed_out }); }
       try {
         if (b.action === "alerts") return res.status(200).json(await listAlerts(env, user));
         if (b.action === "arm") {
           const lim = await routeLimit(env, req, "watch_arm", { route: "/api/buySearch" });
-          if (!lim.ok) return res.status(429).json({ ok: false, limited: true, line: "That is a lot of notices from here just now. Sam will take more in a few minutes.", retryAfter: lim.retryAfter });
-          return res.status(200).json(await armAlert(env, user, b.listing_id));
+          if (!lim.ok) { logArm(user.userId, "alert", { outcome: "refused", reason: "limited" }, { listing: b.listing_id }); return res.status(429).json({ ok: false, limited: true, reason: "limited", line: ARM_LINES.limited, retryAfter: lim.retryAfter }); }
+          let out;
+          try { out = await armAlert(env, user, b.listing_id); }
+          catch (e) { logArm(user.userId, "alert", { outcome: "refused", reason: "failed" }, { listing: b.listing_id }); return res.status(500).json({ ok: false, reason: "failed", line: ARM_LINES.failed }); }
+          const oc = armOutcome("alert", out);
+          logArm(user.userId, "alert", oc, { listing: b.listing_id });
+          return res.status(200).json(oc.outcome === "refused" ? { ...out, ok: false, reason: oc.reason, line: out.line || oc.line } : out);
         }
         if (b.action === "disarm") return res.status(200).json(await cancelAlert(env, user, b.listing_id));
         // Probe only: this signed-in buyer's armed car, its message now, to a disposable test inbox.
@@ -821,10 +827,11 @@ async function savedSearches(env, req, res, b) {
   if (b.action === "remove" && /^[0-9a-f-]{36}$/.test(String(b.id))) return res.status(200).json({ ok: await hideRows([b.id]) });
   if (b.action === "watchsearch" && /^[0-9a-f-]{36}$/.test(String(b.id))) {
     const email = user.email || String(b.email || "").toLowerCase();
-    if (!email) return res.status(400).json({ ok: false });
+    if (!email) { logArm(user.userId, "saved_search", { outcome: "refused", reason: "no_address" }); return res.status(400).json({ ok: false, reason: "no_address", line: ARM_LINES.no_address }); }
     await fetch(`${base}?id=eq.${b.id}&user_id=eq.${user.userId}`, { method: "PATCH", headers: H, body: JSON.stringify({ watch: true, updated_at: new Date().toISOString() }) });
     const r = await fetch(`${env.supabaseUrl}/rest/v1/watch_requests?on_conflict=vin_norm,email`, { method: "POST", headers: { ...H, Prefer: "resolution=ignore-duplicates,return=minimal" }, body: JSON.stringify([{ vin_norm: "search:" + b.id, email }]) });
-    return res.status(r.ok ? 200 : 500).json({ ok: r.ok });
+    logArm(user.userId, "saved_search", r.ok ? { outcome: "added" } : { outcome: "refused", reason: "failed" });
+    return res.status(r.ok ? 200 : 500).json(r.ok ? { ok: true } : { ok: false, reason: "failed", line: ARM_LINES.failed });
   }
   return res.status(400).json({ ok: false });
 }
