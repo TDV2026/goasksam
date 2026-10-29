@@ -1738,25 +1738,38 @@ async function handleOps(req, res) {
     if (!out.stoppedAtBudget && offset + limit < all.length) out.next = offset + limit; else if (out.stoppedAtBudget) out.next = offset + out.read;
     return res.status(200).json(out);
   }
-  // task=makeyearsweep (Lane B, Oct 29 2026, e101; READ-ONLY, no write, no OldCarsData spend): for ONE make (?make=), the years where a bare "{year} {make}" has more than one model with sales in the sales archive
-  // (model families, at least 3 sales each = the resolver's ask rule; at least 8 = Sam's count), and, with ?vpic=1, how many of those years vPIC lists ONE model for (the years the old resolver answered silently).
-  // Run it once per make. Paged by the archive read (a make's sales for the make only).
+  // task=makeyearsweep (Lane B, Oct 29 2026, e101; READ-ONLY, no write, no OldCarsData spend): for ONE make (?make=), every year it has sales in: the models the Which-make question offers now (production years from the taxonomy,
+  // a curated rule or the calculator's list; sales order them), whether the question asks (two or more models with 8 sales in the year's window), and which sales-only models the old list offered that are not offered now.
+  // Counts: years, years that ask, years whose chip set changed. Run once per make. ?full=1 returns every year, otherwise the first 40 that changed.
   if (task === "makeyearsweep") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const make = String(req.query?.make || "").trim(); if (!make) return res.status(400).json({ error: "make= is required" });
-    const rows = await supabaseSelectAll(env, `sales_archive?select=year,model,model_family&make=ilike.${encodeURIComponent(make)}&year=not.is.null&model=not.is.null&sale_price=not.is.null&order=year.asc`);
-    if (!Array.isArray(rows)) return res.status(200).json({ task: "makeyearsweep", make, readFailed: true, ocdSpend: 0, writes: 0 });
-    const by = new Map();
-    for (const r of rows) { const fam = String(r.model_family || r.model || "").trim(); if (!fam || /^unknown$/i.test(fam)) continue; const m = by.get(r.year) || new Map(); m.set(fam, (m.get(fam) || 0) + 1); by.set(r.year, m); }
-    const years = [...by.entries()].map(([year, m]) => ({ year, models: [...m.entries()].filter(([, n]) => n >= 3).sort((a, b) => b[1] - a[1]).map(([model, n]) => ({ model, n })) })).filter(y => y.models.length > 1);
-    const eight = years.filter(y => y.models.filter(m => m.n >= 8).length > 1);
-    let silentBefore = null;
-    if (req.query?.vpic === "1") {
-      silentBefore = [];
-      for (let i = 0; i < years.length; i += 8) await Promise.all(years.slice(i, i + 8).map(async y => { try { const r = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/getmodelsformakeyear/make/${encodeURIComponent(make)}/modelyear/${y.year}?format=json`, { signal: AbortSignal.timeout(8000) }); const j = await r.json(); const n = new Set((j.Results || []).map(x => String(x.Model_Name || "").toLowerCase())).size; if (n === 1) silentBefore.push(y.year); } catch { /* vPIC unreachable for this year */ } }));
-      silentBefore.sort();
+    const { askSweepForMake } = await import("../lib/vehicle.js");
+    const r = await askSweepForMake(env, make);
+    if (!r) return res.status(200).json({ task: "makeyearsweep", make, readFailed: true, ocdSpend: 0, writes: 0 });
+    const changed = r.years.filter(y => y.changed);
+    return res.status(200).json({ task: "makeyearsweep", make, ocdSpend: 0, writes: 0, taxonomyModels: r.taxonomyModels, taxonomyWithoutYears: r.taxonomyWithoutYears, years: r.years.length, yearsThatAsk: r.years.filter(y => y.ask).length, yearsChanged: changed.length, list: (req.query?.full === "1" ? r.years : changed).slice(0, req.query?.full === "1" ? 400 : 40) });
+  }
+  // task=taxonomyyears (Lane B, Oct 29 2026, e101; READ-ONLY): how many taxonomy models have no production years (year_ranges empty), how many of those the Daily Vroom import calculator's list fills (lib/calculatorYears.js),
+  // how many a curated production rule covers, and how many stay without years; per make the filled models (?full=1 lists every one, otherwise the first 12 per make).
+  if (task === "taxonomyyears") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { calculatorYearsFor } = await import("../lib/calculatorYears.js"); const { PRODUCTION_RULES } = await import("../lib/vehicleData.js");
+    const rows = await supabaseSelectAll(env, `taxonomy_models?select=make_slug,name,year_ranges&order=make_slug.asc`);
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "taxonomyyears", readFailed: true, ocdSpend: 0, writes: 0 });
+    const norm = x => String(x || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const out = { task: "taxonomyyears", ocdSpend: 0, writes: 0, models: rows.length, withYears: 0, noYears: 0, filledByCalculator: 0, coveredByCuratedRule: 0, stillWithoutYears: 0, makes: {} };
+    for (const r of rows) {
+      if (Array.isArray(r.year_ranges) && r.year_ranges.length) { out.withYears++; continue; }
+      out.noYears++;
+      const mk = r.make_slug, m = out.makes[mk] || (out.makes[mk] = { noYears: 0, filled: [], curated: 0, without: [] }); m.noYears++;
+      if (PRODUCTION_RULES.some(x => norm(x.make).replace(/ /g, "-") === mk && (norm(x.model) === norm(r.name) || (x.aliases || []).some(a => norm(a) === norm(r.name))))) { out.coveredByCuratedRule++; m.curated++; continue; }
+      const c = calculatorYearsFor(mk.replace(/-/g, " "), r.name);
+      if (c) { out.filledByCalculator++; m.filled.push(`${r.name} ${c[0][0]}-${c[0][1]}`); } else { out.stillWithoutYears++; m.without.push(r.name); }
     }
-    return res.status(200).json({ task: "makeyearsweep", make, ocdSpend: 0, writes: 0, salesRead: rows.length, yearsWithSales: by.size, yearsAskedNow: years.length, yearsWithTwoModelsOf8: eight.length, silentBeforeVpicOneModel: silentBefore ? silentBefore.length : null, silentBeforeYears: silentBefore, list: years.slice(0, 60) });
+    const cap = req.query?.full === "1" ? 1e9 : 12;
+    for (const m of Object.values(out.makes)) { m.filledCount = m.filled.length; m.withoutCount = m.without.length; m.filled = m.filled.slice(0, cap); m.without = m.without.slice(0, cap); }
+    return res.status(200).json(out);
   }
   // task=optionreach (Lane B, Oct 29 2026, e101; READ-ONLY): how far back each stored option's own window reaches. The window ladder reads 12, then 24, then 36 months for the first that holds 8 sales; a pool that never
   // reaches 8 reads every sale it has (up to 60 months), and an option's own figures take the same ladder, so "Tiptronic: 17 sales since January 2022" is a 57 month reach. Counts, per 100 stored answers a page (?after=),
