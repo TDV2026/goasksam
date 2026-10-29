@@ -1834,9 +1834,9 @@ async function handleOps(req, res) {
     const out = { task: "optionreach", ocdSpend: 0, writes: 0, rows: rows.length, withOptions: 0, options: 0, over24: 0, over36: 0, over48: 0, answersOver24: 0, longest: 0, examples: [], next: rows.length === 100 ? rows[99].spec_key : null };
     for (const r of rows) {
       const a = r.raw; if (!a || !Array.isArray(a.options) || a.options.length < 2) continue; out.withOptions++;
-      let hit = false;
-      for (const o of a.options) { out.options++; const m = monthsOf(o); if (m == null) continue; out.longest = Math.max(out.longest, m); if (m > 24) { out.over24++; hit = true; if (out.examples.length < 10) out.examples.push({ key: r.spec_key.slice(0, 90), option: o.label, n: o.n, windowWords: o.windowWords || null, months: m, footer: a.windowWords || null }); } if (m > 36) out.over36++; if (m > 48) out.over48++; }
-      if (hit) out.answersOver24++;
+      let hit = false, capHit = false;
+      for (const o of a.options) { out.options++; const m = monthsOf(o); if (m == null) continue; out.longest = Math.max(out.longest, m); if (m > 24) { out.over24++; hit = true; if (out.examples.length < 10) out.examples.push({ key: r.spec_key.slice(0, 90), option: o.label, n: o.n, windowWords: o.windowWords || null, months: m, footer: a.windowWords || null }); } if (m > 36) out.over36++; if (m > 48) out.over48++; if (o.ownWindow && /^since /.test(String(o.windowWords || "")) && o.windowWords !== a.windowWords && m > 24) { out.capApplies = (out.capApplies || 0) + 1; capHit = true; } }
+      if (hit) out.answersOver24++; if (capHit) out.answersCapApplies = (out.answersCapApplies || 0) + 1;
     }
     return res.status(200).json(out);
   }

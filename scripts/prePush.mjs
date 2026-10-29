@@ -1331,6 +1331,13 @@ try {
 } catch (e) {
   record("resolver: a make and a year with more than one model that has sales asks which (scripts/makeYearAskCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A stored none row always carries its reason (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/noneRowReasonCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("core rows: a none row always carries its reason (scripts/noneRowReasonCheck.mjs)", "PASS", (out.match(/noneRowReasonCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("core rows: a none row always carries its reason (scripts/noneRowReasonCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // An ended lot never stays unmarked past one pull cycle (Lane B, Oct 29 2026).
 try {
   const out = execSync("node scripts/endedLotCheck.mjs", { encoding: "utf8", timeout: 120000 });

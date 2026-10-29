@@ -101,4 +101,24 @@ ok("options that add up but read over their own window still print it", optionPr
   const matched = { ...TIP, matchedOption: { dimension: "gearbox", value: "auto", label: "Tiptronic", inHeadline: true, n: 17, low: 24000, high: 31000 } };
   const tm = read(matched).matchedOption; ok("the matched option carries the capped count and no range", tm && tm.n === 5 && tm.low === null && tm.high === null && tm.line === "Tiptronic, 5 sales, too few for a range", tm && JSON.stringify(tm));
 }
+
+// e101 (Lane B, Oct 29 2026, the 2002 Firebird Trans Am WS6: Manual 8 and Automatic 8 against a footer of 15, one window). CAUSE (from the live read): the footer used 15 of 18 qualifying sales (3 set aside as odd
+// sales above the range); each option is figured from its own cohort, so a repeat sale of one car (the pool holds a "158-Mile ... 6-Speed" coupe sold at $67,000 and again at $80,000) or a set-aside sale can sit in an
+// option and not in the footer: the options add to 16, and one sale cannot be in two gearboxes. FIX: options on the footer's own window that add up to more than the footer are recounted from the footer's own sales.
+{
+  const row = (title, i) => ({ _usd: 24000 + i * 700, rtitle: title, year: 2002, auction_end_date: "2026-03-1" + (i % 9) });
+  const FB = { poolN: 15, headlineDimension: "gearbox", optionsState: "split", windowWords: "since November 2025", windowMonths: 12,
+    rawPool: [...Array.from({ length: 8 }, (_, i) => row("2002 Pontiac Firebird Trans Am WS6 Coupe 6-Speed Manual", i)), ...Array.from({ length: 7 }, (_, i) => row("2002 Pontiac Firebird Trans Am WS6 Coupe Automatic", 20 + i))],
+    options: [{ dimension: "gearbox", label: "Manual", value: "manual", n: 8, low: null, high: null, median: 27000, rangeFloor: true, windowMonths: 12, windowWords: "since November 2025", ownWindow: true },
+      { dimension: "gearbox", label: "Automatic", value: "auto", n: 8, low: null, high: null, median: 30000, rangeFloor: true, windowMonths: 12, windowWords: "since November 2025", ownWindow: true }] };
+  ok("Firebird as stored: 8 + 8 against 15 on one window is a problem", raw(FB).some(p => /options add to 16, footer 15/.test(p)), raw(FB).join(" | "));
+  const f = read(FB), fo = f.options || [];
+  ok("Firebird as served: the options are recounted from the footer's sales (8 + 7 = 15)", fo.length === 2 && fo[0].n + fo[1].n === 15 && fo.find(o => o.label === "Automatic").n === 7 && after(FB).length === 0, fo.map(o => o.label + " " + o.n).join(", ") + " " + after(FB).join(" | "));
+  ok("... and the lines say so", (f.optionLines || []).join(" | ").includes("Automatic, 7 sales"), (f.optionLines || []).join(" | "));
+  const THIN36 = { poolN: 20, headlineDimension: "mileage", optionsState: "split", windowWords: "since October 2023", windowMonths: 36,
+    rawPool: Array.from({ length: 20 }, (_, i) => ({ _usd: 30000 + i * 300, mileage: i < 10 ? 20000 + i * 1000 : 70000 + i * 1000, rtitle: "2008 BMW M3 Coupe", year: 2008, auction_end_date: "2024-03-1" + (i % 9) })),
+    options: [{ dimension: "mileage", label: "Under 50,000 miles", value: "lt50", n: 10, low: 30000, high: 33000, median: 31000, rangeFloor: false, windowMonths: 36, windowWords: "since October 2023", ownWindow: true },
+      { dimension: "mileage", label: "50,000 to 100,000 miles", value: "50to100", n: 10, low: 33000, high: 36000, median: 34000, rangeFloor: false, windowMonths: 36, windowWords: "since October 2023", ownWindow: true }] };
+  const th = read(THIN36).options; ok("a thin pool read over 36 months: options that share the footer's window keep their range (the cap is for an option's OWN longer window)", th.every(o => !o.windowCapped && o.rangeFloor === false && o.low != null), th.map(o => o.label + " " + o.rangeFloor).join(", "));
+}
 process.exit(fail ? 1 : 0);
