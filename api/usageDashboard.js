@@ -1706,6 +1706,38 @@ async function handleOps(req, res) {
     }
     return res.status(200).json(out);
   }
+  // task=matchsweep (Lane B, Oct 29 2026, e101; READ-ONLY, no write, no spend): the live listings (in scope) whose stored Market Check answer is split by an option, and how many of them the engine could not match to an
+  // option by the listing's title alone (the Find card said "the listing does not say which") and now matches by the listing's own fields and chips (transmission, body, gearbox, body as the card states them).
+  // ?offset= and ?limit= (default 150) page the listings; ?budget= in ms (default 100000). The stored answers are read once per spec.
+  if (task === "matchsweep") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { liveRows, specOf, listingFacts, warmAnswerKeyFor, readWarmAnswerDetailed } = await import("../lib/live/search.js");
+    const { matchedOptionOf } = await import("../lib/onebox.js");
+    const t0 = Date.now(), budget = Math.min(250000, Number(req.query?.budget) || 100000), offset = Math.max(0, Number(req.query?.offset) || 0), limit = Math.max(1, Math.min(400, Number(req.query?.limit) || 150));
+    const all = (await liveRows(env, "id=gt.0", { noDescription: true })) || [];
+    const part = all.slice(offset, offset + limit), memo = new Map();
+    const out = { task: "matchsweep", ocdSpend: 0, writes: 0, live: all.length, offset, read: 0, withOptionsAnswer: 0, unsaidByTitle: 0, nowMatched: 0, stillUnsaid: 0, byDimension: {}, examples: [], stoppedAtBudget: false, next: null };
+    for (const r of part) {
+      if (Date.now() - t0 > budget) { out.stoppedAtBudget = true; break; }
+      out.read++;
+      try {
+        const facts = listingFacts(r), spec = await specOf(env, r, facts); if (!spec) continue;
+        const key = warmAnswerKeyFor(spec.v, spec.generation, null);
+        if (!memo.has(key)) { const w = await readWarmAnswerDetailed(env, key).catch(() => null); memo.set(key, w && w.raw ? w.raw : null); }
+        const a = memo.get(key); if (!a || !Array.isArray(a.options) || a.options.length < 2 || !a.headlineDimension || !/^(split|apart)$/.test(String(a.optionsState || ""))) continue;
+        out.withOptionsAnswer++;
+        const base = { year: spec.v && spec.v.year, listingMiles: facts && facts.miles };
+        const byTitle = matchedOptionOf(a, r.listing_title, base);
+        if (byTitle) continue;
+        out.unsaidByTitle++;
+        const now = matchedOptionOf(a, r.listing_title, { ...base, fields: [r.transmission, r.body].filter(Boolean).join(" "), gearbox: facts && facts.gearbox, body: facts && facts.body });
+        if (now) { out.nowMatched++; const dm = now.matchedOption.dimension; out.byDimension[dm] = (out.byDimension[dm] || 0) + 1; if (out.examples.length < 10) out.examples.push({ id: r.id, title: String(r.listing_title || "").slice(0, 80), transmission: r.transmission || null, body: r.body || null, matched: now.matchedOption.label }); }
+        else out.stillUnsaid++;
+      } catch { /* a listing that does not resolve is left out */ }
+    }
+    if (!out.stoppedAtBudget && offset + limit < all.length) out.next = offset + limit; else if (out.stoppedAtBudget) out.next = offset + out.read;
+    return res.status(200).json(out);
+  }
   // task=chartsweep (Lane B, Oct 29 2026, e101; READ-ONLY, no write, no spend): the stored Market Check answers whose pooled chart is held for a changing mix and that are split by an option: how many drew
   // no chart under the old one-option rule, how many draw a scoped chart now (every option tried, largest first), how many stay withheld because no option clears the candle floor, and ten examples
   // with each option's own count and the 1986 Porsche 911 if it is in the page. 100 stored answers a page (?after=).

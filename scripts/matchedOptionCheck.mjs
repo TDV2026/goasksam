@@ -63,4 +63,31 @@ for (const [name, make, model, trim, year, ta, tb, pa, pb, want, dim] of CASES) 
   const d2 = { options: [{ dimension: "mileage", label: "Under 50,000 miles", value: "lt50", n: 8 }, { dimension: "mileage", label: "50,000 to 100,000 miles", value: "50to100", n: 9 }], headlineDimension: "mileage", optionsState: "split", refineOptions: [], optionLines: [], headlineLines: [] };
   const m2 = matchedOf(d2, "x", { listingMiles: 72000 });
   ok("mileage band: the listing's own band leads", m2 && m2.options[0].value === "50to100", JSON.stringify(m2 && m2.matchedOption)); }
+
+// e101 (Sam, Oct 29 2026, the live 2011 BMW M3 Convertible, BaT, 64,000 miles): the card showed a Manual chip and the Sam box said "the listing does not say which". CAUSE: the matcher read the listing's TITLE
+// only; the chip comes from the listing's transmission FIELD ("Manual (6-speed)"), which the matcher never saw. Now any option the listing names in its title, its chips (the gearbox and body the card states)
+// or its fields (transmission, body) is matched. Class: every dimension (gearbox, body, edition) and every route (the matcher, the Find answer).
+{
+  const mk = (dimension, opts) => ({ tier: "result", optionsState: "split", headlineDimension: dimension, poolN: opts.reduce((t, o) => t + o.n, 0), cluster: null, windowWords: "since June 2025", rawPool: [],
+    options: opts.map(o => ({ dimension, low: 40000, high: 60000, rangeFloor: false, ...o })), refineOptions: [] });
+  const tx = mk("gearbox", [{ label: "Manual", value: "manual", n: 9 }, { label: "DCT", value: "auto", n: 11 }]);
+  const title = "2011 BMW M3 Convertible";
+  const byField = E.matchedOptionOf(tx, title, { year: 2011, fields: "Manual (6-speed) Convertible" });
+  ok("gearbox named only in the listing's transmission field is matched", byField && byField.matchedOption && byField.matchedOption.value === "manual", byField && byField.matchedOption && byField.matchedOption.label);
+  const byChip = E.matchedOptionOf(tx, title, { year: 2011, gearbox: "manual" });
+  ok("gearbox the card states as a chip (facts.gearbox) is matched", byChip && byChip.matchedOption && byChip.matchedOption.value === "manual");
+  const byAuto = E.matchedOptionOf(tx, title, { year: 2011, fields: "Dual-Clutch Automatic" });
+  ok("an automatic named in the field matches the automatic option, not the manual one", byAuto && byAuto.matchedOption && byAuto.matchedOption.value === "auto");
+  ok("a listing that states nothing is still unmatched", E.matchedOptionOf(tx, title, { year: 2011, fields: "", gearbox: null }) === null);
+  const bd = mk("body", [{ label: "Coupe", value: "coupe", n: 12 }, { label: "Convertible", value: "open", n: 9 }]);
+  const byBody = E.matchedOptionOf(bd, "2011 BMW M3", { year: 2011, body: "convertible", fields: "Convertible" });
+  ok("body named only in the listing's body field is matched", byBody && byBody.matchedOption && byBody.matchedOption.value === "open", byBody && byBody.matchedOption && byBody.matchedOption.label);
+  const ed = mk("edition", [{ label: "Competition", value: "competition", n: 8 }, { label: "Base", value: "base", n: 12 }]);
+  const byEd = E.matchedOptionOf(ed, "2011 BMW M3", { year: 2011, fields: "Competition Package" });
+  ok("an edition named only in a field is matched", byEd && byEd.matchedOption && byEd.matchedOption.value === "competition");
+  const fa = E.findAnswerOf(tx, { title, year: 2011, fields: "Manual (6-speed)", gearbox: "manual" });
+  ok("the Find answer for that listing answers for the Manual option, never 'does not say which'", fa && fa.state !== "split_unsaid" && fa.option && fa.option.value === "manual" && !/does not say which/.test(JSON.stringify(fa.lines)), fa && JSON.stringify(fa.lines));
+  const fa0 = E.findAnswerOf(tx, { title, year: 2011 });
+  ok("a listing that states nothing still gets the split_unsaid line (the rule is not loosened)", fa0 && fa0.state === "split_unsaid");
+}
 process.exit(failed ? 1 : 0);
