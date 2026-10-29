@@ -38,11 +38,17 @@ for (const t of created) {
 const LK = rd("lib/live/looking.js"), TS = rd("api/tasks.js"), TP = rd("api/tasksPage.js");
 ok(/watches\?user_id/.test(LK) && /buy_alerts\?user_id/.test(LK) && /buy_conversations\?user_id[^`]*watch=is\.true/.test(LK), "the Watching count (standingCounts) reads watches, buy_alerts and the saved-search flag");
 ok(/listWatches/.test(LK) && /listAlerts/.test(LK) && /savedSearchWatches/.test(LK), "the Watching list reads watches, alerts and the saved-search flag");
-ok(/kind: "search_watch"/.test(LK) && /LOOKING_WORDS\.search/.test(LK) && /search: "Sam tells you when one comes up\."/.test(LK), "the saved-search watch is a row in the list in words matching its control");
+ok(/kind: "search_watch"/.test(LK) && /search: "Sam is not able to send these\. Stop it, or start a Task for this search\."/.test(LK) && /start_href/.test(LK), "a saved-search watch that already exists is a row in the list, in words that carry no promise, with a Start a Task link");
 ok(/\(w\|a\|s\)/.test(LK) && /stopSearchWatch/.test(LK) && /watch_requests\?vin_norm=eq/.test(LK) && /method: "DELETE"/.test(LK), "every listed row has a Stop, and the saved-search Stop turns the flag off and removes its watch_requests row");
 ok(/data-lk-stop/.test(TP) && /action: "looking_stop"/.test(TP) && /looking_stop/.test(TS), "the Tasks page shows a Stop on every Watching row");
-ok(/c\.watches >= WATCH_CAP/.test(rd("api/buySearch.js")) && /standingCounts/.test(rd("api/buySearch.js")), "the saved-search watch is under the same 25 cap as the other watches");
-ok(/ARM_LINES\.cap_watch/.test(rd("api/buySearch.js")), "at the cap it answers with the line that says what to stop");
+{
+  const BS = rd("api/buySearch.js"), i = BS.indexOf('if (b.action === "watchsearch") {'), blk = BS.slice(i, BS.indexOf("\n  }\n", i));
+  ok(i > 0 && /reason: "retired"/.test(blk) && /logArm\(user\.userId, "saved_search"/.test(blk) && !/fetch\(|watch: true|watch_requests/.test(blk), "the retired saved-search control refuses, logs standing_arm and writes nothing (no fetch, no flag, no watch_requests row)");
+  const j = BS.indexOf('if (b.action === "watch") {'), wb = BS.slice(j, BS.indexOf("\n    }\n", j));
+  ok(j > 0 && /reason: "retired"/.test(wb) && /address_watch/.test(wb) && !/fetch\(/.test(wb), "the address-only watch on /api/buySearch refuses, logs and writes nothing");
+  const HS = rd("api/history.js"), k = HS.indexOf('b.action !== "watch"');
+  ok(k > 0 && /reason: "retired"/.test(HS.slice(k, k + 900)) && !/addWatch/.test(HS) && !/export async function addWatch/.test(rd("api/_historyData.js")), "the address-only watch on /api/history refuses, logs and writes nothing; addWatch is gone");
+}
 // 4. No sender reads what is named as not a notice, and no writer of the flag is outside the logged, capped path.
 // watch_requests: every mention anywhere is a write, a delete or a count. hunts (demand capture, "no matching, no results"): no send file reads it except the starting-Task suggestion.
 for (const f of walk(".").filter(p => /^(api|lib)[\\/]/.test(p))) {
@@ -55,10 +61,68 @@ for (const f of walk(".").filter(p => /^(api|lib)[\\/]/.test(p))) {
 }
 ok(!SEND_FILES.some(f => /watch_requests/.test(rd(f).split("\n").filter(l => !/^\s*(\/\/|\*)/.test(l) && !/watchcounts|HEAD/.test(l)).join("\n"))), "no send file reads watch_requests (only the probe count)");
 {
-  const flagWriters = walk(".").filter(f => /api|lib/.test(f.split(/[\\/]/)[0])).filter(f => /watch: true/.test(rd(f)));
-  ok(flagWriters.length === 1 && /api[\\/]buySearch\.js$/.test(flagWriters[0]) && /standingCounts/.test(rd(flagWriters[0])), "the saved-search flag has exactly one writer, and it is the capped, logged one");
-  const reqWriters = walk(".").filter(f => /^(api|lib)[\\/]/.test(f)).filter(f => /rest\/v1\/watch_requests/.test(rd(f)));
-  ok(reqWriters.every(f => /buySearch|_historyData|lib[\\/]live[\\/]looking|tasks\.js/.test(f)), "watch_requests has no writer outside the known four (" + reqWriters.map(f => f.replace(/\\/g, "/")).join(", ") + ")");
+  // RETIRED: nothing may set the flag or add a watch_requests row any more; the only writes left are the Stop's PATCH watch:false and DELETE.
+  const flagWriters = walk(".").filter(f => /^(api|lib)[\\/]/.test(f)).filter(f => /watch: true/.test(rd(f)));
+  ok(flagWriters.length === 0, "nothing sets the saved-search flag any more (" + flagWriters.join(", ") + ")");
+  const reqWriters = walk(".").filter(f => /^(api|lib)[\\/]/.test(f)).filter(f => /rest\/v1\/watch_requests/.test(rd(f)) && /method: "POST"/.test(rd(f).slice(rd(f).indexOf("rest/v1/watch_requests"), rd(f).indexOf("rest/v1/watch_requests") + 400)));
+  ok(reqWriters.length === 0, "nothing adds a watch_requests row any more (" + reqWriters.join(", ") + ")");
+}
+
+// 4b. The retired control is not offered again, on any page, drawer, email or help text.
+{
+  const OFFER = /data-watchsearch|action: ?\\?["']watchsearch|Tell me when one comes up|Done\. Sam will email you when one comes up/;
+  const offered = [];
+  for (const f of walk(".").filter(p => /^(api|lib|public|js)[\\/]/.test(p))) {
+    const src = f.replace(/\\/g, "/") === "api/buy.js" ? JSON.parse(rd(f).match(/^const CLIENT = (".*");$/m)[1]) : rd(f);
+    src.split("\n").forEach((l, i) => { if (/^\s*(\/\/|\*)/.test(l)) return; if (OFFER.test(l.replace(/\s\/\/ .*$/, "")) && !/api\/buySearch\.js$/.test(f.replace(/\\/g, "/"))) offered.push(f.replace(/\\/g, "/") + ":" + (i + 1)); });
+  }
+  ok(offered.length === 0, "the retired 'Tell me when one comes up' control is not offered anywhere (" + offered.slice(0, 4).join(", ") + ")");
+}
+// 4c. A sentence that promises an email or a notice names the sender that really sends it. A new promise with no entry here fails; an entry whose sender does not exist fails.
+{
+  const exists = (f, re) => fs.existsSync(f) && re.test(rd(f));
+  const SENDERS = {
+    "Task email": () => exists("lib/tasks/digest.js", /sendTaskEmail/) && exists("lib/tasks/digest.js", /export async function runDigest/) && /tasks\?send=1/.test(rd("vercel.json")),
+    "watch email": () => exists("lib/live/watches.js", /sendTaskEmail\(\{ to, subject: msg\.subject/) && exists("lib/tasks/digest.js", /watchUsers/) && /api\/tasks\?send=1/.test(rd("vercel.json")),
+    "before-it-ends email": () => exists("lib/tasks/digest.js", /export async function runBeforeItEnds/) && /tasks\?send=1/.test(rd("vercel.json")),
+    "Task start email": () => exists("lib/tasks/tasks.js", /Sam has started your search/),
+    "sign-in code": () => exists("public/js/auth.js", /authSignInEmail/),
+    "newsletter": () => exists("lib/newsletterSignup.js", /subscribeToNewsletter/),
+    "none, a statement or advice, not a notice": () => true,
+    "none, a legal commitment made by hand": () => true
+  };
+  const PROMISE = /email you|emails you|will email|we.ll email|sam.ll email|tell you when|tells you when|let you know|notify you|notified when|be notified|hear about|email me|keeps? (looking|searching) and (tells|emails)|tell you again/i;
+  const REG = [
+    ["api/about.js", /never emails you/, "none, a statement or advice, not a notice"], ["api/about.js", /Sam will tell you/, "none, a statement or advice, not a notice"], ["api/about.js", /keeps looking and tells you/, "Task email"],
+    ["api/buy.js", /email you when/, "Task email"], ["api/buy.js", /Email me before bidding ends/, "before-it-ends email"],
+    ["api/tasksPage.js", /emails you when one fits|Sam tells you what it is|gets its own email|Email me before bidding ends|hear about before bidding ends/, "Task email"],
+    ["api/tasks.js", /you get an email when a car fits|an email when/, "Task email"],
+    ["api/watch.js", /tells you again when the next one sells/, "watch email"],
+    ["lib/appShell.js", /email you when/, "Task email"],
+    ["lib/legal/privacyText.js", /email you when something fits/, "Task email"], ["lib/legal/privacyText.js", /we will tell you in the service or by email/, "none, a legal commitment made by hand"],
+    ["lib/live/converse.js", /Sam can tell you when one comes up/, "Task email"],
+    ["lib/live/watches.js", /tell you (about the next sale|when the next)/, "watch email"],
+    ["lib/live/looking.js", /Sam tells you when the next one sells|hear about when they sell|tell you again/, "watch email"],
+    ["lib/tasks/tasks.js", /emails you|Sam emails you|you get an email|tells you when one matches/, "Task email"],
+    ["public/js/auth.js", /Email me a|We email you a one-time code/, "sign-in code"], ["public/js/auth.js", /Daily Vroom/, "newsletter"],
+    ["public/js/onebox.js", /Sam will email you, with the sale attached/, "watch email"]
+  ];
+  for (const [f, re, who] of REG) ok(SENDERS[who] && SENDERS[who](), `${f} /${re.source.slice(0, 40)}/ names a sender that exists: ${who}`);
+  const unnamed = [];
+  for (const f of walk(".").filter(p => /^(api|lib|public)[\\/]/.test(p))) {
+    const norm = f.replace(/\\/g, "/");
+    rd(f).split("\n").forEach((l, i) => {
+      if (/^\s*(\/\/|\*)/.test(l)) return;
+      const code = l.replace(/\s\/\/ .*$/, "");
+      if (!PROMISE.test(code)) return;
+      if (!REG.some(([rf, re]) => rf === norm && re.test(code))) unnamed.push(norm + ":" + (i + 1));
+    });
+  }
+  ok(unnamed.length === 0, "every sentence that promises an email or a notice names its sender in standingNoticesCheck (unnamed: " + unnamed.slice(0, 6).join(", ") + ")");
+  // The Keep looking card is a Task: it never promises a sale notice, which only a watch sends.
+  const AS = rd("lib/appShell.js");
+  ok(!/next sale of/.test(AS) && (AS.match(/and email you when one goes live/g) || []).length >= 2, "the Keep looking card (server and client copies) promises what a Task sends (an email when one goes live), not a sale notice");
+  ok(!/Keep looking for the next sale of/.test(AS), "the Keep looking card seeds a Task for the car, not for a sale");
 }
 
 // 5. The before-it-ends wording: "about two hours before", everywhere the promise is made, and no Task email is called an alert email.

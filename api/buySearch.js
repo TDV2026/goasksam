@@ -57,8 +57,7 @@ import { supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { chatOut } from "../lib/live/chatHttp.js";
 import { routeLimit } from "../lib/_routeLimit.js";
 import { TOGGLE_LINE } from "../lib/live/buyAlerts.js";
-import { armOutcome, logArm, ARM_LINES, searchWatchOutcome, standingCounts } from "../lib/live/looking.js";
-import { WATCH_CAP } from "../lib/live/lookingCaps.js";
+import { armOutcome, logArm, ARM_LINES } from "../lib/live/looking.js";
 import { armAlert, cancelAlert, listAlerts, runAlerts, stopAll, verifyStop, verifyItem, stopOne, itemLabel, testSend, isMissingTable, alertsReady, useNamer } from "../lib/live/buyAlerts.js";
 
 const FIRST = 10, MAX = 200;
@@ -354,15 +353,9 @@ async function handler(req, res) {
     const b = req.body || {};
     const deadlineAt = Date.now() + Number(process.env.ONEBOX_DEADLINE_MS || 20000);   // e61 (Sam): the whole Buy request's clock, the same 20 s bound Market Check has; the shared card read (lib/live/search.js listingMarket) bounds itself against it
     if (b.action === "watch") {
-      const raw = String(b.key || "").trim();
-      const key = /^(family|live):/i.test(raw) ? raw.toLowerCase().replace(/[^a-z0-9:._-]/g, "").slice(0, 120) : normVin(raw);
-      const email = String(b.email || "").trim().toLowerCase().slice(0, 200);
-      if (!key || key.length < 5 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return res.status(400).json({ ok: false });
-      const r = await fetch(`${env.supabaseUrl}/rest/v1/watch_requests?on_conflict=vin_norm,email`, {
-        method: "POST", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "resolution=ignore-duplicates,return=minimal" },
-        body: JSON.stringify([{ vin_norm: key, email }])
-      });
-      return res.status(r.ok ? 200 : 500).json({ ok: r.ok });
+      // RETIRED (Oct 29 2026): an address typed with no account was written to watch_requests and nothing ever read it. No page offered it. It writes nothing now.
+      logArm(null, "address_watch", { outcome: "refused", reason: "retired" });
+      return res.status(200).json({ ok: false, reason: "retired", line: ARM_LINES.retired });
     }
     if (b.action === "enrich") {
       const ids = (Array.isArray(b.ids) ? b.ids : []).map(Number).filter(Number.isFinite).slice(0, 60);
@@ -826,23 +819,10 @@ async function savedSearches(env, req, res, b) {
   }
   // Remove hides the row (never a delete; see ONE LIST above).
   if (b.action === "remove" && /^[0-9a-f-]{36}$/.test(String(b.id))) return res.status(200).json({ ok: await hideRows([b.id]) });
-  if (b.action === "watchsearch" && /^[0-9a-f-]{36}$/.test(String(b.id))) {
-    // "Tell me when one comes up" on a saved search is a watch to the person (Sam, Oct 29 2026): it is listed under Watching with a Stop, counted in the badge and under the same 25 cap (lib/live/looking.js), and logged.
-    const email = user.email || String(b.email || "").toLowerCase();
-    const done = (code, r) => { const oc = searchWatchOutcome(r); logArm(user.userId, "saved_search", oc); return res.status(code).json(r.ok ? r : { ...r, ok: false, line: r.line || oc.line }); };
-    if (!email) return done(400, { ok: false, reason: "no_address", line: ARM_LINES.no_address });
-    const own = await fetch(`${base}?id=eq.${b.id}&user_id=eq.${user.userId}&select=id,watch&limit=1`, { headers: H });
-    const mine = own.ok ? (await own.json())[0] : null;
-    if (!own.ok) return done(500, { ok: false, reason: "failed" });
-    if (!mine) return done(404, { ok: false, reason: "not_found" });
-    const already = mine.watch === true;
-    if (!already) {
-      const c = await standingCounts(env, user.userId);
-      if (c.watches >= WATCH_CAP) return done(200, { ok: false, reason: "cap_watch", line: ARM_LINES.cap_watch });
-    }
-    const pr = await fetch(`${base}?id=eq.${b.id}&user_id=eq.${user.userId}`, { method: "PATCH", headers: H, body: JSON.stringify({ watch: true, updated_at: new Date().toISOString() }) });
-    const r = pr.ok ? await fetch(`${env.supabaseUrl}/rest/v1/watch_requests?on_conflict=vin_norm,email`, { method: "POST", headers: { ...H, Prefer: "resolution=ignore-duplicates,return=minimal" }, body: JSON.stringify([{ vin_norm: "search:" + b.id, email }]) }) : pr;
-    return r.ok ? done(200, { ok: true, already, id: b.id }) : done(500, { ok: false, reason: "failed" });
+  if (b.action === "watchsearch") {
+    // RETIRED (Sam, Oct 29 2026): "Tell me when one comes up" promised an email that nothing sends; a Task does that job. No row is written; the refusal is logged and answered in plain words.
+    logArm(user.userId, "saved_search", { outcome: "refused", reason: "retired" });
+    return res.status(200).json({ ok: false, reason: "retired", line: ARM_LINES.retired });
   }
   return res.status(400).json({ ok: false });
 }

@@ -109,33 +109,31 @@ ok(r.ok === false && r.reason === "ended" && r.line === L.ARM_LINES.ended && las
 r = await call(buyH, { action: "arm", listing_id: 7 });
 ok(r.already === true && lastArm().outcome === "already" && db.alerts.length === 1, "alert: a second switch-on is 'already', no second row");
 
-// ---- control 4: "Tell me when one comes up" on a saved search (the fourth standing notice)
-const SID = "dddddddd-dddd-4ddd-8ddd-000000000001";
-db.convs.push({ id: SID, user_id: U1, title: "2005 Mercedes-Benz SL65 AMG", watch: false });
+// ---- control 4: RETIRED (Sam, Oct 29 2026). "Tell me when one comes up" promised an email nothing sends. It writes nothing, logs the refusal and answers in plain words;
+// a row that already exists stays listed with a Stop and a Start a Task link, and counts, so nobody has an invisible notice.
+const SID = "dddddddd-dddd-4ddd-8ddd-000000000001", SID2 = "dddddddd-dddd-4ddd-8ddd-000000000002";
+db.convs.push({ id: SID, user_id: U1, title: "2005 Mercedes-Benz SL65 AMG", watch: true }, { id: SID2, user_id: U1, title: "red manual Porsches", watch: false });
+db.reqs.push({ vin_norm: "search:" + SID, email: "sam@example.com" });
 const nBefore = (await summary()).count;
-r = await call(buyH, { action: "watchsearch", id: SID });
-ok(r.ok === true && db.convs[0].watch === true && db.reqs.some(x => x.vin_norm === "search:" + SID), "saved_search: a click writes the flag and its watch_requests row");
-ok(lastArm().control === "saved_search" && lastArm().outcome === "added" && lastArm().user === U1, "saved_search: logs standing_arm added with the account");
-ok((await summary()).count === nBefore + 1, "saved_search: the badge counts it");
-r = await call(buyH, { action: "watchsearch", id: SID });
-ok(r.ok === true && r.already === true && lastArm().outcome === "already" && db.reqs.length === 1, "saved_search: a second click is 'already', no second row");
-r = await call(buyH, { action: "watchsearch", id: "eeeeeeee-eeee-4eee-8eee-000000000002" });
-ok(r.ok === false && r.reason === "not_found" && lastArm().reason === "not_found" && db.reqs.length === 1, "saved_search: a search that is not the account's is refused, logged, writes nothing");
+r = await call(buyH, { action: "watchsearch", id: SID2 });
+ok(r.ok === false && r.reason === "retired" && r.line === L.ARM_LINES.retired && /Task/.test(r.line), "retired control: a click is refused with the reason and a plain line that points to a Task");
+ok(db.convs[1].watch === false && db.reqs.length === 1, "retired control: no flag and no watch_requests row is written");
+ok(lastArm().control === "saved_search" && lastArm().outcome === "refused" && lastArm().reason === "retired", "retired control: the refusal is logged as standing_arm");
+ok(!/email you|will email|tells you|tell you/i.test(r.line), "retired control: its line promises no email");
+r = await call(buyH, { action: "watch", key: "WP0AB0961LS450123", email: "a@example.com" });
+ok(r.ok === false && r.reason === "retired" && db.reqs.length === 1 && lastArm().control === "address_watch" && lastArm().reason === "retired", "retired: the address-only watch on /api/buySearch writes nothing and logs the refusal");
 r = await call(buyH, { action: "watchsearch", id: SID }, { token: "" });
-ok(r.needSignIn === true && r.reason === "signed_out" && lastArm().control === "saved_search" && lastArm().reason === "signed_out", "saved_search: signed out is refused with the reason, logged");
+ok(r.needSignIn === true && r.reason === "signed_out" && lastArm().reason === "signed_out", "retired control: signed out is still refused with the reason, logged");
 {
   const lk4 = await call(tasksH, { action: "looking" });
   const row = lk4.rows.find(x => x.ref === "s:" + SID);
-  ok(row && row.kind === "search_watch" && row.what === "2005 Mercedes-Benz SL65 AMG" && row.detail === "Sam tells you when one comes up.", "saved_search: the Tasks page lists it under Watching in words that match the control ('Sam tells you when one comes up.')");
-  ok(lk4.counts.watches.count === lk4.rows.filter(x => x.kind !== "alert").length && lk4.counts.total === (await summary()).count, "saved_search: it is in the Watching count and the badge total");
-  // the cap is shared with the other watches
-  const db0 = db.watches.length; db.convs.push({ id: "dddddddd-dddd-4ddd-8ddd-000000000002", user_id: U2, title: "x", watch: false });
-  for (let i = db.watches.filter(w => w.user_id === U2).length; i < caps.WATCH_CAP; i++) db.watches.push({ id: "ffffffff-ffff-4fff-8fff-" + String(i).padStart(12, "0"), user_id: U2, kind: "spec", key: "z" + i, label: "z" + i, stopped_at: null });
-  r = await call(buyH, { action: "watchsearch", id: "dddddddd-dddd-4ddd-8ddd-000000000002" }, { token: tokenOf(U2) });
-  ok(r.ok === false && r.reason === "cap_watch" && /Stop one under Watching/.test(r.line) && lastArm().reason === "cap_watch" && db.convs[1].watch === false, "saved_search: at 25 watches it is refused with what to stop, logged, writes nothing"); void db0;
+  ok(row && row.kind === "search_watch" && row.what === "2005 Mercedes-Benz SL65 AMG" && row.detail === "Sam is not able to send these. Stop it, or start a Task for this search.", "existing row: listed under Watching in words that carry no promise");
+  ok(row && row.start_label === "Start a Task" && /^\/tasks\/mine\?words=Keep%20looking%20for%202005/.test(row.start_href), "existing row: carries a Start a Task link that seeds the Task box");
+  ok(!/email you|will email|tells you when|tell you when/i.test(row.detail), "existing row: the line does not promise an email");
+  ok(lk4.counts.watches.count === lk4.rows.filter(x => x.kind !== "alert").length && lk4.counts.total === (await summary()).count && lk4.counts.total === nBefore, "existing row: still in the Watching count and the badge");
   r = await call(tasksH, { action: "looking_stop", ref: "s:" + SID });
-  ok(r.ok === true && db.convs[0].watch === false && !db.reqs.some(x => x.vin_norm === "search:" + SID), "saved_search: Stop turns the flag off and removes its watch_requests row");
-  ok((await summary()).count === nBefore, "saved_search: the badge drops after Stop");
+  ok(r.ok === true && db.convs[0].watch === false && !db.reqs.some(x => x.vin_norm === "search:" + SID), "existing row: Stop turns the flag off and removes its watch_requests row");
+  ok((await summary()).count === nBefore - 1, "existing row: the badge drops after Stop");
 }
 // ---- the Tasks page shows each in the server's words
 const lk = await call(tasksH, { action: "looking" });

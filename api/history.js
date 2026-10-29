@@ -9,9 +9,10 @@
 import { stillReadingMarket } from "../lib/live/search.js";
 import { asOfDate } from "../lib/asOf.js";
 import { reasonLine } from "../lib/reasonWords.js";
+import { logArm, ARM_LINES } from "../lib/live/looking.js";
 import { withTracking } from "../lib/track/log.js";
 import { vinsForUrls } from "./_historyData.js";
-import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor, parseHubSlug, hubVins, titleInHub, hubHasRows, liveListing, addWatch, carSlug, hubSlug, familyOf, slugify, listingSaid, familySales, SITEMAP_PAGE, resolveText, cleanTitle, canonicalHub } from "./_historyData.js";
+import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor, parseHubSlug, hubVins, titleInHub, hubHasRows, liveListing, carSlug, hubSlug, familyOf, slugify, listingSaid, familySales, SITEMAP_PAGE, resolveText, cleanTitle, canonicalHub } from "./_historyData.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { PAGE_CSS as CSS, FONT_LINKS, railHtml, whyResultHtml, isCrewRequest } from "./_chrome.js";
 import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
@@ -737,8 +738,9 @@ async function handler(req, res) {
     if (b.action !== "watch") return res.status(400).json({ ok: false });
     const vinNorm = normVin(b.vin), email = String(b.email || "").trim().toLowerCase().slice(0, 200);
     if (!vinNorm || vinNorm.length < 5 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return res.status(400).json({ ok: false, reason: "invalid" });
-    const ok = await addWatch(env, vinNorm, email);
-    return res.status(ok ? 200 : 500).json({ ok });
+    // RETIRED (Oct 29 2026): the address was written to watch_requests and nothing ever read it; no page offered this. It writes nothing now.
+    logArm(null, "address_watch", { outcome: "refused", reason: "retired" });
+    return res.status(200).json({ ok: false, reason: "retired", line: ARM_LINES.retired });
   }
   if (req.method !== "GET" && req.method !== "HEAD") return res.status(405).end();
   const q = req.query || {};

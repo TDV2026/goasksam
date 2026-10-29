@@ -369,17 +369,7 @@ export async function liveListing(env, vinNorm) {
   return rows && rows.length ? rows[0] : null;
 }
 
-export async function addWatch(env, vinNorm, email) {
-  try {
-    const r = await fetch(`${env.supabaseUrl}/rest/v1/watch_requests?on_conflict=vin_norm,email`, {
-      method: "POST",
-      headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "resolution=ignore-duplicates,return=minimal" },
-      body: JSON.stringify([{ vin_norm: vinNorm, email }])
-    });
-    if (!r.ok) console.error("watch_requests insert failed", r.status, (await r.text().catch(() => "")).slice(0, 200));
-    return r.ok;
-  } catch (e) { console.error("watch_requests insert threw", e && e.message); return false; }
-}
+// addWatch (an address typed on a VIN page, written to watch_requests) was retired Oct 29 2026: nothing ever read it (docs/lane-notes.md).
 
 // ---------------------------------------------------------------- "What the listing said" (facts, never the text)
 // From the newest sale's own record: the stored desc_facts markers plus a few structured listing facts
