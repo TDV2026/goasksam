@@ -433,7 +433,8 @@ R.launch=function(d){
  // 5
  h+='<h2>5. Came back, and where from</h2>'+tiles([["Visitors",n(d.returning.visitors)],["Came back (second session)",cell(d.returning.returning,d.returning.visitors)]])
   +'<p class=note>Source is each first page view of each visitor in this range: the utm source if the link had one, otherwise the referring site, otherwise direct. Acted and came back are shares of that source.</p>'
-  +table([["Source","source"],["First page","product",function(v){return pn(v);}],["Visitors","visitors",n],["Asked","asked",function(v,r){return cell(v,r.visitors);}],["Acted","acted",function(v,r){return cell(v,r.visitors);}],["Came back","came_back",function(v,r){return cell(v,r.visitors);}]],d.sources);
+  +table([["Source","source"],["First page","product",function(v){return pn(v);}],["Visitors","visitors",n],["Asked","asked",function(v,r){return cell(v,r.visitors);}],["Hit the limit","walled",function(v,r){return cell(v,r.visitors);}],["Signed in","signed_in",function(v,r){return cell(v,r.visitors);}],["Started a Task","task",function(v,r){return cell(v,r.visitors);}],["Started a watch","watch",function(v,r){return cell(v,r.visitors);}],["Acted","acted",function(v,r){return cell(v,r.visitors);}],["Came back","came_back",function(v,r){return cell(v,r.visitors);}]],d.sources)
+  +'<p class=note>Hit the limit = reached a daily limit. Signed in = signed in at any point. Started a watch = armed a watch or a before-it-ends email. Searches before and after sign-in: '+(d.searchSplit||[]).map(function(x){return pn(x.product)+' '+n(x.anonymous)+' before, '+n(x.signed_in)+' after';}).join('; ')+'.</p>';
  // 6
  var w=d.now||{};
  h+='<h2>6. Right now (last 15 minutes)</h2>'+tiles([["Visitors",n(w.visitors)],["Answers served",n(w.answers)],["Failures",n(w.failures)]]);

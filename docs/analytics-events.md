@@ -42,7 +42,7 @@ Store: `analytics_events` (SQL in `docs/supabase-analytics.sql`). Dashboard: `/a
 | `consent` | text | `granted`, `declined` or `not_required`. |
 | `received_at` | timestamptz | When the store got it (set by the database). |
 | `ref_domain` | text, nullable | Referring domain only (`google.com`), never the path or query. Own domain is dropped. |
-| `utm_source`, `utm_medium`, `utm_campaign`, `launch_wave` | text, nullable | The whitelist. Each at most 60 characters, letters, digits, `_ - .` only. Nothing else from the address is kept. |
+| `utm_source`, `utm_medium`, `utm_campaign`, `launch_wave` | text, nullable | The whitelist. A `via` parameter (the short link form, `/?via=beehiiv`) is read as `utm_source` when the address has none. Each at most 60 characters, letters, digits, `_ - .` only. Nothing else from the address is kept. |
 | `browser_family` | text, nullable | `chrome`, `safari`, `firefox`, `edge`, `samsung`, `other`, `bot`. |
 | `device_class` | text, nullable | `desktop`, `mobile`, `tablet`, `bot`. |
 | `is_bot` | boolean | Known crawler or headless browser. Stored, excluded from summaries. |

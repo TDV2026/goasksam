@@ -230,6 +230,14 @@ try {
   record("dismiss and counts (scripts/tasksDismissCountCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 
+// Arrival (Oct 29 2026, Lane D): the launch email link /?via=beehiiv is read as the source on every path that reads the address, and the Launch tab shows limit, sign-in, Task and watch per source. Offline.
+try {
+  const out = execSync("node scripts/arrivalCheck.mjs", { encoding: "utf8" });
+  record("arrival source (scripts/arrivalCheck.mjs)", "PASS", (out.match(/arrivalCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("arrival source (scripts/arrivalCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+
 // Launch dashboard (Oct 26 2026, Lane D): the new events log without personal data and never block, the Launch tab's numbers on a known
 // fixture, the real /admin script in headless Chrome at 1440 and 390 with no sideways scroll, and /admin's 404 for anyone not allowed. No database, no keys.
 try {
