@@ -15,7 +15,7 @@ const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "
 
 // ---- 1. every HTML page route
 const NOT_INDEXED = {   // file -> what the file must show for the exemption to be true
-  "admin.js": /noindex/, "crew.js": /noindex/, "partnerDemo.js": /noindex/, "tasks.js": /noindex/, "usageDashboard.js": /noindex/, "watch.js": /noindex/,
+  "admin.js": /noindex/, "crew.js": /noindex/, "crewPage.js": /noindex/, "partnerDemo.js": /noindex/, "tasks.js": /noindex/, "usageDashboard.js": /noindex/, "watch.js": /noindex/,
   "gsc.js": /verification|google-site-verification|search console/i, "mcp.js": /ui:\/\/|openai\/outputTemplate/,
 };
 const files = fs.readdirSync(path.join(ROOT, "api")).filter(f => f.endsWith(".js") && !f.startsWith("_"));
