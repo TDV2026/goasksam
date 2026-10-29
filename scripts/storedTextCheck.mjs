@@ -35,7 +35,7 @@ const clean = (name, lines, n) => {
 for (const [name, row, n] of [["mc thin", MC_THIN, 6], ["mc split", MC_SPLIT, 23]]) {
   const f = E.freshenStoredText(row); clean(name + " (freshenStoredText)", find(f), n);
   const w = E.withReadFields(row, "1995 Porsche 911", { year: 1995 }); clean(name + " (withReadFields)", find(w), n);
-  ok(`${name}: scopeLine is served (a string with the car and its latest sale, no count)`, typeof w.scopeLine === "string" && /1995/.test(w.scopeLine) && /latest sale Oct 21, 2026/.test(w.scopeLine) && !states(w.scopeLine, n), w.scopeLine);
+  ok(`${name}: scopeLine is served (a string with the latest sale, no count, and not the title's year again)`, typeof w.scopeLine === "string" && !/1995/.test(w.scopeLine) && /atest sale Oct 21, 2026/.test(w.scopeLine) && !states(w.scopeLine, n), w.scopeLine);
 }
 { const f = E.freshenStoredText(MC_SPLIT); ok("mc split: the unsaid line names the groups from the row's own options", f.thin_sales.answer_line === "Manual and Tiptronic cars sell for different money, and this listing does not say which it is, so there is no single range.", f.thin_sales.answer_line);
   ok("mc split: Market Check's own thinLine is untouched (the pills exist there)", f.thinLine === OLD_PICK); }
@@ -44,6 +44,16 @@ for (const [name, row, n] of [["mc thin", MC_THIN, 6], ["mc split", MC_SPLIT, 23
 for (const [name, core, n] of [["core thin", CORE_THIN, 6], ["core split", CORE_SPLIT, 23]]) {
   const spec = S.specOf(ROW), m = S.marketFromCore(core, ROW, { miles: null }, spec); clean(name + " (marketFromCore)", find(m), n);
 }
+// 2b. rows stored with a total in the footer, a repeated year and option lines without a since date serve the current footer and title line (Part 3, Oct 29 2026)
+{ const old = { ...MC_SPLIT, options: opts.map(o => ({ ...o, low: 30000, high: 50000, rangeFloor: false, windowWords: "since June 2025" })), windowLine: "23 sales, since June 2025.", basisLine: "Based on 23 sales, the latest in October 2026.", latestSaleLine: "The latest sale was October 21, 2026.", countLine: "23 sales since June 2025.", scopeLine: "1995 · 23 latest sale Oct 21, 2026", resolvedCar: { year: 1995, make: "Porsche", model: "911", canonicalLabel: "1995 Porsche 911" } };
+  const f = E.freshenStoredText(old), w = E.withReadFields(old, "1995 Porsche 911", { year: 1995 });
+  ok("a stored split row serves no total in the footer (windowLine, basisLine, latestSaleLine, countLine null)", !f.windowLine && !f.basisLine && !f.latestSaleLine && !f.countLine, JSON.stringify([f.windowLine, f.basisLine, f.countLine]));
+  ok("a stored row's scopeLine is restated without the title's year", f.scopeLine === "Latest sale Oct 21, 2026" || !/1995/.test(f.scopeLine), f.scopeLine);
+  ok("a stored row's options print their own count and since date when served", (w.optionLines || []).filter(l => !/too few/.test(l)).every(l => /\d sales? since [A-Z][a-z]+ \d{4}/.test(l)), (w.optionLines || []).join(" | "));
+  const oldCore = { ...CORE_SPLIT, optionsState: "split", optionLines: ["Manual $57,000 to $92,500, 18 sales", "Tiptronic $48,000 to $65,500, 13 sales"] }, c = E.freshenStoredText(oldCore);
+  ok("a stored core with options serves no total count line", c.countLine === null && c.thin_sales.count_line === null, JSON.stringify([c.countLine, c.thin_sales && c.thin_sales.count_line]));
+  const single = { ...MC_RANGE, windowLine: "30 sales, since June 2025.", optionsState: "none", options: [] }, sf = E.withReadFields(single, "1995 Porsche 911", { year: 1995 });
+  ok("a stored single range keeps its footer line", sf.windowLine === "30 sales, since June 2025."); }
 // 3. idempotent: a row stored with the current text comes back unchanged
 { const cur = E.freshenStoredText(MC_SPLIT), again = E.freshenStoredText(cur); ok("a row with the current text comes back unchanged", JSON.stringify(cur) === JSON.stringify(again));
   const t = E.thinSalesOf(MC_THIN); ok("thin_sales rebuilt from rawPool is the text the engine stores today", E.freshenStoredText(MC_THIN).thin_sales.count_line === t.count_line && E.freshenStoredText(MC_THIN).thin_sales.answer_line === t.answer_line); }

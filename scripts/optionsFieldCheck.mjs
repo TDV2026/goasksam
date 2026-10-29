@@ -35,7 +35,7 @@ fill("AlikeA", [["Coupe", null, 30000, 12, 5], ["Convertible", null, 30600, 12, 
 let a = await ask("AlikeA");
 ok("alike: the pooled range is kept and optionsState says alike", a.tier === "result" && hasPooled(a) && a.optionsState === "alike" && !a.pooledApart && a.emailMode === "range_with_options", `${a.optionsState} ${a.emailMode}`);
 ok("alike: options carries both bodies, each with n, low, high, median and its own window words", Array.isArray(a.options) && a.options.length === 2 && a.options.every(o => o.dimension === "body" && o.n >= 8 && o.low > 0 && o.high >= o.low && o.median > 0 && o.rangeFloor === false && o.ownWindow === true && typeof o.windowWords === "string" && o.windowWords.length > 0), JSON.stringify(a.options));
-ok("alike: optionLines are written by the engine, one per option, with the range and the count", Array.isArray(a.optionLines) && a.optionLines.length === 2 && a.optionLines.every(l => /\$[\d,]+ to \$[\d,]+, \d+ sales$/.test(l)), JSON.stringify(a.optionLines));
+ok("alike: optionLines are written by the engine, one per option, with the range, the count and its own since date (Oct 29 2026: every option states its own window)", Array.isArray(a.optionLines) && a.optionLines.length === 2 && a.optionLines.every(l => /\$[\d,]+ to \$[\d,]+, \d+ sales since [A-Z][a-z]+ \d{4}$/.test(l)), JSON.stringify(a.optionLines));
 // B. one body under the range floor (5 sales): count and "too few for a range", no range, no window note
 fill("Floor", [["Coupe", null, 30000, 14, 5], ["Convertible", null, 30400, 5, 7]]);
 a = await ask("Floor");

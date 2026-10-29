@@ -1394,6 +1394,13 @@ try {
 } catch (e) {
   record("Find: the pre-fill writes the rows a card reads without computing (scripts/findPrefillCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// An answer with options states no total in its footer, each option its own count and since date, the title line never repeats the title's year (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/footerOptionsCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("pages: options answers state no total in the footer, each option its own window, no repeated year (scripts/footerOptionsCheck.mjs)", "PASS", (out.match(/footerOptionsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("pages: options answers state no total in the footer, each option its own window, no repeated year (scripts/footerOptionsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // An ended lot never stays unmarked past one pull cycle (Lane B, Oct 29 2026).
 try {
   const out = execSync("node scripts/endedLotCheck.mjs", { encoding: "utf8", timeout: 120000 });
