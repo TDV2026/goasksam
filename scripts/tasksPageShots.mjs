@@ -237,11 +237,14 @@ try {
     ok(/still being read|being read/.test(early) || /Getting the cars/.test(early), "reading: the holding line shows while the market is out");
     ok(!/being read/.test(late) && /\$[\d,]+ to \$[\d,]+/.test(late), "reading: the line is gone once each card's own market lands, and the range is there");
     ok((A.enrichCalls || 0) >= 2, "reading: the page asked again after the engine's own retry wait (" + A.enrichCalls + " asks)"); await p.close(); }
-  // a market that never comes: said plainly after the capped asks
-  { const pend = { kind: "pending", stillReading: true, line: CS, retry: true, retryAfterMs: 120 };
+  // a market that never comes: said plainly when the ENGINE's wait (waitMaxMs) ends, never at a number of the page's own
+  const never = async (waitMaxMs, settle) => { const pend = { kind: "pending", stillReading: true, line: CS, retry: true, retryAfterMs: 120, waitMaxMs };
     const A = account([mkTask(1)], { enrich: body => ({ cards: (body.ids || []).map(id => ({ id, market: { ...pend } })) }) }); A.cardsOf = () => CARDS.map(c => ({ ...c, market: { ...pend }, sam_lines: [] }));
-    const p = await open(A, 1440); await p.evaluate(() => { window.GAS_WAIT_SCALE = 0.02; }); await openTask(p); await wait(3000); const t = await text(p);   // the clock scaled down for the check only: 45 seconds of asking becomes under one
-    ok(!/still reading/.test(t) && t.includes(CM) && !/try again/i.test(t), "reading: a market that never comes is said plainly after 45 seconds of asking (cold spec, Oct 28 2026), never try again, not left on the holding line"); await p.close(); }
+    const p = await open(A, 1440); await p.evaluate(() => { window.GAS_WAIT_SCALE = 0.02; }); await openTask(p); await wait(settle); const t = await text(p); await p.close(); return t; };
+  { const t = await never(85000, 3500);   // the clock scaled down for the check only: the engine's 85 seconds becomes 1.7
+    ok(!/still reading/.test(t) && t.includes(CM) && !/try again/i.test(t), "reading: a market that never comes is said plainly once the engine's own waitMaxMs (85 seconds) has passed, never try again, not left on the holding line"); }
+  { const t = await never(400000, 3500);   // the engine says wait 400 s (8 s scaled): a page with a wait of its own (45 s = 0.9 s scaled) would already have given up
+    ok(/being read|Getting the cars|still reading/.test(t) && !t.includes(CM), "reading: the page keeps waiting while the engine's waitMaxMs has not passed (it carries no wait of its own)"); }
   // WHAT FIND'S TOGGLES AND BUTTONS MADE (Oct 29 2026): the watches and before-it-ends emails are on the Tasks page with what they watch and a Stop, counted apart from the Task limit.
   { const A = account([mkTask(1), mkTask(2), mkTask(3)]);
     A.lookingRows = [{ ref: "w:aaaaaaaa-0000-4000-8000-000000000001", kind: "spec_watch", what: "1995 Chevrolet Impala SS", detail: "The next sale of this car." }, { ref: "w:aaaaaaaa-0000-4000-8000-000000000002", kind: "car_watch", what: "1994 Porsche 911 Carrera Cabriolet", detail: "This exact car, if it comes up again." }, { ref: "a:4412", kind: "alert", what: "2010 Porsche 911 Carrera Cabriolet", detail: "Sam sends one email two hours before bidding ends, at any hour of the day or night.", ends_at: new Date(Date.now() + 5 * 864e5).toISOString() }];
