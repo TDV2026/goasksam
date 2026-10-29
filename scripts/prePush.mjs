@@ -1172,6 +1172,13 @@ try {
 } catch (e) {
   record("holdZeroCheck (scripts/holdZeroCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The opening time is one setting that starts empty: no served file holds a launch time, and with LAUNCH_AT empty nothing prints a time or says "Opening now" (no network).
+try {
+  const out = execSync("node scripts/openingTimeCheck.mjs", { encoding: "utf8", timeout: 60000 });
+  record("openingTimeCheck (scripts/openingTimeCheck.mjs)", "PASS", (out.match(/openingTimeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("openingTimeCheck (scripts/openingTimeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 try {
   const out = execSync("node scripts/sellCutoffCheck.mjs", { encoding: "utf8", timeout: 600000 });
   if (/SKIP/.test(out)) record("sellCutoffCheck (scripts/sellCutoffCheck.mjs)", "SKIP", "no PROBE_KEY"); else record("sellCutoffCheck (scripts/sellCutoffCheck.mjs)", "PASS", (out.match(/sellCutoffCheck: .*/) || [""])[0]);
