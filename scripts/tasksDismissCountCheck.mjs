@@ -1,3 +1,4 @@
+// clock: real-ok every time is relative to one now read at the top (soon and ago hours), and the draft age is tested against that same clock, so the verdict does not change with the day (Lane G, Oct 29 2026)
 // DISMISS AND COUNT CHECK (Lane D, Oct 29 2026): two bugs from Sam's live Tasks page, and the class behind each. Offline: the REAL page code (api/tasksPage.js) in headless Chrome
 // at 1440 and 390 with /api/tasks answered by fixtures; no network, no site.
 //   1. A control that dismisses something must make it go. "Never mind" on the limit card did nothing: the card is drawn from the server's atLimit, and the control only cleared a local

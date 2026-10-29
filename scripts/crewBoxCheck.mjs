@@ -1,3 +1,4 @@
+// clock: real-ok it only reads the holding page for its crew link; no time or date is asserted (Lane G, Oct 29 2026)
 // THE CREW CODE BOX (Sam, Oct 25 2026), offline: /api/crew shows a box that POSTS the code as a form body. A right code sets the signed gas_crew cookie and
 // 302s to /find (or a same-origin `to`); a wrong code gets the 403 page and sets nothing; attempts are limited; the code value never appears in any response
 // body, header or redirect, nor in the page the box is served on. A ?code= link no longer works (Oct 27 2026): it shows the box and sets nothing. The holding page points to the box. No network.

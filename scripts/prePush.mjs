@@ -1274,6 +1274,13 @@ try {
 } catch (e) {
   record("holdZeroCheck (scripts/holdZeroCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// No check depends on the real clock without a fake one (Lane G, Oct 29 2026; holdPageCheck and holdZeroCheck failed after 7:00 AM). Reads the scripts only, no network.
+try {
+  const out = execSync("node scripts/clockCheck.mjs", { encoding: "utf8", timeout: 60000 });
+  record("clockCheck (scripts/clockCheck.mjs)", "PASS", (out.match(/clockCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("clockCheck (scripts/clockCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The opening time is one setting that starts empty: no served file holds a launch time, and with LAUNCH_AT empty nothing prints a time or says "Opening now" (no network).
 try {
   const out = execSync("node scripts/openingTimeCheck.mjs", { encoding: "utf8", timeout: 60000 });
