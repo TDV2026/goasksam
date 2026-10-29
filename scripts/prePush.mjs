@@ -652,6 +652,30 @@ try {
   record("Landing examples never print empty for a split car (scripts/landingExampleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/underlineCheck.mjs", { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  record("Market Check and Find rendered: counts agree, footer contract, no null, one underline (scripts/underlineCheck.mjs)", "PASS", (out.match(/underlineCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Market Check and Find rendered: counts agree, footer contract, no null, one underline (scripts/underlineCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/cardLinesCheck.mjs", { encoding: "utf8" });
+  record("Every line on a Find card sits inside its box in the card's own style (scripts/cardLinesCheck.mjs)", "PASS", (out.match(/cardLinesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Every line on a Find card sits inside its box in the card's own style (scripts/cardLinesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/wayOutAndLabelCheck.mjs", { encoding: "utf8" });
+  record("Every question has its way out; no label prints over an empty body (scripts/wayOutAndLabelCheck.mjs)", "PASS", (out.match(/wayOutAndLabelCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Every question has its way out; no label prints over an empty body (scripts/wayOutAndLabelCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/appliedFiltersCheck.mjs", { encoding: "utf8" });
+  record("A narrowing shows: the engine's applied line and a clear control per filter (scripts/appliedFiltersCheck.mjs)", "PASS", (out.match(/appliedFiltersCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("A narrowing shows: the engine's applied line and a clear control per filter (scripts/appliedFiltersCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/showMoreCheck.mjs", { encoding: "utf8" });
   record("A show more control ends: gone when every row is shown, its count the rows still hidden (scripts/showMoreCheck.mjs)", "PASS", (out.match(/showMoreCheck: .*/) || [""])[0]);
 } catch (e) {
@@ -1514,6 +1538,38 @@ try {
   record("Sell: the flow always ends on an answer or a plain sentence, and a wait always ends (scripts/sellEndingCheck.mjs)", "PASS", (out.match(/sellEndingCheck: .*/) || [""])[0]);
 } catch (e) {
   record("Sell: the flow always ends on an answer or a plain sentence, and a wait always ends (scripts/sellEndingCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// Every question the resolver and the engine ask carries a way out (Lane B, Oct 29 2026, Lane E's FULL).
+try {
+  const out = execSync("node scripts/questionPayloadsCheck.mjs", { encoding: "utf8", timeout: 180000 });
+  record("questions: every clarification the resolver asks carries a way out, every engine question a way out or its skip (scripts/questionPayloadsCheck.mjs)", "PASS", (out.match(/questionPayloadsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("questions: every clarification the resolver asks carries a way out, every engine question a way out or its skip (scripts/questionPayloadsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// Every way the engine narrows an answer is named, with the refine that clears it (Lane B, Oct 29 2026, Lane E's FULL: typed mileage).
+try {
+  const out = execSync("node scripts/bodyNamePhraseCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("body: a body word inside a model's own name (Power Wagon, Traction Avant, Van Diemen) is not a body (scripts/bodyNamePhraseCheck.mjs)", "PASS", (out.match(/bodyNamePhraseCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("body: a body word inside a model's own name (Power Wagon, Traction Avant, Van Diemen) is not a body (scripts/bodyNamePhraseCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/spacedModelCodeCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("resolver: a model code typed with a space (RS 6, M 3, X 5) is the glued model, so a known car is never refused as unchecked (scripts/spacedModelCodeCheck.mjs)", "PASS", (out.match(/spacedModelCodeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("resolver: a model code typed with a space (RS 6, M 3, X 5) is the glued model, so a known car is never refused as unchecked (scripts/spacedModelCodeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/chartNoReasonCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("chart: a withheld chart prints the engine's plain heading and no reason on any page, and a stored row serves it at read time (scripts/chartNoReasonCheck.mjs)", "PASS", (out.match(/chartNoReasonCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("chart: a withheld chart prints the engine's plain heading and no reason on any page, and a stored row serves it at read time (scripts/chartNoReasonCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/appliedAllCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("filters: every way the engine narrows (pill, band, typed miles, gearbox, body, year, edition, trim, history, detail) is named with its clear (scripts/appliedAllCheck.mjs)", "PASS", (out.match(/appliedAllCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("filters: every way the engine narrows (pill, band, typed miles, gearbox, body, year, edition, trim, history, detail) is named with its clear (scripts/appliedAllCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 // An ended lot never stays unmarked past one pull cycle (Lane B, Oct 29 2026).
 try {

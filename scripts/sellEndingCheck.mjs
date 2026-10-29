@@ -49,6 +49,10 @@ ok(`${CARS.length} cars through the range step: every one ends on a refusal, a c
 // (e) a stored row is read with a realistic cap: a 2 second cap dropped it under database load and sent the visit to a cold compute (the 2004 Porsche 911 Carrera had a fresh stored row)
 { const sb = fs.readFileSync("lib/sell/sellBlock.js", "utf8"), sf = fs.readFileSync("lib/sell/sellFlow.js", "utf8");
   ok("the stored answer and the stored block are read with STORED_READ_MS (8 s), not the 2 s piece cap", /readWarmAnswerDetailed\(env, key\), STORED_READ_MS/.test(sb) && (sf.match(/STORED_READ_MS\)/g) || []).length >= 2); }
+// (f) ONE SOURCE FOR THE WAIT (Oct 29 2026, Lane E's pageWaitCheck): Sell's server cap and the page's deadline come from the engine's number (lib/live/search.js engineWaitMs), never a literal of Sell's own
+{ const sb = fs.readFileSync("lib/sell/sellBlock.js", "utf8"), sn = fs.readFileSync("api/sellNext.js", "utf8"), cl = C.SELL_MC_CLIENT;
+  ok("Sell's engine race reads the engine's wait (engineWaitMs less engineSettleMs) and holds no cold-wait literal", /engineWaitMs\(\) - engineSettleMs\(\)/.test(sb) && !/\b(45|60|85|90)000\b/.test(sb.replace(/\/\/[^\n]*/g, "")));
+  ok("the page config carries the engine's wait and the client keeps no number of its own for it", /waitMaxMs: engineWaitMs\(\)/.test(sn) && !/\b(45|60|85|90)000\b/.test(cl.replace(/\/\/[^\n]*/g, "")) && !/:\s*60000/.test(cl)); }
 // (d) the client
 { const src = C.SELL_MC_CLIENT;
   ok("every call to /api/sellChat has a deadline (AbortController) and catches a dropped or non-JSON answer", /AbortController/.test(src) && /waitMaxMs/.test(src) && /AbortError/.test(src) && /unreadable/.test(src));

@@ -6,15 +6,15 @@
 import { startBrowser, openMC } from "./e98Render.mjs";
 import { MC } from "./e98Fixtures.mjs";
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
-const MIX = "The mix of cars changed from quarter to quarter, so a change here would not show the market moving.", FEW = "There are too few sales in each period to draw a chart.";
+const HEAD = "Latest sales", MIX = "The mix of cars changed from quarter to quarter, so a change here would not show the market moving.", FEW = "There are too few sales in each period to draw a chart.";
 const P86 = MC["1986 Porsche 911 (Targa 11, Cabriolet 11, Coupe 16 against 35)"], M01 = MC["2001 BMW M3 (alike with options)"], DEF = MC["1985 Land Rover Defender 110 (year split)"];
 const strip = d => { const { trend, chart, trendHeld, chartCaption, chartWindowLine, ...rest } = d; return rest; };
 const STATES = [
-  ["mix changed (chart.note)", P86, { ...strip(P86.d), chart: { type: "withheld", scope: null, buckets: null, note: MIX, withheld: { reason: "mix_changes", line: null }, n: 35 } }, MIX],
-  ["too few (chart.withheld.line)", P86, { ...strip(P86.d), chart: { type: "withheld", scope: null, buckets: null, note: null, withheld: { reason: "too_few", line: FEW }, n: 35 } }, FEW],
-  ["Defender 110, mix changed (chart.note)", DEF, { ...strip(DEF.d), chart: { type: "withheld", scope: null, buckets: null, note: MIX, withheld: { reason: "mix_changes", line: null }, n: (DEF.d.cards || []).length } }, MIX],
-  ["Defender 110, too few (chart.withheld.line)", DEF, { ...strip(DEF.d), chart: { type: "withheld", scope: null, buckets: null, note: null, withheld: { reason: "too_few", line: FEW }, n: (DEF.d.cards || []).length } }, FEW],
-  ["mix changed on the 17 sale pool", M01, { ...strip(M01.d), chart: { type: "withheld", scope: null, buckets: null, note: MIX, withheld: { reason: "mix_changes", line: null }, n: 17 } }, MIX],
+  ["mix changed (chart.note)", P86, { ...strip(P86.d), chart: { type: "withheld", scope: null, buckets: null, note: MIX, caption: HEAD, withheld: { reason: "mix_changes", line: null }, n: 35 } }, HEAD],
+  ["too few (chart.withheld.line)", P86, { ...strip(P86.d), chart: { type: "withheld", scope: null, buckets: null, note: null, caption: HEAD, withheld: { reason: "too_few", line: FEW }, n: 35 } }, HEAD],
+  ["Defender 110, mix changed (chart.note)", DEF, { ...strip(DEF.d), chart: { type: "withheld", scope: null, buckets: null, note: MIX, caption: HEAD, withheld: { reason: "mix_changes", line: null }, n: (DEF.d.cards || []).length } }, HEAD],
+  ["Defender 110, too few (chart.withheld.line)", DEF, { ...strip(DEF.d), chart: { type: "withheld", scope: null, buckets: null, note: null, caption: HEAD, withheld: { reason: "too_few", line: FEW }, n: (DEF.d.cards || []).length } }, HEAD],
+  ["mix changed on the 17 sale pool", M01, { ...strip(M01.d), chart: { type: "withheld", scope: null, buckets: null, note: MIX, caption: HEAD, withheld: { reason: "mix_changes", line: null }, n: 17 } }, HEAD],
   ["withheld with no sentence at all", P86, { ...strip(P86.d), chart: { type: "withheld", scope: null, buckets: null, note: null, withheld: { reason: "mix_changes", line: null }, n: 35 } }, null],
   ["no chart object (an answer stored before ER9)", P86, strip(P86.d), undefined],
   ["a stored answer that held the chart for the mix (trendHeld only)", P86, { ...strip(P86.d), trendHeld: { reason: "mix_changes" } }, undefined],
@@ -31,13 +31,16 @@ for (const [name, fx, d, sentence, mode] of [...HELD.map(s => [...s, "rows"]), n
   const r = await p.evaluate(() => { const q = s => document.querySelector(s), lines = e => Math.round(e.getBoundingClientRect().height / (parseFloat(getComputedStyle(e).lineHeight) || 18)), held = q(".hero-held"), pills = q(".narrow-strip");
     const rows = [...document.querySelectorAll(".hero-held .hw-row")].map(r => { const t = r.querySelector(".hw-t"), n = r.querySelector(".hw-n"), m = r.querySelector(".hw-m"), pr = r.querySelector(".hw-p"), ph = r.querySelector(".hw-ph"); return { title: n.innerText.trim(), meta: m.innerText.trim(), price: pr.innerText.trim(), textW: Math.round(t.getBoundingClientRect().width), nl: lines(n), ml: lines(m), pw: Math.round(ph.getBoundingClientRect().width), ph: Math.round(ph.getBoundingClientRect().height) }; });
     const heads = [...document.querySelectorAll("h2,h3")].filter(e => /How this market has moved/.test(e.textContent));
-    return { panels: document.querySelectorAll(".hero-chart").length, svgIn: held ? held.querySelectorAll("svg,canvas,circle").length : -1, heads: heads.length, held: !!held, caps: [...document.querySelectorAll(".hero-held .hw-cap")].map(e => e.innerText.replace(/\s+/g, " ").trim()), rows, all: held ? !!held.querySelector(".hw-all .linkbtn") : false, allText: held && held.querySelector(".hw-all") ? held.querySelector(".hw-all").innerText : "", text: held ? held.innerText : "", leftNoband: document.querySelectorAll(".hero-left .hero-noband").length,
+    return { panels: document.querySelectorAll(".hero-chart").length, svgIn: held ? held.querySelectorAll("svg,canvas,circle").length : -1, heads: heads.length, held: !!held, caps: [...document.querySelectorAll(".hero-held .hw-cap")].map(e => e.innerText.replace(/\s+/g, " ").trim()), rows, all: held ? !!held.querySelector(".hw-all .linkbtn") : false, allText: held && held.querySelector(".hw-all") ? held.querySelector(".hw-all").innerText : "", text: held ? held.innerText : "", leftNoband: document.querySelectorAll(".hero-left .hero-noband").length, page: document.body.innerText.replace(/\s+/g, " "), latestHeads: [...document.querySelectorAll("h2")].filter(e => /^Latest sales$/i.test(e.innerText.trim())).length,
       emptyBody: [...document.querySelectorAll(".hero-right h2,.hero-right h3")].filter(h => !h.nextElementSibling || !h.nextElementSibling.textContent.trim()).length, heldTop: held ? held.getBoundingClientRect().top : 0, pillsBottom: pills ? pills.getBoundingClientRect().bottom : 0, heldLeft: held ? held.getBoundingClientRect().left : 0, pillsLeft: pills ? pills.getBoundingClientRect().left : 0 }; });
+  ok(!r.page.includes(MIX) && !r.page.includes(FEW), `${where}: neither withheld reason sentence is printed anywhere on the page`);
+  if (mode === "none") { ok(!r.held && r.latestHeads === 0 && r.caps.length === 0 && r.panels === 0, `${where}: the engine sent no rows, so the heading prints over nothing is never allowed: no heading, no panel (${r.latestHeads} headings)`); await p.close(); continue; }
+  ok(r.latestHeads === 1, `${where}: the engine's plain heading "${sentence}" prints once, as a heading over the sales (${r.latestHeads})`);
   ok(r.held && r.panels === 0 && r.heads === 0, `${where}: the withheld layout, no chart panel and no "How this market has moved" heading (${r.panels} panels, ${r.heads} headings)`);
   ok(r.svgIn === 0 && !/average|median|typical|trend|\$[\d,]+ to \$[\d,]+/i.test(r.text), `${where}: no chart, no dots, no average, range or trend word in the withheld layout`);
   ok(r.emptyBody === 0, `${where}: no heading with an empty body`);
-  ok(r.caps.length === 1 && r.caps[0] === sentence, `${where}: one caption, the engine's own sentence ("${r.caps[0] || "none"}")`);
-  ok(r.leftNoband === 0, `${where}: the sentence is not printed a second time under the pills`);
+  ok(r.caps.length === 1 && r.caps[0] === sentence, `${where}: one heading, the engine's own word ("${r.caps[0] || "none"}")`);
+  ok(r.leftNoband === 0, `${where}: the heading is not printed a second time under the pills`);
   ok(w === 1440 ? r.heldLeft > r.pillsLeft + 200 : r.heldTop >= r.pillsBottom - 1, w === 1440 ? `${where}: on a wide screen the caption and rows sit in the right column` : `${where}: on a phone they sit below the pills (${Math.round(r.heldTop)} against ${Math.round(r.pillsBottom)})`);
   if (mode === "none") ok(r.rows.length === 0 && !r.all, `${where}: no rows from the engine, the caption alone (${r.rows.length} rows)`);
   else {
