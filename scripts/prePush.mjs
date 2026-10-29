@@ -1554,6 +1554,24 @@ try {
   record("body: a body word inside a model's own name (Power Wagon, Traction Avant, Van Diemen) is not a body (scripts/bodyNamePhraseCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/spacedTaxonomyModelCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("engine: a taxonomy model named with a space (RS 6 Avant, M 3, RX 7) is not refused for its own glued sales (scripts/spacedTaxonomyModelCheck.mjs)", "PASS", (out.match(/spacedTaxonomyModelCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: a taxonomy model named with a space (RS 6 Avant, M 3, RX 7) is not refused for its own glued sales (scripts/spacedTaxonomyModelCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/unusedWordsCodeCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Find: a piece of the car's own name (the RS of RS 6) is never named as a word Sam did not use (scripts/unusedWordsCodeCheck.mjs)", "PASS", (out.match(/unusedWordsCodeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Find: a piece of the car's own name (the RS of RS 6) is never named as a word Sam did not use (scripts/unusedWordsCodeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/refusalNoCountCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("engine: a refusal prints no Based on N sales line, stored or fresh (scripts/refusalNoCountCheck.mjs)", "PASS", (out.match(/refusalNoCountCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: a refusal prints no Based on N sales line, stored or fresh (scripts/refusalNoCountCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/spacedModelCodeCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("resolver: a model code typed with a space (RS 6, M 3, X 5) is the glued model, so a known car is never refused as unchecked (scripts/spacedModelCodeCheck.mjs)", "PASS", (out.match(/spacedModelCodeCheck: .*/) || [""])[0]);
 } catch (e) {
