@@ -658,6 +658,12 @@ try {
   record("Market Check and Find rendered: counts agree, footer contract, no null, one underline (scripts/underlineCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/cardLinesCheck.mjs", { encoding: "utf8" });
+  record("Every line on a Find card sits inside its box in the card's own style (scripts/cardLinesCheck.mjs)", "PASS", (out.match(/cardLinesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Every line on a Find card sits inside its box in the card's own style (scripts/cardLinesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/showMoreCheck.mjs", { encoding: "utf8" });
   record("A show more control ends: gone when every row is shown, its count the rows still hidden (scripts/showMoreCheck.mjs)", "PASS", (out.match(/showMoreCheck: .*/) || [""])[0]);
 } catch (e) {
