@@ -4,11 +4,12 @@
 // 503 while sealed, then the "open" answer once the test lifts the seal. The browser clock is moved past zero with a Date override; the poll delay is
 // shortened (the page's own 15 to 25 seconds) so the check does not wait. No network, no key. Screenshots go to proofs/ at 390 and 1440.
 import http from "node:http"; import fs from "node:fs"; import puppeteer from "puppeteer-core";
-const hold = await import("../lib/_hold.js"), { LAUNCH_AT } = await import("../lib/launchTime.js");
+const hold = await import("../lib/_hold.js"), launchT = await import("../lib/launchTime.js");
+process.env.LAUNCH_AT = "2026-10-29T07:00:00-07:00";   // the time Sam sets when the gates are green; unset is covered in holdPageCheck and below
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
-const AT = Date.parse(LAUNCH_AT);
+const AT = launchT.launchAtMs();
 // static: the time, the words, the after-zero page
-ok(AT === Date.UTC(2026, 9, 29, 14, 0, 0), "LAUNCH_AT is 7:00 AM Pacific exactly (14:00:00 UTC)");
+ok(AT === Date.UTC(2026, 9, 29, 14, 0, 0), "LAUNCH_AT set to 7:00 AM Pacific is exactly 14:00:00 UTC");
 const late = hold.holdingHtml(AT + 5000);
 ok(/Opening now/.test(late) && !/id="clock"/.test(late) && /Something big is coming/.test(late), "rendered after zero: the same headline and 'Opening now', no clock");
 ok(/location\.replace\("\/"\)/.test(late) && /redirect:"manual"/.test(late), "the page asks the home page and goes there once it is not held (every state carries the poll)");
@@ -17,6 +18,7 @@ const srv = http.createServer((req, res) => {
   const u = req.url.split("?")[0];
   if (u === "/") { hits++; if (sealed) { res.writeHead(503, { "content-type": "text/html" }); return res.end(hold.holdingHtml()); } res.writeHead(200, { "content-type": "text/html" }); return res.end("<!doctype html><title>Home</title><h1 id=home>Open site</h1>"); }
   if (u === "/zero") { res.writeHead(503, { "content-type": "text/html" }); return res.end(hold.holdingHtml(AT + 5000)); }
+  if (u === "/unset") { res.writeHead(503, { "content-type": "text/html" }); return res.end(hold.holdingHtml(AT - 5 * 60 * 1000, 0)); }
   if (u === "/sell") { res.writeHead(503, { "content-type": "text/html" }); return res.end(hold.holdingHtml()); }
   res.writeHead(404).end();
 });
@@ -53,5 +55,14 @@ for (const w of [390, 1440]) {
 }
 // the server-rendered after-zero page (a reader who arrives at 7:01)
 { const p = await open("/zero", 390, null); await new Promise(r => setTimeout(r, 400)); const t = await text(p); ok(/Opening now/.test(t) && !(await p.$("#clock")), "arriving after zero: 'Opening now', no clock"); sealed = false; await p.waitForSelector("#home", { timeout: 5000 }).catch(() => {}); ok(!!(await p.$("#home")), "arriving after zero: reaches the open site when the seal is lifted"); sealed = true; await p.close(); }
+// NO TIME SET, in a real browser: it says opening soon, shows no time and no clock, never 'Opening now' (not at the old zero, not with the clock far in the future), and still goes home once the seal lifts
+for (const w of [390, 1440]) for (const at of [null, AT + 7000, AT + 400 * 86400000]) {
+  const p = await open("/unset", w, at); await new Promise(r => setTimeout(r, 1300)); const t = await text(p);
+  ok(/GoAskSam is opening soon/.test(t) && /Something big is coming/.test(t) && !/Opening now|AM|PM|Pacific|October|Thursday|\d{2}:\d{2}/.test(t) && !(await p.$("#clock")), w + ": no time set (clock " + (at == null ? "now" : at > AT + 86400000 ? "far ahead" : "past the old zero") + "): opening soon, no time, no clock, no 'Opening now'");
+  ok(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), w + ": no time set: no horizontal overflow");
+  if (at == null) await p.screenshot({ path: `proofs/hold-soon-${w}.png` });
+  if (at == null) { sealed = false; await p.waitForSelector("#home", { timeout: 5000 }).catch(() => {}); ok(new URL(p.url()).pathname === "/" && !!(await p.$("#home")), w + ": no time set: once the seal is lifted it still reaches the open page"); sealed = true; }
+  await p.close();
+}
 await b.close(); srv.close();
 console.log(`holdZeroCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
