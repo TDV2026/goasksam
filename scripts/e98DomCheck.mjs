@@ -73,7 +73,7 @@ export const inPage = () => {
     const yn = /No (\d{4}) sales/.exec(document.querySelector(".sfc-card") ? document.querySelector(".sfc-card").innerText : ""); out.yearNo = yn ? yn[1] : null;
   }
   out.gaps = document.querySelectorAll(".hero-chart .hc-gap").length;
-  out.noband = [...document.querySelectorAll(".hero-left .hero-noband")].map(e => e.innerText.replace(/\s+/g, " ").trim());
+  out.noband = [...document.querySelectorAll(".hero-left .hero-noband, .hero-held .hw-cap")].map(e => e.innerText.replace(/\s+/g, " ").trim());
   // THE OPTIONS AS THE PAGE PRINTED THEM, for lib/optionProblems.js (the one rule, Lane B's): each option's engine line (the screen-reader copy of the whole line) gives its label, count and window; what is VISIBLE on its block or pill is what the page printed of it.
   if (hero) { const pr = { options: [], optionLines: [], refineOptions: [], optionsRemainder: null, poolN: null, windowWords: null };
     const sw = /since [A-Z][a-z]+ \d{4}/, cnt = s => firstN(s, /(\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten) sales?/i);

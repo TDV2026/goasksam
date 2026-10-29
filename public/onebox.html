@@ -144,6 +144,21 @@ button{font:inherit}
 .hero2col > .hero-left:only-child{grid-column:1/-1;border-right:0;padding-right:0}   /* Sam's chart item 3 (Oct 21 2026): alone in the row (no chart), no divider on its right and the full width */
 .hero-left{display:flex;flex-direction:column;gap:10px;min-width:0;padding-right:36px;border-right:1px solid var(--div)}
 .hero-right{min-width:0;display:flex;flex-direction:column}
+/* The withheld layout (Oct 29 2026): the engine's caption, then its latest sales in the See the sales row shape (photo, text, price; the text column never collapses). */
+.hero-held{min-width:0}
+.hw-cap{margin:2px 0 12px;font:400 17px/1.4 var(--serif);color:var(--ink)}
+.hw-rows{list-style:none;margin:0;padding:0;border-top:1px solid var(--div,#DCD8CC)}
+.hw-row{border-bottom:1px solid var(--div,#DCD8CC);padding:0}
+.hw-rowb{display:grid;grid-template-columns:96px minmax(0,1fr) auto;column-gap:16px;align-items:center;padding:10px 0;color:inherit;text-decoration:none;min-width:0}
+a.hw-rowb:hover .hw-n,a.hw-rowb:focus-visible .hw-n{text-decoration:underline}
+.hw-ph{width:96px;height:64px;border-radius:6px;overflow:hidden;background:#EFEBE4;display:flex;align-items:center;justify-content:center;font:500 10px/1.2 var(--sans);color:var(--sec);text-align:center}
+.hw-ph img{width:96px;height:64px;object-fit:cover;display:block}
+.hw-t{display:flex;flex-direction:column;gap:2px;min-width:0}
+.hw-n{font:500 15px/1.3 var(--sans);color:var(--ink);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
+.hw-m{font:400 13px/1.35 var(--sans);color:var(--sec);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.hw-p{font:600 15px/1.25 var(--sans);color:var(--ink);white-space:nowrap;text-align:right}
+.hw-all{margin:10px 0 0}
+@media (max-width:700px){.hw-rowb{grid-template-columns:64px minmax(0,1fr) auto;column-gap:12px}.hw-ph,.hw-ph img{width:64px;height:48px}}
 .hero-label{margin:0}
 /* Mockup match round: a clear gap (about one line height) before "WHERE THE MIDDLE HALF SOLD" -
    .hero-left's own flex gap (10px) is uniform for every child, so this one label gets extra

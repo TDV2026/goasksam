@@ -1073,6 +1073,21 @@
     var n = typeof ch.note === "string" ? ch.note.trim() : "", w = ch.withheld && typeof ch.withheld.line === "string" ? ch.withheld.line.trim() : "";
     return n || w || "";
   }
+  // THE WITHHELD LAYOUT (Sam, Oct 29 2026). When the engine withheld the chart and sent its own sentence (chart.note, else chart.withheld.line), the right column holds that ONE caption, then the engine's latest sales
+  // (d.cards, which the engine sends newest first: lib/onebox.js, the same order recent3 uses), up to six, each in the See the sales panel's row shape (photo, the sale's own title, date, miles at sale, venue, price), then a link
+  // to the full list. No heading, no chart, no dots, no average, range or trend word, no count. The page takes the rows as sent: no sort, no filter, no count. d is the narrowed answer, so the rows follow the pills.
+  function heldPanelHtml(d) {
+    var cap = chartHeldSentence(d); if (!cap) return "";
+    var rows = (d && Array.isArray(d.cards) ? d.cards : []).slice(0, 6).map(function (c) {
+      if (!c) return "";
+      var href = utmUrl(c.url), meta = [fullDateOrMonth(c), longMiles(c) ? longMiles(c) : "", venueOf(c)].filter(Boolean).join(" \u00b7 ");
+      var ph = c.image ? '<img src="' + esc(c.image) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.classList.add(\'np\');this.remove()">' : "No photo";
+      var inner = '<span class="hw-ph' + (c.image ? "" : " np") + '">' + ph + '</span><span class="hw-t"><span class="hw-n">' + esc(cleanReceiptTitle(c.title)) + '</span><span class="hw-m">' + esc(meta) + '</span></span><span class="hw-p">' + (Number(c.price) > 0 ? esc(usd(c.price)) : "") + "</span>";
+      return '<li class="hw-row">' + (href ? '<a class="hw-rowb" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="hw-rowb">' + inner + "</div>") + "</li>";
+    }).filter(Boolean);
+    return '<div class="hero-held" data-chart="held"><p class="hw-cap" data-stage="answer">' + lint(esc(cap), "hero.chartheld") + "</p>" +
+      (rows.length ? '<ul class="hw-rows">' + rows.join("") + '</ul><p class="hw-all"><button type="button" class="linkbtn" data-scrollto="more-sales">See all the sales</button></p>' : "") + "</div>";
+  }
   function noChartLineHtml(d) {
     // Sam's evening order (Oct 21 2026): with no chart the line is the existing "N sales. Too few to show movement, enough to show
     // where they landed." (the same words as the thin-tile line), N the engine's pool size, whatever the pool size.
@@ -1279,7 +1294,7 @@
     var full = "";
     if (!right) {
       if (thinTile) { left += thinTile.said; left += thinTile.asideBlock; right = thinTile.right; full = thinTile.full || ""; }
-      else left += noChartLineHtml(d);
+      else { var hp = heldPanelHtml(d); if (hp) right = hp; else left += noChartLineHtml(d); }
     }
     return '<section class="hero2col" data-stage="answer"><div class="hero-left">' + left + "</div>" +
       (right ? ('<div class="hero-right">' + right + "</div>") : "") + "</section>" + full;
@@ -2219,7 +2234,7 @@
     var full = "";
     if (!right) {
       if (thinTile) { left += thinTile.said; left += thinTile.asideBlock; right = thinTile.right; full = thinTile.full || ""; }
-      else left += noChartLineHtml(d);
+      else { var hp = heldPanelHtml(d); if (hp) right = hp; else left += noChartLineHtml(d); }
     }
     return '<section class="hero2col" data-stage="answer"><div class="hero-left">' + left + "</div>" +
       (right ? ('<div class="hero-right">' + right + "</div>") : "") + "</section>" + full;
