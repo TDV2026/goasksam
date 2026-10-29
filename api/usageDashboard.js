@@ -1956,7 +1956,7 @@ if (task === "optiondetail") {
         const ch = chartOf({ ...a, ...optionsFieldsOf(a) });
         if (ch && ch.type === "candles") { o2.drawNow++; continue; }
         o2.stillWithheld++; const w = ch && ch.withheld; if (w) { o2.reasons[w.reason === "mix_changes" ? "options_mix" : "options_too_few"]++; if (w.reason !== c.held) o2.wrongReasonBefore++; }
-        if (o2.examples.length < 10) o2.examples.push({ key: c.spec_key.slice(0, 110), options: (a.options || []).map(o => `${o.label} ${o.n}`), pooledReason: c.held, optionsReason: w ? w.reason : null, tried: w && w.options ? w.options.map(t => `${t.label}: ${t.n} sales, ${t.quartersMeeting} of ${t.quartersNeeded} quarters at ${t.floor}+, failed ${t.failed}`) : null });
+        if (o2.examples.length < 10) o2.examples.push({ key: c.spec_key.slice(0, 110), options: (a.options || []).map(o => `${o.label} ${o.n}`), pooledReason: c.held, optionsReason: w ? w.reason : null, tried: w && w.options ? w.options.map(t => `${t.label}: n ${t.n}, quarters meeting the floor ${t.quartersMeeting} of ${t.quartersNeeded} at ${t.floor}+, failed ${t.failed}`) : null });
       }
       return res.status(200).json(o2);
     }

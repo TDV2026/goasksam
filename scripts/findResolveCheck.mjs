@@ -3,7 +3,7 @@
 // only from the stored Market Check row. (2) That row, once a read behind the card wrote it at tier not_tracked, existed but held no options, so the card kept the CORE's own option lines (Manual 18, Tiptronic 13: written under older read-time rules,
 // before the 24 month cap and the recount) beside the core's count line (23 sales since October 2025): 18 + 13 against 23, no matched option, no Find answer. FIX (lib/live/search.js serveSplitCard): a card stands on the spec's stored Market Check row only
 // when it is a sales answer (result or thin); else on the spec's Find answer (FINDANS:, the pooled read the ladder takes, computed behind the response); a split core with neither prints NONE of its option numbers (pending: still reading, or, when the
-// spec's read gives no sales answer, the engine's plain words "Sam cannot read the sales for this exact car yet, so no figures are shown.").
+// spec's read gives no sales answer, the engine's plain words "Sam sales for this exact car cannot be read yet, so no figures are shown.").
 // CLASS: every *_choice kind (dochistory, trim, generation, body, gearbox, variant) the engine can ask first, with the real listing text of each. This check fails if a card shows an answer from a row other than its own spec's, or option numbers that
 // do not add up (options over the answer's own total, outside an option's own window).
 //   node scripts/findResolveCheck.mjs [repo root]
@@ -27,7 +27,7 @@ const pool = n => Array.from({ length: n }, (_, i) => ({ id: "r" + i, _usd: 3000
 const optsOf = dim => [{ dimension: dim, label: dim === "gearbox" ? "Manual" : "Coupe", value: dim === "gearbox" ? "manual" : "coupe", n: 14, low: 52000, high: 88000, rangeFloor: false, ownWindow: false, windowWords: "since October 2025" }, { dimension: dim, label: dim === "gearbox" ? "Tiptronic" : "Cabriolet", value: dim === "gearbox" ? "auto" : "cabriolet", n: 9, low: 41000, high: 61000, rangeFloor: false, ownWindow: false, windowWords: "since October 2025" }];
 const answer = (kind) => ({ tier: "result", poolN: 23, rawPool: pool(23), cluster: null, optionsState: "split", headlineDimension: "gearbox", options: optsOf("gearbox"), windowWords: "since October 2025", thinReason: "pooled_apart", thinLine: OLD_PICK, resolvedCar: { year: 1995 }, escalatedFrom: { tier: kind } });
 // the core as it was stored: option lines under older rules (18 and 13 against a count of 23), the old sentence, the count line
-const CORE = { v: 13, engineVersion: "e99-20261028-trimfix", kind: "count", count: 23, window: "since October 2025", optionsState: "split", optionLines: ["Manual $57,000 to $92,500, 18 sales", "Tiptronic $48,000 to $65,500, 13 sales"], thinReason: "pooled_apart", thinLine: OLD_PICK, countLine: "23 sales since October 2025.", answerLine: OLD_PICK, family: "1995 911 Carrera cars" };
+const CORE = { v: S.SPEC_V, engineVersion: "e99-20261028-trimfix", kind: "count", count: 23, window: "since October 2025", optionsState: "split", optionLines: ["Manual $57,000 to $92,500, 18 sales", "Tiptronic $48,000 to $65,500, 13 sales"], thinReason: "pooled_apart", thinLine: OLD_PICK, countLine: "23 sales since October 2025.", answerLine: OLD_PICK, family: "1995 911 Carrera cars" };
 const linesOf = mk => [...(mk.optionLines || []), mk.countLine, mk.answerLine, ...((mk.findAnswer && mk.findAnswer.lines) || []), mk.optionsRemainder && mk.optionsRemainder.line].filter(x => typeof x === "string" && x);
 const sumN = mk => (Array.isArray(mk.options) ? mk.options : []).filter(o => !o.windowDiffers).reduce((t, o) => t + (Number(o.n) || 0), 0);
 for (const [kind, title, tx, body, year, make, model, gb] of LISTINGS) {
@@ -44,7 +44,7 @@ for (const [kind, title, tx, body, year, make, model, gb] of LISTINGS) {
   ok(`${label}: no line says pick or choose`, !/\b(pick|choose)\b/i.test(L));
   // 3. the spec's own read gives no sales answer: the engine's plain words and no figures at all
   const u = S.serveSplitCard(CORE, null, { tier: "not_tracked" }, row, facts, spec), U = u.mk ? linesOf(u.mk).join(" | ") : "";
-  ok(`${label}: a spec that cannot be read says so in the engine's words and shows no figures`, !!u.mk && /cannot read the sales for this exact car/.test(U) && !/\d/.test(U.replace(/this exact car/, "")), U);
+  ok(`${label}: a spec that cannot be read says so in the engine's words and shows no figures`, !!u.mk && /sales for this exact car cannot be read/.test(U) && !/\d/.test(U.replace(/this exact car/, "")), U);
   // 4. a plain range core (no options) is untouched: its own numbers stand
   const r = S.serveSplitCard({ ...CORE, kind: "range", low: 50000, high: 80000, optionsState: null, optionLines: null, countLine: "23 sales since October 2025.", answerLine: null }, null, null, row, facts, spec);
   ok(`${label}: a core with a range and no options stands on its own numbers`, !r.pending && !!r.mk && r.mk.kind === "range");

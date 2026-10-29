@@ -39,7 +39,7 @@ for (let i = 0; i < 9; i++) salemi("MB1", "Coupe", 52000 - i * 1000, 6 + i * 9, 
 for (let i = 0; i < 9; i++) salemi("MB1", "Coupe", 32000 - i * 800, 7 + i * 9, 105000 + i * 6000);
 let a = await ask("MB1");
 ok("mileage: the wide range is split by band, no pooled number", a.tier === "result" && !a.cluster && a.low == null && a.optionsState === "split" && a.headlineDimension === "mileage" && a.emailMode === "options", `${a.optionsState} ${a.headlineDimension} ${JSON.stringify(a.cluster)}`);
-ok("mileage: one line per band, each with its own range and count", (a.options || []).length === 3 && a.options.every(o => o.dimension === "mileage" && o.low > 0 && o.high >= o.low && o.n === 9) && a.headlineLines.length === 3 && /^Under 50,000 miles \$[\d,]+ to \$[\d,]+, 9 sales$/.test(a.headlineLines[0]), JSON.stringify(a.headlineLines));
+ok("mileage: one line per band, each with its own range and count", (a.options || []).length === 3 && a.options.every(o => o.dimension === "mileage" && o.low > 0 && o.high >= o.low && o.n === 9) && a.headlineLines.length === 3 && /^Under 50,000 miles \$[\d,]+ to \$[\d,]+, 9 sales since [A-Z][a-z]+ \d{4}$/.test(a.headlineLines[0]), JSON.stringify(a.headlineLines));
 ok("mileage: a band click sends the miMin and miMax the engine already reads", a.options[0].refine && a.options[0].refine.miMin === 0 && a.options[0].refine.miMax === 50000 && a.options[2].refine.miMax === null, JSON.stringify(a.options.map(o => o.refine)));
 // bands under the floor
 for (let i = 0; i < 9; i++) salemi("MB2", "Coupe", 80000 - i * 1500, 5 + i * 9, 20000 + i * 2500);

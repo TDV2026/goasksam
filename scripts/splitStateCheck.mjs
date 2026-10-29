@@ -38,7 +38,7 @@ MK = "BMW";
 spread("G1", "Coupe", "Manual", 21000, 1100, 20, 5); spread("G1", "Coupe", "Automatic", 18000, 710, 20, 8);
 let a = await ask("G1");
 ok("split: no pooled headline, low and high null, the state is split", a.tier === "result" && !hasPooled(a) && a.low == null && a.high == null && a.optionsState === "split" && a.pooledApart && a.pooledApart.state === "split", `${a.optionsState} ${JSON.stringify(a.cluster)}`);
-ok("split: headlineLines are the options, one line each with its own range and count", a.headlineLines.length === 2 && a.headlineLines.every(l => /\$[\d,]+ to \$[\d,]+, \d+ sales$/.test(l)) && JSON.stringify(a.headlineLines) === JSON.stringify(a.optionLines), JSON.stringify(a.headlineLines));
+ok("split: headlineLines are the options, one line each with its own range and count", a.headlineLines.length === 2 && a.headlineLines.every(l => /\$[\d,]+ to \$[\d,]+, \d+ sales since [A-Z][a-z]+ \d{4}$/.test(l)) && JSON.stringify(a.headlineLines) === JSON.stringify(a.optionLines), JSON.stringify(a.headlineLines));
 ok("split: emailMode is options", a.emailMode === "options", a.emailMode);
 // 2. two dimensions split: body and gearbox. Body medians 2.2x apart, gearbox medians 1.2x apart: body is the headline, gearbox rides as refineOptions
 spread("G2", "Coupe", "Manual", 22000, 400, 12, 5); spread("G2", "Coupe", "Automatic", 20000, 400, 12, 6);
