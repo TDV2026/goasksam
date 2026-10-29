@@ -1791,7 +1791,7 @@ async function handleOps(req, res) {
     const after = req.query?.after ? String(req.query.after) : "";
     const sel = kind === "mc"
       ? "spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,tier:market->raw->>tier,sl:market->raw->>scopeLine,aa:market->raw->thin_sales->>answer_line,cc:market->raw->thin_sales->>count_line&order=spec_key.asc&limit=1000"
-      : "spec_market_cache?spec_key=not.like.MCWARM%3A*&spec_key=not.like.LIVESPECS*&spec_key=not.like.QELIG*&spec_key=not.like.MCCOMPUTING*&select=spec_key,aa:market->thin_sales->>answer_line,cc:market->thin_sales->>count_line,ans:market->>answerLine,cnt:market->>countLine&order=spec_key.asc&limit=1000";
+      : "spec_market_cache?spec_key=not.like.MCWARM%3A*&spec_key=not.like.LIVESPECS*&spec_key=not.like.QELIG*&spec_key=not.like.MCCOMPUTING*&spec_key=not.like.FINDANS%3A*&select=spec_key,aa:market->thin_sales->>answer_line,cc:market->thin_sales->>count_line,ans:market->>answerLine,cnt:market->>countLine&order=spec_key.asc&limit=1000";
     const rows = await supabaseSelect(env, sel + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
     if (!Array.isArray(rows)) return res.status(200).json({ task: "staleword", kind, readFailed: true, ocdSpend: 0, writes: 0 });
     const out = { task: "staleword", kind, ocdSpend: 0, writes: 0, rows: rows.length, stale: 0, noScopeLine: 0, oldPickSentence: 0, countInBothLines: 0, refineRows: 0, unparsed: 0, texts: [], next: rows.length === 1000 ? rows[999].spec_key : null };
@@ -1829,7 +1829,7 @@ async function handleOps(req, res) {
       return res.status(200).json({ task: "staletexts", kind, ocdSpend: 0, writes: 0, outOfScopeLive: all.length, offset, read, distinctSpecs: list.length, behind: list.filter(x => x.behind).length, texts: [...new Set(list.filter(x => x.behind).map(x => x.text))], next: stopped ? offset + read : (offset + limit < all.length ? offset + limit : null) });
     }
     const after = req.query?.after ? String(req.query.after) : "";
-    const like = kind === "mc" ? "spec_key=like.MCWARM%3A*" : "spec_key=not.like.MCWARM%3A*&spec_key=not.like.LIVESPECS*&spec_key=not.like.QELIG*&spec_key=not.like.MCCOMPUTING*";
+    const like = kind === "mc" ? "spec_key=like.MCWARM%3A*" : "spec_key=not.like.MCWARM%3A*&spec_key=not.like.LIVESPECS*&spec_key=not.like.QELIG*&spec_key=not.like.MCCOMPUTING*&spec_key=not.like.FINDANS%3A*";
     const rows = await supabaseSelect(env, `spec_market_cache?${like}&select=spec_key,ep:market->>warmEpoch,ev:market->>engineVersion,mark:market->>staleSince&order=spec_key.asc&limit=1000` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
     if (!Array.isArray(rows)) return res.status(200).json({ task: "staletexts", kind, readFailed: true, ocdSpend: 0, writes: 0 });
     const out = { task: "staletexts", kind, epoch, ocdSpend: 0, writes: 0, rows: rows.length, behind: 0, refineRows: 0, unparsed: 0, texts: [], keys: [], next: rows.length === 1000 ? rows[999].spec_key : null };
@@ -1972,6 +1972,39 @@ if (task === "optiondetail") {
       const ex = { key: r.spec_key, n: now && now.n, options: a.options.map(o => `${o.label} ${o.n}`), scope: now && now.scope ? now.scope.label : null, heldLine: now && now.withheld ? now.withheld.reason : null };
       if (before && before.type === "withheld" && now && now.type === "candles") { out.drawNow++; if (out.examples.nowDraw.length < 10) out.examples.nowDraw.push(ex); }
       else if (now && now.type === "withheld") { out.stillWithheld++; if (out.examples.stillWithheld.length < 10 || /\["Porsche","911"[^\]]*1986/.test(r.spec_key)) out.examples.stillWithheld.push(ex); }
+    }
+    return res.status(200).json(out);
+  }
+  // task=findasks (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, zero writes): the live specs whose Find ladder took the pooled read because the engine asks a question first for the spec's text (the core's escalatedFrom.tier: dochistory_choice, trim_choice,
+  // generation_choice, body_choice, gearbox_choice, variant_choice, model_choice), with the state of the card each one draws TODAY: no core, a none or not_tracked row, a split core whose option lines stand on no sales answer (the stored Market Check
+  // row of the spec is missing or not a result or thin: the old split state, the 1995 Cabriolet), or a core that stands on its own numbers. Counts by kind and by state, and 10 examples with the lines the card prints.
+  if (task === "findasks") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { ENGINE_VERSION } = await import("../lib/onebox.js");
+    const got = await supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent("LIVESPECS:v1:" + ENGINE_VERSION)}&select=market`);
+    const specs = got && got[0] && got[0].market && Array.isArray(got[0].market.specs) ? got[0].market.specs : [];
+    const live = new Map(); for (const e of specs) if (e && e.spec && e.spec.key) live.set(e.spec.key, e.spec);
+    const cores = new Map(); let after = "", readFailed = false;
+    for (let pages = 0; pages < 8; pages++) {
+      const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.${encodeURIComponent("[*")}&select=spec_key,kind:market->>kind,esc:market->escalatedFrom->>tier,os:market->>optionsState,ol:market->optionLines,cl:market->>countLine,al:market->>answerLine,rl:market->>refusalLine&order=spec_key.asc&limit=1000` + (after ? `&spec_key=gt.${encodeURIComponent(after)}` : ""));
+      if (!Array.isArray(rows)) { readFailed = true; break; }
+      for (const r of rows) if (live.has(r.spec_key)) cores.set(r.spec_key, r);
+      if (rows.length < 1000) break; after = rows[rows.length - 1].spec_key;
+    }
+    const withEsc = [...cores.values()].filter(r => r.esc);
+    const mcTier = new Map();
+    for (let i = 0; i < withEsc.length; i += 40) {
+      const part = withEsc.slice(i, i + 40), list = part.map(r => '"MCWARM:' + r.spec_key.replace(/"/g, '\\"') + '"').join(",");
+      const rows = await supabaseSelect(env, `spec_market_cache?spec_key=in.(${encodeURIComponent(list)})&select=spec_key,tier:market->raw->>tier,ev:market->>engineVersion`);
+      if (Array.isArray(rows)) for (const r of rows) mcTier.set(r.spec_key.replace(/^MCWARM:/, ""), r);
+    }
+    const out = { task: "findasks", ocdSpend: 0, writes: 0, readFailed, liveSpecs: live.size, liveWithCore: cores.size, liveSpecsWithoutCore: live.size - cores.size, askFirst: withEsc.length, byKind: {}, byState: {}, byKindState: {}, examples: [] };
+    for (const r of withEsc) {
+      const mc = mcTier.get(r.spec_key), mcOk = mc && mc.ev === ENGINE_VERSION && /^(result|thin)$/.test(String(mc.tier || ""));
+      const split = r.os && r.os !== "none" && Array.isArray(r.ol) && r.ol.length;
+      const state = r.kind === "none" ? (r.rl ? "none_with_reason" : "none_blank") : r.kind === "not_tracked" ? "not_tracked" : split && !mcOk ? (mc ? "split_core_mc_not_a_sales_answer" : "split_core_no_mc_row") : split ? "split_core_with_answer" : "own_numbers";
+      out.byKind[r.esc] = (out.byKind[r.esc] || 0) + 1; out.byState[state] = (out.byState[state] || 0) + 1; const ks = r.esc + " | " + state; out.byKindState[ks] = (out.byKindState[ks] || 0) + 1;
+      if ((state.startsWith("split_core") && state !== "split_core_with_answer" || /^none|not_tracked/.test(state)) && out.examples.length < 10) out.examples.push({ key: r.spec_key.slice(0, 110), asksFirst: r.esc, state, mcRowTier: mc ? mc.tier : null, printsToday: [...(split ? r.ol : []), r.cl, r.al, r.rl].filter(Boolean) });
     }
     return res.status(200).json(out);
   }

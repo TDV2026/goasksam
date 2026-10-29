@@ -1380,6 +1380,13 @@ try {
 } catch (e) {
   record("chart: a withheld chart says why the options were withheld (scripts/chartWhyCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A Find card stands on the answer of its own spec, whatever the typed text would ask (Lane B, Oct 29 2026).
+try {
+  const out = execSync("node scripts/findResolveCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Find: a card stands on its own spec's answer for every question kind, never the stale core's numbers (scripts/findResolveCheck.mjs)", "PASS", (out.match(/findResolveCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Find: a card stands on its own spec's answer for every question kind, never the stale core's numbers (scripts/findResolveCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // An ended lot never stays unmarked past one pull cycle (Lane B, Oct 29 2026).
 try {
   const out = execSync("node scripts/endedLotCheck.mjs", { encoding: "utf8", timeout: 120000 });
