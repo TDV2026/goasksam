@@ -36,7 +36,7 @@ function emailOf(d, extra) {
 for (const [mode, d] of Object.entries(CASES)) {
   ok(d.emailMode === mode, `the engine's own emailModeOf reads ${mode} for its fixture (got ${d.emailMode})`);
   const e = emailOf(d), all = e.card + " | " + e.block, where = `emailMode ${mode}`;
-  ok(!QUESTION.test(all.replace(/does not say which it is/g, "")), `${where}: the email prints no question (${all.match(QUESTION) || ""})`);   // e101: "... this listing does not say which it is" is a statement
+  ok(!QUESTION.test(all.replace(/(does not|doesn't) say which( [^,.]{1,40}?)? it is/g, "")), `${where}: the email prints no question (${all.match(QUESTION) || ""})`);   // e101: "... this listing does not say which it is" is a statement; Oct 30 2026: so is "This listing doesn't say which 911 it is, and they sell for different money, so there's no single range."
   if (mode === "range") ok(e.card.includes(POOLED) && /\$22,500 to \$41,000|inside/.test(e.block + e.card), `${where}: the pooled range is printed`);
   if (mode === "range_with_options") {
     ok(e.card.includes(POOLED) && /Convertible \$29,000 to \$42,500, 9 sales/.test(e.card) && /Coupe \$22,500/.test(e.card), `${where}: the card prints the pooled range and each option's own line`);
