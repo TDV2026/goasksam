@@ -12,10 +12,14 @@ const E = await import(pathToFileURL(path.join(root, "lib/onebox.js")).href);
 // 1. style of every table line, with sample parameters
 const probe = new Proxy({}, { get: (_, k) => k === "n" || k === "m" ? "5" : "x" });
 const sentences = t => t.split(/(?<=[.!?])\s+/).filter(Boolean).length;
+// One sentence is the rule. A line that Sam ruled to be two sentences in one field is named here with its count (Oct 29 2026: the range footer, and the trim fallback that says what it read instead);
+// the allowance is exact, so a listed line that changes length fails, and a new two-sentence line fails until Sam's ruling is named here.
+const TWO_SENTENCES = { "footer.range": 2, "trim.fallback": 2 };
 for (const [id, e] of Object.entries(RW.REASON_TABLE)) {
-  const t = e.text(probe);
-  ok(`${id}: plain, one sentence, no dash, no Sam, no jargon`, !RW.STYLE_BANNED.some(re => re.test(t)) && sentences(t) <= 1 && !/–|—|--/.test(t), t);
+  const t = e.text(probe), want = TWO_SENTENCES[id] || 1;
+  ok(`${id}: plain, ${want === 1 ? "one sentence" : "the " + want + " sentences Sam ruled"}, no dash, no Sam, no jargon`, !RW.STYLE_BANNED.some(re => re.test(t)) && sentences(t) === want && !/–|—|--/.test(t), t);
 }
+ok("every named two-sentence line is in the table", Object.keys(TWO_SENTENCES).every(id => RW.REASON_TABLE[id]));
 // 2. no producer keeps an e98 sentence of its own
 const srcs = ["lib/onebox.js", "lib/live/search.js", "api/sellerDecision.js", "lib/sellsForCard.js"].map(f => [f, fs.readFileSync(path.join(root, f), "utf8")]);
 const OLD = ["Sam could not verify", "Sam is reading the sales", "Sam is still reading", "Wide because", "Add yours.", "Pick a year.", "No ${ty} sales in this range", "are left out.`", "Sales too spread out for a range", "so Sam shows no range", "Sales since then are not in yet", "too one-sided", "Not enough sales of this exact car"];
