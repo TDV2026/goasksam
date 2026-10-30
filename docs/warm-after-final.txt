@@ -326,3 +326,6 @@
 2026 BMW M850i Edition M
 2026 McLaren 750S
 Jaguar XK120
+Audi RS6
+Audi RS 6 Avant
+Volkswagen Rabbit
