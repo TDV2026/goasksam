@@ -1,0 +1,6 @@
+{
+  "note": "Photo hosts that no longer resolve (DNS fails). The engine never hands a page a photo on one of these hosts: the image is dropped and the card shows the no-photo slot. Add a host here when the photohosts ops read (api/usageDashboard.js) reports it dead.",
+  "hosts": [
+    { "host": "d2niwqq19lf86s.cloudfront.net", "found": "2026-10-29", "by": "pushCheck: the 1995 Porsche 911 Carrera Market Check page, a 993 Cabriolet sale photo" }
+  ]
+}

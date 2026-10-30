@@ -5824,6 +5824,27 @@ if (task === "optiondetail") {
     }
     return res.status(200).json(out);
   }
+  // task=photohosts (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, zero writes): every stored sale photo host (sales_archive raw_record featured_image_url) and every live listing photo host, with the count of sales on each and whether the host still
+  // resolves (DNS). Dead hosts are listed with counts and an example; add them to data/deadPhotoHosts.json so the engine never hands a page one of their photos. &after=<last id> pages the archive (&n= rows a call, default 20000, the archive read in 1000 row pages).
+  if (task === "photohosts") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const dns = await import("node:dns"), { hostOf } = await import("../lib/photoHosts.js");
+    const n = Math.max(1000, Math.min(60000, Number(req.query?.n) || 20000)), counts = new Map(), example = new Map(), t0 = Date.now();
+    let cursor = String(req.query?.after || ""), read = 0, last = cursor;
+    for (let page = 0; page < Math.ceil(n / 1000) && Date.now() - t0 < 200000; page++) {
+      const rows = await supabaseSelect(env, `sales_archive?select=id,img:raw_record->>featured_image_url&order=id.asc&limit=1000` + (cursor ? `&id=gt.${encodeURIComponent(cursor)}` : ""));
+      if (!Array.isArray(rows) || !rows.length) { last = null; break; }
+      for (const r of rows) { read++; const h = hostOf(r.img); if (h) { counts.set(h, (counts.get(h) || 0) + 1); if (!example.has(h)) example.set(h, { id: r.id, url: String(r.img).slice(0, 120) }); } else counts.set("(no photo)", (counts.get("(no photo)") || 0) + 1); }
+      cursor = rows[rows.length - 1].id; last = cursor;
+      if (rows.length < 1000) { last = null; break; }
+    }
+    const live = await supabaseSelect(env, "live_listings?status=eq.live&select=photo_url&limit=5000");
+    const liveCounts = new Map(); for (const r of live || []) { const h = hostOf(r.photo_url); if (h) liveCounts.set(h, (liveCounts.get(h) || 0) + 1); }
+    const all = new Set([...counts.keys(), ...liveCounts.keys()].filter(h => h !== "(no photo)"));
+    const state = {}; await Promise.all([...all].map(async h => { state[h] = await new Promise(ok => dns.lookup(h, e => ok(e ? (e.code || "ERR") : "ok"))); }));
+    const hosts = [...all].map(h => ({ host: h, sales: counts.get(h) || 0, live: liveCounts.get(h) || 0, dns: state[h], example: example.get(h) || null })).sort((a, b) => b.sales - a.sales);
+    return res.status(200).json({ task: "photohosts", ocdSpend: 0, writes: 0, read, next: last, hosts: hosts.filter(h => h.dns !== "ok"), liveHosts: hosts.filter(h => h.dns === "ok").map(h => ({ host: h.host, sales: h.sales, live: h.live })), noPhoto: counts.get("(no photo)") || 0 });
+  }
   // task=livecardrefusals (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, zero writes): every live Find spec (the stored LIVESPECS set, all platforms, no search filter) whose Find core or stored Market Check answer prints a refusal with no figures
   // ("could not be checked", or any refusal tier). Paged by after/n (n at most 80). Lists the title, the listing count of the spec, the stored refusal kind and failed checks, and the pool the core holds.
   if (task === "livecardrefusals") {

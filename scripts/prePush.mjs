@@ -1576,6 +1576,12 @@ try {
 } catch (e) {
   record("engine: a model whose sales span generations asks which when no year is typed, with years and counts (scripts/generationQuestionCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "))
 }
+try {
+  const out = execSync("node scripts/photoHostCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("engine: a photo on a dead host is never handed to a page (scripts/photoHostCheck.mjs)", "PASS", (out.match(/photoHostCheck: .*/) || [""])[0])
+} catch (e) {
+  record("engine: a photo on a dead host is never handed to a page (scripts/photoHostCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "))
+}
 // A lot that is not a vehicle is not a car anywhere: no Find card, no spec match, no sales pool (Lane B, Oct 29 2026).
 try {
   const out = execSync("node scripts/nonVehicleCheck.mjs", { encoding: "utf8", timeout: 120000 });
