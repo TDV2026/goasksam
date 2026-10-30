@@ -78,5 +78,22 @@ await tick(); await tick(); await tick();
 ok(calls.length === before + 2 && calls[before].step === "range" && calls[before + 1].step === "rest" && calls[before].car === "1965 Ford Mustang Fastback" && calls[before + 1].car === "1965 Ford Mustang Fastback", "answered in Market Check: the result reads the car with its body, once (the range, then the rest)");
 ok(!OBX.root.innerHTML.includes("<q>") && !/data-sellchip="\d"/.test(OBX.root.innerHTML), "answered in Market Check: no second question");
 
+
+// ANSWERS BELONG TO THEIR CAR (Lane E, Oct 30 2026, Sam's live 2004 Porsche 911 then a second Sell search that went straight to a result). After a result, a search for a DIFFERENT car asks that car's own questions, starting with the state, and
+// no read of the range goes out until the state is answered. The same car typed again (a refined trim) keeps its answers and reruns in place.
+{ const MUS = { year: 1965, make: "Ford", model: "Mustang" };
+  const doneFor = async (rc, label) => { S.onCar({ resolvedCar: rc }, label); chip("Texas", "Texas"); chip("self", "x"); chip("none", "x"); replies = [{ label, order: ["platform"], platform: null, marketAnswer: { cluster: [43500, 56500], poolN: 11 } }]; await tick(); await tick(); await tick(); };
+  for (const [rc, label, next, nextLabel] of [[{ year: 2004, make: "Porsche", model: "911" }, "2004 Porsche 911", { year: 1995, make: "Toyota", model: "Supra" }, "1995 Toyota Supra"], [{ year: 1973, make: "Porsche", model: "911" }, "1973 Porsche 911", { year: 1967, make: "Chevrolet", model: "Corvette" }, "1967 Chevrolet Corvette"], [{ year: 1995, make: "Toyota", model: "Supra" }, "1995 Toyota Supra", { year: 2004, make: "Porsche", model: "911" }, "2004 Porsche 911"], [{ year: 1967, make: "Chevrolet", model: "Corvette" }, "1967 Chevrolet Corvette", { year: 1973, make: "Porsche", model: "911" }, "1973 Porsche 911"]]) {
+    await doneFor(rc, label); const n = calls.length;
+    ok(S.onSubmit(nextLabel) === false, `${label}: a new search from the result goes to One Box`);
+    S.onCar({ resolvedCar: next }, nextLabel); await tick(); await tick();
+    ok(calls.length === n && /Which state is it in/.test(OBX.root.innerHTML) && !/\$\d/.test(OBX.root.innerHTML), `${label} then ${nextLabel}: the new car asks the state question, no range read goes out (${calls.length - n} calls)`);
+    chip("Florida", "Florida"); ok(calls.length === n && /How would you like to sell it/.test(OBX.root.innerHTML), `${nextLabel}: after the state, the how question, still no read`);
+    chip("self", "x"); chip("none", "x"); replies = [{ label: nextLabel, order: ["platform"], platform: null, marketAnswer: { cluster: [43500, 56500], poolN: 11 } }]; await tick(); await tick(); await tick();
+    ok(calls.length === n + 2 && calls[n].car.includes(next.make) && calls[n].state === "Florida", `${nextLabel}: the read goes out only after its own state answer, with that state (not ${"Texas"})`); }
+  await doneFor(MUS, "1965 Ford Mustang"); const m = calls.length;
+  S.onSubmit("1965 Ford Mustang GT"); replies = [{}]; S.onCar({ resolvedCar: MUS }, "1965 Ford Mustang GT"); await tick(); await tick();
+  ok(calls.length > m && calls[m].state === "Texas", "the same car typed again keeps its answers and reruns in place (unchanged)"); }
+
 console.log(`sellQuestionCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

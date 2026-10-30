@@ -37,6 +37,15 @@ for (const kind of ["body_choice", "generation_choice", "model_choice", "needs_c
   ok(/Which state/.test(drawn[drawn.length - 1]), "nothing answered before the swap: the next search asks the state question as before"); }
 { const { sell, drawn } = mk(); sell.onCarEarly(computing, "x"); sell.onSubmit("Texas"); sell.onEarlyEnd(); sell.onCar(result, "x y");
   ok(/How would you like to sell it/.test(drawn[drawn.length - 1]), "an answer carried over is used when the next answer arrives without an early question (onCar)"); }
+
+// ANSWERS BELONG TO THEIR CAR (Oct 30 2026): a state answered for one car is never carried to a DIFFERENT car's question.
+{ const vette = { year: 1967, make: "Chevrolet", model: "Corvette" };
+  { const { sell, drawn } = mk(); sell.onCarEarly(computing, "2004 Porsche 911"); sell.onSubmit("Texas"); sell.onEarlyEnd(); sell.onCarEarly({ computing: true, resolvedCar: vette }, "1967 Chevrolet Corvette");
+    ok(/Which state/.test(drawn[drawn.length - 1]), "an answer carried from the swap is not used for a different car: its own state question is asked"); }
+  { const { sell, drawn } = mk(); sell.onCarEarly(computing, "2004 Porsche 911"); sell.onSubmit("Texas"); sell.onEarlyEnd(); sell.onCar({ status: "one_box", tier: "result", resolvedCar: vette }, "1967 Chevrolet Corvette");
+    ok(/Which state/.test(drawn[drawn.length - 1]), "the same through onCar: a different car's result does not skip its state question"); }
+  { const { sell, drawn } = mk(); sell.onCarEarly(computing, "2004 Porsche 911"); sell.onSubmit("Texas"); sell.onCar({ status: "one_box", tier: "result", resolvedCar: vette }, "1967 Chevrolet Corvette");
+    ok(/Which state/.test(drawn[drawn.length - 1]), "an early question for one car, a different car arriving: the arriving car asks its own state question"); } }
 const src = fs.readFileSync(new URL("../public/js/onebox.js", import.meta.url), "utf8"), i = src.indexOf("obAskUntilRead(payload, coldT0"), blk = src.slice(i, i + 12000);
 ok(/SELL\.onEarlyEnd/.test(blk) && /finally/.test(blk) && /viaFinish/.test(blk), "One Box ends the early question on every answer that does not reach onCar (finally), and in the catch");
 console.log(`earlyQuestionEndCheck: ${pass} pass, ${fail} fail`); process.exit(fail ? 1 : 0);

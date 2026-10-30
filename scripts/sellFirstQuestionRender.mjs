@@ -22,7 +22,7 @@ async function run(car, typed, script, w) {
     const loc = /^\/obx\.[^/]+\/onebox\.js$/.test(u.pathname) ? "public/js/onebox.js" : (/^\/js(?:\.[^/]+)?\/([\w.-]+\.js)$/.exec(u.pathname) ? "public/js/" + /^\/js(?:\.[^/]+)?\/([\w.-]+\.js)$/.exec(u.pathname)[1] : null);
     if (u.host === "goasksam.com" && loc && fs.existsSync(path.join(ROOT, loc))) return r.respond({ status: 200, contentType: "application/javascript", body: fs.readFileSync(path.join(ROOT, loc), "utf8") });
     if (u.host === "goasksam.com" && u.pathname === "/api/sellerDecision") { p._posts.push(Date.now()); const n = p._posts.length; if (!p._t.first && script(n).computing) p._t.first = Date.now(); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(script(n)) }); }
-    if (u.host === "goasksam.com" && u.pathname === "/api/sellChat") { let body = {}; try { body = JSON.parse(r.postData() || "{}"); } catch (e) {} p._flow.push(body); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ error: "stub" }) }); }
+    if (u.host === "goasksam.com" && u.pathname === "/api/sellChat") { let body = {}; try { body = JSON.parse(r.postData() || "{}"); } catch (e) {} p._flow.push(body); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(body.step === "range" ? { label: body.car, order: ["platform"], platform: null, marketAnswer: { cluster: [43500, 56500], poolN: 11 } } : { error: "stub" }) }); }
     if (u.host === "goasksam.com" && /^\/api\//.test(u.pathname)) return r.respond({ status: 200, contentType: "application/json", body: "{}" });
     if (u.host !== "goasksam-nope" && u.host !== "goasksam.com") return r.respond({ status: 204, body: "" }); r.continue(); });
   await p.goto("https://goasksam.com/sell", { waitUntil: "networkidle2" }).catch(() => {});
@@ -73,6 +73,22 @@ for (const w of [1440, 390]) {
     await p.evaluate(() => { const c = [...document.querySelectorAll(".chip")][0]; c && c.click(); }); await new Promise(r => setTimeout(r, 300));
     await p.evaluate(() => { const c = [...document.querySelectorAll(".chip")][0]; c && c.click(); }); await new Promise(r => setTimeout(r, 800));
     ok(p._flow.some(f => /^(range|result)$/.test(f.step) && f.state === "Texas"), `${at}: the later steps run and the result request carries the answers (${JSON.stringify(p._flow.map(f => f.step + ":" + (f.state || "")))})`);
+    await p.close(); }
+  // (5) A SECOND SEARCH AFTER THE RESULT ASKS ITS OWN QUESTIONS (Oct 30 2026, Sam's live 2004 Porsche 911 then a new Sell search that went straight to a result). Each of the four cars first goes through its questions to the result; a different car typed straight after must show the
+  // state question, send no range request until the state is answered, and carry that new answer (never the first car's).
+  for (const [car, typed, car2, typed2] of [[C(2004, "Porsche", "911"), "2004 Porsche 911", C(1995, "Toyota", "Supra"), "1995 Toyota Supra"], [C(1973, "Porsche", "911"), "1973 Porsche 911", C(1967, "Chevrolet", "Corvette"), "1967 Chevrolet Corvette"], [C(1995, "Toyota", "Supra"), "1995 Toyota Supra", C(2004, "Porsche", "911"), "2004 Porsche 911"], [C(1967, "Chevrolet", "Corvette"), "1967 Chevrolet Corvette", C(1973, "Porsche", "911"), "1973 Porsche 911"]]) {
+    let cur = car; const p = await run(car, typed, () => result(cur), w), at = `${typed} then ${typed2} at ${w}`;
+    const click = (re, i) => p.evaluate((src, i) => { const r = new RegExp(src), c = i == null ? [...document.querySelectorAll(".chip")].find(x => r.test(x.textContent.trim())) : [...document.querySelectorAll(".chip")][i]; c && c.click(); }, re, i);
+    await until(p, s => s.state); await click("^Texas"); await until(p, s => s.how); await click(null, 0); await new Promise(r => setTimeout(r, 300)); await click(null, 0); await new Promise(r => setTimeout(r, 1200));
+    const n1 = p._flow.filter(f => /^(range|result)$/.test(f.step)).length; ok(n1 >= 1 && p._flow.some(f => f.state === "Texas"), `${at}: the first car reaches its result with its own state (${n1} reads)`);
+    cur = car2; await p.evaluate(() => { const i = document.querySelector("#ob-input"); i && (i.value = ""); }); await p.type("#ob-input", typed2); await p.keyboard.press("Enter");
+    const q = await until(p, s => s.state, 5000); await new Promise(r => setTimeout(r, 600));
+    const n2 = p._flow.filter(f => /^(range|result)$/.test(f.step)).length, s2 = await seeQ(p);
+    ok(q.s.state && s2.state && s2.n === 1, `${at}: the second car asks the state question (${JSON.stringify(s2)})`);
+    ok(n2 === n1, `${at}: no result request goes out before the second car's state is answered (${n1} reads, then ${n2})`);
+    await click("^Florida"); await until(p, s => s.how); await click(null, 0); await new Promise(r => setTimeout(r, 300)); await click(null, 0); await new Promise(r => setTimeout(r, 1200));
+    const last = p._flow.filter(f => /^(range|result)$/.test(f.step)).pop();
+    ok(last && last.state === "Florida", `${at}: the second car's result request carries its own state (${JSON.stringify(p._flow.map(f => f.step + ":" + (f.state || "")))})`);
     await p.close(); }
 }
 await b.close();
