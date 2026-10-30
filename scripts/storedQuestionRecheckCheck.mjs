@@ -38,6 +38,15 @@ ROW = row(stored("Audi", "RS6", null, { questionRulesTag: E.QUESTION_RULES_TAG }
 ROW = row(stored("Audi", "RS6", 2004)); { const d = await S.readWarmAnswerDetailed(env, "MCWARM:x"); ok("a row for a text WITH a year is served (a generation question is not asked of it)", !!d.raw, d.reason); }
 ROW = row(stored("Audi", "RS6", null, { tier: "thin" })); { const d = await S.readWarmAnswerDetailed(env, "MCWARM:x"); ok("a tagless no-year thin row is rechecked too", d.raw === null && d.reason === "question_recheck", d.reason); }
 ROW = row({ tier: "refusal", refusal: { kind: "not_a_car" }, resolvedCar: { year: null } }); { const d = await S.readWarmAnswerDetailed(env, "MCWARM:x"); ok("a stored not-a-car refusal is served as before", !!d.raw, d.reason); }
+// 3b. EMAIL AND TASK PATHS: a Task email reads the stored row of a LISTING's spec, and a listing's spec always carries its year, so the recheck never reaches it (an email prints no question; nobody is there to answer one).
+//     The split line the email may print is a statement, not a question: the email check strips exactly that wording.
+{ const SS = await import(pathToFileURL(path.join(root, "lib/live/search.js")).href);
+  const lrow = { id: 1, listing_title: "2001 BMW M3 Coupe", make: "BMW", model: "M3", year: 2001 }, spec = await SS.specOf(env, lrow, SS.listingFacts(lrow));
+  ok("a listing's spec carries its year (a stored row read for an email is never a no-year row)", !!spec && Number(spec.v && spec.v.year) === 2001, spec && spec.v && String(spec.v.year));
+  ROW = row(stored("BMW", "M3", 2001)); const d = await S.readWarmAnswerDetailed(env, S.warmAnswerKeyFor(spec.v, spec.generation, null)); ok("the stored row of a listing's spec is served to the email path", !!d.raw, d.reason);
+  const line = E.unsaidLineFor({ headlineDimension: "year", resolvedCar: { nameModel: "911" }, options: [{ label: "1982", n: 5 }, { label: "1978", n: 4 }] });
+  ok("the unsaid line an email may print carries no question mark and no option list", !/\?/.test(line) && !/198|197/.test(line), line);
+  const em = fs.readFileSync("scripts/emailModeCheck.mjs", "utf8"); ok("emailModeCheck reads the new split wording as a statement", /doesn\\'t\) say which|doesn't\) say which/.test(em) || /doesn.t\) say which/.test(em)); }
 // 4. the engine tags what it computes, so a recomputed result is not rechecked again
 { let r = null; try { r = await E.oneEngineAnswer({ year: null, make: "Audi", model: "RS6", trim: null, nameModel: "RS6" }, null, "Audi RS6", { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" }, null); } catch (e) { r = null; }
   ok("an answer the engine computes carries the current questionRulesTag", !!r && r.raw && r.raw.questionRulesTag === E.QUESTION_RULES_TAG, r && r.raw && r.raw.tier); }
