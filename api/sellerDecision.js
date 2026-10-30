@@ -18,6 +18,7 @@ import { isTesterRequest } from "../lib/_tester.js";
 import { supabaseBytesSoFar } from "../lib/_supabase.js";
 import { VARIANT_MARKETS } from "../lib/modelRules.js";
 import { BODY_LABEL, isSingerPorsche, withReadFields } from "../lib/onebox.js";
+import { lastUpdatedDate } from "../lib/asOf.js";
 import { vinSearchPlan, applyVinOverlay } from "../lib/vinAsTyped.js";
 // Every variant value a chip may carry (e51): the M-car pair plus each variant market's key and its other side.
 // Restoration is never an option or a question (e52, Sam's decision): the generic entries' keys (restoration,
@@ -3599,6 +3600,7 @@ async function handler(req, res) {
               // a recompute started over 90 s ago never landed: compute live now (one cold read), never serve stale twice
               console.error(`stale row recompute did not land in 90s (${warmKey.slice(0, 80)}); computing live`);
             } else {
+              await lastUpdatedDate({ supabaseUrl, supabaseKey }).catch(() => null);   // primes the date updatedLine prints (cached an hour)
               oneBox = withReadFields(w.raw, oneBoxText, vehicle); warmHit = true;   // matched option and chart, read from the stored answer's own options and sales
               if (w.stale) {
                 staleInfo = { storedAt: w.storedAt, recomputingSince: w.recomputingSince || null };

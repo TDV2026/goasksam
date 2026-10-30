@@ -1535,9 +1535,40 @@ try {
 // A range over far wider sales says so (Lane B, Oct 29 2026).
 try {
   const out = execSync("node scripts/spreadLineCheck.mjs", { encoding: "utf8", timeout: 120000 });
-  record("engine: a range over sales that run more than twice bottom to top says so (scripts/spreadLineCheck.mjs)", "PASS", (out.match(/spreadLineCheck: .*/) || [""])[0])
+  record("engine: Sam's range footer (two sentences, real low and high), the updated line, and the Find bid line with the time left (scripts/spreadLineCheck.mjs)", "PASS", (out.match(/spreadLineCheck: .*/) || [""])[0])
 } catch (e) {
-  record("engine: a range over sales that run more than twice bottom to top says so (scripts/spreadLineCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "))
+  record("engine: Sam's range footer (two sentences, real low and high), the updated line, and the Find bid line with the time left (scripts/spreadLineCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "))
+}
+// Lane B, Oct 29 2026: wrong-model classes (pool wildcard, title fragments, same-car table, code name forms).
+try {
+  const out = execSync("node scripts/poolWildcardCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("engine: the archive wildcard bridges a separator, not a sentence (scripts/poolWildcardCheck.mjs)", "PASS", (out.match(/poolWildcardCheck: .*/) || [""])[0])
+} catch (e) {
+  record("engine: the archive wildcard bridges a separator, not a sentence (scripts/poolWildcardCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "))
+}
+try {
+  const out = execSync("node scripts/titleFragmentModelCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("resolver: a title fragment (Years, Single, Custom) is never a model (scripts/titleFragmentModelCheck.mjs)", "PASS", (out.match(/titleFragmentModelCheck: .*/) || [""])[0])
+} catch (e) {
+  record("resolver: a title fragment (Years, Single, Custom) is never a model (scripts/titleFragmentModelCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "))
+}
+try {
+  const out = execSync("node scripts/invariantNameFormsCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("engine: the receipts invariant reads a code in every form titles write it (scripts/invariantNameFormsCheck.mjs)", "PASS", (out.match(/invariantNameFormsCheck: .*/) || [""])[0])
+} catch (e) {
+  record("engine: the receipts invariant reads a code in every form titles write it (scripts/invariantNameFormsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "))
+}
+try {
+  const out = execSync("node scripts/distinctTrimPoolCheck.mjs", { encoding: "utf8", timeout: 150000 });
+  record("engine: a typed trim that names a distinct car (Spyder, GT3, Z06...) is never another car's answer (scripts/distinctTrimPoolCheck.mjs)", "PASS", (out.match(/distinctTrimPoolCheck: .*/) || [""])[0])
+} catch (e) {
+  record("engine: a typed trim that names a distinct car (Spyder, GT3, Z06...) is never another car's answer (scripts/distinctTrimPoolCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "))
+}
+try {
+  const out = execSync("node scripts/chassisCodeTypedCheck.mjs", { encoding: "utf8", timeout: 150000 });
+  record("engine: a chassis code typed in front of the model (997.2) is the car's own generation, not a different model (scripts/chassisCodeTypedCheck.mjs)", "PASS", (out.match(/chassisCodeTypedCheck: .*/) || [""])[0])
+} catch (e) {
+  record("engine: a chassis code typed in front of the model (997.2) is the car's own generation, not a different model (scripts/chassisCodeTypedCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "))
 }
 // A lot that is not a vehicle is not a car anywhere: no Find card, no spec match, no sales pool (Lane B, Oct 29 2026).
 try {

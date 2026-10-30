@@ -22,8 +22,9 @@ if (typeof E.bidPlaceOf === "function") {
   ok("above: bid over the high", P(41001, 31000, 41000) === "above");
   ok("the Alpina bid ($255,000) is within $150,000 to $297,000", P(255000, 150000, 297000) === "within");
   ok("no bid, no pair, or low above high is null", P(0, 1, 2) === null && P(5, 0, 2) === null && P(5, 9, 2) === null && P(null, 1, 2) === null);
-  const r = E.bidPlaceOf(255000, 150000, 297000);
-  ok("the result carries the pair it compared", r && r.low === 150000 && r.high === 297000 && r.bid === 255000 && /within the range/.test(r.line), JSON.stringify(r));
+  const r = E.bidPlaceOf(255000, 150000, 297000, "range", "17 hours");
+  ok("the result carries the pair it compared, and the time left in its line", r && r.low === 150000 && r.high === 297000 && r.bid === 255000 && r.line === "The bid is within the range with 17 hours left.", JSON.stringify(r));
+  ok("with no time left given the comparison has no line (a live car never prints a comparison without it)", E.bidPlaceOf(255000, 150000, 297000).line === null);
 }
 // PART 2: no surface compares a bid with a range itself. A line that holds both "below" and "above" as words chosen by a comparison is a second comparison.
 const files = []; const walk = d => { for (const f of fs.readdirSync(d, { withFileTypes: true })) { if (f.name === "node_modules" || f.name.startsWith(".") || f.name === "proofs") continue; const p = path.join(d, f.name); if (f.isDirectory()) walk(p); else if (/\.(js|mjs)$/.test(f.name) && !/Check\.mjs$/.test(f.name) && f.name !== "bidPlaceVerify.js" && !/^scripts\//.test(path.relative(root, p))) files.push(p); } };
@@ -69,9 +70,9 @@ if (V) {
     const d = { tier: "result", poolN: 12, cluster: [31000, 41000], windowWords: "since November 2025", optionsState: "none", rawPool: rows };
     const fb = [];
     for (const bid of [29000, 30999, 31000, 36000, 41000, 41001]) {
-      const fa = E.findAnswerOf(d, { title: "2014 Porsche Boxster S", miles: null, bid, year: 2014 });
+      const fa = E.findAnswerOf(d, { title: "2014 Porsche Boxster S", miles: null, bid, year: 2014, live: true, endTime: new Date(Date.now() + 17 * 36e5 + 6e5).toISOString() });
       const want = bid < 31000 ? "below" : bid > 41000 ? "above" : "within";
-      if (!fa || fa.bid !== want || !fa.lines.some(x => x.includes(` ${want} the range`))) fb.push(`${bid}: ${JSON.stringify(fa && fa.lines)}`);
+      if (!fa || fa.bid !== want || !fa.lines.some(x => x.includes(` ${want} the range with 17 hours left`))) fb.push(`${bid}: ${JSON.stringify(fa && fa.lines)}`);
     }
     ok("findAnswerOf: the bid word is the one the pair gives", fb.length === 0, fb.join(" | "));
   }

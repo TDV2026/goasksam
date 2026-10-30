@@ -99,7 +99,7 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   const now = Date.parse("2026-10-14T12:00:00Z");
   const base = { market: { kind: "range", low: 62000, high: 84000, rungLines: [], soldLine: "The middle half of 993 Carrera Targa sales landed at $62,000 to $84,000 in the last twelve months." }, current_bid_usd: 36000, end_time: "2026-10-16T18:00:00Z", timeline: [{ date: "2023-06-20", result: "sold", price: 79500, url: "https://bringatrailer.com/listing/x" }] };
   const two = samLines(base, now);
-  ok(two.length === 2 && two[0].text === "The middle half of 993 Carrera Targa sales landed at $62,000 to $84,000 in the last twelve months. The bid is below the range." && two[1].text === "This exact car sold for $79,500 in June 2023.", `history: both lines in order (got ${JSON.stringify(two.map(x => x.text))})`);
+  ok(two.length === 2 && two[0].text === "The middle half of 993 Carrera Targa sales landed at $62,000 to $84,000 in the last twelve months. The bid is below the range with 2 days left." && two[1].text === "This exact car sold for $79,500 in June 2023.", `history: both lines in order (got ${JSON.stringify(two.map(x => x.text))})`);
   ok(samLines({ ...base, timeline: [] }, now).length === 1, "no history: the range line only");
   ok(bidPlacing({ ...base, current_bid_usd: 70000 }, now) === "inside the range" && bidPlacing({ ...base, current_bid_usd: 90000 }, now) === "above the range", "the bid judged by the engine's placingFor");
   ok(!/The bid is/.test(samLines({ ...base, market: { ...base.market, rung: "sibling" } }, now)[0].text), "no judgement against a sibling's range");

@@ -17,7 +17,7 @@ const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "e
 const states = (line, n) => { const w = n < 10 ? WORDS[n] : null; return new RegExp(`(^|[^\\d,.])(${n}|${w || "x\u0000"})\\s+sales?\\b`, "i").test(String(line || "")); };
 // the visible lines a page prints for an answer, as the pages print them: the title line, then the footer (windowLine) or, when there is none, the basis line, then the thin card's two lines and the Find answer's lines
 // (the Find card prints findAnswer.lines when the engine sends them and the thin_sales lines otherwise)
-const visible = d => (d.findAnswer && d.findAnswer.lines ? [d.scopeLine, ...d.findAnswer.lines] : [d.scopeLine, d.windowLine || d.basisLine, d.thin_sales && d.thin_sales.answer_line, d.thin_sales && d.thin_sales.count_line]).filter(x => typeof x === "string" && x);
+const visible = d => (d.findAnswer && d.findAnswer.lines ? [d.scopeLine, ...d.findAnswer.lines] : [d.scopeLine, d.rangeSentence || d.windowLine || d.basisLine, d.thin_sales && d.thin_sales.answer_line, d.thin_sales && d.thin_sales.count_line]).filter(x => typeof x === "string" && x);
 const total = d => Number(d.poolN ?? d.soldCount ?? (d.thin_sales && d.thin_sales.count));
 const once = (name, d) => { const n = total(d), lines = visible(d), hits = lines.filter(l => states(l, n)); ok(`${name}: the total (${n}) is stated once in ${lines.length} visible lines`, hits.length <= 1, hits.length > 1 ? JSON.stringify(hits) : ""); return hits.length; };
 const base = JSON.parse(fs.readFileSync("scripts/fixtures/m3Answer.json", "utf8"));
@@ -29,7 +29,7 @@ const served = (d) => { const r = E.withReadFields(d, "1995 Porsche 911", { year
   ok("scopeLine exists (the engine's title line)", typeof d.scopeLine === "string" && d.scopeLine.length > 0, d.scopeLine);
   ok("the title line states what the car is and its latest sale, with no count (the year is the title's: 1995 911 carries it, so the line does not repeat it)", /Cabriolets and coupes/.test(d.scopeLine || "") && !/1995/.test(d.scopeLine || "") && /latest sale Oct 21, 2026/.test(d.scopeLine || "") && !/\bsales?\b.*\bsales?\b|\d+\s+sales?|(one|two|three|four|five|six|seven|eight|nine)\s+sales?/i.test(d.scopeLine || ""), d.scopeLine);
   once("1995 911, pooled", d);
-  ok("a pooled range carries the range sentence in the footer once, beside its count and window", d.rangeSentence === reasonLine("footer.range") && d.windowLine === "43 sales, since October 2025.", JSON.stringify([d.rangeSentence, d.windowLine]));
+  ok("a pooled range carries the range sentence (which states the count and the window once; the card prints it instead of the window line)", /^Half of the 43 sales since October 2025 landed in this range\. The rest ran from \$[\d,]+ to \$[\d,]+\.$/.test(d.rangeSentence || "") && d.windowLine === "43 sales, since October 2025.", JSON.stringify([d.rangeSentence, d.windowLine]));
   // the single option and the split shapes keep their option counts; those are other numbers
   const opt = served({ ...d, optionsState: "split", headlineDimension: "body", cluster: null, options: [{ dimension: "body", label: "Coupe", value: "coupe", n: 32, low: 60000, high: 90000, rangeFloor: false, windowWords: "since October 2025", ownWindow: true }, { dimension: "body", label: "Cabriolet", value: "open", n: 3, low: null, high: null, rangeFloor: true, windowWords: "since October 2025", ownWindow: true }] });
   once("1995 911, split into options", opt);

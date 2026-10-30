@@ -43,10 +43,11 @@ for (const [q, vv] of CASES) {
   const fc = d.refusal && d.refusal.failedChecks;
   ok(`${q}: not refused (${d.tier}${fc ? ", failed " + fc.join(",") : ""})`, /^(result|thin)$/.test(d.tier) && !fc, JSON.stringify([d.tier, fc]));
   ok(`${q}: the label says the trim has no sales of its own`, /on record separately/i.test(String(d.rungLabel || "")), String(d.rungLabel));
+  ok(`${q}: the plain sentence says what was read ("Too few ... sales for a range. Here is the ... market instead.")`, /^Too few .+ sales for a range\. Here is the .+ market instead\.$/.test(String(d.trimFallbackLine || "")), String(d.trimFallbackLine));
   ok(`${q}: the pool is the model's own sales (${d.poolN || (d.thin && d.thin.totalN) || 0})`, (d.poolN || (d.thin && d.thin.totalN) || 0) >= 3);
 }
 { const q = "2009 Honda S2000 CR", rv = await resolveVehicle(q, {}), v = rv.vehicle, gen = await findGeneration(v, env).catch(() => null), d = (await E.oneEngineAnswer(v, gen, q, { ...env, asked: 0 }, null)).raw;
   ok("a trim that does have sales reads its own pool and says nothing about a dropped trim", /^(result|thin)$/.test(d.tier) && !/on record separately/.test(String(d.rungLabel || "")), String(d.rungLabel)); }
-{ const src = fs.readFileSync("lib/onebox.js", "utf8"); ok("the 'no X on record separately' label no longer waits for a curated trim", /if \(!named\) d = \{ \.\.\.d, rungLabel: `\$\{d\.rungLabel\} sales; no \$\{vehicle\.trim\} on record separately` \}/.test(src)); }
+{ const src = fs.readFileSync("lib/onebox.js", "utf8"); ok("the 'no X on record separately' label no longer waits for a curated trim, and carries the plain sentence beside it", /if \(!named\) d = \{ \.\.\.d, rungLabel: `\$\{d\.rungLabel\} sales; no \$\{vehicle\.trim\} on record separately`, trimFallbackLine: reasonLine\("trim\.fallback"/.test(src)); }
 console.log(failed ? `droppedTrimCheck: ${failed} failure(s)` : "droppedTrimCheck: all pass");
 process.exit(failed ? 1 : 0);
