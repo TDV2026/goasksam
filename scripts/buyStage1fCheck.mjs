@@ -27,7 +27,7 @@ ok(!/star|heart|data-save|aria-label="Save/i.test(client.slice(client.indexOf("f
 // ITEM 5
 ok(/\.car \.specs \.spec\.hchip\[aria-expanded=true\]\{background:#F7F3E8;color:var\(--green\);border:1px solid var\(--green\)/.test(after(5)) && !/hchip[^{]*\{[^}]*background:var\(--green\)/.test(after(5)), "5: the Sold before / Listed before tag is outlined on cream, never filled");
 // ITEM 6
-ok(/var ALIGN = \[".tx > .src", ".tx > .trow", ".tx > .meta", ".tx > .specs", ".tx > .sl > .fx-spec", ".tx > .sl > .fx-ans", ".tx > .sl > .fx-count", ".tx > .sl"\]/.test(client) && /new MutationObserver\(alignSoon\)\.observe\(log, \{ childList: true, subtree: true \}\); window\.addEventListener\("resize", alignSoon\);/.test(client), "6: e98: each row's source line, title, meta, chip row and every slot of the Sam box (spec, answer, small line) are matched (layout only), again on any change and on resize");
+ok(/var ALIGN = \[".tx > .src", ".tx > .trow", ".tx > .meta"\]/.test(client) && /new MutationObserver\(alignSoon\)\.observe\(log, \{ childList: true, subtree: true \}\); window\.addEventListener\("resize", alignSoon\);/.test(client), "6: card level: each row's source line, title and meta are matched by script (layout only); the chip row and the Sam block (answer, count, bid) are fixed-height slots in the CSS (cardLevelCheck), again on any change and on resize");
 ok(/\.cgrid \.car \.ph\{aspect-ratio:16\/10;height:auto\}/.test(after(6)) && /\.cgrid \.car \.acts\{margin-top:auto\}/.test(after(6)), "6: one image shape; the actions on one baseline");
 // NEW BLOCK ITEM 4: what links where
 const cardFn = client.slice(client.indexOf("  function card(l, big, eager){"), client.indexOf("  // THE ADAPTIVE GRID"));
