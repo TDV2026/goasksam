@@ -40,7 +40,7 @@ for (const w of [1440, 390]) {
   if (w === 1440) ok(multi >= 3, `${w}: at least three rows of two or more cards were measured (${multi})`);
   // one fixed Sam block height for every card on the page, whatever its state
   const allH = info.map(c => c.slH); ok(Math.max(...allH) - Math.min(...allH) <= 1, `${w}: every Sam block on the page is the same fixed height (${[...new Set(allH)].join(", ")}; off: ${info.filter(c => c.slH !== allH[0]).map(c => c.id).join(",")})`);
-  const allS = info.map(c => c.specsH); ok(Math.max(...allS) - Math.min(...allS) <= 1, `${w}: every chips row is the same fixed height (${[...new Set(allS)].join(", ")})`);
+  const allS = info.map(c => c.specsH); const SPECS_H = [...new Set(allS)].filter(h => h > 1); ok(SPECS_H.length <= 1 && (w > 700 ? allS.every(h => h === allS[0]) : allS.every(h => h === 0 || h === SPECS_H[0])), `${w}: every chips row is the same fixed height (${[...new Set(allS)].join(", ")}); alone in its row (700px and under) a card with no chips has none`);
   // See the sales only with a range, beside the button; the car's own name is not repeated in the Sam block
   for (const c of info) { if (c.hasAct) { ok(c.rangeText, `${w}: card ${c.id} prints See the sales only with a range`); ok(c.actBesideBtn, `${w}: card ${c.id}: See the sales sits beside View auction`); }
     ok(!c.clipped, `${w}: card ${c.id}: nothing in the Sam block or the chips row is cut off by its fixed height (${c.clipped})`);

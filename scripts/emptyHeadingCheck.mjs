@@ -17,9 +17,9 @@ const SCAN = maxgap => { const bad = []; let n = 0;
     let best = null;
     for (const e of all) { if (h.contains(e) || e.contains(h)) continue; const q = e.getBoundingClientRect(); if (q.top < r.bottom - 2) continue; if (q.right < r.left + 4 || q.left > r.right - 4) continue; if (best === null || q.top < best) best = q.top; }
     if (best === null) { if (r.bottom < document.documentElement.scrollHeight - 120) bad.push(label + ": nothing under it"); continue; }
-    // the Find card reserves a fixed two-line chips row (Sam, Oct 29 2026, card level): when a card has no chips that reserved slot is the card's contract, not blank space, so it is taken off the gap (the rest must still be within maxgap)
+    // the Find card reserves a fixed two-line chips row (Sam, Oct 29 2026, card level): when a card has no chips that reserved slot is the card's contract, not blank space, so at widths where cards share a row it is taken off the gap (the rest must still be within maxgap); at 700px and under a card is alone in its row and the empty slot is NOT excused (it collapses)
     const card = h.closest("article.car"), slot = card ? [...card.querySelectorAll(".specs")].filter(q => !q.querySelector(".spec:not([hidden])")) : [];
-    const gap = best - r.bottom - slot.reduce((t, q) => t + q.getBoundingClientRect().height + 10, 0); if (gap > maxgap) bad.push(label + ": " + Math.round(gap) + "px of nothing under it"); }
+    const single = innerWidth <= 700; /* alone in its row the slot is NOT excused: it must take no room */ const gap = best - r.bottom - (single ? 0 : slot.reduce((t, q) => t + q.getBoundingClientRect().height + 10, 0)); if (gap > maxgap) bad.push(label + ": " + Math.round(gap) + "px of nothing under it"); }
   return { bad, n }; };
 const strip = d => { const { trend, chart, trendHeld, chartCaption, chartWindowLine, ...r } = d; return r; };
 const HELD = (n, caption = "Latest sales") => ({ type: "withheld", scope: null, buckets: null, note: null, caption, withheld: { reason: "too_few", line: "x" }, n });
