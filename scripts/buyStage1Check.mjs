@@ -51,8 +51,8 @@ const rf = new Function("esc", "usd", block("  function fxOpt(", "  function sam
 const RM = { kind: "range", low: 55000, high: 78000, count: 24, specLabel: "2014 BMW 650i M Sport Convertible", countLine: "24 sales since December 2025." };
 const r1 = rf({ market: RM }, { kind: "range", rung: [], placing: "below the range", bidLine: "The bid is below the range.", text: "x" });
 const t1 = text(r1);
-ok(t1 === "2014 BMW 650i M Sport Convertible $55,000 to $78,000 24 sales since December 2025. The bid is below the range.", "the range card: spec, range, count and window with the bid, in that order, all the engine's (" + t1 + ")");
-ok(text(rf({ market: { ...RM, scope_reason: "Too few 2014 sales, showing 2014 to 2015." } }, { kind: "range", rung: [] })) === "2014 BMW 650i M Sport Convertible $55,000 to $78,000 24 sales since December 2025.", "e98 Find card: the spec, the range and ONE small line; the scope line is not on the card; no bid, no bid sentence");
+ok(t1 === "$55,000 to $78,000 24 sales since December 2025. The bid is below the range.", "the range card (card level, no car name in the Sam block): range, count and window, then the bid, in that order, all the engine's (" + t1 + ")");
+ok(text(rf({ market: { ...RM, scope_reason: "Too few 2014 sales, showing 2014 to 2015." } }, { kind: "range", rung: [] })) === "$55,000 to $78,000 24 sales since December 2025.", "card level Find card: the range and the count line (no car name); the scope line is not on the card; no bid, no bid sentence");
 ok(rf({ market: { kind: "none", cardListsSales: true, rows: [] } }, { kind: "range", rung: [] }) === "" && rf({ market: null }, { kind: "range" }) === "", "a thin card or no market: unchanged");
 ok(/x\.kind === "range" \? \(rangeFirst\(l, x\) \|\| \(noRange\(l\) \? compactNoRange\(l, x\) : "<p>"/.test(c), "the card uses the range box only where the engine gives a range (a no-range card is the compact card)");
 

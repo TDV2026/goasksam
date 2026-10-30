@@ -1684,6 +1684,12 @@ try {
   record("Find: a pending card keeps being asked for until the engine answers or its wait passes, and redraws in place, never stranded on the pending line (scripts/pendingCardFillCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/cardLevelCheck.mjs", { encoding: "utf8", timeout: 590000 });
+  record("Find: the Sam block is a fixed-height slot and the chips row a fixed two-line height, so the View auction buttons of every card in a row sit on one line in every state, at 1440 and 390 (scripts/cardLevelCheck.mjs)", "PASS", (out.match(/cardLevelCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Find: the Sam block is a fixed-height slot and the chips row a fixed two-line height, so the View auction buttons of every card in a row sit on one line in every state, at 1440 and 390 (scripts/cardLevelCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/spacedModelCodeCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("resolver: a model code typed with a space (RS 6, M 3, X 5) is the glued model, so a known car is never refused as unchecked (scripts/spacedModelCodeCheck.mjs)", "PASS", (out.match(/spacedModelCodeCheck: .*/) || [""])[0]);
 } catch (e) {
