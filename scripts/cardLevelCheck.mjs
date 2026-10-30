@@ -26,7 +26,7 @@ for (const w of [1440, 390]) {
   const info = await p.evaluate(() => {
     const cs = [...document.querySelectorAll("article.car")].filter(a => a.querySelector(".vauc")).map(a => { const v = a.querySelector(".vauc").getBoundingClientRect(), r = a.getBoundingClientRect(), sl = a.querySelector(".sl"), sp = a.querySelector(".specs"), act = a.querySelector(".act");
       const name = (a.querySelector("h3") || { innerText: "" }).innerText.replace(/\s+/g, " ").trim().toLowerCase();
-      return { id: a.dataset.id, rowTop: Math.round(r.top + scrollY), btnTop: Math.round(v.top + scrollY), slH: sl ? Math.round(sl.getBoundingClientRect().height) : 0, specsH: sp ? Math.round(sp.getBoundingClientRect().height) : 0, hasAct: !!act, actTop: act ? Math.round(act.getBoundingClientRect().top + scrollY) : null, actBesideBtn: act ? Math.abs(act.getBoundingClientRect().top - v.top) < 3 : null, slText: sl ? sl.innerText.replace(/\s+/g, " ").toLowerCase() : "", clipped: [...a.querySelectorAll(".sl, .sl p, .specs")].filter(e => e.scrollHeight > e.clientHeight + 1).map(e => e.className + ":" + e.scrollHeight + ">" + e.clientHeight).join(" "), name, rangeText: sl ? /\$[\d,]+\s*to\s*\$[\d,]+/.test(sl.innerText) : false }; });
+      return { id: a.dataset.id, rowTop: Math.round(r.top + scrollY), btnTop: Math.round(v.top + scrollY), slH: sl ? Math.round(sl.getBoundingClientRect().height) : 0, specsH: sp ? Math.round(sp.getBoundingClientRect().height) : 0, hasAct: !!act, actTop: act ? Math.round(act.getBoundingClientRect().top + scrollY) : null, actBesideBtn: act ? Math.abs(act.getBoundingClientRect().top - v.top) < 3 : null, slText: sl ? sl.innerText.replace(/\s+/g, " ").toLowerCase() : "", tops: [".fx-ans", ".fx-count", ".fx-bid"].map(q => { const e = a.querySelector(q); return e ? Math.round((e.getBoundingClientRect().top - a.getBoundingClientRect().top) * 10) / 10 : null; }), clipped: [...a.querySelectorAll(".sl, .sl p, .specs")].filter(e => e.scrollHeight > e.clientHeight + 1).map(e => e.className + ":" + e.scrollHeight + ">" + e.clientHeight).join(" "), name, rangeText: sl ? /\$[\d,]+\s*to\s*\$[\d,]+/.test(sl.innerText) : false }; });
     return cs; });
   ok(info.length >= 12, `${w}: the mixed rows render (${info.length} cards)`);
   const rows = {}; info.forEach(c => (rows[c.rowTop] = rows[c.rowTop] || []).push(c));
@@ -35,6 +35,7 @@ for (const w of [1440, 390]) {
     const ys = row.map(c => c.btnTop), hs = row.map(c => c.slH), sp = row.map(c => c.specsH);
     ok(Math.max(...ys) - Math.min(...ys) <= 1, `${w}: the View auction buttons in the row at ${top} sit on one line (${ys.join(", ")})`);
     ok(Math.max(...hs) - Math.min(...hs) <= 1, `${w}: the Sam blocks in the row at ${top} are one height (${hs.join(", ")})`);
+    for (const k of [0, 1, 2]) { const t = row.map(c => c.tops[k]).filter(v => v != null); if (t.length > 1) ok(Math.max(...t) - Math.min(...t) <= 1, `${w}: the ${["answer", "count line", "bid line"][k]} in the row at ${top} sit at one height from the card top (${t.join(", ")})`); }
     ok(Math.max(...sp) - Math.min(...sp) <= 1, `${w}: the chips rows in the row at ${top} are one height (${sp.join(", ")})`); }
   if (w === 1440) ok(multi >= 3, `${w}: at least three rows of two or more cards were measured (${multi})`);
   // one fixed Sam block height for every card on the page, whatever its state
