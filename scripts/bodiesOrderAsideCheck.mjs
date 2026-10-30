@@ -3,7 +3,7 @@
 //    sales were counted as not saying their body and the title line ("Convertibles, coupes and sedans") left the wagon out. NOW one vocabulary (whole-word matches, "Touring" a wagon on a BMW or Alpina only) feeds the pool, the matcher and, at read time, the options
 //    (a body the titles name that is not an option becomes one on the footer's window) and the title line (every body the pool carries). Real titles below.
 // 2. THE SET-ASIDE LINE says the count once: "5 odd sales set aside." / "1 odd sale set aside." (it was "5 sales set aside: 5 odd sales."). One field, setAsideLine; the card prints it; stored rows get it through freshenStoredText.
-// 3. OPTION ORDER: options with a range first, largest first; the thin ones ("too few for a range") after, largest first; the option the listing named leads. Ranges are not touched.
+// 3. OPTION ORDER (mileage bands are the exception since Oct 30 2026: they print ascending, under 50,000, 50,000 to 100,000, over 100,000): options with a range first, largest first; the thin ones ("too few for a range") after, largest first; the option the listing named leads. Ranges are not touched.
 //   node scripts/bodiesOrderAsideCheck.mjs [repo root]
 import path from "node:path"; import { fileURLToPath, pathToFileURL } from "node:url";
 const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
@@ -54,6 +54,7 @@ const SHAPES = [["body, alike", { optionsState: "alike", cluster: [1, 2], option
 for (const [name, s] of SHAPES) {
   const x = E.withReadFields({ ...a, headlineLines: ["a", "b", "c"], rawPool: [], poolN: 60, ...s }, "x", { year: 2008 }), ox = x.options || [];
   const ranged = ox.filter(q => !q.rangeFloor), thin = ox.filter(q => q.rangeFloor), idxLast = ox.map(q => !q.rangeFloor).lastIndexOf(true), idxFirstThin = ox.findIndex(q => q.rangeFloor);
+  if (/^mileage/.test(name)) { ok(`${name}: mileage bands print ascending`, ox.map(q => q.label).join("|") === "Under 50,000 miles|50,000 to 100,000 miles|Over 100,000 miles", ox.map(q => q.label).join(" | ")); continue; }
   ok(`${name}: options with a range first, largest first; thin ones after, largest first`, (idxFirstThin < 0 || idxLast < idxFirstThin) && ranged.every((q, i) => i === 0 || ranged[i - 1].n >= q.n) && thin.every((q, i) => i === 0 || thin[i - 1].n >= q.n), ox.map(q => q.label + " " + q.n + (q.rangeFloor ? " thin" : "")).join(" | "));
   ok(`${name}: the option lines follow the same order`, (x.optionLines || []).every((l, i) => String(l).startsWith(ox[i].label)), (x.optionLines || []).join(" | "));
 }

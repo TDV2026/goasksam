@@ -40,7 +40,7 @@ for (const [c, x] of Object.entries(CASES)) {
 }
 const base = skeletons.fresh;
 for (const c of Object.keys(CASES)) ok(skeletons[c] === base, `${c}: every other line identical to the fresh case's`);
-const want = ["A 2005 Mercedes-Benz CLK DTM AMG Coupe is listed on Bring a Trailer.", "View on Bring a Trailer: https://bringatrailer.com/", "Bidding ends Wednesday, October 14 at 12:15pm PT.", "Matches your Task: CLK.", "", "Sam is looking for Mercedes-Benz CLK DTMs.", "Open the Task: https://goasksam.com/tasks/mine?task=3b9d6f10-2222-4c1d-8e2f-abcdef012345"];
+const want = ["A 2005 Mercedes-Benz CLK DTM AMG Coupe is listed on Bring a Trailer.", "View on Bring a Trailer: https://bringatrailer.com/", "Bidding ends Wednesday, October 14 at 12:15pm PT.", "Matches your Task: a Mercedes-Benz CLK.", "", "Sam is looking for Mercedes-Benz CLK DTMs.", "Open the Task: https://goasksam.com/tasks/mine?task=3b9d6f10-2222-4c1d-8e2f-abcdef012345"];
 ok(base.split("\n").slice(0, want.length).join("\n") === want.join("\n"), `the car block and Task lines as before (got ${JSON.stringify(base.split("\n").slice(0, want.length))})`);
 ok(/\nView the auction: https:\/\/bringatrailer\.com\/\n/.test(base) && / Stop all Task emails: https:\/\/goasksam\.com\/api\/tasks\?a=emails_off&t=/.test(base) && base.endsWith("\nGoAskSam"), "the watch link, Stop all (in the one footer line) and sign-off");
 // bidBlock alone (no range): the bid line by itself, and a fresh bid just past midnight PT names its day.

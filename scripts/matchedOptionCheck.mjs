@@ -61,7 +61,7 @@ for (const [name, make, model, trim, year, ta, tb, pa, pb, want, dim] of CASES) 
   ok("edition: the longest edition word in the title leads", m && m.options[0].value === "speedster" || false, JSON.stringify(m && m.matchedOption));
   const d2 = { options: [{ dimension: "mileage", label: "Under 50,000 miles", value: "lt50", n: 8 }, { dimension: "mileage", label: "50,000 to 100,000 miles", value: "50to100", n: 9 }], headlineDimension: "mileage", optionsState: "split", refineOptions: [], optionLines: [], headlineLines: [] };
   const m2 = matchedOf(d2, "x", { listingMiles: 72000 });
-  ok("mileage band: the listing's own band leads", m2 && m2.options[0].value === "50to100", JSON.stringify(m2 && m2.matchedOption)); }
+  ok("mileage band: the listing's own band is the matched option and the bands keep the scale's order (Oct 30 2026: ascending wherever they print)", m2 && m2.matchedOption.value === "50to100" && m2.options.map(o => o.value).join() === "lt50,50to100", JSON.stringify(m2 && m2.matchedOption)); }
 
 // e101 (Sam, Oct 29 2026, the live 2011 BMW M3 Convertible, BaT, 64,000 miles): the card showed a Manual chip and the Sam box said "the listing does not say which". CAUSE: the matcher read the listing's TITLE
 // only; the chip comes from the listing's transmission FIELD ("Manual (6-speed)"), which the matcher never saw. Now any option the listing names in its title, its chips (the gearbox and body the card states)
