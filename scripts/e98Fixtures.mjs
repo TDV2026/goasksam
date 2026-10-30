@@ -118,5 +118,8 @@ export const HISTORY = {
 export const HISTORY_EXPECT = { "2001 BMW M3 Coupe (sold before)": { chip: "Sold before", pop: "$41,500" }, "2006 BMW M3 Coupe (listed before, did not sell)": { chip: "Listed before", pop: "$36,000" }, "2003 BMW M3 Coupe (no history)": null };
 
 // ENGINE READ FIELDS (Lane B, Oct 29 2026, 4dfb9e09): every answer the engine serves passes through withReadFields, so a fixture is an answer as the engine sends it today: with options the footer states no total count, no window and no latest-sale line, each option its own; scopeLine drops the title's year. The fixture's own chart and trend are kept (the chart states are set by hand above).
+{ // the engine reads the last-ingest date once and caches it (lib/asOf.js); the entry points prime it, so a fixture does too (the fetch is stubbed for the one read), and every answer carries updatedLine as the engine sends it
+  const real = globalThis.fetch; globalThis.fetch = async () => ({ ok: true, json: async () => [{ created_at: "2026-10-28T20:00:00Z" }] });
+  try { await (await import("../lib/asOf.js")).lastUpdatedDate({ supabaseUrl: "https://fixture.invalid", supabaseKey: "k" }); } finally { globalThis.fetch = real; } }
 { const E = await import("../lib/onebox.js");
   for (const fx of Object.values(MC)) { const d0 = fx.d, since = d0.windowWords && /^since /.test(d0.windowWords) ? d0.windowWords : null, d = since && Array.isArray(d0.options) ? { ...d0, optionLines: undefined, options: d0.options.map(o => /^since /.test(o.windowWords || "") ? o : { ...o, windowWords: since }) } : d0, w = E.withReadFields(d, fx.typed, { year: d.resolvedCar && d.resolvedCar.year }); fx.d = { ...w, chart: d.chart, trend: d.trend, ...(d.trendHeld ? { trendHeld: d.trendHeld } : {}) }; } }
