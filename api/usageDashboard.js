@@ -1567,6 +1567,28 @@ async function handleOps(req, res) {
     }
     return res.status(200).json({ task: "storedcount", ocdSpend: 0, writes: 0, ...counts, ms: Date.now() - t0 });
   }
+  // task=storedquestions (Lane B, Oct 30 2026; READ-ONLY, zero OldCarsData, zero writes): the stored Market Check rows the reader now treats as no row because a question rule may have overtaken them (lib/onebox.js storedMayNowAsk): result or thin rows with NO YEAR
+  // and without the current questionRulesTag. Counted by whether the make and model have two or more generations in the table (the generation question), with the examples. Paged by after (spec key).
+  if (task === "storedquestions") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { QUESTION_RULES_TAG } = await import("../lib/onebox.js"); const { generationsForModel } = await import("../lib/generations.js");
+    const out = { task: "storedquestions", ocdSpend: 0, writes: 0, tag: QUESTION_RULES_TAG, rows: 0, noYearUntagged: 0, withGenerations: 0, other: 0, byTier: {}, examples: [], next: null };
+    let cursor = String(req.query?.after || "");
+    for (let page = 0; page < 40; page++) {
+      const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,t:market->raw->>tier,y:market->raw->resolvedCar->>year,mk:market->raw->resolvedCar->>make,md:market->raw->resolvedCar->>model,tag:market->raw->>questionRulesTag&order=spec_key.asc&limit=1000` + (cursor ? `&spec_key=gt.${encodeURIComponent(cursor)}` : ""));
+      if (!Array.isArray(rows) || !rows.length) { cursor = null; break; }
+      for (const r of rows) {
+        out.rows++;
+        if (!/^(result|thin)$/.test(String(r.t || "")) || r.tag === QUESTION_RULES_TAG || Number(r.y) > 0) continue;
+        out.noYearUntagged++; out.byTier[r.t] = (out.byTier[r.t] || 0) + 1;
+        const gens = r.mk && r.md ? generationsForModel(r.mk, r.md).length : 0;
+        if (gens >= 2) { out.withGenerations++; if (out.examples.length < 60) out.examples.push({ key: String(r.spec_key).slice(0, 110), make: r.mk, model: r.md, generations: gens }); } else out.other++;
+      }
+      cursor = rows[rows.length - 1].spec_key; if (rows.length < 1000) { cursor = null; break; }
+    }
+    out.next = cursor || null;
+    return res.status(200).json(out);
+  }
   // task=findcards (Lane B, Oct 28 2026, ENGINE READY 10): READ ONLY. Builds the Find card's market for live listings (listingMarket, never computing: a spec with no stored read is counted as cold) and counts the
   // findAnswer states: matched option, split with no option said, too few, near-miles headline, plain count; with the old card line beside five examples of each. Paged by after/n (n at most 40). Writes nothing,
   // spends nothing.

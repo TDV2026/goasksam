@@ -1684,6 +1684,12 @@ try {
   record("engine: a stored could-not-be-checked refusal is never served (read as no row), so a known car is recomputed with today's rules (scripts/storedRefusalNotServedCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/storedQuestionRecheckCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("engine: a stored result a question rule has since overtaken (a no-year text) is read as no row, so the generation, trim or body question is served (scripts/storedQuestionRecheckCheck.mjs)", "PASS", (out.match(/storedQuestionRecheckCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: a stored result a question rule has since overtaken (a no-year text) is read as no row, so the generation, trim or body question is served (scripts/storedQuestionRecheckCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/emptyHeadingCheck.mjs", { encoding: "utf8", timeout: 590000 });
   record("Market Check and Find: no heading is followed by blank space or an empty region (withheld, none, drawn chart, thin tiles, options, Find) (scripts/emptyHeadingCheck.mjs)", "PASS", (out.match(/emptyHeadingCheck: .*/) || [""])[0]);
 } catch (e) {
