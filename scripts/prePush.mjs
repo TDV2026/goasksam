@@ -1012,6 +1012,13 @@ try {
 } catch (e) {
   record("railCheck (scripts/railCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The open site has one state (Lane E, Oct 30 2026): every public route answers a stranger with a page, and every rail and footer item is there, when the site is open as the runbook opens it. No network.
+try {
+  const out = execSync("node scripts/openSiteGateCheck.mjs", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+  record("openSiteGateCheck (scripts/openSiteGateCheck.mjs)", "PASS", (out.match(/openSiteGateCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("openSiteGateCheck (scripts/openSiteGateCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Market Check movement chart fixes (Sam, Oct 21 2026; Lane C): single-value quarters, counts, no overlaps, the axis room. No network (a local browser).
 try {
   const out = execSync("node scripts/marketChartCheck.mjs", { encoding: "utf8" });

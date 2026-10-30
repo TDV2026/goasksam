@@ -13,7 +13,7 @@ const crewCookie = "gas_crew=" + mintCrewCookieValue();
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const ROOT = path.resolve(new URL("..", import.meta.url).pathname);
-const GATED = new Set(["/business"]);   // For business answers nothing to a signed-out visitor before its launch switch: compared as crew only
+const GATED = new Set();   // Oct 30 2026: nothing is gated for a signed-out visitor when the site is open (LAUNCH_STAGE=2 opens For business too); every page below is compared signed out
 const PAGES = [["buy", "/find", {}], ["tasksPage", "/tasks", {}], ["tasksPage", "/tasks/mine", { app: "1" }], ["marketCheck", "/market-check", {}], ["howSamDecides", "/how-sam-decides", {}], ["business", "/business", {}]];
 const render = async (mod, url, query, cookie) => {
   const { default: h } = await import(pathToFileURL(path.join(ROOT, "api", mod + ".js")).href);
@@ -28,6 +28,9 @@ for (const crew of [false, true]) {
     const key = (crew ? "crew " : "out  ") + url;
     if (!crew && GATED.has(url) && !html) continue;
     if (!/id="gas-rail"/.test(html)) { ok(false, key + ": the page draws no shared rail (handler returned " + html.length + " bytes)"); continue; }
+    // THE FULL PUBLIC LIST FOR A SIGNED-OUT VISITOR (Oct 30 2026, launch-day: For business missing from a stranger's rail): the open site's rail and footer links are all there, on every page, for someone with no cookie
+    if (!crew) for (const [name, href] of [["Home", "/"], ["Find", "/find"], ["Market Check", "/market-check"], ["Sell", "/sell"], ["Tasks", "/tasks"], ["For business", "/business"], ["How Sam decides", "/how-sam-decides"], ["About", "/about"], ["Feedback", "/feedback"]])
+      ok(new RegExp('<a [^>]*class="gas-navitem[^"]*"[^>]*href="' + href.replace(/\//g, "\\/") + '"').test(html), key + ": a signed-out visitor's rail has " + name);
     const p = await b.newPage(); await p.setViewport({ width: 1440, height: 900 });
     await p.setRequestInterception(true); p.on("request", r => /fonts\.(googleapis|gstatic)\.com/.test(r.url()) ? r.continue() : r.abort());
     await p.setContent(html, { waitUntil: "domcontentloaded" }).catch(() => {});
