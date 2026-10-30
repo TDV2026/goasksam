@@ -31,7 +31,7 @@ CARS["1965 Chevrolet Corvette (single live match, three sales)"] = { row: row(19
   thin_sales: { count: 3, thin: true, threshold: 8, answer_line: "Three sales, too few for a range.", count_line: "Three sales since March 2025.", latest_month: "September 2026", sales: [sale(82000, "2026-09-14", "September 2026", "Manual", 38000), sale(78000, "2026-04-02", "April 2026", "Manual", 52000), sale(74000, "2025-06-21", "June 2025", "Automatic", 61000)] } } };
 CARS["2014 Porsche Boxster S PDK (matchedOption PDK)"] = { row: row(2014, "Porsche", "Boxster", "2014 Porsche Boxster S 7-Speed PDK"), bid: 29000, d: { ...CARS["2014 Porsche Boxster (split, PDK and Manual)"].d, matchedOption: "PDK" } };
 const FIX_SPEC = { "1965 Chevrolet Corvette (single live match, three sales)": { v: { year: 1965, make: "Chevrolet", model: "Corvette", bodyStyle: "convertible" } }, "2014 Porsche Boxster S PDK (matchedOption PDK)": { v: { year: 2014, make: "Porsche", model: "Boxster", trim: "S" } }, "2014 Porsche Boxster (split, PDK and Manual)": { v: { year: 2014, make: "Porsche", model: "Boxster", trim: "S" } }, "2010 Porsche 911 Carrera Cabriolet (six sales)": { v: { year: 2010, make: "Porsche", model: "911", trim: "Carrera", bodyStyle: "convertible" } }, "2002 BMW M3 Coupe (21 sales, range withheld)": { v: { year: 2002, make: "BMW", model: "M3", bodyStyle: "coupe" } }, "2015 BMW Z4 sDrive35is (scope line)": { v: { year: 2015, make: "BMW", model: "Z4", trim: "sDrive35is" } }, "2014 BMW 650i M Sport Convertible (one body)": { v: { year: 2014, make: "BMW", model: "650i", trim: "M Sport", bodyStyle: "convertible" } }, "2003 BMW Alpina Roadster V8 at 11,000 miles (mileageNear)": { v: { year: 2003, make: "BMW", model: "Alpina Roadster V8" } } };
-const ORDER = ["fx-spec", "fx-ans", "fx-count"];
+const ORDER = ["fx-ans", "fx-count", "fx-bid"]; // Oct 29 2026 card level: answer, count line, bid line; the car name is the card title's, never repeated in the box
 const classes = h => [...String(h).matchAll(/<(?:p|div) class="(fx-[a-z]+)(?: [a-z -]*)?"/g)].map(m => m[1]).filter(k => k !== "fx-sl");
 const bare = h => [...String(h).matchAll(/<p class="((?:fx-[a-z]+ ?)+)">/g)].map(m => m[1]);
 // THE FIND CARD, THREE SLOTS (Sam, Oct 28 2026; ENGINE READY 10 market.findAnswer): the spec line, the answer (the range in the large serif, or one thin sentence), ONE small line. Never a sale line, a "pick one" line, a second range, a near-miles line of the card's own, a mileage band line.
@@ -48,7 +48,7 @@ for (const name of Object.keys(CARS)) {
   const { c, m, l, h } = mkCard(name), t = flat(h), cls = bare(h).map(k => k.split(" ")[0]);
   ok(h.length > 20, `${name}: the Sam box prints`);
   ok(JSON.stringify(cls) === JSON.stringify(ORDER), `${name}: exactly three slots in one order (${cls.join(" > ")})`);
-  ok(h.includes('<p class="fx-spec">' + esc(m.specLabel || "")), `${name}: slot 1 is the engine's spec ("${m.specLabel}")`);
+  ok(!/fx-spec/.test(h) && !(m.specLabel && flat(h).includes(m.specLabel)), `${name}: the box does not repeat the car name ("${m.specLabel}"); the card title carries it`);
   ok(!/fx-sale|fx-sales|fx-near|fx-lab|fx-scope|fx-wide|fx-opt/.test(h), `${name}: no sale line, near line, option label, scope or wide line of its own`);
   ok(!/Thin so far|Only \d+ sales|The typical range for cars like this|Based on \d|Market Check|market-check|Pick one|pick one/i.test(h) && !/<a /.test(h), `${name}: none of the old lines, no link in the box`);
   const second = (t.match(/\$[\d,]+ to \$[\d,]+/g) || []).length; ok(second <= 1, `${name}: at most one range (${second})`);
@@ -63,7 +63,7 @@ for (const name of Object.keys(CARS)) {
 for (const [label, fa, name] of [["range", FA.range, "2015 BMW Z4 sDrive35is (scope line)"], ["near-miles headline", FA.band, "2003 BMW Alpina Roadster V8 at 11,000 miles (mileageNear)"], ["few", FA.few, "2010 Porsche 911 Carrera Cabriolet (six sales)"], ["split unsaid", FA.split, "2002 BMW M3 Coupe (21 sales, range withheld)"]]) {
   const { h } = mkCard(name, { findAnswer: fa }), cls = bare(h).map(k => k.split(" ")[0]), t = flat(h);
   ok(JSON.stringify(cls) === JSON.stringify(ORDER), `findAnswer ${label}: three slots (${cls.join(" > ")})`);
-  if (fa.state === "range") { ok(h.includes('class="fx-ans fx-range">' + usd(fa.range.low) + " to " + usd(fa.range.high) + "<"), `findAnswer ${label}: the range is the answer`); ok(h.includes('<p class="fx-count">' + esc(fa.lines.join(" ")) + "</p>"), `findAnswer ${label}: the small line is the engine's lines, in order (${fa.lines.join(" ")})`); }
+  if (fa.state === "range") { ok(h.includes('class="fx-ans fx-range">' + usd(fa.range.low) + " to " + usd(fa.range.high) + "<"), `findAnswer ${label}: the range is the answer`); ok(h.includes('<p class="fx-count">' + esc(fa.lines[0]) + "</p>") && h.includes('<p class="fx-bid">' + esc(fa.lines.slice(1).join(" ")) + "</p>"), `findAnswer ${label}: the count line then the bid line are the engine's lines, in order (${fa.lines.join(" ")})`); }
   else { ok(h.includes('class="fx-ans fx-answer">' + esc(fa.lines[0]) + "</p>"), `findAnswer ${label}: the answer is the engine's first line`);
     const hasBtn = !!(mkCard.lastMarket && mkCard.lastMarket.query), pointer = fa.pointer, rest = fa.lines.slice(1).filter(x => !(hasBtn && pointer && x === pointer));
     ok(h.includes('<p class="fx-count">' + esc(rest.join(" ")) + "</p>"), `findAnswer ${label}: the small line is the engine's remaining lines (${rest.join(" ") || "none: the pointer is the button's job"})`);
@@ -78,7 +78,7 @@ for (const [label, fa, name] of [["range", FA.range, "2015 BMW Z4 sDrive35is (sc
 ok(/"See the sales"/.test(C), "the card's button is See the sales");
 ok(/md-opts/.test(C) && /m\.optionLines\.map/.test(C), "the options' own lines print in the expanded panel (drawerHtml)");
 const kit = fs.readFileSync("lib/findCardKit.js", "utf8");
-ok(/"fxHead", "fxSlots", "fxFindHtml", "fxTail", "rangeFirst", "noRange", "compactNoRange", "thinSales"/.test(kit), "Tasks lifts the same box code (findCardKit)");
+ok(/"fxOpt", "fxSlots", "fxFindHtml", "fxCount", "fxBid", "rangeFirst", "noRange", "compactNoRange", "thinSales"/.test(kit), "Tasks lifts the same box code (findCardKit)");
 // optionsRemainder (Sam, Oct 29 2026, replacing the Oct 29 e101 print): a FIND CARD prints no remainder line ("2 sales do not say their gearbox."), with the engine's line set or not: the options a card did not match are Market Check's, beside the options. Market Check still prints it. Rendered in the real pages.
 { const { startBrowser, openMC } = await import("./e98Render.mjs"), { buildCards, openFind } = await import("./e98FindRender.mjs"), { M3_ROW, MC } = await import("./e98Fixtures.mjs");
   const cards = await buildCards([M3_ROW["2008 BMW M3 Coupe"], M3_ROW["2008 BMW M3 Coupe"]]), LINE = "2 sales do not say their gearbox.";

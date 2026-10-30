@@ -38,7 +38,7 @@ for (const [label, over] of [["no findAnswer", {}], ["findAnswer few", { findAns
 }
 // 3 Tasks lifts the same code; the email prints sale rows only when the engine says sales
 const kit = fs.readFileSync("lib/findCardKit.js", "utf8");
-ok(/"fxHead", "fxSlots", "fxFindHtml", "fxTail"/.test(kit), "Tasks' cars are the same box code (findCardKit), so the checks above cover them");
+ok(/"fxOpt", "fxSlots", "fxFindHtml", "fxCount", "fxBid"/.test(kit), "Tasks' cars are the same box code (findCardKit), so the checks above cover them");
 const { emailCardHtml } = await import("../lib/tasks/emailCards.js");
 const el = { id: 1, title: r.listing_title, make: "Chevrolet", url: "https://a.test/1", source: "Bring a Trailer", photo_url: "https://i.test/a.jpg", end_time: r.end_time, current_bid_usd: 78000, market: { ...m } };
 for (const mode of ["range", "options", "range_with_options", "none", undefined]) { const h = emailCardHtml({ ...el, market: { ...el.market, emailMode: mode } }); ok(!SALES.some(s => h.includes(num(s.price))), "email, emailMode " + mode + ": no sale row"); }

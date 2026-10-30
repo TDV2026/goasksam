@@ -18,13 +18,13 @@ const card = (m, extra) => ({ id: 1, market: { kind: "count", query: "2006 BMW 3
 const text = h => h.replace(/<[^>]+>/g, "|").replace(/\|+/g, "|");
 // THE FIND CARD'S SALES-ONLY STATES (the five-line Sam box, Oct 29 2026; scripts/findCardShapeCheck.mjs has the fixtures through the whole Find path). A card of sales only prints the engine's answer line and each sale as a line that opens the modal; no "Thin so far", no "Only N sales", no link to Market Check.
 const a = thinSales(card({ countLine: "Three sales since January 2026.", thin_sales: { count: 3, answer_line: "Three sales, too few for a range.", count_line: "Three sales since January 2026.", sales: [sale(8500, "September 2026"), sale(7200, "June 2026"), sale(6500, "March 2026")] } }));
-ok(a && /<p class="fx-ans fx-answer">Three sales, too few for a range\.<\/p>/.test(a.html) && /<p class="fx-spec">2006 BMW 325i Sedan<\/p>/.test(a.html), "2 to 7: the spec, then the engine's 'too few for a range' line");
+ok(a && /<p class="fx-ans fx-answer">Three sales, too few for a range\.<\/p>/.test(a.html) && !/fx-spec|2006 BMW 325i/.test(a.html), "2 to 7: the engine's 'too few for a range' line, and no repeated car name (the card's title carries it)");
 ok(a && !/fx-sale/.test(a.html) && !/\$8,500|miles/.test(text(a.html)), "2 to 7 (e98): the card carries NO sale line; the sales are in See the sales");
 ok(a && /<p class="fx-count">Three sales since January 2026\.<\/p>/.test(a.html) && !/<a /.test(a.html) && !/Thin so far|Only \d|latest in/i.test(a.html), "2 to 7: the count with its window, no link, none of the old lines");
 const b = thinSales(card({ countLine: "One sale since August 2026.", thin_sales: { count: 1, answer_line: "One sale, too few for a range.", count_line: "One sale since August 2026.", sales: [sale(9100, "August 2026")] } }));
 ok(b && /One sale, too few for a range\./.test(b.html) && !/fx-sale/.test(b.html), "1: the engine's line, and no sale line");
 const z = thinSales(card({ kind: "not_tracked", thin_sales: { count: 0, answer_line: "No sale of a car like this on record in the US or Canada yet." } }));
-ok(z && text(z.html).replace(/\|/g, "") === "2006 BMW 325i SedanNo sale of a car like this on record in the US or Canada yet." && !/Thin so far/.test(z.html), "0: the engine's own zero line and nothing else");
+ok(z && text(z.html).replace(/\|/g, "") === "No sale of a car like this on record in the US or Canada yet." && !/Thin so far/.test(z.html), "0: the engine's own zero line and nothing else");
 ok(thinSales(card({ kind: "range", low: 6500, high: 9000, thin_sales: null })) === null, "8 or more: a range card is left to the range block");
 ok(thinSales(card({ kind: "range", low: 6500, high: 9000, count: 10, thin_sales: { count: 10, sales: [sale(1, "x")] } })) === null, "a range wins even if a thin field were present");
 ok(thinSales({ id: 1, market: { kind: "pending" } }) === null && thinSales({ id: 1 }) === null && thinSales({ id: 1, market: null }) === null, "no thin_sales: nothing drawn here, the card keeps its own line");
