@@ -394,5 +394,48 @@ for (const part of ["launch", "overview", "me", "demand", "write_failures", "doo
   const adminSrc = fs.readFileSync(path.join(ROOT, "api/admin.js"), "utf8");
   ok(/out\.held_back_alert = await runHeldBackAlert\(env\)/.test(adminSrc), "Alert: the hourly admin refresh runs it");
 }
+// ---- FINAL OUTCOME (Lane D, Oct 30 2026, Sam's ruling): a search counts as unmet or failed by its LAST outcome only. A first ask that ended "failed" with still_reading
+// ("The sales for this one are being read") and was answered on a later poll is not unmet demand and not a failure; the failed row stays in the log. Cause: build() tier-counted every
+// search_run on its own, so each still_reading first ask was an "error" even when the same reader got the range seconds later. Every counter that reads answer_type "failed" is covered:
+// the Launch tab (answer rate, Unmet demand, the failures block), "Right now" (rightNow) and the hourly health numbers (hourNumbers), all through lib/admin/finalOutcome.js.
+{
+  const { answeredLater, finalRuns } = await imp("lib/admin/finalOutcome.js"), { hourNumbers } = await imp("lib/admin/health.js");
+  const R = (m, anon, answer, text, extra, product = "market_check") => ({ ts: at(m), name: "search_run", product, anon_id: anon, session_id: anon ? "s-" + anon : null, props: { answer_type: answer, query_text: text, latency_ms: 900, ...extra } });
+  const SR = { failure_state: "still_reading" };
+  const evs = [
+    R(10, "r1", "failed", "1995 Porsche 911 Carrera", SR), R(10.1, "r1", "range", "1995 Porsche 911 Carrera", { vehicle_key: "porsche|911" }),               // read, then answered (same reader, same words): not a failure
+    R(20, "r2", "failed", "1960 Gaz 13", SR),                                                                                                                      // never answered: still a failure and unmet
+    R(30, "r3", "range", "1991 NSX", {}), R(31, "r3", "failed", "1991 NSX", SR),                                                                                     // answered first, failed after: the final outcome is the failure
+    R(40, "r4", "failed", "1972 Citroen SM", SR), R(41, "r5", "range", "1972 Citroen SM", {}),                                                                       // a different reader's answer does not rescue this one
+    R(50, null, "failed", "1980 Mystery", SR), R(51, null, "range", "1980 Mystery", {}),                                                                              // no visitor and no search id: cannot be tied, stays counted
+    R(60, "r6", "failed", "that porsche", { ...SR, search_id: "sid-six" }), R(61, "r6", "range", "1995 Porsche 911 Carrera 4", { search_id: "sid-six", vehicle_key: "porsche|911" }), // same search id, other words: rescued
+    R(70, "r7", "failed", "1995 Porsche 911 Carrera", SR), R(71, "r7", "failed", "1995 Porsche 911 Carrera", SR), R(72, "r7", "range", "  1995 PORSCHE 911  carrera ", {}),      // two reads, then the answer: both gone, case and spacing aside
+    R(80, "r8", "failed", "1950 Bugatti", { failure_state: "catching_breath" }), R(81, "r8", "range", "1950 Bugatti", {}),                                                // the rule is about the outcome, not the state: a limit pause later answered is not a failure either
+    R(90, "r9", "failed", "1988 Lancia Delta", SR, "buy"), R(91, "r9", "range", "1988 Lancia Delta", {}, "market_check"),                                                 // the other product's answer does not rescue it
+  ];
+  const gone = answeredLater(evs), goneTexts = [...gone].map(e => e.props.query_text + "@" + e.ts.slice(11, 16));
+  ok(gone.size === 5 && [10, 60, 70, 71, 80].every(m => gone.has(evs.find(e => e.ts === at(m)))), `answeredLater: the five failed asks that a later ask for the same search answered are named (${goneTexts.join(", ")})`);
+  ok(finalRuns(evs).length === evs.length - 5 && finalRuns(evs).every(e => !gone.has(e)), "finalRuns drops exactly those five and keeps every answered row");
+  const B = build({ pv: [], ev: evs, mc: [], out: null, ocd: null, held: null, pvCapped: false }, { from: T0, to: at(200), key: "today" });
+  const unmetQ = B.unmet.map(u => u.query), mcRate = B.answerRate.find(x => x.product === "market_check"), buyRate = B.answerRate.find(x => x.product === "buy");
+  ok(!unmetQ.includes("1995 Porsche 911 Carrera") && !unmetQ.includes("that porsche") && !unmetQ.includes("1950 Bugatti"), `Unmet demand: a still_reading first ask that a later poll answered is not listed (${JSON.stringify(unmetQ)})`);
+  ok(["1960 Gaz 13", "1991 NSX", "1972 Citroen SM", "1980 Mystery"].every(q => unmetQ.includes(q)), "Unmet demand: an ask never answered, answered before it failed, answered only for someone else or not tied to a reader is still listed");
+  ok(B.unmet.find(u => u.query === "1960 Gaz 13").outcome === "error", "Unmet demand: those rows still read as an error");
+  ok(mcRate.error === 4 && buyRate.error === 1, `answer rate, failed count: 4 Market Check and 1 Find failures, none for the answered ones (${mcRate.error}, ${buyRate.error})`);
+  ok(mcRate.asked === evs.filter(e => e.product === "market_check").length - 5, `answer rate: an answered search is one search, not a failed ask plus an answer (${mcRate.asked} asked)`);
+  const hr = hourNumbers(evs, Date.parse(T0) + 60 * 60000);   // the hour from T0
+  ok(hr.searches === evs.length - 5 && hr.still_reading === 5, `health hour: still reading counts only the final outcomes (5 of the 9 are left), and an answered search is one search (${hr.still_reading} still reading, ${hr.searches} searches)`);
+  ok(hr.stopped_by_limit === 0 && hr.failed_searches === 0, "health hour: a limit pause that was answered later is not counted as held by a limit");
+  // the log keeps every row: nothing was removed from the input, and the speed table still reads the answered rows only
+  ok(evs.length === 18 && evs.filter(e => e.props.failure_state === "still_reading").length === 9, "the still_reading rows stay in the events (the log and the timing keep them)");
+  // the class: every file under lib/admin that reads answer_type "failed" goes through the final-outcome rule, or is the log itself
+  const dir = path.join(ROOT, "lib/admin"), LOG_ONLY = new Set(["people.js"]);   // people.js lists searches row by row, with their outcome, as the log
+  for (const f of fs.readdirSync(dir).filter(x => x.endsWith(".js") && x !== "finalOutcome.js")) {
+    const src = fs.readFileSync(path.join(dir, f), "utf8");
+    if (/answer_type\s*[!=]==?\s*"failed"/.test(src)) ok(LOG_ONLY.has(f) || /finalRuns|answeredLater/.test(src), `lib/admin/${f} reads failed searches through lib/admin/finalOutcome.js (or is the row-by-row log)`);
+  }
+  const launchSrc = fs.readFileSync(path.join(ROOT, "lib/admin/launch.js"), "utf8");
+  ok(/finalRuns\(ev\.filter\(e => e\.name === "search_run"\)\)/.test(launchSrc), "Right now (rightNow) counts failures after the final-outcome rule");
+}
 console.log(`launchDashCheck: ${pass} pass, ${fail} fail`);
 process.exit(fail ? 1 : 0);
