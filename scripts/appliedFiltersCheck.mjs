@@ -11,6 +11,17 @@ const WAYS = [
   ["a year option", "1985 Land Rover Defender 110 (year split)", d => (d.options || []).find(o => o && o.refine && o.refine.year), "opt"],
   ["a typed mileage", "2004 BMW M3 (split)", null, "typed"]
 ];
+// A SLUG IS NEVER A LABEL (Sam's Market Check "2004 Porsche 911", Oct 29 2026: "Narrowed to carrera-4s." and the chip "carrera-4s" after he tapped Carrera 4S). Every applied filter prints the engine's display name. No browser needed: the words are the engine's.
+{ const SLUG = /[a-z0-9]+[-_][a-z0-9]+/;
+  const cases = [["trim", { trim: "carrera-4s" }, { resolvedCar: { trim: "Carrera 4S" } }, "Carrera 4S"], ["trim, no resolved name", { trim: "carrera-4s" }, {}, "Carrera 4S"], ["trim, from the option's label", { trim: "turbo-s" }, { refineOptions: [{ dimension: "trim", value: "turbo-s", label: "Turbo S" }] }, "Turbo S"],
+    ["trim gt3-rs", { trim: "gt3-rs" }, {}, "GT3 RS"], ["edition", { variant: "type_s" }, {}, "Type S"], ["edition from its option", { variant: "gt-limited" }, { options: [{ dimension: "edition", value: "gt-limited", label: "GT Limited Edition" }] }, "GT Limited Edition"],
+    ["body", { body: "cabriolet" }, {}, "Cabriolet"], ["gearbox", { tx: "auto" }, {}, "Automatic"]];
+  for (const [name, refine, d, want] of cases) {
+    const f = appliedFiltersOf(refine, d), words = f.map(x => x.words).join(" | "), line = appliedLineOf(f, d) || "";
+    ok(f.length === 1 && f[0].words === want && !SLUG.test(f[0].words) && !SLUG.test(line), `applied filter label (${name}): "${words}" should be the display name "${want}", never a slug (${line})`);
+  }
+  const eng = (await import("node:fs")).readFileSync("lib/onebox.js", "utf8");
+  ok(!/out\.push\(\{ kind: "(trim|variant)", words: String\(refine\./.test(eng), "every applied-filter kind takes its words from a display name (no raw refine value is printed)"); }
 const b = await startBrowser();
 for (const w of [1440, 390]) for (const [name, key, pick, how] of WAYS) {
   const fx0 = MC[key], sent = []; let target = null;
