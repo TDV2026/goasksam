@@ -1684,6 +1684,12 @@ try {
   record("engine: a stored could-not-be-checked refusal is never served (read as no row), so a known car is recomputed with today's rules (scripts/storedRefusalNotServedCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/unknownTrimReadsModelCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("engine: a typed trim with no sales of its own reads the model's market and says so, never not tracked (scripts/unknownTrimReadsModelCheck.mjs)", "PASS", (out.match(/unknownTrimReadsModelCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: a typed trim with no sales of its own reads the model's market and says so, never not tracked (scripts/unknownTrimReadsModelCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/storedQuestionRecheckCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("engine: a stored result a question rule has since overtaken (a no-year text) is read as no row, so the generation, trim or body question is served (scripts/storedQuestionRecheckCheck.mjs)", "PASS", (out.match(/storedQuestionRecheckCheck: .*/) || [""])[0]);
 } catch (e) {
