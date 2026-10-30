@@ -20,6 +20,16 @@ for (const [id, e] of Object.entries(RW.REASON_TABLE)) {
   ok(`${id}: plain, ${want === 1 ? "one sentence" : "the " + want + " sentences Sam ruled"}, no dash, no Sam, no jargon`, !RW.STYLE_BANNED.some(re => re.test(t)) && sentences(t) === want && !/–|—|--/.test(t), t);
 }
 ok("every named two-sentence line is in the table", Object.keys(TWO_SENTENCES).every(id => RW.REASON_TABLE[id]));
+// 1b. no line prints a LIST of years, models or groups as its subject (Oct 30 2026, the 1979 911 Targa Find card: "1982, 1978 and other cars sell for different money ...").
+// A reason names the car or the fact, never a list. Static: no template interpolates a list-like parameter. Behaviour: the line the engine serves for a split pool holds none of the options' labels or years, whatever the dimension.
+{ const src = fs.readFileSync(path.join(root, "lib/reasonWords.js"), "utf8").split("\n").filter(l => /^\s*"[a-z_.]+":\s*\{ field:/.test(l));
+  const bad = src.filter(l => /\bp\.(groups|years|models|trims|names|list|labels)\b|\$\{[^}]*\.join\(/.test(l.replace(/\/\/.*$/, ""))).map(l => l.trim().slice(0, 40));
+  ok("no table line interpolates a list of years, models or groups", bad.length === 0, bad.join(" | "));
+  const optionSets = { year: ["1982", "1978", "1980", "1975"], gearbox: ["Manual", "Tiptronic", "SMG"], body: ["Coupe", "Cabriolet", "Targa", "Sedan"], trim: ["Carrera", "Carrera S"], mileage: ["Under 50,000 miles", "50,000 to 100,000 miles"], edition: ["Base", "S", "Turbo"] };
+  for (const [dim, labels] of Object.entries(optionSets)) {
+    const line = E.unsaidLineFor({ headlineDimension: dim, resolvedCar: { year: 1979, make: "Porsche", model: "911", nameModel: "911" }, options: labels.map((label, i) => ({ label, n: 20 - i })) });
+    ok(`the split line for ${dim} names the car and lists no options or years`, !labels.some(l => line.includes(l)) && !/\b(19|20)\d\d\b/.test(line) && /^This listing doesn't say which 911 it is, and they sell for different money, so there's no single range\.$/.test(line), line);
+  } }
 // 2. no producer keeps an e98 sentence of its own
 const srcs = ["lib/onebox.js", "lib/live/search.js", "api/sellerDecision.js", "lib/sellsForCard.js"].map(f => [f, fs.readFileSync(path.join(root, f), "utf8")]);
 const OLD = ["Sam could not verify", "Sam is reading the sales", "Sam is still reading", "Wide because", "Add yours.", "Pick a year.", "No ${ty} sales in this range", "are left out.`", "Sales too spread out for a range", "so Sam shows no range", "Sales since then are not in yet", "too one-sided", "Not enough sales of this exact car"];

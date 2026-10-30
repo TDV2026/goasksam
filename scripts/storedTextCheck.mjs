@@ -37,7 +37,7 @@ for (const [name, row, n] of [["mc thin", MC_THIN, 6], ["mc split", MC_SPLIT, 23
   const w = E.withReadFields(row, "1995 Porsche 911", { year: 1995 }); clean(name + " (withReadFields)", find(w), n);
   ok(`${name}: scopeLine is served (a string with the latest sale, no count, and not the title's year again)`, typeof w.scopeLine === "string" && !/1995/.test(w.scopeLine) && /atest sale Oct 21, 2026/.test(w.scopeLine) && !states(w.scopeLine, n), w.scopeLine);
 }
-{ const f = E.freshenStoredText(MC_SPLIT); ok("mc split: the unsaid line names the groups from the row's own options", f.thin_sales.answer_line === "Manual and Tiptronic cars sell for different money, and this listing does not say which it is, so there is no single range.", f.thin_sales.answer_line);
+{ const f = E.freshenStoredText(MC_SPLIT); ok("mc split: the unsaid line names the car, not the groups", /^This listing doesn't say which .+ it is, and they sell for different money, so there's no single range\.$/.test(f.thin_sales.answer_line || ""), f.thin_sales.answer_line);
   ok("mc split: Market Check's own thinLine is untouched (the pills exist there)", f.thinLine === OLD_PICK); }
 { const w = E.withReadFields(MC_RANGE, "1995 Porsche 911", { year: 1995 }); ok("mc range: scopeLine is served and no thin_sales is invented", typeof w.scopeLine === "string" && w.scopeLine.length > 0 && !w.thin_sales, JSON.stringify([w.scopeLine, w.thin_sales])); }
 // 2. the core, through the Find card's market object

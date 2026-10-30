@@ -24,8 +24,8 @@ for (const failed of [["typed_words_honoured_or_wider"], ["receipts_carry_resolv
   const d = await S.readWarmAnswerDetailed(env, "MCWARM:x"), p = await S.readWarmAnswer(env, "MCWARM:x");
   ok(`a stored refusal (${failed.join(" + ")}) is read as no row`, d.raw === null && d.reason === "refusal_not_served" && !p, JSON.stringify([d.reason, !!p]));
 }
-ROW = row({ tier: "result", poolN: 14, rawPool: [{ id: "a" }], cluster: [1, 2] }); { const d = await S.readWarmAnswerDetailed(env, "MCWARM:x"); ok("a stored result is still served", !!d.raw && d.raw.tier === "result", d.reason); }
-ROW = row({ tier: "thin", poolN: 4, rawPool: [{ id: "a" }] }); { const d = await S.readWarmAnswerDetailed(env, "MCWARM:x"); ok("a stored thin answer is still served", !!d.raw && d.raw.tier === "thin", d.reason); }
+ROW = row({ tier: "result", poolN: 14, rawPool: [{ id: "a" }], cluster: [1, 2], resolvedCar: { year: 2004 } }); { const d = await S.readWarmAnswerDetailed(env, "MCWARM:x"); ok("a stored result is still served", !!d.raw && d.raw.tier === "result", d.reason); }
+ROW = row({ tier: "thin", poolN: 4, rawPool: [{ id: "a" }], resolvedCar: { year: 2004 } }); { const d = await S.readWarmAnswerDetailed(env, "MCWARM:x"); ok("a stored thin answer is still served", !!d.raw && d.raw.tier === "thin", d.reason); }
 ROW = row({ tier: "refusal", refusal: { kind: "not_a_car" } }); { const d = await S.readWarmAnswerDetailed(env, "MCWARM:x"); ok("a stored not-a-car refusal (a junk name, no pool) is still served as it was", !!d.raw, d.reason); }
 { const src = fs.readFileSync("lib/live/search.js", "utf8"); ok("the Find core prefetch skips a core written from the invariant refusal", /refusalLine === INVARIANT_REFUSAL_LINE \|\| r\.market\.refusal_line === INVARIANT_REFUSAL_LINE\) continue/.test(src)); }
 console.log(fail ? `storedRefusalNotServedCheck: ${fail} failure(s)` : "storedRefusalNotServedCheck: all pass");

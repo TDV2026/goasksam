@@ -39,8 +39,8 @@ for (const [title, tx, body, ans, want] of REAL) {
   ok(`${title}: the Find answer answers for that option, never the unsaid line or "pick one"`, !!fa && fa.state !== "split_unsaid" && !/\b(pick|choose)\b/i.test((fa.lines || []).join(" ")), fa && (fa.state + " " + (fa.lines || []).join(" | ")));
 }
 // 2. the unsaid line, every option kind, two, three and more than three groups
-const U = (dim, labels) => E.unsaidLineFor({ headlineDimension: dim, options: labels.map((label, i) => ({ label, n: 20 - i })) });
-const TAIL = " sell for different money, and this listing does not say which it is, so there is no single range.";
+const U = (dim, labels) => E.unsaidLineFor({ headlineDimension: dim, resolvedCar: { make: "Porsche", model: "911", nameModel: "911" }, options: labels.map((label, i) => ({ label, n: 20 - i })) });
+const LINE = "This listing doesn't say which 911 it is, and they sell for different money, so there's no single range.";
 const CASES = [
   ["gearbox", ["Manual", "Tiptronic"], "Manual and Tiptronic cars"], ["gearbox", ["Manual", "Tiptronic", "SMG"], "Manual, Tiptronic and SMG cars"],
   ["body", ["Coupe", "Cabriolet"], "Coupe and Cabriolet cars"], ["body", ["Coupe", "Cabriolet", "Targa", "Sedan"], "Coupe, Cabriolet and other cars"],
@@ -49,16 +49,16 @@ const CASES = [
   ["mileage", ["Under 50,000 miles", "50,000 to 100,000 miles"], "Cars under 50,000 miles and cars between 50,000 and 100,000 miles"],
   ["mileage", ["Under 50,000 miles", "50,000 to 100,000 miles", "Over 100,000 miles"], "Cars under 50,000 miles, cars between 50,000 and 100,000 miles and cars over 100,000 miles"]
 ];
-for (const [dim, labels, lead] of CASES) { const line = U(dim, labels); ok(`${dim}, ${labels.length} groups: "${lead}..."`, line === lead + TAIL, line); ok(`${dim}, ${labels.length} groups: no em or en dash, no "pick" or "choose"`, !/[–—]|\b(pick|choose)\b/i.test(line)); }
+for (const [dim, labels, lead] of CASES) { const line = U(dim, labels); ok(`${dim}, ${labels.length} groups: the line names the car and lists no groups or years`, line === LINE, line); ok(`${dim}, ${labels.length} groups: no em or en dash, no "pick" or "choose"`, !/[–—]|\b(pick|choose)\b/i.test(line)); }
 // 3. every Find line: the split spec with no listing match, the thin synthesis and the core path
 {
   const fa = E.findAnswerOf(GB, { title: "1995 Porsche 911 Carrera Cabriolet", year: 1995 });
-  ok("a listing that states nothing: the unsaid line, naming the groups", fa && fa.state === "split_unsaid" && fa.lines.length === 1 && fa.lines[0] === "Manual and Tiptronic cars" + TAIL, fa && JSON.stringify(fa.lines));
+  ok("a listing that states nothing: the unsaid line, naming the groups", fa && fa.state === "split_unsaid" && fa.lines.length === 1 && fa.lines[0] === "This listing doesn't say which 1995 Porsche 911 Carrera Cabriolet it is, and they sell for different money, so there's no single range." || /^This listing doesn't say which .+ it is, and they sell/.test(fa.lines[0]), fa && JSON.stringify(fa.lines));
   const synth = { tier: "thin", poolN: 23, cluster: null, windowWords: "since October 2025", thinLine: "These sales split into options priced apart, so pick one to see its range.", optionsState: null, rawPool: [] };
   const fs2 = E.findAnswerOf(synth, { title: "1995 Porsche 911 Carrera Cabriolet", year: 1995 });
   ok("a card built from a core with the old sentence: never pick, never the pointer", fs2 && fs2.lines.length === 1 && !/\b(pick|choose)\b/i.test(fs2.lines[0]) && !/See the sales for all/.test(fs2.lines[0]), fs2 && JSON.stringify(fs2.lines));
   const ts = E.thinSalesOf({ ...GB, rawPool: Array.from({ length: 23 }, (_, i) => ({ id: "x" + i, _usd: 20000 + i * 500, year: 1995, auction_end_date: "2026-03-10", rtitle: "1995 Porsche 911 Carrera" })), cluster: null });
-  ok("thin_sales.answer_line for a pool split apart is the unsaid line, not the Market Check sentence", ts && ts.answer_line === "Manual and Tiptronic cars" + TAIL, ts && ts.answer_line);
+  ok("thin_sales.answer_line for a pool split apart is the unsaid line, not the Market Check sentence", ts && /^This listing doesn't say which .+ it is, and they sell for different money/.test(ts.answer_line || ""), ts && ts.answer_line);
   const mkt = S.marketOf({ ...GB, headlineLines: ["Manual $1 to $2, 13 sales"], cards: [{ price: 1, date: "2026-01-01" }] });
   ok("the core path's answer line for a split pool never says pick", mkt && !/\b(pick|choose)\b/i.test(String(mkt.answerLine || "")), mkt && mkt.answerLine);
   const few = E.findAnswerOf({ tier: "thin", poolN: 5, optionsState: null, rawPool: [], windowWords: "since June 2025" }, { title: "x" });

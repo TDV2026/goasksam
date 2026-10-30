@@ -45,7 +45,7 @@ a = fa(d, PDK, 9000, 40000);
 ok("A2: a PDK listing gets the PDK range, bid above", a && a.option.label && /PDK|Auto/.test(a.option.label) && a.range.high <= 40000 && a.bid === "above");
 // B. the listing does not say which
 a = fa(d, "2014 Porsche Boxster S", 40000, 40000);
-ok("B: split and the listing does not say: the plain line, no range, no sales", a && a.state === "split_unsaid" && a.range === null && a.lines.length === 1 && / sell for different money, and this listing does not say which it is, so there is no single range\.$/.test(a.lines[0]) && !/\b(pick|choose)\b/i.test(a.lines[0]), JSON.stringify(a && a.lines));
+ok("B: split and the listing does not say: the plain line, no range, no sales", a && a.state === "split_unsaid" && a.range === null && a.lines.length === 1 && /^This listing doesn't say which .+ it is, and they sell for different money, so there's no single range\.$/.test(a.lines[0]) && !/\b(pick|choose)\b/i.test(a.lines[0]), JSON.stringify(a && a.lines));
 // C. the option has under 8 sales
 d = await stored(() => { many(MAN, 7, 44000, 300); many(PDK, 20, 30000, 300); });
 a = fa(d, MAN, 41000, 38000);
