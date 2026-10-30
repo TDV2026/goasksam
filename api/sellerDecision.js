@@ -3616,7 +3616,7 @@ async function handler(req, res) {
       const finishStore = async (ans) => {
         const raw = ans && ans.raw;
         if (wantsWarm && !poolSeed && raw && answerCacheable(raw) && !/_choice$/.test(String(raw.tier || ""))) {   // a recompute self-call lands here too and writes the fresh row
-          await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, slimAnswerForWire(raw)).catch(() => {});
+          { const ts = Date.now(); await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, slimAnswerForWire(raw)).catch(() => {}); console.log(JSON.stringify({ tag: "stage_ms", stage: "store", ms: Date.now() - ts, key: String(warmKey).slice(0, 80) })); }
           // the nightly warm's own credentialed call also stores the car-only Sell block beside the answer (lib/sell/sellBlock.js)
           if (req.body?.warm === true && credentialed) { try { await (await import("../lib/sell/sellBlock.js")).warmSellBlock({ supabaseUrl, supabaseKey }, oneBoxText, raw, warmKey); } catch (e) { /* the block is optional */ } }
         }

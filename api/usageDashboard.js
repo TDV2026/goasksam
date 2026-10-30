@@ -2057,7 +2057,7 @@ async function handleOps(req, res) {
         if (!vehicle || !vehicle.make) { row.would = "unresolved"; row.status = rv && rv.status || null; rows.push(row); continue; }
         const generation = await findGeneration(vehicle, env).catch(() => null), key = warmAnswerKeyFor(vehicle, generation);
         const st = await readWarmAnswerDetailed(env, key).catch(() => null); row.stored = st ? (st.raw ? (st.stale ? "stale: " + st.reason : "fresh") : "none: " + st.reason) : "unread";
-        const d = (await oneEngineAnswer(vehicle, generation, q, { ...env, asked: 0 }, null)).raw; row.tier = d && d.tier || null;
+        const sink = []; const d = (await oneEngineAnswer(vehicle, generation, q, { ...env, asked: 0, stageSink: sink }, null)).raw; row.tier = d && d.tier || null; row.stagesMs = Object.fromEntries(sink);   // the cold compute's stages in milliseconds (engine, trim_chips, question_rule, sell_fields, ...)
         if (!d || !d.tier) row.would = "engine returned no tier";
         else if (/_choice$/.test(String(d.tier))) row.would = "question: stores only the question's eligibility, no answer row (by design)";
         else if (!/^(result|thin|refusal|not_tracked)$/.test(String(d.tier))) row.would = "not stored: tier " + d.tier;

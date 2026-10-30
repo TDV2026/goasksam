@@ -1684,6 +1684,24 @@ try {
   record("engine: a stored could-not-be-checked refusal is never served (read as no row), so a known car is recomputed with today's rules (scripts/storedRefusalNotServedCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/stageTimerCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("engine: every cold compute logs its stage milliseconds (engine, trim chips, question rule, sell fields, store) (scripts/stageTimerCheck.mjs)", "PASS", (out.match(/stageTimerCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: every cold compute logs its stage milliseconds (engine, trim chips, question rule, sell fields, store) (scripts/stageTimerCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/trimCodesCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("resolver: a short trim code (C4S, C2S, Z4 3.0) is read as the trim's full name on its own car only (scripts/trimCodesCheck.mjs)", "PASS", (out.match(/trimCodesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("resolver: a short trim code (C4S, C2S, Z4 3.0) is read as the trim's full name on its own car only (scripts/trimCodesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/unknownTrimReadsModelCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("engine: a typed trim with no sales of its own reads the model's market and says so, never not tracked (scripts/unknownTrimReadsModelCheck.mjs)", "PASS", (out.match(/unknownTrimReadsModelCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: a typed trim with no sales of its own reads the model's market and says so, never not tracked (scripts/unknownTrimReadsModelCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/storedQuestionRecheckCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("engine: a stored result a question rule has since overtaken (a no-year text) is read as no row, so the generation, trim or body question is served (scripts/storedQuestionRecheckCheck.mjs)", "PASS", (out.match(/storedQuestionRecheckCheck: .*/) || [""])[0]);
 } catch (e) {

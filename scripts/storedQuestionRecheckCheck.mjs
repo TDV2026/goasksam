@@ -47,6 +47,10 @@ ROW = row({ tier: "refusal", refusal: { kind: "not_a_car" }, resolvedCar: { year
   const line = E.unsaidLineFor({ headlineDimension: "year", resolvedCar: { nameModel: "911" }, options: [{ label: "1982", n: 5 }, { label: "1978", n: 4 }] });
   ok("the unsaid line an email may print carries no question mark and no option list", !/\?/.test(line) && !/198|197/.test(line), line);
   const em = fs.readFileSync("scripts/emailModeCheck.mjs", "utf8"); ok("emailModeCheck reads the new split wording as a statement", /doesn\\'t\) say which|doesn't\) say which/.test(em) || /doesn.t\) say which/.test(em)); }
+// 3c. a stored not-tracked row for a typed trim is rechecked (a trim with no sales now reads the model's market); a not-tracked row with no trim is served as before
+ROW = row({ tier: "not_tracked", resolvedCar: { year: 2020, make: "Ford", model: "Mustang", trim: "PP2" } }); { const d = await S.readWarmAnswerDetailed(env, "MCWARM:x"); ok("a stored not-tracked row for a typed trim (PP2) is read as no row", d.raw === null && d.reason === "question_recheck", d.reason); }
+ROW = row({ tier: "not_tracked", resolvedCar: { year: 2020, make: "Ford", model: "Mustang", trim: "PP2" }, questionRulesTag: E.QUESTION_RULES_TAG }); { const d = await S.readWarmAnswerDetailed(env, "MCWARM:x"); ok("... unless it carries the current tag", !!d.raw, d.reason); }
+ROW = row({ tier: "not_tracked", resolvedCar: { year: 1931, make: "Zimmer", model: "Golden Spirit", trim: "" } }); { const d = await S.readWarmAnswerDetailed(env, "MCWARM:x"); ok("a not-tracked row with no trim is served as before", !!d.raw, d.reason); }
 // 4. the engine tags what it computes, so a recomputed result is not rechecked again
 { let r = null; try { r = await E.oneEngineAnswer({ year: null, make: "Audi", model: "RS6", trim: null, nameModel: "RS6" }, null, "Audi RS6", { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" }, null); } catch (e) { r = null; }
   ok("an answer the engine computes carries the current questionRulesTag", !!r && r.raw && r.raw.questionRulesTag === E.QUESTION_RULES_TAG, r && r.raw && r.raw.tier); }
