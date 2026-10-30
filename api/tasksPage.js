@@ -7,6 +7,7 @@
 // Search: a conversation or a task is never a URL; any query-string variant is noindex, canonical /tasks.
 import { OUTBOUND_JS } from "../lib/outboundUtm.js";
 import { reasonLine } from "../lib/reasonWords.js";
+import { stillReadingMarket } from "../lib/live/search.js";   // the engine's own retry and wait for a market still being read: the fallback for a card whose reply carried none (no number of the page's own)
 import { PAGE_CSS, FONT_LINKS, isCrewRequest } from "./_chrome.js";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
@@ -285,7 +286,7 @@ const APP_JS = String.raw`(function(){
   var limit = null, limitHidden = false, carry = "", draftOpen = !!(params.get("start") || params.get("seed")), miss = false;
   var starting = {}, firing = {}, cardsOut = {}, fullCache = {}, askN = {};
   var looking = null;   // what Find's toggles and buttons made (api/tasks.js action looking): the person's watches and before-it-ends alerts
-  var COULD_NOT = ${JSON.stringify(reasonLine("cold.missed"))}, coldSince = {};   // cold spec: a card still being read is asked for every retryAfterMs for up to the engine's waitMaxMs (market.waitMaxMs), then the one plain line; never "try again"; no wait number of the page's own
+  var COULD_NOT = ${JSON.stringify(reasonLine("cold.missed"))}, STILL_RETRY = ${Number(stillReadingMarket().retryAfterMs)}, STILL_WAIT = ${Number(stillReadingMarket().waitMaxMs)}, coldSince = {};   // cold spec: a card still being read is asked for every retryAfterMs for up to the engine's waitMaxMs (market.waitMaxMs), then the one plain line; never "try again"; no wait number of the page's own
   function phraseOf(t){ return String((t && t.summary) || "").replace(/^Sam is (?:looking for|researching)\s+/i, "").replace(/:.*$/, "").replace(/[.]+$/, ""); }
   function showLimit(l){ limit = l; limitHidden = false; api({ action: "limit", event: "seen", mode: l.mode, attempted: l.attempted }).catch(function(){}); }
   // "Never mind" and Escape: the card is drawn from the server's atLimit, so clearing the limit variable alone leaves it up. limitHidden is what closes it; it opens again
@@ -495,7 +496,7 @@ const APP_JS = String.raw`(function(){
   // A card whose market is not back (the engine's own pending answer, or none yet) is asked for again exactly as Buy asks: the
   // engine says when (retryAfterMs), each card fills in place the moment its own market lands, and a card still pending after
   // 45 seconds says so plainly instead of holding the reading line.
-  function isPend(l){ return l && (l.market === undefined || l.market === null || (l.market && l.market.kind === "pending" && l.market.stillReading)); }
+  function isPend(l){ return l && (l.market === undefined || l.market === null || (l.market && l.market.kind === "pending" && !l.market.couldNot)); }
   function allFull(){ var out = []; Object.keys(fullCache).forEach(function(k){ (fullCache[k] || []).forEach(function(l){ if (l && out.indexOf(l) < 0) out.push(l); }); }); return out; }
   function redrawCard(l){ if (!window.GASCARD) return; app.querySelectorAll('article.car[data-id="' + l.id + '"]').forEach(function(a){ var d = document.createElement("div"); d.innerHTML = window.GASCARD.card(l); var n = d.firstElementChild; if (n) a.replaceWith(n); }); if (window.GASCARD.stamp) window.GASCARD.stamp(); }
   function markets(){
@@ -511,8 +512,9 @@ const APP_JS = String.raw`(function(){
         if (isPend(l)) {
           coldSince[l.id] = coldSince[l.id] || Date.now();
           var k = Number(window.GAS_WAIT_SCALE) || 1;
-          if (Number(l.market && l.market.waitMaxMs) > 0 && Date.now() - coldSince[l.id] >= Number(l.market.waitMaxMs) * k) { l.market = { kind: "pending", stillReading: false, couldNot: true, line: COULD_NOT }; try { if (typeof gasTrack === "function") gasTrack("cold_miss", { wait_ms: Math.round(Date.now() - coldSince[l.id]), reason: "timeout", text: String(l.title || "").slice(0, 120), from_product: "tasks" }); } catch (e) {} }
-          else if (l.market && l.market.retryAfterMs > 0) waits.push(l.market.retryAfterMs * k);
+          var lim = Number(l.market && l.market.waitMaxMs) > 0 ? Number(l.market.waitMaxMs) : STILL_WAIT;
+          if (lim > 0 && Date.now() - coldSince[l.id] >= lim * k) { l.market = { kind: "pending", stillReading: false, couldNot: true, line: COULD_NOT }; try { if (typeof gasTrack === "function") gasTrack("cold_miss", { wait_ms: Math.round(Date.now() - coldSince[l.id]), reason: "timeout", text: String(l.title || "").slice(0, 120), from_product: "tasks" }); } catch (e) {} }
+          else waits.push((l.market && l.market.retryAfterMs > 0 ? l.market.retryAfterMs : STILL_RETRY) * k);
         } else delete coldSince[l.id];
         redrawCard(l);
       });
