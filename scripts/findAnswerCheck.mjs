@@ -30,7 +30,8 @@ const car = { make: "Porsche", model: "Boxster", trim: "S", year: 2014, bodyStyl
 const stored = async (mk) => { rows = []; mk(); return (await E.oneEngineAnswer(car, null, "2014 Porsche Boxster S", env, null)).raw; };
 const MAN = "2014 Porsche Boxster S 6-Speed Manual", PDK = "2014 Porsche Boxster S PDK";
 const many = (title, n, base, step, mi) => { for (let i = 0; i < n; i++) sale(2014, day(10 + i * 12), base + i * step, typeof mi === "function" ? mi(i) : (mi || 40000), title); };
-const fa = (d, title, miles, bid) => E.findAnswerOf ? E.findAnswerOf(d, { title, miles, bid, year: 2014 }) : null;
+const NOW = Date.parse("2026-10-14T12:00:00Z"), IN17H = new Date(NOW + 17 * 36e5 + 600e3).toISOString();   // a live car with 17 hours left (Sam, Oct 29 2026: the bid line always carries the time left)
+const fa = (d, title, miles, bid) => E.findAnswerOf ? E.findAnswerOf(d, { title, miles, bid, year: 2014, live: true, endTime: IN17H, now: NOW }) : null;
 const BAD = /pick one|\$\d|sold for|\d{4}-\d{2}-\d{2}/i;
 const clean = (a, miles) => !!a && a.lines.length <= 2 && !a.lines.some(l => BAD.test(l)) && !(miles && a.lines.join(" ").includes(Number(miles).toLocaleString("en-US"))) && [a.range].filter(Boolean).length <= 1;
 ok("findAnswerOf exists", typeof E.findAnswerOf === "function");
@@ -38,7 +39,7 @@ ok("findAnswerOf exists", typeof E.findAnswerOf === "function");
 let d = await stored(() => { many(MAN, 20, 44000, 300, i => 10000 + i * 8000); many(PDK, 20, 30000, 300, i => 10000 + i * 8000); });
 let a = fa(d, MAN, 41234, 38000);
 ok("A: a Manual listing gets the Manual answer, one range", a && a.state === "range" && a.option && a.option.label === "Manual" && a.range && a.range.low >= 44000 && a.range.high <= 50000, JSON.stringify(a && { s: a.state, o: a.option, r: a.range, n: a.n }));
-ok("A: the count line and the bid line, nothing else", a && /^\d+ sales since .+\.$/.test(a.lines[0]) && a.lines[1] === "The bid is below the range." && a.lines.length === 2, JSON.stringify(a && a.lines));
+ok("A: the count line and the bid line, nothing else", a && /^\d+ sales since .+\.$/.test(a.lines[0]) && a.lines[1] === "The bid is below the range with 17 hours left." && a.lines.length === 2, JSON.stringify(a && a.lines));
 ok("A: no sale line, no pick one, not its own mileage", clean(a, 41234));
 a = fa(d, PDK, 9000, 40000);
 ok("A2: a PDK listing gets the PDK range, bid above", a && a.option.label && /PDK|Auto/.test(a.option.label) && a.range.high <= 40000 && a.bid === "above");

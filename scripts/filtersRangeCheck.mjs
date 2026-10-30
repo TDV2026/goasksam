@@ -31,7 +31,7 @@ for (const [name, refine, inSet, words] of FILTERS) {
   // the card: one range prints its basis once
   const html = C.sellsForCardHtml(a, { updated: "Oct 28, 2026" }), foot = ((html.match(/<div class="sfc-footer">[\s\S]*$/) || [""])[0]).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
   const single = /^(alike|none)$/.test(String(a.optionsState || "none")) || !a.optionsState;
-  if (single) ok(`${name}: a single range card prints its count and since date once, and the range sentence once`, (foot.match(/\d[\d,]* sales?, since [A-Z][a-z]+ \d{4}/g) || []).length === 1 && typeof a.rangeSentence === "string" && a.rangeSentence && foot.split(a.rangeSentence).length - 1 === 1, foot.slice(0, 160));
+  if (single) ok(`${name}: a single range card prints its count and since date once, and the range sentence once`, (foot.match(/\b\d[\d,]* sales\b/g) || []).length === 1 && /^Half of the \d[\d,]* sales since [A-Z][a-z]+ \d{4} landed in this range\./.test(String(a.rangeSentence || "")) && typeof a.rangeSentence === "string" && a.rangeSentence && foot.split(a.rangeSentence).length - 1 === 1, foot.slice(0, 160));
 }
 // a typed mileage is said in the engine's words
 { const a = await run({ miTarget: 60000, miMin: 50000, miMax: 70000, miBand: 10000, label: "60,000 miles" }); ok("typed miles: \"within 10,000 miles of 60,000\" is on the answer", /within 10,000 miles of 60,000/.test(String(a.appliedLine)), a.appliedLine); }
@@ -41,7 +41,7 @@ const SH = [["range with gearbox pills (alike)", { optionsState: "alike", cluste
   ["option blocks (split)", { optionsState: "split", cluster: null, windowLine: "20 sales, since Nov 2025.", headlineDimension: "body", headlineLines: ["a", "b"], options: [{ dimension: "body", label: "Coupe", value: "coupe", n: 10, low: 1, high: 2, rangeFloor: false, windowWords: "since Nov 2025" }, { dimension: "body", label: "Sedan", value: "sedan", n: 10, low: 1, high: 2, rangeFloor: false, windowWords: "since Nov 2025" }], expectTotal: false }],
   ["a plain range", { optionsState: "none", cluster: [30000, 40000], windowLine: "20 sales, since Nov 2025.", options: [], expectTotal: true }]];
 for (const [name, s] of SH) { const { expectTotal, ...rest } = s; const d = E.withReadFields({ tier: "result", poolN: 20, rawPool: pool(20), windowWords: "since Nov 2025", freshness: { through: "2026-10-20" }, resolvedCar: { year: 1995, canonicalLabel: "1995 Porsche 911" }, ...rest }, TEXT, { year: 1995 });
-  const html = C.sellsForCardHtml(d, { updated: "Oct 28, 2026" }), foot = ((html.match(/<div class="sfc-footer">[\s\S]*$/) || [""])[0]).replace(/<[^>]+>/g, " ").replace(/\s+/g, " "), has = /\d+ sales?, since/.test(foot);
+  const html = C.sellsForCardHtml(d, { updated: "Oct 28, 2026" }), foot = ((html.match(/<div class="sfc-footer">[\s\S]*$/) || [""])[0]).replace(/<[^>]+>/g, " ").replace(/\s+/g, " "), has = /\d+ sales?,? since/.test(foot);   // Sam, Oct 29 2026: the count and the since date are in the range sentence ("Half of the 20 sales since Nov 2025 landed in this range.")
   ok(`${name}: the footer ${expectTotal ? "prints" : "does not print"} the count and since date`, has === expectTotal, foot.slice(0, 140)); }
 console.log(fail ? `filtersRangeCheck: ${fail} failure(s)` : "filtersRangeCheck: all pass");
 process.exit(fail ? 1 : 0);
