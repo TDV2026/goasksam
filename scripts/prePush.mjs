@@ -1570,6 +1570,12 @@ try {
 } catch (e) {
   record("engine: a chassis code typed in front of the model (997.2) is the car's own generation, not a different model (scripts/chassisCodeTypedCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "))
 }
+try {
+  const out = execSync("node scripts/generationQuestionCheck.mjs", { encoding: "utf8", timeout: 150000 });
+  record("engine: a model whose sales span generations asks which when no year is typed, with years and counts (scripts/generationQuestionCheck.mjs)", "PASS", (out.match(/generationQuestionCheck: .*/) || [""])[0])
+} catch (e) {
+  record("engine: a model whose sales span generations asks which when no year is typed, with years and counts (scripts/generationQuestionCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "))
+}
 // A lot that is not a vehicle is not a car anywhere: no Find card, no spec match, no sales pool (Lane B, Oct 29 2026).
 try {
   const out = execSync("node scripts/nonVehicleCheck.mjs", { encoding: "utf8", timeout: 120000 });
