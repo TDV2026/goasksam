@@ -43,6 +43,9 @@ const L = logs[0];
 ok("a cold compute logs one stage_ms line", logs.length === 1 && !!L, String(logs.length));
 ok("the line names the engine, trim chips, question rule and sell fields stages, each a number of milliseconds", !!L && ["engine", "trim_chips", "question_rule", "sell_fields"].every(k => typeof L.stages[k] === "number" && L.stages[k] >= 0), JSON.stringify(L && L.stages));
 ok("the line carries the car, the tier and the total", !!L && /Mustang/.test(L.car) && !!L.tier && typeof L.total === "number", JSON.stringify(L && [L.car, L.tier, L.total]));
+{ const sink = []; await E.oneEngineAnswer(v, gen, q + " ", { ...env, asked: 0, stageSink: sink }, null); const m = Object.fromEntries(sink);
+  ok("a diagnostic caller reads the stages from the call (stageSink), as ops warmwhy does", typeof m.engine === "number" && typeof m.total === "number", JSON.stringify(m)); }
+const ud = fs.readFileSync("api/usageDashboard.js", "utf8"); ok("ops warmwhy returns stagesMs per text", /stageSink: sink/.test(ud) && /row\.stagesMs/.test(ud));
 const sd = fs.readFileSync("api/sellerDecision.js", "utf8");
 ok("the store is timed in sellerDecision (stage store)", /tag: "stage_ms", stage: "store"/.test(sd));
 console.log(failed ? `stageTimerCheck: ${failed} failure(s)` : "stageTimerCheck: all pass");
