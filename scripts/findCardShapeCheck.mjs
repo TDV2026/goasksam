@@ -76,7 +76,7 @@ for (const [label, fa, name] of [["range", FA.range, "2015 BMW Z4 sDrive35is (sc
 }
 // the button, and the same code on Tasks
 ok(/"See the sales"/.test(C), "the card's button is See the sales");
-ok(/md-opts/.test(C) && /m\.optionLines\.map/.test(C), "the options' own lines print in the expanded panel (drawerHtml)");
+ok(/md-opts/.test(C) && /fa1\.otherLines/.test(C) && /optShown\.map/.test(C), "the options the headline does not state (findAnswer.otherLines) print in the expanded panel (drawerHtml), not the whole list");
 const kit = fs.readFileSync("lib/findCardKit.js", "utf8");
 ok(/"fxOpt", "fxSlots", "fxFindHtml", "fxCount", "fxBid", "rangeFirst", "noRange", "compactNoRange", "thinSales"/.test(kit), "Tasks lifts the same box code (findCardKit)");
 // optionsRemainder (Sam, Oct 29 2026, replacing the Oct 29 e101 print): a FIND CARD prints no remainder line ("2 sales do not say their gearbox."), with the engine's line set or not: the options a card did not match are Market Check's, beside the options. Market Check still prints it. Rendered in the real pages.
