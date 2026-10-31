@@ -6,6 +6,7 @@ import { unusedFieldsFor } from "../lib/live/unusedWords.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
 import { mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, priceBandForVehicle, listSalesForVehicle, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
+import { typedAttributesIn, typedAttributeByKey } from "../lib/typedAttributes.js";
 import { supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { hasServerCredential } from "../lib/_credential.js";
@@ -3485,7 +3486,7 @@ async function handler(req, res) {
         // e53 (Sam's table run): every body word the engine's own options can name (BODY_LABEL: the old list lacked
         // "fastback", so the Mustang's Fastback chip reached the engine as no refine and opened the base page), plus
         // "unspecified", the option for the sales whose titles name no body.
-        body: (Object.prototype.hasOwnProperty.call(BODY_LABEL, String(rawRefine.body || "")) || rawRefine.body === "unspecified") ? String(rawRefine.body) : null,
+        body: (Object.prototype.hasOwnProperty.call(BODY_LABEL, String(rawRefine.body || "")) || /^pw_(roadster|cabriolet|convertible)$/.test(String(rawRefine.body || "")) || rawRefine.body === "unspecified") ? String(rawRefine.body) : null,
         // Trim question refine (item 2, Oct 2026, Market Check): a slug lib/onebox.js's own
         // trimSlug() produced (e.g. "carrera-s", "turbo-s") - shape-checked only, the engine itself
         // looks it up against the family's real fence names and ignores anything that doesn't match.
@@ -3504,12 +3505,21 @@ async function handler(req, res) {
         driver: typeof rawRefine.driver === "string" ? rawRefine.driver.slice(0, 40) : null,
         driverVal: rawRefine.driverVal === "no" ? "no" : rawRefine.driverVal === "yes" ? "yes" : null,
         observe: typeof rawRefine.observe === "string" ? rawRefine.observe.slice(0, 40) : null,
+        // typed gearbox and engine words (lib/typedAttributes.js): the keys the engine read, and the keys a removed chip turns off; shape-checked keys only
+        attrs: (() => { const a = (Array.isArray(rawRefine.attrs) ? rawRefine.attrs : []).map(String).filter(x => typedAttributeByKey(x)).slice(0, 6); return a.length ? a : null; })(),
+        attrsOff: (() => { const a = (Array.isArray(rawRefine.attrsOff) ? rawRefine.attrsOff : []).map(String).filter(x => typedAttributeByKey(x)).slice(0, 12); return a.length ? a : null; })(),
         label: typeof rawRefine.label === "string" ? rawRefine.label.slice(0, 40) : null
       } : null;
       // An emptied refine (every field dropped by the sanitizer, e.g. a stale restoration chip) is NO refine, so the
       // stored row is read and written as for the bare page (it had forced a live compute and, under load, the
       // 20-second card).
       if (obRefine && !Object.values(obRefine).some(v => v != null && v !== "")) obRefine = null;
+      // TYPED GEARBOX AND ENGINE WORDS (Oct 30 2026, lib/typedAttributes.js): a stored row is keyed by the car, not the words, so a "6-speed" or "V8" typed beside a stored car was dropped. The words are read here and ride as refine.attrs: the row they key is its own
+      // (specKeyFor), the engine applies or announces them, and a chip removed (attrsOff) turns them off.
+      if (vehicle && vehicle.make && !vinCtx && !(obRefine && obRefine.attrs)) {
+        const tk = typedAttributesIn(oneBoxText, vehicle, obRefine && obRefine.attrsOff).map(a => a.key);
+        if (tk.length) obRefine = { ...(obRefine || {}), attrs: tk };
+      }
       // #1 divergence rule: the exact-car sale is fetched by the frontend (vehicleIdentity ->
       // vinAnchor) and passed back in car.exactSale; the engine compares it to the cluster.
       const rawES = car && typeof car.exactSale === "object" ? car.exactSale : null;
@@ -3524,8 +3534,8 @@ async function handler(req, res) {
       // identity key reuses lib/live/search.js specKeyFor, the SAME key the spec cache already
       // builds from this vehicle/generation pair, so a device that looks up the identical car twice
       // today (even via two separate fresh searches, not a UI refine) never spends a second slot.
-      const identityRefine = obRefine && (obRefine.body || obRefine.trim || obRefine.variant || obRefine.tx) && !(obRefine.miMin != null || obRefine.miMax != null || obRefine.driver || obRefine.observe || obRefine.docHistory)
-        ? { body: obRefine.body || null, trim: obRefine.trim || null, variant: obRefine.variant || null, tx: obRefine.tx || null } : null;
+      const identityRefine = obRefine && (obRefine.body || obRefine.trim || obRefine.variant || obRefine.tx || obRefine.attrs) && !(obRefine.miMin != null || obRefine.miMax != null || obRefine.driver || obRefine.observe || obRefine.docHistory)
+        ? { body: obRefine.body || null, trim: obRefine.trim || null, variant: obRefine.variant || null, tx: obRefine.tx || null, ...(obRefine.attrs ? { attrs: obRefine.attrs } : {}) } : null;
       const askedN = Math.max(0, Math.min(9, Number(req.body?.asked) || 0));
       // The bare page's stored row is the asked-0 answer; a refined market's row is read whatever the ask count (the
       // refine answered the question), so a chip page reads its stored row too.

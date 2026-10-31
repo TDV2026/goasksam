@@ -1589,6 +1589,43 @@ async function handleOps(req, res) {
     out.next = cursor || null;
     return res.status(200).json(out);
   }
+  // task=typedattrs (Lane B, Oct 30 2026; READ-ONLY, no write, no spend): the sweep for typed gearbox, engine and classic-body words. A: every search typed in the last ?days= (default 30, all products, crew and test traffic counted apart) whose words name
+  // a gearbox (N-speed), an engine (V8, turbo, ...) or a classic body (phaeton, speedster, victoria, town car, convertible sedan), counted by word, searches and distinct texts, with examples; before the fix none was applied (a stored row is keyed by the car, not the words).
+  // B: the stored Market Check rows the body table change reaches: rows of cars built before 1949 (a Roadster, Cabriolet and Convertible are separate pools now) and rows whose body options name a classic body. Paged 1000 a call (?after=).
+  if (task === "typedattrs") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { typedAttributesIn } = await import("../lib/typedAttributes.js"); const { bodyFromText } = await import("../lib/bodyWords.js");
+    const days = Math.min(60, Number(req.query?.days) || 30), since = new Date(Date.now() - days * 864e5).toISOString();
+    const out = { task: "typedattrs", ocdSpend: 0, writes: 0, days, searches: 0, withAttribute: { searches: 0, texts: 0, crewOrTest: 0 }, byWord: {}, examples: [], stored: { rows: 0, preWar: 0, withClassicBodyOption: 0, either: 0, examples: [] }, next: null };
+    if (!req.query?.after) {
+      const rows = await supabaseSelectAll(env, `analytics_events?name=eq.search_run&ts=gte.${encodeURIComponent(since)}&select=q:props->>query_text,internal`);
+      if (Array.isArray(rows)) {
+        out.searches = rows.length; const texts = new Map();
+        for (const r of rows) {
+          const q = String(r.q || "").replace(/\s+/g, " ").trim().slice(0, 120); if (!q || /\b[a-hj-npr-z0-9]{17}\b/i.test(q) || /\S+@\S+/.test(q)) continue;
+          const words = typedAttributesIn(q, null).map(a => a.label), nb = bodyFromText(q.toLowerCase()), body = /^(convertiblesedan|towncar|victoria|phaeton|speedster)$/.test(String(nb)) ? [nb] : [];
+          const all = [...words, ...body]; if (!all.length) continue;
+          out.withAttribute.searches++; if (r.internal) out.withAttribute.crewOrTest++;
+          for (const w of all) out.byWord[w] = (out.byWord[w] || 0) + 1;
+          texts.set(q.toLowerCase(), (texts.get(q.toLowerCase()) || 0) + 1);
+        }
+        out.withAttribute.texts = texts.size; out.examples = [...texts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 40).map(([q, n]) => ({ q, n }));
+      } else out.readFailed = true;
+    }
+    let cursor = String(req.query?.after || "");
+    for (let page = 0; page < 20; page++) {
+      const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.MCWARM%3A*&select=spec_key,y:market->raw->resolvedCar->>year,py:market->raw->poolYears,mk:market->raw->resolvedCar->>make,md:market->raw->resolvedCar->>model,bo:market->raw->bodyOptions&order=spec_key.asc&limit=1000${cursor ? "&spec_key=gt." + encodeURIComponent(cursor) : ""}`);
+      if (!Array.isArray(rows) || !rows.length) { cursor = null; break; }
+      for (const r of rows) {
+        out.stored.rows++;
+        const yr = Number(r.y) || (Array.isArray(r.py) ? Number(r.py[0]) : 0), pre = yr > 0 && yr <= 1948, cb = Array.isArray(r.bo) && r.bo.some(b => b && /phaeton|speedster|victoria|town car|convertible sedan|tourer/i.test(String(b.label || b.value || "")));
+        if (pre) out.stored.preWar++; if (cb) out.stored.withClassicBodyOption++; if (pre || cb) { out.stored.either++; if (out.stored.examples.length < 30) out.stored.examples.push(`${yr || "?"} ${r.mk || ""} ${r.md || ""}`.trim()); }
+      }
+      cursor = rows[rows.length - 1].spec_key; if (rows.length < 1000) { cursor = null; break; }
+    }
+    out.next = cursor || null;
+    return res.status(200).json(out);
+  }
   // task=findcards (Lane B, Oct 28 2026, ENGINE READY 10): READ ONLY. Builds the Find card's market for live listings (listingMarket, never computing: a spec with no stored read is counted as cold) and counts the
   // findAnswer states: matched option, split with no option said, too few, near-miles headline, plain count; with the old card line beside five examples of each. Paged by after/n (n at most 40). Writes nothing,
   // spends nothing.

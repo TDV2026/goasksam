@@ -15,9 +15,11 @@ const sentences = t => t.split(/(?<=[.!?])\s+/).filter(Boolean).length;
 // One sentence is the rule. A line that Sam ruled to be two sentences in one field is named here with its count (Oct 29 2026: the range footer, and the trim fallback that says what it read instead);
 // the allowance is exact, so a listed line that changes length fails, and a new two-sentence line fails until Sam's ruling is named here.
 const TWO_SENTENCES = { "footer.range": 2, "trim.fallback": 2 };
+// Sam's own sentence (the launch-day ruling, Oct 30 2026): "Sales do not say their engine, so Sam could not filter by V8." names Sam; exact, for this one line
+const NAMES_SAM = new Set(["typed.not_carried"]);
 for (const [id, e] of Object.entries(RW.REASON_TABLE)) {
   const t = e.text(probe), want = TWO_SENTENCES[id] || 1;
-  ok(`${id}: plain, ${want === 1 ? "one sentence" : "the " + want + " sentences Sam ruled"}, no dash, no Sam, no jargon`, !RW.STYLE_BANNED.some(re => re.test(t)) && sentences(t) === want && !/–|—|--/.test(t), t);
+  ok(`${id}: plain, ${want === 1 ? "one sentence" : "the " + want + " sentences Sam ruled"}, no dash, no Sam, no jargon`, !RW.STYLE_BANNED.some(re => re.test(NAMES_SAM.has(id) ? t.replace(/\bSam\b/g, "") : t)) && sentences(t) === want && !/–|—|--/.test(t), t);
 }
 ok("every named two-sentence line is in the table", Object.keys(TWO_SENTENCES).every(id => RW.REASON_TABLE[id]));
 // 1b. no line prints a LIST of years, models or groups as its subject (Oct 30 2026, the 1979 911 Targa Find card: "1982, 1978 and other cars sell for different money ...").

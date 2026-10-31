@@ -1697,6 +1697,12 @@ try {
   record("engine: every cold compute logs its stage milliseconds (engine, trim chips, question rule, sell fields, store) (scripts/stageTimerCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/typedAttributeCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("engine: a typed gearbox, engine or body word is applied or announced, never dropped; the classic bodies are separate pools; sales can be read by date (scripts/typedAttributeCheck.mjs)", "PASS", (out.match(/typedAttributeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: a typed gearbox, engine or body word is applied or announced, never dropped; the classic bodies are separate pools; sales can be read by date (scripts/typedAttributeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/mileageBandNearCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("engine: a car in a thin mileage band headlines the nearest band with a range, the option list never restates the headline, bands print ascending, a Task match reason names the car (scripts/mileageBandNearCheck.mjs)", "PASS", (out.match(/mileageBandNearCheck: .*/) || [""])[0]);
 } catch (e) {
