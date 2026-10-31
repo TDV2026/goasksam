@@ -1702,6 +1702,13 @@ try {
 } catch (e) {
   record("engine: a car in a thin mileage band headlines the nearest band with a range, the option list never restates the headline, bands print ascending, a Task match reason names the car (scripts/mileageBandNearCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Lane E, Oct 30 2026: the pages print the engine's near-band fields and nothing of their own. No network.
+try {
+  const out = execSync("node scripts/nearBandPagesCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("engine fields on the pages: Market Check prints nearBand.line, Find's panel prints findAnswer.otherLines (scripts/nearBandPagesCheck.mjs)", "PASS", (out.match(/nearBandPagesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine fields on the pages: Market Check prints nearBand.line, Find's panel prints findAnswer.otherLines (scripts/nearBandPagesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 try {
   const out = execSync("node scripts/trimCodesCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("resolver: a short trim code (C4S, C2S, Z4 3.0) is read as the trim's full name on its own car only (scripts/trimCodesCheck.mjs)", "PASS", (out.match(/trimCodesCheck: .*/) || [""])[0]);

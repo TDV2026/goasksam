@@ -5,6 +5,7 @@
 import { BLACK_BMW, FIND, M3_ROW, PORSCHE_2005, CORVETTE } from "./e98Fixtures.mjs";
 import { startBrowser, ROOT } from "./e98Render.mjs";
 import { buildCards, openFind } from "./e98FindRender.mjs";
+import { openPanel } from "./e98PanelRender.mjs";
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 console.log("cardLevelCheck reading " + ROOT);
 const defs = [...Object.values(BLACK_BMW), ...Object.values(M3_ROW), ...Object.values(PORSCHE_2005), CORVETTE, ...Object.values(FIND)];
@@ -59,5 +60,24 @@ for (const w of [1440, 390]) {
   await new Promise(r => setTimeout(r, 600));
   const spread = await p.evaluate(() => { const rows = {}; document.querySelectorAll("article.car").forEach(a => { const v = a.querySelector(".vauc"); if (!v || !a.offsetParent) return; const t = Math.round(a.getBoundingClientRect().top + scrollY); (rows[t] = rows[t] || []).push(Math.round(v.getBoundingClientRect().top + scrollY)); }); return Math.max(0, ...Object.values(rows).filter(r => r.length > 1).map(r => Math.max(...r) - Math.min(...r))); });
   ok(spread > 1, `mutant: with the fixed-height slots and the bottom pin removed the buttons in a row differ (${spread}px), so the row check can see it`); await p.close(); }
+// THE EXPANDED PANEL PRINTS findAnswer.otherLines, NOT THE WHOLE OPTION LIST (Lane E, Oct 30 2026; Lane B's 8c6025fb): a car in a thin mileage band headlines the nearest band, and the panel lists only the options the headline does not state.
+// Every band shape, at 1440 and 390, rendered through the real Find page and its panel. (scripts/nearBandPagesCheck.mjs drives the same rule over the engine's own answers.)
+{
+  const L = { lt: "Under 50,000 miles, 4 sales, too few for a range", mid: "50,000 to 100,000 miles $26,000 to $38,000, 9 sales since June 2025", gt: "Over 100,000 miles $20,000 to $30,000, 8 sales since June 2025" };
+  const cases = [
+    { name: "thin own band, near band headlines", all: [L.lt, L.mid, L.gt], other: [L.gt] },
+    { name: "own band headlines, two others", all: [L.lt, L.mid, L.gt], other: [L.lt, L.gt] },
+    { name: "no other options", all: [L.mid], other: [] },
+  ];
+  for (const w of [1440, 390]) for (const c of cases) {
+    const fa = { state: "range", basis: "band_near", range: { low: 26000, high: 38000 }, n: 9, lines: ["Few sales under 50,000 miles, so this is the 50,000 to 100,000 mile range."], otherLines: c.other, nearBand: null, pointer: null };
+    const p = await openPanel(b, w, { market: { optionLines: c.all, findAnswer: fa } });
+    const got = await p.evaluate(() => [...document.querySelectorAll(".mcdrawer .md-opt")].map(e => e.textContent.trim()));
+    ok(JSON.stringify(got) === JSON.stringify(c.other), `${w}: ${c.name}: the panel prints findAnswer.otherLines only (${JSON.stringify(got)})`);
+    ok(!got.includes(L.mid) || c.other.includes(L.mid), `${w}: ${c.name}: the panel never restates the headline band`);
+    if (!c.other.length) ok(await p.evaluate(() => !document.querySelector(".mcdrawer .md-opts")), `${w}: ${c.name}: no empty options block`);
+    await p.close();
+  }
+}
 await b.close();
 console.log(`cardLevelCheck: ${fail ? pass + " pass, " + fail + " FAIL" : "all pass (" + pass + ")"}`); process.exit(fail ? 1 : 0);

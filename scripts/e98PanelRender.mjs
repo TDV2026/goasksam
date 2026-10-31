@@ -6,7 +6,7 @@ export const TEN = Array.from({ length: 10 }, (_, k) => ({ id: "s" + k, price: 4
 export async function openPanel(browser, width, opts = {}) {
   const defs = [M3_ROW["2008 BMW M3 Coupe"]], cards = await buildCards(defs), html = await pageHtml("api/buy.js", "/buy", false), p = await browser.newPage(); await p.setViewport({ width, height: 900, deviceScaleFactor: 1 });
   await p.evaluateOnNewDocument(() => { window.gasTrack = () => {}; });
-  const card = { ...cards[0], market: { ...cards[0].market, query: "2008 bmw m3 coupe" } };
+  const card = { ...cards[0], market: { ...cards[0].market, query: "2008 bmw m3 coupe", ...(opts.market || {}) } };
   await p.setRequestInterception(true);
   p.on("request", r => { const u = new URL(r.url());
     if (u.host === "goasksam.com" && r.isNavigationRequest()) return r.respond({ status: 200, contentType: "text/html", body: html });
