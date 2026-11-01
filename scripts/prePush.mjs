@@ -1741,6 +1741,12 @@ try {
   record("engine: a stored row over 24 hours and under 7 days is served and refreshed behind the response, one refresh per row, a few at once (scripts/expiredRowServedCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/vpicErrorCacheCheck.mjs", { encoding: "utf8", timeout: 60000 });
+  record("resolver: a vPIC error is never kept as an empty list (retry after 30 s), a real empty list is (scripts/vpicErrorCacheCheck.mjs)", "PASS", (out.match(/vpicErrorCacheCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("resolver: a vPIC error is never kept as an empty list (retry after 30 s), a real empty list is (scripts/vpicErrorCacheCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/exactYearParallelCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("engine: a car with a trim reads its exact-year line beside the first answer, not after it (scripts/exactYearParallelCheck.mjs)", "PASS", (out.match(/exactYearParallelCheck: .*/) || [""])[0]);
 } catch (e) {
