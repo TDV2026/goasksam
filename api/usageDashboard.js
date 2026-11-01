@@ -2082,6 +2082,54 @@ async function handleOps(req, res) {
   }
   // task=warmwhy (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, WRITES NOTHING): why a warm text stores nothing. ?list=a|b|c (up to 8 texts a call). Each text is run the way warmDemo runs it (resolve, generation, the whole engine at asked 0) and the response says what the warm
   // would do: the tier, a question (stores only its eligibility), a result the store guard rejects (the rule named, with poolN and the rawPool length), a refusal or not_tracked, unresolved (no make), or an answer it would store; and the stored row's state today (none, older stamp, earlier epoch, fresh).
+  // task=resolvestages (Lane B, Oct 31 2026; READ-ONLY, zero OldCarsData, zero writes): where a first read of a car spends its resolve. ?list=a|b|c (max 8). For each text: every outside call the resolve and the generation lookup make
+  // (table or service, ms, bytes), in order, so a table this instance already holds shows as no call. "direct" times each table the resolver loads, read fresh, with its row count and size, which is what an instance with nothing loaded pays.
+  if (task === "resolvestages") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle } = await import("../lib/vehicle.js"); const { findGeneration } = await import("../lib/generations.js");
+    const list = String(req.query?.list || "").split("|").map(x => x.trim()).filter(Boolean).slice(0, 8), rows = [];
+    const what = u => { u = String(u); const m = /\/rest\/v1\/([a-z_]+)/.exec(u); if (m) return m[1]; if (/vpic\.nhtsa/.test(u)) return "vpic " + (/\/(\w+)\//.exec(u.split("vehicles/")[1] || "") || [])[1]; if (/oldcarsdata/.test(u)) return "ocd"; return u.slice(0, 60); };
+    const realFetch = globalThis.fetch; let calls = null;
+    globalThis.fetch = async (u, o) => { const t = Date.now(), r = await realFetch(u, o); if (calls) { let bytes = null; try { bytes = (await r.clone().text()).length; } catch (e) {} calls.push({ call: what(u), ms: Date.now() - t, bytes }); } return r; };
+    try {
+      const direct = [];
+      for (const [name, q] of [["taxonomy_makes", "taxonomy_makes?select=name&limit=2000"], ["taxonomy_aliases", "taxonomy_aliases?select=alias,make,model,trim,confirm&limit=5000"], ["taxonomy_models (Porsche)", "taxonomy_models?make_slug=eq.porsche&select=name,year_ranges&limit=2000"], ["taxonomy_models (Ford)", "taxonomy_models?make_slug=eq.ford&select=name,year_ranges&limit=2000"], ["taxonomy_generations", "taxonomy_generations?select=make,model,generation_code,year_start,year_end&limit=2000"], ["fx_rates", "fx_rates?select=currency,month,usd_per_unit&order=currency.asc,month.asc&limit=1000"]]) {
+        const t = Date.now(), r = await supabaseSelect(env, q); direct.push({ table: name, ms: Date.now() - t, rows: Array.isArray(r) ? r.length : null, bytes: Array.isArray(r) ? JSON.stringify(r).length : null });
+      }
+      for (const q of list) {
+        const row = { q, calls: [] }; calls = row.calls;
+        try {
+          const t0 = Date.now(), rv = await resolveVehicle(q, {}); row.resolveMs = Date.now() - t0;
+          const t1 = Date.now(); await findGeneration((rv && rv.vehicle) || {}, env).catch(() => null); row.generationMs = Date.now() - t1;
+        } catch (e) { row.error = String(e && e.message || e).slice(0, 100); }
+        calls = null; rows.push(row);
+      }
+      return res.status(200).json({ task: "resolvestages", ocdSpend: 0, writes: 0, direct, rows });
+    } finally { globalThis.fetch = realFetch; }
+  }
+  // task=foreigncars (Lane B, Oct 31 2026; READ-ONLY, zero OldCarsData, zero writes): the cars whose sales in the archive were listed in pounds or euros (raw_record currency), newest first, grouped by year make model with the sale countries, so a check can compare a stored read of them.
+  if (task === "foreigncars") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const n = Math.min(6000, Number(req.query?.n) || 3000), cur = String(req.query?.cur || "GBP,EUR").split(",").map(x => x.trim().toUpperCase()).filter(x => /^[A-Z]{3}$/.test(x));
+    const rows = await supabaseSelect(env, `sales_archive?select=listing_title,platform,year,make,model,currency:raw_record->>currency,cc:raw_record->>country_code,sale_date:auction_end_date&raw_record->>currency=in.(${cur.join(",")})&sale_price=not.is.null&order=auction_end_date.desc&limit=${n}`);
+    const g = new Map();
+    for (const r of (Array.isArray(rows) ? rows : [])) { const k = [r.year, r.make, r.model].join(" "); const e = g.get(k) || { car: k, sales: 0, currencies: {}, countries: {}, platforms: {}, latest: r.sale_date }; e.sales++; e.currencies[r.currency] = (e.currencies[r.currency] || 0) + 1; e.countries[r.cc || "?"] = (e.countries[r.cc || "?"] || 0) + 1; e.platforms[r.platform] = (e.platforms[r.platform] || 0) + 1; g.set(k, e); }
+    const cars = [...g.values()].sort((a, b) => b.sales - a.sales).slice(0, 40);
+    const all = {}; for (const r of (Array.isArray(rows) ? rows : [])) all[r.cc || "?"] = (all[r.cc || "?"] || 0) + 1;
+    return res.status(200).json({ task: "foreigncars", ocdSpend: 0, writes: 0, scanned: Array.isArray(rows) ? rows.length : null, countries: all, cars });
+  }
+  // task=chipcase (Lane B, Oct 31 2026; READ-ONLY, zero OldCarsData, zero writes): the model and family values in the sales archive that carry no capital (the way "m8" arrived), per make, with the label the one chip rule (lib/chipLabel.js) prints for each. ?makes=BMW|Porsche|... (max 20, default the 12 busiest).
+  if (task === "chipcase") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { chipLabel } = await import("../lib/chipLabel.js");
+    const makes = (req.query?.makes ? String(req.query.makes).split("|") : ["BMW", "Porsche", "Mercedes-Benz", "Ford", "Chevrolet", "Audi", "Jaguar", "Ferrari", "Toyota", "Nissan", "Dodge", "Volkswagen"]).map(x => x.trim()).filter(Boolean).slice(0, 20), out = [];
+    for (const mk of makes) {
+      const rows = await supabaseSelectAll(env, `sales_archive?select=model,model_family&make=ilike.${encodeURIComponent(mk)}&model=not.is.null&order=model.asc`);
+      const seen = new Map(); for (const r of (Array.isArray(rows) ? rows : [])) for (const v of [r.model, r.model_family]) { const t = String(v || "").trim(); if (t && chipLabel(t) !== t) seen.set(t, (seen.get(t) || 0) + 1); }
+      out.push({ make: mk, rows: Array.isArray(rows) ? rows.length : null, changed: [...seen.entries()].sort((a, b) => b[1] - a[1]).slice(0, 40).map(([from, n]) => ({ from, to: chipLabel(from), n })) });
+    }
+    return res.status(200).json({ task: "chipcase", ocdSpend: 0, writes: 0, makes: out });
+  }
   if (task === "warmwhy") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle } = await import("../lib/vehicle.js"); const { findGeneration } = await import("../lib/generations.js"); const { oneEngineAnswer } = await import("../lib/onebox.js");
@@ -2095,7 +2143,7 @@ async function handleOps(req, res) {
         const generation = await findGeneration(vehicle, env).catch(() => null), key = warmAnswerKeyFor(vehicle, generation);
         const st = await readWarmAnswerDetailed(env, key).catch(() => null); row.stored = st ? (st.raw ? (st.stale ? "stale: " + st.reason : "fresh") : "none: " + st.reason) : "unread";
         try { const rr = await supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent(key)}&select=computed_at,market`), r0 = rr && rr[0]; if (r0) { row.storedAt = r0.computed_at; row.ageHours = Math.round((Date.now() - Date.parse(r0.computed_at)) / 36e5 * 10) / 10; row.storedStamp = r0.market && r0.market.engineVersion || null; row.storedEpoch = r0.market && r0.market.warmEpoch || null; row.questionTag = r0.market && r0.market.raw && r0.market.raw.questionRulesTag || null; } } catch { /* diagnostics only */ }   // when the row was written and under which stamp
-        const sink = []; const d = (await oneEngineAnswer(vehicle, generation, q, { ...env, asked: 0, stageSink: sink }, null)).raw; row.tier = d && d.tier || null; row.stagesMs = Object.fromEntries(sink);   // the cold compute's stages in milliseconds (engine, trim_chips, question_rule, sell_fields, ...)
+        const sink = []; const d = (await oneEngineAnswer(vehicle, generation, q, { ...env, asked: 0, stageSink: sink }, null)).raw; row.tier = d && d.tier || null; row.stagesMs = Object.fromEntries(sink); row.archiveReads = ((d && d.dedup && d.dedup.fetches) || []).map(f => ({ title: f.titleContains || null, years: [f.yearMin ?? null, f.yearMax ?? null], since: f.since || null, rows: f.raw, ms: f.ms, skipped: f.skipped || undefined })).slice(0, 12);   // Oct 31: the archive reads inside the engine stage, one per query   // the cold compute's stages in milliseconds (engine, trim_chips, question_rule, sell_fields, ...)
         if (!d || !d.tier) row.would = "engine returned no tier";
         else if (/_choice$/.test(String(d.tier))) row.would = "question: stores only the question's eligibility, no answer row (by design)";
         else if (!/^(result|thin|refusal|not_tracked)$/.test(String(d.tier))) row.would = "not stored: tier " + d.tier;

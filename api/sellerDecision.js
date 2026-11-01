@@ -3,6 +3,7 @@ import { isNum } from "../lib/_num.js";
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { countNoun } from "../lib/countNoun.js";
 import { unusedFieldsFor } from "../lib/live/unusedWords.js";
+import { tryRefresh } from "../lib/refreshGate.js";
 import { resolveVehicle, sanitizeResolvedVehicle, primeResolver } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
 import { mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, priceBandForVehicle, listSalesForVehicle, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
@@ -2881,7 +2882,7 @@ async function handler(req, res) {
   // bounded (FX_WAIT_MS, 6 s): this read ran before every deadline and, on a stalled connection, held the request to
   // Vercel's 60 s kill. On a stall the load keeps going in the background and arms the instance for the next request;
   // this request converts on the static table, as every request did before dated FX existed.
-  if (req.body?.oneBox && !req.body?.oneBoxProof) primeResolver({ supabaseUrl, supabaseKey }, { needNames: !(req.body?.car && typeof req.body.car === "object" && req.body.car.vehicle) });   // cold resolver: the name and generation tables load beside the exchange rates, not after them
+  if (req.body?.oneBox && !req.body?.oneBoxProof) primeResolver({ supabaseUrl, supabaseKey }, { needNames: !(req.body?.car && typeof req.body.car === "object" && req.body.car.vehicle), text: req.body?.car?.raw || req.body?.search || req.body?.query || "" });   // cold resolver: the name and generation tables load beside the exchange rates, not after them
   // Lane B, Oct 31 2026 (cold resolver): a Market Check read that is only looking up a STORED answer converts nothing, so it starts the load and does not wait for it; every live compute waits for it
   // itself (oneEngineAnswer and runOneBox open with ensureFxReady). Every other request waits here as before.
   const fxLoad = ensureFxReady({ supabaseUrl, supabaseKey });
@@ -3803,8 +3804,11 @@ async function handler(req, res) {
             }
           } catch (e) { console.error(`stale recompute failed: ${(e && e.message) || e}`); }
         };
-        if (waitUntil) { obTimes.recompute = "waitUntil"; waitUntil(recomputeNow()); }
-        else obTimes.recompute = "none_live_on_next_visit";
+        // ONE REFRESH PER ROW, A FEW AT ONCE (Nov 1 2026, lib/refreshGate.js): a marker younger than 90 s means a refresh is already running (this or another instance); this instance runs at most REFRESH_CAP at once.
+        // A refused row is served as stored and tried again on its next read.
+        if (!waitUntil) obTimes.recompute = "none_live_on_next_visit";
+        else if (staleInfo.recomputingSince && (Date.now() - Date.parse(staleInfo.recomputingSince)) <= 90000) obTimes.recompute = "running_elsewhere";
+        else { const g = tryRefresh(warmKey, recomputeNow); obTimes.recompute = g.state === "started" ? "waitUntil" : g.state; if (g.promise) waitUntil(g.promise); }
       }
       const timings = { ...obTimes, warmHit, stale: !!staleInfo, totalMs: Date.now() - reqStart, dbBytes: supabaseBytesSoFar() - obTimes.dbBytes0, marks: dd && Array.isArray(dd.marks) ? dd.marks : null, fetchMs: dd && Array.isArray(dd.fetches) ? dd.fetches.map(f => Number(f.ms) || 0) : null };
       // the words Sam did not use in this search (lib/live/unusedWords.js): the engine names them, the page prints the line
