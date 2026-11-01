@@ -10,8 +10,8 @@ let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 // Titles and descriptions that were already over the limit on Nov 1 2026 when the rule began. Each is named with its length so it cannot grow; shorten one and take it off this list.
 // A new title or description over the limit, and any of these getting longer, fails.
-const KNOWN_LONG = { "home.TITLE": 80, "find.TITLE": 63 };
-const KNOWN_LONG_DESC = { "home.DESC": 165, "about.DESC": 160 };
+const KNOWN_LONG = {};
+const KNOWN_LONG_DESC = {};
 import { RULES, SELLING_RULES, competitorIn } from "./copyRules.mjs";
 const leaves = (v, k, out = []) => { if (typeof v === "string") out.push([k, v]); else if (Array.isArray(v)) { if (!v.length) out.push([k, null]); v.forEach((x, i) => leaves(x, k + "[" + i + "]", out)); } else if (v && typeof v === "object") { const e = Object.entries(v); if (!e.length) out.push([k, null]); for (const [a, b] of e) leaves(b, k ? k + "." + a : a, out); } else out.push([k, v]); return out; };
 let data = null;
@@ -40,10 +40,15 @@ if (data) {
     for (const [name, html] of Object.entries(pages)) {
       const t = (/<title>([^<]*)<\/title>/.exec(html) || [])[1], d = (/<meta name="description" content="([^"]*)"/.exec(html) || [])[1];
       ok(t != null && t.length > 0, `the ${name} page has no title`);
+      // the page serves exactly what the file says (the file is the one source of the words)
+      const g = { home: "home", find: "find", about: "about", "how-sam-decides": "howSamDecides", "whats-new": "whatsNew", feedback: "feedback", "market-check": "marketCheck", sell: "sell" }[name];
+      const un = x => (x || "").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+      if (g && data[g] && data[g].TITLE !== undefined) ok(un(t) === data[g].TITLE, `the ${name} page serves the title "${un(t)}" but data/copy.json ${g}.TITLE says "${data[g].TITLE}".`);
+      if (g && data[g] && data[g].DESC !== undefined) ok(un(d) === data[g].DESC, `the ${name} page serves the description "${un(d)}" but data/copy.json ${g}.DESC says "${data[g].DESC}".`);
       for (const [re, why] of SELLING_RULES) { ok(!re.test(t || ""), `the ${name} page title ${why}`); ok(!re.test(d || ""), `the ${name} page meta description ${why}`); }
       const tk = { home: "home.TITLE", find: "find.TITLE" }[name], dk = { home: "home.DESC", about: "about.DESC" }[name];
-      ok(t == null || t.length <= (tk ? KNOWN_LONG[tk] : 59), `the ${name} page title is ${t && t.length} characters; titles must be under 60.`);
-      ok(d == null || d.replace(/&[a-z#0-9]+;/g, "x").length <= (dk ? KNOWN_LONG_DESC[dk] : 159), `the ${name} page meta description is ${d && d.length} characters; descriptions must be under 160.`);
+      ok(t == null || t.length <= (KNOWN_LONG[tk] || 59), `the ${name} page title is ${t && t.length} characters; titles must be under 60.`);
+      ok(d == null || d.replace(/&[a-z#0-9]+;/g, "x").length <= (KNOWN_LONG_DESC[dk] || 159), `the ${name} page meta description is ${d && d.length} characters; descriptions must be under 160.`);
     }
   }
 }

@@ -1,5 +1,5 @@
 // COPYPROPOSALSCHECK (Lane E, Nov 1 2026): guards docs/copy-proposals.md, the proposed shorter lines for titles and descriptions that were over length when copyCheck began.
-// It fails when: a Current line no longer matches data/copy.json (the doc is stale), a stated count is wrong, a Proposed line breaks a copy rule or the length rule,
+// It fails when: data/copy.json says neither the Current nor the Proposed line (the doc is stale; once applied the file equals Proposed), a stated count is wrong, a Proposed line breaks a copy rule or the length rule,
 // or a line still on copyCheck's allowance list has no proposal here (the class: any over-length title or description must come with a fitting replacement).
 //   node scripts/copyProposalsCheck.mjs [doc.md] [copy.json]   exit 1 on any failure.
 import fs from "node:fs";
@@ -25,7 +25,8 @@ for (const k of keys) {
   ok(cur && pro, `${k}: needs a "Current (n):" line and a "Proposed (n):" line.`);
   if (!cur || !pro) continue;
   ok(live !== undefined, `${k} is not a line in data/copy.json.`);
-  ok(cur.text === live, `${k}: the Current line is not what data/copy.json says now. The file changed after the proposal was written. Rewrite the proposal.`);
+  // pending: the file still says Current. applied: the file says Proposed exactly. Anything else means the file changed after the proposal was written.
+  ok(live === cur.text || live === pro.text, `${k}: data/copy.json says neither the Current nor the Proposed line. The file changed after the proposal was written. Rewrite the proposal.`);
   ok(cur.n === cur.text.length, `${k}: Current says ${cur.n} characters but it is ${cur.text.length}.`);
   ok(pro.n === pro.text.length, `${k}: Proposed says ${pro.n} characters but it is ${pro.text.length}.`);
   ok(pro.text.length <= lim, `${k}: the proposal is ${pro.text.length} characters; ${last === "TITLE" ? "titles" : "descriptions"} must be under ${lim + 1}.`);

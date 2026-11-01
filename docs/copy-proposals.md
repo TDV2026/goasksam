@@ -1,6 +1,6 @@
 # Copy length proposals (Lane E, Sunday Nov 1 2026)
 
-Four lines in `data/copy.json` are over the length rule. Nothing here is applied: `data/copy.json` is unchanged and nothing is pushed. Sam or a developer pastes the "Proposed" text into the file, then deletes the matching entry from the allowance list in `scripts/copyCheck.mjs` (`KNOWN_LONG`, `KNOWN_LONG_DESC`).
+Four lines in `data/copy.json` are over the length rule. APPLIED Nov 1 2026: all four Proposed lines are now in `data/copy.json` exactly as written, and the allowance lists in `scripts/copyCheck.mjs` (`KNOWN_LONG`, `KNOWN_LONG_DESC`) are empty. The Current lines are kept as the record of what was replaced.
 
 The rule is a title under 60 characters and a description under 160. The allowances (80, 63, 165, 160) are the lengths the lines had on Nov 1, so each proposal below fits the real rule, which also fits the allowance.
 

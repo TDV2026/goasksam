@@ -1,7 +1,7 @@
 {
   "about": {
     "TITLE": "About GoAskSam",
-    "DESC": "GoAskSam reads real auction sales to show what cars are bringing, find live cars that fit, and tell you where to sell. Built by the team behind The Daily Vroom.",
+    "DESC": "GoAskSam reads real auction sales to show what cars are bringing, find live cars that fit, and say where to sell. Built by the team behind The Daily Vroom.",
     "WHAT": "GoAskSam is market intelligence for enthusiast cars, built on real auction sales. Every answer starts with a car that actually sold, on a date, for a price. Sam matches your car to those sales and tells you what they add up to. If the sales are not there, Sam says so instead of guessing.",
     "PRODUCTS": [
       [
@@ -117,8 +117,8 @@
     "FOOT_AFTER": "."
   },
   "home": {
-    "TITLE": "GoAskSam | Find enthusiast cars at auction, check what they sell for, sell yours",
-    "DESC": "Tell Sam what you want and search live enthusiast car auctions in your own words, see what similar cars have actually sold for, and find where and how to sell yours.",
+    "TITLE": "GoAskSam | Find enthusiast cars, see what sold, sell yours",
+    "DESC": "Tell Sam what you want, search live enthusiast car auctions in your own words, see what similar cars sold for, and find where and how to sell yours.",
     "START_TITLE": "Find the car you're looking for.",
     "START_SUB": "Tell Sam what you want. Search live enthusiast car auctions in your own words.",
     "START_LABEL": "Describe the car you want",
@@ -155,7 +155,7 @@
     "FOOT_FEEDBACK": "Feedback"
   },
   "find": {
-    "TITLE": "Find enthusiast cars at auction, by what they actually sell for",
+    "TITLE": "Find enthusiast cars at auction, by what they sell for",
     "DESC_TAIL": "Each car is shown with what cars like it have actually sold for."
   }
 }
