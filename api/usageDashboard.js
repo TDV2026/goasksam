@@ -1619,7 +1619,7 @@ async function handleOps(req, res) {
       for (const r of rows) {
         out.stored.rows++;
         const yr = Number(r.y) || (Array.isArray(r.py) ? Number(r.py[0]) : 0), pre = yr > 0 && yr <= 1948, cb = Array.isArray(r.bo) && r.bo.some(b => b && /phaeton|speedster|victoria|town car|convertible sedan|tourer/i.test(String(b.label || b.value || "")));
-        if (pre) out.stored.preWar++; if (cb) out.stored.withClassicBodyOption++; if (pre || cb) { out.stored.either++; if (out.stored.examples.length < 30) out.stored.examples.push(`${yr || "?"} ${r.mk || ""} ${r.md || ""}`.trim()); }
+        if (pre) out.stored.preWar++; if (cb) out.stored.withClassicBodyOption++; if (pre || cb) { out.stored.either++; if (out.stored.examples.length < (req.query?.list ? 5000 : 30)) out.stored.examples.push(`${yr || "?"} ${r.mk || ""} ${r.md || ""}`.trim()); }
       }
       cursor = rows[rows.length - 1].spec_key; if (rows.length < 1000) { cursor = null; break; }
     }
