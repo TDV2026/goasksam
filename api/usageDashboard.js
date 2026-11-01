@@ -2082,6 +2082,31 @@ async function handleOps(req, res) {
   }
   // task=warmwhy (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, WRITES NOTHING): why a warm text stores nothing. ?list=a|b|c (up to 8 texts a call). Each text is run the way warmDemo runs it (resolve, generation, the whole engine at asked 0) and the response says what the warm
   // would do: the tier, a question (stores only its eligibility), a result the store guard rejects (the rule named, with poolN and the rawPool length), a refusal or not_tracked, unresolved (no make), or an answer it would store; and the stored row's state today (none, older stamp, earlier epoch, fresh).
+  // task=resolvestages (Lane B, Oct 31 2026; READ-ONLY, zero OldCarsData, zero writes): where a first read of a car spends its resolve. ?list=a|b|c (max 8). For each text: every outside call the resolve and the generation lookup make
+  // (table or service, ms, bytes), in order, so a table this instance already holds shows as no call. "direct" times each table the resolver loads, read fresh, with its row count and size, which is what an instance with nothing loaded pays.
+  if (task === "resolvestages") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle } = await import("../lib/vehicle.js"); const { findGeneration } = await import("../lib/generations.js");
+    const list = String(req.query?.list || "").split("|").map(x => x.trim()).filter(Boolean).slice(0, 8), rows = [];
+    const what = u => { u = String(u); const m = /\/rest\/v1\/([a-z_]+)/.exec(u); if (m) return m[1]; if (/vpic\.nhtsa/.test(u)) return "vpic " + (/\/(\w+)\//.exec(u.split("vehicles/")[1] || "") || [])[1]; if (/oldcarsdata/.test(u)) return "ocd"; return u.slice(0, 60); };
+    const realFetch = globalThis.fetch; let calls = null;
+    globalThis.fetch = async (u, o) => { const t = Date.now(), r = await realFetch(u, o); if (calls) { let bytes = null; try { bytes = (await r.clone().text()).length; } catch (e) {} calls.push({ call: what(u), ms: Date.now() - t, bytes }); } return r; };
+    try {
+      const direct = [];
+      for (const [name, q] of [["taxonomy_makes", "taxonomy_makes?select=name&limit=2000"], ["taxonomy_aliases", "taxonomy_aliases?select=alias,make,model,trim,confirm&limit=5000"], ["taxonomy_models (Porsche)", "taxonomy_models?make_slug=eq.porsche&select=name,year_ranges&limit=2000"], ["taxonomy_models (Ford)", "taxonomy_models?make_slug=eq.ford&select=name,year_ranges&limit=2000"], ["taxonomy_generations", "taxonomy_generations?select=make,model,generation_code,year_start,year_end&limit=2000"], ["fx_rates", "fx_rates?select=currency,month,usd_per_unit&order=currency.asc,month.asc&limit=1000"]]) {
+        const t = Date.now(), r = await supabaseSelect(env, q); direct.push({ table: name, ms: Date.now() - t, rows: Array.isArray(r) ? r.length : null, bytes: Array.isArray(r) ? JSON.stringify(r).length : null });
+      }
+      for (const q of list) {
+        const row = { q, calls: [] }; calls = row.calls;
+        try {
+          const t0 = Date.now(), rv = await resolveVehicle(q, {}); row.resolveMs = Date.now() - t0;
+          const t1 = Date.now(); await findGeneration((rv && rv.vehicle) || {}, env).catch(() => null); row.generationMs = Date.now() - t1;
+        } catch (e) { row.error = String(e && e.message || e).slice(0, 100); }
+        calls = null; rows.push(row);
+      }
+      return res.status(200).json({ task: "resolvestages", ocdSpend: 0, writes: 0, direct, rows });
+    } finally { globalThis.fetch = realFetch; }
+  }
   if (task === "warmwhy") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle } = await import("../lib/vehicle.js"); const { findGeneration } = await import("../lib/generations.js"); const { oneEngineAnswer } = await import("../lib/onebox.js");

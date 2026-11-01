@@ -2881,7 +2881,7 @@ async function handler(req, res) {
   // bounded (FX_WAIT_MS, 6 s): this read ran before every deadline and, on a stalled connection, held the request to
   // Vercel's 60 s kill. On a stall the load keeps going in the background and arms the instance for the next request;
   // this request converts on the static table, as every request did before dated FX existed.
-  if (req.body?.oneBox && !req.body?.oneBoxProof) primeResolver({ supabaseUrl, supabaseKey }, { needNames: !(req.body?.car && typeof req.body.car === "object" && req.body.car.vehicle) });   // cold resolver: the name and generation tables load beside the exchange rates, not after them
+  if (req.body?.oneBox && !req.body?.oneBoxProof) primeResolver({ supabaseUrl, supabaseKey }, { needNames: !(req.body?.car && typeof req.body.car === "object" && req.body.car.vehicle), text: req.body?.car?.raw || req.body?.search || req.body?.query || "" });   // cold resolver: the name and generation tables load beside the exchange rates, not after them
   // Lane B, Oct 31 2026 (cold resolver): a Market Check read that is only looking up a STORED answer converts nothing, so it starts the load and does not wait for it; every live compute waits for it
   // itself (oneEngineAnswer and runOneBox open with ensureFxReady). Every other request waits here as before.
   const fxLoad = ensureFxReady({ supabaseUrl, supabaseKey });
