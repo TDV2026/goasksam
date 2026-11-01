@@ -2110,25 +2110,20 @@ async function handleOps(req, res) {
   // task=foreigncars (Lane B, Oct 31 2026; READ-ONLY, zero OldCarsData, zero writes): the cars whose sales in the archive were listed in pounds or euros (raw_record currency), newest first, grouped by year make model with the sale countries, so a check can compare a stored read of them.
   if (task === "foreigncars") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const n = Math.min(6000, Number(req.query?.n) || 3000), cur = String(req.query?.cur || "GBP,EUR").split(",").map(x => x.trim().toUpperCase()).filter(x => /^[A-Z]{3}$/.test(x));
-    const rows = await supabaseSelect(env, `sales_archive?select=listing_title,platform,year,make,model,currency:raw_record->>currency,cc:raw_record->>country_code,sale_date:auction_end_date&raw_record->>currency=in.(${cur.join(",")})&sale_price=not.is.null&order=auction_end_date.desc&limit=${n}`);
-    const g = new Map();
-    for (const r of (Array.isArray(rows) ? rows : [])) { const k = [r.year, r.make, r.model].join(" "); const e = g.get(k) || { car: k, sales: 0, currencies: {}, countries: {}, platforms: {}, latest: r.sale_date }; e.sales++; e.currencies[r.currency] = (e.currencies[r.currency] || 0) + 1; e.countries[r.cc || "?"] = (e.countries[r.cc || "?"] || 0) + 1; e.platforms[r.platform] = (e.platforms[r.platform] || 0) + 1; g.set(k, e); }
-    const cars = [...g.values()].sort((a, b) => b.sales - a.sales).slice(0, 40);
-    const all = {}; for (const r of (Array.isArray(rows) ? rows : [])) all[r.cc || "?"] = (all[r.cc || "?"] || 0) + 1;
-    return res.status(200).json({ task: "foreigncars", ocdSpend: 0, writes: 0, scanned: Array.isArray(rows) ? rows.length : null, countries: all, cars });
-  }
-  // task=chipcase (Lane B, Oct 31 2026; READ-ONLY, zero OldCarsData, zero writes): the model and family values in the sales archive that carry no capital (the way "m8" arrived), per make, with the label the one chip rule (lib/chipLabel.js) prints for each. ?makes=BMW|Porsche|... (max 20, default the 12 busiest).
-  if (task === "chipcase") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { chipLabel } = await import("../lib/chipLabel.js");
-    const makes = (req.query?.makes ? String(req.query.makes).split("|") : ["BMW", "Porsche", "Mercedes-Benz", "Ford", "Chevrolet", "Audi", "Jaguar", "Ferrari", "Toyota", "Nissan", "Dodge", "Volkswagen"]).map(x => x.trim()).filter(Boolean).slice(0, 20), out = [];
-    for (const mk of makes) {
-      const rows = await supabaseSelectAll(env, `sales_archive?select=model,model_family&make=ilike.${encodeURIComponent(mk)}&model=not.is.null&order=model.asc`);
-      const seen = new Map(); for (const r of (Array.isArray(rows) ? rows : [])) for (const v of [r.model, r.model_family]) { const t = String(v || "").trim(); if (t && chipLabel(t) !== t) seen.set(t, (seen.get(t) || 0) + 1); }
-      out.push({ make: mk, rows: Array.isArray(rows) ? rows.length : null, changed: [...seen.entries()].sort((a, b) => b[1] - a[1]).slice(0, 40).map(([from, n]) => ({ from, to: chipLabel(from), n })) });
+    // Nov 1 2026: bounded pages, newest first by the indexed sale_date column (the first version sorted on a column that does not exist, auction_end_date, and filtered on a raw_record field, so it returned nothing). The currency is read from the row and filtered here; nothing is sorted or filtered on raw_record.
+    const pages = Math.max(1, Math.min(30, Number(req.query?.pages) || 8)), size = 1000, want = new Set(String(req.query?.cur || "GBP,EUR").split(",").map(x => x.trim().toUpperCase()).filter(x => /^[A-Z]{3}$/.test(x)));
+    const g = new Map(), all = {}; let scanned = 0, before = null, failedPage = null;
+    for (let pg = 0; pg < pages; pg++) {
+      const q = `sales_archive?select=sale_date,listing_title,platform,year,make,model,currency,rcur:raw_record->>currency,cc:raw_record->>country_code&sale_price=not.is.null${before ? `&sale_date=lt.${before}` : ""}&order=sale_date.desc&limit=${size}`;
+      const rows = await supabaseSelect(env, q);
+      if (!Array.isArray(rows)) { failedPage = pg; break; }
+      if (!rows.length) break;
+      scanned += rows.length; before = rows[rows.length - 1].sale_date;
+      for (const r of rows) { const cur = String(r.currency || r.rcur || "").toUpperCase(); if (!want.has(cur)) continue; const k = [r.year, r.make, r.model].join(" "); const e = g.get(k) || { car: k, sales: 0, currencies: {}, countries: {}, platforms: {}, latest: r.sale_date }; e.sales++; e.currencies[cur] = (e.currencies[cur] || 0) + 1; e.countries[r.cc || "?"] = (e.countries[r.cc || "?"] || 0) + 1; e.platforms[r.platform] = (e.platforms[r.platform] || 0) + 1; g.set(k, e); all[r.cc || "?"] = (all[r.cc || "?"] || 0) + 1; }
+      if (rows.length < size) break;
     }
-    return res.status(200).json({ task: "chipcase", ocdSpend: 0, writes: 0, makes: out });
+    const cars = [...g.values()].sort((a, b) => b.sales - a.sales).slice(0, 40);
+    return res.status(200).json({ task: "foreigncars", ocdSpend: 0, writes: 0, pages, scanned, oldestScanned: before, failedPage, matched: Object.values(all).reduce((t, x) => t + x, 0), countries: all, cars });
   }
   if (task === "warmwhy") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
@@ -5876,7 +5871,7 @@ if (task === "optiondetail") {
     const { resolveVehicle } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
     const { ENGINE_VERSION } = await import("../lib/onebox.js");
-    const { warmAnswerKeyFor, readWarmAnswerDetailed } = await import("../lib/live/search.js");
+    const { warmAnswerKeyFor, readWarmAnswerDetailed, questionRowKey, readQuestionRow } = await import("../lib/live/search.js");
     const { utcDayOf } = await import("../lib/warmDay.js");
     const fs = await import("node:fs");
     let named = [], golden = [];
@@ -5897,7 +5892,9 @@ if (task === "optiondetail") {
         const generation = await findGeneration(vehicle, env).catch(() => null);
         const st = await readWarmAnswerDetailed(env, warmAnswerKeyFor(vehicle, generation));
         row.reason = st && st.reason || null;
-        if (!(st && st.raw)) { row.hit = false; row.note = st && st.reason === "engine_version_mismatch" ? "stored under an older engine stamp" : "no answer row (a question-first spec stores none; its first read is the question)"; out.noRow++; }
+        const qr = !(st && st.raw) ? await readQuestionRow(env, questionRowKey(warmAnswerKeyFor(vehicle, generation), q)).catch(() => null) : null;
+        if (qr && qr.raw) { row.tier = qr.raw.tier; row.question = true; row.storedAt = qr.storedAt; row.stale = !!qr.stale; row.hit = !qr.stale; row.note = "stored question row (a question-first spec stores no answer row)"; if (qr.stale) out.stale++; else out.hit++; }
+        else if (!(st && st.raw)) { row.hit = false; row.note = st && st.reason === "engine_version_mismatch" ? "stored under an older engine stamp" : "no answer row and no stored question (a question-first spec's first read is the question)"; out.noRow++; }
         else {
           row.storedAt = st.storedAt; row.storedDay = utcDayOf(st.storedAt); row.stale = !!st.stale; row.tier = st.raw.tier;
           // e96 fields exist on a ranged answer (tier result with a cluster); a thin, refusal or other tier never carries optionsState, so only a ranged row is asked for them
@@ -6075,6 +6072,7 @@ if (task === "optiondetail") {
         if (!d || !d.tier) throw new Error("engine returned no tier");
         row.tier = d.tier; row.readAt = d.readAt || null;
         if (/_choice$/.test(String(d.tier))) row.question = await (await import("../lib/onebox.js")).warmQuestion(d, vehicle, generation, q, env);   // e95: the question's stored eligibility
+        if (/_choice$/.test(String(d.tier))) { const OB = await import("../lib/onebox.js"), SR = await import("../lib/live/search.js"); if (OB.isStorableQuestion(d)) { await SR.writeQuestionRow(env, SR.questionRowKey(SR.warmAnswerKeyFor(vehicle, generation), q), d); row.questionRow = "stored"; } }   // Nov 1: the question itself, so a reader's read of it is one stored read
         if (/^(result|thin|refusal|not_tracked)$/.test(String(d.tier))) { await writeWarmAnswer(env, warmAnswerKeyFor(vehicle, generation), d); row.stored = true; result.warmed++;
           // the car-only Sell block beside the answer (lib/sell/sellBlock.js), from this same answer; never a reason to fail the warm
           { const sb = await (await import("../lib/sell/sellBlock.js")).warmSellBlock(env, q, d, warmAnswerKeyFor(vehicle, generation)); row.sellBlock = sb.stored ? "stored" : sb.why; }
@@ -6226,6 +6224,7 @@ if (task === "optiondetail") {
         if (!d || !d.tier) throw new Error("engine returned no tier");
         row.tier = d.tier;
         if (/_choice$/.test(String(d.tier))) row.question = await (await import("../lib/onebox.js")).warmQuestion(d, vehicle, generation, q, env);   // e95: the question's stored eligibility
+        if (/_choice$/.test(String(d.tier))) { const OB = await import("../lib/onebox.js"), SR = await import("../lib/live/search.js"); if (OB.isStorableQuestion(d)) { await SR.writeQuestionRow(env, SR.questionRowKey(SR.warmAnswerKeyFor(vehicle, generation), q), d); row.questionRow = "stored"; } }   // Nov 1: the question itself
         const key = warmAnswerKeyFor(vehicle, generation);
         await writeWarmAnswer(env, key, d);
         row.key = key;

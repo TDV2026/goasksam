@@ -20,7 +20,8 @@ import { callOldCarsData } from "../lib/_ocd.js";
 import { isTesterRequest } from "../lib/_tester.js";
 import { supabaseBytesSoFar } from "../lib/_supabase.js";
 import { VARIANT_MARKETS } from "../lib/modelRules.js";
-import { BODY_LABEL, isSingerPorsche, withReadFields } from "../lib/onebox.js";
+import { BODY_LABEL, isSingerPorsche, withReadFields, isStorableQuestion } from "../lib/onebox.js";
+import { casedChips } from "../lib/chipLabel.js";
 import { lastUpdatedDate } from "../lib/asOf.js";
 import { vinSearchPlan, applyVinOverlay } from "../lib/vinAsTyped.js";
 // Every variant value a chip may carry (e51): the M-car pair plus each variant market's key and its other side.
@@ -59,7 +60,7 @@ import {
 } from "../lib/_classify.js";
 import { hammerUsd, ensureFxReady } from "../lib/_houseComps.js";
 import { buildSharedAnalysis, isRoutableVenue, ROUTABLE_VENUES, SHORT_AUCTION_VENUES, US_ROUTE_VENUES } from "../lib/platformPick.js";
-import { specKeyFor, coreOf, persistCore, warmAnswerKeyFor, readWarmAnswer, readWarmAnswerDetailed, writeWarmAnswer, answerCacheable, markRecomputing, markComputing, readComputing, clearComputing, COLD_WAIT_MS } from "../lib/live/search.js";
+import { specKeyFor, coreOf, persistCore, warmAnswerKeyFor, readWarmAnswer, readWarmAnswerDetailed, writeWarmAnswer, answerCacheable, markRecomputing, questionRowKey, readQuestionRow, writeQuestionRow, deleteQuestionRow, markComputing, readComputing, clearComputing, COLD_WAIT_MS } from "../lib/live/search.js";
 import { keepAlive } from "../lib/keepAlive.js";
 import { wayOutFor } from "../lib/questionWayOut.js";
 // COLD SPEC WORDS (Sam, Oct 28 2026): the computing answer and the one plain line when the read cannot finish. No page says "try again"; the page keeps asking
@@ -3562,6 +3563,9 @@ async function handler(req, res) {
       // e59: the stored-row read starts here, alongside the car-limit read; the hit is evaluated below in the same order.
       const tWarm0 = Date.now();
       const warmP = (wantsWarm && !recompute) ? readWarmAnswerDetailed({ supabaseUrl, supabaseKey }, warmKey).catch(() => null) : null;
+      // THE QUESTION AS ITS OWN ROW (Nov 1 2026, lib/live/search.js): a text the engine asks about before it answers (which body, generation, trim, model) is read from its stored question, beside the answer row, and wins over it
+      const qKey = wantsWarm ? questionRowKey(warmKey, oneBoxText) : null;
+      const qP = (wantsWarm && !recompute) ? readQuestionRow({ supabaseUrl, supabaseKey }, qKey).catch(() => null) : null;
       if (vehicle && vehicle.make && !obRefine) {
         const carKey = specKeyFor(vehicle, generation, null);
         let carLimit;
@@ -3617,9 +3621,13 @@ async function handler(req, res) {
       let staleInfo = null;   // { storedAt } when a stale stored answer is being served; the recompute is a self-call
       if (wantsWarm && !recompute) {
         try {
-          const w = await obWithin(warmP);
+          const q = qP ? await obWithin(qP) : null;
+          const w = q && q.raw ? null : await obWithin(warmP);
           obTimes.warmReadMs = Date.now() - tWarm0;
-          if (w && w.raw) {
+          if (q && q.raw) {
+            oneBox = casedChips(q.raw); warmHit = true; obTimes.questionRow = true;
+            if (q.stale) staleInfo = { storedAt: q.storedAt, recomputingSince: null, question: true };
+          } else if (w && w.raw) {
             if (w.stale && w.recomputingSince && (Date.now() - Date.parse(w.recomputingSince)) > 90000) {
               // a recompute started over 90 s ago never landed: compute live now (one cold read), never serve stale twice
               console.error(`stale row recompute did not land in 90s (${warmKey.slice(0, 80)}); computing live`);
@@ -3639,6 +3647,7 @@ async function handler(req, res) {
       // finishStore: the one place a computed answer is stored (inline, or after the response by keepAlive)
       const finishStore = async (ans) => {
         const raw = ans && ans.raw;
+        if (wantsWarm && !poolSeed && raw && isStorableQuestion(raw)) { await writeQuestionRow({ supabaseUrl, supabaseKey }, qKey, slimAnswerForWire(raw)).catch(() => {}); return; }   // a question is stored as itself, never as an answer row
         if (wantsWarm && !poolSeed && raw && answerCacheable(raw) && !/_choice$/.test(String(raw.tier || ""))) {   // a recompute self-call lands here too and writes the fresh row
           { const ts = Date.now(); await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, slimAnswerForWire(raw)).catch(() => {}); console.log(JSON.stringify({ tag: "stage_ms", stage: "store", ms: Date.now() - ts, key: String(warmKey).slice(0, 80) })); }
           // the nightly warm's own credentialed call also stores the car-only Sell block beside the answer (lib/sell/sellBlock.js)
@@ -3784,7 +3793,7 @@ async function handler(req, res) {
       // STALE STORED ANSWER (stage 4): served exactly as stored (its counts, range and cards), with the dated line in
       // Sam's exact form; the recompute starts the moment this response is sent (awaited after it, so the function
       // stays alive to finish and write the fresh row), and the line is gone on the next read.
-      const staleFields = staleInfo ? { stale: true, storedAt: staleInfo.storedAt, recomputingSince: staleInfo.recomputingSince || null, staleLine: reasonLine("stale.line", { date: new Date(staleInfo.storedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "America/Los_Angeles" }) }) } : {};
+      const staleFields = staleInfo && !staleInfo.question ? { stale: true, storedAt: staleInfo.storedAt, recomputingSince: staleInfo.recomputingSince || null, staleLine: reasonLine("stale.line", { date: new Date(staleInfo.storedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "America/Los_Angeles" }) }) } : {};
       if (staleInfo) {
         // THE RECOMPUTE RUNS IN THIS PROCESS, after the response, under Vercel's waitUntil (stage 4, Oct 16 2026). An HTTP
         // self-call cannot land: the site's bot protection answers a server-side POST to this endpoint with a challenge
@@ -3798,7 +3807,9 @@ async function handler(req, res) {
           try {
             const fresh = await oneEngineAnswer(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, asked: askedN }, obRefine);
             const fr = fresh && fresh.raw;
-            if (fr && answerCacheable(fr) && !/_choice$/.test(String(fr.tier || ""))) {
+            if (fr && isStorableQuestion(fr)) await writeQuestionRow({ supabaseUrl, supabaseKey }, qKey, slimAnswerForWire(fr));
+            else if (staleInfo.question && fr && !/_choice$/.test(String(fr.tier || ""))) await deleteQuestionRow({ supabaseUrl, supabaseKey }, qKey);   // the engine no longer asks: the stale question is removed
+            if (fr && !isStorableQuestion(fr) && answerCacheable(fr) && !/_choice$/.test(String(fr.tier || ""))) {
               await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, slimAnswerForWire(fr));
               if (fr.tier === "result" && vehicle.model) { const core = coreOf(fr, { v: vehicle, generation, refine: null }); if (core) await persistCore({ supabaseUrl, supabaseKey }, specKeyFor(vehicle, generation, identityRefine), core).catch(() => {}); }
             }
