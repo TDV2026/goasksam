@@ -211,6 +211,66 @@ h2.car-name{font-size:22px;margin:0 0 2px}
   .sbtn{display:none}
   h1,.rail h1{font-size:24px}
 }
+/* ---- view b: the listing form (Sam, Nov 1 2026). A plain marketplace form and one GoAskSam card beside the price fields. */
+#view-b .lf{max-width:1040px;margin:0 auto;padding:36px 0 64px}
+#view-b h1{font-size:28px;line-height:1.2;margin:0 0 10px}
+#view-b h2{font-size:15px;letter-spacing:.02em;text-transform:uppercase;margin:0 0 6px}
+#view-b .lede{max-width:70ch;margin:0 0 22px}
+#view-b .lf-row{display:grid;grid-template-columns:200px 1fr;align-items:center;gap:10px 16px;padding:8px 0}
+#view-b .ctl{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+#view-b input,#view-b select{font:inherit;color:var(--ink);background:#fff;border:1px solid var(--rule);border-radius:8px;padding:10px 12px;min-height:44px}
+#view-b .btn-off{font:inherit;border:0;border-radius:999px;padding:10px 22px;min-height:44px;background:var(--rule);color:var(--ink2);font-weight:600}
+#view-b .lf-or{display:flex;align-items:center;gap:12px;color:var(--ink2);font-size:14px;margin:6px 0}
+#view-b .lf-or::before,#view-b .lf-or::after{content:"";flex:1;border-top:1px solid var(--rule)}
+#view-b .found{margin:12px 0 8px;display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:8px;background:var(--soft);border:1px solid var(--rule);font-weight:600}
+#view-b .found .tick{color:var(--blue)}
+#view-b hr{border:0;border-top:1px solid var(--rule);margin:28px 0}
+#view-b .sub{margin:0 0 20px;font-size:15px}
+#view-b .split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:28px 40px;align-items:start}
+#view-b .fields{display:grid;gap:18px;max-width:460px}
+#view-b .fields[hidden]{display:none}
+#view-b .field label{display:block;font-size:14px;margin-bottom:6px}
+#view-b .field label small{color:var(--ink2)}
+#view-b .field select,#view-b .field input{width:100%}
+#view-b .mny{position:relative}
+#view-b .mny span{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink2)}
+#view-b .mny input{padding-left:26px;font-variant-numeric:tabular-nums}
+#view-b .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+#view-b .hint{font-size:13px;color:var(--ink2);margin-top:6px}
+#view-b .rel{font-size:13px;font-weight:600;margin-top:6px;color:#1F3D2B;min-height:18px}
+#view-b #b-out.sam{background:#F4F1EA;color:#1C2A22;border-radius:14px;padding:22px;position:sticky;top:16px;--sam-ink:#1C2A22;--sam-rule:#DAD5C8;--sam-band:#BFD8C6;--sam-bg:#F4F1EA}
+#view-b #b-out.plain{padding:0}
+#view-b .sam h3{font-size:15px;margin:0 0 2px;font-weight:700}
+#view-b .sam .car{font-size:14px;opacity:.8;margin-bottom:16px}
+#view-b .sam .range{font-weight:700;font-size:34px;line-height:1.1;font-variant-numeric:tabular-nums}
+#view-b .sam .cap{font-size:14px;opacity:.8;margin:4px 0 20px}
+#view-b .bar{position:relative;height:10px;border-radius:999px;background:var(--sam-rule);margin:30px 0 8px}
+#view-b .bar .mid{position:absolute;top:0;bottom:0;background:var(--sam-band);border-radius:999px}
+#view-b .mk{position:absolute;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:var(--sam-ink);color:var(--sam-bg);font-size:12px;font-weight:700;display:grid;place-items:center;border:2px solid var(--sam-bg)}
+#view-b .ends{display:flex;justify-content:space-between;font-size:13px;opacity:.85;font-variant-numeric:tabular-nums}
+#view-b .legend{list-style:none;margin:18px 0 0;padding:14px 0 0;border-top:1px solid var(--sam-rule);display:grid;gap:10px}
+#view-b .legend li{display:flex;gap:10px;align-items:flex-start;font-size:15px}
+#view-b .legend .dot{flex:none;width:22px;height:22px;border-radius:50%;background:var(--sam-ink);color:var(--sam-bg);font-size:12px;font-weight:700;display:grid;place-items:center;margin-top:1px}
+#view-b .legend .empty{font-size:15px;opacity:.85}
+#view-b .sales{margin-top:18px;padding-top:14px;border-top:1px solid var(--sam-rule)}
+#view-b .sales-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+#view-b .sales h4{margin:0;font-size:15px}
+#view-b .tog{display:inline-flex;border:1px solid var(--sam-rule);border-radius:999px;overflow:hidden}
+#view-b .tog button{font:inherit;font-size:13px;background:transparent;color:var(--sam-ink);border:0;padding:6px 12px;min-height:32px;cursor:pointer}
+#view-b .tog button[aria-pressed="true"]{background:var(--sam-ink);color:var(--sam-bg)}
+#view-b .slist{list-style:none;margin:0;padding:0}
+#view-b .slist li{display:grid;gap:2px 12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--sam-rule);font-size:14px}
+#view-b .slist li.has-th{grid-template-columns:72px 1fr auto}
+#view-b .slist li.no-th{grid-template-columns:1fr auto}
+#view-b .slist .th{grid-row:1 / span 2;width:72px;height:54px;border-radius:8px;overflow:hidden;background:var(--sam-rule)}
+#view-b .slist .th img{width:100%;height:100%;object-fit:cover;display:block}
+#view-b .slist li:last-child{border-bottom:0}
+#view-b .slist .d{font-weight:600}
+#view-b .slist .p{font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+#view-b .slist .m{opacity:.85;font-variant-numeric:tabular-nums}
+#view-b#view-b .all{display:inline-block;margin-top:8px;font-size:14px;color:var(--sam-ink)}
+#view-b .foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:20px;padding-top:14px;border-top:1px solid var(--sam-rule);font-size:14px}
+@media (max-width:860px){#view-b .split{grid-template-columns:minmax(0,1fr)}#view-b #b-out.sam{position:static}#view-b .lf-row{grid-template-columns:1fr}#view-b h1{font-size:24px}#view-b .sam .range{font-size:30px}}
 `;
 
 // The client: asks the endpoint, draws each view from its answer. Every figure on screen is the endpoint's.
@@ -314,34 +374,12 @@ const JS = String.raw`
   // A sale's mileage as the engine read it, or the plain words when the listing stated none.
   var milesOf = function(s){ return s && s.miles ? Number(s.miles).toLocaleString("en-US") + " miles" : "Mileage not stated"; };
   var dayLabel = function(d){ var p = String(d || "").split("-"); return p.length === 3 && MON[Number(p[1]) - 1] ? MON[Number(p[1]) - 1].slice(0, 3) + " " + Number(p[2]) + ", " + p[0] : (monthYear(d) || ""); };
-  // The sales table (views a and b): date, mileage, price per row, from the endpoint's own sales (the engine's pool,
-  // never a set-aside row). opts.reserve inserts the one divider row at the reserve (rows sorted by price, high first).
-  // View b's list (Sam, Oct 18 2026): the same rows as the other lists (photo, name, date, mileage, price), highest price
-  // first, with "Your reserve" placed where the reserve falls among the prices; no Show more.
-  function reserveList(rows, opts){
-    opts = opts || {};
-    var body = "", placed = false, r = opts.reserve > 0 ? opts.reserve : null;
-    var line = function(){ return '<div class="res-line">Your reserve ' + usd(r) + "</div>"; };
-    rows.forEach(function(s){
-      if (r != null && !placed && s.price < r) { body += line(); placed = true; }
-      body += saleRow(s, null, opts.keys);
-    });
-    if (r != null && !placed) body += line();
-    return '<div class="slist">' + body + "</div>";
-  }
   var newest = function(a){ return (a && a.sales || []).slice().sort(function(x, y){ return String(y.date || "").localeCompare(String(x.date || "")) || y.price - x.price; }); };
-  // Where a figure sits against the engine's range. The only thing this page works out, and only from that range.
-  // The pill names whose figure it is (Sam, Oct 18 2026): the listing's asking price, or the seller's reserve. Neutral,
-  // no deal words, no advice.
-  function placing(x, a, who){
-    // the engine's position for this price (partnerAnswer positions[], placingFor); the page compares nothing and only words what it is given
-    var key = who === "reserve" ? "reserve" : "item_price", p = ((a && a.positions) || []).filter(function(q){ return q.key === key && q.value === x; })[0];
-    if (!p) return null;   // no entry: the engine could not place it (no range, or no price sent), so no pill
-    var w = who === "reserve" ? "Your reserve is " : "Asking price is ";
-    if (p.place === "below") return { cls: "below", text: w + "below the usual range" };
-    if (p.place === "above") return { cls: "above", text: w + "above the usual range" };
-    return { cls: "in", text: w + "inside the usual range" };
-  }
+  // Where a figure sits against the engine's range is the ENGINE's answer (positions[], Lane B; Sam, Nov 1 2026): the page keeps no comparison of its own. A pill is drawn only from a
+  // position the engine returned, with its words; no position, no pill.
+  var PLACE_PILL = { below: { cls: "below", text: "below the usual range" }, within: { cls: "in", text: "inside the usual range" }, above: { cls: "above", text: "above the usual range" } };
+  function posOf(a, key){ var l = a && a.positions || []; for (var i = 0; i < l.length; i++) if (l[i].key === key) return l[i]; return null; }
+  function posPill(p, who){ var w = PLACE_PILL[p && p.place]; return w ? { cls: w.cls, text: (who === "reserve" ? "Your reserve is " : "Asking price is ") + w.text } : null; }
   // The car's photo (Sam, Oct 18 2026): the endpoint's carPhoto, a photo from the engine's own included sales of this
   // car, served by id; none when the engine has none, and a photo that fails to load leaves nothing behind.
   function carPhotoHtml(a){
@@ -392,10 +430,10 @@ const JS = String.raw`
     // The shared card (lib/sellsForCard.js, rendered by the endpoint): this page only fills its pill slot. The card has
     // pill slot in every case (Lane A's 3e8445d6), so every pill, the grey no-range one too, sits where the card puts it.
     if (a.card) {
-      var pl = opts.price != null ? placing(opts.price, a, opts.who) : null, ph = (pl ? '<p class="pillrow"><span class="pill ' + pl.cls + '">' + esc(pl.text) + "</span></p>" : "") + (opts.underPill || "");
+      var pl = opts.pos ? posPill(opts.pos, opts.who) : null, ph = (pl ? '<p class="pillrow"><span class="pill ' + pl.cls + '">' + esc(pl.text) + "</span></p>" : "") + (opts.underPill || "");
       return (opts.chips ? idChips(a) : "") + (a.card.indexOf('<div class="gas-pill-slot"></div>') >= 0 ? a.card.replace('<div class="gas-pill-slot"></div>', ph) : a.card + ph) + (opts.lines ? linesHtml(opts.lines) : "");
     }
-    var pl0 = opts.price != null ? placing(opts.price, a, opts.who) : null, pill = pl0 ? '<p class="pillrow"><span class="pill ' + pl0.cls + '">' + esc(pl0.text) + "</span></p>" : "";
+    var pl0 = opts.pos ? posPill(opts.pos, opts.who) : null, pill = pl0 ? '<p class="pillrow"><span class="pill ' + pl0.cls + '">' + esc(pl0.text) + "</span></p>" : "";
     var body = a.range
       ? '<p class="range">' + usd(a.range.low) + " to " + usd(a.range.high) + "</p>" + pill + '<p class="sub">The typical range, from ' + a.count + " " + plural(a.count, "sale", "sales") + "" + ".</p>"
       : '<p class="sub">' + (a.thin ? esc(a.thin) : COULD_NOT) + "</p>" + pill;   // never an empty panel: a range, the engine's thin or refusal line, else the one plain line the engine registers for a read that gave nothing (Oct 31 2026, the blank 2025 911 card)
@@ -487,7 +525,7 @@ const JS = String.raw`
     var send = { q: st.q }; if (val) { send.refine = {}; send.refine[key] = val; }
     if (slot === "a") return runA(send);
     if (slot === "b") { $("b-out").innerHTML = '<p class="loading">${reasonLine("cold.reading")}</p>'; return run("b", send, gotB); }
-    if (slot === "c") return run("c", D ? Object.assign({ vin: D.vin, item_price: D.price }, send) : send, drawListing);
+    if (slot === "c") return run("c", D ? Object.assign({ vin: D.vin, prices: { item_price: D.price } }, send) : send, drawListing);
   });
   // ---- view a: before listing
   var aLast = null;
@@ -505,23 +543,64 @@ const JS = String.raw`
       '<div style="margin-top:20px"><button type="button" class="btn pri" id="a-list">List it</button></div>';
   }
   function runA(body){ $("a-out").innerHTML = '<p class="loading">${reasonLine("cold.reading")}</p>'; run("a", body, drawA); }
-  // ---- view b: setting a reserve
-  var bAns = null;
-  // (Sam, Oct 18 2026) View b shows the same "This car last sold for" panel under its heading line, above the reserve
-  // box, when the car sold before; nothing when it did not.
-  function gotB(a){ bAns = a; noteLines("b", a); if ($("b-prior")) $("b-prior").innerHTML = priorPanel(a, false); if ($("b-photo")) $("b-photo").innerHTML = D ? ownPhotos(a, false) : mainPhotoHtml(a); if (!D && $("b-name") && VIN_RE.test(CAR)) $("b-name").innerHTML = vinHead(a, "span"); drawB(); }
+  // ---- view b: the listing form (Sam, Nov 1 2026). Format, duration and the price fields of a marketplace form, and the GoAskSam card beside them. The page sends the car, the mileage, the order
+  // and the typed prices; the ENGINE answers the range, the position of each price (positions[]) and the five sales in that order (sales[], order). The page compares nothing and sorts nothing.
+  var bAns = null, bOrder = null;
+  var B_KEYS = { auction: [["start", "starting_bid", "S", "Starting bid"], ["reserve", "reserve", "R", "Reserve"], ["bin", "buy_it_now", "B", "Buy It Now"]], fixed: [["price", "item_price", "P", "Item price"]] };
+  var B_DUR = { auction: ["7 days", "3 days", "5 days", "10 days"], fixed: ["30 days", "Good \u2019Til Cancelled"] };
+  var PLACE_WORDS = { below: "Below the range", within: "Within the range", above: "Above the range" };
+  var B_ORDERS = [["miles", "Closest miles"], ["date", "Newest"], ["price", "Highest price"]];
+  var wholeOf = function(v){ var n = Math.round(Number(String(v == null ? "" : v).replace(/[^\d]/g, ""))); return n > 0 ? n : null; };
+  var bFmt = function(){ return $("b-format").value === "fixed" ? "fixed" : "auction"; };
+  function bBody(){
+    var body = { q: CAR }; if (D) body.vin = D.vin;
+    var mi = wholeOf($("b-miles").value); if (mi) body.mileage = mi;
+    body.order = bOrder || (mi ? "miles" : "date");
+    var pr = {}; B_KEYS[bFmt()].forEach(function(k){ var n = wholeOf($("b-" + k[0]).value); if (n) pr[k[1]] = n; });
+    if (Object.keys(pr).length) body.prices = pr;
+    return body;
+  }
+  function bRead(){ run("b", bBody(), gotB); }
+  function gotB(a){ bAns = a; noteLines("b", a); if (!D && $("b-name") && VIN_RE.test(CAR)) $("b-name").innerHTML = vinHead(a, "span"); else if ($("b-name")) $("b-name").textContent = (nameOf(a) || (D ? D.title : CAR)); drawB(); }
+  function bSales(a){
+    var rows = a.placedSales || [];
+    if (!rows.length || a.order == null) return "";
+    var tog = B_ORDERS.map(function(o){ return '<button type="button" data-order="' + o[0] + '" aria-pressed="' + (a.order === o[0]) + '">' + o[1] + "</button>"; }).join("");
+    var cap = a.order === "miles" ? "Closest to the mileage entered for this car" : a.order === "date" ? "Most recent first" : "Highest price first";
+    // photo, car, date, miles and price only (Sam, Nov 1 2026): no link and no venue on a sale row; a tile only for a photo that loads
+    var li = rows.map(function(s){
+      var th = s.photo ? '<span class="th"><img src="' + esc(s.photo) + '" alt="" loading="lazy" decoding="async" onerror="this.parentNode.remove()"></span>' : "";
+      var meta = [s.date ? dayLabel(s.date) : "", s.miles ? Number(s.miles).toLocaleString("en-US") + " miles" : ""].filter(Boolean).join(" \u00b7 ");
+      return '<li class="' + (s.photo ? "has-th" : "no-th") + '">' + th + '<span class="d">' + esc(s.title || "Sold car") + '</span><span class="p">' + usd(s.price) + '</span><span class="m">' + meta + "</span></li>";
+    }).join("");
+    return '<div class="sales"><div class="sales-head"><h4>Recent sales</h4><div class="tog" role="group" aria-label="Order the sales">' + tog + '</div></div><div class="cap" style="margin:0 0 6px">' + cap + '</div><ul class="slist">' + li + '</ul><a class="all" href="?view=a&car=' + encodeURIComponent(CAR) + '">See all sales for this car</a></div>';
+  }
   function drawB(){
-    var v = Number(String($("b-res").value || "").replace(/[^\d]/g, ""));
-    var a = bAns; if (!a) return;
-    if (a.question || a.ok === false) { $("b-out").innerHTML = rangePanel(a, { slot: "b" }); return; }
-    var last = newest(a).slice(0, 10).sort(function(x, y){ return y.price - x.price; });
-    // (Sam, Oct 18 2026) one prominent line under the pill, counted from exactly the rows shown below against the reserve
-    // as typed; no other claim.
-    var at = v > 0 ? last.filter(function(s){ return s.price >= v; }).length : null;
-    var resLine = at == null || !last.length ? "" : '<p class="res-line-big">' + (at === 0 ? "None of the " + last.length + " most recent sales reached " + usd(v) + "." : at + " of the " + last.length + " most recent sales reached " + usd(v) + " or more.") + "</p>";
-    $("b-out").innerHTML = rangePanel(a, { price: v > 0 || !a.range ? v : null, lines: "b", who: "reserve", underPill: resLine }) + (last.length ?
-      '<section class="full-a"><h2>What cars like this sold for</h2><p class="sub" style="margin:-6px 0 12px">The last ' + (last.length === 1 ? "sale" : last.length + " sales") + ", highest price first.</p>" + reserveList(last, { reserve: v, keys: keysOf(a) }) +
-      "</section>" : "");
+    var a = bAns, out = $("b-out"); if (!a) return;
+    ["start", "reserve", "bin", "price"].forEach(function(id){ var e = document.querySelector('.rel[data-for="' + id + '"]'); if (e) e.textContent = ""; });
+    if (a.question || a.ok === false || !a.range) { out.className = "plain"; out.innerHTML = rangePanel(a, { slot: "b" }); return; }
+    out.className = "sam";
+    var keys = B_KEYS[bFmt()], got = a.positions || [], sp = a.span;
+    var geo = function(v){ return sp ? "clamp(0%, calc(" + ((v - sp.low) / (sp.high - sp.low) * 100).toFixed(2) + "%), 100%)" : null; };   // layout only: where a figure falls on the bar's own ends; CSS clamps it to the bar
+    var marks = "", legend = "";
+    keys.forEach(function(k){
+      var p = posOf(a, k[1]); if (!p) return;
+      var w = PLACE_WORDS[p.place]; if (!w) return;
+      var rel = document.querySelector('.rel[data-for="' + k[0] + '"]'); if (rel) rel.textContent = w + ".";
+      if (sp) marks += '<div class="mk" style="left:' + geo(p.value) + '">' + k[2] + "</div>";
+      legend += '<li><span class="dot">' + k[2] + "</span><span>" + k[3] + " <b>" + usd(p.value) + "</b>. " + w + ".</span></li>";
+    });
+    if (!legend && !got.length && !hasTyped()) legend = '<li><span class="empty">Type a price and Sam shows where it sits against the range.</span></li>';
+    var bar = sp ? '<div class="bar" aria-hidden="true"><div class="mid" style="left:' + geo(a.range.low) + ";width:calc(" + geo(a.range.high) + " - " + geo(a.range.low) + ')"></div>' + marks + '</div><div class="ends"><span>Lowest sale ' + usd(sp.low) + "</span><span>Highest sale " + usd(sp.high) + "</span></div>" : "";
+    out.innerHTML = "<h3>What these sell for</h3>" + '<div class="car">' + esc(nameOf(a) || CAR) + '</div><div class="range">' + usd(a.range.low) + " to " + usd(a.range.high) + '</div><div class="cap">The middle half of completed sales</div>' + bar +
+      (legend ? '<ul class="legend">' + legend + "</ul>" : "") + bSales(a) + '<div class="foot"><strong>Powered by GoAskSam</strong><span>How Sam decides</span></div>';
+  }
+  function hasTyped(){ return B_KEYS[bFmt()].some(function(k){ return wholeOf($("b-" + k[0]).value); }); }
+  function bFormat(){
+    var f = bFmt(); $("b-auction").hidden = f !== "auction"; $("b-fixed").hidden = f !== "fixed";
+    $("b-durlab").textContent = f === "auction" ? "Auction duration" : "Duration";
+    $("b-duration").innerHTML = B_DUR[f].map(function(t){ return "<option>" + t + "</option>"; }).join("");
+    if (bAns) drawB();
   }
   // ---- view c: the listing (Sam, Oct 18 2026: c and d are one page; the card under the buy box, the sales list and
   // "This car before" under the gallery, once)
@@ -547,7 +626,7 @@ const JS = String.raw`
     if (!D && $("c-photo")) $("c-photo").innerHTML = mainPhotoHtml(a);
     if (!D && $("c-name") && VIN_RE.test(CAR)) $("c-name").innerHTML = vinHead(a, "span");
     if (D && $("own-gal")) $("own-gal").innerHTML = ownPhotos(a, true);
-    $("c-rail").innerHTML = (D ? priorPanel(a, true) : "") + rangePanel(a, D ? { price: D.price, slot: "c", lines: "c" } : { slot: "c", lines: "c" });
+    $("c-rail").innerHTML = (D ? priorPanel(a, true) : "") + rangePanel(a, D ? { pos: posOf(a, "item_price"), slot: "c", lines: "c" } : { slot: "c", lines: "c" });
     var lq = a && a.range && a.trend && a.trend.length ? a.trend.reduce(function(m, t){ return String(t.period) > String(m.period) ? t : m; }) : null;   // the latest quarter with eight or more sales, view d only
     $("d-sales").innerHTML = '<h2>What cars like this sold for</h2>' +
       (a && a.card ? (a.quarter ? '<div class="qrow">' + a.quarter + "</div>" : "") : (lq ? '<p class="qrow"><b>' + esc(lq.period.replace("-", " ")) + "</b> " + usd(lq.low) + " to " + usd(lq.high) + ", " + lq.count + " sales</p>" : "")) + salesList(a, "d") + foot(a);
@@ -559,27 +638,20 @@ const JS = String.raw`
     var send = JSON.parse(b.getAttribute("data-send")), slot = b.getAttribute("data-slot");
     if (slot === "a") return runA(send);
     if (slot === "b") { $("b-out").innerHTML = '<p class="loading">${reasonLine("cold.reading")}</p>'; return run("b", send, gotB); }
-    if (slot === "c") return run("c", D ? Object.assign({ vin: D.vin }, send) : send, drawListing);
+    if (slot === "c") return run("c", D ? Object.assign({ vin: D.vin, prices: { item_price: D.price } }, send) : send, drawListing);
   });
   document.addEventListener("click", function(e){ if (e.target && e.target.id === "a-list") e.preventDefault(); });   // the demo's List it does nothing
   $("a-form").addEventListener("submit", function(e){ e.preventDefault(); var v = String($("a-q").value || "").trim(); if (v) runA({ q: v }); });
-  var bTimer = null;
-  $("b-res").addEventListener("input", function(){
-    var d = String(this.value || "").replace(/[^\d]/g, "").slice(0, 9); this.value = d ? Number(d).toLocaleString("en-US") : ""; drawB();
-    // where the typed reserve sits is the engine's to say: one read with the reserve on the request, then positions[] is drawn (nothing is compared here)
-    clearTimeout(bTimer); var n = Number(d);
-    if (n > 0 && bAns && bAns.range) bTimer = setTimeout(function(){
-      ask(Object.assign({ q: CAR }, D ? { vin: D.vin } : {}, bAns.refined ? { refine: bAns.refined } : {}, { reserve: n })).then(function(a){
-        if (a && a.positions && Number(String($("b-res").value || "").replace(/[^\d]/g, "")) === n) { bAns = Object.assign({}, bAns, { positions: a.positions }); drawB(); }
-      });
-    }, 350);
-  });
+  $("b-format").addEventListener("change", function(){ bFormat(); bRead(); });
+  ["b-start", "b-reserve", "b-bin", "b-price", "b-miles"].forEach(function(id){ $(id).addEventListener("input", function(){ var d = String(this.value || "").replace(/[^\d]/g, "").slice(0, 9); this.value = d ? Number(d).toLocaleString("en-US") : ""; bRead(); }); });   // one read per change; the position shows when the answer returns, and only the latest read draws
+  document.addEventListener("click", function(e){ var t = e.target.closest && e.target.closest("[data-order]"); if (!t) return; bOrder = t.getAttribute("data-order"); bRead(); });
+  bFormat();
   // (Sam, Oct 18 2026) View a opens empty when no car has been chosen: no read until the visitor submits one. Views b and
   // c start on the listing car (the 2014 GT3) when none has been chosen, and follow the chosen car when one has.
   var pre = new URLSearchParams(location.search).get("q") || (CHOSEN ? CAR : ""); $("a-q").value = pre;
   if (VIEW !== "a" || CHOSEN || pre) {
-    run("b", D ? { q: CAR, vin: D.vin, item_price: D.price } : { q: CAR }, gotB);   // the same body as view c, so the page is one read   // the listing car's VIN brings its own sale photos to view b too
-    run("c", D ? { q: CAR, vin: D.vin, item_price: D.price } : { q: CAR }, drawListing);
+    bRead();   // the first read of the chosen car, with the default order
+    run("c", D ? { q: CAR, vin: D.vin, prices: { item_price: D.price } } : { q: CAR }, drawListing);
     if (pre) runA({ q: pre });
   }
 })();
@@ -658,11 +730,35 @@ ${carBar}
   <div id="a-out" style="margin-top:22px"></div></div>
 </section>
 <section class="sec-view wrap" id="view-b"${v === "b" ? "" : " hidden"}>
-  <div class="b-hero" id="b-photo"></div>
-  <div class="lead"><h1>Set your reserve</h1><p class="sub" id="b-name">${hasListing ? `${d.title}, ${miles} miles` : escHtml(car)}</p>
-  <div id="b-prior"></div>
-  <div class="reserve"><label for="b-res">Reserve</label><span class="money">$<input id="b-res" inputmode="numeric" placeholder="0" aria-label="Reserve in dollars"></span></div>
-  <div id="b-out"><p class="loading">${reasonLine("cold.reading")}</p></div></div>
+  <div class="lf">
+  <h1>Look up your vehicle</h1>
+  <p class="lede">Save time by entering your license plate or VIN first, and we'll fill in the rest of your listing details.</p>
+  <div class="lf-row"><label class="lab" for="b-plate">License plate</label><div class="ctl"><select aria-label="State" disabled><option>State</option></select><input id="b-plate" type="text" placeholder="Plate number" autocomplete="off"><button class="btn-off" type="button" disabled>Look up</button></div></div>
+  <div class="lf-or">OR</div>
+  <div class="lf-row"><label class="lab" for="b-vin">VIN</label><div class="ctl"><input id="b-vin" type="text" placeholder="Vehicle Identification Number" autocomplete="off" style="min-width:min(100%,320px)"><button class="btn-off" type="button" disabled>Look up</button></div></div>
+  <div class="found"><span class="tick" aria-hidden="true">&#10003;</span> <span id="b-name">${hasListing ? `${d.title}` : escHtml(car)}</span></div>
+  <div class="lf-row"><label class="lab" for="b-miles">Mileage <small>(optional)</small></label><div class="ctl"><input id="b-miles" type="text" inputmode="numeric" placeholder="Miles" autocomplete="off" aria-label="Mileage in miles"></div></div>
+  <hr>
+  <h2>Listing format &amp; pricing</h2>
+  <p class="sub">Set your listing format and prices.</p>
+  <div class="split">
+    <div class="fields">
+      <div class="field"><label for="b-format">Format</label><select id="b-format"><option value="auction">Auction</option><option value="fixed">Buy It Now / Fixed Price</option></select></div>
+      <div class="field"><label for="b-duration" id="b-durlab">Auction duration</label><select id="b-duration"></select></div>
+      <div id="b-auction" class="fields">
+        <div class="two">
+          <div class="field"><label for="b-start">Starting bid</label><div class="mny"><span>$</span><input id="b-start" type="text" inputmode="numeric" autocomplete="off"></div><div class="rel" data-for="start"></div></div>
+          <div class="field"><label for="b-bin">Buy It Now <small>(optional)</small></label><div class="mny"><span>$</span><input id="b-bin" type="text" inputmode="numeric" autocomplete="off"></div><div class="hint">Minimum: 30% more than starting bid</div><div class="rel" data-for="bin"></div></div>
+        </div>
+        <div class="field"><label for="b-reserve">Reserve price <small>(optional)</small></label><div class="mny"><span>$</span><input id="b-reserve" type="text" inputmode="numeric" autocomplete="off"></div><div class="rel" data-for="reserve"></div></div>
+      </div>
+      <div id="b-fixed" class="fields" hidden>
+        <div class="field"><label for="b-price">Item price</label><div class="mny"><span>$</span><input id="b-price" type="text" inputmode="numeric" autocomplete="off"></div><div class="rel" data-for="price"></div></div>
+      </div>
+    </div>
+    <aside id="b-out" class="plain" aria-label="What these sell for"><p class="loading">${reasonLine("cold.reading")}</p></aside>
+  </div>
+  </div>
 </section>
 <section class="sec-view wrap" id="view-c"${v === "c" ? "" : " hidden"}>${hasListing ? listing(true, "gallery", `${desc}
   <div class="full" id="d-sales"><p class="loading">${reasonLine("cold.reading")}</p></div>

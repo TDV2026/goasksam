@@ -101,7 +101,7 @@ for (const f of [...walk("api"), ...walk("public")]) {
 }
 ok("no page file compares a price with the range (api/partnerDemo.js and every file under api and public)", hits.length === 0, hits.slice(0, 3).join(" | "));
 const pd = fs.readFileSync("api/partnerDemo.js", "utf8");
-ok("api/partnerDemo.js reads the engine's positions and works out nothing (placing() has no comparison of its own)", /function placing\(x, a, who\)\{[\s\S]{0,700}?\.positions/.test(pd) && !/function placing\(x, a, who\)\{[^}]*x\s*[<>]/.test(pd));
-ok("the listing view sends its price and the typed reserve to the engine", /item_price: D\.price/.test(pd) && /reserve: n/.test(pd));
+ok("api/partnerDemo.js has no placing() (Sam, Nov 1 2026) and words only the engine's positions (posOf, posPill)", !/\bplacing\s*\(/.test(pd) && /function posOf\(a, key\)\{[^}]*\.positions|var l = a && a\.positions/.test(pd) && /function posPill\(p, who\)\{[^}]*PLACE_PILL\[p && p\.place\]/.test(pd));
+ok("the listing views send their prices to the engine (c: item_price; b: starting bid, Buy It Now, reserve or item price, and the mileage and order)", /prices: \{ item_price: D\.price \}/.test(pd) && /body\.prices = pr/.test(pd) && /body\.mileage = mi/.test(pd) && /body\.order = /.test(pd));
 console.log(fail ? `partnerPositionCheck: ${fail} failure(s)` : "partnerPositionCheck: all pass");
 process.exit(fail ? 1 : 0);

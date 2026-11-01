@@ -622,6 +622,7 @@ export function partnerShape(d, text, asked, extra = {}) {
     identity: identityOf(d, extra.id), question: null,
     ...(engineQuestion ? { engineQuestion } : {}),   // a question tier question() does not map (trim_choice, variantChoices): additive
     range, count, window: d.windowLabel || null,
+    span: Array.isArray(d.span) && d.span.length === 2 && num(d.span[0]) > 0 && num(d.span[1]) > 0 ? { low: num(d.span[0]), high: num(d.span[1]) } : null,   // the pool's own lowest and highest sale (the bar's ends on the listing form); the engine's field, passed as it is
     sales: salesOf(d), rows: rowsOf(d), asideRows: asideRowsOf(d), asideLine: asideSentence(d), setAside: setAsideOf(d),
     thin: range ? null : thinTextOf(d, count),
     trend: range ? trendOf(d) : null,
