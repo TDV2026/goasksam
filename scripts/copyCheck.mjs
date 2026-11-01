@@ -12,13 +12,7 @@ const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); }
 // A new title or description over the limit, and any of these getting longer, fails.
 const KNOWN_LONG = { "home.TITLE": 80, "find.TITLE": 63 };
 const KNOWN_LONG_DESC = { "home.DESC": 165, "about.DESC": 160 };
-const COMPETITORS = ["Hagerty", "Classic.com", "Hemmings", "Edmunds", "Kelley Blue Book", "KBB", "NADA", "Carfax", "CarGurus", "Autotrader", "Cars.com", "TrueCar", "Bring a Trailer", "Cars & Bids", "Cars and Bids", "Collecting Cars", "PCarMarket", "eBay Motors"];
-const RULES = [
-  [/[–—]/, "has a dash (an em or en dash). Use a comma, a period or the word instead."],
-  [/\b(?:our data|valuations?)\b/i, "uses \"our data\" or \"valuation\". Say what the sales show instead, and never put a value on a car."],
-  [/\b(?:I|I'm|I'll|I've|I'd|my|mine|me)\b/, "speaks as \"I\" or \"my\". Sam is never written in the first person."],
-  [/\b(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\s+(?:sources?|auction houses?|houses|platforms?|venues?|marketplaces?|auction sites?)\b/i, "gives a count of sources or auction houses. Public copy names no source counts."]
-];
+import { RULES, SELLING_RULES, competitorIn } from "./copyRules.mjs";
 const leaves = (v, k, out = []) => { if (typeof v === "string") out.push([k, v]); else if (Array.isArray(v)) { if (!v.length) out.push([k, null]); v.forEach((x, i) => leaves(x, k + "[" + i + "]", out)); } else if (v && typeof v === "object") { const e = Object.entries(v); if (!e.length) out.push([k, null]); for (const [a, b] of e) leaves(b, k ? k + "." + a : a, out); } else out.push([k, v]); return out; };
 let data = null;
 try { data = JSON.parse(fs.readFileSync(FILE, "utf8")); ok(true, ""); } catch (e) { ok(false, `${path.relative(ROOT, FILE)} is not valid JSON, so no page can read it: ${e.message}. Look for a missing comma or a quote that was not closed.`); }
@@ -27,9 +21,10 @@ if (data) {
     if (v === null || (typeof v === "string" && !v.trim())) { ok(false, `${k} is empty. A page would print a blank. Put the words back, or ask for the key to be removed.`); continue; }
     if (typeof v !== "string") { ok(false, `${k} is not text. Every value in this file is words.`); continue; }
     for (const [re, why] of RULES) ok(!re.test(v), `${k} ${why} (found: "${(v.match(re) || [""])[0]}")`);
-    const hit = COMPETITORS.find(c => new RegExp("\\b" + c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i").test(v));
+    const hit = competitorIn(v);
     ok(!hit, `${k} names a competitor ("${hit}"). Public copy names no competitors.`);
     const last = k.split(".").pop();
+    if (last === "TITLE" || last === "DESC") for (const [re, why] of SELLING_RULES) ok(!re.test(v), `${k} ${why}`);
     if (last === "TITLE") { const lim = KNOWN_LONG[k] || 59; ok(v.length <= lim, `${k} is a page title of ${v.length} characters. Titles must be under 60${KNOWN_LONG[k] ? " (this one was " + KNOWN_LONG[k] + " when the rule began and may not grow)" : ""}.`); }
     if (last === "DESC") { const lim = KNOWN_LONG_DESC[k] || 159; ok(v.length <= lim, `${k} is a meta description of ${v.length} characters. Descriptions must be under 160${KNOWN_LONG_DESC[k] ? " (this one was " + KNOWN_LONG_DESC[k] + " when the rule began and may not grow)" : ""}.`); }
   }
@@ -45,6 +40,7 @@ if (data) {
     for (const [name, html] of Object.entries(pages)) {
       const t = (/<title>([^<]*)<\/title>/.exec(html) || [])[1], d = (/<meta name="description" content="([^"]*)"/.exec(html) || [])[1];
       ok(t != null && t.length > 0, `the ${name} page has no title`);
+      for (const [re, why] of SELLING_RULES) { ok(!re.test(t || ""), `the ${name} page title ${why}`); ok(!re.test(d || ""), `the ${name} page meta description ${why}`); }
       const tk = { home: "home.TITLE", find: "find.TITLE" }[name], dk = { home: "home.DESC", about: "about.DESC" }[name];
       ok(t == null || t.length <= (tk ? KNOWN_LONG[tk] : 59), `the ${name} page title is ${t && t.length} characters; titles must be under 60.`);
       ok(d == null || d.replace(/&[a-z#0-9]+;/g, "x").length <= (dk ? KNOWN_LONG_DESC[dk] : 159), `the ${name} page meta description is ${d && d.length} characters; descriptions must be under 160.`);
