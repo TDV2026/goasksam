@@ -1619,7 +1619,7 @@ async function handleOps(req, res) {
       for (const r of rows) {
         out.stored.rows++;
         const yr = Number(r.y) || (Array.isArray(r.py) ? Number(r.py[0]) : 0), pre = yr > 0 && yr <= 1948, cb = Array.isArray(r.bo) && r.bo.some(b => b && /phaeton|speedster|victoria|town car|convertible sedan|tourer/i.test(String(b.label || b.value || "")));
-        if (pre) out.stored.preWar++; if (cb) out.stored.withClassicBodyOption++; if (pre || cb) { out.stored.either++; if (out.stored.examples.length < 30) out.stored.examples.push(`${yr || "?"} ${r.mk || ""} ${r.md || ""}`.trim()); }
+        if (pre) out.stored.preWar++; if (cb) out.stored.withClassicBodyOption++; if (pre || cb) { out.stored.either++; if (out.stored.examples.length < (req.query?.list ? 5000 : 30)) out.stored.examples.push(`${yr || "?"} ${r.mk || ""} ${r.md || ""}`.trim()); }
       }
       cursor = rows[rows.length - 1].spec_key; if (rows.length < 1000) { cursor = null; break; }
     }
@@ -2094,6 +2094,7 @@ async function handleOps(req, res) {
         if (!vehicle || !vehicle.make) { row.would = "unresolved"; row.status = rv && rv.status || null; rows.push(row); continue; }
         const generation = await findGeneration(vehicle, env).catch(() => null), key = warmAnswerKeyFor(vehicle, generation);
         const st = await readWarmAnswerDetailed(env, key).catch(() => null); row.stored = st ? (st.raw ? (st.stale ? "stale: " + st.reason : "fresh") : "none: " + st.reason) : "unread";
+        try { const rr = await supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent(key)}&select=computed_at,market`), r0 = rr && rr[0]; if (r0) { row.storedAt = r0.computed_at; row.ageHours = Math.round((Date.now() - Date.parse(r0.computed_at)) / 36e5 * 10) / 10; row.storedStamp = r0.market && r0.market.engineVersion || null; row.storedEpoch = r0.market && r0.market.warmEpoch || null; row.questionTag = r0.market && r0.market.raw && r0.market.raw.questionRulesTag || null; } } catch { /* diagnostics only */ }   // when the row was written and under which stamp
         const sink = []; const d = (await oneEngineAnswer(vehicle, generation, q, { ...env, asked: 0, stageSink: sink }, null)).raw; row.tier = d && d.tier || null; row.stagesMs = Object.fromEntries(sink);   // the cold compute's stages in milliseconds (engine, trim_chips, question_rule, sell_fields, ...)
         if (!d || !d.tier) row.would = "engine returned no tier";
         else if (/_choice$/.test(String(d.tier))) row.would = "question: stores only the question's eligibility, no answer row (by design)";

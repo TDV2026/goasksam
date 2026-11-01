@@ -1697,6 +1697,12 @@ try {
   record("engine: every cold compute logs its stage milliseconds (engine, trim chips, question rule, sell fields, store) (scripts/stageTimerCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/exactYearParallelCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("engine: a car with a trim reads its exact-year line beside the first answer, not after it (scripts/exactYearParallelCheck.mjs)", "PASS", (out.match(/exactYearParallelCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: a car with a trim reads its exact-year line beside the first answer, not after it (scripts/exactYearParallelCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/typedAttributeCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("engine: a typed gearbox, engine or body word is applied or announced, never dropped; the classic bodies are separate pools; sales can be read by date (scripts/typedAttributeCheck.mjs)", "PASS", (out.match(/typedAttributeCheck: .*/) || [""])[0]);
 } catch (e) {
