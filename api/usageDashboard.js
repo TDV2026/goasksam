@@ -2107,6 +2107,17 @@ async function handleOps(req, res) {
       return res.status(200).json({ task: "resolvestages", ocdSpend: 0, writes: 0, direct, rows });
     } finally { globalThis.fetch = realFetch; }
   }
+  // task=foreigncars (Lane B, Oct 31 2026; READ-ONLY, zero OldCarsData, zero writes): the cars whose sales in the archive were listed in pounds or euros (raw_record currency), newest first, grouped by year make model with the sale countries, so a check can compare a stored read of them.
+  if (task === "foreigncars") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const n = Math.min(6000, Number(req.query?.n) || 3000), cur = String(req.query?.cur || "GBP,EUR").split(",").map(x => x.trim().toUpperCase()).filter(x => /^[A-Z]{3}$/.test(x));
+    const rows = await supabaseSelect(env, `sales_archive?select=listing_title,platform,year,make,model,currency:raw_record->>currency,cc:raw_record->>country_code,sale_date:auction_end_date&raw_record->>currency=in.(${cur.join(",")})&sale_price=not.is.null&order=auction_end_date.desc&limit=${n}`);
+    const g = new Map();
+    for (const r of (Array.isArray(rows) ? rows : [])) { const k = [r.year, r.make, r.model].join(" "); const e = g.get(k) || { car: k, sales: 0, currencies: {}, countries: {}, platforms: {}, latest: r.sale_date }; e.sales++; e.currencies[r.currency] = (e.currencies[r.currency] || 0) + 1; e.countries[r.cc || "?"] = (e.countries[r.cc || "?"] || 0) + 1; e.platforms[r.platform] = (e.platforms[r.platform] || 0) + 1; g.set(k, e); }
+    const cars = [...g.values()].sort((a, b) => b.sales - a.sales).slice(0, 40);
+    const all = {}; for (const r of (Array.isArray(rows) ? rows : [])) all[r.cc || "?"] = (all[r.cc || "?"] || 0) + 1;
+    return res.status(200).json({ task: "foreigncars", ocdSpend: 0, writes: 0, scanned: Array.isArray(rows) ? rows.length : null, countries: all, cars });
+  }
   if (task === "warmwhy") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle } = await import("../lib/vehicle.js"); const { findGeneration } = await import("../lib/generations.js"); const { oneEngineAnswer } = await import("../lib/onebox.js");
