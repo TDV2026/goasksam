@@ -100,8 +100,6 @@ h3{font-size:18px;line-height:1.3;margin:0 0 10px;font-weight:700}
 .lead{max-width:760px}
 .ask{display:flex;gap:10px;margin:18px 0 0;flex-wrap:wrap}
 .ask input{flex:1;min-width:0;height:48px;border:1px solid var(--ink2);border-radius:999px;padding:0 18px;font:inherit}
-.reserve{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:14px 0}
-.reserve label{font-weight:600}
 .money{display:flex;align-items:center;border:1px solid var(--ink2);border-radius:12px;height:48px;padding:0 14px;background:#fff}
 .money input{border:0;font:inherit;width:140px;outline:none}
 /* the listing (views c and d) */
@@ -112,7 +110,6 @@ h3{font-size:18px;line-height:1.3;margin:0 0 10px;font-weight:700}
 .idline{margin:12px 2px 0;font-size:14px;color:var(--ink2,#555);line-height:1.7}
 .idl{font:inherit;background:none;border:0;padding:0;color:var(--ink,#111);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .idl.chosen{text-decoration:none;font-weight:600}
-.res-line{padding:10px 0;border-top:2px solid var(--ink,#111);border-bottom:2px solid var(--ink,#111);font-weight:700;font-size:15px}
 .gal{display:grid;grid-template-columns:88px 1fr;gap:12px}
 .thumbs{display:grid;gap:10px;align-content:start}
 .ph{border-radius:12px;background:linear-gradient(135deg,#d9d9d9,#bfbfbf);display:grid;place-items:center;color:#7a7a7a;font-size:13px;aspect-ratio:4/3}
@@ -182,7 +179,6 @@ h2.car-name{font-size:22px;margin:0 0 2px}
 .stable th:first-child,.stable td:first-child{padding-left:0}
 .stable .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;padding-right:0}
 .stable .res-row td{padding:8px 12px;background:var(--soft);border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);font-weight:700}
-.res-line-big{margin:4px 0 12px;font-size:18px;font-weight:700;line-height:1.35}
 .sfc-howline{margin:8px 0 0;font-size:13px;color:var(--ink2,#666);line-height:1.45}
 .hsd{color:var(--ink)}
 /* "How Sam decides" is plain static text on the demo (Sam): the card's own link styling is undone here only */

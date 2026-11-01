@@ -178,9 +178,9 @@ for (const [name, d] of Object.entries(FIX)) {
   const c = pageHtml("c"), d = pageHtml("d");
   ok(((c.match(/<nav class="tabs"[\s\S]*?<\/nav>/) || [""])[0].match(/href="\?view=/g) || []).length === 3 && !/Under the listing/.test(c) && /id="view-c"(?! hidden)/.test(d), "three tabs; the old d address opens the merged listing");
   ok(!/Placeholder description/.test(c) && /<dt>Year<\/dt>/.test(c) && !/<dt>VIN<\/dt>/.test(c) && /<dt>Mileage<\/dt>/.test(c), "no placeholder description; About this car keeps Year and Mileage (the VIN shows once, under the title)");
-  ok((c.match(/id="d-hist"/g) || []).length === 1 && /\$\("c-rail"\)\.innerHTML = \(D \? priorPanel\(a, true\) : ""\) \+ rangePanel\(a, D \? \{ price: D\.price, slot: "c", lines: "c" \} : \{ slot: "c", lines: "c" \}\);/.test(c) && /class="below-gal"/.test(c), "the card in the rail, the list and This car before under the gallery, once");
-  ok(/function reserveList\(rows, opts\)/.test(c) && /body \+= saleRow\(s, null, opts\.keys\)/.test(c) && /reserveList\(last, \{ reserve: v, keys: keysOf\(a\) \}\)/.test(c) && !/salesTable\(/.test(c), "view b: the same rows, highest price first, the reserve line at its place, no Show more");
-  ok((c.match(/function placing\(/g) || []).length === 1 && /placing\(opts\.price, a, opts\.who\)/.test(c) && /"Your reserve is " : "Asking price is "/.test(c) && /who: "reserve"/.test(c), "one comparison against the engine's range, shared by views b and c"); }
+  ok((c.match(/id="d-hist"/g) || []).length === 1 && /\$\("c-rail"\)\.innerHTML = \(D \? priorPanel\(a, true\) : ""\) \+ rangePanel\(a, D \? \{ pos: posOf\(a, "item_price"\), slot: "c", lines: "c" \} : \{ slot: "c", lines: "c" \}\);/.test(c) && /class="below-gal"/.test(c), "the card in the rail, the list and This car before under the gallery, once");
+  ok(/function bSales\(a\)/.test(c) && /var rows = a\.placedSales \|\| \[\]/.test(c) && !/reserveList|salesTable\(|\.sort\(/.test(c.slice(c.indexOf("function bSales"), c.indexOf("function drawB"))), "view b (the listing form): the five placed sales are drawn in the engine's order, never sorted or placed on the page");
+  ok(!/\bplacing\s*\(/.test(c) && (c.match(/function posPill\(/g) || []).length === 1 && /posPill\(opts\.pos, opts\.who\)/.test(c) && /"Your reserve is " : "Asking price is "/.test(c), "no placing() on the page: the pill words the engine's position, shared by views b and c"); }
 // The narrowing lines (Sam, Oct 18 2026: "2001 bmw", M3): Market Check's own lines from the engine's fields, same
 // filters, same order, each option the refine Market Check sends; the page draws them under the card in a, b and c.
 { const { linesOf, partnerShape: ps } = await import("../api/partnerAnswer.js");
@@ -193,12 +193,12 @@ for (const [name, d] of Object.entries(FIX)) {
   ok(linesOf({ tier: "identity_question", bodyOptions: m3.bodyOptions }).length === 0 && linesOf({ ...m3, bodyOptions: [m3.bodyOptions[0]] }).length === 0, "no line on a question, none with a single option");
   ok(venueLeak(ps(m3, "2001 bmw M3", 1, {})).length === 0 && ps(m3, "2001 bmw M3", 1, {}).lines.length === 1, "the lines ride the answer and pass the venue-leak guard");
   const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
-  ok(/send\.refine = \{\}; send\.refine\[key\] = val;/.test(pageSrc) && /rangePanel\(a, \{ lines: "a" \}\)/.test(pageSrc) && /lines: "b", who: "reserve"/.test(pageSrc) && /Any \(' \+ Number\(l\.any\)/.test(pageSrc), "views a, b and c draw the lines; an option reruns the same query with its refine; Any goes back"); }
+  ok(/send\.refine = \{\}; send\.refine\[key\] = val;/.test(pageSrc) && /rangePanel\(a, \{ lines: "a" \}\)/.test(pageSrc) && /rangePanel\(a, \{ slot: "b" \}\)/.test(pageSrc) && /Any \(' \+ Number\(l\.any\)/.test(pageSrc), "views a, b and c draw the lines; an option reruns the same query with its refine; Any goes back"); }
 // Sam's demo wording (Oct 18 2026): the pills name whose figure it is; the reserve line under the pill is counted from
 // exactly the rows the page shows; the thin card carries no middle-half line.
 { const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
-  ok(/w \+ "below the usual range"/.test(pageSrc) && /w \+ "above the usual range"/.test(pageSrc) && /w \+ "inside the usual range"/.test(pageSrc) && !/good deal|great price|bargain|overpriced/i.test(pageSrc), "the pills: Asking price is / Your reserve is inside, above or below the usual range; no deal words");
-  ok(/var at = v > 0 \? last\.filter\(function\(s\)\{ return s\.price >= v; \}\)\.length : null;/.test(pageSrc) && /"None of the " \+ last\.length \+ " most recent sales reached " \+ usd\(v\) \+ "\."/.test(pageSrc) && /at \+ " of the " \+ last\.length \+ " most recent sales reached " \+ usd\(v\) \+ " or more\."/.test(pageSrc) && /underPill: resLine/.test(pageSrc), "the reserve line is counted from the rows shown, under the pill, None when zero");
+  ok(/text: "below the usual range"/.test(pageSrc) && /text: "above the usual range"/.test(pageSrc) && /text: "inside the usual range"/.test(pageSrc) && !/good deal|great price|bargain|overpriced/i.test(pageSrc), "the pills: Asking price is / Your reserve is inside, above or below the usual range; no deal words");
+  ok(!/most recent sales reached|Your reserve " \+ usd|res-line/.test(pageSrc), "the page counts no sales against a reserve and places no reserve line (the engine places typed prices)");
   const { demoCard: dc } = await import("../api/partnerAnswer.js");
   ok(!/sfc-howline/.test(dc('<div class="sfc-card"><p class="sfc-thin">3 sales found, not enough for a range.</p><div class="sfc-footer"><span>x</span><a class="sfc-footer-link" href="/how-sam-decides">How Sam decides</a></div></div>', { poolN: 3 })), "a thin card carries no middle-half line"); }
 // THE ENGINE'S STILL-READING ANSWER and the retry (Sam, Oct 18 2026; Lane B's shape: tier "unavailable", stillReading,
@@ -236,7 +236,7 @@ for (const [name, d] of Object.entries(FIX)) {
       ok(h.includes('<input id="car-in" name="car" value="' + escH(car) + '"') && !/class="qp|class="picks/.test(h) && !/<a [^>]*>(2015 Porsche 911 GT3|2005 Porsche 911|1965 Ford Mustang|1957 Porsche 356 Speedster|1966 Ferrari 275 GTB|2023 Porsche 911 GT3)<\/a>/.test(main0(h)), `${car}, view ${v}: the car box holds this car; no example car chips at any width`);
       ok((h.match(/<a href="\?view=[abc][^"]*"/g) || []).every(t => car === DEMO_CARS[0] ? !t.includes("car=") : t.includes("&amp;car=" + encodeURIComponent(car))), `${car}, view ${v}: every tab keeps the car`);
       if (car === DUMMY.q) ok(j.listing && (v === "b" || (/US \$139,900/.test(main) && /<dd>30,400<\/dd>/.test(main) && /<dd>2014<\/dd>/.test(main) && (main.match(/WP0AC2A9XES183617/g) || []).length === 1)) && !/hero-img|img=hero|Black|clean title|Time left|Condition/.test(main) && /id="own-gal"|id="b-photo"/.test(main), `${car}, view ${v}: the 2014 GT3's own listing detail (30,400 miles, $139,900), its own photos only, nothing invented`);
-      else ok(!j.listing && !/\$\d/.test(main) && !/hero-img|thumb-img/.test(main) && !/<dt>VIN<\/dt>|\bmiles\b|Buy It Now/.test(main) && (v === "a" || v === "b" || (/Sample listing/.test(main) && !/WP0AC2A9XES183617/.test(main))), `${car}, view ${v}: no invented listing, price, mileage or photo in the page itself (the sample frame says "Sample listing"; its sample price is drawn from the engine range by the client, scripts/demoFrameCheck.mjs); it says what it is`);
+      else ok(!j.listing && !/\$\d/.test(main) && !/hero-img|thumb-img/.test(main) && !/<dt>VIN<\/dt>|\bmiles\b|Buy It Now/.test(main.replace(/<section class="sec-view wrap" id="view-b"[\s\S]*?<\/section>/, "")) && (v === "a" || v === "b" || (/Sample listing/.test(main) && !/WP0AC2A9XES183617/.test(main))), `${car}, view ${v}: no invented listing, price, mileage or photo in the page itself (the sample frame says "Sample listing"; its sample price is drawn from the engine range by the client, scripts/demoFrameCheck.mjs); it says what it is`);
       return JSON.stringify(j); });
     ok(seen.every(x => x === seen[0]), `${car}: the same car identically in every view`);
   });
@@ -267,7 +267,7 @@ for (const [name, d] of Object.entries(FIX)) {
       ok(a.shown === "SHOWN " + typed, `typed "${typed}" ${w}: the first screen keeps the typed car's answer when the default car's first read lands later (${a.shown})`);
       asked.length = 0;
       await Promise.all([pg.waitForNavigation({ waitUntil: "domcontentloaded" }), pg.click('.tabs a[href*="view=b"]')]); await new Promise(r => setTimeout(r, 300));
-      const b = await pg.evaluate(() => ({ sub: document.querySelector("#view-b .sub").textContent, bar: document.getElementById("car-in").value }));
+      const b = await pg.evaluate(() => ({ sub: document.getElementById("b-name").textContent, bar: document.getElementById("car-in").value }));
       ok(b.sub === typed && b.bar === typed && asked.length >= 1 && asked.every(q => q === typed), `typed "${typed}" ${w}: the second screen opens on it and reads it (${JSON.stringify({ ...b, asked })})`);
       await pg.close();
     }
@@ -355,8 +355,8 @@ for (const [name, d] of Object.entries(FIX)) {
   ok(DUMMY.q === "2014 Porsche 911 GT3" && DUMMY.vin === "WP0AC2A9XES183617" && DUMMY.miles === 30400 && DUMMY.price === 139900 && DUMMY.miles >= 29000, "the listing car is the 2014 GT3 at 30,400 miles (not below its last sale at 29,000) and $139,900");
   const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
   ok(/var ownSold = function\(a\)\{ return \(\(a && a\.history\) \|\| \[\]\)\.filter\(function\(r\)\{ return r\.result === "sold" && r\.photo; \}\); \};/.test(pageSrc) && /'<div class="own-main">' \+ mainPhotoHtml\(a\)/.test(pageSrc) && !/_partnerHero|HERO_JPEG_B64|img === "hero"/.test(pageSrc), "the listing car's photos are its own sales' photos, the newest first; the old studio photo is gone");
-  ok(/rangePanel\(a, D \? \{ price: D\.price, slot: "c", lines: "c" \}/.test(pageSrc) && (pageSrc.match(/function placing\(/g) || []).length === 1, "the asking price's pill is the one placing() against the engine's range");
-  ok(/run\("b", D \? \{ q: CAR, vin: D\.vin \} : \{ q: CAR \}, gotB\);/.test(pageSrc), "the reserve view reads the listing car with its VIN, so its own sale photo shows there too"); }
+  ok(/rangePanel\(a, D \? \{ pos: posOf\(a, "item_price"\), slot: "c", lines: "c" \}/.test(pageSrc) && !/\bplacing\s*\(/.test(pageSrc), "the asking price's pill words the engine's item_price position; the page has no placing()");
+  ok(/function plainBody\(\)\{ var b = \{ q: CAR \}; if \(D\) b\.vin = D\.vin;/.test(pageSrc) && /bRead\(\);/.test(pageSrc), "the listing form reads the listing car with its VIN (the same first body as view c)"); }
 // A CAR GIVEN BY VIN (Sam, Oct 18 2026): the engine's name as the heading with the VIN small beneath (the VIN alone
 // when it cannot name the car); the main photo is this car's own newest sale photo captioned with its month and year,
 // else a car like it captioned as such; the sales-list rows that are this car's own sales carry "This car".
@@ -455,7 +455,7 @@ for (const [name, d] of Object.entries(FIX)) {
         ok(m.vin === 1 && m.miles === 2 && !m.specsUnderPrice, `listing view ${w}: the VIN once, the mileage only in the title line and About this car, no Mileage block under the price (${JSON.stringify(m)})`);
       } else {
         const m = await pg.evaluate(() => { const pn = document.querySelector("#view-b .prior"), sub = document.getElementById("b-name"), res = document.querySelector("#view-b .reserve"); return { panel: !!pn, head: pn ? (pn.querySelector("h3") || {}).textContent : "", afterHeading: !!(pn && sub && (sub.compareDocumentPosition(pn) & 4)), beforeReserve: !!(pn && res && (pn.compareDocumentPosition(res) & 4)), none: !!document.querySelector("#view-b .prior-none") }; });
-        ok(withHist ? m.panel && m.head === "This car last sold for $124,000 in July 2025." && m.afterHeading && m.beforeReserve && !m.none : !m.panel && !m.none, `reserve view ${w}, ${withHist ? "the 2014 GT3" : "a car with no earlier sale"}: ${withHist ? "the panel under the heading line, above the reserve box" : "no panel and no line"} (${JSON.stringify(m)})`);
+        ok(!m.panel && !m.none, `listing form ${w}, ${withHist ? "the 2014 GT3" : "a car with no earlier sale"}: view b (the eBay form of the mock) carries no "This car last sold for" panel; the earlier sale stays on views a and c (${JSON.stringify(m)})`);
       }
       await pg.close();
     }
