@@ -45,7 +45,9 @@ for (const [make, model, year, trim] of CARS) {
   const q = `${year} ${make} ${model} ${trim}`, rv = await resolveVehicle(q, {}), v = rv.vehicle || {}, gen = await findGeneration(v, env).catch(() => null);
   const t1 = Date.now(), solo = (await E.oneEngineAnswer(v, gen, q, { ...env, asked: 0, noExactYearLine: true }, null)).raw, tSolo = Date.now() - t1;
   const bare = { ...v, trim: null }, t3 = Date.now(); await E.oneEngineAnswer(bare, gen, `${year} ${make} ${model}`, { ...env, asked: 0, noExactYearLine: true }, null); const tBare = Date.now() - t3;
-  const t2 = Date.now(), full = (await E.oneEngineAnswer(v, gen, q + " ", { ...env, asked: 0 }, null)).raw, tFull = Date.now() - t2;
+  const lines = []; const og = console.log; console.log = (...a) => { const x = a.join(" "); if (x.startsWith('{"tag":"stage_ms"')) lines.push(x); else og(...a); };
+  const t2 = Date.now(), full = (await E.oneEngineAnswer(v, gen, q + " ", { ...env, asked: 0 }, null)).raw, tFull = Date.now() - t2; console.log = og;
+  ok(`${q}: one stage_ms line for the answer, the exact-year read a stage of it (${lines.length} line)`, lines.length === 1 && /exact_year_line/.test(lines[0]), lines.map(x => x.slice(0, 160)).join(" | "));
   ok(`${q}: the answer is thin, so the second read is the one the line comes from (${full.tier}${full.exactYearLine ? ", line printed" : ""})`, full.tier === "thin");
   ok(`${q}: the whole answer takes ${tFull} ms; the two reads alone take ${tSolo} ms and ${tBare} ms, so one after the other would be ${tSolo + tBare} ms and side by side ${Math.max(tSolo, tBare)} ms`, tFull < tSolo + tBare - 0.5 * Math.min(tSolo, tBare));
 }
