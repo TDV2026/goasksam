@@ -7,7 +7,7 @@ import { PAGE_CSS, FONT_LINKS, isCrewRequest } from "./_chrome.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { classifyReferrer } from "../lib/_pageview.js";
-import { lastUpdatedDate, shortDate } from "../lib/asOf.js";
+import { lastUpdatedDate, shortDate, liveSalesLine, liveSalesWords } from "../lib/asOf.js";
 import { START_JS } from "../lib/startPage.js";
 import { landingHtml, LANDING_CSS, KEEP_ICON } from "../lib/live/buyLanding.js";
 import { priorSold, priorWords, priorTake } from "../lib/live/priorListing.js";
@@ -102,8 +102,10 @@ export default async function handler(req, res) {
   // The date is the real last-ingest date (lib/asOf.js lastUpdatedDate, the same source Home, Market Check and Sell print), never the clock (Sam, Oct 26 2026); when it cannot be read the line prints without a date.
   const updated = await lastUpdatedDate(supabaseEnv()).catch(() => null);
   // Date only, never a count (Sam, Oct 23 2026: the dated line under the box shows a date, never a source or sale count).
-  const lead = updated ? `Live auctions \u00b7 Updated ${shortDate(updated)}` : "Live auctions";   // the page's dated line (search rule 1), no full stop like the page's other small lines
-  const description = `Live auctions${updated ? ` as of ${updated}` : ""}, each one shown with what cars like it have actually sold for.`;   // meta and og: the same dated opening, a complete sentence
+  // THE TWO FACTS, each from its own source (Oct 31 2026): the live feed's own refresh and the sales date, "Live auctions now. Sales to Oct 28, 2026." Never one date for both: the old "Live auctions \u00b7 Updated Oct 28" put the sales date on the live cars.
+  const both = await liveSalesLine(supabaseEnv()).catch(() => liveSalesWords(null, updated));
+  const lead = both.line;   // the page's dated line (search rule 1)
+  const description = `${both.line} Each car is shown with what cars like it have actually sold for.`;   // meta and og: the same two facts, complete sentences
   const TITLE = "Find enthusiast cars at auction, by what they actually sell for";
   // Search: /buy itself is indexable; a conversation is never a separate URL (?q= starts one in the
   // page) and any query-string variant is noindex with /buy as its canonical.

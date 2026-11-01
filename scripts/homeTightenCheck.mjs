@@ -14,13 +14,14 @@ const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); }
 const ROOT = path.resolve(new URL("..", import.meta.url).pathname); process.chdir(ROOT);
 // the date reaches the pages only through lastUpdatedDate: serve it one nightly-ingest row, and nothing else
 const realFetch = globalThis.fetch;
-globalThis.fetch = async (u, o) => String(u).includes("job_ingest") ? new Response(JSON.stringify([{ created_at: "2026-10-26T14:00:00Z" }]), { status: 200, headers: { "content-type": "application/json" } }) : new Response("[]", { status: 200 });
+// the live feed's own refresh reaches them through lastLivePullAt (lib/asOf.js): a pull ten minutes old and a sales date that differs from it (Oct 31 2026: never one date for both)
+globalThis.fetch = async (u, o) => String(u).includes("job_ingest") ? new Response(JSON.stringify([{ created_at: "2026-10-26T14:00:00Z" }]), { status: 200, headers: { "content-type": "application/json" } }) : String(u).includes("pull_live") ? new Response(JSON.stringify([{ created_at: new Date(Date.now() - 10 * 60e3).toISOString() }]), { status: 200, headers: { "content-type": "application/json" } }) : new Response("[]", { status: 200 });
 const call = async (mod, url) => { const { default: h } = await import(pathToFileURL(path.join(ROOT, "api", mod + ".js")).href);
   return await new Promise(resolve => { const res = { setHeader() {}, getHeader() {}, status(c) { res.code = c; return res; }, json(b) { resolve(JSON.stringify(b)); }, send(b) { resolve(String(b)); }, end() { resolve(""); } };
     Promise.resolve(h({ method: "GET", url, query: {}, headers: { host: "goasksam.com", cookie: "" }, socket: {} }, res)).catch(e => resolve("ERR " + e)); setTimeout(() => resolve(""), 15000); }); };
 const PAGES = {
-  home: { html: await call("home", "/"), label: "Describe the car you want", fresh: "Live auctions and completed sales, updated Oct 26, 2026.", ex: ["A 1965 Chevrolet Corvette within 500 miles of Chicago", "A manual 911 under $80,000", "Low mile E46 M3, no modifications"] },
-  find: { html: await call("buy", "/find"), label: "Describe the car you want", fresh: "Live auctions \u00b7 Updated Oct 26, 2026", ex: ["A 1965 Chevrolet Corvette within 500 miles of Chicago", "A manual 911 under $80,000", "Low mile E46 M3, no modifications"] },
+  home: { html: await call("home", "/"), label: "Describe the car you want", fresh: "Live auctions now. Sales to Oct 26, 2026.", ex: ["A 1965 Chevrolet Corvette within 500 miles of Chicago", "A manual 911 under $80,000", "Low mile E46 M3, no modifications"] },
+  find: { html: await call("buy", "/find"), label: "Describe the car you want", fresh: "Live auctions now. Sales to Oct 26, 2026.", ex: ["A 1965 Chevrolet Corvette within 500 miles of Chicago", "A manual 911 under $80,000", "Low mile E46 M3, no modifications"] },
   mc: { html: await call("marketCheck", "/market-check"), label: "Describe the car or paste a VIN", fresh: "Completed sales \u00b7 Updated Oct 26, 2026", ex: ["1995 Porsche 911 Carrera", "2001 BMW M3, manual", "Or paste a VIN"] },
   sell: { html: await call("sellNext", "/api/sellNext"), label: "Describe the car you are selling or paste a VIN", fresh: "Auction data \u00b7 Updated Oct 26, 2026", ex: ["2004 Porsche 911 Carrera", "2006 BMW M5", "Or paste a VIN"] }
 };
@@ -54,8 +55,8 @@ ok(/window\.GAS_UPDATED=\$\{JSON\.stringify\(updated \? shortDate\(updated\) : "
   ok(sellsForCardHtml(d, { updated: "Oct 26, 2026" }).includes("Updated Oct 26, 2026."), "the card footer prints the ingest date it is handed");
   ok(!/Updated/.test(sellsForCardHtml(d, {})) && !/Oct 27/.test(sellsForCardHtml(d, {})), "the card footer prints no date when it is handed none (the read time, 20:33 Pacific on the 26th, is UTC the 27th, and is not shown)"); }
 // with no readable date the line prints without one (the fallback is in each page's source, lib/asOf.js returns null when the ingest row cannot be read)
-ok(/updated \? `Live auctions \\u00b7 Updated \$\{shortDate\(updated\)\}` : "Live auctions"/.test(src("find")), "find: with no readable date the line prints 'Live auctions' with no date");
-ok(/: "Live auctions and completed sales\."/.test(src("home")), "home: with no readable date the line prints 'Live auctions and completed sales.' with no date");
+ok(/liveSalesLine\(/.test(src("find")) && /liveSalesLine\(/.test(src("home")), "find and home: the line is the two facts from lib/asOf.js (the live feed's own refresh, the sales date), never one date for both");
+ok(/liveSalesWords\(null, null\)/.test(src("home")) && /liveSalesWords\(null, updated\)/.test(src("find")), "find and home: with nothing readable the line makes no claim about the live cars (scripts/liveSalesDatesCheck.mjs renders it)");
 ok(/"Completed sales" \+ \(updated \?/.test(src("mc")) && /"Auction data" \+ \(updated \?/.test(src("sell")), "mc and sell: with no readable date the line prints without one");
 
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
