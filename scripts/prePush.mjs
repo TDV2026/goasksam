@@ -1703,6 +1703,12 @@ try {
   record("engine: a stored hit answers before its share snapshot is written, and the link waits for its row (scripts/snapshotAfterResponseCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/coldResolverCheck.mjs", { encoding: "utf8", timeout: 60000 });
+  record("engine: a cold instance loads the resolver tables once and together, and a table past its window never holds a car (scripts/coldResolverCheck.mjs)", "PASS", (out.match(/coldResolverCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: a cold instance loads the resolver tables once and together, and a table past its window never holds a car (scripts/coldResolverCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/exactYearParallelCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("engine: a car with a trim reads its exact-year line beside the first answer, not after it (scripts/exactYearParallelCheck.mjs)", "PASS", (out.match(/exactYearParallelCheck: .*/) || [""])[0]);
 } catch (e) {

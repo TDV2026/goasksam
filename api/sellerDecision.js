@@ -3,7 +3,7 @@ import { isNum } from "../lib/_num.js";
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { countNoun } from "../lib/countNoun.js";
 import { unusedFieldsFor } from "../lib/live/unusedWords.js";
-import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
+import { resolveVehicle, sanitizeResolvedVehicle, primeResolver } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
 import { mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, priceBandForVehicle, listSalesForVehicle, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
 import { timedShareId } from "../lib/shareId.js";
@@ -2881,6 +2881,7 @@ async function handler(req, res) {
   // bounded (FX_WAIT_MS, 6 s): this read ran before every deadline and, on a stalled connection, held the request to
   // Vercel's 60 s kill. On a stall the load keeps going in the background and arms the instance for the next request;
   // this request converts on the static table, as every request did before dated FX existed.
+  if (req.body?.oneBox && !req.body?.oneBoxProof) primeResolver({ supabaseUrl, supabaseKey }, { needNames: !(req.body?.car && typeof req.body.car === "object" && req.body.car.vehicle) });   // cold resolver: the name and generation tables load beside the exchange rates, not after them
   try { await Promise.race([ensureFxReady({ supabaseUrl, supabaseKey }), new Promise(r => setTimeout(r, Number(process.env.FX_WAIT_MS || 6000)))]); } catch (e) {}
   // One Box empty-state proof line: recent real sales for the storefront. Archive-only,
   // no OCD, no gate, no car needed -> answered before every other check.
