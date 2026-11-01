@@ -233,6 +233,7 @@ h2.car-name{font-size:22px;margin:0 0 2px}
 #view-b .mny input{padding-left:26px;font-variant-numeric:tabular-nums}
 #view-b .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 #view-b .hint{font-size:13px;color:var(--ink2);margin-top:6px}
+#view-b .bpick{margin:14px 0 0}
 #view-b .rel{font-size:13px;font-weight:600;margin-top:6px;color:#1F3D2B;min-height:18px}
 #view-b #b-out.sam{background:#F4F1EA;color:#1C2A22;border-radius:14px;padding:22px;position:sticky;top:16px;--sam-ink:#1C2A22;--sam-rule:#DAD5C8;--sam-band:#BFD8C6;--sam-bg:#F4F1EA}
 #view-b #b-out.plain{padding:0}
@@ -518,9 +519,9 @@ const JS = String.raw`
     var b = e.target.closest && e.target.closest("[data-idopt]"); if (!b) return;
     var slot = b.getAttribute("data-idopt"), key = b.getAttribute("data-key"), val = b.getAttribute("data-val"), st = idState[slot]; if (!st) return;
     st.chosen = val ? { key: key, value: val } : null; st.refining = true;
-    var send = { q: st.q }; if (val) { send.refine = {}; send.refine[key] = val; }
+    var send = { q: st.q || CAR }; if (val) { send.refine = {}; send.refine[key] = val; }
     if (slot === "a") return runA(send);
-    if (slot === "b") { $("b-out").innerHTML = '<p class="loading">${reasonLine("cold.reading")}</p>'; return run("b", send, gotB); }
+    if (slot === "b") { bSend = send; $("b-out").innerHTML = '<p class="loading">${reasonLine("cold.reading")}</p>'; return bRead(false); }
     if (slot === "c") return run("c", D ? Object.assign({ vin: D.vin, prices: { item_price: D.price } }, send) : send, drawListing);
   });
   // ---- view a: before listing
@@ -551,9 +552,11 @@ const JS = String.raw`
   // The page's first read: views b and c send the SAME body, so they share one read (ask() keys on it). The listing car carries its price as item_price; the order is newest first.
   function plainBody(){ var b = { q: CAR }; if (D) b.vin = D.vin; b.order = "date"; if (D) b.prices = { item_price: D.price }; return b; }
   var bTouched = false;
+  // The engine's own choice (a body, trim, gearbox or model option it offered) rides with everything the visitor typed: the choice never drops a price, the mileage or the order.
+  var bSend = null;
   function bBody(){
-    if (!bTouched) return plainBody();
-    var body = { q: CAR }; if (D) body.vin = D.vin;
+    if (!bTouched && !bSend) return plainBody();
+    var body = { q: CAR }; if (bSend) { for (var sk in bSend) body[sk] = bSend[sk]; } if (D) body.vin = D.vin;
     var mi = wholeOf($("b-miles").value); if (mi) body.mileage = mi;
     body.order = bOrder || (mi ? "miles" : "date");
     var pr = {}; B_KEYS[bFmt()].forEach(function(k){ var n = wholeOf($("b-" + k[0]).value); if (n) pr[k[1]] = n; });
@@ -578,7 +581,7 @@ const JS = String.raw`
   function drawB(){
     var a = bAns, out = $("b-out"); if (!a) return;
     ["start", "reserve", "bin", "price"].forEach(function(id){ var e = document.querySelector('.rel[data-for="' + id + '"]'); if (e) e.textContent = ""; });
-    if (a.question || a.ok === false || !a.range) { out.className = "plain"; out.innerHTML = rangePanel(a, { slot: "b" }); return; }
+    if (a.question || a.ok === false || !a.range) { out.className = "plain"; out.innerHTML = rangePanel(a, { slot: "b" }) + (a.question ? "" : pickHtml()); return; }   // a car the engine reads as separate markets (coupes and cabriolets) has no one range: the engine's own choice is offered, and the typed prices go with it
     out.className = "sam";
     var keys = B_KEYS[bFmt()], got = a.positions || [], sp = a.span;
     var geo = function(v){ return sp ? "clamp(0%, calc(" + ((v - sp.low) / (sp.high - sp.low) * 100).toFixed(2) + "%), 100%)" : null; };   // layout only: where a figure falls on the bar's own ends; CSS clamps it to the bar
@@ -594,8 +597,9 @@ const JS = String.raw`
     if (!legend && !got.length && !hasTyped()) legend = '<li><span class="empty">Type a price and Sam shows where it sits against the range.</span></li>';
     var bar = sp ? '<div class="bar" aria-hidden="true"><div class="mid" style="left:' + geo(a.range.low) + ";width:calc(" + geo(a.range.high) + " - " + geo(a.range.low) + ')"></div>' + marks + '</div><div class="ends"><span>Lowest sale ' + usd(sp.low) + "</span><span>Highest sale " + usd(sp.high) + "</span></div>" : "";
     out.innerHTML = "<h3>What these sell for</h3>" + '<div class="car">' + esc(nameOf(a) || CAR) + '</div><div class="range">' + usd(a.range.low) + " to " + usd(a.range.high) + '</div><div class="cap">The middle half of completed sales</div>' + bar +
-      (legend ? '<ul class="legend">' + legend + "</ul>" : "") + bSales(a) + '<div class="foot"><strong>Powered by GoAskSam</strong><span>How Sam decides</span></div>';
+      (legend ? '<ul class="legend">' + legend + "</ul>" : "") + bSales(a) + '<div class="foot"><strong>Powered by GoAskSam</strong><span>How Sam decides</span></div>' + (idState.b && idState.b.chosen ? pickHtml() : "");
   }
+  function pickHtml(){ var h = linesHtml("b"); return h ? '<div class="bpick">' + h + "</div>" : ""; }
   function hasTyped(){ return B_KEYS[bFmt()].some(function(k){ return wholeOf($("b-" + k[0]).value); }); }
   function bFormat(){
     var f = bFmt(); $("b-auction").hidden = f !== "auction"; $("b-fixed").hidden = f !== "fixed";
@@ -638,7 +642,7 @@ const JS = String.raw`
     var b = e.target.closest && e.target.closest("[data-send]"); if (!b) return;
     var send = JSON.parse(b.getAttribute("data-send")), slot = b.getAttribute("data-slot");
     if (slot === "a") return runA(send);
-    if (slot === "b") { $("b-out").innerHTML = '<p class="loading">${reasonLine("cold.reading")}</p>'; return run("b", send, gotB); }
+    if (slot === "b") { bSend = send; $("b-out").innerHTML = '<p class="loading">${reasonLine("cold.reading")}</p>'; return bRead(false); }
     if (slot === "c") return run("c", D ? Object.assign({ vin: D.vin, prices: { item_price: D.price } }, send) : send, drawListing);
   });
   document.addEventListener("click", function(e){ if (e.target && e.target.id === "a-list") e.preventDefault(); });   // the demo's List it does nothing
